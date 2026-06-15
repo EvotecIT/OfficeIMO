@@ -156,6 +156,43 @@ public sealed class RtfParagraph : IRtfBlock {
         return field;
     }
 
+    /// <summary>Adds a generated text marker at the current paragraph position.</summary>
+    public RtfGeneratedText AddGeneratedText(RtfGeneratedTextKind kind, string? fallbackText = null) {
+        var generatedText = new RtfGeneratedText(kind, fallbackText);
+        AddGeneratedText(generatedText);
+        return generatedText;
+    }
+
+    /// <summary>Adds a generated current page number marker.</summary>
+    public RtfGeneratedText AddPageNumber(string? fallbackText = null) {
+        return AddGeneratedText(RtfGeneratedTextKind.PageNumber, fallbackText);
+    }
+
+    /// <summary>Adds a generated current section number marker.</summary>
+    public RtfGeneratedText AddSectionNumber(string? fallbackText = null) {
+        return AddGeneratedText(RtfGeneratedTextKind.SectionNumber, fallbackText);
+    }
+
+    /// <summary>Adds a generated current date marker.</summary>
+    public RtfGeneratedText AddCurrentDate(string? fallbackText = null) {
+        return AddGeneratedText(RtfGeneratedTextKind.CurrentDate, fallbackText);
+    }
+
+    /// <summary>Adds a generated current date marker in long format.</summary>
+    public RtfGeneratedText AddCurrentDateLong(string? fallbackText = null) {
+        return AddGeneratedText(RtfGeneratedTextKind.CurrentDateLong, fallbackText);
+    }
+
+    /// <summary>Adds a generated current date marker in abbreviated format.</summary>
+    public RtfGeneratedText AddCurrentDateAbbreviated(string? fallbackText = null) {
+        return AddGeneratedText(RtfGeneratedTextKind.CurrentDateAbbreviated, fallbackText);
+    }
+
+    /// <summary>Adds a generated current time marker.</summary>
+    public RtfGeneratedText AddCurrentTime(string? fallbackText = null) {
+        return AddGeneratedText(RtfGeneratedTextKind.CurrentTime, fallbackText);
+    }
+
     /// <summary>Adds an embedded or linked object at the current paragraph position.</summary>
     public RtfObject AddObject(RtfObjectKind kind = RtfObjectKind.Unknown, byte[]? data = null) {
         var rtfObject = new RtfObject(kind, data);
@@ -238,6 +275,10 @@ public sealed class RtfParagraph : IRtfBlock {
         _inlines.Add(field ?? throw new ArgumentNullException(nameof(field)));
     }
 
+    internal void AddGeneratedText(RtfGeneratedText generatedText) {
+        _inlines.Add(generatedText ?? throw new ArgumentNullException(nameof(generatedText)));
+    }
+
     internal void AddObject(RtfObject rtfObject) {
         _inlines.Add(rtfObject ?? throw new ArgumentNullException(nameof(rtfObject)));
     }
@@ -267,6 +308,9 @@ public sealed class RtfParagraph : IRtfBlock {
                 break;
             case RtfField field:
                 AddField(field);
+                break;
+            case RtfGeneratedText generatedText:
+                AddGeneratedText(new RtfGeneratedText(generatedText.Kind, generatedText.FallbackText));
                 break;
             case RtfObject rtfObject:
                 AddObject(rtfObject);
@@ -473,6 +517,9 @@ public sealed class RtfParagraph : IRtfBlock {
                     break;
                 case RtfField field:
                     builder.Append(field.ToPlainText());
+                    break;
+                case RtfGeneratedText generatedText:
+                    builder.Append(generatedText.ToPlainText());
                     break;
                 case RtfObject rtfObject:
                     builder.Append(rtfObject.ToPlainText());

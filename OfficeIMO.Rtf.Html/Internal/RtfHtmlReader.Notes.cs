@@ -98,6 +98,9 @@ internal static partial class RtfHtmlReader {
                     copiedField.FormFieldData = field.FormFieldData;
                     CopyParagraphInlines(field.Result, copiedField.Result, sourceDocument);
                     break;
+                case RtfGeneratedText generatedText:
+                    target.AddGeneratedText(generatedText.Kind, generatedText.FallbackText);
+                    break;
                 case RtfImage image:
                     RtfImage copiedImage = target.AddImage(image.Format, image.Data);
                     copiedImage.Description = image.Description;

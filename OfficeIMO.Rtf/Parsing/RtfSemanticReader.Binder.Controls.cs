@@ -134,6 +134,24 @@ internal static partial class RtfSemanticReader {
                 case "tab":
                     AppendText("\t", state);
                     return;
+                case "chpgn":
+                    AppendGeneratedText(RtfGeneratedTextKind.PageNumber, state);
+                    return;
+                case "sectnum":
+                    AppendGeneratedText(RtfGeneratedTextKind.SectionNumber, state);
+                    return;
+                case "chdate":
+                    AppendGeneratedText(RtfGeneratedTextKind.CurrentDate, state);
+                    return;
+                case "chdpl":
+                    AppendGeneratedText(RtfGeneratedTextKind.CurrentDateLong, state);
+                    return;
+                case "chdpa":
+                    AppendGeneratedText(RtfGeneratedTextKind.CurrentDateAbbreviated, state);
+                    return;
+                case "chtime":
+                    AppendGeneratedText(RtfGeneratedTextKind.CurrentTime, state);
+                    return;
                 case "emdash":
                 case "endash":
                 case "emspace":

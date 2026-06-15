@@ -148,6 +148,29 @@ public partial class RtfDocumentReadWriteTests {
     }
 
     [Fact]
+    public void Read_Binds_Generated_Text_Controls_And_Preserves_Source_Losslessly() {
+        const string rtf = @"{\rtf1\ansi\pard Page \chpgn Section \sectnum Date \chdate Long \chdpl Short \chdpa Time \chtime\par}";
+
+        RtfReadResult result = RtfDocument.Read(rtf);
+
+        Assert.Equal(rtf, result.ToRtfLossless());
+        RtfParagraph paragraph = Assert.Single(result.Document.Paragraphs);
+        Assert.Collection(paragraph.Inlines,
+            inline => Assert.Equal("Page ", Assert.IsType<RtfRun>(inline).Text),
+            inline => Assert.Equal(RtfGeneratedTextKind.PageNumber, Assert.IsType<RtfGeneratedText>(inline).Kind),
+            inline => Assert.Equal("Section ", Assert.IsType<RtfRun>(inline).Text),
+            inline => Assert.Equal(RtfGeneratedTextKind.SectionNumber, Assert.IsType<RtfGeneratedText>(inline).Kind),
+            inline => Assert.Equal("Date ", Assert.IsType<RtfRun>(inline).Text),
+            inline => Assert.Equal(RtfGeneratedTextKind.CurrentDate, Assert.IsType<RtfGeneratedText>(inline).Kind),
+            inline => Assert.Equal("Long ", Assert.IsType<RtfRun>(inline).Text),
+            inline => Assert.Equal(RtfGeneratedTextKind.CurrentDateLong, Assert.IsType<RtfGeneratedText>(inline).Kind),
+            inline => Assert.Equal("Short ", Assert.IsType<RtfRun>(inline).Text),
+            inline => Assert.Equal(RtfGeneratedTextKind.CurrentDateAbbreviated, Assert.IsType<RtfGeneratedText>(inline).Kind),
+            inline => Assert.Equal("Time ", Assert.IsType<RtfRun>(inline).Text),
+            inline => Assert.Equal(RtfGeneratedTextKind.CurrentTime, Assert.IsType<RtfGeneratedText>(inline).Kind));
+    }
+
+    [Fact]
     public void Read_Binds_Generic_Field_In_Inline_Order_With_Rich_Result_And_Preserves_Source_Losslessly() {
         const string rtf = @"{\rtf1\ansi\pard Page {\field{\*\fldinst PAGE \\* MERGEFORMAT}{\fldrslt {\b 1}}} done\par}";
 

@@ -253,6 +253,9 @@ internal static partial class RtfHtmlWriter {
                 case RtfField field:
                     AppendField(builder, field, options, document);
                     break;
+                case RtfGeneratedText generatedText:
+                    AppendGeneratedText(builder, generatedText);
+                    break;
                 case RtfImage image:
                     AppendImage(builder, image, options);
                     break;

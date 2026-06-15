@@ -30,6 +30,9 @@ internal static partial class RtfPdfConverter {
                 case RtfField field:
                     AppendParagraphRuns(document, field.Result, pendingRuns, options, state);
                     break;
+                case RtfGeneratedText generatedText:
+                    AppendPlainText(generatedText.ToPlainText(), pendingRuns);
+                    break;
                 case RtfImage image:
                     FlushParagraph(pdf, pendingRuns, align, style);
                     emitted = true;
@@ -74,6 +77,9 @@ internal static partial class RtfPdfConverter {
                     break;
                 case RtfField field:
                     AppendParagraphRuns(document, field.Result, runs, options, state, collectNotes);
+                    break;
+                case RtfGeneratedText generatedText:
+                    AppendPlainText(generatedText.ToPlainText(), runs);
                     break;
                 case RtfObject rtfObject:
                     AppendPlainText(rtfObject.ToPlainText(), runs);

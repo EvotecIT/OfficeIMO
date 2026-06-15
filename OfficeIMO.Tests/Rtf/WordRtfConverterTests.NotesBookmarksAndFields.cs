@@ -162,6 +162,28 @@ public partial class WordRtfConverterTests {
     }
 
     [Fact]
+    public void Rtf_To_Word_Bridge_Degrades_Generated_Text_To_Fields() {
+        RtfDocument rtfDocument = RtfDocument.Create();
+        RtfParagraph paragraph = rtfDocument.AddParagraph("Page ");
+        paragraph.AddPageNumber("1");
+        paragraph.AddText(" Section ");
+        paragraph.AddSectionNumber("2");
+
+        using WordDocument word = rtfDocument.ToWordDocument();
+
+        List<SimpleField> fields = word._document.Body!.Descendants<SimpleField>().ToList();
+        Assert.Collection(fields,
+            field => {
+                Assert.Equal("PAGE", field.Instruction?.Value);
+                Assert.Equal("1", string.Concat(field.Descendants<Text>().Select(text => text.Text)));
+            },
+            field => {
+                Assert.Equal("SECTION", field.Instruction?.Value);
+                Assert.Equal("2", string.Concat(field.Descendants<Text>().Select(text => text.Text)));
+            });
+    }
+
+    [Fact]
     public void Rtf_To_Word_Bridge_Carries_GenericFields_As_SimpleFields() {
         RtfDocument rtfDocument = RtfDocument.Create();
         RtfParagraph paragraph = rtfDocument.AddParagraph("Page ");

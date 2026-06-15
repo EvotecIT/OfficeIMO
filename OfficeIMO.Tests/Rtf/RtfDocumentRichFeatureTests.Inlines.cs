@@ -176,6 +176,47 @@ public partial class RtfDocumentRichFeatureTests {
     }
 
     [Fact]
+    public void Write_And_Read_Generated_Text_Controls() {
+        RtfDocument document = RtfDocument.Create();
+        RtfParagraph paragraph = document.AddParagraph("Page ");
+        paragraph.AddPageNumber();
+        paragraph.AddText(" Section ");
+        paragraph.AddSectionNumber();
+        paragraph.AddText(" Date ");
+        paragraph.AddCurrentDate();
+        paragraph.AddText(" Long ");
+        paragraph.AddCurrentDateLong();
+        paragraph.AddText(" Short ");
+        paragraph.AddCurrentDateAbbreviated();
+        paragraph.AddText(" Time ");
+        paragraph.AddCurrentTime();
+
+        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        RtfReadResult read = RtfDocument.Read(rtf);
+
+        Assert.Contains(@"\chpgn", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\sectnum", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\chdate", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\chdpl", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\chdpa", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\chtime", rtf, StringComparison.Ordinal);
+        RtfParagraph readParagraph = Assert.Single(read.Document.Paragraphs);
+        Assert.Collection(readParagraph.Inlines,
+            inline => Assert.Equal("Page ", Assert.IsType<RtfRun>(inline).Text),
+            inline => Assert.Equal(RtfGeneratedTextKind.PageNumber, Assert.IsType<RtfGeneratedText>(inline).Kind),
+            inline => Assert.Equal(" Section ", Assert.IsType<RtfRun>(inline).Text),
+            inline => Assert.Equal(RtfGeneratedTextKind.SectionNumber, Assert.IsType<RtfGeneratedText>(inline).Kind),
+            inline => Assert.Equal(" Date ", Assert.IsType<RtfRun>(inline).Text),
+            inline => Assert.Equal(RtfGeneratedTextKind.CurrentDate, Assert.IsType<RtfGeneratedText>(inline).Kind),
+            inline => Assert.Equal(" Long ", Assert.IsType<RtfRun>(inline).Text),
+            inline => Assert.Equal(RtfGeneratedTextKind.CurrentDateLong, Assert.IsType<RtfGeneratedText>(inline).Kind),
+            inline => Assert.Equal(" Short ", Assert.IsType<RtfRun>(inline).Text),
+            inline => Assert.Equal(RtfGeneratedTextKind.CurrentDateAbbreviated, Assert.IsType<RtfGeneratedText>(inline).Kind),
+            inline => Assert.Equal(" Time ", Assert.IsType<RtfRun>(inline).Text),
+            inline => Assert.Equal(RtfGeneratedTextKind.CurrentTime, Assert.IsType<RtfGeneratedText>(inline).Kind));
+    }
+
+    [Fact]
     public void Write_And_Read_Tab_Stops_And_Tab_Text() {
         RtfDocument document = RtfDocument.Create();
         RtfParagraph paragraph = document.AddParagraph();

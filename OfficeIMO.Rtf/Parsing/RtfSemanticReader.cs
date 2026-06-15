@@ -305,6 +305,11 @@ internal static partial class RtfSemanticReader {
             _currentParagraph.AddRun(run);
         }
 
+        private void AppendGeneratedText(RtfGeneratedTextKind kind, CharacterState state) {
+            ApplyParagraphState(_currentParagraph, state);
+            _currentParagraph.AddGeneratedText(kind);
+        }
+
         private static void ApplyParagraphState(RtfParagraph paragraph, CharacterState state) {
             paragraph.Alignment = state.Alignment;
             paragraph.Direction = state.ParagraphDirection;

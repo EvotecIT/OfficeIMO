@@ -254,6 +254,9 @@ public static partial class WordRtfConverterExtensions {
                     RtfField field = destination.AddField(nestedField.Instruction);
                     CopyInlines(nestedField.Result, field.Result);
                     break;
+                case RtfGeneratedText generatedText:
+                    destination.AddGeneratedText(generatedText.Kind, generatedText.FallbackText);
+                    break;
                 case RtfImage image:
                     RtfImage copy = destination.AddImage(image.Format, image.Data);
                     CopyImage(image, copy);
@@ -449,6 +452,11 @@ public static partial class WordRtfConverterExtensions {
                 continue;
             }
 
+            if (inline is RtfGeneratedText generatedText) {
+                AppendGeneratedText(wordParagraph, generatedText, rtfDocument);
+                continue;
+            }
+
             if (inline is RtfBreak rtfBreak) {
                 wordParagraph.AddBreak(ToWordBreakKind(rtfBreak.Kind));
                 continue;
@@ -485,6 +493,30 @@ public static partial class WordRtfConverterExtensions {
             if (run.Note != null) {
                 AppendNote(wordRun, run.Note, rtfDocument);
             }
+        }
+    }
+
+    private static void AppendGeneratedText(WordParagraph wordParagraph, RtfGeneratedText generatedText, RtfDocument? rtfDocument) {
+        var field = new RtfField(ToWordFieldInstruction(generatedText.Kind));
+        if (!string.IsNullOrEmpty(generatedText.FallbackText)) {
+            field.AddText(generatedText.FallbackText!);
+        }
+
+        AppendField(wordParagraph, field, rtfDocument);
+    }
+
+    private static string ToWordFieldInstruction(RtfGeneratedTextKind kind) {
+        switch (kind) {
+            case RtfGeneratedTextKind.SectionNumber:
+                return "SECTION";
+            case RtfGeneratedTextKind.CurrentDate:
+            case RtfGeneratedTextKind.CurrentDateLong:
+            case RtfGeneratedTextKind.CurrentDateAbbreviated:
+                return "DATE";
+            case RtfGeneratedTextKind.CurrentTime:
+                return "TIME";
+            default:
+                return "PAGE";
         }
     }
 

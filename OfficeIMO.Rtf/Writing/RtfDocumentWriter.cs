@@ -667,6 +667,9 @@ internal static partial class RtfDocumentWriter {
             case RtfField field:
                 WriteField(builder, field, defaultLanguageId, unicodeSkipCount);
                 break;
+            case RtfGeneratedText generatedText:
+                WriteGeneratedText(builder, generatedText);
+                break;
             case RtfBreak rtfBreak:
                 WriteBreak(builder, rtfBreak);
                 break;
@@ -692,6 +695,17 @@ internal static partial class RtfDocumentWriter {
             RtfBreakKind.SoftPage => @"\softpage ",
             RtfBreakKind.Column => @"\column ",
             _ => @"\line "
+        });
+    }
+
+    private static void WriteGeneratedText(StringBuilder builder, RtfGeneratedText generatedText) {
+        builder.Append(generatedText.Kind switch {
+            RtfGeneratedTextKind.SectionNumber => @"\sectnum ",
+            RtfGeneratedTextKind.CurrentDate => @"\chdate ",
+            RtfGeneratedTextKind.CurrentDateLong => @"\chdpl ",
+            RtfGeneratedTextKind.CurrentDateAbbreviated => @"\chdpa ",
+            RtfGeneratedTextKind.CurrentTime => @"\chtime ",
+            _ => @"\chpgn "
         });
     }
 

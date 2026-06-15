@@ -58,6 +58,33 @@ public class RtfHtmlFieldTests {
     }
 
     [Fact]
+    public void Html_RoundTrips_Generated_Text_Metadata() {
+        RtfDocument document = RtfDocument.Create();
+        RtfParagraph paragraph = document.AddParagraph("Page ");
+        paragraph.AddPageNumber();
+        paragraph.AddText(" Section ");
+        paragraph.AddSectionNumber();
+        paragraph.AddText(" Date ");
+        paragraph.AddCurrentDate();
+        paragraph.AddText(" Time ");
+        paragraph.AddCurrentTime();
+
+        string html = document.ToHtml();
+
+        Assert.Equal("<p>Page <span data-officeimo-rtf-generated-text=\"page-number\"></span> Section <span data-officeimo-rtf-generated-text=\"section-number\"></span> Date <span data-officeimo-rtf-generated-text=\"current-date\"></span> Time <span data-officeimo-rtf-generated-text=\"current-time\"></span></p>", html);
+        RtfParagraph roundTrip = Assert.Single(html.LoadFromHtml().Paragraphs);
+        Assert.Collection(roundTrip.Inlines,
+            inline => Assert.Equal("Page ", Assert.IsType<RtfRun>(inline).Text),
+            inline => Assert.Equal(RtfGeneratedTextKind.PageNumber, Assert.IsType<RtfGeneratedText>(inline).Kind),
+            inline => Assert.Equal(" Section ", Assert.IsType<RtfRun>(inline).Text),
+            inline => Assert.Equal(RtfGeneratedTextKind.SectionNumber, Assert.IsType<RtfGeneratedText>(inline).Kind),
+            inline => Assert.Equal(" Date ", Assert.IsType<RtfRun>(inline).Text),
+            inline => Assert.Equal(RtfGeneratedTextKind.CurrentDate, Assert.IsType<RtfGeneratedText>(inline).Kind),
+            inline => Assert.Equal(" Time ", Assert.IsType<RtfRun>(inline).Text),
+            inline => Assert.Equal(RtfGeneratedTextKind.CurrentTime, Assert.IsType<RtfGeneratedText>(inline).Kind));
+    }
+
+    [Fact]
     public void Html_ToRtfDocument_DoesNot_Preserve_Field_Span_As_Unknown_Text() {
         const string html = "<p><span data-officeimo-rtf-field=\"true\" data-officeimo-rtf-field-instruction=\"PAGE\">1</span></p>";
 

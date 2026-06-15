@@ -65,6 +65,10 @@ internal static partial class RtfHtmlReader {
                 return;
             }
 
+            if (TryReadGeneratedText(token)) {
+                return;
+            }
+
             bool startedField = TryStartField(token);
             if (!startedField) {
                 EnterFieldElement();
