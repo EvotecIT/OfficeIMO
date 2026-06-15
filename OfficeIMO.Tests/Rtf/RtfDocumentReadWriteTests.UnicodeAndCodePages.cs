@@ -68,9 +68,7 @@ public partial class RtfDocumentReadWriteTests {
         RtfReadResult result = RtfDocument.Read(rtf);
 
         Assert.Equal("ż Title", result.Document.Info.Title);
-        RtfRun run = Assert.Single(Assert.Single(result.Document.Paragraphs).Runs);
-        Assert.Equal("ż Link", run.Text);
-        Assert.Equal(new Uri("https://example.test"), run.Hyperlink);
+        AssertSingleHyperlinkField(Assert.Single(result.Document.Paragraphs), "ż Link");
     }
 
     [Fact]
@@ -80,9 +78,7 @@ public partial class RtfDocumentReadWriteTests {
         RtfReadResult result = RtfDocument.Read(rtf);
 
         Assert.Equal("ż Nested ż! After", result.Document.Info.Title);
-        RtfRun run = Assert.Single(Assert.Single(result.Document.Paragraphs).Runs);
-        Assert.Equal("ż Nested ż! Link", run.Text);
-        Assert.Equal(new Uri("https://example.test"), run.Hyperlink);
+        AssertSingleHyperlinkField(Assert.Single(result.Document.Paragraphs), "ż Nested ż! Link");
     }
 
     [Fact]
@@ -94,9 +90,7 @@ public partial class RtfDocumentReadWriteTests {
         Assert.Equal(rtf, result.ToRtfLossless());
         Assert.Equal("ż title", result.Document.Info.Title);
         Assert.Equal("ż body", result.Document.Paragraphs[0].ToPlainText());
-        RtfRun run = Assert.Single(result.Document.Paragraphs[1].Runs);
-        Assert.Equal("ż link", run.Text);
-        Assert.Equal(new Uri("https://example.test"), run.Hyperlink);
+        AssertSingleHyperlinkField(result.Document.Paragraphs[1], "ż link");
     }
 
     [Fact]
@@ -108,9 +102,7 @@ public partial class RtfDocumentReadWriteTests {
         Assert.Equal(rtf, result.ToRtfLossless());
         Assert.Equal("Smile 😀", result.Document.Info.Title);
         Assert.Equal("Body 😀", result.Document.Paragraphs[0].ToPlainText());
-        RtfRun run = Assert.Single(result.Document.Paragraphs[1].Runs);
-        Assert.Equal("Link 😀", run.Text);
-        Assert.Equal(new Uri("https://example.test"), run.Hyperlink);
+        AssertSingleHyperlinkField(result.Document.Paragraphs[1], "Link 😀");
     }
 
     [Fact]
@@ -122,9 +114,7 @@ public partial class RtfDocumentReadWriteTests {
         Assert.Equal(rtf, result.ToRtfLossless());
         Assert.Equal("A–B—C ‘quote’ “double” •", result.Document.Info.Title);
         Assert.Equal("A–B—C ‘quote’ “double” •", result.Document.Paragraphs[0].ToPlainText());
-        RtfRun run = Assert.Single(result.Document.Paragraphs[1].Runs);
-        Assert.Equal("Link–•", run.Text);
-        Assert.Equal(new Uri("https://example.test"), run.Hyperlink);
+        AssertSingleHyperlinkField(result.Document.Paragraphs[1], "Link–•");
     }
 
     [Fact]
@@ -166,5 +156,12 @@ public partial class RtfDocumentReadWriteTests {
         RtfField readField = Assert.Single(readParagraph.Inlines.OfType<RtfField>());
         Assert.Equal(specialText, readField.ToPlainText());
         Assert.Equal(specialText, string.Concat(readField.Result.Runs.Where(run => run.Italic).Select(run => run.Text)));
+    }
+
+    private static RtfField AssertSingleHyperlinkField(RtfParagraph paragraph, string expectedText) {
+        RtfField field = Assert.Single(paragraph.Inlines.OfType<RtfField>());
+        Assert.Equal(expectedText, field.ToPlainText());
+        Assert.Equal(new Uri("https://example.test"), field.Hyperlink);
+        return field;
     }
 }

@@ -228,6 +228,27 @@ public partial class RtfDocumentReadWriteTests {
     }
 
     [Fact]
+    public void Read_Binds_Hyperlink_Field_As_Field_With_Parsed_Target_And_Preserves_Source_Losslessly() {
+        const string rtf = @"{\rtf1\ansi\pard See {\field{\*\fldinst HYPERLINK ""https://example.test/path"" \\o ""tip""}{\fldrslt {\b Link}}} now\par}";
+
+        RtfReadResult result = RtfDocument.Read(rtf);
+
+        Assert.Equal(rtf, result.ToRtfLossless());
+        RtfParagraph paragraph = Assert.Single(result.Document.Paragraphs);
+        Assert.Equal("See Link now", paragraph.ToPlainText());
+        Assert.Collection(paragraph.Inlines,
+            inline => Assert.Equal("See ", Assert.IsType<RtfRun>(inline).Text),
+            inline => {
+                RtfField field = Assert.IsType<RtfField>(inline);
+                Assert.Equal(@"HYPERLINK ""https://example.test/path"" \o ""tip""", field.Instruction);
+                Assert.Equal(new Uri("https://example.test/path"), field.Hyperlink);
+                Assert.Equal("Link", field.ToPlainText());
+                Assert.Contains(field.Result.Runs, run => run.Text == "Link" && run.Bold);
+            },
+            inline => Assert.Equal(" now", Assert.IsType<RtfRun>(inline).Text));
+    }
+
+    [Fact]
     public void Write_Emits_Generic_Field_And_Reads_It_Back() {
         RtfDocument document = RtfDocument.Create();
         RtfParagraph paragraph = document.AddParagraph("Page ");
@@ -242,6 +263,26 @@ public partial class RtfDocumentReadWriteTests {
         Assert.Equal(@"PAGE \* MERGEFORMAT", readField.Instruction);
         Assert.Equal("1", readField.ToPlainText());
         Assert.Contains(readField.Result.Runs, run => run.Text == "1" && run.Bold);
+    }
+
+    [Fact]
+    public void Write_Emits_Hyperlink_Field_Without_Nesting_Field_Result() {
+        RtfDocument document = RtfDocument.Create();
+        RtfParagraph paragraph = document.AddParagraph("See ");
+        RtfField field = paragraph.AddField(@"HYPERLINK ""https://example.test/path"" \o ""tip""");
+        field.AddText("Link").SetBold();
+        paragraph.AddText(" now");
+
+        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        RtfReadResult result = RtfDocument.Read(rtf);
+
+        Assert.Contains(@"{\field{\*\fldinst HYPERLINK ""https://example.test/path"" \\o ""tip""}{\fldrslt \b Link\b0 }}", rtf, StringComparison.Ordinal);
+        Assert.Equal(rtf.IndexOf(@"{\field", StringComparison.Ordinal), rtf.LastIndexOf(@"{\field", StringComparison.Ordinal));
+        Assert.DoesNotContain(@"{\fldrslt {\field", rtf, StringComparison.Ordinal);
+        RtfField readField = Assert.IsType<RtfField>(Assert.Single(result.Document.Paragraphs).Inlines[1]);
+        Assert.Equal(new Uri("https://example.test/path"), readField.Hyperlink);
+        Assert.Equal("Link", readField.ToPlainText());
+        Assert.Contains(readField.Result.Runs, run => run.Text == "Link" && run.Bold);
     }
 
     [Fact]

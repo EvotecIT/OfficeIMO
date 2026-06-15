@@ -13,11 +13,6 @@ internal static partial class RtfSemanticReader {
 
             string fieldInstruction = CollectPlainText(instruction, state.AnsiCodePage, state.UnicodeSkipCount).Trim();
             RtfParagraph resultParagraph = ReadInlineParagraph(result, state, depth);
-            Uri? hyperlink = ParseHyperlinkInstruction(fieldInstruction);
-            if (hyperlink != null) {
-                AppendHyperlinkResult(resultParagraph, hyperlink);
-                return true;
-            }
 
             ApplyParagraphState(_currentParagraph, state);
             var field = new RtfField(fieldInstruction);
@@ -113,70 +108,6 @@ internal static partial class RtfSemanticReader {
                 _currentCellIndex = savedCellIndex;
                 _currentParagraphIsInTable = savedParagraphIsInTable;
             }
-        }
-
-        private void AppendHyperlinkResult(RtfParagraph resultParagraph, Uri hyperlink) {
-            RtfRun? previousRun = null;
-            foreach (IRtfInline inline in resultParagraph.Inlines) {
-                if (inline is RtfRun run) {
-                    run.Hyperlink = hyperlink;
-                    if (previousRun != null && CanMergeRuns(previousRun, run)) {
-                        previousRun.Text += run.Text;
-                        continue;
-                    }
-
-                    _currentParagraph.AddRun(run);
-                    previousRun = run;
-                    continue;
-                }
-
-                _currentParagraph.AddInline(inline);
-                previousRun = null;
-            }
-        }
-
-        private static bool CanMergeRuns(RtfRun left, RtfRun right) {
-            return left.Bold == right.Bold &&
-                   left.Italic == right.Italic &&
-                   left.UnderlineStyle == right.UnderlineStyle &&
-                   left.Strike == right.Strike &&
-                   left.DoubleStrike == right.DoubleStrike &&
-                   left.Hidden == right.Hidden &&
-                   left.Outline == right.Outline &&
-                   left.Shadow == right.Shadow &&
-                   left.Emboss == right.Emboss &&
-                   left.Imprint == right.Imprint &&
-                   left.CapsStyle == right.CapsStyle &&
-                   left.VerticalPosition == right.VerticalPosition &&
-                   Nullable.Equals(left.FontSize, right.FontSize) &&
-                   left.FontId == right.FontId &&
-                   left.ForegroundColorIndex == right.ForegroundColorIndex &&
-                   left.HighlightColorIndex == right.HighlightColorIndex &&
-                   left.UnderlineColorIndex == right.UnderlineColorIndex &&
-                   left.CharacterSpacingTwips == right.CharacterSpacingTwips &&
-                   left.CharacterScalePercent == right.CharacterScalePercent &&
-                   left.KerningHalfPoints == right.KerningHalfPoints &&
-                   left.CharacterOffsetHalfPoints == right.CharacterOffsetHalfPoints &&
-                   left.StyleId == right.StyleId &&
-                   Equals(left.Hyperlink, right.Hyperlink) &&
-                   ReferenceEquals(left.Note, right.Note);
-        }
-
-        private static Uri? ParseHyperlinkInstruction(string instruction) {
-            if (!instruction.StartsWith("HYPERLINK", StringComparison.OrdinalIgnoreCase)) {
-                return null;
-            }
-
-            int firstQuote = instruction.IndexOf('"');
-            int lastQuote = instruction.LastIndexOf('"');
-            if (firstQuote >= 0 && lastQuote > firstQuote) {
-                string target = instruction.Substring(firstQuote + 1, lastQuote - firstQuote - 1);
-                return Uri.TryCreate(target, UriKind.RelativeOrAbsolute, out Uri? uri) ? uri : null;
-            }
-
-            string[] parts = instruction.Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length < 2) return null;
-            return Uri.TryCreate(parts[1], UriKind.RelativeOrAbsolute, out Uri? fallback) ? fallback : null;
         }
     }
 }

@@ -102,6 +102,7 @@ internal static partial class RtfHtmlReader {
                     break;
                 case RtfField field:
                     RtfField copiedField = target.AddField(field.Instruction);
+                    copiedField.Hyperlink = field.Hyperlink;
                     copiedField.FormFieldData = field.FormFieldData;
                     CopyParagraphInlines(field.Result, copiedField.Result, sourceDocument);
                     break;

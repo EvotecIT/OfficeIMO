@@ -45,6 +45,22 @@ public class RtfHtmlFieldTests {
     }
 
     [Fact]
+    public void RtfDocument_ToHtml_RoundTrips_Hyperlink_Field_Target_Through_Unified_Bridge() {
+        RtfDocument document = RtfDocument.Create();
+        RtfField field = document.AddParagraph().AddField(@"HYPERLINK ""https://example.test/path"" \o ""tip""");
+        field.AddText("Link").SetBold();
+
+        string html = document.ToHtml();
+
+        Assert.Contains("data-officeimo-rtf-field-instruction=\"HYPERLINK &quot;https://example.test/path&quot; \\o &quot;tip&quot;\"", html, StringComparison.Ordinal);
+        RtfField roundTripField = Assert.IsType<RtfField>(Assert.Single(html.LoadRtfFromHtml().Paragraphs).Inlines[0]);
+        Assert.Equal(@"HYPERLINK ""https://example.test/path"" \o ""tip""", roundTripField.Instruction);
+        Assert.Equal(new Uri("https://example.test/path"), roundTripField.Hyperlink);
+        Assert.Equal("Link", roundTripField.ToPlainText());
+        Assert.Contains(roundTripField.Result.Runs, run => run.Text == "Link" && run.Bold);
+    }
+
+    [Fact]
     public void RtfDocument_ToHtml_Escapes_Field_Instruction_Attribute() {
         RtfDocument document = RtfDocument.Create();
         RtfField field = document.AddParagraph().AddField("MERGEFIELD Patient<Name>");
