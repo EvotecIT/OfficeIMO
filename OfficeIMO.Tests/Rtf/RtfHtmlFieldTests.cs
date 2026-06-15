@@ -67,4 +67,80 @@ public class RtfHtmlFieldTests {
         Assert.Equal("PAGE", field.Instruction);
         Assert.Equal("1", field.ToPlainText());
     }
+
+    [Fact]
+    public void Html_ToRtfDocument_Parses_Form_Field_Metadata() {
+        const string html = "<p>Name: <span data-officeimo-rtf-field=\"true\" data-officeimo-rtf-field-instruction=\"FORMTEXT\" data-officeimo-rtf-form-field=\"true\" data-officeimo-rtf-form-controls=\"fftype=0;ffenabled=1;ffownhelp=1;ffownstat=1;ffprot=0;ffrecalc=1;ffmaxlen=50\" data-officeimo-rtf-form-name=\"Customer\" data-officeimo-rtf-form-default-text=\"Default\" data-officeimo-rtf-form-format=\"Uppercase\" data-officeimo-rtf-form-help-text=\"Help\" data-officeimo-rtf-form-status-text=\"Status\" data-officeimo-rtf-form-entry-macro=\"Enter\" data-officeimo-rtf-form-exit-macro=\"Exit\">Value</span></p>";
+
+        RtfDocument document = html.ToRtfDocumentFromHtml();
+        RtfField field = Assert.IsType<RtfField>(Assert.Single(document.Paragraphs).Inlines[1]);
+
+        Assert.Equal("FORMTEXT", field.Instruction);
+        Assert.Equal("Value", field.ToPlainText());
+        Assert.NotNull(field.FormFieldData);
+        RtfFormFieldData data = field.FormFieldData!;
+        Assert.Equal(RtfFormFieldKind.Text, data.Kind);
+        Assert.True(data.Enabled);
+        Assert.True(data.OwnHelp);
+        Assert.True(data.OwnStatus);
+        Assert.False(data.Protected);
+        Assert.True(data.RecalculateOnExit);
+        Assert.Equal(50, data.MaxLength);
+        Assert.Equal("Customer", data.Name);
+        Assert.Equal("Default", data.DefaultText);
+        Assert.Equal("Uppercase", data.Format);
+        Assert.Equal("Help", data.HelpText);
+        Assert.Equal("Status", data.StatusText);
+        Assert.Equal("Enter", data.EntryMacro);
+        Assert.Equal("Exit", data.ExitMacro);
+
+        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        Assert.Contains(@"{\*\ffdata\fftype0\ffenabled1\ffownhelp1\ffownstat1\ffprot0\ffrecalc1\ffmaxlen50{\ffname Customer}{\ffdeftext Default}{\ffformat Uppercase}{\ffhelptext Help}{\ffstattext Status}{\ffentrymcr Enter}{\ffexitmcr Exit}}", rtf, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RtfDocument_ToHtml_Renders_Form_Field_Metadata() {
+        RtfDocument document = RtfDocument.Create();
+        RtfParagraph paragraph = document.AddParagraph("Choice: ");
+        RtfField field = paragraph.AddField("FORMDROPDOWN");
+        field.AddText("Second");
+        field.SetFormFieldData(data => {
+            data.Kind = RtfFormFieldKind.DropDown;
+            data.Name = "Choice";
+            data.Enabled = true;
+            data.DefaultResult = 0;
+            data.Result = 1;
+            data.AddDropDownItem("First");
+            data.AddDropDownItem("Second");
+        });
+
+        string html = document.ToHtml();
+
+        Assert.Equal("<p>Choice: <span data-officeimo-rtf-field=\"true\" data-officeimo-rtf-field-instruction=\"FORMDROPDOWN\" data-officeimo-rtf-form-field=\"true\" data-officeimo-rtf-form-controls=\"fftype=2;ffenabled=1;ffdefres=0;ffres=1\" data-officeimo-rtf-form-name=\"Choice\" data-officeimo-rtf-form-dropdown-items=\"Rmlyc3Q=;U2Vjb25k\">Second</span></p>", html);
+
+        RtfField roundTripField = Assert.IsType<RtfField>(Assert.Single(html.ToRtfDocumentFromHtml().Paragraphs).Inlines[1]);
+        Assert.NotNull(roundTripField.FormFieldData);
+        RtfFormFieldData roundTripData = roundTripField.FormFieldData!;
+        Assert.Equal(RtfFormFieldKind.DropDown, roundTripData.Kind);
+        Assert.Equal("Choice", roundTripData.Name);
+        Assert.True(roundTripData.Enabled);
+        Assert.Equal(0, roundTripData.DefaultResult);
+        Assert.Equal(1, roundTripData.Result);
+        Assert.Equal(new[] { "First", "Second" }, roundTripData.DropDownItems);
+        Assert.Equal("Second", roundTripField.ToPlainText());
+    }
+
+    [Fact]
+    public void Html_ToRtfDocument_Ignores_Invalid_Form_Field_Control_Names() {
+        const string html = "<p><span data-officeimo-rtf-field=\"true\" data-officeimo-rtf-field-instruction=\"FORMTEXT\" data-officeimo-rtf-form-controls=\"fftype=0;bad-name=1;ffmaxlen=20\">Value</span></p>";
+
+        RtfField field = Assert.IsType<RtfField>(Assert.Single(html.ToRtfDocumentFromHtml().Paragraphs).Inlines[0]);
+
+        Assert.NotNull(field.FormFieldData);
+        RtfFormFieldData data = field.FormFieldData!;
+        Assert.Equal(RtfFormFieldKind.Text, data.Kind);
+        Assert.Equal(20, data.MaxLength);
+        Assert.DoesNotContain(data.Controls, control => control.Name == "bad-name");
+        Assert.DoesNotContain("bad-name", field.Result.ToPlainText(), StringComparison.Ordinal);
+    }
 }
