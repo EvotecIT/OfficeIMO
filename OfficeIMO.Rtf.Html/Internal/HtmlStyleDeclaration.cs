@@ -17,6 +17,16 @@ internal sealed class HtmlStyleDeclaration {
 
     internal bool? DoubleStrike { get; set; }
 
+    internal bool? Hidden { get; set; }
+
+    internal bool? Outline { get; set; }
+
+    internal bool? Shadow { get; set; }
+
+    internal bool? Emboss { get; set; }
+
+    internal bool? Imprint { get; set; }
+
     internal RtfCapsStyle? CapsStyle { get; set; }
 
     internal RtfVerticalPosition? VerticalPosition { get; set; }
@@ -95,6 +105,11 @@ internal sealed class HtmlStyleDeclaration {
         UnderlineColor != null ||
         Strike.HasValue ||
         DoubleStrike.HasValue ||
+        Hidden.HasValue ||
+        Outline.HasValue ||
+        Shadow.HasValue ||
+        Emboss.HasValue ||
+        Imprint.HasValue ||
         CapsStyle.HasValue ||
         VerticalPosition.HasValue ||
         ForegroundColor != null ||

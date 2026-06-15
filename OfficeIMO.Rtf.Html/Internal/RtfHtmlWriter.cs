@@ -416,6 +416,7 @@ internal static partial class RtfHtmlWriter {
         AppendCharacterBorderStyle(builder, run.CharacterBorder, document);
         AppendTextDecorationStyle(builder, run, document);
         AppendCapsStyle(builder, run.CapsStyle);
+        AppendCharacterEffectsStyle(builder, run);
         AppendCharacterMetricsStyle(builder, run);
 
         style = builder.Length == 0 ? null : builder.ToString();

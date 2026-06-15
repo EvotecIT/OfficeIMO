@@ -219,4 +219,56 @@ public class RtfHtmlCharacterFormatTests {
         Assert.Equal(6, raised.CharacterOffsetHalfPoints);
         Assert.Equal(-4, roundTripParagraph.Runs.Single(run => run.Text == " Lowered").CharacterOffsetHalfPoints);
     }
+
+    [Fact]
+    public void Html_ToRtfDocument_Parses_Character_Effects() {
+        const string html = "<p><span style=\"visibility:hidden\">Hidden</span><span style=\"--officeimo-rtf-outline:true\"> Outline</span><span style=\"text-shadow:1pt 1pt 0 currentColor\"> Shadow</span><span style=\"--officeimo-rtf-emboss:true\"> Emboss</span><span style=\"--officeimo-rtf-imprint:true\"> Imprint</span><span style=\"visibility:hidden\"><span style=\"visibility:visible\"> Plain</span></span></p>";
+
+        RtfDocument document = html.ToRtfDocumentFromHtml();
+
+        RtfParagraph paragraph = Assert.Single(document.Paragraphs);
+        Assert.True(paragraph.Runs.Single(run => run.Text == "Hidden").Hidden);
+        Assert.True(paragraph.Runs.Single(run => run.Text == " Outline").Outline);
+        Assert.True(paragraph.Runs.Single(run => run.Text == " Shadow").Shadow);
+        Assert.True(paragraph.Runs.Single(run => run.Text == " Emboss").Emboss);
+        Assert.True(paragraph.Runs.Single(run => run.Text == " Imprint").Imprint);
+        Assert.False(paragraph.Runs.Single(run => run.Text == " Plain").Hidden);
+
+        string rtf = document.ToRtf();
+        Assert.Contains(@"\v Hidden\v0", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\outl  Outline\outl0", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\shad  Shadow\shad0", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\embo  Emboss\embo0", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\impr  Imprint\impr0", rtf, StringComparison.Ordinal);
+
+        RtfParagraph roundTripParagraph = RtfDocument.Read(rtf).Document.Paragraphs[0];
+        Assert.True(roundTripParagraph.Runs.Single(run => run.Text == "Hidden").Hidden);
+        Assert.True(roundTripParagraph.Runs.Single(run => run.Text == " Outline").Outline);
+        Assert.True(roundTripParagraph.Runs.Single(run => run.Text == " Shadow").Shadow);
+        Assert.True(roundTripParagraph.Runs.Single(run => run.Text == " Emboss").Emboss);
+        Assert.True(roundTripParagraph.Runs.Single(run => run.Text == " Imprint").Imprint);
+        Assert.False(roundTripParagraph.Runs.Single(run => run.Text == " Plain").Hidden);
+    }
+
+    [Fact]
+    public void RtfDocument_ToHtml_Renders_Character_Effects() {
+        RtfDocument document = RtfDocument.Create();
+        RtfParagraph paragraph = document.AddParagraph();
+        paragraph.AddText("Hidden").SetHidden();
+        paragraph.AddText(" Outline").SetOutline();
+        paragraph.AddText(" Shadow").SetShadow();
+        paragraph.AddText(" Emboss").SetEmboss();
+        paragraph.AddText(" Imprint").SetImprint();
+
+        string html = document.ToHtml();
+
+        Assert.Equal("<p><span style=\"visibility:hidden;--officeimo-rtf-hidden:true;\">Hidden</span><span style=\"--officeimo-rtf-outline:true;\"> Outline</span><span style=\"text-shadow:1pt 1pt 0 currentColor;--officeimo-rtf-shadow:true;\"> Shadow</span><span style=\"--officeimo-rtf-emboss:true;\"> Emboss</span><span style=\"--officeimo-rtf-imprint:true;\"> Imprint</span></p>", html);
+
+        RtfParagraph roundTripParagraph = html.ToRtfDocumentFromHtml().Paragraphs[0];
+        Assert.True(roundTripParagraph.Runs.Single(run => run.Text == "Hidden").Hidden);
+        Assert.True(roundTripParagraph.Runs.Single(run => run.Text == " Outline").Outline);
+        Assert.True(roundTripParagraph.Runs.Single(run => run.Text == " Shadow").Shadow);
+        Assert.True(roundTripParagraph.Runs.Single(run => run.Text == " Emboss").Emboss);
+        Assert.True(roundTripParagraph.Runs.Single(run => run.Text == " Imprint").Imprint);
+    }
 }
