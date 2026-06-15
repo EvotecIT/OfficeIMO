@@ -162,6 +162,12 @@ internal static partial class RtfHtmlReader {
                 case "officeimo-rtf-document-variables":
                     ApplyDocumentVariables(RtfHtmlMetadataCodec.Decode(content));
                     break;
+                case "officeimo-rtf-file-references":
+                    ApplyFileReferences(RtfHtmlMetadataCodec.Decode(content));
+                    break;
+                case "officeimo-rtf-xml-namespaces":
+                    ApplyXmlNamespaces(RtfHtmlMetadataCodec.Decode(content));
+                    break;
             }
         }
 
