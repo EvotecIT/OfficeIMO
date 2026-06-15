@@ -356,6 +356,56 @@ public class RtfLosslessEditorTests {
     }
 
     [Fact]
+    public void SetStyleName_Renames_Adds_Deduplicates_And_Removes_Styles_Without_Normalizing_Body() {
+        const string rtf = @"{\rtf1\ansi{\fonttbl{\f0 Calibri;}}{\stylesheet{\s1\sbasedon0\snext1\b Old;}{\*\cs2\additive Link;}{\s1 Duplicate;}}\pard\s1 Body \'80\par}";
+
+        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        editor.SetStyleName(1, "Heading {One} ż");
+        editor.SetStyleName(3, "Added", RtfStyleKind.Character);
+        editor.RemoveStyle(2, RtfStyleKind.Character);
+
+        const string expected = @"{\rtf1\ansi{\fonttbl{\f0 Calibri;}}{\stylesheet{\s1\sbasedon0\snext1\b Heading \{One\} \u380?;}{\*\cs3 Added;}}\pard\s1 Body \'80\par}";
+        Assert.Equal(expected, editor.ToRtf());
+
+        RtfReadResult read = editor.ToReadResult();
+        Assert.Collection(
+            read.Document.Styles,
+            style => {
+                Assert.Equal(1, style.Id);
+                Assert.Equal(RtfStyleKind.Paragraph, style.Kind);
+                Assert.Equal("Heading {One} ż", style.Name);
+                Assert.Equal(0, style.BasedOnStyleId);
+                Assert.Equal(1, style.NextStyleId);
+                Assert.True(style.Bold);
+            },
+            style => {
+                Assert.Equal(3, style.Id);
+                Assert.Equal(RtfStyleKind.Character, style.Kind);
+                Assert.Equal("Added", style.Name);
+            });
+        Assert.Contains(@"\pard\s1 Body \'80", editor.ToRtf(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SetStyleName_Creates_And_Removes_Stylesheet_Before_Revision_Table() {
+        const string rtf = @"{\rtf1\ansi{\*\revtbl{Alice;}}\pard Body\par}";
+
+        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        editor.SetStyleName(9, "Table Grid", RtfStyleKind.Table);
+
+        Assert.Equal(@"{\rtf1\ansi{\stylesheet{\*\ts9 Table Grid;}}{\*\revtbl{Alice;}}\pard Body\par}", editor.ToRtf());
+        RtfStyle style = Assert.Single(editor.ToReadResult().Document.Styles);
+        Assert.Equal(9, style.Id);
+        Assert.Equal(RtfStyleKind.Table, style.Kind);
+        Assert.Equal("Table Grid", style.Name);
+
+        editor.RemoveStyle(9, RtfStyleKind.Table);
+
+        Assert.Equal(rtf, editor.ToRtf());
+        Assert.Empty(editor.ToReadResult().Document.Styles);
+    }
+
+    [Fact]
     public void SetRevisionAuthor_Replaces_Adds_And_Removes_Authors_Without_Normalizing_Body() {
         const string rtf = @"{\rtf1\ansi{\*\revtbl{Alice;}{Bob;}{Remove;}}{\*\rsidtbl\rsidroot7}\pard\revised\revauth1 Body \'80\revised0\par}";
 
