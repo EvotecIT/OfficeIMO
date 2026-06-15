@@ -460,6 +460,10 @@ namespace OfficeIMO.Word.Html {
                 }
 
                 if (IsImageSourceAllowedForCurrentMode(resolved, img, options, out _)) {
+                    if (IsRemoteEmbeddedImageSource(resolved, options) && !TryFetchRemoteImageCandidate(resolved, options)) {
+                        continue;
+                    }
+
                     return resolved;
                 }
             }
@@ -555,6 +559,11 @@ namespace OfficeIMO.Word.Html {
         }
 
         private byte[] FetchBytes(Uri uri, HtmlToWordOptions options) {
+            string cacheKey = uri.AbsoluteUri;
+            if (_remoteImageBytesCache.TryGetValue(cacheKey, out byte[]? cachedBytes)) {
+                return cachedBytes;
+            }
+
             using var cts = _resourceTimeout.HasValue
                 ? CancellationTokenSource.CreateLinkedTokenSource(_cancellationToken)
                 : null;
@@ -570,6 +579,27 @@ namespace OfficeIMO.Word.Html {
             var bytes = ReadContentWithLimit(response.Content, readLimit.Limit, readLimit.LimitedByTotalBudget, token);
             ReserveImageBytes(bytes.LongLength, options);
             return bytes;
+        }
+
+        private bool TryFetchRemoteImageCandidate(string source, HtmlToWordOptions options) {
+            if (!Uri.TryCreate(source, UriKind.Absolute, out var uri)) {
+                return false;
+            }
+
+            try {
+                byte[] bytes = FetchBytes(uri, options);
+                if (!IsEmbeddableImageData(bytes, out _)) {
+                    ReleaseImageBytes(bytes.LongLength, options);
+                    return false;
+                }
+
+                _remoteImageBytesCache[uri.AbsoluteUri] = bytes;
+                return true;
+            } catch (OperationCanceledException) {
+                throw;
+            } catch (Exception) {
+                return false;
+            }
         }
 
         private string FetchString(Uri uri, HtmlToWordOptions options, out long reservedBytes) {
@@ -758,7 +788,12 @@ namespace OfficeIMO.Word.Html {
                         return false;
                     }
 
-                    estimatedBytes = Encoding.UTF8.GetByteCount(dataUri.DecodeText());
+                    string svgText = dataUri.DecodeText();
+                    if (!IsEmbeddableSvgText(svgText, out detail)) {
+                        return false;
+                    }
+
+                    estimatedBytes = Encoding.UTF8.GetByteCount(svgText);
                 }
 
                 if (options.MaxImageBytes.HasValue && estimatedBytes > options.MaxImageBytes.Value) {
@@ -789,6 +824,28 @@ namespace OfficeIMO.Word.Html {
             }
 
             return true;
+        }
+
+        private static bool IsEmbeddableSvgText(string svgText, out string detail) {
+            detail = string.Empty;
+            byte[] bytes = Encoding.UTF8.GetBytes(svgText);
+            if (!OfficeImageReader.TryIdentify(bytes, null, out var info) || info.Format != OfficeImageFormat.Svg) {
+                detail = "SVG data URI payload is not a valid SVG image.";
+                return false;
+            }
+
+            return true;
+        }
+
+        private static bool IsRemoteEmbeddedImageSource(string source, HtmlToWordOptions options) {
+            if (options.ImageProcessing == ImageProcessingMode.LinkExternal) {
+                return false;
+            }
+
+            return Uri.TryCreate(source, UriKind.Absolute, out var uri)
+                   && !uri.IsFile
+                   && (uri.Scheme.Equals(Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase)
+                       || uri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase));
         }
 
         private static bool HasExternalImageDimensionHints(IHtmlImageElement img) {

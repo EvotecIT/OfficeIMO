@@ -205,6 +205,15 @@ public sealed class HtmlCoreTests {
         Assert.Equal("https://example.test/img/demo.png", rootRelative);
     }
 
+    [Fact]
+    public void HtmlUrlPolicyEvaluator_ResolvesProtocolRelativeUrlsAgainstWebSchemeWhenBaseIsFile() {
+        var policy = HtmlUrlPolicy.CreateWebOnlyProfile();
+
+        string resolved = HtmlUrlPolicyEvaluator.ResolveUrl("//cdn.example.test/app.png", new Uri("file:///C:/content/page.html"), policy);
+
+        Assert.Equal("https://cdn.example.test/app.png", resolved);
+    }
+
     [Theory]
     [InlineData("C:secret.docx")]
     [InlineData("C:\\secret.docx")]

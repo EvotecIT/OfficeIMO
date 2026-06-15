@@ -24,11 +24,30 @@ public static class HtmlUrlPolicyEvaluator {
             return candidate;
         }
 
+        if (candidate.StartsWith("//", StringComparison.Ordinal)) {
+            return ResolveProtocolRelativeUrl(candidate, baseUri, policy ?? HtmlUrlPolicy.CreateOfficeIMOProfile());
+        }
+
         if (!Uri.TryCreate(baseUri, candidate, out var resolved)) {
             return candidate;
         }
 
         return IsAllowedResolvedUri(resolved, policy ?? HtmlUrlPolicy.CreateOfficeIMOProfile())
+            ? resolved.AbsoluteUri
+            : string.Empty;
+    }
+
+    private static string ResolveProtocolRelativeUrl(string candidate, Uri baseUri, HtmlUrlPolicy policy) {
+        string scheme = baseUri.Scheme.Equals(Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase)
+                        || baseUri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)
+            ? baseUri.Scheme
+            : Uri.UriSchemeHttps;
+
+        if (!Uri.TryCreate(scheme + ":" + candidate, UriKind.Absolute, out var resolved)) {
+            return candidate;
+        }
+
+        return IsAllowedResolvedUri(resolved, policy)
             ? resolved.AbsoluteUri
             : string.Empty;
     }

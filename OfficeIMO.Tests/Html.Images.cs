@@ -878,6 +878,20 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void HtmlToWord_ImageSelection_ContinuesPastInvalidTextSvgDataCandidate() {
+            var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
+            string base64 = Convert.ToBase64String(File.ReadAllBytes(path));
+            string invalidSvg = Uri.EscapeDataString("<svg><path></svg>");
+            string html = $"<img data-src=\"data:image/svg+xml,{invalidSvg}\" src=\"data:image/png;base64,{base64}\" alt=\"Logo\" />";
+            var options = new HtmlToWordOptions();
+
+            var doc = html.LoadFromHtml(options);
+
+            Assert.Single(doc.Images);
+            Assert.Empty(options.Diagnostics);
+        }
+
+        [Fact]
         public void HtmlToWord_ImageSelection_ContinuesPastUnresolvedRelativeCandidate() {
             var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
             string base64 = Convert.ToBase64String(File.ReadAllBytes(path));
@@ -887,6 +901,27 @@ namespace OfficeIMO.Tests {
             var doc = html.LoadFromHtml(options);
 
             Assert.Single(doc.Images);
+            Assert.Empty(options.Diagnostics);
+        }
+
+        [Fact]
+        public void HtmlToWord_ImageSelection_ContinuesPastFailedRemoteCandidate() {
+            var requested = new List<Uri>();
+            var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
+            string base64 = Convert.ToBase64String(File.ReadAllBytes(path));
+            using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(request => {
+                requested.Add(request.RequestUri!);
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+            }));
+            var options = new HtmlToWordOptions {
+                HttpClient = httpClient
+            };
+            string html = $"<img srcset=\"https://cdn.example.test/missing.png 1x\" src=\"data:image/png;base64,{base64}\" alt=\"Logo\" />";
+
+            var doc = html.LoadFromHtml(options);
+
+            Assert.Single(doc.Images);
+            Assert.Equal(new Uri("https://cdn.example.test/missing.png"), Assert.Single(requested));
             Assert.Empty(options.Diagnostics);
         }
 
