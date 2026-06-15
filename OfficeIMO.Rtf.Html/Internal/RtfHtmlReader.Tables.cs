@@ -202,6 +202,10 @@ internal static partial class RtfHtmlReader {
                 _cell.VerticalAlignment = style.TableCellVerticalAlignment.Value;
             }
 
+            if (style.TableCellTextFlow.HasValue) {
+                _cell.TextFlow = style.TableCellTextFlow.Value;
+            }
+
             if (style.TableWidth.HasValue) {
                 _cell.PreferredWidth = style.TableWidth.Value;
                 _cell.PreferredWidthUnit = style.TableWidthUnit;

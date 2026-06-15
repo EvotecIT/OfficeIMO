@@ -71,6 +71,8 @@ internal sealed class HtmlStyleDeclaration {
 
     internal RtfTableCellVerticalAlignment? TableCellVerticalAlignment { get; set; }
 
+    internal RtfTableCellTextFlow? TableCellTextFlow { get; set; }
+
     internal int? TableWidth { get; set; }
 
     internal RtfTableWidthUnit? TableWidthUnit { get; set; }

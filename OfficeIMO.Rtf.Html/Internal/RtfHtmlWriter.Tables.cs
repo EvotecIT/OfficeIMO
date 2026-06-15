@@ -249,6 +249,8 @@ internal static partial class RtfHtmlWriter {
             builder.Append(';');
         }
 
+        AppendCellTextFlowStyle(builder, cell.TextFlow);
+
         if (cell.NoWrap) {
             builder.Append("white-space:nowrap;");
         }
@@ -296,5 +298,64 @@ internal static partial class RtfHtmlWriter {
         }
 
         builder.Append(';');
+    }
+
+    private static void AppendCellTextFlowStyle(StringBuilder builder, RtfTableCellTextFlow? textFlow) {
+        if (!textFlow.HasValue) {
+            return;
+        }
+
+        builder.Append("writing-mode:");
+        builder.Append(FormatCellWritingMode(textFlow.Value));
+        builder.Append(';');
+        string? orientation = FormatCellTextOrientation(textFlow.Value);
+        if (orientation != null) {
+            builder.Append("text-orientation:");
+            builder.Append(orientation);
+            builder.Append(';');
+        }
+
+        builder.Append("--officeimo-rtf-text-flow:");
+        builder.Append(FormatRtfTableCellTextFlow(textFlow.Value));
+        builder.Append(';');
+    }
+
+    private static string FormatCellWritingMode(RtfTableCellTextFlow textFlow) {
+        switch (textFlow) {
+            case RtfTableCellTextFlow.TopToBottomRightToLeft:
+            case RtfTableCellTextFlow.TopToBottomRightToLeftVertical:
+                return "vertical-rl";
+            case RtfTableCellTextFlow.BottomToTopLeftToRight:
+                return "sideways-lr";
+            case RtfTableCellTextFlow.LeftToRightTopToBottomVertical:
+                return "vertical-lr";
+            default:
+                return "horizontal-tb";
+        }
+    }
+
+    private static string? FormatCellTextOrientation(RtfTableCellTextFlow textFlow) {
+        switch (textFlow) {
+            case RtfTableCellTextFlow.LeftToRightTopToBottomVertical:
+            case RtfTableCellTextFlow.TopToBottomRightToLeftVertical:
+                return "upright";
+            default:
+                return null;
+        }
+    }
+
+    private static string FormatRtfTableCellTextFlow(RtfTableCellTextFlow textFlow) {
+        switch (textFlow) {
+            case RtfTableCellTextFlow.TopToBottomRightToLeft:
+                return "tb-rl";
+            case RtfTableCellTextFlow.BottomToTopLeftToRight:
+                return "bt-lr";
+            case RtfTableCellTextFlow.LeftToRightTopToBottomVertical:
+                return "ltr-tb-v";
+            case RtfTableCellTextFlow.TopToBottomRightToLeftVertical:
+                return "tb-rl-v";
+            default:
+                return "ltr-tb";
+        }
     }
 }

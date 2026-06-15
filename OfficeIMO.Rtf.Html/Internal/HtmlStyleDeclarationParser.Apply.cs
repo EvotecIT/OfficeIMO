@@ -58,6 +58,12 @@ internal static partial class HtmlStyleDeclarationParser {
                 declaration.TableCellVerticalAlignment = ParseTableCellVerticalAlign(value);
                 declaration.CharacterOffsetHalfPoints = ParseCharacterOffset(value);
                 break;
+            case "writing-mode":
+                declaration.TableCellTextFlow = ParseWritingMode(value);
+                break;
+            case "--officeimo-rtf-text-flow":
+                declaration.TableCellTextFlow = ParseRtfTableCellTextFlow(value);
+                break;
             case "direction":
                 declaration.Direction = ParseDirection(value);
                 break;
