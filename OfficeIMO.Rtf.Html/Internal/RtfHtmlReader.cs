@@ -56,6 +56,7 @@ internal static partial class RtfHtmlReader {
 
         internal void Start(HtmlToken token) {
             HtmlStyleDeclaration style = HtmlStyleDeclarationParser.Parse(GetAttribute(token, "style"));
+            style = ApplyLanguageDirectionAttributes(style, token);
             switch (token.Value) {
                 case "p":
                 case "div":
@@ -269,6 +270,12 @@ internal static partial class RtfHtmlReader {
             ApplyCharacterEffects(run);
             run.CapsStyle = ResolveCapsStyle();
             run.VerticalPosition = ResolveVerticalPosition();
+            run.Direction = ResolveTextDirection();
+            int? languageId = ResolveLanguageId();
+            if (languageId.HasValue) {
+                run.LanguageId = languageId.Value;
+            }
+
             run.Hyperlink = _hyperlink;
             RtfColor? foreground = ResolveStyleColor(style => style.ForegroundColor);
             RtfColor? background = ResolveStyleColor(style => style.BackgroundColor);

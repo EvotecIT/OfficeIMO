@@ -58,6 +58,18 @@ internal static partial class HtmlStyleDeclarationParser {
                 declaration.TableCellVerticalAlignment = ParseTableCellVerticalAlign(value);
                 declaration.CharacterOffsetHalfPoints = ParseCharacterOffset(value);
                 break;
+            case "direction":
+                declaration.Direction = ParseDirection(value);
+                break;
+            case "--officeimo-rtf-direction":
+                declaration.Direction = ParseDirection(value);
+                break;
+            case "--officeimo-rtf-lang":
+                if (TryParseLanguageId(value, out int languageId)) {
+                    declaration.LanguageId = languageId;
+                }
+
+                break;
             case "text-align":
                 declaration.TextAlignment = ParseTextAlign(value);
                 break;

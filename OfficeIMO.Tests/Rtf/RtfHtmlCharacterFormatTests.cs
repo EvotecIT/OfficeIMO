@@ -271,4 +271,56 @@ public class RtfHtmlCharacterFormatTests {
         Assert.True(roundTripParagraph.Runs.Single(run => run.Text == " Emboss").Emboss);
         Assert.True(roundTripParagraph.Runs.Single(run => run.Text == " Imprint").Imprint);
     }
+
+    [Fact]
+    public void Html_ToRtfDocument_Parses_Language_And_Direction() {
+        const string html = "<p><span dir=\"rtl\" lang=\"ar-SA\">RTL</span><span style=\"direction:ltr;--officeimo-rtf-lang:1045\"> Polish</span><span dir=\"auto\"> Plain</span></p>";
+
+        RtfDocument document = html.ToRtfDocumentFromHtml();
+
+        RtfParagraph paragraph = Assert.Single(document.Paragraphs);
+        RtfRun rtl = paragraph.Runs.Single(run => run.Text == "RTL");
+        Assert.Equal(RtfTextDirection.RightToLeft, rtl.Direction);
+        Assert.Equal(1025, rtl.LanguageId);
+
+        RtfRun polish = paragraph.Runs.Single(run => run.Text == " Polish");
+        Assert.Equal(RtfTextDirection.LeftToRight, polish.Direction);
+        Assert.Equal(1045, polish.LanguageId);
+
+        RtfRun plain = paragraph.Runs.Single(run => run.Text == " Plain");
+        Assert.Null(plain.Direction);
+        Assert.Null(plain.LanguageId);
+
+        string rtf = document.ToRtf();
+        Assert.Contains(@"\rtlch \lang1025 RTL", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\ltrch \lang1045  Polish", rtf, StringComparison.Ordinal);
+
+        RtfParagraph roundTripParagraph = RtfDocument.Read(rtf).Document.Paragraphs[0];
+        Assert.Equal(RtfTextDirection.RightToLeft, roundTripParagraph.Runs.Single(run => run.Text == "RTL").Direction);
+        Assert.Equal(1025, roundTripParagraph.Runs.Single(run => run.Text == "RTL").LanguageId);
+        Assert.Equal(RtfTextDirection.LeftToRight, roundTripParagraph.Runs.Single(run => run.Text == " Polish").Direction);
+        Assert.Equal(1045, roundTripParagraph.Runs.Single(run => run.Text == " Polish").LanguageId);
+    }
+
+    [Fact]
+    public void RtfDocument_ToHtml_Renders_Language_And_Direction() {
+        RtfDocument document = RtfDocument.Create();
+        RtfParagraph paragraph = document.AddParagraph();
+        paragraph.AddText("RTL")
+            .SetDirection(RtfTextDirection.RightToLeft)
+            .SetLanguage(1025);
+        paragraph.AddText(" Polish")
+            .SetDirection(RtfTextDirection.LeftToRight)
+            .SetLanguage(1045);
+
+        string html = document.ToHtml();
+
+        Assert.Equal("<p><span lang=\"ar-SA\" dir=\"rtl\" style=\"--officeimo-rtf-lang:1025;direction:rtl;unicode-bidi:isolate;--officeimo-rtf-direction:rtl;\">RTL</span><span lang=\"pl-PL\" dir=\"ltr\" style=\"--officeimo-rtf-lang:1045;direction:ltr;unicode-bidi:isolate;--officeimo-rtf-direction:ltr;\"> Polish</span></p>", html);
+
+        RtfParagraph roundTripParagraph = html.ToRtfDocumentFromHtml().Paragraphs[0];
+        Assert.Equal(RtfTextDirection.RightToLeft, roundTripParagraph.Runs.Single(run => run.Text == "RTL").Direction);
+        Assert.Equal(1025, roundTripParagraph.Runs.Single(run => run.Text == "RTL").LanguageId);
+        Assert.Equal(RtfTextDirection.LeftToRight, roundTripParagraph.Runs.Single(run => run.Text == " Polish").Direction);
+        Assert.Equal(1045, roundTripParagraph.Runs.Single(run => run.Text == " Polish").LanguageId);
+    }
 }

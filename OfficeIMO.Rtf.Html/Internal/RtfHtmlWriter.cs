@@ -370,18 +370,38 @@ internal static partial class RtfHtmlWriter {
     }
 
     private static void OpenRunStyle(StringBuilder builder, RtfRun run, RtfDocument document, ref int opened) {
-        if (!TryGetRunStyle(run, document, out string? style)) {
+        bool hasStyle = TryGetRunStyle(run, document, out string? style);
+        string? language = FormatLanguageTag(run.LanguageId);
+        string? direction = FormatTextDirection(run.Direction);
+        if (!hasStyle && language == null && direction == null) {
             return;
         }
 
-        builder.Append("<span style=\"");
-        builder.Append(EncodeAttribute(style!));
-        builder.Append("\">");
+        builder.Append("<span");
+        if (language != null) {
+            builder.Append(" lang=\"");
+            builder.Append(EncodeAttribute(language));
+            builder.Append('"');
+        }
+
+        if (direction != null) {
+            builder.Append(" dir=\"");
+            builder.Append(direction);
+            builder.Append('"');
+        }
+
+        if (hasStyle) {
+            builder.Append(" style=\"");
+            builder.Append(EncodeAttribute(style!));
+            builder.Append('"');
+        }
+
+        builder.Append('>');
         opened++;
     }
 
     private static void CloseRunStyle(StringBuilder builder, RtfRun run, RtfDocument document) {
-        if (TryGetRunStyle(run, document, out _)) {
+        if (HasRunSpan(run, document)) {
             builder.Append("</span>");
         }
     }
@@ -418,6 +438,7 @@ internal static partial class RtfHtmlWriter {
         AppendCapsStyle(builder, run.CapsStyle);
         AppendCharacterEffectsStyle(builder, run);
         AppendCharacterMetricsStyle(builder, run);
+        AppendLanguageDirectionStyle(builder, run);
 
         style = builder.Length == 0 ? null : builder.ToString();
         return style != null;

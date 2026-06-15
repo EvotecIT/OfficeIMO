@@ -31,6 +31,10 @@ internal sealed class HtmlStyleDeclaration {
 
     internal RtfVerticalPosition? VerticalPosition { get; set; }
 
+    internal RtfTextDirection? Direction { get; set; }
+
+    internal int? LanguageId { get; set; }
+
     internal RtfTextAlignment? TextAlignment { get; set; }
 
     internal RtfColor? ForegroundColor { get; set; }
@@ -112,6 +116,8 @@ internal sealed class HtmlStyleDeclaration {
         Imprint.HasValue ||
         CapsStyle.HasValue ||
         VerticalPosition.HasValue ||
+        Direction.HasValue ||
+        LanguageId.HasValue ||
         ForegroundColor != null ||
         BackgroundColor != null ||
         FontFamily != null ||
