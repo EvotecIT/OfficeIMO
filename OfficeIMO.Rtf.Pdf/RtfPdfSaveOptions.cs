@@ -27,6 +27,9 @@ public sealed class RtfPdfSaveOptions {
     /// <summary>When true, RTF tables are converted to PDF tables.</summary>
     public bool IncludeTables { get; set; } = true;
 
+    /// <summary>When true, semantic RTF header and footer text is mapped to PDF running header/footer text.</summary>
+    public bool IncludeHeaderFooters { get; set; } = true;
+
     /// <summary>Returns a normalized copy with valid dimensions and independent PDF options.</summary>
     internal RtfPdfSaveOptions Normalize() {
         if (DefaultImageWidth <= 0) {
@@ -44,7 +47,8 @@ public sealed class RtfPdfSaveOptions {
             DefaultImageWidth = DefaultImageWidth,
             DefaultImageHeight = DefaultImageHeight,
             IncludeMetadata = IncludeMetadata,
-            IncludeTables = IncludeTables
+            IncludeTables = IncludeTables,
+            IncludeHeaderFooters = IncludeHeaderFooters
         };
     }
 }

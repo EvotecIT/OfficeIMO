@@ -79,4 +79,65 @@ public class RtfPdfConverterTests {
         Assert.Contains("A2", text, StringComparison.Ordinal);
         Assert.Contains("B2", text, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void RtfDocument_ToPdfDocument_Renders_Default_Header_And_Footer_Text() {
+        RtfDocument document = RtfDocument.Create();
+        document.AddHeader().AddParagraph("Default header");
+        document.AddFooter().AddParagraph("Default footer");
+        document.AddParagraph("Body");
+
+        byte[] pdf = document.SaveAsPdf();
+        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+
+        Assert.Contains("Default header", text, StringComparison.Ordinal);
+        Assert.Contains("Default footer", text, StringComparison.Ordinal);
+        Assert.Contains("Body", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RtfDocument_ToPdfDocument_Renders_First_And_Even_HeaderFooter_Variants() {
+        RtfDocument document = RtfDocument.Create();
+        document.PageSetup.SetDifferentFirstPageHeaderFooter();
+        document.AddHeader(RtfHeaderFooterKind.RightHeader).AddParagraph("Odd header");
+        document.AddHeader(RtfHeaderFooterKind.LeftHeader).AddParagraph("Even header");
+        document.AddHeader(RtfHeaderFooterKind.FirstHeader).AddParagraph("First header");
+        document.AddFooter(RtfHeaderFooterKind.RightFooter).AddParagraph("Odd footer");
+        document.AddFooter(RtfHeaderFooterKind.LeftFooter).AddParagraph("Even footer");
+        document.AddFooter(RtfHeaderFooterKind.FirstFooter).AddParagraph("First footer");
+
+        RtfParagraph first = document.AddParagraph("First page");
+        first.AddPageBreak();
+        RtfParagraph second = document.AddParagraph("Second page");
+        second.AddPageBreak();
+        document.AddParagraph("Third page");
+
+        byte[] pdf = document.SaveAsPdf();
+        PdfCore.PdfReadDocument read = PdfCore.PdfReadDocument.Load(pdf);
+
+        Assert.Equal(3, read.Pages.Count);
+        Assert.Contains("First header", read.Pages[0].ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("First footer", read.Pages[0].ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Even header", read.Pages[1].ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Even footer", read.Pages[1].ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Odd header", read.Pages[2].ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Odd footer", read.Pages[2].ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RtfDocument_ToPdfDocument_Can_Skip_HeaderFooter_Text() {
+        RtfDocument document = RtfDocument.Create();
+        document.AddHeader().AddParagraph("Hidden header");
+        document.AddFooter().AddParagraph("Hidden footer");
+        document.AddParagraph("Visible body");
+
+        byte[] pdf = document.SaveAsPdf(new RtfPdfSaveOptions {
+            IncludeHeaderFooters = false
+        });
+        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+
+        Assert.Contains("Visible body", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Hidden header", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Hidden footer", text, StringComparison.Ordinal);
+    }
 }

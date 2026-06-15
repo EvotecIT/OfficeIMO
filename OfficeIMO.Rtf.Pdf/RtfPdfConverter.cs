@@ -11,6 +11,7 @@ internal static class RtfPdfConverter {
         RtfPdfSaveOptions normalized = (options ?? new RtfPdfSaveOptions()).Normalize();
         PdfCore.PdfOptions pdfOptions = normalized.PdfOptions ?? new PdfCore.PdfOptions();
         ApplyPageSetup(document.PageSetup, pdfOptions);
+        ApplyHeaderFooters(document, pdfOptions, normalized);
 
         PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Create(pdfOptions);
         ApplyMetadata(document, pdf, normalized);
@@ -292,5 +293,78 @@ internal static class RtfPdfConverter {
         if (setup.MarginBottomTwips.HasValue) {
             options.MarginBottom = RtfPdfMapping.TwipsToPoints(setup.MarginBottomTwips.Value);
         }
+    }
+
+    private static void ApplyHeaderFooters(RtfDocument document, PdfCore.PdfOptions options, RtfPdfSaveOptions saveOptions) {
+        if (!saveOptions.IncludeHeaderFooters || document.HeaderFooters.Count == 0) {
+            return;
+        }
+
+        string? defaultHeader = GetHeaderFooterText(document, RtfHeaderFooterKind.RightHeader)
+            ?? GetHeaderFooterText(document, RtfHeaderFooterKind.Header);
+        if (defaultHeader != null && defaultHeader.Length > 0) {
+            options.ShowHeader = true;
+            options.HeaderFormat = defaultHeader;
+        }
+
+        string? defaultFooter = GetHeaderFooterText(document, RtfHeaderFooterKind.RightFooter)
+            ?? GetHeaderFooterText(document, RtfHeaderFooterKind.Footer);
+        if (defaultFooter != null && defaultFooter.Length > 0) {
+            options.ShowPageNumbers = true;
+            options.FooterFormat = defaultFooter;
+        }
+
+        string? firstHeader = GetHeaderFooterText(document, RtfHeaderFooterKind.FirstHeader);
+        string? firstFooter = GetHeaderFooterText(document, RtfHeaderFooterKind.FirstFooter);
+        if ((firstHeader != null && firstHeader.Length > 0) ||
+            (firstFooter != null && firstFooter.Length > 0) ||
+            document.PageSetup.DifferentFirstPageHeaderFooter) {
+            options.DifferentFirstPageHeaderFooter = true;
+            if (firstHeader != null && firstHeader.Length > 0) {
+                options.FirstPageHeaderFormat = firstHeader;
+            }
+
+            if (firstFooter != null && firstFooter.Length > 0) {
+                options.FirstPageFooterFormat = firstFooter;
+            }
+        }
+
+        string? evenHeader = GetHeaderFooterText(document, RtfHeaderFooterKind.LeftHeader);
+        string? evenFooter = GetHeaderFooterText(document, RtfHeaderFooterKind.LeftFooter);
+        if ((evenHeader != null && evenHeader.Length > 0) ||
+            (evenFooter != null && evenFooter.Length > 0)) {
+            options.DifferentOddAndEvenPagesHeaderFooter = true;
+            if (evenHeader != null && evenHeader.Length > 0) {
+                options.EvenPageHeaderFormat = evenHeader;
+            }
+
+            if (evenFooter != null && evenFooter.Length > 0) {
+                options.EvenPageFooterFormat = evenFooter;
+            }
+        }
+    }
+
+    private static string? GetHeaderFooterText(RtfDocument document, RtfHeaderFooterKind kind) {
+        RtfHeaderFooter? headerFooter = document.HeaderFooters.FirstOrDefault(item => item.Kind == kind);
+        if (headerFooter == null) {
+            return null;
+        }
+
+        string text = NormalizeHeaderFooterText(headerFooter.ToPlainText());
+        return text.Length == 0 ? null : text;
+    }
+
+    private static string NormalizeHeaderFooterText(string text) {
+        if (string.IsNullOrWhiteSpace(text)) {
+            return string.Empty;
+        }
+
+        return text
+            .Replace("\r\n", " ")
+            .Replace('\r', ' ')
+            .Replace('\n', ' ')
+            .Replace('\f', ' ')
+            .Replace('\v', ' ')
+            .Trim();
     }
 }
