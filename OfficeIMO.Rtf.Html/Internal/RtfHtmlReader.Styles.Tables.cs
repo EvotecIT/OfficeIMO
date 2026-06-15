@@ -10,47 +10,7 @@ internal static partial class RtfHtmlReader {
             }
 
             RtfTableRow row = style.TableRowFormat;
-            row.RepeatHeader = ReadBool(values, prefix + ".repeatHeader") == true;
-            row.KeepTogether = ReadBool(values, prefix + ".keepTogether") == true;
-            row.KeepWithNext = ReadBool(values, prefix + ".keepWithNext") == true;
-            row.AutoFit = ReadBool(values, prefix + ".autoFit");
-            row.Direction = ReadEnum<RtfTableRowDirection>(values, prefix + ".direction");
-            row.HeightTwips = ReadInt(values, prefix + ".height");
-            row.CellGapTwips = ReadInt(values, prefix + ".cellGap");
-            row.LeftIndentTwips = ReadInt(values, prefix + ".leftIndent");
-            row.Alignment = ReadEnum<RtfTableAlignment>(values, prefix + ".alignment");
-            row.PreferredWidth = ReadInt(values, prefix + ".preferredWidth");
-            row.PreferredWidthUnit = ReadEnum<RtfTableWidthUnit>(values, prefix + ".preferredWidthUnit");
-            row.BackgroundColorIndex = ReadInt(values, prefix + ".backgroundColor");
-            row.ShadingForegroundColorIndex = ReadInt(values, prefix + ".shadingForeground");
-            row.ShadingPatternValue = ReadInt(values, prefix + ".shadingPatternValue");
-            row.ShadingPatternPercent = ReadInt(values, prefix + ".shadingPercent");
-            row.ShadingPattern = ReadEnum(values, prefix + ".shadingPattern", RtfShadingPattern.None);
-            row.PaddingTopTwips = ReadInt(values, prefix + ".padding.top");
-            row.PaddingLeftTwips = ReadInt(values, prefix + ".padding.left");
-            row.PaddingBottomTwips = ReadInt(values, prefix + ".padding.bottom");
-            row.PaddingRightTwips = ReadInt(values, prefix + ".padding.right");
-            row.SpacingTopTwips = ReadInt(values, prefix + ".spacing.top");
-            row.SpacingLeftTwips = ReadInt(values, prefix + ".spacing.left");
-            row.SpacingBottomTwips = ReadInt(values, prefix + ".spacing.bottom");
-            row.SpacingRightTwips = ReadInt(values, prefix + ".spacing.right");
-            row.NoOverlap = ReadBool(values, prefix + ".noOverlap") == true;
-            row.HorizontalAnchor = ReadEnum<RtfTableHorizontalAnchor>(values, prefix + ".horizontalAnchor");
-            row.VerticalAnchor = ReadEnum<RtfTableVerticalAnchor>(values, prefix + ".verticalAnchor");
-            row.HorizontalPosition = ReadEnum<RtfTableHorizontalPosition>(values, prefix + ".horizontalPosition");
-            row.HorizontalPositionTwips = ReadInt(values, prefix + ".horizontalPositionTwips");
-            row.VerticalPosition = ReadEnum<RtfTableVerticalPosition>(values, prefix + ".verticalPosition");
-            row.VerticalPositionTwips = ReadInt(values, prefix + ".verticalPositionTwips");
-            row.TextWrapLeftTwips = ReadInt(values, prefix + ".textWrap.left");
-            row.TextWrapRightTwips = ReadInt(values, prefix + ".textWrap.right");
-            row.TextWrapTopTwips = ReadInt(values, prefix + ".textWrap.top");
-            row.TextWrapBottomTwips = ReadInt(values, prefix + ".textWrap.bottom");
-            ApplyTableRowBorder(values, prefix + ".border.top", row.TopBorder);
-            ApplyTableRowBorder(values, prefix + ".border.left", row.LeftBorder);
-            ApplyTableRowBorder(values, prefix + ".border.bottom", row.BottomBorder);
-            ApplyTableRowBorder(values, prefix + ".border.right", row.RightBorder);
-            ApplyTableRowBorder(values, prefix + ".border.horizontal", row.HorizontalBorder);
-            ApplyTableRowBorder(values, prefix + ".border.vertical", row.VerticalBorder);
+            ApplyTableRowMetadata(values, prefix, row);
             ApplyTableStyleCells(values, prefix + ".cell", row);
         }
 

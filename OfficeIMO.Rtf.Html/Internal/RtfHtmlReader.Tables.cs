@@ -31,6 +31,7 @@ internal static partial class RtfHtmlReader {
             ApplyRowStyle(style);
             if (token != null) {
                 ApplyRowAttributes(token);
+                ApplyTableRowMetadataAttributes(token);
             }
         }
 

@@ -49,6 +49,7 @@ internal static partial class RtfHtmlWriter {
         builder.Append("<tr");
         RtfTableRow row = table.Rows[rowIndex];
         AppendRowDirectionAttributes(builder, row);
+        AppendTableRowMetadataAttributes(builder, row);
         AppendRowStyle(builder, row, document);
         builder.Append('>');
         string cellTag = isHeader ? "th" : "td";
