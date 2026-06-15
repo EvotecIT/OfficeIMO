@@ -339,6 +339,49 @@ public class RtfLosslessEditorTests {
     }
 
     [Fact]
+    public void RevisionSaveIds_Update_Root_Add_Remove_And_Preserve_Body() {
+        const string rtf = @"{\rtf1\ansi{\*\rsidtbl\rsidroot7\rsid15\rsid1024\rsid15}{\info{\title Keep}}\pard\pararsid20 Body \'80\par}";
+
+        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        editor.SetRevisionRootSaveId(9);
+        editor.AddRevisionSaveId(2048);
+        editor.AddRevisionSaveId(15);
+        editor.RemoveRevisionSaveId(1024);
+
+        const string expected = @"{\rtf1\ansi{\*\rsidtbl\rsidroot9\rsid15\rsid2048}{\info{\title Keep}}\pard\pararsid20 Body \'80\par}";
+        Assert.Equal(expected, editor.ToRtf());
+
+        RtfReadResult read = editor.ToReadResult();
+        Assert.Equal(9, read.Document.RevisionRootSaveId);
+        Assert.Equal(new[] { 15, 2048 }, read.Document.RevisionSaveIds);
+        Assert.Equal("Keep", read.Document.Info.Title);
+        Assert.Contains(@"\pararsid20 Body \'80", editor.ToRtf(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RevisionSaveIds_Create_And_Remove_Rsid_Table() {
+        const string rtf = @"{\rtf1\ansi{\*\revtbl{Alice;}}\pard Body\par}";
+
+        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        editor.SetRevisionRootSaveId(7);
+        editor.AddRevisionSaveId(15);
+
+        Assert.Equal(@"{\rtf1\ansi{\*\revtbl{Alice;}}{\*\rsidtbl\rsidroot7\rsid15}\pard Body\par}", editor.ToRtf());
+        RtfReadResult read = editor.ToReadResult();
+        Assert.Equal(7, read.Document.RevisionRootSaveId);
+        Assert.Equal(new[] { 15 }, read.Document.RevisionSaveIds);
+        Assert.Equal("Alice", Assert.Single(read.Document.RevisionAuthors).Name);
+
+        editor.SetRevisionRootSaveId(null);
+        editor.RemoveRevisionSaveId(15);
+
+        Assert.Equal(rtf, editor.ToRtf());
+        RtfReadResult removed = editor.ToReadResult();
+        Assert.Null(removed.Document.RevisionRootSaveId);
+        Assert.Empty(removed.Document.RevisionSaveIds);
+    }
+
+    [Fact]
     public void AppendParagraph_Preserves_Existing_Syntax_And_Escapes_Text() {
         const string rtf = @"{\rtf1\ansi{\*\unknown Keep}{\pict\pngblip\bin3 abc}\pard Existing\par}";
 
