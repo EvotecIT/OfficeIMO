@@ -63,50 +63,50 @@ public static partial class HtmlRtfConverterExtensions {
     }
 
     /// <summary>Loads semantic HTML into an RTF document model.</summary>
-    public static Task<RtfDocument> LoadRtfFromHtmlAsync(this string html, HtmlToRtfOptions? options = null, CancellationToken cancellationToken = default) {
+    public static Task<RtfDocument> LoadFromHtmlAsync(this string html, HtmlToRtfOptions? options = null, CancellationToken cancellationToken = default) {
         if (html == null) {
             throw new ArgumentNullException(nameof(html));
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        return Task.FromResult(html.LoadRtfFromHtml(options));
+        return Task.FromResult(html.LoadFromHtml(options));
     }
 
     /// <summary>Loads encoded semantic HTML bytes into an RTF document model.</summary>
-    public static Task<RtfDocument> LoadRtfFromHtmlAsync(this byte[] htmlBytes, HtmlToRtfOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
+    public static Task<RtfDocument> LoadFromHtmlAsync(this byte[] htmlBytes, HtmlToRtfOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
         if (htmlBytes == null) {
             throw new ArgumentNullException(nameof(htmlBytes));
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        return Task.FromResult(htmlBytes.LoadRtfFromHtml(options, encoding));
+        return Task.FromResult(htmlBytes.LoadFromHtml(options, encoding));
     }
 
     /// <summary>Reads semantic HTML from a stream into an RTF document model.</summary>
-    public static async Task<RtfDocument> LoadRtfFromHtmlAsync(this Stream htmlStream, HtmlToRtfOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
+    public static async Task<RtfDocument> LoadFromHtmlAsync(this Stream htmlStream, HtmlToRtfOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
         if (htmlStream == null) {
             throw new ArgumentNullException(nameof(htmlStream));
         }
 
         string html = await ReadTextAsync(htmlStream, encoding ?? Encoding.UTF8, cancellationToken).ConfigureAwait(false);
-        return html.LoadRtfFromHtml(options);
+        return html.LoadFromHtml(options);
     }
 
     /// <summary>Converts semantic HTML to RTF text.</summary>
     public static async Task<string> ToRtfAsync(this string html, HtmlToRtfOptions? readOptions = null, RtfWriteOptions? writeOptions = null, CancellationToken cancellationToken = default) {
-        RtfDocument document = await html.LoadRtfFromHtmlAsync(readOptions, cancellationToken).ConfigureAwait(false);
+        RtfDocument document = await html.LoadFromHtmlAsync(readOptions, cancellationToken).ConfigureAwait(false);
         return document.ToRtf(writeOptions);
     }
 
     /// <summary>Converts encoded semantic HTML bytes to RTF text.</summary>
     public static async Task<string> ToRtfAsync(this byte[] htmlBytes, HtmlToRtfOptions? readOptions = null, RtfWriteOptions? writeOptions = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
-        RtfDocument document = await htmlBytes.LoadRtfFromHtmlAsync(readOptions, encoding, cancellationToken).ConfigureAwait(false);
+        RtfDocument document = await htmlBytes.LoadFromHtmlAsync(readOptions, encoding, cancellationToken).ConfigureAwait(false);
         return document.ToRtf(writeOptions);
     }
 
     /// <summary>Reads semantic HTML from a stream and converts it to RTF text.</summary>
     public static async Task<string> ToRtfAsync(this Stream htmlStream, HtmlToRtfOptions? readOptions = null, RtfWriteOptions? writeOptions = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
-        RtfDocument document = await htmlStream.LoadRtfFromHtmlAsync(readOptions, encoding, cancellationToken).ConfigureAwait(false);
+        RtfDocument document = await htmlStream.LoadFromHtmlAsync(readOptions, encoding, cancellationToken).ConfigureAwait(false);
         return document.ToRtf(writeOptions);
     }
 

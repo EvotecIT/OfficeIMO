@@ -9,7 +9,7 @@ public class RtfHtmlShadingTests {
     public void Html_ToRtfDocument_Parses_Paragraph_And_Run_Shading_Metadata() {
         const string html = "<p style=\"background-color:#e6f2ff;--officeimo-rtf-shading-foreground:#4472c4;--officeimo-rtf-shading-percent:6250;--officeimo-rtf-shading-pattern:bgdkfdiag\">Assessment <span style=\"background-color:#fff2cc;--officeimo-rtf-shading-foreground:#00aa55;--officeimo-rtf-shading-percent:37.5%;--officeimo-rtf-shading-pattern:dark-diagonal-cross\">flag</span></p>";
 
-        RtfDocument document = html.LoadRtfFromHtml();
+        RtfDocument document = html.LoadFromHtml();
 
         RtfParagraph paragraph = Assert.Single(document.Paragraphs);
         AssertColor(document, paragraph.BackgroundColorIndex, 0xE6, 0xF2, 0xFF);
@@ -55,7 +55,7 @@ public class RtfHtmlShadingTests {
 
         Assert.Equal("<p style=\"background-color:#E6F2FF;--officeimo-rtf-shading-foreground:#4472C4;--officeimo-rtf-shading-percent:6250;--officeimo-rtf-shading-pattern:dark-forward-diagonal;\">Assessment <span style=\"background-color:#FFF2CC;--officeimo-rtf-shading-foreground:#00AA55;--officeimo-rtf-shading-percent:3750;--officeimo-rtf-shading-pattern:dark-diagonal-cross;\">flag</span></p>", html);
 
-        RtfParagraph roundTripParagraph = Assert.Single(html.LoadRtfFromHtml().Paragraphs);
+        RtfParagraph roundTripParagraph = Assert.Single(html.LoadFromHtml().Paragraphs);
         Assert.Equal(RtfShadingPattern.DarkForwardDiagonal, roundTripParagraph.ShadingPattern);
         Assert.Equal(6250, roundTripParagraph.ShadingPatternPercent);
         RtfRun roundTripFlag = Assert.Single(roundTripParagraph.Runs, run => run.Text == "flag");

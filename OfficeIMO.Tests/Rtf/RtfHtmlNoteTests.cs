@@ -22,7 +22,7 @@ public class RtfHtmlNoteTests {
         Assert.Contains("data-officeimo-rtf-note=\"footnote\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-rtf-note-content=\"", html, StringComparison.Ordinal);
 
-        RtfDocument roundTrip = html.LoadRtfFromHtml();
+        RtfDocument roundTrip = html.LoadFromHtml();
         RtfRun roundTripReference = Assert.Single(roundTrip.Paragraphs).Runs[1];
         Assert.NotNull(roundTripReference.Note);
         Assert.Equal(RtfNoteKind.Footnote, roundTripReference.Note!.Kind);
@@ -39,7 +39,7 @@ public class RtfHtmlNoteTests {
         string content = Convert.ToBase64String(Encoding.UTF8.GetBytes("<p>Endnote <strong>text</strong></p>"));
         string html = "<p>Value<sup>i</sup><span data-officeimo-rtf-note=\"endnote\" data-officeimo-rtf-note-content=\"" + content + "\"></span></p>";
 
-        RtfDocument document = html.LoadRtfFromHtml();
+        RtfDocument document = html.LoadFromHtml();
         RtfRun reference = Assert.Single(document.Paragraphs).Runs[1];
 
         Assert.NotNull(reference.Note);
@@ -58,7 +58,7 @@ public class RtfHtmlNoteTests {
         const string created = "2026-01-02T03:04:05.0000000";
         string html = "<p>Flag<span data-officeimo-rtf-note=\"annotation\" data-officeimo-rtf-note-content=\"" + content + "\" data-officeimo-rtf-note-id=\"c1\" data-officeimo-rtf-note-author=\"Alice\" data-officeimo-rtf-note-created=\"" + created + "\"></span></p>";
 
-        RtfDocument document = html.LoadRtfFromHtml();
+        RtfDocument document = html.LoadFromHtml();
         RtfNote note = Assert.Single(document.Paragraphs).Runs[0].Note!;
 
         Assert.Equal(RtfNoteKind.Annotation, note.Kind);

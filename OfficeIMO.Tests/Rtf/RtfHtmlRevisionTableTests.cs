@@ -32,7 +32,7 @@ public class RtfHtmlRevisionTableTests {
         Assert.Contains("<meta name=\"officeimo-rtf-revision-tables\" content=\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-rtf-pararsid=\"20\"", html, StringComparison.Ordinal);
 
-        RtfDocument roundTrip = html.LoadRtfFromHtml();
+        RtfDocument roundTrip = html.LoadFromHtml();
 
         Assert.Collection(roundTrip.RevisionAuthors,
             author => Assert.Equal("Alice", author.Name),

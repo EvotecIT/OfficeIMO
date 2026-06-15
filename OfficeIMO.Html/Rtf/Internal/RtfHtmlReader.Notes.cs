@@ -57,7 +57,7 @@ internal static partial class RtfHtmlReader {
                 return;
             }
 
-            RtfDocument noteDocument = html!.LoadRtfFromHtml();
+            RtfDocument noteDocument = html!.LoadFromHtml();
             foreach (RtfParagraph paragraph in noteDocument.Paragraphs) {
                 RtfParagraph noteParagraph = note.AddParagraph();
                 CopyParagraphInlines(paragraph, noteParagraph, noteDocument);

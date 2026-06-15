@@ -24,7 +24,7 @@ public class RtfHtmlRevisionTests {
         Assert.Contains("<ins data-officeimo-rtf-revision=\"inserted\" data-officeimo-rtf-revision-author-index=\"0\" data-officeimo-rtf-revision-author=\"Alice\" data-officeimo-rtf-revision-timestamp=\"123\" data-officeimo-rtf-charrsid=\"30\" data-officeimo-rtf-insrsid=\"40\">Inserted</ins>", html, StringComparison.Ordinal);
         Assert.Contains("<del data-officeimo-rtf-revision=\"deleted\" data-officeimo-rtf-revision-author-index=\"1\" data-officeimo-rtf-revision-author=\"Bob\" data-officeimo-rtf-delrsid=\"50\">Removed</del>", html, StringComparison.Ordinal);
 
-        RtfDocument roundTrip = html.LoadRtfFromHtml();
+        RtfDocument roundTrip = html.LoadFromHtml();
         Assert.Collection(roundTrip.RevisionAuthors,
             author => Assert.Equal("Alice", author.Name),
             author => Assert.Equal("Bob", author.Name));
@@ -46,7 +46,7 @@ public class RtfHtmlRevisionTests {
     public void Html_ToRtfDocument_Parses_Semantic_Revision_Tags() {
         const string html = "<p>Base <ins data-officeimo-rtf-revision-author=\"Alice\" data-officeimo-rtf-revision-timestamp=\"123\" data-officeimo-rtf-insrsid=\"40\">Inserted</ins> <del data-officeimo-rtf-revision-author=\"Bob\" data-officeimo-rtf-delrsid=\"50\">Removed</del></p>";
 
-        RtfDocument document = html.LoadRtfFromHtml();
+        RtfDocument document = html.LoadFromHtml();
 
         Assert.Collection(document.RevisionAuthors,
             author => Assert.Equal("Alice", author.Name),
@@ -74,7 +74,7 @@ public class RtfHtmlRevisionTests {
     public void Html_ToRtfDocument_Parses_Revision_Save_Id_Metadata_Without_Revision_Kind() {
         const string html = "<p>Base <span data-officeimo-rtf-revision=\"none\" data-officeimo-rtf-charrsid=\"30\" data-officeimo-rtf-insrsid=\"40\" data-officeimo-rtf-delrsid=\"50\">Tracked</span></p>";
 
-        RtfDocument document = html.LoadRtfFromHtml();
+        RtfDocument document = html.LoadFromHtml();
 
         RtfRun tracked = Assert.Single(Assert.Single(document.Paragraphs).Runs, run => run.Text == "Tracked");
         Assert.Equal(RtfRevisionKind.None, tracked.RevisionKind);
