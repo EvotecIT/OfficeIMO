@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Description>Shared HTML ingestion policies and helpers for OfficeIMO converters.</Description>
+    <Description>Shared HTML ingestion policies, helpers, and first-party HTML bridge APIs for OfficeIMO converters.</Description>
     <AssemblyName>OfficeIMO.Html</AssemblyName>
     <AssemblyTitle>OfficeIMO.Html</AssemblyTitle>
     <VersionPrefix>0.1.0</VersionPrefix>
@@ -11,7 +11,7 @@
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
     <PackageId>OfficeIMO.Html</PackageId>
-    <PackageTags>html;policy;converter;officeimo;net472;netstandard2.0;net8.0;net10.0</PackageTags>
+    <PackageTags>html;policy;converter;rtf;officeimo;net472;netstandard2.0;net8.0;net10.0</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
@@ -44,9 +44,20 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.Rtf\OfficeIMO.Rtf.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Using Include="System" />
     <Using Include="System.Collections.Generic" />
+    <Using Include="System.IO" />
     <Using Include="System.Linq" />
+    <Using Include="System.Net" />
+    <Using Include="System.Text" />
+    <Using Include="System.Threading" />
+    <Using Include="System.Threading.Tasks" />
+    <Using Include="AngleSharp.Dom" />
+    <Using Include="OfficeIMO.Rtf" />
   </ItemGroup>
 
 </Project>

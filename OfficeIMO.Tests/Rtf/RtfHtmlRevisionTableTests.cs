@@ -1,5 +1,5 @@
 using OfficeIMO.Rtf;
-using OfficeIMO.Rtf.Html;
+using OfficeIMO.Html;
 using Xunit;
 
 namespace OfficeIMO.Tests.Rtf;
@@ -32,7 +32,7 @@ public class RtfHtmlRevisionTableTests {
         Assert.Contains("<meta name=\"officeimo-rtf-revision-tables\" content=\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-rtf-pararsid=\"20\"", html, StringComparison.Ordinal);
 
-        RtfDocument roundTrip = html.LoadFromHtml();
+        RtfDocument roundTrip = html.LoadRtfFromHtml();
 
         Assert.Collection(roundTrip.RevisionAuthors,
             author => Assert.Equal("Alice", author.Name),

@@ -1,5 +1,5 @@
 using OfficeIMO.Rtf;
-using OfficeIMO.Rtf.Html;
+using OfficeIMO.Html;
 using Xunit;
 
 namespace OfficeIMO.Tests.Rtf;
@@ -9,7 +9,7 @@ public class RtfHtmlParagraphFormatTests {
     public void Html_ToRtfDocument_Parses_Paragraph_Borders() {
         const string html = "<p style=\"border:1pt solid #0c2238;border-left:2pt double red\">Boxed</p><p>Plain</p>";
 
-        RtfDocument document = html.LoadFromHtml();
+        RtfDocument document = html.LoadRtfFromHtml();
 
         RtfParagraph boxed = document.Paragraphs[0];
         Assert.Equal(RtfParagraphBorderStyle.Single, boxed.TopBorder.Style);
@@ -45,7 +45,7 @@ public class RtfHtmlParagraphFormatTests {
 
         Assert.Equal("<p style=\"border-top:1pt solid #0C2238;border-left:2pt double #FF0000;border-bottom:dotted;\">Boxed</p>", html);
 
-        RtfParagraph roundTripBoxed = html.LoadFromHtml().Paragraphs[0];
+        RtfParagraph roundTripBoxed = html.LoadRtfFromHtml().Paragraphs[0];
         Assert.Equal(RtfParagraphBorderStyle.Single, roundTripBoxed.TopBorder.Style);
         Assert.Equal(20, roundTripBoxed.TopBorder.Width);
         Assert.Equal(1, roundTripBoxed.TopBorder.ColorIndex);
@@ -59,7 +59,7 @@ public class RtfHtmlParagraphFormatTests {
     public void Html_ToRtfDocument_Parses_Document_And_Paragraph_Language_Direction() {
         const string html = "<html dir=\"rtl\" lang=\"ar-SA\"><body><p dir=\"ltr\">LTR <span lang=\"pl-PL\">Polish</span></p><p>RTL default</p></body></html>";
 
-        RtfDocument document = html.LoadFromHtml();
+        RtfDocument document = html.LoadRtfFromHtml();
 
         Assert.Equal(1025, document.Settings.DefaultLanguageId);
         Assert.Equal(RtfTextDirection.RightToLeft, document.Settings.Direction);
@@ -96,7 +96,7 @@ public class RtfHtmlParagraphFormatTests {
         Assert.Contains("<html lang=\"ar-SA\" dir=\"rtl\" style=\"--officeimo-rtf-lang:1025;direction:rtl;unicode-bidi:isolate;--officeimo-rtf-direction:rtl;\">", html, StringComparison.Ordinal);
         Assert.Contains("<p dir=\"ltr\" style=\"direction:ltr;unicode-bidi:isolate;--officeimo-rtf-direction:ltr;\">LTR</p>", html, StringComparison.Ordinal);
 
-        RtfDocument roundTrip = html.LoadFromHtml();
+        RtfDocument roundTrip = html.LoadRtfFromHtml();
         Assert.Equal(1025, roundTrip.Settings.DefaultLanguageId);
         Assert.Equal(RtfTextDirection.RightToLeft, roundTrip.Settings.Direction);
         Assert.Equal(RtfTextDirection.LeftToRight, roundTrip.Paragraphs[0].Direction);
@@ -107,7 +107,7 @@ public class RtfHtmlParagraphFormatTests {
     public void Html_ToRtfDocument_Parses_Inline_Page_And_Column_Breaks() {
         const string html = "<p>Before<br data-officeimo-rtf-break=\"page\">After<br data-officeimo-rtf-break=\"column\">Column<br data-officeimo-rtf-break=\"soft-line\">SoftLine<br data-officeimo-rtf-break=\"soft-page\">SoftPage<br style=\"page-break-before:always\">Styled</p>";
 
-        RtfDocument document = html.LoadFromHtml();
+        RtfDocument document = html.LoadRtfFromHtml();
 
         RtfParagraph paragraph = Assert.Single(document.Paragraphs);
         Assert.Collection(paragraph.Inlines,
@@ -154,7 +154,7 @@ public class RtfHtmlParagraphFormatTests {
 
         Assert.Equal("<p>Before<br data-officeimo-rtf-break=\"page\" style=\"page-break-before:always;break-before:page;\">After<br data-officeimo-rtf-break=\"soft-line\">SoftLine<br data-officeimo-rtf-break=\"soft-page\">SoftPage<br data-officeimo-rtf-break=\"column\" style=\"break-before:column;\">Column</p>", html);
 
-        RtfParagraph roundTripParagraph = Assert.Single(html.LoadFromHtml().Paragraphs);
+        RtfParagraph roundTripParagraph = Assert.Single(html.LoadRtfFromHtml().Paragraphs);
         Assert.Collection(roundTripParagraph.Inlines,
             inline => Assert.Equal("Before", Assert.IsType<RtfRun>(inline).Text),
             inline => Assert.Equal(RtfBreakKind.Page, Assert.IsType<RtfBreak>(inline).Kind),

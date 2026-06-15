@@ -1,5 +1,5 @@
 using OfficeIMO.Rtf;
-using OfficeIMO.Rtf.Html;
+using OfficeIMO.Html;
 using Xunit;
 
 namespace OfficeIMO.Tests.Rtf;
@@ -85,7 +85,7 @@ public class RtfHtmlStylesheetTests {
         Assert.Contains("data-officeimo-rtf-style-id=\"7\" data-officeimo-rtf-style-kind=\"paragraph\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-rtf-style-id=\"8\" data-officeimo-rtf-style-kind=\"character\"", html, StringComparison.Ordinal);
 
-        RtfDocument roundTrip = html.LoadFromHtml();
+        RtfDocument roundTrip = html.LoadRtfFromHtml();
         RtfStyle roundTripHeading = roundTrip.Styles.Single(style => style.Id == 7 && style.Kind == RtfStyleKind.Paragraph);
         Assert.Equal("Clinical Heading", roundTripHeading.Name);
         Assert.Equal(0, roundTripHeading.BasedOnStyleId);
@@ -220,7 +220,7 @@ public class RtfHtmlStylesheetTests {
 
         Assert.Contains("<meta name=\"officeimo-rtf-styles\" content=\"", html, StringComparison.Ordinal);
 
-        RtfDocument roundTrip = html.LoadFromHtml();
+        RtfDocument roundTrip = html.LoadRtfFromHtml();
         RtfStyle roundTripStyle = Assert.Single(roundTrip.Styles);
         Assert.Equal(style.Id, roundTripStyle.Id);
         Assert.Equal(RtfStyleKind.Table, roundTripStyle.Kind);

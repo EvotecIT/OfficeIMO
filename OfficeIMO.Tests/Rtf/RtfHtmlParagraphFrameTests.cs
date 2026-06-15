@@ -1,5 +1,5 @@
 using OfficeIMO.Rtf;
-using OfficeIMO.Rtf.Html;
+using OfficeIMO.Html;
 using Xunit;
 
 namespace OfficeIMO.Tests.Rtf;
@@ -22,7 +22,7 @@ public class RtfHtmlParagraphFrameTests {
 
         Assert.Contains("data-officeimo-rtf-paragraph-frame=\"", html, StringComparison.Ordinal);
 
-        RtfDocument roundTrip = html.LoadFromHtml();
+        RtfDocument roundTrip = html.LoadRtfFromHtml();
         Assert.Equal(2, roundTrip.Paragraphs.Count);
         RtfParagraph framed = roundTrip.Paragraphs[0];
         AssertFrame(
@@ -68,7 +68,7 @@ public class RtfHtmlParagraphFrameTests {
 
         Assert.Contains("<meta name=\"officeimo-rtf-styles\" content=\"", html, StringComparison.Ordinal);
 
-        RtfDocument roundTrip = html.LoadFromHtml();
+        RtfDocument roundTrip = html.LoadRtfFromHtml();
         RtfStyle roundTripStyle = Assert.Single(roundTrip.Styles);
         Assert.Equal(style.Id, roundTripStyle.Id);
         AssertFrame(

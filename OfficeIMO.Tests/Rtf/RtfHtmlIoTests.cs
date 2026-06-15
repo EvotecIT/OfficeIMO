@@ -1,5 +1,5 @@
 using OfficeIMO.Rtf;
-using OfficeIMO.Rtf.Html;
+using OfficeIMO.Html;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -23,7 +23,7 @@ public class RtfHtmlIoTests {
         using MemoryStream memoryStream = document.ToHtmlMemoryStream();
         Assert.Equal(bytes, memoryStream.ToArray());
 
-        RtfDocument roundTrip = bytes.LoadFromHtml();
+        RtfDocument roundTrip = bytes.LoadRtfFromHtml();
         Assert.Equal("Clinical ż", Assert.Single(roundTrip.Paragraphs).ToPlainText());
     }
 
@@ -65,13 +65,13 @@ public class RtfHtmlIoTests {
         using MemoryStream htmlStream = document.ToHtmlMemoryStream();
         Assert.Equal(htmlBytes, htmlStream.ToArray());
 
-        RtfDocument fromBytes = htmlBytes.LoadFromHtml();
+        RtfDocument fromBytes = htmlBytes.LoadRtfFromHtml();
         Assert.Equal("Fluent ż", Assert.Single(fromBytes.Paragraphs).ToPlainText());
 
         byte[] prefixedHtml = Encoding.UTF8.GetBytes("*" + html);
         using var source = new MemoryStream(prefixedHtml);
         source.Position = 1;
-        RtfDocument fromStream = source.LoadFromHtml();
+        RtfDocument fromStream = source.LoadRtfFromHtml();
 
         Assert.Equal(source.Length, source.Position);
         Assert.Equal("Fluent ż", Assert.Single(fromStream.Paragraphs).ToPlainText());
@@ -108,13 +108,13 @@ public class RtfHtmlIoTests {
         try {
             File.WriteAllText(path, html, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
-            RtfDocument fromFile = RtfHtmlConverterExtensions.LoadFromHtmlFile(path);
+            RtfDocument fromFile = RtfHtmlConverterExtensions.LoadRtfFromHtmlFile(path);
             Assert.Equal("File ż", Assert.Single(fromFile.Paragraphs).ToPlainText());
 
-            RtfDocument fromEncodedFile = RtfHtmlConverterExtensions.LoadFromHtmlFile(path, encoding: Encoding.UTF8);
+            RtfDocument fromEncodedFile = RtfHtmlConverterExtensions.LoadRtfFromHtmlFile(path, encoding: Encoding.UTF8);
             Assert.Equal("File ż", Assert.Single(fromEncodedFile.Paragraphs).ToPlainText());
 
-            RtfDocument fromAsyncFile = await RtfHtmlConverterExtensions.LoadFromHtmlFileAsync(path);
+            RtfDocument fromAsyncFile = await RtfHtmlConverterExtensions.LoadRtfFromHtmlFileAsync(path);
             Assert.Equal("File ż", Assert.Single(fromAsyncFile.Paragraphs).ToPlainText());
         } finally {
             if (File.Exists(path)) {
@@ -145,13 +145,13 @@ public class RtfHtmlIoTests {
         Assert.Equal(0x2A, savedHtml[0]);
         Assert.Equal(html, Encoding.UTF8.GetString(savedHtml, 1, savedHtml.Length - 1));
 
-        RtfDocument fromBytes = await htmlBytes.LoadFromHtmlAsync();
+        RtfDocument fromBytes = await htmlBytes.LoadRtfFromHtmlAsync();
         Assert.Equal("Async ż", Assert.Single(fromBytes.Paragraphs).ToPlainText());
 
         byte[] prefixedHtml = Encoding.UTF8.GetBytes("*" + html);
         using var source = new MemoryStream(prefixedHtml);
         source.Position = 1;
-        RtfDocument fromStream = await source.LoadFromHtmlAsync();
+        RtfDocument fromStream = await source.LoadRtfFromHtmlAsync();
 
         Assert.Equal(source.Length, source.Position);
         Assert.Equal("Async ż", Assert.Single(fromStream.Paragraphs).ToPlainText());
@@ -186,8 +186,8 @@ public class RtfHtmlIoTests {
         cts.Cancel();
 
         await Assert.ThrowsAsync<OperationCanceledException>(() =>
-            "<p>Cancelled</p>".LoadFromHtmlAsync(cancellationToken: cts.Token));
+            "<p>Cancelled</p>".LoadRtfFromHtmlAsync(cancellationToken: cts.Token));
         await Assert.ThrowsAsync<OperationCanceledException>(() =>
-            RtfHtmlConverterExtensions.LoadFromHtmlFileAsync("ignored.html", cancellationToken: cts.Token));
+            RtfHtmlConverterExtensions.LoadRtfFromHtmlFileAsync("ignored.html", cancellationToken: cts.Token));
     }
 }

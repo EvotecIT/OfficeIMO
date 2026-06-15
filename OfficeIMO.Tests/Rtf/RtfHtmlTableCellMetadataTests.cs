@@ -1,5 +1,5 @@
 using OfficeIMO.Rtf;
-using OfficeIMO.Rtf.Html;
+using OfficeIMO.Html;
 using Xunit;
 
 namespace OfficeIMO.Tests.Rtf;
@@ -28,7 +28,7 @@ public class RtfHtmlTableCellMetadataTests {
 
         Assert.Contains("data-officeimo-rtf-cell=\"", html, StringComparison.Ordinal);
 
-        RtfDocument roundTrip = html.LoadFromHtml();
+        RtfDocument roundTrip = html.LoadRtfFromHtml();
         RtfTable roundTripTable = Assert.IsType<RtfTable>(Assert.Single(roundTrip.Blocks));
         RtfTableCell roundTripFirst = roundTripTable.Rows[0].Cells[0];
         RtfTableCell roundTripSecond = roundTripTable.Rows[0].Cells[1];
@@ -72,7 +72,7 @@ public class RtfHtmlTableCellMetadataTests {
         Assert.Contains("colspan=\"2\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-rtf-cell=\"", html, StringComparison.Ordinal);
 
-        RtfDocument roundTrip = html.LoadFromHtml();
+        RtfDocument roundTrip = html.LoadRtfFromHtml();
         RtfTable roundTripTable = Assert.IsType<RtfTable>(Assert.Single(roundTrip.Blocks));
         RtfTableCell roundTripFirst = roundTripTable.Rows[0].Cells[0];
         RtfTableCell roundTripContinuation = roundTripTable.Rows[0].Cells[1];

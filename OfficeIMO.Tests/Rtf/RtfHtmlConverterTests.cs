@@ -1,5 +1,5 @@
 using OfficeIMO.Rtf;
-using OfficeIMO.Rtf.Html;
+using OfficeIMO.Html;
 using Xunit;
 
 namespace OfficeIMO.Tests.Rtf;
@@ -41,7 +41,7 @@ public partial class RtfHtmlConverterTests {
     public void Html_ToRtfDocument_Parses_Paragraphs_Inlines_And_Hyperlinks() {
         const string html = "<p>Plain <strong>bold</strong> <em>italic</em> <a href=\"/chart/1\">chart</a><br>next</p>";
 
-        RtfDocument document = html.LoadFromHtml(new RtfHtmlReadOptions {
+        RtfDocument document = html.LoadRtfFromHtml(new RtfHtmlReadOptions {
             BaseUri = new Uri("https://example.test")
         });
 
@@ -58,7 +58,7 @@ public partial class RtfHtmlConverterTests {
     public void Html_ToRtfDocument_Resolves_Base_Element_Hyperlinks() {
         const string html = "<html><head><base href=\"https://example.test/root/\"></head><body><p><a href=\"chart/1\">chart</a></p></body></html>";
 
-        RtfDocument document = html.LoadFromHtml();
+        RtfDocument document = html.LoadRtfFromHtml();
 
         RtfRun run = Assert.Single(Assert.Single(document.Paragraphs).Runs, item => item.Text == "chart");
         Assert.Equal(new Uri("https://example.test/root/chart/1"), run.Hyperlink);
@@ -68,7 +68,7 @@ public partial class RtfHtmlConverterTests {
     public void Html_ToRtfDocument_Parses_Inline_Css_Formatting_And_Alignment() {
         const string html = "<p style=\"text-align:center !important\">Vitals <span style=\"font-weight:700 !important; font-style: italic; text-decoration: underline line-through; vertical-align: super\">critical</span><span style=\"vertical-align: sub\">low</span></p>";
 
-        RtfDocument document = html.LoadFromHtml();
+        RtfDocument document = html.LoadRtfFromHtml();
 
         RtfParagraph paragraph = Assert.Single(document.Paragraphs);
         Assert.Equal(RtfTextAlignment.Center, paragraph.Alignment);
@@ -87,7 +87,7 @@ public partial class RtfHtmlConverterTests {
     public void Html_ToRtfDocument_Parses_Css_Colors_Into_Rtf_Color_Table() {
         const string html = "<p><span style=\"color:#0c2238; background-color: rgb(255, 242, 204)\">Flag</span><span style=\"color: #0C2238\"> again</span><span style=\"background: yellow\"> note</span></p>";
 
-        RtfDocument document = html.LoadFromHtml();
+        RtfDocument document = html.LoadRtfFromHtml();
 
         Assert.Equal(3, document.Colors.Count);
         Assert.Equal("#0C2238", document.Colors[0].ToString());
@@ -130,7 +130,7 @@ public partial class RtfHtmlConverterTests {
     public void Html_ToRtfDocument_Parses_Paragraph_Background_Color() {
         const string html = "<p style=\"background-color:#e6f2ff\">Assessment</p><p>Plain</p>";
 
-        RtfDocument document = html.LoadFromHtml();
+        RtfDocument document = html.LoadRtfFromHtml();
 
         Assert.Single(document.Colors);
         Assert.Equal("#E6F2FF", document.Colors[0].ToString());
@@ -158,7 +158,7 @@ public partial class RtfHtmlConverterTests {
 
         Assert.Equal("<p style=\"background-color:#E6F2FF;\">Assessment</p>\n<p>Plain</p>", html);
 
-        RtfDocument roundTripDocument = html.LoadFromHtml();
+        RtfDocument roundTripDocument = html.LoadRtfFromHtml();
         Assert.Equal(1, roundTripDocument.Paragraphs[0].BackgroundColorIndex);
         Assert.Null(roundTripDocument.Paragraphs[1].BackgroundColorIndex);
     }
@@ -167,7 +167,7 @@ public partial class RtfHtmlConverterTests {
     public void Html_ToRtfDocument_Parses_Paragraph_Spacing_And_Line_Height() {
         const string html = "<p style=\"margin-top:6pt;margin-bottom:12pt;line-height:18pt\">Exact</p><p style=\"line-height:150%\">Multiple</p>";
 
-        RtfDocument document = html.LoadFromHtml();
+        RtfDocument document = html.LoadRtfFromHtml();
 
         RtfParagraph exact = document.Paragraphs[0];
         Assert.Equal(120, exact.SpaceBeforeTwips);
@@ -202,7 +202,7 @@ public partial class RtfHtmlConverterTests {
 
         Assert.Equal("<p style=\"margin-top:6pt;margin-bottom:12pt;line-height:18pt;\">Exact</p>\n<p style=\"line-height:1.5;\">Multiple</p>", html);
 
-        RtfDocument roundTripDocument = html.LoadFromHtml();
+        RtfDocument roundTripDocument = html.LoadRtfFromHtml();
         Assert.Equal(120, roundTripDocument.Paragraphs[0].SpaceBeforeTwips);
         Assert.Equal(240, roundTripDocument.Paragraphs[0].SpaceAfterTwips);
         Assert.Equal(360, roundTripDocument.Paragraphs[0].LineSpacingTwips);
@@ -215,7 +215,7 @@ public partial class RtfHtmlConverterTests {
     public void Html_ToRtfDocument_Parses_Css_Font_Family_And_Size() {
         const string html = "<p><span style=\"font-family: 'Times New Roman', serif; font-size: 13.5pt\">Clinical</span><span style=\"font-family: Consolas, monospace; font-size: 18px\"> code</span></p>";
 
-        RtfDocument document = html.LoadFromHtml();
+        RtfDocument document = html.LoadRtfFromHtml();
 
         Assert.Contains(document.Fonts, font => font.Id == 1 && font.Name == "Times New Roman");
         Assert.Contains(document.Fonts, font => font.Id == 2 && font.Name == "Consolas");
@@ -256,7 +256,7 @@ public partial class RtfHtmlConverterTests {
     public void Html_ToRtfDocument_Maps_Headings_To_Outline_Levels() {
         const string html = "<h1>Assessment</h1><h3 style=\"text-align:right\">Plan</h3>";
 
-        RtfDocument document = html.LoadFromHtml();
+        RtfDocument document = html.LoadRtfFromHtml();
 
         Assert.Equal(2, document.Paragraphs.Count);
         Assert.Equal(0, document.Paragraphs[0].OutlineLevel);
@@ -290,7 +290,7 @@ public partial class RtfHtmlConverterTests {
     public void Html_ToRtfDocument_Parses_Paragraph_Indentation_Styles() {
         const string html = "<p style=\"margin-left:36pt; margin-right:18pt; text-indent:-12pt\">Indented</p><blockquote>Quoted</blockquote>";
 
-        RtfDocument document = html.LoadFromHtml();
+        RtfDocument document = html.LoadRtfFromHtml();
 
         Assert.Equal(2, document.Paragraphs.Count);
         RtfParagraph indented = document.Paragraphs[0];
@@ -326,7 +326,7 @@ public partial class RtfHtmlConverterTests {
     public void Html_ToRtfDocument_Parses_Page_Break_Styles() {
         const string html = "<p style=\"page-break-before: always\">Before</p><p style=\"break-after: page\">After</p><p>Next</p>";
 
-        RtfDocument document = html.LoadFromHtml();
+        RtfDocument document = html.LoadRtfFromHtml();
 
         Assert.Equal(3, document.Paragraphs.Count);
         Assert.True(document.Paragraphs[0].PageBreakBefore);
@@ -359,7 +359,7 @@ public partial class RtfHtmlConverterTests {
     public void Html_ToRtfDocument_Allows_Css_To_Override_Semantic_Formatting() {
         const string html = "<p><strong><em><u>marked <span style=\"font-weight:400; font-style: normal; text-decoration: none; vertical-align: baseline\">plain</span></u></em></strong></p>";
 
-        RtfDocument document = html.LoadFromHtml();
+        RtfDocument document = html.LoadRtfFromHtml();
 
         RtfParagraph paragraph = Assert.Single(document.Paragraphs);
         RtfRun marked = Assert.Single(paragraph.Runs, run => run.Text == "marked ");
@@ -379,7 +379,7 @@ public partial class RtfHtmlConverterTests {
     public void Html_Rtf_Html_RoundTrip_Preserves_Semantic_Text() {
         const string html = "<p>Assessment: <strong>stable</strong></p>";
 
-        RtfDocument document = html.LoadFromHtml();
+        RtfDocument document = html.LoadRtfFromHtml();
         string rtf = document.ToRtf();
         string roundTripHtml = RtfDocument.Read(rtf).Document.ToHtml();
 

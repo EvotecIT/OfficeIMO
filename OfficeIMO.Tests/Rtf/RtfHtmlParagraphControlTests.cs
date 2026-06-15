@@ -1,5 +1,5 @@
 using OfficeIMO.Rtf;
-using OfficeIMO.Rtf.Html;
+using OfficeIMO.Html;
 using Xunit;
 
 namespace OfficeIMO.Tests.Rtf;
@@ -23,7 +23,7 @@ public class RtfHtmlParagraphControlTests {
 
         Assert.Contains("data-officeimo-rtf-paragraph-controls=\"", html, StringComparison.Ordinal);
 
-        RtfDocument roundTrip = html.LoadFromHtml();
+        RtfDocument roundTrip = html.LoadRtfFromHtml();
         RtfParagraph roundTripParagraph = Assert.Single(roundTrip.Paragraphs);
         Assert.True(roundTripParagraph.KeepWithNext);
         Assert.True(roundTripParagraph.KeepLinesTogether);

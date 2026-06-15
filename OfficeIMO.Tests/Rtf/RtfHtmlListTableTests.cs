@@ -1,5 +1,5 @@
 using OfficeIMO.Rtf;
-using OfficeIMO.Rtf.Html;
+using OfficeIMO.Html;
 using Xunit;
 
 namespace OfficeIMO.Tests.Rtf;
@@ -46,7 +46,7 @@ public class RtfHtmlListTableTests {
 
         Assert.Contains("<meta name=\"officeimo-rtf-lists\" content=\"", html, StringComparison.Ordinal);
 
-        RtfDocument roundTrip = html.LoadFromHtml();
+        RtfDocument roundTrip = html.LoadRtfFromHtml();
 
         RtfListDefinition roundTripDefinition = Assert.Single(roundTrip.ListDefinitions);
         Assert.Equal(100, roundTripDefinition.Id);

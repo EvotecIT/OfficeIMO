@@ -1,5 +1,5 @@
 using OfficeIMO.Rtf;
-using OfficeIMO.Rtf.Html;
+using OfficeIMO.Html;
 using Xunit;
 
 namespace OfficeIMO.Tests.Rtf;
@@ -36,7 +36,7 @@ public class RtfHtmlFontTableTests {
 
         Assert.Contains("<meta name=\"officeimo-rtf-fonts\" content=\"", html, StringComparison.Ordinal);
 
-        RtfDocument roundTrip = html.LoadFromHtml();
+        RtfDocument roundTrip = html.LoadRtfFromHtml();
         Assert.Equal(monospaceFontId, roundTrip.Settings.DefaultFontId);
         RtfFont roundTripDefault = roundTrip.Fonts.Single(font => font.Id == 0);
         Assert.Equal(RtfFontFamily.Swiss, roundTripDefault.Family);
