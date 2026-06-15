@@ -39,7 +39,7 @@ internal static class RtfHtmlMetadataCodec {
 
             string key = line.Substring(0, separator).Trim();
             string encoded = line.Substring(separator + 1).Trim();
-            if (key.Length == 0 || encoded.Length == 0) {
+            if (key.Length == 0) {
                 continue;
             }
 
