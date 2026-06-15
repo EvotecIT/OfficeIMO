@@ -37,6 +37,7 @@ internal static partial class RtfHtmlReader {
         private RtfTableRow? _row;
         private RtfTableCell? _cell;
         private Uri? _hyperlink;
+        private RtfRun? _lastRun;
         private int _bold;
         private int _italic;
         private int _underline;
@@ -56,6 +57,10 @@ internal static partial class RtfHtmlReader {
         }
 
         internal void Start(HtmlToken token) {
+            if (TryReadNote(token)) {
+                return;
+            }
+
             bool startedField = TryStartField(token);
             if (!startedField) {
                 EnterFieldElement();
@@ -271,6 +276,7 @@ internal static partial class RtfHtmlReader {
             }
 
             RtfRun run = EnsureInlineParagraph().AddText(value);
+            _lastRun = run;
             run.Bold = ResolveStyleValue(style => style.Bold, _bold > 0);
             run.Italic = ResolveStyleValue(style => style.Italic, _italic > 0);
             bool underline = ResolveStyleValue(style => style.Underline, _underline > 0);

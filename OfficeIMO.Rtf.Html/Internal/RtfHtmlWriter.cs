@@ -274,6 +274,8 @@ internal static partial class RtfHtmlWriter {
         if (run.Hyperlink != null) {
             builder.Append("</a>");
         }
+
+        AppendNote(builder, run.Note, document);
     }
 
     private static void OpenTag(StringBuilder builder, string tag, bool condition, ref int opened) {
