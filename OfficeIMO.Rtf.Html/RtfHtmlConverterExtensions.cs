@@ -38,9 +38,6 @@ public static class RtfHtmlConverterExtensions {
 
         byte[] data = (encoding ?? Encoding.UTF8).GetBytes(document.ToHtml(options));
         stream.Write(data, 0, data.Length);
-        if (stream.CanSeek) {
-            stream.Position = 0;
-        }
     }
 
     /// <summary>Converts semantic HTML to an RTF document model.</summary>
