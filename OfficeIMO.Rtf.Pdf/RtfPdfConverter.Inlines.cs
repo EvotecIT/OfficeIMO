@@ -28,7 +28,7 @@ internal static partial class RtfPdfConverter {
                     pendingRuns.Add(PdfCore.TextRun.LineBreak());
                     break;
                 case RtfField field:
-                    AppendParagraphRuns(document, field.Result, pendingRuns, options, state, inheritedLinkUri: field.Hyperlink?.ToString());
+                    AppendParagraphRuns(document, field.Result, pendingRuns, options, state, inheritedLinkUri: field.Hyperlink?.ToString(), inheritedLinkContents: field.HyperlinkField?.ScreenTip);
                     break;
                 case RtfGeneratedText generatedText:
                     AppendGeneratedText(generatedText, pendingRuns, state);
@@ -65,18 +65,18 @@ internal static partial class RtfPdfConverter {
         pdf.Paragraph(paragraph => paragraph.Runs(snapshot), align, style: style);
     }
 
-    private static void AppendParagraphRuns(RtfDocument document, RtfParagraph paragraph, List<PdfCore.TextRun> runs, RtfPdfSaveOptions options, PdfRenderState state, bool collectNotes = true, string? inheritedLinkUri = null) {
+    private static void AppendParagraphRuns(RtfDocument document, RtfParagraph paragraph, List<PdfCore.TextRun> runs, RtfPdfSaveOptions options, PdfRenderState state, bool collectNotes = true, string? inheritedLinkUri = null, string? inheritedLinkContents = null) {
         AppendListMarker(paragraph, runs, state);
         foreach (IRtfInline inline in paragraph.Inlines) {
             switch (inline) {
                 case RtfRun run:
-                    AppendRun(document, run, runs, options, state, collectNotes, inheritedLinkUri);
+                    AppendRun(document, run, runs, options, state, collectNotes, inheritedLinkUri, inheritedLinkContents);
                     break;
                 case RtfBreak:
                     runs.Add(PdfCore.TextRun.LineBreak());
                     break;
                 case RtfField field:
-                    AppendParagraphRuns(document, field.Result, runs, options, state, collectNotes, field.Hyperlink?.ToString() ?? inheritedLinkUri);
+                    AppendParagraphRuns(document, field.Result, runs, options, state, collectNotes, field.Hyperlink?.ToString() ?? inheritedLinkUri, field.HyperlinkField?.ScreenTip ?? inheritedLinkContents);
                     break;
                 case RtfGeneratedText generatedText:
                     AppendGeneratedText(generatedText, runs, state, collectNotes);
@@ -91,7 +91,7 @@ internal static partial class RtfPdfConverter {
         }
     }
 
-    private static void AppendRun(RtfDocument document, RtfRun run, List<PdfCore.TextRun> runs, RtfPdfSaveOptions options, PdfRenderState state, bool collectNotes = true, string? inheritedLinkUri = null) {
+    private static void AppendRun(RtfDocument document, RtfRun run, List<PdfCore.TextRun> runs, RtfPdfSaveOptions options, PdfRenderState state, bool collectNotes = true, string? inheritedLinkUri = null, string? inheritedLinkContents = null) {
         if (run.Hidden && !options.IncludeHiddenText) {
             return;
         }
@@ -109,6 +109,7 @@ internal static partial class RtfPdfConverter {
         PdfCore.PdfColor? background = RtfPdfMapping.ToPdfColor(document, run.HighlightColorIndex)
             ?? RtfPdfMapping.ToPdfColor(document, run.CharacterBackgroundColorIndex);
         PdfCore.PdfStandardFont? font = RtfPdfMapping.ToPdfFont(document, run.FontId, run.Bold, run.Italic);
+        string? linkUri = run.Hyperlink?.ToString() ?? inheritedLinkUri;
 
         runs.Add(new PdfCore.TextRun(
             text,
@@ -119,7 +120,8 @@ internal static partial class RtfPdfConverter {
             strike: run.Strike || run.DoubleStrike,
             fontSize: run.FontSize,
             font: font,
-            linkUri: run.Hyperlink?.ToString() ?? inheritedLinkUri,
+            linkUri: linkUri,
+            linkContents: linkUri != null && run.Hyperlink == null ? inheritedLinkContents : null,
             baseline: RtfPdfMapping.ToPdfBaseline(run.VerticalPosition),
             backgroundColor: background));
     }

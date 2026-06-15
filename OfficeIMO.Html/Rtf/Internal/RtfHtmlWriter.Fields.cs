@@ -4,13 +4,35 @@ namespace OfficeIMO.Html;
 
 internal static partial class RtfHtmlWriter {
     private static void AppendField(StringBuilder builder, RtfField field, RtfHtmlSaveOptions options, RtfDocument document) {
-        builder.Append("<span data-officeimo-rtf-field=\"true\" data-officeimo-rtf-field-instruction=\"");
-        builder.Append(EncodeAttribute(field.Instruction));
-        builder.Append('"');
+        string tagName = field.Hyperlink != null ? "a" : "span";
+        builder.Append('<');
+        builder.Append(tagName);
+        if (field.Hyperlink != null) {
+            AppendAttribute(builder, "href", field.Hyperlink.ToString());
+        }
+
+        AppendAttribute(builder, "data-officeimo-rtf-field", "true");
+        AppendAttribute(builder, "data-officeimo-rtf-field-instruction", field.Instruction);
+        AppendHyperlinkFieldAttributes(builder, field.HyperlinkField);
         AppendFormFieldAttributes(builder, field.FormFieldData);
         builder.Append('>');
         AppendInlines(builder, field.Result.Inlines, options, document);
-        builder.Append("</span>");
+        builder.Append("</");
+        builder.Append(tagName);
+        builder.Append('>');
+    }
+
+    private static void AppendHyperlinkFieldAttributes(StringBuilder builder, RtfHyperlinkFieldInfo? data) {
+        if (data == null) {
+            return;
+        }
+
+        AppendAttribute(builder, "data-officeimo-rtf-field-hyperlink", data.Target?.ToString());
+        AppendAttribute(builder, "data-officeimo-rtf-field-hyperlink-sub-address", data.SubAddress);
+        AppendAttribute(builder, "data-officeimo-rtf-field-hyperlink-screen-tip", data.ScreenTip);
+        AppendAttribute(builder, "data-officeimo-rtf-field-hyperlink-target-frame", data.TargetFrame);
+        AppendAttribute(builder, "data-officeimo-rtf-field-hyperlink-image-map", data.ImageMap);
+        AppendAttribute(builder, "title", data.ScreenTip);
     }
 
     private static void AppendFormFieldAttributes(StringBuilder builder, RtfFormFieldData? data) {

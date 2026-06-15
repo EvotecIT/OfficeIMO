@@ -14,6 +14,7 @@ internal static partial class RtfHtmlReader {
             }
 
             RtfField field = EnsureInlineParagraph().AddField(instruction ?? string.Empty);
+            ReadHyperlinkFieldData(token, field);
             ReadFormFieldData(token, field);
             _fieldScopes.Push(new HtmlFieldScope(field));
             return true;
@@ -77,6 +78,27 @@ internal static partial class RtfHtmlReader {
                    GetAttribute(token, "data-officeimo-rtf-form-entry-macro") != null ||
                    GetAttribute(token, "data-officeimo-rtf-form-exit-macro") != null ||
                    GetAttribute(token, "data-officeimo-rtf-form-dropdown-items") != null;
+        }
+
+        private static void ReadHyperlinkFieldData(IElement token, RtfField field) {
+            string? target = GetAttribute(token, "data-officeimo-rtf-field-hyperlink") ?? GetAttribute(token, "href");
+            if (!string.IsNullOrWhiteSpace(target) && Uri.TryCreate(target, UriKind.RelativeOrAbsolute, out Uri? uri)) {
+                field.Hyperlink = uri;
+            }
+
+            string? subAddress = GetAttribute(token, "data-officeimo-rtf-field-hyperlink-sub-address");
+            string? screenTip = GetAttribute(token, "data-officeimo-rtf-field-hyperlink-screen-tip") ?? GetAttribute(token, "title");
+            string? targetFrame = GetAttribute(token, "data-officeimo-rtf-field-hyperlink-target-frame");
+            string? imageMap = GetAttribute(token, "data-officeimo-rtf-field-hyperlink-image-map");
+            if (subAddress == null && screenTip == null && targetFrame == null && imageMap == null) {
+                return;
+            }
+
+            RtfHyperlinkFieldInfo data = field.GetOrCreateHyperlinkField();
+            data.SubAddress = subAddress ?? data.SubAddress;
+            data.ScreenTip = screenTip ?? data.ScreenTip;
+            data.TargetFrame = targetFrame ?? data.TargetFrame;
+            data.ImageMap = imageMap ?? data.ImageMap;
         }
 
         private static void ReadFormFieldControls(IElement token, RtfFormFieldData data) {

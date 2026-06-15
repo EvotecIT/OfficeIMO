@@ -36,7 +36,7 @@ public class RtfPdfConverterTests {
 
     [Fact]
     public void RtfString_ToPdfDocument_Renders_Field_Result_Text() {
-        const string rtf = @"{\rtf1\ansi Parsed {\field{\*\fldinst HYPERLINK ""https://evotec.xyz/rtf""}{\fldrslt link}} text\par}";
+        const string rtf = @"{\rtf1\ansi Parsed {\field{\*\fldinst HYPERLINK ""https://evotec.xyz/rtf"" \\o ""Screen tip""}{\fldrslt link}} text\par}";
 
         byte[] pdf = rtf.SaveAsPdf();
         string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
@@ -47,6 +47,7 @@ public class RtfPdfConverterTests {
 
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
         PdfCore.PdfLinkAnnotation link = Assert.Single(info.GetLinkAnnotationsByUri("https://evotec.xyz/rtf"));
+        Assert.Equal("Screen tip", link.Contents);
         Assert.True(link.Width > 0);
         Assert.True(link.Height > 0);
     }

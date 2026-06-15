@@ -52,12 +52,15 @@ public class RtfHtmlFieldTests {
 
         string html = document.ToHtml();
 
-        Assert.Contains("data-officeimo-rtf-field-instruction=\"HYPERLINK &quot;https://example.test/path&quot; \\o &quot;tip&quot;\"", html, StringComparison.Ordinal);
+        Assert.Equal("<p><a href=\"https://example.test/path\" data-officeimo-rtf-field=\"true\" data-officeimo-rtf-field-instruction=\"HYPERLINK &quot;https://example.test/path&quot; \\o &quot;tip&quot;\" data-officeimo-rtf-field-hyperlink=\"https://example.test/path\" data-officeimo-rtf-field-hyperlink-screen-tip=\"tip\" title=\"tip\"><strong>Link</strong></a></p>", html);
         RtfField roundTripField = Assert.IsType<RtfField>(Assert.Single(html.LoadRtfFromHtml().Paragraphs).Inlines[0]);
         Assert.Equal(@"HYPERLINK ""https://example.test/path"" \o ""tip""", roundTripField.Instruction);
         Assert.Equal(new Uri("https://example.test/path"), roundTripField.Hyperlink);
+        Assert.NotNull(roundTripField.HyperlinkField);
+        Assert.Equal("tip", roundTripField.HyperlinkField!.ScreenTip);
         Assert.Equal("Link", roundTripField.ToPlainText());
         Assert.Contains(roundTripField.Result.Runs, run => run.Text == "Link" && run.Bold);
+        Assert.DoesNotContain(roundTripField.Result.Runs, run => run.Hyperlink != null);
     }
 
     [Fact]

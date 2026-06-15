@@ -252,7 +252,7 @@ public static partial class WordRtfConverterExtensions {
                     break;
                 case RtfField nestedField:
                     RtfField field = destination.AddField(nestedField.Instruction);
-                    field.Hyperlink = nestedField.Hyperlink;
+                    field.HyperlinkField = nestedField.HyperlinkField?.Clone();
                     CopyInlines(nestedField.Result, field.Result);
                     break;
                 case RtfGeneratedText generatedText:

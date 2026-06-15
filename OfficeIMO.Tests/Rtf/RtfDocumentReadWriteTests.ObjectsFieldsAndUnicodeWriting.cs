@@ -242,6 +242,8 @@ public partial class RtfDocumentReadWriteTests {
                 RtfField field = Assert.IsType<RtfField>(inline);
                 Assert.Equal(@"HYPERLINK ""https://example.test/path"" \o ""tip""", field.Instruction);
                 Assert.Equal(new Uri("https://example.test/path"), field.Hyperlink);
+                Assert.NotNull(field.HyperlinkField);
+                Assert.Equal("tip", field.HyperlinkField!.ScreenTip);
                 Assert.Equal("Link", field.ToPlainText());
                 Assert.Contains(field.Result.Runs, run => run.Text == "Link" && run.Bold);
             },
@@ -281,6 +283,8 @@ public partial class RtfDocumentReadWriteTests {
         Assert.DoesNotContain(@"{\fldrslt {\field", rtf, StringComparison.Ordinal);
         RtfField readField = Assert.IsType<RtfField>(Assert.Single(result.Document.Paragraphs).Inlines[1]);
         Assert.Equal(new Uri("https://example.test/path"), readField.Hyperlink);
+        Assert.NotNull(readField.HyperlinkField);
+        Assert.Equal("tip", readField.HyperlinkField!.ScreenTip);
         Assert.Equal("Link", readField.ToPlainText());
         Assert.Contains(readField.Result.Runs, run => run.Text == "Link" && run.Bold);
     }

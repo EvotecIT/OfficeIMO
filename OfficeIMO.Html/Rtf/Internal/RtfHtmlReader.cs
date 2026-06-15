@@ -143,7 +143,10 @@ internal static partial class RtfHtmlReader {
                     _preformatted++;
                     break;
                 case "a":
-                    StartAnchor(token);
+                    if (!startedField) {
+                        StartAnchor(token);
+                    }
+
                     break;
                 case "span":
                     break;
