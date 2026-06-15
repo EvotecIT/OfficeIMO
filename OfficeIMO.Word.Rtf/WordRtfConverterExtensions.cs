@@ -192,7 +192,7 @@ public static partial class WordRtfConverterExtensions {
             paragraph.AddText(wordParagraph.Text);
         }
 
-        AppendWordComments(wordParagraph, paragraph);
+        AppendWordComments(wordParagraph, paragraph, rtfDocument, revisionAuthorIndexes);
     }
 
     private static bool TryAppendComplexFieldRun(WordParagraph wordParagraph, Run runElement, RtfParagraph paragraph, RtfDocument rtfDocument, Dictionary<string, int> revisionAuthorIndexes, ref ComplexFieldCapture? capture) {
@@ -581,7 +581,7 @@ public static partial class WordRtfConverterExtensions {
 
     private static void AppendNote(WordParagraph wordRun, RtfNote note, RtfDocument? rtfDocument) {
         if (note.Kind == RtfNoteKind.Annotation) {
-            wordRun.AddComment(GetAnnotationAuthor(note), GetAnnotationInitials(note), note.ToPlainText());
+            AppendAnnotationComment(wordRun, note, rtfDocument);
             return;
         }
 

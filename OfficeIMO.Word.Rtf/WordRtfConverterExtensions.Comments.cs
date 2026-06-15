@@ -1,11 +1,13 @@
 using System.Collections.Generic;
 using System.Linq;
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Office2013.Word;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Rtf;
 
 public static partial class WordRtfConverterExtensions {
-    private static void AppendWordComments(WordParagraph wordParagraph, RtfParagraph paragraph) {
+    private static void AppendWordComments(WordParagraph wordParagraph, RtfParagraph paragraph, RtfDocument rtfDocument, Dictionary<string, int> revisionAuthorIndexes) {
         List<string> commentIds = wordParagraph._paragraph
             .Descendants<CommentRangeStart>()
             .Select(start => start.Id?.Value)
@@ -29,18 +31,72 @@ public static partial class WordRtfConverterExtensions {
                 continue;
             }
 
-            AttachAnnotation(paragraph, CreateAnnotation(comment));
+            AttachAnnotation(paragraph, CreateAnnotation(comment, rtfDocument, revisionAuthorIndexes));
         }
     }
 
-    private static RtfNote CreateAnnotation(WordComment comment) {
+    private static RtfNote CreateAnnotation(WordComment comment, RtfDocument rtfDocument, Dictionary<string, int> revisionAuthorIndexes) {
         var note = new RtfNote(RtfNoteKind.Annotation) {
             Id = comment.Id,
             Author = comment.Author,
             Created = comment.DateTime
         };
-        note.AddParagraph(comment.Text ?? string.Empty);
+
+        foreach (WordParagraph wordParagraph in comment.Paragraphs.GroupBy(paragraph => paragraph._paragraph).Select(group => group.First())) {
+            RtfParagraph paragraph = note.AddParagraph();
+            CopyParagraphFormatting(wordParagraph, paragraph, rtfDocument);
+            AppendFormattedRuns(wordParagraph, paragraph, rtfDocument, revisionAuthorIndexes);
+        }
+
+        if (note.Paragraphs.Count == 0) {
+            note.AddParagraph(comment.Text ?? string.Empty);
+        }
+
         return note;
+    }
+
+    private static void AppendAnnotationComment(WordParagraph wordRun, RtfNote note, RtfDocument? rtfDocument) {
+        Comments comments = WordComment.GetCommentsPart(wordRun._document);
+        CommentsEx commentsEx = WordComment.GetCommentsExPart(wordRun._document);
+        string commentId = WordComment.GetNewId(wordRun._document, comments);
+
+        var comment = new Comment {
+            Id = commentId,
+            Author = GetAnnotationAuthor(note),
+            Initials = GetAnnotationInitials(note),
+            Date = note.Created ?? DateTime.Now
+        };
+
+        if (note.Paragraphs.Count == 0) {
+            comment.AppendChild(new Paragraph(new Run(new Text(string.Empty))));
+        } else {
+            foreach (RtfParagraph paragraph in note.Paragraphs) {
+                WordParagraph wordParagraph = CreateDetachedWordParagraph(wordRun._document, paragraph, rtfDocument);
+                comment.AppendChild((Paragraph)wordParagraph._paragraph.CloneNode(true));
+            }
+        }
+
+        comments.AppendChild(comment);
+        comments.Save();
+
+        commentsEx.AppendChild(new CommentEx { ParaId = WordComment.GetNewParaId(commentsEx) });
+        commentsEx.Save();
+
+        AttachCommentReference(wordRun, commentId);
+    }
+
+    private static void AttachCommentReference(WordParagraph wordRun, string commentId) {
+        Run? firstRun = wordRun._paragraph.GetFirstChild<Run>();
+        if (firstRun == null) {
+            firstRun = new Run();
+            wordRun._paragraph.Append(firstRun);
+        }
+
+        wordRun._paragraph.InsertBefore(new CommentRangeStart { Id = commentId }, firstRun);
+
+        Run lastRun = wordRun._paragraph.Elements<Run>().Last();
+        OpenXmlElement commentEnd = wordRun._paragraph.InsertAfter(new CommentRangeEnd { Id = commentId }, lastRun);
+        wordRun._paragraph.InsertAfter(new Run(new CommentReference { Id = commentId }), commentEnd);
     }
 
     private static void AttachAnnotation(RtfParagraph paragraph, RtfNote annotation) {

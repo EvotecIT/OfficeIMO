@@ -78,6 +78,69 @@ public partial class WordRtfConverterTests {
     }
 
     [Fact]
+    public void Word_To_Rtf_Bridge_Carries_Rich_Comment_Paragraphs_As_Annotations() {
+        using WordDocument word = WordDocument.Create();
+        WordParagraph paragraph = word.AddParagraph("Comment target");
+        paragraph.AddComment("Alice Reviewer", "AR", "placeholder");
+
+        Comment comment = Assert.Single(word._wordprocessingDocument.MainDocumentPart!.WordprocessingCommentsPart!.Comments!.Elements<Comment>());
+        comment.RemoveAllChildren();
+        comment.Append(
+            new Paragraph(
+                new Run(new Text("First ")),
+                new Run(new RunProperties(new Bold()), new Text("bold"))),
+            new Paragraph(
+                new Run(new RunProperties(new Italic()), new Text("Second"))));
+
+        RtfDocument rtfDocument = word.ToRtfDocument();
+
+        RtfNote note = Assert.Single(Assert.Single(rtfDocument.Paragraphs).Runs).Note!;
+        Assert.Equal(RtfNoteKind.Annotation, note.Kind);
+        Assert.Equal("Alice Reviewer", note.Author);
+        Assert.Collection(note.Paragraphs,
+            first => {
+                Assert.Equal("First bold", first.ToPlainText());
+                Assert.Contains(first.Runs, run => run.Text == "bold" && run.Bold);
+            },
+            second => {
+                Assert.Equal("Second", second.ToPlainText());
+                Assert.Contains(second.Runs, run => run.Text == "Second" && run.Italic);
+            });
+    }
+
+    [Fact]
+    public void Rtf_To_Word_Bridge_Carries_Rich_Annotations_As_Comments() {
+        RtfDocument rtfDocument = RtfDocument.Create();
+        RtfParagraph paragraph = rtfDocument.AddParagraph();
+        RtfRun run = paragraph.AddText("Comment target");
+        var note = new RtfNote(RtfNoteKind.Annotation) {
+            Author = "Alice Reviewer",
+            Created = new DateTime(2026, 1, 2, 3, 4, 5, DateTimeKind.Utc)
+        };
+        RtfParagraph first = note.AddParagraph("First ");
+        first.AddText("bold").SetBold();
+        RtfParagraph second = note.AddParagraph();
+        second.AddText("Second").SetItalic();
+        run.SetNote(note);
+
+        using WordDocument word = rtfDocument.ToWordDocument();
+
+        WordComment wordComment = Assert.Single(word.Comments);
+        Assert.Equal("Alice Reviewer", wordComment.Author);
+        Comment comment = Assert.Single(word._wordprocessingDocument.MainDocumentPart!.WordprocessingCommentsPart!.Comments!.Elements<Comment>());
+        List<Paragraph> commentParagraphs = comment.Elements<Paragraph>().ToList();
+        Assert.Collection(commentParagraphs,
+            firstParagraph => {
+                Assert.Equal("First bold", string.Concat(firstParagraph.Descendants<Text>().Select(text => text.Text)));
+                Assert.Contains(firstParagraph.Elements<Run>(), item => item.InnerText == "bold" && item.RunProperties?.Bold != null);
+            },
+            secondParagraph => {
+                Assert.Equal("Second", string.Concat(secondParagraph.Descendants<Text>().Select(text => text.Text)));
+                Assert.Contains(secondParagraph.Elements<Run>(), item => item.InnerText == "Second" && item.RunProperties?.Italic != null);
+            });
+    }
+
+    [Fact]
     public void Word_Rtf_Bridge_Carries_Tab_Stops_And_Tab_Text() {
         using WordDocument word = WordDocument.Create();
         WordParagraph paragraph = word.AddParagraph("Name");
