@@ -3,32 +3,14 @@ namespace OfficeIMO.Rtf.Html;
 internal static partial class RtfHtmlReader {
     internal static RtfDocument Read(string html, RtfHtmlReadOptions options) {
         RtfDocument document = RtfDocument.Create();
-        var context = new ReadContext(document, options);
-        foreach (HtmlToken token in HtmlTokenizer.Tokenize(html, options)) {
-            switch (token.Kind) {
-                case HtmlTokenKind.Text:
-                    context.AppendText(token.Value);
-                    break;
-                case HtmlTokenKind.StartTag:
-                    context.Start(token);
-                    if (token.SelfClosing) {
-                        context.End(token.Value);
-                    }
-
-                    break;
-                case HtmlTokenKind.EndTag:
-                    context.End(token.Value);
-                    break;
-            }
-        }
-
-        context.TrimEmptyTrailingParagraph();
+        ReadDom(html, options, document);
         return document;
     }
 
     private sealed partial class ReadContext {
         private readonly RtfDocument _document;
         private readonly RtfHtmlReadOptions _options;
+        private readonly Uri? _baseUri;
         private readonly Stack<HtmlListState> _lists = new Stack<HtmlListState>();
         private readonly Stack<HtmlStyleScope> _styles = new Stack<HtmlStyleScope>();
         private readonly Stack<RtfRevisionScope> _revisions = new Stack<RtfRevisionScope>();
@@ -57,9 +39,10 @@ internal static partial class RtfHtmlReader {
         private RtfSection? _currentSection;
         private int _sectionElementDepth;
 
-        internal ReadContext(RtfDocument document, RtfHtmlReadOptions options) {
+        internal ReadContext(RtfDocument document, RtfHtmlReadOptions options, Uri? baseUri) {
             _document = document;
             _options = options;
+            _baseUri = baseUri;
         }
 
         internal void Start(HtmlToken token) {
@@ -191,6 +174,9 @@ internal static partial class RtfHtmlReader {
                 case "img":
                     AddImage(token);
                     break;
+                case "html":
+                case "body":
+                    break;
                 default:
                     if (_options.PreserveUnknownTagsAsText) {
                         AppendText("<" + token.Value + ">");
@@ -296,6 +282,9 @@ internal static partial class RtfHtmlReader {
                     _row = null;
                     _table = null;
                     _rowSpans.Clear();
+                    break;
+                case "html":
+                case "body":
                     break;
                 default:
                     if (_options.PreserveUnknownTagsAsText) {
@@ -497,8 +486,10 @@ internal static partial class RtfHtmlReader {
         }
 
         private void AddImage(HtmlToken token) {
-            string? source = GetAttribute(token, "src");
-            if (string.IsNullOrWhiteSpace(source) || !TryReadDataImage(source!, out RtfImageFormat format, out byte[]? data)) {
+            string source = token.Element == null
+                ? HtmlUrlPolicyEvaluator.ResolveUrl(GetAttribute(token, "src"), _baseUri, _options.UrlPolicy)
+                : HtmlImageSourceResolver.ResolveImageSource(token.Element, _baseUri, _options.UrlPolicy);
+            if (string.IsNullOrWhiteSpace(source) || !TryReadDataImage(source, out RtfImageFormat format, out byte[]? data)) {
                 string? alt = GetAttribute(token, "alt");
                 if (!string.IsNullOrWhiteSpace(alt)) {
                     AppendText(alt!);
@@ -558,11 +549,12 @@ internal static partial class RtfHtmlReader {
                 return null;
             }
 
-            if (_options.BaseUri != null && Uri.TryCreate(_options.BaseUri, value, out Uri? resolved)) {
-                return resolved;
+            string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(value, _baseUri, _options.UrlPolicy);
+            if (string.IsNullOrWhiteSpace(resolved)) {
+                return null;
             }
 
-            return Uri.TryCreate(value, UriKind.RelativeOrAbsolute, out Uri? uri) ? uri : null;
+            return Uri.TryCreate(resolved, UriKind.RelativeOrAbsolute, out Uri? uri) ? uri : null;
         }
 
         private static string? GetAttribute(HtmlToken token, string name) {
@@ -719,33 +711,28 @@ internal static partial class RtfHtmlReader {
         private static bool TryReadDataImage(string source, out RtfImageFormat format, out byte[]? data) {
             format = RtfImageFormat.Unknown;
             data = null;
-            const string prefix = "data:";
-            int comma = source.IndexOf(',');
-            if (!source.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) || comma < 0) {
+            if (!HtmlImageDataUri.TryParse(source, out HtmlImageDataUri dataUri) || !dataUri.IsBase64) {
                 return false;
             }
 
-            string media = source.Substring(prefix.Length, comma - prefix.Length).ToLowerInvariant();
-            if (media.IndexOf(";base64", StringComparison.OrdinalIgnoreCase) < 0) {
-                return false;
-            }
-
-            if (media.StartsWith("image/png", StringComparison.OrdinalIgnoreCase)) {
+            if (dataUri.MediaType.Equals("image/png", StringComparison.OrdinalIgnoreCase)) {
                 format = RtfImageFormat.Png;
-            } else if (media.StartsWith("image/jpeg", StringComparison.OrdinalIgnoreCase) || media.StartsWith("image/jpg", StringComparison.OrdinalIgnoreCase)) {
+            } else if (dataUri.MediaType.Equals("image/jpeg", StringComparison.OrdinalIgnoreCase) || dataUri.MediaType.Equals("image/jpg", StringComparison.OrdinalIgnoreCase)) {
                 format = RtfImageFormat.Jpeg;
             } else {
                 return false;
             }
 
-            try {
-                data = Convert.FromBase64String(source.Substring(comma + 1));
+            if (dataUri.TryDecodeBytes(out data)) {
                 return true;
-            } catch (FormatException) {
+            }
+
+            if (data == null || data.Length == 0) {
                 format = RtfImageFormat.Unknown;
                 data = null;
-                return false;
             }
+
+            return false;
         }
     }
 

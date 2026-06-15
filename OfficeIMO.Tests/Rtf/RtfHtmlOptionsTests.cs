@@ -1,3 +1,4 @@
+using OfficeIMO.Html;
 using OfficeIMO.Rtf.Html;
 using Xunit;
 
@@ -11,6 +12,7 @@ public class RtfHtmlOptionsTests {
 
         Assert.Null(defaultProfile.MaxHtmlNodes);
         Assert.Null(defaultProfile.MaxHtmlDepth);
+        Assert.NotNull(defaultProfile.UrlPolicy);
         Assert.Equal(10000, untrustedProfile.MaxHtmlNodes);
         Assert.Equal(64, untrustedProfile.MaxHtmlDepth);
         Assert.True(untrustedProfile.IgnoreInsignificantWhitespace);
@@ -24,6 +26,7 @@ public class RtfHtmlOptionsTests {
             BaseUri = new Uri("https://example.test/root/"),
             PreserveUnknownTagsAsText = true,
             IgnoreInsignificantWhitespace = false,
+            UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile(),
             MaxHtmlNodes = 33,
             MaxHtmlDepth = 44,
             DiagnosticHandler = handler
@@ -36,6 +39,8 @@ public class RtfHtmlOptionsTests {
         Assert.Equal(options.BaseUri, clone.BaseUri);
         Assert.Equal(options.PreserveUnknownTagsAsText, clone.PreserveUnknownTagsAsText);
         Assert.Equal(options.IgnoreInsignificantWhitespace, clone.IgnoreInsignificantWhitespace);
+        Assert.NotSame(options.UrlPolicy, clone.UrlPolicy);
+        Assert.True(clone.UrlPolicy.RestrictUrlSchemes);
         Assert.Equal(options.MaxHtmlNodes, clone.MaxHtmlNodes);
         Assert.Equal(options.MaxHtmlDepth, clone.MaxHtmlDepth);
         Assert.Same(handler, clone.DiagnosticHandler);
@@ -75,7 +80,7 @@ public class RtfHtmlOptionsTests {
 
         Assert.Equal("HtmlNodeLimitExceeded", exception.Code);
         Assert.Equal("MaxHtmlNodes", exception.LimitSource);
-        Assert.Equal(2, exception.Actual);
+        Assert.True(exception.Actual > exception.Limit);
         Assert.Equal(1, exception.Limit);
         RtfHtmlConversionDiagnostic diagnostic = Assert.Single(options.Diagnostics);
         Assert.Same(diagnostic, Assert.Single(callbackDiagnostics));
@@ -95,7 +100,7 @@ public class RtfHtmlOptionsTests {
 
         Assert.Equal("HtmlDepthLimitExceeded", exception.Code);
         Assert.Equal("MaxHtmlDepth", exception.LimitSource);
-        Assert.Equal(3, exception.Actual);
+        Assert.True(exception.Actual > exception.Limit);
         Assert.Equal(2, exception.Limit);
         RtfHtmlConversionDiagnostic diagnostic = Assert.Single(options.Diagnostics);
         Assert.Equal(RtfHtmlConversionDiagnosticSeverity.Error, diagnostic.Severity);

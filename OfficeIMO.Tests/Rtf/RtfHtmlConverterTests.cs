@@ -55,6 +55,16 @@ public class RtfHtmlConverterTests {
     }
 
     [Fact]
+    public void Html_ToRtfDocument_Resolves_Base_Element_Hyperlinks() {
+        const string html = "<html><head><base href=\"https://example.test/root/\"></head><body><p><a href=\"chart/1\">chart</a></p></body></html>";
+
+        RtfDocument document = html.ToRtfDocumentFromHtml();
+
+        RtfRun run = Assert.Single(Assert.Single(document.Paragraphs).Runs, item => item.Text == "chart");
+        Assert.Equal(new Uri("https://example.test/root/chart/1"), run.Hyperlink);
+    }
+
+    [Fact]
     public void Html_ToRtfDocument_Parses_Inline_Css_Formatting_And_Alignment() {
         const string html = "<p style=\"text-align:center !important\">Vitals <span style=\"font-weight:700 !important; font-style: italic; text-decoration: underline line-through; vertical-align: super\">critical</span><span style=\"vertical-align: sub\">low</span></p>";
 
@@ -665,6 +675,17 @@ public class RtfHtmlConverterTests {
         Assert.Equal(48, roundTripImage.SourceHeight);
         Assert.Equal(2400, roundTripImage.DesiredWidthTwips);
         Assert.Equal(1200, roundTripImage.DesiredHeightTwips);
+    }
+
+    [Fact]
+    public void Html_ToRtfDocument_Uses_Shared_Image_Source_Resolution() {
+        const string html = "<p><img src=\"https://example.test/chart.png\" data-src=\"data:image/jpeg;base64,/9g=\" alt=\"Chart\"></p>";
+
+        RtfDocument document = html.ToRtfDocumentFromHtml();
+
+        RtfImage image = Assert.Single(Assert.Single(document.Paragraphs).Inlines.OfType<RtfImage>());
+        Assert.Equal(RtfImageFormat.Jpeg, image.Format);
+        Assert.Equal("Chart", image.Description);
     }
 
     [Fact]

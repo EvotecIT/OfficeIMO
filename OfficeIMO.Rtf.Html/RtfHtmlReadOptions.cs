@@ -15,7 +15,7 @@ public sealed partial class RtfHtmlReadOptions {
     /// </summary>
     /// <remarks>
     /// The RTF HTML bridge does not fetch external resources. This profile adds conservative
-    /// structural limits while preserving the same dependency-free semantic conversion path.
+    /// structural limits while preserving the same shared OfficeIMO HTML conversion path.
     /// Callers can relax individual limits when their ingestion boundary is more trusted.
     /// </remarks>
     /// <returns>A new <see cref="RtfHtmlReadOptions"/> instance configured for untrusted HTML.</returns>
@@ -28,6 +28,9 @@ public sealed partial class RtfHtmlReadOptions {
 
     /// <summary>Base URI used to resolve relative hyperlinks and image sources.</summary>
     public Uri? BaseUri { get; set; }
+
+    /// <summary>URL policy used before hyperlinks and image references are materialized into RTF content.</summary>
+    public HtmlUrlPolicy UrlPolicy { get; set; } = HtmlUrlPolicy.CreateOfficeIMOProfile();
 
     /// <summary>Preserves unknown element names as bracketed text markers instead of treating them as transparent containers.</summary>
     public bool PreserveUnknownTagsAsText { get; set; }
@@ -63,6 +66,7 @@ public sealed partial class RtfHtmlReadOptions {
     /// <returns>A new <see cref="RtfHtmlReadOptions"/> with the same configuration values.</returns>
     public RtfHtmlReadOptions Clone() => new RtfHtmlReadOptions {
         BaseUri = BaseUri,
+        UrlPolicy = (UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile()).Clone(),
         PreserveUnknownTagsAsText = PreserveUnknownTagsAsText,
         IgnoreInsignificantWhitespace = IgnoreInsignificantWhitespace,
         MaxHtmlNodes = MaxHtmlNodes,

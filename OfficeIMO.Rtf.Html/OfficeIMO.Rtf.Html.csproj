@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>HTML converter for OfficeIMO.Rtf using the dependency-free OfficeIMO.Rtf engine.</Description>
+    <Description>HTML converter for OfficeIMO.Rtf using the shared OfficeIMO.Html ingestion layer.</Description>
     <AssemblyName>OfficeIMO.Rtf.Html</AssemblyName>
     <AssemblyTitle>OfficeIMO.Rtf.Html</AssemblyTitle>
     <VersionPrefix>0.1.0</VersionPrefix>
@@ -10,7 +10,7 @@
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
     <PackageId>OfficeIMO.Rtf.Html</PackageId>
-    <PackageTags>rtf;html;rich-text-format;office;converter;dependency-free</PackageTags>
+    <PackageTags>rtf;html;rich-text-format;office;converter;officeimo-html</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
@@ -38,6 +38,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.Html\OfficeIMO.Html.csproj" />
     <ProjectReference Include="..\OfficeIMO.Rtf\OfficeIMO.Rtf.csproj" />
   </ItemGroup>
 
@@ -50,6 +51,7 @@
     <Using Include="System.Text" />
     <Using Include="System.Threading" />
     <Using Include="System.Threading.Tasks" />
+    <Using Include="OfficeIMO.Html" />
     <Using Include="OfficeIMO.Rtf" />
   </ItemGroup>
 </Project>
