@@ -71,5 +71,46 @@ internal static class RtfPdfMapping {
         }
     }
 
+    internal static PdfCore.PdfPageBorder? ToPdfPageBorder(RtfDocument document, RtfPageBorders borders) {
+        RtfPageBorder? source = GetFirstRenderablePageBorder(borders);
+        if (source == null) {
+            return null;
+        }
+
+        PdfCore.PdfPageBorder border = new PdfCore.PdfPageBorder {
+            DashStyle = ToPdfDashStyle(source.Style),
+            Width = source.Width.HasValue && source.Width.Value > 0 ? source.Width.Value / 8D : 1D,
+            Inset = source.Space.HasValue && source.Space.Value >= 0 ? source.Space.Value : 36D
+        };
+
+        PdfCore.PdfColor? color = ToPdfColor(document, source.ColorIndex);
+        if (color.HasValue) {
+            border.Color = color.Value;
+        }
+
+        return border;
+    }
+
+    private static RtfPageBorder? GetFirstRenderablePageBorder(RtfPageBorders borders) {
+        if (IsRenderablePageBorder(borders.Top)) return borders.Top;
+        if (IsRenderablePageBorder(borders.Bottom)) return borders.Bottom;
+        if (IsRenderablePageBorder(borders.Left)) return borders.Left;
+        if (IsRenderablePageBorder(borders.Right)) return borders.Right;
+        return null;
+    }
+
+    private static bool IsRenderablePageBorder(RtfPageBorder border) => border.Style != RtfPageBorderStyle.None;
+
+    private static OfficeIMO.Drawing.OfficeStrokeDashStyle ToPdfDashStyle(RtfPageBorderStyle style) {
+        switch (style) {
+            case RtfPageBorderStyle.Dashed:
+                return OfficeIMO.Drawing.OfficeStrokeDashStyle.Dash;
+            case RtfPageBorderStyle.Dotted:
+                return OfficeIMO.Drawing.OfficeStrokeDashStyle.Dot;
+            default:
+                return OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid;
+        }
+    }
+
     internal static double TwipsToPoints(int twips) => twips / 20D;
 }

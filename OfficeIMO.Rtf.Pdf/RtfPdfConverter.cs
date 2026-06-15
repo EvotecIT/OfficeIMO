@@ -10,9 +10,9 @@ internal static class RtfPdfConverter {
 
         RtfPdfSaveOptions normalized = (options ?? new RtfPdfSaveOptions()).Normalize();
         PdfCore.PdfOptions pdfOptions = normalized.PdfOptions ?? new PdfCore.PdfOptions();
-        ApplyPageSetup(document.PageSetup, pdfOptions);
+        ApplyPageSetup(document, document.PageSetup, pdfOptions);
         if (document.Sections.Count > 0) {
-            ApplyPageSetup(document.Sections[0].PageSetup, pdfOptions);
+            ApplyPageSetup(document, document.Sections[0].PageSetup, pdfOptions);
         }
 
         ApplyHeaderFooters(document, pdfOptions, normalized);
@@ -46,7 +46,7 @@ internal static class RtfPdfConverter {
             }
 
             pdf.Section(page => {
-                ApplyPageSetup(section.PageSetup, page, pdfOptions);
+                ApplyPageSetup(document, section.PageSetup, page, pdfOptions);
                 RenderBlocks(document, section.Blocks, pdf, options, state);
 
                 while (index + 1 < document.Sections.Count && !StartsNewPdfPage(document.Sections[index + 1].BreakKind)) {
@@ -436,7 +436,7 @@ internal static class RtfPdfConverter {
             keywords: document.Info.Keywords);
     }
 
-    private static void ApplyPageSetup(RtfPageSetup setup, PdfCore.PdfOptions options) {
+    private static void ApplyPageSetup(RtfDocument document, RtfPageSetup setup, PdfCore.PdfOptions options) {
         if (setup.PaperWidthTwips.HasValue && setup.PaperWidthTwips.Value > 0) {
             options.PageWidth = RtfPdfMapping.TwipsToPoints(setup.PaperWidthTwips.Value);
         }
@@ -474,9 +474,14 @@ internal static class RtfPdfConverter {
         if (setup.PageNumberFormat.HasValue) {
             options.PageNumberStyle = RtfPdfMapping.ToPdfPageNumberStyle(setup.PageNumberFormat.Value);
         }
+
+        PdfCore.PdfPageBorder? border = RtfPdfMapping.ToPdfPageBorder(document, setup.PageBorders);
+        if (border != null) {
+            options.PageBorder = border;
+        }
     }
 
-    private static void ApplyPageSetup(RtfPageSetup setup, PdfCore.PdfPageCompose page, PdfCore.PdfOptions inheritedOptions) {
+    private static void ApplyPageSetup(RtfDocument document, RtfPageSetup setup, PdfCore.PdfPageCompose page, PdfCore.PdfOptions inheritedOptions) {
         double width = setup.PaperWidthTwips.HasValue && setup.PaperWidthTwips.Value > 0
             ? RtfPdfMapping.TwipsToPoints(setup.PaperWidthTwips.Value)
             : inheritedOptions.PageWidth;
@@ -510,6 +515,11 @@ internal static class RtfPdfConverter {
 
         if (setup.PageNumberFormat.HasValue) {
             page.PageNumberStyle(RtfPdfMapping.ToPdfPageNumberStyle(setup.PageNumberFormat.Value));
+        }
+
+        PdfCore.PdfPageBorder? border = RtfPdfMapping.ToPdfPageBorder(document, setup.PageBorders);
+        if (border != null) {
+            page.PageBorder(border);
         }
     }
 

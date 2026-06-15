@@ -161,6 +161,48 @@ public class RtfPdfConverterTests {
     }
 
     [Fact]
+    public void RtfDocument_ToPdfDocument_Renders_Document_Page_Border() {
+        RtfDocument document = RtfDocument.Create();
+        document.PageSetup.SetPaperSize(4800, 6400);
+        int red = document.AddColor(255, 0, 0);
+        document.PageSetup.PageBorders.Top.Set(RtfPageBorderStyle.Single, width: 16, space: 24, colorIndex: red);
+        document.AddParagraph("Bordered document");
+
+        byte[] pdf = document.SaveAsPdf();
+        string content = ExtractPdfContentStreams(pdf);
+
+        Assert.Contains("1 0 0 RG", content, StringComparison.Ordinal);
+        Assert.Contains("2 w", content, StringComparison.Ordinal);
+        Assert.Contains("24 24 192 272 re", content, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RtfDocument_ToPdfDocument_Renders_Section_Page_Border_Override() {
+        RtfDocument document = RtfDocument.Create();
+        document.PageSetup.SetPaperSize(4800, 6400);
+        int red = document.AddColor(255, 0, 0);
+        int blue = document.AddColor(0, 0, 255);
+        document.PageSetup.PageBorders.Top.Set(RtfPageBorderStyle.Single, width: 16, space: 24, colorIndex: red);
+
+        RtfSection first = document.AddSection();
+        first.AddParagraph("First border section");
+
+        RtfSection second = document.AddSection(RtfSectionBreakKind.NextPage);
+        second.PageSetup.SetPaperSize(4800, 6400);
+        second.PageSetup.PageBorders.Left.Set(RtfPageBorderStyle.Dotted, width: 8, space: 12, colorIndex: blue);
+        second.AddParagraph("Second border section");
+
+        byte[] pdf = document.SaveAsPdf();
+        string content = ExtractPdfContentStreams(pdf);
+
+        Assert.Contains("1 0 0 RG", content, StringComparison.Ordinal);
+        Assert.Contains("24 24 192 272 re", content, StringComparison.Ordinal);
+        Assert.Contains("0 0 1 RG", content, StringComparison.Ordinal);
+        Assert.Contains("1 w", content, StringComparison.Ordinal);
+        Assert.Contains("12 12 216 296 re", content, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void RtfDocument_ToPdfDocument_Renders_Explicit_ListText_Markers() {
         RtfDocument document = RtfDocument.Create();
         document.AddParagraph("Item").SetList(listId: 3, level: 0, kind: RtfListKind.Decimal).SetListText("7.\t");
@@ -280,5 +322,57 @@ public class RtfPdfConverterTests {
         Assert.Contains("Visible body", text, StringComparison.Ordinal);
         Assert.DoesNotContain("Hidden header", text, StringComparison.Ordinal);
         Assert.DoesNotContain("Hidden footer", text, StringComparison.Ordinal);
+    }
+
+    private static string ExtractPdfContentStreams(byte[] pdf) {
+        string raw = Encoding.GetEncoding("ISO-8859-1").GetString(pdf);
+        StringBuilder streams = new StringBuilder();
+        int searchIndex = 0;
+        while (true) {
+            int streamStart = raw.IndexOf("stream", searchIndex, StringComparison.Ordinal);
+            if (streamStart < 0) {
+                return streams.ToString();
+            }
+
+            int dataStart = GetPdfStreamDataStart(raw, streamStart + "stream".Length);
+            int dataEnd = raw.IndexOf("endstream", dataStart, StringComparison.Ordinal);
+            if (dataEnd < 0) {
+                return streams.ToString();
+            }
+
+            string streamData = raw.Substring(dataStart, dataEnd - dataStart);
+            if (!TryInflatePdfStream(streamData, out string inflated)) {
+                inflated = streamData;
+            }
+
+            streams.AppendLine(inflated);
+            searchIndex = dataEnd + "endstream".Length;
+        }
+    }
+
+    private static int GetPdfStreamDataStart(string raw, int index) {
+        if (index < raw.Length && raw[index] == '\r' && index + 1 < raw.Length && raw[index + 1] == '\n') {
+            return index + 2;
+        }
+
+        if (index < raw.Length && raw[index] == '\n') {
+            return index + 1;
+        }
+
+        return index;
+    }
+
+    private static bool TryInflatePdfStream(string streamData, out string content) {
+        byte[] compressed = Encoding.GetEncoding("ISO-8859-1").GetBytes(streamData);
+        try {
+            using MemoryStream input = new MemoryStream(compressed);
+            using System.IO.Compression.DeflateStream deflate = new System.IO.Compression.DeflateStream(input, System.IO.Compression.CompressionMode.Decompress);
+            using StreamReader reader = new StreamReader(deflate, Encoding.GetEncoding("ISO-8859-1"));
+            content = reader.ReadToEnd();
+            return !string.IsNullOrEmpty(content);
+        } catch (InvalidDataException) {
+            content = string.Empty;
+            return false;
+        }
     }
 }
