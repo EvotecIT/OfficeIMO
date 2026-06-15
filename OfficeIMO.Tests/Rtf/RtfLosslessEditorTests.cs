@@ -398,4 +398,34 @@ public class RtfLosslessEditorTests {
             paragraph => Assert.Equal(@"Next {\line} ż", paragraph.ToPlainText()));
         Assert.IsType<RtfImage>(read.Document.Blocks[0]);
     }
+
+    [Fact]
+    public void SaveLossless_Writes_Edited_Rtf_To_Stream_And_File_Without_Normalizing_Untouched_Bytes() {
+        byte[] sourceBytes = new byte[] {
+            123, 92, 114, 116, 102, 49, 92, 97, 110, 115, 105, 123, 92, 42, 92, 117, 110, 107, 110, 111, 119, 110, 32, 0x80, 125,
+            92, 112, 97, 114, 100, 32, 79, 108, 100, 92, 112, 97, 114, 125
+        };
+        string outputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".rtf");
+
+        try {
+            using var input = new MemoryStream(sourceBytes);
+            RtfLosslessEditor editor = RtfDocument.Load(input).EditLossless();
+            editor.ReplaceText("Old", "New");
+
+            using var output = new MemoryStream();
+            editor.SaveLossless(output);
+            editor.SaveLossless(outputPath);
+
+            byte[] expected = new byte[] {
+                123, 92, 114, 116, 102, 49, 92, 97, 110, 115, 105, 123, 92, 42, 92, 117, 110, 107, 110, 111, 119, 110, 32, 0x80, 125,
+                92, 112, 97, 114, 100, 32, 78, 101, 119, 92, 112, 97, 114, 125
+            };
+            Assert.Equal(expected, output.ToArray());
+            Assert.Equal(expected, File.ReadAllBytes(outputPath));
+        } finally {
+            if (File.Exists(outputPath)) {
+                File.Delete(outputPath);
+            }
+        }
+    }
 }

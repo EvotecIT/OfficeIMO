@@ -115,6 +115,22 @@ public sealed partial class RtfLosslessEditor {
     public string ToRtf() => _syntaxTree.ToRtf();
 
     /// <summary>
+    /// Saves the edited syntax tree to a file without semantic normalization.
+    /// </summary>
+    public void SaveLossless(string path) {
+        if (path == null) throw new ArgumentNullException(nameof(path));
+        RtfBytePreservingEncoding.WriteAllText(path, ToRtf());
+    }
+
+    /// <summary>
+    /// Saves the edited syntax tree to a stream without semantic normalization.
+    /// </summary>
+    public void SaveLossless(Stream stream) {
+        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        RtfBytePreservingEncoding.WriteTo(stream, ToRtf());
+    }
+
+    /// <summary>
     /// Reads the edited syntax tree into a fresh semantic model.
     /// </summary>
     public RtfReadResult ToReadResult(RtfReadOptions? options = null) => RtfDocument.Read(ToRtf(), options);
