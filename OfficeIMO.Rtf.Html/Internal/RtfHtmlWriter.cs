@@ -237,22 +237,98 @@ internal static class RtfHtmlWriter {
     }
 
     private static void AppendTable(StringBuilder builder, RtfTable table, RtfHtmlSaveOptions options, RtfDocument document) {
-        builder.Append("<table><tbody>");
+        builder.Append("<table>");
+        bool inHead = false;
+        bool inBody = false;
         foreach (RtfTableRow row in table.Rows) {
-            builder.Append("<tr>");
-            foreach (RtfTableCell cell in row.Cells) {
-                builder.Append("<td>");
-                for (int i = 0; i < cell.Paragraphs.Count; i++) {
-                    AppendParagraph(builder, cell.Paragraphs[i], options, document);
+            if (row.RepeatHeader) {
+                if (inBody) {
+                    builder.Append("</tbody>");
+                    inBody = false;
                 }
 
-                builder.Append("</td>");
+                if (!inHead) {
+                    builder.Append("<thead>");
+                    inHead = true;
+                }
+            } else {
+                if (inHead) {
+                    builder.Append("</thead>");
+                    inHead = false;
+                }
+
+                if (!inBody) {
+                    builder.Append("<tbody>");
+                    inBody = true;
+                }
             }
 
-            builder.Append("</tr>");
+            AppendTableRow(builder, row, options, document, row.RepeatHeader);
         }
 
-        builder.Append("</tbody></table>");
+        if (inHead) {
+            builder.Append("</thead>");
+        }
+
+        if (inBody) {
+            builder.Append("</tbody>");
+        }
+
+        builder.Append("</table>");
+    }
+
+    private static void AppendTableRow(StringBuilder builder, RtfTableRow row, RtfHtmlSaveOptions options, RtfDocument document, bool isHeader) {
+        builder.Append("<tr>");
+        string cellTag = isHeader ? "th" : "td";
+        foreach (RtfTableCell cell in row.Cells) {
+            builder.Append('<');
+            builder.Append(cellTag);
+            AppendCellStyle(builder, cell, document);
+            builder.Append('>');
+            for (int i = 0; i < cell.Paragraphs.Count; i++) {
+                AppendParagraph(builder, cell.Paragraphs[i], options, document);
+            }
+
+            builder.Append("</");
+            builder.Append(cellTag);
+            builder.Append('>');
+        }
+
+        builder.Append("</tr>");
+    }
+
+    private static void AppendCellStyle(StringBuilder builder, RtfTableCell cell, RtfDocument document) {
+        if (!TryGetCellStyle(cell, document, out string? style)) {
+            return;
+        }
+
+        builder.Append(" style=\"");
+        builder.Append(EncodeAttribute(style!));
+        builder.Append('"');
+    }
+
+    private static bool TryGetCellStyle(RtfTableCell cell, RtfDocument document, out string? style) {
+        var builder = new StringBuilder();
+        if (TryGetColor(document, cell.BackgroundColorIndex, out RtfColor? background)) {
+            builder.Append("background-color:");
+            builder.Append(FormatColor(background!));
+            builder.Append(';');
+        }
+
+        if (cell.PreferredWidth.HasValue && cell.PreferredWidthUnit.HasValue) {
+            builder.Append("width:");
+            builder.Append(FormatTableWidth(cell.PreferredWidth.Value, cell.PreferredWidthUnit.Value));
+            builder.Append(';');
+        }
+
+        if (cell.VerticalAlignment.HasValue) {
+            builder.Append("vertical-align:");
+            builder.Append(FormatCellVerticalAlignment(cell.VerticalAlignment.Value));
+            builder.Append(';');
+        }
+
+        style = builder.Length == 0 ? null : builder.ToString();
+        return style != null;
     }
 
     private static void AppendImage(StringBuilder builder, RtfImage image, RtfHtmlSaveOptions options) {
@@ -378,6 +454,28 @@ internal static class RtfHtmlWriter {
 
     private static string FormatPoints(double points) {
         return points.ToString("0.###", CultureInfo.InvariantCulture);
+    }
+
+    private static string FormatTableWidth(int width, RtfTableWidthUnit unit) {
+        switch (unit) {
+            case RtfTableWidthUnit.Percent:
+                return FormatPoints(width / 50d) + "%";
+            case RtfTableWidthUnit.Auto:
+                return "auto";
+            default:
+                return FormatPoints(width / 20d) + "pt";
+        }
+    }
+
+    private static string FormatCellVerticalAlignment(RtfTableCellVerticalAlignment alignment) {
+        switch (alignment) {
+            case RtfTableCellVerticalAlignment.Center:
+                return "middle";
+            case RtfTableCellVerticalAlignment.Bottom:
+                return "bottom";
+            default:
+                return "top";
+        }
     }
 
     private static string FormatColor(RtfColor color) {

@@ -43,6 +43,8 @@ internal static class RtfHtmlReader {
         private int _superscript;
         private int _subscript;
         private int _preformatted;
+        private int _tableHead;
+        private RtfTextAlignment? _cellTextAlignment;
         private bool _pageBreakAfterParagraph;
 
         internal ReadContext(RtfDocument document, RtfHtmlReadOptions options) {
@@ -114,6 +116,9 @@ internal static class RtfHtmlReader {
                 case "ol":
                     _lists.Push(RtfListKind.Decimal);
                     break;
+                case "thead":
+                    _tableHead++;
+                    break;
                 case "li":
                     StartParagraph();
                     EnsureParagraph().ListKind = _lists.Count == 0 ? RtfListKind.Bullet : _lists.Peek();
@@ -126,8 +131,10 @@ internal static class RtfHtmlReader {
                     StartRow();
                     break;
                 case "td":
+                    StartCell(style, isHeader: false);
+                    break;
                 case "th":
-                    StartCell();
+                    StartCell(style, isHeader: true);
                     break;
                 case "img":
                     AddImage(token);
@@ -199,13 +206,22 @@ internal static class RtfHtmlReader {
                     }
 
                     break;
+                case "thead":
+                    Decrement(ref _tableHead);
+                    break;
                 case "li":
                     EndParagraph();
                     break;
                 case "td":
-                case "th":
-                    _paragraph = null;
+                    EndParagraph();
                     _cell = null;
+                    _cellTextAlignment = null;
+                    break;
+                case "th":
+                    Decrement(ref _bold);
+                    EndParagraph();
+                    _cell = null;
+                    _cellTextAlignment = null;
                     break;
                 case "tr":
                     _row = null;
@@ -275,6 +291,10 @@ internal static class RtfHtmlReader {
             }
 
             _paragraph = _cell == null ? _document.AddParagraph() : _cell.AddParagraph();
+            if (_cellTextAlignment.HasValue) {
+                _paragraph.Alignment = _cellTextAlignment.Value;
+            }
+
             _pageBreakAfterParagraph = false;
         }
 
@@ -334,18 +354,49 @@ internal static class RtfHtmlReader {
             }
 
             _row = _table!.AddRow();
+            _row.RepeatHeader = _tableHead > 0;
             _cell = null;
+            _cellTextAlignment = null;
             _paragraph = null;
         }
 
-        private void StartCell() {
+        private void StartCell(HtmlStyleDeclaration style, bool isHeader) {
             if (_row == null) {
                 StartRow();
             }
 
             int cellIndex = _row!.Cells.Count + 1;
             _cell = _row.AddCell(cellIndex * 2400);
+            _cellTextAlignment = isHeader ? RtfTextAlignment.Center : null;
+            ApplyCellStyle(style);
+            if (isHeader) {
+                _bold++;
+            }
+
             _paragraph = null;
+        }
+
+        private void ApplyCellStyle(HtmlStyleDeclaration style) {
+            if (_cell == null) {
+                return;
+            }
+
+            if (style.TextAlignment.HasValue) {
+                _cellTextAlignment = style.TextAlignment.Value;
+            }
+
+            if (style.BackgroundColor != null) {
+                _cell.BackgroundColorIndex = GetOrAddColorIndex(style.BackgroundColor);
+            }
+
+            if (style.TableCellVerticalAlignment.HasValue) {
+                _cell.VerticalAlignment = style.TableCellVerticalAlignment.Value;
+            }
+
+            if (style.TableWidth.HasValue) {
+                _cell.PreferredWidth = style.TableWidth.Value;
+                _cell.PreferredWidthUnit = style.TableWidthUnit;
+            }
         }
 
         private void AddImage(HtmlToken token) {

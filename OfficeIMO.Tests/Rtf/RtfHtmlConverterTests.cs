@@ -298,6 +298,70 @@ public class RtfHtmlConverterTests {
     }
 
     [Fact]
+    public void Html_ToRtfDocument_Parses_Table_Header_And_Cell_Styles() {
+        const string html = "<table><thead><tr><th style=\"background-color:#f2f2f2;width:25%;vertical-align:middle\">Name</th><th style=\"text-align:right;width:72pt\">Value</th></tr></thead><tbody><tr><td style=\"background:#fff2cc;vertical-align:bottom\">Pulse</td><td>72</td></tr></tbody></table>";
+
+        RtfDocument document = html.ToRtfDocumentFromHtml();
+
+        RtfTable table = Assert.IsType<RtfTable>(Assert.Single(document.Blocks));
+        Assert.True(table.Rows[0].RepeatHeader);
+        RtfTableCell firstHeader = table.Rows[0].Cells[0];
+        Assert.Equal(1, firstHeader.BackgroundColorIndex);
+        Assert.Equal(1250, firstHeader.PreferredWidth);
+        Assert.Equal(RtfTableWidthUnit.Percent, firstHeader.PreferredWidthUnit);
+        Assert.Equal(RtfTableCellVerticalAlignment.Center, firstHeader.VerticalAlignment);
+        Assert.Equal(RtfTextAlignment.Center, firstHeader.Paragraphs[0].Alignment);
+        Assert.Contains(firstHeader.Paragraphs[0].Runs, run => run.Text == "Name" && run.Bold);
+
+        RtfTableCell secondHeader = table.Rows[0].Cells[1];
+        Assert.Equal(1440, secondHeader.PreferredWidth);
+        Assert.Equal(RtfTableWidthUnit.Twips, secondHeader.PreferredWidthUnit);
+        Assert.Equal(RtfTextAlignment.Right, secondHeader.Paragraphs[0].Alignment);
+
+        RtfTableCell pulseCell = table.Rows[1].Cells[0];
+        Assert.Equal(2, pulseCell.BackgroundColorIndex);
+        Assert.Equal(RtfTableCellVerticalAlignment.Bottom, pulseCell.VerticalAlignment);
+
+        string rtf = document.ToRtf();
+        Assert.Contains(@"\trhdr", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\clftsWidth2\clwWidth1250", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\clftsWidth3\clwWidth1440", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\clvertalc", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\clvertalb", rtf, StringComparison.Ordinal);
+
+        RtfTable roundTripTable = Assert.IsType<RtfTable>(Assert.Single(RtfDocument.Read(rtf).Document.Blocks));
+        Assert.True(roundTripTable.Rows[0].RepeatHeader);
+        Assert.Equal(RtfTableWidthUnit.Percent, roundTripTable.Rows[0].Cells[0].PreferredWidthUnit);
+        Assert.Equal(1250, roundTripTable.Rows[0].Cells[0].PreferredWidth);
+        Assert.Equal(RtfTableCellVerticalAlignment.Bottom, roundTripTable.Rows[1].Cells[0].VerticalAlignment);
+    }
+
+    [Fact]
+    public void RtfDocument_ToHtml_Renders_Table_Header_And_Cell_Styles() {
+        RtfDocument document = RtfDocument.Create();
+        int headerBackground = document.AddColor(242, 242, 242);
+        int bodyBackground = document.AddColor(255, 242, 204);
+        RtfTable table = document.AddTable(2, 2);
+        table.Rows[0].RepeatHeader = true;
+        table.Rows[0].Cells[0]
+            .SetBackgroundColor(headerBackground)
+            .SetPreferredWidth(1250, RtfTableWidthUnit.Percent);
+        table.Rows[0].Cells[0].VerticalAlignment = RtfTableCellVerticalAlignment.Center;
+        table.Rows[0].Cells[0].AddParagraph("Name");
+        table.Rows[0].Cells[1]
+            .SetPreferredWidth(1440, RtfTableWidthUnit.Twips)
+            .AddParagraph("Value");
+        table.Rows[1].Cells[0].SetBackgroundColor(bodyBackground);
+        table.Rows[1].Cells[0].VerticalAlignment = RtfTableCellVerticalAlignment.Bottom;
+        table.Rows[1].Cells[0].AddParagraph("Pulse");
+        table.Rows[1].Cells[1].AddParagraph("72");
+
+        string html = document.ToHtml();
+
+        Assert.Equal("<table><thead><tr><th style=\"background-color:#F2F2F2;width:25%;vertical-align:middle;\"><p>Name</p></th><th style=\"width:72pt;\"><p>Value</p></th></tr></thead><tbody><tr><td style=\"background-color:#FFF2CC;vertical-align:bottom;\"><p>Pulse</p></td><td><p>72</p></td></tr></tbody></table>", html);
+    }
+
+    [Fact]
     public void Html_Rtf_Html_RoundTrip_Preserves_Semantic_Text() {
         const string html = "<p>Assessment: <strong>stable</strong></p>";
 

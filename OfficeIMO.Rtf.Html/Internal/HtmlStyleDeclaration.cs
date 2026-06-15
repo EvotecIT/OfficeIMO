@@ -33,6 +33,12 @@ internal sealed class HtmlStyleDeclaration {
 
     internal bool PageBreakAfter { get; set; }
 
+    internal RtfTableCellVerticalAlignment? TableCellVerticalAlignment { get; set; }
+
+    internal int? TableWidth { get; set; }
+
+    internal RtfTableWidthUnit? TableWidthUnit { get; set; }
+
     internal bool HasInlineFormatting =>
         Bold.HasValue ||
         Italic.HasValue ||

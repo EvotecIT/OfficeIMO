@@ -48,9 +48,17 @@ internal static class HtmlStyleDeclarationParser {
                 break;
             case "vertical-align":
                 declaration.VerticalPosition = ParseVerticalAlign(value);
+                declaration.TableCellVerticalAlignment = ParseTableCellVerticalAlign(value);
                 break;
             case "text-align":
                 declaration.TextAlignment = ParseTextAlign(value);
+                break;
+            case "width":
+                if (TryParseTableWidth(value, out int width, out RtfTableWidthUnit widthUnit)) {
+                    declaration.TableWidth = width;
+                    declaration.TableWidthUnit = widthUnit;
+                }
+
                 break;
             case "margin-left":
                 declaration.LeftIndentTwips = ParseTwips(value);
@@ -77,6 +85,34 @@ internal static class HtmlStyleDeclarationParser {
                 declaration.BackgroundColor = ParseColor(value);
                 break;
         }
+    }
+
+    internal static bool TryParseTableWidth(string value, out int width, out RtfTableWidthUnit unit) {
+        string normalized = NormalizeValue(value).Trim().ToLowerInvariant();
+        width = 0;
+        unit = RtfTableWidthUnit.Twips;
+
+        if (normalized == "auto") {
+            unit = RtfTableWidthUnit.Auto;
+            return true;
+        }
+
+        if (normalized.EndsWith("%", StringComparison.Ordinal) &&
+            double.TryParse(normalized.Substring(0, normalized.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture, out double percent) &&
+            percent > 0) {
+            width = (int)Math.Round(percent * 50d, MidpointRounding.AwayFromZero);
+            unit = RtfTableWidthUnit.Percent;
+            return true;
+        }
+
+        int? twips = ParseTwips(normalized);
+        if (twips.HasValue && twips.Value > 0) {
+            width = twips.Value;
+            unit = RtfTableWidthUnit.Twips;
+            return true;
+        }
+
+        return false;
     }
 
     private static IEnumerable<string> SplitDeclarations(string style) {
@@ -324,6 +360,21 @@ internal static class HtmlStyleDeclarationParser {
             case "baseline":
             case "middle":
                 return RtfVerticalPosition.Baseline;
+            default:
+                return null;
+        }
+    }
+
+    private static RtfTableCellVerticalAlignment? ParseTableCellVerticalAlign(string value) {
+        switch (value) {
+            case "top":
+            case "text-top":
+                return RtfTableCellVerticalAlignment.Top;
+            case "middle":
+                return RtfTableCellVerticalAlignment.Center;
+            case "bottom":
+            case "text-bottom":
+                return RtfTableCellVerticalAlignment.Bottom;
             default:
                 return null;
         }
