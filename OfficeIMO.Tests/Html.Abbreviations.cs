@@ -24,6 +24,17 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void AbbrTitleLinksProtocolRelativeUrl() {
+            const string html = "<abbr title=\"//example.com/source\">text</abbr>";
+            using var doc = html.LoadFromHtml(new HtmlToWordOptions());
+
+            var footNotes = doc.FootNotes;
+            Assert.NotNull(footNotes);
+            var note = Assert.Single(footNotes!);
+            Assert.Contains(note.Paragraphs!, p => p.Hyperlink?.Uri == new Uri("https://example.com/source"));
+        }
+
+        [Fact]
         public void AbbrCanUseEndnotes() {
             const string html = "<abbr title=\"desc\">text</abbr>";
             var options = new HtmlToWordOptions { NoteReferenceType = NoteReferenceType.Endnote };

@@ -215,6 +215,10 @@ namespace OfficeIMO.Word.Html {
             }
 
             var candidate = NormalizeHref(trimmed);
+            if (candidate.StartsWith("//", StringComparison.Ordinal)) {
+                candidate = Uri.UriSchemeHttps + ":" + candidate;
+            }
+
             if (Uri.TryCreate(candidate, UriKind.Absolute, out var absolute) && absolute != null) {
                 uri = absolute;
                 return true;

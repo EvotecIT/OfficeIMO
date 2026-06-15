@@ -174,9 +174,8 @@ public sealed partial class HtmlToMarkdownConverter {
                     return unwrappedBlocks;
                 }
 
-                if (HasRejectedAnchorPictureMedia(element, context)) {
-                    var unwrappedBlocks = ConvertNodesToBlocks(element.ChildNodes, context).ToList();
-                    return unwrappedBlocks;
+                if (TryConvertRejectedAnchorMedia(element, context, out var anchorMediaBlocks)) {
+                    return anchorMediaBlocks;
                 }
 
                 if (context.Options.PreserveUnsupportedBlocks) {
@@ -241,16 +240,21 @@ public sealed partial class HtmlToMarkdownConverter {
         return !string.IsNullOrWhiteSpace(href) && string.IsNullOrWhiteSpace(ResolveUrl(href, context));
     }
 
-    private static bool HasRejectedAnchorPictureMedia(IElement element, ConversionContext context) {
+    private static bool TryConvertRejectedAnchorMedia(IElement element, ConversionContext context, out IReadOnlyList<IMarkdownBlock> blocks) {
+        blocks = Array.Empty<IMarkdownBlock>();
         if (element == null
             || context == null
             || !element.TagName.Equals("A", StringComparison.OrdinalIgnoreCase)
-            || !TryResolveAnchorMediaElement(element, out var mediaElement)
-            || !mediaElement.TagName.Equals("PICTURE", StringComparison.OrdinalIgnoreCase)) {
+            || !TryResolveAnchorMediaElement(element, out var mediaElement)) {
             return false;
         }
 
-        return HasRejectedPictureSourceCandidate(mediaElement, context);
+        if (!HasRejectedMediaSourceCandidate(mediaElement, context)) {
+            return false;
+        }
+
+        blocks = ConvertNodesToBlocks(new INode[] { mediaElement }, context);
+        return true;
     }
 
     private static bool TryConvertConfiguredElementConverters(IElement element, ConversionContext context, out IReadOnlyList<IMarkdownBlock> blocks) {

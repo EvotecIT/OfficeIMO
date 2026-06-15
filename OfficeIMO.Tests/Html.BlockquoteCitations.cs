@@ -32,6 +32,17 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void BlockquoteCitationLinksProtocolRelativeUrl() {
+            string html = "<blockquote cite=\"//example.com/source\"><p>Quoted</p></blockquote>";
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+
+            var footNotes = doc.FootNotes;
+            Assert.NotNull(footNotes);
+            var note = Assert.Single(footNotes!);
+            Assert.Contains(note.Paragraphs!, p => p.Hyperlink?.Uri == new Uri("https://example.com/source"));
+        }
+
+        [Fact]
         public void BlockquoteCitationRoundTripsAsCiteAttribute() {
             string html = "<blockquote cite=\"https://example.com/source\"><p>Quoted text</p></blockquote>";
             using var doc = html.LoadFromHtml(new HtmlToWordOptions());

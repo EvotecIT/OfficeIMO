@@ -299,6 +299,20 @@ public sealed partial class HtmlToMarkdownConverter {
                || HasRejectedUrlAttribute(imageElement, context, "src", "data-src", "data-original", "data-original-src", "data-lazy-src");
     }
 
+    private static bool HasRejectedMediaSourceCandidate(IElement element, ConversionContext context) {
+        if (element == null || context == null) {
+            return false;
+        }
+
+        if (element.TagName.Equals("PICTURE", StringComparison.OrdinalIgnoreCase)) {
+            return HasRejectedPictureSourceCandidate(element, context);
+        }
+
+        return element.TagName.Equals("IMG", StringComparison.OrdinalIgnoreCase)
+               && (HasRejectedSrcSetAttribute(element, context, "srcset", "data-srcset", "data-original-srcset", "data-lazy-srcset")
+                   || HasRejectedUrlAttribute(element, context, "src", "data-src", "data-original", "data-original-src", "data-lazy-src"));
+    }
+
     private static bool HasBase64UrlAttribute(IElement element, params string[] attributeNames) {
         if (element == null || attributeNames == null) {
             return false;
