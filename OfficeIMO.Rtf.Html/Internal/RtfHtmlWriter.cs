@@ -248,7 +248,8 @@ internal static partial class RtfHtmlWriter {
         OpenTag(builder, "em", run.Italic, ref opened);
         bool plainUnderline = run.Underline && !HasRichUnderline(run);
         OpenTag(builder, "u", plainUnderline, ref opened);
-        OpenTag(builder, "s", run.Strike || run.DoubleStrike, ref opened);
+        bool plainStrike = (run.Strike || run.DoubleStrike) && !HasRichStrike(run);
+        OpenTag(builder, "s", plainStrike, ref opened);
         OpenTag(builder, "sup", run.VerticalPosition == RtfVerticalPosition.Superscript, ref opened);
         OpenTag(builder, "sub", run.VerticalPosition == RtfVerticalPosition.Subscript, ref opened);
 
@@ -256,7 +257,7 @@ internal static partial class RtfHtmlWriter {
 
         CloseTag(builder, "sub", run.VerticalPosition == RtfVerticalPosition.Subscript);
         CloseTag(builder, "sup", run.VerticalPosition == RtfVerticalPosition.Superscript);
-        CloseTag(builder, "s", run.Strike || run.DoubleStrike);
+        CloseTag(builder, "s", plainStrike);
         CloseTag(builder, "u", plainUnderline);
         CloseTag(builder, "em", run.Italic);
         CloseTag(builder, "strong", run.Bold);
@@ -413,7 +414,7 @@ internal static partial class RtfHtmlWriter {
         }
 
         AppendCharacterBorderStyle(builder, run.CharacterBorder, document);
-        AppendUnderlineStyle(builder, run, document);
+        AppendTextDecorationStyle(builder, run, document);
 
         style = builder.Length == 0 ? null : builder.ToString();
         return style != null;

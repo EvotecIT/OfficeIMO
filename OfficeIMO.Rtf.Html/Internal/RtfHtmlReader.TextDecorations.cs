@@ -27,5 +27,27 @@ internal static partial class RtfHtmlReader {
 
             return null;
         }
+
+        private void ApplyRichStrike(RtfRun run, bool strike) {
+            if (!strike) {
+                return;
+            }
+
+            bool? doubleStrike = ResolveDoubleStrike();
+            if (doubleStrike.GetValueOrDefault()) {
+                run.Strike = false;
+                run.DoubleStrike = true;
+            }
+        }
+
+        private bool? ResolveDoubleStrike() {
+            foreach (HtmlStyleScope scope in _styles) {
+                if (scope.Style.DoubleStrike.HasValue) {
+                    return scope.Style.DoubleStrike.Value;
+                }
+            }
+
+            return null;
+        }
     }
 }

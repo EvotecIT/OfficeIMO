@@ -7,18 +7,42 @@ internal static partial class RtfHtmlWriter {
         run.Underline &&
         (run.UnderlineStyle != RtfUnderlineStyle.Single || run.UnderlineColorIndex.HasValue);
 
-    private static void AppendUnderlineStyle(StringBuilder builder, RtfRun run, RtfDocument document) {
-        if (!HasRichUnderline(run)) {
+    private static bool HasRichStrike(RtfRun run) => run.DoubleStrike;
+
+    private static void AppendTextDecorationStyle(StringBuilder builder, RtfRun run, RtfDocument document) {
+        bool richUnderline = HasRichUnderline(run);
+        bool richStrike = HasRichStrike(run);
+        if (!richUnderline && !richStrike) {
             return;
         }
 
-        builder.Append("text-decoration-line:underline;");
+        builder.Append("text-decoration-line:");
+        if (richUnderline) {
+            builder.Append("underline");
+        }
+
+        if (richStrike) {
+            if (richUnderline) {
+                builder.Append(' ');
+            }
+
+            builder.Append("line-through");
+        }
+
+        builder.Append(';');
         builder.Append("text-decoration-style:");
-        builder.Append(FormatCssUnderlineStyle(run.UnderlineStyle));
+        builder.Append(richUnderline ? FormatCssUnderlineStyle(run.UnderlineStyle) : "double");
         builder.Append(';');
-        builder.Append("--officeimo-rtf-underline-style:");
-        builder.Append(FormatRtfUnderlineStyle(run.UnderlineStyle));
-        builder.Append(';');
+
+        if (richUnderline) {
+            builder.Append("--officeimo-rtf-underline-style:");
+            builder.Append(FormatRtfUnderlineStyle(run.UnderlineStyle));
+            builder.Append(';');
+        }
+
+        if (richStrike) {
+            builder.Append("--officeimo-rtf-strike-style:double;");
+        }
 
         if (TryGetColor(document, run.UnderlineColorIndex, out RtfColor? color)) {
             builder.Append("text-decoration-color:");

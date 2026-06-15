@@ -263,7 +263,9 @@ internal static partial class RtfHtmlReader {
             bool underline = ResolveStyleValue(style => style.Underline, _underline > 0);
             run.Underline = underline;
             ApplyRichUnderline(run, underline);
-            run.Strike = ResolveStyleValue(style => style.Strike, _strike > 0);
+            bool strike = ResolveStyleValue(style => style.Strike, _strike > 0);
+            run.Strike = strike;
+            ApplyRichStrike(run, strike);
             run.VerticalPosition = ResolveVerticalPosition();
             run.Hyperlink = _hyperlink;
             RtfColor? foreground = ResolveStyleColor(style => style.ForegroundColor);

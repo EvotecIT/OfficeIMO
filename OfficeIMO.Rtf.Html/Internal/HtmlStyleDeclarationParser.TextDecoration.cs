@@ -8,6 +8,7 @@ internal static partial class HtmlStyleDeclarationParser {
             declaration.UnderlineStyle = RtfUnderlineStyle.None;
             declaration.UnderlineColor = null;
             declaration.Strike = false;
+            declaration.DoubleStrike = false;
             return;
         }
 
@@ -23,6 +24,10 @@ internal static partial class HtmlStyleDeclarationParser {
             RtfUnderlineStyle? style = ParseTextDecorationStyle(part);
             if (style.HasValue) {
                 declaration.UnderlineStyle = style;
+                if (style.Value == RtfUnderlineStyle.Double) {
+                    declaration.DoubleStrike = true;
+                }
+
                 continue;
             }
 
@@ -30,6 +35,31 @@ internal static partial class HtmlStyleDeclarationParser {
             if (color != null) {
                 declaration.UnderlineColor = color;
             }
+        }
+    }
+
+    private static bool? ParseRtfStrikeStyle(string value) {
+        switch (value) {
+            case "single":
+                return false;
+            case "double":
+                return true;
+            case "none":
+                return false;
+            default:
+                return null;
+        }
+    }
+
+    private static void ApplyTextDecorationStyle(HtmlStyleDeclaration declaration, string value) {
+        RtfUnderlineStyle? style = ParseTextDecorationStyle(value);
+        if (!style.HasValue) {
+            return;
+        }
+
+        declaration.UnderlineStyle = style;
+        if (style.Value == RtfUnderlineStyle.Double) {
+            declaration.DoubleStrike = true;
         }
     }
 

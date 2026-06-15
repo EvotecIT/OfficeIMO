@@ -15,6 +15,8 @@ internal sealed class HtmlStyleDeclaration {
 
     internal bool? Strike { get; set; }
 
+    internal bool? DoubleStrike { get; set; }
+
     internal RtfVerticalPosition? VerticalPosition { get; set; }
 
     internal RtfTextAlignment? TextAlignment { get; set; }
@@ -84,6 +86,7 @@ internal sealed class HtmlStyleDeclaration {
         UnderlineStyle.HasValue ||
         UnderlineColor != null ||
         Strike.HasValue ||
+        DoubleStrike.HasValue ||
         VerticalPosition.HasValue ||
         ForegroundColor != null ||
         BackgroundColor != null ||

@@ -62,6 +62,7 @@ public class RtfHtmlCharacterFormatTests {
         RtfRun plain = paragraph.Runs.Single(run => run.Text == " Plain");
         Assert.Equal(RtfUnderlineStyle.None, plain.UnderlineStyle);
         Assert.Null(plain.UnderlineColorIndex);
+        Assert.False(plain.DoubleStrike);
 
         string rtf = document.ToRtf();
         Assert.Contains(@"\ulwave", rtf, StringComparison.Ordinal);
@@ -87,5 +88,42 @@ public class RtfHtmlCharacterFormatTests {
         RtfRun roundTripFlagged = html.ToRtfDocumentFromHtml().Paragraphs[0].Runs.Single(run => run.Text == "Flag");
         Assert.Equal(RtfUnderlineStyle.ThickDashDotDot, roundTripFlagged.UnderlineStyle);
         Assert.Equal(1, roundTripFlagged.UnderlineColorIndex);
+    }
+
+    [Fact]
+    public void Html_ToRtfDocument_Parses_Double_Strike() {
+        const string html = "<p><span style=\"text-decoration-line:line-through;text-decoration-style:double\">Double</span><span style=\"text-decoration-style:double\"> Plain</span></p>";
+
+        RtfDocument document = html.ToRtfDocumentFromHtml();
+
+        RtfParagraph paragraph = Assert.Single(document.Paragraphs);
+        RtfRun doubled = paragraph.Runs.Single(run => run.Text == "Double");
+        Assert.True(doubled.DoubleStrike);
+        Assert.False(doubled.Strike);
+
+        RtfRun plain = paragraph.Runs.Single(run => run.Text == " Plain");
+        Assert.False(plain.Strike);
+        Assert.False(plain.DoubleStrike);
+
+        string rtf = document.ToRtf();
+        Assert.Contains(@"\striked Double\striked0", rtf, StringComparison.Ordinal);
+
+        RtfRun roundTripDoubled = RtfDocument.Read(rtf).Document.Paragraphs[0].Runs.Single(run => run.Text == "Double");
+        Assert.True(roundTripDoubled.DoubleStrike);
+        Assert.False(roundTripDoubled.Strike);
+    }
+
+    [Fact]
+    public void RtfDocument_ToHtml_Renders_Double_Strike() {
+        RtfDocument document = RtfDocument.Create();
+        document.AddParagraph().AddText("Double").SetDoubleStrike();
+
+        string html = document.ToHtml();
+
+        Assert.Equal("<p><span style=\"text-decoration-line:line-through;text-decoration-style:double;--officeimo-rtf-strike-style:double;\">Double</span></p>", html);
+
+        RtfRun roundTripDoubled = html.ToRtfDocumentFromHtml().Paragraphs[0].Runs.Single(run => run.Text == "Double");
+        Assert.True(roundTripDoubled.DoubleStrike);
+        Assert.False(roundTripDoubled.Strike);
     }
 }

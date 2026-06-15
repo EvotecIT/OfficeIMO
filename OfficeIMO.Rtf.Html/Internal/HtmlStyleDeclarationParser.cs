@@ -47,13 +47,16 @@ internal static partial class HtmlStyleDeclarationParser {
                 ApplyTextDecoration(declaration, value);
                 break;
             case "text-decoration-style":
-                declaration.UnderlineStyle = ParseTextDecorationStyle(value);
+                ApplyTextDecorationStyle(declaration, value);
                 break;
             case "text-decoration-color":
                 declaration.UnderlineColor = ParseColor(value);
                 break;
             case "--officeimo-rtf-underline-style":
                 declaration.UnderlineStyle = ParseRtfUnderlineStyle(value);
+                break;
+            case "--officeimo-rtf-strike-style":
+                declaration.DoubleStrike = ParseRtfStrikeStyle(value);
                 break;
             case "vertical-align":
                 declaration.VerticalPosition = ParseVerticalAlign(value);
