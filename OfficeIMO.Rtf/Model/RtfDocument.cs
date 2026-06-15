@@ -348,10 +348,27 @@ public sealed class RtfDocument {
     /// <summary>Serializes the document to RTF.</summary>
     public string ToRtf(RtfWriteOptions? options = null) => RtfDocumentWriter.Write(this, options ?? new RtfWriteOptions());
 
+    /// <summary>Serializes the document to encoded RTF bytes.</summary>
+    public byte[] ToBytes(RtfWriteOptions? options = null, Encoding? encoding = null) {
+        return (encoding ?? Encoding.UTF8).GetBytes(ToRtf(options));
+    }
+
+    /// <summary>Serializes the document to an encoded RTF memory stream.</summary>
+    public MemoryStream ToMemoryStream(RtfWriteOptions? options = null, Encoding? encoding = null) {
+        return new MemoryStream(ToBytes(options, encoding), writable: false);
+    }
+
     /// <summary>Saves the document to an RTF file.</summary>
     public void Save(string path, RtfWriteOptions? options = null, Encoding? encoding = null) {
         if (path == null) throw new ArgumentNullException(nameof(path));
         File.WriteAllText(path, ToRtf(options), encoding ?? Encoding.UTF8);
+    }
+
+    /// <summary>Saves the document to an RTF stream without closing the stream.</summary>
+    public void Save(Stream stream, RtfWriteOptions? options = null, Encoding? encoding = null) {
+        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        byte[] bytes = ToBytes(options, encoding);
+        stream.Write(bytes, 0, bytes.Length);
     }
 
     internal void AddParsedParagraph(RtfParagraph paragraph) {

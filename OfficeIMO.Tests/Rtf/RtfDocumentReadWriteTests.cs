@@ -1,5 +1,6 @@
 using OfficeIMO.Rtf;
 using OfficeIMO.Rtf.Diagnostics;
+using System.Text;
 using Xunit;
 
 namespace OfficeIMO.Tests.Rtf;
@@ -41,6 +42,28 @@ public partial class RtfDocumentReadWriteTests {
         RtfParagraph readParagraph = Assert.Single(read.Document.Paragraphs);
         Assert.Equal("Hello RTF ż", readParagraph.ToPlainText());
         Assert.Contains(readParagraph.Runs, run => run.Text == "RTF" && run.Bold && run.Underline && run.FontSize == 14);
+    }
+
+    [Fact]
+    public void Write_Provides_Encoded_Byte_And_Stream_Output() {
+        RtfDocument document = RtfDocument.Create();
+        document.AddParagraph("Generated ż");
+        var options = new RtfWriteOptions { IncludeGenerator = false };
+
+        string expected = document.ToRtf(options);
+        byte[] bytes = document.ToBytes(options);
+
+        Assert.Equal(expected, Encoding.UTF8.GetString(bytes));
+
+        using var stream = new MemoryStream();
+        document.Save(stream, options);
+        Assert.Equal(bytes, stream.ToArray());
+
+        using MemoryStream memoryStream = document.ToMemoryStream(options);
+        Assert.Equal(bytes, memoryStream.ToArray());
+
+        RtfReadResult read = RtfDocument.Load(bytes);
+        Assert.Equal("Generated ż", Assert.Single(read.Document.Paragraphs).ToPlainText());
     }
 
     [Fact]
