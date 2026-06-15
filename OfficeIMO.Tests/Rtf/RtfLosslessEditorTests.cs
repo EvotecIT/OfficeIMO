@@ -115,6 +115,90 @@ public class RtfLosslessEditorTests {
     }
 
     [Fact]
+    public void SetRootPageSetup_Replaces_Duplicates_And_Preserves_Metadata_And_Body() {
+        const string rtf = @"{\rtf1\ansi\paperw1000\paperw1111\paperh2000\psz4\binfsxn2\binsxn3\margl100\margr200\margt300\margb400\headery50\footery60\gutter70\rtlgutter\landscape\titlepg{\fonttbl{\f0 Calibri;}}{\info{\title Keep}}\pard Body \'80\par}";
+
+        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        editor.SetPageSize(12240, 15840);
+        editor.SetPrinterPaper(9, 7, 8);
+        editor.SetMargins(720, 1440, 1080, 900);
+        editor.SetGutterWidth(180);
+        editor.SetHeaderFooterDistance(360, 540);
+        editor.SetRtlGutter(false);
+        editor.SetLandscape(false);
+        editor.SetDifferentFirstPageHeaderFooter(false);
+
+        const string expected = @"{\rtf1\ansi\paperw12240\paperh15840\psz9\binfsxn7\binsxn8\margl720\margr1440\margt1080\margb900\gutter180\headery360\footery540{\fonttbl{\f0 Calibri;}}{\info{\title Keep}}\pard Body \'80\par}";
+        Assert.Equal(expected, editor.ToRtf());
+
+        RtfReadResult read = editor.ToReadResult();
+        RtfPageSetup pageSetup = read.Document.PageSetup;
+        Assert.Equal(12240, pageSetup.PaperWidthTwips);
+        Assert.Equal(15840, pageSetup.PaperHeightTwips);
+        Assert.Equal(9, pageSetup.PrinterPaperSize);
+        Assert.Equal(7, pageSetup.FirstPagePaperSource);
+        Assert.Equal(8, pageSetup.OtherPagesPaperSource);
+        Assert.Equal(720, pageSetup.MarginLeftTwips);
+        Assert.Equal(1440, pageSetup.MarginRightTwips);
+        Assert.Equal(1080, pageSetup.MarginTopTwips);
+        Assert.Equal(900, pageSetup.MarginBottomTwips);
+        Assert.Equal(180, pageSetup.GutterWidthTwips);
+        Assert.Equal(360, pageSetup.HeaderDistanceTwips);
+        Assert.Equal(540, pageSetup.FooterDistanceTwips);
+        Assert.False(pageSetup.RtlGutter);
+        Assert.False(pageSetup.Landscape);
+        Assert.False(pageSetup.DifferentFirstPageHeaderFooter);
+        Assert.Equal("Keep", read.Document.Info.Title);
+        Assert.Contains(@"Body \'80", editor.ToRtf(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SetRootPageSetup_Creates_And_Removes_Optional_Controls_Before_Metadata() {
+        const string rtf = @"{\rtf1\ansi{\info{\title Keep}}\pard Body\par}";
+
+        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        editor.SetPageSize(8000, 10000);
+        editor.SetMargins(leftTwips: 720, topTwips: 360);
+        editor.SetHeaderFooterDistance(300, 420);
+        editor.SetRtlGutter();
+        editor.SetLandscape();
+        editor.SetDifferentFirstPageHeaderFooter();
+
+        const string expected = @"{\rtf1\ansi\paperw8000\paperh10000\margl720\margt360\headery300\footery420\rtlgutter\landscape\titlepg{\info{\title Keep}}\pard Body\par}";
+        Assert.Equal(expected, editor.ToRtf());
+
+        RtfPageSetup pageSetup = editor.ToReadResult().Document.PageSetup;
+        Assert.Equal(8000, pageSetup.PaperWidthTwips);
+        Assert.Equal(10000, pageSetup.PaperHeightTwips);
+        Assert.Equal(720, pageSetup.MarginLeftTwips);
+        Assert.Null(pageSetup.MarginRightTwips);
+        Assert.Equal(360, pageSetup.MarginTopTwips);
+        Assert.Null(pageSetup.MarginBottomTwips);
+        Assert.True(pageSetup.RtlGutter);
+        Assert.True(pageSetup.Landscape);
+        Assert.True(pageSetup.DifferentFirstPageHeaderFooter);
+
+        editor.SetPageSize(null, null);
+        editor.SetMargins();
+        editor.SetHeaderFooterDistance();
+        editor.SetRtlGutter(false);
+        editor.SetLandscape(false);
+        editor.SetDifferentFirstPageHeaderFooter(false);
+
+        Assert.Equal(rtf, editor.ToRtf());
+        pageSetup = editor.ToReadResult().Document.PageSetup;
+        Assert.Null(pageSetup.PaperWidthTwips);
+        Assert.Null(pageSetup.PaperHeightTwips);
+        Assert.Null(pageSetup.MarginLeftTwips);
+        Assert.Null(pageSetup.MarginTopTwips);
+        Assert.Null(pageSetup.HeaderDistanceTwips);
+        Assert.Null(pageSetup.FooterDistanceTwips);
+        Assert.False(pageSetup.RtlGutter);
+        Assert.False(pageSetup.Landscape);
+        Assert.False(pageSetup.DifferentFirstPageHeaderFooter);
+    }
+
+    [Fact]
     public void SetInfo_Replaces_Adds_And_Removes_Metadata_Without_Normalizing_Body() {
         const string rtf = @"{\rtf1\ansi{\info{\title Old}{\author Someone}}\pard Body \'80\par}";
 

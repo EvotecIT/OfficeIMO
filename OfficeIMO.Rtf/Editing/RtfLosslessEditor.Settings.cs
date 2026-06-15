@@ -66,7 +66,18 @@ public sealed partial class RtfLosslessEditor {
     }
 
     private static bool ShouldInsertRootControl(string controlName, int? parameter) {
-        return controlName == "ansi" || controlName == "mac" || controlName == "pc" || controlName == "pca" || parameter.HasValue;
+        return controlName == "ansi" || controlName == "mac" || controlName == "pc" || controlName == "pca" || IsRootToggleControl(controlName) || parameter.HasValue;
+    }
+
+    private static bool IsRootToggleControl(string controlName) {
+        switch (controlName) {
+            case "rtlgutter":
+            case "landscape":
+            case "titlepg":
+                return true;
+            default:
+                return false;
+        }
     }
 
     private static int GetRootControlInsertIndex(IReadOnlyList<RtfNode> children, string controlName) {
@@ -123,6 +134,36 @@ public sealed partial class RtfLosslessEditor {
                 return 3;
             case "uc":
                 return 4;
+            case "paperw":
+                return 10;
+            case "paperh":
+                return 11;
+            case "psz":
+                return 12;
+            case "binfsxn":
+                return 13;
+            case "binsxn":
+                return 14;
+            case "margl":
+                return 20;
+            case "margr":
+                return 21;
+            case "margt":
+                return 22;
+            case "margb":
+                return 23;
+            case "gutter":
+                return 24;
+            case "headery":
+                return 25;
+            case "footery":
+                return 26;
+            case "rtlgutter":
+                return 27;
+            case "landscape":
+                return 40;
+            case "titlepg":
+                return 41;
             default:
                 return 100;
         }
