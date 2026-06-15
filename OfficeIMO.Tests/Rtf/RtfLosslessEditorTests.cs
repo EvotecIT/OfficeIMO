@@ -66,6 +66,55 @@ public class RtfLosslessEditorTests {
     }
 
     [Fact]
+    public void SetRootSettings_Replaces_Duplicates_And_Preserves_Tables_And_Body() {
+        const string rtf = @"{\rtf1\ansi\mac\ansicpg1250\deff1\uc2{\fonttbl{\f0 Calibri;}{\f1 Consolas;}}{\info{\title Keep}}\pard Body \'80\par}";
+
+        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        editor.SetCharacterSet(RtfDocumentCharacterSet.Mac, 1252);
+        editor.SetDefaultFont(0);
+        editor.SetUnicodeSkipCount(0);
+
+        const string expected = @"{\rtf1\mac\ansicpg1252\deff0\uc0{\fonttbl{\f0 Calibri;}{\f1 Consolas;}}{\info{\title Keep}}\pard Body \'80\par}";
+        Assert.Equal(expected, editor.ToRtf());
+
+        RtfDocumentSettings settings = editor.ToReadResult().Document.Settings;
+        Assert.Equal(RtfDocumentCharacterSet.Mac, settings.CharacterSet);
+        Assert.Equal(1252, settings.AnsiCodePage);
+        Assert.Equal(0, settings.DefaultFontId);
+        Assert.Equal(0, settings.UnicodeSkipCount);
+        Assert.Contains(@"{\fonttbl{\f0 Calibri;}{\f1 Consolas;}}", editor.ToRtf(), StringComparison.Ordinal);
+        Assert.Contains(@"Body \'80", editor.ToRtf(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SetRootSettings_Creates_And_Removes_Optional_Header_Controls_Before_Metadata() {
+        const string rtf = @"{\rtf1{\info{\title Keep}}\pard Body \u380??\par}";
+
+        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        editor.SetCharacterSet(RtfDocumentCharacterSet.Ansi, 1250);
+        editor.SetDefaultFont(2);
+        editor.SetUnicodeSkipCount(2);
+
+        Assert.Equal(@"{\rtf1\ansi\ansicpg1250\deff2\uc2{\info{\title Keep}}\pard Body \u380??\par}", editor.ToRtf());
+        RtfDocumentSettings settings = editor.ToReadResult().Document.Settings;
+        Assert.Equal(RtfDocumentCharacterSet.Ansi, settings.CharacterSet);
+        Assert.Equal(1250, settings.AnsiCodePage);
+        Assert.Equal(2, settings.DefaultFontId);
+        Assert.Equal(2, settings.UnicodeSkipCount);
+
+        editor.SetAnsiCodePage(null);
+        editor.SetDefaultFont(null);
+        editor.SetUnicodeSkipCount(null);
+
+        Assert.Equal(@"{\rtf1\ansi{\info{\title Keep}}\pard Body \u380??\par}", editor.ToRtf());
+        settings = editor.ToReadResult().Document.Settings;
+        Assert.Equal(RtfDocumentCharacterSet.Ansi, settings.CharacterSet);
+        Assert.Null(settings.AnsiCodePage);
+        Assert.Null(settings.DefaultFontId);
+        Assert.Null(settings.UnicodeSkipCount);
+    }
+
+    [Fact]
     public void SetInfo_Replaces_Adds_And_Removes_Metadata_Without_Normalizing_Body() {
         const string rtf = @"{\rtf1\ansi{\info{\title Old}{\author Someone}}\pard Body \'80\par}";
 
