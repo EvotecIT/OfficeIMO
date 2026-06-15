@@ -85,9 +85,10 @@ internal static partial class RtfHtmlWriter {
                 AppendImage(builder, image, options);
                 break;
             case RtfObject rtfObject:
-                builder.Append("<p>");
-                builder.Append(Encode(rtfObject.Kind.ToString()));
-                builder.Append("</p>");
+                AppendObject(builder, rtfObject, options, document, blockTag: true);
+                break;
+            case RtfShape shape:
+                AppendShape(builder, shape, options, document, blockTag: true);
                 break;
             default:
                 break;
@@ -235,6 +236,12 @@ internal static partial class RtfHtmlWriter {
                     break;
                 case RtfImage image:
                     AppendImage(builder, image, options);
+                    break;
+                case RtfObject rtfObject:
+                    AppendObject(builder, rtfObject, options, document, blockTag: false);
+                    break;
+                case RtfShape shape:
+                    AppendShape(builder, shape, options, document, blockTag: false);
                     break;
                 case RtfBookmarkMarker marker:
                     AppendBookmarkMarker(builder, marker);

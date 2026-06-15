@@ -53,7 +53,7 @@ internal static partial class RtfHtmlReader {
             RtfDocument noteDocument = html!.ToRtfDocumentFromHtml();
             foreach (RtfParagraph paragraph in noteDocument.Paragraphs) {
                 RtfParagraph noteParagraph = note.AddParagraph();
-                CopyNoteParagraphInlines(paragraph, noteParagraph, noteDocument);
+                CopyParagraphInlines(paragraph, noteParagraph, noteDocument);
             }
 
             if (note.Paragraphs.Count == 0) {
@@ -73,16 +73,16 @@ internal static partial class RtfHtmlReader {
             }
         }
 
-        private void CopyNoteParagraphInlines(RtfParagraph source, RtfParagraph target, RtfDocument sourceDocument) {
+        private void CopyParagraphInlines(RtfParagraph source, RtfParagraph target, RtfDocument sourceDocument) {
             foreach (IRtfInline inline in source.Inlines) {
-                CopyNoteInline(inline, target, sourceDocument);
+                CopyInline(inline, target, sourceDocument);
             }
         }
 
-        private void CopyNoteInline(IRtfInline inline, RtfParagraph target, RtfDocument sourceDocument) {
+        private void CopyInline(IRtfInline inline, RtfParagraph target, RtfDocument sourceDocument) {
             switch (inline) {
                 case RtfRun run:
-                    CopyNoteRun(run, target.AddText(run.Text), sourceDocument);
+                    CopyRun(run, target.AddText(run.Text), sourceDocument);
                     break;
                 case RtfBreak rtfBreak:
                     target.AddBreak(rtfBreak.Kind);
@@ -96,7 +96,7 @@ internal static partial class RtfHtmlReader {
                 case RtfField field:
                     RtfField copiedField = target.AddField(field.Instruction);
                     copiedField.FormFieldData = field.FormFieldData;
-                    CopyNoteParagraphInlines(field.Result, copiedField.Result, sourceDocument);
+                    CopyParagraphInlines(field.Result, copiedField.Result, sourceDocument);
                     break;
                 case RtfImage image:
                     RtfImage copiedImage = target.AddImage(image.Format, image.Data);
@@ -106,10 +106,37 @@ internal static partial class RtfHtmlReader {
                     copiedImage.DesiredWidthTwips = image.DesiredWidthTwips;
                     copiedImage.DesiredHeightTwips = image.DesiredHeightTwips;
                     break;
+                case RtfObject rtfObject:
+                    RtfObject copiedObject = target.AddObject(rtfObject.Kind, rtfObject.Data);
+                    copiedObject.ClassName = rtfObject.ClassName;
+                    copiedObject.Name = rtfObject.Name;
+                    copiedObject.Width = rtfObject.Width;
+                    copiedObject.Height = rtfObject.Height;
+                    copiedObject.ScaleX = rtfObject.ScaleX;
+                    copiedObject.ScaleY = rtfObject.ScaleY;
+                    copiedObject.ResultImage = rtfObject.ResultImage;
+                    CopyParagraphInlines(rtfObject.Result, copiedObject.Result, sourceDocument);
+                    break;
+                case RtfShape shape:
+                    RtfShape copiedShape = target.AddShape();
+                    foreach (RtfShapeInstruction instruction in shape.Instructions) {
+                        copiedShape.AddInstruction(instruction.Name, instruction.Parameter, instruction.HasParameter);
+                    }
+
+                    foreach (RtfShapeProperty property in shape.Properties) {
+                        copiedShape.AddProperty(property.Name, property.Value);
+                    }
+
+                    foreach (RtfParagraph paragraph in shape.TextBoxParagraphs) {
+                        RtfParagraph copiedParagraph = copiedShape.AddTextBoxParagraph();
+                        CopyParagraphInlines(paragraph, copiedParagraph, sourceDocument);
+                    }
+
+                    break;
             }
         }
 
-        private void CopyNoteRun(RtfRun source, RtfRun target, RtfDocument sourceDocument) {
+        private void CopyRun(RtfRun source, RtfRun target, RtfDocument sourceDocument) {
             target.Bold = source.Bold;
             target.Italic = source.Italic;
             target.UnderlineStyle = source.UnderlineStyle;
