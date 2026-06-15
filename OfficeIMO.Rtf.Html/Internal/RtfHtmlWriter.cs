@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace OfficeIMO.Rtf.Html;
 
 internal static class RtfHtmlWriter {
@@ -19,11 +21,11 @@ internal static class RtfHtmlWriter {
                     openList = paragraph.ListKind;
                 }
 
-                AppendParagraph(builder, paragraph, options);
+                AppendParagraph(builder, paragraph, options, document);
             } else {
                 CloseList(builder, openList);
                 openList = RtfListKind.None;
-                AppendBlock(builder, block, options);
+                AppendBlock(builder, block, options, document);
             }
 
             if (i + 1 < document.Blocks.Count) {
@@ -68,13 +70,13 @@ internal static class RtfHtmlWriter {
         builder.Append(newline);
     }
 
-    private static void AppendBlock(StringBuilder builder, IRtfBlock block, RtfHtmlSaveOptions options) {
+    private static void AppendBlock(StringBuilder builder, IRtfBlock block, RtfHtmlSaveOptions options, RtfDocument document) {
         switch (block) {
             case RtfParagraph paragraph:
-                AppendParagraph(builder, paragraph, options);
+                AppendParagraph(builder, paragraph, options, document);
                 break;
             case RtfTable table:
-                AppendTable(builder, table, options);
+                AppendTable(builder, table, options, document);
                 break;
             case RtfImage image:
                 AppendImage(builder, image, options);
@@ -89,13 +91,13 @@ internal static class RtfHtmlWriter {
         }
     }
 
-    private static void AppendParagraph(StringBuilder builder, RtfParagraph paragraph, RtfHtmlSaveOptions options) {
+    private static void AppendParagraph(StringBuilder builder, RtfParagraph paragraph, RtfHtmlSaveOptions options, RtfDocument document) {
         string tagName = paragraph.ListKind == RtfListKind.None ? "p" : "li";
         builder.Append('<');
         builder.Append(tagName);
         AppendParagraphStyle(builder, paragraph);
         builder.Append('>');
-        AppendInlines(builder, paragraph.Inlines, options);
+        AppendInlines(builder, paragraph.Inlines, options, document);
         builder.Append("</");
         builder.Append(tagName);
         builder.Append('>');
@@ -112,17 +114,17 @@ internal static class RtfHtmlWriter {
         builder.Append("\"");
     }
 
-    private static void AppendInlines(StringBuilder builder, IReadOnlyList<IRtfInline> inlines, RtfHtmlSaveOptions options) {
+    private static void AppendInlines(StringBuilder builder, IReadOnlyList<IRtfInline> inlines, RtfHtmlSaveOptions options, RtfDocument document) {
         foreach (IRtfInline inline in inlines) {
             switch (inline) {
                 case RtfRun run:
-                    AppendRun(builder, run);
+                    AppendRun(builder, run, document);
                     break;
                 case RtfBreak rtfBreak when rtfBreak.Kind == RtfBreakKind.Line:
                     builder.Append("<br>");
                     break;
                 case RtfField field:
-                    AppendInlines(builder, field.Result.Inlines, options);
+                    AppendInlines(builder, field.Result.Inlines, options, document);
                     break;
                 case RtfImage image:
                     AppendImage(builder, image, options);
@@ -136,7 +138,7 @@ internal static class RtfHtmlWriter {
         }
     }
 
-    private static void AppendRun(StringBuilder builder, RtfRun run) {
+    private static void AppendRun(StringBuilder builder, RtfRun run, RtfDocument document) {
         int opened = 0;
         if (run.Hyperlink != null) {
             builder.Append("<a href=\"");
@@ -145,6 +147,7 @@ internal static class RtfHtmlWriter {
             opened++;
         }
 
+        OpenRunStyle(builder, run, document, ref opened);
         OpenTag(builder, "strong", run.Bold, ref opened);
         OpenTag(builder, "em", run.Italic, ref opened);
         OpenTag(builder, "u", run.Underline, ref opened);
@@ -160,6 +163,7 @@ internal static class RtfHtmlWriter {
         CloseTag(builder, "u", run.Underline);
         CloseTag(builder, "em", run.Italic);
         CloseTag(builder, "strong", run.Bold);
+        CloseRunStyle(builder, run, document);
         if (run.Hyperlink != null) {
             builder.Append("</a>");
         }
@@ -186,14 +190,14 @@ internal static class RtfHtmlWriter {
         builder.Append('>');
     }
 
-    private static void AppendTable(StringBuilder builder, RtfTable table, RtfHtmlSaveOptions options) {
+    private static void AppendTable(StringBuilder builder, RtfTable table, RtfHtmlSaveOptions options, RtfDocument document) {
         builder.Append("<table><tbody>");
         foreach (RtfTableRow row in table.Rows) {
             builder.Append("<tr>");
             foreach (RtfTableCell cell in row.Cells) {
                 builder.Append("<td>");
                 for (int i = 0; i < cell.Paragraphs.Count; i++) {
-                    AppendParagraph(builder, cell.Paragraphs[i], options);
+                    AppendParagraph(builder, cell.Paragraphs[i], options, document);
                 }
 
                 builder.Append("</td>");
@@ -252,6 +256,58 @@ internal static class RtfHtmlWriter {
                 mediaType = null;
                 return false;
         }
+    }
+
+    private static void OpenRunStyle(StringBuilder builder, RtfRun run, RtfDocument document, ref int opened) {
+        if (!TryGetRunStyle(run, document, out string? style)) {
+            return;
+        }
+
+        builder.Append("<span style=\"");
+        builder.Append(style);
+        builder.Append("\">");
+        opened++;
+    }
+
+    private static void CloseRunStyle(StringBuilder builder, RtfRun run, RtfDocument document) {
+        if (TryGetRunStyle(run, document, out _)) {
+            builder.Append("</span>");
+        }
+    }
+
+    private static bool TryGetRunStyle(RtfRun run, RtfDocument document, out string? style) {
+        var builder = new StringBuilder();
+        if (TryGetColor(document, run.ForegroundColorIndex, out RtfColor? foreground)) {
+            builder.Append("color:");
+            builder.Append(FormatColor(foreground!));
+            builder.Append(';');
+        }
+
+        int? backgroundIndex = run.CharacterBackgroundColorIndex ?? run.HighlightColorIndex;
+        if (TryGetColor(document, backgroundIndex, out RtfColor? background)) {
+            builder.Append("background-color:");
+            builder.Append(FormatColor(background!));
+            builder.Append(';');
+        }
+
+        style = builder.Length == 0 ? null : builder.ToString();
+        return style != null;
+    }
+
+    private static bool TryGetColor(RtfDocument document, int? index, out RtfColor? color) {
+        if (!index.HasValue || index.Value <= 0 || index.Value > document.Colors.Count) {
+            color = null;
+            return false;
+        }
+
+        color = document.Colors[index.Value - 1];
+        return true;
+    }
+
+    private static string FormatColor(RtfColor color) {
+        return "#" + color.Red.ToString("X2", CultureInfo.InvariantCulture) +
+               color.Green.ToString("X2", CultureInfo.InvariantCulture) +
+               color.Blue.ToString("X2", CultureInfo.InvariantCulture);
     }
 
     private static string Encode(string value) => WebUtility.HtmlEncode(value);

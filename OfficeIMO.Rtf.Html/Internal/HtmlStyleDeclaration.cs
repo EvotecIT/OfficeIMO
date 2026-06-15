@@ -15,10 +15,16 @@ internal sealed class HtmlStyleDeclaration {
 
     internal RtfTextAlignment? TextAlignment { get; set; }
 
+    internal RtfColor? ForegroundColor { get; set; }
+
+    internal RtfColor? BackgroundColor { get; set; }
+
     internal bool HasInlineFormatting =>
         Bold.HasValue ||
         Italic.HasValue ||
         Underline.HasValue ||
         Strike.HasValue ||
-        VerticalPosition.HasValue;
+        VerticalPosition.HasValue ||
+        ForegroundColor != null ||
+        BackgroundColor != null;
 }

@@ -238,6 +238,15 @@ internal static class RtfHtmlReader {
             run.Strike = ResolveStyleValue(style => style.Strike, _strike > 0);
             run.VerticalPosition = ResolveVerticalPosition();
             run.Hyperlink = _hyperlink;
+            RtfColor? foreground = ResolveStyleColor(style => style.ForegroundColor);
+            RtfColor? background = ResolveStyleColor(style => style.BackgroundColor);
+            if (foreground != null) {
+                run.ForegroundColorIndex = GetOrAddColorIndex(foreground);
+            }
+
+            if (background != null) {
+                run.CharacterBackgroundColorIndex = GetOrAddColorIndex(background);
+            }
         }
 
         internal void TrimEmptyTrailingParagraph() {
@@ -380,6 +389,33 @@ internal static class RtfHtmlReader {
             }
 
             return _subscript > 0 ? RtfVerticalPosition.Subscript : RtfVerticalPosition.Baseline;
+        }
+
+        private RtfColor? ResolveStyleColor(Func<HtmlStyleDeclaration, RtfColor?> selector) {
+            foreach (HtmlStyleScope scope in _styles) {
+                RtfColor? value = selector(scope.Style);
+                if (value != null) {
+                    return value;
+                }
+            }
+
+            return null;
+        }
+
+        private int GetOrAddColorIndex(RtfColor color) {
+            for (int index = 0; index < _document.Colors.Count; index++) {
+                RtfColor existing = _document.Colors[index];
+                if (existing.Red == color.Red &&
+                    existing.Green == color.Green &&
+                    existing.Blue == color.Blue &&
+                    existing.ThemeColor == color.ThemeColor &&
+                    existing.Tint == color.Tint &&
+                    existing.Shade == color.Shade) {
+                    return index + 1;
+                }
+            }
+
+            return _document.AddColor(color.Red, color.Green, color.Blue);
         }
 
         private static bool HasContent(RtfParagraph paragraph) {

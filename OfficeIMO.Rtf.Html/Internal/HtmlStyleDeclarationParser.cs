@@ -45,6 +45,13 @@ internal static class HtmlStyleDeclarationParser {
             case "text-align":
                 declaration.TextAlignment = ParseTextAlign(value);
                 break;
+            case "color":
+                declaration.ForegroundColor = ParseColor(value);
+                break;
+            case "background":
+            case "background-color":
+                declaration.BackgroundColor = ParseColor(value);
+                break;
         }
     }
 
@@ -161,6 +168,158 @@ internal static class HtmlStyleDeclarationParser {
             default:
                 return null;
         }
+    }
+
+    private static RtfColor? ParseColor(string value) {
+        if (value == "transparent" || value == "inherit" || value == "initial" || value == "currentcolor") {
+            return null;
+        }
+
+        bool isRgbFunction = value.StartsWith("rgb(", StringComparison.Ordinal) || value.StartsWith("rgba(", StringComparison.Ordinal);
+        int whitespace = value.IndexOfAny(new[] { ' ', '\t', '\r', '\n' });
+        string token = whitespace > 0 && !isRgbFunction ? value.Substring(0, whitespace) : value;
+        if (TryParseHexColor(token, out RtfColor? hexColor)) {
+            return hexColor;
+        }
+
+        if (TryParseRgbColor(value, out RtfColor? rgbColor)) {
+            return rgbColor;
+        }
+
+        return TryParseNamedColor(token, out RtfColor? namedColor) ? namedColor : null;
+    }
+
+    private static bool TryParseHexColor(string value, out RtfColor? color) {
+        color = null;
+        if (!value.StartsWith("#", StringComparison.Ordinal) || (value.Length != 4 && value.Length != 7)) {
+            return false;
+        }
+
+        if (value.Length == 4) {
+            if (!TryParseHexNibble(value[1], out byte r) ||
+                !TryParseHexNibble(value[2], out byte g) ||
+                !TryParseHexNibble(value[3], out byte b)) {
+                return false;
+            }
+
+            color = new RtfColor((byte)(r * 17), (byte)(g * 17), (byte)(b * 17));
+            return true;
+        }
+
+        if (!byte.TryParse(value.Substring(1, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out byte red) ||
+            !byte.TryParse(value.Substring(3, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out byte green) ||
+            !byte.TryParse(value.Substring(5, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out byte blue)) {
+            return false;
+        }
+
+        color = new RtfColor(red, green, blue);
+        return true;
+    }
+
+    private static bool TryParseRgbColor(string value, out RtfColor? color) {
+        color = null;
+        int open = value.IndexOf('(');
+        int close = value.LastIndexOf(')');
+        if (open < 0 || close <= open) {
+            return false;
+        }
+
+        string function = value.Substring(0, open).Trim();
+        if (function != "rgb" && function != "rgba") {
+            return false;
+        }
+
+        string[] parts = value.Substring(open + 1, close - open - 1).Split(',');
+        if (parts.Length < 3 ||
+            !TryParseCssByte(parts[0], out byte red) ||
+            !TryParseCssByte(parts[1], out byte green) ||
+            !TryParseCssByte(parts[2], out byte blue)) {
+            return false;
+        }
+
+        color = new RtfColor(red, green, blue);
+        return true;
+    }
+
+    private static bool TryParseCssByte(string value, out byte component) {
+        string normalized = value.Trim();
+        if (normalized.EndsWith("%", StringComparison.Ordinal)) {
+            if (double.TryParse(normalized.Substring(0, normalized.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture, out double percent)) {
+                component = ClampByte((int)Math.Round(percent * 2.55d, MidpointRounding.AwayFromZero));
+                return true;
+            }
+
+            component = 0;
+            return false;
+        }
+
+        if (double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
+            component = ClampByte((int)Math.Round(number, MidpointRounding.AwayFromZero));
+            return true;
+        }
+
+        component = 0;
+        return false;
+    }
+
+    private static bool TryParseNamedColor(string value, out RtfColor? color) {
+        switch (value) {
+            case "black":
+                color = new RtfColor(0, 0, 0);
+                return true;
+            case "white":
+                color = new RtfColor(255, 255, 255);
+                return true;
+            case "red":
+                color = new RtfColor(255, 0, 0);
+                return true;
+            case "green":
+                color = new RtfColor(0, 128, 0);
+                return true;
+            case "blue":
+                color = new RtfColor(0, 0, 255);
+                return true;
+            case "yellow":
+                color = new RtfColor(255, 255, 0);
+                return true;
+            case "orange":
+                color = new RtfColor(255, 165, 0);
+                return true;
+            case "purple":
+                color = new RtfColor(128, 0, 128);
+                return true;
+            case "gray":
+            case "grey":
+                color = new RtfColor(128, 128, 128);
+                return true;
+            default:
+                color = null;
+                return false;
+        }
+    }
+
+    private static bool TryParseHexNibble(char value, out byte result) {
+        if (value >= '0' && value <= '9') {
+            result = (byte)(value - '0');
+            return true;
+        }
+
+        if (value >= 'a' && value <= 'f') {
+            result = (byte)(value - 'a' + 10);
+            return true;
+        }
+
+        if (value >= 'A' && value <= 'F') {
+            result = (byte)(value - 'A' + 10);
+            return true;
+        }
+
+        result = 0;
+        return false;
+    }
+
+    private static byte ClampByte(int value) {
+        return (byte)Math.Max(0, Math.Min(255, value));
     }
 
     private static bool ContainsWord(string value, string word) {

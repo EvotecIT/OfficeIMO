@@ -74,6 +74,49 @@ public class RtfHtmlConverterTests {
     }
 
     [Fact]
+    public void Html_ToRtfDocument_Parses_Css_Colors_Into_Rtf_Color_Table() {
+        const string html = "<p><span style=\"color:#0c2238; background-color: rgb(255, 242, 204)\">Flag</span><span style=\"color: #0C2238\"> again</span><span style=\"background: yellow\"> note</span></p>";
+
+        RtfDocument document = html.ToRtfDocumentFromHtml();
+
+        Assert.Equal(3, document.Colors.Count);
+        Assert.Equal("#0C2238", document.Colors[0].ToString());
+        Assert.Equal("#FFF2CC", document.Colors[1].ToString());
+        Assert.Equal("#FFFF00", document.Colors[2].ToString());
+
+        RtfParagraph paragraph = Assert.Single(document.Paragraphs);
+        RtfRun flag = Assert.Single(paragraph.Runs, run => run.Text == "Flag");
+        Assert.Equal(1, flag.ForegroundColorIndex);
+        Assert.Equal(2, flag.CharacterBackgroundColorIndex);
+
+        RtfRun again = Assert.Single(paragraph.Runs, run => run.Text == " again");
+        Assert.Equal(1, again.ForegroundColorIndex);
+        Assert.Null(again.CharacterBackgroundColorIndex);
+
+        RtfRun note = Assert.Single(paragraph.Runs, run => run.Text == " note");
+        Assert.Null(note.ForegroundColorIndex);
+        Assert.Equal(3, note.CharacterBackgroundColorIndex);
+
+        string rtf = document.ToRtf();
+        Assert.Contains(@"{\colortbl;\red12\green34\blue56;\red255\green242\blue204;\red255\green255\blue0;}", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\cf1 \chcbpat2 Flag\chcbpat0  again\cf0", rtf, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RtfDocument_ToHtml_Renders_Run_Color_Styles() {
+        RtfDocument document = RtfDocument.Create();
+        int foreground = document.AddColor(12, 34, 56);
+        int background = document.AddColor(255, 242, 204);
+        RtfRun run = document.AddParagraph().AddText("Flag");
+        run.ForegroundColorIndex = foreground;
+        run.CharacterBackgroundColorIndex = background;
+
+        string html = document.ToHtml();
+
+        Assert.Equal("<p><span style=\"color:#0C2238;background-color:#FFF2CC;\">Flag</span></p>", html);
+    }
+
+    [Fact]
     public void Html_ToRtfDocument_Allows_Css_To_Override_Semantic_Formatting() {
         const string html = "<p><strong><em><u>marked <span style=\"font-weight:400; font-style: normal; text-decoration: none; vertical-align: baseline\">plain</span></u></em></strong></p>";
 
