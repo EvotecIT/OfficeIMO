@@ -218,6 +218,38 @@ public class RtfPdfConverterTests {
     }
 
     [Fact]
+    public void RtfString_ToPdfDocument_Renders_Explicit_Tab_Stop_Alignment_And_Leader() {
+        const string rtf = @"{\rtf1\ansi\paperw12240\paperh15840\margl720\margr720\margt720\margb720\pard\tqr\tldot\tx3600 Name\tab 12.34\par}";
+
+        byte[] pdf = rtf.SaveAsPdf();
+        using PdfPigDocument read = PdfPigDocument.Open(pdf);
+        var letters = read.GetPage(1).Letters.OrderBy(letter => letter.StartBaseLine.X).ToList();
+        var label = FindTextBounds(letters, "Name");
+        var amount = FindTextBounds(letters, "12.34");
+        double expectedRight = 36D + 180D;
+
+        Assert.True(amount.Left > label.Right, $"Expected tabbed amount to render after label. LabelRight={label.Right}; AmountLeft={amount.Left}.");
+        Assert.InRange(amount.Right, expectedRight - 10D, expectedRight + 10D);
+
+        string content = ExtractPdfContentStreams(pdf);
+        Assert.Contains("2E2E2E", content, StringComparison.Ordinal);
+
+        static (double Left, double Right) FindTextBounds(IReadOnlyList<UglyToad.PdfPig.Content.Letter> letters, string text) {
+            for (int index = 0; index <= letters.Count - text.Length; index++) {
+                string candidate = string.Concat(letters.Skip(index).Take(text.Length).Select(letter => letter.Value));
+                if (!string.Equals(candidate, text, StringComparison.Ordinal)) {
+                    continue;
+                }
+
+                var matched = letters.Skip(index).Take(text.Length).ToList();
+                return (matched.Min(letter => letter.StartBaseLine.X), matched.Max(letter => letter.EndBaseLine.X));
+            }
+
+            throw new Xunit.Sdk.XunitException("Expected text '" + text + "' in PDF letters. Text=" + string.Concat(letters.Select(letter => letter.Value)));
+        }
+    }
+
+    [Fact]
     public void RtfDocument_ToPdfDocument_Renders_Paragraph_Line_Spacing() {
         RtfDocument document = RtfDocument.Create();
         document.PageSetup.SetPaperSize(12240, 15840);

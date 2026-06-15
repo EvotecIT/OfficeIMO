@@ -4,6 +4,7 @@ namespace OfficeIMO.Pdf;
 /// Describes layout options for rich paragraph rendering.
 /// </summary>
 public class PdfParagraphStyle {
+    private readonly System.Collections.Generic.List<PdfTabStop> _tabStops = new System.Collections.Generic.List<PdfTabStop>();
     private double? _lineHeight;
     private double _leftIndent;
     private double _rightIndent;
@@ -68,6 +69,8 @@ public class PdfParagraphStyle {
             _defaultTabStopWidth = value;
         }
     }
+    /// <summary>Explicit paragraph tab stops in points relative to the paragraph text frame.</summary>
+    public System.Collections.Generic.IReadOnlyList<PdfTabStop> TabStops => _tabStops.AsReadOnly();
     /// <summary>When true, the paragraph starts on a new page instead of splitting across pages.</summary>
     public bool KeepTogether { get; set; }
     /// <summary>When true, the paragraph moves to the next page when it would otherwise be separated from the following paragraph.</summary>
@@ -77,7 +80,7 @@ public class PdfParagraphStyle {
 
     /// <summary>Creates a copy of this paragraph style.</summary>
     public PdfParagraphStyle Clone() {
-        return new PdfParagraphStyle {
+        PdfParagraphStyle clone = new PdfParagraphStyle {
             LineHeight = LineHeight,
             LeftIndent = LeftIndent,
             RightIndent = RightIndent,
@@ -89,6 +92,27 @@ public class PdfParagraphStyle {
             KeepWithNext = KeepWithNext,
             WidowControl = WidowControl
         };
+
+        foreach (PdfTabStop tabStop in _tabStops) {
+            clone._tabStops.Add(tabStop.Clone());
+        }
+
+        return clone;
+    }
+
+    /// <summary>Adds an explicit paragraph tab stop.</summary>
+    /// <param name="position">Tab stop position in points relative to the paragraph text frame.</param>
+    /// <param name="alignment">Text alignment anchored at this tab stop.</param>
+    /// <param name="leader">Leader fill rendered before the following text.</param>
+    public PdfTabStop AddTabStop(double position, PdfTabAlignment alignment = PdfTabAlignment.Left, PdfTabLeaderStyle leader = PdfTabLeaderStyle.None) {
+        PdfTabStop tabStop = new PdfTabStop(position, alignment, leader);
+        _tabStops.Add(tabStop);
+        return tabStop;
+    }
+
+    /// <summary>Removes all explicit paragraph tab stops.</summary>
+    public void ClearTabStops() {
+        _tabStops.Clear();
     }
 
     private static void ValidateNonNegativeFiniteValue(double value, string paramName, string message) {

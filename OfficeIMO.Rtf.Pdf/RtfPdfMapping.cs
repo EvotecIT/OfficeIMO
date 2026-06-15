@@ -89,8 +89,12 @@ internal static class RtfPdfMapping {
         bool keepWithNext = paragraph.KeepWithNext || style?.KeepWithNext == true;
         bool widowControl = paragraph.WidowControl ?? style?.WidowControl ?? false;
         int? defaultTabWidth = document.Settings.DefaultTabWidthTwips;
+        IReadOnlyList<RtfTabStop> tabStops = paragraph.TabStops.Count > 0
+            ? paragraph.TabStops
+            : style?.TabStops ?? Array.Empty<RtfTabStop>();
+        bool hasTabStops = tabStops.Count > 0;
 
-        if (!HasParagraphLayout(leftIndent, rightIndent, firstLineIndent, spaceBefore, spaceAfter, spaceBeforeAuto, spaceAfterAuto, lineSpacing, keepTogether, keepWithNext, widowControl, defaultTabWidth)) {
+        if (!HasParagraphLayout(leftIndent, rightIndent, firstLineIndent, spaceBefore, spaceAfter, spaceBeforeAuto, spaceAfterAuto, lineSpacing, keepTogether, keepWithNext, widowControl, defaultTabWidth, hasTabStops)) {
             return null;
         }
 
@@ -119,6 +123,10 @@ internal static class RtfPdfMapping {
 
         if (defaultTabWidth.HasValue && defaultTabWidth.Value > 0) {
             pdfStyle.DefaultTabStopWidth = TwipsToPoints(defaultTabWidth.Value);
+        }
+
+        foreach (RtfTabStop tabStop in tabStops) {
+            pdfStyle.AddTabStop(TwipsToPoints(tabStop.PositionTwips), ToPdfTabAlignment(tabStop.Alignment), ToPdfTabLeader(tabStop.Leader));
         }
 
         pdfStyle.KeepTogether = keepTogether;
@@ -189,7 +197,8 @@ internal static class RtfPdfMapping {
         bool keepTogether,
         bool keepWithNext,
         bool widowControl,
-        int? defaultTabWidth) =>
+        int? defaultTabWidth,
+        bool hasTabStops) =>
         leftIndent.HasValue ||
         rightIndent.HasValue ||
         firstLineIndent.HasValue ||
@@ -201,7 +210,36 @@ internal static class RtfPdfMapping {
         keepTogether ||
         keepWithNext ||
         widowControl ||
-        (defaultTabWidth.HasValue && defaultTabWidth.Value > 0);
+        (defaultTabWidth.HasValue && defaultTabWidth.Value > 0) ||
+        hasTabStops;
+
+    private static PdfCore.PdfTabAlignment ToPdfTabAlignment(RtfTabAlignment alignment) {
+        switch (alignment) {
+            case RtfTabAlignment.Center:
+                return PdfCore.PdfTabAlignment.Center;
+            case RtfTabAlignment.Right:
+                return PdfCore.PdfTabAlignment.Right;
+            case RtfTabAlignment.Decimal:
+                return PdfCore.PdfTabAlignment.DecimalSeparator;
+            default:
+                return PdfCore.PdfTabAlignment.Left;
+        }
+    }
+
+    private static PdfCore.PdfTabLeaderStyle ToPdfTabLeader(RtfTabLeader leader) {
+        switch (leader) {
+            case RtfTabLeader.Dots:
+            case RtfTabLeader.MiddleDots:
+                return PdfCore.PdfTabLeaderStyle.Dots;
+            case RtfTabLeader.Hyphen:
+                return PdfCore.PdfTabLeaderStyle.Hyphens;
+            case RtfTabLeader.Underline:
+            case RtfTabLeader.ThickLine:
+                return PdfCore.PdfTabLeaderStyle.Underscores;
+            default:
+                return PdfCore.PdfTabLeaderStyle.None;
+        }
+    }
 
     private static double ToNonNegativePoints(int? twips) =>
         twips.HasValue && twips.Value > 0 ? TwipsToPoints(twips.Value) : 0D;
