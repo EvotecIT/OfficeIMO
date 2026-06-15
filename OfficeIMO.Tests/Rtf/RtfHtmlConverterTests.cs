@@ -558,6 +558,46 @@ public class RtfHtmlConverterTests {
     }
 
     [Fact]
+    public void Html_ToRtfDocument_Parses_Image_Dimensions() {
+        const string html = "<p><img src=\"data:image/png;base64,iVBORw==\" alt=\"Chart\" width=\"96\" height=\"48\" style=\"width:120pt;height:60pt\"></p>";
+
+        RtfDocument document = html.ToRtfDocumentFromHtml();
+
+        RtfParagraph paragraph = Assert.Single(document.Paragraphs);
+        RtfImage image = Assert.Single(paragraph.Inlines.OfType<RtfImage>());
+        Assert.Equal(RtfImageFormat.Png, image.Format);
+        Assert.Equal("Chart", image.Description);
+        Assert.Equal(96, image.SourceWidth);
+        Assert.Equal(48, image.SourceHeight);
+        Assert.Equal(2400, image.DesiredWidthTwips);
+        Assert.Equal(1200, image.DesiredHeightTwips);
+
+        string rtf = document.ToRtf();
+        Assert.Contains(@"\picw96\pich48\picwgoal2400\pichgoal1200", rtf, StringComparison.Ordinal);
+
+        RtfImage roundTripImage = Assert.IsType<RtfImage>(Assert.Single(RtfDocument.Read(rtf).Document.Blocks));
+        Assert.Equal(96, roundTripImage.SourceWidth);
+        Assert.Equal(48, roundTripImage.SourceHeight);
+        Assert.Equal(2400, roundTripImage.DesiredWidthTwips);
+        Assert.Equal(1200, roundTripImage.DesiredHeightTwips);
+    }
+
+    [Fact]
+    public void RtfDocument_ToHtml_Renders_Image_Dimensions() {
+        RtfDocument document = RtfDocument.Create();
+        RtfImage image = document.AddImage(RtfImageFormat.Png, new byte[] { 0x89, 0x50, 0x4E, 0x47 });
+        image.Description = "Chart";
+        image.SourceWidth = 96;
+        image.SourceHeight = 48;
+        image.DesiredWidthTwips = 1440;
+        image.DesiredHeightTwips = 720;
+
+        string html = document.ToHtml();
+
+        Assert.Equal("<img src=\"data:image/png;base64,iVBORw==\" alt=\"Chart\" style=\"width:72pt;height:36pt;\">", html);
+    }
+
+    [Fact]
     public void Html_Rtf_Html_RoundTrip_Preserves_Semantic_Text() {
         const string html = "<p>Assessment: <strong>stable</strong></p>";
 

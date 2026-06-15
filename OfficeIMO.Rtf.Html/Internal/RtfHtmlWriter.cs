@@ -513,7 +513,40 @@ internal static class RtfHtmlWriter {
             builder.Append('"');
         }
 
+        AppendImageSize(builder, image);
         builder.Append('>');
+    }
+
+    private static void AppendImageSize(StringBuilder builder, RtfImage image) {
+        if (image.DesiredWidthTwips.HasValue || image.DesiredHeightTwips.HasValue) {
+            builder.Append(" style=\"");
+            if (image.DesiredWidthTwips.HasValue) {
+                builder.Append("width:");
+                builder.Append(FormatPoints(image.DesiredWidthTwips.Value / 20d));
+                builder.Append("pt;");
+            }
+
+            if (image.DesiredHeightTwips.HasValue) {
+                builder.Append("height:");
+                builder.Append(FormatPoints(image.DesiredHeightTwips.Value / 20d));
+                builder.Append("pt;");
+            }
+
+            builder.Append('"');
+            return;
+        }
+
+        if (image.SourceWidth.HasValue) {
+            builder.Append(" width=\"");
+            builder.Append(image.SourceWidth.Value.ToString(CultureInfo.InvariantCulture));
+            builder.Append('"');
+        }
+
+        if (image.SourceHeight.HasValue) {
+            builder.Append(" height=\"");
+            builder.Append(image.SourceHeight.Value.ToString(CultureInfo.InvariantCulture));
+            builder.Append('"');
+        }
     }
 
     private static void OpenList(StringBuilder builder, RtfListKind kind) {
