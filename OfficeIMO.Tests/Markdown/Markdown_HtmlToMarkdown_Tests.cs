@@ -112,6 +112,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 <p>~~~ not code</p>
 <p>Title<br>===</p>
 <p><span>1</span>. split ordered</p>
+<p>CPU: Central<br>RAM: Memory</p>
 <p>&lt;div&gt;literal&lt;/div&gt;</p>
 <p>&lt;!-- literal comment --&gt;</p>
 """;
@@ -130,6 +131,8 @@ public sealed class MarkdownHtmlToMarkdownTests {
         Assert.Contains("\\~~~ not code", markdown, StringComparison.Ordinal);
         Assert.Contains("\\===", markdown, StringComparison.Ordinal);
         Assert.Contains("1\\. split ordered", markdown, StringComparison.Ordinal);
+        Assert.Contains("CPU\\: Central", markdown, StringComparison.Ordinal);
+        Assert.Contains("RAM\\: Memory", markdown, StringComparison.Ordinal);
         Assert.Contains("\\<div>literal</div>", markdown, StringComparison.Ordinal);
         Assert.Contains("\\<!-- literal comment -->", markdown, StringComparison.Ordinal);
         Assert.Contains("# not heading", renderedHtml, StringComparison.Ordinal);

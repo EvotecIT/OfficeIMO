@@ -986,6 +986,39 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void HtmlToWord_RemoteImageCache_ReservesRepeatedFloatedImageParts() {
+            var requested = new List<Uri>();
+            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+            byte[] bytes = Convert.FromBase64String(validPng);
+            using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(request => {
+                requested.Add(request.RequestUri!);
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
+                    Content = new ByteArrayContent(bytes) {
+                        Headers = {
+                            ContentType = new MediaTypeHeaderValue("image/png")
+                        }
+                    }
+                });
+            }));
+            var options = new HtmlToWordOptions {
+                HttpClient = httpClient,
+                MaxTotalImageBytes = bytes.LongLength
+            };
+            string html = """
+<img src="https://example.test/logo.png" style="float:left" alt="One" />
+<img src="https://example.test/logo.png" style="float:left" alt="Two" />
+""";
+
+            var doc = html.LoadFromHtml(options);
+
+            Assert.Single(doc.Images);
+            Assert.Single(requested);
+            Assert.Contains(options.Diagnostics, diagnostic =>
+                diagnostic.Code == "ImageResourceBudgetExceeded" &&
+                diagnostic.Source == "https://example.test/logo.png");
+        }
+
+        [Fact]
         public void HtmlToWord_ImageProcessing_EmbedDataUriOnly_SkipsExternalImages() {
             var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
             var uri = new Uri(path).AbsoluteUri;

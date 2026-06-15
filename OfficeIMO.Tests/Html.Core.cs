@@ -193,6 +193,25 @@ public sealed class HtmlCoreTests {
     }
 
     [Fact]
+    public void HtmlImageDataUri_MatchesOnlyExactBase64Flag() {
+        string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\"/>";
+        string dataUri = "data:image/svg+xml;name=base64," + Uri.EscapeDataString(svg);
+
+        Assert.True(HtmlImageDataUri.TryParse(dataUri, out var image));
+        Assert.False(image.IsBase64);
+        Assert.Equal(svg, image.DecodeText());
+    }
+
+    [Fact]
+    public void HtmlImageDataUri_IgnoresBase64WhitespaceWhenEstimatingDecodedBytes() {
+        Assert.True(HtmlImageDataUri.TryParse("data:image/png;base64,QUJD%0A", out var image));
+
+        Assert.True(image.IsBase64);
+        Assert.Equal(3, image.EstimateDecodedByteCount());
+        Assert.Equal(new byte[] { 65, 66, 67 }, image.DecodeBytes());
+    }
+
+    [Fact]
     public void HtmlUrlPolicyEvaluator_RejectsScriptUrlsAndCanResolveRelativeUrls() {
         var policy = HtmlUrlPolicy.CreateWebOnlyProfile();
 

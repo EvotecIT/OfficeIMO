@@ -99,8 +99,13 @@ internal static class MarkdownEscaper {
         }
 
         int orderedSeparatorIndex = GetOrderedListSeparatorIndex(line, markerIndex);
-        return orderedSeparatorIndex >= 0
-            ? line.Insert(orderedSeparatorIndex, "\\")
+        if (orderedSeparatorIndex >= 0) {
+            return line.Insert(orderedSeparatorIndex, "\\");
+        }
+
+        int definitionSeparatorIndex = GetDefinitionListSeparatorIndex(line, markerIndex);
+        return definitionSeparatorIndex >= 0
+            ? line.Insert(definitionSeparatorIndex, "\\")
             : line;
     }
 
@@ -222,6 +227,21 @@ internal static class MarkdownEscaper {
         return afterSeparator >= line.Length || char.IsWhiteSpace(line[afterSeparator])
             ? index
             : -1;
+    }
+
+    private static int GetDefinitionListSeparatorIndex(string line, int markerIndex) {
+        for (int index = markerIndex + 1; index < line.Length; index++) {
+            if (line[index] != ':') {
+                continue;
+            }
+
+            int afterSeparator = index + 1;
+            return afterSeparator >= line.Length || char.IsWhiteSpace(line[afterSeparator])
+                ? index
+                : -1;
+        }
+
+        return -1;
     }
 
     private static string EscapeTitleContent(string text, char delimiter) {

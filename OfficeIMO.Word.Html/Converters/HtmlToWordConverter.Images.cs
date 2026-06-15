@@ -565,6 +565,7 @@ namespace OfficeIMO.Word.Html {
         private byte[] FetchBytes(Uri uri, HtmlToWordOptions options) {
             string cacheKey = uri.AbsoluteUri;
             if (_remoteImageBytesCache.TryGetValue(cacheKey, out byte[]? cachedBytes)) {
+                ReserveImageBytes(cachedBytes.LongLength, options);
                 return cachedBytes;
             }
 
@@ -590,10 +591,11 @@ namespace OfficeIMO.Word.Html {
                 return false;
             }
 
+            long reservedBytes = 0;
             try {
                 byte[] bytes = FetchBytes(uri, options);
+                reservedBytes = bytes.LongLength;
                 if (!IsEmbeddableImageData(bytes, out _)) {
-                    ReleaseImageBytes(bytes.LongLength, options);
                     return false;
                 }
 
@@ -603,6 +605,8 @@ namespace OfficeIMO.Word.Html {
                 throw;
             } catch (Exception) {
                 return false;
+            } finally {
+                ReleaseImageBytes(reservedBytes, options);
             }
         }
 

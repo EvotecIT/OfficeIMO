@@ -64,7 +64,7 @@ public sealed class HtmlImageDataUri {
         }
 
         string data = source.Substring(commaIndex + 1);
-        bool isBase64 = metadata.IndexOf("base64", StringComparison.OrdinalIgnoreCase) >= 0;
+        bool isBase64 = HasBase64Flag(metadata);
         dataUri = new HtmlImageDataUri(metadata, mediaType, data, isBase64);
         return true;
     }
@@ -77,7 +77,7 @@ public sealed class HtmlImageDataUri {
             return Encoding.UTF8.GetBytes(Uri.UnescapeDataString(Data));
         }
 
-        string payload = Uri.UnescapeDataString(Data).Trim();
+        string payload = NormalizeBase64Payload(Uri.UnescapeDataString(Data));
         return Convert.FromBase64String(payload);
     }
 
@@ -113,7 +113,7 @@ public sealed class HtmlImageDataUri {
             return Encoding.UTF8.GetByteCount(Uri.UnescapeDataString(Data));
         }
 
-        string payload = Uri.UnescapeDataString(Data).Trim();
+        string payload = NormalizeBase64Payload(Uri.UnescapeDataString(Data));
         int length = payload.Length;
         int padding = 0;
         if (length > 0 && payload[length - 1] == '=') {
@@ -135,6 +135,34 @@ public sealed class HtmlImageDataUri {
         int separatorIndex = metadata.IndexOf(';');
         string contentType = separatorIndex >= 0 ? metadata.Substring(0, separatorIndex) : metadata;
         return string.IsNullOrWhiteSpace(contentType) ? string.Empty : contentType.Trim();
+    }
+
+    private static bool HasBase64Flag(string metadata) {
+        foreach (string part in metadata.Split(';')) {
+            if (part.Trim().Equals("base64", StringComparison.OrdinalIgnoreCase)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static string NormalizeBase64Payload(string payload) {
+        payload = payload.Trim();
+        StringBuilder? sb = null;
+        for (int i = 0; i < payload.Length; i++) {
+            if (!char.IsWhiteSpace(payload[i])) {
+                sb?.Append(payload[i]);
+                continue;
+            }
+
+            if (sb == null) {
+                sb = new StringBuilder(payload.Length);
+                sb.Append(payload, 0, i);
+            }
+        }
+
+        return sb?.ToString() ?? payload;
     }
 
     private static string GetImageExtension(string mediaType) {
