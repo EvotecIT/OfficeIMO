@@ -818,6 +818,11 @@ namespace OfficeIMO.Word.Html {
                         return false;
                     }
 
+                    if (dataUri.MediaType.Equals("image/svg+xml", StringComparison.OrdinalIgnoreCase)
+                        && !IsEmbeddableSvgBytes(bytes, out detail)) {
+                        return false;
+                    }
+
                     estimatedBytes = bytes.LongLength;
                 } else {
                     if (!dataUri.MediaType.Equals("image/svg+xml", StringComparison.OrdinalIgnoreCase)) {
@@ -866,6 +871,11 @@ namespace OfficeIMO.Word.Html {
         private static bool IsEmbeddableSvgText(string svgText, out string detail) {
             detail = string.Empty;
             byte[] bytes = Encoding.UTF8.GetBytes(svgText);
+            return IsEmbeddableSvgBytes(bytes, out detail);
+        }
+
+        private static bool IsEmbeddableSvgBytes(byte[] bytes, out string detail) {
+            detail = string.Empty;
             if (!OfficeImageReader.TryIdentify(bytes, null, out var info) || info.Format != OfficeImageFormat.Svg) {
                 detail = "SVG data URI payload is not a valid SVG image.";
                 return false;

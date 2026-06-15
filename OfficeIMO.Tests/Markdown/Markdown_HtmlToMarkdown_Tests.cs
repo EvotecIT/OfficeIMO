@@ -417,6 +417,27 @@ public sealed class MarkdownHtmlToMarkdownTests {
     }
 
     [Fact]
+    public void HtmlToMarkdown_DropsRejectedPictureChildrenInsideAllowedBlockAnchors() {
+        const string html = """
+<a href="https://example.test/ok">
+  <picture>
+    <source srcset="javascript:alert(1)">
+  </picture>
+</a>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            PreserveUnsupportedBlocks = true
+        });
+
+        Assert.Empty(document.Blocks);
+        string markdown = document.ToMarkdown();
+        Assert.DoesNotContain("javascript:", markdown, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("<picture", markdown, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("<a ", markdown, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void HtmlToMarkdown_CanSaveBase64ImagesIntoTypedImageBlock() {
         string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.HtmlImages." + Guid.NewGuid().ToString("N"));
         try {

@@ -892,6 +892,19 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void HtmlToWord_ImageSelection_ContinuesPastSvgDataCandidateWithNonSvgPayload() {
+            var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
+            string base64 = Convert.ToBase64String(File.ReadAllBytes(path));
+            string html = $"<img data-src=\"data:image/svg+xml;base64,{base64}\" src=\"data:image/png;base64,{base64}\" alt=\"Logo\" />";
+            var options = new HtmlToWordOptions();
+
+            var doc = html.LoadFromHtml(options);
+
+            Assert.Single(doc.Images);
+            Assert.Empty(options.Diagnostics);
+        }
+
+        [Fact]
         public void HtmlToWord_ImageSelection_ContinuesPastNonImageDataCandidate() {
             var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
             string base64 = Convert.ToBase64String(File.ReadAllBytes(path));
@@ -901,6 +914,28 @@ namespace OfficeIMO.Tests {
             var doc = html.LoadFromHtml(options);
 
             Assert.Single(doc.Images);
+            Assert.Empty(options.Diagnostics);
+        }
+
+        [Fact]
+        public void HtmlToWord_ImageSelection_ContinuesPastProtocolRelativeCandidateWithoutBase() {
+            var requested = new List<Uri>();
+            using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(request => {
+                requested.Add(request.RequestUri!);
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+            }));
+            var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
+            string base64 = Convert.ToBase64String(File.ReadAllBytes(path));
+            string html = $"<img srcset=\"//cdn.example.test/missing.png 1x\" src=\"data:image/png;base64,{base64}\" alt=\"Logo\" />";
+            var options = new HtmlToWordOptions {
+                HttpClient = httpClient
+            };
+
+            var doc = html.LoadFromHtml(options);
+
+            Assert.Single(doc.Images);
+            var request = Assert.Single(requested);
+            Assert.Equal("https://cdn.example.test/missing.png", request.AbsoluteUri);
             Assert.Empty(options.Diagnostics);
         }
 

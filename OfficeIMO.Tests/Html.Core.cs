@@ -151,6 +151,22 @@ public sealed class HtmlCoreTests {
     }
 
     [Fact]
+    public void HtmlSrcSetParser_SplitsBareExtensionlessCandidatesAtCommaSeparators() {
+        IReadOnlyList<HtmlSrcSetCandidate> candidates = HtmlSrcSetParser.Parse("small,large 2x");
+
+        Assert.Collection(
+            candidates,
+            candidate => {
+                Assert.Equal("small", candidate.Url);
+                Assert.Equal(string.Empty, candidate.Descriptor);
+            },
+            candidate => {
+                Assert.Equal("large", candidate.Url);
+                Assert.Equal("2x", candidate.Descriptor);
+            });
+    }
+
+    [Fact]
     public void HtmlSrcSetParser_SplitsExtensionlessQueryCandidatesAtCommaSeparators() {
         IReadOnlyList<HtmlSrcSetCandidate> candidates = HtmlSrcSetParser.Parse("image?w=200,image?w=400 2x");
 
@@ -256,6 +272,15 @@ public sealed class HtmlCoreTests {
         var policy = HtmlUrlPolicy.CreateWebOnlyProfile();
 
         string resolved = HtmlUrlPolicyEvaluator.ResolveUrl("//cdn.example.test/app.png", new Uri("file:///C:/content/page.html"), policy);
+
+        Assert.Equal("https://cdn.example.test/app.png", resolved);
+    }
+
+    [Fact]
+    public void HtmlUrlPolicyEvaluator_ResolvesProtocolRelativeUrlsWithoutBaseAgainstHttps() {
+        var policy = HtmlUrlPolicy.CreateOfficeIMOProfile();
+
+        string resolved = HtmlUrlPolicyEvaluator.ResolveUrl("//cdn.example.test/app.png", null, policy);
 
         Assert.Equal("https://cdn.example.test/app.png", resolved);
     }

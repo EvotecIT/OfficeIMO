@@ -76,7 +76,40 @@ public static class HtmlSrcSetParser {
             return HasFollowingUrlCandidate(value, index);
         }
 
+        if (ContainsQuerySeparator(value, urlStart, index)
+            && FollowingTokenIsBareExtensionlessRelativeUrl(value, index)) {
+            return false;
+        }
+
         return HasFollowingUrlCandidate(value, index);
+    }
+
+    private static bool ContainsQuerySeparator(string value, int startIndex, int endIndex) {
+        for (int i = startIndex; i < endIndex; i++) {
+            if (value[i] == '?') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool FollowingTokenIsBareExtensionlessRelativeUrl(string value, int index) {
+        int next = index + 1;
+        while (next < value.Length && char.IsWhiteSpace(value[next])) {
+            next++;
+        }
+
+        if (next >= value.Length) {
+            return false;
+        }
+
+        int tokenEnd = next;
+        while (tokenEnd < value.Length && !char.IsWhiteSpace(value[tokenEnd]) && value[tokenEnd] != ',') {
+            tokenEnd++;
+        }
+
+        return LooksLikeBareExtensionlessRelativeUrl(value, next, tokenEnd);
     }
 
     private static bool HasFollowingUrlCandidate(string value, int index) {
@@ -136,7 +169,6 @@ public static class HtmlSrcSetParser {
         }
 
         bool hasLetter = false;
-        bool hasUrlStructure = false;
         for (int i = startIndex; i < endIndex; i++) {
             char ch = value[i];
             if (char.IsLetter(ch)) {
@@ -144,19 +176,29 @@ public static class HtmlSrcSetParser {
                 continue;
             }
 
-            if (ch == '?' || ch == '/') {
-                hasUrlStructure = true;
-                continue;
-            }
-
-            if (ch == '_' || ch == '-' || ch == '=' || ch == '&' || char.IsDigit(ch)) {
+            if (ch == '?' || ch == '/' || ch == '_' || ch == '-' || ch == '=' || ch == '&' || char.IsDigit(ch)) {
                 continue;
             }
 
             return false;
         }
 
-        return hasLetter && hasUrlStructure;
+        return hasLetter;
+    }
+
+    private static bool LooksLikeBareExtensionlessRelativeUrl(string value, int startIndex, int endIndex) {
+        if (!LooksLikeExtensionlessRelativeUrl(value, startIndex, endIndex)) {
+            return false;
+        }
+
+        for (int i = startIndex; i < endIndex; i++) {
+            char ch = value[i];
+            if (ch == '?' || ch == '/' || ch == '_' || ch == '-' || ch == '=' || ch == '&' || char.IsDigit(ch)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static bool StartsWith(string value, int startIndex, string prefix, StringComparison comparison) {

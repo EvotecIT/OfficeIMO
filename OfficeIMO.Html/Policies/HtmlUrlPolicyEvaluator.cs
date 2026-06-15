@@ -20,12 +20,12 @@ public static class HtmlUrlPolicyEvaluator {
         }
 
         string candidate = evaluation.NormalizedUrl;
-        if (!evaluation.AllowBaseUriResolution || baseUri == null) {
-            return candidate;
-        }
-
         if (candidate.StartsWith("//", StringComparison.Ordinal)) {
             return ResolveProtocolRelativeUrl(candidate, baseUri, policy ?? HtmlUrlPolicy.CreateOfficeIMOProfile());
+        }
+
+        if (!evaluation.AllowBaseUriResolution || baseUri == null) {
+            return candidate;
         }
 
         if (!Uri.TryCreate(baseUri, candidate, out var resolved)) {
@@ -37,9 +37,10 @@ public static class HtmlUrlPolicyEvaluator {
             : string.Empty;
     }
 
-    private static string ResolveProtocolRelativeUrl(string candidate, Uri baseUri, HtmlUrlPolicy policy) {
-        string scheme = baseUri.Scheme.Equals(Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase)
-                        || baseUri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)
+    private static string ResolveProtocolRelativeUrl(string candidate, Uri? baseUri, HtmlUrlPolicy policy) {
+        string scheme = baseUri != null
+                        && (baseUri.Scheme.Equals(Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase)
+                            || baseUri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
             ? baseUri.Scheme
             : Uri.UriSchemeHttps;
 
