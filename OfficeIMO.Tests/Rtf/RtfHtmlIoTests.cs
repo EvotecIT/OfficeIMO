@@ -101,6 +101,29 @@ public class RtfHtmlIoTests {
     }
 
     [Fact]
+    public async Task RtfHtml_File_Loading_Matches_Text_Stream_And_Async_IO() {
+        const string html = "<p>File ż</p>";
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".html");
+
+        try {
+            File.WriteAllText(path, html, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+
+            RtfDocument fromFile = RtfHtmlConverterExtensions.LoadFromHtmlFile(path);
+            Assert.Equal("File ż", Assert.Single(fromFile.Paragraphs).ToPlainText());
+
+            RtfDocument fromEncodedFile = RtfHtmlConverterExtensions.LoadFromHtmlFile(path, encoding: Encoding.UTF8);
+            Assert.Equal("File ż", Assert.Single(fromEncodedFile.Paragraphs).ToPlainText());
+
+            RtfDocument fromAsyncFile = await RtfHtmlConverterExtensions.LoadFromHtmlFileAsync(path);
+            Assert.Equal("File ż", Assert.Single(fromAsyncFile.Paragraphs).ToPlainText());
+        } finally {
+            if (File.Exists(path)) {
+                File.Delete(path);
+            }
+        }
+    }
+
+    [Fact]
     public async Task RtfHtml_Async_IO_Matches_Fluent_Sync_IO() {
         RtfDocument document = RtfDocument.Create();
         document.AddParagraph("Async ż");
@@ -164,5 +187,7 @@ public class RtfHtmlIoTests {
 
         await Assert.ThrowsAsync<OperationCanceledException>(() =>
             "<p>Cancelled</p>".LoadFromHtmlAsync(cancellationToken: cts.Token));
+        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            RtfHtmlConverterExtensions.LoadFromHtmlFileAsync("ignored.html", cancellationToken: cts.Token));
     }
 }
