@@ -278,6 +278,84 @@ public class RtfLosslessEditorTests {
     }
 
     [Fact]
+    public void SetFont_Replaces_Adds_And_Removes_Font_Table_Entries_Without_Normalizing_Body() {
+        const string rtf = @"{\rtf1\ansi{\fonttbl{\f0\fswiss Calibri;}{\f1\froman Old;}{\f1 Duplicate;}}{\info{\title Keep}}\pard\f1 Body \'80\par}";
+
+        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        editor.SetFont(new RtfFont(1, "New {Font} ż") {
+            Family = RtfFontFamily.Modern,
+            Charset = 238,
+            Pitch = 1,
+            CodePage = 1250,
+            Bias = 0,
+            Panose = "020F0502020204030204",
+            NonTaggedName = "New Font",
+            AlternateName = "Fallback",
+            Embedding = new RtfFontEmbedding {
+                Type = RtfEmbeddedFontType.TrueType,
+                FileCodePage = 1250,
+                FileName = "NewFont.ttf",
+                Data = new byte[] { 0x01, 0x02, 0xFF }
+            }
+        });
+        editor.SetFont(2, "Added");
+        editor.RemoveFont(0);
+
+        const string expected = @"{\rtf1\ansi{\fonttbl{\f1\fmodern\fcharset238\fprq1\cpg1250\fbias0{\*\panose 020F0502020204030204}{\*\fname New Font}{\*\fontemb\fttruetype{\*\fontfile\cpg1250 NewFont.ttf} 0102ff} New \{Font\} \u380?{\*\falt Fallback};}{\f2 Added;}}{\info{\title Keep}}\pard\f1 Body \'80\par}";
+        Assert.Equal(expected, editor.ToRtf());
+
+        RtfReadResult read = editor.ToReadResult();
+        Assert.Collection(
+            read.Document.Fonts,
+            font => {
+                Assert.Equal(1, font.Id);
+                Assert.Equal("New {Font} ż", font.Name);
+                Assert.Equal(RtfFontFamily.Modern, font.Family);
+                Assert.Equal(238, font.Charset);
+                Assert.Equal(1, font.Pitch);
+                Assert.Equal(1250, font.CodePage);
+                Assert.Equal(0, font.Bias);
+                Assert.Equal("020F0502020204030204", font.Panose);
+                Assert.Equal("New Font", font.NonTaggedName);
+                Assert.Equal("Fallback", font.AlternateName);
+                Assert.NotNull(font.Embedding);
+                Assert.Equal(RtfEmbeddedFontType.TrueType, font.Embedding!.Type);
+                Assert.Equal(1250, font.Embedding.FileCodePage);
+                Assert.Equal("NewFont.ttf", font.Embedding.FileName);
+                Assert.Equal(new byte[] { 0x01, 0x02, 0xFF }, font.Embedding.Data);
+            },
+            font => {
+                Assert.Equal(2, font.Id);
+                Assert.Equal("Added", font.Name);
+            });
+        Assert.Equal("Keep", read.Document.Info.Title);
+        Assert.Contains(@"\pard\f1 Body \'80", editor.ToRtf(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SetFont_Creates_And_Removes_Font_Table_Before_Metadata() {
+        const string rtf = @"{\rtf1\ansi{\info{\title Keep}}\pard Body\par}";
+
+        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        editor.SetFont(new RtfFont(0, "Calibri") {
+            Family = RtfFontFamily.Swiss,
+            Charset = 0
+        });
+
+        Assert.Equal(@"{\rtf1\ansi{\fonttbl{\f0\fswiss\fcharset0 Calibri;}}{\info{\title Keep}}\pard Body\par}", editor.ToRtf());
+        RtfFont font = Assert.Single(editor.ToReadResult().Document.Fonts);
+        Assert.Equal(0, font.Id);
+        Assert.Equal("Calibri", font.Name);
+        Assert.Equal(RtfFontFamily.Swiss, font.Family);
+        Assert.Equal(0, font.Charset);
+
+        editor.RemoveFont(0);
+
+        Assert.Equal(rtf, editor.ToRtf());
+        Assert.Equal("Calibri", Assert.Single(editor.ToReadResult().Document.Fonts).Name);
+    }
+
+    [Fact]
     public void SetFileReference_Replaces_Adds_And_Removes_Metadata_Without_Normalizing_Body() {
         const string rtf = @"{\rtf1\ansi{\*\filetbl{\file\fid0\frelative18\fvalidntfs Old.docx}{\file\fid1\fvalidmac Remove.doc}{\file\fid0 Duplicate.docx}}{\*\xmlnstbl{\xmlns1 urn:keep;}}{\info{\title Keep}}\pard Body \'80\par}";
 
