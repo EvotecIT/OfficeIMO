@@ -28,7 +28,7 @@ internal static partial class RtfPdfConverter {
                     pendingRuns.Add(PdfCore.TextRun.LineBreak());
                     break;
                 case RtfField field:
-                    AppendParagraphRuns(document, field.Result, pendingRuns, options, state);
+                    AppendParagraphRuns(document, field.Result, pendingRuns, options, state, inheritedLinkUri: field.Hyperlink?.ToString());
                     break;
                 case RtfGeneratedText generatedText:
                     AppendGeneratedText(generatedText, pendingRuns, state);
@@ -65,18 +65,18 @@ internal static partial class RtfPdfConverter {
         pdf.Paragraph(paragraph => paragraph.Runs(snapshot), align, style: style);
     }
 
-    private static void AppendParagraphRuns(RtfDocument document, RtfParagraph paragraph, List<PdfCore.TextRun> runs, RtfPdfSaveOptions options, PdfRenderState state, bool collectNotes = true) {
+    private static void AppendParagraphRuns(RtfDocument document, RtfParagraph paragraph, List<PdfCore.TextRun> runs, RtfPdfSaveOptions options, PdfRenderState state, bool collectNotes = true, string? inheritedLinkUri = null) {
         AppendListMarker(paragraph, runs, state);
         foreach (IRtfInline inline in paragraph.Inlines) {
             switch (inline) {
                 case RtfRun run:
-                    AppendRun(document, run, runs, options, state, collectNotes);
+                    AppendRun(document, run, runs, options, state, collectNotes, inheritedLinkUri);
                     break;
                 case RtfBreak:
                     runs.Add(PdfCore.TextRun.LineBreak());
                     break;
                 case RtfField field:
-                    AppendParagraphRuns(document, field.Result, runs, options, state, collectNotes);
+                    AppendParagraphRuns(document, field.Result, runs, options, state, collectNotes, field.Hyperlink?.ToString() ?? inheritedLinkUri);
                     break;
                 case RtfGeneratedText generatedText:
                     AppendGeneratedText(generatedText, runs, state, collectNotes);
@@ -91,7 +91,7 @@ internal static partial class RtfPdfConverter {
         }
     }
 
-    private static void AppendRun(RtfDocument document, RtfRun run, List<PdfCore.TextRun> runs, RtfPdfSaveOptions options, PdfRenderState state, bool collectNotes = true) {
+    private static void AppendRun(RtfDocument document, RtfRun run, List<PdfCore.TextRun> runs, RtfPdfSaveOptions options, PdfRenderState state, bool collectNotes = true, string? inheritedLinkUri = null) {
         if (run.Hidden && !options.IncludeHiddenText) {
             return;
         }
@@ -119,7 +119,7 @@ internal static partial class RtfPdfConverter {
             strike: run.Strike || run.DoubleStrike,
             fontSize: run.FontSize,
             font: font,
-            linkUri: run.Hyperlink?.ToString(),
+            linkUri: run.Hyperlink?.ToString() ?? inheritedLinkUri,
             baseline: RtfPdfMapping.ToPdfBaseline(run.VerticalPosition),
             backgroundColor: background));
     }

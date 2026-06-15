@@ -36,7 +36,7 @@ public class RtfPdfConverterTests {
 
     [Fact]
     public void RtfString_ToPdfDocument_Renders_Field_Result_Text() {
-        const string rtf = @"{\rtf1\ansi Parsed {\field{\*\fldinst HYPERLINK ""https://evotec.xyz""}{\fldrslt link}} text\par}";
+        const string rtf = @"{\rtf1\ansi Parsed {\field{\*\fldinst HYPERLINK ""https://evotec.xyz/rtf""}{\fldrslt link}} text\par}";
 
         byte[] pdf = rtf.SaveAsPdf();
         string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
@@ -44,6 +44,11 @@ public class RtfPdfConverterTests {
         Assert.Contains("Parsed", text, StringComparison.Ordinal);
         Assert.Contains("link", text, StringComparison.Ordinal);
         Assert.Contains("text", text, StringComparison.Ordinal);
+
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
+        PdfCore.PdfLinkAnnotation link = Assert.Single(info.GetLinkAnnotationsByUri("https://evotec.xyz/rtf"));
+        Assert.True(link.Width > 0);
+        Assert.True(link.Height > 0);
     }
 
     [Fact]
