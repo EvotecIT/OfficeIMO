@@ -36,6 +36,36 @@ public class RtfLosslessEditorTests {
     }
 
     [Fact]
+    public void SetGenerator_Replaces_Duplicates_And_Preserves_Body() {
+        const string rtf = @"{\rtf1\ansi{\*\generator Old;}{\*\generator Duplicate;}{\info{\title Keep}}\pard Body \'80\par}";
+
+        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        editor.SetGenerator("New {generator} ż");
+
+        const string expected = @"{\rtf1\ansi{\*\generator New \{generator\} \u380?;}{\info{\title Keep}}\pard Body \'80\par}";
+        Assert.Equal(expected, editor.ToRtf());
+        Assert.Equal("New {generator} ż", editor.ToReadResult().Document.Info.Generator);
+        Assert.Equal("Keep", editor.ToReadResult().Document.Info.Title);
+        Assert.Contains(@"Body \'80", editor.ToRtf(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SetGenerator_Creates_And_Removes_Root_Generator_Group() {
+        const string rtf = @"{\rtf1\ansi\deff0\pard Body\par}";
+
+        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        editor.SetGenerator("OfficeIMO");
+
+        Assert.Equal(@"{\rtf1\ansi\deff0{\*\generator OfficeIMO;}\pard Body\par}", editor.ToRtf());
+        Assert.Equal("OfficeIMO", editor.ToReadResult().Document.Info.Generator);
+
+        editor.SetGenerator(null);
+
+        Assert.Equal(rtf, editor.ToRtf());
+        Assert.Null(editor.ToReadResult().Document.Info.Generator);
+    }
+
+    [Fact]
     public void SetInfo_Replaces_Adds_And_Removes_Metadata_Without_Normalizing_Body() {
         const string rtf = @"{\rtf1\ansi{\info{\title Old}{\author Someone}}\pard Body \'80\par}";
 

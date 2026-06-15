@@ -4,6 +4,14 @@ namespace OfficeIMO.Rtf;
 
 public sealed partial class RtfLosslessEditor {
     /// <summary>
+    /// Adds, replaces, or removes the root generator metadata group while preserving the rest of the RTF stream.
+    /// </summary>
+    public void SetGenerator(string? value) {
+        RtfGroup root = SetGenerator(_syntaxTree.Root, value);
+        _syntaxTree = new RtfSyntaxTree(root, _syntaxTree.Diagnostics);
+    }
+
+    /// <summary>
     /// Adds, replaces, or removes a document information field while preserving the rest of the RTF stream.
     /// </summary>
     public void SetInfo(RtfDocumentInfoField field, string? value) {
@@ -28,6 +36,30 @@ public sealed partial class RtfLosslessEditor {
         string controlName = GetInfoNumberControlName(field);
         RtfGroup root = SetInfoNumber(_syntaxTree.Root, controlName, value);
         _syntaxTree = new RtfSyntaxTree(root, _syntaxTree.Diagnostics);
+    }
+
+    private static RtfGroup SetGenerator(RtfGroup root, string? value) {
+        var children = new List<RtfNode>(root.Children);
+        bool replaced = false;
+
+        for (int index = children.Count - 1; index >= 0; index--) {
+            if (children[index] is not RtfGroup group || group.Destination != "generator") {
+                continue;
+            }
+
+            if (string.IsNullOrEmpty(value) || replaced) {
+                children.RemoveAt(index);
+            } else {
+                children[index] = CreateGeneratorGroup(value!);
+                replaced = true;
+            }
+        }
+
+        if (!replaced && !string.IsNullOrEmpty(value)) {
+            children.Insert(GetInfoInsertIndex(children), CreateGeneratorGroup(value!));
+        }
+
+        return new RtfGroup(root.Position, children);
     }
 
     private static RtfGroup SetInfo(RtfGroup root, string destination, string? value) {
@@ -151,6 +183,14 @@ public sealed partial class RtfLosslessEditor {
         }
 
         return HasInfoContent(children) ? new RtfGroup(infoGroup.Position, children) : null;
+    }
+
+    private static RtfGroup CreateGeneratorGroup(string value) {
+        return new RtfGroup(0, new RtfNode[] {
+            new RtfControlSymbol(0, '*', null, hasParameter: false, rawText: @"\*"),
+            new RtfControlWord(0, "generator", null, hasParameter: false, rawText: @"\generator "),
+            new RtfText(0, value + ";", RtfTextEncoding.EncodeText(value + ";"))
+        });
     }
 
     private static RtfGroup CreateInfoGroup(string destination, string value) {
