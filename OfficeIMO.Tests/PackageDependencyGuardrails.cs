@@ -87,6 +87,49 @@ public sealed class PackageDependencyGuardrailTests {
         Assert.DoesNotContain(projectReferences, static include => include.Contains("OfficeIMO.Rtf.Html", StringComparison.OrdinalIgnoreCase));
     }
 
+    [Fact]
+    public void RetiredRtfHtmlPackages_AreNotReferencedBySolutionOrProjects() {
+        string[] retiredPackageIds = ["OfficeIMO.Rtf.Html", "OfficeIMO.Html.Rtf"];
+
+        var solutionPath = GetRepositoryPath("OfficeIMO.sln");
+        Assert.True(File.Exists(solutionPath), "Solution file is missing: " + solutionPath);
+
+        var solutionText = File.ReadAllText(solutionPath);
+        foreach (var retiredPackageId in retiredPackageIds) {
+            Assert.DoesNotContain(retiredPackageId, solutionText, StringComparison.OrdinalIgnoreCase);
+        }
+
+        var projectFiles = EnumerateProjectFiles();
+        foreach (var projectFile in projectFiles) {
+            var document = XDocument.Load(projectFile);
+            var ns = document.Root?.Name.Namespace ?? XNamespace.None;
+
+            var packageIds = document
+                .Descendants(ns + "PackageId")
+                .Select(static element => (string?)element)
+                .Where(static value => !string.IsNullOrWhiteSpace(value))
+                .ToArray();
+
+            var packageReferences = document
+                .Descendants(ns + "PackageReference")
+                .Select(static element => (string?)element.Attribute("Include"))
+                .Where(static value => !string.IsNullOrWhiteSpace(value))
+                .ToArray();
+
+            var projectReferences = document
+                .Descendants(ns + "ProjectReference")
+                .Select(static element => NormalizeProjectPath((string?)element.Attribute("Include")))
+                .Where(static value => !string.IsNullOrWhiteSpace(value))
+                .ToArray();
+
+            foreach (var retiredPackageId in retiredPackageIds) {
+                Assert.DoesNotContain(packageIds, value => string.Equals(value, retiredPackageId, StringComparison.OrdinalIgnoreCase));
+                Assert.DoesNotContain(packageReferences, value => string.Equals(value, retiredPackageId, StringComparison.OrdinalIgnoreCase));
+                Assert.DoesNotContain(projectReferences, value => value.Contains(retiredPackageId, StringComparison.OrdinalIgnoreCase));
+            }
+        }
+    }
+
     [Theory]
     [InlineData("OfficeIMO.Word/OfficeIMO.Word.csproj")]
     [InlineData("OfficeIMO.Excel/OfficeIMO.Excel.csproj")]
@@ -209,6 +252,14 @@ public sealed class PackageDependencyGuardrailTests {
             "Repository-relative path must stay under repository root: " + relativePath);
         return combinedPath;
     }
+
+    private static string[] EnumerateProjectFiles() =>
+        Directory.EnumerateFiles(GetRepositoryRoot(), "*.csproj", SearchOption.AllDirectories)
+            .Where(static path => !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
+            .Where(static path => !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
+            .Where(static path => !path.Contains($"{Path.DirectorySeparatorChar}Ignore{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
+            .Where(static path => new FileInfo(path).Length > 0)
+            .ToArray();
 
     private static string AppendRepositoryPathSegment(string basePath, string segment) =>
         basePath.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal)
