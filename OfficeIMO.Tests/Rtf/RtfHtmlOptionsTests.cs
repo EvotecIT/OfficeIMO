@@ -1,5 +1,5 @@
 using OfficeIMO.Html;
-using OfficeIMO.Rtf.Html;
+using OfficeIMO.Html.Rtf;
 using Xunit;
 
 namespace OfficeIMO.Tests.Rtf;

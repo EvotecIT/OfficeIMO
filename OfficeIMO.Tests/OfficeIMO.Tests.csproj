@@ -69,7 +69,7 @@
         <ProjectReference Include="..\\OfficeIMO.Markup.Word\\OfficeIMO.Markup.Word.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Drawing\\OfficeIMO.Drawing.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Rtf\\OfficeIMO.Rtf.csproj" />
-        <ProjectReference Include="..\\OfficeIMO.Rtf.Html\\OfficeIMO.Rtf.Html.csproj" />
+        <ProjectReference Include="..\\OfficeIMO.Html.Rtf\\OfficeIMO.Html.Rtf.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Rtf.Pdf\\OfficeIMO.Rtf.Pdf.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Word.Rtf\\OfficeIMO.Word.Rtf.csproj" />
     </ItemGroup>

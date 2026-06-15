@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
 using OfficeIMO.Rtf;
-using OfficeIMO.Rtf.Html;
+using OfficeIMO.Html.Rtf;
 using Xunit;
 
 namespace OfficeIMO.Tests.Rtf;
