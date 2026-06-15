@@ -81,6 +81,7 @@ internal static partial class RtfHtmlWriter {
         AppendDocumentSettingsMetadata(builder, document, newline);
         AppendFontTableMetadata(builder, document, newline);
         AppendStylesheetMetadata(builder, document, newline);
+        AppendListTableMetadata(builder, document, newline);
         builder.Append(newline);
         builder.Append("</head>");
         builder.Append(newline);

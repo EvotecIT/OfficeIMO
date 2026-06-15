@@ -15,7 +15,7 @@ internal static partial class RtfHtmlReader {
 
             paragraph.ListKind = ReadListKind(token) ?? state?.Kind ?? RtfListKind.Bullet;
             paragraph.ListId = ReadPositiveInteger(token, "data-officeimo-rtf-list-id") ?? state?.Id ?? 1;
-            paragraph.ListDefinitionId = ReadPositiveInteger(token, "data-officeimo-rtf-list-definition-id");
+            paragraph.ListDefinitionId = ReadPositiveInteger(token, "data-officeimo-rtf-list-definition-id") ?? ResolveListDefinitionId(paragraph.ListId);
             paragraph.ListLevel = ReadNonNegativeInteger(token, "data-officeimo-rtf-list-level") ?? state?.Level ?? 0;
 
             string? listText = GetAttribute(token, "data-officeimo-rtf-list-text");
@@ -50,6 +50,14 @@ internal static partial class RtfHtmlReader {
                 default:
                     return null;
             }
+        }
+
+        private int? ResolveListDefinitionId(int? listId) {
+            if (!listId.HasValue) {
+                return null;
+            }
+
+            return _document.ListOverrides.FirstOrDefault(item => item.Id == listId.Value)?.ListId;
         }
 
         private sealed class HtmlListState {

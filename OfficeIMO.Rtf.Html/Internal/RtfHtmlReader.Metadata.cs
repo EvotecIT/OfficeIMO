@@ -153,6 +153,9 @@ internal static partial class RtfHtmlReader {
                 case "officeimo-rtf-styles":
                     ApplyStylesheet(RtfHtmlMetadataCodec.Decode(content));
                     break;
+                case "officeimo-rtf-lists":
+                    ApplyListTables(RtfHtmlMetadataCodec.Decode(content));
+                    break;
             }
         }
 
