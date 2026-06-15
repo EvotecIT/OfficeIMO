@@ -22,8 +22,9 @@ namespace OfficeIMO.Word.Pdf {
             pdfOptions.Margins = firstSection == null ? PdfCore.PageMargins.Uniform(72) : GetNativeMargins(firstSection, options);
             bool preserveConfiguredFontSlots = ApplyNativeDefaultFont(document, options, pdfOptions) ||
                                                 options?.PdfOptions != null;
-            RegisterNativeDocumentFonts(document, pdfOptions, preserveConfiguredFontSlots);
+            HashSet<PdfCore.PdfStandardFont> registeredFontSlots = RegisterNativeDocumentFonts(document, pdfOptions, preserveConfiguredFontSlots);
             ApplyNativeFallbackFont(options, pdfOptions, preserveConfiguredFontSlots);
+            RegisterNativeEmbeddedTextFallbacks(pdfOptions, registeredFontSlots);
             pdfOptions.BackgroundColor = ParseNativeColor(document.Background?.Color);
             pdfOptions.CreateOutlineFromHeadings = true;
             return pdfOptions;
@@ -62,11 +63,114 @@ namespace OfficeIMO.Word.Pdf {
             return pdfOptions.TryUseOfficeFontFamily(familyName, embedSystemFont, requireEmbeddedFont);
         }
 
-        private static void RegisterNativeDocumentFonts(WordDocument document, PdfCore.PdfOptions pdfOptions, bool preserveConfiguredFontSlots) {
+        private static void RegisterNativeEmbeddedTextFallbacks(PdfCore.PdfOptions pdfOptions, IEnumerable<PdfCore.PdfStandardFont> reservedFontSlots) {
+            if (pdfOptions.EmbeddedFontFallbacks != null) {
+                return;
+            }
+
+            var candidates = new List<PdfCore.PdfEmbeddedFontFallbackCandidate>();
+            foreach (string familyName in new[] { "Segoe UI Symbol", "Segoe UI Emoji", "DejaVu Sans", "Arial" }) {
+                if (candidates.Count == 2) {
+                    break;
+                }
+
+                if (PdfCore.PdfEmbeddedFontFamily.TryFromSystem(familyName, out PdfCore.PdfEmbeddedFontFamily? family) &&
+                    family != null) {
+                    candidates.Add(new PdfCore.PdfEmbeddedFontFallbackCandidate(family.FamilyName, family.Regular));
+                }
+            }
+
+            if (candidates.Count == 0) {
+                return;
+            }
+
+            PdfCore.PdfStandardFont[] slots = GetNativeAvailableFallbackFontSlots(pdfOptions, candidates.Count, reservedFontSlots).ToArray();
+            if (slots.Length == 0) {
+                return;
+            }
+
+            if (slots.Length < candidates.Count) {
+                candidates = candidates.Take(slots.Length).ToList();
+            }
+
+            pdfOptions.RegisterEmbeddedFontFallbacks(new PdfCore.PdfEmbeddedFontFallbackSet(candidates, slots));
+        }
+
+        private static IEnumerable<PdfCore.PdfStandardFont> GetNativeAvailableFallbackFontSlots(PdfCore.PdfOptions pdfOptions, int count, IEnumerable<PdfCore.PdfStandardFont> reservedFontSlots) {
+            var reservedSlots = new HashSet<PdfCore.PdfStandardFont> {
+                PdfCore.PdfStandardFontMapper.GetFontFamily(pdfOptions.DefaultFont),
+                PdfCore.PdfStandardFontMapper.GetFontFamily(pdfOptions.HeaderFont),
+                PdfCore.PdfStandardFontMapper.GetFontFamily(pdfOptions.FooterFont)
+            };
+            foreach (PdfCore.PdfStandardFont slot in reservedFontSlots) {
+                reservedSlots.Add(PdfCore.PdfStandardFontMapper.GetFontFamily(slot));
+            }
+
+            foreach (PdfCore.PdfStandardFont slot in new[] { PdfCore.PdfStandardFont.TimesRoman, PdfCore.PdfStandardFont.Courier, PdfCore.PdfStandardFont.Helvetica }) {
+                PdfCore.PdfStandardFont family = PdfCore.PdfStandardFontMapper.GetFontFamily(slot);
+                if (reservedSlots.Contains(family) ||
+                    pdfOptions.HasEmbeddedStandardFontFamily(family)) {
+                    continue;
+                }
+
+                yield return family;
+                count--;
+                if (count == 0) {
+                    yield break;
+                }
+            }
+        }
+
+        private static HashSet<PdfCore.PdfStandardFont> RegisterNativeDocumentFonts(WordDocument document, PdfCore.PdfOptions pdfOptions, bool preserveConfiguredFontSlots) {
             var registeredFamilies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             HashSet<PdfCore.PdfStandardFont> registeredFontSlots = CreateNativeRegisteredFontSlots(pdfOptions, preserveConfiguredFontSlots);
             foreach (WordSection section in document.Sections) {
                 foreach (WordElement element in CollapseNativeParagraphElements(section.Elements)) {
+                    if (element is WordCoverPage coverPage) {
+                        foreach (WordElement coverElement in GetNativeStructuredBlockElements(coverPage.Document, coverPage.SdtBlock)) {
+                            RegisterNativeElementFonts(coverElement, pdfOptions, registeredFamilies, registeredFontSlots);
+                        }
+
+                        continue;
+                    }
+
+                    if (element is WordStructuredDocumentTag structuredDocumentTag) {
+                        foreach (WordElement structuredElement in GetNativeStructuredBlockElements(structuredDocumentTag.Document, structuredDocumentTag.SdtBlock)) {
+                            RegisterNativeElementFonts(structuredElement, pdfOptions, registeredFamilies, registeredFontSlots);
+                        }
+
+                        continue;
+                    }
+
+                    RegisterNativeElementFonts(element, pdfOptions, registeredFamilies, registeredFontSlots);
+                }
+
+                RegisterNativeHeaderFooterFonts(section.Header?.Default, pdfOptions, registeredFamilies, registeredFontSlots);
+                RegisterNativeHeaderFooterFonts(section.Header?.First, pdfOptions, registeredFamilies, registeredFontSlots);
+                RegisterNativeHeaderFooterFonts(section.Header?.Even, pdfOptions, registeredFamilies, registeredFontSlots);
+                RegisterNativeHeaderFooterFonts(section.Footer?.Default, pdfOptions, registeredFamilies, registeredFontSlots);
+                RegisterNativeHeaderFooterFonts(section.Footer?.First, pdfOptions, registeredFamilies, registeredFontSlots);
+                RegisterNativeHeaderFooterFonts(section.Footer?.Even, pdfOptions, registeredFamilies, registeredFontSlots);
+
+                foreach (WordWatermark watermark in section.Watermarks) {
+                    RegisterNativeFontCandidate(watermark.FontFamily, pdfOptions, registeredFamilies, registeredFontSlots);
+                }
+            }
+
+            return registeredFontSlots;
+        }
+
+        private static void RegisterNativeHeaderFooterFonts(WordHeaderFooter? headerFooter, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies, HashSet<PdfCore.PdfStandardFont> registeredFontSlots) {
+            if (headerFooter == null) {
+                return;
+            }
+
+            foreach (WordElement element in CollapseNativeParagraphElements(headerFooter.Elements)) {
+                RegisterNativeElementFonts(element, pdfOptions, registeredFamilies, registeredFontSlots);
+            }
+        }
+
+        private static void RegisterNativeElementFonts(WordElement element, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies, HashSet<PdfCore.PdfStandardFont> registeredFontSlots) {
                     if (element is WordParagraph paragraph) {
                         RegisterNativeParagraphFonts(paragraph, pdfOptions, registeredFamilies, registeredFontSlots);
                         foreach (WordParagraph run in GetNativeRuns(paragraph)) {
@@ -75,8 +179,6 @@ namespace OfficeIMO.Word.Pdf {
                     } else if (element is WordTable table) {
                         RegisterNativeTableFonts(table, pdfOptions, registeredFamilies, registeredFontSlots);
                     }
-                }
-            }
         }
 
         private static HashSet<PdfCore.PdfStandardFont> CreateNativeRegisteredFontSlots(PdfCore.PdfOptions pdfOptions, bool preserveConfiguredFontSlots) {
@@ -160,7 +262,7 @@ namespace OfficeIMO.Word.Pdf {
             int headingIndex = 0;
 
             foreach (WordSection section in document.Sections) {
-                foreach (WordElement element in CollapseNativeParagraphElements(section.Elements)) {
+                foreach (WordElement element in EnumerateNativeTableOfContentsElements(section)) {
                     if (element is not WordParagraph paragraph ||
                         paragraph._paragraph == null ||
                         GetNativeTableOfContentsHeadingLevel(paragraph) <= 0) {
@@ -232,7 +334,18 @@ namespace OfficeIMO.Word.Pdf {
                 double contentHeight = Math.Max(72D, pageSize.Height - margins.Top - margins.Bottom);
                 double contentWidth = Math.Max(72D, pageSize.Width - margins.Left - margins.Right);
 
-                foreach (WordElement element in CollapseNativeParagraphElements(section.Elements)) {
+                List<WordElement> elements = EnumerateNativeTableOfContentsElements(section).ToList();
+                for (int index = 0; index < elements.Count; index++) {
+                    WordElement element = elements[index];
+                    if (element is WordCoverPage) {
+                        if (index + 1 >= elements.Count || !IsNativeTableOfContentsExplicitPageBreak(elements[index + 1])) {
+                            currentPage++;
+                            consumedOnPage = 0D;
+                        }
+
+                        continue;
+                    }
+
                     if (element is WordParagraph paragraph && paragraph.PageBreakBefore) {
                         currentPage++;
                         consumedOnPage = 0D;
@@ -288,7 +401,7 @@ namespace OfficeIMO.Word.Pdf {
         private static int CountNativeDocumentHeadings(WordDocument document) {
             int count = 0;
             foreach (WordSection section in document.Sections) {
-                foreach (WordElement element in CollapseNativeParagraphElements(section.Elements)) {
+                foreach (WordElement element in EnumerateNativeTableOfContentsElements(section)) {
                     if (element is WordParagraph paragraph &&
                         GetNativeTableOfContentsHeadingLevel(paragraph) > 0 &&
                         !string.IsNullOrWhiteSpace(GetNativeParagraphDisplayText(paragraph))) {
@@ -298,6 +411,28 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             return count;
+        }
+
+        private static bool IsNativeTableOfContentsExplicitPageBreak(WordElement element) {
+            if (element is WordParagraph paragraph) {
+                return paragraph.PageBreakBefore || paragraph.IsPageBreak;
+            }
+
+            return element is WordBreak wordBreak && wordBreak.BreakType == W.BreakValues.Page;
+        }
+
+        private static IEnumerable<WordElement> EnumerateNativeTableOfContentsElements(WordSection section) {
+            foreach (WordElement element in CollapseNativeParagraphElements(section.Elements)) {
+                if (element is WordStructuredDocumentTag structuredDocumentTag) {
+                    foreach (WordElement structuredElement in CollapseNativeParagraphElements(GetNativeStructuredBlockElements(structuredDocumentTag.Document, structuredDocumentTag.SdtBlock))) {
+                        yield return structuredElement;
+                    }
+
+                    continue;
+                }
+
+                yield return element;
+            }
         }
 
         private static double EstimateNativeElementHeight(WordElement element, double contentWidth, int headingCount) {
@@ -342,8 +477,14 @@ namespace OfficeIMO.Word.Pdf {
             if (string.IsNullOrWhiteSpace(text) &&
                 paragraph.Image == null &&
                 paragraph.Shape == null &&
+                paragraph.Chart == null &&
                 paragraph.PictureControl?.Image == null) {
                 return 0D;
+            }
+
+            if (paragraph.Chart != null) {
+                (double _, double chartHeight) = GetNativeWordChartSizePoints(paragraph.Chart);
+                return chartHeight + 8D;
             }
 
             int headingLevel = GetNativeTableOfContentsHeadingLevel(paragraph);
@@ -411,9 +552,9 @@ namespace OfficeIMO.Word.Pdf {
             };
         }
 
-        private static void RenderNativeTableOfContents(INativePdfFlow pdf, WordTableOfContent tableOfContent, IReadOnlyList<NativeTableOfContentsEntry> entries) {
+        private static void RenderNativeTableOfContents(INativePdfFlow pdf, WordTableOfContent tableOfContent, IReadOnlyList<NativeTableOfContentsEntry> entries, double? contentWidth) {
             string title = string.IsNullOrWhiteSpace(tableOfContent.Text) ? "Table of Contents" : tableOfContent.Text;
-            pdf.Paragraph(builder => builder.FontSize(11D).Text(title), PdfCore.PdfAlign.Left, null, new PdfCore.PdfParagraphStyle {
+            pdf.Paragraph(builder => builder.FontSize(11D).Text(NormalizeNativeDirectText(title)), PdfCore.PdfAlign.Left, null, new PdfCore.PdfParagraphStyle {
                 SpacingAfter = 5D,
                 KeepWithNext = true
             });
@@ -427,19 +568,15 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 int relativeLevel = Math.Max(0, entry.Level - minLevel);
-                var style = new PdfCore.PdfParagraphStyle {
-                    LeftIndent = relativeLevel * 14D,
-                    SpacingAfter = 1D,
-                    DefaultTabStopWidth = 432D,
-                    KeepWithNext = true
-                };
+                PdfCore.PdfParagraphStyle style = CreateNativeTableOfContentsEntryStyle(relativeLevel, contentWidth);
                 pdf.Paragraph(
                     builder => {
                         builder.FontSize(10.5D);
                         if (string.IsNullOrEmpty(entry.DestinationName)) {
-                            builder.Text(entry.Text);
+                            builder.Text(NormalizeNativeDirectText(entry.Text));
                         } else {
-                            builder.LinkToBookmark(entry.Text, entry.DestinationName!, underline: false, contents: "Table of contents: " + entry.Text);
+                            string entryText = NormalizeNativeDirectText(entry.Text);
+                            builder.LinkToBookmark(entryText, entry.DestinationName!, underline: false, contents: "Table of contents: " + entryText);
                         }
 
                         builder
@@ -456,8 +593,29 @@ namespace OfficeIMO.Word.Pdf {
                 string fallback = string.IsNullOrWhiteSpace(tableOfContent.TextNoContent)
                     ? "No table of contents entries found."
                     : tableOfContent.TextNoContent;
-                pdf.Paragraph(builder => builder.FontSize(10.5D).Text(fallback));
+                pdf.Paragraph(builder => builder.FontSize(10.5D).Text(NormalizeNativeDirectText(fallback)));
             }
+        }
+
+        private static PdfCore.PdfParagraphStyle CreateNativeTableOfContentsEntryStyle(int relativeLevel, double? contentWidth) {
+            double leftIndent = GetNativeTableOfContentsLevelIndent(relativeLevel);
+            double effectiveContentWidth = contentWidth.HasValue && contentWidth.Value > 0D ? contentWidth.Value : 432D;
+            double textFrameWidth = Math.Max(36D, effectiveContentWidth - leftIndent);
+
+            return new PdfCore.PdfParagraphStyle {
+                LeftIndent = leftIndent,
+                SpacingAfter = 1D,
+                DefaultTabStopWidth = textFrameWidth,
+                KeepWithNext = true
+            };
+        }
+
+        private static double GetNativeTableOfContentsLevelIndent(int relativeLevel) {
+            if (relativeLevel <= 0) {
+                return 0D;
+            }
+
+            return Math.Min(relativeLevel, 8) * 22D;
         }
 
     }

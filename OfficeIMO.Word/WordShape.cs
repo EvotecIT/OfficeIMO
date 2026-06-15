@@ -59,10 +59,15 @@ namespace OfficeIMO.Word {
                 case ShapeType.Diamond: return (A.ShapeTypeValues.Diamond, new A.AdjustValueList());
                 case ShapeType.Pentagon: return (A.ShapeTypeValues.Pentagon, new A.AdjustValueList());
                 case ShapeType.Hexagon: return (A.ShapeTypeValues.Hexagon, new A.AdjustValueList());
+                case ShapeType.Parallelogram: return (A.ShapeTypeValues.Parallelogram, new A.AdjustValueList());
+                case ShapeType.Trapezoid: return (A.ShapeTypeValues.Trapezoid, new A.AdjustValueList());
+                case ShapeType.Chevron: return (A.ShapeTypeValues.Chevron, new A.AdjustValueList());
+                case ShapeType.Plus: return (A.ShapeTypeValues.Plus, new A.AdjustValueList());
                 case ShapeType.RightArrow: return (A.ShapeTypeValues.RightArrow, new A.AdjustValueList());
                 case ShapeType.LeftArrow: return (A.ShapeTypeValues.LeftArrow, new A.AdjustValueList());
                 case ShapeType.UpArrow: return (A.ShapeTypeValues.UpArrow, new A.AdjustValueList());
                 case ShapeType.DownArrow: return (A.ShapeTypeValues.DownArrow, new A.AdjustValueList());
+                case ShapeType.LeftRightArrow: return (A.ShapeTypeValues.LeftRightArrow, new A.AdjustValueList());
                 case ShapeType.Star5: return (A.ShapeTypeValues.Star5, new A.AdjustValueList());
                 case ShapeType.Heart: return (A.ShapeTypeValues.Heart, new A.AdjustValueList());
                 case ShapeType.Cloud: return (A.ShapeTypeValues.Cloud, new A.AdjustValueList());

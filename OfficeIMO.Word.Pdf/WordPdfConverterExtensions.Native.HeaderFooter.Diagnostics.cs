@@ -54,6 +54,7 @@ namespace OfficeIMO.Word.Pdf {
             RecordNativeHeaderFooterDiagnostics(section.Footer?.Default, options, "default footer");
             RecordNativeHeaderFooterDiagnostics(section.Footer?.First, options, "first footer");
             RecordNativeHeaderFooterDiagnostics(section.Footer?.Even, options, "even footer");
+            ApplyNativeSectionWatermark(page, section, options);
 
             NativeHeaderFooterText? defaultHeader = GetNativeHeaderFooterText(section.Header?.Default);
             NativeHeaderFooterText? firstHeader = section.DifferentFirstPage ? GetNativeHeaderFooterText(section.Header?.First) : null;
@@ -360,7 +361,7 @@ namespace OfficeIMO.Word.Pdf {
                 !IsNativePictureControlWithImage(paragraph, sdtRun) &&
                 !IsNativeRepeatingSectionWithText(sdtRun) &&
                 !IsNativeRepeatingSectionChildControl(sdtRun)) == true ||
-            paragraph._paragraph?.Descendants<W.SdtBlock>().Any() == true ||
+            paragraph._paragraph?.Descendants<W.SdtBlock>().Any(sdtBlock => !IsNativeSimpleBlockTextContentControl(sdtBlock)) == true ||
             paragraph._paragraph?.Descendants<W.SdtCell>().Any() == true;
 
         private static bool HasNativeUnsupportedBodyContentControl(WordParagraph paragraph, bool mapsCheckBoxes, bool mapsFormFields, bool mapsPictureControls, bool mapsRepeatingSections) =>
@@ -374,7 +375,7 @@ namespace OfficeIMO.Word.Pdf {
                 (!mapsPictureControls || !IsNativePictureControl(sdtRun)) &&
                 (!mapsRepeatingSections || !IsNativeRepeatingSectionControl(sdtRun) && !IsNativeRepeatingSectionChildControl(sdtRun)) &&
                 !IsNativeSimpleTextContentControl(sdtRun)) == true ||
-            paragraph._paragraph?.Descendants<W.SdtBlock>().Any() == true ||
+            paragraph._paragraph?.Descendants<W.SdtBlock>().Any(sdtBlock => !IsNativeSimpleBlockTextContentControl(sdtBlock)) == true ||
             paragraph._paragraph?.Descendants<W.SdtCell>().Any() == true;
 
         private static IReadOnlyList<W.SdtRun> GetNativeCheckBoxControls(WordParagraph paragraph) {
@@ -528,6 +529,10 @@ namespace OfficeIMO.Word.Pdf {
                 return false;
             }
 
+            if (IsNativeBuiltInPropertyContentControl(properties)) {
+                return true;
+            }
+
             if (properties.Elements<W14.SdtContentCheckBox>().Any() ||
                 properties.Elements<W.SdtContentDate>().Any() ||
                 properties.Elements<W.SdtContentDropDownList>().Any() ||
@@ -538,6 +543,56 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             return sdtRun.SdtContentRun?.Descendants<W.Text>().Any() == true;
+        }
+
+        private static bool IsNativeSimpleBlockTextContentControl(W.SdtBlock sdtBlock) {
+            W.SdtProperties? properties = sdtBlock.SdtProperties;
+            if (properties == null) {
+                return false;
+            }
+
+            if (IsNativeBuiltInPropertyContentControl(properties) ||
+                IsNativeSupportedDocPartBlockContentControl(sdtBlock)) {
+                return true;
+            }
+
+            if (properties.Elements<W.SdtContentDocPartObject>().Any() ||
+                properties.Elements<W.SdtContentDate>().Any() ||
+                properties.Elements<W.SdtContentPicture>().Any()) {
+                return false;
+            }
+
+            return sdtBlock.SdtContentBlock?.Descendants<W.Text>().Any() == true;
+        }
+
+        private static bool IsNativeSupportedDocPartBlockContentControl(W.SdtBlock sdtBlock) {
+            string? gallery = sdtBlock.SdtProperties?
+                .Elements<W.SdtContentDocPartObject>()
+                .FirstOrDefault()?
+                .Elements<W.DocPartGallery>()
+                .FirstOrDefault()?
+                .Val?
+                .Value;
+            return gallery != null &&
+                   (gallery.Equals("Cover Pages", StringComparison.OrdinalIgnoreCase) ||
+                    gallery.Equals("Table of Contents", StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static bool IsNativeBuiltInPropertyContentControl(W.SdtProperties properties) {
+            string key = (properties.Elements<W.SdtAlias>().FirstOrDefault()?.Val?.Value ?? string.Empty).Trim();
+            string? xPath = properties.Elements<W.DataBinding>().FirstOrDefault()?.XPath?.Value;
+            if (string.IsNullOrWhiteSpace(key) && !string.IsNullOrWhiteSpace(xPath)) {
+                key = xPath!;
+            }
+
+            return key.IndexOf("Company", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   key.Equals("Title", StringComparison.OrdinalIgnoreCase) ||
+                   key.IndexOf("Title[", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   key.Equals("Subtitle", StringComparison.OrdinalIgnoreCase) ||
+                   key.Equals("Subject", StringComparison.OrdinalIgnoreCase) ||
+                   key.Equals("Author", StringComparison.OrdinalIgnoreCase) ||
+                   key.Equals("Creator", StringComparison.OrdinalIgnoreCase) ||
+                   key.Equals("Date", StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool IsNativeCheckBoxChecked(W.SdtRun sdtRun) {

@@ -47,7 +47,24 @@ public static partial class OfficeChartDrawingRenderer {
     private static double GetPositiveCategoryTotal(IReadOnlyList<OfficeChartSeries> series, int categoryIndex) {
         double total = 0D;
         for (int s = 0; s < series.Count; s++) {
-            total += Math.Max(0D, GetSeriesValue(series[s], categoryIndex));
+            if (TryGetSeriesValue(series[s], categoryIndex, out double value)) {
+                total += Math.Max(0D, value);
+            }
+        }
+
+        return total;
+    }
+
+    private static double GetDataLabelCategoryTotal(IReadOnlyList<OfficeChartSeries> series, int categoryIndex) {
+        double total = GetPositiveCategoryTotal(series, categoryIndex);
+        if (total > 0D) {
+            return total;
+        }
+
+        for (int s = 0; s < series.Count; s++) {
+            if (TryGetSeriesValue(series[s], categoryIndex, out double value)) {
+                total += Math.Abs(value);
+            }
         }
 
         return total;
@@ -56,7 +73,10 @@ public static partial class OfficeChartDrawingRenderer {
     private static double GetPercentStackedCategoryTotal(IReadOnlyList<OfficeChartSeries> series, int categoryIndex, bool positive) {
         double total = 0D;
         for (int s = 0; s < series.Count; s++) {
-            double value = GetSeriesValue(series[s], categoryIndex);
+            if (!TryGetSeriesValue(series[s], categoryIndex, out double value)) {
+                continue;
+            }
+
             if (positive && value > 0D) {
                 total += value;
             } else if (!positive && value < 0D) {
@@ -95,7 +115,10 @@ public static partial class OfficeChartDrawingRenderer {
             double positive = 0D;
             double negative = 0D;
             for (int s = 0; s < series.Count; s++) {
-                double value = GetSeriesValue(series[s], category);
+                if (!TryGetSeriesValue(series[s], category, out double value)) {
+                    continue;
+                }
+
                 if (value >= 0D) {
                     positive += value;
                 } else {
@@ -115,10 +138,21 @@ public static partial class OfficeChartDrawingRenderer {
         return ExpandFlatRange(min, max);
     }
 
-    private static double GetSeriesValue(OfficeChartSeries series, int index) {
-        double value = index >= 0 && index < series.Values.Count ? series.Values[index] : 0D;
-        return double.IsNaN(value) || double.IsInfinity(value) ? 0D : value;
+    private static bool TryGetSeriesValue(OfficeChartSeries series, int index, out double value) {
+        value = 0D;
+        if (index < 0 || index >= series.Values.Count) {
+            return false;
+        }
+
+        value = series.Values[index];
+        return IsFiniteChartValue(value);
     }
+
+    private static double GetSeriesValue(OfficeChartSeries series, int index) {
+        return TryGetSeriesValue(series, index, out double value) ? value : 0D;
+    }
+
+    private static bool IsFiniteChartValue(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
 
     private static double ToPlotY(double value, double min, double max, double plotTop, double plotHeight) {
         double range = max - min;

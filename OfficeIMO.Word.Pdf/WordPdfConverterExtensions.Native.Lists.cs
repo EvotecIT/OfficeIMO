@@ -84,6 +84,9 @@ namespace OfficeIMO.Word.Pdf {
                 paragraph.IsPageBreak ||
                 paragraph.Shape != null ||
                 paragraph.TextBox != null ||
+                paragraph.Chart != null ||
+                paragraph.PictureControl?.Image != null ||
+                GetNativePictureControls(paragraph).Any(sdtRun => IsNativePictureControlWithImage(paragraph, sdtRun)) ||
                 paragraph.Image != null) {
                 return false;
             }
@@ -229,17 +232,48 @@ namespace OfficeIMO.Word.Pdf {
                 } else if (element is W.Hyperlink hyperlink) {
                     AddNativeHyperlinkRuns(runs, paragraph, hyperlink);
                 } else if (element is W.SdtRun sdtRun && IsNativeSimpleTextContentControl(sdtRun)) {
-                    foreach (var childElement in sdtRun.SdtContentRun!.ChildElements) {
-                        if (childElement is W.Run sdtContentRun) {
-                            runs.Add(new WordParagraph(paragraph._document, paragraph._paragraph, sdtContentRun));
-                        } else if (childElement is W.Hyperlink sdtHyperlink) {
-                            AddNativeHyperlinkRuns(runs, paragraph, sdtHyperlink);
-                        }
-                    }
+                    AddNativeSdtRunRuns(runs, paragraph, sdtRun);
                 }
             }
 
             return runs;
+        }
+
+        private static void AddNativeSdtRunRuns(List<WordParagraph> runs, WordParagraph paragraph, W.SdtRun sdtRun) {
+            if (TryGetNativeSdtRunPropertyValue(paragraph._document, sdtRun, out string? propertyValue)) {
+                W.Run resolvedRun = CreateNativeResolvedSdtRun(sdtRun, propertyValue!);
+                runs.Add(new WordParagraph(paragraph._document, paragraph._paragraph!, resolvedRun));
+                return;
+            }
+
+            foreach (var childElement in sdtRun.SdtContentRun!.ChildElements) {
+                if (childElement is W.Run sdtContentRun) {
+                    runs.Add(new WordParagraph(paragraph._document, paragraph._paragraph!, sdtContentRun));
+                } else if (childElement is W.Hyperlink sdtHyperlink) {
+                    AddNativeHyperlinkRuns(runs, paragraph, sdtHyperlink);
+                }
+            }
+        }
+
+        private static bool TryGetNativeSdtRunPropertyValue(WordDocument document, W.SdtRun sdtRun, out string? value) {
+            if (sdtRun.SdtProperties == null || !IsNativePropertyBoundStructuredBlock(sdtRun.SdtProperties)) {
+                value = null;
+                return false;
+            }
+
+            value = GetNativeBuiltInPropertyValue(document, sdtRun.SdtProperties);
+            return !string.IsNullOrWhiteSpace(value);
+        }
+
+        private static W.Run CreateNativeResolvedSdtRun(W.SdtRun sdtRun, string value) {
+            W.Run? sourceRun = sdtRun.SdtContentRun?.Elements<W.Run>().FirstOrDefault();
+            var resolvedRun = new W.Run();
+            if (sourceRun?.RunProperties != null) {
+                resolvedRun.Append((W.RunProperties)sourceRun.RunProperties.CloneNode(true));
+            }
+
+            resolvedRun.Append(new W.Text(value) { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve });
+            return resolvedRun;
         }
 
         private static void AddNativeHyperlinkRuns(List<WordParagraph> runs, WordParagraph paragraph, W.Hyperlink hyperlink) {

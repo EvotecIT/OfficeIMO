@@ -13,7 +13,7 @@ public sealed class OfficeChartSeries {
     /// </summary>
     /// <param name="name">Display name for the series.</param>
     /// <param name="values">Values aligned with the chart categories.</param>
-    public OfficeChartSeries(string name, IEnumerable<double> values) : this(name, values, null, null, null) {
+    public OfficeChartSeries(string name, IEnumerable<double> values) : this(name, values, null, null, null, true, true) {
     }
 
     /// <summary>
@@ -22,7 +22,7 @@ public sealed class OfficeChartSeries {
     /// <param name="name">Display name for the series.</param>
     /// <param name="values">Values aligned with the chart categories or X-axis values.</param>
     /// <param name="xValues">Optional numeric X-axis values for this series.</param>
-    public OfficeChartSeries(string name, IEnumerable<double> values, IEnumerable<double>? xValues) : this(name, values, xValues, null, null) {
+    public OfficeChartSeries(string name, IEnumerable<double> values, IEnumerable<double>? xValues) : this(name, values, xValues, null, null, true, true) {
     }
 
     /// <summary>
@@ -32,7 +32,7 @@ public sealed class OfficeChartSeries {
     /// <param name="values">Values aligned with the chart categories or X-axis values.</param>
     /// <param name="xValues">Optional numeric X-axis values for this series.</param>
     /// <param name="color">Optional source-defined series color.</param>
-    public OfficeChartSeries(string name, IEnumerable<double> values, IEnumerable<double>? xValues, OfficeColor? color) : this(name, values, xValues, color, null) {
+    public OfficeChartSeries(string name, IEnumerable<double> values, IEnumerable<double>? xValues, OfficeColor? color) : this(name, values, xValues, color, null, true, true) {
     }
 
     /// <summary>
@@ -43,7 +43,21 @@ public sealed class OfficeChartSeries {
     /// <param name="xValues">Optional numeric X-axis values for this series.</param>
     /// <param name="color">Optional source-defined series color.</param>
     /// <param name="pointColors">Optional source-defined colors aligned with individual values.</param>
-    public OfficeChartSeries(string name, IEnumerable<double> values, IEnumerable<double>? xValues, OfficeColor? color, IEnumerable<OfficeColor?>? pointColors) {
+    public OfficeChartSeries(string name, IEnumerable<double> values, IEnumerable<double>? xValues, OfficeColor? color, IEnumerable<OfficeColor?>? pointColors) : this(name, values, xValues, color, pointColors, true, true) {
+    }
+
+    /// <summary>
+    /// Initializes a chart series snapshot with optional source style metadata and marker visibility.
+    /// </summary>
+    /// <param name="name">Display name for the series.</param>
+    /// <param name="values">Values aligned with the chart categories or X-axis values.</param>
+    /// <param name="xValues">Optional numeric X-axis values for this series.</param>
+    /// <param name="color">Optional source-defined series color.</param>
+    /// <param name="pointColors">Optional source-defined colors aligned with individual values.</param>
+    /// <param name="showMarkers">Whether this series should render markers when the chart layout enables them.</param>
+    /// <param name="showInLegend">Whether this series should appear in rendered legends.</param>
+    /// <param name="connectLine">Whether this series should render connecting line segments when the chart family supports them.</param>
+    public OfficeChartSeries(string name, IEnumerable<double> values, IEnumerable<double>? xValues, OfficeColor? color, IEnumerable<OfficeColor?>? pointColors, bool showMarkers, bool showInLegend = true, bool connectLine = true) {
         if (values == null) {
             throw new ArgumentNullException(nameof(values));
         }
@@ -58,6 +72,9 @@ public sealed class OfficeChartSeries {
         }
 
         Color = color;
+        ShowMarkers = showMarkers;
+        ShowInLegend = showInLegend;
+        ConnectLine = connectLine;
         if (pointColors != null) {
             PointColors = new ReadOnlyCollection<OfficeColor?>(new List<OfficeColor?>(pointColors));
             if (PointColors.Count != Values.Count) {
@@ -80,4 +97,13 @@ public sealed class OfficeChartSeries {
 
     /// <summary>Optional source-defined colors aligned with individual series values.</summary>
     public IReadOnlyList<OfficeColor?>? PointColors { get; }
+
+    /// <summary>Whether this series should render markers when the chart layout enables markers.</summary>
+    public bool ShowMarkers { get; }
+
+    /// <summary>Whether this series should appear in rendered legends.</summary>
+    public bool ShowInLegend { get; }
+
+    /// <summary>Whether this series should render connecting line segments when the chart family supports them.</summary>
+    public bool ConnectLine { get; }
 }

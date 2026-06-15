@@ -468,6 +468,20 @@ public class PdfDocumentWorkflowTests {
     }
 
     [Fact]
+    public void AnalyzeTextEncoding_PreflightsVariantTextWatermarks() {
+        var options = new PdfOptions {
+            FirstPageTextWatermark = new PdfTextWatermark("First \u2603"),
+            EvenPageTextWatermark = new PdfTextWatermark("Even \u2602")
+        };
+
+        using PdfDocument document = PdfDocument.Create(options);
+        IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = document.AnalyzeTextEncoding();
+
+        Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "PdfFirstPageTextWatermark" && diagnostic.Location == "PdfFirstPageTextWatermark" && diagnostic.CodePoint == "U+2603");
+        Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "PdfEvenPageTextWatermark" && diagnostic.Location == "PdfEvenPageTextWatermark" && diagnostic.CodePoint == "U+2602");
+    }
+
+    [Fact]
     public void AnalyzeTextEncoding_PreflightsFormWidgetValuesThroughEmbeddedHelveticaPath() {
         string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
         if (fontPath == null) {

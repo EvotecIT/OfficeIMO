@@ -203,15 +203,22 @@ public sealed partial class PdfDocument {
 
     private static void AnalyzeOptionsText(PdfOptions options, List<PdfTextEncodingDiagnostic> diagnostics, string locationPrefix = "") {
         var seenPageText = new HashSet<string>(StringComparer.Ordinal);
-        PdfTextWatermark? watermark = options.TextWatermarkSnapshot;
-        if (watermark is not null) {
-            PdfStandardFont watermarkFont = PdfStandardFontMapper.GetStyledFont(watermark.Font, watermark.Bold, watermark.Italic);
-            AddText(diagnostics, watermark.Text, options, watermarkFont, "PdfTextWatermark", AppendLocation(locationPrefix, "PdfTextWatermark"));
-        }
+        AnalyzeTextWatermark(options.TextWatermarkSnapshot, options, diagnostics, locationPrefix, "PdfTextWatermark");
+        AnalyzeTextWatermark(options.FirstPageTextWatermarkSnapshot, options, diagnostics, locationPrefix, "PdfFirstPageTextWatermark");
+        AnalyzeTextWatermark(options.EvenPageTextWatermarkSnapshot, options, diagnostics, locationPrefix, "PdfEvenPageTextWatermark");
 
         AnalyzePageTextForVariant(options, pageNumber: 1, diagnostics, seenPageText, locationPrefix);
         AnalyzePageTextForVariant(options, pageNumber: 2, diagnostics, seenPageText, locationPrefix);
         AnalyzePageTextForVariant(options, pageNumber: 3, diagnostics, seenPageText, locationPrefix);
+    }
+
+    private static void AnalyzeTextWatermark(PdfTextWatermark? watermark, PdfOptions options, List<PdfTextEncodingDiagnostic> diagnostics, string locationPrefix, string source) {
+        if (watermark is null) {
+            return;
+        }
+
+        PdfStandardFont watermarkFont = PdfStandardFontMapper.GetStyledFont(watermark.Font, watermark.Bold, watermark.Italic);
+        AddText(diagnostics, watermark.Text, options, watermarkFont, source, AppendLocation(locationPrefix, source));
     }
 
     private static void AnalyzePageTextForVariant(PdfOptions options, int pageNumber, List<PdfTextEncodingDiagnostic> diagnostics, HashSet<string> seenPageText, string locationPrefix) {
