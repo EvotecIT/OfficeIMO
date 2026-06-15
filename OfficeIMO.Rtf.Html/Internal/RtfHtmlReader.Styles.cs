@@ -119,6 +119,7 @@ internal static partial class RtfHtmlReader {
             ApplyBorder(values, prefix + ".border.left", style.LeftBorder);
             ApplyBorder(values, prefix + ".border.bottom", style.BottomBorder);
             ApplyBorder(values, prefix + ".border.right", style.RightBorder);
+            ApplyParagraphFrame(values, prefix + ".frame", style.Frame);
             style.ReplaceTabStops(ReadTabStops(values, prefix + ".tab"));
         }
 

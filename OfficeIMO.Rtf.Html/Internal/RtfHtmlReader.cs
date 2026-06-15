@@ -100,6 +100,7 @@ internal static partial class RtfHtmlReader {
                     ApplyParagraphStyleAttributes(token);
                     ApplyParagraphRevisionAttributes(token);
                     ApplyParagraphControlAttributes(token);
+                    ApplyParagraphFrameAttributes(token);
                     ApplyParagraphStyle(style);
                     if (token.Value == "blockquote" && style.LeftIndentTwips == null) {
                         EnsureParagraph().LeftIndentTwips = 720;
@@ -116,6 +117,7 @@ internal static partial class RtfHtmlReader {
                     ApplyParagraphStyleAttributes(token);
                     ApplyParagraphRevisionAttributes(token);
                     ApplyParagraphControlAttributes(token);
+                    ApplyParagraphFrameAttributes(token);
                     ApplyParagraphStyle(style);
                     EnsureParagraph().OutlineLevel = GetHeadingOutlineLevel(token.Value);
                     _bold++;
@@ -171,6 +173,7 @@ internal static partial class RtfHtmlReader {
                     ApplyParagraphStyleAttributes(token);
                     ApplyParagraphRevisionAttributes(token);
                     ApplyParagraphControlAttributes(token);
+                    ApplyParagraphFrameAttributes(token);
                     ApplyParagraphStyle(style);
                     break;
                 case "table":

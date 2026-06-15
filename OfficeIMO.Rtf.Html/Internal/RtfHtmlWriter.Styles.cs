@@ -102,6 +102,7 @@ internal static partial class RtfHtmlWriter {
         AddBorder(values, prefix + ".border.left", style.LeftBorder);
         AddBorder(values, prefix + ".border.bottom", style.BottomBorder);
         AddBorder(values, prefix + ".border.right", style.RightBorder);
+        AddParagraphFrame(values, prefix + ".frame", style.Frame);
         AddTabStops(values, prefix + ".tab", style.TabStops);
     }
 
