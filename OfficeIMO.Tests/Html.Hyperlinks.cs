@@ -1,4 +1,5 @@
 using OfficeIMO.Word;
+using OfficeIMO.Html;
 
 using OfficeIMO.Word.Html;
 using System;
@@ -105,6 +106,18 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Html_Hyperlinks_PreservesProtocolRelativeWebLinks() {
+            string html = "<p><a href=\"//example.com/path\">Site</a></p>";
+
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var hyperlink = doc.ParagraphsHyperLinks[0].Hyperlink;
+
+            Assert.NotNull(hyperlink);
+            Assert.Equal(new Uri("http://example.com/path"), hyperlink!.Uri);
+            Assert.False(hyperlink!.Uri!.IsFile);
+        }
+
+        [Fact]
         public void Html_Hyperlinks_InvalidHref_IsPlainText() {
             string html = "<p><a href=\"javascript:alert()\">Js</a></p>";
 
@@ -112,6 +125,49 @@ namespace OfficeIMO.Tests {
 
             Assert.Empty(doc.ParagraphsHyperLinks);
             Assert.Equal("Js", doc.Paragraphs[0].Text);
+        }
+
+        [Fact]
+        public void Html_Hyperlinks_UsesConfiguredSharedUrlPolicy() {
+            string html = "<p><a href=\"https://example.com/good\">Good</a> <a href=\"http://example.com/plain\">Plain</a> <a href=\"file:///C:/temp/doc.txt\">File</a></p>";
+            var options = new HtmlToWordOptions();
+            options.HyperlinkUrlPolicy.RestrictUrlSchemes = true;
+            options.HyperlinkUrlPolicy.AllowedUrlSchemes.Clear();
+            options.HyperlinkUrlPolicy.AllowedUrlSchemes.Add("https");
+
+            var doc = html.LoadFromHtml(options);
+
+            var hyperlink = Assert.Single(doc.ParagraphsHyperLinks).Hyperlink;
+            Assert.NotNull(hyperlink);
+            Assert.Equal(new Uri("https://example.com/good"), hyperlink!.Uri);
+            string text = string.Concat(doc.Paragraphs[0].GetRuns().Where(run => !run.IsBreak).Select(run => run.Text));
+            Assert.Equal("Good Plain File", text);
+        }
+
+        [Fact]
+        public void Html_Hyperlinks_AppliesPolicyAfterBaseUriResolution() {
+            string html = "<base href=\"file:///C:/temp/\"><p><a href=\"doc.txt\">Doc</a></p>";
+
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+
+            Assert.Empty(doc.ParagraphsHyperLinks);
+            Assert.Equal("Doc", doc.Paragraphs[0].Text);
+        }
+
+        [Fact]
+        public void Html_Hyperlinks_AppliesPolicyToAutoLinkedTextUrls() {
+            string html = "<p>Keep ftp://internal.example/file and link https://example.com/good</p>";
+            var options = new HtmlToWordOptions {
+                HyperlinkUrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile()
+            };
+
+            var doc = html.LoadFromHtml(options);
+
+            var hyperlink = Assert.Single(doc.ParagraphsHyperLinks).Hyperlink;
+            Assert.NotNull(hyperlink);
+            Assert.Equal(new Uri("https://example.com/good"), hyperlink!.Uri);
+            string text = string.Concat(doc.Paragraphs[0].GetRuns().Where(run => !run.IsBreak).Select(run => run.Text));
+            Assert.Equal("Keep ftp://internal.example/file and link https://example.com/good", text);
         }
 
         [Fact]

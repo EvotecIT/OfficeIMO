@@ -1,5 +1,7 @@
 namespace OfficeIMO.Markdown.Html;
 
+using OfficeIMO.Html;
+
 /// <summary>
 /// Options controlling HTML to Markdown conversion.
 /// </summary>
@@ -41,6 +43,31 @@ public sealed class HtmlToMarkdownOptions {
     /// When true, unsupported inline elements are emitted as raw HTML inside inline Markdown.
     /// </summary>
     public bool PreserveUnsupportedInlineHtml { get; set; } = true;
+
+    /// <summary>
+    /// When true, plain text imported from HTML is escaped when it could be interpreted as a Markdown block marker.
+    /// </summary>
+    public bool EscapeMarkdownLineStarts { get; set; }
+
+    /// <summary>
+    /// Shared URL policy applied before link and image URLs are materialized into the Markdown model.
+    /// </summary>
+    public HtmlUrlPolicy UrlPolicy { get; set; } = HtmlUrlPolicy.CreateOfficeIMOProfile();
+
+    /// <summary>
+    /// Controls how base64 data-URI images are represented in the converted image model.
+    /// </summary>
+    public HtmlBase64ImageHandling Base64Images { get; set; } = HtmlBase64ImageHandling.Include;
+
+    /// <summary>
+    /// Output directory used when <see cref="Base64Images"/> is <see cref="HtmlBase64ImageHandling.SaveToFile"/>.
+    /// </summary>
+    public string? Base64ImageOutputDirectory { get; set; }
+
+    /// <summary>
+    /// Optional file name factory used when saving base64 image data. Arguments are the zero-based image index and MIME type.
+    /// </summary>
+    public Func<int, string, string>? Base64ImageFileNameGenerator { get; set; }
 
     /// <summary>
     /// Controls whether low-value metadata inside repeated listing cards should be preserved or suppressed.
@@ -168,6 +195,11 @@ public sealed class HtmlToMarkdownOptions {
             RemoveScriptsAndStyles = RemoveScriptsAndStyles,
             PreserveUnsupportedBlocks = PreserveUnsupportedBlocks,
             PreserveUnsupportedInlineHtml = PreserveUnsupportedInlineHtml,
+            EscapeMarkdownLineStarts = EscapeMarkdownLineStarts,
+            UrlPolicy = UrlPolicy?.Clone() ?? HtmlUrlPolicy.CreateOfficeIMOProfile(),
+            Base64Images = Base64Images,
+            Base64ImageOutputDirectory = Base64ImageOutputDirectory,
+            Base64ImageFileNameGenerator = Base64ImageFileNameGenerator,
             ListingCardMetadataMode = ListingCardMetadataMode,
             MarkdownWriteOptions = MarkdownWriteOptions?.Clone(),
             MaxInputCharacters = MaxInputCharacters

@@ -526,7 +526,10 @@ public class MarkdownDoc : MarkdownObject {
             if (!string.IsNullOrEmpty(rendered)) sb.AppendLine(rendered);
             if (i < blocks.Count - 1) sb.AppendLine();
         }
-        return sb.ToString();
+        string markdown = sb.ToString();
+        return options.OutputLineEnding == null
+            ? markdown
+            : NormalizeLineEndings(markdown, options.OutputLineEnding);
     }
 
     /// <summary>
@@ -713,5 +716,16 @@ public class MarkdownDoc : MarkdownObject {
         }
 
         return block.RenderMarkdown();
+    }
+
+    private static string NormalizeLineEndings(string value, string lineEnding) {
+        if (string.IsNullOrEmpty(value)) {
+            return string.Empty;
+        }
+
+        var normalized = value.Replace("\r\n", "\n").Replace('\r', '\n');
+        return lineEnding == "\n"
+            ? normalized
+            : normalized.Replace("\n", lineEnding);
     }
 }

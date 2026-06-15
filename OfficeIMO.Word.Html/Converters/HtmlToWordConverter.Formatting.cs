@@ -374,8 +374,13 @@ namespace OfficeIMO.Word.Html {
                     ApplyFormatting(run, formatting, options);
                 }
                 var display = ApplyTextTransform(match.Value, formatting.Transform);
-                var linkRun = paragraph.AddHyperLink(display, new Uri(match.Value));
-                ApplyFormatting(linkRun, formatting, options);
+                if (!Uri.TryCreate(match.Value, UriKind.Absolute, out var uri) || IsInvalidResolvedHref(uri, options)) {
+                    var run = paragraph.AddFormattedText(display, formatting.Bold, formatting.Italic, GetUnderlineValue(formatting));
+                    ApplyFormatting(run, formatting, options);
+                } else {
+                    var linkRun = paragraph.AddHyperLink(display, uri);
+                    ApplyFormatting(linkRun, formatting, options);
+                }
                 lastIndex = match.Index + match.Length;
             }
             if (lastIndex < text.Length) {

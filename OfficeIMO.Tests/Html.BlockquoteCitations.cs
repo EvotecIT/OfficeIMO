@@ -20,6 +20,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void BlockquoteCitationDoesNotLinkRejectedFileUrl() {
+            string html = "<blockquote cite=\"file:///C:/temp/doc.txt\"><p>Quoted</p></blockquote>";
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+
+            var footNotes = doc.FootNotes;
+            Assert.NotNull(footNotes);
+            var note = Assert.Single(footNotes!);
+            Assert.DoesNotContain(note.Paragraphs!, p => p.Hyperlink?.Uri?.Scheme == Uri.UriSchemeFile);
+            Assert.Contains(note.Paragraphs!, p => p.Text.Contains("file:///C:/temp/doc.txt", StringComparison.OrdinalIgnoreCase));
+        }
+
+        [Fact]
+        public void BlockquoteCitationLinksProtocolRelativeUrl() {
+            string html = "<blockquote cite=\"//example.com/source\"><p>Quoted</p></blockquote>";
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+
+            var footNotes = doc.FootNotes;
+            Assert.NotNull(footNotes);
+            var note = Assert.Single(footNotes!);
+            Assert.Contains(note.Paragraphs!, p => p.Hyperlink?.Uri == new Uri("https://example.com/source"));
+        }
+
+        [Fact]
         public void BlockquoteCitationRoundTripsAsCiteAttribute() {
             string html = "<blockquote cite=\"https://example.com/source\"><p>Quoted text</p></blockquote>";
             using var doc = html.LoadFromHtml(new HtmlToWordOptions());

@@ -6,6 +6,7 @@ using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using AngleSharp.Io;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Html;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http;
@@ -66,6 +67,10 @@ namespace OfficeIMO.Word.Html {
                 return;
             }
 
+            if (IsInvalidResolvedHref(uri, options)) {
+                return;
+            }
+
             var resolvedNoteType = noteType ?? options.NoteReferenceType;
             var noteParagraph = resolvedNoteType == NoteReferenceType.Endnote
                 ? noteReference.EndNote?.Paragraphs?.FirstOrDefault()
@@ -114,17 +119,70 @@ namespace OfficeIMO.Word.Html {
             _pendingTopBookmark = false;
         }
 
-        private static bool IsInvalidHref(string href) {
+        private static bool IsInvalidHref(string href, HtmlToWordOptions options) {
             if (string.IsNullOrWhiteSpace(href)) {
                 return true;
             }
             var trimmed = href.Trim();
-            if (trimmed == "#") {
+            return !HtmlUrlPolicyEvaluator.IsAllowed(trimmed, options.HyperlinkUrlPolicy, allowEmptyFragment: false);
+        }
+
+        private static bool IsInvalidResolvedHref(Uri href, HtmlToWordOptions options) {
+            if (href == null) {
                 return true;
             }
-            return trimmed.StartsWith("javascript:", StringComparison.OrdinalIgnoreCase) ||
-                   trimmed.StartsWith("vbscript:", StringComparison.OrdinalIgnoreCase) ||
-                   trimmed.StartsWith("data:", StringComparison.OrdinalIgnoreCase);
+
+            string candidate = href.IsAbsoluteUri ? href.AbsoluteUri : href.ToString();
+            return !HtmlUrlPolicyEvaluator.IsAllowed(candidate, options.HyperlinkUrlPolicy, allowEmptyFragment: false);
+        }
+
+        private static bool TryResolveHyperlinkUri(IElement element, string normalizedHref, out Uri resolvedUri) {
+            resolvedUri = null!;
+            if (normalizedHref.StartsWith("//", StringComparison.Ordinal)) {
+                string scheme = TryGetHttpBaseScheme(element, out var baseScheme)
+                    ? baseScheme
+                    : Uri.UriSchemeHttps;
+                if (Uri.TryCreate(scheme + ":" + normalizedHref, UriKind.Absolute, out var protocolRelativeUri)) {
+                    resolvedUri = protocolRelativeUri;
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (Uri.TryCreate(normalizedHref, UriKind.Absolute, out var absUri)) {
+                resolvedUri = absUri;
+                return true;
+            }
+
+            if (element.BaseUrl != null && Uri.TryCreate(element.BaseUrl.Href, UriKind.Absolute, out var baseUri)) {
+                if (Uri.TryCreate(baseUri, normalizedHref, out var relUri)) {
+                    resolvedUri = relUri;
+                    return true;
+                }
+            }
+
+            if (Uri.TryCreate(normalizedHref, UriKind.RelativeOrAbsolute, out var fallbackUri)) {
+                resolvedUri = fallbackUri;
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool TryGetHttpBaseScheme(IElement element, out string scheme) {
+            scheme = string.Empty;
+            if (element.BaseUrl == null || !Uri.TryCreate(element.BaseUrl.Href, UriKind.Absolute, out var baseUri)) {
+                return false;
+            }
+
+            if (!string.Equals(baseUri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(baseUri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)) {
+                return false;
+            }
+
+            scheme = baseUri.Scheme;
+            return true;
         }
 
         private static string NormalizeHref(string href) {
@@ -157,6 +215,10 @@ namespace OfficeIMO.Word.Html {
             }
 
             var candidate = NormalizeHref(trimmed);
+            if (candidate.StartsWith("//", StringComparison.Ordinal)) {
+                candidate = Uri.UriSchemeHttps + ":" + candidate;
+            }
+
             if (Uri.TryCreate(candidate, UriKind.Absolute, out var absolute) && absolute != null) {
                 uri = absolute;
                 return true;

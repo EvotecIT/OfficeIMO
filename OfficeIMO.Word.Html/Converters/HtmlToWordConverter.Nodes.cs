@@ -636,7 +636,7 @@ namespace OfficeIMO.Word.Html {
                             }
 
                             var normalizedHref = NormalizeHref(href!);
-                            if (IsInvalidHref(normalizedHref)) {
+                            if (IsInvalidHref(normalizedHref, options)) {
                                 var fmt = formatting;
                                 ApplySpanStyles(element, ref fmt);
                                 foreach (var child in element.ChildNodes) {
@@ -711,18 +711,16 @@ namespace OfficeIMO.Word.Html {
                                 break;
                             }
 
-                            Uri? resolvedUri = null;
-                            if (Uri.TryCreate(normalizedHref, UriKind.Absolute, out var absUri)) {
-                                resolvedUri = absUri;
-                            } else if (element.BaseUrl != null && Uri.TryCreate(element.BaseUrl.Href, UriKind.Absolute, out var baseUri)) {
-                                if (Uri.TryCreate(baseUri, normalizedHref, out var relUri)) {
-                                    resolvedUri = relUri;
+                            if (!TryResolveHyperlinkUri(element, normalizedHref, out var resolvedUri)) {
+                                var fmt = formatting;
+                                ApplySpanStyles(element, ref fmt);
+                                foreach (var child in element.ChildNodes) {
+                                    ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell, headerFooter, headingList);
                                 }
-                            } else if (Uri.TryCreate(normalizedHref, UriKind.RelativeOrAbsolute, out var relUri)) {
-                                resolvedUri = relUri;
+                                break;
                             }
 
-                            if (resolvedUri == null) {
+                            if (IsInvalidResolvedHref(resolvedUri, options)) {
                                 var fmt = formatting;
                                 ApplySpanStyles(element, ref fmt);
                                 foreach (var child in element.ChildNodes) {

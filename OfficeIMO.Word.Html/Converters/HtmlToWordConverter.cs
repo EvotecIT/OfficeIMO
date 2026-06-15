@@ -34,6 +34,8 @@ namespace OfficeIMO.Word.Html {
         private readonly List<ICssStyleRule> _cssRules = new();
         private readonly CssParser _cssParser = new();
         private readonly Dictionary<string, WordImage> _imageCache = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, byte[]> _remoteImageBytesCache = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, Exception> _remoteImageFailureCache = new(StringComparer.Ordinal);
         private readonly Dictionary<string, WordParagraphStyles> _cssClassStyles = new(StringComparer.OrdinalIgnoreCase);
         private static readonly ConcurrentDictionary<string, ICssStyleRule[]> _stylesheetCache = new(StringComparer.OrdinalIgnoreCase);
         private IBrowsingContext? _context;
@@ -86,6 +88,8 @@ namespace OfficeIMO.Word.Html {
             _processedRadioInputs.Clear();
             _cssRules.Clear();
             _imageCache.Clear();
+            _remoteImageBytesCache.Clear();
+            _remoteImageFailureCache.Clear();
             _cssClassStyles.Clear();
             _pendingTopBookmark = false;
             _imageBytesUsed = 0;
@@ -141,6 +145,8 @@ namespace OfficeIMO.Word.Html {
             _processedRadioInputs.Clear();
             _cssRules.Clear();
             _imageCache.Clear();
+            _remoteImageBytesCache.Clear();
+            _remoteImageFailureCache.Clear();
             _cssClassStyles.Clear();
             _pendingTopBookmark = false;
             _imageBytesUsed = 0;
@@ -193,6 +199,8 @@ namespace OfficeIMO.Word.Html {
             _processedRadioInputs.Clear();
             _cssRules.Clear();
             _imageCache.Clear();
+            _remoteImageBytesCache.Clear();
+            _remoteImageFailureCache.Clear();
             _cssClassStyles.Clear();
             _pendingTopBookmark = false;
             _imageBytesUsed = 0;

@@ -2,6 +2,7 @@ using OfficeIMO.Markdown;
 using OfficeIMO.Markdown.Html;
 using OfficeIMO.MarkdownRenderer;
 using OfficeIMO.MarkdownRenderer.SamplePlugin;
+using OfficeIMO.Html;
 using Xunit;
 using MarkdownRendererShell = OfficeIMO.MarkdownRenderer.MarkdownRenderer;
 using System.IO;
@@ -32,6 +33,676 @@ public sealed class MarkdownHtmlToMarkdownTests {
         Assert.Contains("[link](https://example.com)", markdown, StringComparison.Ordinal);
         Assert.Contains("- One", markdown, StringComparison.Ordinal);
         Assert.Contains("- Two", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_RecoversLazyLoadedInlineImageSources() {
+        const string html = """
+<p>Logo <img src="data:image/png;base64,AAAA" data-src="/img/logo.png" alt="Logo" /></p>
+""";
+
+        string markdown = html.ToMarkdown(new HtmlToMarkdownOptions {
+            BaseUri = new Uri("https://example.com/")
+        });
+
+        Assert.Contains("Logo ![Logo](https://example.com/img/logo.png)", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("data:image/png", markdown, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_LeavesCodeSpanBracketsInsideLinkLabelsUnescaped() {
+        const string html = """
+<p><a href="/interop"><code>[[UnmanagedCallersOnly]]</code></a></p>
+""";
+
+        string markdown = html.ToMarkdown(new HtmlToMarkdownOptions {
+            BaseUri = new Uri("https://example.com/docs/")
+        });
+
+        Assert.Contains("[`[[UnmanagedCallersOnly]]`](https://example.com/interop)", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("\\[\\[UnmanagedCallersOnly\\]\\]", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_PreservesSpaceAfterInlineCodeBeforeNestedList() {
+        const string html = """
+<ul><li><code>dotnet</code> command<ul><li>restore</li></ul></li></ul>
+""";
+
+        string markdown = html.ToMarkdown().Replace("\r\n", "\n");
+
+        Assert.Contains("- `dotnet` command", markdown, StringComparison.Ordinal);
+        Assert.Contains("  - restore", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("`dotnet`command", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_AppliesUrlPolicyBeforeCreatingTypedLinksAndImages() {
+        const string html = """
+<p><a href="javascript:alert(1)">bad</a> <a href="https://example.com/good">good</a> <a href="http://example.com/plain">plain</a></p>
+<img src="javascript:alert(1)" alt="Unsafe" />
+""";
+
+        var options = new HtmlToMarkdownOptions();
+        options.UrlPolicy.RestrictUrlSchemes = true;
+        options.UrlPolicy.AllowedUrlSchemes.Clear();
+        options.UrlPolicy.AllowedUrlSchemes.Add("https");
+
+        MarkdownDoc document = html.LoadFromHtml(options);
+
+        string markdown = document.ToMarkdown();
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
+
+        Assert.Contains("bad", markdown, StringComparison.Ordinal);
+        Assert.Contains("[good](https://example.com/good)", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("javascript", markdown, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("http://example.com/plain", markdown, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("![Unsafe]", markdown, StringComparison.Ordinal);
+        Assert.Contains(paragraph.Inlines.Nodes, inline => inline is LinkInline link && link.Url == "https://example.com/good");
+        Assert.DoesNotContain(paragraph.Inlines.Nodes, inline => inline is LinkInline link && !link.Url.StartsWith("https://", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_EscapesLiteralLineStartsWithoutChangingRenderedText() {
+        const string html = """
+<p># not heading</p>
+<p>- not a list</p>
+<p>1. not ordered</p>
+<p>``` not code</p>
+<p>~~~ not code</p>
+<p>Title<br>===</p>
+<p><span>1</span>. split ordered</p>
+<p>CPU: Central<br>RAM: Memory</p>
+<p>&lt;div&gt;literal&lt;/div&gt;</p>
+<p>&lt;!-- literal comment --&gt;</p>
+<p>&lt;!DOCTYPE html&gt;</p>
+<p>&lt;?xml version="1.0"?&gt;</p>
+<p>&lt;![CDATA[literal]]&gt;</p>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            EscapeMarkdownLineStarts = true
+        });
+
+        string markdown = document.ToMarkdown().Replace("\r\n", "\n");
+        string renderedHtml = document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("\\# not heading", markdown, StringComparison.Ordinal);
+        Assert.Contains("\\- not a list", markdown, StringComparison.Ordinal);
+        Assert.Contains("1\\. not ordered", markdown, StringComparison.Ordinal);
+        Assert.Contains("\\``` not code", markdown, StringComparison.Ordinal);
+        Assert.Contains("\\~~~ not code", markdown, StringComparison.Ordinal);
+        Assert.Contains("\\===", markdown, StringComparison.Ordinal);
+        Assert.Contains("1\\. split ordered", markdown, StringComparison.Ordinal);
+        Assert.Contains("CPU\\: Central", markdown, StringComparison.Ordinal);
+        Assert.Contains("RAM\\: Memory", markdown, StringComparison.Ordinal);
+        Assert.Contains("\\<div>literal</div>", markdown, StringComparison.Ordinal);
+        Assert.Contains("\\<!-- literal comment -->", markdown, StringComparison.Ordinal);
+        Assert.Contains("\\<!DOCTYPE html>", markdown, StringComparison.Ordinal);
+        Assert.Contains("\\<?xml version=\"1.0\"?>", markdown, StringComparison.Ordinal);
+        Assert.Contains("\\<!\\[CDATA\\[literal\\]\\]>", markdown, StringComparison.Ordinal);
+        Assert.Contains("# not heading", renderedHtml, StringComparison.Ordinal);
+        Assert.Contains("- not a list", renderedHtml, StringComparison.Ordinal);
+        Assert.Contains("1. not ordered", renderedHtml, StringComparison.Ordinal);
+        Assert.Contains("``` not code", renderedHtml, StringComparison.Ordinal);
+        Assert.Contains("===", renderedHtml, StringComparison.Ordinal);
+        Assert.Contains("1. split ordered", renderedHtml, StringComparison.Ordinal);
+        Assert.DoesNotContain("\\# not heading", renderedHtml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_CanSkipBase64Images() {
+        const string html = """<figure><img src="data:image/png;base64,AQID" alt="Inline data" /></figure>""";
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            Base64Images = HtmlBase64ImageHandling.Skip
+        });
+
+        Assert.Empty(document.Blocks);
+        Assert.DoesNotContain("data:image/png", document.ToMarkdown(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_DropsMalformedBase64ImagesWhenSkippingOrSaving() {
+        string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.HtmlImages." + Guid.NewGuid().ToString("N"));
+        try {
+            const string html = """<figure><img src="data:image/png;base64,not-valid-base64" alt="Malformed data" /></figure>""";
+            foreach (HtmlBase64ImageHandling handling in new[] { HtmlBase64ImageHandling.Skip, HtmlBase64ImageHandling.SaveToFile }) {
+                MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+                    Base64Images = handling,
+                    Base64ImageOutputDirectory = directory
+                });
+
+                Assert.Empty(document.Blocks);
+                Assert.DoesNotContain("data:image/png", document.ToMarkdown(), StringComparison.OrdinalIgnoreCase);
+            }
+
+            if (Directory.Exists(directory)) {
+                Assert.Empty(Directory.GetFiles(directory));
+            }
+        } finally {
+            if (Directory.Exists(directory)) {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_TriesLaterImageCandidatesAfterSkippingBase64Source() {
+        const string html = """
+<figure>
+  <img src="data:image/png;base64,AQID" srcset="https://cdn.example.test/photo.png 1x" alt="Photo" />
+</figure>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            Base64Images = HtmlBase64ImageHandling.Skip
+        });
+
+        var image = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
+        Assert.Equal("https://cdn.example.test/photo.png", image.Path);
+        Assert.Equal("Photo", image.Alt);
+        Assert.DoesNotContain("data:image/png", document.ToMarkdown(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_TriesLaterNoscriptCandidatesAfterSkippingBase64Source() {
+        const string html = """
+<figure>
+  <img src="data:image/gif;base64,AQID" alt="Photo" />
+  <noscript><img src="data:image/png;base64,AQID" srcset="https://cdn.example.test/photo.webp 1x" alt="Fallback" /></noscript>
+</figure>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            Base64Images = HtmlBase64ImageHandling.Skip
+        });
+
+        var image = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
+        Assert.Equal("https://cdn.example.test/photo.webp", image.Path);
+        Assert.Equal("Photo", image.Alt);
+        Assert.DoesNotContain("data:image", document.ToMarkdown(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_SkipsInlineBase64ImageWithoutRawFallback() {
+        const string html = """<p>Before <img src="data:image/png;base64,AQID" alt="Inline data" /> after</p>""";
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            Base64Images = HtmlBase64ImageHandling.Skip
+        });
+
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
+        Assert.DoesNotContain(paragraph.Inlines.Nodes, inline => inline is ImageInline);
+        Assert.DoesNotContain("data:image/png", document.ToMarkdown(), StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("![Inline data]", document.ToMarkdown(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_SkipsBase64PictureSourceMetadata() {
+        const string html = """
+<picture>
+  <source srcset="data:image/png;base64,AQID 1x">
+  <img src="media/photo.png" alt="Photo">
+</picture>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            BaseUri = new Uri("https://example.test/articles/"),
+            Base64Images = HtmlBase64ImageHandling.Skip
+        });
+
+        var image = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
+        Assert.Equal("https://example.test/articles/media/photo.png", image.Path);
+        Assert.Empty(image.PictureSources);
+        Assert.DoesNotContain("data:image/png", document.ToMarkdown(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_PreservesLaterPictureSrcSetCandidatesAfterSkippingBase64Source() {
+        const string html = """
+<picture>
+  <source srcset="data:image/png;base64,AQID 1x, https://cdn.example.test/photo.webp 2x" type="image/webp">
+  <img src="media/fallback.png" alt="Photo">
+</picture>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            BaseUri = new Uri("https://example.test/articles/"),
+            Base64Images = HtmlBase64ImageHandling.Skip
+        });
+
+        var image = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
+        Assert.Equal("https://cdn.example.test/photo.webp", image.Path);
+        var source = Assert.Single(image.PictureSources);
+        Assert.Equal("https://cdn.example.test/photo.webp", source.Path);
+        Assert.Equal("https://cdn.example.test/photo.webp 2x", source.SrcSet);
+        Assert.DoesNotContain("data:image", document.ToMarkdown(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_PreservesPictureFallbackImageSrcInsteadOfSrcSetCandidate() {
+        const string html = """
+<picture>
+  <source srcset="https://cdn.example.test/photo.webp" type="image/webp">
+  <img src="https://cdn.example.test/fallback.png" srcset="https://cdn.example.test/fallback@2x.png 2x" alt="Photo">
+</picture>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions());
+
+        var image = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
+        Assert.Equal("https://cdn.example.test/photo.webp", image.Path);
+        Assert.Equal("https://cdn.example.test/fallback.png", image.PictureFallbackPath);
+        string renderedHtml = document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        Assert.Contains("<img src=\"https://cdn.example.test/fallback.png\"", renderedHtml, StringComparison.Ordinal);
+        Assert.DoesNotContain("<img src=\"https://cdn.example.test/fallback@2x.png\"", renderedHtml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_PrefersLazyPictureFallbackOverAboutBlankPlaceholder() {
+        const string html = """
+<picture>
+  <source srcset="https://cdn.example.test/photo.webp" type="image/webp">
+  <img src="about:blank" data-original-src="https://cdn.example.test/fallback.png" alt="Photo">
+</picture>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions());
+
+        var image = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
+        Assert.Equal("https://cdn.example.test/photo.webp", image.Path);
+        Assert.Equal("https://cdn.example.test/fallback.png", image.PictureFallbackPath);
+        string renderedHtml = document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        Assert.Contains("<img src=\"https://cdn.example.test/fallback.png\"", renderedHtml, StringComparison.Ordinal);
+        Assert.DoesNotContain("about:blank", renderedHtml, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_DropsSkippedPictureOnlyBase64Images() {
+        const string html = """
+<picture>
+  <source srcset="data:image/png;base64,AQID 1x">
+  <img src="data:image/png;base64,AQID" alt="Data">
+</picture>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            Base64Images = HtmlBase64ImageHandling.Skip
+        });
+
+        Assert.Empty(document.Blocks);
+        string markdown = document.ToMarkdown();
+        Assert.DoesNotContain("data:image", markdown, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("<picture", markdown, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_DropsSkippedPictureOnlyBase64ImagesWhenPolicyRejectsDataUrls() {
+        const string html = """
+<picture>
+  <source srcset="data:image/png;base64,AQID 1x">
+  <img src="data:image/png;base64,AQID" alt="Data">
+</picture>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            Base64Images = HtmlBase64ImageHandling.Skip,
+            UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile()
+        });
+
+        Assert.Empty(document.Blocks);
+        string markdown = document.ToMarkdown();
+        Assert.DoesNotContain("data:image", markdown, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("<picture", markdown, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_DropsPolicyRejectedPictureOnlyDataImagesWhenPreservingUnsupportedBlocks() {
+        const string html = """
+<picture>
+  <source srcset="data:image/png;base64,AQID 1x">
+  <img src="data:image/png;base64,AQID" alt="Data">
+</picture>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            PreserveUnsupportedBlocks = true,
+            UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile()
+        });
+
+        Assert.Empty(document.Blocks);
+        string markdown = document.ToMarkdown();
+        Assert.DoesNotContain("data:image", markdown, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("<picture", markdown, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_DoesNotPreserveRejectedPictureLinksAsRawHtml() {
+        const string html = """
+<a href="javascript:alert(1)">
+  <picture>
+    <source srcset="https://cdn.example.test/photo.webp">
+    <img alt="Photo">
+  </picture>
+</a>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            PreserveUnsupportedBlocks = true,
+            BaseUri = new Uri("https://example.test/")
+        });
+
+        var image = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
+        Assert.Equal("https://cdn.example.test/photo.webp", image.Path);
+        Assert.Null(image.LinkUrl);
+        string markdown = document.ToMarkdown();
+        Assert.DoesNotContain("javascript:", markdown, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("<a ", markdown, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_DropsRejectedEmptyBlockAnchorsInsteadOfRawHtml() {
+        const string html = """<a href="javascript:alert(1)"><script>alert(2)</script></a>""";
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            PreserveUnsupportedBlocks = true
+        });
+
+        Assert.Empty(document.Blocks);
+        string markdown = document.ToMarkdown();
+        Assert.DoesNotContain("javascript:", markdown, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("<a ", markdown, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("<script", markdown, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_DropsRejectedPictureChildrenInsideAllowedBlockAnchors() {
+        const string html = """
+<a href="https://example.test/ok">
+  <picture>
+    <source srcset="javascript:alert(1)">
+  </picture>
+</a>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            PreserveUnsupportedBlocks = true
+        });
+
+        Assert.Empty(document.Blocks);
+        string markdown = document.ToMarkdown();
+        Assert.DoesNotContain("javascript:", markdown, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("<picture", markdown, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("<a ", markdown, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_DropsRejectedImageChildrenInsideAllowedBlockAnchors() {
+        const string html = """
+<a href="https://example.test/ok">
+  <div>
+    <img src="javascript:alert(1)" alt="Unsafe">
+  </div>
+</a>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            PreserveUnsupportedBlocks = true
+        });
+
+        Assert.Empty(document.Blocks);
+        string markdown = document.ToMarkdown();
+        Assert.DoesNotContain("javascript:", markdown, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("<img", markdown, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("<div", markdown, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("<a ", markdown, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_DropsBlockedBase64ImageChildrenInsideAllowedBlockAnchors() {
+        string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.HtmlImages." + Guid.NewGuid().ToString("N"));
+        try {
+            foreach (var testCase in new[] {
+                (Handling: HtmlBase64ImageHandling.Skip, Payload: "AQID"),
+                (Handling: HtmlBase64ImageHandling.SaveToFile, Payload: "not-valid-base64")
+            }) {
+                string html = $"""
+<a href="https://example.test/ok">
+  <div>
+    <img src="data:image/png;base64,{testCase.Payload}" alt="Inline data">
+  </div>
+</a>
+""";
+
+                MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+                    PreserveUnsupportedBlocks = true,
+                    Base64Images = testCase.Handling,
+                    Base64ImageOutputDirectory = directory
+                });
+
+                Assert.Empty(document.Blocks);
+                string markdown = document.ToMarkdown();
+                Assert.DoesNotContain("data:image", markdown, StringComparison.OrdinalIgnoreCase);
+                Assert.DoesNotContain("<img", markdown, StringComparison.OrdinalIgnoreCase);
+                Assert.DoesNotContain("<div", markdown, StringComparison.OrdinalIgnoreCase);
+                Assert.DoesNotContain("<a ", markdown, StringComparison.OrdinalIgnoreCase);
+            }
+        } finally {
+            if (Directory.Exists(directory)) {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_CanSaveBase64ImagesIntoTypedImageBlock() {
+        string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.HtmlImages." + Guid.NewGuid().ToString("N"));
+        try {
+            const string html = """<figure><img src="data:image/png;base64,AQID" alt="Inline data" /></figure>""";
+
+            MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+                Base64Images = HtmlBase64ImageHandling.SaveToFile,
+                Base64ImageOutputDirectory = directory
+            });
+
+            var image = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
+            Assert.Equal("Inline data", image.Alt);
+            Assert.EndsWith(".png", image.Path, StringComparison.OrdinalIgnoreCase);
+            Assert.True(File.Exists(image.Path));
+            Assert.Equal(new byte[] { 1, 2, 3 }, File.ReadAllBytes(image.Path));
+            Assert.DoesNotContain("data:image/png", document.ToMarkdown(), StringComparison.OrdinalIgnoreCase);
+        } finally {
+            if (Directory.Exists(directory)) {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_SaveBase64ImagesDoesNotOverwriteExistingFile() {
+        string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.HtmlImages." + Guid.NewGuid().ToString("N"));
+        try {
+            Directory.CreateDirectory(directory);
+            string existing = Path.Combine(directory, "image_0.png");
+            File.WriteAllText(existing, "keep me");
+            const string html = """<figure><img src="data:image/png;base64,AQID" alt="Inline data" /></figure>""";
+
+            MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+                Base64Images = HtmlBase64ImageHandling.SaveToFile,
+                Base64ImageOutputDirectory = directory
+            });
+
+            var image = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
+            Assert.Equal("keep me", File.ReadAllText(existing));
+            Assert.Equal("image_0-1.png", Path.GetFileName(image.Path));
+            Assert.True(File.Exists(image.Path));
+            Assert.Equal(new byte[] { 1, 2, 3 }, File.ReadAllBytes(image.Path));
+        } finally {
+            if (Directory.Exists(directory)) {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_EncodesSavedBase64ImagePathBeforeRenderingMarkdown() {
+        string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO HtmlImages." + Guid.NewGuid().ToString("N"));
+        try {
+            const string html = """<figure><img src="data:image/png;base64,AQID" alt="Inline data" /></figure>""";
+
+            MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+                Base64Images = HtmlBase64ImageHandling.SaveToFile,
+                Base64ImageOutputDirectory = directory
+            });
+
+            var image = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
+            Assert.Contains("OfficeIMO%20HtmlImages.", image.Path, StringComparison.Ordinal);
+            Assert.True(File.Exists(Path.Combine(directory, "image_0.png")));
+
+            string markdown = document.ToMarkdown();
+            Assert.Contains("OfficeIMO%20HtmlImages.", markdown, StringComparison.Ordinal);
+            Assert.DoesNotContain("OfficeIMO HtmlImages.", markdown, StringComparison.Ordinal);
+
+            var parsed = MarkdownReader.Parse(markdown);
+            var parsedImage = Assert.IsType<ImageBlock>(Assert.Single(parsed.Blocks));
+            Assert.Equal(image.Path, parsedImage.Path);
+        } finally {
+            if (Directory.Exists(directory)) {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_ReusesSavedBase64PictureSourceMetadata() {
+        string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.HtmlImages." + Guid.NewGuid().ToString("N"));
+        try {
+            const string html = """
+<picture>
+  <source srcset="data:image/png;base64,AQID 1x">
+  <img src="media/fallback.png" alt="Data">
+</picture>
+""";
+
+            MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+                BaseUri = new Uri("https://example.test/articles/"),
+                Base64Images = HtmlBase64ImageHandling.SaveToFile,
+                Base64ImageOutputDirectory = directory,
+                Base64ImageFileNameGenerator = (index, _) => "image_" + index.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".png"
+            });
+
+            var image = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
+            var source = Assert.Single(image.PictureSources);
+            Assert.Equal("image_0.png", Path.GetFileName(image.Path));
+            Assert.Equal(image.Path, source.Path);
+            Assert.Contains(image.Path, source.SrcSet, StringComparison.Ordinal);
+            string savedFile = Assert.Single(Directory.GetFiles(directory));
+            Assert.Equal(image.Path, savedFile);
+            Assert.False(File.Exists(Path.Combine(directory, "image_1.png")));
+        } finally {
+            if (Directory.Exists(directory)) {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_EncodesSavedBase64PictureSrcSetPathsBeforeDescriptors() {
+        string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO HtmlImages." + Guid.NewGuid().ToString("N"));
+        try {
+            const string html = """
+<picture>
+  <source srcset="data:image/png;base64,AQID 1x">
+  <img src="media/fallback.png" alt="Data">
+</picture>
+""";
+
+            MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+                BaseUri = new Uri("https://example.test/articles/"),
+                Base64Images = HtmlBase64ImageHandling.SaveToFile,
+                Base64ImageOutputDirectory = directory,
+                Base64ImageFileNameGenerator = (index, _) => "image_" + index.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".png"
+            });
+
+            var image = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
+            var source = Assert.Single(image.PictureSources);
+            Assert.Equal(image.Path, source.Path);
+            Assert.Contains("OfficeIMO%20HtmlImages.", source.SrcSet, StringComparison.Ordinal);
+            Assert.DoesNotContain("OfficeIMO HtmlImages.", source.SrcSet, StringComparison.Ordinal);
+            Assert.EndsWith(" 1x", source.SrcSet, StringComparison.Ordinal);
+        } finally {
+            if (Directory.Exists(directory)) {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_DoesNotSaveBase64ImagesDuringLinkedImageClassification() {
+        string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.HtmlImages." + Guid.NewGuid().ToString("N"));
+        try {
+            const string html = """<p><a href="/docs"><img src="data:image/png;base64,AQID" alt="Data" /></a></p>""";
+
+            MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+                BaseUri = new Uri("https://example.test/articles/"),
+                Base64Images = HtmlBase64ImageHandling.SaveToFile,
+                Base64ImageOutputDirectory = directory,
+                Base64ImageFileNameGenerator = (index, _) => "image_" + index.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".png"
+            });
+
+            var image = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
+            Assert.Equal("https://example.test/docs", image.LinkUrl);
+            Assert.Equal("Data", image.Alt);
+            Assert.Equal("image_0.png", Path.GetFileName(image.Path));
+            Assert.True(File.Exists(image.Path));
+            Assert.Equal(new byte[] { 1, 2, 3 }, File.ReadAllBytes(image.Path));
+            string savedFile = Assert.Single(Directory.GetFiles(directory));
+            Assert.Equal(image.Path, savedFile);
+            Assert.False(File.Exists(Path.Combine(directory, "image_1.png")));
+        } finally {
+            if (Directory.Exists(directory)) {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_DropsBadEscapedBase64ImagesWhenSaving() {
+        string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.HtmlImages." + Guid.NewGuid().ToString("N"));
+        try {
+            const string html = """<figure><img src="data:image/png;base64,%ZZ" alt="Bad data" /></figure>""";
+
+            MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+                Base64Images = HtmlBase64ImageHandling.SaveToFile,
+                Base64ImageOutputDirectory = directory
+            });
+
+            Assert.Empty(document.Blocks);
+            Assert.DoesNotContain("data:image", document.ToMarkdown(), StringComparison.OrdinalIgnoreCase);
+            if (Directory.Exists(directory)) {
+                Assert.Empty(Directory.GetFiles(directory));
+            }
+        } finally {
+            if (Directory.Exists(directory)) {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_UsesConfiguredLineEndingAndUnorderedListMarker() {
+        const string html = "<ul><li>One</li><li>Two</li></ul>";
+
+        string markdown = html.ToMarkdown(new HtmlToMarkdownOptions {
+            MarkdownWriteOptions = new MarkdownWriteOptions {
+                OutputLineEnding = "\n",
+                UnorderedListMarker = '*'
+            }
+        });
+
+        Assert.Contains("* One\n* Two", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("\r\n", markdown, StringComparison.Ordinal);
     }
 
     [Fact]
