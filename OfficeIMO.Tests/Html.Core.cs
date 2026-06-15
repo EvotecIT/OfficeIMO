@@ -215,6 +215,17 @@ public sealed class HtmlCoreTests {
     }
 
     [Theory]
+    [InlineData("java\nscript:alert(1)")]
+    [InlineData("vb\rscript:msgbox(1)")]
+    [InlineData("java\tscript:alert(1)")]
+    public void HtmlUrlPolicyEvaluator_RejectsUrlsWithEmbeddedControlCharacters(string rawUrl) {
+        var policy = HtmlUrlPolicy.CreateWebOnlyProfile();
+
+        Assert.False(HtmlUrlPolicyEvaluator.IsAllowed(rawUrl, policy));
+        Assert.Equal(string.Empty, HtmlUrlPolicyEvaluator.ResolveUrl(rawUrl, new Uri("https://example.test/"), policy));
+    }
+
+    [Theory]
     [InlineData("C:secret.docx")]
     [InlineData("C:\\secret.docx")]
     [InlineData("C:/secret.docx")]

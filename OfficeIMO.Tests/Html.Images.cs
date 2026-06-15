@@ -926,6 +926,47 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void HtmlToWord_ImageSelection_ContinuesPastInvalidLocalCandidate() {
+            string badPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".png");
+            File.WriteAllText(badPath, "not an image");
+            try {
+                var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
+                string base64 = Convert.ToBase64String(File.ReadAllBytes(path));
+                string html = $"<img data-src=\"{new Uri(badPath).AbsoluteUri}\" src=\"data:image/png;base64,{base64}\" alt=\"Logo\" />";
+                var options = new HtmlToWordOptions();
+
+                var doc = html.LoadFromHtml(options);
+
+                Assert.Single(doc.Images);
+                Assert.Empty(options.Diagnostics);
+            } finally {
+                File.Delete(badPath);
+            }
+        }
+
+        [Fact]
+        public void HtmlToWord_ImageSelection_ContinuesPastOversizedLocalCandidate() {
+            var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
+            byte[] imageBytes = File.ReadAllBytes(path);
+            string oversizedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".png");
+            File.WriteAllBytes(oversizedPath, imageBytes.Concat(new byte[16]).ToArray());
+            try {
+                string base64 = Convert.ToBase64String(imageBytes);
+                string html = $"<img data-src=\"{new Uri(oversizedPath).AbsoluteUri}\" src=\"data:image/png;base64,{base64}\" alt=\"Logo\" />";
+                var options = new HtmlToWordOptions {
+                    MaxImageBytes = imageBytes.LongLength
+                };
+
+                var doc = html.LoadFromHtml(options);
+
+                Assert.Single(doc.Images);
+                Assert.Empty(options.Diagnostics);
+            } finally {
+                File.Delete(oversizedPath);
+            }
+        }
+
+        [Fact]
         public void HtmlToWord_ImageSelection_ReusesCachedDataCandidatePastTotalBudget() {
             var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
             byte[] bytes = File.ReadAllBytes(path);

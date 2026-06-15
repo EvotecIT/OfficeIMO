@@ -59,6 +59,10 @@ public static class HtmlUrlPolicyEvaluator {
 
         var effectivePolicy = policy ?? HtmlUrlPolicy.CreateOfficeIMOProfile();
         string candidate = rawUrl!.Trim();
+        if (ContainsUrlControlCharacter(candidate)) {
+            return HtmlUrlEvaluation.Rejected;
+        }
+
         if (candidate.StartsWith("#", StringComparison.Ordinal)) {
             return allowEmptyFragment || candidate.Length > 1
                 ? HtmlUrlEvaluation.Allowed(candidate, allowBaseUriResolution: false)
@@ -115,6 +119,17 @@ public static class HtmlUrlPolicyEvaluator {
         }
 
         return !policy.RestrictUrlSchemes || policy.AllowedUrlSchemes.Contains(scheme);
+    }
+
+    private static bool ContainsUrlControlCharacter(string value) {
+        for (int i = 0; i < value.Length; i++) {
+            char c = value[i];
+            if (c <= '\u001F' || c == '\u007F') {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static bool LooksLikeWindowsDrivePath(string value) {

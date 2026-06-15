@@ -464,6 +464,10 @@ namespace OfficeIMO.Word.Html {
                         continue;
                     }
 
+                    if (IsLocalEmbeddedImageSource(resolved, options) && !TryProbeLocalImageCandidate(resolved, options)) {
+                        continue;
+                    }
+
                     return resolved;
                 }
             }
@@ -837,6 +841,29 @@ namespace OfficeIMO.Word.Html {
             return true;
         }
 
+        private bool TryProbeLocalImageCandidate(string source, HtmlToWordOptions options) {
+            if (!TryGetLocalImagePath(source, out string path)) {
+                return false;
+            }
+
+            long reservedBytes = 0;
+            try {
+                reservedBytes = EnsureFileWithinImageLimits(path, options);
+                byte[] bytes = File.ReadAllBytes(path);
+                if (!IsEmbeddableImageData(bytes, out _)) {
+                    return false;
+                }
+
+                return true;
+            } catch (OperationCanceledException) {
+                throw;
+            } catch (Exception) {
+                return false;
+            } finally {
+                ReleaseImageBytes(reservedBytes, options);
+            }
+        }
+
         private static bool IsRemoteEmbeddedImageSource(string source, HtmlToWordOptions options) {
             if (options.ImageProcessing == ImageProcessingMode.LinkExternal) {
                 return false;
@@ -846,6 +873,33 @@ namespace OfficeIMO.Word.Html {
                    && !uri.IsFile
                    && (uri.Scheme.Equals(Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase)
                        || uri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static bool IsLocalEmbeddedImageSource(string source, HtmlToWordOptions options) {
+            if (options.ImageProcessing == ImageProcessingMode.LinkExternal) {
+                return false;
+            }
+
+            return TryGetLocalImagePath(source, out _);
+        }
+
+        private static bool TryGetLocalImagePath(string source, out string path) {
+            path = string.Empty;
+            if (Uri.TryCreate(source, UriKind.Absolute, out var uri)) {
+                if (!uri.IsFile) {
+                    return false;
+                }
+
+                path = uri.LocalPath;
+                return true;
+            }
+
+            if (!File.Exists(source)) {
+                return false;
+            }
+
+            path = source;
+            return true;
         }
 
         private static bool HasExternalImageDimensionHints(IHtmlImageElement img) {
