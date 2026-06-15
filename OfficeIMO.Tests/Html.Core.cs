@@ -17,6 +17,17 @@ public sealed class HtmlCoreTests {
     }
 
     [Fact]
+    public void HtmlDocumentParser_ResolvesProtocolRelativeBaseElementAgainstWebSchemeWhenFallbackIsFile() {
+        var document = HtmlDocumentParser.ParseDocument("""<base href="//cdn.example.test/assets/"><img src="logo.png">""");
+
+        Uri? baseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(
+            document,
+            new Uri("file:///C:/content/page.html"));
+
+        Assert.Equal("https://cdn.example.test/assets/", baseUri?.AbsoluteUri);
+    }
+
+    [Fact]
     public void HtmlImageSourceResolver_ResolvesPictureSourceSetAgainstBaseUri() {
         var document = HtmlDocumentParser.ParseDocument("""
 <picture>

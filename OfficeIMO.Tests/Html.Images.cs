@@ -926,6 +926,48 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void HtmlToWord_ImageSelection_DoesNotRetryFailedRemoteCandidateWithoutFallback() {
+            var requested = new List<Uri>();
+            using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(request => {
+                requested.Add(request.RequestUri!);
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+            }));
+            var options = new HtmlToWordOptions {
+                HttpClient = httpClient
+            };
+            string html = """<img src="https://cdn.example.test/missing.png" alt="Missing" />""";
+
+            var doc = html.LoadFromHtml(options);
+
+            Assert.Empty(doc.Images);
+            Assert.Equal(new Uri("https://cdn.example.test/missing.png"), Assert.Single(requested));
+        }
+
+        [Fact]
+        public void HtmlToWord_ImageSelection_ContinuesPastRemoteProbeTimeout() {
+            var requested = new List<Uri>();
+            var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
+            string base64 = Convert.ToBase64String(File.ReadAllBytes(path));
+            using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(request => {
+                requested.Add(request.RequestUri!);
+                using var cts = new CancellationTokenSource();
+                cts.Cancel();
+                return Task.FromCanceled<HttpResponseMessage>(cts.Token);
+            }));
+            var options = new HtmlToWordOptions {
+                HttpClient = httpClient,
+                ResourceTimeout = TimeSpan.FromMilliseconds(1)
+            };
+            string html = $"<img data-src=\"https://cdn.example.test/slow.png\" src=\"data:image/png;base64,{base64}\" alt=\"Logo\" />";
+
+            var doc = html.LoadFromHtml(options);
+
+            Assert.Single(doc.Images);
+            Assert.Equal(new Uri("https://cdn.example.test/slow.png"), Assert.Single(requested));
+            Assert.Empty(options.Diagnostics);
+        }
+
+        [Fact]
         public void HtmlToWord_ImageSelection_ContinuesPastInvalidLocalCandidate() {
             string badPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".png");
             File.WriteAllText(badPath, "not an image");

@@ -36,12 +36,28 @@ public static class HtmlDocumentParser {
             return fallbackBaseUri;
         }
 
+        if (baseHref.StartsWith("//", StringComparison.Ordinal)) {
+            return ResolveProtocolRelativeBaseUri(baseHref, fallbackBaseUri);
+        }
+
         if (fallbackBaseUri != null && Uri.TryCreate(fallbackBaseUri, baseHref, out var resolvedFromFallback)) {
             return resolvedFromFallback;
         }
 
         return Uri.TryCreate(baseHref, UriKind.Absolute, out var absoluteBaseUri)
             ? absoluteBaseUri
+            : fallbackBaseUri;
+    }
+
+    private static Uri? ResolveProtocolRelativeBaseUri(string baseHref, Uri? fallbackBaseUri) {
+        string scheme = fallbackBaseUri != null
+                        && (fallbackBaseUri.Scheme.Equals(Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase)
+                            || fallbackBaseUri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+            ? fallbackBaseUri.Scheme
+            : Uri.UriSchemeHttps;
+
+        return Uri.TryCreate(scheme + ":" + baseHref, UriKind.Absolute, out var resolved)
+            ? resolved
             : fallbackBaseUri;
     }
 

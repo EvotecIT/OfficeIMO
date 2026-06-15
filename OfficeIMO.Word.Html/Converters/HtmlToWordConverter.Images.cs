@@ -451,10 +451,6 @@ namespace OfficeIMO.Word.Html {
                     continue;
                 }
 
-                if (string.IsNullOrEmpty(firstResolved)) {
-                    firstResolved = resolved;
-                }
-
                 if (IsUnresolvedRelativeImageSource(resolved)) {
                     continue;
                 }
@@ -469,6 +465,10 @@ namespace OfficeIMO.Word.Html {
                     }
 
                     return resolved;
+                }
+
+                if (string.IsNullOrEmpty(firstResolved)) {
+                    firstResolved = resolved;
                 }
             }
 
@@ -601,6 +601,8 @@ namespace OfficeIMO.Word.Html {
 
                 _remoteImageBytesCache[uri.AbsoluteUri] = bytes;
                 return true;
+            } catch (OperationCanceledException) when (!_cancellationToken.IsCancellationRequested) {
+                return false;
             } catch (OperationCanceledException) {
                 throw;
             } catch (Exception) {
