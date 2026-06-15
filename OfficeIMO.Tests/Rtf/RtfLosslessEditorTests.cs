@@ -233,6 +233,51 @@ public class RtfLosslessEditorTests {
     }
 
     [Fact]
+    public void SetXmlNamespace_Replaces_Adds_And_Removes_Metadata_Without_Normalizing_Body() {
+        const string rtf = @"{\rtf1\ansi{\*\xmlnstbl{\xmlns1 old;}{\xmlns2 remove;}{\xmlns1 duplicate;}}{\info{\title Keep}}\pard Body \'80\par}";
+
+        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        editor.SetXmlNamespace(1, "urn:new {ns} ż");
+        editor.SetXmlNamespace(3, "urn:add");
+        editor.RemoveXmlNamespace(2);
+
+        const string expected = @"{\rtf1\ansi{\*\xmlnstbl{\xmlns1 urn:new \{ns\} \u380?;}{\xmlns3 urn:add;}}{\info{\title Keep}}\pard Body \'80\par}";
+        Assert.Equal(expected, editor.ToRtf());
+
+        RtfReadResult read = editor.ToReadResult();
+        Assert.Collection(
+            read.Document.XmlNamespaces,
+            xmlNamespace => {
+                Assert.Equal(1, xmlNamespace.Id);
+                Assert.Equal("urn:new {ns} ż", xmlNamespace.Uri);
+            },
+            xmlNamespace => {
+                Assert.Equal(3, xmlNamespace.Id);
+                Assert.Equal("urn:add", xmlNamespace.Uri);
+            });
+        Assert.Equal("Keep", read.Document.Info.Title);
+        Assert.Contains(@"Body \'80", editor.ToRtf(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SetXmlNamespace_Creates_And_Removes_Namespace_Table() {
+        const string rtf = @"{\rtf1\ansi{\fonttbl{\f0 Calibri;}}{\info{\title Keep}}\pard Body\par}";
+
+        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        editor.SetXmlNamespace(7, "urn:created");
+
+        Assert.Equal(@"{\rtf1\ansi{\fonttbl{\f0 Calibri;}}{\*\xmlnstbl{\xmlns7 urn:created;}}{\info{\title Keep}}\pard Body\par}", editor.ToRtf());
+        RtfXmlNamespace xmlNamespace = Assert.Single(editor.ToReadResult().Document.XmlNamespaces);
+        Assert.Equal(7, xmlNamespace.Id);
+        Assert.Equal("urn:created", xmlNamespace.Uri);
+
+        editor.RemoveXmlNamespace(7);
+
+        Assert.Equal(rtf, editor.ToRtf());
+        Assert.Empty(editor.ToReadResult().Document.XmlNamespaces);
+    }
+
+    [Fact]
     public void AppendParagraph_Preserves_Existing_Syntax_And_Escapes_Text() {
         const string rtf = @"{\rtf1\ansi{\*\unknown Keep}{\pict\pngblip\bin3 abc}\pard Existing\par}";
 
