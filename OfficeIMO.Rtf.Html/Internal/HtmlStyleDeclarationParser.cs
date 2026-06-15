@@ -42,6 +42,18 @@ internal static partial class HtmlStyleDeclarationParser {
             case "font-size":
                 declaration.FontSizePoints = ParseFontSize(value);
                 break;
+            case "letter-spacing":
+                declaration.CharacterSpacingTwips = ParseCharacterSpacing(value);
+                break;
+            case "font-stretch":
+                declaration.CharacterScalePercent = ParseCharacterScale(value);
+                break;
+            case "--officeimo-rtf-character-scale":
+                declaration.CharacterScalePercent = ParseRtfCharacterScale(value);
+                break;
+            case "--officeimo-rtf-character-offset":
+                declaration.CharacterOffsetHalfPoints = ParseRtfCharacterOffset(value);
+                break;
             case "text-decoration":
             case "text-decoration-line":
                 ApplyTextDecoration(declaration, value);
@@ -71,6 +83,7 @@ internal static partial class HtmlStyleDeclarationParser {
             case "vertical-align":
                 declaration.VerticalPosition = ParseVerticalAlign(value);
                 declaration.TableCellVerticalAlignment = ParseTableCellVerticalAlign(value);
+                declaration.CharacterOffsetHalfPoints = ParseCharacterOffset(value);
                 break;
             case "text-align":
                 declaration.TextAlignment = ParseTextAlign(value);

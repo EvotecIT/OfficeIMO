@@ -163,4 +163,60 @@ public class RtfHtmlCharacterFormatTests {
         Assert.Equal(RtfCapsStyle.Caps, roundTripParagraph.Runs.Single(run => run.Text == "Caps").CapsStyle);
         Assert.Equal(RtfCapsStyle.SmallCaps, roundTripParagraph.Runs.Single(run => run.Text == " Small").CapsStyle);
     }
+
+    [Fact]
+    public void Html_ToRtfDocument_Parses_Character_Metrics() {
+        const string html = "<p><span style=\"letter-spacing:2pt;font-stretch:80%;vertical-align:3pt\">Raised<span style=\"letter-spacing:normal;font-stretch:100%;vertical-align:baseline\"> Plain</span></span><span style=\"letter-spacing:-1pt\"> Condensed</span></p>";
+
+        RtfDocument document = html.ToRtfDocumentFromHtml();
+
+        RtfParagraph paragraph = Assert.Single(document.Paragraphs);
+        RtfRun raised = paragraph.Runs.Single(run => run.Text == "Raised");
+        Assert.Equal(40, raised.CharacterSpacingTwips);
+        Assert.Equal(80, raised.CharacterScalePercent);
+        Assert.Equal(6, raised.CharacterOffsetHalfPoints);
+
+        RtfRun plain = paragraph.Runs.Single(run => run.Text == " Plain");
+        Assert.Null(plain.CharacterSpacingTwips);
+        Assert.Null(plain.CharacterScalePercent);
+        Assert.Null(plain.CharacterOffsetHalfPoints);
+
+        RtfRun condensed = paragraph.Runs.Single(run => run.Text == " Condensed");
+        Assert.Equal(-20, condensed.CharacterSpacingTwips);
+
+        string rtf = document.ToRtf();
+        Assert.Contains(@"\expndtw40", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\charscalex80", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\up6", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\expndtw-20", rtf, StringComparison.Ordinal);
+
+        RtfParagraph roundTripParagraph = RtfDocument.Read(rtf).Document.Paragraphs[0];
+        Assert.Equal(40, roundTripParagraph.Runs.Single(run => run.Text == "Raised").CharacterSpacingTwips);
+        Assert.Equal(80, roundTripParagraph.Runs.Single(run => run.Text == "Raised").CharacterScalePercent);
+        Assert.Equal(6, roundTripParagraph.Runs.Single(run => run.Text == "Raised").CharacterOffsetHalfPoints);
+        Assert.Null(roundTripParagraph.Runs.Single(run => run.Text == " Plain").CharacterSpacingTwips);
+        Assert.Equal(-20, roundTripParagraph.Runs.Single(run => run.Text == " Condensed").CharacterSpacingTwips);
+    }
+
+    [Fact]
+    public void RtfDocument_ToHtml_Renders_Character_Metrics() {
+        RtfDocument document = RtfDocument.Create();
+        RtfParagraph paragraph = document.AddParagraph();
+        paragraph.AddText("Raised")
+            .SetCharacterSpacingTwips(40)
+            .SetCharacterScale(80)
+            .SetCharacterOffsetHalfPoints(6);
+        paragraph.AddText(" Lowered").SetCharacterOffsetHalfPoints(-4);
+
+        string html = document.ToHtml();
+
+        Assert.Equal("<p><span style=\"letter-spacing:2pt;font-stretch:80%;--officeimo-rtf-character-scale:80;vertical-align:3pt;--officeimo-rtf-character-offset:6;\">Raised</span><span style=\"vertical-align:-2pt;--officeimo-rtf-character-offset:-4;\"> Lowered</span></p>", html);
+
+        RtfParagraph roundTripParagraph = html.ToRtfDocumentFromHtml().Paragraphs[0];
+        RtfRun raised = roundTripParagraph.Runs.Single(run => run.Text == "Raised");
+        Assert.Equal(40, raised.CharacterSpacingTwips);
+        Assert.Equal(80, raised.CharacterScalePercent);
+        Assert.Equal(6, raised.CharacterOffsetHalfPoints);
+        Assert.Equal(-4, roundTripParagraph.Runs.Single(run => run.Text == " Lowered").CharacterOffsetHalfPoints);
+    }
 }

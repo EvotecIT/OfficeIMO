@@ -31,6 +31,12 @@ internal sealed class HtmlStyleDeclaration {
 
     internal double? FontSizePoints { get; set; }
 
+    internal int? CharacterSpacingTwips { get; set; }
+
+    internal int? CharacterScalePercent { get; set; }
+
+    internal int? CharacterOffsetHalfPoints { get; set; }
+
     internal int? LeftIndentTwips { get; set; }
 
     internal int? RightIndentTwips { get; set; }
@@ -95,5 +101,8 @@ internal sealed class HtmlStyleDeclaration {
         BackgroundColor != null ||
         FontFamily != null ||
         FontSizePoints.HasValue ||
+        CharacterSpacingTwips.HasValue ||
+        CharacterScalePercent.HasValue ||
+        CharacterOffsetHalfPoints.HasValue ||
         HasBorderFormatting;
 }

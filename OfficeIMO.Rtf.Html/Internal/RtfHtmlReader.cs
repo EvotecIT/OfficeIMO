@@ -293,6 +293,8 @@ internal static partial class RtfHtmlReader {
             if (fontSize.HasValue) {
                 run.FontSize = fontSize.Value;
             }
+
+            ApplyCharacterMetrics(run);
         }
 
         internal void TrimEmptyTrailingParagraph() {
