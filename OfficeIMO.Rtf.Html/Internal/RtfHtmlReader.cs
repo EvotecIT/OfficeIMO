@@ -260,7 +260,9 @@ internal static partial class RtfHtmlReader {
             RtfRun run = EnsureParagraph().AddText(value);
             run.Bold = ResolveStyleValue(style => style.Bold, _bold > 0);
             run.Italic = ResolveStyleValue(style => style.Italic, _italic > 0);
-            run.Underline = ResolveStyleValue(style => style.Underline, _underline > 0);
+            bool underline = ResolveStyleValue(style => style.Underline, _underline > 0);
+            run.Underline = underline;
+            ApplyRichUnderline(run, underline);
             run.Strike = ResolveStyleValue(style => style.Strike, _strike > 0);
             run.VerticalPosition = ResolveVerticalPosition();
             run.Hyperlink = _hyperlink;

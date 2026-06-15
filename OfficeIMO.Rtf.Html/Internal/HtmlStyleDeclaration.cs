@@ -9,6 +9,10 @@ internal sealed class HtmlStyleDeclaration {
 
     internal bool? Underline { get; set; }
 
+    internal RtfUnderlineStyle? UnderlineStyle { get; set; }
+
+    internal RtfColor? UnderlineColor { get; set; }
+
     internal bool? Strike { get; set; }
 
     internal RtfVerticalPosition? VerticalPosition { get; set; }
@@ -77,6 +81,8 @@ internal sealed class HtmlStyleDeclaration {
         Bold.HasValue ||
         Italic.HasValue ||
         Underline.HasValue ||
+        UnderlineStyle.HasValue ||
+        UnderlineColor != null ||
         Strike.HasValue ||
         VerticalPosition.HasValue ||
         ForegroundColor != null ||

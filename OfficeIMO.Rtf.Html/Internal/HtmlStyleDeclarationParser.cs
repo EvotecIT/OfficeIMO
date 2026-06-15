@@ -46,6 +46,15 @@ internal static partial class HtmlStyleDeclarationParser {
             case "text-decoration-line":
                 ApplyTextDecoration(declaration, value);
                 break;
+            case "text-decoration-style":
+                declaration.UnderlineStyle = ParseTextDecorationStyle(value);
+                break;
+            case "text-decoration-color":
+                declaration.UnderlineColor = ParseColor(value);
+                break;
+            case "--officeimo-rtf-underline-style":
+                declaration.UnderlineStyle = ParseRtfUnderlineStyle(value);
+                break;
             case "vertical-align":
                 declaration.VerticalPosition = ParseVerticalAlign(value);
                 declaration.TableCellVerticalAlignment = ParseTableCellVerticalAlign(value);
@@ -453,23 +462,6 @@ internal static partial class HtmlStyleDeclarationParser {
 
         points = parsed * multiplier;
         return true;
-    }
-
-    private static void ApplyTextDecoration(HtmlStyleDeclaration declaration, string value) {
-        string normalized = " " + value.Replace('-', ' ') + " ";
-        if (ContainsWord(normalized, "none")) {
-            declaration.Underline = false;
-            declaration.Strike = false;
-            return;
-        }
-
-        if (ContainsWord(normalized, "underline")) {
-            declaration.Underline = true;
-        }
-
-        if (ContainsWord(normalized, "line through")) {
-            declaration.Strike = true;
-        }
     }
 
     private static RtfVerticalPosition? ParseVerticalAlign(string value) {
