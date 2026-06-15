@@ -266,6 +266,7 @@ internal static partial class RtfHtmlReader {
             bool strike = ResolveStyleValue(style => style.Strike, _strike > 0);
             run.Strike = strike;
             ApplyRichStrike(run, strike);
+            run.CapsStyle = ResolveCapsStyle();
             run.VerticalPosition = ResolveVerticalPosition();
             run.Hyperlink = _hyperlink;
             RtfColor? foreground = ResolveStyleColor(style => style.ForegroundColor);

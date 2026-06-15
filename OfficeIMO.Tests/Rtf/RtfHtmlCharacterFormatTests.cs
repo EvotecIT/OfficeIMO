@@ -126,4 +126,41 @@ public class RtfHtmlCharacterFormatTests {
         Assert.True(roundTripDoubled.DoubleStrike);
         Assert.False(roundTripDoubled.Strike);
     }
+
+    [Fact]
+    public void Html_ToRtfDocument_Parses_Caps_And_SmallCaps() {
+        const string html = "<p><span style=\"text-transform:uppercase\">Caps</span><span style=\"font-variant-caps:small-caps\"> Small</span><span style=\"text-transform:uppercase\"><span style=\"text-transform:none\"> Plain</span></span></p>";
+
+        RtfDocument document = html.ToRtfDocumentFromHtml();
+
+        RtfParagraph paragraph = Assert.Single(document.Paragraphs);
+        Assert.Equal(RtfCapsStyle.Caps, paragraph.Runs.Single(run => run.Text == "Caps").CapsStyle);
+        Assert.Equal(RtfCapsStyle.SmallCaps, paragraph.Runs.Single(run => run.Text == " Small").CapsStyle);
+        Assert.Equal(RtfCapsStyle.None, paragraph.Runs.Single(run => run.Text == " Plain").CapsStyle);
+
+        string rtf = document.ToRtf();
+        Assert.Contains(@"\caps Caps", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\scaps  Small", rtf, StringComparison.Ordinal);
+
+        RtfParagraph roundTripParagraph = RtfDocument.Read(rtf).Document.Paragraphs[0];
+        Assert.Equal(RtfCapsStyle.Caps, roundTripParagraph.Runs.Single(run => run.Text == "Caps").CapsStyle);
+        Assert.Equal(RtfCapsStyle.SmallCaps, roundTripParagraph.Runs.Single(run => run.Text == " Small").CapsStyle);
+        Assert.Equal(RtfCapsStyle.None, roundTripParagraph.Runs.Single(run => run.Text == " Plain").CapsStyle);
+    }
+
+    [Fact]
+    public void RtfDocument_ToHtml_Renders_Caps_And_SmallCaps() {
+        RtfDocument document = RtfDocument.Create();
+        RtfParagraph paragraph = document.AddParagraph();
+        paragraph.AddText("Caps").SetCapsStyle(RtfCapsStyle.Caps);
+        paragraph.AddText(" Small").SetCapsStyle(RtfCapsStyle.SmallCaps);
+
+        string html = document.ToHtml();
+
+        Assert.Equal("<p><span style=\"text-transform:uppercase;--officeimo-rtf-caps-style:caps;\">Caps</span><span style=\"font-variant-caps:small-caps;--officeimo-rtf-caps-style:small-caps;\"> Small</span></p>", html);
+
+        RtfParagraph roundTripParagraph = html.ToRtfDocumentFromHtml().Paragraphs[0];
+        Assert.Equal(RtfCapsStyle.Caps, roundTripParagraph.Runs.Single(run => run.Text == "Caps").CapsStyle);
+        Assert.Equal(RtfCapsStyle.SmallCaps, roundTripParagraph.Runs.Single(run => run.Text == " Small").CapsStyle);
+    }
 }

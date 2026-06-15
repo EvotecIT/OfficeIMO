@@ -58,6 +58,16 @@ internal static partial class HtmlStyleDeclarationParser {
             case "--officeimo-rtf-strike-style":
                 declaration.DoubleStrike = ParseRtfStrikeStyle(value);
                 break;
+            case "text-transform":
+                declaration.CapsStyle = ParseTextTransform(value);
+                break;
+            case "font-variant":
+            case "font-variant-caps":
+                declaration.CapsStyle = ParseFontVariantCaps(value);
+                break;
+            case "--officeimo-rtf-caps-style":
+                declaration.CapsStyle = ParseRtfCapsStyle(value);
+                break;
             case "vertical-align":
                 declaration.VerticalPosition = ParseVerticalAlign(value);
                 declaration.TableCellVerticalAlignment = ParseTableCellVerticalAlign(value);
