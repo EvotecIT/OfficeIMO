@@ -57,6 +57,7 @@ internal static partial class RtfHtmlReader {
         internal void Start(HtmlToken token) {
             HtmlStyleDeclaration style = HtmlStyleDeclarationParser.Parse(GetAttribute(token, "style"));
             style = ApplyLanguageDirectionAttributes(style, token);
+            ApplyDocumentLanguageDirection(token.Value, style);
             switch (token.Value) {
                 case "p":
                 case "div":
@@ -334,6 +335,10 @@ internal static partial class RtfHtmlReader {
         private void ApplyParagraphStyle(HtmlStyleDeclaration style) {
             if (_paragraph != null && style.TextAlignment.HasValue) {
                 _paragraph.Alignment = style.TextAlignment.Value;
+            }
+
+            if (_paragraph != null && style.Direction.HasValue) {
+                _paragraph.Direction = style.Direction.Value;
             }
 
             if (_paragraph != null && style.LeftIndentTwips.HasValue) {

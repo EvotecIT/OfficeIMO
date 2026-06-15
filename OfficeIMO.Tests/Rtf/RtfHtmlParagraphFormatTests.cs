@@ -54,4 +54,52 @@ public class RtfHtmlParagraphFormatTests {
         Assert.Equal(2, roundTripBoxed.LeftBorder.ColorIndex);
         Assert.Equal(RtfParagraphBorderStyle.Dotted, roundTripBoxed.BottomBorder.Style);
     }
+
+    [Fact]
+    public void Html_ToRtfDocument_Parses_Document_And_Paragraph_Language_Direction() {
+        const string html = "<html dir=\"rtl\" lang=\"ar-SA\"><body><p dir=\"ltr\">LTR <span lang=\"pl-PL\">Polish</span></p><p>RTL default</p></body></html>";
+
+        RtfDocument document = html.ToRtfDocumentFromHtml();
+
+        Assert.Equal(1025, document.Settings.DefaultLanguageId);
+        Assert.Equal(RtfTextDirection.RightToLeft, document.Settings.Direction);
+        Assert.Equal(RtfTextDirection.LeftToRight, document.Paragraphs[0].Direction);
+        Assert.Null(document.Paragraphs[1].Direction);
+        Assert.Null(document.Paragraphs[0].Runs.Single(run => run.Text == "LTR ").Direction);
+        Assert.Null(document.Paragraphs[0].Runs.Single(run => run.Text == "LTR ").LanguageId);
+        Assert.Equal(1045, document.Paragraphs[0].Runs.Single(run => run.Text == "Polish").LanguageId);
+        Assert.Null(document.Paragraphs[1].Runs.Single(run => run.Text == "RTL default").Direction);
+
+        string rtf = document.ToRtf();
+        Assert.Contains(@"\deflang1025", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\rtldoc", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\pard\ltrpar", rtf, StringComparison.Ordinal);
+
+        RtfDocument roundTrip = RtfDocument.Read(rtf).Document;
+        Assert.Equal(1025, roundTrip.Settings.DefaultLanguageId);
+        Assert.Equal(RtfTextDirection.RightToLeft, roundTrip.Settings.Direction);
+        Assert.Equal(RtfTextDirection.LeftToRight, roundTrip.Paragraphs[0].Direction);
+    }
+
+    [Fact]
+    public void RtfDocument_ToHtml_Renders_Document_And_Paragraph_Language_Direction() {
+        RtfDocument document = RtfDocument.Create();
+        document.Settings
+            .SetDefaultLanguage(1025)
+            .SetDirection(RtfTextDirection.RightToLeft);
+        document.AddParagraph("LTR")
+            .SetDirection(RtfTextDirection.LeftToRight);
+        document.AddParagraph("Default");
+
+        string html = document.ToHtml(new RtfHtmlSaveOptions { FragmentOnly = false });
+
+        Assert.Contains("<html lang=\"ar-SA\" dir=\"rtl\" style=\"--officeimo-rtf-lang:1025;direction:rtl;unicode-bidi:isolate;--officeimo-rtf-direction:rtl;\">", html, StringComparison.Ordinal);
+        Assert.Contains("<p dir=\"ltr\" style=\"direction:ltr;unicode-bidi:isolate;--officeimo-rtf-direction:ltr;\">LTR</p>", html, StringComparison.Ordinal);
+
+        RtfDocument roundTrip = html.ToRtfDocumentFromHtml();
+        Assert.Equal(1025, roundTrip.Settings.DefaultLanguageId);
+        Assert.Equal(RtfTextDirection.RightToLeft, roundTrip.Settings.Direction);
+        Assert.Equal(RtfTextDirection.LeftToRight, roundTrip.Paragraphs[0].Direction);
+        Assert.Null(roundTrip.Paragraphs[1].Runs.Single(run => run.Text == "Default").Direction);
+    }
 }

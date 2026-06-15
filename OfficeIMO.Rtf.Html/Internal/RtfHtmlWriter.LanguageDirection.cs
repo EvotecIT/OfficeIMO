@@ -5,20 +5,52 @@ namespace OfficeIMO.Rtf.Html;
 
 internal static partial class RtfHtmlWriter {
     private static void AppendLanguageDirectionStyle(StringBuilder builder, RtfRun run) {
-        if (run.LanguageId.HasValue) {
+        AppendLanguageDirectionStyle(builder, run.LanguageId, run.Direction);
+    }
+
+    private static void AppendLanguageDirectionStyle(StringBuilder builder, int? languageId, RtfTextDirection? direction) {
+        if (languageId.HasValue) {
             builder.Append("--officeimo-rtf-lang:");
-            builder.Append(run.LanguageId.Value.ToString(CultureInfo.InvariantCulture));
+            builder.Append(languageId.Value.ToString(CultureInfo.InvariantCulture));
             builder.Append(';');
         }
 
-        string? direction = FormatTextDirection(run.Direction);
-        if (direction != null) {
+        string? formattedDirection = FormatTextDirection(direction);
+        if (formattedDirection != null) {
             builder.Append("direction:");
-            builder.Append(direction);
+            builder.Append(formattedDirection);
             builder.Append(";unicode-bidi:isolate;--officeimo-rtf-direction:");
-            builder.Append(direction);
+            builder.Append(formattedDirection);
             builder.Append(';');
         }
+    }
+
+    private static void AppendLanguageDirectionAttributes(StringBuilder builder, int? languageId, RtfTextDirection? direction) {
+        string? language = FormatLanguageTag(languageId);
+        if (language != null) {
+            builder.Append(" lang=\"");
+            builder.Append(EncodeAttribute(language));
+            builder.Append('"');
+        }
+
+        string? formattedDirection = FormatTextDirection(direction);
+        if (formattedDirection != null) {
+            builder.Append(" dir=\"");
+            builder.Append(formattedDirection);
+            builder.Append('"');
+        }
+    }
+
+    private static void AppendLanguageDirectionStyleAttribute(StringBuilder builder, int? languageId, RtfTextDirection? direction) {
+        var styleBuilder = new StringBuilder();
+        AppendLanguageDirectionStyle(styleBuilder, languageId, direction);
+        if (styleBuilder.Length == 0) {
+            return;
+        }
+
+        builder.Append(" style=\"");
+        builder.Append(EncodeAttribute(styleBuilder.ToString()));
+        builder.Append('"');
     }
 
     private static string? FormatLanguageTag(int? languageId) {

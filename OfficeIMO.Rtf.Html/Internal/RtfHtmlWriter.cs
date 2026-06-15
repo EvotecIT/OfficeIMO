@@ -48,7 +48,10 @@ internal static partial class RtfHtmlWriter {
     private static void AppendDocumentStart(StringBuilder builder, RtfDocument document, RtfHtmlSaveOptions options, string newline) {
         builder.Append("<!doctype html>");
         builder.Append(newline);
-        builder.Append("<html>");
+        builder.Append("<html");
+        AppendLanguageDirectionAttributes(builder, document.Settings.DefaultLanguageId, document.Settings.Direction);
+        AppendLanguageDirectionStyleAttribute(builder, document.Settings.DefaultLanguageId, document.Settings.Direction);
+        builder.Append('>');
         builder.Append(newline);
         builder.Append("<head>");
         builder.Append(newline);
@@ -95,6 +98,7 @@ internal static partial class RtfHtmlWriter {
         string tagName = GetParagraphTagName(paragraph);
         builder.Append('<');
         builder.Append(tagName);
+        AppendLanguageDirectionAttributes(builder, null, paragraph.Direction);
         AppendParagraphStyle(builder, paragraph, document);
         builder.Append('>');
         AppendInlines(builder, paragraph.Inlines, options, document);
@@ -154,6 +158,7 @@ internal static partial class RtfHtmlWriter {
         AppendParagraphBorderStyle(builder, "border-left", paragraph.LeftBorder, document);
         AppendParagraphBorderStyle(builder, "border-bottom", paragraph.BottomBorder, document);
         AppendParagraphBorderStyle(builder, "border-right", paragraph.RightBorder, document);
+        AppendLanguageDirectionStyle(builder, null, paragraph.Direction);
 
         style = builder.Length == 0 ? null : builder.ToString();
         return style != null;
@@ -371,25 +376,12 @@ internal static partial class RtfHtmlWriter {
 
     private static void OpenRunStyle(StringBuilder builder, RtfRun run, RtfDocument document, ref int opened) {
         bool hasStyle = TryGetRunStyle(run, document, out string? style);
-        string? language = FormatLanguageTag(run.LanguageId);
-        string? direction = FormatTextDirection(run.Direction);
-        if (!hasStyle && language == null && direction == null) {
+        if (!hasStyle && FormatLanguageTag(run.LanguageId) == null && FormatTextDirection(run.Direction) == null) {
             return;
         }
 
         builder.Append("<span");
-        if (language != null) {
-            builder.Append(" lang=\"");
-            builder.Append(EncodeAttribute(language));
-            builder.Append('"');
-        }
-
-        if (direction != null) {
-            builder.Append(" dir=\"");
-            builder.Append(direction);
-            builder.Append('"');
-        }
-
+        AppendLanguageDirectionAttributes(builder, run.LanguageId, run.Direction);
         if (hasStyle) {
             builder.Append(" style=\"");
             builder.Append(EncodeAttribute(style!));
