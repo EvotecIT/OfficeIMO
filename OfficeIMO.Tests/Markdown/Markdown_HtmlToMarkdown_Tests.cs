@@ -115,6 +115,9 @@ public sealed class MarkdownHtmlToMarkdownTests {
 <p>CPU: Central<br>RAM: Memory</p>
 <p>&lt;div&gt;literal&lt;/div&gt;</p>
 <p>&lt;!-- literal comment --&gt;</p>
+<p>&lt;!DOCTYPE html&gt;</p>
+<p>&lt;?xml version="1.0"?&gt;</p>
+<p>&lt;![CDATA[literal]]&gt;</p>
 """;
 
         MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
@@ -135,6 +138,9 @@ public sealed class MarkdownHtmlToMarkdownTests {
         Assert.Contains("RAM\\: Memory", markdown, StringComparison.Ordinal);
         Assert.Contains("\\<div>literal</div>", markdown, StringComparison.Ordinal);
         Assert.Contains("\\<!-- literal comment -->", markdown, StringComparison.Ordinal);
+        Assert.Contains("\\<!DOCTYPE html>", markdown, StringComparison.Ordinal);
+        Assert.Contains("\\<?xml version=\"1.0\"?>", markdown, StringComparison.Ordinal);
+        Assert.Contains("\\<!\\[CDATA\\[literal\\]\\]>", markdown, StringComparison.Ordinal);
         Assert.Contains("# not heading", renderedHtml, StringComparison.Ordinal);
         Assert.Contains("- not a list", renderedHtml, StringComparison.Ordinal);
         Assert.Contains("1. not ordered", renderedHtml, StringComparison.Ordinal);

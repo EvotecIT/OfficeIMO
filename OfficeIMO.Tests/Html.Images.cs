@@ -892,6 +892,19 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void HtmlToWord_ImageSelection_ContinuesPastNonImageDataCandidate() {
+            var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
+            string base64 = Convert.ToBase64String(File.ReadAllBytes(path));
+            string html = $"<img data-src=\"data:text/plain,placeholder\" src=\"data:image/png;base64,{base64}\" alt=\"Logo\" />";
+            var options = new HtmlToWordOptions();
+
+            var doc = html.LoadFromHtml(options);
+
+            Assert.Single(doc.Images);
+            Assert.Empty(options.Diagnostics);
+        }
+
+        [Fact]
         public void HtmlToWord_ImageSelection_ContinuesPastUnresolvedRelativeCandidate() {
             var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
             string base64 = Convert.ToBase64String(File.ReadAllBytes(path));
@@ -902,6 +915,21 @@ namespace OfficeIMO.Tests {
 
             Assert.Single(doc.Images);
             Assert.Empty(options.Diagnostics);
+        }
+
+        [Fact]
+        public void HtmlToWord_ImageSelection_PreservesAltTextForUnresolvedRelativeCandidateWithoutFallback() {
+            const string html = "<img src=\"missing.png\" alt=\"Missing\" />";
+            var options = new HtmlToWordOptions();
+
+            var doc = html.LoadFromHtml(options);
+
+            Assert.Empty(doc.Images);
+            Assert.Single(doc.Paragraphs);
+            Assert.Equal("Missing", doc.Paragraphs[0].Text);
+            var diagnostic = Assert.Single(options.Diagnostics);
+            Assert.Equal("ImageLoadFailed", diagnostic.Code);
+            Assert.Equal("missing.png", diagnostic.Source);
         }
 
         [Fact]
@@ -1058,6 +1086,44 @@ namespace OfficeIMO.Tests {
             Assert.Contains(options.Diagnostics, diagnostic =>
                 diagnostic.Code == "ImageResourceBudgetExceeded" &&
                 diagnostic.Source == "https://example.test/logo.png");
+        }
+
+        [Fact]
+        public void HtmlToWord_RemoteImageCache_UsesCaseSensitiveUrlKeys() {
+            var requested = new List<Uri>();
+            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+            byte[] bytes = Convert.FromBase64String(validPng);
+            using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(request => {
+                requested.Add(request.RequestUri!);
+                if (request.RequestUri?.AbsolutePath == "/Logo.png") {
+                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+                }
+
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
+                    Content = new ByteArrayContent(bytes) {
+                        Headers = {
+                            ContentType = new MediaTypeHeaderValue("image/png")
+                        }
+                    }
+                });
+            }));
+            var options = new HtmlToWordOptions {
+                HttpClient = httpClient
+            };
+            string html = """
+<img src="https://cdn.example.test/Logo.png" alt="Missing" />
+<img src="https://cdn.example.test/logo.png" alt="Logo" />
+""";
+
+            var doc = html.LoadFromHtml(options);
+
+            Assert.Single(doc.Images);
+            Assert.Equal(2, requested.Count);
+            Assert.Contains(requested, uri => uri.AbsolutePath == "/Logo.png");
+            Assert.Contains(requested, uri => uri.AbsolutePath == "/logo.png");
+            Assert.Contains(options.Diagnostics, diagnostic =>
+                diagnostic.Code == "ImageLoadFailed" &&
+                diagnostic.Source == "https://cdn.example.test/Logo.png");
         }
 
         [Fact]

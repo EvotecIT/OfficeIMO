@@ -34,8 +34,8 @@ namespace OfficeIMO.Word.Html {
         private readonly List<ICssStyleRule> _cssRules = new();
         private readonly CssParser _cssParser = new();
         private readonly Dictionary<string, WordImage> _imageCache = new(StringComparer.OrdinalIgnoreCase);
-        private readonly Dictionary<string, byte[]> _remoteImageBytesCache = new(StringComparer.OrdinalIgnoreCase);
-        private readonly Dictionary<string, Exception> _remoteImageFailureCache = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, byte[]> _remoteImageBytesCache = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, Exception> _remoteImageFailureCache = new(StringComparer.Ordinal);
         private readonly Dictionary<string, WordParagraphStyles> _cssClassStyles = new(StringComparer.OrdinalIgnoreCase);
         private static readonly ConcurrentDictionary<string, ICssStyleRule[]> _stylesheetCache = new(StringComparer.OrdinalIgnoreCase);
         private IBrowsingContext? _context;

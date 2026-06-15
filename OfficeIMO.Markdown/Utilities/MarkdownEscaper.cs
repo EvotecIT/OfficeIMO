@@ -191,6 +191,16 @@ internal static class MarkdownEscaper {
             return true;
         }
 
+        if (StartsWithAt(line, markerIndex, "<?")
+            || StartsWithAt(line, markerIndex, "<![CDATA[")
+            || StartsWithAt(line, markerIndex, "<!\\[CDATA\\[")) {
+            return true;
+        }
+
+        if (StartsWithAt(line, markerIndex, "<!")) {
+            return markerIndex + 2 < line.Length && line[markerIndex + 2] >= 'A' && line[markerIndex + 2] <= 'Z';
+        }
+
         if (StartsWithAt(line, markerIndex, "</")) {
             return markerIndex + 2 < line.Length && IsHtmlTagNameStart(line[markerIndex + 2]);
         }

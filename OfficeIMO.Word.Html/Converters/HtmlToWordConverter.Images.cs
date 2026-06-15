@@ -452,6 +452,10 @@ namespace OfficeIMO.Word.Html {
                 }
 
                 if (IsUnresolvedRelativeImageSource(resolved)) {
+                    if (string.IsNullOrEmpty(firstResolved)) {
+                        firstResolved = resolved;
+                    }
+
                     continue;
                 }
 
@@ -770,6 +774,12 @@ namespace OfficeIMO.Word.Html {
             }
 
             if (!IsImageSourceAllowed(src, options, out detail)) {
+                return false;
+            }
+
+            if (src.StartsWith("data:", StringComparison.OrdinalIgnoreCase)
+                && !src.StartsWith("data:image", StringComparison.OrdinalIgnoreCase)) {
+                detail = "Only image data URI candidates are supported.";
                 return false;
             }
 
