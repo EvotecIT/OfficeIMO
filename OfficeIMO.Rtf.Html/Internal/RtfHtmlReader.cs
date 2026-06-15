@@ -29,7 +29,7 @@ internal static partial class RtfHtmlReader {
     private sealed partial class ReadContext {
         private readonly RtfDocument _document;
         private readonly RtfHtmlReadOptions _options;
-        private readonly Stack<RtfListKind> _lists = new Stack<RtfListKind>();
+        private readonly Stack<HtmlListState> _lists = new Stack<HtmlListState>();
         private readonly Stack<HtmlStyleScope> _styles = new Stack<HtmlStyleScope>();
         private readonly List<RowSpanState> _rowSpans = new List<RowSpanState>();
         private RtfParagraph? _paragraph;
@@ -46,6 +46,7 @@ internal static partial class RtfHtmlReader {
         private int _preformatted;
         private int _tableHead;
         private int _tableColumnIndex;
+        private int _nextListId = 1;
         private RtfTextAlignment? _cellTextAlignment;
         private bool _pageBreakAfterParagraph;
 
@@ -115,17 +116,17 @@ internal static partial class RtfHtmlReader {
                     _hyperlink = ReadUri(token, "href");
                     break;
                 case "ul":
-                    _lists.Push(RtfListKind.Bullet);
+                    _lists.Push(CreateListState(RtfListKind.Bullet));
                     break;
                 case "ol":
-                    _lists.Push(RtfListKind.Decimal);
+                    _lists.Push(CreateListState(RtfListKind.Decimal));
                     break;
                 case "thead":
                     _tableHead++;
                     break;
                 case "li":
                     StartParagraph();
-                    EnsureParagraph().ListKind = _lists.Count == 0 ? RtfListKind.Bullet : _lists.Peek();
+                    ApplyListAttributes(token);
                     ApplyParagraphStyle(style);
                     break;
                 case "table":

@@ -99,6 +99,7 @@ internal static partial class RtfHtmlWriter {
         builder.Append('<');
         builder.Append(tagName);
         AppendLanguageDirectionAttributes(builder, null, paragraph.Direction);
+        AppendListAttributes(builder, paragraph);
         AppendParagraphStyle(builder, paragraph, document);
         builder.Append('>');
         AppendInlines(builder, paragraph.Inlines, options, document);
