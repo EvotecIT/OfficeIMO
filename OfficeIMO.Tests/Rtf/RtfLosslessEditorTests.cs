@@ -106,6 +106,53 @@ public class RtfLosslessEditorTests {
     }
 
     [Fact]
+    public void SetUserProperty_Replaces_Adds_And_Removes_Metadata_Without_Normalizing_Body() {
+        const string rtf = @"{\rtf1\ansi{\info{\title Keep}}{\*\userprops{\propname Client}\proptype30{\staticval Old}{\propname Remove}\proptype30{\staticval Gone}{\propname External}{\linkval Sheet1!A1}}{\*\docvar {Mode}{Draft}}\pard Body \'80\par}";
+
+        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        editor.SetUserProperty(RtfUserProperty.Text("Client", "New {client} ż"));
+        editor.SetUserProperty(RtfUserProperty.Boolean("Approved", true));
+        editor.RemoveUserProperty("Remove");
+
+        const string expected = @"{\rtf1\ansi{\info{\title Keep}}{\*\userprops{\propname Client}\proptype30{\staticval New \{client\} \u380?}{\propname External}{\linkval Sheet1!A1}{\propname Approved}\proptype11{\staticval 1}}{\*\docvar {Mode}{Draft}}\pard Body \'80\par}";
+        Assert.Equal(expected, editor.ToRtf());
+
+        RtfReadResult read = editor.ToReadResult();
+        Assert.Collection(
+            read.Document.UserProperties,
+            property => {
+                Assert.Equal("Client", property.Name);
+                Assert.Equal(RtfUserProperty.TextType, property.TypeCode);
+                Assert.Equal("New {client} ż", property.StaticValue);
+            },
+            property => {
+                Assert.Equal("External", property.Name);
+                Assert.Equal("Sheet1!A1", property.LinkedValue);
+            },
+            property => {
+                Assert.Equal("Approved", property.Name);
+                Assert.Equal(RtfUserProperty.BooleanType, property.TypeCode);
+                Assert.Equal("1", property.StaticValue);
+            });
+        Assert.DoesNotContain(read.Document.UserProperties, property => property.Name == "Remove");
+        Assert.Equal("Draft", Assert.Single(read.Document.DocumentVariables).Value);
+        Assert.Contains(@"Body \'80", editor.ToRtf(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SetUserProperty_Creates_UserProps_Before_Existing_DocVars() {
+        const string rtf = @"{\rtf1\ansi{\*\docvar {Mode}{Draft}}\pard Body\par}";
+
+        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        editor.SetUserProperty("Client", "Contoso");
+
+        Assert.Equal(@"{\rtf1\ansi{\*\userprops{\propname Client}\proptype30{\staticval Contoso}}{\*\docvar {Mode}{Draft}}\pard Body\par}", editor.ToRtf());
+        RtfUserProperty property = Assert.Single(editor.ToReadResult().Document.UserProperties);
+        Assert.Equal("Client", property.Name);
+        Assert.Equal("Contoso", property.StaticValue);
+    }
+
+    [Fact]
     public void AppendParagraph_Preserves_Existing_Syntax_And_Escapes_Text() {
         const string rtf = @"{\rtf1\ansi{\*\unknown Keep}{\pict\pngblip\bin3 abc}\pard Existing\par}";
 

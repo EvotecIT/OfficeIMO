@@ -73,6 +73,37 @@ public sealed class RtfLosslessEditor {
     }
 
     /// <summary>
+    /// Adds or replaces a custom document property in the root <c>userprops</c> destination while preserving the rest of the RTF stream.
+    /// </summary>
+    public void SetUserProperty(RtfUserProperty property) {
+        if (property == null) {
+            throw new ArgumentNullException(nameof(property));
+        }
+
+        RtfGroup root = SetUserPropertyInRoot(_syntaxTree.Root, property);
+        _syntaxTree = new RtfSyntaxTree(root, _syntaxTree.Diagnostics);
+    }
+
+    /// <summary>
+    /// Adds or replaces a text custom document property in the root <c>userprops</c> destination.
+    /// </summary>
+    public void SetUserProperty(string name, string value) {
+        SetUserProperty(RtfUserProperty.Text(name, value));
+    }
+
+    /// <summary>
+    /// Removes all custom document properties with the supplied name while preserving the rest of the RTF stream.
+    /// </summary>
+    public void RemoveUserProperty(string name) {
+        if (string.IsNullOrWhiteSpace(name)) {
+            throw new ArgumentException("Custom property name cannot be empty.", nameof(name));
+        }
+
+        RtfGroup root = RemoveUserPropertyFromRoot(_syntaxTree.Root, name);
+        _syntaxTree = new RtfSyntaxTree(root, _syntaxTree.Diagnostics);
+    }
+
+    /// <summary>
     /// Appends a plain RTF paragraph at the end of the root document group while preserving existing syntax.
     /// </summary>
     public void AppendParagraph(string text) {
@@ -186,6 +217,78 @@ public sealed class RtfLosslessEditor {
         return children.Count == 0 ? null : new RtfGroup(infoGroup.Position, children);
     }
 
+    private static RtfGroup SetUserPropertyInRoot(RtfGroup root, RtfUserProperty property) {
+        var children = new List<RtfNode>(root.Children);
+        int userPropertiesIndex = children.FindIndex(node => node is RtfGroup group && group.Destination == "userprops");
+        if (userPropertiesIndex >= 0) {
+            children[userPropertiesIndex] = SetUserProperty((RtfGroup)children[userPropertiesIndex], property);
+        } else {
+            children.Insert(GetUserPropertiesInsertIndex(children), CreateUserPropertiesGroup(property));
+        }
+
+        return new RtfGroup(root.Position, children);
+    }
+
+    private static RtfGroup RemoveUserPropertyFromRoot(RtfGroup root, string name) {
+        var children = new List<RtfNode>(root.Children);
+        int userPropertiesIndex = children.FindIndex(node => node is RtfGroup group && group.Destination == "userprops");
+        if (userPropertiesIndex < 0) {
+            return root;
+        }
+
+        RtfGroup? updatedUserProperties = RemoveUserProperty((RtfGroup)children[userPropertiesIndex], name);
+        if (updatedUserProperties == null) {
+            children.RemoveAt(userPropertiesIndex);
+        } else {
+            children[userPropertiesIndex] = updatedUserProperties;
+        }
+
+        return new RtfGroup(root.Position, children);
+    }
+
+    private static RtfGroup SetUserProperty(RtfGroup userPropertiesGroup, RtfUserProperty property) {
+        var children = new List<RtfNode>(userPropertiesGroup.Children);
+        List<UserPropertyRange> ranges = GetUserPropertyRanges(children);
+        bool replaced = false;
+
+        for (int index = ranges.Count - 1; index >= 0; index--) {
+            UserPropertyRange range = ranges[index];
+            if (!string.Equals(range.Name, property.Name, StringComparison.Ordinal)) {
+                continue;
+            }
+
+            if (replaced) {
+                children.RemoveRange(range.StartIndex, range.Length);
+            } else {
+                children.RemoveRange(range.StartIndex, range.Length);
+                children.InsertRange(range.StartIndex, CreateUserPropertyNodes(property));
+                replaced = true;
+            }
+        }
+
+        if (!replaced) {
+            children.AddRange(CreateUserPropertyNodes(property));
+        }
+
+        return new RtfGroup(userPropertiesGroup.Position, children);
+    }
+
+    private static RtfGroup? RemoveUserProperty(RtfGroup userPropertiesGroup, string name) {
+        var children = new List<RtfNode>(userPropertiesGroup.Children);
+        List<UserPropertyRange> ranges = GetUserPropertyRanges(children);
+
+        for (int index = ranges.Count - 1; index >= 0; index--) {
+            UserPropertyRange range = ranges[index];
+            if (string.Equals(range.Name, name, StringComparison.Ordinal)) {
+                children.RemoveRange(range.StartIndex, range.Length);
+            }
+        }
+
+        return children.Any(node => node is RtfGroup group && group.Destination == "propname")
+            ? new RtfGroup(userPropertiesGroup.Position, children)
+            : null;
+    }
+
     private static RtfGroup SetDocumentVariable(RtfGroup root, string name, string? value) {
         var children = new List<RtfNode>(root.Children);
         bool replaced = false;
@@ -264,6 +367,83 @@ public sealed class RtfLosslessEditor {
         }
 
         return insertIndex >= 0 ? insertIndex + 1 : GetInfoInsertIndex(children);
+    }
+
+    private static int GetUserPropertiesInsertIndex(List<RtfNode> children) {
+        int infoIndex = children.FindIndex(node => node is RtfGroup group && group.Destination == "info");
+        if (infoIndex >= 0) {
+            return infoIndex + 1;
+        }
+
+        int firstDocVarIndex = children.FindIndex(node => node is RtfGroup group && group.Destination == "docvar");
+        return firstDocVarIndex >= 0 ? firstDocVarIndex : GetInfoInsertIndex(children);
+    }
+
+    private static RtfGroup CreateUserPropertiesGroup(RtfUserProperty property) {
+        var children = new List<RtfNode> {
+            new RtfControlSymbol(0, '*', null, hasParameter: false, rawText: @"\*"),
+            new RtfControlWord(0, "userprops", null, hasParameter: false, rawText: @"\userprops")
+        };
+        children.AddRange(CreateUserPropertyNodes(property));
+        return new RtfGroup(0, children);
+    }
+
+    private static IReadOnlyList<RtfNode> CreateUserPropertyNodes(RtfUserProperty property) {
+        var nodes = new List<RtfNode> {
+            new RtfGroup(0, new RtfNode[] {
+                new RtfControlWord(0, "propname", null, hasParameter: false, rawText: @"\propname "),
+                new RtfText(0, property.Name, RtfTextEncoding.EncodeText(property.Name))
+            })
+        };
+
+        if (property.TypeCode.HasValue) {
+            nodes.Add(new RtfControlWord(
+                0,
+                "proptype",
+                property.TypeCode.Value,
+                hasParameter: true,
+                rawText: @"\proptype" + property.TypeCode.Value.ToString(CultureInfo.InvariantCulture)));
+        }
+
+        AddUserPropertyValue(nodes, "staticval", property.StaticValue);
+        AddUserPropertyValue(nodes, "linkval", property.LinkedValue);
+        return nodes;
+    }
+
+    private static void AddUserPropertyValue(List<RtfNode> nodes, string destination, string? value) {
+        if (string.IsNullOrEmpty(value)) {
+            return;
+        }
+
+        nodes.Add(new RtfGroup(0, new RtfNode[] {
+            new RtfControlWord(0, destination, null, hasParameter: false, rawText: "\\" + destination + " "),
+            new RtfText(0, value!, RtfTextEncoding.EncodeText(value!))
+        }));
+    }
+
+    private static List<UserPropertyRange> GetUserPropertyRanges(IReadOnlyList<RtfNode> children) {
+        var ranges = new List<UserPropertyRange>();
+        int startIndex = -1;
+        string? name = null;
+
+        for (int index = 0; index < children.Count; index++) {
+            if (children[index] is not RtfGroup group || group.Destination != "propname") {
+                continue;
+            }
+
+            if (startIndex >= 0 && name != null) {
+                ranges.Add(new UserPropertyRange(startIndex, index - startIndex, name));
+            }
+
+            startIndex = index;
+            name = CollectPlainText(group).Trim();
+        }
+
+        if (startIndex >= 0 && name != null) {
+            ranges.Add(new UserPropertyRange(startIndex, children.Count - startIndex, name));
+        }
+
+        return ranges;
     }
 
     private static bool DocumentVariableNameMatches(RtfGroup group, string name) {
@@ -347,6 +527,20 @@ public sealed class RtfLosslessEditor {
     private sealed class DocumentVariableTextState {
         internal int UnicodeSkipCount { get; set; } = 1;
         internal int SkipCharacters { get; set; }
+    }
+
+    private readonly struct UserPropertyRange {
+        internal UserPropertyRange(int startIndex, int length, string name) {
+            StartIndex = startIndex;
+            Length = length;
+            Name = name;
+        }
+
+        internal int StartIndex { get; }
+
+        internal int Length { get; }
+
+        internal string Name { get; }
     }
 
     private static string GetInfoDestination(RtfDocumentInfoField field) {
