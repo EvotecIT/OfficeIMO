@@ -47,4 +47,49 @@ public class RtfHtmlTableCellMetadataTests {
         Assert.Contains(@"\cellx1800", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\cellx5000", rtf, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void RtfDocument_ToHtml_RoundTrips_Hidden_Horizontal_Merge_Continuation_Cell_Metadata() {
+        RtfDocument document = RtfDocument.Create();
+        int red = document.AddColor(255, 0, 0);
+        RtfTable table = document.AddTable(1, 3);
+        RtfTableCell first = table.Rows[0].Cells[0];
+        RtfTableCell continuation = table.Rows[0].Cells[1];
+        RtfTableCell last = table.Rows[0].Cells[2];
+        first.HorizontalMerge = RtfTableCellMerge.First;
+        continuation.HorizontalMerge = RtfTableCellMerge.Continue;
+        first.RightBoundaryTwips = 1800;
+        continuation.RightBoundaryTwips = 4200;
+        continuation.SetPreferredWidth(2400, RtfTableWidthUnit.Twips).SetNoWrap().SetFitText();
+        continuation.TopLeftToBottomRightBorder.Style = RtfTableCellBorderStyle.Dotted;
+        continuation.TopLeftToBottomRightBorder.Width = 6;
+        continuation.TopLeftToBottomRightBorder.ColorIndex = red;
+        first.AddParagraph("Merged");
+        last.AddParagraph("Tail");
+
+        string html = document.ToHtml(new RtfHtmlSaveOptions { NewLine = "\n" });
+
+        Assert.Contains("colspan=\"2\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-rtf-cell=\"", html, StringComparison.Ordinal);
+
+        RtfDocument roundTrip = html.ToRtfDocumentFromHtml();
+        RtfTable roundTripTable = Assert.IsType<RtfTable>(Assert.Single(roundTrip.Blocks));
+        RtfTableCell roundTripFirst = roundTripTable.Rows[0].Cells[0];
+        RtfTableCell roundTripContinuation = roundTripTable.Rows[0].Cells[1];
+        Assert.Equal(RtfTableCellMerge.First, roundTripFirst.HorizontalMerge);
+        Assert.Equal(RtfTableCellMerge.Continue, roundTripContinuation.HorizontalMerge);
+        Assert.Equal(1800, roundTripFirst.RightBoundaryTwips);
+        Assert.Equal(4200, roundTripContinuation.RightBoundaryTwips);
+        Assert.Equal(2400, roundTripContinuation.PreferredWidth);
+        Assert.Equal(RtfTableWidthUnit.Twips, roundTripContinuation.PreferredWidthUnit);
+        Assert.True(roundTripContinuation.NoWrap);
+        Assert.True(roundTripContinuation.FitText);
+        Assert.Equal(RtfTableCellBorderStyle.Dotted, roundTripContinuation.TopLeftToBottomRightBorder.Style);
+        Assert.Equal(6, roundTripContinuation.TopLeftToBottomRightBorder.Width);
+        Assert.Equal(red, roundTripContinuation.TopLeftToBottomRightBorder.ColorIndex);
+
+        string rtf = roundTrip.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        Assert.Contains(@"\clmgf\cellx1800", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\clmrg\clftsWidth3\clwWidth2400\clNoWrap\clFitText\cldglu\brdrdot\brdrw6\brdrcf1\cellx4200", rtf, StringComparison.Ordinal);
+    }
 }
