@@ -74,6 +74,7 @@ internal static partial class RtfHtmlWriter {
     }
 
     private static bool HasRunSpan(RtfRun run, RtfDocument document) =>
+        run.StyleId.HasValue ||
         TryGetRunStyle(run, document, out _) ||
         FormatLanguageTag(run.LanguageId) != null ||
         FormatTextDirection(run.Direction) != null;

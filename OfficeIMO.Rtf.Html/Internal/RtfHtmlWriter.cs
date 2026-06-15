@@ -80,6 +80,7 @@ internal static partial class RtfHtmlWriter {
         AppendDocumentLayoutMetadata(builder, document, newline);
         AppendDocumentSettingsMetadata(builder, document, newline);
         AppendFontTableMetadata(builder, document, newline);
+        AppendStylesheetMetadata(builder, document, newline);
         builder.Append(newline);
         builder.Append("</head>");
         builder.Append(newline);
@@ -115,6 +116,7 @@ internal static partial class RtfHtmlWriter {
         builder.Append(tagName);
         AppendLanguageDirectionAttributes(builder, null, paragraph.Direction);
         AppendListAttributes(builder, paragraph);
+        AppendParagraphStyleAttributes(builder, paragraph);
         AppendParagraphStyle(builder, paragraph, document);
         builder.Append('>');
         AppendInlines(builder, paragraph.Inlines, options, document);
@@ -405,11 +407,12 @@ internal static partial class RtfHtmlWriter {
 
     private static void OpenRunStyle(StringBuilder builder, RtfRun run, RtfDocument document, ref int opened) {
         bool hasStyle = TryGetRunStyle(run, document, out string? style);
-        if (!hasStyle && FormatLanguageTag(run.LanguageId) == null && FormatTextDirection(run.Direction) == null) {
+        if (!hasStyle && !run.StyleId.HasValue && FormatLanguageTag(run.LanguageId) == null && FormatTextDirection(run.Direction) == null) {
             return;
         }
 
         builder.Append("<span");
+        AppendRunStyleAttributes(builder, run);
         AppendLanguageDirectionAttributes(builder, run.LanguageId, run.Direction);
         if (hasStyle) {
             builder.Append(" style=\"");

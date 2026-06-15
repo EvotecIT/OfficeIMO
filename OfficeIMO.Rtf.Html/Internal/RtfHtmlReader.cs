@@ -97,6 +97,7 @@ internal static partial class RtfHtmlReader {
                 case "article":
                 case "blockquote":
                     StartParagraph();
+                    ApplyParagraphStyleAttributes(token);
                     ApplyParagraphStyle(style);
                     if (token.Value == "blockquote" && style.LeftIndentTwips == null) {
                         EnsureParagraph().LeftIndentTwips = 720;
@@ -110,6 +111,7 @@ internal static partial class RtfHtmlReader {
                 case "h5":
                 case "h6":
                     StartParagraph();
+                    ApplyParagraphStyleAttributes(token);
                     ApplyParagraphStyle(style);
                     EnsureParagraph().OutlineLevel = GetHeadingOutlineLevel(token.Value);
                     _bold++;
@@ -162,6 +164,7 @@ internal static partial class RtfHtmlReader {
                 case "li":
                     StartParagraph();
                     ApplyListAttributes(token);
+                    ApplyParagraphStyleAttributes(token);
                     ApplyParagraphStyle(style);
                     break;
                 case "table":
@@ -187,8 +190,9 @@ internal static partial class RtfHtmlReader {
                     break;
             }
 
-            if (style.HasInlineFormatting) {
-                _styles.Push(new HtmlStyleScope(token.Value, style));
+            int? styleId = IsInlineStyleScope(token.Value) ? ReadStyleIdAttribute(token) : null;
+            if (style.HasInlineFormatting || styleId.HasValue) {
+                _styles.Push(new HtmlStyleScope(token.Value, style, styleId));
             }
         }
 
@@ -326,6 +330,7 @@ internal static partial class RtfHtmlReader {
             run.CapsStyle = ResolveCapsStyle();
             run.VerticalPosition = ResolveVerticalPosition();
             run.Direction = ResolveTextDirection();
+            run.StyleId = ResolveRunStyleId();
             int? languageId = ResolveLanguageId();
             if (languageId.HasValue) {
                 run.LanguageId = languageId.Value;
@@ -645,6 +650,16 @@ internal static partial class RtfHtmlReader {
             return null;
         }
 
+        private int? ResolveRunStyleId() {
+            foreach (HtmlStyleScope scope in _styles) {
+                if (scope.StyleId.HasValue) {
+                    return scope.StyleId.Value;
+                }
+            }
+
+            return null;
+        }
+
         private int GetOrAddColorIndex(RtfColor color) {
             for (int index = 0; index < _document.Colors.Count; index++) {
                 RtfColor existing = _document.Colors[index];
@@ -726,13 +741,16 @@ internal static partial class RtfHtmlReader {
     }
 
     private sealed class HtmlStyleScope {
-        internal HtmlStyleScope(string name, HtmlStyleDeclaration style) {
+        internal HtmlStyleScope(string name, HtmlStyleDeclaration style, int? styleId) {
             Name = name;
             Style = style;
+            StyleId = styleId;
         }
 
         internal string Name { get; }
 
         internal HtmlStyleDeclaration Style { get; }
+
+        internal int? StyleId { get; }
     }
 }
