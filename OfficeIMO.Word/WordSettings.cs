@@ -599,6 +599,41 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Gets or sets a value indicating whether odd and even pages use mirrored inside/outside margins.
+        /// </summary>
+        public bool MirrorMargins {
+            get {
+                var settings = _document._wordprocessingDocument.MainDocumentPart?
+                    .DocumentSettingsPart?.Settings;
+                var mirrorMargins = settings?.GetFirstChild<MirrorMargins>();
+                if (mirrorMargins == null) {
+                    return false;
+                }
+
+                return mirrorMargins.Val?.Value ?? true;
+            }
+            set {
+                var settings = _document._wordprocessingDocument.MainDocumentPart?
+                    .DocumentSettingsPart?.Settings;
+                if (settings == null) {
+                    return;
+                }
+
+                var mirrorMargins = settings.GetFirstChild<MirrorMargins>();
+                if (value) {
+                    if (mirrorMargins == null) {
+                        mirrorMargins = new MirrorMargins();
+                        settings.Append(mirrorMargins);
+                    }
+
+                    mirrorMargins.Val = true;
+                } else {
+                    mirrorMargins?.Remove();
+                }
+            }
+        }
+
+        /// <summary>
         /// Enable or disable tracking of revisions in the document.
         /// </summary>
         public bool TrackRevisions {
