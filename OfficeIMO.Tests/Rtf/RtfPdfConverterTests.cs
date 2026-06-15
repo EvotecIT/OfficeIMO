@@ -53,6 +53,20 @@ public class RtfPdfConverterTests {
     }
 
     [Fact]
+    public void RtfString_ToPdfDocument_Renders_Internal_Hyperlink_Field_As_Bookmark_Link() {
+        const string rtf = @"{\rtf1\ansi\pard {\*\bkmkstart Target}Target{\*\bkmkend Target}\par\pard Jump {\field{\*\fldinst HYPERLINK \\l ""Target"" \\o ""Jump tip""}{\fldrslt link}}\par}";
+
+        byte[] pdf = rtf.SaveAsPdf();
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
+
+        Assert.Contains("Target", info.NamedDestinationNames);
+        PdfCore.PdfLinkAnnotation link = Assert.Single(info.GetLinkAnnotationsByDestinationName("Target"));
+        Assert.Equal("Jump tip", link.Contents);
+        Assert.True(link.Width > 0);
+        Assert.True(link.Height > 0);
+    }
+
+    [Fact]
     public void RtfDocument_ToPdfDocument_Skips_Hidden_Text_Unless_Requested() {
         RtfDocument document = RtfDocument.Create();
         RtfParagraph paragraph = document.AddParagraph();

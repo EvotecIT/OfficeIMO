@@ -64,6 +64,31 @@ public class RtfHtmlFieldTests {
     }
 
     [Fact]
+    public void RtfDocument_ToHtml_RoundTrips_Internal_Hyperlink_Field_SubAddress() {
+        RtfDocument document = RtfDocument.Create();
+        RtfParagraph paragraph = document.AddParagraph();
+        paragraph.AddBookmarkStart("Target");
+        paragraph.AddText("Target");
+        paragraph.AddBookmarkEnd("Target");
+        paragraph.AddText(" ");
+        RtfField field = paragraph.AddField(@"HYPERLINK \l ""Target"" \o ""Jump tip""");
+        field.AddText("Jump");
+
+        string html = document.ToHtml();
+
+        Assert.Contains("href=\"#Target\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-rtf-field-hyperlink-sub-address=\"Target\"", html, StringComparison.Ordinal);
+        Assert.Contains("title=\"Jump tip\"", html, StringComparison.Ordinal);
+
+        RtfField roundTripField = Assert.Single(Assert.Single(html.LoadRtfFromHtml().Paragraphs).Inlines.OfType<RtfField>());
+        Assert.Null(roundTripField.Hyperlink);
+        Assert.NotNull(roundTripField.HyperlinkField);
+        Assert.Equal("Target", roundTripField.HyperlinkField!.SubAddress);
+        Assert.Equal("Jump tip", roundTripField.HyperlinkField.ScreenTip);
+        Assert.Equal("Jump", roundTripField.ToPlainText());
+    }
+
+    [Fact]
     public void RtfDocument_ToHtml_Escapes_Field_Instruction_Attribute() {
         RtfDocument document = RtfDocument.Create();
         RtfField field = document.AddParagraph().AddField("MERGEFIELD Patient<Name>");

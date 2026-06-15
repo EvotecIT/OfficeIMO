@@ -81,12 +81,14 @@ internal static partial class RtfHtmlReader {
         }
 
         private static void ReadHyperlinkFieldData(IElement token, RtfField field) {
-            string? target = GetAttribute(token, "data-officeimo-rtf-field-hyperlink") ?? GetAttribute(token, "href");
+            string? explicitTarget = GetAttribute(token, "data-officeimo-rtf-field-hyperlink");
+            string? href = GetAttribute(token, "href");
+            string? target = explicitTarget ?? (IsFragmentHref(href) ? null : href);
             if (!string.IsNullOrWhiteSpace(target) && Uri.TryCreate(target, UriKind.RelativeOrAbsolute, out Uri? uri)) {
                 field.Hyperlink = uri;
             }
 
-            string? subAddress = GetAttribute(token, "data-officeimo-rtf-field-hyperlink-sub-address");
+            string? subAddress = GetAttribute(token, "data-officeimo-rtf-field-hyperlink-sub-address") ?? ReadFragmentHref(href);
             string? screenTip = GetAttribute(token, "data-officeimo-rtf-field-hyperlink-screen-tip") ?? GetAttribute(token, "title");
             string? targetFrame = GetAttribute(token, "data-officeimo-rtf-field-hyperlink-target-frame");
             string? imageMap = GetAttribute(token, "data-officeimo-rtf-field-hyperlink-image-map");
@@ -99,6 +101,16 @@ internal static partial class RtfHtmlReader {
             data.ScreenTip = screenTip ?? data.ScreenTip;
             data.TargetFrame = targetFrame ?? data.TargetFrame;
             data.ImageMap = imageMap ?? data.ImageMap;
+        }
+
+        private static bool IsFragmentHref(string? href) => href != null && href.StartsWith("#", StringComparison.Ordinal);
+
+        private static string? ReadFragmentHref(string? href) {
+            if (!IsFragmentHref(href) || href!.Length == 1) {
+                return null;
+            }
+
+            return href.Substring(1);
         }
 
         private static void ReadFormFieldControls(IElement token, RtfFormFieldData data) {

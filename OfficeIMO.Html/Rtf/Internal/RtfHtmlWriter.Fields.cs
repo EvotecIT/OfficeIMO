@@ -4,11 +4,12 @@ namespace OfficeIMO.Html;
 
 internal static partial class RtfHtmlWriter {
     private static void AppendField(StringBuilder builder, RtfField field, RtfHtmlSaveOptions options, RtfDocument document) {
-        string tagName = field.Hyperlink != null ? "a" : "span";
+        string? href = GetHyperlinkFieldHref(field);
+        string tagName = href != null ? "a" : "span";
         builder.Append('<');
         builder.Append(tagName);
-        if (field.Hyperlink != null) {
-            AppendAttribute(builder, "href", field.Hyperlink.ToString());
+        if (href != null) {
+            AppendAttribute(builder, "href", href);
         }
 
         AppendAttribute(builder, "data-officeimo-rtf-field", "true");
@@ -20,6 +21,19 @@ internal static partial class RtfHtmlWriter {
         builder.Append("</");
         builder.Append(tagName);
         builder.Append('>');
+    }
+
+    private static string? GetHyperlinkFieldHref(RtfField field) {
+        if (field.Hyperlink != null) {
+            return field.Hyperlink.ToString();
+        }
+
+        RtfHyperlinkFieldInfo? data = field.HyperlinkField;
+        if (data?.Target != null) {
+            return data.Target.ToString();
+        }
+
+        return string.IsNullOrWhiteSpace(data?.SubAddress) ? null : "#" + data!.SubAddress;
     }
 
     private static void AppendHyperlinkFieldAttributes(StringBuilder builder, RtfHyperlinkFieldInfo? data) {
