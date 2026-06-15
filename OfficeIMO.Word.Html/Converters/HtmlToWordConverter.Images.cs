@@ -457,10 +457,18 @@ namespace OfficeIMO.Word.Html {
 
                 if (IsImageSourceAllowedForCurrentMode(resolved, img, options, out _)) {
                     if (IsRemoteEmbeddedImageSource(resolved, options) && !TryFetchRemoteImageCandidate(resolved, options)) {
+                        if (string.IsNullOrEmpty(firstResolved)) {
+                            firstResolved = resolved;
+                        }
+
                         continue;
                     }
 
                     if (IsLocalEmbeddedImageSource(resolved, options) && !TryProbeLocalImageCandidate(resolved, options)) {
+                        if (string.IsNullOrEmpty(firstResolved)) {
+                            firstResolved = resolved;
+                        }
+
                         continue;
                     }
 
@@ -569,6 +577,10 @@ namespace OfficeIMO.Word.Html {
                 return cachedBytes;
             }
 
+            if (_remoteImageFailureCache.TryGetValue(cacheKey, out Exception? cachedFailure)) {
+                throw cachedFailure;
+            }
+
             using var cts = _resourceTimeout.HasValue
                 ? CancellationTokenSource.CreateLinkedTokenSource(_cancellationToken)
                 : null;
@@ -596,16 +608,21 @@ namespace OfficeIMO.Word.Html {
                 byte[] bytes = FetchBytes(uri, options);
                 reservedBytes = bytes.LongLength;
                 if (!IsEmbeddableImageData(bytes, out _)) {
+                    _remoteImageBytesCache[uri.AbsoluteUri] = bytes;
+                    _remoteImageFailureCache.Remove(uri.AbsoluteUri);
                     return false;
                 }
 
                 _remoteImageBytesCache[uri.AbsoluteUri] = bytes;
+                _remoteImageFailureCache.Remove(uri.AbsoluteUri);
                 return true;
-            } catch (OperationCanceledException) when (!_cancellationToken.IsCancellationRequested) {
+            } catch (OperationCanceledException ex) when (!_cancellationToken.IsCancellationRequested) {
+                _remoteImageFailureCache[uri.AbsoluteUri] = ex;
                 return false;
             } catch (OperationCanceledException) {
                 throw;
-            } catch (Exception) {
+            } catch (Exception ex) {
+                _remoteImageFailureCache[uri.AbsoluteUri] = ex;
                 return false;
             } finally {
                 ReleaseImageBytes(reservedBytes, options);
