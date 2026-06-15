@@ -93,10 +93,87 @@ public static partial class DocumentReaderRtfExtensions {
 
     private static int CountHyperlinkRuns(RtfDocument document) {
         int count = 0;
-        for (int i = 0; i < document.Paragraphs.Count; i++) {
-            RtfParagraph paragraph = document.Paragraphs[i];
-            for (int runIndex = 0; runIndex < paragraph.Runs.Count; runIndex++) {
-                if (paragraph.Runs[runIndex].Hyperlink != null) count++;
+        for (int i = 0; i < document.Blocks.Count; i++) {
+            count += CountHyperlinkRuns(document.Blocks[i]);
+        }
+
+        for (int i = 0; i < document.HeaderFooters.Count; i++) {
+            RtfHeaderFooter headerFooter = document.HeaderFooters[i];
+            for (int paragraphIndex = 0; paragraphIndex < headerFooter.Paragraphs.Count; paragraphIndex++) {
+                count += CountHyperlinkRuns(headerFooter.Paragraphs[paragraphIndex]);
+            }
+        }
+
+        for (int i = 0; i < document.Notes.Count; i++) {
+            RtfNote note = document.Notes[i];
+            for (int paragraphIndex = 0; paragraphIndex < note.Paragraphs.Count; paragraphIndex++) {
+                count += CountHyperlinkRuns(note.Paragraphs[paragraphIndex]);
+            }
+        }
+
+        return count;
+    }
+
+    private static int CountHyperlinkRuns(IRtfBlock block) {
+        switch (block) {
+            case RtfParagraph paragraph:
+                return CountHyperlinkRuns(paragraph);
+            case RtfTable table:
+                return CountHyperlinkRuns(table);
+            case RtfObject rtfObject:
+                return CountHyperlinkRuns(rtfObject.Result);
+            case RtfShape shape:
+                return CountHyperlinkRuns(shape);
+            default:
+                return 0;
+        }
+    }
+
+    private static int CountHyperlinkRuns(RtfTable table) {
+        int count = 0;
+        for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
+            RtfTableRow row = table.Rows[rowIndex];
+            for (int cellIndex = 0; cellIndex < row.Cells.Count; cellIndex++) {
+                RtfTableCell cell = row.Cells[cellIndex];
+                for (int paragraphIndex = 0; paragraphIndex < cell.Paragraphs.Count; paragraphIndex++) {
+                    count += CountHyperlinkRuns(cell.Paragraphs[paragraphIndex]);
+                }
+            }
+        }
+
+        return count;
+    }
+
+    private static int CountHyperlinkRuns(RtfShape shape) {
+        int count = 0;
+        for (int paragraphIndex = 0; paragraphIndex < shape.TextBoxParagraphs.Count; paragraphIndex++) {
+            count += CountHyperlinkRuns(shape.TextBoxParagraphs[paragraphIndex]);
+        }
+
+        return count;
+    }
+
+    private static int CountHyperlinkRuns(RtfParagraph paragraph) {
+        int count = 0;
+        for (int runIndex = 0; runIndex < paragraph.Runs.Count; runIndex++) {
+            if (paragraph.Runs[runIndex].Hyperlink != null) count++;
+        }
+
+        if (paragraph.ListText != null) {
+            count += CountHyperlinkRuns(paragraph.ListText);
+        }
+
+        for (int inlineIndex = 0; inlineIndex < paragraph.Inlines.Count; inlineIndex++) {
+            switch (paragraph.Inlines[inlineIndex]) {
+                case RtfField field:
+                    count += CountHyperlinkRuns(field.Result);
+                    break;
+                case RtfObject rtfObject:
+                    count += CountHyperlinkRuns(rtfObject.Result);
+                    break;
+                case RtfShape shape:
+                    count += CountHyperlinkRuns(shape);
+                    break;
             }
         }
 
@@ -105,12 +182,84 @@ public static partial class DocumentReaderRtfExtensions {
 
     private static int CountFormFields(RtfDocument document) {
         int count = 0;
-        for (int i = 0; i < document.Paragraphs.Count; i++) {
-            RtfParagraph paragraph = document.Paragraphs[i];
-            for (int inlineIndex = 0; inlineIndex < paragraph.Inlines.Count; inlineIndex++) {
-                if (paragraph.Inlines[inlineIndex] is RtfField field && field.FormFieldData != null) {
-                    count++;
+        for (int i = 0; i < document.Blocks.Count; i++) {
+            count += CountFormFields(document.Blocks[i]);
+        }
+
+        for (int i = 0; i < document.HeaderFooters.Count; i++) {
+            RtfHeaderFooter headerFooter = document.HeaderFooters[i];
+            for (int paragraphIndex = 0; paragraphIndex < headerFooter.Paragraphs.Count; paragraphIndex++) {
+                count += CountFormFields(headerFooter.Paragraphs[paragraphIndex]);
+            }
+        }
+
+        for (int i = 0; i < document.Notes.Count; i++) {
+            RtfNote note = document.Notes[i];
+            for (int paragraphIndex = 0; paragraphIndex < note.Paragraphs.Count; paragraphIndex++) {
+                count += CountFormFields(note.Paragraphs[paragraphIndex]);
+            }
+        }
+
+        return count;
+    }
+
+    private static int CountFormFields(IRtfBlock block) {
+        switch (block) {
+            case RtfParagraph paragraph:
+                return CountFormFields(paragraph);
+            case RtfTable table:
+                return CountFormFields(table);
+            case RtfObject rtfObject:
+                return CountFormFields(rtfObject.Result);
+            case RtfShape shape:
+                return CountFormFields(shape);
+            default:
+                return 0;
+        }
+    }
+
+    private static int CountFormFields(RtfTable table) {
+        int count = 0;
+        for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
+            RtfTableRow row = table.Rows[rowIndex];
+            for (int cellIndex = 0; cellIndex < row.Cells.Count; cellIndex++) {
+                RtfTableCell cell = row.Cells[cellIndex];
+                for (int paragraphIndex = 0; paragraphIndex < cell.Paragraphs.Count; paragraphIndex++) {
+                    count += CountFormFields(cell.Paragraphs[paragraphIndex]);
                 }
+            }
+        }
+
+        return count;
+    }
+
+    private static int CountFormFields(RtfShape shape) {
+        int count = 0;
+        for (int paragraphIndex = 0; paragraphIndex < shape.TextBoxParagraphs.Count; paragraphIndex++) {
+            count += CountFormFields(shape.TextBoxParagraphs[paragraphIndex]);
+        }
+
+        return count;
+    }
+
+    private static int CountFormFields(RtfParagraph paragraph) {
+        int count = 0;
+        if (paragraph.ListText != null) {
+            count += CountFormFields(paragraph.ListText);
+        }
+
+        for (int inlineIndex = 0; inlineIndex < paragraph.Inlines.Count; inlineIndex++) {
+            switch (paragraph.Inlines[inlineIndex]) {
+                case RtfField field:
+                    if (field.FormFieldData != null) count++;
+                    count += CountFormFields(field.Result);
+                    break;
+                case RtfObject rtfObject:
+                    count += CountFormFields(rtfObject.Result);
+                    break;
+                case RtfShape shape:
+                    count += CountFormFields(shape);
+                    break;
             }
         }
 

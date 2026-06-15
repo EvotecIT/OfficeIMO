@@ -55,6 +55,29 @@ public sealed class ReaderRtfModularTests {
     }
 
     [Fact]
+    public void DocumentReaderRtf_Diagnostics_CountsNestedLinksAndFormFields() {
+        RtfDocument document = RtfDocument.Create();
+        RtfTable table = document.AddTable(1, 1);
+        RtfParagraph cellParagraph = table.Rows[0].Cells[0].AddParagraph();
+        cellParagraph.AddText("Portal").SetHyperlink(new Uri("https://example.test/patient/1"));
+        RtfField field = cellParagraph.AddField("FORMTEXT");
+        field.AddText("Value");
+        field.SetFormFieldData(data => {
+            data.Kind = RtfFormFieldKind.Text;
+            data.Name = "Patient";
+        });
+
+        ReaderChunk chunk = Assert.Single(DocumentReaderRtfExtensions.ReadRtfDocument(
+            document,
+            sourceName: "nested.rtf",
+            readerOptions: new ReaderOptions { MaxChars = 8_000 }));
+
+        Assert.Equal(1, chunk.Diagnostics?.LinkCount);
+        Assert.Equal(1, chunk.Diagnostics?.FormFieldCount);
+        Assert.Contains("Portal", chunk.Markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void DocumentReaderRtf_Registration_DispatchesRtfStream() {
         try {
             DocumentReaderRtfRegistrationExtensions.RegisterRtfHandler();
