@@ -124,6 +124,7 @@ internal static partial class RtfHtmlWriter {
         AppendListAttributes(builder, paragraph);
         AppendParagraphStyleAttributes(builder, paragraph);
         AppendParagraphRevisionAttributes(builder, paragraph);
+        AppendParagraphControlAttributes(builder, paragraph);
         AppendParagraphStyle(builder, paragraph, document);
         builder.Append('>');
         AppendInlines(builder, paragraph.Inlines, options, document);
