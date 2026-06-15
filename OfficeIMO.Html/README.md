@@ -10,7 +10,7 @@ It owns the reusable parts that should behave consistently across HTML-to-Markdo
 - image source discovery for `img`, lazy-loading attributes, `srcset`, and `picture/source`
 - image data URI parsing and media-type extension mapping
 
-It does not own output-specific rendering. Markdown AST creation, Word document generation, RTF document generation, and PDF orchestration stay in their converter packages such as `OfficeIMO.Markdown.Html`, `OfficeIMO.Word.Html`, `OfficeIMO.Html.Rtf`, and `OfficeIMO.Html.Pdf`.
+It does not own output-specific rendering. Markdown AST creation, Word document generation, RTF document generation, and PDF orchestration stay in their converter packages such as `OfficeIMO.Markdown.Html`, `OfficeIMO.Word.Html`, `OfficeIMO.Rtf.Html`, and `OfficeIMO.Html.Pdf`.
 
 ## URL Policy
 

@@ -1,5 +1,5 @@
 using OfficeIMO.Rtf;
-using OfficeIMO.Html.Rtf;
+using OfficeIMO.Rtf.Html;
 using OfficeIMO.Rtf.Pdf;
 using PdfCore = OfficeIMO.Pdf;
 using System.Threading.Tasks;

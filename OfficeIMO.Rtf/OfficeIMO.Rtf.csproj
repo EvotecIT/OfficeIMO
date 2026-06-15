@@ -52,7 +52,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="OfficeIMO.Html.Rtf" />
+    <InternalsVisibleTo Include="OfficeIMO.Rtf.Html" />
     <InternalsVisibleTo Include="OfficeIMO.Tests" />
   </ItemGroup>
 
