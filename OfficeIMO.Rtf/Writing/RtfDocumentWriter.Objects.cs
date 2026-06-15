@@ -43,7 +43,9 @@ internal static partial class RtfDocumentWriter {
         builder.Append(@"{\result ");
         if (rtfObject.ResultImage != null) {
             WriteImage(builder, rtfObject.ResultImage);
-        } else {
+        }
+
+        if (rtfObject.Result.Inlines.Count > 0) {
             var state = new RunWriteState(defaultLanguageId);
             foreach (IRtfInline inline in rtfObject.Result.Inlines) {
                 WriteInline(builder, inline, state, defaultLanguageId, unicodeSkipCount);

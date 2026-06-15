@@ -95,15 +95,22 @@ internal static partial class RtfSemanticReader {
         }
 
         private void ReadObjectResult(RtfGroup group, RtfObject rtfObject, CharacterState state, int depth) {
-            RtfGroup? pictureGroup = group.Children.OfType<RtfGroup>().FirstOrDefault(child => child.Destination == "pict");
-            if (pictureGroup != null) {
-                rtfObject.ResultImage = ReadPicture(pictureGroup);
-                return;
-            }
-
             RtfParagraph savedParagraph = _currentParagraph;
+            RtfTable? savedTable = _currentTable;
+            RtfTableRow? savedRow = _currentRow;
+            RtfHeaderFooter? savedHeaderFooter = _currentHeaderFooter;
+            RtfNote? savedNote = _currentNote;
+            RtfShape? savedShape = _currentShape;
+            int savedCellIndex = _currentCellIndex;
             bool savedTableState = _currentParagraphIsInTable;
+
             _currentParagraph = rtfObject.Result;
+            _currentTable = null;
+            _currentRow = null;
+            _currentHeaderFooter = null;
+            _currentNote = null;
+            _currentShape = null;
+            _currentCellIndex = 0;
             _currentParagraphIsInTable = false;
             _inlineCaptureDepth++;
             try {
@@ -111,6 +118,11 @@ internal static partial class RtfSemanticReader {
                 foreach (RtfNode child in group.Children) {
                     switch (child) {
                         case RtfGroup childGroup:
+                            if (childGroup.Destination == "pict") {
+                                rtfObject.ResultImage = ReadPicture(childGroup);
+                                break;
+                            }
+
                             WalkGroup(childGroup, resultState.Clone(), depth + 1, allowDestinationSkip: true);
                             break;
                         case RtfText text:
@@ -127,6 +139,12 @@ internal static partial class RtfSemanticReader {
             } finally {
                 _inlineCaptureDepth--;
                 _currentParagraph = savedParagraph;
+                _currentTable = savedTable;
+                _currentRow = savedRow;
+                _currentHeaderFooter = savedHeaderFooter;
+                _currentNote = savedNote;
+                _currentShape = savedShape;
+                _currentCellIndex = savedCellIndex;
                 _currentParagraphIsInTable = savedTableState;
             }
         }

@@ -28,6 +28,43 @@ public partial class RtfDocumentReadWriteTests {
     }
 
     [Fact]
+    public void Read_Binds_Object_Result_Image_And_Text_Together() {
+        const string rtf = @"{\rtf1\ansi\pard Before {\object\objemb{\*\objdata 0102}{\result{\pict\pngblip\bin3 abc}Caption}} after\par}";
+
+        RtfReadResult result = RtfDocument.Read(rtf);
+
+        Assert.Equal(rtf, result.ToRtfLossless());
+        RtfParagraph paragraph = Assert.Single(result.Document.Paragraphs);
+        Assert.Equal("Before Caption after", paragraph.ToPlainText());
+        RtfObject rtfObject = Assert.IsType<RtfObject>(paragraph.Inlines[1]);
+        Assert.NotNull(rtfObject.ResultImage);
+        Assert.Equal(RtfImageFormat.Png, rtfObject.ResultImage!.Format);
+        Assert.Equal(new byte[] { (byte)'a', (byte)'b', (byte)'c' }, rtfObject.ResultImage.Data);
+        Assert.Equal("Caption", rtfObject.Result.ToPlainText());
+    }
+
+    [Fact]
+    public void Write_Emits_Object_Result_Image_And_Text_Together() {
+        RtfDocument document = RtfDocument.Create();
+        RtfParagraph paragraph = document.AddParagraph("Before ");
+        RtfObject rtfObject = paragraph.AddObject(RtfObjectKind.Embedded, new byte[] { 1, 2 });
+        rtfObject.ResultImage = new RtfImage(RtfImageFormat.Png, new byte[] { 0x01, 0x02, 0x03 });
+        rtfObject.Result.AddText("Caption").SetBold();
+        paragraph.AddText(" after");
+
+        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        RtfReadResult result = RtfDocument.Read(rtf);
+
+        Assert.Contains(@"{\result {\pict\pngblip", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\b Caption\b0 ", rtf, StringComparison.Ordinal);
+        RtfObject readObject = Assert.IsType<RtfObject>(Assert.Single(result.Document.Paragraphs).Inlines[1]);
+        Assert.NotNull(readObject.ResultImage);
+        Assert.Equal(new byte[] { 0x01, 0x02, 0x03 }, readObject.ResultImage!.Data);
+        Assert.Equal("Caption", readObject.Result.ToPlainText());
+        Assert.Contains(readObject.Result.Runs, run => run.Text == "Caption" && run.Bold);
+    }
+
+    [Fact]
     public void Read_Binds_Hidden_Text_Runs_And_Preserves_Source_Losslessly() {
         const string rtf = @"{\rtf1\ansi\pard Visible \v Hidden\v0  shown\par}";
 
