@@ -3,6 +3,18 @@ using System.Globalization;
 namespace OfficeIMO.Rtf.Html;
 
 internal static partial class RtfHtmlWriter {
+    private static void AppendParagraphShadingStyle(StringBuilder builder, RtfParagraph paragraph, RtfDocument document) {
+        AppendShadingForegroundStyle(builder, paragraph.ShadingForegroundColorIndex, document);
+        AppendShadingIntegerStyle(builder, "--officeimo-rtf-shading-percent", paragraph.ShadingPatternPercent);
+        AppendShadingPatternStyle(builder, paragraph.ShadingPattern);
+    }
+
+    private static void AppendCharacterShadingStyle(StringBuilder builder, RtfRun run, RtfDocument document) {
+        AppendShadingForegroundStyle(builder, run.CharacterShadingForegroundColorIndex, document);
+        AppendShadingIntegerStyle(builder, "--officeimo-rtf-shading-percent", run.CharacterShadingPatternPercent);
+        AppendShadingPatternStyle(builder, run.CharacterShadingPattern);
+    }
+
     private static void AppendTableRowShadingStyle(StringBuilder builder, RtfTableRow row, RtfDocument document) {
         AppendShadingForegroundStyle(builder, row.ShadingForegroundColorIndex, document);
         AppendShadingIntegerStyle(builder, "--officeimo-rtf-shading-pattern-value", row.ShadingPatternValue);

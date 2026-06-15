@@ -137,6 +137,8 @@ internal static partial class RtfHtmlWriter {
             builder.Append(';');
         }
 
+        AppendParagraphShadingStyle(builder, paragraph, document);
+
         string? align = paragraph.Alignment == RtfTextAlignment.Left ? null : paragraph.Alignment.ToString().ToLowerInvariant();
         if (align != null) {
             builder.Append("text-align:");
@@ -424,6 +426,8 @@ internal static partial class RtfHtmlWriter {
             builder.Append(FormatColor(background!));
             builder.Append(';');
         }
+
+        AppendCharacterShadingStyle(builder, run, document);
 
         AppendCharacterBorderStyle(builder, run.CharacterBorder, document);
         AppendTextDecorationStyle(builder, run, document);

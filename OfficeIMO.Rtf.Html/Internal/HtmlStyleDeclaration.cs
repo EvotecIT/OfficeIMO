@@ -134,6 +134,9 @@ internal sealed class HtmlStyleDeclaration {
         LanguageId.HasValue ||
         ForegroundColor != null ||
         BackgroundColor != null ||
+        ShadingForegroundColor != null ||
+        ShadingPatternPercent.HasValue ||
+        ShadingPattern.HasValue ||
         FontFamily != null ||
         FontSizePoints.HasValue ||
         CharacterSpacingTwips.HasValue ||

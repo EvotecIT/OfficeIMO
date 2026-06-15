@@ -288,6 +288,8 @@ internal static partial class RtfHtmlReader {
                 run.CharacterBackgroundColorIndex = GetOrAddColorIndex(background);
             }
 
+            ApplyCharacterShading(run);
+
             HtmlBorderDeclaration? characterBorder = ResolveCharacterBorder();
             if (characterBorder != null) {
                 ApplyCharacterBorder(run.CharacterBorder, characterBorder);
@@ -369,6 +371,8 @@ internal static partial class RtfHtmlReader {
             if (_paragraph != null && style.BackgroundColor != null) {
                 _paragraph.BackgroundColorIndex = GetOrAddColorIndex(style.BackgroundColor);
             }
+
+            ApplyParagraphShading(style);
 
             if (_paragraph != null) {
                 ApplyParagraphBorder(_paragraph.TopBorder, style.TopBorder);
