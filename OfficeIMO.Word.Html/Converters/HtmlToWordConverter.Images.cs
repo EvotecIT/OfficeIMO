@@ -10,7 +10,7 @@ namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
         private static readonly HtmlUrlPolicy ImageSourceResolutionPolicy = CreateImageSourceResolutionPolicy();
         private static readonly string[] WordImageSrcSetAttributes = { "srcset", "data-srcset", "data-original-srcset", "data-lazy-srcset" };
-        private static readonly string[] WordPictureSourceAttributes = { "src", "data-src", "data-original-src", "data-lazy-src" };
+        private static readonly string[] WordPictureSourceAttributes = { "src", "data-src", "data-original", "data-original-src", "data-lazy-src" };
 
         private void ProcessImage(IHtmlImageElement img, WordDocument doc, HtmlToWordOptions options, WordParagraph? currentParagraph, WordHeaderFooter? headerFooter) {
             var src = ResolveWordImageSource(img, options);
