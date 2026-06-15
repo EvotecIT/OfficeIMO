@@ -13,6 +13,10 @@ internal static partial class RtfHtmlReader {
         }
 
         private void StartRow() {
+            StartRow(null, HtmlStyleDeclaration.Empty);
+        }
+
+        private void StartRow(HtmlToken? token, HtmlStyleDeclaration style) {
             if (_table == null) {
                 StartTable();
             }
@@ -23,6 +27,10 @@ internal static partial class RtfHtmlReader {
             _cell = null;
             _cellTextAlignment = null;
             _paragraph = null;
+            ApplyRowStyle(style);
+            if (token != null) {
+                ApplyRowAttributes(token);
+            }
         }
 
         private void StartCell(HtmlToken token, HtmlStyleDeclaration style, bool isHeader) {
@@ -100,6 +108,63 @@ internal static partial class RtfHtmlReader {
 
                 state.RemainingRows--;
                 _tableColumnIndex++;
+            }
+        }
+
+        private void ApplyRowStyle(HtmlStyleDeclaration style) {
+            if (_row == null) {
+                return;
+            }
+
+            if (style.BackgroundColor != null) {
+                _row.BackgroundColorIndex = GetOrAddColorIndex(style.BackgroundColor);
+            }
+
+            if (style.TextAlignment.HasValue && TryMapTableAlignment(style.TextAlignment.Value, out RtfTableAlignment alignment)) {
+                _row.Alignment = alignment;
+            }
+
+            if (style.TableWidth.HasValue) {
+                _row.PreferredWidth = style.TableWidth.Value;
+                _row.PreferredWidthUnit = style.TableWidthUnit;
+            }
+
+            if (style.TableHeightTwips.HasValue) {
+                _row.HeightTwips = style.TableHeightTwips.Value;
+            }
+
+            if (style.PaddingTopTwips.HasValue ||
+                style.PaddingLeftTwips.HasValue ||
+                style.PaddingBottomTwips.HasValue ||
+                style.PaddingRightTwips.HasValue) {
+                _row.SetPadding(style.PaddingTopTwips, style.PaddingLeftTwips, style.PaddingBottomTwips, style.PaddingRightTwips);
+            }
+        }
+
+        private void ApplyRowAttributes(HtmlToken token) {
+            if (_row == null) {
+                return;
+            }
+
+            string? align = GetAttribute(token, "align");
+            if (!string.IsNullOrWhiteSpace(align) && TryParseTableAlign(align!, out RtfTableAlignment alignment)) {
+                _row.Alignment = alignment;
+            }
+
+            string? background = GetAttribute(token, "bgcolor");
+            if (!string.IsNullOrWhiteSpace(background) && HtmlStyleDeclarationParser.TryParseColor(background!, out RtfColor? color)) {
+                _row.BackgroundColorIndex = GetOrAddColorIndex(color!);
+            }
+
+            string? width = GetAttribute(token, "width");
+            if (!string.IsNullOrWhiteSpace(width) && HtmlStyleDeclarationParser.TryParseTableWidth(width!, out int tableWidth, out RtfTableWidthUnit widthUnit)) {
+                _row.PreferredWidth = tableWidth;
+                _row.PreferredWidthUnit = widthUnit;
+            }
+
+            string? height = GetAttribute(token, "height");
+            if (!string.IsNullOrWhiteSpace(height) && HtmlStyleDeclarationParser.TryParseTwips(height!, out int heightTwips)) {
+                _row.HeightTwips = heightTwips;
             }
         }
 
@@ -220,6 +285,41 @@ internal static partial class RtfHtmlReader {
                     return true;
                 default:
                     alignment = RtfTextAlignment.Left;
+                    return false;
+            }
+        }
+
+        private static bool TryParseTableAlign(string value, out RtfTableAlignment alignment) {
+            switch (value.Trim().ToLowerInvariant()) {
+                case "center":
+                case "middle":
+                    alignment = RtfTableAlignment.Center;
+                    return true;
+                case "right":
+                    alignment = RtfTableAlignment.Right;
+                    return true;
+                case "left":
+                    alignment = RtfTableAlignment.Left;
+                    return true;
+                default:
+                    alignment = RtfTableAlignment.Left;
+                    return false;
+            }
+        }
+
+        private static bool TryMapTableAlignment(RtfTextAlignment textAlignment, out RtfTableAlignment alignment) {
+            switch (textAlignment) {
+                case RtfTextAlignment.Center:
+                    alignment = RtfTableAlignment.Center;
+                    return true;
+                case RtfTextAlignment.Right:
+                    alignment = RtfTableAlignment.Right;
+                    return true;
+                case RtfTextAlignment.Left:
+                    alignment = RtfTableAlignment.Left;
+                    return true;
+                default:
+                    alignment = RtfTableAlignment.Left;
                     return false;
             }
         }

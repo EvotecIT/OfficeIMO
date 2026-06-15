@@ -39,6 +39,8 @@ internal sealed class HtmlStyleDeclaration {
 
     internal RtfTableWidthUnit? TableWidthUnit { get; set; }
 
+    internal int? TableHeightTwips { get; set; }
+
     internal int? PaddingTopTwips { get; set; }
 
     internal int? PaddingLeftTwips { get; set; }

@@ -508,6 +508,56 @@ public class RtfHtmlConverterTests {
     }
 
     [Fact]
+    public void Html_ToRtfDocument_Parses_Table_Row_Attributes_And_Styles() {
+        const string html = "<table><tr align=\"center\" bgcolor=\"#f2f2f2\" width=\"80%\" height=\"24pt\" style=\"padding:3pt 4pt 5pt 6pt\"><td>Result</td></tr></table>";
+
+        RtfDocument document = html.ToRtfDocumentFromHtml();
+
+        RtfTable table = Assert.IsType<RtfTable>(Assert.Single(document.Blocks));
+        RtfTableRow row = table.Rows[0];
+        Assert.Equal(RtfTableAlignment.Center, row.Alignment);
+        Assert.Equal(1, row.BackgroundColorIndex);
+        Assert.Equal(4000, row.PreferredWidth);
+        Assert.Equal(RtfTableWidthUnit.Percent, row.PreferredWidthUnit);
+        Assert.Equal(480, row.HeightTwips);
+        Assert.Equal(60, row.PaddingTopTwips);
+        Assert.Equal(120, row.PaddingLeftTwips);
+        Assert.Equal(100, row.PaddingBottomTwips);
+        Assert.Equal(80, row.PaddingRightTwips);
+
+        string rtf = document.ToRtf();
+        Assert.Contains(@"\trrh480", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\trftsWidth2\trwWidth4000", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\trcbpat1", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\trpaddt60\trpaddft3", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\trqc", rtf, StringComparison.Ordinal);
+
+        RtfTable roundTripTable = Assert.IsType<RtfTable>(Assert.Single(RtfDocument.Read(rtf).Document.Blocks));
+        Assert.Equal(RtfTableAlignment.Center, roundTripTable.Rows[0].Alignment);
+        Assert.Equal(480, roundTripTable.Rows[0].HeightTwips);
+        Assert.Equal(4000, roundTripTable.Rows[0].PreferredWidth);
+    }
+
+    [Fact]
+    public void RtfDocument_ToHtml_Renders_Table_Row_Styles() {
+        RtfDocument document = RtfDocument.Create();
+        int background = document.AddColor(242, 242, 242);
+        RtfTable table = document.AddTable(1, 1);
+        RtfTableRow row = table.Rows[0];
+        row.SetAlignment(RtfTableAlignment.Right)
+            .SetBackgroundColor(background)
+            .SetPadding(topTwips: 60, leftTwips: 120, bottomTwips: 100, rightTwips: 80);
+        row.PreferredWidth = 4000;
+        row.PreferredWidthUnit = RtfTableWidthUnit.Percent;
+        row.HeightTwips = 480;
+        row.Cells[0].AddParagraph("Result");
+
+        string html = document.ToHtml();
+
+        Assert.Equal("<table><tbody><tr style=\"background-color:#F2F2F2;text-align:right;width:80%;height:24pt;padding-top:3pt;padding-left:6pt;padding-bottom:5pt;padding-right:4pt;\"><td><p>Result</p></td></tr></tbody></table>", html);
+    }
+
+    [Fact]
     public void Html_Rtf_Html_RoundTrip_Preserves_Semantic_Text() {
         const string html = "<p>Assessment: <strong>stable</strong></p>";
 

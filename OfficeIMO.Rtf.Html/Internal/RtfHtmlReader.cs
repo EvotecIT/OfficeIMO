@@ -130,7 +130,7 @@ internal static partial class RtfHtmlReader {
                     StartTable();
                     break;
                 case "tr":
-                    StartRow();
+                    StartRow(token, style);
                     break;
                 case "td":
                     StartCell(token, style, isHeader: false);

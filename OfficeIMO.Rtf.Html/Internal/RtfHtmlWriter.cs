@@ -279,8 +279,10 @@ internal static class RtfHtmlWriter {
     }
 
     private static void AppendTableRow(StringBuilder builder, RtfTable table, int rowIndex, RtfHtmlSaveOptions options, RtfDocument document, bool isHeader) {
-        builder.Append("<tr>");
+        builder.Append("<tr");
         RtfTableRow row = table.Rows[rowIndex];
+        AppendRowStyle(builder, row, document);
+        builder.Append('>');
         string cellTag = isHeader ? "th" : "td";
         for (int cellIndex = 0; cellIndex < row.Cells.Count; cellIndex++) {
             RtfTableCell cell = row.Cells[cellIndex];
@@ -305,6 +307,51 @@ internal static class RtfHtmlWriter {
         }
 
         builder.Append("</tr>");
+    }
+
+    private static void AppendRowStyle(StringBuilder builder, RtfTableRow row, RtfDocument document) {
+        if (!TryGetRowStyle(row, document, out string? style)) {
+            return;
+        }
+
+        builder.Append(" style=\"");
+        builder.Append(EncodeAttribute(style!));
+        builder.Append('"');
+    }
+
+    private static bool TryGetRowStyle(RtfTableRow row, RtfDocument document, out string? style) {
+        var builder = new StringBuilder();
+        if (TryGetColor(document, row.BackgroundColorIndex, out RtfColor? background)) {
+            builder.Append("background-color:");
+            builder.Append(FormatColor(background!));
+            builder.Append(';');
+        }
+
+        if (row.Alignment.HasValue) {
+            builder.Append("text-align:");
+            builder.Append(FormatTableAlignment(row.Alignment.Value));
+            builder.Append(';');
+        }
+
+        if (row.PreferredWidth.HasValue && row.PreferredWidthUnit.HasValue) {
+            builder.Append("width:");
+            builder.Append(FormatTableWidth(row.PreferredWidth.Value, row.PreferredWidthUnit.Value));
+            builder.Append(';');
+        }
+
+        if (row.HeightTwips.HasValue) {
+            builder.Append("height:");
+            builder.Append(FormatPoints(row.HeightTwips.Value / 20d));
+            builder.Append("pt;");
+        }
+
+        AppendCellPaddingStyle(builder, "padding-top", row.PaddingTopTwips);
+        AppendCellPaddingStyle(builder, "padding-left", row.PaddingLeftTwips);
+        AppendCellPaddingStyle(builder, "padding-bottom", row.PaddingBottomTwips);
+        AppendCellPaddingStyle(builder, "padding-right", row.PaddingRightTwips);
+
+        style = builder.Length == 0 ? null : builder.ToString();
+        return style != null;
     }
 
     private static bool IsMergeContinuation(RtfTableCell cell) {
@@ -594,6 +641,17 @@ internal static class RtfHtmlWriter {
                 return "bottom";
             default:
                 return "top";
+        }
+    }
+
+    private static string FormatTableAlignment(RtfTableAlignment alignment) {
+        switch (alignment) {
+            case RtfTableAlignment.Center:
+                return "center";
+            case RtfTableAlignment.Right:
+                return "right";
+            default:
+                return "left";
         }
     }
 

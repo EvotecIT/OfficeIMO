@@ -60,6 +60,12 @@ internal static class HtmlStyleDeclarationParser {
                 }
 
                 break;
+            case "height":
+                if (TryParseTwips(value, out int heightTwips)) {
+                    declaration.TableHeightTwips = heightTwips;
+                }
+
+                break;
             case "white-space":
                 declaration.NoWrap = ParseWhiteSpace(value);
                 break;
@@ -269,6 +275,12 @@ internal static class HtmlStyleDeclarationParser {
         }
 
         return false;
+    }
+
+    internal static bool TryParseTwips(string value, out int twips) {
+        int? parsed = ParseTwips(NormalizeValue(value).Trim().ToLowerInvariant());
+        twips = parsed.GetValueOrDefault();
+        return parsed.HasValue;
     }
 
     internal static bool TryParseColor(string value, out RtfColor? color) {
