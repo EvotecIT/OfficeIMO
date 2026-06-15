@@ -52,7 +52,7 @@ This repository should not hide product roadmaps, current-state inventories, or 
 | [OfficeIMO.Markdown.Pdf](OfficeIMO.Markdown.Pdf/README.md) | Markdown to PDF through `OfficeIMO.Pdf`. |
 | [OfficeIMO.Html.Pdf](OfficeIMO.Html.Pdf/README.md) | HTML to PDF and PDF to HTML through OfficeIMO document models. |
 | [OfficeIMO.Html.Rtf](OfficeIMO.Html.Rtf/README.md) | HTML to/from RTF through `OfficeIMO.Html` ingestion and `OfficeIMO.Rtf`. |
-| [OfficeIMO.Rtf.Pdf](OfficeIMO.Rtf.Pdf/README.md) | RTF to PDF through the dependency-free `OfficeIMO.Pdf` engine. |
+| [OfficeIMO.Rtf.Pdf](OfficeIMO.Rtf.Pdf/README.md) | RTF to/from PDF through the dependency-free `OfficeIMO.Pdf` engine. |
 
 ## Markdown, markup, and rendering
 

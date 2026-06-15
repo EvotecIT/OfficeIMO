@@ -10,7 +10,7 @@ RtfDocument document = "<p>Hello <strong>RTF</strong></p>".LoadFromHtml();
 string html = document.ToHtml();
 ```
 
-RTF-to-RTF editing in `OfficeIMO.Rtf` is the lossless preservation path. HTML conversion is a semantic bridge: it preserves supported text, inline formatting, links, lists, tables, bookmarks, fields, form fields, notes, tracked revisions, object metadata, shape metadata, and embedded PNG/JPEG images without Office/COM automation. HTML parsing, URL policy, base URI handling, and image source resolution are shared with the rest of the suite through `OfficeIMO.Html`.
+RTF-to-RTF editing in `OfficeIMO.Rtf` is the lossless preservation path. HTML conversion is a semantic bridge: it preserves supported text, inline formatting, links, lists, tables, bookmarks, fields, form fields, notes, tracked revisions, object metadata, shape metadata, and embedded PNG/JPEG images without Office/COM automation. HTML parsing, URL policy, base URI handling, DOM traversal limits, void-element facts, and image source resolution are shared with the rest of the suite through `OfficeIMO.Html`.
 
 For workflow systems that use HTML as an interchange surface, including clinical and document-review systems, OfficeIMO keeps RTF-only state in `officeimo-rtf-*` metadata and `data-officeimo-rtf-*` attributes. This gives the bridge a stable place to grow without pretending plain HTML can represent every RTF control word by itself.
 

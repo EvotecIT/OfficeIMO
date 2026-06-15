@@ -6,10 +6,11 @@ It owns the reusable parts that should behave consistently across HTML-to-Markdo
 
 - URL policy evaluation and base URI resolution
 - AngleSharp document parsing helpers
+- DOM traversal facts and node/depth limit tracking
 - image source discovery for `img`, lazy-loading attributes, `srcset`, and `picture/source`
 - image data URI parsing and media-type extension mapping
 
-It does not own output-specific rendering. Markdown AST creation, Word document generation, and PDF orchestration stay in their converter packages.
+It does not own output-specific rendering. Markdown AST creation, Word document generation, RTF document generation, and PDF orchestration stay in their converter packages such as `OfficeIMO.Markdown.Html`, `OfficeIMO.Word.Html`, `OfficeIMO.Html.Rtf`, and `OfficeIMO.Html.Pdf`.
 
 ## URL Policy
 
@@ -29,6 +30,16 @@ Uri? baseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(
     document,
     new Uri("https://example.com/articles/"));
 ```
+
+## Traversal Limits
+
+```csharp
+HtmlDomLimitTracker? tracker = HtmlDomLimitTracker.Create(
+    maxHtmlNodes: 10000,
+    maxHtmlDepth: 64);
+```
+
+Converter packages use these primitives to keep bounded HTML ingestion behavior consistent while still reporting converter-specific diagnostics.
 
 ## Image Sources
 
