@@ -10,7 +10,7 @@ public static partial class HtmlRtfConverterExtensions {
             throw new ArgumentNullException(nameof(htmlBytes));
         }
 
-        return htmlBytes.LoadFromHtml(readOptions, encoding).ToRtf(writeOptions);
+        return htmlBytes.ToRtfDocument(readOptions, encoding).ToRtf(writeOptions);
     }
 
     /// <summary>Reads semantic HTML from a stream and converts it to RTF text.</summary>
@@ -19,7 +19,7 @@ public static partial class HtmlRtfConverterExtensions {
             throw new ArgumentNullException(nameof(htmlStream));
         }
 
-        return htmlStream.LoadFromHtml(readOptions, encoding).ToRtf(writeOptions);
+        return htmlStream.ToRtfDocument(readOptions, encoding).ToRtf(writeOptions);
     }
 
     /// <summary>Converts encoded semantic HTML bytes to encoded RTF bytes.</summary>
@@ -28,7 +28,7 @@ public static partial class HtmlRtfConverterExtensions {
             throw new ArgumentNullException(nameof(htmlBytes));
         }
 
-        return htmlBytes.LoadFromHtml(readOptions, htmlEncoding).ToBytes(writeOptions, rtfEncoding);
+        return htmlBytes.ToRtfDocument(readOptions, htmlEncoding).ToBytes(writeOptions, rtfEncoding);
     }
 
     /// <summary>Reads semantic HTML from a stream and converts it to encoded RTF bytes.</summary>
@@ -37,7 +37,7 @@ public static partial class HtmlRtfConverterExtensions {
             throw new ArgumentNullException(nameof(htmlStream));
         }
 
-        return htmlStream.LoadFromHtml(readOptions, htmlEncoding).ToBytes(writeOptions, rtfEncoding);
+        return htmlStream.ToRtfDocument(readOptions, htmlEncoding).ToBytes(writeOptions, rtfEncoding);
     }
 
     /// <summary>Converts encoded semantic HTML bytes to an encoded RTF memory stream.</summary>
@@ -46,7 +46,7 @@ public static partial class HtmlRtfConverterExtensions {
             throw new ArgumentNullException(nameof(htmlBytes));
         }
 
-        return htmlBytes.LoadFromHtml(readOptions, htmlEncoding).ToMemoryStream(writeOptions, rtfEncoding);
+        return htmlBytes.ToRtfDocument(readOptions, htmlEncoding).ToMemoryStream(writeOptions, rtfEncoding);
     }
 
     /// <summary>Reads semantic HTML from a stream and converts it to an encoded RTF memory stream.</summary>
@@ -55,7 +55,7 @@ public static partial class HtmlRtfConverterExtensions {
             throw new ArgumentNullException(nameof(htmlStream));
         }
 
-        return htmlStream.LoadFromHtml(readOptions, htmlEncoding).ToMemoryStream(writeOptions, rtfEncoding);
+        return htmlStream.ToRtfDocument(readOptions, htmlEncoding).ToMemoryStream(writeOptions, rtfEncoding);
     }
 
     /// <summary>Saves encoded semantic HTML bytes as an RTF file at the specified path.</summary>
@@ -68,7 +68,7 @@ public static partial class HtmlRtfConverterExtensions {
             throw new ArgumentNullException(nameof(path));
         }
 
-        htmlBytes.LoadFromHtml(readOptions, htmlEncoding).Save(path, writeOptions, rtfEncoding);
+        htmlBytes.ToRtfDocument(readOptions, htmlEncoding).Save(path, writeOptions, rtfEncoding);
     }
 
     /// <summary>Reads semantic HTML from a stream and saves it as an RTF file at the specified path.</summary>
@@ -81,7 +81,7 @@ public static partial class HtmlRtfConverterExtensions {
             throw new ArgumentNullException(nameof(path));
         }
 
-        htmlStream.LoadFromHtml(readOptions, htmlEncoding).Save(path, writeOptions, rtfEncoding);
+        htmlStream.ToRtfDocument(readOptions, htmlEncoding).Save(path, writeOptions, rtfEncoding);
     }
 
     /// <summary>Saves encoded semantic HTML bytes as RTF to a writable stream without closing or rewinding the stream.</summary>
@@ -94,7 +94,7 @@ public static partial class HtmlRtfConverterExtensions {
             throw new ArgumentNullException(nameof(stream));
         }
 
-        htmlBytes.LoadFromHtml(readOptions, htmlEncoding).Save(stream, writeOptions, rtfEncoding);
+        htmlBytes.ToRtfDocument(readOptions, htmlEncoding).Save(stream, writeOptions, rtfEncoding);
     }
 
     /// <summary>Reads semantic HTML from a stream and saves it as RTF to a writable stream without closing or rewinding the stream.</summary>
@@ -107,6 +107,6 @@ public static partial class HtmlRtfConverterExtensions {
             throw new ArgumentNullException(nameof(stream));
         }
 
-        htmlStream.LoadFromHtml(readOptions, htmlEncoding).Save(stream, writeOptions, rtfEncoding);
+        htmlStream.ToRtfDocument(readOptions, htmlEncoding).Save(stream, writeOptions, rtfEncoding);
     }
 }

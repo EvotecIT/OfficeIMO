@@ -9,7 +9,7 @@ public class RtfHtmlBookmarkTests {
     public void Html_ToRtfDocument_Parses_Bookmark_Anchors_In_Inline_Order() {
         const string html = "<p><a id=\"Anchor\" data-officeimo-rtf-bookmark=\"start\"></a>Bookmarked<a data-officeimo-rtf-bookmark=\"end\" data-officeimo-rtf-bookmark-name=\"Anchor\"></a> text</p>";
 
-        RtfDocument document = html.LoadFromHtml();
+        RtfDocument document = html.ToRtfDocument();
         RtfParagraph paragraph = Assert.Single(document.Paragraphs);
 
         Assert.Collection(paragraph.Inlines,
@@ -35,7 +35,7 @@ public class RtfHtmlBookmarkTests {
     public void Html_ToRtfDocument_Parses_Legacy_Id_Anchor_As_Bookmark_Start() {
         const string html = "<p><a id=\"Target\"></a>Target text</p>";
 
-        RtfParagraph paragraph = Assert.Single(html.LoadFromHtml().Paragraphs);
+        RtfParagraph paragraph = Assert.Single(html.ToRtfDocument().Paragraphs);
 
         RtfBookmarkMarker marker = Assert.IsType<RtfBookmarkMarker>(paragraph.Inlines[0]);
         Assert.Equal(RtfBookmarkMarkerKind.Start, marker.Kind);
@@ -55,7 +55,7 @@ public class RtfHtmlBookmarkTests {
 
         Assert.Equal("<p><a id=\"Anchor\" data-officeimo-rtf-bookmark=\"start\" data-officeimo-rtf-bookmark-name=\"Anchor\"></a>Bookmarked<a data-officeimo-rtf-bookmark=\"end\" data-officeimo-rtf-bookmark-name=\"Anchor\"></a> text</p>", html);
 
-        RtfParagraph roundTripParagraph = Assert.Single(html.LoadFromHtml().Paragraphs);
+        RtfParagraph roundTripParagraph = Assert.Single(html.ToRtfDocument().Paragraphs);
         Assert.Collection(roundTripParagraph.Inlines,
             inline => Assert.Equal(RtfBookmarkMarkerKind.Start, Assert.IsType<RtfBookmarkMarker>(inline).Kind),
             inline => Assert.Equal("Bookmarked", Assert.IsType<RtfRun>(inline).Text),

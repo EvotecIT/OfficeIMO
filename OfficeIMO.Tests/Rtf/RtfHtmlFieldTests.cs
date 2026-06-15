@@ -9,7 +9,7 @@ public class RtfHtmlFieldTests {
     public void Html_ToRtfDocument_Parses_Field_Metadata_In_Inline_Order() {
         const string html = "<p>Page <span data-officeimo-rtf-field=\"true\" data-officeimo-rtf-field-instruction=\"PAGE \\* MERGEFORMAT\"><strong>1</strong></span> done</p>";
 
-        RtfDocument document = html.LoadFromHtml();
+        RtfDocument document = html.ToRtfDocument();
         RtfParagraph paragraph = Assert.Single(document.Paragraphs);
 
         Assert.Collection(paragraph.Inlines,
@@ -38,7 +38,7 @@ public class RtfHtmlFieldTests {
 
         Assert.Equal("<p>Page <span data-officeimo-rtf-field=\"true\" data-officeimo-rtf-field-instruction=\"PAGE \\* MERGEFORMAT\"><strong>1</strong></span> done</p>", html);
 
-        RtfField roundTripField = Assert.IsType<RtfField>(Assert.Single(html.LoadFromHtml().Paragraphs).Inlines[1]);
+        RtfField roundTripField = Assert.IsType<RtfField>(Assert.Single(html.ToRtfDocument().Paragraphs).Inlines[1]);
         Assert.Equal(@"PAGE \* MERGEFORMAT", roundTripField.Instruction);
         Assert.Equal("1", roundTripField.ToPlainText());
         Assert.Contains(roundTripField.Result.Runs, run => run.Text == "1" && run.Bold);
@@ -53,7 +53,7 @@ public class RtfHtmlFieldTests {
         string html = document.ToHtml();
 
         Assert.Equal("<p><a href=\"https://example.test/path\" data-officeimo-rtf-field=\"true\" data-officeimo-rtf-field-instruction=\"HYPERLINK &quot;https://example.test/path&quot; \\o &quot;tip&quot;\" data-officeimo-rtf-field-hyperlink=\"https://example.test/path\" data-officeimo-rtf-field-hyperlink-screen-tip=\"tip\" title=\"tip\"><strong>Link</strong></a></p>", html);
-        RtfField roundTripField = Assert.IsType<RtfField>(Assert.Single(html.LoadFromHtml().Paragraphs).Inlines[0]);
+        RtfField roundTripField = Assert.IsType<RtfField>(Assert.Single(html.ToRtfDocument().Paragraphs).Inlines[0]);
         Assert.Equal(@"HYPERLINK ""https://example.test/path"" \o ""tip""", roundTripField.Instruction);
         Assert.Equal(new Uri("https://example.test/path"), roundTripField.Hyperlink);
         Assert.NotNull(roundTripField.HyperlinkField);
@@ -80,7 +80,7 @@ public class RtfHtmlFieldTests {
         Assert.Contains("data-officeimo-rtf-field-hyperlink-sub-address=\"Target\"", html, StringComparison.Ordinal);
         Assert.Contains("title=\"Jump tip\"", html, StringComparison.Ordinal);
 
-        RtfField roundTripField = Assert.Single(Assert.Single(html.LoadFromHtml().Paragraphs).Inlines.OfType<RtfField>());
+        RtfField roundTripField = Assert.Single(Assert.Single(html.ToRtfDocument().Paragraphs).Inlines.OfType<RtfField>());
         Assert.Null(roundTripField.Hyperlink);
         Assert.NotNull(roundTripField.HyperlinkField);
         Assert.Equal("Target", roundTripField.HyperlinkField!.SubAddress);
@@ -97,7 +97,7 @@ public class RtfHtmlFieldTests {
         string html = document.ToHtml();
 
         Assert.Equal("<p><span data-officeimo-rtf-field=\"true\" data-officeimo-rtf-field-instruction=\"MERGEFIELD Patient&lt;Name&gt;\">Ada</span></p>", html);
-        RtfField roundTripField = Assert.IsType<RtfField>(Assert.Single(html.LoadFromHtml().Paragraphs).Inlines[0]);
+        RtfField roundTripField = Assert.IsType<RtfField>(Assert.Single(html.ToRtfDocument().Paragraphs).Inlines[0]);
         Assert.Equal("MERGEFIELD Patient<Name>", roundTripField.Instruction);
     }
 
@@ -116,7 +116,7 @@ public class RtfHtmlFieldTests {
         string html = document.ToHtml();
 
         Assert.Equal("<p>Page <span data-officeimo-rtf-generated-text=\"page-number\"></span> Section <span data-officeimo-rtf-generated-text=\"section-number\"></span> Date <span data-officeimo-rtf-generated-text=\"current-date\"></span> Time <span data-officeimo-rtf-generated-text=\"current-time\"></span></p>", html);
-        RtfParagraph roundTrip = Assert.Single(html.LoadFromHtml().Paragraphs);
+        RtfParagraph roundTrip = Assert.Single(html.ToRtfDocument().Paragraphs);
         Assert.Collection(roundTrip.Inlines,
             inline => Assert.Equal("Page ", Assert.IsType<RtfRun>(inline).Text),
             inline => Assert.Equal(RtfGeneratedTextKind.PageNumber, Assert.IsType<RtfGeneratedText>(inline).Kind),
@@ -132,7 +132,7 @@ public class RtfHtmlFieldTests {
     public void Html_ToRtfDocument_DoesNot_Preserve_Field_Span_As_Unknown_Text() {
         const string html = "<p><span data-officeimo-rtf-field=\"true\" data-officeimo-rtf-field-instruction=\"PAGE\">1</span></p>";
 
-        RtfParagraph paragraph = Assert.Single(html.LoadFromHtml(new HtmlToRtfOptions { PreserveUnknownTagsAsText = true }).Paragraphs);
+        RtfParagraph paragraph = Assert.Single(html.ToRtfDocument(new HtmlToRtfOptions { PreserveUnknownTagsAsText = true }).Paragraphs);
 
         RtfField field = Assert.IsType<RtfField>(Assert.Single(paragraph.Inlines));
         Assert.Equal("PAGE", field.Instruction);
@@ -143,7 +143,7 @@ public class RtfHtmlFieldTests {
     public void Html_ToRtfDocument_Parses_Form_Field_Metadata() {
         const string html = "<p>Name: <span data-officeimo-rtf-field=\"true\" data-officeimo-rtf-field-instruction=\"FORMTEXT\" data-officeimo-rtf-form-field=\"true\" data-officeimo-rtf-form-controls=\"fftype=0;ffenabled=1;ffownhelp=1;ffownstat=1;ffprot=0;ffrecalc=1;ffmaxlen=50\" data-officeimo-rtf-form-name=\"Customer\" data-officeimo-rtf-form-default-text=\"Default\" data-officeimo-rtf-form-format=\"Uppercase\" data-officeimo-rtf-form-help-text=\"Help\" data-officeimo-rtf-form-status-text=\"Status\" data-officeimo-rtf-form-entry-macro=\"Enter\" data-officeimo-rtf-form-exit-macro=\"Exit\">Value</span></p>";
 
-        RtfDocument document = html.LoadFromHtml();
+        RtfDocument document = html.ToRtfDocument();
         RtfField field = Assert.IsType<RtfField>(Assert.Single(document.Paragraphs).Inlines[1]);
 
         Assert.Equal("FORMTEXT", field.Instruction);
@@ -189,7 +189,7 @@ public class RtfHtmlFieldTests {
 
         Assert.Equal("<p>Choice: <span data-officeimo-rtf-field=\"true\" data-officeimo-rtf-field-instruction=\"FORMDROPDOWN\" data-officeimo-rtf-form-field=\"true\" data-officeimo-rtf-form-controls=\"fftype=2;ffenabled=1;ffdefres=0;ffres=1\" data-officeimo-rtf-form-name=\"Choice\" data-officeimo-rtf-form-dropdown-items=\"Rmlyc3Q=;U2Vjb25k\">Second</span></p>", html);
 
-        RtfField roundTripField = Assert.IsType<RtfField>(Assert.Single(html.LoadFromHtml().Paragraphs).Inlines[1]);
+        RtfField roundTripField = Assert.IsType<RtfField>(Assert.Single(html.ToRtfDocument().Paragraphs).Inlines[1]);
         Assert.NotNull(roundTripField.FormFieldData);
         RtfFormFieldData roundTripData = roundTripField.FormFieldData!;
         Assert.Equal(RtfFormFieldKind.DropDown, roundTripData.Kind);
@@ -205,7 +205,7 @@ public class RtfHtmlFieldTests {
     public void Html_ToRtfDocument_Ignores_Invalid_Form_Field_Control_Names() {
         const string html = "<p><span data-officeimo-rtf-field=\"true\" data-officeimo-rtf-field-instruction=\"FORMTEXT\" data-officeimo-rtf-form-controls=\"fftype=0;bad-name=1;ffmaxlen=20\">Value</span></p>";
 
-        RtfField field = Assert.IsType<RtfField>(Assert.Single(html.LoadFromHtml().Paragraphs).Inlines[0]);
+        RtfField field = Assert.IsType<RtfField>(Assert.Single(html.ToRtfDocument().Paragraphs).Inlines[0]);
 
         Assert.NotNull(field.FormFieldData);
         RtfFormFieldData data = field.FormFieldData!;

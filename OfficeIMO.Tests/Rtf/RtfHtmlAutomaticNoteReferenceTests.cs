@@ -20,7 +20,7 @@ public class RtfHtmlAutomaticNoteReferenceTests {
         Assert.Contains("data-officeimo-rtf-generated-text=\"note-reference\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-rtf-note=\"footnote\"", html, StringComparison.Ordinal);
 
-        RtfDocument roundTrip = html.LoadFromHtml();
+        RtfDocument roundTrip = html.ToRtfDocument();
         RtfGeneratedText reference = Assert.IsType<RtfGeneratedText>(Assert.Single(roundTrip.Paragraphs).Inlines[1]);
 
         Assert.Equal(RtfGeneratedTextKind.NoteReference, reference.Kind);
@@ -35,7 +35,7 @@ public class RtfHtmlAutomaticNoteReferenceTests {
         string content = Convert.ToBase64String(Encoding.UTF8.GetBytes("<p>Endnote <strong>text</strong></p>"));
         string html = "<p>Value<span data-officeimo-rtf-generated-text=\"note-reference\"></span><span data-officeimo-rtf-note=\"endnote\" data-officeimo-rtf-note-content=\"" + content + "\"></span></p>";
 
-        RtfDocument document = html.LoadFromHtml();
+        RtfDocument document = html.ToRtfDocument();
         RtfGeneratedText reference = Assert.IsType<RtfGeneratedText>(Assert.Single(document.Paragraphs).Inlines[1]);
 
         Assert.Equal(RtfGeneratedTextKind.NoteReference, reference.Kind);

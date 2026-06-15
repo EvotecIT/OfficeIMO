@@ -11,7 +11,7 @@ public class RtfHtmlCharacterFormatTests {
     public void Html_ToRtfDocument_Parses_Character_Border() {
         const string html = "<p><span style=\"border:1pt solid #0c2238\">Flag</span><span style=\"border-top:2pt dashed red\"> Side</span></p>";
 
-        RtfDocument document = html.LoadFromHtml();
+        RtfDocument document = html.ToRtfDocument();
 
         RtfParagraph paragraph = Assert.Single(document.Paragraphs);
         RtfRun flagged = paragraph.Runs.Single(run => run.Text == "Flag");
@@ -42,7 +42,7 @@ public class RtfHtmlCharacterFormatTests {
 
         Assert.Equal("<p><span style=\"border:2pt double #0C2238;\">Flag</span></p>", html);
 
-        RtfRun roundTripFlagged = html.LoadFromHtml().Paragraphs[0].Runs.Single(run => run.Text == "Flag");
+        RtfRun roundTripFlagged = html.ToRtfDocument().Paragraphs[0].Runs.Single(run => run.Text == "Flag");
         Assert.Equal(RtfParagraphBorderStyle.Double, roundTripFlagged.CharacterBorder.Style);
         Assert.Equal(40, roundTripFlagged.CharacterBorder.Width);
         Assert.Equal(1, roundTripFlagged.CharacterBorder.ColorIndex);
@@ -52,7 +52,7 @@ public class RtfHtmlCharacterFormatTests {
     public void Html_ToRtfDocument_Parses_Rich_Underline_Style_And_Color() {
         const string html = "<p><span style=\"text-decoration-line:underline;text-decoration-style:wavy;text-decoration-color:#0c2238\">Wave</span><span style=\"text-decoration-style:double;text-decoration-color:red\"> Plain</span></p>";
 
-        RtfDocument document = html.LoadFromHtml();
+        RtfDocument document = html.ToRtfDocument();
 
         RtfParagraph paragraph = Assert.Single(document.Paragraphs);
         RtfRun wave = paragraph.Runs.Single(run => run.Text == "Wave");
@@ -85,7 +85,7 @@ public class RtfHtmlCharacterFormatTests {
 
         Assert.Equal("<p><span style=\"text-decoration-line:underline;text-decoration-style:dashed;--officeimo-rtf-underline-style:thick-dash-dot-dot;text-decoration-color:#0C2238;\">Flag</span></p>", html);
 
-        RtfRun roundTripFlagged = html.LoadFromHtml().Paragraphs[0].Runs.Single(run => run.Text == "Flag");
+        RtfRun roundTripFlagged = html.ToRtfDocument().Paragraphs[0].Runs.Single(run => run.Text == "Flag");
         Assert.Equal(RtfUnderlineStyle.ThickDashDotDot, roundTripFlagged.UnderlineStyle);
         Assert.Equal(1, roundTripFlagged.UnderlineColorIndex);
     }
@@ -94,7 +94,7 @@ public class RtfHtmlCharacterFormatTests {
     public void Html_ToRtfDocument_Parses_Double_Strike() {
         const string html = "<p><span style=\"text-decoration-line:line-through;text-decoration-style:double\">Double</span><span style=\"text-decoration-style:double\"> Plain</span></p>";
 
-        RtfDocument document = html.LoadFromHtml();
+        RtfDocument document = html.ToRtfDocument();
 
         RtfParagraph paragraph = Assert.Single(document.Paragraphs);
         RtfRun doubled = paragraph.Runs.Single(run => run.Text == "Double");
@@ -122,7 +122,7 @@ public class RtfHtmlCharacterFormatTests {
 
         Assert.Equal("<p><span style=\"text-decoration-line:line-through;text-decoration-style:double;--officeimo-rtf-strike-style:double;\">Double</span></p>", html);
 
-        RtfRun roundTripDoubled = html.LoadFromHtml().Paragraphs[0].Runs.Single(run => run.Text == "Double");
+        RtfRun roundTripDoubled = html.ToRtfDocument().Paragraphs[0].Runs.Single(run => run.Text == "Double");
         Assert.True(roundTripDoubled.DoubleStrike);
         Assert.False(roundTripDoubled.Strike);
     }
@@ -131,7 +131,7 @@ public class RtfHtmlCharacterFormatTests {
     public void Html_ToRtfDocument_Parses_Caps_And_SmallCaps() {
         const string html = "<p><span style=\"text-transform:uppercase\">Caps</span><span style=\"font-variant-caps:small-caps\"> Small</span><span style=\"text-transform:uppercase\"><span style=\"text-transform:none\"> Plain</span></span></p>";
 
-        RtfDocument document = html.LoadFromHtml();
+        RtfDocument document = html.ToRtfDocument();
 
         RtfParagraph paragraph = Assert.Single(document.Paragraphs);
         Assert.Equal(RtfCapsStyle.Caps, paragraph.Runs.Single(run => run.Text == "Caps").CapsStyle);
@@ -159,7 +159,7 @@ public class RtfHtmlCharacterFormatTests {
 
         Assert.Equal("<p><span style=\"text-transform:uppercase;--officeimo-rtf-caps-style:caps;\">Caps</span><span style=\"font-variant-caps:small-caps;--officeimo-rtf-caps-style:small-caps;\"> Small</span></p>", html);
 
-        RtfParagraph roundTripParagraph = html.LoadFromHtml().Paragraphs[0];
+        RtfParagraph roundTripParagraph = html.ToRtfDocument().Paragraphs[0];
         Assert.Equal(RtfCapsStyle.Caps, roundTripParagraph.Runs.Single(run => run.Text == "Caps").CapsStyle);
         Assert.Equal(RtfCapsStyle.SmallCaps, roundTripParagraph.Runs.Single(run => run.Text == " Small").CapsStyle);
     }
@@ -168,7 +168,7 @@ public class RtfHtmlCharacterFormatTests {
     public void Html_ToRtfDocument_Parses_Character_Metrics() {
         const string html = "<p><span style=\"letter-spacing:2pt;font-stretch:80%;vertical-align:3pt\">Raised<span style=\"letter-spacing:normal;font-stretch:100%;vertical-align:baseline\"> Plain</span></span><span style=\"letter-spacing:-1pt\"> Condensed</span></p>";
 
-        RtfDocument document = html.LoadFromHtml();
+        RtfDocument document = html.ToRtfDocument();
 
         RtfParagraph paragraph = Assert.Single(document.Paragraphs);
         RtfRun raised = paragraph.Runs.Single(run => run.Text == "Raised");
@@ -212,7 +212,7 @@ public class RtfHtmlCharacterFormatTests {
 
         Assert.Equal("<p><span style=\"letter-spacing:2pt;font-stretch:80%;--officeimo-rtf-character-scale:80;vertical-align:3pt;--officeimo-rtf-character-offset:6;\">Raised</span><span style=\"vertical-align:-2pt;--officeimo-rtf-character-offset:-4;\"> Lowered</span></p>", html);
 
-        RtfParagraph roundTripParagraph = html.LoadFromHtml().Paragraphs[0];
+        RtfParagraph roundTripParagraph = html.ToRtfDocument().Paragraphs[0];
         RtfRun raised = roundTripParagraph.Runs.Single(run => run.Text == "Raised");
         Assert.Equal(40, raised.CharacterSpacingTwips);
         Assert.Equal(80, raised.CharacterScalePercent);
@@ -224,7 +224,7 @@ public class RtfHtmlCharacterFormatTests {
     public void Html_ToRtfDocument_Parses_Character_Effects() {
         const string html = "<p><span style=\"visibility:hidden\">Hidden</span><span style=\"--officeimo-rtf-outline:true\"> Outline</span><span style=\"text-shadow:1pt 1pt 0 currentColor\"> Shadow</span><span style=\"--officeimo-rtf-emboss:true\"> Emboss</span><span style=\"--officeimo-rtf-imprint:true\"> Imprint</span><span style=\"visibility:hidden\"><span style=\"visibility:visible\"> Plain</span></span></p>";
 
-        RtfDocument document = html.LoadFromHtml();
+        RtfDocument document = html.ToRtfDocument();
 
         RtfParagraph paragraph = Assert.Single(document.Paragraphs);
         Assert.True(paragraph.Runs.Single(run => run.Text == "Hidden").Hidden);
@@ -264,7 +264,7 @@ public class RtfHtmlCharacterFormatTests {
 
         Assert.Equal("<p><span style=\"visibility:hidden;--officeimo-rtf-hidden:true;\">Hidden</span><span style=\"--officeimo-rtf-outline:true;\"> Outline</span><span style=\"text-shadow:1pt 1pt 0 currentColor;--officeimo-rtf-shadow:true;\"> Shadow</span><span style=\"--officeimo-rtf-emboss:true;\"> Emboss</span><span style=\"--officeimo-rtf-imprint:true;\"> Imprint</span></p>", html);
 
-        RtfParagraph roundTripParagraph = html.LoadFromHtml().Paragraphs[0];
+        RtfParagraph roundTripParagraph = html.ToRtfDocument().Paragraphs[0];
         Assert.True(roundTripParagraph.Runs.Single(run => run.Text == "Hidden").Hidden);
         Assert.True(roundTripParagraph.Runs.Single(run => run.Text == " Outline").Outline);
         Assert.True(roundTripParagraph.Runs.Single(run => run.Text == " Shadow").Shadow);
@@ -276,7 +276,7 @@ public class RtfHtmlCharacterFormatTests {
     public void Html_ToRtfDocument_Parses_Language_And_Direction() {
         const string html = "<p><span dir=\"rtl\" lang=\"ar-SA\">RTL</span><span style=\"direction:ltr;--officeimo-rtf-lang:1045\"> Polish</span><span dir=\"auto\"> Plain</span></p>";
 
-        RtfDocument document = html.LoadFromHtml();
+        RtfDocument document = html.ToRtfDocument();
 
         RtfParagraph paragraph = Assert.Single(document.Paragraphs);
         RtfRun rtl = paragraph.Runs.Single(run => run.Text == "RTL");
@@ -317,7 +317,7 @@ public class RtfHtmlCharacterFormatTests {
 
         Assert.Equal("<p><span lang=\"ar-SA\" dir=\"rtl\" style=\"--officeimo-rtf-lang:1025;direction:rtl;unicode-bidi:isolate;--officeimo-rtf-direction:rtl;\">RTL</span><span lang=\"pl-PL\" dir=\"ltr\" style=\"--officeimo-rtf-lang:1045;direction:ltr;unicode-bidi:isolate;--officeimo-rtf-direction:ltr;\"> Polish</span></p>", html);
 
-        RtfParagraph roundTripParagraph = html.LoadFromHtml().Paragraphs[0];
+        RtfParagraph roundTripParagraph = html.ToRtfDocument().Paragraphs[0];
         Assert.Equal(RtfTextDirection.RightToLeft, roundTripParagraph.Runs.Single(run => run.Text == "RTL").Direction);
         Assert.Equal(1025, roundTripParagraph.Runs.Single(run => run.Text == "RTL").LanguageId);
         Assert.Equal(RtfTextDirection.LeftToRight, roundTripParagraph.Runs.Single(run => run.Text == " Polish").Direction);

@@ -18,7 +18,7 @@ It does not replace output-specific engines. Markdown AST creation, Word documen
 ```csharp
 using OfficeIMO.Html;
 
-RtfDocument document = "<p>Hello <strong>RTF</strong></p>".LoadFromHtml();
+RtfDocument document = "<p>Hello <strong>RTF</strong></p>".ToRtfDocument();
 string rtf = document.ToRtf();
 string html = document.ToHtml();
 ```
