@@ -20,5 +20,8 @@ public enum RtfGeneratedTextKind {
     CurrentDateAbbreviated,
 
     /// <summary>Current time, emitted as <c>\chtime</c>.</summary>
-    CurrentTime
+    CurrentTime,
+
+    /// <summary>Automatic note reference marker, emitted as <c>\chftn</c>.</summary>
+    NoteReference
 }

@@ -193,6 +193,14 @@ public sealed class RtfParagraph : IRtfBlock {
         return AddGeneratedText(RtfGeneratedTextKind.CurrentTime, fallbackText);
     }
 
+    /// <summary>Adds an automatic note reference marker and attaches the supplied note to it.</summary>
+    public RtfGeneratedText AddNoteReference(RtfNote note, string? fallbackText = null) {
+        if (note == null) throw new ArgumentNullException(nameof(note));
+        RtfGeneratedText generatedText = AddGeneratedText(RtfGeneratedTextKind.NoteReference, fallbackText);
+        generatedText.Note = note;
+        return generatedText;
+    }
+
     /// <summary>Adds an embedded or linked object at the current paragraph position.</summary>
     public RtfObject AddObject(RtfObjectKind kind = RtfObjectKind.Unknown, byte[]? data = null) {
         var rtfObject = new RtfObject(kind, data);
@@ -310,7 +318,9 @@ public sealed class RtfParagraph : IRtfBlock {
                 AddField(field);
                 break;
             case RtfGeneratedText generatedText:
-                AddGeneratedText(new RtfGeneratedText(generatedText.Kind, generatedText.FallbackText));
+                AddGeneratedText(new RtfGeneratedText(generatedText.Kind, generatedText.FallbackText) {
+                    Note = generatedText.Note
+                });
                 break;
             case RtfObject rtfObject:
                 AddObject(rtfObject);

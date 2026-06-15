@@ -8,7 +8,8 @@ internal static partial class RtfHtmlReader {
                 return false;
             }
 
-            EnsureInlineParagraph().AddGeneratedText(ReadGeneratedTextKind(value!));
+            _lastGeneratedText = EnsureInlineParagraph().AddGeneratedText(ReadGeneratedTextKind(value!));
+            _lastRun = null;
             return true;
         }
 
@@ -34,6 +35,10 @@ internal static partial class RtfHtmlReader {
                 case "time":
                 case "chtime":
                     return RtfGeneratedTextKind.CurrentTime;
+                case "note-reference":
+                case "note":
+                case "chftn":
+                    return RtfGeneratedTextKind.NoteReference;
                 default:
                     return RtfGeneratedTextKind.PageNumber;
             }

@@ -6,7 +6,9 @@ internal static partial class RtfHtmlReader {
     private sealed partial class ReadContext {
         private bool TryReadNote(IElement token) {
             string? kindValue = GetAttribute(token, "data-officeimo-rtf-note");
-            if (string.IsNullOrWhiteSpace(kindValue) || !TryParseNoteKind(kindValue!, out RtfNoteKind kind) || _lastRun == null) {
+            if (string.IsNullOrWhiteSpace(kindValue) ||
+                !TryParseNoteKind(kindValue!, out RtfNoteKind kind) ||
+                (_lastRun == null && _lastGeneratedText == null)) {
                 return false;
             }
 
@@ -22,7 +24,12 @@ internal static partial class RtfHtmlReader {
             }
 
             AddNoteContent(note, GetAttribute(token, "data-officeimo-rtf-note-content"));
-            _lastRun.Note = note;
+            if (_lastGeneratedText != null) {
+                _lastGeneratedText.Note = note;
+            } else {
+                _lastRun!.Note = note;
+            }
+
             return true;
         }
 
@@ -99,7 +106,7 @@ internal static partial class RtfHtmlReader {
                     CopyParagraphInlines(field.Result, copiedField.Result, sourceDocument);
                     break;
                 case RtfGeneratedText generatedText:
-                    target.AddGeneratedText(generatedText.Kind, generatedText.FallbackText);
+                    target.AddGeneratedText(generatedText.Kind, generatedText.FallbackText).Note = generatedText.Note;
                     break;
                 case RtfImage image:
                     RtfImage copiedImage = target.AddImage(image.Format, image.Data);

@@ -255,7 +255,7 @@ public static partial class WordRtfConverterExtensions {
                     CopyInlines(nestedField.Result, field.Result);
                     break;
                 case RtfGeneratedText generatedText:
-                    destination.AddGeneratedText(generatedText.Kind, generatedText.FallbackText);
+                    destination.AddGeneratedText(generatedText.Kind, generatedText.FallbackText).Note = generatedText.Note;
                     break;
                 case RtfImage image:
                     RtfImage copy = destination.AddImage(image.Format, image.Data);
@@ -497,12 +497,25 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static void AppendGeneratedText(WordParagraph wordParagraph, RtfGeneratedText generatedText, RtfDocument? rtfDocument) {
+        if (generatedText.Kind == RtfGeneratedTextKind.NoteReference) {
+            WordParagraph wordRun = wordParagraph.AddText(generatedText.FallbackText ?? string.Empty);
+            if (generatedText.Note != null) {
+                AppendNote(wordRun, generatedText.Note, rtfDocument);
+            }
+
+            return;
+        }
+
         var field = new RtfField(ToWordFieldInstruction(generatedText.Kind));
         if (!string.IsNullOrEmpty(generatedText.FallbackText)) {
             field.AddText(generatedText.FallbackText!);
         }
 
         AppendField(wordParagraph, field, rtfDocument);
+        if (generatedText.Note != null) {
+            WordParagraph wordRun = wordParagraph.AddText(generatedText.FallbackText ?? string.Empty);
+            AppendNote(wordRun, generatedText.Note, rtfDocument);
+        }
     }
 
     private static string ToWordFieldInstruction(RtfGeneratedTextKind kind) {

@@ -152,6 +152,9 @@ internal static partial class RtfSemanticReader {
                 case "chtime":
                     AppendGeneratedText(RtfGeneratedTextKind.CurrentTime, state);
                     return;
+                case "chftn":
+                    AppendGeneratedText(RtfGeneratedTextKind.NoteReference, state);
+                    return;
                 case "emdash":
                 case "endash":
                 case "emspace":

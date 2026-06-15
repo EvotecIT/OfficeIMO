@@ -105,9 +105,14 @@ internal static partial class RtfDocumentWriter {
     }
 
     private static void AddReferencedNotes(RtfParagraph paragraph, HashSet<RtfNote> notes) {
-        foreach (RtfRun run in paragraph.Runs) {
-            if (run.Note != null) {
-                notes.Add(run.Note);
+        foreach (IRtfInline inline in paragraph.Inlines) {
+            switch (inline) {
+                case RtfRun run when run.Note != null:
+                    notes.Add(run.Note);
+                    break;
+                case RtfGeneratedText generatedText when generatedText.Note != null:
+                    notes.Add(generatedText.Note);
+                    break;
             }
         }
     }

@@ -21,6 +21,7 @@ internal static partial class RtfHtmlReader {
         private RtfTableCell? _cell;
         private Uri? _hyperlink;
         private RtfRun? _lastRun;
+        private RtfGeneratedText? _lastGeneratedText;
         private int _bold;
         private int _italic;
         private int _underline;
@@ -321,6 +322,7 @@ internal static partial class RtfHtmlReader {
 
             RtfRun run = EnsureInlineParagraph().AddText(value);
             _lastRun = run;
+            _lastGeneratedText = null;
             run.Bold = ResolveStyleValue(style => style.Bold, _bold > 0);
             run.Italic = ResolveStyleValue(style => style.Italic, _italic > 0);
             bool underline = ResolveStyleValue(style => style.Underline, _underline > 0);
@@ -381,6 +383,8 @@ internal static partial class RtfHtmlReader {
             }
 
             _paragraph = _cell == null ? _document.AddParagraph() : _cell.AddParagraph();
+            _lastRun = null;
+            _lastGeneratedText = null;
             if (_cell == null) {
                 AddSectionBlock(_paragraph);
             }
@@ -398,6 +402,8 @@ internal static partial class RtfHtmlReader {
             }
 
             _paragraph = null;
+            _lastRun = null;
+            _lastGeneratedText = null;
             _pageBreakAfterParagraph = false;
         }
 

@@ -669,6 +669,10 @@ internal static partial class RtfDocumentWriter {
                 break;
             case RtfGeneratedText generatedText:
                 WriteGeneratedText(builder, generatedText);
+                if (generatedText.Note != null) {
+                    WriteNote(builder, generatedText.Note, defaultLanguageId, unicodeSkipCount);
+                }
+
                 break;
             case RtfBreak rtfBreak:
                 WriteBreak(builder, rtfBreak);
@@ -705,6 +709,7 @@ internal static partial class RtfDocumentWriter {
             RtfGeneratedTextKind.CurrentDateLong => @"\chdpl ",
             RtfGeneratedTextKind.CurrentDateAbbreviated => @"\chdpa ",
             RtfGeneratedTextKind.CurrentTime => @"\chtime ",
+            RtfGeneratedTextKind.NoteReference => @"\chftn ",
             _ => @"\chpgn "
         });
     }

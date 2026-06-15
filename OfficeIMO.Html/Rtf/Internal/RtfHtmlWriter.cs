@@ -255,6 +255,7 @@ internal static partial class RtfHtmlWriter {
                     break;
                 case RtfGeneratedText generatedText:
                     AppendGeneratedText(builder, generatedText);
+                    AppendNote(builder, generatedText.Note, document);
                     break;
                 case RtfImage image:
                     AppendImage(builder, image, options);

@@ -60,15 +60,25 @@ internal static partial class RtfSemanticReader {
             _currentCellIndex = savedCellIndex;
             _currentParagraphIsInTable = savedParagraphIsInTable;
 
-            AttachNoteToCurrentRun(note);
+            AttachNoteToCurrentInline(note);
         }
 
-        private void AttachNoteToCurrentRun(RtfNote note) {
-            IReadOnlyList<RtfRun> runs = _currentParagraph.Runs;
-            if (runs.Count == 0) return;
-            RtfRun run = runs[runs.Count - 1];
-            if (run.Note == null) {
-                run.Note = note;
+        private void AttachNoteToCurrentInline(RtfNote note) {
+            for (int index = _currentParagraph.Inlines.Count - 1; index >= 0; index--) {
+                IRtfInline inline = _currentParagraph.Inlines[index];
+                if (inline is RtfGeneratedText generatedText && generatedText.Note == null) {
+                    generatedText.Note = note;
+                    return;
+                }
+
+                if (inline is RtfRun run && run.Note == null) {
+                    run.Note = note;
+                    return;
+                }
+            }
+
+            if (note.Kind == RtfNoteKind.Footnote || note.Kind == RtfNoteKind.Endnote) {
+                _currentParagraph.AddNoteReference(note);
             }
         }
 

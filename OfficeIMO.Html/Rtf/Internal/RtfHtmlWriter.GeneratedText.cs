@@ -19,6 +19,8 @@ internal static partial class RtfHtmlWriter {
                 return "current-date-abbreviated";
             case RtfGeneratedTextKind.CurrentTime:
                 return "current-time";
+            case RtfGeneratedTextKind.NoteReference:
+                return "note-reference";
             default:
                 return "page-number";
         }

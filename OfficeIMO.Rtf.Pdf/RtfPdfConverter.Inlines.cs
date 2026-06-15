@@ -31,7 +31,7 @@ internal static partial class RtfPdfConverter {
                     AppendParagraphRuns(document, field.Result, pendingRuns, options, state);
                     break;
                 case RtfGeneratedText generatedText:
-                    AppendPlainText(generatedText.ToPlainText(), pendingRuns);
+                    AppendGeneratedText(generatedText, pendingRuns, state);
                     break;
                 case RtfImage image:
                     FlushParagraph(pdf, pendingRuns, align, style);
@@ -79,7 +79,7 @@ internal static partial class RtfPdfConverter {
                     AppendParagraphRuns(document, field.Result, runs, options, state, collectNotes);
                     break;
                 case RtfGeneratedText generatedText:
-                    AppendPlainText(generatedText.ToPlainText(), runs);
+                    AppendGeneratedText(generatedText, runs, state, collectNotes);
                     break;
                 case RtfObject rtfObject:
                     AppendPlainText(rtfObject.ToPlainText(), runs);
@@ -128,6 +128,15 @@ internal static partial class RtfPdfConverter {
         if (!string.IsNullOrEmpty(text)) {
             runs.Add(PdfCore.TextRun.Normal(text));
         }
+    }
+
+    private static void AppendGeneratedText(RtfGeneratedText generatedText, List<PdfCore.TextRun> runs, PdfRenderState state, bool collectNotes = true) {
+        string text = generatedText.ToPlainText();
+        if (collectNotes && generatedText.Note != null) {
+            state.AddNote(generatedText.Note, text);
+        }
+
+        AppendPlainText(text, runs);
     }
 
     private static void AppendListMarker(RtfParagraph paragraph, List<PdfCore.TextRun> runs, PdfRenderState state) {
