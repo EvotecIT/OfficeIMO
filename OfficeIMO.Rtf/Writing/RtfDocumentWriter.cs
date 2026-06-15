@@ -687,7 +687,9 @@ internal static partial class RtfDocumentWriter {
 
     private static void WriteBreak(StringBuilder builder, RtfBreak rtfBreak) {
         builder.Append(rtfBreak.Kind switch {
+            RtfBreakKind.SoftLine => @"\softline ",
             RtfBreakKind.Page => @"\page ",
+            RtfBreakKind.SoftPage => @"\softpage ",
             RtfBreakKind.Column => @"\column ",
             _ => @"\line "
         });

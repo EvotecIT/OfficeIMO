@@ -197,9 +197,19 @@ public sealed class RtfParagraph : IRtfBlock {
         return AddBreak(RtfBreakKind.Line);
     }
 
+    /// <summary>Adds a soft line break at the current paragraph position.</summary>
+    public RtfBreak AddSoftLineBreak() {
+        return AddBreak(RtfBreakKind.SoftLine);
+    }
+
     /// <summary>Adds a page break at the current paragraph position.</summary>
     public RtfBreak AddPageBreak() {
         return AddBreak(RtfBreakKind.Page);
+    }
+
+    /// <summary>Adds a soft page break at the current paragraph position.</summary>
+    public RtfBreak AddSoftPageBreak() {
+        return AddBreak(RtfBreakKind.SoftPage);
     }
 
     /// <summary>Adds a column break at the current paragraph position.</summary>
@@ -481,10 +491,12 @@ public sealed class RtfParagraph : IRtfBlock {
 
     private static string GetBreakText(RtfBreakKind kind) {
         switch (kind) {
+            case RtfBreakKind.SoftPage:
             case RtfBreakKind.Page:
                 return "\f";
             case RtfBreakKind.Column:
                 return "\v";
+            case RtfBreakKind.SoftLine:
             default:
                 return Environment.NewLine;
         }

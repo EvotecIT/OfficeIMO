@@ -140,5 +140,21 @@ public partial class WordRtfConverterTests {
         Assert.Contains(breaks, item => item.BreakType == BreakValues.Column);
     }
 
+    [Fact]
+    public void Rtf_Word_Bridge_Degrades_Soft_Breaks_To_Closest_Word_Breaks() {
+        RtfDocument document = RtfDocument.Create();
+        RtfParagraph paragraph = document.AddParagraph("Before");
+        paragraph.AddSoftLineBreak();
+        paragraph.AddText("SoftLine");
+        paragraph.AddSoftPageBreak();
+        paragraph.AddText("SoftPage");
+
+        using WordDocument word = document.ToWordDocument();
+
+        List<WordBreak> breaks = word.Breaks;
+        Assert.Contains(breaks, item => item.BreakType == null);
+        Assert.Contains(breaks, item => item.BreakType == BreakValues.Page);
+    }
+
 
 }

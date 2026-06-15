@@ -247,13 +247,7 @@ internal static partial class RtfHtmlWriter {
                 case RtfRun run:
                     AppendRun(builder, run, document);
                     break;
-                case RtfBreak rtfBreak when rtfBreak.Kind == RtfBreakKind.Line:
-                    builder.Append("<br>");
-                    break;
-                case RtfBreak rtfBreak when rtfBreak.Kind == RtfBreakKind.Page:
-                    AppendBreak(builder, rtfBreak.Kind);
-                    break;
-                case RtfBreak rtfBreak when rtfBreak.Kind == RtfBreakKind.Column:
+                case RtfBreak rtfBreak:
                     AppendBreak(builder, rtfBreak.Kind);
                     break;
                 case RtfField field:

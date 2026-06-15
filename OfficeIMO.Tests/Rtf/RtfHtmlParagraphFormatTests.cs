@@ -105,7 +105,7 @@ public class RtfHtmlParagraphFormatTests {
 
     [Fact]
     public void Html_ToRtfDocument_Parses_Inline_Page_And_Column_Breaks() {
-        const string html = "<p>Before<br data-officeimo-rtf-break=\"page\">After<br data-officeimo-rtf-break=\"column\">Column<br style=\"page-break-before:always\">Styled</p>";
+        const string html = "<p>Before<br data-officeimo-rtf-break=\"page\">After<br data-officeimo-rtf-break=\"column\">Column<br data-officeimo-rtf-break=\"soft-line\">SoftLine<br data-officeimo-rtf-break=\"soft-page\">SoftPage<br style=\"page-break-before:always\">Styled</p>";
 
         RtfDocument document = html.LoadFromHtml();
 
@@ -116,16 +116,24 @@ public class RtfHtmlParagraphFormatTests {
             inline => Assert.Equal("After", Assert.IsType<RtfRun>(inline).Text),
             inline => Assert.Equal(RtfBreakKind.Column, Assert.IsType<RtfBreak>(inline).Kind),
             inline => Assert.Equal("Column", Assert.IsType<RtfRun>(inline).Text),
+            inline => Assert.Equal(RtfBreakKind.SoftLine, Assert.IsType<RtfBreak>(inline).Kind),
+            inline => Assert.Equal("SoftLine", Assert.IsType<RtfRun>(inline).Text),
+            inline => Assert.Equal(RtfBreakKind.SoftPage, Assert.IsType<RtfBreak>(inline).Kind),
+            inline => Assert.Equal("SoftPage", Assert.IsType<RtfRun>(inline).Text),
             inline => Assert.Equal(RtfBreakKind.Page, Assert.IsType<RtfBreak>(inline).Kind),
             inline => Assert.Equal("Styled", Assert.IsType<RtfRun>(inline).Text));
 
         string rtf = document.ToRtf();
         Assert.Contains(@"\page", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\column", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\softline", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\softpage", rtf, StringComparison.Ordinal);
 
         RtfParagraph roundTripParagraph = Assert.Single(RtfDocument.Read(rtf).Document.Paragraphs);
         Assert.Contains(roundTripParagraph.Inlines, inline => inline is RtfBreak { Kind: RtfBreakKind.Page });
         Assert.Contains(roundTripParagraph.Inlines, inline => inline is RtfBreak { Kind: RtfBreakKind.Column });
+        Assert.Contains(roundTripParagraph.Inlines, inline => inline is RtfBreak { Kind: RtfBreakKind.SoftLine });
+        Assert.Contains(roundTripParagraph.Inlines, inline => inline is RtfBreak { Kind: RtfBreakKind.SoftPage });
     }
 
     [Fact]
@@ -135,18 +143,26 @@ public class RtfHtmlParagraphFormatTests {
         paragraph.AddText("Before");
         paragraph.AddPageBreak();
         paragraph.AddText("After");
+        paragraph.AddSoftLineBreak();
+        paragraph.AddText("SoftLine");
+        paragraph.AddSoftPageBreak();
+        paragraph.AddText("SoftPage");
         paragraph.AddColumnBreak();
         paragraph.AddText("Column");
 
         string html = document.ToHtml();
 
-        Assert.Equal("<p>Before<br data-officeimo-rtf-break=\"page\" style=\"page-break-before:always;break-before:page;\">After<br data-officeimo-rtf-break=\"column\" style=\"break-before:column;\">Column</p>", html);
+        Assert.Equal("<p>Before<br data-officeimo-rtf-break=\"page\" style=\"page-break-before:always;break-before:page;\">After<br data-officeimo-rtf-break=\"soft-line\">SoftLine<br data-officeimo-rtf-break=\"soft-page\">SoftPage<br data-officeimo-rtf-break=\"column\" style=\"break-before:column;\">Column</p>", html);
 
         RtfParagraph roundTripParagraph = Assert.Single(html.LoadFromHtml().Paragraphs);
         Assert.Collection(roundTripParagraph.Inlines,
             inline => Assert.Equal("Before", Assert.IsType<RtfRun>(inline).Text),
             inline => Assert.Equal(RtfBreakKind.Page, Assert.IsType<RtfBreak>(inline).Kind),
             inline => Assert.Equal("After", Assert.IsType<RtfRun>(inline).Text),
+            inline => Assert.Equal(RtfBreakKind.SoftLine, Assert.IsType<RtfBreak>(inline).Kind),
+            inline => Assert.Equal("SoftLine", Assert.IsType<RtfRun>(inline).Text),
+            inline => Assert.Equal(RtfBreakKind.SoftPage, Assert.IsType<RtfBreak>(inline).Kind),
+            inline => Assert.Equal("SoftPage", Assert.IsType<RtfRun>(inline).Text),
             inline => Assert.Equal(RtfBreakKind.Column, Assert.IsType<RtfBreak>(inline).Kind),
             inline => Assert.Equal("Column", Assert.IsType<RtfRun>(inline).Text));
     }

@@ -491,6 +491,7 @@ public static partial class WordRtfConverterExtensions {
     private static BreakValues? ToWordBreakKind(RtfBreakKind kind) {
         switch (kind) {
             case RtfBreakKind.Page:
+            case RtfBreakKind.SoftPage:
                 return BreakValues.Page;
             case RtfBreakKind.Column:
                 return BreakValues.Column;

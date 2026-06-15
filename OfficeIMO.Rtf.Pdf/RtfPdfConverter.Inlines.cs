@@ -19,7 +19,7 @@ internal static partial class RtfPdfConverter {
                 case RtfRun run:
                     AppendRun(document, run, pendingRuns, options, state);
                     break;
-                case RtfBreak rtfBreak when rtfBreak.Kind == RtfBreakKind.Page:
+                case RtfBreak rtfBreak when rtfBreak.Kind == RtfBreakKind.Page || rtfBreak.Kind == RtfBreakKind.SoftPage:
                     FlushParagraph(pdf, pendingRuns, align, style);
                     emitted = true;
                     pdf.PageBreak();

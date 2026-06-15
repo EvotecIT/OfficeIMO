@@ -626,7 +626,8 @@ internal static partial class RtfHtmlReader {
 
         private static bool EndsWithPageBreak(RtfParagraph paragraph) {
             return paragraph.Inlines.Count > 0 &&
-                   paragraph.Inlines[paragraph.Inlines.Count - 1] is RtfBreak { Kind: RtfBreakKind.Page };
+                   paragraph.Inlines[paragraph.Inlines.Count - 1] is RtfBreak rtfBreak &&
+                   (rtfBreak.Kind == RtfBreakKind.Page || rtfBreak.Kind == RtfBreakKind.SoftPage);
         }
 
         private static string NormalizeWhitespace(string text) {

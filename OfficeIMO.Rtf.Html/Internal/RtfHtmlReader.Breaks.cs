@@ -9,8 +9,14 @@ internal static partial class RtfHtmlReader {
         private static RtfBreakKind ReadBreakKind(IElement token) {
             string? value = GetAttribute(token, "data-officeimo-rtf-break");
             switch (value?.Trim().ToLowerInvariant()) {
+                case "soft-line":
+                case "softline":
+                    return RtfBreakKind.SoftLine;
                 case "page":
                     return RtfBreakKind.Page;
+                case "soft-page":
+                case "softpage":
+                    return RtfBreakKind.SoftPage;
                 case "column":
                     return RtfBreakKind.Column;
                 case "line":

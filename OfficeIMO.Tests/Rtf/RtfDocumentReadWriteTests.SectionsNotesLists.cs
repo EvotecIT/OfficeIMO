@@ -340,19 +340,23 @@ public partial class RtfDocumentReadWriteTests {
 
     [Fact]
     public void Read_Binds_Inline_Breaks_And_Preserves_Source_Losslessly() {
-        const string rtf = @"{\rtf1\ansi\pard Before\line Line\page Page\column Column\par}";
+        const string rtf = @"{\rtf1\ansi\pard Before\line Line\softline SoftLine\page Page\softpage SoftPage\column Column\par}";
 
         RtfReadResult result = RtfDocument.Read(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
         RtfParagraph paragraph = Assert.Single(result.Document.Paragraphs);
-        Assert.Equal("Before" + Environment.NewLine + "Line\fPage\vColumn", paragraph.ToPlainText());
+        Assert.Equal("Before" + Environment.NewLine + "Line" + Environment.NewLine + "SoftLine\fPage\fSoftPage\vColumn", paragraph.ToPlainText());
         Assert.Collection(paragraph.Inlines,
             inline => Assert.Equal("Before", Assert.IsType<RtfRun>(inline).Text),
             inline => Assert.Equal(RtfBreakKind.Line, Assert.IsType<RtfBreak>(inline).Kind),
             inline => Assert.Equal("Line", Assert.IsType<RtfRun>(inline).Text),
+            inline => Assert.Equal(RtfBreakKind.SoftLine, Assert.IsType<RtfBreak>(inline).Kind),
+            inline => Assert.Equal("SoftLine", Assert.IsType<RtfRun>(inline).Text),
             inline => Assert.Equal(RtfBreakKind.Page, Assert.IsType<RtfBreak>(inline).Kind),
             inline => Assert.Equal("Page", Assert.IsType<RtfRun>(inline).Text),
+            inline => Assert.Equal(RtfBreakKind.SoftPage, Assert.IsType<RtfBreak>(inline).Kind),
+            inline => Assert.Equal("SoftPage", Assert.IsType<RtfRun>(inline).Text),
             inline => Assert.Equal(RtfBreakKind.Column, Assert.IsType<RtfBreak>(inline).Kind),
             inline => Assert.Equal("Column", Assert.IsType<RtfRun>(inline).Text));
     }

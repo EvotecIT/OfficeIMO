@@ -9,8 +9,14 @@ internal static partial class RtfSemanticReader {
                 case "line":
                     AppendBreak(RtfBreakKind.Line, state);
                     return true;
+                case "softline":
+                    AppendBreak(RtfBreakKind.SoftLine, state);
+                    return true;
                 case "page":
                     AppendBreak(RtfBreakKind.Page, state);
+                    return true;
+                case "softpage":
+                    AppendBreak(RtfBreakKind.SoftPage, state);
                     return true;
                 case "column":
                     AppendBreak(RtfBreakKind.Column, state);

@@ -146,23 +146,31 @@ public partial class RtfDocumentRichFeatureTests {
         RtfParagraph paragraph = document.AddParagraph("Before");
         paragraph.AddLineBreak();
         paragraph.AddText("Line");
+        paragraph.AddSoftLineBreak();
+        paragraph.AddText("SoftLine");
         paragraph.AddPageBreak();
         paragraph.AddText("Page");
+        paragraph.AddSoftPageBreak();
+        paragraph.AddText("SoftPage");
         paragraph.AddColumnBreak();
         paragraph.AddText("Column");
 
         string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
         RtfReadResult read = RtfDocument.Read(rtf);
 
-        Assert.Contains(@"Before\line Line\page Page\column Column", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"Before\line Line\softline SoftLine\page Page\softpage SoftPage\column Column", rtf, StringComparison.Ordinal);
         RtfParagraph readParagraph = Assert.Single(read.Document.Paragraphs);
-        Assert.Equal("Before" + Environment.NewLine + "Line\fPage\vColumn", readParagraph.ToPlainText());
+        Assert.Equal("Before" + Environment.NewLine + "Line" + Environment.NewLine + "SoftLine\fPage\fSoftPage\vColumn", readParagraph.ToPlainText());
         Assert.Collection(readParagraph.Inlines,
             inline => Assert.Equal("Before", Assert.IsType<RtfRun>(inline).Text),
             inline => Assert.Equal(RtfBreakKind.Line, Assert.IsType<RtfBreak>(inline).Kind),
             inline => Assert.Equal("Line", Assert.IsType<RtfRun>(inline).Text),
+            inline => Assert.Equal(RtfBreakKind.SoftLine, Assert.IsType<RtfBreak>(inline).Kind),
+            inline => Assert.Equal("SoftLine", Assert.IsType<RtfRun>(inline).Text),
             inline => Assert.Equal(RtfBreakKind.Page, Assert.IsType<RtfBreak>(inline).Kind),
             inline => Assert.Equal("Page", Assert.IsType<RtfRun>(inline).Text),
+            inline => Assert.Equal(RtfBreakKind.SoftPage, Assert.IsType<RtfBreak>(inline).Kind),
+            inline => Assert.Equal("SoftPage", Assert.IsType<RtfRun>(inline).Text),
             inline => Assert.Equal(RtfBreakKind.Column, Assert.IsType<RtfBreak>(inline).Kind),
             inline => Assert.Equal("Column", Assert.IsType<RtfRun>(inline).Text));
     }
