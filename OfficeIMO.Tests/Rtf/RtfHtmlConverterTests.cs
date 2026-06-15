@@ -55,6 +55,45 @@ public class RtfHtmlConverterTests {
     }
 
     [Fact]
+    public void Html_ToRtfDocument_Parses_Inline_Css_Formatting_And_Alignment() {
+        const string html = "<p style=\"text-align:center !important\">Vitals <span style=\"font-weight:700 !important; font-style: italic; text-decoration: underline line-through; vertical-align: super\">critical</span><span style=\"vertical-align: sub\">low</span></p>";
+
+        RtfDocument document = html.ToRtfDocumentFromHtml();
+
+        RtfParagraph paragraph = Assert.Single(document.Paragraphs);
+        Assert.Equal(RtfTextAlignment.Center, paragraph.Alignment);
+        RtfRun critical = Assert.Single(paragraph.Runs, run => run.Text == "critical");
+        Assert.True(critical.Bold);
+        Assert.True(critical.Italic);
+        Assert.True(critical.Underline);
+        Assert.True(critical.Strike);
+        Assert.Equal(RtfVerticalPosition.Superscript, critical.VerticalPosition);
+
+        RtfRun low = Assert.Single(paragraph.Runs, run => run.Text == "low");
+        Assert.Equal(RtfVerticalPosition.Subscript, low.VerticalPosition);
+    }
+
+    [Fact]
+    public void Html_ToRtfDocument_Allows_Css_To_Override_Semantic_Formatting() {
+        const string html = "<p><strong><em><u>marked <span style=\"font-weight:400; font-style: normal; text-decoration: none; vertical-align: baseline\">plain</span></u></em></strong></p>";
+
+        RtfDocument document = html.ToRtfDocumentFromHtml();
+
+        RtfParagraph paragraph = Assert.Single(document.Paragraphs);
+        RtfRun marked = Assert.Single(paragraph.Runs, run => run.Text == "marked ");
+        Assert.True(marked.Bold);
+        Assert.True(marked.Italic);
+        Assert.True(marked.Underline);
+
+        RtfRun plain = Assert.Single(paragraph.Runs, run => run.Text == "plain");
+        Assert.False(plain.Bold);
+        Assert.False(plain.Italic);
+        Assert.False(plain.Underline);
+        Assert.False(plain.Strike);
+        Assert.Equal(RtfVerticalPosition.Baseline, plain.VerticalPosition);
+    }
+
+    [Fact]
     public void Html_ToRtfDocument_Parses_Lists_And_Tables() {
         const string html = "<ul><li>Allergy</li><li><strong>Medication</strong></li></ul><table><tr><th>Name</th><th>Value</th></tr><tr><td>Pulse</td><td>72</td></tr></table>";
 

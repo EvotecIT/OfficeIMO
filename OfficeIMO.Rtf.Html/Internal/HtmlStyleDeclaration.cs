@@ -1,0 +1,24 @@
+namespace OfficeIMO.Rtf.Html;
+
+internal sealed class HtmlStyleDeclaration {
+    internal static readonly HtmlStyleDeclaration Empty = new HtmlStyleDeclaration();
+
+    internal bool? Bold { get; set; }
+
+    internal bool? Italic { get; set; }
+
+    internal bool? Underline { get; set; }
+
+    internal bool? Strike { get; set; }
+
+    internal RtfVerticalPosition? VerticalPosition { get; set; }
+
+    internal RtfTextAlignment? TextAlignment { get; set; }
+
+    internal bool HasInlineFormatting =>
+        Bold.HasValue ||
+        Italic.HasValue ||
+        Underline.HasValue ||
+        Strike.HasValue ||
+        VerticalPosition.HasValue;
+}

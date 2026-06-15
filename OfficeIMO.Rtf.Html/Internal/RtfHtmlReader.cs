@@ -30,6 +30,7 @@ internal static class RtfHtmlReader {
         private readonly RtfDocument _document;
         private readonly RtfHtmlReadOptions _options;
         private readonly Stack<RtfListKind> _lists = new Stack<RtfListKind>();
+        private readonly Stack<HtmlStyleScope> _styles = new Stack<HtmlStyleScope>();
         private RtfParagraph? _paragraph;
         private RtfTable? _table;
         private RtfTableRow? _row;
@@ -49,6 +50,7 @@ internal static class RtfHtmlReader {
         }
 
         internal void Start(HtmlToken token) {
+            HtmlStyleDeclaration style = HtmlStyleDeclarationParser.Parse(GetAttribute(token, "style"));
             switch (token.Value) {
                 case "p":
                 case "div":
@@ -56,6 +58,7 @@ internal static class RtfHtmlReader {
                 case "article":
                 case "blockquote":
                     StartParagraph();
+                    ApplyParagraphStyle(style);
                     break;
                 case "h1":
                 case "h2":
@@ -64,6 +67,7 @@ internal static class RtfHtmlReader {
                 case "h5":
                 case "h6":
                     StartParagraph();
+                    ApplyParagraphStyle(style);
                     _bold++;
                     break;
                 case "br":
@@ -107,6 +111,7 @@ internal static class RtfHtmlReader {
                 case "li":
                     StartParagraph();
                     EnsureParagraph().ListKind = _lists.Count == 0 ? RtfListKind.Bullet : _lists.Peek();
+                    ApplyParagraphStyle(style);
                     break;
                 case "table":
                     StartTable();
@@ -127,6 +132,10 @@ internal static class RtfHtmlReader {
                     }
 
                     break;
+            }
+
+            if (style.HasInlineFormatting) {
+                _styles.Push(new HtmlStyleScope(token.Value, style));
             }
         }
 
@@ -208,6 +217,8 @@ internal static class RtfHtmlReader {
 
                     break;
             }
+
+            PopStyleScope(name);
         }
 
         internal void AppendText(string text) {
@@ -221,13 +232,11 @@ internal static class RtfHtmlReader {
             }
 
             RtfRun run = EnsureParagraph().AddText(value);
-            run.Bold = _bold > 0;
-            run.Italic = _italic > 0;
-            run.Underline = _underline > 0;
-            run.Strike = _strike > 0;
-            run.VerticalPosition = _superscript > 0
-                ? RtfVerticalPosition.Superscript
-                : _subscript > 0 ? RtfVerticalPosition.Subscript : RtfVerticalPosition.Baseline;
+            run.Bold = ResolveStyleValue(style => style.Bold, _bold > 0);
+            run.Italic = ResolveStyleValue(style => style.Italic, _italic > 0);
+            run.Underline = ResolveStyleValue(style => style.Underline, _underline > 0);
+            run.Strike = ResolveStyleValue(style => style.Strike, _strike > 0);
+            run.VerticalPosition = ResolveVerticalPosition();
             run.Hyperlink = _hyperlink;
         }
 
@@ -245,6 +254,12 @@ internal static class RtfHtmlReader {
 
         private void EndParagraph() {
             _paragraph = null;
+        }
+
+        private void ApplyParagraphStyle(HtmlStyleDeclaration style) {
+            if (_paragraph != null && style.TextAlignment.HasValue) {
+                _paragraph.Alignment = style.TextAlignment.Value;
+            }
         }
 
         private RtfParagraph EnsureParagraph() {
@@ -322,6 +337,51 @@ internal static class RtfHtmlReader {
             }
         }
 
+        private void PopStyleScope(string name) {
+            if (_styles.Count == 0) {
+                return;
+            }
+
+            var deferred = new List<HtmlStyleScope>();
+            while (_styles.Count > 0) {
+                HtmlStyleScope scope = _styles.Pop();
+                if (string.Equals(scope.Name, name, StringComparison.OrdinalIgnoreCase)) {
+                    break;
+                }
+
+                deferred.Add(scope);
+            }
+
+            for (int index = deferred.Count - 1; index >= 0; index--) {
+                _styles.Push(deferred[index]);
+            }
+        }
+
+        private bool ResolveStyleValue(Func<HtmlStyleDeclaration, bool?> selector, bool fallback) {
+            foreach (HtmlStyleScope scope in _styles) {
+                bool? value = selector(scope.Style);
+                if (value.HasValue) {
+                    return value.Value;
+                }
+            }
+
+            return fallback;
+        }
+
+        private RtfVerticalPosition ResolveVerticalPosition() {
+            foreach (HtmlStyleScope scope in _styles) {
+                if (scope.Style.VerticalPosition.HasValue) {
+                    return scope.Style.VerticalPosition.Value;
+                }
+            }
+
+            if (_superscript > 0) {
+                return RtfVerticalPosition.Superscript;
+            }
+
+            return _subscript > 0 ? RtfVerticalPosition.Subscript : RtfVerticalPosition.Baseline;
+        }
+
         private static bool HasContent(RtfParagraph paragraph) {
             return paragraph.Inlines.Count > 0 || paragraph.Runs.Count > 0;
         }
@@ -379,5 +439,16 @@ internal static class RtfHtmlReader {
                 return false;
             }
         }
+    }
+
+    private sealed class HtmlStyleScope {
+        internal HtmlStyleScope(string name, HtmlStyleDeclaration style) {
+            Name = name;
+            Style = style;
+        }
+
+        internal string Name { get; }
+
+        internal HtmlStyleDeclaration Style { get; }
     }
 }
