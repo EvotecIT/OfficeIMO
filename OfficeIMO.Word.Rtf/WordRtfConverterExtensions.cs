@@ -556,6 +556,11 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static void AppendField(WordParagraph wordParagraph, RtfField field, RtfDocument? rtfDocument) {
+        if (field.Hyperlink != null) {
+            AppendHyperlinkField(wordParagraph, field, rtfDocument);
+            return;
+        }
+
         var simpleField = new SimpleField { Instruction = field.Instruction };
         var resultParagraph = new WordParagraph(wordParagraph._document, newParagraph: true, newRun: false);
         AppendRuns(resultParagraph, field.Result, rtfDocument);
@@ -564,6 +569,16 @@ public static partial class WordRtfConverterExtensions {
         }
 
         wordParagraph._paragraph.Append(simpleField);
+    }
+
+    private static void AppendHyperlinkField(WordParagraph wordParagraph, RtfField field, RtfDocument? rtfDocument) {
+        var resultParagraph = new WordParagraph(wordParagraph._document, newParagraph: true, newRun: false);
+        AppendRuns(resultParagraph, field.Result, rtfDocument);
+        IEnumerable<WordParagraph> runs = resultParagraph._paragraph.Elements<Run>()
+            .Select(run => new WordParagraph(wordParagraph._document, resultParagraph._paragraph, run));
+
+        string tooltip = field.HyperlinkField?.ScreenTip ?? string.Empty;
+        WordHyperLink.AddHyperLink(wordParagraph, runs, field.Hyperlink!, addStyle: true, tooltip: tooltip);
     }
 
     private static void AppendBookmarkMarker(WordParagraph wordParagraph, RtfBookmarkMarker marker, Dictionary<string, string> openBookmarks) {

@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using OfficeIMO.Rtf;
 using OfficeIMO.Rtf.Diagnostics;
 using Xunit;
@@ -39,7 +41,9 @@ public partial class RtfDocumentRichFeatureTests {
         Assert.Single(read.Document.ListOverrides);
         Assert.Equal(read.Document.ListOverrides[0].ListId, read.Document.Paragraphs[1].ListDefinitionId);
         Assert.Equal(RtfListKind.Bullet, read.Document.Paragraphs[1].ListKind);
-        Assert.Contains(read.Document.Paragraphs[1].Runs, run => run.Hyperlink != null && run.Hyperlink.ToString() == "https://github.com/EvotecIT/OfficeIMO");
+        RtfField hyperlink = Assert.Single(read.Document.Paragraphs[1].Inlines.OfType<RtfField>());
+        Assert.Equal(new Uri("https://github.com/EvotecIT/OfficeIMO"), hyperlink.Hyperlink);
+        Assert.Equal("OfficeIMO", hyperlink.ToPlainText());
     }
 
     [Fact]

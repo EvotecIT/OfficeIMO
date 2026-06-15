@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests.Pdf {
         }
 
         private static T InvokePrivateFontMethod<T>(string methodName, params object[] parameters) {
-            var method = typeof(PdfWriter).GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Static);
+            var method = ResolvePrivateFontMethod(methodName, parameters.Length);
             Assert.NotNull(method);
             ParameterInfo[] methodParameters = method!.GetParameters();
             object?[] invocationParameters = parameters;
@@ -44,9 +44,26 @@ namespace OfficeIMO.Tests.Pdf {
         }
 
         private static TargetInvocationException InvokePrivateFontMethodExpectingFailure(string methodName, params object[] parameters) {
-            var method = typeof(PdfWriter).GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Static);
+            var method = ResolvePrivateFontMethod(methodName, parameters.Length);
             Assert.NotNull(method);
             return Assert.Throws<TargetInvocationException>(() => method!.Invoke(null, parameters));
+        }
+
+        private static MethodInfo? ResolvePrivateFontMethod(string methodName, int suppliedParameterCount) {
+            MethodInfo[] methods = typeof(PdfWriter)
+                .GetMethods(BindingFlags.NonPublic | BindingFlags.Static)
+                .Where(method => method.Name == methodName)
+                .ToArray();
+
+            return methods.FirstOrDefault(method => method.GetParameters().Length == suppliedParameterCount) ??
+                   methods.FirstOrDefault(method => {
+                       ParameterInfo[] parameters = method.GetParameters();
+                       if (parameters.Length < suppliedParameterCount) {
+                           return false;
+                       }
+
+                       return parameters.Skip(suppliedParameterCount).All(parameter => parameter.HasDefaultValue);
+                   });
         }
 
         private static List<List<object>> ExtractLines(object wrapResult) {
