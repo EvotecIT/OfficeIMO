@@ -345,12 +345,44 @@ internal static partial class RtfHtmlReader {
                 _paragraph.BackgroundColorIndex = GetOrAddColorIndex(style.BackgroundColor);
             }
 
+            if (_paragraph != null) {
+                ApplyParagraphBorder(_paragraph.TopBorder, style.TopBorder);
+                ApplyParagraphBorder(_paragraph.LeftBorder, style.LeftBorder);
+                ApplyParagraphBorder(_paragraph.BottomBorder, style.BottomBorder);
+                ApplyParagraphBorder(_paragraph.RightBorder, style.RightBorder);
+            }
+
             if (_paragraph != null && style.PageBreakBefore) {
                 _paragraph.PageBreakBefore = true;
             }
 
             if (style.PageBreakAfter) {
                 _pageBreakAfterParagraph = true;
+            }
+        }
+
+        private void ApplyParagraphBorder(RtfParagraphBorder target, HtmlBorderDeclaration? source) {
+            if (source == null) {
+                return;
+            }
+
+            target.Style = MapParagraphBorderStyle(source.Style);
+            target.Width = source.Width;
+            target.ColorIndex = source.Color == null ? null : GetOrAddColorIndex(source.Color);
+        }
+
+        private static RtfParagraphBorderStyle MapParagraphBorderStyle(RtfTableCellBorderStyle style) {
+            switch (style) {
+                case RtfTableCellBorderStyle.Double:
+                    return RtfParagraphBorderStyle.Double;
+                case RtfTableCellBorderStyle.Dotted:
+                    return RtfParagraphBorderStyle.Dotted;
+                case RtfTableCellBorderStyle.Dashed:
+                    return RtfParagraphBorderStyle.Dashed;
+                case RtfTableCellBorderStyle.None:
+                    return RtfParagraphBorderStyle.None;
+                default:
+                    return RtfParagraphBorderStyle.Single;
             }
         }
 

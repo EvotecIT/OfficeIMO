@@ -150,6 +150,10 @@ internal static partial class RtfHtmlWriter {
         AppendTwipStyle(builder, "margin-top", paragraph.SpaceBeforeTwips);
         AppendTwipStyle(builder, "margin-bottom", paragraph.SpaceAfterTwips);
         AppendLineHeightStyle(builder, paragraph);
+        AppendParagraphBorderStyle(builder, "border-top", paragraph.TopBorder, document);
+        AppendParagraphBorderStyle(builder, "border-left", paragraph.LeftBorder, document);
+        AppendParagraphBorderStyle(builder, "border-bottom", paragraph.BottomBorder, document);
+        AppendParagraphBorderStyle(builder, "border-right", paragraph.RightBorder, document);
 
         style = builder.Length == 0 ? null : builder.ToString();
         return style != null;
@@ -177,6 +181,27 @@ internal static partial class RtfHtmlWriter {
         } else {
             builder.Append(FormatPoints(paragraph.LineSpacingTwips.Value / 20d));
             builder.Append("pt");
+        }
+
+        builder.Append(';');
+    }
+
+    private static void AppendParagraphBorderStyle(StringBuilder builder, string name, RtfParagraphBorder border, RtfDocument document) {
+        if (!border.HasAnyValue) {
+            return;
+        }
+
+        builder.Append(name);
+        builder.Append(':');
+        if (border.Width.HasValue) {
+            builder.Append(FormatPoints(border.Width.Value / 20d));
+            builder.Append("pt ");
+        }
+
+        builder.Append(FormatParagraphBorderStyle(border.Style));
+        if (TryGetColor(document, border.ColorIndex, out RtfColor? color)) {
+            builder.Append(' ');
+            builder.Append(FormatColor(color!));
         }
 
         builder.Append(';');
@@ -460,6 +485,21 @@ internal static partial class RtfHtmlWriter {
             case RtfTableCellBorderStyle.Dashed:
                 return "dashed";
             case RtfTableCellBorderStyle.None:
+                return "none";
+            default:
+                return "solid";
+        }
+    }
+
+    private static string FormatParagraphBorderStyle(RtfParagraphBorderStyle style) {
+        switch (style) {
+            case RtfParagraphBorderStyle.Double:
+                return "double";
+            case RtfParagraphBorderStyle.Dotted:
+                return "dotted";
+            case RtfParagraphBorderStyle.Dashed:
+                return "dashed";
+            case RtfParagraphBorderStyle.None:
                 return "none";
             default:
                 return "solid";
