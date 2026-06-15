@@ -458,6 +458,35 @@ public sealed class MarkdownHtmlToMarkdownTests {
     }
 
     [Fact]
+    public void HtmlToMarkdown_EncodesSavedBase64ImagePathBeforeRenderingMarkdown() {
+        string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO HtmlImages." + Guid.NewGuid().ToString("N"));
+        try {
+            const string html = """<figure><img src="data:image/png;base64,AQID" alt="Inline data" /></figure>""";
+
+            MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+                Base64Images = HtmlBase64ImageHandling.SaveToFile,
+                Base64ImageOutputDirectory = directory
+            });
+
+            var image = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
+            Assert.Contains("OfficeIMO%20HtmlImages.", image.Path, StringComparison.Ordinal);
+            Assert.True(File.Exists(Path.Combine(directory, "image_0.png")));
+
+            string markdown = document.ToMarkdown();
+            Assert.Contains("OfficeIMO%20HtmlImages.", markdown, StringComparison.Ordinal);
+            Assert.DoesNotContain("OfficeIMO HtmlImages.", markdown, StringComparison.Ordinal);
+
+            var parsed = MarkdownReader.Parse(markdown);
+            var parsedImage = Assert.IsType<ImageBlock>(Assert.Single(parsed.Blocks));
+            Assert.Equal(image.Path, parsedImage.Path);
+        } finally {
+            if (Directory.Exists(directory)) {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public void HtmlToMarkdown_ReusesSavedBase64PictureSourceMetadata() {
         string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.HtmlImages." + Guid.NewGuid().ToString("N"));
         try {

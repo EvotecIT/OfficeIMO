@@ -116,7 +116,8 @@ public static class HtmlSrcSetParser {
             || StartsWith(value, startIndex, "https://", StringComparison.OrdinalIgnoreCase)
             || StartsWith(value, startIndex, "data:", StringComparison.OrdinalIgnoreCase)
             || value[startIndex] == '/'
-            || value[startIndex] == '.') {
+            || value[startIndex] == '.'
+            || LooksLikeExtensionlessRelativeUrl(value, startIndex, endIndex)) {
             return true;
         }
 
@@ -127,6 +128,29 @@ public static class HtmlSrcSetParser {
         }
 
         return false;
+    }
+
+    private static bool LooksLikeExtensionlessRelativeUrl(string value, int startIndex, int endIndex) {
+        if (startIndex >= endIndex || char.IsDigit(value[startIndex])) {
+            return false;
+        }
+
+        bool hasLetter = false;
+        for (int i = startIndex; i < endIndex; i++) {
+            char ch = value[i];
+            if (char.IsLetter(ch)) {
+                hasLetter = true;
+                continue;
+            }
+
+            if (ch == '?' || ch == '/' || ch == '_' || ch == '-' || ch == '=' || ch == '&' || char.IsDigit(ch)) {
+                continue;
+            }
+
+            return false;
+        }
+
+        return hasLetter;
     }
 
     private static bool StartsWith(string value, int startIndex, string prefix, StringComparison comparison) {

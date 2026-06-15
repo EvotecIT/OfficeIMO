@@ -26,7 +26,7 @@ public sealed partial class HtmlToMarkdownConverter {
                     return false;
                 }
 
-                source = SaveBase64Image(bytes, dataUri.MediaType, context);
+                source = EncodeMarkdownUrlWhitespace(SaveBase64Image(bytes, dataUri.MediaType, context));
                 if (source.Length > 0) {
                     context.SavedBase64ImagesBySource[originalSource] = source;
                 }

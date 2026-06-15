@@ -140,6 +140,22 @@ public sealed class HtmlCoreTests {
     }
 
     [Fact]
+    public void HtmlSrcSetParser_SplitsExtensionlessQueryCandidatesAtCommaSeparators() {
+        IReadOnlyList<HtmlSrcSetCandidate> candidates = HtmlSrcSetParser.Parse("image?w=200,image?w=400 2x");
+
+        Assert.Collection(
+            candidates,
+            candidate => {
+                Assert.Equal("image?w=200", candidate.Url);
+                Assert.Equal(string.Empty, candidate.Descriptor);
+            },
+            candidate => {
+                Assert.Equal("image?w=400", candidate.Url);
+                Assert.Equal("2x", candidate.Descriptor);
+            });
+    }
+
+    [Fact]
     public void HtmlSrcSetParser_SplitsDataUriCandidateBeforeFollowingUrl() {
         IReadOnlyList<HtmlSrcSetCandidate> candidates = HtmlSrcSetParser.Parse("data:image/png;base64,AAAA, https://cdn.test/fallback.png 2x");
 

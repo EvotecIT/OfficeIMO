@@ -455,6 +455,10 @@ namespace OfficeIMO.Word.Html {
                     firstResolved = resolved;
                 }
 
+                if (IsUnresolvedRelativeImageSource(resolved)) {
+                    continue;
+                }
+
                 if (IsImageSourceAllowedForCurrentMode(resolved, img, options, out _)) {
                     return resolved;
                 }
@@ -527,6 +531,21 @@ namespace OfficeIMO.Word.Html {
             }
 
             return source;
+        }
+
+        private static bool IsUnresolvedRelativeImageSource(string source) {
+            if (string.IsNullOrWhiteSpace(source)
+                || source.StartsWith("data:image", StringComparison.OrdinalIgnoreCase)
+                || Uri.TryCreate(source, UriKind.Absolute, out _)
+                || File.Exists(source)) {
+                return false;
+            }
+
+            try {
+                return !Path.IsPathRooted(source);
+            } catch (ArgumentException) {
+                return true;
+            }
         }
 
         private static HtmlUrlPolicy CreateImageSourceResolutionPolicy() {

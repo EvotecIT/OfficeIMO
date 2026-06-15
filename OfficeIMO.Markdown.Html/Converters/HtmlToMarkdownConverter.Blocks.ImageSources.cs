@@ -368,10 +368,10 @@ public sealed partial class HtmlToMarkdownConverter {
             return source;
         }
 
-        return EncodeSrcSetWhitespace(source);
+        return EncodeMarkdownUrlWhitespace(source);
     }
 
-    private static string EncodeSrcSetWhitespace(string source) {
+    private static string EncodeMarkdownUrlWhitespace(string source) {
         StringBuilder? builder = null;
         for (int i = 0; i < source.Length; i++) {
             char value = source[i];
