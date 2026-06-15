@@ -81,6 +81,38 @@ public class RtfPdfConverterTests {
     }
 
     [Fact]
+    public void RtfDocument_ToPdfDocument_Renders_Section_Blocks_And_Breaks() {
+        RtfDocument document = RtfDocument.Create();
+        RtfSection first = document.AddSection();
+        first.AddParagraph("First section");
+        RtfSection second = document.AddSection(RtfSectionBreakKind.NextPage);
+        second.AddParagraph("Second section");
+        RtfSection continuous = document.AddSection(RtfSectionBreakKind.Continuous);
+        continuous.AddParagraph("Continuous section");
+
+        byte[] pdf = document.SaveAsPdf();
+        PdfCore.PdfReadDocument read = PdfCore.PdfReadDocument.Load(pdf);
+
+        Assert.Equal(2, read.Pages.Count);
+        Assert.Contains("First section", read.Pages[0].ExtractText(), StringComparison.Ordinal);
+        Assert.DoesNotContain("Second section", read.Pages[0].ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Second section", read.Pages[1].ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Continuous section", read.Pages[1].ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RtfString_ToPdfDocument_Renders_Parsed_Section_Breaks() {
+        const string rtf = @"{\rtf1\ansi\sectd\sbkpage\pard Parsed first\par\sect\sectd\sbkpage\pard Parsed second\par}";
+
+        byte[] pdf = rtf.SaveAsPdf();
+        PdfCore.PdfReadDocument read = PdfCore.PdfReadDocument.Load(pdf);
+
+        Assert.Equal(2, read.Pages.Count);
+        Assert.Contains("Parsed first", read.Pages[0].ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Parsed second", read.Pages[1].ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void RtfDocument_ToPdfDocument_Renders_Explicit_ListText_Markers() {
         RtfDocument document = RtfDocument.Create();
         document.AddParagraph("Item").SetList(listId: 3, level: 0, kind: RtfListKind.Decimal).SetListText("7.\t");

@@ -17,12 +17,41 @@ internal static class RtfPdfConverter {
         ApplyMetadata(document, pdf, normalized);
         PdfRenderState state = new PdfRenderState(document);
 
-        foreach (IRtfBlock block in document.Blocks) {
-            RenderBlock(document, block, pdf, normalized, state);
-        }
+        RenderDocumentBlocks(document, pdf, normalized, state);
 
         RenderNotes(document, pdf, normalized, state);
         return pdf;
+    }
+
+    private static void RenderDocumentBlocks(RtfDocument document, PdfCore.PdfDocument pdf, RtfPdfSaveOptions options, PdfRenderState state) {
+        if (document.Sections.Count == 0) {
+            RenderBlocks(document, document.Blocks, pdf, options, state);
+            return;
+        }
+
+        for (int index = 0; index < document.Sections.Count; index++) {
+            RtfSection section = document.Sections[index];
+            if (index > 0 && StartsNewPdfPage(section.BreakKind)) {
+                pdf.PageBreak();
+            }
+
+            RenderBlocks(document, section.Blocks, pdf, options, state);
+        }
+    }
+
+    private static void RenderBlocks(RtfDocument document, IEnumerable<IRtfBlock> blocks, PdfCore.PdfDocument pdf, RtfPdfSaveOptions options, PdfRenderState state) {
+        foreach (IRtfBlock block in blocks) {
+            RenderBlock(document, block, pdf, options, state);
+        }
+    }
+
+    private static bool StartsNewPdfPage(RtfSectionBreakKind breakKind) {
+        switch (breakKind) {
+            case RtfSectionBreakKind.Continuous:
+                return false;
+            default:
+                return true;
+        }
     }
 
     private static void RenderBlock(RtfDocument document, IRtfBlock block, PdfCore.PdfDocument pdf, RtfPdfSaveOptions options, PdfRenderState state) {
