@@ -48,6 +48,7 @@ internal static partial class RtfHtmlWriter {
     private static void AppendTableRow(StringBuilder builder, RtfTable table, int rowIndex, RtfHtmlSaveOptions options, RtfDocument document, bool isHeader) {
         builder.Append("<tr");
         RtfTableRow row = table.Rows[rowIndex];
+        AppendRowDirectionAttributes(builder, row);
         AppendRowStyle(builder, row, document);
         builder.Append('>');
         string cellTag = isHeader ? "th" : "td";
@@ -116,9 +117,42 @@ internal static partial class RtfHtmlWriter {
         AppendCellPaddingStyle(builder, "padding-left", row.PaddingLeftTwips);
         AppendCellPaddingStyle(builder, "padding-bottom", row.PaddingBottomTwips);
         AppendCellPaddingStyle(builder, "padding-right", row.PaddingRightTwips);
+        AppendRowDirectionStyle(builder, row);
 
         style = builder.Length == 0 ? null : builder.ToString();
         return style != null;
+    }
+
+    private static void AppendRowDirectionAttributes(StringBuilder builder, RtfTableRow row) {
+        string? direction = FormatTableRowDirection(row.Direction);
+        if (direction == null) {
+            return;
+        }
+
+        builder.Append(" dir=\"");
+        builder.Append(direction);
+        builder.Append('"');
+    }
+
+    private static void AppendRowDirectionStyle(StringBuilder builder, RtfTableRow row) {
+        string? direction = FormatTableRowDirection(row.Direction);
+        if (direction == null) {
+            return;
+        }
+
+        builder.Append("direction:");
+        builder.Append(direction);
+        builder.Append(";unicode-bidi:isolate;--officeimo-rtf-direction:");
+        builder.Append(direction);
+        builder.Append(';');
+    }
+
+    private static string? FormatTableRowDirection(RtfTableRowDirection? direction) {
+        if (!direction.HasValue) {
+            return null;
+        }
+
+        return direction.Value == RtfTableRowDirection.RightToLeft ? "rtl" : "ltr";
     }
 
     private static bool IsMergeContinuation(RtfTableCell cell) {

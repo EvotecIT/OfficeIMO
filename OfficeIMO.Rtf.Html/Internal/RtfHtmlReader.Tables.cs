@@ -124,6 +124,10 @@ internal static partial class RtfHtmlReader {
                 _row.Alignment = alignment;
             }
 
+            if (style.Direction.HasValue) {
+                _row.Direction = MapTableRowDirection(style.Direction.Value);
+            }
+
             if (style.TableWidth.HasValue) {
                 _row.PreferredWidth = style.TableWidth.Value;
                 _row.PreferredWidthUnit = style.TableWidthUnit;
@@ -323,6 +327,11 @@ internal static partial class RtfHtmlReader {
                     return false;
             }
         }
+
+        private static RtfTableRowDirection MapTableRowDirection(RtfTextDirection direction) =>
+            direction == RtfTextDirection.RightToLeft
+                ? RtfTableRowDirection.RightToLeft
+                : RtfTableRowDirection.LeftToRight;
 
         private static bool TryParseCellVerticalAlign(string value, out RtfTableCellVerticalAlignment alignment) {
             switch (value.Trim().ToLowerInvariant()) {
