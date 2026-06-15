@@ -92,7 +92,7 @@ internal static class RtfHtmlWriter {
     }
 
     private static void AppendParagraph(StringBuilder builder, RtfParagraph paragraph, RtfHtmlSaveOptions options, RtfDocument document) {
-        string tagName = paragraph.ListKind == RtfListKind.None ? "p" : "li";
+        string tagName = GetParagraphTagName(paragraph);
         builder.Append('<');
         builder.Append(tagName);
         AppendParagraphStyle(builder, paragraph);
@@ -101,6 +101,18 @@ internal static class RtfHtmlWriter {
         builder.Append("</");
         builder.Append(tagName);
         builder.Append('>');
+    }
+
+    private static string GetParagraphTagName(RtfParagraph paragraph) {
+        if (paragraph.ListKind != RtfListKind.None) {
+            return "li";
+        }
+
+        if (paragraph.OutlineLevel.HasValue && paragraph.OutlineLevel.Value >= 0 && paragraph.OutlineLevel.Value <= 5) {
+            return "h" + (paragraph.OutlineLevel.Value + 1).ToString(CultureInfo.InvariantCulture);
+        }
+
+        return "p";
     }
 
     private static void AppendParagraphStyle(StringBuilder builder, RtfParagraph paragraph) {

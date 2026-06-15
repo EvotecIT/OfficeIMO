@@ -68,6 +68,7 @@ internal static class RtfHtmlReader {
                 case "h6":
                     StartParagraph();
                     ApplyParagraphStyle(style);
+                    EnsureParagraph().OutlineLevel = GetHeadingOutlineLevel(token.Value);
                     _bold++;
                     break;
                 case "br":
@@ -354,6 +355,12 @@ internal static class RtfHtmlReader {
             if (value > 0) {
                 value--;
             }
+        }
+
+        private static int GetHeadingOutlineLevel(string name) {
+            return name.Length == 2 && name[0] == 'h' && name[1] >= '1' && name[1] <= '6'
+                ? name[1] - '1'
+                : 0;
         }
 
         private void PopStyleScope(string name) {

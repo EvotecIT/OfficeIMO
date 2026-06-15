@@ -158,6 +158,40 @@ public class RtfHtmlConverterTests {
     }
 
     [Fact]
+    public void Html_ToRtfDocument_Maps_Headings_To_Outline_Levels() {
+        const string html = "<h1>Assessment</h1><h3 style=\"text-align:right\">Plan</h3>";
+
+        RtfDocument document = html.ToRtfDocumentFromHtml();
+
+        Assert.Equal(2, document.Paragraphs.Count);
+        Assert.Equal(0, document.Paragraphs[0].OutlineLevel);
+        Assert.Contains(document.Paragraphs[0].Runs, run => run.Text == "Assessment" && run.Bold);
+        Assert.Equal(2, document.Paragraphs[1].OutlineLevel);
+        Assert.Equal(RtfTextAlignment.Right, document.Paragraphs[1].Alignment);
+
+        string rtf = document.ToRtf();
+        Assert.Contains(@"\outlinelevel0", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\outlinelevel2", rtf, StringComparison.Ordinal);
+
+        RtfDocument roundTrip = RtfDocument.Read(rtf).Document;
+        Assert.Equal(0, roundTrip.Paragraphs[0].OutlineLevel);
+        Assert.Equal(2, roundTrip.Paragraphs[1].OutlineLevel);
+    }
+
+    [Fact]
+    public void RtfDocument_ToHtml_Renders_Outline_Paragraphs_As_Headings() {
+        RtfDocument document = RtfDocument.Create();
+        document.AddParagraph("Assessment").SetOutlineLevel(0);
+        document.AddParagraph("Plan").SetOutlineLevel(2).SetAlignment(RtfTextAlignment.Right);
+
+        string html = document.ToHtml(new RtfHtmlSaveOptions {
+            NewLine = "\n"
+        });
+
+        Assert.Equal("<h1>Assessment</h1>\n<h3 style=\"text-align:right\">Plan</h3>", html);
+    }
+
+    [Fact]
     public void Html_ToRtfDocument_Allows_Css_To_Override_Semantic_Formatting() {
         const string html = "<p><strong><em><u>marked <span style=\"font-weight:400; font-style: normal; text-decoration: none; vertical-align: baseline\">plain</span></u></em></strong></p>";
 
