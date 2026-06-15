@@ -348,6 +348,9 @@ public sealed class OfficeChartLayout {
     /// <summary>Optional zero-based point indexes that should suppress data labels per series.</summary>
     public IReadOnlyDictionary<int, IReadOnlyCollection<int>>? HiddenDataLabelPointIndexes { get; set; }
 
+    /// <summary>Optional zero-based category or slice legend indexes that should be suppressed for category legends.</summary>
+    public IReadOnlyCollection<int>? HiddenCategoryLegendIndexes { get; set; }
+
     /// <summary>Whether point markers should be rendered for marker-capable chart families.</summary>
     public bool ShowMarkers { get; }
 

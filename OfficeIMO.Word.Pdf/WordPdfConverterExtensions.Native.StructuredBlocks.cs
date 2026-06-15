@@ -268,8 +268,8 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            WordWatermark? watermark = section.Watermarks.FirstOrDefault(IsNativeRenderableWatermark);
-            _ = ApplyNativeWatermark(page.Watermark, page.ImageWatermark, watermark, options, "section watermark");
+            WordWatermark? watermark = section.Header?.Default?.Watermarks.FirstOrDefault(IsNativeRenderableWatermark);
+            _ = ApplyNativeWatermark(page.Watermark, page.ImageWatermark, watermark, options, "default header watermark");
         }
 
         private static NativeAppliedWatermark ApplyNativeWatermark(

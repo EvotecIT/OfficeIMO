@@ -111,6 +111,51 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Ignores_Inactive_First_And_Even_Header_Watermarks() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeStaleHeaderWatermarkVariants.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeStaleHeaderWatermarkVariants.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.AddHeadersAndFooters();
+            document.DifferentFirstPage = true;
+            document.DifferentOddAndEvenPages = true;
+
+            RequireSectionHeader(document, 0, HeaderFooterValues.First)
+                .AddWatermark(WordWatermarkStyle.Text, "STALE FIRST WATERMARK");
+            RequireSectionHeader(document, 0, HeaderFooterValues.Even)
+                .AddWatermark(WordWatermarkStyle.Text, "STALE EVEN WATERMARK");
+
+            for (int i = 0; i < 160; i++) {
+                document.AddParagraph($"Native stale watermark paragraph {i}");
+            }
+
+            document.Save();
+        }
+
+        using (WordprocessingDocument package = WordprocessingDocument.Open(docPath, true)) {
+            Settings? settings = package.MainDocumentPart!.DocumentSettingsPart!.Settings;
+            settings?.RemoveAllChildren<EvenAndOddHeaders>();
+            foreach (TitlePage titlePage in package.MainDocumentPart.Document.Body!.Descendants<TitlePage>().ToList()) {
+                titlePage.Remove();
+            }
+
+            package.Save();
+        }
+
+        using (WordDocument document = WordDocument.Load(docPath)) {
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        string allText = string.Concat(pdf.GetPages().Select(page => page.Text));
+
+        Assert.DoesNotContain("STALE FIRST WATERMARK", allText);
+        Assert.DoesNotContain("STALE EVEN WATERMARK", allText);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Preserves_Blank_First_And_Even_HeaderFooter_Variants() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeBlankHeaderFooterVariants.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeBlankHeaderFooterVariants.pdf");

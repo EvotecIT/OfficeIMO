@@ -852,7 +852,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             string? separator = labels?.GetFirstChild<Separator>()?.InnerText;
-            return new OfficeChartLayout(
+            var layout = new OfficeChartLayout(
                 maximumCategoryAxisLabels: maximumCategoryAxisLabels,
                 maximumHorizontalCategoryAxisLabels: maximumHorizontalCategoryAxisLabels,
                 maximumRadarCategoryLabels: maximumRadarCategoryLabels,
@@ -886,6 +886,15 @@ namespace OfficeIMO.Word.Pdf {
                 DataLabelPointIndexes = dataLabels.PointIndexes,
                 HiddenDataLabelPointIndexes = dataLabels.HiddenPointIndexes
             };
+            HashSet<uint> hiddenLegendIndexes = GetNativeWordHiddenLegendIndexes(chart);
+            if (IsNativeWordPieLikeChart(chartKind) && hiddenLegendIndexes.Count > 0) {
+                layout.HiddenCategoryLegendIndexes = hiddenLegendIndexes
+                    .Where(index => index <= int.MaxValue)
+                    .Select(index => (int)index)
+                    .ToArray();
+            }
+
+            return layout;
         }
 
         private static bool IsNativeWordMarkerOnlyScatter(OpenXmlElement chartElement, OfficeChartKind chartKind) =>

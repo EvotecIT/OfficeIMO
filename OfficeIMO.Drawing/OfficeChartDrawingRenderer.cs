@@ -8,6 +8,9 @@ namespace OfficeIMO.Drawing;
 /// Renders dependency-free chart snapshots into vector drawing primitives shared by OfficeIMO exporters.
 /// </summary>
 public static partial class OfficeChartDrawingRenderer {
+    private const double MinimumChartCanvasWidth = 240D;
+    private const double MinimumChartCanvasHeight = 150D;
+
     /// <summary>
     /// Renders a chart snapshot into an <see cref="OfficeDrawing"/> scene.
     /// </summary>
@@ -18,8 +21,8 @@ public static partial class OfficeChartDrawingRenderer {
             throw new ArgumentNullException(nameof(snapshot));
         }
 
-        double width = snapshot.WidthPoints;
-        double height = snapshot.HeightPoints;
+        double width = Math.Max(MinimumChartCanvasWidth, snapshot.WidthPoints);
+        double height = Math.Max(MinimumChartCanvasHeight, snapshot.HeightPoints);
         OfficeChartStyle style = snapshot.Style;
         OfficeChartLayout layout = snapshot.Layout;
         var drawing = new OfficeDrawing(width, height);
@@ -856,10 +859,10 @@ public static partial class OfficeChartDrawingRenderer {
     }
 
     private static void AddDoughnutSeries(OfficeDrawing drawing, IReadOnlyList<string> categories, IReadOnlyList<OfficeChartSeries> series, double width, double height, double contentTop, double bottomLegendHeight, OfficeChartStyle style, OfficeChartLayout layout) {
-        var renderableSeries = new List<OfficeChartSeries>();
+        var renderableSeries = new List<(OfficeChartSeries Series, int SourceIndex)>();
         for (int s = 0; s < series.Count; s++) {
             if (GetPositiveSeriesTotal(series[s], categories.Count) > 0D) {
-                renderableSeries.Add(series[s]);
+                renderableSeries.Add((series[s], s));
             }
         }
 
@@ -870,7 +873,7 @@ public static partial class OfficeChartDrawingRenderer {
         double topCategoryLegendHeight = layout.LegendPosition == OfficeChartLegendPosition.Top
             ? GetCategoryLegendBandHeight(categories, width - 16D, layout)
             : 0D;
-        IReadOnlyList<OfficeColor?>? legendPointColors = GetLegendPointColors(style, renderableSeries, categories.Count);
+        IReadOnlyList<OfficeColor?>? legendPointColors = GetLegendPointColors(style, renderableSeries.ConvertAll(item => item.Series), categories.Count);
         if (topCategoryLegendHeight > 0D) {
             AddCategoryLegendBand(drawing, categories, 8D, contentTop + 2D, Math.Max(1D, width - 16D), style, layout, legendPointColors);
             contentTop += topCategoryLegendHeight;
@@ -889,7 +892,8 @@ public static partial class OfficeChartDrawingRenderer {
 
         double ringThickness = radius / (renderableSeries.Count + 0.9D);
         for (int s = 0; s < renderableSeries.Count; s++) {
-            OfficeChartSeries values = renderableSeries[s];
+            OfficeChartSeries values = renderableSeries[s].Series;
+            int sourceSeriesIndex = renderableSeries[s].SourceIndex;
             double outerRadius = radius - s * ringThickness;
             double innerRadius = Math.Max(0D, outerRadius - ringThickness * 0.82D);
             double total = GetPositiveSeriesTotal(values, categories.Count);
@@ -906,12 +910,12 @@ public static partial class OfficeChartDrawingRenderer {
                     double end = start + sweep;
                     OfficeColor sliceColor = GetPointColor(style, values, i);
                     AddDoughnutSlice(drawing, centerX, centerY, outerRadius, innerRadius, start, sweep, sliceColor);
-                    if (ShouldShowDataLabel(layout, s, i)) {
+                    if (ShouldShowDataLabel(layout, sourceSeriesIndex, i)) {
                         AddPieDataLabel(drawing, layout, style, GetReadableDataLabelColor(sliceColor), categories[i], values, value, total, centerX, centerY, Math.Max(innerRadius + 8D, outerRadius - ringThickness * 0.42D), start + sweep / 2D, zeroLabelIndex: null);
                     }
 
                     start = end;
-                } else if (s == 0 && ShouldShowDataLabel(layout, s, i)) {
+                } else if (s == 0 && ShouldShowDataLabel(layout, sourceSeriesIndex, i)) {
                     OfficeColor sliceColor = GetPointColor(style, values, 0);
                     AddPieDataLabel(drawing, layout, style, GetReadableDataLabelColor(sliceColor), categories[i], values, 0D, total, centerX, centerY, outerRadius, -Math.PI / 2D, zeroLabelIndex);
                     zeroLabelIndex++;

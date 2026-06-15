@@ -37,7 +37,7 @@ public class PdfDocumentChartDrawingTests {
     }
 
     [Fact]
-    public void FlowDrawing_PreservesSnapshotExtentsWithoutRendererClamping() {
+    public void FlowDrawing_ClampsSmallSnapshotExtentsBeforeLayout() {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Native extent chart",
             "Native Extents",
@@ -50,8 +50,8 @@ public class PdfDocumentChartDrawingTests {
             widthPoints: 180D,
             heightPoints: 118D));
 
-        Assert.Equal(180D, drawing.Width);
-        Assert.Equal(118D, drawing.Height);
+        Assert.Equal(240D, drawing.Width);
+        Assert.Equal(150D, drawing.Height);
     }
 
     [Fact]
@@ -816,6 +816,30 @@ public class PdfDocumentChartDrawingTests {
     }
 
     [Fact]
+    public void FlowDrawing_SuppressesHiddenPieCategoryLegendEntries() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Pie hidden legend",
+            "Pie Legend",
+            OfficeChartKind.Pie,
+            new OfficeChartData(
+                new[] { "Passed", "Failed", "Skipped" },
+                new[] {
+                    new OfficeChartSeries("Outcome", new[] { 42D, 30D, 3D })
+                }),
+            widthPoints: 260D,
+            heightPoints: 180D,
+            layout: new OfficeChartLayout {
+                HiddenCategoryLegendIndexes = new[] { 1 }
+            }));
+
+        IReadOnlyList<string> labels = drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToArray();
+
+        Assert.Contains("Passed", labels);
+        Assert.DoesNotContain("Failed", labels);
+        Assert.Contains("Skipped", labels);
+    }
+
+    [Fact]
     public void FlowDrawing_RendersDoughnutChartSeriesColorWhenPointColorsAreMissing() {
         OfficeColor seriesColor = OfficeColor.ParseHex("#CC3366");
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
@@ -841,6 +865,51 @@ public class PdfDocumentChartDrawingTests {
             shape.Shape.Kind == OfficeShapeKind.Rectangle &&
             shape.Shape.FillColor == seriesColor &&
             shape.Shape.StrokeWidth == 0D);
+    }
+
+    [Fact]
+    public void FlowDrawing_KeepsDoughnutDataLabelsOnSourceSeriesIndexes() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Doughnut source labels",
+            "Doughnut Labels",
+            OfficeChartKind.Doughnut,
+            new OfficeChartData(
+                new[] { "Passed", "Failed" },
+                new[] {
+                    new OfficeChartSeries("Empty", new[] { 0D, 0D }),
+                    new OfficeChartSeries("Outcome", new[] { 42D, 30D })
+                }),
+            widthPoints: 260D,
+            heightPoints: 180D,
+            layout: new OfficeChartLayout(
+                showLegend: false,
+                showDataLabels: true,
+                showDataLabelValues: true) {
+                DataLabelSeriesIndexes = new[] { 1 }
+            }));
+
+        IReadOnlyList<string> labels = drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToArray();
+
+        Assert.Contains("42", labels);
+        Assert.Contains("30", labels);
+    }
+
+    [Fact]
+    public void FlowDrawing_ClampsTinyChartCanvasesBeforeLayout() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Tiny chart",
+            "Tiny",
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(
+                new[] { "Q1" },
+                new[] {
+                    new OfficeChartSeries("Actual", new[] { 1D })
+                }),
+            widthPoints: 50D,
+            heightPoints: 40D));
+
+        Assert.True(drawing.Width >= 240D);
+        Assert.True(drawing.Height >= 150D);
     }
 
     [Fact]
