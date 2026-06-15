@@ -48,6 +48,7 @@ public sealed class PackageDependencyGuardrailTests {
     [InlineData("OfficeIMO.PowerPoint.Pdf/OfficeIMO.PowerPoint.Pdf.csproj")]
     [InlineData("OfficeIMO.Html.Pdf/OfficeIMO.Html.Pdf.csproj")]
     [InlineData("OfficeIMO.Reader.Pdf/OfficeIMO.Reader.Pdf.csproj")]
+    [InlineData("OfficeIMO.Reader.Rtf/OfficeIMO.Reader.Rtf.csproj")]
     public void DependencyLightProjects_HaveNoPackageReferences(string relativeProjectPath) {
         var projectPath = GetRepositoryPath(relativeProjectPath);
         Assert.True(File.Exists(projectPath), "Project file is missing: " + projectPath);
