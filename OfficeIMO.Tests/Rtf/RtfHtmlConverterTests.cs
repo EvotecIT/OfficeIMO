@@ -407,6 +407,65 @@ public class RtfHtmlConverterTests {
     }
 
     [Fact]
+    public void Html_ToRtfDocument_Parses_Table_Cell_Borders_And_Padding() {
+        const string html = "<table><tr><td style=\"padding:6pt 9pt 3pt 12pt;border:1pt solid #0c2238;border-bottom:2pt dashed red\">Value</td></tr></table>";
+
+        RtfDocument document = html.ToRtfDocumentFromHtml();
+
+        RtfTable table = Assert.IsType<RtfTable>(Assert.Single(document.Blocks));
+        RtfTableCell cell = table.Rows[0].Cells[0];
+        Assert.Equal(120, cell.PaddingTopTwips);
+        Assert.Equal(240, cell.PaddingLeftTwips);
+        Assert.Equal(60, cell.PaddingBottomTwips);
+        Assert.Equal(180, cell.PaddingRightTwips);
+        Assert.Equal(RtfTableCellBorderStyle.Single, cell.TopBorder.Style);
+        Assert.Equal(20, cell.TopBorder.Width);
+        Assert.Equal(1, cell.TopBorder.ColorIndex);
+        Assert.Equal(RtfTableCellBorderStyle.Dashed, cell.BottomBorder.Style);
+        Assert.Equal(40, cell.BottomBorder.Width);
+        Assert.Equal(2, cell.BottomBorder.ColorIndex);
+
+        string rtf = document.ToRtf();
+        Assert.Contains(@"\clpadt120\clpadft3", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\clpadl240\clpadfl3", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\clbrdrt\brdrs\brdrw20\brdrcf1", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\clbrdrb\brdrdash\brdrw40\brdrcf2", rtf, StringComparison.Ordinal);
+
+        RtfTable roundTripTable = Assert.IsType<RtfTable>(Assert.Single(RtfDocument.Read(rtf).Document.Blocks));
+        RtfTableCell readCell = roundTripTable.Rows[0].Cells[0];
+        Assert.Equal(120, readCell.PaddingTopTwips);
+        Assert.Equal(RtfTableCellBorderStyle.Single, readCell.TopBorder.Style);
+        Assert.Equal(RtfTableCellBorderStyle.Dashed, readCell.BottomBorder.Style);
+    }
+
+    [Fact]
+    public void RtfDocument_ToHtml_Renders_Table_Cell_Borders_And_Padding() {
+        RtfDocument document = RtfDocument.Create();
+        int dark = document.AddColor(12, 34, 56);
+        int red = document.AddColor(255, 0, 0);
+        RtfTable table = document.AddTable(1, 1);
+        RtfTableCell cell = table.Rows[0].Cells[0];
+        cell.SetPadding(topTwips: 120, leftTwips: 240, bottomTwips: 60, rightTwips: 180);
+        cell.TopBorder.Style = RtfTableCellBorderStyle.Single;
+        cell.TopBorder.Width = 20;
+        cell.TopBorder.ColorIndex = dark;
+        cell.LeftBorder.Style = RtfTableCellBorderStyle.Single;
+        cell.LeftBorder.Width = 20;
+        cell.LeftBorder.ColorIndex = dark;
+        cell.BottomBorder.Style = RtfTableCellBorderStyle.Dashed;
+        cell.BottomBorder.Width = 40;
+        cell.BottomBorder.ColorIndex = red;
+        cell.RightBorder.Style = RtfTableCellBorderStyle.Double;
+        cell.RightBorder.Width = 20;
+        cell.RightBorder.ColorIndex = dark;
+        cell.AddParagraph("Value");
+
+        string html = document.ToHtml();
+
+        Assert.Equal("<table><tbody><tr><td style=\"padding-top:6pt;padding-left:12pt;padding-bottom:3pt;padding-right:9pt;border-top:1pt solid #0C2238;border-left:1pt solid #0C2238;border-bottom:2pt dashed #FF0000;border-right:1pt double #0C2238;\"><p>Value</p></td></tr></tbody></table>", html);
+    }
+
+    [Fact]
     public void Html_Rtf_Html_RoundTrip_Preserves_Semantic_Text() {
         const string html = "<p>Assessment: <strong>stable</strong></p>";
 

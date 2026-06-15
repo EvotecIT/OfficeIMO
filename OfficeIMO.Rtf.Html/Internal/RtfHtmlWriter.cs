@@ -401,8 +401,49 @@ internal static class RtfHtmlWriter {
             builder.Append(';');
         }
 
+        AppendCellPaddingStyle(builder, "padding-top", cell.PaddingTopTwips);
+        AppendCellPaddingStyle(builder, "padding-left", cell.PaddingLeftTwips);
+        AppendCellPaddingStyle(builder, "padding-bottom", cell.PaddingBottomTwips);
+        AppendCellPaddingStyle(builder, "padding-right", cell.PaddingRightTwips);
+        AppendCellBorderStyle(builder, "border-top", cell.TopBorder, document);
+        AppendCellBorderStyle(builder, "border-left", cell.LeftBorder, document);
+        AppendCellBorderStyle(builder, "border-bottom", cell.BottomBorder, document);
+        AppendCellBorderStyle(builder, "border-right", cell.RightBorder, document);
+
         style = builder.Length == 0 ? null : builder.ToString();
         return style != null;
+    }
+
+    private static void AppendCellPaddingStyle(StringBuilder builder, string name, int? twips) {
+        if (!twips.HasValue) {
+            return;
+        }
+
+        builder.Append(name);
+        builder.Append(':');
+        builder.Append(FormatPoints(twips.Value / 20d));
+        builder.Append("pt;");
+    }
+
+    private static void AppendCellBorderStyle(StringBuilder builder, string name, RtfTableCellBorder border, RtfDocument document) {
+        if (!border.HasAnyValue) {
+            return;
+        }
+
+        builder.Append(name);
+        builder.Append(':');
+        if (border.Width.HasValue) {
+            builder.Append(FormatPoints(border.Width.Value / 20d));
+            builder.Append("pt ");
+        }
+
+        builder.Append(FormatCellBorderStyle(border.Style));
+        if (TryGetColor(document, border.ColorIndex, out RtfColor? color)) {
+            builder.Append(' ');
+            builder.Append(FormatColor(color!));
+        }
+
+        builder.Append(';');
     }
 
     private static void AppendImage(StringBuilder builder, RtfImage image, RtfHtmlSaveOptions options) {
@@ -549,6 +590,21 @@ internal static class RtfHtmlWriter {
                 return "bottom";
             default:
                 return "top";
+        }
+    }
+
+    private static string FormatCellBorderStyle(RtfTableCellBorderStyle style) {
+        switch (style) {
+            case RtfTableCellBorderStyle.Double:
+                return "double";
+            case RtfTableCellBorderStyle.Dotted:
+                return "dotted";
+            case RtfTableCellBorderStyle.Dashed:
+                return "dashed";
+            case RtfTableCellBorderStyle.None:
+                return "none";
+            default:
+                return "solid";
         }
     }
 

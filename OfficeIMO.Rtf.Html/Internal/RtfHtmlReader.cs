@@ -479,6 +479,28 @@ internal static class RtfHtmlReader {
                 _cell.PreferredWidth = style.TableWidth.Value;
                 _cell.PreferredWidthUnit = style.TableWidthUnit;
             }
+
+            if (style.PaddingTopTwips.HasValue ||
+                style.PaddingLeftTwips.HasValue ||
+                style.PaddingBottomTwips.HasValue ||
+                style.PaddingRightTwips.HasValue) {
+                _cell.SetPadding(style.PaddingTopTwips, style.PaddingLeftTwips, style.PaddingBottomTwips, style.PaddingRightTwips);
+            }
+
+            ApplyCellBorder(_cell.TopBorder, style.TopBorder);
+            ApplyCellBorder(_cell.LeftBorder, style.LeftBorder);
+            ApplyCellBorder(_cell.BottomBorder, style.BottomBorder);
+            ApplyCellBorder(_cell.RightBorder, style.RightBorder);
+        }
+
+        private void ApplyCellBorder(RtfTableCellBorder target, HtmlBorderDeclaration? source) {
+            if (source == null) {
+                return;
+            }
+
+            target.Style = source.Style;
+            target.Width = source.Width;
+            target.ColorIndex = source.Color == null ? null : GetOrAddColorIndex(source.Color);
         }
 
         private void AddImage(HtmlToken token) {

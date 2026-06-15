@@ -60,6 +60,43 @@ internal static class HtmlStyleDeclarationParser {
                 }
 
                 break;
+            case "padding":
+                ApplyPadding(declaration, value);
+                break;
+            case "padding-top":
+                declaration.PaddingTopTwips = ParseTwips(value);
+                break;
+            case "padding-left":
+                declaration.PaddingLeftTwips = ParseTwips(value);
+                break;
+            case "padding-bottom":
+                declaration.PaddingBottomTwips = ParseTwips(value);
+                break;
+            case "padding-right":
+                declaration.PaddingRightTwips = ParseTwips(value);
+                break;
+            case "border":
+                HtmlBorderDeclaration? border = ParseBorder(value);
+                if (border != null) {
+                    declaration.TopBorder = CloneBorder(border);
+                    declaration.LeftBorder = CloneBorder(border);
+                    declaration.BottomBorder = CloneBorder(border);
+                    declaration.RightBorder = CloneBorder(border);
+                }
+
+                break;
+            case "border-top":
+                declaration.TopBorder = ParseBorder(value);
+                break;
+            case "border-left":
+                declaration.LeftBorder = ParseBorder(value);
+                break;
+            case "border-bottom":
+                declaration.BottomBorder = ParseBorder(value);
+                break;
+            case "border-right":
+                declaration.RightBorder = ParseBorder(value);
+                break;
             case "margin-left":
                 declaration.LeftIndentTwips = ParseTwips(value);
                 break;
@@ -85,6 +122,108 @@ internal static class HtmlStyleDeclarationParser {
                 declaration.BackgroundColor = ParseColor(value);
                 break;
         }
+    }
+
+    private static void ApplyPadding(HtmlStyleDeclaration declaration, string value) {
+        string[] parts = value.Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 0) {
+            return;
+        }
+
+        int? top = ParseTwips(parts[0]);
+        int? right = ParseTwips(parts.Length > 1 ? parts[1] : parts[0]);
+        int? bottom = ParseTwips(parts.Length > 2 ? parts[2] : parts[0]);
+        int? left = ParseTwips(parts.Length > 3 ? parts[3] : (parts.Length > 1 ? parts[1] : parts[0]));
+        declaration.PaddingTopTwips = top;
+        declaration.PaddingRightTwips = right;
+        declaration.PaddingBottomTwips = bottom;
+        declaration.PaddingLeftTwips = left;
+    }
+
+    private static HtmlBorderDeclaration? ParseBorder(string value) {
+        string[] parts = value.Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 0) {
+            return null;
+        }
+
+        var border = new HtmlBorderDeclaration();
+        bool hasStyle = false;
+        bool hasWidth = false;
+        bool hasColor = false;
+        foreach (string part in parts) {
+            if (!hasStyle && TryParseBorderStyle(part, out RtfTableCellBorderStyle style)) {
+                border.Style = style;
+                hasStyle = true;
+                continue;
+            }
+
+            if (!hasWidth && TryParseBorderWidth(part, out int? width)) {
+                border.Width = width;
+                hasWidth = true;
+                continue;
+            }
+
+            if (!hasColor && TryParseBorderColor(part, out RtfColor? color)) {
+                border.Color = color;
+                hasColor = true;
+            }
+        }
+
+        return hasStyle || hasWidth || hasColor ? border : null;
+    }
+
+    private static HtmlBorderDeclaration CloneBorder(HtmlBorderDeclaration border) {
+        return new HtmlBorderDeclaration {
+            Style = border.Style,
+            Width = border.Width,
+            Color = border.Color
+        };
+    }
+
+    private static bool TryParseBorderStyle(string value, out RtfTableCellBorderStyle style) {
+        switch (value) {
+            case "none":
+            case "hidden":
+                style = RtfTableCellBorderStyle.None;
+                return true;
+            case "double":
+                style = RtfTableCellBorderStyle.Double;
+                return true;
+            case "dotted":
+                style = RtfTableCellBorderStyle.Dotted;
+                return true;
+            case "dashed":
+                style = RtfTableCellBorderStyle.Dashed;
+                return true;
+            case "solid":
+                style = RtfTableCellBorderStyle.Single;
+                return true;
+            default:
+                style = RtfTableCellBorderStyle.None;
+                return false;
+        }
+    }
+
+    private static bool TryParseBorderWidth(string value, out int? width) {
+        switch (value) {
+            case "thin":
+                width = 10;
+                return true;
+            case "medium":
+                width = 20;
+                return true;
+            case "thick":
+                width = 30;
+                return true;
+        }
+
+        width = ParseTwips(value);
+        return width.HasValue;
+    }
+
+    private static bool TryParseBorderColor(string value, out RtfColor? color) {
+        color = ParseColor(value);
+        return color != null;
     }
 
     internal static bool TryParseTableWidth(string value, out int width, out RtfTableWidthUnit unit) {

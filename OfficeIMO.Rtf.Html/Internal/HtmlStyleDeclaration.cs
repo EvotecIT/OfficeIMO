@@ -39,6 +39,22 @@ internal sealed class HtmlStyleDeclaration {
 
     internal RtfTableWidthUnit? TableWidthUnit { get; set; }
 
+    internal int? PaddingTopTwips { get; set; }
+
+    internal int? PaddingLeftTwips { get; set; }
+
+    internal int? PaddingBottomTwips { get; set; }
+
+    internal int? PaddingRightTwips { get; set; }
+
+    internal HtmlBorderDeclaration? TopBorder { get; set; }
+
+    internal HtmlBorderDeclaration? LeftBorder { get; set; }
+
+    internal HtmlBorderDeclaration? BottomBorder { get; set; }
+
+    internal HtmlBorderDeclaration? RightBorder { get; set; }
+
     internal bool HasInlineFormatting =>
         Bold.HasValue ||
         Italic.HasValue ||
