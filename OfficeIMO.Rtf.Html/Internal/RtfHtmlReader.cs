@@ -43,6 +43,7 @@ internal static class RtfHtmlReader {
         private int _superscript;
         private int _subscript;
         private int _preformatted;
+        private bool _pageBreakAfterParagraph;
 
         internal ReadContext(RtfDocument document, RtfHtmlReadOptions options) {
             _document = document;
@@ -274,10 +275,16 @@ internal static class RtfHtmlReader {
             }
 
             _paragraph = _cell == null ? _document.AddParagraph() : _cell.AddParagraph();
+            _pageBreakAfterParagraph = false;
         }
 
         private void EndParagraph() {
+            if (_paragraph != null && _pageBreakAfterParagraph && !EndsWithPageBreak(_paragraph)) {
+                _paragraph.AddPageBreak();
+            }
+
             _paragraph = null;
+            _pageBreakAfterParagraph = false;
         }
 
         private void ApplyParagraphStyle(HtmlStyleDeclaration style) {
@@ -295,6 +302,14 @@ internal static class RtfHtmlReader {
 
             if (_paragraph != null && style.FirstLineIndentTwips.HasValue) {
                 _paragraph.FirstLineIndentTwips = style.FirstLineIndentTwips.Value;
+            }
+
+            if (_paragraph != null && style.PageBreakBefore) {
+                _paragraph.PageBreakBefore = true;
+            }
+
+            if (style.PageBreakAfter) {
+                _pageBreakAfterParagraph = true;
             }
         }
 
@@ -475,6 +490,11 @@ internal static class RtfHtmlReader {
 
         private static bool HasContent(RtfParagraph paragraph) {
             return paragraph.Inlines.Count > 0 || paragraph.Runs.Count > 0;
+        }
+
+        private static bool EndsWithPageBreak(RtfParagraph paragraph) {
+            return paragraph.Inlines.Count > 0 &&
+                   paragraph.Inlines[paragraph.Inlines.Count - 1] is RtfBreak { Kind: RtfBreakKind.Page };
         }
 
         private static string NormalizeWhitespace(string text) {

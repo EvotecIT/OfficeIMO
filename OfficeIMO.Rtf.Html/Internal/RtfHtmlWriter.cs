@@ -134,6 +134,10 @@ internal static class RtfHtmlWriter {
             builder.Append(';');
         }
 
+        if (paragraph.PageBreakBefore) {
+            builder.Append("page-break-before:always;break-before:page;");
+        }
+
         AppendTwipStyle(builder, "margin-left", paragraph.LeftIndentTwips);
         AppendTwipStyle(builder, "margin-right", paragraph.RightIndentTwips);
         AppendTwipStyle(builder, "text-indent", paragraph.FirstLineIndentTwips);
@@ -161,6 +165,9 @@ internal static class RtfHtmlWriter {
                     break;
                 case RtfBreak rtfBreak when rtfBreak.Kind == RtfBreakKind.Line:
                     builder.Append("<br>");
+                    break;
+                case RtfBreak rtfBreak when rtfBreak.Kind == RtfBreakKind.Page:
+                    builder.Append("<br style=\"page-break-before:always;break-before:page;\">");
                     break;
                 case RtfField field:
                     AppendInlines(builder, field.Result.Inlines, options, document);

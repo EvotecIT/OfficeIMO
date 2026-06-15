@@ -29,6 +29,10 @@ internal sealed class HtmlStyleDeclaration {
 
     internal int? FirstLineIndentTwips { get; set; }
 
+    internal bool PageBreakBefore { get; set; }
+
+    internal bool PageBreakAfter { get; set; }
+
     internal bool HasInlineFormatting =>
         Bold.HasValue ||
         Italic.HasValue ||

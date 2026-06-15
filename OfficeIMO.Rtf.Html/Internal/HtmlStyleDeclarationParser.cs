@@ -61,6 +61,14 @@ internal static class HtmlStyleDeclarationParser {
             case "text-indent":
                 declaration.FirstLineIndentTwips = ParseTwips(value);
                 break;
+            case "page-break-before":
+            case "break-before":
+                declaration.PageBreakBefore = IsPageBreakValue(value);
+                break;
+            case "page-break-after":
+            case "break-after":
+                declaration.PageBreakAfter = IsPageBreakValue(value);
+                break;
             case "color":
                 declaration.ForegroundColor = ParseColor(value);
                 break;
@@ -257,6 +265,20 @@ internal static class HtmlStyleDeclarationParser {
         return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double px)
             ? (int)Math.Round(px * 15d, MidpointRounding.AwayFromZero)
             : null;
+    }
+
+    private static bool IsPageBreakValue(string value) {
+        switch (value) {
+            case "always":
+            case "page":
+            case "left":
+            case "right":
+            case "recto":
+            case "verso":
+                return true;
+            default:
+                return false;
+        }
     }
 
     private static bool TryParseCssLength(string value, string unit, double multiplier, out double points) {

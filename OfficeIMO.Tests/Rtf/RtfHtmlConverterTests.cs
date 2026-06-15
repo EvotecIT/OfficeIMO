@@ -228,6 +228,39 @@ public class RtfHtmlConverterTests {
     }
 
     [Fact]
+    public void Html_ToRtfDocument_Parses_Page_Break_Styles() {
+        const string html = "<p style=\"page-break-before: always\">Before</p><p style=\"break-after: page\">After</p><p>Next</p>";
+
+        RtfDocument document = html.ToRtfDocumentFromHtml();
+
+        Assert.Equal(3, document.Paragraphs.Count);
+        Assert.True(document.Paragraphs[0].PageBreakBefore);
+        Assert.Contains(document.Paragraphs[1].Inlines, inline => inline is RtfBreak { Kind: RtfBreakKind.Page });
+
+        string rtf = document.ToRtf();
+        Assert.Contains(@"\pagebb", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"After\page \par", rtf, StringComparison.Ordinal);
+
+        RtfDocument roundTrip = RtfDocument.Read(rtf).Document;
+        Assert.True(roundTrip.Paragraphs[0].PageBreakBefore);
+        Assert.Contains(roundTrip.Paragraphs[1].Inlines, inline => inline is RtfBreak { Kind: RtfBreakKind.Page });
+    }
+
+    [Fact]
+    public void RtfDocument_ToHtml_Renders_Page_Breaks() {
+        RtfDocument document = RtfDocument.Create();
+        document.AddParagraph("Before").SetPagination(pageBreakBefore: true);
+        RtfParagraph after = document.AddParagraph("After");
+        after.AddPageBreak();
+
+        string html = document.ToHtml(new RtfHtmlSaveOptions {
+            NewLine = "\n"
+        });
+
+        Assert.Equal("<p style=\"page-break-before:always;break-before:page;\">Before</p>\n<p>After<br style=\"page-break-before:always;break-before:page;\"></p>", html);
+    }
+
+    [Fact]
     public void Html_ToRtfDocument_Allows_Css_To_Override_Semantic_Formatting() {
         const string html = "<p><strong><em><u>marked <span style=\"font-weight:400; font-style: normal; text-decoration: none; vertical-align: baseline\">plain</span></u></em></strong></p>";
 
