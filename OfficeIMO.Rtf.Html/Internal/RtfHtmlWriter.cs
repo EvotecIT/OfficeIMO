@@ -411,6 +411,8 @@ internal static partial class RtfHtmlWriter {
             builder.Append(';');
         }
 
+        AppendCharacterBorderStyle(builder, run.CharacterBorder, document);
+
         style = builder.Length == 0 ? null : builder.ToString();
         return style != null;
     }

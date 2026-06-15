@@ -274,6 +274,11 @@ internal static partial class RtfHtmlReader {
                 run.CharacterBackgroundColorIndex = GetOrAddColorIndex(background);
             }
 
+            HtmlBorderDeclaration? characterBorder = ResolveCharacterBorder();
+            if (characterBorder != null) {
+                ApplyCharacterBorder(run.CharacterBorder, characterBorder);
+            }
+
             string? fontFamily = ResolveStyleString(style => style.FontFamily);
             if (!string.IsNullOrWhiteSpace(fontFamily)) {
                 run.FontId = _document.AddFont(fontFamily!);

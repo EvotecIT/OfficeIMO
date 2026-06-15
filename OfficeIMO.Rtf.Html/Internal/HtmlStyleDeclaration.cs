@@ -67,6 +67,12 @@ internal sealed class HtmlStyleDeclaration {
 
     internal bool? NoWrap { get; set; }
 
+    internal bool HasBorderFormatting =>
+        TopBorder != null ||
+        LeftBorder != null ||
+        BottomBorder != null ||
+        RightBorder != null;
+
     internal bool HasInlineFormatting =>
         Bold.HasValue ||
         Italic.HasValue ||
@@ -76,5 +82,6 @@ internal sealed class HtmlStyleDeclaration {
         ForegroundColor != null ||
         BackgroundColor != null ||
         FontFamily != null ||
-        FontSizePoints.HasValue;
+        FontSizePoints.HasValue ||
+        HasBorderFormatting;
 }
