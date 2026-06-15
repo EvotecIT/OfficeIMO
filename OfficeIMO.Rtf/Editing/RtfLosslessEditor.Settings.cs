@@ -80,6 +80,20 @@ public sealed partial class RtfLosslessEditor {
             case "pgnucltr":
             case "pgnlcltr":
             case "pgndecd":
+            case "pgbrdrhead":
+            case "pgbrdrfoot":
+            case "pgbrdrsnap":
+            case "pgbrdrt":
+            case "pgbrdrb":
+            case "pgbrdrl":
+            case "pgbrdrr":
+            case "brdrs":
+            case "brdrdb":
+            case "brdrdot":
+            case "brdrdash":
+            case "brdrsh":
+            case "brdrnil":
+            case "brdrframe":
             case "landscape":
             case "titlepg":
                 return true;
@@ -184,10 +198,37 @@ public sealed partial class RtfLosslessEditor {
             case "pgnlcltr":
             case "pgndecd":
                 return 34;
-            case "landscape":
+            case "pgbrdrhead":
+                return 35;
+            case "pgbrdrfoot":
+                return 36;
+            case "pgbrdropt":
+                return 37;
+            case "pgbrdrsnap":
+                return 38;
+            case "pgbrdrt":
+                return 39;
+            case "brdrs":
+            case "brdrdb":
+            case "brdrdot":
+            case "brdrdash":
+            case "brdrsh":
+            case "brdrnil":
+            case "brdrw":
+            case "brsp":
+            case "brdrcf":
+            case "brdrframe":
+                return 39;
+            case "pgbrdrb":
                 return 40;
-            case "titlepg":
+            case "pgbrdrl":
                 return 41;
+            case "pgbrdrr":
+                return 42;
+            case "landscape":
+                return 50;
+            case "titlepg":
+                return 51;
             default:
                 return 100;
         }
