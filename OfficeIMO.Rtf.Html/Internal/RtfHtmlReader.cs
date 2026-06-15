@@ -113,7 +113,7 @@ internal static partial class RtfHtmlReader {
                     _preformatted++;
                     break;
                 case "a":
-                    _hyperlink = ReadUri(token, "href");
+                    StartAnchor(token);
                     break;
                 case "ul":
                     _lists.Push(CreateListState(RtfListKind.Bullet));

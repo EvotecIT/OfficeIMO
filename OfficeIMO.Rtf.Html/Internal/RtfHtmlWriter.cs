@@ -236,10 +236,8 @@ internal static partial class RtfHtmlWriter {
                 case RtfImage image:
                     AppendImage(builder, image, options);
                     break;
-                case RtfBookmarkMarker marker when marker.Kind == RtfBookmarkMarkerKind.Start:
-                    builder.Append("<a id=\"");
-                    builder.Append(EncodeAttribute(marker.Name));
-                    builder.Append("\"></a>");
+                case RtfBookmarkMarker marker:
+                    AppendBookmarkMarker(builder, marker);
                     break;
             }
         }
