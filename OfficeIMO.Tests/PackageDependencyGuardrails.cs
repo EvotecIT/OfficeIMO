@@ -140,6 +140,26 @@ public sealed class PackageDependencyGuardrailTests {
     }
 
     [Fact]
+    public void RetiredRtfHtmlNamespaces_AreNotUsedBySourceFiles() {
+        string[] retiredNamespaces = ["OfficeIMO.Rtf.Html", "OfficeIMO.Html.Rtf"];
+
+        var sourceFiles = Directory.EnumerateFiles(GetRepositoryRoot(), "*.cs", SearchOption.AllDirectories)
+            .Where(static path => !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
+            .Where(static path => !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
+            .Where(static path => !path.Contains($"{Path.DirectorySeparatorChar}Ignore{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
+            .Where(static path => new FileInfo(path).Length > 0)
+            .ToArray();
+
+        foreach (var sourceFile in sourceFiles) {
+            string source = File.ReadAllText(sourceFile);
+            foreach (var retiredNamespace in retiredNamespaces) {
+                Assert.DoesNotContain($"namespace {retiredNamespace}", source, StringComparison.Ordinal);
+                Assert.DoesNotContain($"using {retiredNamespace}", source, StringComparison.Ordinal);
+            }
+        }
+    }
+
+    [Fact]
     public void RtfPackages_AreIncludedInProjectBuildVersionMap() {
         var projectBuildPath = GetRepositoryPath("Build/project.build.json");
         Assert.True(File.Exists(projectBuildPath), "Project build file is missing: " + projectBuildPath);
