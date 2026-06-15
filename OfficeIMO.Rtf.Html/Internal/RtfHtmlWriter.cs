@@ -231,7 +231,7 @@ internal static partial class RtfHtmlWriter {
                     AppendBreak(builder, rtfBreak.Kind);
                     break;
                 case RtfField field:
-                    AppendInlines(builder, field.Result.Inlines, options, document);
+                    AppendField(builder, field, options, document);
                     break;
                 case RtfImage image:
                     AppendImage(builder, image, options);

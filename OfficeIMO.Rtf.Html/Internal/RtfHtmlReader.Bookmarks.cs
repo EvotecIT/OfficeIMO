@@ -13,7 +13,7 @@ internal static partial class RtfHtmlReader {
             if (string.Equals(kind, "end", StringComparison.OrdinalIgnoreCase)) {
                 string? endName = ReadBookmarkName(token);
                 if (!string.IsNullOrWhiteSpace(endName)) {
-                    EnsureParagraph().AddBookmarkEnd(endName!);
+                    EnsureInlineParagraph().AddBookmarkEnd(endName!);
                 }
 
                 return;
@@ -21,7 +21,7 @@ internal static partial class RtfHtmlReader {
 
             string? name = ReadBookmarkName(token);
             if (!string.IsNullOrWhiteSpace(name)) {
-                EnsureParagraph().AddBookmarkStart(name!);
+                EnsureInlineParagraph().AddBookmarkStart(name!);
             }
         }
 

@@ -56,6 +56,11 @@ internal static partial class RtfHtmlReader {
         }
 
         internal void Start(HtmlToken token) {
+            bool startedField = TryStartField(token);
+            if (!startedField) {
+                EnterFieldElement();
+            }
+
             HtmlStyleDeclaration style = HtmlStyleDeclarationParser.Parse(GetAttribute(token, "style"));
             style = ApplyLanguageDirectionAttributes(style, token);
             ApplyDocumentLanguageDirection(token.Value, style);
@@ -114,6 +119,8 @@ internal static partial class RtfHtmlReader {
                     break;
                 case "a":
                     StartAnchor(token);
+                    break;
+                case "span":
                     break;
                 case "ul":
                     _lists.Push(CreateListState(RtfListKind.Bullet));
@@ -204,6 +211,8 @@ internal static partial class RtfHtmlReader {
                 case "a":
                     _hyperlink = null;
                     break;
+                case "span":
+                    break;
                 case "ul":
                 case "ol":
                     if (_lists.Count > 0) {
@@ -248,6 +257,7 @@ internal static partial class RtfHtmlReader {
             }
 
             PopStyleScope(name);
+            ExitFieldElement();
         }
 
         internal void AppendText(string text) {
@@ -260,7 +270,7 @@ internal static partial class RtfHtmlReader {
                 return;
             }
 
-            RtfRun run = EnsureParagraph().AddText(value);
+            RtfRun run = EnsureInlineParagraph().AddText(value);
             run.Bold = ResolveStyleValue(style => style.Bold, _bold > 0);
             run.Italic = ResolveStyleValue(style => style.Italic, _italic > 0);
             bool underline = ResolveStyleValue(style => style.Underline, _underline > 0);
@@ -435,9 +445,7 @@ internal static partial class RtfHtmlReader {
                 return;
             }
 
-            RtfImage image = _cell == null
-                ? EnsureParagraph().AddImage(format, data!)
-                : EnsureParagraph().AddImage(format, data!);
+            RtfImage image = EnsureInlineParagraph().AddImage(format, data!);
             image.Description = GetAttribute(token, "alt");
             ApplyImageSize(token, image);
         }

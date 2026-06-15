@@ -3,7 +3,7 @@ namespace OfficeIMO.Rtf.Html;
 internal static partial class RtfHtmlReader {
     private sealed partial class ReadContext {
         private void AddBreak(HtmlToken token) {
-            EnsureParagraph().AddBreak(ReadBreakKind(token));
+            EnsureInlineParagraph().AddBreak(ReadBreakKind(token));
         }
 
         private static RtfBreakKind ReadBreakKind(HtmlToken token) {
