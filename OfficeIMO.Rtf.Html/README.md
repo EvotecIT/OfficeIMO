@@ -6,7 +6,7 @@ Semantic conversion between HTML and the OfficeIMO RTF document model using the 
 using OfficeIMO.Rtf;
 using OfficeIMO.Rtf.Html;
 
-RtfDocument document = "<p>Hello <strong>RTF</strong></p>".ToRtfDocumentFromHtml();
+RtfDocument document = "<p>Hello <strong>RTF</strong></p>".LoadFromHtml();
 string html = document.ToHtml();
 ```
 

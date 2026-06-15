@@ -28,7 +28,7 @@ public class RtfHtmlObjectsAndShapesTests {
         Assert.Contains("data-officeimo-rtf-object-width=\"100\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-rtf-object-result=\"", html, StringComparison.Ordinal);
 
-        RtfParagraph roundTripParagraph = Assert.Single(html.ToRtfDocumentFromHtml().Paragraphs);
+        RtfParagraph roundTripParagraph = Assert.Single(html.LoadFromHtml().Paragraphs);
         Assert.Equal("Before Display after", roundTripParagraph.ToPlainText());
         RtfObject roundTripObject = Assert.IsType<RtfObject>(roundTripParagraph.Inlines[1]);
         Assert.Equal(RtfObjectKind.Embedded, roundTripObject.Kind);
@@ -46,7 +46,7 @@ public class RtfHtmlObjectsAndShapesTests {
     public void Html_ToRtfDocument_Parses_Block_Object_Metadata() {
         const string html = "<div data-officeimo-rtf-object=\"linked\" data-officeimo-rtf-object-class=\"Package\" data-officeimo-rtf-object-name=\"Attachment\" data-officeimo-rtf-object-data=\"AQID\" data-officeimo-rtf-object-width=\"100\" data-officeimo-rtf-object-height=\"200\"></div>";
 
-        RtfDocument document = html.ToRtfDocumentFromHtml();
+        RtfDocument document = html.LoadFromHtml();
 
         RtfObject rtfObject = Assert.IsType<RtfObject>(Assert.Single(document.Blocks));
         Assert.Equal(RtfObjectKind.Linked, rtfObject.Kind);
@@ -80,7 +80,7 @@ public class RtfHtmlObjectsAndShapesTests {
         Assert.Contains("data-officeimo-rtf-shape-properties=\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-rtf-shape-text=\"", html, StringComparison.Ordinal);
 
-        RtfShape roundTripShape = Assert.IsType<RtfShape>(Assert.Single(html.ToRtfDocumentFromHtml().Blocks));
+        RtfShape roundTripShape = Assert.IsType<RtfShape>(Assert.Single(html.LoadFromHtml().Blocks));
         Assert.Contains(roundTripShape.Instructions, instruction => instruction.Name == "shpleft" && instruction.Parameter == 100);
         Assert.Contains(roundTripShape.Instructions, instruction => instruction.Name == "shpbottom" && instruction.Parameter == 900);
         Assert.Contains(roundTripShape.Properties, property => property.Name == "shapeType" && property.Value == "202");

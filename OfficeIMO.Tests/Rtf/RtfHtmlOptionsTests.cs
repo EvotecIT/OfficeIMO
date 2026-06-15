@@ -76,7 +76,7 @@ public class RtfHtmlOptionsTests {
         };
 
         RtfHtmlConversionLimitException exception = Assert.Throws<RtfHtmlConversionLimitException>(() =>
-            "<p>One</p><p>Two</p>".ToRtfDocumentFromHtml(options));
+            "<p>One</p><p>Two</p>".LoadFromHtml(options));
 
         Assert.Equal("HtmlNodeLimitExceeded", exception.Code);
         Assert.Equal("MaxHtmlNodes", exception.LimitSource);
@@ -96,7 +96,7 @@ public class RtfHtmlOptionsTests {
         };
 
         RtfHtmlConversionLimitException exception = Assert.Throws<RtfHtmlConversionLimitException>(() =>
-            "<div><section><p>Too deep</p></section></div>".ToRtfDocumentFromHtml(options));
+            "<div><section><p>Too deep</p></section></div>".LoadFromHtml(options));
 
         Assert.Equal("HtmlDepthLimitExceeded", exception.Code);
         Assert.Equal("MaxHtmlDepth", exception.LimitSource);

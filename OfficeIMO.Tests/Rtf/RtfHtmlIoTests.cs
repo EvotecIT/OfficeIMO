@@ -21,7 +21,7 @@ public class RtfHtmlIoTests {
         using MemoryStream memoryStream = document.ToHtmlMemoryStream();
         Assert.Equal(bytes, memoryStream.ToArray());
 
-        RtfDocument roundTrip = bytes.ToRtfDocumentFromHtml();
+        RtfDocument roundTrip = bytes.LoadFromHtml();
         Assert.Equal("Clinical ż", Assert.Single(roundTrip.Paragraphs).ToPlainText());
     }
 
@@ -30,18 +30,18 @@ public class RtfHtmlIoTests {
         const string html = "<p>Clinical ż</p>";
         var writeOptions = new RtfWriteOptions { IncludeGenerator = false };
 
-        string rtf = html.ToRtfFromHtml(writeOptions: writeOptions);
-        byte[] bytes = html.ToRtfBytesFromHtml(writeOptions: writeOptions);
+        string rtf = html.ToRtf(writeOptions: writeOptions);
+        byte[] bytes = html.ToRtfBytes(writeOptions: writeOptions);
 
         Assert.Equal(rtf, Encoding.UTF8.GetString(bytes));
         Assert.Contains(@"\u380?", rtf, StringComparison.Ordinal);
 
-        using MemoryStream memoryStream = html.ToRtfMemoryStreamFromHtml(writeOptions: writeOptions);
+        using MemoryStream memoryStream = html.ToRtfMemoryStream(writeOptions: writeOptions);
         Assert.Equal(bytes, memoryStream.ToArray());
 
         using var output = new MemoryStream();
         output.WriteByte(0x2A);
-        html.SaveAsRtfFromHtml(output, writeOptions: writeOptions);
+        html.SaveAsRtf(output, writeOptions: writeOptions);
         byte[] saved = output.ToArray();
 
         Assert.Equal(saved.Length, output.Position);

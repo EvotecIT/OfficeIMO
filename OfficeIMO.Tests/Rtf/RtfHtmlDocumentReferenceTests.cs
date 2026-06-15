@@ -24,7 +24,7 @@ public class RtfHtmlDocumentReferenceTests {
         Assert.Contains("<meta name=\"officeimo-rtf-file-references\" content=\"", html, StringComparison.Ordinal);
         Assert.Contains("<meta name=\"officeimo-rtf-xml-namespaces\" content=\"", html, StringComparison.Ordinal);
 
-        RtfDocument roundTrip = html.ToRtfDocumentFromHtml();
+        RtfDocument roundTrip = html.LoadFromHtml();
 
         Assert.Collection(roundTrip.FileReferences,
             file => {

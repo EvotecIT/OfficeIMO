@@ -36,7 +36,7 @@ public class RtfHtmlSectionLayoutTests {
         Assert.Contains("<meta name=\"officeimo-rtf-colors\" content=\"", html, StringComparison.Ordinal);
         Assert.Contains("<meta name=\"officeimo-rtf-document-layout\" content=\"", html, StringComparison.Ordinal);
 
-        RtfDocument roundTrip = html.ToRtfDocumentFromHtml();
+        RtfDocument roundTrip = html.LoadFromHtml();
         Assert.Equal(2, roundTrip.Colors.Count);
         Assert.Equal(16838, roundTrip.PageSetup.PaperWidthTwips);
         Assert.Equal(11906, roundTrip.PageSetup.PaperHeightTwips);
@@ -119,7 +119,7 @@ public class RtfHtmlSectionLayoutTests {
         Assert.Contains("data-officeimo-rtf-section-layout=\"", html, StringComparison.Ordinal);
         Assert.Contains("<table>", html, StringComparison.Ordinal);
 
-        RtfDocument roundTrip = html.ToRtfDocumentFromHtml();
+        RtfDocument roundTrip = html.LoadFromHtml();
         Assert.Equal(2, roundTrip.Sections.Count);
         Assert.Equal(2, roundTrip.Paragraphs.Count);
         RtfSection roundTripFirst = roundTrip.Sections[0];
