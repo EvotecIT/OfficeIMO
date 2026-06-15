@@ -31,30 +31,6 @@ public static partial class WordRtfConverterExtensions {
         return rtf;
     }
 
-    /// <summary>Serializes a Word document to RTF text.</summary>
-    public static string ToRtf(this WordDocument document, RtfWriteOptions? options = null) {
-        return document.ToRtfDocument().ToRtf(options);
-    }
-
-    /// <summary>Saves a Word document as an RTF file.</summary>
-    public static void SaveAsRtf(this WordDocument document, string path, RtfWriteOptions? options = null, Encoding? encoding = null) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
-        File.WriteAllText(path, document.ToRtf(options), encoding ?? Encoding.UTF8);
-    }
-
-    /// <summary>Saves a Word document as RTF to a stream.</summary>
-    public static void SaveAsRtf(this WordDocument document, Stream stream, RtfWriteOptions? options = null, Encoding? encoding = null) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
-        byte[] bytes = (encoding ?? Encoding.UTF8).GetBytes(document.ToRtf(options));
-        stream.Write(bytes, 0, bytes.Length);
-    }
-
-    /// <summary>Creates a Word document from RTF text.</summary>
-    public static WordDocument LoadFromRtf(this string rtf, RtfReadOptions? readOptions = null) {
-        RtfReadResult result = RtfDocument.Read(rtf, readOptions);
-        return result.Document.ToWordDocument();
-    }
-
     /// <summary>Creates a Word document from a semantic RTF document.</summary>
     public static WordDocument ToWordDocument(this RtfDocument rtfDocument) {
         if (rtfDocument == null) throw new ArgumentNullException(nameof(rtfDocument));
