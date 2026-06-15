@@ -114,6 +114,34 @@ public class RtfPdfConverterTests {
     }
 
     [Fact]
+    public void RtfDocument_ToPdfDocument_Renders_Notes_And_Can_Skip_Note_Bodies() {
+        RtfDocument document = RtfDocument.Create();
+        RtfParagraph paragraph = document.AddParagraph();
+        paragraph.AddText("Body ");
+        paragraph.AddFootnote("1", "Footnote body");
+        paragraph.AddText(" and ");
+        paragraph.AddEndnote("2", "Endnote body");
+        RtfRun annotationRun = paragraph.AddAnnotation("3", "Annotation body");
+        annotationRun.Note!.Author = "Alice";
+
+        string defaultText = PdfCore.PdfReadDocument.Load(document.SaveAsPdf()).ExtractText();
+        string skippedText = PdfCore.PdfReadDocument.Load(document.SaveAsPdf(new RtfPdfSaveOptions {
+            IncludeNotes = false
+        })).ExtractText();
+
+        Assert.Contains("Body", defaultText, StringComparison.Ordinal);
+        Assert.Contains("Footnote 1:", defaultText, StringComparison.Ordinal);
+        Assert.Contains("Footnote body", defaultText, StringComparison.Ordinal);
+        Assert.Contains("Endnote 2:", defaultText, StringComparison.Ordinal);
+        Assert.Contains("Endnote body", defaultText, StringComparison.Ordinal);
+        Assert.Contains("Annotation 3 (Alice):", defaultText, StringComparison.Ordinal);
+        Assert.Contains("Annotation body", defaultText, StringComparison.Ordinal);
+        Assert.DoesNotContain("Footnote body", skippedText, StringComparison.Ordinal);
+        Assert.DoesNotContain("Endnote body", skippedText, StringComparison.Ordinal);
+        Assert.DoesNotContain("Annotation body", skippedText, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void RtfDocument_ToPdfDocument_Renders_Default_Header_And_Footer_Text() {
         RtfDocument document = RtfDocument.Create();
         document.AddHeader().AddParagraph("Default header");

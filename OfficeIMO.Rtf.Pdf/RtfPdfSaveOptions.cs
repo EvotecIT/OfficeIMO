@@ -30,6 +30,9 @@ public sealed class RtfPdfSaveOptions {
     /// <summary>When true, semantic RTF header and footer text is mapped to PDF running header/footer text.</summary>
     public bool IncludeHeaderFooters { get; set; } = true;
 
+    /// <summary>When true, footnote, endnote, and annotation bodies referenced by runs are appended to PDF output.</summary>
+    public bool IncludeNotes { get; set; } = true;
+
     /// <summary>Returns a normalized copy with valid dimensions and independent PDF options.</summary>
     internal RtfPdfSaveOptions Normalize() {
         if (DefaultImageWidth <= 0) {
@@ -48,7 +51,8 @@ public sealed class RtfPdfSaveOptions {
             DefaultImageHeight = DefaultImageHeight,
             IncludeMetadata = IncludeMetadata,
             IncludeTables = IncludeTables,
-            IncludeHeaderFooters = IncludeHeaderFooters
+            IncludeHeaderFooters = IncludeHeaderFooters,
+            IncludeNotes = IncludeNotes
         };
     }
 }

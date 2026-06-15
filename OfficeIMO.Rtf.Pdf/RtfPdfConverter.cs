@@ -21,6 +21,7 @@ internal static class RtfPdfConverter {
             RenderBlock(document, block, pdf, normalized, state);
         }
 
+        RenderNotes(document, pdf, normalized, state);
         return pdf;
     }
 
@@ -57,7 +58,7 @@ internal static class RtfPdfConverter {
         foreach (IRtfInline inline in paragraph.Inlines) {
             switch (inline) {
                 case RtfRun run:
-                    AppendRun(document, run, pendingRuns, options);
+                    AppendRun(document, run, pendingRuns, options, state);
                     break;
                 case RtfBreak rtfBreak when rtfBreak.Kind == RtfBreakKind.Page:
                     FlushParagraph(pdf, pendingRuns, align);
@@ -144,18 +145,18 @@ internal static class RtfPdfConverter {
         pdf.Paragraph(paragraph => paragraph.Runs(snapshot), align);
     }
 
-    private static void AppendParagraphRuns(RtfDocument document, RtfParagraph paragraph, List<PdfCore.TextRun> runs, RtfPdfSaveOptions options, PdfRenderState state) {
+    private static void AppendParagraphRuns(RtfDocument document, RtfParagraph paragraph, List<PdfCore.TextRun> runs, RtfPdfSaveOptions options, PdfRenderState state, bool collectNotes = true) {
         AppendListMarker(paragraph, runs, state);
         foreach (IRtfInline inline in paragraph.Inlines) {
             switch (inline) {
                 case RtfRun run:
-                    AppendRun(document, run, runs, options);
+                    AppendRun(document, run, runs, options, state, collectNotes);
                     break;
                 case RtfBreak:
                     runs.Add(PdfCore.TextRun.LineBreak());
                     break;
                 case RtfField field:
-                    AppendParagraphRuns(document, field.Result, runs, options, state);
+                    AppendParagraphRuns(document, field.Result, runs, options, state, collectNotes);
                     break;
                 case RtfObject rtfObject:
                     AppendPlainText(rtfObject.ToPlainText(), runs);
@@ -167,12 +168,16 @@ internal static class RtfPdfConverter {
         }
     }
 
-    private static void AppendRun(RtfDocument document, RtfRun run, List<PdfCore.TextRun> runs, RtfPdfSaveOptions options) {
+    private static void AppendRun(RtfDocument document, RtfRun run, List<PdfCore.TextRun> runs, RtfPdfSaveOptions options, PdfRenderState state, bool collectNotes = true) {
         if (run.Hidden && !options.IncludeHiddenText) {
             return;
         }
 
         string text = run.Text ?? string.Empty;
+        if (collectNotes && run.Note != null) {
+            state.AddNote(run.Note, text);
+        }
+
         if (text.Length == 0) {
             return;
         }
@@ -194,6 +199,51 @@ internal static class RtfPdfConverter {
             linkUri: run.Hyperlink?.ToString(),
             baseline: RtfPdfMapping.ToPdfBaseline(run.VerticalPosition),
             backgroundColor: background));
+    }
+
+    private static void RenderNotes(RtfDocument document, PdfCore.PdfDocument pdf, RtfPdfSaveOptions options, PdfRenderState state) {
+        if (!options.IncludeNotes || state.NoteReferences.Count == 0) {
+            return;
+        }
+
+        pdf.HR(spacingBefore: 8D, spacingAfter: 4D);
+        foreach (PdfNoteReference noteReference in state.NoteReferences) {
+            List<PdfCore.TextRun> runs = new List<PdfCore.TextRun> {
+                PdfCore.TextRun.Bolded(GetNoteLabel(noteReference), fontSize: 9D)
+            };
+
+            if (noteReference.Note.Paragraphs.Count == 0) {
+                runs.Add(PdfCore.TextRun.Normal(string.Empty, fontSize: 9D));
+            }
+
+            for (int i = 0; i < noteReference.Note.Paragraphs.Count; i++) {
+                if (i > 0) {
+                    runs.Add(PdfCore.TextRun.LineBreak());
+                }
+
+                AppendParagraphRuns(document, noteReference.Note.Paragraphs[i], runs, options, state, collectNotes: false);
+            }
+
+            pdf.Paragraph(paragraph => paragraph.Runs(runs));
+        }
+    }
+
+    private static string GetNoteLabel(PdfNoteReference reference) {
+        string marker = string.IsNullOrWhiteSpace(reference.Marker)
+            ? reference.Ordinal.ToString(System.Globalization.CultureInfo.InvariantCulture)
+            : reference.Marker.Trim();
+
+        switch (reference.Note.Kind) {
+            case RtfNoteKind.Endnote:
+                return "Endnote " + marker + ": ";
+            case RtfNoteKind.Annotation:
+                string author = string.IsNullOrWhiteSpace(reference.Note.Author)
+                    ? string.Empty
+                    : " (" + reference.Note.Author!.Trim() + ")";
+                return "Annotation " + marker + author + ": ";
+            default:
+                return "Footnote " + marker + ": ";
+        }
     }
 
     private static void AppendPlainText(string text, List<PdfCore.TextRun> runs) {
@@ -447,9 +497,16 @@ internal static class RtfPdfConverter {
     private sealed class PdfRenderState {
         private readonly RtfDocument _document;
         private readonly Dictionary<string, int> _listCounters = new Dictionary<string, int>(StringComparer.Ordinal);
+        private readonly List<PdfNoteReference> _noteReferences = new List<PdfNoteReference>();
 
         public PdfRenderState(RtfDocument document) {
             _document = document;
+        }
+
+        public IReadOnlyList<PdfNoteReference> NoteReferences => _noteReferences.AsReadOnly();
+
+        public void AddNote(RtfNote note, string marker) {
+            _noteReferences.Add(new PdfNoteReference(note, marker, _noteReferences.Count + 1));
         }
 
         public int NextDecimalMarker(RtfParagraph paragraph) {
@@ -496,5 +553,19 @@ internal static class RtfPdfConverter {
             return listId.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" +
                    level.ToString(System.Globalization.CultureInfo.InvariantCulture);
         }
+    }
+
+    private sealed class PdfNoteReference {
+        public PdfNoteReference(RtfNote note, string marker, int ordinal) {
+            Note = note;
+            Marker = marker;
+            Ordinal = ordinal;
+        }
+
+        public RtfNote Note { get; }
+
+        public string Marker { get; }
+
+        public int Ordinal { get; }
     }
 }
