@@ -29,6 +29,14 @@ internal sealed class HtmlStyleDeclaration {
 
     internal int? FirstLineIndentTwips { get; set; }
 
+    internal int? SpaceBeforeTwips { get; set; }
+
+    internal int? SpaceAfterTwips { get; set; }
+
+    internal int? LineSpacingTwips { get; set; }
+
+    internal bool? LineSpacingMultiple { get; set; }
+
     internal bool PageBreakBefore { get; set; }
 
     internal bool PageBreakAfter { get; set; }

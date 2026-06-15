@@ -147,6 +147,9 @@ internal static class RtfHtmlWriter {
         AppendTwipStyle(builder, "margin-left", paragraph.LeftIndentTwips);
         AppendTwipStyle(builder, "margin-right", paragraph.RightIndentTwips);
         AppendTwipStyle(builder, "text-indent", paragraph.FirstLineIndentTwips);
+        AppendTwipStyle(builder, "margin-top", paragraph.SpaceBeforeTwips);
+        AppendTwipStyle(builder, "margin-bottom", paragraph.SpaceAfterTwips);
+        AppendLineHeightStyle(builder, paragraph);
 
         style = builder.Length == 0 ? null : builder.ToString();
         return style != null;
@@ -161,6 +164,22 @@ internal static class RtfHtmlWriter {
         builder.Append(':');
         builder.Append(FormatPoints(twips.Value / 20d));
         builder.Append("pt;");
+    }
+
+    private static void AppendLineHeightStyle(StringBuilder builder, RtfParagraph paragraph) {
+        if (!paragraph.LineSpacingTwips.HasValue || paragraph.LineSpacingTwips.Value == 0) {
+            return;
+        }
+
+        builder.Append("line-height:");
+        if (paragraph.LineSpacingMultiple == true) {
+            builder.Append(FormatPoints(paragraph.LineSpacingTwips.Value / 240d));
+        } else {
+            builder.Append(FormatPoints(paragraph.LineSpacingTwips.Value / 20d));
+            builder.Append("pt");
+        }
+
+        builder.Append(';');
     }
 
     private static void AppendInlines(StringBuilder builder, IReadOnlyList<IRtfInline> inlines, RtfHtmlSaveOptions options, RtfDocument document) {

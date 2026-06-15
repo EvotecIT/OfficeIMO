@@ -154,6 +154,54 @@ public class RtfHtmlConverterTests {
     }
 
     [Fact]
+    public void Html_ToRtfDocument_Parses_Paragraph_Spacing_And_Line_Height() {
+        const string html = "<p style=\"margin-top:6pt;margin-bottom:12pt;line-height:18pt\">Exact</p><p style=\"line-height:150%\">Multiple</p>";
+
+        RtfDocument document = html.ToRtfDocumentFromHtml();
+
+        RtfParagraph exact = document.Paragraphs[0];
+        Assert.Equal(120, exact.SpaceBeforeTwips);
+        Assert.Equal(240, exact.SpaceAfterTwips);
+        Assert.Equal(360, exact.LineSpacingTwips);
+        Assert.False(exact.LineSpacingMultiple);
+
+        RtfParagraph multiple = document.Paragraphs[1];
+        Assert.Equal(360, multiple.LineSpacingTwips);
+        Assert.True(multiple.LineSpacingMultiple);
+
+        string rtf = document.ToRtf();
+        Assert.Contains(@"\sb120", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\sa240", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\sl360", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\slmult0", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\slmult1", rtf, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RtfDocument_ToHtml_Renders_Paragraph_Spacing_And_Line_Height() {
+        RtfDocument document = RtfDocument.Create();
+        document.AddParagraph("Exact")
+            .SetParagraphSpacing(beforeTwips: 120, afterTwips: 240)
+            .SetLineSpacing(360, multiple: false);
+        document.AddParagraph("Multiple")
+            .SetLineSpacing(360, multiple: true);
+
+        string html = document.ToHtml(new RtfHtmlSaveOptions {
+            NewLine = "\n"
+        });
+
+        Assert.Equal("<p style=\"margin-top:6pt;margin-bottom:12pt;line-height:18pt;\">Exact</p>\n<p style=\"line-height:1.5;\">Multiple</p>", html);
+
+        RtfDocument roundTripDocument = html.ToRtfDocumentFromHtml();
+        Assert.Equal(120, roundTripDocument.Paragraphs[0].SpaceBeforeTwips);
+        Assert.Equal(240, roundTripDocument.Paragraphs[0].SpaceAfterTwips);
+        Assert.Equal(360, roundTripDocument.Paragraphs[0].LineSpacingTwips);
+        Assert.False(roundTripDocument.Paragraphs[0].LineSpacingMultiple);
+        Assert.Equal(360, roundTripDocument.Paragraphs[1].LineSpacingTwips);
+        Assert.True(roundTripDocument.Paragraphs[1].LineSpacingMultiple);
+    }
+
+    [Fact]
     public void Html_ToRtfDocument_Parses_Css_Font_Family_And_Size() {
         const string html = "<p><span style=\"font-family: 'Times New Roman', serif; font-size: 13.5pt\">Clinical</span><span style=\"font-family: Consolas, monospace; font-size: 18px\"> code</span></p>";
 

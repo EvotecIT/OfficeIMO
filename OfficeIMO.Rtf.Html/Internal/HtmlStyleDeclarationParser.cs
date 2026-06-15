@@ -112,8 +112,17 @@ internal static class HtmlStyleDeclarationParser {
             case "margin-right":
                 declaration.RightIndentTwips = ParseTwips(value);
                 break;
+            case "margin-top":
+                declaration.SpaceBeforeTwips = ParseTwips(value);
+                break;
+            case "margin-bottom":
+                declaration.SpaceAfterTwips = ParseTwips(value);
+                break;
             case "text-indent":
                 declaration.FirstLineIndentTwips = ParseTwips(value);
+                break;
+            case "line-height":
+                ApplyLineHeight(declaration, value);
                 break;
             case "page-break-before":
             case "break-before":
@@ -130,6 +139,33 @@ internal static class HtmlStyleDeclarationParser {
             case "background-color":
                 declaration.BackgroundColor = ParseColor(value);
                 break;
+        }
+    }
+
+    private static void ApplyLineHeight(HtmlStyleDeclaration declaration, string value) {
+        if (value == "normal") {
+            return;
+        }
+
+        if (value.EndsWith("%", StringComparison.Ordinal) &&
+            double.TryParse(value.Substring(0, value.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture, out double percent) &&
+            percent > 0) {
+            declaration.LineSpacingTwips = (int)Math.Round(percent * 240d / 100d, MidpointRounding.AwayFromZero);
+            declaration.LineSpacingMultiple = true;
+            return;
+        }
+
+        if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double multiple) &&
+            multiple > 0) {
+            declaration.LineSpacingTwips = (int)Math.Round(multiple * 240d, MidpointRounding.AwayFromZero);
+            declaration.LineSpacingMultiple = true;
+            return;
+        }
+
+        int? twips = ParseTwips(value);
+        if (twips.HasValue) {
+            declaration.LineSpacingTwips = twips.Value;
+            declaration.LineSpacingMultiple = false;
         }
     }
 

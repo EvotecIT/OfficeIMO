@@ -328,6 +328,19 @@ internal static partial class RtfHtmlReader {
                 _paragraph.FirstLineIndentTwips = style.FirstLineIndentTwips.Value;
             }
 
+            if (_paragraph != null && style.SpaceBeforeTwips.HasValue) {
+                _paragraph.SpaceBeforeTwips = style.SpaceBeforeTwips.Value;
+            }
+
+            if (_paragraph != null && style.SpaceAfterTwips.HasValue) {
+                _paragraph.SpaceAfterTwips = style.SpaceAfterTwips.Value;
+            }
+
+            if (_paragraph != null && style.LineSpacingTwips.HasValue) {
+                _paragraph.LineSpacingTwips = style.LineSpacingTwips.Value;
+                _paragraph.LineSpacingMultiple = style.LineSpacingMultiple;
+            }
+
             if (_paragraph != null && style.BackgroundColor != null) {
                 _paragraph.BackgroundColorIndex = GetOrAddColorIndex(style.BackgroundColor);
             }
