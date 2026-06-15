@@ -1,5 +1,6 @@
 using OfficeIMO.Rtf;
 using OfficeIMO.Rtf.Pdf;
+using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 using PdfCore = OfficeIMO.Pdf;
 using Xunit;
 
@@ -200,6 +201,41 @@ public class RtfPdfConverterTests {
         Assert.Contains("0 0 1 RG", content, StringComparison.Ordinal);
         Assert.Contains("1 w", content, StringComparison.Ordinal);
         Assert.Contains("12 12 216 296 re", content, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RtfString_ToPdfDocument_Renders_Paragraph_Indentation_And_Spacing() {
+        const string rtf = @"{\rtf1\ansi\paperw12240\paperh15840\margl720\margr720\margt720\margb720\pard Plain\par\pard\li1440\ri720\fi720\sb720\sa0 Indented\par}";
+
+        byte[] pdf = rtf.SaveAsPdf();
+        using PdfPigDocument read = PdfPigDocument.Open(pdf);
+        var words = read.GetPage(1).GetWords().ToList();
+        var plain = Assert.Single(words, word => word.Text == "Plain");
+        var indented = Assert.Single(words, word => word.Text == "Indented");
+
+        Assert.True(indented.BoundingBox.Left > plain.BoundingBox.Left + 90D, $"Expected RTF left and first-line indents to move PDF text right. Plain={plain.BoundingBox.Left}; Indented={indented.BoundingBox.Left}.");
+        Assert.True(plain.BoundingBox.Bottom > indented.BoundingBox.Bottom + 40D, $"Expected RTF spacing-before to increase the vertical gap between paragraphs. Plain={plain.BoundingBox.Bottom}; Indented={indented.BoundingBox.Bottom}.");
+    }
+
+    [Fact]
+    public void RtfDocument_ToPdfDocument_Renders_Paragraph_Line_Spacing() {
+        RtfDocument document = RtfDocument.Create();
+        document.PageSetup.SetPaperSize(12240, 15840);
+        document.PageSetup.SetMargins(leftTwips: 720, rightTwips: 720, topTwips: 720, bottomTwips: 720);
+        RtfParagraph paragraph = document.AddParagraph();
+        paragraph.SetLineSpacing(480, multiple: true);
+        paragraph.AddText("LineOne");
+        paragraph.AddLineBreak();
+        paragraph.AddText("LineTwo");
+
+        byte[] pdf = document.SaveAsPdf();
+        using PdfPigDocument read = PdfPigDocument.Open(pdf);
+        var words = read.GetPage(1).GetWords().ToList();
+        var lineOne = Assert.Single(words, word => word.Text == "LineOne");
+        var lineTwo = Assert.Single(words, word => word.Text == "LineTwo");
+
+        double lineGap = lineOne.BoundingBox.Bottom - lineTwo.BoundingBox.Bottom;
+        Assert.True(lineGap > 20D, $"Expected RTF double line spacing to increase line advance in PDF output. Gap={lineGap}.");
     }
 
     [Fact]

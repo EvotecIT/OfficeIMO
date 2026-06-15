@@ -93,11 +93,12 @@ internal static class RtfPdfConverter {
     }
 
     private static void RenderParagraph(RtfDocument document, RtfParagraph paragraph, PdfCore.PdfDocument pdf, RtfPdfSaveOptions options, PdfRenderState state) {
-        if (paragraph.PageBreakBefore) {
+        if (RtfPdfMapping.HasPageBreakBefore(document, paragraph)) {
             pdf.PageBreak();
         }
 
         PdfCore.PdfAlign align = RtfPdfMapping.ToPdfAlign(paragraph.Alignment);
+        PdfCore.PdfParagraphStyle? style = RtfPdfMapping.ToPdfParagraphStyle(document, paragraph);
         List<PdfCore.TextRun> pendingRuns = new List<PdfCore.TextRun>();
         bool emitted = false;
         AppendListMarker(paragraph, pendingRuns, state);
@@ -108,7 +109,7 @@ internal static class RtfPdfConverter {
                     AppendRun(document, run, pendingRuns, options, state);
                     break;
                 case RtfBreak rtfBreak when rtfBreak.Kind == RtfBreakKind.Page:
-                    FlushParagraph(pdf, pendingRuns, align);
+                    FlushParagraph(pdf, pendingRuns, align, style);
                     emitted = true;
                     pdf.PageBreak();
                     break;
@@ -119,7 +120,7 @@ internal static class RtfPdfConverter {
                     AppendParagraphRuns(document, field.Result, pendingRuns, options, state);
                     break;
                 case RtfImage image:
-                    FlushParagraph(pdf, pendingRuns, align);
+                    FlushParagraph(pdf, pendingRuns, align, style);
                     emitted = true;
                     RenderImage(image, pdf, options);
                     break;
@@ -130,7 +131,7 @@ internal static class RtfPdfConverter {
                     AppendPlainText(shape.ToPlainText(), pendingRuns);
                     break;
                 case RtfBookmarkMarker marker when marker.Kind == RtfBookmarkMarkerKind.Start:
-                    FlushParagraph(pdf, pendingRuns, align);
+                    FlushParagraph(pdf, pendingRuns, align, style);
                     emitted = true;
                     pdf.Bookmark(marker.Name);
                     break;
@@ -138,7 +139,7 @@ internal static class RtfPdfConverter {
         }
 
         if (pendingRuns.Count > 0 || !emitted) {
-            FlushParagraph(pdf, pendingRuns, align);
+            FlushParagraph(pdf, pendingRuns, align, style);
         }
     }
 
@@ -184,12 +185,12 @@ internal static class RtfPdfConverter {
         }
     }
 
-    private static void FlushParagraph(PdfCore.PdfDocument pdf, List<PdfCore.TextRun> runs, PdfCore.PdfAlign align) {
+    private static void FlushParagraph(PdfCore.PdfDocument pdf, List<PdfCore.TextRun> runs, PdfCore.PdfAlign align, PdfCore.PdfParagraphStyle? style) {
         List<PdfCore.TextRun> snapshot = runs.Count == 0
             ? new List<PdfCore.TextRun> { PdfCore.TextRun.Normal(string.Empty) }
             : new List<PdfCore.TextRun>(runs);
         runs.Clear();
-        pdf.Paragraph(paragraph => paragraph.Runs(snapshot), align);
+        pdf.Paragraph(paragraph => paragraph.Runs(snapshot), align, style: style);
     }
 
     private static void AppendParagraphRuns(RtfDocument document, RtfParagraph paragraph, List<PdfCore.TextRun> runs, RtfPdfSaveOptions options, PdfRenderState state, bool collectNotes = true) {
