@@ -56,5 +56,20 @@ internal static class RtfPdfMapping {
             : (PdfCore.PdfStandardFont?)null;
     }
 
+    internal static PdfCore.PdfPageNumberStyle ToPdfPageNumberStyle(RtfPageNumberFormat format) {
+        switch (format) {
+            case RtfPageNumberFormat.UpperRoman:
+                return PdfCore.PdfPageNumberStyle.UpperRoman;
+            case RtfPageNumberFormat.LowerRoman:
+                return PdfCore.PdfPageNumberStyle.LowerRoman;
+            case RtfPageNumberFormat.UpperLetter:
+                return PdfCore.PdfPageNumberStyle.UpperLetter;
+            case RtfPageNumberFormat.LowerLetter:
+                return PdfCore.PdfPageNumberStyle.LowerLetter;
+            default:
+                return PdfCore.PdfPageNumberStyle.Arabic;
+        }
+    }
+
     internal static double TwipsToPoints(int twips) => twips / 20D;
 }

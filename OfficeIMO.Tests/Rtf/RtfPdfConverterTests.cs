@@ -113,6 +113,54 @@ public class RtfPdfConverterTests {
     }
 
     [Fact]
+    public void RtfDocument_ToPdfDocument_Applies_Section_PageSetup_To_Pdf_Pages() {
+        RtfDocument document = RtfDocument.Create();
+        document.PageSetup.SetPaperSize(12240, 15840);
+        document.PageSetup.SetMargins(leftTwips: 1440, rightTwips: 1440, topTwips: 1440, bottomTwips: 1440);
+
+        RtfSection first = document.AddSection();
+        first.PageSetup.SetPaperSize(4800, 6400);
+        first.PageSetup.SetMargins(leftTwips: 720, topTwips: 720);
+        first.AddParagraph("Small first section");
+
+        RtfSection second = document.AddSection(RtfSectionBreakKind.NextPage);
+        second.PageSetup.SetPaperSize(4800, 8400);
+        second.PageSetup.SetLandscape();
+        second.PageSetup.SetMargins(leftTwips: 2880, rightTwips: 720, topTwips: 720, bottomTwips: 720);
+        second.AddParagraph("Landscape second section");
+
+        RtfSection continuous = document.AddSection(RtfSectionBreakKind.Continuous);
+        continuous.AddParagraph("Continuous after landscape");
+
+        byte[] pdf = document.SaveAsPdf();
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
+        PdfCore.PdfReadDocument read = PdfCore.PdfReadDocument.Load(pdf);
+
+        Assert.Equal(2, info.PageCount);
+        Assert.Equal(240, info.Pages[0].Width, 1);
+        Assert.Equal(320, info.Pages[0].Height, 1);
+        Assert.Equal(420, info.Pages[1].Width, 1);
+        Assert.Equal(240, info.Pages[1].Height, 1);
+        Assert.Contains("Small first section", read.Pages[0].ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Landscape second section", read.Pages[1].ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Continuous after landscape", read.Pages[1].ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RtfString_ToPdfDocument_Applies_Parsed_Section_PageSetup() {
+        const string rtf = @"{\rtf1\ansi\sectd\sbkpage\pgwsxn4800\pghsxn6400\pard Parsed small\par\sect\sectd\sbkpage\pgwsxn4800\pghsxn8400\lndscpsxn\pard Parsed landscape\par}";
+
+        byte[] pdf = rtf.SaveAsPdf();
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
+
+        Assert.Equal(2, info.PageCount);
+        Assert.Equal(240, info.Pages[0].Width, 1);
+        Assert.Equal(320, info.Pages[0].Height, 1);
+        Assert.Equal(420, info.Pages[1].Width, 1);
+        Assert.Equal(240, info.Pages[1].Height, 1);
+    }
+
+    [Fact]
     public void RtfDocument_ToPdfDocument_Renders_Explicit_ListText_Markers() {
         RtfDocument document = RtfDocument.Create();
         document.AddParagraph("Item").SetList(listId: 3, level: 0, kind: RtfListKind.Decimal).SetListText("7.\t");

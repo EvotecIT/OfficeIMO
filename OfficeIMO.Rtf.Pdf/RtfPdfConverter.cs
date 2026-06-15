@@ -11,19 +11,23 @@ internal static class RtfPdfConverter {
         RtfPdfSaveOptions normalized = (options ?? new RtfPdfSaveOptions()).Normalize();
         PdfCore.PdfOptions pdfOptions = normalized.PdfOptions ?? new PdfCore.PdfOptions();
         ApplyPageSetup(document.PageSetup, pdfOptions);
+        if (document.Sections.Count > 0) {
+            ApplyPageSetup(document.Sections[0].PageSetup, pdfOptions);
+        }
+
         ApplyHeaderFooters(document, pdfOptions, normalized);
 
         PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Create(pdfOptions);
         ApplyMetadata(document, pdf, normalized);
         PdfRenderState state = new PdfRenderState(document);
 
-        RenderDocumentBlocks(document, pdf, normalized, state);
+        RenderDocumentBlocks(document, pdf, normalized, state, pdfOptions);
 
         RenderNotes(document, pdf, normalized, state);
         return pdf;
     }
 
-    private static void RenderDocumentBlocks(RtfDocument document, PdfCore.PdfDocument pdf, RtfPdfSaveOptions options, PdfRenderState state) {
+    private static void RenderDocumentBlocks(RtfDocument document, PdfCore.PdfDocument pdf, RtfPdfSaveOptions options, PdfRenderState state, PdfCore.PdfOptions pdfOptions) {
         if (document.Sections.Count == 0) {
             RenderBlocks(document, document.Blocks, pdf, options, state);
             return;
@@ -31,11 +35,25 @@ internal static class RtfPdfConverter {
 
         for (int index = 0; index < document.Sections.Count; index++) {
             RtfSection section = document.Sections[index];
-            if (index > 0 && StartsNewPdfPage(section.BreakKind)) {
-                pdf.PageBreak();
+            if (index == 0) {
+                RenderBlocks(document, section.Blocks, pdf, options, state);
+                continue;
             }
 
-            RenderBlocks(document, section.Blocks, pdf, options, state);
+            if (!StartsNewPdfPage(section.BreakKind)) {
+                RenderBlocks(document, section.Blocks, pdf, options, state);
+                continue;
+            }
+
+            pdf.Section(page => {
+                ApplyPageSetup(section.PageSetup, page, pdfOptions);
+                RenderBlocks(document, section.Blocks, pdf, options, state);
+
+                while (index + 1 < document.Sections.Count && !StartsNewPdfPage(document.Sections[index + 1].BreakKind)) {
+                    index++;
+                    RenderBlocks(document, document.Sections[index].Blocks, pdf, options, state);
+                }
+            });
         }
     }
 
@@ -448,6 +466,58 @@ internal static class RtfPdfConverter {
         if (setup.MarginBottomTwips.HasValue) {
             options.MarginBottom = RtfPdfMapping.TwipsToPoints(setup.MarginBottomTwips.Value);
         }
+
+        if (setup.PageNumberStart.HasValue) {
+            options.PageNumberStart = setup.PageNumberStart.Value;
+        }
+
+        if (setup.PageNumberFormat.HasValue) {
+            options.PageNumberStyle = RtfPdfMapping.ToPdfPageNumberStyle(setup.PageNumberFormat.Value);
+        }
+    }
+
+    private static void ApplyPageSetup(RtfPageSetup setup, PdfCore.PdfPageCompose page, PdfCore.PdfOptions inheritedOptions) {
+        double width = setup.PaperWidthTwips.HasValue && setup.PaperWidthTwips.Value > 0
+            ? RtfPdfMapping.TwipsToPoints(setup.PaperWidthTwips.Value)
+            : inheritedOptions.PageWidth;
+        double height = setup.PaperHeightTwips.HasValue && setup.PaperHeightTwips.Value > 0
+            ? RtfPdfMapping.TwipsToPoints(setup.PaperHeightTwips.Value)
+            : inheritedOptions.PageHeight;
+
+        if (setup.Landscape && width < height) {
+            double swap = width;
+            width = height;
+            height = swap;
+        }
+
+        if ((setup.PaperWidthTwips.HasValue && setup.PaperWidthTwips.Value > 0) ||
+            (setup.PaperHeightTwips.HasValue && setup.PaperHeightTwips.Value > 0) ||
+            setup.Landscape) {
+            page.Size(width, height);
+        }
+
+        if (HasAnyMargin(setup)) {
+            page.Margin(
+                setup.MarginLeftTwips.HasValue ? RtfPdfMapping.TwipsToPoints(setup.MarginLeftTwips.Value) : inheritedOptions.MarginLeft,
+                setup.MarginTopTwips.HasValue ? RtfPdfMapping.TwipsToPoints(setup.MarginTopTwips.Value) : inheritedOptions.MarginTop,
+                setup.MarginRightTwips.HasValue ? RtfPdfMapping.TwipsToPoints(setup.MarginRightTwips.Value) : inheritedOptions.MarginRight,
+                setup.MarginBottomTwips.HasValue ? RtfPdfMapping.TwipsToPoints(setup.MarginBottomTwips.Value) : inheritedOptions.MarginBottom);
+        }
+
+        if (setup.PageNumberStart.HasValue) {
+            page.PageNumberStart(setup.PageNumberStart.Value);
+        }
+
+        if (setup.PageNumberFormat.HasValue) {
+            page.PageNumberStyle(RtfPdfMapping.ToPdfPageNumberStyle(setup.PageNumberFormat.Value));
+        }
+    }
+
+    private static bool HasAnyMargin(RtfPageSetup setup) {
+        return setup.MarginLeftTwips.HasValue ||
+               setup.MarginRightTwips.HasValue ||
+               setup.MarginTopTwips.HasValue ||
+               setup.MarginBottomTwips.HasValue;
     }
 
     private static void ApplyHeaderFooters(RtfDocument document, PdfCore.PdfOptions options, RtfPdfSaveOptions saveOptions) {
