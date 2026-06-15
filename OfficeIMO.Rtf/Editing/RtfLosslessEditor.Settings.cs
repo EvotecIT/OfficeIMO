@@ -66,12 +66,20 @@ public sealed partial class RtfLosslessEditor {
     }
 
     private static bool ShouldInsertRootControl(string controlName, int? parameter) {
-        return controlName == "ansi" || controlName == "mac" || controlName == "pc" || controlName == "pca" || IsRootToggleControl(controlName) || parameter.HasValue;
+        return controlName == "ansi" || controlName == "mac" || controlName == "pc" || controlName == "pca" || IsRootParameterlessControl(controlName) || parameter.HasValue;
     }
 
-    private static bool IsRootToggleControl(string controlName) {
+    private static bool IsRootParameterlessControl(string controlName) {
         switch (controlName) {
             case "rtlgutter":
+            case "pgnrestart":
+            case "pgncont":
+            case "pgndec":
+            case "pgnucrm":
+            case "pgnlcrm":
+            case "pgnucltr":
+            case "pgnlcltr":
+            case "pgndecd":
             case "landscape":
             case "titlepg":
                 return true;
@@ -160,6 +168,22 @@ public sealed partial class RtfLosslessEditor {
                 return 26;
             case "rtlgutter":
                 return 27;
+            case "pgnstarts":
+                return 30;
+            case "pgnrestart":
+            case "pgncont":
+                return 31;
+            case "pgnx":
+                return 32;
+            case "pgny":
+                return 33;
+            case "pgndec":
+            case "pgnucrm":
+            case "pgnlcrm":
+            case "pgnucltr":
+            case "pgnlcltr":
+            case "pgndecd":
+                return 34;
             case "landscape":
                 return 40;
             case "titlepg":
