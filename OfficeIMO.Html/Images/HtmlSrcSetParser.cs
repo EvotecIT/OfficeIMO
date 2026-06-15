@@ -136,6 +136,7 @@ public static class HtmlSrcSetParser {
         }
 
         bool hasLetter = false;
+        bool hasUrlStructure = false;
         for (int i = startIndex; i < endIndex; i++) {
             char ch = value[i];
             if (char.IsLetter(ch)) {
@@ -143,14 +144,19 @@ public static class HtmlSrcSetParser {
                 continue;
             }
 
-            if (ch == '?' || ch == '/' || ch == '_' || ch == '-' || ch == '=' || ch == '&' || char.IsDigit(ch)) {
+            if (ch == '?' || ch == '/') {
+                hasUrlStructure = true;
+                continue;
+            }
+
+            if (ch == '_' || ch == '-' || ch == '=' || ch == '&' || char.IsDigit(ch)) {
                 continue;
             }
 
             return false;
         }
 
-        return hasLetter;
+        return hasLetter && hasUrlStructure;
     }
 
     private static bool StartsWith(string value, int startIndex, string prefix, StringComparison comparison) {
