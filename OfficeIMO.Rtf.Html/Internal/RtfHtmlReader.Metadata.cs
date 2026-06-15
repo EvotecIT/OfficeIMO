@@ -144,6 +144,9 @@ internal static partial class RtfHtmlReader {
                 case "officeimo-rtf-document-layout":
                     ApplyDocumentLayout(RtfHtmlMetadataCodec.Decode(content));
                     break;
+                case "officeimo-rtf-document-settings":
+                    ApplyDocumentSettings(RtfHtmlMetadataCodec.Decode(content));
+                    break;
             }
         }
 

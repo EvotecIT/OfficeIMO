@@ -236,6 +236,8 @@ public sealed class RtfDocumentSettings {
     }
 
     internal bool HasAnyValue =>
+        CharacterSet.HasValue ||
+        AnsiCodePage.HasValue ||
         UnicodeSkipCount.HasValue ||
         DefaultFontId.HasValue ||
         DefaultTabWidthTwips.HasValue ||

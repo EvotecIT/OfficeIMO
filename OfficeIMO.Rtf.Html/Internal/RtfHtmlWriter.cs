@@ -78,6 +78,7 @@ internal static partial class RtfHtmlWriter {
 
         AppendHeaderFooterMetadata(builder, document, options, newline);
         AppendDocumentLayoutMetadata(builder, document, newline);
+        AppendDocumentSettingsMetadata(builder, document, newline);
         builder.Append(newline);
         builder.Append("</head>");
         builder.Append(newline);
