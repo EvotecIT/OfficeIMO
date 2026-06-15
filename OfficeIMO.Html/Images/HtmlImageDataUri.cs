@@ -1,3 +1,4 @@
+using System.IO;
 using System.Text;
 
 namespace OfficeIMO.Html;
@@ -74,7 +75,7 @@ public sealed class HtmlImageDataUri {
     /// </summary>
     public byte[] DecodeBytes() {
         if (!IsBase64) {
-            return Encoding.UTF8.GetBytes(Uri.UnescapeDataString(Data));
+            return DecodePercentEncodedBytes(Data);
         }
 
         string payload = NormalizeBase64Payload(Uri.UnescapeDataString(Data));
@@ -110,7 +111,7 @@ public sealed class HtmlImageDataUri {
     /// </summary>
     public long EstimateDecodedByteCount() {
         if (!IsBase64) {
-            return Encoding.UTF8.GetByteCount(Uri.UnescapeDataString(Data));
+            return CountPercentDecodedBytes(Data);
         }
 
         string payload = NormalizeBase64Payload(Uri.UnescapeDataString(Data));
@@ -125,6 +126,91 @@ public sealed class HtmlImageDataUri {
         }
 
         return (long)Math.Ceiling(length / 4D) * 3L - padding;
+    }
+
+    private static byte[] DecodePercentEncodedBytes(string data) {
+        using var stream = new MemoryStream();
+        StringBuilder? text = null;
+        for (int i = 0; i < data.Length; i++) {
+            char ch = data[i];
+            if (ch == '%') {
+                FlushTextBytes(text, stream);
+                text?.Clear();
+                stream.WriteByte(ReadEscapedByte(data, i));
+                i += 2;
+                continue;
+            }
+
+            text ??= new StringBuilder();
+            text.Append(ch);
+        }
+
+        FlushTextBytes(text, stream);
+        return stream.ToArray();
+    }
+
+    private static long CountPercentDecodedBytes(string data) {
+        long count = 0;
+        int textStart = 0;
+        for (int i = 0; i < data.Length; i++) {
+            if (data[i] != '%') {
+                continue;
+            }
+
+            if (i > textStart) {
+                count += Encoding.UTF8.GetByteCount(data.Substring(textStart, i - textStart));
+            }
+
+            _ = ReadEscapedByte(data, i);
+            count++;
+            i += 2;
+            textStart = i + 1;
+        }
+
+        if (textStart < data.Length) {
+            count += Encoding.UTF8.GetByteCount(data.Substring(textStart));
+        }
+
+        return count;
+    }
+
+    private static void FlushTextBytes(StringBuilder? text, MemoryStream stream) {
+        if (text == null || text.Length == 0) {
+            return;
+        }
+
+        byte[] bytes = Encoding.UTF8.GetBytes(text.ToString());
+        stream.Write(bytes, 0, bytes.Length);
+    }
+
+    private static byte ReadEscapedByte(string data, int percentIndex) {
+        if (percentIndex + 2 >= data.Length
+            || !TryReadHex(data[percentIndex + 1], out byte high)
+            || !TryReadHex(data[percentIndex + 2], out byte low)) {
+            throw new UriFormatException("Invalid percent escape in data URI payload.");
+        }
+
+        return (byte)((high << 4) | low);
+    }
+
+    private static bool TryReadHex(char value, out byte nibble) {
+        if (value >= '0' && value <= '9') {
+            nibble = (byte)(value - '0');
+            return true;
+        }
+
+        if (value >= 'A' && value <= 'F') {
+            nibble = (byte)(value - 'A' + 10);
+            return true;
+        }
+
+        if (value >= 'a' && value <= 'f') {
+            nibble = (byte)(value - 'a' + 10);
+            return true;
+        }
+
+        nibble = 0;
+        return false;
     }
 
     private static string GetDataUriContentType(string metadata) {

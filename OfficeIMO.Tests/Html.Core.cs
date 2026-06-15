@@ -236,6 +236,15 @@ public sealed class HtmlCoreTests {
     }
 
     [Fact]
+    public void HtmlImageDataUri_DecodesNonBase64PercentEscapesAsBytes() {
+        Assert.True(HtmlImageDataUri.TryParse("data:image/png,%89PNG%0D%0A%1A%0A", out var image));
+
+        Assert.False(image.IsBase64);
+        Assert.Equal(new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A }, image.DecodeBytes());
+        Assert.Equal(8, image.EstimateDecodedByteCount());
+    }
+
+    [Fact]
     public void HtmlImageDataUri_MatchesOnlyExactBase64Flag() {
         string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\"/>";
         string dataUri = "data:image/svg+xml;name=base64," + Uri.EscapeDataString(svg);
