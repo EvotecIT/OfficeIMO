@@ -95,7 +95,7 @@ internal static class RtfHtmlWriter {
         string tagName = GetParagraphTagName(paragraph);
         builder.Append('<');
         builder.Append(tagName);
-        AppendParagraphStyle(builder, paragraph);
+        AppendParagraphStyle(builder, paragraph, document);
         builder.Append('>');
         AppendInlines(builder, paragraph.Inlines, options, document);
         builder.Append("</");
@@ -115,8 +115,8 @@ internal static class RtfHtmlWriter {
         return "p";
     }
 
-    private static void AppendParagraphStyle(StringBuilder builder, RtfParagraph paragraph) {
-        if (!TryGetParagraphStyle(paragraph, out string? style)) {
+    private static void AppendParagraphStyle(StringBuilder builder, RtfParagraph paragraph, RtfDocument document) {
+        if (!TryGetParagraphStyle(paragraph, document, out string? style)) {
             return;
         }
 
@@ -125,8 +125,14 @@ internal static class RtfHtmlWriter {
         builder.Append("\"");
     }
 
-    private static bool TryGetParagraphStyle(RtfParagraph paragraph, out string? style) {
+    private static bool TryGetParagraphStyle(RtfParagraph paragraph, RtfDocument document, out string? style) {
         var builder = new StringBuilder();
+        if (TryGetColor(document, paragraph.BackgroundColorIndex, out RtfColor? background)) {
+            builder.Append("background-color:");
+            builder.Append(FormatColor(background!));
+            builder.Append(';');
+        }
+
         string? align = paragraph.Alignment == RtfTextAlignment.Left ? null : paragraph.Alignment.ToString().ToLowerInvariant();
         if (align != null) {
             builder.Append("text-align:");

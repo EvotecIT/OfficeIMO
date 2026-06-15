@@ -117,6 +117,43 @@ public class RtfHtmlConverterTests {
     }
 
     [Fact]
+    public void Html_ToRtfDocument_Parses_Paragraph_Background_Color() {
+        const string html = "<p style=\"background-color:#e6f2ff\">Assessment</p><p>Plain</p>";
+
+        RtfDocument document = html.ToRtfDocumentFromHtml();
+
+        Assert.Single(document.Colors);
+        Assert.Equal("#E6F2FF", document.Colors[0].ToString());
+        Assert.Equal(1, document.Paragraphs[0].BackgroundColorIndex);
+        Assert.Null(document.Paragraphs[1].BackgroundColorIndex);
+
+        string rtf = document.ToRtf();
+        Assert.Contains(@"\cbpat1", rtf, StringComparison.Ordinal);
+
+        RtfDocument roundTripDocument = RtfDocument.Read(rtf).Document;
+        Assert.Equal(1, roundTripDocument.Paragraphs[0].BackgroundColorIndex);
+        Assert.Null(roundTripDocument.Paragraphs[1].BackgroundColorIndex);
+    }
+
+    [Fact]
+    public void RtfDocument_ToHtml_Renders_Paragraph_Background_Color() {
+        RtfDocument document = RtfDocument.Create();
+        int background = document.AddColor(230, 242, 255);
+        document.AddParagraph("Assessment").SetBackgroundColor(background);
+        document.AddParagraph("Plain");
+
+        string html = document.ToHtml(new RtfHtmlSaveOptions {
+            NewLine = "\n"
+        });
+
+        Assert.Equal("<p style=\"background-color:#E6F2FF;\">Assessment</p>\n<p>Plain</p>", html);
+
+        RtfDocument roundTripDocument = html.ToRtfDocumentFromHtml();
+        Assert.Equal(1, roundTripDocument.Paragraphs[0].BackgroundColorIndex);
+        Assert.Null(roundTripDocument.Paragraphs[1].BackgroundColorIndex);
+    }
+
+    [Fact]
     public void Html_ToRtfDocument_Parses_Css_Font_Family_And_Size() {
         const string html = "<p><span style=\"font-family: 'Times New Roman', serif; font-size: 13.5pt\">Clinical</span><span style=\"font-family: Consolas, monospace; font-size: 18px\"> code</span></p>";
 

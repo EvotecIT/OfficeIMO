@@ -328,6 +328,10 @@ internal static partial class RtfHtmlReader {
                 _paragraph.FirstLineIndentTwips = style.FirstLineIndentTwips.Value;
             }
 
+            if (_paragraph != null && style.BackgroundColor != null) {
+                _paragraph.BackgroundColorIndex = GetOrAddColorIndex(style.BackgroundColor);
+            }
+
             if (_paragraph != null && style.PageBreakBefore) {
                 _paragraph.PageBreakBefore = true;
             }
