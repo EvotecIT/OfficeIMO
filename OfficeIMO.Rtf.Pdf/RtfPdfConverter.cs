@@ -15,21 +15,22 @@ internal static class RtfPdfConverter {
 
         PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Create(pdfOptions);
         ApplyMetadata(document, pdf, normalized);
+        PdfRenderState state = new PdfRenderState(document);
 
         foreach (IRtfBlock block in document.Blocks) {
-            RenderBlock(document, block, pdf, normalized);
+            RenderBlock(document, block, pdf, normalized, state);
         }
 
         return pdf;
     }
 
-    private static void RenderBlock(RtfDocument document, IRtfBlock block, PdfCore.PdfDocument pdf, RtfPdfSaveOptions options) {
+    private static void RenderBlock(RtfDocument document, IRtfBlock block, PdfCore.PdfDocument pdf, RtfPdfSaveOptions options, PdfRenderState state) {
         switch (block) {
             case RtfParagraph paragraph:
-                RenderParagraph(document, paragraph, pdf, options);
+                RenderParagraph(document, paragraph, pdf, options, state);
                 break;
             case RtfTable table when options.IncludeTables:
-                RenderTable(document, table, pdf, options);
+                RenderTable(document, table, pdf, options, state);
                 break;
             case RtfImage image:
                 RenderImage(image, pdf, options);
@@ -43,7 +44,7 @@ internal static class RtfPdfConverter {
         }
     }
 
-    private static void RenderParagraph(RtfDocument document, RtfParagraph paragraph, PdfCore.PdfDocument pdf, RtfPdfSaveOptions options) {
+    private static void RenderParagraph(RtfDocument document, RtfParagraph paragraph, PdfCore.PdfDocument pdf, RtfPdfSaveOptions options, PdfRenderState state) {
         if (paragraph.PageBreakBefore) {
             pdf.PageBreak();
         }
@@ -51,6 +52,7 @@ internal static class RtfPdfConverter {
         PdfCore.PdfAlign align = RtfPdfMapping.ToPdfAlign(paragraph.Alignment);
         List<PdfCore.TextRun> pendingRuns = new List<PdfCore.TextRun>();
         bool emitted = false;
+        AppendListMarker(paragraph, pendingRuns, state);
 
         foreach (IRtfInline inline in paragraph.Inlines) {
             switch (inline) {
@@ -66,7 +68,7 @@ internal static class RtfPdfConverter {
                     pendingRuns.Add(PdfCore.TextRun.LineBreak());
                     break;
                 case RtfField field:
-                    AppendParagraphRuns(document, field.Result, pendingRuns, options);
+                    AppendParagraphRuns(document, field.Result, pendingRuns, options, state);
                     break;
                 case RtfImage image:
                     FlushParagraph(pdf, pendingRuns, align);
@@ -92,7 +94,7 @@ internal static class RtfPdfConverter {
         }
     }
 
-    private static void RenderTable(RtfDocument document, RtfTable table, PdfCore.PdfDocument pdf, RtfPdfSaveOptions options) {
+    private static void RenderTable(RtfDocument document, RtfTable table, PdfCore.PdfDocument pdf, RtfPdfSaveOptions options, PdfRenderState state) {
         List<PdfCore.PdfTableCell[]> rows = new List<PdfCore.PdfTableCell[]>();
         foreach (RtfTableRow row in table.Rows) {
             List<PdfCore.PdfTableCell> cells = new List<PdfCore.PdfTableCell>();
@@ -101,7 +103,7 @@ internal static class RtfPdfConverter {
                     continue;
                 }
 
-                List<PdfCore.TextRun> runs = BuildCellRuns(document, cell, options);
+                List<PdfCore.TextRun> runs = BuildCellRuns(document, cell, options, state);
                 List<PdfCore.PdfTableCellImage> images = BuildCellImages(cell, options);
                 if (images.Count > 0) {
                     cells.Add(PdfCore.PdfTableCell.WithImages(runs, images));
@@ -142,7 +144,8 @@ internal static class RtfPdfConverter {
         pdf.Paragraph(paragraph => paragraph.Runs(snapshot), align);
     }
 
-    private static void AppendParagraphRuns(RtfDocument document, RtfParagraph paragraph, List<PdfCore.TextRun> runs, RtfPdfSaveOptions options) {
+    private static void AppendParagraphRuns(RtfDocument document, RtfParagraph paragraph, List<PdfCore.TextRun> runs, RtfPdfSaveOptions options, PdfRenderState state) {
+        AppendListMarker(paragraph, runs, state);
         foreach (IRtfInline inline in paragraph.Inlines) {
             switch (inline) {
                 case RtfRun run:
@@ -152,7 +155,7 @@ internal static class RtfPdfConverter {
                     runs.Add(PdfCore.TextRun.LineBreak());
                     break;
                 case RtfField field:
-                    AppendParagraphRuns(document, field.Result, runs, options);
+                    AppendParagraphRuns(document, field.Result, runs, options, state);
                     break;
                 case RtfObject rtfObject:
                     AppendPlainText(rtfObject.ToPlainText(), runs);
@@ -199,14 +202,14 @@ internal static class RtfPdfConverter {
         }
     }
 
-    private static List<PdfCore.TextRun> BuildCellRuns(RtfDocument document, RtfTableCell cell, RtfPdfSaveOptions options) {
+    private static List<PdfCore.TextRun> BuildCellRuns(RtfDocument document, RtfTableCell cell, RtfPdfSaveOptions options, PdfRenderState state) {
         List<PdfCore.TextRun> runs = new List<PdfCore.TextRun>();
         for (int i = 0; i < cell.Paragraphs.Count; i++) {
             if (i > 0) {
                 runs.Add(PdfCore.TextRun.LineBreak());
             }
 
-            AppendParagraphRuns(document, cell.Paragraphs[i], runs, options);
+            AppendParagraphRuns(document, cell.Paragraphs[i], runs, options, state);
         }
 
         if (runs.Count == 0) {
@@ -231,6 +234,79 @@ internal static class RtfPdfConverter {
         }
 
         return images;
+    }
+
+    private static void AppendListMarker(RtfParagraph paragraph, List<PdfCore.TextRun> runs, PdfRenderState state) {
+        string? marker = GetListMarker(paragraph, state);
+        if (marker != null && marker.Length > 0) {
+            runs.Add(PdfCore.TextRun.Normal(marker));
+        }
+    }
+
+    private static string? GetListMarker(RtfParagraph paragraph, PdfRenderState state) {
+        if (paragraph.ListKind == RtfListKind.None) {
+            return null;
+        }
+
+        if (paragraph.ListText != null) {
+            string markerText = NormalizeListMarkerText(paragraph.ListText.ToPlainText());
+            if (paragraph.ListKind == RtfListKind.Decimal) {
+                state.AdvanceDecimalList(paragraph, markerText);
+            }
+
+            return EnsureMarkerSeparator(markerText);
+        }
+
+        if (paragraph.ListKind == RtfListKind.Bullet) {
+            return "\u2022 ";
+        }
+
+        return state.NextDecimalMarker(paragraph).ToString(System.Globalization.CultureInfo.InvariantCulture) + ". ";
+    }
+
+    private static string NormalizeListMarkerText(string text) {
+        if (string.IsNullOrWhiteSpace(text)) {
+            return string.Empty;
+        }
+
+        return text
+            .Replace("\r\n", " ")
+            .Replace('\r', ' ')
+            .Replace('\n', ' ')
+            .Replace('\f', ' ')
+            .Replace('\v', ' ')
+            .Replace('\t', ' ')
+            .Trim();
+    }
+
+    private static string EnsureMarkerSeparator(string marker) {
+        if (marker.Length == 0 || char.IsWhiteSpace(marker[marker.Length - 1])) {
+            return marker;
+        }
+
+        return marker + " ";
+    }
+
+    private static bool TryReadLeadingIntegerMarker(string marker, out int value) {
+        value = 0;
+        int index = 0;
+        while (index < marker.Length && char.IsWhiteSpace(marker[index])) {
+            index++;
+        }
+
+        int start = index;
+        while (index < marker.Length && char.IsDigit(marker[index])) {
+            int digit = marker[index] - '0';
+            if (value > (int.MaxValue - digit) / 10) {
+                value = 0;
+                return false;
+            }
+
+            value = (value * 10) + digit;
+            index++;
+        }
+
+        return index > start;
     }
 
     private static bool IsPdfSupportedImage(RtfImage image) => image.Format == RtfImageFormat.Png || image.Format == RtfImageFormat.Jpeg;
@@ -366,5 +442,59 @@ internal static class RtfPdfConverter {
             .Replace('\f', ' ')
             .Replace('\v', ' ')
             .Trim();
+    }
+
+    private sealed class PdfRenderState {
+        private readonly RtfDocument _document;
+        private readonly Dictionary<string, int> _listCounters = new Dictionary<string, int>(StringComparer.Ordinal);
+
+        public PdfRenderState(RtfDocument document) {
+            _document = document;
+        }
+
+        public int NextDecimalMarker(RtfParagraph paragraph) {
+            string key = GetListCounterKey(paragraph);
+            if (!_listCounters.TryGetValue(key, out int value)) {
+                value = GetListStart(paragraph);
+            }
+
+            _listCounters[key] = value + 1;
+            return value;
+        }
+
+        public void AdvanceDecimalList(RtfParagraph paragraph, string markerText) {
+            if (TryReadLeadingIntegerMarker(markerText, out int value)) {
+                _listCounters[GetListCounterKey(paragraph)] = value + 1;
+                return;
+            }
+
+            NextDecimalMarker(paragraph);
+        }
+
+        private int GetListStart(RtfParagraph paragraph) {
+            int levelIndex = paragraph.ListLevel ?? 0;
+            RtfListOverride? listOverride = paragraph.ListId.HasValue
+                ? _document.ListOverrides.FirstOrDefault(item => item.Id == paragraph.ListId.Value)
+                : null;
+            RtfListLevelOverride? levelOverride = listOverride?.LevelOverrides.ElementAtOrDefault(levelIndex);
+            if (levelOverride?.StartAt.HasValue == true) {
+                return levelOverride.StartAt.Value;
+            }
+
+            int? definitionId = paragraph.ListDefinitionId ?? listOverride?.ListId;
+            RtfListDefinition? definition = definitionId.HasValue
+                ? _document.ListDefinitions.FirstOrDefault(item => item.Id == definitionId.Value)
+                : null;
+            RtfListLevel? level = definition?.Levels.FirstOrDefault(item => item.LevelIndex == levelIndex)
+                ?? definition?.Levels.ElementAtOrDefault(levelIndex);
+            return level?.StartAt ?? 1;
+        }
+
+        private static string GetListCounterKey(RtfParagraph paragraph) {
+            int listId = paragraph.ListId ?? paragraph.ListDefinitionId ?? 0;
+            int level = paragraph.ListLevel ?? 0;
+            return listId.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" +
+                   level.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
     }
 }

@@ -81,6 +81,39 @@ public class RtfPdfConverterTests {
     }
 
     [Fact]
+    public void RtfDocument_ToPdfDocument_Renders_Explicit_ListText_Markers() {
+        RtfDocument document = RtfDocument.Create();
+        document.AddParagraph("Item").SetList(listId: 3, level: 0, kind: RtfListKind.Decimal).SetListText("7.\t");
+        document.AddParagraph("Next").SetList(listId: 3, level: 0, kind: RtfListKind.Decimal);
+
+        byte[] pdf = document.SaveAsPdf();
+        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+
+        Assert.Contains("7.", text, StringComparison.Ordinal);
+        Assert.Contains("8.", text, StringComparison.Ordinal);
+        Assert.Contains("Item", text, StringComparison.Ordinal);
+        Assert.Contains("Next", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RtfDocument_ToPdfDocument_Generates_Semantic_List_Markers() {
+        RtfDocument document = RtfDocument.Create();
+        document.AddParagraph("First").SetList(listId: 9, level: 0, kind: RtfListKind.Decimal);
+        document.AddParagraph("Second").SetList(listId: 9, level: 0, kind: RtfListKind.Decimal);
+        document.AddParagraph("Bullet").SetList(listId: 10, level: 0, kind: RtfListKind.Bullet);
+
+        byte[] pdf = document.SaveAsPdf();
+        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+
+        Assert.Contains("1.", text, StringComparison.Ordinal);
+        Assert.Contains("2.", text, StringComparison.Ordinal);
+        Assert.Contains("\u2022", text, StringComparison.Ordinal);
+        Assert.Contains("First", text, StringComparison.Ordinal);
+        Assert.Contains("Second", text, StringComparison.Ordinal);
+        Assert.Contains("Bullet", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void RtfDocument_ToPdfDocument_Renders_Default_Header_And_Footer_Text() {
         RtfDocument document = RtfDocument.Create();
         document.AddHeader().AddParagraph("Default header");
