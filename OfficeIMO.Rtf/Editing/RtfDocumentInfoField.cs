@@ -29,5 +29,8 @@ public enum RtfDocumentInfoField {
     Keywords,
 
     /// <summary>Document comments.</summary>
-    Comments
+    Comments,
+
+    /// <summary>Hyperlink base address.</summary>
+    HyperlinkBase
 }

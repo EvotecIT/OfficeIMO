@@ -5,7 +5,7 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// Applies targeted edits to an RTF syntax tree while preserving untouched raw RTF.
 /// </summary>
-public sealed class RtfLosslessEditor {
+public sealed partial class RtfLosslessEditor {
     private RtfSyntaxTree _syntaxTree;
 
     /// <summary>
@@ -48,15 +48,6 @@ public sealed class RtfLosslessEditor {
         }
 
         return replacements;
-    }
-
-    /// <summary>
-    /// Adds, replaces, or removes a document information field while preserving the rest of the RTF stream.
-    /// </summary>
-    public void SetInfo(RtfDocumentInfoField field, string? value) {
-        string destination = GetInfoDestination(field);
-        RtfGroup root = SetInfo(_syntaxTree.Root, destination, value);
-        _syntaxTree = new RtfSyntaxTree(root, _syntaxTree.Diagnostics);
     }
 
     /// <summary>
@@ -176,47 +167,6 @@ public sealed class RtfLosslessEditor {
         return builder.ToString();
     }
 
-    private static RtfGroup SetInfo(RtfGroup root, string destination, string? value) {
-        var children = new List<RtfNode>(root.Children);
-        int infoIndex = children.FindIndex(node => node is RtfGroup group && group.Destination == "info");
-
-        if (infoIndex >= 0) {
-            RtfGroup infoGroup = (RtfGroup)children[infoIndex];
-            RtfGroup? updatedInfo = SetInfoChild(infoGroup, destination, value);
-            if (updatedInfo == null) {
-                children.RemoveAt(infoIndex);
-            } else {
-                children[infoIndex] = updatedInfo;
-            }
-
-            return new RtfGroup(root.Position, children);
-        }
-
-        if (string.IsNullOrEmpty(value)) {
-            return root;
-        }
-
-        children.Insert(GetInfoInsertIndex(children), CreateInfoGroup(destination, value!));
-        return new RtfGroup(root.Position, children);
-    }
-
-    private static RtfGroup? SetInfoChild(RtfGroup infoGroup, string destination, string? value) {
-        var children = new List<RtfNode>(infoGroup.Children);
-        int childIndex = children.FindIndex(node => node is RtfGroup group && group.Destination == destination);
-
-        if (childIndex >= 0) {
-            if (string.IsNullOrEmpty(value)) {
-                children.RemoveAt(childIndex);
-            } else {
-                children[childIndex] = CreateInfoFieldGroup(destination, value!);
-            }
-        } else if (!string.IsNullOrEmpty(value)) {
-            children.Add(CreateInfoFieldGroup(destination, value!));
-        }
-
-        return children.Count == 0 ? null : new RtfGroup(infoGroup.Position, children);
-    }
-
     private static RtfGroup SetUserPropertyInRoot(RtfGroup root, RtfUserProperty property) {
         var children = new List<RtfNode>(root.Children);
         int userPropertiesIndex = children.FindIndex(node => node is RtfGroup group && group.Destination == "userprops");
@@ -315,20 +265,6 @@ public sealed class RtfLosslessEditor {
         }
 
         return new RtfGroup(root.Position, children);
-    }
-
-    private static RtfGroup CreateInfoGroup(string destination, string value) {
-        return new RtfGroup(0, new RtfNode[] {
-            new RtfControlWord(0, "info", null, hasParameter: false, rawText: @"\info"),
-            CreateInfoFieldGroup(destination, value)
-        });
-    }
-
-    private static RtfGroup CreateInfoFieldGroup(string destination, string value) {
-        return new RtfGroup(0, new RtfNode[] {
-            new RtfControlWord(0, destination, null, hasParameter: false, rawText: "\\" + destination + " "),
-            new RtfText(0, value, RtfTextEncoding.EncodeText(value))
-        });
     }
 
     private static RtfGroup CreateDocumentVariableGroup(string name, string value) {
@@ -543,18 +479,4 @@ public sealed class RtfLosslessEditor {
         internal string Name { get; }
     }
 
-    private static string GetInfoDestination(RtfDocumentInfoField field) {
-        return field switch {
-            RtfDocumentInfoField.Title => "title",
-            RtfDocumentInfoField.Subject => "subject",
-            RtfDocumentInfoField.Author => "author",
-            RtfDocumentInfoField.Manager => "manager",
-            RtfDocumentInfoField.Company => "company",
-            RtfDocumentInfoField.Operator => "operator",
-            RtfDocumentInfoField.Category => "category",
-            RtfDocumentInfoField.Keywords => "keywords",
-            RtfDocumentInfoField.Comments => "comment",
-            _ => throw new ArgumentOutOfRangeException(nameof(field), field, "Unsupported RTF document information field.")
-        };
-    }
 }

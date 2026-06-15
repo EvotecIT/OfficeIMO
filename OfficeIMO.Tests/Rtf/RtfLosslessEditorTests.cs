@@ -43,13 +43,15 @@ public class RtfLosslessEditorTests {
         editor.SetInfo(RtfDocumentInfoField.Title, "New {title} ż");
         editor.SetInfo(RtfDocumentInfoField.Author, null);
         editor.SetInfo(RtfDocumentInfoField.Company, "Evotec");
+        editor.SetInfo(RtfDocumentInfoField.HyperlinkBase, "https://example.test/");
 
-        const string expected = @"{\rtf1\ansi{\info{\title New \{title\} \u380?}{\company Evotec}}\pard Body \'80\par}";
+        const string expected = @"{\rtf1\ansi{\info{\title New \{title\} \u380?}{\company Evotec}{\hlinkbase https://example.test/}}\pard Body \'80\par}";
         Assert.Equal(expected, editor.ToRtf());
 
         RtfReadResult read = editor.ToReadResult();
         Assert.Equal("New {title} ż", read.Document.Info.Title);
         Assert.Equal("Evotec", read.Document.Info.Company);
+        Assert.Equal("https://example.test/", read.Document.Info.HyperlinkBase);
         Assert.Null(read.Document.Info.Author);
         Assert.Contains(@"Body \'80", editor.ToRtf(), StringComparison.Ordinal);
     }
@@ -63,6 +65,54 @@ public class RtfLosslessEditorTests {
 
         Assert.Equal(@"{\rtf1\ansi{\info{\title Created}}\pard Body\par}", editor.ToRtf());
         Assert.Equal("Created", editor.ToReadResult().Document.Info.Title);
+    }
+
+    [Fact]
+    public void SetInfo_Removes_Info_Group_When_Last_Field_Is_Removed() {
+        const string rtf = @"{\rtf1\ansi{\info{\title Gone}}\pard Body\par}";
+
+        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        editor.SetInfo(RtfDocumentInfoField.Title, null);
+
+        Assert.Equal(@"{\rtf1\ansi\pard Body\par}", editor.ToRtf());
+        Assert.Null(editor.ToReadResult().Document.Info.Title);
+    }
+
+    [Fact]
+    public void SetInfoTimestamp_Replaces_Adds_And_Removes_Metadata_Without_Normalizing_Body() {
+        const string rtf = @"{\rtf1\ansi{\info{\title Keep}{\creatim\yr2020\mo1\dy2\hr3\min4\sec5}\edmins10\nofpages2}\pard Body \'80\par}";
+
+        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        editor.SetInfoTimestamp(RtfDocumentInfoTimestampField.Created, new DateTime(2026, 6, 15, 10, 20, 30));
+        editor.SetInfoTimestamp(RtfDocumentInfoTimestampField.Revised, new DateTime(2026, 6, 16, 11, 21, 31));
+        editor.SetInfoNumber(RtfDocumentInfoNumberField.EditingMinutes, 42);
+        editor.SetInfoNumber(RtfDocumentInfoNumberField.NumberOfPages, null);
+        editor.SetInfoNumber(RtfDocumentInfoNumberField.NumberOfWords, 120);
+
+        const string expected = @"{\rtf1\ansi{\info{\title Keep}{\creatim\yr2026\mo6\dy15\hr10\min20\sec30}\edmins42{\revtim\yr2026\mo6\dy16\hr11\min21\sec31}\nofwords120}\pard Body \'80\par}";
+        Assert.Equal(expected, editor.ToRtf());
+
+        RtfDocumentInfo info = editor.ToReadResult().Document.Info;
+        Assert.Equal(new DateTime(2026, 6, 15, 10, 20, 30), info.Created);
+        Assert.Equal(new DateTime(2026, 6, 16, 11, 21, 31), info.Revised);
+        Assert.Equal(42, info.EditingMinutes);
+        Assert.Null(info.NumberOfPages);
+        Assert.Equal(120, info.NumberOfWords);
+        Assert.Contains(@"Body \'80", editor.ToRtf(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SetInfoTimestamp_And_Number_Create_Info_Group_When_Missing() {
+        const string rtf = @"{\rtf1\ansi\pard Body\par}";
+
+        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        editor.SetInfoTimestamp(RtfDocumentInfoTimestampField.Printed, new DateTime(2026, 1, 2, 3, 4, 5));
+        editor.SetInfoNumber(RtfDocumentInfoNumberField.InternalVersion, 123);
+
+        Assert.Equal(@"{\rtf1\ansi{\info{\printim\yr2026\mo1\dy2\hr3\min4\sec5}\vern123}\pard Body\par}", editor.ToRtf());
+        RtfDocumentInfo info = editor.ToReadResult().Document.Info;
+        Assert.Equal(new DateTime(2026, 1, 2, 3, 4, 5), info.Printed);
+        Assert.Equal(123, info.InternalVersion);
     }
 
     [Fact]
