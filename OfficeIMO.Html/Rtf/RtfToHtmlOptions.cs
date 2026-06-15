@@ -3,7 +3,7 @@ namespace OfficeIMO.Html;
 /// <summary>
 /// Controls RTF to semantic HTML conversion.
 /// </summary>
-public sealed class RtfHtmlSaveOptions {
+public sealed class RtfToHtmlOptions {
     /// <summary>Writes only the body fragment instead of a complete HTML document.</summary>
     public bool FragmentOnly { get; set; } = true;
 
@@ -22,8 +22,8 @@ public sealed class RtfHtmlSaveOptions {
     /// <summary>
     /// Creates a reusable copy of the current save options.
     /// </summary>
-    /// <returns>A new <see cref="RtfHtmlSaveOptions"/> with the same configuration values.</returns>
-    public RtfHtmlSaveOptions Clone() => new RtfHtmlSaveOptions {
+    /// <returns>A new <see cref="RtfToHtmlOptions"/> with the same configuration values.</returns>
+    public RtfToHtmlOptions Clone() => new RtfToHtmlOptions {
         FragmentOnly = FragmentOnly,
         IncludeMetadata = IncludeMetadata,
         Title = Title,

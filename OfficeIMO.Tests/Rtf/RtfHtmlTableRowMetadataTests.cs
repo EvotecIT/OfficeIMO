@@ -30,7 +30,7 @@ public class RtfHtmlTableRowMetadataTests {
         row.VerticalBorder.ColorIndex = blue;
         row.Cells[0].AddParagraph("Floating");
 
-        string html = document.ToHtml(new RtfHtmlSaveOptions { NewLine = "\n" });
+        string html = document.ToHtml(new RtfToHtmlOptions { NewLine = "\n" });
 
         Assert.Contains("data-officeimo-rtf-row=\"", html, StringComparison.Ordinal);
 

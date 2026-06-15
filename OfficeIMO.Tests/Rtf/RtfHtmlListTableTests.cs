@@ -39,7 +39,7 @@ public class RtfHtmlListTableTests {
 
         document.AddParagraph("Item").SetList(listId: 3, level: 0, kind: RtfListKind.Decimal);
 
-        string html = document.ToHtml(new RtfHtmlSaveOptions {
+        string html = document.ToHtml(new RtfToHtmlOptions {
             FragmentOnly = false,
             NewLine = "\n"
         });

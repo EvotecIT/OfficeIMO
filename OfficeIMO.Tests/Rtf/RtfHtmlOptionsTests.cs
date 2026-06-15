@@ -5,9 +5,9 @@ namespace OfficeIMO.Tests.Rtf;
 
 public class RtfHtmlOptionsTests {
     [Fact]
-    public void RtfHtmlReadOptions_Profiles_Expose_Bounded_Untrusted_Profile() {
-        RtfHtmlReadOptions defaultProfile = RtfHtmlReadOptions.CreateOfficeIMOProfile();
-        RtfHtmlReadOptions untrustedProfile = RtfHtmlReadOptions.CreateUntrustedHtmlProfile();
+    public void HtmlToRtfOptions_Profiles_Expose_Bounded_Untrusted_Profile() {
+        HtmlToRtfOptions defaultProfile = HtmlToRtfOptions.CreateOfficeIMOProfile();
+        HtmlToRtfOptions untrustedProfile = HtmlToRtfOptions.CreateUntrustedHtmlProfile();
 
         Assert.Null(defaultProfile.MaxHtmlNodes);
         Assert.Null(defaultProfile.MaxHtmlDepth);
@@ -19,9 +19,9 @@ public class RtfHtmlOptionsTests {
     }
 
     [Fact]
-    public void RtfHtmlReadOptions_Clone_Copies_Configuration_Without_Diagnostics() {
-        Action<RtfHtmlConversionDiagnostic> handler = _ => { };
-        var options = new RtfHtmlReadOptions {
+    public void HtmlToRtfOptions_Clone_Copies_Configuration_Without_Diagnostics() {
+        Action<HtmlRtfConversionDiagnostic> handler = _ => { };
+        var options = new HtmlToRtfOptions {
             BaseUri = new Uri("https://example.test/root/"),
             PreserveUnknownTagsAsText = true,
             IgnoreInsignificantWhitespace = false,
@@ -30,9 +30,9 @@ public class RtfHtmlOptionsTests {
             MaxHtmlDepth = 44,
             DiagnosticHandler = handler
         };
-        options.Diagnostics.Add(new RtfHtmlConversionDiagnostic("Existing", "Existing diagnostic"));
+        options.Diagnostics.Add(new HtmlRtfConversionDiagnostic("Existing", "Existing diagnostic"));
 
-        RtfHtmlReadOptions clone = options.Clone();
+        HtmlToRtfOptions clone = options.Clone();
 
         Assert.NotSame(options, clone);
         Assert.Equal(options.BaseUri, clone.BaseUri);
@@ -47,8 +47,8 @@ public class RtfHtmlOptionsTests {
     }
 
     [Fact]
-    public void RtfHtmlSaveOptions_Clone_Copies_Configuration() {
-        var options = new RtfHtmlSaveOptions {
+    public void RtfToHtmlOptions_Clone_Copies_Configuration() {
+        var options = new RtfToHtmlOptions {
             FragmentOnly = false,
             IncludeMetadata = false,
             Title = "Clinical note",
@@ -56,7 +56,7 @@ public class RtfHtmlOptionsTests {
             NewLine = "\n"
         };
 
-        RtfHtmlSaveOptions clone = options.Clone();
+        RtfToHtmlOptions clone = options.Clone();
 
         Assert.NotSame(options, clone);
         Assert.Equal(options.FragmentOnly, clone.FragmentOnly);
@@ -68,41 +68,41 @@ public class RtfHtmlOptionsTests {
 
     [Fact]
     public void Html_ToRtfDocument_MaxHtmlNodes_Stops_With_Diagnostic() {
-        var callbackDiagnostics = new List<RtfHtmlConversionDiagnostic>();
-        var options = new RtfHtmlReadOptions {
+        var callbackDiagnostics = new List<HtmlRtfConversionDiagnostic>();
+        var options = new HtmlToRtfOptions {
             MaxHtmlNodes = 1,
             DiagnosticHandler = callbackDiagnostics.Add
         };
 
-        RtfHtmlConversionLimitException exception = Assert.Throws<RtfHtmlConversionLimitException>(() =>
+        HtmlRtfConversionLimitException exception = Assert.Throws<HtmlRtfConversionLimitException>(() =>
             "<p>One</p><p>Two</p>".LoadRtfFromHtml(options));
 
         Assert.Equal("HtmlNodeLimitExceeded", exception.Code);
         Assert.Equal("MaxHtmlNodes", exception.LimitSource);
         Assert.True(exception.Actual > exception.Limit);
         Assert.Equal(1, exception.Limit);
-        RtfHtmlConversionDiagnostic diagnostic = Assert.Single(options.Diagnostics);
+        HtmlRtfConversionDiagnostic diagnostic = Assert.Single(options.Diagnostics);
         Assert.Same(diagnostic, Assert.Single(callbackDiagnostics));
-        Assert.Equal(RtfHtmlConversionDiagnosticSeverity.Error, diagnostic.Severity);
+        Assert.Equal(HtmlRtfConversionDiagnosticSeverity.Error, diagnostic.Severity);
         Assert.Equal("HtmlNodeLimitExceeded", diagnostic.Code);
         Assert.Equal("MaxHtmlNodes", diagnostic.Source);
     }
 
     [Fact]
     public void Html_ToRtfDocument_MaxHtmlDepth_Stops_With_Diagnostic() {
-        var options = new RtfHtmlReadOptions {
+        var options = new HtmlToRtfOptions {
             MaxHtmlDepth = 2
         };
 
-        RtfHtmlConversionLimitException exception = Assert.Throws<RtfHtmlConversionLimitException>(() =>
+        HtmlRtfConversionLimitException exception = Assert.Throws<HtmlRtfConversionLimitException>(() =>
             "<div><section><p>Too deep</p></section></div>".LoadRtfFromHtml(options));
 
         Assert.Equal("HtmlDepthLimitExceeded", exception.Code);
         Assert.Equal("MaxHtmlDepth", exception.LimitSource);
         Assert.True(exception.Actual > exception.Limit);
         Assert.Equal(2, exception.Limit);
-        RtfHtmlConversionDiagnostic diagnostic = Assert.Single(options.Diagnostics);
-        Assert.Equal(RtfHtmlConversionDiagnosticSeverity.Error, diagnostic.Severity);
+        HtmlRtfConversionDiagnostic diagnostic = Assert.Single(options.Diagnostics);
+        Assert.Equal(HtmlRtfConversionDiagnosticSeverity.Error, diagnostic.Severity);
         Assert.Equal("HtmlDepthLimitExceeded", diagnostic.Code);
         Assert.Equal("MaxHtmlDepth", diagnostic.Source);
     }

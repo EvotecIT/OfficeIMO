@@ -19,7 +19,7 @@ public class RtfHtmlParagraphControlTests {
         paragraph.AddTabStop(2880, RtfTabAlignment.Right, RtfTabLeader.Dots);
         paragraph.AddTabStop(4320, RtfTabAlignment.Decimal, RtfTabLeader.MiddleDots);
 
-        string html = document.ToHtml(new RtfHtmlSaveOptions { NewLine = "\n" });
+        string html = document.ToHtml(new RtfToHtmlOptions { NewLine = "\n" });
 
         Assert.Contains("data-officeimo-rtf-paragraph-controls=\"", html, StringComparison.Ordinal);
 

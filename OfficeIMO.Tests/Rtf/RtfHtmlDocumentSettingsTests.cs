@@ -27,7 +27,7 @@ public class RtfHtmlDocumentSettingsTests {
         document.Settings.Direction = RtfTextDirection.RightToLeft;
         document.AddParagraph("Settings body");
 
-        string html = document.ToHtml(new RtfHtmlSaveOptions { FragmentOnly = false, NewLine = "\n" });
+        string html = document.ToHtml(new RtfToHtmlOptions { FragmentOnly = false, NewLine = "\n" });
 
         Assert.Contains("<meta name=\"officeimo-rtf-document-settings\" content=\"", html, StringComparison.Ordinal);
 
@@ -81,7 +81,7 @@ public class RtfHtmlDocumentSettingsTests {
     public void Html_ToRtfDocument_Document_Settings_Metadata_Does_Not_Clear_Html_Language_Direction() {
         RtfDocument metadataDocument = RtfDocument.Create();
         metadataDocument.Settings.MirrorMargins = true;
-        string settingsMeta = ExtractDocumentSettingsMeta(metadataDocument.ToHtml(new RtfHtmlSaveOptions { FragmentOnly = false }));
+        string settingsMeta = ExtractDocumentSettingsMeta(metadataDocument.ToHtml(new RtfToHtmlOptions { FragmentOnly = false }));
         string html = "<html lang=\"ar-SA\" dir=\"rtl\"><head>" + settingsMeta + "</head><body><p>Body</p></body></html>";
 
         RtfDocument document = html.LoadRtfFromHtml();

@@ -18,7 +18,7 @@ public class RtfHtmlMetadataTests {
         document.Info.NumberOfWords = 42;
         document.AddParagraph("Body");
 
-        string html = document.ToHtml(new RtfHtmlSaveOptions {
+        string html = document.ToHtml(new RtfToHtmlOptions {
             FragmentOnly = false,
             NewLine = "\n"
         });
@@ -63,7 +63,7 @@ public class RtfHtmlMetadataTests {
         document.AddFooter(RtfHeaderFooterKind.Footer).AddParagraph("Footer");
         document.AddParagraph("Body");
 
-        string html = document.ToHtml(new RtfHtmlSaveOptions {
+        string html = document.ToHtml(new RtfToHtmlOptions {
             FragmentOnly = false,
             NewLine = "\n"
         });

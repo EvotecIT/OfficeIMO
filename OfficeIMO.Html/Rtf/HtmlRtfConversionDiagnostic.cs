@@ -1,9 +1,9 @@
 namespace OfficeIMO.Html;
 
 /// <summary>
-/// Severity for an RTF HTML conversion diagnostic.
+/// Severity for an HTML/RTF conversion diagnostic.
 /// </summary>
-public enum RtfHtmlConversionDiagnosticSeverity {
+public enum HtmlRtfConversionDiagnosticSeverity {
     /// <summary>
     /// Informational diagnostic that does not indicate content loss.
     /// </summary>
@@ -21,9 +21,9 @@ public enum RtfHtmlConversionDiagnosticSeverity {
 }
 
 /// <summary>
-/// Describes skipped, degraded, or otherwise notable content observed during RTF HTML conversion.
+/// Describes skipped, degraded, or otherwise notable content observed during HTML/RTF conversion.
 /// </summary>
-public sealed class RtfHtmlConversionDiagnostic {
+public sealed class HtmlRtfConversionDiagnostic {
     /// <summary>
     /// Creates a conversion diagnostic.
     /// </summary>
@@ -32,7 +32,7 @@ public sealed class RtfHtmlConversionDiagnostic {
     /// <param name="severity">Diagnostic severity.</param>
     /// <param name="source">Optional HTML/resource source associated with the diagnostic.</param>
     /// <param name="detail">Optional low-level detail, such as an exception type or status text.</param>
-    public RtfHtmlConversionDiagnostic(string code, string message, RtfHtmlConversionDiagnosticSeverity severity = RtfHtmlConversionDiagnosticSeverity.Warning, string? source = null, string? detail = null) {
+    public HtmlRtfConversionDiagnostic(string code, string message, HtmlRtfConversionDiagnosticSeverity severity = HtmlRtfConversionDiagnosticSeverity.Warning, string? source = null, string? detail = null) {
         Code = code ?? throw new ArgumentNullException(nameof(code));
         Message = message ?? throw new ArgumentNullException(nameof(message));
         Severity = severity;
@@ -53,7 +53,7 @@ public sealed class RtfHtmlConversionDiagnostic {
     /// <summary>
     /// Diagnostic severity.
     /// </summary>
-    public RtfHtmlConversionDiagnosticSeverity Severity { get; }
+    public HtmlRtfConversionDiagnosticSeverity Severity { get; }
 
     /// <summary>
     /// Optional HTML/resource source associated with the diagnostic.

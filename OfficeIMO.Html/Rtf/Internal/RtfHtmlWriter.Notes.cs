@@ -24,7 +24,7 @@ internal static partial class RtfHtmlWriter {
 
     private static string EncodeNoteContent(RtfNote note, RtfDocument document) {
         var content = new StringBuilder();
-        var options = new RtfHtmlSaveOptions { FragmentOnly = true };
+        var options = new RtfToHtmlOptions { FragmentOnly = true };
         for (int index = 0; index < note.Paragraphs.Count; index++) {
             if (index > 0) {
                 content.Append(options.GetNewLine());

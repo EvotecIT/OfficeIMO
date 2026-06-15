@@ -31,7 +31,7 @@ public class RtfHtmlSectionLayoutTests {
             .SetEndnotePlacement(RtfEndnotePlacement.DocumentEnd);
         document.AddParagraph("Landscape body");
 
-        string html = document.ToHtml(new RtfHtmlSaveOptions { FragmentOnly = false, NewLine = "\n" });
+        string html = document.ToHtml(new RtfToHtmlOptions { FragmentOnly = false, NewLine = "\n" });
 
         Assert.Contains("<meta name=\"officeimo-rtf-colors\" content=\"", html, StringComparison.Ordinal);
         Assert.Contains("<meta name=\"officeimo-rtf-document-layout\" content=\"", html, StringComparison.Ordinal);
@@ -113,7 +113,7 @@ public class RtfHtmlSectionLayoutTests {
         second.LineNumbering.Set(countBy: 0, restart: RtfLineNumberRestart.Continuous);
         second.AddParagraph("Second");
 
-        string html = document.ToHtml(new RtfHtmlSaveOptions { FragmentOnly = true, NewLine = "\n" });
+        string html = document.ToHtml(new RtfToHtmlOptions { FragmentOnly = true, NewLine = "\n" });
 
         Assert.Contains("data-officeimo-rtf-section=\"true\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-rtf-section-layout=\"", html, StringComparison.Ordinal);

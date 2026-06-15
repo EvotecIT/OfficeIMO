@@ -132,7 +132,7 @@ public class RtfHtmlFieldTests {
     public void Html_ToRtfDocument_DoesNot_Preserve_Field_Span_As_Unknown_Text() {
         const string html = "<p><span data-officeimo-rtf-field=\"true\" data-officeimo-rtf-field-instruction=\"PAGE\">1</span></p>";
 
-        RtfParagraph paragraph = Assert.Single(html.LoadRtfFromHtml(new RtfHtmlReadOptions { PreserveUnknownTagsAsText = true }).Paragraphs);
+        RtfParagraph paragraph = Assert.Single(html.LoadRtfFromHtml(new HtmlToRtfOptions { PreserveUnknownTagsAsText = true }).Paragraphs);
 
         RtfField field = Assert.IsType<RtfField>(Assert.Single(paragraph.Inlines));
         Assert.Equal("PAGE", field.Instruction);

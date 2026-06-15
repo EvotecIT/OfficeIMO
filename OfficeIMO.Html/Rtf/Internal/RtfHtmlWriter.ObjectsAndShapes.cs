@@ -3,7 +3,7 @@ using System.Globalization;
 namespace OfficeIMO.Html;
 
 internal static partial class RtfHtmlWriter {
-    private static void AppendObject(StringBuilder builder, RtfObject rtfObject, RtfHtmlSaveOptions options, RtfDocument document, bool blockTag) {
+    private static void AppendObject(StringBuilder builder, RtfObject rtfObject, RtfToHtmlOptions options, RtfDocument document, bool blockTag) {
         string tag = blockTag ? "div" : "span";
         builder.Append('<');
         builder.Append(tag);
@@ -25,7 +25,7 @@ internal static partial class RtfHtmlWriter {
         builder.Append('>');
     }
 
-    private static void AppendShape(StringBuilder builder, RtfShape shape, RtfHtmlSaveOptions options, RtfDocument document, bool blockTag) {
+    private static void AppendShape(StringBuilder builder, RtfShape shape, RtfToHtmlOptions options, RtfDocument document, bool blockTag) {
         string tag = blockTag ? "div" : "span";
         builder.Append('<');
         builder.Append(tag);
@@ -39,7 +39,7 @@ internal static partial class RtfHtmlWriter {
         builder.Append('>');
     }
 
-    private static string? EncodeParagraphContent(RtfParagraph paragraph, RtfHtmlSaveOptions options, RtfDocument document) {
+    private static string? EncodeParagraphContent(RtfParagraph paragraph, RtfToHtmlOptions options, RtfDocument document) {
         if (paragraph.Inlines.Count == 0) {
             return null;
         }
@@ -49,7 +49,7 @@ internal static partial class RtfHtmlWriter {
         return EncodeString(builder.ToString());
     }
 
-    private static string? EncodeShapeText(RtfShape shape, RtfHtmlSaveOptions options, RtfDocument document) {
+    private static string? EncodeShapeText(RtfShape shape, RtfToHtmlOptions options, RtfDocument document) {
         if (shape.TextBoxParagraphs.Count == 0) {
             return null;
         }

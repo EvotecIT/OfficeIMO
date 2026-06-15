@@ -24,7 +24,7 @@ public class RtfHtmlRevisionTableTests {
             .SetDeletedRevision(bob)
             .SetRevisionSaveIds(deletion: 50);
 
-        string html = document.ToHtml(new RtfHtmlSaveOptions {
+        string html = document.ToHtml(new RtfToHtmlOptions {
             FragmentOnly = false,
             NewLine = "\n"
         });

@@ -91,7 +91,7 @@ public class RtfHtmlParagraphFormatTests {
             .SetDirection(RtfTextDirection.LeftToRight);
         document.AddParagraph("Default");
 
-        string html = document.ToHtml(new RtfHtmlSaveOptions { FragmentOnly = false });
+        string html = document.ToHtml(new RtfToHtmlOptions { FragmentOnly = false });
 
         Assert.Contains("<html lang=\"ar-SA\" dir=\"rtl\" style=\"--officeimo-rtf-lang:1025;direction:rtl;unicode-bidi:isolate;--officeimo-rtf-direction:rtl;\">", html, StringComparison.Ordinal);
         Assert.Contains("<p dir=\"ltr\" style=\"direction:ltr;unicode-bidi:isolate;--officeimo-rtf-direction:ltr;\">LTR</p>", html, StringComparison.Ordinal);

@@ -3,7 +3,7 @@ using System.Globalization;
 namespace OfficeIMO.Html;
 
 internal static partial class RtfHtmlWriter {
-    private static void AppendTable(StringBuilder builder, RtfTable table, RtfHtmlSaveOptions options, RtfDocument document) {
+    private static void AppendTable(StringBuilder builder, RtfTable table, RtfToHtmlOptions options, RtfDocument document) {
         builder.Append("<table>");
         bool inHead = false;
         bool inBody = false;
@@ -45,7 +45,7 @@ internal static partial class RtfHtmlWriter {
         builder.Append("</table>");
     }
 
-    private static void AppendTableRow(StringBuilder builder, RtfTable table, int rowIndex, RtfHtmlSaveOptions options, RtfDocument document, bool isHeader) {
+    private static void AppendTableRow(StringBuilder builder, RtfTable table, int rowIndex, RtfToHtmlOptions options, RtfDocument document, bool isHeader) {
         builder.Append("<tr");
         RtfTableRow row = table.Rows[rowIndex];
         AppendRowDirectionAttributes(builder, row);

@@ -3,7 +3,7 @@ using System.Globalization;
 namespace OfficeIMO.Html;
 
 internal static partial class RtfHtmlWriter {
-    internal static string Write(RtfDocument document, RtfHtmlSaveOptions options) {
+    internal static string Write(RtfDocument document, RtfToHtmlOptions options) {
         string newline = options.GetNewLine();
         var builder = new StringBuilder();
 
@@ -27,7 +27,7 @@ internal static partial class RtfHtmlWriter {
         return builder.ToString();
     }
 
-    private static void AppendBlocks(StringBuilder builder, IReadOnlyList<IRtfBlock> blocks, RtfHtmlSaveOptions options, RtfDocument document, string newline) {
+    private static void AppendBlocks(StringBuilder builder, IReadOnlyList<IRtfBlock> blocks, RtfToHtmlOptions options, RtfDocument document, string newline) {
         RtfListKind openList = RtfListKind.None;
         for (int i = 0; i < blocks.Count; i++) {
             IRtfBlock block = blocks[i];
@@ -53,7 +53,7 @@ internal static partial class RtfHtmlWriter {
         CloseList(builder, openList);
     }
 
-    private static void AppendDocumentStart(StringBuilder builder, RtfDocument document, RtfHtmlSaveOptions options, string newline) {
+    private static void AppendDocumentStart(StringBuilder builder, RtfDocument document, RtfToHtmlOptions options, string newline) {
         builder.Append("<!doctype html>");
         builder.Append(newline);
         builder.Append("<html");
@@ -94,7 +94,7 @@ internal static partial class RtfHtmlWriter {
         builder.Append(newline);
     }
 
-    private static void AppendBlock(StringBuilder builder, IRtfBlock block, RtfHtmlSaveOptions options, RtfDocument document) {
+    private static void AppendBlock(StringBuilder builder, IRtfBlock block, RtfToHtmlOptions options, RtfDocument document) {
         switch (block) {
             case RtfParagraph paragraph:
                 AppendParagraph(builder, paragraph, options, document);
@@ -116,7 +116,7 @@ internal static partial class RtfHtmlWriter {
         }
     }
 
-    private static void AppendParagraph(StringBuilder builder, RtfParagraph paragraph, RtfHtmlSaveOptions options, RtfDocument document) {
+    private static void AppendParagraph(StringBuilder builder, RtfParagraph paragraph, RtfToHtmlOptions options, RtfDocument document) {
         string tagName = GetParagraphTagName(paragraph);
         builder.Append('<');
         builder.Append(tagName);
@@ -241,7 +241,7 @@ internal static partial class RtfHtmlWriter {
         builder.Append(';');
     }
 
-    private static void AppendInlines(StringBuilder builder, IReadOnlyList<IRtfInline> inlines, RtfHtmlSaveOptions options, RtfDocument document) {
+    private static void AppendInlines(StringBuilder builder, IReadOnlyList<IRtfInline> inlines, RtfToHtmlOptions options, RtfDocument document) {
         foreach (IRtfInline inline in inlines) {
             switch (inline) {
                 case RtfRun run:
@@ -331,7 +331,7 @@ internal static partial class RtfHtmlWriter {
         builder.Append('>');
     }
 
-    private static void AppendImage(StringBuilder builder, RtfImage image, RtfHtmlSaveOptions options) {
+    private static void AppendImage(StringBuilder builder, RtfImage image, RtfToHtmlOptions options) {
         if (!options.EmbedImagesAsDataUri || image.Data.Length == 0 || !TryGetImageMediaType(image.Format, out string? mediaType)) {
             return;
         }

@@ -79,7 +79,7 @@ public class RtfHtmlStylesheetTests {
         paragraph.SetStyle(heading.Id);
         paragraph.AddText("Clinical heading").SetStyle(character.Id);
 
-        string html = document.ToHtml(new RtfHtmlSaveOptions { FragmentOnly = false, NewLine = "\n" });
+        string html = document.ToHtml(new RtfToHtmlOptions { FragmentOnly = false, NewLine = "\n" });
 
         Assert.Contains("<meta name=\"officeimo-rtf-styles\" content=\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-rtf-style-id=\"7\" data-officeimo-rtf-style-kind=\"paragraph\"", html, StringComparison.Ordinal);
@@ -216,7 +216,7 @@ public class RtfHtmlStylesheetTests {
         cell.TopLeftToBottomRightBorder.Width = 6;
         cell.TopLeftToBottomRightBorder.ColorIndex = red;
 
-        string html = document.ToHtml(new RtfHtmlSaveOptions { FragmentOnly = false, NewLine = "\n" });
+        string html = document.ToHtml(new RtfToHtmlOptions { FragmentOnly = false, NewLine = "\n" });
 
         Assert.Contains("<meta name=\"officeimo-rtf-styles\" content=\"", html, StringComparison.Ordinal);
 

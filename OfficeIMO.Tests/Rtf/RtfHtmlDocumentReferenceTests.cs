@@ -16,7 +16,7 @@ public class RtfHtmlDocumentReferenceTests {
         document.AddXmlNamespace(1, "http://schemas.example.test/word");
         document.AddParagraph("Body");
 
-        string html = document.ToHtml(new RtfHtmlSaveOptions {
+        string html = document.ToHtml(new RtfToHtmlOptions {
             FragmentOnly = false,
             NewLine = "\n"
         });

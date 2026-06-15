@@ -108,13 +108,13 @@ public class RtfHtmlIoTests {
         try {
             File.WriteAllText(path, html, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
-            RtfDocument fromFile = RtfHtmlConverterExtensions.LoadRtfFromHtmlFile(path);
+            RtfDocument fromFile = HtmlRtfConverterExtensions.LoadRtfFromHtmlFile(path);
             Assert.Equal("File ż", Assert.Single(fromFile.Paragraphs).ToPlainText());
 
-            RtfDocument fromEncodedFile = RtfHtmlConverterExtensions.LoadRtfFromHtmlFile(path, encoding: Encoding.UTF8);
+            RtfDocument fromEncodedFile = HtmlRtfConverterExtensions.LoadRtfFromHtmlFile(path, encoding: Encoding.UTF8);
             Assert.Equal("File ż", Assert.Single(fromEncodedFile.Paragraphs).ToPlainText());
 
-            RtfDocument fromAsyncFile = await RtfHtmlConverterExtensions.LoadRtfFromHtmlFileAsync(path);
+            RtfDocument fromAsyncFile = await HtmlRtfConverterExtensions.LoadRtfFromHtmlFileAsync(path);
             Assert.Equal("File ż", Assert.Single(fromAsyncFile.Paragraphs).ToPlainText());
         } finally {
             if (File.Exists(path)) {
@@ -188,6 +188,6 @@ public class RtfHtmlIoTests {
         await Assert.ThrowsAsync<OperationCanceledException>(() =>
             "<p>Cancelled</p>".LoadRtfFromHtmlAsync(cancellationToken: cts.Token));
         await Assert.ThrowsAsync<OperationCanceledException>(() =>
-            RtfHtmlConverterExtensions.LoadRtfFromHtmlFileAsync("ignored.html", cancellationToken: cts.Token));
+            HtmlRtfConverterExtensions.LoadRtfFromHtmlFileAsync("ignored.html", cancellationToken: cts.Token));
     }
 }

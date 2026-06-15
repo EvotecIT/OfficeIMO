@@ -29,7 +29,7 @@ internal static partial class RtfHtmlWriter {
         AppendMeta(builder, newline, "officeimo-rtf-internal-version", document.Info.InternalVersion);
     }
 
-    private static void AppendHeaderFooterMetadata(StringBuilder builder, RtfDocument document, RtfHtmlSaveOptions options, string newline) {
+    private static void AppendHeaderFooterMetadata(StringBuilder builder, RtfDocument document, RtfToHtmlOptions options, string newline) {
         foreach (RtfHeaderFooter headerFooter in document.HeaderFooters) {
             string? content = EncodeHeaderFooterContent(headerFooter, options, document);
             if (content == null) {
@@ -45,7 +45,7 @@ internal static partial class RtfHtmlWriter {
         }
     }
 
-    private static string? EncodeHeaderFooterContent(RtfHeaderFooter headerFooter, RtfHtmlSaveOptions options, RtfDocument document) {
+    private static string? EncodeHeaderFooterContent(RtfHeaderFooter headerFooter, RtfToHtmlOptions options, RtfDocument document) {
         if (headerFooter.Paragraphs.Count == 0) {
             return null;
         }

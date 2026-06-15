@@ -32,7 +32,7 @@ public class RtfHtmlFontTableTests {
         monospace.CodePage = 1250;
         document.AddParagraph().AddText("Code").FontId = monospaceFontId;
 
-        string html = document.ToHtml(new RtfHtmlSaveOptions { FragmentOnly = false, NewLine = "\n" });
+        string html = document.ToHtml(new RtfToHtmlOptions { FragmentOnly = false, NewLine = "\n" });
 
         Assert.Contains("<meta name=\"officeimo-rtf-fonts\" content=\"", html, StringComparison.Ordinal);
 

@@ -1,9 +1,9 @@
 namespace OfficeIMO.Html;
 
 /// <summary>
-/// Thrown when RTF HTML conversion input exceeds a configured safety or resource limit.
+/// Thrown when HTML/RTF conversion input exceeds a configured safety or resource limit.
 /// </summary>
-public sealed class RtfHtmlConversionLimitException : InvalidOperationException {
+public sealed class HtmlRtfConversionLimitException : InvalidOperationException {
     /// <summary>
     /// Creates a conversion limit exception.
     /// </summary>
@@ -13,7 +13,7 @@ public sealed class RtfHtmlConversionLimitException : InvalidOperationException 
     /// <param name="actual">Observed value.</param>
     /// <param name="limit">Configured limit.</param>
     /// <param name="detail">Optional formatted detail.</param>
-    public RtfHtmlConversionLimitException(string code, string message, string source, long actual, long limit, string? detail = null) : base(message) {
+    public HtmlRtfConversionLimitException(string code, string message, string source, long actual, long limit, string? detail = null) : base(message) {
         Code = code ?? throw new ArgumentNullException(nameof(code));
         LimitSource = source ?? throw new ArgumentNullException(nameof(source));
         Actual = actual;

@@ -18,7 +18,7 @@ public class RtfHtmlParagraphFrameTests {
         });
         document.AddParagraph("Plain");
 
-        string html = document.ToHtml(new RtfHtmlSaveOptions { NewLine = "\n" });
+        string html = document.ToHtml(new RtfToHtmlOptions { NewLine = "\n" });
 
         Assert.Contains("data-officeimo-rtf-paragraph-frame=\"", html, StringComparison.Ordinal);
 
@@ -64,7 +64,7 @@ public class RtfHtmlParagraphFrameTests {
         });
         document.AddParagraph("Styled").SetStyle(style.Id);
 
-        string html = document.ToHtml(new RtfHtmlSaveOptions { FragmentOnly = false, NewLine = "\n" });
+        string html = document.ToHtml(new RtfToHtmlOptions { FragmentOnly = false, NewLine = "\n" });
 
         Assert.Contains("<meta name=\"officeimo-rtf-styles\" content=\"", html, StringComparison.Ordinal);
 

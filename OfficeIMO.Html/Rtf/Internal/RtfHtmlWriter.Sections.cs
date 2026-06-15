@@ -3,7 +3,7 @@ using System.Globalization;
 namespace OfficeIMO.Html;
 
 internal static partial class RtfHtmlWriter {
-    private static void AppendSections(StringBuilder builder, RtfDocument document, RtfHtmlSaveOptions options, string newline) {
+    private static void AppendSections(StringBuilder builder, RtfDocument document, RtfToHtmlOptions options, string newline) {
         for (int index = 0; index < document.Sections.Count; index++) {
             RtfSection section = document.Sections[index];
             if (index > 0) {

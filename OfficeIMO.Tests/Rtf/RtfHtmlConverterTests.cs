@@ -14,7 +14,7 @@ public partial class RtfHtmlConverterTests {
         paragraph.AddText("bold").SetBold();
         paragraph.AddText(" link").SetItalic().SetHyperlink(new Uri("https://example.test/patient?id=1&tab=note"));
 
-        string html = document.ToHtml(new RtfHtmlSaveOptions {
+        string html = document.ToHtml(new RtfToHtmlOptions {
             FragmentOnly = false
         });
 
@@ -30,7 +30,7 @@ public partial class RtfHtmlConverterTests {
         document.AddParagraph("Allergy").ListKind = RtfListKind.Bullet;
         document.AddParagraph("Medication").ListKind = RtfListKind.Bullet;
 
-        string html = document.ToHtml(new RtfHtmlSaveOptions {
+        string html = document.ToHtml(new RtfToHtmlOptions {
             NewLine = "\n"
         });
 
@@ -41,7 +41,7 @@ public partial class RtfHtmlConverterTests {
     public void Html_ToRtfDocument_Parses_Paragraphs_Inlines_And_Hyperlinks() {
         const string html = "<p>Plain <strong>bold</strong> <em>italic</em> <a href=\"/chart/1\">chart</a><br>next</p>";
 
-        RtfDocument document = html.LoadRtfFromHtml(new RtfHtmlReadOptions {
+        RtfDocument document = html.LoadRtfFromHtml(new HtmlToRtfOptions {
             BaseUri = new Uri("https://example.test")
         });
 
@@ -152,7 +152,7 @@ public partial class RtfHtmlConverterTests {
         document.AddParagraph("Assessment").SetBackgroundColor(background);
         document.AddParagraph("Plain");
 
-        string html = document.ToHtml(new RtfHtmlSaveOptions {
+        string html = document.ToHtml(new RtfToHtmlOptions {
             NewLine = "\n"
         });
 
@@ -196,7 +196,7 @@ public partial class RtfHtmlConverterTests {
         document.AddParagraph("Multiple")
             .SetLineSpacing(360, multiple: true);
 
-        string html = document.ToHtml(new RtfHtmlSaveOptions {
+        string html = document.ToHtml(new RtfToHtmlOptions {
             NewLine = "\n"
         });
 
@@ -279,7 +279,7 @@ public partial class RtfHtmlConverterTests {
         document.AddParagraph("Assessment").SetOutlineLevel(0);
         document.AddParagraph("Plan").SetOutlineLevel(2).SetAlignment(RtfTextAlignment.Right);
 
-        string html = document.ToHtml(new RtfHtmlSaveOptions {
+        string html = document.ToHtml(new RtfToHtmlOptions {
             NewLine = "\n"
         });
 
@@ -348,7 +348,7 @@ public partial class RtfHtmlConverterTests {
         RtfParagraph after = document.AddParagraph("After");
         after.AddPageBreak();
 
-        string html = document.ToHtml(new RtfHtmlSaveOptions {
+        string html = document.ToHtml(new RtfToHtmlOptions {
             NewLine = "\n"
         });
 

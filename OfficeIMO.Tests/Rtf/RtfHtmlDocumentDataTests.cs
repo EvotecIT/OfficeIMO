@@ -17,7 +17,7 @@ public class RtfHtmlDocumentDataTests {
         document.AddDocumentVariable("Empty", string.Empty);
         document.AddParagraph("Body");
 
-        string html = document.ToHtml(new RtfHtmlSaveOptions {
+        string html = document.ToHtml(new RtfToHtmlOptions {
             FragmentOnly = false,
             NewLine = "\n"
         });

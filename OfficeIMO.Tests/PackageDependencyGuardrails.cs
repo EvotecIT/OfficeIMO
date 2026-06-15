@@ -79,6 +79,16 @@ public sealed class PackageDependencyGuardrailTests {
         Assert.Equal("OfficeIMO.Html", (string?)document.Descendants(ns + "PackageId").Single());
         Assert.Equal("OfficeIMO.Html", (string?)document.Descendants(ns + "AssemblyName").Single());
 
+        var exportedTypeNames = typeof(OfficeIMO.Html.HtmlToRtfOptions)
+            .Assembly
+            .GetExportedTypes()
+            .Select(static type => type.FullName ?? type.Name)
+            .ToArray();
+
+        Assert.Contains("OfficeIMO.Html.HtmlToRtfOptions", exportedTypeNames);
+        Assert.Contains("OfficeIMO.Html.RtfToHtmlOptions", exportedTypeNames);
+        Assert.DoesNotContain(exportedTypeNames, static typeName => typeName.Contains(".RtfHtml", StringComparison.Ordinal));
+
         var projectReferences = document
             .Descendants(ns + "ProjectReference")
             .Select(static e => NormalizeProjectPath((string?)e.Attribute("Include")))

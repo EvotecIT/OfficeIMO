@@ -3,9 +3,9 @@ namespace OfficeIMO.Html;
 /// <content>
 /// Provides file-loading extension methods for converting semantic HTML into RTF documents.
 /// </content>
-public static partial class RtfHtmlConverterExtensions {
+public static partial class HtmlRtfConverterExtensions {
     /// <summary>Loads semantic HTML from a file into an RTF document model.</summary>
-    public static RtfDocument LoadRtfFromHtmlFile(string path, RtfHtmlReadOptions? options = null, Encoding? encoding = null) {
+    public static RtfDocument LoadRtfFromHtmlFile(string path, HtmlToRtfOptions? options = null, Encoding? encoding = null) {
         if (path == null) {
             throw new ArgumentNullException(nameof(path));
         }
@@ -15,7 +15,7 @@ public static partial class RtfHtmlConverterExtensions {
     }
 
     /// <summary>Loads semantic HTML from a file into an RTF document model asynchronously.</summary>
-    public static async Task<RtfDocument> LoadRtfFromHtmlFileAsync(string path, RtfHtmlReadOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
+    public static async Task<RtfDocument> LoadRtfFromHtmlFileAsync(string path, HtmlToRtfOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
         if (path == null) {
             throw new ArgumentNullException(nameof(path));
         }

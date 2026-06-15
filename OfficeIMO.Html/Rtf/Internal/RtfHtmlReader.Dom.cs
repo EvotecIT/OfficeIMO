@@ -4,7 +4,7 @@ using AngleSharp.Html.Dom;
 namespace OfficeIMO.Html;
 
 internal static partial class RtfHtmlReader {
-    private static void ReadDom(string html, RtfHtmlReadOptions options, RtfDocument document) {
+    private static void ReadDom(string html, HtmlToRtfOptions options, RtfDocument document) {
         IHtmlDocument htmlDocument = HtmlDocumentParser.ParseDocument(html);
         Uri? effectiveBaseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(htmlDocument, options.BaseUri);
         var context = new ReadContext(document, options, effectiveBaseUri);
@@ -46,15 +46,15 @@ internal static partial class RtfHtmlReader {
         }
     }
 
-    private static void ThrowLimitExceeded(RtfHtmlReadOptions options, HtmlDomLimitException exception) {
-        var rtfException = new RtfHtmlConversionLimitException(
+    private static void ThrowLimitExceeded(HtmlToRtfOptions options, HtmlDomLimitException exception) {
+        var rtfException = new HtmlRtfConversionLimitException(
             exception.Code,
             exception.Message,
             exception.LimitSource,
             exception.Actual,
             exception.Limit,
             exception.Detail);
-        options.AddDiagnostic(exception.Code, exception.Message, exception.LimitSource, rtfException, RtfHtmlConversionDiagnosticSeverity.Error);
+        options.AddDiagnostic(exception.Code, exception.Message, exception.LimitSource, rtfException, HtmlRtfConversionDiagnosticSeverity.Error);
         throw rtfException;
     }
 }
