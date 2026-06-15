@@ -6,11 +6,18 @@ internal static class RtfBytePreservingEncoding {
         return FromBytes(bytes);
     }
 
+    public static string GetString(byte[] bytes) {
+        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        return FromBytes(bytes);
+    }
+
     public static string ReadToEnd(Stream stream) {
         using var memory = new MemoryStream();
         stream.CopyTo(memory);
         return FromBytes(memory.ToArray());
     }
+
+    public static byte[] GetBytes(string rtf) => ToBytes(rtf);
 
     public static void WriteAllText(string path, string rtf) {
         File.WriteAllBytes(path, ToBytes(rtf));

@@ -115,6 +115,11 @@ public sealed partial class RtfLosslessEditor {
     public string ToRtf() => _syntaxTree.ToRtf();
 
     /// <summary>
+    /// Serializes the edited syntax tree to source-preserving bytes without semantic normalization.
+    /// </summary>
+    public byte[] ToBytesLossless() => RtfBytePreservingEncoding.GetBytes(ToRtf());
+
+    /// <summary>
     /// Saves the edited syntax tree to a file without semantic normalization.
     /// </summary>
     public void SaveLossless(string path) {

@@ -420,6 +420,7 @@ public class RtfLosslessEditorTests {
                 123, 92, 114, 116, 102, 49, 92, 97, 110, 115, 105, 123, 92, 42, 92, 117, 110, 107, 110, 111, 119, 110, 32, 0x80, 125,
                 92, 112, 97, 114, 100, 32, 78, 101, 119, 92, 112, 97, 114, 125
             };
+            Assert.Equal(expected, editor.ToBytesLossless());
             Assert.Equal(expected, output.ToArray());
             Assert.Equal(expected, File.ReadAllBytes(outputPath));
         } finally {

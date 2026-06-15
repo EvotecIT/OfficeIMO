@@ -28,6 +28,11 @@ public sealed class RtfReadResult {
     public string ToRtfLossless() => SyntaxTree.ToRtf();
 
     /// <summary>
+    /// Serializes the original syntax tree to source-preserving bytes without semantic normalization.
+    /// </summary>
+    public byte[] ToBytesLossless() => RtfBytePreservingEncoding.GetBytes(ToRtfLossless());
+
+    /// <summary>
     /// Creates an editor for targeted syntax-preserving changes.
     /// </summary>
     public RtfLosslessEditor EditLossless() => new RtfLosslessEditor(this);

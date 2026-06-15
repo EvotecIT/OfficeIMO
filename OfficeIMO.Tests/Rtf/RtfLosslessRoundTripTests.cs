@@ -40,4 +40,16 @@ public class RtfLosslessRoundTripTests {
             if (File.Exists(outputPath)) File.Delete(outputPath);
         }
     }
+
+    [Fact]
+    public void Load_And_ToBytesLossless_Preserve_Raw_Binary_Bytes() {
+        byte[] bytes = new byte[] {
+            123, 92, 114, 116, 102, 49, 92, 97, 110, 115, 105, 92, 98, 105, 110, 49, 32, 0x80, 125
+        };
+
+        RtfReadResult result = RtfDocument.Load(bytes);
+
+        Assert.Equal(bytes, result.ToBytesLossless());
+        Assert.Equal(@"{\rtf1\ansi\bin1 " + (char)0x80 + "}", result.ToRtfLossless());
+    }
 }

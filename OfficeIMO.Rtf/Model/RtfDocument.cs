@@ -111,6 +111,12 @@ public sealed class RtfDocument {
         return Read(rtf, options);
     }
 
+    /// <summary>Loads RTF from source bytes using the byte-preserving lossless representation.</summary>
+    public static RtfReadResult Load(byte[] bytes, RtfReadOptions? options = null) {
+        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        return Read(RtfBytePreservingEncoding.GetString(bytes), options);
+    }
+
     /// <summary>Loads RTF from a stream.</summary>
     public static RtfReadResult Load(Stream stream, RtfReadOptions? options = null, Encoding? encoding = null) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
