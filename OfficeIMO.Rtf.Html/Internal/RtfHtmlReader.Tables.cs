@@ -70,6 +70,7 @@ internal static partial class RtfHtmlReader {
             _cellTextAlignment = isHeader ? RtfTextAlignment.Center : null;
             ApplyCellStyle(style);
             ApplyCellAttributes(token);
+            ApplyTableCellMetadataAttributes(token);
             if (isHeader) {
                 _bold++;
             }

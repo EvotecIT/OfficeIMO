@@ -64,6 +64,7 @@ internal static partial class RtfHtmlWriter {
             builder.Append('<');
             builder.Append(cellTag);
             AppendCellSpanAttributes(builder, columnSpan, rowSpan);
+            AppendTableCellMetadataAttributes(builder, cell, (cellIndex + 1) * 2400);
             AppendCellStyle(builder, cell, document);
             builder.Append('>');
             for (int i = 0; i < cell.Paragraphs.Count; i++) {
