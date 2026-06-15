@@ -69,6 +69,7 @@ internal static partial class RtfHtmlWriter {
         AddNullableInt(values, prefix + ".foregroundColor", style.ForegroundColorIndex);
         AddNullableInt(values, prefix + ".highlightColor", style.HighlightColorIndex);
         AddParagraphStyle(values, prefix + ".paragraph", style);
+        AddTableStyle(values, prefix + ".table", style);
     }
 
     private static void AddParagraphStyle(Dictionary<string, string> values, string prefix, RtfStyle style) {

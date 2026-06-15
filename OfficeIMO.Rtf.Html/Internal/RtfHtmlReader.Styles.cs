@@ -86,6 +86,7 @@ internal static partial class RtfHtmlReader {
             style.ForegroundColorIndex = ReadInt(values, prefix + ".foregroundColor");
             style.HighlightColorIndex = ReadInt(values, prefix + ".highlightColor");
             ApplyParagraphStyle(values, prefix + ".paragraph", style);
+            ApplyTableStyle(values, prefix + ".table", style);
         }
 
         private static void ApplyParagraphStyle(Dictionary<string, string> values, string prefix, RtfStyle style) {
