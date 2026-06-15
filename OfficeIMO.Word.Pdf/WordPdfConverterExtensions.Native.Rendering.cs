@@ -117,6 +117,10 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             foreach (W.SdtRun pictureControl in GetNativePictureControls(paragraph)) {
+                if (ReferenceEquals(pictureControl, paragraph._stdRun)) {
+                    continue;
+                }
+
                 var pictureParagraph = new WordParagraph(paragraph._document, paragraph._paragraph!, pictureControl);
                 WordImage? inlinePictureControlImage = pictureParagraph.PictureControl?.Image;
                 if (inlinePictureControlImage != null) {
@@ -129,7 +133,7 @@ namespace OfficeIMO.Word.Pdf {
                 RenderNativeRunImages(pdf, runs, objectAlign, options);
             }
 
-            RenderNativeRunCharts(pdf, runs, objectAlign, options);
+            RenderNativeRunCharts(pdf, runs, objectAlign, options, paragraph._run);
 
             string content = paragraph.IsHyperLink && paragraph.Hyperlink != null ? paragraph.Hyperlink.Text : AppendNativeTextWithEquation(paragraph.Text, paragraph);
             bool hasRenderableRuns = runs.Any(run => !run.IsImage && !string.IsNullOrEmpty(run.Text));
@@ -442,8 +446,12 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void RenderNativeRunCharts(INativePdfFlow pdf, IReadOnlyList<WordParagraph> runs, PdfCore.PdfAlign align, PdfSaveOptions? options) {
+        private static void RenderNativeRunCharts(INativePdfFlow pdf, IReadOnlyList<WordParagraph> runs, PdfCore.PdfAlign align, PdfSaveOptions? options, W.Run? currentRun = null) {
             foreach (WordParagraph run in runs) {
+                if (currentRun != null && ReferenceEquals(run._run, currentRun)) {
+                    continue;
+                }
+
                 RenderNativeChart(pdf, run.Chart, align, options, "body paragraph chart run");
             }
         }

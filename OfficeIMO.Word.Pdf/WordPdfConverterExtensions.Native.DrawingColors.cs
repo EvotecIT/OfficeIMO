@@ -28,7 +28,7 @@ namespace OfficeIMO.Word.Pdf {
         private static bool HasNativeDrawingOutlineNoFill(OpenXmlElement? owner) =>
             owner?.GetFirstChild<A.Outline>()?.GetFirstChild<A.NoFill>() != null;
 
-        private static bool TryGetNativeDrawingGradientFill(OpenXmlElement? owner, out OfficeLinearGradient? gradient) {
+        private static bool TryGetNativeDrawingGradientFill(OpenXmlElement? owner, out OfficeLinearGradient? gradient, IReadOnlyDictionary<A.SchemeColorValues, OfficeColor>? themeColors = null) {
             gradient = null;
             A.GradientFill? gradientFill = owner?.GetFirstChild<A.GradientFill>();
             A.GradientStopList? stopList = gradientFill?.GetFirstChild<A.GradientStopList>();
@@ -38,7 +38,7 @@ namespace OfficeIMO.Word.Pdf {
 
             var stops = new List<(double Offset, OfficeColor Color)>();
             foreach (A.GradientStop stop in stopList.Elements<A.GradientStop>()) {
-                if (!TryGetNativeDrawingColor(stop, out OfficeColor color)) {
+                if (!TryGetNativeDrawingColor(stop, out OfficeColor color, themeColors)) {
                     continue;
                 }
 

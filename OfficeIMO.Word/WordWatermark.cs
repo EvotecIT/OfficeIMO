@@ -447,8 +447,29 @@ namespace OfficeIMO.Word {
             string stringValue = value.Trim();
             if (stringValue.EndsWith("pt", StringComparison.OrdinalIgnoreCase)) {
                 stringValue = stringValue.Substring(0, stringValue.Length - 2);
+                return ParseWatermarkStyleNumber(stringValue);
             }
 
+            if (stringValue.EndsWith("in", StringComparison.OrdinalIgnoreCase)) {
+                return ParseWatermarkStyleNumber(stringValue.Substring(0, stringValue.Length - 2)) * 72D;
+            }
+
+            if (stringValue.EndsWith("cm", StringComparison.OrdinalIgnoreCase)) {
+                return ParseWatermarkStyleNumber(stringValue.Substring(0, stringValue.Length - 2)) * 28.3464566929D;
+            }
+
+            if (stringValue.EndsWith("mm", StringComparison.OrdinalIgnoreCase)) {
+                return ParseWatermarkStyleNumber(stringValue.Substring(0, stringValue.Length - 2)) * 2.83464566929D;
+            }
+
+            if (stringValue.EndsWith("px", StringComparison.OrdinalIgnoreCase)) {
+                return ParseWatermarkStyleNumber(stringValue.Substring(0, stringValue.Length - 2)) * 0.75D;
+            }
+
+            return ParseWatermarkStyleNumber(stringValue);
+        }
+
+        private static double? ParseWatermarkStyleNumber(string stringValue) {
             if (double.TryParse(stringValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double result)) {
                 return result;
             }

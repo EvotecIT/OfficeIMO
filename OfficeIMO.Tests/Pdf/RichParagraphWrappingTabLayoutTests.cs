@@ -76,6 +76,23 @@ namespace OfficeIMO.Tests.Pdf {
         }
 
         [Fact]
+        public void WrapRichRuns_ReResolvesExplicitTabStopAfterWrappingTabbedToken() {
+            var result = InvokeWrapRichRuns(new[] {
+                new TextRun("A\tB\tWrapped")
+            }, 115, 12, PdfStandardFont.Helvetica, tabStopWidth: 36, tabStops: new[] {
+                new PdfTabStop(60),
+                new PdfTabStop(120)
+            });
+
+            var lines = ExtractLines(result);
+            Assert.Equal(2, lines.Count);
+            Assert.Equal(new[] { "A", "B" }, lines[0].ConvertAll(ExtractText).ToArray());
+            object wrapped = Assert.Single(lines[1]);
+            Assert.Equal("Wrapped", ExtractText(wrapped));
+            Assert.InRange(ExtractLeadingAdvance(wrapped), 58, 61);
+        }
+
+        [Fact]
         public void WrapRichRuns_OffsetsExplicitTabStopsForFirstLineIndent() {
             var method = typeof(PdfWriter).GetMethod("WrapRichRunsCoreWithFirstLineOrigin", BindingFlags.NonPublic | BindingFlags.Static);
             Assert.NotNull(method);

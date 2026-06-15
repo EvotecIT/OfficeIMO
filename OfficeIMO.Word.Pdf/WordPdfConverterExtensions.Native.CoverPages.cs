@@ -156,11 +156,18 @@ namespace OfficeIMO.Word.Pdf {
                 return false;
             }
 
-            bool rendered = false;
-            if (TryRenderNativeVmlImage(canvas, document, element, box, pageWidth, pageHeight)) {
-                rendered = true;
-            } else if (ShouldRenderNativeVmlShapeFallback(element) && TryCreateNativeVmlShape(element, box.Width, box.Height, out OfficeShape? shape) && shape != null) {
-                if (IsNativeVmlBoxVisibleOnPage(box, pageWidth, pageHeight)) {
+            bool renderedImage = TryRenderNativeVmlImage(canvas, document, element, box, pageWidth, pageHeight);
+            bool rendered = renderedImage;
+            if ((ShouldRenderNativeVmlShapeFallback(element) || renderedImage) &&
+                TryCreateNativeVmlShape(element, box.Width, box.Height, frame, out OfficeShape? shape) &&
+                shape != null) {
+                if (renderedImage) {
+                    shape.FillColor = null;
+                    shape.FillGradient = null;
+                }
+
+                bool hasVisibleFrame = !renderedImage || shape.StrokeColor.HasValue || shape.Shadow != null || shape.Kind == OfficeShapeKind.Line;
+                if (hasVisibleFrame && IsNativeVmlBoxVisibleOnPage(box, pageWidth, pageHeight)) {
                     RenderNativeVmlVisible(canvas, box, pageWidth, pageHeight, target => target.Shape(shape, box.X, box.Y, new PdfCore.PdfDrawingStyle { Decorative = true }));
                     rendered = true;
                 }
@@ -278,12 +285,12 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static bool TryCreateNativeVmlShape(OpenXmlElement element, double width, double height, out OfficeShape? shape) {
+        private static bool TryCreateNativeVmlShape(OpenXmlElement element, double width, double height, NativeVmlFrame frame, out OfficeShape? shape) {
             shape = null;
             string localName = element.LocalName;
             if (localName == "line") {
-                (double x1, double y1) = ParseNativeShapePoint(GetNativeOpenXmlAttribute(element, "from") ?? "0pt,0pt");
-                (double x2, double y2) = ParseNativeShapePoint(GetNativeOpenXmlAttribute(element, "to") ?? (width.ToString(CultureInfo.InvariantCulture) + "pt,0pt"));
+                (double x1, double y1) = ParseNativeShapePoint(GetNativeOpenXmlAttribute(element, "from") ?? "0pt,0pt", frame);
+                (double x2, double y2) = ParseNativeShapePoint(GetNativeOpenXmlAttribute(element, "to") ?? (width.ToString(CultureInfo.InvariantCulture) + "pt,0pt"), frame);
                 double minX = Math.Min(x1, x2);
                 double minY = Math.Min(y1, y2);
                 shape = OfficeShape.Line(x1 - minX, y1 - minY, x2 - minX, y2 - minY);
@@ -1040,8 +1047,14 @@ namespace OfficeIMO.Word.Pdf {
 
             double? xPercent = ResolveNativeVmlPercent(style, "mso-left-percent", pageWidth);
             double? yPercent = ResolveNativeVmlPercent(style, "mso-top-percent", pageHeight);
-            bool hasExplicitX = xPercent.HasValue || style.ContainsKey("left") || style.ContainsKey("margin-left");
-            bool hasExplicitY = yPercent.HasValue || style.ContainsKey("top") || style.ContainsKey("margin-top");
+            bool hasHorizontalPosition = style.ContainsKey("mso-position-horizontal");
+            bool hasVerticalPosition = style.ContainsKey("mso-position-vertical");
+            bool hasExplicitX = xPercent.HasValue ||
+                                HasNativeVmlExplicitPosition(style, "left", hasHorizontalPosition) ||
+                                HasNativeVmlExplicitPosition(style, "margin-left", hasHorizontalPosition);
+            bool hasExplicitY = yPercent.HasValue ||
+                                HasNativeVmlExplicitPosition(style, "top", hasVerticalPosition) ||
+                                HasNativeVmlExplicitPosition(style, "margin-top", hasVerticalPosition);
             double x = xPercent ??
                        ResolveNativeVmlPosition(style.TryGetValue("left", out string? left) ? left : null, frame.Width, frame.CoordWidth, frame.CoordOriginX) ??
                        ResolveNativeVmlPosition(style.TryGetValue("margin-left", out string? marginLeft) ? marginLeft : null, frame.Width, frame.CoordWidth, frame.CoordOriginX) ?? 0D;
@@ -1051,7 +1064,7 @@ namespace OfficeIMO.Word.Pdf {
 
             if (element.LocalName.Equals("line", StringComparison.OrdinalIgnoreCase) &&
                 (width <= 0D || height <= 0D) &&
-                TryGetNativeVmlLineBounds(element, out double lineX, out double lineY, out double lineWidth, out double lineHeight)) {
+                TryGetNativeVmlLineBounds(element, frame, out double lineX, out double lineY, out double lineWidth, out double lineHeight)) {
                 x += lineX;
                 y += lineY;
                 width = Math.Max(width, lineWidth);
@@ -1079,9 +1092,9 @@ namespace OfficeIMO.Word.Pdf {
             return width > 0D && height > 0D;
         }
 
-        private static bool TryGetNativeVmlLineBounds(OpenXmlElement element, out double x, out double y, out double width, out double height) {
-            (double x1, double y1) = ParseNativeShapePoint(GetNativeOpenXmlAttribute(element, "from") ?? "0pt,0pt");
-            (double x2, double y2) = ParseNativeShapePoint(GetNativeOpenXmlAttribute(element, "to") ?? "0pt,0pt");
+        private static bool TryGetNativeVmlLineBounds(OpenXmlElement element, NativeVmlFrame frame, out double x, out double y, out double width, out double height) {
+            (double x1, double y1) = ParseNativeShapePoint(GetNativeOpenXmlAttribute(element, "from") ?? "0pt,0pt", frame);
+            (double x2, double y2) = ParseNativeShapePoint(GetNativeOpenXmlAttribute(element, "to") ?? "0pt,0pt", frame);
             x = Math.Min(x1, x2);
             y = Math.Min(y1, y2);
             width = Math.Abs(x2 - x1);
@@ -1092,6 +1105,32 @@ namespace OfficeIMO.Word.Pdf {
 
             width = Math.Max(width, 0.01D);
             height = Math.Max(height, 0.01D);
+            return true;
+        }
+
+        private static (double X, double Y) ParseNativeShapePoint(string value, NativeVmlFrame frame) {
+            string[] parts = value.Split(',');
+            if (parts.Length != 2) {
+                return (0D, 0D);
+            }
+
+            double x = ResolveNativeVmlPosition(parts[0], frame.Width, frame.CoordWidth, frame.CoordOriginX) ?? 0D;
+            double y = ResolveNativeVmlPosition(parts[1], frame.Height, frame.CoordHeight, frame.CoordOriginY) ?? 0D;
+            return (x, y);
+        }
+
+        private static bool HasNativeVmlExplicitPosition(Dictionary<string, string> style, string key, bool hasRelativePosition) {
+            if (!style.TryGetValue(key, out string? value)) {
+                return false;
+            }
+
+            if (hasRelativePosition) {
+                double? resolved = ResolveNativeVmlPosition(value, 1D, 1D, 0D);
+                if (resolved.HasValue && Math.Abs(resolved.Value) < 0.001D) {
+                    return false;
+                }
+            }
+
             return true;
         }
 

@@ -56,7 +56,8 @@ public sealed class OfficeChartSeries {
     /// <param name="pointColors">Optional source-defined colors aligned with individual values.</param>
     /// <param name="showMarkers">Whether this series should render markers when the chart layout enables them.</param>
     /// <param name="showInLegend">Whether this series should appear in rendered legends.</param>
-    public OfficeChartSeries(string name, IEnumerable<double> values, IEnumerable<double>? xValues, OfficeColor? color, IEnumerable<OfficeColor?>? pointColors, bool showMarkers, bool showInLegend = true) {
+    /// <param name="connectLine">Whether this series should render connecting line segments when the chart family supports them.</param>
+    public OfficeChartSeries(string name, IEnumerable<double> values, IEnumerable<double>? xValues, OfficeColor? color, IEnumerable<OfficeColor?>? pointColors, bool showMarkers, bool showInLegend = true, bool connectLine = true) {
         if (values == null) {
             throw new ArgumentNullException(nameof(values));
         }
@@ -73,6 +74,7 @@ public sealed class OfficeChartSeries {
         Color = color;
         ShowMarkers = showMarkers;
         ShowInLegend = showInLegend;
+        ConnectLine = connectLine;
         if (pointColors != null) {
             PointColors = new ReadOnlyCollection<OfficeColor?>(new List<OfficeColor?>(pointColors));
             if (PointColors.Count != Values.Count) {
@@ -101,4 +103,7 @@ public sealed class OfficeChartSeries {
 
     /// <summary>Whether this series should appear in rendered legends.</summary>
     public bool ShowInLegend { get; }
+
+    /// <summary>Whether this series should render connecting line segments when the chart family supports them.</summary>
+    public bool ConnectLine { get; }
 }

@@ -924,11 +924,12 @@ public partial class Word {
             new DocumentFormat.OpenXml.Vml.Rectangle(),
             120D,
             60D,
+            CreateNativeVmlFrame(120D, 60D),
             null
         };
 
         bool result = (bool)method.Invoke(null, arguments)!;
-        OfficeShape shape = Assert.IsType<OfficeShape>(arguments[3]);
+        OfficeShape shape = Assert.IsType<OfficeShape>(arguments[4]);
 
         Assert.True(result);
         Assert.Equal(OfficeColor.White, shape.FillColor);
@@ -943,11 +944,12 @@ public partial class Word {
             },
             120D,
             60D,
+            CreateNativeVmlFrame(120D, 60D),
             null
         };
 
         bool result = (bool)method.Invoke(null, arguments)!;
-        OfficeShape shape = Assert.IsType<OfficeShape>(arguments[3]);
+        OfficeShape shape = Assert.IsType<OfficeShape>(arguments[4]);
 
         Assert.True(result);
         Assert.Null(shape.FillColor);
@@ -964,15 +966,26 @@ public partial class Word {
             },
             120D,
             60D,
+            CreateNativeVmlFrame(120D, 60D),
             null
         };
 
         bool result = (bool)method.Invoke(null, arguments)!;
-        OfficeShape shape = Assert.IsType<OfficeShape>(arguments[3]);
+        OfficeShape shape = Assert.IsType<OfficeShape>(arguments[4]);
 
         Assert.True(result);
         Assert.Null(shape.StrokeColor);
         Assert.Equal(0D, shape.StrokeWidth);
+    }
+
+    private static object CreateNativeVmlFrame(double width, double height) {
+        Type frameType = typeof(WordPdfConverterExtensions).GetNestedType("NativeVmlFrame", BindingFlags.NonPublic)!;
+        return Activator.CreateInstance(
+            frameType,
+            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
+            binder: null,
+            args: new object[] { 0D, 0D, width, height, width, height, 0D, 0D },
+            culture: null)!;
     }
 
     [Fact]

@@ -191,7 +191,7 @@ namespace OfficeIMO.Word.Pdf {
             HashSet<uint> hiddenLegendIndexes = GetNativeWordHiddenLegendIndexes(chart);
 
             int seriesIndex = 0;
-            foreach (OpenXmlElement seriesElement in chartElement.ChildElements.Where(element => element.LocalName == "ser")) {
+            foreach ((OpenXmlElement seriesElement, int originalSeriesIndex) in GetNativeWordOrderedSeriesElements(chartElement)) {
                 IReadOnlyList<double> values;
                 IReadOnlyList<double>? xValues = null;
                 IReadOnlyList<string> currentCategories;
@@ -240,7 +240,8 @@ namespace OfficeIMO.Word.Pdf {
                     null,
                     pointColors,
                     !IsNativeWordChartSeriesMarkerHidden(seriesElement),
-                    !hiddenLegendIndexes.Contains((uint)seriesIndex)));
+                    !hiddenLegendIndexes.Contains((uint)originalSeriesIndex),
+                    !IsNativeWordLineLikeChart(chartKind) || !HasNativeDrawingOutlineNoFill(seriesElement.GetFirstChild<ChartShapeProperties>())));
                 seriesIndex++;
             }
 
@@ -405,6 +406,21 @@ namespace OfficeIMO.Word.Pdf {
             return false;
         }
 
+        private static IEnumerable<(OpenXmlElement SeriesElement, int OriginalSeriesIndex)> GetNativeWordOrderedSeriesElements(OpenXmlElement chartElement) {
+            return chartElement.ChildElements
+                .Where(element => element.LocalName == "ser")
+                .Select((element, index) => (SeriesElement: element, OriginalSeriesIndex: index, Order: GetNativeWordChartSeriesOrder(element, index)))
+                .OrderBy(item => item.Order)
+                .ThenBy(item => item.OriginalSeriesIndex)
+                .Select(item => (item.SeriesElement, item.OriginalSeriesIndex));
+        }
+
+        private static int GetNativeWordChartSeriesOrder(OpenXmlElement seriesElement, int fallback) {
+            OpenXmlElement? order = seriesElement.ChildElements.FirstOrDefault(element => element.LocalName == "order");
+            string? value = order == null ? null : GetNativeOpenXmlAttribute(order, "val");
+            return int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsed) ? parsed : fallback;
+        }
+
         private static string GetNativeWordChartSeriesName(OpenXmlElement seriesElement, int index) {
             string? name = GetFirstNativeWordChartText(seriesElement.Elements<SeriesText>().FirstOrDefault());
             return string.IsNullOrWhiteSpace(name)
@@ -496,7 +512,7 @@ namespace OfficeIMO.Word.Pdf {
                 }
             } else {
                 int index = 0;
-                foreach (OpenXmlElement seriesElement in chartElement.ChildElements.Where(element => element.LocalName == "ser" && IsNativeWordChartSeriesRenderable(element, chartKind))) {
+                foreach ((OpenXmlElement seriesElement, _) in GetNativeWordOrderedSeriesElements(chartElement).Where(item => IsNativeWordChartSeriesRenderable(item.SeriesElement, chartKind))) {
                     if (index >= palette.Count) {
                         break;
                     }
@@ -631,6 +647,25 @@ namespace OfficeIMO.Word.Pdf {
             return false;
         }
 
+        private static bool HasNativeWordChartAxisLineNoFill<TAxis>(OpenXmlElement chartElement, PlotArea plotArea)
+            where TAxis : OpenXmlElement {
+            var chartAxisIds = new HashSet<uint>(
+                chartElement.Elements<AxisId>()
+                    .Select(axis => axis.Val?.Value)
+                    .Where(value => value.HasValue)
+                    .Select(value => value!.Value));
+
+            foreach (TAxis axis in plotArea.Elements<TAxis>()) {
+                uint? axisId = axis.GetFirstChild<AxisId>()?.Val?.Value;
+                if (axisId.HasValue && chartAxisIds.Contains(axisId.Value)) {
+                    return HasNativeDrawingOutlineNoFill(axis.GetFirstChild<ChartShapeProperties>());
+                }
+            }
+
+            TAxis? fallback = plotArea.Elements<TAxis>().FirstOrDefault();
+            return HasNativeDrawingOutlineNoFill(fallback?.GetFirstChild<ChartShapeProperties>());
+        }
+
         private static OfficeColor? GetNativeWordChartMajorGridLineColor(OpenXmlElement chartElement, PlotArea plotArea, IReadOnlyDictionary<A.SchemeColorValues, OfficeColor> themeColors) {
             var chartAxisIds = new HashSet<uint>(
                 chartElement.Elements<AxisId>()
@@ -668,8 +703,9 @@ namespace OfficeIMO.Word.Pdf {
                 uint? axisId = axis.AxisId?.Val?.Value;
                 if (axisId.HasValue && chartAxisIds.Contains(axisId.Value)) {
                     hasMatchingValueAxis = true;
-                    if (axis.GetFirstChild<MajorGridlines>() != null) {
-                        return true;
+                    MajorGridlines? gridlines = axis.GetFirstChild<MajorGridlines>();
+                    if (gridlines != null) {
+                        return !HasNativeDrawingOutlineNoFill(gridlines.GetFirstChild<ChartShapeProperties>());
                     }
                 }
             }
@@ -681,8 +717,9 @@ namespace OfficeIMO.Word.Pdf {
             bool hasAnyValueAxis = false;
             foreach (ValueAxis axis in plotArea.Elements<ValueAxis>()) {
                 hasAnyValueAxis = true;
-                if (axis.GetFirstChild<MajorGridlines>() != null) {
-                    return true;
+                MajorGridlines? gridlines = axis.GetFirstChild<MajorGridlines>();
+                if (gridlines != null) {
+                    return !HasNativeDrawingOutlineNoFill(gridlines.GetFirstChild<ChartShapeProperties>());
                 }
             }
 
@@ -737,10 +774,10 @@ namespace OfficeIMO.Word.Pdf {
         private static OfficeChartLayout? CreateNativeWordChartLayout(Chart chart, OpenXmlElement chartElement, PlotArea plotArea, OfficeChartKind chartKind, int categoryCount) {
             NativeWordChartDataLabelState dataLabels = GetNativeWordChartDataLabels(chartElement, chartKind);
             DataLabels? labels = dataLabels.Labels;
-            bool showValue = HasNativeWordChartDataLabelFlag<ShowValue>(labels);
-            bool showPercent = labels != null && IsNativeWordPieLikeChart(chartKind) && HasNativeWordChartDataLabelFlag<ShowPercent>(labels);
-            bool showCategoryName = HasNativeWordChartDataLabelFlag<ShowCategoryName>(labels);
-            bool showSeriesName = HasNativeWordChartDataLabelFlag<ShowSeriesName>(labels);
+            bool showValue = dataLabels.ShowValue || HasNativeWordChartDataLabelFlag<ShowValue>(labels);
+            bool showPercent = labels != null && IsNativeWordPieLikeChart(chartKind) && (dataLabels.ShowPercent || HasNativeWordChartDataLabelFlag<ShowPercent>(labels));
+            bool showCategoryName = dataLabels.ShowCategoryName || HasNativeWordChartDataLabelFlag<ShowCategoryName>(labels);
+            bool showSeriesName = dataLabels.ShowSeriesName || HasNativeWordChartDataLabelFlag<ShowSeriesName>(labels);
             bool showDataLabels = showValue || showPercent || showCategoryName || showSeriesName;
             bool showLegend = HasNativeWordChartLegend(chart);
             OfficeChartLegendPosition legendPosition = GetNativeWordChartLegendPosition(chart);
@@ -757,6 +794,11 @@ namespace OfficeIMO.Word.Pdf {
             bool fillRadarSeries = chartKind != OfficeChartKind.Radar || IsNativeWordFilledRadar(chartElement, chartKind);
             bool showCategoryAxis = IsNativeWordChartCategoryAxisVisible(chartElement, plotArea, chartKind);
             bool showValueAxis = IsNativeWordChartValueAxisVisible(chartElement, plotArea, chartKind);
+            bool showCategoryAxisLine = showCategoryAxis && !HasNativeWordChartAxisLineNoFill<CategoryAxis>(chartElement, plotArea);
+            bool showValueAxisLine = showValueAxis && !HasNativeWordChartAxisLineNoFill<ValueAxis>(chartElement, plotArea);
+            bool showCategoryAxisLabels = showCategoryAxis && IsNativeWordChartCategoryAxisLabelsVisible(chartElement, plotArea, chartKind);
+            bool showValueAxisLabels = showValueAxis && IsNativeWordChartValueAxisLabelsVisible(chartElement, plotArea, chartKind);
+            bool overlayTitle = IsNativeWordChartTitleOverlay(chart);
             if (chartKind == OfficeChartKind.Scatter) {
                 NativeWordScatterAxisMetadata scatterAxisMetadata = GetNativeWordScatterAxisMetadata(chartElement, plotArea);
                 horizontalAxisNumberFormat = scatterAxisMetadata.HorizontalNumberFormat ?? axisNumberFormat;
@@ -766,6 +808,10 @@ namespace OfficeIMO.Word.Pdf {
                 valueAxisTitle = scatterAxisMetadata.VerticalTitle ?? valueAxisTitle;
                 showCategoryAxis = scatterAxisMetadata.HorizontalVisible;
                 showValueAxis = scatterAxisMetadata.VerticalVisible;
+                showCategoryAxisLine = scatterAxisMetadata.HorizontalLineVisible;
+                showValueAxisLine = scatterAxisMetadata.VerticalLineVisible;
+                showCategoryAxisLabels = scatterAxisMetadata.HorizontalLabelsVisible;
+                showValueAxisLabels = scatterAxisMetadata.VerticalLabelsVisible;
             }
             int? maximumCategoryAxisLabels = null;
             int? maximumHorizontalCategoryAxisLabels = null;
@@ -796,7 +842,12 @@ namespace OfficeIMO.Word.Pdf {
                 connectScatterPoints &&
                 fillRadarSeries &&
                 showCategoryAxis &&
-                showValueAxis) {
+                showValueAxis &&
+                showCategoryAxisLine &&
+                showValueAxisLine &&
+                showCategoryAxisLabels &&
+                showValueAxisLabels &&
+                !overlayTitle) {
                 return null;
             }
 
@@ -825,7 +876,12 @@ namespace OfficeIMO.Word.Pdf {
                 connectScatterPoints: connectScatterPoints,
                 fillRadarSeries: fillRadarSeries,
                 showCategoryAxis: showCategoryAxis,
-                showValueAxis: showValueAxis) {
+                showValueAxis: showValueAxis,
+                showCategoryAxisLine: showCategoryAxisLine,
+                showValueAxisLine: showValueAxisLine,
+                showCategoryAxisLabels: showCategoryAxisLabels,
+                showValueAxisLabels: showValueAxisLabels,
+                overlayTitle: overlayTitle) {
                 DataLabelSeriesIndexes = dataLabels.SeriesIndexes,
                 DataLabelPointIndexes = dataLabels.PointIndexes,
                 HiddenDataLabelPointIndexes = dataLabels.HiddenPointIndexes
@@ -841,13 +897,27 @@ namespace OfficeIMO.Word.Pdf {
             chartElement.GetFirstChild<RadarStyle>()?.Val?.Value == RadarStyleValues.Filled;
 
         private readonly struct NativeWordScatterAxisMetadata {
-            public NativeWordScatterAxisMetadata(string? horizontalNumberFormat, string? verticalNumberFormat, string? horizontalTitle, string? verticalTitle, bool horizontalVisible, bool verticalVisible) {
+            public NativeWordScatterAxisMetadata(
+                string? horizontalNumberFormat,
+                string? verticalNumberFormat,
+                string? horizontalTitle,
+                string? verticalTitle,
+                bool horizontalVisible,
+                bool verticalVisible,
+                bool horizontalLineVisible,
+                bool verticalLineVisible,
+                bool horizontalLabelsVisible,
+                bool verticalLabelsVisible) {
                 HorizontalNumberFormat = horizontalNumberFormat;
                 VerticalNumberFormat = verticalNumberFormat;
                 HorizontalTitle = horizontalTitle;
                 VerticalTitle = verticalTitle;
                 HorizontalVisible = horizontalVisible;
                 VerticalVisible = verticalVisible;
+                HorizontalLineVisible = horizontalLineVisible;
+                VerticalLineVisible = verticalLineVisible;
+                HorizontalLabelsVisible = horizontalLabelsVisible;
+                VerticalLabelsVisible = verticalLabelsVisible;
             }
 
             public string? HorizontalNumberFormat { get; }
@@ -856,6 +926,10 @@ namespace OfficeIMO.Word.Pdf {
             public string? VerticalTitle { get; }
             public bool HorizontalVisible { get; }
             public bool VerticalVisible { get; }
+            public bool HorizontalLineVisible { get; }
+            public bool VerticalLineVisible { get; }
+            public bool HorizontalLabelsVisible { get; }
+            public bool VerticalLabelsVisible { get; }
         }
 
         private static NativeWordScatterAxisMetadata GetNativeWordScatterAxisMetadata(OpenXmlElement chartElement, PlotArea plotArea) {
@@ -871,7 +945,11 @@ namespace OfficeIMO.Word.Pdf {
                 horizontalAxis == null ? null : GetNativeWordChartAxisTitle(horizontalAxis),
                 verticalAxis == null ? null : GetNativeWordChartAxisTitle(verticalAxis),
                 !IsNativeWordChartAxisDeleted(horizontalAxis),
-                !IsNativeWordChartAxisDeleted(verticalAxis));
+                !IsNativeWordChartAxisDeleted(verticalAxis),
+                !IsNativeWordChartAxisDeleted(horizontalAxis) && !HasNativeDrawingOutlineNoFill(horizontalAxis?.GetFirstChild<ChartShapeProperties>()),
+                !IsNativeWordChartAxisDeleted(verticalAxis) && !HasNativeDrawingOutlineNoFill(verticalAxis?.GetFirstChild<ChartShapeProperties>()),
+                !IsNativeWordChartAxisDeleted(horizontalAxis) && !IsNativeWordChartTickLabelsHidden(horizontalAxis),
+                !IsNativeWordChartAxisDeleted(verticalAxis) && !IsNativeWordChartTickLabelsHidden(verticalAxis));
         }
 
         private static string? GetNativeWordChartCategoryAxisTitle(OpenXmlElement chartElement, PlotArea plotArea) =>
@@ -958,6 +1036,41 @@ namespace OfficeIMO.Word.Pdf {
 
         private static bool IsNativeWordChartAxisDeleted(OpenXmlElement? axis) =>
             axis != null && IsNativeWordChartBooleanOn(axis.GetFirstChild<Delete>());
+
+        private static bool IsNativeWordChartCategoryAxisLabelsVisible(OpenXmlElement chartElement, PlotArea plotArea, OfficeChartKind chartKind) {
+            if (chartKind == OfficeChartKind.Radar || IsNativeWordPieLikeChart(chartKind)) {
+                return true;
+            }
+
+            foreach (uint axisId in GetNativeWordChartAxisIds(chartElement)) {
+                CategoryAxis? axis = GetNativeWordChartCategoryAxis(plotArea, axisId);
+                if (axis != null) {
+                    return !IsNativeWordChartTickLabelsHidden(axis);
+                }
+            }
+
+            return !IsNativeWordChartTickLabelsHidden(plotArea.Elements<CategoryAxis>().FirstOrDefault());
+        }
+
+        private static bool IsNativeWordChartValueAxisLabelsVisible(OpenXmlElement chartElement, PlotArea plotArea, OfficeChartKind chartKind) {
+            if (chartKind == OfficeChartKind.Radar || IsNativeWordPieLikeChart(chartKind)) {
+                return true;
+            }
+
+            foreach (uint axisId in GetNativeWordChartAxisIds(chartElement)) {
+                ValueAxis? axis = GetNativeWordChartValueAxis(plotArea, axisId);
+                if (axis != null) {
+                    return !IsNativeWordChartTickLabelsHidden(axis);
+                }
+            }
+
+            return !IsNativeWordChartTickLabelsHidden(plotArea.Elements<ValueAxis>().FirstOrDefault());
+        }
+
+        private static bool IsNativeWordChartTickLabelsHidden(OpenXmlElement? axis) {
+            OpenXmlElement? position = axis?.ChildElements.FirstOrDefault(element => element.LocalName == "tickLblPos");
+            return position != null && string.Equals(GetNativeOpenXmlAttribute(position, "val"), "none", StringComparison.OrdinalIgnoreCase);
+        }
 
         private static string? GetNativeWordChartAxisNumberFormat(ValueAxis? axis) {
             string? format = axis?.GetFirstChild<NumberingFormat>()?.FormatCode?.Value;
@@ -1137,6 +1250,10 @@ namespace OfficeIMO.Word.Pdf {
             public IReadOnlyCollection<int>? SeriesIndexes { get; set; }
             public IReadOnlyDictionary<int, IReadOnlyCollection<int>>? PointIndexes { get; set; }
             public IReadOnlyDictionary<int, IReadOnlyCollection<int>>? HiddenPointIndexes { get; set; }
+            public bool ShowValue { get; set; }
+            public bool ShowPercent { get; set; }
+            public bool ShowCategoryName { get; set; }
+            public bool ShowSeriesName { get; set; }
         }
 
         private static NativeWordChartDataLabelState GetNativeWordChartDataLabels(OpenXmlElement chartElement, OfficeChartKind chartKind) {
@@ -1145,6 +1262,10 @@ namespace OfficeIMO.Word.Pdf {
             DataLabels? chartLabels = chartElement.GetFirstChild<DataLabels>();
             if (chartLabels != null) {
                 state.Labels = chartLabels;
+                state.ShowValue = HasNativeWordChartDataLabelFlag<ShowValue>(chartLabels);
+                state.ShowPercent = HasNativeWordChartDataLabelFlag<ShowPercent>(chartLabels);
+                state.ShowCategoryName = HasNativeWordChartDataLabelFlag<ShowCategoryName>(chartLabels);
+                state.ShowSeriesName = HasNativeWordChartDataLabelFlag<ShowSeriesName>(chartLabels);
                 bool chartWideLabels = HasNativeWordChartDataLabelFlags(chartLabels);
                 Dictionary<int, IReadOnlyCollection<int>>? visiblePoints = GetNativeWordChartDataLabelPointIndexes(chartLabels, renderableSeriesIndexes, deleted: false);
                 Dictionary<int, IReadOnlyCollection<int>>? hiddenPoints = GetNativeWordChartDataLabelPointIndexes(chartLabels, renderableSeriesIndexes, deleted: true);
@@ -1157,16 +1278,22 @@ namespace OfficeIMO.Word.Pdf {
             var pointIndexes = new Dictionary<int, IReadOnlyCollection<int>>();
             var hiddenPointIndexes = new Dictionary<int, IReadOnlyCollection<int>>();
             int seriesIndex = 0;
-            foreach (OpenXmlElement seriesElement in chartElement.ChildElements.Where(element => element.LocalName == "ser")) {
+            foreach ((OpenXmlElement seriesElement, _) in GetNativeWordOrderedSeriesElements(chartElement)) {
                 if (!IsNativeWordChartSeriesRenderable(seriesElement, chartKind)) {
                     continue;
                 }
 
                 DataLabels? labels = seriesElement.GetFirstChild<DataLabels>();
                 if (labels != null) {
-                    state.Labels ??= labels;
                     if (HasNativeWordChartDataLabelFlags(labels)) {
+                        state.Labels = labels;
+                        state.ShowValue |= HasNativeWordChartDataLabelFlag<ShowValue>(labels);
+                        state.ShowPercent |= HasNativeWordChartDataLabelFlag<ShowPercent>(labels);
+                        state.ShowCategoryName |= HasNativeWordChartDataLabelFlag<ShowCategoryName>(labels);
+                        state.ShowSeriesName |= HasNativeWordChartDataLabelFlag<ShowSeriesName>(labels);
                         seriesIndexes.Add(seriesIndex);
+                    } else {
+                        state.Labels ??= labels;
                     }
 
                     AddNativeWordChartDataLabelPointIndexes(labels, seriesIndex, pointIndexes, deleted: false);
@@ -1245,6 +1372,9 @@ namespace OfficeIMO.Word.Pdf {
 
         private static bool IsNativeWordChartLegendOverlay(Chart chart) =>
             IsNativeWordChartBooleanOn(chart.GetFirstChild<Legend>()?.GetFirstChild<Overlay>());
+
+        private static bool IsNativeWordChartTitleOverlay(Chart chart) =>
+            IsNativeWordChartBooleanOn(chart.Title?.GetFirstChild<Overlay>());
 
         private static bool IsNativeWordChartBooleanOn(BooleanType? value) =>
             value != null && (value.Val == null || value.Val.Value);

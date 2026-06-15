@@ -47,6 +47,11 @@ public sealed class OfficeChartLayout {
     /// <param name="fillRadarSeries">Whether radar series polygons should be filled.</param>
     /// <param name="showCategoryAxis">Whether the category or horizontal axis should be rendered.</param>
     /// <param name="showValueAxis">Whether the value or vertical axis should be rendered.</param>
+    /// <param name="showCategoryAxisLine">Whether the category or horizontal axis line should be rendered.</param>
+    /// <param name="showValueAxisLine">Whether the value or vertical axis line should be rendered.</param>
+    /// <param name="showCategoryAxisLabels">Whether category or horizontal tick labels should be rendered.</param>
+    /// <param name="showValueAxisLabels">Whether value or vertical tick labels should be rendered.</param>
+    /// <param name="overlayTitle">Whether the title should overlay the plot instead of reserving layout space.</param>
     public OfficeChartLayout(
         double? seriesLegendWidthRatio = null,
         double? categoryLegendWidthRatio = null,
@@ -81,7 +86,12 @@ public sealed class OfficeChartLayout {
         bool connectScatterPoints = true,
         bool fillRadarSeries = true,
         bool showCategoryAxis = true,
-        bool showValueAxis = true)
+        bool showValueAxis = true,
+        bool showCategoryAxisLine = true,
+        bool showValueAxisLine = true,
+        bool showCategoryAxisLabels = true,
+        bool showValueAxisLabels = true,
+        bool overlayTitle = false)
         : this(
             overlayLegend: false,
             seriesLegendWidthRatio: seriesLegendWidthRatio,
@@ -117,7 +127,12 @@ public sealed class OfficeChartLayout {
             connectScatterPoints: connectScatterPoints,
             fillRadarSeries: fillRadarSeries,
             showCategoryAxis: showCategoryAxis,
-            showValueAxis: showValueAxis) {
+            showValueAxis: showValueAxis,
+            showCategoryAxisLine: showCategoryAxisLine,
+            showValueAxisLine: showValueAxisLine,
+            showCategoryAxisLabels: showCategoryAxisLabels,
+            showValueAxisLabels: showValueAxisLabels,
+            overlayTitle: overlayTitle) {
     }
 
     /// <summary>
@@ -158,6 +173,11 @@ public sealed class OfficeChartLayout {
     /// <param name="fillRadarSeries">Whether radar series polygons should be filled.</param>
     /// <param name="showCategoryAxis">Whether the category or horizontal axis should be rendered.</param>
     /// <param name="showValueAxis">Whether the value or vertical axis should be rendered.</param>
+    /// <param name="showCategoryAxisLine">Whether the category or horizontal axis line should be rendered.</param>
+    /// <param name="showValueAxisLine">Whether the value or vertical axis line should be rendered.</param>
+    /// <param name="showCategoryAxisLabels">Whether category or horizontal tick labels should be rendered.</param>
+    /// <param name="showValueAxisLabels">Whether value or vertical tick labels should be rendered.</param>
+    /// <param name="overlayTitle">Whether the title should overlay the plot instead of reserving layout space.</param>
     public OfficeChartLayout(
         bool overlayLegend,
         double? seriesLegendWidthRatio = null,
@@ -193,7 +213,12 @@ public sealed class OfficeChartLayout {
         bool connectScatterPoints = true,
         bool fillRadarSeries = true,
         bool showCategoryAxis = true,
-        bool showValueAxis = true) {
+        bool showValueAxis = true,
+        bool showCategoryAxisLine = true,
+        bool showValueAxisLine = true,
+        bool showCategoryAxisLabels = true,
+        bool showValueAxisLabels = true,
+        bool overlayTitle = false) {
         SeriesLegendWidthRatio = ValidateRatio(seriesLegendWidthRatio ?? 0.34D, nameof(seriesLegendWidthRatio));
         CategoryLegendWidthRatio = ValidateRatio(categoryLegendWidthRatio ?? 0.38D, nameof(categoryLegendWidthRatio));
         LegendRowHeight = ValidatePositiveFinite(legendRowHeight ?? 12D, nameof(legendRowHeight));
@@ -229,6 +254,11 @@ public sealed class OfficeChartLayout {
         FillRadarSeries = fillRadarSeries;
         ShowCategoryAxis = showCategoryAxis;
         ShowValueAxis = showValueAxis;
+        ShowCategoryAxisLine = showCategoryAxis && showCategoryAxisLine;
+        ShowValueAxisLine = showValueAxis && showValueAxisLine;
+        ShowCategoryAxisLabels = showCategoryAxis && showCategoryAxisLabels;
+        ShowValueAxisLabels = showValueAxis && showValueAxisLabels;
+        OverlayTitle = overlayTitle;
     }
 
     /// <summary>Default premium OfficeIMO chart layout.</summary>
@@ -347,6 +377,21 @@ public sealed class OfficeChartLayout {
 
     /// <summary>Whether the value or vertical axis should be rendered.</summary>
     public bool ShowValueAxis { get; }
+
+    /// <summary>Whether the category or horizontal axis line should be rendered.</summary>
+    public bool ShowCategoryAxisLine { get; }
+
+    /// <summary>Whether the value or vertical axis line should be rendered.</summary>
+    public bool ShowValueAxisLine { get; }
+
+    /// <summary>Whether category or horizontal tick labels should be rendered.</summary>
+    public bool ShowCategoryAxisLabels { get; }
+
+    /// <summary>Whether value or vertical tick labels should be rendered.</summary>
+    public bool ShowValueAxisLabels { get; }
+
+    /// <summary>Whether the chart title should overlay the plot area instead of reserving a title band.</summary>
+    public bool OverlayTitle { get; }
 
     private static double ValidateRatio(double value, string paramName) {
         ValidatePositiveFinite(value, paramName);

@@ -533,6 +533,16 @@ internal static partial class PdfWriter {
             return explicitTabStops[nextExplicitTabStopIndex++];
         }
 
+        void ResolvePendingLeadingTabForCurrentLine(double followingTextWidth, double spaceW, string followingText, PdfStandardFont followingFont, double followingFontSize, PdfTextBaseline followingBaseline) {
+            PdfTabAlignment fallbackAlignment = pendingLeadingTabAlignment;
+            PdfTabLeaderStyle fallbackLeader = pendingLeadingTabLeader;
+            PdfTabStop? explicitTabStop = ResolveNextExplicitTabStop();
+            pendingLeadingTabAlignment = explicitTabStop?.Alignment ?? fallbackAlignment;
+            pendingLeadingTabLeader = explicitTabStop?.Leader ?? fallbackLeader;
+            pendingLeadingTabStop = explicitTabStop;
+            pendingLeadingAdvance = CalculateTabAdvance(lineWidth, followingTextWidth, spaceW, pendingLeadingTabAlignment, tabStopWidth, followingText, followingFont, followingFontSize, followingBaseline, options, CurrentMaxWidth(), pendingLeadingTabStop, CurrentLineOriginOffset());
+        }
+
         void ResetPendingLeading() {
             pendingLeadingAdvance = 0;
             pendingLeadingIsExpandable = true;
@@ -683,7 +693,7 @@ internal static partial class PdfWriter {
                 if (lineWidth + needed > currentMaxWidth && lastLine.Count > 0) {
                     StartNewLine();
                     if (token.Length > 0 && pendingLeadingIsTab) {
-                        pendingLeadingAdvance = CalculateTabAdvance(lineWidth, tokenW, spaceW, pendingLeadingTabAlignment, tabStopWidth, token, fontForRun, runFontSize, baseline, options, CurrentMaxWidth(), pendingLeadingTabStop, CurrentLineOriginOffset());
+                        ResolvePendingLeadingTabForCurrentLine(tokenW, spaceW, token, fontForRun, runFontSize, baseline);
                     }
                 }
                 if (token.Length > 0) {

@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
 using A = DocumentFormat.OpenXml.Drawing;
 using W = DocumentFormat.OpenXml.Wordprocessing;
@@ -59,8 +61,14 @@ namespace OfficeIMO.Word.Pdf {
                 return null;
             }
 
-            ApplyNativeShapeStyle(nativeShape, shape);
+            IReadOnlyDictionary<A.SchemeColorValues, OfficeColor> themeColors = GetNativeDrawingThemeColors(GetNativeShapeSourcePart(shape));
+            ApplyNativeShapeStyle(nativeShape, shape, themeColors);
             return nativeShape;
+        }
+
+        private static OpenXmlPart? GetNativeShapeSourcePart(WordShape shape) {
+            OpenXmlPartRootElement? root = shape.Run?.Ancestors<OpenXmlPartRootElement>().FirstOrDefault();
+            return root?.OpenXmlPart;
         }
 
         private static (double Width, double Height)? GetNativeShapeDimensions(WordShape shape) {
@@ -407,12 +415,12 @@ namespace OfficeIMO.Word.Pdf {
             return true;
         }
 
-        private static void ApplyNativeShapeStyle(OfficeShape nativeShape, WordShape wordShape) {
+        private static void ApplyNativeShapeStyle(OfficeShape nativeShape, WordShape wordShape, IReadOnlyDictionary<A.SchemeColorValues, OfficeColor> themeColors) {
             Wps.ShapeProperties? shapeProperties = wordShape._wpsShape?.GetFirstChild<Wps.ShapeProperties>();
             if (nativeShape.Kind != OfficeShapeKind.Line) {
-                if (TryGetNativeDrawingGradientFill(shapeProperties, out OfficeLinearGradient? drawingGradient)) {
+                if (TryGetNativeDrawingGradientFill(shapeProperties, out OfficeLinearGradient? drawingGradient, themeColors)) {
                     nativeShape.FillGradient = drawingGradient;
-                } else if (TryGetNativeDrawingSolidFillColor(shapeProperties, out OfficeColor drawingFill)) {
+                } else if (TryGetNativeDrawingSolidFillColor(shapeProperties, out OfficeColor drawingFill, themeColors)) {
                     nativeShape.FillColor = drawingFill;
                 } else {
                     PdfCore.PdfColor? fill = ParseNativeColor(wordShape.FillColorHex);
@@ -432,7 +440,7 @@ namespace OfficeIMO.Word.Pdf {
             bool drawingOutlineNoFill = drawingOutline?.GetFirstChild<A.NoFill>() != null;
             bool hasDrawingStroke = drawingOutline != null && !drawingOutlineNoFill;
             OfficeColor drawingStroke = default;
-            bool hasDrawingStrokeColor = hasDrawingStroke && TryGetNativeDrawingSolidFillColor(drawingOutline, out drawingStroke);
+            bool hasDrawingStrokeColor = hasDrawingStroke && TryGetNativeDrawingSolidFillColor(drawingOutline, out drawingStroke, themeColors);
             bool drawStroke = !drawingOutlineNoFill &&
                               (nativeShape.Kind == OfficeShapeKind.Line ||
                                wordShape.Stroked == true ||

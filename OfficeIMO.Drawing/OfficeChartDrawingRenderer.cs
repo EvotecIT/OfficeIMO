@@ -37,7 +37,9 @@ public static partial class OfficeChartDrawingRenderer {
                 new OfficeFontInfo(style.FontFamily, Math.Min(12D, Math.Max(8D, titleHeight - 7D)), OfficeFontStyle.Bold),
                 style.TitleColor,
                 OfficeTextAlignment.Center);
-            contentTop = titleHeight;
+            if (!layout.OverlayTitle) {
+                contentTop = titleHeight;
+            }
         }
 
         if (IsPieChart(snapshot.ChartKind) || IsDoughnutChart(snapshot.ChartKind)) {
@@ -61,8 +63,8 @@ public static partial class OfficeChartDrawingRenderer {
         }
 
         bool barChart = IsBarChart(snapshot.ChartKind);
-        bool showHorizontalAxis = barChart ? layout.ShowValueAxis : layout.ShowCategoryAxis;
-        bool showVerticalAxis = barChart ? layout.ShowCategoryAxis : layout.ShowValueAxis;
+        bool showHorizontalAxis = barChart ? layout.ShowValueAxisLine : layout.ShowCategoryAxisLine;
+        bool showVerticalAxis = barChart ? layout.ShowCategoryAxisLine : layout.ShowValueAxisLine;
         double verticalAxisTitleHeight = HasVerticalAxisTitle(snapshot.ChartKind, layout) ? 12D : 0D;
         double plotTop = 18D + contentTop + topLegendHeight + verticalAxisTitleHeight;
         double legendWidth = GetSeriesLegendWidth(snapshot.Data.Series, width, layout);
@@ -101,7 +103,7 @@ public static partial class OfficeChartDrawingRenderer {
             AddShape(drawing, OfficeShape.Line(0D, 0D, 0D, plotHeight), plotLeft, plotTop, null, style.AxisColor, 0.75D);
         }
 
-        if (style.ShowGridLines && layout.ShowValueAxis) {
+        if (style.ShowGridLines) {
             if (barChart) {
                 for (int i = 1; i <= 3; i++) {
                     double x = plotLeft + plotWidth * i / 4D;
@@ -126,21 +128,21 @@ public static partial class OfficeChartDrawingRenderer {
         }
 
         if (barChart) {
-            if (layout.ShowCategoryAxis) {
+            if (layout.ShowCategoryAxis && layout.ShowCategoryAxisLabels) {
                 AddHorizontalCategoryAxisLabels(drawing, snapshot.Data.Categories, plotTop, plotHeight, axisLabelLeft, axisLabelWidth, style, layout);
             }
 
-            if (layout.ShowValueAxis) {
+            if (layout.ShowValueAxis && layout.ShowValueAxisLabels) {
                 AddHorizontalValueAxisLabels(drawing, axisRange, plotLeft, plotBottomY, plotWidth, style, layout, valueAxisUsesPercentDefaults);
             }
 
             AddAxisTitles(drawing, layout.ShowCategoryAxis ? layout.CategoryAxisTitle : null, layout.ShowValueAxis ? layout.ValueAxisTitle : null, plotLeft, plotTop, plotBottomY, plotWidth, plotHeight, style, layout);
         } else {
-            if (layout.ShowValueAxis) {
+            if (layout.ShowValueAxis && layout.ShowValueAxisLabels) {
                 AddValueAxisLabels(drawing, axisRange, plotTop, plotHeight, axisLabelLeft, axisLabelWidth, style, layout, valueAxisUsesPercentDefaults);
             }
 
-            if (layout.ShowCategoryAxis) {
+            if (layout.ShowCategoryAxis && layout.ShowCategoryAxisLabels) {
                 if (IsScatterChart(snapshot.ChartKind)) {
                     IReadOnlyList<double> sharedXValues = GetScatterXValues(snapshot.Data.Categories);
                     AddHorizontalValueAxisLabels(drawing, GetScatterXRange(snapshot.Data.Series, sharedXValues), plotLeft, plotBottomY, plotWidth, style, layout, percentDefault: false);
@@ -502,18 +504,20 @@ public static partial class OfficeChartDrawingRenderer {
                 plotted[i] = true;
             }
 
-            for (int i = 1; i < categories.Count; i++) {
-                if (!plotted[i - 1] || !plotted[i]) {
-                    continue;
-                }
+            if (series[s].ConnectLine) {
+                for (int i = 1; i < categories.Count; i++) {
+                    if (!plotted[i - 1] || !plotted[i]) {
+                        continue;
+                    }
 
-                double x1 = points[i - 1].X;
-                double y1 = points[i - 1].Y;
-                double x2 = points[i].X;
-                double y2 = points[i].Y;
-                double minX = Math.Min(x1, x2);
-                double minY = Math.Min(y1, y2);
-                AddShape(drawing, OfficeShape.Line(x1 - minX, y1 - minY, x2 - minX, y2 - minY), minX, minY, null, color, 1.75D);
+                    double x1 = points[i - 1].X;
+                    double y1 = points[i - 1].Y;
+                    double x2 = points[i].X;
+                    double y2 = points[i].Y;
+                    double minX = Math.Min(x1, x2);
+                    double minY = Math.Min(y1, y2);
+                    AddShape(drawing, OfficeShape.Line(x1 - minX, y1 - minY, x2 - minX, y2 - minY), minX, minY, null, color, 1.75D);
+                }
             }
 
             for (int i = 0; i < categories.Count; i++) {
@@ -578,7 +582,7 @@ public static partial class OfficeChartDrawingRenderer {
             var lineSegment = new List<OfficePoint>(pointCount);
             for (int i = 0; i < pointCount; i++) {
                 if (!TryGetSeriesValue(series[s], i, out double yValue)) {
-                    if (layout.ConnectScatterPoints) {
+                    if (layout.ConnectScatterPoints && series[s].ConnectLine) {
                         AddPointLine(drawing, lineSegment, color, 1.25D);
                     }
 
@@ -588,7 +592,7 @@ public static partial class OfficeChartDrawingRenderer {
 
                 double xValue = xValues[i];
                 if (!IsFiniteChartValue(xValue)) {
-                    if (layout.ConnectScatterPoints) {
+                    if (layout.ConnectScatterPoints && series[s].ConnectLine) {
                         AddPointLine(drawing, lineSegment, color, 1.25D);
                     }
 
@@ -600,12 +604,12 @@ public static partial class OfficeChartDrawingRenderer {
                 double y = ToPlotY(yValue, yRange.Min, yRange.Max, plotTop, plotHeight);
                 var point = new OfficePoint(x, y);
                 points.Add((point, i));
-                if (layout.ConnectScatterPoints) {
+                if (layout.ConnectScatterPoints && series[s].ConnectLine) {
                     lineSegment.Add(point);
                 }
             }
 
-            if (layout.ConnectScatterPoints) {
+            if (layout.ConnectScatterPoints && series[s].ConnectLine) {
                 AddPointLine(drawing, lineSegment, color, 1.25D);
             }
             for (int i = 0; i < points.Count; i++) {
@@ -688,9 +692,9 @@ public static partial class OfficeChartDrawingRenderer {
                 plotted[i] = true;
             }
 
-            if (allPointsPlotted) {
+            if (allPointsPlotted && series[s].ConnectLine) {
                 AddPolygonShape(drawing, points, layout.FillRadarSeries ? color : null, color, 1D, layout.FillRadarSeries ? 0.18D : 1D);
-            } else {
+            } else if (series[s].ConnectLine) {
                 for (int i = 1; i < categories.Count; i++) {
                     if (!plotted[i - 1] || !plotted[i]) {
                         continue;
