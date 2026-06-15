@@ -44,6 +44,26 @@ namespace OfficeIMO.Word {
         Hexagon,
 
         /// <summary>
+        /// A parallelogram.
+        /// </summary>
+        Parallelogram,
+
+        /// <summary>
+        /// A trapezoid.
+        /// </summary>
+        Trapezoid,
+
+        /// <summary>
+        /// A chevron.
+        /// </summary>
+        Chevron,
+
+        /// <summary>
+        /// A plus sign.
+        /// </summary>
+        Plus,
+
+        /// <summary>
         /// Arrow pointing right.
         /// </summary>
         RightArrow,
@@ -62,6 +82,11 @@ namespace OfficeIMO.Word {
         /// Arrow pointing down.
         /// </summary>
         DownArrow,
+
+        /// <summary>
+        /// Arrow pointing left and right.
+        /// </summary>
+        LeftRightArrow,
 
         /// <summary>
         /// A 5-point star.

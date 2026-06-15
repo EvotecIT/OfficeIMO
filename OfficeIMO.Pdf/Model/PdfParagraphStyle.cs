@@ -4,7 +4,7 @@ namespace OfficeIMO.Pdf;
 /// Describes layout options for rich paragraph rendering.
 /// </summary>
 public class PdfParagraphStyle {
-    private readonly System.Collections.Generic.List<PdfTabStop> _tabStops = new System.Collections.Generic.List<PdfTabStop>();
+    private readonly System.Collections.Generic.List<PdfTabStop> _tabStops = new();
     private double? _lineHeight;
     private double _leftIndent;
     private double _rightIndent;
@@ -69,8 +69,9 @@ public class PdfParagraphStyle {
             _defaultTabStopWidth = value;
         }
     }
-    /// <summary>Explicit paragraph tab stops in points relative to the paragraph text frame.</summary>
-    public System.Collections.Generic.IReadOnlyList<PdfTabStop> TabStops => _tabStops.AsReadOnly();
+    /// <summary>Explicit paragraph tab stops, in points, relative to the paragraph text frame.</summary>
+    public System.Collections.Generic.IList<PdfTabStop> TabStops => _tabStops;
+
     /// <summary>When true, the paragraph starts on a new page instead of splitting across pages.</summary>
     public bool KeepTogether { get; set; }
     /// <summary>When true, the paragraph moves to the next page when it would otherwise be separated from the following paragraph.</summary>
@@ -80,7 +81,7 @@ public class PdfParagraphStyle {
 
     /// <summary>Creates a copy of this paragraph style.</summary>
     public PdfParagraphStyle Clone() {
-        PdfParagraphStyle clone = new PdfParagraphStyle {
+        var clone = new PdfParagraphStyle {
             LineHeight = LineHeight,
             LeftIndent = LeftIndent,
             RightIndent = RightIndent,
@@ -94,7 +95,7 @@ public class PdfParagraphStyle {
         };
 
         foreach (PdfTabStop tabStop in _tabStops) {
-            clone._tabStops.Add(tabStop.Clone());
+            clone.TabStops.Add(tabStop.Clone());
         }
 
         return clone;

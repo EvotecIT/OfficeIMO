@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Html;
 using System.Net.Http;
 
 namespace OfficeIMO.Word.Html {
@@ -117,6 +118,11 @@ namespace OfficeIMO.Word.Html {
         /// When true, URLs used as note text are emitted as hyperlinks inside the note.
         /// </summary>
         public bool LinkNoteUrls { get; set; } = true;
+
+        /// <summary>
+        /// Shared URL policy applied before imported HTML anchors are materialized as Word hyperlinks.
+        /// </summary>
+        public HtmlUrlPolicy HyperlinkUrlPolicy { get; set; } = HtmlUrlPolicy.CreateHyperlinkProfile();
 
         /// <summary>
         /// Controls how images are processed during conversion.
@@ -337,6 +343,7 @@ namespace OfficeIMO.Word.Html {
                 BasePath = BasePath,
                 NoteReferenceType = NoteReferenceType,
                 LinkNoteUrls = LinkNoteUrls,
+                HyperlinkUrlPolicy = HyperlinkUrlPolicy?.Clone() ?? HtmlUrlPolicy.CreateHyperlinkProfile(),
                 ImageProcessing = ImageProcessing,
                 HttpClient = HttpClient,
                 ResourceTimeout = ResourceTimeout,

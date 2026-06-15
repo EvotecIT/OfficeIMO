@@ -114,6 +114,158 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Fact]
+    public void ImageWatermark_FirstAndEvenVariantsUseMatchingPageVariant() {
+        byte[] image = CreateMinimalRgbPng();
+        var options = new PdfOptions {
+            DifferentFirstPageHeaderFooter = true,
+            DifferentOddAndEvenPagesHeaderFooter = true,
+            ImageWatermark = new PdfImageWatermark(image, width: 20, height: 20) {
+                Opacity = 0.18
+            },
+            FirstPageImageWatermark = new PdfImageWatermark(image, width: 21, height: 21) {
+                Opacity = 0.18
+            },
+            EvenPageImageWatermark = new PdfImageWatermark(image, width: 22, height: 22) {
+                Opacity = 0.18
+            }
+        };
+
+        byte[] bytes = PdfDocument.Create(options)
+            .Paragraph(p => p.Text("Page one body."))
+            .PageBreak()
+            .Paragraph(p => p.Text("Page two body."))
+            .PageBreak()
+            .Paragraph(p => p.Text("Page three body."))
+            .ToBytes();
+
+        string firstPageStream = Assert.Single(GetPageContentStreams(bytes, pageNumber: 1));
+        string secondPageStream = Assert.Single(GetPageContentStreams(bytes, pageNumber: 2));
+        string thirdPageStream = Assert.Single(GetPageContentStreams(bytes, pageNumber: 3));
+
+        Assert.Contains("21 0 0 21", firstPageStream, StringComparison.Ordinal);
+        Assert.Contains("22 0 0 22", secondPageStream, StringComparison.Ordinal);
+        Assert.Contains("20 0 0 20", thirdPageStream, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void WatermarkVariants_DoNotEnableHeaderFooterVariantsByThemselves() {
+        var options = new PdfOptions {
+            ShowHeader = true,
+            HeaderFormat = "DEFAULT HEADER",
+            FirstPageTextWatermark = new PdfTextWatermark("FIRST") {
+                Opacity = 0.18,
+                FontSize = 30
+            }
+        };
+
+        Assert.False(options.DifferentFirstPageHeaderFooter);
+
+        byte[] bytes = PdfDocument.Create(options)
+            .Paragraph(p => p.Text("First page body."))
+            .PageBreak()
+            .Paragraph(p => p.Text("Second page body."))
+            .ToBytes();
+
+        string text = PdfReadDocument.Load(bytes).ExtractText();
+
+        Assert.Contains("FIRST", text);
+        Assert.Equal(2, Regex.Matches(text, "DEFAULT HEADER").Count);
+    }
+
+    [Fact]
+    public void WatermarkVariants_FallBackToGlobalWatermarksWhenUnset() {
+        byte[] image = CreateMinimalRgbPng();
+        var options = new PdfOptions {
+            DifferentFirstPageHeaderFooter = true,
+            DifferentOddAndEvenPagesHeaderFooter = true,
+            TextWatermark = new PdfTextWatermark("GLOBAL") {
+                Opacity = 0.18,
+                FontSize = 30
+            },
+            ImageWatermark = new PdfImageWatermark(image, width: 20, height: 20) {
+                Opacity = 0.18
+            }
+        };
+
+        byte[] bytes = PdfDocument.Create(options)
+            .Paragraph(p => p.Text("Page one body."))
+            .PageBreak()
+            .Paragraph(p => p.Text("Page two body."))
+            .PageBreak()
+            .Paragraph(p => p.Text("Page three body."))
+            .ToBytes();
+
+        string text = PdfReadDocument.Load(bytes).ExtractText();
+        string firstPageStream = Assert.Single(GetPageContentStreams(bytes, pageNumber: 1));
+        string secondPageStream = Assert.Single(GetPageContentStreams(bytes, pageNumber: 2));
+        string thirdPageStream = Assert.Single(GetPageContentStreams(bytes, pageNumber: 3));
+
+        Assert.Equal(3, Regex.Matches(text, "GLOBAL").Count);
+        Assert.Contains("/Im", firstPageStream, StringComparison.Ordinal);
+        Assert.Contains("/Im", secondPageStream, StringComparison.Ordinal);
+        Assert.Contains("/Im", thirdPageStream, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void WatermarkVariants_CanSuppressInheritedFirstPageWatermarks() {
+        byte[] image = CreateMinimalRgbPng();
+        byte[] bytes = PdfDocument.Create()
+            .Watermark("GLOBAL", fontSize: 30, opacity: 0.18)
+            .ImageWatermark(image, width: 20, height: 20, opacity: 0.18)
+            .Page(page => {
+                page.SuppressFirstPageWatermark();
+                page.Content(content => content.Column(column => {
+                    column.Item().Paragraph(p => p.Text("First page body."));
+                    column.Item().PageBreak();
+                    column.Item().Paragraph(p => p.Text("Second page body."));
+                }));
+            })
+            .ToBytes();
+
+        PdfReadDocument readDocument = PdfReadDocument.Load(bytes);
+        string firstPageText = readDocument.Pages[0].ExtractText();
+        string secondPageText = readDocument.Pages[1].ExtractText();
+        string firstPageStream = Assert.Single(GetPageContentStreams(bytes, pageNumber: 1));
+        string secondPageStream = Assert.Single(GetPageContentStreams(bytes, pageNumber: 2));
+
+        Assert.DoesNotContain("GLOBAL", firstPageText, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("GLOBAL", secondPageText, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("/Im", firstPageStream, StringComparison.Ordinal);
+        Assert.Contains("/Im", secondPageStream, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void WatermarkSuppression_DoesNotEnableHeaderFooterVariantsByItself() {
+        var options = new PdfOptions {
+            ShowHeader = true,
+            HeaderFormat = "DEFAULT HEADER",
+            TextWatermark = new PdfTextWatermark("GLOBAL") {
+                Opacity = 0.18,
+                FontSize = 30
+            }
+        };
+
+        byte[] bytes = PdfDocument.Create(options)
+            .Page(page => {
+                page.SuppressFirstPageWatermark();
+                page.Content(content => content.Column(column => {
+                    column.Item().Paragraph(p => p.Text("First page body."));
+                    column.Item().PageBreak();
+                    column.Item().Paragraph(p => p.Text("Second page body."));
+                }));
+            })
+            .ToBytes();
+
+        PdfReadDocument readDocument = PdfReadDocument.Load(bytes);
+        string text = readDocument.ExtractText();
+        string firstPageText = readDocument.Pages[0].ExtractText();
+
+        Assert.False(options.DifferentFirstPageHeaderFooter);
+        Assert.Equal(2, Regex.Matches(text, "DEFAULT HEADER").Count);
+        Assert.DoesNotContain("GLOBAL", firstPageText, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void ImageWatermark_ValidatesAndClonesOptions() {
         byte[] image = CreateMinimalRgbPng();
         var options = new PdfOptions {

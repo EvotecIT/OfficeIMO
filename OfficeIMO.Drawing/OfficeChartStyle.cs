@@ -31,6 +31,9 @@ public sealed class OfficeChartStyle {
     /// <param name="textColor">Primary chart text color.</param>
     /// <param name="mutedTextColor">Secondary chart text color for axis and category labels.</param>
     /// <param name="titleColor">Chart title color.</param>
+    /// <param name="plotAreaBackgroundColor">Optional plot area fill.</param>
+    /// <param name="plotAreaBorderColor">Optional plot area border color.</param>
+    /// <param name="showGridLines">Whether cartesian grid lines should be rendered.</param>
     public OfficeChartStyle(
         IEnumerable<OfficeColor>? palette = null,
         string? fontFamily = null,
@@ -40,7 +43,56 @@ public sealed class OfficeChartStyle {
         OfficeColor? gridLineColor = null,
         OfficeColor? textColor = null,
         OfficeColor? mutedTextColor = null,
-        OfficeColor? titleColor = null) {
+        OfficeColor? titleColor = null,
+        OfficeColor? plotAreaBackgroundColor = null,
+        OfficeColor? plotAreaBorderColor = null,
+        bool showGridLines = true)
+        : this(
+            showBackground: true,
+            palette: palette,
+            fontFamily: fontFamily,
+            backgroundColor: backgroundColor,
+            borderColor: borderColor,
+            axisColor: axisColor,
+            gridLineColor: gridLineColor,
+            textColor: textColor,
+            mutedTextColor: mutedTextColor,
+            titleColor: titleColor,
+            plotAreaBackgroundColor: plotAreaBackgroundColor,
+            plotAreaBorderColor: plotAreaBorderColor,
+            showGridLines: showGridLines) {
+    }
+
+    /// <summary>
+    /// Creates chart style metadata with explicit background visibility.
+    /// </summary>
+    /// <param name="showBackground">Whether the chart background fill should be rendered.</param>
+    /// <param name="palette">Optional series or slice palette. Empty palettes fall back to the default premium palette.</param>
+    /// <param name="fontFamily">Optional chart text font family. Blank values fall back to Aptos.</param>
+    /// <param name="backgroundColor">Chart background fill.</param>
+    /// <param name="borderColor">Chart border color.</param>
+    /// <param name="axisColor">Axis line color.</param>
+    /// <param name="gridLineColor">Grid line color.</param>
+    /// <param name="textColor">Primary chart text color.</param>
+    /// <param name="mutedTextColor">Secondary chart text color for axis and category labels.</param>
+    /// <param name="titleColor">Chart title color.</param>
+    /// <param name="plotAreaBackgroundColor">Optional plot area fill.</param>
+    /// <param name="plotAreaBorderColor">Optional plot area border color.</param>
+    /// <param name="showGridLines">Whether cartesian grid lines should be rendered.</param>
+    public OfficeChartStyle(
+        bool showBackground,
+        IEnumerable<OfficeColor>? palette = null,
+        string? fontFamily = null,
+        OfficeColor? backgroundColor = null,
+        OfficeColor? borderColor = null,
+        OfficeColor? axisColor = null,
+        OfficeColor? gridLineColor = null,
+        OfficeColor? textColor = null,
+        OfficeColor? mutedTextColor = null,
+        OfficeColor? titleColor = null,
+        OfficeColor? plotAreaBackgroundColor = null,
+        OfficeColor? plotAreaBorderColor = null,
+        bool showGridLines = true) {
         var colors = palette == null ? new List<OfficeColor>() : new List<OfficeColor>(palette);
         if (colors.Count == 0) {
             colors.AddRange(DefaultPaletteValues);
@@ -55,6 +107,11 @@ public sealed class OfficeChartStyle {
         TextColor = textColor ?? OfficeColor.FromRgb(51, 65, 85);
         MutedTextColor = mutedTextColor ?? OfficeColor.FromRgb(100, 116, 139);
         TitleColor = titleColor ?? OfficeColor.FromRgb(31, 78, 121);
+        PlotAreaBackgroundColor = plotAreaBackgroundColor;
+        PlotAreaBorderColor = plotAreaBorderColor;
+        ShowGridLines = showGridLines;
+        ShowBackground = showBackground;
+        ShowBorder = true;
     }
 
     /// <summary>Default premium OfficeIMO chart style.</summary>
@@ -86,6 +143,21 @@ public sealed class OfficeChartStyle {
 
     /// <summary>Chart title color.</summary>
     public OfficeColor TitleColor { get; }
+
+    /// <summary>Optional plot area fill.</summary>
+    public OfficeColor? PlotAreaBackgroundColor { get; }
+
+    /// <summary>Optional plot area border color.</summary>
+    public OfficeColor? PlotAreaBorderColor { get; }
+
+    /// <summary>Whether cartesian grid lines should be rendered.</summary>
+    public bool ShowGridLines { get; }
+
+    /// <summary>Whether the chart background fill should be rendered.</summary>
+    public bool ShowBackground { get; }
+
+    /// <summary>Whether the chart border should be rendered.</summary>
+    public bool ShowBorder { get; set; }
 
     /// <summary>Gets a palette color for the zero-based series or slice index.</summary>
     public OfficeColor GetSeriesColor(int index) {

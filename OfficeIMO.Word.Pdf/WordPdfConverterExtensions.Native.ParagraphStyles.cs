@@ -49,9 +49,23 @@ namespace OfficeIMO.Word.Pdf {
                 style.SpacingAfter = NativeDefaultParagraphSpacingAfter;
             }
 
-            double? defaultTabStopWidth = GetNativeDefaultTabStopWidth(paragraph);
-            if (defaultTabStopWidth.HasValue) {
-                style.DefaultTabStopWidth = defaultTabStopWidth.Value;
+            foreach (WordTabStop tabStop in paragraph.TabStops
+                .Where(tabStop => tabStop.Position > 0 && IsNativeRenderableTextTabStop(tabStop.Alignment))
+                .OrderBy(tabStop => tabStop.Position)) {
+                double? position = ConvertNativeTwipsToPoints(tabStop.Position);
+                if (!position.HasValue) {
+                    continue;
+                }
+
+                double framePosition = position.Value - style.LeftIndent;
+                if (framePosition <= 0D) {
+                    continue;
+                }
+
+                style.TabStops.Add(new PdfCore.PdfTabStop(
+                    framePosition,
+                    MapNativeTabAlignment(tabStop.Alignment),
+                    MapNativeTabLeader(tabStop.Leader)));
             }
 
             style.KeepTogether = paragraph.KeepLinesTogether;
@@ -59,6 +73,10 @@ namespace OfficeIMO.Word.Pdf {
             style.WidowControl = paragraph.AvoidWidowAndOrphan;
             return style;
         }
+
+        private static bool IsNativeRenderableTextTabStop(W.TabStopValues alignment) =>
+            alignment != W.TabStopValues.Bar &&
+            alignment != W.TabStopValues.Clear;
 
         private static double ResolveNativeParagraphLineHeight(WordParagraph paragraph, double fontSize) {
             if (paragraph.LineSpacing.HasValue && paragraph.LineSpacingRule == W.LineSpacingRuleValues.Auto) {
@@ -70,16 +88,6 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             return NativeDefaultParagraphLineHeight;
-        }
-
-        private static double? GetNativeDefaultTabStopWidth(WordParagraph paragraph) {
-            int firstTabStop = paragraph.TabStops
-                .Where(tabStop => tabStop.Position > 0)
-                .Select(tabStop => tabStop.Position)
-                .DefaultIfEmpty(0)
-                .Min();
-
-            return firstTabStop > 0 ? ConvertNativeTwipsToPoints(firstTabStop) : null;
         }
 
         private static PdfCore.PdfTabLeaderStyle MapNativeTabLeader(W.TabStopLeaderCharValues leader) {
@@ -421,18 +429,17 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             string value = hex.Trim();
-            if (value.StartsWith("#", StringComparison.Ordinal)) {
-                value = value.Substring(1);
+            int metadataSeparator = value.IndexOf(' ');
+            if (metadataSeparator > 0) {
+                value = value.Substring(0, metadataSeparator);
             }
 
-            if (value.Length != 6 ||
-                !byte.TryParse(value.Substring(0, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out byte r) ||
-                !byte.TryParse(value.Substring(2, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out byte g) ||
-                !byte.TryParse(value.Substring(4, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out byte b)) {
+            if (value.Equals("none", StringComparison.OrdinalIgnoreCase) ||
+                !OfficeColor.TryParse(value, out OfficeColor color)) {
                 return null;
             }
 
-            return PdfCore.PdfColor.FromRgb(r, g, b);
+            return PdfCore.PdfColor.FromOfficeColor(color);
         }
 
         private static PdfCore.PdfColor? MapNativeHighlight(W.HighlightColorValues? highlight) {

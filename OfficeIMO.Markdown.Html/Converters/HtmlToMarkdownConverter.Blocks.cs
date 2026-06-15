@@ -91,7 +91,21 @@ public sealed partial class HtmlToMarkdownConverter {
             return false;
         }
 
-        return TryCreateLinkedImageBlockFromAnchor(element, context, out _);
+        string href = ResolveUrl(element.GetAttribute("href"), context);
+        if (string.IsNullOrWhiteSpace(href)) {
+            return false;
+        }
+
+        if (!TryResolveAnchorMediaElement(element, out var mediaElement)) {
+            return false;
+        }
+
+        if (mediaElement.TagName.Equals("IMG", StringComparison.OrdinalIgnoreCase)) {
+            return CanCreateImageBlockWithoutSideEffects(mediaElement, context);
+        }
+
+        return mediaElement.TagName.Equals("PICTURE", StringComparison.OrdinalIgnoreCase)
+               && CanCreatePictureImageBlockWithoutSideEffects(mediaElement, context);
     }
 
     private static bool HasDirectBlockChildren(IElement element, ConversionContext context) {
@@ -155,6 +169,15 @@ public sealed partial class HtmlToMarkdownConverter {
                     return new IMarkdownBlock[] { linkedImage };
                 }
 
+                if (HasRejectedHref(element, context)) {
+                    var unwrappedBlocks = ConvertNodesToBlocks(element.ChildNodes, context).ToList();
+                    return unwrappedBlocks;
+                }
+
+                if (TryConvertRejectedAnchorMedia(element, context, out var anchorMediaBlocks)) {
+                    return anchorMediaBlocks;
+                }
+
                 if (context.Options.PreserveUnsupportedBlocks) {
                     return new IMarkdownBlock[] { new HtmlRawBlock(element.OuterHtml) };
                 }
@@ -206,6 +229,33 @@ public sealed partial class HtmlToMarkdownConverter {
 
                 return new IMarkdownBlock[] { new ParagraphBlock(fallbackInline) };
         }
+    }
+
+    private static bool HasRejectedHref(IElement element, ConversionContext context) {
+        if (element == null || context == null || !element.TagName.Equals("A", StringComparison.OrdinalIgnoreCase)) {
+            return false;
+        }
+
+        string? href = element.GetAttribute("href");
+        return !string.IsNullOrWhiteSpace(href) && string.IsNullOrWhiteSpace(ResolveUrl(href, context));
+    }
+
+    private static bool TryConvertRejectedAnchorMedia(IElement element, ConversionContext context, out IReadOnlyList<IMarkdownBlock> blocks) {
+        blocks = Array.Empty<IMarkdownBlock>();
+        if (element == null
+            || context == null
+            || !element.TagName.Equals("A", StringComparison.OrdinalIgnoreCase)
+            || !TryResolveAnchorMediaElement(element, out var mediaElement)) {
+            return false;
+        }
+
+        if (!HasRejectedMediaSourceCandidate(mediaElement, context)
+            && !HasBlockedBase64MediaSourceCandidate(mediaElement, context)) {
+            return false;
+        }
+
+        blocks = ConvertNodesToBlocks(new INode[] { mediaElement }, context);
+        return true;
     }
 
     private static bool TryConvertConfiguredElementConverters(IElement element, ConversionContext context, out IReadOnlyList<IMarkdownBlock> blocks) {

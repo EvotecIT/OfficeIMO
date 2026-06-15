@@ -1,6 +1,8 @@
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Vml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Globalization;
+using System.IO;
 using Ovml = DocumentFormat.OpenXml.Vml.Office;
 using Paragraph = DocumentFormat.OpenXml.Wordprocessing.Paragraph;
 using ParagraphProperties = DocumentFormat.OpenXml.Wordprocessing.ParagraphProperties;
@@ -70,8 +72,7 @@ namespace OfficeIMO.Word {
                     return null;
                 }
 
-                string stringValue = widthValue.Replace("pt", "");
-                return double.Parse(stringValue, CultureInfo.InvariantCulture);
+                return ParseWatermarkStylePoint(widthValue);
             }
             set => SetShapeStyleComponent("width", value + "pt");
         }
@@ -86,8 +87,7 @@ namespace OfficeIMO.Word {
                     return null;
                 }
 
-                string stringValue = heightValue.Replace("pt", "");
-                return double.Parse(stringValue, CultureInfo.InvariantCulture);
+                return ParseWatermarkStylePoint(heightValue);
             }
             set => SetShapeStyleComponent("height", value + "pt");
         }
@@ -102,8 +102,7 @@ namespace OfficeIMO.Word {
                     return null;
                 }
 
-                string stringValue = value.Replace("pt", "");
-                return double.Parse(stringValue, CultureInfo.InvariantCulture);
+                return ParseWatermarkStylePoint(value);
             }
             set => SetShapeStyleComponent("margin-left", value + "pt");
         }
@@ -118,8 +117,7 @@ namespace OfficeIMO.Word {
                     return null;
                 }
 
-                string stringValue = value.Replace("pt", "");
-                return double.Parse(stringValue, CultureInfo.InvariantCulture);
+                return ParseWatermarkStylePoint(value);
             }
             set => SetShapeStyleComponent("margin-top", value + "pt");
         }
@@ -145,8 +143,7 @@ namespace OfficeIMO.Word {
                     return null;
                 }
 
-                string stringValue = value.Replace("pt", "");
-                return double.Parse(stringValue, CultureInfo.InvariantCulture);
+                return ParseWatermarkStylePoint(value);
             }
             set => SetTextPathStyleComponent("font-size", value + "pt");
         }
@@ -157,7 +154,7 @@ namespace OfficeIMO.Word {
         public double? Opacity {
             get {
                 if (_shape?.GetFirstChild<V.Fill>()?.Opacity?.Value is string opacity) {
-                    return double.Parse(opacity, CultureInfo.InvariantCulture);
+                    return ParseOpacity(opacity);
                 }
                 return null;
             }
@@ -168,6 +165,29 @@ namespace OfficeIMO.Word {
                 }
             }
         }
+
+        private static double? ParseOpacity(string? opacity) {
+            if (string.IsNullOrWhiteSpace(opacity)) {
+                return null;
+            }
+
+            string value = opacity!.Trim();
+            double? parsed;
+            if (value.EndsWith("%", StringComparison.OrdinalIgnoreCase)) {
+                parsed = TryParseDouble(value.Substring(0, value.Length - 1), out double percent) ? percent / 100D : null;
+            } else if (value.EndsWith("f", StringComparison.OrdinalIgnoreCase) &&
+                       TryParseDouble(value.Substring(0, value.Length - 1), out double fixedPoint)) {
+                parsed = fixedPoint / 65536D;
+            } else {
+                parsed = TryParseDouble(value, out double numeric) ? numeric : null;
+            }
+
+            return parsed.HasValue ? Math.Max(0D, Math.Min(1D, parsed.Value)) : null;
+        }
+
+        private static bool TryParseDouble(string value, out double result) =>
+            double.TryParse(value.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out result) ||
+            double.TryParse(value.Trim().Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out result);
 
         /// <summary>
         /// Get or Set if watermark is stroked.
@@ -285,6 +305,93 @@ namespace OfficeIMO.Word {
 
         private V.TextPath? _textPath => _shape?.GetFirstChild<V.TextPath>();
 
+        internal bool HasImage {
+            get {
+                string? relationshipId = GetImageRelationshipId();
+                return !string.IsNullOrWhiteSpace(relationshipId);
+            }
+        }
+
+        internal bool TryGetImageBytes(out byte[] bytes, out string? unsupportedReason) {
+            bytes = Array.Empty<byte>();
+            unsupportedReason = null;
+
+            string? relationshipId = GetImageRelationshipId();
+            if (string.IsNullOrWhiteSpace(relationshipId)) {
+                unsupportedReason = "Watermark image relationship is missing.";
+                return false;
+            }
+
+            if (!TryGetImagePart(relationshipId!, out ImagePart? imagePart) || imagePart == null) {
+                unsupportedReason = "Watermark image relationship '" + relationshipId + "' could not be resolved.";
+                return false;
+            }
+
+            using Stream stream = imagePart.GetStream(FileMode.Open, FileAccess.Read);
+            using var memoryStream = new MemoryStream();
+            stream.CopyTo(memoryStream);
+            bytes = memoryStream.ToArray();
+            if (bytes.Length == 0) {
+                unsupportedReason = "Watermark image part is empty.";
+                return false;
+            }
+
+            return true;
+        }
+
+        private string? GetImageRelationshipId() =>
+            _shape?.GetFirstChild<V.ImageData>()?.RelationshipId?.Value;
+
+        private bool TryGetImagePart(string relationshipId, out ImagePart? imagePart) {
+            imagePart = null;
+
+            HeaderPart? containingHeaderPart = _shape?.Ancestors<Header>().FirstOrDefault()?.HeaderPart ??
+                                               _wordHeader?._header?.HeaderPart;
+            if (TryGetImagePart(containingHeaderPart, relationshipId, out imagePart)) {
+                return true;
+            }
+
+            FooterPart? containingFooterPart = _shape?.Ancestors<Footer>().FirstOrDefault()?.FooterPart;
+            if (TryGetImagePart(containingFooterPart, relationshipId, out imagePart)) {
+                return true;
+            }
+
+            MainDocumentPart? mainPart = _document?._wordprocessingDocument?.MainDocumentPart;
+            if (TryGetImagePart(mainPart, relationshipId, out imagePart)) {
+                return true;
+            }
+
+            if (mainPart != null) {
+                foreach (HeaderPart headerPart in mainPart.HeaderParts) {
+                    if (TryGetImagePart(headerPart, relationshipId, out imagePart)) {
+                        return true;
+                    }
+                }
+
+                foreach (FooterPart footerPart in mainPart.FooterParts) {
+                    if (TryGetImagePart(footerPart, relationshipId, out imagePart)) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        private static bool TryGetImagePart(OpenXmlPartContainer? container, string relationshipId, out ImagePart? imagePart) {
+            imagePart = null;
+            if (container == null) {
+                return false;
+            }
+
+            try {
+                imagePart = container.GetPartById(relationshipId) as ImagePart;
+                return imagePart != null;
+            } catch (ArgumentOutOfRangeException) {
+                return false;
+            }
+        }
+
         private string? GetShapeStyleComponent(string key) =>
             GetStyleComponent(_shape?.Style?.Value, key);
 
@@ -335,6 +442,43 @@ namespace OfficeIMO.Word {
             style.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)
                 .Select(part => part.Split(':'))
                 .ToDictionary(part => part[0], part => part.Length > 1 ? part[1] : string.Empty);
+
+        private static double? ParseWatermarkStylePoint(string value) {
+            string stringValue = value.Trim();
+            if (stringValue.EndsWith("pt", StringComparison.OrdinalIgnoreCase)) {
+                stringValue = stringValue.Substring(0, stringValue.Length - 2);
+                return ParseWatermarkStyleNumber(stringValue);
+            }
+
+            if (stringValue.EndsWith("in", StringComparison.OrdinalIgnoreCase)) {
+                return ParseWatermarkStyleNumber(stringValue.Substring(0, stringValue.Length - 2)) * 72D;
+            }
+
+            if (stringValue.EndsWith("cm", StringComparison.OrdinalIgnoreCase)) {
+                return ParseWatermarkStyleNumber(stringValue.Substring(0, stringValue.Length - 2)) * 28.3464566929D;
+            }
+
+            if (stringValue.EndsWith("mm", StringComparison.OrdinalIgnoreCase)) {
+                return ParseWatermarkStyleNumber(stringValue.Substring(0, stringValue.Length - 2)) * 2.83464566929D;
+            }
+
+            if (stringValue.EndsWith("px", StringComparison.OrdinalIgnoreCase)) {
+                return ParseWatermarkStyleNumber(stringValue.Substring(0, stringValue.Length - 2)) * 0.75D;
+            }
+
+            return ParseWatermarkStyleNumber(stringValue);
+        }
+
+        private static double? ParseWatermarkStyleNumber(string stringValue) {
+            if (double.TryParse(stringValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double result)) {
+                return result;
+            }
+
+            stringValue = stringValue.Replace(',', '.');
+            return double.TryParse(stringValue, NumberStyles.Float, CultureInfo.InvariantCulture, out result)
+                ? result
+                : null;
+        }
 
         private SdtBlock GetStyle(WordWatermarkStyle style) {
             switch (style) {

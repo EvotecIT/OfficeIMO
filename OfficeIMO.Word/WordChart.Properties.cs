@@ -49,6 +49,11 @@ namespace OfficeIMO.Word {
         }
         private WordDrawing? _drawing;
         private Chart? _chart;
+
+        internal ChartPart? ChartPart => _chartPart;
+
+        internal WordDrawing? Drawing => _drawing;
+
         /// <summary>
         /// The current index for values
         /// </summary>

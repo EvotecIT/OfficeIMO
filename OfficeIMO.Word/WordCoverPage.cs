@@ -71,6 +71,16 @@ namespace OfficeIMO.Word {
         private readonly SdtBlock _sdtBlock;
 
         /// <summary>
+        /// Gets the underlying structured document tag block for internal converters.
+        /// </summary>
+        internal SdtBlock SdtBlock => _sdtBlock;
+
+        /// <summary>
+        /// Gets the parent document for internal converters.
+        /// </summary>
+        internal WordDocument Document => _document;
+
+        /// <summary>
         /// Initializes a new instance from an existing structured document tag block.
         /// </summary>
         /// <param name="wordDocument">Parent document.</param>

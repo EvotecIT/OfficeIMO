@@ -38,7 +38,7 @@ internal static partial class PdfWriter {
                     PdfParagraphStyle? paragraphStyle = EffectiveParagraphStyle(rpb2);
                     double leading = GetParagraphLeading(paragraphStyle, size);
                     var textFrame = GetParagraphTextFrame(paragraphStyle, 0, colWs[i]);
-                    var wrap = WrapRichRunsCore(rpb2.Runs, textFrame.Width, size, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, GetParagraphTabStopWidth(paragraphStyle), currentOpts, GetParagraphTabStops(paragraphStyle));
+                    var wrap = WrapRichRunsCoreWithFirstLineOrigin(rpb2.Runs, textFrame.Width, size, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray());
                     items.Add(new ColPar { Block = rpb2, Lines = wrap.Lines, Heights = wrap.LineHeights, Leading = leading, Size = size, XOffset = textFrame.X, TextWidth = textFrame.Width, FirstLineXOffset = textFrame.FirstLineX, FirstLineTextWidth = textFrame.FirstLineWidth });
                 } else if (cb is BulletListBlock bl2) {
                     PdfListStyle? listStyle = ResolveListStyle(bl2, currentOpts);

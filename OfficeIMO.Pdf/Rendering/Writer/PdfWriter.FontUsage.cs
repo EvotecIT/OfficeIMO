@@ -47,14 +47,14 @@ internal static partial class PdfWriter {
                 AddGeneratedFontUsage(fontUsages, usedFont, pageOptions);
             }
 
-            PdfTextWatermark? textWatermark = pageOptions.TextWatermarkSnapshot;
+            int variantPageNumber = pageNumberInfos[pageIndex].VariantPageNumber;
+            PdfTextWatermark? textWatermark = pageOptions.GetTextWatermarkForPage(variantPageNumber);
             if (textWatermark != null && textWatermark.Opacity > 0D) {
                 PdfStandardFont watermarkFont = GetTextWatermarkFont(textWatermark);
                 fonts.Add(watermarkFont);
                 AddGeneratedFontUsage(fontUsages, watermarkFont, pageOptions);
             }
 
-            int variantPageNumber = pageNumberInfos[pageIndex].VariantPageNumber;
             if (pageOptions.HasHeaderTextContentForPage(variantPageNumber)) {
                 fonts.Add(pageOptions.HeaderFont);
                 AddGeneratedFontUsage(fontUsages, pageOptions.HeaderFont, pageOptions);
@@ -98,7 +98,7 @@ internal static partial class PdfWriter {
                 images.Add(new PdfGeneratedImageAccessibilityEvidence(hasAlternativeText: false, isDecorativeArtifact: true));
             }
 
-            PdfImageWatermark? imageWatermark = pageOptions.ImageWatermarkSnapshot;
+            PdfImageWatermark? imageWatermark = pageOptions.GetImageWatermarkForPage(variantPageNumber);
             if (imageWatermark != null && imageWatermark.Opacity > 0D) {
                 images.Add(new PdfGeneratedImageAccessibilityEvidence(hasAlternativeText: false, isDecorativeArtifact: true));
             }

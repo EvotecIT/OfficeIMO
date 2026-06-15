@@ -245,14 +245,106 @@ jobs:
           echo "Ubuntu test matrix passed."
 
   test-macos-matrix:
-    name: 'macOS ${{ matrix.framework }}'
+    name: 'macOS ${{ matrix.framework }} ${{ matrix.slice }}'
     runs-on: macos-latest
-    # Hosted macOS runners can run the full OfficeIMO.Tests net10.0 suite past 30 minutes.
-    timeout-minutes: 40
+    # Hosted macOS runners run the large solution test suite much slower than
+    # Linux/Windows, and macOS concurrency is limited. Keep the legs split by
+    # workload so no single PDF-heavy family owns the whole timeout.
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
-        framework: [net8.0, net10.0]
+        include:
+          - framework: net8.0
+            slice: pdf-core
+            project: OfficeIMO.Tests/OfficeIMO.Tests.csproj
+            filter: FullyQualifiedName~OfficeIMO.Tests.Pdf
+            extraArgs: ''
+          - framework: net8.0
+            slice: save-as-pdf-word
+            project: OfficeIMO.Tests/OfficeIMO.Tests.csproj
+            filter: FullyQualifiedName~SaveAsPdf&FullyQualifiedName~OfficeIMO.Tests.Word&FullyQualifiedName!~OfficeIMO.Tests.Pdf
+            extraArgs: ''
+          - framework: net8.0
+            slice: save-as-pdf-markdown-more
+            project: OfficeIMO.Tests/OfficeIMO.Tests.csproj
+            filter: FullyQualifiedName~SaveAsPdf&FullyQualifiedName~MarkdownMoreCasesTests&FullyQualifiedName!~OfficeIMO.Tests.Pdf
+            extraArgs: ''
+          - framework: net8.0
+            slice: save-as-pdf-markdown-roundtrip
+            project: OfficeIMO.Tests/OfficeIMO.Tests.csproj
+            filter: FullyQualifiedName~SaveAsPdf&FullyQualifiedName~MarkdownRoundTripTests&FullyQualifiedName!~OfficeIMO.Tests.Pdf
+            extraArgs: ''
+          - framework: net8.0
+            slice: save-as-pdf-other
+            project: OfficeIMO.Tests/OfficeIMO.Tests.csproj
+            filter: FullyQualifiedName~SaveAsPdf&FullyQualifiedName!~OfficeIMO.Tests.Pdf&FullyQualifiedName!~OfficeIMO.Tests.Word&FullyQualifiedName!~MarkdownMoreCasesTests&FullyQualifiedName!~MarkdownRoundTripTests
+            extraArgs: ''
+          - framework: net8.0
+            slice: markdown
+            project: OfficeIMO.Tests/OfficeIMO.Tests.csproj
+            filter: FullyQualifiedName~Markdown&FullyQualifiedName!~OfficeIMO.Tests.Pdf&FullyQualifiedName!~SaveAsPdf
+            extraArgs: ''
+          - framework: net8.0
+            slice: core-non-pdf
+            project: OfficeIMO.Tests/OfficeIMO.Tests.csproj
+            filter: FullyQualifiedName!~PerformanceReview&FullyQualifiedName!~OfficeIMO.Tests.Pdf&FullyQualifiedName!~SaveAsPdf&FullyQualifiedName!~Markdown
+            extraArgs: ''
+          - framework: net8.0
+            slice: supporting-projects
+            project: ''
+            filter: ''
+            extraArgs: ''
+          - framework: net8.0
+            slice: excel-performance
+            project: OfficeIMO.Tests/OfficeIMO.Tests.csproj
+            filter: FullyQualifiedName~PerformanceReview
+            extraArgs: '-- xUnit.ParallelizeTestCollections=false'
+          - framework: net10.0
+            slice: pdf-core
+            project: OfficeIMO.Tests/OfficeIMO.Tests.csproj
+            filter: FullyQualifiedName~OfficeIMO.Tests.Pdf
+            extraArgs: ''
+          - framework: net10.0
+            slice: save-as-pdf-word
+            project: OfficeIMO.Tests/OfficeIMO.Tests.csproj
+            filter: FullyQualifiedName~SaveAsPdf&FullyQualifiedName~OfficeIMO.Tests.Word&FullyQualifiedName!~OfficeIMO.Tests.Pdf
+            extraArgs: ''
+          - framework: net10.0
+            slice: save-as-pdf-markdown-more
+            project: OfficeIMO.Tests/OfficeIMO.Tests.csproj
+            filter: FullyQualifiedName~SaveAsPdf&FullyQualifiedName~MarkdownMoreCasesTests&FullyQualifiedName!~OfficeIMO.Tests.Pdf
+            extraArgs: ''
+          - framework: net10.0
+            slice: save-as-pdf-markdown-roundtrip
+            project: OfficeIMO.Tests/OfficeIMO.Tests.csproj
+            filter: FullyQualifiedName~SaveAsPdf&FullyQualifiedName~MarkdownRoundTripTests&FullyQualifiedName!~OfficeIMO.Tests.Pdf
+            extraArgs: ''
+          - framework: net10.0
+            slice: save-as-pdf-other
+            project: OfficeIMO.Tests/OfficeIMO.Tests.csproj
+            filter: FullyQualifiedName~SaveAsPdf&FullyQualifiedName!~OfficeIMO.Tests.Pdf&FullyQualifiedName!~OfficeIMO.Tests.Word&FullyQualifiedName!~MarkdownMoreCasesTests&FullyQualifiedName!~MarkdownRoundTripTests
+            extraArgs: ''
+          - framework: net10.0
+            slice: markdown
+            project: OfficeIMO.Tests/OfficeIMO.Tests.csproj
+            filter: FullyQualifiedName~Markdown&FullyQualifiedName!~OfficeIMO.Tests.Pdf&FullyQualifiedName!~SaveAsPdf
+            extraArgs: ''
+          - framework: net10.0
+            slice: core-non-pdf
+            project: OfficeIMO.Tests/OfficeIMO.Tests.csproj
+            filter: FullyQualifiedName!~PerformanceReview&FullyQualifiedName!~OfficeIMO.Tests.Pdf&FullyQualifiedName!~SaveAsPdf&FullyQualifiedName!~Markdown
+            extraArgs: ''
+          - framework: net10.0
+            slice: supporting-projects
+            project: ''
+            filter: ''
+            extraArgs: ''
+          - framework: net10.0
+            slice: excel-performance
+            project: OfficeIMO.Tests/OfficeIMO.Tests.csproj
+            filter: FullyQualifiedName~PerformanceReview
+            extraArgs: '-- xUnit.ParallelizeTestCollections=false'
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -277,7 +369,14 @@ jobs:
         run: dotnet build OfficeIMO.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
 
       - name: Run tests
-        run: dotnet test OfficeIMO.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+        run: |
+          if [ "${{ matrix.slice }}" = "supporting-projects" ]; then
+            dotnet test OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "FullyQualifiedName~OfficeIMO.CSV.Tests" --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+            dotnet test OfficeIMO.VerifyTests/OfficeIMO.VerifyTests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "FullyQualifiedName~OfficeIMO.VerifyTests" --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+            dotnet test OfficeIMO.MarkdownRenderer.Wpf.Tests/OfficeIMO.MarkdownRenderer.Wpf.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "FullyQualifiedName~OfficeIMO.MarkdownRenderer.Wpf.Tests" --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+          else
+            dotnet test ${{ matrix.project }} --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "${{ matrix.filter }}" --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx ${{ matrix.extraArgs }}
+          fi
 
       - name: Summarize failing tests
         if: failure() && env.SUMMARIZE_FAILURES == 'true'
@@ -317,7 +416,7 @@ jobs:
         uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: test-results-macos-${{ matrix.framework }}
+          name: test-results-macos-${{ matrix.framework }}-${{ matrix.slice }}
           path: '**/*.trx'
 
   test-macos:

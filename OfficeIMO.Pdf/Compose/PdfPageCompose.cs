@@ -55,6 +55,62 @@ public class PdfPageCompose {
         Options.TextWatermark = watermark;
         return this;
     }
+    /// <summary>Sets or clears the first-page text watermark rendered behind page content.</summary>
+    public PdfPageCompose FirstPageWatermark(PdfTextWatermark? watermark) {
+        Options.FirstPageTextWatermark = watermark;
+        return this;
+    }
+    /// <summary>Suppresses the inherited text watermark on the first page.</summary>
+    public PdfPageCompose SuppressFirstPageTextWatermark() {
+        Options.SuppressFirstPageTextWatermark();
+        return this;
+    }
+    /// <summary>Suppresses inherited text and image watermarks on the first page.</summary>
+    public PdfPageCompose SuppressFirstPageWatermark() {
+        return SuppressFirstPageTextWatermark().SuppressFirstPageImageWatermark();
+    }
+    /// <summary>Sets a first-page text watermark rendered behind page content.</summary>
+    public PdfPageCompose FirstPageWatermark(string text, double? fontSize = null, PdfColor? color = null, double? opacity = null, double? rotationAngle = null, PdfStandardFont? font = null, bool bold = true, bool italic = false) {
+        var watermark = new PdfTextWatermark(text) {
+            Bold = bold,
+            Italic = italic
+        };
+        if (fontSize.HasValue) watermark.FontSize = fontSize.Value;
+        if (color.HasValue) watermark.Color = color.Value;
+        if (opacity.HasValue) watermark.Opacity = opacity.Value;
+        if (rotationAngle.HasValue) watermark.RotationAngle = rotationAngle.Value;
+        if (font.HasValue) watermark.Font = font.Value;
+        Options.FirstPageTextWatermark = watermark;
+        return this;
+    }
+    /// <summary>Sets or clears the even-page text watermark rendered behind page content.</summary>
+    public PdfPageCompose EvenPagesWatermark(PdfTextWatermark? watermark) {
+        Options.EvenPageTextWatermark = watermark;
+        return this;
+    }
+    /// <summary>Suppresses the inherited text watermark on even pages.</summary>
+    public PdfPageCompose SuppressEvenPagesTextWatermark() {
+        Options.SuppressEvenPageTextWatermark();
+        return this;
+    }
+    /// <summary>Suppresses inherited text and image watermarks on even pages.</summary>
+    public PdfPageCompose SuppressEvenPagesWatermark() {
+        return SuppressEvenPagesTextWatermark().SuppressEvenPagesImageWatermark();
+    }
+    /// <summary>Sets an even-page text watermark rendered behind page content.</summary>
+    public PdfPageCompose EvenPagesWatermark(string text, double? fontSize = null, PdfColor? color = null, double? opacity = null, double? rotationAngle = null, PdfStandardFont? font = null, bool bold = true, bool italic = false) {
+        var watermark = new PdfTextWatermark(text) {
+            Bold = bold,
+            Italic = italic
+        };
+        if (fontSize.HasValue) watermark.FontSize = fontSize.Value;
+        if (color.HasValue) watermark.Color = color.Value;
+        if (opacity.HasValue) watermark.Opacity = opacity.Value;
+        if (rotationAngle.HasValue) watermark.RotationAngle = rotationAngle.Value;
+        if (font.HasValue) watermark.Font = font.Value;
+        Options.EvenPageTextWatermark = watermark;
+        return this;
+    }
     /// <summary>Sets or clears the page-scoped image watermark rendered behind page content.</summary>
     public PdfPageCompose ImageWatermark(PdfImageWatermark? watermark) {
         Options.ImageWatermark = watermark;
@@ -66,6 +122,42 @@ public class PdfPageCompose {
         if (opacity.HasValue) watermark.Opacity = opacity.Value;
         if (rotationAngle.HasValue) watermark.RotationAngle = rotationAngle.Value;
         Options.ImageWatermark = watermark;
+        return this;
+    }
+    /// <summary>Sets or clears the first-page image watermark rendered behind page content.</summary>
+    public PdfPageCompose FirstPageImageWatermark(PdfImageWatermark? watermark) {
+        Options.FirstPageImageWatermark = watermark;
+        return this;
+    }
+    /// <summary>Suppresses the inherited image watermark on the first page.</summary>
+    public PdfPageCompose SuppressFirstPageImageWatermark() {
+        Options.SuppressFirstPageImageWatermark();
+        return this;
+    }
+    /// <summary>Sets a first-page image watermark rendered behind page content.</summary>
+    public PdfPageCompose FirstPageImageWatermark(byte[] imageBytes, double width, double height, double? opacity = null, double? rotationAngle = null) {
+        var watermark = new PdfImageWatermark(imageBytes, width, height);
+        if (opacity.HasValue) watermark.Opacity = opacity.Value;
+        if (rotationAngle.HasValue) watermark.RotationAngle = rotationAngle.Value;
+        Options.FirstPageImageWatermark = watermark;
+        return this;
+    }
+    /// <summary>Sets or clears the even-page image watermark rendered behind page content.</summary>
+    public PdfPageCompose EvenPagesImageWatermark(PdfImageWatermark? watermark) {
+        Options.EvenPageImageWatermark = watermark;
+        return this;
+    }
+    /// <summary>Suppresses the inherited image watermark on even pages.</summary>
+    public PdfPageCompose SuppressEvenPagesImageWatermark() {
+        Options.SuppressEvenPageImageWatermark();
+        return this;
+    }
+    /// <summary>Sets an even-page image watermark rendered behind page content.</summary>
+    public PdfPageCompose EvenPagesImageWatermark(byte[] imageBytes, double width, double height, double? opacity = null, double? rotationAngle = null) {
+        var watermark = new PdfImageWatermark(imageBytes, width, height);
+        if (opacity.HasValue) watermark.Opacity = opacity.Value;
+        if (rotationAngle.HasValue) watermark.RotationAngle = rotationAngle.Value;
+        Options.EvenPageImageWatermark = watermark;
         return this;
     }
     /// <summary>Sets or clears the page-scoped page border.</summary>

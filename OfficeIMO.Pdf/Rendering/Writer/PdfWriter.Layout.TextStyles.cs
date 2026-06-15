@@ -68,8 +68,8 @@ internal static partial class PdfWriter {
         return tabStopWidth;
     }
 
-    private static System.Collections.Generic.IReadOnlyList<PdfTabStop>? GetParagraphTabStops(PdfParagraphStyle? style) =>
-        style?.TabStops.Count > 0 ? style.TabStops : null;
+    private static PdfTabStop[]? GetParagraphTabStops(PdfParagraphStyle? style) =>
+        style?.TabStops.Count > 0 ? style.TabStops.ToArray() : null;
 
     private static PdfHeadingStyle? ResolveHeadingStyle(HeadingBlock block, PdfOptions options) {
         return block.Style ?? options.DefaultHeadingStylesSnapshot?.GetSnapshot(block.Level);

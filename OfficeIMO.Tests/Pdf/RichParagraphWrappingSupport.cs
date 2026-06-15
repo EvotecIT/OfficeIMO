@@ -10,16 +10,37 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf {
     public partial class RichParagraphWrappingTests {
 
-        private static object InvokeWrapRichRuns(IEnumerable<TextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, double? tabStopWidth = null) {
-            var method = typeof(PdfWriter).GetMethod("WrapRichRuns", BindingFlags.NonPublic | BindingFlags.Static);
+        private static object InvokeWrapRichRuns(IEnumerable<TextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, double? tabStopWidth = null, IReadOnlyList<PdfTabStop>? tabStops = null) {
+            if (tabStops == null) {
+                var wrapMethod = typeof(PdfWriter).GetMethod("WrapRichRuns", BindingFlags.NonPublic | BindingFlags.Static);
+                Assert.NotNull(wrapMethod);
+                return wrapMethod!.Invoke(null, new object?[] { runs, maxWidthPts, fontSize, baseFont, fontSize * 1.4, null, tabStopWidth ?? 36.0 })!;
+            }
+
+            var method = typeof(PdfWriter).GetMethod("WrapRichRunsCore", BindingFlags.NonPublic | BindingFlags.Static);
             Assert.NotNull(method);
-            return method!.Invoke(null, new object?[] { runs, maxWidthPts, fontSize, baseFont, fontSize * 1.4, null, tabStopWidth ?? 36.0 })!;
+            return method!.Invoke(null, new object?[] { runs, maxWidthPts, fontSize, baseFont, fontSize * 1.4, null, tabStopWidth ?? 36.0, null, tabStops })!;
         }
 
         private static T InvokePrivateFontMethod<T>(string methodName, params object[] parameters) {
             var method = typeof(PdfWriter).GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Static);
             Assert.NotNull(method);
-            return (T)method!.Invoke(null, parameters)!;
+            ParameterInfo[] methodParameters = method!.GetParameters();
+            object?[] invocationParameters = parameters;
+            if (parameters.Length < methodParameters.Length) {
+                invocationParameters = new object?[methodParameters.Length];
+                for (int index = 0; index < parameters.Length; index++) {
+                    invocationParameters[index] = parameters[index];
+                }
+
+                for (int index = parameters.Length; index < methodParameters.Length; index++) {
+                    invocationParameters[index] = methodParameters[index].HasDefaultValue
+                        ? methodParameters[index].DefaultValue
+                        : Type.Missing;
+                }
+            }
+
+            return (T)method.Invoke(null, invocationParameters)!;
         }
 
         private static TargetInvocationException InvokePrivateFontMethodExpectingFailure(string methodName, params object[] parameters) {

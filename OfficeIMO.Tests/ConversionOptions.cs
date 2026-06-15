@@ -51,6 +51,9 @@ public class ConversionOptionsTests {
         Assert.Equal(ImageProcessingMode.Embed, defaultProfile.ImageProcessing);
         Assert.Contains("https", defaultProfile.AllowedImageUriSchemes);
         Assert.Contains("https", defaultProfile.AllowedStylesheetUriSchemes);
+        Assert.True(defaultProfile.HyperlinkUrlPolicy.DisallowScriptUrls);
+        Assert.True(defaultProfile.HyperlinkUrlPolicy.DisallowFileUrls);
+        Assert.False(defaultProfile.HyperlinkUrlPolicy.AllowDataUrls);
         Assert.Null(defaultProfile.MaxHtmlNodes);
 
         var untrustedProfile = HtmlToWordOptions.CreateUntrustedHtmlProfile();
@@ -89,6 +92,10 @@ public class ConversionOptionsTests {
         options.BasePath = "C:\\Temp";
         options.NoteReferenceType = NoteReferenceType.Endnote;
         options.LinkNoteUrls = false;
+        options.HyperlinkUrlPolicy.DisallowFileUrls = false;
+        options.HyperlinkUrlPolicy.RestrictUrlSchemes = true;
+        options.HyperlinkUrlPolicy.AllowedUrlSchemes.Clear();
+        options.HyperlinkUrlPolicy.AllowedUrlSchemes.Add("https");
         options.ImageProcessing = ImageProcessingMode.LinkExternal;
         options.HttpClient = httpClient;
         options.ResourceTimeout = TimeSpan.FromSeconds(7);
@@ -138,6 +145,9 @@ public class ConversionOptionsTests {
         Assert.Equal(options.BasePath, clone.BasePath);
         Assert.Equal(options.NoteReferenceType, clone.NoteReferenceType);
         Assert.Equal(options.LinkNoteUrls, clone.LinkNoteUrls);
+        Assert.Equal(options.HyperlinkUrlPolicy.DisallowFileUrls, clone.HyperlinkUrlPolicy.DisallowFileUrls);
+        Assert.Equal(options.HyperlinkUrlPolicy.RestrictUrlSchemes, clone.HyperlinkUrlPolicy.RestrictUrlSchemes);
+        Assert.Equal(options.HyperlinkUrlPolicy.AllowedUrlSchemes, clone.HyperlinkUrlPolicy.AllowedUrlSchemes);
         Assert.Equal(options.ImageProcessing, clone.ImageProcessing);
         Assert.Same(httpClient, clone.HttpClient);
         Assert.Equal(options.ResourceTimeout, clone.ResourceTimeout);
@@ -173,10 +183,12 @@ public class ConversionOptionsTests {
 
         clone.ClassStyles["lead"] = WordParagraphStyles.Heading3;
         clone.StylesheetPaths.Add("other.css");
+        clone.HyperlinkUrlPolicy.AllowedUrlSchemes.Add("mailto");
         clone.AllowedImageUriSchemes.Add("https");
 
         Assert.Equal(WordParagraphStyles.Heading2, options.ClassStyles["lead"]);
         Assert.DoesNotContain("other.css", options.StylesheetPaths);
+        Assert.DoesNotContain("mailto", options.HyperlinkUrlPolicy.AllowedUrlSchemes);
         Assert.DoesNotContain("https", options.AllowedImageUriSchemes);
     }
 

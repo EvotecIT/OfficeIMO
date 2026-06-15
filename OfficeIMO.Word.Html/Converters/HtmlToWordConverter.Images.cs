@@ -1,4 +1,6 @@
 using AngleSharp.Html.Dom;
+using OfficeIMO.Drawing;
+using OfficeIMO.Html;
 using System.Globalization;
 using System.Net.Http;
 using System.Threading;
@@ -6,8 +8,12 @@ using Wp = DocumentFormat.OpenXml.Drawing.Wordprocessing;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
+        private static readonly HtmlUrlPolicy ImageSourceResolutionPolicy = CreateImageSourceResolutionPolicy();
+        private static readonly string[] WordImageSrcSetAttributes = { "srcset", "data-srcset", "data-original-srcset", "data-lazy-srcset" };
+        private static readonly string[] WordPictureSourceAttributes = { "src", "data-src", "data-original", "data-original-src", "data-lazy-src" };
+
         private void ProcessImage(IHtmlImageElement img, WordDocument doc, HtmlToWordOptions options, WordParagraph? currentParagraph, WordHeaderFooter? headerFooter) {
-            var src = img.GetAttribute("src") ?? string.Empty;
+            var src = ResolveWordImageSource(img, options);
             if (string.IsNullOrEmpty(src)) return;
             var decl = _inlineParser.ParseDeclaration(img.GetAttribute("style") ?? string.Empty);
             var floatVal = decl.GetPropertyValue("float")?.Trim().ToLowerInvariant();
@@ -19,14 +25,6 @@ namespace OfficeIMO.Word.Html {
             } else if (floatVal == "right") {
                 wrap = WrapTextImage.Square;
                 horizontalAlignment = "right";
-            }
-
-            if (!src.StartsWith("data:image", StringComparison.OrdinalIgnoreCase) && !Uri.TryCreate(src, UriKind.Absolute, out _)) {
-                if (!string.IsNullOrEmpty(options.BasePath)) {
-                    src = Path.Combine(options.BasePath, src);
-                } else if (img.BaseUrl != null && Uri.TryCreate(img.BaseUrl.Href, UriKind.Absolute, out var baseUri) && !string.Equals(img.BaseUrl.Href, "http://localhost/", StringComparison.OrdinalIgnoreCase)) {
-                    src = new Uri(baseUri, src).ToString();
-                }
             }
 
             var alt = img.AlternativeText ?? string.Empty;
@@ -192,14 +190,14 @@ namespace OfficeIMO.Word.Html {
             try {
                 string svgContent;
                 if (src.StartsWith("data:image/svg+xml", StringComparison.OrdinalIgnoreCase)) {
-                    if (!TryGetDataUriContent(src, out var meta, out var data, out var isBase64)) {
+                    if (!HtmlImageDataUri.TryParse(src, out var dataUri)) {
                         AddDiagnostic(options, "SvgDataUriInvalid", "SVG data URI could not be parsed and was skipped.", src);
                         InsertAltText(currentParagraph, headerFooter, doc, alt ?? string.Empty);
                         return;
                     }
-                    EnsureImageContentTypeAllowed(GetDataUriContentType(meta), options);
-                    if (isBase64) {
-                        var estimatedBytes = EstimateBase64ByteCount(data);
+                    EnsureImageContentTypeAllowed(dataUri.MediaType, options);
+                    if (dataUri.IsBase64) {
+                        var estimatedBytes = dataUri.EstimateDecodedByteCount();
                         if (options.MaxImageBytes.HasValue && estimatedBytes > options.MaxImageBytes.Value) {
                             AddDiagnostic(options, "ImageResourceTooLarge", "SVG data URI exceeded the configured byte limit and was replaced with alt text when available.", "data:image/svg+xml");
                             InsertAltText(currentParagraph, headerFooter, doc, alt ?? string.Empty);
@@ -210,10 +208,10 @@ namespace OfficeIMO.Word.Html {
                             return;
                         }
                         reservedBytes = estimatedBytes;
-                        var bytes = System.Convert.FromBase64String(data);
+                        var bytes = dataUri.DecodeBytes();
                         svgContent = Encoding.UTF8.GetString(bytes);
                     } else {
-                        svgContent = Uri.UnescapeDataString(data);
+                        svgContent = dataUri.DecodeText();
                         var svgByteCount = Encoding.UTF8.GetByteCount(svgContent);
                         if (options.MaxImageBytes.HasValue && svgByteCount > options.MaxImageBytes.Value) {
                             AddDiagnostic(options, "ImageResourceTooLarge", "SVG data URI exceeded the configured byte limit and was replaced with alt text when available.", "data:image/svg+xml");
@@ -370,41 +368,45 @@ namespace OfficeIMO.Word.Html {
 
         private bool TryHandleDataImage(string src, WordDocument doc, HtmlToWordOptions options, ref WordParagraph? paragraph, WordHeaderFooter? headerFooter, double? width, double? height, WrapTextImage wrap, string alt, out WordImage image) {
             image = null!;
-            if (!TryGetDataUriContent(src, out var meta, out var data, out var isBase64)) {
+            if (!HtmlImageDataUri.TryParse(src, out var dataUri)) {
                 AddDiagnostic(options, "ImageDataUriInvalid", "Image data URI could not be parsed and was skipped.", src);
                 return false;
             }
             long reservedBytes = 0;
             try {
-                var contentType = GetDataUriContentType(meta);
-                if (!IsImageContentTypeAllowed(contentType, options)) {
-                    AddDiagnostic(options, "ImageContentTypeRejected", "Image data URI content type is not allowed and was replaced with alt text when available.", contentType == null ? "data:image" : "data:" + contentType);
+                if (!IsImageContentTypeAllowed(dataUri.MediaType, options)) {
+                    AddDiagnostic(options, "ImageContentTypeRejected", "Image data URI content type is not allowed and was replaced with alt text when available.", "data:" + dataUri.MediaType);
                     return false;
                 }
 
-                var ext = "png";
-                var parts = meta.Split(new[] { ';', '/' }, StringSplitOptions.RemoveEmptyEntries);
-                if (parts.Length >= 2) {
-                    ext = parts[1];
-                }
-                if (isBase64) {
-                    var estimatedBytes = EstimateBase64ByteCount(data);
+                string ext = dataUri.FileExtension.TrimStart('.');
+                if (dataUri.IsBase64) {
+                    var estimatedBytes = dataUri.EstimateDecodedByteCount();
                     if (options.MaxImageBytes.HasValue && estimatedBytes > options.MaxImageBytes.Value) {
                         AddDiagnostic(options, "ImageResourceTooLarge", "Image data URI exceeded the configured byte limit and was replaced with alt text when available.", "data:image");
                         return false;
                     }
-                    if (!TryReserveImageBytes(estimatedBytes, options, "data:image")) {
+                    if (!dataUri.TryDecodeBytes(out byte[] bytes)) {
+                        AddDiagnostic(options, "ImageDataUriInvalid", "Image data URI could not be decoded or embedded and was replaced with alt text when available.", src);
                         return false;
                     }
-                    reservedBytes = estimatedBytes;
+                    if (options.MaxImageBytes.HasValue && bytes.LongLength > options.MaxImageBytes.Value) {
+                        AddDiagnostic(options, "ImageResourceTooLarge", "Image data URI exceeded the configured byte limit and was replaced with alt text when available.", "data:image");
+                        return false;
+                    }
+                    if (!TryReserveImageBytes(bytes.LongLength, options, "data:image")) {
+                        return false;
+                    }
+                    reservedBytes = bytes.LongLength;
                     paragraph ??= headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph();
-                    paragraph.AddImageFromBase64(data, "image." + ext, width, height, wrap, description: alt);
+                    using var imageStream = new MemoryStream(bytes);
+                    paragraph.AddImage(imageStream, "image." + ext, width, height, wrap, description: alt);
                 } else {
-                    if (!meta.Contains("svg+xml", StringComparison.OrdinalIgnoreCase)) {
+                    if (!dataUri.MediaType.Equals("image/svg+xml", StringComparison.OrdinalIgnoreCase)) {
                         AddDiagnostic(options, "ImageDataUriUnsupported", "Non-base64 data URI image was skipped because only SVG text data URIs are supported.", src);
                         return false;
                     }
-                    var svgContent = Uri.UnescapeDataString(data);
+                    var svgContent = dataUri.DecodeText();
                     if (options.MaxImageBytes.HasValue && Encoding.UTF8.GetByteCount(svgContent) > options.MaxImageBytes.Value) {
                         AddDiagnostic(options, "ImageResourceTooLarge", "SVG data URI exceeded the configured byte limit and was replaced with alt text when available.", "data:image/svg+xml");
                         return false;
@@ -427,21 +429,162 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private static bool TryGetDataUriContent(string src, out string meta, out string data, out bool isBase64) {
-            meta = string.Empty;
-            data = string.Empty;
-            isBase64 = false;
-            var commaIndex = src.IndexOf(',');
-            if (commaIndex <= 0) {
+        private static Uri? ResolveImageBaseUri(IHtmlImageElement img, HtmlToWordOptions options) {
+            if (!string.IsNullOrEmpty(options.BasePath)) {
+                return null;
+            }
+
+            if (img.BaseUrl != null
+                && Uri.TryCreate(img.BaseUrl.Href, UriKind.Absolute, out var baseUri)
+                && !string.Equals(img.BaseUrl.Href, "http://localhost/", StringComparison.OrdinalIgnoreCase)) {
+                return baseUri;
+            }
+
+            return null;
+        }
+
+        private string ResolveWordImageSource(IHtmlImageElement img, HtmlToWordOptions options) {
+            string firstResolved = string.Empty;
+            foreach (string candidate in EnumerateWordImageSourceCandidates(img, options)) {
+                string resolved = ResolveImageSourcePath(candidate, img, options);
+                if (string.IsNullOrWhiteSpace(resolved)) {
+                    continue;
+                }
+
+                if (IsUnresolvedRelativeImageSource(resolved)) {
+                    if (string.IsNullOrEmpty(firstResolved)) {
+                        firstResolved = resolved;
+                    }
+
+                    continue;
+                }
+
+                if (IsImageSourceAllowedForCurrentMode(resolved, img, options, out _)) {
+                    if (IsRemoteEmbeddedImageSource(resolved, options) && !TryFetchRemoteImageCandidate(resolved, options)) {
+                        if (string.IsNullOrEmpty(firstResolved)) {
+                            firstResolved = resolved;
+                        }
+
+                        continue;
+                    }
+
+                    if (IsLocalEmbeddedImageSource(resolved, options) && !TryProbeLocalImageCandidate(resolved, options)) {
+                        if (string.IsNullOrEmpty(firstResolved)) {
+                            firstResolved = resolved;
+                        }
+
+                        continue;
+                    }
+
+                    return resolved;
+                }
+
+                if (string.IsNullOrEmpty(firstResolved)) {
+                    firstResolved = resolved;
+                }
+            }
+
+            return firstResolved;
+        }
+
+        private static IEnumerable<string> EnumerateWordImageSourceCandidates(IHtmlImageElement img, HtmlToWordOptions options) {
+            Uri? baseUri = ResolveImageBaseUri(img, options);
+            if (img.ParentElement != null
+                && img.ParentElement.TagName.Equals("PICTURE", StringComparison.OrdinalIgnoreCase)) {
+                foreach (var child in img.ParentElement.Children) {
+                    if (!child.TagName.Equals("SOURCE", StringComparison.OrdinalIgnoreCase)) {
+                        continue;
+                    }
+
+                    if (!IsImageContentTypeAllowed(child.GetAttribute("type"), options)) {
+                        continue;
+                    }
+
+                    foreach (string candidate in ResolveImageCandidatesFromSourceElement(child, baseUri)) {
+                        yield return candidate;
+                    }
+                }
+            }
+
+            foreach (string candidate in HtmlImageSourceResolver.ResolveImageSourceCandidates(
+                         img,
+                         baseUri,
+                         ImageSourceResolutionPolicy,
+                         allowParentPictureFallback: false)) {
+                yield return candidate;
+            }
+        }
+
+        private static IEnumerable<string> ResolveImageCandidatesFromSourceElement(AngleSharp.Dom.IElement sourceElement, Uri? baseUri) {
+            foreach (string attributeName in WordImageSrcSetAttributes) {
+                foreach (HtmlSrcSetCandidate candidate in HtmlImageSourceResolver.ResolveSrcSetCandidates(
+                             sourceElement.GetAttribute(attributeName),
+                             baseUri,
+                             ImageSourceResolutionPolicy)) {
+                    yield return candidate.Url;
+                }
+            }
+
+            foreach (string attributeName in WordPictureSourceAttributes) {
+                string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(sourceElement.GetAttribute(attributeName), baseUri, ImageSourceResolutionPolicy);
+                if (!string.IsNullOrWhiteSpace(resolved)) {
+                    yield return resolved;
+                }
+            }
+        }
+
+        private static string ResolveImageSourcePath(string source, IHtmlImageElement img, HtmlToWordOptions options) {
+            if (string.IsNullOrWhiteSpace(source)
+                || source.StartsWith("data:image", StringComparison.OrdinalIgnoreCase)
+                || Uri.TryCreate(source, UriKind.Absolute, out _)) {
+                return source ?? string.Empty;
+            }
+
+            if (!string.IsNullOrEmpty(options.BasePath)) {
+                return Path.Combine(options.BasePath, source);
+            }
+
+            if (img.BaseUrl != null
+                && Uri.TryCreate(img.BaseUrl.Href, UriKind.Absolute, out var baseUri)
+                && !string.Equals(img.BaseUrl.Href, "http://localhost/", StringComparison.OrdinalIgnoreCase)) {
+                return new Uri(baseUri, source).ToString();
+            }
+
+            return source;
+        }
+
+        private static bool IsUnresolvedRelativeImageSource(string source) {
+            if (string.IsNullOrWhiteSpace(source)
+                || source.StartsWith("data:image", StringComparison.OrdinalIgnoreCase)
+                || Uri.TryCreate(source, UriKind.Absolute, out _)
+                || File.Exists(source)) {
                 return false;
             }
-            meta = src.Substring(5, commaIndex - 5);
-            data = src.Substring(commaIndex + 1);
-            isBase64 = meta.IndexOf("base64", StringComparison.OrdinalIgnoreCase) >= 0;
-            return true;
+
+            try {
+                return !Path.IsPathRooted(source);
+            } catch (ArgumentException) {
+                return true;
+            }
+        }
+
+        private static HtmlUrlPolicy CreateImageSourceResolutionPolicy() {
+            var policy = HtmlUrlPolicy.CreateOfficeIMOProfile();
+            policy.DisallowScriptUrls = false;
+            return policy;
         }
 
         private byte[] FetchBytes(Uri uri, HtmlToWordOptions options) {
+            string cacheKey = uri.AbsoluteUri;
+            if (_remoteImageBytesCache.TryGetValue(cacheKey, out byte[]? cachedBytes)) {
+                ReserveImageBytes(cachedBytes.LongLength, options);
+                return cachedBytes;
+            }
+
+            if (_remoteImageFailureCache.TryGetValue(cacheKey, out Exception? cachedFailure)) {
+                throw cachedFailure;
+            }
+
             using var cts = _resourceTimeout.HasValue
                 ? CancellationTokenSource.CreateLinkedTokenSource(_cancellationToken)
                 : null;
@@ -457,6 +600,37 @@ namespace OfficeIMO.Word.Html {
             var bytes = ReadContentWithLimit(response.Content, readLimit.Limit, readLimit.LimitedByTotalBudget, token);
             ReserveImageBytes(bytes.LongLength, options);
             return bytes;
+        }
+
+        private bool TryFetchRemoteImageCandidate(string source, HtmlToWordOptions options) {
+            if (!Uri.TryCreate(source, UriKind.Absolute, out var uri)) {
+                return false;
+            }
+
+            long reservedBytes = 0;
+            try {
+                byte[] bytes = FetchBytes(uri, options);
+                reservedBytes = bytes.LongLength;
+                if (!IsEmbeddableImageData(bytes, out var detail)) {
+                    _remoteImageBytesCache.Remove(uri.AbsoluteUri);
+                    _remoteImageFailureCache[uri.AbsoluteUri] = new InvalidDataException(detail);
+                    return false;
+                }
+
+                _remoteImageBytesCache[uri.AbsoluteUri] = bytes;
+                _remoteImageFailureCache.Remove(uri.AbsoluteUri);
+                return true;
+            } catch (OperationCanceledException ex) when (!_cancellationToken.IsCancellationRequested) {
+                _remoteImageFailureCache[uri.AbsoluteUri] = ex;
+                return false;
+            } catch (OperationCanceledException) {
+                throw;
+            } catch (Exception ex) {
+                _remoteImageFailureCache[uri.AbsoluteUri] = ex;
+                return false;
+            } finally {
+                ReleaseImageBytes(reservedBytes, options);
+            }
         }
 
         private string FetchString(Uri uri, HtmlToWordOptions options, out long reservedBytes) {
@@ -518,41 +692,28 @@ namespace OfficeIMO.Word.Html {
             return memory.ToArray();
         }
 
-        private static long EstimateBase64ByteCount(string data) {
-            var length = data.Length;
-            var padding = 0;
-            if (length > 0 && data[length - 1] == '=') {
-                padding++;
-            }
-            if (length > 1 && data[length - 2] == '=') {
-                padding++;
-            }
-
-            return (long)Math.Ceiling(length / 4D) * 3L - padding;
-        }
-
-        private static string? GetDataUriContentType(string meta) {
-            if (string.IsNullOrWhiteSpace(meta)) {
-                return null;
-            }
-
-            var separatorIndex = meta.IndexOf(';');
-            var contentType = separatorIndex >= 0 ? meta.Substring(0, separatorIndex) : meta;
-            return string.IsNullOrWhiteSpace(contentType) ? null : contentType.Trim();
-        }
-
         private static bool IsImageContentTypeAllowed(string? contentType, HtmlToWordOptions options) {
             if (!options.ValidateImageContentTypes || string.IsNullOrWhiteSpace(contentType)) {
                 return true;
             }
 
-            var normalized = contentType!.Trim();
+            var normalized = NormalizeImageContentType(contentType!);
             if (options.AllowedImageContentTypes.Contains(normalized)) {
                 return true;
             }
 
             return options.AllowedImageContentTypes.Contains("image/*")
                 && normalized.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string NormalizeImageContentType(string contentType) {
+            var normalized = contentType.Trim();
+            int parameterIndex = normalized.IndexOf(';');
+            if (parameterIndex >= 0) {
+                normalized = normalized.Substring(0, parameterIndex).Trim();
+            }
+
+            return normalized;
         }
 
         private static void EnsureImageContentTypeAllowed(string? contentType, HtmlToWordOptions options) {
@@ -596,6 +757,223 @@ namespace OfficeIMO.Word.Html {
             }
 
             return true;
+        }
+
+        private bool IsImageSourceAllowedForCurrentMode(string src, IHtmlImageElement img, HtmlToWordOptions options, out string detail) {
+            if (options.ImageProcessing == ImageProcessingMode.EmbedDataUriOnly
+                && !src.StartsWith("data:image", StringComparison.OrdinalIgnoreCase)) {
+                detail = "External image was skipped because only data URI images are enabled.";
+                return false;
+            }
+
+            if (options.ImageProcessing == ImageProcessingMode.LinkExternal
+                && !src.StartsWith("data:image", StringComparison.OrdinalIgnoreCase)
+                && !HasExternalImageDimensionHints(img)) {
+                detail = "External image link requires explicit width and height.";
+                return false;
+            }
+
+            if (!IsImageSourceAllowed(src, options, out detail)) {
+                return false;
+            }
+
+            if (src.StartsWith("data:", StringComparison.OrdinalIgnoreCase)
+                && !src.StartsWith("data:image", StringComparison.OrdinalIgnoreCase)) {
+                detail = "Only image data URI candidates are supported.";
+                return false;
+            }
+
+            if (src.StartsWith("data:image", StringComparison.OrdinalIgnoreCase)) {
+                return IsDataImageCandidateAllowed(src, options, out detail);
+            }
+
+            return true;
+        }
+
+        private bool IsDataImageCandidateAllowed(string src, HtmlToWordOptions options, out string detail) {
+            detail = string.Empty;
+            if (!HtmlImageDataUri.TryParse(src, out var dataUri)) {
+                detail = "Image data URI could not be parsed.";
+                return false;
+            }
+
+            if (!IsImageContentTypeAllowed(dataUri.MediaType, options)) {
+                detail = $"Image data URI content type '{dataUri.MediaType}' is not allowed.";
+                return false;
+            }
+
+            try {
+                long estimatedBytes;
+                if (dataUri.IsBase64) {
+                    if (_imageCache.ContainsKey(src)) {
+                        return true;
+                    }
+
+                    if (!dataUri.TryDecodeBytes(out byte[] bytes)) {
+                        detail = "Image data URI could not be decoded.";
+                        return false;
+                    }
+
+                    if (!TryIdentifyEmbeddableImageData(bytes, out var imageInfo, out detail)) {
+                        return false;
+                    }
+
+                    if (dataUri.MediaType.Equals("image/svg+xml", StringComparison.OrdinalIgnoreCase)
+                        && !IsEmbeddableSvgBytes(bytes, out detail)) {
+                        return false;
+                    }
+
+                    if (!IsIdentifiedImageContentTypeAllowed(imageInfo, options, out detail)) {
+                        return false;
+                    }
+
+                    estimatedBytes = bytes.LongLength;
+                } else {
+                    if (!dataUri.MediaType.Equals("image/svg+xml", StringComparison.OrdinalIgnoreCase)) {
+                        detail = "Only SVG text data URI images are supported when the payload is not base64 encoded.";
+                        return false;
+                    }
+
+                    string svgText = dataUri.DecodeText();
+                    if (!IsEmbeddableSvgText(svgText, out detail)) {
+                        return false;
+                    }
+
+                    estimatedBytes = Encoding.UTF8.GetByteCount(svgText);
+                }
+
+                if (options.MaxImageBytes.HasValue && estimatedBytes > options.MaxImageBytes.Value) {
+                    detail = $"Image data URI estimated size {estimatedBytes} bytes exceeds limit {options.MaxImageBytes.Value} bytes.";
+                    return false;
+                }
+
+                if (options.MaxTotalImageBytes.HasValue && estimatedBytes > options.MaxTotalImageBytes.Value - _imageBytesUsed) {
+                    detail = $"Image data URI estimated size {estimatedBytes} bytes exceeds remaining image byte budget.";
+                    return false;
+                }
+
+                return true;
+            } catch (UriFormatException ex) {
+                detail = ex.Message;
+                return false;
+            } catch (FormatException ex) {
+                detail = ex.Message;
+                return false;
+            }
+        }
+
+        private static bool IsEmbeddableImageData(byte[] bytes, out string detail) {
+            return TryIdentifyEmbeddableImageData(bytes, out _, out detail);
+        }
+
+        private static bool TryIdentifyEmbeddableImageData(byte[] bytes, out OfficeImageInfo imageInfo, out string detail) {
+            detail = string.Empty;
+            if (!OfficeImageReader.TryIdentify(bytes, null, out imageInfo)) {
+                detail = "Image data URI payload is not a supported image.";
+                return false;
+            }
+
+            return true;
+        }
+
+        private static bool IsIdentifiedImageContentTypeAllowed(OfficeImageInfo imageInfo, HtmlToWordOptions options, out string detail) {
+            detail = string.Empty;
+            if (IsImageContentTypeAllowed(imageInfo.MimeType, options)) {
+                return true;
+            }
+
+            if (imageInfo.Format == OfficeImageFormat.Jpeg && IsImageContentTypeAllowed("image/jpg", options)) {
+                return true;
+            }
+
+            detail = $"Image payload content type '{imageInfo.MimeType}' is not allowed.";
+            return false;
+        }
+
+        private static bool IsEmbeddableSvgText(string svgText, out string detail) {
+            detail = string.Empty;
+            byte[] bytes = Encoding.UTF8.GetBytes(svgText);
+            return IsEmbeddableSvgBytes(bytes, out detail);
+        }
+
+        private static bool IsEmbeddableSvgBytes(byte[] bytes, out string detail) {
+            detail = string.Empty;
+            if (!OfficeImageReader.TryIdentify(bytes, null, out var info) || info.Format != OfficeImageFormat.Svg) {
+                detail = "SVG data URI payload is not a valid SVG image.";
+                return false;
+            }
+
+            return true;
+        }
+
+        private bool TryProbeLocalImageCandidate(string source, HtmlToWordOptions options) {
+            if (!TryGetLocalImagePath(source, out string path)) {
+                return false;
+            }
+
+            long reservedBytes = 0;
+            try {
+                reservedBytes = EnsureFileWithinImageLimits(path, options);
+                byte[] bytes = File.ReadAllBytes(path);
+                if (!IsEmbeddableImageData(bytes, out _)) {
+                    return false;
+                }
+
+                return true;
+            } catch (OperationCanceledException) {
+                throw;
+            } catch (Exception) {
+                return false;
+            } finally {
+                ReleaseImageBytes(reservedBytes, options);
+            }
+        }
+
+        private static bool IsRemoteEmbeddedImageSource(string source, HtmlToWordOptions options) {
+            if (options.ImageProcessing == ImageProcessingMode.LinkExternal) {
+                return false;
+            }
+
+            return Uri.TryCreate(source, UriKind.Absolute, out var uri)
+                   && !uri.IsFile
+                   && (uri.Scheme.Equals(Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase)
+                       || uri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static bool IsLocalEmbeddedImageSource(string source, HtmlToWordOptions options) {
+            if (options.ImageProcessing == ImageProcessingMode.LinkExternal) {
+                return false;
+            }
+
+            return TryGetLocalImagePath(source, out _);
+        }
+
+        private static bool TryGetLocalImagePath(string source, out string path) {
+            path = string.Empty;
+            if (Uri.TryCreate(source, UriKind.Absolute, out var uri)) {
+                if (!uri.IsFile) {
+                    return false;
+                }
+
+                path = uri.LocalPath;
+                return true;
+            }
+
+            if (!File.Exists(source)) {
+                return false;
+            }
+
+            path = source;
+            return true;
+        }
+
+        private static bool HasExternalImageDimensionHints(IHtmlImageElement img) {
+            if (img.DisplayWidth > 0 && img.DisplayHeight > 0) {
+                return true;
+            }
+
+            return TryParsePixelValue(img.GetAttribute("width")).HasValue
+                   && TryParsePixelValue(img.GetAttribute("height")).HasValue;
         }
 
         private static bool IsImageSchemeAllowed(string scheme, HtmlToWordOptions options, out string detail) {

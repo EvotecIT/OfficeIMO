@@ -29,6 +29,10 @@ namespace OfficeIMO.Word.Pdf {
 
             IReadOnlyList<IReadOnlyList<WordElement>> columns = SplitNativeElementsByColumnBreaks(elements, columnCount);
             double gap = GetNativeSectionColumnGap(section);
+            PdfCore.PageSize pageSize = GetNativePageSize(section, options);
+            PdfCore.PageMargins margins = GetNativeMargins(section, options);
+            double sectionContentWidth = Math.Max(72D, pageSize.Width - margins.Left - margins.Right);
+            double availableColumnWidth = Math.Max(1D, sectionContentWidth - (gap * Math.Max(0, columnCount - 1)));
             page.Content(content => content.Row(row => {
                 row.Gap(gap);
                 if (section.HasColumnSeparator) {
@@ -38,7 +42,8 @@ namespace OfficeIMO.Word.Pdf {
                 for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
                     IReadOnlyList<WordElement> columnElements = columns[columnIndex];
                     row.Column(columnWidthPercents[columnIndex], column => {
-                        var flow = new NativePdfColumnFlow(column);
+                        var flow = new NativePdfColumnFlow(page, column);
+                        double columnContentWidth = availableColumnWidth * columnWidthPercents[columnIndex] / 100D;
                         bool hasContent = false;
                         for (int i = 0; i < columnElements.Count; i++) {
                             WordElement element = columnElements[i];
@@ -60,12 +65,14 @@ namespace OfficeIMO.Word.Pdf {
                             RenderNativeElement(
                                 flow,
                                 element,
+                                section,
                                 paragraph => listMarkers.TryGetValue(paragraph, out var marker) ? marker : null,
                                 GetNativeFootnoteNumbersForElement(columnElements, i, footnoteNumbersById),
                                 footnoteNumbersById,
                                 options,
                                 tableOfContentsEntries,
-                                headingDestinations);
+                                headingDestinations,
+                                columnContentWidth);
                             hasContent = true;
                         }
 

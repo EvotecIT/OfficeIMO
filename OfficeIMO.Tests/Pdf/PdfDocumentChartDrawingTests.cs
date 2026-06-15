@@ -1,9 +1,14 @@
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Drawing.Charts;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
+using OfficeIMO.Word.Pdf;
+using A = DocumentFormat.OpenXml.Drawing;
 using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 using Xunit;
 
@@ -26,7 +31,27 @@ public class PdfDocumentChartDrawingTests {
 
         Assert.NotNull(result.Drawing);
         Assert.NotNull(result.QualityReport);
+        Assert.Equal(320D, result.Drawing.Width);
+        Assert.Equal(190D, result.Drawing.Height);
         Assert.False(result.QualityReport.HasIssues, string.Join("; ", result.QualityReport.Issues.Select(issue => issue.ToString())));
+    }
+
+    [Fact]
+    public void FlowDrawing_ClampsSmallSnapshotExtentsBeforeLayout() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Native extent chart",
+            "Native Extents",
+            OfficeChartKind.Line,
+            new OfficeChartData(
+                new[] { "Q1", "Q2" },
+                new[] {
+                    new OfficeChartSeries("Actual", new[] { 1D, 2D })
+                }),
+            widthPoints: 180D,
+            heightPoints: 118D));
+
+        Assert.Equal(240D, drawing.Width);
+        Assert.Equal(150D, drawing.Height);
     }
 
     [Fact]
@@ -62,6 +87,222 @@ public class PdfDocumentChartDrawingTests {
     }
 
     [Fact]
+    public void WordChartCategoryExtraction_PadsShortCategoryCacheToValueCount() {
+        var categoryAxisData = new CategoryAxisData(
+            new StringReference(
+                new StringCache(
+                    new PointCount { Val = 1U },
+                    new StringPoint(new NumericValue("Only")) { Index = 0U })));
+        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("ExtractNativeWordChartCategories", BindingFlags.NonPublic | BindingFlags.Static)!;
+
+        var categories = (IReadOnlyList<string>)method.Invoke(null, new object?[] { categoryAxisData, 3 })!;
+
+        Assert.Equal(new[] { "Only", "Category 2", "Category 3" }, categories);
+    }
+
+    [Fact]
+    public void WordChartCategoryExtraction_PreservesExplicitBlankCacheLabels() {
+        var categoryAxisData = new CategoryAxisData(
+            new StringReference(
+                new StringCache(
+                    new PointCount { Val = 3U },
+                    new StringPoint(new NumericValue(string.Empty)) { Index = 1U },
+                    new StringPoint(new NumericValue("Visible")) { Index = 2U })));
+        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("ExtractNativeWordChartCategories", BindingFlags.NonPublic | BindingFlags.Static)!;
+
+        var categories = (IReadOnlyList<string>)method.Invoke(null, new object?[] { categoryAxisData, 3 })!;
+
+        Assert.Equal(new[] { "Category 1", string.Empty, "Visible" }, categories);
+    }
+
+    [Fact]
+    public void WordChartSeriesExtraction_ExtendsCategoriesAcrossAllSeries() {
+        var chart = new BarChart(
+            new BarDirection { Val = BarDirectionValues.Column },
+            new BarGrouping { Val = BarGroupingValues.Clustered },
+            CreateBarSeries(0U, new[] { "Q1", "Q2" }, new[] { 1D, 2D }),
+            CreateBarSeries(1U, new[] { "Q1", "Q2", "Q3", "Q4" }, new[] { 3D, 4D, 5D, 6D }));
+        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("ExtractNativeWordChartSeries", BindingFlags.NonPublic | BindingFlags.Static)!;
+        object?[] args = { new Chart(), chart, OfficeChartKind.ColumnClustered, new Dictionary<A.SchemeColorValues, OfficeColor>(), null };
+
+        var series = (IReadOnlyList<OfficeChartSeries>)method.Invoke(null, args)!;
+        var categories = (IReadOnlyList<string>)args[4]!;
+
+        Assert.Equal(2, series.Count);
+        Assert.Equal(new[] { "Q1", "Q2", "Q3", "Q4" }, categories);
+    }
+
+    [Fact]
+    public void WordChartSeriesExtraction_PreservesNonPiePointFillColors() {
+        OfficeColor highlight = OfficeColor.ParseHex("#F76707");
+        BarChartSeries barSeries = CreateBarSeries(0U, new[] { "Q1", "Q2" }, new[] { 1D, 2D });
+        barSeries.Append(new DataPoint(
+            new DocumentFormat.OpenXml.Drawing.Charts.Index { Val = 1U },
+            new ChartShapeProperties(new A.SolidFill(new A.RgbColorModelHex { Val = "F76707" }))));
+        var chart = new BarChart(
+            new BarDirection { Val = BarDirectionValues.Column },
+            new BarGrouping { Val = BarGroupingValues.Clustered },
+            barSeries);
+        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("ExtractNativeWordChartSeries", BindingFlags.NonPublic | BindingFlags.Static)!;
+        object?[] args = { new Chart(), chart, OfficeChartKind.ColumnClustered, new Dictionary<A.SchemeColorValues, OfficeColor>(), null };
+
+        var series = (IReadOnlyList<OfficeChartSeries>)method.Invoke(null, args)!;
+
+        OfficeChartSeries extracted = Assert.Single(series);
+        Assert.NotNull(extracted.PointColors);
+        Assert.Null(extracted.PointColors![0]);
+        Assert.Equal(highlight, extracted.PointColors[1]);
+    }
+
+    [Fact]
+    public void WordChartSeriesExtraction_SeedsPointColorsForVaryColorsNonPieCharts() {
+        var chart = new BarChart(
+            new BarDirection { Val = BarDirectionValues.Column },
+            new BarGrouping { Val = BarGroupingValues.Clustered },
+            new VaryColors { Val = true },
+            CreateBarSeries(0U, new[] { "Q1", "Q2", "Q3" }, new[] { 1D, 2D, 3D }));
+        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("ExtractNativeWordChartSeries", BindingFlags.NonPublic | BindingFlags.Static)!;
+        object?[] args = { new Chart(), chart, OfficeChartKind.ColumnClustered, new Dictionary<A.SchemeColorValues, OfficeColor>(), null };
+
+        var series = (IReadOnlyList<OfficeChartSeries>)method.Invoke(null, args)!;
+
+        OfficeChartSeries extracted = Assert.Single(series);
+        Assert.NotNull(extracted.PointColors);
+        Assert.Equal(OfficeChartDrawingRenderer.GetSeriesColor(0), extracted.PointColors![0]);
+        Assert.Equal(OfficeChartDrawingRenderer.GetSeriesColor(1), extracted.PointColors[1]);
+        Assert.Equal(OfficeChartDrawingRenderer.GetSeriesColor(2), extracted.PointColors[2]);
+    }
+
+    [Fact]
+    public void WordChartSeriesExtraction_PreservesPerSeriesMarkerVisibility() {
+        var visible = CreateLineSeries(0U, new[] { "Q1", "Q2" }, new[] { 1D, 2D });
+        var hidden = CreateLineSeries(1U, new[] { "Q1", "Q2" }, new[] { 3D, 4D });
+        hidden.InsertBefore(new Marker(new Symbol { Val = MarkerStyleValues.None }), hidden.GetFirstChild<CategoryAxisData>());
+        var chart = new LineChart(visible, hidden);
+        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("ExtractNativeWordChartSeries", BindingFlags.NonPublic | BindingFlags.Static)!;
+        object?[] args = { new Chart(), chart, OfficeChartKind.Line, new Dictionary<A.SchemeColorValues, OfficeColor>(), null };
+
+        var series = (IReadOnlyList<OfficeChartSeries>)method.Invoke(null, args)!;
+
+        Assert.Equal(2, series.Count);
+        Assert.True(series[0].ShowMarkers);
+        Assert.False(series[1].ShowMarkers);
+    }
+
+    [Fact]
+    public void WordChartLayout_PreservesLegendOnlyNonDefaultPosition() {
+        var chartElement = new BarChart(new BarDirection { Val = BarDirectionValues.Column });
+        var plotArea = new PlotArea(chartElement);
+        var chart = new Chart(
+            plotArea,
+            new Legend(new LegendPosition { Val = LegendPositionValues.Top }));
+        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeWordChartLayout", BindingFlags.NonPublic | BindingFlags.Static)!;
+
+        var layout = (OfficeChartLayout?)method.Invoke(null, new object[] { chart, chartElement, plotArea, OfficeChartKind.ColumnClustered, 2 })!;
+
+        Assert.NotNull(layout);
+        Assert.True(layout!.ShowLegend);
+        Assert.Equal(OfficeChartLegendPosition.Top, layout.LegendPosition);
+    }
+
+    [Fact]
+    public void WordChartLayout_UsesRenderableSeriesDataLabelsWhenChartLevelIsAbsent() {
+        var chartElement = new BarChart(
+            new BarDirection { Val = BarDirectionValues.Column },
+            CreateBarSeries(0U, new[] { "Q1" }, new[] { 1D }, new DataLabels(new ShowValue { Val = true })));
+        var plotArea = new PlotArea(chartElement);
+        var chart = new Chart(plotArea);
+        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeWordChartLayout", BindingFlags.NonPublic | BindingFlags.Static)!;
+
+        var layout = (OfficeChartLayout?)method.Invoke(null, new object[] { chart, chartElement, plotArea, OfficeChartKind.ColumnClustered, 1 })!;
+
+        Assert.NotNull(layout);
+        Assert.True(layout!.ShowDataLabels);
+        Assert.True(layout.ShowDataLabelValues);
+    }
+
+    [Fact]
+    public void WordChartLayout_ScopesSeriesLevelDataLabelsToOwningSeries() {
+        var chartElement = new BarChart(
+            new BarDirection { Val = BarDirectionValues.Column },
+            CreateBarSeries(0U, new[] { "Q1" }, new[] { 1D }),
+            CreateBarSeries(1U, new[] { "Q1" }, new[] { 2D }, new DataLabels(new ShowValue { Val = true })));
+        var plotArea = new PlotArea(chartElement);
+        var chart = new Chart(plotArea);
+        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeWordChartLayout", BindingFlags.NonPublic | BindingFlags.Static)!;
+
+        var layout = (OfficeChartLayout?)method.Invoke(null, new object[] { chart, chartElement, plotArea, OfficeChartKind.ColumnClustered, 1 })!;
+
+        Assert.NotNull(layout);
+        Assert.True(layout!.ShowDataLabels);
+        Assert.NotNull(layout.DataLabelSeriesIndexes);
+        Assert.Equal(new[] { 1 }, layout.DataLabelSeriesIndexes);
+    }
+
+    [Fact]
+    public void WordChartLayout_PreservesPointLevelDataLabelOverrides() {
+        var chartElement = new BarChart(
+            new BarDirection { Val = BarDirectionValues.Column },
+            CreateBarSeries(0U, new[] { "Q1", "Q2" }, new[] { 1D, 2D }, new DataLabels(
+                new DataLabel(
+                    new DocumentFormat.OpenXml.Drawing.Charts.Index { Val = 1U },
+                    new ShowValue { Val = true }),
+                new DataLabel(
+                    new DocumentFormat.OpenXml.Drawing.Charts.Index { Val = 0U },
+                    new Delete { Val = true }))));
+        var plotArea = new PlotArea(chartElement);
+        var chart = new Chart(plotArea);
+        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeWordChartLayout", BindingFlags.NonPublic | BindingFlags.Static)!;
+
+        var layout = (OfficeChartLayout?)method.Invoke(null, new object[] { chart, chartElement, plotArea, OfficeChartKind.ColumnClustered, 2 })!;
+
+        Assert.NotNull(layout);
+        Assert.True(layout!.ShowDataLabels);
+        Assert.NotNull(layout.DataLabelPointIndexes);
+        Assert.Equal(new[] { 1 }, layout.DataLabelPointIndexes![0]);
+        Assert.NotNull(layout.HiddenDataLabelPointIndexes);
+        Assert.Equal(new[] { 0 }, layout.HiddenDataLabelPointIndexes![0]);
+    }
+
+    [Fact]
+    public void WordChartLayout_PreservesOverlayLegendFlag() {
+        var chartElement = new BarChart(new BarDirection { Val = BarDirectionValues.Column });
+        var plotArea = new PlotArea(chartElement);
+        var chart = new Chart(
+            plotArea,
+            new Legend(
+                new LegendPosition { Val = LegendPositionValues.Right },
+                new Overlay { Val = true }));
+        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeWordChartLayout", BindingFlags.NonPublic | BindingFlags.Static)!;
+
+        var layout = (OfficeChartLayout?)method.Invoke(null, new object[] { chart, chartElement, plotArea, OfficeChartKind.ColumnClustered, 2 })!;
+
+        Assert.NotNull(layout);
+        Assert.True(layout!.ShowLegend);
+        Assert.True(layout.OverlayLegend);
+    }
+
+    [Fact]
+    public void WordChartLayout_PreservesMarkerOnlyScatterAndLineRadarStyles() {
+        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeWordChartLayout", BindingFlags.NonPublic | BindingFlags.Static)!;
+
+        var scatterElement = new ScatterChart(new ScatterStyle { Val = ScatterStyleValues.Marker });
+        var scatterPlotArea = new PlotArea(scatterElement);
+        var scatterChart = new Chart(scatterPlotArea);
+        var scatterLayout = (OfficeChartLayout?)method.Invoke(null, new object[] { scatterChart, scatterElement, scatterPlotArea, OfficeChartKind.Scatter, 2 })!;
+
+        var radarElement = new RadarChart(new RadarStyle { Val = RadarStyleValues.Standard });
+        var radarPlotArea = new PlotArea(radarElement);
+        var radarChart = new Chart(radarPlotArea);
+        var radarLayout = (OfficeChartLayout?)method.Invoke(null, new object[] { radarChart, radarElement, radarPlotArea, OfficeChartKind.Radar, 3 })!;
+
+        Assert.NotNull(scatterLayout);
+        Assert.False(scatterLayout!.ConnectScatterPoints);
+        Assert.NotNull(radarLayout);
+        Assert.False(radarLayout!.FillRadarSeries);
+    }
+
+    [Fact]
     public void FlowDrawing_RendersScatterXAxisLabelsFromNumericValues() {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Scatter",
@@ -85,6 +326,276 @@ public class PdfDocumentChartDrawingTests {
     }
 
     [Fact]
+    public void FlowDrawing_HonorsMarkerOnlyScatterLayout() {
+        OfficeColor seriesColor = OfficeColor.ParseHex("#2563EB");
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Marker scatter",
+            "Marker Scatter",
+            OfficeChartKind.Scatter,
+            new OfficeChartData(
+                new[] { "1", "2", "3" },
+                new[] {
+                    new OfficeChartSeries("Actual", new[] { 10D, 12D, 11D }, new[] { 1D, 2D, 3D }, seriesColor)
+                }),
+            widthPoints: 320D,
+            heightPoints: 190D,
+            layout: new OfficeChartLayout(connectScatterPoints: false)));
+
+        Assert.DoesNotContain(drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Line &&
+            shape.Shape.StrokeColor == seriesColor &&
+            shape.Shape.StrokeWidth == 1.25D);
+        Assert.Contains(drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Ellipse &&
+            shape.Shape.FillColor == seriesColor);
+    }
+
+    [Fact]
+    public void FlowDrawing_HonorsLineRadarLayoutWithoutSeriesFill() {
+        OfficeColor seriesColor = OfficeColor.ParseHex("#2563EB");
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Line radar",
+            "Line Radar",
+            OfficeChartKind.Radar,
+            new OfficeChartData(
+                new[] { "A", "B", "C" },
+                new[] {
+                    new OfficeChartSeries("Actual", new[] { 10D, 12D, 11D }, null, seriesColor)
+                }),
+            widthPoints: 320D,
+            heightPoints: 190D,
+            layout: new OfficeChartLayout(fillRadarSeries: false)));
+
+        Assert.DoesNotContain(drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Polygon &&
+            shape.Shape.FillColor == seriesColor);
+        Assert.Contains(drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Polygon &&
+            shape.Shape.StrokeColor == seriesColor &&
+            !shape.Shape.FillColor.HasValue);
+    }
+
+    [Fact]
+    public void FlowDrawing_HonorsSuppressedGridLines() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "No grid",
+            "No Grid",
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(
+                new[] { "Q1", "Q2", "Q3" },
+                new[] {
+                    new OfficeChartSeries("Actual", new[] { 10D, 12D, 11D })
+                }),
+            widthPoints: 320D,
+            heightPoints: 190D,
+            style: new OfficeChartStyle(showGridLines: false)));
+
+        Assert.DoesNotContain(drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Line &&
+            shape.Shape.StrokeWidth == 0.5D);
+    }
+
+    [Fact]
+    public void FlowDrawing_AppliesScalingCommasInDataLabelNumberFormats() {
+        MethodInfo method = typeof(OfficeChartDrawingRenderer).GetMethod("FormatDataLabelValue", BindingFlags.NonPublic | BindingFlags.Static)!;
+
+        string thousands = (string)method.Invoke(null, new object?[] { 1234567D, "#,##0," })!;
+        string millions = (string)method.Invoke(null, new object?[] { 1234567D, "0.0,," })!;
+        string literalSuffix = (string)method.Invoke(null, new object?[] { 1234567D, "#,##0, \"K\"" })!;
+
+        Assert.Equal("1,235", thousands);
+        Assert.Equal("1.2", millions);
+        Assert.Equal("1,235 K", literalSuffix);
+    }
+
+    [Fact]
+    public void FlowDrawing_AppliesNumberFormatsToPercentDataLabels() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Percent labels",
+            "Percent Labels",
+            OfficeChartKind.Pie,
+            new OfficeChartData(
+                new[] { "Passed", "Failed" },
+                new[] {
+                    new OfficeChartSeries("Results", new[] { 1D, 0D })
+                }),
+            widthPoints: 320D,
+            heightPoints: 190D,
+            layout: new OfficeChartLayout(
+                showDataLabels: true,
+                showDataLabelPercentages: true,
+                dataLabelNumberFormat: "0.00%")));
+
+        Assert.Contains(drawing.Elements.OfType<OfficeDrawingText>(), label => label.Text == "100.00%");
+        Assert.Contains(drawing.Elements.OfType<OfficeDrawingText>(), label => label.Text == "0.00%");
+    }
+
+    [Fact]
+    public void FlowDrawing_RendersOptInPieDataLabelsIncludingZeroValues() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Pie labels",
+            "Rule Results",
+            OfficeChartKind.Pie,
+            new OfficeChartData(
+                new[] { "Passed", "Failed", "Skipped" },
+                new[] {
+                    new OfficeChartSeries("Results", new[] { 1D, 0D, 0D })
+                }),
+            widthPoints: 320D,
+            heightPoints: 190D,
+            layout: new OfficeChartLayout(
+                showDataLabels: true,
+                showDataLabelValues: true,
+                showDataLabelPercentages: true)));
+
+        var labels = drawing.Elements.OfType<OfficeDrawingText>().ToList();
+
+        OfficeDrawingText positiveLabel = Assert.Single(labels, label => label.Text == "1; 100%");
+        var zeroLabels = labels.Where(label => label.Text == "0; 0%").ToList();
+        Assert.Equal(2, zeroLabels.Count);
+        Assert.Equal(OfficeColor.White, positiveLabel.Color);
+        Assert.All(zeroLabels, label => Assert.Equal(OfficeColor.White, label.Color));
+        Assert.All(zeroLabels, label => Assert.True(label.Y < positiveLabel.Y, "Zero-value pie labels should stay separated from the dominant-slice label."));
+    }
+
+    [Fact]
+    public void FlowDrawing_RendersOptInCartesianDataLabels() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Column labels",
+            "Revenue Labels",
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(
+                new[] { "Q1", "Q2" },
+                new[] {
+                    new OfficeChartSeries("Actual", new[] { 10D, 20D })
+                }),
+            widthPoints: 300D,
+            heightPoints: 180D,
+            layout: new OfficeChartLayout(
+                showDataLabels: true,
+                showDataLabelValues: true,
+                showDataLabelCategoryNames: true)));
+
+        var labels = drawing.Elements.OfType<OfficeDrawingText>().ToList();
+        OfficeDrawingText q1DataLabel = Assert.Single(labels, label => label.Text == "Q1; 10");
+        OfficeDrawingText q2DataLabel = Assert.Single(labels, label => label.Text == "Q2; 20");
+        OfficeDrawingText q1AxisLabel = Assert.Single(labels, label => label.Text == "Q1");
+
+        Assert.True(q1DataLabel.Y < q1AxisLabel.Y, "Expected column data labels to sit near the plotted values, not on the category axis.");
+        Assert.True(q2DataLabel.Y < q1AxisLabel.Y, "Expected column data labels to sit near the plotted values, not on the category axis.");
+    }
+
+    [Fact]
+    public void FlowDrawing_FormatsDataLabelValuesWhenRequested() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Formatted labels",
+            "Formatted Labels",
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(
+                new[] { "Q1", "Q2" },
+                new[] {
+                    new OfficeChartSeries("Actual", new[] { 1234.5D, 9876.5D })
+                }),
+            widthPoints: 320D,
+            heightPoints: 190D,
+            layout: new OfficeChartLayout(
+                showDataLabels: true,
+                showDataLabelValues: true,
+                showDataLabelCategoryNames: true,
+                dataLabelNumberFormat: "#,##0.0")));
+
+        var labels = drawing.Elements.OfType<OfficeDrawingText>().Select(label => label.Text).ToList();
+
+        Assert.Contains("Q1; 1,234.5", labels);
+        Assert.Contains("Q2; 9,876.5", labels);
+    }
+
+    [Fact]
+    public void FlowDrawing_FormatsValueAxisLabelsWhenRequested() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Formatted axis",
+            "Formatted Axis",
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(
+                new[] { "Q1", "Q2" },
+                new[] {
+                    new OfficeChartSeries("Actual", new[] { 1000D, 2000D })
+                }),
+            widthPoints: 320D,
+            heightPoints: 190D,
+            layout: new OfficeChartLayout(axisNumberFormat: "#,##0.0")));
+
+        var labels = drawing.Elements.OfType<OfficeDrawingText>().Select(label => label.Text).ToList();
+
+        Assert.Contains("0.0", labels);
+        Assert.Contains("2,000.0", labels);
+    }
+
+    [Fact]
+    public void FlowDrawing_RendersAxisTitlesWhenRequested() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Axis titles",
+            "Axis Titles",
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(
+                new[] { "Q1", "Q2" },
+                new[] {
+                    new OfficeChartSeries("Actual", new[] { 10D, 20D })
+                }),
+            widthPoints: 320D,
+            heightPoints: 190D,
+            layout: new OfficeChartLayout(
+                categoryAxisTitle: "Quarter",
+                valueAxisTitle: "Revenue")));
+
+        var labels = drawing.Elements.OfType<OfficeDrawingText>().ToList();
+        OfficeDrawingText categoryTitle = Assert.Single(labels, label => label.Text == "Quarter");
+        OfficeDrawingText valueTitle = Assert.Single(labels, label => label.Text == "Revenue");
+
+        Assert.True(categoryTitle.Y > valueTitle.Y, "Expected horizontal axis title below the plot and value axis title near the value-axis labels.");
+        Assert.Equal(OfficeTextAlignment.Center, categoryTitle.Alignment);
+        Assert.Equal(OfficeTextAlignment.Left, valueTitle.Alignment);
+    }
+
+    [Fact]
+    public void FlowDrawing_UsesRequestedCartesianDataLabelPosition() {
+        var data = new OfficeChartData(
+            new[] { "Q1", "Q2" },
+            new[] {
+                new OfficeChartSeries("Actual", new[] { 10D, 20D })
+            });
+        var outsideDrawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Outside labels",
+            "Outside Labels",
+            OfficeChartKind.ColumnClustered,
+            data,
+            widthPoints: 300D,
+            heightPoints: 180D,
+            layout: new OfficeChartLayout(
+                showDataLabels: true,
+                showDataLabelValues: true,
+                showDataLabelCategoryNames: true,
+                dataLabelPosition: OfficeChartDataLabelPosition.OutsideEnd)));
+        var centerDrawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Center labels",
+            "Center Labels",
+            OfficeChartKind.ColumnClustered,
+            data,
+            widthPoints: 300D,
+            heightPoints: 180D,
+            layout: new OfficeChartLayout(
+                showDataLabels: true,
+                showDataLabelValues: true,
+                showDataLabelCategoryNames: true,
+                dataLabelPosition: OfficeChartDataLabelPosition.Center)));
+
+        OfficeDrawingText outsideLabel = outsideDrawing.Elements.OfType<OfficeDrawingText>().Single(label => label.Text == "Q2; 20");
+        OfficeDrawingText centerLabel = centerDrawing.Elements.OfType<OfficeDrawingText>().Single(label => label.Text == "Q2; 20");
+
+        Assert.True(centerLabel.Y > outsideLabel.Y + 10D, "Expected centered data labels to move inside the plotted column.");
+    }
+
+    [Fact]
     public void FlowDrawing_RendersSinglePointLineChartMarker() {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Single point",
@@ -102,6 +613,36 @@ public class PdfDocumentChartDrawingTests {
             shape.Shape.Kind == OfficeShapeKind.Ellipse &&
             shape.Shape.Width == 4D &&
             shape.Shape.Height == 4D);
+    }
+
+    [Fact]
+    public void FlowDrawing_CanSuppressLineChartMarkers() {
+        OfficeChartData data = new OfficeChartData(
+            new[] { "Q1", "Q2", "Q3" },
+            new[] {
+                new OfficeChartSeries("Actual", new[] { 12D, 18D, 24D })
+            });
+        OfficeDrawing defaultDrawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Line markers",
+            "Line Markers",
+            OfficeChartKind.Line,
+            data,
+            widthPoints: 300D,
+            heightPoints: 180D));
+        OfficeDrawing suppressedDrawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Line no markers",
+            "Line No Markers",
+            OfficeChartKind.Line,
+            data,
+            widthPoints: 300D,
+            heightPoints: 180D,
+            layout: new OfficeChartLayout(showMarkers: false)));
+
+        int defaultMarkers = defaultDrawing.Shapes.Count(shape => shape.Shape.Kind == OfficeShapeKind.Ellipse && shape.Shape.Width == 4D && shape.Shape.Height == 4D);
+        int suppressedMarkers = suppressedDrawing.Shapes.Count(shape => shape.Shape.Kind == OfficeShapeKind.Ellipse && shape.Shape.Width == 4D && shape.Shape.Height == 4D);
+
+        Assert.Equal(3, defaultMarkers);
+        Assert.Equal(0, suppressedMarkers);
     }
 
     [Fact]
@@ -124,6 +665,65 @@ public class PdfDocumentChartDrawingTests {
             shape.Shape.Height > 2D &&
             shape.Shape.FillColor.HasValue &&
             shape.Shape.StrokeWidth == 0D);
+    }
+
+    [Fact]
+    public void FlowDrawing_RendersPlotAreaFillAndBorderWhenRequested() {
+        OfficeColor plotFill = OfficeColor.ParseHex("#fff2cc");
+        OfficeColor plotBorder = OfficeColor.ParseHex("#7f6000");
+
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Plot style",
+            "Plot Style",
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(
+                new[] { "Q1", "Q2" },
+                new[] {
+                    new OfficeChartSeries("Actual", new[] { 10D, 20D })
+                }),
+            widthPoints: 320D,
+            heightPoints: 190D,
+            style: new OfficeChartStyle(
+                plotAreaBackgroundColor: plotFill,
+                plotAreaBorderColor: plotBorder)));
+
+        Assert.Contains(drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Rectangle &&
+            shape.Shape.Width > 100D &&
+            shape.Shape.Height > 50D &&
+            shape.Shape.FillColor == plotFill &&
+            shape.Shape.StrokeColor == plotBorder &&
+            shape.Shape.StrokeWidth > 0D);
+    }
+
+    [Fact]
+    public void FlowDrawing_RendersCustomAxisAndGridLineColors() {
+        OfficeColor axisColor = OfficeColor.ParseHex("#ff0000");
+        OfficeColor gridLineColor = OfficeColor.ParseHex("#00ff00");
+
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Axis style",
+            "Axis Style",
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(
+                new[] { "Q1", "Q2" },
+                new[] {
+                    new OfficeChartSeries("Actual", new[] { 10D, 20D })
+                }),
+            widthPoints: 320D,
+            heightPoints: 190D,
+            style: new OfficeChartStyle(
+                axisColor: axisColor,
+                gridLineColor: gridLineColor)));
+
+        Assert.Contains(drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Line &&
+            shape.Shape.StrokeColor == axisColor &&
+            shape.Shape.StrokeWidth == 0.75D);
+        Assert.Contains(drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Line &&
+            shape.Shape.StrokeColor == gridLineColor &&
+            shape.Shape.StrokeWidth == 0.5D);
     }
 
     [Fact]
@@ -183,6 +783,94 @@ public class PdfDocumentChartDrawingTests {
     }
 
     [Fact]
+    public void FlowDrawing_RendersTopPieLegendSwatchesWithPointColors() {
+        OfficeColor passed = OfficeColor.ParseHex("#2FB344");
+        OfficeColor failed = OfficeColor.ParseHex("#F76707");
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Pie point legend",
+            "Pie Legend",
+            OfficeChartKind.Pie,
+            new OfficeChartData(
+                new[] { "Passed", "Failed" },
+                new[] {
+                    new OfficeChartSeries(
+                        "Outcome",
+                        new[] { 42D, 30D },
+                        null,
+                        OfficeColor.ParseHex("#2563EB"),
+                        new OfficeColor?[] { passed, failed })
+                }),
+            widthPoints: 260D,
+            heightPoints: 180D,
+            layout: new OfficeChartLayout(
+                showLegend: true,
+                legendPosition: OfficeChartLegendPosition.Top)));
+
+        var topLegendSwatches = drawing.Shapes
+            .Where(shape => shape.Shape.Kind == OfficeShapeKind.Rectangle && shape.Shape.StrokeWidth == 0D && shape.Y < 30D)
+            .Select(shape => shape.Shape.FillColor)
+            .ToList();
+
+        Assert.Contains(passed, topLegendSwatches);
+        Assert.Contains(failed, topLegendSwatches);
+    }
+
+    [Fact]
+    public void FlowDrawing_SuppressesHiddenPieCategoryLegendEntries() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Pie hidden legend",
+            "Pie Legend",
+            OfficeChartKind.Pie,
+            new OfficeChartData(
+                new[] { "Passed", "Failed", "Skipped" },
+                new[] {
+                    new OfficeChartSeries("Outcome", new[] { 42D, 30D, 3D })
+                }),
+            widthPoints: 260D,
+            heightPoints: 180D,
+            layout: new OfficeChartLayout {
+                HiddenCategoryLegendIndexes = new[] { 1 }
+            }));
+
+        IReadOnlyList<string> labels = drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToArray();
+
+        Assert.Contains("Passed", labels);
+        Assert.DoesNotContain("Failed", labels);
+        Assert.Contains("Skipped", labels);
+    }
+
+    [Fact]
+    public void FlowDrawing_RendersTopPieLegendSwatchesWithSourceCategoryIndexes() {
+        OfficeChartStyle style = OfficeChartStyle.Default;
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Pie hidden legend colors",
+            "Pie Legend",
+            OfficeChartKind.Pie,
+            new OfficeChartData(
+                new[] { "Hidden", "Passed", "Failed" },
+                new[] {
+                    new OfficeChartSeries("Outcome", new[] { 1D, 42D, 30D })
+                }),
+            widthPoints: 260D,
+            heightPoints: 180D,
+            style: style,
+            layout: new OfficeChartLayout(
+                showLegend: true,
+                legendPosition: OfficeChartLegendPosition.Top) {
+                HiddenCategoryLegendIndexes = new[] { 0 }
+            }));
+
+        var topLegendSwatches = drawing.Shapes
+            .Where(shape => shape.Shape.Kind == OfficeShapeKind.Rectangle && shape.Shape.StrokeWidth == 0D && shape.Y < 30D)
+            .Select(shape => shape.Shape.FillColor)
+            .ToList();
+
+        Assert.DoesNotContain(style.GetSeriesColor(0), topLegendSwatches);
+        Assert.Contains(style.GetSeriesColor(1), topLegendSwatches);
+        Assert.Contains(style.GetSeriesColor(2), topLegendSwatches);
+    }
+
+    [Fact]
     public void FlowDrawing_RendersDoughnutChartSeriesColorWhenPointColorsAreMissing() {
         OfficeColor seriesColor = OfficeColor.ParseHex("#CC3366");
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
@@ -211,6 +899,51 @@ public class PdfDocumentChartDrawingTests {
     }
 
     [Fact]
+    public void FlowDrawing_KeepsDoughnutDataLabelsOnSourceSeriesIndexes() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Doughnut source labels",
+            "Doughnut Labels",
+            OfficeChartKind.Doughnut,
+            new OfficeChartData(
+                new[] { "Passed", "Failed" },
+                new[] {
+                    new OfficeChartSeries("Empty", new[] { 0D, 0D }),
+                    new OfficeChartSeries("Outcome", new[] { 42D, 30D })
+                }),
+            widthPoints: 260D,
+            heightPoints: 180D,
+            layout: new OfficeChartLayout(
+                showLegend: false,
+                showDataLabels: true,
+                showDataLabelValues: true) {
+                DataLabelSeriesIndexes = new[] { 1 }
+            }));
+
+        IReadOnlyList<string> labels = drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToArray();
+
+        Assert.Contains("42", labels);
+        Assert.Contains("30", labels);
+    }
+
+    [Fact]
+    public void FlowDrawing_ClampsTinyChartCanvasesBeforeLayout() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Tiny chart",
+            "Tiny",
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(
+                new[] { "Q1" },
+                new[] {
+                    new OfficeChartSeries("Actual", new[] { 1D })
+                }),
+            widthPoints: 50D,
+            heightPoints: 40D));
+
+        Assert.True(drawing.Width >= 240D);
+        Assert.True(drawing.Height >= 150D);
+    }
+
+    [Fact]
     public void FlowDrawing_RendersLineChartPointColorsOnMarkers() {
         OfficeColor highlight = OfficeColor.ParseHex("#F76707");
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
@@ -236,6 +969,534 @@ public class PdfDocumentChartDrawingTests {
             shape.Shape.Height == 4D &&
             shape.Shape.FillColor == highlight &&
             shape.Shape.StrokeColor == highlight);
+    }
+
+    [Fact]
+    public void FlowDrawing_RendersZeroValueBarDataLabels() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Zero label chart",
+            "Zero Labels",
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(
+                new[] { "Q1" },
+                new[] { new OfficeChartSeries("Actual", new[] { 0D }) }),
+            widthPoints: 260D,
+            heightPoints: 160D,
+            layout: new OfficeChartLayout(
+                showDataLabels: true,
+                showDataLabelValues: true)));
+
+        Assert.Contains(drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "0");
+        Assert.DoesNotContain(drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Rectangle &&
+            shape.Shape.Width > 8D &&
+            shape.Shape.Height <= 1.1D &&
+            shape.Shape.StrokeWidth == 0D &&
+            shape.Shape.FillColor.HasValue);
+    }
+
+    [Fact]
+    public void FlowDrawing_PreservesBlankChartValuesAsGaps() {
+        OfficeColor seriesColor = OfficeColor.ParseHex("#2563EB");
+        var layout = new OfficeChartLayout(
+            showLegend: false,
+            showDataLabels: true,
+            showDataLabelValues: true,
+            showDataLabelCategoryNames: true);
+        OfficeDrawing columnDrawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Blank column values",
+            "Blank Values",
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(
+                new[] { "Q1", "Blank", "Q3", "Zero" },
+                new[] { new OfficeChartSeries("Actual", new[] { 10D, double.NaN, 20D, 0D }, null, seriesColor) }),
+            widthPoints: 320D,
+            heightPoints: 190D,
+            layout: layout));
+
+        var columnBars = columnDrawing.Shapes
+            .Where(shape =>
+                shape.Shape.Kind == OfficeShapeKind.Rectangle &&
+                shape.Shape.FillColor == seriesColor &&
+                shape.Shape.StrokeWidth == 0D &&
+                shape.Shape.Height > 2D)
+            .ToList();
+        var columnLabels = columnDrawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToList();
+
+        Assert.Equal(2, columnBars.Count);
+        Assert.Contains("Zero; 0", columnLabels);
+        Assert.DoesNotContain(columnLabels, label => label.Contains("NaN", StringComparison.Ordinal));
+
+        OfficeDrawing lineDrawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Blank line values",
+            "Blank Values",
+            OfficeChartKind.Line,
+            new OfficeChartData(
+                new[] { "Q1", "Blank", "Q3" },
+                new[] { new OfficeChartSeries("Actual", new[] { 10D, double.NaN, 20D }, null, seriesColor) }),
+            widthPoints: 320D,
+            heightPoints: 190D,
+            layout: layout));
+
+        Assert.DoesNotContain(lineDrawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Line &&
+            shape.Shape.StrokeColor == seriesColor &&
+            shape.Shape.StrokeWidth == 1.75D);
+        Assert.Equal(2, lineDrawing.Shapes.Count(shape =>
+            shape.Shape.Kind == OfficeShapeKind.Ellipse &&
+            shape.Shape.FillColor == seriesColor &&
+            shape.Shape.Width == 4D &&
+            shape.Shape.Height == 4D));
+        Assert.DoesNotContain(lineDrawing.Elements.OfType<OfficeDrawingText>(), text => text.Text.Contains("NaN", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void FlowDrawing_StripsBracketedColorDirectivesFromNumberFormats() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Signed label chart",
+            "Signed Labels",
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(
+                new[] { "Q1" },
+                new[] { new OfficeChartSeries("Actual", new[] { -1234D }) }),
+            widthPoints: 260D,
+            heightPoints: 160D,
+            layout: new OfficeChartLayout(
+                showDataLabels: true,
+                showDataLabelValues: true,
+                dataLabelNumberFormat: "#,##0;[Red]-#,##0")));
+
+        var labels = drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToList();
+
+        Assert.Contains("-1,234", labels);
+        Assert.DoesNotContain(labels, label => label.Contains("[Red]", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void FlowDrawing_FormatsPercentStackedAxesAsPercentagesByDefault() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Percent stacked chart",
+            "Percent Axis",
+            OfficeChartKind.ColumnStacked100,
+            new OfficeChartData(
+                new[] { "Q1" },
+                new[] {
+                    new OfficeChartSeries("Passed", new[] { 8D }),
+                    new OfficeChartSeries("Failed", new[] { 2D })
+                }),
+            widthPoints: 260D,
+            heightPoints: 160D));
+
+        var labels = drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToList();
+
+        Assert.Contains("100%", labels);
+        Assert.Contains("0%", labels);
+        Assert.DoesNotContain("1", labels);
+    }
+
+    [Fact]
+    public void FlowDrawing_UsesPerSeriesScatterXValuesForCategoryLabels() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Scatter labels",
+            "Scatter Labels",
+            OfficeChartKind.Scatter,
+            new OfficeChartData(
+                new[] { "1", "2" },
+                new[] {
+                    new OfficeChartSeries("First", new[] { 4D, 5D }, new[] { 1D, 2D }),
+                    new OfficeChartSeries("Second", new[] { 6D, 7D }, new[] { 10D, 20D })
+                }),
+            widthPoints: 320D,
+            heightPoints: 190D,
+            layout: new OfficeChartLayout(
+                showDataLabels: true,
+                showDataLabelValues: true,
+                showDataLabelCategoryNames: true)));
+
+        var labels = drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToList();
+
+        Assert.Contains("10; 6", labels);
+        Assert.Contains("20; 7", labels);
+        Assert.DoesNotContain("1; 6", labels);
+    }
+
+    [Fact]
+    public void FlowDrawing_RendersRadarDataLabels() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Radar labels",
+            "Radar Labels",
+            OfficeChartKind.Radar,
+            new OfficeChartData(
+                new[] { "Security", "Reliability", "UX" },
+                new[] { new OfficeChartSeries("Current", new[] { 7D, 6D, 5D }) }),
+            widthPoints: 280D,
+            heightPoints: 180D,
+            layout: new OfficeChartLayout(
+                showDataLabels: true,
+                showDataLabelValues: true)));
+
+        var labels = drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToList();
+
+        Assert.Contains("7", labels);
+        Assert.Contains("6", labels);
+        Assert.Contains("5", labels);
+    }
+
+    [Fact]
+    public void FlowDrawing_UsesNegativeNumberFormatSectionForDataLabels() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Negative labels",
+            "Negative Labels",
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(
+                new[] { "Q1" },
+                new[] { new OfficeChartSeries("Actual", new[] { -10D }) }),
+            widthPoints: 260D,
+            heightPoints: 160D,
+            layout: new OfficeChartLayout(
+                showDataLabels: true,
+                showDataLabelValues: true,
+                dataLabelNumberFormat: "#,##0;(#,##0)")));
+
+        Assert.Contains(drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "(10)");
+    }
+
+    [Fact]
+    public void FlowDrawing_PreservesLiteralAffixesInNumberFormatSections() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Affix labels",
+            "Affix Labels",
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(
+                new[] { "Q1", "Q2", "Q3" },
+                new[] { new OfficeChartSeries("Actual", new[] { 1234D, -25D, 0D }) }),
+            widthPoints: 280D,
+            heightPoints: 180D,
+            layout: new OfficeChartLayout(
+                showDataLabels: true,
+                showDataLabelValues: true,
+                dataLabelNumberFormat: "$#,##0.00;($#,##0.00);0 \"kg\"")));
+
+        List<string> labels = drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToList();
+
+        Assert.Contains("$1,234.00", labels);
+        Assert.Contains("($25.00)", labels);
+        Assert.Contains("0 kg", labels);
+    }
+
+    [Fact]
+    public void FlowDrawing_PreservesOptionalDecimalPlaceholdersInNumberFormats() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Optional decimal labels",
+            "Optional Decimal Labels",
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(
+                new[] { "Q1", "Q2", "Q3" },
+                new[] { new OfficeChartSeries("Actual", new[] { 1.2D, 1.25D, 1D }) }),
+            widthPoints: 280D,
+            heightPoints: 180D,
+            layout: new OfficeChartLayout(
+                showDataLabels: true,
+                showDataLabelValues: true,
+                dataLabelNumberFormat: "#,##0.##")));
+
+        List<string> labels = drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToList();
+
+        Assert.Contains("1.2", labels);
+        Assert.Contains("1.25", labels);
+        Assert.Contains("1", labels);
+        Assert.DoesNotContain("1.20", labels);
+        Assert.DoesNotContain("1.00", labels);
+    }
+
+    [Fact]
+    public void FlowDrawing_SuppressesMarkersForIndividualSeries() {
+        OfficeColor hiddenColor = OfficeColor.ParseHex("#C1121F");
+        OfficeColor visibleColor = OfficeColor.ParseHex("#0077B6");
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Line marker visibility",
+            "Line Markers",
+            OfficeChartKind.Line,
+            new OfficeChartData(
+                new[] { "Q1", "Q2", "Q3" },
+                new[] {
+                    new OfficeChartSeries("Hidden", new[] { 10D, 20D, 14D }, null, hiddenColor, null, showMarkers: false),
+                    new OfficeChartSeries("Visible", new[] { 12D, 18D, 16D }, null, visibleColor, null, showMarkers: true)
+                }),
+            widthPoints: 260D,
+            heightPoints: 160D,
+            layout: new OfficeChartLayout(showMarkers: true)));
+
+        Assert.DoesNotContain(drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Ellipse &&
+            shape.Shape.FillColor == hiddenColor);
+        Assert.Contains(drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Ellipse &&
+            shape.Shape.FillColor == visibleColor);
+    }
+
+    [Fact]
+    public void FlowDrawing_CanSuppressChartBackgroundFill() {
+        var style = new OfficeChartStyle(showBackground: false);
+
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Transparent chart",
+            null,
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(
+                new[] { "Q1" },
+                new[] {
+                    new OfficeChartSeries("Actual", new[] { 12D })
+                }),
+            widthPoints: 180D,
+            heightPoints: 120D,
+            style: style));
+
+        OfficeDrawingShape background = drawing.Shapes[0];
+        Assert.Equal(OfficeShapeKind.Rectangle, background.Shape.Kind);
+        Assert.Null(background.Shape.FillColor);
+    }
+
+    [Fact]
+    public void FlowDrawing_CanSuppressChartBorder() {
+        var style = new OfficeChartStyle {
+            ShowBorder = false
+        };
+
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Borderless chart",
+            null,
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(
+                new[] { "Q1" },
+                new[] {
+                    new OfficeChartSeries("Actual", new[] { 12D })
+                }),
+            widthPoints: 180D,
+            heightPoints: 120D,
+            style: style));
+
+        OfficeDrawingShape background = drawing.Shapes[0];
+        Assert.Equal(OfficeShapeKind.Rectangle, background.Shape.Kind);
+        Assert.Null(background.Shape.StrokeColor);
+        Assert.Equal(0D, background.Shape.StrokeWidth);
+    }
+
+    [Fact]
+    public void FlowDrawing_PointScopedDataLabelsDoNotPromoteToEveryPoint() {
+        var layout = new OfficeChartLayout(
+            showLegend: false,
+            showDataLabels: true,
+            showDataLabelCategoryNames: true) {
+            DataLabelPointIndexes = new Dictionary<int, IReadOnlyCollection<int>> {
+                [0] = new[] { 1 }
+            }
+        };
+
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Scoped labels",
+            null,
+            OfficeChartKind.Pie,
+            new OfficeChartData(
+                new[] { "HiddenLabel", "VisibleLabel" },
+                new[] {
+                    new OfficeChartSeries("Actual", new[] { 1D, 2D })
+                }),
+            widthPoints: 220D,
+            heightPoints: 150D,
+            layout: layout));
+
+        string text = string.Join(" ", drawing.Elements.OfType<OfficeDrawingText>().Select(item => item.Text));
+        Assert.DoesNotContain("HiddenLabel", text);
+        Assert.Contains("VisibleLabel", text);
+    }
+
+    [Fact]
+    public void WordChartStyle_PreservesExplicitNoFillChartBackground() {
+        var chart = new Chart(new ChartShapeProperties(new A.NoFill()));
+        var chartElement = new BarChart(
+            new BarDirection { Val = BarDirectionValues.Column },
+            new BarGrouping { Val = BarGroupingValues.Clustered },
+            CreateBarSeries(0U, new[] { "Q1" }, new[] { 1D }));
+        var plotArea = new PlotArea(chartElement);
+
+        OfficeChartStyle style = CreateNativeWordChartStyle(chart, chartElement, plotArea, OfficeChartKind.ColumnClustered, 1, 1);
+
+        Assert.False(style.ShowBackground);
+    }
+
+    [Fact]
+    public void WordChartStyle_PreservesExplicitNoLineChartBorder() {
+        var chart = new Chart(new ChartShapeProperties(new A.Outline(new A.NoFill())));
+        var chartElement = new BarChart(
+            new BarDirection { Val = BarDirectionValues.Column },
+            new BarGrouping { Val = BarGroupingValues.Clustered },
+            CreateBarSeries(0U, new[] { "Q1" }, new[] { 1D }));
+        var plotArea = new PlotArea(chartElement);
+
+        OfficeChartStyle style = CreateNativeWordChartStyle(chart, chartElement, plotArea, OfficeChartKind.ColumnClustered, 1, 1);
+
+        Assert.False(style.ShowBorder);
+    }
+
+    [Fact]
+    public void WordChartStyle_PreservesDisabledPieSliceColorVariation() {
+        var chart = new Chart();
+        var chartElement = new PieChart(
+            new VaryColors { Val = false },
+            CreatePieSeries(0U, new[] { "A", "B", "C" }, new[] { 1D, 2D, 3D }));
+        var plotArea = new PlotArea(chartElement);
+
+        OfficeChartStyle style = CreateNativeWordChartStyle(chart, chartElement, plotArea, OfficeChartKind.Pie, 3, 1);
+
+        Assert.Equal(style.Palette[0], style.Palette[1]);
+        Assert.Equal(style.Palette[0], style.Palette[2]);
+    }
+
+    [Fact]
+    public void WordChartStyle_KeepsPaletteAlignedAfterSkippedSeries() {
+        OfficeColor skippedColor = OfficeColor.ParseHex("#C1121F");
+        OfficeColor visibleColor = OfficeColor.ParseHex("#0077B6");
+        var skippedSeries = new BarChartSeries(
+            new DocumentFormat.OpenXml.Drawing.Charts.Index { Val = 0U },
+            new Order { Val = 0U },
+            new SeriesText(new NumericValue("Skipped")),
+            new ChartShapeProperties(new A.SolidFill(new A.RgbColorModelHex { Val = "C1121F" })));
+        BarChartSeries visibleSeries = CreateBarSeries(1U, new[] { "Q1" }, new[] { 4D });
+        visibleSeries.Append(new ChartShapeProperties(new A.SolidFill(new A.RgbColorModelHex { Val = "0077B6" })));
+        var chart = new Chart();
+        var chartElement = new BarChart(
+            new BarDirection { Val = BarDirectionValues.Column },
+            new BarGrouping { Val = BarGroupingValues.Clustered },
+            skippedSeries,
+            visibleSeries);
+        var plotArea = new PlotArea(chartElement);
+
+        OfficeChartStyle style = CreateNativeWordChartStyle(chart, chartElement, plotArea, OfficeChartKind.ColumnClustered, 1, 1);
+
+        Assert.NotEqual(skippedColor, style.Palette[0]);
+        Assert.Equal(visibleColor, style.Palette[0]);
+    }
+
+    [Fact]
+    public void NativeDrawingColorAlpha_AccumulatesAlphaModifiers() {
+        var color = new A.RgbColorModelHex { Val = "336699" };
+        color.Append(new A.Alpha { Val = 80000 });
+        color.Append(new A.AlphaModulation { Val = 50000 });
+        color.Append(new A.AlphaModulationFixed { Amount = 50000 });
+        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("TryGetNativeDrawingColorAlpha", BindingFlags.NonPublic | BindingFlags.Static)!;
+        object?[] args = { color, null };
+
+        bool found = (bool)method.Invoke(null, args)!;
+
+        Assert.True(found);
+        Assert.Equal(0.2D, (double)args[1]!, 5);
+    }
+
+    [Fact]
+    public void WordChartSeriesExtraction_PreservesDoughnutSeriesFills() {
+        OfficeColor outerColor = OfficeColor.ParseHex("#C1121F");
+        OfficeColor innerColor = OfficeColor.ParseHex("#0077B6");
+        PieChartSeries outerSeries = CreatePieSeries(0U, new[] { "Passed", "Failed" }, new[] { 4D, 1D });
+        outerSeries.Append(new ChartShapeProperties(new A.SolidFill(new A.RgbColorModelHex { Val = "C1121F" })));
+        PieChartSeries innerSeries = CreatePieSeries(1U, new[] { "Passed", "Failed" }, new[] { 3D, 2D });
+        innerSeries.Append(new ChartShapeProperties(new A.SolidFill(new A.RgbColorModelHex { Val = "0077B6" })));
+        var doughnutChart = new DoughnutChart(
+            new VaryColors { Val = false },
+            outerSeries,
+            innerSeries);
+
+        IReadOnlyList<OfficeChartSeries> series = ExtractNativeWordChartSeries(new Chart(), doughnutChart, OfficeChartKind.Doughnut);
+
+        Assert.Equal(2, series.Count);
+        Assert.Equal(outerColor, series[0].Color);
+        Assert.Equal(innerColor, series[1].Color);
+    }
+
+    private static IReadOnlyList<OfficeChartSeries> ExtractNativeWordChartSeries(Chart chart, OpenXmlElement chartElement, OfficeChartKind chartKind) {
+        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("ExtractNativeWordChartSeries", BindingFlags.NonPublic | BindingFlags.Static)!;
+        object?[] arguments = {
+            chart,
+            chartElement,
+            chartKind,
+            new Dictionary<A.SchemeColorValues, OfficeColor>(),
+            null
+        };
+
+        return (IReadOnlyList<OfficeChartSeries>)method.Invoke(null, arguments)!;
+    }
+
+    private static OfficeChartStyle CreateNativeWordChartStyle(Chart chart, OpenXmlElement chartElement, PlotArea plotArea, OfficeChartKind chartKind, int categoryCount, int seriesCount) {
+        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeWordChartStyle", BindingFlags.NonPublic | BindingFlags.Static)!;
+        return (OfficeChartStyle)method.Invoke(null, new object[] {
+            chart,
+            chartElement,
+            plotArea,
+            chartKind,
+            categoryCount,
+            seriesCount,
+            new Dictionary<A.SchemeColorValues, OfficeColor>()
+        })!;
+    }
+
+    private static double GetLongestAxisLineWidth(OfficeDrawing drawing) {
+        return drawing.Shapes
+            .Where(shape => shape.Shape.Kind == OfficeShapeKind.Line &&
+                            shape.Shape.StrokeWidth == 0.75D &&
+                            shape.Shape.Width > 20D)
+            .Select(shape => shape.Shape.Width)
+            .DefaultIfEmpty(0D)
+            .Max();
+    }
+
+    private static BarChartSeries CreateBarSeries(uint index, string[] categories, double[] values, DataLabels? dataLabels = null) {
+        var series = new BarChartSeries(
+            new DocumentFormat.OpenXml.Drawing.Charts.Index { Val = index },
+            new Order { Val = index },
+            new SeriesText(new NumericValue("Series " + (index + 1))),
+            CreateCategoryAxisData(categories),
+            CreateValues(values));
+        if (dataLabels != null) {
+            series.Append(dataLabels);
+        }
+
+        return series;
+    }
+
+    private static PieChartSeries CreatePieSeries(uint index, string[] categories, double[] values) {
+        return new PieChartSeries(
+            new DocumentFormat.OpenXml.Drawing.Charts.Index { Val = index },
+            new Order { Val = index },
+            new SeriesText(new NumericValue("Series " + (index + 1))),
+            CreateCategoryAxisData(categories),
+            CreateValues(values));
+    }
+
+    private static LineChartSeries CreateLineSeries(uint index, string[] categories, double[] values) {
+        return new LineChartSeries(
+            new DocumentFormat.OpenXml.Drawing.Charts.Index { Val = index },
+            new Order { Val = index },
+            new SeriesText(new NumericValue("Series " + (index + 1))),
+            CreateCategoryAxisData(categories),
+            CreateValues(values));
+    }
+
+    private static CategoryAxisData CreateCategoryAxisData(string[] categories) {
+        var cache = new StringCache(new PointCount { Val = (uint)categories.Length });
+        for (uint index = 0; index < categories.Length; index++) {
+            cache.Append(new StringPoint(new NumericValue(categories[index])) { Index = index });
+        }
+
+        return new CategoryAxisData(new StringReference(cache));
+    }
+
+    private static Values CreateValues(double[] values) {
+        var cache = new NumberingCache(new PointCount { Val = (uint)values.Length });
+        for (uint index = 0; index < values.Length; index++) {
+            cache.Append(new NumericPoint(new NumericValue(values[index].ToString("0.####", System.Globalization.CultureInfo.InvariantCulture))) { Index = index });
+        }
+
+        return new Values(new NumberReference(cache));
     }
 
     [Fact]
@@ -450,6 +1711,148 @@ public class PdfDocumentChartDrawingTests {
         Assert.Contains("Actual", text, System.StringComparison.Ordinal);
         Assert.Contains("Target", text, System.StringComparison.Ordinal);
         Assert.Contains("Q1", text, System.StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FlowDrawing_PlacesSeriesLegendAtBottomWhenRequested() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Bottom legend chart",
+            "Bottom Legend",
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(
+                new[] { "Q1", "Q2", "Q3" },
+                new[] {
+                    new OfficeChartSeries("Actual", new[] { 12D, 18D, 24D }),
+                    new OfficeChartSeries("Target", new[] { 10D, 20D, 26D })
+                }),
+            widthPoints: 320D,
+            heightPoints: 190D,
+            layout: new OfficeChartLayout(legendPosition: OfficeChartLegendPosition.Bottom)));
+
+        OfficeDrawingText actual = drawing.Elements.OfType<OfficeDrawingText>().Single(text => text.Text == "Actual");
+        OfficeDrawingText target = drawing.Elements.OfType<OfficeDrawingText>().Single(text => text.Text == "Target");
+
+        Assert.True(actual.Y > 160D, "Expected bottom legend text to be placed below the plot area.");
+        Assert.True(target.Y > 160D, "Expected bottom legend text to be placed below the plot area.");
+        Assert.True(actual.X < 180D, "Expected bottom legend text to use a horizontal band instead of the right-side legend strip.");
+        Assert.True(target.X < 260D, "Expected bottom legend text to use a horizontal band instead of the right-side legend strip.");
+    }
+
+    [Fact]
+    public void FlowDrawing_UsesSeriesColorsForTopBottomLegendBands() {
+        OfficeColor actualColor = OfficeColor.ParseHex("#C1121F");
+        OfficeColor targetColor = OfficeColor.ParseHex("#0077B6");
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Bottom legend color chart",
+            "Bottom Legend Colors",
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(
+                new[] { "Q1", "Q2", "Q3" },
+                new[] {
+                    new OfficeChartSeries("Actual", new[] { 12D, 18D, 24D }, null, actualColor),
+                    new OfficeChartSeries("Target", new[] { 10D, 20D, 26D }, null, targetColor)
+                }),
+            widthPoints: 320D,
+            heightPoints: 190D,
+            layout: new OfficeChartLayout(legendPosition: OfficeChartLegendPosition.Bottom)));
+
+        Assert.Contains(drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Rectangle &&
+            shape.Shape.Width == 6D &&
+            shape.Shape.Height == 6D &&
+            shape.Y > 160D &&
+            shape.Shape.FillColor == actualColor);
+        Assert.Contains(drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Rectangle &&
+            shape.Shape.Width == 6D &&
+            shape.Shape.Height == 6D &&
+            shape.Y > 160D &&
+            shape.Shape.FillColor == targetColor);
+    }
+
+    [Fact]
+    public void FlowDrawing_PlacesSeriesLegendAtLeftWhenRequested() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Left legend chart",
+            "Left Legend",
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(
+                new[] { "Q1", "Q2", "Q3" },
+                new[] {
+                    new OfficeChartSeries("Actual", new[] { 12D, 18D, 24D }),
+                    new OfficeChartSeries("Target", new[] { 10D, 20D, 26D })
+                }),
+            widthPoints: 320D,
+            heightPoints: 190D,
+            layout: new OfficeChartLayout(legendPosition: OfficeChartLegendPosition.Left)));
+
+        OfficeDrawingText actual = drawing.Elements.OfType<OfficeDrawingText>().Single(text => text.Text == "Actual");
+        OfficeDrawingText q1 = drawing.Elements.OfType<OfficeDrawingText>().Single(text => text.Text == "Q1");
+
+        Assert.True(actual.X < 40D, "Expected left legend text to be placed in the left-side legend strip.");
+        Assert.True(q1.X > actual.X + 60D, "Expected the plot area to move right when a left legend is present.");
+    }
+
+    [Fact]
+    public void FlowDrawing_OverlayLegendDoesNotReservePlotSpace() {
+        var data = new OfficeChartData(
+            new[] { "Q1", "Q2", "Q3" },
+            new[] {
+                new OfficeChartSeries("Actual", new[] { 12D, 18D, 24D }),
+                new OfficeChartSeries("Target", new[] { 10D, 20D, 26D })
+            });
+        OfficeDrawing reserved = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Reserved legend chart",
+            "Reserved Legend",
+            OfficeChartKind.Line,
+            data,
+            widthPoints: 320D,
+            heightPoints: 190D,
+            layout: new OfficeChartLayout(legendPosition: OfficeChartLegendPosition.Right)));
+        OfficeDrawing overlay = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Overlay legend chart",
+            "Overlay Legend",
+            OfficeChartKind.Line,
+            data,
+            widthPoints: 320D,
+            heightPoints: 190D,
+            layout: new OfficeChartLayout(overlayLegend: true, legendPosition: OfficeChartLegendPosition.Right)));
+
+        double reservedAxisWidth = GetLongestAxisLineWidth(reserved);
+        double overlayAxisWidth = GetLongestAxisLineWidth(overlay);
+
+        Assert.True(overlayAxisWidth > reservedAxisWidth + 30D, "Expected overlaid legends to avoid shrinking the plot area.");
+        Assert.Contains(overlay.Elements.OfType<OfficeDrawingText>(), text => text.Text == "Actual" && text.X < 320D);
+    }
+
+    [Fact]
+    public void FlowDrawing_SuppressesHiddenAxesAndLegendEntries() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Hidden axes chart",
+            "Hidden Axes",
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(
+                new[] { "Q1", "Q2" },
+                new[] {
+                    new OfficeChartSeries("HiddenLegend", new[] { 12D, 18D }, null, OfficeColor.ParseHex("#4472c4"), null, showMarkers: true, showInLegend: false),
+                    new OfficeChartSeries("VisibleLegend", new[] { 10D, 16D }, null, OfficeColor.ParseHex("#70ad47"))
+                }),
+            widthPoints: 320D,
+            heightPoints: 190D,
+            layout: new OfficeChartLayout(
+                showCategoryAxis: false,
+                showValueAxis: false)));
+
+        IReadOnlyList<string> labels = drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToArray();
+
+        Assert.DoesNotContain("Q1", labels);
+        Assert.DoesNotContain("Q2", labels);
+        Assert.DoesNotContain("HiddenLegend", labels);
+        Assert.Contains("VisibleLegend", labels);
+        Assert.DoesNotContain(drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Line &&
+            shape.Shape.StrokeWidth == 0.75D &&
+            shape.Shape.StrokeColor == OfficeChartStyle.Default.AxisColor);
     }
 
     [Fact]

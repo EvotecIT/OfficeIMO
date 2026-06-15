@@ -1,6 +1,5 @@
 using AngleSharp.Dom;
-using AngleSharp.Html.Dom;
-using AngleSharp.Html.Parser;
+using OfficeIMO.Html;
 using OfficeIMO.Markdown;
 
 namespace OfficeIMO.Markdown.Html;
@@ -15,6 +14,8 @@ public sealed partial class HtmlToMarkdownConverter {
         }
 
         public HtmlToMarkdownOptions Options { get; }
+        public int SavedBase64ImageCount { get; set; }
+        public Dictionary<string, string> SavedBase64ImagesBySource { get; } = new(StringComparer.Ordinal);
     }
 
     /// <summary>
@@ -45,14 +46,11 @@ public sealed partial class HtmlToMarkdownConverter {
         var effectiveOptions = options?.Clone() ?? new HtmlToMarkdownOptions();
         ValidateInputLength(html, effectiveOptions.MaxInputCharacters, nameof(html));
 
-        var parser = new HtmlParser();
-        var document = parser.ParseDocument(html);
-        effectiveOptions.BaseUri = ResolveEffectiveBaseUri(document, effectiveOptions.BaseUri);
+        var document = HtmlDocumentParser.ParseDocument(html);
+        effectiveOptions.BaseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, effectiveOptions.BaseUri);
         var context = new ConversionContext(effectiveOptions);
 
-        INode root = effectiveOptions.UseBodyContentsOnly && document.Body != null
-            ? document.Body
-            : (INode?)document.DocumentElement ?? document;
+        INode root = HtmlDocumentParser.GetConversionRoot(document, effectiveOptions.UseBodyContentsOnly);
 
         var markdown = MarkdownDoc.Create();
         foreach (var block in ConvertNodesToBlocks(root.ChildNodes, context)) {
@@ -63,31 +61,6 @@ public sealed partial class HtmlToMarkdownConverter {
             markdown,
             effectiveOptions.DocumentTransforms,
             new MarkdownDocumentTransformContext(MarkdownDocumentTransformSource.HtmlToMarkdown, effectiveOptions));
-    }
-
-    private static Uri? ResolveEffectiveBaseUri(IHtmlDocument document, Uri? fallbackBaseUri) {
-        if (document == null) {
-            return fallbackBaseUri;
-        }
-
-        var baseElement = document.QuerySelector("base[href]");
-        string? rawBaseHref = baseElement?.GetAttribute("href");
-        if (rawBaseHref == null) {
-            return fallbackBaseUri;
-        }
-
-        string baseHref = rawBaseHref.Trim();
-        if (baseHref.Length == 0) {
-            return fallbackBaseUri;
-        }
-
-        if (fallbackBaseUri != null && Uri.TryCreate(fallbackBaseUri, baseHref, out var resolvedFromFallback)) {
-            return resolvedFromFallback;
-        }
-
-        return Uri.TryCreate(baseHref, UriKind.Absolute, out var absoluteBaseUri)
-            ? absoluteBaseUri
-            : fallbackBaseUri;
     }
 
     private static bool ShouldIgnoreElement(IElement element, ConversionContext context) {
@@ -239,15 +212,7 @@ public sealed partial class HtmlToMarkdownConverter {
         }
 
         string candidate = rawUrl!.Trim();
-        if (context.Options.BaseUri == null) {
-            return candidate;
-        }
-
-        if (Uri.TryCreate(context.Options.BaseUri, candidate, out var resolved)) {
-            return resolved.AbsoluteUri;
-        }
-
-        return candidate;
+        return HtmlUrlPolicyEvaluator.ResolveUrl(candidate, context.Options.BaseUri, context.Options.UrlPolicy);
     }
 
     private static string NormalizeBlockText(string? value) {

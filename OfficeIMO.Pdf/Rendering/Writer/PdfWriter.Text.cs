@@ -383,11 +383,100 @@ internal static partial class PdfWriter {
         return width;
     }
 
+    private static double CalculateDefaultTabAdvance(double lineWidth, double spaceWidth, double tabStopWidth = DefaultParagraphTabStopWidth) {
+        if (lineWidth < 0 || double.IsNaN(lineWidth) || double.IsInfinity(lineWidth) ||
+            tabStopWidth <= 0 || double.IsNaN(tabStopWidth) || double.IsInfinity(tabStopWidth)) {
+            return spaceWidth;
+        }
+
+        double nextStop = (Math.Floor(lineWidth / tabStopWidth) + 1D) * tabStopWidth;
+        return Math.Max(spaceWidth, nextStop - lineWidth);
+    }
+
+    private static double CalculateTabAdvance(double lineWidth, double followingTextWidth, double spaceWidth, PdfTabAlignment alignment, double tabStopWidth = DefaultParagraphTabStopWidth, string followingText = "", PdfStandardFont followingFont = PdfStandardFont.Helvetica, double fontSize = 12D, PdfTextBaseline baseline = PdfTextBaseline.Normal, PdfOptions? options = null, double? maxWidth = null, PdfTabStop? explicitTabStop = null, double lineOriginOffset = 0D) {
+        if (explicitTabStop == null && alignment == PdfTabAlignment.Left) {
+            return CalculateDefaultTabAdvance(lineWidth, spaceWidth, tabStopWidth);
+        }
+
+        if (lineWidth < 0 || double.IsNaN(lineWidth) || double.IsInfinity(lineWidth) ||
+            followingTextWidth < 0 || double.IsNaN(followingTextWidth) || double.IsInfinity(followingTextWidth) ||
+            double.IsNaN(lineOriginOffset) || double.IsInfinity(lineOriginOffset)) {
+            return spaceWidth;
+        }
+
+        if (explicitTabStop == null &&
+            (tabStopWidth <= 0 || double.IsNaN(tabStopWidth) || double.IsInfinity(tabStopWidth))) {
+            return spaceWidth;
+        }
+
+        double? boundedMaxWidth = maxWidth.HasValue &&
+            maxWidth.Value > 0 &&
+            !double.IsNaN(maxWidth.Value) &&
+            !double.IsInfinity(maxWidth.Value)
+                ? maxWidth.Value
+                : null;
+        if (explicitTabStop != null) {
+            alignment = explicitTabStop.Alignment;
+        }
+
+        double anchorWidth = alignment switch {
+            PdfTabAlignment.Center => followingTextWidth / 2D,
+            PdfTabAlignment.Right => followingTextWidth,
+            PdfTabAlignment.DecimalSeparator => MeasureDecimalAnchorWidth(followingText, followingFont, fontSize, baseline, options),
+            _ => 0D
+        };
+        double nextStop = explicitTabStop?.Position - lineOriginOffset ?? (Math.Floor(lineWidth / tabStopWidth) + 1D) * tabStopWidth;
+        if (boundedMaxWidth.HasValue) {
+            nextStop = Math.Min(nextStop, boundedMaxWidth.Value);
+        }
+
+        double advance = nextStop - anchorWidth - lineWidth;
+        if (explicitTabStop != null) {
+            return Math.Max(0D, advance);
+        }
+
+        if (advance < spaceWidth) {
+            if (boundedMaxWidth.HasValue && nextStop >= boundedMaxWidth.Value) {
+                return Math.Max(0D, advance);
+            }
+
+            double stopsToAdd = Math.Ceiling((spaceWidth - advance) / tabStopWidth);
+            nextStop += Math.Max(1D, stopsToAdd) * tabStopWidth;
+            if (boundedMaxWidth.HasValue) {
+                nextStop = Math.Min(nextStop, boundedMaxWidth.Value);
+            }
+
+            advance = nextStop - anchorWidth - lineWidth;
+            if (boundedMaxWidth.HasValue && nextStop >= boundedMaxWidth.Value) {
+                return Math.Max(0D, advance);
+            }
+        }
+
+        return Math.Max(spaceWidth, advance);
+    }
+
     private static (System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines, System.Collections.Generic.List<double> LineHeights) WrapRichRuns(System.Collections.Generic.IEnumerable<TextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, double lineHeight, double? firstLineWidthPts = null, double tabStopWidth = DefaultParagraphTabStopWidth) =>
         WrapRichRunsCore(runs, maxWidthPts, fontSize, baseFont, lineHeight, firstLineWidthPts, tabStopWidth, options: null);
 
+    private static PdfTabStop[]? NormalizeExplicitTabStops(System.Collections.Generic.IReadOnlyList<PdfTabStop>? tabStops) {
+        if (tabStops == null || tabStops.Count == 0) {
+            return null;
+        }
+
+        return tabStops
+            .Where(tabStop => tabStop.Position > 0 && !double.IsNaN(tabStop.Position) && !double.IsInfinity(tabStop.Position))
+            .OrderBy(tabStop => tabStop.Position)
+            .Select(tabStop => tabStop.Clone())
+            .ToArray();
+    }
+
     private static (System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines, System.Collections.Generic.List<double> LineHeights) WrapRichRunsCore(System.Collections.Generic.IEnumerable<TextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, double lineHeight, double? firstLineWidthPts, double tabStopWidth, PdfOptions? options, System.Collections.Generic.IReadOnlyList<PdfTabStop>? tabStops = null) {
+        return WrapRichRunsCoreWithFirstLineOrigin(runs, maxWidthPts, fontSize, baseFont, lineHeight, firstLineWidthPts, null, tabStopWidth, options, tabStops);
+    }
+
+    private static (System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines, System.Collections.Generic.List<double> LineHeights) WrapRichRunsCoreWithFirstLineOrigin(System.Collections.Generic.IEnumerable<TextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, double lineHeight, double? firstLineWidthPts, double? firstLineOriginOffsetPts, double tabStopWidth, PdfOptions? options, System.Collections.Generic.IReadOnlyList<PdfTabStop>? tabStops = null) {
         System.Collections.Generic.IEnumerable<TextRun> effectiveRuns = NormalizeFallbackRuns(runs, baseFont, options);
+        PdfTabStop[]? explicitTabStops = NormalizeExplicitTabStops(tabStops);
         var lines = new System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> { new() };
         var heights = new System.Collections.Generic.List<double>();
         double lineWidth = 0;
@@ -396,10 +485,12 @@ internal static partial class PdfWriter {
         bool pendingLeadingIsTab = false;
         PdfTabAlignment pendingLeadingTabAlignment = PdfTabAlignment.Left;
         PdfTabLeaderStyle pendingLeadingTabLeader = PdfTabLeaderStyle.None;
-        double? pendingLeadingTabPosition = null;
+        PdfTabStop? pendingLeadingTabStop = null;
+        int nextExplicitTabStopIndex = 0;
         double lineHeightRatio = fontSize > 0 ? lineHeight / fontSize : 1.2D;
         double currentLineHeight = lineHeight;
         double CurrentMaxWidth() => lines.Count == 1 ? firstLineWidthPts ?? maxWidthPts : maxWidthPts;
+        double CurrentLineOriginOffset() => lines.Count == 1 ? firstLineOriginOffsetPts ?? 0D : 0D;
         void RegisterLineHeight(double runFontSize) {
             currentLineHeight = Math.Max(currentLineHeight, runFontSize * lineHeightRatio);
         }
@@ -409,6 +500,34 @@ internal static partial class PdfWriter {
             lines.Add(new());
             lineWidth = 0;
             currentLineHeight = lineHeight;
+            nextExplicitTabStopIndex = 0;
+        }
+
+        PdfTabStop? ResolveNextExplicitTabStop() {
+            if (explicitTabStops == null || explicitTabStops.Length == 0) {
+                return null;
+            }
+
+            while (nextExplicitTabStopIndex < explicitTabStops.Length &&
+                   explicitTabStops[nextExplicitTabStopIndex].Position <= CurrentLineOriginOffset() + lineWidth + 0.001D) {
+                nextExplicitTabStopIndex++;
+            }
+
+            if (nextExplicitTabStopIndex >= explicitTabStops.Length) {
+                return null;
+            }
+
+            return explicitTabStops[nextExplicitTabStopIndex++];
+        }
+
+        void ResolvePendingLeadingTabForCurrentLine(double followingTextWidth, double spaceW, string followingText, PdfStandardFont followingFont, double followingFontSize, PdfTextBaseline followingBaseline) {
+            PdfTabAlignment fallbackAlignment = pendingLeadingTabAlignment;
+            PdfTabLeaderStyle fallbackLeader = pendingLeadingTabLeader;
+            PdfTabStop? explicitTabStop = ResolveNextExplicitTabStop();
+            pendingLeadingTabAlignment = explicitTabStop?.Alignment ?? fallbackAlignment;
+            pendingLeadingTabLeader = explicitTabStop?.Leader ?? fallbackLeader;
+            pendingLeadingTabStop = explicitTabStop;
+            pendingLeadingAdvance = CalculateTabAdvance(lineWidth, followingTextWidth, spaceW, pendingLeadingTabAlignment, tabStopWidth, followingText, followingFont, followingFontSize, followingBaseline, options, CurrentMaxWidth(), pendingLeadingTabStop, CurrentLineOriginOffset());
         }
 
         void ResetPendingLeading() {
@@ -417,25 +536,25 @@ internal static partial class PdfWriter {
             pendingLeadingIsTab = false;
             pendingLeadingTabAlignment = PdfTabAlignment.Left;
             pendingLeadingTabLeader = PdfTabLeaderStyle.None;
-            pendingLeadingTabPosition = null;
+            pendingLeadingTabStop = null;
         }
 
-        void SetPendingLeadingFromWhitespace(bool hadTab, double spaceWidth, PdfTabAlignment runTabAlignment, PdfTabLeaderStyle runTabLeader) {
+        void SetPendingSeparator(bool hadTab, double spaceW, PdfTabAlignment tabAlignment, PdfTabLeaderStyle tabLeader) {
             if (!hadTab) {
-                pendingLeadingAdvance = spaceWidth;
+                pendingLeadingAdvance = spaceW;
                 pendingLeadingIsExpandable = true;
                 pendingLeadingIsTab = false;
                 pendingLeadingTabAlignment = PdfTabAlignment.Left;
                 pendingLeadingTabLeader = PdfTabLeaderStyle.None;
-                pendingLeadingTabPosition = null;
+                pendingLeadingTabStop = null;
                 return;
             }
 
-            PdfTabStop? tabStop = GetNextExplicitTabStop(lineWidth, tabStops);
-            pendingLeadingTabAlignment = ResolveTabAlignment(runTabAlignment, tabStop);
-            pendingLeadingTabLeader = ResolveTabLeader(runTabLeader, tabStop);
-            pendingLeadingTabPosition = tabStop?.Position;
-            pendingLeadingAdvance = CalculateTabAdvanceToStop(lineWidth, 0D, spaceWidth, pendingLeadingTabAlignment, tabStopWidth, options: options, maxWidth: CurrentMaxWidth(), explicitTabStopPosition: pendingLeadingTabPosition);
+            PdfTabStop? explicitTabStop = ResolveNextExplicitTabStop();
+            pendingLeadingTabAlignment = explicitTabStop?.Alignment ?? tabAlignment;
+            pendingLeadingTabLeader = explicitTabStop?.Leader ?? tabLeader;
+            pendingLeadingTabStop = explicitTabStop;
+            pendingLeadingAdvance = CalculateTabAdvance(lineWidth, 0D, spaceW, pendingLeadingTabAlignment, tabStopWidth, options: options, maxWidth: CurrentMaxWidth(), explicitTabStop: pendingLeadingTabStop, lineOriginOffset: CurrentLineOriginOffset());
             pendingLeadingIsExpandable = false;
             pendingLeadingIsTab = true;
         }
@@ -492,7 +611,8 @@ internal static partial class PdfWriter {
                             StartNewLine();
                             ResetPendingLeading();
                         } else if (nextWs != -1) {
-                            SetPendingLeadingFromWhitespace(text[nextWs] == '\t', spaceW, tabAlignment, tabLeader);
+                            bool hadTab = text[nextWs] == '\t';
+                            SetPendingSeparator(hadTab, spaceW, tabAlignment, tabLeader);
                         }
                         continue;
                     }
@@ -503,7 +623,8 @@ internal static partial class PdfWriter {
                             StartNewLine();
                             ResetPendingLeading();
                         } else if (nextWs != -1) {
-                            SetPendingLeadingFromWhitespace(text[nextWs] == '\t', spaceW, tabAlignment, tabLeader);
+                            bool hadTab = text[nextWs] == '\t';
+                            SetPendingSeparator(hadTab, spaceW, tabAlignment, tabLeader);
                         }
                         continue;
                     }
@@ -545,18 +666,22 @@ internal static partial class PdfWriter {
                         StartNewLine();
                         ResetPendingLeading();
                     } else if (nextWs != -1) {
-                        SetPendingLeadingFromWhitespace(text[nextWs] == '\t', spaceW, tabAlignment, tabLeader);
+                        bool hadTab = text[nextWs] == '\t';
+                        SetPendingSeparator(hadTab, spaceW, tabAlignment, tabLeader);
                     }
                     continue;
                 }
                 if (token.Length > 0 && pendingLeadingIsTab) {
-                    pendingLeadingAdvance = CalculateTabAdvanceToStop(lineWidth, tokenW, spaceW, pendingLeadingTabAlignment, tabStopWidth, token, fontForRun, runFontSize, baseline, options, CurrentMaxWidth(), pendingLeadingTabPosition);
+                    pendingLeadingAdvance = CalculateTabAdvance(lineWidth, tokenW, spaceW, pendingLeadingTabAlignment, tabStopWidth, token, fontForRun, runFontSize, baseline, options, CurrentMaxWidth(), pendingLeadingTabStop, CurrentLineOriginOffset());
                 }
                 needed = lastLine.Count == 0
                     ? (pendingLeadingIsTab ? pendingLeadingAdvance + tokenW : tokenW)
                     : pendingLeadingAdvance + tokenW;
                 if (lineWidth + needed > currentMaxWidth && lastLine.Count > 0) {
                     StartNewLine();
+                    if (token.Length > 0 && pendingLeadingIsTab) {
+                        ResolvePendingLeadingTabForCurrentLine(tokenW, spaceW, token, fontForRun, runFontSize, baseline);
+                    }
                 }
                 if (token.Length > 0) {
                     bool needsLeadingSpace = pendingLeadingAdvance > 0 && (lineWidth > 0 || pendingLeadingIsTab);
@@ -566,19 +691,15 @@ internal static partial class PdfWriter {
                     lines[lines.Count - 1].Add(new RichSeg(token, bold, italic, underline, strike, color, backgroundColor, uri, destinationName, contents, fontForRun, runFontSize, baseline, needsLeadingSpace, leadingAdvance, pendingLeadingIsExpandable, segmentLeader));
                     RegisterLineHeight(runFontSize);
                     lineWidth += segmentWidth;
-                    pendingLeadingAdvance = 0;
-                    pendingLeadingIsExpandable = true;
-                    pendingLeadingIsTab = false;
-                    pendingLeadingTabAlignment = PdfTabAlignment.Left;
-                    pendingLeadingTabLeader = PdfTabLeaderStyle.None;
-                    pendingLeadingTabPosition = null;
+                    ResetPendingLeading();
                 }
                 if (hadNewline) {
                     MarkCurrentLineHardBreak();
                     StartNewLine();
                     ResetPendingLeading();
                 } else if (nextWs != -1) {
-                    SetPendingLeadingFromWhitespace(text[nextWs] == '\t', spaceW, tabAlignment, tabLeader);
+                    bool hadTab = text[nextWs] == '\t';
+                    SetPendingSeparator(hadTab, spaceW, tabAlignment, tabLeader);
                 }
             }
         }
