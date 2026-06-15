@@ -1,4 +1,5 @@
 using OfficeIMO.Word;
+using OfficeIMO.Html;
 
 using OfficeIMO.Word.Html;
 using System;
@@ -139,6 +140,22 @@ namespace OfficeIMO.Tests {
 
             Assert.Empty(doc.ParagraphsHyperLinks);
             Assert.Equal("Doc", doc.Paragraphs[0].Text);
+        }
+
+        [Fact]
+        public void Html_Hyperlinks_AppliesPolicyToAutoLinkedTextUrls() {
+            string html = "<p>Keep ftp://internal.example/file and link https://example.com/good</p>";
+            var options = new HtmlToWordOptions {
+                HyperlinkUrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile()
+            };
+
+            var doc = html.LoadFromHtml(options);
+
+            var hyperlink = Assert.Single(doc.ParagraphsHyperLinks).Hyperlink;
+            Assert.NotNull(hyperlink);
+            Assert.Equal(new Uri("https://example.com/good"), hyperlink!.Uri);
+            string text = string.Concat(doc.Paragraphs[0].GetRuns().Where(run => !run.IsBreak).Select(run => run.Text));
+            Assert.Equal("Keep ftp://internal.example/file and link https://example.com/good", text);
         }
 
         [Fact]

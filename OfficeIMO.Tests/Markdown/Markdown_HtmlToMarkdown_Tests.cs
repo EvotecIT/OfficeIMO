@@ -110,6 +110,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 <p>1. not ordered</p>
 <p>``` not code</p>
 <p>~~~ not code</p>
+<p>Title<br>===</p>
 <p><span>1</span>. split ordered</p>
 <p>&lt;div&gt;literal&lt;/div&gt;</p>
 <p>&lt;!-- literal comment --&gt;</p>
@@ -127,6 +128,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
         Assert.Contains("1\\. not ordered", markdown, StringComparison.Ordinal);
         Assert.Contains("\\``` not code", markdown, StringComparison.Ordinal);
         Assert.Contains("\\~~~ not code", markdown, StringComparison.Ordinal);
+        Assert.Contains("\\===", markdown, StringComparison.Ordinal);
         Assert.Contains("1\\. split ordered", markdown, StringComparison.Ordinal);
         Assert.Contains("\\<div>literal</div>", markdown, StringComparison.Ordinal);
         Assert.Contains("\\<!-- literal comment -->", markdown, StringComparison.Ordinal);
@@ -134,6 +136,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
         Assert.Contains("- not a list", renderedHtml, StringComparison.Ordinal);
         Assert.Contains("1. not ordered", renderedHtml, StringComparison.Ordinal);
         Assert.Contains("``` not code", renderedHtml, StringComparison.Ordinal);
+        Assert.Contains("===", renderedHtml, StringComparison.Ordinal);
         Assert.Contains("1. split ordered", renderedHtml, StringComparison.Ordinal);
         Assert.DoesNotContain("\\# not heading", renderedHtml, StringComparison.Ordinal);
     }

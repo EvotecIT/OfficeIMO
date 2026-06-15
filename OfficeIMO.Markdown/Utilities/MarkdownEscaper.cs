@@ -93,6 +93,7 @@ internal static class MarkdownEscaper {
             || IsHeadingMarker(line, markerIndex)
             || IsUnorderedListMarker(line, markerIndex)
             || IsFencedCodeMarker(line, markerIndex)
+            || IsSetextHeadingUnderline(line, markerIndex)
             || IsHtmlBlockOpener(line, markerIndex)) {
             return line.Insert(markerIndex, "\\");
         }
@@ -139,6 +140,27 @@ internal static class MarkdownEscaper {
         }
 
         return count >= 3;
+    }
+
+    private static bool IsSetextHeadingUnderline(string line, int markerIndex) {
+        if (line[markerIndex] != '=') {
+            return false;
+        }
+
+        int index = markerIndex;
+        while (index < line.Length && line[index] == '=') {
+            index++;
+        }
+
+        while (index < line.Length) {
+            if (!char.IsWhiteSpace(line[index])) {
+                return false;
+            }
+
+            index++;
+        }
+
+        return index > markerIndex;
     }
 
     private static bool IsFencedCodeMarker(string line, int markerIndex) {
