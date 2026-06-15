@@ -3,7 +3,7 @@ namespace OfficeIMO.Rtf.Html;
 /// <summary>
 /// Provides extension methods for converting between <see cref="RtfDocument"/> and semantic HTML.
 /// </summary>
-public static class RtfHtmlConverterExtensions {
+public static partial class RtfHtmlConverterExtensions {
     /// <summary>Converts an RTF document to semantic HTML.</summary>
     public static string ToHtml(this RtfDocument document, RtfHtmlSaveOptions? options = null) {
         if (document == null) {

@@ -3,6 +3,8 @@ using OfficeIMO.Rtf.Html;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests.Rtf;
@@ -51,37 +53,37 @@ public class RtfHtmlIoTests {
     }
 
     [Fact]
-    public void RtfHtml_Static_Facade_Provides_Byte_And_Stream_IO() {
+    public void RtfHtml_Fluent_Byte_And_Stream_IO_Replaces_Static_Facade() {
         RtfDocument document = RtfDocument.Create();
-        document.AddParagraph("Facade ż");
+        document.AddParagraph("Fluent ż");
 
-        string html = RtfHtmlConverter.ToHtml(document);
-        byte[] htmlBytes = RtfHtmlConverter.ToHtmlBytes(document);
+        string html = document.ToHtml();
+        byte[] htmlBytes = document.ToHtmlBytes();
 
         Assert.Equal(html, Encoding.UTF8.GetString(htmlBytes));
 
-        using MemoryStream htmlStream = RtfHtmlConverter.ToHtmlMemoryStream(document);
+        using MemoryStream htmlStream = document.ToHtmlMemoryStream();
         Assert.Equal(htmlBytes, htmlStream.ToArray());
 
-        RtfDocument fromBytes = RtfHtmlConverter.FromHtml(htmlBytes);
-        Assert.Equal("Facade ż", Assert.Single(fromBytes.Paragraphs).ToPlainText());
+        RtfDocument fromBytes = htmlBytes.LoadFromHtml();
+        Assert.Equal("Fluent ż", Assert.Single(fromBytes.Paragraphs).ToPlainText());
 
         byte[] prefixedHtml = Encoding.UTF8.GetBytes("*" + html);
         using var source = new MemoryStream(prefixedHtml);
         source.Position = 1;
-        RtfDocument fromStream = RtfHtmlConverter.FromHtml(source);
+        RtfDocument fromStream = source.LoadFromHtml();
 
         Assert.Equal(source.Length, source.Position);
-        Assert.Equal("Facade ż", Assert.Single(fromStream.Paragraphs).ToPlainText());
+        Assert.Equal("Fluent ż", Assert.Single(fromStream.Paragraphs).ToPlainText());
 
         var writeOptions = new RtfWriteOptions { IncludeGenerator = false };
-        byte[] rtfBytes = RtfHtmlConverter.ToRtfBytes(htmlBytes, writeOptions: writeOptions);
+        byte[] rtfBytes = htmlBytes.ToRtfBytes(writeOptions: writeOptions);
         string rtf = Encoding.UTF8.GetString(rtfBytes);
 
         Assert.Contains(@"\u380?", rtf, StringComparison.Ordinal);
-        Assert.Equal("Facade ż", Assert.Single(RtfDocument.Load(rtfBytes).Document.Paragraphs).ToPlainText());
+        Assert.Equal("Fluent ż", Assert.Single(RtfDocument.Load(rtfBytes).Document.Paragraphs).ToPlainText());
 
-        using MemoryStream rtfMemoryStream = RtfHtmlConverter.ToRtfMemoryStream(htmlBytes, writeOptions: writeOptions);
+        using MemoryStream rtfMemoryStream = htmlBytes.ToRtfMemoryStream(writeOptions: writeOptions);
         Assert.Equal(rtfBytes, rtfMemoryStream.ToArray());
 
         using var secondSource = new MemoryStream(prefixedHtml);
@@ -89,12 +91,78 @@ public class RtfHtmlIoTests {
         using var output = new MemoryStream();
         output.WriteByte(0x2A);
 
-        RtfHtmlConverter.SaveAsRtf(secondSource, output, writeOptions: writeOptions);
+        secondSource.SaveAsRtf(output, writeOptions: writeOptions);
         byte[] saved = output.ToArray();
 
         Assert.Equal(secondSource.Length, secondSource.Position);
         Assert.Equal(saved.Length, output.Position);
         Assert.Equal(0x2A, saved[0]);
-        Assert.Equal("Facade ż", Assert.Single(RtfDocument.Load(saved.Skip(1).ToArray()).Document.Paragraphs).ToPlainText());
+        Assert.Equal("Fluent ż", Assert.Single(RtfDocument.Load(saved.Skip(1).ToArray()).Document.Paragraphs).ToPlainText());
+    }
+
+    [Fact]
+    public async Task RtfHtml_Async_IO_Matches_Fluent_Sync_IO() {
+        RtfDocument document = RtfDocument.Create();
+        document.AddParagraph("Async ż");
+
+        string html = await document.ToHtmlAsync();
+        byte[] htmlBytes = await document.ToHtmlBytesAsync();
+
+        Assert.Equal(html, Encoding.UTF8.GetString(htmlBytes));
+
+        using MemoryStream htmlMemoryStream = await document.ToHtmlMemoryStreamAsync();
+        Assert.Equal(htmlBytes, htmlMemoryStream.ToArray());
+
+        using var htmlOutput = new MemoryStream();
+        htmlOutput.WriteByte(0x2A);
+        await document.SaveAsHtmlAsync(htmlOutput);
+        byte[] savedHtml = htmlOutput.ToArray();
+
+        Assert.Equal(savedHtml.Length, htmlOutput.Position);
+        Assert.Equal(0x2A, savedHtml[0]);
+        Assert.Equal(html, Encoding.UTF8.GetString(savedHtml, 1, savedHtml.Length - 1));
+
+        RtfDocument fromBytes = await htmlBytes.LoadFromHtmlAsync();
+        Assert.Equal("Async ż", Assert.Single(fromBytes.Paragraphs).ToPlainText());
+
+        byte[] prefixedHtml = Encoding.UTF8.GetBytes("*" + html);
+        using var source = new MemoryStream(prefixedHtml);
+        source.Position = 1;
+        RtfDocument fromStream = await source.LoadFromHtmlAsync();
+
+        Assert.Equal(source.Length, source.Position);
+        Assert.Equal("Async ż", Assert.Single(fromStream.Paragraphs).ToPlainText());
+
+        var writeOptions = new RtfWriteOptions { IncludeGenerator = false };
+        string rtf = await html.ToRtfAsync(writeOptions: writeOptions);
+        byte[] rtfBytes = await htmlBytes.ToRtfBytesAsync(writeOptions: writeOptions);
+
+        Assert.Equal(rtf, Encoding.UTF8.GetString(rtfBytes));
+        Assert.Contains(@"\u380?", rtf, StringComparison.Ordinal);
+
+        using MemoryStream rtfMemoryStream = await htmlBytes.ToRtfMemoryStreamAsync(writeOptions: writeOptions);
+        Assert.Equal(rtfBytes, rtfMemoryStream.ToArray());
+
+        using var secondSource = new MemoryStream(prefixedHtml);
+        secondSource.Position = 1;
+        using var output = new MemoryStream();
+        output.WriteByte(0x2A);
+
+        await secondSource.SaveAsRtfAsync(output, writeOptions: writeOptions);
+        byte[] savedRtf = output.ToArray();
+
+        Assert.Equal(secondSource.Length, secondSource.Position);
+        Assert.Equal(savedRtf.Length, output.Position);
+        Assert.Equal(0x2A, savedRtf[0]);
+        Assert.Equal("Async ż", Assert.Single(RtfDocument.Load(savedRtf.Skip(1).ToArray()).Document.Paragraphs).ToPlainText());
+    }
+
+    [Fact]
+    public async Task RtfHtml_Async_IO_Honors_Cancellation() {
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            "<p>Cancelled</p>".LoadFromHtmlAsync(cancellationToken: cts.Token));
     }
 }
