@@ -589,7 +589,7 @@ public class RtfHtmlConverterTests {
 
         string html = document.ToHtml();
 
-        Assert.Equal("<table><tbody><tr><td style=\"background-color:#FFF2CC;width:30%;vertical-align:middle;white-space:nowrap;\"><p>Result</p></td></tr></tbody></table>", html);
+        Assert.Equal("<table><tbody><tr><td style=\"background-color:#FFF2CC;width:30%;vertical-align:middle;white-space:nowrap;--officeimo-rtf-cell-nowrap:true;\"><p>Result</p></td></tr></tbody></table>", html);
     }
 
     [Fact]

@@ -255,6 +255,7 @@ internal static partial class RtfHtmlWriter {
             builder.Append("white-space:nowrap;");
         }
 
+        AppendCellFlagStyles(builder, cell);
         AppendCellPaddingStyle(builder, "padding-top", cell.PaddingTopTwips);
         AppendCellPaddingStyle(builder, "padding-left", cell.PaddingLeftTwips);
         AppendCellPaddingStyle(builder, "padding-bottom", cell.PaddingBottomTwips);
@@ -266,6 +267,20 @@ internal static partial class RtfHtmlWriter {
 
         style = builder.Length == 0 ? null : builder.ToString();
         return style != null;
+    }
+
+    private static void AppendCellFlagStyles(StringBuilder builder, RtfTableCell cell) {
+        if (cell.HideCellMark) {
+            builder.Append("--officeimo-rtf-hide-cell-mark:true;");
+        }
+
+        if (cell.NoWrap) {
+            builder.Append("--officeimo-rtf-cell-nowrap:true;");
+        }
+
+        if (cell.FitText) {
+            builder.Append("--officeimo-rtf-fit-text:true;");
+        }
     }
 
     private static void AppendCellPaddingStyle(StringBuilder builder, string name, int? twips) {

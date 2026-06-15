@@ -95,6 +95,15 @@ internal static partial class HtmlStyleDeclarationParser {
             case "white-space":
                 declaration.NoWrap = ParseWhiteSpace(value);
                 break;
+            case "--officeimo-rtf-hide-cell-mark":
+                declaration.HideCellMark = ParseBoolean(value);
+                break;
+            case "--officeimo-rtf-cell-nowrap":
+                declaration.NoWrap = ParseBoolean(value);
+                break;
+            case "--officeimo-rtf-fit-text":
+                declaration.FitText = ParseBoolean(value);
+                break;
             case "visibility":
                 declaration.Hidden = ParseVisibility(value);
                 break;

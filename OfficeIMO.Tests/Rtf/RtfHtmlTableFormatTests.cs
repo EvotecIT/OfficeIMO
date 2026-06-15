@@ -89,4 +89,47 @@ public class RtfHtmlTableFormatTests {
         Assert.Equal(RtfTableCellTextFlow.TopToBottomRightToLeftVertical, roundTripTable.Rows[0].Cells[0].TextFlow);
         Assert.Equal(RtfTableCellTextFlow.LeftToRightTopToBottom, roundTripTable.Rows[0].Cells[1].TextFlow);
     }
+
+    [Fact]
+    public void Html_ToRtfDocument_Parses_Table_Cell_Flags() {
+        const string html = "<table><tr><td style=\"white-space:nowrap;--officeimo-rtf-hide-cell-mark:true;--officeimo-rtf-fit-text:true\">Flags</td><td style=\"--officeimo-rtf-cell-nowrap:true\">Custom</td></tr></table>";
+
+        RtfDocument document = html.ToRtfDocumentFromHtml();
+
+        RtfTable table = Assert.IsType<RtfTable>(Assert.Single(document.Blocks));
+        Assert.True(table.Rows[0].Cells[0].NoWrap);
+        Assert.True(table.Rows[0].Cells[0].HideCellMark);
+        Assert.True(table.Rows[0].Cells[0].FitText);
+        Assert.True(table.Rows[0].Cells[1].NoWrap);
+
+        string rtf = document.ToRtf();
+        Assert.Contains(@"\clhidemark\clNoWrap\clFitText", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\clNoWrap", rtf, StringComparison.Ordinal);
+
+        RtfTable roundTripTable = Assert.IsType<RtfTable>(Assert.Single(RtfDocument.Read(rtf).Document.Blocks));
+        Assert.True(roundTripTable.Rows[0].Cells[0].HideCellMark);
+        Assert.True(roundTripTable.Rows[0].Cells[0].NoWrap);
+        Assert.True(roundTripTable.Rows[0].Cells[0].FitText);
+        Assert.True(roundTripTable.Rows[0].Cells[1].NoWrap);
+    }
+
+    [Fact]
+    public void RtfDocument_ToHtml_Renders_Table_Cell_Flags() {
+        RtfDocument document = RtfDocument.Create();
+        RtfTable table = document.AddTable(1, 1);
+        table.Rows[0].Cells[0]
+            .SetHideCellMark()
+            .SetNoWrap()
+            .SetFitText()
+            .AddParagraph("Flags");
+
+        string html = document.ToHtml();
+
+        Assert.Equal("<table><tbody><tr><td style=\"white-space:nowrap;--officeimo-rtf-hide-cell-mark:true;--officeimo-rtf-cell-nowrap:true;--officeimo-rtf-fit-text:true;\"><p>Flags</p></td></tr></tbody></table>", html);
+
+        RtfTable roundTripTable = Assert.IsType<RtfTable>(Assert.Single(html.ToRtfDocumentFromHtml().Blocks));
+        Assert.True(roundTripTable.Rows[0].Cells[0].HideCellMark);
+        Assert.True(roundTripTable.Rows[0].Cells[0].NoWrap);
+        Assert.True(roundTripTable.Rows[0].Cells[0].FitText);
+    }
 }

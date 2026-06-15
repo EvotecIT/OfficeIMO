@@ -215,6 +215,14 @@ internal static partial class RtfHtmlReader {
                 _cell.NoWrap = style.NoWrap.Value;
             }
 
+            if (style.HideCellMark.HasValue) {
+                _cell.HideCellMark = style.HideCellMark.Value;
+            }
+
+            if (style.FitText.HasValue) {
+                _cell.FitText = style.FitText.Value;
+            }
+
             if (style.PaddingTopTwips.HasValue ||
                 style.PaddingLeftTwips.HasValue ||
                 style.PaddingBottomTwips.HasValue ||
