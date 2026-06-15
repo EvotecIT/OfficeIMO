@@ -106,6 +106,18 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Html_Hyperlinks_PreservesProtocolRelativeWebLinks() {
+            string html = "<p><a href=\"//example.com/path\">Site</a></p>";
+
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var hyperlink = doc.ParagraphsHyperLinks[0].Hyperlink;
+
+            Assert.NotNull(hyperlink);
+            Assert.Equal(new Uri("http://example.com/path"), hyperlink!.Uri);
+            Assert.False(hyperlink!.Uri!.IsFile);
+        }
+
+        [Fact]
         public void Html_Hyperlinks_InvalidHref_IsPlainText() {
             string html = "<p><a href=\"javascript:alert()\">Js</a></p>";
 

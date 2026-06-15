@@ -790,6 +790,24 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void HtmlToWord_Picture_AllowsSourceTypeWithParametersBeforeFallbackImage() {
+            var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
+            string base64 = Convert.ToBase64String(File.ReadAllBytes(path));
+            string html = $"""
+<picture>
+  <source type="image/png; charset=binary" srcset="data:image/png;base64,{base64}" />
+  <img src="https://cdn.example.test/logo.png" alt="Logo" />
+</picture>
+""";
+            var options = new HtmlToWordOptions { ImageProcessing = ImageProcessingMode.EmbedDataUriOnly };
+
+            var doc = html.LoadFromHtml(options);
+
+            Assert.Single(doc.Images);
+            Assert.Empty(options.Diagnostics);
+        }
+
+        [Fact]
         public void HtmlToWord_DataImage_DecodesPercentEscapedBase64Payload() {
             var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
             string base64 = Uri.EscapeDataString(Convert.ToBase64String(File.ReadAllBytes(path)));

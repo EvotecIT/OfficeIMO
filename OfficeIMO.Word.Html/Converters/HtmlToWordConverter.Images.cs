@@ -617,13 +617,23 @@ namespace OfficeIMO.Word.Html {
                 return true;
             }
 
-            var normalized = contentType!.Trim();
+            var normalized = NormalizeImageContentType(contentType!);
             if (options.AllowedImageContentTypes.Contains(normalized)) {
                 return true;
             }
 
             return options.AllowedImageContentTypes.Contains("image/*")
                 && normalized.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string NormalizeImageContentType(string contentType) {
+            var normalized = contentType.Trim();
+            int parameterIndex = normalized.IndexOf(';');
+            if (parameterIndex >= 0) {
+                normalized = normalized.Substring(0, parameterIndex).Trim();
+            }
+
+            return normalized;
         }
 
         private static void EnsureImageContentTypeAllowed(string? contentType, HtmlToWordOptions options) {

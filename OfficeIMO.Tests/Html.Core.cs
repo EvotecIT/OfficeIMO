@@ -140,6 +140,22 @@ public sealed class HtmlCoreTests {
     }
 
     [Fact]
+    public void HtmlSrcSetParser_SplitsDataUriCandidateBeforeFollowingUrl() {
+        IReadOnlyList<HtmlSrcSetCandidate> candidates = HtmlSrcSetParser.Parse("data:image/png;base64,AAAA, https://cdn.test/fallback.png 2x");
+
+        Assert.Collection(
+            candidates,
+            candidate => {
+                Assert.Equal("data:image/png;base64,AAAA", candidate.Url);
+                Assert.Equal(string.Empty, candidate.Descriptor);
+            },
+            candidate => {
+                Assert.Equal("https://cdn.test/fallback.png", candidate.Url);
+                Assert.Equal("2x", candidate.Descriptor);
+            });
+    }
+
+    [Fact]
     public void HtmlImageDataUri_ParsesAndDecodesBase64Images() {
         string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\"/>";
         string dataUri = "data:image/svg+xml;base64," + Convert.ToBase64String(Encoding.UTF8.GetBytes(svg));

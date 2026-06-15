@@ -711,18 +711,7 @@ namespace OfficeIMO.Word.Html {
                                 break;
                             }
 
-                            Uri? resolvedUri = null;
-                            if (Uri.TryCreate(normalizedHref, UriKind.Absolute, out var absUri)) {
-                                resolvedUri = absUri;
-                            } else if (element.BaseUrl != null && Uri.TryCreate(element.BaseUrl.Href, UriKind.Absolute, out var baseUri)) {
-                                if (Uri.TryCreate(baseUri, normalizedHref, out var relUri)) {
-                                    resolvedUri = relUri;
-                                }
-                            } else if (Uri.TryCreate(normalizedHref, UriKind.RelativeOrAbsolute, out var relUri)) {
-                                resolvedUri = relUri;
-                            }
-
-                            if (resolvedUri == null) {
+                            if (!TryResolveHyperlinkUri(element, normalizedHref, out var resolvedUri)) {
                                 var fmt = formatting;
                                 ApplySpanStyles(element, ref fmt);
                                 foreach (var child in element.ChildNodes) {

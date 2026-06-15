@@ -136,6 +136,55 @@ namespace OfficeIMO.Word.Html {
             return !HtmlUrlPolicyEvaluator.IsAllowed(candidate, options.HyperlinkUrlPolicy, allowEmptyFragment: false);
         }
 
+        private static bool TryResolveHyperlinkUri(IElement element, string normalizedHref, out Uri resolvedUri) {
+            resolvedUri = null!;
+            if (normalizedHref.StartsWith("//", StringComparison.Ordinal)) {
+                string scheme = TryGetHttpBaseScheme(element, out var baseScheme)
+                    ? baseScheme
+                    : Uri.UriSchemeHttps;
+                if (Uri.TryCreate(scheme + ":" + normalizedHref, UriKind.Absolute, out var protocolRelativeUri)) {
+                    resolvedUri = protocolRelativeUri;
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (Uri.TryCreate(normalizedHref, UriKind.Absolute, out var absUri)) {
+                resolvedUri = absUri;
+                return true;
+            }
+
+            if (element.BaseUrl != null && Uri.TryCreate(element.BaseUrl.Href, UriKind.Absolute, out var baseUri)) {
+                if (Uri.TryCreate(baseUri, normalizedHref, out var relUri)) {
+                    resolvedUri = relUri;
+                    return true;
+                }
+            }
+
+            if (Uri.TryCreate(normalizedHref, UriKind.RelativeOrAbsolute, out var fallbackUri)) {
+                resolvedUri = fallbackUri;
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool TryGetHttpBaseScheme(IElement element, out string scheme) {
+            scheme = string.Empty;
+            if (element.BaseUrl == null || !Uri.TryCreate(element.BaseUrl.Href, UriKind.Absolute, out var baseUri)) {
+                return false;
+            }
+
+            if (!string.Equals(baseUri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(baseUri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)) {
+                return false;
+            }
+
+            scheme = baseUri.Scheme;
+            return true;
+        }
+
         private static string NormalizeHref(string href) {
             var trimmed = href.Trim();
             if (trimmed.StartsWith("://", StringComparison.Ordinal)) {

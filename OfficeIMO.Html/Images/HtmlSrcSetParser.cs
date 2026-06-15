@@ -69,9 +69,17 @@ public static class HtmlSrcSetParser {
         }
 
         if (StartsWith(value, urlStart, "data:", StringComparison.OrdinalIgnoreCase)) {
-            return false;
+            if (IsFirstDataUriComma(value, urlStart, index)) {
+                return false;
+            }
+
+            return HasFollowingUrlCandidate(value, index);
         }
 
+        return HasFollowingUrlCandidate(value, index);
+    }
+
+    private static bool HasFollowingUrlCandidate(string value, int index) {
         int next = index + 1;
         while (next < value.Length && char.IsWhiteSpace(value[next])) {
             next++;
@@ -87,6 +95,16 @@ public static class HtmlSrcSetParser {
         }
 
         return LooksLikeUrlCandidate(value, next, tokenEnd);
+    }
+
+    private static bool IsFirstDataUriComma(string value, int urlStart, int index) {
+        for (int i = urlStart; i < index; i++) {
+            if (value[i] == ',') {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static bool LooksLikeUrlCandidate(string value, int startIndex, int endIndex) {
