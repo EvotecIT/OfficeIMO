@@ -10,7 +10,7 @@ The package owns RTF parsing, syntax-tree preservation, semantic document bindin
 - `OfficeIMO.Rtf.Model` exposes a semantic document model for paragraphs, runs, fonts, colors, styles, tables, images, and future document constructs.
 - `OfficeIMO.Rtf.Writing` serializes the semantic model back to deterministic RTF.
 - `RtfDestinationRegistry` centralizes destination categories used by readers, editors, and diagnostics.
-- `RtfReadResult.ToRtfLossless()` and `RtfReadResult.SaveLossless(...)` write the parsed syntax tree without semantic normalization, preserving unknown destinations and raw binary payload bytes.
+- `RtfReadResult.ToRtfLossless()`, `RtfReadResult.SaveLossless(...)`, and their async counterparts write the parsed syntax tree without semantic normalization, preserving unknown destinations and raw binary payload bytes.
 
 ## Basic Usage
 
@@ -35,6 +35,13 @@ Use the lossless API when the goal is to preserve an existing RTF stream exactly
 ```csharp
 RtfReadResult read = RtfDocument.Load("input.rtf");
 read.SaveLossless("output.rtf");
+```
+
+Async file and stream APIs are available for the same boundary:
+
+```csharp
+RtfReadResult read = await RtfDocument.LoadAsync("input.rtf");
+await read.SaveLosslessAsync("output.rtf");
 ```
 
 The normal `RtfDocument.ToRtf()` path writes from the semantic model and is intentionally normalized. The lossless path writes from the syntax tree captured during read.

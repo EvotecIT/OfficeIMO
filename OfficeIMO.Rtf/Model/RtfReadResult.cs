@@ -6,7 +6,7 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// Result of reading RTF into syntax and semantic models.
 /// </summary>
-public sealed class RtfReadResult {
+public sealed partial class RtfReadResult {
     internal RtfReadResult(RtfDocument document, RtfSyntaxTree syntaxTree, IReadOnlyList<RtfDiagnostic> diagnostics) {
         Document = document ?? throw new ArgumentNullException(nameof(document));
         SyntaxTree = syntaxTree ?? throw new ArgumentNullException(nameof(syntaxTree));

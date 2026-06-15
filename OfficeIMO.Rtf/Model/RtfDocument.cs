@@ -6,7 +6,7 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// Semantic Rich Text Format document model.
 /// </summary>
-public sealed class RtfDocument {
+public sealed partial class RtfDocument {
     private readonly List<RtfParagraph> _paragraphs = new List<RtfParagraph>();
     private readonly List<IRtfBlock> _blocks = new List<IRtfBlock>();
     private readonly List<RtfFont> _fonts = new List<RtfFont>();
