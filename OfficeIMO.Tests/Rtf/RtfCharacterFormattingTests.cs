@@ -324,6 +324,20 @@ public class RtfCharacterFormattingTests {
     }
 
     [Fact]
+    public void Read_Binds_Super_And_Sub_Zero_As_Baseline_Reset() {
+        const string rtf = @"{\rtf1\ansi\pard \super Raised\super0 Plain \sub Lowered\sub0 Base\par}";
+
+        RtfReadResult result = RtfDocument.Read(rtf);
+
+        Assert.Equal(rtf, result.ToRtfLossless());
+        RtfParagraph paragraph = Assert.Single(result.Document.Paragraphs);
+        Assert.Equal(RtfVerticalPosition.Superscript, paragraph.Runs.Single(run => run.Text == "Raised").VerticalPosition);
+        Assert.Equal(RtfVerticalPosition.Baseline, paragraph.Runs.Single(run => run.Text == "Plain ").VerticalPosition);
+        Assert.Equal(RtfVerticalPosition.Subscript, paragraph.Runs.Single(run => run.Text == "Lowered").VerticalPosition);
+        Assert.Equal(RtfVerticalPosition.Baseline, paragraph.Runs.Single(run => run.Text == "Base").VerticalPosition);
+    }
+
+    [Fact]
     public void Write_And_Read_Default_And_Run_Language_Without_Leaking() {
         RtfDocument document = RtfDocument.Create();
         document.Settings.SetDefaultLanguage(1045);

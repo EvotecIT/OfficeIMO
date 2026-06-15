@@ -295,10 +295,14 @@ internal static partial class RtfSemanticReader {
                     state.RevisionTimestampValue = control.Parameter;
                     return;
                 case "super":
-                    state.VerticalPosition = RtfVerticalPosition.Superscript;
+                    state.VerticalPosition = !control.HasParameter || control.Parameter != 0
+                        ? RtfVerticalPosition.Superscript
+                        : RtfVerticalPosition.Baseline;
                     return;
                 case "sub":
-                    state.VerticalPosition = RtfVerticalPosition.Subscript;
+                    state.VerticalPosition = !control.HasParameter || control.Parameter != 0
+                        ? RtfVerticalPosition.Subscript
+                        : RtfVerticalPosition.Baseline;
                     return;
                 case "nosupersub":
                     state.VerticalPosition = RtfVerticalPosition.Baseline;
