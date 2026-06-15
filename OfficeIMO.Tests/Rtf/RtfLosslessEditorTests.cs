@@ -278,6 +278,67 @@ public class RtfLosslessEditorTests {
     }
 
     [Fact]
+    public void SetFileReference_Replaces_Adds_And_Removes_Metadata_Without_Normalizing_Body() {
+        const string rtf = @"{\rtf1\ansi{\*\filetbl{\file\fid0\frelative18\fvalidntfs Old.docx}{\file\fid1\fvalidmac Remove.doc}{\file\fid0 Duplicate.docx}}{\*\xmlnstbl{\xmlns1 urn:keep;}}{\info{\title Keep}}\pard Body \'80\par}";
+
+        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        editor.SetFileReference(new RtfFileReference(0, @"C:\New {file} ż.docx") {
+            RelativePathStart = 3,
+            OperatingSystemNumber = 42,
+            Sources = RtfFileSource.Ntfs | RtfFileSource.Network
+        });
+        editor.SetFileReference(new RtfFileReference(2, @"\\Server\Share\Added.docx") {
+            Sources = RtfFileSource.Network
+        });
+        editor.RemoveFileReference(1);
+
+        const string expected = @"{\rtf1\ansi{\*\filetbl{\file\fid0\frelative3\fosnum42\fvalidntfs\fnetwork C:\\New \{file\} \u380?.docx}{\file\fid2\fnetwork \\\\Server\\Share\\Added.docx}}{\*\xmlnstbl{\xmlns1 urn:keep;}}{\info{\title Keep}}\pard Body \'80\par}";
+        Assert.Equal(expected, editor.ToRtf());
+
+        RtfReadResult read = editor.ToReadResult();
+        Assert.Collection(
+            read.Document.FileReferences,
+            file => {
+                Assert.Equal(0, file.Id);
+                Assert.Equal(@"C:\New {file} ż.docx", file.Path);
+                Assert.Equal(3, file.RelativePathStart);
+                Assert.Equal(42, file.OperatingSystemNumber);
+                Assert.Equal(RtfFileSource.Ntfs | RtfFileSource.Network, file.Sources);
+            },
+            file => {
+                Assert.Equal(2, file.Id);
+                Assert.Equal(@"\\Server\Share\Added.docx", file.Path);
+                Assert.Null(file.RelativePathStart);
+                Assert.Null(file.OperatingSystemNumber);
+                Assert.Equal(RtfFileSource.Network, file.Sources);
+            });
+        Assert.Equal("urn:keep", Assert.Single(read.Document.XmlNamespaces).Uri);
+        Assert.Equal("Keep", read.Document.Info.Title);
+        Assert.Contains(@"Body \'80", editor.ToRtf(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SetFileReference_Creates_And_Removes_File_Table() {
+        const string rtf = @"{\rtf1\ansi{\fonttbl{\f0 Calibri;}}{\*\xmlnstbl{\xmlns1 urn:keep;}}\pard Body\par}";
+
+        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        editor.SetFileReference(new RtfFileReference(4, "created.docx") {
+            Sources = RtfFileSource.Dos
+        });
+
+        Assert.Equal(@"{\rtf1\ansi{\fonttbl{\f0 Calibri;}}{\*\filetbl{\file\fid4\fvaliddos created.docx}}{\*\xmlnstbl{\xmlns1 urn:keep;}}\pard Body\par}", editor.ToRtf());
+        RtfFileReference file = Assert.Single(editor.ToReadResult().Document.FileReferences);
+        Assert.Equal(4, file.Id);
+        Assert.Equal("created.docx", file.Path);
+        Assert.Equal(RtfFileSource.Dos, file.Sources);
+
+        editor.RemoveFileReference(4);
+
+        Assert.Equal(rtf, editor.ToRtf());
+        Assert.Empty(editor.ToReadResult().Document.FileReferences);
+    }
+
+    [Fact]
     public void AppendParagraph_Preserves_Existing_Syntax_And_Escapes_Text() {
         const string rtf = @"{\rtf1\ansi{\*\unknown Keep}{\pict\pngblip\bin3 abc}\pard Existing\par}";
 
