@@ -233,11 +233,17 @@ namespace OfficeIMO.Word.Pdf {
                     pointColors = CreateNativeWordChartVaryPointColors(values.Count);
                 }
 
+                OfficeColor? seriesColor = null;
+                if (IsNativeWordPieLikeChart(chartKind) &&
+                    TryGetNativeWordChartFillColor(seriesElement, themeColors, out OfficeColor pieLikeSeriesColor)) {
+                    seriesColor = pieLikeSeriesColor;
+                }
+
                 series.Add(new OfficeChartSeries(
                     GetNativeWordChartSeriesName(seriesElement, seriesIndex),
                     values,
                     xValues,
-                    null,
+                    seriesColor,
                     pointColors,
                     !IsNativeWordChartSeriesMarkerHidden(seriesElement),
                     !hiddenLegendIndexes.Contains((uint)originalSeriesIndex),

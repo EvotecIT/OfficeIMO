@@ -840,6 +840,37 @@ public class PdfDocumentChartDrawingTests {
     }
 
     [Fact]
+    public void FlowDrawing_RendersTopPieLegendSwatchesWithSourceCategoryIndexes() {
+        OfficeChartStyle style = OfficeChartStyle.Default;
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Pie hidden legend colors",
+            "Pie Legend",
+            OfficeChartKind.Pie,
+            new OfficeChartData(
+                new[] { "Hidden", "Passed", "Failed" },
+                new[] {
+                    new OfficeChartSeries("Outcome", new[] { 1D, 42D, 30D })
+                }),
+            widthPoints: 260D,
+            heightPoints: 180D,
+            style: style,
+            layout: new OfficeChartLayout(
+                showLegend: true,
+                legendPosition: OfficeChartLegendPosition.Top) {
+                HiddenCategoryLegendIndexes = new[] { 0 }
+            }));
+
+        var topLegendSwatches = drawing.Shapes
+            .Where(shape => shape.Shape.Kind == OfficeShapeKind.Rectangle && shape.Shape.StrokeWidth == 0D && shape.Y < 30D)
+            .Select(shape => shape.Shape.FillColor)
+            .ToList();
+
+        Assert.DoesNotContain(style.GetSeriesColor(0), topLegendSwatches);
+        Assert.Contains(style.GetSeriesColor(1), topLegendSwatches);
+        Assert.Contains(style.GetSeriesColor(2), topLegendSwatches);
+    }
+
+    [Fact]
     public void FlowDrawing_RendersDoughnutChartSeriesColorWhenPointColorsAreMissing() {
         OfficeColor seriesColor = OfficeColor.ParseHex("#CC3366");
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
@@ -1360,6 +1391,39 @@ public class PdfDocumentChartDrawingTests {
 
         Assert.True(found);
         Assert.Equal(0.2D, (double)args[1]!, 5);
+    }
+
+    [Fact]
+    public void WordChartSeriesExtraction_PreservesDoughnutSeriesFills() {
+        OfficeColor outerColor = OfficeColor.ParseHex("#C1121F");
+        OfficeColor innerColor = OfficeColor.ParseHex("#0077B6");
+        PieChartSeries outerSeries = CreatePieSeries(0U, new[] { "Passed", "Failed" }, new[] { 4D, 1D });
+        outerSeries.Append(new ChartShapeProperties(new A.SolidFill(new A.RgbColorModelHex { Val = "C1121F" })));
+        PieChartSeries innerSeries = CreatePieSeries(1U, new[] { "Passed", "Failed" }, new[] { 3D, 2D });
+        innerSeries.Append(new ChartShapeProperties(new A.SolidFill(new A.RgbColorModelHex { Val = "0077B6" })));
+        var doughnutChart = new DoughnutChart(
+            new VaryColors { Val = false },
+            outerSeries,
+            innerSeries);
+
+        IReadOnlyList<OfficeChartSeries> series = ExtractNativeWordChartSeries(new Chart(), doughnutChart, OfficeChartKind.Doughnut);
+
+        Assert.Equal(2, series.Count);
+        Assert.Equal(outerColor, series[0].Color);
+        Assert.Equal(innerColor, series[1].Color);
+    }
+
+    private static IReadOnlyList<OfficeChartSeries> ExtractNativeWordChartSeries(Chart chart, OpenXmlElement chartElement, OfficeChartKind chartKind) {
+        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("ExtractNativeWordChartSeries", BindingFlags.NonPublic | BindingFlags.Static)!;
+        object?[] arguments = {
+            chart,
+            chartElement,
+            chartKind,
+            new Dictionary<A.SchemeColorValues, OfficeColor>(),
+            null
+        };
+
+        return (IReadOnlyList<OfficeChartSeries>)method.Invoke(null, arguments)!;
     }
 
     private static OfficeChartStyle CreateNativeWordChartStyle(Chart chart, OpenXmlElement chartElement, PlotArea plotArea, OfficeChartKind chartKind, int categoryCount, int seriesCount) {

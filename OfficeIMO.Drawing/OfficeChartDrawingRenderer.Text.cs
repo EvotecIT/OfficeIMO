@@ -202,7 +202,7 @@ public static partial class OfficeChartDrawingRenderer {
             width,
             style,
             layout,
-            legendIndexes.Select(index => pointColors != null && index < pointColors.Count ? pointColors[index] : (OfficeColor?)null).ToList());
+            legendIndexes.Select(index => (OfficeColor?)GetPointColor(style, pointColors, index)).ToList());
     }
 
     private static List<int> GetCategoryLegendIndexes(IReadOnlyList<string> categories, OfficeChartLayout layout) {

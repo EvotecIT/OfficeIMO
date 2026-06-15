@@ -1023,6 +1023,23 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Applies_DrawingMl_Luminance_Transforms_In_Hsl_Space() {
+        var properties = new ChartShapeProperties(
+            new A.SolidFill(new A.RgbColorModelHex(
+                new A.LuminanceModulation { Val = 50000 },
+                new A.LuminanceOffset { Val = 20000 }) {
+                Val = "4472C4"
+            }));
+        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("TryGetNativeDrawingSolidFillColor", BindingFlags.NonPublic | BindingFlags.Static)!;
+        object?[] arguments = { properties, null, null };
+
+        bool result = (bool)method.Invoke(null, arguments)!;
+
+        Assert.True(result);
+        Assert.Equal(OfficeColor.ParseHex("#3864B2"), Assert.IsType<OfficeColor>(arguments[1]));
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Maps_Text_Watermark_To_Pdf_Watermark() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTextWatermark.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTextWatermark.pdf");
@@ -1829,7 +1846,7 @@ public partial class Word {
                     new A.LuminanceModulation() { Val = 50000 }) { Val = A.SchemeColorValues.Accent1 }));
 
             List<OfficeColor> palette = GetNativeWordChartPalette(CreateNativeWordChartSnapshot(chart));
-            Assert.Equal(OfficeColor.ParseHex("#223962"), palette[0]);
+            Assert.Equal(OfficeColor.ParseHex("#203864"), palette[0]);
 
             document.Save();
             document.SaveAsPdf(pdfPath, options);
@@ -1840,7 +1857,7 @@ public partial class Word {
         Assert.Contains("After scheme chart colors", text);
 
         string rawPdf = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
-        Assert.Contains("0.133 0.224 0.384 rg", rawPdf, StringComparison.Ordinal);
+        Assert.Contains("0.125 0.22 0.392 rg", rawPdf, StringComparison.Ordinal);
     }
 
     [Fact]

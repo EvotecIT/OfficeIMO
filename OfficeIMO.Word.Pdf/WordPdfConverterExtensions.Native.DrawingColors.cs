@@ -380,14 +380,10 @@ namespace OfficeIMO.Word.Pdf {
                         break;
                     case "shade":
                     case "lumMod":
-                        red *= amount;
-                        green *= amount;
-                        blue *= amount;
+                        ApplyNativeDrawingLuminanceTransform(ref red, ref green, ref blue, amount, 0D);
                         break;
                     case "lumOff":
-                        red += 255D * amount;
-                        green += 255D * amount;
-                        blue += 255D * amount;
+                        ApplyNativeDrawingLuminanceTransform(ref red, ref green, ref blue, 1D, amount);
                         break;
                     case "alpha":
                         alpha = 255D * amount;
@@ -404,6 +400,77 @@ namespace OfficeIMO.Word.Pdf {
                 ClampNativeDrawingColorByte(green),
                 ClampNativeDrawingColorByte(blue),
                 ClampNativeDrawingColorByte(alpha));
+        }
+
+        private static void ApplyNativeDrawingLuminanceTransform(ref double red, ref double green, ref double blue, double luminanceMultiplier, double luminanceOffset) {
+            RgbToHsl(red, green, blue, out double hue, out double saturation, out double luminance);
+            luminance = Math.Max(0D, Math.Min(1D, luminance * luminanceMultiplier + luminanceOffset));
+            HslToRgb(hue, saturation, luminance, out red, out green, out blue);
+        }
+
+        private static void RgbToHsl(double red, double green, double blue, out double hue, out double saturation, out double luminance) {
+            double r = Math.Max(0D, Math.Min(255D, red)) / 255D;
+            double g = Math.Max(0D, Math.Min(255D, green)) / 255D;
+            double b = Math.Max(0D, Math.Min(255D, blue)) / 255D;
+            double max = Math.Max(r, Math.Max(g, b));
+            double min = Math.Min(r, Math.Min(g, b));
+            luminance = (max + min) / 2D;
+
+            if (Math.Abs(max - min) < double.Epsilon) {
+                hue = 0D;
+                saturation = 0D;
+                return;
+            }
+
+            double delta = max - min;
+            saturation = luminance > 0.5D
+                ? delta / (2D - max - min)
+                : delta / (max + min);
+
+            if (Math.Abs(max - r) < double.Epsilon) {
+                hue = (g - b) / delta + (g < b ? 6D : 0D);
+            } else if (Math.Abs(max - g) < double.Epsilon) {
+                hue = (b - r) / delta + 2D;
+            } else {
+                hue = (r - g) / delta + 4D;
+            }
+
+            hue /= 6D;
+        }
+
+        private static void HslToRgb(double hue, double saturation, double luminance, out double red, out double green, out double blue) {
+            if (saturation <= 0D) {
+                red = green = blue = luminance * 255D;
+                return;
+            }
+
+            double q = luminance < 0.5D
+                ? luminance * (1D + saturation)
+                : luminance + saturation - luminance * saturation;
+            double p = 2D * luminance - q;
+            red = HueToRgb(p, q, hue + 1D / 3D) * 255D;
+            green = HueToRgb(p, q, hue) * 255D;
+            blue = HueToRgb(p, q, hue - 1D / 3D) * 255D;
+        }
+
+        private static double HueToRgb(double p, double q, double hue) {
+            if (hue < 0D) {
+                hue += 1D;
+            } else if (hue > 1D) {
+                hue -= 1D;
+            }
+
+            if (hue < 1D / 6D) {
+                return p + (q - p) * 6D * hue;
+            }
+
+            if (hue < 1D / 2D) {
+                return q;
+            }
+
+            return hue < 2D / 3D
+                ? p + (q - p) * (2D / 3D - hue) * 6D
+                : p;
         }
 
         private static int? GetNativeDrawingColorTransformValue(OpenXmlElement transform) {
