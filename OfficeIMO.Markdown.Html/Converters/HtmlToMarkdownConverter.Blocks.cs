@@ -249,7 +249,8 @@ public sealed partial class HtmlToMarkdownConverter {
             return false;
         }
 
-        if (!HasRejectedMediaSourceCandidate(mediaElement, context)) {
+        if (!HasRejectedMediaSourceCandidate(mediaElement, context)
+            && !HasBlockedBase64MediaSourceCandidate(mediaElement, context)) {
             return false;
         }
 

@@ -460,6 +460,42 @@ public sealed class MarkdownHtmlToMarkdownTests {
     }
 
     [Fact]
+    public void HtmlToMarkdown_DropsBlockedBase64ImageChildrenInsideAllowedBlockAnchors() {
+        string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.HtmlImages." + Guid.NewGuid().ToString("N"));
+        try {
+            foreach (var testCase in new[] {
+                (Handling: HtmlBase64ImageHandling.Skip, Payload: "AQID"),
+                (Handling: HtmlBase64ImageHandling.SaveToFile, Payload: "not-valid-base64")
+            }) {
+                string html = $"""
+<a href="https://example.test/ok">
+  <div>
+    <img src="data:image/png;base64,{testCase.Payload}" alt="Inline data">
+  </div>
+</a>
+""";
+
+                MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+                    PreserveUnsupportedBlocks = true,
+                    Base64Images = testCase.Handling,
+                    Base64ImageOutputDirectory = directory
+                });
+
+                Assert.Empty(document.Blocks);
+                string markdown = document.ToMarkdown();
+                Assert.DoesNotContain("data:image", markdown, StringComparison.OrdinalIgnoreCase);
+                Assert.DoesNotContain("<img", markdown, StringComparison.OrdinalIgnoreCase);
+                Assert.DoesNotContain("<div", markdown, StringComparison.OrdinalIgnoreCase);
+                Assert.DoesNotContain("<a ", markdown, StringComparison.OrdinalIgnoreCase);
+            }
+        } finally {
+            if (Directory.Exists(directory)) {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public void HtmlToMarkdown_CanSaveBase64ImagesIntoTypedImageBlock() {
         string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.HtmlImages." + Guid.NewGuid().ToString("N"));
         try {

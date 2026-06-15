@@ -611,9 +611,9 @@ namespace OfficeIMO.Word.Html {
             try {
                 byte[] bytes = FetchBytes(uri, options);
                 reservedBytes = bytes.LongLength;
-                if (!IsEmbeddableImageData(bytes, out _)) {
-                    _remoteImageBytesCache[uri.AbsoluteUri] = bytes;
-                    _remoteImageFailureCache.Remove(uri.AbsoluteUri);
+                if (!IsEmbeddableImageData(bytes, out var detail)) {
+                    _remoteImageBytesCache.Remove(uri.AbsoluteUri);
+                    _remoteImageFailureCache[uri.AbsoluteUri] = new InvalidDataException(detail);
                     return false;
                 }
 
@@ -814,12 +814,16 @@ namespace OfficeIMO.Word.Html {
                         return false;
                     }
 
-                    if (!IsEmbeddableImageData(bytes, out detail)) {
+                    if (!TryIdentifyEmbeddableImageData(bytes, out var imageInfo, out detail)) {
                         return false;
                     }
 
                     if (dataUri.MediaType.Equals("image/svg+xml", StringComparison.OrdinalIgnoreCase)
                         && !IsEmbeddableSvgBytes(bytes, out detail)) {
+                        return false;
+                    }
+
+                    if (!IsIdentifiedImageContentTypeAllowed(imageInfo, options, out detail)) {
                         return false;
                     }
 
@@ -859,13 +863,31 @@ namespace OfficeIMO.Word.Html {
         }
 
         private static bool IsEmbeddableImageData(byte[] bytes, out string detail) {
+            return TryIdentifyEmbeddableImageData(bytes, out _, out detail);
+        }
+
+        private static bool TryIdentifyEmbeddableImageData(byte[] bytes, out OfficeImageInfo imageInfo, out string detail) {
             detail = string.Empty;
-            if (!OfficeImageReader.TryIdentify(bytes, null, out _)) {
+            if (!OfficeImageReader.TryIdentify(bytes, null, out imageInfo)) {
                 detail = "Image data URI payload is not a supported image.";
                 return false;
             }
 
             return true;
+        }
+
+        private static bool IsIdentifiedImageContentTypeAllowed(OfficeImageInfo imageInfo, HtmlToWordOptions options, out string detail) {
+            detail = string.Empty;
+            if (IsImageContentTypeAllowed(imageInfo.MimeType, options)) {
+                return true;
+            }
+
+            if (imageInfo.Format == OfficeImageFormat.Jpeg && IsImageContentTypeAllowed("image/jpg", options)) {
+                return true;
+            }
+
+            detail = $"Image payload content type '{imageInfo.MimeType}' is not allowed.";
+            return false;
         }
 
         private static bool IsEmbeddableSvgText(string svgText, out string detail) {

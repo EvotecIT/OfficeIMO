@@ -313,6 +313,41 @@ public sealed partial class HtmlToMarkdownConverter {
                    || HasRejectedUrlAttribute(element, context, "src", "data-src", "data-original", "data-original-src", "data-lazy-src"));
     }
 
+    private static bool HasBlockedBase64MediaSourceCandidate(IElement element, ConversionContext context) {
+        if (element == null || context == null || context.Options.Base64Images == HtmlBase64ImageHandling.Include) {
+            return false;
+        }
+
+        if (element.TagName.Equals("PICTURE", StringComparison.OrdinalIgnoreCase)) {
+            return HasBlockedBase64PictureCandidate(element, context);
+        }
+
+        return element.TagName.Equals("IMG", StringComparison.OrdinalIgnoreCase)
+               && (HasBlockedBase64SrcSetAttribute(element, context, "srcset", "data-srcset", "data-original-srcset", "data-lazy-srcset")
+                   || HasBlockedBase64UrlAttribute(element, context, "src", "data-src", "data-original", "data-original-src", "data-lazy-src"));
+    }
+
+    private static bool HasBlockedBase64PictureCandidate(IElement element, ConversionContext context) {
+        foreach (var child in element.Children) {
+            if (!child.TagName.Equals("SOURCE", StringComparison.OrdinalIgnoreCase)) {
+                continue;
+            }
+
+            if (HasBlockedBase64SrcSetAttribute(child, context, "srcset", "data-srcset", "data-original-srcset", "data-lazy-srcset")
+                || HasBlockedBase64UrlAttribute(child, context, "src", "data-src", "data-original-src", "data-lazy-src")) {
+                return true;
+            }
+        }
+
+        var imageElement = element.QuerySelector("img");
+        if (imageElement == null) {
+            return false;
+        }
+
+        return HasBlockedBase64SrcSetAttribute(imageElement, context, "srcset", "data-srcset", "data-original-srcset", "data-lazy-srcset")
+               || HasBlockedBase64UrlAttribute(imageElement, context, "src", "data-src", "data-original", "data-original-src", "data-lazy-src");
+    }
+
     private static bool HasBase64UrlAttribute(IElement element, params string[] attributeNames) {
         if (element == null || attributeNames == null) {
             return false;
@@ -320,6 +355,20 @@ public sealed partial class HtmlToMarkdownConverter {
 
         foreach (string attributeName in attributeNames) {
             if (IsBase64ImageDataUri(element.GetAttribute(attributeName))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool HasBlockedBase64UrlAttribute(IElement element, ConversionContext context, params string[] attributeNames) {
+        if (element == null || context == null || attributeNames == null) {
+            return false;
+        }
+
+        foreach (string attributeName in attributeNames) {
+            if (IsBlockedBase64ImageSource(element.GetAttribute(attributeName), context)) {
                 return true;
             }
         }
@@ -373,12 +422,36 @@ public sealed partial class HtmlToMarkdownConverter {
         return false;
     }
 
+    private static bool HasBlockedBase64SrcSetAttribute(IElement element, ConversionContext context, params string[] attributeNames) {
+        if (element == null || context == null || attributeNames == null) {
+            return false;
+        }
+
+        foreach (string attributeName in attributeNames) {
+            foreach (HtmlSrcSetCandidate candidate in HtmlSrcSetParser.Parse(element.GetAttribute(attributeName))) {
+                if (IsBlockedBase64ImageSource(candidate.Url, context)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     private static bool IsRejectedImageSource(string? source, ConversionContext context) {
         if (string.IsNullOrWhiteSpace(source)) {
             return false;
         }
 
         return string.IsNullOrWhiteSpace(HtmlUrlPolicyEvaluator.ResolveUrl(source, context.Options.BaseUri, context.Options.UrlPolicy));
+    }
+
+    private static bool IsBlockedBase64ImageSource(string? source, ConversionContext context) {
+        if (string.IsNullOrWhiteSpace(source) || !IsBase64ImageDataUri(source)) {
+            return false;
+        }
+
+        return !CanUseImageCandidateWithoutSideEffects(source, context);
     }
 
 }

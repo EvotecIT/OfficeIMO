@@ -905,6 +905,24 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void HtmlToWord_ImageSelection_ContinuesPastDataCandidateWithDisallowedDetectedPayloadType() {
+            string svg = Convert.ToBase64String(Encoding.UTF8.GetBytes("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1\" height=\"1\"></svg>"));
+            const string fallback = "https://cdn.example.test/logo.png";
+            string html = $"<img data-src=\"data:image/png;base64,{svg}\" src=\"{fallback}\" width=\"32\" height=\"32\" alt=\"Logo\" />";
+            var options = new HtmlToWordOptions {
+                ImageProcessing = ImageProcessingMode.LinkExternal
+            };
+            options.AllowedImageContentTypes.Remove("image/svg+xml");
+
+            var doc = html.LoadFromHtml(options);
+
+            var image = Assert.Single(doc.Images);
+            Assert.True(image.IsExternal);
+            Assert.Equal(new Uri(fallback), image.ExternalUri);
+            Assert.Empty(options.Diagnostics);
+        }
+
+        [Fact]
         public void HtmlToWord_ImageSelection_ContinuesPastNonImageDataCandidate() {
             var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
             string base64 = Convert.ToBase64String(File.ReadAllBytes(path));
@@ -1121,6 +1139,40 @@ namespace OfficeIMO.Tests {
             Assert.Contains(options.Diagnostics, diagnostic =>
                 diagnostic.Code == "ImageResourceBudgetExceeded" &&
                 diagnostic.Source == "https://example.test/logo.png");
+        }
+
+        [Fact]
+        public void HtmlToWord_RemoteImageCache_DoesNotRetainRejectedCandidateBytes() {
+            var requested = new List<Uri>();
+            byte[] invalidBytes = Encoding.UTF8.GetBytes("not an image");
+            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+            using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(request => {
+                requested.Add(request.RequestUri!);
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
+                    Content = new ByteArrayContent(invalidBytes) {
+                        Headers = {
+                            ContentType = new MediaTypeHeaderValue("image/png")
+                        }
+                    }
+                });
+            }));
+            string html = $"""
+<img data-src="https://cdn.example.test/bad-one.png" src="data:image/png;base64,{validPng}" alt="One" />
+<img data-src="https://cdn.example.test/bad-two.png" src="data:image/png;base64,{validPng}" alt="Two" />
+""";
+            var options = new HtmlToWordOptions {
+                HttpClient = httpClient
+            };
+            var converter = new HtmlToWordConverter();
+
+            using var doc = converter.Convert(html, options);
+
+            Assert.Equal(2, doc.Images.Count);
+            Assert.Equal(2, requested.Count);
+            var field = typeof(HtmlToWordConverter).GetField("_remoteImageBytesCache", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            var cache = Assert.IsAssignableFrom<System.Collections.IDictionary>(field!.GetValue(converter));
+            Assert.DoesNotContain(cache.Keys.Cast<string>(), key => key.Contains("bad-", StringComparison.Ordinal));
+            Assert.Empty(options.Diagnostics);
         }
 
         [Fact]
