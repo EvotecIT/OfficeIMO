@@ -82,6 +82,41 @@ public class RtfPdfConverterTests {
     }
 
     [Fact]
+    public void RtfDocument_ToPdfDocument_Preserves_Table_Merge_Spans() {
+        RtfDocument document = RtfDocument.Create();
+        RtfTable table = document.AddTable(2, 3);
+        table.Rows[0].Cells[0].HorizontalMerge = RtfTableCellMerge.First;
+        table.Rows[0].Cells[0].VerticalMerge = RtfTableCellMerge.First;
+        table.Rows[0].Cells[0].AddParagraph("Merged");
+        table.Rows[0].Cells[1].HorizontalMerge = RtfTableCellMerge.Continue;
+        table.Rows[0].Cells[2].AddParagraph("TopRight");
+        table.Rows[1].Cells[0].VerticalMerge = RtfTableCellMerge.Continue;
+        table.Rows[1].Cells[1].HorizontalMerge = RtfTableCellMerge.Continue;
+        table.Rows[1].Cells[1].VerticalMerge = RtfTableCellMerge.Continue;
+        table.Rows[1].Cells[2].AddParagraph("Body");
+
+        PdfCore.PdfDocument pdfDocument = document.ToPdfDocument();
+        PdfCore.TableBlock pdfTable = Assert.IsType<PdfCore.TableBlock>(Assert.Single(pdfDocument.Blocks));
+
+        Assert.Equal(3, pdfTable.ColumnCount);
+        Assert.Equal(2, pdfTable.Cells.Count);
+        Assert.Equal(2, pdfTable.Cells[0].Count);
+        Assert.Single(pdfTable.Cells[1]);
+        Assert.NotNull(pdfTable.Style);
+        Assert.Equal(0, pdfTable.Style!.HeaderRowCount);
+        Assert.Equal(2, pdfTable.Cells[0][0].ColumnSpan);
+        Assert.Equal(2, pdfTable.Cells[0][0].RowSpan);
+        Assert.Equal("Merged", pdfTable.Cells[0][0].Text);
+        Assert.Equal("TopRight", pdfTable.Cells[0][1].Text);
+        Assert.Equal("Body", pdfTable.Cells[1][0].Text);
+
+        string text = PdfCore.PdfReadDocument.Load(pdfDocument.ToBytes()).ExtractText();
+        Assert.Contains("Merged", text, StringComparison.Ordinal);
+        Assert.Contains("TopRight", text, StringComparison.Ordinal);
+        Assert.Contains("Body", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void RtfDocument_ToPdfDocument_Renders_Section_Blocks_And_Breaks() {
         RtfDocument document = RtfDocument.Create();
         RtfSection first = document.AddSection();
