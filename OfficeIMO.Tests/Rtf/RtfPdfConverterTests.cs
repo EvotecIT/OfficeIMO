@@ -117,6 +117,93 @@ public class RtfPdfConverterTests {
     }
 
     [Fact]
+    public void RtfDocument_ToPdfDocument_Preserves_Table_Cell_Formatting() {
+        RtfDocument document = RtfDocument.Create();
+        int rowFill = document.AddColor(230, 242, 255);
+        int cellFill = document.AddColor(0, 170, 85);
+        int borderBlue = document.AddColor(68, 114, 196);
+        int borderGreen = document.AddColor(0, 128, 64);
+        RtfTable table = document.AddTable(2, 2);
+
+        RtfTableRow header = table.Rows[0];
+        header.RepeatHeader = true;
+        header.SetBackgroundColor(rowFill);
+        header.SetPadding(topTwips: 120, leftTwips: 140, bottomTwips: 160, rightTwips: 180);
+        header.TopBorder.Style = RtfTableCellBorderStyle.Single;
+        header.TopBorder.Width = 8;
+        header.TopBorder.ColorIndex = borderBlue;
+
+        RtfTableCell styledCell = header.Cells[0];
+        styledCell.AddParagraph("Styled");
+        styledCell.SetBackgroundColor(cellFill);
+        styledCell.VerticalAlignment = RtfTableCellVerticalAlignment.Center;
+        styledCell.SetPadding(topTwips: 200, leftTwips: 220, bottomTwips: 240, rightTwips: 260);
+        styledCell.TopBorder.Style = RtfTableCellBorderStyle.Single;
+        styledCell.TopBorder.Width = 12;
+        styledCell.TopBorder.ColorIndex = borderBlue;
+        styledCell.LeftBorder.Style = RtfTableCellBorderStyle.Double;
+        styledCell.LeftBorder.Width = 8;
+        styledCell.LeftBorder.ColorIndex = borderGreen;
+        styledCell.TopLeftToBottomRightBorder.Style = RtfTableCellBorderStyle.Dotted;
+        styledCell.TopLeftToBottomRightBorder.Width = 6;
+        styledCell.TopLeftToBottomRightBorder.ColorIndex = borderBlue;
+        styledCell.TopRightToBottomLeftBorder.Style = RtfTableCellBorderStyle.Dashed;
+        styledCell.TopRightToBottomLeftBorder.Width = 10;
+        styledCell.TopRightToBottomLeftBorder.ColorIndex = borderGreen;
+        header.Cells[1].AddParagraph("RowFill");
+
+        table.Rows[1].Cells[0].AddParagraph("Bottom");
+        table.Rows[1].Cells[0].VerticalAlignment = RtfTableCellVerticalAlignment.Bottom;
+        table.Rows[1].Cells[1].AddParagraph("Plain");
+
+        PdfCore.PdfDocument pdfDocument = document.ToPdfDocument();
+        PdfCore.TableBlock pdfTable = Assert.IsType<PdfCore.TableBlock>(Assert.Single(pdfDocument.Blocks));
+        Assert.NotNull(pdfTable.Style);
+        PdfCore.PdfTableStyle style = pdfTable.Style!;
+
+        Assert.Equal(1, style.HeaderRowCount);
+        Assert.Equal(1, style.RepeatHeaderRowCount);
+        Assert.NotNull(style.CellFills);
+        Assert.Equal(PdfCore.PdfColor.FromRgb(0, 170, 85), style.CellFills![(0, 0)]);
+        Assert.Equal(PdfCore.PdfColor.FromRgb(230, 242, 255), style.CellFills[(0, 1)]);
+        Assert.NotNull(style.CellVerticalAlignments);
+        Assert.Equal(PdfCore.PdfCellVerticalAlign.Middle, style.CellVerticalAlignments![(0, 0)]);
+        Assert.Equal(PdfCore.PdfCellVerticalAlign.Bottom, style.CellVerticalAlignments[(1, 0)]);
+        Assert.NotNull(style.CellPaddings);
+        PdfCore.PdfCellPadding padding = style.CellPaddings![(0, 0)];
+        Assert.Equal(10, padding.Top);
+        Assert.Equal(11, padding.Left);
+        Assert.Equal(12, padding.Bottom);
+        Assert.Equal(13, padding.Right);
+        PdfCore.PdfCellPadding inheritedPadding = style.CellPaddings[(0, 1)];
+        Assert.Equal(6, inheritedPadding.Top);
+        Assert.Equal(7, inheritedPadding.Left);
+        Assert.Equal(8, inheritedPadding.Bottom);
+        Assert.Equal(9, inheritedPadding.Right);
+
+        Assert.NotNull(style.CellBorders);
+        PdfCore.PdfCellBorder styledBorder = style.CellBorders![(0, 0)];
+        Assert.True(styledBorder.Top);
+        Assert.True(styledBorder.Left);
+        Assert.True(styledBorder.DiagonalDown);
+        Assert.True(styledBorder.DiagonalUp);
+        Assert.Equal(1.5, styledBorder.TopBorder!.Width);
+        Assert.Equal(PdfCore.PdfCellBorderLineStyle.TwoLine, styledBorder.LeftBorder!.LineStyle);
+        Assert.Equal(OfficeIMO.Drawing.OfficeStrokeDashStyle.Dot, styledBorder.DiagonalDownBorder!.DashStyle);
+        Assert.Equal(OfficeIMO.Drawing.OfficeStrokeDashStyle.Dash, styledBorder.DiagonalUpBorder!.DashStyle);
+        PdfCore.PdfCellBorder rowBorder = style.CellBorders[(0, 1)];
+        Assert.True(rowBorder.Top);
+        Assert.Equal(1, rowBorder.TopBorder!.Width);
+        Assert.Equal(PdfCore.PdfColor.FromRgb(68, 114, 196), rowBorder.TopBorder.Color);
+
+        string text = PdfCore.PdfReadDocument.Load(pdfDocument.ToBytes()).ExtractText();
+        Assert.Contains("Styled", text, StringComparison.Ordinal);
+        Assert.Contains("RowFill", text, StringComparison.Ordinal);
+        Assert.Contains("Bottom", text, StringComparison.Ordinal);
+        Assert.Contains("Plain", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void RtfDocument_ToPdfDocument_Renders_Section_Blocks_And_Breaks() {
         RtfDocument document = RtfDocument.Create();
         RtfSection first = document.AddSection();

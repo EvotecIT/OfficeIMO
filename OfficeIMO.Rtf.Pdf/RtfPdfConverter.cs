@@ -171,15 +171,8 @@ internal static class RtfPdfConverter {
         }
 
         if (rows.Count > 0) {
-            pdf.Table(rows, style: CreateRtfTableStyle(options));
+            pdf.Table(rows, style: RtfPdfMapping.ToPdfTableStyle(document, table, options));
         }
-    }
-
-    private static PdfCore.PdfTableStyle CreateRtfTableStyle(RtfPdfSaveOptions options) {
-        PdfCore.PdfTableStyle style = options.PdfOptions?.DefaultTableStyle ?? new PdfCore.PdfTableStyle();
-        style.HeaderRowCount = 0;
-        style.RepeatHeaderRowCount = 0;
-        return style;
     }
 
     private static int GetHorizontalMergeSpan(RtfTableRow row, int cellIndex) {
