@@ -356,6 +356,49 @@ public class RtfLosslessEditorTests {
     }
 
     [Fact]
+    public void SetRevisionAuthor_Replaces_Adds_And_Removes_Authors_Without_Normalizing_Body() {
+        const string rtf = @"{\rtf1\ansi{\*\revtbl{Alice;}{Bob;}{Remove;}}{\*\rsidtbl\rsidroot7}\pard\revised\revauth1 Body \'80\revised0\par}";
+
+        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        editor.SetRevisionAuthor(1, "Bób {Two}");
+        editor.SetRevisionAuthor(3, "Dana");
+        editor.RemoveRevisionAuthor(2);
+
+        const string expected = @"{\rtf1\ansi{\*\revtbl{Alice;}{B\u243?b \{Two\};}{Dana;}}{\*\rsidtbl\rsidroot7}\pard\revised\revauth1 Body \'80\revised0\par}";
+        Assert.Equal(expected, editor.ToRtf());
+
+        RtfReadResult read = editor.ToReadResult();
+        Assert.Collection(
+            read.Document.RevisionAuthors,
+            author => Assert.Equal("Alice", author.Name),
+            author => Assert.Equal("Bób {Two}", author.Name),
+            author => Assert.Equal("Dana", author.Name));
+        Assert.Equal(7, read.Document.RevisionRootSaveId);
+        Assert.Contains(@"\pard\revised\revauth1 Body \'80", editor.ToRtf(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SetRevisionAuthor_Creates_And_Removes_Revision_Table_Before_SaveIds() {
+        const string rtf = @"{\rtf1\ansi{\*\rsidtbl\rsidroot7}\pard Body\par}";
+
+        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        editor.SetRevisionAuthor(0, "Alice");
+        editor.SetRevisionAuthor(1, "Bob");
+
+        Assert.Equal(@"{\rtf1\ansi{\*\revtbl{Alice;}{Bob;}}{\*\rsidtbl\rsidroot7}\pard Body\par}", editor.ToRtf());
+        Assert.Collection(
+            editor.ToReadResult().Document.RevisionAuthors,
+            author => Assert.Equal("Alice", author.Name),
+            author => Assert.Equal("Bob", author.Name));
+
+        editor.RemoveRevisionAuthor(1);
+        editor.RemoveRevisionAuthor(0);
+
+        Assert.Equal(rtf, editor.ToRtf());
+        Assert.Empty(editor.ToReadResult().Document.RevisionAuthors);
+    }
+
+    [Fact]
     public void SetFileReference_Replaces_Adds_And_Removes_Metadata_Without_Normalizing_Body() {
         const string rtf = @"{\rtf1\ansi{\*\filetbl{\file\fid0\frelative18\fvalidntfs Old.docx}{\file\fid1\fvalidmac Remove.doc}{\file\fid0 Duplicate.docx}}{\*\xmlnstbl{\xmlns1 urn:keep;}}{\info{\title Keep}}\pard Body \'80\par}";
 
