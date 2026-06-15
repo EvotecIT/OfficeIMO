@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace OfficeIMO.Rtf.Html;
 
 internal static class RtfHtmlReader {
@@ -31,6 +33,7 @@ internal static class RtfHtmlReader {
         private readonly RtfHtmlReadOptions _options;
         private readonly Stack<RtfListKind> _lists = new Stack<RtfListKind>();
         private readonly Stack<HtmlStyleScope> _styles = new Stack<HtmlStyleScope>();
+        private readonly List<RowSpanState> _rowSpans = new List<RowSpanState>();
         private RtfParagraph? _paragraph;
         private RtfTable? _table;
         private RtfTableRow? _row;
@@ -44,6 +47,7 @@ internal static class RtfHtmlReader {
         private int _subscript;
         private int _preformatted;
         private int _tableHead;
+        private int _tableColumnIndex;
         private RtfTextAlignment? _cellTextAlignment;
         private bool _pageBreakAfterParagraph;
 
@@ -131,10 +135,10 @@ internal static class RtfHtmlReader {
                     StartRow();
                     break;
                 case "td":
-                    StartCell(style, isHeader: false);
+                    StartCell(token, style, isHeader: false);
                     break;
                 case "th":
-                    StartCell(style, isHeader: true);
+                    StartCell(token, style, isHeader: true);
                     break;
                 case "img":
                     AddImage(token);
@@ -224,6 +228,7 @@ internal static class RtfHtmlReader {
                     _cellTextAlignment = null;
                     break;
                 case "tr":
+                    EndRow();
                     _row = null;
                     break;
                 case "table":
@@ -231,6 +236,7 @@ internal static class RtfHtmlReader {
                     _cell = null;
                     _row = null;
                     _table = null;
+                    _rowSpans.Clear();
                     break;
                 default:
                     if (_options.PreserveUnknownTagsAsText) {
@@ -345,6 +351,7 @@ internal static class RtfHtmlReader {
             _table = _document.AddTable(0, 1);
             _row = null;
             _cell = null;
+            _rowSpans.Clear();
             _paragraph = null;
         }
 
@@ -355,18 +362,44 @@ internal static class RtfHtmlReader {
 
             _row = _table!.AddRow();
             _row.RepeatHeader = _tableHead > 0;
+            _tableColumnIndex = 0;
             _cell = null;
             _cellTextAlignment = null;
             _paragraph = null;
         }
 
-        private void StartCell(HtmlStyleDeclaration style, bool isHeader) {
+        private void StartCell(HtmlToken token, HtmlStyleDeclaration style, bool isHeader) {
             if (_row == null) {
                 StartRow();
             }
 
-            int cellIndex = _row!.Cells.Count + 1;
-            _cell = _row.AddCell(cellIndex * 2400);
+            AddPendingRowSpanContinuations();
+
+            int columnStart = _tableColumnIndex;
+            int columnSpan = ReadSpan(token, "colspan");
+            int rowSpan = ReadSpan(token, "rowspan");
+            _cell = AddCellAtColumn(columnStart);
+            if (columnSpan > 1) {
+                _cell.HorizontalMerge = RtfTableCellMerge.First;
+            }
+
+            if (rowSpan > 1) {
+                _cell.VerticalMerge = RtfTableCellMerge.First;
+            }
+
+            for (int offset = 1; offset < columnSpan; offset++) {
+                RtfTableCell continuation = AddCellAtColumn(columnStart + offset);
+                continuation.HorizontalMerge = RtfTableCellMerge.Continue;
+                if (rowSpan > 1) {
+                    continuation.VerticalMerge = RtfTableCellMerge.First;
+                }
+            }
+
+            if (rowSpan > 1) {
+                TrackRowSpan(columnStart, columnSpan, rowSpan);
+            }
+
+            _tableColumnIndex += columnSpan;
             _cellTextAlignment = isHeader ? RtfTextAlignment.Center : null;
             ApplyCellStyle(style);
             if (isHeader) {
@@ -374,6 +407,55 @@ internal static class RtfHtmlReader {
             }
 
             _paragraph = null;
+        }
+
+        private void EndRow() {
+            AddPendingRowSpanContinuations(includeTrailingColumns: true);
+            _tableColumnIndex = 0;
+            _cellTextAlignment = null;
+            _paragraph = null;
+        }
+
+        private RtfTableCell AddCellAtColumn(int zeroBasedColumn) {
+            return _row!.AddCell((zeroBasedColumn + 1) * 2400);
+        }
+
+        private void AddPendingRowSpanContinuations(bool includeTrailingColumns = false) {
+            while (_tableColumnIndex < _rowSpans.Count) {
+                RowSpanState state = _rowSpans[_tableColumnIndex];
+                if (state.RemainingRows <= 0) {
+                    if (!includeTrailingColumns) {
+                        break;
+                    }
+
+                    _tableColumnIndex++;
+                    continue;
+                }
+
+                RtfTableCell continuation = AddCellAtColumn(_tableColumnIndex);
+                continuation.VerticalMerge = RtfTableCellMerge.Continue;
+                if (state.ColumnSpan > 1) {
+                    continuation.HorizontalMerge = state.Offset == 0
+                        ? RtfTableCellMerge.First
+                        : RtfTableCellMerge.Continue;
+                }
+
+                state.RemainingRows--;
+                _tableColumnIndex++;
+            }
+        }
+
+        private void TrackRowSpan(int columnStart, int columnSpan, int rowSpan) {
+            while (_rowSpans.Count < columnStart + columnSpan) {
+                _rowSpans.Add(new RowSpanState());
+            }
+
+            for (int offset = 0; offset < columnSpan; offset++) {
+                RowSpanState state = _rowSpans[columnStart + offset];
+                state.RemainingRows = Math.Max(state.RemainingRows, rowSpan - 1);
+                state.ColumnSpan = columnSpan;
+                state.Offset = offset;
+            }
         }
 
         private void ApplyCellStyle(HtmlStyleDeclaration style) {
@@ -431,6 +513,13 @@ internal static class RtfHtmlReader {
 
         private static string? GetAttribute(HtmlToken token, string name) {
             return token.Attributes.TryGetValue(name, out string? value) ? value : null;
+        }
+
+        private static int ReadSpan(HtmlToken token, string name) {
+            string? value = GetAttribute(token, name);
+            return int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int span) && span > 1
+                ? Math.Min(span, 256)
+                : 1;
         }
 
         private static void Decrement(ref int value) {
@@ -546,6 +635,14 @@ internal static class RtfHtmlReader {
         private static bool EndsWithPageBreak(RtfParagraph paragraph) {
             return paragraph.Inlines.Count > 0 &&
                    paragraph.Inlines[paragraph.Inlines.Count - 1] is RtfBreak { Kind: RtfBreakKind.Page };
+        }
+
+        private sealed class RowSpanState {
+            internal int RemainingRows { get; set; }
+
+            internal int ColumnSpan { get; set; } = 1;
+
+            internal int Offset { get; set; }
         }
 
         private static string NormalizeWhitespace(string text) {

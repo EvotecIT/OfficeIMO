@@ -362,6 +362,51 @@ public class RtfHtmlConverterTests {
     }
 
     [Fact]
+    public void Html_ToRtfDocument_Parses_Table_Colspan_And_Rowspan() {
+        const string html = "<table><tr><th colspan=\"2\">Panel</th><th rowspan=\"2\">Flag</th></tr><tr><td>Pulse</td><td>72</td></tr></table>";
+
+        RtfDocument document = html.ToRtfDocumentFromHtml();
+
+        RtfTable table = Assert.IsType<RtfTable>(Assert.Single(document.Blocks));
+        Assert.Equal(RtfTableCellMerge.First, table.Rows[0].Cells[0].HorizontalMerge);
+        Assert.Equal(RtfTableCellMerge.Continue, table.Rows[0].Cells[1].HorizontalMerge);
+        Assert.Equal(RtfTableCellMerge.First, table.Rows[0].Cells[2].VerticalMerge);
+        Assert.Equal(RtfTableCellMerge.Continue, table.Rows[1].Cells[2].VerticalMerge);
+        Assert.Equal("Panel", table.Rows[0].Cells[0].Paragraphs[0].ToPlainText());
+        Assert.Equal("Flag", table.Rows[0].Cells[2].Paragraphs[0].ToPlainText());
+
+        string rtf = document.ToRtf();
+        Assert.Contains(@"\clmgf", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\clmrg", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\clvmgf", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\clvmrg", rtf, StringComparison.Ordinal);
+
+        RtfTable roundTripTable = Assert.IsType<RtfTable>(Assert.Single(RtfDocument.Read(rtf).Document.Blocks));
+        Assert.Equal(RtfTableCellMerge.First, roundTripTable.Rows[0].Cells[0].HorizontalMerge);
+        Assert.Equal(RtfTableCellMerge.Continue, roundTripTable.Rows[0].Cells[1].HorizontalMerge);
+        Assert.Equal(RtfTableCellMerge.First, roundTripTable.Rows[0].Cells[2].VerticalMerge);
+        Assert.Equal(RtfTableCellMerge.Continue, roundTripTable.Rows[1].Cells[2].VerticalMerge);
+    }
+
+    [Fact]
+    public void RtfDocument_ToHtml_Renders_Table_Colspan_And_Rowspan() {
+        RtfDocument document = RtfDocument.Create();
+        RtfTable table = document.AddTable(2, 3);
+        table.Rows[0].Cells[0].HorizontalMerge = RtfTableCellMerge.First;
+        table.Rows[0].Cells[0].AddParagraph("Panel");
+        table.Rows[0].Cells[1].HorizontalMerge = RtfTableCellMerge.Continue;
+        table.Rows[0].Cells[2].VerticalMerge = RtfTableCellMerge.First;
+        table.Rows[0].Cells[2].AddParagraph("Flag");
+        table.Rows[1].Cells[0].AddParagraph("Pulse");
+        table.Rows[1].Cells[1].AddParagraph("72");
+        table.Rows[1].Cells[2].VerticalMerge = RtfTableCellMerge.Continue;
+
+        string html = document.ToHtml();
+
+        Assert.Equal("<table><tbody><tr><td colspan=\"2\"><p>Panel</p></td><td rowspan=\"2\"><p>Flag</p></td></tr><tr><td><p>Pulse</p></td><td><p>72</p></td></tr></tbody></table>", html);
+    }
+
+    [Fact]
     public void Html_Rtf_Html_RoundTrip_Preserves_Semantic_Text() {
         const string html = "<p>Assessment: <strong>stable</strong></p>";
 

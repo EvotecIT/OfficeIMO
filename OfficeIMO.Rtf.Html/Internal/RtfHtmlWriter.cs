@@ -240,7 +240,8 @@ internal static class RtfHtmlWriter {
         builder.Append("<table>");
         bool inHead = false;
         bool inBody = false;
-        foreach (RtfTableRow row in table.Rows) {
+        for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
+            RtfTableRow row = table.Rows[rowIndex];
             if (row.RepeatHeader) {
                 if (inBody) {
                     builder.Append("</tbody>");
@@ -263,7 +264,7 @@ internal static class RtfHtmlWriter {
                 }
             }
 
-            AppendTableRow(builder, row, options, document, row.RepeatHeader);
+            AppendTableRow(builder, table, rowIndex, options, document, row.RepeatHeader);
         }
 
         if (inHead) {
@@ -277,12 +278,21 @@ internal static class RtfHtmlWriter {
         builder.Append("</table>");
     }
 
-    private static void AppendTableRow(StringBuilder builder, RtfTableRow row, RtfHtmlSaveOptions options, RtfDocument document, bool isHeader) {
+    private static void AppendTableRow(StringBuilder builder, RtfTable table, int rowIndex, RtfHtmlSaveOptions options, RtfDocument document, bool isHeader) {
         builder.Append("<tr>");
+        RtfTableRow row = table.Rows[rowIndex];
         string cellTag = isHeader ? "th" : "td";
-        foreach (RtfTableCell cell in row.Cells) {
+        for (int cellIndex = 0; cellIndex < row.Cells.Count; cellIndex++) {
+            RtfTableCell cell = row.Cells[cellIndex];
+            if (IsMergeContinuation(cell)) {
+                continue;
+            }
+
+            int columnSpan = GetColumnSpan(row, cellIndex);
+            int rowSpan = GetRowSpan(table, rowIndex, cellIndex, columnSpan);
             builder.Append('<');
             builder.Append(cellTag);
+            AppendCellSpanAttributes(builder, columnSpan, rowSpan);
             AppendCellStyle(builder, cell, document);
             builder.Append('>');
             for (int i = 0; i < cell.Paragraphs.Count; i++) {
@@ -295,6 +305,70 @@ internal static class RtfHtmlWriter {
         }
 
         builder.Append("</tr>");
+    }
+
+    private static bool IsMergeContinuation(RtfTableCell cell) {
+        return cell.HorizontalMerge == RtfTableCellMerge.Continue ||
+               cell.VerticalMerge == RtfTableCellMerge.Continue;
+    }
+
+    private static int GetColumnSpan(RtfTableRow row, int cellIndex) {
+        if (row.Cells[cellIndex].HorizontalMerge != RtfTableCellMerge.First) {
+            return 1;
+        }
+
+        int span = 1;
+        for (int i = cellIndex + 1; i < row.Cells.Count; i++) {
+            if (row.Cells[i].HorizontalMerge != RtfTableCellMerge.Continue) {
+                break;
+            }
+
+            span++;
+        }
+
+        return span;
+    }
+
+    private static int GetRowSpan(RtfTable table, int rowIndex, int cellIndex, int columnSpan) {
+        if (table.Rows[rowIndex].Cells[cellIndex].VerticalMerge != RtfTableCellMerge.First) {
+            return 1;
+        }
+
+        int span = 1;
+        for (int nextRowIndex = rowIndex + 1; nextRowIndex < table.Rows.Count; nextRowIndex++) {
+            RtfTableRow nextRow = table.Rows[nextRowIndex];
+            if (cellIndex + columnSpan > nextRow.Cells.Count || !IsVerticalContinuation(nextRow, cellIndex, columnSpan)) {
+                break;
+            }
+
+            span++;
+        }
+
+        return span;
+    }
+
+    private static bool IsVerticalContinuation(RtfTableRow row, int cellIndex, int columnSpan) {
+        for (int offset = 0; offset < columnSpan; offset++) {
+            if (row.Cells[cellIndex + offset].VerticalMerge != RtfTableCellMerge.Continue) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static void AppendCellSpanAttributes(StringBuilder builder, int columnSpan, int rowSpan) {
+        if (columnSpan > 1) {
+            builder.Append(" colspan=\"");
+            builder.Append(columnSpan.ToString(CultureInfo.InvariantCulture));
+            builder.Append('"');
+        }
+
+        if (rowSpan > 1) {
+            builder.Append(" rowspan=\"");
+            builder.Append(rowSpan.ToString(CultureInfo.InvariantCulture));
+            builder.Append('"');
+        }
     }
 
     private static void AppendCellStyle(StringBuilder builder, RtfTableCell cell, RtfDocument document) {
