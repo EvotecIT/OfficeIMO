@@ -339,6 +339,65 @@ public class RtfLosslessEditorTests {
     }
 
     [Fact]
+    public void SetColor_Replaces_Adds_And_Removes_Color_Table_Entries_Without_Normalizing_Body() {
+        const string rtf = @"{\rtf1\ansi{\fonttbl{\f0 Calibri;}}{\colortbl;\red1\green2\blue3;\red4\green5\blue6\caccenttwo\cshade25;}{\stylesheet{\s1\cf1 Style;}}\pard\cf1 Body \'80\par}";
+
+        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        editor.SetColor(1, new RtfColor(10, 20, 30) {
+            ThemeColor = RtfThemeColor.AccentOne,
+            Tint = 40
+        });
+        editor.SetColor(3, 7, 8, 9);
+        editor.RemoveColor(2);
+
+        const string expected = @"{\rtf1\ansi{\fonttbl{\f0 Calibri;}}{\colortbl;\red10\green20\blue30\caccentone\ctint40;\red7\green8\blue9;}{\stylesheet{\s1\cf1 Style;}}\pard\cf1 Body \'80\par}";
+        Assert.Equal(expected, editor.ToRtf());
+
+        RtfReadResult read = editor.ToReadResult();
+        Assert.Collection(
+            read.Document.Colors,
+            color => {
+                Assert.Equal(10, color.Red);
+                Assert.Equal(20, color.Green);
+                Assert.Equal(30, color.Blue);
+                Assert.Equal(RtfThemeColor.AccentOne, color.ThemeColor);
+                Assert.Equal(40, color.Tint);
+                Assert.Null(color.Shade);
+            },
+            color => {
+                Assert.Equal(7, color.Red);
+                Assert.Equal(8, color.Green);
+                Assert.Equal(9, color.Blue);
+                Assert.Null(color.ThemeColor);
+            });
+        Assert.Contains(@"\pard\cf1 Body \'80", editor.ToRtf(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SetColor_Creates_And_Removes_Color_Table_Before_Stylesheet() {
+        const string rtf = @"{\rtf1\ansi{\fonttbl{\f0 Calibri;}}{\stylesheet{\s1 Style;}}\pard Body\par}";
+
+        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        editor.SetColor(1, new RtfColor(68, 114, 196) {
+            ThemeColor = RtfThemeColor.Hyperlink,
+            Shade = 25
+        });
+
+        Assert.Equal(@"{\rtf1\ansi{\fonttbl{\f0 Calibri;}}{\colortbl;\red68\green114\blue196\chyperlink\cshade25;}{\stylesheet{\s1 Style;}}\pard Body\par}", editor.ToRtf());
+        RtfColor color = Assert.Single(editor.ToReadResult().Document.Colors);
+        Assert.Equal(68, color.Red);
+        Assert.Equal(114, color.Green);
+        Assert.Equal(196, color.Blue);
+        Assert.Equal(RtfThemeColor.Hyperlink, color.ThemeColor);
+        Assert.Equal(25, color.Shade);
+
+        editor.RemoveColor(1);
+
+        Assert.Equal(rtf, editor.ToRtf());
+        Assert.Empty(editor.ToReadResult().Document.Colors);
+    }
+
+    [Fact]
     public void RevisionSaveIds_Update_Root_Add_Remove_And_Preserve_Body() {
         const string rtf = @"{\rtf1\ansi{\*\rsidtbl\rsidroot7\rsid15\rsid1024\rsid15}{\info{\title Keep}}\pard\pararsid20 Body \'80\par}";
 
