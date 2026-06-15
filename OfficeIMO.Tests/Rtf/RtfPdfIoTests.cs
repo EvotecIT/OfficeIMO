@@ -3,6 +3,7 @@ using PdfCore = OfficeIMO.Pdf;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests.Rtf;
@@ -66,5 +67,89 @@ public class RtfPdfIoTests {
         Assert.Equal(streamed.Length, output.Position);
         Assert.Equal("%PDF-", Encoding.ASCII.GetString(streamed, 1, 5));
         Assert.Contains("Stream PDF", PdfCore.PdfReadDocument.Load(streamed.Skip(1).ToArray()).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task RtfPdf_Async_Converts_String_Bytes_And_Source_Stream() {
+        const string rtf = @"{\rtf1\ansi\pard Async PDF\par}";
+        byte[] rtfBytes = Encoding.ASCII.GetBytes(rtf);
+
+        byte[] fromString = await rtf.SaveAsPdfAsync();
+        byte[] fromBytes = await rtfBytes.SaveAsPdfAsync();
+
+        Assert.Equal("%PDF-", Encoding.ASCII.GetString(fromString, 0, 5));
+        Assert.Equal("%PDF-", Encoding.ASCII.GetString(fromBytes, 0, 5));
+        Assert.Contains("Async PDF", PdfCore.PdfReadDocument.Load(fromString).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Async PDF", PdfCore.PdfReadDocument.Load(fromBytes).ExtractText(), StringComparison.Ordinal);
+
+        using var source = new MemoryStream();
+        source.WriteByte(0x2A);
+        source.Write(rtfBytes, 0, rtfBytes.Length);
+        source.Position = 1;
+        byte[] fromStream = await source.SaveAsPdfAsync(encoding: Encoding.ASCII);
+
+        Assert.Equal(source.Length, source.Position);
+        Assert.Equal("%PDF-", Encoding.ASCII.GetString(fromStream, 0, 5));
+        Assert.Contains("Async PDF", PdfCore.PdfReadDocument.Load(fromStream).ExtractText(), StringComparison.Ordinal);
+
+        using var secondSource = new MemoryStream();
+        secondSource.WriteByte(0x2A);
+        secondSource.Write(rtfBytes, 0, rtfBytes.Length);
+        secondSource.Position = 1;
+        using var output = new MemoryStream();
+        output.WriteByte(0x2A);
+
+        await secondSource.SaveAsPdfAsync(output, encoding: Encoding.ASCII);
+        byte[] streamed = output.ToArray();
+
+        Assert.Equal(secondSource.Length, secondSource.Position);
+        Assert.Equal(streamed.Length, output.Position);
+        Assert.Equal("%PDF-", Encoding.ASCII.GetString(streamed, 1, 5));
+        Assert.Contains("Async PDF", PdfCore.PdfReadDocument.Load(streamed.Skip(1).ToArray()).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task RtfPdf_TrySave_Source_Overloads_Return_Diagnostics() {
+        const string rtf = @"{\rtf1\ansi\pard Try PDF\par}";
+        byte[] rtfBytes = Encoding.ASCII.GetBytes(rtf);
+        using var output = new MemoryStream();
+
+        PdfCore.PdfSaveResult streamResult = rtf.TrySaveAsPdf(output);
+
+        Assert.True(streamResult.Succeeded);
+        Assert.Equal(output.Length, streamResult.BytesWritten);
+        Assert.Equal("%PDF-", Encoding.ASCII.GetString(output.ToArray(), 0, 5));
+        Assert.Contains("Try PDF", PdfCore.PdfReadDocument.Load(output.ToArray()).ExtractText(), StringComparison.Ordinal);
+
+        using var source = new MemoryStream();
+        source.WriteByte(0x2A);
+        source.Write(rtfBytes, 0, rtfBytes.Length);
+        source.Position = 1;
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pdf");
+        try {
+            PdfCore.PdfSaveResult pathResult = source.TrySaveAsPdf(path, encoding: Encoding.ASCII);
+
+            Assert.True(pathResult.Succeeded);
+            Assert.Equal(Path.GetFullPath(path), pathResult.OutputPath);
+            Assert.Equal(source.Length, source.Position);
+            Assert.Contains("Try PDF", PdfCore.PdfReadDocument.Load(path).ExtractText(), StringComparison.Ordinal);
+        } finally {
+            if (File.Exists(path)) {
+                File.Delete(path);
+            }
+        }
+
+        using var asyncOutput = new MemoryStream();
+        PdfCore.PdfSaveResult asyncResult = await rtfBytes.TrySaveAsPdfAsync(asyncOutput);
+
+        Assert.True(asyncResult.Succeeded);
+        Assert.Equal(asyncOutput.Length, asyncResult.BytesWritten);
+        Assert.Contains("Try PDF", PdfCore.PdfReadDocument.Load(asyncOutput.ToArray()).ExtractText(), StringComparison.Ordinal);
+
+        using var readOnlyStream = new MemoryStream(Array.Empty<byte>(), writable: false);
+        PdfCore.PdfSaveResult failure = rtf.TrySaveAsPdf(readOnlyStream);
+
+        Assert.False(failure.Succeeded);
+        Assert.NotEmpty(failure.Diagnostics);
     }
 }
