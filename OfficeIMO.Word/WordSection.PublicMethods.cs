@@ -67,7 +67,7 @@ namespace OfficeIMO.Word {
             var body = _document._wordprocessingDocument?.MainDocumentPart?.Document?.Body
                 ?? throw new InvalidOperationException("Document body is missing.");
 
-            var insertBefore = GetSectionBoundaryElement() ?? GetNextSectionBoundaryElement();
+            var insertBefore = GetInsertionBoundaryElement();
             if (insertBefore != null && insertBefore.Parent == body) {
                 body.InsertBefore(element, insertBefore);
                 return;
@@ -81,9 +81,22 @@ namespace OfficeIMO.Word {
             body.Append(element);
         }
 
-        private OpenXmlElement? GetNextSectionBoundaryElement() {
+        private OpenXmlElement? GetInsertionBoundaryElement() {
             var sections = _document.Sections;
             var currentIndex = sections.IndexOf(this);
+            if (currentIndex < 0) {
+                return GetSectionBoundaryElement() ?? GetFinalSectionBoundaryElement();
+            }
+
+            if (currentIndex == sections.Count - 1) {
+                return GetFinalSectionBoundaryElement() ?? GetSectionBoundaryElement();
+            }
+
+            return GetSectionBoundaryElement() ?? GetNextSectionBoundaryElement(currentIndex);
+        }
+
+        private OpenXmlElement? GetNextSectionBoundaryElement(int currentIndex) {
+            var sections = _document.Sections;
             if (currentIndex < 0) {
                 return null;
             }
@@ -96,6 +109,11 @@ namespace OfficeIMO.Word {
             }
 
             return null;
+        }
+
+        private OpenXmlElement? GetFinalSectionBoundaryElement() {
+            return _document.GetFinalSectionPropertiesInsertionBoundary()
+                ?? (_sectionProperties.Parent is Body ? _sectionProperties : null);
         }
 
         private OpenXmlElement? GetSectionBoundaryElement() {
