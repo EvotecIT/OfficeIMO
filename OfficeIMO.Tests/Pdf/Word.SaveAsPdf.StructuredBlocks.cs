@@ -2443,4 +2443,74 @@ public partial class Word {
 
     private static byte[] CreateNativeMinimalRgbPng() =>
         Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADUlEQVR42mP8z8BQDwAFgwJ/l2hYtQAAAABJRU5ErkJggg==");
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_NativeVmlImageReader_Rejects_Images_Above_Limit() {
+        using var stream = new NativeVmlGeneratedStream(WordPdfConverterExtensions.NativeVmlImageMaxBytes + 1L);
+
+        bool result = WordPdfConverterExtensions.TryReadNativeVmlImageBytes(stream, WordPdfConverterExtensions.NativeVmlImageMaxBytes, out byte[]? imageBytes);
+
+        Assert.False(result);
+        Assert.Null(imageBytes);
+        Assert.True(stream.BytesRead <= WordPdfConverterExtensions.NativeVmlImageMaxBytes + 81920L);
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_NativeVmlImageReader_Reads_Images_Within_Limit() {
+        byte[] source = { 1, 2, 3, 4 };
+        using var stream = new MemoryStream(source);
+
+        bool result = WordPdfConverterExtensions.TryReadNativeVmlImageBytes(stream, WordPdfConverterExtensions.NativeVmlImageMaxBytes, out byte[]? imageBytes);
+
+        Assert.True(result);
+        Assert.Equal(source, imageBytes);
+    }
+
+    private sealed class NativeVmlGeneratedStream : Stream {
+        private long _remaining;
+
+        public NativeVmlGeneratedStream(long length) {
+            _remaining = length;
+        }
+
+        public long BytesRead { get; private set; }
+
+        public override bool CanRead => true;
+
+        public override bool CanSeek => false;
+
+        public override bool CanWrite => false;
+
+        public override long Length => throw new NotSupportedException();
+
+        public override long Position {
+            get => BytesRead;
+            set => throw new NotSupportedException();
+        }
+
+        public override void Flush() {
+        }
+
+        public override int Read(byte[] buffer, int offset, int count) {
+            if (_remaining == 0L) {
+                return 0;
+            }
+
+            int bytesToRead = (int)Math.Min(count, _remaining);
+            for (int i = offset; i < offset + bytesToRead; i++) {
+                buffer[i] = 1;
+            }
+
+            _remaining -= bytesToRead;
+            BytesRead += bytesToRead;
+            return bytesToRead;
+        }
+
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+
+        public override void SetLength(long value) => throw new NotSupportedException();
+
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+    }
+
 }

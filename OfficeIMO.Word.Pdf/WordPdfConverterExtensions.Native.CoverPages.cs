@@ -10,6 +10,8 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
+        internal const long NativeVmlImageMaxBytes = 32L * 1024L * 1024L;
+
         private static bool TryRenderNativeCoverPageCanvas(INativePdfFlow pdf, WordDocument document, W.SdtBlock? sdtBlock, WordSection section, PdfSaveOptions? options) {
             W.SdtContentBlock? content = sdtBlock?.SdtContentBlock;
             if (content == null || !HasNativeVmlCoverDrawing(content)) {
@@ -234,10 +236,42 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             using Stream stream = imagePart.GetStream(FileMode.Open, FileAccess.Read);
-            using var memory = new MemoryStream();
-            stream.CopyTo(memory);
+            return TryReadNativeVmlImageBytes(stream, NativeVmlImageMaxBytes, out imageBytes);
+        }
+
+        internal static bool TryReadNativeVmlImageBytes(Stream stream, long maxBytes, out byte[]? imageBytes) {
+            imageBytes = null;
+            if (stream == null || maxBytes <= 0L) {
+                return false;
+            }
+
+            if (stream.CanSeek && stream.Length > maxBytes) {
+                return false;
+            }
+
+            using var memory = new MemoryStream(stream.CanSeek && stream.Length > 0L && stream.Length <= int.MaxValue ? (int)stream.Length : 0);
+            byte[] buffer = new byte[81920];
+            long totalRead = 0L;
+            while (true) {
+                int bytesRead = stream.Read(buffer, 0, buffer.Length);
+                if (bytesRead == 0) {
+                    break;
+                }
+
+                totalRead += bytesRead;
+                if (totalRead > maxBytes) {
+                    return false;
+                }
+
+                memory.Write(buffer, 0, bytesRead);
+            }
+
+            if (memory.Length == 0L) {
+                return false;
+            }
+
             imageBytes = memory.ToArray();
-            return imageBytes.Length > 0;
+            return true;
         }
 
         private static bool TryGetNativeVmlImagePart(WordDocument document, OpenXmlElement element, string relationshipId, out ImagePart? imagePart) {
