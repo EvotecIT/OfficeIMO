@@ -42,9 +42,8 @@ namespace OfficeIMO.Tests {
                 document.PageBreaks[7].Remove(includingParagraph: false);
                 document.PageBreaks[6].Remove(true);
 
-                // this is subject to change, since maybe we will fix it
-                Assert.True(document.DocumentIsValid == false);
-                Assert.True(document.DocumentValidationErrors.Count == 1);
+                Assert.True(document.DocumentIsValid);
+                Assert.Empty(document.DocumentValidationErrors);
 
                 document.Save(false);
             }

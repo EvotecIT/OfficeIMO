@@ -21,10 +21,10 @@ namespace OfficeIMO.Tests {
 
                 Assert.Single(document.EmbeddedDocuments);
                 var body = document._document.Body!;
-                Assert.IsType<SectionProperties>(body.ChildElements[0]);
-                Assert.IsType<Paragraph>(body.ChildElements[1]);
-                Assert.IsType<AltChunk>(body.ChildElements[2]);
-                Assert.IsType<Paragraph>(body.ChildElements[3]);
+                Assert.IsType<Paragraph>(body.ChildElements[0]);
+                Assert.IsType<AltChunk>(body.ChildElements[1]);
+                Assert.IsType<Paragraph>(body.ChildElements[2]);
+                Assert.IsType<SectionProperties>(body.ChildElements[3]);
                 document.Save();
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
