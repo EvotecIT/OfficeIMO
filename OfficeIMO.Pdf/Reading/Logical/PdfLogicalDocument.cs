@@ -964,10 +964,12 @@ public sealed class PdfLogicalPage {
             elements.Add(logicalTable);
         }
 
-        foreach (var image in page.GetImages(pageNumber)) {
-            var logicalImage = new PdfLogicalImage(image);
-            images.Add(logicalImage);
-            elements.Add(logicalImage);
+        if (options?.IncludeImages == true) {
+            foreach (var image in page.GetImages(pageNumber)) {
+                var logicalImage = new PdfLogicalImage(image);
+                images.Add(logicalImage);
+                elements.Add(logicalImage);
+            }
         }
 
         IReadOnlyList<PdfLinkAnnotation> linkAnnotations = page.GetLinkAnnotations();

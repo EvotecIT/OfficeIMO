@@ -34,7 +34,8 @@ public class PdfLogicalDocumentTests {
             .ToBytes();
 
         PdfLogicalDocument logical = PdfLogicalDocument.Load(pdf, new PdfTextLayoutOptions {
-            ForceSingleColumn = true
+            ForceSingleColumn = true,
+            IncludeImages = true
         });
 
         PdfLogicalPage page = Assert.Single(logical.Pages);
@@ -105,6 +106,27 @@ public class PdfLogicalDocumentTests {
         Assert.Throws<ArgumentOutOfRangeException>(() => logical.GetElements(0));
         Assert.Contains(logical.Elements, element => element.Kind == PdfLogicalElementKind.Table);
         Assert.Contains(logical.Elements, element => element.Kind == PdfLogicalElementKind.Image);
+    }
+
+    [Fact]
+    public void Load_DoesNotExtractImagesByDefault() {
+        byte[] pdf = PdfDoc.Create(new PdfOptions {
+                PageWidth = 420,
+                PageHeight = 360
+            })
+            .Paragraph(p => p.Text("Logical readback marker."))
+            .Image(CreateMinimalRgbPng(), 18, 18)
+            .ToBytes();
+
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(pdf, new PdfTextLayoutOptions {
+            ForceSingleColumn = true
+        });
+
+        PdfLogicalPage page = Assert.Single(logical.Pages);
+        Assert.Empty(page.Images);
+        Assert.Empty(logical.Images);
+        Assert.DoesNotContain(page.Elements, element => element.Kind == PdfLogicalElementKind.Image);
+        Assert.False(logical.HasElementKind(PdfLogicalElementKind.Image));
     }
 
     [Fact]

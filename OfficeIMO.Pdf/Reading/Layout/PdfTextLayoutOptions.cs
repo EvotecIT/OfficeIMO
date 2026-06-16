@@ -28,6 +28,10 @@ public sealed class PdfTextLayoutOptions {
     public double GapSpaceThresholdEm { get; set; } = 0.35;
     /// <summary>Threshold as a fraction of previous span's average glyph advance to insert a space. Default: 0.60.</summary>
     public double GapGlyphFactor { get; set; } = 0.60;
+    /// <summary>
+    /// When true, includes page image extraction in logical document reads. Default: false.
+    /// </summary>
+    public bool IncludeImages { get; set; }
 
     internal TextLayoutEngine.Options ToEngineOptions() => new TextLayoutEngine.Options {
         MarginLeft = this.MarginLeft,
