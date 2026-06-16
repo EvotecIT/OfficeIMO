@@ -4,6 +4,7 @@ using OfficeIMO.Reader.Epub;
 using OfficeIMO.Reader.Html;
 using OfficeIMO.Reader.Json;
 using OfficeIMO.Reader.Pdf;
+using OfficeIMO.Reader.Rtf;
 using OfficeIMO.Reader.Text;
 using OfficeIMO.Reader.Xml;
 using OfficeIMO.Reader.Yaml;
@@ -586,6 +587,7 @@ public sealed class ReaderRegistryTests {
             typeof(DocumentReaderZipRegistrationExtensions).Assembly,
             typeof(DocumentReaderHtmlRegistrationExtensions).Assembly,
             typeof(DocumentReaderJsonRegistrationExtensions).Assembly,
+            typeof(DocumentReaderRtfRegistrationExtensions).Assembly,
             typeof(DocumentReaderXmlRegistrationExtensions).Assembly).ToList();
 
         Assert.NotEmpty(registrars);
@@ -594,6 +596,7 @@ public sealed class ReaderRegistryTests {
         Assert.Contains(registrars, r => r.HandlerId == DocumentReaderZipRegistrationExtensions.HandlerId);
         Assert.Contains(registrars, r => r.HandlerId == DocumentReaderHtmlRegistrationExtensions.HandlerId);
         Assert.Contains(registrars, r => r.HandlerId == DocumentReaderJsonRegistrationExtensions.HandlerId);
+        Assert.Contains(registrars, r => r.HandlerId == DocumentReaderRtfRegistrationExtensions.HandlerId);
         Assert.Contains(registrars, r => r.HandlerId == DocumentReaderXmlRegistrationExtensions.HandlerId);
 
         var ordered = registrars
@@ -615,6 +618,7 @@ public sealed class ReaderRegistryTests {
             DocumentReaderZipRegistrationExtensions.UnregisterZipHandler();
             DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
             DocumentReaderJsonRegistrationExtensions.UnregisterJsonHandler();
+            DocumentReaderRtfRegistrationExtensions.UnregisterRtfHandler();
             DocumentReaderXmlRegistrationExtensions.UnregisterXmlHandler();
             DocumentReaderYamlRegistrationExtensions.UnregisterYamlHandler();
 
@@ -625,6 +629,7 @@ public sealed class ReaderRegistryTests {
                 typeof(DocumentReaderZipRegistrationExtensions).Assembly,
                 typeof(DocumentReaderHtmlRegistrationExtensions).Assembly,
                 typeof(DocumentReaderJsonRegistrationExtensions).Assembly,
+                typeof(DocumentReaderRtfRegistrationExtensions).Assembly,
                 typeof(DocumentReaderXmlRegistrationExtensions).Assembly).ToList();
 
             Assert.NotEmpty(registered);
@@ -633,6 +638,7 @@ public sealed class ReaderRegistryTests {
             Assert.Contains(registered, r => r.HandlerId == DocumentReaderZipRegistrationExtensions.HandlerId);
             Assert.Contains(registered, r => r.HandlerId == DocumentReaderHtmlRegistrationExtensions.HandlerId);
             Assert.Contains(registered, r => r.HandlerId == DocumentReaderJsonRegistrationExtensions.HandlerId);
+            Assert.Contains(registered, r => r.HandlerId == DocumentReaderRtfRegistrationExtensions.HandlerId);
             Assert.Contains(registered, r => r.HandlerId == DocumentReaderXmlRegistrationExtensions.HandlerId);
 
             var capabilities = DocumentReader.GetCapabilities();
@@ -641,6 +647,7 @@ public sealed class ReaderRegistryTests {
             Assert.Contains(capabilities, c => c.Id == DocumentReaderZipRegistrationExtensions.HandlerId);
             Assert.Contains(capabilities, c => c.Id == DocumentReaderHtmlRegistrationExtensions.HandlerId);
             Assert.Contains(capabilities, c => c.Id == DocumentReaderJsonRegistrationExtensions.HandlerId);
+            Assert.Contains(capabilities, c => c.Id == DocumentReaderRtfRegistrationExtensions.HandlerId);
             Assert.Contains(capabilities, c => c.Id == DocumentReaderXmlRegistrationExtensions.HandlerId);
         } finally {
             DocumentReaderCsvRegistrationExtensions.UnregisterCsvHandler();
@@ -648,6 +655,7 @@ public sealed class ReaderRegistryTests {
             DocumentReaderZipRegistrationExtensions.UnregisterZipHandler();
             DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
             DocumentReaderJsonRegistrationExtensions.UnregisterJsonHandler();
+            DocumentReaderRtfRegistrationExtensions.UnregisterRtfHandler();
             DocumentReaderXmlRegistrationExtensions.UnregisterXmlHandler();
             DocumentReaderYamlRegistrationExtensions.UnregisterYamlHandler();
         }
@@ -665,6 +673,7 @@ public sealed class ReaderRegistryTests {
         Assert.Contains(registrars, r => r.HandlerId == DocumentReaderZipRegistrationExtensions.HandlerId);
         Assert.Contains(registrars, r => r.HandlerId == DocumentReaderHtmlRegistrationExtensions.HandlerId);
         Assert.Contains(registrars, r => r.HandlerId == DocumentReaderJsonRegistrationExtensions.HandlerId);
+        Assert.Contains(registrars, r => r.HandlerId == DocumentReaderRtfRegistrationExtensions.HandlerId);
         Assert.Contains(registrars, r => r.HandlerId == DocumentReaderXmlRegistrationExtensions.HandlerId);
         Assert.DoesNotContain(registrars, r => r.HandlerId == DocumentReaderTextRegistrationExtensions.HandlerId);
     }
@@ -695,6 +704,7 @@ public sealed class ReaderRegistryTests {
             DocumentReaderZipRegistrationExtensions.UnregisterZipHandler();
             DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
             DocumentReaderJsonRegistrationExtensions.UnregisterJsonHandler();
+            DocumentReaderRtfRegistrationExtensions.UnregisterRtfHandler();
             DocumentReaderXmlRegistrationExtensions.UnregisterXmlHandler();
             DocumentReaderYamlRegistrationExtensions.UnregisterYamlHandler();
 
@@ -706,6 +716,7 @@ public sealed class ReaderRegistryTests {
             Assert.Contains(registered, r => r.HandlerId == DocumentReaderZipRegistrationExtensions.HandlerId);
             Assert.Contains(registered, r => r.HandlerId == DocumentReaderHtmlRegistrationExtensions.HandlerId);
             Assert.Contains(registered, r => r.HandlerId == DocumentReaderJsonRegistrationExtensions.HandlerId);
+            Assert.Contains(registered, r => r.HandlerId == DocumentReaderRtfRegistrationExtensions.HandlerId);
             Assert.Contains(registered, r => r.HandlerId == DocumentReaderXmlRegistrationExtensions.HandlerId);
 
             var capabilities = DocumentReader.GetCapabilities();
@@ -714,6 +725,7 @@ public sealed class ReaderRegistryTests {
             Assert.Contains(capabilities, c => c.Id == DocumentReaderZipRegistrationExtensions.HandlerId);
             Assert.Contains(capabilities, c => c.Id == DocumentReaderHtmlRegistrationExtensions.HandlerId);
             Assert.Contains(capabilities, c => c.Id == DocumentReaderJsonRegistrationExtensions.HandlerId);
+            Assert.Contains(capabilities, c => c.Id == DocumentReaderRtfRegistrationExtensions.HandlerId);
             Assert.Contains(capabilities, c => c.Id == DocumentReaderXmlRegistrationExtensions.HandlerId);
         } finally {
             DocumentReaderCsvRegistrationExtensions.UnregisterCsvHandler();
@@ -721,6 +733,7 @@ public sealed class ReaderRegistryTests {
             DocumentReaderZipRegistrationExtensions.UnregisterZipHandler();
             DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
             DocumentReaderJsonRegistrationExtensions.UnregisterJsonHandler();
+            DocumentReaderRtfRegistrationExtensions.UnregisterRtfHandler();
             DocumentReaderXmlRegistrationExtensions.UnregisterXmlHandler();
             DocumentReaderYamlRegistrationExtensions.UnregisterYamlHandler();
         }
@@ -744,6 +757,7 @@ public sealed class ReaderRegistryTests {
             DocumentReaderZipRegistrationExtensions.UnregisterZipHandler();
             DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
             DocumentReaderJsonRegistrationExtensions.UnregisterJsonHandler();
+            DocumentReaderRtfRegistrationExtensions.UnregisterRtfHandler();
             DocumentReaderXmlRegistrationExtensions.UnregisterXmlHandler();
             DocumentReaderYamlRegistrationExtensions.UnregisterYamlHandler();
 
@@ -764,6 +778,7 @@ public sealed class ReaderRegistryTests {
             Assert.Contains(result.RegisteredHandlers, r => r.HandlerId == DocumentReaderZipRegistrationExtensions.HandlerId);
             Assert.Contains(result.RegisteredHandlers, r => r.HandlerId == DocumentReaderHtmlRegistrationExtensions.HandlerId);
             Assert.Contains(result.RegisteredHandlers, r => r.HandlerId == DocumentReaderJsonRegistrationExtensions.HandlerId);
+            Assert.Contains(result.RegisteredHandlers, r => r.HandlerId == DocumentReaderRtfRegistrationExtensions.HandlerId);
             Assert.Contains(result.RegisteredHandlers, r => r.HandlerId == DocumentReaderXmlRegistrationExtensions.HandlerId);
 
             Assert.Equal(ReaderCapabilitySchema.Id, result.Manifest.SchemaId);
@@ -774,6 +789,7 @@ public sealed class ReaderRegistryTests {
             Assert.Contains(result.Manifest.Handlers, c => c.Id == DocumentReaderZipRegistrationExtensions.HandlerId && c.Kind == ReaderInputKind.Zip);
             Assert.Contains(result.Manifest.Handlers, c => c.Id == DocumentReaderHtmlRegistrationExtensions.HandlerId && c.Kind == ReaderInputKind.Html);
             Assert.Contains(result.Manifest.Handlers, c => c.Id == DocumentReaderJsonRegistrationExtensions.HandlerId && c.Kind == ReaderInputKind.Json);
+            Assert.Contains(result.Manifest.Handlers, c => c.Id == DocumentReaderRtfRegistrationExtensions.HandlerId && c.Kind == ReaderInputKind.Rtf);
             Assert.Contains(result.Manifest.Handlers, c => c.Id == DocumentReaderXmlRegistrationExtensions.HandlerId && c.Kind == ReaderInputKind.Xml);
 
             using var stream = new MemoryStream(Encoding.UTF8.GetBytes(result.ManifestJson));
@@ -792,6 +808,7 @@ public sealed class ReaderRegistryTests {
             DocumentReaderZipRegistrationExtensions.UnregisterZipHandler();
             DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
             DocumentReaderJsonRegistrationExtensions.UnregisterJsonHandler();
+            DocumentReaderRtfRegistrationExtensions.UnregisterRtfHandler();
             DocumentReaderXmlRegistrationExtensions.UnregisterXmlHandler();
             DocumentReaderYamlRegistrationExtensions.UnregisterYamlHandler();
         }
@@ -807,6 +824,7 @@ public sealed class ReaderRegistryTests {
             DocumentReaderZipRegistrationExtensions.UnregisterZipHandler();
             DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
             DocumentReaderJsonRegistrationExtensions.UnregisterJsonHandler();
+            DocumentReaderRtfRegistrationExtensions.UnregisterRtfHandler();
             DocumentReaderXmlRegistrationExtensions.UnregisterXmlHandler();
             DocumentReaderYamlRegistrationExtensions.UnregisterYamlHandler();
 
@@ -823,6 +841,7 @@ public sealed class ReaderRegistryTests {
             Assert.Contains(result.Manifest.Handlers, c => c.Id == DocumentReaderZipRegistrationExtensions.HandlerId && c.Kind == ReaderInputKind.Zip);
             Assert.Contains(result.Manifest.Handlers, c => c.Id == DocumentReaderHtmlRegistrationExtensions.HandlerId && c.Kind == ReaderInputKind.Html);
             Assert.Contains(result.Manifest.Handlers, c => c.Id == DocumentReaderJsonRegistrationExtensions.HandlerId && c.Kind == ReaderInputKind.Json);
+            Assert.Contains(result.Manifest.Handlers, c => c.Id == DocumentReaderRtfRegistrationExtensions.HandlerId && c.Kind == ReaderInputKind.Rtf);
             Assert.Contains(result.Manifest.Handlers, c => c.Id == DocumentReaderXmlRegistrationExtensions.HandlerId && c.Kind == ReaderInputKind.Xml);
         } finally {
             DocumentReaderCsvRegistrationExtensions.UnregisterCsvHandler();
@@ -830,6 +849,7 @@ public sealed class ReaderRegistryTests {
             DocumentReaderZipRegistrationExtensions.UnregisterZipHandler();
             DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
             DocumentReaderJsonRegistrationExtensions.UnregisterJsonHandler();
+            DocumentReaderRtfRegistrationExtensions.UnregisterRtfHandler();
             DocumentReaderXmlRegistrationExtensions.UnregisterXmlHandler();
             DocumentReaderYamlRegistrationExtensions.UnregisterYamlHandler();
         }
@@ -843,6 +863,7 @@ public sealed class ReaderRegistryTests {
             DocumentReaderZipRegistrationExtensions.UnregisterZipHandler();
             DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
             DocumentReaderJsonRegistrationExtensions.UnregisterJsonHandler();
+            DocumentReaderRtfRegistrationExtensions.UnregisterRtfHandler();
             DocumentReaderXmlRegistrationExtensions.UnregisterXmlHandler();
             DocumentReaderYamlRegistrationExtensions.UnregisterYamlHandler();
 
@@ -902,6 +923,7 @@ public sealed class ReaderRegistryTests {
             Assert.DoesNotContain(result.Manifest.Handlers, c => c.Id == DocumentReaderZipRegistrationExtensions.HandlerId);
             Assert.DoesNotContain(result.Manifest.Handlers, c => c.Id == DocumentReaderHtmlRegistrationExtensions.HandlerId);
             Assert.DoesNotContain(result.Manifest.Handlers, c => c.Id == DocumentReaderJsonRegistrationExtensions.HandlerId);
+            Assert.DoesNotContain(result.Manifest.Handlers, c => c.Id == DocumentReaderRtfRegistrationExtensions.HandlerId);
             Assert.DoesNotContain(result.Manifest.Handlers, c => c.Id == DocumentReaderXmlRegistrationExtensions.HandlerId);
         } finally {
             DocumentReaderCsvRegistrationExtensions.UnregisterCsvHandler();
@@ -909,6 +931,7 @@ public sealed class ReaderRegistryTests {
             DocumentReaderZipRegistrationExtensions.UnregisterZipHandler();
             DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
             DocumentReaderJsonRegistrationExtensions.UnregisterJsonHandler();
+            DocumentReaderRtfRegistrationExtensions.UnregisterRtfHandler();
             DocumentReaderXmlRegistrationExtensions.UnregisterXmlHandler();
             DocumentReaderYamlRegistrationExtensions.UnregisterYamlHandler();
         }
@@ -1250,6 +1273,7 @@ public sealed class ReaderRegistryTests {
         _ = typeof(DocumentReaderZipRegistrationExtensions);
         _ = typeof(DocumentReaderHtmlRegistrationExtensions);
         _ = typeof(DocumentReaderJsonRegistrationExtensions);
+        _ = typeof(DocumentReaderRtfRegistrationExtensions);
         _ = typeof(DocumentReaderXmlRegistrationExtensions);
         _ = typeof(DocumentReaderYamlRegistrationExtensions);
         _ = typeof(DocumentReaderTextRegistrationExtensions);

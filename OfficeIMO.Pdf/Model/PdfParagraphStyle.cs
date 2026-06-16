@@ -101,6 +101,21 @@ public class PdfParagraphStyle {
         return clone;
     }
 
+    /// <summary>Adds an explicit paragraph tab stop.</summary>
+    /// <param name="position">Tab stop position in points relative to the paragraph text frame.</param>
+    /// <param name="alignment">Text alignment anchored at this tab stop.</param>
+    /// <param name="leader">Leader fill rendered before the following text.</param>
+    public PdfTabStop AddTabStop(double position, PdfTabAlignment alignment = PdfTabAlignment.Left, PdfTabLeaderStyle leader = PdfTabLeaderStyle.None) {
+        PdfTabStop tabStop = new PdfTabStop(position, alignment, leader);
+        _tabStops.Add(tabStop);
+        return tabStop;
+    }
+
+    /// <summary>Removes all explicit paragraph tab stops.</summary>
+    public void ClearTabStops() {
+        _tabStops.Clear();
+    }
+
     private static void ValidateNonNegativeFiniteValue(double value, string paramName, string message) {
         if (value < 0 || double.IsNaN(value) || double.IsInfinity(value)) {
             throw new System.ArgumentException(message, paramName);

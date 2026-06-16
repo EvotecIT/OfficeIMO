@@ -38,6 +38,11 @@ namespace OfficeIMO.Word {
         public List<WordComment> Replies => _document.Comments.Where(c => c.ParentParaId == ParaId).ToList();
 
         /// <summary>
+        /// Paragraph and run views for converters that need to preserve rich comment content.
+        /// </summary>
+        internal IReadOnlyList<WordParagraph> Paragraphs => _list;
+
+        /// <summary>
         /// Text content of a comment
         /// </summary>
         public string? Text {

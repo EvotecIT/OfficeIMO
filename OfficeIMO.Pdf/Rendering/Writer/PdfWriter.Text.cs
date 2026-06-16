@@ -393,19 +393,6 @@ internal static partial class PdfWriter {
         return Math.Max(spaceWidth, nextStop - lineWidth);
     }
 
-    private static double MeasureDecimalAnchorWidth(string text, PdfStandardFont font, double fontSize, PdfTextBaseline baseline, PdfOptions? options = null) {
-        if (string.IsNullOrEmpty(text)) {
-            return 0D;
-        }
-
-        int decimalIndex = text.IndexOfAny(DecimalTabAnchorChars);
-        if (decimalIndex < 0) {
-            return MeasureRichText(text, font, fontSize, baseline, options);
-        }
-
-        return MeasureRichText(text.Substring(0, decimalIndex), font, fontSize, baseline, options);
-    }
-
     private static double CalculateTabAdvance(double lineWidth, double followingTextWidth, double spaceWidth, PdfTabAlignment alignment, double tabStopWidth = DefaultParagraphTabStopWidth, string followingText = "", PdfStandardFont followingFont = PdfStandardFont.Helvetica, double fontSize = 12D, PdfTextBaseline baseline = PdfTextBaseline.Normal, PdfOptions? options = null, double? maxWidth = null, PdfTabStop? explicitTabStop = null, double lineOriginOffset = 0D) {
         if (explicitTabStop == null && alignment == PdfTabAlignment.Left) {
             return CalculateDefaultTabAdvance(lineWidth, spaceWidth, tabStopWidth);
@@ -1585,24 +1572,4 @@ internal static partial class PdfWriter {
             .RestoreState();
     }
 
-    private static string BuildTabLeaderText(double gap, PdfStandardFont font, double fontSize, PdfTextBaseline baseline, PdfTabLeaderStyle leaderStyle, PdfOptions? options) {
-        string leaderGlyph = leaderStyle switch {
-            PdfTabLeaderStyle.Dots => ".",
-            PdfTabLeaderStyle.Hyphens => "-",
-            PdfTabLeaderStyle.Underscores => "_",
-            _ => string.Empty
-        };
-
-        if (leaderGlyph.Length == 0) {
-            return string.Empty;
-        }
-
-        double glyphWidth = MeasureRichText(leaderGlyph, font, fontSize, baseline, options);
-        if (glyphWidth <= 0 || gap <= glyphWidth * 3D) {
-            return string.Empty;
-        }
-
-        int count = Math.Max(3, (int)Math.Floor(gap / glyphWidth));
-        return new string(leaderGlyph[0], count);
-    }
 }

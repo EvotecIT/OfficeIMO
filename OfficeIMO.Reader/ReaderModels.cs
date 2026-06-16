@@ -69,7 +69,11 @@ public enum ReaderInputKind {
     /// <summary>
     /// YAML structured text.
     /// </summary>
-    Yaml
+    Yaml,
+    /// <summary>
+    /// Rich Text Format document.
+    /// </summary>
+    Rtf
 }
 
 /// <summary>

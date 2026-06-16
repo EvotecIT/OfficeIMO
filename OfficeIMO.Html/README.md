@@ -1,15 +1,29 @@
 # OfficeIMO.Html
 
-`OfficeIMO.Html` contains shared HTML ingestion primitives used by OfficeIMO converters.
+`OfficeIMO.Html` contains shared HTML ingestion primitives and first-party HTML bridge APIs used by OfficeIMO converters.
 
-It owns the reusable parts that should behave consistently across HTML-to-Markdown, HTML-to-Word, and HTML-backed PDF workflows:
+It owns the reusable parts that should behave consistently across HTML-to-Markdown, HTML-to-Word, HTML-to/from-RTF, and HTML-backed PDF workflows:
 
 - URL policy evaluation and base URI resolution
 - AngleSharp document parsing helpers
+- DOM traversal facts and node/depth limit tracking
 - image source discovery for `img`, lazy-loading attributes, `srcset`, and `picture/source`
 - image data URI parsing and media-type extension mapping
+- semantic HTML to/from RTF conversion over the dependency-free `OfficeIMO.Rtf` model
 
-It does not own output-specific rendering. Markdown AST creation, Word document generation, and PDF orchestration stay in their converter packages.
+It does not replace output-specific engines. Markdown AST creation, Word document generation, RTF document generation, and PDF orchestration stay in their owning packages such as `OfficeIMO.Markdown.Html`, `OfficeIMO.Word.Html`, `OfficeIMO.Rtf`, and `OfficeIMO.Html.Pdf`.
+
+## RTF Bridge
+
+```csharp
+using OfficeIMO.Html;
+
+RtfDocument document = "<p>Hello <strong>RTF</strong></p>".ToRtfDocument();
+string rtf = document.ToRtf();
+string html = document.ToHtml();
+```
+
+RTF-to-RTF editing in `OfficeIMO.Rtf` remains the lossless preservation path. The HTML bridge is semantic: it preserves supported text, inline formatting, links, lists, tables, bookmarks, fields, form fields, notes, tracked revisions, object metadata, shape metadata, and embedded PNG/JPEG images without Office/COM automation.
 
 ## URL Policy
 
@@ -29,6 +43,16 @@ Uri? baseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(
     document,
     new Uri("https://example.com/articles/"));
 ```
+
+## Traversal Limits
+
+```csharp
+HtmlDomLimitTracker? tracker = HtmlDomLimitTracker.Create(
+    maxHtmlNodes: 10000,
+    maxHtmlDepth: 64);
+```
+
+Converter packages use these primitives to keep bounded HTML ingestion behavior consistent while still reporting converter-specific diagnostics.
 
 ## Image Sources
 

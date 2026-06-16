@@ -53,7 +53,7 @@ Built-in and modular adapters can extract:
 - Excel (`.xlsx`, `.xlsm`) as table chunks and optional Markdown previews.
 - PowerPoint (`.pptx`, `.pptm`) as slide-aligned chunks, optionally including notes.
 - Markdown (`.md`, `.markdown`) as parser-aware heading chunks.
-- PDF, Visio, HTML, CSV/TSV, JSON, XML, YAML, EPUB, ZIP, and structured text through modular adapter packages.
+- PDF, RTF, Visio, HTML, CSV/TSV, JSON, XML, YAML, EPUB, ZIP, and structured text through modular adapter packages.
 
 ## Modular adapters
 
@@ -65,6 +65,7 @@ using OfficeIMO.Reader.Epub;
 using OfficeIMO.Reader.Html;
 using OfficeIMO.Reader.Json;
 using OfficeIMO.Reader.Pdf;
+using OfficeIMO.Reader.Rtf;
 using OfficeIMO.Reader.Visio;
 using OfficeIMO.Reader.Xml;
 using OfficeIMO.Reader.Yaml;
@@ -75,6 +76,7 @@ DocumentReaderEpubRegistrationExtensions.RegisterEpubHandler();
 DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler();
 DocumentReaderJsonRegistrationExtensions.RegisterJsonHandler();
 DocumentReaderPdfRegistrationExtensions.RegisterPdfHandler();
+DocumentReaderRtfRegistrationExtensions.RegisterRtfHandler();
 DocumentReaderVisioRegistrationExtensions.RegisterVisioHandler();
 DocumentReaderXmlRegistrationExtensions.RegisterXmlHandler();
 DocumentReaderYamlRegistrationExtensions.RegisterYamlHandler();
@@ -137,6 +139,7 @@ DocumentReader.RegisterHandler(new ReaderHandlerRegistration {
 ## Related packages
 
 - [OfficeIMO.Reader.Pdf](../OfficeIMO.Reader.Pdf/README.md)
+- [OfficeIMO.Reader.Rtf](../OfficeIMO.Reader.Rtf/README.md)
 - [OfficeIMO.Reader.Visio](../OfficeIMO.Reader.Visio/README.md)
 - [OfficeIMO.Reader.Html](../OfficeIMO.Reader.Html/README.md)
 - [OfficeIMO.Reader.Csv](../OfficeIMO.Reader.Csv/README.md)

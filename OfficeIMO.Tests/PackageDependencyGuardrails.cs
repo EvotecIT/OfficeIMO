@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Xml.Linq;
 using Xunit;
 
@@ -37,6 +38,9 @@ public sealed class PackageDependencyGuardrailTests {
     }
 
     [Theory]
+    [InlineData("OfficeIMO.Rtf/OfficeIMO.Rtf.csproj")]
+    [InlineData("OfficeIMO.Word.Rtf/OfficeIMO.Word.Rtf.csproj")]
+    [InlineData("OfficeIMO.Rtf.Pdf/OfficeIMO.Rtf.Pdf.csproj")]
     [InlineData("OfficeIMO.Drawing/OfficeIMO.Drawing.csproj")]
     [InlineData("OfficeIMO.Pdf/OfficeIMO.Pdf.csproj")]
     [InlineData("OfficeIMO.Word.Pdf/OfficeIMO.Word.Pdf.csproj")]
@@ -45,6 +49,7 @@ public sealed class PackageDependencyGuardrailTests {
     [InlineData("OfficeIMO.PowerPoint.Pdf/OfficeIMO.PowerPoint.Pdf.csproj")]
     [InlineData("OfficeIMO.Html.Pdf/OfficeIMO.Html.Pdf.csproj")]
     [InlineData("OfficeIMO.Reader.Pdf/OfficeIMO.Reader.Pdf.csproj")]
+    [InlineData("OfficeIMO.Reader.Rtf/OfficeIMO.Reader.Rtf.csproj")]
     public void DependencyLightProjects_HaveNoPackageReferences(string relativeProjectPath) {
         var projectPath = GetRepositoryPath(relativeProjectPath);
         Assert.True(File.Exists(projectPath), "Project file is missing: " + projectPath);
@@ -59,6 +64,123 @@ public sealed class PackageDependencyGuardrailTests {
             .ToArray();
 
         Assert.Empty(references);
+    }
+
+    [Fact]
+    public void RtfHtmlBridge_IsUnifiedIntoOfficeIMOHtml() {
+        var projectPath = GetRepositoryPath("OfficeIMO.Html/OfficeIMO.Html.csproj");
+        Assert.True(File.Exists(projectPath), "Project file is missing: " + projectPath);
+        Assert.False(Directory.Exists(GetRepositoryPath("OfficeIMO.Rtf.Html")), "Retired RTF HTML project folder should not be restored.");
+        Assert.False(Directory.Exists(GetRepositoryPath("OfficeIMO.Html.Rtf")), "Retired HTML RTF project folder should not be restored.");
+
+        var document = XDocument.Load(projectPath);
+        var ns = document.Root?.Name.Namespace ?? XNamespace.None;
+
+        Assert.Equal("OfficeIMO.Html", (string?)document.Descendants(ns + "PackageId").Single());
+        Assert.Equal("OfficeIMO.Html", (string?)document.Descendants(ns + "AssemblyName").Single());
+
+        var exportedTypeNames = typeof(OfficeIMO.Html.HtmlToRtfOptions)
+            .Assembly
+            .GetExportedTypes()
+            .Select(static type => type.FullName ?? type.Name)
+            .ToArray();
+
+        Assert.Contains("OfficeIMO.Html.HtmlToRtfOptions", exportedTypeNames);
+        Assert.Contains("OfficeIMO.Html.RtfToHtmlOptions", exportedTypeNames);
+        Assert.DoesNotContain(exportedTypeNames, static typeName => typeName.Contains(".RtfHtml", StringComparison.Ordinal));
+
+        var projectReferences = document
+            .Descendants(ns + "ProjectReference")
+            .Select(static e => NormalizeProjectPath((string?)e.Attribute("Include")))
+            .ToArray();
+
+        Assert.Contains(projectReferences, static include => include.EndsWith("OfficeIMO.Rtf/OfficeIMO.Rtf.csproj", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(projectReferences, static include => include.Contains("OfficeIMO.Rtf.Html", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void RetiredRtfHtmlPackages_AreNotReferencedBySolutionOrProjects() {
+        string[] retiredPackageIds = ["OfficeIMO.Rtf.Html", "OfficeIMO.Html.Rtf"];
+
+        var solutionPath = GetRepositoryPath("OfficeIMO.sln");
+        Assert.True(File.Exists(solutionPath), "Solution file is missing: " + solutionPath);
+
+        var solutionText = File.ReadAllText(solutionPath);
+        foreach (var retiredPackageId in retiredPackageIds) {
+            Assert.DoesNotContain(retiredPackageId, solutionText, StringComparison.OrdinalIgnoreCase);
+        }
+
+        var projectFiles = EnumerateProjectFiles();
+        foreach (var projectFile in projectFiles) {
+            var document = XDocument.Load(projectFile);
+            var ns = document.Root?.Name.Namespace ?? XNamespace.None;
+
+            var packageIds = document
+                .Descendants(ns + "PackageId")
+                .Select(static element => (string?)element)
+                .Where(static value => !string.IsNullOrWhiteSpace(value))
+                .ToArray();
+
+            var packageReferences = document
+                .Descendants(ns + "PackageReference")
+                .Select(static element => (string?)element.Attribute("Include"))
+                .Where(static value => !string.IsNullOrWhiteSpace(value))
+                .ToArray();
+
+            var projectReferences = document
+                .Descendants(ns + "ProjectReference")
+                .Select(static element => NormalizeProjectPath((string?)element.Attribute("Include")))
+                .Where(static value => !string.IsNullOrWhiteSpace(value))
+                .ToArray();
+
+            foreach (var retiredPackageId in retiredPackageIds) {
+                Assert.DoesNotContain(packageIds, value => string.Equals(value, retiredPackageId, StringComparison.OrdinalIgnoreCase));
+                Assert.DoesNotContain(packageReferences, value => string.Equals(value, retiredPackageId, StringComparison.OrdinalIgnoreCase));
+                Assert.DoesNotContain(projectReferences, value => value.Contains(retiredPackageId, StringComparison.OrdinalIgnoreCase));
+            }
+        }
+
+        var projectBuildPath = GetRepositoryPath("Build/project.build.json");
+        Assert.True(File.Exists(projectBuildPath), "Project build file is missing: " + projectBuildPath);
+
+        var projectBuildText = File.ReadAllText(projectBuildPath);
+        foreach (var retiredPackageId in retiredPackageIds) {
+            Assert.DoesNotContain(retiredPackageId, projectBuildText, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    [Fact]
+    public void RetiredRtfHtmlNamespaces_AreNotUsedBySourceFiles() {
+        string[] retiredNamespaces = ["OfficeIMO.Rtf.Html", "OfficeIMO.Html.Rtf"];
+
+        var sourceFiles = Directory.EnumerateFiles(GetRepositoryRoot(), "*.cs", SearchOption.AllDirectories)
+            .Where(static path => !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
+            .Where(static path => !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
+            .Where(static path => !path.Contains($"{Path.DirectorySeparatorChar}Ignore{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
+            .Where(static path => new FileInfo(path).Length > 0)
+            .ToArray();
+
+        foreach (var sourceFile in sourceFiles) {
+            string source = File.ReadAllText(sourceFile);
+            foreach (var retiredNamespace in retiredNamespaces) {
+                Assert.DoesNotContain($"namespace {retiredNamespace}", source, StringComparison.Ordinal);
+                Assert.DoesNotContain($"using {retiredNamespace}", source, StringComparison.Ordinal);
+            }
+        }
+    }
+
+    [Fact]
+    public void RtfPackages_AreIncludedInProjectBuildVersionMap() {
+        var projectBuildPath = GetRepositoryPath("Build/project.build.json");
+        Assert.True(File.Exists(projectBuildPath), "Project build file is missing: " + projectBuildPath);
+
+        using JsonDocument document = JsonDocument.Parse(File.ReadAllText(projectBuildPath));
+        JsonElement expectedVersionMap = document.RootElement.GetProperty("ExpectedVersionMap");
+
+        Assert.Equal("0.1.X", expectedVersionMap.GetProperty("OfficeIMO.Rtf").GetString());
+        Assert.Equal("0.1.X", expectedVersionMap.GetProperty("OfficeIMO.Word.Rtf").GetString());
+        Assert.Equal("0.1.X", expectedVersionMap.GetProperty("OfficeIMO.Rtf.Pdf").GetString());
+        Assert.Equal("0.0.X", expectedVersionMap.GetProperty("OfficeIMO.Reader.Rtf").GetString());
     }
 
     [Theory]
@@ -183,6 +305,14 @@ public sealed class PackageDependencyGuardrailTests {
             "Repository-relative path must stay under repository root: " + relativePath);
         return combinedPath;
     }
+
+    private static string[] EnumerateProjectFiles() =>
+        Directory.EnumerateFiles(GetRepositoryRoot(), "*.csproj", SearchOption.AllDirectories)
+            .Where(static path => !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
+            .Where(static path => !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
+            .Where(static path => !path.Contains($"{Path.DirectorySeparatorChar}Ignore{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
+            .Where(static path => new FileInfo(path).Length > 0)
+            .ToArray();
 
     private static string AppendRepositoryPathSegment(string basePath, string segment) =>
         basePath.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal)

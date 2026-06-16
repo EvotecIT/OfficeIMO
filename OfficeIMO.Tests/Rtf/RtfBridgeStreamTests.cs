@@ -1,0 +1,75 @@
+using OfficeIMO.Rtf;
+using OfficeIMO.Html;
+using OfficeIMO.Rtf.Pdf;
+using PdfCore = OfficeIMO.Pdf;
+using System.Threading.Tasks;
+using Xunit;
+
+namespace OfficeIMO.Tests.Rtf;
+
+public class RtfBridgeStreamTests {
+    [Fact]
+    public void SaveAsHtml_Writes_To_Current_Stream_Position_Without_Rewinding() {
+        RtfDocument document = RtfDocument.Create();
+        document.AddParagraph("Clinical note");
+
+        using var stream = new MemoryStream();
+        stream.WriteByte(0x2A);
+
+        document.SaveAsHtml(stream);
+
+        byte[] bytes = stream.ToArray();
+        Assert.Equal(bytes.Length, stream.Position);
+        Assert.Equal(0x2A, bytes[0]);
+        Assert.Contains("<p>Clinical note</p>", Encoding.UTF8.GetString(bytes, 1, bytes.Length - 1), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_Writes_To_Current_Stream_Position_Without_Rewinding() {
+        RtfDocument document = RtfDocument.Create();
+        document.AddParagraph("Clinical note");
+
+        using var stream = new MemoryStream();
+        stream.WriteByte(0x2A);
+
+        document.SaveAsPdf(stream);
+
+        byte[] bytes = stream.ToArray();
+        Assert.Equal(bytes.Length, stream.Position);
+        Assert.Equal(0x2A, bytes[0]);
+        Assert.Equal("%PDF-", Encoding.ASCII.GetString(bytes, 1, 5));
+    }
+
+    [Fact]
+    public void TrySaveAsPdf_Writes_To_Current_Stream_Position_Without_Rewinding() {
+        RtfDocument document = RtfDocument.Create();
+        document.AddParagraph("Clinical note");
+
+        using var stream = new MemoryStream();
+        stream.WriteByte(0x2A);
+
+        PdfCore.PdfSaveResult result = document.TrySaveAsPdf(stream);
+
+        byte[] bytes = stream.ToArray();
+        Assert.True(result.Succeeded, result.Exception?.Message);
+        Assert.Equal(bytes.Length, stream.Position);
+        Assert.Equal(0x2A, bytes[0]);
+        Assert.Equal("%PDF-", Encoding.ASCII.GetString(bytes, 1, 5));
+    }
+
+    [Fact]
+    public async Task SaveAsPdfAsync_Writes_To_Current_Stream_Position_Without_Rewinding() {
+        RtfDocument document = RtfDocument.Create();
+        document.AddParagraph("Clinical note");
+
+        using var stream = new MemoryStream();
+        stream.WriteByte(0x2A);
+
+        await document.SaveAsPdfAsync(stream);
+
+        byte[] bytes = stream.ToArray();
+        Assert.Equal(bytes.Length, stream.Position);
+        Assert.Equal(0x2A, bytes[0]);
+        Assert.Equal("%PDF-", Encoding.ASCII.GetString(bytes, 1, 5));
+    }
+}
