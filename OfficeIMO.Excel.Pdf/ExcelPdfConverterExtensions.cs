@@ -70,7 +70,7 @@ namespace OfficeIMO.Excel.Pdf {
 
             if (exportPlans.Count == 0) {
                 pdf.H1("Workbook");
-                pdf.Table(new[] { new[] { "No worksheet data found." } }, style: new PdfCore.PdfTableStyle { HeaderRowCount = 0 });
+                pdf.Table(new[] { new[] { "No worksheet data found." } }, style: CreateEmptyWorkbookTableStyle(options));
             }
 
             return pdf;

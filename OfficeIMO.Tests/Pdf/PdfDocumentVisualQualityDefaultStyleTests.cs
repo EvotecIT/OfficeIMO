@@ -99,6 +99,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         PdfOptions clone = options.Clone();
 
+        Assert.True(options.HasExplicitDefaultTableStyle);
         Assert.Equal(0.8, options.DefaultTableStyle!.BorderWidth);
         Assert.Equal(12, options.DefaultTableStyle.CellPaddingX);
         Assert.Equal(new PdfColor(0.11, 0.22, 0.33), options.DefaultTableStyle.RowSeparatorColor);
@@ -116,6 +117,9 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Equal(180, clone.DefaultTableStyle.MaxWidth);
         Assert.Equal(24, clone.DefaultTableStyle.LeftIndent);
         Assert.True(clone.DefaultTableStyle.KeepWithNext);
+        Assert.True(clone.HasExplicitDefaultTableStyle);
+        Assert.False(new PdfOptions().HasExplicitDefaultTableStyle);
+        Assert.False(new PdfOptions().Clone().HasExplicitDefaultTableStyle);
     }
 
     [Fact]

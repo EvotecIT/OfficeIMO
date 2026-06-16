@@ -29,7 +29,7 @@ public static partial class PowerPointPdfConverterExtensions {
             rows.Add(pdfCells.ToArray());
         }
 
-        PdfCore.PdfTableStyle style = CreateTableStyle(table);
+        PdfCore.PdfTableStyle style = CreateTableStyle(table, options);
         bool reportedCellOverflow = false;
         try {
             canvas.Table(rows, x, y, width, height, style, table.Rotation ?? 0D, diagnostic => {
@@ -128,19 +128,62 @@ public static partial class PowerPointPdfConverterExtensions {
             font: MapFont(cell.FontName));
     }
 
-    private static PdfCore.PdfTableStyle CreateTableStyle(PptCore.PowerPointTable table) {
-        var style = PdfCore.TableStyles.Light().Clone();
+    private static PdfCore.PdfTableStyle CreateTableStyle(PptCore.PowerPointTable table, PowerPointPdfSaveOptions options) {
+        PdfCore.PdfTableStyle style = CreateBaseTableStyle(options);
         style.HeaderRowCount = table.FirstRow ? 1 : 0;
+        style.RepeatHeaderRowCount = style.HeaderRowCount == 0 ? 0 : style.HeaderRowCount;
         style.FooterRowCount = table.LastRow ? 1 : 0;
         style.RowStripeFill = table.BandedRows ? style.RowStripeFill : null;
         style.ColumnWidthPoints = CreateColumnWidths(table, table.WidthPoints);
         style.RowMinHeights = CreateRowHeights(table, table.HeightPoints);
-        style.CellFills = CreateTableCellFills(table);
-        style.CellPaddings = CreateTableCellPaddings(table);
-        style.CellAlignments = CreateTableCellAlignments(table);
-        style.CellVerticalAlignments = CreateTableCellVerticalAlignments(table);
-        style.CellBorders = CreateTableCellBorders(table);
+        Dictionary<(int Row, int Column), PdfCore.PdfColor>? cellFills = CreateTableCellFills(table);
+        if (cellFills != null) {
+            style.CellFills = MergeTableCellMap(style.CellFills, cellFills);
+        }
+
+        Dictionary<(int Row, int Column), PdfCore.PdfCellPadding>? cellPaddings = CreateTableCellPaddings(table);
+        if (cellPaddings != null) {
+            style.CellPaddings = MergeTableCellMap(style.CellPaddings, cellPaddings);
+        }
+
+        Dictionary<(int Row, int Column), PdfCore.PdfColumnAlign>? cellAlignments = CreateTableCellAlignments(table);
+        if (cellAlignments != null) {
+            style.CellAlignments = MergeTableCellMap(style.CellAlignments, cellAlignments);
+        }
+
+        Dictionary<(int Row, int Column), PdfCore.PdfCellVerticalAlign>? cellVerticalAlignments = CreateTableCellVerticalAlignments(table);
+        if (cellVerticalAlignments != null) {
+            style.CellVerticalAlignments = MergeTableCellMap(style.CellVerticalAlignments, cellVerticalAlignments);
+        }
+
+        Dictionary<(int Row, int Column), PdfCore.PdfCellBorder>? cellBorders = CreateTableCellBorders(table);
+        if (cellBorders != null) {
+            style.CellBorders = MergeTableCellMap(style.CellBorders, cellBorders);
+        }
+
         return style;
+    }
+
+    private static PdfCore.PdfTableStyle CreateBaseTableStyle(PowerPointPdfSaveOptions options) {
+        PdfCore.PdfTableStyle? configuredStyle = options.PdfOptions?.HasExplicitDefaultTableStyle == true
+            ? options.PdfOptions.DefaultTableStyle
+            : null;
+        if (configuredStyle != null) {
+            return configuredStyle.Clone();
+        }
+
+        return PdfCore.TableStyles.Light().Clone();
+    }
+
+    private static Dictionary<(int Row, int Column), T> MergeTableCellMap<T>(Dictionary<(int Row, int Column), T>? baseline, Dictionary<(int Row, int Column), T> overlay) {
+        var merged = baseline == null
+            ? new Dictionary<(int Row, int Column), T>()
+            : new Dictionary<(int Row, int Column), T>(baseline);
+        foreach (KeyValuePair<(int Row, int Column), T> item in overlay) {
+            merged[item.Key] = item.Value;
+        }
+
+        return merged;
     }
 
     private static List<double?> CreateColumnWidths(PptCore.PowerPointTable table, double tableWidth) {

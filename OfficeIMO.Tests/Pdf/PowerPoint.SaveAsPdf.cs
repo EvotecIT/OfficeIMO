@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -1001,6 +1002,91 @@ public class PowerPointSaveAsPdfTests {
         Assert.Contains("Metric", text, StringComparison.Ordinal);
         Assert.Contains("Quality", text, StringComparison.Ordinal);
         Assert.Contains("99", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ToPdfDocument_PowerPointPresentation_Uses_Configured_Default_Table_Style() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(260, 180);
+        PowerPointTable table = presentation.Slides[0].AddTablePoints(2, 2, 30, 34, 150, 70);
+        table.FirstRow = true;
+        table.BandedRows = false;
+        table.SetColumnWidthsPoints(90, 60);
+        table.SetRowHeightsPoints(28, 42);
+        table.GetCell(0, 0).Text = "Metric";
+        table.GetCell(0, 1).Text = "Score";
+        table.GetCell(1, 0).Text = "Quality";
+        table.GetCell(1, 1).Text = "99";
+
+        var configuredStyle = new PdfCore.PdfTableStyle {
+            CellPaddingX = 8D,
+            CellPaddingY = 6D,
+            BorderColor = null,
+            HeaderFill = PdfCore.PdfColor.FromRgb(10, 20, 30),
+            HeaderTextColor = PdfCore.PdfColor.FromRgb(240, 245, 250),
+            RowStripeFill = PdfCore.PdfColor.FromRgb(220, 235, 250),
+            CellFills = new Dictionary<(int Row, int Column), PdfCore.PdfColor> {
+                [(1, 1)] = PdfCore.PdfColor.FromRgb(200, 210, 220)
+            },
+            FontSize = 12.5D,
+            SpacingAfter = 11D
+        };
+
+        PdfCore.PdfDocument pdfDocument = presentation.ToPdfDocument(new PowerPointPdfSaveOptions {
+            PdfOptions = new PdfCore.PdfOptions {
+                DefaultTableStyle = configuredStyle
+            }
+        });
+
+        var canvas = Assert.IsType<PdfCore.PdfCanvasBlock>(Assert.Single(pdfDocument.Blocks));
+        PdfCore.PdfCanvasTableItem tableItem = Assert.Single(canvas.Items.OfType<PdfCore.PdfCanvasTableItem>());
+        Assert.NotNull(tableItem.Block.Style);
+        PdfCore.PdfTableStyle style = tableItem.Block.Style!;
+
+        Assert.Equal(1, style.HeaderRowCount);
+        Assert.Equal(8D, style.CellPaddingX);
+        Assert.Equal(6D, style.CellPaddingY);
+        Assert.Null(style.BorderColor);
+        Assert.Equal(PdfCore.PdfColor.FromRgb(10, 20, 30), style.HeaderFill);
+        Assert.Equal(PdfCore.PdfColor.FromRgb(240, 245, 250), style.HeaderTextColor);
+        Assert.Null(style.RowStripeFill);
+        Assert.Equal(12.5D, style.FontSize);
+        Assert.Equal(11D, style.SpacingAfter);
+        Assert.Equal(new double?[] { 90D, 60D }, style.ColumnWidthPoints);
+        Assert.Equal(new double?[] { 28D, 42D }, style.RowMinHeights);
+
+        Assert.Equal(PdfCore.PdfColor.FromRgb(220, 235, 250), configuredStyle.RowStripeFill);
+        Assert.Null(configuredStyle.ColumnWidthPoints);
+        Assert.Null(configuredStyle.RowMinHeights);
+        Assert.NotNull(style.CellFills);
+        Assert.Equal(PdfCore.PdfColor.FromRgb(200, 210, 220), style.CellFills![(1, 1)]);
+        Assert.Equal(PdfCore.PdfColor.FromRgb(200, 210, 220), configuredStyle.CellFills![(1, 1)]);
+    }
+
+    [Fact]
+    public void ToPdfDocument_PowerPointPresentation_Resets_Repeating_Header_Count_From_Slide_Table() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(260, 180);
+        PowerPointTable table = presentation.Slides[0].AddTablePoints(1, 1, 30, 34, 150, 40);
+        table.FirstRow = false;
+        table.GetCell(0, 0).Text = "Value";
+
+        PdfCore.PdfDocument pdfDocument = presentation.ToPdfDocument(new PowerPointPdfSaveOptions {
+            PdfOptions = new PdfCore.PdfOptions {
+                DefaultTableStyle = new PdfCore.PdfTableStyle {
+                    HeaderRowCount = 2,
+                    RepeatHeaderRowCount = 2
+                }
+            }
+        });
+
+        var canvas = Assert.IsType<PdfCore.PdfCanvasBlock>(Assert.Single(pdfDocument.Blocks));
+        PdfCore.PdfTableStyle style = Assert.Single(canvas.Items.OfType<PdfCore.PdfCanvasTableItem>()).Block.Style!;
+
+        Assert.Equal(0, style.HeaderRowCount);
+        Assert.Equal(0, style.RepeatHeaderRowCount);
     }
 
     [Fact]
