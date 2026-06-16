@@ -238,31 +238,51 @@ namespace OfficeIMO.Word {
             }
 
             if (topLevel is Body bodyElement) {
+                OpenXmlElement? bodyChild = GetBodyChildContainer(element);
+                if (bodyChild?.Parent is Body owningBody) {
+                    return GetSectionPropertiesForBodyChild(owningBody, bodyChild);
+                }
+
                 return GetLastSectionProperties(bodyElement);
             }
 
             if (topLevel.Parent is Body body) {
-                var currentSection = GetLastSectionProperties(body);
-                foreach (var child in body.ChildElements) {
-                    if (ReferenceEquals(child, topLevel)) {
-                        return currentSection;
-                    }
-
-                    SectionProperties? discovered = child switch {
-                        Paragraph para => para.ParagraphProperties?.SectionProperties,
-                        SectionProperties sp => sp,
-                        _ => null
-                    };
-
-                    if (discovered != null) {
-                        currentSection = discovered;
-                    }
-                }
-
-                return currentSection;
+                return GetSectionPropertiesForBodyChild(body, topLevel);
             }
 
             return null;
+        }
+
+        private static SectionProperties? GetSectionPropertiesForBodyChild(Body body, OpenXmlElement bodyChild) {
+            SectionProperties? ownBoundary = GetSectionBoundaryProperties(bodyChild);
+            if (ownBoundary != null) {
+                return ownBoundary;
+            }
+
+            bool foundElement = false;
+            foreach (var child in body.ChildElements) {
+                if (ReferenceEquals(child, bodyChild)) {
+                    foundElement = true;
+                    continue;
+                }
+
+                if (foundElement) {
+                    SectionProperties? nextBoundary = GetSectionBoundaryProperties(child);
+                    if (nextBoundary != null) {
+                        return nextBoundary;
+                    }
+                }
+            }
+
+            return body.Elements<SectionProperties>().LastOrDefault();
+        }
+
+        private static SectionProperties? GetSectionBoundaryProperties(OpenXmlElement element) {
+            return element switch {
+                Paragraph paragraph => paragraph.ParagraphProperties?.SectionProperties,
+                SectionProperties sectionProperties => sectionProperties,
+                _ => null
+            };
         }
 
         private static SectionProperties? GetLastSectionProperties(Body body) {

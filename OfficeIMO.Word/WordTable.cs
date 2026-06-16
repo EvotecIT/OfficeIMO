@@ -451,7 +451,7 @@ namespace OfficeIMO.Word {
 
             if (insert) {
                 // Append the table to the document.
-                BodyRoot.Append(_table);
+                document.AppendBlockToBody(_table);
             }
         }
 

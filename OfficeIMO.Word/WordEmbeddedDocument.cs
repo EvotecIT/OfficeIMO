@@ -139,8 +139,11 @@ namespace OfficeIMO.Word {
                 _document = wordDocument;
 
                 var documentRoot = mainDocPart.Document ?? throw new InvalidOperationException("The document is missing its root element.");
-                var body = documentRoot.Body ?? throw new InvalidOperationException("The document does not contain a body element.");
-                body.Append(altChunk);
+                if (documentRoot.Body == null) {
+                    throw new InvalidOperationException("The document does not contain a body element.");
+                }
+
+                wordDocument.AppendBlockToBody(altChunk);
 
                 documentRoot.Save();
             } catch {

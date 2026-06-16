@@ -23,7 +23,7 @@ namespace OfficeIMO.Word {
 
             WordParagraph.EnsureParagraphCanBeInserted(this, body, wordParagraph,
                 "append a paragraph to the document body");
-            body.AppendChild(wordParagraph._paragraph);
+            AppendBlockToBody(wordParagraph._paragraph);
             wordParagraph.RefreshParent();
             return wordParagraph;
         }
@@ -49,8 +49,7 @@ namespace OfficeIMO.Word {
             };
             newWordParagraph._paragraph = new Paragraph(newWordParagraph._run);
 
-            var body = _document.Body ?? throw new InvalidOperationException("Document body is missing.");
-            body.Append(newWordParagraph._paragraph);
+            AppendBlockToBody(newWordParagraph._paragraph);
             newWordParagraph.RefreshParent();
             return newWordParagraph;
         }
@@ -79,8 +78,7 @@ namespace OfficeIMO.Word {
             if (currentSection != null) {
                 currentSection.AppendParagraphToSection(newWordParagraph);
             } else {
-                var body = _document.Body ?? throw new InvalidOperationException("Document body is missing.");
-                body.Append(newWordParagraph._paragraph);
+                AppendBlockToBody(newWordParagraph._paragraph);
                 newWordParagraph.RefreshParent();
             }
             return newWordParagraph;
@@ -442,7 +440,7 @@ namespace OfficeIMO.Word {
             int maxLevel = 3) {
             WordTableOfContent wordTableContent = new WordTableOfContent(this, tableOfContentStyle, minLevel, maxLevel);
             var body = _document.Body ?? throw new InvalidOperationException("Document body is missing.");
-            _tableOfContentIndex = body.ChildElements.Count - 1;
+            _tableOfContentIndex = body.ChildElements.ToList().IndexOf(wordTableContent.SdtBlock);
             _tableOfContentStyle = tableOfContentStyle;
             return wordTableContent;
         }
@@ -475,7 +473,7 @@ namespace OfficeIMO.Word {
                 body.InsertAt(block, index);
                 _tableOfContentIndex = index;
             } else {
-                _tableOfContentIndex = body.ChildElements.Count - 1;
+                _tableOfContentIndex = body.ChildElements.ToList().IndexOf(newToc.SdtBlock);
             }
             return newToc;
         }
@@ -599,8 +597,7 @@ namespace OfficeIMO.Word {
             paragraph.Append(paragraphProperties);
 
 
-            var body = _document.Body ?? throw new InvalidOperationException("Document body is missing.");
-            body.Append(paragraph);
+            AppendBlockToBody(paragraph);
 
 
             WordSection wordSection = new WordSection(this, paragraph);

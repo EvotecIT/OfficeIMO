@@ -23,15 +23,8 @@ namespace OfficeIMO.Word {
         /// <returns>The created paragraph.</returns>
         public WordParagraph AddParagraph(bool newRun) {
             var wordParagraph = new WordParagraph(_document, newParagraph: true, newRun: newRun);
-            if (this.Paragraphs.Count == 0) {
-                // Historical behavior: delegate to document so first content lands correctly
-                // for both initial and subsequently added sections.
-                return this._document.AddParagraph(wordParagraph);
-            } else {
-                WordParagraph lastParagraphWithinSection = this.Paragraphs.Last();
-                WordParagraph paragraph = lastParagraphWithinSection.AddParagraphAfterSelf(this, wordParagraph);
-                return paragraph;
-            }
+            AppendParagraphToSection(wordParagraph);
+            return wordParagraph;
         }
 
         /// <summary>
@@ -40,23 +33,13 @@ namespace OfficeIMO.Word {
         /// <param name="text">Text to place in the paragraph.</param>
         /// <returns>The created paragraph.</returns>
         public WordParagraph AddParagraph(string text = "") {
-            if (this.Paragraphs.Count == 0) {
-                WordParagraph paragraph = this._document.AddParagraph();
-                if (!string.IsNullOrEmpty(text)) {
-                    paragraph.Text = text;
-                }
-                return paragraph;
-            } else {
-                WordParagraph lastParagraphWithinSection = this.Paragraphs.Last();
-
-                WordParagraph paragraph = lastParagraphWithinSection.AddParagraphAfterSelf(this);
-                paragraph._document = this._document;
-                if (!string.IsNullOrEmpty(text)) {
-                    paragraph.Text = text;
-                }
-
-                return paragraph;
+            WordParagraph paragraph = new WordParagraph(_document, newParagraph: true, newRun: false);
+            if (!string.IsNullOrEmpty(text)) {
+                paragraph.Text = text;
             }
+
+            AppendParagraphToSection(paragraph);
+            return paragraph;
         }
 
         /// <summary>
@@ -84,7 +67,7 @@ namespace OfficeIMO.Word {
             var body = _document._wordprocessingDocument?.MainDocumentPart?.Document?.Body
                 ?? throw new InvalidOperationException("Document body is missing.");
 
-            var insertBefore = GetNextSectionBoundaryElement();
+            var insertBefore = GetInsertionBoundaryElement();
             if (insertBefore != null && insertBefore.Parent == body) {
                 body.InsertBefore(element, insertBefore);
                 return;
@@ -98,9 +81,22 @@ namespace OfficeIMO.Word {
             body.Append(element);
         }
 
-        private OpenXmlElement? GetNextSectionBoundaryElement() {
+        private OpenXmlElement? GetInsertionBoundaryElement() {
             var sections = _document.Sections;
             var currentIndex = sections.IndexOf(this);
+            if (currentIndex < 0) {
+                return GetSectionBoundaryElement() ?? GetFinalSectionBoundaryElement();
+            }
+
+            if (currentIndex == sections.Count - 1) {
+                return GetFinalSectionBoundaryElement() ?? GetSectionBoundaryElement();
+            }
+
+            return GetSectionBoundaryElement() ?? GetNextSectionBoundaryElement(currentIndex);
+        }
+
+        private OpenXmlElement? GetNextSectionBoundaryElement(int currentIndex) {
+            var sections = _document.Sections;
             if (currentIndex < 0) {
                 return null;
             }
@@ -115,11 +111,12 @@ namespace OfficeIMO.Word {
             return null;
         }
 
-        private OpenXmlElement? GetSectionBoundaryElement() {
-            if (_paragraph != null && _paragraph.Parent is Body) {
-                return _paragraph;
-            }
+        private OpenXmlElement? GetFinalSectionBoundaryElement() {
+            return _document.GetFinalSectionPropertiesInsertionBoundary()
+                ?? (_sectionProperties.Parent is Body ? _sectionProperties : null);
+        }
 
+        private OpenXmlElement? GetSectionBoundaryElement() {
             if (_sectionProperties.Parent is Body) {
                 return _sectionProperties;
             }
@@ -128,6 +125,10 @@ namespace OfficeIMO.Word {
                 && paragraphProperties.Parent is Paragraph paragraph
                 && paragraph.Parent is Body) {
                 return paragraph;
+            }
+
+            if (_paragraph != null && _paragraph.Parent is Body) {
+                return _paragraph;
             }
 
             return null;
@@ -140,9 +141,8 @@ namespace OfficeIMO.Word {
         /// <param name="columns">Number of columns.</param>
         /// <param name="tableStyle">Table style to apply.</param>
         public WordTable AddTable(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid) {
-            var anchor = AddParagraph();
-            var table = anchor.AddTableAfter(rows, columns, tableStyle);
-            anchor.Remove();
+            var table = WordTable.Create(_document, rows, columns, tableStyle);
+            AppendElementToSection(table._table);
             return table;
         }
 
