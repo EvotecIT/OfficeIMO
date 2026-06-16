@@ -409,6 +409,17 @@ public class PdfDocumentChartDrawingTests {
     }
 
     [Fact]
+    public void FlowDrawing_IgnoresBracketDirectivesInDataLabelNumberFormatsLinearly() {
+        MethodInfo method = typeof(OfficeChartDrawingRenderer).GetMethod("FormatDataLabelValue", BindingFlags.NonPublic | BindingFlags.Static)!;
+        string unmatchedPrefixFormat = new string('[', 4096) + "0";
+        string directivePrefix = (string)method.Invoke(null, new object?[] { 123D, "[Red]$0" })!;
+        string unmatchedPrefix = (string)method.Invoke(null, new object?[] { 123D, unmatchedPrefixFormat })!;
+
+        Assert.Equal("$123", directivePrefix);
+        Assert.Equal(new string('[', 4096) + "123", unmatchedPrefix);
+    }
+
+    [Fact]
     public void FlowDrawing_AppliesNumberFormatsToPercentDataLabels() {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Percent labels",

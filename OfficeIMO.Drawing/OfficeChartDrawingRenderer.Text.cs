@@ -596,6 +596,7 @@ public static partial class OfficeChartDrawingRenderer {
         var builder = new System.Text.StringBuilder(value.Length);
         bool inQuotedLiteral = false;
         bool escaped = false;
+        int nextClosingBracket = value.IndexOf(']');
         for (int i = 0; i < value.Length; i++) {
             char c = value[i];
             if (escaped) {
@@ -615,9 +616,13 @@ public static partial class OfficeChartDrawingRenderer {
             }
 
             if (!inQuotedLiteral && c == '[') {
-                int close = value.IndexOf(']', i + 1);
-                if (close > i) {
-                    i = close;
+                while (nextClosingBracket >= 0 && nextClosingBracket < i) {
+                    nextClosingBracket = value.IndexOf(']', nextClosingBracket + 1);
+                }
+
+                if (nextClosingBracket > i) {
+                    i = nextClosingBracket;
+                    nextClosingBracket = value.IndexOf(']', nextClosingBracket + 1);
                     continue;
                 }
             }
