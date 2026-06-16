@@ -408,6 +408,21 @@ public class PdfDocumentChartDrawingTests {
         Assert.Equal("1,235 K", literalSuffix);
     }
 
+
+    [Fact]
+    public void FlowDrawing_SelectsSignedNumberFormatSectionWithoutSplittingAllSeparators() {
+        MethodInfo method = typeof(OfficeChartDrawingRenderer).GetMethod("FormatDataLabelValue", BindingFlags.NonPublic | BindingFlags.Static)!;
+        string semicolonHeavyFormat = "0; -0 ; zero" + new string(';', 100000);
+
+        string positive = (string)method.Invoke(null, new object?[] { 12D, semicolonHeavyFormat })!;
+        string negative = (string)method.Invoke(null, new object?[] { -12D, semicolonHeavyFormat })!;
+        string zero = (string)method.Invoke(null, new object?[] { 0D, semicolonHeavyFormat })!;
+
+        Assert.Equal("12", positive);
+        Assert.Equal("-12", negative);
+        Assert.Equal("0", zero);
+    }
+
     [Fact]
     public void FlowDrawing_IgnoresBracketDirectivesInDataLabelNumberFormatsLinearly() {
         MethodInfo method = typeof(OfficeChartDrawingRenderer).GetMethod("FormatDataLabelValue", BindingFlags.NonPublic | BindingFlags.Static)!;

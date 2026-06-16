@@ -538,15 +538,38 @@ public static partial class OfficeChartDrawingRenderer {
     }
 
     private static string SelectSignedNumberFormatSection(string numberFormat, double value) {
-        string[] sections = numberFormat.Split(';');
-        string format = sections[0].Trim();
-        if (value < 0D && sections.Length > 1) {
-            format = sections[1].Trim();
-        } else if (Math.Abs(value) < 0.0000001D && sections.Length > 2) {
-            format = sections[2].Trim();
+        int firstSeparator = numberFormat.IndexOf(';');
+        if (firstSeparator < 0) {
+            return numberFormat.Trim();
         }
 
-        return format;
+        if (value < 0D) {
+            int secondSeparator = numberFormat.IndexOf(';', firstSeparator + 1);
+            return TrimNumberFormatSection(numberFormat, firstSeparator + 1, secondSeparator);
+        }
+
+        if (Math.Abs(value) < 0.0000001D) {
+            int secondSeparator = numberFormat.IndexOf(';', firstSeparator + 1);
+            if (secondSeparator >= 0) {
+                int thirdSeparator = numberFormat.IndexOf(';', secondSeparator + 1);
+                return TrimNumberFormatSection(numberFormat, secondSeparator + 1, thirdSeparator);
+            }
+        }
+
+        return TrimNumberFormatSection(numberFormat, 0, firstSeparator);
+    }
+
+    private static string TrimNumberFormatSection(string numberFormat, int startIndex, int endIndex) {
+        int end = endIndex < 0 ? numberFormat.Length : endIndex;
+        while (startIndex < end && char.IsWhiteSpace(numberFormat[startIndex])) {
+            startIndex++;
+        }
+
+        while (end > startIndex && char.IsWhiteSpace(numberFormat[end - 1])) {
+            end--;
+        }
+
+        return numberFormat.Substring(startIndex, end - startIndex);
     }
 
     private static bool TryGetDataLabelFormatAffixes(string format, out string prefix, out string suffix) {
