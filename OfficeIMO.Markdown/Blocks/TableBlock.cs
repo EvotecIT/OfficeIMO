@@ -9,6 +9,8 @@ namespace OfficeIMO.Markdown;
 /// Pipe table with optional header row.
 /// </summary>
 public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdownBlock, IChildMarkdownBlockContainer {
+    internal const int MaxEffectiveColumnCount = 4096;
+
     private IReadOnlyList<TableCell>? _cachedHeaderCells;
     private IReadOnlyList<IReadOnlyList<TableCell>>? _cachedRowCells;
     private int? _cachedCellContentSignature;

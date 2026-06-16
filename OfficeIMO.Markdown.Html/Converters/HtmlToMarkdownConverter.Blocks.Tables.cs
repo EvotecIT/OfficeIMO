@@ -13,8 +13,9 @@ public sealed partial class HtmlToMarkdownConverter {
         var columnAlignments = new List<ColumnAlignment>();
         var columnWidthPoints = new List<double?>();
         var columnWidthWeights = new List<double?>();
-        CaptureColumnGroupAlignments(element, columnAlignments);
-        CaptureColumnGroupWidths(element, columnWidthPoints, columnWidthWeights);
+        int maxExpandedColumns = context.Options.MaxTableExpandedColumns;
+        CaptureColumnGroupAlignments(element, columnAlignments, maxExpandedColumns: maxExpandedColumns);
+        CaptureColumnGroupWidths(element, columnWidthPoints, columnWidthWeights, maxExpandedColumns: maxExpandedColumns);
         var activeRowSpans = new List<int>();
 
         foreach (var row in EnumerateTableRows(element)) {
@@ -34,7 +35,23 @@ public sealed partial class HtmlToMarkdownConverter {
                     logicalColumn++;
                 }
 
+                if (logicalColumn >= maxExpandedColumns) {
+                    table.SkippedColumnCount += cells.Count - cellIndex;
+                    break;
+                }
+
                 var cell = cells[cellIndex];
+                int parsedColumnSpan = ParseCellSpan(cell.GetAttribute("colspan"));
+                int columnSpan = Math.Min(parsedColumnSpan, maxExpandedColumns - logicalColumn);
+                if (columnSpan <= 0) {
+                    table.SkippedColumnCount += cells.Count - cellIndex;
+                    break;
+                }
+
+                if (parsedColumnSpan > columnSpan) {
+                    table.SkippedColumnCount += parsedColumnSpan - columnSpan;
+                }
+
                 var cellBlocks = ConvertTableCellToBlocks(cell, context);
                 ColumnAlignment cellAlignment = ParseAlignment(cell);
                 var structuredCell = new TableCell(cellBlocks) {
@@ -45,13 +62,13 @@ public sealed partial class HtmlToMarkdownConverter {
                     Italic = ParseFontStyleItalic(cell),
                     Underline = ParseTextDecoration(cell, "underline"),
                     Strikethrough = ParseTextDecoration(cell, "line-through"),
-                    ColumnSpan = ParseCellSpan(cell.GetAttribute("colspan")),
+                    ColumnSpan = columnSpan,
                     RowSpan = ParseCellSpan(cell.GetAttribute("rowspan"))
                 };
                 structuredCells.Add(structuredCell);
                 renderedCells.Add(RenderTableCellBlocksToMarkdown(cellBlocks));
-                CaptureSpannedColumnAlignment(columnAlignments, logicalColumn, structuredCell.ColumnSpan, cellAlignment, replaceExisting: isHeaderRow);
-                CaptureSpannedColumnWidth(columnWidthPoints, columnWidthWeights, logicalColumn, structuredCell.ColumnSpan, ParseColumnWidth(cell), replaceExisting: false);
+                CaptureSpannedColumnAlignment(columnAlignments, logicalColumn, structuredCell.ColumnSpan, cellAlignment, replaceExisting: isHeaderRow, maxExpandedColumns: maxExpandedColumns);
+                CaptureSpannedColumnWidth(columnWidthPoints, columnWidthWeights, logicalColumn, structuredCell.ColumnSpan, ParseColumnWidth(cell), replaceExisting: false, maxExpandedColumns: maxExpandedColumns);
                 UpdateActiveCellRowSpans(activeRowSpans, logicalColumn, structuredCell.ColumnSpan, structuredCell.RowSpan);
                 logicalColumn += Math.Max(1, structuredCell.ColumnSpan);
             }
@@ -111,7 +128,7 @@ public sealed partial class HtmlToMarkdownConverter {
         }
     }
 
-    private static void CaptureColumnGroupAlignments(IElement table, List<ColumnAlignment> alignments) {
+    private static void CaptureColumnGroupAlignments(IElement table, List<ColumnAlignment> alignments, int maxExpandedColumns) {
         int columnIndex = 0;
         foreach (var child in table.Children) {
             if (child.TagName.Equals("COLGROUP", StringComparison.OrdinalIgnoreCase)) {
@@ -120,7 +137,7 @@ public sealed partial class HtmlToMarkdownConverter {
                     .ToList();
                 var groupAlignment = ParseAlignment(child);
                 if (colElements.Count == 0) {
-                    columnIndex = CaptureSpannedColumnAlignment(alignments, columnIndex, child, groupAlignment, replaceExisting: false);
+                    columnIndex = CaptureSpannedColumnAlignment(alignments, columnIndex, child, groupAlignment, replaceExisting: false, maxExpandedColumns: maxExpandedColumns);
                     continue;
                 }
 
@@ -130,32 +147,33 @@ public sealed partial class HtmlToMarkdownConverter {
                         columnAlignment = groupAlignment;
                     }
 
-                    columnIndex = CaptureSpannedColumnAlignment(alignments, columnIndex, col, columnAlignment, replaceExisting: false);
+                    columnIndex = CaptureSpannedColumnAlignment(alignments, columnIndex, col, columnAlignment, replaceExisting: false, maxExpandedColumns: maxExpandedColumns);
                 }
 
                 continue;
             }
 
             if (child.TagName.Equals("COL", StringComparison.OrdinalIgnoreCase)) {
-                columnIndex = CaptureSpannedColumnAlignment(alignments, columnIndex, child, ParseAlignment(child), replaceExisting: false);
+                columnIndex = CaptureSpannedColumnAlignment(alignments, columnIndex, child, ParseAlignment(child), replaceExisting: false, maxExpandedColumns: maxExpandedColumns);
             }
         }
     }
 
-    private static int CaptureSpannedColumnAlignment(List<ColumnAlignment> alignments, int columnIndex, IElement columnElement, ColumnAlignment alignment, bool replaceExisting) {
+    private static int CaptureSpannedColumnAlignment(List<ColumnAlignment> alignments, int columnIndex, IElement columnElement, ColumnAlignment alignment, bool replaceExisting, int maxExpandedColumns) {
         int span = ParseColumnSpan(columnElement.GetAttribute("span"));
-        return CaptureSpannedColumnAlignment(alignments, columnIndex, span, alignment, replaceExisting);
+        return CaptureSpannedColumnAlignment(alignments, columnIndex, span, alignment, replaceExisting, maxExpandedColumns: maxExpandedColumns);
     }
 
-    private static int CaptureSpannedColumnAlignment(List<ColumnAlignment> alignments, int columnIndex, int span, ColumnAlignment alignment, bool replaceExisting) {
-        for (int offset = 0; offset < span; offset++) {
+    private static int CaptureSpannedColumnAlignment(List<ColumnAlignment> alignments, int columnIndex, int span, ColumnAlignment alignment, bool replaceExisting, int maxExpandedColumns) {
+        int boundedSpan = Math.Min(span, Math.Max(0, maxExpandedColumns - columnIndex));
+        for (int offset = 0; offset < boundedSpan; offset++) {
             CaptureColumnAlignment(alignments, columnIndex + offset, alignment, replaceExisting);
         }
 
-        return columnIndex + span;
+        return columnIndex + boundedSpan;
     }
 
-    private static void CaptureColumnGroupWidths(IElement table, List<double?> widthPoints, List<double?> widthWeights) {
+    private static void CaptureColumnGroupWidths(IElement table, List<double?> widthPoints, List<double?> widthWeights, int maxExpandedColumns) {
         int columnIndex = 0;
         foreach (var child in table.Children) {
             if (child.TagName.Equals("COLGROUP", StringComparison.OrdinalIgnoreCase)) {
@@ -164,7 +182,7 @@ public sealed partial class HtmlToMarkdownConverter {
                     .ToList();
                 ColumnWidthHint groupWidth = ParseColumnWidth(child);
                 if (colElements.Count == 0) {
-                    columnIndex = CaptureSpannedColumnWidth(widthPoints, widthWeights, columnIndex, child, groupWidth, replaceExisting: false);
+                    columnIndex = CaptureSpannedColumnWidth(widthPoints, widthWeights, columnIndex, child, groupWidth, replaceExisting: false, maxExpandedColumns: maxExpandedColumns);
                     continue;
                 }
 
@@ -174,29 +192,30 @@ public sealed partial class HtmlToMarkdownConverter {
                         columnWidth = groupWidth;
                     }
 
-                    columnIndex = CaptureSpannedColumnWidth(widthPoints, widthWeights, columnIndex, col, columnWidth, replaceExisting: false);
+                    columnIndex = CaptureSpannedColumnWidth(widthPoints, widthWeights, columnIndex, col, columnWidth, replaceExisting: false, maxExpandedColumns: maxExpandedColumns);
                 }
 
                 continue;
             }
 
             if (child.TagName.Equals("COL", StringComparison.OrdinalIgnoreCase)) {
-                columnIndex = CaptureSpannedColumnWidth(widthPoints, widthWeights, columnIndex, child, ParseColumnWidth(child), replaceExisting: false);
+                columnIndex = CaptureSpannedColumnWidth(widthPoints, widthWeights, columnIndex, child, ParseColumnWidth(child), replaceExisting: false, maxExpandedColumns: maxExpandedColumns);
             }
         }
     }
 
-    private static int CaptureSpannedColumnWidth(List<double?> widthPoints, List<double?> widthWeights, int columnIndex, IElement columnElement, ColumnWidthHint width, bool replaceExisting) {
+    private static int CaptureSpannedColumnWidth(List<double?> widthPoints, List<double?> widthWeights, int columnIndex, IElement columnElement, ColumnWidthHint width, bool replaceExisting, int maxExpandedColumns) {
         int span = ParseColumnSpan(columnElement.GetAttribute("span"));
-        return CaptureSpannedColumnWidth(widthPoints, widthWeights, columnIndex, span, width, replaceExisting);
+        return CaptureSpannedColumnWidth(widthPoints, widthWeights, columnIndex, span, width, replaceExisting, maxExpandedColumns: maxExpandedColumns);
     }
 
-    private static int CaptureSpannedColumnWidth(List<double?> widthPoints, List<double?> widthWeights, int columnIndex, int span, ColumnWidthHint width, bool replaceExisting) {
-        for (int offset = 0; offset < span; offset++) {
+    private static int CaptureSpannedColumnWidth(List<double?> widthPoints, List<double?> widthWeights, int columnIndex, int span, ColumnWidthHint width, bool replaceExisting, int maxExpandedColumns) {
+        int boundedSpan = Math.Min(span, Math.Max(0, maxExpandedColumns - columnIndex));
+        for (int offset = 0; offset < boundedSpan; offset++) {
             CaptureColumnWidth(widthPoints, widthWeights, columnIndex + offset, width, replaceExisting);
         }
 
-        return columnIndex + span;
+        return columnIndex + boundedSpan;
     }
 
     private static void CaptureColumnWidth(List<double?> widthPoints, List<double?> widthWeights, int columnIndex, ColumnWidthHint width, bool replaceExisting) {

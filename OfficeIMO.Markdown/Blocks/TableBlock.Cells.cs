@@ -262,11 +262,11 @@ public sealed partial class TableBlock {
     }
 
     private int GetEffectiveColumnCount() {
-        int columnCount = Headers.Count;
+        int columnCount = Math.Min(Headers.Count, MaxEffectiveColumnCount);
 
         foreach (var row in Rows) {
             if (row != null) {
-                columnCount = Math.Max(columnCount, row.Count);
+                columnCount = Math.Max(columnCount, Math.Min(row.Count, MaxEffectiveColumnCount));
             }
         }
 
@@ -277,8 +277,8 @@ public sealed partial class TableBlock {
             }
         }
 
-        columnCount = Math.Max(columnCount, Alignments.Count);
-        return columnCount;
+        columnCount = Math.Max(columnCount, Math.Min(Alignments.Count, MaxEffectiveColumnCount));
+        return Math.Min(columnCount, MaxEffectiveColumnCount);
     }
 
     private static int GetStructuredColumnCount(IReadOnlyList<TableCell>? row) {
@@ -289,6 +289,9 @@ public sealed partial class TableBlock {
         int columnCount = 0;
         for (int i = 0; i < row.Count; i++) {
             columnCount += Math.Max(1, row[i]?.ColumnSpan ?? 1);
+            if (columnCount >= MaxEffectiveColumnCount) {
+                return MaxEffectiveColumnCount;
+            }
         }
 
         return columnCount;

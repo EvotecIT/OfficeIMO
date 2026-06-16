@@ -6,6 +6,7 @@ using OfficeIMO.Html;
 /// Options controlling HTML to Markdown conversion.
 /// </summary>
 public sealed class HtmlToMarkdownOptions {
+    private int _maxTableExpandedColumns = TableBlock.MaxEffectiveColumnCount;
     private readonly HashSet<string> _appliedPluginIds = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _appliedFeaturePackIds = new(StringComparer.OrdinalIgnoreCase);
 
@@ -85,6 +86,21 @@ public sealed class HtmlToMarkdownOptions {
     /// When set and exceeded, conversion fails fast with an <see cref="ArgumentOutOfRangeException"/>.
     /// </summary>
     public int? MaxInputCharacters { get; set; }
+
+    /// <summary>
+    /// Maximum logical columns produced by expanding HTML table colspan attributes.
+    /// Values must be between 1 and 4096.
+    /// </summary>
+    public int MaxTableExpandedColumns {
+        get => _maxTableExpandedColumns;
+        set {
+            if (value < 1 || value > TableBlock.MaxEffectiveColumnCount) {
+                throw new ArgumentOutOfRangeException(nameof(MaxTableExpandedColumns), value, "MaxTableExpandedColumns must be between 1 and 4096.");
+            }
+
+            _maxTableExpandedColumns = value;
+        }
+    }
 
     /// <summary>
     /// Optional ordered post-conversion document transforms applied to the intermediate <see cref="MarkdownDoc"/>.
@@ -202,7 +218,8 @@ public sealed class HtmlToMarkdownOptions {
             Base64ImageFileNameGenerator = Base64ImageFileNameGenerator,
             ListingCardMetadataMode = ListingCardMetadataMode,
             MarkdownWriteOptions = MarkdownWriteOptions?.Clone(),
-            MaxInputCharacters = MaxInputCharacters
+            MaxInputCharacters = MaxInputCharacters,
+            MaxTableExpandedColumns = MaxTableExpandedColumns
         };
 
         for (var i = 0; i < DocumentTransforms.Count; i++) {
