@@ -142,11 +142,14 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static PdfCore.PdfTableStyle CreateNativeTableStyle(WordTable table, int rowCount, PdfSaveOptions? options) {
-            PdfCore.PdfTableStyle style = ResolveNativeWordTableStyle(table) ?? new PdfCore.PdfTableStyle {
-                RowStripeFill = null
-            };
-            style.FontSize ??= 10D;
-            style.LineHeight ??= 1.15D;
+            bool hasExplicitDefaultTableStyle = options?.PdfOptions?.HasExplicitDefaultTableStyle == true;
+            PdfCore.PdfTableStyle? wordStyle = ResolveNativeWordTableStyle(table, hasExplicitDefaultTableStyle);
+            bool usesConfiguredDefaultStyle = wordStyle == null && hasExplicitDefaultTableStyle;
+            PdfCore.PdfTableStyle style = wordStyle ?? CreateNativeDefaultTableStyle(options);
+            if (!usesConfiguredDefaultStyle) {
+                style.FontSize ??= 10D;
+                style.LineHeight ??= 1.15D;
+            }
 
             int repeatedHeaderRowCount = GetNativeTableRepeatedHeaderRowCount(table, rowCount);
             style.HeaderRowCount = GetNativeTableVisualHeaderRowCount(table, rowCount, repeatedHeaderRowCount);
@@ -156,10 +159,23 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             ApplyNativeTableBorders(table, style);
-            ApplyNativeTableDefaultCellMargins(table, style);
+            ApplyNativeTableDefaultCellMargins(table, style, usesConfiguredDefaultStyle);
             ApplyNativeTableLayoutOptions(table, style);
             ApplyNativeTableRowOptions(table, style);
             return style;
+        }
+
+        private static PdfCore.PdfTableStyle CreateNativeDefaultTableStyle(PdfSaveOptions? options) {
+            PdfCore.PdfTableStyle? configuredStyle = options?.PdfOptions?.HasExplicitDefaultTableStyle == true
+                ? options.PdfOptions.DefaultTableStyle
+                : null;
+            if (configuredStyle != null) {
+                return configuredStyle.Clone();
+            }
+
+            return new PdfCore.PdfTableStyle {
+                RowStripeFill = null
+            };
         }
 
         private static void ApplyNativeTableLayoutOptions(WordTable table, PdfCore.PdfTableStyle style) {
@@ -258,11 +274,14 @@ namespace OfficeIMO.Word.Pdf {
             return (ParseNativeColor(color) ?? PdfCore.PdfColor.Black, size / 8D);
         }
 
-        private static void ApplyNativeTableDefaultCellMargins(WordTable table, PdfCore.PdfTableStyle style) {
+        private static void ApplyNativeTableDefaultCellMargins(WordTable table, PdfCore.PdfTableStyle style, bool preserveConfiguredFallbackPadding) {
             W.TableCellMarginDefault? margins = table._tableProperties?.TableCellMarginDefault;
             if (margins == null) {
-                style.CellPaddingTop = 3D;
-                style.CellPaddingBottom = 3D;
+                if (!preserveConfiguredFallbackPadding) {
+                    style.CellPaddingTop = 3D;
+                    style.CellPaddingBottom = 3D;
+                }
+
                 return;
             }
 
@@ -275,8 +294,17 @@ namespace OfficeIMO.Word.Pdf {
                 ? null
                 : ConvertNativeTwipsToPoints(margins.TableCellRightMargin.Width.Value);
 
-            style.CellPaddingTop = top ?? 3D;
-            style.CellPaddingBottom = bottom ?? 3D;
+            if (top.HasValue) {
+                style.CellPaddingTop = top.Value;
+            } else if (!preserveConfiguredFallbackPadding) {
+                style.CellPaddingTop = 3D;
+            }
+
+            if (bottom.HasValue) {
+                style.CellPaddingBottom = bottom.Value;
+            } else if (!preserveConfiguredFallbackPadding) {
+                style.CellPaddingBottom = 3D;
+            }
 
             if (left.HasValue) {
                 style.CellPaddingLeft = left.Value;
@@ -392,9 +420,13 @@ namespace OfficeIMO.Word.Pdf {
             return height;
         }
 
-        private static PdfCore.PdfTableStyle? ResolveNativeWordTableStyle(WordTable table) {
+        private static PdfCore.PdfTableStyle? ResolveNativeWordTableStyle(WordTable table, bool preferConfiguredDefaultStyle) {
             WordTableStyle? wordStyle = table.Style;
             if (!wordStyle.HasValue) {
+                return null;
+            }
+
+            if (preferConfiguredDefaultStyle && IsNativeFallbackTableStyle(wordStyle.Value)) {
                 return null;
             }
 
@@ -402,6 +434,9 @@ namespace OfficeIMO.Word.Pdf {
                 ? style
                 : null;
         }
+
+        private static bool IsNativeFallbackTableStyle(WordTableStyle style) =>
+            style == WordTableStyle.TableNormal;
 
         private static int GetNativeTableVisualHeaderRowCount(WordTable table, int rowCount, int repeatedHeaderRowCount) {
             if (rowCount == 0) {

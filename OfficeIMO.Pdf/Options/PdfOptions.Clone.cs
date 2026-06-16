@@ -78,7 +78,6 @@ public sealed partial class PdfOptions {
             PageNumberStyle = PageNumberStyle,
             DefaultTextColor = DefaultTextColor,
             DefaultParagraphStyle = _defaultParagraphStyle?.Clone(),
-            DefaultTableStyle = _defaultTableStyle?.Clone(),
             DefaultHeadingStyles = _defaultHeadingStyles?.Clone(),
             DefaultListStyle = _defaultListStyle?.Clone(),
             DefaultPanelStyle = _defaultPanelStyle?.Clone(),
@@ -133,6 +132,8 @@ public sealed partial class PdfOptions {
             _firstPageFooterShapes = CloneHeaderFooterShapes(_firstPageFooterShapes),
             _evenPageFooterShapes = CloneHeaderFooterShapes(_evenPageFooterShapes)
         };
+        clone._defaultTableStyle = _defaultTableStyle?.Clone();
+        clone._hasExplicitDefaultTableStyle = _hasExplicitDefaultTableStyle;
         clone._pageNumberStart = _pageNumberStart;
         clone._hasExplicitPageNumberStart = _hasExplicitPageNumberStart;
         return clone;

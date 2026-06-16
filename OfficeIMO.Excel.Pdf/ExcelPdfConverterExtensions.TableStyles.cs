@@ -6,15 +6,9 @@ namespace OfficeIMO.Excel.Pdf {
         private static PdfCore.PdfTableStyle CreateTableStyle(ExcelPdfSaveOptions options, ExcelSheetPageSetup? pageSetup, IReadOnlyList<int> rowIndexes, int headerRowCount, ExcelCellStyleSnapshot?[,]? styles, ConditionalFillData? conditionalFills, ColumnLayoutData? columnWidths, RowLayoutData? rowHeights, int columnOffset = 0, int exportedColumns = 0) {
             int exportedRows = rowIndexes.Count;
             int headerRows = Math.Min(headerRowCount, exportedRows);
-            var tableStyle = new PdfCore.PdfTableStyle {
-                HeaderRowCount = headerRows,
-                RepeatHeaderRowCount = headerRows == 0 ? null : headerRows,
-                CellPaddingX = 4,
-                CellPaddingY = 3,
-                HeaderFill = PdfCore.PdfColor.FromRgb(230, 238, 247),
-                HeaderTextColor = PdfCore.PdfColor.FromRgb(31, 78, 121),
-                RowStripeFill = PdfCore.PdfColor.FromRgb(248, 250, 252)
-            };
+            PdfCore.PdfTableStyle tableStyle = CreateBaseTableStyle(options);
+            tableStyle.HeaderRowCount = headerRows;
+            tableStyle.RepeatHeaderRowCount = headerRows == 0 ? null : headerRows;
 
             if (columnWidths != null) {
                 List<double> widthWeights = columnWidths.WidthWeights.Skip(columnOffset).Take(exportedColumns).ToList();
@@ -64,6 +58,30 @@ namespace OfficeIMO.Excel.Pdf {
                 tableStyle.CellBorders = cellBorders;
             }
 
+            return tableStyle;
+        }
+
+        private static PdfCore.PdfTableStyle CreateBaseTableStyle(ExcelPdfSaveOptions options) {
+            PdfCore.PdfTableStyle? configuredStyle = options.PdfOptions?.HasExplicitDefaultTableStyle == true
+                ? options.PdfOptions.DefaultTableStyle
+                : null;
+            if (configuredStyle != null) {
+                return configuredStyle.Clone();
+            }
+
+            return new PdfCore.PdfTableStyle {
+                CellPaddingX = 4,
+                CellPaddingY = 3,
+                HeaderFill = PdfCore.PdfColor.FromRgb(230, 238, 247),
+                HeaderTextColor = PdfCore.PdfColor.FromRgb(31, 78, 121),
+                RowStripeFill = PdfCore.PdfColor.FromRgb(248, 250, 252)
+            };
+        }
+
+        private static PdfCore.PdfTableStyle CreateEmptyWorkbookTableStyle(ExcelPdfSaveOptions options) {
+            PdfCore.PdfTableStyle tableStyle = CreateBaseTableStyle(options);
+            tableStyle.HeaderRowCount = 0;
+            tableStyle.RepeatHeaderRowCount = null;
             return tableStyle;
         }
 

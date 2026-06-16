@@ -42,7 +42,11 @@ public partial class Word {
     }
 
     private static PdfCore.PdfTableStyle CreateNativeTableStyleForTest(WordTable table) {
+        return CreateNativeTableStyleForTest(table, null);
+    }
+
+    private static PdfCore.PdfTableStyle CreateNativeTableStyleForTest(WordTable table, PdfSaveOptions? options) {
         MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeTableStyle", BindingFlags.NonPublic | BindingFlags.Static)!;
-        return Assert.IsType<PdfCore.PdfTableStyle>(method.Invoke(null, new object?[] { table, table.Rows.Count, null }));
+        return Assert.IsType<PdfCore.PdfTableStyle>(method.Invoke(null, new object?[] { table, table.Rows.Count, options }));
     }
 }

@@ -21,8 +21,13 @@ public sealed partial class PdfOptions {
     /// <summary>Default table style applied when none is provided.</summary>
     public PdfTableStyle? DefaultTableStyle {
         get => _defaultTableStyle?.Clone();
-        set => _defaultTableStyle = value?.Clone();
+        set {
+            _defaultTableStyle = value?.Clone();
+            _hasExplicitDefaultTableStyle = value != null;
+        }
     }
+    /// <summary>Gets whether <see cref="DefaultTableStyle"/> was explicitly supplied by the caller or a theme.</summary>
+    public bool HasExplicitDefaultTableStyle => _hasExplicitDefaultTableStyle;
     /// <summary>Default heading styles applied when H1/H2/H3 blocks do not specify their own style.</summary>
     public PdfHeadingStyles? DefaultHeadingStyles {
         get => _defaultHeadingStyles?.Clone();
@@ -87,6 +92,7 @@ public sealed partial class PdfOptions {
     }
     internal PdfParagraphStyle? DefaultParagraphStyleSnapshot => _defaultParagraphStyle;
     internal PdfTableStyle? DefaultTableStyleSnapshot => _defaultTableStyle;
+    internal bool HasExplicitDefaultTableStyleSnapshot => _hasExplicitDefaultTableStyle;
     internal PdfHeadingStyles? DefaultHeadingStylesSnapshot => _defaultHeadingStyles;
     internal PdfListStyle? DefaultListStyleSnapshot => _defaultListStyle;
     internal PanelStyle? DefaultPanelStyleSnapshot => _defaultPanelStyle;

@@ -52,6 +52,7 @@ public sealed partial class PdfOptions {
     private System.Collections.Generic.List<PdfPageLabelRange>? _pageLabelRanges;
     private PdfParagraphStyle? _defaultParagraphStyle;
     private PdfTableStyle? _defaultTableStyle = TableStyles.Light();
+    private bool _hasExplicitDefaultTableStyle;
     private PdfHeadingStyles? _defaultHeadingStyles;
     private PdfListStyle? _defaultListStyle;
     private PanelStyle? _defaultPanelStyle;
