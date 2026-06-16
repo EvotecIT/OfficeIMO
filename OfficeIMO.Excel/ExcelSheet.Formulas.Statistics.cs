@@ -105,9 +105,10 @@ namespace OfficeIMO.Excel {
             }
 
             if (function == "COVAR" || function == "COVARIANCE.P" || function == "COVARIANCE.S") {
+                int remainingCellBudget = MaxResolvedFormulaRangeCells;
                 if (tokens.Count != 2
-                    || !TryResolveFormulaArgumentNumbers(tokens[0], out var leftValues)
-                    || !TryResolveFormulaArgumentNumbers(tokens[1], out var rightValues)
+                    || !TryResolveFormulaArgumentNumbers(tokens[0], out var leftValues, ref remainingCellBudget)
+                    || !TryResolveFormulaArgumentNumbers(tokens[1], out var rightValues, ref remainingCellBudget)
                     || !TryCalculateCovariance(leftValues, rightValues, sample: function == "COVARIANCE.S", out result)) {
                     return false;
                 }
@@ -116,9 +117,10 @@ namespace OfficeIMO.Excel {
             }
 
             if (function == "CORREL" || function == "SLOPE" || function == "INTERCEPT" || function == "RSQ") {
+                int remainingCellBudget = MaxResolvedFormulaRangeCells;
                 if (tokens.Count != 2
-                    || !TryResolveFormulaArgumentNumbers(tokens[0], out var knownY)
-                    || !TryResolveFormulaArgumentNumbers(tokens[1], out var knownX)
+                    || !TryResolveFormulaArgumentNumbers(tokens[0], out var knownY, ref remainingCellBudget)
+                    || !TryResolveFormulaArgumentNumbers(tokens[1], out var knownX, ref remainingCellBudget)
                     || !TryCalculateLinearRegression(knownX, knownY, out double slope, out double intercept, out double correlation)) {
                     return false;
                 }
@@ -137,10 +139,11 @@ namespace OfficeIMO.Excel {
             }
 
             if (function == "FORECAST.LINEAR") {
+                int remainingCellBudget = MaxResolvedFormulaRangeCells;
                 if (tokens.Count != 3
                     || !TryEvaluateFormulaOrNumeric(tokens[0], out double x)
-                    || !TryResolveFormulaArgumentNumbers(tokens[1], out var knownY)
-                    || !TryResolveFormulaArgumentNumbers(tokens[2], out var knownX)
+                    || !TryResolveFormulaArgumentNumbers(tokens[1], out var knownY, ref remainingCellBudget)
+                    || !TryResolveFormulaArgumentNumbers(tokens[2], out var knownX, ref remainingCellBudget)
                     || !TryCalculateLinearRegression(knownX, knownY, out double slope, out double intercept, out _)) {
                     return false;
                 }
@@ -150,9 +153,10 @@ namespace OfficeIMO.Excel {
             }
 
             if (function == "SUMXMY2" || function == "SUMX2MY2" || function == "SUMX2PY2") {
+                int remainingCellBudget = MaxResolvedFormulaRangeCells;
                 if (tokens.Count != 2
-                    || !TryResolveFormulaArgumentNumbers(tokens[0], out var leftValues)
-                    || !TryResolveFormulaArgumentNumbers(tokens[1], out var rightValues)
+                    || !TryResolveFormulaArgumentNumbers(tokens[0], out var leftValues, ref remainingCellBudget)
+                    || !TryResolveFormulaArgumentNumbers(tokens[1], out var rightValues, ref remainingCellBudget)
                     || leftValues.Count == 0
                     || leftValues.Count != rightValues.Count) {
                     return false;

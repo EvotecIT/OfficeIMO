@@ -149,8 +149,9 @@ namespace OfficeIMO.Excel {
 
         private bool TryResolveFormulaArguments(string args, out List<FormulaArgumentValue> values) {
             values = new List<FormulaArgumentValue>();
+            int remainingCellBudget = MaxResolvedFormulaRangeCells;
             foreach (string trimmed in SplitFormulaArguments(args)) {
-                if (TryResolveFormulaRange(trimmed, out var rangeValues)) {
+                if (TryResolveFormulaRange(trimmed, out var rangeValues, ref remainingCellBudget)) {
                     values.AddRange(rangeValues);
                     continue;
                 }

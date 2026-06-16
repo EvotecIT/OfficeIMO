@@ -9,8 +9,13 @@ namespace OfficeIMO.Excel {
         private const int MaxResolvedFormulaRangeCells = 100000;
 
         private bool TryResolveFormulaArgumentNumbers(string token, out List<double> numbers) {
+            int remainingCellBudget = MaxResolvedFormulaRangeCells;
+            return TryResolveFormulaArgumentNumbers(token, out numbers, ref remainingCellBudget);
+        }
+
+        private bool TryResolveFormulaArgumentNumbers(string token, out List<double> numbers, ref int remainingCellBudget) {
             numbers = new List<double>();
-            if (TryResolveFormulaRange(token, out var values)) {
+            if (TryResolveFormulaRange(token, out var values, ref remainingCellBudget)) {
                 foreach (var value in values) {
                     if (!value.Number.HasValue) {
                         return false;
@@ -43,15 +48,16 @@ namespace OfficeIMO.Excel {
             }
 
             int criteriaStart = countOnly ? 0 : 1;
+            int remainingCellBudget = MaxResolvedFormulaRangeCells;
             List<FormulaArgumentValue>? aggregateValues = null;
-            if (!countOnly && !TryResolveFormulaRange(tokens[0], out aggregateValues)) {
+            if (!countOnly && !TryResolveFormulaRange(tokens[0], out aggregateValues, ref remainingCellBudget)) {
                 return false;
             }
 
             var criteriaSets = new List<(List<FormulaArgumentValue> Values, FormulaCriteria Criteria)>();
             int expectedCount = aggregateValues?.Count ?? -1;
             for (int index = criteriaStart; index < tokens.Count; index += 2) {
-                if (!TryResolveFormulaRange(tokens[index], out var criteriaValues)
+                if (!TryResolveFormulaRange(tokens[index], out var criteriaValues, ref remainingCellBudget)
                     || !TryParseCriteria(tokens[index + 1], out var criteria)) {
                     return false;
                 }
@@ -283,25 +289,41 @@ namespace OfficeIMO.Excel {
         }
 
         private bool TryResolveFormulaRange(string token, out List<FormulaArgumentValue> values) {
+            int remainingCellBudget = MaxResolvedFormulaRangeCells;
+            return TryResolveFormulaRange(token, out values, ref remainingCellBudget);
+        }
+
+        private bool TryResolveFormulaRange(string token, out List<FormulaArgumentValue> values, ref int remainingCellBudget) {
             values = new List<FormulaArgumentValue>();
             if (!TryResolveFormulaRangeReference(token, out ExcelSheet sheet, out int r1, out int c1, out int r2, out int c2)) {
                 return false;
             }
 
-            long rowCount = (long)r2 - r1 + 1;
-            long columnCount = (long)c2 - c1 + 1;
-            long cellCount = rowCount * columnCount;
-            if (cellCount > MaxResolvedFormulaRangeCells) {
+            if (!TryGetFormulaRangeCellCount(r1, c1, r2, c2, out int cellCount) || cellCount > remainingCellBudget) {
                 return false;
             }
 
-            values = new List<FormulaArgumentValue>((int)cellCount);
+            remainingCellBudget -= cellCount;
+            values = new List<FormulaArgumentValue>(cellCount);
             for (int row = r1; row <= r2; row++) {
                 for (int column = c1; column <= c2; column++) {
                     values.Add(sheet.ResolveCellArgument(row, column));
                 }
             }
 
+            return true;
+        }
+
+        private static bool TryGetFormulaRangeCellCount(int r1, int c1, int r2, int c2, out int cellCount) {
+            cellCount = 0;
+            long rowCount = (long)r2 - r1 + 1;
+            long columnCount = (long)c2 - c1 + 1;
+            long totalCells = rowCount * columnCount;
+            if (rowCount <= 0 || columnCount <= 0 || totalCells > MaxResolvedFormulaRangeCells) {
+                return false;
+            }
+
+            cellCount = (int)totalCells;
             return true;
         }
 

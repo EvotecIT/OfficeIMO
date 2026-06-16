@@ -740,7 +740,52 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorkSheet("Stats");
-                sheet.CellFormula(1, 1, "COVARIANCE.P(A1:XFD1048576,A1:XFD1048576)");
+                document.AddWorkSheet("Data");
+                sheet.CellFormula(1, 1, "COVARIANCE.P(Data!A1:XFD1048576,Data!A1:XFD1048576)");
+
+                ExcelFormulaInspection inspection = sheet.InspectFormulas();
+                Assert.Equal(1, inspection.TotalFormulas);
+                Assert.Equal(0, inspection.SupportedFormulas);
+                Assert.Contains(inspection.Formulas, formula => formula.CellReference == "A1" && !formula.IsSupportedByOfficeIMO);
+                Assert.Equal(0, document.Calculate());
+                document.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        public void Test_FormulaEvaluator_RejectsCumulativeOversizedFormulaRanges() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaEvaluator.CumulativeOversizedRanges.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Stats");
+                document.AddWorkSheet("Data");
+                sheet.CellFormula(1, 1, "COVARIANCE.P(Data!A1:A100000,Data!B1:B100000)");
+
+                ExcelFormulaInspection inspection = sheet.InspectFormulas();
+                Assert.Equal(1, inspection.TotalFormulas);
+                Assert.Equal(0, inspection.SupportedFormulas);
+                Assert.Contains(inspection.Formulas, formula => formula.CellReference == "A1" && !formula.IsSupportedByOfficeIMO);
+                Assert.Equal(0, document.Calculate());
+                document.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        public void Test_FormulaEvaluator_RejectsOversizedDirectLookupRange() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaEvaluator.OversizedLookupRange.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Lookup");
+                document.AddWorkSheet("Data");
+                sheet.CellFormula(1, 1, "VLOOKUP(\"missing\",Data!A1:A100001,1,FALSE)");
 
                 ExcelFormulaInspection inspection = sheet.InspectFormulas();
                 Assert.Equal(1, inspection.TotalFormulas);
