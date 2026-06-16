@@ -6,6 +6,8 @@ using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
+        private const int MaxResolvedFormulaRangeCells = 100000;
+
         private bool TryResolveFormulaArgumentNumbers(string token, out List<double> numbers) {
             numbers = new List<double>();
             if (TryResolveFormulaRange(token, out var values)) {
@@ -286,6 +288,14 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
+            long rowCount = (long)r2 - r1 + 1;
+            long columnCount = (long)c2 - c1 + 1;
+            long cellCount = rowCount * columnCount;
+            if (cellCount > MaxResolvedFormulaRangeCells) {
+                return false;
+            }
+
+            values = new List<FormulaArgumentValue>((int)cellCount);
             for (int row = r1; row <= r2; row++) {
                 for (int column = c1; column <= c2; column++) {
                     values.Add(sheet.ResolveCellArgument(row, column));

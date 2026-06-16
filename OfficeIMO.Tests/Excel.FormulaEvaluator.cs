@@ -735,6 +735,27 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_FormulaEvaluator_RejectsOversizedCovarianceRanges() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaEvaluator.OversizedCovarianceRange.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Stats");
+                sheet.CellFormula(1, 1, "COVARIANCE.P(A1:XFD1048576,A1:XFD1048576)");
+
+                ExcelFormulaInspection inspection = sheet.InspectFormulas();
+                Assert.Equal(1, inspection.TotalFormulas);
+                Assert.Equal(0, inspection.SupportedFormulas);
+                Assert.Contains(inspection.Formulas, formula => formula.CellReference == "A1" && !formula.IsSupportedByOfficeIMO);
+                Assert.Equal(0, document.Calculate());
+                document.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
         public void Test_FormulaEvaluator_CalculatesStatisticalReportFunctions() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaEvaluator.StatisticalFunctions.xlsx");
 
