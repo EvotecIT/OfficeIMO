@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.IO.Packaging;
 using System.Linq;
 using System.Xml;
@@ -8,6 +9,18 @@ using System.Xml.Linq;
 
 namespace OfficeIMO.Visio {
     public partial class VisioDocument {
+        internal const long MaxCommentsPartBytes = 12_000_000;
+        internal const long MaxCommentsXmlCharacters = 10_000_000;
+        internal const int MaxLoadedComments = 10_000;
+        internal const int MaxCommentTextCharacters = 32_768;
+
+        private static readonly XmlReaderSettings CommentsXmlReaderSettings = new() {
+            DtdProcessing = DtdProcessing.Prohibit,
+            XmlResolver = null,
+            MaxCharactersInDocument = MaxCommentsXmlCharacters,
+            MaxCharactersFromEntities = 0,
+        };
+
         private static void LoadComments(Package package, PackagePart documentPart, VisioDocument document) {
             PackageRelationship? commentsRel = documentPart.GetRelationshipsByType(CommentsRelationshipType).FirstOrDefault();
             if (commentsRel == null) {
@@ -20,7 +33,7 @@ namespace OfficeIMO.Visio {
             }
 
             PackagePart commentsPart = package.GetPart(commentsUri);
-            XDocument commentsXml = XDocument.Load(commentsPart.GetStream());
+            XDocument commentsXml = LoadCommentsXml(commentsPart);
             XElement? root = commentsXml.Root;
             if (root == null) {
                 return;
@@ -40,7 +53,14 @@ namespace OfficeIMO.Visio {
             }
 
             XElement? commentList = root.Elements().FirstOrDefault(element => IsVisioElement(element, "CommentList"));
+            int loadedCommentCount = 0;
             foreach (XElement commentElement in commentList?.Elements().Where(element => IsVisioElement(element, "CommentEntry")) ?? Enumerable.Empty<XElement>()) {
+                loadedCommentCount++;
+                if (loadedCommentCount > MaxLoadedComments) {
+                    throw new InvalidDataException($"Visio comments part contains more than {MaxLoadedComments} comments.");
+                }
+
+                string commentText = GetBoundedCommentText(commentElement);
                 if (!TryParseIntAttribute(commentElement, "PageID", out int pageId)) {
                     continue;
                 }
@@ -53,7 +73,7 @@ namespace OfficeIMO.Visio {
                 TryParseIntAttribute(commentElement, "IX", out int commentId);
                 TryParseIntAttribute(commentElement, "AuthorID", out int authorId);
                 authors.TryGetValue(authorId, out var author);
-                VisioComment comment = new(commentElement.Value) {
+                VisioComment comment = new(commentText) {
                     Id = commentId > 0 ? commentId : GetNextLoadedCommentId(page),
                     AuthorName = author.Name,
                     AuthorInitials = author.Initials,
@@ -71,6 +91,25 @@ namespace OfficeIMO.Visio {
 
                 page.Comments.Add(comment);
             }
+        }
+
+        private static XDocument LoadCommentsXml(PackagePart commentsPart) {
+            using Stream commentsStream = commentsPart.GetStream();
+            using Stream boundedStream = new BoundedReadStream(commentsStream, MaxCommentsPartBytes);
+            using XmlReader reader = XmlReader.Create(boundedStream, CommentsXmlReaderSettings);
+            return XDocument.Load(reader);
+        }
+
+        private static string GetBoundedCommentText(XElement commentElement) {
+            int textLength = 0;
+            foreach (XText text in commentElement.DescendantNodes().OfType<XText>()) {
+                textLength += text.Value.Length;
+                if (textLength > MaxCommentTextCharacters) {
+                    throw new InvalidDataException($"Visio comment text exceeds {MaxCommentTextCharacters} characters.");
+                }
+            }
+
+            return commentElement.Value;
         }
 
         private static bool IsVisioElement(XElement element, string localName) {
@@ -133,6 +172,56 @@ namespace OfficeIMO.Visio {
             }
 
             return persistedId;
+        }
+
+        private sealed class BoundedReadStream : Stream {
+            private readonly Stream _inner;
+            private readonly long _maxBytes;
+            private long _bytesRead;
+
+            internal BoundedReadStream(Stream inner, long maxBytes) {
+                _inner = inner ?? throw new ArgumentNullException(nameof(inner));
+                _maxBytes = maxBytes;
+            }
+
+            public override bool CanRead => _inner.CanRead;
+
+            public override bool CanSeek => false;
+
+            public override bool CanWrite => false;
+
+            public override long Length => throw new NotSupportedException();
+
+            public override long Position {
+                get => _bytesRead;
+                set => throw new NotSupportedException();
+            }
+
+            public override void Flush() {
+                _inner.Flush();
+            }
+
+            public override int Read(byte[] buffer, int offset, int count) {
+                int read = _inner.Read(buffer, offset, count);
+                _bytesRead += read;
+                if (_bytesRead > _maxBytes) {
+                    throw new InvalidDataException($"Visio comments part exceeds {_maxBytes} bytes.");
+                }
+
+                return read;
+            }
+
+            public override long Seek(long offset, SeekOrigin origin) {
+                throw new NotSupportedException();
+            }
+
+            public override void SetLength(long value) {
+                throw new NotSupportedException();
+            }
+
+            public override void Write(byte[] buffer, int offset, int count) {
+                throw new NotSupportedException();
+            }
         }
     }
 }
