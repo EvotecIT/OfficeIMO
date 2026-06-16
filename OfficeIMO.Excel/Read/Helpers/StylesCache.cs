@@ -61,13 +61,6 @@ namespace OfficeIMO.Excel {
 
             var xfs = sp.Stylesheet.CellFormats;
             if (xfs != null) {
-                int expectedCount = xfs.Count?.Value is uint declaredCount && declaredCount <= int.MaxValue
-                    ? (int)declaredCount
-                    : 0;
-                if (expectedCount > 0) {
-                    cache._dateStyleIndexes = new bool[expectedCount];
-                }
-
                 int idx = 0;
                 foreach (var cf in xfs.Elements<CellFormat>()) {
                     if (idx == cache._dateStyleIndexes.Length) {
@@ -146,11 +139,6 @@ namespace OfficeIMO.Excel {
         }
 
         private static void ReadCellFormatsXml(XmlReader reader, StylesCache cache, Dictionary<uint, string>? numberingFormats) {
-            int expectedCount = TryParseIntAttribute(reader.GetAttribute("count"), out int parsedCount) ? parsedCount : 0;
-            if (expectedCount > 0) {
-                cache._dateStyleIndexes = new bool[expectedCount];
-            }
-
             if (reader.IsEmptyElement) {
                 cache._dateStyleIndexes = EmptyDateStyleIndexes;
                 cache.HasDateStyles = false;
@@ -234,15 +222,5 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private static bool TryParseIntAttribute(string? value, out int result) {
-            result = 0;
-            if (!TryParseUIntAttribute(value, out uint parsed) || parsed > int.MaxValue) {
-                return false;
-            }
-
-            result = (int)parsed;
-            return true;
-        }
     }
 }
-

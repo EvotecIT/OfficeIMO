@@ -1800,6 +1800,34 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void Reader_Open_IgnoresDeclaredCellFormatCountWhenItExceedsActualFormats() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderStylesDeclaredCountTooLarge.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, new DateTime(2024, 1, 1));
+                    document.Save();
+                }
+
+                using (var spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                    var stylesheet = spreadsheet.WorkbookPart!.WorkbookStylesPart!.Stylesheet!;
+                    stylesheet.CellFormats!.Count = uint.MaxValue;
+                    stylesheet.Save();
+                }
+
+                using var reader = ExcelDocumentReader.Open(filePath);
+                var values = reader.GetSheet("Data").ReadRange("A1:A1");
+
+                Assert.NotNull(values[0, 0]);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
         private sealed class ReaderDecisionRecord {
             public int Id { get; set; }
 
