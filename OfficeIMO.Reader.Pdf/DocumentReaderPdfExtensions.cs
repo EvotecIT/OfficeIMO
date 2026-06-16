@@ -261,7 +261,7 @@ public static partial class DocumentReaderPdfExtensions {
         IReadOnlyList<PdfLogicalPage> scope = page is null ? selectedPages : new[] { page };
         PdfDocumentSecurityInfo security = document.Security;
         bool hasScopedOpenAction = GetScopedOpenAction(document.OpenAction, scope) is not null;
-        int selectedCatalogActionCount = GetScopedCatalogActions(document, selectedPages).Count;
+        int selectedCatalogActionCount = GetScopedCatalogActions(document, selectedPages, page: null).Count;
         int selectedPageActionCount = CountPageActions(scope);
         int selectedAnnotationActionCount = CountAnnotationActions(scope);
         int imageCount = CountImages(scope);

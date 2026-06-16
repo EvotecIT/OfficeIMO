@@ -5,8 +5,9 @@ namespace OfficeIMO.Reader.Pdf;
 public static partial class DocumentReaderPdfExtensions {
     private static IReadOnlyList<ReaderActionSummary>? BuildActions(PdfLogicalDocument document, IReadOnlyList<PdfLogicalPage> selectedPages, PdfLogicalPage? page) {
         IReadOnlyList<PdfLogicalPage> scope = page is null ? selectedPages : new[] { page };
-        PdfDocumentOpenAction? scopedOpenAction = GetScopedOpenAction(document.OpenAction, scope);
-        IReadOnlyList<PdfCatalogAction> catalogActions = GetScopedCatalogActions(document, selectedPages);
+        bool includeDocumentActions = ShouldIncludeDocumentLevelActions(selectedPages, page);
+        PdfDocumentOpenAction? scopedOpenAction = includeDocumentActions ? GetScopedOpenAction(document.OpenAction, scope) : null;
+        IReadOnlyList<PdfCatalogAction> catalogActions = GetScopedCatalogActions(document, selectedPages, page);
         bool hasOpenAction = scopedOpenAction is not null;
         bool hasCatalogActions = catalogActions.Count > 0;
         int selectedPageActionCount = CountPageActions(scope);
@@ -38,10 +39,18 @@ public static partial class DocumentReaderPdfExtensions {
         return actions.Count == 0 ? null : actions.AsReadOnly();
     }
 
-    private static IReadOnlyList<PdfCatalogAction> GetScopedCatalogActions(PdfLogicalDocument document, IReadOnlyList<PdfLogicalPage> selectedPages) {
+    private static IReadOnlyList<PdfCatalogAction> GetScopedCatalogActions(PdfLogicalDocument document, IReadOnlyList<PdfLogicalPage> selectedPages, PdfLogicalPage? page) {
+        if (!ShouldIncludeDocumentLevelActions(selectedPages, page)) {
+            return Array.Empty<PdfCatalogAction>();
+        }
+
         return AreAllDocumentPagesSelected(document, selectedPages)
             ? document.CatalogActions
             : Array.Empty<PdfCatalogAction>();
+    }
+
+    private static bool ShouldIncludeDocumentLevelActions(IReadOnlyList<PdfLogicalPage> selectedPages, PdfLogicalPage? page) {
+        return page is null || selectedPages.Count == 1;
     }
 
     private static bool AreAllDocumentPagesSelected(PdfLogicalDocument document, IReadOnlyList<PdfLogicalPage> selectedPages) {
