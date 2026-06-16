@@ -86,35 +86,48 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddSection();
+                document.AddSection();
 
                 document.Sections[0].AddParagraph("Late first section");
-                document.Sections[1].AddParagraph("Second section");
+                document.Sections[1].AddParagraph("Middle section");
                 document.Sections[1].AddTable(1, 1);
-                document.Sections[1].AddParagraph("Second section tail");
+                document.Sections[1].AddParagraph("Middle section tail");
+                document.Sections[2].AddParagraph("Last section");
 
                 Body body = document._wordprocessingDocument!.MainDocumentPart!.Document.Body!;
                 List<OpenXmlElement> children = body.ChildElements.ToList();
                 int insertedIndex = children.FindIndex(element => element is Paragraph paragraph && paragraph.InnerText == "Late first section");
-                int firstSectionBoundaryIndex = children.FindIndex(element => element is Paragraph paragraph
-                    && paragraph.ParagraphProperties?.SectionProperties != null);
-                int secondSectionParagraphIndex = children.FindIndex(element => element is Paragraph paragraph && paragraph.InnerText == "Second section");
-                int secondSectionTableIndex = children.FindIndex(element => element is Table);
-                int secondSectionTailIndex = children.FindIndex(element => element is Paragraph paragraph && paragraph.InnerText == "Second section tail");
+                List<int> sectionBoundaryIndexes = children
+                    .Select((element, index) => element is Paragraph paragraph && paragraph.ParagraphProperties?.SectionProperties != null ? index : -1)
+                    .Where(index => index >= 0)
+                    .ToList();
+                Assert.Equal(2, sectionBoundaryIndexes.Count);
+
+                int firstSectionBoundaryIndex = sectionBoundaryIndexes[0];
+                int middleSectionBoundaryIndex = sectionBoundaryIndexes[1];
+                int middleSectionParagraphIndex = children.FindIndex(element => element is Paragraph paragraph && paragraph.InnerText == "Middle section");
+                int middleSectionTableIndex = children.FindIndex(element => element is Table);
+                int middleSectionTailIndex = children.FindIndex(element => element is Paragraph paragraph && paragraph.InnerText == "Middle section tail");
+                int lastSectionParagraphIndex = children.FindIndex(element => element is Paragraph paragraph && paragraph.InnerText == "Last section");
 
                 Assert.True(insertedIndex >= 0, "Inserted first-section paragraph should exist.");
-                Assert.True(firstSectionBoundaryIndex >= 0, "First section boundary paragraph should exist.");
-                Assert.True(secondSectionParagraphIndex >= 0, "Inserted second-section paragraph should exist.");
-                Assert.True(secondSectionTableIndex >= 0, "Inserted second-section table should exist.");
-                Assert.True(secondSectionTailIndex >= 0, "Inserted second-section tail paragraph should exist.");
+                Assert.True(middleSectionParagraphIndex >= 0, "Inserted middle-section paragraph should exist.");
+                Assert.True(middleSectionTableIndex >= 0, "Inserted middle-section table should exist.");
+                Assert.True(middleSectionTailIndex >= 0, "Inserted middle-section tail paragraph should exist.");
+                Assert.True(lastSectionParagraphIndex >= 0, "Inserted last-section paragraph should exist.");
                 Assert.True(insertedIndex < firstSectionBoundaryIndex, "Blocks appended to an earlier section must stay before that section's boundary.");
-                Assert.True(firstSectionBoundaryIndex < secondSectionParagraphIndex, "Blocks appended to the new section must stay after the previous section boundary.");
-                Assert.True(secondSectionParagraphIndex < secondSectionTableIndex, "Second-section blocks must preserve insertion order.");
-                Assert.True(secondSectionTableIndex < secondSectionTailIndex, "Second-section blocks must preserve insertion order.");
+                Assert.True(firstSectionBoundaryIndex < middleSectionParagraphIndex, "Blocks appended to a middle section must stay after the previous section boundary.");
+                Assert.True(middleSectionParagraphIndex < middleSectionTableIndex, "Middle-section blocks must preserve insertion order.");
+                Assert.True(middleSectionTableIndex < middleSectionTailIndex, "Middle-section blocks must preserve insertion order.");
+                Assert.True(middleSectionTailIndex < middleSectionBoundaryIndex, "Blocks appended to a middle section must stay before that section's own boundary.");
+                Assert.True(middleSectionBoundaryIndex < lastSectionParagraphIndex, "Blocks appended to the last section must stay after the middle section boundary.");
                 Assert.DoesNotContain(document.Sections[1].Paragraphs, paragraph => paragraph.Text == "Late first section");
-                Assert.DoesNotContain(document.Sections[0].Paragraphs, paragraph => paragraph.Text == "Second section");
-                Assert.Contains(document.Sections[1].Paragraphs, paragraph => paragraph.Text == "Second section");
+                Assert.DoesNotContain(document.Sections[0].Paragraphs, paragraph => paragraph.Text == "Middle section");
+                Assert.DoesNotContain(document.Sections[2].Paragraphs, paragraph => paragraph.Text == "Middle section");
+                Assert.Contains(document.Sections[1].Paragraphs, paragraph => paragraph.Text == "Middle section");
                 Assert.Empty(document.Sections[0].Tables);
                 Assert.Single(document.Sections[1].Tables);
+                Assert.Empty(document.Sections[2].Tables);
             }
         }
 

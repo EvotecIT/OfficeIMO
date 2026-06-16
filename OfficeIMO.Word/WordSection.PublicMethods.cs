@@ -117,10 +117,6 @@ namespace OfficeIMO.Word {
         }
 
         private OpenXmlElement? GetSectionBoundaryElement() {
-            if (_paragraph != null && _paragraph.Parent is Body) {
-                return _paragraph;
-            }
-
             if (_sectionProperties.Parent is Body) {
                 return _sectionProperties;
             }
@@ -129,6 +125,10 @@ namespace OfficeIMO.Word {
                 && paragraphProperties.Parent is Paragraph paragraph
                 && paragraph.Parent is Body) {
                 return paragraph;
+            }
+
+            if (_paragraph != null && _paragraph.Parent is Body) {
+                return _paragraph;
             }
 
             return null;
