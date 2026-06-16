@@ -445,6 +445,7 @@ namespace OfficeIMO.Word.Html {
 
         private string ResolveWordImageSource(IHtmlImageElement img, HtmlToWordOptions options) {
             string firstResolved = string.Empty;
+            int remoteCandidateProbeCount = 0;
             foreach (string candidate in EnumerateWordImageSourceCandidates(img, options)) {
                 string resolved = ResolveImageSourcePath(candidate, img, options);
                 if (string.IsNullOrWhiteSpace(resolved)) {
@@ -460,12 +461,23 @@ namespace OfficeIMO.Word.Html {
                 }
 
                 if (IsImageSourceAllowedForCurrentMode(resolved, img, options, out _)) {
-                    if (IsRemoteEmbeddedImageSource(resolved, options) && !TryFetchRemoteImageCandidate(resolved, options)) {
-                        if (string.IsNullOrEmpty(firstResolved)) {
-                            firstResolved = resolved;
+                    if (IsRemoteEmbeddedImageSource(resolved, options)) {
+                        if (!CanProbeRemoteImageCandidate(options, remoteCandidateProbeCount)) {
+                            if (string.IsNullOrEmpty(firstResolved)) {
+                                firstResolved = resolved;
+                            }
+
+                            continue;
                         }
 
-                        continue;
+                        remoteCandidateProbeCount++;
+                        if (!TryFetchRemoteImageCandidate(resolved, options)) {
+                            if (string.IsNullOrEmpty(firstResolved)) {
+                                firstResolved = resolved;
+                            }
+
+                            continue;
+                        }
                     }
 
                     if (IsLocalEmbeddedImageSource(resolved, options) && !TryProbeLocalImageCandidate(resolved, options)) {
@@ -485,6 +497,11 @@ namespace OfficeIMO.Word.Html {
             }
 
             return firstResolved;
+        }
+
+        private static bool CanProbeRemoteImageCandidate(HtmlToWordOptions options, int probeCount) {
+            return !options.MaxRemoteImageCandidateProbes.HasValue
+                || probeCount < options.MaxRemoteImageCandidateProbes.Value;
         }
 
         private static IEnumerable<string> EnumerateWordImageSourceCandidates(IHtmlImageElement img, HtmlToWordOptions options) {

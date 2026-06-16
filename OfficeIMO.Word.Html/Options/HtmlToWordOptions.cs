@@ -153,6 +153,13 @@ namespace OfficeIMO.Word.Html {
         public long? MaxTotalImageBytes { get; set; }
 
         /// <summary>
+        /// Optional maximum number of remote image candidates probed while selecting a source for one HTML image element.
+        /// Defaults to one probe to avoid request fan-out from large srcset or picture candidate lists.
+        /// Set to <see langword="null"/> to restore unbounded probing for trusted HTML.
+        /// </summary>
+        public int? MaxRemoteImageCandidateProbes { get; set; } = 1;
+
+        /// <summary>
         /// When true, validates declared image content types for remote image resources and data URI images.
         /// Images with rejected content types are skipped, alt text is inserted when available, and a diagnostic is emitted.
         /// </summary>

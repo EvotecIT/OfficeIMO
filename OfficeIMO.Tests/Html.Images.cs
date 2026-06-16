@@ -327,6 +327,58 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void HtmlToWord_ImageSelection_LimitsRemoteCandidateProbesPerElement() {
+            var requested = new List<Uri>();
+            var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
+            string base64 = Convert.ToBase64String(File.ReadAllBytes(path));
+            using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(request => {
+                requested.Add(request.RequestUri!);
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+            }));
+            var options = new HtmlToWordOptions {
+                HttpClient = httpClient
+            };
+            string html = $"<img srcset=\"https://cdn.example.test/one.png 1x, https://cdn.example.test/two.png 2x, https://cdn.example.test/three.png 3x\" src=\"data:image/png;base64,{base64}\" alt=\"Logo\" />";
+
+            var doc = html.LoadFromHtml(options);
+
+            Assert.Single(doc.Images);
+            Assert.Equal(new Uri("https://cdn.example.test/one.png"), Assert.Single(requested));
+            Assert.Empty(options.Diagnostics);
+        }
+
+        [Fact]
+        public void HtmlToWord_ImageSelection_AllowsTrustedCallersToProbeAllRemoteCandidates() {
+            var requested = new List<Uri>();
+            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+            using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(request => {
+                requested.Add(request.RequestUri!);
+                if (request.RequestUri!.AbsolutePath == "/two.png") {
+                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
+                        Content = new ByteArrayContent(Convert.FromBase64String(validPng)) {
+                            Headers = {
+                                ContentType = new MediaTypeHeaderValue("image/png")
+                            }
+                        }
+                    });
+                }
+
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+            }));
+            var options = new HtmlToWordOptions {
+                HttpClient = httpClient,
+                MaxRemoteImageCandidateProbes = null
+            };
+            string html = """<img srcset="https://cdn.example.test/one.png 1x, https://cdn.example.test/two.png 2x" alt="Logo" />""";
+
+            var doc = html.LoadFromHtml(options);
+
+            Assert.Single(doc.Images);
+            Assert.Equal(new[] { "/one.png", "/two.png" }, requested.Select(uri => uri.AbsolutePath).ToArray());
+            Assert.Empty(options.Diagnostics);
+        }
+
+        [Fact]
         public void HtmlToWord_RemoteImageOverTotalMaxBytes_SkipsWithDiagnostic() {
             using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(_ =>
                 Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
