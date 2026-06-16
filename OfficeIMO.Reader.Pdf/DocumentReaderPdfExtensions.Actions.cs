@@ -5,8 +5,8 @@ namespace OfficeIMO.Reader.Pdf;
 public static partial class DocumentReaderPdfExtensions {
     private static IReadOnlyList<ReaderActionSummary>? BuildActions(PdfLogicalDocument document, IReadOnlyList<PdfLogicalPage> selectedPages, PdfLogicalPage? page) {
         IReadOnlyList<PdfLogicalPage> scope = page is null ? selectedPages : new[] { page };
-        PdfDocumentOpenAction? scopedOpenAction = GetScopedOpenAction(document.OpenAction, scope);
-        IReadOnlyList<PdfCatalogAction> catalogActions = GetScopedCatalogActions(document, selectedPages);
+        PdfDocumentOpenAction? scopedOpenAction = page is null ? GetScopedOpenAction(document.OpenAction, scope) : null;
+        IReadOnlyList<PdfCatalogAction> catalogActions = GetScopedCatalogActions(document, selectedPages, page);
         bool hasOpenAction = scopedOpenAction is not null;
         bool hasCatalogActions = catalogActions.Count > 0;
         int selectedPageActionCount = CountPageActions(scope);
@@ -38,7 +38,11 @@ public static partial class DocumentReaderPdfExtensions {
         return actions.Count == 0 ? null : actions.AsReadOnly();
     }
 
-    private static IReadOnlyList<PdfCatalogAction> GetScopedCatalogActions(PdfLogicalDocument document, IReadOnlyList<PdfLogicalPage> selectedPages) {
+    private static IReadOnlyList<PdfCatalogAction> GetScopedCatalogActions(PdfLogicalDocument document, IReadOnlyList<PdfLogicalPage> selectedPages, PdfLogicalPage? page) {
+        if (page is not null) {
+            return Array.Empty<PdfCatalogAction>();
+        }
+
         return AreAllDocumentPagesSelected(document, selectedPages)
             ? document.CatalogActions
             : Array.Empty<PdfCatalogAction>();

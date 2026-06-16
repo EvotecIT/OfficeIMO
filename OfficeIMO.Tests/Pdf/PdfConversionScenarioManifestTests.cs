@@ -348,6 +348,34 @@ public sealed class PdfConversionScenarioManifestTests {
     }
 
     [Fact]
+    public void PdfReaderPageChunks_DoNotRepeatDocumentCatalogActions() {
+        byte[] pdf = CreateCatalogActionsMultiPagePdf();
+
+        List<ReaderChunk> pageChunks = DocumentReaderPdfExtensions.ReadPdf(
+            new MemoryStream(pdf, writable: false),
+            sourceName: "pdf-catalog-actions-multipage.pdf",
+            readerOptions: new ReaderOptions { MaxChars = 8_000 }).ToList();
+
+        Assert.Equal(2, pageChunks.Count);
+        Assert.All(pageChunks, chunk => {
+            Assert.DoesNotContain(chunk.Actions ?? Array.Empty<ReaderActionSummary>(), action => action.Scope == ReaderActionScope.Catalog);
+            Assert.DoesNotContain(chunk.Actions ?? Array.Empty<ReaderActionSummary>(), action => action.Scope == ReaderActionScope.DocumentOpen);
+            Assert.NotNull(chunk.Diagnostics);
+            Assert.Equal(2, chunk.Diagnostics!.CatalogActionCount);
+            Assert.True(chunk.Diagnostics.HasCatalogActions);
+        });
+
+        ReaderChunk documentChunk = Assert.Single(DocumentReaderPdfExtensions.ReadPdf(
+            new MemoryStream(pdf, writable: false),
+            sourceName: "pdf-catalog-actions-multipage.pdf",
+            readerOptions: new ReaderOptions { MaxChars = 8_000 },
+            pdfOptions: new ReaderPdfOptions { ChunkByPage = false }).ToList());
+
+        Assert.NotNull(documentChunk.Actions);
+        Assert.Equal(2, documentChunk.Actions!.Count(action => action.Scope == ReaderActionScope.Catalog));
+    }
+
+    [Fact]
     public void PdfReaderDegradationCorpus_ProducesManifestedReaderProof() {
         byte[] pdf = CreateReaderDegradationCorpusPdf();
         PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(pdf, new PdfCore.PdfTextLayoutOptions {
@@ -958,6 +986,65 @@ public sealed class PdfConversionScenarioManifestTests {
             .Image(PdfPngTestImages.CreateRgbPng(3, 2), 48, 32, alternativeText: "Wide diagnostics badge")
             .Image(PdfPngTestImages.CreateRgbPng(2, 3), 32, 48, alternativeText: "Tall diagnostics badge")
             .ToBytes();
+    }
+
+    private static byte[] CreateCatalogActionsMultiPagePdf() {
+        string firstContent = string.Join("\n", new[] {
+            "BT",
+            "/F1 12 Tf",
+            "50 180 Td",
+            "(Catalog action page 1) Tj",
+            "ET"
+        });
+        string secondContent = string.Join("\n", new[] {
+            "BT",
+            "/F1 12 Tf",
+            "50 180 Td",
+            "(Catalog action page 2) Tj",
+            "ET"
+        });
+
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /Names << /JavaScript << /Names [(First) 7 0 R (Second) 8 0 R] >> >> >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 2 /Kids [3 0 R 4 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] /Resources << /Font << /F1 9 0 R >> >> /Contents 5 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] /Resources << /Font << /F1 9 0 R >> >> /Contents 6 0 R >>",
+            "endobj",
+            "5 0 obj",
+            "<< /Length " + Encoding.ASCII.GetByteCount(firstContent).ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>",
+            "stream",
+            firstContent,
+            "endstream",
+            "endobj",
+            "6 0 obj",
+            "<< /Length " + Encoding.ASCII.GetByteCount(secondContent).ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>",
+            "stream",
+            secondContent,
+            "endstream",
+            "endobj",
+            "7 0 obj",
+            "<< /S /JavaScript /JS (app.alert('first')) >>",
+            "endobj",
+            "8 0 obj",
+            "<< /S /JavaScript /JS (app.alert('second')) >>",
+            "endobj",
+            "9 0 obj",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 10 >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
     }
 
     private static byte[] CreateReaderDegradationCorpusPdf() {
