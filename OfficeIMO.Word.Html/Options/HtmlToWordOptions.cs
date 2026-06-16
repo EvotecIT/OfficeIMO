@@ -356,6 +356,7 @@ namespace OfficeIMO.Word.Html {
                 ResourceTimeout = ResourceTimeout,
                 MaxImageBytes = MaxImageBytes,
                 MaxTotalImageBytes = MaxTotalImageBytes,
+                MaxRemoteImageCandidateProbes = MaxRemoteImageCandidateProbes,
                 ValidateImageContentTypes = ValidateImageContentTypes,
                 ValidateStylesheetContentTypes = ValidateStylesheetContentTypes,
                 MaxHtmlNodes = MaxHtmlNodes,
