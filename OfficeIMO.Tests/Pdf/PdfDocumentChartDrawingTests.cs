@@ -420,7 +420,7 @@ public class PdfDocumentChartDrawingTests {
 
         Assert.Equal("12", positive);
         Assert.Equal("-12", negative);
-        Assert.Equal("zero0", zero);
+        Assert.Equal("0", zero);
     }
 
     [Fact]
