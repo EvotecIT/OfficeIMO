@@ -154,6 +154,41 @@ public class MarkdownSaveAsPdfOptionsTests {
         Assert.StartsWith("%PDF", Encoding.ASCII.GetString(bytes));
     }
 
+    [Fact]
+    public void LoadFromHtml_TableColSpansRespectExpandedColumnLimit() {
+        var html = new StringBuilder("<table><tr>");
+        for (int i = 0; i < 20; i++) {
+            html.Append("<td colspan=\"512\">x</td>");
+        }
+        html.Append("</tr></table>");
+
+        MarkdownDoc document = html.ToString().LoadFromHtml(new HtmlToMarkdownOptions {
+            MaxTableExpandedColumns = 32
+        });
+
+        var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
+        Assert.True(table.SkippedColumnCount > 0);
+        Assert.Equal(32, table.HeaderCells.Count);
+        Assert.Equal(32, table.HeaderCells[0].ColumnSpan);
+
+        byte[] bytes = document.ToPdfDocument(new MarkdownPdfSaveOptions()).ToBytes();
+        Assert.StartsWith("%PDF", Encoding.ASCII.GetString(bytes));
+    }
+
+    [Fact]
+    public void TableBlock_StructuredColSpansUseBoundedLogicalColumnCount() {
+        var table = new TableBlock();
+        var headerCells = new List<TableCell>();
+        for (int i = 0; i < 1000; i++) {
+            table.Headers.Add("x");
+            headerCells.Add(new TableCell { ColumnSpan = 512 });
+        }
+
+        table.SetStructuredCells(headerCells, rows: null, table.ComputeContentSignature());
+
+        Assert.Equal(TableBlock.MaxEffectiveColumnCount, table.HeaderCells.Count);
+    }
+
     private static IReadOnlyList<(double X, double Y, double W, double H)> ExtractFilledRectangles(string rawPdf, string colorOperator) {
         var rectangles = new List<(double X, double Y, double W, double H)>();
         string pattern = Regex.Escape(colorOperator) +

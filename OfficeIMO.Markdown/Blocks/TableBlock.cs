@@ -9,6 +9,8 @@ namespace OfficeIMO.Markdown;
 /// Pipe table with optional header row.
 /// </summary>
 public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdownBlock, IChildMarkdownBlockContainer {
+    internal const int MaxEffectiveColumnCount = 4096;
+
     private IReadOnlyList<TableCell>? _cachedHeaderCells;
     private IReadOnlyList<IReadOnlyList<TableCell>>? _cachedRowCells;
     private int? _cachedCellContentSignature;
@@ -187,9 +189,11 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
             sb.Append("<thead><tr>");
             int columnCount = GetEffectiveColumnCount();
             var preparedHeaders = PrepareRowCells(Headers, columnCount);
-            var preparedStructuredHeaders = PrepareStructuredRowCells(headerCells, columnCount);
+            var currentStructuredHeaders = GetCurrentStructuredHeaders();
+            var preparedStructuredHeaders = PrepareStructuredRowHtmlCells(currentStructuredHeaders, columnCount)
+                ?? PrepareStructuredRowCells(headerCells, columnCount);
             var preparedParsedHeaders = PrepareParsedRowCells(headerInlines, columnCount);
-            int headerRenderCount = GetHtmlRenderCellCount(preparedHeaders.Count, GetCurrentStructuredHeaders());
+            int headerRenderCount = GetHtmlRenderCellCount(preparedHeaders.Count, preparedStructuredHeaders);
             for (int i = 0; i < headerRenderCount; i++) {
                 var h = preparedHeaders[i];
                 var style = GetAlignment(i);
@@ -205,14 +209,14 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
         for (int rowIndex = 0; rowIndex < Rows.Count; rowIndex++) {
             var row = Rows[rowIndex];
             var cells = PrepareRowCells(row, bodyColumnCount);
-            var structuredCells = rowIndex < rowCells.Count
-                ? PrepareStructuredRowCells(rowCells[rowIndex], bodyColumnCount)
-                : null;
+            var currentStructuredRow = GetCurrentStructuredRow(rowIndex);
+            var structuredCells = PrepareStructuredRowHtmlCells(currentStructuredRow, bodyColumnCount)
+                ?? (rowIndex < rowCells.Count ? PrepareStructuredRowCells(rowCells[rowIndex], bodyColumnCount) : null);
             var parsedCells = rowIndex < rowInlines.Count
                 ? PrepareParsedRowCells(rowInlines[rowIndex], bodyColumnCount)
                 : null;
             sb.Append("<tr>");
-            int renderCellCount = GetHtmlRenderCellCount(cells.Count, GetCurrentStructuredRow(rowIndex));
+            int renderCellCount = GetHtmlRenderCellCount(cells.Count, structuredCells);
             for (int i = 0; i < renderCellCount; i++) {
                 var cell = cells[i];
                 var style = GetAlignment(i);

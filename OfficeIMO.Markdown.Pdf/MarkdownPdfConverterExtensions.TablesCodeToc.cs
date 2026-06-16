@@ -48,10 +48,11 @@ public static partial class MarkdownPdfConverterExtensions {
     }
 
     private static int GetMarkdownTableColumnCount(TableBlock table) {
-        int columnCount = Math.Max(table.Headers.Count, table.Rows.Count == 0 ? 0 : table.Rows.Max(row => row.Count));
-        columnCount = Math.Max(columnCount, table.Alignments.Count);
-        columnCount = Math.Max(columnCount, table.ColumnWidthPoints.Count);
-        columnCount = Math.Max(columnCount, table.ColumnWidthWeights.Count);
+        int rowColumnCount = table.Rows.Count == 0 ? 0 : table.Rows.Max(row => Math.Min(row.Count, TableBlock.MaxEffectiveColumnCount));
+        int columnCount = Math.Max(Math.Min(table.Headers.Count, TableBlock.MaxEffectiveColumnCount), rowColumnCount);
+        columnCount = Math.Max(columnCount, Math.Min(table.Alignments.Count, TableBlock.MaxEffectiveColumnCount));
+        columnCount = Math.Max(columnCount, Math.Min(table.ColumnWidthPoints.Count, TableBlock.MaxEffectiveColumnCount));
+        columnCount = Math.Max(columnCount, Math.Min(table.ColumnWidthWeights.Count, TableBlock.MaxEffectiveColumnCount));
         columnCount = Math.Max(columnCount, CountLogicalColumns(table.HeaderCells));
 
         IReadOnlyList<IReadOnlyList<TableCell>> rowCells = table.RowCells;
@@ -59,7 +60,7 @@ public static partial class MarkdownPdfConverterExtensions {
             columnCount = Math.Max(columnCount, CountLogicalColumns(rowCells[rowIndex]));
         }
 
-        return columnCount;
+        return Math.Min(columnCount, TableBlock.MaxEffectiveColumnCount);
     }
 
     private static int CountLogicalColumns(IReadOnlyList<TableCell> cells) {
@@ -67,6 +68,9 @@ public static partial class MarkdownPdfConverterExtensions {
         int meaningfulCount = GetMeaningfulCellCount(cells);
         for (int cellIndex = 0; cellIndex < meaningfulCount; cellIndex++) {
             count += Math.Max(1, cells[cellIndex]?.ColumnSpan ?? 1);
+            if (count >= TableBlock.MaxEffectiveColumnCount) {
+                return TableBlock.MaxEffectiveColumnCount;
+            }
         }
 
         return count;

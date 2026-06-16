@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using OfficeIMO.Markdown;
 using Xunit;
 
@@ -142,6 +144,58 @@ namespace OfficeIMO.Tests.MarkdownSuite {
                                     "</tbody></table>";
 
             Assert.Equal(expected, html);
+        }
+
+        [Fact]
+        public void TableBlock_RenderHtml_PreservesPhysicalCellsBeyondExpandedSpanLimit() {
+            var table = new TableBlock();
+            var row = new string[TableBlock.MaxEffectiveColumnCount + 1];
+            row[TableBlock.MaxEffectiveColumnCount] = "LastPhysicalCell";
+            table.Rows.Add(row);
+
+            var html = ((IMarkdownBlock)table).RenderHtml();
+
+            Assert.Contains("LastPhysicalCell", html);
+            Assert.Equal(TableBlock.MaxEffectiveColumnCount + 1, table.RowCells[0].Count);
+            Assert.Equal(0, table.SkippedColumnCount);
+        }
+
+        [Fact]
+        public void TableBlock_RenderHtml_ClampsStructuredColSpansToExpandedLimit() {
+            var table = new TableBlock();
+            var headerCells = new List<TableCell>();
+            for (int i = 0; i < 1000; i++) {
+                string text = i == 8 ? "Blocked" : $"Visible{i}";
+                table.Headers.Add(text);
+                headerCells.Add(CreateHeaderCell(text, columnSpan: 512));
+            }
+
+            table.SetStructuredCells(headerCells, rows: null, table.ComputeContentSignature());
+
+            var html = ((IMarkdownBlock)table).RenderHtml();
+
+            Assert.Equal(8, CountOccurrences(html, "colspan=\"512\""));
+            Assert.Contains("Visible7", html);
+            Assert.DoesNotContain("Blocked", html);
+        }
+
+        private static TableCell CreateHeaderCell(string text, int columnSpan) {
+            return new TableCell(new[] {
+                new ParagraphBlock(new InlineSequence().Text(text))
+            }) {
+                ColumnSpan = columnSpan
+            };
+        }
+
+        private static int CountOccurrences(string value, string search) {
+            int count = 0;
+            int index = 0;
+            while ((index = value.IndexOf(search, index, StringComparison.Ordinal)) >= 0) {
+                count++;
+                index += search.Length;
+            }
+
+            return count;
         }
     }
 }

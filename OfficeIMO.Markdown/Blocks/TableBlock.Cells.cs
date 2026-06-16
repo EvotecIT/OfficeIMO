@@ -288,7 +288,12 @@ public sealed partial class TableBlock {
 
         int columnCount = 0;
         for (int i = 0; i < row.Count; i++) {
-            columnCount += Math.Max(1, row[i]?.ColumnSpan ?? 1);
+            int columnSpan = Math.Max(1, row[i]?.ColumnSpan ?? 1);
+            if (columnSpan >= MaxEffectiveColumnCount - columnCount) {
+                return MaxEffectiveColumnCount;
+            }
+
+            columnCount += columnSpan;
         }
 
         return columnCount;
@@ -360,6 +365,32 @@ public sealed partial class TableBlock {
                 cells[i] = new TableCell();
             }
         }
+        return cells;
+    }
+
+    private static IReadOnlyList<TableCell>? PrepareStructuredRowHtmlCells(IReadOnlyList<TableCell>? row, int maxLogicalColumnCount) {
+        if (row == null) {
+            return null;
+        }
+
+        if (row.Count == 0 || maxLogicalColumnCount <= 0) {
+            return Array.Empty<TableCell>();
+        }
+
+        var cells = new List<TableCell>(Math.Min(row.Count, maxLogicalColumnCount));
+        int remainingColumns = maxLogicalColumnCount;
+        for (int i = 0; i < row.Count && remainingColumns > 0; i++) {
+            TableCell cell = CloneStructuredCell(row[i]);
+            int columnSpan = Math.Max(1, cell.ColumnSpan);
+            if (columnSpan > remainingColumns) {
+                cell.ColumnSpan = remainingColumns;
+                columnSpan = remainingColumns;
+            }
+
+            cells.Add(cell);
+            remainingColumns -= columnSpan;
+        }
+
         return cells;
     }
 
