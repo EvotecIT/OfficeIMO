@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
+using System;
 using System.Linq;
 using V = DocumentFormat.OpenXml.Vml;
 using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
@@ -60,13 +61,20 @@ namespace OfficeIMO.Word {
         }
 
         private static WordSection? FindSection(WordDocument document, Paragraph paragraph) {
+            WordSection? bodySection = FindBodySection(document, paragraph);
+            if (bodySection != null) {
+                return bodySection;
+            }
+
             var sectionProps = GetSectionPropertiesForElement(paragraph);
             if (sectionProps != null) {
                 foreach (var section in document.Sections) {
                     if (ReferenceEquals(section._sectionProperties, sectionProps)) {
                         return section;
                     }
+                }
 
+                foreach (var section in document.Sections) {
                     if (AreSectionsEquivalent(section._sectionProperties, sectionProps)) {
                         return section;
                     }
@@ -78,6 +86,41 @@ namespace OfficeIMO.Word {
             }
 
             return null;
+        }
+
+        private static WordSection? FindBodySection(WordDocument document, Paragraph paragraph) {
+            if (document.Sections.Count == 0) {
+                return null;
+            }
+
+            OpenXmlElement? bodyChild = GetBodyChildContainer(paragraph);
+            if (bodyChild?.Parent is not Body body) {
+                return null;
+            }
+
+            int sectionIndex = 0;
+            foreach (OpenXmlElement child in body.ChildElements) {
+                if (ReferenceEquals(child, bodyChild)) {
+                    return document.Sections[Math.Min(sectionIndex, document.Sections.Count - 1)];
+                }
+
+                if (child is Paragraph boundaryParagraph &&
+                    boundaryParagraph.ParagraphProperties?.SectionProperties != null &&
+                    sectionIndex < document.Sections.Count - 1) {
+                    sectionIndex++;
+                }
+            }
+
+            return null;
+        }
+
+        private static OpenXmlElement? GetBodyChildContainer(OpenXmlElement element) {
+            OpenXmlElement? current = element;
+            while (current != null && current.Parent is not Body) {
+                current = current.Parent;
+            }
+
+            return current;
         }
 
         private static WordHeader? FindHeader(WordDocument document, Header header) {

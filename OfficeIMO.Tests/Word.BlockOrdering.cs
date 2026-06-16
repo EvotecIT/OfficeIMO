@@ -89,10 +89,10 @@ namespace OfficeIMO.Tests {
                 document.AddSection();
 
                 document.Sections[0].AddParagraph("Late first section");
-                document.Sections[1].AddParagraph("Middle section");
+                WordParagraph middleParagraph = document.Sections[1].AddParagraph("Middle section");
                 document.Sections[1].AddTable(1, 1);
                 document.Sections[1].AddParagraph("Middle section tail");
-                document.Sections[2].AddParagraph("Last section");
+                WordParagraph lastParagraph = document.Sections[2].AddParagraph("Last section");
 
                 Body body = document._wordprocessingDocument!.MainDocumentPart!.Document.Body!;
                 List<OpenXmlElement> children = body.ChildElements.ToList();
@@ -125,9 +125,26 @@ namespace OfficeIMO.Tests {
                 Assert.DoesNotContain(document.Sections[0].Paragraphs, paragraph => paragraph.Text == "Middle section");
                 Assert.DoesNotContain(document.Sections[2].Paragraphs, paragraph => paragraph.Text == "Middle section");
                 Assert.Contains(document.Sections[1].Paragraphs, paragraph => paragraph.Text == "Middle section");
+                Assert.Same(document.Sections[1], middleParagraph.Parent);
+                Assert.Same(document.Sections[2], lastParagraph.Parent);
                 Assert.Empty(document.Sections[0].Tables);
                 Assert.Single(document.Sections[1].Tables);
                 Assert.Empty(document.Sections[2].Tables);
+            }
+        }
+
+        [Fact]
+        public void Test_DocumentLevelBlockInsertionRefreshesLastSectionParent() {
+            string filePath = Path.Combine(_directoryWithFiles, "DocumentLevelBlockInsertionParent.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddSection();
+
+                WordParagraph paragraph = document.AddParagraph("Last section paragraph");
+
+                Assert.Same(document.Sections[1], paragraph.Parent);
+                Assert.DoesNotContain(document.Sections[0].Paragraphs, item => item.Text == "Last section paragraph");
+                Assert.Contains(document.Sections[1].Paragraphs, item => item.Text == "Last section paragraph");
             }
         }
 
