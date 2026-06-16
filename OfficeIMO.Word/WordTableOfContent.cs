@@ -178,8 +178,7 @@ namespace OfficeIMO.Word {
             this.Style = style;
 
             if (appendToBody) {
-                var body = this._document._wordprocessingDocument?.MainDocumentPart?.Document?.Body;
-                body?.Append(_sdtBlock);
+                this._document.AppendBlockToBody(_sdtBlock);
             }
 
             if (minLevel.HasValue && maxLevel.HasValue) {

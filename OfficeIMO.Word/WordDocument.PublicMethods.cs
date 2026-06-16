@@ -23,7 +23,7 @@ namespace OfficeIMO.Word {
 
             WordParagraph.EnsureParagraphCanBeInserted(this, body, wordParagraph,
                 "append a paragraph to the document body");
-            body.AppendChild(wordParagraph._paragraph);
+            AppendBlockToBody(wordParagraph._paragraph);
             wordParagraph.RefreshParent();
             return wordParagraph;
         }
@@ -49,8 +49,7 @@ namespace OfficeIMO.Word {
             };
             newWordParagraph._paragraph = new Paragraph(newWordParagraph._run);
 
-            var body = _document.Body ?? throw new InvalidOperationException("Document body is missing.");
-            body.Append(newWordParagraph._paragraph);
+            AppendBlockToBody(newWordParagraph._paragraph);
             newWordParagraph.RefreshParent();
             return newWordParagraph;
         }
@@ -79,8 +78,7 @@ namespace OfficeIMO.Word {
             if (currentSection != null) {
                 currentSection.AppendParagraphToSection(newWordParagraph);
             } else {
-                var body = _document.Body ?? throw new InvalidOperationException("Document body is missing.");
-                body.Append(newWordParagraph._paragraph);
+                AppendBlockToBody(newWordParagraph._paragraph);
                 newWordParagraph.RefreshParent();
             }
             return newWordParagraph;
@@ -599,8 +597,7 @@ namespace OfficeIMO.Word {
             paragraph.Append(paragraphProperties);
 
 
-            var body = _document.Body ?? throw new InvalidOperationException("Document body is missing.");
-            body.Append(paragraph);
+            AppendBlockToBody(paragraph);
 
 
             WordSection wordSection = new WordSection(this, paragraph);
