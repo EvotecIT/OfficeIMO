@@ -440,7 +440,7 @@ namespace OfficeIMO.Word {
             int maxLevel = 3) {
             WordTableOfContent wordTableContent = new WordTableOfContent(this, tableOfContentStyle, minLevel, maxLevel);
             var body = _document.Body ?? throw new InvalidOperationException("Document body is missing.");
-            _tableOfContentIndex = body.ChildElements.Count - 1;
+            _tableOfContentIndex = body.ChildElements.ToList().IndexOf(wordTableContent.SdtBlock);
             _tableOfContentStyle = tableOfContentStyle;
             return wordTableContent;
         }
@@ -473,7 +473,7 @@ namespace OfficeIMO.Word {
                 body.InsertAt(block, index);
                 _tableOfContentIndex = index;
             } else {
-                _tableOfContentIndex = body.ChildElements.Count - 1;
+                _tableOfContentIndex = body.ChildElements.ToList().IndexOf(newToc.SdtBlock);
             }
             return newToc;
         }

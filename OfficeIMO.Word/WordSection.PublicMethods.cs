@@ -67,7 +67,7 @@ namespace OfficeIMO.Word {
             var body = _document._wordprocessingDocument?.MainDocumentPart?.Document?.Body
                 ?? throw new InvalidOperationException("Document body is missing.");
 
-            var insertBefore = GetNextSectionBoundaryElement();
+            var insertBefore = GetSectionBoundaryElement() ?? GetNextSectionBoundaryElement();
             if (insertBefore != null && insertBefore.Parent == body) {
                 body.InsertBefore(element, insertBefore);
                 return;

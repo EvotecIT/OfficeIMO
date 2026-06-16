@@ -80,6 +80,51 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void Test_SectionBlockInsertionUsesCurrentSectionBoundary() {
+            string filePath = Path.Combine(_directoryWithFiles, "EarlierSectionBlockInsertionOrder.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddSection();
+
+                document.Sections[0].AddParagraph("Late first section");
+                document.Sections[1].AddParagraph("Second section");
+
+                Body body = document._wordprocessingDocument!.MainDocumentPart!.Document.Body!;
+                List<OpenXmlElement> children = body.ChildElements.ToList();
+                int insertedIndex = children.FindIndex(element => element is Paragraph paragraph && paragraph.InnerText == "Late first section");
+                int firstSectionBoundaryIndex = children.FindIndex(element => element is Paragraph paragraph
+                    && paragraph.ParagraphProperties?.SectionProperties != null);
+
+                Assert.True(insertedIndex >= 0, "Inserted first-section paragraph should exist.");
+                Assert.True(firstSectionBoundaryIndex >= 0, "First section boundary paragraph should exist.");
+                Assert.True(insertedIndex < firstSectionBoundaryIndex, "Blocks appended to an earlier section must stay before that section's boundary.");
+                Assert.DoesNotContain(document.Sections[1].Paragraphs, paragraph => paragraph.Text == "Late first section");
+            }
+        }
+
+        [Fact]
+        public void Test_RegeneratingTableOfContentsPreservesOriginalBlockPosition() {
+            string filePath = Path.Combine(_directoryWithFiles, "RegenerateTocPreservesBlockOrder.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Intro");
+                document.AddTableOfContent();
+                document.AddParagraph("After TOC");
+
+                document.RegenerateTableOfContent();
+
+                Assert.Equal(
+                    new[] {
+                        "Paragraph:Intro",
+                        "SdtBlock",
+                        "Paragraph:After TOC"
+                    },
+                    GetTopLevelContentOrder(document));
+                AssertFinalSectionPropertiesRemainLast(document);
+            }
+        }
+
         private static IReadOnlyList<string> GetTopLevelContentOrder(WordDocument document) {
             Body body = document._wordprocessingDocument!.MainDocumentPart!.Document.Body!;
             return body.ChildElements
