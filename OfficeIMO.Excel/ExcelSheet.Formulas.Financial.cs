@@ -162,8 +162,9 @@ namespace OfficeIMO.Excel {
             }
 
             int period = 1;
+            int remainingCellBudget = MaxResolvedFormulaRangeCells;
             for (int index = 1; index < tokens.Count; index++) {
-                if (!TryResolveFormulaArgumentNumbers(tokens[index], out var values) || values.Count == 0) {
+                if (!TryResolveFormulaArgumentNumbers(tokens[index], out var values, ref remainingCellBudget) || values.Count == 0) {
                     return false;
                 }
 

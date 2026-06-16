@@ -27,7 +27,8 @@ namespace OfficeIMO.Excel {
                 || !TryResolveFormulaArgument(tokens[0], out var lookupValue)
                 || !TryGetWholeNumberArgument(tokens[2], out int resultIndex)
                 || !IsExactLookupMode(tokens[3])
-                || !TryResolveFormulaRangeReference(tokens[1], out ExcelSheet rangeSheet, out int r1, out int c1, out int r2, out int c2)) {
+                || !TryResolveFormulaRangeReference(tokens[1], out ExcelSheet rangeSheet, out int r1, out int c1, out int r2, out int c2)
+                || !TryGetFormulaRangeCellCount(r1, c1, r2, c2, out _)) {
                 return false;
             }
 
@@ -70,10 +71,11 @@ namespace OfficeIMO.Excel {
 
         private bool TryEvaluateXLookupValue(IReadOnlyList<string> tokens, out FormulaArgumentValue result) {
             result = default;
+            int remainingCellBudget = MaxResolvedFormulaRangeCells;
             if (tokens.Count < 3 || tokens.Count > 6
                 || !TryResolveFormulaArgument(tokens[0], out var lookupValue)
-                || !TryResolveFormulaRange(tokens[1], out var lookupValues)
-                || !TryResolveFormulaRange(tokens[2], out var returnValues)
+                || !TryResolveFormulaRange(tokens[1], out var lookupValues, ref remainingCellBudget)
+                || !TryResolveFormulaRange(tokens[2], out var returnValues, ref remainingCellBudget)
                 || lookupValues.Count != returnValues.Count) {
                 return false;
             }
@@ -118,8 +120,9 @@ namespace OfficeIMO.Excel {
             }
 
             var argumentSets = new List<List<double>>();
+            int remainingCellBudget = MaxResolvedFormulaRangeCells;
             foreach (string token in tokens) {
-                if (!TryResolveFormulaArgumentNumbers(token, out var values) || values.Count == 0) {
+                if (!TryResolveFormulaArgumentNumbers(token, out var values, ref remainingCellBudget) || values.Count == 0) {
                     return false;
                 }
 

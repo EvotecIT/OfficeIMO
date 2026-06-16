@@ -357,8 +357,9 @@ namespace OfficeIMO.Excel {
             }
 
             var values = new List<FormulaArgumentValue>();
+            int remainingCellBudget = MaxResolvedFormulaRangeCells;
             for (int index = 1; index < tokens.Count; index++) {
-                if (!TryResolveFormulaRange(tokens[index], out var rangeValues)) {
+                if (!TryResolveFormulaRange(tokens[index], out var rangeValues, ref remainingCellBudget)) {
                     return false;
                 }
 
@@ -403,15 +404,16 @@ namespace OfficeIMO.Excel {
         private bool TryEvaluateConditionalAggregate(string function, string args, out double result) {
             result = 0;
             var tokens = SplitFormulaArguments(args);
+            int remainingCellBudget = MaxResolvedFormulaRangeCells;
             if (tokens.Count < 2 || tokens.Count > 3
-                || !TryResolveFormulaRange(tokens[0], out var criteriaValues)
+                || !TryResolveFormulaRange(tokens[0], out var criteriaValues, ref remainingCellBudget)
                 || !TryParseCriteria(tokens[1], out var criteria)) {
                 return false;
             }
 
             var aggregateValues = criteriaValues;
             if (tokens.Count == 3) {
-                if (!TryResolveFormulaRange(tokens[2], out aggregateValues) || aggregateValues.Count != criteriaValues.Count) {
+                if (!TryResolveFormulaRange(tokens[2], out aggregateValues, ref remainingCellBudget) || aggregateValues.Count != criteriaValues.Count) {
                     return false;
                 }
             } else if (function == "AVERAGEIF") {
