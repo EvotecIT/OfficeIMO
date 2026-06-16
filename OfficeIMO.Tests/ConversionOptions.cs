@@ -101,6 +101,7 @@ public class ConversionOptionsTests {
         options.ResourceTimeout = TimeSpan.FromSeconds(7);
         options.MaxImageBytes = 11;
         options.MaxTotalImageBytes = 22;
+        options.MaxRemoteImageCandidateProbes = null;
         options.ValidateImageContentTypes = false;
         options.ValidateStylesheetContentTypes = false;
         options.MaxHtmlNodes = 33;
@@ -153,6 +154,7 @@ public class ConversionOptionsTests {
         Assert.Equal(options.ResourceTimeout, clone.ResourceTimeout);
         Assert.Equal(options.MaxImageBytes, clone.MaxImageBytes);
         Assert.Equal(options.MaxTotalImageBytes, clone.MaxTotalImageBytes);
+        Assert.Equal(options.MaxRemoteImageCandidateProbes, clone.MaxRemoteImageCandidateProbes);
         Assert.Equal(options.ValidateImageContentTypes, clone.ValidateImageContentTypes);
         Assert.Equal(options.ValidateStylesheetContentTypes, clone.ValidateStylesheetContentTypes);
         Assert.Equal(options.MaxHtmlNodes, clone.MaxHtmlNodes);
