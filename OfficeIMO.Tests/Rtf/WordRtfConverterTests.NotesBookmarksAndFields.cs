@@ -162,6 +162,38 @@ public partial class WordRtfConverterTests {
     }
 
     [Fact]
+    public void Word_To_Rtf_Bridge_Carries_Nested_ComplexFields() {
+        using WordDocument word = WordDocument.Create();
+        WordParagraph paragraph = word.AddParagraph();
+        paragraph._paragraph.Append(
+            FieldRun(FieldCharValues.Begin),
+            FieldCodeRun(@" IF 1 = 1 "),
+            FieldRun(FieldCharValues.Separate),
+            TextRun("Before "),
+            FieldRun(FieldCharValues.Begin),
+            FieldCodeRun(" PAGE "),
+            FieldRun(FieldCharValues.Separate),
+            TextRun("1"),
+            FieldRun(FieldCharValues.End),
+            TextRun(" After"),
+            FieldRun(FieldCharValues.End));
+
+        RtfDocument rtfDocument = word.ToRtfDocument();
+
+        RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
+        RtfField outerField = Assert.IsType<RtfField>(Assert.Single(rtfParagraph.Inlines));
+        Assert.Equal("IF 1 = 1", outerField.Instruction);
+        Assert.Collection(outerField.Result.Inlines,
+            inline => Assert.Equal("Before ", Assert.IsType<RtfRun>(inline).Text),
+            inline => {
+                RtfField nestedField = Assert.IsType<RtfField>(inline);
+                Assert.Equal("PAGE", nestedField.Instruction);
+                Assert.Equal("1", nestedField.ToPlainText());
+            },
+            inline => Assert.Equal(" After", Assert.IsType<RtfRun>(inline).Text));
+    }
+
+    [Fact]
     public void Rtf_To_Word_Bridge_Degrades_Generated_Text_To_Fields() {
         RtfDocument rtfDocument = RtfDocument.Create();
         RtfParagraph paragraph = rtfDocument.AddParagraph("Page ");
@@ -199,6 +231,18 @@ public partial class WordRtfConverterTests {
 
     private static string GetCellText(WordTable table, int rowIndex, int cellIndex) {
         return string.Concat(table.Rows[rowIndex].Cells[cellIndex].Paragraphs.Select(paragraph => paragraph.Text));
+    }
+
+    private static Run FieldRun(FieldCharValues value) {
+        return new Run(new FieldChar { FieldCharType = value });
+    }
+
+    private static Run FieldCodeRun(string instruction) {
+        return new Run(new FieldCode(instruction));
+    }
+
+    private static Run TextRun(string text) {
+        return new Run(new Text(text));
     }
 
     private static byte[] CreateOnePixelPng() {

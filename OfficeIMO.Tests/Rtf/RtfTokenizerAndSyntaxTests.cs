@@ -24,4 +24,13 @@ public class RtfTokenizerAndSyntaxTests {
         Assert.Contains(tree.Root.Children, node => node is RtfGroup);
         Assert.Contains(tree.Diagnostics, diagnostic => diagnostic.Code == "RTF013");
     }
+
+    [Fact]
+    public void SyntaxParser_Enforces_MaxDepth_Before_Recursive_Tree_Building() {
+        string rtf = @"{\rtf1" + new string('{', 32) + "Deep" + new string('}', 32) + "}";
+
+        RtfSyntaxTree tree = RtfSyntaxTree.Parse(rtf, maxDepth: 4);
+
+        Assert.Contains(tree.Diagnostics, diagnostic => diagnostic.Code == "RTF100");
+    }
 }

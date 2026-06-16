@@ -10,26 +10,35 @@ public static class RtfSyntaxParser {
     /// Parses RTF text into a syntax tree.
     /// </summary>
     public static RtfSyntaxTree Parse(string rtf) {
+        return Parse(rtf, RtfReadOptions.DefaultMaxDepth);
+    }
+
+    /// <summary>
+    /// Parses RTF text into a syntax tree while limiting nested group depth.
+    /// </summary>
+    public static RtfSyntaxTree Parse(string rtf, int maxDepth) {
         if (rtf == null) throw new ArgumentNullException(nameof(rtf));
         RtfTokenizeResult tokenized = RtfTokenizer.Tokenize(rtf);
         var diagnostics = new List<RtfDiagnostic>(tokenized.Diagnostics);
-        var parser = new Parser(tokenized.Tokens, diagnostics);
+        var parser = new Parser(tokenized.Tokens, diagnostics, maxDepth);
         return parser.Parse();
     }
 
     private sealed class Parser {
         private readonly IReadOnlyList<RtfToken> _tokens;
         private readonly List<RtfDiagnostic> _diagnostics;
+        private readonly int _maxDepth;
         private int _index;
 
-        public Parser(IReadOnlyList<RtfToken> tokens, List<RtfDiagnostic> diagnostics) {
+        public Parser(IReadOnlyList<RtfToken> tokens, List<RtfDiagnostic> diagnostics, int maxDepth) {
             _tokens = tokens;
             _diagnostics = diagnostics;
+            _maxDepth = maxDepth;
         }
 
         public RtfSyntaxTree Parse() {
             if (Current.Kind == RtfTokenKind.GroupStart) {
-                RtfGroup root = ParseGroup();
+                RtfGroup root = ParseGroup(depth: 0);
                 while (Current.Kind != RtfTokenKind.EndOfFile) {
                     if (Current.Kind == RtfTokenKind.GroupEnd) {
                         _diagnostics.Add(new RtfDiagnostic(RtfDiagnosticSeverity.Warning, "RTF010", "Ignoring unmatched closing brace after the root group.", Current.Position));
@@ -46,18 +55,24 @@ public static class RtfSyntaxParser {
             _diagnostics.Add(new RtfDiagnostic(RtfDiagnosticSeverity.Warning, "RTF012", "RTF input does not start with a group; a synthetic root group was created.", Current.Position));
             var children = new List<RtfNode>();
             while (Current.Kind != RtfTokenKind.EndOfFile) {
-                children.Add(ParseNode());
+                children.Add(ParseNode(depth: 0));
             }
 
             return new RtfSyntaxTree(new RtfGroup(0, children), _diagnostics.AsReadOnly());
         }
 
-        private RtfGroup ParseGroup() {
+        private RtfGroup ParseGroup(int depth) {
             int position = Current.Position;
             Expect(RtfTokenKind.GroupStart);
+            if (depth > _maxDepth) {
+                _diagnostics.Add(new RtfDiagnostic(RtfDiagnosticSeverity.Error, "RTF100", "Maximum RTF group depth was exceeded.", position));
+                SkipCurrentGroup(position);
+                return new RtfGroup(position, Array.Empty<RtfNode>());
+            }
+
             var children = new List<RtfNode>();
             while (Current.Kind != RtfTokenKind.EndOfFile && Current.Kind != RtfTokenKind.GroupEnd) {
-                children.Add(ParseNode());
+                children.Add(ParseNode(depth));
             }
 
             if (Current.Kind == RtfTokenKind.GroupEnd) {
@@ -69,11 +84,11 @@ public static class RtfSyntaxParser {
             return new RtfGroup(position, children);
         }
 
-        private RtfNode ParseNode() {
+        private RtfNode ParseNode(int depth) {
             RtfToken token = Current;
             switch (token.Kind) {
                 case RtfTokenKind.GroupStart:
-                    return ParseGroup();
+                    return ParseGroup(depth + 1);
                 case RtfTokenKind.GroupEnd:
                     _diagnostics.Add(new RtfDiagnostic(RtfDiagnosticSeverity.Warning, "RTF014", "Ignoring unmatched closing brace.", token.Position));
                     _index++;
@@ -93,6 +108,23 @@ public static class RtfSyntaxParser {
                 default:
                     _index++;
                     return new RtfText(token.Position, string.Empty, string.Empty);
+            }
+        }
+
+        private void SkipCurrentGroup(int position) {
+            int nestedGroups = 1;
+            while (Current.Kind != RtfTokenKind.EndOfFile && nestedGroups > 0) {
+                if (Current.Kind == RtfTokenKind.GroupStart) {
+                    nestedGroups++;
+                } else if (Current.Kind == RtfTokenKind.GroupEnd) {
+                    nestedGroups--;
+                }
+
+                _index++;
+            }
+
+            if (nestedGroups > 0) {
+                _diagnostics.Add(new RtfDiagnostic(RtfDiagnosticSeverity.Error, "RTF013", "RTF group was not closed before end of input.", position));
             }
         }
 

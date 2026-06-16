@@ -7,7 +7,7 @@ public sealed class RtfReadOptions {
     /// <summary>Default maximum nested group depth accepted by the parser.</summary>
     public const int DefaultMaxDepth = 512;
 
-    /// <summary>Maximum nested group depth accepted by the semantic binder.</summary>
+    /// <summary>Maximum nested group depth accepted by the syntax parser and semantic binder.</summary>
     public int MaxDepth { get; set; } = DefaultMaxDepth;
 
     /// <summary>Whether unsupported destinations should produce warning diagnostics.</summary>

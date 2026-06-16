@@ -138,7 +138,7 @@ public static partial class WordRtfConverterExtensions {
     private static void AppendFormattedRuns(WordParagraph wordParagraph, RtfParagraph paragraph, RtfDocument rtfDocument, Dictionary<string, int> revisionAuthorIndexes) {
         bool hasRuns = false;
         RtfRun? previousRun = null;
-        ComplexFieldCapture? complexField = null;
+        var complexFields = new Stack<ComplexFieldCapture>();
         var bookmarkNames = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (OpenXmlElement element in wordParagraph._paragraph.ChildElements) {
             switch (element) {
@@ -150,7 +150,7 @@ public static partial class WordRtfConverterExtensions {
                     paragraph.AddBookmarkEnd(bookmarkName);
                     break;
                 case Run runElement:
-                    if (TryAppendComplexFieldRun(wordParagraph, runElement, paragraph, rtfDocument, revisionAuthorIndexes, ref complexField)) {
+                    if (TryAppendComplexFieldRun(wordParagraph, runElement, paragraph, rtfDocument, revisionAuthorIndexes, complexFields)) {
                         previousRun = null;
                         hasRuns = true;
                         break;
@@ -195,25 +195,31 @@ public static partial class WordRtfConverterExtensions {
         AppendWordComments(wordParagraph, paragraph, rtfDocument, revisionAuthorIndexes);
     }
 
-    private static bool TryAppendComplexFieldRun(WordParagraph wordParagraph, Run runElement, RtfParagraph paragraph, RtfDocument rtfDocument, Dictionary<string, int> revisionAuthorIndexes, ref ComplexFieldCapture? capture) {
+    private static bool TryAppendComplexFieldRun(WordParagraph wordParagraph, Run runElement, RtfParagraph paragraph, RtfDocument rtfDocument, Dictionary<string, int> revisionAuthorIndexes, Stack<ComplexFieldCapture> captures) {
         FieldChar? fieldChar = runElement.Elements<FieldChar>().FirstOrDefault();
         if (fieldChar?.FieldCharType?.Value == FieldCharValues.Begin) {
-            capture = new ComplexFieldCapture();
+            captures.Push(new ComplexFieldCapture());
             return true;
         }
 
-        if (capture == null) {
+        if (captures.Count == 0) {
             return false;
         }
 
+        ComplexFieldCapture capture = captures.Peek();
         if (fieldChar?.FieldCharType?.Value == FieldCharValues.Separate) {
             capture.CapturingResult = true;
             return true;
         }
 
         if (fieldChar?.FieldCharType?.Value == FieldCharValues.End) {
-            CompleteComplexField(paragraph, capture);
-            capture = null;
+            captures.Pop();
+            if (captures.Count == 0) {
+                CompleteComplexField(paragraph, capture);
+            } else {
+                CompleteNestedComplexField(captures.Peek(), capture);
+            }
+
             return true;
         }
 
@@ -236,6 +242,17 @@ public static partial class WordRtfConverterExtensions {
     private static void CompleteComplexField(RtfParagraph paragraph, ComplexFieldCapture capture) {
         RtfField field = paragraph.AddField(capture.Instruction.ToString().Trim());
         CopyInlines(capture.Result, field.Result);
+    }
+
+    private static void CompleteNestedComplexField(ComplexFieldCapture parent, ComplexFieldCapture nested) {
+        if (!parent.CapturingResult) {
+            parent.Instruction.Append(nested.Instruction.ToString().Trim());
+            return;
+        }
+
+        RtfField field = parent.Result.AddField(nested.Instruction.ToString().Trim());
+        CopyInlines(nested.Result, field.Result);
+        parent.PreviousRun = null;
     }
 
     private static void CopyInlines(RtfParagraph source, RtfParagraph destination) {

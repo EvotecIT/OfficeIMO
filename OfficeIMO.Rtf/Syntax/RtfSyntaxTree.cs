@@ -23,6 +23,11 @@ public sealed class RtfSyntaxTree {
     public static RtfSyntaxTree Parse(string rtf) => RtfSyntaxParser.Parse(rtf);
 
     /// <summary>
+    /// Parses RTF content into a syntax tree while limiting nested group depth.
+    /// </summary>
+    public static RtfSyntaxTree Parse(string rtf, int maxDepth) => RtfSyntaxParser.Parse(rtf, maxDepth);
+
+    /// <summary>
     /// Serializes the original syntax tree without semantic normalization.
     /// </summary>
     public string ToRtf() => RtfSyntaxWriter.Write(this);

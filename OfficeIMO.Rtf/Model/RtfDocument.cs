@@ -100,8 +100,9 @@ public sealed partial class RtfDocument {
     /// <summary>Reads RTF from a string.</summary>
     public static RtfReadResult Read(string rtf, RtfReadOptions? options = null) {
         if (rtf == null) throw new ArgumentNullException(nameof(rtf));
-        RtfSyntaxTree tree = RtfSyntaxTree.Parse(rtf);
-        return RtfSemanticReader.Read(tree, options ?? new RtfReadOptions());
+        RtfReadOptions readOptions = options ?? new RtfReadOptions();
+        RtfSyntaxTree tree = RtfSyntaxTree.Parse(rtf, readOptions.MaxDepth);
+        return RtfSemanticReader.Read(tree, readOptions);
     }
 
     /// <summary>Loads RTF from a file.</summary>
