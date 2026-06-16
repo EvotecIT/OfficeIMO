@@ -201,6 +201,45 @@ namespace OfficeIMO.Tests {
             Assert.Contains(VisioDocument.MaxCommentTextCharacters.ToString(), exception.Message);
         }
 
+        [Fact]
+        public void SaveRejectsTooManyNativeComments() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("Review", 11, 8.5);
+            for (int index = 0; index <= VisioDocument.MaxLoadedComments; index++) {
+                page.Comments.Add(new VisioComment("Comment " + index.ToString()) {
+                    AuthorName = "Operations",
+                    AuthorInitials = "OP"
+                });
+            }
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() => document.Save());
+            Assert.Contains(VisioDocument.MaxLoadedComments.ToString(), exception.Message);
+        }
+
+        [Fact]
+        public void SaveRejectsOversizedNativeCommentText() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("Review", 11, 8.5);
+            page.AddComment(new string('x', VisioDocument.MaxCommentTextCharacters + 1), "Operations", "OP");
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() => document.Save());
+            Assert.Contains(VisioDocument.MaxCommentTextCharacters.ToString(), exception.Message);
+        }
+
+        [Fact]
+        public void SaveRejectsCommentsPartThatExceedsUtf8ByteLimit() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("Review", 11, 8.5);
+            VisioComment comment = page.AddComment("Byte budget", "Operations", "OP");
+            comment.AuthorName = new string('\u20ac', checked((int)(VisioDocument.MaxCommentsPartBytes / 3L + 1024L)));
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() => document.Save());
+            Assert.Contains(VisioDocument.MaxCommentsPartBytes.ToString(), exception.Message);
+        }
+
         private static void AssertNativeCommentPackage(
             string filePath,
             string expectedText,
