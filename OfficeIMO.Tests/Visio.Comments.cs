@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Text;
 using System.Xml.Linq;
 using OfficeIMO.Visio;
 using OfficeIMO.Visio.Fluent;
@@ -170,6 +172,35 @@ namespace OfficeIMO.Tests {
             AssertCommentXml(fluentPath, "Follow-up resolved", done: true, expectedEdited: finalResolvedAt);
         }
 
+        [Fact]
+        public void LoadRejectsCommentsPartWithTooMuchXml() {
+            string filePath = CreateDocumentWithComment();
+            string oversizedCommentText = new('x', checked((int)VisioDocument.MaxCommentsXmlCharacters));
+            ReplaceCommentsXml(filePath, CreateCommentsXml(oversizedCommentText));
+
+            Assert.ThrowsAny<System.Xml.XmlException>(() => VisioDocument.Load(filePath));
+        }
+
+        [Fact]
+        public void LoadRejectsTooManyNativeComments() {
+            string filePath = CreateDocumentWithComment();
+            ReplaceCommentsXml(filePath, CreateCommentsXml(Enumerable.Range(0, VisioDocument.MaxLoadedComments + 1)
+                .Select(index => "Comment " + index.ToString())));
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() => VisioDocument.Load(filePath));
+            Assert.Contains(VisioDocument.MaxLoadedComments.ToString(), exception.Message);
+        }
+
+        [Fact]
+        public void LoadRejectsOversizedNativeCommentText() {
+            string filePath = CreateDocumentWithComment();
+            string oversizedCommentText = new('x', VisioDocument.MaxCommentTextCharacters + 1);
+            ReplaceCommentsXml(filePath, CreateCommentsXml(oversizedCommentText));
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() => VisioDocument.Load(filePath));
+            Assert.Contains(VisioDocument.MaxCommentTextCharacters.ToString(), exception.Message);
+        }
+
         private static void AssertNativeCommentPackage(
             string filePath,
             string expectedText,
@@ -242,6 +273,49 @@ namespace OfficeIMO.Tests {
             XNamespace v = "http://schemas.microsoft.com/office/visio/2012/main";
             XDocument comments = ReadXml(archive, "visio/comments.xml");
             Assert.DoesNotContain(comments.Descendants(v + "CommentEntry"), entry => entry.Value == text);
+        }
+
+        private static string CreateDocumentWithComment() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("Review", 11, 8.5);
+            page.AddComment("Initial comment", "Operations", "OP");
+            document.Save();
+            return filePath;
+        }
+
+        private static void ReplaceCommentsXml(string filePath, string commentsXml) {
+            using ZipArchive archive = ZipFile.Open(filePath, ZipArchiveMode.Update);
+            ZipArchiveEntry entry = archive.GetEntry("visio/comments.xml") ?? throw new InvalidOperationException("Missing comments part.");
+            entry.Delete();
+            ZipArchiveEntry replacement = archive.CreateEntry("visio/comments.xml", CompressionLevel.Optimal);
+            using Stream stream = replacement.Open();
+            using StreamWriter writer = new(stream, new UTF8Encoding(false));
+            writer.Write(commentsXml);
+        }
+
+        private static string CreateCommentsXml(string commentText) {
+            return CreateCommentsXml(new[] { commentText });
+        }
+
+        private static string CreateCommentsXml(IEnumerable<string> commentTexts) {
+            XNamespace v = "http://schemas.microsoft.com/office/visio/2012/main";
+            int id = 1;
+            XDocument comments = new(new XElement(v + "Comments",
+                new XAttribute("xmlns", v.NamespaceName),
+                new XElement(v + "AuthorList",
+                    new XElement(v + "AuthorEntry",
+                        new XAttribute("ID", "1"),
+                        new XAttribute("Name", "Operations"),
+                        new XAttribute("Initials", "OP"))),
+                new XElement(v + "CommentList",
+                    commentTexts.Select(text => new XElement(v + "CommentEntry",
+                        new XAttribute("IX", id++),
+                        new XAttribute("AuthorID", "1"),
+                        new XAttribute("PageID", "0"),
+                        text)))));
+
+            return comments.ToString(SaveOptions.DisableFormatting);
         }
 
         private static string FormatExpectedDate(DateTimeOffset value) {
