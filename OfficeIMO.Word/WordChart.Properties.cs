@@ -42,9 +42,22 @@ namespace OfficeIMO.Word {
                 if (_drawing == null) {
                     return null;
                 }
+
                 var chartRef = _drawing.Inline?.Graphic?.GraphicData?.GetFirstChild<ChartReference>();
-                var id = chartRef?.Id?.Value;
-                return id != null ? (ChartPart?)_document.MainDocumentPartRoot.GetPartById(id) : null;
+                string? id = chartRef?.Id?.Value;
+                if (string.IsNullOrWhiteSpace(id)) {
+                    return null;
+                }
+
+                try {
+                    return _document.MainDocumentPartRoot.GetPartById(id) as ChartPart;
+                } catch (System.ArgumentOutOfRangeException) {
+                    return null;
+                } catch (System.InvalidOperationException) {
+                    return null;
+                } catch (OpenXmlPackageException) {
+                    return null;
+                }
             }
         }
         private WordDrawing? _drawing;
