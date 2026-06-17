@@ -121,8 +121,7 @@ public sealed class OfficeMarkupWordExporter {
     }
 
     private static void AddImage(WordExportContext context, OfficeMarkupImageBlock image) {
-        var path = ResolvePath(context.Options, image.Source);
-        if (!File.Exists(path)) {
+        if (!TryResolveImagePath(context.Options, image.Source, out var path) || !File.Exists(path)) {
             if (context.Options.IncludeUnsupportedBlocksAsText) {
                 context.AddParagraph($"Image: {image.Source}");
             }
@@ -304,12 +303,56 @@ public sealed class OfficeMarkupWordExporter {
         return new ChartData(categories, series);
     }
 
-    private static string ResolvePath(OfficeMarkupWordExportOptions options, string source) {
-        if (Path.IsPathRooted(source) || string.IsNullOrWhiteSpace(options.BaseDirectory)) {
-            return source;
+    private static bool TryResolveImagePath(OfficeMarkupWordExportOptions options, string source, out string path) {
+        path = string.Empty;
+        if (string.IsNullOrWhiteSpace(source)) {
+            return false;
         }
 
-        return Path.Combine(options.BaseDirectory!, source);
+        string candidate = source;
+        if (Uri.TryCreate(source, UriKind.Absolute, out var uri)) {
+            if (!uri.IsFile) {
+                return false;
+            }
+
+            candidate = uri.LocalPath;
+        }
+
+        return TryResolveLocalPath(options.BaseDirectory, candidate, options.AllowExternalImagePaths, out path);
+    }
+
+    private static bool TryResolveLocalPath(string? baseDirectory, string source, bool allowExternalPaths, out string path) {
+        path = string.Empty;
+        try {
+            bool hasBaseDirectory = !string.IsNullOrWhiteSpace(baseDirectory);
+            if (!hasBaseDirectory && Path.IsPathRooted(source) && !allowExternalPaths) {
+                return false;
+            }
+
+            string candidate = Path.IsPathRooted(source) || !hasBaseDirectory
+                ? source
+                : Path.Combine(baseDirectory!, source);
+            string fullPath = Path.GetFullPath(candidate);
+            if (hasBaseDirectory && !allowExternalPaths && !IsPathWithinDirectory(fullPath, Path.GetFullPath(baseDirectory!))) {
+                return false;
+            }
+
+            path = fullPath;
+            return true;
+        } catch (ArgumentException) {
+            return false;
+        } catch (NotSupportedException) {
+            return false;
+        } catch (PathTooLongException) {
+            return false;
+        }
+    }
+
+    private static bool IsPathWithinDirectory(string path, string directory) {
+        string normalizedDirectory = directory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+            + Path.DirectorySeparatorChar;
+        string normalizedPath = path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        return normalizedPath.StartsWith(normalizedDirectory, StringComparison.OrdinalIgnoreCase);
     }
 
     private static int? GetInt(IDictionary<string, string> attributes, string name) {
