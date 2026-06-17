@@ -8,8 +8,15 @@ public static class HtmlSrcSetParser {
     /// Parses a <c>srcset</c> value while preserving candidate descriptors.
     /// </summary>
     public static IReadOnlyList<HtmlSrcSetCandidate> Parse(string? srcSet) {
+        return Parse(srcSet, null);
+    }
+
+    /// <summary>
+    /// Parses a <c>srcset</c> value while preserving candidate descriptors, stopping after the requested number of candidates.
+    /// </summary>
+    public static IReadOnlyList<HtmlSrcSetCandidate> Parse(string? srcSet, int? maxCandidates) {
         var candidates = new List<HtmlSrcSetCandidate>();
-        if (string.IsNullOrWhiteSpace(srcSet)) {
+        if (string.IsNullOrWhiteSpace(srcSet) || IsNonPositiveCandidateLimit(maxCandidates)) {
             return candidates;
         }
 
@@ -42,6 +49,10 @@ public static class HtmlSrcSetParser {
 
             if (trailingCommaCount > 0) {
                 candidates.Add(new HtmlSrcSetCandidate(url, string.Empty));
+                if (HasReachedCandidateLimit(candidates.Count, maxCandidates)) {
+                    break;
+                }
+
                 continue;
             }
 
@@ -58,9 +69,20 @@ public static class HtmlSrcSetParser {
             }
 
             candidates.Add(new HtmlSrcSetCandidate(url, descriptor));
+            if (HasReachedCandidateLimit(candidates.Count, maxCandidates)) {
+                break;
+            }
         }
 
         return candidates;
+    }
+
+    private static bool HasReachedCandidateLimit(int count, int? maxCandidates) {
+        return maxCandidates.HasValue && count >= maxCandidates.Value;
+    }
+
+    private static bool IsNonPositiveCandidateLimit(int? maxCandidates) {
+        return maxCandidates.HasValue && maxCandidates.Value <= 0;
     }
 
     private static bool IsCandidateSeparator(string value, int urlStart, int index) {

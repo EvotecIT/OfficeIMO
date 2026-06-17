@@ -32,6 +32,7 @@ public class ConversionOptionsTests {
         Assert.Equal(16384, options.MaxTotalCssBytes);
         Assert.Equal(10000, options.MaxTableCells);
         Assert.Equal(ImageProcessingMode.EmbedDataUriOnly, options.ImageProcessing);
+        Assert.Equal(32, options.MaxImageSourceCandidates);
         Assert.False(options.AllowDocumentStylesheetLinks);
         Assert.True(options.ValidateImageContentTypes);
         Assert.Contains("image/png", options.AllowedImageContentTypes);
@@ -116,6 +117,7 @@ public class ConversionOptionsTests {
         options.MaxImageBytes = 11;
         options.MaxTotalImageBytes = 22;
         options.MaxRemoteImageCandidateProbes = null;
+        options.MaxImageSourceCandidates = 12;
         options.ValidateImageContentTypes = false;
         options.ValidateStylesheetContentTypes = false;
         options.MaxHtmlNodes = 33;
@@ -169,6 +171,7 @@ public class ConversionOptionsTests {
         Assert.Equal(options.MaxImageBytes, clone.MaxImageBytes);
         Assert.Equal(options.MaxTotalImageBytes, clone.MaxTotalImageBytes);
         Assert.Equal(options.MaxRemoteImageCandidateProbes, clone.MaxRemoteImageCandidateProbes);
+        Assert.Equal(options.MaxImageSourceCandidates, clone.MaxImageSourceCandidates);
         Assert.Equal(options.ValidateImageContentTypes, clone.ValidateImageContentTypes);
         Assert.Equal(options.ValidateStylesheetContentTypes, clone.ValidateStylesheetContentTypes);
         Assert.Equal(options.MaxHtmlNodes, clone.MaxHtmlNodes);

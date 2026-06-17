@@ -26,22 +26,30 @@ public static class HtmlImageSourceResolver {
     /// Resolves all image source candidates from an element in browser-like preference order.
     /// </summary>
     public static IReadOnlyList<string> ResolveImageSourceCandidates(IElement element, Uri? baseUri, HtmlUrlPolicy? policy, bool allowParentPictureFallback = true) {
-        var candidates = new List<string>();
+        return ResolveImageSourceCandidates(element, baseUri, policy, allowParentPictureFallback, null);
+    }
+
+    /// <summary>
+    /// Resolves image source candidates from an element in browser-like preference order, limiting responsive candidates from picture/source-set inputs.
+    /// </summary>
+    public static IReadOnlyList<string> ResolveImageSourceCandidates(IElement element, Uri? baseUri, HtmlUrlPolicy? policy, bool allowParentPictureFallback, int? maxResponsiveCandidates) {
+        var candidates = new CandidateAccumulator();
         if (element == null) {
-            return candidates;
+            return candidates.Items;
         }
 
+        int responsiveCandidateCount = 0;
         if (allowParentPictureFallback
             && element.ParentElement != null
             && element.ParentElement.TagName.Equals("PICTURE", StringComparison.OrdinalIgnoreCase)) {
-            AddRange(candidates, ResolvePictureSourceCandidates(element.ParentElement, baseUri, policy));
+            AddPictureSourceCandidates(candidates, element.ParentElement, baseUri, policy, maxResponsiveCandidates, ref responsiveCandidateCount);
         }
 
         AddResolvedUrlAttributes(candidates, element, baseUri, policy, LazySourceAttributes);
-        AddResolvedSrcSetAttributes(candidates, element, baseUri, policy, SrcSetAttributes);
+        AddResolvedSrcSetAttributes(candidates, element, baseUri, policy, maxResponsiveCandidates, ref responsiveCandidateCount, SrcSetAttributes);
         AddResolvedUrlAttributes(candidates, element, baseUri, policy, SourceAttributes);
 
-        return candidates;
+        return candidates.Items;
     }
 
     /// <summary>
@@ -59,21 +67,34 @@ public static class HtmlImageSourceResolver {
     /// Resolves all source candidates from a <c>picture</c> element.
     /// </summary>
     public static IReadOnlyList<string> ResolvePictureSourceCandidates(IElement pictureElement, Uri? baseUri, HtmlUrlPolicy? policy) {
-        var candidates = new List<string>();
+        return ResolvePictureSourceCandidates(pictureElement, baseUri, policy, null);
+    }
+
+    /// <summary>
+    /// Resolves source candidates from a <c>picture</c> element, stopping after the requested number of responsive candidates.
+    /// </summary>
+    public static IReadOnlyList<string> ResolvePictureSourceCandidates(IElement pictureElement, Uri? baseUri, HtmlUrlPolicy? policy, int? maxCandidates) {
+        var candidates = new CandidateAccumulator();
         if (pictureElement == null) {
-            return candidates;
+            return candidates.Items;
         }
 
+        int candidateCount = 0;
+        AddPictureSourceCandidates(candidates, pictureElement, baseUri, policy, maxCandidates, ref candidateCount);
+        return candidates.Items;
+    }
+
+    private static void AddPictureSourceCandidates(CandidateAccumulator candidates, IElement pictureElement, Uri? baseUri, HtmlUrlPolicy? policy, int? maxCandidates, ref int candidateCount) {
         foreach (var child in pictureElement.Children) {
             if (!child.TagName.Equals("SOURCE", StringComparison.OrdinalIgnoreCase)) {
                 continue;
             }
 
-            AddResolvedSrcSetAttributes(candidates, child, baseUri, policy, SrcSetAttributes);
-            AddResolvedUrlAttributes(candidates, child, baseUri, policy, PictureSourceAttributes);
+            if (!AddResolvedSrcSetAttributes(candidates, child, baseUri, policy, maxCandidates, ref candidateCount, SrcSetAttributes)
+                || !AddResolvedUrlAttributes(candidates, child, baseUri, policy, maxCandidates, ref candidateCount, PictureSourceAttributes)) {
+                return;
+            }
         }
-
-        return candidates;
     }
 
     /// <summary>
@@ -106,12 +127,19 @@ public static class HtmlImageSourceResolver {
     /// Resolves all allowed candidates from a <c>srcset</c> value.
     /// </summary>
     public static IReadOnlyList<HtmlSrcSetCandidate> ResolveSrcSetCandidates(string? rawSrcSet, Uri? baseUri, HtmlUrlPolicy? policy) {
+        return ResolveSrcSetCandidates(rawSrcSet, baseUri, policy, null);
+    }
+
+    /// <summary>
+    /// Resolves allowed candidates from a <c>srcset</c> value, stopping after the requested number of parsed candidates.
+    /// </summary>
+    public static IReadOnlyList<HtmlSrcSetCandidate> ResolveSrcSetCandidates(string? rawSrcSet, Uri? baseUri, HtmlUrlPolicy? policy, int? maxCandidates) {
         var candidates = new List<HtmlSrcSetCandidate>();
-        if (string.IsNullOrWhiteSpace(rawSrcSet)) {
+        if (string.IsNullOrWhiteSpace(rawSrcSet) || IsNonPositiveCandidateLimit(maxCandidates)) {
             return candidates;
         }
 
-        foreach (HtmlSrcSetCandidate candidate in HtmlSrcSetParser.Parse(rawSrcSet)) {
+        foreach (HtmlSrcSetCandidate candidate in HtmlSrcSetParser.Parse(rawSrcSet, maxCandidates)) {
             string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(candidate.Url, baseUri, policy);
             if (!string.IsNullOrWhiteSpace(resolved)) {
                 candidates.Add(new HtmlSrcSetCandidate(resolved, candidate.Descriptor));
@@ -193,46 +221,90 @@ public static class HtmlImageSourceResolver {
         return new HtmlSrcSetCandidate(string.Empty, string.Empty);
     }
 
-    private static void AddResolvedSrcSetAttributes(List<string> candidates, IElement element, Uri? baseUri, HtmlUrlPolicy? policy, params string[] attributeNames) {
+    private static void AddResolvedSrcSetAttributes(CandidateAccumulator candidates, IElement element, Uri? baseUri, HtmlUrlPolicy? policy, params string[] attributeNames) {
+        int candidateCount = 0;
+        AddResolvedSrcSetAttributes(candidates, element, baseUri, policy, null, ref candidateCount, attributeNames);
+    }
+
+    private static bool AddResolvedSrcSetAttributes(CandidateAccumulator candidates, IElement element, Uri? baseUri, HtmlUrlPolicy? policy, int? maxCandidates, ref int candidateCount, params string[] attributeNames) {
         if (element == null || attributeNames == null || attributeNames.Length == 0) {
-            return;
+            return true;
         }
 
         for (int i = 0; i < attributeNames.Length; i++) {
-            foreach (HtmlSrcSetCandidate candidate in ResolveSrcSetCandidates(element.GetAttribute(attributeNames[i]), baseUri, policy)) {
+            int? remaining = GetRemainingCandidateCount(maxCandidates, candidateCount);
+            if (IsNonPositiveCandidateLimit(remaining)) {
+                return false;
+            }
+
+            foreach (HtmlSrcSetCandidate candidate in ResolveSrcSetCandidates(element.GetAttribute(attributeNames[i]), baseUri, policy, remaining)) {
+                candidateCount++;
                 AddCandidate(candidates, candidate.Url);
+                if (IsNonPositiveCandidateLimit(GetRemainingCandidateCount(maxCandidates, candidateCount))) {
+                    return false;
+                }
             }
         }
+
+        return true;
     }
 
-    private static void AddResolvedUrlAttributes(List<string> candidates, IElement element, Uri? baseUri, HtmlUrlPolicy? policy, params string[] attributeNames) {
+    private static void AddResolvedUrlAttributes(CandidateAccumulator candidates, IElement element, Uri? baseUri, HtmlUrlPolicy? policy, params string[] attributeNames) {
+        int candidateCount = 0;
+        AddResolvedUrlAttributes(candidates, element, baseUri, policy, null, ref candidateCount, attributeNames);
+    }
+
+    private static bool AddResolvedUrlAttributes(CandidateAccumulator candidates, IElement element, Uri? baseUri, HtmlUrlPolicy? policy, int? maxCandidates, ref int candidateCount, params string[] attributeNames) {
         if (element == null || attributeNames == null || attributeNames.Length == 0) {
-            return;
+            return true;
         }
 
         for (int i = 0; i < attributeNames.Length; i++) {
-            AddCandidate(candidates, HtmlUrlPolicyEvaluator.ResolveUrl(element.GetAttribute(attributeNames[i]), baseUri, policy));
+            if (IsNonPositiveCandidateLimit(GetRemainingCandidateCount(maxCandidates, candidateCount))) {
+                return false;
+            }
+
+            string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(element.GetAttribute(attributeNames[i]), baseUri, policy);
+            if (!string.IsNullOrWhiteSpace(resolved)) {
+                candidateCount++;
+                AddCandidate(candidates, resolved);
+            }
         }
+
+        return true;
     }
 
-    private static void AddRange(List<string> candidates, IEnumerable<string> sourceItems) {
-        if (sourceItems == null) {
-            return;
+    private static int? GetRemainingCandidateCount(int? maxCandidates, int candidateCount) {
+        if (!maxCandidates.HasValue) {
+            return null;
         }
 
-        foreach (string source in sourceItems) {
-            AddCandidate(candidates, source);
-        }
+        return Math.Max(0, maxCandidates.Value - candidateCount);
     }
 
-    private static void AddCandidate(List<string> candidates, string? source) {
-        if (string.IsNullOrWhiteSpace(source)) {
-            return;
-        }
+    private static bool IsNonPositiveCandidateLimit(int? maxCandidates) {
+        return maxCandidates.HasValue && maxCandidates.Value <= 0;
+    }
 
-        string candidate = source!;
-        if (!candidates.Contains(candidate)) {
-            candidates.Add(candidate);
+    private static void AddCandidate(CandidateAccumulator candidates, string? source) {
+        candidates.Add(source);
+    }
+
+    private sealed class CandidateAccumulator {
+        private readonly List<string> _items = new List<string>();
+        private readonly HashSet<string> _seen = new HashSet<string>(StringComparer.Ordinal);
+
+        internal IReadOnlyList<string> Items => _items;
+
+        internal void Add(string? source) {
+            if (string.IsNullOrWhiteSpace(source)) {
+                return;
+            }
+
+            string candidate = source!;
+            if (_seen.Add(candidate)) {
+                _items.Add(candidate);
+            }
         }
     }
 }

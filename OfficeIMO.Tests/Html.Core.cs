@@ -112,6 +112,42 @@ public sealed class HtmlCoreTests {
     }
 
     [Fact]
+    public void HtmlImageSourceResolver_LimitsResponsiveCandidatesAndKeepsImageFallback() {
+        var document = HtmlDocumentParser.ParseDocument("""
+<picture>
+  <source srcset="media/one.webp 1x, media/two.webp 2x, media/three.webp 3x">
+  <img src="media/fallback.png" srcset="media/four.webp 4x" alt="Hero">
+</picture>
+""");
+        var image = document.QuerySelector("img")!;
+
+        IReadOnlyList<string> candidates = HtmlImageSourceResolver.ResolveImageSourceCandidates(
+            image,
+            new Uri("https://example.test/gallery/"),
+            HtmlUrlPolicy.CreateOfficeIMOProfile(),
+            allowParentPictureFallback: true,
+            maxResponsiveCandidates: 2);
+
+        Assert.Collection(
+            candidates,
+            source => Assert.Equal("https://example.test/gallery/media/one.webp", source),
+            source => Assert.Equal("https://example.test/gallery/media/two.webp", source),
+            source => Assert.Equal("https://example.test/gallery/media/fallback.png", source));
+    }
+
+    [Fact]
+    public void HtmlSrcSetParser_CanLimitCandidateExpansion() {
+        IReadOnlyList<HtmlSrcSetCandidate> candidates = HtmlSrcSetParser.Parse(
+            "one.png 1x, two.png 2x, three.png 3x",
+            maxCandidates: 2);
+
+        Assert.Collection(
+            candidates,
+            candidate => Assert.Equal("one.png", candidate.Url),
+            candidate => Assert.Equal("two.png", candidate.Url));
+    }
+
+    [Fact]
     public void HtmlSrcSetParser_SplitsCommaSeparatedCandidatesWithoutWhitespace() {
         IReadOnlyList<HtmlSrcSetCandidate> candidates = HtmlSrcSetParser.Parse("small.png,large.png 2x");
 
