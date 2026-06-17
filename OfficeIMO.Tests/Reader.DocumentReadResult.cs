@@ -326,6 +326,26 @@ public sealed class ReaderDocumentReadResultTests {
     }
 
     [Fact]
+    public void DocumentReader_Read_NonSeekableStream_EnforcesMaxInputBytesBeforeSnapshot() {
+        using var package = new MemoryStream();
+        using (WordDocument document = WordDocument.Create(package)) {
+            document.AddParagraph("Large document");
+            document.Save();
+        }
+
+        using var stream = new NonSeekableReadStream(package.ToArray());
+
+        IOException ex = Assert.Throws<IOException>(() => {
+            foreach (ReaderChunk _ in DocumentReader.Read(
+                stream,
+                "large.docx",
+                new ReaderOptions { MaxInputBytes = 16 })) {
+            }
+        });
+        Assert.Contains("Input exceeds MaxInputBytes", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void DocumentReader_ReadDocument_EmitsChunkMetadataForWordDocument() {
         var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".docx");
         try {
