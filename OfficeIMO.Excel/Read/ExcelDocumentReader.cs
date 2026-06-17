@@ -29,7 +29,7 @@ namespace OfficeIMO.Excel {
             _opt = opt ?? new ExcelReadOptions();
             _ownedPackage = ownedPackage;
             _ownedStream = ownedStream;
-            _sst = SharedStringCache.Build(doc);
+            _sst = SharedStringCache.Build(doc, _opt);
             _styles = new StylesCacheProvider(doc);
         }
 

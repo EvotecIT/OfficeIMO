@@ -5,6 +5,10 @@ namespace OfficeIMO.Excel {
     /// Reading options controlling conversion behavior and execution policy.
     /// </summary>
     public sealed class ExcelReadOptions {
+        private int _maxSharedStringItems = 1_000_000;
+        private int _maxSharedStringItemCharacters = 32_767;
+        private long _maxSharedStringCharacters = 64L * 1024L * 1024L;
+
         /// <summary>
         /// Execution policy used to decide Sequential vs Parallel conversion.
         /// Reuses the writer-side policy for symmetry.
@@ -64,6 +68,51 @@ namespace OfficeIMO.Excel {
         /// If it returns ok=true, its value is used; otherwise the built-in converter is used.
         /// </summary>
         public Func<object, Type, CultureInfo, (bool ok, object? value)>? TypeConverter { get; set; }
+
+        /// <summary>
+        /// Maximum number of entries loaded from the workbook shared-string table.
+        /// This protects readers from malformed workbooks that advertise or contain
+        /// unbounded shared-string tables.
+        /// </summary>
+        public int MaxSharedStringItems {
+            get => _maxSharedStringItems;
+            set {
+                if (value <= 0) {
+                    throw new ArgumentOutOfRangeException(nameof(value), "Shared-string item limit must be greater than zero.");
+                }
+
+                _maxSharedStringItems = value;
+            }
+        }
+
+        /// <summary>
+        /// Maximum character length for one shared-string item. The default matches
+        /// Excel's worksheet cell text limit.
+        /// </summary>
+        public int MaxSharedStringItemCharacters {
+            get => _maxSharedStringItemCharacters;
+            set {
+                if (value <= 0) {
+                    throw new ArgumentOutOfRangeException(nameof(value), "Shared-string item character limit must be greater than zero.");
+                }
+
+                _maxSharedStringItemCharacters = value;
+            }
+        }
+
+        /// <summary>
+        /// Maximum aggregate characters loaded from the shared-string table.
+        /// </summary>
+        public long MaxSharedStringCharacters {
+            get => _maxSharedStringCharacters;
+            set {
+                if (value <= 0) {
+                    throw new ArgumentOutOfRangeException(nameof(value), "Shared-string aggregate character limit must be greater than zero.");
+                }
+
+                _maxSharedStringCharacters = value;
+            }
+        }
 
         /// <summary>
         /// Initializes reading defaults and per-operation thresholds.
