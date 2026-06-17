@@ -28,6 +28,27 @@ namespace OfficeIMO.PowerPoint {
             PowerPointPreviewExportFormat format = PowerPointPreviewExportFormat.Png,
             int width = 0,
             int height = 0) {
+            return TryExportSlides(
+                presentationPath,
+                outputDirectory,
+                null,
+                out result,
+                format,
+                width,
+                height);
+        }
+
+        /// <summary>
+        ///     Attempts to export slides from a saved, trusted presentation to image files.
+        /// </summary>
+        public static bool TryExportSlides(
+            string presentationPath,
+            string outputDirectory,
+            PowerPointPreviewExportOptions? options,
+            out PowerPointPreviewExportResult result,
+            PowerPointPreviewExportFormat format = PowerPointPreviewExportFormat.Png,
+            int width = 0,
+            int height = 0) {
             if (presentationPath == null) {
                 throw new ArgumentNullException(nameof(presentationPath));
             }
@@ -42,6 +63,12 @@ namespace OfficeIMO.PowerPoint {
             }
             if (!File.Exists(presentationPath)) {
                 throw new FileNotFoundException("Presentation file not found.", presentationPath);
+            }
+
+            if (options?.TrustPresentationFile != true) {
+                result = new PowerPointPreviewExportResult(false, Array.Empty<string>(),
+                    "PowerPoint automation opens presentation files in installed Microsoft PowerPoint. Set TrustPresentationFile only for trusted presentation files.", null);
+                return false;
             }
 
             Type? powerPointType = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
