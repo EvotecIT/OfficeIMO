@@ -35,35 +35,42 @@ public static partial class DocumentReader {
         if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
         var opt = NormalizeOptions(options);
-        EnforceStreamSize(stream, opt.MaxInputBytes);
+        Stream readStream = ReaderInputLimits.EnsureSeekableReadStream(stream, opt.MaxInputBytes, cancellationToken, out bool ownsReadStream);
         string? logicalSourceName = null;
-        if (sourceName != null) {
-            var trimmedSourceName = sourceName.Trim();
-            if (trimmedSourceName.Length > 0) {
-                logicalSourceName = trimmedSourceName;
+        try {
+            if (sourceName != null) {
+                var trimmedSourceName = sourceName.Trim();
+                if (trimmedSourceName.Length > 0) {
+                    logicalSourceName = trimmedSourceName;
+                }
             }
-        }
-        var source = BuildSourceInfoFromStream(stream, logicalSourceName, opt.ComputeHashes);
 
-        IEnumerable<ReaderChunk> raw;
-        if (TryResolveCustomHandlerBySourceName(logicalSourceName, out var customStreamHandler) && customStreamHandler.ReadStream != null) {
-            raw = customStreamHandler.ReadStream(stream, logicalSourceName, opt, cancellationToken);
-        } else {
-            var kind = string.IsNullOrWhiteSpace(logicalSourceName) ? ReaderInputKind.Unknown : DetectKind(logicalSourceName!);
-            raw = kind switch {
-                ReaderInputKind.Word => ReadWord(stream, logicalSourceName, opt, cancellationToken),
-                ReaderInputKind.Excel => ReadExcel(stream, logicalSourceName, opt, cancellationToken),
-                ReaderInputKind.PowerPoint => ReadPowerPoint(stream, logicalSourceName, opt, cancellationToken),
-                ReaderInputKind.Markdown => ReadMarkdown(stream, logicalSourceName, opt, cancellationToken),
-                ReaderInputKind.Pdf => ReadPdf(stream, logicalSourceName, opt, cancellationToken),
-                ReaderInputKind.Text => ReadText(stream, logicalSourceName, opt, cancellationToken),
-                _ => ReadUnknown(stream, logicalSourceName, opt, cancellationToken)
-            };
-        }
+            var source = BuildSourceInfoFromStream(readStream, logicalSourceName, opt.ComputeHashes);
 
-        foreach (var chunk in raw) {
-            cancellationToken.ThrowIfCancellationRequested();
-            yield return EnrichChunk(chunk, source, opt.ComputeHashes);
+            IEnumerable<ReaderChunk> raw;
+            if (TryResolveCustomHandlerBySourceName(logicalSourceName, out var customStreamHandler) && customStreamHandler.ReadStream != null) {
+                raw = customStreamHandler.ReadStream(readStream, logicalSourceName, opt, cancellationToken);
+            } else {
+                var kind = string.IsNullOrWhiteSpace(logicalSourceName) ? ReaderInputKind.Unknown : DetectKind(logicalSourceName!);
+                raw = kind switch {
+                    ReaderInputKind.Word => ReadWord(readStream, logicalSourceName, opt, cancellationToken),
+                    ReaderInputKind.Excel => ReadExcel(readStream, logicalSourceName, opt, cancellationToken),
+                    ReaderInputKind.PowerPoint => ReadPowerPoint(readStream, logicalSourceName, opt, cancellationToken),
+                    ReaderInputKind.Markdown => ReadMarkdown(readStream, logicalSourceName, opt, cancellationToken),
+                    ReaderInputKind.Pdf => ReadPdf(readStream, logicalSourceName, opt, cancellationToken),
+                    ReaderInputKind.Text => ReadText(readStream, logicalSourceName, opt, cancellationToken),
+                    _ => ReadUnknown(readStream, logicalSourceName, opt, cancellationToken)
+                };
+            }
+
+            foreach (var chunk in raw) {
+                cancellationToken.ThrowIfCancellationRequested();
+                yield return EnrichChunk(chunk, source, opt.ComputeHashes);
+            }
+        } finally {
+            if (ownsReadStream) {
+                readStream.Dispose();
+            }
         }
     }
 

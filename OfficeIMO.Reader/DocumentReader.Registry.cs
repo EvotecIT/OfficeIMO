@@ -553,18 +553,6 @@ public static partial class DocumentReader {
         }
     }
 
-    private static void EnforceStreamSize(Stream stream, long? maxBytes) {
-        if (!maxBytes.HasValue) return;
-        if (!stream.CanSeek) return;
-        try {
-            if (stream.Length > maxBytes.Value) {
-                throw new IOException($"Input exceeds MaxInputBytes ({stream.Length.ToString(CultureInfo.InvariantCulture)} > {maxBytes.Value.ToString(CultureInfo.InvariantCulture)}).");
-            }
-        } catch (NotSupportedException) {
-            // ignore
-        }
-    }
-
     private static string ReadAllText(Stream stream, CancellationToken ct, int? hardCapChars = 50_000_000) {
         ct.ThrowIfCancellationRequested();
         using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 16 * 1024, leaveOpen: true);
