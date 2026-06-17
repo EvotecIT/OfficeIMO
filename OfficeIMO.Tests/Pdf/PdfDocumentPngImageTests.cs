@@ -188,6 +188,16 @@ public class PdfDocumentPngImageTests {
     }
 
     [Fact]
+    public void Image_WithOverflowingPngChunkLength_RejectsPdfGenerationWithoutThrowingParserErrors() {
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+            PdfDocument.Create()
+                .Image(PdfPngTestImages.CreatePngWithOverflowingChunkLength(), 24, 24)
+                .ToBytes());
+
+        Assert.Contains("PNG chunk length is invalid.", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Image_With16BitRgbTransparency_WritesSoftMaskImageObject() {
         byte[] bytes = PdfDocument.Create()
             .Image(PdfPngTestImages.Create16BitRgbPng(includeTransparency: true), 24, 24)

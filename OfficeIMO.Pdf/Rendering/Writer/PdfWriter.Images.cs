@@ -44,7 +44,8 @@ internal static partial class PdfWriter {
 
         while (offset + 12 <= data.Length) {
             int length = ReadInt32BigEndian(data, offset);
-            if (length < 0 || offset + 12 + length > data.Length) {
+            long chunkEnd = (long)offset + 12L + length;
+            if (length < 0 || chunkEnd > data.Length) {
                 unsupportedReason = "PNG chunk length is invalid.";
                 return false;
             }
@@ -86,7 +87,7 @@ internal static partial class PdfWriter {
                 break;
             }
 
-            offset += 12 + length;
+            offset = (int)chunkEnd;
         }
 
         if (width <= 0 || height <= 0) {
@@ -790,11 +791,12 @@ internal static partial class PdfWriter {
     }
 
     private static bool IsPngChunkCrcValid(byte[] data, int chunkOffset, int chunkLength) {
-        int crcOffset = chunkOffset + 8 + chunkLength;
-        if (crcOffset + 4 > data.Length) {
+        long crcOffsetLong = (long)chunkOffset + 8L + chunkLength;
+        if (crcOffsetLong < 0 || crcOffsetLong + 4L > data.Length) {
             return false;
         }
 
+        int crcOffset = (int)crcOffsetLong;
         uint expectedCrc = ReadUInt32BigEndian(data, crcOffset);
         uint actualCrc = Crc32(data, chunkOffset + 4, chunkLength + 4);
         return expectedCrc == actualCrc;
