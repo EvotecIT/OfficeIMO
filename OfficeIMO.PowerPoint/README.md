@@ -40,6 +40,18 @@ presentation.Save();
 - Supports encrypted presentation save/open workflows.
 - Uses Open XML directly, making it suitable for services, build agents, desktop apps, and automation hosts.
 
+## Trusted preview export
+
+`PowerPointPreviewExporter` is an optional Windows-only boundary that uses installed Microsoft PowerPoint automation to render slide images. It does not open presentation files by default. Enable it only for presentations your application has already classified as trusted:
+
+```csharp
+PowerPointPreviewExporter.TryExportSlides(
+    "trusted-deck.pptx",
+    "preview",
+    new PowerPointPreviewExportOptions { TrustPresentationFile = true },
+    out PowerPointPreviewExportResult result);
+```
+
 ## Runnable samples
 
 ```powershell
