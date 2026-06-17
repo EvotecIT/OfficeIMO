@@ -1,6 +1,9 @@
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfEmbeddedFontFamily {
+    internal const int MaxSystemFontFilesToInspect = 8192;
+    internal const long MaxSystemFontFileBytes = 128L * 1024L * 1024L;
+
     /// <summary>
     /// Loads an installed TrueType font family from common operating-system font folders.
     /// </summary>
@@ -44,7 +47,12 @@ public sealed partial class PdfEmbeddedFontFamily {
         SystemFontFaceCandidate? italicFace = null;
         SystemFontFaceCandidate? boldItalicFace = null;
 
+        int inspectedFiles = 0;
         foreach (string fontFile in fontFiles) {
+            if (inspectedFiles++ >= MaxSystemFontFilesToInspect) {
+                break;
+            }
+
             if (!TryReadSystemFontFaces(fontFile, normalizedFamily, acceptedFileNamePrefixes, out System.Collections.Generic.List<SystemFontFaceCandidate>? candidates) ||
                 candidates == null) {
                 continue;
@@ -90,6 +98,11 @@ public sealed partial class PdfEmbeddedFontFamily {
         }
 
         try {
+            var fileInfo = new System.IO.FileInfo(path);
+            if (!fileInfo.Exists || fileInfo.Length > MaxSystemFontFileBytes) {
+                return false;
+            }
+
             byte[] fileData = System.IO.File.ReadAllBytes(path);
             System.Collections.Generic.List<byte[]> fontPrograms = ExtractTrueTypeFontPrograms(fileData);
             var found = new System.Collections.Generic.List<SystemFontFaceCandidate>();
