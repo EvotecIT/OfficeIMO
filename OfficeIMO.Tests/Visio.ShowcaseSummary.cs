@@ -435,6 +435,30 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ShowcaseGalleryLinksSvgPreviewsWithoutInliningThem() {
+            string folderPath = Path.Combine(Path.GetTempPath(), "OfficeIMO-Visio-Showcase-Svg-" + Guid.NewGuid());
+            string nativePreviewPath = Path.Combine(folderPath, "Native Preview");
+            Directory.CreateDirectory(nativePreviewPath);
+            string packagePath = Path.Combine(folderPath, "sample.vsdx");
+            string pngPreviewPath = Path.Combine(nativePreviewPath, "sample-page1.native.png");
+            string svgPreviewPath = Path.Combine(nativePreviewPath, "sample-page1.native.svg");
+            File.WriteAllBytes(packagePath, new byte[] { 1, 2, 3 });
+            File.WriteAllBytes(pngPreviewPath, new byte[] { 4, 5, 6, 7 });
+            File.WriteAllText(svgPreviewPath, "<svg xmlns=\"http://www.w3.org/2000/svg\"><script>alert(1)</script><rect width=\"10\" height=\"10\"/></svg>", new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+
+            VisioShowcaseSummary summary = VisioShowcaseSummary.Create(
+                folderPath,
+                new[] { packagePath },
+                new[] { pngPreviewPath, svgPreviewPath });
+            summary.SaveArtifacts();
+
+            string html = File.ReadAllText(Path.Combine(folderPath, VisioShowcaseSummary.HtmlFileName));
+            Assert.Contains("src=\"Native%20Preview/sample-page1.native.png\"", html);
+            Assert.Contains("href=\"Native%20Preview/sample-page1.native.svg\"", html);
+            Assert.DoesNotContain("src=\"Native%20Preview/sample-page1.native.svg\"", html, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public void ShowcaseSummaryValidationDetectsModifiedArtifactBytes() {
             string folderPath = Path.Combine(Path.GetTempPath(), "OfficeIMO-Visio-Showcase-Validation-" + Guid.NewGuid());
             string nativePreviewPath = Path.Combine(folderPath, "Native Preview");

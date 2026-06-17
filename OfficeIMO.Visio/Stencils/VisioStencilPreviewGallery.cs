@@ -83,7 +83,7 @@ namespace OfficeIMO.Visio.Stencils {
         /// <summary>Extracted preview entries.</summary>
         public IReadOnlyList<VisioStencilPreviewGalleryEntry> Entries { get; }
 
-        /// <summary>Number of preview payloads that common browsers can render directly.</summary>
+        /// <summary>Number of preview payloads that the generated gallery renders inline.</summary>
         public int BrowserRenderableCount => Entries.Count(entry => entry.IsBrowserRenderable);
 
         /// <summary>Number of generated thumbnail artifacts.</summary>
@@ -120,7 +120,7 @@ namespace OfficeIMO.Visio.Stencils {
         /// <summary>Whether this entry has a generated SVG thumbnail artifact.</summary>
         public bool HasThumbnail => !string.IsNullOrWhiteSpace(ThumbnailFilePath);
 
-        /// <summary>Whether the payload extension is usually directly renderable in a browser.</summary>
+        /// <summary>Whether the generated gallery can safely render the payload inline.</summary>
         public bool IsBrowserRenderable => IsBrowserRenderableExtension(Image.PreviewImage.Extension);
 
         internal static bool IsBrowserRenderableExtension(string? extension) {
@@ -130,7 +130,7 @@ namespace OfficeIMO.Visio.Stencils {
 
             string normalized = extension!.TrimStart('.').ToLowerInvariant();
             return normalized switch {
-                "png" or "jpg" or "jpeg" or "gif" or "svg" or "bmp" or "webp" => true,
+                "png" or "jpg" or "jpeg" or "gif" or "bmp" or "webp" => true,
                 _ => false
             };
         }

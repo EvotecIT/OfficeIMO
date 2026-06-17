@@ -922,6 +922,41 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PackageStencilPreviewGalleryLinksSvgPreviewsWithoutInliningThem() {
+            string packagePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vssx");
+            byte[] svg = Encoding.UTF8.GetBytes("<svg xmlns=\"http://www.w3.org/2000/svg\"><script>alert(1)</script><rect width=\"10\" height=\"10\"/></svg>");
+            CreatePackageWithRawGroupMaster(packagePath, "FancyCloud", "Fancy Cloud", "svg", svg);
+            string outputDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+
+            VisioStencilPreviewGallery gallery = VisioStencilPackageCatalog.CreatePreviewGallery(
+                packagePath,
+                outputDirectory,
+                new VisioStencilPackageLoadOptions {
+                    IncludeUnsupportedMasters = true
+                },
+                new VisioStencilPreviewGalleryOptions {
+                    Title = "SVG Preview Review",
+                    PreviewDirectoryName = "assets",
+                    ThumbnailDirectoryName = "thumbs"
+                });
+
+            VisioStencilPreviewGalleryEntry entry = Assert.Single(gallery.Entries);
+            Assert.False(entry.IsBrowserRenderable);
+            Assert.False(entry.HasThumbnail);
+            Assert.Equal(0, gallery.BrowserRenderableCount);
+            Assert.Equal(0, gallery.ThumbnailCount);
+            Assert.Equal("assets/42-FancyCloud.svg", entry.RelativePath);
+            Assert.True(File.Exists(entry.FilePath));
+            Assert.Equal(svg, File.ReadAllBytes(entry.FilePath));
+
+            string html = File.ReadAllText(gallery.IndexPath!);
+            Assert.Contains("assets/42-FancyCloud.svg", html);
+            Assert.Contains("<div class=\"fallback\">svg</div>", html);
+            Assert.DoesNotContain("<img src=\"assets/42-FancyCloud.svg\"", html, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain(".thumbnail.svg", html, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public void ImportedStencilMastersPreserveExternalMasterArtwork() {
             string packagePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vssx");
             CreatePackageWithRawGroupMaster(packagePath, "FancyCloud", "Fancy Cloud");
