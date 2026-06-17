@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using OfficeIMO.Drawing;
 using Xunit;
 
@@ -600,6 +602,26 @@ public class DrawingTests {
     }
 
     [Fact]
+    public void OfficeTrueTypeFontRejectsOversizedTrueTypeCollections() {
+        byte[] collection = {
+            0x74, 0x74, 0x63, 0x66,
+            0x00, 0x01, 0x00, 0x00,
+            0x00, 0x00, 0x01, 0x01
+        };
+
+        Assert.Null(OfficeTrueTypeFont.TryLoad(collection));
+    }
+
+    [Fact]
+    public void OfficeTrueTypeFontTreatsMalformedFormat12CmapAsMissingGlyphs() {
+        byte[] fontData = CreateMinimalTrueTypeFont(CreateTruncatedFormat12Cmap());
+        OfficeTrueTypeFont? font = OfficeTrueTypeFont.TryLoad(fontData);
+
+        Assert.NotNull(font);
+        Assert.Equal(500D, font!.Measure("A", 1000D));
+    }
+
+    [Fact]
     public void OfficeTrueTypeFontReadsDefaultFontOutlinesWhenAvailable() {
         OfficeTrueTypeFont? font = OfficeTrueTypeFont.TryLoadDefault(out string? path);
         if (font == null) {
@@ -613,6 +635,85 @@ public class DrawingTests {
         List<List<OfficePoint>> contours = font.GetTextContours("OfficeIMO", 0, 0, 18);
         Assert.NotEmpty(contours);
         Assert.Contains(contours, contour => contour.Count >= 3);
+    }
+
+    private static byte[] CreateTruncatedFormat12Cmap() {
+        var data = new byte[28];
+        WriteUInt16(data, 2, 1);
+        WriteUInt16(data, 4, 3);
+        WriteUInt16(data, 6, 10);
+        WriteUInt32(data, 8, 12);
+        WriteUInt16(data, 12, 12);
+        WriteUInt32(data, 16, 16);
+        WriteUInt32(data, 24, 2);
+        return data;
+    }
+
+    private static byte[] CreateMinimalTrueTypeFont(byte[] cmap) {
+        var tables = new List<(string Tag, byte[] Data)> {
+            ("cmap", cmap),
+            ("glyf", new byte[4]),
+            ("head", CreateHeadTable()),
+            ("hhea", CreateHheaTable()),
+            ("hmtx", new byte[] { 0x01, 0xF4, 0x00, 0x00 }),
+            ("loca", new byte[4]),
+            ("maxp", new byte[] { 0x00, 0x01, 0x00, 0x00, 0x00, 0x02 })
+        };
+
+        int tableDirectoryLength = 12 + tables.Count * 16;
+        var offsets = new int[tables.Count];
+        int offset = tableDirectoryLength;
+        for (int index = 0; index < tables.Count; index++) {
+            offsets[index] = offset;
+            offset += Align4(tables[index].Data.Length);
+        }
+
+        var font = new byte[offset];
+        WriteUInt32(font, 0, 0x00010000);
+        WriteUInt16(font, 4, (ushort)tables.Count);
+        for (int index = 0; index < tables.Count; index++) {
+            int record = 12 + index * 16;
+            WriteTag(font, record, tables[index].Tag);
+            WriteUInt32(font, record + 8, (uint)offsets[index]);
+            WriteUInt32(font, record + 12, (uint)tables[index].Data.Length);
+            Array.Copy(tables[index].Data, 0, font, offsets[index], tables[index].Data.Length);
+        }
+
+        return font;
+    }
+
+    private static byte[] CreateHeadTable() {
+        var table = new byte[54];
+        WriteUInt16(table, 18, 1000);
+        return table;
+    }
+
+    private static byte[] CreateHheaTable() {
+        var table = new byte[36];
+        WriteUInt16(table, 4, 800);
+        WriteUInt16(table, 6, unchecked((ushort)-200));
+        WriteUInt16(table, 34, 1);
+        return table;
+    }
+
+    private static int Align4(int value) => (value + 3) & ~3;
+
+    private static void WriteTag(byte[] data, int offset, string tag) {
+        for (int index = 0; index < 4; index++) {
+            data[offset + index] = (byte)tag[index];
+        }
+    }
+
+    private static void WriteUInt16(byte[] data, int offset, int value) {
+        data[offset] = (byte)((value >> 8) & 0xFF);
+        data[offset + 1] = (byte)(value & 0xFF);
+    }
+
+    private static void WriteUInt32(byte[] data, int offset, uint value) {
+        data[offset] = (byte)((value >> 24) & 0xFF);
+        data[offset + 1] = (byte)((value >> 16) & 0xFF);
+        data[offset + 2] = (byte)((value >> 8) & 0xFF);
+        data[offset + 3] = (byte)(value & 0xFF);
     }
 
     [Theory]

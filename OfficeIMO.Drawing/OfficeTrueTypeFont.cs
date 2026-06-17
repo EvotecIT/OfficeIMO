@@ -14,6 +14,10 @@ namespace OfficeIMO.Drawing;
 /// cleanly when no suitable platform font file is available.
 /// </remarks>
 public sealed class OfficeTrueTypeFont {
+    private const uint MaxTrueTypeCollectionFonts = 256;
+    private const int MaxFontTableRecords = 512;
+    private const int MaxCmapSubtables = 64;
+    private const uint MaxFormat12Groups = 4096;
     private static readonly object FontCacheLock = new();
     private static readonly Dictionary<string, OfficeTrueTypeFont?> FontCache = new(StringComparer.OrdinalIgnoreCase);
     private readonly byte[] _data;
@@ -112,6 +116,8 @@ public sealed class OfficeTrueTypeFont {
             var scaler = ReadUInt32(data, 0);
             if (scaler == 0x74746366) {
                 var fontCount = ReadUInt32(data, 8);
+                if (fontCount == 0 || fontCount > MaxTrueTypeCollectionFonts) return null;
+                if (data.Length < 12 + fontCount * 4) return null;
                 if (collectionIndex.HasValue) {
                     if (collectionIndex.Value >= fontCount) return null;
                     var indexedFont = TryLoad(data, CheckedOffset(data, ReadUInt32(data, 12 + collectionIndex.Value * 4)), collectionIndex.Value);
@@ -142,6 +148,8 @@ public sealed class OfficeTrueTypeFont {
         var scaler = ReadUInt32(data, directoryOffset);
         if (scaler != 0x00010000 && scaler != 0x74727565) return null;
         var count = ReadUInt16(data, directoryOffset + 4);
+        if (count == 0 || count > MaxFontTableRecords) return null;
+        if (data.Length < directoryOffset + 12 + count * 16) return null;
         var tables = new Dictionary<string, int>(StringComparer.Ordinal);
         for (var i = 0; i < count; i++) {
             var record = directoryOffset + 12 + i * 16;
@@ -269,14 +277,17 @@ public sealed class OfficeTrueTypeFont {
 
     private ushort MapGlyph(char ch) {
         var cmapOffset = _cmap;
+        if (!InBounds(cmapOffset, 4)) return 0;
         var subtableCount = ReadUInt16(_data, cmapOffset + 2);
+        if (subtableCount == 0 || subtableCount > MaxCmapSubtables) return 0;
+        if (!InBounds(cmapOffset + 4, subtableCount * 8)) return 0;
         var best = 0;
         var bestScore = 0;
         for (var i = 0; i < subtableCount; i++) {
             var record = cmapOffset + 4 + i * 8;
             var platform = ReadUInt16(_data, record);
             var encoding = ReadUInt16(_data, record + 2);
-            var offset = CheckedOffset(_data, ReadUInt32(_data, record + 4));
+            if (!TryCheckedOffset(_data, ReadUInt32(_data, record + 4), out var offset)) continue;
             var absolute = cmapOffset + offset;
             if (absolute < 0 || absolute + 2 > _data.Length) continue;
             var format = ReadUInt16(_data, absolute);
@@ -293,12 +304,17 @@ public sealed class OfficeTrueTypeFont {
     }
 
     private ushort MapFormat4(int table, char ch) {
+        if (!InBounds(table, 16)) return 0;
+        var length = ReadUInt16(_data, table + 2);
+        if (length < 16 || !InBounds(table, length)) return 0;
         var code = ch;
         var segCount = ReadUInt16(_data, table + 6) / 2;
+        if (segCount == 0 || segCount > MaxCmapSubtables * 16) return 0;
         var endCodes = table + 14;
         var startCodes = endCodes + segCount * 2 + 2;
         var idDeltas = startCodes + segCount * 2;
         var idRangeOffsets = idDeltas + segCount * 2;
+        if (idRangeOffsets < table || idRangeOffsets + segCount * 2 > table + length) return 0;
 
         for (var i = 0; i < segCount; i++) {
             var end = ReadUInt16(_data, endCodes + i * 2);
@@ -318,8 +334,12 @@ public sealed class OfficeTrueTypeFont {
     }
 
     private ushort MapFormat12(int table, char ch) {
+        if (!InBounds(table, 16)) return 0;
+        var length = ReadUInt32(_data, table + 4);
+        if (length < 16 || length > int.MaxValue || !InBounds(table, (int)length)) return 0;
         var code = ch;
         var groups = ReadUInt32(_data, table + 12);
+        if (groups > MaxFormat12Groups || groups > (length - 16U) / 12U) return 0;
         var groupOffset = table + 16;
         for (var i = 0; i < groups; i++) {
             var start = ReadUInt32(_data, groupOffset + i * 12);
@@ -712,6 +732,16 @@ public sealed class OfficeTrueTypeFont {
     private static int CheckedOffset(byte[] data, uint offset) {
         if (offset > int.MaxValue || offset >= data.Length) throw new ArgumentOutOfRangeException(nameof(offset));
         return (int)offset;
+    }
+
+    private static bool TryCheckedOffset(byte[] data, uint offset, out int checkedOffset) {
+        if (offset > int.MaxValue || offset >= data.Length) {
+            checkedOffset = 0;
+            return false;
+        }
+
+        checkedOffset = (int)offset;
+        return true;
     }
 
     private static string? FullPathOrNull(string? path) {
