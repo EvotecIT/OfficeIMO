@@ -62,8 +62,7 @@ public static partial class MarkdownPdfConverterExtensions {
             return false;
         }
 
-        string? resolvedPath = ResolveImagePath(path, options.BaseDirectory);
-        if (resolvedPath == null) {
+        if (!TryResolveImagePath(path, options, out string resolvedPath, out warningCode, out warningMessage)) {
             return false;
         }
 
@@ -72,20 +71,72 @@ public static partial class MarkdownPdfConverterExtensions {
         return true;
     }
 
-    private static string? ResolveImagePath(string path, string? baseDirectory) {
+    private static bool TryResolveImagePath(
+        string path,
+        MarkdownPdfSaveOptions options,
+        out string resolvedPath,
+        out string warningCode,
+        out string warningMessage) {
+        resolvedPath = string.Empty;
+        warningCode = "UnsupportedImage";
+        warningMessage = "Only resolvable local Markdown images or supported base64 data URI images are embedded in the Markdown PDF adapter.";
+
         if (string.IsNullOrWhiteSpace(path) || Uri.TryCreate(path, UriKind.Absolute, out Uri? uri) && !uri.IsFile) {
-            return null;
+            return false;
         }
 
         string candidate = path;
         if (Uri.TryCreate(path, UriKind.Absolute, out Uri? fileUri) && fileUri.IsFile) {
             candidate = fileUri.LocalPath;
-        } else if (!Path.IsPathRooted(candidate) && !string.IsNullOrWhiteSpace(baseDirectory)) {
-            candidate = Path.Combine(baseDirectory!, candidate);
+        } else if (!Path.IsPathRooted(candidate) && !string.IsNullOrWhiteSpace(options.BaseDirectory)) {
+            candidate = Path.Combine(options.BaseDirectory!, candidate);
         }
 
-        return File.Exists(candidate) ? Path.GetFullPath(candidate) : null;
+        string fullPath;
+        try {
+            fullPath = Path.GetFullPath(candidate);
+        } catch (Exception ex) when (ex is ArgumentException || ex is NotSupportedException || ex is PathTooLongException) {
+            return false;
+        }
+
+        if (options.RestrictLocalImagesToBaseDirectory &&
+            !string.IsNullOrWhiteSpace(options.BaseDirectory)) {
+            try {
+                if (!IsPathInsideDirectory(fullPath, options.BaseDirectory!)) {
+                    warningCode = "LocalImageOutsideBaseDirectory";
+                    warningMessage = "Local Markdown image paths must resolve inside MarkdownPdfSaveOptions.BaseDirectory.";
+                    return false;
+                }
+            } catch (Exception ex) when (ex is ArgumentException || ex is NotSupportedException || ex is PathTooLongException) {
+                return false;
+            }
+        }
+
+        if (!File.Exists(fullPath)) {
+            return false;
+        }
+
+        resolvedPath = fullPath;
+        return true;
     }
+
+    private static bool IsPathInsideDirectory(string fullPath, string baseDirectory) {
+        string normalizedBase = EnsureTrailingDirectorySeparator(Path.GetFullPath(baseDirectory));
+        string normalizedPath = Path.GetFullPath(fullPath);
+        return normalizedPath.StartsWith(normalizedBase, GetPathComparison());
+    }
+
+    private static string EnsureTrailingDirectorySeparator(string path) {
+        if (path.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal) ||
+            path.EndsWith(Path.AltDirectorySeparatorChar.ToString(), StringComparison.Ordinal)) {
+            return path;
+        }
+
+        return path + Path.DirectorySeparatorChar;
+    }
+
+    private static StringComparison GetPathComparison() =>
+        Path.DirectorySeparatorChar == '\\' ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
 
     private static bool TryReadRemoteImageBytes(Uri uri, MarkdownPdfSaveOptions options, out byte[] bytes, out string sourceName, out string warningCode, out string warningMessage) {
         bytes = Array.Empty<byte>();
