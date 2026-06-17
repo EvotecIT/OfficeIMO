@@ -287,7 +287,33 @@ public partial class PdfStamperTests {
         byte[] typeBytes = Encoding.ASCII.GetBytes(type);
         stream.Write(typeBytes, 0, typeBytes.Length);
         stream.Write(data, 0, data.Length);
-        byte[] crc = new byte[] { 0, 0, 0, 0 };
-        stream.Write(crc, 0, crc.Length);
+        uint crc = ComputeCrc32(typeBytes, data);
+        stream.WriteByte((byte)((crc >> 24) & 0xFF));
+        stream.WriteByte((byte)((crc >> 16) & 0xFF));
+        stream.WriteByte((byte)((crc >> 8) & 0xFF));
+        stream.WriteByte((byte)(crc & 0xFF));
     }
+
+    private static uint ComputeCrc32(byte[] typeBytes, byte[] data) {
+        uint crc = 0xFFFFFFFF;
+        for (int i = 0; i < typeBytes.Length; i++) {
+            crc = UpdateCrc32(crc, typeBytes[i]);
+        }
+
+        for (int i = 0; i < data.Length; i++) {
+            crc = UpdateCrc32(crc, data[i]);
+        }
+
+        return crc ^ 0xFFFFFFFF;
+    }
+
+    private static uint UpdateCrc32(uint crc, byte value) {
+        crc ^= value;
+        for (int bit = 0; bit < 8; bit++) {
+            crc = (crc & 1) != 0 ? (crc >> 1) ^ 0xEDB88320 : crc >> 1;
+        }
+
+        return crc;
+    }
+
 }

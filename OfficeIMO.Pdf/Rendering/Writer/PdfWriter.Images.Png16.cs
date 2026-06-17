@@ -1,3 +1,5 @@
+using System;
+using System.IO;
 using OfficeIMO.Pdf.Filters;
 
 namespace OfficeIMO.Pdf;
@@ -51,10 +53,17 @@ internal static partial class PdfWriter {
             transparentBlue = colorType == 2 ? ReadUInt16BigEndian(transparency, 4) : -1;
         }
 
-        byte[] decoded = FlateDecoder.Decode(compressedData);
+        if (!TryDecodePngData(compressedData, out byte[] decoded, out unsupportedReason)) {
+            return false;
+        }
+
         int sourceBytesPerPixel = sourceChannels * 2;
-        int expectedRowLength = 1 + width * sourceBytesPerPixel;
-        if (decoded.Length < expectedRowLength * height) {
+        if (!TryGetPngCheckedLength(width, height, sourceBytesPerPixel, includeFilterByte: true, out int expectedLength)) {
+            unsupportedReason = "PNG dimensions exceed supported limits.";
+            return false;
+        }
+
+        if (decoded.Length < expectedLength) {
             unsupportedReason = "PNG image data ended before all 16-bit scanlines were decoded.";
             return false;
         }
@@ -63,8 +72,14 @@ internal static partial class PdfWriter {
             return false;
         }
 
-        byte[] baseRows = new byte[(1 + width * baseChannels) * height];
-        byte[]? alphaRows = hasIntrinsicAlpha || transparency != null ? new byte[(1 + width) * height] : null;
+        if (!TryGetPngCheckedLength(width, height, baseChannels, includeFilterByte: true, out int baseRowsLength) ||
+            !TryGetPngCheckedLength(width, height, 1, includeFilterByte: true, out int alphaRowsLength)) {
+            unsupportedReason = "PNG dimensions exceed supported limits.";
+            return false;
+        }
+
+        byte[] baseRows = new byte[baseRowsLength];
+        byte[]? alphaRows = hasIntrinsicAlpha || transparency != null ? new byte[alphaRowsLength] : null;
 
         for (int row = 0; row < height; row++) {
             int baseRowStart = row * (1 + width * baseChannels);

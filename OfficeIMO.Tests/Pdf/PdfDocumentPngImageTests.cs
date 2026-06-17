@@ -168,6 +168,26 @@ public class PdfDocumentPngImageTests {
     }
 
     [Fact]
+    public void Image_WithOversizedInterlacedPng_RejectsImageBytesWithoutExpanding() {
+        Assert.False(PdfDocument.TryValidateImageBytes(
+            PdfPngTestImages.CreateOversizedInterlacedGrayscalePng(),
+            out OfficeImageInfo? imageInfo,
+            out string? unsupportedReason));
+        Assert.Null(imageInfo);
+        Assert.Contains("PNG dimensions exceed", unsupportedReason, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Image_WithInvalidPngCrc_RejectsImageBytes() {
+        Assert.False(PdfDocument.TryValidateImageBytes(
+            PdfPngTestImages.CreatePngWithInvalidCrc(),
+            out OfficeImageInfo? imageInfo,
+            out string? unsupportedReason));
+        Assert.Null(imageInfo);
+        Assert.Contains("PNG chunk CRC is invalid.", unsupportedReason, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Image_With16BitRgbTransparency_WritesSoftMaskImageObject() {
         byte[] bytes = PdfDocument.Create()
             .Image(PdfPngTestImages.Create16BitRgbPng(includeTransparency: true), 24, 24)
