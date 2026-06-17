@@ -229,6 +229,55 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         [Trait("Category","ExcelHeaderFooterImages")]
+        public async Task ImageDownloader_Rejects_Redirect_To_NonHttp_Target() {
+            OfficeIMO.Excel.ImageDownloader.ClearCache();
+
+            var listener = new TcpListener(IPAddress.Loopback, 0);
+            listener.Start();
+            var port = ((IPEndPoint)listener.LocalEndpoint).Port;
+            var url = $"http://127.0.0.1:{port}/redirect.png";
+            var response = "HTTP/1.1 302 Found\r\nLocation: file:///C:/Windows/win.ini\r\nConnection: close\r\n\r\n";
+            var acceptTask = ServeSingleRawResponseAsync(listener, Encoding.ASCII.GetBytes(response));
+
+            try {
+                Assert.False(OfficeIMO.Excel.ImageDownloader.TryFetch(url, 5, 2_000_000, out var bytes, out var contentType));
+                Assert.Null(bytes);
+                Assert.Null(contentType);
+            } finally {
+                listener.Stop();
+                await acceptTask;
+                OfficeIMO.Excel.ImageDownloader.ClearCache();
+            }
+        }
+
+        [Fact]
+        [Trait("Category","ExcelHeaderFooterImages")]
+        public async Task ImageDownloader_Rejects_Response_When_Stream_Exceeds_Limit() {
+            OfficeIMO.Excel.ImageDownloader.ClearCache();
+
+            var payload = Enumerable.Repeat((byte)0x41, 64).ToArray();
+            var header = Encoding.ASCII.GetBytes("HTTP/1.1 200 OK\r\nContent-Type: image/png\r\nConnection: close\r\n\r\n");
+            var response = header.Concat(payload).ToArray();
+
+            var listener = new TcpListener(IPAddress.Loopback, 0);
+            listener.Start();
+            var port = ((IPEndPoint)listener.LocalEndpoint).Port;
+            var url = $"http://127.0.0.1:{port}/large.png";
+            var acceptTask = ServeSingleRawResponseAsync(listener, response);
+
+            try {
+                Assert.False(OfficeIMO.Excel.ImageDownloader.TryFetch(url, 5, 16, out var bytes, out var contentType));
+                Assert.Null(bytes);
+                Assert.Null(contentType);
+            } finally {
+                listener.Stop();
+                await acceptTask;
+                OfficeIMO.Excel.ImageDownloader.ClearCache();
+            }
+        }
+
+        [Fact]
+        [Trait("Category","ExcelHeaderFooterImages")]
         public async Task Excel_HeaderImageUrl_Roundtrips_ContentType() {
             OfficeIMO.Excel.ImageDownloader.ClearCache();
 
@@ -324,6 +373,33 @@ namespace OfficeIMO.Tests {
                     var headerBytes = Encoding.ASCII.GetBytes(header);
                     await stream.WriteAsync(headerBytes, 0, headerBytes.Length);
                     await stream.WriteAsync(payload, 0, payload.Length);
+                    await stream.FlushAsync();
+                }
+                catch (SocketException)
+                {
+                    // Listener stopped before accepting a connection; ignore for test cleanup.
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Listener disposed before accept completed; ignore for cleanup.
+                }
+            });
+        }
+
+        private static Task ServeSingleRawResponseAsync(TcpListener listener, byte[] responseBytes) {
+            return Task.Run(async () =>
+            {
+                try
+                {
+                    using var client = await listener.AcceptTcpClientAsync();
+                    using var stream = client.GetStream();
+                    using (var reader = new StreamReader(stream, Encoding.ASCII, false, 1024, leaveOpen: true))
+                    {
+                        string? line;
+                        while (!string.IsNullOrEmpty(line = await reader.ReadLineAsync())) { }
+                    }
+
+                    await stream.WriteAsync(responseBytes, 0, responseBytes.Length);
                     await stream.FlushAsync();
                 }
                 catch (SocketException)
