@@ -11,6 +11,80 @@ public static partial class PdfFormFiller {
         }
     }
 
+    private sealed class ChoiceOptionLookup {
+        private readonly Dictionary<string, ChoiceFillValue> _byExportValue;
+        private readonly Dictionary<string, ChoiceFillValue> _byDisplayValue;
+        private readonly Dictionary<string, string> _displayByExportValue;
+
+        private ChoiceOptionLookup(
+            Dictionary<string, ChoiceFillValue> byExportValue,
+            Dictionary<string, ChoiceFillValue> byDisplayValue,
+            Dictionary<string, string> displayByExportValue) {
+            _byExportValue = byExportValue;
+            _byDisplayValue = byDisplayValue;
+            _displayByExportValue = displayByExportValue;
+        }
+
+        public static ChoiceOptionLookup Create(Dictionary<int, PdfIndirectObject> objects, PdfArray options) {
+            var byExportValue = new Dictionary<string, ChoiceFillValue>(StringComparer.Ordinal);
+            var byDisplayValue = new Dictionary<string, ChoiceFillValue>(StringComparer.Ordinal);
+            var displayByExportValue = new Dictionary<string, string>(StringComparer.Ordinal);
+
+            for (int i = 0; i < options.Items.Count; i++) {
+                PdfObject? optionObject = ResolveObject(objects, options.Items[i]);
+                if (optionObject is PdfArray pair &&
+                    pair.Items.Count >= 2 &&
+                    TryReadOptionText(objects, pair.Items[0], out string? pairExportValue) &&
+                    pairExportValue is not null &&
+                    TryReadOptionText(objects, pair.Items[1], out string? pairDisplayText) &&
+                    pairDisplayText is not null) {
+                    var choice = new ChoiceFillValue(pairExportValue, pairDisplayText);
+                    AddIfMissing(byExportValue, pairExportValue, choice);
+                    AddIfMissing(displayByExportValue, pairExportValue, pairDisplayText);
+                    AddIfMissing(byDisplayValue, pairDisplayText, choice);
+                    continue;
+                }
+
+                if (optionObject is not null &&
+                    TryReadOptionText(objects, optionObject, out string? singleValue) &&
+                    singleValue is not null) {
+                    var choice = new ChoiceFillValue(singleValue, singleValue);
+                    AddIfMissing(byExportValue, singleValue, choice);
+                    AddIfMissing(displayByExportValue, singleValue, singleValue);
+                }
+            }
+
+            return new ChoiceOptionLookup(byExportValue, byDisplayValue, displayByExportValue);
+        }
+
+        public bool TryResolveFillValue(string value, out ChoiceFillValue fillValue) {
+            if (_byExportValue.TryGetValue(value, out fillValue)) {
+                return true;
+            }
+
+            return _byDisplayValue.TryGetValue(value, out fillValue);
+        }
+
+        public string? ResolveDisplayValue(string exportValue) =>
+            _displayByExportValue.TryGetValue(exportValue, out string? displayValue) ? displayValue : null;
+
+        private static void AddIfMissing(Dictionary<string, ChoiceFillValue> dictionary, string key, ChoiceFillValue value) {
+#pragma warning disable CA1864 // Dictionary.TryAdd is unavailable for the net472 target.
+            if (!dictionary.ContainsKey(key)) {
+                dictionary.Add(key, value);
+            }
+#pragma warning restore CA1864
+        }
+
+        private static void AddIfMissing(Dictionary<string, string> dictionary, string key, string value) {
+#pragma warning disable CA1864 // Dictionary.TryAdd is unavailable for the net472 target.
+            if (!dictionary.ContainsKey(key)) {
+                dictionary.Add(key, value);
+            }
+#pragma warning restore CA1864
+        }
+    }
+
     private static string? TryReadSimpleValue(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, string key) {
         if (!dictionary.Items.TryGetValue(key, out var value)) {
             return null;
@@ -81,77 +155,32 @@ public static partial class PdfFormFiller {
         }
 
         var displayValues = new List<string>(exportValues.Count);
+        ChoiceOptionLookup optionLookup = ChoiceOptionLookup.Create(objects, options);
         for (int i = 0; i < exportValues.Count; i++) {
-            displayValues.Add(ResolveSingleChoiceDisplayValue(objects, options, exportValues[i]) ?? exportValues[i]);
+            displayValues.Add(optionLookup.ResolveDisplayValue(exportValues[i]) ?? exportValues[i]);
         }
 
         return displayValues.Count == 0 ? null : string.Join(", ", displayValues);
     }
 
-    private static string? ResolveSingleChoiceDisplayValue(Dictionary<int, PdfIndirectObject> objects, PdfArray options, string exportValue) {
-        for (int i = 0; i < options.Items.Count; i++) {
-            PdfObject? optionObject = ResolveObject(objects, options.Items[i]);
-            if (optionObject is PdfArray pair &&
-                pair.Items.Count >= 2 &&
-                TryReadOptionText(objects, pair.Items[0], out string? pairExportValue) &&
-                string.Equals(pairExportValue, exportValue, StringComparison.Ordinal) &&
-                TryReadOptionText(objects, pair.Items[1], out string? pairDisplayText)) {
-                return pairDisplayText;
-            }
-
-            if (optionObject is not null &&
-                TryReadOptionText(objects, optionObject, out string? singleValue) &&
-                string.Equals(singleValue, exportValue, StringComparison.Ordinal)) {
-                return singleValue;
-            }
-        }
-
-        return null;
-    }
-
     private static List<ChoiceFillValue> ResolveChoiceFillValues(Dictionary<int, PdfIndirectObject> objects, PdfArray? options, bool isEditableChoice, IReadOnlyList<string> values) {
         var resolved = new List<ChoiceFillValue>(values.Count);
+        ChoiceOptionLookup? optionLookup = options is null || options.Items.Count == 0
+            ? null
+            : ChoiceOptionLookup.Create(objects, options);
+
         for (int i = 0; i < values.Count; i++) {
-            resolved.Add(options is null || options.Items.Count == 0
+            resolved.Add(optionLookup is null
                 ? new ChoiceFillValue(values[i], values[i])
-                : ResolveSingleChoiceFillValue(objects, options, isEditableChoice, values[i]));
+                : ResolveChoiceFillValue(optionLookup, isEditableChoice, values[i]));
         }
 
         return resolved;
     }
 
-    private static ChoiceFillValue ResolveSingleChoiceFillValue(Dictionary<int, PdfIndirectObject> objects, PdfArray options, bool isEditableChoice, string value) {
-        for (int i = 0; i < options.Items.Count; i++) {
-            PdfObject? optionObject = ResolveObject(objects, options.Items[i]);
-            if (optionObject is PdfArray pair &&
-                pair.Items.Count >= 2 &&
-                TryReadOptionText(objects, pair.Items[0], out string? pairExportValue) &&
-                pairExportValue is not null &&
-                TryReadOptionText(objects, pair.Items[1], out string? pairDisplayText) &&
-                pairDisplayText is not null &&
-                string.Equals(pairExportValue, value, StringComparison.Ordinal)) {
-                return new ChoiceFillValue(pairExportValue, pairDisplayText);
-            }
-
-            if (optionObject is not null &&
-                TryReadOptionText(objects, optionObject, out string? singleValue) &&
-                singleValue is not null &&
-                string.Equals(singleValue, value, StringComparison.Ordinal)) {
-                return new ChoiceFillValue(singleValue, singleValue);
-            }
-        }
-
-        for (int i = 0; i < options.Items.Count; i++) {
-            PdfObject? optionObject = ResolveObject(objects, options.Items[i]);
-            if (optionObject is PdfArray pair &&
-                pair.Items.Count >= 2 &&
-                TryReadOptionText(objects, pair.Items[0], out string? pairExportValue) &&
-                pairExportValue is not null &&
-                TryReadOptionText(objects, pair.Items[1], out string? pairDisplayText) &&
-                pairDisplayText is not null &&
-                string.Equals(pairDisplayText, value, StringComparison.Ordinal)) {
-                return new ChoiceFillValue(pairExportValue, pairDisplayText);
-            }
+    private static ChoiceFillValue ResolveChoiceFillValue(ChoiceOptionLookup optionLookup, bool isEditableChoice, string value) {
+        if (optionLookup.TryResolveFillValue(value, out ChoiceFillValue fillValue)) {
+            return fillValue;
         }
 
         if (isEditableChoice) {
