@@ -902,7 +902,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void SvgRendererSniffsPackageBackedSvgPreviewArtworkWithXmlPreamble() {
+        public void SvgRendererSkipsPackageBackedSvgPreviewArtworkWithXmlPreamble() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Package SVG Preview").Size(3, 2);
@@ -923,10 +923,11 @@ namespace OfficeIMO.Tests {
             XNamespace ns = "http://www.w3.org/2000/svg";
             XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
                 .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            XElement image = shapeGroup.Elements(ns + "image")
-                .Single(element => (string?)element.Attribute("data-officeimo-package-preview-artwork") == "true");
-            Assert.StartsWith("data:image/svg+xml;base64,", image.Attribute("href")!.Value, StringComparison.Ordinal);
-            Assert.DoesNotContain("data-officeimo-stencil-artwork=\"true\"", svg);
+            Assert.DoesNotContain(
+                shapeGroup.Elements(ns + "image"),
+                element => (string?)element.Attribute("data-officeimo-package-preview-artwork") == "true");
+            Assert.DoesNotContain("data:image/svg+xml;base64,", svg, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("data-officeimo-stencil-artwork=\"true\"", svg, StringComparison.Ordinal);
         }
 
         [Fact]
