@@ -237,6 +237,82 @@ public class PdfFontFamilyTests {
     }
 
     [Fact]
+    public void PdfEmbeddedFontFamily_TryFromSystemFontFilesStopsAfterScanBudget() {
+        if (!TryFindSingleInstalledRegularFontFace(out string familyName, out string fontPath)) {
+            return;
+        }
+
+        string[] missingFiles = Enumerable
+            .Range(0, PdfEmbeddedFontFamily.MaxSystemFontFilesToInspect)
+            .Select(index => Path.Combine(Path.GetTempPath(), "OfficeIMO.Missing." + index.ToString(CultureInfo.InvariantCulture) + ".ttf"))
+            .Concat(new[] { fontPath })
+            .ToArray();
+
+        bool found = PdfEmbeddedFontFamily.TryFromSystemFontFiles(
+            familyName,
+            missingFiles,
+            out PdfEmbeddedFontFamily? family);
+
+        Assert.False(found);
+        Assert.Null(family);
+    }
+
+    [Fact]
+    public void PdfEmbeddedFontFamily_TryFromSystemFontFilesSkipsOversizedFontFiles() {
+        if (!TryFindSingleInstalledRegularFontFace(out string familyName, out string fontPath)) {
+            return;
+        }
+
+        string tempDir = Path.Combine(Path.GetTempPath(), "OfficeIMO.Pdf.Fonts." + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+        try {
+            string oversizedPath = Path.Combine(tempDir, "OfficeIMO-Oversized.ttf");
+            using (FileStream stream = File.Create(oversizedPath)) {
+                stream.SetLength(PdfEmbeddedFontFamily.MaxSystemFontFileBytes + 1);
+            }
+
+            bool found = PdfEmbeddedFontFamily.TryFromSystemFontFiles(
+                familyName,
+                new[] { oversizedPath, fontPath },
+                out PdfEmbeddedFontFamily? family);
+
+            Assert.True(found);
+            Assert.NotNull(family);
+            Assert.NotEmpty(family!.Regular);
+        } finally {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void PdfEmbeddedFontFamily_TryFromSystemFontFilesRejectsOversizedTrueTypeCollectionFaceCounts() {
+        if (!TryFindSingleInstalledRegularFontFace(out string familyName, out string fontPath)) {
+            return;
+        }
+
+        string tempDir = Path.Combine(Path.GetTempPath(), "OfficeIMO.Pdf.Fonts." + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+        try {
+            string collectionPath = Path.Combine(tempDir, "officeimo-oversized-system-face.ttc");
+            File.WriteAllBytes(
+                collectionPath,
+                CreateRepeatedFaceTrueTypeCollection(
+                    File.ReadAllBytes(fontPath),
+                    PdfEmbeddedFontFamily.MaxTrueTypeCollectionFontsToInspect + 1));
+
+            bool found = PdfEmbeddedFontFamily.TryFromSystemFontFiles(
+                familyName,
+                new[] { collectionPath },
+                out PdfEmbeddedFontFamily? family);
+
+            Assert.False(found);
+            Assert.Null(family);
+        } finally {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
     public void PdfEmbeddedFontFamily_TryFromSystemFontFilesSkipsMalformedTrueTypeFiles() {
         string tempDir = Path.Combine(Path.GetTempPath(), "OfficeIMO.Pdf.Fonts." + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempDir);
@@ -2354,7 +2430,11 @@ public class PdfFontFamilyTests {
     }
 
     private static byte[] CreateSingleFaceTrueTypeCollection(byte[] fontData) {
-        int fontOffset = 16;
+        return CreateRepeatedFaceTrueTypeCollection(fontData, 1);
+    }
+
+    private static byte[] CreateRepeatedFaceTrueTypeCollection(byte[] fontData, int fontCount) {
+        int fontOffset = 12 + fontCount * 4;
         int tableCount = ReadUInt16(fontData, 4);
         int sourceDirectoryLength = 12 + tableCount * 16;
         int collectionLength = fontOffset + fontData.Length;
@@ -2365,8 +2445,11 @@ public class PdfFontFamilyTests {
         collection[2] = (byte)'c';
         collection[3] = (byte)'f';
         WriteUInt32(collection, 4, 0x00010000);
-        WriteUInt32(collection, 8, 1);
-        WriteUInt32(collection, 12, (uint)fontOffset);
+        WriteUInt32(collection, 8, (uint)fontCount);
+        for (int index = 0; index < fontCount; index++) {
+            WriteUInt32(collection, 12 + index * 4, (uint)fontOffset);
+        }
+
         Array.Copy(fontData, 0, collection, fontOffset, fontData.Length);
 
         for (int i = 0; i < tableCount; i++) {

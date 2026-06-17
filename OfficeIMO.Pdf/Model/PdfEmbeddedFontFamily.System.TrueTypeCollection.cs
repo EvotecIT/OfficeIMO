@@ -1,6 +1,10 @@
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfEmbeddedFontFamily {
+    internal const int MaxTrueTypeCollectionFontsToInspect = 256;
+    internal const int MaxExtractedTrueTypeCollectionFontBytes = 64 * 1024 * 1024;
+    internal const int MaxExtractedTrueTypeCollectionBytes = 128 * 1024 * 1024;
+
     private static System.Collections.Generic.List<byte[]> ExtractTrueTypeFontPrograms(byte[] data) {
         if (!IsTrueTypeCollection(data)) {
             return new System.Collections.Generic.List<byte[]> { data };
@@ -8,19 +12,26 @@ public sealed partial class PdfEmbeddedFontFamily {
 
         EnsureRange(data, 0, 12);
         uint fontCount = ReadUInt32(data, 8);
-        if (fontCount == 0 || fontCount > 4096) {
+        if (fontCount == 0 || fontCount > MaxTrueTypeCollectionFontsToInspect) {
             throw new System.NotSupportedException("TrueType collection font count is invalid.");
         }
 
         EnsureRange(data, 12, checked((int)fontCount * 4));
         var fonts = new System.Collections.Generic.List<byte[]>((int)fontCount);
+        int extractedBytes = 0;
         for (int i = 0; i < fontCount; i++) {
             uint offset = ReadUInt32(data, 12 + i * 4);
             if (offset > int.MaxValue) {
                 throw new System.NotSupportedException("TrueType collection font offset is too large.");
             }
 
-            fonts.Add(ExtractTrueTypeCollectionFont(data, (int)offset));
+            byte[] font = ExtractTrueTypeCollectionFont(data, (int)offset);
+            extractedBytes = checked(extractedBytes + font.Length);
+            if (extractedBytes > MaxExtractedTrueTypeCollectionBytes) {
+                throw new System.NotSupportedException("TrueType collection extracted font data exceeds supported limits.");
+            }
+
+            fonts.Add(font);
         }
 
         return fonts;
@@ -57,6 +68,10 @@ public sealed partial class PdfEmbeddedFontFamily {
             EnsureRange(collectionData, (int)sourceOffset, (int)length);
             tables.Add(new FontTableCopyRecord(tag, checksum, (int)sourceOffset, (int)length, outputOffset));
             outputOffset = Align4(checked(outputOffset + (int)length));
+        }
+
+        if (outputOffset > MaxExtractedTrueTypeCollectionFontBytes) {
+            throw new System.NotSupportedException("TrueType collection font data exceeds supported limits.");
         }
 
         byte[] fontData = new byte[outputOffset];
