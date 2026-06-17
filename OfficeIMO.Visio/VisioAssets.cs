@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Xml;
 using System.Xml.Linq;
 
 namespace OfficeIMO.Visio {
@@ -21,6 +22,13 @@ namespace OfficeIMO.Visio {
         public const long MaxTotalMasterRelationshipBytes = 64_000_000;
         /// <summary>Maximum number of master relationships copied from one Visio package import.</summary>
         public const int MaxMasterRelationships = 4096;
+
+        private static readonly XmlReaderSettings PackageXmlReaderSettings = new() {
+            DtdProcessing = DtdProcessing.Prohibit,
+            XmlResolver = null,
+            MaxCharactersInDocument = MaxMasterXmlPartBytes,
+            MaxCharactersFromEntities = 0,
+        };
 
         /// <summary>
         /// Lightweight info about a master available inside a Visio package.
@@ -93,7 +101,7 @@ namespace OfficeIMO.Visio {
             if (mastersEntry == null) return Array.Empty<MasterInfo>();
             EnsureZipEntryWithinLimit(mastersEntry, MaxMasterXmlPartBytes, "masters XML part");
             using var s = mastersEntry.Open();
-            XDocument doc = XDocument.Load(s);
+            XDocument doc = LoadXml(s);
             XNamespace v = V;
             return doc.Root!.Elements(v + "Master").Select(m => new MasterInfo {
                 Id = (string?)m.Attribute("ID") ?? string.Empty,
@@ -113,7 +121,7 @@ namespace OfficeIMO.Visio {
             if (mastersEntry == null) return Array.Empty<MasterContent>();
             EnsureZipEntryWithinLimit(mastersEntry, MaxMasterXmlPartBytes, "masters XML part");
             using var mStream = mastersEntry.Open();
-            XDocument mastersDoc = XDocument.Load(mStream);
+            XDocument mastersDoc = LoadXml(mStream);
             XNamespace v = V;
             XNamespace r = REL_ODC;
             // map relId->target
@@ -122,7 +130,7 @@ namespace OfficeIMO.Visio {
             if (relsEntry != null) {
                 EnsureZipEntryWithinLimit(relsEntry, MaxMasterXmlPartBytes, "masters relationship part");
                 using var relsStream = relsEntry.Open();
-                var relsDoc = XDocument.Load(relsStream);
+                var relsDoc = LoadXml(relsStream);
                 XNamespace pr = REL_PKG;
                 foreach (var e in relsDoc.Root!.Elements(pr + "Relationship")) {
                     string id = (string?)e.Attribute("Id") ?? string.Empty;
@@ -146,7 +154,7 @@ namespace OfficeIMO.Visio {
                 if (part == null) continue;
                 EnsureZipEntryWithinLimit(part, MaxMasterXmlPartBytes, "master XML part");
                 using var pStream = part.Open();
-                XDocument masterXml = XDocument.Load(pStream);
+                XDocument masterXml = LoadXml(pStream);
                 MasterContent content = new() { Id = id, NameU = nameU, MasterXml = masterXml, MasterElement = new XElement(m) };
                 foreach (MasterRelationshipContent relationship in LoadMasterRelationships(zip, partPath, ref totalRelationshipBytes, ref totalRelationships)) {
                     content.Relationships.Add(relationship);
@@ -167,14 +175,14 @@ namespace OfficeIMO.Visio {
             if (documentEntry != null) {
                 EnsureZipEntryWithinLimit(documentEntry, MaxMasterXmlPartBytes, "document XML part");
                 using Stream stream = documentEntry.Open();
-                context.DocumentXml = XDocument.Load(stream);
+                context.DocumentXml = LoadXml(stream);
             }
 
             ZipArchiveEntry? themeEntry = zip.GetEntry("visio/theme/theme1.xml");
             if (themeEntry != null) {
                 EnsureZipEntryWithinLimit(themeEntry, MaxMasterXmlPartBytes, "theme XML part");
                 using Stream stream = themeEntry.Open();
-                context.ThemeXml = XDocument.Load(stream);
+                context.ThemeXml = LoadXml(stream);
             }
 
             return context;
@@ -203,7 +211,7 @@ namespace OfficeIMO.Visio {
 
             EnsureZipEntryWithinLimit(relsEntry, MaxMasterXmlPartBytes, "master relationship XML part");
             using Stream relsStream = relsEntry.Open();
-            XDocument relsDoc = XDocument.Load(relsStream);
+            XDocument relsDoc = LoadXml(relsStream);
             XNamespace pr = REL_PKG;
             List<MasterRelationshipContent> relationships = new();
             foreach (XElement rel in relsDoc.Root?.Elements(pr + "Relationship") ?? Enumerable.Empty<XElement>()) {
@@ -269,6 +277,11 @@ namespace OfficeIMO.Visio {
             if (entry.Length > maxBytes) {
                 throw new InvalidDataException($"Visio package {description} '{entry.FullName}' exceeds {maxBytes} bytes.");
             }
+        }
+
+        private static XDocument LoadXml(Stream stream) {
+            using XmlReader reader = XmlReader.Create(stream, PackageXmlReaderSettings);
+            return XDocument.Load(reader, LoadOptions.None);
         }
 
         private static void CopyToWithLimit(Stream source, Stream destination, long maxBytes, string entryName) {

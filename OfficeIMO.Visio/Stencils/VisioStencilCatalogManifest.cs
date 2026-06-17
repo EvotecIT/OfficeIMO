@@ -14,6 +14,14 @@ namespace OfficeIMO.Visio.Stencils {
     public static class VisioStencilCatalogManifest {
         private const string FormatVersion = "1";
         private static readonly XNamespace Ns = "urn:officeimo:visio:stencils";
+        private const long MaxManifestXmlCharacters = 10_000_000;
+
+        private static readonly XmlReaderSettings ManifestXmlReaderSettings = new() {
+            DtdProcessing = DtdProcessing.Prohibit,
+            XmlResolver = null,
+            MaxCharactersInDocument = MaxManifestXmlCharacters,
+            MaxCharactersFromEntities = 0,
+        };
 
         /// <summary>
         /// Saves a stencil catalog manifest to a file.
@@ -73,7 +81,7 @@ namespace OfficeIMO.Visio.Stencils {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
-            XDocument document = XDocument.Load(stream);
+            XDocument document = LoadXml(stream);
             return FromXml(document, options);
         }
 
@@ -395,6 +403,11 @@ namespace OfficeIMO.Visio.Stencils {
         private static bool ReadBoolean(XElement element, string attributeName) {
             string? value = (string?)element.Attribute(attributeName);
             return !string.IsNullOrWhiteSpace(value) && XmlConvert.ToBoolean(value);
+        }
+
+        private static XDocument LoadXml(Stream stream) {
+            using XmlReader reader = XmlReader.Create(stream, ManifestXmlReaderSettings);
+            return XDocument.Load(reader, LoadOptions.None);
         }
     }
 }

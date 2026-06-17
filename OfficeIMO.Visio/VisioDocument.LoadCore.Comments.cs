@@ -95,7 +95,7 @@ namespace OfficeIMO.Visio {
 
         private static XDocument LoadCommentsXml(PackagePart commentsPart) {
             using Stream commentsStream = commentsPart.GetStream();
-            using Stream boundedStream = new BoundedReadStream(commentsStream, MaxCommentsPartBytes);
+            using Stream boundedStream = new BoundedReadStream(commentsStream, MaxCommentsPartBytes, "Visio comments part");
             using XmlReader reader = XmlReader.Create(boundedStream, CommentsXmlReaderSettings);
             return XDocument.Load(reader);
         }
@@ -177,11 +177,13 @@ namespace OfficeIMO.Visio {
         private sealed class BoundedReadStream : Stream {
             private readonly Stream _inner;
             private readonly long _maxBytes;
+            private readonly string _description;
             private long _bytesRead;
 
-            internal BoundedReadStream(Stream inner, long maxBytes) {
+            internal BoundedReadStream(Stream inner, long maxBytes, string description) {
                 _inner = inner ?? throw new ArgumentNullException(nameof(inner));
                 _maxBytes = maxBytes;
+                _description = string.IsNullOrWhiteSpace(description) ? "Stream" : description;
             }
 
             public override bool CanRead => _inner.CanRead;
@@ -205,7 +207,7 @@ namespace OfficeIMO.Visio {
                 int read = _inner.Read(buffer, offset, count);
                 _bytesRead += read;
                 if (_bytesRead > _maxBytes) {
-                    throw new InvalidDataException($"Visio comments part exceeds {_maxBytes} bytes.");
+                    throw new InvalidDataException($"{_description} exceeds {_maxBytes} bytes.");
                 }
 
                 return read;
