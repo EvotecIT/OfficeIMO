@@ -11,9 +11,13 @@ namespace OfficeIMO.Word.Html {
         /// Creates the default OfficeIMO HTML import profile.
         /// </summary>
         /// <returns>A new <see cref="HtmlToWordOptions"/> instance with the default compatibility-oriented settings.</returns>
-        public static HtmlToWordOptions CreateOfficeIMOProfile() => new HtmlToWordOptions {
-            MaxTableCells = null
-        };
+        public static HtmlToWordOptions CreateOfficeIMOProfile() {
+            var options = new HtmlToWordOptions {
+                MaxTableCells = null
+            };
+            options.AllowedImageUriSchemes.Add(Uri.UriSchemeFile);
+            return options;
+        }
 
         /// <summary>
         /// Creates a bounded offline profile for untrusted HTML ingestion.
@@ -56,9 +60,13 @@ namespace OfficeIMO.Word.Html {
         /// or byte limits when trusted documents can reference broad network locations.
         /// </remarks>
         /// <returns>A new <see cref="HtmlToWordOptions"/> instance configured for trusted document links.</returns>
-        public static HtmlToWordOptions CreateTrustedDocumentProfile() => new HtmlToWordOptions {
-            AllowDocumentStylesheetLinks = true
-        };
+        public static HtmlToWordOptions CreateTrustedDocumentProfile() {
+            var options = new HtmlToWordOptions {
+                AllowDocumentStylesheetLinks = true
+            };
+            options.AllowedImageUriSchemes.Add(Uri.UriSchemeFile);
+            return options;
+        }
 
         /// <summary>
         /// Optional font family applied to created runs during conversion.
@@ -183,13 +191,13 @@ namespace OfficeIMO.Word.Html {
         };
 
         /// <summary>
-        /// Image URI schemes allowed during import. Defaults allow HTTP, HTTPS, file, and data URI images.
+        /// Image URI schemes allowed during import. Defaults allow HTTP, HTTPS, and data URI images.
+        /// Add <see cref="Uri.UriSchemeFile"/> or use <see cref="CreateTrustedDocumentProfile"/> for trusted local-file images.
         /// Remove entries to reject matching image sources before they are loaded or linked.
         /// </summary>
         public HashSet<string> AllowedImageUriSchemes { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
             Uri.UriSchemeHttp,
             Uri.UriSchemeHttps,
-            Uri.UriSchemeFile,
             "data"
         };
 

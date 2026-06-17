@@ -26,7 +26,7 @@ namespace OfficeIMO.Tests {
                 var baseHref = new Uri(new Uri(Path.Combine(dir, "dummy"), UriKind.Absolute), ".").AbsoluteUri;
                 Assert.EndsWith("/", baseHref);
                 string html = $"<base href=\"{baseHref}\"><img src=\"logo.png\" alt=\"Logo\" />";
-                var doc = html.LoadFromHtml(new HtmlToWordOptions());
+                var doc = html.LoadFromHtml(HtmlToWordOptions.CreateTrustedDocumentProfile());
                 Assert.Single(doc.Images);
                 Assert.Equal("Logo", doc.Images[0].Description);
             } finally {
@@ -44,7 +44,8 @@ namespace OfficeIMO.Tests {
             File.Copy(source, dest);
             try {
                 string html = "<img src=\"logo.png\" alt=\"Logo\" />";
-                var options = new HtmlToWordOptions { BasePath = dir };
+                var options = HtmlToWordOptions.CreateTrustedDocumentProfile();
+                options.BasePath = dir;
                 var doc = html.LoadFromHtml(options);
                 Assert.Single(doc.Images);
                 Assert.Equal("Logo", doc.Images[0].Description);
@@ -59,7 +60,7 @@ namespace OfficeIMO.Tests {
             var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
             string html = $"<img src=\"{path}\" alt=\"Company logo\" title=\"Quarterly report logo\" width=\"32\" height=\"32\" />";
 
-            using var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            using var doc = html.LoadFromHtml(HtmlToWordOptions.CreateTrustedDocumentProfile());
 
             var image = Assert.Single(doc.Images);
             Assert.Equal("Company logo", image.Description);
@@ -507,9 +508,8 @@ namespace OfficeIMO.Tests {
             File.WriteAllText(path, "not an image");
             try {
                 string html = $"<img src=\"{path}\" alt=\"Broken\" /><img src=\"data:image/png;base64,{validPng}\" alt=\"Valid\" />";
-                var options = new HtmlToWordOptions {
-                    MaxTotalImageBytes = 70
-                };
+                var options = HtmlToWordOptions.CreateTrustedDocumentProfile();
+                options.MaxTotalImageBytes = 70;
 
                 var doc = html.LoadFromHtml(options);
 
@@ -544,9 +544,8 @@ namespace OfficeIMO.Tests {
             File.WriteAllText(path, "<svg xmlns=\"http://www.w3.org/2000/svg\"><path></svg>");
             try {
                 string html = $"<img src=\"{path}\" alt=\"Broken svg\" /><img src=\"data:image/png;base64,{validPng}\" alt=\"Valid\" />";
-                var options = new HtmlToWordOptions {
-                    MaxTotalImageBytes = 100
-                };
+                var options = HtmlToWordOptions.CreateTrustedDocumentProfile();
+                options.MaxTotalImageBytes = 100;
 
                 var doc = html.LoadFromHtml(options);
 
@@ -709,7 +708,7 @@ namespace OfficeIMO.Tests {
         public void DuplicateImageFileSrcSharesPart() {
             var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
             string html = $"<p><img src=\"{path}\"/><img src=\"{path}\"/></p>";
-            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var doc = html.LoadFromHtml(HtmlToWordOptions.CreateTrustedDocumentProfile());
             Assert.Equal(2, doc.Images.Count);
             Assert.Equal(doc.Images[0].RelationshipId, doc.Images[1].RelationshipId);
             var wordDoc = doc._wordprocessingDocument;
@@ -783,7 +782,7 @@ namespace OfficeIMO.Tests {
             var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
             string html = $"<img src=\"{path}\" width=\"64\" height=\"32\" alt=\"Logo\" />";
 
-            using var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            using var doc = html.LoadFromHtml(HtmlToWordOptions.CreateTrustedDocumentProfile());
 
             var img = Assert.Single(doc.Images);
             Assert.Equal(64D, Math.Round(img.Width!.Value));
@@ -805,7 +804,8 @@ namespace OfficeIMO.Tests {
             var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
             var uri = new Uri(path).AbsoluteUri;
             string html = $"<img src=\"{uri}\" width=\"64\" height=\"64\" alt=\"Logo\" />";
-            var options = new HtmlToWordOptions { ImageProcessing = ImageProcessingMode.LinkExternal };
+            var options = HtmlToWordOptions.CreateTrustedDocumentProfile();
+            options.ImageProcessing = ImageProcessingMode.LinkExternal;
             var doc = html.LoadFromHtml(options);
             var img = Assert.Single(doc.Images);
             Assert.True(img.IsExternal);
@@ -1144,7 +1144,7 @@ namespace OfficeIMO.Tests {
                 var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
                 string base64 = Convert.ToBase64String(File.ReadAllBytes(path));
                 string html = $"<img data-src=\"{new Uri(badPath).AbsoluteUri}\" src=\"data:image/png;base64,{base64}\" alt=\"Logo\" />";
-                var options = new HtmlToWordOptions();
+                var options = HtmlToWordOptions.CreateTrustedDocumentProfile();
 
                 var doc = html.LoadFromHtml(options);
 
@@ -1164,9 +1164,8 @@ namespace OfficeIMO.Tests {
             try {
                 string base64 = Convert.ToBase64String(imageBytes);
                 string html = $"<img data-src=\"{new Uri(oversizedPath).AbsoluteUri}\" src=\"data:image/png;base64,{base64}\" alt=\"Logo\" />";
-                var options = new HtmlToWordOptions {
-                    MaxImageBytes = imageBytes.LongLength
-                };
+                var options = HtmlToWordOptions.CreateTrustedDocumentProfile();
+                options.MaxImageBytes = imageBytes.LongLength;
 
                 var doc = html.LoadFromHtml(options);
 
@@ -1174,6 +1173,25 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(options.Diagnostics);
             } finally {
                 File.Delete(oversizedPath);
+            }
+        }
+
+        [Fact]
+        public void HtmlToWord_ImageSelection_SkipsLocalFileCandidateByDefault() {
+            string localPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".png");
+            File.WriteAllText(localPath, "not an image");
+            try {
+                var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
+                string base64 = Convert.ToBase64String(File.ReadAllBytes(path));
+                string html = $"<img data-src=\"{new Uri(localPath).AbsoluteUri}\" src=\"data:image/png;base64,{base64}\" alt=\"Logo\" />";
+                var options = new HtmlToWordOptions();
+
+                var doc = html.LoadFromHtml(options);
+
+                Assert.Single(doc.Images);
+                Assert.Empty(options.Diagnostics);
+            } finally {
+                File.Delete(localPath);
             }
         }
 
