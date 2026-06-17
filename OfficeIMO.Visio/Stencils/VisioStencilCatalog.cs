@@ -63,10 +63,24 @@ namespace OfficeIMO.Visio.Stencils {
         }
 
         /// <summary>
+        /// Loads an OfficeIMO-native stencil catalog manifest with explicit source-package trust options.
+        /// </summary>
+        public static VisioStencilCatalog Load(string path, VisioStencilCatalogManifestLoadOptions? options) {
+            return VisioStencilCatalogManifest.Load(path, options);
+        }
+
+        /// <summary>
         /// Loads an OfficeIMO-native stencil catalog manifest.
         /// </summary>
         public static VisioStencilCatalog Load(Stream stream) {
             return VisioStencilCatalogManifest.Load(stream);
+        }
+
+        /// <summary>
+        /// Loads an OfficeIMO-native stencil catalog manifest with explicit source-package trust options.
+        /// </summary>
+        public static VisioStencilCatalog Load(Stream stream, VisioStencilCatalogManifestLoadOptions? options) {
+            return VisioStencilCatalogManifest.Load(stream, options);
         }
 
         /// <summary>

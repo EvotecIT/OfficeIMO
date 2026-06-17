@@ -530,6 +530,78 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void StencilCatalogManifestDropsSourcePackagePathsByDefault() {
+            VisioStencilCatalog source = VisioStencilCatalog.Create("Untrusted Catalog", builder => builder
+                .AddWithMetadata(
+                    "external.master",
+                    "External Master",
+                    "ExternalMaster",
+                    "External",
+                    1.8,
+                    0.9,
+                    keywords: null,
+                    aliases: null,
+                    tags: null,
+                    iconNameU: "ExternalMaster",
+                    defaultUnit: null,
+                    sourcePackagePath: Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vssx")));
+            using MemoryStream manifest = new();
+            source.Save(manifest);
+            manifest.Position = 0;
+
+            VisioStencilCatalog loaded = VisioStencilCatalog.Load(manifest);
+            VisioStencilShape stencil = loaded.Get("external.master");
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("Untrusted");
+            VisioShape shape = page.AddStencilShape(stencil, "shape", 2, 4);
+
+            Assert.Null(stencil.SourcePackagePath);
+            Assert.Null(shape.Master);
+        }
+
+        [Fact]
+        public void StencilCatalogManifestRequiresExternalSourcePackagePathOptIn() {
+            string baseDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(baseDirectory);
+            string externalPackagePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vssx");
+            string manifestPath = Path.Combine(baseDirectory, "catalog.xml");
+
+            try {
+                VisioStencilCatalog source = VisioStencilCatalog.Create("Untrusted Catalog", builder => builder
+                    .AddWithMetadata(
+                        "external.master",
+                        "External Master",
+                        "ExternalMaster",
+                        "External",
+                        1.8,
+                        0.9,
+                        keywords: null,
+                        aliases: null,
+                        tags: null,
+                        iconNameU: "ExternalMaster",
+                        defaultUnit: null,
+                        sourcePackagePath: externalPackagePath));
+                source.Save(manifestPath);
+
+                VisioStencilCatalog bounded = VisioStencilCatalog.Load(manifestPath, new VisioStencilCatalogManifestLoadOptions {
+                    AllowSourcePackagePaths = true
+                });
+                VisioStencilCatalog trustedExternal = VisioStencilCatalog.Load(manifestPath, new VisioStencilCatalogManifestLoadOptions {
+                    AllowSourcePackagePaths = true,
+                    AllowExternalSourcePackagePaths = true
+                });
+
+                Assert.Null(bounded.Get("external.master").SourcePackagePath);
+                Assert.Equal(Path.GetFullPath(externalPackagePath), trustedExternal.Get("external.master").SourcePackagePath);
+            } finally {
+                if (Directory.Exists(baseDirectory)) {
+                    Directory.Delete(baseDirectory, recursive: true);
+                }
+            }
+        }
+
+        [Fact]
         public void PackageStencilCatalogLoadsSupportedMastersFromVssxWithoutRuntimeTemplateDependency() {
             string packagePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vssx");
             CreatePackageWithMasters(packagePath, "Rectangle", "FancyCloud", "Decision");
@@ -1059,7 +1131,11 @@ namespace OfficeIMO.Tests {
             VisioStencilShape vaultStencil = catalog.Get("data-vault");
             string manifestPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xml");
             catalog.Save(manifestPath);
-            VisioStencilCatalog reloadedCatalog = VisioStencilCatalog.Load(manifestPath);
+            VisioStencilCatalog untrustedCatalog = VisioStencilCatalog.Load(manifestPath);
+            VisioStencilCatalog reloadedCatalog = VisioStencilCatalog.Load(manifestPath, new VisioStencilCatalogManifestLoadOptions {
+                AllowSourcePackagePaths = true
+            });
+            Assert.Null(untrustedCatalog.Get("fancy-cloud").SourcePackagePath);
             Assert.Equal(Path.GetFullPath(firstPackage), reloadedCatalog.Get("fancy-cloud").SourcePackagePath);
 
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
