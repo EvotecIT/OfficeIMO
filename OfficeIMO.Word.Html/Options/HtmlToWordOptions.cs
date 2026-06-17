@@ -11,7 +11,9 @@ namespace OfficeIMO.Word.Html {
         /// Creates the default OfficeIMO HTML import profile.
         /// </summary>
         /// <returns>A new <see cref="HtmlToWordOptions"/> instance with the default compatibility-oriented settings.</returns>
-        public static HtmlToWordOptions CreateOfficeIMOProfile() => new HtmlToWordOptions();
+        public static HtmlToWordOptions CreateOfficeIMOProfile() => new HtmlToWordOptions {
+            MaxTableCells = null
+        };
 
         /// <summary>
         /// Creates a bounded offline profile for untrusted HTML ingestion.
@@ -250,10 +252,10 @@ namespace OfficeIMO.Word.Html {
 
         /// <summary>
         /// Optional maximum number of Word table cells allowed for a single imported HTML table.
-        /// Spans are resolved before the limit is checked. When exceeded, conversion stops with
+        /// Defaults to 50,000 cells. Spans are resolved before the limit is checked. When exceeded, conversion stops with
         /// <see cref="HtmlConversionLimitException"/> and an error diagnostic.
         /// </summary>
-        public long? MaxTableCells { get; set; }
+        public long? MaxTableCells { get; set; } = 50000;
 
         /// <summary>
         /// Diagnostics produced while converting HTML. The converter appends warnings here when

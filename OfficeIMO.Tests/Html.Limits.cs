@@ -81,5 +81,31 @@ namespace OfficeIMO.Tests {
             var diagnostic = Assert.Single(options.Diagnostics);
             Assert.Equal("TableSizeLimitExceeded", diagnostic.Code);
         }
+
+        [Fact]
+        public void HtmlToWord_DefaultMaxTableCells_StopsHostileColumnSpan() {
+            var options = new HtmlToWordOptions();
+            string html = "<table><tr><td colspan=\"50001\">Wide</td></tr></table>";
+
+            var exception = Assert.Throws<HtmlConversionLimitException>(() => html.LoadFromHtml(options));
+
+            Assert.Equal("TableSizeLimitExceeded", exception.Code);
+            Assert.Equal("MaxTableCells", exception.LimitSource);
+            Assert.Equal(50000, exception.Limit);
+            Assert.True(exception.Actual > exception.Limit);
+            var diagnostic = Assert.Single(options.Diagnostics);
+            Assert.Equal("TableSizeLimitExceeded", diagnostic.Code);
+        }
+
+        [Fact]
+        public void HtmlToWord_ColumnGroupSpan_DoesNotExpandBeyondResolvedColumns() {
+            var options = new HtmlToWordOptions();
+            string html = "<table><colgroup><col span=\"1000000\" style=\"width:10px\"></colgroup><tr><td>Cell</td></tr></table>";
+
+            using var document = html.LoadFromHtml(options);
+
+            Assert.Single(document.Tables);
+            Assert.Empty(options.Diagnostics);
+        }
     }
 }

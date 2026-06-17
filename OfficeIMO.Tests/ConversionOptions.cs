@@ -41,7 +41,15 @@ public class ConversionOptionsTests {
         Assert.Contains("https", options.AllowedStylesheetUriSchemes);
         Assert.Contains("file", options.AllowedStylesheetUriSchemes);
         Assert.Empty(options.AllowedStylesheetHosts);
+        Assert.Equal(10000, options.MaxTableCells);
         Assert.True(options.EnableAccessibilityDiagnostics);
+    }
+
+    [Fact]
+    public void HtmlToWordOptions_DefaultsBoundTableExpansion() {
+        var options = new HtmlToWordOptions();
+
+        Assert.Equal(50000, options.MaxTableCells);
     }
 
     [Fact]
@@ -55,6 +63,7 @@ public class ConversionOptionsTests {
         Assert.True(defaultProfile.HyperlinkUrlPolicy.DisallowFileUrls);
         Assert.False(defaultProfile.HyperlinkUrlPolicy.AllowDataUrls);
         Assert.Null(defaultProfile.MaxHtmlNodes);
+        Assert.Null(defaultProfile.MaxTableCells);
 
         var untrustedProfile = HtmlToWordOptions.CreateUntrustedHtmlProfile();
         Assert.False(untrustedProfile.AllowDocumentStylesheetLinks);
