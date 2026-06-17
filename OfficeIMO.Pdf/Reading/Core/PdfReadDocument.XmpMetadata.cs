@@ -25,15 +25,16 @@ public sealed partial class PdfReadDocument {
             return null;
         }
 
-        byte[] decoded = StreamDecoder.Decode(stream.Dictionary, stream.Data, _objects);
-        string? rawXml = decoded.Length <= MaxXmpMetadataBytes ? DecodeMetadataText(decoded) : null;
+        bool decodedWithinLimit = StreamDecoder.TryDecode(stream.Dictionary, stream.Data, MaxXmpMetadataBytes, out byte[] decoded, _objects);
+        string? rawXml = decodedWithinLimit ? DecodeMetadataText(decoded) : null;
+        int decodedSizeBytes = decodedWithinLimit ? decoded.Length : MaxXmpMetadataBytes + 1;
         XDocument? document = rawXml is null ? null : TryParseXml(rawXml);
         return new PdfXmpMetadataInfo(
             objectNumber,
             TryReadName(stream.Dictionary, "Subtype"),
             TryReadStreamFilter(stream),
             stream.Data.Length,
-            decoded.Length,
+            decodedSizeBytes,
             StreamDecoder.GetUnsupportedFilters(stream.Dictionary, _objects).AsReadOnly(),
             rawXml,
             document is not null,

@@ -252,6 +252,20 @@ public partial class PdfInspectorTests {
     }
 
     [Fact]
+    public void Inspect_CompressedXmpMetadataOverLimitDoesNotMaterializeDecodedXml() {
+        string xmp = new('x', PdfReadDocument.MaxXmpMetadataBytes + 1);
+
+        PdfDocumentInfo info = PdfInspector.Inspect(BuildCompressedXmpMetadataPdfWithPayload(xmp));
+
+        Assert.True(info.HasXmpMetadata);
+        PdfXmpMetadataInfo metadata = Assert.IsType<PdfXmpMetadataInfo>(info.XmpMetadata);
+        Assert.True(metadata.StreamSizeBytes < PdfReadDocument.MaxXmpMetadataBytes);
+        Assert.Equal(PdfReadDocument.MaxXmpMetadataBytes + 1, metadata.DecodedSizeBytes);
+        Assert.Null(metadata.RawXml);
+        Assert.False(metadata.IsWellFormedXml);
+    }
+
+    [Fact]
     public void Preflight_AllowsSimpleCatalogUriPdfReadAndRewrite() {
         PdfDocumentPreflight report = PdfInspector.Preflight(BuildCatalogUriPdf());
 
@@ -421,6 +435,46 @@ public partial class PdfInspectorTests {
         });
 
         return System.Text.Encoding.UTF8.GetBytes(pdf);
+    }
+
+    private static byte[] BuildCompressedXmpMetadataPdfWithPayload(string xmp) {
+        byte[] compressed = Compress(System.Text.Encoding.UTF8.GetBytes(xmp));
+        using var output = new MemoryStream();
+        WriteAscii(output, string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /Metadata 5 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Metadata /Subtype /XML /Length " + compressed.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " /Filter /FlateDecode >>",
+            "stream"
+        }) + "\n");
+        output.Write(compressed, 0, compressed.Length);
+        WriteAscii(output, "\n" + string.Join("\n", new[] {
+            "endstream",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 6 >>",
+            "%%EOF"
+        }));
+        return output.ToArray();
+    }
+
+    private static void WriteAscii(Stream stream, string value) {
+        byte[] bytes = System.Text.Encoding.ASCII.GetBytes(value);
+        stream.Write(bytes, 0, bytes.Length);
     }
 
 }

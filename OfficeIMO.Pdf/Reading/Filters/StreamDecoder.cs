@@ -53,6 +53,76 @@ internal static class StreamDecoder {
         return current;
     }
 
+    public static bool TryDecode(PdfDictionary dict, byte[] data, int maxOutputBytes, out byte[] decoded, Dictionary<int, PdfIndirectObject>? objects = null) {
+        decoded = Array.Empty<byte>();
+        if (maxOutputBytes < 0) {
+            return false;
+        }
+
+        if (data == null || data.Length == 0 || !dict.Items.TryGetValue("Filter", out var filterObj)) {
+            return TryUseOriginal(data ?? Array.Empty<byte>(), maxOutputBytes, out decoded);
+        }
+
+        byte[] original = data;
+        byte[] current = data;
+        int filterIndex = 0;
+        foreach (string filterName in EnumerateFilters(filterObj, objects)) {
+            try {
+                switch (GetFilterKind(filterName)) {
+                    case DecodeFilterKind.Flate:
+                        if (!FlateDecoder.TryDecode(current, maxOutputBytes, out current)) {
+                            return false;
+                        }
+
+                        current = ApplyDecodeParms(dict, filterIndex, current, objects);
+                        if (!IsWithinLimit(current, maxOutputBytes)) {
+                            return false;
+                        }
+
+                        break;
+                    case DecodeFilterKind.AsciiHex:
+                        current = AsciiHexDecoder.Decode(current);
+                        if (!IsWithinLimit(current, maxOutputBytes)) {
+                            return false;
+                        }
+
+                        break;
+                    case DecodeFilterKind.Ascii85:
+                        current = Ascii85Decoder.Decode(current);
+                        if (!IsWithinLimit(current, maxOutputBytes)) {
+                            return false;
+                        }
+
+                        break;
+                    case DecodeFilterKind.RunLength:
+                        current = RunLengthDecoder.Decode(current);
+                        if (!IsWithinLimit(current, maxOutputBytes)) {
+                            return false;
+                        }
+
+                        break;
+                    case DecodeFilterKind.Lzw:
+                        current = LzwDecoder.Decode(current, GetEarlyChange(dict, filterIndex, objects));
+                        current = ApplyDecodeParms(dict, filterIndex, current, objects);
+                        if (!IsWithinLimit(current, maxOutputBytes)) {
+                            return false;
+                        }
+
+                        break;
+                    default:
+                        return TryUseOriginal(original, maxOutputBytes, out decoded);
+                }
+            } catch {
+                return TryUseOriginal(original, maxOutputBytes, out decoded);
+            }
+
+            filterIndex++;
+        }
+
+        decoded = current;
+        return true;
+    }
+
     internal static List<string> GetUnsupportedFilters(PdfDictionary dict, Dictionary<int, PdfIndirectObject>? objects = null) {
         if (!dict.Items.TryGetValue("Filter", out var filterObj)) {
             return new List<string>(0);
@@ -102,6 +172,20 @@ internal static class StreamDecoder {
         }
 
         return false;
+    }
+
+    private static bool TryUseOriginal(byte[] data, int maxOutputBytes, out byte[] decoded) {
+        if (!IsWithinLimit(data, maxOutputBytes)) {
+            decoded = Array.Empty<byte>();
+            return false;
+        }
+
+        decoded = data;
+        return true;
+    }
+
+    private static bool IsWithinLimit(byte[] data, int maxOutputBytes) {
+        return data.LongLength <= maxOutputBytes;
     }
 
     private static byte[] ApplyDecodeParms(PdfDictionary dict, int filterIndex, byte[] data, Dictionary<int, PdfIndirectObject>? objects) {
