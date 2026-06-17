@@ -259,6 +259,7 @@ namespace OfficeIMO.Word.Pdf {
         private static Dictionary<W.Paragraph, string> BuildNativeHeadingDestinations(WordDocument document) {
             var destinations = new Dictionary<W.Paragraph, string>();
             var used = new HashSet<string>(StringComparer.Ordinal);
+            var nextSuffixByBaseName = new Dictionary<string, int>(StringComparer.Ordinal);
             int headingIndex = 0;
 
             foreach (WordSection section in document.Sections) {
@@ -277,7 +278,7 @@ namespace OfficeIMO.Word.Pdf {
                     string? bookmarkName = string.IsNullOrWhiteSpace(paragraph.Bookmark?.Name)
                         ? null
                         : paragraph.Bookmark!.Name;
-                    string destinationName = bookmarkName ?? CreateNativeHeadingDestinationName(headingText, ++headingIndex, used);
+                    string destinationName = bookmarkName ?? CreateNativeHeadingDestinationName(headingText, ++headingIndex, used, nextSuffixByBaseName);
                     destinations[paragraph._paragraph] = destinationName;
                     used.Add(destinationName);
                 }
@@ -286,7 +287,7 @@ namespace OfficeIMO.Word.Pdf {
             return destinations;
         }
 
-        private static string CreateNativeHeadingDestinationName(string text, int headingIndex, HashSet<string> used) {
+        private static string CreateNativeHeadingDestinationName(string text, int headingIndex, HashSet<string> used, Dictionary<string, int> nextSuffixByBaseName) {
             var builder = new StringBuilder("officeimo-heading-");
             foreach (char ch in text) {
                 if (char.IsLetterOrDigit(ch)) {
@@ -305,13 +306,19 @@ namespace OfficeIMO.Word.Pdf {
                 baseName = "officeimo-heading-" + headingIndex.ToString(CultureInfo.InvariantCulture);
             }
 
-            string name = baseName;
-            int suffix = 2;
-            while (used.Contains(name)) {
-                name = baseName + "-" + suffix.ToString(CultureInfo.InvariantCulture);
-                suffix++;
+            if (!used.Contains(baseName)) {
+                nextSuffixByBaseName[baseName] = 2;
+                return baseName;
             }
 
+            int suffix = nextSuffixByBaseName.TryGetValue(baseName, out int nextSuffix) ? nextSuffix : 2;
+            string name;
+            do {
+                name = baseName + "-" + suffix.ToString(CultureInfo.InvariantCulture);
+                suffix++;
+            } while (used.Contains(name));
+
+            nextSuffixByBaseName[baseName] = suffix;
             return name;
         }
 

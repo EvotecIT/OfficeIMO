@@ -154,6 +154,43 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void NativeHeadingDestinationNames_TrackSuffixes_ForRepeatedHeadings() {
+            MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeHeadingDestinationName", BindingFlags.NonPublic | BindingFlags.Static)!;
+            var used = new HashSet<string>(StringComparer.Ordinal);
+            var nextSuffixByBaseName = new Dictionary<string, int>(StringComparer.Ordinal);
+            const string headingText = "Repeated native heading";
+            const string baseDestination = "officeimo-heading-repeated-native-heading";
+
+            for (int index = 1; index <= 256; index++) {
+                string destinationName = (string)method.Invoke(null, new object[] {
+                    headingText,
+                    index,
+                    used,
+                    nextSuffixByBaseName
+                })!;
+
+                string expectedName = index == 1
+                    ? baseDestination
+                    : baseDestination + "-" + index.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                Assert.Equal(expectedName, destinationName);
+                used.Add(destinationName);
+            }
+
+            Assert.Equal(257, nextSuffixByBaseName[baseDestination]);
+
+            used.Add(baseDestination + "-257");
+            string skippedCollision = (string)method.Invoke(null, new object[] {
+                headingText,
+                257,
+                used,
+                nextSuffixByBaseName
+            })!;
+
+            Assert.Equal(baseDestination + "-258", skippedCollision);
+            Assert.Equal(259, nextSuffixByBaseName[baseDestination]);
+        }
+
+        [Fact]
         public void SaveAsPdf_OfficeIMOEngine_TableOfContents_Accounts_For_Section_Page_Starts() {
             string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableOfContentsSections.docx");
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableOfContentsSections.pdf");
