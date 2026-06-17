@@ -9,6 +9,7 @@ public static class PdfOpenTypeFontInspector {
     private const uint TrueTypeScalerType = 0x00010000;
     private const uint AppleTrueTypeScalerType = 0x74727565;
     private const uint OpenTypeCffScalerType = 0x4F54544F;
+    private const int MaxUnicodeCMapMappings = 131_072;
 
     /// <summary>
     /// Parses OpenType table metadata and Unicode coverage from a single font program.
@@ -239,6 +240,11 @@ public static class PdfOpenTypeFontInspector {
             groupOffset += 12;
             if (startCharCode > 0x10FFFF || endCharCode > 0x10FFFF || endCharCode < startCharCode) {
                 continue;
+            }
+
+            uint mappingCount = endCharCode - startCharCode + 1U;
+            if (mappingCount > MaxUnicodeCMapMappings || map.Count > MaxUnicodeCMapMappings - (int)mappingCount) {
+                throw new NotSupportedException("OpenType Unicode cmap mapping count exceeds supported limits.");
             }
 
             for (uint code = startCharCode; code <= endCharCode; code++) {
