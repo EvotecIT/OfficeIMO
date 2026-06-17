@@ -19,7 +19,7 @@ namespace OfficeIMO.Visio {
                         return;
                     }
 
-                    _page.PrepareShapeForPage(value);
+                    _page.PrepareShapeForPage(value, _page._shapes[index]);
                     _page._shapes[index] = value;
                 }
             }

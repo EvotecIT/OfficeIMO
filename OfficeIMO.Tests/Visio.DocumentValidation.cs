@@ -24,12 +24,12 @@ namespace OfficeIMO.Tests {
 
             VisioShape shared = new("dup", 1, 1, 1, 1, "Shared");
             first.Shapes.Add(shared);
-            first.Shapes.Add(new VisioShape("dup", 3, 1, 1, 1, "Duplicate"));
+            AddRawShape(first, new VisioShape("dup", 3, 1, 1, 1, "Duplicate"));
 
             VisioShape external = new("outside", 1, 1, 1, 1, "Outside");
             second.Shapes.Add(external);
 
-            first.Connectors.Add(new VisioConnector("dup", shared, external));
+            AddRawConnector(first, new VisioConnector("dup", shared, external));
 
             string[] issues = document.Validate().ToArray();
 
@@ -76,7 +76,7 @@ namespace OfficeIMO.Tests {
             VisioShape shared = new("dup", 1, 1, 1, 1, "Shared");
             first.Shapes.Add(shared);
             second.Shapes.Add(new VisioShape("outside", 2, 2, 1, 1, "Outside"));
-            first.Connectors.Add(new VisioConnector("dup", shared, second.Shapes[0]));
+            AddRawConnector(first, new VisioConnector("dup", shared, second.Shapes[0]));
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => document.Save());
 
@@ -119,6 +119,20 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains(issues, issue => issue.Contains("cyclic parent/child hierarchy"));
             Assert.Contains(issues, issue => issue.Contains("inconsistent parent reference"));
+        }
+
+        private static void AddRawShape(VisioPage page, VisioShape shape) {
+            var shapes = Assert.IsType<System.Collections.Generic.List<VisioShape>>(typeof(VisioPage)
+                .GetField("_shapes", BindingFlags.Instance | BindingFlags.NonPublic)!
+                .GetValue(page));
+            shapes.Add(shape);
+        }
+
+        private static void AddRawConnector(VisioPage page, VisioConnector connector) {
+            var connectors = Assert.IsType<System.Collections.Generic.List<VisioConnector>>(typeof(VisioPage)
+                .GetField("_connectors", BindingFlags.Instance | BindingFlags.NonPublic)!
+                .GetValue(page));
+            connectors.Add(connector);
         }
     }
 }
