@@ -116,6 +116,52 @@ public class PdfDocumentChartDrawingTests {
     }
 
     [Fact]
+    public void WordChartNumberExtraction_RejectsSparsePointIndexesBeyondLimit() {
+        var values = new Values(
+            new NumberReference(
+                new NumberingCache(
+                    new PointCount { Val = 1U },
+                    new NumericPoint(new NumericValue("1")) { Index = 100_000U })));
+        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("ExtractNativeWordChartNumberValues", BindingFlags.NonPublic | BindingFlags.Static)!;
+
+        TargetInvocationException exception = Assert.Throws<TargetInvocationException>(() => method.Invoke(null, new object?[] { values }));
+
+        Assert.Contains("point index", exception.InnerException?.Message);
+    }
+
+    [Fact]
+    public void WordChartNumberExtraction_RejectsExcessivePointCounts() {
+        var cache = new NumberingCache(new PointCount { Val = 4097U });
+        for (int index = 0; index < 4097; index++) {
+            cache.Append(new NumericPoint(new NumericValue("1")));
+        }
+
+        var values = new Values(new NumberReference(cache));
+        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("ExtractNativeWordChartNumberValues", BindingFlags.NonPublic | BindingFlags.Static)!;
+
+        TargetInvocationException exception = Assert.Throws<TargetInvocationException>(() => method.Invoke(null, new object?[] { values }));
+
+        Assert.Contains("maximum supported point count", exception.InnerException?.Message);
+    }
+
+    [Fact]
+    public void WordChartLayout_RejectsOversizedDataLabelPointIndexes() {
+        var chartElement = new BarChart(
+            new BarDirection { Val = BarDirectionValues.Column },
+            CreateBarSeries(0U, new[] { "Q1" }, new[] { 1D }, new DataLabels(
+                new DataLabel(
+                    new DocumentFormat.OpenXml.Drawing.Charts.Index { Val = 100_000U },
+                    new ShowValue { Val = true }))));
+        var plotArea = new PlotArea(chartElement);
+        var chart = new Chart(plotArea);
+        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeWordChartLayout", BindingFlags.NonPublic | BindingFlags.Static)!;
+
+        TargetInvocationException exception = Assert.Throws<TargetInvocationException>(() => method.Invoke(null, new object[] { chart, chartElement, plotArea, OfficeChartKind.ColumnClustered, 1 }));
+
+        Assert.Contains("point index", exception.InnerException?.Message);
+    }
+
+    [Fact]
     public void WordChartSeriesExtraction_ExtendsCategoriesAcrossAllSeries() {
         var chart = new BarChart(
             new BarDirection { Val = BarDirectionValues.Column },

@@ -12,6 +12,10 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
         private const double NativeEmusPerPoint = 12700D;
+        private const int MaxNativeWordChartSeries = 256;
+        private const int MaxNativeWordChartPoints = 4096;
+        private const double MaxNativeWordChartWidthPoints = 1440D;
+        private const double MaxNativeWordChartHeightPoints = 1080D;
 
         private static bool RenderNativeChart(INativePdfFlow pdf, WordChart? chart, PdfCore.PdfAlign align, PdfSaveOptions? options, string source) {
             if (chart == null) {
@@ -82,27 +86,33 @@ namespace OfficeIMO.Word.Pdf {
                 return false;
             }
 
-            IReadOnlyDictionary<A.SchemeColorValues, OfficeColor> themeColors = GetNativeDrawingThemeColors(chartPart);
-            IReadOnlyList<OfficeChartSeries> series = ExtractNativeWordChartSeries(openXmlChart!, chartElement, chartKind, themeColors, out IReadOnlyList<string> categories);
-            if (categories.Count == 0 || series.Count == 0) {
-                warning = "Word chart does not contain cached categories and values that can be rendered without Office.";
+            try {
+                IReadOnlyDictionary<A.SchemeColorValues, OfficeColor> themeColors = GetNativeDrawingThemeColors(chartPart);
+                IReadOnlyList<OfficeChartSeries> series = ExtractNativeWordChartSeries(openXmlChart!, chartElement, chartKind, themeColors, out IReadOnlyList<string> categories);
+                if (categories.Count == 0 || series.Count == 0) {
+                    warning = "Word chart does not contain cached categories and values that can be rendered without Office.";
+                    return false;
+                }
+
+                (double width, double height) = GetNativeWordChartSizePoints(chart);
+                string? title = GetNativeWordChartTitle(openXmlChart!);
+                string name = GetNativeWordChartName(chart, chartPart, title);
+                OfficeChartStyle? style = CreateNativeWordChartStyle(openXmlChart!, chartElement, plotArea, chartKind, categories.Count, series.Count, themeColors);
+                OfficeChartLayout? layout = CreateNativeWordChartLayout(openXmlChart!, chartElement, plotArea, chartKind, categories.Count);
+                snapshot = new OfficeChartSnapshot(
+                    name,
+                    title,
+                    chartKind,
+                    new OfficeChartData(categories, series),
+                    width,
+                    height,
+                    style: style,
+                    layout: layout);
+            } catch (NativeWordChartLimitException ex) {
+                warning = ex.Message;
                 return false;
             }
 
-            (double width, double height) = GetNativeWordChartSizePoints(chart);
-            string? title = GetNativeWordChartTitle(openXmlChart!);
-            string name = GetNativeWordChartName(chart, chartPart, title);
-            OfficeChartStyle? style = CreateNativeWordChartStyle(openXmlChart!, chartElement, plotArea, chartKind, categories.Count, series.Count, themeColors);
-            OfficeChartLayout? layout = CreateNativeWordChartLayout(openXmlChart!, chartElement, plotArea, chartKind, categories.Count);
-            snapshot = new OfficeChartSnapshot(
-                name,
-                title,
-                chartKind,
-                new OfficeChartData(categories, series),
-                width,
-                height,
-                style: style,
-                layout: layout);
             return true;
         }
 
@@ -192,6 +202,10 @@ namespace OfficeIMO.Word.Pdf {
 
             int seriesIndex = 0;
             foreach ((OpenXmlElement seriesElement, int originalSeriesIndex) in GetNativeWordOrderedSeriesElements(chartElement)) {
+                if (seriesIndex >= MaxNativeWordChartSeries) {
+                    throw new NativeWordChartLimitException("Word chart cache exceeds the maximum supported series count.");
+                }
+
                 IReadOnlyList<double> values;
                 IReadOnlyList<double>? xValues = null;
                 IReadOnlyList<string> currentCategories;
@@ -256,6 +270,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static IReadOnlyList<string> ExtractNativeWordChartCategories(OpenXmlElement? categoryAxisData, int valueCount) {
+            EnsureNativeWordChartPointCount(valueCount);
             List<string> categories = ExtractNativeWordChartStringValues(categoryAxisData).ToList();
             if (categories.Count == 0) {
                 categories.AddRange(ExtractNativeWordChartNumberValues(categoryAxisData).Select(value => value.ToString("0.####", CultureInfo.InvariantCulture)));
@@ -273,6 +288,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static IReadOnlyList<string> CreateNativeWordChartDefaultCategories(int count) {
+            EnsureNativeWordChartPointCount(count);
             var categories = new List<string>();
             for (int i = 0; i < count; i++) {
                 categories.Add("Category " + (i + 1).ToString(CultureInfo.InvariantCulture));
@@ -325,7 +341,12 @@ namespace OfficeIMO.Word.Pdf {
             uint maxIndex = 0;
             bool hasPoint = false;
             foreach (StringPoint point in container.Descendants<StringPoint>()) {
+                if (fallbackIndex >= MaxNativeWordChartPoints) {
+                    throw new NativeWordChartLimitException("Word chart cache exceeds the maximum supported point count.");
+                }
+
                 uint index = point.Index?.Value ?? fallbackIndex;
+                EnsureNativeWordChartPointIndex(index);
                 hasPoint = true;
                 if (index > maxIndex) {
                     maxIndex = index;
@@ -361,7 +382,12 @@ namespace OfficeIMO.Word.Pdf {
             uint maxIndex = 0;
             bool hasPoint = false;
             foreach (NumericPoint point in container.Descendants<NumericPoint>()) {
+                if (fallbackIndex >= MaxNativeWordChartPoints) {
+                    throw new NativeWordChartLimitException("Word chart cache exceeds the maximum supported point count.");
+                }
+
                 uint index = point.Index?.Value ?? fallbackIndex;
+                EnsureNativeWordChartPointIndex(index);
                 hasPoint = true;
                 if (index > maxIndex) {
                     maxIndex = index;
@@ -389,6 +415,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static IReadOnlyList<double> NormalizeNativeWordChartNumberValues(IReadOnlyList<double> values, int count, bool useIndexDefaults) {
+            EnsureNativeWordChartPointCount(count);
             var result = new List<double>(count);
             for (int index = 0; index < count; index++) {
                 if (index < values.Count) {
@@ -472,10 +499,17 @@ namespace OfficeIMO.Word.Pdf {
             long? cy = chart.Drawing?.Inline?.Extent?.Cy?.Value ?? chart.Drawing?.Anchor?.Extent?.Cy?.Value;
             double width = cx.HasValue && cx.Value > 0 ? cx.Value / NativeEmusPerPoint : 360D;
             double height = cy.HasValue && cy.Value > 0 ? cy.Value / NativeEmusPerPoint : 216D;
+            width = Math.Min(MaxNativeWordChartWidthPoints, width);
+            height = Math.Min(MaxNativeWordChartHeightPoints, height);
             return (width, height);
         }
 
         private static OfficeChartStyle? CreateNativeWordChartStyle(Chart chart, OpenXmlElement chartElement, PlotArea plotArea, OfficeChartKind chartKind, int categoryCount, int seriesCount, IReadOnlyDictionary<A.SchemeColorValues, OfficeColor> themeColors) {
+            EnsureNativeWordChartPointCount(categoryCount);
+            if (seriesCount > MaxNativeWordChartSeries) {
+                throw new NativeWordChartLimitException("Word chart cache exceeds the maximum supported series count.");
+            }
+
             int paletteCount = IsNativeWordPieLikeChart(chartKind) ? categoryCount : seriesCount;
             if (paletteCount <= 0) {
                 return null;
@@ -1329,6 +1363,10 @@ namespace OfficeIMO.Word.Pdf {
             int seriesIndex = 0;
             foreach (OpenXmlElement seriesElement in chartElement.ChildElements.Where(element => element.LocalName == "ser")) {
                 if (IsNativeWordChartSeriesRenderable(seriesElement, chartKind)) {
+                    if (seriesIndex >= MaxNativeWordChartSeries) {
+                        throw new NativeWordChartLimitException("Word chart cache exceeds the maximum supported series count.");
+                    }
+
                     indexes.Add(seriesIndex);
                     seriesIndex++;
                 }
@@ -1354,6 +1392,7 @@ namespace OfficeIMO.Word.Pdf {
                     continue;
                 }
 
+                EnsureNativeWordChartPointIndex(index.Value);
                 bool isDeleted = IsNativeWordChartBooleanOn(label.GetFirstChild<Delete>());
                 if (deleted == isDeleted && (deleted || HasNativeWordChartDataLabelFlags(label))) {
                     pointIndexes.Add((int)index.Value);
@@ -1393,5 +1432,22 @@ namespace OfficeIMO.Word.Pdf {
 
         private static bool IsNativeWordChartBooleanOn(BooleanType? value) =>
             value != null && (value.Val == null || value.Val.Value);
+
+        private static void EnsureNativeWordChartPointIndex(uint index) {
+            if (index >= MaxNativeWordChartPoints) {
+                throw new NativeWordChartLimitException("Word chart cache contains a point index beyond the maximum supported point count.");
+            }
+        }
+
+        private static void EnsureNativeWordChartPointCount(int count) {
+            if (count > MaxNativeWordChartPoints) {
+                throw new NativeWordChartLimitException("Word chart cache exceeds the maximum supported point count.");
+            }
+        }
+
+        private sealed class NativeWordChartLimitException : Exception {
+            public NativeWordChartLimitException(string message) : base(message) {
+            }
+        }
     }
 }
