@@ -94,6 +94,22 @@ namespace OfficeIMO.Word {
             if (document.DocumentType != documentType) {
                 document.ChangeDocumentType(documentType);
             }
+
+            if (!IsMacroEnabledDocumentType(documentType)) {
+                RemoveVbaProjectPart(document);
+            }
+        }
+
+        private static bool IsMacroEnabledDocumentType(WordprocessingDocumentType documentType) {
+            return documentType == WordprocessingDocumentType.MacroEnabledDocument ||
+                   documentType == WordprocessingDocumentType.MacroEnabledTemplate;
+        }
+
+        private static void RemoveVbaProjectPart(WordprocessingDocument document) {
+            var mainPart = document.MainDocumentPart;
+            if (mainPart?.VbaProjectPart != null) {
+                mainPart.DeletePart(mainPart.VbaProjectPart);
+            }
         }
 
         private static WordDocument CreateInternal(string? filePath, Stream? stream, WordprocessingDocumentType documentType, bool autoSave) {

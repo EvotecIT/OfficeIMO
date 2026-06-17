@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
     public partial class Word {
         [Fact]
         public void Test_WordFeatureReport_DetectsEditableAndAdvancedFeatures() {
-            string filePath = Path.Combine(_directoryWithFiles, "WordFeatureReport.Advanced.docx");
+            string filePath = Path.Combine(_directoryWithFiles, "WordFeatureReport.Advanced.docm");
             File.Delete(filePath);
 
             using (WordDocument document = WordDocument.Create(filePath)) {
