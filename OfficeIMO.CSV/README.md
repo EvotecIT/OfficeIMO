@@ -29,6 +29,7 @@ new CsvDocument()
     .Save("people.csv", new CsvSaveOptions {
         Delimiter = ';',
         IncludeHeader = true,
+        FormulaInjectionPolicy = CsvFormulaInjectionPolicy.Escape,
         NewLine = "\n"
     });
 ```
@@ -37,6 +38,7 @@ new CsvDocument()
 
 - Keeps headers and rows as a first-class document model instead of ad hoc string arrays.
 - Loads from files, streams, or text and saves through configurable delimiter, culture, encoding, and newline options.
+- Can escape formula-like values during save when producing CSV files that people will open in spreadsheet applications.
 - Supports `AddRow`, `AddColumn`, `RemoveColumn`, `SortBy`, `Filter`, and `Transform`.
 - Provides schema validation with required columns, typed columns, defaults, and custom rules.
 - Maps rows to typed objects with explicit no-reflection mapping.

@@ -13,24 +13,26 @@ internal static class CsvWriter
         var culture = options.Culture;
         var includeHeader = options.IncludeHeader;
         var newLine = options.NewLine;
+        var formulaInjectionPolicy = options.FormulaInjectionPolicy;
 
         if (includeHeader && document.Header.Count > 0)
         {
-            WriteRecord(writer, document.Header, delimiter, newLine);
+            WriteRecord(writer, document.Header, delimiter, newLine, CultureInfo.InvariantCulture, formulaInjectionPolicy);
         }
 
         foreach (var row in document.AsEnumerable())
         {
-            WriteRecord(writer, row.Values, delimiter, newLine, culture);
+            WriteRecord(writer, row.Values, delimiter, newLine, culture, formulaInjectionPolicy);
         }
     }
 
-    private static void WriteRecord(TextWriter writer, IReadOnlyList<string> header, char delimiter, string newLine)
-    {
-        WriteRecord(writer, header.Cast<object?>(), delimiter, newLine, CultureInfo.InvariantCulture);
-    }
-
-    private static void WriteRecord(TextWriter writer, IEnumerable<object?> values, char delimiter, string newLine, CultureInfo culture)
+    private static void WriteRecord(
+        TextWriter writer,
+        IEnumerable<object?> values,
+        char delimiter,
+        string newLine,
+        CultureInfo culture,
+        CsvFormulaInjectionPolicy formulaInjectionPolicy)
     {
         var first = true;
         foreach (var value in values)
@@ -44,7 +46,7 @@ internal static class CsvWriter
                 first = false;
             }
 
-            var text = FormatValue(value, culture);
+            var text = ApplyFormulaInjectionPolicy(FormatValue(value, culture), formulaInjectionPolicy);
             WriteEscaped(writer, text, delimiter);
         }
 
@@ -64,6 +66,43 @@ internal static class CsvWriter
         }
 
         return value.ToString() ?? string.Empty;
+    }
+
+    private static string ApplyFormulaInjectionPolicy(string text, CsvFormulaInjectionPolicy policy)
+    {
+        if (policy != CsvFormulaInjectionPolicy.Escape || !StartsWithFormulaTrigger(text))
+        {
+            return text;
+        }
+
+        return "'" + text;
+    }
+
+    private static bool StartsWithFormulaTrigger(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            return false;
+        }
+
+        var index = 0;
+        while (index < text.Length && text[index] == ' ')
+        {
+            index++;
+        }
+
+        if (index >= text.Length)
+        {
+            return false;
+        }
+
+        return text[index] == '='
+            || text[index] == '+'
+            || text[index] == '-'
+            || text[index] == '@'
+            || text[index] == '\t'
+            || text[index] == '\r'
+            || text[index] == '\n';
     }
 
     private static void WriteEscaped(TextWriter writer, string text, char delimiter)
