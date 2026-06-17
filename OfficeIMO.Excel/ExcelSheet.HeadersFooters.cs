@@ -190,7 +190,7 @@ namespace OfficeIMO.Excel {
             XDocument vmlDocument;
             try {
                 using Stream stream = vmlPart.GetStream(FileMode.Open, FileAccess.Read);
-                vmlDocument = XDocument.Load(stream);
+                vmlDocument = LoadVmlXDocument(stream);
             } catch {
                 return images;
             }
