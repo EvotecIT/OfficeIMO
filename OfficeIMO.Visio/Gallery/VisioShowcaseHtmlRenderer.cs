@@ -553,7 +553,11 @@ namespace OfficeIMO.Visio {
 
         private static bool IsEmbeddablePreview(VisioShowcaseArtifact artifact) {
             return string.Equals(artifact.Format, "png", StringComparison.OrdinalIgnoreCase) ||
-                   string.Equals(artifact.Format, "svg", StringComparison.OrdinalIgnoreCase);
+                   string.Equals(artifact.Format, "jpg", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(artifact.Format, "jpeg", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(artifact.Format, "gif", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(artifact.Format, "bmp", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(artifact.Format, "webp", StringComparison.OrdinalIgnoreCase);
         }
 
         private static int PreviewSortKey(VisioShowcaseArtifact artifact) {
