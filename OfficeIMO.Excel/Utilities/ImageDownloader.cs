@@ -126,7 +126,18 @@ namespace OfficeIMO.Excel {
             if (!Uri.TryCreate(location, UriKind.RelativeOrAbsolute, out var parsed)) return null;
 
             var resolved = parsed.IsAbsoluteUri ? parsed : new Uri(currentUri, parsed);
-            return IsHttpUri(resolved) ? resolved : null;
+            return IsHttpUri(resolved) && IsSameOrigin(currentUri, resolved) ? resolved : null;
+        }
+
+        private static bool IsSameOrigin(Uri left, Uri right) {
+            return string.Equals(left.Scheme, right.Scheme, StringComparison.OrdinalIgnoreCase)
+                   && string.Equals(NormalizeHost(left), NormalizeHost(right), StringComparison.OrdinalIgnoreCase)
+                   && left.Port == right.Port;
+        }
+
+        private static string NormalizeHost(Uri uri) {
+            string host = string.IsNullOrEmpty(uri.IdnHost) ? uri.Host : uri.IdnHost;
+            return host.TrimEnd('.').ToLowerInvariant();
         }
 
 #if NETFRAMEWORK

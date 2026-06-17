@@ -252,6 +252,54 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         [Trait("Category","ExcelHeaderFooterImages")]
+        public async Task ImageDownloader_Rejects_CrossOrigin_Redirect_Before_Fetching_Target() {
+            OfficeIMO.Excel.ImageDownloader.ClearCache();
+
+            var redirectListener = new TcpListener(IPAddress.Loopback, 0);
+            var targetListener = new TcpListener(IPAddress.Loopback, 0);
+            redirectListener.Start();
+            targetListener.Start();
+            var redirectPort = ((IPEndPoint)redirectListener.LocalEndpoint).Port;
+            var targetPort = ((IPEndPoint)targetListener.LocalEndpoint).Port;
+            var url = $"http://127.0.0.1:{redirectPort}/redirect.png";
+            var targetUrl = $"http://127.0.0.1:{targetPort}/private.png";
+            var response = $"HTTP/1.1 302 Found\r\nLocation: {targetUrl}\r\nConnection: close\r\n\r\n";
+            var redirectTask = ServeSingleRawResponseAsync(redirectListener, Encoding.ASCII.GetBytes(response));
+            var targetRequestCount = 0;
+            var targetTask = Task.Run(async () =>
+            {
+                try
+                {
+                    using var client = await targetListener.AcceptTcpClientAsync();
+                    targetRequestCount++;
+                }
+                catch (SocketException)
+                {
+                    // Listener stopped before accepting a connection; ignore for test cleanup.
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Listener disposed before accept completed; ignore for cleanup.
+                }
+            });
+
+            try {
+                Assert.False(OfficeIMO.Excel.ImageDownloader.TryFetch(url, 5, 2_000_000, out var bytes, out var contentType));
+                Assert.Null(bytes);
+                Assert.Null(contentType);
+                await Task.Delay(100);
+                Assert.Equal(0, targetRequestCount);
+            } finally {
+                redirectListener.Stop();
+                targetListener.Stop();
+                await redirectTask;
+                await targetTask;
+                OfficeIMO.Excel.ImageDownloader.ClearCache();
+            }
+        }
+
+        [Fact]
+        [Trait("Category","ExcelHeaderFooterImages")]
         public async Task ImageDownloader_Rejects_Response_When_Stream_Exceeds_Limit() {
             OfficeIMO.Excel.ImageDownloader.ClearCache();
 
