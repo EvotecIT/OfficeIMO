@@ -5504,7 +5504,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PerformanceReview_InsertObjects_PivotTableAfterDeferredImportPersistsSourceAndCacheItems() {
+        public void PerformanceReview_InsertObjects_PivotTableAfterDeferredImportKeepsSourceRowsAndSharedItems() {
             using var memory = new MemoryStream();
             var rows = new[] {
                 new PerformanceObjectExportRow("Alpha", 10, new DateTime(2026, 5, 19)),
@@ -5537,9 +5537,12 @@ namespace OfficeIMO.Tests {
 
             var pivotPart = Assert.Single(worksheetPart.PivotTableParts);
             Assert.Equal("ScorePivot", pivotPart.PivotTableDefinition!.Name!.Value);
+            var cacheDefinition = pivotPart.PivotTableCacheDefinitionPart!.PivotCacheDefinition!;
+            Assert.False(cacheDefinition.SaveData!.Value);
+            Assert.True(cacheDefinition.RefreshOnLoad!.Value);
             var cacheRecordsPart = Assert.Single(pivotPart.PivotTableCacheDefinitionPart!.GetPartsOfType<PivotTableCacheRecordsPart>());
-            Assert.Equal(3U, cacheRecordsPart.PivotCacheRecords!.Count!.Value);
-            var cacheFields = pivotPart.PivotTableCacheDefinitionPart!.PivotCacheDefinition!.CacheFields!.Elements<CacheField>().ToList();
+            Assert.Equal(0U, cacheRecordsPart.PivotCacheRecords!.Count!.Value);
+            var cacheFields = cacheDefinition.CacheFields!.Elements<CacheField>().ToList();
             var nameItems = cacheFields[0].SharedItems!.Elements<StringItem>().Select(item => item.Val!.Value).ToList();
             Assert.Equal(new[] { "Alpha", "Beta" }, nameItems);
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
@@ -5593,7 +5596,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PerformanceReview_InsertObjects_PivotCacheRawXmlPreservesNonBmpText() {
+        public void PerformanceReview_InsertObjects_PivotCacheRawXmlPreservesNonBmpTextWhenEmbeddingRequired() {
             using var memory = new MemoryStream();
             string emoji = char.ConvertFromUtf32(0x1F600);
             string rocket = char.ConvertFromUtf32(0x1F680);
@@ -5613,7 +5616,8 @@ namespace OfficeIMO.Tests {
                     destinationCell: "E2",
                     name: "ScorePivot",
                     rowFields: new[] { "Name" },
-                    dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
+                    dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") },
+                    calculatedFields: new[] { new ExcelPivotCalculatedField("DoubleScore", "'Score' * 2") });
 
                 document.Save(memory);
             }
@@ -5621,6 +5625,9 @@ namespace OfficeIMO.Tests {
             memory.Position = 0;
             using var spreadsheet = SpreadsheetDocument.Open(memory, false);
             var pivotPart = Assert.Single(spreadsheet.WorkbookPart!.WorksheetParts.First().PivotTableParts);
+            var cacheDefinition = pivotPart.PivotTableCacheDefinitionPart!.PivotCacheDefinition!;
+            Assert.True(cacheDefinition.SaveData!.Value);
+            Assert.False(cacheDefinition.RefreshOnLoad!.Value);
             var cacheRecordsPart = Assert.Single(pivotPart.PivotTableCacheDefinitionPart!.GetPartsOfType<PivotTableCacheRecordsPart>());
             using var reader = new StreamReader(cacheRecordsPart.GetStream(FileMode.Open, FileAccess.Read));
             string cacheRecordsXml = reader.ReadToEnd();
@@ -5631,7 +5638,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PerformanceReview_InsertObjects_LargeSimplePivotEmbedsCacheRecords() {
+        public void PerformanceReview_InsertObjects_LargeSimplePivotOmitsCacheRecords() {
             using var memory = new MemoryStream();
             var rows = Enumerable.Range(1, 5000)
                 .Select(index => new PerformanceObjectExportRow(
@@ -5665,10 +5672,10 @@ namespace OfficeIMO.Tests {
 
             var pivotPart = Assert.Single(worksheetPart.PivotTableParts);
             var cacheDefinition = pivotPart.PivotTableCacheDefinitionPart!.PivotCacheDefinition!;
-            Assert.True(cacheDefinition.SaveData!.Value);
-            Assert.False(cacheDefinition.RefreshOnLoad!.Value);
+            Assert.False(cacheDefinition.SaveData!.Value);
+            Assert.True(cacheDefinition.RefreshOnLoad!.Value);
             var cacheRecordsPart = Assert.Single(pivotPart.PivotTableCacheDefinitionPart!.GetPartsOfType<PivotTableCacheRecordsPart>());
-            Assert.Equal(5000U, cacheRecordsPart.PivotCacheRecords!.Count!.Value);
+            Assert.Equal(0U, cacheRecordsPart.PivotCacheRecords!.Count!.Value);
             var cacheFields = cacheDefinition.CacheFields!.Elements<CacheField>().ToList();
             var nameItems = cacheFields[0].SharedItems!.Elements<StringItem>().Select(item => item.Val!.Value).ToList();
             Assert.Equal(new[] { "Beta", "Alpha" }, nameItems);

@@ -113,7 +113,17 @@ namespace OfficeIMO.Excel {
             IReadOnlyList<ExcelPivotCalculatedField> calculatedFields,
             IReadOnlyList<ExcelPivotFilter> pivotFilters,
             IReadOnlyDictionary<int, ExcelPivotFieldOptions>? fieldOptionMap)
-            => true;
+        {
+            if (sourceRecordCount <= 0 || sourceRecordCount > EmbeddedPivotCacheRecordRowLimit) {
+                return false;
+            }
+
+            // Simple source-range pivots can refresh from the worksheet. Embed cache
+            // records only for bounded scenarios that introduce cache-only fields.
+            return groupingMap.Count != 0
+                || generatedFields.Count != 0
+                || calculatedFields.Count != 0;
+        }
 
         private List<PivotFieldValues> BuildGeneratedPivotFieldValueMap(
             IReadOnlyList<GeneratedPivotGroupingField> generatedFields,
