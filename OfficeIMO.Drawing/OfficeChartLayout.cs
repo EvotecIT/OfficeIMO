@@ -8,6 +8,8 @@ namespace OfficeIMO.Drawing;
 /// Reusable chart layout metadata shared by OfficeIMO chart renderers and format exporters.
 /// </summary>
 public sealed class OfficeChartLayout {
+    internal const int MaxNumberFormatLength = 1024;
+
     private static readonly OfficeChartLayout DefaultLayout = new OfficeChartLayout();
 
     /// <summary>
@@ -243,11 +245,11 @@ public sealed class OfficeChartLayout {
         DataLabelSeparator = string.IsNullOrEmpty(dataLabelSeparator) ? "; " : dataLabelSeparator!;
         DataLabelFontSize = ValidatePositiveFinite(dataLabelFontSize ?? 7D, nameof(dataLabelFontSize));
         DataLabelPosition = dataLabelPosition;
-        DataLabelNumberFormat = string.IsNullOrWhiteSpace(dataLabelNumberFormat) ? null : dataLabelNumberFormat;
+        DataLabelNumberFormat = NormalizeNumberFormat(dataLabelNumberFormat);
         ShowMarkers = showMarkers;
-        AxisNumberFormat = string.IsNullOrWhiteSpace(axisNumberFormat) ? null : axisNumberFormat;
-        HorizontalAxisNumberFormat = string.IsNullOrWhiteSpace(horizontalAxisNumberFormat) ? AxisNumberFormat : horizontalAxisNumberFormat;
-        VerticalAxisNumberFormat = string.IsNullOrWhiteSpace(verticalAxisNumberFormat) ? AxisNumberFormat : verticalAxisNumberFormat;
+        AxisNumberFormat = NormalizeNumberFormat(axisNumberFormat);
+        HorizontalAxisNumberFormat = string.IsNullOrWhiteSpace(horizontalAxisNumberFormat) ? AxisNumberFormat : NormalizeNumberFormat(horizontalAxisNumberFormat);
+        VerticalAxisNumberFormat = string.IsNullOrWhiteSpace(verticalAxisNumberFormat) ? AxisNumberFormat : NormalizeNumberFormat(verticalAxisNumberFormat);
         CategoryAxisTitle = string.IsNullOrWhiteSpace(categoryAxisTitle) ? null : categoryAxisTitle;
         ValueAxisTitle = string.IsNullOrWhiteSpace(valueAxisTitle) ? null : valueAxisTitle;
         ConnectScatterPoints = connectScatterPoints;
@@ -419,5 +421,14 @@ public sealed class OfficeChartLayout {
         }
 
         return value;
+    }
+
+    private static string? NormalizeNumberFormat(string? value) {
+        if (string.IsNullOrWhiteSpace(value)) {
+            return null;
+        }
+
+        string normalized = value!.Trim();
+        return normalized.Length <= MaxNumberFormatLength ? normalized : null;
     }
 }

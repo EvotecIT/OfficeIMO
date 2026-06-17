@@ -490,12 +490,39 @@ public class PdfDocumentChartDrawingTests {
     [Fact]
     public void FlowDrawing_IgnoresBracketDirectivesInDataLabelNumberFormatsLinearly() {
         MethodInfo method = typeof(OfficeChartDrawingRenderer).GetMethod("FormatDataLabelValue", BindingFlags.NonPublic | BindingFlags.Static)!;
-        string unmatchedPrefixFormat = new string('[', 4096) + "0";
+        string unmatchedPrefixFormat = new string('[', 512) + "0";
         string directivePrefix = (string)method.Invoke(null, new object?[] { 123D, "[Red]$0" })!;
         string unmatchedPrefix = (string)method.Invoke(null, new object?[] { 123D, unmatchedPrefixFormat })!;
 
         Assert.Equal("$123", directivePrefix);
-        Assert.Equal(new string('[', 4096) + "123", unmatchedPrefix);
+        Assert.Equal(new string('[', 512) + "123", unmatchedPrefix);
+    }
+
+    [Fact]
+    public void FlowDrawing_DropsOversizedChartNumberFormatsFromLayout() {
+        string oversized = "\"" + new string('x', 2048) + "\"0";
+
+        var layout = new OfficeChartLayout(
+            dataLabelNumberFormat: oversized,
+            axisNumberFormat: oversized,
+            horizontalAxisNumberFormat: oversized,
+            verticalAxisNumberFormat: oversized);
+
+        Assert.Null(layout.DataLabelNumberFormat);
+        Assert.Null(layout.AxisNumberFormat);
+        Assert.Null(layout.HorizontalAxisNumberFormat);
+        Assert.Null(layout.VerticalAxisNumberFormat);
+    }
+
+    [Fact]
+    public void FlowDrawing_FallsBackForOversizedChartNumberFormatsBeforeParsingAffixes() {
+        MethodInfo method = typeof(OfficeChartDrawingRenderer).GetMethod("FormatDataLabelValue", BindingFlags.NonPublic | BindingFlags.Static)!;
+        string oversized = "\"" + new string('x', 2048) + "\"0";
+
+        string formatted = (string)method.Invoke(null, new object?[] { 123D, oversized })!;
+
+        Assert.Equal("123", formatted);
+        Assert.DoesNotContain("x", formatted);
     }
 
     [Fact]
