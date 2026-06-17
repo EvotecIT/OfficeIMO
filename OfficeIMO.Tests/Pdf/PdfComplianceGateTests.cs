@@ -329,7 +329,7 @@ public class PdfComplianceGateTests {
     }
 
     private static byte[] CreateOnePixelPng() {
-        return Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=");
+        return PdfPngTestImages.CreateRgbPng(1, 1);
     }
 
     private static void WriteProfileProofContract() {
