@@ -79,7 +79,7 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Page-1");
 
             page.Shapes.Add(new VisioShape("dup", 1, 1, 1, 1, "First"));
-            page.Shapes.Add(new VisioShape("dup", 3, 1, 1, 1, "Second"));
+            AddRawShape(page, new VisioShape("dup", 3, 1, 1, 1, "Second"));
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => document.Save());
             Assert.Contains("dup", exception.Message);
@@ -118,6 +118,13 @@ namespace OfficeIMO.Tests {
             VisioConnector generated = page.AddConnector(left, right);
 
             Assert.Equal("4", generated.Id);
+        }
+
+        private static void AddRawShape(VisioPage page, VisioShape shape) {
+            var shapes = Assert.IsType<System.Collections.Generic.List<VisioShape>>(typeof(VisioPage)
+                .GetField("_shapes", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                .GetValue(page));
+            shapes.Add(shape);
         }
 
         [Fact]

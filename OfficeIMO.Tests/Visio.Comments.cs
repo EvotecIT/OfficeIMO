@@ -257,7 +257,7 @@ namespace OfficeIMO.Tests {
             VisioDocument invalid = VisioDocument.Create(filePath);
             VisioPage page = invalid.AddPage("Broken", 11, 8.5);
             page.Shapes.Add(new VisioShape("duplicate", 1, 1, 1, 1, "One"));
-            page.Shapes.Add(new VisioShape("duplicate", 3, 1, 1, 1, "Two"));
+            AddRawShape(page, new VisioShape("duplicate", 3, 1, 1, 1, "Two"));
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => invalid.Save());
 
@@ -402,6 +402,13 @@ namespace OfficeIMO.Tests {
             ZipArchiveEntry entry = archive.GetEntry(entryName) ?? throw new InvalidOperationException("Missing " + entryName);
             using Stream stream = entry.Open();
             return XDocument.Load(stream);
+        }
+
+        private static void AddRawShape(VisioPage page, VisioShape shape) {
+            var shapes = Assert.IsType<List<VisioShape>>(typeof(VisioPage)
+                .GetField("_shapes", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                .GetValue(page));
+            shapes.Add(shape);
         }
     }
 }
