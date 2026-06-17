@@ -500,7 +500,10 @@ internal static partial class RtfHtmlReader {
         }
 
         private Uri? ReadUri(IElement token, string name) {
-            string? value = GetAttribute(token, name);
+            return ReadUriValue(GetAttribute(token, name));
+        }
+
+        private Uri? ReadUriValue(string? value) {
             if (string.IsNullOrWhiteSpace(value)) {
                 return null;
             }

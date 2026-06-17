@@ -13,6 +13,10 @@ internal static partial class RtfHtmlReader {
                 return false;
             }
 
+            if (!IsHyperlinkFieldAllowed(token, instruction)) {
+                return false;
+            }
+
             RtfField field = EnsureInlineParagraph().AddField(instruction ?? string.Empty);
             ReadHyperlinkFieldData(token, field);
             ReadFormFieldData(token, field);
@@ -50,6 +54,50 @@ internal static partial class RtfHtmlReader {
                    string.Equals(marker, "start", StringComparison.OrdinalIgnoreCase);
         }
 
+        private bool IsHyperlinkFieldAllowed(IElement token, string? instruction) {
+            if (string.IsNullOrWhiteSpace(instruction)) {
+                return AreHyperlinkFieldTargetsAllowed(token, null);
+            }
+
+            var field = new RtfField(instruction!);
+            return AreHyperlinkFieldTargetsAllowed(token, field.HyperlinkField?.Target?.ToString());
+        }
+
+        private bool AreHyperlinkFieldTargetsAllowed(IElement token, string? instructionTarget) {
+            string? explicitTarget = GetAttribute(token, "data-officeimo-rtf-field-hyperlink");
+            string? href = GetAttribute(token, "href");
+            if (!IsHyperlinkFieldTargetAllowed(instructionTarget, "data-officeimo-rtf-field-instruction")) {
+                return false;
+            }
+
+            if (!IsHyperlinkFieldTargetAllowed(explicitTarget, "data-officeimo-rtf-field-hyperlink")) {
+                return false;
+            }
+
+            if (!IsFragmentHref(href) && !IsHyperlinkFieldTargetAllowed(href, "href")) {
+                return false;
+            }
+
+            return true;
+        }
+
+        private bool IsHyperlinkFieldTargetAllowed(string? target, string source) {
+            if (string.IsNullOrWhiteSpace(target)) {
+                return true;
+            }
+
+            string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(target, _baseUri, _options.UrlPolicy);
+            if (!string.IsNullOrWhiteSpace(resolved)) {
+                return true;
+            }
+
+            _options.AddDiagnostic(
+                "RtfHtmlFieldHyperlinkRejected",
+                "RTF hyperlink field target was rejected by the configured URL policy.",
+                source);
+            return false;
+        }
+
         private void ReadFormFieldData(IElement token, RtfField field) {
             if (!HasFormFieldData(token)) {
                 return;
@@ -80,11 +128,12 @@ internal static partial class RtfHtmlReader {
                    GetAttribute(token, "data-officeimo-rtf-form-dropdown-items") != null;
         }
 
-        private static void ReadHyperlinkFieldData(IElement token, RtfField field) {
+        private void ReadHyperlinkFieldData(IElement token, RtfField field) {
             string? explicitTarget = GetAttribute(token, "data-officeimo-rtf-field-hyperlink");
             string? href = GetAttribute(token, "href");
             string? target = explicitTarget ?? (IsFragmentHref(href) ? null : href);
-            if (!string.IsNullOrWhiteSpace(target) && Uri.TryCreate(target, UriKind.RelativeOrAbsolute, out Uri? uri)) {
+            Uri? uri = ReadUriValue(target);
+            if (uri != null) {
                 field.Hyperlink = uri;
             }
 

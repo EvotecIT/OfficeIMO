@@ -89,6 +89,40 @@ public class RtfHtmlFieldTests {
     }
 
     [Fact]
+    public void Html_ToRtfDocument_Rejects_Unsafe_Hyperlink_Field_Instruction_Target() {
+        const string html = "<p><span data-officeimo-rtf-field=\"true\" data-officeimo-rtf-field-instruction=\"HYPERLINK &quot;file:///C:/secret.txt&quot;\">Secret</span></p>";
+        var options = new HtmlToRtfOptions {
+            UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile()
+        };
+
+        RtfDocument document = html.ToRtfDocument(options);
+        RtfParagraph paragraph = Assert.Single(document.Paragraphs);
+
+        Assert.Empty(paragraph.Inlines.OfType<RtfField>());
+        Assert.Equal("Secret", paragraph.ToPlainText());
+        HtmlRtfConversionDiagnostic diagnostic = Assert.Single(options.Diagnostics);
+        Assert.Equal("RtfHtmlFieldHyperlinkRejected", diagnostic.Code);
+        Assert.Equal("data-officeimo-rtf-field-instruction", diagnostic.Source);
+    }
+
+    [Fact]
+    public void Html_ToRtfDocument_Rejects_Unsafe_Hyperlink_Field_Metadata_Target() {
+        const string html = "<p><a href=\"https://example.test/\" data-officeimo-rtf-field=\"true\" data-officeimo-rtf-field-instruction=\"HYPERLINK &quot;https://example.test/&quot;\" data-officeimo-rtf-field-hyperlink=\"javascript:alert(1)\">Link</a></p>";
+        var options = new HtmlToRtfOptions {
+            UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile()
+        };
+
+        RtfDocument document = html.ToRtfDocument(options);
+        RtfParagraph paragraph = Assert.Single(document.Paragraphs);
+
+        Assert.Empty(paragraph.Inlines.OfType<RtfField>());
+        Assert.Equal("Link", paragraph.ToPlainText());
+        HtmlRtfConversionDiagnostic diagnostic = Assert.Single(options.Diagnostics);
+        Assert.Equal("RtfHtmlFieldHyperlinkRejected", diagnostic.Code);
+        Assert.Equal("data-officeimo-rtf-field-hyperlink", diagnostic.Source);
+    }
+
+    [Fact]
     public void RtfDocument_ToHtml_Escapes_Field_Instruction_Attribute() {
         RtfDocument document = RtfDocument.Create();
         RtfField field = document.AddParagraph().AddField("MERGEFIELD Patient<Name>");
