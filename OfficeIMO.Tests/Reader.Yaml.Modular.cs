@@ -268,6 +268,44 @@ public sealed class ReaderYamlModularTests {
     }
 
     [Fact]
+    public void DocumentReaderYaml_ReadYamlStream_EnforcesParseEventLimitBeforeModelLoad() {
+        const string yaml =
+            "root:\n" +
+            "  - one\n" +
+            "  - two\n" +
+            "  - three\n";
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(yaml), writable: false);
+
+        var chunk = Assert.Single(DocumentReaderYamlExtensions.ReadYaml(
+            stream,
+            sourceName: "parse-limited.yaml",
+            yamlOptions: new YamlReadOptions {
+                MaxParseEvents = 3,
+                IncludeMarkdown = false
+            }));
+
+        Assert.Contains("YAML parse limit exceeded", chunk.Text ?? string.Empty, StringComparison.Ordinal);
+        Assert.Contains("maximum parse event count reached", chunk.Text ?? string.Empty, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DocumentReaderYaml_ReadYamlStream_EnforcesScalarLengthBeforeModelLoad() {
+        string yaml = "value: " + new string('a', 32) + "\n";
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(yaml), writable: false);
+
+        var chunk = Assert.Single(DocumentReaderYamlExtensions.ReadYaml(
+            stream,
+            sourceName: "scalar-limited.yaml",
+            yamlOptions: new YamlReadOptions {
+                MaxScalarLength = 8,
+                IncludeMarkdown = false
+            }));
+
+        Assert.Contains("YAML parse limit exceeded", chunk.Text ?? string.Empty, StringComparison.Ordinal);
+        Assert.Contains("scalar length exceeds maximum", chunk.Text ?? string.Empty, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void DocumentReaderYaml_ReadYamlStream_CountsDepthLimitedChildrenAgainstNodeLimit() {
         const string yaml =
             "root:\n" +

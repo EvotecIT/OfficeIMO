@@ -61,6 +61,8 @@ public static class DocumentReaderYamlRegistrationExtensions {
             ChunkRows = options.ChunkRows,
             MaxDepth = options.MaxDepth,
             MaxNodes = options.MaxNodes,
+            MaxParseEvents = options.MaxParseEvents,
+            MaxScalarLength = options.MaxScalarLength,
             IncludeMarkdown = options.IncludeMarkdown
         };
     }

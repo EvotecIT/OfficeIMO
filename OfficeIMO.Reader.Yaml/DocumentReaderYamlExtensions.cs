@@ -47,14 +47,25 @@ public static class DocumentReaderYamlExtensions {
             cancellationToken,
             out var ownsParseStream);
         UpdateSourceMetadataFromSeekableStream(source, parseStream, effectiveReaderOptions.ComputeHashes);
+        long parseStartPosition = parseStream.CanSeek ? parseStream.Position : 0;
 
         YamlStream? yaml = null;
         string? parseError = null;
         try {
             try {
-                using var reader = new StreamReader(parseStream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 4096, leaveOpen: true);
-                yaml = new YamlStream();
-                yaml.Load(reader);
+                parseStream.Position = parseStartPosition;
+                using (var preflightReader = new StreamReader(parseStream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 4096, leaveOpen: true)) {
+                    if (!TryPreflightYaml(preflightReader, options, out var limitError)) {
+                        parseError = limitError;
+                    }
+                }
+
+                if (parseError == null) {
+                    parseStream.Position = parseStartPosition;
+                    using var reader = new StreamReader(parseStream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 4096, leaveOpen: true);
+                    yaml = new YamlStream();
+                    yaml.Load(reader);
+                }
             } catch (Exception ex) when (ex is not OperationCanceledException) {
                 parseError = "YAML parse error: " + ex.GetType().Name + ".";
             }
@@ -99,6 +110,28 @@ public static class DocumentReaderYamlExtensions {
                 parseStream.Dispose();
             }
         }
+    }
+
+    private static bool TryPreflightYaml(TextReader reader, YamlReadOptions options, out string? limitError) {
+        limitError = null;
+        var parser = new Parser(reader);
+        int events = 0;
+        while (parser.MoveNext()) {
+            events++;
+            if (events > options.MaxParseEvents) {
+                limitError = "YAML parse limit exceeded: maximum parse event count reached.";
+                return false;
+            }
+
+            if (parser.Current is Scalar scalar &&
+                scalar.Value != null &&
+                scalar.Value.Length > options.MaxScalarLength) {
+                limitError = "YAML parse limit exceeded: scalar length exceeds maximum.";
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static IEnumerable<ReaderChunk> BuildStructuredChunks(
@@ -737,12 +770,16 @@ public static class DocumentReaderYamlExtensions {
             ChunkRows = source.ChunkRows,
             MaxDepth = source.MaxDepth,
             MaxNodes = source.MaxNodes,
+            MaxParseEvents = source.MaxParseEvents,
+            MaxScalarLength = source.MaxScalarLength,
             IncludeMarkdown = source.IncludeMarkdown
         };
 
         if (normalized.ChunkRows < 1) normalized.ChunkRows = 1;
         if (normalized.MaxDepth < 1) normalized.MaxDepth = 1;
         if (normalized.MaxNodes < 1) normalized.MaxNodes = 1;
+        if (normalized.MaxParseEvents < 1) normalized.MaxParseEvents = 1;
+        if (normalized.MaxScalarLength < 1) normalized.MaxScalarLength = 1;
 
         return normalized;
     }

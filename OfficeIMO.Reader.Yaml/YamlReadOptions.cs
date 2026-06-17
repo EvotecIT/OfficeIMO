@@ -20,6 +20,16 @@ public sealed class YamlReadOptions {
     public int MaxNodes { get; set; } = 20_000;
 
     /// <summary>
+    /// Maximum number of YAML parse events accepted before the representation model is loaded.
+    /// </summary>
+    public int MaxParseEvents { get; set; } = 100_000;
+
+    /// <summary>
+    /// Maximum scalar value length accepted before the representation model is loaded.
+    /// </summary>
+    public int MaxScalarLength { get; set; } = 1_048_576;
+
+    /// <summary>
     /// Include markdown table previews in emitted chunks.
     /// </summary>
     public bool IncludeMarkdown { get; set; } = true;
