@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -926,6 +927,38 @@ public class PdfDocumentChartDrawingTests {
         Assert.Contains("Passed", labels);
         Assert.DoesNotContain("Failed", labels);
         Assert.Contains("Skipped", labels);
+    }
+
+    [Fact]
+    public void FlowDrawing_FiltersLargeHiddenPieCategoryLegendIndexesWithBoundedLookups() {
+        string[] categories = Enumerable.Range(0, 240)
+            .Select(index => "Slice " + index.ToString(System.Globalization.CultureInfo.InvariantCulture))
+            .ToArray();
+        double[] values = Enumerable.Repeat(1D, categories.Length).ToArray();
+        var hiddenIndexes = new CountingReadOnlyCollection<int>(Enumerable.Range(0, 220).ToArray());
+
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Pie hidden legend lookup",
+            "Pie Legend",
+            OfficeChartKind.Pie,
+            new OfficeChartData(
+                categories,
+                new[] {
+                    new OfficeChartSeries("Outcome", values)
+                }),
+            widthPoints: 300D,
+            heightPoints: 200D,
+            layout: new OfficeChartLayout(
+                showLegend: true,
+                legendPosition: OfficeChartLegendPosition.Top) {
+                HiddenCategoryLegendIndexes = hiddenIndexes
+            }));
+
+        IReadOnlyList<string> labels = drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToArray();
+
+        Assert.DoesNotContain("Slice 0", labels);
+        Assert.Contains("Slice 220", labels);
+        Assert.True(hiddenIndexes.EnumerationCount <= 4, "Hidden legend indexes should be materialized per legend pass, not searched once per category.");
     }
 
     [Fact]
@@ -2067,4 +2100,22 @@ public class PdfDocumentChartDrawingTests {
             shape.Shape.StrokeColor == highlight);
     }
 
+    private sealed class CountingReadOnlyCollection<T> : IReadOnlyCollection<T> {
+        private readonly IReadOnlyList<T> _values;
+
+        public CountingReadOnlyCollection(IReadOnlyList<T> values) {
+            _values = values;
+        }
+
+        public int Count => _values.Count;
+
+        public int EnumerationCount { get; private set; }
+
+        public IEnumerator<T> GetEnumerator() {
+            EnumerationCount++;
+            return _values.GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+    }
 }

@@ -7,8 +7,12 @@ namespace OfficeIMO.Drawing;
 
 public static partial class OfficeChartDrawingRenderer {
     private static double GetSeriesLegendWidth(IReadOnlyList<OfficeChartSeries> series, double chartWidth, OfficeChartLayout layout) {
+        if (!ShouldRenderLegendSide(layout) || chartWidth < 180D) {
+            return 0D;
+        }
+
         List<int> legendIndexes = GetLegendSeriesIndexes(series);
-        if (!ShouldRenderLegendSide(layout) || legendIndexes.Count == 0 || chartWidth < 180D) {
+        if (legendIndexes.Count == 0) {
             return 0D;
         }
 
@@ -39,8 +43,12 @@ public static partial class OfficeChartDrawingRenderer {
     }
 
     private static double GetCategoryLegendWidth(IReadOnlyList<string> categories, double chartWidth, OfficeChartLayout layout) {
+        if (!ShouldRenderLegendSide(layout) || chartWidth < 180D) {
+            return 0D;
+        }
+
         List<int> legendIndexes = GetCategoryLegendIndexes(categories, layout);
-        if (!ShouldRenderLegendSide(layout) || legendIndexes.Count == 0 || chartWidth < 180D) {
+        if (legendIndexes.Count == 0) {
             return 0D;
         }
 
@@ -91,8 +99,12 @@ public static partial class OfficeChartDrawingRenderer {
     }
 
     private static void AddCategoryLegend(OfficeDrawing drawing, IReadOnlyList<string> categories, double x, double y, double width, double plotHeight, OfficeChartStyle style, OfficeChartLayout layout, IReadOnlyList<OfficeColor?>? pointColors = null) {
+        if (!layout.ShowLegend || width < 28D) {
+            return;
+        }
+
         List<int> legendIndexes = GetCategoryLegendIndexes(categories, layout);
-        if (!layout.ShowLegend || legendIndexes.Count == 0 || width < 28D) {
+        if (legendIndexes.Count == 0) {
             return;
         }
 
@@ -143,8 +155,12 @@ public static partial class OfficeChartDrawingRenderer {
     }
 
     private static double GetSeriesLegendBandHeight(IReadOnlyList<OfficeChartSeries> series, double chartWidth, OfficeChartLayout layout) {
+        if (!ShouldRenderLegendBand(layout) || chartWidth < 160D) {
+            return 0D;
+        }
+
         List<int> legendIndexes = GetLegendSeriesIndexes(series);
-        if (!ShouldRenderLegendBand(layout) || legendIndexes.Count == 0 || chartWidth < 160D) {
+        if (legendIndexes.Count == 0) {
             return 0D;
         }
 
@@ -152,8 +168,12 @@ public static partial class OfficeChartDrawingRenderer {
     }
 
     private static double GetCategoryLegendBandHeight(IReadOnlyList<string> categories, double chartWidth, OfficeChartLayout layout) {
+        if (!ShouldRenderLegendBand(layout) || chartWidth < 160D) {
+            return 0D;
+        }
+
         List<int> legendIndexes = GetCategoryLegendIndexes(categories, layout);
-        if (!ShouldRenderLegendBand(layout) || legendIndexes.Count == 0 || chartWidth < 160D) {
+        if (legendIndexes.Count == 0) {
             return 0D;
         }
 
@@ -161,8 +181,12 @@ public static partial class OfficeChartDrawingRenderer {
     }
 
     private static void AddSeriesLegendBand(OfficeDrawing drawing, IReadOnlyList<OfficeChartSeries> series, double x, double y, double width, OfficeChartStyle style, OfficeChartLayout layout) {
+        if (!ShouldRenderLegendBand(layout) || width < 48D) {
+            return;
+        }
+
         List<int> legendIndexes = GetLegendSeriesIndexes(series);
-        if (!ShouldRenderLegendBand(layout) || legendIndexes.Count == 0 || width < 48D) {
+        if (legendIndexes.Count == 0) {
             return;
         }
 
@@ -189,8 +213,12 @@ public static partial class OfficeChartDrawingRenderer {
     }
 
     private static void AddCategoryLegendBand(OfficeDrawing drawing, IReadOnlyList<string> categories, double x, double y, double width, OfficeChartStyle style, OfficeChartLayout layout, IReadOnlyList<OfficeColor?>? pointColors = null) {
+        if (!ShouldRenderLegendBand(layout) || width < 48D) {
+            return;
+        }
+
         List<int> legendIndexes = GetCategoryLegendIndexes(categories, layout);
-        if (!ShouldRenderLegendBand(layout) || legendIndexes.Count == 0 || width < 48D) {
+        if (legendIndexes.Count == 0) {
             return;
         }
 
@@ -207,8 +235,12 @@ public static partial class OfficeChartDrawingRenderer {
 
     private static List<int> GetCategoryLegendIndexes(IReadOnlyList<string> categories, OfficeChartLayout layout) {
         var indexes = new List<int>(categories.Count);
+        IReadOnlyCollection<int>? hiddenIndexes = layout.HiddenCategoryLegendIndexes;
+        HashSet<int>? hiddenIndexSet = hiddenIndexes == null || hiddenIndexes.Count == 0
+            ? null
+            : hiddenIndexes as HashSet<int> ?? new HashSet<int>(hiddenIndexes);
         for (int i = 0; i < categories.Count; i++) {
-            if (layout.HiddenCategoryLegendIndexes?.Contains(i) == true) {
+            if (hiddenIndexSet != null && hiddenIndexSet.Contains(i)) {
                 continue;
             }
 
