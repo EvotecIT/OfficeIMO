@@ -172,12 +172,60 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         private static string GetNumberFormatSection(string formatCode, int sectionIndex) {
-            string[] sections = formatCode.Split(';');
-            if (sectionIndex >= 0 && sectionIndex < sections.Length) {
-                return sections[sectionIndex];
+            if (sectionIndex < 0) {
+                sectionIndex = 0;
             }
 
-            return sections.Length > 0 ? sections[0] : formatCode;
+            int currentSection = 0;
+            int sectionStart = 0;
+            bool inQuote = false;
+            for (int i = 0; i < formatCode.Length; i++) {
+                char ch = formatCode[i];
+                if (ch == '"') {
+                    inQuote = !inQuote;
+                    continue;
+                }
+
+                if (ch == '\\') {
+                    i++;
+                    continue;
+                }
+
+                if (ch != ';' || inQuote) {
+                    continue;
+                }
+
+                if (currentSection == sectionIndex) {
+                    return formatCode.Substring(sectionStart, i - sectionStart);
+                }
+
+                currentSection++;
+                sectionStart = i + 1;
+            }
+
+            if (currentSection == sectionIndex) {
+                return formatCode.Substring(sectionStart);
+            }
+
+            inQuote = false;
+            for (int i = 0; i < formatCode.Length; i++) {
+                char ch = formatCode[i];
+                if (ch == '"') {
+                    inQuote = !inQuote;
+                    continue;
+                }
+
+                if (ch == '\\') {
+                    i++;
+                    continue;
+                }
+
+                if (ch == ';' && !inQuote) {
+                    return formatCode.Substring(0, i);
+                }
+            }
+
+            return formatCode;
         }
 
         private static int GetNumberFormatSectionIndex(double number) {

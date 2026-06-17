@@ -510,6 +510,39 @@ public partial class Excel {
     }
 
     [Fact]
+    public void SaveAsPdf_ExcelWorkbook_NumberFormatSections_DoNotExpandAllSemicolonSegments() {
+        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfHostileNumberFormatSections.xlsx");
+        string extraSections = string.Concat(Enumerable.Repeat(";[Red]0", 20000));
+
+        byte[] bytes;
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Formats")) {
+            ExcelSheet sheet = document.Sheets[0];
+            sheet.Cell(1, 1, "Kind");
+            sheet.Cell(1, 2, "Value");
+            sheet.Cell(2, 1, "ManySections");
+            sheet.CellAt(2, 2).SetValue(1234).SetNumberFormat("#,##0" + extraSections);
+            sheet.Cell(3, 1, "QuotedSectionSeparator");
+            sheet.CellAt(3, 2).SetValue(-12).SetNumberFormat("0;\"minus;literal\"0" + extraSections);
+
+            document.Save(false);
+
+            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+                IncludeSheetHeadings = false,
+                HeaderRowCount = 1,
+                PageSize = new PdfCore.PageSize(420, 220),
+                Margins = PdfCore.PageMargins.Uniform(24)
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        string text = string.Concat(Enumerable.Range(1, pdf.NumberOfPages).Select(page => pdf.GetPage(page).Text));
+        Assert.Contains("ManySections", text);
+        Assert.Contains("1,234", text);
+        Assert.Contains("QuotedSectionSeparator", text);
+        Assert.Contains("minus;literal-12", text);
+    }
+
+    [Fact]
     public void SaveAsPdf_ExcelWorkbook_Maps_Elapsed_Time_And_Quoted_Number_Literals() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfElapsedAndQuotedFormats.xlsx");
 
