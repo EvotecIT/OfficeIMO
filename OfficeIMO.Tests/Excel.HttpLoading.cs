@@ -193,6 +193,87 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task ExcelHttpLoadRejectsInitialHostOutsideAllowListBeforeFetch() {
+            int requestCount = 0;
+            using var handler = new FakeWorkbookHttpMessageHandler((_, _) => {
+                requestCount++;
+                return Task.FromResult(CreateWorkbookResponse(CreateRemoteWorkbookBytes()));
+            });
+
+            var options = new ExcelHttpLoadOptions {
+                HttpMessageHandler = handler
+            };
+            options.AllowedHosts.Add("allowed.example.test");
+
+            var ex = await Assert.ThrowsAsync<NotSupportedException>(() =>
+                ExcelDocumentReader.OpenAsync(
+                    new Uri("https://blocked.example.test/workbook.xlsx"),
+                    httpOptions: options));
+
+            Assert.Contains("AllowedHosts", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(0, requestCount);
+        }
+
+        [Fact]
+        public async Task ExcelHttpLoadRejectsRedirectHostOutsideAllowListBeforeFetch() {
+            var requests = new List<HttpRequestMessage>();
+            using var handler = new FakeWorkbookHttpMessageHandler((request, _) => {
+                requests.Add(CloneRequestHeaders(request));
+                if (requests.Count == 1) {
+                    var redirect = new HttpResponseMessage(HttpStatusCode.Redirect);
+                    redirect.Headers.Location = new Uri("https://blocked.example.test/workbook.xlsx");
+                    return Task.FromResult(redirect);
+                }
+
+                return Task.FromResult(CreateWorkbookResponse(CreateRemoteWorkbookBytes()));
+            });
+
+            var options = new ExcelHttpLoadOptions {
+                HttpMessageHandler = handler
+            };
+            options.AllowedHosts.Add("example.test");
+
+            var ex = await Assert.ThrowsAsync<NotSupportedException>(() =>
+                ExcelDocumentReader.OpenAsync(
+                    new Uri("https://example.test/workbook.xlsx"),
+                    httpOptions: options));
+
+            Assert.Contains("AllowedHosts", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Single(requests);
+            Assert.Equal("example.test", requests[0].RequestUri!.Host);
+        }
+
+        [Fact]
+        public async Task ExcelHttpLoadAllowsRedirectHostInsideAllowList() {
+            byte[] workbookBytes = CreateRemoteWorkbookBytes();
+            var requests = new List<HttpRequestMessage>();
+            using var handler = new FakeWorkbookHttpMessageHandler((request, _) => {
+                requests.Add(CloneRequestHeaders(request));
+                if (requests.Count == 1) {
+                    var redirect = new HttpResponseMessage(HttpStatusCode.Redirect);
+                    redirect.Headers.Location = new Uri("https://cdn.example.test/workbook.xlsx");
+                    return Task.FromResult(redirect);
+                }
+
+                return Task.FromResult(CreateWorkbookResponse(workbookBytes));
+            });
+
+            var options = new ExcelHttpLoadOptions {
+                HttpMessageHandler = handler
+            };
+            options.AllowedHosts.Add("example.test");
+            options.AllowedHosts.Add("cdn.example.test");
+
+            using var reader = await ExcelDocumentReader.OpenAsync(
+                new Uri("https://example.test/workbook.xlsx"),
+                httpOptions: options);
+
+            Assert.Equal(new[] { "Remote" }, reader.GetSheetNames());
+            Assert.Equal(2, requests.Count);
+            Assert.Equal("cdn.example.test", requests[1].RequestUri!.Host);
+        }
+
+        [Fact]
         public async Task ExcelHttpLoadDoesNotForwardCustomHeadersAcrossRedirectedHosts() {
             byte[] workbookBytes = CreateRemoteWorkbookBytes();
             var requests = new List<HttpRequestMessage>();
