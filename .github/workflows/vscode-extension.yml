@@ -311,8 +311,6 @@ jobs:
           }
 
           "should_publish=true" >> $env:GITHUB_OUTPUT
-          "vsce_main=$vsceMain" >> $env:GITHUB_OUTPUT
-          "vsix_path=$($vsixFiles[0].FullName)" >> $env:GITHUB_OUTPUT
 
       - name: Publish VSIX
         if: ${{ steps.marketplace_target.outputs.should_publish == 'true' }}
@@ -320,22 +318,34 @@ jobs:
         env:
           IS_PRE_RELEASE: ${{ (github.event_name == 'release' && github.event.release.prerelease) || (github.event_name == 'workflow_dispatch' && inputs.pre_release) }}
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
-          VSCE_MAIN: ${{ steps.marketplace_target.outputs.vsce_main }}
-          VSIX_PATH: ${{ steps.marketplace_target.outputs.vsix_path }}
         run: |
+          function Get-SafeVsixArtifact {
+            $distPath = 'OfficeIMO.Markup.VSCode/dist'
+            $vsixFiles = @(Get-ChildItem -LiteralPath $distPath -File -Filter '*.vsix')
+            if ($vsixFiles.Count -ne 1) {
+              throw "Expected exactly one VSIX artifact in $distPath, found $($vsixFiles.Count)."
+            }
+
+            $fileName = $vsixFiles[0].Name
+            if ($fileName -notmatch '^officeimo-markup-[A-Za-z0-9][A-Za-z0-9._-]*\.vsix$') {
+              throw "Unexpected VSIX artifact name '$fileName'."
+            }
+
+            return $vsixFiles[0].FullName
+          }
+
           if ([string]::IsNullOrWhiteSpace($env:VSCE_PAT)) {
             throw 'VSCE_PAT is required when publishing to the Visual Studio Marketplace.'
           }
 
-          if ([string]::IsNullOrWhiteSpace($env:VSCE_MAIN) -or -not (Test-Path -LiteralPath $env:VSCE_MAIN)) {
+          $vsceMain = 'OfficeIMO.Markup.VSCode/node_modules/@vscode/vsce/out/main.js'
+          if (-not (Test-Path -LiteralPath $vsceMain)) {
             throw 'VSCE was not found in node_modules. Run npm ci first.'
           }
 
-          if ([string]::IsNullOrWhiteSpace($env:VSIX_PATH) -or -not (Test-Path -LiteralPath $env:VSIX_PATH)) {
-            throw 'Expected a resolved VSIX artifact path before publishing.'
-          }
+          $vsixPath = Get-SafeVsixArtifact
 
-          $publishArgs = @($env:VSCE_MAIN, 'publish', '--packagePath', $env:VSIX_PATH)
+          $publishArgs = @($vsceMain, 'publish', '--packagePath', $vsixPath)
           if ($env:IS_PRE_RELEASE -eq 'true') {
             $publishArgs += '--pre-release'
           }
