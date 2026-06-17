@@ -59,5 +59,29 @@ public partial class PdfInspectorTests {
         AssertRewriteBlocker(report, PdfRewriteBlockerKind.Outlines, "PDF outlines are not supported for rewriting by OfficeIMO.Pdf yet.");
     }
 
+    [Fact]
+    public void ReadApis_LimitWideOutlineTraversal() {
+        PdfDocumentInfo info = PdfInspector.Inspect(BuildWideOutlinePdf(2_100));
+
+        Assert.Equal(2_048, info.Outlines.Count);
+        Assert.Equal("Item 0", info.Outlines[0].Title);
+        Assert.Equal("Item 2047", info.Outlines[2_047].Title);
+    }
+
+    [Fact]
+    public void ReadApis_LimitDeepOutlineTraversal() {
+        PdfDocumentInfo info = PdfInspector.Inspect(BuildDeepOutlinePdf(80));
+
+        PdfOutlineItem current = Assert.Single(info.Outlines);
+        int depth = 1;
+        while (current.Children.Count > 0) {
+            current = Assert.Single(current.Children);
+            depth++;
+        }
+
+        Assert.Equal(64, depth);
+        Assert.Equal("Depth 64", current.Title);
+    }
+
 
 }
