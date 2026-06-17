@@ -4,6 +4,8 @@ namespace OfficeIMO.Markdown;
 /// A lightweight syntax-tree node built from the parsed markdown document.
 /// </summary>
 public sealed class MarkdownSyntaxNode {
+    private int _indexInParent = -1;
+
     /// <summary>Node kind.</summary>
     public MarkdownSyntaxKind Kind { get; }
     /// <summary>Optional source span from the original markdown.</summary>
@@ -21,7 +23,7 @@ public sealed class MarkdownSyntaxNode {
     /// <summary>Whether this node behaves like a block/container boundary for navigation.</summary>
     public bool IsBlockLike => IsBlockLikeKind(Kind);
     /// <summary>Zero-based child index within <see cref="Parent"/> when available.</summary>
-    public int IndexInParent => Parent == null ? -1 : Parent.IndexOfChild(this);
+    public int IndexInParent => _indexInParent;
     /// <summary>Nearest previous sibling node when present.</summary>
     public MarkdownSyntaxNode? PreviousSibling => Parent == null ? null : Parent.GetChildOrNull(IndexInParent - 1);
     /// <summary>Nearest next sibling node when present.</summary>
@@ -44,7 +46,7 @@ public sealed class MarkdownSyntaxNode {
         AssociatedObject = associatedObject;
         Children = children ?? Array.Empty<MarkdownSyntaxNode>();
         for (int i = 0; i < Children.Count; i++) {
-            Children[i]?.AttachToParent(this);
+            Children[i]?.AttachToParent(this, i);
         }
     }
 
@@ -293,18 +295,9 @@ public sealed class MarkdownSyntaxNode {
         }
     }
 
-    private void AttachToParent(MarkdownSyntaxNode parent) {
+    private void AttachToParent(MarkdownSyntaxNode parent, int index) {
         Parent = parent;
-    }
-
-    private int IndexOfChild(MarkdownSyntaxNode child) {
-        for (int i = 0; i < Children.Count; i++) {
-            if (ReferenceEquals(Children[i], child)) {
-                return i;
-            }
-        }
-
-        return -1;
+        _indexInParent = index;
     }
 
     private MarkdownSyntaxNode? GetChildOrNull(int index) =>
