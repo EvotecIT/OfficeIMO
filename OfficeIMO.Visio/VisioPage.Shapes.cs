@@ -53,14 +53,16 @@ namespace OfficeIMO.Visio {
             if (connector.HasAutomaticId) {
                 connector.Id = NextId(ignoredConnector);
             }
+
+            EnsurePageObjectIdAvailable(connector.Id, "Connector", ignoredConnector: ignoredConnector);
         }
 
-        private void PrepareShapeForPage(VisioShape shape) {
+        private void PrepareShapeForPage(VisioShape shape, VisioShape? ignoredShape = null) {
             if (shape == null) {
                 throw new ArgumentNullException(nameof(shape));
             }
 
-             if (_shapes.Contains(shape)) {
+            if (_shapes.Contains(shape) && !ReferenceEquals(shape, ignoredShape)) {
                 throw new InvalidOperationException("The shape is already part of this page.");
             }
 
@@ -68,8 +70,67 @@ namespace OfficeIMO.Visio {
                 throw new InvalidOperationException("A child shape must be removed from its parent before being added to a page.");
             }
 
+            EnsureShapeTreeIdsAvailable(shape, ignoredShape);
             shape.Parent = null;
             shape.NormalizeDescendantParentLinks();
+        }
+
+        private void EnsureShapeTreeIdsAvailable(VisioShape shape, VisioShape? ignoredShape) {
+            HashSet<string> newIds = new(StringComparer.Ordinal);
+
+            void Visit(VisioShape current) {
+                if (string.IsNullOrWhiteSpace(current.Id)) {
+                    throw new InvalidOperationException("Shape id cannot be null or whitespace.");
+                }
+
+                if (!newIds.Add(current.Id)) {
+                    throw new InvalidOperationException($"Duplicate shape id '{current.Id}' found in the shape tree being added to page '{Name}'.");
+                }
+
+                EnsurePageObjectIdAvailable(current.Id, "Shape", ignoredShape: ignoredShape);
+                foreach (VisioShape child in current.Children) {
+                    Visit(child);
+                }
+            }
+
+            Visit(shape);
+        }
+
+        private void EnsurePageObjectIdAvailable(string id, string kind, VisioShape? ignoredShape = null, VisioConnector? ignoredConnector = null) {
+            if (string.IsNullOrWhiteSpace(id)) {
+                throw new InvalidOperationException($"{kind} id cannot be null or whitespace on page '{Name}'.");
+            }
+
+            foreach (VisioShape shape in _shapes) {
+                if (ShapeTreeContainsId(shape, id, ignoredShape)) {
+                    throw new InvalidOperationException($"{kind} id '{id}' is already used by another page object on page '{Name}'.");
+                }
+            }
+
+            foreach (VisioConnector connector in _connectors) {
+                if (!ReferenceEquals(connector, ignoredConnector) &&
+                    string.Equals(connector.Id, id, StringComparison.Ordinal)) {
+                    throw new InvalidOperationException($"{kind} id '{id}' is already used by another page object on page '{Name}'.");
+                }
+            }
+        }
+
+        private static bool ShapeTreeContainsId(VisioShape shape, string id, VisioShape? ignoredShape) {
+            if (ReferenceEquals(shape, ignoredShape)) {
+                return false;
+            }
+
+            if (string.Equals(shape.Id, id, StringComparison.Ordinal)) {
+                return true;
+            }
+
+            foreach (VisioShape child in shape.Children) {
+                if (ShapeTreeContainsId(child, id, ignoredShape)) {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static void ApplyUnits(ref double x, ref double y, ref double w, ref double h, VisioMeasurementUnit unit) {

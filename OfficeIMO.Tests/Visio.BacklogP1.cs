@@ -86,6 +86,41 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PageRejectsDuplicateIdsBeforeSaveAcrossShapesAndConnectors() {
+            VisioPage page = new("Page-1");
+            VisioShape left = new("1", 1, 1, 1, 1, "Left");
+            VisioShape right = new("2", 3, 1, 1, 1, "Right");
+            page.Shapes.Add(left);
+            page.Shapes.Add(right);
+
+            InvalidOperationException connectorCollision = Assert.Throws<InvalidOperationException>(() =>
+                page.AddConnector("1", left, right, ConnectorKind.Dynamic));
+
+            Assert.Contains("already used", connectorCollision.Message);
+
+            page.AddConnector("3", left, right, ConnectorKind.Dynamic);
+
+            InvalidOperationException shapeCollision = Assert.Throws<InvalidOperationException>(() =>
+                page.Shapes.Add(new VisioShape("3", 5, 1, 1, 1, "Duplicate")));
+
+            Assert.Contains("already used", shapeCollision.Message);
+        }
+
+        [Fact]
+        public void GeneratedConnectorIdsSkipExistingShapeAndConnectorIds() {
+            VisioPage page = new("Page-1");
+            VisioShape left = new("1", 1, 1, 1, 1, "Left");
+            VisioShape right = new("2", 3, 1, 1, 1, "Right");
+            page.Shapes.Add(left);
+            page.Shapes.Add(right);
+            page.AddConnector("3", left, right, ConnectorKind.Dynamic);
+
+            VisioConnector generated = page.AddConnector(left, right);
+
+            Assert.Equal("4", generated.Id);
+        }
+
+        [Fact]
         public void MastersWithCollidingIdsAreRemappedAndRoundTrip() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
