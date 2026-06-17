@@ -64,6 +64,26 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Validate release source
+        if: ${{ github.event_name == 'release' }}
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          if ($env:RELEASE_TAG -notmatch '^OfficeIMO-v\d{14}$') {
+            throw "OfficeIMO VS Code Marketplace publishing only accepts normal OfficeIMO release tags named OfficeIMO-vYYYYMMDDHHMMSS. Current tag: $env:RELEASE_TAG. Example: OfficeIMO-v20260507115122"
+          }
+
+          git fetch origin master
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Failed to fetch origin/master for release source validation.'
+          }
+
+          git merge-base --is-ancestor HEAD origin/master
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Release publishing is only allowed from commits contained in origin/master.'
+          }
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
         with:
@@ -83,12 +103,12 @@ jobs:
           npm audit --omit=dev --audit-level ${{ env.NPM_AUDIT_LEVEL }}
 
       - name: Package extension
+        id: package_extension
         shell: pwsh
         env:
           IS_PRE_RELEASE: ${{ (github.event_name == 'release' && github.event.release.prerelease) || (github.event_name == 'workflow_dispatch' && inputs.pre_release) }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
           SHOULD_PUBLISH: ${{ github.event_name == 'release' || inputs.publish_marketplace }}
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
         run: |
           function Convert-OfficeIMOReleaseTagToExtensionVersion {
             param(
@@ -188,11 +208,41 @@ jobs:
             if ('${{ github.event_name }}' -eq 'workflow_dispatch' -and '${{ github.ref_name }}' -ne 'master') {
               throw 'Marketplace publishing is only allowed from the master branch.'
             }
-
-            $params.PublishMarketplace = $true
           }
 
           ./OfficeIMO.Markup.VSCode/scripts/package-vsix.ps1 @params
+          "should_publish_marketplace=$($shouldPublishMarketplace.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
+
+      - name: Publish VSIX
+        if: ${{ steps.package_extension.outputs.should_publish_marketplace == 'true' }}
+        shell: pwsh
+        env:
+          IS_PRE_RELEASE: ${{ (github.event_name == 'release' && github.event.release.prerelease) || (github.event_name == 'workflow_dispatch' && inputs.pre_release) }}
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:VSCE_PAT)) {
+            throw 'VSCE_PAT is required when publishing to the Visual Studio Marketplace.'
+          }
+
+          $vsixFiles = @(Get-ChildItem -LiteralPath 'OfficeIMO.Markup.VSCode/dist' -Filter '*.vsix')
+          if ($vsixFiles.Count -ne 1) {
+            throw "Expected exactly one VSIX artifact in OfficeIMO.Markup.VSCode/dist, found $($vsixFiles.Count)."
+          }
+
+          $vsceMain = 'OfficeIMO.Markup.VSCode/node_modules/@vscode/vsce/out/main.js'
+          if (-not (Test-Path -LiteralPath $vsceMain)) {
+            throw 'VSCE was not found in node_modules. Run npm ci first.'
+          }
+
+          $publishArgs = @($vsceMain, 'publish', '--packagePath', $vsixFiles[0].FullName)
+          if ($env:IS_PRE_RELEASE -eq 'true') {
+            $publishArgs += '--pre-release'
+          }
+
+          & node @publishArgs
+          if ($LASTEXITCODE -ne 0) {
+            throw "VSIX marketplace publishing failed with exit code $LASTEXITCODE."
+          }
 
       - name: Upload VSIX
         uses: actions/upload-artifact@v7
