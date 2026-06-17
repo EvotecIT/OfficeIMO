@@ -48,7 +48,7 @@ public sealed partial class OfficeMarkupPowerPointExporter {
 
         try {
             bool hasBaseDirectory = options != null && !string.IsNullOrWhiteSpace(options.BaseDirectory);
-            if (!hasBaseDirectory && Path.IsPathRooted(path) && !(options?.AllowExternalImagePaths ?? false)) {
+            if (!hasBaseDirectory && !(options?.AllowExternalImagePaths ?? false)) {
                 return false;
             }
 

@@ -1415,6 +1415,52 @@ profile: presentation
     }
 
     [Fact]
+    public void PowerPointExporter_SkipsRelativeSlideImagesWithoutBaseDirectoryByDefault() {
+        var tempDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDirectory);
+        var relativeName = $"officeimo-markup-relative-blocked-{Guid.NewGuid():N}.png";
+        var currentDirectoryImage = Path.Combine(Environment.CurrentDirectory, relativeName);
+        File.Copy(Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png"), currentDirectoryImage, overwrite: true);
+
+        var markup = $$"""
+---
+profile: presentation
+---
+
+# Visual
+
+@slide {
+  layout: blank
+}
+
+![Logo]({{relativeName}})
+""";
+        var path = Path.Combine(tempDirectory, "relative-image-without-base-slide.pptx");
+
+        try {
+            var result = OfficeMarkupParser.Parse(markup);
+
+            new OfficeMarkupPowerPointExporter().Export(result.Document, new OfficeMarkupPowerPointExportOptions {
+                OutputPath = path,
+                RenderMermaidDiagrams = false
+            });
+
+            using var package = PresentationDocument.Open(path, false);
+            var slidePart = Assert.Single(package.PresentationPart!.SlideParts);
+            Assert.Empty(slidePart.ImageParts);
+            Assert.Contains("Image:", slidePart.Slide.OuterXml, StringComparison.Ordinal);
+        } finally {
+            if (File.Exists(currentDirectoryImage)) {
+                File.Delete(currentDirectoryImage);
+            }
+
+            if (Directory.Exists(tempDirectory)) {
+                Directory.Delete(tempDirectory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public void PowerPointExporter_SkipsAbsoluteSlideImagesOutsideBaseDirectoryByDefault() {
         var tempDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempDirectory);
@@ -2331,6 +2377,46 @@ profile: document
             Assert.Empty(package.MainDocumentPart!.ImageParts);
             Assert.Contains("Image:", package.MainDocumentPart!.Document.Body!.InnerText, StringComparison.Ordinal);
         } finally {
+            if (Directory.Exists(tempDirectory)) {
+                Directory.Delete(tempDirectory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void WordExporter_SkipsRelativeImagesWithoutBaseDirectoryByDefault() {
+        var tempDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDirectory);
+        var relativeName = $"officeimo-markup-relative-blocked-{Guid.NewGuid():N}.png";
+        var currentDirectoryImage = Path.Combine(Environment.CurrentDirectory, relativeName);
+        File.Copy(Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png"), currentDirectoryImage, overwrite: true);
+
+        var markup = $$"""
+---
+profile: document
+---
+
+# Visual
+
+![Logo]({{relativeName}})
+""";
+        var path = Path.Combine(tempDirectory, "relative-image-without-base.docx");
+
+        try {
+            var result = OfficeMarkupParser.Parse(markup);
+
+            new OfficeMarkupWordExporter().Export(result.Document, new OfficeMarkupWordExportOptions {
+                OutputPath = path
+            });
+
+            using var package = WordprocessingDocument.Open(path, false);
+            Assert.Empty(package.MainDocumentPart!.ImageParts);
+            Assert.Contains("Image:", package.MainDocumentPart!.Document.Body!.InnerText, StringComparison.Ordinal);
+        } finally {
+            if (File.Exists(currentDirectoryImage)) {
+                File.Delete(currentDirectoryImage);
+            }
+
             if (Directory.Exists(tempDirectory)) {
                 Directory.Delete(tempDirectory, recursive: true);
             }

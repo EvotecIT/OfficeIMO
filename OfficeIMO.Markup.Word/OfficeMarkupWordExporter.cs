@@ -325,7 +325,7 @@ public sealed class OfficeMarkupWordExporter {
         path = string.Empty;
         try {
             bool hasBaseDirectory = !string.IsNullOrWhiteSpace(baseDirectory);
-            if (!hasBaseDirectory && Path.IsPathRooted(source) && !allowExternalPaths) {
+            if (!hasBaseDirectory && !allowExternalPaths) {
                 return false;
             }
 
