@@ -13,6 +13,14 @@ namespace OfficeIMO.Visio {
         private const string V = "http://schemas.microsoft.com/office/visio/2012/main";
         private const string REL_PKG = "http://schemas.openxmlformats.org/package/2006/relationships";
         private const string REL_ODC = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+        /// <summary>Maximum uncompressed size accepted for a Visio master-related XML part.</summary>
+        public const long MaxMasterXmlPartBytes = 12_000_000;
+        /// <summary>Maximum uncompressed size accepted for a single embedded master relationship payload.</summary>
+        public const long MaxMasterRelationshipBytes = 16_000_000;
+        /// <summary>Maximum cumulative uncompressed size accepted for embedded master relationship payloads.</summary>
+        public const long MaxTotalMasterRelationshipBytes = 64_000_000;
+        /// <summary>Maximum number of master relationships copied from one Visio package import.</summary>
+        public const int MaxMasterRelationships = 4096;
 
         /// <summary>
         /// Lightweight info about a master available inside a Visio package.
@@ -83,6 +91,7 @@ namespace OfficeIMO.Visio {
             using ZipArchive zip = ZipFile.OpenRead(vsdxPath);
             var mastersEntry = zip.GetEntry("visio/masters/masters.xml");
             if (mastersEntry == null) return Array.Empty<MasterInfo>();
+            EnsureZipEntryWithinLimit(mastersEntry, MaxMasterXmlPartBytes, "masters XML part");
             using var s = mastersEntry.Open();
             XDocument doc = XDocument.Load(s);
             XNamespace v = V;
@@ -102,6 +111,7 @@ namespace OfficeIMO.Visio {
             using ZipArchive zip = ZipFile.OpenRead(vsdxPath);
             var mastersEntry = zip.GetEntry("visio/masters/masters.xml");
             if (mastersEntry == null) return Array.Empty<MasterContent>();
+            EnsureZipEntryWithinLimit(mastersEntry, MaxMasterXmlPartBytes, "masters XML part");
             using var mStream = mastersEntry.Open();
             XDocument mastersDoc = XDocument.Load(mStream);
             XNamespace v = V;
@@ -110,6 +120,7 @@ namespace OfficeIMO.Visio {
             var relsEntry = zip.GetEntry("visio/masters/_rels/masters.xml.rels");
             var relMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             if (relsEntry != null) {
+                EnsureZipEntryWithinLimit(relsEntry, MaxMasterXmlPartBytes, "masters relationship part");
                 using var relsStream = relsEntry.Open();
                 var relsDoc = XDocument.Load(relsStream);
                 XNamespace pr = REL_PKG;
@@ -120,6 +131,8 @@ namespace OfficeIMO.Visio {
                 }
             }
             List<MasterContent> result = new();
+            long totalRelationshipBytes = 0;
+            int totalRelationships = 0;
             foreach (var m in mastersDoc.Root!.Elements(v + "Master")) {
                 string id = (string?)m.Attribute("ID") ?? string.Empty;
                 string nameU = (string?)m.Attribute("NameU") ?? string.Empty;
@@ -131,10 +144,11 @@ namespace OfficeIMO.Visio {
                 string partPath = "visio/masters/" + target.Replace("\\", "/");
                 var part = zip.GetEntry(partPath);
                 if (part == null) continue;
+                EnsureZipEntryWithinLimit(part, MaxMasterXmlPartBytes, "master XML part");
                 using var pStream = part.Open();
                 XDocument masterXml = XDocument.Load(pStream);
                 MasterContent content = new() { Id = id, NameU = nameU, MasterXml = masterXml, MasterElement = new XElement(m) };
-                foreach (MasterRelationshipContent relationship in LoadMasterRelationships(zip, partPath)) {
+                foreach (MasterRelationshipContent relationship in LoadMasterRelationships(zip, partPath, ref totalRelationshipBytes, ref totalRelationships)) {
                     content.Relationships.Add(relationship);
                 }
 
@@ -151,12 +165,14 @@ namespace OfficeIMO.Visio {
             PackageVisualContext context = new();
             ZipArchiveEntry? documentEntry = zip.GetEntry("visio/document.xml");
             if (documentEntry != null) {
+                EnsureZipEntryWithinLimit(documentEntry, MaxMasterXmlPartBytes, "document XML part");
                 using Stream stream = documentEntry.Open();
                 context.DocumentXml = XDocument.Load(stream);
             }
 
             ZipArchiveEntry? themeEntry = zip.GetEntry("visio/theme/theme1.xml");
             if (themeEntry != null) {
+                EnsureZipEntryWithinLimit(themeEntry, MaxMasterXmlPartBytes, "theme XML part");
                 using Stream stream = themeEntry.Open();
                 context.ThemeXml = XDocument.Load(stream);
             }
@@ -177,7 +193,7 @@ namespace OfficeIMO.Visio {
             }
         }
 
-        private static IEnumerable<MasterRelationshipContent> LoadMasterRelationships(ZipArchive zip, string masterPartPath) {
+        private static IEnumerable<MasterRelationshipContent> LoadMasterRelationships(ZipArchive zip, string masterPartPath, ref long totalRelationshipBytes, ref int totalRelationships) {
             string fileName = Path.GetFileName(masterPartPath.Replace('\\', '/'));
             string relsPath = "visio/masters/_rels/" + fileName + ".rels";
             ZipArchiveEntry? relsEntry = zip.GetEntry(relsPath);
@@ -185,6 +201,7 @@ namespace OfficeIMO.Visio {
                 return Array.Empty<MasterRelationshipContent>();
             }
 
+            EnsureZipEntryWithinLimit(relsEntry, MaxMasterXmlPartBytes, "master relationship XML part");
             using Stream relsStream = relsEntry.Open();
             XDocument relsDoc = XDocument.Load(relsStream);
             XNamespace pr = REL_PKG;
@@ -196,6 +213,11 @@ namespace OfficeIMO.Visio {
                 bool external = string.Equals((string?)rel.Attribute("TargetMode"), "External", StringComparison.OrdinalIgnoreCase);
                 if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(type) || string.IsNullOrWhiteSpace(target)) {
                     continue;
+                }
+
+                totalRelationships++;
+                if (totalRelationships > MaxMasterRelationships) {
+                    throw new InvalidDataException($"Visio package master relationships exceed {MaxMasterRelationships} entries.");
                 }
 
                 MasterRelationshipContent relationship = new() {
@@ -213,10 +235,7 @@ namespace OfficeIMO.Visio {
                         continue;
                     }
 
-                    using Stream targetStream = targetEntry.Open();
-                    using MemoryStream buffer = new();
-                    targetStream.CopyTo(buffer);
-                    relationship.Data = buffer.ToArray();
+                    relationship.Data = ReadMasterRelationshipBytes(targetEntry, ref totalRelationshipBytes);
                     relationship.Extension = Path.GetExtension(targetPath);
                     relationship.ContentType = GuessContentType(relationship.Extension);
                 }
@@ -225,6 +244,45 @@ namespace OfficeIMO.Visio {
             }
 
             return relationships;
+        }
+
+        private static byte[] ReadMasterRelationshipBytes(ZipArchiveEntry entry, ref long totalRelationshipBytes) {
+            EnsureZipEntryWithinLimit(entry, MaxMasterRelationshipBytes, "master relationship target");
+            if (totalRelationshipBytes > MaxTotalMasterRelationshipBytes - entry.Length) {
+                throw new InvalidDataException($"Visio package master relationship targets exceed {MaxTotalMasterRelationshipBytes} total bytes.");
+            }
+
+            using Stream source = entry.Open();
+            using MemoryStream buffer = entry.Length > 0 && entry.Length <= int.MaxValue
+                ? new MemoryStream((int)entry.Length)
+                : new MemoryStream();
+            CopyToWithLimit(source, buffer, MaxMasterRelationshipBytes, entry.FullName);
+            if (totalRelationshipBytes > MaxTotalMasterRelationshipBytes - buffer.Length) {
+                throw new InvalidDataException($"Visio package master relationship targets exceed {MaxTotalMasterRelationshipBytes} total bytes.");
+            }
+
+            totalRelationshipBytes += buffer.Length;
+            return buffer.ToArray();
+        }
+
+        private static void EnsureZipEntryWithinLimit(ZipArchiveEntry entry, long maxBytes, string description) {
+            if (entry.Length > maxBytes) {
+                throw new InvalidDataException($"Visio package {description} '{entry.FullName}' exceeds {maxBytes} bytes.");
+            }
+        }
+
+        private static void CopyToWithLimit(Stream source, Stream destination, long maxBytes, string entryName) {
+            byte[] buffer = new byte[81920];
+            long copied = 0;
+            int read;
+            while ((read = source.Read(buffer, 0, buffer.Length)) > 0) {
+                copied += read;
+                if (copied > maxBytes) {
+                    throw new InvalidDataException($"Visio package master relationship target '{entryName}' exceeds {maxBytes} bytes.");
+                }
+
+                destination.Write(buffer, 0, read);
+            }
         }
 
         private static string ResolveZipPath(string basePath, string target) {

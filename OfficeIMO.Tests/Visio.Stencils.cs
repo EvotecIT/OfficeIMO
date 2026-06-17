@@ -974,6 +974,19 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ImportStencilMastersRejectsOversizedEmbeddedMasterRelationship() {
+            string packagePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vssx");
+            byte[] oversizedMedia = new byte[checked((int)VisioAssets.MaxMasterRelationshipBytes + 1)];
+            CreatePackageWithRawGroupMaster(packagePath, "FancyCloud", "Fancy Cloud", "png", oversizedMedia);
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                document.ImportStencilMastersAndGet(packagePath, new[] { "fancy-cloud" }));
+
+            Assert.Contains(VisioAssets.MaxMasterRelationshipBytes.ToString(), exception.Message);
+        }
+
+        [Fact]
         public void ReplaceMasterImportsPackageMasterWhenNameUAlreadyRegistered() {
             string packagePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vssx");
             CreatePackageWithRawGroupMaster(packagePath, "Rectangle", "Package Rectangle");
