@@ -43,6 +43,22 @@ namespace OfficeIMO.Visio {
             PackagePart commentsPart,
             IReadOnlyList<VisioPage> pages,
             IReadOnlyDictionary<VisioPage, Dictionary<string, VisioMaster>> effectivePageMasters) {
+            string serializedComments = BuildCommentsXmlForSave(pages, effectivePageMasters);
+
+            using Stream stream = commentsPart.GetStream(FileMode.Create, FileAccess.Write);
+            using StreamWriter writer = new(stream, new UTF8Encoding(false));
+            writer.Write(serializedComments);
+        }
+
+        private static void ValidateCommentsForSave(
+            IReadOnlyList<VisioPage> pages,
+            IReadOnlyDictionary<VisioPage, Dictionary<string, VisioMaster>> effectivePageMasters) {
+            _ = BuildCommentsXmlForSave(pages, effectivePageMasters);
+        }
+
+        private static string BuildCommentsXmlForSave(
+            IReadOnlyList<VisioPage> pages,
+            IReadOnlyDictionary<VisioPage, Dictionary<string, VisioMaster>> effectivePageMasters) {
             XNamespace ns = VisioNamespace;
             Dictionary<CommentAuthorKey, int> authorIds = new();
             List<(VisioPage Page, VisioComment Comment, int AuthorId)> comments = new();
@@ -110,10 +126,7 @@ namespace OfficeIMO.Visio {
 
             string serializedComments = commentsXml.Declaration + Environment.NewLine + commentsXml.ToString(SaveOptions.DisableFormatting);
             ValidateCommentsXmlForSave(serializedComments);
-
-            using Stream stream = commentsPart.GetStream(FileMode.Create, FileAccess.Write);
-            using StreamWriter writer = new(stream, new UTF8Encoding(false));
-            writer.Write(serializedComments);
+            return serializedComments;
         }
 
         private static void ValidateCommentForSave(VisioComment comment) {

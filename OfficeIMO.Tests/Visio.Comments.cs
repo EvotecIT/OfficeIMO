@@ -229,6 +229,43 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SaveRejectsOversizedNativeCommentTextWithoutTruncatingExistingTarget() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioDocument valid = VisioDocument.Create(filePath);
+            valid.AddPage("Original", 11, 8.5).AddComment("Keep this file", "Operations", "OP");
+            valid.Save();
+            byte[] originalBytes = File.ReadAllBytes(filePath);
+
+            VisioDocument invalid = VisioDocument.Create(filePath);
+            invalid.AddPage("Review", 11, 8.5)
+                .AddComment(new string('x', VisioDocument.MaxCommentTextCharacters + 1), "Operations", "OP");
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() => invalid.Save());
+
+            Assert.Contains(VisioDocument.MaxCommentTextCharacters.ToString(), exception.Message);
+            Assert.Equal(originalBytes, File.ReadAllBytes(filePath));
+        }
+
+        [Fact]
+        public void SaveRejectsDuplicatePageIdsWithoutTruncatingExistingTarget() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioDocument valid = VisioDocument.Create(filePath);
+            valid.AddPage("Original", 11, 8.5).Shapes.Add(new VisioShape("original", 1, 1, 1, 1, "Original"));
+            valid.Save();
+            byte[] originalBytes = File.ReadAllBytes(filePath);
+
+            VisioDocument invalid = VisioDocument.Create(filePath);
+            VisioPage page = invalid.AddPage("Broken", 11, 8.5);
+            page.Shapes.Add(new VisioShape("duplicate", 1, 1, 1, 1, "One"));
+            page.Shapes.Add(new VisioShape("duplicate", 3, 1, 1, 1, "Two"));
+
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => invalid.Save());
+
+            Assert.Contains("Duplicate", exception.Message);
+            Assert.Equal(originalBytes, File.ReadAllBytes(filePath));
+        }
+
+        [Fact]
         public void SaveRejectsCommentsPartThatExceedsUtf8ByteLimit() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);

@@ -23,6 +23,11 @@ namespace OfficeIMO.Visio {
             List<VisioPage> pagesToSave = _pages.Count > 0 ? _pages : new List<VisioPage> { new VisioPage("Page-1") { Id = 0 } };
             bool includeComments = pagesToSave.Any(page => page.Comments.Count > 0);
             PrepareTextFontFaceNames(pagesToSave);
+            ValidatePagesForSave(pagesToSave);
+            if (includeComments) {
+                ValidateCommentsForSave(pagesToSave, BuildEffectivePageMastersForSave(pagesToSave));
+            }
+
             int pageCount = pagesToSave.Count;
             List<string> pagePartNames = new();
             int masterCount;
@@ -43,6 +48,11 @@ namespace OfficeIMO.Visio {
             List<VisioPage> pagesToSave = _pages.Count > 0 ? _pages : new List<VisioPage> { new VisioPage("Page-1") { Id = 0 } };
             bool includeComments = pagesToSave.Any(page => page.Comments.Count > 0);
             PrepareTextFontFaceNames(pagesToSave);
+            ValidatePagesForSave(pagesToSave);
+            if (includeComments) {
+                ValidateCommentsForSave(pagesToSave, BuildEffectivePageMastersForSave(pagesToSave));
+            }
+
             int pageCount = pagesToSave.Count;
             List<string> pagePartNames = new();
             int masterCount;
@@ -211,8 +221,6 @@ namespace OfficeIMO.Visio {
                     using StreamWriter sw = new(s, new UTF8Encoding(false));
                     sw.Write(winXml.Declaration + Environment.NewLine + winXml.ToString(SaveOptions.DisableFormatting));
                 }
-
-                ValidatePagesForSave(pagesToSave);
 
                 Dictionary<VisioPage, Dictionary<string, VisioMaster>> effectivePageMasters = new();
                 List<VisioMaster> masterCandidates = new();

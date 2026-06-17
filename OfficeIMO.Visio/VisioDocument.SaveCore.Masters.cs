@@ -33,6 +33,15 @@ namespace OfficeIMO.Visio {
             return map;
         }
 
+        private Dictionary<VisioPage, Dictionary<string, VisioMaster>> BuildEffectivePageMastersForSave(IReadOnlyList<VisioPage> pages) {
+            Dictionary<VisioPage, Dictionary<string, VisioMaster>> effectivePageMasters = new();
+            foreach (VisioPage page in pages) {
+                effectivePageMasters[page] = BuildEffectiveShapeMasterMap(page);
+            }
+
+            return effectivePageMasters;
+        }
+
         private static void AddMastersInShapeOrder(IEnumerable<VisioShape> shapes, IReadOnlyDictionary<string, VisioMaster> pageMasters, IList<VisioMaster> masterCandidates) {
             foreach (VisioShape shape in shapes) {
                 if (pageMasters.TryGetValue(shape.Id, out VisioMaster? master)) {
