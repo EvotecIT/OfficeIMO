@@ -59,7 +59,8 @@ public class PdfMergerTests {
         string pdfText = Encoding.ASCII.GetString(merged);
         Assert.Contains("/Subtype /Image", pdfText);
         Assert.Contains("/Filter /FlateDecode", pdfText);
-        Assert.Contains("/Length 12", pdfText);
+        Assert.Contains("/Width 1", pdfText);
+        Assert.Contains("/Height 1", pdfText);
 
         string text = NormalizeExtractedText(PdfReadDocument.Load(merged).ExtractText());
         AssertContainsInOrder(text, "Imagesourcepage", "Textonlypage");
