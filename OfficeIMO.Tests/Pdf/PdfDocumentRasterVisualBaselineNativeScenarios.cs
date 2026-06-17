@@ -389,7 +389,8 @@ MarkdownPdfConverter.SaveFileAsPdf("README.md", "README.pdf");
 
             var options = new MarkdownPdfSaveOptions {
                 DefaultImageWidth = 104,
-                DefaultImageHeight = 36
+                DefaultImageHeight = 36,
+                IncludeLocalImages = true
             };
 
             byte[] pdf = MarkdownPdfConverter.SaveFileAsPdf(markdownPath, options);
