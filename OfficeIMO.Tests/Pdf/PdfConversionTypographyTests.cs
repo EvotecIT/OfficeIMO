@@ -523,7 +523,8 @@ Zażółć gęślą jaźń
 
         return exception.Message.Contains("not covered by the embedded TrueType font", StringComparison.Ordinal) ||
                exception.Message.Contains("cannot be encoded with embedded TrueType font", StringComparison.Ordinal) ||
-               exception.Message.Contains("not covered by any embedded font fallback candidate", StringComparison.Ordinal);
+               exception.Message.Contains("not covered by any embedded font fallback candidate", StringComparison.Ordinal) ||
+               exception.Message.Contains("Embedded Unicode fonts are required for this text", StringComparison.Ordinal);
     }
 
     private static void WriteReviewArtifact(string fileName, byte[] bytes) {
