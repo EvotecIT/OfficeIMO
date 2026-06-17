@@ -1,6 +1,8 @@
 namespace OfficeIMO.Pdf;
 
 internal sealed partial class PdfTrueTypeFontProgram {
+    private const int MaxUnicodeCMapMappings = 131_072;
+
     private readonly byte[] _data;
     private readonly ushort[] _advanceWidths;
     private readonly Dictionary<int, int> _cmap;
@@ -423,6 +425,11 @@ internal sealed partial class PdfTrueTypeFontProgram {
             groupOffset += 12;
             if (startCharCode > 0x10FFFF || endCharCode > 0x10FFFF || endCharCode < startCharCode) {
                 continue;
+            }
+
+            uint mappingCount = endCharCode - startCharCode + 1U;
+            if (mappingCount > MaxUnicodeCMapMappings || map.Count > MaxUnicodeCMapMappings - (int)mappingCount) {
+                throw new NotSupportedException("TrueType Unicode cmap mapping count exceeds supported limits.");
             }
 
             for (uint code = startCharCode; code <= endCharCode; code++) {

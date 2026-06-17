@@ -82,6 +82,16 @@ endbfrange
         Assert.Contains("cmap mapping count exceeds supported limits", error, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void TrueTypeFontProgramRejectsOversizedFormat12CmapExpansion() {
+        byte[] fontData = CreateMinimalTrueTypeFont(CreateLargeRangeFormat12Cmap());
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(
+            () => PdfTrueTypeFontProgram.Parse(fontData, "OfficeIMO Security Font"));
+
+        Assert.Contains("cmap mapping count exceeds supported limits", exception.Message, StringComparison.Ordinal);
+    }
+
     private static byte[] CreateLargeRangeFormat12Cmap() {
         var data = new byte[40];
         WriteUInt16(data, 2, 1);
@@ -102,6 +112,8 @@ endbfrange
             ("cmap", cmap),
             ("glyf", new byte[4]),
             ("head", CreateHeadTable()),
+            ("hhea", CreateHheaTable()),
+            ("hmtx", CreateHmtxTable()),
             ("maxp", new byte[] { 0x00, 0x01, 0x00, 0x00, 0x00, 0x02 }),
             ("name", new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x06 })
         };
@@ -131,6 +143,21 @@ endbfrange
     private static byte[] CreateHeadTable() {
         var table = new byte[54];
         WriteUInt16(table, 18, 1000);
+        return table;
+    }
+
+    private static byte[] CreateHheaTable() {
+        var table = new byte[36];
+        WriteUInt16(table, 4, 800);
+        WriteUInt16(table, 6, unchecked((ushort)-200));
+        WriteUInt16(table, 34, 2);
+        return table;
+    }
+
+    private static byte[] CreateHmtxTable() {
+        var table = new byte[8];
+        WriteUInt16(table, 0, 500);
+        WriteUInt16(table, 4, 500);
         return table;
     }
 
