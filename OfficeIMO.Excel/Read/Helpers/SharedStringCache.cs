@@ -12,19 +12,25 @@ namespace OfficeIMO.Excel {
 
         private readonly Lazy<SharedStringTablePart?> _part;
         private readonly bool _preferDom;
+        private readonly int _maxSharedStringItems;
+        private readonly int _maxSharedStringItemCharacters;
+        private readonly long _maxSharedStringCharacters;
         private readonly Lazy<List<string>> _items;
         private List<string>? _loadedItems;
         private readonly object _containsCacheLock = new object();
         private Dictionary<(string Text, StringComparison Comparison), HashSet<int>?>? _containsCache;
 
-        private SharedStringCache(WorkbookPart? workbookPart, bool preferDom) {
+        private SharedStringCache(WorkbookPart? workbookPart, bool preferDom, ExcelReadOptions options) {
             _part = new Lazy<SharedStringTablePart?>(() => workbookPart?.SharedStringTablePart, LazyThreadSafetyMode.ExecutionAndPublication);
             _preferDom = preferDom;
+            _maxSharedStringItems = options.MaxSharedStringItems;
+            _maxSharedStringItemCharacters = options.MaxSharedStringItemCharacters;
+            _maxSharedStringCharacters = options.MaxSharedStringCharacters;
             _items = new Lazy<List<string>>(LoadItems, LazyThreadSafetyMode.ExecutionAndPublication);
         }
 
-        public static SharedStringCache Build(SpreadsheetDocument doc) {
-            return new SharedStringCache(doc.WorkbookPart, doc.FileOpenAccess != FileAccess.Read);
+        public static SharedStringCache Build(SpreadsheetDocument doc, ExcelReadOptions? options = null) {
+            return new SharedStringCache(doc.WorkbookPart, doc.FileOpenAccess != FileAccess.Read, options ?? new ExcelReadOptions());
         }
 
         private List<string> LoadItems() {
@@ -45,14 +51,21 @@ namespace OfficeIMO.Excel {
             var part = GetSharedStringTablePart();
             if (part == null || part.SharedStringTable == null) return new List<string>();
             var table = part.SharedStringTable;
-            var list = new List<string>((int)(table.UniqueCount?.Value ?? table.Count?.Value ?? 0));
+            var list = new List<string>(GetBoundedCapacity(table.UniqueCount?.Value, table.Count?.Value));
+            long totalCharacters = 0;
             foreach (var item in table.Elements<SharedStringItem>()) {
-                if (item.Text?.Text != null)
-                    list.Add(item.Text.Text);
-                else if (item.HasChildren)
-                    list.Add(GetRunText(item));
-                else
-                    list.Add(string.Empty);
+                EnsureCanAddSharedString(list);
+                string value;
+                if (item.Text?.Text != null) {
+                    value = item.Text.Text;
+                } else if (item.HasChildren) {
+                    value = GetRunText(item, _maxSharedStringItemCharacters);
+                } else {
+                    value = string.Empty;
+                }
+
+                ValidateSharedStringText(value, ref totalCharacters);
+                list.Add(value);
             }
 
             return list;
@@ -62,8 +75,9 @@ namespace OfficeIMO.Excel {
             return _part.Value;
         }
 
-        private static bool TryLoadItemsXmlFast(SharedStringTablePart part, out List<string> items) {
+        private bool TryLoadItemsXmlFast(SharedStringTablePart part, out List<string> items) {
             items = new List<string>();
+            long totalCharacters = 0;
 
             try {
                 using var stream = part.GetStream(FileMode.Open, FileAccess.Read);
@@ -74,9 +88,9 @@ namespace OfficeIMO.Excel {
                     }
 
                     if (reader.LocalName == "sst") {
-                        int capacity = ParsePositiveIntAttribute(reader.GetAttribute("uniqueCount"));
+                        int capacity = GetBoundedCapacity(ParsePositiveLongAttribute(reader.GetAttribute("uniqueCount")));
                         if (capacity <= 0) {
-                            capacity = ParsePositiveIntAttribute(reader.GetAttribute("count"));
+                            capacity = GetBoundedCapacity(ParsePositiveLongAttribute(reader.GetAttribute("count")));
                         }
 
                         if (capacity > 0) {
@@ -87,7 +101,10 @@ namespace OfficeIMO.Excel {
                     }
 
                     if (reader.LocalName == "si") {
-                        items.Add(ReadSharedStringItemXml(reader));
+                        EnsureCanAddSharedString(items);
+                        string value = ReadSharedStringItemXml(reader, _maxSharedStringItemCharacters);
+                        ValidateSharedStringText(value, ref totalCharacters);
+                        items.Add(value);
                     }
                 }
 
@@ -117,7 +134,7 @@ namespace OfficeIMO.Excel {
             };
         }
 
-        private static string ReadSharedStringItemXml(XmlReader reader) {
+        private static string ReadSharedStringItemXml(XmlReader reader, int maxItemCharacters) {
             if (reader.IsEmptyElement) {
                 return string.Empty;
             }
@@ -130,6 +147,7 @@ namespace OfficeIMO.Excel {
             bool hasNode = reader.Read();
             if (hasNode && reader.NodeType == XmlNodeType.Element && reader.LocalName == "t") {
                 first = reader.ReadElementContentAsString();
+                EnsureItemCharacterBudget(0, first.Length, maxItemCharacters);
                 if (reader.NodeType == XmlNodeType.EndElement && reader.Depth == depth && reader.LocalName == "si") {
                     return first;
                 }
@@ -167,10 +185,13 @@ namespace OfficeIMO.Excel {
 
                 string text = reader.ReadElementContentAsString();
                 if (builder != null) {
+                    EnsureItemCharacterBudget(builder.Length, text.Length, maxItemCharacters);
                     builder.Append(text);
                 } else if (first == null) {
+                    EnsureItemCharacterBudget(0, text.Length, maxItemCharacters);
                     first = text;
                 } else {
+                    EnsureItemCharacterBudget(first.Length, text.Length, maxItemCharacters);
                     builder = new StringBuilder(first.Length + text.Length);
                     builder.Append(first);
                     builder.Append(text);
@@ -183,16 +204,23 @@ namespace OfficeIMO.Excel {
         }
 
         internal static string GetRunText(OpenXmlElement parent) {
+            return GetRunText(parent, int.MaxValue);
+        }
+
+        private static string GetRunText(OpenXmlElement parent, int maxItemCharacters) {
             string? first = null;
             StringBuilder? builder = null;
 
             foreach (var run in parent.Elements<Run>()) {
                 string text = run.Text?.Text ?? string.Empty;
                 if (builder != null) {
+                    EnsureItemCharacterBudget(builder.Length, text.Length, maxItemCharacters);
                     builder.Append(text);
                 } else if (first == null) {
+                    EnsureItemCharacterBudget(0, text.Length, maxItemCharacters);
                     first = text;
                 } else {
+                    EnsureItemCharacterBudget(first.Length, text.Length, maxItemCharacters);
                     builder = new StringBuilder(first.Length + text.Length);
                     builder.Append(first);
                     builder.Append(text);
@@ -253,21 +281,61 @@ namespace OfficeIMO.Excel {
             return _loadedItems ??= _items.Value;
         }
 
-        private static int ParsePositiveIntAttribute(string? value) {
+        private int GetBoundedCapacity(uint? uniqueCount, uint? count) {
+            if (uniqueCount.HasValue && uniqueCount.Value > 0U) {
+                return GetBoundedCapacity(uniqueCount.Value);
+            }
+
+            return count.HasValue && count.Value > 0U ? GetBoundedCapacity(count.Value) : 0;
+        }
+
+        private int GetBoundedCapacity(long declaredCount) {
+            if (declaredCount <= 0) {
+                return 0;
+            }
+
+            return declaredCount > _maxSharedStringItems ? _maxSharedStringItems : (int)declaredCount;
+        }
+
+        private void EnsureCanAddSharedString(List<string> items) {
+            if (items.Count >= _maxSharedStringItems) {
+                throw new InvalidDataException($"Shared string table exceeds the configured limit of {_maxSharedStringItems} entries.");
+            }
+        }
+
+        private void ValidateSharedStringText(string value, ref long totalCharacters) {
+            if (value.Length > _maxSharedStringItemCharacters) {
+                throw new InvalidDataException($"Shared string item exceeds the configured limit of {_maxSharedStringItemCharacters} characters.");
+            }
+
+            if (totalCharacters > _maxSharedStringCharacters - value.Length) {
+                throw new InvalidDataException($"Shared string table exceeds the configured aggregate limit of {_maxSharedStringCharacters} characters.");
+            }
+
+            totalCharacters += value.Length;
+        }
+
+        private static void EnsureItemCharacterBudget(int currentLength, int additionalLength, int maxItemCharacters) {
+            if ((long)currentLength + additionalLength > maxItemCharacters) {
+                throw new InvalidDataException($"Shared string item exceeds the configured limit of {maxItemCharacters} characters.");
+            }
+        }
+
+        private static long ParsePositiveLongAttribute(string? value) {
             if (value == null || value.Length == 0) {
                 return 0;
             }
 
             string text = value;
-            int parsed = 0;
+            long parsed = 0;
             for (int i = 0; i < text.Length; i++) {
                 int digit = text[i] - '0';
                 if ((uint)digit > 9U) {
                     return 0;
                 }
 
-                if (parsed > (int.MaxValue - digit) / 10) {
-                    return 0;
+                if (parsed > (long.MaxValue - digit) / 10) {
+                    return long.MaxValue;
                 }
 
                 parsed = (parsed * 10) + digit;
