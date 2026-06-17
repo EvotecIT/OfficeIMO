@@ -381,6 +381,39 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void HtmlToWord_ImageSelection_DedupesResponsiveCandidatesBeforeApplyingLimit() {
+            var requested = new List<Uri>();
+            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+            using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(request => {
+                requested.Add(request.RequestUri!);
+                if (request.RequestUri!.AbsolutePath == "/good.png") {
+                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
+                        Content = new ByteArrayContent(Convert.FromBase64String(validPng)) {
+                            Headers = {
+                                ContentType = new MediaTypeHeaderValue("image/png")
+                            }
+                        }
+                    });
+                }
+
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+            }));
+            var options = new HtmlToWordOptions {
+                HttpClient = httpClient,
+                ImageProcessing = ImageProcessingMode.Embed,
+                MaxRemoteImageCandidateProbes = null,
+                MaxImageSourceCandidates = 2
+            };
+            string html = """<img srcset="https://cdn.example.test/missing.png 1x, https://cdn.example.test/missing.png 2x, https://cdn.example.test/good.png 3x" alt="Logo" />""";
+
+            var doc = html.LoadFromHtml(options);
+
+            Assert.Single(doc.Images);
+            Assert.Equal(new[] { "/missing.png", "/good.png" }, requested.Select(uri => uri.AbsolutePath).ToArray());
+            Assert.Empty(options.Diagnostics);
+        }
+
+        [Fact]
         public void HtmlToWord_ImageSelection_AllowsTrustedCallersToProbeAllRemoteCandidates() {
             var requested = new List<Uri>();
             const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";

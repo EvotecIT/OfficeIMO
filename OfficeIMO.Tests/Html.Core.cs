@@ -115,7 +115,7 @@ public sealed class HtmlCoreTests {
     public void HtmlImageSourceResolver_LimitsResponsiveCandidatesAndKeepsImageFallback() {
         var document = HtmlDocumentParser.ParseDocument("""
 <picture>
-  <source srcset="media/one.webp 1x, media/two.webp 2x, media/three.webp 3x">
+  <source srcset="media/one.webp 1x, media/one.webp 2x, media/two.webp 3x, media/three.webp 4x">
   <img src="media/fallback.png" srcset="media/four.webp 4x" alt="Hero">
 </picture>
 """);

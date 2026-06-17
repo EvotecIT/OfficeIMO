@@ -508,7 +508,7 @@ namespace OfficeIMO.Word.Html {
 
         private static IEnumerable<string> EnumerateWordImageSourceCandidates(IHtmlImageElement img, HtmlToWordOptions options) {
             Uri? baseUri = ResolveImageBaseUri(img, options);
-            int responsiveCandidateCount = 0;
+            var responsiveCandidateState = new ResponsiveImageCandidateState(options);
             if (img.ParentElement != null
                 && img.ParentElement.TagName.Equals("PICTURE", StringComparison.OrdinalIgnoreCase)) {
                 foreach (var child in img.ParentElement.Children) {
@@ -520,15 +520,14 @@ namespace OfficeIMO.Word.Html {
                         continue;
                     }
 
-                    foreach (string candidate in ResolveImageCandidatesFromSourceElement(child, baseUri, GetRemainingImageSourceCandidateCount(options, responsiveCandidateCount))) {
+                    foreach (string candidate in ResolveImageCandidatesFromSourceElement(child, baseUri, responsiveCandidateState)) {
                         yield return candidate;
-                        responsiveCandidateCount++;
-                        if (IsNonPositiveCandidateLimit(GetRemainingImageSourceCandidateCount(options, responsiveCandidateCount))) {
+                        if (responsiveCandidateState.HasReachedLimit) {
                             break;
                         }
                     }
 
-                    if (IsNonPositiveCandidateLimit(GetRemainingImageSourceCandidateCount(options, responsiveCandidateCount))) {
+                    if (responsiveCandidateState.HasReachedLimit) {
                         break;
                     }
                 }
@@ -538,10 +537,9 @@ namespace OfficeIMO.Word.Html {
                 yield return candidate;
             }
 
-            foreach (string candidate in ResolveImageSrcSetCandidates(img, baseUri, GetRemainingImageSourceCandidateCount(options, responsiveCandidateCount))) {
+            foreach (string candidate in ResolveImageSrcSetCandidates(img, baseUri, responsiveCandidateState)) {
                 yield return candidate;
-                responsiveCandidateCount++;
-                if (IsNonPositiveCandidateLimit(GetRemainingImageSourceCandidateCount(options, responsiveCandidateCount))) {
+                if (responsiveCandidateState.HasReachedLimit) {
                     break;
                 }
             }
@@ -551,54 +549,51 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private static int? GetRemainingImageSourceCandidateCount(HtmlToWordOptions options, int candidateCount) {
-            if (!options.MaxImageSourceCandidates.HasValue) {
-                return null;
-            }
-
-            return Math.Max(0, options.MaxImageSourceCandidates.Value - candidateCount);
-        }
-
-        private static IEnumerable<string> ResolveImageCandidatesFromSourceElement(AngleSharp.Dom.IElement sourceElement, Uri? baseUri, int? maxCandidates) {
-            int candidateCount = 0;
+        private static IEnumerable<string> ResolveImageCandidatesFromSourceElement(AngleSharp.Dom.IElement sourceElement, Uri? baseUri, ResponsiveImageCandidateState state) {
             foreach (string attributeName in WordImageSrcSetAttributes) {
-                foreach (HtmlSrcSetCandidate candidate in HtmlImageSourceResolver.ResolveSrcSetCandidates(
-                             sourceElement.GetAttribute(attributeName),
-                             baseUri,
-                             ImageSourceResolutionPolicy,
-                             GetRemainingCandidateCount(maxCandidates, candidateCount))) {
-                    yield return candidate.Url;
-                    candidateCount++;
-                    if (IsNonPositiveCandidateLimit(GetRemainingCandidateCount(maxCandidates, candidateCount))) {
+                foreach (HtmlSrcSetCandidate candidate in HtmlSrcSetParser.Enumerate(sourceElement.GetAttribute(attributeName))) {
+                    string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(candidate.Url, baseUri, ImageSourceResolutionPolicy);
+                    if (!state.TryTrack(resolved, out string tracked)) {
+                        if (state.HasReachedLimit) {
+                            yield break;
+                        }
+
+                        continue;
+                    }
+
+                    yield return tracked;
+                    if (state.HasReachedLimit) {
                         yield break;
                     }
                 }
             }
 
             foreach (string attributeName in WordPictureSourceAttributes) {
-                if (IsNonPositiveCandidateLimit(GetRemainingCandidateCount(maxCandidates, candidateCount))) {
+                if (state.HasReachedLimit) {
                     yield break;
                 }
 
                 string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(sourceElement.GetAttribute(attributeName), baseUri, ImageSourceResolutionPolicy);
-                if (!string.IsNullOrWhiteSpace(resolved)) {
-                    yield return resolved;
-                    candidateCount++;
+                if (state.TryTrack(resolved, out string tracked)) {
+                    yield return tracked;
                 }
             }
         }
 
-        private static IEnumerable<string> ResolveImageSrcSetCandidates(IHtmlImageElement img, Uri? baseUri, int? maxCandidates) {
-            int candidateCount = 0;
+        private static IEnumerable<string> ResolveImageSrcSetCandidates(IHtmlImageElement img, Uri? baseUri, ResponsiveImageCandidateState state) {
             foreach (string attributeName in WordImageSrcSetAttributes) {
-                foreach (HtmlSrcSetCandidate candidate in HtmlImageSourceResolver.ResolveSrcSetCandidates(
-                             img.GetAttribute(attributeName),
-                             baseUri,
-                             ImageSourceResolutionPolicy,
-                             GetRemainingCandidateCount(maxCandidates, candidateCount))) {
-                    yield return candidate.Url;
-                    candidateCount++;
-                    if (IsNonPositiveCandidateLimit(GetRemainingCandidateCount(maxCandidates, candidateCount))) {
+                foreach (HtmlSrcSetCandidate candidate in HtmlSrcSetParser.Enumerate(img.GetAttribute(attributeName))) {
+                    string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(candidate.Url, baseUri, ImageSourceResolutionPolicy);
+                    if (!state.TryTrack(resolved, out string tracked)) {
+                        if (state.HasReachedLimit) {
+                            yield break;
+                        }
+
+                        continue;
+                    }
+
+                    yield return tracked;
+                    if (state.HasReachedLimit) {
                         yield break;
                     }
                 }
@@ -614,16 +609,32 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private static int? GetRemainingCandidateCount(int? maxCandidates, int candidateCount) {
-            if (!maxCandidates.HasValue) {
-                return null;
+        private sealed class ResponsiveImageCandidateState {
+            private readonly HtmlToWordOptions _options;
+            private readonly HashSet<string> _seen = new HashSet<string>(StringComparer.Ordinal);
+            private int _count;
+
+            internal ResponsiveImageCandidateState(HtmlToWordOptions options) {
+                _options = options;
             }
 
-            return Math.Max(0, maxCandidates.Value - candidateCount);
-        }
+            internal bool HasReachedLimit => _options.MaxImageSourceCandidates.HasValue
+                && _count >= _options.MaxImageSourceCandidates.Value;
 
-        private static bool IsNonPositiveCandidateLimit(int? maxCandidates) {
-            return maxCandidates.HasValue && maxCandidates.Value <= 0;
+            internal bool TryTrack(string? candidate, out string tracked) {
+                tracked = string.Empty;
+                if (string.IsNullOrWhiteSpace(candidate) || !_seen.Add(candidate!)) {
+                    return false;
+                }
+
+                if (HasReachedLimit) {
+                    return false;
+                }
+
+                _count++;
+                tracked = candidate!;
+                return true;
+            }
         }
 
         private static string ResolveImageSourcePath(string source, IHtmlImageElement img, HtmlToWordOptions options) {

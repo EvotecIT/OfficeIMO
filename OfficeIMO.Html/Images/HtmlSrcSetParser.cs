@@ -16,12 +16,31 @@ public static class HtmlSrcSetParser {
     /// </summary>
     public static IReadOnlyList<HtmlSrcSetCandidate> Parse(string? srcSet, int? maxCandidates) {
         var candidates = new List<HtmlSrcSetCandidate>();
+        foreach (HtmlSrcSetCandidate candidate in Enumerate(srcSet, maxCandidates)) {
+            candidates.Add(candidate);
+        }
+
+        return candidates;
+    }
+
+    /// <summary>
+    /// Enumerates a <c>srcset</c> value while preserving candidate descriptors.
+    /// </summary>
+    public static IEnumerable<HtmlSrcSetCandidate> Enumerate(string? srcSet) {
+        return Enumerate(srcSet, null);
+    }
+
+    /// <summary>
+    /// Enumerates a <c>srcset</c> value while preserving candidate descriptors, stopping after the requested number of candidates.
+    /// </summary>
+    public static IEnumerable<HtmlSrcSetCandidate> Enumerate(string? srcSet, int? maxCandidates) {
         if (string.IsNullOrWhiteSpace(srcSet) || IsNonPositiveCandidateLimit(maxCandidates)) {
-            return candidates;
+            yield break;
         }
 
         string value = srcSet!;
         int index = 0;
+        int emittedCandidates = 0;
         while (index < value.Length) {
             SkipWhitespaceAndCommas(value, ref index);
             if (index >= value.Length) {
@@ -48,8 +67,9 @@ public static class HtmlSrcSetParser {
             }
 
             if (trailingCommaCount > 0) {
-                candidates.Add(new HtmlSrcSetCandidate(url, string.Empty));
-                if (HasReachedCandidateLimit(candidates.Count, maxCandidates)) {
+                yield return new HtmlSrcSetCandidate(url, string.Empty);
+                emittedCandidates++;
+                if (HasReachedCandidateLimit(emittedCandidates, maxCandidates)) {
                     break;
                 }
 
@@ -68,13 +88,12 @@ public static class HtmlSrcSetParser {
                 index++;
             }
 
-            candidates.Add(new HtmlSrcSetCandidate(url, descriptor));
-            if (HasReachedCandidateLimit(candidates.Count, maxCandidates)) {
+            yield return new HtmlSrcSetCandidate(url, descriptor);
+            emittedCandidates++;
+            if (HasReachedCandidateLimit(emittedCandidates, maxCandidates)) {
                 break;
             }
         }
-
-        return candidates;
     }
 
     private static bool HasReachedCandidateLimit(int count, int? maxCandidates) {

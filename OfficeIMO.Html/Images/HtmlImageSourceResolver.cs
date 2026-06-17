@@ -237,9 +237,12 @@ public static class HtmlImageSourceResolver {
                 return false;
             }
 
-            foreach (HtmlSrcSetCandidate candidate in ResolveSrcSetCandidates(element.GetAttribute(attributeNames[i]), baseUri, policy, remaining)) {
-                candidateCount++;
-                AddCandidate(candidates, candidate.Url);
+            foreach (HtmlSrcSetCandidate candidate in HtmlSrcSetParser.Enumerate(element.GetAttribute(attributeNames[i]))) {
+                string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(candidate.Url, baseUri, policy);
+                if (AddCandidate(candidates, resolved)) {
+                    candidateCount++;
+                }
+
                 if (IsNonPositiveCandidateLimit(GetRemainingCandidateCount(maxCandidates, candidateCount))) {
                     return false;
                 }
@@ -265,9 +268,8 @@ public static class HtmlImageSourceResolver {
             }
 
             string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(element.GetAttribute(attributeNames[i]), baseUri, policy);
-            if (!string.IsNullOrWhiteSpace(resolved)) {
+            if (AddCandidate(candidates, resolved)) {
                 candidateCount++;
-                AddCandidate(candidates, resolved);
             }
         }
 
@@ -286,8 +288,8 @@ public static class HtmlImageSourceResolver {
         return maxCandidates.HasValue && maxCandidates.Value <= 0;
     }
 
-    private static void AddCandidate(CandidateAccumulator candidates, string? source) {
-        candidates.Add(source);
+    private static bool AddCandidate(CandidateAccumulator candidates, string? source) {
+        return candidates.Add(source);
     }
 
     private sealed class CandidateAccumulator {
@@ -296,15 +298,18 @@ public static class HtmlImageSourceResolver {
 
         internal IReadOnlyList<string> Items => _items;
 
-        internal void Add(string? source) {
+        internal bool Add(string? source) {
             if (string.IsNullOrWhiteSpace(source)) {
-                return;
+                return false;
             }
 
             string candidate = source!;
             if (_seen.Add(candidate)) {
                 _items.Add(candidate);
+                return true;
             }
+
+            return false;
         }
     }
 }
