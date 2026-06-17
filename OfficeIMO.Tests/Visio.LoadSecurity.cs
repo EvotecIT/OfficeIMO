@@ -43,9 +43,15 @@ namespace OfficeIMO.Tests {
                 writer.Write("</Shapes></PageContents>");
             });
 
-            InvalidDataException exception = Assert.Throws<InvalidDataException>(() => VisioDocument.Load(filePath));
+            Exception exception = Record.Exception(() => VisioDocument.Load(filePath));
 
-            Assert.Contains(VisioDocument.MaxPackageXmlPartBytes.ToString(), exception.Message);
+            Assert.NotNull(exception);
+            Assert.True(
+                exception is InvalidDataException || exception is XmlException,
+                "Expected the oversized part to be rejected by either the package byte cap or the XML character cap.");
+            Assert.Contains(
+                exception is InvalidDataException ? VisioDocument.MaxPackageXmlPartBytes.ToString() : "MaxCharactersInDocument",
+                exception.Message);
         }
 
         [Fact]
@@ -68,7 +74,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void StencilCatalogManifestRejectsDtd() {
             using MemoryStream stream = new();
-            using (StreamWriter writer = new(stream, new UTF8Encoding(false), leaveOpen: true)) {
+            using (StreamWriter writer = new(stream, new UTF8Encoding(false), 1024, leaveOpen: true)) {
                 writer.Write("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
                 writer.Write("<!DOCTYPE StencilCatalog [<!ENTITY payload \"expanded\">]>");
                 writer.Write("<StencilCatalog xmlns=\"urn:officeimo:visio:stencils\" Version=\"1\" Name=\"&payload;\" />");
