@@ -50,7 +50,7 @@ namespace OfficeIMO.Word {
                 }
 
                 try {
-                    return _document.MainDocumentPartRoot.GetPartById(id) as ChartPart;
+                    return _document.MainDocumentPartRoot.GetPartById(id!) as ChartPart;
                 } catch (System.ArgumentOutOfRangeException) {
                     return null;
                 } catch (System.InvalidOperationException) {
