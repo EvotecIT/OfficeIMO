@@ -1,3 +1,7 @@
+using System;
+using System.IO;
+using System.Text;
+using System.Linq;
 using System.Globalization;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf.Filters;
@@ -5,6 +9,10 @@ using OfficeIMO.Pdf.Filters;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
+    private const long MaxPngPixelCount = 100_000_000L;
+    private const long MaxPngExpandedBytes = 256L * 1024L * 1024L;
+    private const int MaxPngDecodedBytes = 256 * 1024 * 1024;
+
     internal sealed class PdfImageStream {
         public byte[] Data { get; set; } = Array.Empty<byte>();
         public string DictionarySuffix { get; set; } = string.Empty;
@@ -43,6 +51,11 @@ internal static partial class PdfWriter {
 
             string type = Encoding.ASCII.GetString(data, offset + 4, 4);
             int chunkData = offset + 8;
+            if (!IsPngChunkCrcValid(data, offset, length)) {
+                unsupportedReason = "PNG chunk CRC is invalid.";
+                return false;
+            }
+
             if (type == "IHDR") {
                 if (length < 13) {
                     unsupportedReason = "PNG IHDR chunk is invalid.";
@@ -113,6 +126,10 @@ internal static partial class PdfWriter {
 
         if (transparency != null && (colorType == 4 || colorType == 6)) {
             unsupportedReason = "PNG transparency chunks are not valid for grayscale-alpha or RGBA PNG images.";
+            return false;
+        }
+
+        if (!TryValidatePngResourceLimits(width, height, bitDepth, colorType, out unsupportedReason)) {
             return false;
         }
 
@@ -198,8 +215,16 @@ internal static partial class PdfWriter {
             return false;
         }
 
-        byte[] decoded = FlateDecoder.Decode(compressedData);
-        if (decoded.Length < (1 + width * sourceChannels) * height) {
+        if (!TryDecodePngData(compressedData, out byte[] decoded, out unsupportedReason)) {
+            return false;
+        }
+
+        if (!TryGetPngCheckedLength(width, height, sourceChannels, includeFilterByte: true, out int expectedLength)) {
+            unsupportedReason = "PNG dimensions exceed supported limits.";
+            return false;
+        }
+
+        if (decoded.Length < expectedLength) {
             unsupportedReason = "PNG image data ended before all transparency scanlines were decoded.";
             return false;
         }
@@ -208,8 +233,14 @@ internal static partial class PdfWriter {
             return false;
         }
 
-        byte[] baseRows = new byte[(1 + width * sourceChannels) * height];
-        byte[] alphaRows = new byte[(1 + width) * height];
+        if (!TryGetPngCheckedLength(width, height, sourceChannels, includeFilterByte: true, out int baseRowsLength) ||
+            !TryGetPngCheckedLength(width, height, 1, includeFilterByte: true, out int alphaRowsLength)) {
+            unsupportedReason = "PNG dimensions exceed supported limits.";
+            return false;
+        }
+
+        byte[] baseRows = new byte[baseRowsLength];
+        byte[] alphaRows = new byte[alphaRowsLength];
         int transparentGray = ReadUInt16BigEndian(transparency, 0);
         int transparentRed = colorType == 2 ? ReadUInt16BigEndian(transparency, 0) : -1;
         int transparentGreen = colorType == 2 ? ReadUInt16BigEndian(transparency, 2) : -1;
@@ -271,9 +302,17 @@ internal static partial class PdfWriter {
             }
         }
 
-        byte[] decoded = FlateDecoder.Decode(compressedData);
-        int packedRowBytes = ((width * bitDepth) + 7) / 8;
-        if (decoded.Length < (packedRowBytes + 1) * height) {
+        if (!TryDecodePngData(compressedData, out byte[] decoded, out unsupportedReason)) {
+            return false;
+        }
+
+        if (!TryGetPngRowByteCount(width, bitDepth, out int packedRowBytes) ||
+            !TryGetPngScanlineLength(packedRowBytes, height, out int expectedLength)) {
+            unsupportedReason = "PNG dimensions exceed supported limits.";
+            return false;
+        }
+
+        if (decoded.Length < expectedLength) {
             unsupportedReason = "PNG image data ended before all grayscale scanlines were decoded.";
             return false;
         }
@@ -282,8 +321,13 @@ internal static partial class PdfWriter {
             return false;
         }
 
-        byte[] baseRows = new byte[(1 + width) * height];
-        byte[]? alphaRows = transparency != null ? new byte[(1 + width) * height] : null;
+        if (!TryGetPngCheckedLength(width, height, 1, includeFilterByte: true, out int grayscaleRowsLength)) {
+            unsupportedReason = "PNG dimensions exceed supported limits.";
+            return false;
+        }
+
+        byte[] baseRows = new byte[grayscaleRowsLength];
+        byte[]? alphaRows = transparency != null ? new byte[grayscaleRowsLength] : null;
         for (int row = 0; row < height; row++) {
             int baseRowStart = row * (1 + width);
             int alphaRowStart = row * (1 + width);
@@ -336,9 +380,17 @@ internal static partial class PdfWriter {
             return false;
         }
 
-        byte[] decoded = FlateDecoder.Decode(compressedData);
-        int packedRowBytes = ((width * bitDepth) + 7) / 8;
-        if (decoded.Length < (packedRowBytes + 1) * height) {
+        if (!TryDecodePngData(compressedData, out byte[] decoded, out unsupportedReason)) {
+            return false;
+        }
+
+        if (!TryGetPngRowByteCount(width, bitDepth, out int packedRowBytes) ||
+            !TryGetPngScanlineLength(packedRowBytes, height, out int expectedLength)) {
+            unsupportedReason = "PNG dimensions exceed supported limits.";
+            return false;
+        }
+
+        if (decoded.Length < expectedLength) {
             unsupportedReason = "PNG image data ended before all indexed-color scanlines were decoded.";
             return false;
         }
@@ -347,8 +399,14 @@ internal static partial class PdfWriter {
             return false;
         }
 
-        byte[] baseRows = new byte[(1 + width * 3) * height];
-        byte[]? alphaRows = HasPaletteTransparency(paletteAlpha) ? new byte[(1 + width) * height] : null;
+        if (!TryGetPngCheckedLength(width, height, 3, includeFilterByte: true, out int rgbRowsLength) ||
+            !TryGetPngCheckedLength(width, height, 1, includeFilterByte: true, out int indexedAlphaRowsLength)) {
+            unsupportedReason = "PNG dimensions exceed supported limits.";
+            return false;
+        }
+
+        byte[] baseRows = new byte[rgbRowsLength];
+        byte[]? alphaRows = HasPaletteTransparency(paletteAlpha) ? new byte[indexedAlphaRowsLength] : null;
         for (int row = 0; row < height; row++) {
             int baseRowStart = row * (1 + width * 3);
             int alphaRowStart = row * (1 + width);
@@ -425,9 +483,15 @@ internal static partial class PdfWriter {
 
         int sourceChannels = colorType == 4 ? 2 : 4;
         int baseChannels = colorType == 4 ? 1 : 3;
-        byte[] decoded = FlateDecoder.Decode(compressedData);
-        int expectedRowLength = 1 + width * sourceChannels;
-        int expectedLength = expectedRowLength * height;
+        if (!TryDecodePngData(compressedData, out byte[] decoded, out unsupportedReason)) {
+            return false;
+        }
+
+        if (!TryGetPngCheckedLength(width, height, sourceChannels, includeFilterByte: true, out int expectedLength)) {
+            unsupportedReason = "PNG dimensions exceed supported limits.";
+            return false;
+        }
+
         if (decoded.Length < expectedLength) {
             unsupportedReason = "PNG image data ended before all alpha scanlines were decoded.";
             return false;
@@ -437,8 +501,14 @@ internal static partial class PdfWriter {
             return false;
         }
 
-        byte[] baseRows = new byte[(1 + width * baseChannels) * height];
-        byte[] alphaRows = new byte[(1 + width) * height];
+        if (!TryGetPngCheckedLength(width, height, baseChannels, includeFilterByte: true, out int alphaBaseRowsLength) ||
+            !TryGetPngCheckedLength(width, height, 1, includeFilterByte: true, out int splitAlphaRowsLength)) {
+            unsupportedReason = "PNG dimensions exceed supported limits.";
+            return false;
+        }
+
+        byte[] baseRows = new byte[alphaBaseRowsLength];
+        byte[] alphaRows = new byte[splitAlphaRowsLength];
         for (int row = 0; row < height; row++) {
             int baseRowStart = row * (1 + width * baseChannels);
             int alphaRowStart = row * (1 + width);
@@ -487,14 +557,20 @@ internal static partial class PdfWriter {
         rawPixels = Array.Empty<byte>();
         unsupportedReason = null;
 
-        int stride = width * bytesPerPixel;
-        int sourceRowLength = stride + 1;
-        if (decoded.Length < sourceRowLength * height) {
+        if (!TryGetPngCheckedLength(width, height, bytesPerPixel, includeFilterByte: false, out int rawLength) ||
+            !TryGetPngCheckedLength(width, height, bytesPerPixel, includeFilterByte: true, out int expectedLength)) {
+            unsupportedReason = "PNG dimensions exceed supported limits.";
+            return false;
+        }
+
+        int stride = rawLength / height;
+        int sourceRowLength = expectedLength / height;
+        if (decoded.Length < expectedLength) {
             unsupportedReason = "PNG scanline data is incomplete.";
             return false;
         }
 
-        rawPixels = new byte[stride * height];
+        rawPixels = new byte[rawLength];
         byte[] previous = new byte[stride];
         byte[] current = new byte[stride];
 
@@ -533,6 +609,67 @@ internal static partial class PdfWriter {
             Buffer.BlockCopy(current, 0, previous, 0, stride);
         }
 
+        return true;
+    }
+
+    private static bool TryDecodePngData(byte[] compressedData, out byte[] decoded, out string? unsupportedReason) {
+        if (!FlateDecoder.TryDecode(compressedData, MaxPngDecodedBytes, out decoded)) {
+            unsupportedReason = "PNG image data exceeds the supported decompressed size limit.";
+            return false;
+        }
+
+        unsupportedReason = null;
+        return true;
+    }
+
+    private static bool TryValidatePngResourceLimits(int width, int height, int bitDepth, int colorType, out string? unsupportedReason) {
+        unsupportedReason = null;
+        long pixels = (long)width * height;
+        if (pixels > MaxPngPixelCount) {
+            unsupportedReason = "PNG dimensions exceed the supported pixel count limit.";
+            return false;
+        }
+
+        if (!TryGetPngChannelCount(colorType, out int channels) ||
+            !TryGetPngRowByteCount(width, channels * bitDepth, out int rowBytes) ||
+            !TryGetPngScanlineLength(rowBytes, height, out int _)) {
+            unsupportedReason = "PNG dimensions exceed supported limits.";
+            return false;
+        }
+
+        int expandedChannels = colorType == 3 || colorType == 6 ? 4 : Math.Max(channels, 1);
+        if (colorType == 4) {
+            expandedChannels = 2;
+        }
+
+        if (!TryGetPngCheckedLength(width, height, expandedChannels, includeFilterByte: true, out int _)) {
+            unsupportedReason = "PNG dimensions exceed supported limits.";
+            return false;
+        }
+
+        return true;
+    }
+
+    private static bool TryGetPngCheckedLength(int width, int height, int channels, bool includeFilterByte, out int length) {
+        length = 0;
+        long rowLength = ((long)width * channels) + (includeFilterByte ? 1 : 0);
+        long totalLength = rowLength * height;
+        if (rowLength > int.MaxValue || totalLength > int.MaxValue || totalLength > MaxPngExpandedBytes) {
+            return false;
+        }
+
+        length = (int)totalLength;
+        return true;
+    }
+
+    private static bool TryGetPngScanlineLength(int rowBytes, int height, out int length) {
+        length = 0;
+        long totalLength = ((long)rowBytes + 1L) * height;
+        if (totalLength > int.MaxValue || totalLength > MaxPngExpandedBytes) {
+            return false;
+        }
+
+        length = (int)totalLength;
         return true;
     }
 
@@ -651,6 +788,34 @@ internal static partial class PdfWriter {
     internal static PdfStream BuildImageXObject(PdfImageStream image, int? softMaskObjectNumber = null) {
         return PdfImageXObjectDictionaryBuilder.BuildStreamObject(image, softMaskObjectNumber);
     }
+
+    private static bool IsPngChunkCrcValid(byte[] data, int chunkOffset, int chunkLength) {
+        int crcOffset = chunkOffset + 8 + chunkLength;
+        if (crcOffset + 4 > data.Length) {
+            return false;
+        }
+
+        uint expectedCrc = ReadUInt32BigEndian(data, crcOffset);
+        uint actualCrc = Crc32(data, chunkOffset + 4, chunkLength + 4);
+        return expectedCrc == actualCrc;
+    }
+
+    private static uint Crc32(byte[] data, int offset, int length) {
+        uint crc = 0xFFFFFFFF;
+        for (int i = 0; i < length; i++) {
+            crc ^= data[offset + i];
+            for (int bit = 0; bit < 8; bit++) {
+                crc = (crc & 1) == 1 ? (crc >> 1) ^ 0xEDB88320U : crc >> 1;
+            }
+        }
+
+        return ~crc;
+    }
+
+    private static uint ReadUInt32BigEndian(byte[] data, int offset) =>
+        offset + 4 <= data.Length
+            ? ((uint)data[offset] << 24) | ((uint)data[offset + 1] << 16) | ((uint)data[offset + 2] << 8) | data[offset + 3]
+            : 0;
 
     private static bool IsPng(byte[] data) =>
         data.Length >= 8 &&

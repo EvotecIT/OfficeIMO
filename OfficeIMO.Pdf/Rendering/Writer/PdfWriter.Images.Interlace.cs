@@ -1,3 +1,5 @@
+using System;
+using System.IO;
 using OfficeIMO.Pdf.Filters;
 
 namespace OfficeIMO.Pdf;
@@ -20,9 +22,14 @@ internal static partial class PdfWriter {
         }
 
         int bitsPerPixel = channels * bitDepth;
-        int fullRowBytes = GetPngRowByteCount(width, bitsPerPixel);
-        var fullRows = new byte[fullRowBytes * height];
-        byte[] decoded = FlateDecoder.Decode(compressedData);
+        if (!TryGetPngRowByteCount(width, bitsPerPixel, out int fullRowBytes) ||
+            !TryGetPngCheckedLength(fullRowBytes, height, 1, includeFilterByte: false, out int fullRowsLength) ||
+            !TryDecodePngData(compressedData, out byte[] decoded, out unsupportedReason)) {
+            unsupportedReason ??= "PNG dimensions exceed supported limits.";
+            return false;
+        }
+
+        var fullRows = new byte[fullRowsLength];
         int offset = 0;
 
         for (int pass = 0; pass < Adam7Passes.Length; pass++) {
@@ -33,8 +40,11 @@ internal static partial class PdfWriter {
                 continue;
             }
 
-            int passRowBytes = GetPngRowByteCount(passWidth, bitsPerPixel);
-            int passScanlineBytes = (passRowBytes + 1) * passHeight;
+            if (!TryGetPngRowByteCount(passWidth, bitsPerPixel, out int passRowBytes) ||
+                !TryGetPngScanlineLength(passRowBytes, passHeight, out int passScanlineBytes)) {
+                unsupportedReason = "PNG dimensions exceed supported limits.";
+                return false;
+            }
             if (offset + passScanlineBytes > decoded.Length) {
                 unsupportedReason = "PNG image data ended before all interlaced scanlines were decoded.";
                 return false;
@@ -54,7 +64,12 @@ internal static partial class PdfWriter {
             CopyAdam7PassPixels(passPixels, fullRows, width, bitDepth, bitsPerPixel, passWidth, passHeight, adam7Pass);
         }
 
-        var normalizedRows = new byte[(fullRowBytes + 1) * height];
+        if (!TryGetPngScanlineLength(fullRowBytes, height, out int normalizedRowsLength)) {
+            unsupportedReason = "PNG dimensions exceed supported limits.";
+            return false;
+        }
+
+        var normalizedRows = new byte[normalizedRowsLength];
         for (int row = 0; row < height; row++) {
             int sourceRow = row * fullRowBytes;
             int targetRow = row * (fullRowBytes + 1);
@@ -75,8 +90,10 @@ internal static partial class PdfWriter {
         int passWidth,
         int passHeight,
         Adam7Pass pass) {
-        int passRowBytes = GetPngRowByteCount(passWidth, bitsPerPixel);
-        int fullRowBytes = GetPngRowByteCount(width, bitsPerPixel);
+        if (!TryGetPngRowByteCount(passWidth, bitsPerPixel, out int passRowBytes) ||
+            !TryGetPngRowByteCount(width, bitsPerPixel, out int fullRowBytes)) {
+            return;
+        }
         if (bitDepth < 8) {
             for (int y = 0; y < passHeight; y++) {
                 int targetY = pass.YStart + y * pass.YStep;
@@ -132,8 +149,17 @@ internal static partial class PdfWriter {
         return ((length - start - 1) / step) + 1;
     }
 
-    private static int GetPngRowByteCount(int pixelCount, int bitsPerPixel) =>
-        (pixelCount * bitsPerPixel + 7) / 8;
+    private static bool TryGetPngRowByteCount(int pixelCount, int bitsPerPixel, out int rowBytes) {
+        rowBytes = 0;
+        long bits = (long)pixelCount * bitsPerPixel;
+        long bytes = (bits + 7L) / 8L;
+        if (bytes > int.MaxValue || bytes > MaxPngExpandedBytes) {
+            return false;
+        }
+
+        rowBytes = (int)bytes;
+        return true;
+    }
 
     private static void WritePackedPngSample(byte[] packedRows, int rowStart, int pixelIndex, int bitDepth, int sample) {
         int samplesPerByte = 8 / bitDepth;

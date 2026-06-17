@@ -161,6 +161,24 @@ internal static class PdfPngTestImages {
         return ms.ToArray();
     }
 
+    internal static byte[] CreateOversizedInterlacedGrayscalePng() {
+        using var ms = CreatePng();
+        WritePngChunk(ms, "IHDR", new byte[] {
+            0x00, 0x01, 0x86, 0xA0,
+            0x00, 0x00, 0x75, 0x30,
+            8, 0, 0, 0, 1
+        });
+        WritePngChunk(ms, "IDAT", BuildStoredZlib(Array.Empty<byte>()));
+        WritePngChunk(ms, "IEND", Array.Empty<byte>());
+        return ms.ToArray();
+    }
+
+    internal static byte[] CreatePngWithInvalidCrc() {
+        byte[] png = Create16BitRgbPng();
+        png[png.Length - 1] ^= 0xFF;
+        return png;
+    }
+
     internal static byte[] CreateInterlacedRgbExpectedScanlines() {
         return CreateExpectedScanlines(3, WriteRgbPixel);
     }

@@ -1027,42 +1027,34 @@ public class PdfDocumentImageValidationTests {
         text.Split(new[] { value }, StringSplitOptions.None).Length - 1;
 
     private static byte[] CreateMinimalRgbPng() {
-        return new byte[] {
-            137, 80, 78, 71, 13, 10, 26, 10,
-            0, 0, 0, 13,
-            73, 72, 68, 82,
+        using var ms = new MemoryStream();
+        byte[] signature = new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 };
+        ms.Write(signature, 0, signature.Length);
+        WritePngChunk(ms, "IHDR", new byte[] {
             0, 0, 0, 1,
             0, 0, 0, 1,
-            8, 2, 0, 0, 0,
-            0, 0, 0, 0,
-            0, 0, 0, 12,
-            73, 68, 65, 84,
-            0x78, 0x9C, 0x63, 0xF8, 0xCF, 0xC0, 0x00, 0x00, 0x03, 0x01, 0x01, 0x00,
-            0, 0, 0, 0,
-            0, 0, 0, 0,
-            73, 69, 78, 68,
-            0, 0, 0, 0
-        };
+            8, 2, 0, 0, 0
+        });
+        WritePngChunk(ms, "IDAT", new byte[] { 0x78, 0x9C, 0x63, 0xF8, 0xCF, 0xC0, 0x00, 0x00, 0x03, 0x01, 0x01, 0x00 });
+        WritePngChunk(ms, "IEND", Array.Empty<byte>());
+        return ms.ToArray();
     }
 
     private static byte[] CreateMinimalRgbaPng() {
-        return new byte[] {
-            137, 80, 78, 71, 13, 10, 26, 10,
-            0, 0, 0, 13,
-            73, 72, 68, 82,
+        using var ms = new MemoryStream();
+        byte[] signature = new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 };
+        ms.Write(signature, 0, signature.Length);
+        WritePngChunk(ms, "IHDR", new byte[] {
             0, 0, 0, 1,
             0, 0, 0, 1,
-            8, 6, 0, 0, 0,
-            0, 0, 0, 0,
-            0, 0, 0, 16,
-            73, 68, 65, 84,
+            8, 6, 0, 0, 0
+        });
+        WritePngChunk(ms, "IDAT", new byte[] {
             0x78, 0x01, 0x01, 0x05, 0x00, 0xFA, 0xFF, 0x00,
-            0xFF, 0x00, 0x00, 0x80, 0x04, 0x81, 0x01, 0x80,
-            0, 0, 0, 0,
-            0, 0, 0, 0,
-            73, 69, 78, 68,
-            0, 0, 0, 0
-        };
+            0xFF, 0x00, 0x00, 0x80, 0x04, 0x81, 0x01, 0x80
+        });
+        WritePngChunk(ms, "IEND", Array.Empty<byte>());
+        return ms.ToArray();
     }
 
     private static byte[] CreateMinimalRgbTransparencyPng() {
@@ -1204,7 +1196,11 @@ public class PdfDocumentImageValidationTests {
         byte[] typeBytes = System.Text.Encoding.ASCII.GetBytes(type);
         stream.Write(typeBytes, 0, typeBytes.Length);
         stream.Write(data, 0, data.Length);
-        stream.Write(new byte[] { 0, 0, 0, 0 }, 0, 4);
+        uint crc = ComputeCrc32(typeBytes, data);
+        stream.WriteByte((byte)((crc >> 24) & 0xFF));
+        stream.WriteByte((byte)((crc >> 16) & 0xFF));
+        stream.WriteByte((byte)((crc >> 8) & 0xFF));
+        stream.WriteByte((byte)(crc & 0xFF));
     }
 
     private static byte[] CreateMinimalGif() {
@@ -1230,4 +1226,27 @@ public class PdfDocumentImageValidationTests {
             0xFF, 0xD9
         };
     }
+
+    private static uint ComputeCrc32(byte[] typeBytes, byte[] data) {
+        uint crc = 0xFFFFFFFF;
+        for (int i = 0; i < typeBytes.Length; i++) {
+            crc = UpdateCrc32(crc, typeBytes[i]);
+        }
+
+        for (int i = 0; i < data.Length; i++) {
+            crc = UpdateCrc32(crc, data[i]);
+        }
+
+        return crc ^ 0xFFFFFFFF;
+    }
+
+    private static uint UpdateCrc32(uint crc, byte value) {
+        crc ^= value;
+        for (int bit = 0; bit < 8; bit++) {
+            crc = (crc & 1) != 0 ? (crc >> 1) ^ 0xEDB88320 : crc >> 1;
+        }
+
+        return crc;
+    }
+
 }
