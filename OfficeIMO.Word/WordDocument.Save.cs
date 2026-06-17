@@ -335,6 +335,7 @@ namespace OfficeIMO.Word {
 
                     using (var fs = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite | FileShare.Delete, 4096, FileOptions.Asynchronous)) {
                         using (var clone = this._wordprocessingDocument.Clone(fs)) {
+                            AlignDocumentTypeWithFilePath(clone, filePath);
                             CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
                         }
                         fs.Seek(0, SeekOrigin.Begin);

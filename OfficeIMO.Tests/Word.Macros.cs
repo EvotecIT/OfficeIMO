@@ -1,6 +1,8 @@
 using System;
 using System.IO;
 using System.Text;
+using System.Threading.Tasks;
+using DocumentFormat.OpenXml.Packaging;
 using OpenMcdf;
 using OfficeIMO.Word;
 using Xunit;
@@ -72,6 +74,69 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_SavingMacroDocumentAsDocxRemovesMacros() {
+            string macroPath = Path.Combine(_directoryDocuments, "vbaProject.bin");
+            string sourcePath = Path.Combine(_directoryWithFiles, "MacroDowngradeSource.docm");
+            string targetPath = Path.Combine(_directoryWithFiles, "MacroDowngradeTarget.docx");
+            File.Delete(sourcePath);
+            File.Delete(targetPath);
+
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document.AddMacro(macroPath);
+                Assert.True(document.HasMacros);
+                document.Save(targetPath);
+            }
+
+            AssertPackageHasNoVbaProject(targetPath);
+            using (WordDocument loaded = WordDocument.Load(targetPath)) {
+                Assert.False(loaded.HasMacros);
+            }
+        }
+
+        [Fact]
+        public void Test_SavingMacroDocumentAsDocmRetainsMacros() {
+            string macroPath = Path.Combine(_directoryDocuments, "vbaProject.bin");
+            string sourcePath = Path.Combine(_directoryWithFiles, "MacroRetainSource.docm");
+            string targetPath = Path.Combine(_directoryWithFiles, "MacroRetainTarget.docm");
+            File.Delete(sourcePath);
+            File.Delete(targetPath);
+
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document.AddMacro(macroPath);
+                Assert.True(document.HasMacros);
+                document.Save(targetPath);
+            }
+
+            using (WordprocessingDocument package = WordprocessingDocument.Open(targetPath, false)) {
+                Assert.NotNull(package.MainDocumentPart?.VbaProjectPart);
+            }
+
+            using (WordDocument loaded = WordDocument.Load(targetPath)) {
+                Assert.True(loaded.HasMacros);
+            }
+        }
+
+        [Fact]
+        public async Task Test_SaveAsyncMacroDocumentAsDocxRemovesMacros() {
+            string macroPath = Path.Combine(_directoryDocuments, "vbaProject.bin");
+            string sourcePath = Path.Combine(_directoryWithFiles, "MacroAsyncDowngradeSource.docm");
+            string targetPath = Path.Combine(_directoryWithFiles, "MacroAsyncDowngradeTarget.docx");
+            File.Delete(sourcePath);
+            File.Delete(targetPath);
+
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document.AddMacro(macroPath);
+                Assert.True(document.HasMacros);
+                await document.SaveAsync(targetPath);
+            }
+
+            AssertPackageHasNoVbaProject(targetPath);
+            using (WordDocument loaded = WordDocument.Load(targetPath)) {
+                Assert.False(loaded.HasMacros);
+            }
+        }
+
+        [Fact]
         public void Test_SavingAndRemovingMacros() {
             string macroPath = Path.Combine(_directoryDocuments, "vbaProject.bin");
             string filePath = Path.Combine(_directoryWithFiles, "DocumentWithMacro2.docm");
@@ -98,6 +163,11 @@ namespace OfficeIMO.Tests {
 
             File.Delete(filePath);
             File.Delete(extracted);
+        }
+
+        private static void AssertPackageHasNoVbaProject(string filePath) {
+            using WordprocessingDocument package = WordprocessingDocument.Open(filePath, false);
+            Assert.Null(package.MainDocumentPart?.VbaProjectPart);
         }
 
         [Fact]
