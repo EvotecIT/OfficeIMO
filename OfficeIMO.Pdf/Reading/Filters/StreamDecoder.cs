@@ -79,7 +79,25 @@ internal static class StreamDecoder {
 
                         break;
                     case DecodeFilterKind.AsciiHex:
+                        if (HasActiveDecodeParms(dict, filterIndex, objects)) {
+                            return false;
+                        }
+
+                        if (!AsciiHexDecoder.TryDecode(current, maxOutputBytes, out current)) {
+                            return false;
+                        }
+
+                        break;
                     case DecodeFilterKind.Ascii85:
+                        if (HasActiveDecodeParms(dict, filterIndex, objects)) {
+                            return false;
+                        }
+
+                        if (!Ascii85Decoder.TryDecode(current, maxOutputBytes, out current)) {
+                            return false;
+                        }
+
+                        break;
                     case DecodeFilterKind.RunLength:
                     case DecodeFilterKind.Lzw:
                         return false;

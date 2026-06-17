@@ -266,6 +266,36 @@ public partial class PdfInspectorTests {
     }
 
     [Fact]
+    public void Inspect_AsciiHexXmpMetadataDecodesWithinLimit() {
+        const string xmp = "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\"/>";
+        byte[] encoded = System.Text.Encoding.ASCII.GetBytes(ToHex(System.Text.Encoding.UTF8.GetBytes(xmp)) + ">");
+
+        PdfDocumentInfo info = PdfInspector.Inspect(BuildFilteredXmpMetadataPdf(encoded, "/Filter /ASCIIHexDecode"));
+
+        Assert.True(info.HasXmpMetadata);
+        PdfXmpMetadataInfo metadata = Assert.IsType<PdfXmpMetadataInfo>(info.XmpMetadata);
+        Assert.Equal(xmp.Length, metadata.DecodedSizeBytes);
+        Assert.Equal(xmp, metadata.RawXml);
+        Assert.True(metadata.IsWellFormedXml);
+        Assert.Empty(metadata.UnsupportedFilters);
+    }
+
+    [Fact]
+    public void Inspect_Ascii85XmpMetadataDecodesWithinLimit() {
+        const string xmp = "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\"/>";
+        byte[] encoded = System.Text.Encoding.ASCII.GetBytes(EncodeAscii85ForXmp(System.Text.Encoding.UTF8.GetBytes(xmp)));
+
+        PdfDocumentInfo info = PdfInspector.Inspect(BuildFilteredXmpMetadataPdf(encoded, "/Filter /ASCII85Decode"));
+
+        Assert.True(info.HasXmpMetadata);
+        PdfXmpMetadataInfo metadata = Assert.IsType<PdfXmpMetadataInfo>(info.XmpMetadata);
+        Assert.Equal(xmp.Length, metadata.DecodedSizeBytes);
+        Assert.Equal(xmp, metadata.RawXml);
+        Assert.True(metadata.IsWellFormedXml);
+        Assert.Empty(metadata.UnsupportedFilters);
+    }
+
+    [Fact]
     public void Inspect_XmpMetadataRejectsLzwBeforeUnboundedDecode() {
         byte[] payload = System.Text.Encoding.UTF8.GetBytes("<x:xmpmeta/>");
 
@@ -509,6 +539,52 @@ public partial class PdfInspectorTests {
     private static void WriteAscii(Stream stream, string value) {
         byte[] bytes = System.Text.Encoding.ASCII.GetBytes(value);
         stream.Write(bytes, 0, bytes.Length);
+    }
+
+    private static string EncodeAscii85ForXmp(byte[] input) {
+        var builder = new System.Text.StringBuilder();
+        int offset = 0;
+        while (offset + 4 <= input.Length) {
+            uint value = ((uint)input[offset] << 24) |
+                         ((uint)input[offset + 1] << 16) |
+                         ((uint)input[offset + 2] << 8) |
+                         input[offset + 3];
+            if (value == 0) {
+                builder.Append('z');
+            } else {
+                char[] tuple = new char[5];
+                for (int i = 4; i >= 0; i--) {
+                    tuple[i] = (char)((value % 85) + 33);
+                    value /= 85;
+                }
+
+                builder.Append(tuple);
+            }
+
+            offset += 4;
+        }
+
+        int remaining = input.Length - offset;
+        if (remaining > 0) {
+            uint value = 0;
+            for (int i = 0; i < 4; i++) {
+                value <<= 8;
+                if (i < remaining) {
+                    value |= input[offset + i];
+                }
+            }
+
+            char[] tuple = new char[5];
+            for (int i = 4; i >= 0; i--) {
+                tuple[i] = (char)((value % 85) + 33);
+                value /= 85;
+            }
+
+            builder.Append(tuple, 0, remaining + 1);
+        }
+
+        builder.Append("~>");
+        return builder.ToString();
     }
 
 }

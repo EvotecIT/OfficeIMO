@@ -188,6 +188,16 @@ public class PdfDocumentPngImageTests {
     }
 
     [Fact]
+    public void Image_WithExtraDecodedPngScanlines_RejectsPassThroughImageBytes() {
+        Assert.False(PdfDocument.TryValidateImageBytes(
+            PdfPngTestImages.CreateRgbPngWithExtraDecodedScanlines(),
+            out OfficeImageInfo? imageInfo,
+            out string? unsupportedReason));
+        Assert.Null(imageInfo);
+        Assert.Contains("PNG image data length does not match the expected scanline size.", unsupportedReason, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Image_WithOverflowingPngChunkLength_RejectsPdfGenerationWithoutThrowingParserErrors() {
         NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
             PdfDocument.Create()

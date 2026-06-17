@@ -189,6 +189,10 @@ internal static partial class PdfWriter {
             return false;
         }
 
+        if (!TryValidatePngPassThroughData(streamData, width, height, colors, out unsupportedReason)) {
+            return false;
+        }
+
         image = new PdfImageStream {
             Data = streamData,
             PixelWidth = width,
@@ -200,6 +204,24 @@ internal static partial class PdfWriter {
                                width.ToString(CultureInfo.InvariantCulture) +
                                " >>"
         };
+        return true;
+    }
+
+    private static bool TryValidatePngPassThroughData(byte[] compressedData, int width, int height, int colors, out string? unsupportedReason) {
+        if (!TryDecodePngData(compressedData, out byte[] decoded, out unsupportedReason)) {
+            return false;
+        }
+
+        if (!TryGetPngCheckedLength(width, height, colors, includeFilterByte: true, out int expectedLength)) {
+            unsupportedReason = "PNG dimensions exceed supported limits.";
+            return false;
+        }
+
+        if (decoded.Length != expectedLength) {
+            unsupportedReason = "PNG image data length does not match the expected scanline size.";
+            return false;
+        }
+
         return true;
     }
 
