@@ -60,6 +60,31 @@ public partial class PdfFormFillerTests {
     }
 
     [Fact]
+    public void FillFields_ChoiceDisplayTextUsesFirstMatchingOption() {
+        byte[] filled = PdfFormFiller.FillFields(BuildDuplicateChoiceWidgetFormPdf(), new Dictionary<string, string> {
+            ["Choice"] = "Same"
+        });
+
+        PdfFormField filledField = Assert.Single(PdfInspector.Inspect(filled).FormFields);
+
+        Assert.Equal("A", filledField.Value);
+        Assert.Equal("Same", Assert.Single(filledField.SelectedOptions).DisplayText);
+    }
+
+    [Fact]
+    public void FillFields_ChoiceExportValueUsesFirstMatchingOption() {
+        byte[] filled = PdfFormFiller.FillFields(BuildDuplicateChoiceWidgetFormPdf(), new Dictionary<string, string> {
+            ["Choice"] = "C"
+        });
+
+        PdfFormField filledField = Assert.Single(PdfInspector.Inspect(filled).FormFields);
+
+        Assert.Equal("C", filledField.Value);
+        Assert.Equal(new[] { "First C", "Second C" }, filledField.SelectedOptions.Select(option => option.DisplayText).ToArray());
+        Assert.Contains("<46697273742043> Tj", Encoding.ASCII.GetString(filled), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void FillFields_ChoiceDisplayTextUsesInheritedOptions() {
         byte[] filled = PdfFormFiller.FillFields(BuildInheritedChoiceWidgetFormPdf(), new Dictionary<string, string> {
             ["Selection.Country"] = "United States"
