@@ -1,3 +1,4 @@
+using System.Xml;
 using System.Xml.Linq;
 using OfficeIMO.Pdf.Filters;
 
@@ -6,6 +7,8 @@ namespace OfficeIMO.Pdf;
 public sealed partial class PdfReadDocument {
     private const string DublinCoreNamespaceUri = "http://purl.org/dc/elements/1.1/";
     private const string PdfAIdentificationNamespaceUri = "http://www.aiim.org/pdfa/ns/id/";
+    /// <summary>Maximum decoded XMP metadata size parsed as XML.</summary>
+    public const int MaxXmpMetadataBytes = 4_000_000;
 
     /// <summary>Catalog XMP metadata stream discovered from /Metadata.</summary>
     public PdfXmpMetadataInfo? XmpMetadata { get; }
@@ -23,8 +26,8 @@ public sealed partial class PdfReadDocument {
         }
 
         byte[] decoded = StreamDecoder.Decode(stream.Dictionary, stream.Data, _objects);
-        string? rawXml = DecodeMetadataText(decoded);
-        XDocument? document = TryParseXml(rawXml);
+        string? rawXml = decoded.Length <= MaxXmpMetadataBytes ? DecodeMetadataText(decoded) : null;
+        XDocument? document = rawXml is null ? null : TryParseXml(rawXml);
         return new PdfXmpMetadataInfo(
             objectNumber,
             TryReadName(stream.Dictionary, "Subtype"),
@@ -82,7 +85,14 @@ public sealed partial class PdfReadDocument {
         }
 
         try {
-            return XDocument.Parse(rawXml!, LoadOptions.None);
+            var settings = new XmlReaderSettings {
+                DtdProcessing = DtdProcessing.Prohibit,
+                MaxCharactersInDocument = MaxXmpMetadataBytes,
+                XmlResolver = null
+            };
+            using var stringReader = new StringReader(rawXml!);
+            using XmlReader reader = XmlReader.Create(stringReader, settings);
+            return XDocument.Load(reader, LoadOptions.None);
         } catch (Exception ex) when (ex is System.Xml.XmlException || ex is InvalidOperationException) {
             return null;
         }

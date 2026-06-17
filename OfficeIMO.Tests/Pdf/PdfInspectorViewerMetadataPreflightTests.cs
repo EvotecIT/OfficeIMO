@@ -224,6 +224,34 @@ public partial class PdfInspectorTests {
     }
 
     [Fact]
+    public void Inspect_XmpMetadataRejectsDtdEntityExpansion() {
+        const string xmp = "<!DOCTYPE xmp [<!ENTITY boom \"expanded\">]><xmp>&boom;</xmp>";
+
+        PdfDocumentInfo info = PdfInspector.Inspect(BuildXmpMetadataPdfWithPayload(xmp));
+
+        Assert.True(info.HasXmpMetadata);
+        PdfXmpMetadataInfo metadata = Assert.IsType<PdfXmpMetadataInfo>(info.XmpMetadata);
+        Assert.Equal(xmp.Length, metadata.DecodedSizeBytes);
+        Assert.Contains("<!DOCTYPE", metadata.RawXml, StringComparison.Ordinal);
+        Assert.False(metadata.IsWellFormedXml);
+        Assert.Null(metadata.Title);
+        Assert.Empty(metadata.Subjects);
+    }
+
+    [Fact]
+    public void Inspect_XmpMetadataOverLimitKeepsSizeButDoesNotMaterializeRawXml() {
+        string xmp = new('x', PdfReadDocument.MaxXmpMetadataBytes + 1);
+
+        PdfDocumentInfo info = PdfInspector.Inspect(BuildXmpMetadataPdfWithPayload(xmp));
+
+        Assert.True(info.HasXmpMetadata);
+        PdfXmpMetadataInfo metadata = Assert.IsType<PdfXmpMetadataInfo>(info.XmpMetadata);
+        Assert.Equal(PdfReadDocument.MaxXmpMetadataBytes + 1, metadata.DecodedSizeBytes);
+        Assert.Null(metadata.RawXml);
+        Assert.False(metadata.IsWellFormedXml);
+    }
+
+    [Fact]
     public void Preflight_AllowsSimpleCatalogUriPdfReadAndRewrite() {
         PdfDocumentPreflight report = PdfInspector.Preflight(BuildCatalogUriPdf());
 
@@ -363,5 +391,36 @@ public partial class PdfInspectorTests {
         Assert.True(outputIntent.DestinationOutputProfileHasIccSignature);
     }
 
+    private static byte[] BuildXmpMetadataPdfWithPayload(string xmp) {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /Metadata 5 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Metadata /Subtype /XML /Length " + System.Text.Encoding.UTF8.GetByteCount(xmp).ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>",
+            "stream",
+            xmp,
+            "endstream",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 6 >>",
+            "%%EOF"
+        });
+
+        return System.Text.Encoding.UTF8.GetBytes(pdf);
+    }
 
 }
