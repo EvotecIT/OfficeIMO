@@ -31,6 +31,7 @@ public class ConversionOptionsTests {
         Assert.Equal(8192, options.MaxCssBytes);
         Assert.Equal(16384, options.MaxTotalCssBytes);
         Assert.Equal(10000, options.MaxTableCells);
+        Assert.Equal(ImageProcessingMode.EmbedDataUriOnly, options.ImageProcessing);
         Assert.False(options.AllowDocumentStylesheetLinks);
         Assert.True(options.ValidateImageContentTypes);
         Assert.Contains("image/png", options.AllowedImageContentTypes);
@@ -51,6 +52,7 @@ public class ConversionOptionsTests {
         var options = new HtmlToWordOptions();
 
         Assert.Equal(50000, options.MaxTableCells);
+        Assert.Equal(ImageProcessingMode.EmbedDataUriOnly, options.ImageProcessing);
     }
 
     [Fact]

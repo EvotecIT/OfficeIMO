@@ -74,7 +74,7 @@ public sealed class HtmlPdfResourcePolicySummary {
             return summary;
         }
 
-        WordHtml.HtmlToWordOptions wordOptions = options.WordHtmlOptions ?? WordHtml.HtmlToWordOptions.CreateOfficeIMOProfile();
+        WordHtml.HtmlToWordOptions wordOptions = options.WordHtmlOptions ?? new WordHtml.HtmlToWordOptions();
         summary.UsesWordHtmlPolicy = true;
         summary.AllowDocumentStylesheetLinks = wordOptions.AllowDocumentStylesheetLinks;
         summary.AllowedStylesheetUriSchemes = CopySorted(wordOptions.AllowedStylesheetUriSchemes);

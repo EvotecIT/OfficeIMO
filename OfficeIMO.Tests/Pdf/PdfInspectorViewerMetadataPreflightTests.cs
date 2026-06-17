@@ -266,6 +266,36 @@ public partial class PdfInspectorTests {
     }
 
     [Fact]
+    public void Inspect_XmpMetadataRejectsLzwBeforeUnboundedDecode() {
+        byte[] payload = System.Text.Encoding.UTF8.GetBytes("<x:xmpmeta/>");
+
+        PdfDocumentInfo info = PdfInspector.Inspect(BuildFilteredXmpMetadataPdf(payload, "/Filter /LZWDecode"));
+
+        Assert.True(info.HasXmpMetadata);
+        PdfXmpMetadataInfo metadata = Assert.IsType<PdfXmpMetadataInfo>(info.XmpMetadata);
+        Assert.Equal(payload.Length, metadata.StreamSizeBytes);
+        Assert.Equal(PdfReadDocument.MaxXmpMetadataBytes + 1, metadata.DecodedSizeBytes);
+        Assert.Null(metadata.RawXml);
+        Assert.False(metadata.IsWellFormedXml);
+    }
+
+    [Fact]
+    public void Inspect_XmpMetadataRejectsPredictorDecodeParmsBeforeExpansion() {
+        byte[] compressed = Compress(System.Text.Encoding.UTF8.GetBytes("<x:xmpmeta/>"));
+
+        PdfDocumentInfo info = PdfInspector.Inspect(BuildFilteredXmpMetadataPdf(
+            compressed,
+            "/Filter /FlateDecode /DecodeParms << /Predictor 12 /Columns 100000000 >>"));
+
+        Assert.True(info.HasXmpMetadata);
+        PdfXmpMetadataInfo metadata = Assert.IsType<PdfXmpMetadataInfo>(info.XmpMetadata);
+        Assert.Equal(compressed.Length, metadata.StreamSizeBytes);
+        Assert.Equal(PdfReadDocument.MaxXmpMetadataBytes + 1, metadata.DecodedSizeBytes);
+        Assert.Null(metadata.RawXml);
+        Assert.False(metadata.IsWellFormedXml);
+    }
+
+    [Fact]
     public void Preflight_AllowsSimpleCatalogUriPdfReadAndRewrite() {
         PdfDocumentPreflight report = PdfInspector.Preflight(BuildCatalogUriPdf());
 
@@ -439,6 +469,10 @@ public partial class PdfInspectorTests {
 
     private static byte[] BuildCompressedXmpMetadataPdfWithPayload(string xmp) {
         byte[] compressed = Compress(System.Text.Encoding.UTF8.GetBytes(xmp));
+        return BuildFilteredXmpMetadataPdf(compressed, "/Filter /FlateDecode");
+    }
+
+    private static byte[] BuildFilteredXmpMetadataPdf(byte[] streamData, string dictionarySuffix) {
         using var output = new MemoryStream();
         WriteAscii(output, string.Join("\n", new[] {
             "%PDF-1.4",
@@ -458,10 +492,10 @@ public partial class PdfInspectorTests {
             "endstream",
             "endobj",
             "5 0 obj",
-            "<< /Type /Metadata /Subtype /XML /Length " + compressed.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " /Filter /FlateDecode >>",
+            "<< /Type /Metadata /Subtype /XML /Length " + streamData.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " " + dictionarySuffix + " >>",
             "stream"
         }) + "\n");
-        output.Write(compressed, 0, compressed.Length);
+        output.Write(streamData, 0, streamData.Length);
         WriteAscii(output, "\n" + string.Join("\n", new[] {
             "endstream",
             "endobj",

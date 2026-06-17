@@ -13,6 +13,7 @@ namespace OfficeIMO.Word.Html {
         /// <returns>A new <see cref="HtmlToWordOptions"/> instance with the default compatibility-oriented settings.</returns>
         public static HtmlToWordOptions CreateOfficeIMOProfile() {
             var options = new HtmlToWordOptions {
+                ImageProcessing = ImageProcessingMode.Embed,
                 MaxTableCells = null
             };
             options.AllowedImageUriSchemes.Add(Uri.UriSchemeFile);
@@ -62,6 +63,7 @@ namespace OfficeIMO.Word.Html {
         /// <returns>A new <see cref="HtmlToWordOptions"/> instance configured for trusted document links.</returns>
         public static HtmlToWordOptions CreateTrustedDocumentProfile() {
             var options = new HtmlToWordOptions {
+                ImageProcessing = ImageProcessingMode.Embed,
                 AllowDocumentStylesheetLinks = true
             };
             options.AllowedImageUriSchemes.Add(Uri.UriSchemeFile);
@@ -137,7 +139,7 @@ namespace OfficeIMO.Word.Html {
         /// <summary>
         /// Controls how images are processed during conversion.
         /// </summary>
-        public ImageProcessingMode ImageProcessing { get; set; } = ImageProcessingMode.Embed;
+        public ImageProcessingMode ImageProcessing { get; set; } = ImageProcessingMode.EmbedDataUriOnly;
 
         /// <summary>
         /// Optional <see cref="HttpClient"/> used to download remote resources (images, SVG).
@@ -192,6 +194,8 @@ namespace OfficeIMO.Word.Html {
 
         /// <summary>
         /// Image URI schemes allowed during import. Defaults allow HTTP, HTTPS, and data URI images.
+        /// Remote image embedding still requires <see cref="ImageProcessingMode.Embed"/> through an explicit option
+        /// or compatibility profile.
         /// Add <see cref="Uri.UriSchemeFile"/> or use <see cref="CreateTrustedDocumentProfile"/> for trusted local-file images.
         /// Remove entries to reject matching image sources before they are loaded or linked.
         /// </summary>

@@ -381,7 +381,7 @@ public sealed class HtmlPdfTests {
         Assert.True(policy.UsesWordHtmlPolicy);
         Assert.False(policy.AllowDocumentStylesheetLinks);
         Assert.Contains("data", policy.AllowedImageUriSchemes);
-        Assert.Equal("Embed", policy.ImageProcessing);
+        Assert.Equal("EmbedDataUriOnly", policy.ImageProcessing);
         Assert.Null(options.WordHtmlOptions);
     }
 

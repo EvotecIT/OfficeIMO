@@ -63,57 +63,31 @@ internal static class StreamDecoder {
             return TryUseOriginal(data ?? Array.Empty<byte>(), maxOutputBytes, out decoded);
         }
 
-        byte[] original = data;
         byte[] current = data;
         int filterIndex = 0;
         foreach (string filterName in EnumerateFilters(filterObj, objects)) {
             try {
                 switch (GetFilterKind(filterName)) {
                     case DecodeFilterKind.Flate:
-                        if (!FlateDecoder.TryDecode(current, maxOutputBytes, out current)) {
+                        if (HasActiveDecodeParms(dict, filterIndex, objects)) {
                             return false;
                         }
 
-                        current = ApplyDecodeParms(dict, filterIndex, current, objects);
-                        if (!IsWithinLimit(current, maxOutputBytes)) {
+                        if (!FlateDecoder.TryDecode(current, maxOutputBytes, out current)) {
                             return false;
                         }
 
                         break;
                     case DecodeFilterKind.AsciiHex:
-                        current = AsciiHexDecoder.Decode(current);
-                        if (!IsWithinLimit(current, maxOutputBytes)) {
-                            return false;
-                        }
-
-                        break;
                     case DecodeFilterKind.Ascii85:
-                        current = Ascii85Decoder.Decode(current);
-                        if (!IsWithinLimit(current, maxOutputBytes)) {
-                            return false;
-                        }
-
-                        break;
                     case DecodeFilterKind.RunLength:
-                        current = RunLengthDecoder.Decode(current);
-                        if (!IsWithinLimit(current, maxOutputBytes)) {
-                            return false;
-                        }
-
-                        break;
                     case DecodeFilterKind.Lzw:
-                        current = LzwDecoder.Decode(current, GetEarlyChange(dict, filterIndex, objects));
-                        current = ApplyDecodeParms(dict, filterIndex, current, objects);
-                        if (!IsWithinLimit(current, maxOutputBytes)) {
-                            return false;
-                        }
-
-                        break;
+                        return false;
                     default:
-                        return TryUseOriginal(original, maxOutputBytes, out decoded);
+                        return false;
                 }
             } catch {
-                return TryUseOriginal(original, maxOutputBytes, out decoded);
+                return false;
             }
 
             filterIndex++;
@@ -186,6 +160,16 @@ internal static class StreamDecoder {
 
     private static bool IsWithinLimit(byte[] data, int maxOutputBytes) {
         return data.LongLength <= maxOutputBytes;
+    }
+
+    private static bool HasActiveDecodeParms(PdfDictionary dict, int filterIndex, Dictionary<int, PdfIndirectObject>? objects) {
+        var decodeParms = GetDecodeParms(dict, filterIndex, objects);
+        if (decodeParms is null) {
+            return false;
+        }
+
+        int predictor = (int)(decodeParms.Get<PdfNumber>("Predictor")?.Value ?? 1);
+        return predictor > 1;
     }
 
     private static byte[] ApplyDecodeParms(PdfDictionary dict, int filterIndex, byte[] data, Dictionary<int, PdfIndirectObject>? objects) {
