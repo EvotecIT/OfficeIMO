@@ -673,14 +673,6 @@ namespace OfficeIMO.Word {
         }
 
         private static bool IsValidPictureFormValue(object? value) {
-            if (value is string filePath) {
-                return File.Exists(filePath);
-            }
-
-            if (value is FileInfo fileInfo) {
-                return fileInfo.Exists;
-            }
-
             if (value is WordContentControlPictureValue pictureValue) {
                 if (!string.IsNullOrWhiteSpace(pictureValue.FilePath)) {
                     return File.Exists(pictureValue.FilePath);
@@ -696,16 +688,6 @@ namespace OfficeIMO.Word {
         }
 
         private static bool TryApplyPictureFormValue(WordPictureControl pictureControl, object? value) {
-            if (value is string filePath && File.Exists(filePath)) {
-                pictureControl.SetImage(filePath);
-                return true;
-            }
-
-            if (value is FileInfo fileInfo && fileInfo.Exists) {
-                pictureControl.SetImage(fileInfo.FullName);
-                return true;
-            }
-
             if (value is WordContentControlPictureValue pictureValue) {
                 string? pictureFilePath = pictureValue.FilePath;
                 if (!string.IsNullOrWhiteSpace(pictureFilePath) && File.Exists(pictureFilePath)) {

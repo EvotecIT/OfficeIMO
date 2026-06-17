@@ -135,6 +135,40 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ContentControlFormPictureValuesDoNotReadRawStringPaths() {
+            string filePath = Path.Combine(_directoryWithFiles, "DocumentWithRawPathPictureFormValue.docx");
+            string originalImagePath = Path.Combine(_directoryWithImages, "Kulek.jpg");
+            string replacementImagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
+            byte[] originalBytes;
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Logo:").AddPictureControl(originalImagePath, 24, 24, "Logo Alias", "Logo");
+                originalBytes = document.GetPictureControlByTag("Logo")!.Image!.GetBytes();
+
+                WordContentControlFormValidationResult validation = document.ValidateContentControlValues(new Dictionary<string, object?> {
+                    ["Logo"] = replacementImagePath
+                });
+
+                Assert.False(validation.IsValid);
+                Assert.Contains(validation.Issues, issue => issue.Kind == WordContentControlFormIssueKind.InvalidImage && issue.Key == "Logo");
+
+                int updated = document.FillContentControlValues(new Dictionary<string, object?> {
+                    ["Logo"] = replacementImagePath
+                });
+
+                Assert.Equal(0, updated);
+                Assert.Equal(originalBytes, document.GetPictureControlByTag("Logo")!.Image!.GetBytes());
+
+                int trustedUpdated = document.FillContentControlValues(new Dictionary<string, object?> {
+                    ["Logo"] = WordContentControlPictureValue.FromFile(replacementImagePath)
+                });
+
+                Assert.Equal(1, trustedUpdated);
+                Assert.Equal(File.ReadAllBytes(replacementImagePath), document.GetPictureControlByTag("Logo")!.Image!.GetBytes());
+            }
+        }
+
+        [Fact]
         public void Test_ContentControlFormValidationReportsAmbiguousTagAliasKeys() {
             string filePath = Path.Combine(_directoryWithFiles, "DocumentWithAmbiguousContentControlFormKeys.docx");
 
