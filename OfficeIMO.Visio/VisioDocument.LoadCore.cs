@@ -39,7 +39,7 @@ namespace OfficeIMO.Visio {
             if (documentPart.ContentType != DocumentContentType) {
                 throw new InvalidDataException($"Unexpected Visio document content type: {documentPart.ContentType}");
             }
-            XDocument documentXml = XDocument.Load(documentPart.GetStream());
+            XDocument documentXml = LoadPackageXml(documentPart, "Visio document XML part");
             if (documentXml.Root != null) {
                 foreach (XAttribute attribute in documentXml.Root.Attributes().Where(ShouldPreserveDocumentAttribute)) {
                     document.PreservedDocumentAttributes.Add(new XAttribute(attribute));
@@ -125,7 +125,7 @@ namespace OfficeIMO.Visio {
             if (themeRel != null) {
                 Uri themeUri = PackUriHelper.ResolvePartUri(documentPart.Uri, themeRel.TargetUri);
                 PackagePart themePart = package.GetPart(themeUri);
-                XDocument themeDoc = XDocument.Load(themePart.GetStream());
+                XDocument themeDoc = LoadPackageXml(themePart, "Visio theme XML part");
                 document.Theme = new VisioTheme {
                     Name = themeDoc.Root?.Attribute("name")?.Value,
                     TemplateXml = new XDocument(themeDoc)
@@ -146,7 +146,7 @@ namespace OfficeIMO.Visio {
             if (documentPart.GetRelationshipsByType(MastersRelationshipType).FirstOrDefault() is PackageRelationship mastersRel) {
                 Uri mastersUri = PackUriHelper.ResolvePartUri(documentPart.Uri, mastersRel.TargetUri);
                 PackagePart mastersPart = package.GetPart(mastersUri);
-                XDocument mastersDoc = XDocument.Load(mastersPart.GetStream());
+                XDocument mastersDoc = LoadPackageXml(mastersPart, "Visio masters XML part");
                 XNamespace ns = VisioNamespace;
                 XNamespace rNs = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
                 List<XAttribute> preservedMastersRootAttributes = mastersDoc.Root?
@@ -172,7 +172,7 @@ namespace OfficeIMO.Visio {
                     PackageRelationship rel = mastersPart.GetRelationship(mRelId);
                     Uri masterUri = PackUriHelper.ResolvePartUri(mastersPart.Uri, rel.TargetUri);
                     PackagePart masterPart = package.GetPart(masterUri);
-                    XDocument masterDoc = XDocument.Load(masterPart.GetStream());
+                    XDocument masterDoc = LoadPackageXml(masterPart, "Visio master XML part");
                     XElement? masterShapesElement = masterDoc.Root?.Element(ns + "Shapes");
                     XElement? masterShapeElement = masterShapesElement?.Elements(ns + "Shape").FirstOrDefault();
                     VisioShape masterShape = masterShapeElement != null ? ParseShapeCore(masterShapeElement, ns, faceNamesById) : new VisioShape("1");
@@ -228,7 +228,7 @@ namespace OfficeIMO.Visio {
                 }
             }
 
-            XDocument pagesDoc = XDocument.Load(pagesPart.GetStream());
+            XDocument pagesDoc = LoadPackageXml(pagesPart, "Visio pages XML part");
             XNamespace vNs = VisioNamespace;
             XNamespace relNs = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
 
@@ -555,7 +555,7 @@ namespace OfficeIMO.Visio {
                 PackageRelationship pageRel = pagesPart.GetRelationship(relId);
                 Uri pageUri = PackUriHelper.ResolvePartUri(pagesPart.Uri, pageRel.TargetUri);
                 PackagePart pagePart = package.GetPart(pageUri);
-                XDocument pageDoc = XDocument.Load(pagePart.GetStream());
+                XDocument pageDoc = LoadPackageXml(pagePart, "Visio page XML part");
 
                 if (pageDoc.Root != null) {
                     foreach (XAttribute attribute in pageDoc.Root.Attributes().Where(ShouldPreservePageContentsAttribute)) {
