@@ -10,6 +10,12 @@ namespace OfficeIMO.Reader;
 /// Options controlling extraction behavior for <see cref="DocumentReader"/>.
 /// </summary>
 public sealed class ReaderOptions {
+    internal const long DefaultOpenXmlMaxCharactersInPart = 10_000_000L;
+    internal const int DefaultMaxOpenXmlImageAssets = 512;
+    internal const int DefaultMaxOpenXmlImagePlacementsPerRelationship = 256;
+    internal const long DefaultMaxOpenXmlImageAssetBytes = 32L * 1024L * 1024L;
+    internal const long DefaultMaxOpenXmlImageTotalAssetBytes = 128L * 1024L * 1024L;
+
     /// <summary>
     /// Optional maximum input size in bytes enforced by <see cref="DocumentReader"/> when reading from a file or seekable stream.
     /// When null, no size limit is enforced.
@@ -20,7 +26,32 @@ public sealed class ReaderOptions {
     /// OpenXML security: maximum characters allowed per part when opening OpenXML packages (best-effort).
     /// When null, the OpenXML SDK default is used.
     /// </summary>
-    public long? OpenXmlMaxCharactersInPart { get; set; } = 10_000_000;
+    public long? OpenXmlMaxCharactersInPart { get; set; } = DefaultOpenXmlMaxCharactersInPart;
+
+    /// <summary>
+    /// OpenXML security: maximum image asset entries emitted from an Office package.
+    /// When null, no image asset entry limit is enforced.
+    /// </summary>
+    public int? MaxOpenXmlImageAssets { get; set; } = DefaultMaxOpenXmlImageAssets;
+
+    /// <summary>
+    /// OpenXML security: maximum placements emitted for one image relationship.
+    /// When null, no per-relationship placement limit is enforced.
+    /// </summary>
+    public int? MaxOpenXmlImagePlacementsPerRelationship { get; set; } = DefaultMaxOpenXmlImagePlacementsPerRelationship;
+
+    /// <summary>
+    /// OpenXML security: maximum bytes read from a single image part.
+    /// When null, no individual image payload limit is enforced.
+    /// </summary>
+    public long? MaxOpenXmlImageAssetBytes { get; set; } = DefaultMaxOpenXmlImageAssetBytes;
+
+    /// <summary>
+    /// OpenXML security: maximum unique image payload bytes retained while extracting assets.
+    /// Repeated placements of the same image part count once toward this limit.
+    /// When null, no total image payload limit is enforced.
+    /// </summary>
+    public long? MaxOpenXmlImageTotalAssetBytes { get; set; } = DefaultMaxOpenXmlImageTotalAssetBytes;
 
     /// <summary>
     /// Maximum characters per emitted chunk (best-effort).

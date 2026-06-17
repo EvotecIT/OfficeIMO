@@ -3,6 +3,7 @@ using OfficeIMO.Excel;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Reader;
 using OfficeIMO.Word;
+using System.Reflection;
 using System.Text.Json;
 using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 using Xunit;
@@ -280,6 +281,68 @@ public sealed class ReaderDocumentReadResultAssetTests {
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }
+    }
+
+    [Fact]
+    public void DocumentReader_ReadDocument_SharesPayloadForDuplicateExcelRelationshipPlacements() {
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+        byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==");
+        try {
+            using (ExcelDocument document = ExcelDocument.Create(path)) {
+                ExcelSheet sheet = document.AddWorkSheet("Images");
+                sheet.AddImage(1, 1, png, "image/png", widthPixels: 12, heightPixels: 10, name: "First", altText: "First");
+                sheet.AddImage(3, 1, png, "image/png", widthPixels: 12, heightPixels: 10, name: "Second", altText: "Second");
+                document.Save();
+            }
+            PointSecondExcelPictureAtFirstImageRelationship(path);
+
+            OfficeDocumentReadResult result = DocumentReader.ReadDocument(path);
+
+            OfficeDocumentAsset[] duplicateRelationshipAssets = result.Assets
+                .GroupBy(asset => asset.SourceObjectId, StringComparer.Ordinal)
+                .Single(group => group.Count() == 2)
+                .ToArray();
+            Assert.Same(duplicateRelationshipAssets[0].PayloadBytes, duplicateRelationshipAssets[1].PayloadBytes);
+            Assert.All(duplicateRelationshipAssets, asset => Assert.True(asset.PayloadHashMatches(out _)));
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_ReadDocument_RejectsDuplicateExcelRelationshipPlacementsAboveLimit() {
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+        byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==");
+        try {
+            using (ExcelDocument document = ExcelDocument.Create(path)) {
+                ExcelSheet sheet = document.AddWorkSheet("Images");
+                sheet.AddImage(1, 1, png, "image/png", widthPixels: 12, heightPixels: 10, name: "First", altText: "First");
+                sheet.AddImage(3, 1, png, "image/png", widthPixels: 12, heightPixels: 10, name: "Second", altText: "Second");
+                document.Save();
+            }
+            PointSecondExcelPictureAtFirstImageRelationship(path);
+
+            IOException exception = Assert.Throws<IOException>(() => DocumentReader.ReadDocument(
+                path,
+                new ReaderOptions { MaxOpenXmlImagePlacementsPerRelationship = 1 }));
+
+            Assert.Contains("MaxOpenXmlImagePlacementsPerRelationship", exception.Message, StringComparison.Ordinal);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_NormalizeOptions_AppliesOpenXmlSafetyDefaultsWhenOptionsAreNull() {
+        MethodInfo method = typeof(DocumentReader).GetMethod("NormalizeOptions", BindingFlags.NonPublic | BindingFlags.Static)!;
+        var normalized = (ReaderOptions)method.Invoke(null, new object?[] { null })!;
+        var defaults = new ReaderOptions();
+
+        Assert.Equal(defaults.OpenXmlMaxCharactersInPart, normalized.OpenXmlMaxCharactersInPart);
+        Assert.Equal(defaults.MaxOpenXmlImageAssets, normalized.MaxOpenXmlImageAssets);
+        Assert.Equal(defaults.MaxOpenXmlImagePlacementsPerRelationship, normalized.MaxOpenXmlImagePlacementsPerRelationship);
+        Assert.Equal(defaults.MaxOpenXmlImageAssetBytes, normalized.MaxOpenXmlImageAssetBytes);
+        Assert.Equal(defaults.MaxOpenXmlImageTotalAssetBytes, normalized.MaxOpenXmlImageTotalAssetBytes);
     }
 
     [Fact]

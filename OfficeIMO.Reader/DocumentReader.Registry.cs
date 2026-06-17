@@ -354,7 +354,11 @@ public static partial class DocumentReader {
         var o = options;
         var clone = new ReaderOptions {
             MaxInputBytes = o?.MaxInputBytes,
-            OpenXmlMaxCharactersInPart = o?.OpenXmlMaxCharactersInPart,
+            OpenXmlMaxCharactersInPart = o == null ? ReaderOptions.DefaultOpenXmlMaxCharactersInPart : o.OpenXmlMaxCharactersInPart,
+            MaxOpenXmlImageAssets = o == null ? ReaderOptions.DefaultMaxOpenXmlImageAssets : o.MaxOpenXmlImageAssets,
+            MaxOpenXmlImagePlacementsPerRelationship = o == null ? ReaderOptions.DefaultMaxOpenXmlImagePlacementsPerRelationship : o.MaxOpenXmlImagePlacementsPerRelationship,
+            MaxOpenXmlImageAssetBytes = o == null ? ReaderOptions.DefaultMaxOpenXmlImageAssetBytes : o.MaxOpenXmlImageAssetBytes,
+            MaxOpenXmlImageTotalAssetBytes = o == null ? ReaderOptions.DefaultMaxOpenXmlImageTotalAssetBytes : o.MaxOpenXmlImageTotalAssetBytes,
             MaxChars = o?.MaxChars ?? 8_000,
             MaxTableRows = o?.MaxTableRows ?? 200,
             IncludeWordFootnotes = o?.IncludeWordFootnotes ?? true,
@@ -372,6 +376,10 @@ public static partial class DocumentReader {
         if (clone.MaxTableRows < 1) clone.MaxTableRows = 1;
         if (clone.ExcelChunkRows < 1) clone.ExcelChunkRows = 1;
         if (clone.OpenXmlMaxCharactersInPart.HasValue && clone.OpenXmlMaxCharactersInPart.Value < 1) clone.OpenXmlMaxCharactersInPart = null;
+        if (clone.MaxOpenXmlImageAssets.HasValue && clone.MaxOpenXmlImageAssets.Value < 1) clone.MaxOpenXmlImageAssets = null;
+        if (clone.MaxOpenXmlImagePlacementsPerRelationship.HasValue && clone.MaxOpenXmlImagePlacementsPerRelationship.Value < 1) clone.MaxOpenXmlImagePlacementsPerRelationship = null;
+        if (clone.MaxOpenXmlImageAssetBytes.HasValue && clone.MaxOpenXmlImageAssetBytes.Value < 1) clone.MaxOpenXmlImageAssetBytes = null;
+        if (clone.MaxOpenXmlImageTotalAssetBytes.HasValue && clone.MaxOpenXmlImageTotalAssetBytes.Value < 1) clone.MaxOpenXmlImageTotalAssetBytes = null;
 
         return clone;
     }
@@ -381,6 +389,10 @@ public static partial class DocumentReader {
         return new ReaderOptions {
             MaxInputBytes = options.MaxInputBytes,
             OpenXmlMaxCharactersInPart = options.OpenXmlMaxCharactersInPart,
+            MaxOpenXmlImageAssets = options.MaxOpenXmlImageAssets,
+            MaxOpenXmlImagePlacementsPerRelationship = options.MaxOpenXmlImagePlacementsPerRelationship,
+            MaxOpenXmlImageAssetBytes = options.MaxOpenXmlImageAssetBytes,
+            MaxOpenXmlImageTotalAssetBytes = options.MaxOpenXmlImageTotalAssetBytes,
             MaxChars = options.MaxChars,
             MaxTableRows = options.MaxTableRows,
             IncludeWordFootnotes = options.IncludeWordFootnotes,
