@@ -693,6 +693,22 @@ public partial class PdfFormFillerTests {
     }
 
     [Fact]
+    public void FillFields_LimitsInheritedCidWidthRangeExpansion() {
+        byte[] filled = PdfFormFiller.FillFields(BuildType0TextWidgetFormPdfWithWideCidWidths(), new Dictionary<string, string> {
+            ["Name"] = "B"
+        });
+
+        string output = Encoding.ASCII.GetString(filled);
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(filled).FormFields);
+
+        Assert.Equal("B", field.Value);
+        Assert.Contains("/Subtype /Type0", output, StringComparison.Ordinal);
+        Assert.Contains("<1388> Tj", output, StringComparison.Ordinal);
+        Assert.Contains("185 12.64 Td <1388> Tj", output, StringComparison.Ordinal);
+        Assert.DoesNotContain("194 12.64 Td <1388> Tj", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void FillFields_GeneratesSimpleButtonWidgetAppearances() {
         byte[] filled = PdfFormFiller.FillFields(BuildCheckboxWidgetWithoutAppearancePdf(), new Dictionary<string, string> {
             ["AcceptTerms"] = "Yes"
@@ -721,6 +737,59 @@ public partial class PdfFormFillerTests {
             .UseFontFamily("OfficeIMO Fill Font", fontPath)
             .TextField("Office.City", value: value, width: 180, height: style?.IsMultiline == true ? 48 : 24, style: style)
             .ToBytes();
+    }
+
+    private static byte[] BuildType0TextWidgetFormPdfWithWideCidWidths() {
+        const string toUnicode = """
+beginbfchar
+<1388> <0042>
+endbfchar
+""";
+        int toUnicodeLength = Encoding.ASCII.GetByteCount(toUnicode);
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 200] /Contents 4 0 R /Annots [8 0 R] >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Fields [7 0 R] /Q 2 /DR << /Font << /Helv 9 0 R >> >> >>",
+            "endobj",
+            "7 0 obj",
+            "<< /FT /Tx /T (Name) /V (A) /Kids [8 0 R] >>",
+            "endobj",
+            "8 0 obj",
+            "<< /Type /Annot /Subtype /Widget /Parent 7 0 R /Rect [20 100 220 120] /F 4 >>",
+            "endobj",
+            "9 0 obj",
+            "<< /Type /Font /Subtype /Type0 /BaseFont /OfficeIMOTest /Encoding /Identity-H /DescendantFonts [11 0 R] /ToUnicode 10 0 R >>",
+            "endobj",
+            "10 0 obj",
+            $"<< /Length {toUnicodeLength.ToString(CultureInfo.InvariantCulture)} >>",
+            "stream",
+            toUnicode,
+            "endstream",
+            "endobj",
+            "11 0 obj",
+            "<< /Type /Font /Subtype /CIDFontType2 /BaseFont /OfficeIMOTest /DW 1000 /W [0 100000 250] >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 12 >>",
+            "%%EOF"
+        });
+
+        return Encoding.ASCII.GetBytes(pdf);
     }
 
     private static void AssertOpenTypeFeatureAppearanceDiagnostics(PdfConversionReport report) {

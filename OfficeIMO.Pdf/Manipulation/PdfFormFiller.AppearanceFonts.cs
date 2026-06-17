@@ -4,6 +4,8 @@ namespace OfficeIMO.Pdf;
 
 public static partial class PdfFormFiller {
     private const string DefaultAppearanceFontName = "Helv";
+    private const int MaxInheritedCidWidthEntries = 65536;
+    private const int MaxInheritedCidWidthRangeEntries = 4096;
 
     private static PdfDictionary? TryReadDefaultResources(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary) {
         if (!dictionary.Items.TryGetValue("DR", out PdfObject? defaultResourcesObject)) {
@@ -197,12 +199,17 @@ public static partial class PdfFormFiller {
 
             PdfObject widthSpec = widthArray.Items[index++];
             if (widthSpec is PdfArray explicitWidths) {
-                for (int offset = 0; offset < explicitWidths.Items.Count; offset++) {
+                int count = Math.Min(explicitWidths.Items.Count, MaxInheritedCidWidthEntries - widths.Count);
+                for (int offset = 0; offset < count; offset++) {
                     if (explicitWidths.Items[offset] is not PdfNumber widthNumber) {
                         return false;
                     }
 
                     widths[firstCode + offset] = widthNumber.Value;
+                }
+
+                if (widths.Count >= MaxInheritedCidWidthEntries) {
+                    break;
                 }
 
                 continue;
@@ -215,8 +222,19 @@ public static partial class PdfFormFiller {
             }
 
             int lastCode = (int)lastNumber.Value;
-            for (int code = firstCode; code <= lastCode; code++) {
-                widths[code] = rangeWidthNumber.Value;
+            int rangeLength = lastCode >= firstCode ? lastCode - firstCode + 1 : 0;
+            if (rangeLength <= 0) {
+                continue;
+            }
+
+            int rangeCount = Math.Min(rangeLength, MaxInheritedCidWidthRangeEntries);
+            rangeCount = Math.Min(rangeCount, MaxInheritedCidWidthEntries - widths.Count);
+            for (int offset = 0; offset < rangeCount; offset++) {
+                widths[firstCode + offset] = rangeWidthNumber.Value;
+            }
+
+            if (widths.Count >= MaxInheritedCidWidthEntries) {
+                break;
             }
         }
 
