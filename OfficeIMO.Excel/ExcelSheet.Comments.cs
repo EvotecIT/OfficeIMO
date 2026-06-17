@@ -763,7 +763,7 @@ namespace OfficeIMO.Excel {
             try {
                 using var stream = part.GetStream();
                 if (stream.Length > 0) {
-                    return XDocument.Load(stream);
+                    return LoadVmlXDocument(stream);
                 }
             } catch (Exception ex) {
                 System.Diagnostics.Debug.WriteLine($"Failed to load VML drawing part stream: {ex}");
