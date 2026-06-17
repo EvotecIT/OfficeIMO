@@ -67,6 +67,9 @@ public sealed class MarkdownPdfSaveOptions {
     /// <summary>When true, supported local image files are embedded as PDF images. Defaults to false for untrusted Markdown.</summary>
     public bool IncludeLocalImages { get; set; }
 
+    /// <summary>When true and <see cref="BaseDirectory"/> is set, local image paths must resolve inside that directory.</summary>
+    public bool RestrictLocalImagesToBaseDirectory { get; set; } = true;
+
     /// <summary>When true, supported base64 data URI images are embedded as PDF images.</summary>
     public bool IncludeDataUriImages { get; set; } = true;
 

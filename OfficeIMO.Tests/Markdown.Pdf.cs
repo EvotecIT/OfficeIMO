@@ -256,6 +256,44 @@ _Figure 1. Embedded from a relative Markdown path._
     }
 
     [Fact]
+    public void MarkdownPdfConverter_SaveFileAsPdf_BlocksLocalImagesOutsideBaseDirectory() {
+        string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.Markdown.Pdf.BaseDirectory", Guid.NewGuid().ToString("N"));
+        string markdownDirectory = Path.Combine(directory, "docs");
+        Directory.CreateDirectory(markdownDirectory);
+        try {
+            string markdownPath = Path.Combine(markdownDirectory, "README.md");
+            string pdfPath = Path.Combine(markdownDirectory, "README.pdf");
+            string outsideImagePath = Path.Combine(directory, "secret.png");
+
+            File.WriteAllBytes(outsideImagePath, CreateMinimalRgbPng());
+            File.WriteAllText(markdownPath, """
+# Escaped Asset
+
+![Secret pixel](../secret.png){width=32 height=32}
+""");
+
+            var options = new MarkdownPdfSaveOptions {
+                IncludeLocalImages = true
+            };
+            MarkdownPdfConverter.SaveFileAsPdf(markdownPath, pdfPath, options);
+
+            byte[] pdf = File.ReadAllBytes(pdfPath);
+            string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+            IReadOnlyList<PdfCore.PdfExtractedImage> images = PdfCore.PdfImageExtractor.ExtractImages(pdf);
+
+            MarkdownPdfExportWarning warning = Assert.Single(options.Warnings);
+            Assert.Equal("LocalImageOutsideBaseDirectory", warning.Code);
+            Assert.Null(options.BaseDirectory);
+            Assert.Contains("[Image:", text, StringComparison.Ordinal);
+            Assert.Empty(images);
+        } finally {
+            if (Directory.Exists(directory)) {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public void Markdown_SaveAsPdf_ScalesOversizedLocalImagesIntoContentFrame() {
         string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.Markdown.Pdf.ScaleDown", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
