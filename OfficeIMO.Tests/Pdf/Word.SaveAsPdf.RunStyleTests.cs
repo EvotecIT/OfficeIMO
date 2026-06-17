@@ -83,7 +83,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void SaveAsPdf_OfficeIMOEngine_Embeds_Document_Default_Font_When_Available() {
+        public void SaveAsPdf_OfficeIMOEngine_Does_Not_Embed_System_Fonts_By_Default() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeDocumentDefaultFontNoEmbedding.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeDocumentDefaultFontNoEmbedding.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                document.Settings.FontFamily = "Calibri";
+                document.AddParagraph("Document default font should not embed host fonts by default.");
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false
+                });
+            }
+
+            byte[] bytes = File.ReadAllBytes(pdfPath);
+            string content = Encoding.ASCII.GetString(bytes);
+
+            Assert.DoesNotContain("/FontFile2", content, StringComparison.Ordinal);
+            Assert.DoesNotContain("/BaseFont /Calibri", content, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Embeds_Document_Default_Font_When_Allowed_And_Available() {
             if (!PdfEmbeddedFontFamily.TryFromSystem("Calibri", out PdfEmbeddedFontFamily? _)) {
                 return;
             }
@@ -97,6 +119,7 @@ namespace OfficeIMO.Tests {
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    AllowSystemFontEmbedding = true,
                     IncludePageNumbers = false
                 });
             }

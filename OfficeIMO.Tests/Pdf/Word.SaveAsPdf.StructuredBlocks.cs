@@ -1931,6 +1931,7 @@ public partial class Word {
 
             document.Save();
             document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                AllowSystemFontEmbedding = true,
                 IncludePageNumbers = false
             });
         }
