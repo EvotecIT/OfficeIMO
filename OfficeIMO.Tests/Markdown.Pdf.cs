@@ -133,6 +133,34 @@ Console.WriteLine("OfficeIMO");
     }
 
     [Fact]
+    public void Markdown_SaveAsPdf_BlocksLocalImagesByDefault() {
+        string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.Markdown.Pdf.LocalImages", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try {
+            string imagePath = Path.Combine(directory, "pixel.png");
+            File.WriteAllBytes(imagePath, Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII="));
+
+            var options = new MarkdownPdfSaveOptions {
+                BaseDirectory = directory
+            };
+            string markdown = "![Local pixel](pixel.png){width=24 height=24}";
+
+            byte[] pdf = markdown.SaveAsPdf(options);
+            string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+            IReadOnlyList<PdfCore.PdfExtractedImage> images = PdfCore.PdfImageExtractor.ExtractImages(pdf);
+
+            MarkdownPdfExportWarning warning = Assert.Single(options.Warnings);
+            Assert.Equal("LocalImageDisabled", warning.Code);
+            Assert.Contains("[Image:", text, StringComparison.Ordinal);
+            Assert.Empty(images);
+        } finally {
+            if (Directory.Exists(directory)) {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public void Markdown_SaveAsPdf_EmbedsRemoteImagesThroughExplicitResolver() {
         Uri? requestedUri = null;
         var options = new MarkdownPdfSaveOptions {
@@ -197,7 +225,9 @@ Console.WriteLine("OfficeIMO");
 _Figure 1. Embedded from a relative Markdown path._
 """);
 
-            var options = new MarkdownPdfSaveOptions();
+            var options = new MarkdownPdfSaveOptions {
+                IncludeLocalImages = true
+            };
             MarkdownPdfConverter.SaveFileAsPdf(markdownPath, pdfPath, options);
 
             byte[] pdf = File.ReadAllBytes(pdfPath);
@@ -230,6 +260,7 @@ _Figure 1. Embedded from a relative Markdown path._
             var options = new MarkdownPdfSaveOptions {
                 ApplyWordLikeTheme = false,
                 BaseDirectory = directory,
+                IncludeLocalImages = true,
                 PdfOptions = new PdfCore.PdfOptions {
                     PageWidth = 220,
                     PageHeight = 180,

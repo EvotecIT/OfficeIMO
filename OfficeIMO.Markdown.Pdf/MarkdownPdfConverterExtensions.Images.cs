@@ -9,11 +9,6 @@ namespace OfficeIMO.Markdown.Pdf;
 /// </summary>
 public static partial class MarkdownPdfConverterExtensions {
     private static void RenderImageBlock(PdfCore.PdfDocument pdf, ImageBlock image, MarkdownPdfSaveOptions options) {
-        if (!options.IncludeLocalImages) {
-            RenderImagePlaceholder(pdf, image);
-            return;
-        }
-
         if (!TryReadImageBytes(image.Path, options, out byte[] bytes, out string sourceName, out string warningCode, out string warningMessage)) {
             AddWarning(options, warningCode, image.Path, warningMessage);
             RenderImagePlaceholder(pdf, image);
@@ -59,6 +54,12 @@ public static partial class MarkdownPdfConverterExtensions {
 
         if (TryCreateRemoteImageUri(path, out Uri? remoteUri)) {
             return TryReadRemoteImageBytes(remoteUri!, options, out bytes, out sourceName, out warningCode, out warningMessage);
+        }
+
+        if (!options.IncludeLocalImages) {
+            warningCode = "LocalImageDisabled";
+            warningMessage = "Local Markdown images are disabled by default. Set MarkdownPdfSaveOptions.IncludeLocalImages to true for trusted documents.";
+            return false;
         }
 
         string? resolvedPath = ResolveImagePath(path, options.BaseDirectory);

@@ -1,6 +1,9 @@
 namespace OfficeIMO.Pdf;
 
 internal static class ResourceResolver {
+    private const int MaxCidWidthEntries = 65536;
+    private const int MaxCidWidthRangeEntries = 4096;
+
     public static Dictionary<string, PdfFontResource> GetFontsForPage(PdfDictionary page, Dictionary<int, PdfIndirectObject> objects) {
         var fonts = new Dictionary<string, PdfFontResource>(System.StringComparer.Ordinal);
         var dict = GetInheritedDictionary(page, "Resources", objects);
@@ -103,14 +106,24 @@ internal static class ResourceResolver {
                 if (i >= wArr.Items.Count) break;
                 var next = wArr.Items[i];
                 if (next is PdfArray list) {
-                    for (int j = 0; j < list.Items.Count; j++) {
+                    int count = System.Math.Min(list.Items.Count, MaxCidWidthEntries - dict.Count);
+                    for (int j = 0; j < count; j++) {
                         if (list.Items[j] is PdfNumber wn) dict[startCid + j] = wn.Value; else dict[startCid + j] = dw;
                     }
                 } else if (next is PdfNumber endCidNum) {
                     int endCid = (int)endCidNum.Value; i++;
                     if (i >= wArr.Items.Count) break;
                     var wNum = wArr.Items[i] as PdfNumber; double wv = wNum?.Value ?? dw;
-                    for (int cid = startCid; cid <= endCid; cid++) dict[cid] = wv;
+                    int rangeLength = endCid >= startCid ? endCid - startCid + 1 : 0;
+                    if (rangeLength <= 0) continue;
+
+                    int count = System.Math.Min(rangeLength, MaxCidWidthRangeEntries);
+                    count = System.Math.Min(count, MaxCidWidthEntries - dict.Count);
+                    for (int offset = 0; offset < count; offset++) dict[startCid + offset] = wv;
+                }
+
+                if (dict.Count >= MaxCidWidthEntries) {
+                    break;
                 }
             }
         }

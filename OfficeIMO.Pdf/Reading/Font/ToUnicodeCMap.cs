@@ -3,6 +3,9 @@ using System.Text.RegularExpressions;
 namespace OfficeIMO.Pdf;
 
 internal sealed class ToUnicodeCMap {
+    private const int MaxMappings = 65536;
+    private const int MaxRangeMappings = 4096;
+
     private readonly Dictionary<string, string> _map = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, string> _reverseMap = new(StringComparer.Ordinal);
     private int _maxKeyBytes = 1;
@@ -34,6 +37,11 @@ internal sealed class ToUnicodeCMap {
                 int from = Convert.ToInt32(m.Groups["from"].Value, 16);
                 int to = Convert.ToInt32(m.Groups["to"].Value, 16);
                 int dst = Convert.ToInt32(m.Groups["dst"].Value, 16);
+                int rangeLength = to >= from ? to - from + 1 : 0;
+                if (rangeLength <= 0 || rangeLength > MaxRangeMappings || _map.Count + rangeLength > MaxMappings) {
+                    continue;
+                }
+
                 int keyBytes = m.Groups["from"].Value.Length / 2; // bytes per code
                 for (int code = from, u = dst; code <= to; code++, u++) {
                     string srcHex = code.ToString("X", System.Globalization.CultureInfo.InvariantCulture).PadLeft(keyBytes * 2, '0');
@@ -52,6 +60,10 @@ internal sealed class ToUnicodeCMap {
                         break;
                     }
 
+                    if (_map.Count >= MaxMappings || code - from >= MaxRangeMappings) {
+                        break;
+                    }
+
                     string srcHex = code.ToString("X", System.Globalization.CultureInfo.InvariantCulture).PadLeft(keyBytes * 2, '0');
                     AddMap(srcHex, destination);
                     code++;
@@ -61,6 +73,10 @@ internal sealed class ToUnicodeCMap {
     }
 
     private void AddMap(string srcHex, string dstHex) {
+        if (_map.Count >= MaxMappings) {
+            return;
+        }
+
         srcHex = RemoveHexWhitespace(srcHex);
         dstHex = RemoveHexWhitespace(dstHex);
         if (srcHex.Length % 2 != 0) srcHex = "0" + srcHex;

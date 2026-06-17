@@ -132,6 +132,41 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ValidatorRejectsVisioPagesXmlDtdWithoutThrowing() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("Page-1");
+            page.Shapes.Add(new VisioShape("1", 1, 1, 2, 1, "Start"));
+            document.Save();
+
+            using (FileStream stream = new(filePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+            using (ZipArchive archive = new(stream, ZipArchiveMode.Update)) {
+                ZipArchiveEntry? entry = archive.GetEntry("visio/pages/pages.xml");
+                Assert.NotNull(entry);
+                entry!.Delete();
+
+                ZipArchiveEntry replacement = archive.CreateEntry("visio/pages/pages.xml");
+                using StreamWriter writer = new(replacement.Open());
+                writer.Write("""
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE Pages [<!ENTITY local "expanded">]>
+<Pages xmlns="http://schemas.microsoft.com/office/visio/2012/main">
+  <Page ID="0" NameU="&local;" />
+</Pages>
+""");
+            }
+
+            IReadOnlyList<string> issues = Array.Empty<string>();
+            Exception? exception = Record.Exception(() => issues = VisioValidator.Validate(filePath));
+
+            Assert.Null(exception);
+            Assert.Contains(issues, issue =>
+                issue.Contains("pages.xml", StringComparison.OrdinalIgnoreCase) &&
+                issue.Contains("not valid XML", StringComparison.OrdinalIgnoreCase));
+        }
+
+        [Fact]
         public void ValidatorReportsMissingPagesRelationshipsWithoutThrowing() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 

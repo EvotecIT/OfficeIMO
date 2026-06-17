@@ -34,6 +34,9 @@ public sealed class PowerPointPdfSaveOptions {
     /// <summary>When true, slides marked hidden in PowerPoint are exported. Defaults to false.</summary>
     public bool IncludeHiddenSlides { get; set; }
 
+    /// <summary>Maximum nested group-shape depth rendered during PDF export. Defaults to 32.</summary>
+    public int MaxGroupShapeDepth { get; set; } = 32;
+
     private DrawingCore.OfficeImageFit _pictureFit = DrawingCore.OfficeImageFit.Stretch;
 
     /// <summary>

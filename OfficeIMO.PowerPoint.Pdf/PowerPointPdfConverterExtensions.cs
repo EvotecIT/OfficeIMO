@@ -96,12 +96,12 @@ public static partial class PowerPointPdfConverterExtensions {
         pdf.Canvas(canvas => {
             RenderSlideBackground(canvas, slide, slideNumber, pageWidth, pageHeight, options);
 
-            RenderShapes(canvas, slide.GetInheritedShapesForExport(), slideNumber, pageWidth, pageHeight, options, warnInvalidBounds: false);
-            RenderShapes(canvas, slide.Shapes, slideNumber, pageWidth, pageHeight, options, warnInvalidBounds: true);
+            RenderShapes(canvas, slide.GetInheritedShapesForExport(), slideNumber, pageWidth, pageHeight, options, warnInvalidBounds: false, groupDepth: 0);
+            RenderShapes(canvas, slide.Shapes, slideNumber, pageWidth, pageHeight, options, warnInvalidBounds: true, groupDepth: 0);
         });
     }
 
-    private static void RenderShapes(PdfCore.PdfPageCanvas canvas, IReadOnlyList<PptCore.PowerPointShape> shapes, int slideNumber, double pageWidth, double pageHeight, PowerPointPdfSaveOptions options, bool warnInvalidBounds) {
+    private static void RenderShapes(PdfCore.PdfPageCanvas canvas, IReadOnlyList<PptCore.PowerPointShape> shapes, int slideNumber, double pageWidth, double pageHeight, PowerPointPdfSaveOptions options, bool warnInvalidBounds, int groupDepth) {
         foreach (PptCore.PowerPointShape shape in shapes) {
             if (shape.Hidden) {
                 continue;
@@ -111,7 +111,7 @@ public static partial class PowerPointPdfConverterExtensions {
                 continue;
             }
 
-            Action<PdfCore.PdfPageCanvas> render = target => RenderShapeContent(target, shape, x, y, width, height, slideNumber, pageWidth, pageHeight, options, warnInvalidBounds);
+            Action<PdfCore.PdfPageCanvas> render = target => RenderShapeContent(target, shape, x, y, width, height, slideNumber, pageWidth, pageHeight, options, warnInvalidBounds, groupDepth);
             if (TryGetVisibleSlideBox(x, y, width, height, pageWidth, pageHeight, out double clipX, out double clipY, out double clipWidth, out double clipHeight) &&
                 NeedsSlideClip(x, y, width, height, pageWidth, pageHeight)) {
                 canvas.Clip(clipX, clipY, clipWidth, clipHeight, render);
@@ -121,7 +121,7 @@ public static partial class PowerPointPdfConverterExtensions {
         }
     }
 
-    private static void RenderShapeContent(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointShape shape, double x, double y, double width, double height, int slideNumber, double pageWidth, double pageHeight, PowerPointPdfSaveOptions options, bool warnInvalidBounds) {
+    private static void RenderShapeContent(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointShape shape, double x, double y, double width, double height, int slideNumber, double pageWidth, double pageHeight, PowerPointPdfSaveOptions options, bool warnInvalidBounds, int groupDepth) {
         if (shape is PptCore.PowerPointTextBox textBox) {
             bool renderedGeometry = options.IncludeAutoShapes && RenderTextBoxGeometry(canvas, textBox, x, y, width, height);
             if (options.IncludeTextBoxes) {
@@ -160,7 +160,7 @@ public static partial class PowerPointPdfConverterExtensions {
 
         if (shape is PptCore.PowerPointGroupShape groupShape) {
             if (shape.OwnerSlide != null) {
-                RenderGroupShape(canvas, groupShape, slideNumber, pageWidth, pageHeight, options, warnInvalidBounds);
+                RenderGroupShape(canvas, groupShape, slideNumber, pageWidth, pageHeight, options, warnInvalidBounds, groupDepth);
             } else {
                 AddWarning(options, slideNumber, "unsupported-shape", "Skipped a PowerPoint group shape because its owning slide context could not be resolved.");
             }
@@ -170,7 +170,12 @@ public static partial class PowerPointPdfConverterExtensions {
         AddWarning(options, slideNumber, "unsupported-shape", "Skipped unsupported PowerPoint shape content type '" + shape.ShapeContentType + "'.");
     }
 
-    private static void RenderGroupShape(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointGroupShape groupShape, int slideNumber, double pageWidth, double pageHeight, PowerPointPdfSaveOptions options, bool warnInvalidBounds) {
+    private static void RenderGroupShape(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointGroupShape groupShape, int slideNumber, double pageWidth, double pageHeight, PowerPointPdfSaveOptions options, bool warnInvalidBounds, int groupDepth) {
+        if (options.MaxGroupShapeDepth >= 0 && groupDepth >= options.MaxGroupShapeDepth) {
+            AddWarning(options, slideNumber, "group-depth-limit", "Skipped nested PowerPoint group shape content because MaxGroupShapeDepth was reached.");
+            return;
+        }
+
         IReadOnlyList<PptCore.PowerPointShape> children = groupShape.OwnerSlide!.GetGroupChildren(groupShape);
         foreach (PptCore.PowerPointShape child in children) {
             if (child.Hidden) {
@@ -182,7 +187,7 @@ public static partial class PowerPointPdfConverterExtensions {
             }
 
             MapGroupChildBox(groupShape, ref x, ref y, ref width, ref height);
-            Action<PdfCore.PdfPageCanvas> render = target => RenderShapeContent(target, child, x, y, width, height, slideNumber, pageWidth, pageHeight, options, warnInvalidBounds);
+            Action<PdfCore.PdfPageCanvas> render = target => RenderShapeContent(target, child, x, y, width, height, slideNumber, pageWidth, pageHeight, options, warnInvalidBounds, groupDepth + 1);
             if (TryGetVisibleSlideBox(x, y, width, height, pageWidth, pageHeight, out double clipX, out double clipY, out double clipWidth, out double clipHeight) &&
                 NeedsSlideClip(x, y, width, height, pageWidth, pageHeight)) {
                 canvas.Clip(clipX, clipY, clipWidth, clipHeight, render);
