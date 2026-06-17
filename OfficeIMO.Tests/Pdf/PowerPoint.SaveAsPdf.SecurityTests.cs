@@ -1,0 +1,35 @@
+using System;
+using System.IO;
+using OfficeIMO.PowerPoint;
+using OfficeIMO.PowerPoint.Pdf;
+using Xunit;
+
+namespace OfficeIMO.Tests.Pdf;
+
+public class PowerPointSaveAsPdfSecurityTests {
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_StopsAtConfiguredGroupDepth() {
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pptx");
+        try {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(path);
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointTextBox textBox = slide.AddTextBoxPoints("Nested text", 72, 72, 144, 36);
+            PowerPointTextBox secondTextBox = slide.AddTextBoxPoints("Nested sibling", 72, 120, 144, 36);
+            slide.GroupShapes(new PowerPointShape[] { textBox, secondTextBox }, "Outer");
+
+            var options = new PowerPointPdfSaveOptions {
+                MaxGroupShapeDepth = 0
+            };
+
+            _ = presentation.ToPdfDocument(options);
+
+            PowerPointPdfExportWarning warning = Assert.Single(options.Warnings, item => item.Code == "group-depth-limit");
+            Assert.Equal(1, warning.SlideNumber);
+            Assert.Contains("MaxGroupShapeDepth", warning.Message, StringComparison.Ordinal);
+        } finally {
+            if (File.Exists(path)) {
+                File.Delete(path);
+            }
+        }
+    }
+}

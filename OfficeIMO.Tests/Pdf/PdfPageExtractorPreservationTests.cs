@@ -26,7 +26,8 @@ public partial class PdfPageExtractorTests {
         string pdfText = Encoding.ASCII.GetString(extracted);
         Assert.Contains("/Subtype /Image", pdfText);
         Assert.Contains("/Filter /FlateDecode", pdfText);
-        Assert.Contains("/Length 12", pdfText);
+        Assert.Contains("/Width 1", pdfText);
+        Assert.Contains("/Height 1", pdfText);
         string extractedText = NormalizeExtractedText(PdfReadDocument.Load(extracted).ExtractText());
         Assert.Contains("Imagepagemarker", extractedText);
         Assert.DoesNotContain("Coverpage", extractedText);

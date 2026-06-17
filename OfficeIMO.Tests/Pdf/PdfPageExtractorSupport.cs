@@ -141,24 +141,7 @@ public partial class PdfPageExtractorTests {
         return expectedCells.All(expected => row.Any(cell => NormalizeExtractedText(cell).Contains(expected, StringComparison.Ordinal)));
     }
 
-    private static byte[] CreateMinimalRgbPng() {
-        return new byte[] {
-            137, 80, 78, 71, 13, 10, 26, 10,
-            0, 0, 0, 13,
-            73, 72, 68, 82,
-            0, 0, 0, 1,
-            0, 0, 0, 1,
-            8, 2, 0, 0, 0,
-            0, 0, 0, 0,
-            0, 0, 0, 12,
-            73, 68, 65, 84,
-            0x78, 0x9C, 0x63, 0xF8, 0xCF, 0xC0, 0x00, 0x00, 0x03, 0x01, 0x01, 0x00,
-            0, 0, 0, 0,
-            0, 0, 0, 0,
-            73, 69, 78, 68,
-            0, 0, 0, 0
-        };
-    }
+    private static byte[] CreateMinimalRgbPng() => PdfPngTestImages.CreateRgbPng(255, 0, 0);
 
     private sealed class WriteOnlyStream : MemoryStream {
         public override bool CanRead => false;

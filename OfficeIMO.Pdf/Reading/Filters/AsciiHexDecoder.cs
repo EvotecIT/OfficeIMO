@@ -1,4 +1,5 @@
 using System.Text;
+using System.IO;
 
 namespace OfficeIMO.Pdf.Filters;
 
@@ -38,6 +39,54 @@ internal static class AsciiHexDecoder {
         }
 
         return bytes;
+    }
+
+    public static bool TryDecode(byte[] data, int maxOutputBytes, out byte[] output) {
+        output = Array.Empty<byte>();
+        if (maxOutputBytes < 0) {
+            return false;
+        }
+
+        if (data == null || data.Length == 0) {
+            return true;
+        }
+
+        using var stream = new MemoryStream();
+        int? highNibble = null;
+        for (int i = 0; i < data.Length; i++) {
+            char ch = (char)data[i];
+            if (char.IsWhiteSpace(ch)) {
+                continue;
+            }
+
+            if (ch == '>') {
+                break;
+            }
+
+            int nibble = HexNibble(ch);
+            if (highNibble is null) {
+                highNibble = nibble;
+                continue;
+            }
+
+            if (stream.Length >= maxOutputBytes) {
+                return false;
+            }
+
+            stream.WriteByte((byte)((highNibble.Value << 4) | nibble));
+            highNibble = null;
+        }
+
+        if (highNibble is not null) {
+            if (stream.Length >= maxOutputBytes) {
+                return false;
+            }
+
+            stream.WriteByte((byte)(highNibble.Value << 4));
+        }
+
+        output = stream.ToArray();
+        return true;
     }
 
     private static int HexNibble(char c) {

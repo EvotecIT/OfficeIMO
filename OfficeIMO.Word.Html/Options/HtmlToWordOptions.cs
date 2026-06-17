@@ -11,7 +11,14 @@ namespace OfficeIMO.Word.Html {
         /// Creates the default OfficeIMO HTML import profile.
         /// </summary>
         /// <returns>A new <see cref="HtmlToWordOptions"/> instance with the default compatibility-oriented settings.</returns>
-        public static HtmlToWordOptions CreateOfficeIMOProfile() => new HtmlToWordOptions();
+        public static HtmlToWordOptions CreateOfficeIMOProfile() {
+            var options = new HtmlToWordOptions {
+                ImageProcessing = ImageProcessingMode.Embed,
+                MaxTableCells = null
+            };
+            options.AllowedImageUriSchemes.Add(Uri.UriSchemeFile);
+            return options;
+        }
 
         /// <summary>
         /// Creates a bounded offline profile for untrusted HTML ingestion.
@@ -54,9 +61,14 @@ namespace OfficeIMO.Word.Html {
         /// or byte limits when trusted documents can reference broad network locations.
         /// </remarks>
         /// <returns>A new <see cref="HtmlToWordOptions"/> instance configured for trusted document links.</returns>
-        public static HtmlToWordOptions CreateTrustedDocumentProfile() => new HtmlToWordOptions {
-            AllowDocumentStylesheetLinks = true
-        };
+        public static HtmlToWordOptions CreateTrustedDocumentProfile() {
+            var options = new HtmlToWordOptions {
+                ImageProcessing = ImageProcessingMode.Embed,
+                AllowDocumentStylesheetLinks = true
+            };
+            options.AllowedImageUriSchemes.Add(Uri.UriSchemeFile);
+            return options;
+        }
 
         /// <summary>
         /// Optional font family applied to created runs during conversion.
@@ -127,7 +139,7 @@ namespace OfficeIMO.Word.Html {
         /// <summary>
         /// Controls how images are processed during conversion.
         /// </summary>
-        public ImageProcessingMode ImageProcessing { get; set; } = ImageProcessingMode.Embed;
+        public ImageProcessingMode ImageProcessing { get; set; } = ImageProcessingMode.EmbedDataUriOnly;
 
         /// <summary>
         /// Optional <see cref="HttpClient"/> used to download remote resources (images, SVG).
@@ -181,13 +193,15 @@ namespace OfficeIMO.Word.Html {
         };
 
         /// <summary>
-        /// Image URI schemes allowed during import. Defaults allow HTTP, HTTPS, file, and data URI images.
+        /// Image URI schemes allowed during import. Defaults allow HTTP, HTTPS, and data URI images.
+        /// Remote image embedding still requires <see cref="ImageProcessingMode.Embed"/> through an explicit option
+        /// or compatibility profile.
+        /// Add <see cref="Uri.UriSchemeFile"/> or use <see cref="CreateTrustedDocumentProfile"/> for trusted local-file images.
         /// Remove entries to reject matching image sources before they are loaded or linked.
         /// </summary>
         public HashSet<string> AllowedImageUriSchemes { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
             Uri.UriSchemeHttp,
             Uri.UriSchemeHttps,
-            Uri.UriSchemeFile,
             "data"
         };
 
@@ -250,10 +264,10 @@ namespace OfficeIMO.Word.Html {
 
         /// <summary>
         /// Optional maximum number of Word table cells allowed for a single imported HTML table.
-        /// Spans are resolved before the limit is checked. When exceeded, conversion stops with
+        /// Defaults to 50,000 cells. Spans are resolved before the limit is checked. When exceeded, conversion stops with
         /// <see cref="HtmlConversionLimitException"/> and an error diagnostic.
         /// </summary>
-        public long? MaxTableCells { get; set; }
+        public long? MaxTableCells { get; set; } = 50000;
 
         /// <summary>
         /// Diagnostics produced while converting HTML. The converter appends warnings here when

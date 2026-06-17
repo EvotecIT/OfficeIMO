@@ -31,17 +31,28 @@ public class ConversionOptionsTests {
         Assert.Equal(8192, options.MaxCssBytes);
         Assert.Equal(16384, options.MaxTotalCssBytes);
         Assert.Equal(10000, options.MaxTableCells);
+        Assert.Equal(ImageProcessingMode.EmbedDataUriOnly, options.ImageProcessing);
         Assert.False(options.AllowDocumentStylesheetLinks);
         Assert.True(options.ValidateImageContentTypes);
         Assert.Contains("image/png", options.AllowedImageContentTypes);
         Assert.Contains("https", options.AllowedImageUriSchemes);
+        Assert.DoesNotContain("file", options.AllowedImageUriSchemes);
         Assert.Empty(options.AllowedImageHosts);
         Assert.True(options.ValidateStylesheetContentTypes);
         Assert.Contains("text/css", options.AllowedStylesheetContentTypes);
         Assert.Contains("https", options.AllowedStylesheetUriSchemes);
         Assert.Contains("file", options.AllowedStylesheetUriSchemes);
         Assert.Empty(options.AllowedStylesheetHosts);
+        Assert.Equal(10000, options.MaxTableCells);
         Assert.True(options.EnableAccessibilityDiagnostics);
+    }
+
+    [Fact]
+    public void HtmlToWordOptions_DefaultsBoundTableExpansion() {
+        var options = new HtmlToWordOptions();
+
+        Assert.Equal(50000, options.MaxTableCells);
+        Assert.Equal(ImageProcessingMode.EmbedDataUriOnly, options.ImageProcessing);
     }
 
     [Fact]
@@ -50,11 +61,13 @@ public class ConversionOptionsTests {
         Assert.False(defaultProfile.AllowDocumentStylesheetLinks);
         Assert.Equal(ImageProcessingMode.Embed, defaultProfile.ImageProcessing);
         Assert.Contains("https", defaultProfile.AllowedImageUriSchemes);
+        Assert.Contains("file", defaultProfile.AllowedImageUriSchemes);
         Assert.Contains("https", defaultProfile.AllowedStylesheetUriSchemes);
         Assert.True(defaultProfile.HyperlinkUrlPolicy.DisallowScriptUrls);
         Assert.True(defaultProfile.HyperlinkUrlPolicy.DisallowFileUrls);
         Assert.False(defaultProfile.HyperlinkUrlPolicy.AllowDataUrls);
         Assert.Null(defaultProfile.MaxHtmlNodes);
+        Assert.Null(defaultProfile.MaxTableCells);
 
         var untrustedProfile = HtmlToWordOptions.CreateUntrustedHtmlProfile();
         Assert.False(untrustedProfile.AllowDocumentStylesheetLinks);
@@ -72,6 +85,7 @@ public class ConversionOptionsTests {
         var trustedProfile = HtmlToWordOptions.CreateTrustedDocumentProfile();
         Assert.True(trustedProfile.AllowDocumentStylesheetLinks);
         Assert.Equal(ImageProcessingMode.Embed, trustedProfile.ImageProcessing);
+        Assert.Contains("file", trustedProfile.AllowedImageUriSchemes);
         Assert.True(trustedProfile.ValidateImageContentTypes);
         Assert.True(trustedProfile.ValidateStylesheetContentTypes);
     }

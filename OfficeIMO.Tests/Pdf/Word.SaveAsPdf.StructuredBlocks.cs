@@ -4,6 +4,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
+using OfficeIMO.Tests.Pdf;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using System;
@@ -2441,8 +2442,7 @@ public partial class Word {
         return Assert.IsType<double>(value);
     }
 
-    private static byte[] CreateNativeMinimalRgbPng() =>
-        Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADUlEQVR42mP8z8BQDwAFgwJ/l2hYtQAAAABJRU5ErkJggg==");
+    private static byte[] CreateNativeMinimalRgbPng() => PdfPngTestImages.CreateRgbPng(1, 1);
 
     [Fact]
     public void SaveAsPdf_OfficeIMOEngine_NativeVmlImageReader_Rejects_Images_Above_Limit() {

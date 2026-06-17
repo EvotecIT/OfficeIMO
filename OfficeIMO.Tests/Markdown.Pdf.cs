@@ -1,5 +1,6 @@
 using OfficeIMO.Markdown;
 using OfficeIMO.Markdown.Pdf;
+using OfficeIMO.Tests.Pdf;
 using PdfCore = OfficeIMO.Pdf;
 using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 using Xunit;
@@ -7,6 +8,11 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class MarkdownPdfTests {
+    private static byte[] CreateMinimalRgbPng() => PdfPngTestImages.CreateRgbPng(1, 1);
+
+    private static string CreateMinimalRgbPngDataUri() =>
+        "data:image/png;base64," + Convert.ToBase64String(CreateMinimalRgbPng());
+
     [Fact]
     public void Markdown_SaveAsPdf_ExportsCoreDocumentStructure() {
         var options = new MarkdownPdfSaveOptions();
@@ -133,12 +139,40 @@ Console.WriteLine("OfficeIMO");
     }
 
     [Fact]
+    public void Markdown_SaveAsPdf_BlocksLocalImagesByDefault() {
+        string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.Markdown.Pdf.LocalImages", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try {
+            string imagePath = Path.Combine(directory, "pixel.png");
+            File.WriteAllBytes(imagePath, CreateMinimalRgbPng());
+
+            var options = new MarkdownPdfSaveOptions {
+                BaseDirectory = directory
+            };
+            string markdown = "![Local pixel](pixel.png){width=24 height=24}";
+
+            byte[] pdf = markdown.SaveAsPdf(options);
+            string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+            IReadOnlyList<PdfCore.PdfExtractedImage> images = PdfCore.PdfImageExtractor.ExtractImages(pdf);
+
+            MarkdownPdfExportWarning warning = Assert.Single(options.Warnings);
+            Assert.Equal("LocalImageDisabled", warning.Code);
+            Assert.Contains("[Image:", text, StringComparison.Ordinal);
+            Assert.Empty(images);
+        } finally {
+            if (Directory.Exists(directory)) {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public void Markdown_SaveAsPdf_EmbedsRemoteImagesThroughExplicitResolver() {
         Uri? requestedUri = null;
         var options = new MarkdownPdfSaveOptions {
             RemoteImageResolver = uri => {
                 requestedUri = uri;
-                return Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=");
+                return CreateMinimalRgbPng();
             }
         };
         string markdown = """
@@ -189,7 +223,7 @@ Console.WriteLine("OfficeIMO");
             string pdfPath = Path.Combine(directory, "README.pdf");
             string imagePath = Path.Combine(directory, "pixel.png");
 
-            File.WriteAllBytes(imagePath, Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII="));
+            File.WriteAllBytes(imagePath, CreateMinimalRgbPng());
             File.WriteAllText(markdownPath, """
 # Asset Report
 
@@ -197,7 +231,9 @@ Console.WriteLine("OfficeIMO");
 _Figure 1. Embedded from a relative Markdown path._
 """);
 
-            var options = new MarkdownPdfSaveOptions();
+            var options = new MarkdownPdfSaveOptions {
+                IncludeLocalImages = true
+            };
             MarkdownPdfConverter.SaveFileAsPdf(markdownPath, pdfPath, options);
 
             byte[] pdf = File.ReadAllBytes(pdfPath);
@@ -225,11 +261,12 @@ _Figure 1. Embedded from a relative Markdown path._
         Directory.CreateDirectory(directory);
         try {
             string imagePath = Path.Combine(directory, "pixel.png");
-            File.WriteAllBytes(imagePath, Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII="));
+            File.WriteAllBytes(imagePath, CreateMinimalRgbPng());
 
             var options = new MarkdownPdfSaveOptions {
                 ApplyWordLikeTheme = false,
                 BaseDirectory = directory,
+                IncludeLocalImages = true,
                 PdfOptions = new PdfCore.PdfOptions {
                     PageWidth = 220,
                     PageHeight = 180,
@@ -296,11 +333,9 @@ _Figure 1. Embedded from a relative Markdown path._
     [Fact]
     public void Markdown_SaveAsPdf_EmbedsDataUriImages() {
         var options = new MarkdownPdfSaveOptions();
-        string markdown = """
-# Inline Asset
-
-![Inline pixel](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=){width=24 height=24}
-""";
+        string markdown =
+            "# Inline Asset\n\n" +
+            "![Inline pixel](" + CreateMinimalRgbPngDataUri() + "){width=24 height=24}\n";
 
         byte[] pdf = markdown.SaveAsPdf(options);
         string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();

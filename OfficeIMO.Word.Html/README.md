@@ -50,6 +50,8 @@ WordDocument safeDocument = html.LoadFromHtml(safeOptions);
 - `CreateOfficeIMOProfile()` keeps the compatibility-oriented defaults.
 - `CreateUntrustedHtmlProfile()` keeps external document resources offline by default and enables bounded conversion.
 - `CreateTrustedDocumentProfile()` enables document-provided stylesheet links for known-good HTML while keeping resource validation.
+- `new HtmlToWordOptions()` embeds data URI images only; use a trusted/compatibility profile or set `ImageProcessing = ImageProcessingMode.Embed` for trusted remote image fetching.
+- Local file images are not loaded by default; use a trusted/compatibility profile or add `Uri.UriSchemeFile` to `AllowedImageUriSchemes` for trusted local files.
 
 ## Boundaries
 

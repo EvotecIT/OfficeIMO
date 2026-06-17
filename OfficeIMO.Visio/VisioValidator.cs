@@ -5,6 +5,7 @@ using System.IO.Packaging;
 using System.IO.Compression;
 using System.Linq;
 using System.Xml.Linq;
+using System.Xml;
 
 namespace OfficeIMO.Visio {
     /// <summary>
@@ -23,6 +24,14 @@ namespace OfficeIMO.Visio {
         private const string CT_Document = "application/vnd.ms-visio.drawing.main+xml";
         private const string CT_Pages = "application/vnd.ms-visio.pages+xml";
         private const string CT_Page = "application/vnd.ms-visio.page+xml";
+        private const long MaxXmlCharactersInDocument = 10_000_000;
+
+        private static readonly XmlReaderSettings SecureXmlReaderSettings = new() {
+            DtdProcessing = DtdProcessing.Prohibit,
+            XmlResolver = null,
+            MaxCharactersInDocument = MaxXmlCharactersInDocument,
+            MaxCharactersFromEntities = 0
+        };
 
         /// <summary>
         /// Validates the specified Visio package.
@@ -177,7 +186,8 @@ namespace OfficeIMO.Visio {
                 }
 
                 using Stream stream = entry.Open();
-                document = XDocument.Load(stream);
+                using XmlReader reader = XmlReader.Create(stream, SecureXmlReaderSettings);
+                document = XDocument.Load(reader);
                 return true;
             } catch (InvalidDataException ex) {
                 issues.Add($"Cannot read Visio package '{packagePath}' as a zip archive: {ex.Message}");
@@ -198,7 +208,8 @@ namespace OfficeIMO.Visio {
 
             try {
                 using Stream stream = pkg.GetPart(partUri).GetStream();
-                document = XDocument.Load(stream);
+                using XmlReader reader = XmlReader.Create(stream, SecureXmlReaderSettings);
+                document = XDocument.Load(reader);
                 return true;
             } catch (System.Xml.XmlException ex) {
                 issues.Add($"Visio {partKind} part '{partName}' is not valid XML: {ex.Message}");

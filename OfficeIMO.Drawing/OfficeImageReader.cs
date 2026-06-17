@@ -133,7 +133,8 @@ public static class OfficeImageReader {
         int offset = 8;
         while (offset + 12 <= data.Length) {
             int length = ReadInt32BigEndian(data, offset);
-            if (length < 0 || offset + 12 + length > data.Length) {
+            long chunkEnd = (long)offset + 12L + length;
+            if (length < 0 || chunkEnd > data.Length) {
                 break;
             }
 
@@ -150,7 +151,7 @@ public static class OfficeImageReader {
                 break;
             }
 
-            offset += 12 + length;
+            offset = (int)chunkEnd;
         }
 
         info = new OfficeImageInfo(OfficeImageFormat.Png, width, height, dpiX, dpiY);

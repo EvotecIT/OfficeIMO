@@ -128,7 +128,7 @@ public partial class Html {
         string uri = new Uri(assetPath).AbsoluteUri;
         string html = $"<p><img src=\"{uri}\" /></p>";
         
-        var doc = html.LoadFromHtml(new HtmlToWordOptions());
+        var doc = html.LoadFromHtml(HtmlToWordOptions.CreateTrustedDocumentProfile());
         string roundTrip = doc.ToHtml(new WordToHtmlOptions());
 
         Assert.Contains("<img", roundTrip, StringComparison.OrdinalIgnoreCase);
@@ -342,7 +342,7 @@ public partial class Html {
         string uri = new Uri(assetPath).AbsoluteUri;
         string html = $"<p><img src=\"{uri}\" /></p>";
 
-        var doc = html.LoadFromHtml(new HtmlToWordOptions());
+        var doc = html.LoadFromHtml(HtmlToWordOptions.CreateTrustedDocumentProfile());
 
         Assert.Single(doc.Images);
     }

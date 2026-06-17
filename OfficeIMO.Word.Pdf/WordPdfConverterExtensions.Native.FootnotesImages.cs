@@ -216,7 +216,10 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            byte[] bytes = ImageEmbedder.GetImageBytes(image);
+            if (!TryGetNativeBodyImageBytes(image, options, source, out byte[] bytes)) {
+                return;
+            }
+
             if (!IsNativePdfSupportedImageBytes(bytes, out string? unsupportedReason)) {
                 if (options != null) {
                     AddNativeExportWarning(
@@ -232,6 +235,24 @@ namespace OfficeIMO.Word.Pdf {
             double width = image.Width.HasValue ? image.Width.Value * 72D / 96D : 144D;
             double height = image.Height.HasValue ? image.Height.Value * 72D / 96D : 144D;
             pdf.Image(bytes, width, height, align);
+        }
+
+        private static bool TryGetNativeBodyImageBytes(WordImage image, PdfSaveOptions? options, string source, out byte[] bytes) {
+            try {
+                bytes = ImageEmbedder.GetImageBytes(image);
+                return true;
+            } catch (InvalidOperationException ex) {
+                bytes = System.Array.Empty<byte>();
+                if (options != null) {
+                    AddNativeExportWarning(
+                        options,
+                        "NativeBodyImageUnavailable",
+                        source,
+                        "Word image was not exported because the image bytes could not be extracted. " + ex.Message);
+                }
+
+                return false;
+            }
         }
 
         private static bool IsNativePdfSupportedImageBytes(byte[] bytes, out string? unsupportedReason) {

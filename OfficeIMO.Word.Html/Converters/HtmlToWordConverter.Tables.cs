@@ -327,7 +327,13 @@ namespace OfficeIMO.Word.Html {
                     return; // mixed width types not supported
                 }
 
-                for (int i = 0; i < span; i++) {
+                int remainingColumns = cols - widths.Count;
+                if (remainingColumns <= 0) {
+                    return;
+                }
+
+                int widthsToAdd = Math.Min(span, remainingColumns);
+                for (int i = 0; i < widthsToAdd; i++) {
                     widths.Add(size);
                 }
             }

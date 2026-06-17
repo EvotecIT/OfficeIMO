@@ -13,6 +13,10 @@ internal static partial class RtfHtmlReader {
                 return false;
             }
 
+            if (!IsHyperlinkFieldAllowed(token, instruction)) {
+                return false;
+            }
+
             RtfField field = EnsureInlineParagraph().AddField(instruction ?? string.Empty);
             ReadHyperlinkFieldData(token, field);
             ReadFormFieldData(token, field);
@@ -50,6 +54,140 @@ internal static partial class RtfHtmlReader {
                    string.Equals(marker, "start", StringComparison.OrdinalIgnoreCase);
         }
 
+        private bool IsHyperlinkFieldAllowed(IElement token, string? instruction) {
+            if (string.IsNullOrWhiteSpace(instruction)) {
+                return AreHyperlinkFieldTargetsAllowed(token, null);
+            }
+
+            if (!TryReadHyperlinkInstructionTargets(instruction!, out IReadOnlyList<string> instructionTargets)) {
+                return false;
+            }
+
+            var field = new RtfField(instruction!);
+            string? instructionTarget = instructionTargets.Count == 0
+                ? field.HyperlinkField?.Target?.ToString()
+                : instructionTargets[0];
+            return AreHyperlinkFieldTargetsAllowed(token, instructionTarget);
+        }
+
+        private bool TryReadHyperlinkInstructionTargets(string instruction, out IReadOnlyList<string> targets) {
+            targets = Array.Empty<string>();
+            IReadOnlyList<string> tokens = TokenizeRtfFieldInstruction(instruction);
+            if (tokens.Count == 0 || !string.Equals(tokens[0], "HYPERLINK", StringComparison.OrdinalIgnoreCase)) {
+                return true;
+            }
+
+            var values = new List<string>();
+            for (int index = 1; index < tokens.Count; index++) {
+                string token = tokens[index];
+                if (token.Length == 0) {
+                    continue;
+                }
+
+                if (token[0] == '\\') {
+                    if (RtfHyperlinkSwitchConsumesValue(token) && index + 1 < tokens.Count) {
+                        index++;
+                    }
+
+                    continue;
+                }
+
+                values.Add(token);
+            }
+
+            if (values.Count > 1) {
+                _options.AddDiagnostic(
+                    "RtfHtmlFieldHyperlinkRejected",
+                    "RTF hyperlink field instruction contains multiple targets.",
+                    "data-officeimo-rtf-field-instruction");
+                return false;
+            }
+
+            targets = values;
+            return true;
+        }
+
+        private static bool RtfHyperlinkSwitchConsumesValue(string token) =>
+            string.Equals(token, "\\l", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(token, "\\m", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(token, "\\n", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(token, "\\o", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(token, "\\t", StringComparison.OrdinalIgnoreCase);
+
+        private static IReadOnlyList<string> TokenizeRtfFieldInstruction(string instruction) {
+            var tokens = new List<string>();
+            int index = 0;
+            while (index < instruction.Length) {
+                while (index < instruction.Length && char.IsWhiteSpace(instruction[index])) {
+                    index++;
+                }
+
+                if (index >= instruction.Length) {
+                    break;
+                }
+
+                if (instruction[index] == '"') {
+                    index++;
+                    var quoted = new System.Text.StringBuilder();
+                    while (index < instruction.Length) {
+                        char c = instruction[index++];
+                        if (c == '"') {
+                            break;
+                        }
+
+                        quoted.Append(c);
+                    }
+
+                    tokens.Add(quoted.ToString());
+                    continue;
+                }
+
+                int start = index;
+                while (index < instruction.Length && !char.IsWhiteSpace(instruction[index])) {
+                    index++;
+                }
+
+                tokens.Add(instruction.Substring(start, index - start));
+            }
+
+            return tokens;
+        }
+
+        private bool AreHyperlinkFieldTargetsAllowed(IElement token, string? instructionTarget) {
+            string? explicitTarget = GetAttribute(token, "data-officeimo-rtf-field-hyperlink");
+            string? href = GetAttribute(token, "href");
+            if (!IsHyperlinkFieldTargetAllowed(instructionTarget, "data-officeimo-rtf-field-instruction")) {
+                return false;
+            }
+
+            if (!IsHyperlinkFieldTargetAllowed(explicitTarget, "data-officeimo-rtf-field-hyperlink")) {
+                return false;
+            }
+
+            if (!IsFragmentHref(href) && !IsHyperlinkFieldTargetAllowed(href, "href")) {
+                return false;
+            }
+
+            return true;
+        }
+
+        private bool IsHyperlinkFieldTargetAllowed(string? target, string source) {
+            if (string.IsNullOrWhiteSpace(target)) {
+                return true;
+            }
+
+            string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(target, _baseUri, _options.UrlPolicy);
+            if (!string.IsNullOrWhiteSpace(resolved)) {
+                return true;
+            }
+
+            _options.AddDiagnostic(
+                "RtfHtmlFieldHyperlinkRejected",
+                "RTF hyperlink field target was rejected by the configured URL policy.",
+                source);
+            return false;
+        }
+
         private void ReadFormFieldData(IElement token, RtfField field) {
             if (!HasFormFieldData(token)) {
                 return;
@@ -80,11 +218,12 @@ internal static partial class RtfHtmlReader {
                    GetAttribute(token, "data-officeimo-rtf-form-dropdown-items") != null;
         }
 
-        private static void ReadHyperlinkFieldData(IElement token, RtfField field) {
+        private void ReadHyperlinkFieldData(IElement token, RtfField field) {
             string? explicitTarget = GetAttribute(token, "data-officeimo-rtf-field-hyperlink");
             string? href = GetAttribute(token, "href");
             string? target = explicitTarget ?? (IsFragmentHref(href) ? null : href);
-            if (!string.IsNullOrWhiteSpace(target) && Uri.TryCreate(target, UriKind.RelativeOrAbsolute, out Uri? uri)) {
+            Uri? uri = ReadUriValue(target);
+            if (uri != null) {
                 field.Hyperlink = uri;
             }
 
