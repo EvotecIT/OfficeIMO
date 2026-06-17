@@ -236,12 +236,12 @@ jobs:
           name: officeimo-markup-vsix
           path: OfficeIMO.Markup.VSCode/dist
 
-      - name: Publish VSIX
+      - name: Resolve marketplace publish target
+        id: marketplace_target
         shell: pwsh
         env:
           IS_PRE_RELEASE: ${{ (github.event_name == 'release' && github.event.release.prerelease) || (github.event_name == 'workflow_dispatch' && inputs.pre_release) }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
         run: |
           function Convert-OfficeIMOReleaseTagToExtensionVersion {
             param(
@@ -266,10 +266,13 @@ jobs:
               [string] $ExtensionId,
 
               [Parameter(Mandatory)]
-              [string] $Version
+              [string] $Version,
+
+              [Parameter(Mandatory)]
+              [string] $VsceMain
             )
 
-            $showOutput = npm exec -- vsce show $ExtensionId --json 2>$null
+            $showOutput = & node $VsceMain show $ExtensionId --json 2>$null
             if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($showOutput)) {
               Write-Host "Marketplace listing $ExtensionId was not found or could not be read. Publishing will create or update it." -ForegroundColor Yellow
               return $false
@@ -277,10 +280,6 @@ jobs:
 
             $listing = $showOutput | ConvertFrom-Json
             return @($listing.versions | Where-Object { $_.version -eq $Version }).Count -gt 0
-          }
-
-          if ([string]::IsNullOrWhiteSpace($env:VSCE_PAT)) {
-            throw 'VSCE_PAT is required when publishing to the Visual Studio Marketplace.'
           }
 
           if ('${{ github.event_name }}' -eq 'workflow_dispatch' -and '${{ github.ref_name }}' -ne 'master') {
@@ -294,10 +293,6 @@ jobs:
           }
 
           $extensionId = "$($package.publisher).$($package.name)"
-          if (Test-MarketplaceVersionExists -ExtensionId $extensionId -Version $extensionVersion) {
-            Write-Host "Marketplace version $extensionId@$extensionVersion already exists. Marketplace publishing will be skipped." -ForegroundColor Yellow
-            return
-          }
 
           $vsixFiles = @(Get-ChildItem -LiteralPath 'OfficeIMO.Markup.VSCode/dist' -Filter '*.vsix')
           if ($vsixFiles.Count -ne 1) {
@@ -309,7 +304,38 @@ jobs:
             throw 'VSCE was not found in node_modules. Run npm ci first.'
           }
 
-          $publishArgs = @($vsceMain, 'publish', '--packagePath', $vsixFiles[0].FullName)
+          if (Test-MarketplaceVersionExists -ExtensionId $extensionId -Version $extensionVersion -VsceMain $vsceMain) {
+            Write-Host "Marketplace version $extensionId@$extensionVersion already exists. Marketplace publishing will be skipped." -ForegroundColor Yellow
+            "should_publish=false" >> $env:GITHUB_OUTPUT
+            return
+          }
+
+          "should_publish=true" >> $env:GITHUB_OUTPUT
+          "vsce_main=$vsceMain" >> $env:GITHUB_OUTPUT
+          "vsix_path=$($vsixFiles[0].FullName)" >> $env:GITHUB_OUTPUT
+
+      - name: Publish VSIX
+        if: ${{ steps.marketplace_target.outputs.should_publish == 'true' }}
+        shell: pwsh
+        env:
+          IS_PRE_RELEASE: ${{ (github.event_name == 'release' && github.event.release.prerelease) || (github.event_name == 'workflow_dispatch' && inputs.pre_release) }}
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+          VSCE_MAIN: ${{ steps.marketplace_target.outputs.vsce_main }}
+          VSIX_PATH: ${{ steps.marketplace_target.outputs.vsix_path }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:VSCE_PAT)) {
+            throw 'VSCE_PAT is required when publishing to the Visual Studio Marketplace.'
+          }
+
+          if ([string]::IsNullOrWhiteSpace($env:VSCE_MAIN) -or -not (Test-Path -LiteralPath $env:VSCE_MAIN)) {
+            throw 'VSCE was not found in node_modules. Run npm ci first.'
+          }
+
+          if ([string]::IsNullOrWhiteSpace($env:VSIX_PATH) -or -not (Test-Path -LiteralPath $env:VSIX_PATH)) {
+            throw 'Expected a resolved VSIX artifact path before publishing.'
+          }
+
+          $publishArgs = @($env:VSCE_MAIN, 'publish', '--packagePath', $env:VSIX_PATH)
           if ($env:IS_PRE_RELEASE -eq 'true') {
             $publishArgs += '--pre-release'
           }
