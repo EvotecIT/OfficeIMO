@@ -34,6 +34,12 @@ namespace OfficeIMO.Excel {
         public IDictionary<string, string> Headers { get; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
+        /// Gets allowed remote workbook host names. When empty, any host is allowed.
+        /// Entries are host names only; schemes, paths, and ports are not accepted.
+        /// </summary>
+        public ISet<string> AllowedHosts { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
         /// Gets or sets whether the downloaded workbook must look like a ZIP/OpenXML package.
         /// </summary>
         public bool ValidateZipHeader { get; set; } = true;

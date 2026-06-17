@@ -20,6 +20,7 @@ namespace OfficeIMO.Excel {
 
             var snapshot = ExcelHttpLoadOptionsSnapshot.Create(options);
             ValidateScheme(uri, snapshot.SchemePolicy);
+            ValidateHost(uri, snapshot);
             ValidateLimits(snapshot);
 
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -95,6 +96,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 ValidateScheme(nextUri, options.SchemePolicy);
+                ValidateHost(nextUri, options);
                 if (!IsSameOrigin(currentUri, nextUri)) {
                     includeCustomHeaders = false;
                 }
@@ -147,6 +149,19 @@ namespace OfficeIMO.Excel {
             }
 
             throw new NotSupportedException("Remote Excel loads require HTTPS unless ExcelHttpLoadOptions.SchemePolicy allows HTTP.");
+        }
+
+        private static void ValidateHost(Uri uri, ExcelHttpLoadOptionsSnapshot options) {
+            if (options.AllowedHosts.Count == 0) {
+                return;
+            }
+
+            string host = NormalizeUriHost(uri);
+            if (options.AllowedHosts.Contains(host)) {
+                return;
+            }
+
+            throw new NotSupportedException($"Remote Excel load host '{uri.Host}' is not allowed by ExcelHttpLoadOptions.AllowedHosts.");
         }
 
         private static void ValidateLimits(ExcelHttpLoadOptionsSnapshot options) {
@@ -216,6 +231,46 @@ namespace OfficeIMO.Excel {
             return bytes.Length >= 2 && bytes[0] == (byte)'P' && bytes[1] == (byte)'K';
         }
 
+        private static HashSet<string> NormalizeAllowedHosts(ISet<string> hosts) {
+            var normalizedHosts = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (string host in hosts) {
+                normalizedHosts.Add(NormalizeConfiguredHost(host));
+            }
+
+            return normalizedHosts;
+        }
+
+        private static string NormalizeConfiguredHost(string host) {
+            if (string.IsNullOrWhiteSpace(host)) {
+                throw new ArgumentException("AllowedHosts entries must be non-empty host names.", nameof(ExcelHttpLoadOptions.AllowedHosts));
+            }
+
+            string candidate = host.Trim();
+            if (candidate.Length > 1 && candidate[0] == '[' && candidate[candidate.Length - 1] == ']') {
+                candidate = candidate.Substring(1, candidate.Length - 2);
+            }
+
+            UriHostNameType hostNameType = Uri.CheckHostName(candidate);
+            if (hostNameType == UriHostNameType.Unknown) {
+                throw new ArgumentException("AllowedHosts entries must be host names only; schemes, paths, and ports are not accepted.", nameof(ExcelHttpLoadOptions.AllowedHosts));
+            }
+
+            if (hostNameType == UriHostNameType.IPv6) {
+                return candidate.ToLowerInvariant();
+            }
+
+            return new Uri("https://" + candidate).IdnHost.TrimEnd('.').ToLowerInvariant();
+        }
+
+        private static string NormalizeUriHost(Uri uri) {
+            string host = uri.IdnHost;
+            if (Uri.CheckHostName(host) == UriHostNameType.IPv6) {
+                return host.Trim('[', ']').ToLowerInvariant();
+            }
+
+            return host.TrimEnd('.').ToLowerInvariant();
+        }
+
         private sealed class ExcelHttpLoadOptionsSnapshot {
             private ExcelHttpLoadOptionsSnapshot(
                 ExcelUriSchemePolicy schemePolicy,
@@ -223,6 +278,7 @@ namespace OfficeIMO.Excel {
                 TimeSpan timeout,
                 string? userAgent,
                 Dictionary<string, string> headers,
+                HashSet<string> allowedHosts,
                 bool validateZipHeader,
                 bool validateContentTypeWhenPresent,
                 HashSet<string> allowedContentTypes,
@@ -233,6 +289,7 @@ namespace OfficeIMO.Excel {
                 Timeout = timeout;
                 UserAgent = userAgent;
                 Headers = headers;
+                AllowedHosts = allowedHosts;
                 ValidateZipHeader = validateZipHeader;
                 ValidateContentTypeWhenPresent = validateContentTypeWhenPresent;
                 AllowedContentTypes = allowedContentTypes;
@@ -245,6 +302,7 @@ namespace OfficeIMO.Excel {
             internal TimeSpan Timeout { get; }
             internal string? UserAgent { get; }
             internal Dictionary<string, string> Headers { get; }
+            internal HashSet<string> AllowedHosts { get; }
             internal bool ValidateZipHeader { get; }
             internal bool ValidateContentTypeWhenPresent { get; }
             internal HashSet<string> AllowedContentTypes { get; }
@@ -260,6 +318,7 @@ namespace OfficeIMO.Excel {
                     options.Timeout,
                     options.UserAgent,
                     new Dictionary<string, string>(options.Headers, StringComparer.OrdinalIgnoreCase),
+                    NormalizeAllowedHosts(options.AllowedHosts),
                     options.ValidateZipHeader,
                     options.ValidateContentTypeWhenPresent,
                     new HashSet<string>(options.AllowedContentTypes, StringComparer.OrdinalIgnoreCase),
