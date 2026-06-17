@@ -11,6 +11,8 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
         internal const long NativeVmlImageMaxBytes = 32L * 1024L * 1024L;
+        private const double MaxNativeVmlLengthPoints = 1_000_000D;
+        private const double MaxNativeVmlTextPathFontSizePoints = 400D;
 
         private static bool TryRenderNativeCoverPageCanvas(INativePdfFlow pdf, WordDocument document, W.SdtBlock? sdtBlock, WordSection section, PdfSaveOptions? options) {
             W.SdtContentBlock? content = sdtBlock?.SdtContentBlock;
@@ -995,7 +997,10 @@ namespace OfficeIMO.Word.Pdf {
 
         private static double? GetNativeVmlTextPathFontSize(V.TextPath textPath) {
             Dictionary<string, string> style = ParseNativeVmlStyle(textPath.Style?.Value);
-            return ResolveNativeVmlLength(style.TryGetValue("font-size", out string? value) ? value : null, 1D, 1D);
+            double? fontSize = ResolveNativeVmlLength(style.TryGetValue("font-size", out string? value) ? value : null, 1D, 1D);
+            return fontSize.HasValue && fontSize.Value > 0D && fontSize.Value <= MaxNativeVmlTextPathFontSizePoints
+                ? fontSize
+                : null;
         }
 
         private static PdfCore.PdfStandardFont? GetNativeVmlTextPathFont(V.TextPath textPath) {
@@ -1213,21 +1218,22 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             string normalized = value!.Trim();
-            if (normalized.EndsWith("pt", StringComparison.OrdinalIgnoreCase)) return ParseNativeVmlDouble(normalized.Substring(0, normalized.Length - 2));
-            if (normalized.EndsWith("in", StringComparison.OrdinalIgnoreCase)) return ParseNativeVmlDouble(normalized.Substring(0, normalized.Length - 2)) * 72D;
-            if (normalized.EndsWith("cm", StringComparison.OrdinalIgnoreCase)) return ParseNativeVmlDouble(normalized.Substring(0, normalized.Length - 2)) * 28.3464566929D;
-            if (normalized.EndsWith("mm", StringComparison.OrdinalIgnoreCase)) return ParseNativeVmlDouble(normalized.Substring(0, normalized.Length - 2)) * 2.83464566929D;
-            if (normalized.EndsWith("px", StringComparison.OrdinalIgnoreCase)) return ParseNativeVmlDouble(normalized.Substring(0, normalized.Length - 2)) * 0.75D;
-            if (normalized.EndsWith("%", StringComparison.OrdinalIgnoreCase)) return ParseNativeVmlDouble(normalized.Substring(0, normalized.Length - 1)) * parentSize / 100D;
+            if (normalized.EndsWith("pt", StringComparison.OrdinalIgnoreCase)) return NormalizeNativeVmlLength(ParseNativeVmlDouble(normalized.Substring(0, normalized.Length - 2)));
+            if (normalized.EndsWith("in", StringComparison.OrdinalIgnoreCase)) return MultiplyNativeVmlLength(ParseNativeVmlDouble(normalized.Substring(0, normalized.Length - 2)), 72D);
+            if (normalized.EndsWith("cm", StringComparison.OrdinalIgnoreCase)) return MultiplyNativeVmlLength(ParseNativeVmlDouble(normalized.Substring(0, normalized.Length - 2)), 28.3464566929D);
+            if (normalized.EndsWith("mm", StringComparison.OrdinalIgnoreCase)) return MultiplyNativeVmlLength(ParseNativeVmlDouble(normalized.Substring(0, normalized.Length - 2)), 2.83464566929D);
+            if (normalized.EndsWith("px", StringComparison.OrdinalIgnoreCase)) return MultiplyNativeVmlLength(ParseNativeVmlDouble(normalized.Substring(0, normalized.Length - 2)), 0.75D);
+            if (normalized.EndsWith("%", StringComparison.OrdinalIgnoreCase)) return MultiplyNativeVmlLength(ParseNativeVmlDouble(normalized.Substring(0, normalized.Length - 1)), parentSize / 100D);
 
             double? number = ParseNativeVmlDouble(normalized);
             if (!number.HasValue) {
                 return null;
             }
 
-            return parentCoord > 0D && Math.Abs(parentCoord - parentSize) > 0.01D
+            double resolved = parentCoord > 0D && Math.Abs(parentCoord - parentSize) > 0.01D
                 ? number.Value / parentCoord * parentSize
                 : number.Value;
+            return NormalizeNativeVmlLength(resolved);
         }
 
         private static bool HasNativeVmlLengthUnit(string value) =>
@@ -1346,12 +1352,32 @@ namespace OfficeIMO.Word.Pdf {
             return Math.Min(width, height) * fraction;
         }
 
-        private static double? ParseNativeVmlDouble(string value) =>
-            double.TryParse(value.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double result)
-                ? result
-                : double.TryParse(value.Trim().Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out result)
-                    ? result
-                    : null;
+        private static double? ParseNativeVmlDouble(string value) {
+            string normalized = value.Trim();
+            if (double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double result) && IsNativeVmlFinite(result)) {
+                return result;
+            }
+
+            if (double.TryParse(normalized.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out result) && IsNativeVmlFinite(result)) {
+                return result;
+            }
+
+            return null;
+        }
+
+        private static double? MultiplyNativeVmlLength(double? value, double factor) =>
+            value.HasValue ? NormalizeNativeVmlLength(value.Value * factor) : null;
+
+        private static double? NormalizeNativeVmlLength(double? value) {
+            if (!value.HasValue || !IsNativeVmlFinite(value.Value) || Math.Abs(value.Value) > MaxNativeVmlLengthPoints) {
+                return null;
+            }
+
+            return value.Value;
+        }
+
+        private static bool IsNativeVmlFinite(double value) =>
+            !double.IsNaN(value) && !double.IsInfinity(value);
 
         private static double? ParseNativeVmlOpacity(string? value) {
             if (string.IsNullOrWhiteSpace(value)) {

@@ -1011,6 +1011,24 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Ignores_NonFinite_Vml_Lengths() {
+        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("ResolveNativeVmlLength", BindingFlags.NonPublic | BindingFlags.Static)!;
+
+        Assert.Null(method.Invoke(null, new object?[] { "1e309pt", 1D, 1D }));
+        Assert.Null(method.Invoke(null, new object?[] { "1e307in", 1D, 1D }));
+        Assert.Equal(24D, Assert.IsType<double>(method.Invoke(null, new object?[] { "24pt", 1D, 1D })));
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Ignores_Unsafe_Vml_TextPath_FontSize() {
+        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("GetNativeVmlTextPathFontSize", BindingFlags.NonPublic | BindingFlags.Static)!;
+
+        Assert.Null(method.Invoke(null, new object[] { new V.TextPath { Style = "font-size:1e309pt" } }));
+        Assert.Null(method.Invoke(null, new object[] { new V.TextPath { Style = "font-size:999999pt" } }));
+        Assert.Equal(24D, Assert.IsType<double>(method.Invoke(null, new object[] { new V.TextPath { Style = "font-size:24pt" } })));
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Resolves_DrawingMl_Preset_Colors() {
         var properties = new ChartShapeProperties(
             new A.SolidFill(new A.PresetColor { Val = A.PresetColorValues.Red }));
