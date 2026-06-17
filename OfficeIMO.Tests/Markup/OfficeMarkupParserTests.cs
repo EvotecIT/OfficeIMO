@@ -1415,6 +1415,89 @@ profile: presentation
     }
 
     [Fact]
+    public void PowerPointExporter_SkipsAbsoluteSlideImagesOutsideBaseDirectoryByDefault() {
+        var tempDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDirectory);
+        var imageSource = new Uri(Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png")).AbsoluteUri;
+
+        var markup = $$"""
+---
+profile: presentation
+---
+
+# Visual
+
+@slide {
+  layout: blank
+}
+
+![Logo]({{imageSource}})
+""";
+        var path = Path.Combine(tempDirectory, "external-image-slide.pptx");
+
+        try {
+            var result = OfficeMarkupParser.Parse(markup);
+
+            new OfficeMarkupPowerPointExporter().Export(result.Document, new OfficeMarkupPowerPointExportOptions {
+                OutputPath = path,
+                BaseDirectory = tempDirectory,
+                RenderMermaidDiagrams = false
+            });
+
+            using var package = PresentationDocument.Open(path, false);
+            var slidePart = Assert.Single(package.PresentationPart!.SlideParts);
+            Assert.Empty(slidePart.ImageParts);
+            Assert.Contains("Image:", slidePart.Slide.OuterXml, StringComparison.Ordinal);
+        } finally {
+            if (Directory.Exists(tempDirectory)) {
+                Directory.Delete(tempDirectory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void PowerPointExporter_AllowsAbsoluteSlideImagesWhenOptedIn() {
+        var tempDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDirectory);
+        var imageSource = new Uri(Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png")).AbsoluteUri;
+
+        var markup = $$"""
+---
+profile: presentation
+---
+
+# Visual
+
+@slide {
+  layout: blank
+}
+
+![Logo]({{imageSource}})
+""";
+        var path = Path.Combine(tempDirectory, "trusted-external-image-slide.pptx");
+
+        try {
+            var result = OfficeMarkupParser.Parse(markup);
+
+            new OfficeMarkupPowerPointExporter().Export(result.Document, new OfficeMarkupPowerPointExportOptions {
+                OutputPath = path,
+                BaseDirectory = tempDirectory,
+                RenderMermaidDiagrams = false,
+                AllowExternalImagePaths = true
+            });
+
+            using var package = PresentationDocument.Open(path, false);
+            var slidePart = Assert.Single(package.PresentationPart!.SlideParts);
+            Assert.NotEmpty(slidePart.ImageParts);
+            Assert.DoesNotContain("Image:", slidePart.Slide.OuterXml, StringComparison.Ordinal);
+        } finally {
+            if (Directory.Exists(tempDirectory)) {
+                Directory.Delete(tempDirectory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public void PowerPointExporter_PreservesJpegAspectRatioForContainedImages() {
         var tempDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempDirectory);
@@ -2215,6 +2298,77 @@ Q2,180
         } finally {
             if (File.Exists(path)) {
                 File.Delete(path);
+            }
+        }
+    }
+
+    [Fact]
+    public void WordExporter_SkipsAbsoluteImagesOutsideBaseDirectoryByDefault() {
+        var tempDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDirectory);
+        var imageSource = new Uri(Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png")).AbsoluteUri;
+
+        var markup = $"""
+---
+profile: document
+---
+
+# Visual
+
+![Logo]({imageSource})
+""";
+        var path = Path.Combine(tempDirectory, "external-image.docx");
+
+        try {
+            var result = OfficeMarkupParser.Parse(markup);
+
+            new OfficeMarkupWordExporter().Export(result.Document, new OfficeMarkupWordExportOptions {
+                OutputPath = path,
+                BaseDirectory = tempDirectory
+            });
+
+            using var package = WordprocessingDocument.Open(path, false);
+            Assert.Empty(package.MainDocumentPart!.ImageParts);
+            Assert.Contains("Image:", package.MainDocumentPart!.Document.Body!.InnerText, StringComparison.Ordinal);
+        } finally {
+            if (Directory.Exists(tempDirectory)) {
+                Directory.Delete(tempDirectory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void WordExporter_AllowsAbsoluteImagesWhenOptedIn() {
+        var tempDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDirectory);
+        var imageSource = new Uri(Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png")).AbsoluteUri;
+
+        var markup = $"""
+---
+profile: document
+---
+
+# Visual
+
+![Logo]({imageSource})
+""";
+        var path = Path.Combine(tempDirectory, "trusted-external-image.docx");
+
+        try {
+            var result = OfficeMarkupParser.Parse(markup);
+
+            new OfficeMarkupWordExporter().Export(result.Document, new OfficeMarkupWordExportOptions {
+                OutputPath = path,
+                BaseDirectory = tempDirectory,
+                AllowExternalImagePaths = true
+            });
+
+            using var package = WordprocessingDocument.Open(path, false);
+            Assert.NotEmpty(package.MainDocumentPart!.ImageParts);
+            Assert.DoesNotContain("Image:", package.MainDocumentPart!.Document.Body!.InnerText, StringComparison.Ordinal);
+        } finally {
+            if (Directory.Exists(tempDirectory)) {
+                Directory.Delete(tempDirectory, recursive: true);
             }
         }
     }

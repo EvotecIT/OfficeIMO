@@ -56,8 +56,7 @@ public sealed partial class OfficeMarkupPowerPointExporter {
         string? resolvedImage = null;
         if (!string.IsNullOrWhiteSpace(image)) {
             var candidate = image!.Trim().Trim('"', '\'');
-            var resolved = ResolvePath(options, candidate);
-            if (File.Exists(resolved)) {
+            if (TryResolveFilePath(options, candidate, out var resolved) && File.Exists(resolved)) {
                 resolvedImage = resolved;
             }
         }
@@ -77,14 +76,6 @@ public sealed partial class OfficeMarkupPowerPointExporter {
         }
 
         return spec;
-    }
-
-    private static string ResolvePath(OfficeMarkupPowerPointExportOptions? options, string source) {
-        if (Path.IsPathRooted(source) || options == null || string.IsNullOrWhiteSpace(options.BaseDirectory)) {
-            return source;
-        }
-
-        return Path.Combine(options.BaseDirectory!, source);
     }
 
     private static string? TryExtractFunctionArgument(string value, string functionName) {

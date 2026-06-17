@@ -6,6 +6,7 @@ public sealed class OfficeMarkupPowerPointExportOptions {
     public double SlideWidthInches { get; set; } = 10.0;
     public double SlideHeightInches { get; set; } = 5.625;
     public bool IncludeUnsupportedBlocksAsText { get; set; } = true;
+    public bool AllowExternalImagePaths { get; set; }
     public bool RenderMermaidDiagrams { get; set; } = true;
     public string? MermaidRendererPath { get; set; }
     public string? TemporaryDirectory { get; set; }

@@ -43,15 +43,36 @@ public sealed partial class OfficeMarkupPowerPointExporter {
 
             path = uri.LocalPath;
         } else {
-            path = ResolvePath(options, source);
+            path = source;
         }
 
         try {
-            path = Path.GetFullPath(path);
+            bool hasBaseDirectory = options != null && !string.IsNullOrWhiteSpace(options.BaseDirectory);
+            if (!hasBaseDirectory && Path.IsPathRooted(path) && !(options?.AllowExternalImagePaths ?? false)) {
+                return false;
+            }
+
+            string candidate = Path.IsPathRooted(path) || !hasBaseDirectory
+                ? path
+                : Path.Combine(options!.BaseDirectory!, path);
+            path = Path.GetFullPath(candidate);
+            if (hasBaseDirectory
+                && !(options?.AllowExternalImagePaths ?? false)
+                && !IsPathWithinDirectory(path, Path.GetFullPath(options!.BaseDirectory!))) {
+                return false;
+            }
+
             return true;
         } catch (Exception) when (!Debugger.IsAttached) {
             return false;
         }
+    }
+
+    private static bool IsPathWithinDirectory(string path, string directory) {
+        string normalizedDirectory = directory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+            + Path.DirectorySeparatorChar;
+        string normalizedPath = path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        return normalizedPath.StartsWith(normalizedDirectory, StringComparison.OrdinalIgnoreCase);
     }
 
     private static void AddTable(PowerPointSlide slide, OfficeMarkupTableBlock table, LayoutCursor cursor) {
