@@ -114,12 +114,16 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
+            bool clearCellFields = options.HasFlag(ExcelClearOptions.Values)
+                || options.HasFlag(ExcelClearOptions.Formulas)
+                || options.HasFlag(ExcelClearOptions.Styles);
+            if (clearCellFields) {
+                MaterializeDeferredDataSetImportIfNeeded();
+            }
+
             WriteLock(() => {
                 var ws = WorksheetRoot;
                 bool worksheetChanged = false;
-                bool clearCellFields = options.HasFlag(ExcelClearOptions.Values)
-                    || options.HasFlag(ExcelClearOptions.Formulas)
-                    || options.HasFlag(ExcelClearOptions.Styles);
 
                 if (clearCellFields) {
                     worksheetChanged |= ClearExistingCellFieldsInRange((r1, c1, r2, c2), options);

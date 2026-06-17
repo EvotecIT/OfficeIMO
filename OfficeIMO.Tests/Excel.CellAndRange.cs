@@ -76,6 +76,35 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ClearRangeRemovesPendingDirectCellValuesBeforeSave() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Data");
+                for (int row = 1; row <= 160; row++) {
+                    sheet.CellAt(row, 1).SetValue("secret-" + row.ToString(CultureInfo.InvariantCulture));
+                }
+
+                sheet.ClearRange("A1:A160", ExcelClearOptions.Values);
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorkbookPart workbookPart = spreadsheet.WorkbookPart!;
+                WorksheetPart worksheetPart = workbookPart.WorksheetParts.Single();
+                string worksheetXml = worksheetPart.Worksheet.OuterXml;
+
+                Assert.DoesNotContain("secret-", worksheetXml, StringComparison.Ordinal);
+                SharedStringTable? sharedStrings = workbookPart.SharedStringTablePart?.SharedStringTable;
+                if (sharedStrings != null) {
+                    Assert.DoesNotContain(sharedStrings.InnerText, "secret-", StringComparison.Ordinal);
+                }
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
         public void RangeEnforces1BasedIndexing() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
