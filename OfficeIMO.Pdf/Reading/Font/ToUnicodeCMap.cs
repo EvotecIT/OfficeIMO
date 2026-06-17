@@ -10,6 +10,7 @@ internal sealed class ToUnicodeCMap {
     private readonly Dictionary<string, string> _reverseMap = new(StringComparer.Ordinal);
     private int _maxKeyBytes = 1;
     private int _maxReverseTextLength = 1;
+    private int _processedMappings;
 
     public static bool TryParse(byte[] data, out ToUnicodeCMap? cmap) {
         try {
@@ -25,20 +26,36 @@ internal sealed class ToUnicodeCMap {
         var bfchar = new Regex(@"<(?<src>[0-9A-Fa-f]+)>\s+<(?<dst>[0-9A-Fa-f]+)>");
         foreach (Match section in Regex.Matches(s, @"beginbfchar([\s\S]*?)endbfchar", RegexOptions.IgnoreCase)) {
             foreach (Match m in bfchar.Matches(section.Groups[1].Value)) {
+                if (HasReachedMappingLimit()) {
+                    break;
+                }
+
                 AddMap(m.Groups["src"].Value, m.Groups["dst"].Value);
+            }
+
+            if (HasReachedMappingLimit()) {
+                break;
             }
         }
         // Handle beginbfrange / endbfrange, sequential mapping
         var bfrangeLine = new Regex(@"<(?<from>[0-9A-Fa-f]+)>\s+<(?<to>[0-9A-Fa-f]+)>\s+<(?<dst>[0-9A-Fa-f]+)>");
         foreach (Match section in Regex.Matches(s, @"beginbfrange([\s\S]*?)endbfrange", RegexOptions.IgnoreCase)) {
+            if (HasReachedMappingLimit()) {
+                break;
+            }
+
             string body = section.Groups[1].Value;
             string sequentialBody = Regex.Replace(body, @"<(?<from>[0-9A-Fa-f]+)>\s+<(?<to>[0-9A-Fa-f]+)>\s+\[(?<dsts>[\s\S]*?)\]", string.Empty, RegexOptions.IgnoreCase);
             foreach (Match m in bfrangeLine.Matches(sequentialBody)) {
+                if (HasReachedMappingLimit()) {
+                    break;
+                }
+
                 int from = Convert.ToInt32(m.Groups["from"].Value, 16);
                 int to = Convert.ToInt32(m.Groups["to"].Value, 16);
                 int dst = Convert.ToInt32(m.Groups["dst"].Value, 16);
                 int rangeLength = to >= from ? to - from + 1 : 0;
-                if (rangeLength <= 0 || rangeLength > MaxRangeMappings || _map.Count + rangeLength > MaxMappings) {
+                if (rangeLength <= 0 || rangeLength > MaxRangeMappings || _processedMappings + rangeLength > MaxMappings) {
                     continue;
                 }
 
@@ -51,6 +68,10 @@ internal sealed class ToUnicodeCMap {
             }
 
             foreach (Match m in Regex.Matches(body, @"<(?<from>[0-9A-Fa-f]+)>\s+<(?<to>[0-9A-Fa-f]+)>\s+\[(?<dsts>[\s\S]*?)\]", RegexOptions.IgnoreCase)) {
+                if (HasReachedMappingLimit()) {
+                    break;
+                }
+
                 int from = Convert.ToInt32(m.Groups["from"].Value, 16);
                 int to = Convert.ToInt32(m.Groups["to"].Value, 16);
                 int keyBytes = m.Groups["from"].Value.Length / 2;
@@ -60,7 +81,7 @@ internal sealed class ToUnicodeCMap {
                         break;
                     }
 
-                    if (_map.Count >= MaxMappings || code - from >= MaxRangeMappings) {
+                    if (HasReachedMappingLimit() || code - from >= MaxRangeMappings) {
                         break;
                     }
 
@@ -73,10 +94,11 @@ internal sealed class ToUnicodeCMap {
     }
 
     private void AddMap(string srcHex, string dstHex) {
-        if (_map.Count >= MaxMappings) {
+        if (HasReachedMappingLimit()) {
             return;
         }
 
+        _processedMappings++;
         srcHex = RemoveHexWhitespace(srcHex);
         dstHex = RemoveHexWhitespace(dstHex);
         if (srcHex.Length % 2 != 0) srcHex = "0" + srcHex;
@@ -93,6 +115,8 @@ internal sealed class ToUnicodeCMap {
             _reverseMap[s] = key;
         }
     }
+
+    private bool HasReachedMappingLimit() => _processedMappings >= MaxMappings;
 
     private static string RemoveHexWhitespace(string value) {
         bool hasWhitespace = false;

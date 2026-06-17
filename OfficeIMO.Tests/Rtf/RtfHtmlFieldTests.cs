@@ -106,6 +106,25 @@ public class RtfHtmlFieldTests {
     }
 
     [Fact]
+    public void Html_ToRtfDocument_Rejects_Hyperlink_Field_Instruction_With_Extra_Target() {
+        const string html = "<p><a href=\"https://example.test/\" data-officeimo-rtf-field=\"true\" data-officeimo-rtf-field-instruction=\"HYPERLINK &quot;file:///C:/secret.txt&quot; &quot;https://example.test/&quot;\">Link</a></p>";
+        var options = new HtmlToRtfOptions {
+            UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile()
+        };
+
+        RtfDocument document = html.ToRtfDocument(options);
+        RtfParagraph paragraph = Assert.Single(document.Paragraphs);
+        string rtf = document.ToRtf();
+
+        Assert.Empty(paragraph.Inlines.OfType<RtfField>());
+        Assert.Equal("Link", paragraph.ToPlainText());
+        Assert.DoesNotContain("file:///C:/secret.txt", rtf, StringComparison.OrdinalIgnoreCase);
+        HtmlRtfConversionDiagnostic diagnostic = Assert.Single(options.Diagnostics);
+        Assert.Equal("RtfHtmlFieldHyperlinkRejected", diagnostic.Code);
+        Assert.Equal("data-officeimo-rtf-field-instruction", diagnostic.Source);
+    }
+
+    [Fact]
     public void Html_ToRtfDocument_Rejects_Unsafe_Hyperlink_Field_Metadata_Target() {
         const string html = "<p><a href=\"https://example.test/\" data-officeimo-rtf-field=\"true\" data-officeimo-rtf-field-instruction=\"HYPERLINK &quot;https://example.test/&quot;\" data-officeimo-rtf-field-hyperlink=\"javascript:alert(1)\">Link</a></p>";
         var options = new HtmlToRtfOptions {

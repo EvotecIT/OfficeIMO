@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Text;
 using OfficeIMO.Pdf;
 using Xunit;
@@ -23,6 +24,24 @@ endbfrange
 
         Assert.Equal("A", cmap!.MapBytes(new byte[] { 0x00, 0x01 }));
         Assert.NotEqual("B", cmap.MapBytes(new byte[] { 0x10, 0x00 }));
+    }
+
+    [Fact]
+    public void ToUnicodeCMap_CapsDuplicateSourceEntriesByProcessedCount() {
+        var builder = new StringBuilder();
+        builder.AppendLine("beginbfchar");
+        for (int index = 0; index < 70000; index++) {
+            builder.AppendLine("<01> <0041>");
+        }
+
+        builder.AppendLine("endbfchar");
+
+        Assert.True(ToUnicodeCMap.TryParse(Encoding.ASCII.GetBytes(builder.ToString()), out ToUnicodeCMap? cmap));
+        Assert.NotNull(cmap);
+
+        FieldInfo field = typeof(ToUnicodeCMap).GetField("_processedMappings", BindingFlags.NonPublic | BindingFlags.Instance)!;
+        Assert.Equal(65536, (int)field.GetValue(cmap!)!);
+        Assert.Equal("A", cmap!.MapBytes(new byte[] { 0x01 }));
     }
 
     [Fact]

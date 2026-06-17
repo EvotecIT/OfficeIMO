@@ -439,13 +439,23 @@ namespace OfficeIMO.Word.Pdf {
             return false;
         }
 
-        private static IEnumerable<(OpenXmlElement SeriesElement, int OriginalSeriesIndex)> GetNativeWordOrderedSeriesElements(OpenXmlElement chartElement) {
-            return chartElement.ChildElements
-                .Where(element => element.LocalName == "ser")
-                .Select((element, index) => (SeriesElement: element, OriginalSeriesIndex: index, Order: GetNativeWordChartSeriesOrder(element, index)))
+        private static IReadOnlyList<(OpenXmlElement SeriesElement, int OriginalSeriesIndex)> GetNativeWordOrderedSeriesElements(OpenXmlElement chartElement) {
+            var series = new List<(OpenXmlElement SeriesElement, int OriginalSeriesIndex, int Order)>();
+            int index = 0;
+            foreach (OpenXmlElement element in chartElement.ChildElements.Where(element => element.LocalName == "ser")) {
+                if (series.Count >= MaxNativeWordChartSeries) {
+                    throw new NativeWordChartLimitException("Word chart cache exceeds the maximum supported series count.");
+                }
+
+                series.Add((element, index, GetNativeWordChartSeriesOrder(element, index)));
+                index++;
+            }
+
+            return series
                 .OrderBy(item => item.Order)
                 .ThenBy(item => item.OriginalSeriesIndex)
-                .Select(item => (item.SeriesElement, item.OriginalSeriesIndex));
+                .Select(item => (item.SeriesElement, item.OriginalSeriesIndex))
+                .ToArray();
         }
 
         private static int GetNativeWordChartSeriesOrder(OpenXmlElement seriesElement, int fallback) {

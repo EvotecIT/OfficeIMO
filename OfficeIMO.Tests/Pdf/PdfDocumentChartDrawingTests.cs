@@ -179,6 +179,23 @@ public class PdfDocumentChartDrawingTests {
     }
 
     [Fact]
+    public void WordChartSeriesExtraction_RejectsTooManySeriesBeforeOrdering() {
+        var chart = new BarChart(
+            new BarDirection { Val = BarDirectionValues.Column },
+            new BarGrouping { Val = BarGroupingValues.Clustered });
+        for (uint index = 0; index < 257; index++) {
+            chart.Append(CreateBarSeries(index, new[] { "Q1" }, new[] { 1D }));
+        }
+
+        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("ExtractNativeWordChartSeries", BindingFlags.NonPublic | BindingFlags.Static)!;
+        object?[] args = { new Chart(), chart, OfficeChartKind.ColumnClustered, new Dictionary<A.SchemeColorValues, OfficeColor>(), null };
+
+        TargetInvocationException exception = Assert.Throws<TargetInvocationException>(() => method.Invoke(null, args));
+
+        Assert.Contains("maximum supported series count", exception.InnerException?.Message);
+    }
+
+    [Fact]
     public void WordChartSeriesExtraction_PreservesNonPiePointFillColors() {
         OfficeColor highlight = OfficeColor.ParseHex("#F76707");
         BarChartSeries barSeries = CreateBarSeries(0U, new[] { "Q1", "Q2" }, new[] { 1D, 2D });
