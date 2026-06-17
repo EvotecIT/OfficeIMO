@@ -99,8 +99,7 @@ namespace OfficeIMO.Visio {
         private static bool IsBrowserRenderable(string contentType, string? extension) {
             if (string.Equals(contentType, "image/png", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(contentType, "image/jpeg", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(contentType, "image/gif", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(contentType, "image/svg+xml", StringComparison.OrdinalIgnoreCase)) {
+                string.Equals(contentType, "image/gif", StringComparison.OrdinalIgnoreCase)) {
                 return true;
             }
 
