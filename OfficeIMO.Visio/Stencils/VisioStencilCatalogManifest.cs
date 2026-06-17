@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Xml;
 using System.Xml.Linq;
 
@@ -46,20 +47,34 @@ namespace OfficeIMO.Visio.Stencils {
         /// Loads a stencil catalog manifest from a file.
         /// </summary>
         public static VisioStencilCatalog Load(string path) {
+            return Load(path, null);
+        }
+
+        /// <summary>
+        /// Loads a stencil catalog manifest from a file with explicit source-package trust options.
+        /// </summary>
+        public static VisioStencilCatalog Load(string path, VisioStencilCatalogManifestLoadOptions? options) {
             if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Manifest path cannot be null or whitespace.", nameof(path));
             using FileStream stream = File.OpenRead(path);
-            return Load(stream);
+            return Load(stream, CreateOptionsForPath(path, options));
         }
 
         /// <summary>
         /// Loads a stencil catalog manifest from a stream.
         /// </summary>
         public static VisioStencilCatalog Load(Stream stream) {
+            return Load(stream, null);
+        }
+
+        /// <summary>
+        /// Loads a stencil catalog manifest from a stream with explicit source-package trust options.
+        /// </summary>
+        public static VisioStencilCatalog Load(Stream stream, VisioStencilCatalogManifestLoadOptions? options) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
             XDocument document = XDocument.Load(stream);
-            return FromXml(document);
+            return FromXml(document, options);
         }
 
         /// <summary>
@@ -95,6 +110,13 @@ namespace OfficeIMO.Visio.Stencils {
         /// Converts an XML manifest document to a stencil catalog.
         /// </summary>
         public static VisioStencilCatalog FromXml(XDocument document) {
+            return FromXml(document, null);
+        }
+
+        /// <summary>
+        /// Converts an XML manifest document to a stencil catalog with explicit source-package trust options.
+        /// </summary>
+        public static VisioStencilCatalog FromXml(XDocument document, VisioStencilCatalogManifestLoadOptions? options) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             XElement root = document.Root ?? throw new InvalidDataException("Stencil manifest does not contain a root element.");
             if (root.Name != Ns + "StencilCatalog") {
@@ -121,12 +143,89 @@ namespace OfficeIMO.Visio.Stencils {
                     ReadValues(shape, "Tags"),
                     (string?)shape.Attribute("IconNameU"),
                     ReadUnit(shape, "DefaultUnit"),
-                    (string?)shape.Attribute("SourcePackagePath"),
+                    ResolveSourcePackagePath((string?)shape.Attribute("SourcePackagePath"), options),
                     ReadPreviewImage(shape),
                     ReadConnectionPoints(shape));
             }
 
             return builder.Build();
+        }
+
+        private static VisioStencilCatalogManifestLoadOptions? CreateOptionsForPath(string path, VisioStencilCatalogManifestLoadOptions? options) {
+            string? directory = Path.GetDirectoryName(Path.GetFullPath(path));
+            if (string.IsNullOrWhiteSpace(directory)) {
+                return options;
+            }
+
+            if (options == null) {
+                return new VisioStencilCatalogManifestLoadOptions {
+                    BaseDirectory = directory
+                };
+            }
+
+            return new VisioStencilCatalogManifestLoadOptions {
+                AllowSourcePackagePaths = options.AllowSourcePackagePaths,
+                AllowExternalSourcePackagePaths = options.AllowExternalSourcePackagePaths,
+                BaseDirectory = string.IsNullOrWhiteSpace(options.BaseDirectory) ? directory : options.BaseDirectory
+            };
+        }
+
+        private static string? ResolveSourcePackagePath(string? sourcePackagePath, VisioStencilCatalogManifestLoadOptions? options) {
+            if (string.IsNullOrWhiteSpace(sourcePackagePath) ||
+                options?.AllowSourcePackagePaths != true) {
+                return null;
+            }
+
+            string candidate = sourcePackagePath!.Trim();
+            if (Uri.TryCreate(candidate, UriKind.Absolute, out Uri? uri)) {
+                if (!uri.IsFile) {
+                    return null;
+                }
+
+                candidate = uri.LocalPath;
+            }
+
+            try {
+                bool hasBaseDirectory = !string.IsNullOrWhiteSpace(options.BaseDirectory);
+                if (!Path.IsPathRooted(candidate) && !hasBaseDirectory) {
+                    return null;
+                }
+
+                if (!Path.IsPathRooted(candidate)) {
+                    candidate = Path.Combine(options.BaseDirectory!, candidate);
+                }
+
+                string fullPath = Path.GetFullPath(candidate);
+                if (hasBaseDirectory &&
+                    !options.AllowExternalSourcePackagePaths &&
+                    !IsPathWithinDirectory(fullPath, Path.GetFullPath(options.BaseDirectory!))) {
+                    return null;
+                }
+
+                if (!hasBaseDirectory &&
+                    Path.IsPathRooted(candidate) &&
+                    !options.AllowExternalSourcePackagePaths) {
+                    return null;
+                }
+
+                return fullPath;
+            } catch (ArgumentException) {
+                return null;
+            } catch (NotSupportedException) {
+                return null;
+            } catch (PathTooLongException) {
+                return null;
+            }
+        }
+
+        private static bool IsPathWithinDirectory(string path, string directory) {
+            string normalizedDirectory = directory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                + Path.DirectorySeparatorChar;
+            string normalizedPath = path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            StringComparison comparison = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                ? StringComparison.OrdinalIgnoreCase
+                : StringComparison.Ordinal;
+            return normalizedPath.StartsWith(normalizedDirectory, comparison);
         }
 
         private static XElement Values(string name, IEnumerable<string> values) {
