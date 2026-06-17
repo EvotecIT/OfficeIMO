@@ -36,4 +36,9 @@ public sealed class CsvSaveOptions
     /// Gets or sets the text encoding used when writing to files. Defaults to UTF-8 without BOM when omitted.
     /// </summary>
     public Encoding? Encoding { get; set; }
+
+    /// <summary>
+    /// Gets or sets how formula-like values are handled before writing CSV output. Default preserves values exactly.
+    /// </summary>
+    public CsvFormulaInjectionPolicy FormulaInjectionPolicy { get; set; } = CsvFormulaInjectionPolicy.Preserve;
 }

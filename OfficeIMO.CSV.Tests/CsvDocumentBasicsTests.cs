@@ -78,4 +78,55 @@ public class CsvDocumentBasicsTests
         Assert.Equal(new[] { "Name", "Age" }, parsed.Header);
         Assert.Empty(parsed.AsEnumerable());
     }
+
+    [Fact]
+    public void Formula_Injection_Policy_Preserves_Values_By_Default()
+    {
+        var doc = new CsvDocument()
+            .WithHeader("=Header");
+
+        doc.AddRow("=cmd");
+
+        var text = doc.ToString(new CsvSaveOptions { NewLine = "\n" });
+
+        Assert.Equal("=Header\n=cmd\n", text);
+    }
+
+    [Theory]
+    [InlineData("=cmd", "'=cmd")]
+    [InlineData("+cmd", "'+cmd")]
+    [InlineData("-cmd", "'-cmd")]
+    [InlineData("@cmd", "'@cmd")]
+    [InlineData("\tcmd", "'\tcmd")]
+    [InlineData("  =cmd", "'  =cmd")]
+    public void Formula_Injection_Policy_Escapes_Dangerous_Row_Values(string value, string expected)
+    {
+        var doc = new CsvDocument()
+            .WithHeader("Value");
+
+        doc.AddRow(value);
+
+        var text = doc.ToString(new CsvSaveOptions {
+            NewLine = "\n",
+            FormulaInjectionPolicy = CsvFormulaInjectionPolicy.Escape
+        });
+
+        Assert.Equal($"Value\n{expected}\n", text);
+    }
+
+    [Fact]
+    public void Formula_Injection_Policy_Escapes_Dangerous_Headers()
+    {
+        var doc = new CsvDocument()
+            .WithHeader("=Header");
+
+        doc.AddRow("safe");
+
+        var text = doc.ToString(new CsvSaveOptions {
+            NewLine = "\n",
+            FormulaInjectionPolicy = CsvFormulaInjectionPolicy.Escape
+        });
+
+        Assert.Equal("'=Header\nsafe\n", text);
+    }
 }
