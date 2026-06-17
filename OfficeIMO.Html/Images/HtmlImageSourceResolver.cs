@@ -241,6 +241,8 @@ public static class HtmlImageSourceResolver {
                 string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(candidate.Url, baseUri, policy);
                 if (AddCandidate(candidates, resolved)) {
                     candidateCount++;
+                } else if (string.IsNullOrWhiteSpace(resolved)) {
+                    candidateCount++;
                 }
 
                 if (IsNonPositiveCandidateLimit(GetRemainingCandidateCount(maxCandidates, candidateCount))) {

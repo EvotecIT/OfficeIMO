@@ -136,6 +136,24 @@ public sealed class HtmlCoreTests {
     }
 
     [Fact]
+    public void HtmlImageSourceResolver_CountsRejectedSrcSetEntriesTowardExpansionLimit() {
+        var document = HtmlDocumentParser.ParseDocument("""
+<img srcset="javascript:alert(1) 1x, javascript:alert(2) 2x, media/good.webp 3x" src="media/fallback.png" alt="Hero">
+""");
+        var image = document.QuerySelector("img")!;
+
+        IReadOnlyList<string> candidates = HtmlImageSourceResolver.ResolveImageSourceCandidates(
+            image,
+            new Uri("https://example.test/gallery/"),
+            HtmlUrlPolicy.CreateOfficeIMOProfile(),
+            allowParentPictureFallback: true,
+            maxResponsiveCandidates: 2);
+
+        var source = Assert.Single(candidates);
+        Assert.Equal("https://example.test/gallery/media/fallback.png", source);
+    }
+
+    [Fact]
     public void HtmlSrcSetParser_CanLimitCandidateExpansion() {
         IReadOnlyList<HtmlSrcSetCandidate> candidates = HtmlSrcSetParser.Parse(
             "one.png 1x, two.png 2x, three.png 3x",
