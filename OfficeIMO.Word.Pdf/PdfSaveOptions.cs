@@ -12,9 +12,16 @@ namespace OfficeIMO.Word.Pdf {
         public PdfCore.PdfOptions? PdfOptions { get; set; }
 
         /// <summary>
-        /// Optional Word-style font family used as the first-party PDF default font. Installed TrueType faces are embedded when available; otherwise the family maps to the nearest PDF standard font.
+        /// Optional Word-style font family used as the first-party PDF default font. By default, the family maps to the nearest PDF standard font without embedding installed host fonts.
         /// </summary>
         public string? FontFamily { get; set; }
+
+        /// <summary>
+        /// When true, first-party Word PDF export may load installed system fonts to embed them into the generated PDF.
+        /// Defaults to false so untrusted DOCX content cannot silently copy host font files into exported PDFs.
+        /// Explicit font data supplied through <see cref="PdfOptions"/> remains available regardless of this setting.
+        /// </summary>
+        public bool AllowSystemFontEmbedding { get; set; }
 
         /// <summary>
         /// Optional page size in PDF points. The supplied geometry is preserved unless <see cref="Orientation"/> is also set.
