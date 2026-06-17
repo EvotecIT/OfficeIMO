@@ -1341,7 +1341,7 @@ public partial class Word {
         chartReference.AddNamespaceDeclaration("r", "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
 
         return new Run(
-            new Drawing(
+            new DocumentFormat.OpenXml.Wordprocessing.Drawing(
                 new DW.Inline(
                     new DW.Extent {
                         Cx = 3048000L,
