@@ -479,6 +479,96 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void HtmlToWord_ImageSelection_PreservesAltTextWhenResponsiveSourcesAreRejected() {
+            var options = new HtmlToWordOptions {
+                ImageProcessing = ImageProcessingMode.Embed
+            };
+            options.AllowedImageHosts.Add("cdn.good.test");
+            string html = """<img srcset="https://blocked.example.test/logo.png 1x" alt="Logo" />""";
+
+            var doc = html.LoadFromHtml(options);
+
+            Assert.Empty(doc.Images);
+            var paragraph = Assert.Single(doc.Paragraphs);
+            Assert.Equal("Logo", paragraph.Text);
+            var diagnostic = Assert.Single(options.Diagnostics);
+            Assert.Equal("ImageResourceRejectedByPolicy", diagnostic.Code);
+        }
+
+        [Fact]
+        public void HtmlToWord_ImageSelection_DoesNotCountAbsentPictureAttributesTowardScanLimit() {
+            var requested = new List<Uri>();
+            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+            using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(request => {
+                requested.Add(request.RequestUri!);
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
+                    Content = new ByteArrayContent(Convert.FromBase64String(validPng)) {
+                        Headers = {
+                            ContentType = new MediaTypeHeaderValue("image/png")
+                        }
+                    }
+                });
+            }));
+            var options = new HtmlToWordOptions {
+                HttpClient = httpClient,
+                ImageProcessing = ImageProcessingMode.Embed,
+                MaxRemoteImageCandidateProbes = null,
+                MaxImageSourceCandidates = 1
+            };
+            string html = """
+<picture>
+  <source data-lazy-src="https://cdn.example.test/good.png">
+  <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=" alt="Logo" />
+</picture>
+""";
+
+            var doc = html.LoadFromHtml(options);
+
+            Assert.Single(doc.Images);
+            var request = Assert.Single(requested);
+            Assert.Equal("/good.png", request.AbsolutePath);
+            Assert.Empty(options.Diagnostics);
+        }
+
+        [Fact]
+        public void HtmlToWord_ImageSelection_DoesNotLetOverLimitSrcSetSuppressSourceFallback() {
+            var requested = new List<Uri>();
+            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+            using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(request => {
+                requested.Add(request.RequestUri!);
+                if (request.RequestUri!.AbsolutePath == "/fallback.png") {
+                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
+                        Content = new ByteArrayContent(Convert.FromBase64String(validPng)) {
+                            Headers = {
+                                ContentType = new MediaTypeHeaderValue("image/png")
+                            }
+                        }
+                    });
+                }
+
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+            }));
+            var options = new HtmlToWordOptions {
+                HttpClient = httpClient,
+                ImageProcessing = ImageProcessingMode.Embed,
+                MaxRemoteImageCandidateProbes = null,
+                MaxImageSourceCandidates = 1
+            };
+            string html = """
+<picture>
+  <source srcset="https://cdn.example.test/missing.png 1x">
+  <img srcset="https://cdn.example.test/fallback.png 1x" src="https://cdn.example.test/fallback.png" alt="Logo" />
+</picture>
+""";
+
+            var doc = html.LoadFromHtml(options);
+
+            Assert.Single(doc.Images);
+            Assert.Equal(new[] { "/missing.png", "/fallback.png" }, requested.Select(uri => uri.AbsolutePath).ToArray());
+            Assert.Empty(options.Diagnostics);
+        }
+
+        [Fact]
         public void HtmlToWord_ImageSelection_AllowsTrustedCallersToProbeAllRemoteCandidates() {
             var requested = new List<Uri>();
             const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";

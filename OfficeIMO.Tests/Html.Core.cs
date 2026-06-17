@@ -131,7 +131,6 @@ public sealed class HtmlCoreTests {
         Assert.Collection(
             candidates,
             source => Assert.Equal("https://example.test/gallery/media/one.webp", source),
-            source => Assert.Equal("https://example.test/gallery/media/two.webp", source),
             source => Assert.Equal("https://example.test/gallery/media/fallback.png", source));
     }
 
@@ -148,6 +147,47 @@ public sealed class HtmlCoreTests {
             HtmlUrlPolicy.CreateOfficeIMOProfile(),
             allowParentPictureFallback: true,
             maxResponsiveCandidates: 2);
+
+        var source = Assert.Single(candidates);
+        Assert.Equal("https://example.test/gallery/media/fallback.png", source);
+    }
+
+    [Fact]
+    public void HtmlImageSourceResolver_CountsDuplicateSrcSetEntriesTowardExpansionLimit() {
+        var document = HtmlDocumentParser.ParseDocument("""
+<img srcset="media/one.webp 1x, media/one.webp 2x, media/two.webp 3x" src="media/fallback.png" alt="Hero">
+""");
+        var image = document.QuerySelector("img")!;
+
+        IReadOnlyList<string> candidates = HtmlImageSourceResolver.ResolveImageSourceCandidates(
+            image,
+            new Uri("https://example.test/gallery/"),
+            HtmlUrlPolicy.CreateOfficeIMOProfile(),
+            allowParentPictureFallback: true,
+            maxResponsiveCandidates: 2);
+
+        Assert.Collection(
+            candidates,
+            source => Assert.Equal("https://example.test/gallery/media/one.webp", source),
+            source => Assert.Equal("https://example.test/gallery/media/fallback.png", source));
+    }
+
+    [Fact]
+    public void HtmlImageSourceResolver_CountsRejectedPictureUrlAttributesTowardExpansionLimit() {
+        var document = HtmlDocumentParser.ParseDocument("""
+<picture>
+  <source src="javascript:alert(1)" data-lazy-src="media/good.webp">
+  <img src="media/fallback.png" alt="Hero">
+</picture>
+""");
+        var image = document.QuerySelector("img")!;
+
+        IReadOnlyList<string> candidates = HtmlImageSourceResolver.ResolveImageSourceCandidates(
+            image,
+            new Uri("https://example.test/gallery/"),
+            HtmlUrlPolicy.CreateOfficeIMOProfile(),
+            allowParentPictureFallback: true,
+            maxResponsiveCandidates: 1);
 
         var source = Assert.Single(candidates);
         Assert.Equal("https://example.test/gallery/media/fallback.png", source);

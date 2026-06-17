@@ -239,11 +239,8 @@ public static class HtmlImageSourceResolver {
 
             foreach (HtmlSrcSetCandidate candidate in HtmlSrcSetParser.Enumerate(element.GetAttribute(attributeNames[i]))) {
                 string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(candidate.Url, baseUri, policy);
-                if (AddCandidate(candidates, resolved)) {
-                    candidateCount++;
-                } else if (string.IsNullOrWhiteSpace(resolved)) {
-                    candidateCount++;
-                }
+                AddCandidate(candidates, resolved);
+                candidateCount++;
 
                 if (IsNonPositiveCandidateLimit(GetRemainingCandidateCount(maxCandidates, candidateCount))) {
                     return false;
@@ -269,9 +266,19 @@ public static class HtmlImageSourceResolver {
                 return false;
             }
 
-            string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(element.GetAttribute(attributeNames[i]), baseUri, policy);
-            if (AddCandidate(candidates, resolved)) {
+            string? rawValue = element.GetAttribute(attributeNames[i]);
+            if (string.IsNullOrWhiteSpace(rawValue)) {
+                continue;
+            }
+
+            string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(rawValue, baseUri, policy);
+            AddCandidate(candidates, resolved);
+            if (!string.IsNullOrWhiteSpace(rawValue)) {
                 candidateCount++;
+            }
+
+            if (IsNonPositiveCandidateLimit(GetRemainingCandidateCount(maxCandidates, candidateCount))) {
+                return false;
             }
         }
 
