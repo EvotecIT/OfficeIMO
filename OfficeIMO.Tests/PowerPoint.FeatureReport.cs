@@ -169,6 +169,44 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PowerPointFeatureReport_DetectsAnimationTimingOnMediaShape() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    using var media = new MemoryStream(new byte[] { 1, 2, 3, 4, 5 });
+                    presentation.AddSlide().AddAudio(media, "audio/mpeg", ".mp3");
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, true)) {
+                    SlidePart slidePart = document.PresentationPart!.SlideParts.Single();
+                    string shapeId = slidePart.Slide.Descendants<Picture>().Single()
+                        .NonVisualPictureProperties!.NonVisualDrawingProperties!.Id!.Value.ToString();
+                    ChildTimeNodeList childNodes = slidePart.Slide.Timing!.Descendants<ChildTimeNodeList>().First();
+                    childNodes.Append(new Animate(
+                        new CommonBehavior(
+                            new CommonTimeNode { Id = 900U, Duration = "500" },
+                            new TargetElement(new ShapeTarget { ShapeId = shapeId }))));
+                    slidePart.Slide.Save();
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                    PowerPointFeatureReport report = presentation.InspectFeatures();
+                    PowerPointFeatureFinding timing = Assert.Single(report.FindFeatures("Animations and timing"));
+
+                    Assert.Equal(PowerPointFeatureSupportLevel.Preserved, timing.SupportLevel);
+                    Assert.Equal(1, timing.Count);
+                    Assert.Throws<InvalidOperationException>(() => report.EnsureNoAdvancedFeatures());
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void PowerPointFeatureReport_DetectsAdvancedPackageSignals() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
@@ -226,6 +264,41 @@ namespace OfficeIMO.Tests {
 
                     InvalidOperationException unsupportedException = Assert.Throws<InvalidOperationException>(() => report.EnsureNoUnsupportedFeatures());
                     Assert.Contains("Digital signatures", unsupportedException.Message);
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void PowerPointFeatureReport_DetectsEmbeddedOleObjectParts() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    presentation.AddSlide().AddTextBox("Embedded object");
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, true)) {
+                    SlidePart slidePart = document.PresentationPart!.SlideParts.Single();
+                    EmbeddedObjectPart embeddedObjectPart =
+                        slidePart.AddEmbeddedObjectPart("application/vnd.openxmlformats-officedocument.oleObject");
+                    using var stream = new MemoryStream(new byte[] { 1, 2, 3, 4 });
+                    embeddedObjectPart.FeedData(stream);
+                    slidePart.Slide.Save();
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                    PowerPointFeatureReport report = presentation.InspectFeatures();
+                    PowerPointFeatureFinding embedded = Assert.Single(report.FindFeatures("Embedded packages"));
+
+                    Assert.Equal(PowerPointFeatureSupportLevel.Preserved, embedded.SupportLevel);
+                    Assert.Equal(1, embedded.Count);
+                    Assert.Contains(embedded.Details, detail => detail.Contains("oleObject", StringComparison.OrdinalIgnoreCase));
+                    Assert.Throws<InvalidOperationException>(() => report.EnsureNoAdvancedFeatures());
                 }
             } finally {
                 if (File.Exists(filePath)) {

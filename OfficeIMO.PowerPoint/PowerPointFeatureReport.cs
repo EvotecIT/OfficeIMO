@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
@@ -516,22 +517,28 @@ namespace OfficeIMO.PowerPoint {
                         StringComparer.OrdinalIgnoreCase)
                 })
                 .Where(item => item.Timing != null)
-                .Where(item => !TargetsOnlyMediaShapes(item.Timing!, item.MediaShapeIds))
+                .Where(item => !ContainsOnlyMediaPlaybackTiming(item.Timing!, item.MediaShapeIds))
                 .Select(item => $"slide {item.Index}: {item.Timing!.Descendants().Count()} timing descendant(s)")
                 .ToList();
         }
 
-        private static bool TargetsOnlyMediaShapes(DocumentFormat.OpenXml.Presentation.Timing timing, HashSet<string> mediaShapeIds) {
+        private static bool ContainsOnlyMediaPlaybackTiming(DocumentFormat.OpenXml.Presentation.Timing timing, HashSet<string> mediaShapeIds) {
             if (mediaShapeIds.Count == 0) {
                 return false;
             }
 
-            string[] targets = timing
+            ShapeTarget[] targets = timing
                 .Descendants<DocumentFormat.OpenXml.Presentation.ShapeTarget>()
-                .Select(target => target.ShapeId?.Value)
-                .Where(id => !string.IsNullOrWhiteSpace(id))
                 .ToArray()!;
-            return targets.Length > 0 && targets.All(mediaShapeIds.Contains);
+            return targets.Length > 0 && targets.All(target =>
+                !string.IsNullOrWhiteSpace(target.ShapeId?.Value)
+                && mediaShapeIds.Contains(target.ShapeId!.Value!)
+                && IsMediaPlaybackTarget(target));
+        }
+
+        private static bool IsMediaPlaybackTarget(ShapeTarget target) {
+            return target.Ancestors<CommonMediaNode>().Any()
+                && (target.Ancestors<Audio>().Any() || target.Ancestors<Video>().Any());
         }
 
         private static List<string> DescribePartsByUri(IEnumerable<OpenXmlPart> parts, string uriFragment) {
@@ -575,11 +582,11 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static List<string> DescribeNonChartEmbeddedPackageParts(IEnumerable<OpenXmlPart> parts) {
-            var chartWorkbooks = new HashSet<EmbeddedPackagePart>(
+            var chartWorkbooks = new HashSet<OpenXmlPart>(
                 parts.OfType<ChartPart>().SelectMany(chartPart => chartPart.GetPartsOfType<EmbeddedPackagePart>()));
 
             return parts
-                .OfType<EmbeddedPackagePart>()
+                .Where(part => part is EmbeddedPackagePart || part is EmbeddedObjectPart)
                 .Where(part => !chartWorkbooks.Contains(part))
                 .Select(DescribePart)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
