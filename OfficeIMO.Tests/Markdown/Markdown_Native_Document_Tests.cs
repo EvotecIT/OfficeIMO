@@ -35,7 +35,7 @@ Inside details
         var reparsed = MarkdownNativeDocument.Parse(markdown);
 
         Assert.Equal(MarkdownNativeDocumentSourceKind.ReaderInput, native.SourceKind);
-        Assert.Equal(markdown, native.SourceMarkdown);
+        Assert.Equal(NormalizeLineEndings(markdown), native.SourceMarkdown);
         Assert.Equal(
             native.Blocks.Select(block => block.Id).ToArray(),
             reparsed.Blocks.Select(block => block.Id).ToArray());
@@ -305,6 +305,23 @@ Paragraph with `code` and ![Alt](img.png "Img").
     }
 
     [Fact]
+    public void SyntaxNode_IndexInParent_Does_Not_Rescan_Wide_Sibling_Lists() {
+        var childArray = Enumerable.Range(0, 2048)
+            .Select(_ => new MarkdownSyntaxNode(MarkdownSyntaxKind.InlineText, literal: "x"))
+            .ToArray();
+        var children = new CountingReadOnlyList<MarkdownSyntaxNode>(childArray);
+
+        _ = new MarkdownSyntaxNode(MarkdownSyntaxKind.Paragraph, children: children);
+        children.ResetIndexerReads();
+
+        for (var i = 0; i < childArray.Length; i++) {
+            Assert.Equal(i, childArray[i].IndexInParent);
+        }
+
+        Assert.Equal(0, children.IndexerReads);
+    }
+
+    [Fact]
     public void Parse_Exposes_Visual_Payload_Hints_Without_Json_Dependency() {
         var options = new MarkdownReaderOptions();
         options.DocumentTransforms.Add(new MarkdownJsonVisualCodeBlockTransform(MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence));
@@ -479,6 +496,35 @@ ix:cached-tool-evidence:v1
             clone.Add(new ParagraphBlock(new InlineSequence().Text("Same")));
             clone.Add(new ParagraphBlock(new InlineSequence().Text("Same")));
             return clone;
+        }
+    }
+
+    private static string NormalizeLineEndings(string value) => value.Replace("\r\n", "\n");
+
+    private sealed class CountingReadOnlyList<T> : IReadOnlyList<T> {
+        private readonly IReadOnlyList<T> _items;
+
+        internal CountingReadOnlyList(IReadOnlyList<T> items) {
+            _items = items;
+        }
+
+        internal int IndexerReads { get; private set; }
+
+        public int Count => _items.Count;
+
+        public T this[int index] {
+            get {
+                IndexerReads++;
+                return _items[index];
+            }
+        }
+
+        public IEnumerator<T> GetEnumerator() => _items.GetEnumerator();
+
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+        internal void ResetIndexerReads() {
+            IndexerReads = 0;
         }
     }
 }
