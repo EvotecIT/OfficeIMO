@@ -87,7 +87,7 @@ namespace OfficeIMO.PowerPoint {
 
         private static XDocument LoadDiagramXDocument(DiagramDataPart dataPart) {
             using Stream stream = dataPart.GetStream(FileMode.Open, FileAccess.Read);
-            return XDocument.Load(stream);
+            return PowerPointXmlReader.LoadPackagePartXml(stream);
         }
 
         private static void SaveDiagramData(DiagramDataPart dataPart, XDocument xdoc) {

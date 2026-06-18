@@ -4,6 +4,10 @@ using System.IO;
 
 using System.Linq;
 
+using System.Text;
+
+using System.Xml;
+
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
@@ -155,6 +159,22 @@ namespace OfficeIMO.Tests {
             }
 
             File.Delete(filePath);
+        }
+
+        [Fact]
+        public void PowerPointPackageXmlReader_RejectsDtdPackageXml() {
+            byte[] xml = Encoding.UTF8.GetBytes("""
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE a:tblStyleLst [
+  <!ENTITY expand "blocked">
+]>
+<a:tblStyleLst xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" def="{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}">
+  <a:tblStyle styleId="{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}" styleName="&expand;" />
+</a:tblStyleLst>
+""");
+            using var stream = new MemoryStream(xml);
+
+            Assert.Throws<XmlException>(() => PowerPointXmlReader.LoadPackagePartXml(stream));
         }
 
         [Fact]
