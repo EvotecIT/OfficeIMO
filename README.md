@@ -14,17 +14,6 @@ If OfficeIMO saves you time, please consider supporting the work through [GitHub
 
 PowerShell users should start with [EvotecIT/PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice), which is the PowerShell-facing project built around OfficeIMO.
 
-## What belongs here
-
-- `OfficeIMO.Word`, `OfficeIMO.Excel`, `OfficeIMO.PowerPoint`, and `OfficeIMO.Visio` own the document models for Word, Excel, PowerPoint, and Visio files.
-- `OfficeIMO.Pdf` owns the first-party PDF engine used by Word, Excel, Markdown, HTML, and PowerPoint PDF adapters.
-- `OfficeIMO.Rtf` owns the first-party Rich Text Format parser, document model, writer, and conversion adapters.
-- `OfficeIMO.Markdown`, `OfficeIMO.Markup`, and renderer packages own typed Markdown, semantic authoring, HTML rendering, and host integration.
-- `OfficeIMO.Reader` and adapter packages own read-only extraction for ingestion and AI/RAG-style pipelines.
-- `OfficeIMO.CSV`, `OfficeIMO.Zip`, `OfficeIMO.Epub`, and `OfficeIMO.Drawing` provide smaller first-party primitives used by the family.
-
-This repository should not hide product roadmaps, current-state inventories, or long generated feature dumps inside package READMEs. Package READMEs are for installation, positioning, quick starts, boundaries, and links to deeper docs.
-
 ## Main packages
 
 | Package | Purpose |
