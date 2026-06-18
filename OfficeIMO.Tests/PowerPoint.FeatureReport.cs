@@ -223,6 +223,8 @@ namespace OfficeIMO.Tests {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
 
                     Assert.Contains(report.PartiallyEditableFeatures, feature => feature.Name == "Audio and video" && feature.Count == 1);
+                    Assert.Empty(report.FindFeatures("Images"));
+                    Assert.Same(report, report.EnsureNoFeatures("Images"));
                     Assert.DoesNotContain(report.PreservedFeatures, feature => feature.Name == "Animations and timing");
                     Assert.False(report.HasAdvancedFeatures);
                 }
@@ -253,6 +255,41 @@ namespace OfficeIMO.Tests {
                         new CommonBehavior(
                             new CommonTimeNode { Id = 900U, Duration = "500" },
                             new TargetElement(new ShapeTarget { ShapeId = shapeId }))));
+                    slidePart.Slide.Save();
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                    PowerPointFeatureReport report = presentation.InspectFeatures();
+                    PowerPointFeatureFinding timing = Assert.Single(report.FindFeatures("Animations and timing"));
+
+                    Assert.Equal(PowerPointFeatureSupportLevel.Preserved, timing.SupportLevel);
+                    Assert.Equal(1, timing.Count);
+                    Assert.Throws<InvalidOperationException>(() => report.EnsureNoAdvancedFeatures());
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void PowerPointFeatureReport_DetectsTargetlessBuildTimingWithMediaPlayback() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    using var media = new MemoryStream(new byte[] { 1, 2, 3, 4, 5 });
+                    presentation.AddSlide().AddAudio(media, "audio/mpeg", ".mp3");
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, true)) {
+                    SlidePart slidePart = document.PresentationPart!.SlideParts.Single();
+                    slidePart.Slide.Timing!.Append(new OpenXmlUnknownElement(
+                        "p",
+                        "bldLst",
+                        "http://schemas.openxmlformats.org/presentationml/2006/main"));
                     slidePart.Slide.Save();
                 }
 
@@ -329,6 +366,77 @@ namespace OfficeIMO.Tests {
 
                     InvalidOperationException unsupportedException = Assert.Throws<InvalidOperationException>(() => report.EnsureNoUnsupportedFeatures());
                     Assert.Contains("Digital signatures", unsupportedException.Message);
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void PowerPointFeatureReport_DetectsApplicationPropertyDigitalSignature() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    presentation.AddSlide().AddTextBox("Application signature metadata");
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, true)) {
+                    ExtendedFilePropertiesPart appPart = document.ExtendedFilePropertiesPart
+                        ?? document.AddExtendedFilePropertiesPart();
+                    appPart.Properties ??= new DocumentFormat.OpenXml.ExtendedProperties.Properties();
+                    appPart.Properties.DigitalSignature = new DocumentFormat.OpenXml.ExtendedProperties.DigitalSignature();
+                    appPart.Properties.Save();
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                    PowerPointFeatureReport report = presentation.InspectFeatures();
+                    PowerPointFeatureFinding signatures = Assert.Single(report.FindFeatures("Digital signatures"));
+
+                    Assert.Equal(PowerPointFeatureSupportLevel.Unsupported, signatures.SupportLevel);
+                    Assert.Contains(signatures.Details, detail => detail.Contains("application properties", StringComparison.OrdinalIgnoreCase));
+                    Assert.Throws<InvalidOperationException>(() => report.EnsureNoUnsupportedFeatures());
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void PowerPointFeatureReport_IgnoresPlainTablesWithoutStyleMetadata() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointTable table = presentation.AddSlide().AddTable(1, 1);
+                    table.GetCell(0, 0).Text = "Plain";
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, true)) {
+                    A.Table table = document.PresentationPart!.SlideParts.Single().Slide.Descendants<A.Table>().Single();
+                    table.TableProperties?.Remove();
+                    foreach (OpenXmlElement idElement in table.Descendants()
+                        .Where(element => string.Equals(element.LocalName, "colId", StringComparison.OrdinalIgnoreCase)
+                            || string.Equals(element.LocalName, "rowId", StringComparison.OrdinalIgnoreCase))
+                        .ToArray()) {
+                        idElement.Remove();
+                    }
+
+                    document.PresentationPart!.SlideParts.Single().Slide.Save();
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                    PowerPointFeatureReport report = presentation.InspectFeatures();
+                    PowerPointFeatureFinding tableMetadata = Assert.Single(report.FindFeatures("Table style metadata"));
+
+                    Assert.Equal(0, tableMetadata.Count);
+                    Assert.Same(report, report.EnsureNoFeatures("Table style metadata"));
                 }
             } finally {
                 if (File.Exists(filePath)) {

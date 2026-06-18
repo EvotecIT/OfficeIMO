@@ -335,7 +335,7 @@ namespace OfficeIMO.PowerPoint {
             Add(features, "Visualization", "Charts", PowerPointFeatureSupportLevel.PartiallyEditable, Math.Max(Slides.Sum(slide => slide.Charts.Count()), chartDetails.Count), null,
                 "Common chart authoring and data updates are supported; advanced chart editing remains partial.",
                 chartDetails.Concat(chartCompanionDetails).Distinct(StringComparer.OrdinalIgnoreCase).ToList());
-            Add(features, "Media", "Images", PowerPointFeatureSupportLevel.PartiallyEditable, Slides.Sum(slide => slide.Pictures.Count()), null,
+            Add(features, "Media", "Images", PowerPointFeatureSupportLevel.PartiallyEditable, Slides.Sum(slide => slide.Pictures.Count(picture => picture is not PowerPointMedia)), null,
                 "Images can be inserted and inspected in common slide scenarios; advanced drawing behaviors remain partial.");
             Add(features, "Media", "Audio and video", PowerPointFeatureSupportLevel.PartiallyEditable, Slides.Sum(slide => slide.Media.Count()), null,
                 "Embedded audio and video can be authored with poster frames and playback timing; rich media editing remains partial.",
@@ -378,6 +378,9 @@ namespace OfficeIMO.PowerPoint {
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
                 .ToList();
+            if (_document?.ExtendedFilePropertiesPart?.Properties?.DigitalSignature != null) {
+                signatureDetails.Add("Extended application properties contain digital signature metadata.");
+            }
 
             Add(features, "Review", "Comments", PowerPointFeatureSupportLevel.Preserved, commentDetails.Count, null,
                 "Comment package metadata is detected as preserve-only review content.",
@@ -473,16 +476,17 @@ namespace OfficeIMO.PowerPoint {
             return Slides
                 .SelectMany((slide, slideIndex) => slide.SlidePart.Slide?.Descendants<A.Table>()
                     .Select((table, tableIndex) => DescribeTableMetadata(slideIndex, tableIndex, table))
-                    ?? Enumerable.Empty<string>())
+                    ?? Enumerable.Empty<string?>())
                 .Where(detail => !string.IsNullOrWhiteSpace(detail))
+                .Select(detail => detail!)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
                 .ToList();
         }
 
-        private static string DescribeTableMetadata(int slideIndex, int tableIndex, A.Table table) {
+        private static string? DescribeTableMetadata(int slideIndex, int tableIndex, A.Table table) {
             A.TableProperties? properties = table.TableProperties;
-            string styleId = properties?.GetFirstChild<A.TableStyleId>()?.Text ?? "(none)";
+            string? styleId = properties?.GetFirstChild<A.TableStyleId>()?.Text;
             int columnIds = CountDescendantsByLocalName(table, "colId");
             int rowIds = CountDescendantsByLocalName(table, "rowId");
             string flags = string.Join(", ", new[] {
@@ -494,7 +498,11 @@ namespace OfficeIMO.PowerPoint {
                     properties?.BandColumn?.Value == true ? "bandCol" : null
                 }
                 .Where(flag => flag != null));
-            return $"slide {slideIndex + 1}, table {tableIndex + 1}: style={styleId}, flags={flags}, colIds={columnIds}, rowIds={rowIds}";
+            if (string.IsNullOrWhiteSpace(styleId) && string.IsNullOrWhiteSpace(flags) && columnIds == 0 && rowIds == 0) {
+                return null;
+            }
+
+            return $"slide {slideIndex + 1}, table {tableIndex + 1}: style={styleId ?? "(none)"}, flags={flags}, colIds={columnIds}, rowIds={rowIds}";
         }
 
         private static bool HasTransitionMarkup(PowerPointSlide slide) {
@@ -538,10 +546,30 @@ namespace OfficeIMO.PowerPoint {
             ShapeTarget[] targets = timing
                 .Descendants<DocumentFormat.OpenXml.Presentation.ShapeTarget>()
                 .ToArray()!;
-            return targets.Length > 0 && targets.All(target =>
+            return ContainsOnlyMediaPlaybackTimingMarkup(timing)
+                && targets.Length > 0
+                && targets.All(target =>
                 !string.IsNullOrWhiteSpace(target.ShapeId?.Value)
                 && mediaShapeIds.Contains(target.ShapeId!.Value!)
                 && IsMediaPlaybackTarget(target));
+        }
+
+        private static bool ContainsOnlyMediaPlaybackTimingMarkup(DocumentFormat.OpenXml.Presentation.Timing timing) {
+            var allowedLocalNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
+                "audio",
+                "cMediaNode",
+                "cTn",
+                "childTnLst",
+                "cond",
+                "par",
+                "spTgt",
+                "stCondLst",
+                "tgtEl",
+                "tnLst",
+                "video"
+            };
+
+            return timing.Descendants().All(element => allowedLocalNames.Contains(element.LocalName));
         }
 
         private static bool IsMediaPlaybackTarget(ShapeTarget target) {
