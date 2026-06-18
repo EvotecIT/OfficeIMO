@@ -55,8 +55,7 @@ namespace OfficeIMO.PowerPoint {
                 A.TableRow row = new() { Height = 370840L };
                 for (int c = 0; c < columns; c++) {
                     A.TableCell cell = new(
-                        new A.TextBody(new A.BodyProperties(), new A.ListStyle(),
-                            new A.Paragraph(new A.Run(new A.Text(string.Empty)))),
+                        PowerPointTableTextDefaults.CreateTextBody(),
                         new A.TableCellProperties());
 
                     row.Append(cell);

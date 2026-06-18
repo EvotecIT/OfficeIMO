@@ -24,12 +24,26 @@ namespace OfficeIMO.PowerPoint {
 
 
             set {
-                Cell.TextBody ??= new A.TextBody(new A.BodyProperties(), new A.ListStyle());
-                A.Paragraph paragraph = Cell.TextBody.GetFirstChild<A.Paragraph>() ?? new A.Paragraph();
-                Cell.TextBody.RemoveAllChildren<A.Paragraph>();
+                Cell.TextBody ??= PowerPointTableTextDefaults.CreateTextBody();
+                A.Paragraph paragraph = Cell.TextBody.GetFirstChild<A.Paragraph>() ?? PowerPointTableTextDefaults.CreateParagraph();
+                if (paragraph.Parent == null) {
+                    Cell.TextBody.Append(paragraph);
+                }
+
+                A.RunProperties? existingRunProperties = GetRun()?.RunProperties?.CloneNode(true) as A.RunProperties;
                 paragraph.RemoveAllChildren<A.Run>();
-                paragraph.Append(new A.Run(new A.Text(value ?? string.Empty)));
-                Cell.TextBody.Append(paragraph);
+
+                A.EndParagraphRunProperties endProperties = paragraph.GetFirstChild<A.EndParagraphRunProperties>()
+                    ?? new A.EndParagraphRunProperties { Language = PowerPointTableTextDefaults.Language };
+                endProperties.Language ??= PowerPointTableTextDefaults.Language;
+                if (endProperties.Parent == null) {
+                    paragraph.Append(endProperties);
+                }
+
+                A.RunProperties runProperties = existingRunProperties ?? new A.RunProperties();
+                runProperties.Language ??= endProperties.Language?.Value ?? PowerPointTableTextDefaults.Language;
+                A.Run run = new(runProperties, new A.Text(value ?? string.Empty));
+                paragraph.InsertBefore(run, endProperties);
             }
         }
 

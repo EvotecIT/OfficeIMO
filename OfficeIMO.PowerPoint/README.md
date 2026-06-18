@@ -36,6 +36,7 @@ presentation.Save();
 
 - Creates and edits PowerPoint presentations, slides, slide size, text boxes, pictures, tables, charts, backgrounds, transitions, notes, and metadata.
 - Keeps generated output as editable PowerPoint content instead of screenshots.
+- Reports editable, partially editable, preserved, and unsupported deck features through `InspectFeatures()` before edit-heavy round trips.
 - Provides designer composition helpers for theme-aware business decks and repeatable layout alternatives.
 - Supports encrypted presentation save/open workflows.
 - Uses Open XML directly, making it suitable for services, build agents, desktop apps, and automation hosts.
@@ -219,6 +220,21 @@ record SegmentRow(string Segment, int Q1, int Q2, int Q3, int Q4);
 var duplicate = presentation.DuplicateSlide(0);
 duplicate.Hidden = true;
 duplicate.Notes.Text = "Backup slide for Q&A.";
+```
+
+### Feature inspection
+
+Use `InspectFeatures()` before broad edits or automated round trips when input decks may contain package features outside the editable OfficeIMO surface:
+
+```csharp
+using var presentation = PowerPointPresentation.Open("incoming.pptx");
+
+PowerPointFeatureReport report = presentation.InspectFeatures();
+report.EnsureNoUnsupportedFeatures();
+
+foreach (PowerPointFeatureFinding feature in report.PreservedFeatures) {
+    Console.WriteLine($"{feature.Name}: {feature.Count}");
+}
 ```
 
 ### Designer composition
