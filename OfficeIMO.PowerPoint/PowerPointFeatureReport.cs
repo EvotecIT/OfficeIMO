@@ -497,7 +497,7 @@ namespace OfficeIMO.PowerPoint {
             return Slides
                 .Select((slide, index) => new {
                     Index = index + 1,
-                    Transition = slide.SlidePart.Slide?.Transition,
+                    Transition = slide.GetTransitionElement(),
                     MappedTransition = slide.Transition
                 })
                 .Where(item => item.Transition != null && item.MappedTransition == SlideTransition.None)

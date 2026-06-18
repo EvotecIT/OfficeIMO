@@ -119,6 +119,46 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PowerPointTableCellText_DropsStaleHyperlinkWhenReplacingText() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointTable table = presentation.AddSlide().AddTable(1, 1);
+                    table.GetCell(0, 0).Text = "Linked";
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, true)) {
+                    SlidePart slidePart = document.PresentationPart!.SlideParts.Single();
+                    HyperlinkRelationship relationship = slidePart.AddHyperlinkRelationship(new Uri("https://example.com/old"), true);
+                    A.Run run = slidePart.Slide.Descendants<A.TableCell>().First().TextBody!.Descendants<A.Run>().First();
+                    run.RunProperties ??= new A.RunProperties();
+                    run.RunProperties.Append(new A.HyperlinkOnClick { Id = relationship.Id });
+                    slidePart.Slide.Save();
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                    PowerPointTableCell cell = presentation.Slides.Single().Tables.Single().GetCell(0, 0);
+                    cell.Text = "Fresh";
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    A.Run run = document.PresentationPart!.SlideParts.Single().Slide.Descendants<A.TableCell>().First()
+                        .TextBody!.Descendants<A.Run>().Single();
+
+                    Assert.Equal("Fresh", run.Text!.Text);
+                    Assert.Null(run.RunProperties?.GetFirstChild<A.HyperlinkOnClick>());
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void PowerPointFeatureReport_DoesNotTreatChartWorkbookAsEmbeddedPackage() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
@@ -353,6 +393,44 @@ namespace OfficeIMO.Tests {
                     SlidePart slidePart = document.PresentationPart!.SlideParts.Single();
                     slidePart.Slide.Transition = new Transition(
                         new OpenXmlUnknownElement("p14", "doors", "http://schemas.microsoft.com/office/powerpoint/2010/main"));
+                    slidePart.Slide.Save();
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                    PowerPointFeatureReport report = presentation.InspectFeatures();
+                    PowerPointFeatureFinding unsupported = Assert.Single(report.FindFeatures("Unsupported transition markup"));
+
+                    Assert.Equal(PowerPointFeatureSupportLevel.Preserved, unsupported.SupportLevel);
+                    Assert.Equal(1, unsupported.Count);
+                    Assert.Contains(unsupported.Details, detail => detail.Contains("doors", StringComparison.OrdinalIgnoreCase));
+                    Assert.Throws<InvalidOperationException>(() => report.EnsureNoAdvancedFeatures());
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void PowerPointFeatureReport_DetectsUnsupportedAlternateContentTransitionMarkup() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    presentation.AddSlide().AddTextBox("Unsupported alternate transition");
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, true)) {
+                    SlidePart slidePart = document.PresentationPart!.SlideParts.Single();
+                    Transition unsupportedTransition = new(
+                        new OpenXmlUnknownElement("p14", "doors", "http://schemas.microsoft.com/office/powerpoint/2010/main"));
+                    AlternateContentChoice choice = new() { Requires = "p14" };
+                    choice.Append(unsupportedTransition);
+                    AlternateContent alternateContent = new();
+                    alternateContent.Append(choice);
+                    slidePart.Slide.InsertAt(alternateContent, 0);
                     slidePart.Slide.Save();
                 }
 

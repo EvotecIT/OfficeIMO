@@ -40,6 +40,8 @@ namespace OfficeIMO.PowerPoint {
                     ?? new A.EndParagraphRunProperties { Language = PowerPointTableTextDefaults.Language };
                 endProperties.Language ??= PowerPointTableTextDefaults.Language;
                 A.RunProperties runProperties = existingRunProperties ?? new A.RunProperties();
+                runProperties.RemoveAllChildren<A.HyperlinkOnClick>();
+                runProperties.RemoveAllChildren<A.HyperlinkOnMouseOver>();
                 runProperties.Language ??= endProperties.Language?.Value ?? PowerPointTableTextDefaults.Language;
 
                 A.Paragraph paragraph = new();
