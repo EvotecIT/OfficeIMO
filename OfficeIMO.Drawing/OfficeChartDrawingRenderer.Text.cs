@@ -535,12 +535,13 @@ public static partial class OfficeChartDrawingRenderer {
         formatted = null;
         if (string.IsNullOrWhiteSpace(numberFormat) ||
             string.Equals(numberFormat, "General", StringComparison.OrdinalIgnoreCase) ||
+            numberFormat!.Length > OfficeChartLayout.MaxNumberFormatLength ||
             double.IsNaN(value) ||
             double.IsInfinity(value)) {
             return false;
         }
 
-        string format = SelectSignedNumberFormatSection(numberFormat!, value);
+        string format = SelectSignedNumberFormatSection(numberFormat, value);
 
         if (format.Length == 0) {
             return false;
@@ -552,7 +553,7 @@ public static partial class OfficeChartDrawingRenderer {
         int requiredDecimals = GetDataLabelRequiredDecimalPlaces(format);
         int scalingCommas = GetDataLabelScalingCommaCount(format);
         double displayValue = (percent ? value * 100D : value) / Math.Pow(1000D, scalingCommas);
-        bool useAbsoluteNegative = displayValue < 0D && numberFormat!.IndexOf(';') >= 0;
+        bool useAbsoluteNegative = displayValue < 0D && numberFormat.IndexOf(';') >= 0;
         string numericFormat = (grouped ? "N" : "F") + decimals.ToString(CultureInfo.InvariantCulture);
         formatted = (useAbsoluteNegative ? Math.Abs(displayValue) : displayValue).ToString(numericFormat, CultureInfo.InvariantCulture);
         formatted = TrimOptionalDataLabelDecimals(formatted, requiredDecimals);
