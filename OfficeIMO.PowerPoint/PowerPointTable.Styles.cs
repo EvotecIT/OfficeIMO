@@ -135,7 +135,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static string? ResolveStyleIdFromXml(string styleName, StringComparison comparison, Stream stream) {
-            XDocument document = XDocument.Load(stream);
+            XDocument document = PowerPointXmlReader.LoadPackagePartXml(stream);
             XElement? root = document.Root;
             if (root == null) {
                 return null;

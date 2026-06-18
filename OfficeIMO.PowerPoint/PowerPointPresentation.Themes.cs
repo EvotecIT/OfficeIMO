@@ -271,7 +271,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static void AddTableStylesFromStream(List<PowerPointTableStyleInfo> styles, ISet<string> seenStyleIds, Stream stream) {
-            XDocument document = XDocument.Load(stream);
+            XDocument document = PowerPointXmlReader.LoadPackagePartXml(stream);
             XElement? root = document.Root;
             if (root == null) {
                 return;
