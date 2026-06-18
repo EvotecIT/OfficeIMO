@@ -172,6 +172,13 @@ namespace OfficeIMO.Word.Html {
         public int? MaxRemoteImageCandidateProbes { get; set; } = 1;
 
         /// <summary>
+        /// Optional maximum number of responsive image candidates considered from <c>picture</c> and <c>srcset</c> inputs per image element.
+        /// The direct <c>img src</c> fallback is still considered after this limit. Defaults to 32 candidates.
+        /// Set to <see langword="null"/> to restore unbounded candidate expansion for trusted HTML.
+        /// </summary>
+        public int? MaxImageSourceCandidates { get; set; } = 32;
+
+        /// <summary>
         /// When true, validates declared image content types for remote image resources and data URI images.
         /// Images with rejected content types are skipped, alt text is inserted when available, and a diagnostic is emitted.
         /// </summary>
@@ -371,6 +378,7 @@ namespace OfficeIMO.Word.Html {
                 MaxImageBytes = MaxImageBytes,
                 MaxTotalImageBytes = MaxTotalImageBytes,
                 MaxRemoteImageCandidateProbes = MaxRemoteImageCandidateProbes,
+                MaxImageSourceCandidates = MaxImageSourceCandidates,
                 ValidateImageContentTypes = ValidateImageContentTypes,
                 ValidateStylesheetContentTypes = ValidateStylesheetContentTypes,
                 MaxHtmlNodes = MaxHtmlNodes,

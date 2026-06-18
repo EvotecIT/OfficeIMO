@@ -11,10 +11,20 @@ namespace OfficeIMO.Word.Html {
         private static readonly HtmlUrlPolicy ImageSourceResolutionPolicy = CreateImageSourceResolutionPolicy();
         private static readonly string[] WordImageSrcSetAttributes = { "srcset", "data-srcset", "data-original-srcset", "data-lazy-srcset" };
         private static readonly string[] WordPictureSourceAttributes = { "src", "data-src", "data-original", "data-original-src", "data-lazy-src" };
+        private static readonly string[] WordImageLazySourceAttributes = { "data-src", "data-original", "data-original-src", "data-lazy-src" };
+        private static readonly string[] WordImageSourceAttributes = { "src" };
 
         private void ProcessImage(IHtmlImageElement img, WordDocument doc, HtmlToWordOptions options, WordParagraph? currentParagraph, WordHeaderFooter? headerFooter) {
             var src = ResolveWordImageSource(img, options);
-            if (string.IsNullOrEmpty(src)) return;
+            if (string.IsNullOrEmpty(src)) {
+                if (HasImageSourceCandidateAttribute(img)) {
+                    string altText = img.AlternativeText ?? string.Empty;
+                    AddDiagnostic(options, "ImageResourceRejectedByPolicy", "Image resource candidates were skipped because their URIs are not allowed by the current image policy.", "responsive image candidates");
+                    InsertAltText(currentParagraph, headerFooter, doc, altText);
+                }
+
+                return;
+            }
             var decl = _inlineParser.ParseDeclaration(img.GetAttribute("style") ?? string.Empty);
             var floatVal = decl.GetPropertyValue("float")?.Trim().ToLowerInvariant();
             var wrap = WrapTextImage.InLineWithText;
@@ -506,6 +516,7 @@ namespace OfficeIMO.Word.Html {
 
         private static IEnumerable<string> EnumerateWordImageSourceCandidates(IHtmlImageElement img, HtmlToWordOptions options) {
             Uri? baseUri = ResolveImageBaseUri(img, options);
+            var responsiveCandidateState = new ResponsiveImageCandidateState(options);
             if (img.ParentElement != null
                 && img.ParentElement.TagName.Equals("PICTURE", StringComparison.OrdinalIgnoreCase)) {
                 foreach (var child in img.ParentElement.Children) {
@@ -517,37 +528,231 @@ namespace OfficeIMO.Word.Html {
                         continue;
                     }
 
-                    foreach (string candidate in ResolveImageCandidatesFromSourceElement(child, baseUri)) {
+                    foreach (string candidate in ResolveImageCandidatesFromSourceElement(child, img, baseUri, options, responsiveCandidateState)) {
                         yield return candidate;
+                        if (responsiveCandidateState.HasReachedAnyLimit) {
+                            break;
+                        }
+                    }
+
+                    if (responsiveCandidateState.HasReachedAnyLimit) {
+                        break;
                     }
                 }
             }
 
-            foreach (string candidate in HtmlImageSourceResolver.ResolveImageSourceCandidates(
-                         img,
-                         baseUri,
-                         ImageSourceResolutionPolicy,
-                         allowParentPictureFallback: false)) {
+            foreach (string candidate in ResolveImageUrlAttributeCandidates(img, baseUri, WordImageLazySourceAttributes, responsiveCandidateState)) {
+                yield return candidate;
+            }
+
+            foreach (string candidate in ResolveImageSrcSetCandidates(img, baseUri, options, responsiveCandidateState)) {
+                yield return candidate;
+                if (responsiveCandidateState.HasReachedAnyLimit) {
+                    break;
+                }
+            }
+
+            foreach (string candidate in ResolveImageUrlAttributeCandidates(img, baseUri, WordImageSourceAttributes, responsiveCandidateState)) {
                 yield return candidate;
             }
         }
 
-        private static IEnumerable<string> ResolveImageCandidatesFromSourceElement(AngleSharp.Dom.IElement sourceElement, Uri? baseUri) {
+        private static IEnumerable<string> ResolveImageCandidatesFromSourceElement(AngleSharp.Dom.IElement sourceElement, IHtmlImageElement img, Uri? baseUri, HtmlToWordOptions options, ResponsiveImageCandidateState state) {
             foreach (string attributeName in WordImageSrcSetAttributes) {
-                foreach (HtmlSrcSetCandidate candidate in HtmlImageSourceResolver.ResolveSrcSetCandidates(
-                             sourceElement.GetAttribute(attributeName),
-                             baseUri,
-                             ImageSourceResolutionPolicy)) {
-                    yield return candidate.Url;
+                foreach (HtmlSrcSetCandidate candidate in HtmlSrcSetParser.Enumerate(sourceElement.GetAttribute(attributeName))) {
+                    string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(candidate.Url, baseUri, ImageSourceResolutionPolicy);
+                    if (!IsResolvedImageCandidateAllowedForEnumeration(resolved, img, options)) {
+                        state.TrackRejectedResponsiveCandidate();
+                        if (state.HasReachedScanLimit) {
+                            yield break;
+                        }
+
+                        continue;
+                    }
+
+                    if (!state.TryTrackResponsiveCandidate(resolved, out string tracked)) {
+                        if (state.HasReachedAnyLimit) {
+                            yield break;
+                        }
+
+                        continue;
+                    }
+
+                    yield return tracked;
+                    if (state.HasReachedAnyLimit) {
+                        yield break;
+                    }
                 }
             }
 
             foreach (string attributeName in WordPictureSourceAttributes) {
-                string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(sourceElement.GetAttribute(attributeName), baseUri, ImageSourceResolutionPolicy);
-                if (!string.IsNullOrWhiteSpace(resolved)) {
-                    yield return resolved;
+                if (state.HasReachedAnyLimit) {
+                    yield break;
+                }
+
+                string? rawValue = sourceElement.GetAttribute(attributeName);
+                if (string.IsNullOrWhiteSpace(rawValue)) {
+                    continue;
+                }
+
+                string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(rawValue, baseUri, ImageSourceResolutionPolicy);
+                if (!IsResolvedImageCandidateAllowedForEnumeration(resolved, img, options)) {
+                    state.TrackRejectedResponsiveCandidate();
+                    continue;
+                }
+
+                if (state.TryTrackResponsiveCandidate(resolved, out string tracked)) {
+                    yield return tracked;
                 }
             }
+        }
+
+        private static IEnumerable<string> ResolveImageSrcSetCandidates(IHtmlImageElement img, Uri? baseUri, HtmlToWordOptions options, ResponsiveImageCandidateState state) {
+            foreach (string attributeName in WordImageSrcSetAttributes) {
+                foreach (HtmlSrcSetCandidate candidate in HtmlSrcSetParser.Enumerate(img.GetAttribute(attributeName))) {
+                    string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(candidate.Url, baseUri, ImageSourceResolutionPolicy);
+                    if (!IsResolvedImageCandidateAllowedForEnumeration(resolved, img, options)) {
+                        state.TrackRejectedResponsiveCandidate();
+                        if (state.HasReachedScanLimit) {
+                            yield break;
+                        }
+
+                        continue;
+                    }
+
+                    if (!state.TryTrackResponsiveCandidate(resolved, out string tracked)) {
+                        if (state.HasReachedAnyLimit) {
+                            yield break;
+                        }
+
+                        continue;
+                    }
+
+                    yield return tracked;
+                    if (state.HasReachedAnyLimit) {
+                        yield break;
+                    }
+                }
+            }
+        }
+
+        private static IEnumerable<string> ResolveImageUrlAttributeCandidates(IHtmlImageElement img, Uri? baseUri, IEnumerable<string> attributeNames, ResponsiveImageCandidateState state) {
+            foreach (string attributeName in attributeNames) {
+                string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(img.GetAttribute(attributeName), baseUri, ImageSourceResolutionPolicy);
+                if (state.TryTrackFixedCandidate(resolved, out string tracked)) {
+                    yield return tracked;
+                }
+            }
+        }
+
+        private static bool IsResolvedImageCandidateAllowedForEnumeration(string? resolved, IHtmlImageElement img, HtmlToWordOptions options) {
+            if (string.IsNullOrWhiteSpace(resolved)) {
+                return false;
+            }
+
+            string source = resolved!;
+            if (options.ImageProcessing == ImageProcessingMode.EmbedDataUriOnly
+                && !source.StartsWith("data:image", StringComparison.OrdinalIgnoreCase)) {
+                return false;
+            }
+
+            if (options.ImageProcessing == ImageProcessingMode.LinkExternal
+                && !source.StartsWith("data:image", StringComparison.OrdinalIgnoreCase)
+                && !HasExternalImageDimensionHints(img)) {
+                return false;
+            }
+
+            if (!IsImageSourceAllowed(source, options, out _)) {
+                return false;
+            }
+
+            return !source.StartsWith("data:", StringComparison.OrdinalIgnoreCase)
+                || source.StartsWith("data:image", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private sealed class ResponsiveImageCandidateState {
+            private readonly HtmlToWordOptions _options;
+            private readonly HashSet<string> _seen = new HashSet<string>(StringComparer.Ordinal);
+            private int _count;
+            private int _scanned;
+
+            internal ResponsiveImageCandidateState(HtmlToWordOptions options) {
+                _options = options;
+            }
+
+            internal bool HasReachedLimit => _options.MaxImageSourceCandidates.HasValue
+                && _count >= _options.MaxImageSourceCandidates.Value;
+
+            internal bool HasReachedScanLimit => _options.MaxImageSourceCandidates.HasValue
+                && _scanned >= GetResponsiveCandidateScanLimit(_options.MaxImageSourceCandidates.Value);
+
+            internal bool HasReachedAnyLimit => HasReachedLimit || HasReachedScanLimit;
+
+            internal void TrackRejectedResponsiveCandidate() {
+                _scanned++;
+            }
+
+            internal bool TryTrackResponsiveCandidate(string? candidate, out string tracked) {
+                tracked = string.Empty;
+                _scanned++;
+                if (string.IsNullOrWhiteSpace(candidate) || HasReachedLimit || !_seen.Add(candidate!)) {
+                    return false;
+                }
+
+                _count++;
+                tracked = candidate!;
+                return true;
+            }
+
+            internal bool TryTrackFixedCandidate(string? candidate, out string tracked) {
+                tracked = string.Empty;
+                if (string.IsNullOrWhiteSpace(candidate) || !_seen.Add(candidate!)) {
+                    return false;
+                }
+
+                tracked = candidate!;
+                return true;
+            }
+
+            private static long GetResponsiveCandidateScanLimit(int maxCandidates) {
+                return Math.Max((long)maxCandidates, (long)maxCandidates * 4L);
+            }
+        }
+
+        private static bool HasImageSourceCandidateAttribute(IHtmlImageElement img) {
+            if (HasAnyAttribute(img, WordImageLazySourceAttributes)
+                || HasAnyAttribute(img, WordImageSrcSetAttributes)
+                || HasAnyAttribute(img, WordImageSourceAttributes)) {
+                return true;
+            }
+
+            if (img.ParentElement == null
+                || !img.ParentElement.TagName.Equals("PICTURE", StringComparison.OrdinalIgnoreCase)) {
+                return false;
+            }
+
+            foreach (var child in img.ParentElement.Children) {
+                if (!child.TagName.Equals("SOURCE", StringComparison.OrdinalIgnoreCase)) {
+                    continue;
+                }
+
+                if (HasAnyAttribute(child, WordImageSrcSetAttributes)
+                    || HasAnyAttribute(child, WordPictureSourceAttributes)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool HasAnyAttribute(AngleSharp.Dom.IElement element, IEnumerable<string> attributeNames) {
+            foreach (string attributeName in attributeNames) {
+                if (!string.IsNullOrWhiteSpace(element.GetAttribute(attributeName))) {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static string ResolveImageSourcePath(string source, IHtmlImageElement img, HtmlToWordOptions options) {
