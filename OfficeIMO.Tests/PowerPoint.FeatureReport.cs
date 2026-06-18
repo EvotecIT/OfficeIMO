@@ -58,6 +58,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PowerPointFeatureReport_DoesNotBlockZeroCountEditableFeatures() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    presentation.AddSlide().AddTextBox("No tables here");
+                    presentation.Save();
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                    PowerPointFeatureReport report = presentation.InspectFeatures();
+                    PowerPointFeatureFinding tables = Assert.Single(report.FindFeatures("Tables"));
+
+                    Assert.Equal(PowerPointFeatureSupportLevel.Editable, tables.SupportLevel);
+                    Assert.Equal(0, tables.Count);
+                    Assert.Same(report, report.EnsureNoFeatures("Tables"));
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void PowerPointTableCells_IncludeLanguageAwareRunDefaults() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
@@ -304,6 +329,44 @@ namespace OfficeIMO.Tests {
 
                     InvalidOperationException unsupportedException = Assert.Throws<InvalidOperationException>(() => report.EnsureNoUnsupportedFeatures());
                     Assert.Contains("Digital signatures", unsupportedException.Message);
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void PowerPointFeatureReport_DetectsActiveXControlPackageSignals() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    presentation.AddSlide().AddTextBox("ActiveX package signals");
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, true)) {
+                    PresentationPart presentationPart = document.PresentationPart!;
+                    AddExtendedPart(presentationPart,
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/control",
+                        "application/vnd.ms-office.activeX+xml",
+                        "<ax:ocx xmlns:ax=\"http://schemas.microsoft.com/office/2006/activeX\" />");
+                    AddExtendedPart(presentationPart,
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/activeXControlBinary",
+                        "application/vnd.ms-office.activeX.bin",
+                        new byte[] { 1, 2, 3, 4 });
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                    PowerPointFeatureReport report = presentation.InspectFeatures();
+                    PowerPointFeatureFinding activeX = Assert.Single(report.FindFeatures("ActiveX controls"));
+
+                    Assert.Equal(PowerPointFeatureSupportLevel.Preserved, activeX.SupportLevel);
+                    Assert.Equal(2, activeX.Count);
+                    Assert.Contains(activeX.Details, detail => detail.Contains("activeX", StringComparison.OrdinalIgnoreCase));
+                    Assert.Throws<InvalidOperationException>(() => report.EnsureNoAdvancedFeatures());
                 }
             } finally {
                 if (File.Exists(filePath)) {

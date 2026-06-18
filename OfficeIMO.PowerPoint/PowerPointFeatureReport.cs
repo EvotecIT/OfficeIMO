@@ -146,8 +146,10 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         /// <param name="featureNames">Feature names to reject, for example <c>VBA macros</c> or <c>Digital signatures</c>.</param>
         public PowerPointFeatureReport EnsureNoFeatures(IEnumerable<string> featureNames) {
-            var matches = FindFeatures(featureNames);
-            if (matches.Count > 0) {
+            var matches = FindFeatures(featureNames)
+                .Where(feature => feature.Count > 0)
+                .ToArray();
+            if (matches.Length > 0) {
                 ThrowBlockedFeatures("Presentation contains blocked features", matches);
             }
 
@@ -159,8 +161,10 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         /// <param name="supportLevels">Support levels to reject.</param>
         public PowerPointFeatureReport EnsureNoFeatures(params PowerPointFeatureSupportLevel[] supportLevels) {
-            var matches = FindFeatures(supportLevels);
-            if (matches.Count > 0) {
+            var matches = FindFeatures(supportLevels)
+                .Where(feature => feature.Count > 0)
+                .ToArray();
+            if (matches.Length > 0) {
                 ThrowBlockedFeatures("Presentation contains blocked feature support levels", matches);
             }
 
@@ -362,6 +366,7 @@ namespace OfficeIMO.PowerPoint {
                 .ToList();
             var customXmlDetails = DescribePartsByUri(allParts, "/customXml/");
             var embeddedPackageDetails = DescribeNonChartEmbeddedPackageParts(allParts);
+            var activeXControlDetails = DescribePartsByUriOrContentType(allParts, "activeX");
             var vbaDetails = DescribePartsByUriOrContentType(allParts, "vbaProject");
             var webExtensionDetails = DescribePartsByUriOrContentType(allParts, "webextension")
                 .Concat(DescribePartsByUriOrContentType(allParts, "taskpane"))
@@ -383,6 +388,9 @@ namespace OfficeIMO.PowerPoint {
             Add(features, "Compatibility", "Embedded packages", PowerPointFeatureSupportLevel.Preserved, embeddedPackageDetails.Count, null,
                 "Embedded package parts and OLE payloads are advanced package content and should be treated as preserve-only.",
                 embeddedPackageDetails);
+            Add(features, "Compatibility", "ActiveX controls", PowerPointFeatureSupportLevel.Preserved, activeXControlDetails.Count, null,
+                "ActiveX control package metadata is detected as preserve-only advanced presentation content.",
+                activeXControlDetails);
             Add(features, "Compatibility", "VBA macros", PowerPointFeatureSupportLevel.Preserved, vbaDetails.Count, null,
                 "VBA project parts are detected as preserve-only macro content; OfficeIMO does not edit or sign VBA modules.",
                 vbaDetails);
