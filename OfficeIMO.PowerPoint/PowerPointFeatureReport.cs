@@ -300,16 +300,18 @@ namespace OfficeIMO.PowerPoint {
             ThrowIfDisposed();
 
             var features = new List<PowerPointFeatureFinding>();
-            var allParts = EnumeratePowerPointPartsAndRoot(_presentationPart).ToList();
+            var allParts = EnumeratePowerPointPartsAndPackage(_document!, _presentationPart).ToList();
             var packageFoundationDetails = DescribePackageFoundationParts(allParts);
             var tableMetadataDetails = DescribeTableMetadata();
             var chartDetails = DescribePartsByType<ChartPart>(allParts);
+            var chartWorkbookDetails = DescribeChartWorkbookParts(allParts);
             var chartCompanionDetails = DescribePartsByUriOrContentType(allParts, "chartStyle")
                 .Concat(DescribePartsByUriOrContentType(allParts, "chartColorStyle"))
-                .Concat(DescribePartsByUri(allParts, "/embeddings/"))
+                .Concat(chartWorkbookDetails)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
                 .ToList();
+            var externalRelationshipDetails = DescribeExternalRelationships(allParts);
 
             Add(features, "Structure", "Slides", PowerPointFeatureSupportLevel.Editable, Slides.Count, null,
                 "Slides can be authored, duplicated, imported, hidden, reordered, and removed.");
@@ -340,12 +342,17 @@ namespace OfficeIMO.PowerPoint {
                 "Speaker notes can be authored, inspected, updated, and preserved.");
             Add(features, "Presentation", "Slide transitions", PowerPointFeatureSupportLevel.Editable, Slides.Count(HasTransitionMarkup), null,
                 "Common transitions, Morph fallback markup, speed, duration, and advance timing can be authored and round-tripped.");
-            Add(features, "Presentation", "Animations and timing", PowerPointFeatureSupportLevel.Preserved, CountSlidesWithTimingMarkup(), null,
+            var unsupportedTransitionDetails = DescribeUnsupportedTransitionMarkup();
+            Add(features, "Presentation", "Unsupported transition markup", PowerPointFeatureSupportLevel.Preserved, unsupportedTransitionDetails.Count, null,
+                "Transition markup not mapped by OfficeIMO is detected as preserve-only slide metadata.",
+                unsupportedTransitionDetails);
+            var advancedTimingDetails = DescribeAdvancedTimingMarkup();
+            Add(features, "Presentation", "Animations and timing", PowerPointFeatureSupportLevel.Preserved, advancedTimingDetails.Count, null,
                 "Timing trees beyond OfficeIMO's media playback helpers are detected as preserve-only advanced animation metadata.",
-                DescribeTimingMarkup());
-            Add(features, "Content", "External hyperlinks", PowerPointFeatureSupportLevel.PartiallyEditable, CountExternalHyperlinks(allParts), null,
-                "External hyperlinks can be authored and inspected; the report exposes external relationships for round-trip review.",
-                DescribeExternalRelationships(allParts));
+                advancedTimingDetails);
+            Add(features, "Content", "External relationships", PowerPointFeatureSupportLevel.PartiallyEditable, externalRelationshipDetails.Count, null,
+                "External hyperlinks can be authored and inspected; other external package relationships are surfaced for round-trip review.",
+                externalRelationshipDetails);
 
             var commentDetails = DescribePartsByUriOrContentType(allParts, "comment")
                 .Concat(DescribePartsByUriOrContentType(allParts, "person"))
@@ -353,11 +360,7 @@ namespace OfficeIMO.PowerPoint {
                 .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
                 .ToList();
             var customXmlDetails = DescribePartsByUri(allParts, "/customXml/");
-            var embeddedPackageDetails = DescribePartsByType<EmbeddedPackagePart>(allParts)
-                .Concat(DescribePartsByUri(allParts, "/embeddings/"))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
-                .ToList();
+            var embeddedPackageDetails = DescribeNonChartEmbeddedPackageParts(allParts);
             var vbaDetails = DescribePartsByUriOrContentType(allParts, "vbaProject");
             var webExtensionDetails = DescribePartsByUriOrContentType(allParts, "webextension")
                 .Concat(DescribePartsByUriOrContentType(allParts, "taskpane"))
@@ -401,10 +404,22 @@ namespace OfficeIMO.PowerPoint {
             features.Add(new PowerPointFeatureFinding(category, name, supportLevel, count, scope, note, details));
         }
 
-        private static IEnumerable<OpenXmlPart> EnumeratePowerPointPartsAndRoot(OpenXmlPart root) {
+        private static IEnumerable<OpenXmlPart> EnumeratePowerPointPartsAndPackage(PresentationDocument document, OpenXmlPart root) {
             var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var pair in document.Parts) {
+                foreach (var part in EnumeratePowerPointParts(pair.OpenXmlPart, visited)) {
+                    yield return part;
+                }
+            }
+
             foreach (var part in EnumeratePowerPointParts(root, visited)) {
                 yield return part;
+            }
+
+            if (document.DigitalSignatureOriginPart != null) {
+                foreach (var part in EnumeratePowerPointParts(document.DigitalSignatureOriginPart, visited)) {
+                    yield return part;
+                }
             }
         }
 
@@ -477,25 +492,46 @@ namespace OfficeIMO.PowerPoint {
             return slide.Transition != SlideTransition.None;
         }
 
-        private int CountSlidesWithTimingMarkup() {
-            return Slides.Count(slide => slide.SlidePart.Slide?.Timing != null);
-        }
-
-        private List<string> DescribeTimingMarkup() {
+        private List<string> DescribeUnsupportedTransitionMarkup() {
             return Slides
                 .Select((slide, index) => new {
                     Index = index + 1,
-                    Timing = slide.SlidePart.Slide?.Timing
+                    Transition = slide.SlidePart.Slide?.Transition,
+                    MappedTransition = slide.Transition
+                })
+                .Where(item => item.Transition != null && item.MappedTransition == SlideTransition.None)
+                .Select(item => $"slide {item.Index}: unsupported transition markup {item.Transition!.OuterXml}")
+                .ToList();
+        }
+
+        private List<string> DescribeAdvancedTimingMarkup() {
+            return Slides
+                .Select((slide, index) => new {
+                    Index = index + 1,
+                    Timing = slide.SlidePart.Slide?.Timing,
+                    MediaShapeIds = new HashSet<string>(
+                        slide.Media
+                            .Select(media => media.Id?.ToString())
+                            .Where(id => !string.IsNullOrWhiteSpace(id))!,
+                        StringComparer.OrdinalIgnoreCase)
                 })
                 .Where(item => item.Timing != null)
+                .Where(item => !TargetsOnlyMediaShapes(item.Timing!, item.MediaShapeIds))
                 .Select(item => $"slide {item.Index}: {item.Timing!.Descendants().Count()} timing descendant(s)")
                 .ToList();
         }
 
-        private static int CountExternalHyperlinks(IEnumerable<OpenXmlPart> parts) {
-            return parts
-                .SelectMany(part => part.HyperlinkRelationships)
-                .Count(relationship => relationship.IsExternal);
+        private static bool TargetsOnlyMediaShapes(DocumentFormat.OpenXml.Presentation.Timing timing, HashSet<string> mediaShapeIds) {
+            if (mediaShapeIds.Count == 0) {
+                return false;
+            }
+
+            string[] targets = timing
+                .Descendants<DocumentFormat.OpenXml.Presentation.ShapeTarget>()
+                .Select(target => target.ShapeId?.Value)
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .ToArray()!;
+            return targets.Length > 0 && targets.All(mediaShapeIds.Contains);
         }
 
         private static List<string> DescribePartsByUri(IEnumerable<OpenXmlPart> parts, string uriFragment) {
@@ -522,6 +558,29 @@ namespace OfficeIMO.PowerPoint {
             where TPart : OpenXmlPart {
             return parts
                 .OfType<TPart>()
+                .Select(DescribePart)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        private static List<string> DescribeChartWorkbookParts(IEnumerable<OpenXmlPart> parts) {
+            return parts
+                .OfType<ChartPart>()
+                .SelectMany(chartPart => chartPart.GetPartsOfType<EmbeddedPackagePart>())
+                .Select(DescribePart)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        private static List<string> DescribeNonChartEmbeddedPackageParts(IEnumerable<OpenXmlPart> parts) {
+            var chartWorkbooks = new HashSet<EmbeddedPackagePart>(
+                parts.OfType<ChartPart>().SelectMany(chartPart => chartPart.GetPartsOfType<EmbeddedPackagePart>()));
+
+            return parts
+                .OfType<EmbeddedPackagePart>()
+                .Where(part => !chartWorkbooks.Contains(part))
                 .Select(DescribePart)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)

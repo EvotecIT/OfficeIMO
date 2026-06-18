@@ -25,25 +25,34 @@ namespace OfficeIMO.PowerPoint {
 
             set {
                 Cell.TextBody ??= PowerPointTableTextDefaults.CreateTextBody();
-                A.Paragraph paragraph = Cell.TextBody.GetFirstChild<A.Paragraph>() ?? PowerPointTableTextDefaults.CreateParagraph();
-                if (paragraph.Parent == null) {
-                    Cell.TextBody.Append(paragraph);
-                }
+                A.Paragraph? sourceParagraph = Cell.TextBody.GetFirstChild<A.Paragraph>();
+                A.RunProperties? existingRunProperties = sourceParagraph?
+                    .Elements<A.Run>()
+                    .FirstOrDefault()?
+                    .RunProperties?
+                    .CloneNode(true) as A.RunProperties;
+                A.ParagraphProperties? existingParagraphProperties = sourceParagraph?.ParagraphProperties?.CloneNode(true) as A.ParagraphProperties;
+                A.EndParagraphRunProperties? existingEndProperties = sourceParagraph?
+                    .GetFirstChild<A.EndParagraphRunProperties>()?
+                    .CloneNode(true) as A.EndParagraphRunProperties;
 
-                A.RunProperties? existingRunProperties = GetRun()?.RunProperties?.CloneNode(true) as A.RunProperties;
-                paragraph.RemoveAllChildren<A.Run>();
-
-                A.EndParagraphRunProperties endProperties = paragraph.GetFirstChild<A.EndParagraphRunProperties>()
+                A.EndParagraphRunProperties endProperties = existingEndProperties
                     ?? new A.EndParagraphRunProperties { Language = PowerPointTableTextDefaults.Language };
                 endProperties.Language ??= PowerPointTableTextDefaults.Language;
-                if (endProperties.Parent == null) {
-                    paragraph.Append(endProperties);
-                }
-
                 A.RunProperties runProperties = existingRunProperties ?? new A.RunProperties();
                 runProperties.Language ??= endProperties.Language?.Value ?? PowerPointTableTextDefaults.Language;
-                A.Run run = new(runProperties, new A.Text(value ?? string.Empty));
-                paragraph.InsertBefore(run, endProperties);
+
+                A.Paragraph paragraph = new();
+                if (existingParagraphProperties != null) {
+                    paragraph.Append(existingParagraphProperties);
+                }
+
+                paragraph.Append(
+                    new A.Run(runProperties, new A.Text(value ?? string.Empty)),
+                    endProperties);
+
+                Cell.TextBody.RemoveAllChildren<A.Paragraph>();
+                Cell.TextBody.Append(paragraph);
             }
         }
 
