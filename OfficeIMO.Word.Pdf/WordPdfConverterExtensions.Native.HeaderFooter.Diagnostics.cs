@@ -84,7 +84,7 @@ namespace OfficeIMO.Word.Pdf {
                 defaultHeaderShapes.Count > 0 || firstHeaderShapes.Count > 0 || evenHeaderShapes.Count > 0) {
                 page.Header(header => {
                     if (headerMarginExpansion > 0D) {
-                        header.Offset(NativeHeaderFooterDefaultOffset + headerMarginExpansion);
+                        header.Offset(GetNativeHeaderOffset(options, headerMarginExpansion));
                     }
 
                     if (defaultHeader != null) {
@@ -123,7 +123,7 @@ namespace OfficeIMO.Word.Pdf {
 
             string pageNumberFormat = GetNativePageNumberFormat(options);
             page.Footer(footer => {
-                footer.Offset(NativeFooterDefaultOffset);
+                footer.Offset(GetNativeFooterOffset(options));
 
                 NativeHeaderFooterText? resolvedDefaultFooter = WithNativeFooterPageNumber(defaultFooter, includePageNumbers, pageNumberFormat);
                 if (resolvedDefaultFooter != null) {
@@ -153,6 +153,15 @@ namespace OfficeIMO.Word.Pdf {
                 AddNativeFooterImages(footer, evenFooterImages, W.HeaderFooterValues.Even);
                 AddNativeFooterShapes(footer, evenFooterShapes, W.HeaderFooterValues.Even);
             });
+        }
+
+        private static double GetNativeHeaderOffset(PdfSaveOptions? options, double headerMarginExpansion) {
+            double configuredOffset = options?.PdfOptions?.HeaderOffsetY ?? NativeHeaderFooterDefaultOffset;
+            return configuredOffset + headerMarginExpansion;
+        }
+
+        private static double GetNativeFooterOffset(PdfSaveOptions? options) {
+            return options?.PdfOptions?.FooterOffsetY ?? NativeFooterDefaultOffset;
         }
 
         private static void AddNativeHeaderImages(PdfCore.PdfHeaderCompose header, IReadOnlyList<NativeHeaderFooterImage> images, W.HeaderFooterValues variant) {

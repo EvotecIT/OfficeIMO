@@ -111,7 +111,7 @@ namespace OfficeIMO.Word.Pdf {
         private static bool IsExplicitDxaCellWidth(WordTableCell cell) =>
             cell.Width.HasValue &&
             cell.WidthType == TableWidthUnitValues.Dxa &&
-            cell.Width.Value != 2400;
+            cell.Width.Value > 0;
     }
 }
 
