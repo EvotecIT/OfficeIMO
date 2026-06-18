@@ -56,6 +56,29 @@ public class PdfDocumentChartDrawingTests {
     }
 
     [Fact]
+    public void FlowDrawing_Honors_Chart_Title_Top_Padding() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Title padding chart",
+            "Padded Title",
+            OfficeChartKind.Pie,
+            new OfficeChartData(
+                new[] { "Passed", "Failed" },
+                new[] {
+                    new OfficeChartSeries("Outcomes", new[] { 4D, 2D })
+                }),
+            widthPoints: 320D,
+            heightPoints: 200D,
+            layout: new OfficeChartLayout(
+                showDataLabels: true,
+                showDataLabelValues: true,
+                titleTopPadding: 31D)));
+
+        OfficeDrawingText title = drawing.Elements.OfType<OfficeDrawingText>().Single(text => text.Text == "Padded Title");
+
+        Assert.Equal(31D, title.Y);
+    }
+
+    [Fact]
     public void ScatterRange_IncludesSharedXValuesWhenSeriesMixExplicitAndSharedCoordinates() {
         var series = new[] {
             new OfficeChartSeries("Explicit", new[] { 4D, 5D }, new[] { 10D, 20D }),
@@ -1445,6 +1468,24 @@ public class PdfDocumentChartDrawingTests {
         OfficeChartStyle style = CreateNativeWordChartStyle(chart, chartElement, plotArea, OfficeChartKind.ColumnClustered, 1, 1);
 
         Assert.False(style.ShowBackground);
+    }
+
+    [Fact]
+    public void WordChartStyle_Uses_Word_Default_Chart_Surface_When_Style_Is_Implicit() {
+        var chart = new Chart();
+        var chartElement = new BarChart(
+            new BarDirection { Val = BarDirectionValues.Column },
+            new BarGrouping { Val = BarGroupingValues.Clustered },
+            CreateBarSeries(0U, new[] { "Q1" }, new[] { 1D }));
+        var plotArea = new PlotArea(chartElement);
+
+        OfficeChartStyle style = CreateNativeWordChartStyle(chart, chartElement, plotArea, OfficeChartKind.ColumnClustered, 1, 1);
+
+        Assert.True(style.ShowBackground);
+        Assert.True(style.ShowBorder);
+        Assert.Equal(OfficeColor.White, style.BackgroundColor);
+        Assert.Equal(OfficeColor.Black, style.TitleColor);
+        Assert.Equal("Calibri", style.FontFamily);
     }
 
     [Fact]

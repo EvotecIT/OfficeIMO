@@ -271,8 +271,19 @@ namespace OfficeIMO.Word.Pdf {
         private static string GetNativeCellText(WordTableCell cell) =>
             GetNativeCellText(cell, null);
 
+        private readonly record struct NativeCellText(IReadOnlyList<PdfCore.TextRun> Runs, IReadOnlyList<PdfCore.PdfTableCellParagraph> Paragraphs);
+
         private static IReadOnlyList<PdfCore.TextRun> CreateNativeCellRuns(WordTableCell cell, Dictionary<long, int>? footnoteNumbersById) {
+            return CreateNativeCellText(cell, footnoteNumbersById, NativeDocumentDefaults.WordDefault, NativeTableStyleDefaults.Empty).Runs;
+        }
+
+        private static NativeCellText CreateNativeCellText(WordTableCell cell, Dictionary<long, int>? footnoteNumbersById, NativeDocumentDefaults nativeDefaults) {
+            return CreateNativeCellText(cell, footnoteNumbersById, nativeDefaults, NativeTableStyleDefaults.Empty);
+        }
+
+        private static NativeCellText CreateNativeCellText(WordTableCell cell, Dictionary<long, int>? footnoteNumbersById, NativeDocumentDefaults nativeDefaults, NativeTableStyleDefaults tableStyleDefaults) {
             var runs = new List<PdfCore.TextRun>();
+            var paragraphs = new List<PdfCore.PdfTableCellParagraph>();
             foreach (WordParagraph paragraph in GetNativeCellParagraphs(cell)) {
                 List<PdfCore.TextRun> paragraphRuns = CreateNativeCellParagraphRuns(paragraph, footnoteNumbersById);
                 if (paragraphRuns.Count == 0) {
@@ -284,9 +295,21 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 runs.AddRange(paragraphRuns);
+                paragraphs.Add(new PdfCore.PdfTableCellParagraph(paragraphRuns, GetNativeCellParagraphSpacingAfter(paragraph, nativeDefaults, tableStyleDefaults)));
             }
 
-            return runs;
+            return new NativeCellText(runs, paragraphs);
+        }
+
+        private static double GetNativeCellParagraphSpacingAfter(WordParagraph paragraph, NativeDocumentDefaults nativeDefaults) {
+            return GetNativeCellParagraphSpacingAfter(paragraph, nativeDefaults, NativeTableStyleDefaults.Empty);
+        }
+
+        private static double GetNativeCellParagraphSpacingAfter(WordParagraph paragraph, NativeDocumentDefaults nativeDefaults, NativeTableStyleDefaults tableStyleDefaults) {
+            double spacingAfter = paragraph.LineSpacingAfterPoints ??
+                tableStyleDefaults.ParagraphSpacingAfter ??
+                (nativeDefaults.ParagraphSpacingAfterDeclared ? nativeDefaults.ParagraphSpacingAfter : 0D);
+            return spacingAfter > 0D && !double.IsNaN(spacingAfter) && !double.IsInfinity(spacingAfter) ? spacingAfter : 0D;
         }
 
         private static List<PdfCore.TextRun> CreateNativeCellParagraphRuns(WordParagraph paragraph, Dictionary<long, int>? footnoteNumbersById) {
@@ -304,7 +327,7 @@ namespace OfficeIMO.Word.Pdf {
                         continue;
                     }
 
-                    if (IsNativeTextWrappingBreak(run)) {
+                    if (IsNativeTextWrappingBreak(run) && string.IsNullOrEmpty(run.Text)) {
                         result.Add(PdfCore.TextRun.LineBreak());
                         tabIndex = 0;
                         continue;
@@ -439,7 +462,7 @@ namespace OfficeIMO.Word.Pdf {
         private static PdfCore.TextRun CreateNativeCellLinkRun(string text, WordParagraph paragraph, WordHyperLink hyperlink) {
             Uri? uri = hyperlink.Uri;
             string? linkUri = uri != null && uri.IsAbsoluteUri ? uri.AbsoluteUri : null;
-            string? destinationName = string.IsNullOrWhiteSpace(hyperlink.Anchor) ? null : hyperlink.Anchor;
+            string? destinationName = linkUri != null || string.IsNullOrWhiteSpace(hyperlink.Anchor) ? null : hyperlink.Anchor;
             if (linkUri == null && destinationName == null) {
                 return CreateNativeCellTextRun(text, paragraph);
             }

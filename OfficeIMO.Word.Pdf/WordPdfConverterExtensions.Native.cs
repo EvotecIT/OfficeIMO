@@ -13,9 +13,19 @@ namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
         private const double NativeDefaultParagraphLineHeight = 1.15D;
         private const double NativeDefaultParagraphSpacingAfter = 8D;
+        private const double NativeWordSingleLineHeight = 1.22D;
+        private const double NativeWordAutoLineSpacingHeight = NativeDefaultParagraphLineHeight;
+        private const double NativeWordTableSingleLineHeight = 1.22D;
+        private const double NativeTablePageContinuationSpacingBefore = 24D;
+        private const double NativeHeaderFooterFontSize = 9D;
+        private const double NativeHeaderFooterLineHeight = NativeHeaderFooterFontSize * 1.2D;
+        private const double NativeHeaderFooterBodyGap = 2D;
+        private const double NativeHeaderFooterDefaultOffset = 18D;
+        private const double NativeFooterDefaultOffset = 20D;
 
         private interface INativePdfFlow {
             void PageBreak();
+            void Spacer(double height);
             void Bookmark(string name);
             void HR(double? thickness = null, PdfCore.PdfColor? color = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfHorizontalRuleStyle? style = null);
             void Paragraph(Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, PdfCore.PdfColor? defaultColor = null, PdfCore.PdfParagraphStyle? style = null);
@@ -41,6 +51,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             public void PageBreak() => _pdf.PageBreak();
+            public void Spacer(double height) => _pdf.Spacer(height);
             public void Bookmark(string name) => _pdf.Bookmark(name);
             public void HR(double? thickness = null, PdfCore.PdfColor? color = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfHorizontalRuleStyle? style = null) => _pdf.HR(thickness, color, spacingBefore, spacingAfter, style);
             public void Paragraph(Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, PdfCore.PdfColor? defaultColor = null, PdfCore.PdfParagraphStyle? style = null) => _pdf.Paragraph(build, align, defaultColor, style);
@@ -72,6 +83,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             public void PageBreak() => _column.PageBreak();
+            public void Spacer(double height) => _column.Spacer(height);
             public void Bookmark(string name) => _column.Bookmark(name);
             public void HR(double? thickness = null, PdfCore.PdfColor? color = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfHorizontalRuleStyle? style = null) => _column.HR(thickness, color, spacingBefore, spacingAfter, style);
             public void Paragraph(Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, PdfCore.PdfColor? defaultColor = null, PdfCore.PdfParagraphStyle? style = null) => _column.Paragraph(build, align, defaultColor, style);
@@ -101,7 +113,8 @@ namespace OfficeIMO.Word.Pdf {
             options?.ResetExportState();
 
             BuiltinDocumentProperties properties = document.BuiltinDocumentProperties;
-            PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Create(CreateNativeOptions(document, options))
+            var nativeFontMap = new NativeFontMap();
+            PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Create(CreateNativeOptions(document, options, nativeFontMap))
                 .Meta(
                     title: options?.Title ?? properties.Title,
                     author: options?.Author ?? properties.Creator,
@@ -112,18 +125,20 @@ namespace OfficeIMO.Word.Pdf {
             Dictionary<WordParagraph, (int Level, int Index)> listIndices = DocumentTraversal.BuildListIndices(document);
             Dictionary<W.Paragraph, string> headingDestinations = BuildNativeHeadingDestinations(document);
             IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries = BuildNativeTableOfContentsEntries(document, options, headingDestinations);
+            NativeDocumentDefaults nativeDefaults = GetNativeDocumentDefaults(document);
             var footnoteNumbersById = new Dictionary<long, int>();
             foreach (WordSection section in document.Sections) {
                 IReadOnlyList<WordElement> elements = CollapseNativeParagraphElements(section.Elements);
                 List<PdfFootnote> footnotes = CollectNativeFootnotes(elements, footnoteNumbersById);
                 PdfCore.PageSize sectionPageSize = GetNativePageSize(section, options);
-                PdfCore.PageMargins sectionMargins = GetNativeMargins(section, options);
+                (double Header, double Footer) headerFooterMarginExpansion = GetNativeHeaderFooterMarginExpansion(section, options);
+                PdfCore.PageMargins sectionMargins = GetNativeMargins(section, options, headerFooterMarginExpansion);
                 double sectionContentWidth = Math.Max(72D, sectionPageSize.Width - sectionMargins.Left - sectionMargins.Right);
                 pdf.Section(page => {
                     page.Size(sectionPageSize);
                     page.Margin(sectionMargins);
                     ConfigureNativePageNumbering(page, section);
-                    ConfigureNativeHeaderFooter(page, section, options);
+                    ConfigureNativeHeaderFooter(page, section, options, headerFooterMarginExpansion.Header, headerFooterMarginExpansion.Footer);
                     var flow = new NativePdfDocumentFlow(pdf);
 
                     if (TryRenderNativeSectionColumns(
@@ -135,7 +150,9 @@ namespace OfficeIMO.Word.Pdf {
                         footnoteNumbersById,
                         options,
                         tableOfContentsEntries,
-                        headingDestinations)) {
+                        headingDestinations,
+                        nativeDefaults,
+                        nativeFontMap)) {
                         RenderNativeFootnotes(flow, footnotes);
                         return;
                     }
@@ -152,7 +169,8 @@ namespace OfficeIMO.Word.Pdf {
                             ref i,
                             listMarkers,
                             listIndices,
-                            footnoteNumbersById)) {
+                            footnoteNumbersById,
+                            nativeDefaults)) {
                             continue;
                         }
 
@@ -166,7 +184,10 @@ namespace OfficeIMO.Word.Pdf {
                             options,
                             tableOfContentsEntries,
                             headingDestinations,
-                            sectionContentWidth);
+                            sectionContentWidth,
+                            nativeDefaults,
+                            nativeFontMap,
+                            renderSpacingOnlyEmptyParagraphLineBox: IsPreviousNativeElementTable(elements, i));
                     }
 
                     RenderNativeFootnotes(flow, footnotes);
@@ -207,6 +228,19 @@ namespace OfficeIMO.Word.Pdf {
             if (string.IsNullOrEmpty(existingParagraph.Bookmark?.Name) &&
                 !string.IsNullOrEmpty(candidate.Bookmark?.Name)) {
                 return true;
+            }
+
+            return false;
+        }
+
+        private static bool IsPreviousNativeElementTable(IReadOnlyList<WordElement> elements, int index) {
+            for (int previousIndex = index - 1; previousIndex >= 0; previousIndex--) {
+                WordElement previous = elements[previousIndex];
+                if (previous is WordFootNote) {
+                    continue;
+                }
+
+                return previous is WordTable;
             }
 
             return false;

@@ -10,6 +10,7 @@ public static class PdfTextDiagnostics {
     private const string WinAnsiGlyphRemediation = "Embedded Unicode fonts are required for this text.";
     private const string ControlCharacterEncodingDescription = "PDF text output";
     private const string ControlCharacterRemediation = "Use paragraphs, line breaks, tables, or spacing primitives for layout instead of literal control characters.";
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<PdfEmbeddedFontFallbackCandidate, EmbeddedFontFallbackProgramBox> FallbackProgramCache = new();
 
     /// <summary>
     /// Finds text that cannot be written through the current generated standard-font WinAnsi path.
@@ -694,13 +695,18 @@ public static class PdfTextDiagnostics {
                 throw new ArgumentException("Embedded font fallback candidates cannot contain null entries.", nameof(candidates));
             }
 
-            byte[] fontData = candidate.DataSnapshot;
-            fonts.Add(IsOpenTypeCffFontData(fontData)
-                ? new EmbeddedFontFallbackProgram(candidate.FontName, PdfOpenTypeCffFontProgram.Parse(fontData, candidate.FontName))
-                : new EmbeddedFontFallbackProgram(candidate.FontName, PdfTrueTypeFontProgram.Parse(fontData, candidate.FontName)));
+            fonts.Add(FallbackProgramCache.GetValue(candidate, CreateFallbackProgram).Program);
         }
 
         return fonts;
+    }
+
+    private static EmbeddedFontFallbackProgramBox CreateFallbackProgram(PdfEmbeddedFontFallbackCandidate candidate) {
+        byte[] fontData = candidate.DataSnapshot;
+        EmbeddedFontFallbackProgram program = IsOpenTypeCffFontData(fontData)
+            ? new EmbeddedFontFallbackProgram(candidate.FontName, PdfOpenTypeCffFontProgram.Parse(fontData, candidate.FontName))
+            : new EmbeddedFontFallbackProgram(candidate.FontName, PdfTrueTypeFontProgram.Parse(fontData, candidate.FontName));
+        return new EmbeddedFontFallbackProgramBox(program);
     }
 
     private static int FindCoveringFont(IReadOnlyList<EmbeddedFontFallbackProgram> fonts, int scalar) {
@@ -1063,5 +1069,13 @@ public static class PdfTextDiagnostics {
             glyphId = 0;
             return false;
         }
+    }
+
+    private sealed class EmbeddedFontFallbackProgramBox {
+        public EmbeddedFontFallbackProgramBox(EmbeddedFontFallbackProgram program) {
+            Program = program;
+        }
+
+        public EmbeddedFontFallbackProgram Program { get; }
     }
 }

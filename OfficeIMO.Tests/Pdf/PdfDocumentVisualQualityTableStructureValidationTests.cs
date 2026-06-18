@@ -71,17 +71,6 @@ public partial class PdfDocumentVisualQualityTests {
                 }, style: invertedRange)
                 .ToBytes());
 
-        var impossibleMinimums = TableStyles.Minimal();
-        impossibleMinimums.ColumnMinWidthPoints = new List<double?> { 400, 400 };
-
-        Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create()
-                .Table(new[] {
-                    new[] { "A", "B" },
-                    new[] { "1", "2" }
-                }, style: impossibleMinimums)
-                .ToBytes());
-
         var invalidHeaderRows = TableStyles.Minimal();
 
         var invalidHeaderRowsException = Assert.Throws<ArgumentException>(() =>

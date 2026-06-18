@@ -216,6 +216,7 @@ public static class TableStyles {
         BorderWidth = 0.5,
         CellPaddingX = 5,
         CellPaddingY = 4,
+        HeaderBold = false,
         HeaderRowCount = 1,
         FooterRowCount = 0
     };

@@ -31,17 +31,18 @@ public static partial class OfficeChartDrawingRenderer {
         double contentTop = 0D;
         if (!string.IsNullOrWhiteSpace(snapshot.Title)) {
             double titleHeight = Math.Min(22D, Math.Max(16D, height * 0.12D));
+            double titleTop = Math.Min(layout.TitleTopPadding, Math.Max(0D, height - titleHeight));
             drawing.AddText(
                 snapshot.Title!,
                 8D,
-                5D,
+                titleTop,
                 Math.Max(1D, width - 16D),
                 Math.Max(1D, titleHeight - 4D),
                 new OfficeFontInfo(style.FontFamily, Math.Min(12D, Math.Max(8D, titleHeight - 7D)), OfficeFontStyle.Bold),
                 style.TitleColor,
                 OfficeTextAlignment.Center);
             if (!layout.OverlayTitle) {
-                contentTop = titleHeight;
+                contentTop = titleHeight + Math.Max(0D, titleTop - 5D);
             }
         }
 

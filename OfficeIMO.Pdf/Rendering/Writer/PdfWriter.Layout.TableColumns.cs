@@ -1,6 +1,3 @@
-using System.Globalization;
-using OfficeIMO.Drawing;
-
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
@@ -106,7 +103,61 @@ internal static partial class PdfWriter {
         return fixedColumns.Select((fixedColumn, column) => fixedColumn ? columnWidths[column] : 0D).Sum();
     }
 
+    private static double ExpandFixedTableColumnsToAvailableWidth(double[] columnWidths, bool[] fixedColumns, double?[] maxWidths, double fixedWidthTotal, double availableWidth) {
+        if (fixedWidthTotal <= 0D || fixedWidthTotal >= availableWidth - 0.001D) {
+            return fixedWidthTotal;
+        }
+
+        double[] originalWidths = new double[columnWidths.Length];
+        bool[] lockedColumns = new bool[columnWidths.Length];
+        double remainingOriginalWidth = 0D;
+        double remainingAvailableWidth = availableWidth;
+        for (int column = 0; column < columnWidths.Length; column++) {
+            if (!fixedColumns[column]) {
+                continue;
+            }
+
+            originalWidths[column] = columnWidths[column];
+            remainingOriginalWidth += columnWidths[column];
+        }
+
+        while (remainingOriginalWidth > 0.001D) {
+            double scale = remainingAvailableWidth / remainingOriginalWidth;
+            bool lockedMaximum = false;
+
+            for (int column = 0; column < columnWidths.Length; column++) {
+                if (!fixedColumns[column] || lockedColumns[column]) {
+                    continue;
+                }
+
+                double candidateWidth = originalWidths[column] * scale;
+                if (maxWidths[column].HasValue && candidateWidth > maxWidths[column]!.Value + 0.001D) {
+                    columnWidths[column] = maxWidths[column]!.Value;
+                    lockedColumns[column] = true;
+                    remainingAvailableWidth -= columnWidths[column];
+                    remainingOriginalWidth -= originalWidths[column];
+                    lockedMaximum = true;
+                }
+            }
+
+            if (!lockedMaximum) {
+                for (int column = 0; column < columnWidths.Length; column++) {
+                    if (fixedColumns[column] && !lockedColumns[column]) {
+                        columnWidths[column] = originalWidths[column] * scale;
+                    }
+                }
+
+                break;
+            }
+        }
+
+        return fixedColumns.Select((fixedColumn, column) => fixedColumn ? columnWidths[column] : 0D).Sum();
+    }
+
     private static TableColumnLayout ResolveTableColumnLayout(TableBlock table, PdfOptions options, PdfTableStyle style, int columns, double frameWidth, double fontSize, int headerRowCount, int footerStartRowIndex) {
+        AutoFitColumnProfile[]? autoFitProfiles = style.AutoFitColumns
+            ? MeasureAutoFitColumnProfiles(table, headerRowCount)
+            : null;
         double[]? autoFitWeights = style.AutoFitColumns
             ? MeasureAutoFitColumnWeights(table, options, style, fontSize, headerRowCount, footerStartRowIndex)
             : null;
@@ -174,11 +225,21 @@ internal static partial class PdfWriter {
                 weight = autoFitWeights[column];
             }
 
+            if (autoFitWeights != null && minWidth.HasValue) {
+                AutoFitColumnProfile profile = autoFitProfiles != null && column < autoFitProfiles.Length
+                    ? autoFitProfiles[column]
+                    : default;
+                weight = ResolveAutoFitFlexibleWeight(weight, minWidth.Value, profile);
+            }
+
             columnWeights[column] = weight;
             totalWeight += weight;
         }
 
         fixedWidthTotal = FitFixedTableColumnsToAvailableWidth(columnWidths, fixedColumns, minWidths, fixedWidthTotal, tableInnerWidth);
+        if (style.PreserveWidth && totalWeight <= 0D) {
+            fixedWidthTotal = ExpandFixedTableColumnsToAvailableWidth(columnWidths, fixedColumns, maxWidths, fixedWidthTotal, tableInnerWidth);
+        }
 
         double remainingWidth = Math.Max(0D, tableInnerWidth - fixedWidthTotal);
         if (totalWeight <= 0D) {
@@ -186,7 +247,9 @@ internal static partial class PdfWriter {
         }
 
         DistributeFlexibleColumns(columnWidths, columnWeights, fixedColumns, minWidths, maxWidths, remainingWidth);
-        tableWidth = Math.Min(tableWidth, columnWidths.Sum() + (columns - 1) * columnGap);
+        if (!style.PreserveWidth) {
+            tableWidth = Math.Min(tableWidth, columnWidths.Sum() + (columns - 1) * columnGap);
+        }
         ValidateTableCellTextWidths(table, style, columns, columnWidths, columnGap);
 
         return new TableColumnLayout {
@@ -218,117 +281,6 @@ internal static partial class PdfWriter {
     private static bool IsValidPdfCellVerticalAlign(PdfCellVerticalAlign align) =>
         align == PdfCellVerticalAlign.Top || align == PdfCellVerticalAlign.Middle || align == PdfCellVerticalAlign.Bottom;
 
-    private static OfficeIMO.Drawing.OfficeFontInfo ToOfficeFontInfo(PdfStandardFont font, double size) {
-        string family = font switch {
-            PdfStandardFont.TimesRoman or PdfStandardFont.TimesBold or PdfStandardFont.TimesItalic or PdfStandardFont.TimesBoldItalic => "Times New Roman",
-            PdfStandardFont.Courier or PdfStandardFont.CourierBold or PdfStandardFont.CourierOblique or PdfStandardFont.CourierBoldOblique => "Courier New",
-            _ => "Helvetica"
-        };
-
-        OfficeIMO.Drawing.OfficeFontStyle style = OfficeIMO.Drawing.OfficeFontStyle.Regular;
-        switch (font) {
-            case PdfStandardFont.HelveticaBold:
-            case PdfStandardFont.HelveticaBoldOblique:
-            case PdfStandardFont.TimesBold:
-            case PdfStandardFont.TimesBoldItalic:
-            case PdfStandardFont.CourierBold:
-            case PdfStandardFont.CourierBoldOblique:
-                style |= OfficeIMO.Drawing.OfficeFontStyle.Bold;
-                break;
-        }
-
-        switch (font) {
-            case PdfStandardFont.HelveticaOblique:
-            case PdfStandardFont.HelveticaBoldOblique:
-            case PdfStandardFont.TimesItalic:
-            case PdfStandardFont.TimesBoldItalic:
-            case PdfStandardFont.CourierOblique:
-            case PdfStandardFont.CourierBoldOblique:
-                style |= OfficeIMO.Drawing.OfficeFontStyle.Italic;
-                break;
-        }
-
-        return new OfficeIMO.Drawing.OfficeFontInfo(family, size, style);
-    }
-
-    private static double[] MeasureAutoFitColumnWeights(TableBlock table, PdfOptions options, PdfTableStyle style, double fontSize, int headerRowCount, int footerStartRowIndex) {
-        int cols = GetTableColumnCount(table);
-        var weights = new double[cols];
-        var normalFont = ToOfficeFontInfo(ChooseNormal(options.DefaultFont), fontSize);
-        var measurer = OfficeIMO.Drawing.OfficeTextMeasurer.Create(normalFont);
-
-        for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
-            double rowSize = GetTableRowFontSize(style, rowIndex, headerRowCount, footerStartRowIndex, fontSize);
-            var rowFont = ToOfficeFontInfo(GetTableRowFont(options, GetTableRowBold(style, rowIndex, headerRowCount, footerStartRowIndex)), rowSize);
-            var measurementStyle = measurer.CreateStyle(rowFont);
-            var cells = GetTableCellLayouts(table, rowIndex, cols);
-            for (int cellIndex = 0; cellIndex < cells.Count; cellIndex++) {
-                TableCellLayout cell = cells[cellIndex];
-                double measuredPoints = System.Math.Max(
-                    measurer.MeasureWidth(cell.Text, measurementStyle) * 72D / measurementStyle.Dpi,
-                    MeasureTableCellObjectWidth(cell));
-                double requestedWidth = Math.Max(1D, measuredPoints + GetTableCellPaddingLeft(style, rowIndex, cell.Column) + GetTableCellPaddingRight(style, rowIndex, cell.Column));
-                double requestedPerColumn = requestedWidth / cell.ColumnSpan;
-                for (int c = cell.Column; c < cell.Column + cell.ColumnSpan && c < cols; c++) {
-                    if (requestedPerColumn > weights[c]) {
-                        weights[c] = requestedPerColumn;
-                    }
-                }
-            }
-        }
-
-        for (int c = 0; c < weights.Length; c++) {
-            if (weights[c] <= 0D) {
-                weights[c] = 1D;
-            }
-        }
-
-        return weights;
-    }
-
-    private static double[] MeasureAutoFitColumnMinimumWidths(TableBlock table, PdfOptions options, PdfTableStyle style, double fontSize, int headerRowCount, int footerStartRowIndex) {
-        int cols = GetTableColumnCount(table);
-        var widths = new double[cols];
-        double maximumTokenWidth = Math.Max(1D, fontSize * Math.Max(4D, 13D - cols));
-
-        for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
-            double rowSize = GetTableRowFontSize(style, rowIndex, headerRowCount, footerStartRowIndex, fontSize);
-            var rowFont = GetTableRowFont(options, GetTableRowBold(style, rowIndex, headerRowCount, footerStartRowIndex));
-            var cells = GetTableCellLayouts(table, rowIndex, cols);
-            for (int cellIndex = 0; cellIndex < cells.Count; cellIndex++) {
-                TableCellLayout cell = cells[cellIndex];
-                double tokenWidth = 0D;
-                string[] tokens = cell.Text
-                    .Replace("\r\n", "\n")
-                    .Replace('\r', '\n')
-                    .Split(TokenSplitChars, StringSplitOptions.RemoveEmptyEntries);
-                if (tokens.Length == 0) {
-                    tokenWidth = EstimateSimpleTextWidthForOptions(cell.Text, rowFont, rowSize, options);
-                } else {
-                    for (int tokenIndex = 0; tokenIndex < tokens.Length; tokenIndex++) {
-                        tokenWidth = Math.Max(tokenWidth, EstimateSimpleTextWidthForOptions(tokens[tokenIndex], rowFont, rowSize, options));
-                    }
-                }
-
-                double requestedWidth = Math.Max(1D, System.Math.Max(Math.Min(tokenWidth, maximumTokenWidth), MeasureTableCellObjectWidth(cell)) + GetTableCellPaddingLeft(style, rowIndex, cell.Column) + GetTableCellPaddingRight(style, rowIndex, cell.Column));
-                double requestedPerColumn = requestedWidth / cell.ColumnSpan;
-                for (int columnIndex = cell.Column; columnIndex < cell.Column + cell.ColumnSpan && columnIndex < cols; columnIndex++) {
-                    if (requestedPerColumn > widths[columnIndex]) {
-                        widths[columnIndex] = requestedPerColumn;
-                    }
-                }
-            }
-        }
-
-        for (int columnIndex = 0; columnIndex < widths.Length; columnIndex++) {
-            if (widths[columnIndex] <= 0D) {
-                widths[columnIndex] = 1D;
-            }
-        }
-
-        return widths;
-    }
-
     private static void DistributeFlexibleColumns(
         double[] widths,
         double[] weights,
@@ -353,7 +305,16 @@ internal static partial class PdfWriter {
         }
 
         if (requiredMinimum > availableWidth + 0.001) {
-            throw new ArgumentException("Table minimum column widths exceed the available table width.");
+            double scale = availableWidth > 0D ? availableWidth / requiredMinimum : 0D;
+            for (int i = 0; i < widths.Length; i++) {
+                if (!active[i]) {
+                    continue;
+                }
+
+                widths[i] = (minWidths[i] ?? 0D) * scale;
+            }
+
+            return;
         }
 
         double remaining = availableWidth;

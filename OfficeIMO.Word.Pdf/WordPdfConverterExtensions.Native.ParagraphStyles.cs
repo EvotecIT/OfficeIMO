@@ -11,14 +11,22 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
-        private static PdfCore.PdfParagraphStyle CreateNativeParagraphStyle(WordParagraph paragraph) {
+        private static PdfCore.PdfParagraphStyle CreateNativeParagraphStyle(WordParagraph paragraph) =>
+            CreateNativeParagraphStyle(paragraph, GetNativeDocumentDefaults(paragraph._document));
+
+        private static PdfCore.PdfParagraphStyle CreateNativeParagraphStyle(WordParagraph paragraph, NativeDocumentDefaults nativeDefaults) {
+            NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);
             var style = new PdfCore.PdfParagraphStyle();
             if (paragraph.LineSpacingBeforePoints.HasValue) {
                 style.SpacingBefore = paragraph.LineSpacingBeforePoints.Value;
+            } else if (styleDefaults.SpacingBefore.HasValue) {
+                style.SpacingBefore = styleDefaults.SpacingBefore.Value;
             }
 
             if (paragraph.LineSpacingAfterPoints.HasValue) {
                 style.SpacingAfter = paragraph.LineSpacingAfterPoints.Value;
+            } else if (styleDefaults.SpacingAfter.HasValue) {
+                style.SpacingAfter = styleDefaults.SpacingAfter.Value;
             }
 
             if (paragraph.IndentationBeforePoints.HasValue) {
@@ -42,11 +50,11 @@ namespace OfficeIMO.Word.Pdf {
                 style.FirstLineIndent = -hangingIndent;
             }
 
-            double fontSize = paragraph.FontSize.HasValue && paragraph.FontSize.Value > 0 ? paragraph.FontSize.Value : 11D;
-            style.LineHeight = ResolveNativeParagraphLineHeight(paragraph, fontSize);
+            double fontSize = ResolveNativeParagraphFontSize(paragraph, nativeDefaults, styleDefaults);
+            style.LineHeight = ResolveNativeParagraphLineHeight(paragraph, fontSize, nativeDefaults, styleDefaults);
 
-            if (!paragraph.LineSpacingAfterPoints.HasValue) {
-                style.SpacingAfter = NativeDefaultParagraphSpacingAfter;
+            if (!paragraph.LineSpacingAfterPoints.HasValue && !styleDefaults.SpacingAfter.HasValue) {
+                style.SpacingAfter = nativeDefaults.ParagraphSpacingAfter;
             }
 
             foreach (WordTabStop tabStop in paragraph.TabStops
@@ -68,9 +76,9 @@ namespace OfficeIMO.Word.Pdf {
                     MapNativeTabLeader(tabStop.Leader)));
             }
 
-            style.KeepTogether = paragraph.KeepLinesTogether;
-            style.KeepWithNext = paragraph.KeepWithNext;
-            style.WidowControl = paragraph.AvoidWidowAndOrphan;
+            style.KeepTogether = ReadNativeDirectParagraphOnOff<W.KeepLines>(paragraph) ?? styleDefaults.KeepTogether ?? false;
+            style.KeepWithNext = ReadNativeDirectParagraphOnOff<W.KeepNext>(paragraph) ?? styleDefaults.KeepWithNext ?? false;
+            style.WidowControl = ReadNativeDirectParagraphOnOff<W.WidowControl>(paragraph) ?? styleDefaults.WidowControl ?? nativeDefaults.ParagraphWidowControl;
             return style;
         }
 
@@ -78,16 +86,32 @@ namespace OfficeIMO.Word.Pdf {
             alignment != W.TabStopValues.Bar &&
             alignment != W.TabStopValues.Clear;
 
-        private static double ResolveNativeParagraphLineHeight(WordParagraph paragraph, double fontSize) {
+        private static double ResolveNativeParagraphLineHeight(WordParagraph paragraph, double fontSize) =>
+            ResolveNativeParagraphLineHeight(paragraph, fontSize, GetNativeDocumentDefaults(paragraph._document));
+
+        private static double ResolveNativeParagraphLineHeight(WordParagraph paragraph, double fontSize, NativeDocumentDefaults nativeDefaults) {
+            return ResolveNativeParagraphLineHeight(paragraph, fontSize, nativeDefaults, GetNativeParagraphStyleDefaults(paragraph));
+        }
+
+        private static double ResolveNativeParagraphFontSize(WordParagraph paragraph, NativeDocumentDefaults nativeDefaults, NativeParagraphStyleDefaults styleDefaults) =>
+            paragraph.FontSize.HasValue && paragraph.FontSize.Value > 0
+                ? paragraph.FontSize.Value
+                : styleDefaults.FontSize ?? nativeDefaults.FontSize;
+
+        private static double ResolveNativeParagraphLineHeight(WordParagraph paragraph, double fontSize, NativeDocumentDefaults nativeDefaults, NativeParagraphStyleDefaults styleDefaults) {
             if (paragraph.LineSpacing.HasValue && paragraph.LineSpacingRule == W.LineSpacingRuleValues.Auto) {
-                return Math.Max(0.01D, paragraph.LineSpacing.Value / 240D);
+                return Math.Max(0.01D, NativeWordAutoLineSpacingHeight * (paragraph.LineSpacing.Value / 240D));
             }
 
             if (paragraph.LineSpacingPoints.HasValue && fontSize > 0D) {
                 return paragraph.LineSpacingPoints.Value / fontSize;
             }
 
-            return NativeDefaultParagraphLineHeight;
+            if (styleDefaults.LineHeight.HasValue) {
+                return styleDefaults.LineHeight.Value;
+            }
+
+            return nativeDefaults.ParagraphLineHeight;
         }
 
         private static PdfCore.PdfTabLeaderStyle MapNativeTabLeader(W.TabStopLeaderCharValues leader) {
@@ -136,14 +160,15 @@ namespace OfficeIMO.Word.Pdf {
                 return null;
             }
 
+            bool backgroundOnly = background.HasValue && border == null && !hasParagraphBorder;
             var style = new PdfCore.PanelStyle {
                 Background = background,
                 BorderColor = border?.Color,
                 BorderWidth = border?.Width ?? 0D,
                 PaddingX = 6,
-                PaddingY = 4,
+                PaddingY = backgroundOnly ? 0D : 4D,
                 SpacingBefore = paragraphStyle.SpacingBefore,
-                SpacingAfter = paragraphStyle.SpacingAfter ?? 6D,
+                SpacingAfter = backgroundOnly ? 0D : paragraphStyle.SpacingAfter ?? 6D,
                 Align = MapNativeParagraphAlign(paragraph.ParagraphAlignment, allowJustify: false)
             };
 
@@ -399,15 +424,154 @@ namespace OfficeIMO.Word.Pdf {
             };
 
         private static PdfCore.PageMargins GetNativeMargins(WordSection section, PdfSaveOptions? options) {
+            return GetNativeMargins(section, options, GetNativeHeaderFooterMarginExpansion(section, options));
+        }
+
+        private static PdfCore.PageMargins GetNativeMargins(WordSection section, PdfSaveOptions? options, (double Header, double Footer) headerFooterMarginExpansion) {
             if (options?.Margins != null) {
                 return options.Margins.Value;
             }
 
             return new PdfCore.PageMargins(
                 (section.Margins.Left?.Value ?? 0) / 20D,
-                (section.Margins.Top ?? 0) / 20D,
+                (section.Margins.Top ?? 0) / 20D + headerFooterMarginExpansion.Header,
                 (section.Margins.Right?.Value ?? 0) / 20D,
-                (section.Margins.Bottom ?? 0) / 20D);
+                (section.Margins.Bottom ?? 0) / 20D + headerFooterMarginExpansion.Footer);
+        }
+
+        private static (double Header, double Footer) GetNativeHeaderFooterMarginExpansion(WordSection section, PdfSaveOptions? options) {
+            if (options?.Margins != null) {
+                return (0D, 0D);
+            }
+
+            double headerExpansion = GetNativeHeaderFooterMarginExpansion(
+                section.Header?.Default,
+                section.DifferentFirstPage ? section.Header?.First : null,
+                section.DifferentOddAndEvenPages ? section.Header?.Even : null);
+            double footerExpansion = GetNativeFooterMarginExpansion(
+                section.Footer?.Default,
+                section.DifferentFirstPage ? section.Footer?.First : null,
+                section.DifferentOddAndEvenPages ? section.Footer?.Even : null);
+
+            return (headerExpansion, footerExpansion);
+        }
+
+        private static double GetNativeHeaderFooterMarginExpansion(params WordHeaderFooter?[] variants) {
+            int maxLines = 0;
+            foreach (WordHeaderFooter? variant in variants) {
+                maxLines = Math.Max(maxLines, GetNativeHeaderFooterLineCount(variant));
+            }
+
+            return GetNativeHeaderFooterMarginExpansion(maxLines);
+        }
+
+        private static double GetNativeFooterMarginExpansion(params WordHeaderFooter?[] variants) {
+            int maxLines = 0;
+            foreach (WordHeaderFooter? variant in variants) {
+                maxLines = Math.Max(maxLines, GetNativeHeaderFooterLineCount(variant));
+            }
+
+            return GetNativeFooterMarginExpansion(maxLines);
+        }
+
+        private static double GetNativeHeaderFooterTextMarginExpansion(params NativeHeaderFooterText?[] variants) {
+            int maxLines = 0;
+            foreach (NativeHeaderFooterText? variant in variants) {
+                maxLines = Math.Max(maxLines, GetNativeHeaderFooterTextLineCount(variant));
+            }
+
+            return GetNativeHeaderFooterMarginExpansion(maxLines);
+        }
+
+        private static double GetNativeHeaderFooterMarginExpansion(int maxLines) {
+            if (maxLines <= 2) {
+                return 0D;
+            }
+
+            return (maxLines - 2) * NativeHeaderFooterLineHeight + NativeHeaderFooterBodyGap;
+        }
+
+        private static double GetNativeFooterMarginExpansion(int maxLines) {
+            if (maxLines <= 1) {
+                return 0D;
+            }
+
+            return ((maxLines - 1) * NativeHeaderFooterLineHeight * 0.75D) + NativeHeaderFooterBodyGap;
+        }
+
+        private static int GetNativeHeaderFooterLineCount(WordHeaderFooter? headerFooter) {
+            if (headerFooter == null) {
+                return 0;
+            }
+
+            int textLines = GetNativeHeaderFooterTextLineCount(GetNativeHeaderFooterText(headerFooter));
+            int structuralLines = 0;
+            foreach (WordElement element in CollapseNativeParagraphElements(headerFooter.Elements)) {
+                structuralLines += GetNativeHeaderFooterElementLineCount(element);
+            }
+
+            return Math.Max(textLines, structuralLines);
+        }
+
+        private static int GetNativeHeaderFooterElementLineCount(WordElement element) {
+            return element switch {
+                WordParagraph paragraph => GetNativeHeaderFooterParagraphLineCount(paragraph),
+                WordTable table => GetNativeHeaderFooterTableLineCount(table),
+                WordHyperLink link when !string.IsNullOrWhiteSpace(link.Text) => 1,
+                _ => 0
+            };
+        }
+
+        private static int GetNativeHeaderFooterTableLineCount(WordTable table) {
+            int lineCount = 0;
+            foreach (WordTableRow row in table.Rows) {
+                int rowLineCount = 0;
+                foreach (WordTableCell cell in row.Cells) {
+                    int cellLineCount = 0;
+                    foreach (WordParagraph paragraph in GetNativeCellParagraphs(cell)) {
+                        cellLineCount += GetNativeHeaderFooterParagraphLineCount(paragraph);
+                    }
+
+                    rowLineCount = Math.Max(rowLineCount, cellLineCount);
+                }
+
+                lineCount += rowLineCount;
+            }
+
+            return lineCount;
+        }
+
+        private static int GetNativeHeaderFooterParagraphLineCount(WordParagraph paragraph) {
+            string? text = GetNativeHeaderFooterParagraphText(paragraph, out _);
+            return Math.Max(1, CountNativeHeaderFooterLines(text));
+        }
+
+        private static int GetNativeHeaderFooterTextLineCount(NativeHeaderFooterText? text) {
+            if (text == null) {
+                return 0;
+            }
+
+            return Math.Max(
+                CountNativeHeaderFooterLines(text.Left),
+                Math.Max(
+                    CountNativeHeaderFooterLines(text.Center),
+                    CountNativeHeaderFooterLines(text.Right)));
+        }
+
+        private static int CountNativeHeaderFooterLines(string? text) {
+            if (string.IsNullOrEmpty(text)) {
+                return 0;
+            }
+
+            string normalized = text!.Replace("\r\n", "\n").Replace('\r', '\n');
+            int lines = 1;
+            for (int index = 0; index < normalized.Length; index++) {
+                if (normalized[index] == '\n') {
+                    lines++;
+                }
+            }
+
+            return lines;
         }
 
         private static string GetNativePageNumberFormat(PdfSaveOptions? options) {

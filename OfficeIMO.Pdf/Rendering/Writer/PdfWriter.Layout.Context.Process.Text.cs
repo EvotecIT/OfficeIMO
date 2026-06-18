@@ -5,7 +5,7 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
-        private void RenderHeadingFlowBlock(HeadingBlock hb, IPdfBlock? nextBlock) {
+        private void RenderHeadingFlowBlock(HeadingBlock hb, IPdfBlock? nextBlock, System.Collections.Generic.IList<IPdfBlock> blockList, int blockIndex) {
             PdfHeadingStyle? headingStyle = ResolveHeadingStyle(hb, currentOpts);
             double size = GetHeadingFontSize(hb, headingStyle);
             double leading = GetHeadingLeading(headingStyle, size);
@@ -19,7 +19,7 @@ internal static partial class PdfWriter {
             double needed = spacingBefore + textHeight + spacingAfter;
             bool keepWithNext = headingStyle?.KeepWithNext ?? true;
             if (keepWithNext && nextBlock != null) {
-                double keepHeight = needed + MeasureNextBlockFirstVisualHeight(nextBlock, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize);
+                double keepHeight = needed + MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize);
                 double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
                 if (keepHeight > needed + 0.001 && keepHeight <= availableHeight + 0.001 && y < yStart - 0.001 && y - keepHeight < currentOpts.MarginBottom) {
                     NewPage();
@@ -160,6 +160,7 @@ internal static partial class PdfWriter {
                 pageDirty = true;
                 var paragraphFont = ChooseNormal(currentOpts.DefaultFont);
                 int? markedContentId = RegisterTextStructureElement("P");
+                MarkRichFonts(rpb.Runs);
                 WriteRichParagraph(sb, rpb, sliceLines, sliceHeights, currentOpts, FirstTextBaselineFromTop(paragraphFont, size, y), size, leading, currentPage!.Annotations, textFrame.X, textFrame.Width, sliceStartsAtFirstLine ? textFrame.FirstLineX : null, sliceStartsAtFirstLine ? textFrame.FirstLineWidth : null, "P", markedContentId, currentPage);
                 y -= heightSum;
                 lineIndex += take;

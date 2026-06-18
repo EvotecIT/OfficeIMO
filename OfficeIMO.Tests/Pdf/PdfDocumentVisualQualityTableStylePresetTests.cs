@@ -24,6 +24,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Equal(PdfColor.Black, tableGrid.BorderColor);
         Assert.Equal(0.5, tableGrid.BorderWidth);
         Assert.Null(tableGrid.HeaderFill);
+        Assert.False(tableGrid.HeaderBold);
         Assert.Null(tableGrid.RowStripeFill);
 
         Assert.Equal(PdfColor.FromRgb(191, 191, 191), tableGridLight.BorderColor);

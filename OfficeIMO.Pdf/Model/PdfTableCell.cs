@@ -18,6 +18,7 @@ public sealed class PdfTableCell {
         CheckBoxes = SnapshotCheckBoxes(checkBoxes, nameof(checkBoxes));
         FormFields = SnapshotFormFields(formFields, nameof(formFields));
         Images = SnapshotImages(images, nameof(images));
+        Paragraphs = System.Array.AsReadOnly(System.Array.Empty<PdfTableCellParagraph>());
     }
 
     /// <summary>Creates a table cell with rich text runs, optional column/row spans, optional link metadata, images, and form fields.</summary>
@@ -46,6 +47,35 @@ public sealed class PdfTableCell {
         CheckBoxes = SnapshotCheckBoxes(checkBoxes, nameof(checkBoxes));
         FormFields = SnapshotFormFields(formFields, nameof(formFields));
         Images = SnapshotImages(images, nameof(images));
+        Paragraphs = System.Array.AsReadOnly(System.Array.Empty<PdfTableCellParagraph>());
+    }
+
+    internal PdfTableCell(System.Collections.Generic.IEnumerable<TextRun> runs, System.Collections.Generic.IEnumerable<PdfTableCellParagraph>? paragraphs, int columnSpan = 1, string? linkUri = null, string? linkContents = null, int rowSpan = 1, System.Collections.Generic.IEnumerable<PdfTableCellCheckBox>? checkBoxes = null, System.Collections.Generic.IEnumerable<PdfTableCellFormField>? formFields = null, System.Collections.Generic.IEnumerable<PdfTableCellImage>? images = null, string? linkDestinationName = null, string? namedDestinationName = null) {
+        Guard.NotNull(runs, nameof(runs));
+        Validate(columnSpan, rowSpan, linkUri, linkDestinationName, linkContents, namedDestinationName);
+        var snapshot = new System.Collections.Generic.List<TextRun>();
+        var text = new System.Text.StringBuilder();
+        foreach (TextRun run in runs) {
+            if (run is null) {
+                throw new System.ArgumentException("Table cell text runs cannot contain null entries.", nameof(runs));
+            }
+
+            snapshot.Add(run);
+            text.Append(run.Text);
+        }
+
+        Text = text.ToString();
+        Runs = snapshot.AsReadOnly();
+        ColumnSpan = columnSpan;
+        RowSpan = rowSpan;
+        LinkUri = linkUri;
+        LinkDestinationName = linkDestinationName;
+        NamedDestinationName = namedDestinationName;
+        LinkContents = HasLinkTarget(linkUri, linkDestinationName) ? linkContents ?? Text : null;
+        CheckBoxes = SnapshotCheckBoxes(checkBoxes, nameof(checkBoxes));
+        FormFields = SnapshotFormFields(formFields, nameof(formFields));
+        Images = SnapshotImages(images, nameof(images));
+        Paragraphs = SnapshotParagraphs(paragraphs, nameof(paragraphs));
     }
 
     /// <summary>Cell text content.</summary>
@@ -80,6 +110,8 @@ public sealed class PdfTableCell {
 
     /// <summary>Images rendered inside this cell.</summary>
     public System.Collections.Generic.IReadOnlyList<PdfTableCellImage> Images { get; }
+
+    internal System.Collections.Generic.IReadOnlyList<PdfTableCellParagraph> Paragraphs { get; }
 
     /// <summary>Creates a single-column text cell.</summary>
     public static PdfTableCell TextCell(string? text, string? linkUri = null, string? linkContents = null, string? linkDestinationName = null, string? namedDestinationName = null) => new PdfTableCell(text, linkUri: linkUri, linkContents: linkContents, linkDestinationName: linkDestinationName, namedDestinationName: namedDestinationName);
@@ -118,9 +150,9 @@ public sealed class PdfTableCell {
     public static PdfTableCell WithImages(string? text, System.Collections.Generic.IEnumerable<PdfTableCellImage> images, int columnSpan = 1, string? linkUri = null, string? linkContents = null, int rowSpan = 1, System.Collections.Generic.IEnumerable<PdfTableCellCheckBox>? checkBoxes = null, System.Collections.Generic.IEnumerable<PdfTableCellFormField>? formFields = null, string? linkDestinationName = null) => new PdfTableCell(text, columnSpan, linkUri, linkContents, rowSpan, checkBoxes, formFields, images, linkDestinationName);
 
     /// <summary>Returns a copy of this cell with a PDF named destination defined at the cell.</summary>
-    public PdfTableCell WithNamedDestination(string? namedDestinationName) => new PdfTableCell(Runs, ColumnSpan, LinkUri, LinkContents, RowSpan, CheckBoxes, FormFields, Images, LinkDestinationName, namedDestinationName);
+    public PdfTableCell WithNamedDestination(string? namedDestinationName) => new PdfTableCell(Runs, Paragraphs, ColumnSpan, LinkUri, LinkContents, RowSpan, CheckBoxes, FormFields, Images, LinkDestinationName, namedDestinationName);
 
-    internal PdfTableCell Clone() => new PdfTableCell(Runs, ColumnSpan, LinkUri, LinkContents, RowSpan, CheckBoxes, FormFields, Images, LinkDestinationName, NamedDestinationName);
+    internal PdfTableCell Clone() => new PdfTableCell(Runs, Paragraphs, ColumnSpan, LinkUri, LinkContents, RowSpan, CheckBoxes, FormFields, Images, LinkDestinationName, NamedDestinationName);
 
     private static void Validate(int columnSpan, int rowSpan, string? linkUri, string? linkDestinationName, string? linkContents, string? namedDestinationName) {
         if (columnSpan < 1) {
@@ -206,4 +238,48 @@ public sealed class PdfTableCell {
 
         return snapshot.AsReadOnly();
     }
+
+    private static System.Collections.ObjectModel.ReadOnlyCollection<PdfTableCellParagraph> SnapshotParagraphs(System.Collections.Generic.IEnumerable<PdfTableCellParagraph>? paragraphs, string paramName) {
+        if (paragraphs == null) {
+            return System.Array.AsReadOnly(System.Array.Empty<PdfTableCellParagraph>());
+        }
+
+        var snapshot = new System.Collections.Generic.List<PdfTableCellParagraph>();
+        foreach (PdfTableCellParagraph paragraph in paragraphs) {
+            if (paragraph == null) {
+                throw new System.ArgumentException("Table cell paragraphs cannot contain null entries.", paramName);
+            }
+
+            snapshot.Add(paragraph.Clone());
+        }
+
+        return snapshot.AsReadOnly();
+    }
+}
+
+internal sealed class PdfTableCellParagraph {
+    public PdfTableCellParagraph(System.Collections.Generic.IEnumerable<TextRun> runs, double spacingAfter = 0D) {
+        Guard.NotNull(runs, nameof(runs));
+        if (spacingAfter < 0 || double.IsNaN(spacingAfter) || double.IsInfinity(spacingAfter)) {
+            throw new System.ArgumentOutOfRangeException(nameof(spacingAfter), "Table cell paragraph spacing must be a non-negative finite value.");
+        }
+
+        var snapshot = new System.Collections.Generic.List<TextRun>();
+        foreach (TextRun run in runs) {
+            if (run is null) {
+                throw new System.ArgumentException("Table cell paragraph runs cannot contain null entries.", nameof(runs));
+            }
+
+            snapshot.Add(run);
+        }
+
+        Runs = snapshot.AsReadOnly();
+        SpacingAfter = spacingAfter;
+    }
+
+    public System.Collections.Generic.IReadOnlyList<TextRun> Runs { get; }
+
+    public double SpacingAfter { get; }
+
+    internal PdfTableCellParagraph Clone() => new PdfTableCellParagraph(Runs, SpacingAfter);
 }

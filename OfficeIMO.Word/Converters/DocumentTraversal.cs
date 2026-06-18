@@ -64,6 +64,15 @@ namespace OfficeIMO.Word {
                 return null;
             }
 
+            Dictionary<int, ListNumberingDefinition> definitions = BuildListNumberingDefinitions(paragraph._document);
+            return GetListInfo(paragraph, definitions);
+        }
+
+        private static ListInfo? GetListInfo(WordParagraph paragraph, IReadOnlyDictionary<int, ListNumberingDefinition> definitions) {
+            if (paragraph == null || !paragraph.IsListItem) {
+                return null;
+            }
+
             int level = paragraph.ListItemLevel ?? 0;
             int? overrideStart = null;
             int start = 1;
@@ -73,45 +82,28 @@ namespace OfficeIMO.Word {
             int? hangingIndentTwips = null;
 
             int? numberId = paragraph._listNumberId;
-            var list = numberId.HasValue ? paragraph._document?.Lists.FirstOrDefault(l => l._numberId == numberId) : null;
-            if (numberId.HasValue && paragraph._document != null) {
-                var numbering = paragraph._document._wordprocessingDocument.MainDocumentPart?.NumberingDefinitionsPart?.Numbering;
-                var instance = numbering?.Elements<NumberingInstance>()
-                    .FirstOrDefault(n => n.NumberID?.Value == numberId.Value);
-                bool overridesAreDefault = false;
-                if (instance != null) {
-                    var overrides = instance.Elements<LevelOverride>().ToList();
-                    if (overrides.Count >= 9) {
-                        overridesAreDefault = overrides.All(o => {
-                            var startOverrideValue = o.GetFirstChild<StartOverrideNumberingValue>();
-                            return startOverrideValue?.Val?.HasValue == true && startOverrideValue.Val.Value == 1;
-                        });
-                    }
-                    var levelOverride = overrides.FirstOrDefault(l => l.LevelIndex?.Value == level);
-                    var startOverride = levelOverride?.GetFirstChild<StartOverrideNumberingValue>();
-                    if (startOverride?.Val != null && startOverride.Val.HasValue) {
-                        var overrideValue = startOverride.Val.Value;
-                        if (!overridesAreDefault || overrideValue != 1) {
-                            overrideStart = overrideValue;
-                            start = overrideValue;
-                        }
-                    }
-                }
+            ListNumberingDefinition? definition = null;
+            if (numberId.HasValue) {
+                definitions.TryGetValue(numberId.Value, out definition);
             }
-            var wordLevel = list?.Numbering.Levels.FirstOrDefault(l => l._level.LevelIndex?.Value == level);
-            if (wordLevel != null) {
-                var startVal = wordLevel._level.StartNumberingValue?.Val;
-                if (!overrideStart.HasValue) {
-                    start = startVal?.Value ?? 1;
-                }
-                numberFormat = wordLevel._level.NumberingFormat?.Val?.Value;
-                levelText = wordLevel.LevelText;
-                var indentation = wordLevel._level.GetFirstChild<PreviousParagraphProperties>()?.GetFirstChild<Indentation>();
-                leftIndentTwips = ParseOptionalInt32(indentation?.Left?.Value);
-                hangingIndentTwips = ParseOptionalInt32(indentation?.Hanging?.Value);
+            if (definition != null &&
+                definition.StartOverrides.TryGetValue(level, out int overrideValue) &&
+                (!definition.OverridesAreDefault || overrideValue != 1)) {
+                overrideStart = overrideValue;
+                start = overrideValue;
             }
 
-            bool ordered = paragraph.ListStyle switch {
+            if (definition != null && definition.Levels.TryGetValue(level, out ListLevelDefinition levelDefinition)) {
+                if (!overrideStart.HasValue) {
+                    start = levelDefinition.Start;
+                }
+                numberFormat = levelDefinition.NumberFormat;
+                levelText = levelDefinition.LevelText;
+                leftIndentTwips = levelDefinition.LeftIndentTwips;
+                hangingIndentTwips = levelDefinition.HangingIndentTwips;
+            }
+
+            bool ordered = definition?.Style switch {
                 WordListStyle.Bulleted => false,
                 WordListStyle.BulletedChars => false,
                 _ => true,
@@ -128,12 +120,14 @@ namespace OfficeIMO.Word {
         /// </summary>
         public static Dictionary<WordParagraph, (int Level, string Marker)> BuildListMarkers(WordDocument document) {
             Dictionary<WordParagraph, (int, string)> result = new(ParagraphReferenceComparer.Instance);
+            Dictionary<int, ListNumberingDefinition> definitions = BuildListNumberingDefinitions(document);
+            Dictionary<int, List<WordParagraph>> itemsByNumberId = BuildListItemsByNumberId(document);
 
-            foreach (WordList list in document.Lists) {
+            foreach (KeyValuePair<int, List<WordParagraph>> listItems in itemsByNumberId) {
                 Dictionary<int, int> indices = new();
                 Dictionary<int, NumberFormatValues?> formats = new();
-                foreach (WordParagraph item in list.ListItems) {
-                    ListInfo? info = GetListInfo(item);
+                foreach (WordParagraph item in listItems.Value) {
+                    ListInfo? info = GetListInfo(item, definitions);
                     if (info == null) {
                         continue;
                     }
@@ -165,14 +159,16 @@ namespace OfficeIMO.Word {
         /// </summary>
         public static Dictionary<WordParagraph, (int Level, int Index)> BuildListIndices(WordDocument document) {
             Dictionary<WordParagraph, (int, int)> result = new(ParagraphReferenceComparer.Instance);
+            Dictionary<int, ListNumberingDefinition> definitions = BuildListNumberingDefinitions(document);
+            Dictionary<int, List<WordParagraph>> itemsByNumberId = BuildListItemsByNumberId(document);
 
-            foreach (WordList list in document.Lists) {
+            foreach (KeyValuePair<int, List<WordParagraph>> listItems in itemsByNumberId) {
                 // Track current numbering per level within this list
                 Dictionary<int, int> indices = new();
                 int lastLevel = 0;
                 bool first = true;
-                foreach (WordParagraph item in list.ListItems) {
-                    ListInfo? info = GetListInfo(item);
+                foreach (WordParagraph item in listItems.Value) {
+                    ListInfo? info = GetListInfo(item, definitions);
                     if (info == null) continue;
 
                     int level = info.Value.Level;
@@ -194,6 +190,133 @@ namespace OfficeIMO.Word {
             }
 
             return result;
+        }
+
+        private static Dictionary<int, ListNumberingDefinition> BuildListNumberingDefinitions(WordDocument? document) {
+            var result = new Dictionary<int, ListNumberingDefinition>();
+            Numbering? numbering = document?._wordprocessingDocument.MainDocumentPart?.NumberingDefinitionsPart?.Numbering;
+            if (numbering == null) {
+                return result;
+            }
+
+            Dictionary<int, AbstractNum> abstracts = numbering.Elements<AbstractNum>()
+                .Where(abstractNum => abstractNum.AbstractNumberId?.Value != null)
+                .ToDictionary(abstractNum => abstractNum.AbstractNumberId!.Value, abstractNum => abstractNum);
+
+            foreach (NumberingInstance instance in numbering.Elements<NumberingInstance>()) {
+                if (instance.NumberID?.Value == null) {
+                    continue;
+                }
+
+                int numberId = instance.NumberID.Value;
+                int? abstractId = instance.AbstractNumId?.Val?.Value != null ? instance.AbstractNumId.Val.Value : null;
+                AbstractNum? abstractNum = abstractId.HasValue && abstracts.TryGetValue(abstractId.Value, out AbstractNum? foundAbstract)
+                    ? foundAbstract
+                    : null;
+
+                var overrides = instance.Elements<LevelOverride>().ToList();
+                bool overridesAreDefault = overrides.Count >= 9 &&
+                    overrides.All(levelOverride => {
+                        var startOverrideValue = levelOverride.GetFirstChild<StartOverrideNumberingValue>();
+                        return startOverrideValue?.Val?.HasValue == true && startOverrideValue.Val.Value == 1;
+                    });
+
+                Dictionary<int, int> startOverrides = overrides
+                    .Where(levelOverride => levelOverride.LevelIndex?.Value != null)
+                    .Select(levelOverride => new {
+                        Level = levelOverride.LevelIndex!.Value,
+                        Start = levelOverride.GetFirstChild<StartOverrideNumberingValue>()?.Val
+                    })
+                    .Where(item => item.Start?.HasValue == true)
+                    .ToDictionary(item => item.Level, item => item.Start!.Value);
+
+                Dictionary<int, ListLevelDefinition> levels = abstractNum?.Elements<Level>()
+                    .Where(level => level.LevelIndex?.Value != null)
+                    .Select(level => {
+                        var indentation = level.GetFirstChild<PreviousParagraphProperties>()?.GetFirstChild<Indentation>();
+                        return new ListLevelDefinition(
+                            level: level.LevelIndex!.Value,
+                            start: level.StartNumberingValue?.Val?.Value ?? 1,
+                            numberFormat: level.NumberingFormat?.Val?.Value,
+                            levelText: level.LevelText?.Val?.Value,
+                            leftIndentTwips: ParseOptionalInt32(indentation?.Left?.Value),
+                            hangingIndentTwips: ParseOptionalInt32(indentation?.Hanging?.Value));
+                    })
+                    .ToDictionary(level => level.Level, level => level) ?? new Dictionary<int, ListLevelDefinition>();
+
+                result[numberId] = new ListNumberingDefinition(
+                    numberId,
+                    abstractNum != null ? WordListStyles.MatchStyle(abstractNum) : WordListStyle.Custom,
+                    overridesAreDefault,
+                    startOverrides,
+                    levels);
+            }
+
+            return result;
+        }
+
+        private static Dictionary<int, List<WordParagraph>> BuildListItemsByNumberId(WordDocument document) {
+            var result = new Dictionary<int, List<WordParagraph>>();
+            foreach (WordParagraph paragraph in document.EnumerateAllParagraphs()) {
+                if (!paragraph.IsListItem || paragraph._listNumberId == null) {
+                    continue;
+                }
+
+                int numberId = paragraph._listNumberId.Value;
+                if (!result.TryGetValue(numberId, out List<WordParagraph>? items)) {
+                    items = new List<WordParagraph>();
+                    result[numberId] = items;
+                }
+
+                items.Add(paragraph);
+            }
+
+            return result;
+        }
+
+        private sealed class ListNumberingDefinition {
+            internal ListNumberingDefinition(
+                int numberId,
+                WordListStyle style,
+                bool overridesAreDefault,
+                IReadOnlyDictionary<int, int> startOverrides,
+                IReadOnlyDictionary<int, ListLevelDefinition> levels) {
+                NumberId = numberId;
+                Style = style;
+                OverridesAreDefault = overridesAreDefault;
+                StartOverrides = startOverrides;
+                Levels = levels;
+            }
+
+            internal int NumberId { get; }
+            internal WordListStyle Style { get; }
+            internal bool OverridesAreDefault { get; }
+            internal IReadOnlyDictionary<int, int> StartOverrides { get; }
+            internal IReadOnlyDictionary<int, ListLevelDefinition> Levels { get; }
+        }
+
+        private readonly struct ListLevelDefinition {
+            internal ListLevelDefinition(
+                int level,
+                int start,
+                NumberFormatValues? numberFormat,
+                string? levelText,
+                int? leftIndentTwips,
+                int? hangingIndentTwips) {
+                Level = level;
+                Start = start;
+                NumberFormat = numberFormat;
+                LevelText = levelText;
+                LeftIndentTwips = leftIndentTwips;
+                HangingIndentTwips = hangingIndentTwips;
+            }
+
+            internal int Level { get; }
+            internal int Start { get; }
+            internal NumberFormatValues? NumberFormat { get; }
+            internal string? LevelText { get; }
+            internal int? LeftIndentTwips { get; }
+            internal int? HangingIndentTwips { get; }
         }
 
         private sealed class ParagraphReferenceComparer : IEqualityComparer<WordParagraph> {

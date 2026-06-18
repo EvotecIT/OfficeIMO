@@ -741,19 +741,20 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static void AddNativeHeaderFooterSingleCellText(NativeHeaderFooterText parts, WordTableCell cell) {
-            foreach (WordParagraph paragraph in GetNativeCellParagraphs(cell)) {
-                AddNativeHeaderFooterParagraphText(parts, paragraph);
+            string cellText = GetNativeHeaderFooterCellText(cell, preserveParagraphBreaks: true, out PdfCore.PdfPageNumberStyle? pageNumberStyle);
+            if (!string.IsNullOrWhiteSpace(cellText)) {
+                parts.AppendLeft(cellText, pageNumberStyle);
             }
         }
 
         private static void AddNativeHeaderFooterCellText(NativeHeaderFooterText parts, WordTableCell cell, NativeHeaderFooterZone zone) {
-            string cellText = GetNativeHeaderFooterCellText(cell, out PdfCore.PdfPageNumberStyle? pageNumberStyle);
+            string cellText = GetNativeHeaderFooterCellText(cell, preserveParagraphBreaks: true, out PdfCore.PdfPageNumberStyle? pageNumberStyle);
             if (!string.IsNullOrWhiteSpace(cellText)) {
                 parts.Append(zone, cellText, pageNumberStyle);
             }
         }
 
-        private static string GetNativeHeaderFooterCellText(WordTableCell cell, out PdfCore.PdfPageNumberStyle? pageNumberStyle) {
+        private static string GetNativeHeaderFooterCellText(WordTableCell cell, bool preserveParagraphBreaks, out PdfCore.PdfPageNumberStyle? pageNumberStyle) {
             var parts = new List<string>();
             pageNumberStyle = null;
             bool hasConflictingStyles = false;
@@ -762,10 +763,45 @@ namespace OfficeIMO.Word.Pdf {
                 if (!string.IsNullOrEmpty(text)) {
                     parts.Add(text!);
                     MergeNativeHeaderFooterPageNumberStyle(ref pageNumberStyle, ref hasConflictingStyles, paragraphStyle);
+                } else {
+                    parts.Add(string.Empty);
                 }
             }
 
-            return string.Join(Environment.NewLine, parts);
+            while (parts.Count > 0 && string.IsNullOrWhiteSpace(parts[parts.Count - 1])) {
+                parts.RemoveAt(parts.Count - 1);
+            }
+
+            if (!parts.Any(part => !string.IsNullOrWhiteSpace(part))) {
+                return string.Empty;
+            }
+
+            return JoinNativeHeaderFooterParagraphParts(parts, preserveParagraphBreaks);
+        }
+
+        private static string JoinNativeHeaderFooterParagraphParts(IReadOnlyList<string> parts, bool preserveParagraphBreaks) {
+            var builder = new StringBuilder();
+            for (int index = 0; index < parts.Count; index++) {
+                string part = parts[index];
+                if (index > 0) {
+                    bool previousHasText = !string.IsNullOrWhiteSpace(parts[index - 1]);
+                    bool currentHasText = !string.IsNullOrWhiteSpace(part);
+                    if (preserveParagraphBreaks) {
+                        builder.Append(Environment.NewLine);
+                        if (previousHasText && currentHasText) {
+                            builder.Append(Environment.NewLine);
+                        }
+                    } else if (previousHasText != currentHasText) {
+                        builder.Append(Environment.NewLine);
+                    } else if (previousHasText && currentHasText) {
+                        builder.Append(' ');
+                    }
+                }
+
+                builder.Append(part);
+            }
+
+            return builder.ToString();
         }
 
         private static void MergeNativeHeaderFooterPageNumberStyle(ref PdfCore.PdfPageNumberStyle? current, ref bool hasConflict, PdfCore.PdfPageNumberStyle? candidate) {
@@ -865,14 +901,37 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             private string Append(string? current, string text, PdfCore.PdfPageNumberStyle? pageNumberStyle) {
-                text = NormalizeNativeDirectText(text);
+                text = NormalizeNativeHeaderFooterText(text);
                 if (text.IndexOf("{page}", StringComparison.OrdinalIgnoreCase) >= 0 ||
                     text.IndexOf("{pages}", StringComparison.OrdinalIgnoreCase) >= 0) {
                     HasPageTokens = true;
                 }
 
                 RecordPageNumberStyle(pageNumberStyle);
-                return string.IsNullOrWhiteSpace(current) ? text : current + " " + text;
+                if (string.IsNullOrWhiteSpace(current)) {
+                    return text;
+                }
+
+                string separator = !string.IsNullOrWhiteSpace(text)
+                    ? Environment.NewLine + Environment.NewLine
+                    : Environment.NewLine;
+                return current + separator + text;
+            }
+
+            private static string NormalizeNativeHeaderFooterText(string? text) {
+                if (string.IsNullOrEmpty(text)) {
+                    return string.Empty;
+                }
+
+                string normalized = text!
+                    .Replace("\r\n", "\n")
+                    .Replace('\r', '\n');
+                string[] lines = normalized.Split('\n');
+                for (int i = 0; i < lines.Length; i++) {
+                    lines[i] = NormalizeNativeDirectText(lines[i]);
+                }
+
+                return string.Join(Environment.NewLine, lines);
             }
 
             private void RecordPageNumberStyle(PdfCore.PdfPageNumberStyle? style) {

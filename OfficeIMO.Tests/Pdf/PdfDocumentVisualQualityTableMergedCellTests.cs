@@ -47,7 +47,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Equal(1, CountOccurrences(pdf, "/Subtype /Link"));
         Assert.Equal(1, CountOccurrences(pdf, "/URI (https://evotec.xyz/spanned)"));
         Assert.Equal(1, CountOccurrences(pdf, "/Contents (Spanned cell metadata)"));
-        Assert.InRange(rect.X1, 33, 38);
+        Assert.InRange(rect.X1, 31, 38);
         Assert.True(rect.X2 - rect.X1 > 120, $"Expected linked spanned cell annotation to cover the combined cell width. Width: {rect.X2 - rect.X1:0.##}.");
     }
 
@@ -90,7 +90,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Equal(1, CountOccurrences(pdf, "/Subtype /Link"));
         Assert.Equal(1, CountOccurrences(pdf, "/URI (https://evotec.xyz/row-column-spanned)"));
         Assert.Equal(1, CountOccurrences(pdf, "/Contents (Row-column spanned metadata)"));
-        Assert.InRange(rect.X1, 33, 38);
+        Assert.InRange(rect.X1, 31, 38);
         Assert.True(rect.X2 - rect.X1 > 80, $"Expected row-column linked spanned cell annotation to cover the combined cell width. Width: {rect.X2 - rect.X1:0.##}.");
     }
 
@@ -132,7 +132,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Equal(1, CountOccurrences(pdf, "/Subtype /Link"));
         Assert.Equal(1, CountOccurrences(pdf, "/URI (https://evotec.xyz/row-spanned)"));
         Assert.Equal(1, CountOccurrences(pdf, "/Contents (Row-spanned cell metadata)"));
-        Assert.InRange(rect.X1, 33, 38);
+        Assert.InRange(rect.X1, 31, 38);
         Assert.True(rect.Y2 - rect.Y1 > 40, $"Expected linked row-spanned cell annotation to cover the combined cell height. Height: {rect.Y2 - rect.Y1:0.##}.");
     }
 
@@ -179,7 +179,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Equal(1, CountOccurrences(pdf, "/Subtype /Link"));
         Assert.Equal(1, CountOccurrences(pdf, "/URI (https://evotec.xyz/row-column-row-spanned)"));
         Assert.Equal(1, CountOccurrences(pdf, "/Contents (Row-column row-spanned metadata)"));
-        Assert.InRange(rect.X1, 33, 38);
+        Assert.InRange(rect.X1, 31, 38);
         Assert.True(rect.Y2 - rect.Y1 > 40, $"Expected row-column linked row-spanned cell annotation to cover the combined cell height. Height: {rect.Y2 - rect.Y1:0.##}.");
     }
 

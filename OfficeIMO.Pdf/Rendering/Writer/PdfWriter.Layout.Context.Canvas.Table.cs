@@ -295,10 +295,10 @@ internal static partial class PdfWriter {
 
             if (HasCellLinkTarget(linkUri, linkDestinationName)) {
                 currentPage!.Annotations.Add(new LinkAnnotation {
-                    X1 = cellX + padLeft,
-                    Y1 = cellBottom,
-                    X2 = cellX + cellWidth - padRight,
-                    Y2 = cellTop,
+                    X1 = cellX + padLeft - TableCellClipBleed,
+                    Y1 = cellBottom - TableCellClipBleed,
+                    X2 = cellX + cellWidth - padRight + TableCellClipBleed,
+                    Y2 = cellTop + TableCellClipBleed,
                     Uri = linkUri,
                     DestinationName = linkDestinationName,
                     Contents = linkContents ?? cell.Text

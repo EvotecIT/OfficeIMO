@@ -47,7 +47,7 @@ namespace OfficeIMO.Word.Pdf {
             return null;
         }
 
-        private static void ConfigureNativeHeaderFooter(PdfCore.PdfPageCompose page, WordSection section, PdfSaveOptions? options) {
+        private static void ConfigureNativeHeaderFooter(PdfCore.PdfPageCompose page, WordSection section, PdfSaveOptions? options, double headerMarginExpansion, double footerMarginExpansion) {
             RecordNativeHeaderFooterDiagnostics(section.Header?.Default, options, "default header");
             RecordNativeHeaderFooterDiagnostics(section.Header?.First, options, "first header");
             RecordNativeHeaderFooterDiagnostics(section.Header?.Even, options, "even header");
@@ -83,6 +83,10 @@ namespace OfficeIMO.Word.Pdf {
                 defaultHeaderImages.Count > 0 || firstHeaderImages.Count > 0 || evenHeaderImages.Count > 0 ||
                 defaultHeaderShapes.Count > 0 || firstHeaderShapes.Count > 0 || evenHeaderShapes.Count > 0) {
                 page.Header(header => {
+                    if (headerMarginExpansion > 0D) {
+                        header.Offset(NativeHeaderFooterDefaultOffset + headerMarginExpansion);
+                    }
+
                     if (defaultHeader != null) {
                         header.Zones(defaultHeader.Left, defaultHeader.Center, defaultHeader.Right);
                     }
@@ -119,6 +123,8 @@ namespace OfficeIMO.Word.Pdf {
 
             string pageNumberFormat = GetNativePageNumberFormat(options);
             page.Footer(footer => {
+                footer.Offset(NativeFooterDefaultOffset);
+
                 NativeHeaderFooterText? resolvedDefaultFooter = WithNativeFooterPageNumber(defaultFooter, includePageNumbers, pageNumberFormat);
                 if (resolvedDefaultFooter != null) {
                     footer.Zones(resolvedDefaultFooter.Left, resolvedDefaultFooter.Center, resolvedDefaultFooter.Right);

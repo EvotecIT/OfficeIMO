@@ -92,7 +92,7 @@ internal static partial class PdfWriter {
     }
 
     private static PdfStandardFont GetHeadingFont(PdfOptions options, PdfHeadingStyle? style) {
-        var normalFont = ChooseNormal(options.DefaultFont);
+        var normalFont = ChooseNormal(style?.Font ?? options.DefaultFont);
         return GetHeadingBold(style) ? ChooseBold(normalFont) : normalFont;
     }
 
@@ -101,7 +101,8 @@ internal static partial class PdfWriter {
             new TextRun(
                 heading.Text,
                 bold: GetHeadingBold(style),
-                color: color)
+                color: color,
+                font: style?.Font)
         });
 
     private static string GetHeadingFontResource(PdfHeadingStyle? style) {

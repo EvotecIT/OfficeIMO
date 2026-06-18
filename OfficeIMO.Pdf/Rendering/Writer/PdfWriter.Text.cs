@@ -8,6 +8,7 @@ internal static partial class PdfWriter {
     private static readonly char[] HardLineSplitChars = new[] { '\n' };
     private static readonly char[] SoftLineSplitChars = new[] { ' ', '\t' };
     private static readonly char[] DecimalTabAnchorChars = new[] { '.', ',' };
+    private static readonly char[] LongTokenDelimiterBreakChars = new[] { '-', '.', '_', '/', '\\', ':', '|' };
     private static string EscapeText(string s) => PdfSyntaxEscaper.EscapeLiteralContent(s);
 
     private static string EncodeWinAnsiHex(string s) {
@@ -288,7 +289,8 @@ internal static partial class PdfWriter {
             double leadingAdvance = 0,
             bool leadingSpaceIsExpandable = true,
             PdfTabLeaderStyle leadingTabLeader = PdfTabLeaderStyle.None,
-            bool endsWithHardBreak = false) {
+            bool endsWithHardBreak = false,
+            bool endsWithTextSeparator = false) {
             Text = text;
             Bold = bold;
             Italic = italic;
@@ -307,6 +309,7 @@ internal static partial class PdfWriter {
             LeadingSpaceIsExpandable = leadingSpaceIsExpandable;
             LeadingTabLeader = leadingTabLeader;
             EndsWithHardBreak = endsWithHardBreak;
+            EndsWithTextSeparator = endsWithTextSeparator;
         }
 
         public string Text { get; }
@@ -345,11 +348,25 @@ internal static partial class PdfWriter {
 
         public bool EndsWithHardBreak { get; }
 
+        public bool EndsWithTextSeparator { get; }
+
         public RichSeg WithEndsWithHardBreak() =>
-            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, true);
+            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, true, true);
+
+        public RichSeg WithEndsWithTextSeparator() =>
+            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, true);
 
         public RichSeg WithoutLink() =>
-            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, null, null, null, Font, FontSize, Baseline, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak);
+            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, null, null, null, Font, FontSize, Baseline, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, EndsWithTextSeparator);
+    }
+
+    private static void MarkRichLineTextSeparator(System.Collections.Generic.IList<RichSeg> line) {
+        if (line.Count == 0) {
+            return;
+        }
+
+        int lastIndex = line.Count - 1;
+        line[lastIndex] = line[lastIndex].WithEndsWithTextSeparator();
     }
 
     private static double MeasureRichText(string text, PdfStandardFont font, double fontSize, PdfOptions? options = null) =>
@@ -605,6 +622,18 @@ internal static partial class PdfWriter {
                 if (tokenW > currentMaxWidth) {
                     if (lastLine.Count > 0) { StartNewLine(); lastLine = lines[lines.Count - 1]; }
                     ResetPendingLeading();
+                    if (TryAppendDelimitedLongToken(token, bold, italic, underline, strike, color, backgroundColor, uri, destinationName, contents, fontForRun, runFontSize, baseline)) {
+                        if (hadNewline) {
+                            MarkCurrentLineHardBreak();
+                            StartNewLine();
+                            ResetPendingLeading();
+                        } else if (nextWs != -1) {
+                            bool hadTab = text[nextWs] == '\t';
+                            SetPendingSeparator(hadTab, spaceW, tabAlignment, tabLeader);
+                        }
+                        continue;
+                    }
+
                     if (TryAppendHyphenatedLongToken(token, bold, italic, underline, strike, color, backgroundColor, uri, destinationName, contents, fontForRun, runFontSize, baseline)) {
                         if (hadNewline) {
                             MarkCurrentLineHardBreak();
@@ -678,6 +707,10 @@ internal static partial class PdfWriter {
                     ? (pendingLeadingIsTab ? pendingLeadingAdvance + tokenW : tokenW)
                     : pendingLeadingAdvance + tokenW;
                 if (lineWidth + needed > currentMaxWidth && lastLine.Count > 0) {
+                    if (pendingLeadingAdvance > 0D) {
+                        MarkRichLineTextSeparator(lastLine);
+                    }
+
                     StartNewLine();
                     if (token.Length > 0 && pendingLeadingIsTab) {
                         ResolvePendingLeadingTabForCurrentLine(tokenW, spaceW, token, fontForRun, runFontSize, baseline);
@@ -786,6 +819,269 @@ internal static partial class PdfWriter {
             return true;
         }
 
+        bool TryAppendDelimitedLongToken(
+            string token,
+            bool bold,
+            bool italic,
+            bool underline,
+            bool strike,
+            PdfColor? color,
+            PdfColor? backgroundColor,
+            string? uri,
+            string? destinationName,
+            string? contents,
+            PdfStandardFont font,
+            double runFontSize,
+            PdfTextBaseline baseline) {
+            int[] breakpoints = GetValidLongTokenDelimiterBreakpoints(token);
+            if (breakpoints.Length == 0) {
+                return false;
+            }
+
+            int position = 0;
+            var plannedChunks = new System.Collections.Generic.List<(string Text, double Width)>();
+            while (position < token.Length) {
+                int selectedBreak = -1;
+                string selectedText = string.Empty;
+                double selectedWidth = 0D;
+                double maxWidthForChunk = plannedChunks.Count == 0 ? CurrentMaxWidth() : maxWidthPts;
+                if (TryPlanDelimiterBoundedWordGroup(maxWidthForChunk, out selectedText, out selectedWidth)) {
+                    selectedBreak = position + selectedText.Length;
+                    plannedChunks.Add((selectedText, selectedWidth));
+                    position = selectedBreak;
+                    continue;
+                }
+
+                int[] candidates = breakpoints
+                    .Where(point => point > position)
+                    .Concat(new[] { token.Length })
+                    .Distinct()
+                    .OrderBy(point => point)
+                    .ToArray();
+
+                foreach (int candidate in candidates) {
+                    string chunkText = token.Substring(position, candidate - position);
+                    if (chunkText.Length == 0) {
+                        continue;
+                    }
+
+                    double chunkWidth = MeasureRichText(chunkText, font, runFontSize, baseline, options);
+                    if (chunkWidth <= maxWidthForChunk || selectedBreak < 0) {
+                        if (chunkWidth <= maxWidthForChunk) {
+                            selectedBreak = candidate;
+                            selectedText = chunkText;
+                            selectedWidth = chunkWidth;
+                        }
+                    }
+
+                    if (chunkWidth > maxWidthForChunk && selectedBreak >= 0) {
+                        break;
+                    }
+                }
+
+                if (selectedBreak > position &&
+                    selectedBreak < token.Length &&
+                    CanExtendDelimitedIdentifierChunk(token, selectedBreak)) {
+                    TryExtendIdentifierChunkToAvailableWidth(maxWidthForChunk, ref selectedText, ref selectedWidth, ref selectedBreak);
+                }
+
+                if (selectedBreak <= position || selectedText.Length == 0) {
+                    if (!TryPlanCharacterChunkToNextDelimiter(maxWidthForChunk, out selectedText, out selectedWidth)) {
+                        return false;
+                    }
+
+                    selectedBreak = position + selectedText.Length;
+                }
+
+                plannedChunks.Add((selectedText, selectedWidth));
+                position = selectedBreak;
+            }
+
+            for (int chunkIndex = 0; chunkIndex < plannedChunks.Count; chunkIndex++) {
+                (string selectedText, double selectedWidth) = plannedChunks[chunkIndex];
+                lines[lines.Count - 1].Add(new RichSeg(selectedText, bold, italic, underline, strike, color, backgroundColor, uri, destinationName, contents, font, runFontSize, baseline));
+                RegisterLineHeight(runFontSize);
+                lineWidth += selectedWidth;
+                if (chunkIndex < plannedChunks.Count - 1) {
+                    StartNewLine();
+                }
+            }
+
+            return true;
+
+            bool TryPlanDelimiterBoundedWordGroup(double maxWidthForChunk, out string selectedText, out double selectedWidth) {
+                selectedText = string.Empty;
+                selectedWidth = 0D;
+                if (position >= token.Length || !IsLongTokenDelimiterBreakChar(token[position])) {
+                    return false;
+                }
+
+                int nextDelimiterIndex = -1;
+                for (int index = position + 1; index < token.Length; index++) {
+                    if (IsLongTokenDelimiterBreakChar(token[index])) {
+                        nextDelimiterIndex = index;
+                        break;
+                    }
+                }
+
+                if (nextDelimiterIndex <= position + 1) {
+                    return false;
+                }
+
+                string candidate = token.Substring(position, nextDelimiterIndex - position + 1);
+                if (!IsDelimiterBoundedWordGroup(candidate)) {
+                    return false;
+                }
+
+                double candidateWidth = MeasureRichText(candidate, font, runFontSize, baseline, options);
+                if (candidateWidth <= maxWidthForChunk ||
+                    CanKeepDelimitedWordSegmentOverSoftLimit(candidate, candidateWidth, maxWidthForChunk, allowBoundaryDelimiters: true)) {
+                    selectedText = candidate;
+                    selectedWidth = candidateWidth;
+                    return true;
+                }
+
+                return false;
+            }
+
+            bool TryPlanCharacterChunkToNextDelimiter(double maxWidthForChunk, out string selectedText, out double selectedWidth) {
+                selectedText = string.Empty;
+                selectedWidth = 0D;
+                int segmentEnd = breakpoints.FirstOrDefault(point => point > position);
+                if (segmentEnd <= position) {
+                    segmentEnd = token.Length;
+                }
+
+                if (segmentEnd < token.Length && segmentEnd > position + 1 && IsLongTokenDelimiterBreakChar(token[segmentEnd - 1])) {
+                    string textWithoutTrailingDelimiter = token.Substring(position, segmentEnd - position - 1);
+                    if (textWithoutTrailingDelimiter.Length > 0) {
+                        double widthWithoutTrailingDelimiter = MeasureRichText(textWithoutTrailingDelimiter, font, runFontSize, baseline, options);
+                        if (widthWithoutTrailingDelimiter <= maxWidthForChunk ||
+                            CanKeepDelimitedWordSegmentOverSoftLimit(textWithoutTrailingDelimiter, widthWithoutTrailingDelimiter, maxWidthForChunk, allowBoundaryDelimiters: false)) {
+                            selectedText = textWithoutTrailingDelimiter;
+                            selectedWidth = widthWithoutTrailingDelimiter;
+                            return true;
+                        }
+                    }
+                }
+
+                int take = 0;
+                double chunkWidth = 0D;
+                while (position + take < segmentEnd) {
+                    int scalarLength = GetScalarUtf16Length(token, position + take);
+                    string scalar = token.Substring(position + take, scalarLength);
+                    double scalarWidth = MeasureRichText(scalar, font, runFontSize, baseline, options);
+                    if (take > 0 && chunkWidth + scalarWidth > maxWidthForChunk) {
+                        break;
+                    }
+
+                    chunkWidth += scalarWidth;
+                    take += scalarLength;
+                    if (chunkWidth >= maxWidthForChunk) {
+                        break;
+                    }
+                }
+
+                if (take == 0) {
+                    return false;
+                }
+
+                selectedText = token.Substring(position, take);
+                selectedWidth = chunkWidth;
+                return true;
+            }
+
+            void TryExtendIdentifierChunkToAvailableWidth(double maxWidthForChunk, ref string selectedText, ref double selectedWidth, ref int selectedBreak) {
+                int extendedBreak = selectedBreak;
+                string extendedText = selectedText;
+                double extendedWidth = selectedWidth;
+                while (extendedBreak < token.Length && IsIdentifierContinuationChar(token[extendedBreak])) {
+                    int scalarLength = GetScalarUtf16Length(token, extendedBreak);
+                    string candidateText = token.Substring(position, extendedBreak + scalarLength - position);
+                    double candidateWidth = MeasureRichText(candidateText, font, runFontSize, baseline, options);
+                    if (candidateWidth > maxWidthForChunk) {
+                        break;
+                    }
+
+                    extendedBreak += scalarLength;
+                    extendedText = candidateText;
+                    extendedWidth = candidateWidth;
+                }
+
+                if (extendedBreak > selectedBreak) {
+                    selectedBreak = extendedBreak;
+                    selectedText = extendedText;
+                    selectedWidth = extendedWidth;
+                }
+            }
+
+            bool CanKeepDelimitedWordSegmentOverSoftLimit(string text, double width, double maxWidth, bool allowBoundaryDelimiters) {
+                if (maxWidth <= 0D || width <= maxWidth) {
+                    return false;
+                }
+
+                bool validSegment = allowBoundaryDelimiters
+                    ? IsDelimiterBoundedWordGroup(text)
+                    : IsDelimitedWordSegment(text);
+                if (!validSegment) {
+                    return false;
+                }
+
+                double widestScalar = 0D;
+                for (int offset = 0; offset < text.Length;) {
+                    int scalarLength = GetScalarUtf16Length(text, offset);
+                    string scalar = text.Substring(offset, scalarLength);
+                    widestScalar = Math.Max(widestScalar, MeasureRichText(scalar, font, runFontSize, baseline, options));
+                    offset += scalarLength;
+                }
+
+                double overflow = width - maxWidth;
+                return widestScalar > 0D && overflow <= widestScalar + 0.25D;
+            }
+
+            static bool IsDelimitedWordSegment(string text) {
+                if (text.Length < 5) {
+                    return false;
+                }
+
+                for (int index = 0; index < text.Length; index++) {
+                    if (!char.IsLetter(text[index])) {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            static bool IsDelimiterBoundedWordGroup(string text) {
+                if (text.Length < 4 ||
+                    !IsLongTokenDelimiterBreakChar(text[0]) ||
+                    !IsLongTokenDelimiterBreakChar(text[text.Length - 1])) {
+                    return false;
+                }
+
+                for (int index = 1; index < text.Length - 1; index++) {
+                    if (!char.IsLetter(text[index])) {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            static bool CanExtendDelimitedIdentifierChunk(string token, int breakIndex) {
+                char delimiter = token[breakIndex - 1];
+                if (breakIndex >= token.Length) {
+                    return false;
+                }
+
+                return (delimiter == '_' || delimiter == '/' || delimiter == '\\') &&
+                    IsIdentifierContinuationChar(token[breakIndex]);
+            }
+
+            static bool IsIdentifierContinuationChar(char value) => char.IsLetterOrDigit(value);
+        }
+
         bool TryAppendMultilingualLongToken(
             string token,
             bool bold,
@@ -846,6 +1142,22 @@ internal static partial class PdfWriter {
         index > 0 &&
         index < token.Length &&
         !(index > 0 && index < token.Length && char.IsHighSurrogate(token[index - 1]) && char.IsLowSurrogate(token[index]));
+
+    private static int[] GetValidLongTokenDelimiterBreakpoints(string token) {
+        if (string.IsNullOrEmpty(token)) {
+            return Array.Empty<int>();
+        }
+
+        return token
+            .Select((ch, index) => IsLongTokenDelimiterBreakChar(ch) ? index + 1 : -1)
+            .Where(point => IsValidTokenBreakIndex(token, point))
+            .Distinct()
+            .OrderBy(point => point)
+            .ToArray();
+    }
+
+    private static bool IsLongTokenDelimiterBreakChar(char value) =>
+        Array.IndexOf(LongTokenDelimiterBreakChars, value) >= 0;
 
     private static System.Collections.Generic.IReadOnlyList<TextRun> NormalizeFallbackRuns(System.Collections.Generic.IEnumerable<TextRun> runs, PdfStandardFont baseFont, PdfOptions? options) {
         Guard.NotNull(runs, nameof(runs));
@@ -1379,6 +1691,21 @@ internal static partial class PdfWriter {
                 }
                 xCursor += wSeg;
             }
+
+            if (segs.Count > 0 && segs.Any(seg => seg.EndsWithTextSeparator)) {
+                RichSeg last = segs[segs.Count - 1];
+                string separatorFontResource = GetStandardFontResourceName(last.Font, ChooseNormal(opts.DefaultFont));
+                double separatorFontSize = EffectiveRichFontSize(last.FontSize, last.Baseline);
+                double separatorTextRise = TextRiseForBaseline(last.FontSize, last.Baseline);
+                content.Font(separatorFontResource, separatorFontSize);
+                if (Math.Abs(separatorTextRise - currentTextRise) > 0.0001) {
+                    content.TextRise(separatorTextRise);
+                    currentTextRise = separatorTextRise;
+                }
+
+                content.ShowHexText(EncodeTextHex(" ", last.Font, opts));
+            }
+
             if (Math.Abs(currentTextRise) > 0.0001) {
                 content.TextRise(0);
             }

@@ -86,6 +86,37 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("c.", markers[letterItem2].Marker);
             }
         }
+
+        [Fact]
+        public void DocumentTraversal_BuildsMarkersAndIndicesForManyIndependentLists() {
+            using MemoryStream ms = new MemoryStream();
+            using (var document = WordDocument.Create(ms)) {
+                var expected = new System.Collections.Generic.List<(WordParagraph First, WordParagraph Second, int Start)>();
+
+                for (int index = 0; index < 40; index++) {
+                    int start = index + 1;
+                    var list = document.AddCustomList();
+                    var level = new WordListLevel(WordListLevelKind.DecimalDot).SetStartNumberingValue(start);
+                    list.Numbering.AddLevel(level);
+
+                    WordParagraph first = list.AddItem($"List {index} first");
+                    WordParagraph second = list.AddItem($"List {index} second");
+                    expected.Add((first, second, start));
+                }
+
+                document.Save();
+
+                var markers = DocumentTraversal.BuildListMarkers(document);
+                var indices = DocumentTraversal.BuildListIndices(document);
+
+                foreach ((WordParagraph first, WordParagraph second, int start) in expected) {
+                    Assert.Equal($"{start}.", markers[first].Marker);
+                    Assert.Equal($"{start + 1}.", markers[second].Marker);
+                    Assert.Equal(start, indices[first].Index);
+                    Assert.Equal(start + 1, indices[second].Index);
+                }
+            }
+        }
     }
 }
 

@@ -214,6 +214,78 @@ namespace OfficeIMO.Tests.Pdf {
         }
 
         [Fact]
+        public void HeaderFooterTextColor_DefaultFooterResetsAfterBodyText() {
+            var doc = PdfDocument.Create();
+
+            doc.Compose(c => {
+                c.Page(page => {
+                    page.Footer(footer => footer
+                        .Text(text => text.Text("Default footer ").CurrentPage().Text("/").TotalPages()));
+                    page.Content(content =>
+                        content.Column(column =>
+                            column.Item().Paragraph(p => p.Color(new PdfColor(0.1, 0.7, 0.2)).Text("Green body."))));
+                });
+            });
+
+            byte[] bytes = doc.ToBytes();
+            string rawPdf = Encoding.ASCII.GetString(bytes);
+            using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+            string pageText = Normalize(pdf.GetPage(1).Text);
+
+            Assert.Contains("Greenbody", pageText, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("Defaultfooter1/1", pageText, StringComparison.OrdinalIgnoreCase);
+
+            int bodyColorIndex = rawPdf.IndexOf("0.1 0.7 0.2 rg", StringComparison.Ordinal);
+            int footerColorIndex = rawPdf.IndexOf("0 0 0 rg", bodyColorIndex + 1, StringComparison.Ordinal);
+
+            Assert.True(bodyColorIndex >= 0, "The body should use its configured text color.");
+            Assert.True(footerColorIndex > bodyColorIndex, "The default footer should reset fill color after colored body text.");
+        }
+
+        [Fact]
+        public void HeaderFooterText_RendersLineBreaksOnSeparateLines() {
+            var doc = PdfDocument.Create(new PdfOptions {
+                PageWidth = 420,
+                PageHeight = 320,
+                MarginLeft = 50,
+                MarginRight = 50,
+                MarginTop = 60,
+                MarginBottom = 60,
+                DefaultFont = PdfStandardFont.Helvetica,
+                DefaultFontSize = 10
+            });
+
+            doc.Compose(c => {
+                c.Page(page => {
+                    page.Header(header => header.Zones("HeaderLineOne\nHeaderLineTwo", null, "RightLineOne\nRightLineTwo"));
+                    page.Footer(footer => footer.AlignCenter().Text("FooterLineOne\nFooterLineTwo"));
+                    page.Content(content =>
+                        content.Column(column =>
+                            column.Item().Paragraph(p => p.Text("Multiline header footer body."))));
+                });
+            });
+
+            using var pdf = PdfPigDocument.Open(new MemoryStream(doc.ToBytes()));
+            var page = pdf.GetPage(1);
+            string text = page.Text;
+
+            Assert.Contains("HeaderLineOne", text);
+            Assert.Contains("HeaderLineTwo", text);
+            Assert.Contains("RightLineOne", text);
+            Assert.Contains("RightLineTwo", text);
+            Assert.Contains("FooterLineOne", text);
+            Assert.Contains("FooterLineTwo", text);
+
+            double firstHeaderY = FindWordStartY(page, "HeaderLineOne");
+            double secondHeaderY = FindWordStartY(page, "HeaderLineTwo");
+            double firstFooterY = FindWordStartY(page, "FooterLineOne");
+            double secondFooterY = FindWordStartY(page, "FooterLineTwo");
+
+            Assert.True(firstHeaderY > secondHeaderY + 5D, $"Expected the second header line below the first. First y: {firstHeaderY:0.##}, second y: {secondHeaderY:0.##}.");
+            Assert.True(firstFooterY > secondFooterY + 5D, $"Expected the second footer line below the first. First y: {firstFooterY:0.##}, second y: {secondFooterY:0.##}.");
+        }
+
+        [Fact]
         public void HeaderFooterCompose_RendersConfiguredFontsAndSizes() {
             var doc = PdfDocument.Create();
 
