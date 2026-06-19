@@ -124,6 +124,37 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Maps_HeaderFooter_Explicit_Text_Colors_To_Page_Text_Colors() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterColors.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterColors.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.AddHeadersAndFooters();
+            WordParagraph header = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph("RedNativeHeader");
+            header.ColorHex = "ff0000";
+            WordParagraph footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph("BlueNativeFooter");
+            footer.ColorHex = "0000ff";
+            document.AddParagraph("Plain body text");
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false
+            });
+        }
+
+        byte[] bytes = File.ReadAllBytes(pdfPath);
+        string content = ReadPdfPageContent(bytes);
+        using (PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes))) {
+            string text = pdf.GetPage(1).Text;
+            Assert.Contains("RedNativeHeader", text);
+            Assert.Contains("BlueNativeFooter", text);
+        }
+
+        Assert.Contains("1 0 0 rg", content, StringComparison.Ordinal);
+        Assert.Contains("0 0 1 rg", content, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Maps_HeaderFooter_Paragraph_Alignment_To_Zones() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeAlignedHeaderFooter.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeAlignedHeaderFooter.pdf");

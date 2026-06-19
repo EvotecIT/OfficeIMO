@@ -88,6 +88,21 @@ namespace OfficeIMO.Word.Pdf {
             return resolvedFont;
         }
 
+        private static PdfCore.PdfColor? ResolveNativeHeaderFooterColor(params WordHeaderFooter?[] headerFooters) {
+            PdfCore.PdfColor? resolvedColor = null;
+            foreach (WordHeaderFooter? headerFooter in headerFooters) {
+                foreach (PdfCore.PdfColor color in EnumerateNativeHeaderFooterColors(headerFooter)) {
+                    if (resolvedColor.HasValue && !resolvedColor.Value.Equals(color)) {
+                        return null;
+                    }
+
+                    resolvedColor = color;
+                }
+            }
+
+            return resolvedColor;
+        }
+
         private static IEnumerable<string> EnumerateNativeHeaderFooterFontFamilies(WordHeaderFooter? headerFooter) {
             if (headerFooter == null) {
                 yield break;
@@ -96,6 +111,18 @@ namespace OfficeIMO.Word.Pdf {
             foreach (WordElement element in CollapseNativeParagraphElements(headerFooter.Elements)) {
                 foreach (string familyName in EnumerateNativeHeaderFooterElementFontFamilies(element)) {
                     yield return familyName;
+                }
+            }
+        }
+
+        private static IEnumerable<PdfCore.PdfColor> EnumerateNativeHeaderFooterColors(WordHeaderFooter? headerFooter) {
+            if (headerFooter == null) {
+                yield break;
+            }
+
+            foreach (WordElement element in CollapseNativeParagraphElements(headerFooter.Elements)) {
+                foreach (PdfCore.PdfColor color in EnumerateNativeHeaderFooterElementColors(element)) {
+                    yield return color;
                 }
             }
         }
@@ -130,6 +157,36 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
+        private static IEnumerable<PdfCore.PdfColor> EnumerateNativeHeaderFooterElementColors(WordElement element) {
+            if (element is WordParagraph paragraph) {
+                foreach (PdfCore.PdfColor color in EnumerateNativeParagraphColors(paragraph)) {
+                    yield return color;
+                }
+
+                yield break;
+            }
+
+            if (element is not WordTable table) {
+                yield break;
+            }
+
+            foreach (WordTableRow row in table.Rows) {
+                foreach (WordTableCell cell in row.Cells) {
+                    foreach (WordParagraph cellParagraph in cell.Paragraphs) {
+                        foreach (PdfCore.PdfColor color in EnumerateNativeParagraphColors(cellParagraph)) {
+                            yield return color;
+                        }
+                    }
+
+                    foreach (WordTable nestedTable in cell.NestedTables) {
+                        foreach (PdfCore.PdfColor color in EnumerateNativeHeaderFooterElementColors(nestedTable)) {
+                            yield return color;
+                        }
+                    }
+                }
+            }
+        }
+
         private static IEnumerable<string> EnumerateNativeParagraphFontFamilies(WordParagraph paragraph) {
             foreach (string familyName in EnumerateNativeParagraphOwnFontFamilies(paragraph)) {
                 yield return familyName;
@@ -142,6 +199,24 @@ namespace OfficeIMO.Word.Pdf {
 
                 foreach (string familyName in EnumerateNativeParagraphOwnFontFamilies(run)) {
                     yield return familyName;
+                }
+            }
+        }
+
+        private static IEnumerable<PdfCore.PdfColor> EnumerateNativeParagraphColors(WordParagraph paragraph) {
+            PdfCore.PdfColor? paragraphColor = ParseNativeColor(paragraph.ColorHex);
+            if (paragraphColor.HasValue) {
+                yield return paragraphColor.Value;
+            }
+
+            foreach (WordParagraph run in GetNativeRuns(paragraph)) {
+                if (run.IsImage || string.IsNullOrWhiteSpace(run.Text)) {
+                    continue;
+                }
+
+                PdfCore.PdfColor? runColor = ParseNativeColor(run.ColorHex);
+                if (runColor.HasValue) {
+                    yield return runColor.Value;
                 }
             }
         }
