@@ -252,7 +252,7 @@ namespace OfficeIMO.Word.Pdf {
                 style.LeftIndent = leftIndent.Value;
             }
 
-            double? cellSpacing = GetNativeTableCellSpacing(properties?.TableCellSpacing);
+            double? cellSpacing = GetNativeTableCellSpacing(properties?.TableCellSpacing) ?? tableStyleDefaults.CellSpacing;
             if (cellSpacing.HasValue) {
                 style.CellSpacing = cellSpacing.Value;
             }

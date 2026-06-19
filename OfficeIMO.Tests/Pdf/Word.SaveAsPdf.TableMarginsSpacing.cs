@@ -117,4 +117,51 @@ public partial class Word {
         double spacedGap = spacedRight.BoundingBox.Left - spacedLeft.BoundingBox.Left;
         Assert.True(spacedGap > plainGap + 10D, $"Expected Word table cell spacing to widen native table cell distance. Plain gap: {plainGap}; spaced gap: {spacedGap}.");
     }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Renders_Table_Style_Cell_Spacing() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleCellSpacing.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleCellSpacing.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(new Style(
+                new StyleName { Val = "Generic Rendered Spaced Table" },
+                new StyleTableProperties(new TableCellSpacing {
+                    Width = "240",
+                    Type = TableWidthUnitValues.Dxa
+                }))
+            { Type = StyleValues.Table, StyleId = "GenericRenderedSpacedTable" });
+
+            WordTable plain = document.AddTable(1, 2);
+            ConfigureCellSpacingTable(plain, "PA", "PB");
+            plain.StyleDetails!.CellSpacing = 0;
+
+            document.AddParagraph("between style spacing tables");
+
+            WordTable spaced = document.AddTable(1, 2);
+            ConfigureCellSpacingTable(spaced, "SA", "SB");
+            spaced._tableProperties!.TableStyle = new TableStyle { Val = "GenericRenderedSpacedTable" };
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = new PdfCore.PageSize(420, 500),
+                Margins = PdfCore.PageMargins.Uniform(40)
+            });
+        }
+
+        byte[] bytes = File.ReadAllBytes(pdfPath);
+        using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
+        var words = pdf.GetPage(1).GetWords().ToList();
+        var plainLeft = Assert.Single(words, word => word.Text == "PA");
+        var plainRight = Assert.Single(words, word => word.Text == "PB");
+        var spacedLeft = Assert.Single(words, word => word.Text == "SA");
+        var spacedRight = Assert.Single(words, word => word.Text == "SB");
+
+        double plainGap = plainRight.BoundingBox.Left - plainLeft.BoundingBox.Left;
+        double spacedGap = spacedRight.BoundingBox.Left - spacedLeft.BoundingBox.Left;
+        Assert.True(spacedGap > plainGap + 10D,
+            $"Expected Word table style cell spacing to widen native table cell distance. Plain gap: {plainGap:0.##}; spaced gap: {spacedGap:0.##}.");
+    }
 }

@@ -298,6 +298,37 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Maps_Table_Style_Cell_Spacing() {
+        using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeTableStyleCellSpacing.docx"));
+        Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+        styles.Append(new Style(
+            new StyleName { Val = "Generic Spaced Table" },
+            new StyleTableProperties(new TableCellSpacing {
+                Width = "240",
+                Type = TableWidthUnitValues.Dxa
+            }))
+        { Type = StyleValues.Table, StyleId = "GenericSpacedTable" });
+
+        WordTable styledTable = document.AddTable(1, 2);
+        styledTable._tableProperties!.TableStyle = new TableStyle { Val = "GenericSpacedTable" };
+
+        PdfCore.PdfTableStyle styled = CreateNativeTableStyleForTest(styledTable);
+
+        Assert.Equal(12D, styled.CellSpacing);
+
+        WordTable directTable = document.AddTable(1, 2);
+        directTable._tableProperties!.TableStyle = new TableStyle { Val = "GenericSpacedTable" };
+        directTable._tableProperties.TableCellSpacing = new TableCellSpacing {
+            Width = "80",
+            Type = TableWidthUnitValues.Dxa
+        };
+
+        PdfCore.PdfTableStyle direct = CreateNativeTableStyleForTest(directTable);
+
+        Assert.Equal(4D, direct.CellSpacing);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Maps_Table_Style_Exact_Line_Spacing() {
         using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeTableStyleExactLineSpacing.docx"));
         Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
