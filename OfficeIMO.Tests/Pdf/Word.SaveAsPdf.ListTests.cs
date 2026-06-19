@@ -177,6 +177,13 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Uses_Character_Style_Font_Size_For_List_Exact_Line_Spacing() {
+            double gap = RenderNativeListCharacterStyleExactLineSpacingGap();
+
+            Assert.InRange(gap, 16D, 22D);
+        }
+
+        [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Renders_Custom_And_Nested_Word_List_Markers() {
             string docPath = Path.Combine(_directoryWithFiles, "PdfNativeCustomNestedListMarkers.docx");
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeCustomNestedListMarkers.pdf");
@@ -253,6 +260,49 @@ namespace OfficeIMO.Tests {
                 document.SaveAsPdf(pdfPath, new PdfSaveOptions {
                     IncludePageNumbers = false,
                     PageSize = new OfficeIMO.Pdf.PageSize(320, 240),
+                    Margins = PageMargins.Uniform(36),
+                    FontFamily = "Helvetica"
+                });
+            }
+
+            using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+            var words = pdf.GetPage(1).GetWords().ToList();
+            double firstY = Assert.Single(words, word => word.Text == firstMarker).BoundingBox.Bottom;
+            double secondY = Assert.Single(words, word => word.Text == secondMarker).BoundingBox.Bottom;
+            return firstY - secondY;
+        }
+
+        private double RenderNativeListCharacterStyleExactLineSpacingGap() {
+            const string firstMarker = "Alpha";
+            const string secondMarker = "Beta";
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeListCharacterStyleExactLineSpacing.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeListCharacterStyleExactLineSpacing.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                const string styleId = "NativeListExactLineCharacterStyle";
+                Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                styles.Append(new Style(
+                    new StyleName { Val = "Native List Exact Line Character Style" },
+                    new StyleRunProperties(new FontSize { Val = "64" }))
+                {
+                    Type = StyleValues.Character,
+                    StyleId = styleId,
+                    CustomStyle = true
+                });
+
+                WordList bulletList = document.AddList(WordListStyle.Bulleted);
+                WordParagraph item = bulletList.AddItem(string.Empty);
+                item.AddText(firstMarker).SetCharacterStyleId(styleId);
+                item.AddBreak();
+                item.AddText(secondMarker).SetCharacterStyleId(styleId);
+                item.LineSpacingAfterPoints = 0D;
+                item.LineSpacingPoints = 18D;
+                item.LineSpacingRule = LineSpacingRuleValues.Exact;
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false,
+                    PageSize = new OfficeIMO.Pdf.PageSize(360, 260),
                     Margins = PageMargins.Uniform(36),
                     FontFamily = "Helvetica"
                 });
