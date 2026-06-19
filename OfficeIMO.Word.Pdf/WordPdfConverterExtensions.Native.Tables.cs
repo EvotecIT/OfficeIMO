@@ -216,7 +216,7 @@ namespace OfficeIMO.Word.Pdf {
                 usesConfiguredDefaultStyle,
                 ShouldApplyNativeTableStyleCellPadding(table) ? tableStyleDefaults : NativeTableStyleDefaults.Empty);
             ApplyNativeTableConditionalStyles(table, style, tableStyleDefaults, rowCount);
-            ApplyNativeTableBandingStyles(table, style, tableStyleDefaults);
+            ApplyNativeTableBandingStyles(table, layout, style, tableStyleDefaults);
             ApplyNativeTableConditionalColumnFills(table, layout, tableStyleDefaults, style);
             ApplyNativeTableLayoutOptions(table, style, contentWidth, tableStyleDefaults);
             ApplyNativeTableRowOptions(table, style);
@@ -298,14 +298,34 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void ApplyNativeTableBandingStyles(WordTable table, PdfCore.PdfTableStyle style, NativeTableStyleDefaults tableStyleDefaults) {
-            if (table.ConditionalFormattingNoHorizontalBand == true) {
+        private static void ApplyNativeTableBandingStyles(WordTable table, TableLayout layout, PdfCore.PdfTableStyle style, NativeTableStyleDefaults tableStyleDefaults) {
+            if (table.ConditionalFormattingNoHorizontalBand != true && tableStyleDefaults.Band1HorizontalStyle.CellFill.HasValue) {
+                style.RowStripeFill = tableStyleDefaults.Band1HorizontalStyle.CellFill.Value;
+            }
+
+            if (table.ConditionalFormattingNoVerticalBand != true && tableStyleDefaults.Band1VerticalStyle.CellFill.HasValue) {
+                ApplyNativeTableVerticalBandingFill(layout, style, tableStyleDefaults.Band1VerticalStyle.CellFill.Value);
+            }
+        }
+
+        private static void ApplyNativeTableVerticalBandingFill(TableLayout layout, PdfCore.PdfTableStyle style, PdfCore.PdfColor fill) {
+            int columnCount = GetNativeTableColumnCount(layout);
+            if (columnCount == 0) {
                 return;
             }
 
-            if (tableStyleDefaults.Band1HorizontalStyle.CellFill.HasValue) {
-                style.RowStripeFill = tableStyleDefaults.Band1HorizontalStyle.CellFill.Value;
+            var bodyColumnFills = style.BodyColumnFills == null
+                ? new List<PdfCore.PdfColor?>(new PdfCore.PdfColor?[columnCount])
+                : new List<PdfCore.PdfColor?>(style.BodyColumnFills);
+            while (bodyColumnFills.Count < columnCount) {
+                bodyColumnFills.Add(null);
             }
+
+            for (int columnIndex = 1; columnIndex < columnCount; columnIndex += 2) {
+                bodyColumnFills[columnIndex] = fill;
+            }
+
+            style.BodyColumnFills = bodyColumnFills;
         }
 
         private static void ApplyNativeTableConditionalColumnFills(WordTable table, TableLayout layout, NativeTableStyleDefaults tableStyleDefaults, PdfCore.PdfTableStyle style) {

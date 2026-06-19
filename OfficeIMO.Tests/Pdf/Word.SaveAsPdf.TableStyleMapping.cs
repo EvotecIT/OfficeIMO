@@ -289,6 +289,36 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Maps_Table_Style_Vertical_Banding_Fill() {
+        using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeTableStyleVerticalBanding.docx"));
+        Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+        styles.Append(new Style(
+            new StyleName { Val = "Generic Vertical Band Table" },
+            new TableStyleProperties(
+                new TableStyleConditionalFormattingTableCellProperties(
+                    new Shading { Val = ShadingPatternValues.Clear, Fill = "CC99FF" }))
+            { Type = TableStyleOverrideValues.Band1Vertical })
+        { Type = StyleValues.Table, StyleId = "GenericVerticalBandTable" });
+
+        WordTable table = document.AddTable(2, 4);
+        table._tableProperties!.TableStyle = new TableStyle { Val = "GenericVerticalBandTable" };
+        table.ConditionalFormattingNoVerticalBand = false;
+
+        PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table);
+
+        Assert.NotNull(style.BodyColumnFills);
+        Assert.Null(style.BodyColumnFills![0]);
+        Assert.Equal(PdfCore.PdfColor.FromRgb(204, 153, 255), style.BodyColumnFills[1]);
+        Assert.Null(style.BodyColumnFills[2]);
+        Assert.Equal(PdfCore.PdfColor.FromRgb(204, 153, 255), style.BodyColumnFills[3]);
+
+        table.ConditionalFormattingNoVerticalBand = true;
+        PdfCore.PdfTableStyle disabledStyle = CreateNativeTableStyleForTest(table);
+
+        Assert.Null(disabledStyle.BodyColumnFills);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Uses_Configured_Default_Table_Style_For_Unstyled_Native_Table() {
         using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeDefaultTableStyle.docx"));
         WordTable table = document.AddTable(2, 2);

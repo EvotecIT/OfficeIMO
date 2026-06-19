@@ -324,4 +324,50 @@ public partial class Word {
         Assert.Contains("0.6 0.8 1 rg", raw);
     }
 
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Renders_Table_Style_Vertical_Banding_Fill() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleVerticalBanding.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleVerticalBanding.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            const string styleId = "NativeVerticalBandTable";
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(new Style(
+                new StyleName { Val = "Native Vertical Band Table" },
+                new TableStyleProperties(
+                    new TableStyleConditionalFormattingTableCellProperties(
+                        new Shading { Val = ShadingPatternValues.Clear, Fill = "CC99FF" }))
+                { Type = TableStyleOverrideValues.Band1Vertical })
+            { Type = StyleValues.Table, StyleId = styleId });
+
+            WordTable table = document.AddTable(2, 4);
+            table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
+            table.ConditionalFormattingNoVerticalBand = false;
+            for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
+                for (int columnIndex = 0; columnIndex < table.Rows[rowIndex].Cells.Count; columnIndex++) {
+                    table.Rows[rowIndex].Cells[columnIndex].Paragraphs[0].Text =
+                        "BandCell" +
+                        rowIndex.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                        columnIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                }
+            }
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = new PdfCore.PageSize(420, 220),
+                Margins = PdfCore.PageMargins.Uniform(30)
+            });
+        }
+
+        byte[] bytes = File.ReadAllBytes(pdfPath);
+        using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
+        string text = string.Concat(pdf.GetPages().Select(page => page.Text));
+        Assert.Contains("BandCell00", text);
+        Assert.Contains("BandCell13", text);
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("0.8 0.6 1 rg", raw);
+    }
+
 }
