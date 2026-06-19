@@ -113,8 +113,9 @@ namespace OfficeIMO.Word.Pdf {
             index = listIndex.Index;
             item = new PdfCore.PdfListItem(richRuns, paragraph.Bookmark?.Name, string.IsNullOrWhiteSpace(displayMarker) ? null : displayMarker);
             align = ResolveNativeParagraphAlign(paragraph, allowJustify: false);
-            color = ResolveNativeTextRunStyle(paragraph).Color;
-            style = CreateNativeListStyle(paragraph, info.Value, displayMarker, nativeDefaults);
+            NativeResolvedTextStyle textStyle = ResolveNativeTextRunStyle(paragraph);
+            color = textStyle.Color;
+            style = CreateNativeListStyle(paragraph, info.Value, displayMarker, nativeDefaults, textStyle);
             return true;
         }
 
@@ -132,7 +133,7 @@ namespace OfficeIMO.Word.Pdf {
             };
         }
 
-        private static PdfCore.PdfListStyle CreateNativeListStyle(WordParagraph paragraph, DocumentTraversal.ListInfo info, string marker, NativeDocumentDefaults nativeDefaults) {
+        private static PdfCore.PdfListStyle CreateNativeListStyle(WordParagraph paragraph, DocumentTraversal.ListInfo info, string marker, NativeDocumentDefaults nativeDefaults, NativeResolvedTextStyle markerTextStyle) {
             const double defaultLevelTextIndent = 36D;
             const double defaultHangingIndent = 18D;
             NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);
@@ -153,10 +154,10 @@ namespace OfficeIMO.Word.Pdf {
             double markerWidth = EstimateNativeListMarkerWidth(marker, fontSize);
             double markerGap = Math.Max(0D, textIndent - markerIndent - markerWidth);
 
-            var markerTextStyle = ResolveNativeTextRunStyle(paragraph);
             var style = new PdfCore.PdfListStyle {
                 LeftIndent = markerIndent,
                 MarkerGap = markerGap,
+                MarkerFont = markerTextStyle.Font,
                 MarkerBold = markerTextStyle.Bold,
                 MarkerItalic = markerTextStyle.Italic
             };
@@ -234,6 +235,7 @@ namespace OfficeIMO.Word.Pdf {
                    DoubleEquals(left.SpacingBefore, right.SpacingBefore) &&
                    NullableDoubleEquals(left.SpacingAfter, right.SpacingAfter) &&
                    NullableDoubleEquals(left.ItemSpacing, right.ItemSpacing) &&
+                   left.MarkerFont == right.MarkerFont &&
                    left.MarkerBold == right.MarkerBold &&
                    left.MarkerItalic == right.MarkerItalic &&
                    left.Color.Equals(right.Color) &&

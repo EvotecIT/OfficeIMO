@@ -378,6 +378,48 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Maps_Paragraph_Style_Font_To_List_Marker() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeListStyleMarkerFont.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeListStyleMarkerFont.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                const string styleId = "NativeListMarkerFont";
+                Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                styles.Append(new Style(
+                    new StyleName { Val = "Native List Marker Font" },
+                    new BasedOn { Val = "Normal" },
+                    new StyleRunProperties(new RunFonts { Ascii = "Courier New", HighAnsi = "Courier New" }))
+                {
+                    Type = StyleValues.Paragraph,
+                    StyleId = styleId,
+                    CustomStyle = true
+                });
+
+                WordList numberedList = document.AddCustomList();
+                numberedList.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
+                WordParagraph styled = numberedList.AddItem("StyledListMarkerFont");
+                styled.SetStyleId(styleId);
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false,
+                    FontFamily = "Helvetica"
+                });
+            }
+
+            byte[] bytes = File.ReadAllBytes(pdfPath);
+            string content = ReadPdfPageContent(bytes);
+            var listItems = PdfTextExtractor.ExtractListItemsByPage(bytes)
+                .SelectMany(page => page.ListItems)
+                .ToList();
+
+            Assert.Contains(listItems, item => item.Marker == "1" && item.Text == "StyledListMarkerFont");
+            Assert.True(
+                Regex.Matches(content, @"/F19\s+11\s+Tf").Count >= 2,
+                "Expected paragraph style font family to be emitted for both the list marker and the list item text.");
+        }
+
+        [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Maps_List_Item_Footnotes_Through_Native_List_Blocks() {
             string docPath = Path.Combine(_directoryWithFiles, "PdfNativeListFootnotes.docx");
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeListFootnotes.pdf");

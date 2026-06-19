@@ -130,7 +130,7 @@ internal static partial class PdfWriter {
     }
 
     private static PdfStandardFont GetListMarkerFont(PdfListStyle? style, PdfStandardFont defaultFont) {
-        PdfStandardFont normalFont = ChooseNormal(defaultFont);
+        PdfStandardFont normalFont = ChooseNormal(style?.MarkerFont ?? defaultFont);
         if (style?.MarkerBold == true && style.MarkerItalic) {
             return ChooseBoldItalic(normalFont);
         }
