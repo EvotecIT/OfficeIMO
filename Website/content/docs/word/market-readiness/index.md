@@ -4,8 +4,6 @@ description: Current non-PDF readiness snapshot for OfficeIMO.Word templates, re
 order: 60
 ---
 
-# Word Market Readiness
-
 `OfficeIMO.Word` is strongest when it is treated as a practical document automation engine, not just a wrapper over raw Open XML. The current non-PDF readiness story focuses on four workflows that can be proven with source inputs, generated `.docx` files, diagnostics, and validation output.
 
 ## Market Position
