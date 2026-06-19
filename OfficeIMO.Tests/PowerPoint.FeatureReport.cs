@@ -881,6 +881,46 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PowerPointFeatureReport_DoesNotTreatControlNamedMediaAsAdvancedPackageSignals() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    presentation.AddSlide().AddTextBox("Ordinary control named assets");
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, true)) {
+                    SlidePart slidePart = document.PresentationPart!.SlideParts.Single();
+                    AddExtendedPart(
+                        slidePart,
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+                        "image/png",
+                        "activeX.png",
+                        new byte[] { 137, 80, 78, 71 });
+                    AddExtendedPart(
+                        slidePart,
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+                        "image/png",
+                        "taskpane.png",
+                        new byte[] { 137, 80, 78, 71 });
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                    PowerPointFeatureReport report = presentation.InspectFeatures();
+
+                    Assert.Empty(report.FindFeatures("ActiveX controls"));
+                    Assert.Empty(report.FindFeatures("Web extensions and task panes"));
+                    Assert.Same(report, report.EnsureNoAdvancedFeatures());
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void PowerPointFeatureReport_DetectsAdvancedPackageSignals() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 

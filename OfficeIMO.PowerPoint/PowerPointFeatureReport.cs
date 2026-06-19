@@ -372,13 +372,9 @@ namespace OfficeIMO.PowerPoint {
             var commentDetails = DescribeCommentParts(allParts);
             var customXmlDetails = DescribePartsByUri(allParts, "/customXml/");
             var embeddedPackageDetails = DescribeNonChartEmbeddedPackageParts(allParts);
-            var activeXControlDetails = DescribePartsByUriOrContentType(allParts, "activeX");
+            var activeXControlDetails = DescribeActiveXControlParts(allParts);
             var vbaDetails = DescribeVbaProjectParts(allParts);
-            var webExtensionDetails = DescribePartsByUriOrContentType(allParts, "webextension")
-                .Concat(DescribePartsByUriOrContentType(allParts, "taskpane"))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
-                .ToList();
+            var webExtensionDetails = DescribeWebExtensionParts(allParts);
             var signatureDetails = DescribeDigitalSignatureParts(allParts);
             if (_document?.ExtendedFilePropertiesPart?.Properties?.DigitalSignature != null) {
                 signatureDetails.Add("Extended application properties contain digital signature metadata.");
@@ -817,6 +813,28 @@ namespace OfficeIMO.PowerPoint {
         private static List<string> DescribeVbaProjectParts(IEnumerable<OpenXmlPart> parts) {
             return parts
                 .Where(part => string.Equals(part.ContentType, "application/vnd.ms-office.vbaProject", StringComparison.OrdinalIgnoreCase))
+                .Select(DescribePart)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        private static List<string> DescribeActiveXControlParts(IEnumerable<OpenXmlPart> parts) {
+            return parts
+                .Where(part =>
+                    string.Equals(part.ContentType, "application/vnd.ms-office.activeX+xml", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(part.ContentType, "application/vnd.ms-office.activeX.bin", StringComparison.OrdinalIgnoreCase))
+                .Select(DescribePart)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        private static List<string> DescribeWebExtensionParts(IEnumerable<OpenXmlPart> parts) {
+            return parts
+                .Where(part =>
+                    string.Equals(part.ContentType, "application/vnd.ms-office.webextension+xml", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(part.ContentType, "application/vnd.ms-office.webextensiontaskpanes+xml", StringComparison.OrdinalIgnoreCase))
                 .Select(DescribePart)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
