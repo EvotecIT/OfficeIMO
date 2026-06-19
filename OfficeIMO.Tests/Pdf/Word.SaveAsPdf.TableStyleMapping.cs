@@ -267,6 +267,37 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Maps_Table_Style_Preferred_Width() {
+        using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeTableStylePreferredWidth.docx"));
+        Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+        styles.Append(new Style(
+            new StyleName { Val = "Generic Width Table" },
+            new StyleTableProperties(new TableWidth {
+                Width = "2160",
+                Type = TableWidthUnitValues.Dxa
+            }))
+        { Type = StyleValues.Table, StyleId = "GenericWidthTable" });
+
+        WordTable styledTable = document.AddTable(1, 1);
+        styledTable._tableProperties!.TableStyle = new TableStyle { Val = "GenericWidthTable" };
+
+        PdfCore.PdfTableStyle styled = CreateNativeTableStyleForTest(styledTable);
+
+        Assert.Equal(108D, styled.MaxWidth);
+        Assert.True(styled.PreserveWidth);
+
+        WordTable directTable = document.AddTable(1, 1);
+        directTable._tableProperties!.TableStyle = new TableStyle { Val = "GenericWidthTable" };
+        directTable.WidthType = TableWidthUnitValues.Dxa;
+        directTable.Width = 2880;
+
+        PdfCore.PdfTableStyle direct = CreateNativeTableStyleForTest(directTable);
+
+        Assert.Equal(144D, direct.MaxWidth);
+        Assert.True(direct.PreserveWidth);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Maps_Table_Style_Exact_Line_Spacing() {
         using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeTableStyleExactLineSpacing.docx"));
         Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;

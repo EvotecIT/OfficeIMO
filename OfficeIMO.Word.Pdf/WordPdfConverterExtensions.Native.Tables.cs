@@ -240,7 +240,8 @@ namespace OfficeIMO.Word.Pdf {
                 style.AutoFitColumns = true;
             }
 
-            double? maxWidth = GetNativeTablePreferredWidth(properties?.TableWidth, contentWidth);
+            double? maxWidth = GetNativeTablePreferredWidth(properties?.TableWidth, contentWidth) ??
+                GetNativeTablePreferredWidth(tableStyleDefaults.PreferredWidth, contentWidth);
             if (maxWidth.HasValue) {
                 style.MaxWidth = maxWidth.Value;
                 style.PreserveWidth = true;

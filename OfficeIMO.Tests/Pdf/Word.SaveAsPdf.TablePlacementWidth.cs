@@ -132,4 +132,50 @@ public partial class Word {
         Assert.True(styledWord.BoundingBox.Left > defaultWord.BoundingBox.Left + 30D,
             $"Expected table style indentation to move the styled native table right. Default x: {defaultWord.BoundingBox.Left:0.##}; styled x: {styledWord.BoundingBox.Left:0.##}.");
     }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Renders_Table_Style_Preferred_Width() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleRenderedPreferredWidth.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleRenderedPreferredWidth.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(new Style(
+                new StyleName { Val = "Generic Rendered Width Table" },
+                new StyleTableProperties(new TableWidth {
+                    Width = "1440",
+                    Type = TableWidthUnitValues.Dxa
+                }))
+            { Type = StyleValues.Table, StyleId = "GenericRenderedWidthTable" });
+
+            WordTable defaultTable = document.AddTable(1, 2);
+            ConfigureCellSpacingTable(defaultTable, "DA", "DB");
+
+            document.AddParagraph("between styled width tables");
+
+            WordTable styledTable = document.AddTable(1, 2);
+            ConfigureCellSpacingTable(styledTable, "SA", "SB");
+            styledTable._tableProperties!.TableStyle = new TableStyle { Val = "GenericRenderedWidthTable" };
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = new PdfCore.PageSize(400, 280),
+                Margins = PdfCore.PageMargins.Uniform(40)
+            });
+        }
+
+        byte[] bytes = File.ReadAllBytes(pdfPath);
+        using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
+        var words = pdf.GetPage(1).GetWords().ToList();
+        var defaultLeft = Assert.Single(words, word => word.Text == "DA");
+        var defaultRight = Assert.Single(words, word => word.Text == "DB");
+        var styledLeft = Assert.Single(words, word => word.Text == "SA");
+        var styledRight = Assert.Single(words, word => word.Text == "SB");
+
+        double defaultGap = defaultRight.BoundingBox.Left - defaultLeft.BoundingBox.Left;
+        double styledGap = styledRight.BoundingBox.Left - styledLeft.BoundingBox.Left;
+        Assert.True(styledGap < defaultGap - 25D,
+            $"Expected table style preferred width to narrow the styled native table. Default gap: {defaultGap:0.##}; styled gap: {styledGap:0.##}.");
+    }
 }

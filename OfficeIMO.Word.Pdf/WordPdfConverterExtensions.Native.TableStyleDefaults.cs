@@ -4,8 +4,8 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
-        private readonly record struct NativeTableStyleDefaults(PdfCore.PdfCellPadding? CellPadding, PdfCore.PdfColor? CellFill, (PdfCore.PdfColor Color, double Width)? TableBorder, double? LeftIndent, double? ParagraphLineHeight, double? ParagraphLineSpacingPoints, W.LineSpacingRuleValues? ParagraphLineSpacingRule, double? ParagraphSpacingBefore, double? ParagraphSpacingAfter, NativeTableRunStyleDefaults RunStyle) {
-            public static NativeTableStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null, null, NativeTableRunStyleDefaults.Empty);
+        private readonly record struct NativeTableStyleDefaults(PdfCore.PdfCellPadding? CellPadding, PdfCore.PdfColor? CellFill, (PdfCore.PdfColor Color, double Width)? TableBorder, W.TableWidth? PreferredWidth, double? LeftIndent, double? ParagraphLineHeight, double? ParagraphLineSpacingPoints, W.LineSpacingRuleValues? ParagraphLineSpacingRule, double? ParagraphSpacingBefore, double? ParagraphSpacingAfter, NativeTableRunStyleDefaults RunStyle) {
+            public static NativeTableStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null, null, null, NativeTableRunStyleDefaults.Empty);
         }
 
         private readonly record struct NativeTableRunStyleDefaults(double? FontSize, string? FontFamily, bool? Bold, bool? Italic, bool? Underline, bool? Strike, string? ColorHex, W.HighlightColorValues? Highlight) {
@@ -29,6 +29,7 @@ namespace OfficeIMO.Word.Pdf {
             double? marginRight = null;
             PdfCore.PdfColor? cellFill = null;
             (PdfCore.PdfColor Color, double Width)? tableBorder = null;
+            W.TableWidth? preferredWidth = null;
             double? leftIndent = null;
             double? paragraphLineHeight = null;
             double? paragraphLineSpacingPoints = null;
@@ -56,6 +57,7 @@ namespace OfficeIMO.Word.Pdf {
                 highlight = runProperties?.GetFirstChild<W.Highlight>()?.Val?.Value ?? highlight;
 
                 W.StyleTableProperties? tableProperties = style.GetFirstChild<W.StyleTableProperties>();
+                preferredWidth = tableProperties?.GetFirstChild<W.TableWidth>() ?? preferredWidth;
                 leftIndent = GetNativeTableLeftIndent(tableProperties?.GetFirstChild<W.TableIndentation>()) ?? leftIndent;
 
                 W.TableCellMarginDefault? margins = tableProperties?.GetFirstChild<W.TableCellMarginDefault>();
@@ -117,6 +119,7 @@ namespace OfficeIMO.Word.Pdf {
                 cellPadding,
                 cellFill,
                 tableBorder,
+                preferredWidth,
                 leftIndent,
                 paragraphLineHeight,
                 paragraphLineSpacingPoints,
