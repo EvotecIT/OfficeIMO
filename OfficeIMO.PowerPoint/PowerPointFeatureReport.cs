@@ -657,7 +657,10 @@ namespace OfficeIMO.PowerPoint {
 
             return !transition.ChildElements.Any(IsMappedTransitionEffectElement)
                 || transition.ChildElements.Any(element => !IsMappedTransitionEffectElement(element))
-                || transition.GetAttributes().Any(IsUnsupportedTransitionAttribute);
+                || transition.GetAttributes().Any(IsUnsupportedTransitionAttribute)
+                || transition.ChildElements
+                    .Where(IsMappedTransitionEffectElement)
+                    .Any(element => element.GetAttributes().Any(attribute => IsUnsupportedTransitionEffectAttribute(element, attribute)));
         }
 
         private static bool IsMappedTransitionEffectElement(OpenXmlElement element) {
@@ -684,7 +687,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static bool IsUnsupportedTransitionAttribute(OpenXmlAttribute attribute) {
-            if (attribute.Prefix == "xmlns" || (string.IsNullOrEmpty(attribute.Prefix) && attribute.LocalName == "xmlns")) {
+            if (IsNamespaceDeclaration(attribute)) {
                 return false;
             }
 
@@ -696,6 +699,37 @@ namespace OfficeIMO.PowerPoint {
             };
 
             return !supportedNames.Contains(attribute.LocalName);
+        }
+
+        private static bool IsUnsupportedTransitionEffectAttribute(OpenXmlElement element, OpenXmlAttribute attribute) {
+            if (IsNamespaceDeclaration(attribute)) {
+                return false;
+            }
+
+            var supportedNames = GetSupportedTransitionEffectAttributes(element);
+            return !supportedNames.Contains(attribute.LocalName);
+        }
+
+        private static HashSet<string> GetSupportedTransitionEffectAttributes(OpenXmlElement element) {
+            switch (element.LocalName) {
+                case "blinds":
+                case "comb":
+                case "ferris":
+                case "push":
+                case "warp":
+                    return new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "dir" };
+                case "prism":
+                    return new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "isContent" };
+                case "prstTrans":
+                    return new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "prst" };
+                default:
+                    return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            }
+        }
+
+        private static bool IsNamespaceDeclaration(OpenXmlAttribute attribute) {
+            return attribute.Prefix == "xmlns"
+                || (string.IsNullOrEmpty(attribute.Prefix) && attribute.LocalName == "xmlns");
         }
 
         private List<string> DescribeAdvancedTimingMarkup() {
@@ -824,6 +858,7 @@ namespace OfficeIMO.PowerPoint {
             return parts
                 .Where(part =>
                     string.Equals(part.ContentType, "application/vnd.ms-office.activeX+xml", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(part.ContentType, "application/vnd.ms-office.activeX", StringComparison.OrdinalIgnoreCase)
                     || string.Equals(part.ContentType, "application/vnd.ms-office.activeX.bin", StringComparison.OrdinalIgnoreCase))
                 .Select(DescribePart)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -864,6 +899,9 @@ namespace OfficeIMO.PowerPoint {
             int smartArt = notesSlide
                 .Descendants<GraphicFrame>()
                 .Count(frame => frame.Graphic?.GraphicData?.GetFirstChild<Dgm.RelationshipIds>() != null);
+            int textShapes = notesSlide
+                .Descendants<Shape>()
+                .Count(shape => HasNonEmptyShapeText(shape) && !HasPlaceholder(shape));
 
             if (pictures > 0) {
                 yield return $"slide {slideIndex} notes: {pictures} picture(s)";
@@ -884,6 +922,20 @@ namespace OfficeIMO.PowerPoint {
             if (smartArt > 0) {
                 yield return $"slide {slideIndex} notes: {smartArt} SmartArt diagram(s)";
             }
+
+            if (textShapes > 0) {
+                yield return $"slide {slideIndex} notes: {textShapes} extra text shape(s)";
+            }
+        }
+
+        private static bool HasNonEmptyShapeText(Shape shape) {
+            return !string.IsNullOrWhiteSpace(shape.TextBody?.InnerText);
+        }
+
+        private static bool HasPlaceholder(Shape shape) {
+            return shape.NonVisualShapeProperties?
+                .ApplicationNonVisualDrawingProperties?
+                .GetFirstChild<PlaceholderShape>() != null;
         }
 
         private static List<string> DescribeDigitalSignatureParts(IEnumerable<OpenXmlPart> parts) {
@@ -967,10 +1019,34 @@ namespace OfficeIMO.PowerPoint {
                 .SelectMany(part =>
                     part.HyperlinkRelationships
                         .Where(relationship => relationship.IsExternal)
+                        .Where(relationship => IsRelationshipReferenced(part, relationship.Id))
                         .Select(relationship => $"{part.Uri}: {relationship.Id} -> {relationship.Uri}"))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
                 .ToList();
+        }
+
+        private static bool IsRelationshipReferenced(OpenXmlPart part, string relationshipId) {
+            OpenXmlElement? root = part.RootElement;
+            if (root == null) {
+                return false;
+            }
+
+            return EnumerateSelfAndDescendants(root)
+                .Any(element => element.GetAttributes().Any(attribute => IsRelationshipReference(attribute, relationshipId)));
+        }
+
+        private static IEnumerable<OpenXmlElement> EnumerateSelfAndDescendants(OpenXmlElement root) {
+            yield return root;
+            foreach (OpenXmlElement descendant in root.Descendants()) {
+                yield return descendant;
+            }
+        }
+
+        private static bool IsRelationshipReference(OpenXmlAttribute attribute, string relationshipId) {
+            return string.Equals(attribute.LocalName, "id", StringComparison.OrdinalIgnoreCase)
+                && string.Equals(attribute.NamespaceUri, "http://schemas.openxmlformats.org/officeDocument/2006/relationships", StringComparison.OrdinalIgnoreCase)
+                && string.Equals(attribute.Value, relationshipId, StringComparison.OrdinalIgnoreCase);
         }
 
         private static List<string> DescribeExternalPackageRelationships(IEnumerable<OpenXmlPart> parts) {

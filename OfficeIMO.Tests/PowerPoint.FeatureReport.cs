@@ -521,6 +521,56 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PowerPointFeatureReport_DetectsRichNotesSlideExtraTextShapes() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    slide.AddTextBox("Notes with extra text");
+                    slide.Notes.Text = "Speaker text";
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, true)) {
+                    NotesSlidePart notesPart = document.PresentationPart!.SlideParts.Single().NotesSlidePart!;
+                    ShapeTree tree = notesPart.NotesSlide!.CommonSlideData!.ShapeTree!;
+                    uint shapeId = tree.Descendants<NonVisualDrawingProperties>()
+                        .Select(properties => properties.Id?.Value ?? 0U)
+                        .DefaultIfEmpty(0U)
+                        .Max() + 1U;
+                    tree.Append(new Shape(
+                        new NonVisualShapeProperties(
+                            new NonVisualDrawingProperties { Id = shapeId, Name = "Notes Extra Text" },
+                            new NonVisualShapeDrawingProperties(),
+                            new ApplicationNonVisualDrawingProperties()),
+                        new ShapeProperties(
+                            new A.Transform2D(new A.Offset { X = 0, Y = 0 }, new A.Extents { Cx = 914400, Cy = 914400 }),
+                            new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle }),
+                        new TextBody(
+                            new A.BodyProperties(),
+                            new A.ListStyle(),
+                            new A.Paragraph(new A.Run(new A.Text("Imported notes callout"))))));
+                    notesPart.NotesSlide.Save();
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                    PowerPointFeatureReport report = presentation.InspectFeatures();
+                    PowerPointFeatureFinding richNotes = Assert.Single(report.FindFeatures("Rich notes content"));
+
+                    Assert.Equal(PowerPointFeatureSupportLevel.Preserved, richNotes.SupportLevel);
+                    Assert.Equal(1, richNotes.Count);
+                    Assert.Contains(richNotes.Details, detail => detail.Contains("text shape", StringComparison.OrdinalIgnoreCase));
+                    Assert.Throws<InvalidOperationException>(() => report.EnsureNoAdvancedFeatures());
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void PowerPointFeatureReport_DoesNotTreatSignatureNamedMediaAsDigitalSignature() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
@@ -727,6 +777,35 @@ namespace OfficeIMO.Tests {
 
                     Assert.Equal("Fresh", run.Text!.Text);
                     Assert.Null(run.RunProperties?.GetFirstChild<A.HyperlinkOnClick>());
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void PowerPointFeatureReport_IgnoresUnreferencedHyperlinkRelationships() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    presentation.AddSlide().AddTextBox("Stale hyperlink relationship");
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, true)) {
+                    SlidePart slidePart = document.PresentationPart!.SlideParts.Single();
+                    slidePart.AddHyperlinkRelationship(new Uri("https://example.com/stale"), true);
+                    slidePart.Slide.Save();
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                    PowerPointFeatureReport report = presentation.InspectFeatures();
+
+                    Assert.Empty(report.FindFeatures("External relationships"));
+                    Assert.Same(report, report.EnsureNoFeatures("External relationships"));
                 }
             } finally {
                 if (File.Exists(filePath)) {
@@ -1123,7 +1202,7 @@ namespace OfficeIMO.Tests {
                         "<ax:ocx xmlns:ax=\"http://schemas.microsoft.com/office/2006/activeX\" />");
                     AddExtendedPart(presentationPart,
                         "http://schemas.openxmlformats.org/officeDocument/2006/relationships/activeXControlBinary",
-                        "application/vnd.ms-office.activeX.bin",
+                        "application/vnd.ms-office.activeX",
                         new byte[] { 1, 2, 3, 4 });
                 }
 
@@ -1305,6 +1384,40 @@ namespace OfficeIMO.Tests {
                     Assert.Equal(PowerPointFeatureSupportLevel.Preserved, unsupported.SupportLevel);
                     Assert.Equal(1, unsupported.Count);
                     Assert.Contains(unsupported.Details, detail => detail.Contains("sndAc", StringComparison.OrdinalIgnoreCase));
+                    Assert.Throws<InvalidOperationException>(() => report.EnsureNoAdvancedFeatures());
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void PowerPointFeatureReport_DetectsUnsupportedEffectAttributesOnMappedTransition() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    presentation.AddSlide().AddTextBox("Mapped transition with unsupported effect option");
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, true)) {
+                    WipeTransition wipe = new();
+                    wipe.SetAttribute(new OpenXmlAttribute("dir", string.Empty, "u"));
+                    SlidePart slidePart = document.PresentationPart!.SlideParts.Single();
+                    slidePart.Slide.Transition = new Transition(wipe);
+                    slidePart.Slide.Save();
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                    PowerPointFeatureReport report = presentation.InspectFeatures();
+                    PowerPointFeatureFinding unsupported = Assert.Single(report.FindFeatures("Unsupported transition markup"));
+
+                    Assert.Equal(PowerPointFeatureSupportLevel.Preserved, unsupported.SupportLevel);
+                    Assert.Equal(1, unsupported.Count);
+                    Assert.Contains(unsupported.Details, detail => detail.Contains("dir", StringComparison.OrdinalIgnoreCase));
                     Assert.Throws<InvalidOperationException>(() => report.EnsureNoAdvancedFeatures());
                 }
             } finally {
