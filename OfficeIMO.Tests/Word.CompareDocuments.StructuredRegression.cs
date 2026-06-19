@@ -1,0 +1,188 @@
+using System.IO;
+using System.Linq;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Word;
+using Xunit;
+using V = DocumentFormat.OpenXml.Vml;
+
+namespace OfficeIMO.Tests {
+    public partial class Word {
+        [Fact]
+        public void CompareStructureTreatsMovedBodyParagraphToHeaderAsDeleteInsert() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_body_to_header.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                doc.AddParagraph("Body anchor");
+                doc.AddParagraph("Classification: Confidential");
+                doc.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_body_to_header.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                doc.AddParagraph("Body anchor");
+                doc.AddHeadersAndFooters();
+                doc.Header.Default!.AddParagraph("Classification: Confidential");
+                doc.Save(false);
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Paragraph &&
+                finding.ChangeKind == WordComparisonChangeKind.Deleted &&
+                finding.SourceText == "Classification: Confidential");
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Paragraph &&
+                finding.ChangeKind == WordComparisonChangeKind.Inserted &&
+                finding.TargetText == "Classification: Confidential");
+            Assert.DoesNotContain(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Paragraph &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified &&
+                finding.SourceText == "Classification: Confidential" &&
+                finding.TargetText == "Classification: Confidential");
+        }
+
+        [Fact]
+        public void CompareStructurePreservesPageAndColumnBreaksInParagraphText() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_page_break.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                AddBreakParagraph(doc, BreakValues.Page);
+                doc.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_column_break.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                AddBreakParagraph(doc, BreakValues.Column);
+                doc.Save(false);
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            WordComparisonFinding modified = Assert.Single(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Paragraph &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified);
+            Assert.Equal("Before[PageBreak]After", modified.SourceText);
+            Assert.Equal("Before[ColumnBreak]After", modified.TargetText);
+        }
+
+        [Fact]
+        public void CompareStructureReportsVmlImageReplacement() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_vml_image.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                AddVmlImageParagraph(doc, Path.Combine(_directoryWithImages, "EvotecLogo.png"));
+                doc.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_vml_image.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                AddVmlImageParagraph(doc, Path.Combine(_directoryWithImages, "Kulek.jpg"));
+                doc.Save(false);
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            WordComparisonFinding image = Assert.Single(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Image &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified);
+            Assert.Equal("image[0]", image.Location);
+        }
+
+        [Fact]
+        public void CompareStructureReadsBlockContentControlTextInsideTableCells() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_cell_sdt.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                WordTable table = doc.AddTable(1, 1);
+                ReplaceCellWithBlockContentControl(table.Rows[0].Cells[0], "Evidence pending");
+                doc.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_cell_sdt.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                WordTable table = doc.AddTable(1, 1);
+                ReplaceCellWithBlockContentControl(table.Rows[0].Cells[0], "Evidence approved");
+                doc.Save(false);
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            WordComparisonFinding cell = Assert.Single(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.TableCell &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified);
+            Assert.Equal("Evidence pending", cell.SourceText);
+            Assert.Equal("Evidence approved", cell.TargetText);
+        }
+
+        [Fact]
+        public void CompareStructureAlignsInsertionBeforeModifiedParagraph() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_insert_before_modified.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                doc.AddParagraph("Terms and conditions apply.");
+                doc.AddParagraph("Closing section");
+                doc.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_insert_before_modified.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                doc.AddParagraph("New executive summary");
+                doc.AddParagraph("Terms and conditions apply after approval.");
+                doc.AddParagraph("Closing section");
+                doc.Save(false);
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Equal(2, result.Findings.Count);
+            WordComparisonFinding inserted = Assert.Single(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Paragraph &&
+                finding.ChangeKind == WordComparisonChangeKind.Inserted);
+            Assert.Equal("paragraph[0]", inserted.Location);
+            Assert.Equal("New executive summary", inserted.TargetText);
+
+            WordComparisonFinding modified = Assert.Single(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Paragraph &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified);
+            Assert.Equal("paragraph[1]", modified.Location);
+            Assert.Equal("Terms and conditions apply.", modified.SourceText);
+            Assert.Equal("Terms and conditions apply after approval.", modified.TargetText);
+        }
+
+        private static void AddBreakParagraph(WordDocument document, BreakValues breakType) {
+            WordParagraph paragraph = document.AddParagraph("Before");
+            paragraph._paragraph.Append(new Run(new Break { Type = breakType }));
+            paragraph._paragraph.Append(new Run(new Text("After")));
+        }
+
+        private static void AddVmlImageParagraph(WordDocument document, string imagePath) {
+            MainDocumentPart mainPart = document._wordprocessingDocument.MainDocumentPart!;
+            ImagePart imagePart = Path.GetExtension(imagePath).Equals(".jpg", System.StringComparison.OrdinalIgnoreCase) ||
+                                  Path.GetExtension(imagePath).Equals(".jpeg", System.StringComparison.OrdinalIgnoreCase)
+                ? mainPart.AddImagePart(ImagePartType.Jpeg)
+                : mainPart.AddImagePart(ImagePartType.Png);
+            using (FileStream stream = File.OpenRead(imagePath)) {
+                imagePart.FeedData(stream);
+            }
+
+            string relationshipId = mainPart.GetIdOfPart(imagePart);
+            var imageData = new V.ImageData {
+                RelationshipId = relationshipId,
+                Title = "Legacy image"
+            };
+            var shape = new V.Shape(imageData) {
+                Id = "LegacyImage",
+                Type = "#_x0000_t75",
+                Style = "width:72pt;height:72pt",
+                Filled = false,
+                Stroked = false
+            };
+
+            document._document.Body!.Append(new Paragraph(new Run(new Picture(shape))));
+        }
+
+        private static void ReplaceCellWithBlockContentControl(WordTableCell cell, string text) {
+            cell._tableCell.RemoveAllChildren<Paragraph>();
+            cell._tableCell.Append(new SdtBlock(
+                new SdtProperties(new SdtAlias { Val = "Evidence" }),
+                new SdtContentBlock(new Paragraph(new Run(new Text(text))))));
+        }
+    }
+}
