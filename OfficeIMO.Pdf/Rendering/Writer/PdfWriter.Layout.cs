@@ -23,13 +23,15 @@ internal static partial class PdfWriter {
     private sealed class ColTable : ColItem { public TableBlock Block = null!; public PdfTableStyle Style = null!; public int Columns; public double[] ColumnWidths = null!; public TableCellTextLayout[][] RowLines = null!; public int[] RowLineCounts = null!; public double[] RowHeights = null!; public double[] RowLeadings = null!; public double[] RowSizes = null!; public bool[] RowBold = null!; public double Width; public double Size; public int HeaderRowCount; public int RepeatHeaderRowCount; public int FooterStartRowIndex; public System.Collections.Generic.IReadOnlyList<TextRun>? CaptionRuns; public System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>>? CaptionLines; public System.Collections.Generic.List<double>? CaptionLineHeights; public double CaptionLeading; public double CaptionHeight; public ColTable() { Kind = "T"; } }
     private sealed class TableColumnLayout { public double[] Widths = null!; public double Width; }
     private sealed class TableCellTextLayout {
-        public TableCellTextLayout(System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights) {
+        public TableCellTextLayout(System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, System.Collections.Generic.List<PdfAlign?>? lineAlignments = null) {
             Lines = lines;
             LineHeights = lineHeights;
+            LineAlignments = lineAlignments;
         }
 
         public System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines { get; }
         public System.Collections.Generic.List<double> LineHeights { get; }
+        public System.Collections.Generic.List<PdfAlign?>? LineAlignments { get; }
         public int LineCount => System.Math.Max(1, Lines.Count);
     }
     private readonly struct TableCellLayout {

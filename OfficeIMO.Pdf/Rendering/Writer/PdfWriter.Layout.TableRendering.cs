@@ -197,6 +197,26 @@ internal static partial class PdfWriter {
         return heights;
     }
 
+    private static System.Collections.Generic.List<PdfAlign?>? SliceTableCellLineAlignments(TableCellTextLayout layout, int startLine, int lineCount) {
+        if (layout.LineAlignments == null) {
+            return null;
+        }
+
+        var alignments = new System.Collections.Generic.List<PdfAlign?>();
+        int available = System.Math.Max(0, layout.Lines.Count - startLine);
+        int visible = System.Math.Max(0, System.Math.Min(lineCount, available));
+        for (int i = 0; i < visible; i++) {
+            int lineIndex = startLine + i;
+            alignments.Add(lineIndex < layout.LineAlignments.Count ? layout.LineAlignments[lineIndex] : null);
+        }
+
+        if (alignments.Count == 0) {
+            alignments.Add(null);
+        }
+
+        return alignments;
+    }
+
     private static PdfAlign MapTableCellAlignment(PdfColumnAlign align) => align switch {
         PdfColumnAlign.Center => PdfAlign.Center,
         PdfColumnAlign.Right => PdfAlign.Right,

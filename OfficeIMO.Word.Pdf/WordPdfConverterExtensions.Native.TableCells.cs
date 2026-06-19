@@ -295,7 +295,10 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 runs.AddRange(paragraphRuns);
-                paragraphs.Add(new PdfCore.PdfTableCellParagraph(paragraphRuns, GetNativeCellParagraphSpacingAfter(paragraph, nativeDefaults, tableStyleDefaults)));
+                paragraphs.Add(new PdfCore.PdfTableCellParagraph(
+                    paragraphRuns,
+                    GetNativeCellParagraphSpacingAfter(paragraph, nativeDefaults, tableStyleDefaults),
+                    MapNativeParagraphAlign(ResolveNativeParagraphJustification(paragraph))));
             }
 
             return new NativeCellText(runs, paragraphs);

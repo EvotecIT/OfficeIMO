@@ -540,6 +540,47 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Renders_Table_Cell_Mixed_Paragraph_Alignment() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeMixedParagraphAlignedTable.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeMixedParagraphAlignedTable.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            WordTable table = document.AddTable(1, 1);
+            WordTableCell cell = table.Rows[0].Cells[0];
+            cell.Width = 2880;
+            cell.WidthType = TableWidthUnitValues.Dxa;
+            cell.Paragraphs[0].Text = "LeftMix";
+            cell.Paragraphs[0].ParagraphAlignment = JustificationValues.Left;
+            WordParagraph center = cell.AddParagraph("CenterMix");
+            center.ParagraphAlignment = JustificationValues.Center;
+            WordParagraph right = cell.AddParagraph("RightMix");
+            right.ParagraphAlignment = JustificationValues.Right;
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = new PdfCore.PageSize(360, 240),
+                Margins = PdfCore.PageMargins.Uniform(40)
+            });
+        }
+
+        byte[] bytes = File.ReadAllBytes(pdfPath);
+        using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
+        var words = pdf.GetPage(1).GetWords().ToList();
+        var left = Assert.Single(words, word => word.Text == "LeftMix");
+        var centerWord = Assert.Single(words, word => word.Text == "CenterMix");
+        var rightWord = Assert.Single(words, word => word.Text == "RightMix");
+
+        double cellLeft = left.BoundingBox.Left - 4D;
+        double cellRight = cellLeft + 144D;
+        double cellCenter = (cellLeft + cellRight) / 2D;
+
+        Assert.InRange(left.BoundingBox.Left, cellLeft + 3D, cellLeft + 8D);
+        Assert.InRange((centerWord.BoundingBox.Left + centerWord.BoundingBox.Right) / 2D, cellCenter - 8D, cellCenter + 8D);
+        Assert.InRange(rightWord.BoundingBox.Right, cellRight - 8D, cellRight - 2D);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Renders_Table_Cell_Style_Alignment() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeStyleAlignedTable.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeStyleAlignedTable.pdf");

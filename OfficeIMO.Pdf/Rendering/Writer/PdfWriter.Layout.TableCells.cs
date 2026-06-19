@@ -510,6 +510,7 @@ internal static partial class PdfWriter {
     private static TableCellTextLayout CreateTableCellParagraphTextLayout(System.Collections.Generic.IReadOnlyList<PdfTableCellParagraph> paragraphs, double innerWidth, PdfStandardFont baseFont, double fontSize, double leading, PdfOptions? options) {
         var lines = new System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>>();
         var lineHeights = new System.Collections.Generic.List<double>();
+        var lineAlignments = new System.Collections.Generic.List<PdfAlign?>();
         for (int paragraphIndex = 0; paragraphIndex < paragraphs.Count; paragraphIndex++) {
             PdfTableCellParagraph paragraph = paragraphs[paragraphIndex];
             var wrap = WrapRichRunsCore(paragraph.Runs, innerWidth, fontSize, baseFont, leading, null, DefaultParagraphTabStopWidth, options);
@@ -524,6 +525,10 @@ internal static partial class PdfWriter {
             int firstNewLineIndex = lines.Count;
             lines.AddRange(wrap.Lines);
             lineHeights.AddRange(wrap.LineHeights);
+            for (int lineIndex = firstNewLineIndex; lineIndex < lines.Count; lineIndex++) {
+                lineAlignments.Add(paragraph.Align);
+            }
+
             if (paragraphIndex < paragraphs.Count - 1 && lines.Count > firstNewLineIndex) {
                 MarkRichLineTextSeparator(lines[lines.Count - 1]);
             }
@@ -537,9 +542,10 @@ internal static partial class PdfWriter {
         if (lines.Count == 0) {
             lines.Add(new System.Collections.Generic.List<RichSeg>());
             lineHeights.Add(leading);
+            lineAlignments.Add(null);
         }
 
-        return new TableCellTextLayout(lines, lineHeights);
+        return new TableCellTextLayout(lines, lineHeights, lineAlignments);
     }
 
     private static TableCellTextLayout CreateListItemTextLayout(PdfListItem item, double innerWidth, PdfStandardFont baseFont, double fontSize, double leading, PdfOptions? options) {

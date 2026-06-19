@@ -258,7 +258,7 @@ public sealed class PdfTableCell {
 }
 
 internal sealed class PdfTableCellParagraph {
-    public PdfTableCellParagraph(System.Collections.Generic.IEnumerable<TextRun> runs, double spacingAfter = 0D) {
+    public PdfTableCellParagraph(System.Collections.Generic.IEnumerable<TextRun> runs, double spacingAfter = 0D, PdfAlign? align = null) {
         Guard.NotNull(runs, nameof(runs));
         if (spacingAfter < 0 || double.IsNaN(spacingAfter) || double.IsInfinity(spacingAfter)) {
             throw new System.ArgumentOutOfRangeException(nameof(spacingAfter), "Table cell paragraph spacing must be a non-negative finite value.");
@@ -275,11 +275,14 @@ internal sealed class PdfTableCellParagraph {
 
         Runs = snapshot.AsReadOnly();
         SpacingAfter = spacingAfter;
+        Align = align;
     }
 
     public System.Collections.Generic.IReadOnlyList<TextRun> Runs { get; }
 
     public double SpacingAfter { get; }
 
-    internal PdfTableCellParagraph Clone() => new PdfTableCellParagraph(Runs, SpacingAfter);
+    public PdfAlign? Align { get; }
+
+    internal PdfTableCellParagraph Clone() => new PdfTableCellParagraph(Runs, SpacingAfter, Align);
 }
