@@ -7,6 +7,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
+using Dgm = DocumentFormat.OpenXml.Drawing.Diagrams;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
@@ -309,6 +310,7 @@ namespace OfficeIMO.PowerPoint {
             var packageFoundationDetails = DescribePackageFoundationParts(allParts);
             var tableMetadataDetails = DescribeTableMetadata();
             var chartDetails = DescribePartsByType<ChartPart>(allParts);
+            var diagramDetails = DescribeDiagramParts(allParts);
             var chartWorkbookDetails = DescribeChartWorkbookParts(allParts);
             var chartCompanionDetails = DescribePartsByUriOrContentType(allParts, "chartStyle")
                 .Concat(DescribePartsByUriOrContentType(allParts, "chartColorStyle"))
@@ -325,7 +327,7 @@ namespace OfficeIMO.PowerPoint {
                 packageFoundationDetails);
             Add(features, "Structure", "Sections", PowerPointFeatureSupportLevel.Editable, GetSections().Count, null,
                 "Sections can be authored, inspected, renamed, moved, and synchronized with slides.");
-            Add(features, "Content", "Text boxes", PowerPointFeatureSupportLevel.Editable, Slides.Sum(slide => slide.TextBoxes.Count()), null,
+            Add(features, "Content", "Text boxes", PowerPointFeatureSupportLevel.Editable, Slides.Sum(CountSlideTextBoxes), null,
                 "Text boxes, runs, common formatting, markdown import, hyperlinks, and replacement are editable.");
             Add(features, "Content", "Tables", PowerPointFeatureSupportLevel.Editable, Slides.Sum(CountSlideTables), null,
                 "Tables, cells, text, merges, dimensions, fills, borders, alignment, banding flags, and typed object binding are editable.");
@@ -337,12 +339,12 @@ namespace OfficeIMO.PowerPoint {
                 chartDetails.Concat(chartCompanionDetails).Distinct(StringComparer.OrdinalIgnoreCase).ToList());
             Add(features, "Media", "Images", PowerPointFeatureSupportLevel.PartiallyEditable, Slides.Sum(CountSlidePictures), null,
                 "Images can be inserted and inspected in common slide scenarios; advanced drawing behaviors remain partial.");
-            Add(features, "Media", "Audio and video", PowerPointFeatureSupportLevel.PartiallyEditable, Slides.Sum(slide => slide.Media.Count()), null,
+            Add(features, "Media", "Audio and video", PowerPointFeatureSupportLevel.PartiallyEditable, Slides.Sum(CountSlideMedia), null,
                 "Embedded audio and video can be authored with poster frames and playback timing; rich media editing remains partial.",
                 DescribePartsByUriOrContentType(allParts, "media"));
-            Add(features, "Visualization", "SmartArt", PowerPointFeatureSupportLevel.PartiallyEditable, Slides.Sum(slide => slide.SmartArts.Count()), null,
+            Add(features, "Visualization", "SmartArt", PowerPointFeatureSupportLevel.PartiallyEditable, Math.Max(Slides.Sum(CountSlideSmartArt), diagramDetails.Count), null,
                 "SmartArt diagrams can be generated and discovered; rich diagram editing remains partial.",
-                DescribeDiagramParts(allParts));
+                diagramDetails);
             Add(features, "Presentation", "Speaker notes", PowerPointFeatureSupportLevel.Editable, Slides.Count(slide => slide.SlidePart.NotesSlidePart != null), null,
                 "Speaker notes can be authored, inspected, updated, and preserved.");
             Add(features, "Presentation", "Slide transitions", PowerPointFeatureSupportLevel.Editable, Slides.Count(HasTransitionMarkup), null,
@@ -373,11 +375,7 @@ namespace OfficeIMO.PowerPoint {
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
                 .ToList();
-            var signatureDetails = DescribePartsByUriOrContentType(allParts, "signature")
-                .Concat(DescribePartsByUriOrContentType(allParts, "xmlsignatures"))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
-                .ToList();
+            var signatureDetails = DescribeDigitalSignatureParts(allParts);
             if (_document?.ExtendedFilePropertiesPart?.Properties?.DigitalSignature != null) {
                 signatureDetails.Add("Extended application properties contain digital signature metadata.");
             }
@@ -474,7 +472,7 @@ namespace OfficeIMO.PowerPoint {
 
         private List<string> DescribeTableMetadata() {
             return Slides
-                .SelectMany((slide, slideIndex) => slide.SlidePart.Slide?.Descendants<A.Table>()
+                .SelectMany((slide, slideIndex) => EnumerateSlideTables(slide)
                     .Select((table, tableIndex) => DescribeTableMetadata(slideIndex, tableIndex, table))
                     ?? Enumerable.Empty<string?>())
                 .Where(detail => !string.IsNullOrWhiteSpace(detail))
@@ -509,6 +507,10 @@ namespace OfficeIMO.PowerPoint {
             return slide.Transition != SlideTransition.None;
         }
 
+        private static int CountSlideTextBoxes(PowerPointSlide slide) {
+            return slide.SlidePart.Slide?.Descendants<Shape>().Count(shape => shape.TextBody != null) ?? 0;
+        }
+
         private static int CountSlidePictures(PowerPointSlide slide) {
             int slidePictures = slide.SlidePart.Slide?
                 .Descendants<Picture>()
@@ -516,6 +518,13 @@ namespace OfficeIMO.PowerPoint {
                 ?? 0;
 
             return slidePictures + slide.GetInheritedShapesForExport().Sum(shape => CountPictureElements(shape.Element));
+        }
+
+        private static int CountSlideMedia(PowerPointSlide slide) {
+            return slide.SlidePart.Slide?
+                .Descendants<Picture>()
+                .Count(picture => PowerPointMedia.TryGetMediaKind(picture, out _))
+                ?? 0;
         }
 
         private static int CountPictureElements(OpenXmlElement element) {
@@ -526,6 +535,20 @@ namespace OfficeIMO.PowerPoint {
         private static int CountSlideTables(PowerPointSlide slide) {
             int slideTables = slide.SlidePart.Slide?.Descendants<A.Table>().Count() ?? 0;
             return slideTables + slide.GetInheritedShapesForExport().Sum(shape => shape.Element.Descendants<A.Table>().Count());
+        }
+
+        private static int CountSlideSmartArt(PowerPointSlide slide) {
+            return slide.SlidePart.Slide?
+                .Descendants<GraphicFrame>()
+                .Count(frame => frame.Graphic?.GraphicData?.GetFirstChild<Dgm.RelationshipIds>() != null)
+                ?? 0;
+        }
+
+        private static IEnumerable<A.Table> EnumerateSlideTables(PowerPointSlide slide) {
+            IEnumerable<A.Table> slideTables = slide.SlidePart.Slide?.Descendants<A.Table>() ?? Enumerable.Empty<A.Table>();
+            IEnumerable<A.Table> inheritedTables = slide.GetInheritedShapesForExport()
+                .SelectMany(shape => shape.Element.Descendants<A.Table>());
+            return slideTables.Concat(inheritedTables);
         }
 
         private List<string> DescribeUnsupportedTransitionMarkup() {
@@ -545,11 +568,7 @@ namespace OfficeIMO.PowerPoint {
                 .Select((slide, index) => new {
                     Index = index + 1,
                     Timing = slide.SlidePart.Slide?.Timing,
-                    MediaShapeIds = new HashSet<string>(
-                        slide.Media
-                            .Select(media => media.Id?.ToString())
-                            .Where(id => !string.IsNullOrWhiteSpace(id))!,
-                        StringComparer.OrdinalIgnoreCase)
+                    MediaShapeIds = GetSlideMediaShapeIds(slide)
                 })
                 .Where(item => item.Timing != null)
                 .Where(item => !ContainsOnlyMediaPlaybackTiming(item.Timing!, item.MediaShapeIds))
@@ -596,6 +615,18 @@ namespace OfficeIMO.PowerPoint {
                 && (target.Ancestors<Audio>().Any() || target.Ancestors<Video>().Any());
         }
 
+        private static HashSet<string> GetSlideMediaShapeIds(PowerPointSlide slide) {
+            return new HashSet<string>(
+                slide.SlidePart.Slide?
+                    .Descendants<Picture>()
+                    .Where(picture => PowerPointMedia.TryGetMediaKind(picture, out _))
+                    .Select(picture => picture.NonVisualPictureProperties?.NonVisualDrawingProperties?.Id?.Value.ToString())
+                    .Where(id => !string.IsNullOrWhiteSpace(id))
+                    .Select(id => id!)
+                    ?? Enumerable.Empty<string>(),
+                StringComparer.OrdinalIgnoreCase);
+        }
+
         private static List<string> DescribePartsByUri(IEnumerable<OpenXmlPart> parts, string uriFragment) {
             return parts
                 .Where(part => part.Uri.OriginalString.IndexOf(uriFragment, StringComparison.OrdinalIgnoreCase) >= 0)
@@ -610,6 +641,18 @@ namespace OfficeIMO.PowerPoint {
                 .Where(part =>
                     part.Uri.OriginalString.IndexOf(fragment, StringComparison.OrdinalIgnoreCase) >= 0
                     || part.ContentType.IndexOf(fragment, StringComparison.OrdinalIgnoreCase) >= 0)
+                .Select(DescribePart)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        private static List<string> DescribeDigitalSignatureParts(IEnumerable<OpenXmlPart> parts) {
+            return parts
+                .Where(part =>
+                    part.Uri.OriginalString.IndexOf("/_xmlsignatures/", StringComparison.OrdinalIgnoreCase) >= 0
+                    || part.ContentType.IndexOf("digital-signature", StringComparison.OrdinalIgnoreCase) >= 0
+                    || part.ContentType.IndexOf("xmlsignature", StringComparison.OrdinalIgnoreCase) >= 0)
                 .Select(DescribePart)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)

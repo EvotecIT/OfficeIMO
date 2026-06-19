@@ -87,6 +87,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PowerPointFeatureReport_DetectsGroupedTextBoxes() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    PowerPointTextBox textBox = slide.AddTextBox("Grouped text");
+                    PowerPointAutoShape shape = slide.AddRectangle(914400, 0, 914400, 914400);
+                    slide.GroupShapes(new PowerPointShape[] { textBox, shape });
+                    presentation.Save();
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                    PowerPointFeatureReport report = presentation.InspectFeatures();
+                    PowerPointFeatureFinding textBoxes = Assert.Single(report.FindFeatures("Text boxes"));
+
+                    Assert.Equal(1, textBoxes.Count);
+                    Assert.Throws<InvalidOperationException>(() => report.EnsureNoFeatures("Text boxes"));
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void PowerPointFeatureReport_DetectsGroupedTables() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
@@ -106,6 +133,47 @@ namespace OfficeIMO.Tests {
 
                     Assert.Equal(1, tables.Count);
                     Assert.Throws<InvalidOperationException>(() => report.EnsureNoFeatures("Tables"));
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void PowerPointFeatureReport_DetectsInheritedTableMetadata() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    PowerPointTable table = slide.AddTable(1, 1);
+                    table.GetCell(0, 0).Text = "Inherited";
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, true)) {
+                    SlidePart slidePart = document.PresentationPart!.SlideParts.Single();
+                    SlideLayoutPart layoutPart = slidePart.SlideLayoutPart!;
+                    ShapeTree slideTree = slidePart.Slide.CommonSlideData!.ShapeTree!;
+                    ShapeTree layoutTree = layoutPart.SlideLayout!.CommonSlideData!.ShapeTree!;
+                    GraphicFrame tableFrame = slideTree.Elements<GraphicFrame>()
+                        .Single(frame => frame.Graphic?.GraphicData?.GetFirstChild<A.Table>() != null);
+                    tableFrame.Remove();
+                    layoutTree.Append(tableFrame);
+                    slidePart.Slide.Save();
+                    layoutPart.SlideLayout.Save();
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                    PowerPointFeatureReport report = presentation.InspectFeatures();
+                    PowerPointFeatureFinding tables = Assert.Single(report.FindFeatures("Tables"));
+                    PowerPointFeatureFinding metadata = Assert.Single(report.FindFeatures("Table style metadata"));
+
+                    Assert.Equal(1, tables.Count);
+                    Assert.Equal(1, metadata.Count);
+                    Assert.Throws<InvalidOperationException>(() => report.EnsureNoFeatures("Table style metadata"));
                 }
             } finally {
                 if (File.Exists(filePath)) {
@@ -159,6 +227,95 @@ namespace OfficeIMO.Tests {
 
                     Assert.Equal(1, images.Count);
                     Assert.Throws<InvalidOperationException>(() => report.EnsureNoFeatures("Images"));
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void PowerPointFeatureReport_DoesNotTreatSignatureNamedMediaAsDigitalSignature() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    presentation.AddSlide().AddTextBox("Signature named media");
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, true)) {
+                    SlidePart slidePart = document.PresentationPart!.SlideParts.Single();
+                    AddExtendedPart(
+                        slidePart,
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+                        "image/png",
+                        "signature.png",
+                        new byte[] { 137, 80, 78, 71 });
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                    PowerPointFeatureReport report = presentation.InspectFeatures();
+
+                    Assert.Empty(report.FindFeatures("Digital signatures"));
+                    Assert.Same(report, report.EnsureNoUnsupportedFeatures());
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void PowerPointFeatureReport_DoesNotFlagGroupedMediaPlaybackTimingAsAdvanced() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    using var media = new MemoryStream(new byte[] { 1, 2, 3, 4, 5 });
+                    PowerPointMedia audio = slide.AddAudio(media, "audio/mpeg", ".mp3");
+                    PowerPointAutoShape shape = slide.AddRectangle(914400, 0, 914400, 914400);
+                    slide.GroupShapes(new PowerPointShape[] { audio, shape });
+                    presentation.Save();
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                    PowerPointFeatureReport report = presentation.InspectFeatures();
+                    PowerPointFeatureFinding media = Assert.Single(report.FindFeatures("Audio and video"));
+
+                    Assert.Equal(1, media.Count);
+                    Assert.DoesNotContain(report.PreservedFeatures, feature => feature.Name == "Animations and timing");
+                    Assert.Same(report, report.EnsureNoAdvancedFeatures());
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void PowerPointFeatureReport_DetectsGroupedSmartArt() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    PowerPointSmartArt smartArt = slide.AddSmartArt();
+                    PowerPointAutoShape shape = slide.AddRectangle(914400, 0, 914400, 914400);
+                    slide.GroupShapes(new PowerPointShape[] { smartArt, shape });
+                    presentation.Save();
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                    PowerPointFeatureReport report = presentation.InspectFeatures();
+                    PowerPointFeatureFinding smartArt = Assert.Single(report.FindFeatures("SmartArt"));
+
+                    Assert.True(smartArt.Count > 0);
+                    Assert.Throws<InvalidOperationException>(() => report.EnsureNoFeatures("SmartArt"));
                 }
             } finally {
                 if (File.Exists(filePath)) {
@@ -736,7 +893,11 @@ namespace OfficeIMO.Tests {
         }
 
         private static void AddExtendedPart(OpenXmlPartContainer container, string relationshipType, string contentType, byte[] bytes) {
-            ExtendedPart part = container.AddExtendedPart(relationshipType, contentType, "xml");
+            AddExtendedPart(container, relationshipType, contentType, "xml", bytes);
+        }
+
+        private static void AddExtendedPart(OpenXmlPartContainer container, string relationshipType, string contentType, string targetExt, byte[] bytes) {
+            ExtendedPart part = container.AddExtendedPart(relationshipType, contentType, targetExt);
             using var stream = new MemoryStream(bytes);
             part.FeedData(stream);
         }
