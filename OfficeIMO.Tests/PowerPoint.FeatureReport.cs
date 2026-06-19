@@ -112,6 +112,81 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PowerPointFeatureReport_DetectsUnsupportedBackgroundBlipImages() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "BackgroundImage.png");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    presentation.AddSlide().SetBackgroundImage(imagePath);
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, true)) {
+                    SlidePart slidePart = document.PresentationPart!.SlideParts.Single();
+                    A.BlipFill blipFill = slidePart.Slide.CommonSlideData!.Background!.BackgroundProperties!
+                        .GetFirstChild<A.BlipFill>()!;
+                    blipFill.RemoveAllChildren<A.Stretch>();
+                    blipFill.Append(new A.Tile());
+                    slidePart.Slide.Save();
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                    PowerPointFeatureReport report = presentation.InspectFeatures();
+                    PowerPointFeatureFinding images = Assert.Single(report.FindFeatures("Images"));
+
+                    Assert.Equal(1, images.Count);
+                    Assert.Throws<InvalidOperationException>(() => report.EnsureNoFeatures("Images"));
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void PowerPointFeatureReport_DetectsShapeFillImages() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            byte[] pixel = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    presentation.AddSlide().AddRectangle(0, 0, 914400, 914400);
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, true)) {
+                    SlidePart slidePart = document.PresentationPart!.SlideParts.Single();
+                    ImagePart imagePart = slidePart.AddImagePart(DocumentFormat.OpenXml.Packaging.ImagePartType.Png);
+                    using (var image = new MemoryStream(pixel)) {
+                        imagePart.FeedData(image);
+                    }
+
+                    string relationshipId = slidePart.GetIdOfPart(imagePart);
+                    Shape shape = slidePart.Slide.Descendants<Shape>().Single(shape => shape.ShapeProperties != null);
+                    shape.ShapeProperties!.Append(
+                        new A.BlipFill(
+                            new A.Blip { Embed = relationshipId },
+                            new A.Stretch(new A.FillRectangle())));
+                    slidePart.Slide.Save();
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                    PowerPointFeatureReport report = presentation.InspectFeatures();
+                    PowerPointFeatureFinding images = Assert.Single(report.FindFeatures("Images"));
+
+                    Assert.Equal(1, images.Count);
+                    Assert.Throws<InvalidOperationException>(() => report.EnsureNoFeatures("Images"));
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void PowerPointFeatureReport_DetectsGroupedTextBoxes() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
@@ -1078,6 +1153,48 @@ namespace OfficeIMO.Tests {
                     choice.Append(unsupportedTransition);
                     AlternateContent alternateContent = new();
                     alternateContent.Append(choice);
+                    slidePart.Slide.InsertAt(alternateContent, 0);
+                    slidePart.Slide.Save();
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                    PowerPointFeatureReport report = presentation.InspectFeatures();
+                    PowerPointFeatureFinding unsupported = Assert.Single(report.FindFeatures("Unsupported transition markup"));
+
+                    Assert.Equal(PowerPointFeatureSupportLevel.Preserved, unsupported.SupportLevel);
+                    Assert.Equal(1, unsupported.Count);
+                    Assert.Contains(unsupported.Details, detail => detail.Contains("doors", StringComparison.OrdinalIgnoreCase));
+                    Assert.Throws<InvalidOperationException>(() => report.EnsureNoAdvancedFeatures());
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void PowerPointFeatureReport_DetectsUnsupportedAlternateContentTransitionFallback() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    presentation.AddSlide().AddTextBox("Unsupported fallback transition");
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, true)) {
+                    SlidePart slidePart = document.PresentationPart!.SlideParts.Single();
+                    AlternateContentChoice choice = new() { Requires = "p14" };
+                    choice.Append(new Transition(new FadeTransition()));
+
+                    AlternateContentFallback fallback = new();
+                    fallback.Append(new Transition(
+                        new OpenXmlUnknownElement("p14", "doors", "http://schemas.microsoft.com/office/powerpoint/2010/main")));
+
+                    AlternateContent alternateContent = new();
+                    alternateContent.Append(choice);
+                    alternateContent.Append(fallback);
                     slidePart.Slide.InsertAt(alternateContent, 0);
                     slidePart.Slide.Save();
                 }

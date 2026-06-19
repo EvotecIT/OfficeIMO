@@ -513,7 +513,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static int CountSlideImages(PowerPointSlide slide) {
-            return CountSlidePictures(slide) + CountSlideBackgroundImages(slide);
+            return CountSlidePictures(slide) + CountSlideBackgroundImages(slide) + CountSlideShapeFillImages(slide);
         }
 
         private static int CountSlidePictures(PowerPointSlide slide) {
@@ -526,7 +526,30 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static int CountSlideBackgroundImages(PowerPointSlide slide) {
-            return slide.GetBackground().Kind == PowerPointSlideBackgroundKind.Image ? 1 : 0;
+            return EnumerateResolvedBackgroundProperties(slide)
+                .Any(properties => properties.GetFirstChild<A.BlipFill>()?.Blip != null)
+                ? 1
+                : 0;
+        }
+
+        private static IEnumerable<BackgroundProperties> EnumerateResolvedBackgroundProperties(PowerPointSlide slide) {
+            BackgroundProperties? slideProperties = slide.SlidePart.Slide?.CommonSlideData?.Background?.BackgroundProperties;
+            if (slideProperties != null) {
+                yield return slideProperties;
+                yield break;
+            }
+
+            SlideLayoutPart? layoutPart = slide.SlidePart.SlideLayoutPart;
+            BackgroundProperties? layoutProperties = layoutPart?.SlideLayout?.CommonSlideData?.Background?.BackgroundProperties;
+            if (layoutProperties != null) {
+                yield return layoutProperties;
+                yield break;
+            }
+
+            BackgroundProperties? masterProperties = layoutPart?.SlideMasterPart?.SlideMaster?.CommonSlideData?.Background?.BackgroundProperties;
+            if (masterProperties != null) {
+                yield return masterProperties;
+            }
         }
 
         private static int CountSlideMedia(PowerPointSlide slide) {
@@ -550,6 +573,20 @@ namespace OfficeIMO.PowerPoint {
         private static int CountPictureElements(OpenXmlElement element) {
             int count = element is Picture picture && !PowerPointMedia.TryGetMediaKind(picture, out _) ? 1 : 0;
             return count + element.Descendants<Picture>().Count(picture => !PowerPointMedia.TryGetMediaKind(picture, out _));
+        }
+
+        private static int CountSlideShapeFillImages(PowerPointSlide slide) {
+            int slideFillImages = CountShapeFillImageElements(slide.SlidePart.Slide);
+            return slideFillImages + slide.GetInheritedShapesForExport().Sum(shape => CountShapeFillImageElements(shape.Element));
+        }
+
+        private static int CountShapeFillImageElements(OpenXmlElement? element) {
+            if (element == null) {
+                return 0;
+            }
+
+            return element.Descendants<A.BlipFill>()
+                .Count(blipFill => blipFill.Blip != null && !blipFill.Ancestors<BackgroundProperties>().Any());
         }
 
         private static int CountMediaElements(OpenXmlElement element) {
@@ -578,26 +615,47 @@ namespace OfficeIMO.PowerPoint {
 
         private List<string> DescribeUnsupportedTransitionMarkup() {
             return Slides
-                .Select((slide, index) => new {
-                    Index = index + 1,
-                    Transition = slide.GetTransitionElement(),
-                    MappedTransition = slide.Transition
-                })
-                .Where(item => item.Transition != null && HasUnsupportedTransitionMarkup(item.Transition, item.MappedTransition))
-                .Select(item => $"slide {item.Index}: unsupported transition markup {item.Transition!.OuterXml}")
+                .SelectMany((slide, index) => EnumerateSlideTransitions(slide)
+                    .Where(HasUnsupportedTransitionMarkup)
+                    .Select(transition => $"slide {index + 1}: unsupported transition markup {transition.OuterXml}"))
                 .ToList();
         }
 
-        private static bool HasUnsupportedTransitionMarkup(Transition? transition, SlideTransition mappedTransition) {
+        private static IEnumerable<Transition> EnumerateSlideTransitions(PowerPointSlide slide) {
+            Slide? root = slide.SlidePart.Slide;
+            if (root?.Transition != null) {
+                yield return root.Transition;
+            }
+
+            if (root == null) {
+                yield break;
+            }
+
+            foreach (AlternateContent alternateContent in root.Elements<AlternateContent>()) {
+                foreach (AlternateContentChoice choice in alternateContent.Elements<AlternateContentChoice>()) {
+                    foreach (Transition transition in choice.Elements<Transition>()) {
+                        yield return transition;
+                    }
+                }
+
+                AlternateContentFallback? fallback = alternateContent.GetFirstChild<AlternateContentFallback>();
+                if (fallback == null) {
+                    continue;
+                }
+
+                foreach (Transition transition in fallback.Elements<Transition>()) {
+                    yield return transition;
+                }
+            }
+        }
+
+        private static bool HasUnsupportedTransitionMarkup(Transition? transition) {
             if (transition == null) {
                 return false;
             }
 
-            if (mappedTransition == SlideTransition.None) {
-                return true;
-            }
-
-            return transition.ChildElements.Any(element => !IsMappedTransitionEffectElement(element))
+            return !transition.ChildElements.Any(IsMappedTransitionEffectElement)
+                || transition.ChildElements.Any(element => !IsMappedTransitionEffectElement(element))
                 || transition.GetAttributes().Any(IsUnsupportedTransitionAttribute);
         }
 
