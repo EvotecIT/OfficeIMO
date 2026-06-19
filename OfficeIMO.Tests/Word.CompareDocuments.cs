@@ -396,6 +396,85 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, image.TargetIndex);
         }
 
+        [Fact]
+        public void CompareStructureTreatsFormattedRunsAsOneLogicalParagraph() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_formatted_runs.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                doc.AddParagraph("Project Alpha approved.");
+                doc.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_formatted_runs.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                WordParagraph paragraph = doc.AddParagraph("Project ");
+                paragraph.AddText("Alpha").Bold = true;
+                paragraph.AddText(" approved.");
+                doc.Save(false);
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Empty(result.Findings);
+        }
+
+        [Fact]
+        public void CompareStructureAlignsTableCellsAroundInsertedCells() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_cell_alignment.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                WordTable table = doc.AddTable(1, 3);
+                table.Rows[0].Cells[0].Paragraphs[0].SetText("Control");
+                table.Rows[0].Cells[1].Paragraphs[0].SetText("Owner");
+                table.Rows[0].Cells[2].Paragraphs[0].SetText("Status");
+                doc.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_cell_alignment.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                WordTable table = doc.AddTable(1, 4);
+                table.Rows[0].Cells[0].Paragraphs[0].SetText("Control");
+                table.Rows[0].Cells[1].Paragraphs[0].SetText("Evidence");
+                table.Rows[0].Cells[2].Paragraphs[0].SetText("Owner");
+                table.Rows[0].Cells[3].Paragraphs[0].SetText("Status");
+                doc.Save(false);
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            WordComparisonFinding cell = Assert.Single(result.Findings);
+            Assert.Equal(WordComparisonScope.TableCell, cell.Scope);
+            Assert.Equal(WordComparisonChangeKind.Inserted, cell.ChangeKind);
+            Assert.Equal("table[0]/row[0]/cell[1]", cell.Location);
+            Assert.Equal("Evidence", cell.TargetText);
+        }
+
+        [Fact]
+        public void CompareStructureFindsNestedTableCellChanges() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_nested_table.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                WordTable table = doc.AddTable(1, 1);
+                WordTable nested = table.Rows[0].Cells[0].AddTable(1, 1);
+                nested.Rows[0].Cells[0].Paragraphs[0].SetText("Evidence pending");
+                doc.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_nested_table.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                WordTable table = doc.AddTable(1, 1);
+                WordTable nested = table.Rows[0].Cells[0].AddTable(1, 1);
+                nested.Rows[0].Cells[0].Paragraphs[0].SetText("Evidence approved");
+                doc.Save(false);
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            WordComparisonFinding cell = Assert.Single(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.TableCell &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified &&
+                finding.SourceText == "Evidence pending" &&
+                finding.TargetText == "Evidence approved");
+            Assert.Equal("table[1]/row[0]/cell[0]", cell.Location);
+        }
+
         private static void AssertNoTempArtifact(WordDocument document) {
             Assert.Equal(string.Empty, document.FilePath);
         }

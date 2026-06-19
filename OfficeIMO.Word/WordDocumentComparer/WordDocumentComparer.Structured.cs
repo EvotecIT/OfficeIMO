@@ -23,8 +23,8 @@ namespace OfficeIMO.Word {
         }
 
         private static void AnalyzeParagraphs(WordDocument source, WordDocument target, WordComparisonResult result) {
-            List<WordParagraph> sourceParagraphs = source.Paragraphs.Where(paragraph => !IsInsideTable(paragraph) && !string.IsNullOrEmpty(paragraph.Text)).ToList();
-            List<WordParagraph> targetParagraphs = target.Paragraphs.Where(paragraph => !IsInsideTable(paragraph) && !string.IsNullOrEmpty(paragraph.Text)).ToList();
+            List<ParagraphSnapshot> sourceParagraphs = GetLogicalBodyParagraphs(source);
+            List<ParagraphSnapshot> targetParagraphs = GetLogicalBodyParagraphs(target);
             IReadOnlyList<MatchedIndexPair> matchedParagraphs = FindMatchingIndexes(
                 sourceParagraphs.Select(paragraph => paragraph.Text).ToList(),
                 targetParagraphs.Select(paragraph => paragraph.Text).ToList(),
@@ -43,13 +43,15 @@ namespace OfficeIMO.Word {
         }
 
         private static void AnalyzeTables(WordDocument source, WordDocument target, WordComparisonResult result) {
-            int tableCount = Math.Min(source.Tables.Count, target.Tables.Count);
+            List<WordTable> sourceTables = source.TablesIncludingNestedTables;
+            List<WordTable> targetTables = target.TablesIncludingNestedTables;
+            int tableCount = Math.Min(sourceTables.Count, targetTables.Count);
 
             for (int tableIndex = 0; tableIndex < tableCount; tableIndex++) {
-                AnalyzeTable(source.Tables[tableIndex], target.Tables[tableIndex], tableIndex, result);
+                AnalyzeTable(sourceTables[tableIndex], targetTables[tableIndex], tableIndex, result);
             }
 
-            for (int tableIndex = tableCount; tableIndex < target.Tables.Count; tableIndex++) {
+            for (int tableIndex = tableCount; tableIndex < targetTables.Count; tableIndex++) {
                 result.Add(new WordComparisonFinding(
                     WordComparisonScope.Table,
                     WordComparisonChangeKind.Inserted,
@@ -57,18 +59,18 @@ namespace OfficeIMO.Word {
                     null,
                     tableIndex,
                     null,
-                    GetTableText(target.Tables[tableIndex]),
+                    GetTableText(targetTables[tableIndex]),
                     "Table inserted."));
             }
 
-            for (int tableIndex = tableCount; tableIndex < source.Tables.Count; tableIndex++) {
+            for (int tableIndex = tableCount; tableIndex < sourceTables.Count; tableIndex++) {
                 result.Add(new WordComparisonFinding(
                     WordComparisonScope.Table,
                     WordComparisonChangeKind.Deleted,
                     TableLocation(tableIndex),
                     tableIndex,
                     null,
-                    GetTableText(source.Tables[tableIndex]),
+                    GetTableText(sourceTables[tableIndex]),
                     null,
                     "Table deleted."));
             }
@@ -95,8 +97,8 @@ namespace OfficeIMO.Word {
         }
 
         private static void AddParagraphRangeFindings(
-            IReadOnlyList<WordParagraph> sourceParagraphs,
-            IReadOnlyList<WordParagraph> targetParagraphs,
+            IReadOnlyList<ParagraphSnapshot> sourceParagraphs,
+            IReadOnlyList<ParagraphSnapshot> targetParagraphs,
             int sourceStart,
             int sourceEnd,
             int targetStart,
@@ -199,26 +201,61 @@ namespace OfficeIMO.Word {
         }
 
         private static void AnalyzeTableRow(WordTableRow source, WordTableRow target, int tableIndex, int sourceRowIndex, int targetRowIndex, WordComparisonResult result) {
-            int cellCount = Math.Min(source.CellsCount, target.CellsCount);
+            List<WordTableCell> sourceCells = source.Cells.ToList();
+            List<WordTableCell> targetCells = target.Cells.ToList();
+            IReadOnlyList<MatchedIndexPair> matchedCells = FindMatchingIndexes(
+                sourceCells.Select(GetCellText).ToList(),
+                targetCells.Select(GetCellText).ToList(),
+                StringComparer.Ordinal);
 
-            for (int cellIndex = 0; cellIndex < cellCount; cellIndex++) {
-                string sourceText = GetCellText(source.Cells[cellIndex]);
-                string targetText = GetCellText(target.Cells[cellIndex]);
+            int sourceStart = 0;
+            int targetStart = 0;
+
+            foreach (MatchedIndexPair match in matchedCells) {
+                AddTableCellRangeFindings(sourceCells, targetCells, tableIndex, sourceRowIndex, targetRowIndex, sourceStart, match.SourceIndex, targetStart, match.TargetIndex, result);
+                sourceStart = match.SourceIndex + 1;
+                targetStart = match.TargetIndex + 1;
+            }
+
+            AddTableCellRangeFindings(sourceCells, targetCells, tableIndex, sourceRowIndex, targetRowIndex, sourceStart, sourceCells.Count, targetStart, targetCells.Count, result);
+        }
+
+        private static void AddTableCellRangeFindings(
+            IReadOnlyList<WordTableCell> sourceCells,
+            IReadOnlyList<WordTableCell> targetCells,
+            int tableIndex,
+            int sourceRowIndex,
+            int targetRowIndex,
+            int sourceStart,
+            int sourceEnd,
+            int targetStart,
+            int targetEnd,
+            WordComparisonResult result) {
+            int sourceCount = sourceEnd - sourceStart;
+            int targetCount = targetEnd - targetStart;
+            int pairedCount = Math.Min(sourceCount, targetCount);
+
+            for (int offset = 0; offset < pairedCount; offset++) {
+                int sourceIndex = sourceStart + offset;
+                int targetIndex = targetStart + offset;
+                string sourceText = GetCellText(sourceCells[sourceIndex]);
+                string targetText = GetCellText(targetCells[targetIndex]);
 
                 if (!string.Equals(sourceText, targetText, StringComparison.Ordinal)) {
                     result.Add(new WordComparisonFinding(
                         WordComparisonScope.TableCell,
                         WordComparisonChangeKind.Modified,
-                        CellLocation(tableIndex, targetRowIndex, cellIndex),
-                        cellIndex,
-                        cellIndex,
+                        CellLocation(tableIndex, targetRowIndex, targetIndex),
+                        sourceIndex,
+                        targetIndex,
                         sourceText,
                         targetText,
                         "Table cell text changed."));
                 }
             }
 
-            for (int cellIndex = cellCount; cellIndex < target.CellsCount; cellIndex++) {
+            for (int offset = pairedCount; offset < targetCount; offset++) {
+                int cellIndex = targetStart + offset;
                 result.Add(new WordComparisonFinding(
                     WordComparisonScope.TableCell,
                     WordComparisonChangeKind.Inserted,
@@ -226,18 +263,19 @@ namespace OfficeIMO.Word {
                     null,
                     cellIndex,
                     null,
-                    GetCellText(target.Cells[cellIndex]),
+                    GetCellText(targetCells[cellIndex]),
                     "Table cell inserted."));
             }
 
-            for (int cellIndex = cellCount; cellIndex < source.CellsCount; cellIndex++) {
+            for (int offset = pairedCount; offset < sourceCount; offset++) {
+                int cellIndex = sourceStart + offset;
                 result.Add(new WordComparisonFinding(
                     WordComparisonScope.TableCell,
                     WordComparisonChangeKind.Deleted,
                     CellLocation(tableIndex, sourceRowIndex, cellIndex),
                     cellIndex,
                     null,
-                    GetCellText(source.Cells[cellIndex]),
+                    GetCellText(sourceCells[cellIndex]),
                     null,
                     "Table cell deleted."));
             }
@@ -339,8 +377,29 @@ namespace OfficeIMO.Word {
             return matches;
         }
 
-        private static bool IsInsideTable(WordParagraph paragraph) {
-            return paragraph._paragraph.Ancestors<TableCell>().Any();
+        private static List<ParagraphSnapshot> GetLogicalBodyParagraphs(WordDocument document) {
+            var snapshots = new List<ParagraphSnapshot>();
+            IEnumerable<Paragraph> paragraphs = document._wordprocessingDocument.MainDocumentPart?.Document?.Body?.Descendants<Paragraph>()
+                ?? Enumerable.Empty<Paragraph>();
+
+            foreach (Paragraph paragraph in paragraphs) {
+                if (paragraph.Ancestors<TableCell>().Any()) {
+                    continue;
+                }
+
+                string text = GetParagraphText(paragraph);
+                if (string.IsNullOrEmpty(text)) {
+                    continue;
+                }
+
+                snapshots.Add(new ParagraphSnapshot(text));
+            }
+
+            return snapshots;
+        }
+
+        private static string GetParagraphText(Paragraph paragraph) {
+            return string.Concat(paragraph.Descendants<Text>().Select(text => text.Text));
         }
 
         private static string GetTableText(WordTable table) {
@@ -384,6 +443,14 @@ namespace OfficeIMO.Word {
             internal int SourceIndex { get; }
 
             internal int TargetIndex { get; }
+        }
+
+        private sealed class ParagraphSnapshot {
+            internal ParagraphSnapshot(string text) {
+                Text = text;
+            }
+
+            internal string Text { get; }
         }
 
         private sealed class ByteArrayEqualityComparer : IEqualityComparer<byte[]> {
