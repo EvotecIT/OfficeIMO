@@ -342,6 +342,76 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Renders_Table_Style_Column_And_Banding_Conditional_Borders() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleColumnBandBorders.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleColumnBandBorders.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            const string styleId = "NativeColumnBandBorderTable";
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(new Style(
+                new StyleName { Val = "Native Column Band Border Table" },
+                new TableStyleProperties(
+                    new TableStyleConditionalFormattingTableCellProperties(
+                        new TableCellBorders(
+                            new RightBorder { Val = BorderValues.Single, Color = "112233", Size = 8U })))
+                { Type = TableStyleOverrideValues.FirstColumn },
+                new TableStyleProperties(
+                    new TableStyleConditionalFormattingTableCellProperties(
+                        new TableCellBorders(
+                            new LeftBorder { Val = BorderValues.Double, Color = "445566", Size = 12U })))
+                { Type = TableStyleOverrideValues.LastColumn },
+                new TableStyleProperties(
+                    new TableStyleConditionalFormattingTableCellProperties(
+                        new TableCellBorders(
+                            new TopBorder { Val = BorderValues.Single, Color = "AA0000", Size = 8U },
+                            new BottomBorder { Val = BorderValues.Single, Color = "AA0000", Size = 8U })))
+                { Type = TableStyleOverrideValues.Band1Horizontal },
+                new TableStyleProperties(
+                    new TableStyleConditionalFormattingTableCellProperties(
+                        new TableCellBorders(
+                            new LeftBorder { Val = BorderValues.Single, Color = "004488", Size = 12U },
+                            new RightBorder { Val = BorderValues.Single, Color = "004488", Size = 12U })))
+                { Type = TableStyleOverrideValues.Band1Vertical })
+            { Type = StyleValues.Table, StyleId = styleId });
+
+            WordTable table = document.AddTable(4, 4);
+            table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
+            table.ConditionalFormattingFirstColumn = true;
+            table.ConditionalFormattingLastColumn = true;
+            table.ConditionalFormattingNoHorizontalBand = false;
+            table.ConditionalFormattingNoVerticalBand = false;
+            for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
+                for (int columnIndex = 0; columnIndex < table.Rows[rowIndex].Cells.Count; columnIndex++) {
+                    table.Rows[rowIndex].Cells[columnIndex].Paragraphs[0].Text =
+                        "BorderCell" +
+                        rowIndex.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                        columnIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                }
+            }
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = new PdfCore.PageSize(440, 260),
+                Margins = PdfCore.PageMargins.Uniform(30)
+            });
+        }
+
+        byte[] bytes = File.ReadAllBytes(pdfPath);
+        using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
+        string text = string.Concat(pdf.GetPages().Select(page => page.Text));
+        Assert.Contains("BorderCell00", text);
+        Assert.Contains("BorderCell33", text);
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("0.067 0.133 0.2 RG", raw);
+        Assert.Contains("0.267 0.333 0.4 RG", raw);
+        Assert.Contains("0.667 0 0 RG", raw);
+        Assert.Contains("0 0.267 0.533 RG", raw);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Renders_Table_Style_First_And_Last_Column_Conditional_Fills() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleColumnConditional.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleColumnConditional.pdf");

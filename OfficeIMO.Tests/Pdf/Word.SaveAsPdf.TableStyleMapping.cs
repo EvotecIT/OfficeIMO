@@ -307,6 +307,43 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Maps_Table_Style_First_And_Last_Column_Conditional_Borders() {
+        using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeTableStyleColumnConditionalBorders.docx"));
+        Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+        styles.Append(new Style(
+            new StyleName { Val = "Generic Column Border Table" },
+            new TableStyleProperties(
+                new TableStyleConditionalFormattingTableCellProperties(
+                    new TableCellBorders(
+                        new RightBorder { Val = BorderValues.Single, Color = "112233", Size = 8U })))
+            { Type = TableStyleOverrideValues.FirstColumn },
+            new TableStyleProperties(
+                new TableStyleConditionalFormattingTableCellProperties(
+                    new TableCellBorders(
+                        new LeftBorder { Val = BorderValues.Double, Color = "445566", Size = 12U })))
+            { Type = TableStyleOverrideValues.LastColumn })
+        { Type = StyleValues.Table, StyleId = "GenericColumnBorderTable" });
+
+        WordTable table = document.AddTable(2, 3);
+        table._tableProperties!.TableStyle = new TableStyle { Val = "GenericColumnBorderTable" };
+        table.ConditionalFormattingFirstColumn = true;
+        table.ConditionalFormattingLastColumn = true;
+
+        PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table);
+
+        Assert.NotNull(style.CellBorders);
+        Assert.True(style.CellBorders![(0, 0)].Right);
+        Assert.True(style.CellBorders![(1, 0)].Right);
+        Assert.Equal(PdfCore.PdfColor.FromRgb(17, 34, 51), style.CellBorders![(0, 0)].RightBorder!.Color);
+        Assert.Equal(1D, style.CellBorders![(0, 0)].RightBorder!.Width);
+        Assert.True(style.CellBorders![(0, 2)].Left);
+        Assert.True(style.CellBorders![(1, 2)].Left);
+        Assert.Equal(PdfCore.PdfColor.FromRgb(68, 85, 102), style.CellBorders![(0, 2)].LeftBorder!.Color);
+        Assert.Equal(1.5D, style.CellBorders![(0, 2)].LeftBorder!.Width);
+        Assert.False(style.CellBorders!.ContainsKey((0, 1)));
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Maps_Table_Style_Horizontal_Banding_Fill() {
         using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeTableStyleHorizontalBanding.docx"));
         Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
@@ -360,6 +397,52 @@ public partial class Word {
         PdfCore.PdfTableStyle disabledStyle = CreateNativeTableStyleForTest(table);
 
         Assert.Null(disabledStyle.BodyColumnFills);
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Maps_Table_Style_Banding_Conditional_Borders() {
+        using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeTableStyleBandingConditionalBorders.docx"));
+        Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+        styles.Append(new Style(
+            new StyleName { Val = "Generic Band Border Table" },
+            new TableStyleProperties(
+                new TableStyleConditionalFormattingTableCellProperties(
+                    new TableCellBorders(
+                        new TopBorder { Val = BorderValues.Single, Color = "AA0000", Size = 8U },
+                        new BottomBorder { Val = BorderValues.Single, Color = "AA0000", Size = 8U })))
+            { Type = TableStyleOverrideValues.Band1Horizontal },
+            new TableStyleProperties(
+                new TableStyleConditionalFormattingTableCellProperties(
+                    new TableCellBorders(
+                        new LeftBorder { Val = BorderValues.Single, Color = "004488", Size = 12U },
+                        new RightBorder { Val = BorderValues.Single, Color = "004488", Size = 12U })))
+            { Type = TableStyleOverrideValues.Band1Vertical })
+        { Type = StyleValues.Table, StyleId = "GenericBandBorderTable" });
+
+        WordTable table = document.AddTable(4, 4);
+        table._tableProperties!.TableStyle = new TableStyle { Val = "GenericBandBorderTable" };
+        table.ConditionalFormattingNoHorizontalBand = false;
+        table.ConditionalFormattingNoVerticalBand = false;
+
+        PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table);
+
+        Assert.NotNull(style.CellBorders);
+        Assert.True(style.CellBorders![(2, 0)].Top);
+        Assert.True(style.CellBorders![(2, 0)].Bottom);
+        Assert.Equal(PdfCore.PdfColor.FromRgb(170, 0, 0), style.CellBorders![(2, 0)].TopBorder!.Color);
+        Assert.Equal(PdfCore.PdfColor.FromRgb(170, 0, 0), style.CellBorders![(2, 2)].BottomBorder!.Color);
+        Assert.True(style.CellBorders![(1, 1)].Left);
+        Assert.True(style.CellBorders![(1, 1)].Right);
+        Assert.Equal(PdfCore.PdfColor.FromRgb(0, 68, 136), style.CellBorders![(1, 1)].LeftBorder!.Color);
+        Assert.Equal(1.5D, style.CellBorders![(1, 1)].LeftBorder!.Width);
+        Assert.False(style.CellBorders!.ContainsKey((0, 0)));
+        Assert.False(style.CellBorders!.ContainsKey((1, 0)));
+
+        table.ConditionalFormattingNoHorizontalBand = true;
+        table.ConditionalFormattingNoVerticalBand = true;
+        PdfCore.PdfTableStyle disabledStyle = CreateNativeTableStyleForTest(table);
+
+        Assert.Null(disabledStyle.CellBorders);
     }
 
     [Fact]
