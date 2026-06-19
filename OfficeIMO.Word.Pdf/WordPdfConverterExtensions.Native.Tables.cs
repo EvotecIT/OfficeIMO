@@ -108,6 +108,7 @@ namespace OfficeIMO.Word.Pdf {
                     logicalColumnIndex += columnSpan;
                 }
 
+                AddNativeTableGridAfterPlaceholders(nativeCells, GetNativeTableRowTrailingColumnCount(layout, rowIndex));
                 rows.Add(nativeCells.ToArray());
             }
 
@@ -828,6 +829,9 @@ namespace OfficeIMO.Word.Pdf {
                 cells.Add(PdfCore.PdfTableCell.TextCell(string.Empty));
             }
         }
+
+        private static void AddNativeTableGridAfterPlaceholders(List<PdfCore.PdfTableCell> cells, int count) =>
+            AddNativeTableGridBeforePlaceholders(cells, count);
 
         private static PdfCore.PdfCellBorder? CreateNativeTableBorderCell(W.TableBorders borders, int rowIndex, int rowCount, int columnIndex, int columnCount, int columnSpan, int rowSpan) {
             W.BorderType? top = rowIndex == 0 ? borders.TopBorder : borders.InsideHorizontalBorder;

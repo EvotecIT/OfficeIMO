@@ -81,7 +81,7 @@ namespace OfficeIMO.Word.Pdf {
                 }
             }
 
-            TableLayout layout = new(rows, widths, rowStartColumns);
+            TableLayout layout = new(rows, widths, rowStartColumns, rowTrailingColumns);
             _cache.Add(table, layout);
             return layout;
         }

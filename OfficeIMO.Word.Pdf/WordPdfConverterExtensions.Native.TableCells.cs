@@ -101,6 +101,9 @@ namespace OfficeIMO.Word.Pdf {
         private static int GetNativeTableRowStartColumn(TableLayout layout, int rowIndex) =>
             Math.Max(0, layout.GetRowStartColumn(rowIndex));
 
+        private static int GetNativeTableRowTrailingColumnCount(TableLayout layout, int rowIndex) =>
+            Math.Max(0, layout.GetRowTrailingColumnCount(rowIndex));
+
         private static bool IsNativeHorizontalMergeContinuation(WordTableCell cell) =>
             cell.HorizontalMerge == W.MergedCellValues.Continue;
 

@@ -456,6 +456,46 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Honors_Table_Row_GridAfter_Offsets() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableRowGridAfter.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableRowGridAfter.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            WordTable table = document.AddTable(1, 3);
+            table.Width = 4320;
+            table.WidthType = TableWidthUnitValues.Dxa;
+            table.LayoutType = TableLayoutValues.Fixed;
+            table.GridColumnWidth = new List<int> { 1440, 1440, 1440 };
+            foreach (WordTableCell cell in table.Rows[0].Cells) {
+                cell.Width = 1440;
+                cell.WidthType = TableWidthUnitValues.Dxa;
+            }
+
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "GALeft";
+            table.Rows[0].Cells[1].Paragraphs[0].Text = "GAMid";
+            table.Rows[0].Cells[2].Remove();
+            table.Rows[0]._tableRow.TableRowProperties ??= new TableRowProperties();
+            table.Rows[0]._tableRow.TableRowProperties.Append(new GridAfter { Val = 1 });
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = new PdfCore.PageSize(420, 220),
+                Margins = PdfCore.PageMargins.Uniform(40),
+                FontFamily = "Helvetica"
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        var words = pdf.GetPage(1).GetWords().ToList();
+        var left = Assert.Single(words, word => word.Text == "GALeft");
+        var middle = Assert.Single(words, word => word.Text == "GAMid");
+
+        double gap = middle.BoundingBox.Left - left.BoundingBox.Left;
+        Assert.InRange(gap, 55D, 95D);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Uses_Autofit_For_Percentage_Width_Word_Table() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeAutofitPercentageTable.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeAutofitPercentageTable.pdf");
