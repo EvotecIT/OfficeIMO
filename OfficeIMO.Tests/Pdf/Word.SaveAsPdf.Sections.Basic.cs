@@ -90,6 +90,40 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Maps_HeaderFooter_Explicit_Font_Families_To_Page_Text_Fonts() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterFonts.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterFonts.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.AddHeadersAndFooters();
+            WordParagraph header = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph("QSerifHeader");
+            header.SetFontFamily("Georgia");
+            WordParagraph footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph("XMonoFooter");
+            footer.SetFontFamily("Courier New");
+            document.AddParagraph("Plain body text");
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false
+            });
+        }
+
+        Assert.True(File.Exists(pdfPath));
+        using (PdfPigDocument pdf = PdfPigDocument.Open(pdfPath)) {
+            var page = pdf.GetPage(1);
+            var headerLetter = page.Letters.Single(letter => letter.Value == "Q");
+            var footerLetter = page.Letters.Single(letter => letter.Value == "X");
+
+            Assert.Contains("Times", headerLetter.FontName, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("Courier", footerLetter.FontName, StringComparison.OrdinalIgnoreCase);
+        }
+
+        string pdfContent = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        Assert.Contains("/BaseFont /Times", pdfContent, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("/BaseFont /Courier", pdfContent, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Maps_HeaderFooter_Paragraph_Alignment_To_Zones() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeAlignedHeaderFooter.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeAlignedHeaderFooter.pdf");

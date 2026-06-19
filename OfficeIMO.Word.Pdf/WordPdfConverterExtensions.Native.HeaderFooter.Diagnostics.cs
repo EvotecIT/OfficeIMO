@@ -74,6 +74,14 @@ namespace OfficeIMO.Word.Pdf {
             IReadOnlyList<NativeHeaderFooterShape> defaultFooterShapes = GetNativeHeaderFooterShapes(section.Footer?.Default);
             IReadOnlyList<NativeHeaderFooterShape> firstFooterShapes = section.DifferentFirstPage ? GetNativeHeaderFooterShapes(section.Footer?.First) : Array.Empty<NativeHeaderFooterShape>();
             IReadOnlyList<NativeHeaderFooterShape> evenFooterShapes = section.DifferentOddAndEvenPages ? GetNativeHeaderFooterShapes(section.Footer?.Even) : Array.Empty<NativeHeaderFooterShape>();
+            PdfCore.PdfStandardFont? headerFont = ResolveNativeHeaderFooterFont(
+                section.Header?.Default,
+                section.DifferentFirstPage ? section.Header?.First : null,
+                section.DifferentOddAndEvenPages ? section.Header?.Even : null);
+            PdfCore.PdfStandardFont? footerFont = ResolveNativeHeaderFooterFont(
+                section.Footer?.Default,
+                section.DifferentFirstPage ? section.Footer?.First : null,
+                section.DifferentOddAndEvenPages ? section.Footer?.Even : null);
             ApplyNativeHeaderFooterPageNumberStyle(page, defaultHeader, firstHeader, evenHeader, defaultFooter, firstFooter, evenFooter);
             bool hasFirstHeaderVariant = section.DifferentFirstPage;
             bool hasEvenHeaderVariant = section.DifferentOddAndEvenPages;
@@ -85,6 +93,10 @@ namespace OfficeIMO.Word.Pdf {
                 page.Header(header => {
                     if (headerMarginExpansion > 0D) {
                         header.Offset(GetNativeHeaderOffset(options, headerMarginExpansion));
+                    }
+
+                    if (headerFont.HasValue) {
+                        header.Font(headerFont.Value);
                     }
 
                     if (defaultHeader != null) {
@@ -124,6 +136,9 @@ namespace OfficeIMO.Word.Pdf {
             string pageNumberFormat = GetNativePageNumberFormat(options);
             page.Footer(footer => {
                 footer.Offset(GetNativeFooterOffset(options));
+                if (footerFont.HasValue) {
+                    footer.Font(footerFont.Value);
+                }
 
                 NativeHeaderFooterText? resolvedDefaultFooter = WithNativeFooterPageNumber(defaultFooter, includePageNumbers, pageNumberFormat);
                 if (resolvedDefaultFooter != null) {

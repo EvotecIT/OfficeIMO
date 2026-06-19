@@ -68,6 +68,97 @@ namespace OfficeIMO.Word.Pdf {
             return parts.HasContent ? parts : null;
         }
 
+        private static PdfCore.PdfStandardFont? ResolveNativeHeaderFooterFont(params WordHeaderFooter?[] headerFooters) {
+            PdfCore.PdfStandardFont? resolvedFont = null;
+            foreach (WordHeaderFooter? headerFooter in headerFooters) {
+                foreach (string familyName in EnumerateNativeHeaderFooterFontFamilies(headerFooter)) {
+                    if (!PdfCore.PdfStandardFontMapper.TryMapFontFamily(familyName, out PdfCore.PdfStandardFont mappedFont)) {
+                        continue;
+                    }
+
+                    PdfCore.PdfStandardFont fontFamily = PdfCore.PdfStandardFontMapper.GetFontFamily(mappedFont);
+                    if (resolvedFont.HasValue && resolvedFont.Value != fontFamily) {
+                        return null;
+                    }
+
+                    resolvedFont = fontFamily;
+                }
+            }
+
+            return resolvedFont;
+        }
+
+        private static IEnumerable<string> EnumerateNativeHeaderFooterFontFamilies(WordHeaderFooter? headerFooter) {
+            if (headerFooter == null) {
+                yield break;
+            }
+
+            foreach (WordElement element in CollapseNativeParagraphElements(headerFooter.Elements)) {
+                foreach (string familyName in EnumerateNativeHeaderFooterElementFontFamilies(element)) {
+                    yield return familyName;
+                }
+            }
+        }
+
+        private static IEnumerable<string> EnumerateNativeHeaderFooterElementFontFamilies(WordElement element) {
+            if (element is WordParagraph paragraph) {
+                foreach (string familyName in EnumerateNativeParagraphFontFamilies(paragraph)) {
+                    yield return familyName;
+                }
+
+                yield break;
+            }
+
+            if (element is not WordTable table) {
+                yield break;
+            }
+
+            foreach (WordTableRow row in table.Rows) {
+                foreach (WordTableCell cell in row.Cells) {
+                    foreach (WordParagraph cellParagraph in cell.Paragraphs) {
+                        foreach (string familyName in EnumerateNativeParagraphFontFamilies(cellParagraph)) {
+                            yield return familyName;
+                        }
+                    }
+
+                    foreach (WordTable nestedTable in cell.NestedTables) {
+                        foreach (string familyName in EnumerateNativeHeaderFooterElementFontFamilies(nestedTable)) {
+                            yield return familyName;
+                        }
+                    }
+                }
+            }
+        }
+
+        private static IEnumerable<string> EnumerateNativeParagraphFontFamilies(WordParagraph paragraph) {
+            foreach (string familyName in EnumerateNativeParagraphOwnFontFamilies(paragraph)) {
+                yield return familyName;
+            }
+
+            foreach (WordParagraph run in GetNativeRuns(paragraph)) {
+                if (run.IsImage || string.IsNullOrWhiteSpace(run.Text)) {
+                    continue;
+                }
+
+                foreach (string familyName in EnumerateNativeParagraphOwnFontFamilies(run)) {
+                    yield return familyName;
+                }
+            }
+        }
+
+        private static IEnumerable<string> EnumerateNativeParagraphOwnFontFamilies(WordParagraph paragraph) {
+            foreach (string? familyName in new[] {
+                paragraph.FontFamily,
+                paragraph.FontFamilyHighAnsi,
+                paragraph.FontFamilyEastAsia,
+                paragraph.FontFamilyComplexScript
+            }) {
+                if (!string.IsNullOrWhiteSpace(familyName)) {
+                    yield return familyName!;
+                }
+            }
+        }
+
         private static IReadOnlyList<NativeHeaderFooterImage> GetNativeHeaderFooterImages(WordHeaderFooter? headerFooter, PdfSaveOptions? options, string source) {
             if (headerFooter == null) {
                 return Array.Empty<NativeHeaderFooterImage>();
