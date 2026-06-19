@@ -45,6 +45,7 @@ internal static class RtfToMarkdownConverter {
             }
         }
 
+        ReportOmittedHeaderFooters(document, markdown, options);
         return markdown;
     }
 
@@ -186,7 +187,11 @@ internal static class RtfToMarkdownConverter {
             return false;
         }
 
-        int consume = text.Length > 3 && char.IsWhiteSpace(text[3]) ? 4 : 3;
+        if (text.Length <= 3 || !char.IsWhiteSpace(text[3])) {
+            return false;
+        }
+
+        int consume = 4;
         content = CreateInlineSequence();
         string remaining = text.Substring(consume);
         if (remaining.Length > 0) {
@@ -533,7 +538,7 @@ internal static class RtfToMarkdownConverter {
 
     private static ImageBlock ConvertImageBlock(RtfImage image, RtfToMarkdownOptions options, ref int imageIndex) {
         int currentIndex = imageIndex++;
-        string path = options.ImagePathFactory?.Invoke(image, currentIndex) ?? BuildDefaultImagePath(image, currentIndex);
+        string path = FormatMarkdownLinkDestination(options.ImagePathFactory?.Invoke(image, currentIndex) ?? BuildDefaultImagePath(image, currentIndex));
         string alt = string.IsNullOrWhiteSpace(image.Description) ? "RTF image" : image.Description!;
         options.Report("RTFMD003", RtfMarkdownDiagnosticSeverity.Info, "RTF image payload represented by Markdown image reference.", path);
         return new ImageBlock(path, alt, null);
@@ -746,7 +751,7 @@ internal static class RtfToMarkdownConverter {
 
     private static void AppendImageInline(InlineSequence sequence, RtfImage image, RtfToMarkdownOptions options, ref int imageIndex) {
         int currentIndex = imageIndex++;
-        string path = options.ImagePathFactory?.Invoke(image, currentIndex) ?? BuildDefaultImagePath(image, currentIndex);
+        string path = FormatMarkdownLinkDestination(options.ImagePathFactory?.Invoke(image, currentIndex) ?? BuildDefaultImagePath(image, currentIndex));
         string alt = string.IsNullOrWhiteSpace(image.Description) ? "RTF image" : image.Description!;
         sequence.AddRaw(new ImageInline(alt, path));
         options.Report("RTFMD009", RtfMarkdownDiagnosticSeverity.Info, "Inline RTF image represented by Markdown image reference.", path);
@@ -762,7 +767,19 @@ internal static class RtfToMarkdownConverter {
     private static void AppendUnsupportedInline(InlineSequence sequence, RtfToMarkdownOptions options, string message, string source) {
         options.Report("RTFMD011", RtfMarkdownDiagnosticSeverity.Warning, message, source);
         if (options.EmitUnsupportedHtmlComments) {
-            sequence.AddRaw(new HtmlRawInline("<!-- " + message + " -->"));
+            sequence.AddRaw(new DecodedHtmlEntityTextRun("[" + message.TrimEnd('.') + "]"));
+        }
+    }
+
+    private static void ReportOmittedHeaderFooters(RtfDocument document, MarkdownDoc markdown, RtfToMarkdownOptions options) {
+        if (document.HeaderFooters.Count == 0) {
+            return;
+        }
+
+        const string message = "RTF header/footer content omitted from Markdown output.";
+        options.Report("RTFMD014", RtfMarkdownDiagnosticSeverity.Warning, message, document.HeaderFooters.Count.ToString(CultureInfo.InvariantCulture));
+        if (options.EmitUnsupportedHtmlComments) {
+            markdown.Add(new HtmlRawBlock("<!-- " + message + " -->"));
         }
     }
 

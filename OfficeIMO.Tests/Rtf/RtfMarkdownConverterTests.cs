@@ -370,6 +370,19 @@ public class RtfMarkdownConverterTests {
     }
 
     [Fact]
+    public void RtfDocumentToMarkdownKeepsTaskMarkerPrefixesLiteralWithoutWhitespace() {
+        RtfDocument document = RtfDocument.Create();
+        document.AddParagraph("[x]ylophone").SetList(kind: RtfListKind.Bullet);
+
+        string markdown = document.ToMarkdown();
+        MarkdownDoc parsed = MarkdownReader.Parse(markdown);
+        UnorderedListBlock list = Assert.IsType<UnorderedListBlock>(Assert.Single(parsed.Blocks));
+
+        Assert.False(list.Items[0].IsTask);
+        Assert.Equal("[x]ylophone", ExtractPlainText(list.Items[0].Content));
+    }
+
+    [Fact]
     public void RtfDocumentToMarkdownKeepsLiteralBlockMarkersAsText() {
         RtfDocument document = RtfDocument.Create();
         document.AddParagraph("# Heading\n- item\n1. item\n---\nTerm: Definition");
@@ -696,6 +709,37 @@ public class RtfMarkdownConverterTests {
     }
 
     [Fact]
+    public void RtfDocumentToMarkdownReportsHeaderFooterOmission() {
+        RtfDocument document = RtfDocument.Create();
+        document.AddHeader().AddParagraph("Header");
+        document.AddFooter().AddParagraph("Footer");
+        document.AddParagraph("Body");
+        var options = new RtfToMarkdownOptions();
+
+        string markdown = document.ToMarkdown(options);
+
+        Assert.Contains("Body", markdown, StringComparison.Ordinal);
+        Assert.Contains("RTF header/footer content omitted", markdown, StringComparison.Ordinal);
+        Assert.Contains(options.Diagnostics, diagnostic => diagnostic.Code == "RTFMD014");
+    }
+
+    [Fact]
+    public void RtfDocumentToMarkdownUsesParseStableInlineOmissionMarker() {
+        RtfDocument document = RtfDocument.Create();
+        RtfParagraph paragraph = document.AddParagraph("Before ");
+        paragraph.AddObject(RtfObjectKind.Embedded, new byte[] { 1, 2 });
+        paragraph.AddText(" after");
+
+        string markdown = document.ToMarkdown();
+        RtfDocument roundTrip = markdown.ToRtfDocumentFromMarkdown();
+
+        Assert.DoesNotContain("<!-- RTF object inline omitted", markdown, StringComparison.Ordinal);
+        Assert.Contains("\\[RTF object inline omitted\\]", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("<!--", roundTrip.Paragraphs[0].ToPlainText(), StringComparison.Ordinal);
+        Assert.Contains("[RTF object inline omitted]", roundTrip.Paragraphs[0].ToPlainText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void RtfDocumentToMarkdownKeepsMixedKindNestedListTogether() {
         RtfDocument document = RtfDocument.Create();
         document.AddParagraph("Parent").SetList(listId: 7, level: 0, kind: RtfListKind.Decimal);
@@ -771,6 +815,22 @@ public class RtfMarkdownConverterTests {
 
         Assert.Contains("[file](docs/My%20File.docx)", markdown, StringComparison.Ordinal);
         Assert.Contains(roundTrip.Paragraphs[0].Runs, run => run.Text == "file" && run.Hyperlink != null);
+    }
+
+    [Fact]
+    public void RtfDocumentToMarkdownEncodesFactoryImagePaths() {
+        RtfDocument document = RtfDocument.Create();
+        document.AddImage(RtfImageFormat.Png, new byte[] { 0x89, 0x50 }).Description = "Logo";
+        var options = new RtfToMarkdownOptions {
+            ImagePathFactory = (_, _) => "images/My File.png"
+        };
+
+        string markdown = document.ToMarkdown(options);
+        MarkdownDoc parsed = MarkdownReader.Parse(markdown);
+        ImageBlock image = Assert.IsType<ImageBlock>(Assert.Single(parsed.Blocks));
+
+        Assert.Contains("![Logo](images/My%20File.png)", markdown, StringComparison.Ordinal);
+        Assert.Equal("images/My%20File.png", image.Path);
     }
 
     private static string ExtractPlainText(IPlainTextMarkdownInline inline) {
