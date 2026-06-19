@@ -480,6 +480,37 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Maps_Numbering_Level_Run_Properties_To_List_Marker() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeListLevelMarkerRunProperties.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeListLevelMarkerRunProperties.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                WordList numberedList = document.AddCustomList();
+                numberedList.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
+                numberedList.Numbering.Levels[0]._level.NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
+                    new RunFonts { Ascii = "Courier New", HighAnsi = "Courier New" },
+                    new Color { Val = "C00000" });
+                numberedList.AddItem("LevelMarkerRunPropertiesBody");
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false,
+                    FontFamily = "Helvetica"
+                });
+            }
+
+            byte[] bytes = File.ReadAllBytes(pdfPath);
+            string content = ReadPdfPageContent(bytes);
+            var listItems = PdfTextExtractor.ExtractListItemsByPage(bytes)
+                .SelectMany(page => page.ListItems)
+                .ToList();
+
+            Assert.Contains(listItems, item => item.Marker == "1" && item.Text == "LevelMarkerRunPropertiesBody");
+            Assert.Equal(1, CountOccurrences(content, "0.753 0 0 rg"));
+            Assert.Equal(1, Regex.Matches(content, @"/F19\s+11\s+Tf").Count);
+        }
+
+        [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Maps_List_Item_Footnotes_Through_Native_List_Blocks() {
             string docPath = Path.Combine(_directoryWithFiles, "PdfNativeListFootnotes.docx");
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeListFootnotes.pdf");

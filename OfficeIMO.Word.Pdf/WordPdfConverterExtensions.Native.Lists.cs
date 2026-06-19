@@ -163,9 +163,10 @@ namespace OfficeIMO.Word.Pdf {
             var style = new PdfCore.PdfListStyle {
                 LeftIndent = markerIndent,
                 MarkerGap = markerGap,
-                MarkerFont = markerTextStyle.Font,
-                MarkerBold = markerTextStyle.Bold,
-                MarkerItalic = markerTextStyle.Italic
+                MarkerFont = ResolveNativeListMarkerFont(info, markerTextStyle),
+                MarkerColor = ParseNativeColor(info.MarkerColorHex),
+                MarkerBold = info.MarkerBold ?? markerTextStyle.Bold,
+                MarkerItalic = info.MarkerItalic ?? markerTextStyle.Italic
             };
 
             if (paragraph.FontSize.HasValue && paragraph.FontSize.Value > 0D) {
@@ -273,6 +274,7 @@ namespace OfficeIMO.Word.Pdf {
                    DoubleEquals(left.SpacingBefore, right.SpacingBefore) &&
                    NullableDoubleEquals(left.SpacingAfter, right.SpacingAfter) &&
                    NullableDoubleEquals(left.ItemSpacing, right.ItemSpacing) &&
+                   left.MarkerColor.Equals(right.MarkerColor) &&
                    left.MarkerFont == right.MarkerFont &&
                    left.MarkerBold == right.MarkerBold &&
                    left.MarkerItalic == right.MarkerItalic &&
@@ -291,6 +293,12 @@ namespace OfficeIMO.Word.Pdf {
 
         private static bool DoubleEquals(double left, double right) =>
             Math.Abs(left - right) < 0.001D;
+
+        private static PdfCore.PdfStandardFont? ResolveNativeListMarkerFont(DocumentTraversal.ListInfo info, NativeResolvedTextStyle markerTextStyle) {
+            return PdfCore.PdfStandardFontMapper.TryMapFontFamily(info.MarkerFontFamily, out PdfCore.PdfStandardFont markerFont)
+                ? markerFont
+                : markerTextStyle.Font;
+        }
 
         private static List<WordParagraph> GetNativeRuns(WordParagraph paragraph) {
             if (paragraph._paragraph == null) {

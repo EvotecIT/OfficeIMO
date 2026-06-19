@@ -68,7 +68,8 @@ internal static partial class PdfWriter {
 
                 double spacingBefore = itemIndex == 0 ? listSpacingBefore : 0D;
                 double spacingAfter = itemIndex == bl.RichItems.Count - 1 ? listSpacingAfter : itemSpacing;
-                RenderListItem(item.Runs, layout.Lines, layout.LineHeights, marker, markerFont, currentOpts.MarginLeft + listLeftIndent + firstLineDx, bulletWidth, PdfAlign.Left, currentOpts.MarginLeft + listLeftIndent + indent, alignmentWidth, bl.Align, bl.Color ?? listStyle?.Color, size, leading, spacingBefore, spacingAfter, item.BookmarkName, ref listStructureElementIndex, ref listStructurePage);
+                PdfColor? listColor = bl.Color ?? listStyle?.Color;
+                RenderListItem(item.Runs, layout.Lines, layout.LineHeights, marker, markerFont, listStyle?.MarkerColor ?? listColor, currentOpts.MarginLeft + listLeftIndent + firstLineDx, bulletWidth, PdfAlign.Left, currentOpts.MarginLeft + listLeftIndent + indent, alignmentWidth, bl.Align, listColor, size, leading, spacingBefore, spacingAfter, item.BookmarkName, ref listStructureElementIndex, ref listStructurePage);
             }
         }
 
@@ -138,7 +139,8 @@ internal static partial class PdfWriter {
 
                 double spacingBefore = itemIndex == 0 ? listSpacingBefore : 0D;
                 double spacingAfter = itemIndex == nl.RichItems.Count - 1 ? listSpacingAfter : itemSpacing;
-                RenderListItem(item.Runs, layout.Lines, layout.LineHeights, marker, markerFont, currentOpts.MarginLeft + listLeftIndent + firstLineDx, markerWidth, PdfAlign.Right, currentOpts.MarginLeft + listLeftIndent + indent, alignmentWidth, nl.Align, nl.Color ?? listStyle?.Color, size, leading, spacingBefore, spacingAfter, item.BookmarkName, ref listStructureElementIndex, ref listStructurePage);
+                PdfColor? listColor = nl.Color ?? listStyle?.Color;
+                RenderListItem(item.Runs, layout.Lines, layout.LineHeights, marker, markerFont, listStyle?.MarkerColor ?? listColor, currentOpts.MarginLeft + listLeftIndent + firstLineDx, markerWidth, PdfAlign.Right, currentOpts.MarginLeft + listLeftIndent + indent, alignmentWidth, nl.Align, listColor, size, leading, spacingBefore, spacingAfter, item.BookmarkName, ref listStructureElementIndex, ref listStructurePage);
             }
         }
 

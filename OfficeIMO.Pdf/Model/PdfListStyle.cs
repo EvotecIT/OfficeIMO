@@ -77,6 +77,8 @@ public sealed class PdfListStyle {
 
     /// <summary>List marker and text color. A list block color overrides this value.</summary>
     public PdfColor? Color { get; set; }
+    /// <summary>Optional list marker color. When null the marker uses the list block color or list text color.</summary>
+    public PdfColor? MarkerColor { get; set; }
     /// <summary>Optional standard font family used for list markers. When null the writer uses the current default font.</summary>
     public PdfStandardFont? MarkerFont { get; set; }
     /// <summary>When true, list markers render with the bold variant of the current list font.</summary>
@@ -99,6 +101,7 @@ public sealed class PdfListStyle {
             SpacingAfter = SpacingAfter,
             ItemSpacing = ItemSpacing,
             Color = Color,
+            MarkerColor = MarkerColor,
             MarkerFont = MarkerFont,
             MarkerBold = MarkerBold,
             MarkerItalic = MarkerItalic,
