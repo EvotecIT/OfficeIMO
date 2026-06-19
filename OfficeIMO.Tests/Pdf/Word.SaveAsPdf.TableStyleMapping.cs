@@ -232,6 +232,37 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Maps_Table_Style_First_And_Last_Column_Conditional_Fills() {
+        using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeTableStyleColumnConditional.docx"));
+        Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+        styles.Append(new Style(
+            new StyleName { Val = "Generic Column Conditional Table" },
+            new TableStyleProperties(
+                new TableStyleConditionalFormattingTableCellProperties(
+                    new Shading { Val = ShadingPatternValues.Clear, Fill = "CCEEFF" }))
+            { Type = TableStyleOverrideValues.FirstColumn },
+            new TableStyleProperties(
+                new TableStyleConditionalFormattingTableCellProperties(
+                    new Shading { Val = ShadingPatternValues.Clear, Fill = "FFCC99" }))
+            { Type = TableStyleOverrideValues.LastColumn })
+        { Type = StyleValues.Table, StyleId = "GenericColumnConditionalTable" });
+
+        WordTable table = document.AddTable(2, 3);
+        table._tableProperties!.TableStyle = new TableStyle { Val = "GenericColumnConditionalTable" };
+        table.ConditionalFormattingFirstColumn = true;
+        table.ConditionalFormattingLastColumn = true;
+
+        PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table);
+
+        Assert.NotNull(style.CellFills);
+        Assert.Equal(PdfCore.PdfColor.FromRgb(204, 238, 255), style.CellFills![(0, 0)]);
+        Assert.Equal(PdfCore.PdfColor.FromRgb(204, 238, 255), style.CellFills![(1, 0)]);
+        Assert.Equal(PdfCore.PdfColor.FromRgb(255, 204, 153), style.CellFills![(0, 2)]);
+        Assert.Equal(PdfCore.PdfColor.FromRgb(255, 204, 153), style.CellFills![(1, 2)]);
+        Assert.False(style.CellFills!.ContainsKey((0, 1)));
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Uses_Configured_Default_Table_Style_For_Unstyled_Native_Table() {
         using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeDefaultTableStyle.docx"));
         WordTable table = document.AddTable(2, 2);

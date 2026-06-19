@@ -99,9 +99,15 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            PdfCore.PdfTableStyle style = CreateNativeTableStyle(table, rows.Count, options, contentWidth, nativeDefaults, tableStyleDefaults);
+            PdfCore.PdfTableStyle style = CreateNativeTableStyle(table, rows.Count, options, contentWidth, nativeDefaults, tableStyleDefaults, layout);
             if (cellFills.Count > 0) {
-                style.CellFills = cellFills;
+                if (style.CellFills == null) {
+                    style.CellFills = cellFills;
+                } else {
+                    foreach (var cellFill in cellFills) {
+                        style.CellFills[cellFill.Key] = cellFill.Value;
+                    }
+                }
             }
 
             if (cellBorders.Count > 0) {
@@ -176,10 +182,10 @@ namespace OfficeIMO.Word.Pdf {
                 table,
                 nativeDefaults,
                 ignoreFallbackTableStyle: hasExplicitDefaultTableStyle);
-            return CreateNativeTableStyle(table, rowCount, options, contentWidth, nativeDefaults, tableStyleDefaults);
+            return CreateNativeTableStyle(table, rowCount, options, contentWidth, nativeDefaults, tableStyleDefaults, TableLayoutCache.GetLayout(table));
         }
 
-        private static PdfCore.PdfTableStyle CreateNativeTableStyle(WordTable table, int rowCount, PdfSaveOptions? options, double? contentWidth, NativeDocumentDefaults nativeDefaults, NativeTableStyleDefaults tableStyleDefaults) {
+        private static PdfCore.PdfTableStyle CreateNativeTableStyle(WordTable table, int rowCount, PdfSaveOptions? options, double? contentWidth, NativeDocumentDefaults nativeDefaults, NativeTableStyleDefaults tableStyleDefaults, TableLayout layout) {
             bool hasExplicitDefaultTableStyle = options?.PdfOptions?.HasExplicitDefaultTableStyle == true;
             PdfCore.PdfTableStyle? wordStyle = ResolveNativeWordTableStyle(table, hasExplicitDefaultTableStyle);
             bool usesConfiguredDefaultStyle = wordStyle == null && hasExplicitDefaultTableStyle;
@@ -210,6 +216,7 @@ namespace OfficeIMO.Word.Pdf {
                 usesConfiguredDefaultStyle,
                 ShouldApplyNativeTableStyleCellPadding(table) ? tableStyleDefaults : NativeTableStyleDefaults.Empty);
             ApplyNativeTableConditionalStyles(table, style, tableStyleDefaults, rowCount);
+            ApplyNativeTableConditionalColumnFills(table, layout, tableStyleDefaults, style);
             ApplyNativeTableLayoutOptions(table, style, contentWidth, tableStyleDefaults);
             ApplyNativeTableRowOptions(table, style);
             return style;
@@ -287,6 +294,63 @@ namespace OfficeIMO.Word.Pdf {
 
             if (conditionalStyle.Bold.HasValue) {
                 style.FooterBold = conditionalStyle.Bold.Value;
+            }
+        }
+
+        private static void ApplyNativeTableConditionalColumnFills(WordTable table, TableLayout layout, NativeTableStyleDefaults tableStyleDefaults, PdfCore.PdfTableStyle style) {
+            Dictionary<(int Row, int Column), PdfCore.PdfColor>? cellFills = style.CellFills == null
+                ? null
+                : new Dictionary<(int Row, int Column), PdfCore.PdfColor>(style.CellFills);
+            cellFills ??= new Dictionary<(int Row, int Column), PdfCore.PdfColor>();
+            int originalCount = cellFills.Count;
+            ApplyNativeTableConditionalColumnFills(table, layout, tableStyleDefaults, cellFills);
+            if (cellFills.Count != originalCount) {
+                style.CellFills = cellFills;
+            }
+        }
+
+        private static void ApplyNativeTableConditionalColumnFills(WordTable table, TableLayout layout, NativeTableStyleDefaults tableStyleDefaults, Dictionary<(int Row, int Column), PdfCore.PdfColor> cellFills) {
+            int columnCount = GetNativeTableColumnCount(layout);
+            if (columnCount == 0) {
+                return;
+            }
+
+            PdfCore.PdfColor? firstColumnFill = table.ConditionalFormattingFirstColumn == true
+                ? tableStyleDefaults.FirstColumnStyle.CellFill
+                : null;
+            PdfCore.PdfColor? lastColumnFill = table.ConditionalFormattingLastColumn == true
+                ? tableStyleDefaults.LastColumnStyle.CellFill
+                : null;
+            if (!firstColumnFill.HasValue && !lastColumnFill.HasValue) {
+                return;
+            }
+
+            for (int rowIndex = 0; rowIndex < layout.Rows.Count; rowIndex++) {
+                IReadOnlyList<WordTableCell> row = layout.Rows[rowIndex];
+                int logicalColumnIndex = 0;
+                for (int cellIndex = 0; cellIndex < row.Count; cellIndex++) {
+                    WordTableCell cell = row[cellIndex];
+                    if (IsNativeHorizontalMergeContinuation(cell)) {
+                        continue;
+                    }
+
+                    int columnSpan = GetNativeCellColumnSpan(cell);
+                    if (IsNativeVerticalMergeContinuation(cell)) {
+                        logicalColumnIndex += columnSpan;
+                        continue;
+                    }
+
+                    (int Row, int Column) key = (rowIndex, logicalColumnIndex);
+                    if (firstColumnFill.HasValue && logicalColumnIndex == 0 && !cellFills.ContainsKey(key)) {
+                        cellFills[key] = firstColumnFill.Value;
+                    }
+
+                    if (lastColumnFill.HasValue && logicalColumnIndex + columnSpan >= columnCount && !cellFills.ContainsKey(key)) {
+                        cellFills[key] = lastColumnFill.Value;
+                    }
+
+                    logicalColumnIndex += columnSpan;
+                }
             }
         }
 

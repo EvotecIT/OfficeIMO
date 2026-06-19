@@ -232,4 +232,54 @@ public partial class Word {
         Assert.Contains("0.2 0.4 0.6 rg", raw);
     }
 
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Renders_Table_Style_First_And_Last_Column_Conditional_Fills() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleColumnConditional.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleColumnConditional.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            const string styleId = "NativeColumnConditionalTable";
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(new Style(
+                new StyleName { Val = "Native Column Conditional Table" },
+                new TableStyleProperties(
+                    new TableStyleConditionalFormattingTableCellProperties(
+                        new Shading { Val = ShadingPatternValues.Clear, Fill = "CCEEFF" }))
+                { Type = TableStyleOverrideValues.FirstColumn },
+                new TableStyleProperties(
+                    new TableStyleConditionalFormattingTableCellProperties(
+                        new Shading { Val = ShadingPatternValues.Clear, Fill = "FFCC99" }))
+                { Type = TableStyleOverrideValues.LastColumn })
+            { Type = StyleValues.Table, StyleId = styleId });
+
+            WordTable table = document.AddTable(2, 3);
+            table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
+            table.ConditionalFormattingFirstColumn = true;
+            table.ConditionalFormattingLastColumn = true;
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "FirstColumnTop";
+            table.Rows[0].Cells[1].Paragraphs[0].Text = "MiddleTop";
+            table.Rows[0].Cells[2].Paragraphs[0].Text = "LastColumnTop";
+            table.Rows[1].Cells[0].Paragraphs[0].Text = "FirstColumnBottom";
+            table.Rows[1].Cells[1].Paragraphs[0].Text = "MiddleBottom";
+            table.Rows[1].Cells[2].Paragraphs[0].Text = "LastColumnBottom";
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = new PdfCore.PageSize(420, 220),
+                Margins = PdfCore.PageMargins.Uniform(30)
+            });
+        }
+
+        byte[] bytes = File.ReadAllBytes(pdfPath);
+        using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
+        string text = string.Concat(pdf.GetPages().Select(page => page.Text));
+        Assert.Contains("FirstColumnTop", text);
+        Assert.Contains("LastColumnBottom", text);
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("0.8 0.933 1 rg", raw);
+        Assert.Contains("1 0.8 0.6 rg", raw);
+    }
+
 }
