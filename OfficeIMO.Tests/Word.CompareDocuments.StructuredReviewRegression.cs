@@ -255,6 +255,151 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain(result.Findings, finding => finding.Scope == WordComparisonScope.Image);
         }
 
+        [Fact]
+        public void CompareStructureAlignsMultipleInsertedParagraphsBeforeModifiedParagraph() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_multiple_inserted_paragraphs_before_modified.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                doc.AddParagraph("Status: Pending");
+                doc.AddParagraph("Closing");
+                doc.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_multiple_inserted_paragraphs_before_modified.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                doc.AddParagraph("Evidence row one");
+                doc.AddParagraph("Evidence row two");
+                doc.AddParagraph("Status: Approved");
+                doc.AddParagraph("Closing");
+                doc.Save(false);
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Paragraph &&
+                finding.ChangeKind == WordComparisonChangeKind.Inserted &&
+                finding.TargetText == "Evidence row one");
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Paragraph &&
+                finding.ChangeKind == WordComparisonChangeKind.Inserted &&
+                finding.TargetText == "Evidence row two");
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Paragraph &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified &&
+                finding.SourceText == "Status: Pending" &&
+                finding.TargetText == "Status: Approved");
+            Assert.DoesNotContain(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Paragraph &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified &&
+                finding.SourceText == "Status: Pending" &&
+                finding.TargetText == "Evidence row one");
+        }
+
+        [Fact]
+        public void CompareStructureReadsExplicitNormalFootnotes() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_explicit_normal_footnote.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                doc.AddParagraph("Policy").AddFootNote("Legal note pending");
+                doc.Save(false);
+            }
+
+            MarkFirstFootnoteAsExplicitNormal(sourcePath);
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_explicit_normal_footnote.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                doc.AddParagraph("Policy").AddFootNote("Legal note approved");
+                doc.Save(false);
+            }
+
+            MarkFirstFootnoteAsExplicitNormal(targetPath);
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Paragraph &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified &&
+                finding.SourceText == "Legal note pending" &&
+                finding.TargetText == "Legal note approved");
+        }
+
+        [Fact]
+        public void CompareStructureSkipsUnreferencedHeaderParts() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_unref_header.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                doc.AddParagraph("Body");
+                doc.Save(false);
+            }
+
+            AddUnreferencedHeaderParagraph(sourcePath, "Dormant header");
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_unref_header.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                doc.AddParagraph("Body");
+                doc.Save(false);
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.DoesNotContain(result.Findings, finding =>
+                (finding.SourceText?.Contains("Dormant header", System.StringComparison.Ordinal) ?? false) ||
+                (finding.TargetText?.Contains("Dormant header", System.StringComparison.Ordinal) ?? false));
+        }
+
+        [Fact]
+        public void CompareStructurePreservesSymbolRuns() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_symbol_run.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                doc.AddParagraph("placeholder");
+                doc.Save(false);
+            }
+
+            ReplaceBodyParagraph(sourcePath, CreateSymbolParagraph("Choice ", "Wingdings", "F0FC"));
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_symbol_run.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                doc.AddParagraph("placeholder");
+                doc.Save(false);
+            }
+
+            ReplaceBodyParagraph(targetPath, CreateSymbolParagraph("Choice ", "Wingdings", "F0A3"));
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Paragraph &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified &&
+                (finding.SourceText?.Contains("[Symbol:Wingdings:F0FC]", System.StringComparison.Ordinal) ?? false) &&
+                (finding.TargetText?.Contains("[Symbol:Wingdings:F0A3]", System.StringComparison.Ordinal) ?? false));
+        }
+
+        [Fact]
+        public void CompareStructureDistinguishesLiteralBreakMarkerTextFromRealBreaks() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_literal_page_break_marker.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                doc.AddParagraph("Before[PageBreak]After");
+                doc.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_real_page_break_marker.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                doc.AddParagraph("placeholder");
+                doc.Save(false);
+            }
+
+            ReplaceBodyParagraph(targetPath, new Paragraph(
+                new Run(new Text("Before")),
+                new Run(new Break { Type = BreakValues.Page }),
+                new Run(new Text("After"))));
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Paragraph &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified &&
+                finding.SourceText == "Before[PageBreak]After" &&
+                finding.TargetText == "Before[PageBreak]After");
+        }
+
         private static void AppendTableAndImageToFirstFootnote(string path, string tableText, string imagePath) {
             using WordprocessingDocument document = WordprocessingDocument.Open(path, true);
             Footnote footnote = document.MainDocumentPart!.FootnotesPart!.Footnotes!.Elements<Footnote>().First(item => item.Type == null);
@@ -337,6 +482,34 @@ namespace OfficeIMO.Tests {
                 properties.Name = name;
             }
 
+            document.MainDocumentPart.Document.Save();
+        }
+
+        private static void MarkFirstFootnoteAsExplicitNormal(string path) {
+            using WordprocessingDocument document = WordprocessingDocument.Open(path, true);
+            Footnote footnote = document.MainDocumentPart!.FootnotesPart!.Footnotes!.Elements<Footnote>().First(item => item.Type == null);
+            footnote.Type = FootnoteEndnoteValues.Normal;
+            document.MainDocumentPart.FootnotesPart.Footnotes.Save();
+        }
+
+        private static void AddUnreferencedHeaderParagraph(string path, string text) {
+            using WordprocessingDocument document = WordprocessingDocument.Open(path, true);
+            HeaderPart headerPart = document.MainDocumentPart!.AddNewPart<HeaderPart>();
+            headerPart.Header = new Header(new Paragraph(new Run(new Text(text))));
+            headerPart.Header.Save();
+        }
+
+        private static Paragraph CreateSymbolParagraph(string prefix, string font, string symbolChar) {
+            return new Paragraph(
+                new Run(new Text(prefix)),
+                new Run(new SymbolChar { Font = font, Char = symbolChar }));
+        }
+
+        private static void ReplaceBodyParagraph(string path, Paragraph paragraph) {
+            using WordprocessingDocument document = WordprocessingDocument.Open(path, true);
+            Body body = document.MainDocumentPart!.Document.Body!;
+            body.RemoveAllChildren();
+            body.Append(paragraph);
             document.MainDocumentPart.Document.Save();
         }
     }

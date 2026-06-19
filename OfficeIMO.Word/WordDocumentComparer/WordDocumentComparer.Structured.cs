@@ -529,20 +529,28 @@ namespace OfficeIMO.Word {
                 Dictionary<HeaderPart, string> headerPartKeys = CreateHeaderPartKeys(mainPart);
                 int headerIndex = 0;
                 foreach (HeaderPart headerPart in mainPart.HeaderParts) {
-                    AddTableSnapshots(snapshots, document, headerPart.Header, GetHeaderPartKey(headerPartKeys, headerPart, headerIndex), HeaderPartOrderBase + (headerIndex * RelatedPartOrderStride));
+                    if (!headerPartKeys.TryGetValue(headerPart, out string? headerPartKey)) {
+                        continue;
+                    }
+
+                    AddTableSnapshots(snapshots, document, headerPart.Header, headerPartKey, HeaderPartOrderBase + (headerIndex * RelatedPartOrderStride));
                     headerIndex++;
                 }
 
                 Dictionary<FooterPart, string> footerPartKeys = CreateFooterPartKeys(mainPart);
                 int footerIndex = 0;
                 foreach (FooterPart footerPart in mainPart.FooterParts) {
-                    AddTableSnapshots(snapshots, document, footerPart.Footer, GetFooterPartKey(footerPartKeys, footerPart, footerIndex), FooterPartOrderBase + (footerIndex * RelatedPartOrderStride));
+                    if (!footerPartKeys.TryGetValue(footerPart, out string? footerPartKey)) {
+                        continue;
+                    }
+
+                    AddTableSnapshots(snapshots, document, footerPart.Footer, footerPartKey, FooterPartOrderBase + (footerIndex * RelatedPartOrderStride));
                     footerIndex++;
                 }
 
                 int footnoteIndex = 0;
                 foreach (Footnote footnote in mainPart.FootnotesPart?.Footnotes?.Elements<Footnote>() ?? Enumerable.Empty<Footnote>()) {
-                    if (footnote.Type != null) {
+                    if (!IsVisibleNote(footnote)) {
                         continue;
                     }
 
@@ -553,7 +561,7 @@ namespace OfficeIMO.Word {
 
                 int endnoteIndex = 0;
                 foreach (Endnote endnote in mainPart.EndnotesPart?.Endnotes?.Elements<Endnote>() ?? Enumerable.Empty<Endnote>()) {
-                    if (endnote.Type != null) {
+                    if (!IsVisibleNote(endnote)) {
                         continue;
                     }
 
@@ -574,7 +582,8 @@ namespace OfficeIMO.Word {
 
                 var wordTable = new WordTable(document, table);
                 string text = GetTableText(wordTable);
-                snapshots.Add(new TableSnapshot(wordTable, text, GetTableMatchKey(partKey, wordTable), partKey, ordered.DocumentOrder));
+                string matchText = GetTableMatchText(wordTable);
+                snapshots.Add(new TableSnapshot(wordTable, text, matchText, GetTableMatchKey(partKey, wordTable), partKey, ordered.DocumentOrder));
             }
         }
 
@@ -586,6 +595,14 @@ namespace OfficeIMO.Word {
             return string.Join(" | ", row.Cells.Select(GetCellText).ToArray());
         }
 
+        private static string GetTableMatchText(WordTable table) {
+            return string.Join(TableRowSeparator, table.Rows.Select(GetRowMatchText).ToArray());
+        }
+
+        private static string GetRowMatchText(WordTableRow row) {
+            return string.Join(" | ", row.Cells.Select(GetCellMatchText).ToArray());
+        }
+
         private static string GetTableMatchKey(string partKey, WordTable table) {
             return partKey + TableRowSeparator + GetTableShape(table) + TableRowSeparator + string.Join(TableRowSeparator, table.Rows.Select(GetRowMatchKey).ToArray());
         }
@@ -595,7 +612,7 @@ namespace OfficeIMO.Word {
         }
 
         private static string GetRowMatchKey(WordTableRow row) {
-            return GetRowShape(row) + TableRowSeparator + string.Join(TableRowSeparator, row.Cells.Select(cell => EncodeMatchText(GetCellText(cell))).ToArray());
+            return GetRowShape(row) + TableRowSeparator + string.Join(TableRowSeparator, row.Cells.Select(cell => EncodeMatchText(GetCellMatchText(cell))).ToArray());
         }
 
         private static string GetRowShape(WordTableRow row) {
@@ -608,6 +625,15 @@ namespace OfficeIMO.Word {
                 cell._tableCell.Descendants<Paragraph>()
                     .Where(paragraph => ReferenceEquals(paragraph.Ancestors<TableCell>().FirstOrDefault(), cell._tableCell))
                     .Select(GetParagraphText)
+                    .ToArray());
+        }
+
+        private static string GetCellMatchText(WordTableCell cell) {
+            return string.Join(
+                CellParagraphSeparator,
+                cell._tableCell.Descendants<Paragraph>()
+                    .Where(paragraph => ReferenceEquals(paragraph.Ancestors<TableCell>().FirstOrDefault(), cell._tableCell))
+                    .Select(GetParagraphMatchText)
                     .ToArray());
         }
 
@@ -644,20 +670,28 @@ namespace OfficeIMO.Word {
                 Dictionary<HeaderPart, string> headerPartKeys = CreateHeaderPartKeys(mainPart);
                 int headerIndex = 0;
                 foreach (HeaderPart headerPart in mainPart.HeaderParts) {
-                    AddImageSnapshots(snapshots, headerPart, headerPart.Header, GetHeaderPartKey(headerPartKeys, headerPart, headerIndex), HeaderPartOrderBase + (headerIndex * RelatedPartOrderStride));
+                    if (!headerPartKeys.TryGetValue(headerPart, out string? headerPartKey)) {
+                        continue;
+                    }
+
+                    AddImageSnapshots(snapshots, headerPart, headerPart.Header, headerPartKey, HeaderPartOrderBase + (headerIndex * RelatedPartOrderStride));
                     headerIndex++;
                 }
 
                 Dictionary<FooterPart, string> footerPartKeys = CreateFooterPartKeys(mainPart);
                 int footerIndex = 0;
                 foreach (FooterPart footerPart in mainPart.FooterParts) {
-                    AddImageSnapshots(snapshots, footerPart, footerPart.Footer, GetFooterPartKey(footerPartKeys, footerPart, footerIndex), FooterPartOrderBase + (footerIndex * RelatedPartOrderStride));
+                    if (!footerPartKeys.TryGetValue(footerPart, out string? footerPartKey)) {
+                        continue;
+                    }
+
+                    AddImageSnapshots(snapshots, footerPart, footerPart.Footer, footerPartKey, FooterPartOrderBase + (footerIndex * RelatedPartOrderStride));
                     footerIndex++;
                 }
 
                 int footnoteIndex = 0;
                 foreach (Footnote footnote in mainPart.FootnotesPart?.Footnotes?.Elements<Footnote>() ?? Enumerable.Empty<Footnote>()) {
-                    if (footnote.Type != null) {
+                    if (!IsVisibleNote(footnote)) {
                         continue;
                     }
 
@@ -668,7 +702,7 @@ namespace OfficeIMO.Word {
 
                 int endnoteIndex = 0;
                 foreach (Endnote endnote in mainPart.EndnotesPart?.Endnotes?.Elements<Endnote>() ?? Enumerable.Empty<Endnote>()) {
-                    if (endnote.Type != null) {
+                    if (!IsVisibleNote(endnote)) {
                         continue;
                     }
 
@@ -857,9 +891,10 @@ namespace OfficeIMO.Word {
         }
 
         private sealed class TableSnapshot {
-            internal TableSnapshot(WordTable table, string text, string matchKey, string partKey, int documentOrder) {
+            internal TableSnapshot(WordTable table, string text, string matchText, string matchKey, string partKey, int documentOrder) {
                 Table = table;
                 Text = text;
+                MatchText = matchText;
                 MatchKey = matchKey;
                 PartKey = partKey;
                 DocumentOrder = documentOrder;
@@ -868,6 +903,8 @@ namespace OfficeIMO.Word {
             internal WordTable Table { get; }
 
             internal string Text { get; }
+
+            internal string MatchText { get; }
 
             internal string MatchKey { get; }
 

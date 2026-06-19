@@ -73,6 +73,14 @@ namespace OfficeIMO.Word {
             return ordinal;
         }
 
+        private static bool IsVisibleNote(Footnote footnote) {
+            return footnote.Type == null || footnote.Type.Value == FootnoteEndnoteValues.Normal;
+        }
+
+        private static bool IsVisibleNote(Endnote endnote) {
+            return endnote.Type == null || endnote.Type.Value == FootnoteEndnoteValues.Normal;
+        }
+
         private static double GetImageSimilarity(ImageSnapshot source, ImageSnapshot target) {
             if (!string.Equals(source.PartKey, target.PartKey, StringComparison.Ordinal)) {
                 return 0;
