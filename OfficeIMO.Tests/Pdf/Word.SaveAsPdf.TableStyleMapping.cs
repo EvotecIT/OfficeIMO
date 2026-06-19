@@ -446,6 +446,63 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Maps_Table_Style_Conditional_Cell_Margins() {
+        using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeTableStyleConditionalMargins.docx"));
+        Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+        styles.Append(new Style(
+            new StyleName { Val = "Generic Conditional Margin Table" },
+            new TableStyleProperties(
+                new TableStyleConditionalFormattingTableCellProperties(
+                    new TableCellMargin(
+                        new LeftMargin { Width = "320", Type = TableWidthUnitValues.Dxa },
+                        new TopMargin { Width = "120", Type = TableWidthUnitValues.Dxa })))
+            { Type = TableStyleOverrideValues.FirstRow },
+            new TableStyleProperties(
+                new TableStyleConditionalFormattingTableCellProperties(
+                    new TableCellMargin(
+                        new RightMargin { Width = "280", Type = TableWidthUnitValues.Dxa })))
+            { Type = TableStyleOverrideValues.LastColumn },
+            new TableStyleProperties(
+                new TableStyleConditionalFormattingTableCellProperties(
+                    new TableCellMargin(
+                        new BottomMargin { Width = "160", Type = TableWidthUnitValues.Dxa })))
+            { Type = TableStyleOverrideValues.Band1Horizontal },
+            new TableStyleProperties(
+                new TableStyleConditionalFormattingTableCellProperties(
+                    new TableCellMargin(
+                        new LeftMargin { Width = "200", Type = TableWidthUnitValues.Dxa })))
+            { Type = TableStyleOverrideValues.Band1Vertical })
+        { Type = StyleValues.Table, StyleId = "GenericConditionalMarginTable" });
+
+        WordTable table = document.AddTable(4, 3);
+        table._tableProperties!.TableStyle = new TableStyle { Val = "GenericConditionalMarginTable" };
+        table.ConditionalFormattingFirstRow = true;
+        table.ConditionalFormattingLastColumn = true;
+        table.ConditionalFormattingNoHorizontalBand = false;
+        table.ConditionalFormattingNoVerticalBand = false;
+
+        PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table);
+
+        Assert.NotNull(style.CellPaddings);
+        Assert.Equal(16D, style.CellPaddings![(0, 0)].Left);
+        Assert.Equal(6D, style.CellPaddings![(0, 0)].Top);
+        Assert.Equal(14D, style.CellPaddings![(0, 2)].Right);
+        Assert.Equal(8D, style.CellPaddings![(2, 0)].Bottom);
+        Assert.Equal(10D, style.CellPaddings![(1, 1)].Left);
+        Assert.False(style.CellPaddings!.ContainsKey((1, 0)));
+
+        table.ConditionalFormattingNoHorizontalBand = true;
+        table.ConditionalFormattingNoVerticalBand = true;
+        PdfCore.PdfTableStyle disabledBandingStyle = CreateNativeTableStyleForTest(table);
+
+        Assert.NotNull(disabledBandingStyle.CellPaddings);
+        Assert.False(disabledBandingStyle.CellPaddings!.ContainsKey((2, 0)));
+        Assert.False(disabledBandingStyle.CellPaddings!.ContainsKey((1, 1)));
+        Assert.Equal(16D, disabledBandingStyle.CellPaddings![(0, 0)].Left);
+        Assert.Equal(14D, disabledBandingStyle.CellPaddings![(0, 2)].Right);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Uses_Configured_Default_Table_Style_For_Unstyled_Native_Table() {
         using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeDefaultTableStyle.docx"));
         WordTable table = document.AddTable(2, 2);

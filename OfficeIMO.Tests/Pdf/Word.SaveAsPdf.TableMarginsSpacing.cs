@@ -164,4 +164,50 @@ public partial class Word {
         Assert.True(spacedGap > plainGap + 10D,
             $"Expected Word table style cell spacing to widen native table cell distance. Plain gap: {plainGap:0.##}; spaced gap: {spacedGap:0.##}.");
     }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Renders_Table_Style_Conditional_Cell_Margins() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleConditionalCellMargins.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleConditionalCellMargins.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(new Style(
+                new StyleName { Val = "Generic Rendered Conditional Margin Table" },
+                new TableStyleProperties(
+                    new TableStyleConditionalFormattingTableCellProperties(
+                        new TableCellMargin(
+                            new LeftMargin { Width = "720", Type = TableWidthUnitValues.Dxa })))
+                { Type = TableStyleOverrideValues.FirstColumn })
+            { Type = StyleValues.Table, StyleId = "GenericRenderedConditionalMarginTable" });
+
+            WordTable plain = document.AddTable(2, 3);
+            ConfigureCellSpacingTable(plain, "PlainLeft", "PlainMiddle");
+            plain.Rows[0].Cells[2].Paragraphs[0].Text = "PlainRight";
+
+            document.AddParagraph("between conditional margin tables");
+
+            WordTable padded = document.AddTable(2, 3);
+            ConfigureCellSpacingTable(padded, "PaddedLeft", "PaddedMiddle");
+            padded.Rows[0].Cells[2].Paragraphs[0].Text = "PaddedRight";
+            padded._tableProperties!.TableStyle = new TableStyle { Val = "GenericRenderedConditionalMarginTable" };
+            padded.ConditionalFormattingFirstColumn = true;
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = new PdfCore.PageSize(520, 360),
+                Margins = PdfCore.PageMargins.Uniform(40)
+            });
+        }
+
+        byte[] bytes = File.ReadAllBytes(pdfPath);
+        using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
+        var words = pdf.GetPage(1).GetWords().ToList();
+        var plainLeft = Assert.Single(words, word => word.Text == "PlainLeft");
+        var paddedLeft = Assert.Single(words, word => word.Text == "PaddedLeft");
+
+        Assert.True(paddedLeft.BoundingBox.Left > plainLeft.BoundingBox.Left + 25D,
+            $"Expected first-column conditional cell margin to move text right. Plain x: {plainLeft.BoundingBox.Left:0.##}; padded x: {paddedLeft.BoundingBox.Left:0.##}.");
+    }
 }

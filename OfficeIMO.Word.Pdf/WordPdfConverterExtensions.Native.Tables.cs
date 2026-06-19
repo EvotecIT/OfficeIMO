@@ -136,7 +136,18 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             if (cellPaddings.Count > 0) {
-                style.CellPaddings = cellPaddings;
+                if (style.CellPaddings == null) {
+                    style.CellPaddings = cellPaddings;
+                } else {
+                    var mergedPaddings = new Dictionary<(int Row, int Column), PdfCore.PdfCellPadding>(style.CellPaddings);
+                    foreach (var cellPadding in cellPaddings) {
+                        mergedPaddings[cellPadding.Key] = MergeNativeCellPadding(
+                            mergedPaddings.TryGetValue(cellPadding.Key, out PdfCore.PdfCellPadding? existing) ? existing : null,
+                            cellPadding.Value)!;
+                    }
+
+                    style.CellPaddings = mergedPaddings;
+                }
             }
 
             if (cellAlignments.Count > 0) {
@@ -234,6 +245,7 @@ namespace OfficeIMO.Word.Pdf {
             ApplyNativeTableBandingStyles(table, layout, style, tableStyleDefaults);
             ApplyNativeTableConditionalColumnFills(table, layout, tableStyleDefaults, style);
             ApplyNativeTableConditionalBorders(table, layout, tableStyleDefaults, style);
+            ApplyNativeTableConditionalPaddings(table, layout, tableStyleDefaults, style);
             ApplyNativeTableLayoutOptions(table, style, contentWidth, tableStyleDefaults);
             ApplyNativeTableRowOptions(table, style);
             return style;
