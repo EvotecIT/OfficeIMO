@@ -253,8 +253,8 @@ namespace OfficeIMO.Word.Pdf {
                 Background = background,
                 BorderColor = border?.Color,
                 BorderWidth = border?.Width ?? 0D,
-                PaddingX = 6,
-                PaddingY = backgroundOnly ? 0D : 4D,
+                PaddingX = ResolveNativeParagraphPanelPaddingX(borders, 6D),
+                PaddingY = backgroundOnly ? 0D : ResolveNativeParagraphPanelPaddingY(borders, 4D),
                 SpacingBefore = paragraphStyle.SpacingBefore,
                 SpacingAfter = backgroundOnly ? 0D : paragraphStyle.SpacingAfter ?? 6D,
                 Align = ResolveNativeParagraphAlign(paragraph, allowJustify: false)
@@ -377,6 +377,26 @@ namespace OfficeIMO.Word.Pdf {
                 Color = ParseNativeColor(NormalizeNativeBorderColor(border.ColorHex)) ?? PdfCore.PdfColor.Black,
                 Width = (border.Size ?? 4U) / 8D
             };
+        }
+
+        private static double ResolveNativeParagraphPanelPaddingX(NativeParagraphBorders borders, double defaultPadding) {
+            uint? left = HasNativeBorder(borders.Left.Style) ? borders.Left.Space : null;
+            uint? right = HasNativeBorder(borders.Right.Style) ? borders.Right.Space : null;
+            if (!left.HasValue && !right.HasValue) {
+                return defaultPadding;
+            }
+
+            return Math.Max(left.GetValueOrDefault(), right.GetValueOrDefault());
+        }
+
+        private static double ResolveNativeParagraphPanelPaddingY(NativeParagraphBorders borders, double defaultPadding) {
+            uint? top = HasNativeBorder(borders.Top.Style) ? borders.Top.Space : null;
+            uint? bottom = HasNativeBorder(borders.Bottom.Style) ? borders.Bottom.Space : null;
+            if (!top.HasValue && !bottom.HasValue) {
+                return defaultPadding;
+            }
+
+            return Math.Max(top.GetValueOrDefault(), bottom.GetValueOrDefault());
         }
 
         private static bool HasNativeOnlyBottomParagraphBorder(NativeParagraphBorders borders) =>

@@ -560,6 +560,43 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Honors_Paragraph_Border_Space_As_Panel_Padding() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeParagraphBorderSpace.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeParagraphBorderSpace.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                WordParagraph tight = document.AddParagraph("TightSpace");
+                tight.Borders.LeftStyle = BorderValues.Single;
+                tight.Borders.LeftColorHex = "444444";
+                tight.Borders.LeftSize = 8;
+                tight.Borders.LeftSpace = 0;
+                tight.LineSpacingAfterPoints = 4;
+
+                WordParagraph wide = document.AddParagraph("WideSpace");
+                wide.Borders.LeftStyle = BorderValues.Single;
+                wide.Borders.LeftColorHex = "444444";
+                wide.Borders.LeftSize = 8;
+                wide.Borders.LeftSpace = 24;
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false,
+                    PageSize = new OfficeIMO.Pdf.PageSize(360, 220),
+                    Margins = OfficeIMO.Pdf.PageMargins.Uniform(30),
+                    FontFamily = "Helvetica"
+                });
+            }
+
+            using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+            var words = pdf.GetPage(1).GetWords().ToList();
+            var tightWord = Assert.Single(words, word => word.Text == "TightSpace");
+            var wideWord = Assert.Single(words, word => word.Text == "WideSpace");
+
+            Assert.True(wideWord.BoundingBox.Left > tightWord.BoundingBox.Left + 18D,
+                $"Expected Word paragraph border space to move text away from the border. Tight x: {tightWord.BoundingBox.Left:0.##}; wide x: {wideWord.BoundingBox.Left:0.##}.");
+        }
+
+        [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Renders_Paragraph_Tab_Leaders() {
             string docPath = Path.Combine(_directoryWithFiles, "PdfNativeParagraphTabs.docx");
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeParagraphTabs.pdf");
