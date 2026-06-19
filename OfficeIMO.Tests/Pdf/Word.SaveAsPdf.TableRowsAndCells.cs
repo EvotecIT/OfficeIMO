@@ -646,6 +646,64 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Uses_Table_Style_Conditional_Line_Spacing_For_Cell_Paragraphs() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleConditionalLineSpacing.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleConditionalLineSpacing.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            const string styleId = "NativeTableConditionalLineSpacing";
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(new Style(
+                new StyleName { Val = "Native Table Conditional Line Spacing" },
+                new TableStyleProperties(
+                    new StyleParagraphProperties(
+                        new SpacingBetweenLines {
+                            After = "0",
+                            Line = "600",
+                            LineRule = LineSpacingRuleValues.Exact
+                        }))
+                { Type = TableStyleOverrideValues.FirstRow })
+            {
+                Type = StyleValues.Table,
+                StyleId = styleId,
+                CustomStyle = true
+            });
+
+            WordTable table = document.AddTable(2, 1);
+            table.Width = 900;
+            table.WidthType = TableWidthUnitValues.Dxa;
+            table.LayoutType = TableLayoutValues.Fixed;
+            table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
+            table.ConditionalFormattingFirstRow = true;
+            foreach (WordTableRow row in table.Rows) {
+                row.Cells[0].Width = 900;
+                row.Cells[0].WidthType = TableWidthUnitValues.Dxa;
+            }
+
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "TallA TallB";
+            table.Rows[1].Cells[0].Paragraphs[0].Text = "PlainA PlainB";
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = new PdfCore.PageSize(360, 260),
+                Margins = PdfCore.PageMargins.Uniform(36),
+                FontFamily = "Helvetica"
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        var words = pdf.GetPage(1).GetWords().ToList();
+        double styledGap = Assert.Single(words, word => word.Text == "TallA").BoundingBox.Bottom -
+            Assert.Single(words, word => word.Text == "TallB").BoundingBox.Bottom;
+        double plainGap = Assert.Single(words, word => word.Text == "PlainA").BoundingBox.Bottom -
+            Assert.Single(words, word => word.Text == "PlainB").BoundingBox.Bottom;
+
+        Assert.True(styledGap > plainGap + 12D,
+            $"Expected first-row table style line spacing to increase wrapped native PDF line pitch. Styled gap: {styledGap:0.##}; plain gap: {plainGap:0.##}.");
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Uses_Table_Cell_Paragraph_Indentation() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellParagraphIndentation.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellParagraphIndentation.pdf");

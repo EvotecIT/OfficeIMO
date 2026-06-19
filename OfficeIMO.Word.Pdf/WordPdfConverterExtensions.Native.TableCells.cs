@@ -319,7 +319,7 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 (double Left, double Right, double FirstLine) indentation = ResolveNativeTableCellParagraphIndentation(paragraph);
-                double? lineHeight = ResolveNativeTableCellParagraphLineHeight(paragraph, nativeDefaults);
+                double? lineHeight = ResolveNativeTableCellParagraphLineHeight(paragraph, nativeDefaults, tableStyleDefaults);
                 IReadOnlyList<PdfCore.PdfTabStop> tabStops = ResolveNativeTableCellParagraphTabStops(paragraph, indentation.Left);
                 paragraphs.Add(new PdfCore.PdfTableCellParagraph(
                     paragraphRuns,
@@ -372,9 +372,9 @@ namespace OfficeIMO.Word.Pdf {
             return (leftIndent, rightIndent, firstLineIndent);
         }
 
-        private static double? ResolveNativeTableCellParagraphLineHeight(WordParagraph paragraph, NativeDocumentDefaults nativeDefaults) {
+        private static double? ResolveNativeTableCellParagraphLineHeight(WordParagraph paragraph, NativeDocumentDefaults nativeDefaults, NativeTableStyleDefaults tableStyleDefaults) {
             NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);
-            double fontSize = ResolveNativeParagraphFontSize(paragraph, nativeDefaults, styleDefaults);
+            double fontSize = ResolveNativeTableCellParagraphFontSize(paragraph, nativeDefaults, styleDefaults, tableStyleDefaults);
             if (paragraph.LineSpacing.HasValue && paragraph.LineSpacingRule == W.LineSpacingRuleValues.Auto) {
                 return Math.Max(0.01D, NativeWordAutoLineSpacingHeight * (paragraph.LineSpacing.Value / 240D));
             }
@@ -387,8 +387,25 @@ namespace OfficeIMO.Word.Pdf {
                 return ResolveNativeLineSpacingHeight(styleDefaults.LineSpacingPoints.Value, styleDefaults.LineSpacingRule, fontSize, nativeDefaults.ParagraphLineHeight);
             }
 
-            return styleDefaults.LineHeight;
+            if (styleDefaults.LineHeight.HasValue) {
+                return styleDefaults.LineHeight;
+            }
+
+            if (tableStyleDefaults.ParagraphLineSpacingPoints.HasValue && fontSize > 0D) {
+                return ResolveNativeLineSpacingHeight(
+                    tableStyleDefaults.ParagraphLineSpacingPoints.Value,
+                    tableStyleDefaults.ParagraphLineSpacingRule,
+                    fontSize,
+                    NativeWordTableSingleLineHeight);
+            }
+
+            return tableStyleDefaults.ParagraphLineHeight;
         }
+
+        private static double ResolveNativeTableCellParagraphFontSize(WordParagraph paragraph, NativeDocumentDefaults nativeDefaults, NativeParagraphStyleDefaults styleDefaults, NativeTableStyleDefaults tableStyleDefaults) =>
+            paragraph.FontSize.HasValue && paragraph.FontSize.Value > 0
+                ? paragraph.FontSize.Value
+                : styleDefaults.FontSize ?? tableStyleDefaults.RunStyle.FontSize ?? nativeDefaults.FontSize;
 
         private static IReadOnlyList<PdfCore.PdfTabStop> ResolveNativeTableCellParagraphTabStops(WordParagraph paragraph, double leftIndent) {
             var result = new List<PdfCore.PdfTabStop>();
