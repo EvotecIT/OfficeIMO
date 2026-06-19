@@ -496,6 +496,49 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Maps_Document_Default_Tab_Stop() {
+            using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeDocumentDefaultTabStop.docx"));
+            document.Settings.DefaultTabStop = 1440;
+            WordParagraph paragraph = document.AddParagraph("Native document default tab stop");
+
+            MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeParagraphStyle", BindingFlags.NonPublic | BindingFlags.Static, binder: null, new[] { typeof(WordParagraph) }, modifiers: null)!;
+            PdfParagraphStyle style = Assert.IsType<PdfParagraphStyle>(method.Invoke(null, new object[] { paragraph }));
+
+            Assert.Equal(72D, style.DefaultTabStopWidth);
+        }
+
+        [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Renders_Document_Default_Tab_Stop() {
+            (double narrowLeftX, double narrowRightX) = RenderDocumentDefaultTabStop(720, "PdfNativeDocumentDefaultTabStopNarrow");
+            (double wideLeftX, double wideRightX) = RenderDocumentDefaultTabStop(2160, "PdfNativeDocumentDefaultTabStopWide");
+
+            Assert.InRange(Math.Abs(wideLeftX - narrowLeftX), 0D, 0.75D);
+            Assert.True(wideRightX > narrowRightX + 50D,
+                $"Expected wider Word document default tab stop to move implicit tab text right. Narrow x: {narrowRightX:0.##}, wide x: {wideRightX:0.##}.");
+        }
+
+        private (double LeftX, double RightX) RenderDocumentDefaultTabStop(int defaultTabStopTwips, string fileName) {
+            string docPath = Path.Combine(_directoryWithFiles, fileName + ".docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, fileName + ".pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                document.Settings.DefaultTabStop = defaultTabStopTwips;
+                document.AddParagraph("WWWWWWWWWWWW\tTabRight");
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false,
+                    PageSize = new OfficeIMO.Pdf.PageSize(420, 180),
+                    Margins = PageMargins.Uniform(36)
+                });
+            }
+
+            using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+            var page = pdf.GetPage(1);
+            Assert.Contains("TabRight", page.Text);
+            return (FindWordStartX(page, "WWWWWWWWWWWW"), FindWordStartX(page, "TabRight"));
+        }
+
+        [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Maps_Paragraph_Pagination_And_Tab_Style() {
             using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeParagraphStyle.docx"));
             WordParagraph paragraph = document.AddParagraph("Native style flags");

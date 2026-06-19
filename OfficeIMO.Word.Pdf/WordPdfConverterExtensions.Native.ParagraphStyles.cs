@@ -68,6 +68,9 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             style.LineHeight = lineHeight;
+            if (nativeDefaults.DefaultTabStopWidth.HasValue) {
+                style.DefaultTabStopWidth = nativeDefaults.DefaultTabStopWidth.Value;
+            }
 
             if (!paragraph.LineSpacingAfterPoints.HasValue &&
                 GetNativeSpacingAfterPoints(directSpacing, fontSize, lineHeight) == null &&

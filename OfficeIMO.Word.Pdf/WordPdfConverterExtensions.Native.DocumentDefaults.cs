@@ -4,14 +4,23 @@ using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
-        private readonly record struct NativeDocumentDefaults(double FontSize, double ParagraphLineHeight, double ParagraphSpacingBefore, bool ParagraphSpacingBeforeDeclared, double ParagraphSpacingAfter, bool ParagraphSpacingAfterDeclared, bool ParagraphWidowControl) {
-            public static NativeDocumentDefaults WordDefault { get; } = new(11D, NativeDefaultParagraphLineHeight, 0D, false, NativeDefaultParagraphSpacingAfter, false, true);
+        private readonly record struct NativeDocumentDefaults(double FontSize, double ParagraphLineHeight, double ParagraphSpacingBefore, bool ParagraphSpacingBeforeDeclared, double ParagraphSpacingAfter, bool ParagraphSpacingAfterDeclared, bool ParagraphWidowControl, double? DefaultTabStopWidth) {
+            public static NativeDocumentDefaults WordDefault { get; } = new(11D, NativeDefaultParagraphLineHeight, 0D, false, NativeDefaultParagraphSpacingAfter, false, true, null);
         }
 
         private static NativeDocumentDefaults GetNativeDocumentDefaults(WordDocument? document) {
             W.DocDefaults? defaults = document?._wordprocessingDocument?.MainDocumentPart?.StyleDefinitionsPart?.Styles?.DocDefaults;
+            double? defaultTabStopWidth = GetNativeDefaultTabStopWidth(document);
             if (defaults == null) {
-                return NativeDocumentDefaults.WordDefault;
+                return new NativeDocumentDefaults(
+                    NativeDocumentDefaults.WordDefault.FontSize,
+                    NativeDocumentDefaults.WordDefault.ParagraphLineHeight,
+                    NativeDocumentDefaults.WordDefault.ParagraphSpacingBefore,
+                    NativeDocumentDefaults.WordDefault.ParagraphSpacingBeforeDeclared,
+                    NativeDocumentDefaults.WordDefault.ParagraphSpacingAfter,
+                    NativeDocumentDefaults.WordDefault.ParagraphSpacingAfterDeclared,
+                    NativeDocumentDefaults.WordDefault.ParagraphWidowControl,
+                    defaultTabStopWidth);
             }
 
             double fontSize = GetNativeDefaultFontSize(defaults) ?? NativeDocumentDefaults.WordDefault.FontSize;
@@ -29,7 +38,16 @@ namespace OfficeIMO.Word.Pdf {
                 .GetFirstChild<W.ParagraphPropertiesDefault>()?
                 .GetFirstChild<W.ParagraphPropertiesBaseStyle>()?
                 .GetFirstChild<W.WidowControl>()) ?? NativeDocumentDefaults.WordDefault.ParagraphWidowControl;
-            return new NativeDocumentDefaults(fontSize, lineHeight, spacingBefore, spacingBeforeDeclared, spacingAfter, spacingAfterDeclared, widowControl);
+            return new NativeDocumentDefaults(fontSize, lineHeight, spacingBefore, spacingBeforeDeclared, spacingAfter, spacingAfterDeclared, widowControl, defaultTabStopWidth);
+        }
+
+        private static double? GetNativeDefaultTabStopWidth(WordDocument? document) {
+            int defaultTabStopTwips = document?.Settings?.DefaultTabStop ?? 0;
+            if (defaultTabStopTwips <= 0 || defaultTabStopTwips == 720) {
+                return null;
+            }
+
+            return ConvertNativeTwipsToPoints(defaultTabStopTwips);
         }
 
         private static double? GetNativeDefaultFontSize(W.DocDefaults defaults) {
