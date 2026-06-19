@@ -294,38 +294,131 @@ internal static partial class PdfWriter {
         private double MeasureRowKeepTogetherHeight(System.Collections.Generic.List<ColItem> items) {
             double total = 0D;
             foreach (var item in items) {
-                if (item is ColPar paragraph) {
-                    PdfParagraphStyle? paragraphStyle = EffectiveParagraphStyle(paragraph.Block);
-                    total += ResolveColumnSpacingBefore(GetParagraphSpacingBefore(paragraphStyle), total) + paragraph.Heights.Sum() + GetParagraphSpacingAfter(paragraphStyle, paragraph.Leading);
-                } else if (item is ColHead heading) {
-                    total += ResolveColumnSpacingBefore(heading.SpacingBefore, total) + MeasureRichLinesHeight(heading.Heights, heading.Lines.Count, heading.Leading) + heading.SpacingAfter;
-                } else if (item is ColListItem listItem) {
-                    total += ResolveColumnSpacingBefore(listItem.SpacingBefore, total) + MeasureRichLinesHeight(listItem.Heights, listItem.Lines.Count, listItem.Leading) + listItem.SpacingAfter;
-                } else if (item is ColPanel panel) {
-                    total += ResolveColumnSpacingBefore(panel.Style.SpacingBefore, total) + panel.Style.PaddingY + panel.Heights.Sum() + panel.Style.PaddingY + panel.Style.SpacingAfter;
-                } else if (item is ColTable table) {
-                    total += ResolveColumnSpacingBefore(table.Style.SpacingBefore, total) + table.CaptionHeight + GetTableRowsHeight(table.RowHeights, 0, table.RowHeights.Length, GetTableCellSpacing(table.Style)) + table.Style.SpacingAfter;
-                } else if (item is ColRule rule) {
-                    PdfHorizontalRuleStyle ruleStyle = ResolveHorizontalRuleStyle(rule.Block, currentOpts);
-                    ValidateHorizontalRule(ruleStyle);
-                    total += ResolveColumnSpacingBefore(ruleStyle.SpacingBefore, total) + ruleStyle.Thickness + ruleStyle.SpacingAfter;
-                } else if (item is ColImg image) {
-                    PdfImageStyle imageStyle = image.Style;
-                    total += ResolveColumnSpacingBefore(imageStyle.SpacingBefore, total) + image.Height + imageStyle.SpacingAfter;
-                } else if (item is ColShape shape) {
-                    PdfDrawingStyle shapeStyle = ResolveDrawingStyle(shape.Block, currentOpts);
-                    total += ResolveColumnSpacingBefore(shapeStyle.SpacingBefore, total) + shape.Block.Shape.Height + shapeStyle.SpacingAfter;
-                } else if (item is ColDrawing drawing) {
-                    PdfDrawingStyle drawingStyle = ResolveDrawingStyle(drawing.Block, currentOpts);
-                    total += ResolveColumnSpacingBefore(drawingStyle.SpacingBefore, total) + drawing.Block.Drawing.Height + drawingStyle.SpacingAfter;
-                } else if (item is ColForm form) {
-                    total += ResolveColumnSpacingBefore(GetFormFieldSpacingBefore(form.Block), total) + GetFormFieldHeight(form.Block) + GetFormFieldSpacingAfter(form.Block);
-                } else if (item is ColSpacer spacerItem) {
-                    total += spacerItem.Block.Height;
+                total += MeasureColItemFullHeight(item, total);
+            }
+
+            return total;
+        }
+
+        private double MeasureColKeepWithNextChainHeight(System.Collections.Generic.List<ColItem> items, int startIndex) {
+            double total = 0D;
+            for (int itemIndex = startIndex; itemIndex < items.Count; itemIndex++) {
+                ColItem item = items[itemIndex];
+                if (item is ColBookmark) {
+                    continue;
+                }
+
+                bool keepWithNext = ColItemKeepsWithNext(item);
+                if (keepWithNext && item is ColListItem listItem && listItem.IsFirstInKeepWithNextGroup) {
+                    double spacingBefore = ResolveColumnSpacingBefore(listItem.SpacingBefore, total + 1D);
+                    total += listItem.KeepWithNextGroupHeight - listItem.SpacingBefore + spacingBefore;
+                    itemIndex += Math.Max(0, listItem.KeepWithNextGroupItemCount - 1);
+                } else {
+                    total += keepWithNext
+                        ? MeasureColItemFullHeight(item, total + 1D)
+                        : MeasureColItemFirstVisualHeight(item);
+                }
+
+                if (!keepWithNext) {
+                    break;
                 }
             }
 
             return total;
+        }
+
+        private bool ColItemKeepsWithNext(ColItem item) {
+            if (item is ColPar paragraph) {
+                return EffectiveParagraphStyle(paragraph.Block)?.KeepWithNext == true;
+            }
+
+            if (item is ColHead heading) {
+                return heading.KeepWithNext;
+            }
+
+            if (item is ColListItem listItem) {
+                return listItem.KeepWithNext && listItem.IsFirstInKeepWithNextGroup;
+            }
+
+            if (item is ColPanel panel) {
+                return panel.Style.KeepWithNext;
+            }
+
+            if (item is ColTable table) {
+                return table.Style.KeepWithNext;
+            }
+
+            if (item is ColRule rule) {
+                return ResolveHorizontalRuleStyle(rule.Block, currentOpts).KeepWithNext;
+            }
+
+            if (item is ColImg image) {
+                return image.Style.KeepWithNext;
+            }
+
+            if (item is ColShape shape) {
+                return ResolveDrawingStyle(shape.Block, currentOpts).KeepWithNext;
+            }
+
+            if (item is ColDrawing drawing) {
+                return ResolveDrawingStyle(drawing.Block, currentOpts).KeepWithNext;
+            }
+
+            return false;
+        }
+
+        private double MeasureColItemFullHeight(ColItem item, double consumedBefore) {
+            if (item is ColPar paragraph) {
+                PdfParagraphStyle? paragraphStyle = EffectiveParagraphStyle(paragraph.Block);
+                return ResolveColumnSpacingBefore(GetParagraphSpacingBefore(paragraphStyle), consumedBefore) + paragraph.Heights.Sum() + GetParagraphSpacingAfter(paragraphStyle, paragraph.Leading);
+            }
+
+            if (item is ColHead heading) {
+                return ResolveColumnSpacingBefore(heading.SpacingBefore, consumedBefore) + MeasureRichLinesHeight(heading.Heights, heading.Lines.Count, heading.Leading) + heading.SpacingAfter;
+            }
+
+            if (item is ColListItem listItem) {
+                return ResolveColumnSpacingBefore(listItem.SpacingBefore, consumedBefore) + MeasureRichLinesHeight(listItem.Heights, listItem.Lines.Count, listItem.Leading) + listItem.SpacingAfter;
+            }
+
+            if (item is ColPanel panel) {
+                return ResolveColumnSpacingBefore(panel.Style.SpacingBefore, consumedBefore) + panel.Style.PaddingY + panel.Heights.Sum() + panel.Style.PaddingY + panel.Style.SpacingAfter;
+            }
+
+            if (item is ColTable table) {
+                return ResolveColumnSpacingBefore(table.Style.SpacingBefore, consumedBefore) + table.CaptionHeight + GetTableRowsHeight(table.RowHeights, 0, table.RowHeights.Length, GetTableCellSpacing(table.Style)) + table.Style.SpacingAfter;
+            }
+
+            if (item is ColRule rule) {
+                PdfHorizontalRuleStyle ruleStyle = ResolveHorizontalRuleStyle(rule.Block, currentOpts);
+                ValidateHorizontalRule(ruleStyle);
+                return ResolveColumnSpacingBefore(ruleStyle.SpacingBefore, consumedBefore) + ruleStyle.Thickness + ruleStyle.SpacingAfter;
+            }
+
+            if (item is ColImg image) {
+                PdfImageStyle imageStyle = image.Style;
+                return ResolveColumnSpacingBefore(imageStyle.SpacingBefore, consumedBefore) + image.Height + imageStyle.SpacingAfter;
+            }
+
+            if (item is ColShape shape) {
+                PdfDrawingStyle shapeStyle = ResolveDrawingStyle(shape.Block, currentOpts);
+                return ResolveColumnSpacingBefore(shapeStyle.SpacingBefore, consumedBefore) + shape.Block.Shape.Height + shapeStyle.SpacingAfter;
+            }
+
+            if (item is ColDrawing drawing) {
+                PdfDrawingStyle drawingStyle = ResolveDrawingStyle(drawing.Block, currentOpts);
+                return ResolveColumnSpacingBefore(drawingStyle.SpacingBefore, consumedBefore) + drawing.Block.Drawing.Height + drawingStyle.SpacingAfter;
+            }
+
+            if (item is ColForm form) {
+                return ResolveColumnSpacingBefore(GetFormFieldSpacingBefore(form.Block), consumedBefore) + GetFormFieldHeight(form.Block) + GetFormFieldSpacingAfter(form.Block);
+            }
+
+            if (item is ColSpacer spacerItem) {
+                return spacerItem.Block.Height;
+            }
+
+            return 0D;
         }
 
         private double MeasureColItemFirstVisualHeight(ColItem item) {

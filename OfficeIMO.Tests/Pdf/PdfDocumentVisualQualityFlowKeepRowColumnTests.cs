@@ -214,6 +214,47 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Fact]
+    public void RowColumnParagraph_KeepWithNextMeasuresFollowingHeadingChain() {
+        var options = new PdfOptions {
+            PageWidth = 260,
+            PageHeight = 170,
+            MarginLeft = 30,
+            MarginRight = 30,
+            MarginTop = 30,
+            MarginBottom = 30,
+            DefaultFont = PdfStandardFont.Helvetica,
+            DefaultFontSize = 10
+        };
+
+        byte[] bytes = PdfDocument.Create(options)
+            .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
+                SpacingAfter = 56
+            })
+            .Compose(document =>
+                document.Page(page =>
+                    page.Content(content =>
+                        content.Row(row =>
+                            row.Column(100, column => column
+                                .Paragraph(p => p.Text("ColumnChainKeepWithNext"), style: new PdfParagraphStyle {
+                                    KeepWithNext = true
+                                })
+                                .H3("ColumnFollowingHeading")
+                                .Paragraph(p => p.Text("ColumnFollowingHeadingBody")))))))
+            .ToBytes();
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.Contains("IntroMarker", pdf.GetPage(1).Text);
+        Assert.DoesNotContain("ColumnChainKeepWithNext", pdf.GetPage(1).Text);
+        Assert.DoesNotContain("ColumnFollowingHeading", pdf.GetPage(1).Text);
+        Assert.DoesNotContain("ColumnFollowingHeadingBody", pdf.GetPage(1).Text);
+        Assert.Contains("ColumnChainKeepWithNext", pdf.GetPage(2).Text);
+        Assert.Contains("ColumnFollowingHeading", pdf.GetPage(2).Text);
+        Assert.Contains("ColumnFollowingHeadingBody", pdf.GetPage(2).Text);
+    }
+
+    [Fact]
     public void RowColumnHeading_KeepsWithFollowingParagraph() {
         var options = new PdfOptions {
             PageWidth = 260,
