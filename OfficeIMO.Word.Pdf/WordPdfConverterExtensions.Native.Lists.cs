@@ -113,7 +113,7 @@ namespace OfficeIMO.Word.Pdf {
             index = listIndex.Index;
             item = new PdfCore.PdfListItem(richRuns, paragraph.Bookmark?.Name, string.IsNullOrWhiteSpace(displayMarker) ? null : displayMarker);
             align = ResolveNativeParagraphAlign(paragraph, allowJustify: false);
-            color = ParseNativeColor(paragraph.ColorHex);
+            color = ResolveNativeTextRunStyle(paragraph).Color;
             style = CreateNativeListStyle(paragraph, info.Value, displayMarker, nativeDefaults);
             return true;
         }
