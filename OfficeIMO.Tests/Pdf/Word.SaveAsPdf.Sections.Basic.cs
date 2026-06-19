@@ -472,6 +472,43 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Reserves_Body_Clearance_For_Large_Multiline_Header_Font_Size() {
+        string defaultDocPath = Path.Combine(_directoryWithFiles, "PdfNativeDefaultMultilineHeaderClearance.docx");
+        string defaultPdfPath = Path.Combine(_directoryWithFiles, "PdfNativeDefaultMultilineHeaderClearance.pdf");
+        string largeDocPath = Path.Combine(_directoryWithFiles, "PdfNativeLargeMultilineHeaderClearance.docx");
+        string largePdfPath = Path.Combine(_directoryWithFiles, "PdfNativeLargeMultilineHeaderClearance.pdf");
+
+        CreateMultilineHeaderDocument(defaultDocPath, defaultPdfPath, "DefaultHeaderClearanceBody", null);
+        CreateMultilineHeaderDocument(largeDocPath, largePdfPath, "LargeHeaderClearanceBody", 24);
+
+        using PdfPigDocument defaultPdf = PdfPigDocument.Open(defaultPdfPath);
+        using PdfPigDocument largePdf = PdfPigDocument.Open(largePdfPath);
+        double defaultBodyY = FindWordStartY(defaultPdf.GetPage(1), "DefaultHeaderClearanceBody");
+        double largeBodyY = FindWordStartY(largePdf.GetPage(1), "LargeHeaderClearanceBody");
+
+        Assert.True(defaultBodyY > largeBodyY + 25D, $"Expected a large multiline Word header font to reserve more body clearance. Default body y: {defaultBodyY:0.##}, large body y: {largeBodyY:0.##}.");
+
+        static void CreateMultilineHeaderDocument(string docPath, string pdfPath, string bodyText, int? headerFontSize) {
+            using WordDocument document = WordDocument.Create(docPath);
+            document.AddHeadersAndFooters();
+            WordHeader header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
+            for (int index = 1; index <= 4; index++) {
+                WordParagraph paragraph = header.AddParagraph("ClearanceHeaderLine" + index.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                if (headerFontSize.HasValue) {
+                    paragraph.FontSize = headerFontSize.Value;
+                }
+            }
+
+            document.AddParagraph(bodyText).SetStyle(WordParagraphStyles.Heading1);
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = PdfCore.PageSizes.Letter
+            });
+        }
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Preserves_HeaderFooter_Paragraph_Lines() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeMultilineHeaderFooter.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeMultilineHeaderFooter.pdf");

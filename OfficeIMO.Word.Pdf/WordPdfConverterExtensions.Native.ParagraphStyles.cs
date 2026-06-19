@@ -567,7 +567,7 @@ namespace OfficeIMO.Word.Pdf {
                 maxLines = Math.Max(maxLines, GetNativeHeaderFooterLineCount(variant));
             }
 
-            return GetNativeHeaderFooterMarginExpansion(maxLines);
+            return GetNativeHeaderFooterMarginExpansion(maxLines, GetNativeHeaderFooterLineHeight(variants));
         }
 
         private static double GetNativeFooterMarginExpansion(params WordHeaderFooter?[] variants) {
@@ -576,7 +576,7 @@ namespace OfficeIMO.Word.Pdf {
                 maxLines = Math.Max(maxLines, GetNativeHeaderFooterLineCount(variant));
             }
 
-            return GetNativeFooterMarginExpansion(maxLines);
+            return GetNativeFooterMarginExpansion(maxLines, GetNativeHeaderFooterLineHeight(variants));
         }
 
         private static double GetNativeHeaderFooterTextMarginExpansion(params NativeHeaderFooterText?[] variants) {
@@ -588,20 +588,33 @@ namespace OfficeIMO.Word.Pdf {
             return GetNativeHeaderFooterMarginExpansion(maxLines);
         }
 
-        private static double GetNativeHeaderFooterMarginExpansion(int maxLines) {
+        private static double GetNativeHeaderFooterMarginExpansion(int maxLines, double lineHeight = NativeHeaderFooterLineHeight) {
             if (maxLines <= 2) {
                 return 0D;
             }
 
-            return (maxLines - 2) * NativeHeaderFooterLineHeight + NativeHeaderFooterBodyGap;
+            return (maxLines - 2) * lineHeight + NativeHeaderFooterBodyGap;
         }
 
-        private static double GetNativeFooterMarginExpansion(int maxLines) {
+        private static double GetNativeFooterMarginExpansion(int maxLines, double lineHeight = NativeHeaderFooterLineHeight) {
             if (maxLines <= 1) {
                 return 0D;
             }
 
-            return ((maxLines - 1) * NativeHeaderFooterLineHeight * 0.75D) + NativeHeaderFooterBodyGap;
+            return ((maxLines - 1) * lineHeight * 0.75D) + NativeHeaderFooterBodyGap;
+        }
+
+        private static double GetNativeHeaderFooterLineHeight(params WordHeaderFooter?[] variants) {
+            double maxFontSize = NativeHeaderFooterFontSize;
+            foreach (WordHeaderFooter? variant in variants) {
+                foreach (double fontSize in EnumerateNativeHeaderFooterFontSizes(variant)) {
+                    if (fontSize > maxFontSize) {
+                        maxFontSize = fontSize;
+                    }
+                }
+            }
+
+            return maxFontSize * 1.2D;
         }
 
         private static int GetNativeHeaderFooterLineCount(WordHeaderFooter? headerFooter) {
