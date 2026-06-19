@@ -128,6 +128,37 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void FeatureReport_Preflight_BlocksPdfExportForInternalHyperlinksToSkippedTargets() {
+            string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.InternalHiddenHyperlink.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet summary = document.AddWorkSheet("Summary");
+                summary.CellValue(1, 1, "Resource");
+                summary.CellValue(2, 1, "Hidden target");
+
+                ExcelSheet hidden = document.AddWorkSheet("Hidden Details");
+                hidden.CellValue(1, 1, "Target");
+                hidden.SetHidden(true);
+                document.Save(false);
+            }
+
+            AddWorksheetInternalHyperlink(filePath, "A2", "'Hidden Details'!A1");
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelFeatureReport report = document.InspectFeatures();
+
+                Assert.False(report.Can(ExcelPreflightCapability.ExportPdfReport));
+                Assert.Contains(report.PartiallyEditableFeatures, feature => feature.Name == "PDF-unsupported hyperlinks");
+
+                string diagnostics = string.Join(Environment.NewLine,
+                    report.GetCapabilityDiagnostics(ExcelPreflightCapability.ExportPdfReport));
+                Assert.Contains("PDF-unsupported hyperlinks", diagnostics);
+                Assert.Contains("Hidden Details", diagnostics);
+                Assert.Contains("hidden and skipped", diagnostics);
+            }
+        }
+
+        [Fact]
         public void FeatureReport_Preflight_BlocksFormulaCalculationAndCachedReadsWhenFormulaStateIsUnsafe() {
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.Formulas.xlsx");
 
@@ -212,6 +243,27 @@ namespace OfficeIMO.Tests {
                 string diagnostics = string.Join(Environment.NewLine,
                     report.GetCapabilityDiagnostics(ExcelPreflightCapability.UseCachedFormulaValues));
                 Assert.Contains("Workbook recalculation requests", diagnostics);
+            }
+        }
+
+        [Fact]
+        public void FeatureReport_Preflight_IgnoresWorkbookRecalculationRequestWhenNoFormulasExist() {
+            string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.RecalcNoFormulas.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "Ready");
+                document.ConfigureFullCalculationOnOpen();
+                document.Save(false);
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelFeatureReport report = document.InspectFeatures();
+
+                Assert.True(report.Can(ExcelPreflightCapability.UseCachedFormulaValues));
+                Assert.True(report.Can(ExcelPreflightCapability.ExportPdfReport));
+                Assert.DoesNotContain(report.PreservedFeatures, feature => feature.Name == "Workbook recalculation requests");
+                Assert.Empty(report.GetCapabilityDiagnostics(ExcelPreflightCapability.UseCachedFormulaValues));
             }
         }
 
@@ -606,6 +658,7 @@ namespace OfficeIMO.Tests {
                     report.GetCapabilityDiagnostics(ExcelPreflightCapability.ExportPdfReport));
                 Assert.Contains("PDF-unrendered drawing shapes", diagnostics);
                 Assert.Contains("Report callout", diagnostics);
+                Assert.Contains("Report connector", diagnostics);
                 Assert.Contains("PDF-unsupported hyperlinks", diagnostics);
                 Assert.Contains("https://example.org/callout", diagnostics);
             }
@@ -673,6 +726,18 @@ namespace OfficeIMO.Tests {
             worksheetPart.Worksheet.Save();
         }
 
+        private static void AddWorksheetInternalHyperlink(string filePath, string cellReference, string location) {
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true);
+            WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            X.Hyperlinks hyperlinks = worksheetPart.Worksheet!.Elements<X.Hyperlinks>().FirstOrDefault()
+                ?? worksheetPart.Worksheet.AppendChild(new X.Hyperlinks());
+            hyperlinks.Append(new X.Hyperlink {
+                Reference = cellReference,
+                Location = location
+            });
+            worksheetPart.Worksheet.Save();
+        }
+
         private static void ClearWorkbookRecalculationRequest(string filePath) {
             using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true);
             X.CalculationProperties? properties = spreadsheet.WorkbookPart!.Workbook.GetFirstChild<X.CalculationProperties>();
@@ -717,6 +782,24 @@ namespace OfficeIMO.Tests {
                             new A.BodyProperties(),
                             new A.ListStyle(),
                             new A.Paragraph(new A.Run(new A.Text("Review"))))),
+                    new Xdr.ClientData()),
+                new Xdr.TwoCellAnchor(
+                    new Xdr.FromMarker(
+                        new Xdr.ColumnId("4"),
+                        new Xdr.ColumnOffset("0"),
+                        new Xdr.RowId("1"),
+                        new Xdr.RowOffset("0")),
+                    new Xdr.ToMarker(
+                        new Xdr.ColumnId("5"),
+                        new Xdr.ColumnOffset("0"),
+                        new Xdr.RowId("4"),
+                        new Xdr.RowOffset("0")),
+                    new Xdr.ConnectionShape(
+                        new Xdr.NonVisualConnectionShapeProperties(
+                            new Xdr.NonVisualDrawingProperties { Id = 3U, Name = "Report connector" },
+                            new Xdr.NonVisualConnectorShapeDrawingProperties()),
+                        new Xdr.ShapeProperties(
+                            new A.PresetGeometry { Preset = A.ShapeTypeValues.Line })),
                     new Xdr.ClientData()));
             drawingsPart.WorksheetDrawing.Save();
             worksheetPart.Worksheet.Save();

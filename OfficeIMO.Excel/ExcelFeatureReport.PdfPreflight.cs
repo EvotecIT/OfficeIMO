@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Excel {
@@ -44,17 +45,86 @@ namespace OfficeIMO.Excel {
         }
 
         private static void AddUnrenderedDrawingShapes(WorksheetPart worksheetPart, string sheetName, ref int count, List<string> details) {
-            var shapes = worksheetPart.DrawingsPart?.WorksheetDrawing?
-                .Descendants<DocumentFormat.OpenXml.Drawing.Spreadsheet.Shape>()
+            var drawings = worksheetPart.DrawingsPart?.WorksheetDrawing?
+                .Descendants()
+                .Where(IsUnrenderedPdfDrawingElement)
                 .ToList();
-            if (shapes == null || shapes.Count == 0) {
+            if (drawings == null || drawings.Count == 0) {
                 return;
             }
 
-            count += shapes.Count;
-            foreach (var shape in shapes) {
-                string name = shape.NonVisualShapeProperties?.NonVisualDrawingProperties?.Name?.Value ?? "unnamed shape";
-                details.Add($"{sheetName}: {name}");
+            count += drawings.Count;
+            foreach (OpenXmlElement drawing in drawings) {
+                string name = drawing.Descendants<DocumentFormat.OpenXml.Drawing.Spreadsheet.NonVisualDrawingProperties>()
+                    .FirstOrDefault()?.Name?.Value ?? $"unnamed {GetDrawingElementDisplayName(drawing)}";
+                details.Add($"{sheetName}: {name} ({GetDrawingElementDisplayName(drawing)})");
+            }
+        }
+
+        private static bool IsUnrenderedPdfDrawingElement(OpenXmlElement element) {
+            if (!string.Equals(element.NamespaceUri, "http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing", StringComparison.Ordinal)) {
+                return false;
+            }
+
+            switch (element.LocalName) {
+                case "sp":
+                case "cxnSp":
+                case "grpSp":
+                    return true;
+                case "graphicFrame":
+                    return !element.Descendants<DocumentFormat.OpenXml.Drawing.Charts.ChartReference>().Any();
+                default:
+                    return false;
+            }
+        }
+
+        private static string GetDrawingElementDisplayName(OpenXmlElement element) {
+            switch (element.LocalName) {
+                case "sp":
+                    return "shape";
+                case "cxnSp":
+                    return "connector";
+                case "grpSp":
+                    return "group shape";
+                case "graphicFrame":
+                    return "graphic frame";
+                default:
+                    return element.LocalName;
+            }
+        }
+
+        private static void AddUnsupportedWorksheetHyperlinks(
+            WorkbookPart workbookPart,
+            IReadOnlyList<DocumentFormat.OpenXml.Spreadsheet.Sheet> sheets,
+            WorksheetPart worksheetPart,
+            string sheetName,
+            ref int count,
+            List<string> details) {
+            var hyperlinks = worksheetPart.Worksheet?.Elements<DocumentFormat.OpenXml.Spreadsheet.Hyperlinks>().FirstOrDefault();
+            if (hyperlinks == null) {
+                return;
+            }
+
+            foreach (var hyperlink in hyperlinks.Elements<DocumentFormat.OpenXml.Spreadsheet.Hyperlink>()) {
+                if (hyperlink.Id != null) {
+                    continue;
+                }
+
+                string? location = hyperlink.Location?.Value;
+                if (string.IsNullOrWhiteSpace(location)) {
+                    continue;
+                }
+
+                if (!TryResolveInternalHyperlinkTarget(sheetName, location!, out string targetSheetName, out string targetCellReference)) {
+                    count++;
+                    details.Add($"{sheetName}: {hyperlink.Reference?.Value ?? "hyperlink"} -> {location} is not a worksheet cell target supported by the first-party PDF hyperlink writer.");
+                    continue;
+                }
+
+                if (!IsDefaultPdfExportedCell(workbookPart, sheets, targetSheetName, targetCellReference, out string reason)) {
+                    count++;
+                    details.Add($"{sheetName}: {hyperlink.Reference?.Value ?? "hyperlink"} -> {location} is skipped by the first-party PDF hyperlink writer because {reason}");
+                }
             }
         }
 
@@ -74,6 +144,102 @@ namespace OfficeIMO.Excel {
                     details.Add($"{sheetName}: {part.Uri} {relationship.Id} -> {relationship.Uri}");
                 }
             }
+        }
+
+        private static bool TryResolveInternalHyperlinkTarget(string currentSheetName, string location, out string sheetName, out string cellReference) {
+            sheetName = currentSheetName;
+            cellReference = string.Empty;
+
+            string targetReference = location;
+            if (SheetNameLookup.TryParseSheetQualifiedReference(location, out string parsedSheetName, out string parsedReference, allowExternalWorkbookReferences: false)) {
+                sheetName = parsedSheetName;
+                targetReference = parsedReference;
+            }
+
+            return TryGetTopLeftCellReference(targetReference, out cellReference);
+        }
+
+        private static bool IsDefaultPdfExportedCell(
+            WorkbookPart workbookPart,
+            IReadOnlyList<DocumentFormat.OpenXml.Spreadsheet.Sheet> sheets,
+            string sheetName,
+            string cellReference,
+            out string reason) {
+            var sheet = SheetNameLookup.FindByRequestedName(sheets, sheetName);
+            if (sheet == null || string.IsNullOrWhiteSpace(sheet.Id?.Value)) {
+                reason = $"target sheet '{sheetName}' was not found.";
+                return false;
+            }
+
+            if (IsHiddenSheet(sheet)) {
+                reason = $"target sheet '{sheetName}' is hidden and skipped by default PDF export.";
+                return false;
+            }
+
+            if (workbookPart.GetPartById(sheet.Id!.Value!) is not WorksheetPart worksheetPart) {
+                reason = $"target sheet '{sheetName}' is not a worksheet.";
+                return false;
+            }
+
+            if (!TryGetTopLeftCellReference(cellReference, out string normalizedCellReference)
+                || !A1.TryParseCellReferenceFast(normalizedCellReference, out int targetRow, out int targetColumn)) {
+                reason = $"target cell '{cellReference}' is not a supported A1 reference.";
+                return false;
+            }
+
+            if (!TryGetWorksheetUsedRange(worksheetPart, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
+                reason = $"target sheet '{sheetName}' has no exported cells in the default PDF range.";
+                return false;
+            }
+
+            if (targetRow < firstRow || targetRow > lastRow || targetColumn < firstColumn || targetColumn > lastColumn) {
+                reason = $"target cell '{sheetName}!{normalizedCellReference}' is outside the default PDF exported range {A1.CellReference(firstRow, firstColumn)}:{A1.CellReference(lastRow, lastColumn)}.";
+                return false;
+            }
+
+            reason = string.Empty;
+            return true;
+        }
+
+        private static bool TryGetWorksheetUsedRange(WorksheetPart worksheetPart, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn) {
+            firstRow = int.MaxValue;
+            firstColumn = int.MaxValue;
+            lastRow = 0;
+            lastColumn = 0;
+
+            foreach (var cell in worksheetPart.Worksheet?.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>() ?? Enumerable.Empty<DocumentFormat.OpenXml.Spreadsheet.Cell>()) {
+                string? reference = cell.CellReference?.Value;
+                if (!A1.TryParseCellReferenceFast(reference, out int row, out int column)) {
+                    continue;
+                }
+
+                firstRow = Math.Min(firstRow, row);
+                firstColumn = Math.Min(firstColumn, column);
+                lastRow = Math.Max(lastRow, row);
+                lastColumn = Math.Max(lastColumn, column);
+            }
+
+            return lastRow > 0 && lastColumn > 0;
+        }
+
+        private static bool TryGetTopLeftCellReference(string referenceToken, out string cellReference) {
+            cellReference = string.Empty;
+            if (string.IsNullOrWhiteSpace(referenceToken)) {
+                return false;
+            }
+
+            string token = referenceToken.Trim().Replace("$", string.Empty);
+            if (A1.TryParseRange(token, out int firstRow, out int firstColumn, out _, out _)) {
+                cellReference = A1.CellReference(firstRow, firstColumn);
+                return true;
+            }
+
+            if (!A1.TryParseCellReferenceFast(token, out int row, out int column)) {
+                return false;
+            }
+
+            cellReference = A1.CellReference(row, column);
+            return true;
         }
 
         private static bool IsPdfSupportedChartType(ExcelChartType chartType) {

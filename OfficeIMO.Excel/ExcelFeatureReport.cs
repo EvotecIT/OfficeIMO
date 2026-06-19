@@ -428,6 +428,7 @@ namespace OfficeIMO.Excel {
                 if (isVisibleForDefaultPdfExport) {
                     AddUnsupportedHeaderFooterImages(excelSheet.GetHeaderFooter(), sheet.Name?.Value ?? string.Empty, ref pdfUnsupportedImageCount, pdfUnsupportedImageDetails);
                     AddUnrenderedDrawingShapes(worksheetPart, sheet.Name?.Value ?? string.Empty, ref pdfUnrenderedDrawingShapeCount, pdfUnrenderedDrawingShapeDetails);
+                    AddUnsupportedWorksheetHyperlinks(workbookPart, sheetElements, worksheetPart, sheet.Name?.Value ?? string.Empty, ref pdfUnsupportedHyperlinkCount, pdfUnsupportedHyperlinkDetails);
                     AddUnsupportedDrawingHyperlinks(worksheetPart, sheet.Name?.Value ?? string.Empty, ref pdfUnsupportedHyperlinkCount, pdfUnsupportedHyperlinkDetails);
                 }
                 int sheetOleObjects = CountDescendantsByLocalName(worksheet, "oleObject");
@@ -498,6 +499,7 @@ namespace OfficeIMO.Excel {
                 nonWorksheetSheetDetails);
 
             var formulas = InspectFormulas();
+            bool hasWorkbookRecalculationRequest = formulas.Formulas.Count > 0 && HasWorkbookRecalculationRequest(workbook);
             Add(features, "Calculation", "Supported formulas", ExcelFeatureSupportLevel.PartiallyEditable, formulas.SupportedFormulas, null,
                 "Simple supported formulas can be recalculated by OfficeIMO.");
             Add(features, "Calculation", "Unsupported formulas", ExcelFeatureSupportLevel.Preserved, formulas.UnsupportedFormulas, null,
@@ -510,9 +512,9 @@ namespace OfficeIMO.Excel {
                     .Where(formula => formula.IsDirty)
                     .Select(formula => $"{formula.SheetName}!{formula.CellReference}")
                     .ToArray());
-            Add(features, "Calculation", "Workbook recalculation requests", ExcelFeatureSupportLevel.Preserved, HasWorkbookRecalculationRequest(workbook) ? 1 : 0, null,
+            Add(features, "Calculation", "Workbook recalculation requests", ExcelFeatureSupportLevel.Preserved, hasWorkbookRecalculationRequest ? 1 : 0, null,
                 "The workbook requests full recalculation on open, so cached formula values should be refreshed before cached-value reads are trusted.",
-                DescribeWorkbookRecalculationRequest(workbook).ToArray());
+                hasWorkbookRecalculationRequest ? DescribeWorkbookRecalculationRequest(workbook).ToArray() : Array.Empty<string>());
             var formulaCalculationBlockers = formulas.Formulas
                 .SelectMany(GetFormulaCalculationBlockers)
                 .ToArray();
