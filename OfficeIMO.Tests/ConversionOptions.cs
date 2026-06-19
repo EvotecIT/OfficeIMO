@@ -148,6 +148,7 @@ public class ConversionOptionsTests {
         options.AllowedStylesheetContentTypes.Clear();
         options.AllowedStylesheetContentTypes.Add("text/css");
         options.Diagnostics.Add(new HtmlConversionDiagnostic("Existing", "Existing diagnostic"));
+        options.ConversionReport.Add("OfficeIMO.Word.Html", "Existing", "Existing diagnostic");
 
         var clone = options.Clone();
 
@@ -199,6 +200,7 @@ public class ConversionOptionsTests {
         Assert.Equal(options.AllowedStylesheetHosts, clone.AllowedStylesheetHosts);
         Assert.Equal(options.AllowedStylesheetContentTypes, clone.AllowedStylesheetContentTypes);
         Assert.Empty(clone.Diagnostics);
+        Assert.Empty(clone.ConversionReport.Diagnostics);
 
         clone.ClassStyles["lead"] = WordParagraphStyles.Heading3;
         clone.StylesheetPaths.Add("other.css");
