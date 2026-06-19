@@ -47,7 +47,7 @@ namespace OfficeIMO.Word.Pdf {
             return null;
         }
 
-        private static void ConfigureNativeHeaderFooter(PdfCore.PdfPageCompose page, WordSection section, PdfSaveOptions? options) {
+        private static void ConfigureNativeHeaderFooter(PdfCore.PdfPageCompose page, WordSection section, PdfSaveOptions? options, double headerMarginExpansion, double footerMarginExpansion) {
             RecordNativeHeaderFooterDiagnostics(section.Header?.Default, options, "default header");
             RecordNativeHeaderFooterDiagnostics(section.Header?.First, options, "first header");
             RecordNativeHeaderFooterDiagnostics(section.Header?.Even, options, "even header");
@@ -83,6 +83,10 @@ namespace OfficeIMO.Word.Pdf {
                 defaultHeaderImages.Count > 0 || firstHeaderImages.Count > 0 || evenHeaderImages.Count > 0 ||
                 defaultHeaderShapes.Count > 0 || firstHeaderShapes.Count > 0 || evenHeaderShapes.Count > 0) {
                 page.Header(header => {
+                    if (headerMarginExpansion > 0D) {
+                        header.Offset(GetNativeHeaderOffset(options, headerMarginExpansion));
+                    }
+
                     if (defaultHeader != null) {
                         header.Zones(defaultHeader.Left, defaultHeader.Center, defaultHeader.Right);
                     }
@@ -119,6 +123,8 @@ namespace OfficeIMO.Word.Pdf {
 
             string pageNumberFormat = GetNativePageNumberFormat(options);
             page.Footer(footer => {
+                footer.Offset(GetNativeFooterOffset(options));
+
                 NativeHeaderFooterText? resolvedDefaultFooter = WithNativeFooterPageNumber(defaultFooter, includePageNumbers, pageNumberFormat);
                 if (resolvedDefaultFooter != null) {
                     footer.Zones(resolvedDefaultFooter.Left, resolvedDefaultFooter.Center, resolvedDefaultFooter.Right);
@@ -147,6 +153,15 @@ namespace OfficeIMO.Word.Pdf {
                 AddNativeFooterImages(footer, evenFooterImages, W.HeaderFooterValues.Even);
                 AddNativeFooterShapes(footer, evenFooterShapes, W.HeaderFooterValues.Even);
             });
+        }
+
+        private static double GetNativeHeaderOffset(PdfSaveOptions? options, double headerMarginExpansion) {
+            double configuredOffset = options?.PdfOptions?.HeaderOffsetY ?? NativeHeaderFooterDefaultOffset;
+            return configuredOffset + headerMarginExpansion;
+        }
+
+        private static double GetNativeFooterOffset(PdfSaveOptions? options) {
+            return options?.PdfOptions?.FooterOffsetY ?? NativeFooterDefaultOffset;
         }
 
         private static void AddNativeHeaderImages(PdfCore.PdfHeaderCompose header, IReadOnlyList<NativeHeaderFooterImage> images, W.HeaderFooterValues variant) {

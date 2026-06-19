@@ -18,6 +18,9 @@ internal static partial class PdfWriter {
         private PreparedTableColumns PrepareTableColumns(TableBlock table, PdfTableStyle style, double availableWidth, double fontSize, int headerRowCount, int footerStartRowIndex) {
             int columns = GetTableColumnCount(table);
             double columnGap = GetTableCellSpacing(style);
+            AutoFitColumnProfile[]? autoFitProfiles = style.AutoFitColumns
+                ? MeasureAutoFitColumnProfiles(table, headerRowCount)
+                : null;
             double[]? autoFitWeights = style.AutoFitColumns
                 ? MeasureAutoFitColumnWeights(table, currentOpts, style, fontSize, headerRowCount, footerStartRowIndex)
                 : null;
@@ -79,6 +82,13 @@ internal static partial class PdfWriter {
                     weight = autoFitWeights[column];
                 }
 
+                if (autoFitWeights != null && minWidth.HasValue) {
+                    AutoFitColumnProfile profile = autoFitProfiles != null && column < autoFitProfiles.Length
+                        ? autoFitProfiles[column]
+                        : default;
+                    weight = ResolveAutoFitFlexibleWeight(weight, minWidth.Value, profile);
+                }
+
                 columnWeights[column] = weight;
                 totalWeight += weight;
             }
@@ -89,6 +99,9 @@ internal static partial class PdfWriter {
             }
 
             fixedWidthTotal = FitFixedTableColumnsToAvailableWidth(columnWidths, fixedColumns, minWidths, fixedWidthTotal, tableInnerWidth);
+            if (style.PreserveWidth && totalWeight <= 0D) {
+                fixedWidthTotal = ExpandFixedTableColumnsToAvailableWidth(columnWidths, fixedColumns, maxWidths, fixedWidthTotal, tableInnerWidth);
+            }
             if (totalWeight <= 0) {
                 tableInnerWidth = fixedWidthTotal;
                 tableWidth = tableInnerWidth + (columns - 1) * columnGap;
@@ -97,7 +110,7 @@ internal static partial class PdfWriter {
             double remainingWidth = Math.Max(0, tableInnerWidth - fixedWidthTotal);
             DistributeFlexibleColumns(columnWidths, columnWeights, fixedColumns, minWidths, maxWidths, remainingWidth);
             double usedTableInnerWidth = columnWidths.Sum();
-            if (usedTableInnerWidth < tableInnerWidth - 0.001) {
+            if (!style.PreserveWidth && usedTableInnerWidth < tableInnerWidth - 0.001) {
                 tableInnerWidth = usedTableInnerWidth;
                 tableWidth = tableInnerWidth + (columns - 1) * columnGap;
             }

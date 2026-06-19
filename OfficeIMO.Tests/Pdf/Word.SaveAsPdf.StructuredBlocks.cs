@@ -1203,7 +1203,8 @@ public partial class Word {
         }
 
         string text = PdfTextExtractor.ExtractAllText(pdfPath);
-        Assert.Contains("Native header first Native header second", text);
+        string normalizedText = System.Text.RegularExpressions.Regex.Replace(text, @"\s+", " ");
+        Assert.Contains("Native header first Native header second", normalizedText);
         Assert.Contains("Native header newline body", text);
     }
 
@@ -1975,6 +1976,33 @@ public partial class Word {
         Assert.Contains("0.184 0.702 0.267 rg", rawPdf, StringComparison.Ordinal);
         Assert.Contains("0.969 0.404 0.027 rg", rawPdf, StringComparison.Ordinal);
         Assert.Contains("0.525 0.557 0.588 rg", rawPdf, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Uses_Word_Chart_Title_Band() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartTitleBand.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartTitleBand.pdf");
+        var options = new PdfSaveOptions {
+            IncludePageNumbers = false
+        };
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            WordChart chart = document.AddChart("Word PDF Title Band", false, 360, 220);
+            chart.AddPie("Passed", 4);
+            chart.AddPie("Failed", 2);
+            document.AddParagraph("After chart title band");
+
+            object snapshot = CreateNativeWordChartSnapshot(chart);
+            object layout = snapshot.GetType().GetProperty("Layout")!.GetValue(snapshot)!;
+            Assert.Equal(31D, (double)layout.GetType().GetProperty("TitleTopPadding")!.GetValue(layout)!);
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, options);
+        }
+
+        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+        string text = PdfTextExtractor.ExtractAllText(pdfPath);
+        Assert.Contains("After chart title band", text);
     }
 
     [Fact]

@@ -190,4 +190,51 @@ public partial class Word {
             Assert.Contains("Native Odd Footer", thirdPageText);
         }
     }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Preserves_Configured_Header_And_Footer_Offsets() {
+        using WordDocument document = WordDocument.Create();
+        document.AddHeadersAndFooters();
+        WordHeader header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
+        header.AddParagraph("Offset Header Line One");
+        header.AddParagraph("Offset Header Line Two");
+        header.AddParagraph("Offset Header Line Three");
+        RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph("Offset Footer");
+        document.AddParagraph("Offset body");
+
+        byte[] lowOffsetBytes = document.SaveAsPdf(new PdfSaveOptions {
+            IncludePageNumbers = false,
+            PdfOptions = new PdfCore.PdfOptions {
+                HeaderOffsetY = 6,
+                FooterOffsetY = 8
+            }
+        });
+        byte[] highOffsetBytes = document.SaveAsPdf(new PdfSaveOptions {
+            IncludePageNumbers = false,
+            PdfOptions = new PdfCore.PdfOptions {
+                HeaderOffsetY = 30,
+                FooterOffsetY = 28
+            }
+        });
+
+        using PdfPigDocument lowOffsetPdf = PdfPigDocument.Open(new MemoryStream(lowOffsetBytes));
+        using PdfPigDocument highOffsetPdf = PdfPigDocument.Open(new MemoryStream(highOffsetBytes));
+        double lowHeaderY = FindHeaderFooterWordStartY(lowOffsetPdf.GetPage(1), "Offset", lowest: false);
+        double highHeaderY = FindHeaderFooterWordStartY(highOffsetPdf.GetPage(1), "Offset", lowest: false);
+        double lowFooterY = FindHeaderFooterWordStartY(lowOffsetPdf.GetPage(1), "Offset", lowest: true);
+        double highFooterY = FindHeaderFooterWordStartY(highOffsetPdf.GetPage(1), "Offset", lowest: true);
+
+        Assert.True(highHeaderY > lowHeaderY + 15D, $"Expected custom HeaderOffsetY to move the native Word PDF header. Low: {lowHeaderY:0.##}, high: {highHeaderY:0.##}.");
+        Assert.True(lowFooterY > highFooterY + 15D, $"Expected custom FooterOffsetY to move the native Word PDF footer. Low: {lowFooterY:0.##}, high: {highFooterY:0.##}.");
+    }
+
+    private static double FindHeaderFooterWordStartY(UglyToad.PdfPig.Content.Page page, string word, bool lowest) {
+        var words = page.GetWords()
+            .Where(item => item.Text == word)
+            .OrderBy(item => item.BoundingBox.Bottom)
+            .ToList();
+
+        Assert.NotEmpty(words);
+        return lowest ? words[0].BoundingBox.Bottom : words[words.Count - 1].BoundingBox.Bottom;
+    }
 }

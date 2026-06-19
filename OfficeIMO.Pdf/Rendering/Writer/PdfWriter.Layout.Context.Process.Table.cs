@@ -80,6 +80,9 @@ internal static partial class PdfWriter {
             if (style.SpacingAfter < 0 || double.IsNaN(style.SpacingAfter) || double.IsInfinity(style.SpacingAfter)) {
                 throw new ArgumentException("Table spacing after must be a non-negative finite value.");
             }
+            if (style.PageContinuationSpacingBefore < 0 || double.IsNaN(style.PageContinuationSpacingBefore) || double.IsInfinity(style.PageContinuationSpacingBefore)) {
+                throw new ArgumentException("Table page continuation spacing before must be a non-negative finite value.");
+            }
             if (double.IsNaN(style.RowBaselineOffset) || double.IsInfinity(style.RowBaselineOffset)) {
                 throw new ArgumentException("Table row baseline offset must be a finite value.");
             }
@@ -264,7 +267,29 @@ internal static partial class PdfWriter {
             bool CanRepeatHeaderWithSegment(int rowIndex) =>
                 hasRepeatableHeader &&
                 rowIndex >= headerRowCount &&
-                repeatHeaderHeight + rowLeadings[rowIndex] + GetTableRowMaxPaddingTop(tb, style, rowIndex, cols) + GetTableRowMaxPaddingBottom(tb, style, rowIndex, cols) <= maxContentHeight + 0.001;
+                repeatHeaderHeight + rowLeadings[rowIndex] + GetTableRowMaxPaddingTop(tb, style, rowIndex, cols) + GetTableRowMaxPaddingBottom(tb, style, rowIndex, cols) <= y - currentOpts.MarginBottom + 0.001;
+
+            void ApplyTablePageContinuationSpacing(double requiredFirstSegmentHeight) {
+                double spacing = style.PageContinuationSpacingBefore;
+                if (spacing <= 0D || y < yStart - 0.001) {
+                    return;
+                }
+
+                double available = y - currentOpts.MarginBottom;
+                double spacingThatFits = Math.Min(spacing, Math.Max(0D, available - requiredFirstSegmentHeight));
+                if (spacingThatFits > 0.001D) {
+                    y -= spacingThatFits;
+                }
+            }
+
+            double GetTableContinuationRequiredHeight(int rowIndex) {
+                double rowRequiredHeight = rowHeights[rowIndex];
+                if (hasRepeatableHeader && rowIndex >= headerRowCount) {
+                    rowRequiredHeight += repeatHeaderHeight;
+                }
+
+                return rowRequiredHeight;
+            }
 
             void DrawRepeatHeaders() {
                 for (int headerIndex = 0; headerIndex < repeatHeaderRowCount; headerIndex++) {
@@ -274,6 +299,7 @@ internal static partial class PdfWriter {
 
             void NewTablePage(int rowIndex) {
                 NewPage();
+                ApplyTablePageContinuationSpacing(GetTableContinuationRequiredHeight(rowIndex));
                 if (CanRepeatHeaderWithSegment(rowIndex)) {
                     DrawRepeatHeaders();
                 }
@@ -317,6 +343,31 @@ internal static partial class PdfWriter {
                 }
 
                 return Math.Max(1, best);
+            }
+
+            bool CanSplitTableRowIntoRemainingSpace(int rowIndex) =>
+                rowIndex >= headerRowCount &&
+                GetTableRowAllowBreakAcrossPages(style, rowIndex) &&
+                rowLineCounts[rowIndex] > 1 &&
+                MeasureTableRowSegmentHeight(rowIndex, 0, Math.Min(2, rowLineCounts[rowIndex]), suppressCellObjects: false) <= y - currentOpts.MarginBottom + 0.001;
+
+            bool ShouldBreakBeforePenultimateBodyRow(int rowIndex) {
+                if (rowIndex + 1 >= rowHeights.Length) {
+                    return false;
+                }
+
+                double currentRowHeight = rowHeights[rowIndex] + GetTableRowGapAfter(rowIndex, tb.Rows.Count, rowGapPx);
+                double nextRowHeight = rowHeights[rowIndex + 1] + GetTableRowGapAfter(rowIndex + 1, tb.Rows.Count, rowGapPx);
+                return ShouldBreakBeforePenultimateTableBodyRow(
+                    rowIndex,
+                    headerRowCount,
+                    footerStartRowIndex,
+                    currentRowHeight,
+                    nextRowHeight,
+                    y - currentOpts.MarginBottom,
+                    hasRepeatableHeader ? repeatHeaderHeight : 0D,
+                    maxContentHeight,
+                    y < yStart - 0.001);
             }
 
             void DrawTableRowSegment(int rowIndex, bool renderAsHeader, int startLine, int lineCount, bool suppressCellObjects = false, PageStructElement? existingRowStructureElement = null) {
@@ -542,10 +593,13 @@ internal static partial class PdfWriter {
                     }
 
                     if (HasCellLinkTarget(linkUri, linkDestinationName)) {
-                        double x1 = xi + cellPadLeft;
-                        double x2 = xi + cellWidth - cellPadRight;
-                        double y1 = cellBottom;
-                        double y2 = y;
+                        double x1 = xi + cellPadLeft - TableCellClipBleed;
+                        double x2 = xi + cellWidth - cellPadRight + TableCellClipBleed;
+                        double linkCellHeight = sourceStartLine == 0 && cell.RowSpan > 1
+                            ? GetTableCellHeight(rowHeights, rowIndex, cell.RowSpan, rowGapPx)
+                            : cellHeight;
+                        double y1 = y - linkCellHeight - TableCellClipBleed;
+                        double y2 = y + TableCellClipBleed;
                         currentPage!.Annotations.Add(new LinkAnnotation { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Uri = linkUri, DestinationName = linkDestinationName, Contents = linkContents ?? cell.Text, StructElementIndex = cellLinkStructElementIndex });
                     }
                 }
@@ -620,10 +674,15 @@ internal static partial class PdfWriter {
                 }
 
                 if (ShouldBreakBefore(rowHeights[rowIndex])) {
-                    NewPage();
-                    if (hasRepeatableHeader && rowIndex >= headerRowCount && repeatHeaderHeight + rowHeights[rowIndex] <= maxContentHeight + 0.001) {
-                        DrawRepeatHeaders();
+                    if (CanSplitTableRowIntoRemainingSpace(rowIndex)) {
+                        DrawSplitTableRow(rowIndex, renderAsHeader: rowIndex < headerRowCount);
+                        y -= GetTableRowGapAfter(rowIndex, tb.Rows.Count, rowGapPx);
+                        continue;
                     }
+
+                    NewTablePage(rowIndex);
+                } else if (ShouldBreakBeforePenultimateBodyRow(rowIndex)) {
+                    NewTablePage(rowIndex);
                 }
 
                 DrawTableRow(rowIndex, renderAsHeader: rowIndex < headerRowCount);

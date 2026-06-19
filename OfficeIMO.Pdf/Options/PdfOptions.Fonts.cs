@@ -19,7 +19,7 @@ public sealed partial class PdfOptions {
         }
     }
 
-    internal PdfEmbeddedFontFallbackSet? EmbeddedFontFallbacksSnapshot => _embeddedFontFallbacks?.Clone();
+    internal PdfEmbeddedFontFallbackSet? EmbeddedFontFallbacksSnapshot => _embeddedFontFallbacks;
 
     /// <summary>Default installed sans-serif family candidates used by document converters when they need Unicode-capable generated PDF text.</summary>
     public const string DefaultDocumentFontFamilyFallback = "Arial, Aptos, Calibri, Liberation Sans, DejaVu Sans";

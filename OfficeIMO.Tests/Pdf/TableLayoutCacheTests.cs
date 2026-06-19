@@ -20,6 +20,35 @@ namespace OfficeIMO.Tests.Pdf {
         }
 
         [Fact]
+        public void WiderCellPreferredWidthsExpandGridColumns() {
+            using WordDocument document = WordDocument.Create();
+            WordTable table = document.AddTable(1, 2);
+            table.GridColumnWidth = new List<int> { 720, 720 };
+            table.Rows[0].Cells[0].Width = 1440;
+            table.Rows[0].Cells[1].Width = 720;
+
+            TableLayout layout = TableLayoutCache.GetLayout(table);
+
+            Assert.Equal(72f, layout.ColumnWidths[0]);
+            Assert.Equal(36f, layout.ColumnWidths[1]);
+        }
+
+        [Fact]
+        public void DxaWidthOfTwentyFourHundredTwipsIsPreservedWhenAuthored() {
+            using WordDocument document = WordDocument.Create();
+            WordTable table = document.AddTable(1, 2);
+            table.Rows[0].Cells[0].Width = 2400;
+            table.Rows[0].Cells[0].WidthType = DocumentFormat.OpenXml.Wordprocessing.TableWidthUnitValues.Dxa;
+            table.Rows[0].Cells[1].Width = 720;
+            table.Rows[0].Cells[1].WidthType = DocumentFormat.OpenXml.Wordprocessing.TableWidthUnitValues.Dxa;
+
+            TableLayout layout = TableLayoutCache.GetLayout(table);
+
+            Assert.Equal(120f, layout.ColumnWidths[0]);
+            Assert.Equal(36f, layout.ColumnWidths[1]);
+        }
+
+        [Fact]
         public void NestedTableWidthsPropagateToParent() {
             using WordDocument document = WordDocument.Create();
             WordTable outer = document.AddTable(1, 2);

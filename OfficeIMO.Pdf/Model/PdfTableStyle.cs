@@ -38,6 +38,7 @@ public class PdfTableStyle {
     private double _cellSpacing;
     private double _minRowHeight;
     private double _spacingBefore;
+    private double _pageContinuationSpacingBefore;
     private double? _captionFontSize;
     private double _captionSpacingAfter = 4;
     private double _spacingAfter;
@@ -411,6 +412,14 @@ public class PdfTableStyle {
             _spacingBefore = value;
         }
     }
+    /// <summary>Vertical space to reserve before table content when the same table continues on a new page.</summary>
+    public double PageContinuationSpacingBefore {
+        get => _pageContinuationSpacingBefore;
+        set {
+            ValidateNonNegativeFiniteValue(value, nameof(PageContinuationSpacingBefore), "Table page continuation spacing before must be a non-negative finite value.");
+            _pageContinuationSpacingBefore = value;
+        }
+    }
     /// <summary>Optional text rendered above the table grid as part of the table flow.</summary>
     public string? Caption { get; set; }
     /// <summary>Caption alignment inside the rendered table width.</summary>
@@ -463,6 +472,8 @@ public class PdfTableStyle {
             _maxWidth = value;
         }
     }
+    /// <summary>When true, the resolved table frame width is preserved even if measured columns would otherwise shrink to their content.</summary>
+    public bool PreserveWidth { get; set; }
     /// <summary>Optional left indentation before table placement, in points.</summary>
     public double LeftIndent {
         get => _leftIndent;
@@ -581,6 +592,7 @@ public class PdfTableStyle {
             MinRowHeight = MinRowHeight,
             RowMinHeights = RowMinHeights,
             SpacingBefore = SpacingBefore,
+            PageContinuationSpacingBefore = PageContinuationSpacingBefore,
             Caption = Caption,
             CaptionAlign = CaptionAlign,
             CaptionColor = CaptionColor,
@@ -589,6 +601,7 @@ public class PdfTableStyle {
             SpacingAfter = SpacingAfter,
             RowBaselineOffset = RowBaselineOffset,
             MaxWidth = MaxWidth,
+            PreserveWidth = PreserveWidth,
             LeftIndent = LeftIndent,
             AutoFitColumns = AutoFitColumns,
             RightAlignNumeric = RightAlignNumeric,

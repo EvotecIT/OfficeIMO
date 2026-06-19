@@ -143,4 +143,5 @@ public partial class Word {
             .Count(word => word.Text == "SoloHdr");
         Assert.Equal(1, firstRowHeaderCount);
     }
+
 }

@@ -15,11 +15,15 @@ namespace OfficeIMO.Word.Pdf {
             int columnCount = ResolveColumnCount(table, rows);
             float[] widths = new float[columnCount];
             float[] gridWidths = new float[columnCount];
+            bool[] explicitCellWidthColumns = new bool[columnCount];
 
             List<int> gridColumnWidths = table.GridColumnWidth;
             if (gridColumnWidths.Count > 0) {
                 for (int i = 0; i < gridWidths.Length && i < gridColumnWidths.Count; i++) {
                     gridWidths[i] = gridColumnWidths[i] / 20f;
+                    if (gridWidths[i] > 0f) {
+                        widths[i] = gridWidths[i];
+                    }
                 }
             }
 
@@ -33,8 +37,10 @@ namespace OfficeIMO.Word.Pdf {
 
                     int columnSpan = System.Math.Max(1, cell.ColumnSpan);
                     float width = 0f;
-                    if (cell.Width.HasValue && cell.WidthType == TableWidthUnitValues.Dxa) {
-                        width = cell.Width.Value / 20f;
+                    bool hasExplicitCellWidth = false;
+                    if (IsExplicitDxaCellWidth(cell)) {
+                        width = cell.Width!.Value / 20f;
+                        hasExplicitCellWidth = true;
                     }
 
                     if (cell.HasNestedTables) {
@@ -50,7 +56,13 @@ namespace OfficeIMO.Word.Pdf {
                     if (width > 0f) {
                         float widthPerColumn = width / columnSpan;
                         for (int columnIndex = logicalColumn; columnIndex < logicalColumn + columnSpan && columnIndex < widths.Length; columnIndex++) {
-                            if (widthPerColumn > widths[columnIndex]) {
+                            if (hasExplicitCellWidth) {
+                                if (!explicitCellWidthColumns[columnIndex] || widthPerColumn > widths[columnIndex]) {
+                                    widths[columnIndex] = widthPerColumn;
+                                }
+
+                                explicitCellWidthColumns[columnIndex] = true;
+                            } else if (!explicitCellWidthColumns[columnIndex] && widthPerColumn > widths[columnIndex]) {
                                 widths[columnIndex] = widthPerColumn;
                             }
                         }
@@ -95,6 +107,11 @@ namespace OfficeIMO.Word.Pdf {
 
             return columnCount;
         }
+
+        private static bool IsExplicitDxaCellWidth(WordTableCell cell) =>
+            cell.Width.HasValue &&
+            cell.WidthType == TableWidthUnitValues.Dxa &&
+            cell.Width.Value > 0;
     }
 }
 

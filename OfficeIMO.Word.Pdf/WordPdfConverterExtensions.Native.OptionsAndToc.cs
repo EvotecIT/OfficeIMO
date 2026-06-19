@@ -11,11 +11,16 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
-        private static PdfCore.PdfOptions CreateNativeOptions(WordDocument document, PdfSaveOptions? options) {
+        private static PdfCore.PdfOptions CreateNativeOptions(WordDocument document, PdfSaveOptions? options, NativeFontMap nativeFontMap) {
             WordSection? firstSection = document.Sections.FirstOrDefault();
             PdfCore.PdfOptions pdfOptions = options?.PdfOptions?.Clone() ?? new PdfCore.PdfOptions();
             if (options != null) {
                 pdfOptions.ReportDiagnosticsTo(options.ConversionReport, "OfficeIMO.Word.Pdf");
+            }
+
+            NativeDocumentDefaults defaults = GetNativeDocumentDefaults(document);
+            if (options?.PdfOptions == null) {
+                pdfOptions.DefaultFontSize = defaults.FontSize;
             }
 
             pdfOptions.PageSize = firstSection == null ? PdfCore.PageSizes.A4 : GetNativePageSize(firstSection, options);
@@ -24,6 +29,7 @@ namespace OfficeIMO.Word.Pdf {
             bool preserveConfiguredFontSlots = ApplyNativeDefaultFont(document, options, pdfOptions, allowSystemFontEmbedding) ||
                                                 options?.PdfOptions != null;
             HashSet<PdfCore.PdfStandardFont> registeredFontSlots = RegisterNativeDocumentFonts(document, pdfOptions, preserveConfiguredFontSlots, allowSystemFontEmbedding);
+            RegisterNativeThemeStyleFonts(document, pdfOptions, registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
             ApplyNativeFallbackFont(options, pdfOptions, preserveConfiguredFontSlots, allowSystemFontEmbedding);
             RegisterNativeEmbeddedTextFallbacks(pdfOptions, registeredFontSlots, allowSystemFontEmbedding);
             pdfOptions.BackgroundColor = ParseNativeColor(document.Background?.Color);

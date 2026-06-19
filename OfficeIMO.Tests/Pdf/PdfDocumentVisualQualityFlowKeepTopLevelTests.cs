@@ -373,6 +373,157 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Fact]
+    public void Heading_KeepWithNextMeasuresFollowingHeadingChainInTopLevelFlow() {
+        var options = new PdfOptions {
+            PageWidth = 260,
+            PageHeight = 170,
+            MarginLeft = 30,
+            MarginRight = 30,
+            MarginTop = 30,
+            MarginBottom = 30,
+            DefaultFont = PdfStandardFont.Helvetica,
+            DefaultFontSize = 10
+        };
+
+        byte[] bytes = PdfDocument.Create(options)
+            .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
+                SpacingAfter = 45
+            })
+            .H2("ChainTopHeading")
+            .H3("ChainSubHeading")
+            .Paragraph(p => p.Text("ChainBody"))
+            .ToBytes();
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.Contains("IntroMarker", pdf.GetPage(1).Text);
+        Assert.DoesNotContain("ChainTopHeading", pdf.GetPage(1).Text);
+        Assert.Contains("ChainTopHeading", pdf.GetPage(2).Text);
+        Assert.Contains("ChainSubHeading", pdf.GetPage(2).Text);
+        Assert.Contains("ChainBody", pdf.GetPage(2).Text);
+    }
+
+    [Fact]
+    public void Heading_KeepWithNextReservesWidowControlledFollowingParagraph() {
+        var options = new PdfOptions {
+            PageWidth = 260,
+            PageHeight = 180,
+            MarginLeft = 30,
+            MarginRight = 30,
+            MarginTop = 30,
+            MarginBottom = 30,
+            DefaultFont = PdfStandardFont.Helvetica,
+            DefaultFontSize = 10
+        };
+
+        var heading2 = new PdfHeadingStyle {
+            FontSize = 12,
+            LineHeight = 1.2,
+            SpacingAfter = 2,
+            KeepWithNext = true
+        };
+        var heading3 = new PdfHeadingStyle {
+            FontSize = 11,
+            LineHeight = 1.2,
+            SpacingAfter = 2,
+            KeepWithNext = true
+        };
+
+        byte[] bytes = PdfDocument.Create(options)
+            .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
+                SpacingAfter = 50
+            })
+            .H2("WidowChainHeading", style: heading2)
+            .H3("WidowChainSubHeading", style: heading3)
+            .Paragraph(p => p.Text("Following body text wraps enough to require multiple rendered lines in this narrow frame."), style: new PdfParagraphStyle {
+                WidowControl = true,
+                SpacingAfter = 0
+            })
+            .ToBytes();
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.Contains("IntroMarker", pdf.GetPage(1).Text);
+        Assert.DoesNotContain("WidowChainHeading", pdf.GetPage(1).Text);
+        Assert.Contains("WidowChainHeading", pdf.GetPage(2).Text);
+        Assert.Contains("WidowChainSubHeading", pdf.GetPage(2).Text);
+        Assert.Contains("Following body text", pdf.GetPage(2).Text);
+    }
+
+    [Fact]
+    public void Heading_KeepWithNextMeasuresRuleAndFollowingHeadingChainInTopLevelFlow() {
+        var options = new PdfOptions {
+            PageWidth = 260,
+            PageHeight = 170,
+            MarginLeft = 30,
+            MarginRight = 30,
+            MarginTop = 30,
+            MarginBottom = 30,
+            DefaultFont = PdfStandardFont.Helvetica,
+            DefaultFontSize = 10
+        };
+
+        byte[] bytes = PdfDocument.Create(options)
+            .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
+                SpacingAfter = 44
+            })
+            .H2("RuleChainTopHeading")
+            .HR(style: new PdfHorizontalRuleStyle {
+                Thickness = 0.5,
+                SpacingBefore = 0,
+                SpacingAfter = 4,
+                KeepWithNext = true
+            })
+            .H3("RuleChainSubHeading")
+            .Paragraph(p => p.Text("RuleChainBody"))
+            .ToBytes();
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.Contains("IntroMarker", pdf.GetPage(1).Text);
+        Assert.DoesNotContain("RuleChainTopHeading", pdf.GetPage(1).Text);
+        Assert.Contains("RuleChainTopHeading", pdf.GetPage(2).Text);
+        Assert.Contains("RuleChainSubHeading", pdf.GetPage(2).Text);
+        Assert.Contains("RuleChainBody", pdf.GetPage(2).Text);
+    }
+
+    [Fact]
+    public void Heading_KeepWithNextSkipsBookmarkMarkersInFollowingHeadingChain() {
+        var options = new PdfOptions {
+            PageWidth = 260,
+            PageHeight = 170,
+            MarginLeft = 30,
+            MarginRight = 30,
+            MarginTop = 30,
+            MarginBottom = 30,
+            DefaultFont = PdfStandardFont.Helvetica,
+            DefaultFontSize = 10
+        };
+
+        byte[] bytes = PdfDocument.Create(options)
+            .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
+                SpacingAfter = 45
+            })
+            .H2("BookmarkChainTopHeading")
+            .Bookmark("bookmark-chain-subheading")
+            .H3("BookmarkChainSubHeading")
+            .Paragraph(p => p.Text("BookmarkChainBody"))
+            .ToBytes();
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.Contains("IntroMarker", pdf.GetPage(1).Text);
+        Assert.DoesNotContain("BookmarkChainTopHeading", pdf.GetPage(1).Text);
+        Assert.Contains("BookmarkChainTopHeading", pdf.GetPage(2).Text);
+        Assert.Contains("BookmarkChainSubHeading", pdf.GetPage(2).Text);
+        Assert.Contains("BookmarkChainBody", pdf.GetPage(2).Text);
+    }
+
+    [Fact]
     public void Heading_KeepsWithFollowingPanelInTopLevelFlow() {
         var options = new PdfOptions {
             PageWidth = 260,

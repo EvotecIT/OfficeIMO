@@ -20,7 +20,9 @@ namespace OfficeIMO.Word.Pdf {
             Dictionary<long, int> footnoteNumbersById,
             PdfSaveOptions? options,
             IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries,
-            IReadOnlyDictionary<W.Paragraph, string> headingDestinations) {
+            IReadOnlyDictionary<W.Paragraph, string> headingDestinations,
+            NativeDocumentDefaults nativeDefaults,
+            NativeFontMap nativeFontMap) {
             IReadOnlyList<double> columnWidthPercents = GetNativeSectionColumnWidthPercents(section);
             int columnCount = columnWidthPercents.Count;
             if (columnCount <= 1) {
@@ -57,7 +59,8 @@ namespace OfficeIMO.Word.Pdf {
                                 ref i,
                                 listMarkers,
                                 listIndices,
-                                footnoteNumbersById)) {
+                                footnoteNumbersById,
+                                nativeDefaults)) {
                                 hasContent = true;
                                 continue;
                             }
@@ -72,7 +75,10 @@ namespace OfficeIMO.Word.Pdf {
                                 options,
                                 tableOfContentsEntries,
                                 headingDestinations,
-                                columnContentWidth);
+                                columnContentWidth,
+                                nativeDefaults,
+                                nativeFontMap,
+                                renderSpacingOnlyEmptyParagraphLineBox: IsPreviousNativeElementTable(columnElements, i));
                             hasContent = true;
                         }
 

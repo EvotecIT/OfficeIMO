@@ -218,6 +218,16 @@ public sealed partial class PdfEmbeddedFontFamily {
             }
         }
 
+        foreach (string? faceName in metadata.GetFaceNames()) {
+            if (string.IsNullOrWhiteSpace(faceName)) {
+                continue;
+            }
+
+            if (IsMetadataFamilyNameMatch(faceName!, normalizedMetadataFamily)) {
+                return true;
+            }
+        }
+
         return false;
     }
 
@@ -579,6 +589,26 @@ public sealed partial class PdfEmbeddedFontFamily {
         public System.Collections.Generic.IEnumerable<string?> GetFamilyNames() {
             yield return TypographicFamilyName;
             yield return FamilyName;
+        }
+
+        public System.Collections.Generic.IEnumerable<string?> GetFaceNames() {
+            yield return FullName;
+            yield return PostScriptName;
+            yield return CombineFamilyAndSubfamily(TypographicFamilyName, TypographicSubfamilyName);
+            yield return CombineFamilyAndSubfamily(FamilyName, SubfamilyName);
+        }
+
+        private static string? CombineFamilyAndSubfamily(string? familyName, string? subfamilyName) {
+            if (string.IsNullOrWhiteSpace(familyName)) {
+                return null;
+            }
+
+            if (string.IsNullOrWhiteSpace(subfamilyName) ||
+                string.Equals(subfamilyName, "Regular", System.StringComparison.OrdinalIgnoreCase)) {
+                return familyName;
+            }
+
+            return familyName + " " + subfamilyName;
         }
     }
 

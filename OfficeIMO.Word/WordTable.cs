@@ -303,6 +303,7 @@ namespace OfficeIMO.Word {
         }
 
         private WordDocument _document;
+        internal WordDocument Document => _document;
         //internal string Text;
         //private WordSection _section;
 

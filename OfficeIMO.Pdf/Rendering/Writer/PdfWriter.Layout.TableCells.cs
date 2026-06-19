@@ -345,6 +345,31 @@ internal static partial class PdfWriter {
     private static int GetTableRepeatHeaderRowCount(PdfTableStyle style) =>
         style.RepeatHeaderRowCount ?? style.HeaderRowCount;
 
+    private static bool ShouldBreakBeforePenultimateTableBodyRow(
+        int rowIndex,
+        int headerRowCount,
+        int footerStartRowIndex,
+        double currentRowHeight,
+        double nextRowHeight,
+        double remainingHeight,
+        double continuationHeaderHeight,
+        double maxContentHeight,
+        bool hasContentBeforeRow) {
+        if (!hasContentBeforeRow ||
+            rowIndex <= headerRowCount ||
+            rowIndex >= footerStartRowIndex ||
+            footerStartRowIndex - rowIndex != 2) {
+            return false;
+        }
+
+        if (currentRowHeight > remainingHeight + 0.001 ||
+            currentRowHeight + nextRowHeight <= remainingHeight + 0.001) {
+            return false;
+        }
+
+        return continuationHeaderHeight + currentRowHeight + nextRowHeight <= maxContentHeight + 0.001;
+    }
+
     private static void ValidateTableColumnStyleBounds(PdfTableStyle style, int columnCount) {
         if (style.BodyColumnFills != null) {
             for (int column = columnCount; column < style.BodyColumnFills.Count; column++) {
@@ -406,7 +431,7 @@ internal static partial class PdfWriter {
                 int columnSpan = System.Math.Min(cell.ColumnSpan, columnCount - column);
                 int rowSpan = System.Math.Min(cell.RowSpan, table.Cells.Count - currentRow);
                 if (currentRow == rowIndex) {
-                    targetCells.Add(new TableCellLayout(column, columnSpan, rowSpan, cell.Text, cell.Runs, cell.LinkUri, cell.LinkDestinationName, cell.LinkContents, cell.NamedDestinationName, cell.CheckBoxes, cell.FormFields, cell.Images));
+                    targetCells.Add(new TableCellLayout(column, columnSpan, rowSpan, cell.Text, cell.Runs, cell.Paragraphs, cell.LinkUri, cell.LinkDestinationName, cell.LinkContents, cell.NamedDestinationName, cell.CheckBoxes, cell.FormFields, cell.Images));
                 }
 
                 for (int c = column; c < column + columnSpan; c++) {
@@ -466,6 +491,10 @@ internal static partial class PdfWriter {
     }
 
     private static TableCellTextLayout CreateTableCellTextLayout(TableCellLayout cell, double innerWidth, PdfStandardFont baseFont, double fontSize, double leading, PdfOptions? options) {
+        if (cell.Paragraphs.Count > 0) {
+            return CreateTableCellParagraphTextLayout(cell.Paragraphs, innerWidth, baseFont, fontSize, leading, options);
+        }
+
         var wrap = WrapRichRunsCore(cell.Runs, innerWidth, fontSize, baseFont, leading, null, DefaultParagraphTabStopWidth, options);
         if (wrap.Lines.Count == 0) {
             wrap.Lines.Add(new System.Collections.Generic.List<RichSeg>());
@@ -476,6 +505,41 @@ internal static partial class PdfWriter {
         }
 
         return new TableCellTextLayout(wrap.Lines, wrap.LineHeights);
+    }
+
+    private static TableCellTextLayout CreateTableCellParagraphTextLayout(System.Collections.Generic.IReadOnlyList<PdfTableCellParagraph> paragraphs, double innerWidth, PdfStandardFont baseFont, double fontSize, double leading, PdfOptions? options) {
+        var lines = new System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>>();
+        var lineHeights = new System.Collections.Generic.List<double>();
+        for (int paragraphIndex = 0; paragraphIndex < paragraphs.Count; paragraphIndex++) {
+            PdfTableCellParagraph paragraph = paragraphs[paragraphIndex];
+            var wrap = WrapRichRunsCore(paragraph.Runs, innerWidth, fontSize, baseFont, leading, null, DefaultParagraphTabStopWidth, options);
+            if (wrap.Lines.Count == 0) {
+                wrap.Lines.Add(new System.Collections.Generic.List<RichSeg>());
+            }
+
+            while (wrap.LineHeights.Count < wrap.Lines.Count) {
+                wrap.LineHeights.Add(leading);
+            }
+
+            int firstNewLineIndex = lines.Count;
+            lines.AddRange(wrap.Lines);
+            lineHeights.AddRange(wrap.LineHeights);
+            if (paragraphIndex < paragraphs.Count - 1 && lines.Count > firstNewLineIndex) {
+                MarkRichLineTextSeparator(lines[lines.Count - 1]);
+            }
+
+            if (paragraph.SpacingAfter > 0D && lineHeights.Count > firstNewLineIndex) {
+                int lastParagraphLineIndex = lineHeights.Count - 1;
+                lineHeights[lastParagraphLineIndex] += paragraph.SpacingAfter;
+            }
+        }
+
+        if (lines.Count == 0) {
+            lines.Add(new System.Collections.Generic.List<RichSeg>());
+            lineHeights.Add(leading);
+        }
+
+        return new TableCellTextLayout(lines, lineHeights);
     }
 
     private static TableCellTextLayout CreateListItemTextLayout(PdfListItem item, double innerWidth, PdfStandardFont baseFont, double fontSize, double leading, PdfOptions? options) {

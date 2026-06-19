@@ -30,6 +30,23 @@ public partial class Word {
         throw new InvalidOperationException("Could not find word '" + word + "' in rendered PDF text.");
     }
 
+    private static double FindWordStartY(UglyToad.PdfPig.Content.Page page, string word) {
+        var lines = page.Letters
+            .Where(letter => !string.IsNullOrWhiteSpace(letter.Value))
+            .GroupBy(letter => Math.Round(letter.StartBaseLine.Y, 1));
+
+        foreach (var line in lines) {
+            var ordered = line.OrderBy(letter => letter.StartBaseLine.X).ToList();
+            string text = string.Concat(ordered.Select(letter => letter.Value));
+            int index = text.IndexOf(word, StringComparison.Ordinal);
+            if (index >= 0) {
+                return ordered[index].StartBaseLine.Y;
+            }
+        }
+
+        throw new InvalidOperationException("Could not find word '" + word + "' in rendered PDF text.");
+    }
+
     private static string NormalizePdfText(string text) =>
         string.Join(" ", text.Split(new[] { ' ', '\r', '\n', '\t', '\f' }, StringSplitOptions.RemoveEmptyEntries));
 

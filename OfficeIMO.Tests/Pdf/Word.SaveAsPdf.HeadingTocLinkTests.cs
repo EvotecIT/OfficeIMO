@@ -2,6 +2,7 @@ using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using OfficeIMO.Pdf;
 using DocumentFormat.OpenXml.Wordprocessing;
+using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -68,6 +69,63 @@ namespace OfficeIMO.Tests {
             PdfLogicalLinkAnnotation link = Assert.Single(logical.GetLinksByDestinationName("NativeHeadingTarget"));
             Assert.True(link.IsNamedDestinationLink);
             Assert.Equal("Native bookmark heading metadata", link.Contents);
+        }
+
+        [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Skips_Whitespace_Only_Headings() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWhitespaceHeading.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWhitespaceHeading.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                document.AddParagraph(" \t\r\n ").SetStyle(WordParagraphStyles.Heading1);
+                document.AddParagraph("Native body after whitespace heading");
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false
+                });
+            }
+
+            byte[] bytes = File.ReadAllBytes(pdfPath);
+            PdfLogicalDocument logical = PdfLogicalDocument.Load(bytes, new PdfTextLayoutOptions {
+                ForceSingleColumn = true
+            });
+
+            Assert.Empty(logical.Headings);
+            using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+            string text = string.Concat(pdf.GetPages().Select(page => page.Text));
+            Assert.Contains("Native body after whitespace heading", text);
+        }
+
+        [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Renders_Bookmarked_Run_Only_Heading() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeBookmarkedRunOnlyHeading.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeBookmarkedRunOnlyHeading.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                document._document.Body!.Append(new Paragraph(
+                    new ParagraphProperties(new ParagraphStyleId { Val = "Heading1" }),
+                    new BookmarkStart { Id = "42", Name = "_TocNativeRunOnlyHeading" },
+                    new Run(new Text("Native bookmarked run-only heading")),
+                    new BookmarkEnd { Id = "42" }));
+                document.AddParagraph("Native body after bookmarked run-only heading");
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false
+                });
+            }
+
+            byte[] bytes = File.ReadAllBytes(pdfPath);
+            PdfLogicalDocument logical = PdfLogicalDocument.Load(bytes, new PdfTextLayoutOptions {
+                ForceSingleColumn = true
+            });
+
+            Assert.Contains(logical.Headings, heading => heading.Text == "Native bookmarked run-only heading");
+            using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+            string text = string.Concat(pdf.GetPages().Select(page => page.Text));
+            Assert.Contains("Native bookmarked run-only heading", text);
+            Assert.Contains("Native body after bookmarked run-only heading", text);
         }
 
         [Fact]
@@ -270,8 +328,9 @@ namespace OfficeIMO.Tests {
             string docPath = Path.Combine(_directoryWithFiles, "PdfNativeNormalHeading.docx");
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeNormalHeading.pdf");
 
+            WordParagraph headingParagraph;
             using (WordDocument document = WordDocument.Create(docPath)) {
-                document.AddParagraph("Native normal heading").SetStyle(WordParagraphStyles.Heading1);
+                headingParagraph = document.AddParagraph("Native normal heading").SetStyle(WordParagraphStyles.Heading1);
                 document.AddParagraph("Native body after normal heading");
 
                 document.Save();
@@ -289,10 +348,47 @@ namespace OfficeIMO.Tests {
             string rawPdf = Encoding.ASCII.GetString(bytes);
             Assert.DoesNotContain("/Helvetica-Bold", rawPdf, StringComparison.Ordinal);
 
-            MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeWordHeadingStyle", BindingFlags.NonPublic | BindingFlags.Static)!;
-            PdfHeadingStyle headingStyle = Assert.IsType<PdfHeadingStyle>(method.Invoke(null, new object[] { 1 }));
+            MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod(
+                "CreateNativeWordHeadingStyle",
+                BindingFlags.NonPublic | BindingFlags.Static,
+                binder: null,
+                new[] {
+                    typeof(int),
+                    typeof(WordParagraph),
+                    typeof(PdfParagraphStyle),
+                    typeof(WordPdfConverterExtensions).GetNestedType("NativeFontMap", BindingFlags.NonPublic)!
+                },
+                modifiers: null)!;
+            object nativeFontMap = Activator.CreateInstance(
+                typeof(WordPdfConverterExtensions).GetNestedType("NativeFontMap", BindingFlags.NonPublic)!,
+                nonPublic: true)!;
+            PdfHeadingStyle headingStyle = Assert.IsType<PdfHeadingStyle>(method.Invoke(null, new object[] {
+                1,
+                headingParagraph,
+                new PdfParagraphStyle(),
+                nativeFontMap
+            }));
             Assert.True(headingStyle.ApplySpacingBeforeAtTop);
             Assert.Equal(24D, headingStyle.SpacingBefore);
+        }
+
+        [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Resolves_Word_Heading_Theme_Fonts() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHeadingThemeFont.docx");
+
+            using WordDocument document = WordDocument.Create(docPath);
+            WordParagraph heading = document.AddParagraph("Native heading theme font").SetStyle(WordParagraphStyles.Heading3);
+            document.Save();
+
+            MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod(
+                "ResolveNativeParagraphStyleFontFamily",
+                BindingFlags.NonPublic | BindingFlags.Static)!;
+            string? familyName = Assert.IsType<string>(method.Invoke(null, new object?[] {
+                document,
+                heading.StyleId
+            }));
+
+            Assert.False(string.IsNullOrWhiteSpace(familyName));
         }
     }
 }

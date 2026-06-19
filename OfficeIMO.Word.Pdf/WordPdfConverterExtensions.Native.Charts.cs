@@ -16,6 +16,8 @@ namespace OfficeIMO.Word.Pdf {
         private const int MaxNativeWordChartPoints = 4096;
         private const double MaxNativeWordChartWidthPoints = 1440D;
         private const double MaxNativeWordChartHeightPoints = 1080D;
+        private const double NativeWordChartTitleTopPadding = 31D;
+        private const double NativeWordChartSpacingAfter = NativeDefaultParagraphSpacingAfter;
 
         private static bool RenderNativeChart(INativePdfFlow pdf, WordChart? chart, PdfCore.PdfAlign align, PdfSaveOptions? options, string source) {
             if (chart == null) {
@@ -43,7 +45,7 @@ namespace OfficeIMO.Word.Pdf {
                     "Exported Word chart '" + GetNativeWordChartDisplayName(snapshot!) + "' with shared drawing quality warnings: " + string.Join("; ", rendering.QualityReport.Issues.Select(issue => issue.ToString())));
             }
 
-            pdf.Drawing(rendering.Drawing, align, spacingBefore: 2D, spacingAfter: 6D);
+            pdf.Drawing(rendering.Drawing, align, spacingBefore: 2D, spacingAfter: NativeWordChartSpacingAfter);
             return true;
         }
 
@@ -530,7 +532,6 @@ namespace OfficeIMO.Word.Pdf {
                 palette.Add(OfficeChartStyle.Default.GetSeriesColor(index));
             }
 
-            bool hasExplicitColor = false;
             if (IsNativeWordPieLikeChart(chartKind)) {
                 OpenXmlElement? seriesElement = chartElement.ChildElements.FirstOrDefault(element => element.LocalName == "ser" && IsNativeWordChartSeriesRenderable(element, chartKind));
                 if (TryGetNativeWordChartFillColor(seriesElement, themeColors, out OfficeColor seriesColor)) {
@@ -538,14 +539,12 @@ namespace OfficeIMO.Word.Pdf {
                         palette[index] = seriesColor;
                     }
 
-                    hasExplicitColor = true;
                 } else if (IsNativeWordChartVaryColorsDisabled(chartElement) && palette.Count > 0) {
                     OfficeColor singleColor = palette[0];
                     for (int index = 0; index < palette.Count; index++) {
                         palette[index] = singleColor;
                     }
 
-                    hasExplicitColor = true;
                 }
 
                 foreach (DataPoint point in seriesElement?.Elements<DataPoint>() ?? Enumerable.Empty<DataPoint>()) {
@@ -557,7 +556,6 @@ namespace OfficeIMO.Word.Pdf {
                     int index = (int)pointIndex.Value;
                     if (TryGetNativeWordChartFillColor(point, themeColors, out OfficeColor pointColor)) {
                         palette[index] = pointColor;
-                        hasExplicitColor = true;
                     }
                 }
             } else {
@@ -569,7 +567,6 @@ namespace OfficeIMO.Word.Pdf {
 
                     if (TryGetNativeWordChartSeriesColor(seriesElement, chartKind, themeColors, out OfficeColor seriesColor)) {
                         palette[index] = seriesColor;
-                        hasExplicitColor = true;
                     }
 
                     index++;
@@ -607,33 +604,22 @@ namespace OfficeIMO.Word.Pdf {
             bool showGridLines = HasNativeWordChartMajorGridLines(chartElement, plotArea);
             OfficeColor? titleColor = GetNativeWordChartTitleColor(chart, themeColors);
 
-            bool hasChartOrPlotStyle =
-                backgroundColor.HasValue ||
-                hasExplicitChartNoFill ||
-                hasExplicitChartNoLine ||
-                borderColor.HasValue ||
-                plotAreaBackgroundColor.HasValue ||
-                plotAreaBorderColor.HasValue ||
-                axisColor.HasValue ||
-                gridLineColor.HasValue ||
-                !showGridLines ||
-                titleColor.HasValue;
-
-            return hasExplicitColor || hasChartOrPlotStyle
-                ? new OfficeChartStyle(
-                    showBackground: showBackground,
-                    palette: palette,
-                    backgroundColor: backgroundColor,
-                    borderColor: borderColor,
-                    axisColor: axisColor,
-                    gridLineColor: gridLineColor,
-                    titleColor: titleColor,
-                    plotAreaBackgroundColor: plotAreaBackgroundColor,
-                    plotAreaBorderColor: plotAreaBorderColor,
-                    showGridLines: showGridLines) {
-                    ShowBorder = showBorder
-                }
-                : null;
+            return new OfficeChartStyle(
+                showBackground: showBackground,
+                palette: palette,
+                fontFamily: "Calibri",
+                backgroundColor: backgroundColor ?? OfficeColor.White,
+                borderColor: borderColor ?? OfficeColor.FromRgb(127, 127, 127),
+                axisColor: axisColor ?? OfficeColor.Black,
+                gridLineColor: gridLineColor ?? OfficeColor.FromRgb(217, 217, 217),
+                textColor: OfficeColor.Black,
+                mutedTextColor: OfficeColor.Black,
+                titleColor: titleColor ?? OfficeColor.Black,
+                plotAreaBackgroundColor: plotAreaBackgroundColor,
+                plotAreaBorderColor: plotAreaBorderColor,
+                showGridLines: showGridLines) {
+                ShowBorder = showBorder
+            };
         }
 
         private static bool IsNativeWordChartSeriesRenderable(OpenXmlElement seriesElement, OfficeChartKind chartKind) {
@@ -849,6 +835,9 @@ namespace OfficeIMO.Word.Pdf {
             bool showCategoryAxisLabels = showCategoryAxis && IsNativeWordChartCategoryAxisLabelsVisible(chartElement, plotArea, chartKind);
             bool showValueAxisLabels = showValueAxis && IsNativeWordChartValueAxisLabelsVisible(chartElement, plotArea, chartKind);
             bool overlayTitle = IsNativeWordChartTitleOverlay(chart);
+            double? titleTopPadding = !overlayTitle && !string.IsNullOrWhiteSpace(GetNativeWordChartTitle(chart))
+                ? NativeWordChartTitleTopPadding
+                : null;
             if (chartKind == OfficeChartKind.Scatter) {
                 NativeWordScatterAxisMetadata scatterAxisMetadata = GetNativeWordScatterAxisMetadata(chartElement, plotArea);
                 horizontalAxisNumberFormat = scatterAxisMetadata.HorizontalNumberFormat ?? axisNumberFormat;
@@ -897,7 +886,8 @@ namespace OfficeIMO.Word.Pdf {
                 showValueAxisLine &&
                 showCategoryAxisLabels &&
                 showValueAxisLabels &&
-                !overlayTitle) {
+                !overlayTitle &&
+                !titleTopPadding.HasValue) {
                 return null;
             }
 
@@ -931,7 +921,8 @@ namespace OfficeIMO.Word.Pdf {
                 showValueAxisLine: showValueAxisLine,
                 showCategoryAxisLabels: showCategoryAxisLabels,
                 showValueAxisLabels: showValueAxisLabels,
-                overlayTitle: overlayTitle) {
+                overlayTitle: overlayTitle,
+                titleTopPadding: titleTopPadding) {
                 DataLabelSeriesIndexes = dataLabels.SeriesIndexes,
                 DataLabelPointIndexes = dataLabels.PointIndexes,
                 HiddenDataLabelPointIndexes = dataLabels.HiddenPointIndexes

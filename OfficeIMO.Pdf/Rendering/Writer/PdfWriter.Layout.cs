@@ -33,12 +33,13 @@ internal static partial class PdfWriter {
         public int LineCount => System.Math.Max(1, Lines.Count);
     }
     private readonly struct TableCellLayout {
-        public TableCellLayout(int column, int columnSpan, int rowSpan, string text, System.Collections.Generic.IReadOnlyList<TextRun> runs, string? linkUri, string? linkDestinationName, string? linkContents, string? namedDestinationName, System.Collections.Generic.IReadOnlyList<PdfTableCellCheckBox> checkBoxes, System.Collections.Generic.IReadOnlyList<PdfTableCellFormField> formFields, System.Collections.Generic.IReadOnlyList<PdfTableCellImage> images) {
+        public TableCellLayout(int column, int columnSpan, int rowSpan, string text, System.Collections.Generic.IReadOnlyList<TextRun> runs, System.Collections.Generic.IReadOnlyList<PdfTableCellParagraph> paragraphs, string? linkUri, string? linkDestinationName, string? linkContents, string? namedDestinationName, System.Collections.Generic.IReadOnlyList<PdfTableCellCheckBox> checkBoxes, System.Collections.Generic.IReadOnlyList<PdfTableCellFormField> formFields, System.Collections.Generic.IReadOnlyList<PdfTableCellImage> images) {
             Column = column;
             ColumnSpan = columnSpan;
             RowSpan = rowSpan;
             Text = text;
             Runs = runs;
+            Paragraphs = paragraphs;
             LinkUri = linkUri;
             LinkDestinationName = linkDestinationName;
             LinkContents = linkContents;
@@ -53,6 +54,7 @@ internal static partial class PdfWriter {
         public int RowSpan { get; }
         public string Text { get; }
         public System.Collections.Generic.IReadOnlyList<TextRun> Runs { get; }
+        public System.Collections.Generic.IReadOnlyList<PdfTableCellParagraph> Paragraphs { get; }
         public string? LinkUri { get; }
         public string? LinkDestinationName { get; }
         public string? LinkContents { get; }
