@@ -9,6 +9,8 @@ using OfficeIMO.Rtf;
 namespace OfficeIMO.Rtf.Markdown;
 
 internal static class RtfToMarkdownConverter {
+    private const int ListIndentTwips = 720;
+
     internal static MarkdownDoc Convert(RtfDocument document, RtfToMarkdownOptions options) {
         var markdown = MarkdownDoc.Create();
         int imageIndex = 0;
@@ -52,8 +54,17 @@ internal static class RtfToMarkdownConverter {
         int i = startIndex;
 
         for (; i < document.Blocks.Count; i++) {
-            if (!(document.Blocks[i] is RtfParagraph paragraph) || paragraph.ListKind == RtfListKind.None) {
+            if (!(document.Blocks[i] is RtfParagraph paragraph)) {
                 break;
+            }
+
+            if (paragraph.ListKind == RtfListKind.None) {
+                if (paragraphs.Count == 0 || !IsListContinuationParagraph(paragraph)) {
+                    break;
+                }
+
+                paragraphs.Add(paragraph);
+                continue;
             }
 
             int level = Math.Max(0, paragraph.ListLevel ?? 0);
@@ -82,6 +93,11 @@ internal static class RtfToMarkdownConverter {
 
         for (int i = 0; i < paragraphs.Count; i++) {
             RtfParagraph paragraph = paragraphs[i];
+            if (paragraph.ListKind == RtfListKind.None) {
+                AddListContinuationParagraph(frames, paragraph, options, ref imageIndex);
+                continue;
+            }
+
             int level = Math.Max(0, paragraph.ListLevel ?? 0);
             RtfListKind kind = NormalizeListKind(paragraph.ListKind);
             InlineSequence inlines = ConvertParagraphInlines(paragraph, options, ref imageIndex);
@@ -93,6 +109,34 @@ internal static class RtfToMarkdownConverter {
         }
 
         return (IMarkdownBlock)root;
+    }
+
+    private static bool IsListContinuationParagraph(RtfParagraph paragraph) {
+        return paragraph.ListKind == RtfListKind.None && (paragraph.LeftIndentTwips ?? 0) >= ListIndentTwips;
+    }
+
+    private static void AddListContinuationParagraph(List<ListFrame> frames, RtfParagraph paragraph, RtfToMarkdownOptions options, ref int imageIndex) {
+        ListFrame? frame = FindContinuationFrame(frames, ResolveContinuationLevel(paragraph));
+        if (frame?.LastItem == null) {
+            return;
+        }
+
+        frame.LastItem.AdditionalParagraphs.Add(ConvertParagraphInlines(paragraph, options, ref imageIndex));
+    }
+
+    private static ListFrame? FindContinuationFrame(List<ListFrame> frames, int level) {
+        for (int i = frames.Count - 1; i >= 0; i--) {
+            if (frames[i].Level <= level && frames[i].LastItem != null) {
+                return frames[i];
+            }
+        }
+
+        return frames.Count > 0 ? frames[frames.Count - 1] : null;
+    }
+
+    private static int ResolveContinuationLevel(RtfParagraph paragraph) {
+        int leftIndent = Math.Max(0, paragraph.LeftIndentTwips ?? 0);
+        return Math.Max(0, (leftIndent / ListIndentTwips) - 1);
     }
 
     private static ListItem CreateListItem(InlineSequence inlines) {
@@ -269,6 +313,10 @@ internal static class RtfToMarkdownConverter {
         }
 
         bool hasHeader = table.Rows[0].RepeatHeader;
+        if (!hasHeader && table.Rows.Count == 1) {
+            hasHeader = true;
+        }
+
         int firstBodyRow = hasHeader ? 1 : 0;
         List<InlineSequence>? headerInlines = null;
         if (hasHeader) {

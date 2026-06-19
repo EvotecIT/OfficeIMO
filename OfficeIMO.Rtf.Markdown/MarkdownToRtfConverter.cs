@@ -8,6 +8,7 @@ namespace OfficeIMO.Rtf.Markdown;
 
 internal static class MarkdownToRtfConverter {
     private const int MarkdownListIdBase = 7000;
+    private const int ListIndentTwips = 720;
 
     internal static RtfDocument Convert(MarkdownDoc markdown, MarkdownToRtfOptions options) {
         var document = RtfDocument.Create();
@@ -96,12 +97,12 @@ internal static class MarkdownToRtfConverter {
             AppendInlineSequence(paragraph, item.Content, document, options, InlineStyle.Normal);
 
             for (int paragraphIndex = 0; paragraphIndex < item.AdditionalParagraphs.Count; paragraphIndex++) {
-                RtfParagraph continuation = document.AddParagraph();
+                RtfParagraph continuation = AddListContinuationParagraph(document, level);
                 AppendInlineSequence(continuation, item.AdditionalParagraphs[paragraphIndex], document, options, InlineStyle.Normal);
             }
 
             for (int childIndex = 0; childIndex < item.ChildBlocks.Count; childIndex++) {
-                ConvertNestedListOrBlock(document, item.ChildBlocks[childIndex], listId, level + 1, options);
+                ConvertNestedListOrBlock(document, item.ChildBlocks[childIndex], listId, level, options);
             }
         }
     }
@@ -129,7 +130,7 @@ internal static class MarkdownToRtfConverter {
             level.Kind = kind;
         }
 
-        if (kind == RtfListKind.Decimal && levelIndex == 0) {
+        if (kind == RtfListKind.Decimal) {
             level.StartAt = Math.Max(1, start);
         }
 
@@ -138,25 +139,100 @@ internal static class MarkdownToRtfConverter {
             listOverride = document.AddListOverride(listId, listId);
         }
 
-        if (kind == RtfListKind.Decimal && levelIndex == 0 && start != 1 && listOverride.LevelOverrides.Count == 0) {
-            RtfListLevelOverride levelOverride = listOverride.AddLevelOverride();
+        if (kind == RtfListKind.Decimal && start != 1) {
+            while (listOverride.LevelOverrides.Count <= levelIndex) {
+                listOverride.AddLevelOverride();
+            }
+
+            RtfListLevelOverride levelOverride = listOverride.LevelOverrides[levelIndex];
             levelOverride.OverrideStartAt = true;
             levelOverride.StartAt = Math.Max(1, start);
         }
     }
 
-    private static void ConvertNestedListOrBlock(RtfDocument document, IMarkdownBlock block, int listId, int levelOffset, MarkdownToRtfOptions options) {
+    private static void ConvertNestedListOrBlock(RtfDocument document, IMarkdownBlock block, int listId, int parentLevel, MarkdownToRtfOptions options) {
         switch (block) {
             case UnorderedListBlock unorderedList:
-                ConvertListItems(document, unorderedList.Items, listId, RtfListKind.Bullet, 1, levelOffset, options);
+                ConvertListItems(document, unorderedList.Items, listId, RtfListKind.Bullet, 1, parentLevel + 1, options);
                 break;
             case OrderedListBlock orderedList:
-                ConvertListItems(document, orderedList.Items, listId, RtfListKind.Decimal, Math.Max(1, orderedList.Start), levelOffset, options);
+                ConvertListItems(document, orderedList.Items, listId, RtfListKind.Decimal, Math.Max(1, orderedList.Start), parentLevel + 1, options);
                 break;
             default:
-                ConvertBlock(document, block, options);
+                ConvertNestedContinuationBlock(document, block, parentLevel, options);
                 break;
         }
+    }
+
+    private static void ConvertNestedContinuationBlock(RtfDocument document, IMarkdownBlock block, int parentLevel, MarkdownToRtfOptions options) {
+        switch (block) {
+            case ParagraphBlock paragraph:
+                AppendInlineSequence(AddListContinuationParagraph(document, parentLevel), paragraph.Inlines, document, options, InlineStyle.Normal);
+                break;
+            case HeadingBlock heading:
+                AppendInlineSequence(AddListContinuationParagraph(document, parentLevel), heading.Inlines, document, options, InlineStyle.Normal);
+                break;
+            case QuoteBlock quote:
+                options.Report("MDRTF012", RtfMarkdownDiagnosticSeverity.Info, "Markdown quote inside list item flattened to continuation paragraphs.");
+                ConvertNestedContinuationBlocks(document, quote.ChildBlocks, parentLevel, options);
+                break;
+            case CodeBlock code:
+                ConvertNestedCodeBlock(document, code, parentLevel);
+                break;
+            case TableBlock table:
+                options.Report("MDRTF013", RtfMarkdownDiagnosticSeverity.Info, "Markdown table inside list item preserved as continuation text.");
+                ConvertRenderedBlockAsContinuation(document, table, parentLevel);
+                break;
+            case HtmlRawBlock html:
+                if (options.PreserveRawHtmlAsText) {
+                    AddListContinuationParagraph(document, parentLevel).AddText(html.Html);
+                } else {
+                    options.Report("MDRTF014", RtfMarkdownDiagnosticSeverity.Warning, "Markdown raw HTML block inside list item omitted. Set PreserveRawHtmlAsText to keep it as visible text.", html.Html);
+                }
+
+                break;
+            case IChildMarkdownBlockContainer container:
+                options.Report("MDRTF015", RtfMarkdownDiagnosticSeverity.Info, block.GetType().Name + " inside list item flattened to continuation paragraphs.");
+                ConvertNestedContinuationBlocks(document, container.ChildBlocks, parentLevel, options);
+                break;
+            default:
+                ConvertRenderedBlockAsContinuation(document, block, parentLevel);
+                options.Report("MDRTF016", RtfMarkdownDiagnosticSeverity.Info, "Markdown block inside list item converted using rendered Markdown continuation text.", block.GetType().Name);
+                break;
+        }
+    }
+
+    private static void ConvertNestedContinuationBlocks(RtfDocument document, IReadOnlyList<IMarkdownBlock> blocks, int parentLevel, MarkdownToRtfOptions options) {
+        for (int i = 0; i < blocks.Count; i++) {
+            ConvertNestedContinuationBlock(document, blocks[i], parentLevel, options);
+        }
+    }
+
+    private static void ConvertNestedCodeBlock(RtfDocument document, CodeBlock code, int parentLevel) {
+        int fontId = document.AddFont("Consolas");
+        string[] lines = code.Content.Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.None);
+        for (int i = 0; i < lines.Length; i++) {
+            RtfParagraph paragraph = AddListContinuationParagraph(document, parentLevel);
+            paragraph.AddText(lines[i]).FontId = fontId;
+        }
+    }
+
+    private static void ConvertRenderedBlockAsContinuation(RtfDocument document, IMarkdownBlock block, int parentLevel) {
+        string rendered = (block.RenderMarkdown() ?? string.Empty).Replace("\r\n", "\n").Replace('\r', '\n');
+        string[] lines = rendered.Split('\n');
+        for (int i = 0; i < lines.Length; i++) {
+            if (lines[i].Length == 0) {
+                continue;
+            }
+
+            AddListContinuationParagraph(document, parentLevel).AddText(lines[i]);
+        }
+    }
+
+    private static RtfParagraph AddListContinuationParagraph(RtfDocument document, int parentLevel) {
+        RtfParagraph paragraph = document.AddParagraph();
+        paragraph.LeftIndentTwips = (Math.Max(0, parentLevel) + 1) * ListIndentTwips;
+        return paragraph;
     }
 
     private static void ConvertTable(RtfDocument document, TableBlock table, MarkdownToRtfOptions options) {
@@ -348,7 +424,7 @@ internal static class MarkdownToRtfConverter {
                 AddStyledText(paragraph, highlight.Text, style.WithHighlight(EnsureHighlightColor(document)));
                 break;
             case CodeSpanInline code:
-                AddStyledText(paragraph, code.Text, style.WithFont(document.AddFont("Consolas")));
+                AddStyledTextRaw(paragraph, code.Text, style.WithFont(document.AddFont("Consolas")));
                 break;
             case LinkInline link:
                 AppendLink(paragraph, link, document, options, style);
@@ -447,6 +523,17 @@ internal static class MarkdownToRtfConverter {
 
     private static RtfRun AddStyledText(RtfParagraph paragraph, string text, InlineStyle style) {
         RtfRun run = paragraph.AddText(DecodeMarkdownVisibleText(text));
+        ApplyStyle(run, style);
+        return run;
+    }
+
+    private static RtfRun AddStyledTextRaw(RtfParagraph paragraph, string text, InlineStyle style) {
+        RtfRun run = paragraph.AddText(text ?? string.Empty);
+        ApplyStyle(run, style);
+        return run;
+    }
+
+    private static void ApplyStyle(RtfRun run, InlineStyle style) {
         if (style.Bold) run.SetBold();
         if (style.Italic) run.SetItalic();
         if (style.Strike) run.SetStrike();
@@ -454,7 +541,6 @@ internal static class MarkdownToRtfConverter {
         if (style.HighlightColorIndex.HasValue) run.SetHighlightColor(style.HighlightColorIndex.Value);
         if (style.FontId.HasValue) run.FontId = style.FontId.Value;
         if (style.VerticalPosition.HasValue) run.VerticalPosition = style.VerticalPosition.Value;
-        return run;
     }
 
     private static string DecodeMarkdownVisibleText(string? text) {

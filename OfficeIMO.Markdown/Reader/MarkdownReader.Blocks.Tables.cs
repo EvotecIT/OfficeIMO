@@ -53,20 +53,17 @@ public static partial class MarkdownReader {
 
         if (!sawAlignmentRow) {
             // Headerless tables are easy to mis-detect (any two lines with pipes). To reduce false positives,
-            // require explicit outer pipes on every row. A single explicit outer-pipe row is accepted so
-            // TableBlock can parse its own rendered headerless one-row table form.
+            // require explicit outer pipes on every row and at least two rows.
             if (!hasOuterPipes) return false;
 
             if (j >= lines.Length) {
-                end = start;
-                return true;
+                return false;
             }
 
             // Require the 2nd row to also have outer pipes, otherwise treat the first row as a paragraph line.
             var second = (lines[j] ?? string.Empty).Trim();
             if (second.Length == 0) {
-                end = start;
-                return true;
+                return false;
             }
 
             if (!(second.Length > 0 && second[0] == '|' && second[second.Length - 1] == '|')) return false;

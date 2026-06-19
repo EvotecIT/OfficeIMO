@@ -1,3 +1,4 @@
+using System.Text;
 using OfficeIMO.Markdown;
 using Xunit;
 
@@ -372,14 +373,13 @@ c | d
         }
 
         [Fact]
-        public void Table_Parses_Single_Explicit_Outer_Pipe_Row_As_Headerless_Table() {
+        public void Table_Does_Not_Parse_Single_Explicit_Outer_Pipe_Row_As_Headerless_Table() {
             string md = "| a | b |";
             var doc = MarkdownReader.Parse(md);
-            var table = Assert.IsType<TableBlock>(doc.Blocks[0]);
-            Assert.Empty(table.Headers);
-            Assert.Single(table.Rows);
-            Assert.Equal("a", table.Rows[0][0].Trim());
-            Assert.Equal("b", table.Rows[0][1].Trim());
+            var paragraph = Assert.IsType<ParagraphBlock>(doc.Blocks[0]);
+            var plainText = new StringBuilder();
+            ((IPlainTextMarkdownInline)paragraph.Inlines).AppendPlainText(plainText);
+            Assert.Equal("| a | b |", plainText.ToString());
         }
 
         [Fact]

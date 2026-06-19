@@ -154,6 +154,16 @@ public class RtfMarkdownConverterTests {
     }
 
     [Fact]
+    public void MarkdownToRtfDocumentKeepsEntitiesLiteralInsideCodeSpans() {
+        RtfDocument document = "`&lt;tag&gt;` &lt;tag&gt;".ToRtfDocumentFromMarkdown();
+
+        RtfParagraph paragraph = Assert.Single(document.Paragraphs);
+
+        Assert.Contains(paragraph.Runs, run => run.Text == "&lt;tag&gt;" && run.FontId.HasValue);
+        Assert.Contains(paragraph.Runs, run => run.Text == " <tag>" && !run.FontId.HasValue);
+    }
+
+    [Fact]
     public void MarkdownToRtfDocumentPreservesOrderedStartsNestedListsAndTableInlines() {
         string markdown = """
             5. Parent
@@ -198,6 +208,26 @@ public class RtfMarkdownConverterTests {
         Assert.Equal(RtfListKind.Decimal, definition.Levels[0].Kind);
         Assert.Equal(3, definition.Levels[0].StartAt);
         Assert.Equal(RtfListKind.Bullet, definition.Levels[1].Kind);
+    }
+
+    [Fact]
+    public void MarkdownToRtfDocumentAppliesNestedOrderedStarts() {
+        RtfDocument document = """
+            1. Parent
+               5. Child
+            """.ToRtfDocumentFromMarkdown();
+
+        RtfParagraph parent = Assert.Single(document.Paragraphs, paragraph => paragraph.ToPlainText() == "Parent");
+        RtfParagraph child = Assert.Single(document.Paragraphs, paragraph => paragraph.ToPlainText() == "Child");
+        RtfListDefinition definition = Assert.Single(document.ListDefinitions, item => item.Id == parent.ListDefinitionId);
+        RtfListOverride listOverride = Assert.Single(document.ListOverrides, item => item.Id == parent.ListId);
+
+        Assert.Equal(parent.ListId, child.ListId);
+        Assert.Equal(parent.ListDefinitionId, child.ListDefinitionId);
+        Assert.Equal(1, child.ListLevel);
+        Assert.Equal(1, definition.Levels[0].StartAt);
+        Assert.Equal(5, definition.Levels[1].StartAt);
+        Assert.Equal(5, listOverride.LevelOverrides[1].StartAt);
     }
 
     [Fact]
@@ -332,7 +362,7 @@ public class RtfMarkdownConverterTests {
     }
 
     [Fact]
-    public void RtfDocumentToMarkdownKeepsOneRowHeaderlessTableParseable() {
+    public void RtfDocumentToMarkdownKeepsOneRowTableParseable() {
         RtfDocument document = RtfDocument.Create();
         RtfTable table = document.AddTable(1, 1);
         table.Rows[0].Cells[0].AddParagraph("Only row");
@@ -340,10 +370,45 @@ public class RtfMarkdownConverterTests {
         string markdown = document.ToMarkdown();
         RtfDocument roundTrip = markdown.ToRtfDocumentFromMarkdown();
 
-        Assert.Equal("| Only row |", markdown.Trim());
+        Assert.Equal("""
+            | Only row |
+            | --- |
+            """.Replace("\r\n", "\n").Trim(), markdown.Replace("\r\n", "\n").Trim());
         RtfTable roundTripTable = Assert.IsType<RtfTable>(roundTrip.Blocks.OfType<RtfTable>().Single());
         Assert.Single(roundTripTable.Rows);
         Assert.Equal("Only row", roundTripTable.Rows[0].Cells[0].Paragraphs[0].ToPlainText());
+    }
+
+    [Fact]
+    public void RtfMarkdownRoundTripKeepsNestedListChildBlocksInsideListItem() {
+        string markdown = """
+            - Lead
+
+              > Quoted
+
+              ```
+              code
+              ```
+
+              | A | B |
+              | --- | --- |
+              | C | D |
+
+            - Next
+            """;
+
+        RtfDocument document = markdown.ToRtfDocumentFromMarkdown();
+        string roundTripMarkdown = document.ToMarkdown().Replace("\r\n", "\n");
+        MarkdownDoc parsed = MarkdownReader.Parse(roundTripMarkdown);
+        UnorderedListBlock list = Assert.IsType<UnorderedListBlock>(Assert.Single(parsed.Blocks));
+
+        Assert.Equal(2, list.Items.Count);
+        Assert.Equal("Lead", ExtractPlainText(list.Items[0].Content));
+        Assert.Equal("Next", ExtractPlainText(list.Items[1].Content));
+        Assert.Contains(list.Items[0].AdditionalParagraphs, paragraph => ExtractPlainText(paragraph).Contains("Quoted", StringComparison.Ordinal));
+        Assert.Contains(list.Items[0].AdditionalParagraphs, paragraph => ExtractPlainText(paragraph).Contains("code", StringComparison.Ordinal));
+        Assert.Contains(list.Items[0].AdditionalParagraphs, paragraph => ExtractPlainText(paragraph).Contains("| A | B |", StringComparison.Ordinal));
+        Assert.DoesNotContain(parsed.Blocks.Skip(1), block => block is QuoteBlock || block is TableBlock || block is CodeBlock);
     }
 
     [Fact]
