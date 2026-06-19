@@ -58,6 +58,7 @@
         <InternalsVisibleTo Include="OfficeIMO.Markdown.Html" />
         <InternalsVisibleTo Include="OfficeIMO.Markdown.Pdf" />
         <InternalsVisibleTo Include="OfficeIMO.MarkdownRenderer" />
+        <InternalsVisibleTo Include="OfficeIMO.Rtf.Markdown" />
         <InternalsVisibleTo Include="OfficeIMO.Word.Markdown" />
     </ItemGroup>
 

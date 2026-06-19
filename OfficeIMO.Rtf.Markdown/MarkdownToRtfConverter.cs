@@ -7,6 +7,8 @@ using OfficeIMO.Rtf;
 namespace OfficeIMO.Rtf.Markdown;
 
 internal static class MarkdownToRtfConverter {
+    private const int MarkdownListIdBase = 7000;
+
     internal static RtfDocument Convert(MarkdownDoc markdown, MarkdownToRtfOptions options) {
         var document = RtfDocument.Create();
         EnsureDocumentDefaults(document);
@@ -32,10 +34,10 @@ internal static class MarkdownToRtfConverter {
                 ConvertHeading(document, heading, options);
                 break;
             case UnorderedListBlock unorderedList:
-                ConvertList(document, unorderedList.Items, RtfListKind.Bullet, options);
+                ConvertList(document, unorderedList.Items, RtfListKind.Bullet, 1, 0, options);
                 break;
             case OrderedListBlock orderedList:
-                ConvertList(document, orderedList.Items, RtfListKind.Decimal, options);
+                ConvertList(document, orderedList.Items, RtfListKind.Decimal, Math.Max(1, orderedList.Start), 0, options);
                 break;
             case TableBlock table:
                 ConvertTable(document, table, options);
@@ -74,11 +76,14 @@ internal static class MarkdownToRtfConverter {
         AppendInlineSequence(paragraph, heading.Inlines, document, options, InlineStyle.Normal);
     }
 
-    private static void ConvertList(RtfDocument document, IReadOnlyList<ListItem> items, RtfListKind kind, MarkdownToRtfOptions options) {
+    private static void ConvertList(RtfDocument document, IReadOnlyList<ListItem> items, RtfListKind kind, int start, int levelOffset, MarkdownToRtfOptions options) {
+        int listId = CreateListDefinition(document, kind, start);
         for (int i = 0; i < items.Count; i++) {
             ListItem item = items[i];
             RtfParagraph paragraph = document.AddParagraph();
-            paragraph.SetList(kind == RtfListKind.Decimal ? 2 : 1, Math.Max(0, item.Level), kind);
+            int level = Math.Max(0, levelOffset + item.Level);
+            paragraph.SetList(listId, level, kind);
+            paragraph.ListDefinitionId = listId;
             if (item.IsTask) {
                 paragraph.AddText(item.Checked ? "[x] " : "[ ] ");
             }
@@ -86,8 +91,40 @@ internal static class MarkdownToRtfConverter {
             AppendInlineSequence(paragraph, item.Content, document, options, InlineStyle.Normal);
 
             for (int childIndex = 0; childIndex < item.ChildBlocks.Count; childIndex++) {
-                ConvertBlock(document, item.ChildBlocks[childIndex], options);
+                ConvertNestedListOrBlock(document, item.ChildBlocks[childIndex], level + 1, options);
             }
+        }
+    }
+
+    private static int CreateListDefinition(RtfDocument document, RtfListKind kind, int start) {
+        int listId = MarkdownListIdBase + document.ListOverrides.Count + 1;
+        RtfListDefinition definition = document.AddListDefinition(listId, "Markdown list " + listId.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        RtfListLevel level = definition.AddLevel(kind);
+        if (kind == RtfListKind.Decimal) {
+            level.StartAt = Math.Max(1, start);
+        }
+
+        RtfListOverride listOverride = document.AddListOverride(listId, listId);
+        if (kind == RtfListKind.Decimal && start != 1) {
+            RtfListLevelOverride levelOverride = listOverride.AddLevelOverride();
+            levelOverride.OverrideStartAt = true;
+            levelOverride.StartAt = Math.Max(1, start);
+        }
+
+        return listId;
+    }
+
+    private static void ConvertNestedListOrBlock(RtfDocument document, IMarkdownBlock block, int levelOffset, MarkdownToRtfOptions options) {
+        switch (block) {
+            case UnorderedListBlock unorderedList:
+                ConvertList(document, unorderedList.Items, RtfListKind.Bullet, 1, levelOffset, options);
+                break;
+            case OrderedListBlock orderedList:
+                ConvertList(document, orderedList.Items, RtfListKind.Decimal, Math.Max(1, orderedList.Start), levelOffset, options);
+                break;
+            default:
+                ConvertBlock(document, block, options);
+                break;
         }
     }
 
@@ -102,18 +139,24 @@ internal static class MarkdownToRtfConverter {
         RtfTable rtfTable = document.AddTable(rowCount, columnCount);
         int rtfRowIndex = 0;
         if (table.Headers.Count > 0) {
-            FillTableRow(rtfTable.Rows[rtfRowIndex++], table.Headers);
+            FillTableRow(rtfTable.Rows[rtfRowIndex++], table.HeaderInlines, document, options);
         }
 
+        IReadOnlyList<IReadOnlyList<InlineSequence>> rowInlines = table.RowInlines;
         for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
-            FillTableRow(rtfTable.Rows[rtfRowIndex++], table.Rows[rowIndex]);
+            IReadOnlyList<InlineSequence> cells = rowIndex < rowInlines.Count
+                ? rowInlines[rowIndex]
+                : Array.Empty<InlineSequence>();
+            FillTableRow(rtfTable.Rows[rtfRowIndex++], cells, document, options);
         }
     }
 
-    private static void FillTableRow(RtfTableRow row, IReadOnlyList<string> cells) {
+    private static void FillTableRow(RtfTableRow row, IReadOnlyList<InlineSequence> cells, RtfDocument document, MarkdownToRtfOptions options) {
         for (int column = 0; column < row.Cells.Count; column++) {
-            string text = column < cells.Count ? cells[column] : string.Empty;
-            row.Cells[column].AddParagraph(text.Replace("<br>", "\n"));
+            RtfParagraph paragraph = row.Cells[column].AddParagraph();
+            if (column < cells.Count) {
+                AppendInlineSequence(paragraph, cells[column], document, options, InlineStyle.Normal);
+            }
         }
     }
 
@@ -135,9 +178,79 @@ internal static class MarkdownToRtfConverter {
     private static void ConvertRawHtml(RtfDocument document, string html, MarkdownToRtfOptions options, string source) {
         if (options.PreserveRawHtmlAsText) {
             document.AddParagraph(html);
-        } else {
-            options.Report("MDRTF004", RtfMarkdownDiagnosticSeverity.Warning, source + " omitted. Set PreserveRawHtmlAsText to keep it as visible text.", html);
+            return;
         }
+
+        if (TryConvertRawHtmlAsInlineFormatting(document, html, options)) {
+            return;
+        }
+
+        options.Report("MDRTF004", RtfMarkdownDiagnosticSeverity.Warning, source + " omitted. Set PreserveRawHtmlAsText to keep it as visible text.", html);
+    }
+
+    private static bool TryConvertRawHtmlAsInlineFormatting(RtfDocument document, string html, MarkdownToRtfOptions options) {
+        string trimmed = html.Trim();
+        if (trimmed.Length == 0 ||
+            trimmed.IndexOf('\r') >= 0 ||
+            trimmed.IndexOf('\n') >= 0) {
+            return false;
+        }
+
+        InlineSequence sequence = MarkdownReader.ParseInlineText(trimmed, options.ReaderOptions);
+        if (sequence.Nodes.Count == 0 ||
+            !ContainsSupportedHtmlTag(sequence) ||
+            ContainsUnsupportedHtml(sequence)) {
+            return false;
+        }
+
+        AppendInlineSequence(document.AddParagraph(), sequence, document, options, InlineStyle.Normal);
+        return true;
+    }
+
+    private static bool ContainsSupportedHtmlTag(InlineSequence sequence) {
+        for (int i = 0; i < sequence.Nodes.Count; i++) {
+            if (ContainsSupportedHtmlTag(sequence.Nodes[i])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool ContainsSupportedHtmlTag(IMarkdownInline inline) {
+        if (inline is HtmlTagSequenceInline htmlTagSequence && IsSupportedHtmlFormattingTag(htmlTagSequence.TagName)) {
+            return true;
+        }
+
+        InlineSequence? nested = (inline as IInlineContainerMarkdownInline)?.NestedInlines;
+        return nested != null && ContainsSupportedHtmlTag(nested);
+    }
+
+    private static bool ContainsUnsupportedHtml(InlineSequence sequence) {
+        for (int i = 0; i < sequence.Nodes.Count; i++) {
+            if (ContainsUnsupportedHtml(sequence.Nodes[i])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool ContainsUnsupportedHtml(IMarkdownInline inline) {
+        if (inline is HtmlRawInline) {
+            return true;
+        }
+
+        if (inline is HtmlTagSequenceInline htmlTagSequence && !IsSupportedHtmlFormattingTag(htmlTagSequence.TagName)) {
+            return true;
+        }
+
+        InlineSequence? nested = (inline as IInlineContainerMarkdownInline)?.NestedInlines;
+        return nested != null && ContainsUnsupportedHtml(nested);
+    }
+
+    private static bool IsSupportedHtmlFormattingTag(string tagName) {
+        return tagName == "u" || tagName == "sup" || tagName == "sub";
     }
 
     private static void ConvertChildBlocks(RtfDocument document, IReadOnlyList<IMarkdownBlock> blocks, MarkdownToRtfOptions options, string message) {
@@ -207,12 +320,33 @@ internal static class MarkdownToRtfConverter {
             case HighlightSequenceInline highlightSequence:
                 AppendInlineSequence(paragraph, highlightSequence.Inlines, document, options, style.WithHighlight(EnsureHighlightColor(document)));
                 break;
+            case HtmlTagSequenceInline htmlTagSequence:
+                AppendHtmlTagSequence(paragraph, htmlTagSequence, document, options, style);
+                break;
             case IInlineContainerMarkdownInline container when container.NestedInlines != null:
                 AppendInlineSequence(paragraph, container.NestedInlines!, document, options, style);
                 break;
             default:
                 AddStyledText(paragraph, RtfMarkdownText.PlainText(inline), style);
                 options.Report("MDRTF007", RtfMarkdownDiagnosticSeverity.Info, "Markdown inline converted using plain text fallback.", inline.GetType().Name);
+                break;
+        }
+    }
+
+    private static void AppendHtmlTagSequence(RtfParagraph paragraph, HtmlTagSequenceInline htmlTagSequence, RtfDocument document, MarkdownToRtfOptions options, InlineStyle style) {
+        switch (htmlTagSequence.TagName) {
+            case "u":
+                AppendInlineSequence(paragraph, htmlTagSequence.Inlines, document, options, style.WithUnderline());
+                break;
+            case "sup":
+                AppendInlineSequence(paragraph, htmlTagSequence.Inlines, document, options, style.WithVerticalPosition(RtfVerticalPosition.Superscript));
+                break;
+            case "sub":
+                AppendInlineSequence(paragraph, htmlTagSequence.Inlines, document, options, style.WithVerticalPosition(RtfVerticalPosition.Subscript));
+                break;
+            default:
+                AppendInlineSequence(paragraph, htmlTagSequence.Inlines, document, options, style);
+                options.Report("MDRTF011", RtfMarkdownDiagnosticSeverity.Info, "Markdown HTML inline tag converted using nested text fallback.", htmlTagSequence.TagName);
                 break;
         }
     }
@@ -254,14 +388,26 @@ internal static class MarkdownToRtfConverter {
     }
 
     private static RtfRun AddStyledText(RtfParagraph paragraph, string text, InlineStyle style) {
-        RtfRun run = paragraph.AddText(text ?? string.Empty);
+        RtfRun run = paragraph.AddText(DecodeMarkdownVisibleText(text));
         if (style.Bold) run.SetBold();
         if (style.Italic) run.SetItalic();
         if (style.Strike) run.SetStrike();
         if (style.Underline) run.SetUnderline(RtfUnderlineStyle.Single);
         if (style.HighlightColorIndex.HasValue) run.SetHighlightColor(style.HighlightColorIndex.Value);
         if (style.FontId.HasValue) run.FontId = style.FontId.Value;
+        if (style.VerticalPosition.HasValue) run.VerticalPosition = style.VerticalPosition.Value;
         return run;
+    }
+
+    private static string DecodeMarkdownVisibleText(string? text) {
+        string decoded = System.Net.WebUtility.HtmlDecode(text ?? string.Empty);
+        if (decoded.IndexOf("&#", StringComparison.Ordinal) >= 0 ||
+            decoded.IndexOf("&lt;", StringComparison.Ordinal) >= 0 ||
+            decoded.IndexOf("&gt;", StringComparison.Ordinal) >= 0) {
+            decoded = System.Net.WebUtility.HtmlDecode(decoded);
+        }
+
+        return decoded;
     }
 
     private static int EnsureHighlightColor(RtfDocument document) {
@@ -269,15 +415,16 @@ internal static class MarkdownToRtfConverter {
     }
 
     private readonly struct InlineStyle {
-        internal static readonly InlineStyle Normal = new InlineStyle(false, false, false, false, null, null);
+        internal static readonly InlineStyle Normal = new InlineStyle(false, false, false, false, null, null, null);
 
-        private InlineStyle(bool bold, bool italic, bool strike, bool underline, int? highlightColorIndex, int? fontId) {
+        private InlineStyle(bool bold, bool italic, bool strike, bool underline, int? highlightColorIndex, int? fontId, RtfVerticalPosition? verticalPosition) {
             Bold = bold;
             Italic = italic;
             Strike = strike;
             Underline = underline;
             HighlightColorIndex = highlightColorIndex;
             FontId = fontId;
+            VerticalPosition = verticalPosition;
         }
 
         internal bool Bold { get; }
@@ -292,16 +439,20 @@ internal static class MarkdownToRtfConverter {
 
         internal int? FontId { get; }
 
-        internal InlineStyle WithBold() => new InlineStyle(true, Italic, Strike, Underline, HighlightColorIndex, FontId);
+        internal RtfVerticalPosition? VerticalPosition { get; }
 
-        internal InlineStyle WithItalic() => new InlineStyle(Bold, true, Strike, Underline, HighlightColorIndex, FontId);
+        internal InlineStyle WithBold() => new InlineStyle(true, Italic, Strike, Underline, HighlightColorIndex, FontId, VerticalPosition);
 
-        internal InlineStyle WithStrike() => new InlineStyle(Bold, Italic, true, Underline, HighlightColorIndex, FontId);
+        internal InlineStyle WithItalic() => new InlineStyle(Bold, true, Strike, Underline, HighlightColorIndex, FontId, VerticalPosition);
 
-        internal InlineStyle WithUnderline() => new InlineStyle(Bold, Italic, Strike, true, HighlightColorIndex, FontId);
+        internal InlineStyle WithStrike() => new InlineStyle(Bold, Italic, true, Underline, HighlightColorIndex, FontId, VerticalPosition);
 
-        internal InlineStyle WithHighlight(int colorIndex) => new InlineStyle(Bold, Italic, Strike, Underline, colorIndex, FontId);
+        internal InlineStyle WithUnderline() => new InlineStyle(Bold, Italic, Strike, true, HighlightColorIndex, FontId, VerticalPosition);
 
-        internal InlineStyle WithFont(int fontId) => new InlineStyle(Bold, Italic, Strike, Underline, HighlightColorIndex, fontId);
+        internal InlineStyle WithHighlight(int colorIndex) => new InlineStyle(Bold, Italic, Strike, Underline, colorIndex, FontId, VerticalPosition);
+
+        internal InlineStyle WithFont(int fontId) => new InlineStyle(Bold, Italic, Strike, Underline, HighlightColorIndex, fontId, VerticalPosition);
+
+        internal InlineStyle WithVerticalPosition(RtfVerticalPosition verticalPosition) => new InlineStyle(Bold, Italic, Strike, Underline, HighlightColorIndex, FontId, verticalPosition);
     }
 }
