@@ -563,6 +563,84 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Maps_Paragraph_Style_TabStops() {
+            using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeParagraphStyleTabStops.docx"));
+            const string styleId = "NativeStyleTabStops";
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(new Style(
+                new StyleName { Val = "Native Style Tab Stops" },
+                new BasedOn { Val = "Normal" },
+                new StyleParagraphProperties(
+                    new Tabs(
+                        new TabStop {
+                            Val = TabStopValues.Right,
+                            Leader = TabStopLeaderCharValues.Dot,
+                            Position = 1440
+                        })))
+            {
+                Type = StyleValues.Paragraph,
+                StyleId = styleId,
+                CustomStyle = true
+            });
+
+            WordParagraph paragraph = document.AddParagraph("Native style tab stops");
+            paragraph.SetStyleId(styleId);
+
+            MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeParagraphStyle", BindingFlags.NonPublic | BindingFlags.Static, binder: null, new[] { typeof(WordParagraph) }, modifiers: null)!;
+            PdfParagraphStyle style = Assert.IsType<PdfParagraphStyle>(method.Invoke(null, new object[] { paragraph }));
+
+            Assert.Null(style.DefaultTabStopWidth);
+            PdfTabStop tabStop = Assert.Single(style.TabStops);
+            Assert.Equal(72D, tabStop.Position);
+            Assert.Equal(PdfTabAlignment.Right, tabStop.Alignment);
+            Assert.Equal(PdfTabLeaderStyle.Dots, tabStop.Leader);
+        }
+
+        [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Renders_Paragraph_Style_Tab_Leaders() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeParagraphStyleTabLeaders.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeParagraphStyleTabLeaders.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                const string styleId = "NativeRenderedStyleTabStops";
+                Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                styles.Append(new Style(
+                    new StyleName { Val = "Native Rendered Style Tab Stops" },
+                    new BasedOn { Val = "Normal" },
+                    new StyleParagraphProperties(
+                        new Tabs(
+                            new TabStop {
+                                Val = TabStopValues.Right,
+                                Leader = TabStopLeaderCharValues.Dot,
+                                Position = 4320
+                            })))
+                {
+                    Type = StyleValues.Paragraph,
+                    StyleId = styleId,
+                    CustomStyle = true
+                });
+
+                WordParagraph paragraph = document.AddParagraph("StyleRevenue\t42");
+                paragraph.SetStyleId(styleId);
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false,
+                    PageSize = new OfficeIMO.Pdf.PageSize(360, 180),
+                    Margins = PageMargins.Uniform(36)
+                });
+            }
+
+            using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+            var page = pdf.GetPage(1);
+            Assert.Contains("StyleRevenue", page.Text);
+            Assert.Contains("42", page.Text);
+
+            int dotCount = page.Letters.Count(letter => letter.Value == ".");
+            Assert.True(dotCount >= 15, $"Expected paragraph style tab leaders to render across the native paragraph tab gap. Dot count: {dotCount}.");
+        }
+
+        [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Applies_Paragraph_Style_Indentation() {
             using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeParagraphStyleIndentation.docx"));
             const string styleId = "NativeStyleIndentation";

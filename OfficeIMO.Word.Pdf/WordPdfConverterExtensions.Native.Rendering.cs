@@ -456,7 +456,7 @@ namespace OfficeIMO.Word.Pdf {
                 builder.Text(" ");
             }
 
-            IReadOnlyList<WordTabStop> tabStops = paragraph.TabStops;
+            IReadOnlyList<WordTabStop> tabStops = GetNativeParagraphEffectiveTabStops(paragraph);
             int tabIndex = 0;
             if (hasRenderableRuns) {
                 foreach (WordParagraph run in runs) {

@@ -377,7 +377,7 @@ namespace OfficeIMO.Word.Pdf {
             List<WordParagraph> runs = GetNativeRuns(paragraph);
             string content = paragraph.IsHyperLink && paragraph.Hyperlink != null ? paragraph.Hyperlink.Text : AppendNativeTextWithEquation(paragraph.Text, paragraph);
             bool hasRenderableRuns = runs.Any(run => !run.IsImage && !string.IsNullOrEmpty(run.Text));
-            IReadOnlyList<WordTabStop> tabStops = paragraph.TabStops;
+            IReadOnlyList<WordTabStop> tabStops = GetNativeParagraphEffectiveTabStops(paragraph);
             int tabIndex = 0;
             IReadOnlyList<W.SdtRun> repeatingSectionControls = GetNativeRepeatingSectionControls(paragraph);
 

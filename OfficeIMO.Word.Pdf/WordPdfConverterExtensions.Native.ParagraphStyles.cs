@@ -78,7 +78,7 @@ namespace OfficeIMO.Word.Pdf {
                 style.SpacingAfter = nativeDefaults.ParagraphSpacingAfter;
             }
 
-            foreach (WordTabStop tabStop in paragraph.TabStops
+            foreach (WordTabStop tabStop in GetNativeParagraphEffectiveTabStops(paragraph)
                 .Where(tabStop => tabStop.Position > 0 && IsNativeRenderableTextTabStop(tabStop.Alignment))
                 .OrderBy(tabStop => tabStop.Position)) {
                 double? position = ConvertNativeTwipsToPoints(tabStop.Position);

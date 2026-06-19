@@ -169,6 +169,39 @@ namespace OfficeIMO.Word.Pdf {
             return chain;
         }
 
+        private static IReadOnlyList<WordTabStop> GetNativeParagraphEffectiveTabStops(WordParagraph paragraph) {
+            IReadOnlyList<WordTabStop> directTabStops = paragraph.TabStops;
+            if (directTabStops.Count > 0) {
+                return directTabStops;
+            }
+
+            List<WordTabStop>? styleTabStops = null;
+            foreach (W.Style style in GetNativeParagraphStyleChain(paragraph._document, paragraph.StyleId)) {
+                W.Tabs? tabs = style.GetFirstChild<W.StyleParagraphProperties>()?.GetFirstChild<W.Tabs>();
+                if (tabs == null) {
+                    continue;
+                }
+
+                foreach (W.TabStop tabStop in tabs.Elements<W.TabStop>()) {
+                    WordTabStop wordTabStop = new WordTabStop(paragraph, (W.TabStop)tabStop.CloneNode(true));
+                    if (wordTabStop.Position <= 0 || !IsNativeRenderableTextTabStop(wordTabStop.Alignment)) {
+                        continue;
+                    }
+
+                    styleTabStops ??= new List<WordTabStop>();
+                    styleTabStops.RemoveAll(existing => existing.Position == wordTabStop.Position);
+                    styleTabStops.Add(wordTabStop);
+                }
+            }
+
+            if (styleTabStops == null || styleTabStops.Count == 0) {
+                return Array.Empty<WordTabStop>();
+            }
+
+            styleTabStops.Sort((left, right) => left.Position.CompareTo(right.Position));
+            return styleTabStops;
+        }
+
         private static bool IsNativeParagraphStyle(W.Style style) {
             if (style.Type == null) {
                 return false;
