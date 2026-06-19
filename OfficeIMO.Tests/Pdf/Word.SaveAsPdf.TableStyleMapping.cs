@@ -266,6 +266,25 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Maps_Table_Style_AtLeast_Line_Spacing() {
+        using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeTableStyleAtLeastLineSpacing.docx"));
+        Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+        styles.Append(new Style(
+            new StyleName { Val = "Generic AtLeast Spacing Table" },
+            new StyleParagraphProperties(
+                new SpacingBetweenLines { After = "0", Line = "120", LineRule = LineSpacingRuleValues.AtLeast }))
+        { Type = StyleValues.Table, StyleId = "GenericAtLeastSpacingTable" });
+
+        WordTable table = document.AddTable(1, 1);
+        table._tableProperties!.TableStyle = new TableStyle { Val = "GenericAtLeastSpacingTable" };
+
+        PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table);
+
+        Assert.Equal(11D, style.FontSize);
+        Assert.Equal(1.22D, style.LineHeight);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Lets_Derived_Table_Style_Auto_Line_Spacing_Override_Exact() {
         using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeTableStyleAutoOverridesExactLineSpacing.docx"));
         Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;

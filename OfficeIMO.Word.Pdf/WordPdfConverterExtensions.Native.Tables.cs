@@ -210,7 +210,11 @@ namespace OfficeIMO.Word.Pdf {
 
         private static double? ResolveNativeTableStyleParagraphLineHeight(NativeTableStyleDefaults tableStyleDefaults, double fontSize) {
             if (tableStyleDefaults.ParagraphLineSpacingPoints.HasValue && fontSize > 0D) {
-                return tableStyleDefaults.ParagraphLineSpacingPoints.Value / fontSize;
+                return ResolveNativeLineSpacingHeight(
+                    tableStyleDefaults.ParagraphLineSpacingPoints.Value,
+                    tableStyleDefaults.ParagraphLineSpacingRule,
+                    fontSize,
+                    NativeWordTableSingleLineHeight);
             }
 
             return tableStyleDefaults.ParagraphLineHeight;

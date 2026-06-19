@@ -92,6 +92,14 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Renders_Table_Style_AtLeast_Line_Spacing() {
+        double exactGap = RenderNativeTableStyleLineSpacingGap("PdfNativeTableStyleExactRenderedLineSpacing", LineSpacingRuleValues.Exact);
+        double atLeastGap = RenderNativeTableStyleLineSpacingGap("PdfNativeTableStyleAtLeastRenderedLineSpacing", LineSpacingRuleValues.AtLeast);
+
+        Assert.True(atLeastGap > exactGap + 14D, $"Expected Word table-style atLeast line spacing to preserve natural table line advance instead of exact compressed leading. Exact gap: {exactGap:0.##}; atLeast gap: {atLeastGap:0.##}.");
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Expands_Percentage_Width_Table_To_Content_Frame() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativePercentageWidthTable.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativePercentageWidthTable.pdf");
@@ -249,6 +257,54 @@ public partial class Word {
         double tableY = Assert.Single(words, word => word.Text == tableMarker).BoundingBox.Bottom;
         double afterY = Assert.Single(words, word => word.Text == afterMarker).BoundingBox.Bottom;
         return tableY - afterY;
+    }
+
+    private double RenderNativeTableStyleLineSpacingGap(string fileNamePrefix, LineSpacingRuleValues lineSpacingRule) {
+        const string firstMarker = "TSFirst";
+        const string secondMarker = "TSSecond";
+        string docPath = Path.Combine(_directoryWithFiles, fileNamePrefix + ".docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, fileNamePrefix + ".pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            string styleId = fileNamePrefix + "Style";
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(new Style(
+                new StyleName { Val = fileNamePrefix + " Style" },
+                new StyleRunProperties(new FontSize { Val = "48" }),
+                new StyleParagraphProperties(new SpacingBetweenLines {
+                    After = "0",
+                    Line = "120",
+                    LineRule = lineSpacingRule
+                }))
+            {
+                Type = StyleValues.Table,
+                StyleId = styleId,
+                CustomStyle = true
+            });
+
+            WordTable table = document.AddTable(1, 1);
+            table.Width = 2880;
+            table.WidthType = TableWidthUnitValues.Dxa;
+            table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
+            WordParagraph paragraph = table.Rows[0].Cells[0].Paragraphs[0];
+            paragraph.Text = firstMarker;
+            paragraph.AddBreak();
+            paragraph.AddText(secondMarker);
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = new PdfCore.PageSize(360, 260),
+                Margins = PdfCore.PageMargins.Uniform(36),
+                FontFamily = "Helvetica"
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        var words = pdf.GetPage(1).GetWords().ToList();
+        double firstY = Assert.Single(words, word => word.Text == firstMarker).BoundingBox.Bottom;
+        double secondY = Assert.Single(words, word => word.Text == secondMarker).BoundingBox.Bottom;
+        return firstY - secondY;
     }
 
     [Fact]
