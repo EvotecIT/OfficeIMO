@@ -146,10 +146,91 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Terms and conditions apply after approval.", modified.TargetText);
         }
 
+        [Fact]
+        public void CompareStructureReportsImageGeometryChangesForSamePayload() {
+            string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_image_geometry.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                doc.AddParagraph().AddImage(imagePath, 40, 40);
+                doc.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_image_geometry.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                doc.AddParagraph().AddImage(imagePath, 120, 40);
+                doc.Save(false);
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            WordComparisonFinding image = Assert.Single(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Image &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified);
+            Assert.Equal("Image payload changed.", image.Message);
+        }
+
+        [Fact]
+        public void CompareStructureHandlesLargeParagraphSetsWithBoundedAlignment() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_large_alignment.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                AddNumberedParagraphs(doc, 1000);
+                doc.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_large_alignment.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                doc.AddParagraph("Inserted cover note");
+                AddNumberedParagraphs(doc, 1000);
+                doc.Save(false);
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            WordComparisonFinding inserted = Assert.Single(result.Findings);
+            Assert.Equal(WordComparisonScope.Paragraph, inserted.Scope);
+            Assert.Equal(WordComparisonChangeKind.Inserted, inserted.ChangeKind);
+            Assert.Equal("Inserted cover note", inserted.TargetText);
+        }
+
+        [Fact]
+        public void CompareStructureReturnsMixedFindingsInDocumentOrder() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_mixed_order.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                doc.AddParagraph("Opening");
+                WordTable table = doc.AddTable(1, 1);
+                table.Rows[0].Cells[0].Paragraphs[0].SetText("Risk: Open");
+                doc.AddParagraph("Decision: Draft");
+                doc.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_mixed_order.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                doc.AddParagraph("Opening");
+                WordTable table = doc.AddTable(1, 1);
+                table.Rows[0].Cells[0].Paragraphs[0].SetText("Risk: Closed");
+                doc.AddParagraph("Decision: Approved");
+                doc.Save(false);
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Equal(2, result.Findings.Count);
+            Assert.Equal(WordComparisonScope.TableCell, result.Findings[0].Scope);
+            Assert.Equal("Risk: Open", result.Findings[0].SourceText);
+            Assert.Equal(WordComparisonScope.Paragraph, result.Findings[1].Scope);
+            Assert.Equal("Decision: Draft", result.Findings[1].SourceText);
+        }
+
         private static void AddBreakParagraph(WordDocument document, BreakValues breakType) {
             WordParagraph paragraph = document.AddParagraph("Before");
             paragraph._paragraph.Append(new Run(new Break { Type = breakType }));
             paragraph._paragraph.Append(new Run(new Text("After")));
+        }
+
+        private static void AddNumberedParagraphs(WordDocument document, int count) {
+            for (int index = 0; index < count; index++) {
+                document.AddParagraph("Clause " + index.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            }
         }
 
         private static void AddVmlImageParagraph(WordDocument document, string imagePath) {

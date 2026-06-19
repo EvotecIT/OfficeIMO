@@ -50,7 +50,8 @@ namespace OfficeIMO.Word {
                         targetIndex,
                         null,
                         targetParagraphs[targetIndex].Text,
-                        "Paragraph inserted."));
+                        "Paragraph inserted."),
+                        targetParagraphs[targetIndex].DocumentOrder);
                     targetIndex++;
                     continue;
                 }
@@ -67,7 +68,8 @@ namespace OfficeIMO.Word {
                         null,
                         sourceParagraphs[sourceIndex].Text,
                         null,
-                        "Paragraph deleted."));
+                        "Paragraph deleted."),
+                        sourceParagraphs[sourceIndex].DocumentOrder);
                     sourceIndex++;
                     continue;
                 }
@@ -85,7 +87,8 @@ namespace OfficeIMO.Word {
                         null,
                         sourceText,
                         null,
-                        "Paragraph deleted."));
+                        "Paragraph deleted."),
+                        sourceParagraphs[sourceIndex].DocumentOrder);
                     result.Add(new WordComparisonFinding(
                         WordComparisonScope.Paragraph,
                         WordComparisonChangeKind.Inserted,
@@ -94,7 +97,8 @@ namespace OfficeIMO.Word {
                         targetIndex,
                         null,
                         targetText,
-                        "Paragraph inserted."));
+                        "Paragraph inserted."),
+                        targetParagraphs[targetIndex].DocumentOrder);
                     sourceIndex++;
                     targetIndex++;
                     continue;
@@ -109,7 +113,8 @@ namespace OfficeIMO.Word {
                         targetIndex,
                         sourceText,
                         targetText,
-                        "Paragraph text changed."));
+                        "Paragraph text changed."),
+                        targetParagraphs[targetIndex].DocumentOrder);
                 }
 
                 sourceIndex++;
@@ -125,7 +130,8 @@ namespace OfficeIMO.Word {
                     targetIndex,
                     null,
                     targetParagraphs[targetIndex].Text,
-                    "Paragraph inserted."));
+                    "Paragraph inserted."),
+                    targetParagraphs[targetIndex].DocumentOrder);
                 targetIndex++;
             }
 
@@ -138,7 +144,8 @@ namespace OfficeIMO.Word {
                     null,
                     sourceParagraphs[sourceIndex].Text,
                     null,
-                    "Paragraph deleted."));
+                    "Paragraph deleted."),
+                    sourceParagraphs[sourceIndex].DocumentOrder);
                 sourceIndex++;
             }
         }
@@ -146,24 +153,31 @@ namespace OfficeIMO.Word {
         private static List<ParagraphSnapshot> GetLogicalBodyParagraphs(WordDocument document) {
             var snapshots = new List<ParagraphSnapshot>();
             MainDocumentPart? mainPart = document._wordprocessingDocument.MainDocumentPart;
-            AddParagraphSnapshots(snapshots, mainPart?.Document?.Body, "body");
+            AddParagraphSnapshots(snapshots, mainPart?.Document?.Body, "body", BodyPartOrderBase);
 
             if (mainPart != null) {
+                int headerIndex = 0;
                 foreach (HeaderPart headerPart in mainPart.HeaderParts) {
-                    AddParagraphSnapshots(snapshots, headerPart.Header, "header");
+                    AddParagraphSnapshots(snapshots, headerPart.Header, "header", HeaderPartOrderBase + (headerIndex * RelatedPartOrderStride));
+                    headerIndex++;
                 }
 
+                int footerIndex = 0;
                 foreach (FooterPart footerPart in mainPart.FooterParts) {
-                    AddParagraphSnapshots(snapshots, footerPart.Footer, "footer");
+                    AddParagraphSnapshots(snapshots, footerPart.Footer, "footer", FooterPartOrderBase + (footerIndex * RelatedPartOrderStride));
+                    footerIndex++;
                 }
             }
 
             return snapshots;
         }
 
-        private static void AddParagraphSnapshots(List<ParagraphSnapshot> snapshots, OpenXmlElement? container, string partKind) {
-            IEnumerable<Paragraph> paragraphs = container?.Descendants<Paragraph>() ?? Enumerable.Empty<Paragraph>();
-            foreach (Paragraph paragraph in paragraphs) {
+        private static void AddParagraphSnapshots(List<ParagraphSnapshot> snapshots, OpenXmlElement? container, string partKind, int orderBase) {
+            foreach (OrderedElement ordered in EnumerateDescendantsWithOrder(container, orderBase)) {
+                if (ordered.Element is not Paragraph paragraph) {
+                    continue;
+                }
+
                 if (paragraph.Ancestors<TableCell>().Any()) {
                     continue;
                 }
@@ -173,7 +187,7 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
-                snapshots.Add(new ParagraphSnapshot(partKind, text));
+                snapshots.Add(new ParagraphSnapshot(partKind, text, ordered.DocumentOrder));
             }
         }
 
@@ -243,14 +257,17 @@ namespace OfficeIMO.Word {
         }
 
         private sealed class ParagraphSnapshot {
-            internal ParagraphSnapshot(string partKind, string text) {
+            internal ParagraphSnapshot(string partKind, string text, int documentOrder) {
                 PartKind = partKind;
                 Text = text;
+                DocumentOrder = documentOrder;
             }
 
             internal string PartKind { get; }
 
             internal string Text { get; }
+
+            internal int DocumentOrder { get; }
         }
 
         private sealed class ParagraphSnapshotEqualityComparer : IEqualityComparer<ParagraphSnapshot> {

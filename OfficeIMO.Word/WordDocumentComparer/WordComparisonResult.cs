@@ -105,6 +105,7 @@ namespace OfficeIMO.Word {
     /// </summary>
     public sealed class WordComparisonResult {
         private readonly List<WordComparisonFinding> _findings = new();
+        private readonly Dictionary<WordComparisonFinding, int> _documentOrders = new();
 
         internal WordComparisonResult(string sourcePath, string targetPath) {
             SourcePath = sourcePath ?? string.Empty;
@@ -123,8 +124,39 @@ namespace OfficeIMO.Word {
         /// <summary>Gets whether any differences were detected.</summary>
         public bool HasChanges => _findings.Count > 0;
 
-        internal void Add(WordComparisonFinding finding) {
+        internal void Add(WordComparisonFinding finding, int documentOrder = int.MaxValue) {
             _findings.Add(finding);
+            _documentOrders[finding] = documentOrder;
+        }
+
+        internal void SortFindingsByDocumentOrder() {
+            _findings.Sort((left, right) => {
+                int result = GetDocumentOrder(left).CompareTo(GetDocumentOrder(right));
+                if (result != 0) {
+                    return result;
+                }
+
+                result = left.Scope.CompareTo(right.Scope);
+                if (result != 0) {
+                    return result;
+                }
+
+                result = Nullable.Compare(left.TargetIndex, right.TargetIndex);
+                if (result != 0) {
+                    return result;
+                }
+
+                result = Nullable.Compare(left.SourceIndex, right.SourceIndex);
+                if (result != 0) {
+                    return result;
+                }
+
+                return string.CompareOrdinal(left.Location, right.Location);
+            });
+        }
+
+        private int GetDocumentOrder(WordComparisonFinding finding) {
+            return _documentOrders.TryGetValue(finding, out int order) ? order : int.MaxValue;
         }
     }
 }
