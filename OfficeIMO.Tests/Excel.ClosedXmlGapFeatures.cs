@@ -935,7 +935,7 @@ namespace OfficeIMO.Tests {
             using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
                 ExcelFeatureReport report = document.InspectFeatures();
 
-                ExcelFeatureFinding externalLinks = Assert.Single(report.PreservedFeatures, feature => feature.Name == "External workbook links");
+                ExcelFeatureFinding externalLinks = Assert.Single(report.PartiallyEditableFeatures, feature => feature.Name == "External hyperlinks");
                 Assert.Equal(1, externalLinks.Count);
                 Assert.Contains(externalLinks.Details, detail => detail.Contains("https://example.org/spec", StringComparison.OrdinalIgnoreCase));
 
@@ -1310,19 +1310,19 @@ namespace OfficeIMO.Tests {
                 ExcelFeatureReport report = document.InspectFeatures();
 
                 Assert.Empty(report.FindFeatures("VBA macros"));
-                ExcelFeatureFinding externalLinks = Assert.Single(report.FindFeatures("External workbook links"));
-                Assert.Equal(ExcelFeatureSupportLevel.Preserved, externalLinks.SupportLevel);
+                ExcelFeatureFinding externalLinks = Assert.Single(report.FindFeatures("External hyperlinks"));
+                Assert.Equal(ExcelFeatureSupportLevel.PartiallyEditable, externalLinks.SupportLevel);
                 Assert.Same(report, report.EnsureNoFeatures("VBA macros"));
 
                 InvalidOperationException namedException = Assert.Throws<InvalidOperationException>(
-                    () => report.EnsureNoFeatures("External workbook links", "VBA macros"));
-                Assert.Contains("External workbook links", namedException.Message);
+                    () => report.EnsureNoFeatures("External hyperlinks", "VBA macros"));
+                Assert.Contains("External hyperlinks", namedException.Message);
                 Assert.Contains("https://example.org/spec", namedException.Message);
 
                 InvalidOperationException levelException = Assert.Throws<InvalidOperationException>(
-                    () => report.EnsureNoFeatures(ExcelFeatureSupportLevel.Preserved));
-                Assert.Contains("Preserved", levelException.Message);
-                Assert.Contains("External workbook links", levelException.Message);
+                    () => report.EnsureNoFeatures(ExcelFeatureSupportLevel.PartiallyEditable));
+                Assert.Contains("PartiallyEditable", levelException.Message);
+                Assert.Contains("External hyperlinks", levelException.Message);
             }
         }
 
@@ -1358,7 +1358,7 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
                 ExcelFeatureReport report = document.InspectFeatures();
-                Assert.Contains(report.PreservedFeatures, feature => feature.Name == "External workbook links"
+                Assert.Contains(report.PartiallyEditableFeatures, feature => feature.Name == "External hyperlinks"
                     && feature.Details.Any(detail => detail.Contains("https://example.org/spec", StringComparison.OrdinalIgnoreCase)));
                 Assert.Contains(report.PreservedFeatures, feature => feature.Name == "Custom XML parts"
                     && feature.Details.Any(detail => detail.Contains("/customXml/", StringComparison.OrdinalIgnoreCase)));

@@ -3,6 +3,79 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
+        private static bool IsHiddenSheet(DocumentFormat.OpenXml.Spreadsheet.Sheet sheet) {
+            return sheet.State?.Value == DocumentFormat.OpenXml.Spreadsheet.SheetStateValues.Hidden
+                   || sheet.State?.Value == DocumentFormat.OpenXml.Spreadsheet.SheetStateValues.VeryHidden;
+        }
+
+        private static bool HasWorkbookRecalculationRequest(DocumentFormat.OpenXml.Spreadsheet.Workbook workbook) {
+            var properties = workbook.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.CalculationProperties>();
+            return properties?.ForceFullCalculation?.Value == true
+                   || properties?.FullCalculationOnLoad?.Value == true;
+        }
+
+        private static IEnumerable<string> DescribeWorkbookRecalculationRequest(DocumentFormat.OpenXml.Spreadsheet.Workbook workbook) {
+            var properties = workbook.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.CalculationProperties>();
+            if (properties?.ForceFullCalculation?.Value == true) {
+                yield return "Workbook calculation properties set forceFullCalc.";
+            }
+
+            if (properties?.FullCalculationOnLoad?.Value == true) {
+                yield return "Workbook calculation properties set fullCalcOnLoad.";
+            }
+        }
+
+        private static void AddUnsupportedHeaderFooterImages(ExcelSheet.HeaderFooterSnapshot headerFooter, string sheetName, ref int count, List<string> details) {
+            AddUnsupportedHeaderFooterImage(headerFooter.HeaderLeftImage, sheetName, "header left", ref count, details);
+            AddUnsupportedHeaderFooterImage(headerFooter.HeaderCenterImage, sheetName, "header center", ref count, details);
+            AddUnsupportedHeaderFooterImage(headerFooter.HeaderRightImage, sheetName, "header right", ref count, details);
+            AddUnsupportedHeaderFooterImage(headerFooter.FooterLeftImage, sheetName, "footer left", ref count, details);
+            AddUnsupportedHeaderFooterImage(headerFooter.FooterCenterImage, sheetName, "footer center", ref count, details);
+            AddUnsupportedHeaderFooterImage(headerFooter.FooterRightImage, sheetName, "footer right", ref count, details);
+        }
+
+        private static void AddUnsupportedHeaderFooterImage(ExcelSheet.HeaderFooterImageSnapshot? image, string sheetName, string location, ref int count, List<string> details) {
+            if (image == null || IsPdfSupportedHeaderFooterImage(image, out string reason)) {
+                return;
+            }
+
+            count++;
+            details.Add($"{sheetName} {location}: {reason}");
+        }
+
+        private static void AddUnrenderedDrawingShapes(WorksheetPart worksheetPart, string sheetName, ref int count, List<string> details) {
+            var shapes = worksheetPart.DrawingsPart?.WorksheetDrawing?
+                .Descendants<DocumentFormat.OpenXml.Drawing.Spreadsheet.Shape>()
+                .ToList();
+            if (shapes == null || shapes.Count == 0) {
+                return;
+            }
+
+            count += shapes.Count;
+            foreach (var shape in shapes) {
+                string name = shape.NonVisualShapeProperties?.NonVisualDrawingProperties?.Name?.Value ?? "unnamed shape";
+                details.Add($"{sheetName}: {name}");
+            }
+        }
+
+        private static void AddUnsupportedDrawingHyperlinks(WorksheetPart worksheetPart, string sheetName, ref int count, List<string> details) {
+            foreach (OpenXmlPart part in EnumeratePartAndChildren(worksheetPart, new HashSet<Uri>())) {
+                if (part == worksheetPart) {
+                    continue;
+                }
+
+                foreach (HyperlinkRelationship relationship in part.HyperlinkRelationships) {
+                    count++;
+                    details.Add($"{sheetName}: {part.Uri} {relationship.Id} -> {relationship.Uri}");
+                }
+
+                foreach (ExternalRelationship relationship in part.ExternalRelationships.Where(IsHyperlinkRelationship)) {
+                    count++;
+                    details.Add($"{sheetName}: {part.Uri} {relationship.Id} -> {relationship.Uri}");
+                }
+            }
+        }
+
         private static bool IsPdfSupportedChartType(ExcelChartType chartType) {
             switch (chartType) {
                 case ExcelChartType.ColumnClustered:
@@ -104,6 +177,45 @@ namespace OfficeIMO.Excel {
 
             reason = string.Empty;
             return true;
+        }
+
+        private static bool IsPdfSupportedHeaderFooterImage(ExcelSheet.HeaderFooterImageSnapshot image, out string reason) {
+            if (!IsPdfSupportedImageContentType(image.ContentType)) {
+                reason = $"content type '{image.ContentType}' is not supported by the first-party PDF image writer.";
+                return false;
+            }
+
+            if (image.WidthPoints <= 0 || image.HeightPoints <= 0) {
+                reason = "image has non-positive dimensions.";
+                return false;
+            }
+
+            if (image.Bytes.Length == 0) {
+                reason = "image has empty bytes.";
+                return false;
+            }
+
+            if (!OfficeImageReader.TryIdentify(image.Bytes, null, out OfficeImageInfo imageInfo)) {
+                reason = "image bytes do not contain a supported image header.";
+                return false;
+            }
+
+            if (IsPngContentType(image.ContentType) && imageInfo.Format != OfficeImageFormat.Png) {
+                reason = $"image bytes were declared as PNG but detected as {imageInfo.Format}.";
+                return false;
+            }
+
+            if (IsJpegContentType(image.ContentType) && imageInfo.Format != OfficeImageFormat.Jpeg) {
+                reason = $"image bytes were declared as JPEG but detected as {imageInfo.Format}.";
+                return false;
+            }
+
+            reason = string.Empty;
+            return true;
+        }
+
+        private static bool IsSupportedPdfExternalHyperlink(Uri uri) {
+            return uri.IsAbsoluteUri;
         }
 
         private static bool IsPdfSupportedImageContentType(string contentType) {

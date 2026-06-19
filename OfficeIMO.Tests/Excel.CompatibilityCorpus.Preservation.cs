@@ -40,7 +40,7 @@ namespace OfficeIMO.Tests {
                     Assert.False(report.Can(ExcelPreflightCapability.BindTemplate));
                     Assert.False(report.Can(ExcelPreflightCapability.ExportPdfReport));
 
-                    Assert.Contains(report.PreservedFeatures, feature => feature.Name == "External workbook links"
+                    Assert.Contains(report.PartiallyEditableFeatures, feature => feature.Name == "External hyperlinks"
                         && feature.Details.Any(detail => detail.Contains("INV-2026-001", StringComparison.OrdinalIgnoreCase)));
                     Assert.Contains(report.PreservedFeatures, feature => feature.Name == "Custom XML parts");
                     Assert.Contains(report.PreservedFeatures, feature => feature.Name == "Connections and query tables"
@@ -48,7 +48,6 @@ namespace OfficeIMO.Tests {
 
                     string diagnostics = string.Join(Environment.NewLine,
                         report.GetCapabilityDiagnostics(ExcelPreflightCapability.ExportPdfReport));
-                    Assert.Contains("External workbook links", diagnostics);
                     Assert.Contains("Custom XML parts", diagnostics);
                     Assert.Contains("Connections and query tables", diagnostics);
                     Assert.Contains("Connections and query tables", Assert.Throws<InvalidOperationException>(() =>

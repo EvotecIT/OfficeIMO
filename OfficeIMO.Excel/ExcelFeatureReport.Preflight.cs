@@ -51,7 +51,7 @@ namespace OfficeIMO.Excel {
         public bool CanUseCachedFormulaValues =>
             FindFeatureCount("Missing formula caches") == 0 &&
             FindFeatureCount("Dirty formula caches") == 0 &&
-            FindFeatureCount("Formula dependency issues") == 0;
+            FindFeatureCount("Workbook recalculation requests") == 0;
 
         /// <summary>
         /// True when OfficeIMO's lightweight evaluator can calculate all discovered formulas without known dependency issues.
@@ -73,6 +73,8 @@ namespace OfficeIMO.Excel {
             FindFeatureCount("PDF-unsupported charts") == 0 &&
             FindFeatureCount("PDF-unreadable charts") == 0 &&
             FindFeatureCount("PDF-unsupported images") == 0 &&
+            FindFeatureCount("PDF-unsupported hyperlinks") == 0 &&
+            FindFeatureCount("PDF-unrendered drawing shapes") == 0 &&
             FindFeatureCount("PDF-unrendered pivot tables") == 0 &&
             FindFeatureCount("PDF-unrendered sparklines") == 0 &&
             FindFeatureCount("Non-worksheet sheets") == 0;
@@ -158,6 +160,8 @@ namespace OfficeIMO.Excel {
                     AddFeatureDiagnostics(messages, FindFeatures("PDF-unsupported charts"));
                     AddFeatureDiagnostics(messages, FindFeatures("PDF-unreadable charts"));
                     AddFeatureDiagnostics(messages, FindFeatures("PDF-unsupported images"));
+                    AddFeatureDiagnostics(messages, FindFeatures("PDF-unsupported hyperlinks"));
+                    AddFeatureDiagnostics(messages, FindFeatures("PDF-unrendered drawing shapes"));
                     AddFeatureDiagnostics(messages, FindFeatures("PDF-unrendered pivot tables"));
                     AddFeatureDiagnostics(messages, FindFeatures("PDF-unrendered sparklines"));
                     AddFeatureDiagnostics(messages, FindFeatures("Non-worksheet sheets"));
@@ -207,6 +211,7 @@ namespace OfficeIMO.Excel {
                 case "Unsupported formulas":
                 case "Missing formula caches":
                 case "Dirty formula caches":
+                case "Workbook recalculation requests":
                 case "Formula dependency issues":
                 case "Formula calculation blockers":
                     return true;
@@ -241,7 +246,7 @@ namespace OfficeIMO.Excel {
             if (requireCachedValues) {
                 AddFeatureDiagnostics(messages, FindFeatures("Missing formula caches"));
                 AddFeatureDiagnostics(messages, FindFeatures("Dirty formula caches"));
-                AddFeatureDiagnostics(messages, FindFeatures("Formula dependency issues"));
+                AddFeatureDiagnostics(messages, FindFeatures("Workbook recalculation requests"));
                 return;
             }
 
