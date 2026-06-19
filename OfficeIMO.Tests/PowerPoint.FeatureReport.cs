@@ -87,6 +87,87 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PowerPointFeatureReport_DetectsGroupedTables() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    PowerPointTable table = slide.AddTable(1, 1);
+                    table.GetCell(0, 0).Text = "Grouped";
+                    PowerPointAutoShape shape = slide.AddRectangle(914400, 0, 914400, 914400);
+                    slide.GroupShapes(new PowerPointShape[] { table, shape });
+                    presentation.Save();
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                    PowerPointFeatureReport report = presentation.InspectFeatures();
+                    PowerPointFeatureFinding tables = Assert.Single(report.FindFeatures("Tables"));
+
+                    Assert.Equal(1, tables.Count);
+                    Assert.Throws<InvalidOperationException>(() => report.EnsureNoFeatures("Tables"));
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void PowerPointFeatureReport_DetectsInheritedLayoutPictures() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            byte[] pixel = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    presentation.AddSlide().AddTextBox("Slide inherits the layout logo");
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, true)) {
+                    SlidePart slidePart = document.PresentationPart!.SlideParts.Single();
+                    SlideLayoutPart layoutPart = slidePart.SlideLayoutPart!;
+                    ImagePart imagePart = layoutPart.AddImagePart(DocumentFormat.OpenXml.Packaging.ImagePartType.Png);
+                    using (var image = new MemoryStream(pixel)) {
+                        imagePart.FeedData(image);
+                    }
+
+                    string relationshipId = layoutPart.GetIdOfPart(imagePart);
+                    ShapeTree tree = layoutPart.SlideLayout!.CommonSlideData!.ShapeTree!;
+                    uint shapeId = tree.Descendants<NonVisualDrawingProperties>()
+                        .Select(properties => properties.Id?.Value ?? 0U)
+                        .DefaultIfEmpty(0U)
+                        .Max() + 1U;
+                    tree.Append(new Picture(
+                        new NonVisualPictureProperties(
+                            new NonVisualDrawingProperties { Id = shapeId, Name = "Layout Logo" },
+                            new NonVisualPictureDrawingProperties(new A.PictureLocks { NoChangeAspect = true }),
+                            new ApplicationNonVisualDrawingProperties()),
+                        new BlipFill(
+                            new A.Blip { Embed = relationshipId },
+                            new A.Stretch(new A.FillRectangle())),
+                        new ShapeProperties(
+                            new A.Transform2D(new A.Offset { X = 0, Y = 0 }, new A.Extents { Cx = 914400, Cy = 914400 }),
+                            new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle })));
+                    layoutPart.SlideLayout.Save();
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                    PowerPointFeatureReport report = presentation.InspectFeatures();
+                    PowerPointFeatureFinding images = Assert.Single(report.FindFeatures("Images"));
+
+                    Assert.Equal(1, images.Count);
+                    Assert.Throws<InvalidOperationException>(() => report.EnsureNoFeatures("Images"));
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void PowerPointFeatureReport_DoesNotBlockZeroCountEditableFeatures() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 

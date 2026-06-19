@@ -327,7 +327,7 @@ namespace OfficeIMO.PowerPoint {
                 "Sections can be authored, inspected, renamed, moved, and synchronized with slides.");
             Add(features, "Content", "Text boxes", PowerPointFeatureSupportLevel.Editable, Slides.Sum(slide => slide.TextBoxes.Count()), null,
                 "Text boxes, runs, common formatting, markdown import, hyperlinks, and replacement are editable.");
-            Add(features, "Content", "Tables", PowerPointFeatureSupportLevel.Editable, Slides.Sum(slide => slide.Tables.Count()), null,
+            Add(features, "Content", "Tables", PowerPointFeatureSupportLevel.Editable, Slides.Sum(CountSlideTables), null,
                 "Tables, cells, text, merges, dimensions, fills, borders, alignment, banding flags, and typed object binding are editable.");
             Add(features, "Content", "Table style metadata", PowerPointFeatureSupportLevel.Editable, tableMetadataDetails.Count, null,
                 "Generated tables include PowerPoint-style table IDs, banding metadata, row and column IDs, and language-aware cell text defaults.",
@@ -510,10 +510,22 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static int CountSlidePictures(PowerPointSlide slide) {
-            return slide.SlidePart.Slide?
+            int slidePictures = slide.SlidePart.Slide?
                 .Descendants<Picture>()
                 .Count(picture => !PowerPointMedia.TryGetMediaKind(picture, out _))
                 ?? 0;
+
+            return slidePictures + slide.GetInheritedShapesForExport().Sum(shape => CountPictureElements(shape.Element));
+        }
+
+        private static int CountPictureElements(OpenXmlElement element) {
+            int count = element is Picture picture && !PowerPointMedia.TryGetMediaKind(picture, out _) ? 1 : 0;
+            return count + element.Descendants<Picture>().Count(picture => !PowerPointMedia.TryGetMediaKind(picture, out _));
+        }
+
+        private static int CountSlideTables(PowerPointSlide slide) {
+            int slideTables = slide.SlidePart.Slide?.Descendants<A.Table>().Count() ?? 0;
+            return slideTables + slide.GetInheritedShapesForExport().Sum(shape => shape.Element.Descendants<A.Table>().Count());
         }
 
         private List<string> DescribeUnsupportedTransitionMarkup() {
