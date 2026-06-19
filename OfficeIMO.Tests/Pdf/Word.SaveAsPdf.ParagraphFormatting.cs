@@ -908,6 +908,14 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Collapses_Adjacent_Paragraph_Spacing() {
+            double afterOnlyGap = RenderNativeAdjacentParagraphSpacingGap("PdfNativeCollapsedParagraphSpacingAfterOnly", secondSpacingBefore: 0D);
+            double collapsedGap = RenderNativeAdjacentParagraphSpacingGap("PdfNativeCollapsedParagraphSpacingBeforeSmallerThanAfter", secondSpacingBefore: 20D);
+
+            Assert.InRange(Math.Abs(collapsedGap - afterOnlyGap), 0D, 2D);
+        }
+
+        [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Lets_Derived_Paragraph_Style_Auto_Line_Spacing_Override_Exact() {
             using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeParagraphStyleAutoOverridesExactLineSpacing.docx"));
             const string baseStyleId = "BaseExactLineSpacingStyle";
@@ -1046,6 +1054,35 @@ namespace OfficeIMO.Tests {
             double beforeY = Assert.Single(words, word => word.Text == beforeMarker).BoundingBox.Bottom;
             double afterY = Assert.Single(words, word => word.Text == afterMarker).BoundingBox.Bottom;
             return beforeY - afterY;
+        }
+
+        private double RenderNativeAdjacentParagraphSpacingGap(string fileNamePrefix, double secondSpacingBefore) {
+            const string firstMarker = "CollapseFirst";
+            const string secondMarker = "CollapseSecond";
+            string docPath = Path.Combine(_directoryWithFiles, fileNamePrefix + ".docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, fileNamePrefix + ".pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                WordParagraph first = document.AddParagraph(firstMarker);
+                first.LineSpacingAfterPoints = 30;
+                WordParagraph second = document.AddParagraph(secondMarker);
+                second.LineSpacingBeforePoints = secondSpacingBefore;
+                second.LineSpacingAfterPoints = 0;
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false,
+                    PageSize = new OfficeIMO.Pdf.PageSize(320, 240),
+                    Margins = PageMargins.Uniform(36),
+                    FontFamily = "Helvetica"
+                });
+            }
+
+            using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+            var words = pdf.GetPage(1).GetWords().ToList();
+            double firstY = Assert.Single(words, word => word.Text == firstMarker).BoundingBox.Bottom;
+            double secondY = Assert.Single(words, word => word.Text == secondMarker).BoundingBox.Bottom;
+            return firstY - secondY;
         }
 
     }

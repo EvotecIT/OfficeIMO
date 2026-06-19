@@ -139,7 +139,7 @@ namespace OfficeIMO.Word.Pdf {
                     page.Margin(sectionMargins);
                     ConfigureNativePageNumbering(page, section);
                     ConfigureNativeHeaderFooter(page, section, options, headerFooterMarginExpansion.Header, headerFooterMarginExpansion.Footer);
-                    var flow = new NativePdfDocumentFlow(pdf);
+                    INativePdfFlow flow = new NativeSpacingCollapseFlow(new NativePdfDocumentFlow(pdf));
 
                     if (TryRenderNativeSectionColumns(
                         page,

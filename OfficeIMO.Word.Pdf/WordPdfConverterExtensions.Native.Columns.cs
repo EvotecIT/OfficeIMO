@@ -44,7 +44,7 @@ namespace OfficeIMO.Word.Pdf {
                 for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
                     IReadOnlyList<WordElement> columnElements = columns[columnIndex];
                     row.Column(columnWidthPercents[columnIndex], column => {
-                        var flow = new NativePdfColumnFlow(page, column);
+                        INativePdfFlow flow = new NativeSpacingCollapseFlow(new NativePdfColumnFlow(page, column));
                         double columnContentWidth = availableColumnWidth * columnWidthPercents[columnIndex] / 100D;
                         bool hasContent = false;
                         for (int i = 0; i < columnElements.Count; i++) {
