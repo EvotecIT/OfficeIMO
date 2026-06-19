@@ -76,6 +76,10 @@ public static partial class MarkdownReader {
             string trimmed = indent == 0 ? line : line.Substring(indent);
             if (trimmed.Length == 0 || trimmed[0] != '<') return false;
 
+            if (IsHeaderlessSingleRowTableMarker(trimmed)) {
+                return TryParseHeaderlessSingleRowTable(lines, ref i, options, doc, state);
+            }
+
             // Avoid treating angle-bracket autolinks like "<https://...>" as HTML blocks.
             if (TryParseAngleAutolink(trimmed, 0, out _, out _, out _)) return false;
 
@@ -126,6 +130,34 @@ public static partial class MarkdownReader {
                 doc.Add(new HtmlRawBlock(htmlContent));
             }
             i = j;
+            return true;
+        }
+
+        private static bool IsHeaderlessSingleRowTableMarker(string trimmed) {
+            return string.Equals(trimmed.Trim(), TableBlock.HeaderlessSingleRowTableMarker, StringComparison.Ordinal);
+        }
+
+        private static bool TryParseHeaderlessSingleRowTable(string[] lines, ref int i, MarkdownReaderOptions options, MarkdownDoc doc, MarkdownReaderState state) {
+            if (!options.Tables) {
+                return false;
+            }
+
+            int tableStart = i + 1;
+            if (tableStart >= lines.Length || !LooksLikeTableRow(lines[tableStart])) {
+                return false;
+            }
+
+            if (!TryGetTableExtent(lines, tableStart, out int end, out _, allowSingleRowHeaderless: true)) {
+                return false;
+            }
+
+            TableBlock table = ParseTable(lines, tableStart, end, options, state);
+            if (table.Headers.Count == 0 && table.Rows.Count == 1) {
+                table.PreserveHeaderlessSingleRowTable = true;
+            }
+
+            doc.Add(table);
+            i = end + 1;
             return true;
         }
 

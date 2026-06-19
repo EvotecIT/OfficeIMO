@@ -112,7 +112,7 @@ internal static class RtfToMarkdownConverter {
     }
 
     private static bool IsListContinuationParagraph(RtfParagraph paragraph) {
-        return paragraph.ListKind == RtfListKind.None && (paragraph.LeftIndentTwips ?? 0) >= ListIndentTwips;
+        return paragraph.ListKind == RtfListKind.None && paragraph.MarkdownListContinuation;
     }
 
     private static void AddListContinuationParagraph(List<ListFrame> frames, RtfParagraph paragraph, RtfToMarkdownOptions options, ref int imageIndex) {
@@ -313,10 +313,6 @@ internal static class RtfToMarkdownConverter {
         }
 
         bool hasHeader = table.Rows[0].RepeatHeader;
-        if (!hasHeader && table.Rows.Count == 1) {
-            hasHeader = true;
-        }
-
         int firstBodyRow = hasHeader ? 1 : 0;
         List<InlineSequence>? headerInlines = null;
         if (hasHeader) {
@@ -345,6 +341,10 @@ internal static class RtfToMarkdownConverter {
         }
 
         markdown.SetParsedCells(headerInlines, rowInlines, markdown.ComputeContentSignature());
+        if (!hasHeader && table.Rows.Count == 1) {
+            markdown.PreserveHeaderlessSingleRowTable = true;
+        }
+
         return markdown;
     }
 
@@ -445,6 +445,13 @@ internal static class RtfToMarkdownConverter {
             return;
         }
 
+        if (run.Note != null) {
+            options.Report("RTFMD012", RtfMarkdownDiagnosticSeverity.Warning, "RTF run-attached note omitted from Markdown output.", run.Note.Kind.ToString());
+            if (options.EmitUnsupportedHtmlComments && string.IsNullOrEmpty(run.Text)) {
+                sequence.AddRaw(new HtmlRawInline("<!-- RTF run-attached note omitted from Markdown output. -->"));
+            }
+        }
+
         IMarkdownInline? inline = BuildRunInline(run);
         if (inline == null) {
             return;
@@ -537,6 +544,11 @@ internal static class RtfToMarkdownConverter {
 
         if (!string.IsNullOrEmpty(text)) {
             sequence.AddRaw(new DecodedHtmlEntityTextRun(text));
+        } else {
+            options.Report("RTFMD013", RtfMarkdownDiagnosticSeverity.Warning, "RTF generated text omitted because no fallback text is available.", generatedText.Kind.ToString());
+            if (options.EmitUnsupportedHtmlComments) {
+                sequence.AddRaw(new HtmlRawInline("<!-- RTF generated text omitted because no fallback text is available. -->"));
+            }
         }
     }
 

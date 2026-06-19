@@ -371,12 +371,34 @@ public class RtfMarkdownConverterTests {
         RtfDocument roundTrip = markdown.ToRtfDocumentFromMarkdown();
 
         Assert.Equal("""
+            <!-- OfficeIMO:RTF:HeaderlessSingleRowTable -->
             | Only row |
-            | --- |
             """.Replace("\r\n", "\n").Trim(), markdown.Replace("\r\n", "\n").Trim());
         RtfTable roundTripTable = Assert.IsType<RtfTable>(roundTrip.Blocks.OfType<RtfTable>().Single());
         Assert.Single(roundTripTable.Rows);
+        Assert.False(roundTripTable.Rows[0].RepeatHeader);
         Assert.Equal("Only row", roundTripTable.Rows[0].Cells[0].Paragraphs[0].ToPlainText());
+    }
+
+    [Fact]
+    public void RtfDocumentToMarkdownDoesNotAbsorbOrdinaryIndentedParagraphAfterList() {
+        RtfDocument document = RtfDocument.Create();
+        document.AddParagraph("Item").SetList(kind: RtfListKind.Bullet);
+        document.AddParagraph("Indented standalone").SetIndentation(leftTwips: 720);
+
+        string markdown = document.ToMarkdown();
+        MarkdownDoc parsed = MarkdownReader.Parse(markdown);
+
+        Assert.Collection(parsed.Blocks,
+            block => {
+                UnorderedListBlock list = Assert.IsType<UnorderedListBlock>(block);
+                Assert.Single(list.Items);
+                Assert.Empty(list.Items[0].AdditionalParagraphs);
+            },
+            block => {
+                ParagraphBlock paragraph = Assert.IsType<ParagraphBlock>(block);
+                Assert.Equal("Indented standalone", ExtractPlainText(paragraph.Inlines));
+            });
     }
 
     [Fact]
@@ -409,6 +431,30 @@ public class RtfMarkdownConverterTests {
         Assert.Contains(list.Items[0].AdditionalParagraphs, paragraph => ExtractPlainText(paragraph).Contains("code", StringComparison.Ordinal));
         Assert.Contains(list.Items[0].AdditionalParagraphs, paragraph => ExtractPlainText(paragraph).Contains("| A | B |", StringComparison.Ordinal));
         Assert.DoesNotContain(parsed.Blocks.Skip(1), block => block is QuoteBlock || block is TableBlock || block is CodeBlock);
+    }
+
+    [Fact]
+    public void RtfDocumentToMarkdownReportsRunAttachedNotes() {
+        RtfDocument document = RtfDocument.Create();
+        document.AddParagraph().AddFootnote("1", "Footnote body");
+        var options = new RtfToMarkdownOptions();
+
+        string markdown = document.ToMarkdown(options);
+
+        Assert.Contains("1", markdown, StringComparison.Ordinal);
+        Assert.Contains(options.Diagnostics, diagnostic => diagnostic.Code == "RTFMD012");
+    }
+
+    [Fact]
+    public void RtfDocumentToMarkdownReportsGeneratedTextWithoutFallback() {
+        RtfDocument document = RtfDocument.Create();
+        document.AddParagraph().AddPageNumber();
+        var options = new RtfToMarkdownOptions();
+
+        string markdown = document.ToMarkdown(options);
+
+        Assert.Contains("RTF generated text omitted", markdown, StringComparison.Ordinal);
+        Assert.Contains(options.Diagnostics, diagnostic => diagnostic.Code == "RTFMD013");
     }
 
     [Fact]

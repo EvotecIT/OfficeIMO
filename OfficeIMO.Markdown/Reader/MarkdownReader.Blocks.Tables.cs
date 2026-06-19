@@ -30,7 +30,7 @@ public static partial class MarkdownReader {
 
     private static bool StartsTable(string[] lines, int index) => TryGetTableExtent(lines, index, out _, out _);
 
-    private static bool TryGetTableExtent(string[] lines, int start, out int end, out bool hasOuterPipes) {
+    private static bool TryGetTableExtent(string[] lines, int start, out int end, out bool hasOuterPipes, bool allowSingleRowHeaderless = false) {
         end = start;
         hasOuterPipes = false;
         if (lines is null || start < 0 || start >= lines.Length) return false;
@@ -57,12 +57,22 @@ public static partial class MarkdownReader {
             if (!hasOuterPipes) return false;
 
             if (j >= lines.Length) {
+                if (allowSingleRowHeaderless) {
+                    end = start;
+                    return true;
+                }
+
                 return false;
             }
 
             // Require the 2nd row to also have outer pipes, otherwise treat the first row as a paragraph line.
             var second = (lines[j] ?? string.Empty).Trim();
             if (second.Length == 0) {
+                if (allowSingleRowHeaderless) {
+                    end = start;
+                    return true;
+                }
+
                 return false;
             }
 

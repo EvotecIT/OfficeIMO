@@ -231,6 +231,7 @@ internal static class MarkdownToRtfConverter {
 
     private static RtfParagraph AddListContinuationParagraph(RtfDocument document, int parentLevel) {
         RtfParagraph paragraph = document.AddParagraph();
+        paragraph.MarkdownListContinuation = true;
         paragraph.LeftIndentTwips = (Math.Max(0, parentLevel) + 1) * ListIndentTwips;
         return paragraph;
     }

@@ -38,6 +38,9 @@ public sealed class RtfParagraph : IRtfBlock {
     /// <summary>Basic list marker kind.</summary>
     public RtfListKind ListKind { get; set; } = RtfListKind.None;
 
+    /// <summary>Marks adapter-created continuation paragraphs that belong to the preceding Markdown list item.</summary>
+    internal bool MarkdownListContinuation { get; set; }
+
     /// <summary>Word 6/95 legacy paragraph numbering metadata from <c>\pn*</c> controls.</summary>
     public RtfLegacyNumbering LegacyNumbering { get; } = new RtfLegacyNumbering();
 
