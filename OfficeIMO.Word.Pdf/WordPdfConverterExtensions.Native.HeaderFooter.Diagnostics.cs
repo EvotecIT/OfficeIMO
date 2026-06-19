@@ -92,6 +92,14 @@ namespace OfficeIMO.Word.Pdf {
                 section.Footer?.Default,
                 section.DifferentFirstPage ? section.Footer?.First : null,
                 section.DifferentOddAndEvenPages ? section.Footer?.Even : null);
+            double? headerFontSize = ResolveNativeHeaderFooterFontSize(
+                section.Header?.Default,
+                section.DifferentFirstPage ? section.Header?.First : null,
+                section.DifferentOddAndEvenPages ? section.Header?.Even : null);
+            double? footerFontSize = ResolveNativeHeaderFooterFontSize(
+                section.Footer?.Default,
+                section.DifferentFirstPage ? section.Footer?.First : null,
+                section.DifferentOddAndEvenPages ? section.Footer?.Even : null);
             ApplyNativeHeaderFooterPageNumberStyle(page, defaultHeader, firstHeader, evenHeader, defaultFooter, firstFooter, evenFooter);
             bool hasFirstHeaderVariant = section.DifferentFirstPage;
             bool hasEvenHeaderVariant = section.DifferentOddAndEvenPages;
@@ -111,6 +119,10 @@ namespace OfficeIMO.Word.Pdf {
 
                     if (headerColor.HasValue) {
                         header.Color(headerColor.Value);
+                    }
+
+                    if (headerFontSize.HasValue) {
+                        header.FontSize(headerFontSize.Value);
                     }
 
                     if (defaultHeader != null) {
@@ -156,6 +168,10 @@ namespace OfficeIMO.Word.Pdf {
 
                 if (footerColor.HasValue) {
                     footer.Color(footerColor.Value);
+                }
+
+                if (footerFontSize.HasValue) {
+                    footer.FontSize(footerFontSize.Value);
                 }
 
                 NativeHeaderFooterText? resolvedDefaultFooter = WithNativeFooterPageNumber(defaultFooter, includePageNumbers, pageNumberFormat);

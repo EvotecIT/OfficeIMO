@@ -124,6 +124,59 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Maps_HeaderFooter_Direct_And_Style_Font_Sizes_To_Page_Text() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterFontSizes.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterFontSizes.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            const string footerStyleId = "NativeSizedFooter";
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(
+                new Style(
+                    new StyleName { Val = "Native Sized Footer" },
+                    new StyleRunProperties(
+                        new FontSize { Val = "32" }))
+                {
+                    Type = StyleValues.Paragraph,
+                    StyleId = footerStyleId,
+                    CustomStyle = true
+                });
+
+            document.AddHeadersAndFooters();
+            WordParagraph header = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph("BigNativeHeader");
+            header.FontSize = 18;
+            WordParagraph footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph("StyledNativeFooter");
+            footer.SetStyleId(footerStyleId);
+            document.AddParagraph("Plain body text");
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false
+            });
+        }
+
+        Assert.True(File.Exists(pdfPath));
+        using (PdfPigDocument pdf = PdfPigDocument.Open(pdfPath)) {
+            var page = pdf.GetPage(1);
+            Assert.Contains("BigNativeHeader", page.Text);
+            Assert.Contains("StyledNativeFooter", page.Text);
+
+            var textLines = page.Letters
+                .Where(letter => !string.IsNullOrWhiteSpace(letter.Value))
+                .GroupBy(letter => Math.Round(letter.StartBaseLine.Y, 1))
+                .Select(group => group.OrderBy(letter => letter.StartBaseLine.X).ToList())
+                .ToList();
+            var headerLetters = textLines.Single(line => string.Concat(line.Select(letter => letter.Value)).Contains("BigNativeHeader", StringComparison.Ordinal));
+            var footerLetters = textLines.Single(line => string.Concat(line.Select(letter => letter.Value)).Contains("StyledNativeFooter", StringComparison.Ordinal));
+            double headerSize = headerLetters.Average(letter => letter.PointSize);
+            double footerSize = footerLetters.Average(letter => letter.PointSize);
+
+            Assert.InRange(headerSize, 17.5D, 18.5D);
+            Assert.InRange(footerSize, 15.5D, 16.5D);
+        }
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Maps_HeaderFooter_Explicit_Text_Colors_To_Page_Text_Colors() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterColors.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterColors.pdf");
