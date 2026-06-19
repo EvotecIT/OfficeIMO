@@ -104,7 +104,7 @@ public class RtfMarkdownConverterTests {
         RtfDocument roundTrip = markdown.ToRtfDocumentFromMarkdown();
 
         Assert.Contains("&lt;u&gt;literal&lt;/u&gt;", markdown, StringComparison.Ordinal);
-        Assert.Contains("&#42;&#42;not bold&#42;&#42;", markdown, StringComparison.Ordinal);
+        Assert.Contains(@"\*\*not bold\*\*", markdown, StringComparison.Ordinal);
         Assert.Contains(roundTrip.Paragraphs, paragraph => paragraph.ToPlainText() == "<u>literal</u>" && paragraph.Runs.All(run => run.UnderlineStyle == RtfUnderlineStyle.None));
         RtfTable roundTripTable = Assert.IsType<RtfTable>(roundTrip.Blocks.OfType<RtfTable>().Single());
         Assert.Equal("**not bold**", roundTripTable.Rows[1].Cells[0].Paragraphs[0].ToPlainText());
@@ -126,6 +126,21 @@ public class RtfMarkdownConverterTests {
         Assert.Contains("**<u>underlined</u>**", markdown, StringComparison.Ordinal);
         Assert.Contains(roundTrip.Paragraphs[0].Runs, run => run.Text == "link" && run.Bold && run.Hyperlink != null);
         Assert.Contains(roundTrip.Paragraphs[0].Runs, run => run.Text == "underlined" && run.Bold && run.UnderlineStyle != RtfUnderlineStyle.None);
+    }
+
+    [Fact]
+    public void RtfDocumentToMarkdownPreservesUnderlineWithVerticalPosition() {
+        RtfDocument document = RtfDocument.Create();
+        document.AddParagraph().AddText("raised").SetUnderline(RtfUnderlineStyle.Single).VerticalPosition = RtfVerticalPosition.Superscript;
+
+        string markdown = document.ToMarkdown();
+        RtfDocument roundTrip = markdown.ToRtfDocumentFromMarkdown();
+
+        Assert.Contains("<u><sup>raised</sup></u>", markdown, StringComparison.Ordinal);
+        Assert.Contains(roundTrip.Paragraphs[0].Runs, run =>
+            run.Text == "raised" &&
+            run.UnderlineStyle != RtfUnderlineStyle.None &&
+            run.VerticalPosition == RtfVerticalPosition.Superscript);
     }
 
     [Fact]
@@ -163,6 +178,65 @@ public class RtfMarkdownConverterTests {
         RtfTable table = Assert.IsType<RtfTable>(document.Blocks.OfType<RtfTable>().Single());
         Assert.Contains(table.Rows[1].Cells[0].Paragraphs[0].Runs, run => run.Text == "Bold" && run.Bold);
         Assert.Contains(table.Rows[1].Cells[1].Paragraphs[0].Runs, run => run.Text == "Link" && run.Hyperlink != null);
+    }
+
+    [Fact]
+    public void MarkdownToRtfDocumentPreservesAdditionalListParagraphsTableHeadersAndEscapedEntities() {
+        var list = new UnorderedListBlock();
+        var item = ListItem.Text("Lead");
+        item.AdditionalParagraphs.Add(new InlineSequence().Text("Continuation"));
+        list.Items.Add(item);
+        MarkdownDoc markdownDoc = MarkdownDoc.Create().Add(list);
+
+        RtfDocument listDocument = markdownDoc.ToRtfDocument();
+
+        Assert.Contains(listDocument.Paragraphs, paragraph => paragraph.ToPlainText() == "Lead" && paragraph.ListKind == RtfListKind.Bullet);
+        Assert.Contains(listDocument.Paragraphs, paragraph => paragraph.ToPlainText() == "Continuation" && paragraph.ListKind == RtfListKind.None);
+
+        RtfDocument tableDocument = """
+            | Name | Value |
+            | --- | --- |
+            | Alpha | Beta |
+            """.ToRtfDocumentFromMarkdown();
+        RtfTable table = Assert.IsType<RtfTable>(tableDocument.Blocks.OfType<RtfTable>().Single());
+        Assert.True(table.Rows[0].RepeatHeader);
+        string tableRoundTripMarkdown = tableDocument.ToMarkdown();
+        Assert.Contains("| Name | Value |", tableRoundTripMarkdown, StringComparison.Ordinal);
+        Assert.Contains("| --- | --- |", tableRoundTripMarkdown, StringComparison.Ordinal);
+
+        RtfDocument escaped = @"&amp;lt; &amp;#42;".ToRtfDocumentFromMarkdown();
+        Assert.Equal("&lt; &#42;", escaped.Paragraphs[0].ToPlainText());
+    }
+
+    [Fact]
+    public void RtfDocumentToMarkdownKeepsOneRowHeaderlessTableParseable() {
+        RtfDocument document = RtfDocument.Create();
+        RtfTable table = document.AddTable(1, 1);
+        table.Rows[0].Cells[0].AddParagraph("Only row");
+
+        string markdown = document.ToMarkdown();
+        RtfDocument roundTrip = markdown.ToRtfDocumentFromMarkdown();
+
+        Assert.Equal("| Only row |", markdown.Trim());
+        RtfTable roundTripTable = Assert.IsType<RtfTable>(roundTrip.Blocks.OfType<RtfTable>().Single());
+        Assert.Single(roundTripTable.Rows);
+        Assert.Equal("Only row", roundTripTable.Rows[0].Cells[0].Paragraphs[0].ToPlainText());
+    }
+
+    [Fact]
+    public void RtfDocumentToMarkdownKeepsMixedKindNestedListTogether() {
+        RtfDocument document = RtfDocument.Create();
+        document.AddParagraph("Parent").SetList(listId: 7, level: 0, kind: RtfListKind.Decimal);
+        document.AddParagraph("Child").SetList(listId: 7, level: 1, kind: RtfListKind.Bullet);
+        document.AddParagraph("Next").SetList(listId: 7, level: 0, kind: RtfListKind.Decimal);
+
+        string markdown = document.ToMarkdown().Replace("\r\n", "\n");
+        RtfDocument roundTrip = markdown.ToRtfDocumentFromMarkdown();
+
+        Assert.Contains("1. Parent\n\n   - Child\n\n2. Next", markdown, StringComparison.Ordinal);
+        Assert.Contains(roundTrip.Paragraphs, paragraph => paragraph.ToPlainText() == "Parent" && paragraph.ListKind == RtfListKind.Decimal && paragraph.ListLevel == 0);
+        Assert.Contains(roundTrip.Paragraphs, paragraph => paragraph.ToPlainText() == "Child" && paragraph.ListKind == RtfListKind.Bullet && paragraph.ListLevel == 1);
+        Assert.Contains(roundTrip.Paragraphs, paragraph => paragraph.ToPlainText() == "Next" && paragraph.ListKind == RtfListKind.Decimal && paragraph.ListLevel == 0);
     }
 
     [Fact]

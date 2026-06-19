@@ -90,6 +90,11 @@ internal static class MarkdownToRtfConverter {
 
             AppendInlineSequence(paragraph, item.Content, document, options, InlineStyle.Normal);
 
+            for (int paragraphIndex = 0; paragraphIndex < item.AdditionalParagraphs.Count; paragraphIndex++) {
+                RtfParagraph continuation = document.AddParagraph();
+                AppendInlineSequence(continuation, item.AdditionalParagraphs[paragraphIndex], document, options, InlineStyle.Normal);
+            }
+
             for (int childIndex = 0; childIndex < item.ChildBlocks.Count; childIndex++) {
                 ConvertNestedListOrBlock(document, item.ChildBlocks[childIndex], level + 1, options);
             }
@@ -139,7 +144,9 @@ internal static class MarkdownToRtfConverter {
         RtfTable rtfTable = document.AddTable(rowCount, columnCount);
         int rtfRowIndex = 0;
         if (table.Headers.Count > 0) {
-            FillTableRow(rtfTable.Rows[rtfRowIndex++], table.HeaderInlines, document, options);
+            RtfTableRow headerRow = rtfTable.Rows[rtfRowIndex++];
+            headerRow.RepeatHeader = true;
+            FillTableRow(headerRow, table.HeaderInlines, document, options);
         }
 
         IReadOnlyList<IReadOnlyList<InlineSequence>> rowInlines = table.RowInlines;
@@ -400,14 +407,7 @@ internal static class MarkdownToRtfConverter {
     }
 
     private static string DecodeMarkdownVisibleText(string? text) {
-        string decoded = System.Net.WebUtility.HtmlDecode(text ?? string.Empty);
-        if (decoded.IndexOf("&#", StringComparison.Ordinal) >= 0 ||
-            decoded.IndexOf("&lt;", StringComparison.Ordinal) >= 0 ||
-            decoded.IndexOf("&gt;", StringComparison.Ordinal) >= 0) {
-            decoded = System.Net.WebUtility.HtmlDecode(decoded);
-        }
-
-        return decoded;
+        return System.Net.WebUtility.HtmlDecode(text ?? string.Empty);
     }
 
     private static int EnsureHighlightColor(RtfDocument document) {

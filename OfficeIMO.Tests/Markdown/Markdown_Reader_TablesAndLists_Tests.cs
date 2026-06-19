@@ -372,11 +372,14 @@ c | d
         }
 
         [Fact]
-        public void Table_Does_Not_Trigger_On_Single_Outer_Pipe_Row() {
+        public void Table_Parses_Single_Explicit_Outer_Pipe_Row_As_Headerless_Table() {
             string md = "| a | b |";
             var doc = MarkdownReader.Parse(md);
-            Assert.IsType<ParagraphBlock>(doc.Blocks[0]);
-            Assert.DoesNotContain(doc.Blocks, b => b is TableBlock);
+            var table = Assert.IsType<TableBlock>(doc.Blocks[0]);
+            Assert.Empty(table.Headers);
+            Assert.Single(table.Rows);
+            Assert.Equal("a", table.Rows[0][0].Trim());
+            Assert.Equal("b", table.Rows[0][1].Trim());
         }
 
         [Fact]

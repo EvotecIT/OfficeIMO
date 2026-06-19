@@ -44,6 +44,22 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void TableBlock_RenderMarkdown_PreservesExistingMarkdownEscapes() {
+            var table = new TableBlock();
+            table.Headers.Add("Header");
+
+            table.Rows.Add(new[] { @"\*\*not bold\*\* and \| literal pipe" });
+
+            var markdown = ((IMarkdownBlock)table).RenderMarkdown();
+
+            const string expected = "| Header |\n" +
+                                    "| --- |\n" +
+                                    @"| \*\*not bold\*\* and \| literal pipe |";
+
+            Assert.Equal(expected, markdown);
+        }
+
+        [Fact]
         public void TableBlock_RenderMarkdown_PreservesExistingBreakTags() {
             var table = new TableBlock();
             table.Headers.Add("Header");

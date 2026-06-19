@@ -169,7 +169,11 @@ public sealed partial class TableBlock {
                     break;
                 case '\\':
                     builder ??= AllocateCellBuilder(value, i);
-                    builder.Append("\\\\");
+                    if (i + 1 < value.Length && IsMarkdownBackslashEscapable(value[i + 1])) {
+                        builder.Append('\\').Append(value[++i]);
+                    } else {
+                        builder.Append("\\\\");
+                    }
                     break;
                 case '|':
                     builder ??= AllocateCellBuilder(value, i);
@@ -259,6 +263,32 @@ public sealed partial class TableBlock {
             builder.Append(seed, 0, copyLength);
         }
         return builder;
+    }
+
+    private static bool IsMarkdownBackslashEscapable(char value) {
+        return value switch {
+            '\\' => true,
+            '`' => true,
+            '*' => true,
+            '_' => true,
+            '{' => true,
+            '}' => true,
+            '[' => true,
+            ']' => true,
+            '(' => true,
+            ')' => true,
+            '#' => true,
+            '+' => true,
+            '-' => true,
+            '.' => true,
+            '!' => true,
+            '"' => true,
+            '\'' => true,
+            '|' => true,
+            '>' => true,
+            '=' => true,
+            _ => false
+        };
     }
 
     private int GetEffectiveColumnCount() {

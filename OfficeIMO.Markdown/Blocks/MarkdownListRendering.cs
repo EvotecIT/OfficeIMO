@@ -135,6 +135,8 @@ internal static class MarkdownListRendering {
                 if (line.Length == 0) sb.Append(baseIndent).AppendLine();
                 else sb.Append(contPrefix).AppendLine(line);
             }
+
+            sb.Append(baseIndent).AppendLine();
         }
     }
 }

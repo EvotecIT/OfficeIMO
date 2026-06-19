@@ -46,11 +46,9 @@ internal static class RtfToMarkdownConverter {
 
     private static int ConvertListRun(RtfDocument document, RtfToMarkdownOptions options, MarkdownDoc markdown, int startIndex, ref int imageIndex) {
         var first = (RtfParagraph)document.Blocks[startIndex];
-        bool ordered = first.ListKind == RtfListKind.Decimal;
         int? firstListId = first.ListId;
         int? firstListDefinitionId = first.ListDefinitionId;
-        var unordered = ordered ? null : new UnorderedListBlock();
-        var orderedList = ordered ? new OrderedListBlock { Start = ResolveListStart(document, first) } : null;
+        var paragraphs = new List<RtfParagraph>();
         int i = startIndex;
 
         for (; i < document.Blocks.Count; i++) {
@@ -58,28 +56,95 @@ internal static class RtfToMarkdownConverter {
                 break;
             }
 
-            bool sameListFamily = ordered
-                ? paragraph.ListKind == RtfListKind.Decimal
-                : paragraph.ListKind != RtfListKind.Decimal;
-            if (!sameListFamily ||
-                paragraph.ListId != firstListId ||
+            int level = Math.Max(0, paragraph.ListLevel ?? 0);
+            if (paragraph.ListId != firstListId ||
                 paragraph.ListDefinitionId != firstListDefinitionId) {
                 break;
             }
 
-            var item = new ListItem(ConvertParagraphInlines(paragraph, options, ref imageIndex)) {
-                Level = Math.Max(0, paragraph.ListLevel ?? 0)
-            };
-
-            if (orderedList != null) {
-                orderedList.Items.Add(item);
-            } else {
-                unordered!.Items.Add(item);
+            if (level == 0 && paragraph.ListKind != first.ListKind) {
+                break;
             }
+
+            paragraphs.Add(paragraph);
         }
 
-        markdown.Add(orderedList as IMarkdownBlock ?? unordered!);
+        markdown.Add(ConvertListParagraphs(document, options, paragraphs, ref imageIndex));
         return i - 1;
+    }
+
+    private static IMarkdownBlock ConvertListParagraphs(RtfDocument document, RtfToMarkdownOptions options, IReadOnlyList<RtfParagraph> paragraphs, ref int imageIndex) {
+        RtfParagraph first = paragraphs[0];
+        IMarkdownListBlock root = CreateMarkdownListBlock(document, first);
+        var frames = new List<ListFrame> {
+            new ListFrame(0, first.ListKind, root)
+        };
+
+        for (int i = 0; i < paragraphs.Count; i++) {
+            RtfParagraph paragraph = paragraphs[i];
+            int level = Math.Max(0, paragraph.ListLevel ?? 0);
+            RtfListKind kind = NormalizeListKind(paragraph.ListKind);
+            var item = new ListItem(ConvertParagraphInlines(paragraph, options, ref imageIndex));
+
+            ListFrame frame = GetOrCreateListFrame(document, frames, paragraph, level, kind);
+            AddListItem(frame.List, item);
+            frame.LastItem = item;
+        }
+
+        return (IMarkdownBlock)root;
+    }
+
+    private static ListFrame GetOrCreateListFrame(RtfDocument document, List<ListFrame> frames, RtfParagraph paragraph, int level, RtfListKind kind) {
+        if (level <= 0) {
+            while (frames.Count > 1) {
+                frames.RemoveAt(frames.Count - 1);
+            }
+
+            return frames[0];
+        }
+
+        while (frames.Count > 0) {
+            ListFrame current = frames[frames.Count - 1];
+            if (current.Level < level || (current.Level == level && current.Kind == kind)) {
+                break;
+            }
+
+            frames.RemoveAt(frames.Count - 1);
+        }
+
+        ListFrame last = frames[frames.Count - 1];
+        if (last.Level == level && last.Kind == kind) {
+            return last;
+        }
+
+        if (last.LastItem == null) {
+            return frames[0];
+        }
+
+        IMarkdownListBlock childList = CreateMarkdownListBlock(document, paragraph);
+        last.LastItem.Children.Add((IMarkdownBlock)childList);
+        var childFrame = new ListFrame(level, kind, childList);
+        frames.Add(childFrame);
+        return childFrame;
+    }
+
+    private static IMarkdownListBlock CreateMarkdownListBlock(RtfDocument document, RtfParagraph paragraph) {
+        RtfListKind kind = NormalizeListKind(paragraph.ListKind);
+        return kind == RtfListKind.Decimal
+            ? new OrderedListBlock { Start = ResolveListStart(document, paragraph) }
+            : new UnorderedListBlock();
+    }
+
+    private static void AddListItem(IMarkdownListBlock list, ListItem item) {
+        if (list is OrderedListBlock orderedList) {
+            orderedList.Items.Add(item);
+        } else {
+            ((UnorderedListBlock)list).Items.Add(item);
+        }
+    }
+
+    private static RtfListKind NormalizeListKind(RtfListKind kind) {
+        return kind == RtfListKind.Decimal ? RtfListKind.Decimal : RtfListKind.Bullet;
     }
 
     private static int ResolveListStart(RtfDocument document, RtfParagraph paragraph) {
@@ -280,7 +345,9 @@ internal static class RtfToMarkdownConverter {
             inline = new HtmlTagSequenceInline("sup", InlineSequenceOf(inline));
         } else if (run.VerticalPosition == RtfVerticalPosition.Subscript) {
             inline = new HtmlTagSequenceInline("sub", InlineSequenceOf(inline));
-        } else if (run.UnderlineStyle != RtfUnderlineStyle.None) {
+        }
+
+        if (run.UnderlineStyle != RtfUnderlineStyle.None) {
             inline = new HtmlTagSequenceInline("u", InlineSequenceOf(inline));
         }
 
@@ -375,5 +442,21 @@ internal static class RtfToMarkdownConverter {
     private static string BuildDefaultImagePath(RtfImage image, int imageIndex) {
         string extension = image.Format.ToString().ToLowerInvariant();
         return "rtf-image-" + imageIndex.ToString(CultureInfo.InvariantCulture) + "." + extension;
+    }
+
+    private sealed class ListFrame {
+        internal ListFrame(int level, RtfListKind kind, IMarkdownListBlock list) {
+            Level = level;
+            Kind = kind;
+            List = list;
+        }
+
+        internal int Level { get; }
+
+        internal RtfListKind Kind { get; }
+
+        internal IMarkdownListBlock List { get; }
+
+        internal ListItem? LastItem { get; set; }
     }
 }
