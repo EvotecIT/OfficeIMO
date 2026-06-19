@@ -154,6 +154,21 @@ public class RtfMarkdownConverterTests {
     }
 
     [Fact]
+    public void MarkdownToRtfDocumentOmitsHtmlCommentBlocksByDefault() {
+        var options = new MarkdownToRtfOptions();
+
+        RtfDocument document = """
+            <!-- hidden -->
+
+            Visible
+            """.ToRtfDocumentFromMarkdown(options);
+
+        RtfParagraph paragraph = Assert.Single(document.Paragraphs);
+        Assert.Equal("Visible", paragraph.ToPlainText());
+        Assert.Contains(options.Diagnostics, diagnostic => diagnostic.Code == "MDRTF004");
+    }
+
+    [Fact]
     public void MarkdownToRtfDocumentKeepsEntitiesLiteralInsideCodeSpans() {
         RtfDocument document = "`&lt;tag&gt;` &lt;tag&gt;".ToRtfDocumentFromMarkdown();
 
@@ -243,6 +258,25 @@ public class RtfMarkdownConverterTests {
         Assert.Equal(RtfTextAlignment.Left, table.Rows[1].Cells[0].Paragraphs[0].Alignment);
         Assert.Equal(RtfTextAlignment.Right, table.Rows[1].Cells[1].Paragraphs[0].Alignment);
         Assert.Equal(RtfTextAlignment.Center, table.Rows[1].Cells[2].Paragraphs[0].Alignment);
+    }
+
+    [Fact]
+    public void RtfDocumentToMarkdownPreservesTableColumnAlignments() {
+        RtfDocument document = RtfDocument.Create();
+        RtfTable table = document.AddTable(2, 2);
+        table.Rows[0].RepeatHeader = true;
+        table.Rows[0].Cells[0].AddParagraph("Name").SetAlignment(RtfTextAlignment.Center);
+        table.Rows[0].Cells[1].AddParagraph("Count").SetAlignment(RtfTextAlignment.Right);
+        table.Rows[1].Cells[0].AddParagraph("Alpha").SetAlignment(RtfTextAlignment.Center);
+        table.Rows[1].Cells[1].AddParagraph("42").SetAlignment(RtfTextAlignment.Right);
+
+        string markdown = document.ToMarkdown();
+        RtfDocument roundTrip = markdown.ToRtfDocumentFromMarkdown();
+        RtfTable roundTripTable = Assert.IsType<RtfTable>(roundTrip.Blocks.OfType<RtfTable>().Single());
+
+        Assert.Contains("| :---: | ---: |", markdown, StringComparison.Ordinal);
+        Assert.Equal(RtfTextAlignment.Center, roundTripTable.Rows[1].Cells[0].Paragraphs[0].Alignment);
+        Assert.Equal(RtfTextAlignment.Right, roundTripTable.Rows[1].Cells[1].Paragraphs[0].Alignment);
     }
 
     [Fact]
@@ -420,7 +454,8 @@ public class RtfMarkdownConverterTests {
             """;
 
         RtfDocument document = markdown.ToRtfDocumentFromMarkdown();
-        string roundTripMarkdown = document.ToMarkdown().Replace("\r\n", "\n");
+        RtfDocument serialized = RtfDocument.Read(document.ToRtf()).Document;
+        string roundTripMarkdown = serialized.ToMarkdown().Replace("\r\n", "\n");
         MarkdownDoc parsed = MarkdownReader.Parse(roundTripMarkdown);
         UnorderedListBlock list = Assert.IsType<UnorderedListBlock>(Assert.Single(parsed.Blocks));
 

@@ -112,7 +112,19 @@ internal static class RtfToMarkdownConverter {
     }
 
     private static bool IsListContinuationParagraph(RtfParagraph paragraph) {
-        return paragraph.ListKind == RtfListKind.None && paragraph.MarkdownListContinuation;
+        return paragraph.ListKind == RtfListKind.None &&
+               (paragraph.MarkdownListContinuation || HasListContinuationBookmark(paragraph));
+    }
+
+    private static bool HasListContinuationBookmark(RtfParagraph paragraph) {
+        for (int i = 0; i < paragraph.Inlines.Count; i++) {
+            if (paragraph.Inlines[i] is RtfBookmarkMarker marker &&
+                RtfMarkdownBridgeMarkers.IsListContinuationBookmark(marker)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static void AddListContinuationParagraph(List<ListFrame> frames, RtfParagraph paragraph, RtfToMarkdownOptions options, ref int imageIndex) {
@@ -340,12 +352,93 @@ internal static class RtfToMarkdownConverter {
             rowInlines.Add(inlines);
         }
 
+        ApplyTableColumnAlignments(markdown, table);
         markdown.SetParsedCells(headerInlines, rowInlines, markdown.ComputeContentSignature());
         if (!hasHeader && table.Rows.Count == 1) {
             markdown.PreserveHeaderlessSingleRowTable = true;
         }
 
         return markdown;
+    }
+
+    private static void ApplyTableColumnAlignments(TableBlock markdown, RtfTable table) {
+        int columnCount = table.Rows.Count == 0 ? 0 : table.Rows.Max(row => row.Cells.Count);
+        if (columnCount == 0) {
+            return;
+        }
+
+        var alignments = new ColumnAlignment[columnCount];
+        bool hasRepresentableAlignment = false;
+        for (int column = 0; column < columnCount; column++) {
+            ColumnAlignment alignment = ResolveColumnAlignment(table, column);
+            alignments[column] = alignment;
+            hasRepresentableAlignment |= alignment == ColumnAlignment.Center || alignment == ColumnAlignment.Right;
+        }
+
+        if (hasRepresentableAlignment) {
+            markdown.Alignments.Clear();
+            markdown.Alignments.AddRange(alignments);
+        }
+    }
+
+    private static ColumnAlignment ResolveColumnAlignment(RtfTable table, int column) {
+        ColumnAlignment? candidate = null;
+        for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
+            RtfTableRow row = table.Rows[rowIndex];
+            if (column >= row.Cells.Count) {
+                continue;
+            }
+
+            ColumnAlignment cellAlignment = ResolveCellAlignment(row.Cells[column]);
+            if (cellAlignment == ColumnAlignment.None) {
+                continue;
+            }
+
+            if (!candidate.HasValue) {
+                candidate = cellAlignment;
+                continue;
+            }
+
+            if (candidate.Value != cellAlignment) {
+                return ColumnAlignment.None;
+            }
+        }
+
+        return candidate == ColumnAlignment.Center || candidate == ColumnAlignment.Right
+            ? candidate.Value
+            : ColumnAlignment.None;
+    }
+
+    private static ColumnAlignment ResolveCellAlignment(RtfTableCell cell) {
+        ColumnAlignment? candidate = null;
+        for (int i = 0; i < cell.Paragraphs.Count; i++) {
+            RtfParagraph paragraph = cell.Paragraphs[i];
+            if (string.IsNullOrWhiteSpace(paragraph.ToPlainText())) {
+                continue;
+            }
+
+            ColumnAlignment alignment = paragraph.Alignment switch {
+                RtfTextAlignment.Center => ColumnAlignment.Center,
+                RtfTextAlignment.Right => ColumnAlignment.Right,
+                RtfTextAlignment.Left => ColumnAlignment.Left,
+                _ => ColumnAlignment.None
+            };
+
+            if (alignment == ColumnAlignment.None) {
+                return ColumnAlignment.None;
+            }
+
+            if (!candidate.HasValue) {
+                candidate = alignment;
+                continue;
+            }
+
+            if (candidate.Value != alignment) {
+                return ColumnAlignment.None;
+            }
+        }
+
+        return candidate ?? ColumnAlignment.None;
     }
 
     private static CellContent ConvertCellContent(RtfTableCell cell, RtfToMarkdownOptions options, ref int imageIndex) {

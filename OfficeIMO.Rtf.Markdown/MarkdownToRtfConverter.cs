@@ -49,6 +49,9 @@ internal static class MarkdownToRtfConverter {
             case CodeBlock code:
                 ConvertCodeBlock(document, code);
                 break;
+            case HtmlCommentBlock comment:
+                ConvertRawHtml(document, comment.Comment, options, "Markdown HTML comment block");
+                break;
             case HtmlRawBlock html:
                 ConvertRawHtml(document, html.Html, options, "Markdown raw HTML block");
                 break;
@@ -183,13 +186,11 @@ internal static class MarkdownToRtfConverter {
                 options.Report("MDRTF013", RtfMarkdownDiagnosticSeverity.Info, "Markdown table inside list item preserved as continuation text.");
                 ConvertRenderedBlockAsContinuation(document, table, parentLevel);
                 break;
+            case HtmlCommentBlock comment:
+                ConvertRawHtmlAsContinuation(document, comment.Comment, parentLevel, options, "Markdown HTML comment block");
+                break;
             case HtmlRawBlock html:
-                if (options.PreserveRawHtmlAsText) {
-                    AddListContinuationParagraph(document, parentLevel).AddText(html.Html);
-                } else {
-                    options.Report("MDRTF014", RtfMarkdownDiagnosticSeverity.Warning, "Markdown raw HTML block inside list item omitted. Set PreserveRawHtmlAsText to keep it as visible text.", html.Html);
-                }
-
+                ConvertRawHtmlAsContinuation(document, html.Html, parentLevel, options, "Markdown raw HTML block");
                 break;
             case IChildMarkdownBlockContainer container:
                 options.Report("MDRTF015", RtfMarkdownDiagnosticSeverity.Info, block.GetType().Name + " inside list item flattened to continuation paragraphs.");
@@ -233,6 +234,9 @@ internal static class MarkdownToRtfConverter {
         RtfParagraph paragraph = document.AddParagraph();
         paragraph.MarkdownListContinuation = true;
         paragraph.LeftIndentTwips = (Math.Max(0, parentLevel) + 1) * ListIndentTwips;
+        string bookmarkName = RtfMarkdownBridgeMarkers.CreateListContinuationBookmarkName(document.Paragraphs.Count);
+        paragraph.AddBookmarkStart(bookmarkName);
+        paragraph.AddBookmarkEnd(bookmarkName);
         return paragraph;
     }
 
@@ -321,6 +325,14 @@ internal static class MarkdownToRtfConverter {
         }
 
         options.Report("MDRTF004", RtfMarkdownDiagnosticSeverity.Warning, source + " omitted. Set PreserveRawHtmlAsText to keep it as visible text.", html);
+    }
+
+    private static void ConvertRawHtmlAsContinuation(RtfDocument document, string html, int parentLevel, MarkdownToRtfOptions options, string source) {
+        if (options.PreserveRawHtmlAsText) {
+            AddListContinuationParagraph(document, parentLevel).AddText(html);
+        } else {
+            options.Report("MDRTF014", RtfMarkdownDiagnosticSeverity.Warning, source + " inside list item omitted. Set PreserveRawHtmlAsText to keep it as visible text.", html);
+        }
     }
 
     private static bool TryConvertRawHtmlAsInlineFormatting(RtfDocument document, string html, MarkdownToRtfOptions options) {
