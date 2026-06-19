@@ -87,6 +87,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PowerPointFeatureReport_DetectsBackgroundImages() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "BackgroundImage.png");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    presentation.AddSlide().SetBackgroundImage(imagePath);
+                    presentation.Save();
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                    PowerPointFeatureReport report = presentation.InspectFeatures();
+                    PowerPointFeatureFinding images = Assert.Single(report.FindFeatures("Images"));
+
+                    Assert.Equal(1, images.Count);
+                    Assert.Throws<InvalidOperationException>(() => report.EnsureNoFeatures("Images"));
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void PowerPointFeatureReport_DetectsGroupedTextBoxes() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
@@ -655,6 +680,41 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PowerPointFeatureReport_DetectsLayoutTimingMarkup() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    presentation.AddSlide().AddTextBox("Inherits animated layout");
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, true)) {
+                    SlideLayoutPart layoutPart = document.PresentationPart!.SlideParts.Single().SlideLayoutPart!;
+                    layoutPart.SlideLayout!.Timing = new Timing(
+                        new TimeNodeList(
+                            new ParallelTimeNode(
+                                new CommonTimeNode { Id = 900U, Duration = "500" })));
+                    layoutPart.SlideLayout.Save();
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                    PowerPointFeatureReport report = presentation.InspectFeatures();
+                    PowerPointFeatureFinding timing = Assert.Single(report.FindFeatures("Animations and timing"));
+
+                    Assert.Equal(PowerPointFeatureSupportLevel.Preserved, timing.SupportLevel);
+                    Assert.Equal(1, timing.Count);
+                    Assert.Contains(timing.Details, detail => detail.Contains("layout", StringComparison.OrdinalIgnoreCase));
+                    Assert.Throws<InvalidOperationException>(() => report.EnsureNoAdvancedFeatures());
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void PowerPointFeatureReport_DetectsAdvancedPackageSignals() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
@@ -898,6 +958,39 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PowerPointFeatureReport_DoesNotTreatPersonNamedMediaAsComments() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    presentation.AddSlide().AddTextBox("Ordinary person asset");
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, true)) {
+                    SlidePart slidePart = document.PresentationPart!.SlideParts.Single();
+                    AddExtendedPart(
+                        slidePart,
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+                        "image/png",
+                        "person.png",
+                        new byte[] { 137, 80, 78, 71 });
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                    PowerPointFeatureReport report = presentation.InspectFeatures();
+
+                    Assert.Empty(report.FindFeatures("Comments"));
+                    Assert.Same(report, report.EnsureNoAdvancedFeatures());
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void PowerPointFeatureReport_DetectsUnsupportedTransitionMarkup() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
@@ -921,6 +1014,43 @@ namespace OfficeIMO.Tests {
                     Assert.Equal(PowerPointFeatureSupportLevel.Preserved, unsupported.SupportLevel);
                     Assert.Equal(1, unsupported.Count);
                     Assert.Contains(unsupported.Details, detail => detail.Contains("doors", StringComparison.OrdinalIgnoreCase));
+                    Assert.Throws<InvalidOperationException>(() => report.EnsureNoAdvancedFeatures());
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void PowerPointFeatureReport_DetectsUnsupportedMetadataOnMappedTransition() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    slide.AddTextBox("Mapped transition with sound metadata");
+                    slide.Transition = SlideTransition.Fade;
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, true)) {
+                    SlidePart slidePart = document.PresentationPart!.SlideParts.Single();
+                    slidePart.Slide.Transition!.Append(new OpenXmlUnknownElement(
+                        "p",
+                        "sndAc",
+                        "http://schemas.openxmlformats.org/presentationml/2006/main"));
+                    slidePart.Slide.Save();
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                    PowerPointFeatureReport report = presentation.InspectFeatures();
+                    PowerPointFeatureFinding unsupported = Assert.Single(report.FindFeatures("Unsupported transition markup"));
+
+                    Assert.Equal(PowerPointFeatureSupportLevel.Preserved, unsupported.SupportLevel);
+                    Assert.Equal(1, unsupported.Count);
+                    Assert.Contains(unsupported.Details, detail => detail.Contains("sndAc", StringComparison.OrdinalIgnoreCase));
                     Assert.Throws<InvalidOperationException>(() => report.EnsureNoAdvancedFeatures());
                 }
             } finally {

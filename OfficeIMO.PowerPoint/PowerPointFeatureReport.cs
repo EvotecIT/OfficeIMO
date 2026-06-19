@@ -338,7 +338,7 @@ namespace OfficeIMO.PowerPoint {
             Add(features, "Visualization", "Charts", PowerPointFeatureSupportLevel.PartiallyEditable, Math.Max(Slides.Sum(slide => slide.Charts.Count()), chartDetails.Count), null,
                 "Common chart authoring and data updates are supported; advanced chart editing remains partial.",
                 chartDetails.Concat(chartCompanionDetails).Distinct(StringComparer.OrdinalIgnoreCase).ToList());
-            Add(features, "Media", "Images", PowerPointFeatureSupportLevel.PartiallyEditable, Slides.Sum(CountSlidePictures), null,
+            Add(features, "Media", "Images", PowerPointFeatureSupportLevel.PartiallyEditable, Slides.Sum(CountSlideImages), null,
                 "Images can be inserted and inspected in common slide scenarios; advanced drawing behaviors remain partial.");
             Add(features, "Media", "Audio and video", PowerPointFeatureSupportLevel.PartiallyEditable, Slides.Sum(CountSlideMedia), null,
                 "Embedded audio and video can be authored with poster frames and playback timing; rich media editing remains partial.",
@@ -365,11 +365,7 @@ namespace OfficeIMO.PowerPoint {
                 "Linked package relationships outside hyperlink markup are detected as preserve-only package metadata.",
                 externalPackageRelationshipDetails);
 
-            var commentDetails = DescribePartsByUriOrContentType(allParts, "comment")
-                .Concat(DescribePartsByUriOrContentType(allParts, "person"))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
-                .ToList();
+            var commentDetails = DescribeCommentParts(allParts);
             var customXmlDetails = DescribePartsByUri(allParts, "/customXml/");
             var embeddedPackageDetails = DescribeNonChartEmbeddedPackageParts(allParts);
             var activeXControlDetails = DescribePartsByUriOrContentType(allParts, "activeX");
@@ -516,6 +512,10 @@ namespace OfficeIMO.PowerPoint {
             return slideTextBoxes + slide.GetInheritedShapesForExport().Sum(shape => CountTextBoxElements(shape.Element));
         }
 
+        private static int CountSlideImages(PowerPointSlide slide) {
+            return CountSlidePictures(slide) + CountSlideBackgroundImages(slide);
+        }
+
         private static int CountSlidePictures(PowerPointSlide slide) {
             int slidePictures = slide.SlidePart.Slide?
                 .Descendants<Picture>()
@@ -523,6 +523,10 @@ namespace OfficeIMO.PowerPoint {
                 ?? 0;
 
             return slidePictures + slide.GetInheritedShapesForExport().Sum(shape => CountPictureElements(shape.Element));
+        }
+
+        private static int CountSlideBackgroundImages(PowerPointSlide slide) {
+            return slide.GetBackground().Kind == PowerPointSlideBackgroundKind.Image ? 1 : 0;
         }
 
         private static int CountSlideMedia(PowerPointSlide slide) {
@@ -579,22 +583,81 @@ namespace OfficeIMO.PowerPoint {
                     Transition = slide.GetTransitionElement(),
                     MappedTransition = slide.Transition
                 })
-                .Where(item => item.Transition != null && item.MappedTransition == SlideTransition.None)
+                .Where(item => item.Transition != null && HasUnsupportedTransitionMarkup(item.Transition, item.MappedTransition))
                 .Select(item => $"slide {item.Index}: unsupported transition markup {item.Transition!.OuterXml}")
                 .ToList();
         }
 
+        private static bool HasUnsupportedTransitionMarkup(Transition? transition, SlideTransition mappedTransition) {
+            if (transition == null) {
+                return false;
+            }
+
+            if (mappedTransition == SlideTransition.None) {
+                return true;
+            }
+
+            return transition.ChildElements.Any(element => !IsMappedTransitionEffectElement(element))
+                || transition.GetAttributes().Any(IsUnsupportedTransitionAttribute);
+        }
+
+        private static bool IsMappedTransitionEffectElement(OpenXmlElement element) {
+            var supportedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
+                "blinds",
+                "comb",
+                "cut",
+                "fade",
+                "ferris",
+                "flash",
+                "morph",
+                "prism",
+                "prstTrans",
+                "push",
+                "warp",
+                "wipe"
+            };
+
+            return supportedNames.Contains(element.LocalName);
+        }
+
+        private static bool IsUnsupportedTransitionAttribute(OpenXmlAttribute attribute) {
+            if (attribute.Prefix == "xmlns" || (string.IsNullOrEmpty(attribute.Prefix) && attribute.LocalName == "xmlns")) {
+                return false;
+            }
+
+            var supportedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
+                "advClick",
+                "advTm",
+                "dur",
+                "spd"
+            };
+
+            return !supportedNames.Contains(attribute.LocalName);
+        }
+
         private List<string> DescribeAdvancedTimingMarkup() {
             return Slides
-                .Select((slide, index) => new {
-                    Index = index + 1,
-                    Timing = slide.SlidePart.Slide?.Timing,
-                    MediaShapeIds = GetSlideMediaShapeIds(slide)
-                })
-                .Where(item => item.Timing != null)
-                .Where(item => !ContainsOnlyMediaPlaybackTiming(item.Timing!, item.MediaShapeIds))
-                .Select(item => $"slide {item.Index}: {item.Timing!.Descendants().Count()} timing descendant(s)")
+                .SelectMany((slide, index) => EnumerateSlideTimingMarkup(slide, index + 1))
+                .Where(item => !ContainsOnlyMediaPlaybackTiming(item.Timing, item.MediaShapeIds))
+                .Select(item => $"slide {item.Index} {item.Scope}: {item.Timing.Descendants().Count()} timing descendant(s)")
                 .ToList();
+        }
+
+        private static IEnumerable<(int Index, string Scope, DocumentFormat.OpenXml.Presentation.Timing Timing, HashSet<string> MediaShapeIds)> EnumerateSlideTimingMarkup(PowerPointSlide slide, int index) {
+            HashSet<string> mediaShapeIds = GetSlideMediaShapeIds(slide);
+            if (slide.SlidePart.Slide?.Timing != null) {
+                yield return (index, "slide", slide.SlidePart.Slide.Timing, mediaShapeIds);
+            }
+
+            SlideLayoutPart? layoutPart = slide.SlidePart.SlideLayoutPart;
+            if (layoutPart?.SlideLayout?.Timing != null) {
+                yield return (index, "layout", layoutPart.SlideLayout.Timing, mediaShapeIds);
+            }
+
+            SlideMasterPart? masterPart = layoutPart?.SlideMasterPart;
+            if (masterPart?.SlideMaster?.Timing != null) {
+                yield return (index, "master", masterPart.SlideMaster.Timing, mediaShapeIds);
+            }
         }
 
         private static bool ContainsOnlyMediaPlaybackTiming(DocumentFormat.OpenXml.Presentation.Timing timing, HashSet<string> mediaShapeIds) {
@@ -695,6 +758,26 @@ namespace OfficeIMO.PowerPoint {
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
                 .ToList();
+        }
+
+        private static List<string> DescribeCommentParts(IEnumerable<OpenXmlPart> parts) {
+            return parts
+                .Where(IsCommentPart)
+                .Select(DescribePart)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        private static bool IsCommentPart(OpenXmlPart part) {
+            string uri = part.Uri.OriginalString;
+            string contentType = part.ContentType;
+            return uri.IndexOf("/ppt/comments/", StringComparison.OrdinalIgnoreCase) >= 0
+                || uri.IndexOf("/ppt/commentAuthors", StringComparison.OrdinalIgnoreCase) >= 0
+                || uri.IndexOf("/ppt/persons/", StringComparison.OrdinalIgnoreCase) >= 0
+                || contentType.IndexOf("presentationml.comments", StringComparison.OrdinalIgnoreCase) >= 0
+                || contentType.IndexOf("presentationml.commentAuthors", StringComparison.OrdinalIgnoreCase) >= 0
+                || contentType.IndexOf("presentationml.person", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         private static List<string> DescribePartsByType<TPart>(IEnumerable<OpenXmlPart> parts)
