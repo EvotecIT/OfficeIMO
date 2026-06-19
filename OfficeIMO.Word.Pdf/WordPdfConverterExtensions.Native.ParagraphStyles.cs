@@ -601,7 +601,7 @@ namespace OfficeIMO.Word.Pdf {
                 return 0D;
             }
 
-            return ((maxLines - 1) * lineHeight * 0.75D) + NativeHeaderFooterBodyGap;
+            return ((maxLines - 1) * lineHeight) + NativeHeaderFooterBodyGap;
         }
 
         private static double GetNativeHeaderFooterLineHeight(params WordHeaderFooter?[] variants) {

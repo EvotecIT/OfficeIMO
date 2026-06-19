@@ -3,6 +3,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using System;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -579,8 +580,44 @@ public partial class Word {
             double firstFooterY = FindWordStartY(page, "NativeFooterBandLineOne");
             double secondFooterY = FindWordStartY(page, "NativeFooterBandLineTwo");
 
-            Assert.InRange(firstFooterY, 67D, 73D);
-            Assert.InRange(secondFooterY, 45D, 52D);
+            Assert.InRange(firstFooterY, 74D, 77D);
+            Assert.InRange(secondFooterY, 52D, 56D);
+        }
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Places_Large_Multiline_Footer_Inside_Page_Bounds() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeLargeMultilineFooterPlacement.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeLargeMultilineFooterPlacement.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.AddHeadersAndFooters();
+            WordFooter footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
+            for (int index = 1; index <= 4; index++) {
+                WordParagraph paragraph = footer.AddParagraph("LargeFooterLine" + index.ToString(CultureInfo.InvariantCulture));
+                paragraph.FontSize = 24;
+            }
+
+            document.AddParagraph("Large footer placement body");
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = PdfCore.PageSizes.Letter
+            });
+        }
+
+        Assert.True(File.Exists(pdfPath));
+        using (PdfPigDocument pdf = PdfPigDocument.Open(pdfPath)) {
+            var page = pdf.GetPage(1);
+            double firstFooterY = FindWordStartY(page, "LargeFooterLine1");
+            double secondFooterY = FindWordStartY(page, "LargeFooterLine2");
+            double thirdFooterY = FindWordStartY(page, "LargeFooterLine3");
+            double fourthFooterY = FindWordStartY(page, "LargeFooterLine4");
+
+            Assert.True(firstFooterY > secondFooterY + 25D, $"Expected large footer line 1 above line 2. First: {firstFooterY:0.##}, second: {secondFooterY:0.##}.");
+            Assert.True(secondFooterY > thirdFooterY + 25D, $"Expected large footer line 2 above line 3. Second: {secondFooterY:0.##}, third: {thirdFooterY:0.##}.");
+            Assert.True(thirdFooterY > fourthFooterY + 25D, $"Expected large footer line 3 above line 4. Third: {thirdFooterY:0.##}, fourth: {fourthFooterY:0.##}.");
+            Assert.True(fourthFooterY > 20D, $"Expected the final large Word footer line to stay inside the page bounds. Fourth line y: {fourthFooterY:0.##}.");
         }
     }
 
@@ -607,6 +644,6 @@ public partial class Word {
         Assert.Equal(30D, margins.Top);
         Assert.Equal(30D, margins.Left);
         Assert.Equal(30D, margins.Right);
-        Assert.InRange(margins.Bottom, 47D, 49D);
+        Assert.InRange(margins.Bottom, 53D, 55D);
     }
 }
