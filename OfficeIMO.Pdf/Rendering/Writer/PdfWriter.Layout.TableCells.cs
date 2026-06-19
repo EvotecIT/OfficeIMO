@@ -530,9 +530,21 @@ internal static partial class PdfWriter {
         var lines = new System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>>();
         var lineHeights = new System.Collections.Generic.List<double>();
         var lineAlignments = new System.Collections.Generic.List<PdfAlign?>();
+        var lineXOffsets = new System.Collections.Generic.List<double>();
+        var lineWidths = new System.Collections.Generic.List<double>();
         for (int paragraphIndex = 0; paragraphIndex < paragraphs.Count; paragraphIndex++) {
             PdfTableCellParagraph paragraph = paragraphs[paragraphIndex];
-            var wrap = WrapRichRunsCore(paragraph.Runs, innerWidth, fontSize, baseFont, leading, null, DefaultParagraphTabStopWidth, options);
+            var paragraphFrame = GetParagraphTextFrame(CreateTableCellParagraphStyle(paragraph), 0D, innerWidth);
+            var wrap = WrapRichRunsCoreWithFirstLineOrigin(
+                paragraph.Runs,
+                paragraphFrame.Width,
+                fontSize,
+                baseFont,
+                leading,
+                paragraphFrame.FirstLineWidth,
+                paragraphFrame.FirstLineX - paragraphFrame.X,
+                DefaultParagraphTabStopWidth,
+                options);
             if (wrap.Lines.Count == 0) {
                 wrap.Lines.Add(new System.Collections.Generic.List<RichSeg>());
             }
@@ -550,6 +562,9 @@ internal static partial class PdfWriter {
             lineHeights.AddRange(wrap.LineHeights);
             for (int lineIndex = firstNewLineIndex; lineIndex < lines.Count; lineIndex++) {
                 lineAlignments.Add(paragraph.Align);
+                bool firstParagraphLine = lineIndex == firstNewLineIndex;
+                lineXOffsets.Add(firstParagraphLine ? paragraphFrame.FirstLineX : paragraphFrame.X);
+                lineWidths.Add(firstParagraphLine ? paragraphFrame.FirstLineWidth : paragraphFrame.Width);
             }
 
             if (paragraphIndex < paragraphs.Count - 1 && lines.Count > firstNewLineIndex) {
@@ -566,10 +581,19 @@ internal static partial class PdfWriter {
             lines.Add(new System.Collections.Generic.List<RichSeg>());
             lineHeights.Add(leading);
             lineAlignments.Add(null);
+            lineXOffsets.Add(0D);
+            lineWidths.Add(innerWidth);
         }
 
-        return new TableCellTextLayout(lines, lineHeights, lineAlignments);
+        return new TableCellTextLayout(lines, lineHeights, lineAlignments, lineXOffsets, lineWidths);
     }
+
+    private static PdfParagraphStyle CreateTableCellParagraphStyle(PdfTableCellParagraph paragraph) =>
+        new PdfParagraphStyle {
+            LeftIndent = paragraph.LeftIndent,
+            RightIndent = paragraph.RightIndent,
+            FirstLineIndent = paragraph.FirstLineIndent
+        };
 
     private static TableCellTextLayout CreateListItemTextLayout(PdfListItem item, double innerWidth, PdfStandardFont baseFont, double fontSize, double leading, PdfOptions? options) {
         var wrap = WrapRichRunsCore(item.Runs, innerWidth, fontSize, baseFont, leading, null, DefaultParagraphTabStopWidth, options);

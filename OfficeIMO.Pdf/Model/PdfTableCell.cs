@@ -261,7 +261,7 @@ public sealed class PdfTableCell {
 }
 
 internal sealed class PdfTableCellParagraph {
-    public PdfTableCellParagraph(System.Collections.Generic.IEnumerable<TextRun> runs, double spacingAfter = 0D, PdfAlign? align = null, double spacingBefore = 0D) {
+    public PdfTableCellParagraph(System.Collections.Generic.IEnumerable<TextRun> runs, double spacingAfter = 0D, PdfAlign? align = null, double spacingBefore = 0D, double leftIndent = 0D, double rightIndent = 0D, double firstLineIndent = 0D) {
         Guard.NotNull(runs, nameof(runs));
         if (spacingBefore < 0 || double.IsNaN(spacingBefore) || double.IsInfinity(spacingBefore)) {
             throw new System.ArgumentOutOfRangeException(nameof(spacingBefore), "Table cell paragraph spacing must be a non-negative finite value.");
@@ -269,6 +269,18 @@ internal sealed class PdfTableCellParagraph {
 
         if (spacingAfter < 0 || double.IsNaN(spacingAfter) || double.IsInfinity(spacingAfter)) {
             throw new System.ArgumentOutOfRangeException(nameof(spacingAfter), "Table cell paragraph spacing must be a non-negative finite value.");
+        }
+
+        if (leftIndent < 0 || double.IsNaN(leftIndent) || double.IsInfinity(leftIndent)) {
+            throw new System.ArgumentOutOfRangeException(nameof(leftIndent), "Table cell paragraph left indent must be a non-negative finite value.");
+        }
+
+        if (rightIndent < 0 || double.IsNaN(rightIndent) || double.IsInfinity(rightIndent)) {
+            throw new System.ArgumentOutOfRangeException(nameof(rightIndent), "Table cell paragraph right indent must be a non-negative finite value.");
+        }
+
+        if (double.IsNaN(firstLineIndent) || double.IsInfinity(firstLineIndent)) {
+            throw new System.ArgumentOutOfRangeException(nameof(firstLineIndent), "Table cell paragraph first line indent must be a finite value.");
         }
 
         var snapshot = new System.Collections.Generic.List<TextRun>();
@@ -284,6 +296,9 @@ internal sealed class PdfTableCellParagraph {
         SpacingBefore = spacingBefore;
         SpacingAfter = spacingAfter;
         Align = align;
+        LeftIndent = leftIndent;
+        RightIndent = rightIndent;
+        FirstLineIndent = firstLineIndent;
     }
 
     public System.Collections.Generic.IReadOnlyList<TextRun> Runs { get; }
@@ -294,5 +309,11 @@ internal sealed class PdfTableCellParagraph {
 
     public PdfAlign? Align { get; }
 
-    internal PdfTableCellParagraph Clone() => new PdfTableCellParagraph(Runs, SpacingAfter, Align, SpacingBefore);
+    public double LeftIndent { get; }
+
+    public double RightIndent { get; }
+
+    public double FirstLineIndent { get; }
+
+    internal PdfTableCellParagraph Clone() => new PdfTableCellParagraph(Runs, SpacingAfter, Align, SpacingBefore, LeftIndent, RightIndent, FirstLineIndent);
 }

@@ -1420,7 +1420,17 @@ internal static partial class PdfWriter {
             ? lineAlignments[lineIndex]!.Value
             : fallback;
 
-    private static void WriteRichParagraph(StringBuilder sb, RichParagraphBlock block, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, PdfOptions opts, double startY, double fontSize, double defaultLeading, System.Collections.Generic.List<LinkAnnotation> annots, double? xOverride = null, double? widthOverride = null, double? firstLineXOverride = null, double? firstLineWidthOverride = null, string? structureType = null, int? markedContentId = null, LayoutResult.Page? structurePage = null, System.Collections.Generic.IReadOnlyList<PdfAlign?>? lineAlignments = null) {
+    private static double ResolveRichLineWidth(double fallback, double? firstLineWidthOverride, System.Collections.Generic.IReadOnlyList<double>? lineWidths, int lineIndex) =>
+        lineWidths != null && lineIndex >= 0 && lineIndex < lineWidths.Count
+            ? lineWidths[lineIndex]
+            : lineIndex == 0 ? firstLineWidthOverride ?? fallback : fallback;
+
+    private static double ResolveRichLineXOrigin(double fallback, double? firstLineXOverride, System.Collections.Generic.IReadOnlyList<double>? lineXOffsets, int lineIndex) =>
+        lineXOffsets != null && lineIndex >= 0 && lineIndex < lineXOffsets.Count
+            ? fallback + lineXOffsets[lineIndex]
+            : lineIndex == 0 ? firstLineXOverride ?? fallback : fallback;
+
+    private static void WriteRichParagraph(StringBuilder sb, RichParagraphBlock block, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, PdfOptions opts, double startY, double fontSize, double defaultLeading, System.Collections.Generic.List<LinkAnnotation> annots, double? xOverride = null, double? widthOverride = null, double? firstLineXOverride = null, double? firstLineWidthOverride = null, string? structureType = null, int? markedContentId = null, LayoutResult.Page? structurePage = null, System.Collections.Generic.IReadOnlyList<PdfAlign?>? lineAlignments = null, System.Collections.Generic.IReadOnlyList<double>? lineXOffsets = null, System.Collections.Generic.IReadOnlyList<double>? lineWidths = null) {
         double widthContent = opts.PageWidth - opts.MarginLeft - opts.MarginRight;
         double widthUsed = widthOverride ?? widthContent;
         var underlines = new System.Collections.Generic.List<(double X1, double X2, double Y, PdfColor Color)>();
@@ -1452,8 +1462,8 @@ internal static partial class PdfWriter {
         double xOrigin = xOverride ?? opts.MarginLeft;
         for (int li = 0; li < lines.Count; li++) {
             double lineY = startY - backgroundYOffset;
-            double lineWidthUsed = li == 0 ? firstLineWidthOverride ?? widthUsed : widthUsed;
-            double lineXOrigin = li == 0 ? firstLineXOverride ?? xOrigin : xOrigin;
+            double lineWidthUsed = ResolveRichLineWidth(widthUsed, firstLineWidthOverride, lineWidths, li);
+            double lineXOrigin = ResolveRichLineXOrigin(xOrigin, firstLineXOverride, lineXOffsets, li);
             var segs = lines[li];
             double baseLineW = 0;
             int gapsCount = 0;
@@ -1534,8 +1544,8 @@ internal static partial class PdfWriter {
         double yOffset = 0D;
         for (int li = 0; li < lines.Count; li++) {
             double lineY = startY - yOffset;
-            double lineWidthUsed = li == 0 ? firstLineWidthOverride ?? widthUsed : widthUsed;
-            double lineXOrigin = li == 0 ? firstLineXOverride ?? xOrigin : xOrigin;
+            double lineWidthUsed = ResolveRichLineWidth(widthUsed, firstLineWidthOverride, lineWidths, li);
+            double lineXOrigin = ResolveRichLineXOrigin(xOrigin, firstLineXOverride, lineXOffsets, li);
             var segs = lines[li];
             int segCount = segs.Count;
             double[] segWidths = segCount > 0 ? new double[segCount] : System.Array.Empty<double>();
@@ -1893,14 +1903,14 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static void WriteClippedRichParagraph(StringBuilder sb, RichParagraphBlock block, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, PdfOptions opts, double startY, double fontSize, double defaultLeading, System.Collections.Generic.List<LinkAnnotation> annots, double clipX, double clipY, double clipWidth, double clipHeight, double? xOverride = null, double? widthOverride = null, double? firstLineXOverride = null, double? firstLineWidthOverride = null, string? structureType = null, int? markedContentId = null, LayoutResult.Page? structurePage = null, System.Collections.Generic.IReadOnlyList<PdfAlign?>? lineAlignments = null) {
+    private static void WriteClippedRichParagraph(StringBuilder sb, RichParagraphBlock block, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, PdfOptions opts, double startY, double fontSize, double defaultLeading, System.Collections.Generic.List<LinkAnnotation> annots, double clipX, double clipY, double clipWidth, double clipHeight, double? xOverride = null, double? widthOverride = null, double? firstLineXOverride = null, double? firstLineWidthOverride = null, string? structureType = null, int? markedContentId = null, LayoutResult.Page? structurePage = null, System.Collections.Generic.IReadOnlyList<PdfAlign?>? lineAlignments = null, System.Collections.Generic.IReadOnlyList<double>? lineXOffsets = null, System.Collections.Generic.IReadOnlyList<double>? lineWidths = null) {
         new ContentStreamBuilder(sb)
             .SaveState()
             .Rectangle(clipX, clipY, clipWidth, clipHeight)
             .ClipPath()
             .EndPath();
 
-        WriteRichParagraph(sb, block, lines, lineHeights, opts, startY, fontSize, defaultLeading, annots, xOverride, widthOverride, firstLineXOverride, firstLineWidthOverride, structureType, markedContentId, structurePage, lineAlignments);
+        WriteRichParagraph(sb, block, lines, lineHeights, opts, startY, fontSize, defaultLeading, annots, xOverride, widthOverride, firstLineXOverride, firstLineWidthOverride, structureType, markedContentId, structurePage, lineAlignments, lineXOffsets, lineWidths);
 
         new ContentStreamBuilder(sb)
             .RestoreState();

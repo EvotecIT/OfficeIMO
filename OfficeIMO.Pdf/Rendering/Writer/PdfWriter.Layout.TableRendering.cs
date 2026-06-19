@@ -217,6 +217,46 @@ internal static partial class PdfWriter {
         return alignments;
     }
 
+    private static System.Collections.Generic.List<double>? SliceTableCellLineXOffsets(TableCellTextLayout layout, int startLine, int lineCount) {
+        if (layout.LineXOffsets == null) {
+            return null;
+        }
+
+        var offsets = new System.Collections.Generic.List<double>();
+        int available = System.Math.Max(0, layout.Lines.Count - startLine);
+        int visible = System.Math.Max(0, System.Math.Min(lineCount, available));
+        for (int i = 0; i < visible; i++) {
+            int lineIndex = startLine + i;
+            offsets.Add(lineIndex < layout.LineXOffsets.Count ? layout.LineXOffsets[lineIndex] : 0D);
+        }
+
+        if (offsets.Count == 0) {
+            offsets.Add(0D);
+        }
+
+        return offsets;
+    }
+
+    private static System.Collections.Generic.List<double>? SliceTableCellLineWidths(TableCellTextLayout layout, int startLine, int lineCount, double fallbackWidth) {
+        if (layout.LineWidths == null) {
+            return null;
+        }
+
+        var widths = new System.Collections.Generic.List<double>();
+        int available = System.Math.Max(0, layout.Lines.Count - startLine);
+        int visible = System.Math.Max(0, System.Math.Min(lineCount, available));
+        for (int i = 0; i < visible; i++) {
+            int lineIndex = startLine + i;
+            widths.Add(lineIndex < layout.LineWidths.Count ? layout.LineWidths[lineIndex] : fallbackWidth);
+        }
+
+        if (widths.Count == 0) {
+            widths.Add(fallbackWidth);
+        }
+
+        return widths;
+    }
+
     private static PdfAlign MapTableCellAlignment(PdfColumnAlign align) => align switch {
         PdfColumnAlign.Center => PdfAlign.Center,
         PdfColumnAlign.Right => PdfAlign.Right,

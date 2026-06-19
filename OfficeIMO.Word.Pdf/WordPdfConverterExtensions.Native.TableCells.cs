@@ -318,11 +318,15 @@ namespace OfficeIMO.Word.Pdf {
                     spacingAfter = 0D;
                 }
 
+                (double Left, double Right, double FirstLine) indentation = ResolveNativeTableCellParagraphIndentation(paragraph);
                 paragraphs.Add(new PdfCore.PdfTableCellParagraph(
                     paragraphRuns,
                     spacingAfter,
                     MapNativeParagraphAlign(ResolveNativeTableCellParagraphJustification(paragraph, tableStyleDefaults)),
-                    spacingBefore));
+                    spacingBefore,
+                    indentation.Left,
+                    indentation.Right,
+                    indentation.FirstLine));
                 pendingSpacingAfter = spacingAfter;
             }
 
@@ -342,6 +346,26 @@ namespace OfficeIMO.Word.Pdf {
 
         private static W.JustificationValues? ResolveNativeTableCellParagraphJustification(WordParagraph paragraph, NativeTableStyleDefaults tableStyleDefaults) =>
             paragraph.ParagraphAlignment ?? GetNativeParagraphStyleDefaults(paragraph).Alignment ?? tableStyleDefaults.ParagraphAlignment;
+
+        private static (double Left, double Right, double FirstLine) ResolveNativeTableCellParagraphIndentation(WordParagraph paragraph) {
+            NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);
+            double leftIndent = paragraph.IndentationBeforePoints ?? styleDefaults.LeftIndent ?? 0D;
+            double rightIndent = paragraph.IndentationAfterPoints ?? styleDefaults.RightIndent ?? 0D;
+            double firstLineIndent = paragraph.IndentationFirstLinePoints ?? styleDefaults.FirstLineIndent ?? 0D;
+
+            if (paragraph.IndentationHangingPoints.HasValue) {
+                double hangingIndent = paragraph.IndentationHangingPoints.Value;
+                if (leftIndent < hangingIndent) {
+                    leftIndent = hangingIndent;
+                }
+
+                firstLineIndent = -hangingIndent;
+            } else if (firstLineIndent < 0D && leftIndent < -firstLineIndent) {
+                leftIndent = -firstLineIndent;
+            }
+
+            return (leftIndent, rightIndent, firstLineIndent);
+        }
 
         private static double GetNativeCellParagraphSpacingBefore(WordParagraph paragraph, NativeDocumentDefaults nativeDefaults, NativeTableStyleDefaults tableStyleDefaults) {
             NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);

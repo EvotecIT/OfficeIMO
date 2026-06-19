@@ -241,6 +241,8 @@ internal static partial class PdfWriter {
             var visibleLines = SliceTableCellLines(lines, 0, lineCount);
             var visibleHeights = SliceTableCellLineHeights(lines, 0, lineCount, leading);
             var visibleAlignments = SliceTableCellLineAlignments(lines, 0, lineCount);
+            var visibleXOffsets = SliceTableCellLineXOffsets(lines, 0, lineCount);
+            var visibleWidths = SliceTableCellLineWidths(lines, 0, lineCount, innerWidth);
             string? linkUri = cell.LinkUri;
             string? linkDestinationName = cell.LinkDestinationName;
             string? linkContents = cell.LinkContents;
@@ -271,7 +273,9 @@ internal static partial class PdfWriter {
                 structureType: rowIsHeader ? "TH" : "TD",
                 markedContentId: markedContentId,
                 structurePage: currentPage,
-                lineAlignments: visibleAlignments);
+                lineAlignments: visibleAlignments,
+                lineXOffsets: visibleXOffsets,
+                lineWidths: visibleWidths);
             if (cell.Runs.Any(run => run.Bold || rowUsesBold)) {
                 currentPage!.UsedBold = true;
                 usedBold = true;

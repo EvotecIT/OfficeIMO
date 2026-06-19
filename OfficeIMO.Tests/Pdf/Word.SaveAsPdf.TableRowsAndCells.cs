@@ -600,6 +600,44 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Uses_Table_Cell_Paragraph_Indentation() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellParagraphIndentation.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellParagraphIndentation.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            WordTable table = document.AddTable(2, 1);
+            table.Width = 3000;
+            table.WidthType = TableWidthUnitValues.Dxa;
+            table.LayoutType = TableLayoutValues.Fixed;
+            foreach (WordTableRow row in table.Rows) {
+                row.Cells[0].Width = 3000;
+                row.Cells[0].WidthType = TableWidthUnitValues.Dxa;
+            }
+
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "PlainCellIndent";
+            WordParagraph indented = table.Rows[1].Cells[0].Paragraphs[0];
+            indented.Text = "IndentedCellIndent";
+            indented.IndentationBeforePoints = 42D;
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = new PdfCore.PageSize(360, 240),
+                Margins = PdfCore.PageMargins.Uniform(40),
+                FontFamily = "Helvetica"
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        var words = pdf.GetPage(1).GetWords().ToList();
+        var plain = Assert.Single(words, word => word.Text == "PlainCellIndent");
+        var indentedWord = Assert.Single(words, word => word.Text == "IndentedCellIndent");
+
+        Assert.True(indentedWord.BoundingBox.Left > plain.BoundingBox.Left + 35D,
+            $"Expected Word table-cell paragraph indentation to move native PDF cell text right. Plain x: {plain.BoundingBox.Left:0.##}; indented x: {indentedWord.BoundingBox.Left:0.##}.");
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Uses_DocDefaults_For_Table_Cell_Paragraph_Spacing() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellParagraphSpacing.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellParagraphSpacing.pdf");
