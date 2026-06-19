@@ -527,6 +527,31 @@ namespace OfficeIMO.Tests {
             Assert.InRange(Math.Abs(right.TextX - left.TextX), 0D, 1.5D);
         }
 
+        [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Honors_Numbering_Level_Marker_Suffix() {
+            (double MarkerX, double TextX) nothing = RenderNativeNumberedListMarkerSuffix(
+                "PdfNativeListMarkerSuffixNothing",
+                LevelSuffixValues.Nothing,
+                "NothingSuffixMarkerBody");
+            (double MarkerX, double TextX) space = RenderNativeNumberedListMarkerSuffix(
+                "PdfNativeListMarkerSuffixSpace",
+                LevelSuffixValues.Space,
+                "SpaceSuffixMarkerBody");
+            (double MarkerX, double TextX) tab = RenderNativeNumberedListMarkerSuffix(
+                "PdfNativeListMarkerSuffixTab",
+                LevelSuffixValues.Tab,
+                "TabSuffixMarkerBody");
+
+            Assert.InRange(Math.Abs(space.MarkerX - nothing.MarkerX), 0D, 1.5D);
+            Assert.InRange(Math.Abs(tab.MarkerX - nothing.MarkerX), 0D, 1.5D);
+            Assert.True(
+                space.TextX > nothing.TextX + 2D,
+                $"Expected Word marker suffix 'space' to move list text after 'nothing'. Nothing x: {nothing.TextX:0.##}; space x: {space.TextX:0.##}.");
+            Assert.True(
+                tab.TextX > space.TextX + 20D,
+                $"Expected Word marker suffix 'tab' to preserve the hanging-indent text position beyond 'space'. Space x: {space.TextX:0.##}; tab x: {tab.TextX:0.##}.");
+        }
+
         private (double MarkerX, double TextX) RenderNativeNumberedListMarkerJustification(string fileNamePrefix, LevelJustificationValues justification, string bodyText) {
             string docPath = Path.Combine(_directoryWithFiles, fileNamePrefix + ".docx");
             string pdfPath = Path.Combine(_directoryWithFiles, fileNamePrefix + ".pdf");
@@ -538,6 +563,40 @@ namespace OfficeIMO.Tests {
                 level.IndentationLeft = 1440;
                 level.IndentationHanging = 720;
                 level._level.LevelJustification = new LevelJustification { Val = justification };
+                numberedList.AddItem(bodyText);
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false,
+                    FontFamily = "Helvetica"
+                });
+            }
+
+            using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+            string firstBodyLetter = bodyText[0].ToString();
+            var line = pdf.GetPage(1).Letters
+                .Where(letter => !string.IsNullOrWhiteSpace(letter.Value))
+                .GroupBy(letter => Math.Round(letter.StartBaseLine.Y, 1))
+                .OrderByDescending(group => group.Key)
+                .Select(group => group.OrderBy(letter => letter.StartBaseLine.X).ToList())
+                .First(group => string.Concat(group.Select(letter => letter.Value)).Contains(bodyText));
+
+            double markerX = line.First(letter => letter.Value == "1").StartBaseLine.X;
+            double textX = line.First(letter => letter.Value == firstBodyLetter).StartBaseLine.X;
+            return (markerX, textX);
+        }
+
+        private (double MarkerX, double TextX) RenderNativeNumberedListMarkerSuffix(string fileNamePrefix, LevelSuffixValues suffix, string bodyText) {
+            string docPath = Path.Combine(_directoryWithFiles, fileNamePrefix + ".docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, fileNamePrefix + ".pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                WordList numberedList = document.AddCustomList();
+                numberedList.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
+                WordListLevel level = numberedList.Numbering.Levels[0];
+                level.IndentationLeft = 1440;
+                level.IndentationHanging = 720;
+                level.LevelSuffix = suffix;
                 numberedList.AddItem(bodyText);
 
                 document.Save();

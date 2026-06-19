@@ -157,8 +157,7 @@ namespace OfficeIMO.Word.Pdf {
             double lineHeight = ResolveNativeParagraphLineHeight(paragraph, fontSize, nativeDefaults, styleDefaults);
             W.SpacingBetweenLines? directSpacing = paragraph._paragraph?.ParagraphProperties?.GetFirstChild<W.SpacingBetweenLines>();
             double markerTextWidth = EstimateNativeListMarkerWidth(marker, fontSize);
-            double markerWidth = Math.Max(markerTextWidth, textIndent - markerIndent);
-            double markerGap = Math.Max(0D, textIndent - markerIndent - markerWidth);
+            (double markerWidth, double markerGap) = ResolveNativeListMarkerSpacing(info.LevelSuffix, markerTextWidth, fontSize, textIndent, markerIndent);
             bool itemSpacingDeclared = false;
 
             var style = new PdfCore.PdfListStyle {
@@ -237,6 +236,21 @@ namespace OfficeIMO.Word.Pdf {
         private static bool ShouldApplyNativeListParagraphStyleIndent(WordParagraph paragraph) =>
             !string.IsNullOrWhiteSpace(paragraph.StyleId) &&
             !string.Equals(paragraph.StyleId, "ListParagraph", StringComparison.OrdinalIgnoreCase);
+
+        private static (double MarkerWidth, double MarkerGap) ResolveNativeListMarkerSpacing(W.LevelSuffixValues? levelSuffix, double markerTextWidth, double fontSize, double textIndent, double markerIndent) {
+            if (levelSuffix == W.LevelSuffixValues.Nothing) {
+                return (markerTextWidth, 0D);
+            }
+
+            if (levelSuffix == W.LevelSuffixValues.Space) {
+                return (markerTextWidth, EstimateNativeListMarkerWidth(" ", fontSize));
+            }
+
+            double markerColumnWidth = Math.Max(0D, textIndent - markerIndent);
+            double markerWidth = Math.Max(markerTextWidth, markerColumnWidth);
+            double markerGap = Math.Max(0D, markerColumnWidth - markerWidth);
+            return (markerWidth, markerGap);
+        }
 
         private static double EstimateNativeListMarkerWidth(string marker, double fontSize) {
             if (string.IsNullOrEmpty(marker)) {

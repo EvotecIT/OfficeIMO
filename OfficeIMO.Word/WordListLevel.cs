@@ -195,6 +195,18 @@ namespace OfficeIMO.Word {
             return justification;
         }
 
+        private LevelSuffix GetLevelSuffixElement() {
+            var suffix = _level.GetFirstChild<LevelSuffix>();
+            if (suffix == null) {
+                suffix = new LevelSuffix { Val = LevelSuffixValues.Tab };
+                _level.Append(suffix);
+            } else if (suffix.Val == null || !suffix.Val.HasValue) {
+                suffix.Val = LevelSuffixValues.Tab;
+            }
+
+            return suffix;
+        }
+
         /// <summary>
         /// Gets or sets the start numbering value.
         /// </summary>
@@ -287,6 +299,20 @@ namespace OfficeIMO.Word {
             }
             set {
                 var element = GetLevelJustificationElement();
+                element.Val = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the suffix placed after the numbering marker.
+        /// </summary>
+        public LevelSuffixValues LevelSuffix {
+            get {
+                var element = GetLevelSuffixElement();
+                return element.Val?.Value ?? LevelSuffixValues.Tab;
+            }
+            set {
+                var element = GetLevelSuffixElement();
                 element.Val = value;
             }
         }
