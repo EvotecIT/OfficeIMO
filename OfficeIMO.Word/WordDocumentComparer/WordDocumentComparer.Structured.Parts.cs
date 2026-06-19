@@ -7,6 +7,7 @@ namespace OfficeIMO.Word {
         private static Dictionary<HeaderPart, string> CreateHeaderPartKeys(MainDocumentPart mainPart) {
             var keys = new Dictionary<HeaderPart, string>();
             var typeOrdinals = new Dictionary<string, int>(StringComparer.Ordinal);
+            var seenEffectiveParts = new HashSet<string>(StringComparer.Ordinal);
             foreach (HeaderReference reference in mainPart.Document?.Descendants<HeaderReference>() ?? Enumerable.Empty<HeaderReference>()) {
                 if (reference.Id?.Value is not string relationshipId) {
                     continue;
@@ -21,6 +22,10 @@ namespace OfficeIMO.Word {
                 }
 
                 string typeKey = GetHeaderFooterReferenceTypeKey(reference.Type?.Value);
+                if (!seenEffectiveParts.Add(typeKey + ":" + GetHeaderFooterPartSignature(headerPart.Header))) {
+                    continue;
+                }
+
                 int ordinal = GetAndIncrementOrdinal(typeOrdinals, typeKey);
                 keys[headerPart] = HeaderPartKeyPrefix + typeKey + ":" + ordinal.ToString(System.Globalization.CultureInfo.InvariantCulture);
             }
@@ -31,6 +36,7 @@ namespace OfficeIMO.Word {
         private static Dictionary<FooterPart, string> CreateFooterPartKeys(MainDocumentPart mainPart) {
             var keys = new Dictionary<FooterPart, string>();
             var typeOrdinals = new Dictionary<string, int>(StringComparer.Ordinal);
+            var seenEffectiveParts = new HashSet<string>(StringComparer.Ordinal);
             foreach (FooterReference reference in mainPart.Document?.Descendants<FooterReference>() ?? Enumerable.Empty<FooterReference>()) {
                 if (reference.Id?.Value is not string relationshipId) {
                     continue;
@@ -45,6 +51,10 @@ namespace OfficeIMO.Word {
                 }
 
                 string typeKey = GetHeaderFooterReferenceTypeKey(reference.Type?.Value);
+                if (!seenEffectiveParts.Add(typeKey + ":" + GetHeaderFooterPartSignature(footerPart.Footer))) {
+                    continue;
+                }
+
                 int ordinal = GetAndIncrementOrdinal(typeOrdinals, typeKey);
                 keys[footerPart] = FooterPartKeyPrefix + typeKey + ":" + ordinal.ToString(System.Globalization.CultureInfo.InvariantCulture);
             }
@@ -74,6 +84,10 @@ namespace OfficeIMO.Word {
             }
 
             return "default";
+        }
+
+        private static string GetHeaderFooterPartSignature(OpenXmlElement? root) {
+            return root?.InnerText ?? string.Empty;
         }
 
         private static bool IsHeaderFooterReferenceVisible(MainDocumentPart mainPart, HeaderFooterValues? type, OpenXmlElement reference) {

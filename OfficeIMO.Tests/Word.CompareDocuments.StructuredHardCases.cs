@@ -63,6 +63,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompareStructureReportsTableCellHyperlinkTargetChanges() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_cell_hyperlink_target.docx");
+            CreateDocumentWithOneCellTable(sourcePath, "placeholder");
+            ReplaceFirstTableCellWithHyperlink(sourcePath, "Portal", "https://evotec.xyz/source-cell");
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_cell_hyperlink_target.docx");
+            CreateDocumentWithOneCellTable(targetPath, "placeholder");
+            ReplaceFirstTableCellWithHyperlink(targetPath, "Portal", "https://evotec.xyz/target-cell");
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.TableCell &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified &&
+                finding.SourceText == "Portal" &&
+                finding.TargetText == "Portal");
+        }
+
+        [Fact]
         public void CompareStructureReportsFieldInstructionChanges() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_field_instruction.docx");
             CreateDocumentWithBodyText(sourcePath, "placeholder");
@@ -100,6 +119,33 @@ namespace OfficeIMO.Tests {
             WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
 
             Assert.Empty(result.Findings);
+        }
+
+        [Fact]
+        public void CompareStructureReportsFootnoteReferenceTargetChanges() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_swapped_footnote_targets.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                doc.AddParagraph("Policy A").AddFootNote("Alpha note");
+                doc.AddParagraph("Policy B").AddFootNote("Beta note");
+                doc.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_swapped_footnote_targets.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                doc.AddParagraph("Policy A").AddFootNote("Alpha note");
+                doc.AddParagraph("Policy B").AddFootNote("Beta note");
+                doc.Save(false);
+            }
+
+            SwapBodyFootnoteReferences(targetPath);
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Paragraph &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified &&
+                (finding.SourceText?.Contains("[FootnoteReference:", StringComparison.Ordinal) ?? false) &&
+                (finding.TargetText?.Contains("[FootnoteReference:", StringComparison.Ordinal) ?? false));
         }
 
         [Fact]
@@ -183,6 +229,57 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompareStructureSkipsDuplicateEffectiveHeaderContent() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_duplicate_effective_header.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                doc.AddParagraph("Body");
+                doc.HeaderDefaultOrCreate.AddParagraph("Shared header");
+                doc.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_duplicate_effective_header.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                doc.AddParagraph("Body");
+                doc.HeaderDefaultOrCreate.AddParagraph("Shared header");
+                doc.Save(false);
+            }
+
+            AddDuplicateDefaultHeaderReference(targetPath, "Shared header");
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.DoesNotContain(result.Findings, finding =>
+                finding.ChangeKind == WordComparisonChangeKind.Inserted &&
+                (finding.TargetText?.Contains("Shared header", StringComparison.Ordinal) ?? false));
+        }
+
+        [Fact]
+        public void CompareStructureReportsCrossScopeBlockReordering() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_cross_scope_order.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                doc.AddParagraph("Approval");
+                WordTable table = doc.AddTable(1, 1);
+                table.Rows[0].Cells[0].Paragraphs[0].SetText("Terms");
+                doc.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_cross_scope_order.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                WordTable table = doc.AddTable(1, 1);
+                table.Rows[0].Cells[0].Paragraphs[0].SetText("Terms");
+                doc.AddParagraph("Approval");
+                doc.Save(false);
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Paragraph &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified &&
+                finding.Message == "Document block order changed.");
+        }
+
+        [Fact]
         public void CompareStructureSkipsDisabledFirstPageHeaders() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_disabled_first_header.docx");
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
@@ -235,6 +332,13 @@ namespace OfficeIMO.Tests {
             doc.Save(false);
         }
 
+        private static void CreateDocumentWithOneCellTable(string path, string text) {
+            using WordDocument doc = WordDocument.Create(path);
+            WordTable table = doc.AddTable(1, 1);
+            table.Rows[0].Cells[0].Paragraphs[0].SetText(text);
+            doc.Save(false);
+        }
+
         private static void ReplaceBodyParagraphForHardCase(string path, Paragraph paragraph) {
             using WordprocessingDocument document = WordprocessingDocument.Open(path, true);
             Body body = document.MainDocumentPart!.Document.Body!;
@@ -253,6 +357,16 @@ namespace OfficeIMO.Tests {
             mainPart.Document.Save();
         }
 
+        private static void ReplaceFirstTableCellWithHyperlink(string path, string text, string url) {
+            using WordprocessingDocument document = WordprocessingDocument.Open(path, true);
+            MainDocumentPart mainPart = document.MainDocumentPart!;
+            string relationshipId = mainPart.AddHyperlinkRelationship(new Uri(url), true).Id;
+            TableCell cell = mainPart.Document.Descendants<TableCell>().First();
+            cell.RemoveAllChildren<Paragraph>();
+            cell.Append(new Paragraph(new Hyperlink(new Run(new Text(text))) { Id = relationshipId }));
+            mainPart.Document.Save();
+        }
+
         private static Paragraph CreateSimpleFieldParagraph(string displayText, string instruction) {
             return new Paragraph(new SimpleField(new Run(new Text(displayText))) { Instruction = instruction });
         }
@@ -267,6 +381,15 @@ namespace OfficeIMO.Tests {
             }
 
             document.MainDocumentPart.FootnotesPart.Footnotes.Save();
+            document.MainDocumentPart.Document.Save();
+        }
+
+        private static void SwapBodyFootnoteReferences(string path) {
+            using WordprocessingDocument document = WordprocessingDocument.Open(path, true);
+            List<FootnoteReference> references = document.MainDocumentPart!.Document.Descendants<FootnoteReference>().Take(2).ToList();
+            long firstId = references[0].Id!.Value;
+            references[0].Id = references[1].Id!.Value;
+            references[1].Id = firstId;
             document.MainDocumentPart.Document.Save();
         }
 
@@ -290,6 +413,19 @@ namespace OfficeIMO.Tests {
             TableCellProperties properties = cell.GetFirstChild<TableCellProperties>() ?? cell.PrependChild(new TableCellProperties());
             properties.GridSpan = new GridSpan { Val = span };
             document.MainDocumentPart.Document.Save();
+        }
+
+        private static void AddDuplicateDefaultHeaderReference(string path, string text) {
+            using WordprocessingDocument document = WordprocessingDocument.Open(path, true);
+            MainDocumentPart mainPart = document.MainDocumentPart!;
+            HeaderPart headerPart = mainPart.AddNewPart<HeaderPart>();
+            headerPart.Header = new Header(new Paragraph(new Run(new Text(text))));
+            headerPart.Header.Save();
+
+            string relationshipId = mainPart.GetIdOfPart(headerPart);
+            SectionProperties sectionProperties = mainPart.Document.Body!.Elements<SectionProperties>().Last();
+            sectionProperties.Append(new HeaderReference { Type = HeaderFooterValues.Default, Id = relationshipId });
+            mainPart.Document.Save();
         }
 
         private static void ReplaceFirstTableCellParagraph(string path, Paragraph paragraph) {

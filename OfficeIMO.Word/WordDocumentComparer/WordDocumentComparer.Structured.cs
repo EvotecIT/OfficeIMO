@@ -39,6 +39,7 @@ namespace OfficeIMO.Word {
             AnalyzeParagraphs(source, target, result);
             AnalyzeTables(source, target, result);
             AnalyzeImages(source, target, result);
+            AnalyzeBlockOrder(source, target, result);
             result.SortFindingsByDocumentOrder();
             return result;
         }
@@ -101,7 +102,7 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
-                AnalyzeTable(sourceTables[sourceIndex].Table, targetTables[targetIndex].Table, targetIndex, targetTables[targetIndex].DocumentOrder, result);
+                AnalyzeTable(sourceTables[sourceIndex], targetTables[targetIndex], targetIndex, targetTables[targetIndex].DocumentOrder, result);
                 sourceIndex++;
                 targetIndex++;
             }
@@ -143,29 +144,31 @@ namespace OfficeIMO.Word {
                 sourceTables[tableIndex].DocumentOrder);
         }
 
-        private static void AnalyzeTable(WordTable source, WordTable target, int tableIndex, int tableDocumentOrder, WordComparisonResult result) {
-            List<WordTableRow> sourceRows = source.Rows.ToList();
-            List<WordTableRow> targetRows = target.Rows.ToList();
+        private static void AnalyzeTable(TableSnapshot source, TableSnapshot target, int tableIndex, int tableDocumentOrder, WordComparisonResult result) {
+            List<WordTableRow> sourceRows = source.Table.Rows.ToList();
+            List<WordTableRow> targetRows = target.Table.Rows.ToList();
             IReadOnlyList<MatchedIndexPair> matchedRows = FindMatchingIndexes(
-                sourceRows.Select(GetRowMatchKey).ToList(),
-                targetRows.Select(GetRowMatchKey).ToList(),
+                sourceRows.Select(row => GetRowMatchKey(row, source.Part)).ToList(),
+                targetRows.Select(row => GetRowMatchKey(row, target.Part)).ToList(),
                 StringComparer.Ordinal);
 
             int sourceStart = 0;
             int targetStart = 0;
 
             foreach (MatchedIndexPair match in matchedRows) {
-                AddTableRowRangeFindings(sourceRows, targetRows, tableIndex, tableDocumentOrder, sourceStart, match.SourceIndex, targetStart, match.TargetIndex, result);
+                AddTableRowRangeFindings(sourceRows, targetRows, source.Part, target.Part, tableIndex, tableDocumentOrder, sourceStart, match.SourceIndex, targetStart, match.TargetIndex, result);
                 sourceStart = match.SourceIndex + 1;
                 targetStart = match.TargetIndex + 1;
             }
 
-            AddTableRowRangeFindings(sourceRows, targetRows, tableIndex, tableDocumentOrder, sourceStart, sourceRows.Count, targetStart, targetRows.Count, result);
+            AddTableRowRangeFindings(sourceRows, targetRows, source.Part, target.Part, tableIndex, tableDocumentOrder, sourceStart, sourceRows.Count, targetStart, targetRows.Count, result);
         }
 
         private static void AddTableRowRangeFindings(
             IReadOnlyList<WordTableRow> sourceRows,
             IReadOnlyList<WordTableRow> targetRows,
+            OpenXmlPart? sourcePart,
+            OpenXmlPart? targetPart,
             int tableIndex,
             int tableDocumentOrder,
             int sourceStart,
@@ -204,7 +207,7 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
-                AnalyzeTableRow(sourceRows[sourceIndex], targetRows[targetIndex], tableIndex, tableDocumentOrder, sourceIndex, targetIndex, result);
+                AnalyzeTableRow(sourceRows[sourceIndex], targetRows[targetIndex], sourcePart, targetPart, tableIndex, tableDocumentOrder, sourceIndex, targetIndex, result);
                 sourceIndex++;
                 targetIndex++;
             }
@@ -246,29 +249,31 @@ namespace OfficeIMO.Word {
                 GetTableChildDocumentOrder(tableDocumentOrder, sourceRows[rowIndex]._tableRow));
         }
 
-        private static void AnalyzeTableRow(WordTableRow source, WordTableRow target, int tableIndex, int tableDocumentOrder, int sourceRowIndex, int targetRowIndex, WordComparisonResult result) {
+        private static void AnalyzeTableRow(WordTableRow source, WordTableRow target, OpenXmlPart? sourcePart, OpenXmlPart? targetPart, int tableIndex, int tableDocumentOrder, int sourceRowIndex, int targetRowIndex, WordComparisonResult result) {
             List<WordTableCell> sourceCells = source.Cells.ToList();
             List<WordTableCell> targetCells = target.Cells.ToList();
             IReadOnlyList<MatchedIndexPair> matchedCells = FindMatchingIndexes(
-                sourceCells.Select(GetCellMatchKey).ToList(),
-                targetCells.Select(GetCellMatchKey).ToList(),
+                sourceCells.Select(cell => GetCellMatchKey(cell, sourcePart)).ToList(),
+                targetCells.Select(cell => GetCellMatchKey(cell, targetPart)).ToList(),
                 StringComparer.Ordinal);
 
             int sourceStart = 0;
             int targetStart = 0;
 
             foreach (MatchedIndexPair match in matchedCells) {
-                AddTableCellRangeFindings(sourceCells, targetCells, tableIndex, tableDocumentOrder, sourceRowIndex, targetRowIndex, sourceStart, match.SourceIndex, targetStart, match.TargetIndex, result);
+                AddTableCellRangeFindings(sourceCells, targetCells, sourcePart, targetPart, tableIndex, tableDocumentOrder, sourceRowIndex, targetRowIndex, sourceStart, match.SourceIndex, targetStart, match.TargetIndex, result);
                 sourceStart = match.SourceIndex + 1;
                 targetStart = match.TargetIndex + 1;
             }
 
-            AddTableCellRangeFindings(sourceCells, targetCells, tableIndex, tableDocumentOrder, sourceRowIndex, targetRowIndex, sourceStart, sourceCells.Count, targetStart, targetCells.Count, result);
+            AddTableCellRangeFindings(sourceCells, targetCells, sourcePart, targetPart, tableIndex, tableDocumentOrder, sourceRowIndex, targetRowIndex, sourceStart, sourceCells.Count, targetStart, targetCells.Count, result);
         }
 
         private static void AddTableCellRangeFindings(
             IReadOnlyList<WordTableCell> sourceCells,
             IReadOnlyList<WordTableCell> targetCells,
+            OpenXmlPart? sourcePart,
+            OpenXmlPart? targetPart,
             int tableIndex,
             int tableDocumentOrder,
             int sourceRowIndex,
@@ -302,8 +307,8 @@ namespace OfficeIMO.Word {
 
                 string sourceText = GetCellText(sourceCells[sourceIndex]);
                 string targetText = GetCellText(targetCells[targetIndex]);
-                string sourceMatchText = GetCellMatchText(sourceCells[sourceIndex]);
-                string targetMatchText = GetCellMatchText(targetCells[targetIndex]);
+                string sourceMatchText = GetCellMatchText(sourceCells[sourceIndex], sourcePart);
+                string targetMatchText = GetCellMatchText(targetCells[targetIndex], targetPart);
                 string sourceCellShape = GetCellShape(sourceCells[sourceIndex]);
                 string targetCellShape = GetCellShape(targetCells[targetIndex]);
 
@@ -559,7 +564,7 @@ namespace OfficeIMO.Word {
         private static List<TableSnapshot> GetTableSnapshots(WordDocument document) {
             var snapshots = new List<TableSnapshot>();
             MainDocumentPart? mainPart = document._wordprocessingDocument.MainDocumentPart;
-            AddTableSnapshots(snapshots, document, mainPart?.Document?.Body, BodyPartKey, BodyPartOrderBase);
+            AddTableSnapshots(snapshots, document, mainPart, mainPart?.Document?.Body, BodyPartKey, BodyPartOrderBase);
 
             if (mainPart != null) {
                 Dictionary<HeaderPart, string> headerPartKeys = CreateHeaderPartKeys(mainPart);
@@ -569,7 +574,7 @@ namespace OfficeIMO.Word {
                         continue;
                     }
 
-                    AddTableSnapshots(snapshots, document, headerPart.Header, headerPartKey, HeaderPartOrderBase + (headerIndex * RelatedPartOrderStride));
+                    AddTableSnapshots(snapshots, document, headerPart, headerPart.Header, headerPartKey, HeaderPartOrderBase + (headerIndex * RelatedPartOrderStride));
                     headerIndex++;
                 }
 
@@ -580,7 +585,7 @@ namespace OfficeIMO.Word {
                         continue;
                     }
 
-                    AddTableSnapshots(snapshots, document, footerPart.Footer, footerPartKey, FooterPartOrderBase + (footerIndex * RelatedPartOrderStride));
+                    AddTableSnapshots(snapshots, document, footerPart, footerPart.Footer, footerPartKey, FooterPartOrderBase + (footerIndex * RelatedPartOrderStride));
                     footerIndex++;
                 }
 
@@ -591,7 +596,7 @@ namespace OfficeIMO.Word {
                     }
 
                     string noteId = footnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                    AddTableSnapshots(snapshots, document, footnote, FootnotePartKeyPrefix + noteId, FootnotePartOrderBase + (footnoteIndex * RelatedPartOrderStride));
+                    AddTableSnapshots(snapshots, document, mainPart.FootnotesPart, footnote, FootnotePartKeyPrefix + noteId, FootnotePartOrderBase + (footnoteIndex * RelatedPartOrderStride));
                     footnoteIndex++;
                 }
 
@@ -602,7 +607,7 @@ namespace OfficeIMO.Word {
                     }
 
                     string noteId = endnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                    AddTableSnapshots(snapshots, document, endnote, EndnotePartKeyPrefix + noteId, EndnotePartOrderBase + (endnoteIndex * RelatedPartOrderStride));
+                    AddTableSnapshots(snapshots, document, mainPart.EndnotesPart, endnote, EndnotePartKeyPrefix + noteId, EndnotePartOrderBase + (endnoteIndex * RelatedPartOrderStride));
                     endnoteIndex++;
                 }
             }
@@ -610,7 +615,7 @@ namespace OfficeIMO.Word {
             return snapshots;
         }
 
-        private static void AddTableSnapshots(List<TableSnapshot> snapshots, WordDocument document, OpenXmlElement? container, string partKey, int orderBase) {
+        private static void AddTableSnapshots(List<TableSnapshot> snapshots, WordDocument document, OpenXmlPart? part, OpenXmlElement? container, string partKey, int orderBase) {
             foreach (OrderedElement ordered in EnumerateDescendantsWithOrder(container, orderBase)) {
                 if (ordered.Element is not Table table) {
                     continue;
@@ -618,8 +623,8 @@ namespace OfficeIMO.Word {
 
                 var wordTable = new WordTable(document, table);
                 string text = GetTableText(wordTable);
-                string matchText = GetTableMatchText(wordTable);
-                snapshots.Add(new TableSnapshot(wordTable, text, matchText, GetTableMatchKey(partKey, wordTable), partKey, ordered.DocumentOrder));
+                string matchText = GetTableMatchText(wordTable, part);
+                snapshots.Add(new TableSnapshot(wordTable, part, text, matchText, GetTableMatchKey(partKey, wordTable, part), partKey, ordered.DocumentOrder));
             }
         }
 
@@ -631,24 +636,24 @@ namespace OfficeIMO.Word {
             return string.Join(" | ", row.Cells.Select(GetCellText).ToArray());
         }
 
-        private static string GetTableMatchText(WordTable table) {
-            return string.Join(TableRowSeparator, table.Rows.Select(GetRowMatchText).ToArray());
+        private static string GetTableMatchText(WordTable table, OpenXmlPart? part) {
+            return string.Join(TableRowSeparator, table.Rows.Select(row => GetRowMatchText(row, part)).ToArray());
         }
 
-        private static string GetRowMatchText(WordTableRow row) {
-            return string.Join(" | ", row.Cells.Select(GetCellMatchText).ToArray());
+        private static string GetRowMatchText(WordTableRow row, OpenXmlPart? part) {
+            return string.Join(" | ", row.Cells.Select(cell => GetCellMatchText(cell, part)).ToArray());
         }
 
-        private static string GetTableMatchKey(string partKey, WordTable table) {
-            return partKey + TableRowSeparator + GetTableShape(table) + TableRowSeparator + string.Join(TableRowSeparator, table.Rows.Select(GetRowMatchKey).ToArray());
+        private static string GetTableMatchKey(string partKey, WordTable table, OpenXmlPart? part) {
+            return partKey + TableRowSeparator + GetTableShape(table) + TableRowSeparator + string.Join(TableRowSeparator, table.Rows.Select(row => GetRowMatchKey(row, part)).ToArray());
         }
 
         private static string GetTableShape(WordTable table) {
             return string.Join(";", table.Rows.Select(GetRowShape).ToArray());
         }
 
-        private static string GetRowMatchKey(WordTableRow row) {
-            return GetRowShape(row) + TableRowSeparator + string.Join(TableRowSeparator, row.Cells.Select(cell => EncodeMatchText(GetCellMatchText(cell))).ToArray());
+        private static string GetRowMatchKey(WordTableRow row, OpenXmlPart? part) {
+            return GetRowShape(row) + TableRowSeparator + string.Join(TableRowSeparator, row.Cells.Select(cell => EncodeMatchText(GetCellMatchText(cell, part))).ToArray());
         }
 
         private static string GetRowShape(WordTableRow row) {
@@ -678,16 +683,20 @@ namespace OfficeIMO.Word {
         }
 
         private static string GetCellMatchText(WordTableCell cell) {
+            return GetCellMatchText(cell, null);
+        }
+
+        private static string GetCellMatchText(WordTableCell cell, OpenXmlPart? part) {
             return string.Join(
                 CellParagraphSeparator,
                 cell._tableCell.Descendants<Paragraph>()
                     .Where(paragraph => ReferenceEquals(paragraph.Ancestors<TableCell>().FirstOrDefault(), cell._tableCell))
-                    .Select(GetParagraphMatchText)
+                    .Select(paragraph => GetParagraphMatchText(paragraph, part))
                     .ToArray());
         }
 
-        private static string GetCellMatchKey(WordTableCell cell) {
-            return GetCellShape(cell) + CellParagraphSeparator + GetCellMatchText(cell);
+        private static string GetCellMatchKey(WordTableCell cell, OpenXmlPart? part) {
+            return GetCellShape(cell) + CellParagraphSeparator + GetCellMatchText(cell, part);
         }
 
         private static string EncodeMatchText(string value) {
@@ -953,8 +962,9 @@ namespace OfficeIMO.Word {
         }
 
         private sealed class TableSnapshot {
-            internal TableSnapshot(WordTable table, string text, string matchText, string matchKey, string partKey, int documentOrder) {
+            internal TableSnapshot(WordTable table, OpenXmlPart? part, string text, string matchText, string matchKey, string partKey, int documentOrder) {
                 Table = table;
+                Part = part;
                 Text = text;
                 MatchText = matchText;
                 MatchKey = matchKey;
@@ -963,6 +973,8 @@ namespace OfficeIMO.Word {
             }
 
             internal WordTable Table { get; }
+
+            internal OpenXmlPart? Part { get; }
 
             internal string Text { get; }
 

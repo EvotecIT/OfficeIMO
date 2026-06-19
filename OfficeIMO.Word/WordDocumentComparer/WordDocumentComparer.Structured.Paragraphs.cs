@@ -333,7 +333,7 @@ namespace OfficeIMO.Word {
                         textBuilder.Append("[FootnoteReference:");
                         textBuilder.Append(footnoteReferenceId);
                         textBuilder.Append(']');
-                        AppendMatchToken(matchBuilder, "footnoteReference", string.Empty);
+                        AppendMatchToken(matchBuilder, "footnoteReference", GetFootnoteReferenceSignature(part, footnoteReference.Id?.Value));
                         break;
                     case EndnoteReference endnoteReference:
                         FlushPendingTextToken(matchBuilder, pendingTextBuilder);
@@ -341,7 +341,7 @@ namespace OfficeIMO.Word {
                         textBuilder.Append("[EndnoteReference:");
                         textBuilder.Append(endnoteReferenceId);
                         textBuilder.Append(']');
-                        AppendMatchToken(matchBuilder, "endnoteReference", string.Empty);
+                        AppendMatchToken(matchBuilder, "endnoteReference", GetEndnoteReferenceSignature(part, endnoteReference.Id?.Value));
                         break;
                     case SymbolChar symbol:
                         FlushPendingTextToken(matchBuilder, pendingTextBuilder);
@@ -435,6 +435,34 @@ namespace OfficeIMO.Word {
             }
 
             return relationshipId;
+        }
+
+        private static string GetFootnoteReferenceSignature(OpenXmlPart? part, long? noteId) {
+            if (part is not MainDocumentPart mainPart || noteId == null) {
+                return noteId?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
+            }
+
+            Footnote? footnote = mainPart.FootnotesPart?.Footnotes?.Elements<Footnote>()
+                .FirstOrDefault(item => item.Id?.Value == noteId.Value && IsVisibleNote(item));
+            return footnote == null ? string.Empty : GetNoteContentSignature(mainPart.FootnotesPart, footnote);
+        }
+
+        private static string GetEndnoteReferenceSignature(OpenXmlPart? part, long? noteId) {
+            if (part is not MainDocumentPart mainPart || noteId == null) {
+                return noteId?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
+            }
+
+            Endnote? endnote = mainPart.EndnotesPart?.Endnotes?.Elements<Endnote>()
+                .FirstOrDefault(item => item.Id?.Value == noteId.Value && IsVisibleNote(item));
+            return endnote == null ? string.Empty : GetNoteContentSignature(mainPart.EndnotesPart, endnote);
+        }
+
+        private static string GetNoteContentSignature(OpenXmlPart? notePart, OpenXmlElement note) {
+            return string.Join(
+                TableRowSeparator,
+                note.Elements<Paragraph>()
+                    .Select(paragraph => GetParagraphMatchText(paragraph, notePart))
+                    .ToArray());
         }
 
         private static bool HasImageContent(Paragraph paragraph) {
