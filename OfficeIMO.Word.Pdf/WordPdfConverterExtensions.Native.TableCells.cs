@@ -310,7 +310,11 @@ namespace OfficeIMO.Word.Pdf {
 
         private static double GetNativeCellParagraphSpacingAfter(WordParagraph paragraph, NativeDocumentDefaults nativeDefaults, NativeTableStyleDefaults tableStyleDefaults) {
             NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);
+            double fontSize = ResolveNativeParagraphFontSize(paragraph, nativeDefaults, styleDefaults);
+            double lineHeight = ResolveNativeParagraphLineHeight(paragraph, fontSize, nativeDefaults, styleDefaults);
+            W.SpacingBetweenLines? directSpacing = paragraph._paragraph?.ParagraphProperties?.GetFirstChild<W.SpacingBetweenLines>();
             double spacingAfter = paragraph.LineSpacingAfterPoints ??
+                GetNativeSpacingAfterPoints(directSpacing, fontSize, lineHeight) ??
                 styleDefaults.SpacingAfter ??
                 tableStyleDefaults.ParagraphSpacingAfter ??
                 (nativeDefaults.ParagraphSpacingAfterDeclared ? nativeDefaults.ParagraphSpacingAfter : 0D);

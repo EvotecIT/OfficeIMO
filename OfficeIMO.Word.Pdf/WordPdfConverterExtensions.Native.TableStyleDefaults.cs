@@ -42,6 +42,16 @@ namespace OfficeIMO.Word.Pdf {
             W.HighlightColorValues? highlight = null;
 
             foreach (W.Style style in styleChain) {
+                W.StyleRunProperties? runProperties = style.GetFirstChild<W.StyleRunProperties>();
+                fontSize = GetNativeStyleFontSize(runProperties) ?? fontSize;
+                fontFamily = ResolveNativeRunFontsFamily(table.Document, runProperties?.GetFirstChild<W.RunFonts>()) ?? fontFamily;
+                bold = ReadNativeOnOff(runProperties?.GetFirstChild<W.Bold>()) ?? bold;
+                italic = ReadNativeOnOff(runProperties?.GetFirstChild<W.Italic>()) ?? italic;
+                underline = ReadNativeUnderline(runProperties?.GetFirstChild<W.Underline>()) ?? underline;
+                strike = ReadNativeOnOff(runProperties?.GetFirstChild<W.Strike>()) ?? ReadNativeOnOff(runProperties?.GetFirstChild<W.DoubleStrike>()) ?? strike;
+                colorHex = runProperties?.GetFirstChild<W.Color>()?.Val?.Value ?? colorHex;
+                highlight = runProperties?.GetFirstChild<W.Highlight>()?.Val?.Value ?? highlight;
+
                 W.StyleTableProperties? tableProperties = style.GetFirstChild<W.StyleTableProperties>();
                 W.TableCellMarginDefault? margins = tableProperties?.GetFirstChild<W.TableCellMarginDefault>();
                 if (margins != null) {
@@ -79,18 +89,12 @@ namespace OfficeIMO.Word.Pdf {
                         paragraphLineSpacingPoints = styleParagraphLineSpacingPoints;
                     }
 
-                    paragraphSpacingAfter = ConvertNativeTwipsToPoints(spacing.After?.Value) ?? paragraphSpacingAfter;
+                    double effectiveFontSize = fontSize ?? nativeDefaults.FontSize;
+                    double effectiveLineHeight = styleParagraphLineSpacingPoints.HasValue && effectiveFontSize > 0D
+                        ? styleParagraphLineSpacingPoints.Value / effectiveFontSize
+                        : styleParagraphLineHeight ?? paragraphLineHeight ?? NativeWordTableSingleLineHeight;
+                    paragraphSpacingAfter = GetNativeSpacingAfterPoints(spacing, effectiveFontSize, effectiveLineHeight) ?? paragraphSpacingAfter;
                 }
-
-                W.StyleRunProperties? runProperties = style.GetFirstChild<W.StyleRunProperties>();
-                fontSize = GetNativeStyleFontSize(runProperties) ?? fontSize;
-                fontFamily = ResolveNativeRunFontsFamily(table.Document, runProperties?.GetFirstChild<W.RunFonts>()) ?? fontFamily;
-                bold = ReadNativeOnOff(runProperties?.GetFirstChild<W.Bold>()) ?? bold;
-                italic = ReadNativeOnOff(runProperties?.GetFirstChild<W.Italic>()) ?? italic;
-                underline = ReadNativeUnderline(runProperties?.GetFirstChild<W.Underline>()) ?? underline;
-                strike = ReadNativeOnOff(runProperties?.GetFirstChild<W.Strike>()) ?? ReadNativeOnOff(runProperties?.GetFirstChild<W.DoubleStrike>()) ?? strike;
-                colorHex = runProperties?.GetFirstChild<W.Color>()?.Val?.Value ?? colorHex;
-                highlight = runProperties?.GetFirstChild<W.Highlight>()?.Val?.Value ?? highlight;
             }
 
             PdfCore.PdfCellPadding? cellPadding = marginTop.HasValue || marginBottom.HasValue || marginLeft.HasValue || marginRight.HasValue

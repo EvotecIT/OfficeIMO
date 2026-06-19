@@ -151,6 +151,8 @@ namespace OfficeIMO.Word.Pdf {
                 numberingHangingIndent;
             double markerIndent = Math.Max(0D, textIndent - hangingIndent);
             double fontSize = paragraph.FontSize.HasValue && paragraph.FontSize.Value > 0D ? paragraph.FontSize.Value : styleDefaults.FontSize ?? nativeDefaults.FontSize;
+            double lineHeight = ResolveNativeParagraphLineHeight(paragraph, fontSize, nativeDefaults, styleDefaults);
+            W.SpacingBetweenLines? directSpacing = paragraph._paragraph?.ParagraphProperties?.GetFirstChild<W.SpacingBetweenLines>();
             double markerWidth = EstimateNativeListMarkerWidth(marker, fontSize);
             double markerGap = Math.Max(0D, textIndent - markerIndent - markerWidth);
 
@@ -168,16 +170,22 @@ namespace OfficeIMO.Word.Pdf {
                 style.FontSize = styleDefaults.FontSize.Value;
             }
 
-            style.LineHeight = ResolveNativeParagraphLineHeight(paragraph, fontSize, nativeDefaults, styleDefaults);
+            style.LineHeight = lineHeight;
 
             if (paragraph.LineSpacingBeforePoints.HasValue) {
                 style.SpacingBefore = paragraph.LineSpacingBeforePoints.Value;
+            } else if (GetNativeSpacingBeforePoints(directSpacing, fontSize, lineHeight) is { } directSpacingBefore) {
+                style.SpacingBefore = directSpacingBefore;
             } else if (styleDefaults.SpacingBefore.HasValue) {
                 style.SpacingBefore = styleDefaults.SpacingBefore.Value;
+            } else if (nativeDefaults.ParagraphSpacingBeforeDeclared) {
+                style.SpacingBefore = nativeDefaults.ParagraphSpacingBefore;
             }
 
             if (paragraph.LineSpacingAfterPoints.HasValue) {
                 style.SpacingAfter = paragraph.LineSpacingAfterPoints.Value;
+            } else if (GetNativeSpacingAfterPoints(directSpacing, fontSize, lineHeight) is { } directSpacingAfter) {
+                style.SpacingAfter = directSpacingAfter;
             } else if (styleDefaults.SpacingAfter.HasValue) {
                 style.SpacingAfter = styleDefaults.SpacingAfter.Value;
             } else {

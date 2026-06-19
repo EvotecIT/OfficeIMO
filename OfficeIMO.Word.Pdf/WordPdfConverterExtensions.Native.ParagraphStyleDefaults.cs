@@ -56,6 +56,16 @@ namespace OfficeIMO.Word.Pdf {
             bool? widowControl = null;
 
             foreach (W.Style style in styleChain) {
+                W.StyleRunProperties? runProperties = style.GetFirstChild<W.StyleRunProperties>();
+                fontSize = GetNativeStyleFontSize(runProperties) ?? fontSize;
+                fontFamily = ResolveNativeRunFontsFamily(paragraph._document, runProperties?.GetFirstChild<W.RunFonts>()) ?? fontFamily;
+                bold = ReadNativeOnOff(runProperties?.GetFirstChild<W.Bold>()) ?? bold;
+                italic = ReadNativeOnOff(runProperties?.GetFirstChild<W.Italic>()) ?? italic;
+                underline = ReadNativeUnderline(runProperties?.GetFirstChild<W.Underline>()) ?? underline;
+                strike = ReadNativeOnOff(runProperties?.GetFirstChild<W.Strike>()) ?? ReadNativeOnOff(runProperties?.GetFirstChild<W.DoubleStrike>()) ?? strike;
+                colorHex = runProperties?.GetFirstChild<W.Color>()?.Val?.Value ?? colorHex;
+                highlight = runProperties?.GetFirstChild<W.Highlight>()?.Val?.Value ?? highlight;
+
                 W.StyleParagraphProperties? paragraphProperties = style.GetFirstChild<W.StyleParagraphProperties>();
                 if (paragraphProperties != null) {
                     W.SpacingBetweenLines? spacing = paragraphProperties.GetFirstChild<W.SpacingBetweenLines>();
@@ -67,8 +77,12 @@ namespace OfficeIMO.Word.Pdf {
                             lineSpacingPoints = styleLineSpacingPoints;
                         }
 
-                        spacingBefore = ConvertNativeTwipsToPoints(spacing.Before?.Value) ?? spacingBefore;
-                        spacingAfter = ConvertNativeTwipsToPoints(spacing.After?.Value) ?? spacingAfter;
+                        double effectiveFontSize = fontSize ?? NativeDocumentDefaults.WordDefault.FontSize;
+                        double effectiveLineHeight = styleLineSpacingPoints.HasValue && effectiveFontSize > 0D
+                            ? styleLineSpacingPoints.Value / effectiveFontSize
+                            : styleLineHeight ?? lineHeight ?? NativeDocumentDefaults.WordDefault.ParagraphLineHeight;
+                        spacingBefore = GetNativeSpacingBeforePoints(spacing, effectiveFontSize, effectiveLineHeight) ?? spacingBefore;
+                        spacingAfter = GetNativeSpacingAfterPoints(spacing, effectiveFontSize, effectiveLineHeight) ?? spacingAfter;
                     }
 
                     W.Indentation? indentation = paragraphProperties.GetFirstChild<W.Indentation>();
@@ -91,16 +105,6 @@ namespace OfficeIMO.Word.Pdf {
                     keepWithNext = ReadNativeOnOff(paragraphProperties.GetFirstChild<W.KeepNext>()) ?? keepWithNext;
                     widowControl = ReadNativeOnOff(paragraphProperties.GetFirstChild<W.WidowControl>()) ?? widowControl;
                 }
-
-                W.StyleRunProperties? runProperties = style.GetFirstChild<W.StyleRunProperties>();
-                fontSize = GetNativeStyleFontSize(runProperties) ?? fontSize;
-                fontFamily = ResolveNativeRunFontsFamily(paragraph._document, runProperties?.GetFirstChild<W.RunFonts>()) ?? fontFamily;
-                bold = ReadNativeOnOff(runProperties?.GetFirstChild<W.Bold>()) ?? bold;
-                italic = ReadNativeOnOff(runProperties?.GetFirstChild<W.Italic>()) ?? italic;
-                underline = ReadNativeUnderline(runProperties?.GetFirstChild<W.Underline>()) ?? underline;
-                strike = ReadNativeOnOff(runProperties?.GetFirstChild<W.Strike>()) ?? ReadNativeOnOff(runProperties?.GetFirstChild<W.DoubleStrike>()) ?? strike;
-                colorHex = runProperties?.GetFirstChild<W.Color>()?.Val?.Value ?? colorHex;
-                highlight = runProperties?.GetFirstChild<W.Highlight>()?.Val?.Value ?? highlight;
             }
 
             return new NativeParagraphStyleDefaults(

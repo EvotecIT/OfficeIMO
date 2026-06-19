@@ -831,6 +831,83 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Maps_Paragraph_Style_Line_Unit_Spacing() {
+            using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeParagraphStyleLineUnitSpacing.docx"));
+            const string styleId = "LineUnitSpacingStyle";
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(new Style(
+                new StyleName { Val = "Line Unit Spacing Style" },
+                new BasedOn { Val = "Normal" },
+                new StyleRunProperties(new FontSize { Val = "24" }),
+                new StyleParagraphProperties(new SpacingBetweenLines {
+                    BeforeLines = 50,
+                    AfterLines = 150
+                }))
+            {
+                Type = StyleValues.Paragraph,
+                StyleId = styleId,
+                CustomStyle = true
+            });
+
+            WordParagraph paragraph = document.AddParagraph("Native style line unit spacing");
+            paragraph.SetStyleId(styleId);
+
+            MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeParagraphStyle", BindingFlags.NonPublic | BindingFlags.Static, binder: null, new[] { typeof(WordParagraph) }, modifiers: null)!;
+            PdfParagraphStyle style = Assert.IsType<PdfParagraphStyle>(method.Invoke(null, new object[] { paragraph }));
+
+            Assert.Equal(6.9D, style.SpacingBefore, 3);
+            Assert.Equal(20.7D, style.SpacingAfter!.Value, 3);
+        }
+
+        [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Renders_Paragraph_Style_Line_Unit_Spacing() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeRenderedParagraphLineUnitSpacing.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeRenderedParagraphLineUnitSpacing.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                const string styleId = "RenderedLineUnitSpacingStyle";
+                Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                styles.Append(new Style(
+                    new StyleName { Val = "Rendered Line Unit Spacing Style" },
+                    new BasedOn { Val = "Normal" },
+                    new StyleRunProperties(new FontSize { Val = "24" }),
+                    new StyleParagraphProperties(new SpacingBetweenLines {
+                        BeforeLines = 100,
+                        AfterLines = 150
+                    }))
+                {
+                    Type = StyleValues.Paragraph,
+                    StyleId = styleId,
+                    CustomStyle = true
+                });
+
+                WordParagraph before = document.AddParagraph("LineUnitBefore");
+                before.LineSpacingAfterPoints = 0;
+                WordParagraph styled = document.AddParagraph("LineUnitStyled");
+                styled.SetStyleId(styleId);
+                WordParagraph after = document.AddParagraph("LineUnitAfter");
+                after.LineSpacingAfterPoints = 0;
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false,
+                    PageSize = new OfficeIMO.Pdf.PageSize(320, 240),
+                    Margins = PageMargins.Uniform(36),
+                    FontFamily = "Helvetica"
+                });
+            }
+
+            using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+            var words = pdf.GetPage(1).GetWords().ToList();
+            double beforeY = Assert.Single(words, word => word.Text == "LineUnitBefore").BoundingBox.Bottom;
+            double styledY = Assert.Single(words, word => word.Text == "LineUnitStyled").BoundingBox.Bottom;
+            double afterY = Assert.Single(words, word => word.Text == "LineUnitAfter").BoundingBox.Bottom;
+
+            Assert.True(beforeY > styledY + 22D, $"Expected beforeLines spacing to push the styled paragraph down. Before y: {beforeY:0.##}; styled y: {styledY:0.##}.");
+            Assert.True(styledY > afterY + 30D, $"Expected afterLines spacing to push the following paragraph down. Styled y: {styledY:0.##}; after y: {afterY:0.##}.");
+        }
+
+        [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Lets_Derived_Paragraph_Style_Auto_Line_Spacing_Override_Exact() {
             using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeParagraphStyleAutoOverridesExactLineSpacing.docx"));
             const string baseStyleId = "BaseExactLineSpacingStyle";

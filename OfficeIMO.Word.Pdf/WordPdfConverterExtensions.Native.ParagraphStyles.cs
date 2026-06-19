@@ -17,14 +17,23 @@ namespace OfficeIMO.Word.Pdf {
         private static PdfCore.PdfParagraphStyle CreateNativeParagraphStyle(WordParagraph paragraph, NativeDocumentDefaults nativeDefaults) {
             NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);
             var style = new PdfCore.PdfParagraphStyle();
+            double fontSize = ResolveNativeParagraphFontSize(paragraph, nativeDefaults, styleDefaults);
+            double lineHeight = ResolveNativeParagraphLineHeight(paragraph, fontSize, nativeDefaults, styleDefaults);
+            W.SpacingBetweenLines? directSpacing = paragraph._paragraph?.ParagraphProperties?.GetFirstChild<W.SpacingBetweenLines>();
             if (paragraph.LineSpacingBeforePoints.HasValue) {
                 style.SpacingBefore = paragraph.LineSpacingBeforePoints.Value;
+            } else if (GetNativeSpacingBeforePoints(directSpacing, fontSize, lineHeight) is { } directSpacingBefore) {
+                style.SpacingBefore = directSpacingBefore;
             } else if (styleDefaults.SpacingBefore.HasValue) {
                 style.SpacingBefore = styleDefaults.SpacingBefore.Value;
+            } else if (nativeDefaults.ParagraphSpacingBeforeDeclared) {
+                style.SpacingBefore = nativeDefaults.ParagraphSpacingBefore;
             }
 
             if (paragraph.LineSpacingAfterPoints.HasValue) {
                 style.SpacingAfter = paragraph.LineSpacingAfterPoints.Value;
+            } else if (GetNativeSpacingAfterPoints(directSpacing, fontSize, lineHeight) is { } directSpacingAfter) {
+                style.SpacingAfter = directSpacingAfter;
             } else if (styleDefaults.SpacingAfter.HasValue) {
                 style.SpacingAfter = styleDefaults.SpacingAfter.Value;
             }
@@ -58,10 +67,11 @@ namespace OfficeIMO.Word.Pdf {
                 style.LeftIndent = -style.FirstLineIndent;
             }
 
-            double fontSize = ResolveNativeParagraphFontSize(paragraph, nativeDefaults, styleDefaults);
-            style.LineHeight = ResolveNativeParagraphLineHeight(paragraph, fontSize, nativeDefaults, styleDefaults);
+            style.LineHeight = lineHeight;
 
-            if (!paragraph.LineSpacingAfterPoints.HasValue && !styleDefaults.SpacingAfter.HasValue) {
+            if (!paragraph.LineSpacingAfterPoints.HasValue &&
+                GetNativeSpacingAfterPoints(directSpacing, fontSize, lineHeight) == null &&
+                !styleDefaults.SpacingAfter.HasValue) {
                 style.SpacingAfter = nativeDefaults.ParagraphSpacingAfter;
             }
 
