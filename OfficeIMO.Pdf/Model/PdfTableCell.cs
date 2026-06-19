@@ -261,7 +261,7 @@ public sealed class PdfTableCell {
 }
 
 internal sealed class PdfTableCellParagraph {
-    public PdfTableCellParagraph(System.Collections.Generic.IEnumerable<TextRun> runs, double spacingAfter = 0D, PdfAlign? align = null, double spacingBefore = 0D, double leftIndent = 0D, double rightIndent = 0D, double firstLineIndent = 0D, double? defaultTabStopWidth = null, System.Collections.Generic.IEnumerable<PdfTabStop>? tabStops = null) {
+    public PdfTableCellParagraph(System.Collections.Generic.IEnumerable<TextRun> runs, double spacingAfter = 0D, PdfAlign? align = null, double spacingBefore = 0D, double leftIndent = 0D, double rightIndent = 0D, double firstLineIndent = 0D, double? lineHeight = null, double? defaultTabStopWidth = null, System.Collections.Generic.IEnumerable<PdfTabStop>? tabStops = null) {
         Guard.NotNull(runs, nameof(runs));
         if (spacingBefore < 0 || double.IsNaN(spacingBefore) || double.IsInfinity(spacingBefore)) {
             throw new System.ArgumentOutOfRangeException(nameof(spacingBefore), "Table cell paragraph spacing must be a non-negative finite value.");
@@ -281,6 +281,10 @@ internal sealed class PdfTableCellParagraph {
 
         if (double.IsNaN(firstLineIndent) || double.IsInfinity(firstLineIndent)) {
             throw new System.ArgumentOutOfRangeException(nameof(firstLineIndent), "Table cell paragraph first line indent must be a finite value.");
+        }
+
+        if (lineHeight.HasValue && (lineHeight.Value <= 0 || double.IsNaN(lineHeight.Value) || double.IsInfinity(lineHeight.Value))) {
+            throw new System.ArgumentOutOfRangeException(nameof(lineHeight), "Table cell paragraph line height must be a positive finite value.");
         }
 
         if (defaultTabStopWidth.HasValue && (defaultTabStopWidth.Value <= 0 || double.IsNaN(defaultTabStopWidth.Value) || double.IsInfinity(defaultTabStopWidth.Value))) {
@@ -314,6 +318,7 @@ internal sealed class PdfTableCellParagraph {
         LeftIndent = leftIndent;
         RightIndent = rightIndent;
         FirstLineIndent = firstLineIndent;
+        LineHeight = lineHeight;
         DefaultTabStopWidth = defaultTabStopWidth;
         TabStops = tabStopSnapshot.AsReadOnly();
     }
@@ -332,9 +337,11 @@ internal sealed class PdfTableCellParagraph {
 
     public double FirstLineIndent { get; }
 
+    public double? LineHeight { get; }
+
     public double? DefaultTabStopWidth { get; }
 
     public System.Collections.Generic.IReadOnlyList<PdfTabStop> TabStops { get; }
 
-    internal PdfTableCellParagraph Clone() => new PdfTableCellParagraph(Runs, SpacingAfter, Align, SpacingBefore, LeftIndent, RightIndent, FirstLineIndent, DefaultTabStopWidth, TabStops);
+    internal PdfTableCellParagraph Clone() => new PdfTableCellParagraph(Runs, SpacingAfter, Align, SpacingBefore, LeftIndent, RightIndent, FirstLineIndent, LineHeight, DefaultTabStopWidth, TabStops);
 }

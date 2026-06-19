@@ -319,6 +319,7 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 (double Left, double Right, double FirstLine) indentation = ResolveNativeTableCellParagraphIndentation(paragraph);
+                double? lineHeight = ResolveNativeTableCellParagraphLineHeight(paragraph, nativeDefaults);
                 IReadOnlyList<PdfCore.PdfTabStop> tabStops = ResolveNativeTableCellParagraphTabStops(paragraph, indentation.Left);
                 paragraphs.Add(new PdfCore.PdfTableCellParagraph(
                     paragraphRuns,
@@ -328,6 +329,7 @@ namespace OfficeIMO.Word.Pdf {
                     indentation.Left,
                     indentation.Right,
                     indentation.FirstLine,
+                    lineHeight,
                     nativeDefaults.DefaultTabStopWidth,
                     tabStops));
                 pendingSpacingAfter = spacingAfter;
@@ -368,6 +370,24 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             return (leftIndent, rightIndent, firstLineIndent);
+        }
+
+        private static double? ResolveNativeTableCellParagraphLineHeight(WordParagraph paragraph, NativeDocumentDefaults nativeDefaults) {
+            NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);
+            double fontSize = ResolveNativeParagraphFontSize(paragraph, nativeDefaults, styleDefaults);
+            if (paragraph.LineSpacing.HasValue && paragraph.LineSpacingRule == W.LineSpacingRuleValues.Auto) {
+                return Math.Max(0.01D, NativeWordAutoLineSpacingHeight * (paragraph.LineSpacing.Value / 240D));
+            }
+
+            if (paragraph.LineSpacingPoints.HasValue && fontSize > 0D) {
+                return ResolveNativeLineSpacingHeight(paragraph.LineSpacingPoints.Value, paragraph.LineSpacingRule, fontSize, nativeDefaults.ParagraphLineHeight);
+            }
+
+            if (styleDefaults.LineSpacingPoints.HasValue && fontSize > 0D) {
+                return ResolveNativeLineSpacingHeight(styleDefaults.LineSpacingPoints.Value, styleDefaults.LineSpacingRule, fontSize, nativeDefaults.ParagraphLineHeight);
+            }
+
+            return styleDefaults.LineHeight;
         }
 
         private static IReadOnlyList<PdfCore.PdfTabStop> ResolveNativeTableCellParagraphTabStops(WordParagraph paragraph, double leftIndent) {

@@ -132,6 +132,15 @@ public partial class Word {
         Assert.True(atLeastGap > exactGap + 14D, $"Expected Word table-style atLeast line spacing to preserve natural table line advance instead of exact compressed leading. Exact gap: {exactGap:0.##}; atLeast gap: {atLeastGap:0.##}.");
     }
 
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Uses_Direct_Line_Spacing_In_Table_Cell_Paragraphs() {
+        double compactGap = RenderNativeTableCellDirectLineSpacingGap("PdfNativeTableCellCompactDirectLineSpacing", lineSpacingPoints: 12D);
+        double tallGap = RenderNativeTableCellDirectLineSpacingGap("PdfNativeTableCellTallDirectLineSpacing", lineSpacingPoints: 30D);
+
+        Assert.True(tallGap > compactGap + 12D,
+            $"Expected direct Word table-cell paragraph line spacing to increase wrapped native PDF line pitch. Compact gap: {compactGap:0.##}; tall gap: {tallGap:0.##}.");
+    }
+
     private double RenderNativeTableRowHeightRuleGap(string fileNamePrefix, HeightRuleValues heightRule, string followingRowText) {
         string docPath = Path.Combine(_directoryWithFiles, fileNamePrefix + ".docx");
         string pdfPath = Path.Combine(_directoryWithFiles, fileNamePrefix + ".pdf");
@@ -354,6 +363,43 @@ public partial class Word {
             paragraph.Text = firstMarker;
             paragraph.AddBreak();
             paragraph.AddText(secondMarker);
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = new PdfCore.PageSize(360, 260),
+                Margins = PdfCore.PageMargins.Uniform(36),
+                FontFamily = "Helvetica"
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        var words = pdf.GetPage(1).GetWords().ToList();
+        double firstY = Assert.Single(words, word => word.Text == firstMarker).BoundingBox.Bottom;
+        double secondY = Assert.Single(words, word => word.Text == secondMarker).BoundingBox.Bottom;
+        return firstY - secondY;
+    }
+
+    private double RenderNativeTableCellDirectLineSpacingGap(string fileNamePrefix, double lineSpacingPoints) {
+        const string firstMarker = "Alpha";
+        const string secondMarker = "Beta";
+        string docPath = Path.Combine(_directoryWithFiles, fileNamePrefix + ".docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, fileNamePrefix + ".pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            WordTable table = document.AddTable(1, 1);
+            table.Width = 900;
+            table.WidthType = TableWidthUnitValues.Dxa;
+            table.LayoutType = TableLayoutValues.Fixed;
+            WordTableCell cell = table.Rows[0].Cells[0];
+            cell.Width = 900;
+            cell.WidthType = TableWidthUnitValues.Dxa;
+
+            WordParagraph paragraph = cell.Paragraphs[0];
+            paragraph.Text = firstMarker + " " + secondMarker;
+            paragraph.LineSpacingAfterPoints = 0D;
+            paragraph.LineSpacingPoints = lineSpacingPoints;
+            paragraph.LineSpacingRule = LineSpacingRuleValues.Exact;
 
             document.Save();
             document.SaveAsPdf(pdfPath, new PdfSaveOptions {

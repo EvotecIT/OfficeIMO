@@ -535,13 +535,14 @@ internal static partial class PdfWriter {
         for (int paragraphIndex = 0; paragraphIndex < paragraphs.Count; paragraphIndex++) {
             PdfTableCellParagraph paragraph = paragraphs[paragraphIndex];
             PdfParagraphStyle paragraphStyle = CreateTableCellParagraphStyle(paragraph);
+            double paragraphLeading = paragraphStyle.LineHeight.HasValue ? GetParagraphLeading(paragraphStyle, fontSize) : leading;
             var paragraphFrame = GetParagraphTextFrame(paragraphStyle, 0D, innerWidth);
             var wrap = WrapRichRunsCoreWithFirstLineOrigin(
                 paragraph.Runs,
                 paragraphFrame.Width,
                 fontSize,
                 baseFont,
-                leading,
+                paragraphLeading,
                 paragraphFrame.FirstLineWidth,
                 paragraphFrame.FirstLineX - paragraphFrame.X,
                 GetParagraphTabStopWidth(paragraphStyle),
@@ -552,7 +553,7 @@ internal static partial class PdfWriter {
             }
 
             while (wrap.LineHeights.Count < wrap.Lines.Count) {
-                wrap.LineHeights.Add(leading);
+                wrap.LineHeights.Add(paragraphLeading);
             }
 
             int firstNewLineIndex = lines.Count;
@@ -592,6 +593,7 @@ internal static partial class PdfWriter {
 
     private static PdfParagraphStyle CreateTableCellParagraphStyle(PdfTableCellParagraph paragraph) {
         var style = new PdfParagraphStyle {
+            LineHeight = paragraph.LineHeight,
             LeftIndent = paragraph.LeftIndent,
             RightIndent = paragraph.RightIndent,
             FirstLineIndent = paragraph.FirstLineIndent,
