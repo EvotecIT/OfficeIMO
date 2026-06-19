@@ -127,75 +127,157 @@ namespace OfficeIMO.Word.Pdf {
             IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries = BuildNativeTableOfContentsEntries(document, options, headingDestinations);
             NativeDocumentDefaults nativeDefaults = GetNativeDocumentDefaults(document);
             var footnoteNumbersById = new Dictionary<long, int>();
-            foreach (WordSection section in document.Sections) {
-                IReadOnlyList<WordElement> elements = CollapseNativeParagraphElements(section.Elements);
-                List<PdfFootnote> footnotes = CollectNativeFootnotes(elements, footnoteNumbersById);
-                PdfCore.PageSize sectionPageSize = GetNativePageSize(section, options);
-                (double Header, double Footer) headerFooterMarginExpansion = GetNativeHeaderFooterMarginExpansion(section, options);
-                PdfCore.PageMargins sectionMargins = GetNativeMargins(section, options, headerFooterMarginExpansion);
+            IReadOnlyList<WordSection> sections = document.Sections;
+            for (int sectionIndex = 0; sectionIndex < sections.Count;) {
+                int sectionGroupEnd = GetNativePdfSectionGroupEnd(sections, sectionIndex, options);
+                WordSection firstSection = sections[sectionIndex];
+                PdfCore.PageSize sectionPageSize = GetNativePageSize(firstSection, options);
+                (double Header, double Footer) headerFooterMarginExpansion = GetNativeHeaderFooterMarginExpansion(firstSection, options);
+                PdfCore.PageMargins sectionMargins = GetNativeMargins(firstSection, options, headerFooterMarginExpansion);
                 double sectionContentWidth = Math.Max(72D, sectionPageSize.Width - sectionMargins.Left - sectionMargins.Right);
                 pdf.Section(page => {
                     page.Size(sectionPageSize);
                     page.Margin(sectionMargins);
-                    ConfigureNativePageNumbering(page, section);
-                    ConfigureNativeHeaderFooter(page, section, options, headerFooterMarginExpansion.Header, headerFooterMarginExpansion.Footer);
+                    ConfigureNativePageNumbering(page, firstSection);
+                    ConfigureNativeHeaderFooter(page, firstSection, options, headerFooterMarginExpansion.Header, headerFooterMarginExpansion.Footer);
                     INativePdfFlow flow = new NativeSpacingCollapseFlow(new NativePdfDocumentFlow(pdf));
 
-                    if (TryRenderNativeSectionColumns(
-                        page,
-                        section,
-                        elements,
-                        listMarkers,
-                        listIndices,
-                        footnoteNumbersById,
-                        options,
-                        tableOfContentsEntries,
-                        headingDestinations,
-                        nativeDefaults,
-                        nativeFontMap)) {
-                        RenderNativeFootnotes(flow, footnotes);
-                        return;
-                    }
+                    for (int currentSectionIndex = sectionIndex; currentSectionIndex < sectionGroupEnd; currentSectionIndex++) {
+                        WordSection section = sections[currentSectionIndex];
+                        IReadOnlyList<WordElement> elements = CollapseNativeParagraphElements(section.Elements);
+                        List<PdfFootnote> footnotes = CollectNativeFootnotes(elements, footnoteNumbersById);
 
-                    for (int i = 0; i < elements.Count; i++) {
-                        WordElement element = elements[i];
-                        if (element is WordFootNote) {
-                            continue;
-                        }
-
-                        if (TryRenderNativeList(
-                            flow,
+                        if (TryRenderNativeSectionColumns(
+                            page,
+                            section,
                             elements,
-                            ref i,
                             listMarkers,
                             listIndices,
-                            footnoteNumbersById,
-                            nativeDefaults)) {
-                            continue;
-                        }
-
-                        RenderNativeElement(
-                            flow,
-                            element,
-                            section,
-                            paragraph => listMarkers.TryGetValue(paragraph, out var marker) ? marker : null,
-                            GetNativeFootnoteNumbersForElement(elements, i, footnoteNumbersById),
                             footnoteNumbersById,
                             options,
                             tableOfContentsEntries,
                             headingDestinations,
-                            sectionContentWidth,
                             nativeDefaults,
-                            nativeFontMap,
-                            renderSpacingOnlyEmptyParagraphLineBox: IsPreviousNativeElementTable(elements, i),
-                            nextElement: GetNextNativeRenderableElement(elements, i));
-                    }
+                            nativeFontMap)) {
+                            RenderNativeFootnotes(flow, footnotes);
+                            continue;
+                        }
 
-                    RenderNativeFootnotes(flow, footnotes);
+                        for (int i = 0; i < elements.Count; i++) {
+                            WordElement element = elements[i];
+                            if (element is WordFootNote) {
+                                continue;
+                            }
+
+                            if (TryRenderNativeList(
+                                flow,
+                                elements,
+                                ref i,
+                                listMarkers,
+                                listIndices,
+                                footnoteNumbersById,
+                                nativeDefaults)) {
+                                continue;
+                            }
+
+                            RenderNativeElement(
+                                flow,
+                                element,
+                                section,
+                                paragraph => listMarkers.TryGetValue(paragraph, out var marker) ? marker : null,
+                                GetNativeFootnoteNumbersForElement(elements, i, footnoteNumbersById),
+                                footnoteNumbersById,
+                                options,
+                                tableOfContentsEntries,
+                                headingDestinations,
+                                sectionContentWidth,
+                                nativeDefaults,
+                                nativeFontMap,
+                                renderSpacingOnlyEmptyParagraphLineBox: IsPreviousNativeElementTable(elements, i),
+                                nextElement: GetNextNativeRenderableElement(elements, i));
+                        }
+
+                        RenderNativeFootnotes(flow, footnotes);
+                    }
                 });
+
+                sectionIndex = sectionGroupEnd;
             }
 
             return pdf;
+        }
+
+        private static int GetNativePdfSectionGroupEnd(IReadOnlyList<WordSection> sections, int startIndex, PdfSaveOptions? options) {
+            int endIndex = startIndex + 1;
+            while (endIndex < sections.Count && CanMergeNativeContinuousSection(sections[endIndex - 1], sections[endIndex], options)) {
+                endIndex++;
+            }
+
+            return endIndex;
+        }
+
+        private static bool CanMergeNativeContinuousSection(WordSection previous, WordSection current, PdfSaveOptions? options) {
+            if (GetNativeSectionBreakAfter(previous) != W.SectionMarkValues.Continuous) {
+                return false;
+            }
+
+            if (HasNativeSectionColumns(previous) || HasNativeSectionColumns(current)) {
+                return false;
+            }
+
+            if (!NativePageSizesEquivalent(GetNativePageSize(previous, options), GetNativePageSize(current, options))) {
+                return false;
+            }
+
+            (double Header, double Footer) previousExpansion = GetNativeHeaderFooterMarginExpansion(previous, options);
+            (double Header, double Footer) currentExpansion = GetNativeHeaderFooterMarginExpansion(current, options);
+            if (!NativeMarginsEquivalent(GetNativeMargins(previous, options, previousExpansion), GetNativeMargins(current, options, currentExpansion))) {
+                return false;
+            }
+
+            return NativeSectionHeaderFooterReferencesEquivalent(previous, current) &&
+                NativeSectionPageNumberingEquivalent(previous, current);
+        }
+
+        private static W.SectionMarkValues? GetNativeSectionBreakAfter(WordSection section) =>
+            section._sectionProperties?.GetFirstChild<W.SectionType>()?.Val?.Value;
+
+        private static bool HasNativeSectionColumns(WordSection section) =>
+            (section.ColumnCount ?? 1) > 1 || section.HasColumnSeparator;
+
+        private static bool NativePageSizesEquivalent(PdfCore.PageSize first, PdfCore.PageSize second) =>
+            NativeDoubleEquals(first.Width, second.Width) &&
+            NativeDoubleEquals(first.Height, second.Height);
+
+        private static bool NativeMarginsEquivalent(PdfCore.PageMargins first, PdfCore.PageMargins second) =>
+            NativeDoubleEquals(first.Left, second.Left) &&
+            NativeDoubleEquals(first.Top, second.Top) &&
+            NativeDoubleEquals(first.Right, second.Right) &&
+            NativeDoubleEquals(first.Bottom, second.Bottom);
+
+        private static bool NativeDoubleEquals(double first, double second) =>
+            Math.Abs(first - second) < 0.001D;
+
+        private static bool NativeSectionHeaderFooterReferencesEquivalent(WordSection first, WordSection second) =>
+            NativeOpenXmlChildrenEquivalent<W.HeaderReference>(first, second) &&
+            NativeOpenXmlChildrenEquivalent<W.FooterReference>(first, second) &&
+            NativeOpenXmlChildEquivalent<W.TitlePage>(first, second);
+
+        private static bool NativeSectionPageNumberingEquivalent(WordSection first, WordSection second) =>
+            NativeOpenXmlChildEquivalent<W.PageNumberType>(first, second);
+
+        private static bool NativeOpenXmlChildEquivalent<T>(WordSection first, WordSection second)
+            where T : DocumentFormat.OpenXml.OpenXmlElement =>
+            string.Equals(
+                first._sectionProperties?.GetFirstChild<T>()?.OuterXml,
+                second._sectionProperties?.GetFirstChild<T>()?.OuterXml,
+                StringComparison.Ordinal);
+
+        private static bool NativeOpenXmlChildrenEquivalent<T>(WordSection first, WordSection second)
+            where T : DocumentFormat.OpenXml.OpenXmlElement {
+            string[] firstValues = first._sectionProperties?.Elements<T>().Select(element => element.OuterXml).ToArray() ?? Array.Empty<string>();
+            string[] secondValues = second._sectionProperties?.Elements<T>().Select(element => element.OuterXml).ToArray() ?? Array.Empty<string>();
+            return firstValues.SequenceEqual(secondValues, StringComparer.Ordinal);
         }
 
         private static IReadOnlyList<WordElement> CollapseNativeParagraphElements(IEnumerable<WordElement> elements) {

@@ -43,6 +43,54 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Keeps_Compatible_Continuous_Sections_On_Same_Page() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeContinuousSectionSamePage.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeContinuousSectionSamePage.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.AddParagraph("ContinuousSectionBefore");
+            document.AddSection(SectionMarkValues.Continuous);
+            document.AddParagraph("ContinuousSectionAfter");
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = new PdfCore.PageSize(400, 300),
+                Margins = PdfCore.PageMargins.Uniform(50)
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        Assert.Equal(1, pdf.NumberOfPages);
+        Assert.Contains("ContinuousSectionBefore", pdf.GetPage(1).Text);
+        Assert.Contains("ContinuousSectionAfter", pdf.GetPage(1).Text);
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Keeps_NextPage_Sections_On_New_Page() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeNextPageSectionBreak.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeNextPageSectionBreak.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.AddParagraph("NextPageSectionBefore");
+            document.AddSection(SectionMarkValues.NextPage);
+            document.AddParagraph("NextPageSectionAfter");
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = new PdfCore.PageSize(400, 300),
+                Margins = PdfCore.PageMargins.Uniform(50)
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.Contains("NextPageSectionBefore", pdf.GetPage(1).Text);
+        Assert.Contains("NextPageSectionAfter", pdf.GetPage(2).Text);
+    }
+
+    [Fact]
     public void Test_WordDocument_SaveAsPdf_HeaderFooterVariants() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfHeaderVariants.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfHeaderVariants.pdf");
