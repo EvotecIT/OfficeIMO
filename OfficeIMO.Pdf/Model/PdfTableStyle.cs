@@ -441,6 +441,8 @@ public class PdfTableStyle {
     }
     /// <summary>Optional text rendered above the table grid as part of the table flow.</summary>
     public string? Caption { get; set; }
+    /// <summary>Optional alternate text attached to the tagged PDF table structure. This is not rendered visibly.</summary>
+    public string? AlternativeText { get; set; }
     /// <summary>Caption alignment inside the rendered table width.</summary>
     public PdfAlign CaptionAlign {
         get => _captionAlign;
@@ -614,6 +616,7 @@ public class PdfTableStyle {
             SpacingBefore = SpacingBefore,
             PageContinuationSpacingBefore = PageContinuationSpacingBefore,
             Caption = Caption,
+            AlternativeText = AlternativeText,
             CaptionAlign = CaptionAlign,
             CaptionColor = CaptionColor,
             CaptionFontSize = CaptionFontSize,

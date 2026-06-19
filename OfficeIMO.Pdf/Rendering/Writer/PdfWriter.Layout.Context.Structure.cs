@@ -2,7 +2,7 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
-        private int? RegisterStructureContainer(string structureType, int? parentElementIndex = null, string tableHeaderScope = "", int tableColumnSpan = 1, int tableRowSpan = 1) {
+        private int? RegisterStructureContainer(string structureType, int? parentElementIndex = null, string tableHeaderScope = "", int tableColumnSpan = 1, int tableRowSpan = 1, string? alternativeText = null) {
             if (!emitGeneratedStructure || currentPage == null) {
                 return null;
             }
@@ -13,12 +13,13 @@ internal static partial class PdfWriter {
                 ParentElementIndex = parentElementIndex,
                 TableHeaderScope = tableHeaderScope,
                 TableColumnSpan = tableColumnSpan,
-                TableRowSpan = tableRowSpan
+                TableRowSpan = tableRowSpan,
+                AlternativeText = alternativeText ?? string.Empty
             });
             return elementIndex;
         }
 
-        private PageStructElement? RegisterStructureContainer(string structureType, PageStructElement? parentElement, string tableHeaderScope = "", int tableColumnSpan = 1, int tableRowSpan = 1) {
+        private PageStructElement? RegisterStructureContainer(string structureType, PageStructElement? parentElement, string tableHeaderScope = "", int tableColumnSpan = 1, int tableRowSpan = 1, string? alternativeText = null) {
             if (!emitGeneratedStructure || currentPage == null) {
                 return null;
             }
@@ -28,7 +29,8 @@ internal static partial class PdfWriter {
                 ParentElement = parentElement,
                 TableHeaderScope = tableHeaderScope,
                 TableColumnSpan = tableColumnSpan,
-                TableRowSpan = tableRowSpan
+                TableRowSpan = tableRowSpan,
+                AlternativeText = alternativeText ?? string.Empty
             };
             currentPage.StructElements.Add(element);
             return element;

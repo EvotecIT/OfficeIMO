@@ -227,7 +227,7 @@ internal static partial class PdfWriter {
 
                 if (!ReferenceEquals(tableStructurePage, currentPage)) {
                     tableStructurePage = currentPage;
-                    tableStructureElementIndex = RegisterStructureContainer("Table");
+                    tableStructureElementIndex = RegisterStructureContainer("Table", alternativeText: style.AlternativeText);
                 }
 
                 return tableStructureElementIndex;

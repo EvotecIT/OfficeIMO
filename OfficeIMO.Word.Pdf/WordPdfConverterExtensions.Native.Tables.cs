@@ -302,6 +302,7 @@ namespace OfficeIMO.Word.Pdf {
                 style.BorderColor = PdfCore.PdfColor.LightGray;
             }
 
+            ApplyNativeTableAccessibilityText(table, style);
             ApplyNativeTableBorders(table, style, tableStyleDefaults);
             ApplyNativeTableDefaultCellMargins(
                 table,
@@ -316,6 +317,13 @@ namespace OfficeIMO.Word.Pdf {
             ApplyNativeTableLayoutOptions(table, style, contentWidth, tableStyleDefaults);
             ApplyNativeTableRowOptions(table, style);
             return style;
+        }
+
+        private static void ApplyNativeTableAccessibilityText(WordTable table, PdfCore.PdfTableStyle style) {
+            string? alternativeText = FirstNonWhiteSpace(table.Description, table.Title);
+            if (!string.IsNullOrWhiteSpace(alternativeText)) {
+                style.AlternativeText = alternativeText;
+            }
         }
 
         private static double? ResolveNativeTableStyleParagraphLineHeight(NativeTableStyleDefaults tableStyleDefaults, double fontSize) {

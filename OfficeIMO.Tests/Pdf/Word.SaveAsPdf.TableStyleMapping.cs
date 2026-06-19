@@ -45,6 +45,34 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Maps_Table_Description_To_Tagged_Pdf_Alt_Text() {
+        using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeTableAltText.docx"));
+
+        WordTable table = document.AddTable(2, 2);
+        table.Title = "Status table";
+        table.Description = "Operational status summary";
+        table.Rows[0].Cells[0].Paragraphs[0].Text = "Name";
+        table.Rows[0].Cells[1].Paragraphs[0].Text = "State";
+        table.Rows[1].Cells[0].Paragraphs[0].Text = "Alpha";
+        table.Rows[1].Cells[1].Paragraphs[0].Text = "Ready";
+
+        PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table);
+
+        Assert.Equal("Operational status summary", style.AlternativeText);
+
+        byte[] bytes = document.SaveAsPdf(new PdfSaveOptions {
+            PdfOptions = new PdfCore.PdfOptions {
+                TaggedStructureMode = PdfCore.PdfTaggedStructureMode.CatalogMarkers
+            }
+        });
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(bytes);
+        PdfCore.PdfTaggedContentInfo tagged = Assert.IsType<PdfCore.PdfTaggedContentInfo>(info.TaggedContent);
+        PdfCore.PdfStructureElementInfo tableElement = Assert.Single(tagged.StructureElements, element => element.StructureType == "Table");
+
+        Assert.Equal("Operational status summary", tableElement.AlternateText);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Treats_Auto_Width_Table_With_Omitted_Layout_As_Autofit() {
         using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeAutoWidthOmittedLayout.docx"));
 
