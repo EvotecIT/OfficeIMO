@@ -328,6 +328,34 @@ namespace OfficeIMO.Tests {
             Assert.True(nestedLine[0].StartBaseLine.X > alphaLine[0].StartBaseLine.X + 30D, "Expected nested Word list marker to render with deeper indentation.");
         }
 
+        [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Renders_Word_Alphabetic_List_Markers_After_Z() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeAlphabeticListMarkersAfterZ.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeAlphabeticListMarkersAfterZ.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                WordList lowerList = document.AddCustomList();
+                lowerList.Numbering.AddLevel(new WordListLevel(WordListLevelKind.LowerLetterDot).SetStartNumberingValue(27));
+                lowerList.AddItem("Lower alphabetic wrap item");
+
+                WordList upperList = document.AddCustomList();
+                upperList.Numbering.AddLevel(new WordListLevel(WordListLevelKind.UpperLetterDot).SetStartNumberingValue(28));
+                upperList.AddItem("Upper alphabetic wrap item");
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false
+                });
+            }
+
+            using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+            string text = pdf.GetPage(1).Text;
+            Assert.Contains("aa.Lower alphabetic wrap item", text, StringComparison.Ordinal);
+            Assert.Contains("AB.Upper alphabetic wrap item", text, StringComparison.Ordinal);
+            Assert.DoesNotContain("{.Lower alphabetic wrap item", text, StringComparison.Ordinal);
+            Assert.DoesNotContain("\\.Upper alphabetic wrap item", text, StringComparison.Ordinal);
+        }
+
         private double RenderNativeListStyleSpacingGap(string fileNamePrefix, string spacingAfterTwips, bool contextualSpacing) {
             const string firstMarker = "FirstListGapMarker";
             const string secondMarker = "SecondListGapMarker";

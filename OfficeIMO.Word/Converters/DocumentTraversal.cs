@@ -463,12 +463,28 @@ namespace OfficeIMO.Word {
                 return ToRoman(number);
             }
             if (format == NumberFormatValues.LowerLetter) {
-                return ((char)("a"[0] + number - 1)).ToString();
+                return ToAlphabeticSequence(number, uppercase: false);
             }
             if (format == NumberFormatValues.UpperLetter) {
-                return ((char)("A"[0] + number - 1)).ToString();
+                return ToAlphabeticSequence(number, uppercase: true);
             }
             return number.ToString();
+        }
+
+        private static string ToAlphabeticSequence(int number, bool uppercase) {
+            if (number <= 0) {
+                return number.ToString();
+            }
+
+            char baseCharacter = uppercase ? 'A' : 'a';
+            StringBuilder sb = new();
+            while (number > 0) {
+                number--;
+                sb.Insert(0, (char)(baseCharacter + (number % 26)));
+                number /= 26;
+            }
+
+            return sb.ToString();
         }
 
         private static string ToRoman(int number) {
