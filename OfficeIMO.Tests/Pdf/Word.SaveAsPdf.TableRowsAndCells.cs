@@ -983,6 +983,13 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Uses_Character_Style_Font_Size_For_Table_Cell_Line_Unit_Spacing() {
+        double gap = RenderNativeTableCellCharacterStyleLineUnitSpacingGap();
+
+        Assert.InRange(gap, 65D, 90D);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Honors_Table_Cell_Paragraph_Contextual_Spacing() {
         double spacedGap = RenderNativeTableCellContextualParagraphSpacingGap("PdfNativeTableCellContextualOff", contextualSpacing: false);
         double contextualGap = RenderNativeTableCellContextualParagraphSpacingGap("PdfNativeTableCellContextualOn", contextualSpacing: true);
@@ -1102,6 +1109,55 @@ public partial class Word {
                 IncludePageNumbers = false,
                 PageSize = new PdfCore.PageSize(360, 260),
                 Margins = PdfCore.PageMargins.Uniform(40),
+                FontFamily = "Helvetica"
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        var words = pdf.GetPage(1).GetWords().ToList();
+        double firstY = Assert.Single(words, word => word.Text == firstMarker).BoundingBox.Bottom;
+        double secondY = Assert.Single(words, word => word.Text == secondMarker).BoundingBox.Bottom;
+        return firstY - secondY;
+    }
+
+    private double RenderNativeTableCellCharacterStyleLineUnitSpacingGap() {
+        const string firstMarker = "Alpha";
+        const string secondMarker = "Beta";
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellCharacterStyleLineUnitSpacing.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellCharacterStyleLineUnitSpacing.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            const string styleId = "NativeTableCellLineUnitCharacterStyle";
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(new Style(
+                new StyleName { Val = "Native Table Cell Line Unit Character Style" },
+                new StyleRunProperties(new FontSize { Val = "64" }))
+            {
+                Type = StyleValues.Character,
+                StyleId = styleId,
+                CustomStyle = true
+            });
+
+            WordTable table = document.AddTable(1, 1);
+            table._tableProperties!.TableStyle?.Remove();
+            table.Width = 3200;
+            table.WidthType = TableWidthUnitValues.Dxa;
+            WordTableCell cell = table.Rows[0].Cells[0];
+            cell.Width = 3200;
+            cell.WidthType = TableWidthUnitValues.Dxa;
+            cell.Paragraphs[0].AddText(firstMarker).SetCharacterStyleId(styleId);
+            cell.Paragraphs[0].LineSpacingAfterPoints = 0D;
+            WordParagraph second = cell.AddParagraph(string.Empty);
+            second._paragraph.ParagraphProperties ??= new ParagraphProperties();
+            second._paragraph.ParagraphProperties.Append(new SpacingBetweenLines { BeforeLines = 100 });
+            second.AddText(secondMarker).SetCharacterStyleId(styleId);
+            second.LineSpacingAfterPoints = 0D;
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = new PdfCore.PageSize(360, 260),
+                Margins = PdfCore.PageMargins.Uniform(36),
                 FontFamily = "Helvetica"
             });
         }
