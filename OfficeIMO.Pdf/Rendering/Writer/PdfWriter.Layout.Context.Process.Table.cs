@@ -159,7 +159,7 @@ internal static partial class PdfWriter {
                     }
                 }
                 rowLineCounts[ri] = maxLines;
-                rowHeights[ri] = Math.Max(maxRequiredHeight, GetTableRowMinHeight(style, ri));
+                rowHeights[ri] = ResolveTableRowHeight(style, ri, maxRequiredHeight);
             }
             ApplyTableRowSpanHeights(tb, style, cols, colPixel, rowLines, rowHeights, rowLeadings, colGapPx, rowGapPx);
             double xOrigin = ResolveTableX(tb.Align, style, currentOpts.MarginLeft, contentWidth, tableWidth);

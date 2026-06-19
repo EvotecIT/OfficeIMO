@@ -135,14 +135,18 @@ internal static partial class PdfWriter {
 
             var heights = new double[rows];
             double total = 0D;
-            bool allFixed = style.RowMinHeights != null && style.RowMinHeights.Count >= rows;
+            bool allFixed = (style.FixedRowHeights != null && style.FixedRowHeights.Count >= rows) ||
+                (style.RowMinHeights != null && style.RowMinHeights.Count >= rows);
             for (int row = 0; row < rows; row++) {
-                double? fixedHeight = style.RowMinHeights != null &&
+                double? fixedHeight = GetTableRowFixedHeight(style, row);
+                if (!fixedHeight.HasValue &&
+                    style.RowMinHeights != null &&
                     row < style.RowMinHeights.Count &&
                     style.RowMinHeights[row].HasValue &&
-                    style.RowMinHeights[row]!.Value > 0D
-                        ? style.RowMinHeights[row]!.Value
-                        : (double?)null;
+                    style.RowMinHeights[row]!.Value > 0D) {
+                    fixedHeight = style.RowMinHeights[row]!.Value;
+                }
+
                 if (!fixedHeight.HasValue) {
                     allFixed = false;
                     break;

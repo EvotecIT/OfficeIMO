@@ -21,6 +21,7 @@ public class PdfTableStyle {
     private System.Collections.Generic.Dictionary<(int Row, int Column), PdfColumnAlign>? _cellAlignments;
     private System.Collections.Generic.Dictionary<(int Row, int Column), PdfCellVerticalAlign>? _cellVerticalAlignments;
     private System.Collections.Generic.List<double?>? _rowMinHeights;
+    private System.Collections.Generic.List<double?>? _fixedRowHeights;
     private System.Collections.Generic.List<bool?>? _rowAllowBreakAcrossPages;
     private double _borderWidth = 0.5;
     private double _rowSeparatorWidth;
@@ -404,6 +405,24 @@ public class PdfTableStyle {
             _rowMinHeights = heights;
         }
     }
+    /// <summary>Optional per-row fixed heights in points. Null entries use content-driven row sizing and minimum row heights.</summary>
+    public System.Collections.Generic.List<double?>? FixedRowHeights {
+        get => _fixedRowHeights;
+        set {
+            if (value == null) {
+                _fixedRowHeights = null;
+                return;
+            }
+
+            var heights = new System.Collections.Generic.List<double?>(value.Count);
+            foreach (double? height in value) {
+                ValidateOptionalNonNegativeFiniteValue(height, nameof(FixedRowHeights), "Table fixed row heights must be non-negative finite values.");
+                heights.Add(height);
+            }
+
+            _fixedRowHeights = heights;
+        }
+    }
     /// <summary>Vertical space before the table, in points.</summary>
     public double SpacingBefore {
         get => _spacingBefore;
@@ -591,6 +610,7 @@ public class PdfTableStyle {
             CellSpacing = CellSpacing,
             MinRowHeight = MinRowHeight,
             RowMinHeights = RowMinHeights,
+            FixedRowHeights = FixedRowHeights,
             SpacingBefore = SpacingBefore,
             PageContinuationSpacingBefore = PageContinuationSpacingBefore,
             Caption = Caption,

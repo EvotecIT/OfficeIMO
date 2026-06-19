@@ -387,7 +387,10 @@ internal static partial class PdfWriter {
                     maxLines = Math.Max(maxLines, lines.Count);
                 }
 
-                    double firstRowHeight = Math.Max(maxLines * rowLeading + GetTableRowMaxPaddingTop(table, style, 0, columns) + GetTableRowMaxPaddingBottom(table, style, 0, columns), GetTableRowMinHeight(style, 0));
+                double firstRowRequiredHeight = maxLines * rowLeading +
+                    GetTableRowMaxPaddingTop(table, style, 0, columns) +
+                    GetTableRowMaxPaddingBottom(table, style, 0, columns);
+                double firstRowHeight = ResolveTableRowHeight(style, 0, firstRowRequiredHeight);
                 double captionHeight = 0D;
                 if (!string.IsNullOrWhiteSpace(style.Caption)) {
                     double captionSize = style.CaptionFontSize ?? fontSize;

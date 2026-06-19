@@ -76,6 +76,14 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Honors_Exact_Table_Row_Height_Rule() {
+        double exactGap = RenderNativeTableRowHeightRuleGap("PdfNativeExactTableRowHeight", HeightRuleValues.Exact, "ExactAfterRow");
+        double atLeastGap = RenderNativeTableRowHeightRuleGap("PdfNativeAtLeastTableRowHeight", HeightRuleValues.AtLeast, "AtLeastAfterRow");
+
+        Assert.True(atLeastGap > exactGap + 18D, $"Expected Word atLeast row height to grow with wrapped content while exact row height keeps the following row closer. Exact gap: {exactGap:0.##}; atLeast gap: {atLeastGap:0.##}.");
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Preserves_SpacingOnly_Empty_Paragraph_After_Table() {
         double compactGap = RenderNativeAfterTableSpacingGap("PdfNativeAfterTableNoSpacingParagraph", includeSpacingParagraph: false);
         double spacedGap = RenderNativeAfterTableSpacingGap("PdfNativeAfterTableSpacingParagraph", includeSpacingParagraph: true);
@@ -97,6 +105,37 @@ public partial class Word {
         double atLeastGap = RenderNativeTableStyleLineSpacingGap("PdfNativeTableStyleAtLeastRenderedLineSpacing", LineSpacingRuleValues.AtLeast);
 
         Assert.True(atLeastGap > exactGap + 14D, $"Expected Word table-style atLeast line spacing to preserve natural table line advance instead of exact compressed leading. Exact gap: {exactGap:0.##}; atLeast gap: {atLeastGap:0.##}.");
+    }
+
+    private double RenderNativeTableRowHeightRuleGap(string fileNamePrefix, HeightRuleValues heightRule, string followingRowText) {
+        string docPath = Path.Combine(_directoryWithFiles, fileNamePrefix + ".docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, fileNamePrefix + ".pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            WordTable table = document.AddTable(2, 1);
+            table.WidthType = TableWidthUnitValues.Dxa;
+            table.Width = 2200;
+            table.Rows[0].Height = 360;
+            table.Rows[0]._tableRow.TableRowProperties!.GetFirstChild<TableRowHeight>()!.HeightType = heightRule;
+            table.Rows[0].Cells[0].Width = 2200;
+            table.Rows[0].Cells[0].WidthType = TableWidthUnitValues.Dxa;
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "Alpha Beta Gamma Delta Epsilon Zeta Eta Theta";
+            table.Rows[1].Cells[0].Paragraphs[0].Text = followingRowText;
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = new PdfCore.PageSize(360, 320),
+                Margins = PdfCore.PageMargins.Uniform(30),
+                FontFamily = "Helvetica"
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        var words = pdf.GetPage(1).GetWords().ToList();
+        var firstRow = Assert.Single(words, word => word.Text == "Alpha");
+        var followingRow = Assert.Single(words, word => word.Text == followingRowText);
+        return firstRow.BoundingBox.Bottom - followingRow.BoundingBox.Bottom;
     }
 
     [Fact]

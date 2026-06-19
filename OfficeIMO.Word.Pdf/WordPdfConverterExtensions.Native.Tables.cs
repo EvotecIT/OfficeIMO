@@ -498,16 +498,19 @@ namespace OfficeIMO.Word.Pdf {
                 style.RowAllowBreakAcrossPages = rowBreakPolicies;
             }
 
-            List<double?>? rowHeights = GetNativeTableRowHeights(table);
-            if (rowHeights == null) {
-                return;
+            List<double?>? rowMinHeights = GetNativeTableRowHeights(table, exact: false);
+            if (rowMinHeights != null) {
+                double? uniformHeight = GetNativeUniformTableRowHeight(rowMinHeights);
+                if (uniformHeight.HasValue) {
+                    style.MinRowHeight = uniformHeight.Value;
+                } else {
+                    style.RowMinHeights = rowMinHeights;
+                }
             }
 
-            double? uniformHeight = GetNativeUniformTableRowHeight(rowHeights);
-            if (uniformHeight.HasValue) {
-                style.MinRowHeight = uniformHeight.Value;
-            } else {
-                style.RowMinHeights = rowHeights;
+            List<double?>? fixedRowHeights = GetNativeTableRowHeights(table, exact: true);
+            if (fixedRowHeights != null) {
+                style.FixedRowHeights = fixedRowHeights;
             }
         }
 
@@ -529,11 +532,13 @@ namespace OfficeIMO.Word.Pdf {
             return hasMixedPolicies ? policies : null;
         }
 
-        private static List<double?>? GetNativeTableRowHeights(WordTable table) {
+        private static List<double?>? GetNativeTableRowHeights(WordTable table, bool exact) {
             var heights = new List<double?>(table.Rows.Count);
             bool hasHeight = false;
             foreach (WordTableRow row in table.Rows) {
-                double? height = row.Height.HasValue && row.Height.Value > 0
+                W.TableRowHeight? rowHeight = row._tableRow.TableRowProperties?.Elements<W.TableRowHeight>().FirstOrDefault();
+                bool isExact = rowHeight?.HeightType?.Value == W.HeightRuleValues.Exact;
+                double? height = row.Height.HasValue && row.Height.Value > 0 && isExact == exact
                     ? ConvertNativeTwipsToPoints(row.Height.Value)
                     : null;
                 heights.Add(height);
