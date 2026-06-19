@@ -5,7 +5,7 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
-        private void RenderBulletListFlowBlock(BulletListBlock bl, IPdfBlock? nextBlock) {
+        private void RenderBulletListFlowBlock(BulletListBlock bl, IPdfBlock? nextBlock, System.Collections.Generic.IList<IPdfBlock> blockList, int blockIndex) {
             PdfListStyle? listStyle = ResolveListStyle(bl, currentOpts);
             double size = GetListFontSize(listStyle, currentOpts.DefaultFontSize);
             double leading = GetListLeading(listStyle, size);
@@ -46,7 +46,7 @@ internal static partial class PdfWriter {
             }
 
             if (listStyle?.KeepWithNext == true && nextBlock != null && wrappedItems.Count > 0) {
-                double nextHeight = MeasureNextBlockFirstVisualHeight(nextBlock, currentOpts.MarginLeft, width, size);
+                double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, size);
                 double keepHeight = listHeight + nextHeight;
                 double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
                 if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && y < yStart - 0.001 && y - keepHeight < currentOpts.MarginBottom) {
@@ -74,7 +74,7 @@ internal static partial class PdfWriter {
             }
         }
 
-        private void RenderNumberedListFlowBlock(NumberedListBlock nl, IPdfBlock? nextBlock) {
+        private void RenderNumberedListFlowBlock(NumberedListBlock nl, IPdfBlock? nextBlock, System.Collections.Generic.IList<IPdfBlock> blockList, int blockIndex) {
             PdfListStyle? listStyle = ResolveListStyle(nl, currentOpts);
             double size = GetListFontSize(listStyle, currentOpts.DefaultFontSize);
             double leading = GetListLeading(listStyle, size);
@@ -118,7 +118,7 @@ internal static partial class PdfWriter {
             }
 
             if (listStyle?.KeepWithNext == true && nextBlock != null && wrappedItems.Count > 0) {
-                double nextHeight = MeasureNextBlockFirstVisualHeight(nextBlock, currentOpts.MarginLeft, width, size);
+                double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, size);
                 double keepHeight = listHeight + nextHeight;
                 double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
                 if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && y < yStart - 0.001 && y - keepHeight < currentOpts.MarginBottom) {
