@@ -25,6 +25,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             var items = new List<PdfCore.PdfListItem> { item! };
+            var paragraphs = new List<WordParagraph> { firstParagraph };
             int nextIndex = index + 1;
             int expectedNumber = startNumber + 1;
             while (nextIndex < elements.Count &&
@@ -37,10 +38,12 @@ namespace OfficeIMO.Word.Pdf {
                    NativeListStylesEquivalent(nextStyle, style) &&
                    (!ordered || nextNumber == expectedNumber)) {
                 items.Add(nextItem!);
+                paragraphs.Add(paragraph);
                 nextIndex++;
                 expectedNumber++;
             }
 
+            style = ApplyNativeListContextualItemSpacing(style, paragraphs);
             if (ordered) {
                 pdf.RichNumbered(items, align, color, startNumber, style);
             } else {
@@ -155,6 +158,7 @@ namespace OfficeIMO.Word.Pdf {
             W.SpacingBetweenLines? directSpacing = paragraph._paragraph?.ParagraphProperties?.GetFirstChild<W.SpacingBetweenLines>();
             double markerWidth = EstimateNativeListMarkerWidth(marker, fontSize);
             double markerGap = Math.Max(0D, textIndent - markerIndent - markerWidth);
+            bool itemSpacingDeclared = false;
 
             var style = new PdfCore.PdfListStyle {
                 LeftIndent = markerIndent,
@@ -184,17 +188,43 @@ namespace OfficeIMO.Word.Pdf {
 
             if (paragraph.LineSpacingAfterPoints.HasValue) {
                 style.SpacingAfter = paragraph.LineSpacingAfterPoints.Value;
+                itemSpacingDeclared = true;
             } else if (GetNativeSpacingAfterPoints(directSpacing, fontSize, lineHeight) is { } directSpacingAfter) {
                 style.SpacingAfter = directSpacingAfter;
+                itemSpacingDeclared = true;
             } else if (styleDefaults.SpacingAfter.HasValue) {
                 style.SpacingAfter = styleDefaults.SpacingAfter.Value;
+                itemSpacingDeclared = true;
+            } else if (nativeDefaults.ParagraphSpacingAfterDeclared) {
+                style.SpacingAfter = nativeDefaults.ParagraphSpacingAfter;
+                itemSpacingDeclared = true;
             } else {
                 style.SpacingAfter = nativeDefaults.ParagraphSpacingAfter;
+            }
+
+            if (itemSpacingDeclared) {
+                style.ItemSpacing = style.SpacingAfter;
             }
 
             style.KeepTogether = ReadNativeDirectParagraphOnOff<W.KeepLines>(paragraph) ?? styleDefaults.KeepTogether ?? false;
             style.KeepWithNext = ReadNativeDirectParagraphOnOff<W.KeepNext>(paragraph) ?? styleDefaults.KeepWithNext ?? false;
             return style;
+        }
+
+        private static PdfCore.PdfListStyle? ApplyNativeListContextualItemSpacing(PdfCore.PdfListStyle? style, IReadOnlyList<WordParagraph> paragraphs) {
+            if (style == null || paragraphs.Count < 2) {
+                return style;
+            }
+
+            for (int i = 0; i < paragraphs.Count - 1; i++) {
+                if (!ShouldSuppressNativeContextualSpacingAfter(paragraphs[i], paragraphs[i + 1])) {
+                    return style;
+                }
+            }
+
+            PdfCore.PdfListStyle contextualStyle = style.Clone();
+            contextualStyle.ItemSpacing = 0D;
+            return contextualStyle;
         }
 
         private static double? GetNativeStyleHangingIndent(NativeParagraphStyleDefaults styleDefaults) =>

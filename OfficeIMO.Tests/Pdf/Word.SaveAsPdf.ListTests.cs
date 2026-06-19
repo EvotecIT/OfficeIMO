@@ -161,6 +161,22 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Maps_List_Paragraph_Spacing_After_To_Item_Gaps() {
+            double compactGap = RenderNativeListStyleSpacingGap("PdfNativeListCompactSpacing", spacingAfterTwips: "0", contextualSpacing: false);
+            double spacedGap = RenderNativeListStyleSpacingGap("PdfNativeListParagraphSpacingAfter", spacingAfterTwips: "480", contextualSpacing: false);
+
+            Assert.True(spacedGap > compactGap + 16D, $"Expected Word list paragraph spacing after to increase the PDF gap between list items. Compact gap: {compactGap:0.##}; spaced gap: {spacedGap:0.##}.");
+        }
+
+        [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Honors_List_Style_Contextual_Spacing() {
+            double spacedGap = RenderNativeListStyleSpacingGap("PdfNativeListSpacingNoContext", spacingAfterTwips: "480", contextualSpacing: false);
+            double contextualGap = RenderNativeListStyleSpacingGap("PdfNativeListContextualSpacing", spacingAfterTwips: "480", contextualSpacing: true);
+
+            Assert.True(spacedGap > contextualGap + 16D, $"Expected Word contextual spacing to suppress list item spacing between same-style paragraphs. Spaced gap: {spacedGap:0.##}; contextual gap: {contextualGap:0.##}.");
+        }
+
+        [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Renders_Custom_And_Nested_Word_List_Markers() {
             string docPath = Path.Combine(_directoryWithFiles, "PdfNativeCustomNestedListMarkers.docx");
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeCustomNestedListMarkers.pdf");
@@ -203,6 +219,50 @@ namespace OfficeIMO.Tests {
             Assert.StartsWith("a.", string.Concat(alphaLine.Select(letter => letter.Value)), StringComparison.Ordinal);
             Assert.StartsWith("i.", string.Concat(nestedLine.Select(letter => letter.Value)), StringComparison.Ordinal);
             Assert.True(nestedLine[0].StartBaseLine.X > alphaLine[0].StartBaseLine.X + 30D, "Expected nested Word list marker to render with deeper indentation.");
+        }
+
+        private double RenderNativeListStyleSpacingGap(string fileNamePrefix, string spacingAfterTwips, bool contextualSpacing) {
+            const string firstMarker = "FirstListGapMarker";
+            const string secondMarker = "SecondListGapMarker";
+            string docPath = Path.Combine(_directoryWithFiles, fileNamePrefix + ".docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, fileNamePrefix + ".pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                const string styleId = "NativeListSpacingStyle";
+                var styleParagraphProperties = new StyleParagraphProperties(
+                    new SpacingBetweenLines { After = spacingAfterTwips });
+                if (contextualSpacing) {
+                    styleParagraphProperties.Append(new ContextualSpacing());
+                }
+
+                Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                styles.Append(new Style(
+                    new StyleName { Val = "Native List Spacing Style" },
+                    styleParagraphProperties)
+                {
+                    Type = StyleValues.Paragraph,
+                    StyleId = styleId,
+                    CustomStyle = true
+                });
+
+                WordList bulletList = document.AddList(WordListStyle.Bulleted);
+                bulletList.AddItem(firstMarker).SetStyleId(styleId);
+                bulletList.AddItem(secondMarker).SetStyleId(styleId);
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false,
+                    PageSize = new OfficeIMO.Pdf.PageSize(320, 240),
+                    Margins = PageMargins.Uniform(36),
+                    FontFamily = "Helvetica"
+                });
+            }
+
+            using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+            var words = pdf.GetPage(1).GetWords().ToList();
+            double firstY = Assert.Single(words, word => word.Text == firstMarker).BoundingBox.Bottom;
+            double secondY = Assert.Single(words, word => word.Text == secondMarker).BoundingBox.Bottom;
+            return firstY - secondY;
         }
 
         [Fact]
