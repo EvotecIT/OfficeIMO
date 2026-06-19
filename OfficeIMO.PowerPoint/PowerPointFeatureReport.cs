@@ -534,16 +534,24 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static IEnumerable<BackgroundProperties> EnumerateResolvedBackgroundProperties(PowerPointSlide slide) {
-            BackgroundProperties? slideProperties = slide.SlidePart.Slide?.CommonSlideData?.Background?.BackgroundProperties;
-            if (slideProperties != null) {
-                yield return slideProperties;
+            Background? slideBackground = slide.SlidePart.Slide?.CommonSlideData?.Background;
+            if (slideBackground != null) {
+                BackgroundProperties? slideProperties = slideBackground.BackgroundProperties;
+                if (slideProperties != null) {
+                    yield return slideProperties;
+                }
+
                 yield break;
             }
 
             SlideLayoutPart? layoutPart = slide.SlidePart.SlideLayoutPart;
-            BackgroundProperties? layoutProperties = layoutPart?.SlideLayout?.CommonSlideData?.Background?.BackgroundProperties;
-            if (layoutProperties != null) {
-                yield return layoutProperties;
+            Background? layoutBackground = layoutPart?.SlideLayout?.CommonSlideData?.Background;
+            if (layoutBackground != null) {
+                BackgroundProperties? layoutProperties = layoutBackground.BackgroundProperties;
+                if (layoutProperties != null) {
+                    yield return layoutProperties;
+                }
+
                 yield break;
             }
 
@@ -720,6 +728,8 @@ namespace OfficeIMO.PowerPoint {
                     return new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "dir" };
                 case "prism":
                     return new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "isContent" };
+                case "morph":
+                    return new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "option" };
                 case "prstTrans":
                     return new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "prst" };
                 default:
@@ -878,53 +888,59 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private List<string> DescribeRichNotesContent() {
-            return Slides
+            List<string> details = Slides
                 .SelectMany((slide, index) => DescribeRichNotesContent(slide, index + 1))
                 .ToList();
+            details.AddRange(DescribeRichNotesContent(_presentationPart.NotesMasterPart?.NotesMaster, "notes master"));
+            return details;
         }
 
         private static IEnumerable<string> DescribeRichNotesContent(PowerPointSlide slide, int slideIndex) {
             NotesSlide? notesSlide = slide.SlidePart.NotesSlidePart?.NotesSlide;
-            if (notesSlide == null) {
+            return DescribeRichNotesContent(notesSlide, $"slide {slideIndex} notes");
+        }
+
+        private static IEnumerable<string> DescribeRichNotesContent(OpenXmlElement? notesRoot, string scope) {
+            if (notesRoot == null) {
                 yield break;
             }
 
-            int pictures = notesSlide.Descendants<Picture>()
+            int pictures = notesRoot.Descendants<Picture>()
                 .Count(picture => !PowerPointMedia.TryGetMediaKind(picture, out _));
-            int shapeFillImages = CountShapeFillImageElements(notesSlide);
-            int tables = notesSlide.Descendants<A.Table>().Count();
-            int charts = notesSlide
+            int shapeFillImages = CountShapeFillImageElements(notesRoot);
+            int tables = notesRoot.Descendants<A.Table>().Count();
+            int charts = notesRoot
                 .Descendants<GraphicFrame>()
                 .Count(frame => frame.Graphic?.GraphicData?.GetFirstChild<C.ChartReference>() != null);
-            int smartArt = notesSlide
+            int smartArt = notesRoot
                 .Descendants<GraphicFrame>()
                 .Count(frame => frame.Graphic?.GraphicData?.GetFirstChild<Dgm.RelationshipIds>() != null);
-            int textShapes = notesSlide
+            int textShapes = notesRoot
                 .Descendants<Shape>()
                 .Count(shape => HasNonEmptyShapeText(shape) && !HasPlaceholder(shape));
 
             if (pictures > 0) {
-                yield return $"slide {slideIndex} notes: {pictures} picture(s)";
+                yield return $"{scope}: {pictures} picture(s)";
             }
 
             if (shapeFillImages > 0) {
-                yield return $"slide {slideIndex} notes: {shapeFillImages} shape fill image(s)";
+                yield return $"{scope}: {shapeFillImages} shape fill image(s)";
             }
 
             if (tables > 0) {
-                yield return $"slide {slideIndex} notes: {tables} table(s)";
+                yield return $"{scope}: {tables} table(s)";
             }
 
             if (charts > 0) {
-                yield return $"slide {slideIndex} notes: {charts} chart(s)";
+                yield return $"{scope}: {charts} chart(s)";
             }
 
             if (smartArt > 0) {
-                yield return $"slide {slideIndex} notes: {smartArt} SmartArt diagram(s)";
+                yield return $"{scope}: {smartArt} SmartArt diagram(s)";
             }
 
             if (textShapes > 0) {
-                yield return $"slide {slideIndex} notes: {textShapes} extra text shape(s)";
+                yield return $"{scope}: {textShapes} extra text shape(s)";
             }
         }
 
