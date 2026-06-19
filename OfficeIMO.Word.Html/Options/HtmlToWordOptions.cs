@@ -283,6 +283,14 @@ namespace OfficeIMO.Word.Html {
         public List<HtmlConversionDiagnostic> Diagnostics { get; } = new List<HtmlConversionDiagnostic>();
 
         /// <summary>
+        /// Shared OfficeIMO HTML diagnostic report populated during conversion.
+        /// Prefer this report for cross-package tooling, gallery manifests, and adapters that aggregate
+        /// diagnostics from multiple OfficeIMO HTML workflows. The legacy <see cref="Diagnostics"/>
+        /// collection is still populated for existing callers.
+        /// </summary>
+        public HtmlDiagnosticReport ConversionReport { get; } = new HtmlDiagnosticReport();
+
+        /// <summary>
         /// Optional callback invoked whenever a conversion diagnostic is produced.
         /// </summary>
         public Action<HtmlConversionDiagnostic>? DiagnosticHandler { get; set; }
@@ -354,8 +362,8 @@ namespace OfficeIMO.Word.Html {
         /// </summary>
         /// <remarks>
         /// Configuration values, allow-lists, configured stylesheets, and the diagnostic callback are copied.
-        /// The runtime <see cref="Diagnostics"/> collection starts empty on the clone so diagnostics from one
-        /// conversion are not carried into the next.
+        /// Runtime diagnostic collections such as <see cref="Diagnostics"/> and <see cref="ConversionReport"/>
+        /// start empty on the clone so diagnostics from one conversion are not carried into the next.
         /// </remarks>
         /// <returns>A new <see cref="HtmlToWordOptions"/> with the same configuration values.</returns>
         public HtmlToWordOptions Clone() {

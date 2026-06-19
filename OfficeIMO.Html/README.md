@@ -54,6 +54,21 @@ HtmlDomLimitTracker? tracker = HtmlDomLimitTracker.Create(
 
 Converter packages use these primitives to keep bounded HTML ingestion behavior consistent while still reporting converter-specific diagnostics.
 
+## Shared Diagnostics And Gallery Contracts
+
+```csharp
+var report = new HtmlDiagnosticReport();
+report.Add("OfficeIMO.Word.Html", "HtmlCommentSkipped", "Comment skipped");
+
+var scenario = new HtmlCapabilityGalleryScenario(
+    "quarterly-report",
+    "Quarterly Report",
+    "Word HTML",
+    "HTML import, DOCX validation, and round-trip export proof");
+```
+
+`HtmlDiagnosticReport` and the capability-gallery contracts provide a common shape for HTML converters, PDF bridges, readers, tests, and future documentation generators. Format-specific packages can keep their existing compatibility APIs while also publishing shared diagnostics and artifact metadata for market-facing proof galleries.
+
 ## Image Sources
 
 ```csharp
