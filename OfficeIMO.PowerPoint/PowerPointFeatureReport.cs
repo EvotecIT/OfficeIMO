@@ -7,6 +7,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
+using C = DocumentFormat.OpenXml.Drawing.Charts;
 using Dgm = DocumentFormat.OpenXml.Drawing.Diagrams;
 
 namespace OfficeIMO.PowerPoint {
@@ -857,6 +858,9 @@ namespace OfficeIMO.PowerPoint {
                 .Count(picture => !PowerPointMedia.TryGetMediaKind(picture, out _));
             int shapeFillImages = CountShapeFillImageElements(notesSlide);
             int tables = notesSlide.Descendants<A.Table>().Count();
+            int charts = notesSlide
+                .Descendants<GraphicFrame>()
+                .Count(frame => frame.Graphic?.GraphicData?.GetFirstChild<C.ChartReference>() != null);
             int smartArt = notesSlide
                 .Descendants<GraphicFrame>()
                 .Count(frame => frame.Graphic?.GraphicData?.GetFirstChild<Dgm.RelationshipIds>() != null);
@@ -871,6 +875,10 @@ namespace OfficeIMO.PowerPoint {
 
             if (tables > 0) {
                 yield return $"slide {slideIndex} notes: {tables} table(s)";
+            }
+
+            if (charts > 0) {
+                yield return $"slide {slideIndex} notes: {charts} chart(s)";
             }
 
             if (smartArt > 0) {

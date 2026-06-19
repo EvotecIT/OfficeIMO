@@ -6,6 +6,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
+using C = DocumentFormat.OpenXml.Drawing.Charts;
 using OfficeIMO.PowerPoint;
 using Xunit;
 
@@ -463,6 +464,53 @@ namespace OfficeIMO.Tests {
                     Assert.Equal(PowerPointFeatureSupportLevel.Preserved, richNotes.SupportLevel);
                     Assert.Equal(1, richNotes.Count);
                     Assert.Contains(richNotes.Details, detail => detail.Contains("picture", StringComparison.OrdinalIgnoreCase));
+                    Assert.Throws<InvalidOperationException>(() => report.EnsureNoAdvancedFeatures());
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void PowerPointFeatureReport_DetectsRichNotesSlideCharts() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    slide.AddTextBox("Notes with a chart");
+                    slide.Notes.Text = "Speaker text";
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, true)) {
+                    NotesSlidePart notesPart = document.PresentationPart!.SlideParts.Single().NotesSlidePart!;
+                    ShapeTree tree = notesPart.NotesSlide!.CommonSlideData!.ShapeTree!;
+                    uint shapeId = tree.Descendants<NonVisualDrawingProperties>()
+                        .Select(properties => properties.Id?.Value ?? 0U)
+                        .DefaultIfEmpty(0U)
+                        .Max() + 1U;
+                    tree.Append(new GraphicFrame(
+                        new NonVisualGraphicFrameProperties(
+                            new NonVisualDrawingProperties { Id = shapeId, Name = "Notes Chart" },
+                            new NonVisualGraphicFrameDrawingProperties(),
+                            new ApplicationNonVisualDrawingProperties()),
+                        new Transform(new A.Offset { X = 0, Y = 0 }, new A.Extents { Cx = 914400, Cy = 914400 }),
+                        new A.Graphic(new A.GraphicData(new C.ChartReference { Id = "rIdChart" }) {
+                            Uri = "http://schemas.openxmlformats.org/drawingml/2006/chart"
+                        })));
+                    notesPart.NotesSlide.Save();
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                    PowerPointFeatureReport report = presentation.InspectFeatures();
+                    PowerPointFeatureFinding richNotes = Assert.Single(report.FindFeatures("Rich notes content"));
+
+                    Assert.Equal(PowerPointFeatureSupportLevel.Preserved, richNotes.SupportLevel);
+                    Assert.Equal(1, richNotes.Count);
+                    Assert.Contains(richNotes.Details, detail => detail.Contains("chart", StringComparison.OrdinalIgnoreCase));
                     Assert.Throws<InvalidOperationException>(() => report.EnsureNoAdvancedFeatures());
                 }
             } finally {
