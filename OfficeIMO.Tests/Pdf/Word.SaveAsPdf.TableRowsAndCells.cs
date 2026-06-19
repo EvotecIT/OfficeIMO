@@ -391,6 +391,17 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Collapses_Table_Cell_Adjacent_Paragraph_Spacing() {
+        double compactGap = RenderNativeTableCellParagraphSpacingGap("PdfNativeTableCellCompactParagraphSpacing", firstSpacingAfter: 0D, secondSpacingBefore: 0D);
+        double beforeOnlyGap = RenderNativeTableCellParagraphSpacingGap("PdfNativeTableCellParagraphSpacingBeforeOnly", firstSpacingAfter: 0D, secondSpacingBefore: 20D);
+        double afterOnlyGap = RenderNativeTableCellParagraphSpacingGap("PdfNativeTableCellParagraphSpacingAfterOnly", firstSpacingAfter: 30D, secondSpacingBefore: 0D);
+        double collapsedGap = RenderNativeTableCellParagraphSpacingGap("PdfNativeTableCellParagraphSpacingCollapsed", firstSpacingAfter: 30D, secondSpacingBefore: 20D);
+
+        Assert.True(beforeOnlyGap > compactGap + 8D, $"Expected direct Word spacing-before to increase stacked table cell paragraph distance. Compact gap: {compactGap:0.##}; before-only gap: {beforeOnlyGap:0.##}.");
+        Assert.InRange(Math.Abs(collapsedGap - afterOnlyGap), 0D, 2D);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Does_Not_Invent_Table_Cell_Paragraph_Spacing_When_Undeclared() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellNoImplicitParagraphSpacing.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellNoImplicitParagraphSpacing.pdf");
@@ -447,6 +458,40 @@ public partial class Word {
         double secondGap = beta.BoundingBox.Bottom - gamma.BoundingBox.Bottom;
         Assert.InRange(firstGap, 13D, 18D);
         Assert.InRange(secondGap, 13D, 18D);
+    }
+
+    private double RenderNativeTableCellParagraphSpacingGap(string fileNamePrefix, double firstSpacingAfter, double secondSpacingBefore) {
+        const string firstMarker = "CellFirst";
+        const string secondMarker = "CellSecond";
+        string docPath = Path.Combine(_directoryWithFiles, fileNamePrefix + ".docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, fileNamePrefix + ".pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            WordTable table = document.AddTable(1, 1);
+            table._tableProperties!.TableStyle?.Remove();
+            table.Rows[0].Cells[0].Width = 2880;
+            table.Rows[0].Cells[0].WidthType = TableWidthUnitValues.Dxa;
+            WordTableCell cell = table.Rows[0].Cells[0];
+            cell.Paragraphs[0].Text = firstMarker;
+            cell.Paragraphs[0].LineSpacingAfterPoints = firstSpacingAfter;
+            WordParagraph second = cell.AddParagraph(secondMarker);
+            second.LineSpacingBeforePoints = secondSpacingBefore;
+            second.LineSpacingAfterPoints = 0;
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = new PdfCore.PageSize(360, 260),
+                Margins = PdfCore.PageMargins.Uniform(40),
+                FontFamily = "Helvetica"
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        var words = pdf.GetPage(1).GetWords().ToList();
+        double firstY = Assert.Single(words, word => word.Text == firstMarker).BoundingBox.Bottom;
+        double secondY = Assert.Single(words, word => word.Text == secondMarker).BoundingBox.Bottom;
+        return firstY - secondY;
     }
 
     [Fact]

@@ -4,8 +4,8 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
-        private readonly record struct NativeTableStyleDefaults(PdfCore.PdfCellPadding? CellPadding, PdfCore.PdfColor? CellFill, (PdfCore.PdfColor Color, double Width)? TableBorder, double? ParagraphLineHeight, double? ParagraphLineSpacingPoints, double? ParagraphSpacingAfter, NativeTableRunStyleDefaults RunStyle) {
-            public static NativeTableStyleDefaults Empty { get; } = new(null, null, null, null, null, null, NativeTableRunStyleDefaults.Empty);
+        private readonly record struct NativeTableStyleDefaults(PdfCore.PdfCellPadding? CellPadding, PdfCore.PdfColor? CellFill, (PdfCore.PdfColor Color, double Width)? TableBorder, double? ParagraphLineHeight, double? ParagraphLineSpacingPoints, double? ParagraphSpacingBefore, double? ParagraphSpacingAfter, NativeTableRunStyleDefaults RunStyle) {
+            public static NativeTableStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, NativeTableRunStyleDefaults.Empty);
         }
 
         private readonly record struct NativeTableRunStyleDefaults(double? FontSize, string? FontFamily, bool? Bold, bool? Italic, bool? Underline, bool? Strike, string? ColorHex, W.HighlightColorValues? Highlight) {
@@ -31,6 +31,7 @@ namespace OfficeIMO.Word.Pdf {
             (PdfCore.PdfColor Color, double Width)? tableBorder = null;
             double? paragraphLineHeight = null;
             double? paragraphLineSpacingPoints = null;
+            double? paragraphSpacingBefore = null;
             double? paragraphSpacingAfter = null;
             double? fontSize = null;
             string? fontFamily = null;
@@ -93,6 +94,7 @@ namespace OfficeIMO.Word.Pdf {
                     double effectiveLineHeight = styleParagraphLineSpacingPoints.HasValue && effectiveFontSize > 0D
                         ? styleParagraphLineSpacingPoints.Value / effectiveFontSize
                         : styleParagraphLineHeight ?? paragraphLineHeight ?? NativeWordTableSingleLineHeight;
+                    paragraphSpacingBefore = GetNativeSpacingBeforePoints(spacing, effectiveFontSize, effectiveLineHeight) ?? paragraphSpacingBefore;
                     paragraphSpacingAfter = GetNativeSpacingAfterPoints(spacing, effectiveFontSize, effectiveLineHeight) ?? paragraphSpacingAfter;
                 }
             }
@@ -112,6 +114,7 @@ namespace OfficeIMO.Word.Pdf {
                 tableBorder,
                 paragraphLineHeight,
                 paragraphLineSpacingPoints,
+                paragraphSpacingBefore,
                 paragraphSpacingAfter,
                 new NativeTableRunStyleDefaults(
                     fontSize,

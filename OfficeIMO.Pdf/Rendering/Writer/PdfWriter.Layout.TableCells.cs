@@ -523,6 +523,10 @@ internal static partial class PdfWriter {
             }
 
             int firstNewLineIndex = lines.Count;
+            if (paragraph.SpacingBefore > 0D && lineHeights.Count > 0) {
+                lineHeights[lineHeights.Count - 1] += paragraph.SpacingBefore;
+            }
+
             lines.AddRange(wrap.Lines);
             lineHeights.AddRange(wrap.LineHeights);
             for (int lineIndex = firstNewLineIndex; lineIndex < lines.Count; lineIndex++) {

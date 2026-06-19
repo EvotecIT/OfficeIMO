@@ -284,6 +284,7 @@ namespace OfficeIMO.Word.Pdf {
         private static NativeCellText CreateNativeCellText(WordTableCell cell, Dictionary<long, int>? footnoteNumbersById, NativeDocumentDefaults nativeDefaults, NativeTableStyleDefaults tableStyleDefaults) {
             var runs = new List<PdfCore.TextRun>();
             var paragraphs = new List<PdfCore.PdfTableCellParagraph>();
+            double? pendingSpacingAfter = null;
             foreach (WordParagraph paragraph in GetNativeCellParagraphs(cell)) {
                 List<PdfCore.TextRun> paragraphRuns = CreateNativeCellParagraphRuns(paragraph, footnoteNumbersById, tableStyleDefaults);
                 if (paragraphRuns.Count == 0) {
@@ -295,13 +296,34 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 runs.AddRange(paragraphRuns);
+                double spacingBefore = GetNativeCellParagraphSpacingBefore(paragraph, nativeDefaults, tableStyleDefaults);
+                if (pendingSpacingAfter.HasValue) {
+                    spacingBefore = Math.Max(0D, spacingBefore - pendingSpacingAfter.Value);
+                }
+
+                double spacingAfter = GetNativeCellParagraphSpacingAfter(paragraph, nativeDefaults, tableStyleDefaults);
                 paragraphs.Add(new PdfCore.PdfTableCellParagraph(
                     paragraphRuns,
-                    GetNativeCellParagraphSpacingAfter(paragraph, nativeDefaults, tableStyleDefaults),
-                    MapNativeParagraphAlign(ResolveNativeParagraphJustification(paragraph))));
+                    spacingAfter,
+                    MapNativeParagraphAlign(ResolveNativeParagraphJustification(paragraph)),
+                    spacingBefore));
+                pendingSpacingAfter = spacingAfter;
             }
 
             return new NativeCellText(runs, paragraphs);
+        }
+
+        private static double GetNativeCellParagraphSpacingBefore(WordParagraph paragraph, NativeDocumentDefaults nativeDefaults, NativeTableStyleDefaults tableStyleDefaults) {
+            NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);
+            double fontSize = ResolveNativeParagraphFontSize(paragraph, nativeDefaults, styleDefaults);
+            double lineHeight = ResolveNativeParagraphLineHeight(paragraph, fontSize, nativeDefaults, styleDefaults);
+            W.SpacingBetweenLines? directSpacing = paragraph._paragraph?.ParagraphProperties?.GetFirstChild<W.SpacingBetweenLines>();
+            double spacingBefore = paragraph.LineSpacingBeforePoints ??
+                GetNativeSpacingBeforePoints(directSpacing, fontSize, lineHeight) ??
+                styleDefaults.SpacingBefore ??
+                tableStyleDefaults.ParagraphSpacingBefore ??
+                (nativeDefaults.ParagraphSpacingBeforeDeclared ? nativeDefaults.ParagraphSpacingBefore : 0D);
+            return spacingBefore > 0D && !double.IsNaN(spacingBefore) && !double.IsInfinity(spacingBefore) ? spacingBefore : 0D;
         }
 
         private static double GetNativeCellParagraphSpacingAfter(WordParagraph paragraph, NativeDocumentDefaults nativeDefaults) {
