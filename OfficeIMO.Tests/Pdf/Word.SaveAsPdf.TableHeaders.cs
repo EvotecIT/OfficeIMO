@@ -332,6 +332,56 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Renders_Table_Style_Banding_Conditional_Text() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleBandingConditionalText.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleBandingConditionalText.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            const string styleId = "NativeBandingConditionalTextTable";
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(new Style(
+                new StyleName { Val = "Native Banding Conditional Text Table" },
+                new TableStyleProperties(
+                    new RunPropertiesBaseStyle(new Bold(), new Color { Val = "AA0000" }))
+                { Type = TableStyleOverrideValues.Band1Horizontal },
+                new TableStyleProperties(
+                    new RunPropertiesBaseStyle(new Bold(), new Color { Val = "004488" }))
+                { Type = TableStyleOverrideValues.Band1Vertical })
+            { Type = StyleValues.Table, StyleId = styleId });
+
+            WordTable table = document.AddTable(4, 3);
+            table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
+            table.ConditionalFormattingNoHorizontalBand = false;
+            table.ConditionalFormattingNoVerticalBand = false;
+            for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
+                for (int columnIndex = 0; columnIndex < table.Rows[rowIndex].Cells.Count; columnIndex++) {
+                    table.Rows[rowIndex].Cells[columnIndex].Paragraphs[0].Text =
+                        "BandText" +
+                        rowIndex.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                        columnIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                }
+            }
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = new PdfCore.PageSize(420, 260),
+                Margins = PdfCore.PageMargins.Uniform(30)
+            });
+        }
+
+        byte[] bytes = File.ReadAllBytes(pdfPath);
+        using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
+        string text = string.Concat(pdf.GetPages().Select(page => page.Text));
+        Assert.Contains("BandText00", text);
+        Assert.Contains("BandText31", text);
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("0.667 0 0 rg", raw);
+        Assert.Contains("0 0.267 0.533 rg", raw);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Renders_Table_Style_Horizontal_Banding_Fill() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleHorizontalBanding.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleHorizontalBanding.pdf");

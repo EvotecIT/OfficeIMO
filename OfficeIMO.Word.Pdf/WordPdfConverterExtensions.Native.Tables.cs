@@ -31,6 +31,11 @@ namespace OfficeIMO.Word.Pdf {
             var horizontalAlignments = CreateNativeTableHorizontalAlignments(layout);
             var verticalAlignments = CreateNativeTableVerticalAlignments(layout);
             int tableColumnCount = GetNativeTableColumnCount(layout);
+            int repeatedHeaderRowCount = GetNativeTableRepeatedHeaderRowCount(table, layout.Rows.Count);
+            int visualHeaderRowCount = GetNativeTableVisualHeaderRowCount(table, layout.Rows.Count, repeatedHeaderRowCount);
+            int footerStartRowIndex = table.ConditionalFormattingLastRow == true && layout.Rows.Count > visualHeaderRowCount
+                ? layout.Rows.Count - 1
+                : layout.Rows.Count;
             for (int rowIndex = 0; rowIndex < layout.Rows.Count; rowIndex++) {
                 IReadOnlyList<WordTableCell> row = layout.Rows[rowIndex];
                 var nativeCells = new List<PdfCore.PdfTableCell>();
@@ -50,9 +55,12 @@ namespace OfficeIMO.Word.Pdf {
                     NativeTableStyleDefaults cellStyleDefaults = GetNativeTableCellStyleDefaults(
                         table,
                         tableStyleDefaults,
+                        rowIndex,
                         logicalColumnIndex,
                         columnSpan,
-                        tableColumnCount);
+                        tableColumnCount,
+                        visualHeaderRowCount,
+                        footerStartRowIndex);
                     NativeCellText cellText = CreateNativeCellText(cell, footnoteNumbersById, nativeDefaults, cellStyleDefaults);
                     IReadOnlyList<PdfCore.PdfTableCellCheckBox> checkBoxes = CreateNativeTableCellCheckBoxes(cell);
                     IReadOnlyList<PdfCore.PdfTableCellFormField> formFields = CreateNativeTableCellFormFields(cell);
@@ -392,8 +400,19 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static NativeTableStyleDefaults GetNativeTableCellStyleDefaults(WordTable table, NativeTableStyleDefaults tableStyleDefaults, int logicalColumnIndex, int columnSpan, int columnCount) {
+        private static NativeTableStyleDefaults GetNativeTableCellStyleDefaults(WordTable table, NativeTableStyleDefaults tableStyleDefaults, int rowIndex, int logicalColumnIndex, int columnSpan, int columnCount, int headerRowCount, int footerStartRowIndex) {
             NativeTableStyleDefaults result = tableStyleDefaults;
+            if (rowIndex >= headerRowCount && rowIndex < footerStartRowIndex) {
+                int bodyRowIndex = rowIndex - headerRowCount;
+                if (table.ConditionalFormattingNoHorizontalBand != true && bodyRowIndex % 2 == 1) {
+                    result = ApplyNativeTableConditionalRunStyleDefaults(result, tableStyleDefaults.Band1HorizontalStyle);
+                }
+
+                if (table.ConditionalFormattingNoVerticalBand != true && logicalColumnIndex % 2 == 1) {
+                    result = ApplyNativeTableConditionalRunStyleDefaults(result, tableStyleDefaults.Band1VerticalStyle);
+                }
+            }
+
             if (table.ConditionalFormattingFirstColumn == true && logicalColumnIndex == 0) {
                 result = ApplyNativeTableConditionalRunStyleDefaults(result, tableStyleDefaults.FirstColumnStyle);
             }
