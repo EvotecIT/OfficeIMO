@@ -155,6 +155,62 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Maps_HeaderFooter_Paragraph_Style_Font_And_Color_To_Page_Text() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterStyleText.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterStyleText.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            const string headerStyleId = "NativeStyledHeader";
+            const string footerStyleId = "NativeStyledFooter";
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(
+                new Style(
+                    new StyleName { Val = "Native Styled Header" },
+                    new StyleRunProperties(
+                        new RunFonts { Ascii = "Georgia", HighAnsi = "Georgia" }))
+                {
+                    Type = StyleValues.Paragraph,
+                    StyleId = headerStyleId,
+                    CustomStyle = true
+                },
+                new Style(
+                    new StyleName { Val = "Native Styled Footer" },
+                    new StyleRunProperties(
+                        new Color { Val = "008000" }))
+                {
+                    Type = StyleValues.Paragraph,
+                    StyleId = footerStyleId,
+                    CustomStyle = true
+                });
+
+            document.AddHeadersAndFooters();
+            WordParagraph header = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph("QStyledHeader");
+            header.SetStyleId(headerStyleId);
+            WordParagraph footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph("GreenStyledFooter");
+            footer.SetStyleId(footerStyleId);
+            document.AddParagraph("Plain body text");
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false
+            });
+        }
+
+        Assert.True(File.Exists(pdfPath));
+        using (PdfPigDocument pdf = PdfPigDocument.Open(pdfPath)) {
+            var page = pdf.GetPage(1);
+            Assert.Contains("QStyledHeader", page.Text);
+            Assert.Contains("GreenStyledFooter", page.Text);
+
+            var headerLetter = page.Letters.Single(letter => letter.Value == "Q");
+            Assert.Contains("Times", headerLetter.FontName, StringComparison.OrdinalIgnoreCase);
+        }
+
+        string content = ReadPdfPageContent(File.ReadAllBytes(pdfPath));
+        Assert.Contains("0 0.502 0 rg", content, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Maps_HeaderFooter_Bold_And_Italic_To_Page_Text_Fonts() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterEmphasis.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterEmphasis.pdf");

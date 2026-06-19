@@ -315,6 +315,11 @@ namespace OfficeIMO.Word.Pdf {
                 yield return familyName;
             }
 
+            string? styleFamily = GetNativeParagraphStyleDefaults(paragraph).FontFamily;
+            if (!string.IsNullOrWhiteSpace(styleFamily)) {
+                yield return styleFamily!;
+            }
+
             foreach (WordParagraph run in GetNativeRuns(paragraph)) {
                 if (run.IsImage || string.IsNullOrWhiteSpace(run.Text)) {
                     continue;
@@ -330,6 +335,11 @@ namespace OfficeIMO.Word.Pdf {
             PdfCore.PdfColor? paragraphColor = ParseNativeColor(paragraph.ColorHex);
             if (paragraphColor.HasValue) {
                 yield return paragraphColor.Value;
+            }
+
+            PdfCore.PdfColor? styleColor = ParseNativeColor(GetNativeParagraphStyleDefaults(paragraph).ColorHex);
+            if (styleColor.HasValue) {
+                yield return styleColor.Value;
             }
 
             foreach (WordParagraph run in GetNativeRuns(paragraph)) {
