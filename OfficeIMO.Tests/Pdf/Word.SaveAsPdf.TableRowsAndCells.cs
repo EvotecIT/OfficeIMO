@@ -545,6 +545,61 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Uses_Table_Style_Conditional_Paragraph_Formatting_For_Cells() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleConditionalParagraphFormatting.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleConditionalParagraphFormatting.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            const string styleId = "NativeTableConditionalParagraphFormatting";
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(new Style(
+                new StyleName { Val = "Native Table Conditional Paragraph Formatting" },
+                new TableStyleProperties(
+                    new StyleParagraphProperties(
+                        new Justification { Val = JustificationValues.Center },
+                        new SpacingBetweenLines { After = "560" }))
+                { Type = TableStyleOverrideValues.FirstRow })
+            {
+                Type = StyleValues.Table,
+                StyleId = styleId,
+                CustomStyle = true
+            });
+
+            WordTable table = document.AddTable(2, 1);
+            table.Width = 3600;
+            table.WidthType = TableWidthUnitValues.Dxa;
+            table.LayoutType = TableLayoutValues.Fixed;
+            table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
+            table.ConditionalFormattingFirstRow = true;
+            foreach (WordTableRow row in table.Rows) {
+                row.Cells[0].Width = 3600;
+                row.Cells[0].WidthType = TableWidthUnitValues.Dxa;
+            }
+
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "CenteredAA";
+            table.Rows[1].Cells[0].Paragraphs[0].Text = "BaselineAA";
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = new PdfCore.PageSize(360, 260),
+                Margins = PdfCore.PageMargins.Uniform(40),
+                FontFamily = "Helvetica"
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        var words = pdf.GetPage(1).GetWords().ToList();
+        var centered = Assert.Single(words, word => word.Text == "CenteredAA");
+        var baseline = Assert.Single(words, word => word.Text == "BaselineAA");
+
+        Assert.True(centered.BoundingBox.Left > baseline.BoundingBox.Left + 35D,
+            $"Expected first-row table style paragraph alignment to center the native table cell text. Centered x: {centered.BoundingBox.Left:0.##}; baseline x: {baseline.BoundingBox.Left:0.##}.");
+        Assert.True(centered.BoundingBox.Bottom - baseline.BoundingBox.Bottom > 35D,
+            $"Expected first-row table style paragraph spacing to increase the row gap. Gap: {centered.BoundingBox.Bottom - baseline.BoundingBox.Bottom:0.##}.");
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Uses_DocDefaults_For_Table_Cell_Paragraph_Spacing() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellParagraphSpacing.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellParagraphSpacing.pdf");

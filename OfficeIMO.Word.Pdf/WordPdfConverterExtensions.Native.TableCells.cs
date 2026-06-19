@@ -321,7 +321,7 @@ namespace OfficeIMO.Word.Pdf {
                 paragraphs.Add(new PdfCore.PdfTableCellParagraph(
                     paragraphRuns,
                     spacingAfter,
-                    MapNativeParagraphAlign(ResolveNativeParagraphJustification(paragraph)),
+                    MapNativeParagraphAlign(ResolveNativeTableCellParagraphJustification(paragraph, tableStyleDefaults)),
                     spacingBefore));
                 pendingSpacingAfter = spacingAfter;
             }
@@ -339,6 +339,9 @@ namespace OfficeIMO.Word.Pdf {
 
             return null;
         }
+
+        private static W.JustificationValues? ResolveNativeTableCellParagraphJustification(WordParagraph paragraph, NativeTableStyleDefaults tableStyleDefaults) =>
+            paragraph.ParagraphAlignment ?? GetNativeParagraphStyleDefaults(paragraph).Alignment ?? tableStyleDefaults.ParagraphAlignment;
 
         private static double GetNativeCellParagraphSpacingBefore(WordParagraph paragraph, NativeDocumentDefaults nativeDefaults, NativeTableStyleDefaults tableStyleDefaults) {
             NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);

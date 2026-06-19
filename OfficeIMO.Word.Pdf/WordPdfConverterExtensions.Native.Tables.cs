@@ -470,13 +470,25 @@ namespace OfficeIMO.Word.Pdf {
                 !conditionalStyle.Underline.HasValue &&
                 !conditionalStyle.Strike.HasValue &&
                 !conditionalStyle.Highlight.HasValue &&
-                !conditionalStyle.CellVerticalAlignment.HasValue) {
+                !conditionalStyle.CellVerticalAlignment.HasValue &&
+                !conditionalStyle.ParagraphLineHeight.HasValue &&
+                !conditionalStyle.ParagraphLineSpacingPoints.HasValue &&
+                !conditionalStyle.ParagraphLineSpacingRule.HasValue &&
+                !conditionalStyle.ParagraphSpacingBefore.HasValue &&
+                !conditionalStyle.ParagraphSpacingAfter.HasValue &&
+                !conditionalStyle.ParagraphAlignment.HasValue) {
                 return tableStyleDefaults;
             }
 
             NativeTableRunStyleDefaults runStyle = tableStyleDefaults.RunStyle;
             return tableStyleDefaults with {
                 CellVerticalAlignment = conditionalStyle.CellVerticalAlignment ?? tableStyleDefaults.CellVerticalAlignment,
+                ParagraphLineHeight = conditionalStyle.ParagraphLineHeight ?? tableStyleDefaults.ParagraphLineHeight,
+                ParagraphLineSpacingPoints = conditionalStyle.ParagraphLineSpacingPoints ?? tableStyleDefaults.ParagraphLineSpacingPoints,
+                ParagraphLineSpacingRule = conditionalStyle.ParagraphLineSpacingRule ?? tableStyleDefaults.ParagraphLineSpacingRule,
+                ParagraphSpacingBefore = conditionalStyle.ParagraphSpacingBefore ?? tableStyleDefaults.ParagraphSpacingBefore,
+                ParagraphSpacingAfter = conditionalStyle.ParagraphSpacingAfter ?? tableStyleDefaults.ParagraphSpacingAfter,
+                ParagraphAlignment = conditionalStyle.ParagraphAlignment ?? tableStyleDefaults.ParagraphAlignment,
                 RunStyle = runStyle with {
                     FontSize = conditionalStyle.FontSize ?? runStyle.FontSize,
                     Bold = conditionalStyle.Bold ?? runStyle.Bold,
