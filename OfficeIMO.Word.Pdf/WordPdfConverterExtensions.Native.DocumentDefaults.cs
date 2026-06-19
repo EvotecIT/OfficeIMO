@@ -4,8 +4,8 @@ using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
-        private readonly record struct NativeDocumentDefaults(double FontSize, double ParagraphLineHeight, double ParagraphSpacingBefore, bool ParagraphSpacingBeforeDeclared, double ParagraphSpacingAfter, bool ParagraphSpacingAfterDeclared, bool ParagraphWidowControl, double? DefaultTabStopWidth) {
-            public static NativeDocumentDefaults WordDefault { get; } = new(11D, NativeDefaultParagraphLineHeight, 0D, false, NativeDefaultParagraphSpacingAfter, false, true, null);
+        private readonly record struct NativeDocumentDefaults(string? FontFamily, double FontSize, double ParagraphLineHeight, double ParagraphSpacingBefore, bool ParagraphSpacingBeforeDeclared, double ParagraphSpacingAfter, bool ParagraphSpacingAfterDeclared, bool ParagraphWidowControl, double? DefaultTabStopWidth) {
+            public static NativeDocumentDefaults WordDefault { get; } = new(null, 11D, NativeDefaultParagraphLineHeight, 0D, false, NativeDefaultParagraphSpacingAfter, false, true, null);
         }
 
         private static NativeDocumentDefaults GetNativeDocumentDefaults(WordDocument? document) {
@@ -13,6 +13,7 @@ namespace OfficeIMO.Word.Pdf {
             double? defaultTabStopWidth = GetNativeDefaultTabStopWidth(document);
             if (defaults == null) {
                 return new NativeDocumentDefaults(
+                    NativeDocumentDefaults.WordDefault.FontFamily,
                     NativeDocumentDefaults.WordDefault.FontSize,
                     NativeDocumentDefaults.WordDefault.ParagraphLineHeight,
                     NativeDocumentDefaults.WordDefault.ParagraphSpacingBefore,
@@ -23,6 +24,10 @@ namespace OfficeIMO.Word.Pdf {
                     defaultTabStopWidth);
             }
 
+            string? fontFamily = ResolveNativeRunFontsFamily(document, defaults
+                .GetFirstChild<W.RunPropertiesDefault>()?
+                .GetFirstChild<W.RunPropertiesBaseStyle>()?
+                .GetFirstChild<W.RunFonts>());
             double fontSize = GetNativeDefaultFontSize(defaults) ?? NativeDocumentDefaults.WordDefault.FontSize;
             W.SpacingBetweenLines? spacing = defaults
                 .GetFirstChild<W.ParagraphPropertiesDefault>()?
@@ -38,7 +43,7 @@ namespace OfficeIMO.Word.Pdf {
                 .GetFirstChild<W.ParagraphPropertiesDefault>()?
                 .GetFirstChild<W.ParagraphPropertiesBaseStyle>()?
                 .GetFirstChild<W.WidowControl>()) ?? NativeDocumentDefaults.WordDefault.ParagraphWidowControl;
-            return new NativeDocumentDefaults(fontSize, lineHeight, spacingBefore, spacingBeforeDeclared, spacingAfter, spacingAfterDeclared, widowControl, defaultTabStopWidth);
+            return new NativeDocumentDefaults(fontFamily, fontSize, lineHeight, spacingBefore, spacingBeforeDeclared, spacingAfter, spacingAfterDeclared, widowControl, defaultTabStopWidth);
         }
 
         private static double? GetNativeDefaultTabStopWidth(WordDocument? document) {

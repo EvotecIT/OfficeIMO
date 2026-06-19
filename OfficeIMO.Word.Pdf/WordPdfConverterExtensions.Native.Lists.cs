@@ -101,7 +101,7 @@ namespace OfficeIMO.Word.Pdf {
                 return false;
             }
 
-            List<PdfCore.TextRun> richRuns = CreateNativeCellParagraphRuns(paragraph, footnoteNumbersById);
+            List<PdfCore.TextRun> richRuns = CreateNativeCellParagraphRuns(paragraph, footnoteNumbersById, NativeTableStyleDefaults.Empty, nativeDefaults);
             string content = string.Concat(richRuns.Select(run => run.Text));
             if (string.IsNullOrWhiteSpace(content)) {
                 return false;
@@ -116,7 +116,7 @@ namespace OfficeIMO.Word.Pdf {
             index = listIndex.Index;
             item = new PdfCore.PdfListItem(richRuns, paragraph.Bookmark?.Name, string.IsNullOrWhiteSpace(displayMarker) ? null : displayMarker);
             align = ResolveNativeParagraphAlign(paragraph, allowJustify: false);
-            NativeResolvedTextStyle textStyle = ResolveNativeTextRunStyle(paragraph);
+            NativeResolvedTextStyle textStyle = ResolveNativeTextRunStyle(paragraph, nativeDefaults: nativeDefaults);
             color = textStyle.Color;
             style = CreateNativeListStyle(paragraph, info.Value, displayMarker, nativeDefaults, textStyle);
             return true;
