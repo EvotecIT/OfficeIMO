@@ -129,6 +129,23 @@ internal static partial class PdfWriter {
         return style?.GetMarkerGap(defaultGap) ?? defaultGap;
     }
 
+    private static PdfStandardFont GetListMarkerFont(PdfListStyle? style, PdfStandardFont defaultFont) {
+        PdfStandardFont normalFont = ChooseNormal(defaultFont);
+        if (style?.MarkerBold == true && style.MarkerItalic) {
+            return ChooseBoldItalic(normalFont);
+        }
+
+        if (style?.MarkerBold == true) {
+            return ChooseBold(normalFont);
+        }
+
+        if (style?.MarkerItalic == true) {
+            return ChooseItalic(normalFont);
+        }
+
+        return normalFont;
+    }
+
     private static double GetListItemSpacing(PdfListStyle? style, double leading) {
         return style?.GetItemSpacing(leading) ?? leading * 0.15D;
     }

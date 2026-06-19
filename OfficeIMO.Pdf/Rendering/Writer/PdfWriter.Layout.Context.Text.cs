@@ -148,6 +148,22 @@ internal static partial class PdfWriter {
             if (effectiveRuns.Any(r => r.Bold && r.Italic)) { currentPage!.UsedBoldItalic = true; usedBoldItalic = true; }
         }
 
+        private void MarkSimpleFont(PdfStandardFont font) {
+            EnsurePage();
+            currentPage!.UsedFonts.Add(font);
+            PdfStandardFont normalFont = ChooseNormal(currentOpts.DefaultFont);
+            if (font == ChooseBold(normalFont)) {
+                currentPage.UsedBold = true;
+                usedBold = true;
+            } else if (font == ChooseItalic(normalFont)) {
+                currentPage.UsedItalic = true;
+                usedItalic = true;
+            } else if (font == ChooseBoldItalic(normalFont)) {
+                currentPage.UsedBoldItalic = true;
+                usedBoldItalic = true;
+            }
+        }
+
     }
 }
 

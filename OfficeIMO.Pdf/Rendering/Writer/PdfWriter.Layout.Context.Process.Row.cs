@@ -348,7 +348,8 @@ internal static partial class PdfWriter {
 
                                 var markerLines = new System.Collections.Generic.List<string>(1) { listItem.Marker };
                                 int? labelMarkedContentId = RegisterTextStructureElement("Lbl", listItemElementIndex);
-                                WriteLinesInternal("F1", listItem.Size, leading, xCol + listItem.MarkerXOffset, listItem.MarkerWidth, baselineY, markerLines, listItem.MarkerAlign, listItem.Color, applyBaselineTweak: true, structureType: "Lbl", markedContentId: labelMarkedContentId);
+                                MarkSimpleFont(listItem.MarkerFont);
+                                WriteLinesInternal(GetStandardFontResourceName(listItem.MarkerFont, ChooseNormal(currentOpts.DefaultFont)), listItem.Size, leading, xCol + listItem.MarkerXOffset, listItem.MarkerWidth, baselineY, markerLines, listItem.MarkerAlign, listItem.Color, applyBaselineTweak: true, structureType: "Lbl", markedContentId: labelMarkedContentId);
                             }
 
                             int? bodyMarkedContentId = line == 0 || listItem.StructureElement == null

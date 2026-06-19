@@ -336,6 +336,48 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Maps_Paragraph_Style_BoldItalic_To_List_Marker() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeListStyleMarkerBoldItalic.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeListStyleMarkerBoldItalic.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                const string styleId = "NativeListMarkerBoldItalic";
+                Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                styles.Append(new Style(
+                    new StyleName { Val = "Native List Marker Bold Italic" },
+                    new BasedOn { Val = "Normal" },
+                    new StyleRunProperties(new Bold(), new Italic()))
+                {
+                    Type = StyleValues.Paragraph,
+                    StyleId = styleId,
+                    CustomStyle = true
+                });
+
+                WordList numberedList = document.AddCustomList();
+                numberedList.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
+                WordParagraph styled = numberedList.AddItem("StyledListMarkerBoldItalic");
+                styled.SetStyleId(styleId);
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false,
+                    FontFamily = "Helvetica"
+                });
+            }
+
+            byte[] bytes = File.ReadAllBytes(pdfPath);
+            string content = ReadPdfPageContent(bytes);
+            var listItems = PdfTextExtractor.ExtractListItemsByPage(bytes)
+                .SelectMany(page => page.ListItems)
+                .ToList();
+
+            Assert.Contains(listItems, item => item.Marker == "1" && item.Text == "StyledListMarkerBoldItalic");
+            Assert.True(
+                Regex.Matches(content, @"/F4\s+11\s+Tf").Count >= 2,
+                "Expected paragraph style bold italic typography to be emitted for both the list marker and the list item text.");
+        }
+
+        [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Maps_List_Item_Footnotes_Through_Native_List_Blocks() {
             string docPath = Path.Combine(_directoryWithFiles, "PdfNativeListFootnotes.docx");
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeListFootnotes.pdf");

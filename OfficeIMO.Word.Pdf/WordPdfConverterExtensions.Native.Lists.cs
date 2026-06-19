@@ -153,9 +153,12 @@ namespace OfficeIMO.Word.Pdf {
             double markerWidth = EstimateNativeListMarkerWidth(marker, fontSize);
             double markerGap = Math.Max(0D, textIndent - markerIndent - markerWidth);
 
+            var markerTextStyle = ResolveNativeTextRunStyle(paragraph);
             var style = new PdfCore.PdfListStyle {
                 LeftIndent = markerIndent,
-                MarkerGap = markerGap
+                MarkerGap = markerGap,
+                MarkerBold = markerTextStyle.Bold,
+                MarkerItalic = markerTextStyle.Italic
             };
 
             if (paragraph.FontSize.HasValue && paragraph.FontSize.Value > 0D) {
@@ -231,6 +234,8 @@ namespace OfficeIMO.Word.Pdf {
                    DoubleEquals(left.SpacingBefore, right.SpacingBefore) &&
                    NullableDoubleEquals(left.SpacingAfter, right.SpacingAfter) &&
                    NullableDoubleEquals(left.ItemSpacing, right.ItemSpacing) &&
+                   left.MarkerBold == right.MarkerBold &&
+                   left.MarkerItalic == right.MarkerItalic &&
                    left.Color.Equals(right.Color) &&
                    left.KeepTogether == right.KeepTogether &&
                    left.KeepWithNext == right.KeepWithNext;

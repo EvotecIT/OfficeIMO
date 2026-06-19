@@ -10,10 +10,11 @@ internal static partial class PdfWriter {
             double size = GetListFontSize(listStyle, currentOpts.DefaultFontSize);
             double leading = GetListLeading(listStyle, size);
             var baseFont = ChooseNormal(currentOpts.DefaultFont);
+            PdfStandardFont markerFont = GetListMarkerFont(listStyle, currentOpts.DefaultFont);
             const string bulletGlyph = "•";
             double bulletWidth = bl.RichItems.Count == 0
-                ? EstimateSimpleTextWidthForOptions(bulletGlyph, baseFont, size, currentOpts)
-                : bl.RichItems.Max(item => EstimateSimpleTextWidthForOptions(item.Marker ?? bulletGlyph, baseFont, size, currentOpts));
+                ? EstimateSimpleTextWidthForOptions(bulletGlyph, markerFont, size, currentOpts)
+                : bl.RichItems.Max(item => EstimateSimpleTextWidthForOptions(item.Marker ?? bulletGlyph, markerFont, size, currentOpts));
             double spaceAdvance = EstimateSimpleTextWidthForOptions(" ", baseFont, size, currentOpts);
             double markerGap = GetListMarkerGap(listStyle, spaceAdvance);
             double indent = bulletWidth + markerGap;
@@ -67,7 +68,7 @@ internal static partial class PdfWriter {
 
                 double spacingBefore = itemIndex == 0 ? listSpacingBefore : 0D;
                 double spacingAfter = itemIndex == bl.RichItems.Count - 1 ? listSpacingAfter : itemSpacing;
-                RenderListItem(item.Runs, layout.Lines, layout.LineHeights, marker, currentOpts.MarginLeft + listLeftIndent + firstLineDx, bulletWidth, PdfAlign.Left, currentOpts.MarginLeft + listLeftIndent + indent, alignmentWidth, bl.Align, bl.Color ?? listStyle?.Color, size, leading, spacingBefore, spacingAfter, item.BookmarkName, ref listStructureElementIndex, ref listStructurePage);
+                RenderListItem(item.Runs, layout.Lines, layout.LineHeights, marker, markerFont, currentOpts.MarginLeft + listLeftIndent + firstLineDx, bulletWidth, PdfAlign.Left, currentOpts.MarginLeft + listLeftIndent + indent, alignmentWidth, bl.Align, bl.Color ?? listStyle?.Color, size, leading, spacingBefore, spacingAfter, item.BookmarkName, ref listStructureElementIndex, ref listStructurePage);
             }
         }
 
@@ -76,13 +77,14 @@ internal static partial class PdfWriter {
             double size = GetListFontSize(listStyle, currentOpts.DefaultFontSize);
             double leading = GetListLeading(listStyle, size);
             var baseFont = ChooseNormal(currentOpts.DefaultFont);
+            PdfStandardFont markerFont = GetListMarkerFont(listStyle, currentOpts.DefaultFont);
             int lastNumber = nl.StartNumber + Math.Max(0, nl.RichItems.Count - 1);
             string widestMarker = lastNumber.ToString(CultureInfo.InvariantCulture) + ".";
             double markerWidth = nl.RichItems.Count == 0
-                ? EstimateSimpleTextWidthForOptions(widestMarker, baseFont, size, currentOpts)
+                ? EstimateSimpleTextWidthForOptions(widestMarker, markerFont, size, currentOpts)
                 : nl.RichItems
                     .Select((item, itemIndex) => item.Marker ?? ((nl.StartNumber + itemIndex).ToString(CultureInfo.InvariantCulture) + "."))
-                    .Max(marker => EstimateSimpleTextWidthForOptions(marker, baseFont, size, currentOpts));
+                    .Max(marker => EstimateSimpleTextWidthForOptions(marker, markerFont, size, currentOpts));
             double spaceAdvance = EstimateSimpleTextWidthForOptions(" ", baseFont, size, currentOpts);
             double markerGap = GetListMarkerGap(listStyle, spaceAdvance);
             double indent = markerWidth + markerGap;
@@ -136,7 +138,7 @@ internal static partial class PdfWriter {
 
                 double spacingBefore = itemIndex == 0 ? listSpacingBefore : 0D;
                 double spacingAfter = itemIndex == nl.RichItems.Count - 1 ? listSpacingAfter : itemSpacing;
-                RenderListItem(item.Runs, layout.Lines, layout.LineHeights, marker, currentOpts.MarginLeft + listLeftIndent + firstLineDx, markerWidth, PdfAlign.Right, currentOpts.MarginLeft + listLeftIndent + indent, alignmentWidth, nl.Align, nl.Color ?? listStyle?.Color, size, leading, spacingBefore, spacingAfter, item.BookmarkName, ref listStructureElementIndex, ref listStructurePage);
+                RenderListItem(item.Runs, layout.Lines, layout.LineHeights, marker, markerFont, currentOpts.MarginLeft + listLeftIndent + firstLineDx, markerWidth, PdfAlign.Right, currentOpts.MarginLeft + listLeftIndent + indent, alignmentWidth, nl.Align, nl.Color ?? listStyle?.Color, size, leading, spacingBefore, spacingAfter, item.BookmarkName, ref listStructureElementIndex, ref listStructurePage);
             }
         }
 
