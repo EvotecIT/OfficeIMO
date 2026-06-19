@@ -68,7 +68,7 @@ namespace OfficeIMO.Word.Pdf {
             return parts.HasContent ? parts : null;
         }
 
-        private static PdfCore.PdfStandardFont? ResolveNativeHeaderFooterFont(params WordHeaderFooter?[] headerFooters) {
+        private static PdfCore.PdfStandardFont? ResolveNativeHeaderFooterFont(PdfCore.PdfStandardFont baseFont, params WordHeaderFooter?[] headerFooters) {
             PdfCore.PdfStandardFont? resolvedFont = null;
             foreach (WordHeaderFooter? headerFooter in headerFooters) {
                 foreach (string familyName in EnumerateNativeHeaderFooterFontFamilies(headerFooter)) {
@@ -85,7 +85,15 @@ namespace OfficeIMO.Word.Pdf {
                 }
             }
 
-            return resolvedFont;
+            NativeHeaderFooterEmphasis emphasis = ResolveNativeHeaderFooterEmphasis(headerFooters);
+            bool bold = emphasis.Bold == true;
+            bool italic = emphasis.Italic == true;
+            if (!resolvedFont.HasValue && !bold && !italic) {
+                return null;
+            }
+
+            PdfCore.PdfStandardFont resolvedFamily = resolvedFont ?? PdfCore.PdfStandardFontMapper.GetFontFamily(baseFont);
+            return PdfCore.PdfStandardFontMapper.GetStyledFont(resolvedFamily, bold, italic);
         }
 
         private static PdfCore.PdfColor? ResolveNativeHeaderFooterColor(params WordHeaderFooter?[] headerFooters) {
@@ -101,6 +109,62 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             return resolvedColor;
+        }
+
+        private static PdfCore.PdfStandardFont ResolveNativeHeaderFooterBaseFont(WordDocument document, PdfSaveOptions? options, bool isHeader) {
+            if (options?.PdfOptions != null) {
+                return PdfCore.PdfStandardFontMapper.GetFontFamily(isHeader ? options.PdfOptions.HeaderFont : options.PdfOptions.FooterFont);
+            }
+
+            foreach (string? familyName in new[] {
+                options?.FontFamily,
+                document.Settings.FontFamily,
+                document.Settings.FontFamilyHighAnsi,
+                document.Settings.FontFamilyEastAsia,
+                document.Settings.FontFamilyComplexScript,
+                GetNativeDocumentDefaults(document).FontFamily
+            }) {
+                if (PdfCore.PdfStandardFontMapper.TryMapFontFamily(familyName, out PdfCore.PdfStandardFont mappedFont)) {
+                    return PdfCore.PdfStandardFontMapper.GetFontFamily(mappedFont);
+                }
+            }
+
+            return PdfCore.PdfStandardFont.Helvetica;
+        }
+
+        private readonly record struct NativeHeaderFooterEmphasis(bool? Bold, bool? Italic);
+
+        private static NativeHeaderFooterEmphasis ResolveNativeHeaderFooterEmphasis(params WordHeaderFooter?[] headerFooters) {
+            bool? bold = null;
+            bool? italic = null;
+            bool boldConflict = false;
+            bool italicConflict = false;
+            foreach (WordHeaderFooter? headerFooter in headerFooters) {
+                foreach (NativeResolvedTextStyle style in EnumerateNativeHeaderFooterTextStyles(headerFooter)) {
+                    MergeNativeHeaderFooterEmphasis(ref bold, ref boldConflict, style.Bold);
+                    MergeNativeHeaderFooterEmphasis(ref italic, ref italicConflict, style.Italic);
+                }
+            }
+
+            return new NativeHeaderFooterEmphasis(
+                boldConflict ? null : bold,
+                italicConflict ? null : italic);
+        }
+
+        private static void MergeNativeHeaderFooterEmphasis(ref bool? current, ref bool hasConflict, bool candidate) {
+            if (hasConflict) {
+                return;
+            }
+
+            if (!current.HasValue) {
+                current = candidate;
+                return;
+            }
+
+            if (current.Value != candidate) {
+                current = null;
+                hasConflict = true;
+            }
         }
 
         private static IEnumerable<string> EnumerateNativeHeaderFooterFontFamilies(WordHeaderFooter? headerFooter) {
@@ -123,6 +187,18 @@ namespace OfficeIMO.Word.Pdf {
             foreach (WordElement element in CollapseNativeParagraphElements(headerFooter.Elements)) {
                 foreach (PdfCore.PdfColor color in EnumerateNativeHeaderFooterElementColors(element)) {
                     yield return color;
+                }
+            }
+        }
+
+        private static IEnumerable<NativeResolvedTextStyle> EnumerateNativeHeaderFooterTextStyles(WordHeaderFooter? headerFooter) {
+            if (headerFooter == null) {
+                yield break;
+            }
+
+            foreach (WordElement element in CollapseNativeParagraphElements(headerFooter.Elements)) {
+                foreach (NativeResolvedTextStyle style in EnumerateNativeHeaderFooterElementTextStyles(element)) {
+                    yield return style;
                 }
             }
         }
@@ -157,6 +233,36 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
+        private static IEnumerable<NativeResolvedTextStyle> EnumerateNativeHeaderFooterElementTextStyles(WordElement element) {
+            if (element is WordParagraph paragraph) {
+                foreach (NativeResolvedTextStyle style in EnumerateNativeParagraphTextStyles(paragraph)) {
+                    yield return style;
+                }
+
+                yield break;
+            }
+
+            if (element is not WordTable table) {
+                yield break;
+            }
+
+            foreach (WordTableRow row in table.Rows) {
+                foreach (WordTableCell cell in row.Cells) {
+                    foreach (WordParagraph cellParagraph in cell.Paragraphs) {
+                        foreach (NativeResolvedTextStyle style in EnumerateNativeParagraphTextStyles(cellParagraph)) {
+                            yield return style;
+                        }
+                    }
+
+                    foreach (WordTable nestedTable in cell.NestedTables) {
+                        foreach (NativeResolvedTextStyle style in EnumerateNativeHeaderFooterElementTextStyles(nestedTable)) {
+                            yield return style;
+                        }
+                    }
+                }
+            }
+        }
+
         private static IEnumerable<PdfCore.PdfColor> EnumerateNativeHeaderFooterElementColors(WordElement element) {
             if (element is WordParagraph paragraph) {
                 foreach (PdfCore.PdfColor color in EnumerateNativeParagraphColors(paragraph)) {
@@ -184,6 +290,23 @@ namespace OfficeIMO.Word.Pdf {
                         }
                     }
                 }
+            }
+        }
+
+        private static IEnumerable<NativeResolvedTextStyle> EnumerateNativeParagraphTextStyles(WordParagraph paragraph) {
+            List<WordParagraph> runs = GetNativeRuns(paragraph);
+            bool emittedRun = false;
+            foreach (WordParagraph run in runs) {
+                if (run.IsImage || string.IsNullOrWhiteSpace(run.Text)) {
+                    continue;
+                }
+
+                emittedRun = true;
+                yield return ResolveNativeTextRunStyle(run, paragraph);
+            }
+
+            if (!emittedRun && !string.IsNullOrWhiteSpace(paragraph.Text)) {
+                yield return ResolveNativeTextRunStyle(paragraph);
             }
         }
 

@@ -75,10 +75,12 @@ namespace OfficeIMO.Word.Pdf {
             IReadOnlyList<NativeHeaderFooterShape> firstFooterShapes = section.DifferentFirstPage ? GetNativeHeaderFooterShapes(section.Footer?.First) : Array.Empty<NativeHeaderFooterShape>();
             IReadOnlyList<NativeHeaderFooterShape> evenFooterShapes = section.DifferentOddAndEvenPages ? GetNativeHeaderFooterShapes(section.Footer?.Even) : Array.Empty<NativeHeaderFooterShape>();
             PdfCore.PdfStandardFont? headerFont = ResolveNativeHeaderFooterFont(
+                ResolveNativeHeaderFooterBaseFont(section._document, options, isHeader: true),
                 section.Header?.Default,
                 section.DifferentFirstPage ? section.Header?.First : null,
                 section.DifferentOddAndEvenPages ? section.Header?.Even : null);
             PdfCore.PdfStandardFont? footerFont = ResolveNativeHeaderFooterFont(
+                ResolveNativeHeaderFooterBaseFont(section._document, options, isHeader: false),
                 section.Footer?.Default,
                 section.DifferentFirstPage ? section.Footer?.First : null,
                 section.DifferentOddAndEvenPages ? section.Footer?.Even : null);
