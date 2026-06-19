@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using DocumentFormat.OpenXml.Packaging;
@@ -233,13 +234,14 @@ namespace OfficeIMO.Word {
             double emuHeight = imageLocation.Height * EnglishMetricUnitsPerInch / PixelsPerInch;
 
             var drawing = new WordDrawing();
+            UInt32Value docPropertiesId = GetNextDocPropertiesId(document);
 
             if (wrapImage == WrapTextImage.InLineWithText) {
-                var inline = GetInline(emuWidth, emuHeight, imageLocation.ImageName, fileName, imageLocation.RelationshipId, shape, compressionQuality, description);
+                var inline = GetInline(emuWidth, emuHeight, docPropertiesId, imageLocation.ImageName, fileName, imageLocation.RelationshipId, shape, compressionQuality, description);
                 drawing.Append(inline);
             } else {
                 var graphic = GetGraphic(emuWidth, emuHeight, fileName, imageLocation.RelationshipId, shape, compressionQuality, description);
-                var anchor = GetAnchor(emuWidth, emuHeight, graphic, imageLocation.ImageName, description, wrapImage);
+                var anchor = GetAnchor(emuWidth, emuHeight, docPropertiesId, graphic, imageLocation.ImageName, description, wrapImage);
                 drawing.Append(anchor);
             }
             this._Image = drawing;
@@ -330,15 +332,57 @@ namespace OfficeIMO.Word {
             double emuHeight = height * EnglishMetricUnitsPerInch / PixelsPerInch;
 
             var drawing = new WordDrawing();
+            UInt32Value docPropertiesId = GetNextDocPropertiesId(document);
             if (wrapImage == WrapTextImage.InLineWithText) {
-                var inline = GetInline(emuWidth, emuHeight, System.IO.Path.GetFileNameWithoutExtension(uri.ToString()), System.IO.Path.GetFileName(uri.ToString()), rel.Id, shape, compressionQuality, description, true);
+                var inline = GetInline(emuWidth, emuHeight, docPropertiesId, System.IO.Path.GetFileNameWithoutExtension(uri.ToString()), System.IO.Path.GetFileName(uri.ToString()), rel.Id, shape, compressionQuality, description, true);
                 drawing.Append(inline);
             } else {
                 var graphic = GetGraphic(emuWidth, emuHeight, System.IO.Path.GetFileName(uri.ToString()), rel.Id, shape, compressionQuality, description, true);
-                var anchor = GetAnchor(emuWidth, emuHeight, graphic, System.IO.Path.GetFileNameWithoutExtension(uri.ToString()), description, wrapImage);
+                var anchor = GetAnchor(emuWidth, emuHeight, docPropertiesId, graphic, System.IO.Path.GetFileNameWithoutExtension(uri.ToString()), description, wrapImage);
                 drawing.Append(anchor);
             }
             _Image = drawing;
+        }
+
+        private static UInt32Value GetNextDocPropertiesId(WordDocument document) {
+            uint max = 0U;
+            var mainPart = document._wordprocessingDocument.MainDocumentPart;
+
+            if (mainPart?.Document != null) {
+                foreach (DocProperties properties in mainPart.Document.Descendants<DocProperties>()) {
+                    if (properties.Id != null && properties.Id.Value > max) {
+                        max = properties.Id.Value;
+                    }
+                }
+            }
+
+            if (mainPart != null) {
+                foreach (HeaderPart headerPart in mainPart.HeaderParts) {
+                    if (headerPart.Header == null) {
+                        continue;
+                    }
+
+                    foreach (DocProperties properties in headerPart.Header.Descendants<DocProperties>()) {
+                        if (properties.Id != null && properties.Id.Value > max) {
+                            max = properties.Id.Value;
+                        }
+                    }
+                }
+
+                foreach (FooterPart footerPart in mainPart.FooterParts) {
+                    if (footerPart.Footer == null) {
+                        continue;
+                    }
+
+                    foreach (DocProperties properties in footerPart.Footer.Descendants<DocProperties>()) {
+                        if (properties.Id != null && properties.Id.Value > max) {
+                            max = properties.Id.Value;
+                        }
+                    }
+                }
+            }
+
+            return (UInt32Value)(max + 1U);
         }
 
         private OpenXmlPart GetContainingPart() {

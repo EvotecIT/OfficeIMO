@@ -285,6 +285,117 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Image payload changed.", image.Message);
         }
 
+        [Fact]
+        public void CompareStructureAlignsParagraphInsertionsWithoutFalseShiftChanges() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_paragraph_alignment.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                doc.AddParagraph("Service Agreement").Style = WordParagraphStyles.Heading1;
+                doc.AddParagraph("Payment is due within 30 days.");
+                doc.AddParagraph("Audit logs must be retained for 90 days.");
+                doc.AddParagraph("Both parties accept the terms.");
+                doc.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_paragraph_alignment.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                doc.AddParagraph("Service Agreement").Style = WordParagraphStyles.Heading1;
+                doc.AddParagraph("Payment is due within 14 days.");
+                doc.AddParagraph("Late payment requires written escalation.");
+                doc.AddParagraph("Audit logs must be retained for 90 days.");
+                doc.AddParagraph("Both parties accept the terms.");
+                doc.Save(false);
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Equal(2, result.Findings.Count);
+            WordComparisonFinding modified = Assert.Single(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Paragraph &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified);
+            Assert.Equal("paragraph[1]", modified.Location);
+            Assert.Equal("Payment is due within 30 days.", modified.SourceText);
+            Assert.Equal("Payment is due within 14 days.", modified.TargetText);
+
+            WordComparisonFinding inserted = Assert.Single(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Paragraph &&
+                finding.ChangeKind == WordComparisonChangeKind.Inserted);
+            Assert.Equal("paragraph[2]", inserted.Location);
+            Assert.Equal("Late payment requires written escalation.", inserted.TargetText);
+            Assert.DoesNotContain(result.Findings, finding => finding.TargetText == "Audit logs must be retained for 90 days.");
+        }
+
+        [Fact]
+        public void CompareStructureAlignsTableRowsAroundInsertedEvidenceRows() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_table_alignment.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                WordTable table = doc.AddTable(3, 2);
+                table.Rows[0].Cells[0].Paragraphs[0].SetText("Control");
+                table.Rows[0].Cells[1].Paragraphs[0].SetText("Owner");
+                table.Rows[1].Cells[0].Paragraphs[0].SetText("MFA");
+                table.Rows[1].Cells[1].Paragraphs[0].SetText("Security");
+                table.Rows[2].Cells[0].Paragraphs[0].SetText("Logging");
+                table.Rows[2].Cells[1].Paragraphs[0].SetText("Platform");
+                doc.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_table_alignment.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                WordTable table = doc.AddTable(4, 2);
+                table.Rows[0].Cells[0].Paragraphs[0].SetText("Control");
+                table.Rows[0].Cells[1].Paragraphs[0].SetText("Owner");
+                table.Rows[1].Cells[0].Paragraphs[0].SetText("MFA");
+                table.Rows[1].Cells[1].Paragraphs[0].SetText("Identity");
+                table.Rows[2].Cells[0].Paragraphs[0].SetText("Review");
+                table.Rows[2].Cells[1].Paragraphs[0].SetText("Compliance");
+                table.Rows[3].Cells[0].Paragraphs[0].SetText("Logging");
+                table.Rows[3].Cells[1].Paragraphs[0].SetText("Platform");
+                doc.Save(false);
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Equal(2, result.Findings.Count);
+            WordComparisonFinding cell = Assert.Single(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.TableCell &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified);
+            Assert.Equal("table[0]/row[1]/cell[1]", cell.Location);
+            Assert.Equal("Security", cell.SourceText);
+            Assert.Equal("Identity", cell.TargetText);
+
+            WordComparisonFinding row = Assert.Single(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.TableRow &&
+                finding.ChangeKind == WordComparisonChangeKind.Inserted);
+            Assert.Equal("table[0]/row[2]", row.Location);
+            Assert.Equal("Review | Compliance", row.TargetText);
+            Assert.DoesNotContain(result.Findings, finding => finding.TargetText == "Logging | Platform");
+        }
+
+        [Fact]
+        public void CompareStructureAlignsImagesAroundInsertedImages() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_image_alignment.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                doc.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"));
+                doc.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "snail.bmp"));
+                doc.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_image_alignment.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                doc.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"));
+                doc.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"));
+                doc.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "snail.bmp"));
+                doc.Save(false);
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            WordComparisonFinding image = Assert.Single(result.Findings);
+            Assert.Equal(WordComparisonScope.Image, image.Scope);
+            Assert.Equal(WordComparisonChangeKind.Inserted, image.ChangeKind);
+            Assert.Equal("image[1]", image.Location);
+            Assert.Equal(1, image.TargetIndex);
+        }
+
         private static void AssertNoTempArtifact(WordDocument document) {
             Assert.Equal(string.Empty, document.FilePath);
         }

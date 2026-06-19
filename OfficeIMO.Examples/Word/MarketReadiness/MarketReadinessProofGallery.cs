@@ -82,11 +82,17 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument source = WordDocument.Create(sourcePath)) {
                 source.AddParagraph("Acceptable Use Policy").Style = WordParagraphStyles.Heading1;
                 source.AddParagraph("Remote access requires quarterly approval.");
-                WordTable table = source.AddTable(2, 2);
+                source.AddParagraph("Audit logs must be retained for 90 days.");
+                source.AddParagraph("Both parties accept the control language.");
+                WordTable table = source.AddTable(3, 2);
                 table.Rows[0].Cells[0].Paragraphs[0].Text = "Control";
                 table.Rows[0].Cells[1].Paragraphs[0].Text = "Owner";
                 table.Rows[1].Cells[0].Paragraphs[0].Text = "MFA";
                 table.Rows[1].Cells[1].Paragraphs[0].Text = "Security";
+                table.Rows[2].Cells[0].Paragraphs[0].Text = "Logging";
+                table.Rows[2].Cells[1].Paragraphs[0].Text = "Platform";
+                source.AddParagraph().AddImage(Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png"));
+                source.AddParagraph().AddImage(Path.Combine(AppContext.BaseDirectory, "Images", "snail.bmp"));
                 source.Save();
             }
 
@@ -95,13 +101,20 @@ namespace OfficeIMO.Examples.Word {
                 target.AddParagraph("Acceptable Use Policy").Style = WordParagraphStyles.Heading1;
                 target.AddParagraph("Remote access requires monthly approval.");
                 target.AddParagraph("Privileged access requires manager attestation.");
-                WordTable table = target.AddTable(3, 2);
+                target.AddParagraph("Audit logs must be retained for 90 days.");
+                target.AddParagraph("Both parties accept the control language.");
+                WordTable table = target.AddTable(4, 2);
                 table.Rows[0].Cells[0].Paragraphs[0].Text = "Control";
                 table.Rows[0].Cells[1].Paragraphs[0].Text = "Owner";
                 table.Rows[1].Cells[0].Paragraphs[0].Text = "MFA";
                 table.Rows[1].Cells[1].Paragraphs[0].Text = "Identity";
                 table.Rows[2].Cells[0].Paragraphs[0].Text = "Review";
                 table.Rows[2].Cells[1].Paragraphs[0].Text = "Compliance";
+                table.Rows[3].Cells[0].Paragraphs[0].Text = "Logging";
+                table.Rows[3].Cells[1].Paragraphs[0].Text = "Platform";
+                target.AddParagraph().AddImage(Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png"));
+                target.AddParagraph().AddImage(Path.Combine(AppContext.BaseDirectory, "Images", "BackgroundImage.png"));
+                target.AddParagraph().AddImage(Path.Combine(AppContext.BaseDirectory, "Images", "snail.bmp"));
                 target.Save();
             }
 
@@ -212,10 +225,16 @@ namespace OfficeIMO.Examples.Word {
             builder.AppendLine("- Has changes: " + result.HasChanges);
             builder.AppendLine();
             foreach (WordComparisonFinding finding in result.Findings) {
-                builder.AppendLine("- " + finding.ChangeKind + " " + finding.Scope + " at `" + finding.Location + "`: " + finding.Message);
+                builder.AppendLine("- " + finding.ChangeKind + " " + finding.Scope + " at `" + finding.Location + "`"
+                    + " (source index: " + FormatIndex(finding.SourceIndex) + ", target index: " + FormatIndex(finding.TargetIndex) + "): "
+                    + finding.Message);
             }
 
             File.WriteAllText(path, builder.ToString(), Encoding.UTF8);
+        }
+
+        private static string FormatIndex(int? index) {
+            return index.HasValue ? index.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "-";
         }
 
         private static void WriteHtmlDiagnostics(string path, IReadOnlyList<HtmlConversionDiagnostic> diagnostics) {
@@ -256,6 +275,9 @@ namespace OfficeIMO.Examples.Word {
             foreach (string docxPath in Directory.GetFiles(scenarioPath, "*.docx").OrderBy(path => path, StringComparer.OrdinalIgnoreCase)) {
                 IReadOnlyList<ValidationErrorInfo> errors = ValidateDocx(docxPath);
                 builder.AppendLine("- " + Path.GetFileName(docxPath) + ": " + errors.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) + " validation errors");
+                foreach (ValidationErrorInfo error in errors) {
+                    builder.AppendLine("  - " + error.Description);
+                }
             }
 
             File.WriteAllText(Path.Combine(scenarioPath, "openxml-validation.md"), builder.ToString(), Encoding.UTF8);

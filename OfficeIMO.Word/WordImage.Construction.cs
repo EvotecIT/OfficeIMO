@@ -221,7 +221,7 @@ namespace OfficeIMO.Word {
             return graphic;
         }
 
-        private Inline GetInline(double emuWidth, double emuHeight, string imageName, string fileName, string relationshipId, ShapeTypeValues shape, BlipCompressionValues compressionQuality, string description = "", bool external = false) {
+        private Inline GetInline(double emuWidth, double emuHeight, UInt32Value docPropertiesId, string imageName, string fileName, string relationshipId, ShapeTypeValues shape, BlipCompressionValues compressionQuality, string description = "", bool external = false) {
             var inline = new Inline() {
                 DistanceFromTop = (UInt32Value)0U,
                 DistanceFromBottom = (UInt32Value)0U,
@@ -232,7 +232,7 @@ namespace OfficeIMO.Word {
             inline.Append(new Extent() { Cx = (Int64Value)emuWidth, Cy = (Int64Value)emuHeight });
             inline.Append(new EffectExtent() { LeftEdge = 0L, TopEdge = 0L, RightEdge = 0L, BottomEdge = 0L });
             inline.Append(new DocProperties() {
-                Id = (UInt32Value)1U,
+                Id = docPropertiesId,
                 Name = imageName,
                 Description = description,
                 Title = _title,
@@ -245,7 +245,7 @@ namespace OfficeIMO.Word {
             return inline;
         }
 
-        private Anchor GetAnchor(double emuWidth, double emuHeight, Graphic graphic, string imageName, string description, WrapTextImage wrapImage) {
+        private Anchor GetAnchor(double emuWidth, double emuHeight, UInt32Value docPropertiesId, Graphic graphic, string imageName, string description, WrapTextImage wrapImage) {
             bool behindDoc;
             if (wrapImage == WrapTextImage.BehindText) {
                 behindDoc = true;
@@ -293,7 +293,7 @@ namespace OfficeIMO.Word {
             WordWrapTextImage.AppendWrapTextImage(anchor1, wrapImage);
 
             DocProperties docProperties1 = new DocProperties() {
-                Id = (UInt32Value)1U,
+                Id = docPropertiesId,
                 Name = imageName,
                 Description = description,
                 Title = _title,
