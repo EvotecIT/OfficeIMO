@@ -78,7 +78,8 @@ namespace OfficeIMO.Word.Pdf {
                                 columnContentWidth,
                                 nativeDefaults,
                                 nativeFontMap,
-                                renderSpacingOnlyEmptyParagraphLineBox: IsPreviousNativeElementTable(columnElements, i));
+                                renderSpacingOnlyEmptyParagraphLineBox: IsPreviousNativeElementTable(columnElements, i),
+                                nextElement: GetNextNativeRenderableElement(columnElements, i));
                             hasContent = true;
                         }
 

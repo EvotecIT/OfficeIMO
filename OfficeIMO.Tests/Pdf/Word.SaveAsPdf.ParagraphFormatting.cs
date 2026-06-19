@@ -916,6 +916,14 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Honors_Paragraph_Style_Contextual_Spacing() {
+            double sameStyleGap = RenderNativeContextualSpacingGap("PdfNativeContextualSpacingSameStyle", sameStyle: true);
+            double differentStyleGap = RenderNativeContextualSpacingGap("PdfNativeContextualSpacingDifferentStyle", sameStyle: false);
+
+            Assert.True(differentStyleGap > sameStyleGap + 16D, $"Expected Word contextual spacing to suppress spacing between paragraphs with the same style. Same-style gap: {sameStyleGap:0.##}; different-style gap: {differentStyleGap:0.##}.");
+        }
+
+        [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Lets_Derived_Paragraph_Style_Auto_Line_Spacing_Override_Exact() {
             using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeParagraphStyleAutoOverridesExactLineSpacing.docx"));
             const string baseStyleId = "BaseExactLineSpacingStyle";
@@ -1067,6 +1075,58 @@ namespace OfficeIMO.Tests {
                 first.LineSpacingAfterPoints = 30;
                 WordParagraph second = document.AddParagraph(secondMarker);
                 second.LineSpacingBeforePoints = secondSpacingBefore;
+                second.LineSpacingAfterPoints = 0;
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false,
+                    PageSize = new OfficeIMO.Pdf.PageSize(320, 240),
+                    Margins = PageMargins.Uniform(36),
+                    FontFamily = "Helvetica"
+                });
+            }
+
+            using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+            var words = pdf.GetPage(1).GetWords().ToList();
+            double firstY = Assert.Single(words, word => word.Text == firstMarker).BoundingBox.Bottom;
+            double secondY = Assert.Single(words, word => word.Text == secondMarker).BoundingBox.Bottom;
+            return firstY - secondY;
+        }
+
+        private double RenderNativeContextualSpacingGap(string fileNamePrefix, bool sameStyle) {
+            const string firstMarker = "ContextFirst";
+            const string secondMarker = "ContextSecond";
+            string docPath = Path.Combine(_directoryWithFiles, fileNamePrefix + ".docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, fileNamePrefix + ".pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                const string contextualStyleId = "NativeContextualSpacing";
+                const string otherStyleId = "NativeContextualSpacingOther";
+                Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                styles.Append(
+                    new Style(
+                        new StyleName { Val = "Native Contextual Spacing" },
+                        new StyleParagraphProperties(
+                            new SpacingBetweenLines { After = "480" },
+                            new ContextualSpacing()))
+                    {
+                        Type = StyleValues.Paragraph,
+                        StyleId = contextualStyleId,
+                        CustomStyle = true
+                    },
+                    new Style(
+                        new StyleName { Val = "Native Contextual Spacing Other" },
+                        new StyleParagraphProperties(new SpacingBetweenLines { After = "0" }))
+                    {
+                        Type = StyleValues.Paragraph,
+                        StyleId = otherStyleId,
+                        CustomStyle = true
+                    });
+
+                WordParagraph first = document.AddParagraph(firstMarker);
+                first.SetStyleId(contextualStyleId);
+                WordParagraph second = document.AddParagraph(secondMarker);
+                second.SetStyleId(sameStyle ? contextualStyleId : otherStyleId);
                 second.LineSpacingAfterPoints = 0;
 
                 document.Save();

@@ -24,8 +24,9 @@ namespace OfficeIMO.Word.Pdf {
             bool? PageBreakBefore,
             bool? KeepTogether,
             bool? KeepWithNext,
-            bool? WidowControl) {
-            public static NativeParagraphStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+            bool? WidowControl,
+            bool? ContextualSpacing) {
+            public static NativeParagraphStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
         }
 
         private static NativeParagraphStyleDefaults GetNativeParagraphStyleDefaults(WordParagraph paragraph) {
@@ -54,6 +55,7 @@ namespace OfficeIMO.Word.Pdf {
             bool? keepTogether = null;
             bool? keepWithNext = null;
             bool? widowControl = null;
+            bool? contextualSpacing = null;
 
             foreach (W.Style style in styleChain) {
                 W.StyleRunProperties? runProperties = style.GetFirstChild<W.StyleRunProperties>();
@@ -104,6 +106,7 @@ namespace OfficeIMO.Word.Pdf {
                     keepTogether = ReadNativeOnOff(paragraphProperties.GetFirstChild<W.KeepLines>()) ?? keepTogether;
                     keepWithNext = ReadNativeOnOff(paragraphProperties.GetFirstChild<W.KeepNext>()) ?? keepWithNext;
                     widowControl = ReadNativeOnOff(paragraphProperties.GetFirstChild<W.WidowControl>()) ?? widowControl;
+                    contextualSpacing = ReadNativeOnOff(paragraphProperties.GetFirstChild<W.ContextualSpacing>()) ?? contextualSpacing;
                 }
             }
 
@@ -127,7 +130,8 @@ namespace OfficeIMO.Word.Pdf {
                 pageBreakBefore,
                 keepTogether,
                 keepWithNext,
-                widowControl);
+                widowControl,
+                contextualSpacing);
         }
 
         private static IReadOnlyList<W.Style> GetNativeParagraphStyleChain(WordDocument? document, string? styleId) {

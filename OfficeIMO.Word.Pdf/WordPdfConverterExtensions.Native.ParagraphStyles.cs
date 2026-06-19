@@ -100,6 +100,32 @@ namespace OfficeIMO.Word.Pdf {
             return style;
         }
 
+        private static bool ShouldSuppressNativeContextualSpacingAfter(WordParagraph paragraph, WordParagraph? nextParagraph) {
+            if (nextParagraph == null ||
+                paragraph.IsPageBreak ||
+                nextParagraph.IsPageBreak ||
+                HasNativePageBreakBefore(nextParagraph)) {
+                return false;
+            }
+
+            NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);
+            bool contextualSpacing = ReadNativeDirectParagraphOnOff<W.ContextualSpacing>(paragraph) ?? styleDefaults.ContextualSpacing ?? false;
+            return contextualSpacing &&
+                   string.Equals(
+                       GetNativeParagraphStyleIdentity(paragraph),
+                       GetNativeParagraphStyleIdentity(nextParagraph),
+                       StringComparison.Ordinal);
+        }
+
+        private static string GetNativeParagraphStyleIdentity(WordParagraph paragraph) {
+            IReadOnlyList<W.Style> styleChain = GetNativeParagraphStyleChain(paragraph._document, paragraph.StyleId);
+            if (styleChain.Count > 0) {
+                return styleChain[styleChain.Count - 1].StyleId?.Value ?? string.Empty;
+            }
+
+            return paragraph.StyleId ?? string.Empty;
+        }
+
         private static bool IsNativeRenderableTextTabStop(W.TabStopValues alignment) =>
             alignment != W.TabStopValues.Bar &&
             alignment != W.TabStopValues.Clear;
