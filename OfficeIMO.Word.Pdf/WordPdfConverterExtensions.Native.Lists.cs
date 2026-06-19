@@ -82,7 +82,7 @@ namespace OfficeIMO.Word.Pdf {
                 return false;
             }
 
-            if (paragraph.PageBreakBefore ||
+            if (HasNativePageBreakBefore(paragraph) ||
                 paragraph.IsPageBreak ||
                 paragraph.Shape != null ||
                 paragraph.TextBox != null ||
@@ -112,7 +112,7 @@ namespace OfficeIMO.Word.Pdf {
             level = info.Value.Level;
             index = listIndex.Index;
             item = new PdfCore.PdfListItem(richRuns, paragraph.Bookmark?.Name, string.IsNullOrWhiteSpace(displayMarker) ? null : displayMarker);
-            align = MapNativeParagraphAlign(paragraph.ParagraphAlignment, allowJustify: false);
+            align = ResolveNativeParagraphAlign(paragraph, allowJustify: false);
             color = ParseNativeColor(paragraph.ColorHex);
             style = CreateNativeListStyle(paragraph, info.Value, displayMarker, nativeDefaults);
             return true;
@@ -137,8 +137,17 @@ namespace OfficeIMO.Word.Pdf {
             const double defaultHangingIndent = 18D;
             NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);
 
-            double textIndent = ConvertNativeTwipsToPoints(info.LeftIndentTwips ?? ((info.Level + 1) * 720)) ?? ((info.Level + 1) * defaultLevelTextIndent);
-            double hangingIndent = ConvertNativeTwipsToPoints(info.HangingIndentTwips ?? 360) ?? defaultHangingIndent;
+            double numberingTextIndent = ConvertNativeTwipsToPoints(info.LeftIndentTwips ?? ((info.Level + 1) * 720)) ??
+                ((info.Level + 1) * defaultLevelTextIndent);
+            double numberingHangingIndent = ConvertNativeTwipsToPoints(info.HangingIndentTwips ?? 360) ??
+                defaultHangingIndent;
+            bool useParagraphStyleIndent = ShouldApplyNativeListParagraphStyleIndent(paragraph);
+            double textIndent = paragraph.IndentationBeforePoints ??
+                (useParagraphStyleIndent ? styleDefaults.LeftIndent : null) ??
+                numberingTextIndent;
+            double hangingIndent = paragraph.IndentationHangingPoints ??
+                (useParagraphStyleIndent ? GetNativeStyleHangingIndent(styleDefaults) : null) ??
+                numberingHangingIndent;
             double markerIndent = Math.Max(0D, textIndent - hangingIndent);
             double fontSize = paragraph.FontSize.HasValue && paragraph.FontSize.Value > 0D ? paragraph.FontSize.Value : styleDefaults.FontSize ?? nativeDefaults.FontSize;
             double markerWidth = EstimateNativeListMarkerWidth(marker, fontSize);
@@ -175,6 +184,13 @@ namespace OfficeIMO.Word.Pdf {
             style.KeepWithNext = ReadNativeDirectParagraphOnOff<W.KeepNext>(paragraph) ?? styleDefaults.KeepWithNext ?? false;
             return style;
         }
+
+        private static double? GetNativeStyleHangingIndent(NativeParagraphStyleDefaults styleDefaults) =>
+            styleDefaults.FirstLineIndent is < 0D ? -styleDefaults.FirstLineIndent.Value : null;
+
+        private static bool ShouldApplyNativeListParagraphStyleIndent(WordParagraph paragraph) =>
+            !string.IsNullOrWhiteSpace(paragraph.StyleId) &&
+            !string.Equals(paragraph.StyleId, "ListParagraph", StringComparison.OrdinalIgnoreCase);
 
         private static double EstimateNativeListMarkerWidth(string marker, double fontSize) {
             if (string.IsNullOrEmpty(marker)) {

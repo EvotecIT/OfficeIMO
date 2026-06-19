@@ -77,7 +77,7 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            if (paragraph.PageBreakBefore) {
+            if (HasNativePageBreakBefore(paragraph)) {
                 pdf.PageBreak();
             }
 
@@ -101,7 +101,7 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            PdfCore.PdfAlign objectAlign = MapNativeParagraphAlign(paragraph.ParagraphAlignment, allowJustify: false);
+            PdfCore.PdfAlign objectAlign = ResolveNativeParagraphAlign(paragraph, allowJustify: false);
             RenderNativeChart(pdf, paragraph.Chart, objectAlign, options, "body paragraph chart");
 
             if (paragraph.Shape != null) {
@@ -153,7 +153,7 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            PdfCore.PdfAlign align = MapNativeParagraphAlign(paragraph.ParagraphAlignment);
+            PdfCore.PdfAlign align = ResolveNativeParagraphAlign(paragraph);
             PdfCore.PdfColor? defaultColor = ParseNativeColor(paragraph.ColorHex);
             int headingLevel = GetHeadingLevel(paragraph);
             PdfCore.PdfColor? headingColor = GetNativeHeadingColor(headingLevel, defaultColor);
@@ -662,7 +662,7 @@ namespace OfficeIMO.Word.Pdf {
         private static PdfCore.PdfAlign MapNativeTextBoxTextAlign(IReadOnlyList<WordParagraph> paragraphs) {
             foreach (WordParagraph paragraph in paragraphs) {
                 if (!string.IsNullOrEmpty(paragraph.Text)) {
-                    return MapNativeParagraphAlign(paragraph.ParagraphAlignment);
+                    return ResolveNativeParagraphAlign(paragraph);
                 }
             }
 
@@ -789,6 +789,16 @@ namespace OfficeIMO.Word.Pdf {
             ResetNativeTextStyle(builder);
         }
 
+        private readonly record struct NativeResolvedTextStyle(
+            bool Bold,
+            bool Underline,
+            bool Italic,
+            bool Strike,
+            double? FontSize,
+            PdfCore.PdfStandardFont? Font,
+            PdfCore.PdfColor? Color,
+            PdfCore.PdfColor? BackgroundColor);
+
         private static void AddNativeText(
             PdfCore.PdfParagraphBuilder builder,
             string text,
@@ -801,36 +811,96 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static void ApplyNativeTextStyle(PdfCore.PdfParagraphBuilder builder, WordParagraph paragraph, WordParagraph? fallback = null) {
-            builder.Bold(paragraph.Bold);
-            builder.Italic(paragraph.Italic);
-            builder.Underline(paragraph.Underline != null);
-            builder.Strike(paragraph.Strike || paragraph.DoubleStrike);
+            NativeResolvedTextStyle style = ResolveNativeTextRunStyle(paragraph, fallback);
+            builder.Bold(style.Bold);
+            builder.Italic(style.Italic);
+            builder.Underline(style.Underline);
+            builder.Strike(style.Strike);
             builder.Baseline(GetNativeTextBaseline(paragraph));
-            if (paragraph.FontSize.HasValue && paragraph.FontSize.Value > 0) {
-                builder.FontSize(paragraph.FontSize.Value);
+            if (style.FontSize.HasValue) {
+                builder.FontSize(style.FontSize.Value);
             }
 
-            if (PdfCore.PdfStandardFontMapper.TryMapFontFamily(paragraph.FontFamily, out PdfCore.PdfStandardFont font) ||
-                PdfCore.PdfStandardFontMapper.TryMapFontFamily(paragraph.FontFamilyHighAnsi, out font) ||
-                PdfCore.PdfStandardFontMapper.TryMapFontFamily(paragraph.FontFamilyEastAsia, out font) ||
-                PdfCore.PdfStandardFontMapper.TryMapFontFamily(paragraph.FontFamilyComplexScript, out font) ||
-                (fallback != null && (
-                    PdfCore.PdfStandardFontMapper.TryMapFontFamily(fallback.FontFamily, out font) ||
-                    PdfCore.PdfStandardFontMapper.TryMapFontFamily(fallback.FontFamilyHighAnsi, out font) ||
-                    PdfCore.PdfStandardFontMapper.TryMapFontFamily(fallback.FontFamilyEastAsia, out font) ||
-                    PdfCore.PdfStandardFontMapper.TryMapFontFamily(fallback.FontFamilyComplexScript, out font)))) {
-                builder.Font(font);
+            if (style.Font.HasValue) {
+                builder.Font(style.Font.Value);
             }
 
-            PdfCore.PdfColor? color = ParseNativeColor(paragraph.ColorHex);
-            PdfCore.PdfColor? background = MapNativeHighlight(paragraph.Highlight);
-            if (color.HasValue) {
-                builder.Color(color.Value);
+            if (style.Color.HasValue) {
+                builder.Color(style.Color.Value);
             }
 
-            if (background.HasValue) {
-                builder.BackgroundColor(background.Value);
+            if (style.BackgroundColor.HasValue) {
+                builder.BackgroundColor(style.BackgroundColor.Value);
             }
+        }
+
+        private static NativeResolvedTextStyle ResolveNativeTextRunStyle(WordParagraph paragraph, WordParagraph? fallback = null) {
+            WordParagraph styleSource = fallback ?? paragraph;
+            NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(styleSource);
+            W.RunProperties? runProperties = GetNativeRunProperties(paragraph);
+
+            bool bold = ReadNativeOnOff(runProperties?.GetFirstChild<W.Bold>()) ?? styleDefaults.Bold ?? false;
+            bool italic = ReadNativeOnOff(runProperties?.GetFirstChild<W.Italic>()) ?? styleDefaults.Italic ?? false;
+            bool underline = ReadNativeUnderline(runProperties?.GetFirstChild<W.Underline>()) ?? styleDefaults.Underline ?? false;
+            bool strike =
+                ReadNativeOnOff(runProperties?.GetFirstChild<W.Strike>()) ??
+                ReadNativeOnOff(runProperties?.GetFirstChild<W.DoubleStrike>()) ??
+                styleDefaults.Strike ??
+                false;
+            double? fontSize = paragraph.FontSize.HasValue && paragraph.FontSize.Value > 0
+                ? paragraph.FontSize.Value
+                : styleDefaults.FontSize;
+            PdfCore.PdfStandardFont? font = ResolveNativeTextRunFont(paragraph, fallback, styleDefaults);
+
+            PdfCore.PdfColor? color = TryGetNativeRunColor(runProperties, out PdfCore.PdfColor? directColor)
+                ? directColor
+                : ParseNativeColor(styleDefaults.ColorHex);
+            PdfCore.PdfColor? background = TryGetNativeRunHighlight(runProperties, out PdfCore.PdfColor? directBackground)
+                ? directBackground
+                : MapNativeHighlight(styleDefaults.Highlight);
+
+            return new NativeResolvedTextStyle(bold, underline, italic, strike, fontSize, font, color, background);
+        }
+
+        private static W.RunProperties? GetNativeRunProperties(WordParagraph paragraph) =>
+            paragraph.IsHyperLink ? paragraph.Hyperlink?._runProperties : paragraph._runProperties;
+
+        private static PdfCore.PdfStandardFont? ResolveNativeTextRunFont(WordParagraph paragraph, WordParagraph? fallback, NativeParagraphStyleDefaults styleDefaults) {
+            if (TryResolveNativeDirectRunFont(paragraph, out PdfCore.PdfStandardFont font) ||
+                (fallback != null && TryResolveNativeDirectRunFont(fallback, out font)) ||
+                PdfCore.PdfStandardFontMapper.TryMapFontFamily(styleDefaults.FontFamily, out font)) {
+                return font;
+            }
+
+            return null;
+        }
+
+        private static bool TryResolveNativeDirectRunFont(WordParagraph paragraph, out PdfCore.PdfStandardFont font) =>
+            PdfCore.PdfStandardFontMapper.TryMapFontFamily(paragraph.FontFamily, out font) ||
+            PdfCore.PdfStandardFontMapper.TryMapFontFamily(paragraph.FontFamilyHighAnsi, out font) ||
+            PdfCore.PdfStandardFontMapper.TryMapFontFamily(paragraph.FontFamilyEastAsia, out font) ||
+            PdfCore.PdfStandardFontMapper.TryMapFontFamily(paragraph.FontFamilyComplexScript, out font);
+
+        private static bool TryGetNativeRunColor(W.RunProperties? runProperties, out PdfCore.PdfColor? color) {
+            W.Color? value = runProperties?.GetFirstChild<W.Color>();
+            if (value == null) {
+                color = null;
+                return false;
+            }
+
+            color = ParseNativeColor(value.Val?.Value);
+            return true;
+        }
+
+        private static bool TryGetNativeRunHighlight(W.RunProperties? runProperties, out PdfCore.PdfColor? color) {
+            W.Highlight? value = runProperties?.GetFirstChild<W.Highlight>();
+            if (value == null) {
+                color = null;
+                return false;
+            }
+
+            color = MapNativeHighlight(value.Val?.Value);
+            return true;
         }
 
         private static void ResetNativeTextStyle(PdfCore.PdfParagraphBuilder builder) {

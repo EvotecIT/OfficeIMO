@@ -4,8 +4,8 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
-        private readonly record struct NativeTableStyleDefaults(PdfCore.PdfCellPadding? CellPadding, double? ParagraphLineHeight, double? ParagraphSpacingAfter) {
-            public static NativeTableStyleDefaults Empty { get; } = new(null, null, null);
+        private readonly record struct NativeTableStyleDefaults(PdfCore.PdfCellPadding? CellPadding, double? ParagraphLineHeight, double? ParagraphLineSpacingPoints, double? ParagraphSpacingAfter) {
+            public static NativeTableStyleDefaults Empty { get; } = new(null, null, null, null);
         }
 
         private static NativeTableStyleDefaults GetNativeTableStyleDefaults(WordTable table, NativeDocumentDefaults nativeDefaults, bool ignoreFallbackTableStyle) {
@@ -24,6 +24,7 @@ namespace OfficeIMO.Word.Pdf {
             double? marginLeft = null;
             double? marginRight = null;
             double? paragraphLineHeight = null;
+            double? paragraphLineSpacingPoints = null;
             double? paragraphSpacingAfter = null;
 
             foreach (W.Style style in styleChain) {
@@ -46,7 +47,13 @@ namespace OfficeIMO.Word.Pdf {
 
                 W.SpacingBetweenLines? spacing = style.GetFirstChild<W.StyleParagraphProperties>()?.GetFirstChild<W.SpacingBetweenLines>();
                 if (spacing != null) {
-                    paragraphLineHeight = GetNativeTableStyleParagraphLineHeight(spacing) ?? paragraphLineHeight;
+                    double? styleParagraphLineHeight = GetNativeTableStyleParagraphLineHeight(spacing);
+                    double? styleParagraphLineSpacingPoints = GetNativeTableStyleParagraphLineSpacingPoints(spacing);
+                    if (styleParagraphLineHeight.HasValue || styleParagraphLineSpacingPoints.HasValue) {
+                        paragraphLineHeight = styleParagraphLineHeight;
+                        paragraphLineSpacingPoints = styleParagraphLineSpacingPoints;
+                    }
+
                     paragraphSpacingAfter = ConvertNativeTwipsToPoints(spacing.After?.Value) ?? paragraphSpacingAfter;
                 }
             }
@@ -63,6 +70,7 @@ namespace OfficeIMO.Word.Pdf {
             return new NativeTableStyleDefaults(
                 cellPadding,
                 paragraphLineHeight,
+                paragraphLineSpacingPoints,
                 paragraphSpacingAfter);
         }
 
@@ -79,6 +87,14 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             return Math.Max(0.01D, NativeWordTableSingleLineHeight * (line / 240D));
+        }
+
+        private static double? GetNativeTableStyleParagraphLineSpacingPoints(W.SpacingBetweenLines spacing) {
+            if (spacing.LineRule?.Value == W.LineSpacingRuleValues.Auto) {
+                return null;
+            }
+
+            return ConvertNativeTwipsToPoints(spacing.Line?.Value);
         }
 
         private static IReadOnlyList<W.Style> GetNativeTableStyleChain(WordDocument document, string? styleId) {

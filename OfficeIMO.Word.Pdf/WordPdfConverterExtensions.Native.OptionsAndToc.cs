@@ -362,7 +362,7 @@ namespace OfficeIMO.Word.Pdf {
                         continue;
                     }
 
-                    if (element is WordParagraph paragraph && paragraph.PageBreakBefore) {
+                    if (element is WordParagraph paragraph && HasNativePageBreakBefore(paragraph)) {
                         currentPage++;
                         consumedOnPage = 0D;
                     }
@@ -431,7 +431,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static bool IsNativeTableOfContentsExplicitPageBreak(WordElement element) {
             if (element is WordParagraph paragraph) {
-                return paragraph.PageBreakBefore || paragraph.IsPageBreak;
+                return HasNativePageBreakBefore(paragraph) || paragraph.IsPageBreak;
             }
 
             return element is WordBreak wordBreak && wordBreak.BreakType == W.BreakValues.Page;

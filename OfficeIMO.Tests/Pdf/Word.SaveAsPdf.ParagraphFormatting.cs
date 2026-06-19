@@ -3,6 +3,7 @@ using OfficeIMO.Word.Pdf;
 using OfficeIMO.Pdf;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -144,6 +145,44 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain("InheritedKeepLabel", pdf.GetPage(1).Text);
             Assert.Contains("InheritedKeepLabel", pdf.GetPage(2).Text);
             Assert.Contains("FollowingBody", pdf.GetPage(2).Text);
+        }
+
+        [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Applies_Inherited_PageBreakBefore() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeInheritedPageBreakBefore.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeInheritedPageBreakBefore.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                const string styleId = "InheritedPageBreakBefore";
+                Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                styles.Append(new Style(
+                    new StyleName { Val = "Inherited Page Break Before" },
+                    new BasedOn { Val = "Normal" },
+                    new StyleParagraphProperties(new PageBreakBefore()))
+                {
+                    Type = StyleValues.Paragraph,
+                    StyleId = styleId,
+                    CustomStyle = true
+                });
+
+                document.AddParagraph("BeforeInheritedPageBreak");
+                document.AddParagraph("StyledPageBreakTarget").SetStyleId(styleId);
+                document.AddParagraph("AfterStyledPageBreak");
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false,
+                    FontFamily = "Helvetica"
+                });
+            }
+
+            using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+
+            Assert.Equal(2, pdf.NumberOfPages);
+            Assert.Contains("BeforeInheritedPageBreak", pdf.GetPage(1).Text);
+            Assert.DoesNotContain("StyledPageBreakTarget", pdf.GetPage(1).Text);
+            Assert.Contains("StyledPageBreakTarget", pdf.GetPage(2).Text);
+            Assert.Contains("AfterStyledPageBreak", pdf.GetPage(2).Text);
         }
 
         [Fact]
@@ -480,6 +519,200 @@ namespace OfficeIMO.Tests {
             Assert.True(style.WidowControl);
         }
 
+        [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Applies_Paragraph_Style_Indentation() {
+            using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeParagraphStyleIndentation.docx"));
+            const string styleId = "NativeStyleIndentation";
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(new Style(
+                new StyleName { Val = "Native Style Indentation" },
+                new BasedOn { Val = "Normal" },
+                new StyleParagraphProperties(new Indentation {
+                    Left = "1440",
+                    Right = "720",
+                    Hanging = "360"
+                }))
+            {
+                Type = StyleValues.Paragraph,
+                StyleId = styleId,
+                CustomStyle = true
+            });
+
+            WordParagraph paragraph = document.AddParagraph("Native style indentation");
+            paragraph.SetStyleId(styleId);
+
+            MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeParagraphStyle", BindingFlags.NonPublic | BindingFlags.Static, binder: null, new[] { typeof(WordParagraph) }, modifiers: null)!;
+            PdfParagraphStyle style = Assert.IsType<PdfParagraphStyle>(method.Invoke(null, new object[] { paragraph }));
+
+            Assert.Equal(72D, style.LeftIndent);
+            Assert.Equal(36D, style.RightIndent);
+            Assert.Equal(-18D, style.FirstLineIndent);
+        }
+
+        [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Maps_Paragraph_Style_Alignment() {
+            using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeParagraphStyleAlignment.docx"));
+            const string styleId = "NativeStyleAlignment";
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(new Style(
+                new StyleName { Val = "Native Style Alignment" },
+                new BasedOn { Val = "Normal" },
+                new StyleParagraphProperties(new Justification {
+                    Val = JustificationValues.Center
+                }))
+            {
+                Type = StyleValues.Paragraph,
+                StyleId = styleId,
+                CustomStyle = true
+            });
+
+            WordParagraph styled = document.AddParagraph("Native centered style alignment");
+            styled.SetStyleId(styleId);
+            WordParagraph directOverride = document.AddParagraph("Native direct alignment override");
+            directOverride.SetStyleId(styleId);
+            directOverride.ParagraphAlignment = JustificationValues.Right;
+
+            MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("ResolveNativeParagraphAlign", BindingFlags.NonPublic | BindingFlags.Static, binder: null, new[] { typeof(WordParagraph), typeof(bool) }, modifiers: null)!;
+
+            Assert.Equal(PdfAlign.Center, (PdfAlign)method.Invoke(null, new object[] { styled, true })!);
+            Assert.Equal(PdfAlign.Right, (PdfAlign)method.Invoke(null, new object[] { directOverride, true })!);
+        }
+
+        [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Renders_Paragraph_Style_Alignment() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeRenderedParagraphStyleAlignment.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeRenderedParagraphStyleAlignment.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                const string styleId = "NativeRenderedStyleAlignment";
+                Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                styles.Append(new Style(
+                    new StyleName { Val = "Native Rendered Style Alignment" },
+                    new BasedOn { Val = "Normal" },
+                    new StyleParagraphProperties(new Justification {
+                        Val = JustificationValues.Center
+                    }))
+                {
+                    Type = StyleValues.Paragraph,
+                    StyleId = styleId,
+                    CustomStyle = true
+                });
+
+                WordParagraph styled = document.AddParagraph("StyledCenterMarker");
+                styled.SetStyleId(styleId);
+                document.AddParagraph("LeftMarker");
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false,
+                    PageSize = new OfficeIMO.Pdf.PageSize(300, 180),
+                    Margins = PageMargins.Uniform(30),
+                    FontFamily = "Helvetica"
+                });
+            }
+
+            Assert.True(File.Exists(pdfPath));
+            using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+            var words = pdf.GetPage(1).GetWords().ToList();
+            var centered = Assert.Single(words, word => word.Text == "StyledCenterMarker");
+            var left = Assert.Single(words, word => word.Text == "LeftMarker");
+
+            double centeredMidpoint = centered.BoundingBox.Left + (centered.BoundingBox.Width / 2D);
+            Assert.InRange(centeredMidpoint, 130D, 170D);
+            Assert.True(centered.BoundingBox.Left > left.BoundingBox.Left + 40D, $"Expected style-centered paragraph text to move right of left-aligned text. Centered x: {centered.BoundingBox.Left:0.##}; left x: {left.BoundingBox.Left:0.##}.");
+        }
+
+        [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Maps_Paragraph_Style_Run_Formatting() {
+            using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeParagraphStyleRunFormatting.docx"));
+            const string styleId = "NativeStyleRunFormatting";
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(new Style(
+                new StyleName { Val = "Native Style Run Formatting" },
+                new BasedOn { Val = "Normal" },
+                new StyleRunProperties(
+                    new Bold(),
+                    new Italic(),
+                    new Underline { Val = UnderlineValues.Single },
+                    new Color { Val = "C00000" },
+                    new Highlight { Val = HighlightColorValues.Yellow },
+                    new FontSize { Val = "28" }))
+            {
+                Type = StyleValues.Paragraph,
+                StyleId = styleId,
+                CustomStyle = true
+            });
+
+            WordParagraph paragraph = document.AddParagraph("Native style run formatting");
+            paragraph.SetStyleId(styleId);
+            WordParagraph directOverride = document.AddParagraph("Native direct run override");
+            directOverride.SetStyleId(styleId);
+            directOverride._run!.RunProperties ??= new RunProperties();
+            directOverride._run.RunProperties.Bold = new Bold { Val = false };
+            directOverride._run.RunProperties.Italic = new Italic { Val = false };
+            directOverride._run.RunProperties.Underline = new Underline { Val = UnderlineValues.None };
+            directOverride._run.RunProperties.Color = new Color { Val = "0000FF" };
+            directOverride._run.RunProperties.FontSize = new FontSize { Val = "20" };
+
+            MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeCellParagraphRuns", BindingFlags.NonPublic | BindingFlags.Static, binder: null, new[] { typeof(WordParagraph), typeof(Dictionary<long, int>) }, modifiers: null)!;
+            var runs = Assert.IsAssignableFrom<IReadOnlyList<TextRun>>(method.Invoke(null, new object?[] { paragraph, null }));
+            TextRun run = Assert.Single(runs);
+            var overrideRuns = Assert.IsAssignableFrom<IReadOnlyList<TextRun>>(method.Invoke(null, new object?[] { directOverride, null }));
+            TextRun overrideRun = Assert.Single(overrideRuns);
+
+            Assert.True(run.Bold);
+            Assert.True(run.Italic);
+            Assert.True(run.Underline);
+            Assert.Equal(PdfColor.FromRgb(192, 0, 0), run.Color);
+            Assert.Equal(PdfColor.FromRgb(255, 255, 0), run.BackgroundColor);
+            Assert.Equal(14D, run.FontSize);
+            Assert.False(overrideRun.Bold);
+            Assert.False(overrideRun.Italic);
+            Assert.False(overrideRun.Underline);
+            Assert.Equal(PdfColor.FromRgb(0, 0, 255), overrideRun.Color);
+            Assert.Equal(10D, overrideRun.FontSize);
+        }
+
+        [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Renders_Paragraph_Style_Run_Formatting() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeRenderedParagraphStyleRunFormatting.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeRenderedParagraphStyleRunFormatting.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                const string styleId = "NativeRenderedStyleRunFormatting";
+                Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                styles.Append(new Style(
+                    new StyleName { Val = "Native Rendered Style Run Formatting" },
+                    new BasedOn { Val = "Normal" },
+                    new StyleRunProperties(
+                        new Color { Val = "C00000" },
+                        new FontSize { Val = "28" }))
+                {
+                    Type = StyleValues.Paragraph,
+                    StyleId = styleId,
+                    CustomStyle = true
+                });
+
+                WordParagraph styled = document.AddParagraph("StyledRunFormatMarker");
+                styled.SetStyleId(styleId);
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false,
+                    FontFamily = "Helvetica"
+                });
+            }
+
+            byte[] bytes = File.ReadAllBytes(pdfPath);
+            using (PdfPigDocument pdf = PdfPigDocument.Open(bytes)) {
+                Assert.Contains("StyledRunFormatMarker", pdf.GetPage(1).Text);
+            }
+
+            string raw = Encoding.ASCII.GetString(bytes);
+            Assert.Contains("0.753 0 0 rg", raw);
+            Assert.Matches(new Regex(@"/F\d+ 14 Tf"), raw);
+        }
+
         private static IReadOnlyList<(double X, double Y, double Width, double Height)> ExtractFilledRectangles(string rawPdf, string colorOperator) {
             string pattern = Regex.Escape(colorOperator) +
                 @"\s+(?<x>-?\d+(?:\.\d+)?) (?<y>-?\d+(?:\.\d+)?) (?<width>-?\d+(?:\.\d+)?) (?<height>-?\d+(?:\.\d+)?) re f";
@@ -567,6 +800,75 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(2D, exactStyle.LineHeight);
             Assert.Equal(1.15D * (276D / 240D), autoStyle.LineHeight);
+        }
+
+        [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Maps_Paragraph_Style_Exact_Line_Spacing() {
+            using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeParagraphStyleExactLineSpacing.docx"));
+            const string styleId = "ExactLineSpacingStyle";
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(new Style(
+                new StyleName { Val = "Exact Line Spacing Style" },
+                new BasedOn { Val = "Normal" },
+                new StyleParagraphProperties(new SpacingBetweenLines {
+                    Line = "480",
+                    LineRule = LineSpacingRuleValues.Exact
+                }))
+            {
+                Type = StyleValues.Paragraph,
+                StyleId = styleId,
+                CustomStyle = true
+            });
+
+            WordParagraph paragraph = document.AddParagraph("Native style exact line spacing");
+            paragraph.FontSize = 12;
+            paragraph.SetStyleId(styleId);
+
+            MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeParagraphStyle", BindingFlags.NonPublic | BindingFlags.Static, binder: null, new[] { typeof(WordParagraph) }, modifiers: null)!;
+            PdfParagraphStyle style = Assert.IsType<PdfParagraphStyle>(method.Invoke(null, new object[] { paragraph }));
+
+            Assert.Equal(2D, style.LineHeight);
+        }
+
+        [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Lets_Derived_Paragraph_Style_Auto_Line_Spacing_Override_Exact() {
+            using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeParagraphStyleAutoOverridesExactLineSpacing.docx"));
+            const string baseStyleId = "BaseExactLineSpacingStyle";
+            const string derivedStyleId = "DerivedAutoLineSpacingStyle";
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(
+                new Style(
+                    new StyleName { Val = "Base Exact Line Spacing Style" },
+                    new StyleParagraphProperties(new SpacingBetweenLines {
+                        Line = "480",
+                        LineRule = LineSpacingRuleValues.Exact
+                    }))
+                {
+                    Type = StyleValues.Paragraph,
+                    StyleId = baseStyleId,
+                    CustomStyle = true
+                },
+                new Style(
+                    new StyleName { Val = "Derived Auto Line Spacing Style" },
+                    new BasedOn { Val = baseStyleId },
+                    new StyleParagraphProperties(new SpacingBetweenLines {
+                        Line = "240",
+                        LineRule = LineSpacingRuleValues.Auto
+                    }))
+                {
+                    Type = StyleValues.Paragraph,
+                    StyleId = derivedStyleId,
+                    CustomStyle = true
+                });
+
+            WordParagraph paragraph = document.AddParagraph("Native derived style auto line spacing");
+            paragraph.FontSize = 12;
+            paragraph.SetStyleId(derivedStyleId);
+
+            MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeParagraphStyle", BindingFlags.NonPublic | BindingFlags.Static, binder: null, new[] { typeof(WordParagraph) }, modifiers: null)!;
+            PdfParagraphStyle style = Assert.IsType<PdfParagraphStyle>(method.Invoke(null, new object[] { paragraph }));
+
+            Assert.Equal(1.15D, style.LineHeight);
         }
 
         [Fact]

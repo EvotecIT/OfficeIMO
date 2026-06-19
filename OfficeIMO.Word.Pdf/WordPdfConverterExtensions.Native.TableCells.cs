@@ -306,7 +306,9 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static double GetNativeCellParagraphSpacingAfter(WordParagraph paragraph, NativeDocumentDefaults nativeDefaults, NativeTableStyleDefaults tableStyleDefaults) {
+            NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);
             double spacingAfter = paragraph.LineSpacingAfterPoints ??
+                styleDefaults.SpacingAfter ??
                 tableStyleDefaults.ParagraphSpacingAfter ??
                 (nativeDefaults.ParagraphSpacingAfterDeclared ? nativeDefaults.ParagraphSpacingAfter : 0D);
             return spacingAfter > 0D && !double.IsNaN(spacingAfter) && !double.IsInfinity(spacingAfter) ? spacingAfter : 0D;
@@ -447,17 +449,20 @@ namespace OfficeIMO.Word.Pdf {
             Equals(left.Color, right.Color) &&
             Equals(left.BackgroundColor, right.BackgroundColor);
 
-        private static PdfCore.TextRun CreateNativeCellTextRun(string text, WordParagraph paragraph) =>
-            new PdfCore.TextRun(
+        private static PdfCore.TextRun CreateNativeCellTextRun(string text, WordParagraph paragraph) {
+            NativeResolvedTextStyle style = ResolveNativeTextRunStyle(paragraph);
+            return new PdfCore.TextRun(
                 text,
-                bold: paragraph.Bold,
-                underline: paragraph.Underline != null,
-                color: ParseNativeColor(paragraph.ColorHex),
-                italic: paragraph.Italic,
-                strike: paragraph.Strike || paragraph.DoubleStrike,
-                fontSize: paragraph.FontSize.HasValue && paragraph.FontSize.Value > 0 ? paragraph.FontSize.Value : null,
+                bold: style.Bold,
+                underline: style.Underline,
+                color: style.Color,
+                italic: style.Italic,
+                strike: style.Strike,
+                fontSize: style.FontSize,
+                font: style.Font,
                 baseline: GetNativeTextBaseline(paragraph),
-                backgroundColor: MapNativeHighlight(paragraph.Highlight));
+                backgroundColor: style.BackgroundColor);
+        }
 
         private static PdfCore.TextRun CreateNativeCellLinkRun(string text, WordParagraph paragraph, WordHyperLink hyperlink) {
             Uri? uri = hyperlink.Uri;
@@ -468,19 +473,21 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             string? contents = string.IsNullOrWhiteSpace(hyperlink.Tooltip) ? null : hyperlink.Tooltip;
+            NativeResolvedTextStyle style = ResolveNativeTextRunStyle(paragraph);
             return new PdfCore.TextRun(
                 text,
-                bold: paragraph.Bold,
-                underline: paragraph.Underline != null || linkUri != null || destinationName != null,
-                color: ParseNativeColor(paragraph.ColorHex),
-                italic: paragraph.Italic,
-                strike: paragraph.Strike || paragraph.DoubleStrike,
-                fontSize: paragraph.FontSize.HasValue && paragraph.FontSize.Value > 0 ? paragraph.FontSize.Value : null,
+                bold: style.Bold,
+                underline: style.Underline || linkUri != null || destinationName != null,
+                color: style.Color,
+                italic: style.Italic,
+                strike: style.Strike,
+                fontSize: style.FontSize,
+                font: style.Font,
                 linkUri: linkUri,
                 linkContents: contents,
                 baseline: GetNativeTextBaseline(paragraph),
                 linkDestinationName: destinationName,
-                backgroundColor: MapNativeHighlight(paragraph.Highlight));
+                backgroundColor: style.BackgroundColor);
         }
 
         private static PdfCore.TextRun CreateNativeCellTabRun(IReadOnlyList<WordTabStop> tabStops, int tabIndex) {

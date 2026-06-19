@@ -87,6 +87,80 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Honors_Direct_List_Paragraph_Indentation() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeListDirectIndent.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeListDirectIndent.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                WordList bulletList = document.AddList(WordListStyle.Bulleted);
+                WordListLevel level = bulletList.Numbering.Levels[0];
+                level.IndentationLeft = 720;
+                level.IndentationHanging = 360;
+
+                bulletList.AddItem("RegularIndentMarker");
+                WordParagraph wideIndent = bulletList.AddItem("WideIndentMarker");
+                wideIndent.IndentationBeforePoints = 72;
+                wideIndent.IndentationHangingPoints = 36;
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false
+                });
+            }
+
+            using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+            var words = pdf.GetPage(1).GetWords().ToList();
+            double regularX = Assert.Single(words, word => word.Text == "RegularIndentMarker").BoundingBox.Left;
+            double wideX = Assert.Single(words, word => word.Text == "WideIndentMarker").BoundingBox.Left;
+
+            Assert.True(wideX > regularX + 30D, $"Expected direct Word list paragraph indentation to move the list text right. Regular x: {regularX:0.##}; wide x: {wideX:0.##}.");
+        }
+
+        [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Honors_Paragraph_Style_List_Indentation() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeListStyleIndent.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeListStyleIndent.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                const string styleId = "NativeListStyleIndent";
+                Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                styles.Append(new Style(
+                    new StyleName { Val = "Native List Style Indent" },
+                    new BasedOn { Val = "Normal" },
+                    new StyleParagraphProperties(new Indentation {
+                        Left = "1440",
+                        Hanging = "360"
+                    }))
+                {
+                    Type = StyleValues.Paragraph,
+                    StyleId = styleId,
+                    CustomStyle = true
+                });
+
+                WordList bulletList = document.AddList(WordListStyle.Bulleted);
+                WordListLevel level = bulletList.Numbering.Levels[0];
+                level.IndentationLeft = 720;
+                level.IndentationHanging = 360;
+
+                bulletList.AddItem("RegularStyleFallbackMarker");
+                WordParagraph styledIndent = bulletList.AddItem("StyledIndentMarker");
+                styledIndent.SetStyleId(styleId);
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false
+                });
+            }
+
+            using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+            var words = pdf.GetPage(1).GetWords().ToList();
+            double regularX = Assert.Single(words, word => word.Text == "RegularStyleFallbackMarker").BoundingBox.Left;
+            double styledX = Assert.Single(words, word => word.Text == "StyledIndentMarker").BoundingBox.Left;
+
+            Assert.True(styledX > regularX + 30D, $"Expected paragraph style indentation to move native Word list text right. Regular x: {regularX:0.##}; styled x: {styledX:0.##}.");
+        }
+
+        [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Renders_Custom_And_Nested_Word_List_Markers() {
             string docPath = Path.Combine(_directoryWithFiles, "PdfNativeCustomNestedListMarkers.docx");
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeCustomNestedListMarkers.pdf");

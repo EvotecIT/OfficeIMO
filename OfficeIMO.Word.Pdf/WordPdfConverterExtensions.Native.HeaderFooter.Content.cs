@@ -121,7 +121,7 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            W.JustificationValues? alignment = paragraph.ParagraphAlignment;
+            W.JustificationValues? alignment = ResolveNativeParagraphJustification(paragraph);
             if (alignment == W.JustificationValues.Center) {
                 parts.AppendCenter(resolvedText, pageNumberStyle);
             } else if (alignment == W.JustificationValues.Right) {
@@ -157,7 +157,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static void AddNativeHeaderFooterParagraphImage(List<NativeHeaderFooterImage> images, WordParagraph paragraph, PdfCore.PdfAlign? alignOverride, PdfSaveOptions? options, string source) {
-            PdfCore.PdfAlign align = alignOverride ?? MapNativeParagraphAlign(paragraph.ParagraphAlignment, allowJustify: false);
+            PdfCore.PdfAlign align = alignOverride ?? ResolveNativeParagraphAlign(paragraph, allowJustify: false);
             if (paragraph.Image != null) {
                 AddNativeHeaderFooterImage(images, paragraph.Image, align, options, source);
             }
@@ -227,7 +227,7 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            PdfCore.PdfAlign align = alignOverride ?? MapNativeParagraphAlign(paragraph.ParagraphAlignment, allowJustify: false);
+            PdfCore.PdfAlign align = alignOverride ?? ResolveNativeParagraphAlign(paragraph, allowJustify: false);
             shapes.Add(new NativeHeaderFooterShape(shape, align));
         }
 

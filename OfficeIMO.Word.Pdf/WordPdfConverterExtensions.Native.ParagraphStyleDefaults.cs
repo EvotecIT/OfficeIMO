@@ -6,13 +6,26 @@ namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
         private readonly record struct NativeParagraphStyleDefaults(
             double? FontSize,
+            string? FontFamily,
+            bool? Bold,
+            bool? Italic,
+            bool? Underline,
+            bool? Strike,
+            string? ColorHex,
+            W.HighlightColorValues? Highlight,
             double? LineHeight,
+            double? LineSpacingPoints,
             double? SpacingBefore,
             double? SpacingAfter,
+            double? LeftIndent,
+            double? RightIndent,
+            double? FirstLineIndent,
+            W.JustificationValues? Alignment,
+            bool? PageBreakBefore,
             bool? KeepTogether,
             bool? KeepWithNext,
             bool? WidowControl) {
-            public static NativeParagraphStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null);
+            public static NativeParagraphStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
         }
 
         private static NativeParagraphStyleDefaults GetNativeParagraphStyleDefaults(WordParagraph paragraph) {
@@ -22,9 +35,22 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             double? fontSize = null;
+            string? fontFamily = null;
+            bool? bold = null;
+            bool? italic = null;
+            bool? underline = null;
+            bool? strike = null;
+            string? colorHex = null;
+            W.HighlightColorValues? highlight = null;
             double? lineHeight = null;
+            double? lineSpacingPoints = null;
             double? spacingBefore = null;
             double? spacingAfter = null;
+            double? leftIndent = null;
+            double? rightIndent = null;
+            double? firstLineIndent = null;
+            W.JustificationValues? alignment = null;
+            bool? pageBreakBefore = null;
             bool? keepTogether = null;
             bool? keepWithNext = null;
             bool? widowControl = null;
@@ -34,24 +60,67 @@ namespace OfficeIMO.Word.Pdf {
                 if (paragraphProperties != null) {
                     W.SpacingBetweenLines? spacing = paragraphProperties.GetFirstChild<W.SpacingBetweenLines>();
                     if (spacing != null) {
-                        lineHeight = GetNativeStyleParagraphLineHeight(spacing) ?? lineHeight;
+                        double? styleLineHeight = GetNativeStyleParagraphLineHeight(spacing);
+                        double? styleLineSpacingPoints = GetNativeStyleParagraphLineSpacingPoints(spacing);
+                        if (styleLineHeight.HasValue || styleLineSpacingPoints.HasValue) {
+                            lineHeight = styleLineHeight;
+                            lineSpacingPoints = styleLineSpacingPoints;
+                        }
+
                         spacingBefore = ConvertNativeTwipsToPoints(spacing.Before?.Value) ?? spacingBefore;
                         spacingAfter = ConvertNativeTwipsToPoints(spacing.After?.Value) ?? spacingAfter;
                     }
 
+                    W.Indentation? indentation = paragraphProperties.GetFirstChild<W.Indentation>();
+                    if (indentation != null) {
+                        leftIndent = ConvertNativeTwipsToPoints(indentation.Left?.Value) ?? leftIndent;
+                        rightIndent = ConvertNativeTwipsToPoints(indentation.Right?.Value) ?? rightIndent;
+
+                        double? firstLine = ConvertNativeTwipsToPoints(indentation.FirstLine?.Value);
+                        double? hanging = ConvertNativeTwipsToPoints(indentation.Hanging?.Value);
+                        if (hanging.HasValue) {
+                            firstLineIndent = -hanging.Value;
+                        } else if (firstLine.HasValue) {
+                            firstLineIndent = firstLine.Value;
+                        }
+                    }
+
+                    alignment = paragraphProperties.GetFirstChild<W.Justification>()?.Val?.Value ?? alignment;
+                    pageBreakBefore = ReadNativeOnOff(paragraphProperties.GetFirstChild<W.PageBreakBefore>()) ?? pageBreakBefore;
                     keepTogether = ReadNativeOnOff(paragraphProperties.GetFirstChild<W.KeepLines>()) ?? keepTogether;
                     keepWithNext = ReadNativeOnOff(paragraphProperties.GetFirstChild<W.KeepNext>()) ?? keepWithNext;
                     widowControl = ReadNativeOnOff(paragraphProperties.GetFirstChild<W.WidowControl>()) ?? widowControl;
                 }
 
-                fontSize = GetNativeStyleFontSize(style.GetFirstChild<W.StyleRunProperties>()) ?? fontSize;
+                W.StyleRunProperties? runProperties = style.GetFirstChild<W.StyleRunProperties>();
+                fontSize = GetNativeStyleFontSize(runProperties) ?? fontSize;
+                fontFamily = ResolveNativeRunFontsFamily(paragraph._document, runProperties?.GetFirstChild<W.RunFonts>()) ?? fontFamily;
+                bold = ReadNativeOnOff(runProperties?.GetFirstChild<W.Bold>()) ?? bold;
+                italic = ReadNativeOnOff(runProperties?.GetFirstChild<W.Italic>()) ?? italic;
+                underline = ReadNativeUnderline(runProperties?.GetFirstChild<W.Underline>()) ?? underline;
+                strike = ReadNativeOnOff(runProperties?.GetFirstChild<W.Strike>()) ?? ReadNativeOnOff(runProperties?.GetFirstChild<W.DoubleStrike>()) ?? strike;
+                colorHex = runProperties?.GetFirstChild<W.Color>()?.Val?.Value ?? colorHex;
+                highlight = runProperties?.GetFirstChild<W.Highlight>()?.Val?.Value ?? highlight;
             }
 
             return new NativeParagraphStyleDefaults(
                 fontSize,
+                fontFamily,
+                bold,
+                italic,
+                underline,
+                strike,
+                colorHex,
+                highlight,
                 lineHeight,
+                lineSpacingPoints,
                 spacingBefore,
                 spacingAfter,
+                leftIndent,
+                rightIndent,
+                firstLineIndent,
+                alignment,
+                pageBreakBefore,
                 keepTogether,
                 keepWithNext,
                 widowControl);
@@ -114,6 +183,14 @@ namespace OfficeIMO.Word.Pdf {
             return Math.Max(0.01D, NativeWordAutoLineSpacingHeight * (line / 240D));
         }
 
+        private static double? GetNativeStyleParagraphLineSpacingPoints(W.SpacingBetweenLines spacing) {
+            if (spacing.LineRule?.Value == W.LineSpacingRuleValues.Auto) {
+                return null;
+            }
+
+            return ConvertNativeTwipsToPoints(spacing.Line?.Value);
+        }
+
         private static double? GetNativeStyleFontSize(W.StyleRunProperties? runProperties) {
             string? value = runProperties?.FontSize?.Val?.Value;
             if (!double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double halfPoints) ||
@@ -134,7 +211,19 @@ namespace OfficeIMO.Word.Pdf {
             return value.Val?.Value != false;
         }
 
+        private static bool? ReadNativeUnderline(W.Underline? value) {
+            if (value == null) {
+                return null;
+            }
+
+            return value.Val?.Value != W.UnderlineValues.None;
+        }
+
         private static bool? ReadNativeDirectParagraphOnOff<T>(WordParagraph paragraph) where T : W.OnOffType =>
             ReadNativeOnOff(paragraph._paragraph?.ParagraphProperties?.GetFirstChild<T>());
+
+        private static bool HasNativePageBreakBefore(WordParagraph paragraph) =>
+            paragraph.PageBreakBefore ||
+            GetNativeParagraphStyleDefaults(paragraph).PageBreakBefore == true;
     }
 }

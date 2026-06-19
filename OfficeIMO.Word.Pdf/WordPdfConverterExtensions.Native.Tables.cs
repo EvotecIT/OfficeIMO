@@ -180,7 +180,7 @@ namespace OfficeIMO.Word.Pdf {
             if (!usesConfiguredDefaultStyle) {
                 style.FontSize ??= nativeDefaults.FontSize;
                 double? tableParagraphLineHeight = ShouldApplyNativeTableStyleParagraphLineHeight(table)
-                    ? tableStyleDefaults.ParagraphLineHeight
+                    ? ResolveNativeTableStyleParagraphLineHeight(tableStyleDefaults, style.FontSize ?? nativeDefaults.FontSize)
                     : null;
                 style.LineHeight ??= tableParagraphLineHeight ?? nativeDefaults.ParagraphLineHeight;
             }
@@ -205,6 +205,14 @@ namespace OfficeIMO.Word.Pdf {
             ApplyNativeTableLayoutOptions(table, style, contentWidth);
             ApplyNativeTableRowOptions(table, style);
             return style;
+        }
+
+        private static double? ResolveNativeTableStyleParagraphLineHeight(NativeTableStyleDefaults tableStyleDefaults, double fontSize) {
+            if (tableStyleDefaults.ParagraphLineSpacingPoints.HasValue && fontSize > 0D) {
+                return tableStyleDefaults.ParagraphLineSpacingPoints.Value / fontSize;
+            }
+
+            return tableStyleDefaults.ParagraphLineHeight;
         }
 
         private static PdfCore.PdfTableStyle CreateNativeDefaultTableStyle(PdfSaveOptions? options) {
@@ -295,7 +303,25 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static double? GetNativeTablePreferredWidthPercent(W.TableWidth width) {
-            if (!int.TryParse(width.Width?.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) || value <= 0) {
+            string? rawWidth = width.Width?.Value;
+            if (string.IsNullOrWhiteSpace(rawWidth)) {
+                return null;
+            }
+
+            string valueText = rawWidth!.Trim();
+            if (valueText.EndsWith("%", StringComparison.Ordinal)) {
+                string percentText = valueText.Substring(0, valueText.Length - 1);
+                if (!double.TryParse(percentText, NumberStyles.Float, CultureInfo.InvariantCulture, out double percent) ||
+                    percent <= 0D ||
+                    double.IsNaN(percent) ||
+                    double.IsInfinity(percent)) {
+                    return null;
+                }
+
+                return percent / 100D;
+            }
+
+            if (!int.TryParse(valueText, NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) || value <= 0) {
                 return null;
             }
 
@@ -664,7 +690,7 @@ namespace OfficeIMO.Word.Pdf {
                     continue;
                 }
 
-                PdfCore.PdfColumnAlign paragraphAlignment = MapNativeColumnAlign(paragraph.ParagraphAlignment);
+                PdfCore.PdfColumnAlign paragraphAlignment = ResolveNativeColumnAlign(paragraph);
                 if (alignment == null) {
                     alignment = paragraphAlignment;
                 } else if (alignment.Value != paragraphAlignment) {

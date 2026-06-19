@@ -31,14 +31,20 @@ namespace OfficeIMO.Word.Pdf {
 
             if (paragraph.IndentationBeforePoints.HasValue) {
                 style.LeftIndent = paragraph.IndentationBeforePoints.Value;
+            } else if (styleDefaults.LeftIndent.HasValue) {
+                style.LeftIndent = styleDefaults.LeftIndent.Value;
             }
 
             if (paragraph.IndentationAfterPoints.HasValue) {
                 style.RightIndent = paragraph.IndentationAfterPoints.Value;
+            } else if (styleDefaults.RightIndent.HasValue) {
+                style.RightIndent = styleDefaults.RightIndent.Value;
             }
 
             if (paragraph.IndentationFirstLinePoints.HasValue) {
                 style.FirstLineIndent = paragraph.IndentationFirstLinePoints.Value;
+            } else if (styleDefaults.FirstLineIndent.HasValue) {
+                style.FirstLineIndent = styleDefaults.FirstLineIndent.Value;
             }
 
             if (paragraph.IndentationHangingPoints.HasValue) {
@@ -48,6 +54,8 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 style.FirstLineIndent = -hangingIndent;
+            } else if (style.FirstLineIndent < 0D && style.LeftIndent < -style.FirstLineIndent) {
+                style.LeftIndent = -style.FirstLineIndent;
             }
 
             double fontSize = ResolveNativeParagraphFontSize(paragraph, nativeDefaults, styleDefaults);
@@ -105,6 +113,10 @@ namespace OfficeIMO.Word.Pdf {
 
             if (paragraph.LineSpacingPoints.HasValue && fontSize > 0D) {
                 return paragraph.LineSpacingPoints.Value / fontSize;
+            }
+
+            if (styleDefaults.LineSpacingPoints.HasValue && fontSize > 0D) {
+                return styleDefaults.LineSpacingPoints.Value / fontSize;
             }
 
             if (styleDefaults.LineHeight.HasValue) {
@@ -169,7 +181,7 @@ namespace OfficeIMO.Word.Pdf {
                 PaddingY = backgroundOnly ? 0D : 4D,
                 SpacingBefore = paragraphStyle.SpacingBefore,
                 SpacingAfter = backgroundOnly ? 0D : paragraphStyle.SpacingAfter ?? 6D,
-                Align = MapNativeParagraphAlign(paragraph.ParagraphAlignment, allowJustify: false)
+                Align = ResolveNativeParagraphAlign(paragraph, allowJustify: false)
             };
 
             if (border == null && hasParagraphBorder) {
@@ -329,6 +341,15 @@ namespace OfficeIMO.Word.Pdf {
 
             return PdfCore.PdfAlign.Left;
         }
+
+        private static W.JustificationValues? ResolveNativeParagraphJustification(WordParagraph paragraph) =>
+            paragraph.ParagraphAlignment ?? GetNativeParagraphStyleDefaults(paragraph).Alignment;
+
+        private static PdfCore.PdfAlign ResolveNativeParagraphAlign(WordParagraph paragraph, bool allowJustify = true) =>
+            MapNativeParagraphAlign(ResolveNativeParagraphJustification(paragraph), allowJustify);
+
+        private static PdfCore.PdfColumnAlign ResolveNativeColumnAlign(WordParagraph paragraph) =>
+            MapNativeColumnAlign(ResolveNativeParagraphJustification(paragraph));
 
         private static PdfCore.PdfColumnAlign MapNativeColumnAlign(W.JustificationValues? alignment) {
             if (alignment == W.JustificationValues.Center) {

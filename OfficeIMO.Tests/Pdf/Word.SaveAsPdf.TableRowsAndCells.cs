@@ -269,6 +269,46 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Uses_Paragraph_Style_For_Table_Cell_Paragraph_Spacing() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellParagraphStyleSpacing.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellParagraphStyleSpacing.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            const string styleId = "CellParagraphSpacingStyle";
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(new Style(
+                new StyleName { Val = "Cell Paragraph Spacing Style" },
+                new StyleParagraphProperties(new SpacingBetweenLines { After = "600" }))
+            {
+                Type = StyleValues.Paragraph,
+                StyleId = styleId,
+                CustomStyle = true
+            });
+
+            WordTable table = document.AddTable(2, 1);
+            table._tableProperties!.TableStyle?.Remove();
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "StyledCellSpacingOne";
+            table.Rows[0].Cells[0].Paragraphs[0].SetStyleId(styleId);
+            table.Rows[1].Cells[0].Paragraphs[0].Text = "StyledCellSpacingTwo";
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = new PdfCore.PageSize(360, 260),
+                Margins = PdfCore.PageMargins.Uniform(40)
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        var words = pdf.GetPage(1).GetWords().ToList();
+        var first = Assert.Single(words, word => word.Text == "StyledCellSpacingOne");
+        var second = Assert.Single(words, word => word.Text == "StyledCellSpacingTwo");
+
+        double rowBaselineGap = first.BoundingBox.Bottom - second.BoundingBox.Bottom;
+        Assert.True(rowBaselineGap > 40D, $"Expected Word paragraph style spacing to increase native PDF table row height. Gap: {rowBaselineGap}.");
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Does_Not_Invent_Table_Cell_Paragraph_Spacing_When_Undeclared() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellNoImplicitParagraphSpacing.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellNoImplicitParagraphSpacing.pdf");
@@ -415,6 +455,80 @@ public partial class Word {
         Assert.InRange(end.BoundingBox.Right, thirdColumnLeft + columnWidth - 8D, thirdColumnLeft + columnWidth - 2D);
         Assert.True(top.BoundingBox.Bottom > mid.BoundingBox.Bottom + 8D);
         Assert.True(mid.BoundingBox.Bottom > end.BoundingBox.Bottom + 8D);
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Renders_Table_Cell_Style_Alignment() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeStyleAlignedTable.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeStyleAlignedTable.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            const string centerStyleId = "NativeTableCenterStyle";
+            const string rightStyleId = "NativeTableRightStyle";
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(
+                new Style(
+                    new StyleName { Val = "Native Table Center Style" },
+                    new BasedOn { Val = "Normal" },
+                    new StyleParagraphProperties(new Justification {
+                        Val = JustificationValues.Center
+                    }))
+                {
+                    Type = StyleValues.Paragraph,
+                    StyleId = centerStyleId,
+                    CustomStyle = true
+                },
+                new Style(
+                    new StyleName { Val = "Native Table Right Style" },
+                    new BasedOn { Val = "Normal" },
+                    new StyleParagraphProperties(new Justification {
+                        Val = JustificationValues.Right
+                    }))
+                {
+                    Type = StyleValues.Paragraph,
+                    StyleId = rightStyleId,
+                    CustomStyle = true
+                });
+
+            WordTable table = document.AddTable(1, 3);
+            WordTableCell leftCell = table.Rows[0].Cells[0];
+            WordTableCell centerCell = table.Rows[0].Cells[1];
+            WordTableCell rightCell = table.Rows[0].Cells[2];
+
+            leftCell.Width = 1440;
+            leftCell.WidthType = TableWidthUnitValues.Dxa;
+            centerCell.Width = 1440;
+            centerCell.WidthType = TableWidthUnitValues.Dxa;
+            rightCell.Width = 1440;
+            rightCell.WidthType = TableWidthUnitValues.Dxa;
+
+            leftCell.Paragraphs[0].Text = "SLEFT";
+            centerCell.Paragraphs[0].Text = "SMID";
+            centerCell.Paragraphs[0].SetStyleId(centerStyleId);
+            rightCell.Paragraphs[0].Text = "SEND";
+            rightCell.Paragraphs[0].SetStyleId(rightStyleId);
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false
+            });
+        }
+
+        byte[] bytes = File.ReadAllBytes(pdfPath);
+        using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
+        var words = pdf.GetPage(1).GetWords().ToList();
+        var left = Assert.Single(words, word => word.Text == "SLEFT");
+        var center = Assert.Single(words, word => word.Text == "SMID");
+        var right = Assert.Single(words, word => word.Text == "SEND");
+
+        const double columnWidth = 72D;
+        double firstColumnLeft = left.BoundingBox.Left - 4D;
+        double secondColumnLeft = firstColumnLeft + columnWidth;
+        double thirdColumnLeft = secondColumnLeft + columnWidth;
+
+        Assert.InRange(left.BoundingBox.Left, firstColumnLeft + 3D, firstColumnLeft + 8D);
+        Assert.InRange(center.BoundingBox.Left, secondColumnLeft + 20D, secondColumnLeft + 36D);
+        Assert.InRange(right.BoundingBox.Right, thirdColumnLeft + columnWidth - 8D, thirdColumnLeft + columnWidth - 2D);
     }
 
     [Fact]

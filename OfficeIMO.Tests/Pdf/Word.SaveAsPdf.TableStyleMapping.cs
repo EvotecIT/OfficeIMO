@@ -64,6 +64,30 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Maps_Percent_String_Table_Preferred_Width() {
+        using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativePercentStringTableWidth.docx"));
+
+        WordTable percentString = document.AddTable(1, 2);
+        percentString._tableProperties!.TableWidth = new TableWidth {
+            Type = TableWidthUnitValues.Pct,
+            Width = "75%"
+        };
+
+        WordTable fiftiethsPercent = document.AddTable(1, 2);
+        fiftiethsPercent._tableProperties!.TableWidth = new TableWidth {
+            Type = TableWidthUnitValues.Pct,
+            Width = "3750"
+        };
+
+        PdfCore.PdfTableStyle percentStringStyle = CreateNativeTableStyleForTest(percentString, null, 400D);
+        PdfCore.PdfTableStyle fiftiethsPercentStyle = CreateNativeTableStyleForTest(fiftiethsPercent, null, 400D);
+
+        Assert.Equal(300D, percentStringStyle.MaxWidth);
+        Assert.True(percentStringStyle.PreserveWidth);
+        Assert.Equal(fiftiethsPercentStyle.MaxWidth, percentStringStyle.MaxWidth);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Preserves_Percentage_Preferred_Width_While_Using_Autofit_Columns() {
         using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeAutofitPreferredWidth.docx"));
 
@@ -219,6 +243,50 @@ public partial class Word {
         Assert.Equal(4D, style.CellPaddingBottom);
         Assert.Equal(8D, style.CellPaddingLeft);
         Assert.Equal(10D, style.CellPaddingRight);
+        Assert.Equal(1.22D, style.LineHeight);
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Maps_Table_Style_Exact_Line_Spacing() {
+        using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeTableStyleExactLineSpacing.docx"));
+        Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+        styles.Append(new Style(
+            new StyleName { Val = "Generic Exact Spacing Table" },
+            new StyleParagraphProperties(
+                new SpacingBetweenLines { After = "0", Line = "480", LineRule = LineSpacingRuleValues.Exact }))
+        { Type = StyleValues.Table, StyleId = "GenericExactSpacingTable" });
+
+        WordTable table = document.AddTable(1, 1);
+        table._tableProperties!.TableStyle = new TableStyle { Val = "GenericExactSpacingTable" };
+
+        PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table);
+
+        Assert.Equal(11D, style.FontSize);
+        Assert.Equal(24D / 11D, style.LineHeight.GetValueOrDefault(), 6);
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Lets_Derived_Table_Style_Auto_Line_Spacing_Override_Exact() {
+        using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeTableStyleAutoOverridesExactLineSpacing.docx"));
+        Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+        styles.Append(
+            new Style(
+                new StyleName { Val = "Generic Exact Spacing Base Table" },
+                new StyleParagraphProperties(
+                    new SpacingBetweenLines { After = "0", Line = "480", LineRule = LineSpacingRuleValues.Exact }))
+            { Type = StyleValues.Table, StyleId = "GenericExactSpacingBaseTable" },
+            new Style(
+                new StyleName { Val = "Generic Auto Spacing Derived Table" },
+                new BasedOn { Val = "GenericExactSpacingBaseTable" },
+                new StyleParagraphProperties(
+                    new SpacingBetweenLines { After = "0", Line = "240", LineRule = LineSpacingRuleValues.Auto }))
+            { Type = StyleValues.Table, StyleId = "GenericAutoSpacingDerivedTable" });
+
+        WordTable table = document.AddTable(1, 1);
+        table._tableProperties!.TableStyle = new TableStyle { Val = "GenericAutoSpacingDerivedTable" };
+
+        PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table);
+
         Assert.Equal(1.22D, style.LineHeight);
     }
 
