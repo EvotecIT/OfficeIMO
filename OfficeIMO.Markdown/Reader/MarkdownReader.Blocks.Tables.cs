@@ -439,6 +439,13 @@ public static partial class MarkdownReader {
 
             switch (ch) {
                 case '<':
+                    if (TableBlock.TryConsumeSupportedInlineFormattingTag(cell.Markdown, i, out int formattingTagLength)) {
+                        AppendMapped(cell.Markdown.Substring(i, formattingTagLength), column);
+                        column += formattingTagLength;
+                        i += formattingTagLength - 1;
+                        continue;
+                    }
+
                     AppendMapped("&lt;", column);
                     break;
                 case '>':

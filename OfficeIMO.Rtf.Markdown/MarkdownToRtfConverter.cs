@@ -34,10 +34,10 @@ internal static class MarkdownToRtfConverter {
                 ConvertHeading(document, heading, options);
                 break;
             case UnorderedListBlock unorderedList:
-                ConvertList(document, unorderedList.Items, RtfListKind.Bullet, 1, 0, options);
+                ConvertList(document, unorderedList.Items, RtfListKind.Bullet, 1, options);
                 break;
             case OrderedListBlock orderedList:
-                ConvertList(document, orderedList.Items, RtfListKind.Decimal, Math.Max(1, orderedList.Start), 0, options);
+                ConvertList(document, orderedList.Items, RtfListKind.Decimal, Math.Max(1, orderedList.Start), options);
                 break;
             case TableBlock table:
                 ConvertTable(document, table, options);
@@ -76,12 +76,17 @@ internal static class MarkdownToRtfConverter {
         AppendInlineSequence(paragraph, heading.Inlines, document, options, InlineStyle.Normal);
     }
 
-    private static void ConvertList(RtfDocument document, IReadOnlyList<ListItem> items, RtfListKind kind, int start, int levelOffset, MarkdownToRtfOptions options) {
+    private static void ConvertList(RtfDocument document, IReadOnlyList<ListItem> items, RtfListKind kind, int start, MarkdownToRtfOptions options) {
         int listId = CreateListDefinition(document, kind, start);
+        ConvertListItems(document, items, listId, kind, start, 0, options);
+    }
+
+    private static void ConvertListItems(RtfDocument document, IReadOnlyList<ListItem> items, int listId, RtfListKind kind, int start, int levelOffset, MarkdownToRtfOptions options) {
         for (int i = 0; i < items.Count; i++) {
             ListItem item = items[i];
             RtfParagraph paragraph = document.AddParagraph();
             int level = Math.Max(0, levelOffset + item.Level);
+            EnsureListLevel(document, listId, level, kind, start);
             paragraph.SetList(listId, level, kind);
             paragraph.ListDefinitionId = listId;
             if (item.IsTask) {
@@ -96,36 +101,57 @@ internal static class MarkdownToRtfConverter {
             }
 
             for (int childIndex = 0; childIndex < item.ChildBlocks.Count; childIndex++) {
-                ConvertNestedListOrBlock(document, item.ChildBlocks[childIndex], level + 1, options);
+                ConvertNestedListOrBlock(document, item.ChildBlocks[childIndex], listId, level + 1, options);
             }
         }
     }
 
     private static int CreateListDefinition(RtfDocument document, RtfListKind kind, int start) {
         int listId = MarkdownListIdBase + document.ListOverrides.Count + 1;
-        RtfListDefinition definition = document.AddListDefinition(listId, "Markdown list " + listId.ToString(System.Globalization.CultureInfo.InvariantCulture));
-        RtfListLevel level = definition.AddLevel(kind);
-        if (kind == RtfListKind.Decimal) {
+        document.AddListDefinition(listId, "Markdown list " + listId.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        document.AddListOverride(listId, listId);
+        EnsureListLevel(document, listId, 0, kind, start);
+        return listId;
+    }
+
+    private static void EnsureListLevel(RtfDocument document, int listId, int levelIndex, RtfListKind kind, int start) {
+        RtfListDefinition? definition = document.ListDefinitions.FirstOrDefault(item => item.Id == listId);
+        if (definition == null) {
+            definition = document.AddListDefinition(listId, "Markdown list " + listId.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        }
+
+        while (definition.Levels.Count <= levelIndex) {
+            definition.AddLevel(kind);
+        }
+
+        RtfListLevel level = definition.Levels[levelIndex];
+        if (level.Kind != kind) {
+            level.Kind = kind;
+        }
+
+        if (kind == RtfListKind.Decimal && levelIndex == 0) {
             level.StartAt = Math.Max(1, start);
         }
 
-        RtfListOverride listOverride = document.AddListOverride(listId, listId);
-        if (kind == RtfListKind.Decimal && start != 1) {
+        RtfListOverride? listOverride = document.ListOverrides.FirstOrDefault(item => item.Id == listId);
+        if (listOverride == null) {
+            listOverride = document.AddListOverride(listId, listId);
+        }
+
+        if (kind == RtfListKind.Decimal && levelIndex == 0 && start != 1 && listOverride.LevelOverrides.Count == 0) {
             RtfListLevelOverride levelOverride = listOverride.AddLevelOverride();
             levelOverride.OverrideStartAt = true;
             levelOverride.StartAt = Math.Max(1, start);
         }
-
-        return listId;
     }
 
-    private static void ConvertNestedListOrBlock(RtfDocument document, IMarkdownBlock block, int levelOffset, MarkdownToRtfOptions options) {
+    private static void ConvertNestedListOrBlock(RtfDocument document, IMarkdownBlock block, int listId, int levelOffset, MarkdownToRtfOptions options) {
         switch (block) {
             case UnorderedListBlock unorderedList:
-                ConvertList(document, unorderedList.Items, RtfListKind.Bullet, 1, levelOffset, options);
+                ConvertListItems(document, unorderedList.Items, listId, RtfListKind.Bullet, 1, levelOffset, options);
                 break;
             case OrderedListBlock orderedList:
-                ConvertList(document, orderedList.Items, RtfListKind.Decimal, Math.Max(1, orderedList.Start), levelOffset, options);
+                ConvertListItems(document, orderedList.Items, listId, RtfListKind.Decimal, Math.Max(1, orderedList.Start), levelOffset, options);
                 break;
             default:
                 ConvertBlock(document, block, options);
@@ -146,7 +172,7 @@ internal static class MarkdownToRtfConverter {
         if (table.Headers.Count > 0) {
             RtfTableRow headerRow = rtfTable.Rows[rtfRowIndex++];
             headerRow.RepeatHeader = true;
-            FillTableRow(headerRow, table.HeaderInlines, document, options);
+            FillTableRow(headerRow, table.HeaderInlines, table.Alignments, document, options);
         }
 
         IReadOnlyList<IReadOnlyList<InlineSequence>> rowInlines = table.RowInlines;
@@ -154,16 +180,41 @@ internal static class MarkdownToRtfConverter {
             IReadOnlyList<InlineSequence> cells = rowIndex < rowInlines.Count
                 ? rowInlines[rowIndex]
                 : Array.Empty<InlineSequence>();
-            FillTableRow(rtfTable.Rows[rtfRowIndex++], cells, document, options);
+            FillTableRow(rtfTable.Rows[rtfRowIndex++], cells, table.Alignments, document, options);
         }
     }
 
-    private static void FillTableRow(RtfTableRow row, IReadOnlyList<InlineSequence> cells, RtfDocument document, MarkdownToRtfOptions options) {
+    private static void FillTableRow(RtfTableRow row, IReadOnlyList<InlineSequence> cells, IReadOnlyList<ColumnAlignment> alignments, RtfDocument document, MarkdownToRtfOptions options) {
         for (int column = 0; column < row.Cells.Count; column++) {
             RtfParagraph paragraph = row.Cells[column].AddParagraph();
+            if (TryMapAlignment(alignments, column, out RtfTextAlignment alignment)) {
+                paragraph.SetAlignment(alignment);
+            }
+
             if (column < cells.Count) {
                 AppendInlineSequence(paragraph, cells[column], document, options, InlineStyle.Normal);
             }
+        }
+    }
+
+    private static bool TryMapAlignment(IReadOnlyList<ColumnAlignment> alignments, int column, out RtfTextAlignment alignment) {
+        alignment = RtfTextAlignment.Left;
+        if (alignments == null || column < 0 || column >= alignments.Count) {
+            return false;
+        }
+
+        switch (alignments[column]) {
+            case ColumnAlignment.Left:
+                alignment = RtfTextAlignment.Left;
+                return true;
+            case ColumnAlignment.Center:
+                alignment = RtfTextAlignment.Center;
+                return true;
+            case ColumnAlignment.Right:
+                alignment = RtfTextAlignment.Right;
+                return true;
+            default:
+                return false;
         }
     }
 

@@ -27,7 +27,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
             var markdown = run.RenderMarkdown();
 
-            Assert.Equal("&#96;code&#96; &#126;&#126;strike&#126;&#126; &#61;&#61;mark&#61;&#61;", markdown);
+            Assert.Equal(@"\`code\` \~\~strike\~\~ \=\=mark\=\=", markdown);
         }
 
         [Fact]

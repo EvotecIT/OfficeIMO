@@ -84,7 +84,8 @@ internal static class RtfToMarkdownConverter {
             RtfParagraph paragraph = paragraphs[i];
             int level = Math.Max(0, paragraph.ListLevel ?? 0);
             RtfListKind kind = NormalizeListKind(paragraph.ListKind);
-            var item = new ListItem(ConvertParagraphInlines(paragraph, options, ref imageIndex));
+            InlineSequence inlines = ConvertParagraphInlines(paragraph, options, ref imageIndex);
+            ListItem item = CreateListItem(inlines);
 
             ListFrame frame = GetOrCreateListFrame(document, frames, paragraph, level, kind);
             AddListItem(frame.List, item);
@@ -92,6 +93,53 @@ internal static class RtfToMarkdownConverter {
         }
 
         return (IMarkdownBlock)root;
+    }
+
+    private static ListItem CreateListItem(InlineSequence inlines) {
+        return TryStripTaskMarker(inlines, out InlineSequence content, out bool isChecked)
+            ? ListItem.TaskInlines(content, isChecked)
+            : new ListItem(inlines);
+    }
+
+    private static bool TryStripTaskMarker(InlineSequence inlines, out InlineSequence content, out bool isChecked) {
+        content = inlines;
+        isChecked = false;
+
+        if (inlines.Nodes.Count == 0) {
+            return false;
+        }
+
+        IMarkdownInline first = inlines.Nodes[0];
+        string? text = first switch {
+            TextRun run => run.Text,
+            DecodedHtmlEntityTextRun run => run.Text,
+            _ => null
+        };
+
+        if (string.IsNullOrEmpty(text) || text!.Length < 3 || text[0] != '[' || text[2] != ']') {
+            return false;
+        }
+
+        if (text[1] == ' ') {
+            isChecked = false;
+        } else if (text[1] == 'x' || text[1] == 'X') {
+            isChecked = true;
+        } else {
+            return false;
+        }
+
+        int consume = text.Length > 3 && char.IsWhiteSpace(text[3]) ? 4 : 3;
+        content = CreateInlineSequence();
+        string remaining = text.Substring(consume);
+        if (remaining.Length > 0) {
+            content.AddRaw(first is TextRun ? new TextRun(remaining) : new DecodedHtmlEntityTextRun(remaining));
+        }
+
+        for (int i = 1; i < inlines.Nodes.Count; i++) {
+            content.AddRaw(inlines.Nodes[i]);
+        }
+
+        return true;
     }
 
     private static ListFrame GetOrCreateListFrame(RtfDocument document, List<ListFrame> frames, RtfParagraph paragraph, int level, RtfListKind kind) {
@@ -222,36 +270,63 @@ internal static class RtfToMarkdownConverter {
 
         bool hasHeader = table.Rows[0].RepeatHeader;
         int firstBodyRow = hasHeader ? 1 : 0;
+        List<InlineSequence>? headerInlines = null;
         if (hasHeader) {
             RtfTableRow firstRow = table.Rows[0];
+            headerInlines = new List<InlineSequence>(firstRow.Cells.Count);
             for (int column = 0; column < firstRow.Cells.Count; column++) {
-                markdown.Headers.Add(ConvertCellMarkdown(firstRow.Cells[column], options, ref imageIndex));
+                CellContent content = ConvertCellContent(firstRow.Cells[column], options, ref imageIndex);
+                markdown.Headers.Add(content.Markdown);
+                headerInlines.Add(content.Inlines);
             }
         }
 
+        var rowInlines = new List<IReadOnlyList<InlineSequence>>();
         for (int rowIndex = firstBodyRow; rowIndex < table.Rows.Count; rowIndex++) {
             var row = table.Rows[rowIndex];
             var cells = new List<string>(row.Cells.Count);
+            var inlines = new List<InlineSequence>(row.Cells.Count);
             for (int column = 0; column < row.Cells.Count; column++) {
-                cells.Add(ConvertCellMarkdown(row.Cells[column], options, ref imageIndex));
+                CellContent content = ConvertCellContent(row.Cells[column], options, ref imageIndex);
+                cells.Add(content.Markdown);
+                inlines.Add(content.Inlines);
             }
 
             markdown.Rows.Add(cells);
+            rowInlines.Add(inlines);
         }
 
+        markdown.SetParsedCells(headerInlines, rowInlines, markdown.ComputeContentSignature());
         return markdown;
     }
 
-    private static string ConvertCellMarkdown(RtfTableCell cell, RtfToMarkdownOptions options, ref int imageIndex) {
+    private static CellContent ConvertCellContent(RtfTableCell cell, RtfToMarkdownOptions options, ref int imageIndex) {
         var parts = new List<string>();
+        InlineSequence combined = CreateInlineSequence();
+        bool hasCombinedContent = false;
         for (int i = 0; i < cell.Paragraphs.Count; i++) {
-            string text = RenderInlineSequenceMarkdown(ConvertParagraphInlines(cell.Paragraphs[i], options, ref imageIndex));
+            InlineSequence paragraphInlines = ConvertParagraphInlines(cell.Paragraphs[i], options, ref imageIndex);
+            string text = RenderInlineSequenceMarkdown(paragraphInlines);
             if (!string.IsNullOrEmpty(text)) {
                 parts.Add(text.Replace("\r\n", "\n").Replace('\r', '\n').Replace("\n", "<br>"));
             }
+
+            if (paragraphInlines.Nodes.Count == 0) {
+                continue;
+            }
+
+            if (hasCombinedContent) {
+                combined.AddRaw(new HardBreakInline());
+            }
+
+            for (int nodeIndex = 0; nodeIndex < paragraphInlines.Nodes.Count; nodeIndex++) {
+                combined.AddRaw(paragraphInlines.Nodes[nodeIndex]);
+            }
+
+            hasCombinedContent = true;
         }
 
-        return string.Join("<br>", parts);
+        return new CellContent(string.Join("<br>", parts), combined);
     }
 
     private static ImageBlock ConvertImageBlock(RtfImage image, RtfToMarkdownOptions options, ref int imageIndex) {
@@ -458,5 +533,16 @@ internal static class RtfToMarkdownConverter {
         internal IMarkdownListBlock List { get; }
 
         internal ListItem? LastItem { get; set; }
+    }
+
+    private readonly struct CellContent {
+        internal CellContent(string markdown, InlineSequence inlines) {
+            Markdown = markdown ?? string.Empty;
+            Inlines = inlines ?? CreateInlineSequence();
+        }
+
+        internal string Markdown { get; }
+
+        internal InlineSequence Inlines { get; }
     }
 }

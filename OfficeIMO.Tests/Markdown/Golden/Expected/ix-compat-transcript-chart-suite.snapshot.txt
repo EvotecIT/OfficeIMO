@@ -191,7 +191,7 @@ Now run this compact compatibility matrix to prove what your renderer actually s
 
 | Feature | Test block | Expected result | If it fails, likely cause |
 | --- | --- | --- | --- |
-| Basic bar render | Test A \\(stacked bar\\) | Bars render + legend visible | JSON parse issue or chart plugin not loaded |
+| Basic bar render | Test A \(stacked bar\) | Bars render + legend visible | JSON parse issue or chart plugin not loaded |
 | Stacking | Test A `stack` + `scales.*.stacked=true` | Segments stack per category | Partial Chart.js options support |
 | Line smoothing/fill | Test B `tension` + `fill` | Curved filled lines | Renderer strips advanced dataset options |
 | Doughnut cutout | Test C `cutout:"55%"` | Ring hole appears | Older Chart.js compatibility mode |

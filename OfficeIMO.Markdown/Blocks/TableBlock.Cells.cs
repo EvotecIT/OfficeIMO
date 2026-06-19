@@ -227,7 +227,12 @@ public sealed partial class TableBlock {
             switch (ch) {
                 case '<':
                     builder ??= AllocateCellBuilder(value, i);
-                    builder.Append("&lt;");
+                    if (TryConsumeSupportedInlineFormattingTag(value, i, out int formattingTagLength)) {
+                        builder.Append(value, i, formattingTagLength);
+                        i += formattingTagLength - 1;
+                    } else {
+                        builder.Append("&lt;");
+                    }
                     break;
                 case '>':
                     builder ??= AllocateCellBuilder(value, i);
@@ -287,6 +292,46 @@ public sealed partial class TableBlock {
             '|' => true,
             '>' => true,
             '=' => true,
+            '~' => true,
+            _ => false
+        };
+    }
+
+    internal static bool TryConsumeSupportedInlineFormattingTag(string value, int index, out int consumed) {
+        consumed = 0;
+        if (index < 0 || index >= value.Length || value[index] != '<') {
+            return false;
+        }
+
+        int position = index + 1;
+        bool closing = position < value.Length && value[position] == '/';
+        if (closing) {
+            position++;
+        }
+
+        int nameStart = position;
+        while (position < value.Length && char.IsLetter(value[position])) {
+            position++;
+        }
+
+        if (position == nameStart || position >= value.Length || value[position] != '>') {
+            return false;
+        }
+
+        string tagName = value.Substring(nameStart, position - nameStart);
+        if (!IsSupportedInlineFormattingTag(tagName)) {
+            return false;
+        }
+
+        consumed = position - index + 1;
+        return true;
+    }
+
+    private static bool IsSupportedInlineFormattingTag(string tagName) {
+        return tagName.Length switch {
+            1 => string.Equals(tagName, "u", StringComparison.OrdinalIgnoreCase),
+            3 => string.Equals(tagName, "sup", StringComparison.OrdinalIgnoreCase)
+                 || string.Equals(tagName, "sub", StringComparison.OrdinalIgnoreCase),
             _ => false
         };
     }

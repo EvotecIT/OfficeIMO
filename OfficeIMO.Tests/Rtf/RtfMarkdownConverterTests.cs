@@ -181,6 +181,129 @@ public class RtfMarkdownConverterTests {
     }
 
     [Fact]
+    public void MarkdownToRtfDocumentKeepsNestedListsInSameListDefinition() {
+        RtfDocument document = """
+            3. Parent
+               - Child
+            """.ToRtfDocumentFromMarkdown();
+
+        RtfParagraph parent = Assert.Single(document.Paragraphs, paragraph => paragraph.ToPlainText() == "Parent");
+        RtfParagraph child = Assert.Single(document.Paragraphs, paragraph => paragraph.ToPlainText() == "Child");
+
+        Assert.Equal(parent.ListId, child.ListId);
+        Assert.Equal(parent.ListDefinitionId, child.ListDefinitionId);
+        Assert.Equal(0, parent.ListLevel);
+        Assert.Equal(1, child.ListLevel);
+        RtfListDefinition definition = Assert.Single(document.ListDefinitions, item => item.Id == parent.ListDefinitionId);
+        Assert.Equal(RtfListKind.Decimal, definition.Levels[0].Kind);
+        Assert.Equal(3, definition.Levels[0].StartAt);
+        Assert.Equal(RtfListKind.Bullet, definition.Levels[1].Kind);
+    }
+
+    [Fact]
+    public void MarkdownToRtfDocumentAppliesTableColumnAlignmentsToCellParagraphs() {
+        RtfDocument document = """
+            | Name | Count | Status |
+            | :--- | ---: | :---: |
+            | Alpha | 42 | Ready |
+            """.ToRtfDocumentFromMarkdown();
+
+        RtfTable table = Assert.IsType<RtfTable>(document.Blocks.OfType<RtfTable>().Single());
+
+        Assert.Equal(RtfTextAlignment.Left, table.Rows[1].Cells[0].Paragraphs[0].Alignment);
+        Assert.Equal(RtfTextAlignment.Right, table.Rows[1].Cells[1].Paragraphs[0].Alignment);
+        Assert.Equal(RtfTextAlignment.Center, table.Rows[1].Cells[2].Paragraphs[0].Alignment);
+    }
+
+    [Fact]
+    public void RtfDocumentToMarkdownPreservesTaskListItems() {
+        RtfDocument document = RtfDocument.Create();
+        document.AddParagraph("[x] Done").SetList(kind: RtfListKind.Bullet);
+        document.AddParagraph("[ ] Todo").SetList(kind: RtfListKind.Bullet);
+
+        string markdown = document.ToMarkdown();
+        MarkdownDoc parsed = MarkdownReader.Parse(markdown);
+        UnorderedListBlock list = Assert.IsType<UnorderedListBlock>(Assert.Single(parsed.Blocks));
+
+        Assert.Contains("- [x] Done", markdown, StringComparison.Ordinal);
+        Assert.Contains("- [ ] Todo", markdown, StringComparison.Ordinal);
+        Assert.True(list.Items[0].IsTask);
+        Assert.True(list.Items[0].Checked);
+        Assert.True(list.Items[1].IsTask);
+        Assert.False(list.Items[1].Checked);
+        Assert.Equal("Done", ExtractPlainText(list.Items[0].Content));
+        Assert.Equal("Todo", ExtractPlainText(list.Items[1].Content));
+    }
+
+    [Fact]
+    public void RtfDocumentToMarkdownKeepsLiteralBlockMarkersAsText() {
+        RtfDocument document = RtfDocument.Create();
+        document.AddParagraph("# Heading\n- item\n1. item\n---");
+
+        string markdown = document.ToMarkdown();
+        RtfDocument roundTrip = markdown.ToRtfDocumentFromMarkdown();
+
+        Assert.Contains(@"\# Heading", markdown, StringComparison.Ordinal);
+        Assert.Contains(@"\- item", markdown, StringComparison.Ordinal);
+        Assert.Contains(@"1\. item", markdown, StringComparison.Ordinal);
+        Assert.Contains(@"\---", markdown, StringComparison.Ordinal);
+        Assert.All(roundTrip.Paragraphs, paragraph => {
+            Assert.Equal(RtfListKind.None, paragraph.ListKind);
+            Assert.Null(paragraph.OutlineLevel);
+        });
+    }
+
+    [Fact]
+    public void RtfDocumentToMarkdownKeepsLiteralTildeAndHighlightMarkersParseable() {
+        RtfDocument document = RtfDocument.Create();
+        document.AddParagraph("~~not strike~~ ==not mark==");
+
+        string markdown = document.ToMarkdown();
+        RtfDocument roundTrip = markdown.ToRtfDocumentFromMarkdown();
+
+        Assert.Contains(@"\~\~not strike\~\~", markdown, StringComparison.Ordinal);
+        Assert.Contains(@"\=\=not mark\=\=", markdown, StringComparison.Ordinal);
+        Assert.Equal("~~not strike~~ ==not mark==", roundTrip.Paragraphs[0].ToPlainText());
+        Assert.DoesNotContain(roundTrip.Paragraphs[0].Runs, run => run.Strike || run.DoubleStrike || run.HighlightColorIndex.HasValue);
+    }
+
+    [Fact]
+    public void RtfDocumentToMarkdownEncodesLiteralEntityAmpersands() {
+        RtfDocument document = RtfDocument.Create();
+        document.AddParagraph("&lt; &#42;");
+
+        string markdown = document.ToMarkdown();
+        RtfDocument roundTrip = markdown.ToRtfDocumentFromMarkdown();
+
+        Assert.Contains("&amp;lt; &amp;#42;", markdown, StringComparison.Ordinal);
+        Assert.Equal("&lt; &#42;", roundTrip.Paragraphs[0].ToPlainText());
+    }
+
+    [Fact]
+    public void RtfDocumentToMarkdownRoundTripPreservesTableCellHtmlFormatting() {
+        RtfDocument document = RtfDocument.Create();
+        RtfTable table = document.AddTable(2, 3);
+        table.Rows[0].RepeatHeader = true;
+        table.Rows[0].Cells[0].AddParagraph("Under");
+        table.Rows[0].Cells[1].AddParagraph("Super");
+        table.Rows[0].Cells[2].AddParagraph("Sub");
+        table.Rows[1].Cells[0].AddParagraph().AddText("under").SetUnderline(RtfUnderlineStyle.Single);
+        table.Rows[1].Cells[1].AddParagraph().AddText("up").VerticalPosition = RtfVerticalPosition.Superscript;
+        table.Rows[1].Cells[2].AddParagraph().AddText("down").VerticalPosition = RtfVerticalPosition.Subscript;
+
+        string markdown = document.ToMarkdown();
+        RtfDocument roundTrip = markdown.ToRtfDocumentFromMarkdown();
+        RtfTable roundTripTable = Assert.IsType<RtfTable>(roundTrip.Blocks.OfType<RtfTable>().Single());
+
+        Assert.Contains("<u>under</u>", markdown, StringComparison.Ordinal);
+        Assert.Contains("<sup>up</sup>", markdown, StringComparison.Ordinal);
+        Assert.Contains("<sub>down</sub>", markdown, StringComparison.Ordinal);
+        Assert.Contains(roundTripTable.Rows[1].Cells[0].Paragraphs[0].Runs, run => run.Text == "under" && run.UnderlineStyle != RtfUnderlineStyle.None);
+        Assert.Contains(roundTripTable.Rows[1].Cells[1].Paragraphs[0].Runs, run => run.Text == "up" && run.VerticalPosition == RtfVerticalPosition.Superscript);
+        Assert.Contains(roundTripTable.Rows[1].Cells[2].Paragraphs[0].Runs, run => run.Text == "down" && run.VerticalPosition == RtfVerticalPosition.Subscript);
+    }
+
+    [Fact]
     public void MarkdownToRtfDocumentPreservesAdditionalListParagraphsTableHeadersAndEscapedEntities() {
         var list = new UnorderedListBlock();
         var item = ListItem.Text("Lead");
@@ -261,5 +384,11 @@ public class RtfMarkdownConverterTests {
         Assert.DoesNotContain("| --- |", markdown, StringComparison.Ordinal);
         Assert.Contains("| Data one |", markdown, StringComparison.Ordinal);
         Assert.Contains("| Data two |", markdown, StringComparison.Ordinal);
+    }
+
+    private static string ExtractPlainText(IPlainTextMarkdownInline inline) {
+        var builder = new System.Text.StringBuilder();
+        inline.AppendPlainText(builder);
+        return builder.ToString();
     }
 }
