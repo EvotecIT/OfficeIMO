@@ -11,6 +11,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\\OfficeIMO.Excel\\OfficeIMO.Excel.csproj" />
+        <ProjectReference Include="..\\OfficeIMO.Excel.Pdf\\OfficeIMO.Excel.Pdf.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Excel.GoogleSheets\\OfficeIMO.Excel.GoogleSheets.csproj" />
         <ProjectReference Include="..\\OfficeIMO.GoogleWorkspace\\OfficeIMO.GoogleWorkspace.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Pdf\\OfficeIMO.Pdf.csproj" />

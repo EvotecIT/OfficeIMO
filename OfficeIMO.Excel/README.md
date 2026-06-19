@@ -198,6 +198,26 @@ document.Save("report.xlsx", openExcel: false, options: new ExcelSaveOptions {
 });
 ```
 
+### Preflight a workbook before choosing a workflow
+
+```csharp
+using var document = ExcelDocument.Load("incoming.xlsx", readOnly: true);
+
+ExcelFeatureReport report = document.InspectFeatures();
+
+try {
+    report.EnsureCan(ExcelPreflightCapability.EditWorkbookStructure);
+} catch (InvalidOperationException ex) {
+    Console.WriteLine(ex.Message);
+}
+
+if (!report.Can(ExcelPreflightCapability.ExportPdfReport)) {
+    Console.WriteLine(report.ToMarkdown());
+}
+```
+
+Use workflow preflight when an application needs to decide whether a workbook is safe for readback, cell-value edits, structure-changing edits, cached-formula reads, OfficeIMO formula calculation, template binding, or first-party PDF report export. Preserve-only features such as macros, slicers, timelines, threaded comments, external links, custom XML, OLE objects, and form controls are reported with package details instead of being silently ignored.
+
 ### CSV and JSON exchange
 
 ```csharp

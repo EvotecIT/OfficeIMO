@@ -22,7 +22,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Workbook-level feature and compatibility report.
     /// </summary>
-    public sealed class ExcelFeatureReport {
+    public sealed partial class ExcelFeatureReport {
         private readonly List<ExcelFeatureFinding> _features = new List<ExcelFeatureFinding>();
 
         internal ExcelFeatureReport(IReadOnlyList<ExcelFeatureFinding> features) {
@@ -172,6 +172,21 @@ namespace OfficeIMO.Excel {
             builder.AppendLine($"Partially editable features: {PartiallyEditableFeatures.Count}");
             builder.AppendLine($"Preserved features: {PreservedFeatures.Count}");
             builder.AppendLine($"Unsupported features: {UnsupportedFeatures.Count}");
+            builder.AppendLine();
+            builder.AppendLine("## Capability Preflight");
+            builder.AppendLine();
+            builder.AppendLine("| Capability | Can attempt | Diagnostics |");
+            builder.AppendLine("| --- | --- | --- |");
+            foreach (ExcelPreflightCapability capability in Enum.GetValues(typeof(ExcelPreflightCapability))) {
+                builder.Append("| ");
+                builder.Append(capability);
+                builder.Append(" | ");
+                builder.Append(Can(capability) ? "yes" : "no");
+                builder.Append(" | ");
+                builder.Append(EscapeMarkdownCell(string.Join("; ", GetCapabilityDiagnostics(capability))));
+                builder.AppendLine(" |");
+            }
+
             builder.AppendLine();
             builder.AppendLine("| Category | Feature | Count | Support | Scope | Note | Details |");
             builder.AppendLine("| --- | --- | --- | --- | --- | --- | --- |");
@@ -392,6 +407,12 @@ namespace OfficeIMO.Excel {
                 "Unsupported formulas are preserved and should be recalculated by Excel or read from cached values.");
             Add(features, "Calculation", "Missing formula caches", ExcelFeatureSupportLevel.Preserved, formulas.MissingCachedResults, null,
                 "Formulas without cached results need OfficeIMO calculation support or Excel recalculation before cached-value reads are reliable.");
+            Add(features, "Calculation", "Formula dependency issues", ExcelFeatureSupportLevel.Preserved, formulas.DependencyIssueCount, null,
+                "Formula dependencies need review before cached-value reads, calculation, or report export can be trusted.",
+                formulas.Formulas
+                    .Where(formula => formula.DependencyIssues.Count > 0)
+                    .Select(formula => $"{formula.SheetName}!{formula.CellReference}: {string.Join("; ", formula.DependencyIssues)}")
+                    .ToArray());
 
             var allParts = EnumeratePackageParts(_spreadSheetDocument).ToList();
             var vbaDetails = DescribePartsByUriOrContentType(allParts, "vbaProject");
