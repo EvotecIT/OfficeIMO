@@ -179,8 +179,10 @@ public sealed partial class TableBlock {
                     builder ??= AllocateCellBuilder(value, i);
                     if (preserveMarkdownEscapes && i + 1 < value.Length && IsMarkdownBackslashEscapable(value[i + 1])) {
                         builder.Append('\\').Append(value[++i]);
-                    } else if (!preserveMarkdownEscapes && i + 1 < value.Length && IsMarkdownBackslashEscapable(value[i + 1])) {
+                    } else if (!preserveMarkdownEscapes && i + 1 < value.Length && RequiresLiteralBackslashProtectionInRawCell(value[i + 1])) {
                         builder.Append("\\\\").Append('\\').Append(value[++i]);
+                    } else if (i + 1 < value.Length && IsMarkdownBackslashEscapable(value[i + 1])) {
+                        builder.Append('\\').Append(value[++i]);
                     } else {
                         builder.Append("\\\\");
                     }
@@ -303,6 +305,18 @@ public sealed partial class TableBlock {
             '>' => true,
             '=' => true,
             '~' => true,
+            _ => false
+        };
+    }
+
+    private static bool RequiresLiteralBackslashProtectionInRawCell(char value) {
+        return value switch {
+            '`' => true,
+            '*' => true,
+            '_' => true,
+            '[' => true,
+            ']' => true,
+            '|' => true,
             _ => false
         };
     }
