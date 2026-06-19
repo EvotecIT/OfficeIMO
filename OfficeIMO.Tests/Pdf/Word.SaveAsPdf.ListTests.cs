@@ -234,6 +234,56 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Measures_List_Blocks_Inside_KeepWithNext_Chains() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeParagraphListKeepWithNextChain.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeParagraphListKeepWithNextChain.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                const string styleId = "ParagraphListChainKeepWithNext";
+                Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                styles.Append(new Style(
+                    new StyleName { Val = "Paragraph List Chain Keep With Next" },
+                    new BasedOn { Val = "Normal" },
+                    new StyleParagraphProperties(new KeepNext()))
+                {
+                    Type = StyleValues.Paragraph,
+                    StyleId = styleId,
+                    CustomStyle = true
+                });
+
+                WordParagraph intro = document.AddParagraph("ParagraphListChainIntro");
+                intro.LineSpacingAfterPoints = 120;
+                document.AddParagraph("ParagraphListChainLead").SetStyleId(styleId);
+
+                WordList bulletList = document.AddList(WordListStyle.Bulleted);
+                bulletList.AddItem("ParagraphListChainFirst").SetStyleId(styleId);
+                bulletList.AddItem("ParagraphListChainSecond").SetStyleId(styleId);
+                document.AddParagraph("ParagraphListChainTarget");
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false,
+                    PageSize = new OfficeIMO.Pdf.PageSize(260, 260),
+                    Margins = OfficeIMO.Pdf.PageMargins.Uniform(30),
+                    FontFamily = "Helvetica"
+                });
+            }
+
+            using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+
+            Assert.Equal(2, pdf.NumberOfPages);
+            Assert.Contains("ParagraphListChainIntro", pdf.GetPage(1).Text);
+            Assert.DoesNotContain("ParagraphListChainLead", pdf.GetPage(1).Text);
+            Assert.DoesNotContain("ParagraphListChainFirst", pdf.GetPage(1).Text);
+            Assert.DoesNotContain("ParagraphListChainSecond", pdf.GetPage(1).Text);
+            Assert.DoesNotContain("ParagraphListChainTarget", pdf.GetPage(1).Text);
+            Assert.Contains("ParagraphListChainLead", pdf.GetPage(2).Text);
+            Assert.Contains("ParagraphListChainFirst", pdf.GetPage(2).Text);
+            Assert.Contains("ParagraphListChainSecond", pdf.GetPage(2).Text);
+            Assert.Contains("ParagraphListChainTarget", pdf.GetPage(2).Text);
+        }
+
+        [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Renders_Custom_And_Nested_Word_List_Markers() {
             string docPath = Path.Combine(_directoryWithFiles, "PdfNativeCustomNestedListMarkers.docx");
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeCustomNestedListMarkers.pdf");

@@ -253,6 +253,14 @@ internal static partial class PdfWriter {
                 return MeasureParagraphBlockHeight(paragraph, frameX, frameWidth, fontSize);
             }
 
+            if (block is BulletListBlock bullets) {
+                return MeasureBulletListBlockHeight(bullets, frameWidth, fontSize);
+            }
+
+            if (block is NumberedListBlock numbered) {
+                return MeasureNumberedListBlockHeight(numbered, frameWidth, fontSize);
+            }
+
             if (block is HorizontalRuleBlock rule) {
                 PdfHorizontalRuleStyle style = ResolveHorizontalRuleStyle(rule, currentOpts);
                 return style.SpacingBefore + style.Thickness + style.SpacingAfter;
@@ -283,6 +291,61 @@ internal static partial class PdfWriter {
             return spacingBefore + wrap.LineHeights.Sum() + spacingAfter;
         }
 
+        private double MeasureBulletListBlockHeight(BulletListBlock bullets, double frameWidth, double fontSize) {
+            PdfListStyle? listStyle = ResolveListStyle(bullets, currentOpts);
+            double size = GetListFontSize(listStyle, fontSize);
+            double leading = GetListLeading(listStyle, size);
+            var baseFont = ChooseNormal(currentOpts.DefaultFont);
+            PdfStandardFont markerFont = GetListMarkerFont(listStyle, currentOpts.DefaultFont);
+            const string bulletGlyph = "•";
+            double estimatedBulletWidth = bullets.RichItems.Count == 0
+                ? EstimateSimpleTextWidthForOptions(bulletGlyph, markerFont, size, currentOpts)
+                : bullets.RichItems.Max(item => EstimateSimpleTextWidthForOptions(item.Marker ?? bulletGlyph, markerFont, size, currentOpts));
+            double bulletWidth = GetListMarkerWidth(listStyle, estimatedBulletWidth);
+            double spaceAdvance = EstimateSimpleTextWidthForOptions(" ", baseFont, size, currentOpts);
+            double markerGap = GetListMarkerGap(listStyle, spaceAdvance);
+            double rawTextWidth = frameWidth - (listStyle?.LeftIndent ?? 0D) - bulletWidth - markerGap;
+            double availableWidth = Math.Max(rawTextWidth, EstimateSimpleTextWidthForOptions("WW", baseFont, size, currentOpts));
+            double itemSpacing = GetListItemSpacing(listStyle, leading);
+            var wrappedItems = new System.Collections.Generic.List<TableCellTextLayout>(bullets.RichItems.Count);
+            for (int itemIndex = 0; itemIndex < bullets.RichItems.Count; itemIndex++) {
+                wrappedItems.Add(CreateListItemTextLayout(bullets.RichItems[itemIndex], availableWidth, baseFont, size, leading, currentOpts));
+            }
+
+            double listSpacingBefore = ResolveTopLevelSpacingBefore(listStyle?.SpacingBefore ?? 0D);
+            double listSpacingAfter = listStyle?.GetSpacingAfter(itemSpacing) ?? itemSpacing;
+            return MeasureListKeepTogetherHeight(wrappedItems, leading, listSpacingBefore, itemSpacing, listSpacingAfter);
+        }
+
+        private double MeasureNumberedListBlockHeight(NumberedListBlock numbered, double frameWidth, double fontSize) {
+            PdfListStyle? listStyle = ResolveListStyle(numbered, currentOpts);
+            double size = GetListFontSize(listStyle, fontSize);
+            double leading = GetListLeading(listStyle, size);
+            var baseFont = ChooseNormal(currentOpts.DefaultFont);
+            PdfStandardFont markerFont = GetListMarkerFont(listStyle, currentOpts.DefaultFont);
+            int lastNumber = numbered.StartNumber + Math.Max(0, numbered.RichItems.Count - 1);
+            string widestMarker = lastNumber.ToString(CultureInfo.InvariantCulture) + ".";
+            double estimatedMarkerWidth = numbered.RichItems.Count == 0
+                ? EstimateSimpleTextWidthForOptions(widestMarker, markerFont, size, currentOpts)
+                : numbered.RichItems
+                    .Select((item, itemIndex) => item.Marker ?? ((numbered.StartNumber + itemIndex).ToString(CultureInfo.InvariantCulture) + "."))
+                    .Max(marker => EstimateSimpleTextWidthForOptions(marker, markerFont, size, currentOpts));
+            double markerWidth = GetListMarkerWidth(listStyle, estimatedMarkerWidth);
+            double spaceAdvance = EstimateSimpleTextWidthForOptions(" ", baseFont, size, currentOpts);
+            double markerGap = GetListMarkerGap(listStyle, spaceAdvance);
+            double rawTextWidth = frameWidth - (listStyle?.LeftIndent ?? 0D) - markerWidth - markerGap;
+            double availableWidth = Math.Max(rawTextWidth, EstimateSimpleTextWidthForOptions("WW", baseFont, size, currentOpts));
+            double itemSpacing = GetListItemSpacing(listStyle, leading);
+            var wrappedItems = new System.Collections.Generic.List<TableCellTextLayout>(numbered.RichItems.Count);
+            for (int itemIndex = 0; itemIndex < numbered.RichItems.Count; itemIndex++) {
+                wrappedItems.Add(CreateListItemTextLayout(numbered.RichItems[itemIndex], availableWidth, baseFont, size, leading, currentOpts));
+            }
+
+            double listSpacingBefore = ResolveTopLevelSpacingBefore(listStyle?.SpacingBefore ?? 0D);
+            double listSpacingAfter = listStyle?.GetSpacingAfter(itemSpacing) ?? itemSpacing;
+            return MeasureListKeepTogetherHeight(wrappedItems, leading, listSpacingBefore, itemSpacing, listSpacingAfter);
+        }
+
         private bool KeepsWithNext(IPdfBlock block) {
             if (block is HeadingBlock heading) {
                 return ResolveHeadingStyle(heading, currentOpts)?.KeepWithNext ?? true;
@@ -290,6 +353,14 @@ internal static partial class PdfWriter {
 
             if (block is RichParagraphBlock paragraph) {
                 return EffectiveParagraphStyle(paragraph)?.KeepWithNext == true;
+            }
+
+            if (block is BulletListBlock bullets) {
+                return ResolveListStyle(bullets, currentOpts)?.KeepWithNext == true;
+            }
+
+            if (block is NumberedListBlock numbered) {
+                return ResolveListStyle(numbered, currentOpts)?.KeepWithNext == true;
             }
 
             if (block is HorizontalRuleBlock rule) {
