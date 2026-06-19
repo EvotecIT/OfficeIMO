@@ -9,6 +9,7 @@ public sealed class PdfListStyle {
     private double _leftIndent;
     private double? _markerGap;
     private double? _markerWidth;
+    private double? _markerFontSize;
     private PdfAlign? _markerAlign;
     private double _spacingBefore;
     private double? _spacingAfter;
@@ -103,6 +104,14 @@ public sealed class PdfListStyle {
     }
     /// <summary>Optional standard font family used for list markers. When null the writer uses the current default font.</summary>
     public PdfStandardFont? MarkerFont { get; set; }
+    /// <summary>Optional marker font size in points. When null the marker uses the list font size.</summary>
+    public double? MarkerFontSize {
+        get => _markerFontSize;
+        set {
+            ValidateOptionalPositiveFiniteValue(value, nameof(MarkerFontSize), "List marker font size must be a positive finite value.");
+            _markerFontSize = value;
+        }
+    }
     /// <summary>When true, list markers render with the bold variant of the current list font.</summary>
     public bool MarkerBold { get; set; }
     /// <summary>When true, list markers render with the italic variant of the current list font.</summary>
@@ -127,6 +136,7 @@ public sealed class PdfListStyle {
             MarkerColor = MarkerColor,
             MarkerAlign = MarkerAlign,
             MarkerFont = MarkerFont,
+            MarkerFontSize = MarkerFontSize,
             MarkerBold = MarkerBold,
             MarkerItalic = MarkerItalic,
             KeepTogether = KeepTogether,

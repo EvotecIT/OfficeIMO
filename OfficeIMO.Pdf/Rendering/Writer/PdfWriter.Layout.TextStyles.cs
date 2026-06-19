@@ -133,6 +133,10 @@ internal static partial class PdfWriter {
         return Math.Max(estimatedWidth, style?.MarkerWidth ?? estimatedWidth);
     }
 
+    private static double GetListMarkerFontSize(PdfListStyle? style, double listFontSize) {
+        return style?.MarkerFontSize ?? listFontSize;
+    }
+
     private static PdfStandardFont GetListMarkerFont(PdfListStyle? style, PdfStandardFont defaultFont) {
         PdfStandardFont normalFont = ChooseNormal(style?.MarkerFont ?? defaultFont);
         if (style?.MarkerBold == true && style.MarkerItalic) {

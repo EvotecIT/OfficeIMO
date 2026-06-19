@@ -156,8 +156,9 @@ namespace OfficeIMO.Word.Pdf {
             double fontSize = ResolveNativeParagraphEffectiveFontSize(paragraph, nativeDefaults, styleDefaults);
             double lineHeight = ResolveNativeParagraphLineHeight(paragraph, fontSize, nativeDefaults, styleDefaults);
             W.SpacingBetweenLines? directSpacing = paragraph._paragraph?.ParagraphProperties?.GetFirstChild<W.SpacingBetweenLines>();
-            double markerTextWidth = EstimateNativeListMarkerWidth(marker, fontSize);
-            (double markerWidth, double markerGap) = ResolveNativeListMarkerSpacing(info.LevelSuffix, markerTextWidth, fontSize, textIndent, markerIndent);
+            double markerFontSize = info.MarkerFontSize ?? fontSize;
+            double markerTextWidth = EstimateNativeListMarkerWidth(marker, markerFontSize);
+            (double markerWidth, double markerGap) = ResolveNativeListMarkerSpacing(info.LevelSuffix, markerTextWidth, markerFontSize, textIndent, markerIndent);
             bool itemSpacingDeclared = false;
 
             var style = new PdfCore.PdfListStyle {
@@ -165,6 +166,7 @@ namespace OfficeIMO.Word.Pdf {
                 MarkerGap = markerGap,
                 MarkerWidth = markerWidth,
                 MarkerFont = ResolveNativeListMarkerFont(info, markerTextStyle),
+                MarkerFontSize = info.MarkerFontSize,
                 MarkerColor = ParseNativeColor(info.MarkerColorHex),
                 MarkerAlign = MapNativeListMarkerAlign(info.LevelJustification),
                 MarkerBold = info.MarkerBold ?? markerTextStyle.Bold,
@@ -295,6 +297,7 @@ namespace OfficeIMO.Word.Pdf {
                    left.MarkerColor.Equals(right.MarkerColor) &&
                    left.MarkerAlign == right.MarkerAlign &&
                    left.MarkerFont == right.MarkerFont &&
+                   NullableDoubleEquals(left.MarkerFontSize, right.MarkerFontSize) &&
                    left.MarkerBold == right.MarkerBold &&
                    left.MarkerItalic == right.MarkerItalic &&
                    left.Color.Equals(right.Color) &&

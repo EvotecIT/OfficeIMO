@@ -661,6 +661,38 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Maps_Numbering_Level_Font_Size_To_List_Marker() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeListLevelMarkerFontSize.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeListLevelMarkerFontSize.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                WordList numberedList = document.AddCustomList();
+                numberedList.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
+                numberedList.Numbering.Levels[0]._level.NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
+                    new FontSize { Val = "40" });
+                numberedList.AddItem("LevelMarkerFontSizeBody");
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false,
+                    FontFamily = "Helvetica"
+                });
+            }
+
+            byte[] bytes = File.ReadAllBytes(pdfPath);
+            string content = ReadPdfPageContent(bytes);
+            var listItems = PdfTextExtractor.ExtractListItemsByPage(bytes)
+                .SelectMany(page => page.ListItems)
+                .ToList();
+
+            Assert.Contains(listItems, item => item.Marker == "1" && item.Text == "LevelMarkerFontSizeBody");
+            Assert.Equal(1, Regex.Matches(content, @"/F\d+\s+20\s+Tf").Count);
+            Assert.True(
+                Regex.Matches(content, @"/F\d+\s+11\s+Tf").Count >= 1,
+                "Expected the list body text to keep the normal paragraph font size while only the marker uses the numbering level font size.");
+        }
+
+        [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Honors_Numbering_Level_Marker_Justification() {
             (double MarkerX, double TextX) left = RenderNativeNumberedListMarkerJustification(
                 "PdfNativeListMarkerJustificationLeft",
