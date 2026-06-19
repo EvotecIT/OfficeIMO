@@ -144,4 +144,47 @@ public partial class Word {
         Assert.Equal(1, firstRowHeaderCount);
     }
 
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Renders_Table_Style_First_Row_Conditional_Fill() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleFirstRowConditional.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleFirstRowConditional.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            const string styleId = "NativeFirstRowConditionalTable";
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(new Style(
+                new StyleName { Val = "Native First Row Conditional Table" },
+                new TableStyleProperties(
+                    new RunPropertiesBaseStyle(new Bold(), new Color { Val = "FFFFFF" }),
+                    new TableStyleConditionalFormattingTableCellProperties(
+                        new Shading { Val = ShadingPatternValues.Clear, Fill = "112233" }))
+                { Type = TableStyleOverrideValues.FirstRow })
+            { Type = StyleValues.Table, StyleId = styleId });
+
+            WordTable table = document.AddTable(2, 2);
+            table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
+            table.ConditionalFormattingFirstRow = true;
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "ConditionalHdr";
+            table.Rows[0].Cells[1].Paragraphs[0].Text = "HeaderValue";
+            table.Rows[1].Cells[0].Paragraphs[0].Text = "BodyLabel";
+            table.Rows[1].Cells[1].Paragraphs[0].Text = "BodyValue";
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = new PdfCore.PageSize(360, 220),
+                Margins = PdfCore.PageMargins.Uniform(30)
+            });
+        }
+
+        byte[] bytes = File.ReadAllBytes(pdfPath);
+        using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
+        string text = string.Concat(pdf.GetPages().Select(page => page.Text));
+        Assert.Contains("ConditionalHdr", text);
+        Assert.Contains("BodyValue", text);
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("0.067 0.133 0.2 rg", raw);
+    }
+
 }

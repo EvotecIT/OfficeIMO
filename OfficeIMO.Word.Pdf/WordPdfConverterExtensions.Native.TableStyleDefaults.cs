@@ -4,12 +4,16 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
-        private readonly record struct NativeTableStyleDefaults(PdfCore.PdfCellPadding? CellPadding, PdfCore.PdfColor? CellFill, (PdfCore.PdfColor Color, double Width)? TableBorder, W.TableBorders? Borders, W.TableWidth? PreferredWidth, W.TableLayoutValues? Layout, double? LeftIndent, double? CellSpacing, W.TableRowAlignmentValues? Alignment, double? ParagraphLineHeight, double? ParagraphLineSpacingPoints, W.LineSpacingRuleValues? ParagraphLineSpacingRule, double? ParagraphSpacingBefore, double? ParagraphSpacingAfter, NativeTableRunStyleDefaults RunStyle) {
-            public static NativeTableStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null, null, null, null, null, null, null, NativeTableRunStyleDefaults.Empty);
+        private readonly record struct NativeTableStyleDefaults(PdfCore.PdfCellPadding? CellPadding, PdfCore.PdfColor? CellFill, (PdfCore.PdfColor Color, double Width)? TableBorder, W.TableBorders? Borders, W.TableWidth? PreferredWidth, W.TableLayoutValues? Layout, double? LeftIndent, double? CellSpacing, W.TableRowAlignmentValues? Alignment, double? ParagraphLineHeight, double? ParagraphLineSpacingPoints, W.LineSpacingRuleValues? ParagraphLineSpacingRule, double? ParagraphSpacingBefore, double? ParagraphSpacingAfter, NativeTableRunStyleDefaults RunStyle, NativeTableConditionalStyleDefaults FirstRowStyle) {
+            public static NativeTableStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null, null, null, null, null, null, null, NativeTableRunStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty);
         }
 
         private readonly record struct NativeTableRunStyleDefaults(double? FontSize, string? FontFamily, bool? Bold, bool? Italic, bool? Underline, bool? Strike, string? ColorHex, W.HighlightColorValues? Highlight) {
             public static NativeTableRunStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null);
+        }
+
+        private readonly record struct NativeTableConditionalStyleDefaults(PdfCore.PdfColor? CellFill, PdfCore.PdfColor? TextColor, bool? Bold) {
+            public static NativeTableConditionalStyleDefaults Empty { get; } = new(null, null, null);
         }
 
         private static NativeTableStyleDefaults GetNativeTableStyleDefaults(WordTable table, NativeDocumentDefaults nativeDefaults, bool ignoreFallbackTableStyle) {
@@ -48,6 +52,7 @@ namespace OfficeIMO.Word.Pdf {
             bool? strike = null;
             string? colorHex = null;
             W.HighlightColorValues? highlight = null;
+            NativeTableConditionalStyleDefaults firstRowStyle = NativeTableConditionalStyleDefaults.Empty;
 
             foreach (W.Style style in styleChain) {
                 W.StyleRunProperties? runProperties = style.GetFirstChild<W.StyleRunProperties>();
@@ -112,6 +117,8 @@ namespace OfficeIMO.Word.Pdf {
                     paragraphSpacingBefore = GetNativeSpacingBeforePoints(spacing, effectiveFontSize, effectiveLineHeight) ?? paragraphSpacingBefore;
                     paragraphSpacingAfter = GetNativeSpacingAfterPoints(spacing, effectiveFontSize, effectiveLineHeight) ?? paragraphSpacingAfter;
                 }
+
+                firstRowStyle = GetNativeTableConditionalStyleDefaults(style, W.TableStyleOverrideValues.FirstRow, firstRowStyle);
             }
 
             PdfCore.PdfCellPadding? cellPadding = marginTop.HasValue || marginBottom.HasValue || marginLeft.HasValue || marginRight.HasValue
@@ -146,7 +153,26 @@ namespace OfficeIMO.Word.Pdf {
                     underline,
                     strike,
                     colorHex,
-                    highlight));
+                    highlight),
+                firstRowStyle);
+        }
+
+        private static NativeTableConditionalStyleDefaults GetNativeTableConditionalStyleDefaults(W.Style style, W.TableStyleOverrideValues type, NativeTableConditionalStyleDefaults inherited) {
+            NativeTableConditionalStyleDefaults result = inherited;
+            foreach (W.TableStyleProperties properties in style.Elements<W.TableStyleProperties>().Where(properties => properties.Type?.Value == type)) {
+                W.TableStyleConditionalFormattingTableCellProperties? cellProperties = properties.GetFirstChild<W.TableStyleConditionalFormattingTableCellProperties>();
+                PdfCore.PdfColor? cellFill = ParseNativeColor(cellProperties?.GetFirstChild<W.Shading>()?.Fill?.Value);
+
+                W.RunPropertiesBaseStyle? runProperties = properties.GetFirstChild<W.RunPropertiesBaseStyle>();
+                PdfCore.PdfColor? textColor = ParseNativeColor(runProperties?.GetFirstChild<W.Color>()?.Val?.Value);
+                bool? bold = ReadNativeOnOff(runProperties?.GetFirstChild<W.Bold>());
+                result = new NativeTableConditionalStyleDefaults(
+                    cellFill ?? result.CellFill,
+                    textColor ?? result.TextColor,
+                    bold ?? result.Bold);
+            }
+
+            return result;
         }
 
         private static double? GetNativeTableStyleParagraphLineHeight(W.SpacingBetweenLines spacing) {

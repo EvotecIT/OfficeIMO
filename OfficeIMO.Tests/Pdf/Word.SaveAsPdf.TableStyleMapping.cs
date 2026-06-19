@@ -178,6 +178,33 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Maps_Table_Style_First_Row_Conditional_Formatting() {
+        using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeTableStyleFirstRowConditional.docx"));
+        Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+        styles.Append(new Style(
+            new StyleName { Val = "Generic First Row Table" },
+            new TableStyleProperties(
+                new RunPropertiesBaseStyle(
+                    new Bold(),
+                    new Color { Val = "FFFFFF" }),
+                new TableStyleConditionalFormattingTableCellProperties(
+                    new Shading { Val = ShadingPatternValues.Clear, Fill = "112233" }))
+            { Type = TableStyleOverrideValues.FirstRow })
+        { Type = StyleValues.Table, StyleId = "GenericFirstRowTable" });
+
+        WordTable table = document.AddTable(2, 2);
+        table._tableProperties!.TableStyle = new TableStyle { Val = "GenericFirstRowTable" };
+        table.ConditionalFormattingFirstRow = true;
+
+        PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table);
+
+        Assert.Equal(1, style.HeaderRowCount);
+        Assert.Equal(PdfCore.PdfColor.FromRgb(17, 34, 51), style.HeaderFill);
+        Assert.Equal(PdfCore.PdfColor.FromRgb(255, 255, 255), style.HeaderTextColor);
+        Assert.True(style.HeaderBold);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Uses_Configured_Default_Table_Style_For_Unstyled_Native_Table() {
         using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeDefaultTableStyle.docx"));
         WordTable table = document.AddTable(2, 2);

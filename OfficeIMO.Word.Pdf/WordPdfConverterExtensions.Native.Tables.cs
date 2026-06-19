@@ -209,6 +209,7 @@ namespace OfficeIMO.Word.Pdf {
                 style,
                 usesConfiguredDefaultStyle,
                 ShouldApplyNativeTableStyleCellPadding(table) ? tableStyleDefaults : NativeTableStyleDefaults.Empty);
+            ApplyNativeTableConditionalStyles(table, style, tableStyleDefaults);
             ApplyNativeTableLayoutOptions(table, style, contentWidth, tableStyleDefaults);
             ApplyNativeTableRowOptions(table, style);
             return style;
@@ -237,6 +238,25 @@ namespace OfficeIMO.Word.Pdf {
             return new PdfCore.PdfTableStyle {
                 RowStripeFill = null
             };
+        }
+
+        private static void ApplyNativeTableConditionalStyles(WordTable table, PdfCore.PdfTableStyle style, NativeTableStyleDefaults tableStyleDefaults) {
+            if (table.ConditionalFormattingFirstRow != true || style.HeaderRowCount <= 0) {
+                return;
+            }
+
+            NativeTableConditionalStyleDefaults firstRowStyle = tableStyleDefaults.FirstRowStyle;
+            if (firstRowStyle.CellFill.HasValue) {
+                style.HeaderFill = firstRowStyle.CellFill.Value;
+            }
+
+            if (firstRowStyle.TextColor.HasValue) {
+                style.HeaderTextColor = firstRowStyle.TextColor.Value;
+            }
+
+            if (firstRowStyle.Bold.HasValue) {
+                style.HeaderBold = firstRowStyle.Bold.Value;
+            }
         }
 
         private static void ApplyNativeTableLayoutOptions(WordTable table, PdfCore.PdfTableStyle style, double? contentWidth, NativeTableStyleDefaults tableStyleDefaults) {
