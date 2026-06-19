@@ -4,8 +4,8 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
-        private readonly record struct NativeTableStyleDefaults(PdfCore.PdfCellPadding? CellPadding, PdfCore.PdfColor? CellFill, double? ParagraphLineHeight, double? ParagraphLineSpacingPoints, double? ParagraphSpacingAfter, NativeTableRunStyleDefaults RunStyle) {
-            public static NativeTableStyleDefaults Empty { get; } = new(null, null, null, null, null, NativeTableRunStyleDefaults.Empty);
+        private readonly record struct NativeTableStyleDefaults(PdfCore.PdfCellPadding? CellPadding, PdfCore.PdfColor? CellFill, (PdfCore.PdfColor Color, double Width)? TableBorder, double? ParagraphLineHeight, double? ParagraphLineSpacingPoints, double? ParagraphSpacingAfter, NativeTableRunStyleDefaults RunStyle) {
+            public static NativeTableStyleDefaults Empty { get; } = new(null, null, null, null, null, null, NativeTableRunStyleDefaults.Empty);
         }
 
         private readonly record struct NativeTableRunStyleDefaults(double? FontSize, string? FontFamily, bool? Bold, bool? Italic, bool? Underline, bool? Strike, string? ColorHex, W.HighlightColorValues? Highlight) {
@@ -28,6 +28,7 @@ namespace OfficeIMO.Word.Pdf {
             double? marginLeft = null;
             double? marginRight = null;
             PdfCore.PdfColor? cellFill = null;
+            (PdfCore.PdfColor Color, double Width)? tableBorder = null;
             double? paragraphLineHeight = null;
             double? paragraphLineSpacingPoints = null;
             double? paragraphSpacingAfter = null;
@@ -62,6 +63,11 @@ namespace OfficeIMO.Word.Pdf {
                 W.Shading? shading = tableProperties?.GetFirstChild<W.Shading>();
                 if (shading != null) {
                     cellFill = ParseNativeColor(shading.Fill?.Value);
+                }
+
+                W.TableBorders? tableBorders = tableProperties?.GetFirstChild<W.TableBorders>();
+                if (tableBorders != null) {
+                    tableBorder = GetNativeUniformTableBorder(tableBorders);
                 }
 
                 W.SpacingBetweenLines? spacing = style.GetFirstChild<W.StyleParagraphProperties>()?.GetFirstChild<W.SpacingBetweenLines>();
@@ -99,6 +105,7 @@ namespace OfficeIMO.Word.Pdf {
             return new NativeTableStyleDefaults(
                 cellPadding,
                 cellFill,
+                tableBorder,
                 paragraphLineHeight,
                 paragraphLineSpacingPoints,
                 paragraphSpacingAfter,

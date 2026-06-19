@@ -75,4 +75,51 @@ public partial class Word {
         Assert.Contains("1 0 0 RG", raw);
         Assert.Contains("1.5 w", raw);
     }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Renders_Custom_Table_Style_Borders() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeCustomTableStyleBorders.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeCustomTableStyleBorders.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            const string styleId = "NativeCustomTableStyleBorders";
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(new Style(
+                new StyleName { Val = "Native Custom Table Style Borders" },
+                new StyleTableProperties(
+                    new TableBorders(
+                        new TopBorder { Val = BorderValues.Single, Color = "008000", Size = 12U },
+                        new LeftBorder { Val = BorderValues.Single, Color = "008000", Size = 12U },
+                        new BottomBorder { Val = BorderValues.Single, Color = "008000", Size = 12U },
+                        new RightBorder { Val = BorderValues.Single, Color = "008000", Size = 12U },
+                        new InsideHorizontalBorder { Val = BorderValues.Single, Color = "008000", Size = 12U },
+                        new InsideVerticalBorder { Val = BorderValues.Single, Color = "008000", Size = 12U })))
+            {
+                Type = StyleValues.Table,
+                StyleId = styleId,
+                CustomStyle = true
+            });
+
+            WordTable table = document.AddTable(2, 2);
+            table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "Style border A1";
+            table.Rows[1].Cells[1].Paragraphs[0].Text = "Style border B2";
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false
+            });
+        }
+
+        byte[] bytes = File.ReadAllBytes(pdfPath);
+        using (PdfPigDocument pdf = PdfPigDocument.Open(bytes)) {
+            string text = string.Concat(pdf.GetPages().Select(page => page.Text));
+            Assert.Contains("Style border A1", text);
+            Assert.Contains("Style border B2", text);
+        }
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("0 0.502 0 RG", raw);
+        Assert.Contains("1.5 w", raw);
+    }
 }

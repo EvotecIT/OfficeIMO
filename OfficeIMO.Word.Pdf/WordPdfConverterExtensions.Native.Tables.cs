@@ -196,7 +196,7 @@ namespace OfficeIMO.Word.Pdf {
                 style.BorderColor = PdfCore.PdfColor.LightGray;
             }
 
-            ApplyNativeTableBorders(table, style);
+            ApplyNativeTableBorders(table, style, tableStyleDefaults);
             ApplyNativeTableDefaultCellMargins(
                 table,
                 style,
@@ -344,8 +344,8 @@ namespace OfficeIMO.Word.Pdf {
             return ConvertNativeTwipsToPoints(spacing.Width?.Value);
         }
 
-        private static void ApplyNativeTableBorders(WordTable table, PdfCore.PdfTableStyle style) {
-            (PdfCore.PdfColor Color, double Width)? border = GetNativeUniformTableBorder(table._tableProperties?.TableBorders);
+        private static void ApplyNativeTableBorders(WordTable table, PdfCore.PdfTableStyle style, NativeTableStyleDefaults tableStyleDefaults) {
+            (PdfCore.PdfColor Color, double Width)? border = GetNativeUniformTableBorder(table._tableProperties?.TableBorders) ?? tableStyleDefaults.TableBorder;
             if (border == null) {
                 return;
             }
