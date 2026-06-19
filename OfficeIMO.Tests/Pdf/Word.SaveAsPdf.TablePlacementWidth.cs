@@ -52,6 +52,53 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Renders_Table_Style_Alignment() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleAlignment.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleAlignment.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(new Style(
+                new StyleName { Val = "Generic Centered Table" },
+                new StyleTableProperties(new TableJustification {
+                    Val = TableRowAlignmentValues.Center
+                }))
+            { Type = StyleValues.Table, StyleId = "GenericCenteredTable" });
+
+            WordTable leftTable = document.AddTable(1, 2);
+            ConfigurePlacementTable(leftTable, "StyleLeft", TableRowAlignmentValues.Left);
+
+            document.AddParagraph("between styled alignment tables");
+
+            WordTable styledTable = document.AddTable(1, 2);
+            foreach (WordTableCell cell in styledTable.Rows[0].Cells) {
+                cell.Width = 1440;
+                cell.WidthType = TableWidthUnitValues.Dxa;
+            }
+
+            styledTable.Rows[0].Cells[0].Paragraphs[0].Text = "StyleCenter";
+            styledTable.Rows[0].Cells[1].Paragraphs[0].Text = "Value";
+            styledTable._tableProperties!.TableStyle = new TableStyle { Val = "GenericCenteredTable" };
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = new PdfCore.PageSize(400, 360),
+                Margins = PdfCore.PageMargins.Uniform(40)
+            });
+        }
+
+        byte[] bytes = File.ReadAllBytes(pdfPath);
+        using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
+        var words = pdf.GetPage(1).GetWords().ToList();
+        var left = Assert.Single(words, word => word.Text == "StyleLeft");
+        var center = Assert.Single(words, word => word.Text == "StyleCenter");
+
+        Assert.True(center.BoundingBox.Left > left.BoundingBox.Left + 70D,
+            $"Expected Word table style alignment to center the native table. Left x: {left.BoundingBox.Left:0.##}; centered x: {center.BoundingBox.Left:0.##}.");
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Renders_Table_Preferred_Dxa_Width() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTablePreferredWidth.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTablePreferredWidth.pdf");

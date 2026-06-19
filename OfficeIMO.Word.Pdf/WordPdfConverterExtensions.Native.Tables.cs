@@ -130,7 +130,7 @@ namespace OfficeIMO.Word.Pdf {
                 style.VerticalAlignments = verticalAlignments;
             }
 
-            pdf.Table(rows, MapNativeTableAlignment(table.Alignment), style);
+            pdf.Table(rows, MapNativeTableAlignment(ResolveNativeTableAlignment(table, tableStyleDefaults)), style);
         }
 
         private static void ApplyNativeColumnWidths(WordTable table, TableLayout layout, PdfCore.PdfTableStyle style, double? contentWidth) {
@@ -656,6 +656,9 @@ namespace OfficeIMO.Word.Pdf {
 
             return PdfCore.PdfAlign.Left;
         }
+
+        private static W.TableRowAlignmentValues? ResolveNativeTableAlignment(WordTable table, NativeTableStyleDefaults tableStyleDefaults) =>
+            table.Alignment ?? tableStyleDefaults.Alignment;
 
         private static List<PdfCore.PdfColumnAlign>? CreateNativeTableHorizontalAlignments(TableLayout layout) {
             int columnCount = GetNativeTableColumnCount(layout);
