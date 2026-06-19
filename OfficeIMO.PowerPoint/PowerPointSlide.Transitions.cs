@@ -391,7 +391,7 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private Transition? GetTransitionElement() {
+        internal Transition? GetTransitionElement() {
             Transition? transition = SlideRoot.Transition;
             if (transition != null) {
                 return transition;

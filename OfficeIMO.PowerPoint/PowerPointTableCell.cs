@@ -24,11 +24,38 @@ namespace OfficeIMO.PowerPoint {
 
 
             set {
-                Cell.TextBody ??= new A.TextBody(new A.BodyProperties(), new A.ListStyle());
-                A.Paragraph paragraph = Cell.TextBody.GetFirstChild<A.Paragraph>() ?? new A.Paragraph();
+                Cell.TextBody ??= PowerPointTableTextDefaults.CreateTextBody();
+                A.Paragraph? sourceParagraph = Cell.TextBody.GetFirstChild<A.Paragraph>();
+                A.RunProperties? existingRunProperties = sourceParagraph?
+                    .Elements<A.Run>()
+                    .FirstOrDefault()?
+                    .RunProperties?
+                    .CloneNode(true) as A.RunProperties;
+                A.ParagraphProperties? existingParagraphProperties = sourceParagraph?.ParagraphProperties?.CloneNode(true) as A.ParagraphProperties;
+                A.EndParagraphRunProperties? existingEndProperties = sourceParagraph?
+                    .GetFirstChild<A.EndParagraphRunProperties>()?
+                    .CloneNode(true) as A.EndParagraphRunProperties;
+
+                A.EndParagraphRunProperties endProperties = existingEndProperties
+                    ?? new A.EndParagraphRunProperties { Language = PowerPointTableTextDefaults.Language };
+                endProperties.RemoveAllChildren<A.HyperlinkOnClick>();
+                endProperties.RemoveAllChildren<A.HyperlinkOnMouseOver>();
+                endProperties.Language ??= PowerPointTableTextDefaults.Language;
+                A.RunProperties runProperties = existingRunProperties ?? new A.RunProperties();
+                runProperties.RemoveAllChildren<A.HyperlinkOnClick>();
+                runProperties.RemoveAllChildren<A.HyperlinkOnMouseOver>();
+                runProperties.Language ??= endProperties.Language?.Value ?? PowerPointTableTextDefaults.Language;
+
+                A.Paragraph paragraph = new();
+                if (existingParagraphProperties != null) {
+                    paragraph.Append(existingParagraphProperties);
+                }
+
+                paragraph.Append(
+                    new A.Run(runProperties, new A.Text(value ?? string.Empty)),
+                    endProperties);
+
                 Cell.TextBody.RemoveAllChildren<A.Paragraph>();
-                paragraph.RemoveAllChildren<A.Run>();
-                paragraph.Append(new A.Run(new A.Text(value ?? string.Empty)));
                 Cell.TextBody.Append(paragraph);
             }
         }
