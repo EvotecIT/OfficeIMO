@@ -194,6 +194,10 @@ namespace OfficeIMO.Word {
         private static string GetParagraphText(Paragraph paragraph) {
             var builder = new StringBuilder();
             foreach (OpenXmlElement element in paragraph.Descendants()) {
+                if (element.Ancestors<Paragraph>().FirstOrDefault() != paragraph) {
+                    continue;
+                }
+
                 switch (element) {
                     case Text text:
                         builder.Append(text.Text);
@@ -235,7 +239,32 @@ namespace OfficeIMO.Word {
                 return 0;
             }
 
+            if ((long)(source.Length + 1) * (target.Length + 1) > LcsCellLimit) {
+                return GetBoundedTextSimilarity(source, target);
+            }
+
             return (double)GetCommonSubsequenceLength(source, target) / Math.Max(source.Length, target.Length);
+        }
+
+        private static double GetBoundedTextSimilarity(string source, string target) {
+            int prefixLength = 0;
+            int maxPrefixLength = Math.Min(source.Length, target.Length);
+            while (prefixLength < maxPrefixLength && source[prefixLength] == target[prefixLength]) {
+                prefixLength++;
+            }
+
+            int suffixLength = 0;
+            int sourceSuffixIndex = source.Length - 1;
+            int targetSuffixIndex = target.Length - 1;
+            while (sourceSuffixIndex >= prefixLength &&
+                   targetSuffixIndex >= prefixLength &&
+                   source[sourceSuffixIndex] == target[targetSuffixIndex]) {
+                suffixLength++;
+                sourceSuffixIndex--;
+                targetSuffixIndex--;
+            }
+
+            return (double)(prefixLength + suffixLength) / Math.Max(source.Length, target.Length);
         }
 
         private static int GetCommonSubsequenceLength(string source, string target) {

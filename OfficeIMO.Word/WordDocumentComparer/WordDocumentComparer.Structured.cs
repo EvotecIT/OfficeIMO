@@ -11,6 +11,7 @@ namespace OfficeIMO.Word {
         private const int HeaderPartOrderBase = 1_000_000;
         private const int FooterPartOrderBase = 2_000_000;
         private const int RelatedPartOrderStride = 100_000;
+        private const int TableCellOrderStride = 10_000;
         private const string BodyPartKey = "body";
         private const string HeaderPartKeyPrefix = "header:";
         private const string FooterPartKeyPrefix = "footer:";
@@ -520,40 +521,32 @@ namespace OfficeIMO.Word {
             }
 
             foreach (OrderedElement ordered in EnumerateDescendantsWithOrder(container, orderBase)) {
-                if (ordered.Element is not DocumentFormat.OpenXml.Wordprocessing.Drawing drawing) {
-                    continue;
-                }
+                switch (ordered.Element) {
+                    case DocumentFormat.OpenXml.Wordprocessing.Drawing drawing:
+                        DocumentFormat.OpenXml.Drawing.Blip? blip = drawing.Descendants<DocumentFormat.OpenXml.Drawing.Blip>().FirstOrDefault();
+                        if (blip == null) {
+                            break;
+                        }
 
-                DocumentFormat.OpenXml.Drawing.Blip? blip = drawing.Descendants<DocumentFormat.OpenXml.Drawing.Blip>().FirstOrDefault();
-                if (blip == null) {
-                    continue;
-                }
+                        string drawingVisualSignature = GetDrawingVisualSignature(drawing);
+                        if (blip.Embed?.Value is string embeddedRelationshipId) {
+                            AddEmbeddedImageSnapshot(snapshots, part, embeddedRelationshipId, drawingVisualSignature, partKey, ordered.DocumentOrder);
+                        } else if (blip.Link?.Value is string externalRelationshipId) {
+                            AddExternalImageSnapshot(snapshots, part, externalRelationshipId, drawingVisualSignature, partKey, ordered.DocumentOrder);
+                        }
 
-                string visualSignature = GetDrawingVisualSignature(drawing);
-                if (blip.Embed?.Value is string embeddedRelationshipId) {
-                    AddEmbeddedImageSnapshot(snapshots, part, embeddedRelationshipId, visualSignature, partKey, ordered.DocumentOrder);
-                    continue;
-                }
+                        break;
+                    case V.ImageData imageData when imageData.RelationshipId?.Value is string relationshipId:
+                        string vmlVisualSignature = GetVmlVisualSignature(imageData);
+                        if (part.ExternalRelationships.Any(item => item.Id == relationshipId)) {
+                            AddExternalImageSnapshot(snapshots, part, relationshipId, vmlVisualSignature, partKey, ordered.DocumentOrder);
+                        } else {
+                            AddEmbeddedImageSnapshot(snapshots, part, relationshipId, vmlVisualSignature, partKey, ordered.DocumentOrder);
+                        }
 
-                if (blip.Link?.Value is string externalRelationshipId) {
-                    AddExternalImageSnapshot(snapshots, part, externalRelationshipId, visualSignature, partKey, ordered.DocumentOrder);
-                }
-            }
-
-            foreach (OrderedElement ordered in EnumerateDescendantsWithOrder(container, orderBase)) {
-                if (ordered.Element is not V.ImageData imageData) {
-                    continue;
-                }
-
-                if (imageData.RelationshipId?.Value is string relationshipId) {
-                    string visualSignature = GetVmlVisualSignature(imageData);
-                    if (part.ExternalRelationships.Any(item => item.Id == relationshipId)) {
-                        AddExternalImageSnapshot(snapshots, part, relationshipId, visualSignature, partKey, ordered.DocumentOrder);
-                    } else {
-                        AddEmbeddedImageSnapshot(snapshots, part, relationshipId, visualSignature, partKey, ordered.DocumentOrder);
+                        break;
                     }
                 }
-            }
         }
 
         private static void AddEmbeddedImageSnapshot(List<ImageSnapshot> snapshots, OpenXmlPart part, string relationshipId, string visualSignature, string partKey, int documentOrder) {
@@ -569,9 +562,7 @@ namespace OfficeIMO.Word {
             }
 
             using Stream stream = imagePart.GetStream(FileMode.Open, FileAccess.Read);
-            using var memoryStream = new MemoryStream();
-            stream.CopyTo(memoryStream);
-            snapshots.Add(ImageSnapshot.FromEmbedded(memoryStream.ToArray(), visualSignature, partKey, documentOrder));
+            snapshots.Add(ImageSnapshot.FromEmbedded(CreateImageFingerprint(stream), visualSignature, partKey, documentOrder));
         }
 
         private static void AddExternalImageSnapshot(List<ImageSnapshot> snapshots, OpenXmlPart part, string relationshipId, string visualSignature, string partKey, int documentOrder) {
@@ -584,6 +575,11 @@ namespace OfficeIMO.Word {
             foreach (DocumentFormat.OpenXml.Drawing.Blip blip in clone.Descendants<DocumentFormat.OpenXml.Drawing.Blip>()) {
                 blip.Embed = null;
                 blip.Link = null;
+            }
+
+            foreach (OpenXmlElement element in clone.Descendants()) {
+                element.RemoveAttribute("embed", "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
+                element.RemoveAttribute("link", "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
             }
 
             foreach (DW.DocProperties properties in clone.Descendants<DW.DocProperties>()) {
@@ -636,7 +632,21 @@ namespace OfficeIMO.Word {
         }
 
         private static int RowLocationOrder(int tableDocumentOrder, int rowIndex, int childIndex) {
-            return tableDocumentOrder + rowIndex + childIndex;
+            return tableDocumentOrder + (rowIndex * TableCellOrderStride) + childIndex;
+        }
+
+        private static ImageFingerprint CreateImageFingerprint(Stream stream) {
+            using System.Security.Cryptography.SHA256 sha256 = System.Security.Cryptography.SHA256.Create();
+            byte[] buffer = new byte[81920];
+            long length = 0;
+            int bytesRead;
+            while ((bytesRead = stream.Read(buffer, 0, buffer.Length)) > 0) {
+                sha256.TransformBlock(buffer, 0, bytesRead, null, 0);
+                length += bytesRead;
+            }
+
+            sha256.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+            return new ImageFingerprint(length, Convert.ToBase64String(sha256.Hash ?? Array.Empty<byte>()));
         }
 
         private readonly struct OrderedElement {
@@ -682,15 +692,15 @@ namespace OfficeIMO.Word {
         }
 
         private sealed class ImageSnapshot {
-            private ImageSnapshot(byte[]? embeddedBytes, string? externalUri, string visualSignature, string partKey, int documentOrder) {
-                EmbeddedBytes = embeddedBytes;
+            private ImageSnapshot(ImageFingerprint? embeddedFingerprint, string? externalUri, string visualSignature, string partKey, int documentOrder) {
+                EmbeddedFingerprint = embeddedFingerprint;
                 ExternalUri = externalUri;
                 VisualSignature = visualSignature;
                 PartKey = partKey;
                 DocumentOrder = documentOrder;
             }
 
-            internal byte[]? EmbeddedBytes { get; }
+            internal ImageFingerprint? EmbeddedFingerprint { get; }
 
             internal string? ExternalUri { get; }
 
@@ -702,8 +712,8 @@ namespace OfficeIMO.Word {
 
             internal string DisplayText => ExternalUri == null ? "[Image]" : "[Image: " + ExternalUri + "]";
 
-            internal static ImageSnapshot FromEmbedded(byte[] embeddedBytes, string visualSignature, string partKey, int documentOrder) {
-                return new ImageSnapshot(embeddedBytes, null, visualSignature, partKey, documentOrder);
+            internal static ImageSnapshot FromEmbedded(ImageFingerprint embeddedFingerprint, string visualSignature, string partKey, int documentOrder) {
+                return new ImageSnapshot(embeddedFingerprint, null, visualSignature, partKey, documentOrder);
             }
 
             internal static ImageSnapshot FromExternal(string externalUri, string visualSignature, string partKey, int documentOrder) {
@@ -729,10 +739,10 @@ namespace OfficeIMO.Word {
                            string.Equals(x.VisualSignature, y.VisualSignature, StringComparison.Ordinal);
                 }
 
-                return x.EmbeddedBytes != null &&
-                       y.EmbeddedBytes != null &&
+                return x.EmbeddedFingerprint != null &&
+                       y.EmbeddedFingerprint != null &&
                        string.Equals(x.PartKey, y.PartKey, StringComparison.Ordinal) &&
-                       x.EmbeddedBytes.SequenceEqual(y.EmbeddedBytes) &&
+                       x.EmbeddedFingerprint.Equals(y.EmbeddedFingerprint) &&
                        string.Equals(x.VisualSignature, y.VisualSignature, StringComparison.Ordinal);
             }
 
@@ -743,17 +753,40 @@ namespace OfficeIMO.Word {
                     return (externalHash * 397) ^ StringComparer.Ordinal.GetHashCode(obj.VisualSignature);
                 }
 
-                if (obj.EmbeddedBytes == null) {
+                if (obj.EmbeddedFingerprint == null) {
                     return StringComparer.Ordinal.GetHashCode(obj.PartKey);
                 }
 
                 unchecked {
                     int hashCode = StringComparer.Ordinal.GetHashCode(obj.PartKey);
-                    foreach (byte value in obj.EmbeddedBytes) {
-                        hashCode = (hashCode * 31) + value;
-                    }
-
+                    hashCode = (hashCode * 397) ^ obj.EmbeddedFingerprint.GetHashCode();
                     return (hashCode * 397) ^ StringComparer.Ordinal.GetHashCode(obj.VisualSignature);
+                }
+            }
+        }
+
+        private readonly struct ImageFingerprint : IEquatable<ImageFingerprint> {
+            internal ImageFingerprint(long length, string sha256) {
+                Length = length;
+                Sha256 = sha256;
+            }
+
+            internal long Length { get; }
+
+            internal string Sha256 { get; }
+
+            public bool Equals(ImageFingerprint other) {
+                return Length == other.Length &&
+                       string.Equals(Sha256, other.Sha256, StringComparison.Ordinal);
+            }
+
+            public override bool Equals(object? obj) {
+                return obj is ImageFingerprint other && Equals(other);
+            }
+
+            public override int GetHashCode() {
+                unchecked {
+                    return (Length.GetHashCode() * 397) ^ StringComparer.Ordinal.GetHashCode(Sha256);
                 }
             }
         }

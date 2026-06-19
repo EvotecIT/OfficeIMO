@@ -193,6 +193,38 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompareStructureHandlesLargeSimilarParagraphsWithBoundedSimilarity() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_large_paragraph_similarity.docx");
+            string sourceText = new string('A', 50000);
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                doc.AddParagraph(sourceText);
+                doc.AddParagraph("Closing");
+                doc.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_large_paragraph_similarity.docx");
+            string targetText = new string('A', 49999) + "B";
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                doc.AddParagraph("Inserted cover note");
+                doc.AddParagraph(targetText);
+                doc.AddParagraph("Closing");
+                doc.Save(false);
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Paragraph &&
+                finding.ChangeKind == WordComparisonChangeKind.Inserted &&
+                finding.TargetText == "Inserted cover note");
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Paragraph &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified &&
+                finding.SourceText == sourceText &&
+                finding.TargetText == targetText);
+        }
+
+        [Fact]
         public void CompareStructureReturnsMixedFindingsInDocumentOrder() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_mixed_order.docx");
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
@@ -219,6 +251,32 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Risk: Open", result.Findings[0].SourceText);
             Assert.Equal(WordComparisonScope.Paragraph, result.Findings[1].Scope);
             Assert.Equal("Decision: Draft", result.Findings[1].SourceText);
+        }
+
+        [Fact]
+        public void CompareStructureReturnsTableCellFindingsInRowMajorOrder() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_table_cell_order.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                WordTable table = doc.AddTable(2, 3);
+                SetTableTexts(table, "A1", "A2", "A3", "B1", "B2", "B3");
+                doc.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_table_cell_order.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                WordTable table = doc.AddTable(2, 3);
+                SetTableTexts(table, "A1", "A2", "A3 changed", "B1 changed", "B2", "B3");
+                doc.Save(false);
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+            WordComparisonFinding[] cellFindings = result.Findings
+                .Where(finding => finding.Scope == WordComparisonScope.TableCell)
+                .ToArray();
+
+            Assert.Equal(2, cellFindings.Length);
+            Assert.Equal("table[0]/row[0]/cell[2]", cellFindings[0].Location);
+            Assert.Equal("table[0]/row[1]/cell[0]", cellFindings[1].Location);
         }
 
         [Fact]
@@ -364,10 +422,70 @@ namespace OfficeIMO.Tests {
             Assert.Equal("[Image: https://example.com/target.png]", image.TargetText);
         }
 
+        [Fact]
+        public void CompareStructureKeepsMixedDrawingAndVmlImagesInDocumentOrder() {
+            string logoPath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
+            string replacementPath = Path.Combine(_directoryWithImages, "Kulek.jpg");
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_mixed_image_order.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                AddVmlImageParagraph(doc, logoPath);
+                doc.AddParagraph().AddImage(logoPath, 80, 40);
+                doc.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_mixed_image_order.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                AddVmlImageParagraph(doc, replacementPath);
+                doc.AddParagraph().AddImage(logoPath, 80, 40);
+                doc.Save(false);
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            WordComparisonFinding image = Assert.Single(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Image &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified);
+            Assert.Equal("image[0]", image.Location);
+        }
+
+        [Fact]
+        public void CompareStructureReportsTextBoxParagraphChangesOnce() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_textbox.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                AddTextBoxParagraph(doc, "Callout pending");
+                doc.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_textbox.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                AddTextBoxParagraph(doc, "Callout approved");
+                doc.Save(false);
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+            WordComparisonFinding[] paragraphFindings = result.Findings
+                .Where(finding => finding.Scope == WordComparisonScope.Paragraph)
+                .ToArray();
+
+            WordComparisonFinding paragraph = Assert.Single(paragraphFindings);
+            Assert.Equal("Callout pending", paragraph.SourceText);
+            Assert.Equal("Callout approved", paragraph.TargetText);
+        }
+
         private static void AddBreakParagraph(WordDocument document, BreakValues breakType) {
             WordParagraph paragraph = document.AddParagraph("Before");
             paragraph._paragraph.Append(new Run(new Break { Type = breakType }));
             paragraph._paragraph.Append(new Run(new Text("After")));
+        }
+
+        private static void SetTableTexts(WordTable table, params string[] values) {
+            int valueIndex = 0;
+            foreach (WordTableRow row in table.Rows) {
+                foreach (WordTableCell cell in row.Cells) {
+                    cell.Paragraphs[0].SetText(values[valueIndex]);
+                    valueIndex++;
+                }
+            }
         }
 
         private static void AddNumberedParagraphs(WordDocument document, int count) {
@@ -400,6 +518,26 @@ namespace OfficeIMO.Tests {
             };
 
             document._document.Body!.Append(new Paragraph(new Run(new Picture(shape))));
+        }
+
+        private static void AddTextBoxParagraph(WordDocument document, string text) {
+            var textBox = new V.TextBox(
+                new TextBoxContent(
+                    new Paragraph(
+                        new Run(
+                            new Text(text)))));
+            var shape = new V.Shape(textBox) {
+                Id = "Callout",
+                Type = "#_x0000_t202",
+                Style = "width:120pt;height:40pt",
+                Filled = false,
+                Stroked = true
+            };
+
+            document._document.Body!.Append(
+                new Paragraph(
+                    new Run(new Text("Host paragraph")),
+                    new Run(new Picture(shape))));
         }
 
         private static void AddExternalVmlImageParagraph(WordDocument document, string uri) {
