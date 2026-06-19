@@ -445,7 +445,12 @@ namespace OfficeIMO.Word.Pdf {
 
         private static bool ShouldKeepNativeElementWithFollowingContent(WordElement element) =>
             element is WordParagraph paragraph &&
-            (paragraph.KeepWithNext || GetHeadingLevel(paragraph) > 0);
+            (ShouldKeepNativeParagraphWithFollowingContent(paragraph) || GetHeadingLevel(paragraph) > 0);
+
+        private static bool ShouldKeepNativeParagraphWithFollowingContent(WordParagraph paragraph) =>
+            ReadNativeDirectParagraphOnOff<W.KeepNext>(paragraph) ??
+            GetNativeParagraphStyleDefaults(paragraph).KeepWithNext ??
+            false;
 
         private static int GetNativeAutomaticColumnWeight(WordElement element) {
             if (element is WordParagraph paragraph) {
