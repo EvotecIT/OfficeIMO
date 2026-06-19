@@ -12,8 +12,8 @@ namespace OfficeIMO.Word.Pdf {
             public static NativeTableRunStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null, null);
         }
 
-        private readonly record struct NativeTableConditionalStyleDefaults(PdfCore.PdfColor? CellFill, PdfCore.PdfColor? TextColor, double? FontSize, bool? Bold, bool? Italic, bool? Underline, bool? Strike, W.HighlightColorValues? Highlight) {
-            public static NativeTableConditionalStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null);
+        private readonly record struct NativeTableConditionalStyleDefaults(PdfCore.PdfColor? CellFill, W.TableCellBorders? CellBorders, PdfCore.PdfColor? TextColor, double? FontSize, bool? Bold, bool? Italic, bool? Underline, bool? Strike, W.HighlightColorValues? Highlight) {
+            public static NativeTableConditionalStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null, null);
         }
 
         private static NativeTableStyleDefaults GetNativeTableStyleDefaults(WordTable table, NativeDocumentDefaults nativeDefaults, bool ignoreFallbackTableStyle) {
@@ -178,6 +178,7 @@ namespace OfficeIMO.Word.Pdf {
             foreach (W.TableStyleProperties properties in style.Elements<W.TableStyleProperties>().Where(properties => properties.Type?.Value == type)) {
                 W.TableStyleConditionalFormattingTableCellProperties? cellProperties = properties.GetFirstChild<W.TableStyleConditionalFormattingTableCellProperties>();
                 PdfCore.PdfColor? cellFill = ParseNativeColor(cellProperties?.GetFirstChild<W.Shading>()?.Fill?.Value);
+                W.TableCellBorders? cellBorders = cellProperties?.GetFirstChild<W.TableCellBorders>();
 
                 W.RunPropertiesBaseStyle? runProperties = properties.GetFirstChild<W.RunPropertiesBaseStyle>();
                 PdfCore.PdfColor? textColor = ParseNativeColor(runProperties?.GetFirstChild<W.Color>()?.Val?.Value);
@@ -189,6 +190,7 @@ namespace OfficeIMO.Word.Pdf {
                 W.HighlightColorValues? highlight = runProperties?.GetFirstChild<W.Highlight>()?.Val?.Value;
                 result = new NativeTableConditionalStyleDefaults(
                     cellFill ?? result.CellFill,
+                    cellBorders ?? result.CellBorders,
                     textColor ?? result.TextColor,
                     fontSize ?? result.FontSize,
                     bold ?? result.Bold,

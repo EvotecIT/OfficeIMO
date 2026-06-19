@@ -233,6 +233,7 @@ namespace OfficeIMO.Word.Pdf {
             ApplyNativeTableConditionalStyles(table, style, tableStyleDefaults, rowCount);
             ApplyNativeTableBandingStyles(table, layout, style, tableStyleDefaults);
             ApplyNativeTableConditionalColumnFills(table, layout, tableStyleDefaults, style);
+            ApplyNativeTableConditionalRowBorders(table, layout, tableStyleDefaults, style);
             ApplyNativeTableLayoutOptions(table, style, contentWidth, tableStyleDefaults);
             ApplyNativeTableRowOptions(table, style);
             return style;

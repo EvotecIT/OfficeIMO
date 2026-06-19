@@ -232,6 +232,50 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Maps_Table_Style_Row_Conditional_Borders() {
+        using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeTableStyleRowConditionalBorders.docx"));
+        Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+        styles.Append(new Style(
+            new StyleName { Val = "Generic Row Border Table" },
+            new TableStyleProperties(
+                new TableStyleConditionalFormattingTableCellProperties(
+                    new TableCellBorders(
+                        new BottomBorder { Val = BorderValues.Single, Color = "112233", Size = 16U })))
+            { Type = TableStyleOverrideValues.FirstRow },
+            new TableStyleProperties(
+                new TableStyleConditionalFormattingTableCellProperties(
+                    new TableCellBorders(
+                        new TopBorder { Val = BorderValues.Double, Color = "445566", Size = 12U })))
+            { Type = TableStyleOverrideValues.LastRow })
+        { Type = StyleValues.Table, StyleId = "GenericRowBorderTable" });
+
+        WordTable table = document.AddTable(3, 2);
+        table._tableProperties!.TableStyle = new TableStyle { Val = "GenericRowBorderTable" };
+        table.ConditionalFormattingFirstRow = true;
+        table.ConditionalFormattingLastRow = true;
+
+        PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table);
+
+        Assert.NotNull(style.CellBorders);
+        PdfCore.PdfCellBorder headerLeft = style.CellBorders![(0, 0)];
+        PdfCore.PdfCellBorder headerRight = style.CellBorders![(0, 1)];
+        Assert.True(headerLeft.Bottom);
+        Assert.True(headerRight.Bottom);
+        Assert.False(headerLeft.Top);
+        Assert.Equal(PdfCore.PdfColor.FromRgb(17, 34, 51), headerLeft.BottomBorder!.Color);
+        Assert.Equal(2D, headerLeft.BottomBorder.Width);
+
+        PdfCore.PdfCellBorder footerLeft = style.CellBorders![(2, 0)];
+        PdfCore.PdfCellBorder footerRight = style.CellBorders![(2, 1)];
+        Assert.True(footerLeft.Top);
+        Assert.True(footerRight.Top);
+        Assert.False(footerLeft.Bottom);
+        Assert.Equal(PdfCore.PdfColor.FromRgb(68, 85, 102), footerLeft.TopBorder!.Color);
+        Assert.Equal(1.5D, footerLeft.TopBorder.Width);
+        Assert.False(style.CellBorders!.ContainsKey((1, 0)));
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Maps_Table_Style_First_And_Last_Column_Conditional_Fills() {
         using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeTableStyleColumnConditional.docx"));
         Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;

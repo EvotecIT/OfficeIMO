@@ -290,6 +290,58 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Renders_Table_Style_Row_Conditional_Borders() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleRowConditionalBorders.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleRowConditionalBorders.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            const string styleId = "NativeRowConditionalBorderTable";
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(new Style(
+                new StyleName { Val = "Native Row Conditional Border Table" },
+                new TableStyleProperties(
+                    new TableStyleConditionalFormattingTableCellProperties(
+                        new TableCellBorders(
+                            new BottomBorder { Val = BorderValues.Single, Color = "112233", Size = 16U })))
+                { Type = TableStyleOverrideValues.FirstRow },
+                new TableStyleProperties(
+                    new TableStyleConditionalFormattingTableCellProperties(
+                        new TableCellBorders(
+                            new TopBorder { Val = BorderValues.Double, Color = "445566", Size = 12U })))
+                { Type = TableStyleOverrideValues.LastRow })
+            { Type = StyleValues.Table, StyleId = styleId });
+
+            WordTable table = document.AddTable(3, 2);
+            table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
+            table.ConditionalFormattingFirstRow = true;
+            table.ConditionalFormattingLastRow = true;
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "BorderHeader";
+            table.Rows[0].Cells[1].Paragraphs[0].Text = "BorderHeaderValue";
+            table.Rows[1].Cells[0].Paragraphs[0].Text = "BorderBody";
+            table.Rows[1].Cells[1].Paragraphs[0].Text = "BorderBodyValue";
+            table.Rows[2].Cells[0].Paragraphs[0].Text = "BorderFooter";
+            table.Rows[2].Cells[1].Paragraphs[0].Text = "BorderFooterValue";
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = new PdfCore.PageSize(420, 240),
+                Margins = PdfCore.PageMargins.Uniform(30)
+            });
+        }
+
+        byte[] bytes = File.ReadAllBytes(pdfPath);
+        using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
+        string text = string.Concat(pdf.GetPages().Select(page => page.Text));
+        Assert.Contains("BorderHeader", text);
+        Assert.Contains("BorderFooterValue", text);
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("0.067 0.133 0.2 RG", raw);
+        Assert.Contains("0.267 0.333 0.4 RG", raw);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Renders_Table_Style_First_And_Last_Column_Conditional_Fills() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleColumnConditional.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleColumnConditional.pdf");
