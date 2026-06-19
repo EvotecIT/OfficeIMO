@@ -48,13 +48,16 @@ public class RtfHtmlOptionsTests {
 
     [Fact]
     public void RtfToHtmlOptions_Clone_Copies_Configuration() {
+        Action<HtmlRtfConversionDiagnostic> handler = _ => { };
         var options = new RtfToHtmlOptions {
             FragmentOnly = false,
             IncludeMetadata = false,
             Title = "Clinical note",
             EmbedImagesAsDataUri = false,
-            NewLine = "\n"
+            NewLine = "\n",
+            DiagnosticHandler = handler
         };
+        options.Diagnostics.Add(new HtmlRtfConversionDiagnostic("Existing", "Existing diagnostic"));
 
         RtfToHtmlOptions clone = options.Clone();
 
@@ -64,6 +67,8 @@ public class RtfHtmlOptionsTests {
         Assert.Equal(options.Title, clone.Title);
         Assert.Equal(options.EmbedImagesAsDataUri, clone.EmbedImagesAsDataUri);
         Assert.Equal(options.NewLine, clone.NewLine);
+        Assert.Same(handler, clone.DiagnosticHandler);
+        Assert.Empty(clone.Diagnostics);
     }
 
     [Fact]

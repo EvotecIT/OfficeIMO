@@ -87,6 +87,40 @@ public partial class RtfHtmlConverterTests {
     }
 
     [Fact]
+    public void RtfDocument_ToHtml_Reports_Diagnostic_When_Image_Embedding_Is_Disabled() {
+        RtfDocument document = RtfDocument.Create();
+        document.AddImage(RtfImageFormat.Png, new byte[] { 0x89, 0x50, 0x4E, 0x47 });
+        var callbackDiagnostics = new List<HtmlRtfConversionDiagnostic>();
+        var options = new RtfToHtmlOptions {
+            EmbedImagesAsDataUri = false,
+            DiagnosticHandler = callbackDiagnostics.Add
+        };
+
+        string html = document.ToHtml(options);
+
+        Assert.DoesNotContain("<img", html, StringComparison.Ordinal);
+        HtmlRtfConversionDiagnostic diagnostic = Assert.Single(options.Diagnostics);
+        Assert.Same(diagnostic, Assert.Single(callbackDiagnostics));
+        Assert.Equal("RtfHtmlImageEmbeddingDisabled", diagnostic.Code);
+        Assert.Equal(HtmlRtfConversionDiagnosticSeverity.Warning, diagnostic.Severity);
+        Assert.Equal(RtfImageFormat.Png.ToString(), diagnostic.Source);
+    }
+
+    [Fact]
+    public void RtfDocument_ToHtml_Reports_Diagnostic_For_Unsupported_Image_Format() {
+        RtfDocument document = RtfDocument.Create();
+        document.AddImage(RtfImageFormat.Emf, new byte[] { 0x01, 0x02, 0x03 });
+        var options = new RtfToHtmlOptions();
+
+        string html = document.ToHtml(options);
+
+        Assert.DoesNotContain("<img", html, StringComparison.Ordinal);
+        HtmlRtfConversionDiagnostic diagnostic = Assert.Single(options.Diagnostics);
+        Assert.Equal("RtfHtmlImageFormatUnsupported", diagnostic.Code);
+        Assert.Equal(RtfImageFormat.Emf.ToString(), diagnostic.Source);
+    }
+
+    [Fact]
     public void Html_ToRtfDocument_Parses_Table_Colspan_And_Rowspan() {
         const string html = "<table><tr><th colspan=\"2\">Panel</th><th rowspan=\"2\">Flag</th></tr><tr><td>Pulse</td><td>72</td></tr></table>";
 

@@ -226,6 +226,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Rtf.Pdf", "Office
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Reader.Rtf", "OfficeIMO.Reader.Rtf\OfficeIMO.Reader.Rtf.csproj", "{E3A789AE-1A4D-4207-9850-4540BA9A78A3}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Rtf.Markdown", "OfficeIMO.Rtf.Markdown\OfficeIMO.Rtf.Markdown.csproj", "{E3D528A8-5B59-4B37-956E-35B404E4E1D8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -872,6 +874,18 @@ Global
 		{E3A789AE-1A4D-4207-9850-4540BA9A78A3}.Release|x64.Build.0 = Release|Any CPU
 		{E3A789AE-1A4D-4207-9850-4540BA9A78A3}.Release|x86.ActiveCfg = Release|Any CPU
 		{E3A789AE-1A4D-4207-9850-4540BA9A78A3}.Release|x86.Build.0 = Release|Any CPU
+		{E3D528A8-5B59-4B37-956E-35B404E4E1D8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E3D528A8-5B59-4B37-956E-35B404E4E1D8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E3D528A8-5B59-4B37-956E-35B404E4E1D8}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{E3D528A8-5B59-4B37-956E-35B404E4E1D8}.Debug|x64.Build.0 = Debug|Any CPU
+		{E3D528A8-5B59-4B37-956E-35B404E4E1D8}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{E3D528A8-5B59-4B37-956E-35B404E4E1D8}.Debug|x86.Build.0 = Debug|Any CPU
+		{E3D528A8-5B59-4B37-956E-35B404E4E1D8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E3D528A8-5B59-4B37-956E-35B404E4E1D8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E3D528A8-5B59-4B37-956E-35B404E4E1D8}.Release|x64.ActiveCfg = Release|Any CPU
+		{E3D528A8-5B59-4B37-956E-35B404E4E1D8}.Release|x64.Build.0 = Release|Any CPU
+		{E3D528A8-5B59-4B37-956E-35B404E4E1D8}.Release|x86.ActiveCfg = Release|Any CPU
+		{E3D528A8-5B59-4B37-956E-35B404E4E1D8}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
