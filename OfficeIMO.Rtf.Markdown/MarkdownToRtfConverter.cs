@@ -144,7 +144,8 @@ internal static class MarkdownToRtfConverter {
 
         if (kind == RtfListKind.Decimal && start != 1) {
             while (listOverride.LevelOverrides.Count <= levelIndex) {
-                listOverride.AddLevelOverride();
+                RtfListLevelOverride paddingOverride = listOverride.AddLevelOverride();
+                paddingOverride.OverrideStartAt = false;
             }
 
             RtfListLevelOverride levelOverride = listOverride.LevelOverrides[levelIndex];

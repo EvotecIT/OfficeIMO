@@ -256,7 +256,7 @@ internal static class RtfToMarkdownConverter {
         if (paragraph.ListId.HasValue) {
             RtfListOverride? listOverride = document.ListOverrides.FirstOrDefault(item => item.Id == paragraph.ListId.Value);
             RtfListLevelOverride? levelOverride = listOverride?.LevelOverrides.ElementAtOrDefault(levelIndex);
-            if (levelOverride?.StartAt.HasValue == true) {
+            if (levelOverride?.OverrideStartAt == true && levelOverride.StartAt.HasValue) {
                 return Math.Max(1, levelOverride.StartAt.Value);
             }
         }
@@ -447,7 +447,7 @@ internal static class RtfToMarkdownConverter {
         bool hasCombinedContent = false;
         for (int i = 0; i < cell.Paragraphs.Count; i++) {
             InlineSequence paragraphInlines = ConvertParagraphInlines(cell.Paragraphs[i], options, ref imageIndex);
-            string text = RenderInlineSequenceMarkdown(paragraphInlines);
+            string text = RenderInlineSequenceMarkdownForTableCell(paragraphInlines);
             if (!string.IsNullOrEmpty(text)) {
                 parts.Add(text.Replace("\r\n", "\n").Replace('\r', '\n').Replace("\n", "<br>"));
             }
@@ -493,6 +493,44 @@ internal static class RtfToMarkdownConverter {
 
     private static string RenderInlineSequenceMarkdown(InlineSequence sequence) {
         return ((IRenderableMarkdownInline)sequence).RenderMarkdown();
+    }
+
+    private static string RenderInlineSequenceMarkdownForTableCell(InlineSequence sequence) {
+        if (sequence.Nodes.Count == 0) {
+            return string.Empty;
+        }
+
+        var builder = new StringBuilder();
+        for (int i = 0; i < sequence.Nodes.Count; i++) {
+            builder.Append(RenderInlineMarkdownForTableCell(sequence.Nodes[i]));
+        }
+
+        return builder.ToString();
+    }
+
+    private static string RenderInlineMarkdownForTableCell(IMarkdownInline inline) {
+        switch (inline) {
+            case DecodedHtmlEntityTextRun text:
+                return MarkdownEscaper.EscapeLiteralTableCellText(text.Text);
+            case BoldSequenceInline bold:
+                return "**" + RenderInlineSequenceMarkdownForTableCell(bold.Inlines) + "**";
+            case ItalicSequenceInline italic:
+                return "*" + RenderInlineSequenceMarkdownForTableCell(italic.Inlines) + "*";
+            case BoldItalicSequenceInline boldItalic:
+                return "***" + RenderInlineSequenceMarkdownForTableCell(boldItalic.Inlines) + "***";
+            case StrikethroughSequenceInline strike:
+                return "~~" + RenderInlineSequenceMarkdownForTableCell(strike.Inlines) + "~~";
+            case HighlightSequenceInline highlight:
+                return "==" + RenderInlineSequenceMarkdownForTableCell(highlight.Inlines) + "==";
+            case HtmlTagSequenceInline htmlTag:
+                return "<" + htmlTag.TagName + ">" + RenderInlineSequenceMarkdownForTableCell(htmlTag.Inlines) + "</" + htmlTag.TagName + ">";
+            case LinkInline link when link.LabelInlines != null:
+                return "[" + RenderInlineSequenceMarkdownForTableCell(link.LabelInlines) + "](" + MarkdownEscaper.EscapeLinkUrl(link.Url) + MarkdownEscaper.FormatOptionalTitle(link.Title) + ")";
+            case IRenderableMarkdownInline renderable:
+                return renderable.RenderMarkdown();
+            default:
+                return RtfMarkdownText.EscapeMarkdownText(RtfMarkdownText.PlainText(inline));
+        }
     }
 
     private static InlineSequence InlineSequenceOf(IMarkdownInline inline) {

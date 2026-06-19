@@ -246,6 +246,23 @@ public class RtfMarkdownConverterTests {
     }
 
     [Fact]
+    public void MarkdownToRtfDocumentWritesNoOpOverridesForSkippedListLevels() {
+        string rtf = """
+            1. Parent
+               5. Child
+            """.ToRtfFromMarkdown();
+
+        System.Text.RegularExpressions.Match overrideMatch = System.Text.RegularExpressions.Regex.Match(rtf, @"\\listoverridecount(\d+)");
+        Assert.True(overrideMatch.Success);
+        int overrideCount = int.Parse(overrideMatch.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
+
+        Assert.Equal(2, overrideCount);
+        Assert.Equal(overrideCount, CountOccurrences(rtf, @"{\lfolevel"));
+        Assert.Contains(@"{\lfolevel\listoverridestartat0}", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"{\lfolevel\listoverridestartat1\levelstartat5}", rtf, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void MarkdownToRtfDocumentAppliesTableColumnAlignmentsToCellParagraphs() {
         RtfDocument document = """
             | Name | Count | Status |
@@ -368,6 +385,22 @@ public class RtfMarkdownConverterTests {
     }
 
     [Fact]
+    public void RtfDocumentToMarkdownRoundTripPreservesLiteralEntityTextInTableCells() {
+        RtfDocument document = RtfDocument.Create();
+        RtfTable table = document.AddTable(2, 1);
+        table.Rows[0].RepeatHeader = true;
+        table.Rows[0].Cells[0].AddParagraph("Value");
+        table.Rows[1].Cells[0].AddParagraph("&lt; &#42;");
+
+        string markdown = document.ToMarkdown();
+        RtfDocument roundTrip = markdown.ToRtfDocumentFromMarkdown();
+        RtfTable roundTripTable = Assert.IsType<RtfTable>(roundTrip.Blocks.OfType<RtfTable>().Single());
+
+        Assert.Contains("| &lt; &#42; |", markdown, StringComparison.Ordinal);
+        Assert.Equal("&lt; &#42;", roundTripTable.Rows[1].Cells[0].Paragraphs[0].ToPlainText());
+    }
+
+    [Fact]
     public void MarkdownToRtfDocumentPreservesAdditionalListParagraphsTableHeadersAndEscapedEntities() {
         var list = new UnorderedListBlock();
         var item = ListItem.Text("Lead");
@@ -412,6 +445,43 @@ public class RtfMarkdownConverterTests {
         Assert.Single(roundTripTable.Rows);
         Assert.False(roundTripTable.Rows[0].RepeatHeader);
         Assert.Equal("Only row", roundTripTable.Rows[0].Cells[0].Paragraphs[0].ToPlainText());
+    }
+
+    [Fact]
+    public void MarkdownToRtfDocumentReadsOneRowTableMarkerWhenHtmlBlocksAreDisabled() {
+        var options = new MarkdownToRtfOptions {
+            ReaderOptions = new MarkdownReaderOptions {
+                HtmlBlocks = false
+            }
+        };
+
+        RtfDocument document = """
+            <!-- OfficeIMO:RTF:HeaderlessSingleRowTable -->
+            | Only row |
+            """.ToRtfDocumentFromMarkdown(options);
+
+        RtfTable table = Assert.IsType<RtfTable>(document.Blocks.OfType<RtfTable>().Single());
+        Assert.Single(table.Rows);
+        Assert.False(table.Rows[0].RepeatHeader);
+        Assert.Equal("Only row", table.Rows[0].Cells[0].Paragraphs[0].ToPlainText());
+        Assert.DoesNotContain(document.Paragraphs, paragraph => paragraph.ToPlainText().Contains("OfficeIMO:RTF", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void RtfDocumentToMarkdownIgnoresDisabledListStartOverrides() {
+        RtfDocument document = RtfDocument.Create();
+        RtfListDefinition definition = document.AddListDefinition(100);
+        definition.AddLevel(RtfListKind.Decimal).StartAt = 3;
+        RtfListOverride listOverride = document.AddListOverride(7, 100);
+        RtfListLevelOverride levelOverride = listOverride.AddLevelOverride();
+        levelOverride.OverrideStartAt = false;
+        levelOverride.StartAt = 9;
+        document.AddParagraph("Three").SetList(listId: 7, level: 0, kind: RtfListKind.Decimal).ListDefinitionId = 100;
+
+        string markdown = document.ToMarkdown();
+
+        Assert.Contains("3. Three", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("9. Three", markdown, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -536,5 +606,16 @@ public class RtfMarkdownConverterTests {
         var builder = new System.Text.StringBuilder();
         inline.AppendPlainText(builder);
         return builder.ToString();
+    }
+
+    private static int CountOccurrences(string value, string needle) {
+        int count = 0;
+        int index = 0;
+        while ((index = value.IndexOf(needle, index, StringComparison.Ordinal)) >= 0) {
+            count++;
+            index += needle.Length;
+        }
+
+        return count;
     }
 }

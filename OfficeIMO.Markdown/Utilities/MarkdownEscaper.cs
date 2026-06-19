@@ -18,6 +18,7 @@ internal static class MarkdownEscaper {
     internal static string EscapeText(string? text) => Escape(text, GeneralReserved);
     internal static string EscapeTextAndLineStarts(string? text) => EscapeMarkdownLineStarts(EscapeText(text));
     internal static string EscapeLiteralText(string? text) => EscapeMarkdownLineStarts(EncodeLiteralMarkdownText(text));
+    internal static string EscapeLiteralTableCellText(string? text) => EscapeMarkdownLineStarts(EncodeLiteralMarkdownText(text, encodeEntityLikeAmpersands: false));
     internal static string EscapeEmphasis(string? text) => Escape(text, GeneralReserved);
     internal static string EscapeHighlightText(string? text) => Escape(text, HighlightReserved);
     internal static string EscapeLinkText(string? text) => Escape(text, GeneralReserved);
@@ -271,7 +272,7 @@ internal static class MarkdownEscaper {
         return sb?.ToString() ?? text;
     }
 
-    private static string EncodeLiteralMarkdownText(string? text) {
+    private static string EncodeLiteralMarkdownText(string? text, bool encodeEntityLikeAmpersands = true) {
         string value = text ?? string.Empty;
         if (value.Length == 0) {
             return string.Empty;
@@ -293,7 +294,7 @@ internal static class MarkdownEscaper {
                 '=' => @"\=",
                 '<' => "&lt;",
                 '>' => "&gt;",
-                '&' when IsEntityLikeAmpersand(value, i) => "&amp;",
+                '&' when encodeEntityLikeAmpersands && IsEntityLikeAmpersand(value, i) => "&amp;",
                 _ => null
             };
 
