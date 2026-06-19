@@ -874,6 +874,62 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Renders_BiDi_Paragraphs_Right_Aligned() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeBiDiParagraphAlignment.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeBiDiParagraphAlignment.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                WordParagraph bidi = document.AddParagraph("BidiRightMarker");
+                bidi.BiDi = true;
+                document.AddParagraph("LeftMarker");
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false,
+                    PageSize = new OfficeIMO.Pdf.PageSize(300, 180),
+                    Margins = PageMargins.Uniform(30),
+                    FontFamily = "Helvetica"
+                });
+            }
+
+            Assert.True(File.Exists(pdfPath));
+            byte[] bytes = File.ReadAllBytes(pdfPath);
+            using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
+            var words = pdf.GetPage(1).GetWords().ToList();
+            var bidiWord = Assert.Single(words, word => word.Text == "BidiRightMarker");
+            var leftWord = Assert.Single(words, word => word.Text == "LeftMarker");
+
+            Assert.True(bidiWord.BoundingBox.Left > leftWord.BoundingBox.Left + 90D, $"Expected BiDi paragraph text to use Word-style right alignment. BiDi x: {bidiWord.BoundingBox.Left:0.##}; left x: {leftWord.BoundingBox.Left:0.##}.");
+
+            PdfDocumentInfo info = PdfInspector.Inspect(bytes);
+            Assert.Equal("R2L", info.ViewerPreferences?.GetValue("Direction"));
+        }
+
+        [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Preserves_Configured_Viewer_Direction_For_BiDi_Documents() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeBiDiConfiguredViewerDirection.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeBiDiConfiguredViewerDirection.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                WordParagraph bidi = document.AddParagraph("ConfiguredBidiMarker");
+                bidi.BiDi = true;
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false,
+                    PdfOptions = new PdfOptions {
+                        ViewerPreferences = new PdfViewerPreferencesOptions {
+                            Direction = PdfViewerDirection.LeftToRight
+                        }
+                    }
+                });
+            }
+
+            PdfDocumentInfo info = PdfInspector.Inspect(File.ReadAllBytes(pdfPath));
+            Assert.Equal("L2R", info.ViewerPreferences?.GetValue("Direction"));
+        }
+
+        [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Maps_Paragraph_Style_Run_Formatting() {
             using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeParagraphStyleRunFormatting.docx"));
             const string styleId = "NativeStyleRunFormatting";

@@ -469,8 +469,18 @@ namespace OfficeIMO.Word.Pdf {
         private static W.JustificationValues? ResolveNativeParagraphJustification(WordParagraph paragraph) =>
             paragraph.ParagraphAlignment ?? GetNativeParagraphStyleDefaults(paragraph).Alignment;
 
-        private static PdfCore.PdfAlign ResolveNativeParagraphAlign(WordParagraph paragraph, bool allowJustify = true) =>
-            MapNativeParagraphAlign(ResolveNativeParagraphJustification(paragraph), allowJustify);
+        private static PdfCore.PdfAlign ResolveNativeParagraphAlign(WordParagraph paragraph, bool allowJustify = true) {
+            W.JustificationValues? alignment = ResolveNativeParagraphJustification(paragraph);
+            if (alignment == null && IsNativeBiDiParagraph(paragraph)) {
+                return PdfCore.PdfAlign.Right;
+            }
+
+            return MapNativeParagraphAlign(alignment, allowJustify);
+        }
+
+        private static bool IsNativeBiDiParagraph(WordParagraph paragraph) =>
+            paragraph.BiDi ||
+            paragraph._paragraph?.ParagraphProperties?.GetFirstChild<W.BiDi>() != null;
 
         private static PdfCore.PdfColumnAlign ResolveNativeColumnAlign(WordParagraph paragraph) =>
             MapNativeColumnAlign(ResolveNativeParagraphJustification(paragraph));
