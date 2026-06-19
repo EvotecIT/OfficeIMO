@@ -205,6 +205,33 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Maps_Table_Style_Last_Row_Conditional_Formatting() {
+        using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeTableStyleLastRowConditional.docx"));
+        Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+        styles.Append(new Style(
+            new StyleName { Val = "Generic Last Row Table" },
+            new TableStyleProperties(
+                new RunPropertiesBaseStyle(
+                    new Bold(),
+                    new Color { Val = "FFFFFF" }),
+                new TableStyleConditionalFormattingTableCellProperties(
+                    new Shading { Val = ShadingPatternValues.Clear, Fill = "336699" }))
+            { Type = TableStyleOverrideValues.LastRow })
+        { Type = StyleValues.Table, StyleId = "GenericLastRowTable" });
+
+        WordTable table = document.AddTable(3, 2);
+        table._tableProperties!.TableStyle = new TableStyle { Val = "GenericLastRowTable" };
+        table.ConditionalFormattingLastRow = true;
+
+        PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table);
+
+        Assert.Equal(1, style.FooterRowCount);
+        Assert.Equal(PdfCore.PdfColor.FromRgb(51, 102, 153), style.FooterFill);
+        Assert.Equal(PdfCore.PdfColor.FromRgb(255, 255, 255), style.FooterTextColor);
+        Assert.True(style.FooterBold);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Uses_Configured_Default_Table_Style_For_Unstyled_Native_Table() {
         using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeDefaultTableStyle.docx"));
         WordTable table = document.AddTable(2, 2);

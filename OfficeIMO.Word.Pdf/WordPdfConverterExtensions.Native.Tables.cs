@@ -209,7 +209,7 @@ namespace OfficeIMO.Word.Pdf {
                 style,
                 usesConfiguredDefaultStyle,
                 ShouldApplyNativeTableStyleCellPadding(table) ? tableStyleDefaults : NativeTableStyleDefaults.Empty);
-            ApplyNativeTableConditionalStyles(table, style, tableStyleDefaults);
+            ApplyNativeTableConditionalStyles(table, style, tableStyleDefaults, rowCount);
             ApplyNativeTableLayoutOptions(table, style, contentWidth, tableStyleDefaults);
             ApplyNativeTableRowOptions(table, style);
             return style;
@@ -240,22 +240,53 @@ namespace OfficeIMO.Word.Pdf {
             };
         }
 
-        private static void ApplyNativeTableConditionalStyles(WordTable table, PdfCore.PdfTableStyle style, NativeTableStyleDefaults tableStyleDefaults) {
+        private static void ApplyNativeTableConditionalStyles(WordTable table, PdfCore.PdfTableStyle style, NativeTableStyleDefaults tableStyleDefaults, int rowCount) {
+            ApplyNativeFirstRowConditionalStyle(table, style, tableStyleDefaults);
+            ApplyNativeLastRowConditionalStyle(table, style, tableStyleDefaults, rowCount);
+        }
+
+        private static void ApplyNativeFirstRowConditionalStyle(WordTable table, PdfCore.PdfTableStyle style, NativeTableStyleDefaults tableStyleDefaults) {
             if (table.ConditionalFormattingFirstRow != true || style.HeaderRowCount <= 0) {
                 return;
             }
 
-            NativeTableConditionalStyleDefaults firstRowStyle = tableStyleDefaults.FirstRowStyle;
-            if (firstRowStyle.CellFill.HasValue) {
-                style.HeaderFill = firstRowStyle.CellFill.Value;
+            ApplyNativeHeaderConditionalStyle(style, tableStyleDefaults.FirstRowStyle);
+        }
+
+        private static void ApplyNativeLastRowConditionalStyle(WordTable table, PdfCore.PdfTableStyle style, NativeTableStyleDefaults tableStyleDefaults, int rowCount) {
+            if (table.ConditionalFormattingLastRow != true || rowCount <= style.HeaderRowCount) {
+                return;
             }
 
-            if (firstRowStyle.TextColor.HasValue) {
-                style.HeaderTextColor = firstRowStyle.TextColor.Value;
+            style.FooterRowCount = 1;
+            ApplyNativeFooterConditionalStyle(style, tableStyleDefaults.LastRowStyle);
+        }
+
+        private static void ApplyNativeHeaderConditionalStyle(PdfCore.PdfTableStyle style, NativeTableConditionalStyleDefaults conditionalStyle) {
+            if (conditionalStyle.CellFill.HasValue) {
+                style.HeaderFill = conditionalStyle.CellFill.Value;
             }
 
-            if (firstRowStyle.Bold.HasValue) {
-                style.HeaderBold = firstRowStyle.Bold.Value;
+            if (conditionalStyle.TextColor.HasValue) {
+                style.HeaderTextColor = conditionalStyle.TextColor.Value;
+            }
+
+            if (conditionalStyle.Bold.HasValue) {
+                style.HeaderBold = conditionalStyle.Bold.Value;
+            }
+        }
+
+        private static void ApplyNativeFooterConditionalStyle(PdfCore.PdfTableStyle style, NativeTableConditionalStyleDefaults conditionalStyle) {
+            if (conditionalStyle.CellFill.HasValue) {
+                style.FooterFill = conditionalStyle.CellFill.Value;
+            }
+
+            if (conditionalStyle.TextColor.HasValue) {
+                style.FooterTextColor = conditionalStyle.TextColor.Value;
+            }
+
+            if (conditionalStyle.Bold.HasValue) {
+                style.FooterBold = conditionalStyle.Bold.Value;
             }
         }
 
