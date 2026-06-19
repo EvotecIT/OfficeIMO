@@ -29,7 +29,9 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// True when OfficeIMO can attempt read-oriented workbook data operations.
         /// </summary>
-        public bool CanReadWorkbookData => UnsupportedFeatures.Count == 0;
+        public bool CanReadWorkbookData =>
+            UnsupportedFeatures.Count == 0 &&
+            FindFeatureCount("Non-worksheet sheets") == 0;
 
         /// <summary>
         /// True when OfficeIMO can attempt cell-value edits without known unsupported package features.
@@ -69,6 +71,10 @@ namespace OfficeIMO.Excel {
             !HasPdfExportWorkbookBlockers() &&
             CanUseCachedFormulaValues &&
             FindFeatureCount("PDF-unsupported charts") == 0 &&
+            FindFeatureCount("PDF-unreadable charts") == 0 &&
+            FindFeatureCount("PDF-unsupported images") == 0 &&
+            FindFeatureCount("PDF-unrendered pivot tables") == 0 &&
+            FindFeatureCount("PDF-unrendered sparklines") == 0 &&
             FindFeatureCount("Non-worksheet sheets") == 0;
 
         /// <summary>
@@ -126,6 +132,7 @@ namespace OfficeIMO.Excel {
             switch (capability) {
                 case ExcelPreflightCapability.ReadWorkbookData:
                     AddUnsupportedDiagnostics(messages, "Workbook data reads are blocked by unsupported workbook features.");
+                    AddFeatureDiagnostics(messages, FindFeatures("Non-worksheet sheets"));
                     break;
                 case ExcelPreflightCapability.EditCellValues:
                     AddUnsupportedDiagnostics(messages, "Cell-value edits are blocked by unsupported workbook features.");
@@ -149,6 +156,10 @@ namespace OfficeIMO.Excel {
                     AddPdfExportWorkbookDiagnostics(messages);
                     AddFormulaDiagnostics(messages, requireCachedValues: true, requireSupportedFormulas: false);
                     AddFeatureDiagnostics(messages, FindFeatures("PDF-unsupported charts"));
+                    AddFeatureDiagnostics(messages, FindFeatures("PDF-unreadable charts"));
+                    AddFeatureDiagnostics(messages, FindFeatures("PDF-unsupported images"));
+                    AddFeatureDiagnostics(messages, FindFeatures("PDF-unrendered pivot tables"));
+                    AddFeatureDiagnostics(messages, FindFeatures("PDF-unrendered sparklines"));
                     AddFeatureDiagnostics(messages, FindFeatures("Non-worksheet sheets"));
                     break;
                 default:

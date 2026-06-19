@@ -4,6 +4,7 @@ using System.Text;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Excel;
 using Xunit;
+using C = DocumentFormat.OpenXml.Drawing.Charts;
 using X = DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Tests {
@@ -50,11 +51,12 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.PreserveOnly.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Links");
+                ExcelSheet sheet = document.AddWorkSheet("Metadata");
                 sheet.CellValue(1, 1, "Resource");
-                sheet.SetHyperlink(2, 1, "https://example.org/spec", display: "Spec");
                 document.Save(false);
             }
+
+            AddCustomXmlPart(filePath);
 
             using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
                 ExcelFeatureReport report = document.InspectFeatures();
@@ -65,15 +67,37 @@ namespace OfficeIMO.Tests {
                 Assert.False(report.Can(ExcelPreflightCapability.BindTemplate));
                 Assert.False(report.Can(ExcelPreflightCapability.ExportPdfReport));
 
-                Assert.Contains("External workbook links", string.Join(Environment.NewLine,
+                Assert.Contains("Custom XML parts", string.Join(Environment.NewLine,
                     report.GetCapabilityDiagnostics(ExcelPreflightCapability.EditWorkbookStructure)));
-                Assert.Contains("https://example.org/spec", string.Join(Environment.NewLine,
+                Assert.Contains("Custom XML parts", string.Join(Environment.NewLine,
                     report.GetCapabilityDiagnostics(ExcelPreflightCapability.ExportPdfReport)));
 
                 InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
                     report.EnsureCan(ExcelPreflightCapability.ExportPdfReport));
                 Assert.Contains("ExportPdfReport", exception.Message);
-                Assert.Contains("External workbook links", exception.Message);
+                Assert.Contains("Custom XML parts", exception.Message);
+            }
+        }
+
+        [Fact]
+        public void FeatureReport_Preflight_AllowsPdfExportForExternalHyperlinks() {
+            string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.ExternalHyperlink.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Links");
+                sheet.CellValue(1, 1, "Resource");
+                sheet.SetHyperlink(2, 1, "https://example.org/spec", display: "Spec");
+                document.Save(false);
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelFeatureReport report = document.InspectFeatures();
+
+                Assert.True(report.Can(ExcelPreflightCapability.ReadWorkbookData));
+                Assert.True(report.Can(ExcelPreflightCapability.ExportPdfReport));
+                Assert.Contains(report.PartiallyEditableFeatures, feature => feature.Name == "External hyperlinks");
+                Assert.DoesNotContain(report.PreservedFeatures, feature => feature.Name == "External workbook links");
+                Assert.Empty(report.GetCapabilityDiagnostics(ExcelPreflightCapability.ExportPdfReport));
             }
         }
 
@@ -301,6 +325,125 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void FeatureReport_Preflight_BlocksPdfExportForSameFamilyMixedChartTypes() {
+            string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.SameFamilyComboChart.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Charts");
+                var data = new ExcelChartData(
+                    new[] { "Q1", "Q2", "Q3" },
+                    new[] {
+                        new ExcelChartSeries("Sales", new[] { 10d, 20d, 30d }, ExcelChartType.ColumnClustered),
+                        new ExcelChartSeries("Target", new[] { 12d, 18d, 28d }, ExcelChartType.ColumnStacked)
+                    });
+                sheet.AddChart(data, row: 1, column: 5, widthPixels: 360, heightPixels: 220,
+                    type: ExcelChartType.ColumnClustered, title: "Column Combo Chart");
+                document.Save(false);
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelFeatureReport report = document.InspectFeatures();
+
+                Assert.False(report.Can(ExcelPreflightCapability.ExportPdfReport));
+
+                string diagnostics = string.Join(Environment.NewLine,
+                    report.GetCapabilityDiagnostics(ExcelPreflightCapability.ExportPdfReport));
+                Assert.Contains("PDF-unsupported charts", diagnostics);
+                Assert.Contains("mixed per-series chart types", diagnostics);
+            }
+        }
+
+        [Fact]
+        public void FeatureReport_Preflight_BlocksPdfExportForUnreadableChartSnapshots() {
+            string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.UnreadableChart.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Charts");
+                sheet.CellValue(1, 1, "Zone");
+                sheet.CellValue(1, 2, "Value");
+                sheet.CellValue(2, 1, "North");
+                sheet.CellValue(2, 2, 10d);
+                sheet.CellValue(3, 1, "South");
+                sheet.CellValue(3, 2, 12d);
+                sheet.AddChartFromRange("A1:B3", row: 1, column: 5, widthPixels: 320, heightPixels: 180,
+                    type: ExcelChartType.ColumnClustered, title: "Literal Chart");
+                document.Save(false);
+            }
+
+            RemoveChartRangeFormulas(filePath);
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelFeatureReport report = document.InspectFeatures();
+
+                Assert.False(report.Can(ExcelPreflightCapability.ExportPdfReport));
+
+                string diagnostics = string.Join(Environment.NewLine,
+                    report.GetCapabilityDiagnostics(ExcelPreflightCapability.ExportPdfReport));
+                Assert.Contains("PDF-unreadable charts", diagnostics);
+                Assert.Contains("Literal Chart", diagnostics);
+            }
+        }
+
+        [Fact]
+        public void FeatureReport_Preflight_BlocksPdfExportForUnsupportedWorksheetImages() {
+            string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.UnsupportedImage.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Images");
+                sheet.CellValue(1, 1, "Image");
+                sheet.AddImage(2, 1, new byte[] { 0x47, 0x49, 0x46, 0x38, 0x39, 0x61 }, "image/gif",
+                    widthPixels: 12, heightPixels: 12, name: "GifLogo");
+                document.Save(false);
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelFeatureReport report = document.InspectFeatures();
+
+                Assert.False(report.Can(ExcelPreflightCapability.ExportPdfReport));
+
+                string diagnostics = string.Join(Environment.NewLine,
+                    report.GetCapabilityDiagnostics(ExcelPreflightCapability.ExportPdfReport));
+                Assert.Contains("PDF-unsupported images", diagnostics);
+                Assert.Contains("image/gif", diagnostics);
+            }
+        }
+
+        [Fact]
+        public void FeatureReport_Preflight_BlocksPdfExportForPivotTablesAndSparklines() {
+            string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.PivotSparkline.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "Region");
+                sheet.CellValue(1, 2, "Sales");
+                sheet.CellValue(2, 1, "North");
+                sheet.CellValue(2, 2, 10d);
+                sheet.CellValue(3, 1, "South");
+                sheet.CellValue(3, 2, 12d);
+                sheet.AddPivotTable(
+                    sourceRange: "A1:B3",
+                    destinationCell: "D1",
+                    name: "SalesPivot",
+                    rowFields: new[] { "Region" },
+                    dataFields: new[] { new ExcelPivotDataField("Sales", X.DataConsolidateFunctionValues.Sum, "Total Sales") },
+                    pivotStyleName: "PivotStyleMedium9");
+                sheet.AddSparklines("B2:B3", "C2:C3");
+                document.Save(false);
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelFeatureReport report = document.InspectFeatures();
+
+                Assert.False(report.Can(ExcelPreflightCapability.ExportPdfReport));
+
+                string diagnostics = string.Join(Environment.NewLine,
+                    report.GetCapabilityDiagnostics(ExcelPreflightCapability.ExportPdfReport));
+                Assert.Contains("PDF-unrendered pivot tables", diagnostics);
+                Assert.Contains("PDF-unrendered sparklines", diagnostics);
+            }
+        }
+
+        [Fact]
         public void FeatureReport_Preflight_BlocksPdfExportForNonWorksheetSheets() {
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.ChartSheet.xlsx");
 
@@ -316,14 +459,26 @@ namespace OfficeIMO.Tests {
             using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
                 ExcelFeatureReport report = document.InspectFeatures();
 
+                Assert.False(report.Can(ExcelPreflightCapability.ReadWorkbookData));
                 Assert.False(report.Can(ExcelPreflightCapability.ExportPdfReport));
                 Assert.Contains(report.PreservedFeatures, feature => feature.Name == "Non-worksheet sheets");
+
+                string readDiagnostics = string.Join(Environment.NewLine,
+                    report.GetCapabilityDiagnostics(ExcelPreflightCapability.ReadWorkbookData));
+                Assert.Contains("Non-worksheet sheets", readDiagnostics);
 
                 string diagnostics = string.Join(Environment.NewLine,
                     report.GetCapabilityDiagnostics(ExcelPreflightCapability.ExportPdfReport));
                 Assert.Contains("Non-worksheet sheets", diagnostics);
                 Assert.Contains("ChartOnly", diagnostics);
             }
+        }
+
+        private static void AddCustomXmlPart(string filePath) {
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true);
+            CustomXmlPart part = spreadsheet.WorkbookPart!.AddCustomXmlPart(CustomXmlPartType.CustomXml);
+            using var stream = new MemoryStream(Encoding.UTF8.GetBytes("<metadata><owner>OfficeIMO</owner></metadata>"));
+            part.FeedData(stream);
         }
 
         private static void AddCachedFormulaValue(string filePath, string cellReference, string value) {
@@ -355,6 +510,18 @@ namespace OfficeIMO.Tests {
             });
             chartsheetPart.Chartsheet.Save();
             workbookPart.Workbook.Save();
+        }
+
+        private static void RemoveChartRangeFormulas(string filePath) {
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true);
+            ChartPart chartPart = spreadsheet.WorkbookPart!.WorksheetParts
+                .SelectMany(part => part.DrawingsPart?.ChartParts ?? Enumerable.Empty<ChartPart>())
+                .First();
+            foreach (C.Formula formula in chartPart.ChartSpace!.Descendants<C.Formula>().ToList()) {
+                formula.Remove();
+            }
+
+            chartPart.ChartSpace.Save();
         }
 
         private static void AddDigitalSignatureMetadata(string filePath) {
