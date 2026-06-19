@@ -16,7 +16,8 @@
       { "title": "Paragraphs", "path": "word/paragraphs/index.md", "href": "/docs/word/paragraphs/" },
       { "title": "Tables", "path": "word/tables/index.md", "href": "/docs/word/tables/" },
       { "title": "Images", "path": "word/images/index.md", "href": "/docs/word/images/" },
-      { "title": "Headers & Footers", "path": "word/headers-footers/index.md", "href": "/docs/word/headers-footers/" }
+      { "title": "Headers & Footers", "path": "word/headers-footers/index.md", "href": "/docs/word/headers-footers/" },
+      { "title": "Market Readiness", "path": "word/market-readiness/index.md", "href": "/docs/word/market-readiness/" }
     ]
   },
   {
