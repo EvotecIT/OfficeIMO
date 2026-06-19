@@ -630,7 +630,7 @@ namespace OfficeIMO.Word.Pdf {
                 strike: style.Strike,
                 fontSize: style.FontSize,
                 font: style.Font,
-                baseline: GetNativeTextBaseline(paragraph),
+                baseline: style.Baseline,
                 backgroundColor: style.BackgroundColor);
         }
 
@@ -655,7 +655,7 @@ namespace OfficeIMO.Word.Pdf {
                 font: style.Font,
                 linkUri: linkUri,
                 linkContents: contents,
-                baseline: GetNativeTextBaseline(paragraph),
+                baseline: style.Baseline,
                 linkDestinationName: destinationName,
                 backgroundColor: style.BackgroundColor);
         }
@@ -668,13 +668,6 @@ namespace OfficeIMO.Word.Pdf {
 
             return PdfCore.TextRun.Tab();
         }
-
-        private static PdfCore.PdfTextBaseline GetNativeTextBaseline(WordParagraph paragraph) =>
-            paragraph.VerticalTextAlignment == W.VerticalPositionValues.Superscript
-                ? PdfCore.PdfTextBaseline.Superscript
-                : paragraph.VerticalTextAlignment == W.VerticalPositionValues.Subscript
-                    ? PdfCore.PdfTextBaseline.Subscript
-                    : PdfCore.PdfTextBaseline.Normal;
 
         private static void AddNativeCellFootnoteReferences(List<PdfCore.TextRun> target, IReadOnlyList<int> footnoteNumbers) {
             foreach (int footnoteNumber in footnoteNumbers) {

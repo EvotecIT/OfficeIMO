@@ -222,6 +222,63 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Maps_Style_Baseline_Run_Properties() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeStyleBaselineRun.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeStyleBaselineRun.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                styles.Append(new Style(
+                    new StyleName { Val = "Native Superscript Character Style" },
+                    new StyleRunProperties(
+                        new FontSize { Val = "40" },
+                        new VerticalTextAlignment { Val = VerticalPositionValues.Superscript }))
+                {
+                    Type = StyleValues.Character,
+                    StyleId = "NativeSuperscriptCharacterStyle",
+                    CustomStyle = true
+                });
+                styles.Append(new Style(
+                    new StyleName { Val = "Native Subscript Paragraph Style" },
+                    new BasedOn { Val = "Normal" },
+                    new StyleRunProperties(
+                        new FontSize { Val = "40" },
+                        new VerticalTextAlignment { Val = VerticalPositionValues.Subscript }))
+                {
+                    Type = StyleValues.Paragraph,
+                    StyleId = "NativeSubscriptParagraphStyle",
+                    CustomStyle = true
+                });
+
+                WordParagraph paragraph = document.AddParagraph();
+                paragraph.AddText("Before ");
+                paragraph.AddText("StyledSuper").SetCharacterStyleId("NativeSuperscriptCharacterStyle");
+                paragraph.AddText(" After");
+
+                WordParagraph styledParagraph = document.AddParagraph("StyledSub");
+                styledParagraph.SetStyleId("NativeSubscriptParagraphStyle");
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false,
+                    FontFamily = "Helvetica"
+                });
+            }
+
+            byte[] bytes = File.ReadAllBytes(pdfPath);
+            string content = ReadPdfPageContent(bytes);
+            using (PdfPigDocument pdf = PdfPigDocument.Open(bytes)) {
+                string pageText = string.Concat(pdf.GetPages().Select(page => page.Text));
+
+                Assert.Equal(1, CountOccurrences(pageText, "StyledSuper"));
+                Assert.Equal(1, CountOccurrences(pageText, "StyledSub"));
+            }
+
+            Assert.Matches(@"7\s+Ts", content);
+            Assert.Matches(@"-3\.6\s+Ts", content);
+        }
+
+        [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Maps_Character_Style_Run_Properties_In_Table_Cells() {
             string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellCharacterStyleRun.docx");
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellCharacterStyleRun.pdf");

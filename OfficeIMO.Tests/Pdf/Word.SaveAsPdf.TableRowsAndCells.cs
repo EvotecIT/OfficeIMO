@@ -129,6 +129,51 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Maps_Table_Style_Baseline_Run_Properties() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleBaselineRun.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleBaselineRun.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            const string styleId = "NativeBaselineTableStyle";
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(new Style(
+                new StyleName { Val = "Native Baseline Table Style" },
+                new StyleRunProperties(
+                    new FontSize { Val = "40" },
+                    new VerticalTextAlignment { Val = VerticalPositionValues.Subscript }))
+            {
+                Type = StyleValues.Table,
+                StyleId = styleId,
+                CustomStyle = true
+            });
+
+            WordTable table = document.AddTable(1, 1);
+            table.LayoutType = TableLayoutValues.Fixed;
+            table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
+            table.Rows[0].Cells[0].Width = 3600;
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "TableStyledSub";
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = new OfficeIMO.Pdf.PageSize(360, 220),
+                Margins = OfficeIMO.Pdf.PageMargins.Uniform(40),
+                FontFamily = "Helvetica"
+            });
+        }
+
+        byte[] bytes = File.ReadAllBytes(pdfPath);
+        string content = ReadPdfPageContent(bytes);
+        using (PdfPigDocument pdf = PdfPigDocument.Open(bytes)) {
+            string pageText = string.Concat(pdf.GetPages().Select(page => page.Text));
+
+            Assert.Equal(1, CountOccurrences(pageText, "TableStyledSub"));
+        }
+
+        Assert.Matches(@"-3\.6\s+Ts", content);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Renders_Table_NonUniform_Row_Heights() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableNonUniformRowHeights.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableNonUniformRowHeights.pdf");

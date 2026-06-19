@@ -13,6 +13,7 @@ namespace OfficeIMO.Word.Pdf {
             bool? Strike,
             bool? Hidden,
             bool? AllCaps,
+            W.VerticalPositionValues? Baseline,
             string? ColorHex,
             W.HighlightColorValues? Highlight,
             double? LineHeight,
@@ -31,7 +32,7 @@ namespace OfficeIMO.Word.Pdf {
             bool? ContextualSpacing,
             string? ShadingFillColorHex,
             NativeParagraphBorders Borders) {
-            public static NativeParagraphStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, NativeParagraphBorders.Empty);
+            public static NativeParagraphStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, NativeParagraphBorders.Empty);
         }
 
         private readonly record struct NativeParagraphBorderSide(W.BorderValues? Style, string? ColorHex, uint? Size, uint? Space) {
@@ -55,9 +56,10 @@ namespace OfficeIMO.Word.Pdf {
             bool? Strike,
             bool? Hidden,
             bool? AllCaps,
+            W.VerticalPositionValues? Baseline,
             string? ColorHex,
             W.HighlightColorValues? Highlight) {
-            public static NativeCharacterStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null, null, null);
+            public static NativeCharacterStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null, null, null, null);
         }
 
         private static NativeParagraphStyleDefaults GetNativeParagraphStyleDefaults(WordParagraph paragraph) {
@@ -74,6 +76,7 @@ namespace OfficeIMO.Word.Pdf {
             bool? strike = null;
             bool? hidden = null;
             bool? allCaps = null;
+            W.VerticalPositionValues? baseline = null;
             string? colorHex = null;
             W.HighlightColorValues? highlight = null;
             double? lineHeight = null;
@@ -103,6 +106,7 @@ namespace OfficeIMO.Word.Pdf {
                 strike = ReadNativeOnOff(runProperties?.GetFirstChild<W.Strike>()) ?? ReadNativeOnOff(runProperties?.GetFirstChild<W.DoubleStrike>()) ?? strike;
                 hidden = ReadNativeOnOff(runProperties?.GetFirstChild<W.Vanish>()) ?? hidden;
                 allCaps = ReadNativeOnOff(runProperties?.GetFirstChild<W.Caps>()) ?? ReadNativeOnOff(runProperties?.GetFirstChild<W.SmallCaps>()) ?? allCaps;
+                baseline = runProperties?.GetFirstChild<W.VerticalTextAlignment>()?.Val?.Value ?? baseline;
                 colorHex = runProperties?.GetFirstChild<W.Color>()?.Val?.Value ?? colorHex;
                 highlight = runProperties?.GetFirstChild<W.Highlight>()?.Val?.Value ?? highlight;
 
@@ -160,6 +164,7 @@ namespace OfficeIMO.Word.Pdf {
                 strike,
                 hidden,
                 allCaps,
+                baseline,
                 colorHex,
                 highlight,
                 lineHeight,
@@ -226,6 +231,7 @@ namespace OfficeIMO.Word.Pdf {
             bool? strike = null;
             bool? hidden = null;
             bool? allCaps = null;
+            W.VerticalPositionValues? baseline = null;
             string? colorHex = null;
             W.HighlightColorValues? highlight = null;
 
@@ -239,6 +245,7 @@ namespace OfficeIMO.Word.Pdf {
                 strike = ReadNativeOnOff(styleRunProperties?.GetFirstChild<W.Strike>()) ?? ReadNativeOnOff(styleRunProperties?.GetFirstChild<W.DoubleStrike>()) ?? strike;
                 hidden = ReadNativeOnOff(styleRunProperties?.GetFirstChild<W.Vanish>()) ?? hidden;
                 allCaps = ReadNativeOnOff(styleRunProperties?.GetFirstChild<W.Caps>()) ?? ReadNativeOnOff(styleRunProperties?.GetFirstChild<W.SmallCaps>()) ?? allCaps;
+                baseline = styleRunProperties?.GetFirstChild<W.VerticalTextAlignment>()?.Val?.Value ?? baseline;
                 colorHex = styleRunProperties?.GetFirstChild<W.Color>()?.Val?.Value ?? colorHex;
                 highlight = styleRunProperties?.GetFirstChild<W.Highlight>()?.Val?.Value ?? highlight;
             }
@@ -252,6 +259,7 @@ namespace OfficeIMO.Word.Pdf {
                 strike,
                 hidden,
                 allCaps,
+                baseline,
                 colorHex,
                 highlight);
         }

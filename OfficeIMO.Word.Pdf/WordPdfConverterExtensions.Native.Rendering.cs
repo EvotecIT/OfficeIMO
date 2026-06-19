@@ -877,6 +877,7 @@ namespace OfficeIMO.Word.Pdf {
             bool Italic,
             bool Strike,
             bool AllCaps,
+            PdfCore.PdfTextBaseline Baseline,
             double? FontSize,
             PdfCore.PdfStandardFont? Font,
             PdfCore.PdfColor? Color,
@@ -905,7 +906,7 @@ namespace OfficeIMO.Word.Pdf {
             builder.Italic(style.Italic);
             builder.Underline(style.Underline);
             builder.Strike(style.Strike);
-            builder.Baseline(GetNativeTextBaseline(paragraph));
+            builder.Baseline(style.Baseline);
             if (style.FontSize.HasValue) {
                 builder.FontSize(style.FontSize.Value);
             }
@@ -947,6 +948,11 @@ namespace OfficeIMO.Word.Pdf {
                 styleDefaults.AllCaps ??
                 tableRunStyleDefaults.AllCaps ??
                 false;
+            PdfCore.PdfTextBaseline baseline = MapNativeTextBaseline(
+                runProperties?.GetFirstChild<W.VerticalTextAlignment>()?.Val?.Value ??
+                characterStyleDefaults.Baseline ??
+                styleDefaults.Baseline ??
+                tableRunStyleDefaults.Baseline);
             double? fontSize = paragraph.FontSize.HasValue && paragraph.FontSize.Value > 0
                 ? paragraph.FontSize.Value
                 : characterStyleDefaults.FontSize ?? styleDefaults.FontSize ?? tableRunStyleDefaults.FontSize;
@@ -959,8 +965,15 @@ namespace OfficeIMO.Word.Pdf {
                 ? directBackground
                 : MapNativeHighlight(characterStyleDefaults.Highlight) ?? MapNativeHighlight(styleDefaults.Highlight) ?? MapNativeHighlight(tableRunStyleDefaults.Highlight);
 
-            return new NativeResolvedTextStyle(bold, underline, italic, strike, allCaps, fontSize, font, color, background);
+            return new NativeResolvedTextStyle(bold, underline, italic, strike, allCaps, baseline, fontSize, font, color, background);
         }
+
+        private static PdfCore.PdfTextBaseline MapNativeTextBaseline(W.VerticalPositionValues? baseline) =>
+            baseline == W.VerticalPositionValues.Superscript
+                ? PdfCore.PdfTextBaseline.Superscript
+                : baseline == W.VerticalPositionValues.Subscript
+                    ? PdfCore.PdfTextBaseline.Subscript
+                    : PdfCore.PdfTextBaseline.Normal;
 
         private static W.RunProperties? GetNativeRunProperties(WordParagraph paragraph) =>
             paragraph.IsHyperLink ? paragraph.Hyperlink?._runProperties : paragraph._runProperties;
