@@ -594,7 +594,9 @@ namespace OfficeIMO.Word.Pdf {
                 style.PreserveWidth = true;
             }
 
-            double? leftIndent = GetNativeTableLeftIndent(properties?.TableIndentation) ?? tableStyleDefaults.LeftIndent;
+            double? leftIndent = GetNativeTableHorizontalPositionIndent(properties?.TablePositionProperties) ??
+                GetNativeTableLeftIndent(properties?.TableIndentation) ??
+                tableStyleDefaults.LeftIndent;
             if (leftIndent.HasValue) {
                 style.LeftIndent = leftIndent.Value;
             }
@@ -709,6 +711,22 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             return ConvertNativeTwipsToPoints(indentation.Width.Value);
+        }
+
+        private static double? GetNativeTableHorizontalPositionIndent(W.TablePositionProperties? position) {
+            if (position?.TablePositionX == null || position.TablePositionXAlignment?.Value != null) {
+                return null;
+            }
+
+            W.HorizontalAnchorValues? anchor = position.HorizontalAnchor?.Value;
+            if (anchor.HasValue &&
+                anchor.Value != W.HorizontalAnchorValues.Margin &&
+                anchor.Value != W.HorizontalAnchorValues.Text) {
+                return null;
+            }
+
+            double? indent = ConvertNativeTwipsToPoints(position.TablePositionX.Value);
+            return indent.HasValue && indent.Value >= 0D ? indent.Value : null;
         }
 
         private static double? GetNativeTableCellSpacing(W.TableCellSpacing? spacing) {
@@ -1131,7 +1149,26 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static W.TableRowAlignmentValues? ResolveNativeTableAlignment(WordTable table, NativeTableStyleDefaults tableStyleDefaults) =>
-            table.Alignment ?? tableStyleDefaults.Alignment;
+            ResolveNativeTablePositionAlignment(table._tableProperties?.TablePositionProperties) ??
+            table.Alignment ??
+            tableStyleDefaults.Alignment;
+
+        private static W.TableRowAlignmentValues? ResolveNativeTablePositionAlignment(W.TablePositionProperties? position) {
+            W.HorizontalAlignmentValues? alignment = position?.TablePositionXAlignment?.Value;
+            if (alignment == W.HorizontalAlignmentValues.Center) {
+                return W.TableRowAlignmentValues.Center;
+            }
+
+            if (alignment == W.HorizontalAlignmentValues.Right || alignment == W.HorizontalAlignmentValues.Outside) {
+                return W.TableRowAlignmentValues.Right;
+            }
+
+            if (alignment == W.HorizontalAlignmentValues.Left || alignment == W.HorizontalAlignmentValues.Inside) {
+                return W.TableRowAlignmentValues.Left;
+            }
+
+            return null;
+        }
 
         private static List<PdfCore.PdfColumnAlign>? CreateNativeTableHorizontalAlignments(TableLayout layout) {
             int columnCount = GetNativeTableColumnCount(layout);

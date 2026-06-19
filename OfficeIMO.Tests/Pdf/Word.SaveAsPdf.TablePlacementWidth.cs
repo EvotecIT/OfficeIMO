@@ -99,6 +99,75 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Renders_Table_Position_Horizontal_Alignment() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTablePositionHorizontalAlignment.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTablePositionHorizontalAlignment.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            WordTable defaultTable = document.AddTable(1, 2);
+            ConfigurePlacementTable(defaultTable, "PosLeft", TableRowAlignmentValues.Left);
+
+            document.AddParagraph("between positioned alignment tables");
+
+            WordTable positionedTable = document.AddTable(1, 2);
+            ConfigurePlacementTable(positionedTable, "PosCenter", TableRowAlignmentValues.Left);
+            positionedTable.Alignment = null;
+            positionedTable.Position.HorizontalAnchor = HorizontalAnchorValues.Margin;
+            positionedTable.Position.TablePositionXAlignment = HorizontalAlignmentValues.Center;
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = new PdfCore.PageSize(400, 320),
+                Margins = PdfCore.PageMargins.Uniform(40)
+            });
+        }
+
+        byte[] bytes = File.ReadAllBytes(pdfPath);
+        using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
+        var words = pdf.GetPage(1).GetWords().ToList();
+        var left = Assert.Single(words, word => word.Text == "PosLeft");
+        var center = Assert.Single(words, word => word.Text == "PosCenter");
+
+        Assert.True(center.BoundingBox.Left > left.BoundingBox.Left + 70D,
+            $"Expected Word floating table horizontal alignment to center the native table. Left x: {left.BoundingBox.Left:0.##}; centered x: {center.BoundingBox.Left:0.##}.");
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Renders_Table_Position_X_Offset() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTablePositionXOffset.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTablePositionXOffset.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            WordTable defaultTable = document.AddTable(1, 1);
+            ConfigureMarginTable(defaultTable, "PositionDefault");
+
+            document.AddParagraph("between positioned offset tables");
+
+            WordTable positionedTable = document.AddTable(1, 1);
+            ConfigureMarginTable(positionedTable, "PositionOffset");
+            positionedTable.Position.HorizontalAnchor = HorizontalAnchorValues.Margin;
+            positionedTable.Position.TablePositionX = 720;
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = new PdfCore.PageSize(400, 280),
+                Margins = PdfCore.PageMargins.Uniform(40)
+            });
+        }
+
+        byte[] bytes = File.ReadAllBytes(pdfPath);
+        using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
+        var words = pdf.GetPage(1).GetWords().ToList();
+        var defaultWord = Assert.Single(words, word => word.Text == "PositionDefault");
+        var positionedWord = Assert.Single(words, word => word.Text == "PositionOffset");
+
+        Assert.True(positionedWord.BoundingBox.Left > defaultWord.BoundingBox.Left + 30D,
+            $"Expected Word floating table X offset to move the native table right. Default x: {defaultWord.BoundingBox.Left:0.##}; positioned x: {positionedWord.BoundingBox.Left:0.##}.");
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Renders_Table_Preferred_Dxa_Width() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTablePreferredWidth.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTablePreferredWidth.pdf");
