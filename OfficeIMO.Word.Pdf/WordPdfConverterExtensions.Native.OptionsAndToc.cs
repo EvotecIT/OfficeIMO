@@ -511,11 +511,9 @@ namespace OfficeIMO.Word.Pdf {
 
             double fontSize = paragraph.FontSize.HasValue && paragraph.FontSize.Value > 0 ? paragraph.FontSize.Value : 11D;
             double height = EstimateNativeLineCount(text, contentWidth, fontSize) * fontSize * NativeDefaultParagraphLineHeight + NativeDefaultParagraphSpacingAfter;
-            if (!string.IsNullOrWhiteSpace(paragraph.ShadingFillColorHex) ||
-                HasNativeBorder(paragraph.Borders.TopStyle) ||
-                HasNativeBorder(paragraph.Borders.BottomStyle) ||
-                HasNativeBorder(paragraph.Borders.LeftStyle) ||
-                HasNativeBorder(paragraph.Borders.RightStyle)) {
+            NativeParagraphBorders borders = GetNativeEffectiveParagraphBorders(paragraph);
+            if (!string.IsNullOrWhiteSpace(GetNativeEffectiveParagraphShadingFill(paragraph)) ||
+                HasNativeParagraphBorder(borders)) {
                 height += 8D;
             }
 

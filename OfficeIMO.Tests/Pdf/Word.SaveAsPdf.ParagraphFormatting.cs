@@ -293,6 +293,54 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Renders_Paragraph_Style_Shading_And_Uniform_Borders() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeParagraphStylePanel.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeParagraphStylePanel.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                const string styleId = "NativeStylePanel";
+                Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                styles.Append(new Style(
+                    new StyleName { Val = "Native Style Panel" },
+                    new BasedOn { Val = "Normal" },
+                    new StyleParagraphProperties(
+                        new Shading { Val = ShadingPatternValues.Clear, Fill = "E2F0D9" },
+                        new ParagraphBorders(
+                            new TopBorder { Val = BorderValues.Single, Color = "385723", Size = 8U },
+                            new LeftBorder { Val = BorderValues.Single, Color = "385723", Size = 8U },
+                            new BottomBorder { Val = BorderValues.Single, Color = "385723", Size = 8U },
+                            new RightBorder { Val = BorderValues.Single, Color = "385723", Size = 8U })))
+                {
+                    Type = StyleValues.Paragraph,
+                    StyleId = styleId,
+                    CustomStyle = true
+                });
+
+                WordParagraph paragraph = document.AddParagraph("Native styled panel paragraph");
+                paragraph.SetStyleId(styleId);
+                document.AddParagraph("After styled panel");
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false
+                });
+            }
+
+            Assert.True(File.Exists(pdfPath));
+            byte[] bytes = File.ReadAllBytes(pdfPath);
+            using (PdfPigDocument pdf = PdfPigDocument.Open(bytes)) {
+                string text = string.Concat(pdf.GetPages().Select(p => p.Text));
+                Assert.Contains("Native styled panel paragraph", text);
+                Assert.Contains("After styled panel", text);
+            }
+
+            string raw = Encoding.ASCII.GetString(bytes);
+            Assert.Contains("0.886 0.941 0.851 rg", raw);
+            Assert.Contains("0.22 0.341 0.137 RG", raw);
+            Assert.Contains("1 w", raw);
+        }
+
+        [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Joins_Adjacent_Borderless_Paragraph_Shading() {
             string docPath = Path.Combine(_directoryWithFiles, "PdfNativeAdjacentParagraphShading.docx");
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeAdjacentParagraphShading.pdf");

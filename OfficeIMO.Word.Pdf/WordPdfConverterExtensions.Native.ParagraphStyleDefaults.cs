@@ -26,8 +26,22 @@ namespace OfficeIMO.Word.Pdf {
             bool? KeepTogether,
             bool? KeepWithNext,
             bool? WidowControl,
-            bool? ContextualSpacing) {
-            public static NativeParagraphStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+            bool? ContextualSpacing,
+            string? ShadingFillColorHex,
+            NativeParagraphBorders Borders) {
+            public static NativeParagraphStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, NativeParagraphBorders.Empty);
+        }
+
+        private readonly record struct NativeParagraphBorderSide(W.BorderValues? Style, string? ColorHex, uint? Size, uint? Space) {
+            public bool IsEmpty => Style == null && string.IsNullOrWhiteSpace(ColorHex) && Size == null && Space == null;
+        }
+
+        private readonly record struct NativeParagraphBorders(
+            NativeParagraphBorderSide Top,
+            NativeParagraphBorderSide Right,
+            NativeParagraphBorderSide Bottom,
+            NativeParagraphBorderSide Left) {
+            public static NativeParagraphBorders Empty { get; } = new(default, default, default, default);
         }
 
         private static NativeParagraphStyleDefaults GetNativeParagraphStyleDefaults(WordParagraph paragraph) {
@@ -58,6 +72,8 @@ namespace OfficeIMO.Word.Pdf {
             bool? keepWithNext = null;
             bool? widowControl = null;
             bool? contextualSpacing = null;
+            string? shadingFillColorHex = null;
+            NativeParagraphBorders borders = NativeParagraphBorders.Empty;
 
             foreach (W.Style style in styleChain) {
                 W.StyleRunProperties? runProperties = style.GetFirstChild<W.StyleRunProperties>();
@@ -110,6 +126,8 @@ namespace OfficeIMO.Word.Pdf {
                     keepWithNext = ReadNativeOnOff(paragraphProperties.GetFirstChild<W.KeepNext>()) ?? keepWithNext;
                     widowControl = ReadNativeOnOff(paragraphProperties.GetFirstChild<W.WidowControl>()) ?? widowControl;
                     contextualSpacing = ReadNativeOnOff(paragraphProperties.GetFirstChild<W.ContextualSpacing>()) ?? contextualSpacing;
+                    shadingFillColorHex = NormalizeNativeShadingFill(paragraphProperties.GetFirstChild<W.Shading>()?.Fill?.Value) ?? shadingFillColorHex;
+                    borders = MergeNativeParagraphBorders(borders, paragraphProperties.GetFirstChild<W.ParagraphBorders>());
                 }
             }
 
@@ -135,7 +153,9 @@ namespace OfficeIMO.Word.Pdf {
                 keepTogether,
                 keepWithNext,
                 widowControl,
-                contextualSpacing);
+                contextualSpacing,
+                shadingFillColorHex,
+                borders);
         }
 
         private static IReadOnlyList<W.Style> GetNativeParagraphStyleChain(WordDocument? document, string? styleId) {
@@ -211,6 +231,31 @@ namespace OfficeIMO.Word.Pdf {
                 ? style.Type.Value.ToString()
                 : style.Type.InnerText;
             return string.Equals(type, "paragraph", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static NativeParagraphBorders MergeNativeParagraphBorders(NativeParagraphBorders current, W.ParagraphBorders? borders) {
+            if (borders == null) {
+                return current;
+            }
+
+            return current with {
+                Top = ReadNativeParagraphBorderSide(borders.TopBorder) ?? current.Top,
+                Right = ReadNativeParagraphBorderSide(borders.RightBorder) ?? current.Right,
+                Bottom = ReadNativeParagraphBorderSide(borders.BottomBorder) ?? current.Bottom,
+                Left = ReadNativeParagraphBorderSide(borders.LeftBorder) ?? current.Left
+            };
+        }
+
+        private static NativeParagraphBorderSide? ReadNativeParagraphBorderSide(W.BorderType? border) {
+            if (border == null) {
+                return null;
+            }
+
+            return new NativeParagraphBorderSide(
+                border.Val?.Value,
+                NormalizeNativeBorderColor(border.Color?.Value),
+                border.Size?.Value,
+                border.Space?.Value);
         }
 
         private static double? GetNativeStyleParagraphLineHeight(W.SpacingBetweenLines spacing) {
