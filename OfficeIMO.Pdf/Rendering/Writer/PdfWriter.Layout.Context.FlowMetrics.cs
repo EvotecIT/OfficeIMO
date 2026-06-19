@@ -286,6 +286,10 @@ internal static partial class PdfWriter {
                 return MeasurePanelBlockHeight(panel, frameWidth, fontSize, firstVisualOnly: false);
             }
 
+            if (block is RowBlock row) {
+                return MeasureRowBlockHeight(row, frameX, frameWidth, fontSize, firstVisualOnly: false);
+            }
+
             return MeasureNextBlockFirstVisualHeight(block, frameX, frameWidth, fontSize);
         }
 
@@ -407,6 +411,10 @@ internal static partial class PdfWriter {
                 return ResolvePanelStyle(panel, currentOpts).KeepWithNext;
             }
 
+            if (block is RowBlock row) {
+                return (row.StyleSnapshot ?? currentOpts.DefaultRowStyleSnapshot)?.KeepWithNext == true;
+            }
+
             return false;
         }
 
@@ -492,31 +500,7 @@ internal static partial class PdfWriter {
             }
 
             if (block is RowBlock row) {
-                int columns = row.Columns.Count;
-                if (columns == 0) {
-                    return 0D;
-                }
-
-                PdfRowStyle? rowStyle = row.StyleSnapshot ?? currentOpts.DefaultRowStyleSnapshot;
-                    double rowGap = row.GapOverride ?? rowStyle?.Gap ?? PdfRowStyle.DefaultGap;
-                double totalGap = rowGap * Math.Max(0, columns - 1);
-                if (totalGap >= frameWidth) {
-                    return rowStyle?.SpacingBefore ?? 0D;
-                }
-
-                double columnAreaWidth = frameWidth - totalGap;
-                double tallestFirstVisual = 0D;
-                for (int columnIndex = 0; columnIndex < columns; columnIndex++) {
-                    RowColumn column = row.Columns[columnIndex];
-                    if (column.Blocks.Count == 0) {
-                        continue;
-                    }
-
-                    double columnWidth = Math.Max(0D, columnAreaWidth * (column.WidthPercent / 100D));
-                    tallestFirstVisual = Math.Max(tallestFirstVisual, MeasureNextBlockFirstVisualHeight(column.Blocks[0], frameX, columnWidth, fontSize));
-                }
-
-                return (rowStyle?.SpacingBefore ?? 0D) + tallestFirstVisual;
+                return MeasureRowBlockHeight(row, frameX, frameWidth, fontSize, firstVisualOnly: true);
             }
 
             return 0D;
@@ -552,6 +536,46 @@ internal static partial class PdfWriter {
             double textHeight = MeasureRichLinesHeight(wrap.LineHeights, lineCount, leading);
             double spacingAfter = firstVisualOnly ? 0D : panelStyle.SpacingAfter;
             return spacingBefore + panelStyle.PaddingY + textHeight + panelStyle.PaddingY + spacingAfter;
+        }
+
+        private double MeasureRowBlockHeight(RowBlock row, double frameX, double frameWidth, double fontSize, bool firstVisualOnly) {
+            int columns = row.Columns.Count;
+            PdfRowStyle? rowStyle = row.StyleSnapshot ?? currentOpts.DefaultRowStyleSnapshot;
+            double spacingBefore = ResolveTopLevelSpacingBefore(rowStyle?.SpacingBefore ?? 0D);
+            if (columns == 0) {
+                double spacingAfter = firstVisualOnly ? 0D : rowStyle?.SpacingAfter ?? 0D;
+                return spacingBefore + spacingAfter;
+            }
+
+            double rowGap = row.GapOverride ?? rowStyle?.Gap ?? PdfRowStyle.DefaultGap;
+            double totalGap = rowGap * Math.Max(0, columns - 1);
+            if (totalGap >= frameWidth) {
+                return spacingBefore;
+            }
+
+            double columnAreaWidth = frameWidth - totalGap;
+            var columnWidths = new double[columns];
+            double tallestFirstVisual = 0D;
+            for (int columnIndex = 0; columnIndex < columns; columnIndex++) {
+                RowColumn column = row.Columns[columnIndex];
+                double columnWidth = Math.Max(0D, columnAreaWidth * (column.WidthPercent / 100D));
+                columnWidths[columnIndex] = columnWidth;
+                if (firstVisualOnly && column.Blocks.Count > 0) {
+                    tallestFirstVisual = Math.Max(tallestFirstVisual, MeasureNextBlockFirstVisualHeight(column.Blocks[0], frameX, columnWidth, fontSize));
+                }
+            }
+
+            if (firstVisualOnly) {
+                return spacingBefore + tallestFirstVisual;
+            }
+
+            var columnItems = BuildRowColumnItems(row, columnWidths);
+            double contentHeight = 0D;
+            foreach (var items in columnItems) {
+                contentHeight = Math.Max(contentHeight, MeasureRowKeepTogetherHeight(items));
+            }
+
+            return spacingBefore + contentHeight + (rowStyle?.SpacingAfter ?? 0D);
         }
 
         private double MeasureTableBlockHeight(TableBlock table, double frameWidth, double fontSize, bool firstVisualOnly) {

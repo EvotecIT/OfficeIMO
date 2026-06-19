@@ -580,5 +580,53 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("FollowingRowBody", pdf.GetPage(2).Text);
     }
 
+    [Fact]
+    public void Row_KeepWithNextMeasuresFollowingHeadingChain() {
+        var rowStyle = new PdfRowStyle {
+            KeepWithNext = true
+        };
+        var options = new PdfOptions {
+            PageWidth = 260,
+            PageHeight = 170,
+            MarginLeft = 30,
+            MarginRight = 30,
+            MarginTop = 30,
+            MarginBottom = 30,
+            DefaultFont = PdfStandardFont.Helvetica,
+            DefaultFontSize = 10
+        };
+
+        byte[] bytes = PdfDocument.Create(options)
+            .Compose(document =>
+                document.Page(page =>
+                    page.Content(content => {
+                        content.Column(column =>
+                            column.Item().Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
+                                SpacingAfter = 56
+                            }));
+                        content.Row(row => {
+                            row.Style(rowStyle);
+                            row.Column(100, column =>
+                                column.Paragraph(p => p.Text("RowChainKeepColumn")));
+                        });
+                        content.Column(column => {
+                            column.Item().H3("FollowingRowHeading");
+                            column.Item().Paragraph(p => p.Text("FollowingRowChainBody"));
+                        });
+                    })))
+            .ToBytes();
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.Contains("IntroMarker", pdf.GetPage(1).Text);
+        Assert.DoesNotContain("RowChainKeepColumn", pdf.GetPage(1).Text);
+        Assert.DoesNotContain("FollowingRowHeading", pdf.GetPage(1).Text);
+        Assert.DoesNotContain("FollowingRowChainBody", pdf.GetPage(1).Text);
+        Assert.Contains("RowChainKeepColumn", pdf.GetPage(2).Text);
+        Assert.Contains("FollowingRowHeading", pdf.GetPage(2).Text);
+        Assert.Contains("FollowingRowChainBody", pdf.GetPage(2).Text);
+    }
+
 
 }
