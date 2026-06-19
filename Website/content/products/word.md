@@ -92,7 +92,7 @@ OfficeIMO.Word runs on Windows, Linux, and macOS. It produces standard `.docx` f
 |-------|-------------|
 | [Word documentation](/docs/word/) | Start with the package overview and document structure. |
 | [Tables guide](/docs/word/tables/) | Build styled tables, merged cells, and richer layouts. |
-| [Market readiness](/docs/word/market-readiness/) | See the non-PDF roadmap for templates, review workflows, conversion proof, and showcase work. |
+| [Market readiness](/docs/word/market-readiness/) | See the current non-PDF readiness snapshot for templates, review workflows, conversion proof, and showcase work. |
 | [Word to HTML](/docs/converters/word-html/) | Convert generated documents to and from HTML. |
 | [PSWriteOffice Word cmdlets](/docs/pswriteoffice/word/) | Automate Word output from PowerShell scripts. |
 

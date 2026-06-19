@@ -1,12 +1,12 @@
 ---
 title: Word Market Readiness
-description: Non-PDF roadmap for making OfficeIMO.Word stronger in templates, review workflows, HTML/Markdown conversion, and real-document proof.
+description: Current non-PDF readiness snapshot for OfficeIMO.Word templates, review workflows, HTML/Markdown conversion, and real-document proof.
 order: 60
 ---
 
 # Word Market Readiness
 
-`OfficeIMO.Word` is strongest when it is treated as a practical document automation engine, not just a wrapper over raw Open XML. The current non-PDF roadmap focuses on four workflows.
+`OfficeIMO.Word` is strongest when it is treated as a practical document automation engine, not just a wrapper over raw Open XML. The current non-PDF readiness story focuses on four workflows that can be proven with source inputs, generated `.docx` files, diagnostics, and validation output.
 
 ## Market Position
 
@@ -15,7 +15,7 @@ OfficeIMO.Word should position itself as the COM-free, service-safe Word automat
 | Question | Current answer |
 |----------|----------------|
 | What we have | A broad Word object model, template/mail-merge primitives, comments, revisions, structured comparison, HTML/Markdown converter packages, examples, tests, and cross-platform `.docx` generation. |
-| What we do not have yet | Workflow-level proof galleries, rich review reports, full run-level diffing, broader conversion fixture coverage, and enough public artifacts for fast evaluator trust. |
+| What we do not have yet | Rich review reports, full run-level diffing, broader conversion fixture coverage, and a larger public artifact gallery for fast evaluator trust. |
 | How to position it | Open-source, MIT-licensed, COM-free document automation for reports, contracts, policies, invoices, evidence packs, and web-content ingestion. |
 | What makes it best-in-market | Not a larger feature checklist, but dependable workflows: input template, data, generated document, diagnostics, validation status, and known limitations for every major scenario. |
 
@@ -23,7 +23,7 @@ OfficeIMO.Word should position itself as the COM-free, service-safe Word automat
 
 The engine already has merge fields, repeated table-row regions, grouped rows, repeated blocks, content-control conditionals, template inspection, batch output, and content-control form-map fill/extraction.
 
-The next product step is to make those capabilities easy to evaluate:
+The next product step is to keep making those capabilities easy to evaluate:
 
 - one clear status-report or contract-template walkthrough
 - workflow-level template guides
@@ -60,11 +60,10 @@ Current implementation slice:
 - conversion diagnostics
 - Open XML validation status
 
-Use the support matrix and roadmap for detailed converter coverage:
+Use the support matrix and HTML roadmap for detailed converter coverage:
 
 - `Docs/officeimo.word-html-support-matrix.md`
 - `Docs/officeimo.word-html-roadmap.md`
-- `Docs/officeimo.word.market-readiness-roadmap.md`
 
 Current implementation slice:
 

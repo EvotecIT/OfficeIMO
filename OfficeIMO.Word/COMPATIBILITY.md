@@ -43,7 +43,7 @@ Word-to-PDF fidelity is tracked separately in `OfficeIMO.Word.Pdf` / `OfficeIMO.
 3. HTML and Markdown conversion fidelity: keep expanding the real-world conversion corpus, diagnostics, support matrix, and generated artifact gallery for Word/HTML/Markdown workflows.
 4. Real-document docs and showcase: lead with concrete documents, source inputs, validation status, and known limitations instead of only listing object-model features.
 
-Use `Docs/officeimo.word.market-readiness-roadmap.md` as the owner document for those four workstreams.
+Keep this section aligned with the generated proof-gallery example and the public Word market-readiness docs as implementation slices land.
 
 ## Highest-Priority Gaps
 
