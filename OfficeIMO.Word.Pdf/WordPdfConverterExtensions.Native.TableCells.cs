@@ -285,7 +285,9 @@ namespace OfficeIMO.Word.Pdf {
             var runs = new List<PdfCore.TextRun>();
             var paragraphs = new List<PdfCore.PdfTableCellParagraph>();
             double? pendingSpacingAfter = null;
-            foreach (WordParagraph paragraph in GetNativeCellParagraphs(cell)) {
+            List<WordParagraph> cellParagraphs = GetNativeCellParagraphs(cell).ToList();
+            for (int i = 0; i < cellParagraphs.Count; i++) {
+                WordParagraph paragraph = cellParagraphs[i];
                 List<PdfCore.TextRun> paragraphRuns = CreateNativeCellParagraphRuns(paragraph, footnoteNumbersById, tableStyleDefaults);
                 if (paragraphRuns.Count == 0) {
                     continue;
@@ -302,6 +304,10 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 double spacingAfter = GetNativeCellParagraphSpacingAfter(paragraph, nativeDefaults, tableStyleDefaults);
+                if (ShouldSuppressNativeContextualSpacingAfter(paragraph, GetNextNativeRenderableCellParagraph(cellParagraphs, i, footnoteNumbersById, tableStyleDefaults))) {
+                    spacingAfter = 0D;
+                }
+
                 paragraphs.Add(new PdfCore.PdfTableCellParagraph(
                     paragraphRuns,
                     spacingAfter,
@@ -311,6 +317,17 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             return new NativeCellText(runs, paragraphs);
+        }
+
+        private static WordParagraph? GetNextNativeRenderableCellParagraph(IReadOnlyList<WordParagraph> paragraphs, int index, Dictionary<long, int>? footnoteNumbersById, NativeTableStyleDefaults tableStyleDefaults) {
+            for (int nextIndex = index + 1; nextIndex < paragraphs.Count; nextIndex++) {
+                WordParagraph next = paragraphs[nextIndex];
+                if (CreateNativeCellParagraphRuns(next, footnoteNumbersById, tableStyleDefaults).Count > 0) {
+                    return next;
+                }
+            }
+
+            return null;
         }
 
         private static double GetNativeCellParagraphSpacingBefore(WordParagraph paragraph, NativeDocumentDefaults nativeDefaults, NativeTableStyleDefaults tableStyleDefaults) {

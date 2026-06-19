@@ -446,6 +446,14 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Honors_Table_Cell_Paragraph_Contextual_Spacing() {
+        double spacedGap = RenderNativeTableCellContextualParagraphSpacingGap("PdfNativeTableCellContextualOff", contextualSpacing: false);
+        double contextualGap = RenderNativeTableCellContextualParagraphSpacingGap("PdfNativeTableCellContextualOn", contextualSpacing: true);
+
+        Assert.True(spacedGap > contextualGap + 16D, $"Expected Word contextual spacing to suppress spacing between same-style table cell paragraphs. Spaced gap: {spacedGap:0.##}; contextual gap: {contextualGap:0.##}.");
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Does_Not_Invent_Table_Cell_Paragraph_Spacing_When_Undeclared() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellNoImplicitParagraphSpacing.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellNoImplicitParagraphSpacing.pdf");
@@ -521,6 +529,55 @@ public partial class Word {
             WordParagraph second = cell.AddParagraph(secondMarker);
             second.LineSpacingBeforePoints = secondSpacingBefore;
             second.LineSpacingAfterPoints = 0;
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = new PdfCore.PageSize(360, 260),
+                Margins = PdfCore.PageMargins.Uniform(40),
+                FontFamily = "Helvetica"
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        var words = pdf.GetPage(1).GetWords().ToList();
+        double firstY = Assert.Single(words, word => word.Text == firstMarker).BoundingBox.Bottom;
+        double secondY = Assert.Single(words, word => word.Text == secondMarker).BoundingBox.Bottom;
+        return firstY - secondY;
+    }
+
+    private double RenderNativeTableCellContextualParagraphSpacingGap(string fileNamePrefix, bool contextualSpacing) {
+        const string firstMarker = "CellContextFirst";
+        const string secondMarker = "CellContextSecond";
+        string docPath = Path.Combine(_directoryWithFiles, fileNamePrefix + ".docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, fileNamePrefix + ".pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            const string styleId = "CellContextualSpacingStyle";
+            var styleParagraphProperties = new StyleParagraphProperties(
+                new SpacingBetweenLines { After = "600" });
+            if (contextualSpacing) {
+                styleParagraphProperties.Append(new ContextualSpacing());
+            }
+
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(new Style(
+                new StyleName { Val = "Cell Contextual Spacing Style" },
+                styleParagraphProperties)
+            {
+                Type = StyleValues.Paragraph,
+                StyleId = styleId,
+                CustomStyle = true
+            });
+
+            WordTable table = document.AddTable(1, 1);
+            table._tableProperties!.TableStyle?.Remove();
+            table.Rows[0].Cells[0].Width = 2880;
+            table.Rows[0].Cells[0].WidthType = TableWidthUnitValues.Dxa;
+            WordTableCell cell = table.Rows[0].Cells[0];
+            cell.Paragraphs[0].Text = firstMarker;
+            cell.Paragraphs[0].SetStyleId(styleId);
+            cell.AddParagraph(secondMarker).SetStyleId(styleId);
 
             document.Save();
             document.SaveAsPdf(pdfPath, new PdfSaveOptions {
