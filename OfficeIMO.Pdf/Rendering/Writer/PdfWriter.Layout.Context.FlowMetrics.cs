@@ -270,6 +270,22 @@ internal static partial class PdfWriter {
                 return style.SpacingBefore + style.Thickness + style.SpacingAfter;
             }
 
+            if (block is ImageBlock image) {
+                return MeasureImageBlockHeight(image, frameWidth);
+            }
+
+            if (block is ShapeBlock shape) {
+                return MeasureShapeBlockHeight(shape);
+            }
+
+            if (block is DrawingBlock drawing) {
+                return MeasureDrawingBlockHeight(drawing);
+            }
+
+            if (block is PanelParagraphBlock panel) {
+                return MeasurePanelBlockHeight(panel, frameWidth, fontSize, firstVisualOnly: false);
+            }
+
             return MeasureNextBlockFirstVisualHeight(block, frameX, frameWidth, fontSize);
         }
 
@@ -375,6 +391,22 @@ internal static partial class PdfWriter {
                 return ResolveHorizontalRuleStyle(rule, currentOpts).KeepWithNext;
             }
 
+            if (block is ImageBlock image) {
+                return ResolveImageStyle(image, currentOpts).KeepWithNext;
+            }
+
+            if (block is ShapeBlock shape) {
+                return ResolveDrawingStyle(shape, currentOpts).KeepWithNext;
+            }
+
+            if (block is DrawingBlock drawing) {
+                return ResolveDrawingStyle(drawing, currentOpts).KeepWithNext;
+            }
+
+            if (block is PanelParagraphBlock panel) {
+                return ResolvePanelStyle(panel, currentOpts).KeepWithNext;
+            }
+
             return false;
         }
 
@@ -419,15 +451,7 @@ internal static partial class PdfWriter {
             }
 
             if (block is PanelParagraphBlock panel) {
-                PanelStyle panelStyle = ResolvePanelStyle(panel, currentOpts);
-                double innerWidth = panelStyle.MaxWidth.HasValue ? Math.Min(frameWidth, panelStyle.MaxWidth.Value) : frameWidth;
-                ValidatePanelStyle(panelStyle, innerWidth);
-                double size = fontSize;
-                double leading = size * 1.4;
-                double textWidth = innerWidth - 2 * panelStyle.PaddingX;
-                var wrap = WrapRichRunsCore(panel.Runs, textWidth, size, ChooseNormal(currentOpts.DefaultFont), leading, null, DefaultParagraphTabStopWidth, currentOpts);
-                double firstLineHeight = wrap.LineHeights.Count == 0 ? 0D : wrap.LineHeights[0];
-                return panelStyle.SpacingBefore + panelStyle.PaddingY + firstLineHeight + panelStyle.PaddingY;
+                return MeasurePanelBlockHeight(panel, frameWidth, fontSize, firstVisualOnly: true);
             }
 
             if (block is TableBlock table) {
@@ -456,19 +480,15 @@ internal static partial class PdfWriter {
             }
 
             if (block is ImageBlock image) {
-                PdfImageStyle style = ResolveImageStyle(image, currentOpts);
-                var box = ResolveImageFlowBox(image, style, frameWidth, style.SpacingBefore, style.SpacingAfter);
-                return style.SpacingBefore + box.Height + style.SpacingAfter;
+                return MeasureImageBlockHeight(image, frameWidth);
             }
 
             if (block is ShapeBlock shape) {
-                PdfDrawingStyle style = ResolveDrawingStyle(shape, currentOpts);
-                return style.SpacingBefore + shape.Shape.Height + style.SpacingAfter;
+                return MeasureShapeBlockHeight(shape);
             }
 
             if (block is DrawingBlock drawing) {
-                PdfDrawingStyle style = ResolveDrawingStyle(drawing, currentOpts);
-                return style.SpacingBefore + drawing.Drawing.Height + style.SpacingAfter;
+                return MeasureDrawingBlockHeight(drawing);
             }
 
             if (block is RowBlock row) {
@@ -500,6 +520,38 @@ internal static partial class PdfWriter {
             }
 
             return 0D;
+        }
+
+        private double MeasureImageBlockHeight(ImageBlock image, double frameWidth) {
+            PdfImageStyle style = ResolveImageStyle(image, currentOpts);
+            double spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore);
+            var box = ResolveImageFlowBox(image, style, frameWidth, spacingBefore, style.SpacingAfter);
+            return spacingBefore + box.Height + style.SpacingAfter;
+        }
+
+        private double MeasureShapeBlockHeight(ShapeBlock shape) {
+            PdfDrawingStyle style = ResolveDrawingStyle(shape, currentOpts);
+            return style.SpacingBefore + shape.Shape.Height + style.SpacingAfter;
+        }
+
+        private double MeasureDrawingBlockHeight(DrawingBlock drawing) {
+            PdfDrawingStyle style = ResolveDrawingStyle(drawing, currentOpts);
+            return style.SpacingBefore + drawing.Drawing.Height + style.SpacingAfter;
+        }
+
+        private double MeasurePanelBlockHeight(PanelParagraphBlock panel, double frameWidth, double fontSize, bool firstVisualOnly) {
+            PanelStyle panelStyle = ResolvePanelStyle(panel, currentOpts);
+            double innerWidth = panelStyle.MaxWidth.HasValue ? Math.Min(frameWidth, panelStyle.MaxWidth.Value) : frameWidth;
+            ValidatePanelStyle(panelStyle, innerWidth);
+            double size = fontSize;
+            double leading = size * 1.4;
+            double textWidth = innerWidth - 2 * panelStyle.PaddingX;
+            var wrap = WrapRichRunsCore(panel.Runs, textWidth, size, ChooseNormal(currentOpts.DefaultFont), leading, null, DefaultParagraphTabStopWidth, currentOpts);
+            int lineCount = firstVisualOnly ? Math.Min(1, wrap.LineHeights.Count) : wrap.LineHeights.Count;
+            double spacingBefore = ResolveTopLevelSpacingBefore(panelStyle.SpacingBefore);
+            double textHeight = MeasureRichLinesHeight(wrap.LineHeights, lineCount, leading);
+            double spacingAfter = firstVisualOnly ? 0D : panelStyle.SpacingAfter;
+            return spacingBefore + panelStyle.PaddingY + textHeight + panelStyle.PaddingY + spacingAfter;
         }
 
         private double MeasureTableBlockHeight(TableBlock table, double frameWidth, double fontSize, bool firstVisualOnly) {

@@ -591,6 +591,44 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Fact]
+    public void PanelParagraph_KeepWithNextMeasuresFollowingHeadingChain() {
+        var options = new PdfOptions {
+            PageWidth = 260,
+            PageHeight = 170,
+            MarginLeft = 30,
+            MarginRight = 30,
+            MarginTop = 30,
+            MarginBottom = 30,
+            DefaultFont = PdfStandardFont.Helvetica,
+            DefaultFontSize = 10
+        };
+
+        byte[] bytes = PdfDocument.Create(options)
+            .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
+                SpacingAfter = 56
+            })
+            .PanelParagraph(p => p.Text("PanelChainKeepWithNext"), new PanelStyle {
+                KeepWithNext = true,
+                PaddingY = 5,
+                SpacingAfter = 0
+            })
+            .H3("FollowingPanelHeading")
+            .Paragraph(p => p.Text("FollowingPanelChainBody"))
+            .ToBytes();
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.Contains("IntroMarker", pdf.GetPage(1).Text);
+        Assert.DoesNotContain("PanelChainKeepWithNext", pdf.GetPage(1).Text);
+        Assert.DoesNotContain("FollowingPanelHeading", pdf.GetPage(1).Text);
+        Assert.DoesNotContain("FollowingPanelChainBody", pdf.GetPage(1).Text);
+        Assert.Contains("PanelChainKeepWithNext", pdf.GetPage(2).Text);
+        Assert.Contains("FollowingPanelHeading", pdf.GetPage(2).Text);
+        Assert.Contains("FollowingPanelChainBody", pdf.GetPage(2).Text);
+    }
+
+    [Fact]
     public void Heading_KeepsWithFollowingTableInTopLevelFlow() {
         var options = new PdfOptions {
             PageWidth = 260,
