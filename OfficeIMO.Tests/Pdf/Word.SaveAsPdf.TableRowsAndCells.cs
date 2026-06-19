@@ -141,6 +141,13 @@ public partial class Word {
             $"Expected direct Word table-cell paragraph line spacing to increase wrapped native PDF line pitch. Compact gap: {compactGap:0.##}; tall gap: {tallGap:0.##}.");
     }
 
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Uses_Character_Style_Font_Size_For_Table_Cell_Exact_Line_Spacing() {
+        double gap = RenderNativeTableCellCharacterStyleExactLineSpacingGap();
+
+        Assert.InRange(gap, 16D, 22D);
+    }
+
     private double RenderNativeTableRowHeightRuleGap(string fileNamePrefix, HeightRuleValues heightRule, string followingRowText) {
         string docPath = Path.Combine(_directoryWithFiles, fileNamePrefix + ".docx");
         string pdfPath = Path.Combine(_directoryWithFiles, fileNamePrefix + ".pdf");
@@ -399,6 +406,57 @@ public partial class Word {
             paragraph.Text = firstMarker + " " + secondMarker;
             paragraph.LineSpacingAfterPoints = 0D;
             paragraph.LineSpacingPoints = lineSpacingPoints;
+            paragraph.LineSpacingRule = LineSpacingRuleValues.Exact;
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = new PdfCore.PageSize(360, 260),
+                Margins = PdfCore.PageMargins.Uniform(36),
+                FontFamily = "Helvetica"
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        var words = pdf.GetPage(1).GetWords().ToList();
+        double firstY = Assert.Single(words, word => word.Text == firstMarker).BoundingBox.Bottom;
+        double secondY = Assert.Single(words, word => word.Text == secondMarker).BoundingBox.Bottom;
+        return firstY - secondY;
+    }
+
+    private double RenderNativeTableCellCharacterStyleExactLineSpacingGap() {
+        const string firstMarker = "Alpha";
+        const string secondMarker = "Beta";
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellCharacterStyleExactLineSpacing.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellCharacterStyleExactLineSpacing.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            const string styleId = "NativeTableCellExactLineCharacterStyle";
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(new Style(
+                new StyleName { Val = "Native Table Cell Exact Line Character Style" },
+                new StyleRunProperties(new FontSize { Val = "64" }))
+            {
+                Type = StyleValues.Character,
+                StyleId = styleId,
+                CustomStyle = true
+            });
+
+            WordTable table = document.AddTable(1, 1);
+            table.Width = 3000;
+            table.WidthType = TableWidthUnitValues.Dxa;
+            table.LayoutType = TableLayoutValues.Fixed;
+            WordTableCell cell = table.Rows[0].Cells[0];
+            cell.Width = 3000;
+            cell.WidthType = TableWidthUnitValues.Dxa;
+
+            WordParagraph paragraph = cell.Paragraphs[0];
+            paragraph.Text = string.Empty;
+            paragraph.AddText(firstMarker).SetCharacterStyleId(styleId);
+            paragraph.AddBreak();
+            paragraph.AddText(secondMarker).SetCharacterStyleId(styleId);
+            paragraph.LineSpacingAfterPoints = 0D;
+            paragraph.LineSpacingPoints = 18D;
             paragraph.LineSpacingRule = LineSpacingRuleValues.Exact;
 
             document.Save();

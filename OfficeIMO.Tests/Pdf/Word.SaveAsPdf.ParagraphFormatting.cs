@@ -1078,6 +1078,46 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Uses_Character_Style_Font_Size_For_Exact_Line_Spacing() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeCharacterStyleExactLineSpacing.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeCharacterStyleExactLineSpacing.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                const string styleId = "NativeExactLineCharacterStyle";
+                Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                styles.Append(new Style(
+                    new StyleName { Val = "Native Exact Line Character Style" },
+                    new StyleRunProperties(new FontSize { Val = "64" }))
+                {
+                    Type = StyleValues.Character,
+                    StyleId = styleId,
+                    CustomStyle = true
+                });
+
+                WordParagraph paragraph = document.AddParagraph();
+                paragraph.AddText("CharExactFirst").SetCharacterStyleId(styleId);
+                paragraph.AddBreak();
+                paragraph.AddText("CharExactSecond").SetCharacterStyleId(styleId);
+                paragraph.LineSpacingAfterPoints = 0;
+                paragraph.LineSpacingPoints = 18;
+                paragraph.LineSpacingRule = LineSpacingRuleValues.Exact;
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false,
+                    FontFamily = "Helvetica"
+                });
+            }
+
+            using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+            var words = pdf.GetPage(1).GetWords().ToList();
+            double firstY = Assert.Single(words, word => word.Text == "CharExactFirst").BoundingBox.Bottom;
+            double secondY = Assert.Single(words, word => word.Text == "CharExactSecond").BoundingBox.Bottom;
+
+            Assert.InRange(firstY - secondY, 16D, 22D);
+        }
+
+        [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Maps_Paragraph_Style_Exact_Line_Spacing() {
             using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeParagraphStyleExactLineSpacing.docx"));
             const string styleId = "ExactLineSpacingStyle";
