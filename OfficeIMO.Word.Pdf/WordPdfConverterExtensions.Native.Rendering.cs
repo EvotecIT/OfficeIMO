@@ -725,6 +725,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static PdfCore.PdfHeadingStyle CreateNativeWordHeadingStyle(int level, WordParagraph paragraph, PdfCore.PdfParagraphStyle paragraphStyle, NativeFontMap nativeFontMap) {
+            NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);
             double fontSize = level switch {
                 1 => 16D,
                 2 => 13D,
@@ -740,6 +741,23 @@ namespace OfficeIMO.Word.Pdf {
                 ApplySpacingBeforeAtTop = true,
                 KeepWithNext = true
             };
+            if (ResolveNativeHeadingDeclaredFontSize(paragraph, styleDefaults) is { } declaredFontSize) {
+                style.FontSize = declaredFontSize;
+            }
+
+            if (HasNativeHeadingDeclaredLineHeight(paragraph, styleDefaults) && paragraphStyle.LineHeight.HasValue) {
+                style.LineHeight = paragraphStyle.LineHeight.Value;
+            }
+
+            if (HasNativeHeadingDeclaredSpacingBefore(paragraph, styleDefaults)) {
+                style.SpacingBefore = paragraphStyle.SpacingBefore;
+            }
+
+            if (HasNativeHeadingDeclaredSpacingAfter(paragraph, styleDefaults)) {
+                style.SpacingAfter = paragraphStyle.SpacingAfter;
+            }
+
+            style.KeepWithNext = ReadNativeDirectParagraphOnOff<W.KeepNext>(paragraph) ?? styleDefaults.KeepWithNext ?? true;
             string? headingFontFamily = ResolveNativeParagraphStyleFontFamily(paragraph._document, paragraph.StyleId);
             if (nativeFontMap.TryGetFontSlot(headingFontFamily, out PdfCore.PdfStandardFont headingFont)) {
                 style.Font = headingFont;
@@ -747,6 +765,30 @@ namespace OfficeIMO.Word.Pdf {
 
             return style;
         }
+
+        private static double? ResolveNativeHeadingDeclaredFontSize(WordParagraph paragraph, NativeParagraphStyleDefaults styleDefaults) {
+            if (paragraph.FontSize.HasValue && paragraph.FontSize.Value > 0D) {
+                return paragraph.FontSize.Value;
+            }
+
+            if (styleDefaults.FontSize.HasValue && styleDefaults.FontSize.Value > 0D) {
+                return styleDefaults.FontSize.Value;
+            }
+
+            return null;
+        }
+
+        private static bool HasNativeHeadingDeclaredLineHeight(WordParagraph paragraph, NativeParagraphStyleDefaults styleDefaults) =>
+            paragraph.LineSpacing.HasValue ||
+            paragraph.LineSpacingPoints.HasValue ||
+            styleDefaults.LineHeight.HasValue ||
+            styleDefaults.LineSpacingPoints.HasValue;
+
+        private static bool HasNativeHeadingDeclaredSpacingBefore(WordParagraph paragraph, NativeParagraphStyleDefaults styleDefaults) =>
+            paragraph.LineSpacingBeforePoints.HasValue || styleDefaults.SpacingBefore.HasValue;
+
+        private static bool HasNativeHeadingDeclaredSpacingAfter(WordParagraph paragraph, NativeParagraphStyleDefaults styleDefaults) =>
+            paragraph.LineSpacingAfterPoints.HasValue || styleDefaults.SpacingAfter.HasValue;
 
         private static (string? LinkUri, string? LinkDestinationName, string? LinkContents) GetNativeHeadingLink(WordParagraph paragraph) {
             if (!paragraph.IsHyperLink || paragraph.Hyperlink == null) {
