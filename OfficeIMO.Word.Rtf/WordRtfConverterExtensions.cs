@@ -335,19 +335,25 @@ public static partial class WordRtfConverterExtensions {
         }
 
         if (wordRun.FootNote != null) {
+            RtfNote note = CopyNote(wordRun.FootNote.Paragraphs, RtfNoteKind.Footnote, rtfDocument, revisionAuthorIndexes);
             if (previousRun != null) {
-                previousRun.Note = CopyNote(wordRun.FootNote.Paragraphs, RtfNoteKind.Footnote, rtfDocument, revisionAuthorIndexes);
+                previousRun.Note = note;
+            } else {
+                paragraph.AddNoteReference(note);
             }
 
-            return false;
+            return previousRun == null;
         }
 
         if (wordRun.EndNote != null) {
+            RtfNote note = CopyNote(wordRun.EndNote.Paragraphs, RtfNoteKind.Endnote, rtfDocument, revisionAuthorIndexes);
             if (previousRun != null) {
-                previousRun.Note = CopyNote(wordRun.EndNote.Paragraphs, RtfNoteKind.Endnote, rtfDocument, revisionAuthorIndexes);
+                previousRun.Note = note;
+            } else {
+                paragraph.AddNoteReference(note);
             }
 
-            return false;
+            return previousRun == null;
         }
 
         if (wordRun.IsImage && wordRun.Image != null) {

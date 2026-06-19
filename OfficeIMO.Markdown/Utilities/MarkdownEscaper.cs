@@ -17,7 +17,8 @@ internal static class MarkdownEscaper {
 
     internal static string EscapeText(string? text) => Escape(text, GeneralReserved);
     internal static string EscapeTextAndLineStarts(string? text) => EscapeMarkdownLineStarts(EscapeText(text));
-    internal static string EscapeLiteralText(string? text) => EncodeLiteralMarkdownText(text);
+    internal static string EscapeLiteralText(string? text) => EscapeMarkdownLineStarts(EncodeLiteralMarkdownText(text));
+    internal static string EscapeLiteralTableCellText(string? text) => EncodeLiteralMarkdownText(text, encodeEntityLikeAmpersands: false);
     internal static string EscapeEmphasis(string? text) => Escape(text, GeneralReserved);
     internal static string EscapeHighlightText(string? text) => Escape(text, HighlightReserved);
     internal static string EscapeLinkText(string? text) => Escape(text, GeneralReserved);
@@ -105,7 +106,7 @@ internal static class MarkdownEscaper {
 
         int definitionSeparatorIndex = GetDefinitionListSeparatorIndex(line, markerIndex);
         return definitionSeparatorIndex >= 0
-            ? line.Insert(definitionSeparatorIndex, "\\")
+            ? line.Substring(0, definitionSeparatorIndex) + "&#58;" + line.Substring(definitionSeparatorIndex + 1)
             : line;
     }
 
@@ -271,7 +272,7 @@ internal static class MarkdownEscaper {
         return sb?.ToString() ?? text;
     }
 
-    private static string EncodeLiteralMarkdownText(string? text) {
+    private static string EncodeLiteralMarkdownText(string? text, bool encodeEntityLikeAmpersands = true) {
         string value = text ?? string.Empty;
         if (value.Length == 0) {
             return string.Empty;
@@ -280,19 +281,20 @@ internal static class MarkdownEscaper {
         StringBuilder? sb = null;
         for (int i = 0; i < value.Length; i++) {
             string? replacement = value[i] switch {
-                '\\' => "&#92;",
-                '[' => "&#91;",
-                ']' => "&#93;",
-                '(' => "&#40;",
-                ')' => "&#41;",
-                '|' => "&#124;",
-                '*' => "&#42;",
-                '_' => "&#95;",
-                '`' => "&#96;",
-                '~' => "&#126;",
-                '=' => "&#61;",
+                '\\' => @"\\",
+                '[' => @"\[",
+                ']' => @"\]",
+                '(' => @"\(",
+                ')' => @"\)",
+                '|' => @"\|",
+                '*' => @"\*",
+                '_' => @"\_",
+                '`' => @"\`",
+                '~' => @"\~",
+                '=' => @"\=",
                 '<' => "&lt;",
                 '>' => "&gt;",
+                '&' when encodeEntityLikeAmpersands && IsEntityLikeAmpersand(value, i) => "&amp;",
                 _ => null
             };
 
@@ -306,5 +308,57 @@ internal static class MarkdownEscaper {
         }
 
         return sb?.ToString() ?? value;
+    }
+
+    private static bool IsEntityLikeAmpersand(string value, int index) {
+        int semicolonIndex = value.IndexOf(';', index + 1);
+        if (semicolonIndex < 0 || semicolonIndex - index > 32) {
+            return false;
+        }
+
+        int entityStart = index + 1;
+        if (entityStart >= semicolonIndex) {
+            return false;
+        }
+
+        if (value[entityStart] == '#') {
+            int numericStart = entityStart + 1;
+            if (numericStart >= semicolonIndex) {
+                return false;
+            }
+
+            if (value[numericStart] == 'x' || value[numericStart] == 'X') {
+                int hexStart = numericStart + 1;
+                if (hexStart >= semicolonIndex) {
+                    return false;
+                }
+
+                for (int i = hexStart; i < semicolonIndex; i++) {
+                    char c = value[i];
+                    if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'))) {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            for (int i = numericStart; i < semicolonIndex; i++) {
+                if (!char.IsDigit(value[i])) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        for (int i = entityStart; i < semicolonIndex; i++) {
+            char c = value[i];
+            if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (i > entityStart && char.IsDigit(c)))) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

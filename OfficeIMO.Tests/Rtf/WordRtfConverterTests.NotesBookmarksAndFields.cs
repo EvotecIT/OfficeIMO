@@ -48,6 +48,30 @@ public partial class WordRtfConverterTests {
     }
 
     [Fact]
+    public void Word_To_Rtf_Bridge_Carries_Leading_Footnote_Reference() {
+        using WordDocument word = WordDocument.Create();
+        WordParagraph paragraph = word.AddParagraph();
+        paragraph.AddFootNote("Leading footnote");
+        paragraph.AddText("Body text");
+
+        RtfDocument rtfDocument = word.ToRtfDocument();
+        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+
+        RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
+        Assert.Collection(rtfParagraph.Inlines,
+            inline => {
+                RtfGeneratedText reference = Assert.IsType<RtfGeneratedText>(inline);
+                Assert.Equal(RtfGeneratedTextKind.NoteReference, reference.Kind);
+                Assert.NotNull(reference.Note);
+                Assert.Equal(RtfNoteKind.Footnote, reference.Note!.Kind);
+                Assert.Equal("Leading footnote", reference.Note.ToPlainText());
+            },
+            inline => Assert.Equal("Body text", Assert.IsType<RtfRun>(inline).Text));
+        Assert.Contains(@"\chftn {\footnote", rtf, StringComparison.Ordinal);
+        Assert.Contains("Leading footnote", rtf, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Rtf_To_Word_Bridge_Carries_Footnotes_With_Rich_Text() {
         RtfDocument rtfDocument = RtfDocument.Create();
         RtfParagraph paragraph = rtfDocument.AddParagraph();

@@ -134,8 +134,8 @@ public sealed class MarkdownHtmlToMarkdownTests {
         Assert.Contains("\\~~~ not code", markdown, StringComparison.Ordinal);
         Assert.Contains("\\===", markdown, StringComparison.Ordinal);
         Assert.Contains("1\\. split ordered", markdown, StringComparison.Ordinal);
-        Assert.Contains("CPU\\: Central", markdown, StringComparison.Ordinal);
-        Assert.Contains("RAM\\: Memory", markdown, StringComparison.Ordinal);
+        Assert.Contains("CPU&#58; Central", markdown, StringComparison.Ordinal);
+        Assert.Contains("RAM&#58; Memory", markdown, StringComparison.Ordinal);
         Assert.Contains("\\<div>literal</div>", markdown, StringComparison.Ordinal);
         Assert.Contains("\\<!-- literal comment -->", markdown, StringComparison.Ordinal);
         Assert.Contains("\\<!DOCTYPE html>", markdown, StringComparison.Ordinal);

@@ -38,6 +38,7 @@ public static partial class MarkdownReader {
             '\'' => true,
             '|' => true,
             '>' => true,
+            '~' => true,
             '=' => true,
             _ => false
         };

@@ -30,7 +30,7 @@ public static partial class MarkdownReader {
 
     private static bool StartsTable(string[] lines, int index) => TryGetTableExtent(lines, index, out _, out _);
 
-    private static bool TryGetTableExtent(string[] lines, int start, out int end, out bool hasOuterPipes) {
+    private static bool TryGetTableExtent(string[] lines, int start, out int end, out bool hasOuterPipes, bool allowSingleRowHeaderless = false) {
         end = start;
         hasOuterPipes = false;
         if (lines is null || start < 0 || start >= lines.Length) return false;
@@ -53,12 +53,29 @@ public static partial class MarkdownReader {
 
         if (!sawAlignmentRow) {
             // Headerless tables are easy to mis-detect (any two lines with pipes). To reduce false positives,
-            // require explicit outer pipes on every row and at least 2 rows.
+            // require explicit outer pipes on every row and at least two rows.
             if (!hasOuterPipes) return false;
 
+            if (j >= lines.Length) {
+                if (allowSingleRowHeaderless) {
+                    end = start;
+                    return true;
+                }
+
+                return false;
+            }
+
             // Require the 2nd row to also have outer pipes, otherwise treat the first row as a paragraph line.
-            if (j >= lines.Length) return false;
             var second = (lines[j] ?? string.Empty).Trim();
+            if (second.Length == 0) {
+                if (allowSingleRowHeaderless) {
+                    end = start;
+                    return true;
+                }
+
+                return false;
+            }
+
             if (!(second.Length > 0 && second[0] == '|' && second[second.Length - 1] == '|')) return false;
 
             while (j < lines.Length) {
@@ -429,6 +446,13 @@ public static partial class MarkdownReader {
 
             switch (ch) {
                 case '<':
+                    if (TableBlock.TryConsumeSupportedInlineFormattingTag(cell.Markdown, i, out int formattingTagLength)) {
+                        AppendMapped(cell.Markdown.Substring(i, formattingTagLength), column);
+                        column += formattingTagLength;
+                        i += formattingTagLength - 1;
+                        continue;
+                    }
+
                     AppendMapped("&lt;", column);
                     break;
                 case '>':

@@ -332,7 +332,27 @@ internal static partial class RtfHtmlWriter {
     }
 
     private static void AppendImage(StringBuilder builder, RtfImage image, RtfToHtmlOptions options) {
-        if (!options.EmbedImagesAsDataUri || image.Data.Length == 0 || !TryGetImageMediaType(image.Format, out string? mediaType)) {
+        if (!options.EmbedImagesAsDataUri) {
+            options.AddDiagnostic(
+                "RtfHtmlImageEmbeddingDisabled",
+                "RTF image was skipped because data URI image embedding is disabled.",
+                image.Format.ToString());
+            return;
+        }
+
+        if (image.Data.Length == 0) {
+            options.AddDiagnostic(
+                "RtfHtmlImageDataMissing",
+                "RTF image was skipped because it does not contain image data.",
+                image.Format.ToString());
+            return;
+        }
+
+        if (!TryGetImageMediaType(image.Format, out string? mediaType)) {
+            options.AddDiagnostic(
+                "RtfHtmlImageFormatUnsupported",
+                "RTF image was skipped because the image format is not supported by the HTML writer.",
+                image.Format.ToString());
             return;
         }
 

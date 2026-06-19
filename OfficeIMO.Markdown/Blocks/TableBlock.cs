@@ -10,6 +10,7 @@ namespace OfficeIMO.Markdown;
 /// </summary>
 public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdownBlock, IChildMarkdownBlockContainer {
     internal const int MaxEffectiveColumnCount = 4096;
+    internal const string HeaderlessSingleRowTableMarker = "<!-- OfficeIMO:RTF:HeaderlessSingleRowTable -->";
 
     private IReadOnlyList<TableCell>? _cachedHeaderCells;
     private IReadOnlyList<IReadOnlyList<TableCell>>? _cachedRowCells;
@@ -85,6 +86,8 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
     internal List<TableCell>? StructuredHeaders { get; private set; }
     internal List<IReadOnlyList<TableCell>>? StructuredRows { get; private set; }
     internal int? StructuredContentSignature { get; private set; }
+    internal bool PreserveHeaderlessSingleRowTable { get; set; }
+    internal bool CellsContainRenderedMarkdown { get; set; }
 
     // When a table is produced by the reader, we keep the parse options/state so inline parsing in cells
     // (links/emphasis/etc) can honor URL safety settings and reference-style link definitions.
@@ -138,13 +141,14 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
 
         int columnCount = GetEffectiveColumnCount();
         bool useStructuredCells = StructuredContentSignature.HasValue && StructuredContentSignature.Value == ComputeContentSignature();
+        Func<string?, string> escapeCell = CellsContainRenderedMarkdown ? EscapeRenderedMarkdownCell : EscapeMarkdownCell;
 
         if (Headers.Count > 0) {
             var sb = new StringBuilder();
             var headerMarkdown = useStructuredCells
                 ? PrepareStructuredRowMarkdown(StructuredHeaders, Headers, columnCount)
                 : PrepareRowCells(Headers, columnCount);
-            var escapedHeaders = headerMarkdown.Select(EscapeMarkdownCell).ToArray();
+            var escapedHeaders = headerMarkdown.Select(escapeCell).ToArray();
             AppendRow(sb, escapedHeaders);
 
             var alignRow = new string[columnCount];
@@ -158,7 +162,7 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
                 var rowMarkdown = useStructuredCells && StructuredRows != null && rowIndex < StructuredRows.Count
                     ? PrepareStructuredRowMarkdown(StructuredRows[rowIndex], Rows[rowIndex], columnCount)
                     : PrepareRowCells(Rows[rowIndex], columnCount);
-                var escapedRow = rowMarkdown.Select(EscapeMarkdownCell).ToArray();
+                var escapedRow = rowMarkdown.Select(escapeCell).ToArray();
                 AppendRow(sb, escapedRow);
             }
 
@@ -166,11 +170,15 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
         }
 
         var sbNoHeaders = new StringBuilder();
+        if (PreserveHeaderlessSingleRowTable && Rows.Count == 1) {
+            sbNoHeaders.Append(HeaderlessSingleRowTableMarker).Append('\n');
+        }
+
         for (int rowIndex = 0; rowIndex < Rows.Count; rowIndex++) {
             var rowMarkdown = useStructuredCells && StructuredRows != null && rowIndex < StructuredRows.Count
                 ? PrepareStructuredRowMarkdown(StructuredRows[rowIndex], Rows[rowIndex], columnCount)
                 : PrepareRowCells(Rows[rowIndex], columnCount);
-            var escapedRow = rowMarkdown.Select(EscapeMarkdownCell).ToArray();
+            var escapedRow = rowMarkdown.Select(escapeCell).ToArray();
             AppendRow(sbNoHeaders, escapedRow);
         }
         return sbNoHeaders.ToString().TrimEnd('\n');

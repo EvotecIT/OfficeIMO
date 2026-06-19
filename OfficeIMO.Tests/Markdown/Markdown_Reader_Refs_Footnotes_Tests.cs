@@ -99,7 +99,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             Assert.Equal("`code` ~~strike~~ ==mark==", text.Text);
 
             var markdown = doc.ToMarkdown();
-            Assert.Contains("Value <u>&#96;code&#96; &#126;&#126;strike&#126;&#126; &#61;&#61;mark&#61;&#61;</u>", markdown, StringComparison.Ordinal);
+            Assert.Contains(@"Value <u>\`code\` \~\~strike\~\~ \=\=mark\=\=</u>", markdown, StringComparison.Ordinal);
 
             var reparsed = MarkdownReader.Parse(markdown);
             var html = reparsed.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });

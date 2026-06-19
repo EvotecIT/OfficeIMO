@@ -148,6 +148,14 @@ public sealed partial class TableBlock {
     }
 
     private static string EscapeMarkdownCell(string? cell) {
+        return EscapeMarkdownCell(cell, preserveMarkdownEscapes: false);
+    }
+
+    private static string EscapeRenderedMarkdownCell(string? cell) {
+        return EscapeMarkdownCell(cell, preserveMarkdownEscapes: true);
+    }
+
+    private static string EscapeMarkdownCell(string? cell, bool preserveMarkdownEscapes) {
         if (string.IsNullOrEmpty(cell)) return string.Empty;
 
         var value = cell!;
@@ -169,7 +177,15 @@ public sealed partial class TableBlock {
                     break;
                 case '\\':
                     builder ??= AllocateCellBuilder(value, i);
-                    builder.Append("\\\\");
+                    if (preserveMarkdownEscapes && i + 1 < value.Length && IsMarkdownBackslashEscapable(value[i + 1])) {
+                        builder.Append('\\').Append(value[++i]);
+                    } else if (!preserveMarkdownEscapes && i + 1 < value.Length && RequiresLiteralBackslashProtectionInRawCell(value[i + 1])) {
+                        builder.Append("\\\\").Append('\\').Append(value[++i]);
+                    } else if (i + 1 < value.Length && IsMarkdownBackslashEscapable(value[i + 1])) {
+                        builder.Append('\\').Append(value[++i]);
+                    } else {
+                        builder.Append("\\\\");
+                    }
                     break;
                 case '|':
                     builder ??= AllocateCellBuilder(value, i);
@@ -223,7 +239,12 @@ public sealed partial class TableBlock {
             switch (ch) {
                 case '<':
                     builder ??= AllocateCellBuilder(value, i);
-                    builder.Append("&lt;");
+                    if (TryConsumeSupportedInlineFormattingTag(value, i, out int formattingTagLength)) {
+                        builder.Append(value, i, formattingTagLength);
+                        i += formattingTagLength - 1;
+                    } else {
+                        builder.Append("&lt;");
+                    }
                     break;
                 case '>':
                     builder ??= AllocateCellBuilder(value, i);
@@ -259,6 +280,84 @@ public sealed partial class TableBlock {
             builder.Append(seed, 0, copyLength);
         }
         return builder;
+    }
+
+    private static bool IsMarkdownBackslashEscapable(char value) {
+        return value switch {
+            '\\' => true,
+            '`' => true,
+            '*' => true,
+            '_' => true,
+            '{' => true,
+            '}' => true,
+            '[' => true,
+            ']' => true,
+            '(' => true,
+            ')' => true,
+            '#' => true,
+            '+' => true,
+            '-' => true,
+            '.' => true,
+            '!' => true,
+            '"' => true,
+            '\'' => true,
+            '|' => true,
+            '>' => true,
+            '=' => true,
+            '~' => true,
+            _ => false
+        };
+    }
+
+    private static bool RequiresLiteralBackslashProtectionInRawCell(char value) {
+        return value switch {
+            '`' => true,
+            '*' => true,
+            '_' => true,
+            '[' => true,
+            ']' => true,
+            '|' => true,
+            _ => false
+        };
+    }
+
+    internal static bool TryConsumeSupportedInlineFormattingTag(string value, int index, out int consumed) {
+        consumed = 0;
+        if (index < 0 || index >= value.Length || value[index] != '<') {
+            return false;
+        }
+
+        int position = index + 1;
+        bool closing = position < value.Length && value[position] == '/';
+        if (closing) {
+            position++;
+        }
+
+        int nameStart = position;
+        while (position < value.Length && char.IsLetter(value[position])) {
+            position++;
+        }
+
+        if (position == nameStart || position >= value.Length || value[position] != '>') {
+            return false;
+        }
+
+        string tagName = value.Substring(nameStart, position - nameStart);
+        if (!IsSupportedInlineFormattingTag(tagName)) {
+            return false;
+        }
+
+        consumed = position - index + 1;
+        return true;
+    }
+
+    private static bool IsSupportedInlineFormattingTag(string tagName) {
+        return tagName.Length switch {
+            1 => string.Equals(tagName, "u", StringComparison.OrdinalIgnoreCase),
+            3 => string.Equals(tagName, "sup", StringComparison.OrdinalIgnoreCase)
+                 || string.Equals(tagName, "sub", StringComparison.OrdinalIgnoreCase),
+            _ => false
+        };
     }
 
     private int GetEffectiveColumnCount() {
