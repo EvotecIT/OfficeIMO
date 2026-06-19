@@ -27,10 +27,15 @@ namespace OfficeIMO.Word.Pdf {
                         continue;
                     }
 
-                    PdfCore.PdfCellVerticalAlign alignment = MapNativeCellVerticalAlign(cell.Cell.VerticalAlignment);
+                    PdfCore.PdfCellVerticalAlign? alignment = MapNativeNullableCellVerticalAlign(cell.Cell.VerticalAlignment);
+                    if (!alignment.HasValue) {
+                        conflict = true;
+                        break;
+                    }
+
                     if (columnAlignment == null) {
-                        columnAlignment = alignment;
-                    } else if (columnAlignment.Value != alignment) {
+                        columnAlignment = alignment.Value;
+                    } else if (columnAlignment.Value != alignment.Value) {
                         conflict = true;
                         break;
                     }

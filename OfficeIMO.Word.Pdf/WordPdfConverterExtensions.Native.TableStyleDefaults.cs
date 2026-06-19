@@ -4,16 +4,16 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
-        private readonly record struct NativeTableStyleDefaults(PdfCore.PdfCellPadding? CellPadding, PdfCore.PdfColor? CellFill, (PdfCore.PdfColor Color, double Width)? TableBorder, W.TableBorders? Borders, W.TableWidth? PreferredWidth, W.TableLayoutValues? Layout, double? LeftIndent, double? CellSpacing, W.TableRowAlignmentValues? Alignment, double? ParagraphLineHeight, double? ParagraphLineSpacingPoints, W.LineSpacingRuleValues? ParagraphLineSpacingRule, double? ParagraphSpacingBefore, double? ParagraphSpacingAfter, NativeTableRunStyleDefaults RunStyle, NativeTableConditionalStyleDefaults FirstRowStyle, NativeTableConditionalStyleDefaults LastRowStyle, NativeTableConditionalStyleDefaults FirstColumnStyle, NativeTableConditionalStyleDefaults LastColumnStyle, NativeTableConditionalStyleDefaults Band1HorizontalStyle, NativeTableConditionalStyleDefaults Band1VerticalStyle) {
-            public static NativeTableStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null, null, null, null, null, null, null, NativeTableRunStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty);
+        private readonly record struct NativeTableStyleDefaults(PdfCore.PdfCellPadding? CellPadding, PdfCore.PdfColor? CellFill, PdfCore.PdfCellVerticalAlign? CellVerticalAlignment, (PdfCore.PdfColor Color, double Width)? TableBorder, W.TableBorders? Borders, W.TableWidth? PreferredWidth, W.TableLayoutValues? Layout, double? LeftIndent, double? CellSpacing, W.TableRowAlignmentValues? Alignment, double? ParagraphLineHeight, double? ParagraphLineSpacingPoints, W.LineSpacingRuleValues? ParagraphLineSpacingRule, double? ParagraphSpacingBefore, double? ParagraphSpacingAfter, NativeTableRunStyleDefaults RunStyle, NativeTableConditionalStyleDefaults FirstRowStyle, NativeTableConditionalStyleDefaults LastRowStyle, NativeTableConditionalStyleDefaults FirstColumnStyle, NativeTableConditionalStyleDefaults LastColumnStyle, NativeTableConditionalStyleDefaults Band1HorizontalStyle, NativeTableConditionalStyleDefaults Band1VerticalStyle) {
+            public static NativeTableStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, NativeTableRunStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty);
         }
 
         private readonly record struct NativeTableRunStyleDefaults(double? FontSize, string? FontFamily, bool? Bold, bool? Italic, bool? Underline, bool? Strike, string? ColorHex, W.HighlightColorValues? Highlight, PdfCore.PdfColor? Color) {
             public static NativeTableRunStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null, null);
         }
 
-        private readonly record struct NativeTableConditionalStyleDefaults(PdfCore.PdfColor? CellFill, W.TableCellBorders? CellBorders, PdfCore.PdfCellPadding? CellPadding, PdfCore.PdfColor? TextColor, double? FontSize, bool? Bold, bool? Italic, bool? Underline, bool? Strike, W.HighlightColorValues? Highlight) {
-            public static NativeTableConditionalStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null, null, null);
+        private readonly record struct NativeTableConditionalStyleDefaults(PdfCore.PdfColor? CellFill, W.TableCellBorders? CellBorders, PdfCore.PdfCellPadding? CellPadding, PdfCore.PdfCellVerticalAlign? CellVerticalAlignment, PdfCore.PdfColor? TextColor, double? FontSize, bool? Bold, bool? Italic, bool? Underline, bool? Strike, W.HighlightColorValues? Highlight) {
+            public static NativeTableConditionalStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null, null, null, null);
         }
 
         private static NativeTableStyleDefaults GetNativeTableStyleDefaults(WordTable table, NativeDocumentDefaults nativeDefaults, bool ignoreFallbackTableStyle) {
@@ -32,6 +32,7 @@ namespace OfficeIMO.Word.Pdf {
             double? marginLeft = null;
             double? marginRight = null;
             PdfCore.PdfColor? cellFill = null;
+            PdfCore.PdfCellVerticalAlign? cellVerticalAlignment = null;
             (PdfCore.PdfColor Color, double Width)? tableBorder = null;
             W.TableBorders? tableBorders = null;
             W.TableWidth? preferredWidth = null;
@@ -99,6 +100,9 @@ namespace OfficeIMO.Word.Pdf {
                     cellFill = ParseNativeColor(shading.Fill?.Value);
                 }
 
+                W.StyleTableCellProperties? tableCellProperties = style.GetFirstChild<W.StyleTableCellProperties>();
+                cellVerticalAlignment = MapNativeNullableCellVerticalAlign(tableCellProperties?.GetFirstChild<W.TableCellVerticalAlignment>()?.Val?.Value) ?? cellVerticalAlignment;
+
                 W.TableBorders? styleTableBorders = tableProperties?.GetFirstChild<W.TableBorders>();
                 if (styleTableBorders != null) {
                     tableBorder = GetNativeUniformTableBorder(styleTableBorders);
@@ -143,6 +147,7 @@ namespace OfficeIMO.Word.Pdf {
             return new NativeTableStyleDefaults(
                 cellPadding,
                 cellFill,
+                cellVerticalAlignment,
                 tableBorder,
                 tableBorders,
                 preferredWidth,
@@ -180,6 +185,7 @@ namespace OfficeIMO.Word.Pdf {
                 PdfCore.PdfColor? cellFill = ParseNativeColor(cellProperties?.GetFirstChild<W.Shading>()?.Fill?.Value);
                 W.TableCellBorders? cellBorders = cellProperties?.GetFirstChild<W.TableCellBorders>();
                 PdfCore.PdfCellPadding? cellPadding = CreateNativeConditionalTableCellPadding(cellProperties?.GetFirstChild<W.TableCellMargin>());
+                PdfCore.PdfCellVerticalAlign? cellVerticalAlignment = MapNativeNullableCellVerticalAlign(cellProperties?.GetFirstChild<W.TableCellVerticalAlignment>()?.Val?.Value);
 
                 W.RunPropertiesBaseStyle? runProperties = properties.GetFirstChild<W.RunPropertiesBaseStyle>();
                 PdfCore.PdfColor? textColor = ParseNativeColor(runProperties?.GetFirstChild<W.Color>()?.Val?.Value);
@@ -193,6 +199,7 @@ namespace OfficeIMO.Word.Pdf {
                     cellFill ?? result.CellFill,
                     cellBorders ?? result.CellBorders,
                     MergeNativeCellPadding(result.CellPadding, cellPadding),
+                    cellVerticalAlignment ?? result.CellVerticalAlignment,
                     textColor ?? result.TextColor,
                     fontSize ?? result.FontSize,
                     bold ?? result.Bold,

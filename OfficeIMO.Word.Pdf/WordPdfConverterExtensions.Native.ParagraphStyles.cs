@@ -440,7 +440,14 @@ namespace OfficeIMO.Word.Pdf {
             return PdfCore.PdfColumnAlign.Left;
         }
 
-        private static PdfCore.PdfCellVerticalAlign MapNativeCellVerticalAlign(W.TableVerticalAlignmentValues? alignment) {
+        private static PdfCore.PdfCellVerticalAlign MapNativeCellVerticalAlign(W.TableVerticalAlignmentValues? alignment) =>
+            MapNativeNullableCellVerticalAlign(alignment) ?? PdfCore.PdfCellVerticalAlign.Top;
+
+        private static PdfCore.PdfCellVerticalAlign? MapNativeNullableCellVerticalAlign(W.TableVerticalAlignmentValues? alignment) {
+            if (!alignment.HasValue) {
+                return null;
+            }
+
             if (alignment == W.TableVerticalAlignmentValues.Center) {
                 return PdfCore.PdfCellVerticalAlign.Middle;
             }

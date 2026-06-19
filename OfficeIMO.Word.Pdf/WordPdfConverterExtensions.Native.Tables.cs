@@ -99,9 +99,9 @@ namespace OfficeIMO.Word.Pdf {
                         cellAlignments[(rowIndex, logicalColumnIndex)] = cellAlignment;
                     }
 
-                    PdfCore.PdfCellVerticalAlign cellVerticalAlignment = MapNativeCellVerticalAlign(cell.VerticalAlignment);
-                    if (cellVerticalAlignment != PdfCore.PdfCellVerticalAlign.Top) {
-                        cellVerticalAlignments[(rowIndex, logicalColumnIndex)] = cellVerticalAlignment;
+                    PdfCore.PdfCellVerticalAlign? cellVerticalAlignment = ResolveNativeTableCellVerticalAlignment(cell, cellStyleDefaults);
+                    if (cellVerticalAlignment.HasValue) {
+                        cellVerticalAlignments[(rowIndex, logicalColumnIndex)] = cellVerticalAlignment.Value;
                     }
 
                     logicalColumnIndex += columnSpan;
@@ -155,7 +155,16 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             if (cellVerticalAlignments.Count > 0) {
-                style.CellVerticalAlignments = cellVerticalAlignments;
+                if (style.CellVerticalAlignments == null) {
+                    style.CellVerticalAlignments = cellVerticalAlignments;
+                } else {
+                    var mergedVerticalAlignments = new Dictionary<(int Row, int Column), PdfCore.PdfCellVerticalAlign>(style.CellVerticalAlignments);
+                    foreach (var cellVerticalAlignment in cellVerticalAlignments) {
+                        mergedVerticalAlignments[cellVerticalAlignment.Key] = cellVerticalAlignment.Value;
+                    }
+
+                    style.CellVerticalAlignments = mergedVerticalAlignments;
+                }
             }
 
             ApplyNativeColumnWidths(table, layout, style, contentWidth);
@@ -424,48 +433,50 @@ namespace OfficeIMO.Word.Pdf {
         private static NativeTableStyleDefaults GetNativeTableCellStyleDefaults(WordTable table, NativeTableStyleDefaults tableStyleDefaults, int rowIndex, int logicalColumnIndex, int columnSpan, int columnCount, int headerRowCount, int footerStartRowIndex) {
             NativeTableStyleDefaults result = tableStyleDefaults;
             if (table.ConditionalFormattingFirstRow == true && rowIndex == 0) {
-                result = ApplyNativeTableConditionalRunStyleDefaults(result, tableStyleDefaults.FirstRowStyle);
+                result = ApplyNativeTableConditionalStyleDefaults(result, tableStyleDefaults.FirstRowStyle);
             }
 
             if (table.ConditionalFormattingLastRow == true && rowIndex >= footerStartRowIndex) {
-                result = ApplyNativeTableConditionalRunStyleDefaults(result, tableStyleDefaults.LastRowStyle);
+                result = ApplyNativeTableConditionalStyleDefaults(result, tableStyleDefaults.LastRowStyle);
             }
 
             if (rowIndex >= headerRowCount && rowIndex < footerStartRowIndex) {
                 int bodyRowIndex = rowIndex - headerRowCount;
                 if (table.ConditionalFormattingNoHorizontalBand != true && bodyRowIndex % 2 == 1) {
-                    result = ApplyNativeTableConditionalRunStyleDefaults(result, tableStyleDefaults.Band1HorizontalStyle);
+                    result = ApplyNativeTableConditionalStyleDefaults(result, tableStyleDefaults.Band1HorizontalStyle);
                 }
 
                 if (table.ConditionalFormattingNoVerticalBand != true && logicalColumnIndex % 2 == 1) {
-                    result = ApplyNativeTableConditionalRunStyleDefaults(result, tableStyleDefaults.Band1VerticalStyle);
+                    result = ApplyNativeTableConditionalStyleDefaults(result, tableStyleDefaults.Band1VerticalStyle);
                 }
             }
 
             if (table.ConditionalFormattingFirstColumn == true && logicalColumnIndex == 0) {
-                result = ApplyNativeTableConditionalRunStyleDefaults(result, tableStyleDefaults.FirstColumnStyle);
+                result = ApplyNativeTableConditionalStyleDefaults(result, tableStyleDefaults.FirstColumnStyle);
             }
 
             if (table.ConditionalFormattingLastColumn == true && columnCount > 0 && logicalColumnIndex + columnSpan >= columnCount) {
-                result = ApplyNativeTableConditionalRunStyleDefaults(result, tableStyleDefaults.LastColumnStyle);
+                result = ApplyNativeTableConditionalStyleDefaults(result, tableStyleDefaults.LastColumnStyle);
             }
 
             return result;
         }
 
-        private static NativeTableStyleDefaults ApplyNativeTableConditionalRunStyleDefaults(NativeTableStyleDefaults tableStyleDefaults, NativeTableConditionalStyleDefaults conditionalStyle) {
+        private static NativeTableStyleDefaults ApplyNativeTableConditionalStyleDefaults(NativeTableStyleDefaults tableStyleDefaults, NativeTableConditionalStyleDefaults conditionalStyle) {
             if (!conditionalStyle.TextColor.HasValue &&
                 !conditionalStyle.FontSize.HasValue &&
                 !conditionalStyle.Bold.HasValue &&
                 !conditionalStyle.Italic.HasValue &&
                 !conditionalStyle.Underline.HasValue &&
                 !conditionalStyle.Strike.HasValue &&
-                !conditionalStyle.Highlight.HasValue) {
+                !conditionalStyle.Highlight.HasValue &&
+                !conditionalStyle.CellVerticalAlignment.HasValue) {
                 return tableStyleDefaults;
             }
 
             NativeTableRunStyleDefaults runStyle = tableStyleDefaults.RunStyle;
             return tableStyleDefaults with {
+                CellVerticalAlignment = conditionalStyle.CellVerticalAlignment ?? tableStyleDefaults.CellVerticalAlignment,
                 RunStyle = runStyle with {
                     FontSize = conditionalStyle.FontSize ?? runStyle.FontSize,
                     Bold = conditionalStyle.Bold ?? runStyle.Bold,
@@ -476,6 +487,18 @@ namespace OfficeIMO.Word.Pdf {
                     Highlight = conditionalStyle.Highlight ?? runStyle.Highlight
                 }
             };
+        }
+
+        private static PdfCore.PdfCellVerticalAlign? ResolveNativeTableCellVerticalAlignment(WordTableCell cell, NativeTableStyleDefaults cellStyleDefaults) {
+            PdfCore.PdfCellVerticalAlign? directAlignment = MapNativeNullableCellVerticalAlign(cell.VerticalAlignment);
+            if (directAlignment.HasValue) {
+                return directAlignment.Value;
+            }
+
+            PdfCore.PdfCellVerticalAlign? styleAlignment = cellStyleDefaults.CellVerticalAlignment;
+            return styleAlignment.HasValue && styleAlignment.Value != PdfCore.PdfCellVerticalAlign.Top
+                ? styleAlignment.Value
+                : null;
         }
 
         private static void ApplyNativeTableLayoutOptions(WordTable table, PdfCore.PdfTableStyle style, double? contentWidth, NativeTableStyleDefaults tableStyleDefaults) {

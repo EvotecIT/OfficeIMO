@@ -483,6 +483,68 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Uses_Table_Style_Conditional_Vertical_Alignment_For_Cells() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleConditionalVerticalAlignment.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleConditionalVerticalAlignment.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            const string styleId = "NativeTableConditionalVerticalAlignment";
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(new Style(
+                new StyleName { Val = "Native Table Conditional Vertical Alignment" },
+                new TableStyleProperties(
+                    new TableStyleConditionalFormattingTableCellProperties(
+                        new TableCellVerticalAlignment { Val = TableVerticalAlignmentValues.Bottom }))
+                { Type = TableStyleOverrideValues.FirstColumn })
+            {
+                Type = StyleValues.Table,
+                StyleId = styleId,
+                CustomStyle = true
+            });
+
+            WordTable table = document.AddTable(2, 2);
+            table.Width = 3600;
+            table.WidthType = TableWidthUnitValues.Dxa;
+            table.LayoutType = TableLayoutValues.Fixed;
+            table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
+            table.ConditionalFormattingFirstColumn = true;
+            foreach (WordTableRow row in table.Rows) {
+                row.Height = 1200;
+                row._tableRow.TableRowProperties!.GetFirstChild<TableRowHeight>()!.HeightType = HeightRuleValues.Exact;
+                foreach (WordTableCell cell in row.Cells) {
+                    cell.Width = 1800;
+                    cell.WidthType = TableWidthUnitValues.Dxa;
+                }
+            }
+
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "InheritedBottom";
+            table.Rows[0].Cells[1].Paragraphs[0].Text = "TopPeer";
+            table.Rows[1].Cells[0].VerticalAlignment = TableVerticalAlignmentValues.Top;
+            table.Rows[1].Cells[0].Paragraphs[0].Text = "DirectTop";
+            table.Rows[1].Cells[1].Paragraphs[0].Text = "DirectTopPeer";
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = new PdfCore.PageSize(420, 260),
+                Margins = PdfCore.PageMargins.Uniform(30),
+                FontFamily = "Helvetica"
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        var words = pdf.GetPage(1).GetWords().ToList();
+        var inheritedBottom = Assert.Single(words, word => word.Text == "InheritedBottom");
+        var topPeer = Assert.Single(words, word => word.Text == "TopPeer");
+        var directTop = Assert.Single(words, word => word.Text == "DirectTop");
+        var directTopPeer = Assert.Single(words, word => word.Text == "DirectTopPeer");
+
+        Assert.True(topPeer.BoundingBox.Bottom > inheritedBottom.BoundingBox.Bottom + 25D,
+            $"Expected first-column table style vertical alignment to move inherited cell text lower. Inherited y: {inheritedBottom.BoundingBox.Bottom:0.##}; peer y: {topPeer.BoundingBox.Bottom:0.##}.");
+        Assert.InRange(Math.Abs(directTop.BoundingBox.Bottom - directTopPeer.BoundingBox.Bottom), 0D, 5D);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Uses_DocDefaults_For_Table_Cell_Paragraph_Spacing() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellParagraphSpacing.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellParagraphSpacing.pdf");
