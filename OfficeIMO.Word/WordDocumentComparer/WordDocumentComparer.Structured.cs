@@ -180,19 +180,15 @@ namespace OfficeIMO.Word {
             int targetIndex = targetStart;
 
             while (sourceIndex < sourceEnd && targetIndex < targetEnd) {
-                if (targetEnd - targetIndex > sourceEnd - sourceIndex &&
-                    targetIndex + 1 < targetEnd &&
-                    GetRowSimilarity(sourceRows[sourceIndex], targetRows[targetIndex + 1]) >
-                    GetRowSimilarity(sourceRows[sourceIndex], targetRows[targetIndex])) {
+                int betterTargetIndex = FindBetterTargetRowAlignmentIndex(sourceRows[sourceIndex], targetRows, targetIndex, targetEnd);
+                if (targetEnd - targetIndex > sourceEnd - sourceIndex && betterTargetIndex > targetIndex) {
                     AddInsertedTableRowFinding(targetRows, tableIndex, tableDocumentOrder, targetIndex, result);
                     targetIndex++;
                     continue;
                 }
 
-                if (sourceEnd - sourceIndex > targetEnd - targetIndex &&
-                    sourceIndex + 1 < sourceEnd &&
-                    GetRowSimilarity(sourceRows[sourceIndex + 1], targetRows[targetIndex]) >
-                    GetRowSimilarity(sourceRows[sourceIndex], targetRows[targetIndex])) {
+                int betterSourceIndex = FindBetterSourceRowAlignmentIndex(sourceRows, sourceIndex, sourceEnd, targetRows[targetIndex]);
+                if (sourceEnd - sourceIndex > targetEnd - targetIndex && betterSourceIndex > sourceIndex) {
                     AddDeletedTableRowFinding(sourceRows, tableIndex, tableDocumentOrder, sourceIndex, result);
                     sourceIndex++;
                     continue;
@@ -221,6 +217,46 @@ namespace OfficeIMO.Word {
                 AddDeletedTableRowFinding(sourceRows, tableIndex, tableDocumentOrder, sourceIndex, result);
                 sourceIndex++;
             }
+        }
+
+        private static int FindBetterTargetRowAlignmentIndex(
+            WordTableRow sourceRow,
+            IReadOnlyList<WordTableRow> targetRows,
+            int targetStart,
+            int targetEnd) {
+            double currentSimilarity = GetRowSimilarity(sourceRow, targetRows[targetStart]);
+            int bestIndex = targetStart;
+            double bestSimilarity = currentSimilarity;
+
+            for (int index = targetStart + 1; index < targetEnd; index++) {
+                double similarity = GetRowSimilarity(sourceRow, targetRows[index]);
+                if (similarity > bestSimilarity) {
+                    bestSimilarity = similarity;
+                    bestIndex = index;
+                }
+            }
+
+            return bestSimilarity > currentSimilarity ? bestIndex : targetStart;
+        }
+
+        private static int FindBetterSourceRowAlignmentIndex(
+            IReadOnlyList<WordTableRow> sourceRows,
+            int sourceStart,
+            int sourceEnd,
+            WordTableRow targetRow) {
+            double currentSimilarity = GetRowSimilarity(sourceRows[sourceStart], targetRow);
+            int bestIndex = sourceStart;
+            double bestSimilarity = currentSimilarity;
+
+            for (int index = sourceStart + 1; index < sourceEnd; index++) {
+                double similarity = GetRowSimilarity(sourceRows[index], targetRow);
+                if (similarity > bestSimilarity) {
+                    bestSimilarity = similarity;
+                    bestIndex = index;
+                }
+            }
+
+            return bestSimilarity > currentSimilarity ? bestIndex : sourceStart;
         }
 
         private static void AddInsertedTableRowFinding(IReadOnlyList<WordTableRow> targetRows, int tableIndex, int tableDocumentOrder, int rowIndex, WordComparisonResult result) {

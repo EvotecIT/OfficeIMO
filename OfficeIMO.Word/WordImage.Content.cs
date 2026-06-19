@@ -348,57 +348,35 @@ namespace OfficeIMO.Word {
             uint max = 0U;
             var mainPart = document._wordprocessingDocument.MainDocumentPart;
 
-            if (mainPart?.Document != null) {
-                foreach (DocProperties properties in mainPart.Document.Descendants<DocProperties>()) {
-                    if (properties.Id != null && properties.Id.Value > max) {
-                        max = properties.Id.Value;
-                    }
-                }
-            }
+            UpdateMaxDocPropertiesId(mainPart?.Document, ref max);
 
             if (mainPart != null) {
                 foreach (HeaderPart headerPart in mainPart.HeaderParts) {
-                    if (headerPart.Header == null) {
-                        continue;
-                    }
-
-                    foreach (DocProperties properties in headerPart.Header.Descendants<DocProperties>()) {
-                        if (properties.Id != null && properties.Id.Value > max) {
-                            max = properties.Id.Value;
-                        }
-                    }
+                    UpdateMaxDocPropertiesId(headerPart.Header, ref max);
                 }
 
                 foreach (FooterPart footerPart in mainPart.FooterParts) {
-                    if (footerPart.Footer == null) {
-                        continue;
-                    }
-
-                    foreach (DocProperties properties in footerPart.Footer.Descendants<DocProperties>()) {
-                        if (properties.Id != null && properties.Id.Value > max) {
-                            max = properties.Id.Value;
-                        }
-                    }
+                    UpdateMaxDocPropertiesId(footerPart.Footer, ref max);
                 }
 
-                if (mainPart.FootnotesPart?.Footnotes != null) {
-                    foreach (DocProperties properties in mainPart.FootnotesPart.Footnotes.Descendants<DocProperties>()) {
-                        if (properties.Id != null && properties.Id.Value > max) {
-                            max = properties.Id.Value;
-                        }
-                    }
-                }
-
-                if (mainPart.EndnotesPart?.Endnotes != null) {
-                    foreach (DocProperties properties in mainPart.EndnotesPart.Endnotes.Descendants<DocProperties>()) {
-                        if (properties.Id != null && properties.Id.Value > max) {
-                            max = properties.Id.Value;
-                        }
-                    }
-                }
+                UpdateMaxDocPropertiesId(mainPart.FootnotesPart?.Footnotes, ref max);
+                UpdateMaxDocPropertiesId(mainPart.EndnotesPart?.Endnotes, ref max);
+                UpdateMaxDocPropertiesId(mainPart.WordprocessingCommentsPart?.Comments, ref max);
             }
 
             return (UInt32Value)(max + 1U);
+        }
+
+        private static void UpdateMaxDocPropertiesId(OpenXmlElement? root, ref uint max) {
+            if (root == null) {
+                return;
+            }
+
+            foreach (DocProperties properties in root.Descendants<DocProperties>()) {
+                if (properties.Id != null && properties.Id.Value > max) {
+                    max = properties.Id.Value;
+                }
+            }
         }
 
         private OpenXmlPart GetContainingPart() {

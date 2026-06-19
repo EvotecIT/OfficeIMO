@@ -82,6 +82,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompareStructureAlignsTableRowsAfterMultipleInsertedRows() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_multi_inserted_rows.docx");
+            CreateDocumentWithTableRows(sourcePath, "Owner: Alice", "Closing");
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_multi_inserted_rows.docx");
+            CreateDocumentWithTableRows(targetPath, "Evidence", "Summary", "Owner: Bob", "Closing");
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.TableRow &&
+                finding.ChangeKind == WordComparisonChangeKind.Inserted &&
+                finding.TargetText == "Evidence");
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.TableRow &&
+                finding.ChangeKind == WordComparisonChangeKind.Inserted &&
+                finding.TargetText == "Summary");
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.TableCell &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified &&
+                finding.SourceText == "Owner: Alice" &&
+                finding.TargetText == "Owner: Bob");
+        }
+
+        [Fact]
         public void CompareStructureReportsFieldInstructionChanges() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_field_instruction.docx");
             CreateDocumentWithBodyText(sourcePath, "placeholder");
@@ -254,6 +279,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompareStructureReportsDuplicateHeaderImageContentChanges() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_duplicate_header_image.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                doc.AddParagraph("Body");
+                doc.HeaderDefaultOrCreate.AddParagraph("Shared header");
+                doc.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_duplicate_header_image.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                doc.AddParagraph("Body");
+                doc.HeaderDefaultOrCreate.AddParagraph("Shared header");
+                doc.Save(false);
+            }
+
+            AddDuplicateDefaultHeaderReferenceWithImage(sourcePath, "Shared header", Path.Combine(_directoryWithImages, "EvotecLogo.png"));
+            AddDuplicateDefaultHeaderReferenceWithImage(targetPath, "Shared header", Path.Combine(_directoryWithImages, "BackgroundImage.png"));
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Image &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified);
+        }
+
+        [Fact]
         public void CompareStructureReportsCrossScopeBlockReordering() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_cross_scope_order.docx");
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
@@ -326,6 +377,29 @@ namespace OfficeIMO.Tests {
             Assert.Equal(ids.Count, ids.Distinct().Count());
         }
 
+        [Fact]
+        public void WordImageAssignsDrawingIdsAfterCommentImages() {
+            string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
+            string path = Path.Combine(_directoryWithFiles, "compare_structure_comment_image_docpr_id.docx");
+            using (WordDocument doc = WordDocument.Create(path)) {
+                doc.AddParagraph("Policy");
+                doc.Save(false);
+            }
+
+            AppendCommentImageWithDrawingId(path, imagePath, 900U);
+
+            using (WordDocument doc = WordDocument.Load(path)) {
+                doc.AddParagraph().AddImage(imagePath, 80, 40);
+                doc.Save(false);
+            }
+
+            List<uint> ids = GetDrawingDocPropertiesIds(path);
+
+            Assert.Contains(900U, ids);
+            Assert.Contains(ids, id => id > 900U);
+            Assert.Equal(ids.Count, ids.Distinct().Count());
+        }
+
         private static void CreateDocumentWithBodyText(string path, string text) {
             using WordDocument doc = WordDocument.Create(path);
             doc.AddParagraph(text);
@@ -336,6 +410,16 @@ namespace OfficeIMO.Tests {
             using WordDocument doc = WordDocument.Create(path);
             WordTable table = doc.AddTable(1, 1);
             table.Rows[0].Cells[0].Paragraphs[0].SetText(text);
+            doc.Save(false);
+        }
+
+        private static void CreateDocumentWithTableRows(string path, params string[] rows) {
+            using WordDocument doc = WordDocument.Create(path);
+            WordTable table = doc.AddTable(rows.Length, 1);
+            for (int index = 0; index < rows.Length; index++) {
+                table.Rows[index].Cells[0].Paragraphs[0].SetText(rows[index]);
+            }
+
             doc.Save(false);
         }
 
@@ -428,6 +512,31 @@ namespace OfficeIMO.Tests {
             mainPart.Document.Save();
         }
 
+        private static void AddDuplicateDefaultHeaderReferenceWithImage(string path, string text, string imagePath) {
+            using WordprocessingDocument document = WordprocessingDocument.Open(path, true);
+            MainDocumentPart mainPart = document.MainDocumentPart!;
+            HeaderPart headerPart = mainPart.AddNewPart<HeaderPart>();
+            ImagePart imagePart = Path.GetExtension(imagePath).Equals(".jpg", StringComparison.OrdinalIgnoreCase) ||
+                                  Path.GetExtension(imagePath).Equals(".jpeg", StringComparison.OrdinalIgnoreCase)
+                ? headerPart.AddImagePart(ImagePartType.Jpeg)
+                : headerPart.AddImagePart(ImagePartType.Png);
+
+            using (FileStream stream = File.OpenRead(imagePath)) {
+                imagePart.FeedData(stream);
+            }
+
+            string imageRelationshipId = headerPart.GetIdOfPart(imagePart);
+            headerPart.Header = new Header(
+                new Paragraph(new Run(new Text(text))),
+                new Paragraph(new Run(CreateInlineDrawing(imageRelationshipId, 77U))));
+            headerPart.Header.Save();
+
+            string relationshipId = mainPart.GetIdOfPart(headerPart);
+            SectionProperties sectionProperties = mainPart.Document.Body!.Elements<SectionProperties>().Last();
+            sectionProperties.Append(new HeaderReference { Type = HeaderFooterValues.Default, Id = relationshipId });
+            mainPart.Document.Save();
+        }
+
         private static void ReplaceFirstTableCellParagraph(string path, Paragraph paragraph) {
             using WordprocessingDocument document = WordprocessingDocument.Open(path, true);
             TableCell cell = document.MainDocumentPart!.Document.Descendants<TableCell>().First();
@@ -463,6 +572,29 @@ namespace OfficeIMO.Tests {
             footnotesPart.Footnotes.Save();
         }
 
+        private static void AppendCommentImageWithDrawingId(string path, string imagePath, uint drawingId) {
+            using WordprocessingDocument document = WordprocessingDocument.Open(path, true);
+            MainDocumentPart mainPart = document.MainDocumentPart!;
+            WordprocessingCommentsPart commentsPart = mainPart.WordprocessingCommentsPart ?? mainPart.AddNewPart<WordprocessingCommentsPart>();
+            commentsPart.Comments ??= new Comments();
+            ImagePart imagePart = Path.GetExtension(imagePath).Equals(".jpg", StringComparison.OrdinalIgnoreCase) ||
+                                  Path.GetExtension(imagePath).Equals(".jpeg", StringComparison.OrdinalIgnoreCase)
+                ? commentsPart.AddImagePart(ImagePartType.Jpeg)
+                : commentsPart.AddImagePart(ImagePartType.Png);
+
+            using (FileStream stream = File.OpenRead(imagePath)) {
+                imagePart.FeedData(stream);
+            }
+
+            string relationshipId = commentsPart.GetIdOfPart(imagePart);
+            commentsPart.Comments.Append(new Comment(new Paragraph(new Run(CreateInlineDrawing(relationshipId, drawingId)))) {
+                Id = "0",
+                Author = "OfficeIMO",
+                Date = DateTime.UtcNow
+            });
+            commentsPart.Comments.Save();
+        }
+
         private static DocumentFormat.OpenXml.Wordprocessing.Drawing CreateInlineDrawing(string relationshipId, uint id) {
             const long widthEmu = 914400L;
             const long heightEmu = 457200L;
@@ -492,8 +624,16 @@ namespace OfficeIMO.Tests {
 
         private static List<uint> GetDrawingDocPropertiesIds(string path) {
             using WordprocessingDocument document = WordprocessingDocument.Open(path, false);
-            return document.MainDocumentPart!.RootElement!.Descendants<DW.DocProperties>()
-                .Concat(document.MainDocumentPart.FootnotesPart!.Footnotes!.Descendants<DW.DocProperties>())
+            var roots = new OpenXmlElement?[] {
+                document.MainDocumentPart!.RootElement,
+                document.MainDocumentPart.FootnotesPart?.Footnotes,
+                document.MainDocumentPart.EndnotesPart?.Endnotes,
+                document.MainDocumentPart.WordprocessingCommentsPart?.Comments
+            };
+
+            return roots
+                .Where(root => root != null)
+                .SelectMany(root => root!.Descendants<DW.DocProperties>())
                 .Where(properties => properties.Id != null)
                 .Select(properties => properties.Id!.Value)
                 .ToList();

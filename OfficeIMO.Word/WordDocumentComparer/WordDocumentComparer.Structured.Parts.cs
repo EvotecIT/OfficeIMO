@@ -1,6 +1,9 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
+using PIC = DocumentFormat.OpenXml.Drawing.Pictures;
+using V = DocumentFormat.OpenXml.Vml;
 
 namespace OfficeIMO.Word {
     public static partial class WordDocumentComparer {
@@ -22,7 +25,7 @@ namespace OfficeIMO.Word {
                 }
 
                 string typeKey = GetHeaderFooterReferenceTypeKey(reference.Type?.Value);
-                if (!seenEffectiveParts.Add(typeKey + ":" + GetHeaderFooterPartSignature(headerPart.Header))) {
+                if (!seenEffectiveParts.Add(typeKey + ":" + GetHeaderFooterPartSignature(headerPart, headerPart.Header))) {
                     continue;
                 }
 
@@ -51,7 +54,7 @@ namespace OfficeIMO.Word {
                 }
 
                 string typeKey = GetHeaderFooterReferenceTypeKey(reference.Type?.Value);
-                if (!seenEffectiveParts.Add(typeKey + ":" + GetHeaderFooterPartSignature(footerPart.Footer))) {
+                if (!seenEffectiveParts.Add(typeKey + ":" + GetHeaderFooterPartSignature(footerPart, footerPart.Footer))) {
                     continue;
                 }
 
@@ -86,8 +89,84 @@ namespace OfficeIMO.Word {
             return "default";
         }
 
-        private static string GetHeaderFooterPartSignature(OpenXmlElement? root) {
-            return root?.InnerText ?? string.Empty;
+        private static string GetHeaderFooterPartSignature(OpenXmlPart part, OpenXmlElement? root) {
+            if (root == null) {
+                return string.Empty;
+            }
+
+            if (!HasHeaderFooterStructuralContent(root)) {
+                return root.InnerText ?? string.Empty;
+            }
+
+            OpenXmlElement clone = root.CloneNode(true);
+            NormalizeHeaderFooterSignatureElement(part, clone);
+            return clone.OuterXml;
+        }
+
+        private static bool HasHeaderFooterStructuralContent(OpenXmlElement root) {
+            return root.Descendants<Table>().Any() ||
+                   root.Descendants<DocumentFormat.OpenXml.Wordprocessing.Drawing>().Any() ||
+                   root.Descendants<V.ImageData>().Any() ||
+                   root.Descendants<Hyperlink>().Any() ||
+                   root.Descendants<SimpleField>().Any() ||
+                   root.Descendants<FieldCode>().Any();
+        }
+
+        private static void NormalizeHeaderFooterSignatureElement(OpenXmlPart part, OpenXmlElement root) {
+            foreach (OpenXmlElement element in new[] { root }.Concat(root.Descendants())) {
+                foreach (OpenXmlAttribute attribute in element.GetAttributes().ToList()) {
+                    if (IsVolatileHeaderFooterSignatureAttribute(attribute)) {
+                        element.RemoveAttribute(attribute.LocalName, attribute.NamespaceUri);
+                    } else if (IsRelationshipHeaderFooterSignatureAttribute(attribute) && attribute.Value is string relationshipId) {
+                        element.SetAttribute(new OpenXmlAttribute(attribute.Prefix, attribute.LocalName, attribute.NamespaceUri, GetPartRelationshipSignature(part, relationshipId)));
+                    }
+                }
+
+                if (element is DW.DocProperties docProperties) {
+                    docProperties.Id = 0U;
+                    docProperties.Name = string.Empty;
+                } else if (element is PIC.NonVisualDrawingProperties pictureProperties) {
+                    pictureProperties.Id = 0U;
+                    pictureProperties.Name = string.Empty;
+                }
+            }
+        }
+
+        private static bool IsVolatileHeaderFooterSignatureAttribute(OpenXmlAttribute attribute) {
+            return attribute.NamespaceUri == "http://schemas.openxmlformats.org/wordprocessingml/2006/main" &&
+                   attribute.LocalName.StartsWith("rsid", StringComparison.Ordinal);
+        }
+
+        private static bool IsRelationshipHeaderFooterSignatureAttribute(OpenXmlAttribute attribute) {
+            return attribute.NamespaceUri == "http://schemas.openxmlformats.org/officeDocument/2006/relationships" &&
+                   (attribute.LocalName == "id" || attribute.LocalName == "embed" || attribute.LocalName == "link");
+        }
+
+        private static string GetPartRelationshipSignature(OpenXmlPart part, string relationshipId) {
+            ExternalRelationship? externalRelationship = part.ExternalRelationships.FirstOrDefault(item => item.Id == relationshipId);
+            if (externalRelationship != null) {
+                return "external:" + externalRelationship.RelationshipType + ":" + externalRelationship.Uri;
+            }
+
+            HyperlinkRelationship? hyperlinkRelationship = part.HyperlinkRelationships.FirstOrDefault(item => item.Id == relationshipId);
+            if (hyperlinkRelationship != null) {
+                return "hyperlink:" + hyperlinkRelationship.Uri + ":" + hyperlinkRelationship.IsExternal.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            }
+
+            OpenXmlPart relatedPart;
+            try {
+                relatedPart = part.GetPartById(relationshipId);
+            } catch (ArgumentOutOfRangeException) {
+                return "missing:" + relationshipId;
+            }
+
+            if (relatedPart is ImagePart imagePart) {
+                using Stream stream = imagePart.GetStream(FileMode.Open, FileAccess.Read);
+                ImageFingerprint fingerprint = CreateImageFingerprint(stream);
+                return "image:" + imagePart.ContentType + ":" + fingerprint.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" + fingerprint.Sha256;
+            }
+
+            return "part:" + relatedPart.ContentType;
         }
 
         private static bool IsHeaderFooterReferenceVisible(MainDocumentPart mainPart, HeaderFooterValues? type, OpenXmlElement reference) {
