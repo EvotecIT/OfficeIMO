@@ -58,8 +58,9 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             int columnCount = 0;
-            foreach (IReadOnlyList<WordTableCell> row in layout.Rows) {
-                int logicalColumn = 0;
+            for (int rowIndex = 0; rowIndex < layout.Rows.Count; rowIndex++) {
+                IReadOnlyList<WordTableCell> row = layout.Rows[rowIndex];
+                int logicalColumn = GetNativeTableRowStartColumn(layout, rowIndex);
                 foreach (WordTableCell cell in row) {
                     if (IsNativeHorizontalMergeContinuation(cell)) {
                         continue;
@@ -77,8 +78,9 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static IEnumerable<(WordTableCell Cell, int Column, int ColumnSpan)> EnumerateNativeTableCells(TableLayout layout) {
-            foreach (IReadOnlyList<WordTableCell> row in layout.Rows) {
-                int logicalColumn = 0;
+            for (int rowIndex = 0; rowIndex < layout.Rows.Count; rowIndex++) {
+                IReadOnlyList<WordTableCell> row = layout.Rows[rowIndex];
+                int logicalColumn = GetNativeTableRowStartColumn(layout, rowIndex);
                 foreach (WordTableCell cell in row) {
                     if (IsNativeHorizontalMergeContinuation(cell)) {
                         continue;
@@ -95,6 +97,9 @@ namespace OfficeIMO.Word.Pdf {
                 }
             }
         }
+
+        private static int GetNativeTableRowStartColumn(TableLayout layout, int rowIndex) =>
+            Math.Max(0, layout.GetRowStartColumn(rowIndex));
 
         private static bool IsNativeHorizontalMergeContinuation(WordTableCell cell) =>
             cell.HorizontalMerge == W.MergedCellValues.Continue;

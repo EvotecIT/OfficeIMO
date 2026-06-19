@@ -45,7 +45,7 @@ namespace OfficeIMO.Word.Pdf {
 
             IReadOnlyList<WordTableCell> row = layout.Rows[rowIndex];
             bool changed = false;
-            int logicalColumnIndex = 0;
+            int logicalColumnIndex = GetNativeTableRowStartColumn(layout, rowIndex);
             for (int cellIndex = 0; cellIndex < row.Count; cellIndex++) {
                 WordTableCell cell = row[cellIndex];
                 if (IsNativeHorizontalMergeContinuation(cell)) {
@@ -82,7 +82,7 @@ namespace OfficeIMO.Word.Pdf {
             for (int rowIndex = headerRowCount; rowIndex < footerStartRowIndex; rowIndex++) {
                 int bodyRowIndex = rowIndex - headerRowCount;
                 IReadOnlyList<WordTableCell> row = layout.Rows[rowIndex];
-                int logicalColumnIndex = 0;
+                int logicalColumnIndex = GetNativeTableRowStartColumn(layout, rowIndex);
                 for (int cellIndex = 0; cellIndex < row.Count; cellIndex++) {
                     WordTableCell cell = row[cellIndex];
                     if (IsNativeHorizontalMergeContinuation(cell)) {
@@ -125,7 +125,7 @@ namespace OfficeIMO.Word.Pdf {
             bool changed = false;
             for (int rowIndex = 0; rowIndex < layout.Rows.Count; rowIndex++) {
                 IReadOnlyList<WordTableCell> row = layout.Rows[rowIndex];
-                int logicalColumnIndex = 0;
+                int logicalColumnIndex = GetNativeTableRowStartColumn(layout, rowIndex);
                 for (int cellIndex = 0; cellIndex < row.Count; cellIndex++) {
                     WordTableCell cell = row[cellIndex];
                     if (IsNativeHorizontalMergeContinuation(cell)) {

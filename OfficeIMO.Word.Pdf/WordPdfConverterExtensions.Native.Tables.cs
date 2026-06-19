@@ -39,7 +39,8 @@ namespace OfficeIMO.Word.Pdf {
             for (int rowIndex = 0; rowIndex < layout.Rows.Count; rowIndex++) {
                 IReadOnlyList<WordTableCell> row = layout.Rows[rowIndex];
                 var nativeCells = new List<PdfCore.PdfTableCell>();
-                int logicalColumnIndex = 0;
+                int logicalColumnIndex = GetNativeTableRowStartColumn(layout, rowIndex);
+                AddNativeTableGridBeforePlaceholders(nativeCells, logicalColumnIndex);
                 for (int columnIndex = 0; columnIndex < row.Count; columnIndex++) {
                     WordTableCell cell = row[columnIndex];
                     if (IsNativeHorizontalMergeContinuation(cell)) {
@@ -403,7 +404,7 @@ namespace OfficeIMO.Word.Pdf {
 
             for (int rowIndex = 0; rowIndex < layout.Rows.Count; rowIndex++) {
                 IReadOnlyList<WordTableCell> row = layout.Rows[rowIndex];
-                int logicalColumnIndex = 0;
+                int logicalColumnIndex = GetNativeTableRowStartColumn(layout, rowIndex);
                 for (int cellIndex = 0; cellIndex < row.Count; cellIndex++) {
                     WordTableCell cell = row[cellIndex];
                     if (IsNativeHorizontalMergeContinuation(cell)) {
@@ -718,7 +719,7 @@ namespace OfficeIMO.Word.Pdf {
             var cellBorders = new Dictionary<(int Row, int Column), PdfCore.PdfCellBorder>();
             for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
                 IReadOnlyList<WordTableCell> row = layout.Rows[rowIndex];
-                int logicalColumn = 0;
+                int logicalColumn = GetNativeTableRowStartColumn(layout, rowIndex);
                 for (int cellIndex = 0; cellIndex < row.Count; cellIndex++) {
                     WordTableCell cell = row[cellIndex];
                     if (IsNativeHorizontalMergeContinuation(cell)) {
@@ -748,6 +749,12 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             return cellBorders.Count == 0 ? null : cellBorders;
+        }
+
+        private static void AddNativeTableGridBeforePlaceholders(List<PdfCore.PdfTableCell> cells, int count) {
+            for (int i = 0; i < count; i++) {
+                cells.Add(PdfCore.PdfTableCell.TextCell(string.Empty));
+            }
         }
 
         private static PdfCore.PdfCellBorder? CreateNativeTableBorderCell(W.TableBorders borders, int rowIndex, int rowCount, int columnIndex, int columnCount, int columnSpan, int rowSpan) {

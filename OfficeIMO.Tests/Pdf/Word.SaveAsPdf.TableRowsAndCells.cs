@@ -274,6 +274,56 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Honors_Table_Row_GridBefore_Offsets() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableRowGridBefore.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableRowGridBefore.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            WordTable table = document.AddTable(2, 3);
+            table.Width = 4320;
+            table.WidthType = TableWidthUnitValues.Dxa;
+            table.LayoutType = TableLayoutValues.Fixed;
+            table.GridColumnWidth = new List<int> { 1440, 1440, 1440 };
+            foreach (WordTableRow row in table.Rows) {
+                foreach (WordTableCell cell in row.Cells) {
+                    cell.Width = 1440;
+                    cell.WidthType = TableWidthUnitValues.Dxa;
+                }
+            }
+
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "GBLeft";
+            table.Rows[0].Cells[1].Paragraphs[0].Text = "GBMid";
+            table.Rows[0].Cells[2].Paragraphs[0].Text = "GBRight";
+            table.Rows[1].Cells[0].Paragraphs[0].Text = "GBOffset";
+            table.Rows[1].Cells[1].Paragraphs[0].Text = "GBEnd";
+            table.Rows[1].Cells[2].Remove();
+            table.Rows[1]._tableRow.TableRowProperties ??= new TableRowProperties();
+            table.Rows[1]._tableRow.TableRowProperties.Append(new GridBefore { Val = 1 });
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = new PdfCore.PageSize(420, 260),
+                Margins = PdfCore.PageMargins.Uniform(40),
+                FontFamily = "Helvetica"
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        var words = pdf.GetPage(1).GetWords().ToList();
+        var left = Assert.Single(words, word => word.Text == "GBLeft");
+        var middle = Assert.Single(words, word => word.Text == "GBMid");
+        var offset = Assert.Single(words, word => word.Text == "GBOffset");
+        var end = Assert.Single(words, word => word.Text == "GBEnd");
+
+        Assert.True(offset.BoundingBox.Left > left.BoundingBox.Left + 55D,
+            $"Expected Word gridBefore to offset the second row into the middle grid column. Left x: {left.BoundingBox.Left:0.##}; offset x: {offset.BoundingBox.Left:0.##}.");
+        Assert.InRange(Math.Abs(offset.BoundingBox.Left - middle.BoundingBox.Left), 0D, 8D);
+        Assert.True(end.BoundingBox.Left > offset.BoundingBox.Left + 55D,
+            $"Expected the second physical cell after gridBefore to land in the right grid column. Offset x: {offset.BoundingBox.Left:0.##}; end x: {end.BoundingBox.Left:0.##}.");
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Uses_Autofit_For_Percentage_Width_Word_Table() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeAutofitPercentageTable.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeAutofitPercentageTable.pdf");

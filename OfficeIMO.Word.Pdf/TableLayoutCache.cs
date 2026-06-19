@@ -12,7 +12,9 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             List<IReadOnlyList<WordTableCell>> rows = TableBuilder.Map(table).ToList();
-            int columnCount = ResolveColumnCount(table, rows);
+            int[] rowStartColumns = ResolveRowGridOffsets(table, rows.Count, before: true);
+            int[] rowTrailingColumns = ResolveRowGridOffsets(table, rows.Count, before: false);
+            int columnCount = ResolveColumnCount(table, rows, rowStartColumns, rowTrailingColumns);
             float[] widths = new float[columnCount];
             float[] gridWidths = new float[columnCount];
             bool[] explicitCellWidthColumns = new bool[columnCount];
@@ -27,8 +29,9 @@ namespace OfficeIMO.Word.Pdf {
                 }
             }
 
-            foreach (IReadOnlyList<WordTableCell> row in rows) {
-                int logicalColumn = 0;
+            for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
+                IReadOnlyList<WordTableCell> row = rows[rowIndex];
+                int logicalColumn = rowStartColumns[rowIndex];
                 for (int i = 0; i < row.Count && logicalColumn < widths.Length; i++) {
                     WordTableCell cell = row[i];
                     if (cell.HorizontalMerge == MergedCellValues.Continue) {
@@ -78,20 +81,21 @@ namespace OfficeIMO.Word.Pdf {
                 }
             }
 
-            TableLayout layout = new(rows, widths);
+            TableLayout layout = new(rows, widths, rowStartColumns);
             _cache.Add(table, layout);
             return layout;
         }
 
-        private static int ResolveColumnCount(WordTable table, List<IReadOnlyList<WordTableCell>> rows) {
+        private static int ResolveColumnCount(WordTable table, List<IReadOnlyList<WordTableCell>> rows, int[] rowStartColumns, int[] rowTrailingColumns) {
             List<int> gridColumnWidths = table.GridColumnWidth;
             if (gridColumnWidths.Count > 0) {
                 return gridColumnWidths.Count;
             }
 
             int columnCount = 0;
-            foreach (IReadOnlyList<WordTableCell> row in rows) {
-                int rowColumns = 0;
+            for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
+                IReadOnlyList<WordTableCell> row = rows[rowIndex];
+                int rowColumns = rowStartColumns[rowIndex] + rowTrailingColumns[rowIndex];
                 foreach (WordTableCell cell in row) {
                     if (cell.HorizontalMerge == MergedCellValues.Continue) {
                         continue;
@@ -107,6 +111,23 @@ namespace OfficeIMO.Word.Pdf {
 
             return columnCount;
         }
+
+        private static int[] ResolveRowGridOffsets(WordTable table, int rowCount, bool before) {
+            int[] offsets = new int[rowCount];
+            for (int rowIndex = 0; rowIndex < rowCount && rowIndex < table.Rows.Count; rowIndex++) {
+                TableRowProperties? properties = table.Rows[rowIndex]._tableRow.TableRowProperties;
+                offsets[rowIndex] = before
+                    ? ToNonNegativeInt(properties?.GetFirstChild<GridBefore>()?.Val?.Value)
+                    : ToNonNegativeInt(properties?.GetFirstChild<GridAfter>()?.Val?.Value);
+            }
+
+            return offsets;
+        }
+
+        private static int ToNonNegativeInt(int? value) =>
+            value.HasValue && value.Value > 0
+                ? value.Value
+                : 0;
 
         private static bool IsExplicitDxaCellWidth(WordTableCell cell) =>
             cell.Width.HasValue &&
