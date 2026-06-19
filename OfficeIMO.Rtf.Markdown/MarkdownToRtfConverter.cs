@@ -352,7 +352,7 @@ internal static class MarkdownToRtfConverter {
     private static void ConvertCodeBlock(RtfDocument document, CodeBlock code) {
         int fontId = document.AddFont("Consolas");
         string[] lines = code.Content.Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.None);
-        string bookmarkName = RtfMarkdownBridgeMarkers.CreateCodeBlockBookmarkName(document.Paragraphs.Count, code.Language);
+        string bookmarkName = RtfMarkdownBridgeMarkers.CreateCodeBlockBookmarkName(document.Paragraphs.Count, code.InfoString);
         for (int i = 0; i < lines.Length; i++) {
             RtfParagraph paragraph = document.AddParagraph();
             paragraph.AddBookmarkStart(bookmarkName);
@@ -484,16 +484,19 @@ internal static class MarkdownToRtfConverter {
         }
     }
 
-    private static void AppendInlineSequence(RtfParagraph paragraph, InlineSequence sequence, RtfDocument document, MarkdownToRtfOptions options, InlineStyle style, IReadOnlyDictionary<string, FootnoteDefinitionBlock> footnoteDefinitions) {
+    private static void AppendInlineSequence(RtfParagraph paragraph, InlineSequence sequence, RtfDocument document, MarkdownToRtfOptions options, InlineStyle style, IReadOnlyDictionary<string, FootnoteDefinitionBlock> footnoteDefinitions, HashSet<string>? activeFootnotes = null) {
         for (int i = 0; i < sequence.Nodes.Count; i++) {
-            AppendInline(paragraph, sequence.Nodes[i], document, options, style, footnoteDefinitions);
+            AppendInline(paragraph, sequence.Nodes[i], document, options, style, footnoteDefinitions, activeFootnotes);
         }
     }
 
-    private static void AppendInline(RtfParagraph paragraph, IMarkdownInline inline, RtfDocument document, MarkdownToRtfOptions options, InlineStyle style, IReadOnlyDictionary<string, FootnoteDefinitionBlock> footnoteDefinitions) {
+    private static void AppendInline(RtfParagraph paragraph, IMarkdownInline inline, RtfDocument document, MarkdownToRtfOptions options, InlineStyle style, IReadOnlyDictionary<string, FootnoteDefinitionBlock> footnoteDefinitions, HashSet<string>? activeFootnotes = null) {
         switch (inline) {
             case TextRun text:
                 AddStyledText(paragraph, text.Text, style);
+                break;
+            case DecodedHtmlEntityTextRun decodedText:
+                AddStyledTextRaw(paragraph, decodedText.Text, style);
                 break;
             case BoldInline bold:
                 AddStyledText(paragraph, bold.Text, style.WithBold());
@@ -517,10 +520,10 @@ internal static class MarkdownToRtfConverter {
                 AddStyledTextRaw(paragraph, code.Text, style.WithFont(document.AddFont("Consolas")));
                 break;
             case LinkInline link:
-                AppendLink(paragraph, link, document, options, style, footnoteDefinitions);
+                AppendLink(paragraph, link, document, options, style, footnoteDefinitions, activeFootnotes);
                 break;
             case FootnoteRefInline footnote:
-                AppendFootnoteReference(paragraph, footnote, document, options, style, footnoteDefinitions);
+                AppendFootnoteReference(paragraph, footnote, document, options, style, footnoteDefinitions, activeFootnotes);
                 break;
             case ImageInline image:
                 AddStyledText(paragraph, "[Image: " + image.PlainAlt + "]", style);
@@ -533,25 +536,25 @@ internal static class MarkdownToRtfConverter {
                 AppendInlineRawHtml(paragraph, html.Html, options, style);
                 break;
             case BoldSequenceInline boldSequence:
-                AppendInlineSequence(paragraph, boldSequence.Inlines, document, options, style.WithBold(), footnoteDefinitions);
+                AppendInlineSequence(paragraph, boldSequence.Inlines, document, options, style.WithBold(), footnoteDefinitions, activeFootnotes);
                 break;
             case ItalicSequenceInline italicSequence:
-                AppendInlineSequence(paragraph, italicSequence.Inlines, document, options, style.WithItalic(), footnoteDefinitions);
+                AppendInlineSequence(paragraph, italicSequence.Inlines, document, options, style.WithItalic(), footnoteDefinitions, activeFootnotes);
                 break;
             case BoldItalicSequenceInline boldItalicSequence:
-                AppendInlineSequence(paragraph, boldItalicSequence.Inlines, document, options, style.WithBold().WithItalic(), footnoteDefinitions);
+                AppendInlineSequence(paragraph, boldItalicSequence.Inlines, document, options, style.WithBold().WithItalic(), footnoteDefinitions, activeFootnotes);
                 break;
             case StrikethroughSequenceInline strikeSequence:
-                AppendInlineSequence(paragraph, strikeSequence.Inlines, document, options, style.WithStrike(), footnoteDefinitions);
+                AppendInlineSequence(paragraph, strikeSequence.Inlines, document, options, style.WithStrike(), footnoteDefinitions, activeFootnotes);
                 break;
             case HighlightSequenceInline highlightSequence:
-                AppendInlineSequence(paragraph, highlightSequence.Inlines, document, options, style.WithHighlight(EnsureHighlightColor(document)), footnoteDefinitions);
+                AppendInlineSequence(paragraph, highlightSequence.Inlines, document, options, style.WithHighlight(EnsureHighlightColor(document)), footnoteDefinitions, activeFootnotes);
                 break;
             case HtmlTagSequenceInline htmlTagSequence:
-                AppendHtmlTagSequence(paragraph, htmlTagSequence, document, options, style, footnoteDefinitions);
+                AppendHtmlTagSequence(paragraph, htmlTagSequence, document, options, style, footnoteDefinitions, activeFootnotes);
                 break;
             case IInlineContainerMarkdownInline container when container.NestedInlines != null:
-                AppendInlineSequence(paragraph, container.NestedInlines!, document, options, style, footnoteDefinitions);
+                AppendInlineSequence(paragraph, container.NestedInlines!, document, options, style, footnoteDefinitions, activeFootnotes);
                 break;
             default:
                 AddStyledText(paragraph, RtfMarkdownText.PlainText(inline), style);
@@ -560,25 +563,25 @@ internal static class MarkdownToRtfConverter {
         }
     }
 
-    private static void AppendHtmlTagSequence(RtfParagraph paragraph, HtmlTagSequenceInline htmlTagSequence, RtfDocument document, MarkdownToRtfOptions options, InlineStyle style, IReadOnlyDictionary<string, FootnoteDefinitionBlock> footnoteDefinitions) {
+    private static void AppendHtmlTagSequence(RtfParagraph paragraph, HtmlTagSequenceInline htmlTagSequence, RtfDocument document, MarkdownToRtfOptions options, InlineStyle style, IReadOnlyDictionary<string, FootnoteDefinitionBlock> footnoteDefinitions, HashSet<string>? activeFootnotes = null) {
         switch (htmlTagSequence.TagName) {
             case "u":
-                AppendInlineSequence(paragraph, htmlTagSequence.Inlines, document, options, style.WithUnderline(), footnoteDefinitions);
+                AppendInlineSequence(paragraph, htmlTagSequence.Inlines, document, options, style.WithUnderline(), footnoteDefinitions, activeFootnotes);
                 break;
             case "sup":
-                AppendInlineSequence(paragraph, htmlTagSequence.Inlines, document, options, style.WithVerticalPosition(RtfVerticalPosition.Superscript), footnoteDefinitions);
+                AppendInlineSequence(paragraph, htmlTagSequence.Inlines, document, options, style.WithVerticalPosition(RtfVerticalPosition.Superscript), footnoteDefinitions, activeFootnotes);
                 break;
             case "sub":
-                AppendInlineSequence(paragraph, htmlTagSequence.Inlines, document, options, style.WithVerticalPosition(RtfVerticalPosition.Subscript), footnoteDefinitions);
+                AppendInlineSequence(paragraph, htmlTagSequence.Inlines, document, options, style.WithVerticalPosition(RtfVerticalPosition.Subscript), footnoteDefinitions, activeFootnotes);
                 break;
             default:
-                AppendInlineSequence(paragraph, htmlTagSequence.Inlines, document, options, style, footnoteDefinitions);
+                AppendInlineSequence(paragraph, htmlTagSequence.Inlines, document, options, style, footnoteDefinitions, activeFootnotes);
                 options.Report("MDRTF011", RtfMarkdownDiagnosticSeverity.Info, "Markdown HTML inline tag converted using nested text fallback.", htmlTagSequence.TagName);
                 break;
         }
     }
 
-    private static void AppendLink(RtfParagraph paragraph, LinkInline link, RtfDocument document, MarkdownToRtfOptions options, InlineStyle style, IReadOnlyDictionary<string, FootnoteDefinitionBlock> footnoteDefinitions) {
+    private static void AppendLink(RtfParagraph paragraph, LinkInline link, RtfDocument document, MarkdownToRtfOptions options, InlineStyle style, IReadOnlyDictionary<string, FootnoteDefinitionBlock> footnoteDefinitions, HashSet<string>? activeFootnotes = null) {
         Uri? uri = null;
         if (!Uri.TryCreate(link.Url, UriKind.RelativeOrAbsolute, out uri)) {
             options.Report("MDRTF009", RtfMarkdownDiagnosticSeverity.Warning, "Markdown link URL was not valid for RTF hyperlink metadata.", link.Url);
@@ -586,7 +589,7 @@ internal static class MarkdownToRtfConverter {
 
         if (link.LabelInlines != null) {
             int before = paragraph.Inlines.Count;
-            AppendInlineSequence(paragraph, link.LabelInlines, document, options, style, footnoteDefinitions);
+            AppendInlineSequence(paragraph, link.LabelInlines, document, options, style, footnoteDefinitions, activeFootnotes);
             if (uri != null) {
                 for (int i = before; i < paragraph.Inlines.Count; i++) {
                     if (paragraph.Inlines[i] is RtfRun hyperlinkRun) {
@@ -606,19 +609,30 @@ internal static class MarkdownToRtfConverter {
         }
     }
 
-    private static void AppendFootnoteReference(RtfParagraph paragraph, FootnoteRefInline footnote, RtfDocument document, MarkdownToRtfOptions options, InlineStyle style, IReadOnlyDictionary<string, FootnoteDefinitionBlock> footnoteDefinitions) {
+    private static void AppendFootnoteReference(RtfParagraph paragraph, FootnoteRefInline footnote, RtfDocument document, MarkdownToRtfOptions options, InlineStyle style, IReadOnlyDictionary<string, FootnoteDefinitionBlock> footnoteDefinitions, HashSet<string>? activeFootnotes = null) {
         if (!footnoteDefinitions.TryGetValue(footnote.Label, out FootnoteDefinitionBlock? definition)) {
             AddStyledText(paragraph, footnote.RenderMarkdown(), style);
             options.Report("MDRTF018", RtfMarkdownDiagnosticSeverity.Warning, "Markdown footnote reference has no matching definition.", footnote.Label);
             return;
         }
 
+        activeFootnotes ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (!activeFootnotes.Add(footnote.Label)) {
+            AddStyledText(paragraph, footnote.RenderMarkdown(), style);
+            options.Report("MDRTF020", RtfMarkdownDiagnosticSeverity.Warning, "Markdown footnote reference cycle preserved as literal text.", footnote.Label);
+            return;
+        }
+
         RtfNote note = document.AddNote(RtfNoteKind.Footnote);
-        AddFootnoteDefinitionContent(note, definition, document, options, footnoteDefinitions);
-        paragraph.AddNoteReference(note, footnote.Label);
+        try {
+            AddFootnoteDefinitionContent(note, definition, document, options, footnoteDefinitions, activeFootnotes);
+            paragraph.AddNoteReference(note, footnote.Label);
+        } finally {
+            activeFootnotes.Remove(footnote.Label);
+        }
     }
 
-    private static void AddFootnoteDefinitionContent(RtfNote note, FootnoteDefinitionBlock definition, RtfDocument document, MarkdownToRtfOptions options, IReadOnlyDictionary<string, FootnoteDefinitionBlock> footnoteDefinitions) {
+    private static void AddFootnoteDefinitionContent(RtfNote note, FootnoteDefinitionBlock definition, RtfDocument document, MarkdownToRtfOptions options, IReadOnlyDictionary<string, FootnoteDefinitionBlock> footnoteDefinitions, HashSet<string> activeFootnotes) {
         IReadOnlyList<IMarkdownBlock> blocks = definition.Blocks.Count > 0
             ? definition.Blocks
             : new IMarkdownBlock[] { new ParagraphBlock(MarkdownReader.ParseInlineText(definition.Text, options.ReaderOptions)) };
@@ -626,7 +640,7 @@ internal static class MarkdownToRtfConverter {
         for (int i = 0; i < blocks.Count; i++) {
             switch (blocks[i]) {
                 case ParagraphBlock paragraphBlock:
-                    AppendInlineSequence(note.AddParagraph(), paragraphBlock.Inlines, document, options, InlineStyle.Normal, footnoteDefinitions);
+                    AppendInlineSequence(note.AddParagraph(), paragraphBlock.Inlines, document, options, InlineStyle.Normal, footnoteDefinitions, activeFootnotes);
                     break;
                 default:
                     note.AddParagraph(blocks[i].RenderMarkdown());

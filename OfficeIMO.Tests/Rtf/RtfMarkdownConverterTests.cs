@@ -164,6 +164,17 @@ public class RtfMarkdownConverterTests {
     }
 
     [Fact]
+    public void MarkdownToRtfDocumentPreservesDecodedEntityTextInsideHtmlWrappers() {
+        RtfDocument document = "<u>&amp;lt;</u>".ToRtfDocumentFromMarkdown();
+
+        RtfParagraph paragraph = Assert.Single(document.Paragraphs);
+        RtfRun run = Assert.Single(paragraph.Runs);
+
+        Assert.Equal("&lt;", run.Text);
+        Assert.NotEqual(RtfUnderlineStyle.None, run.UnderlineStyle);
+    }
+
+    [Fact]
     public void MarkdownToRtfDocumentOmitsHtmlCommentBlocksByDefault() {
         var options = new MarkdownToRtfOptions();
 
@@ -204,6 +215,23 @@ public class RtfMarkdownConverterTests {
         Assert.Contains("```csharp\n# not heading\n- not list\n```", roundTripMarkdown, StringComparison.Ordinal);
         Assert.Equal("csharp", code.Language);
         Assert.Equal("# not heading\n- not list", code.Content);
+    }
+
+    [Fact]
+    public void MarkdownRtfMarkdownRoundTripKeepsFullFencedCodeInfoString() {
+        string markdown = """
+            ```c++ title="demo"
+            int main() {}
+            ```
+            """;
+
+        RtfDocument serialized = RtfDocument.Read(markdown.ToRtfFromMarkdown()).Document;
+        string roundTripMarkdown = serialized.ToMarkdown().Replace("\r\n", "\n");
+        CodeBlock code = Assert.IsType<CodeBlock>(Assert.Single(MarkdownReader.Parse(roundTripMarkdown).Blocks));
+
+        Assert.Contains("```c++ title=\"demo\"", roundTripMarkdown, StringComparison.Ordinal);
+        Assert.Equal("c++ title=\"demo\"", code.InfoString);
+        Assert.Equal("c++", code.Language);
     }
 
     [Fact]
@@ -472,6 +500,23 @@ public class RtfMarkdownConverterTests {
     }
 
     [Fact]
+    public void MarkdownToRtfDocumentPreservesRecursiveFootnoteReferenceAsText() {
+        var options = new MarkdownToRtfOptions();
+        string markdown = """
+            Text[^1]
+
+            [^1]: see [^1]
+            """;
+
+        RtfDocument document = markdown.ToRtfDocumentFromMarkdown(options);
+
+        RtfGeneratedText reference = Assert.Single(document.Paragraphs[0].Inlines.OfType<RtfGeneratedText>());
+        Assert.NotNull(reference.Note);
+        Assert.Equal("see [^1]", reference.Note!.ToPlainText());
+        Assert.Contains(options.Diagnostics, diagnostic => diagnostic.Code == "MDRTF020");
+    }
+
+    [Fact]
     public void MarkdownToRtfDocumentClearsStaleNestedOrderedStarts() {
         string markdown = """
             1. A
@@ -667,6 +712,32 @@ public class RtfMarkdownConverterTests {
     }
 
     [Fact]
+    public void RtfDocumentToMarkdownSplitsRestartedNestedOrderedLists() {
+        RtfDocument document = RtfDocument.Create();
+        RtfListDefinition parentDefinition = document.AddListDefinition(100);
+        parentDefinition.AddLevel(RtfListKind.Decimal).StartAt = 1;
+        document.AddListOverride(10, 100);
+        RtfListDefinition firstChildDefinition = document.AddListDefinition(200);
+        firstChildDefinition.AddLevel(RtfListKind.Decimal).StartAt = 1;
+        firstChildDefinition.AddLevel(RtfListKind.Decimal).StartAt = 5;
+        document.AddListOverride(20, 200);
+        RtfListDefinition secondChildDefinition = document.AddListDefinition(300);
+        secondChildDefinition.AddLevel(RtfListKind.Decimal).StartAt = 1;
+        secondChildDefinition.AddLevel(RtfListKind.Decimal).StartAt = 1;
+        document.AddListOverride(30, 300);
+
+        document.AddParagraph("Parent A").SetList(listId: 10, level: 0, kind: RtfListKind.Decimal).ListDefinitionId = 100;
+        document.AddParagraph("Five").SetList(listId: 20, level: 1, kind: RtfListKind.Decimal).ListDefinitionId = 200;
+        document.AddParagraph("Parent B").SetList(listId: 10, level: 0, kind: RtfListKind.Decimal).ListDefinitionId = 100;
+        document.AddParagraph("One").SetList(listId: 30, level: 1, kind: RtfListKind.Decimal).ListDefinitionId = 300;
+
+        string markdown = document.ToMarkdown().Replace("\r\n", "\n");
+
+        Assert.Contains("1. Parent A\n\n   5. Five\n\n2. Parent B\n\n   1. One", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("   6. One", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void RtfDocumentToMarkdownPreservesListStartsAndDoesNotPromoteDataRows() {
         RtfDocument document = RtfDocument.Create();
         RtfListDefinition definition = document.AddListDefinition(100);
@@ -688,6 +759,18 @@ public class RtfMarkdownConverterTests {
         Assert.DoesNotContain("| --- |", markdown, StringComparison.Ordinal);
         Assert.Contains("| Data one |", markdown, StringComparison.Ordinal);
         Assert.Contains("| Data two |", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RtfDocumentToMarkdownEncodesSpacedHyperlinkDestinations() {
+        RtfDocument document = RtfDocument.Create();
+        document.AddParagraph().AddText("file").SetHyperlink(new Uri("docs/My File.docx", UriKind.Relative));
+
+        string markdown = document.ToMarkdown();
+        RtfDocument roundTrip = markdown.ToRtfDocumentFromMarkdown();
+
+        Assert.Contains("[file](docs/My%20File.docx)", markdown, StringComparison.Ordinal);
+        Assert.Contains(roundTrip.Paragraphs[0].Runs, run => run.Text == "file" && run.Hyperlink != null);
     }
 
     private static string ExtractPlainText(IPlainTextMarkdownInline inline) {
