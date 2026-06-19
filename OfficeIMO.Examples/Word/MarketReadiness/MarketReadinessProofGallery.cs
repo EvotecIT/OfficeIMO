@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
@@ -22,6 +23,8 @@ namespace OfficeIMO.Examples.Word {
             CreateReviewDiffProof(galleryPath);
             CreateHtmlProof(galleryPath);
             CreateMarkdownProof(galleryPath);
+            WriteGalleryIndex(galleryPath);
+            WriteProofManifest(galleryPath);
 
             Console.WriteLine($"Proof gallery written to: {galleryPath}");
         }
@@ -71,7 +74,95 @@ namespace OfficeIMO.Examples.Word {
                 records,
                 (index, _) => Path.Combine(scenarioPath, $"status-report-{index + 1}.docx"));
 
+            CreateInvoiceRowProof(scenarioPath);
+            CreateContentControlFormProof(scenarioPath);
             WriteValidationReport(scenarioPath);
+        }
+
+        private static void CreateInvoiceRowProof(string scenarioPath) {
+            string templatePath = Path.Combine(scenarioPath, "invoice-lines-template.docx");
+            using (WordDocument template = WordDocument.Create(templatePath)) {
+                template.AddParagraph("Invoice").Style = WordParagraphStyles.Heading1;
+                template.AddParagraph("Customer: ")
+                    .AddField(WordFieldType.MergeField, parameters: new List<string> { "\"Customer\"" });
+                template.AddParagraph("Invoice number: ")
+                    .AddField(WordFieldType.MergeField, parameters: new List<string> { "\"InvoiceNumber\"" });
+
+                WordTable table = template.AddTable(2, 3);
+                table.Rows[0].Cells[0].Paragraphs[0].Text = "Item";
+                table.Rows[0].Cells[1].Paragraphs[0].Text = "Qty";
+                table.Rows[0].Cells[2].Paragraphs[0].Text = "Price";
+                table.Rows[1].Cells[0].Paragraphs[0].AddField(WordFieldType.MergeField, parameters: new List<string> { "\"Item\"" });
+                table.Rows[1].Cells[1].Paragraphs[0].AddField(WordFieldType.MergeField, parameters: new List<string> { "\"Quantity\"" });
+                table.Rows[1].Cells[2].Paragraphs[0].AddField(WordFieldType.MergeField, parameters: new List<string> { "\"Price\"" });
+
+                WordMailMergeTemplateInspection inspection = WordMailMerge.InspectTemplate(
+                    template,
+                    new[] { "Customer", "InvoiceNumber", "Item", "Quantity", "Price" });
+                WriteTemplateDiagnostics(Path.Combine(scenarioPath, "invoice-template-diagnostics.md"), inspection);
+                template.Save();
+            }
+
+            var lineItems = new[] {
+                new Dictionary<string, string> {
+                    ["Item"] = "Assessment workshop",
+                    ["Quantity"] = "1",
+                    ["Price"] = "1200"
+                },
+                new Dictionary<string, string> {
+                    ["Item"] = "Implementation sprint",
+                    ["Quantity"] = "2",
+                    ["Price"] = "3400"
+                },
+                new Dictionary<string, string> {
+                    ["Item"] = "Readiness review",
+                    ["Quantity"] = "1",
+                    ["Price"] = "900"
+                }
+            };
+            WriteRecords(Path.Combine(scenarioPath, "invoice-line-data.md"), lineItems);
+
+            string outputPath = Path.Combine(scenarioPath, "invoice-lines-generated.docx");
+            File.Copy(templatePath, outputPath, overwrite: true);
+            using WordDocument invoice = WordDocument.Load(outputPath);
+            WordMailMerge.ExecuteTableRows(invoice.Tables[0], templateRowIndex: 1, lineItems);
+            WordMailMerge.Execute(invoice, new Dictionary<string, string> {
+                ["Customer"] = "Northwind Traders",
+                ["InvoiceNumber"] = "INV-2026-0042"
+            });
+            invoice.Save(false);
+        }
+
+        private static void CreateContentControlFormProof(string scenarioPath) {
+            string filePath = Path.Combine(scenarioPath, "client-intake-form.docx");
+            string logoSourcePath = Path.Combine(AppContext.BaseDirectory, "Images", "Kulek.jpg");
+            string logoReplacementPath = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
+
+            using WordDocument document = WordDocument.Create(filePath);
+            document.AddParagraph("Client Intake").Style = WordParagraphStyles.Heading1;
+            document.AddStructuredDocumentTag("Client placeholder", "Client Alias", "ClientName");
+            document.AddParagraph("Accepted:").AddCheckBox(false, "Accepted Alias", "Accepted");
+            document.AddParagraph("Due:").AddDatePicker(new DateTime(2026, 1, 1), "Due Alias", "DueDate");
+            document.AddParagraph("Priority:").AddDropDownList(new[] { "Low", "Medium", "High" }, "Priority Alias", "Priority");
+            document.AddParagraph("Logo:").AddPictureControl(logoSourcePath, 24, 24, "Logo Alias", "Logo");
+            document.AddParagraph("Tasks:").AddRepeatingSection("Tasks", "Tasks Alias", "Tasks");
+
+            var values = new Dictionary<string, object> {
+                ["ClientName"] = "Northwind Traders",
+                ["Accepted"] = true,
+                ["DueDate"] = new DateTime(2026, 5, 29),
+                ["Priority"] = "High",
+                ["Logo"] = WordContentControlPictureValue.FromFile(logoReplacementPath),
+                ["Tasks"] = new[] { "Collect source template", "Generate document", "Validate output" }
+            };
+
+            WordContentControlFormValidationResult validation = document.ValidateContentControlValues(values);
+            WriteFormDiagnostics(Path.Combine(scenarioPath, "client-intake-validation.md"), validation);
+            validation.EnsureValid();
+
+            int updated = document.FillContentControlValues(values);
+            WriteExtractedValues(Path.Combine(scenarioPath, "client-intake-filled-values.md"), updated, document.ExtractContentControlValues());
+            document.Save(false);
         }
 
         private static void CreateReviewDiffProof(string galleryPath) {
@@ -283,10 +374,141 @@ namespace OfficeIMO.Examples.Word {
             File.WriteAllText(Path.Combine(scenarioPath, "openxml-validation.md"), builder.ToString(), Encoding.UTF8);
         }
 
+        private static void WriteFormDiagnostics(string path, WordContentControlFormValidationResult validation) {
+            var builder = new StringBuilder();
+            builder.AppendLine("# Content-Control Form Validation");
+            builder.AppendLine();
+            builder.AppendLine("- Valid: " + validation.IsValid);
+            builder.AppendLine("- Expected keys: " + string.Join(", ", validation.ExpectedKeys));
+            builder.AppendLine("- Supplied keys: " + string.Join(", ", validation.SuppliedKeys));
+            builder.AppendLine("- Issues: " + validation.Issues.Count.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            foreach (WordContentControlFormIssue issue in validation.Issues) {
+                builder.AppendLine("  - " + issue.Kind + " " + issue.Key + ": " + issue.Message);
+            }
+
+            File.WriteAllText(path, builder.ToString(), Encoding.UTF8);
+        }
+
+        private static void WriteExtractedValues(string path, int updated, IReadOnlyDictionary<string, object> values) {
+            var builder = new StringBuilder();
+            builder.AppendLine("# Filled Content-Control Values");
+            builder.AppendLine();
+            builder.AppendLine("- Updated controls: " + updated.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            foreach (KeyValuePair<string, object> value in values.OrderBy(item => item.Key, StringComparer.OrdinalIgnoreCase)) {
+                builder.AppendLine("- " + value.Key + ": " + FormatValue(value.Value));
+            }
+
+            File.WriteAllText(path, builder.ToString(), Encoding.UTF8);
+        }
+
+        private static string FormatValue(object value) {
+            return value switch {
+                null => string.Empty,
+                DateTime date => date.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
+                WordContentControlPictureValue picture => picture.FileName,
+                IEnumerable<string> textItems => string.Join(", ", textItems),
+                _ => Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty
+            };
+        }
+
+        private static void WriteGalleryIndex(string galleryPath) {
+            var builder = new StringBuilder();
+            builder.AppendLine("# Word Market Readiness Proof Gallery");
+            builder.AppendLine();
+            builder.AppendLine("This folder is generated by `dotnet run --project OfficeIMO.Examples -- --word-market-readiness`.");
+            builder.AppendLine("It is intentionally artifact-first: each scenario keeps source input, generated `.docx` output, diagnostics, and Open XML validation results together.");
+            builder.AppendLine();
+            builder.AppendLine("| Scenario | What it proves | Key artifacts |");
+            builder.AppendLine("| --- | --- | --- |");
+            foreach (ProofScenarioInfo scenario in GetProofScenarios()) {
+                string scenarioPath = Path.Combine(galleryPath, scenario.DirectoryName);
+                string artifacts = string.Join("<br>", Directory.GetFiles(scenarioPath)
+                    .Select(path => Path.GetFileName(path))
+                    .OrderBy(name => name, StringComparer.OrdinalIgnoreCase));
+                builder.AppendLine("| " + scenario.Title + " | " + scenario.Description + " | " + artifacts + " |");
+            }
+
+            File.WriteAllText(Path.Combine(galleryPath, "README.md"), builder.ToString(), Encoding.UTF8);
+        }
+
+        private static void WriteProofManifest(string galleryPath) {
+            var scenarios = GetProofScenarios()
+                .Select(scenario => {
+                    string scenarioPath = Path.Combine(galleryPath, scenario.DirectoryName);
+                    return new {
+                        scenario = scenario.DirectoryName,
+                        title = scenario.Title,
+                        description = scenario.Description,
+                        artifacts = Directory.GetFiles(scenarioPath)
+                            .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
+                            .Select(path => new {
+                                path = ToRelativeGalleryPath(galleryPath, path),
+                                kind = Path.GetExtension(path).TrimStart('.').ToLowerInvariant(),
+                                validated = string.Equals(Path.GetExtension(path), ".docx", StringComparison.OrdinalIgnoreCase),
+                                validationErrors = string.Equals(Path.GetExtension(path), ".docx", StringComparison.OrdinalIgnoreCase)
+                                    ? ValidateDocx(path).Count
+                                    : -1
+                            })
+                            .ToArray()
+                    };
+                })
+                .ToArray();
+
+            var manifest = new {
+                generatedBy = "OfficeIMO.Examples --word-market-readiness",
+                scope = "OfficeIMO.Word non-PDF market readiness",
+                scenarios
+            };
+
+            File.WriteAllText(
+                Path.Combine(galleryPath, "proof-manifest.json"),
+                JsonSerializer.Serialize(manifest, new JsonSerializerOptions { WriteIndented = true }),
+                Encoding.UTF8);
+        }
+
+        private static string ToRelativeGalleryPath(string galleryPath, string path) {
+            return Path.GetRelativePath(galleryPath, path).Replace(Path.DirectorySeparatorChar, '/');
+        }
+
+        private static IReadOnlyList<ProofScenarioInfo> GetProofScenarios() {
+            return new[] {
+                new ProofScenarioInfo(
+                    "01-template-assembly",
+                    "Template assembly",
+                    "Batch merge, repeated table rows, content-control form fill, diagnostics, and generated documents."),
+                new ProofScenarioInfo(
+                    "02-review-diff",
+                    "Review and structured diff",
+                    "Document comparison with paragraph, table, row, cell, and image findings."),
+                new ProofScenarioInfo(
+                    "03-html-conversion",
+                    "HTML conversion",
+                    "Untrusted HTML import, generated DOCX, round-trip HTML, diagnostics, and validation."),
+                new ProofScenarioInfo(
+                    "04-markdown-conversion",
+                    "Markdown conversion",
+                    "Markdown import, generated DOCX, round-trip Markdown, diagnostics, and validation.")
+            };
+        }
+
         private static IReadOnlyList<ValidationErrorInfo> ValidateDocx(string path) {
             using WordprocessingDocument document = WordprocessingDocument.Open(path, false);
             var validator = new OpenXmlValidator(FileFormatVersions.Office2019);
             return validator.Validate(document).ToList();
+        }
+
+        private sealed class ProofScenarioInfo {
+            internal ProofScenarioInfo(string directoryName, string title, string description) {
+                DirectoryName = directoryName;
+                Title = title;
+                Description = description;
+            }
+
+            internal string DirectoryName { get; }
+
+            internal string Title { get; }
+
+            internal string Description { get; }
         }
     }
 }

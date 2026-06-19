@@ -48,7 +48,7 @@ Current implementation slice:
 
 - `WordDocumentComparer.CompareStructure(...)` returns deterministic paragraph, table, table-row, table-cell, and image findings.
 - The compare example prints structured findings alongside the generated comparison document.
-- Focused tests cover paragraph text changes, table cell and row changes, and image replacement.
+- Focused tests cover paragraph alignment, visible whitespace, blank paragraphs, table/cell/table insertion alignment, nested table cells, header/footer content, embedded images, linked images, and header images.
 
 ## HTML And Markdown Conversion
 
@@ -69,6 +69,7 @@ Current implementation slice:
 
 - `MarketReadinessProofGallery.Example_GenerateWordMarketReadinessProof(...)` emits two HTML scenarios and two Markdown scenarios.
 - Each scenario writes source input, generated DOCX, round-trip output where meaningful, diagnostics, and Open XML validation status.
+- The generated gallery includes `README.md` and `proof-manifest.json` so the artifact set can be inspected without opening the example source.
 - Run it with `dotnet run --project OfficeIMO.Examples -- --word-market-readiness`.
 
 ## Real-Document Proof
@@ -86,6 +87,7 @@ Each showcase should include source inputs, generated output, validation status,
 Current implementation slice:
 
 - `MarketReadinessProofGallery.Example_GenerateWordMarketReadinessProof(...)` also emits a template assembly scenario and a review/diff scenario, so evaluators can inspect the same workflow shape across all four priorities.
+- The template assembly scenario covers batch merge, repeated table rows, content-control form validation/fill, source data, generated DOCX output, and Open XML validation.
 - Run it with `dotnet run --project OfficeIMO.Examples -- --word-market-readiness`.
 
 ## Out Of Scope Here
