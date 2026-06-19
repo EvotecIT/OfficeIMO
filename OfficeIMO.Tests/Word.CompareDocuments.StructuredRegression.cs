@@ -280,6 +280,122 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompareStructureKeepsTableChildFindingsBeforeFollowingParagraphs() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_table_before_paragraph.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                WordTable table = doc.AddTable(2, 1);
+                SetTableTexts(table, "Owner", "Risk: Open");
+                doc.AddParagraph("Decision: Draft");
+                doc.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_table_before_paragraph.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                WordTable table = doc.AddTable(2, 1);
+                SetTableTexts(table, "Owner", "Risk: Closed");
+                doc.AddParagraph("Decision: Approved");
+                doc.Save(false);
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Equal(2, result.Findings.Count);
+            Assert.Equal(WordComparisonScope.TableCell, result.Findings[0].Scope);
+            Assert.Equal("Risk: Open", result.Findings[0].SourceText);
+            Assert.Equal(WordComparisonScope.Paragraph, result.Findings[1].Scope);
+            Assert.Equal("Decision: Draft", result.Findings[1].SourceText);
+        }
+
+        [Fact]
+        public void CompareStructureDisambiguatesCellBoundariesWhenTextContainsSeparator() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_cell_boundary_key.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                WordTable table = doc.AddTable(1, 2);
+                SetTableTexts(table, "A | B", "C");
+                doc.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_cell_boundary_key.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                WordTable table = doc.AddTable(1, 2);
+                SetTableTexts(table, "A", "B | C");
+                doc.Save(false);
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+            WordComparisonFinding[] cellFindings = result.Findings
+                .Where(finding => finding.Scope == WordComparisonScope.TableCell)
+                .ToArray();
+
+            Assert.Equal(2, cellFindings.Length);
+            Assert.Equal("A | B", cellFindings[0].SourceText);
+            Assert.Equal("A", cellFindings[0].TargetText);
+            Assert.Equal("C", cellFindings[1].SourceText);
+            Assert.Equal("B | C", cellFindings[1].TargetText);
+        }
+
+        [Fact]
+        public void CompareStructureAlignsInsertedTableRowsBeforeModifiedRows() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_inserted_row_before_modified.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                WordTable table = doc.AddTable(2, 2);
+                SetTableTexts(table, "MFA", "Security", "Logging", "Platform");
+                doc.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_inserted_row_before_modified.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                WordTable table = doc.AddTable(3, 2);
+                SetTableTexts(table, "Review", "Compliance", "MFA", "Identity", "Logging", "Platform");
+                doc.Save(false);
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            WordComparisonFinding inserted = Assert.Single(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.TableRow &&
+                finding.ChangeKind == WordComparisonChangeKind.Inserted);
+            WordComparisonFinding modified = Assert.Single(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.TableCell &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified);
+            WordComparisonFinding[] findings = result.Findings.ToArray();
+            Assert.True(System.Array.IndexOf(findings, inserted) < System.Array.IndexOf(findings, modified));
+            Assert.Equal("Review | Compliance", inserted.TargetText);
+            Assert.Equal("Security", modified.SourceText);
+            Assert.Equal("Identity", modified.TargetText);
+        }
+
+        [Fact]
+        public void CompareStructureReportsFootnoteAndEndnoteBodyChanges() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_notes.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                doc.AddParagraph("Footnote anchor").AddFootNote("Footnote pending");
+                doc.AddParagraph("Endnote anchor").AddEndNote("Endnote pending");
+                doc.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_notes.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                doc.AddParagraph("Footnote anchor").AddFootNote("Footnote approved");
+                doc.AddParagraph("Endnote anchor").AddEndNote("Endnote approved");
+                doc.Save(false);
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Paragraph &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified &&
+                finding.SourceText == "Footnote pending" &&
+                finding.TargetText == "Footnote approved");
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Paragraph &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified &&
+                finding.SourceText == "Endnote pending" &&
+                finding.TargetText == "Endnote approved");
+        }
+
+        [Fact]
         public void CompareStructureTreatsMovedBodyTableToHeaderAsDeleteInsert() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_body_table_to_header.docx");
             using (WordDocument doc = WordDocument.Create(sourcePath)) {

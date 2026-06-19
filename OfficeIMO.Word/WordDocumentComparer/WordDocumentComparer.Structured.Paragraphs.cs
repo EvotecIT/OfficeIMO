@@ -167,6 +167,28 @@ namespace OfficeIMO.Word {
                     AddParagraphSnapshots(snapshots, footerPart.Footer, "footer", FooterPartOrderBase + (footerIndex * RelatedPartOrderStride));
                     footerIndex++;
                 }
+
+                int footnoteIndex = 0;
+                foreach (Footnote footnote in mainPart.FootnotesPart?.Footnotes?.Elements<Footnote>() ?? Enumerable.Empty<Footnote>()) {
+                    if (footnote.Type != null) {
+                        continue;
+                    }
+
+                    string noteId = footnote.Id?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? footnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    AddParagraphSnapshots(snapshots, footnote, FootnotePartKeyPrefix + noteId, FootnotePartOrderBase + (footnoteIndex * RelatedPartOrderStride));
+                    footnoteIndex++;
+                }
+
+                int endnoteIndex = 0;
+                foreach (Endnote endnote in mainPart.EndnotesPart?.Endnotes?.Elements<Endnote>() ?? Enumerable.Empty<Endnote>()) {
+                    if (endnote.Type != null) {
+                        continue;
+                    }
+
+                    string noteId = endnote.Id?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? endnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    AddParagraphSnapshots(snapshots, endnote, EndnotePartKeyPrefix + noteId, EndnotePartOrderBase + (endnoteIndex * RelatedPartOrderStride));
+                    endnoteIndex++;
+                }
             }
 
             return snapshots;

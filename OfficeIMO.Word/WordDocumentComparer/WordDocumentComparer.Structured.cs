@@ -10,11 +10,14 @@ namespace OfficeIMO.Word {
         private const int BodyPartOrderBase = 0;
         private const int HeaderPartOrderBase = 1_000_000;
         private const int FooterPartOrderBase = 2_000_000;
+        private const int FootnotePartOrderBase = 3_000_000;
+        private const int EndnotePartOrderBase = 4_000_000;
         private const int RelatedPartOrderStride = 100_000;
-        private const int TableCellOrderStride = 10_000;
         private const string BodyPartKey = "body";
         private const string HeaderPartKeyPrefix = "header:";
         private const string FooterPartKeyPrefix = "footer:";
+        private const string FootnotePartKeyPrefix = "footnote:";
+        private const string EndnotePartKeyPrefix = "endnote:";
         private const string TableRowSeparator = "\n";
         private const string CellParagraphSeparator = "[ParagraphBreak]";
 
@@ -148,29 +151,50 @@ namespace OfficeIMO.Word {
             int targetStart,
             int targetEnd,
             WordComparisonResult result) {
-            int sourceCount = sourceEnd - sourceStart;
-            int targetCount = targetEnd - targetStart;
-            int pairedCount = Math.Min(sourceCount, targetCount);
+            int sourceIndex = sourceStart;
+            int targetIndex = targetStart;
 
-            for (int offset = 0; offset < pairedCount; offset++) {
-                int sourceIndex = sourceStart + offset;
-                int targetIndex = targetStart + offset;
+            while (sourceIndex < sourceEnd && targetIndex < targetEnd) {
+                if (targetEnd - targetIndex > sourceEnd - sourceIndex &&
+                    targetIndex + 1 < targetEnd &&
+                    GetRowSimilarity(sourceRows[sourceIndex], targetRows[targetIndex + 1]) >
+                    GetRowSimilarity(sourceRows[sourceIndex], targetRows[targetIndex])) {
+                    AddInsertedTableRowFinding(targetRows, tableIndex, tableDocumentOrder, targetIndex, result);
+                    targetIndex++;
+                    continue;
+                }
+
+                if (sourceEnd - sourceIndex > targetEnd - targetIndex &&
+                    sourceIndex + 1 < sourceEnd &&
+                    GetRowSimilarity(sourceRows[sourceIndex + 1], targetRows[targetIndex]) >
+                    GetRowSimilarity(sourceRows[sourceIndex], targetRows[targetIndex])) {
+                    AddDeletedTableRowFinding(sourceRows, tableIndex, tableDocumentOrder, sourceIndex, result);
+                    sourceIndex++;
+                    continue;
+                }
+
                 if (sourceRows[sourceIndex].Cells.Count != targetRows[targetIndex].Cells.Count &&
                     string.Equals(GetRowText(sourceRows[sourceIndex]), GetRowText(targetRows[targetIndex]), StringComparison.Ordinal)) {
                     AddDeletedTableRowFinding(sourceRows, tableIndex, tableDocumentOrder, sourceIndex, result);
                     AddInsertedTableRowFinding(targetRows, tableIndex, tableDocumentOrder, targetIndex, result);
+                    sourceIndex++;
+                    targetIndex++;
                     continue;
                 }
 
                 AnalyzeTableRow(sourceRows[sourceIndex], targetRows[targetIndex], tableIndex, tableDocumentOrder, sourceIndex, targetIndex, result);
+                sourceIndex++;
+                targetIndex++;
             }
 
-            for (int offset = pairedCount; offset < targetCount; offset++) {
-                AddInsertedTableRowFinding(targetRows, tableIndex, tableDocumentOrder, targetStart + offset, result);
+            while (targetIndex < targetEnd) {
+                AddInsertedTableRowFinding(targetRows, tableIndex, tableDocumentOrder, targetIndex, result);
+                targetIndex++;
             }
 
-            for (int offset = pairedCount; offset < sourceCount; offset++) {
-                AddDeletedTableRowFinding(sourceRows, tableIndex, tableDocumentOrder, sourceStart + offset, result);
+            while (sourceIndex < sourceEnd) {
+                AddDeletedTableRowFinding(sourceRows, tableIndex, tableDocumentOrder, sourceIndex, result);
+                sourceIndex++;
             }
         }
 
@@ -184,7 +208,7 @@ namespace OfficeIMO.Word {
                 null,
                 GetRowText(targetRows[rowIndex]),
                 "Table row inserted."),
-                tableDocumentOrder + rowIndex);
+                GetTableChildDocumentOrder(tableDocumentOrder, targetRows[rowIndex]._tableRow));
         }
 
         private static void AddDeletedTableRowFinding(IReadOnlyList<WordTableRow> sourceRows, int tableIndex, int tableDocumentOrder, int rowIndex, WordComparisonResult result) {
@@ -197,7 +221,7 @@ namespace OfficeIMO.Word {
                 GetRowText(sourceRows[rowIndex]),
                 null,
                 "Table row deleted."),
-                tableDocumentOrder + rowIndex);
+                GetTableChildDocumentOrder(tableDocumentOrder, sourceRows[rowIndex]._tableRow));
         }
 
         private static void AnalyzeTableRow(WordTableRow source, WordTableRow target, int tableIndex, int tableDocumentOrder, int sourceRowIndex, int targetRowIndex, WordComparisonResult result) {
@@ -252,7 +276,7 @@ namespace OfficeIMO.Word {
                         sourceText,
                         targetText,
                         "Table cell text changed."),
-                        RowLocationOrder(tableDocumentOrder, targetRowIndex, targetIndex));
+                        GetTableChildDocumentOrder(tableDocumentOrder, targetCells[targetIndex]._tableCell));
                 }
             }
 
@@ -267,7 +291,7 @@ namespace OfficeIMO.Word {
                     null,
                     GetCellText(targetCells[cellIndex]),
                     "Table cell inserted."),
-                    RowLocationOrder(tableDocumentOrder, targetRowIndex, cellIndex));
+                    GetTableChildDocumentOrder(tableDocumentOrder, targetCells[cellIndex]._tableCell));
             }
 
             for (int offset = pairedCount; offset < sourceCount; offset++) {
@@ -281,7 +305,7 @@ namespace OfficeIMO.Word {
                     GetCellText(sourceCells[cellIndex]),
                     null,
                     "Table cell deleted."),
-                    RowLocationOrder(tableDocumentOrder, sourceRowIndex, cellIndex));
+                    GetTableChildDocumentOrder(tableDocumentOrder, sourceCells[cellIndex]._tableCell));
             }
         }
 
@@ -456,7 +480,7 @@ namespace OfficeIMO.Word {
 
                 var wordTable = new WordTable(document, table);
                 string text = GetTableText(wordTable);
-                snapshots.Add(new TableSnapshot(wordTable, text, GetTableMatchKey(partKey, wordTable, text), partKey, ordered.DocumentOrder));
+                snapshots.Add(new TableSnapshot(wordTable, text, GetTableMatchKey(partKey, wordTable), partKey, ordered.DocumentOrder));
             }
         }
 
@@ -468,8 +492,8 @@ namespace OfficeIMO.Word {
             return string.Join(" | ", row.Cells.Select(GetCellText).ToArray());
         }
 
-        private static string GetTableMatchKey(string partKey, WordTable table, string text) {
-            return partKey + TableRowSeparator + GetTableShape(table) + TableRowSeparator + text;
+        private static string GetTableMatchKey(string partKey, WordTable table) {
+            return partKey + TableRowSeparator + GetTableShape(table) + TableRowSeparator + string.Join(TableRowSeparator, table.Rows.Select(GetRowMatchKey).ToArray());
         }
 
         private static string GetTableShape(WordTable table) {
@@ -477,7 +501,7 @@ namespace OfficeIMO.Word {
         }
 
         private static string GetRowMatchKey(WordTableRow row) {
-            return GetRowShape(row) + TableRowSeparator + GetRowText(row);
+            return GetRowShape(row) + TableRowSeparator + string.Join(TableRowSeparator, row.Cells.Select(cell => EncodeMatchText(GetCellText(cell))).ToArray());
         }
 
         private static string GetRowShape(WordTableRow row) {
@@ -491,6 +515,18 @@ namespace OfficeIMO.Word {
                     .Where(paragraph => ReferenceEquals(paragraph.Ancestors<TableCell>().FirstOrDefault(), cell._tableCell))
                     .Select(GetParagraphText)
                     .ToArray());
+        }
+
+        private static string EncodeMatchText(string value) {
+            return value.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" + value;
+        }
+
+        private static double GetRowSimilarity(WordTableRow source, WordTableRow target) {
+            if (source.Cells.Count != target.Cells.Count) {
+                return 0;
+            }
+
+            return GetTextSimilarity(GetRowText(source), GetRowText(target));
         }
 
         private static List<ImageSnapshot> GetImageSnapshots(WordDocument document) {
@@ -631,8 +667,22 @@ namespace OfficeIMO.Word {
             return RowLocation(tableIndex, rowIndex) + "/cell[" + cellIndex.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]";
         }
 
-        private static int RowLocationOrder(int tableDocumentOrder, int rowIndex, int childIndex) {
-            return tableDocumentOrder + (rowIndex * TableCellOrderStride) + childIndex;
+        private static int GetTableChildDocumentOrder(int tableDocumentOrder, OpenXmlElement child) {
+            Table? table = child as Table ?? child.Ancestors<Table>().FirstOrDefault();
+            if (table == null) {
+                return tableDocumentOrder;
+            }
+
+            int offset = 1;
+            foreach (OpenXmlElement descendant in table.Descendants()) {
+                if (ReferenceEquals(descendant, child)) {
+                    return tableDocumentOrder + offset;
+                }
+
+                offset++;
+            }
+
+            return tableDocumentOrder;
         }
 
         private static ImageFingerprint CreateImageFingerprint(Stream stream) {
