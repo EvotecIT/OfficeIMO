@@ -5,7 +5,7 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
-        private void RenderTableFlowBlock(TableBlock tb, IPdfBlock? nextBlock) {
+        private void RenderTableFlowBlock(TableBlock tb, IPdfBlock? nextBlock, System.Collections.Generic.IList<IPdfBlock> blockList, int blockIndex) {
             PdfTableStyle style = tb.Style ?? currentOpts.DefaultTableStyleSnapshot ?? TableStyles.Light();
             int cols = GetTableColumnCount(tb);
             if (cols == 0) return;
@@ -201,7 +201,7 @@ internal static partial class PdfWriter {
 
             if (style.KeepWithNext && nextBlock != null) {
                 double tableHeight = tableSpacingBefore + tableContentHeight + style.SpacingAfter;
-                double nextHeight = MeasureNextBlockFirstVisualHeight(nextBlock, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize);
+                double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize);
                 double keepHeight = tableHeight + nextHeight;
                 if (nextHeight > 0.001 && tableHeight <= maxContentHeight + 0.001 && keepHeight <= maxContentHeight + 0.001 && y < yStart - 0.001 && y - keepHeight < currentOpts.MarginBottom) {
                     NewPage();

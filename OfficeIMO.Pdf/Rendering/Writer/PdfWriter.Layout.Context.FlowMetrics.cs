@@ -261,6 +261,10 @@ internal static partial class PdfWriter {
                 return MeasureNumberedListBlockHeight(numbered, frameWidth, fontSize);
             }
 
+            if (block is TableBlock table) {
+                return MeasureTableBlockHeight(table, frameWidth, fontSize, firstVisualOnly: false);
+            }
+
             if (block is HorizontalRuleBlock rule) {
                 PdfHorizontalRuleStyle style = ResolveHorizontalRuleStyle(rule, currentOpts);
                 return style.SpacingBefore + style.Thickness + style.SpacingAfter;
@@ -363,6 +367,10 @@ internal static partial class PdfWriter {
                 return ResolveListStyle(numbered, currentOpts)?.KeepWithNext == true;
             }
 
+            if (block is TableBlock table) {
+                return (table.Style ?? currentOpts.DefaultTableStyleSnapshot ?? TableStyles.Light()).KeepWithNext;
+            }
+
             if (block is HorizontalRuleBlock rule) {
                 return ResolveHorizontalRuleStyle(rule, currentOpts).KeepWithNext;
             }
@@ -423,55 +431,7 @@ internal static partial class PdfWriter {
             }
 
             if (block is TableBlock table) {
-                PdfTableStyle style = table.Style ?? currentOpts.DefaultTableStyleSnapshot ?? TableStyles.Light();
-                int columns = GetTableColumnCount(table);
-                if (columns == 0) {
-                    return style.SpacingBefore;
-                }
-
-                double padLeft = GetTableCellPaddingLeft(style);
-                double padRight = GetTableCellPaddingRight(style);
-                double padTop = GetTableCellPaddingTop(style);
-                double padBottom = GetTableCellPaddingBottom(style);
-                double columnGap = GetTableCellSpacing(style);
-                ValidateTableRoleRowCounts(style, table.Rows.Count);
-                int headerRowCount = style.HeaderRowCount;
-                int footerRowCount = style.FooterRowCount;
-                int footerStartRowIndex = table.Rows.Count - footerRowCount;
-                ValidateTableCellStyleCoordinates(style, table, columns);
-                ValidateTableColumnStyleBounds(style, columns);
-                ValidateTableRowStyleBounds(style, table.Rows.Count);
-                ValidateTableRowSpansWithinRoleBoundaries(table, columns, headerRowCount, footerStartRowIndex);
-                double tableFontSize = GetTableBodyFontSize(style, fontSize);
-                TableColumnLayout columnLayout = ResolveTableColumnLayout(table, currentOpts, style, columns, frameWidth, tableFontSize, headerRowCount, footerStartRowIndex);
-                double tableWidth = columnLayout.Width;
-                double rowSize = GetTableRowFontSize(style, 0, headerRowCount, footerStartRowIndex, fontSize);
-                double rowLeading = GetTableLeading(style, rowSize);
-                bool rowUsesBold = GetTableRowBold(style, 0, headerRowCount, footerStartRowIndex);
-                int maxLines = 1;
-                var firstRowCells = GetTableCellLayouts(table, 0, columns);
-                for (int cellIndex = 0; cellIndex < firstRowCells.Count; cellIndex++) {
-                    TableCellLayout cell = firstRowCells[cellIndex];
-                    double cellWidth = GetTableCellWidth(columnLayout.Widths, cell.Column, cell.ColumnSpan, columnGap);
-                    double innerWidth = Math.Max(1D, cellWidth - GetTableCellPaddingLeft(style, 0, cell.Column) - GetTableCellPaddingRight(style, 0, cell.Column));
-                    var lines = WrapSimpleTextForOptions(cell.Text, innerWidth, GetTableRowFont(currentOpts, rowUsesBold), rowSize, currentOpts);
-                    maxLines = Math.Max(maxLines, lines.Count);
-                }
-
-                double firstRowRequiredHeight = maxLines * rowLeading +
-                    GetTableRowMaxPaddingTop(table, style, 0, columns) +
-                    GetTableRowMaxPaddingBottom(table, style, 0, columns);
-                double firstRowHeight = ResolveTableRowHeight(style, 0, firstRowRequiredHeight);
-                double captionHeight = 0D;
-                if (!string.IsNullOrWhiteSpace(style.Caption)) {
-                    double captionSize = style.CaptionFontSize ?? fontSize;
-                    double captionLeading = captionSize * 1.25D;
-                    var captionRuns = new[] { TextRun.Normal(style.Caption!, style.CaptionColor, captionSize) };
-                    var captionWrap = WrapRichRunsCore(captionRuns, tableWidth, captionSize, ChooseNormal(currentOpts.DefaultFont), captionLeading, null, DefaultParagraphTabStopWidth, currentOpts);
-                    captionHeight = MeasureRichLinesHeight(captionWrap.LineHeights, captionWrap.Lines.Count, captionLeading) + style.CaptionSpacingAfter;
-                }
-
-                return style.SpacingBefore + captionHeight + firstRowHeight;
+                return MeasureTableBlockHeight(table, frameWidth, fontSize, firstVisualOnly: true);
             }
 
             if (block is HorizontalRuleBlock rule) {
@@ -540,6 +500,72 @@ internal static partial class PdfWriter {
             }
 
             return 0D;
+        }
+
+        private double MeasureTableBlockHeight(TableBlock table, double frameWidth, double fontSize, bool firstVisualOnly) {
+            PdfTableStyle style = table.Style ?? currentOpts.DefaultTableStyleSnapshot ?? TableStyles.Light();
+            int columns = GetTableColumnCount(table);
+            if (columns == 0 || table.Rows.Count == 0) {
+                return style.SpacingBefore + (firstVisualOnly ? 0D : style.SpacingAfter);
+            }
+
+            double columnGap = GetTableCellSpacing(style);
+            double rowGap = columnGap;
+            ValidateTableRoleRowCounts(style, table.Rows.Count);
+            int headerRowCount = style.HeaderRowCount;
+            int footerRowCount = style.FooterRowCount;
+            int footerStartRowIndex = table.Rows.Count - footerRowCount;
+            ValidateTableCellStyleCoordinates(style, table, columns);
+            ValidateTableColumnStyleBounds(style, columns);
+            ValidateTableRowStyleBounds(style, table.Rows.Count);
+            ValidateTableRowSpansWithinRoleBoundaries(table, columns, headerRowCount, footerStartRowIndex);
+            double tableFontSize = GetTableBodyFontSize(style, fontSize);
+            TableColumnLayout columnLayout = ResolveTableColumnLayout(table, currentOpts, style, columns, frameWidth, tableFontSize, headerRowCount, footerStartRowIndex);
+
+            var rowLines = new TableCellTextLayout[table.Rows.Count][];
+            var rowHeights = new double[table.Rows.Count];
+            var rowLeadings = new double[table.Rows.Count];
+            for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
+                double rowSize = GetTableRowFontSize(style, rowIndex, headerRowCount, footerStartRowIndex, fontSize);
+                double rowLeading = GetTableLeading(style, rowSize);
+                bool rowUsesBold = GetTableRowBold(style, rowIndex, headerRowCount, footerStartRowIndex);
+                rowLeadings[rowIndex] = rowLeading;
+                rowLines[rowIndex] = new TableCellTextLayout[columns];
+                double maxRequiredHeight = rowLeading + GetTableRowMaxPaddingTop(table, style, rowIndex, columns) + GetTableRowMaxPaddingBottom(table, style, rowIndex, columns);
+                for (int columnIndex = 0; columnIndex < columns; columnIndex++) {
+                    rowLines[rowIndex][columnIndex] = new TableCellTextLayout(new System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> { new() }, new System.Collections.Generic.List<double> { rowLeading });
+                }
+
+                var cells = GetTableCellLayouts(table, rowIndex, columns);
+                for (int cellIndex = 0; cellIndex < cells.Count; cellIndex++) {
+                    TableCellLayout cell = cells[cellIndex];
+                    PdfStandardFont cellFont = GetTableRowFont(currentOpts, rowUsesBold);
+                    double cellWidth = GetTableCellWidth(columnLayout.Widths, cell.Column, cell.ColumnSpan, columnGap);
+                    double innerWidth = Math.Max(1D, cellWidth - GetTableCellPaddingLeft(style, rowIndex, cell.Column) - GetTableCellPaddingRight(style, rowIndex, cell.Column));
+                    TableCellTextLayout lines = CreateTableCellTextLayout(cell, innerWidth, cellFont, rowSize, rowLeading, currentOpts);
+                    rowLines[rowIndex][cell.Column] = lines;
+                    if (cell.RowSpan <= 1) {
+                        maxRequiredHeight = Math.Max(maxRequiredHeight, MeasureTableCellContentHeight(cell, lines, 0, lines.LineCount, rowLeading, innerWidth) + GetTableCellPaddingTop(style, rowIndex, cell.Column) + GetTableCellPaddingBottom(style, rowIndex, cell.Column));
+                    }
+                }
+
+                rowHeights[rowIndex] = ResolveTableRowHeight(style, rowIndex, maxRequiredHeight);
+            }
+
+            ApplyTableRowSpanHeights(table, style, columns, columnLayout.Widths, rowLines, rowHeights, rowLeadings, columnGap, rowGap);
+
+            double captionHeight = 0D;
+            if (!string.IsNullOrWhiteSpace(style.Caption)) {
+                double captionSize = style.CaptionFontSize ?? fontSize;
+                double captionLeading = captionSize * 1.25D;
+                var captionRuns = new[] { TextRun.Normal(style.Caption!, style.CaptionColor, captionSize) };
+                var captionWrap = WrapRichRunsCore(captionRuns, columnLayout.Width, captionSize, ChooseNormal(currentOpts.DefaultFont), captionLeading, null, DefaultParagraphTabStopWidth, currentOpts);
+                captionHeight = MeasureRichLinesHeight(captionWrap.LineHeights, captionWrap.Lines.Count, captionLeading) + style.CaptionSpacingAfter;
+            }
+
+            int measuredRowCount = firstVisualOnly ? 1 : rowHeights.Length;
+            double tableHeight = style.SpacingBefore + captionHeight + GetTableRowsHeight(rowHeights, 0, measuredRowCount, rowGap);
+            return firstVisualOnly ? tableHeight : tableHeight + style.SpacingAfter;
         }
 
         private void ConsumeSpacer(double height) {

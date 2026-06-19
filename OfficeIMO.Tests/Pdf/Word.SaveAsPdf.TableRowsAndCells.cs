@@ -76,6 +76,66 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Measures_Table_Blocks_Inside_KeepWithNext_Chains() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeParagraphTableKeepWithNextChain.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeParagraphTableKeepWithNextChain.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            const string styleId = "ParagraphTableChainKeepWithNext";
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(new Style(
+                new StyleName { Val = "Paragraph Table Chain Keep With Next" },
+                new BasedOn { Val = "Normal" },
+                new StyleParagraphProperties(new KeepNext()))
+            {
+                Type = StyleValues.Paragraph,
+                StyleId = styleId,
+                CustomStyle = true
+            });
+
+            WordParagraph intro = document.AddParagraph("ParagraphTableChainIntro");
+            intro.LineSpacingAfterPoints = 100;
+            document.AddParagraph("ParagraphTableChainLead").SetStyleId(styleId);
+            WordTable table = document.AddTable(3, 1);
+            table._tableProperties!.TableStyle?.Remove();
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "ParagraphTableChainFirst";
+            table.Rows[1].Cells[0].Paragraphs[0].Text = "ParagraphTableChainSecond";
+            table.Rows[2].Cells[0].Paragraphs[0].Text = "ParagraphTableChainThird";
+            document.AddParagraph("ParagraphTableChainTarget");
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = new OfficeIMO.Pdf.PageSize(260, 260),
+                Margins = OfficeIMO.Pdf.PageMargins.Uniform(30),
+                FontFamily = "Helvetica",
+                PdfOptions = new PdfCore.PdfOptions {
+                    DefaultTableStyle = new PdfCore.PdfTableStyle {
+                        KeepWithNext = true,
+                        CellPaddingX = 4,
+                        CellPaddingY = 3
+                    }
+                }
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.Contains("ParagraphTableChainIntro", pdf.GetPage(1).Text);
+        Assert.DoesNotContain("ParagraphTableChainLead", pdf.GetPage(1).Text);
+        Assert.DoesNotContain("ParagraphTableChainFirst", pdf.GetPage(1).Text);
+        Assert.DoesNotContain("ParagraphTableChainSecond", pdf.GetPage(1).Text);
+        Assert.DoesNotContain("ParagraphTableChainThird", pdf.GetPage(1).Text);
+        Assert.DoesNotContain("ParagraphTableChainTarget", pdf.GetPage(1).Text);
+        Assert.Contains("ParagraphTableChainLead", pdf.GetPage(2).Text);
+        Assert.Contains("ParagraphTableChainFirst", pdf.GetPage(2).Text);
+        Assert.Contains("ParagraphTableChainSecond", pdf.GetPage(2).Text);
+        Assert.Contains("ParagraphTableChainThird", pdf.GetPage(2).Text);
+        Assert.Contains("ParagraphTableChainTarget", pdf.GetPage(2).Text);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Honors_Exact_Table_Row_Height_Rule() {
         double exactGap = RenderNativeTableRowHeightRuleGap("PdfNativeExactTableRowHeight", HeightRuleValues.Exact, "ExactAfterRow");
         double atLeastGap = RenderNativeTableRowHeightRuleGap("PdfNativeAtLeastTableRowHeight", HeightRuleValues.AtLeast, "AtLeastAfterRow");
