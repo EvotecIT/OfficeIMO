@@ -148,6 +148,14 @@ public sealed partial class TableBlock {
     }
 
     private static string EscapeMarkdownCell(string? cell) {
+        return EscapeMarkdownCell(cell, preserveMarkdownEscapes: false);
+    }
+
+    private static string EscapeRenderedMarkdownCell(string? cell) {
+        return EscapeMarkdownCell(cell, preserveMarkdownEscapes: true);
+    }
+
+    private static string EscapeMarkdownCell(string? cell, bool preserveMarkdownEscapes) {
         if (string.IsNullOrEmpty(cell)) return string.Empty;
 
         var value = cell!;
@@ -169,8 +177,10 @@ public sealed partial class TableBlock {
                     break;
                 case '\\':
                     builder ??= AllocateCellBuilder(value, i);
-                    if (i + 1 < value.Length && IsMarkdownBackslashEscapable(value[i + 1])) {
+                    if (preserveMarkdownEscapes && i + 1 < value.Length && IsMarkdownBackslashEscapable(value[i + 1])) {
                         builder.Append('\\').Append(value[++i]);
+                    } else if (!preserveMarkdownEscapes && i + 1 < value.Length && IsMarkdownBackslashEscapable(value[i + 1])) {
+                        builder.Append("\\\\").Append('\\').Append(value[++i]);
                     } else {
                         builder.Append("\\\\");
                     }

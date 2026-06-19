@@ -58,6 +58,9 @@ internal static class MarkdownToRtfConverter {
             case QuoteBlock quote:
                 ConvertChildBlocks(document, quote.ChildBlocks, options, "Markdown quote flattened to paragraphs.");
                 break;
+            case DefinitionListBlock definitionList:
+                ConvertDefinitionList(document, definitionList, options);
+                break;
             case IChildMarkdownBlockContainer container:
                 ConvertChildBlocks(document, container.ChildBlocks, options, block.GetType().Name + " child blocks flattened.");
                 break;
@@ -78,6 +81,22 @@ internal static class MarkdownToRtfConverter {
         paragraph.SetStyle(styleId);
         paragraph.OutlineLevel = level - 1;
         AppendInlineSequence(paragraph, heading.Inlines, document, options, InlineStyle.Normal);
+    }
+
+    private static void ConvertDefinitionList(RtfDocument document, DefinitionListBlock definitionList, MarkdownToRtfOptions options) {
+        if (definitionList.InlineItems.Count == 0) {
+            document.AddParagraph(((IMarkdownBlock)definitionList).RenderMarkdown());
+            options.Report("MDRTF017", RtfMarkdownDiagnosticSeverity.Info, "Markdown definition list converted using rendered Markdown fallback.");
+            return;
+        }
+
+        for (int i = 0; i < definitionList.InlineItems.Count; i++) {
+            DefinitionListInlineItem item = definitionList.InlineItems[i];
+            RtfParagraph paragraph = document.AddParagraph();
+            AppendInlineSequence(paragraph, item.Term, document, options, InlineStyle.Normal);
+            paragraph.AddText(": ");
+            AppendInlineSequence(paragraph, item.Definition, document, options, InlineStyle.Normal);
+        }
     }
 
     private static void ConvertList(RtfDocument document, IReadOnlyList<ListItem> items, RtfListKind kind, int start, MarkdownToRtfOptions options) {
@@ -143,14 +162,21 @@ internal static class MarkdownToRtfConverter {
         }
 
         if (kind == RtfListKind.Decimal && start != 1) {
-            while (listOverride.LevelOverrides.Count <= levelIndex) {
-                RtfListLevelOverride paddingOverride = listOverride.AddLevelOverride();
-                paddingOverride.OverrideStartAt = false;
-            }
-
+            EnsureListLevelOverrideCount(listOverride, levelIndex);
             RtfListLevelOverride levelOverride = listOverride.LevelOverrides[levelIndex];
             levelOverride.OverrideStartAt = true;
             levelOverride.StartAt = Math.Max(1, start);
+        } else if (kind == RtfListKind.Decimal && listOverride.LevelOverrides.Count > levelIndex) {
+            RtfListLevelOverride levelOverride = listOverride.LevelOverrides[levelIndex];
+            levelOverride.OverrideStartAt = false;
+            levelOverride.StartAt = null;
+        }
+    }
+
+    private static void EnsureListLevelOverrideCount(RtfListOverride listOverride, int levelIndex) {
+        while (listOverride.LevelOverrides.Count <= levelIndex) {
+            RtfListLevelOverride paddingOverride = listOverride.AddLevelOverride();
+            paddingOverride.OverrideStartAt = false;
         }
     }
 
@@ -160,7 +186,8 @@ internal static class MarkdownToRtfConverter {
                 ConvertListItems(document, unorderedList.Items, listId, RtfListKind.Bullet, 1, parentLevel + 1, options);
                 break;
             case OrderedListBlock orderedList:
-                ConvertListItems(document, orderedList.Items, listId, RtfListKind.Decimal, Math.Max(1, orderedList.Start), parentLevel + 1, options);
+                int childListId = CreateListDefinition(document, RtfListKind.Decimal, Math.Max(1, orderedList.Start));
+                ConvertListItems(document, orderedList.Items, childListId, RtfListKind.Decimal, Math.Max(1, orderedList.Start), parentLevel + 1, options);
                 break;
             default:
                 ConvertNestedContinuationBlock(document, block, parentLevel, options);

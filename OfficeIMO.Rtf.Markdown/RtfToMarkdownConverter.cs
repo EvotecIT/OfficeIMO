@@ -68,8 +68,8 @@ internal static class RtfToMarkdownConverter {
             }
 
             int level = Math.Max(0, paragraph.ListLevel ?? 0);
-            if (paragraph.ListId != firstListId ||
-                paragraph.ListDefinitionId != firstListDefinitionId) {
+            if (level == 0 && (paragraph.ListId != firstListId ||
+                paragraph.ListDefinitionId != firstListDefinitionId)) {
                 break;
             }
 
@@ -318,7 +318,9 @@ internal static class RtfToMarkdownConverter {
     }
 
     private static TableBlock ConvertTable(RtfDocument document, RtfTable table, RtfToMarkdownOptions options, ref int imageIndex) {
-        var markdown = new TableBlock();
+        var markdown = new TableBlock {
+            CellsContainRenderedMarkdown = true
+        };
         if (table.Rows.Count == 0) {
             options.Report("RTFMD002", RtfMarkdownDiagnosticSeverity.Info, "Empty RTF table converted to an empty Markdown table.");
             return markdown;

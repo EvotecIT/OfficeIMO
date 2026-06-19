@@ -234,15 +234,16 @@ public class RtfMarkdownConverterTests {
 
         RtfParagraph parent = Assert.Single(document.Paragraphs, paragraph => paragraph.ToPlainText() == "Parent");
         RtfParagraph child = Assert.Single(document.Paragraphs, paragraph => paragraph.ToPlainText() == "Child");
-        RtfListDefinition definition = Assert.Single(document.ListDefinitions, item => item.Id == parent.ListDefinitionId);
-        RtfListOverride listOverride = Assert.Single(document.ListOverrides, item => item.Id == parent.ListId);
+        RtfListDefinition parentDefinition = Assert.Single(document.ListDefinitions, item => item.Id == parent.ListDefinitionId);
+        RtfListDefinition childDefinition = Assert.Single(document.ListDefinitions, item => item.Id == child.ListDefinitionId);
+        RtfListOverride childOverride = Assert.Single(document.ListOverrides, item => item.Id == child.ListId);
 
-        Assert.Equal(parent.ListId, child.ListId);
-        Assert.Equal(parent.ListDefinitionId, child.ListDefinitionId);
+        Assert.NotEqual(parent.ListId, child.ListId);
+        Assert.NotEqual(parent.ListDefinitionId, child.ListDefinitionId);
         Assert.Equal(1, child.ListLevel);
-        Assert.Equal(1, definition.Levels[0].StartAt);
-        Assert.Equal(5, definition.Levels[1].StartAt);
-        Assert.Equal(5, listOverride.LevelOverrides[1].StartAt);
+        Assert.Equal(1, parentDefinition.Levels[0].StartAt);
+        Assert.Equal(5, childDefinition.Levels[1].StartAt);
+        Assert.Equal(5, childOverride.LevelOverrides[1].StartAt);
     }
 
     [Fact]
@@ -252,13 +253,9 @@ public class RtfMarkdownConverterTests {
                5. Child
             """.ToRtfFromMarkdown();
 
-        System.Text.RegularExpressions.Match overrideMatch = System.Text.RegularExpressions.Regex.Match(rtf, @"\\listoverridecount(\d+)");
-        Assert.True(overrideMatch.Success);
-        int overrideCount = int.Parse(overrideMatch.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
-
-        Assert.Equal(2, overrideCount);
-        Assert.Equal(overrideCount, CountOccurrences(rtf, @"{\lfolevel"));
-        Assert.Contains(@"{\lfolevel\listoverridestartat0}", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\listoverridecount0", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\listoverridecount2", rtf, StringComparison.Ordinal);
+        Assert.Equal(2, CountOccurrences(rtf, @"{\lfolevel"));
         Assert.Contains(@"{\lfolevel\listoverridestartat1\levelstartat5}", rtf, StringComparison.Ordinal);
     }
 
@@ -398,6 +395,49 @@ public class RtfMarkdownConverterTests {
 
         Assert.Contains("| &lt; &#42; |", markdown, StringComparison.Ordinal);
         Assert.Equal("&lt; &#42;", roundTripTable.Rows[1].Cells[0].Paragraphs[0].ToPlainText());
+    }
+
+    [Fact]
+    public void RtfDocumentToMarkdownRoundTripPreservesDefinitionLikeTableCellText() {
+        RtfDocument document = RtfDocument.Create();
+        RtfTable table = document.AddTable(2, 1);
+        table.Rows[0].RepeatHeader = true;
+        table.Rows[0].Cells[0].AddParagraph("Value");
+        table.Rows[1].Cells[0].AddParagraph("Key: value");
+
+        string markdown = document.ToMarkdown();
+        RtfDocument roundTrip = markdown.ToRtfDocumentFromMarkdown();
+        RtfTable roundTripTable = Assert.IsType<RtfTable>(roundTrip.Blocks.OfType<RtfTable>().Single());
+
+        Assert.Contains("| Key: value |", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain(@"Key\: value", markdown, StringComparison.Ordinal);
+        Assert.Equal("Key: value", roundTripTable.Rows[1].Cells[0].Paragraphs[0].ToPlainText());
+    }
+
+    [Fact]
+    public void MarkdownToRtfDocumentPreservesDefinitionListTermsAndInlineFormatting() {
+        RtfDocument document = "Term: **Definition**".ToRtfDocumentFromMarkdown();
+
+        RtfParagraph paragraph = Assert.Single(document.Paragraphs);
+        Assert.Equal("Term: Definition", paragraph.ToPlainText());
+        Assert.Contains(paragraph.Runs, run => run.Text == "Definition" && run.Bold);
+    }
+
+    [Fact]
+    public void MarkdownToRtfDocumentClearsStaleNestedOrderedStarts() {
+        string markdown = """
+            1. A
+               5. first
+            2. B
+               1. second
+            """;
+
+        RtfDocument serialized = RtfDocument.Read(markdown.ToRtfFromMarkdown()).Document;
+        string roundTripMarkdown = serialized.ToMarkdown().Replace("\r\n", "\n");
+
+        Assert.Contains("5. first", roundTripMarkdown, StringComparison.Ordinal);
+        Assert.Contains("1. second", roundTripMarkdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("5. second", roundTripMarkdown, StringComparison.Ordinal);
     }
 
     [Fact]

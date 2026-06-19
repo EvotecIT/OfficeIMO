@@ -44,19 +44,22 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
-        public void TableBlock_RenderMarkdown_PreservesExistingMarkdownEscapes() {
+        public void TableBlock_RenderMarkdown_EscapesLiteralBackslashesBeforeMarkdownPunctuation() {
             var table = new TableBlock();
             table.Headers.Add("Header");
 
             table.Rows.Add(new[] { @"\*\*not bold\*\* and \| literal pipe" });
 
             var markdown = ((IMarkdownBlock)table).RenderMarkdown();
+            MarkdownDoc parsed = MarkdownReader.Parse(markdown);
+            TableBlock parsedTable = Assert.IsType<TableBlock>(Assert.Single(parsed.Blocks));
 
             const string expected = "| Header |\n" +
                                     "| --- |\n" +
-                                    @"| \*\*not bold\*\* and \| literal pipe |";
+                                    @"| \\\*\\\*not bold\\\*\\\* and \\\| literal pipe |";
 
             Assert.Equal(expected, markdown);
+            Assert.Equal(@"\*\*not bold\*\* and \| literal pipe", ExtractPlainText(parsedTable.RowInlines[0][0]));
         }
 
         [Fact]
@@ -212,6 +215,12 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             }
 
             return count;
+        }
+
+        private static string ExtractPlainText(IPlainTextMarkdownInline inline) {
+            var builder = new System.Text.StringBuilder();
+            inline.AppendPlainText(builder);
+            return builder.ToString();
         }
     }
 }
