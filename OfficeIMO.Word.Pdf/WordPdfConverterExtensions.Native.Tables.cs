@@ -105,7 +105,13 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             if (cellBorders.Count > 0) {
-                style.CellBorders = cellBorders;
+                if (style.CellBorders == null) {
+                    style.CellBorders = cellBorders;
+                } else {
+                    foreach (var cellBorder in cellBorders) {
+                        style.CellBorders[cellBorder.Key] = cellBorder.Value;
+                    }
+                }
             }
 
             if (cellPaddings.Count > 0) {
@@ -360,13 +366,25 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static void ApplyNativeTableBorders(WordTable table, PdfCore.PdfTableStyle style, NativeTableStyleDefaults tableStyleDefaults) {
-            (PdfCore.PdfColor Color, double Width)? border = GetNativeUniformTableBorder(table._tableProperties?.TableBorders) ?? tableStyleDefaults.TableBorder;
-            if (border == null) {
+            W.TableBorders? directBorders = table._tableProperties?.TableBorders;
+            W.TableBorders? tableBorders = directBorders ?? tableStyleDefaults.Borders;
+            (PdfCore.PdfColor Color, double Width)? border = directBorders == null
+                ? tableStyleDefaults.TableBorder
+                : GetNativeUniformTableBorder(directBorders);
+            if (border != null) {
+                style.BorderColor = border.Value.Color;
+                style.BorderWidth = border.Value.Width;
                 return;
             }
 
-            style.BorderColor = border.Value.Color;
-            style.BorderWidth = border.Value.Width;
+            Dictionary<(int Row, int Column), PdfCore.PdfCellBorder>? cellBorders = CreateNativeTableBorderCellMap(table, tableBorders);
+            if (cellBorders == null) {
+                return;
+            }
+
+            style.BorderColor = null;
+            style.BorderWidth = 0D;
+            style.CellBorders = cellBorders;
         }
 
         private static (PdfCore.PdfColor Color, double Width)? GetNativeUniformTableBorder(W.TableBorders? borders) {
@@ -404,6 +422,89 @@ namespace OfficeIMO.Word.Pdf {
 
             return (ParseNativeColor(color) ?? PdfCore.PdfColor.Black, size / 8D);
         }
+
+        private static Dictionary<(int Row, int Column), PdfCore.PdfCellBorder>? CreateNativeTableBorderCellMap(WordTable table, W.TableBorders? borders) {
+            if (!HasNativeTableBorder(borders) || GetNativeUniformTableBorder(borders) != null) {
+                return null;
+            }
+
+            TableLayout layout = TableLayoutCache.GetLayout(table);
+            int rowCount = layout.Rows.Count;
+            int columnCount = GetNativeTableColumnCount(layout);
+            if (rowCount == 0 || columnCount == 0) {
+                return null;
+            }
+
+            var cellBorders = new Dictionary<(int Row, int Column), PdfCore.PdfCellBorder>();
+            for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
+                IReadOnlyList<WordTableCell> row = layout.Rows[rowIndex];
+                int logicalColumn = 0;
+                for (int cellIndex = 0; cellIndex < row.Count; cellIndex++) {
+                    WordTableCell cell = row[cellIndex];
+                    if (IsNativeHorizontalMergeContinuation(cell)) {
+                        continue;
+                    }
+
+                    int columnSpan = GetNativeCellColumnSpan(cell);
+                    if (IsNativeVerticalMergeContinuation(cell)) {
+                        logicalColumn += columnSpan;
+                        continue;
+                    }
+
+                    PdfCore.PdfCellBorder? cellBorder = CreateNativeTableBorderCell(
+                        borders!,
+                        rowIndex,
+                        rowCount,
+                        logicalColumn,
+                        columnCount,
+                        columnSpan,
+                        GetNativeCellRowSpan(cell));
+                    if (cellBorder != null) {
+                        cellBorders[(rowIndex, logicalColumn)] = cellBorder;
+                    }
+
+                    logicalColumn += columnSpan;
+                }
+            }
+
+            return cellBorders.Count == 0 ? null : cellBorders;
+        }
+
+        private static PdfCore.PdfCellBorder? CreateNativeTableBorderCell(W.TableBorders borders, int rowIndex, int rowCount, int columnIndex, int columnCount, int columnSpan, int rowSpan) {
+            W.BorderType? top = rowIndex == 0 ? borders.TopBorder : borders.InsideHorizontalBorder;
+            W.BorderType? bottom = rowIndex + rowSpan >= rowCount ? borders.BottomBorder : borders.InsideHorizontalBorder;
+            W.BorderType? left = columnIndex == 0 ? borders.LeftBorder : borders.InsideVerticalBorder;
+            W.BorderType? right = columnIndex + columnSpan >= columnCount ? borders.RightBorder : borders.InsideVerticalBorder;
+            bool hasTop = HasNativeBorder(top?.Val?.Value);
+            bool hasRight = HasNativeBorder(right?.Val?.Value);
+            bool hasBottom = HasNativeBorder(bottom?.Val?.Value);
+            bool hasLeft = HasNativeBorder(left?.Val?.Value);
+            if (!hasTop && !hasRight && !hasBottom && !hasLeft) {
+                return null;
+            }
+
+            return new PdfCore.PdfCellBorder {
+                Color = null,
+                Width = 0D,
+                TopBorder = CreateNativeCellBorderSide(top),
+                RightBorder = CreateNativeCellBorderSide(right),
+                BottomBorder = CreateNativeCellBorderSide(bottom),
+                LeftBorder = CreateNativeCellBorderSide(left),
+                Top = hasTop,
+                Right = hasRight,
+                Bottom = hasBottom,
+                Left = hasLeft
+            };
+        }
+
+        private static bool HasNativeTableBorder(W.TableBorders? borders) =>
+            borders != null &&
+            (HasNativeBorder(borders.TopBorder?.Val?.Value) ||
+                HasNativeBorder(borders.RightBorder?.Val?.Value) ||
+                HasNativeBorder(borders.BottomBorder?.Val?.Value) ||
+                HasNativeBorder(borders.LeftBorder?.Val?.Value) ||
+                HasNativeBorder(borders.InsideHorizontalBorder?.Val?.Value) ||
+                HasNativeBorder(borders.InsideVerticalBorder?.Val?.Value));
 
         private static void ApplyNativeTableDefaultCellMargins(WordTable table, PdfCore.PdfTableStyle style, bool preserveConfiguredFallbackPadding, NativeTableStyleDefaults tableStyleDefaults) {
             W.TableCellMarginDefault? margins = table._tableProperties?.TableCellMarginDefault;

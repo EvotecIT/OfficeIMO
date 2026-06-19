@@ -144,6 +144,40 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Maps_NonUniform_Table_Borders_To_Cell_Borders() {
+        using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeNonUniformTableBorders.docx"));
+        WordTable table = document.AddTable(2, 2);
+        table._tableProperties!.TableBorders = new TableBorders(
+            new TopBorder { Val = BorderValues.Single, Color = "FF0000", Size = 16U },
+            new LeftBorder { Val = BorderValues.Single, Color = "000000", Size = 8U },
+            new BottomBorder { Val = BorderValues.Single, Color = "0000FF", Size = 20U },
+            new RightBorder { Val = BorderValues.Single, Color = "000000", Size = 8U },
+            new InsideHorizontalBorder { Val = BorderValues.Single, Color = "008000", Size = 8U },
+            new InsideVerticalBorder { Val = BorderValues.Single, Color = "FFFF00", Size = 12U });
+
+        PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table);
+
+        Assert.Null(style.BorderColor);
+        Assert.Equal(0D, style.BorderWidth);
+        Assert.NotNull(style.CellBorders);
+        PdfCore.PdfCellBorder topLeft = style.CellBorders[(0, 0)];
+        Assert.True(topLeft.Top);
+        Assert.True(topLeft.Right);
+        Assert.True(topLeft.Bottom);
+        Assert.True(topLeft.Left);
+        Assert.Equal(PdfCore.PdfColor.FromRgb(255, 0, 0), topLeft.TopBorder!.Color);
+        Assert.Equal(2D, topLeft.TopBorder.Width);
+        Assert.Equal(PdfCore.PdfColor.FromRgb(255, 255, 0), topLeft.RightBorder!.Color);
+        Assert.Equal(1.5D, topLeft.RightBorder.Width);
+        Assert.Equal(PdfCore.PdfColor.FromRgb(0, 128, 0), topLeft.BottomBorder!.Color);
+        Assert.Equal(1D, topLeft.BottomBorder.Width);
+
+        PdfCore.PdfCellBorder bottomRight = style.CellBorders[(1, 1)];
+        Assert.Equal(PdfCore.PdfColor.FromRgb(0, 0, 255), bottomRight.BottomBorder!.Color);
+        Assert.Equal(2.5D, bottomRight.BottomBorder.Width);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Uses_Configured_Default_Table_Style_For_Unstyled_Native_Table() {
         using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeDefaultTableStyle.docx"));
         WordTable table = document.AddTable(2, 2);

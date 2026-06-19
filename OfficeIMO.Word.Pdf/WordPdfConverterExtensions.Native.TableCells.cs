@@ -245,6 +245,11 @@ namespace OfficeIMO.Word.Pdf {
             };
         }
 
+        private static PdfCore.PdfCellBorderSide? CreateNativeCellBorderSide(W.BorderType? border) =>
+            border == null
+                ? null
+                : CreateNativeCellBorderSide(border.Val?.Value, border.Color?.Value, border.Size);
+
         private static OfficeIMO.Drawing.OfficeStrokeDashStyle ToNativeBorderDashStyle(W.BorderValues? borderStyle) {
             string value = borderStyle?.ToString() ?? string.Empty;
             if (value.IndexOf("dot", StringComparison.OrdinalIgnoreCase) >= 0 &&
