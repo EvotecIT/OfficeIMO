@@ -696,7 +696,7 @@ namespace OfficeIMO.Word.Pdf {
         private static string GetNativeHeadingText(string content, IReadOnlyList<WordParagraph> runs, WordParagraph paragraph) {
             string normalizedContent = NormalizeNativeDirectText(content);
             if (!string.IsNullOrWhiteSpace(normalizedContent)) {
-                return normalizedContent;
+                return ApplyNativeTextTransform(normalizedContent, paragraph);
             }
 
             var builder = new StringBuilder();
@@ -717,7 +717,7 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 if (!string.IsNullOrEmpty(run.Text)) {
-                    builder.Append(run.Text);
+                    builder.Append(ApplyNativeTextTransform(run.Text, run, paragraph));
                 }
             }
 
@@ -852,9 +852,9 @@ namespace OfficeIMO.Word.Pdf {
             ApplyNativeTextStyle(builder, run, paragraphStyleFallback, nativeDefaults);
 
             if (run.IsHyperLink && run.Hyperlink != null) {
-                AddNativeHyperLinkRun(builder, run.Text, run.Hyperlink, tabStops, ref tabIndex);
+                AddNativeHyperLinkRun(builder, ApplyNativeTextTransform(run.Text, run, paragraphStyleFallback), run.Hyperlink, tabStops, ref tabIndex);
             } else {
-                AddNativeRunText(builder, run.Text, tabStops, ref tabIndex);
+                AddNativeRunText(builder, ApplyNativeTextTransform(run.Text, run, paragraphStyleFallback), tabStops, ref tabIndex);
             }
 
             ResetNativeTextStyle(builder);
@@ -876,6 +876,7 @@ namespace OfficeIMO.Word.Pdf {
             bool Underline,
             bool Italic,
             bool Strike,
+            bool AllCaps,
             double? FontSize,
             PdfCore.PdfStandardFont? Font,
             PdfCore.PdfColor? Color,
@@ -889,9 +890,14 @@ namespace OfficeIMO.Word.Pdf {
             ref int tabIndex,
             NativeDocumentDefaults nativeDefaults) {
             ApplyNativeTextStyle(builder, paragraph, nativeDefaults: nativeDefaults);
-            AddNativeRunText(builder, text, tabStops, ref tabIndex);
+            AddNativeRunText(builder, ApplyNativeTextTransform(text, paragraph), tabStops, ref tabIndex);
             ResetNativeTextStyle(builder);
         }
+
+        private static string ApplyNativeTextTransform(string text, WordParagraph paragraph, WordParagraph? fallback = null, NativeTableRunStyleDefaults tableRunStyleDefaults = default, NativeDocumentDefaults? nativeDefaults = null) =>
+            ResolveNativeTextRunStyle(paragraph, fallback, tableRunStyleDefaults, nativeDefaults).AllCaps
+                ? text.ToUpperInvariant()
+                : text;
 
         private static void ApplyNativeTextStyle(PdfCore.PdfParagraphBuilder builder, WordParagraph paragraph, WordParagraph? fallback = null, NativeDocumentDefaults? nativeDefaults = null) {
             NativeResolvedTextStyle style = ResolveNativeTextRunStyle(paragraph, fallback, nativeDefaults: nativeDefaults);
@@ -934,6 +940,13 @@ namespace OfficeIMO.Word.Pdf {
                 styleDefaults.Strike ??
                 tableRunStyleDefaults.Strike ??
                 false;
+            bool allCaps =
+                ReadNativeOnOff(runProperties?.GetFirstChild<W.Caps>()) ??
+                ReadNativeOnOff(runProperties?.GetFirstChild<W.SmallCaps>()) ??
+                characterStyleDefaults.AllCaps ??
+                styleDefaults.AllCaps ??
+                tableRunStyleDefaults.AllCaps ??
+                false;
             double? fontSize = paragraph.FontSize.HasValue && paragraph.FontSize.Value > 0
                 ? paragraph.FontSize.Value
                 : characterStyleDefaults.FontSize ?? styleDefaults.FontSize ?? tableRunStyleDefaults.FontSize;
@@ -946,7 +959,7 @@ namespace OfficeIMO.Word.Pdf {
                 ? directBackground
                 : MapNativeHighlight(characterStyleDefaults.Highlight) ?? MapNativeHighlight(styleDefaults.Highlight) ?? MapNativeHighlight(tableRunStyleDefaults.Highlight);
 
-            return new NativeResolvedTextStyle(bold, underline, italic, strike, fontSize, font, color, background);
+            return new NativeResolvedTextStyle(bold, underline, italic, strike, allCaps, fontSize, font, color, background);
         }
 
         private static W.RunProperties? GetNativeRunProperties(WordParagraph paragraph) =>

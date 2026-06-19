@@ -470,6 +470,7 @@ namespace OfficeIMO.Word.Pdf {
                 !conditionalStyle.Italic.HasValue &&
                 !conditionalStyle.Underline.HasValue &&
                 !conditionalStyle.Strike.HasValue &&
+                !conditionalStyle.AllCaps.HasValue &&
                 !conditionalStyle.Highlight.HasValue &&
                 !conditionalStyle.CellVerticalAlignment.HasValue &&
                 !conditionalStyle.ParagraphLineHeight.HasValue &&
@@ -502,6 +503,7 @@ namespace OfficeIMO.Word.Pdf {
                     Italic = conditionalStyle.Italic ?? runStyle.Italic,
                     Underline = conditionalStyle.Underline ?? runStyle.Underline,
                     Strike = conditionalStyle.Strike ?? runStyle.Strike,
+                    AllCaps = conditionalStyle.AllCaps ?? runStyle.AllCaps,
                     Color = conditionalStyle.TextColor ?? runStyle.Color,
                     Highlight = conditionalStyle.Highlight ?? runStyle.Highlight
                 }

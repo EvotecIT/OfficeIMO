@@ -622,7 +622,7 @@ namespace OfficeIMO.Word.Pdf {
         private static PdfCore.TextRun CreateNativeCellTextRun(string text, WordParagraph paragraph, NativeTableStyleDefaults tableStyleDefaults = default, NativeDocumentDefaults? nativeDefaults = null) {
             NativeResolvedTextStyle style = ResolveNativeTextRunStyle(paragraph, tableRunStyleDefaults: tableStyleDefaults.RunStyle, nativeDefaults: nativeDefaults);
             return new PdfCore.TextRun(
-                text,
+                ApplyNativeTextTransform(text, paragraph, tableRunStyleDefaults: tableStyleDefaults.RunStyle, nativeDefaults: nativeDefaults),
                 bold: style.Bold,
                 underline: style.Underline,
                 color: style.Color,
@@ -645,7 +645,7 @@ namespace OfficeIMO.Word.Pdf {
             string? contents = string.IsNullOrWhiteSpace(hyperlink.Tooltip) ? null : hyperlink.Tooltip;
             NativeResolvedTextStyle style = ResolveNativeTextRunStyle(paragraph, tableRunStyleDefaults: tableStyleDefaults.RunStyle, nativeDefaults: nativeDefaults);
             return new PdfCore.TextRun(
-                text,
+                ApplyNativeTextTransform(text, paragraph, tableRunStyleDefaults: tableStyleDefaults.RunStyle, nativeDefaults: nativeDefaults),
                 bold: style.Bold,
                 underline: style.Underline || linkUri != null || destinationName != null,
                 color: style.Color,
@@ -710,11 +710,11 @@ namespace OfficeIMO.Word.Pdf {
         private static string GetNativeCellParagraphText(WordParagraph paragraph) {
             List<WordParagraph> runs = GetNativeRuns(paragraph);
             if (paragraph.IsHyperLink && paragraph.Hyperlink != null && !IsNativeHiddenTextRun(paragraph) && !string.IsNullOrEmpty(paragraph.Hyperlink.Text)) {
-                return paragraph.Hyperlink.Text;
+                return ApplyNativeTextTransform(paragraph.Hyperlink.Text, paragraph);
             }
 
             if (runs.Count == 0 && !IsNativeHiddenTextRun(paragraph) && !string.IsNullOrEmpty(paragraph.Text)) {
-                return AppendNativeTextWithEquation(paragraph.Text, paragraph);
+                return ApplyNativeTextTransform(AppendNativeTextWithEquation(paragraph.Text, paragraph), paragraph);
             }
 
             var parts = new List<string>();
@@ -725,7 +725,7 @@ namespace OfficeIMO.Word.Pdf {
 
                 string runText = run.IsHyperLink && run.Hyperlink != null ? run.Hyperlink.Text : run.Text;
                 if (!string.IsNullOrEmpty(runText)) {
-                    parts.Add(runText);
+                    parts.Add(ApplyNativeTextTransform(runText, run, paragraph));
                 }
             }
 

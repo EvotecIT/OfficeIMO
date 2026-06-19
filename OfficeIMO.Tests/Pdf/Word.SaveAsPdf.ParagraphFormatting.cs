@@ -1013,6 +1013,49 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain("HiddenByStyle", text);
         }
 
+        [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Renders_Caps_Body_Text_Runs() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeCapsBodyText.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeCapsBodyText.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                const string capsStyleId = "NativeCapsRunStyle";
+                Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                styles.Append(new Style(
+                    new StyleName { Val = "Native Caps Run Style" },
+                    new BasedOn { Val = "Normal" },
+                    new StyleRunProperties(new Caps()))
+                {
+                    Type = StyleValues.Paragraph,
+                    StyleId = capsStyleId,
+                    CustomStyle = true
+                });
+
+                WordParagraph direct = document.AddParagraph();
+                direct.AddText("beforeCaps ");
+                WordParagraph capsRun = direct.AddText("capsBodyRun");
+                capsRun._run!.RunProperties ??= new RunProperties();
+                capsRun._run.RunProperties.Caps = new Caps();
+                direct.AddText(" afterCaps");
+
+                WordParagraph styled = document.AddParagraph("capsStyleRun");
+                styled.SetStyleId(capsStyleId);
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false
+                });
+            }
+
+            using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+            string text = string.Concat(pdf.GetPages().Select(page => page.Text));
+            Assert.Contains("beforeCaps", text);
+            Assert.Contains("CAPSBODYRUN", text);
+            Assert.Contains("CAPSSTYLERUN", text);
+            Assert.DoesNotContain("capsBodyRun", text);
+            Assert.DoesNotContain("capsStyleRun", text);
+        }
+
         private static IReadOnlyList<(double X, double Y, double Width, double Height)> ExtractFilledRectangles(string rawPdf, string colorOperator) {
             string pattern = Regex.Escape(colorOperator) +
                 @"\s+(?<x>-?\d+(?:\.\d+)?) (?<y>-?\d+(?:\.\d+)?) (?<width>-?\d+(?:\.\d+)?) (?<height>-?\d+(?:\.\d+)?) re f";

@@ -627,13 +627,13 @@ namespace OfficeIMO.Word.Pdf {
 
             pageNumberStyle = null;
             if (paragraph.IsHyperLink && paragraph.Hyperlink != null && !IsNativeHiddenTextRun(paragraph)) {
-                return AppendNativeHeaderFooterSupplementalText(paragraph.Hyperlink.Text, paragraph);
+                return AppendNativeHeaderFooterSupplementalText(ApplyNativeTextTransform(paragraph.Hyperlink.Text, paragraph), paragraph);
             }
 
             List<WordParagraph> runs = GetNativeRuns(paragraph);
             string? text = runs.Count > 0
-                ? string.Concat(runs.Where(run => !IsNativeHiddenTextRun(run, paragraph)).Select(run => run.Text))
-                : IsNativeHiddenTextRun(paragraph) ? string.Empty : paragraph.Text;
+                ? string.Concat(runs.Where(run => !IsNativeHiddenTextRun(run, paragraph)).Select(run => ApplyNativeTextTransform(run.Text, run, paragraph)))
+                : IsNativeHiddenTextRun(paragraph) ? string.Empty : ApplyNativeTextTransform(paragraph.Text, paragraph);
             text = AppendNativeHeaderFooterSupplementalText(text, paragraph);
             if (!string.IsNullOrWhiteSpace(text)) {
                 return text;
@@ -987,7 +987,7 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 if (child is W.Text text) {
-                    builder.Append(text.Text);
+                    builder.Append(ApplyNativeHeaderFooterRunTextTransform(text.Text, run));
                 } else if (child is W.TabChar) {
                     builder.Append('\t');
                 } else if (child is W.Break) {
@@ -998,6 +998,15 @@ namespace OfficeIMO.Word.Pdf {
 
         private static bool IsNativeHiddenRun(W.Run run) =>
             ReadNativeOnOff(run.RunProperties?.GetFirstChild<W.Vanish>()) == true;
+
+        private static string ApplyNativeHeaderFooterRunTextTransform(string text, W.Run run) =>
+            IsNativeAllCapsRun(run)
+                ? text.ToUpperInvariant()
+                : text;
+
+        private static bool IsNativeAllCapsRun(W.Run run) =>
+            ReadNativeOnOff(run.RunProperties?.GetFirstChild<W.Caps>()) == true ||
+            ReadNativeOnOff(run.RunProperties?.GetFirstChild<W.SmallCaps>()) == true;
 
         private static bool TryGetNativeHeaderFooterFieldToken(WordParagraph paragraph, out string? token, out PdfCore.PdfPageNumberStyle? style) {
             token = null;

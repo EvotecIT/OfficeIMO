@@ -82,6 +82,53 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Renders_Caps_Table_Cell_Text_Runs() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeCapsTableCellText.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeCapsTableCellText.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            const string styleId = "NativeCapsTableStyle";
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(new Style(
+                new StyleName { Val = "Native Caps Table Style" },
+                new StyleRunProperties(new Caps()))
+            {
+                Type = StyleValues.Table,
+                StyleId = styleId,
+                CustomStyle = true
+            });
+
+            WordTable table = document.AddTable(1, 2);
+            table.LayoutType = TableLayoutValues.Fixed;
+            table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
+            table.Rows[0].Cells[0].Width = 2400;
+            table.Rows[0].Cells[1].Width = 2400;
+
+            WordParagraph direct = table.Rows[0].Cells[0].Paragraphs[0];
+            direct.Text = string.Empty;
+            direct.AddText("cellBeforeCaps ");
+            WordParagraph capsRun = direct.AddText("capsCellRun");
+            capsRun._run!.RunProperties ??= new RunProperties();
+            capsRun._run.RunProperties.Caps = new Caps();
+
+            table.Rows[0].Cells[1].Paragraphs[0].Text = "capsTableStyle";
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        string text = string.Concat(pdf.GetPages().Select(page => page.Text));
+        Assert.Contains("CELLBEFORECAPS", text);
+        Assert.Contains("CAPSCELLRUN", text);
+        Assert.Contains("CAPSTABLESTYLE", text);
+        Assert.DoesNotContain("cellBeforeCaps", text);
+        Assert.DoesNotContain("capsCellRun", text);
+        Assert.DoesNotContain("capsTableStyle", text);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Renders_Table_NonUniform_Row_Heights() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableNonUniformRowHeights.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableNonUniformRowHeights.pdf");

@@ -89,6 +89,41 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Renders_Caps_HeaderFooter_Text_Runs() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeCapsHeaderFooterText.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeCapsHeaderFooterText.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.AddHeadersAndFooters();
+            WordParagraph headerParagraph = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph();
+            headerParagraph.AddText("headerBeforeCaps ");
+            WordParagraph headerCaps = headerParagraph.AddText("capsHeaderRun");
+            headerCaps._run!.RunProperties ??= new RunProperties();
+            headerCaps._run.RunProperties.Caps = new Caps();
+
+            WordParagraph footerParagraph = RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph();
+            WordParagraph footerCaps = footerParagraph.AddText("capsFooterRun");
+            footerCaps._run!.RunProperties ??= new RunProperties();
+            footerCaps._run.RunProperties.Caps = new Caps();
+
+            document.AddParagraph("Caps header footer body");
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        string text = pdf.GetPage(1).Text;
+        Assert.Contains("headerBeforeCaps", text);
+        Assert.Contains("CAPSHEADERRUN", text);
+        Assert.Contains("CAPSFOOTERRUN", text);
+        Assert.Contains("Caps header footer body", text);
+        Assert.DoesNotContain("capsHeaderRun", text);
+        Assert.DoesNotContain("capsFooterRun", text);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Skips_Unsupported_HeaderFooter_Images() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeUnsupportedHeaderImage.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeUnsupportedHeaderImage.pdf");
