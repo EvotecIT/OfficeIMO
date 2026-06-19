@@ -154,6 +154,16 @@ public class RtfMarkdownConverterTests {
     }
 
     [Fact]
+    public void MarkdownToRtfDocumentRejectsUnsupportedHtmlNestedInSupportedWrapper() {
+        var options = new MarkdownToRtfOptions();
+
+        RtfDocument document = "<u><span>x</span></u>".ToRtfDocumentFromMarkdown(options);
+
+        Assert.Empty(document.Paragraphs);
+        Assert.Contains(options.Diagnostics, diagnostic => diagnostic.Code == "MDRTF004");
+    }
+
+    [Fact]
     public void MarkdownToRtfDocumentOmitsHtmlCommentBlocksByDefault() {
         var options = new MarkdownToRtfOptions();
 
@@ -176,6 +186,24 @@ public class RtfMarkdownConverterTests {
 
         Assert.Contains(paragraph.Runs, run => run.Text == "&lt;tag&gt;" && run.FontId.HasValue);
         Assert.Contains(paragraph.Runs, run => run.Text == " <tag>" && !run.FontId.HasValue);
+    }
+
+    [Fact]
+    public void MarkdownRtfMarkdownRoundTripKeepsFencedCodeBlocks() {
+        string markdown = """
+            ```csharp
+            # not heading
+            - not list
+            ```
+            """;
+
+        RtfDocument serialized = RtfDocument.Read(markdown.ToRtfFromMarkdown()).Document;
+        string roundTripMarkdown = serialized.ToMarkdown().Replace("\r\n", "\n");
+        CodeBlock code = Assert.IsType<CodeBlock>(Assert.Single(MarkdownReader.Parse(roundTripMarkdown).Blocks));
+
+        Assert.Contains("```csharp\n# not heading\n- not list\n```", roundTripMarkdown, StringComparison.Ordinal);
+        Assert.Equal("csharp", code.Language);
+        Assert.Equal("# not heading\n- not list", code.Content);
     }
 
     [Fact]
@@ -316,7 +344,7 @@ public class RtfMarkdownConverterTests {
     [Fact]
     public void RtfDocumentToMarkdownKeepsLiteralBlockMarkersAsText() {
         RtfDocument document = RtfDocument.Create();
-        document.AddParagraph("# Heading\n- item\n1. item\n---");
+        document.AddParagraph("# Heading\n- item\n1. item\n---\nTerm: Definition");
 
         string markdown = document.ToMarkdown();
         RtfDocument roundTrip = markdown.ToRtfDocumentFromMarkdown();
@@ -325,10 +353,12 @@ public class RtfMarkdownConverterTests {
         Assert.Contains(@"\- item", markdown, StringComparison.Ordinal);
         Assert.Contains(@"1\. item", markdown, StringComparison.Ordinal);
         Assert.Contains(@"\---", markdown, StringComparison.Ordinal);
+        Assert.Contains("Term&#58; Definition", markdown, StringComparison.Ordinal);
         Assert.All(roundTrip.Paragraphs, paragraph => {
             Assert.Equal(RtfListKind.None, paragraph.ListKind);
             Assert.Null(paragraph.OutlineLevel);
         });
+        Assert.Contains(roundTrip.Paragraphs, paragraph => paragraph.ToPlainText().Contains("Term: Definition", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -421,6 +451,24 @@ public class RtfMarkdownConverterTests {
         RtfParagraph paragraph = Assert.Single(document.Paragraphs);
         Assert.Equal("Term: Definition", paragraph.ToPlainText());
         Assert.Contains(paragraph.Runs, run => run.Text == "Definition" && run.Bold);
+    }
+
+    [Fact]
+    public void MarkdownToRtfDocumentPreservesFootnotesAsNotes() {
+        string markdown = """
+            Text[^1]
+
+            [^1]: Note **bold**
+            """;
+
+        RtfDocument document = markdown.ToRtfDocumentFromMarkdown();
+
+        RtfParagraph paragraph = Assert.Single(document.Paragraphs);
+        RtfGeneratedText reference = Assert.Single(paragraph.Inlines.OfType<RtfGeneratedText>());
+        Assert.NotNull(reference.Note);
+        Assert.Equal(RtfNoteKind.Footnote, reference.Note!.Kind);
+        Assert.Equal("Note bold", reference.Note.ToPlainText());
+        Assert.Contains(reference.Note.Paragraphs[0].Runs, run => run.Text == "bold" && run.Bold);
     }
 
     [Fact]

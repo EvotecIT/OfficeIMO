@@ -21,6 +21,8 @@ internal static class RtfToMarkdownConverter {
                 case RtfParagraph paragraph:
                     if (paragraph.ListKind != RtfListKind.None) {
                         i = ConvertListRun(document, options, markdown, i, ref imageIndex);
+                    } else if (TryConvertCodeBlockRun(document, markdown, i, out int codeBlockEndIndex)) {
+                        i = codeBlockEndIndex;
                     } else {
                         markdown.Add(ConvertParagraph(document, paragraph, options, ref imageIndex));
                     }
@@ -361,6 +363,47 @@ internal static class RtfToMarkdownConverter {
         }
 
         return markdown;
+    }
+
+    private static bool TryConvertCodeBlockRun(RtfDocument document, MarkdownDoc markdown, int startIndex, out int endIndex) {
+        endIndex = startIndex;
+        if (!(document.Blocks[startIndex] is RtfParagraph first) ||
+            !TryGetCodeBlockMarker(first, out string key, out string language)) {
+            return false;
+        }
+
+        var lines = new List<string>();
+        int index = startIndex;
+        for (; index < document.Blocks.Count; index++) {
+            if (!(document.Blocks[index] is RtfParagraph paragraph) ||
+                !TryGetCodeBlockMarker(paragraph, out string currentKey, out string currentLanguage) ||
+                !string.Equals(currentKey, key, StringComparison.Ordinal)) {
+                break;
+            }
+
+            if (lines.Count == 0 && string.IsNullOrEmpty(language)) {
+                language = currentLanguage;
+            }
+
+            lines.Add(paragraph.ToPlainText());
+        }
+
+        markdown.Add(new CodeBlock(language, string.Join("\n", lines)));
+        endIndex = index - 1;
+        return true;
+    }
+
+    private static bool TryGetCodeBlockMarker(RtfParagraph paragraph, out string key, out string language) {
+        key = string.Empty;
+        language = string.Empty;
+        for (int i = 0; i < paragraph.Inlines.Count; i++) {
+            if (paragraph.Inlines[i] is RtfBookmarkMarker marker &&
+                RtfMarkdownBridgeMarkers.TryGetCodeBlockBookmark(marker, out key, out language)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static void ApplyTableColumnAlignments(TableBlock markdown, RtfTable table) {

@@ -13,9 +13,14 @@ internal static class MarkdownToRtfConverter {
     internal static RtfDocument Convert(MarkdownDoc markdown, MarkdownToRtfOptions options) {
         var document = RtfDocument.Create();
         EnsureDocumentDefaults(document);
+        var footnoteDefinitions = BuildFootnoteDefinitions(markdown);
 
         for (int i = 0; i < markdown.Blocks.Count; i++) {
-            ConvertBlock(document, markdown.Blocks[i], options);
+            if (markdown.Blocks[i] is FootnoteDefinitionBlock) {
+                continue;
+            }
+
+            ConvertBlock(document, markdown.Blocks[i], options, footnoteDefinitions);
         }
 
         return document;
@@ -26,22 +31,33 @@ internal static class MarkdownToRtfConverter {
         document.AddFont("Consolas");
     }
 
-    private static void ConvertBlock(RtfDocument document, IMarkdownBlock block, MarkdownToRtfOptions options) {
+    private static Dictionary<string, FootnoteDefinitionBlock> BuildFootnoteDefinitions(MarkdownDoc markdown) {
+        var definitions = new Dictionary<string, FootnoteDefinitionBlock>(StringComparer.OrdinalIgnoreCase);
+        for (int i = 0; i < markdown.Blocks.Count; i++) {
+            if (markdown.Blocks[i] is FootnoteDefinitionBlock footnote && !string.IsNullOrEmpty(footnote.Label)) {
+                definitions[footnote.Label] = footnote;
+            }
+        }
+
+        return definitions;
+    }
+
+    private static void ConvertBlock(RtfDocument document, IMarkdownBlock block, MarkdownToRtfOptions options, IReadOnlyDictionary<string, FootnoteDefinitionBlock> footnoteDefinitions) {
         switch (block) {
             case ParagraphBlock paragraph:
-                AppendInlineSequence(document.AddParagraph(), paragraph.Inlines, document, options, InlineStyle.Normal);
+                AppendInlineSequence(document.AddParagraph(), paragraph.Inlines, document, options, InlineStyle.Normal, footnoteDefinitions);
                 break;
             case HeadingBlock heading:
-                ConvertHeading(document, heading, options);
+                ConvertHeading(document, heading, options, footnoteDefinitions);
                 break;
             case UnorderedListBlock unorderedList:
-                ConvertList(document, unorderedList.Items, RtfListKind.Bullet, 1, options);
+                ConvertList(document, unorderedList.Items, RtfListKind.Bullet, 1, options, footnoteDefinitions);
                 break;
             case OrderedListBlock orderedList:
-                ConvertList(document, orderedList.Items, RtfListKind.Decimal, Math.Max(1, orderedList.Start), options);
+                ConvertList(document, orderedList.Items, RtfListKind.Decimal, Math.Max(1, orderedList.Start), options, footnoteDefinitions);
                 break;
             case TableBlock table:
-                ConvertTable(document, table, options);
+                ConvertTable(document, table, options, footnoteDefinitions);
                 break;
             case ImageBlock image:
                 ConvertImageBlock(document, image, options);
@@ -50,19 +66,19 @@ internal static class MarkdownToRtfConverter {
                 ConvertCodeBlock(document, code);
                 break;
             case HtmlCommentBlock comment:
-                ConvertRawHtml(document, comment.Comment, options, "Markdown HTML comment block");
+                ConvertRawHtml(document, comment.Comment, options, "Markdown HTML comment block", footnoteDefinitions);
                 break;
             case HtmlRawBlock html:
-                ConvertRawHtml(document, html.Html, options, "Markdown raw HTML block");
+                ConvertRawHtml(document, html.Html, options, "Markdown raw HTML block", footnoteDefinitions);
                 break;
             case QuoteBlock quote:
-                ConvertChildBlocks(document, quote.ChildBlocks, options, "Markdown quote flattened to paragraphs.");
+                ConvertChildBlocks(document, quote.ChildBlocks, options, "Markdown quote flattened to paragraphs.", footnoteDefinitions);
                 break;
             case DefinitionListBlock definitionList:
-                ConvertDefinitionList(document, definitionList, options);
+                ConvertDefinitionList(document, definitionList, options, footnoteDefinitions);
                 break;
             case IChildMarkdownBlockContainer container:
-                ConvertChildBlocks(document, container.ChildBlocks, options, block.GetType().Name + " child blocks flattened.");
+                ConvertChildBlocks(document, container.ChildBlocks, options, block.GetType().Name + " child blocks flattened.", footnoteDefinitions);
                 break;
             default:
                 document.AddParagraph(block.RenderMarkdown());
@@ -71,7 +87,7 @@ internal static class MarkdownToRtfConverter {
         }
     }
 
-    private static void ConvertHeading(RtfDocument document, HeadingBlock heading, MarkdownToRtfOptions options) {
+    private static void ConvertHeading(RtfDocument document, HeadingBlock heading, MarkdownToRtfOptions options, IReadOnlyDictionary<string, FootnoteDefinitionBlock> footnoteDefinitions) {
         int level = heading.Level < 1 ? 1 : heading.Level > 6 ? 6 : heading.Level;
         int styleId = 100 + level;
         RtfStyle style = document.AddStyle(styleId, "Heading " + level);
@@ -80,10 +96,10 @@ internal static class MarkdownToRtfConverter {
         RtfParagraph paragraph = document.AddParagraph();
         paragraph.SetStyle(styleId);
         paragraph.OutlineLevel = level - 1;
-        AppendInlineSequence(paragraph, heading.Inlines, document, options, InlineStyle.Normal);
+        AppendInlineSequence(paragraph, heading.Inlines, document, options, InlineStyle.Normal, footnoteDefinitions);
     }
 
-    private static void ConvertDefinitionList(RtfDocument document, DefinitionListBlock definitionList, MarkdownToRtfOptions options) {
+    private static void ConvertDefinitionList(RtfDocument document, DefinitionListBlock definitionList, MarkdownToRtfOptions options, IReadOnlyDictionary<string, FootnoteDefinitionBlock> footnoteDefinitions) {
         if (definitionList.InlineItems.Count == 0) {
             document.AddParagraph(((IMarkdownBlock)definitionList).RenderMarkdown());
             options.Report("MDRTF017", RtfMarkdownDiagnosticSeverity.Info, "Markdown definition list converted using rendered Markdown fallback.");
@@ -93,18 +109,18 @@ internal static class MarkdownToRtfConverter {
         for (int i = 0; i < definitionList.InlineItems.Count; i++) {
             DefinitionListInlineItem item = definitionList.InlineItems[i];
             RtfParagraph paragraph = document.AddParagraph();
-            AppendInlineSequence(paragraph, item.Term, document, options, InlineStyle.Normal);
+            AppendInlineSequence(paragraph, item.Term, document, options, InlineStyle.Normal, footnoteDefinitions);
             paragraph.AddText(": ");
-            AppendInlineSequence(paragraph, item.Definition, document, options, InlineStyle.Normal);
+            AppendInlineSequence(paragraph, item.Definition, document, options, InlineStyle.Normal, footnoteDefinitions);
         }
     }
 
-    private static void ConvertList(RtfDocument document, IReadOnlyList<ListItem> items, RtfListKind kind, int start, MarkdownToRtfOptions options) {
+    private static void ConvertList(RtfDocument document, IReadOnlyList<ListItem> items, RtfListKind kind, int start, MarkdownToRtfOptions options, IReadOnlyDictionary<string, FootnoteDefinitionBlock> footnoteDefinitions) {
         int listId = CreateListDefinition(document, kind, start);
-        ConvertListItems(document, items, listId, kind, start, 0, options);
+        ConvertListItems(document, items, listId, kind, start, 0, options, footnoteDefinitions);
     }
 
-    private static void ConvertListItems(RtfDocument document, IReadOnlyList<ListItem> items, int listId, RtfListKind kind, int start, int levelOffset, MarkdownToRtfOptions options) {
+    private static void ConvertListItems(RtfDocument document, IReadOnlyList<ListItem> items, int listId, RtfListKind kind, int start, int levelOffset, MarkdownToRtfOptions options, IReadOnlyDictionary<string, FootnoteDefinitionBlock> footnoteDefinitions) {
         for (int i = 0; i < items.Count; i++) {
             ListItem item = items[i];
             RtfParagraph paragraph = document.AddParagraph();
@@ -116,15 +132,15 @@ internal static class MarkdownToRtfConverter {
                 paragraph.AddText(item.Checked ? "[x] " : "[ ] ");
             }
 
-            AppendInlineSequence(paragraph, item.Content, document, options, InlineStyle.Normal);
+            AppendInlineSequence(paragraph, item.Content, document, options, InlineStyle.Normal, footnoteDefinitions);
 
             for (int paragraphIndex = 0; paragraphIndex < item.AdditionalParagraphs.Count; paragraphIndex++) {
                 RtfParagraph continuation = AddListContinuationParagraph(document, level);
-                AppendInlineSequence(continuation, item.AdditionalParagraphs[paragraphIndex], document, options, InlineStyle.Normal);
+                AppendInlineSequence(continuation, item.AdditionalParagraphs[paragraphIndex], document, options, InlineStyle.Normal, footnoteDefinitions);
             }
 
             for (int childIndex = 0; childIndex < item.ChildBlocks.Count; childIndex++) {
-                ConvertNestedListOrBlock(document, item.ChildBlocks[childIndex], listId, level, options);
+                ConvertNestedListOrBlock(document, item.ChildBlocks[childIndex], listId, level, options, footnoteDefinitions);
             }
         }
     }
@@ -180,32 +196,32 @@ internal static class MarkdownToRtfConverter {
         }
     }
 
-    private static void ConvertNestedListOrBlock(RtfDocument document, IMarkdownBlock block, int listId, int parentLevel, MarkdownToRtfOptions options) {
+    private static void ConvertNestedListOrBlock(RtfDocument document, IMarkdownBlock block, int listId, int parentLevel, MarkdownToRtfOptions options, IReadOnlyDictionary<string, FootnoteDefinitionBlock> footnoteDefinitions) {
         switch (block) {
             case UnorderedListBlock unorderedList:
-                ConvertListItems(document, unorderedList.Items, listId, RtfListKind.Bullet, 1, parentLevel + 1, options);
+                ConvertListItems(document, unorderedList.Items, listId, RtfListKind.Bullet, 1, parentLevel + 1, options, footnoteDefinitions);
                 break;
             case OrderedListBlock orderedList:
                 int childListId = CreateListDefinition(document, RtfListKind.Decimal, Math.Max(1, orderedList.Start));
-                ConvertListItems(document, orderedList.Items, childListId, RtfListKind.Decimal, Math.Max(1, orderedList.Start), parentLevel + 1, options);
+                ConvertListItems(document, orderedList.Items, childListId, RtfListKind.Decimal, Math.Max(1, orderedList.Start), parentLevel + 1, options, footnoteDefinitions);
                 break;
             default:
-                ConvertNestedContinuationBlock(document, block, parentLevel, options);
+                ConvertNestedContinuationBlock(document, block, parentLevel, options, footnoteDefinitions);
                 break;
         }
     }
 
-    private static void ConvertNestedContinuationBlock(RtfDocument document, IMarkdownBlock block, int parentLevel, MarkdownToRtfOptions options) {
+    private static void ConvertNestedContinuationBlock(RtfDocument document, IMarkdownBlock block, int parentLevel, MarkdownToRtfOptions options, IReadOnlyDictionary<string, FootnoteDefinitionBlock> footnoteDefinitions) {
         switch (block) {
             case ParagraphBlock paragraph:
-                AppendInlineSequence(AddListContinuationParagraph(document, parentLevel), paragraph.Inlines, document, options, InlineStyle.Normal);
+                AppendInlineSequence(AddListContinuationParagraph(document, parentLevel), paragraph.Inlines, document, options, InlineStyle.Normal, footnoteDefinitions);
                 break;
             case HeadingBlock heading:
-                AppendInlineSequence(AddListContinuationParagraph(document, parentLevel), heading.Inlines, document, options, InlineStyle.Normal);
+                AppendInlineSequence(AddListContinuationParagraph(document, parentLevel), heading.Inlines, document, options, InlineStyle.Normal, footnoteDefinitions);
                 break;
             case QuoteBlock quote:
                 options.Report("MDRTF012", RtfMarkdownDiagnosticSeverity.Info, "Markdown quote inside list item flattened to continuation paragraphs.");
-                ConvertNestedContinuationBlocks(document, quote.ChildBlocks, parentLevel, options);
+                ConvertNestedContinuationBlocks(document, quote.ChildBlocks, parentLevel, options, footnoteDefinitions);
                 break;
             case CodeBlock code:
                 ConvertNestedCodeBlock(document, code, parentLevel);
@@ -222,7 +238,7 @@ internal static class MarkdownToRtfConverter {
                 break;
             case IChildMarkdownBlockContainer container:
                 options.Report("MDRTF015", RtfMarkdownDiagnosticSeverity.Info, block.GetType().Name + " inside list item flattened to continuation paragraphs.");
-                ConvertNestedContinuationBlocks(document, container.ChildBlocks, parentLevel, options);
+                ConvertNestedContinuationBlocks(document, container.ChildBlocks, parentLevel, options, footnoteDefinitions);
                 break;
             default:
                 ConvertRenderedBlockAsContinuation(document, block, parentLevel);
@@ -231,9 +247,9 @@ internal static class MarkdownToRtfConverter {
         }
     }
 
-    private static void ConvertNestedContinuationBlocks(RtfDocument document, IReadOnlyList<IMarkdownBlock> blocks, int parentLevel, MarkdownToRtfOptions options) {
+    private static void ConvertNestedContinuationBlocks(RtfDocument document, IReadOnlyList<IMarkdownBlock> blocks, int parentLevel, MarkdownToRtfOptions options, IReadOnlyDictionary<string, FootnoteDefinitionBlock> footnoteDefinitions) {
         for (int i = 0; i < blocks.Count; i++) {
-            ConvertNestedContinuationBlock(document, blocks[i], parentLevel, options);
+            ConvertNestedContinuationBlock(document, blocks[i], parentLevel, options, footnoteDefinitions);
         }
     }
 
@@ -268,7 +284,7 @@ internal static class MarkdownToRtfConverter {
         return paragraph;
     }
 
-    private static void ConvertTable(RtfDocument document, TableBlock table, MarkdownToRtfOptions options) {
+    private static void ConvertTable(RtfDocument document, TableBlock table, MarkdownToRtfOptions options, IReadOnlyDictionary<string, FootnoteDefinitionBlock> footnoteDefinitions) {
         int rowCount = table.Rows.Count + (table.Headers.Count > 0 ? 1 : 0);
         int columnCount = Math.Max(table.Headers.Count, table.Rows.Count == 0 ? 0 : table.Rows.Max(row => row.Count));
         if (rowCount == 0 || columnCount == 0) {
@@ -281,7 +297,7 @@ internal static class MarkdownToRtfConverter {
         if (table.Headers.Count > 0) {
             RtfTableRow headerRow = rtfTable.Rows[rtfRowIndex++];
             headerRow.RepeatHeader = true;
-            FillTableRow(headerRow, table.HeaderInlines, table.Alignments, document, options);
+            FillTableRow(headerRow, table.HeaderInlines, table.Alignments, document, options, footnoteDefinitions);
         }
 
         IReadOnlyList<IReadOnlyList<InlineSequence>> rowInlines = table.RowInlines;
@@ -289,11 +305,11 @@ internal static class MarkdownToRtfConverter {
             IReadOnlyList<InlineSequence> cells = rowIndex < rowInlines.Count
                 ? rowInlines[rowIndex]
                 : Array.Empty<InlineSequence>();
-            FillTableRow(rtfTable.Rows[rtfRowIndex++], cells, table.Alignments, document, options);
+            FillTableRow(rtfTable.Rows[rtfRowIndex++], cells, table.Alignments, document, options, footnoteDefinitions);
         }
     }
 
-    private static void FillTableRow(RtfTableRow row, IReadOnlyList<InlineSequence> cells, IReadOnlyList<ColumnAlignment> alignments, RtfDocument document, MarkdownToRtfOptions options) {
+    private static void FillTableRow(RtfTableRow row, IReadOnlyList<InlineSequence> cells, IReadOnlyList<ColumnAlignment> alignments, RtfDocument document, MarkdownToRtfOptions options, IReadOnlyDictionary<string, FootnoteDefinitionBlock> footnoteDefinitions) {
         for (int column = 0; column < row.Cells.Count; column++) {
             RtfParagraph paragraph = row.Cells[column].AddParagraph();
             if (TryMapAlignment(alignments, column, out RtfTextAlignment alignment)) {
@@ -301,7 +317,7 @@ internal static class MarkdownToRtfConverter {
             }
 
             if (column < cells.Count) {
-                AppendInlineSequence(paragraph, cells[column], document, options, InlineStyle.Normal);
+                AppendInlineSequence(paragraph, cells[column], document, options, InlineStyle.Normal, footnoteDefinitions);
             }
         }
     }
@@ -336,19 +352,22 @@ internal static class MarkdownToRtfConverter {
     private static void ConvertCodeBlock(RtfDocument document, CodeBlock code) {
         int fontId = document.AddFont("Consolas");
         string[] lines = code.Content.Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.None);
+        string bookmarkName = RtfMarkdownBridgeMarkers.CreateCodeBlockBookmarkName(document.Paragraphs.Count, code.Language);
         for (int i = 0; i < lines.Length; i++) {
             RtfParagraph paragraph = document.AddParagraph();
+            paragraph.AddBookmarkStart(bookmarkName);
+            paragraph.AddBookmarkEnd(bookmarkName);
             paragraph.AddText(lines[i]).FontId = fontId;
         }
     }
 
-    private static void ConvertRawHtml(RtfDocument document, string html, MarkdownToRtfOptions options, string source) {
+    private static void ConvertRawHtml(RtfDocument document, string html, MarkdownToRtfOptions options, string source, IReadOnlyDictionary<string, FootnoteDefinitionBlock> footnoteDefinitions) {
         if (options.PreserveRawHtmlAsText) {
             document.AddParagraph(html);
             return;
         }
 
-        if (TryConvertRawHtmlAsInlineFormatting(document, html, options)) {
+        if (TryConvertRawHtmlAsInlineFormatting(document, html, options, footnoteDefinitions)) {
             return;
         }
 
@@ -363,7 +382,7 @@ internal static class MarkdownToRtfConverter {
         }
     }
 
-    private static bool TryConvertRawHtmlAsInlineFormatting(RtfDocument document, string html, MarkdownToRtfOptions options) {
+    private static bool TryConvertRawHtmlAsInlineFormatting(RtfDocument document, string html, MarkdownToRtfOptions options, IReadOnlyDictionary<string, FootnoteDefinitionBlock> footnoteDefinitions) {
         string trimmed = html.Trim();
         if (trimmed.Length == 0 ||
             trimmed.IndexOf('\r') >= 0 ||
@@ -378,7 +397,7 @@ internal static class MarkdownToRtfConverter {
             return false;
         }
 
-        AppendInlineSequence(document.AddParagraph(), sequence, document, options, InlineStyle.Normal);
+        AppendInlineSequence(document.AddParagraph(), sequence, document, options, InlineStyle.Normal, footnoteDefinitions);
         return true;
     }
 
@@ -420,6 +439,14 @@ internal static class MarkdownToRtfConverter {
             return true;
         }
 
+        if (inline is TextRun textRun && ContainsRawHtmlTagLikeText(textRun.Text)) {
+            return true;
+        }
+
+        if (inline is DecodedHtmlEntityTextRun decodedTextRun && ContainsRawHtmlTagLikeText(decodedTextRun.Text)) {
+            return true;
+        }
+
         InlineSequence? nested = (inline as IInlineContainerMarkdownInline)?.NestedInlines;
         return nested != null && ContainsUnsupportedHtml(nested);
     }
@@ -428,20 +455,42 @@ internal static class MarkdownToRtfConverter {
         return tagName == "u" || tagName == "sup" || tagName == "sub";
     }
 
-    private static void ConvertChildBlocks(RtfDocument document, IReadOnlyList<IMarkdownBlock> blocks, MarkdownToRtfOptions options, string message) {
+    private static bool ContainsRawHtmlTagLikeText(string? text) {
+        if (string.IsNullOrEmpty(text)) {
+            return false;
+        }
+
+        string value = text!;
+        for (int i = 0; i < value.Length - 2; i++) {
+            if (value[i] != '<') {
+                continue;
+            }
+
+            char next = value[i + 1] == '/' && i + 2 < value.Length
+                ? value[i + 2]
+                : value[i + 1];
+            if (next == '!' || next == '?' || char.IsLetter(next)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static void ConvertChildBlocks(RtfDocument document, IReadOnlyList<IMarkdownBlock> blocks, MarkdownToRtfOptions options, string message, IReadOnlyDictionary<string, FootnoteDefinitionBlock> footnoteDefinitions) {
         options.Report("MDRTF005", RtfMarkdownDiagnosticSeverity.Info, message);
         for (int i = 0; i < blocks.Count; i++) {
-            ConvertBlock(document, blocks[i], options);
+            ConvertBlock(document, blocks[i], options, footnoteDefinitions);
         }
     }
 
-    private static void AppendInlineSequence(RtfParagraph paragraph, InlineSequence sequence, RtfDocument document, MarkdownToRtfOptions options, InlineStyle style) {
+    private static void AppendInlineSequence(RtfParagraph paragraph, InlineSequence sequence, RtfDocument document, MarkdownToRtfOptions options, InlineStyle style, IReadOnlyDictionary<string, FootnoteDefinitionBlock> footnoteDefinitions) {
         for (int i = 0; i < sequence.Nodes.Count; i++) {
-            AppendInline(paragraph, sequence.Nodes[i], document, options, style);
+            AppendInline(paragraph, sequence.Nodes[i], document, options, style, footnoteDefinitions);
         }
     }
 
-    private static void AppendInline(RtfParagraph paragraph, IMarkdownInline inline, RtfDocument document, MarkdownToRtfOptions options, InlineStyle style) {
+    private static void AppendInline(RtfParagraph paragraph, IMarkdownInline inline, RtfDocument document, MarkdownToRtfOptions options, InlineStyle style, IReadOnlyDictionary<string, FootnoteDefinitionBlock> footnoteDefinitions) {
         switch (inline) {
             case TextRun text:
                 AddStyledText(paragraph, text.Text, style);
@@ -468,7 +517,10 @@ internal static class MarkdownToRtfConverter {
                 AddStyledTextRaw(paragraph, code.Text, style.WithFont(document.AddFont("Consolas")));
                 break;
             case LinkInline link:
-                AppendLink(paragraph, link, document, options, style);
+                AppendLink(paragraph, link, document, options, style, footnoteDefinitions);
+                break;
+            case FootnoteRefInline footnote:
+                AppendFootnoteReference(paragraph, footnote, document, options, style, footnoteDefinitions);
                 break;
             case ImageInline image:
                 AddStyledText(paragraph, "[Image: " + image.PlainAlt + "]", style);
@@ -481,25 +533,25 @@ internal static class MarkdownToRtfConverter {
                 AppendInlineRawHtml(paragraph, html.Html, options, style);
                 break;
             case BoldSequenceInline boldSequence:
-                AppendInlineSequence(paragraph, boldSequence.Inlines, document, options, style.WithBold());
+                AppendInlineSequence(paragraph, boldSequence.Inlines, document, options, style.WithBold(), footnoteDefinitions);
                 break;
             case ItalicSequenceInline italicSequence:
-                AppendInlineSequence(paragraph, italicSequence.Inlines, document, options, style.WithItalic());
+                AppendInlineSequence(paragraph, italicSequence.Inlines, document, options, style.WithItalic(), footnoteDefinitions);
                 break;
             case BoldItalicSequenceInline boldItalicSequence:
-                AppendInlineSequence(paragraph, boldItalicSequence.Inlines, document, options, style.WithBold().WithItalic());
+                AppendInlineSequence(paragraph, boldItalicSequence.Inlines, document, options, style.WithBold().WithItalic(), footnoteDefinitions);
                 break;
             case StrikethroughSequenceInline strikeSequence:
-                AppendInlineSequence(paragraph, strikeSequence.Inlines, document, options, style.WithStrike());
+                AppendInlineSequence(paragraph, strikeSequence.Inlines, document, options, style.WithStrike(), footnoteDefinitions);
                 break;
             case HighlightSequenceInline highlightSequence:
-                AppendInlineSequence(paragraph, highlightSequence.Inlines, document, options, style.WithHighlight(EnsureHighlightColor(document)));
+                AppendInlineSequence(paragraph, highlightSequence.Inlines, document, options, style.WithHighlight(EnsureHighlightColor(document)), footnoteDefinitions);
                 break;
             case HtmlTagSequenceInline htmlTagSequence:
-                AppendHtmlTagSequence(paragraph, htmlTagSequence, document, options, style);
+                AppendHtmlTagSequence(paragraph, htmlTagSequence, document, options, style, footnoteDefinitions);
                 break;
             case IInlineContainerMarkdownInline container when container.NestedInlines != null:
-                AppendInlineSequence(paragraph, container.NestedInlines!, document, options, style);
+                AppendInlineSequence(paragraph, container.NestedInlines!, document, options, style, footnoteDefinitions);
                 break;
             default:
                 AddStyledText(paragraph, RtfMarkdownText.PlainText(inline), style);
@@ -508,25 +560,25 @@ internal static class MarkdownToRtfConverter {
         }
     }
 
-    private static void AppendHtmlTagSequence(RtfParagraph paragraph, HtmlTagSequenceInline htmlTagSequence, RtfDocument document, MarkdownToRtfOptions options, InlineStyle style) {
+    private static void AppendHtmlTagSequence(RtfParagraph paragraph, HtmlTagSequenceInline htmlTagSequence, RtfDocument document, MarkdownToRtfOptions options, InlineStyle style, IReadOnlyDictionary<string, FootnoteDefinitionBlock> footnoteDefinitions) {
         switch (htmlTagSequence.TagName) {
             case "u":
-                AppendInlineSequence(paragraph, htmlTagSequence.Inlines, document, options, style.WithUnderline());
+                AppendInlineSequence(paragraph, htmlTagSequence.Inlines, document, options, style.WithUnderline(), footnoteDefinitions);
                 break;
             case "sup":
-                AppendInlineSequence(paragraph, htmlTagSequence.Inlines, document, options, style.WithVerticalPosition(RtfVerticalPosition.Superscript));
+                AppendInlineSequence(paragraph, htmlTagSequence.Inlines, document, options, style.WithVerticalPosition(RtfVerticalPosition.Superscript), footnoteDefinitions);
                 break;
             case "sub":
-                AppendInlineSequence(paragraph, htmlTagSequence.Inlines, document, options, style.WithVerticalPosition(RtfVerticalPosition.Subscript));
+                AppendInlineSequence(paragraph, htmlTagSequence.Inlines, document, options, style.WithVerticalPosition(RtfVerticalPosition.Subscript), footnoteDefinitions);
                 break;
             default:
-                AppendInlineSequence(paragraph, htmlTagSequence.Inlines, document, options, style);
+                AppendInlineSequence(paragraph, htmlTagSequence.Inlines, document, options, style, footnoteDefinitions);
                 options.Report("MDRTF011", RtfMarkdownDiagnosticSeverity.Info, "Markdown HTML inline tag converted using nested text fallback.", htmlTagSequence.TagName);
                 break;
         }
     }
 
-    private static void AppendLink(RtfParagraph paragraph, LinkInline link, RtfDocument document, MarkdownToRtfOptions options, InlineStyle style) {
+    private static void AppendLink(RtfParagraph paragraph, LinkInline link, RtfDocument document, MarkdownToRtfOptions options, InlineStyle style, IReadOnlyDictionary<string, FootnoteDefinitionBlock> footnoteDefinitions) {
         Uri? uri = null;
         if (!Uri.TryCreate(link.Url, UriKind.RelativeOrAbsolute, out uri)) {
             options.Report("MDRTF009", RtfMarkdownDiagnosticSeverity.Warning, "Markdown link URL was not valid for RTF hyperlink metadata.", link.Url);
@@ -534,7 +586,7 @@ internal static class MarkdownToRtfConverter {
 
         if (link.LabelInlines != null) {
             int before = paragraph.Inlines.Count;
-            AppendInlineSequence(paragraph, link.LabelInlines, document, options, style);
+            AppendInlineSequence(paragraph, link.LabelInlines, document, options, style, footnoteDefinitions);
             if (uri != null) {
                 for (int i = before; i < paragraph.Inlines.Count; i++) {
                     if (paragraph.Inlines[i] is RtfRun hyperlinkRun) {
@@ -551,6 +603,36 @@ internal static class MarkdownToRtfConverter {
         RtfRun simpleRun = AddStyledText(paragraph, link.Text, style);
         if (uri != null) {
             simpleRun.SetHyperlink(uri);
+        }
+    }
+
+    private static void AppendFootnoteReference(RtfParagraph paragraph, FootnoteRefInline footnote, RtfDocument document, MarkdownToRtfOptions options, InlineStyle style, IReadOnlyDictionary<string, FootnoteDefinitionBlock> footnoteDefinitions) {
+        if (!footnoteDefinitions.TryGetValue(footnote.Label, out FootnoteDefinitionBlock? definition)) {
+            AddStyledText(paragraph, footnote.RenderMarkdown(), style);
+            options.Report("MDRTF018", RtfMarkdownDiagnosticSeverity.Warning, "Markdown footnote reference has no matching definition.", footnote.Label);
+            return;
+        }
+
+        RtfNote note = document.AddNote(RtfNoteKind.Footnote);
+        AddFootnoteDefinitionContent(note, definition, document, options, footnoteDefinitions);
+        paragraph.AddNoteReference(note, footnote.Label);
+    }
+
+    private static void AddFootnoteDefinitionContent(RtfNote note, FootnoteDefinitionBlock definition, RtfDocument document, MarkdownToRtfOptions options, IReadOnlyDictionary<string, FootnoteDefinitionBlock> footnoteDefinitions) {
+        IReadOnlyList<IMarkdownBlock> blocks = definition.Blocks.Count > 0
+            ? definition.Blocks
+            : new IMarkdownBlock[] { new ParagraphBlock(MarkdownReader.ParseInlineText(definition.Text, options.ReaderOptions)) };
+
+        for (int i = 0; i < blocks.Count; i++) {
+            switch (blocks[i]) {
+                case ParagraphBlock paragraphBlock:
+                    AppendInlineSequence(note.AddParagraph(), paragraphBlock.Inlines, document, options, InlineStyle.Normal, footnoteDefinitions);
+                    break;
+                default:
+                    note.AddParagraph(blocks[i].RenderMarkdown());
+                    options.Report("MDRTF019", RtfMarkdownDiagnosticSeverity.Info, "Markdown footnote child block converted to rendered Markdown text.", blocks[i].GetType().Name);
+                    break;
+            }
         }
     }
 

@@ -106,7 +106,7 @@ internal static class MarkdownEscaper {
 
         int definitionSeparatorIndex = GetDefinitionListSeparatorIndex(line, markerIndex);
         return definitionSeparatorIndex >= 0
-            ? line.Insert(definitionSeparatorIndex, "\\")
+            ? line.Substring(0, definitionSeparatorIndex) + "&#58;" + line.Substring(definitionSeparatorIndex + 1)
             : line;
     }
 
