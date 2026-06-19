@@ -235,6 +235,6 @@ public partial class Word {
             .ToList();
 
         Assert.NotEmpty(words);
-        return lowest ? words[0].BoundingBox.Bottom : words[^1].BoundingBox.Bottom;
+        return lowest ? words[0].BoundingBox.Bottom : words[words.Count - 1].BoundingBox.Bottom;
     }
 }
