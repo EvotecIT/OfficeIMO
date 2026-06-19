@@ -318,7 +318,7 @@ namespace OfficeIMO.Word.Pdf {
                     spacingAfter = 0D;
                 }
 
-                (double Left, double Right, double FirstLine) indentation = ResolveNativeTableCellParagraphIndentation(paragraph);
+                (double Left, double Right, double FirstLine) indentation = ResolveNativeTableCellParagraphIndentation(paragraph, tableStyleDefaults);
                 double? lineHeight = ResolveNativeTableCellParagraphLineHeight(paragraph, nativeDefaults, tableStyleDefaults);
                 IReadOnlyList<PdfCore.PdfTabStop> tabStops = ResolveNativeTableCellParagraphTabStops(paragraph, indentation.Left);
                 paragraphs.Add(new PdfCore.PdfTableCellParagraph(
@@ -352,11 +352,11 @@ namespace OfficeIMO.Word.Pdf {
         private static W.JustificationValues? ResolveNativeTableCellParagraphJustification(WordParagraph paragraph, NativeTableStyleDefaults tableStyleDefaults) =>
             paragraph.ParagraphAlignment ?? GetNativeParagraphStyleDefaults(paragraph).Alignment ?? tableStyleDefaults.ParagraphAlignment;
 
-        private static (double Left, double Right, double FirstLine) ResolveNativeTableCellParagraphIndentation(WordParagraph paragraph) {
+        private static (double Left, double Right, double FirstLine) ResolveNativeTableCellParagraphIndentation(WordParagraph paragraph, NativeTableStyleDefaults tableStyleDefaults) {
             NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);
-            double leftIndent = paragraph.IndentationBeforePoints ?? styleDefaults.LeftIndent ?? 0D;
-            double rightIndent = paragraph.IndentationAfterPoints ?? styleDefaults.RightIndent ?? 0D;
-            double firstLineIndent = paragraph.IndentationFirstLinePoints ?? styleDefaults.FirstLineIndent ?? 0D;
+            double leftIndent = paragraph.IndentationBeforePoints ?? styleDefaults.LeftIndent ?? tableStyleDefaults.ParagraphLeftIndent ?? 0D;
+            double rightIndent = paragraph.IndentationAfterPoints ?? styleDefaults.RightIndent ?? tableStyleDefaults.ParagraphRightIndent ?? 0D;
+            double firstLineIndent = paragraph.IndentationFirstLinePoints ?? styleDefaults.FirstLineIndent ?? tableStyleDefaults.ParagraphFirstLineIndent ?? 0D;
 
             if (paragraph.IndentationHangingPoints.HasValue) {
                 double hangingIndent = paragraph.IndentationHangingPoints.Value;

@@ -704,6 +704,60 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Uses_Table_Style_Conditional_Paragraph_Indentation_For_Cells() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleConditionalParagraphIndentation.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleConditionalParagraphIndentation.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            const string styleId = "NativeTableConditionalParagraphIndentation";
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(new Style(
+                new StyleName { Val = "Native Table Conditional Paragraph Indentation" },
+                new TableStyleProperties(
+                    new StyleParagraphProperties(
+                        new Indentation {
+                            Left = "720"
+                        }))
+                { Type = TableStyleOverrideValues.FirstRow })
+            {
+                Type = StyleValues.Table,
+                StyleId = styleId,
+                CustomStyle = true
+            });
+
+            WordTable table = document.AddTable(2, 1);
+            table.Width = 3600;
+            table.WidthType = TableWidthUnitValues.Dxa;
+            table.LayoutType = TableLayoutValues.Fixed;
+            table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
+            table.ConditionalFormattingFirstRow = true;
+            foreach (WordTableRow row in table.Rows) {
+                row.Cells[0].Width = 3600;
+                row.Cells[0].WidthType = TableWidthUnitValues.Dxa;
+            }
+
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "StyledIndent";
+            table.Rows[1].Cells[0].Paragraphs[0].Text = "PlainIndent";
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = new PdfCore.PageSize(360, 240),
+                Margins = PdfCore.PageMargins.Uniform(40),
+                FontFamily = "Helvetica"
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        var words = pdf.GetPage(1).GetWords().ToList();
+        var styled = Assert.Single(words, word => word.Text == "StyledIndent");
+        var plain = Assert.Single(words, word => word.Text == "PlainIndent");
+
+        Assert.True(styled.BoundingBox.Left > plain.BoundingBox.Left + 30D,
+            $"Expected first-row table style paragraph indentation to move native PDF cell text right. Styled x: {styled.BoundingBox.Left:0.##}; plain x: {plain.BoundingBox.Left:0.##}.");
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Uses_Table_Cell_Paragraph_Indentation() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellParagraphIndentation.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellParagraphIndentation.pdf");

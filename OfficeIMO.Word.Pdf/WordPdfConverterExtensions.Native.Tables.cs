@@ -476,7 +476,10 @@ namespace OfficeIMO.Word.Pdf {
                 !conditionalStyle.ParagraphLineSpacingRule.HasValue &&
                 !conditionalStyle.ParagraphSpacingBefore.HasValue &&
                 !conditionalStyle.ParagraphSpacingAfter.HasValue &&
-                !conditionalStyle.ParagraphAlignment.HasValue) {
+                !conditionalStyle.ParagraphAlignment.HasValue &&
+                !conditionalStyle.ParagraphLeftIndent.HasValue &&
+                !conditionalStyle.ParagraphRightIndent.HasValue &&
+                !conditionalStyle.ParagraphFirstLineIndent.HasValue) {
                 return tableStyleDefaults;
             }
 
@@ -489,6 +492,9 @@ namespace OfficeIMO.Word.Pdf {
                 ParagraphSpacingBefore = conditionalStyle.ParagraphSpacingBefore ?? tableStyleDefaults.ParagraphSpacingBefore,
                 ParagraphSpacingAfter = conditionalStyle.ParagraphSpacingAfter ?? tableStyleDefaults.ParagraphSpacingAfter,
                 ParagraphAlignment = conditionalStyle.ParagraphAlignment ?? tableStyleDefaults.ParagraphAlignment,
+                ParagraphLeftIndent = conditionalStyle.ParagraphLeftIndent ?? tableStyleDefaults.ParagraphLeftIndent,
+                ParagraphRightIndent = conditionalStyle.ParagraphRightIndent ?? tableStyleDefaults.ParagraphRightIndent,
+                ParagraphFirstLineIndent = conditionalStyle.ParagraphFirstLineIndent ?? tableStyleDefaults.ParagraphFirstLineIndent,
                 RunStyle = runStyle with {
                     FontSize = conditionalStyle.FontSize ?? runStyle.FontSize,
                     Bold = conditionalStyle.Bold ?? runStyle.Bold,
