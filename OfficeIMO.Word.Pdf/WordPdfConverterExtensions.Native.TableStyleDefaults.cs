@@ -4,8 +4,8 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
-        private readonly record struct NativeTableStyleDefaults(PdfCore.PdfCellPadding? CellPadding, PdfCore.PdfColor? CellFill, (PdfCore.PdfColor Color, double Width)? TableBorder, double? ParagraphLineHeight, double? ParagraphLineSpacingPoints, W.LineSpacingRuleValues? ParagraphLineSpacingRule, double? ParagraphSpacingBefore, double? ParagraphSpacingAfter, NativeTableRunStyleDefaults RunStyle) {
-            public static NativeTableStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null, NativeTableRunStyleDefaults.Empty);
+        private readonly record struct NativeTableStyleDefaults(PdfCore.PdfCellPadding? CellPadding, PdfCore.PdfColor? CellFill, (PdfCore.PdfColor Color, double Width)? TableBorder, double? LeftIndent, double? ParagraphLineHeight, double? ParagraphLineSpacingPoints, W.LineSpacingRuleValues? ParagraphLineSpacingRule, double? ParagraphSpacingBefore, double? ParagraphSpacingAfter, NativeTableRunStyleDefaults RunStyle) {
+            public static NativeTableStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null, null, NativeTableRunStyleDefaults.Empty);
         }
 
         private readonly record struct NativeTableRunStyleDefaults(double? FontSize, string? FontFamily, bool? Bold, bool? Italic, bool? Underline, bool? Strike, string? ColorHex, W.HighlightColorValues? Highlight) {
@@ -29,6 +29,7 @@ namespace OfficeIMO.Word.Pdf {
             double? marginRight = null;
             PdfCore.PdfColor? cellFill = null;
             (PdfCore.PdfColor Color, double Width)? tableBorder = null;
+            double? leftIndent = null;
             double? paragraphLineHeight = null;
             double? paragraphLineSpacingPoints = null;
             W.LineSpacingRuleValues? paragraphLineSpacingRule = null;
@@ -55,6 +56,8 @@ namespace OfficeIMO.Word.Pdf {
                 highlight = runProperties?.GetFirstChild<W.Highlight>()?.Val?.Value ?? highlight;
 
                 W.StyleTableProperties? tableProperties = style.GetFirstChild<W.StyleTableProperties>();
+                leftIndent = GetNativeTableLeftIndent(tableProperties?.GetFirstChild<W.TableIndentation>()) ?? leftIndent;
+
                 W.TableCellMarginDefault? margins = tableProperties?.GetFirstChild<W.TableCellMarginDefault>();
                 if (margins != null) {
                     double? top = ConvertNativeTwipsToPoints(margins.TopMargin?.Width?.Value);
@@ -114,6 +117,7 @@ namespace OfficeIMO.Word.Pdf {
                 cellPadding,
                 cellFill,
                 tableBorder,
+                leftIndent,
                 paragraphLineHeight,
                 paragraphLineSpacingPoints,
                 paragraphLineSpacingRule,

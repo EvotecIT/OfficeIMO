@@ -247,6 +247,26 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Maps_Table_Style_Left_Indent() {
+        using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeTableStyleLeftIndent.docx"));
+        Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+        styles.Append(new Style(
+            new StyleName { Val = "Generic Indented Table" },
+            new StyleTableProperties(new TableIndentation {
+                Width = 720,
+                Type = TableWidthUnitValues.Dxa
+            }))
+        { Type = StyleValues.Table, StyleId = "GenericIndentedTable" });
+
+        WordTable table = document.AddTable(1, 1);
+        table._tableProperties!.TableStyle = new TableStyle { Val = "GenericIndentedTable" };
+
+        PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table);
+
+        Assert.Equal(36D, style.LeftIndent);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Maps_Table_Style_Exact_Line_Spacing() {
         using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeTableStyleExactLineSpacing.docx"));
         Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;

@@ -90,4 +90,46 @@ public partial class Word {
         double defaultGap = defaultRight.BoundingBox.Left - defaultLeft.BoundingBox.Left;
         Assert.True(preferredGap < defaultGap - 40D, $"Expected preferred DXA table width to narrow the native table. Preferred gap: {preferredGap}; default gap: {defaultGap}.");
     }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Renders_Table_Style_Left_Indent() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleRenderedLeftIndent.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleRenderedLeftIndent.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(new Style(
+                new StyleName { Val = "Generic Rendered Indented Table" },
+                new StyleTableProperties(new TableIndentation {
+                    Width = 720,
+                    Type = TableWidthUnitValues.Dxa
+                }))
+            { Type = StyleValues.Table, StyleId = "GenericRenderedIndentedTable" });
+
+            WordTable defaultTable = document.AddTable(1, 1);
+            ConfigureMarginTable(defaultTable, "DefaultStyleIndent");
+
+            document.AddParagraph("between style indent tables");
+
+            WordTable styledTable = document.AddTable(1, 1);
+            ConfigureMarginTable(styledTable, "StyledIndent");
+            styledTable._tableProperties!.TableStyle = new TableStyle { Val = "GenericRenderedIndentedTable" };
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = new PdfCore.PageSize(400, 280),
+                Margins = PdfCore.PageMargins.Uniform(40)
+            });
+        }
+
+        byte[] bytes = File.ReadAllBytes(pdfPath);
+        using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
+        var words = pdf.GetPage(1).GetWords().ToList();
+        var defaultWord = Assert.Single(words, word => word.Text == "DefaultStyleIndent");
+        var styledWord = Assert.Single(words, word => word.Text == "StyledIndent");
+
+        Assert.True(styledWord.BoundingBox.Left > defaultWord.BoundingBox.Left + 30D,
+            $"Expected table style indentation to move the styled native table right. Default x: {defaultWord.BoundingBox.Left:0.##}; styled x: {styledWord.BoundingBox.Left:0.##}.");
+    }
 }

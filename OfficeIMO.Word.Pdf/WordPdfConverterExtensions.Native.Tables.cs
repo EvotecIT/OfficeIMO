@@ -203,7 +203,7 @@ namespace OfficeIMO.Word.Pdf {
                 style,
                 usesConfiguredDefaultStyle,
                 ShouldApplyNativeTableStyleCellPadding(table) ? tableStyleDefaults : NativeTableStyleDefaults.Empty);
-            ApplyNativeTableLayoutOptions(table, style, contentWidth);
+            ApplyNativeTableLayoutOptions(table, style, contentWidth, tableStyleDefaults);
             ApplyNativeTableRowOptions(table, style);
             return style;
         }
@@ -233,7 +233,7 @@ namespace OfficeIMO.Word.Pdf {
             };
         }
 
-        private static void ApplyNativeTableLayoutOptions(WordTable table, PdfCore.PdfTableStyle style, double? contentWidth) {
+        private static void ApplyNativeTableLayoutOptions(WordTable table, PdfCore.PdfTableStyle style, double? contentWidth, NativeTableStyleDefaults tableStyleDefaults) {
             W.TableProperties? properties = table._tableProperties;
             if (IsNativeTableAutoFitLayout(properties) &&
                 (IsNativeExplicitAutoFitTableLayout(properties) || !HasNativeTableAuthoredFixedCellWidths(table))) {
@@ -246,7 +246,7 @@ namespace OfficeIMO.Word.Pdf {
                 style.PreserveWidth = true;
             }
 
-            double? leftIndent = GetNativeTableLeftIndent(properties?.TableIndentation);
+            double? leftIndent = GetNativeTableLeftIndent(properties?.TableIndentation) ?? tableStyleDefaults.LeftIndent;
             if (leftIndent.HasValue) {
                 style.LeftIndent = leftIndent.Value;
             }
