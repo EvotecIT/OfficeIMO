@@ -156,15 +156,18 @@ namespace OfficeIMO.Word.Pdf {
             double fontSize = paragraph.FontSize.HasValue && paragraph.FontSize.Value > 0D ? paragraph.FontSize.Value : styleDefaults.FontSize ?? nativeDefaults.FontSize;
             double lineHeight = ResolveNativeParagraphLineHeight(paragraph, fontSize, nativeDefaults, styleDefaults);
             W.SpacingBetweenLines? directSpacing = paragraph._paragraph?.ParagraphProperties?.GetFirstChild<W.SpacingBetweenLines>();
-            double markerWidth = EstimateNativeListMarkerWidth(marker, fontSize);
+            double markerTextWidth = EstimateNativeListMarkerWidth(marker, fontSize);
+            double markerWidth = Math.Max(markerTextWidth, textIndent - markerIndent);
             double markerGap = Math.Max(0D, textIndent - markerIndent - markerWidth);
             bool itemSpacingDeclared = false;
 
             var style = new PdfCore.PdfListStyle {
                 LeftIndent = markerIndent,
                 MarkerGap = markerGap,
+                MarkerWidth = markerWidth,
                 MarkerFont = ResolveNativeListMarkerFont(info, markerTextStyle),
                 MarkerColor = ParseNativeColor(info.MarkerColorHex),
+                MarkerAlign = MapNativeListMarkerAlign(info.LevelJustification),
                 MarkerBold = info.MarkerBold ?? markerTextStyle.Bold,
                 MarkerItalic = info.MarkerItalic ?? markerTextStyle.Italic
             };
@@ -271,10 +274,12 @@ namespace OfficeIMO.Word.Pdf {
                    NullableDoubleEquals(left.LineHeight, right.LineHeight) &&
                    DoubleEquals(left.LeftIndent, right.LeftIndent) &&
                    NullableDoubleEquals(left.MarkerGap, right.MarkerGap) &&
+                   NullableDoubleEquals(left.MarkerWidth, right.MarkerWidth) &&
                    DoubleEquals(left.SpacingBefore, right.SpacingBefore) &&
                    NullableDoubleEquals(left.SpacingAfter, right.SpacingAfter) &&
                    NullableDoubleEquals(left.ItemSpacing, right.ItemSpacing) &&
                    left.MarkerColor.Equals(right.MarkerColor) &&
+                   left.MarkerAlign == right.MarkerAlign &&
                    left.MarkerFont == right.MarkerFont &&
                    left.MarkerBold == right.MarkerBold &&
                    left.MarkerItalic == right.MarkerItalic &&
@@ -298,6 +303,22 @@ namespace OfficeIMO.Word.Pdf {
             return PdfCore.PdfStandardFontMapper.TryMapFontFamily(info.MarkerFontFamily, out PdfCore.PdfStandardFont markerFont)
                 ? markerFont
                 : markerTextStyle.Font;
+        }
+
+        private static PdfCore.PdfAlign? MapNativeListMarkerAlign(W.LevelJustificationValues? value) {
+            if (!value.HasValue) {
+                return null;
+            }
+
+            if (value.Value == W.LevelJustificationValues.Center) {
+                return PdfCore.PdfAlign.Center;
+            }
+
+            if (value.Value == W.LevelJustificationValues.Right) {
+                return PdfCore.PdfAlign.Right;
+            }
+
+            return value.Value == W.LevelJustificationValues.Left ? PdfCore.PdfAlign.Left : null;
         }
 
         private static List<WordParagraph> GetNativeRuns(WordParagraph paragraph) {

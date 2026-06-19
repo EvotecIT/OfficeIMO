@@ -129,6 +129,10 @@ internal static partial class PdfWriter {
         return style?.GetMarkerGap(defaultGap) ?? defaultGap;
     }
 
+    private static double GetListMarkerWidth(PdfListStyle? style, double estimatedWidth) {
+        return Math.Max(estimatedWidth, style?.MarkerWidth ?? estimatedWidth);
+    }
+
     private static PdfStandardFont GetListMarkerFont(PdfListStyle? style, PdfStandardFont defaultFont) {
         PdfStandardFont normalFont = ChooseNormal(style?.MarkerFont ?? defaultFont);
         if (style?.MarkerBold == true && style.MarkerItalic) {
@@ -144,6 +148,14 @@ internal static partial class PdfWriter {
         }
 
         return normalFont;
+    }
+
+    private static PdfAlign GetBulletMarkerAlign(PdfListStyle? style) {
+        return style?.MarkerAlign ?? PdfAlign.Left;
+    }
+
+    private static PdfAlign GetNumberedMarkerAlign(PdfListStyle? style) {
+        return style?.MarkerAlign ?? PdfAlign.Right;
     }
 
     private static double GetListItemSpacing(PdfListStyle? style, double leading) {

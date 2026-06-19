@@ -511,6 +511,57 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Honors_Numbering_Level_Marker_Justification() {
+            (double MarkerX, double TextX) left = RenderNativeNumberedListMarkerJustification(
+                "PdfNativeListMarkerJustificationLeft",
+                LevelJustificationValues.Left,
+                "LeftJustifiedMarkerBody");
+            (double MarkerX, double TextX) right = RenderNativeNumberedListMarkerJustification(
+                "PdfNativeListMarkerJustificationRight",
+                LevelJustificationValues.Right,
+                "RightJustifiedMarkerBody");
+
+            Assert.True(
+                right.MarkerX > left.MarkerX + 20D,
+                $"Expected right-justified marker X ({right.MarkerX}) to move inside the marker column compared to left-justified marker X ({left.MarkerX}).");
+            Assert.InRange(Math.Abs(right.TextX - left.TextX), 0D, 1.5D);
+        }
+
+        private (double MarkerX, double TextX) RenderNativeNumberedListMarkerJustification(string fileNamePrefix, LevelJustificationValues justification, string bodyText) {
+            string docPath = Path.Combine(_directoryWithFiles, fileNamePrefix + ".docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, fileNamePrefix + ".pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                WordList numberedList = document.AddCustomList();
+                numberedList.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
+                WordListLevel level = numberedList.Numbering.Levels[0];
+                level.IndentationLeft = 1440;
+                level.IndentationHanging = 720;
+                level._level.LevelJustification = new LevelJustification { Val = justification };
+                numberedList.AddItem(bodyText);
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false,
+                    FontFamily = "Helvetica"
+                });
+            }
+
+            using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+            string firstBodyLetter = bodyText[0].ToString();
+            var line = pdf.GetPage(1).Letters
+                .Where(letter => !string.IsNullOrWhiteSpace(letter.Value))
+                .GroupBy(letter => Math.Round(letter.StartBaseLine.Y, 1))
+                .OrderByDescending(group => group.Key)
+                .Select(group => group.OrderBy(letter => letter.StartBaseLine.X).ToList())
+                .First(group => string.Concat(group.Select(letter => letter.Value)).Contains(bodyText));
+
+            double markerX = line.First(letter => letter.Value == "1").StartBaseLine.X;
+            double textX = line.First(letter => letter.Value == firstBodyLetter).StartBaseLine.X;
+            return (markerX, textX);
+        }
+
+        [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Maps_List_Item_Footnotes_Through_Native_List_Blocks() {
             string docPath = Path.Combine(_directoryWithFiles, "PdfNativeListFootnotes.docx");
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeListFootnotes.pdf");
