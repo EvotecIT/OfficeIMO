@@ -1495,25 +1495,49 @@ public partial class Word {
     }
 
     [Fact]
-    public void SaveAsPdf_OfficeIMOEngine_Rejects_Mixed_Unsupported_Word_Chart_Combos() {
+    public void SaveAsPdf_OfficeIMOEngine_Renders_Primary_Word_Chart_From_Mixed_Combo() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordMixedUnsupportedChart.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordMixedUnsupportedChart.pdf");
+        var options = new PdfSaveOptions {
+            IncludePageNumbers = false
+        };
 
-        using WordDocument document = WordDocument.Create(docPath);
-        WordChart chart = document.AddChart("Word PDF Mixed Chart", false, 360, 220);
-        chart.AddCategories(new[] { "Q1", "Q2" }.ToList());
-        chart.AddBar("Actual", new[] { 10, 20 }, OfficeColor.ParseHex("#4472c4"));
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            WordChart chart = document.AddChart("Word PDF Mixed Chart", false, 360, 220);
+            chart.AddCategories(new[] { "Q1", "Q2" }.ToList());
+            chart.AddBar("Actual", new[] { 10, 20 }, OfficeColor.ParseHex("#4472c4"));
+            document.AddParagraph("After mixed chart");
 
-        ChartPart chartPart = (ChartPart)typeof(WordChart)
-            .GetProperty("ChartPart", BindingFlags.NonPublic | BindingFlags.Instance)!
-            .GetValue(chart)!;
-        chartPart.ChartSpace!.Descendants<PlotArea>().First().Append(new BubbleChart());
+            ChartPart chartPart = (ChartPart)typeof(WordChart)
+                .GetProperty("ChartPart", BindingFlags.NonPublic | BindingFlags.Instance)!
+                .GetValue(chart)!;
+            chartPart.ChartSpace!.Descendants<PlotArea>().First().Append(new BubbleChart());
 
-        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("TryCreateNativeWordChartSnapshot", BindingFlags.NonPublic | BindingFlags.Static)!;
-        object?[] arguments = { chart, null, null };
-        bool result = (bool)method.Invoke(null, arguments)!;
+            MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("TryCreateNativeWordChartSnapshot", BindingFlags.NonPublic | BindingFlags.Static)!;
+            object?[] arguments = { chart, null, null };
+            bool result = (bool)method.Invoke(null, arguments)!;
 
-        Assert.False(result);
-        Assert.Contains("mixed or multiple plot types", (string?)arguments[2], StringComparison.OrdinalIgnoreCase);
+            Assert.True(result, (string?)arguments[2]);
+            object snapshot = arguments[1]!;
+            Assert.Equal(OfficeChartKind.BarClustered, snapshot.GetType().GetProperty("ChartKind")!.GetValue(snapshot));
+            Assert.Contains("omitted the additional plot types", (string?)arguments[2], StringComparison.OrdinalIgnoreCase);
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, options);
+        }
+
+        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+        PdfExportWarning simplified = Assert.Single(options.Warnings, warning => warning.Code == "NativeBodyChartSimplified");
+        Assert.Contains("omitted the additional plot types", simplified.Message, StringComparison.OrdinalIgnoreCase);
+
+        string text = PdfTextExtractor.ExtractAllText(pdfPath);
+        Assert.Contains("After mixed chart", text);
+        Assert.Contains("Word PDF Mixed Chart", text);
+        Assert.Contains("Q1", text);
+        Assert.Contains("Q2", text);
+
+        string rawPdf = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        Assert.Contains("0.267 0.447 0.769 rg", rawPdf, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -36,6 +36,14 @@ namespace OfficeIMO.Word.Pdf {
                 return false;
             }
 
+            if (!string.IsNullOrWhiteSpace(warning) && options != null) {
+                AddNativeExportWarning(
+                    options,
+                    "NativeBodyChartSimplified",
+                    source,
+                    warning!);
+            }
+
             OfficeChartRenderingResult rendering = OfficeChartDrawingRenderer.RenderWithQuality(snapshot!);
             if (rendering.QualityReport.HasIssues && options != null) {
                 AddNativeExportWarning(
@@ -67,22 +75,18 @@ namespace OfficeIMO.Word.Pdf {
             List<OpenXmlElement> chartElements = allChartElements
                 .Where(IsNativeSupportedWordChartElement)
                 .ToList();
-            if (allChartElements.Count > chartElements.Count || allChartElements.Count > 1) {
-                warning = "Word combo charts with mixed or multiple plot types are not supported by the shared OfficeIMO chart renderer yet.";
-                return false;
-            }
-
             if (chartElements.Count == 0) {
                 warning = "Word chart type is not supported by the shared OfficeIMO chart renderer.";
                 return false;
             }
 
-            if (chartElements.Count > 1) {
-                warning = "Word combo charts with multiple plot types are not supported by the shared OfficeIMO chart renderer yet.";
-                return false;
+            OpenXmlElement chartElement = chartElements[0];
+            if (allChartElements.Count > 1) {
+                warning = "Word combo chart contains " + allChartElements.Count.ToString(CultureInfo.InvariantCulture) +
+                    " plot types; exported the first supported '" + chartElement.LocalName +
+                    "' plot and omitted the additional plot types.";
             }
 
-            OpenXmlElement chartElement = chartElements[0];
             if (!TryMapNativeWordChartKind(chartElement, out OfficeChartKind chartKind)) {
                 warning = "Word chart type '" + chartElement.LocalName + "' is not supported by the shared OfficeIMO chart renderer.";
                 return false;
