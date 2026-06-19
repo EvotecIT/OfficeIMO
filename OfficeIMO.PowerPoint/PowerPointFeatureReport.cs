@@ -318,7 +318,8 @@ namespace OfficeIMO.PowerPoint {
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
                 .ToList();
-            var externalRelationshipDetails = DescribeExternalRelationships(allParts);
+            var externalHyperlinkDetails = DescribeExternalHyperlinkRelationships(allParts);
+            var externalPackageRelationshipDetails = DescribeExternalPackageRelationships(allParts);
 
             Add(features, "Structure", "Slides", PowerPointFeatureSupportLevel.Editable, Slides.Count, null,
                 "Slides can be authored, duplicated, imported, hidden, reordered, and removed.");
@@ -357,9 +358,12 @@ namespace OfficeIMO.PowerPoint {
             Add(features, "Presentation", "Animations and timing", PowerPointFeatureSupportLevel.Preserved, advancedTimingDetails.Count, null,
                 "Timing trees beyond OfficeIMO's media playback helpers are detected as preserve-only advanced animation metadata.",
                 advancedTimingDetails);
-            Add(features, "Content", "External relationships", PowerPointFeatureSupportLevel.PartiallyEditable, externalRelationshipDetails.Count, null,
-                "External hyperlinks can be authored and inspected; other external package relationships are surfaced for round-trip review.",
-                externalRelationshipDetails);
+            Add(features, "Content", "External relationships", PowerPointFeatureSupportLevel.PartiallyEditable, externalHyperlinkDetails.Count, null,
+                "External hyperlinks can be authored and inspected.",
+                externalHyperlinkDetails);
+            Add(features, "Compatibility", "External package relationships", PowerPointFeatureSupportLevel.Preserved, externalPackageRelationshipDetails.Count, null,
+                "Linked package relationships outside hyperlink markup are detected as preserve-only package metadata.",
+                externalPackageRelationshipDetails);
 
             var commentDetails = DescribePartsByUriOrContentType(allParts, "comment")
                 .Concat(DescribePartsByUriOrContentType(allParts, "person"))
@@ -508,7 +512,8 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static int CountSlideTextBoxes(PowerPointSlide slide) {
-            return slide.SlidePart.Slide?.Descendants<Shape>().Count(shape => shape.TextBody != null) ?? 0;
+            int slideTextBoxes = slide.SlidePart.Slide?.Descendants<Shape>().Count(shape => shape.TextBody != null) ?? 0;
+            return slideTextBoxes + slide.GetInheritedShapesForExport().Sum(shape => CountTextBoxElements(shape.Element));
         }
 
         private static int CountSlidePictures(PowerPointSlide slide) {
@@ -521,15 +526,31 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static int CountSlideMedia(PowerPointSlide slide) {
-            return slide.SlidePart.Slide?
+            int slideMedia = slide.SlidePart.Slide?
                 .Descendants<Picture>()
                 .Count(picture => PowerPointMedia.TryGetMediaKind(picture, out _))
                 ?? 0;
+
+            return slideMedia + slide.GetInheritedShapesForExport().Sum(shape => CountMediaElements(shape.Element));
+        }
+
+        private static int CountTextBoxElements(OpenXmlElement element) {
+            int count = element is Shape shape && HasVisibleText(shape) ? 1 : 0;
+            return count + element.Descendants<Shape>().Count(HasVisibleText);
+        }
+
+        private static bool HasVisibleText(Shape shape) {
+            return !string.IsNullOrWhiteSpace(shape.TextBody?.InnerText);
         }
 
         private static int CountPictureElements(OpenXmlElement element) {
             int count = element is Picture picture && !PowerPointMedia.TryGetMediaKind(picture, out _) ? 1 : 0;
             return count + element.Descendants<Picture>().Count(picture => !PowerPointMedia.TryGetMediaKind(picture, out _));
+        }
+
+        private static int CountMediaElements(OpenXmlElement element) {
+            int count = element is Picture picture && PowerPointMedia.TryGetMediaKind(picture, out _) ? 1 : 0;
+            return count + element.Descendants<Picture>().Count(picture => PowerPointMedia.TryGetMediaKind(picture, out _));
         }
 
         private static int CountSlideTables(PowerPointSlide slide) {
@@ -617,14 +638,31 @@ namespace OfficeIMO.PowerPoint {
 
         private static HashSet<string> GetSlideMediaShapeIds(PowerPointSlide slide) {
             return new HashSet<string>(
-                slide.SlidePart.Slide?
-                    .Descendants<Picture>()
-                    .Where(picture => PowerPointMedia.TryGetMediaKind(picture, out _))
+                EnumerateSlideMediaPictures(slide)
                     .Select(picture => picture.NonVisualPictureProperties?.NonVisualDrawingProperties?.Id?.Value.ToString())
                     .Where(id => !string.IsNullOrWhiteSpace(id))
-                    .Select(id => id!)
-                    ?? Enumerable.Empty<string>(),
+                    .Select(id => id!),
                 StringComparer.OrdinalIgnoreCase);
+        }
+
+        private static IEnumerable<Picture> EnumerateSlideMediaPictures(PowerPointSlide slide) {
+            IEnumerable<Picture> slideMedia = slide.SlidePart.Slide?
+                .Descendants<Picture>()
+                .Where(picture => PowerPointMedia.TryGetMediaKind(picture, out _))
+                ?? Enumerable.Empty<Picture>();
+            IEnumerable<Picture> inheritedMedia = slide.GetInheritedShapesForExport()
+                .SelectMany(shape => EnumerateMediaPictures(shape.Element));
+            return slideMedia.Concat(inheritedMedia);
+        }
+
+        private static IEnumerable<Picture> EnumerateMediaPictures(OpenXmlElement element) {
+            if (element is Picture picture && PowerPointMedia.TryGetMediaKind(picture, out _)) {
+                yield return picture;
+            }
+
+            foreach (Picture descendant in element.Descendants<Picture>().Where(picture => PowerPointMedia.TryGetMediaKind(picture, out _))) {
+                yield return descendant;
+            }
         }
 
         private static List<string> DescribePartsByUri(IEnumerable<OpenXmlPart> parts, string uriFragment) {
@@ -703,14 +741,22 @@ namespace OfficeIMO.PowerPoint {
                 .ToList();
         }
 
-        private static List<string> DescribeExternalRelationships(IEnumerable<OpenXmlPart> parts) {
+        private static List<string> DescribeExternalHyperlinkRelationships(IEnumerable<OpenXmlPart> parts) {
+            return parts
+                .SelectMany(part =>
+                    part.HyperlinkRelationships
+                        .Where(relationship => relationship.IsExternal)
+                        .Select(relationship => $"{part.Uri}: {relationship.Id} -> {relationship.Uri}"))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        private static List<string> DescribeExternalPackageRelationships(IEnumerable<OpenXmlPart> parts) {
             return parts
                 .SelectMany(part =>
                     part.ExternalRelationships.Select(relationship =>
-                        $"{part.Uri}: {relationship.Id} ({relationship.RelationshipType}) -> {relationship.Uri}")
-                    .Concat(part.HyperlinkRelationships
-                        .Where(relationship => relationship.IsExternal)
-                        .Select(relationship => $"{part.Uri}: {relationship.Id} -> {relationship.Uri}")))
+                        $"{part.Uri}: {relationship.Id} ({relationship.RelationshipType}) -> {relationship.Uri}"))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
                 .ToList();

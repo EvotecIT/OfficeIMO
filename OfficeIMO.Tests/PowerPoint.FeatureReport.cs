@@ -236,6 +236,85 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PowerPointFeatureReport_DetectsInheritedLayoutTextBoxes() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    presentation.AddSlide().AddTextBox("Layout footer");
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, true)) {
+                    SlidePart slidePart = document.PresentationPart!.SlideParts.Single();
+                    SlideLayoutPart layoutPart = slidePart.SlideLayoutPart!;
+                    ShapeTree slideTree = slidePart.Slide.CommonSlideData!.ShapeTree!;
+                    ShapeTree layoutTree = layoutPart.SlideLayout!.CommonSlideData!.ShapeTree!;
+                    Shape textBox = slideTree.Elements<Shape>()
+                        .Single(shape => shape.TextBody != null);
+                    textBox.Remove();
+                    layoutTree.Append(textBox);
+                    slidePart.Slide.Save();
+                    layoutPart.SlideLayout.Save();
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                    PowerPointFeatureReport report = presentation.InspectFeatures();
+                    PowerPointFeatureFinding textBoxes = Assert.Single(report.FindFeatures("Text boxes"));
+
+                    Assert.Equal(1, textBoxes.Count);
+                    Assert.Throws<InvalidOperationException>(() => report.EnsureNoFeatures("Text boxes"));
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void PowerPointFeatureReport_DetectsInheritedLayoutMedia() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    using var media = new MemoryStream(new byte[] { 1, 2, 3, 4, 5 });
+                    slide.AddAudio(media, "audio/mpeg", ".mp3");
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, true)) {
+                    SlidePart slidePart = document.PresentationPart!.SlideParts.Single();
+                    SlideLayoutPart layoutPart = slidePart.SlideLayoutPart!;
+                    ShapeTree slideTree = slidePart.Slide.CommonSlideData!.ShapeTree!;
+                    ShapeTree layoutTree = layoutPart.SlideLayout!.CommonSlideData!.ShapeTree!;
+                    Picture mediaPicture = slideTree.Elements<Picture>()
+                        .Single(picture => picture.NonVisualPictureProperties?
+                            .ApplicationNonVisualDrawingProperties?
+                            .GetFirstChild<A.AudioFromFile>() != null);
+                    mediaPicture.Remove();
+                    layoutTree.Append(mediaPicture);
+                    slidePart.Slide.Save();
+                    layoutPart.SlideLayout.Save();
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                    PowerPointFeatureReport report = presentation.InspectFeatures();
+                    PowerPointFeatureFinding media = Assert.Single(report.FindFeatures("Audio and video"));
+
+                    Assert.Equal(1, media.Count);
+                    Assert.Throws<InvalidOperationException>(() => report.EnsureNoFeatures("Audio and video"));
+                    Assert.Same(report, report.EnsureNoAdvancedFeatures());
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void PowerPointFeatureReport_DoesNotTreatSignatureNamedMediaAsDigitalSignature() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
@@ -803,12 +882,13 @@ namespace OfficeIMO.Tests {
 
                 using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
-                    PowerPointFeatureFinding external = Assert.Single(report.FindFeatures("External relationships"));
+                    PowerPointFeatureFinding external = Assert.Single(report.FindFeatures("External package relationships"));
 
-                    Assert.Equal(PowerPointFeatureSupportLevel.PartiallyEditable, external.SupportLevel);
+                    Assert.Equal(PowerPointFeatureSupportLevel.Preserved, external.SupportLevel);
                     Assert.Equal(1, external.Count);
                     Assert.Contains(external.Details, detail => detail.Contains("relationships/image", StringComparison.OrdinalIgnoreCase)
                         && detail.Contains("https://example.com/logo.png", StringComparison.OrdinalIgnoreCase));
+                    Assert.Throws<InvalidOperationException>(() => report.EnsureNoAdvancedFeatures());
                 }
             } finally {
                 if (File.Exists(filePath)) {
