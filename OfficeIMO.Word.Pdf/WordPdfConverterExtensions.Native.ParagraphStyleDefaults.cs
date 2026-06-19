@@ -15,6 +15,7 @@ namespace OfficeIMO.Word.Pdf {
             W.HighlightColorValues? Highlight,
             double? LineHeight,
             double? LineSpacingPoints,
+            W.LineSpacingRuleValues? LineSpacingRule,
             double? SpacingBefore,
             double? SpacingAfter,
             double? LeftIndent,
@@ -26,7 +27,7 @@ namespace OfficeIMO.Word.Pdf {
             bool? KeepWithNext,
             bool? WidowControl,
             bool? ContextualSpacing) {
-            public static NativeParagraphStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+            public static NativeParagraphStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
         }
 
         private static NativeParagraphStyleDefaults GetNativeParagraphStyleDefaults(WordParagraph paragraph) {
@@ -45,6 +46,7 @@ namespace OfficeIMO.Word.Pdf {
             W.HighlightColorValues? highlight = null;
             double? lineHeight = null;
             double? lineSpacingPoints = null;
+            W.LineSpacingRuleValues? lineSpacingRule = null;
             double? spacingBefore = null;
             double? spacingAfter = null;
             double? leftIndent = null;
@@ -77,6 +79,7 @@ namespace OfficeIMO.Word.Pdf {
                         if (styleLineHeight.HasValue || styleLineSpacingPoints.HasValue) {
                             lineHeight = styleLineHeight;
                             lineSpacingPoints = styleLineSpacingPoints;
+                            lineSpacingRule = spacing.LineRule?.Value;
                         }
 
                         double effectiveFontSize = fontSize ?? NativeDocumentDefaults.WordDefault.FontSize;
@@ -121,6 +124,7 @@ namespace OfficeIMO.Word.Pdf {
                 highlight,
                 lineHeight,
                 lineSpacingPoints,
+                lineSpacingRule,
                 spacingBefore,
                 spacingAfter,
                 leftIndent,

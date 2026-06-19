@@ -803,6 +803,83 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Maps_AtLeast_Paragraph_Line_Spacing() {
+            using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeAtLeastParagraphStyle.docx"));
+            WordParagraph directParagraph = document.AddParagraph("Native at least line spacing");
+            directParagraph.FontSize = 24;
+            directParagraph.LineSpacingPoints = 6;
+            directParagraph.LineSpacingRule = LineSpacingRuleValues.AtLeast;
+
+            const string styleId = "AtLeastLineSpacingStyle";
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(new Style(
+                new StyleName { Val = "AtLeast Line Spacing Style" },
+                new StyleRunProperties(new FontSize { Val = "48" }),
+                new StyleParagraphProperties(new SpacingBetweenLines {
+                    Line = "120",
+                    LineRule = LineSpacingRuleValues.AtLeast
+                }))
+            {
+                Type = StyleValues.Paragraph,
+                StyleId = styleId,
+                CustomStyle = true
+            });
+
+            WordParagraph styledParagraph = document.AddParagraph("Native style at least line spacing");
+            styledParagraph.SetStyleId(styleId);
+
+            MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeParagraphStyle", BindingFlags.NonPublic | BindingFlags.Static, binder: null, new[] { typeof(WordParagraph) }, modifiers: null)!;
+            PdfParagraphStyle directStyle = Assert.IsType<PdfParagraphStyle>(method.Invoke(null, new object[] { directParagraph }));
+            PdfParagraphStyle inheritedStyle = Assert.IsType<PdfParagraphStyle>(method.Invoke(null, new object[] { styledParagraph }));
+
+            Assert.NotNull(directStyle.LineHeight);
+            Assert.NotNull(inheritedStyle.LineHeight);
+            Assert.InRange(directStyle.LineHeight.Value, 1.2D, 1.3D);
+            Assert.InRange(inheritedStyle.LineHeight.Value, 1.2D, 1.3D);
+        }
+
+        [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Renders_AtLeast_Paragraph_Line_Spacing() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeRenderedAtLeastLineSpacing.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeRenderedAtLeastLineSpacing.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                WordParagraph exact = document.AddParagraph("ExactSmallFirst");
+                exact.FontSize = 24;
+                exact.LineSpacingPoints = 6;
+                exact.LineSpacingRule = LineSpacingRuleValues.Exact;
+                exact.AddBreak();
+                exact.AddText("ExactSmallSecond");
+
+                WordParagraph atLeast = document.AddParagraph("AtLeastFirst");
+                atLeast.FontSize = 24;
+                atLeast.LineSpacingPoints = 6;
+                atLeast.LineSpacingRule = LineSpacingRuleValues.AtLeast;
+                atLeast.AddBreak();
+                atLeast.AddText("AtLeastSecond");
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false,
+                    PageSize = new OfficeIMO.Pdf.PageSize(360, 260),
+                    Margins = PageMargins.Uniform(36),
+                    FontFamily = "Helvetica"
+                });
+            }
+
+            using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+            var words = pdf.GetPage(1).GetWords().ToList();
+            double exactFirstY = Assert.Single(words, word => word.Text == "ExactSmallFirst").BoundingBox.Bottom;
+            double exactSecondY = Assert.Single(words, word => word.Text == "ExactSmallSecond").BoundingBox.Bottom;
+            double atLeastFirstY = Assert.Single(words, word => word.Text == "AtLeastFirst").BoundingBox.Bottom;
+            double atLeastSecondY = Assert.Single(words, word => word.Text == "AtLeastSecond").BoundingBox.Bottom;
+            double exactGap = exactFirstY - exactSecondY;
+            double atLeastGap = atLeastFirstY - atLeastSecondY;
+
+            Assert.True(atLeastGap > exactGap + 14D, $"Expected Word atLeast line spacing to preserve natural line advance instead of exact compressed leading. Exact gap: {exactGap:0.##}; atLeast gap: {atLeastGap:0.##}.");
+        }
+
+        [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Maps_Paragraph_Style_Exact_Line_Spacing() {
             using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeParagraphStyleExactLineSpacing.docx"));
             const string styleId = "ExactLineSpacingStyle";

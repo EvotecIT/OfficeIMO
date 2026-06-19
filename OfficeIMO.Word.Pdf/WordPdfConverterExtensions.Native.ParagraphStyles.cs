@@ -148,11 +148,11 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             if (paragraph.LineSpacingPoints.HasValue && fontSize > 0D) {
-                return paragraph.LineSpacingPoints.Value / fontSize;
+                return ResolveNativeLineSpacingHeight(paragraph.LineSpacingPoints.Value, paragraph.LineSpacingRule, fontSize, nativeDefaults.ParagraphLineHeight);
             }
 
             if (styleDefaults.LineSpacingPoints.HasValue && fontSize > 0D) {
-                return styleDefaults.LineSpacingPoints.Value / fontSize;
+                return ResolveNativeLineSpacingHeight(styleDefaults.LineSpacingPoints.Value, styleDefaults.LineSpacingRule, fontSize, nativeDefaults.ParagraphLineHeight);
             }
 
             if (styleDefaults.LineHeight.HasValue) {
@@ -160,6 +160,15 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             return nativeDefaults.ParagraphLineHeight;
+        }
+
+        private static double ResolveNativeLineSpacingHeight(double lineSpacingPoints, W.LineSpacingRuleValues? lineSpacingRule, double fontSize, double naturalLineHeight) {
+            double requestedLineHeight = lineSpacingPoints / fontSize;
+            if (lineSpacingRule == W.LineSpacingRuleValues.AtLeast) {
+                return Math.Max(naturalLineHeight, requestedLineHeight);
+            }
+
+            return requestedLineHeight;
         }
 
         private static PdfCore.PdfTabLeaderStyle MapNativeTabLeader(W.TabStopLeaderCharValues leader) {
