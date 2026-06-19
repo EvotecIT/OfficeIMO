@@ -263,6 +263,32 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Maps_Table_Style_Horizontal_Banding_Fill() {
+        using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeTableStyleHorizontalBanding.docx"));
+        Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+        styles.Append(new Style(
+            new StyleName { Val = "Generic Horizontal Band Table" },
+            new TableStyleProperties(
+                new TableStyleConditionalFormattingTableCellProperties(
+                    new Shading { Val = ShadingPatternValues.Clear, Fill = "99CCFF" }))
+            { Type = TableStyleOverrideValues.Band1Horizontal })
+        { Type = StyleValues.Table, StyleId = "GenericHorizontalBandTable" });
+
+        WordTable table = document.AddTable(4, 2);
+        table._tableProperties!.TableStyle = new TableStyle { Val = "GenericHorizontalBandTable" };
+        table.ConditionalFormattingNoHorizontalBand = false;
+
+        PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table);
+
+        Assert.Equal(PdfCore.PdfColor.FromRgb(153, 204, 255), style.RowStripeFill);
+
+        table.ConditionalFormattingNoHorizontalBand = true;
+        PdfCore.PdfTableStyle disabledStyle = CreateNativeTableStyleForTest(table);
+
+        Assert.Null(disabledStyle.RowStripeFill);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Uses_Configured_Default_Table_Style_For_Unstyled_Native_Table() {
         using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeDefaultTableStyle.docx"));
         WordTable table = document.AddTable(2, 2);

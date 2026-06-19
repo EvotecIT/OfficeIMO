@@ -216,6 +216,7 @@ namespace OfficeIMO.Word.Pdf {
                 usesConfiguredDefaultStyle,
                 ShouldApplyNativeTableStyleCellPadding(table) ? tableStyleDefaults : NativeTableStyleDefaults.Empty);
             ApplyNativeTableConditionalStyles(table, style, tableStyleDefaults, rowCount);
+            ApplyNativeTableBandingStyles(table, style, tableStyleDefaults);
             ApplyNativeTableConditionalColumnFills(table, layout, tableStyleDefaults, style);
             ApplyNativeTableLayoutOptions(table, style, contentWidth, tableStyleDefaults);
             ApplyNativeTableRowOptions(table, style);
@@ -294,6 +295,16 @@ namespace OfficeIMO.Word.Pdf {
 
             if (conditionalStyle.Bold.HasValue) {
                 style.FooterBold = conditionalStyle.Bold.Value;
+            }
+        }
+
+        private static void ApplyNativeTableBandingStyles(WordTable table, PdfCore.PdfTableStyle style, NativeTableStyleDefaults tableStyleDefaults) {
+            if (table.ConditionalFormattingNoHorizontalBand == true) {
+                return;
+            }
+
+            if (tableStyleDefaults.Band1HorizontalStyle.CellFill.HasValue) {
+                style.RowStripeFill = tableStyleDefaults.Band1HorizontalStyle.CellFill.Value;
             }
         }
 

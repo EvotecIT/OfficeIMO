@@ -282,4 +282,46 @@ public partial class Word {
         Assert.Contains("1 0.8 0.6 rg", raw);
     }
 
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Renders_Table_Style_Horizontal_Banding_Fill() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleHorizontalBanding.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleHorizontalBanding.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            const string styleId = "NativeHorizontalBandTable";
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(new Style(
+                new StyleName { Val = "Native Horizontal Band Table" },
+                new TableStyleProperties(
+                    new TableStyleConditionalFormattingTableCellProperties(
+                        new Shading { Val = ShadingPatternValues.Clear, Fill = "99CCFF" }))
+                { Type = TableStyleOverrideValues.Band1Horizontal })
+            { Type = StyleValues.Table, StyleId = styleId });
+
+            WordTable table = document.AddTable(4, 2);
+            table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
+            table.ConditionalFormattingNoHorizontalBand = false;
+            for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
+                table.Rows[rowIndex].Cells[0].Paragraphs[0].Text = "BandLabel" + rowIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                table.Rows[rowIndex].Cells[1].Paragraphs[0].Text = "BandValue" + rowIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            }
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = new PdfCore.PageSize(360, 240),
+                Margins = PdfCore.PageMargins.Uniform(30)
+            });
+        }
+
+        byte[] bytes = File.ReadAllBytes(pdfPath);
+        using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
+        string text = string.Concat(pdf.GetPages().Select(page => page.Text));
+        Assert.Contains("BandLabel0", text);
+        Assert.Contains("BandValue3", text);
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("0.6 0.8 1 rg", raw);
+    }
+
 }
