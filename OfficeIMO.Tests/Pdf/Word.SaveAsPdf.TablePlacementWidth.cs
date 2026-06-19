@@ -139,6 +139,42 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Renders_Percentage_Cell_Widths_As_Column_Weights() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTablePercentageCellWidths.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTablePercentageCellWidths.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            WordTable table = document.AddTable(1, 2);
+            table.LayoutType = TableLayoutValues.Fixed;
+            table.WidthType = TableWidthUnitValues.Pct;
+            table.Width = 5000;
+            table.Rows[0].Cells[0].Width = 1000;
+            table.Rows[0].Cells[0].WidthType = TableWidthUnitValues.Pct;
+            table.Rows[0].Cells[1].Width = 4000;
+            table.Rows[0].Cells[1].WidthType = TableWidthUnitValues.Pct;
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "PctLeft";
+            table.Rows[0].Cells[1].Paragraphs[0].Text = "PctWide";
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = new PdfCore.PageSize(400, 260),
+                Margins = PdfCore.PageMargins.Uniform(40),
+                FontFamily = "Helvetica"
+            });
+        }
+
+        byte[] bytes = File.ReadAllBytes(pdfPath);
+        using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
+        var words = pdf.GetPage(1).GetWords().ToList();
+        var left = Assert.Single(words, word => word.Text == "PctLeft");
+        var wide = Assert.Single(words, word => word.Text == "PctWide");
+
+        double gap = wide.BoundingBox.Left - left.BoundingBox.Left;
+        Assert.InRange(gap, 55D, 115D);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Renders_Table_Style_Left_Indent() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleRenderedLeftIndent.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleRenderedLeftIndent.pdf");

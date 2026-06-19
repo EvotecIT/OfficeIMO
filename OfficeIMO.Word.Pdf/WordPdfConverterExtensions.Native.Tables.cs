@@ -186,7 +186,63 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
+            List<double>? columnWidthWeights = CreateNativeColumnWidthWeights(layout);
+            if (columnWidthWeights != null) {
+                style.ColumnWidthPoints = null;
+                style.ColumnWidthWeights = columnWidthWeights;
+                return;
+            }
+
             style.ColumnWidthPoints = CreateNativeColumnWidthPoints(layout, style);
+        }
+
+        private static List<double>? CreateNativeColumnWidthWeights(TableLayout layout) {
+            int columnCount = GetNativeTableColumnCount(layout);
+            if (columnCount == 0) {
+                return null;
+            }
+
+            var weights = new double[columnCount];
+            var hasPercentWidth = new bool[columnCount];
+            bool hasAnyPercentWidth = false;
+            foreach ((WordTableCell Cell, int Column, int ColumnSpan) cell in EnumerateNativeTableCells(layout)) {
+                double? percent = GetNativeTableCellPreferredWidthPercent(cell.Cell);
+                if (!percent.HasValue) {
+                    continue;
+                }
+
+                double columnWeight = percent.Value / cell.ColumnSpan;
+                for (int columnIndex = cell.Column; columnIndex < cell.Column + cell.ColumnSpan && columnIndex < weights.Length; columnIndex++) {
+                    if (!hasPercentWidth[columnIndex] || columnWeight > weights[columnIndex]) {
+                        weights[columnIndex] = columnWeight;
+                        hasPercentWidth[columnIndex] = true;
+                    }
+                }
+
+                hasAnyPercentWidth = true;
+            }
+
+            if (!hasAnyPercentWidth) {
+                return null;
+            }
+
+            double fallbackWeight = 0D;
+            int weightedColumnCount = 0;
+            for (int columnIndex = 0; columnIndex < weights.Length; columnIndex++) {
+                if (hasPercentWidth[columnIndex]) {
+                    fallbackWeight += weights[columnIndex];
+                    weightedColumnCount++;
+                }
+            }
+
+            fallbackWeight = weightedColumnCount == 0 ? 1D : fallbackWeight / weightedColumnCount;
+            for (int columnIndex = 0; columnIndex < weights.Length; columnIndex++) {
+                if (!hasPercentWidth[columnIndex]) {
+                    weights[columnIndex] = fallbackWeight;
+                }
+            }
+
+            return weights.ToList();
         }
 
         private static List<double?>? CreateNativeColumnWidthPoints(TableLayout layout, PdfCore.PdfTableStyle style) {
@@ -609,7 +665,19 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static double? GetNativeTablePreferredWidthPercent(W.TableWidth width) {
-            string? rawWidth = width.Width?.Value;
+            return GetNativeTableWidthPercent(width.Width?.Value);
+        }
+
+        private static double? GetNativeTableCellPreferredWidthPercent(WordTableCell cell) {
+            W.TableCellWidth? width = cell._tableCellProperties?.TableCellWidth;
+            if (width?.Type?.Value != W.TableWidthUnitValues.Pct) {
+                return null;
+            }
+
+            return GetNativeTableWidthPercent(width.Width?.Value);
+        }
+
+        private static double? GetNativeTableWidthPercent(string? rawWidth) {
             if (string.IsNullOrWhiteSpace(rawWidth)) {
                 return null;
             }
