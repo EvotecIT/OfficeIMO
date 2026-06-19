@@ -12,8 +12,8 @@ namespace OfficeIMO.Word.Pdf {
             public static NativeTableRunStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null, null);
         }
 
-        private readonly record struct NativeTableConditionalStyleDefaults(PdfCore.PdfColor? CellFill, PdfCore.PdfColor? TextColor, bool? Bold) {
-            public static NativeTableConditionalStyleDefaults Empty { get; } = new(null, null, null);
+        private readonly record struct NativeTableConditionalStyleDefaults(PdfCore.PdfColor? CellFill, PdfCore.PdfColor? TextColor, double? FontSize, bool? Bold, bool? Italic, bool? Underline, bool? Strike, W.HighlightColorValues? Highlight) {
+            public static NativeTableConditionalStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null);
         }
 
         private static NativeTableStyleDefaults GetNativeTableStyleDefaults(WordTable table, NativeDocumentDefaults nativeDefaults, bool ignoreFallbackTableStyle) {
@@ -181,14 +181,36 @@ namespace OfficeIMO.Word.Pdf {
 
                 W.RunPropertiesBaseStyle? runProperties = properties.GetFirstChild<W.RunPropertiesBaseStyle>();
                 PdfCore.PdfColor? textColor = ParseNativeColor(runProperties?.GetFirstChild<W.Color>()?.Val?.Value);
+                double? fontSize = GetNativeRunPropertiesBaseStyleFontSize(runProperties);
                 bool? bold = ReadNativeOnOff(runProperties?.GetFirstChild<W.Bold>());
+                bool? italic = ReadNativeOnOff(runProperties?.GetFirstChild<W.Italic>());
+                bool? underline = ReadNativeUnderline(runProperties?.GetFirstChild<W.Underline>());
+                bool? strike = ReadNativeOnOff(runProperties?.GetFirstChild<W.Strike>()) ?? ReadNativeOnOff(runProperties?.GetFirstChild<W.DoubleStrike>());
+                W.HighlightColorValues? highlight = runProperties?.GetFirstChild<W.Highlight>()?.Val?.Value;
                 result = new NativeTableConditionalStyleDefaults(
                     cellFill ?? result.CellFill,
                     textColor ?? result.TextColor,
-                    bold ?? result.Bold);
+                    fontSize ?? result.FontSize,
+                    bold ?? result.Bold,
+                    italic ?? result.Italic,
+                    underline ?? result.Underline,
+                    strike ?? result.Strike,
+                    highlight ?? result.Highlight);
             }
 
             return result;
+        }
+
+        private static double? GetNativeRunPropertiesBaseStyleFontSize(W.RunPropertiesBaseStyle? runProperties) {
+            string? value = runProperties?.FontSize?.Val?.Value;
+            if (!double.TryParse(value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double halfPoints) ||
+                halfPoints <= 0D ||
+                double.IsNaN(halfPoints) ||
+                double.IsInfinity(halfPoints)) {
+                return null;
+            }
+
+            return halfPoints / 2D;
         }
 
         private static double? GetNativeTableStyleParagraphLineHeight(W.SpacingBetweenLines spacing) {

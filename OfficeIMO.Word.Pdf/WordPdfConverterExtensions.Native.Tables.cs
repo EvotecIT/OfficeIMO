@@ -294,6 +294,10 @@ namespace OfficeIMO.Word.Pdf {
                 style.HeaderTextColor = conditionalStyle.TextColor.Value;
             }
 
+            if (conditionalStyle.FontSize.HasValue) {
+                style.HeaderFontSize = conditionalStyle.FontSize.Value;
+            }
+
             if (conditionalStyle.Bold.HasValue) {
                 style.HeaderBold = conditionalStyle.Bold.Value;
             }
@@ -306,6 +310,10 @@ namespace OfficeIMO.Word.Pdf {
 
             if (conditionalStyle.TextColor.HasValue) {
                 style.FooterTextColor = conditionalStyle.TextColor.Value;
+            }
+
+            if (conditionalStyle.FontSize.HasValue) {
+                style.FooterFontSize = conditionalStyle.FontSize.Value;
             }
 
             if (conditionalStyle.Bold.HasValue) {
@@ -402,6 +410,14 @@ namespace OfficeIMO.Word.Pdf {
 
         private static NativeTableStyleDefaults GetNativeTableCellStyleDefaults(WordTable table, NativeTableStyleDefaults tableStyleDefaults, int rowIndex, int logicalColumnIndex, int columnSpan, int columnCount, int headerRowCount, int footerStartRowIndex) {
             NativeTableStyleDefaults result = tableStyleDefaults;
+            if (table.ConditionalFormattingFirstRow == true && rowIndex == 0) {
+                result = ApplyNativeTableConditionalRunStyleDefaults(result, tableStyleDefaults.FirstRowStyle);
+            }
+
+            if (table.ConditionalFormattingLastRow == true && rowIndex >= footerStartRowIndex) {
+                result = ApplyNativeTableConditionalRunStyleDefaults(result, tableStyleDefaults.LastRowStyle);
+            }
+
             if (rowIndex >= headerRowCount && rowIndex < footerStartRowIndex) {
                 int bodyRowIndex = rowIndex - headerRowCount;
                 if (table.ConditionalFormattingNoHorizontalBand != true && bodyRowIndex % 2 == 1) {
@@ -425,15 +441,26 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static NativeTableStyleDefaults ApplyNativeTableConditionalRunStyleDefaults(NativeTableStyleDefaults tableStyleDefaults, NativeTableConditionalStyleDefaults conditionalStyle) {
-            if (!conditionalStyle.TextColor.HasValue && !conditionalStyle.Bold.HasValue) {
+            if (!conditionalStyle.TextColor.HasValue &&
+                !conditionalStyle.FontSize.HasValue &&
+                !conditionalStyle.Bold.HasValue &&
+                !conditionalStyle.Italic.HasValue &&
+                !conditionalStyle.Underline.HasValue &&
+                !conditionalStyle.Strike.HasValue &&
+                !conditionalStyle.Highlight.HasValue) {
                 return tableStyleDefaults;
             }
 
             NativeTableRunStyleDefaults runStyle = tableStyleDefaults.RunStyle;
             return tableStyleDefaults with {
                 RunStyle = runStyle with {
+                    FontSize = conditionalStyle.FontSize ?? runStyle.FontSize,
                     Bold = conditionalStyle.Bold ?? runStyle.Bold,
-                    Color = conditionalStyle.TextColor ?? runStyle.Color
+                    Italic = conditionalStyle.Italic ?? runStyle.Italic,
+                    Underline = conditionalStyle.Underline ?? runStyle.Underline,
+                    Strike = conditionalStyle.Strike ?? runStyle.Strike,
+                    Color = conditionalStyle.TextColor ?? runStyle.Color,
+                    Highlight = conditionalStyle.Highlight ?? runStyle.Highlight
                 }
             };
         }

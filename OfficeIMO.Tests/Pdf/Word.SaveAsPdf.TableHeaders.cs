@@ -233,6 +233,63 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Renders_Table_Style_Row_Conditional_Rich_Text() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleRowConditionalRichText.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleRowConditionalRichText.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            const string styleId = "NativeRowConditionalRichTextTable";
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(new Style(
+                new StyleName { Val = "Native Row Conditional Rich Text Table" },
+                new TableStyleProperties(
+                    new RunPropertiesBaseStyle(
+                        new Italic(),
+                        new Color { Val = "2255AA" },
+                        new FontSize { Val = "32" }))
+                { Type = TableStyleOverrideValues.FirstRow },
+                new TableStyleProperties(
+                    new RunPropertiesBaseStyle(
+                        new Bold(),
+                        new Color { Val = "663399" },
+                        new FontSize { Val = "28" }))
+                { Type = TableStyleOverrideValues.LastRow })
+            { Type = StyleValues.Table, StyleId = styleId });
+
+            WordTable table = document.AddTable(3, 2);
+            table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
+            table.ConditionalFormattingFirstRow = true;
+            table.ConditionalFormattingLastRow = true;
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "RichHeader";
+            table.Rows[0].Cells[1].Paragraphs[0].Text = "RichHeaderValue";
+            table.Rows[1].Cells[0].Paragraphs[0].Text = "RichBody";
+            table.Rows[1].Cells[1].Paragraphs[0].Text = "RichBodyValue";
+            table.Rows[2].Cells[0].Paragraphs[0].Text = "RichFooter";
+            table.Rows[2].Cells[1].Paragraphs[0].Text = "RichFooterValue";
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = new PdfCore.PageSize(420, 240),
+                Margins = PdfCore.PageMargins.Uniform(30)
+            });
+        }
+
+        byte[] bytes = File.ReadAllBytes(pdfPath);
+        using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
+        string text = string.Concat(pdf.GetPages().Select(page => page.Text));
+        Assert.Contains("RichHeader", text);
+        Assert.Contains("RichFooterValue", text);
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("Helvetica-Oblique", raw);
+        Assert.Contains("16 Tf", raw);
+        Assert.Contains("14 Tf", raw);
+        Assert.Contains("0.133 0.333 0.667 rg", raw);
+        Assert.Contains("0.4 0.2 0.6 rg", raw);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Renders_Table_Style_First_And_Last_Column_Conditional_Fills() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleColumnConditional.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleColumnConditional.pdf");
