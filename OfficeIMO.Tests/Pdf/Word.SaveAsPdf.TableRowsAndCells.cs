@@ -84,6 +84,31 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Honors_Explicit_False_Table_Row_OnOff_Properties() {
+        using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeTableRowOnOffFalse.docx"));
+        WordTable table = document.AddTable(2, 1);
+        table.Rows[0].RepeatHeaderRowAtTheTopOfEachPage = true;
+        table.Rows[0]._tableRow.TableRowProperties!.GetFirstChild<TableHeader>()!.Val = OnOffOnlyValues.Off;
+        table.Rows[1].AllowRowToBreakAcrossPages = false;
+        table.Rows[1]._tableRow.TableRowProperties!.GetFirstChild<CantSplit>()!.Val = OnOffOnlyValues.Off;
+
+        Assert.False(table.Rows[0].RepeatHeaderRowAtTheTopOfEachPage);
+        Assert.True(table.Rows[1].AllowRowToBreakAcrossPages);
+
+        MethodInfo method = typeof(WordPdfConverterExtensions)
+            .GetMethods(BindingFlags.NonPublic | BindingFlags.Static)
+            .Single(info =>
+                info.Name == "CreateNativeTableStyle" &&
+                info.GetParameters().Length == 4 &&
+                info.GetParameters()[3].ParameterType == typeof(double?));
+        PdfCore.PdfTableStyle style = Assert.IsType<PdfCore.PdfTableStyle>(method.Invoke(null, new object?[] { table, 2, new PdfSaveOptions(), null }));
+
+        Assert.Equal(0, style.RepeatHeaderRowCount);
+        Assert.True(style.AllowRowBreakAcrossPages);
+        Assert.Null(style.RowAllowBreakAcrossPages);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Preserves_SpacingOnly_Empty_Paragraph_After_Table() {
         double compactGap = RenderNativeAfterTableSpacingGap("PdfNativeAfterTableNoSpacingParagraph", includeSpacingParagraph: false);
         double spacedGap = RenderNativeAfterTableSpacingGap("PdfNativeAfterTableSpacingParagraph", includeSpacingParagraph: true);
