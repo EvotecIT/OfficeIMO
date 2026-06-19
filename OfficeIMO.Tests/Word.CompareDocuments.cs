@@ -475,6 +475,177 @@ namespace OfficeIMO.Tests {
             Assert.Equal("table[1]/row[0]/cell[0]", cell.Location);
         }
 
+        [Fact]
+        public void CompareStructureAlignsTablesAroundInsertedTables() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_table_insert_alignment.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                WordTable table = doc.AddTable(1, 1);
+                table.Rows[0].Cells[0].Paragraphs[0].SetText("Existing terms");
+                doc.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_table_insert_alignment.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                WordTable inserted = doc.AddTable(1, 1);
+                inserted.Rows[0].Cells[0].Paragraphs[0].SetText("New summary");
+                WordTable table = doc.AddTable(1, 1);
+                table.Rows[0].Cells[0].Paragraphs[0].SetText("Existing terms");
+                doc.Save(false);
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            WordComparisonFinding tableFinding = Assert.Single(result.Findings);
+            Assert.Equal(WordComparisonScope.Table, tableFinding.Scope);
+            Assert.Equal(WordComparisonChangeKind.Inserted, tableFinding.ChangeKind);
+            Assert.Equal("table[0]", tableFinding.Location);
+            Assert.Equal("New summary", tableFinding.TargetText);
+        }
+
+        [Fact]
+        public void CompareStructurePreservesVisibleParagraphWhitespaceAndBlankParagraphs() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_visible_whitespace.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                WordParagraph paragraph = doc.AddParagraph("Column A");
+                paragraph.AddTab();
+                paragraph.AddText("Column B");
+                doc.AddParagraph("Closing");
+                doc.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_visible_whitespace.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                WordParagraph paragraph = doc.AddParagraph("Column A");
+                paragraph.AddBreak();
+                paragraph.AddText("Column B");
+                doc.AddParagraph();
+                doc.AddParagraph("Closing");
+                doc.Save(false);
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            WordComparisonFinding modified = Assert.Single(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Paragraph &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified);
+            Assert.Equal("Column A\tColumn B", modified.SourceText);
+            Assert.Equal("Column A\nColumn B", modified.TargetText);
+
+            WordComparisonFinding inserted = Assert.Single(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Paragraph &&
+                finding.ChangeKind == WordComparisonChangeKind.Inserted);
+            Assert.Equal("paragraph[1]", inserted.Location);
+            Assert.Equal(string.Empty, inserted.TargetText);
+        }
+
+        [Fact]
+        public void CompareStructureTreatsFormattedTableCellRunsAsOneLogicalParagraph() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_cell_formatted_runs.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                WordTable table = doc.AddTable(1, 1);
+                table.Rows[0].Cells[0].Paragraphs[0].SetText("Project Alpha approved");
+                doc.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_cell_formatted_runs.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                WordTable table = doc.AddTable(1, 1);
+                WordParagraph paragraph = table.Rows[0].Cells[0].Paragraphs[0];
+                paragraph.SetText("Project ");
+                paragraph.AddText("Alpha").Bold = true;
+                paragraph.AddText(" approved");
+                doc.Save(false);
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Empty(result.Findings);
+        }
+
+        [Fact]
+        public void CompareStructureIncludesHeaderFooterParagraphsAndTables() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_header_footer.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                doc.AddHeadersAndFooters();
+                doc.Header.Default!.AddParagraph("Classification: Internal");
+                WordTable footerTable = doc.Footer.Default!.AddTable(1, 2);
+                footerTable.Rows[0].Cells[0].Paragraphs[0].SetText("Owner");
+                footerTable.Rows[0].Cells[1].Paragraphs[0].SetText("Platform");
+                doc.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_header_footer.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                doc.AddHeadersAndFooters();
+                doc.Header.Default!.AddParagraph("Classification: Confidential");
+                WordTable footerTable = doc.Footer.Default!.AddTable(1, 2);
+                footerTable.Rows[0].Cells[0].Paragraphs[0].SetText("Owner");
+                footerTable.Rows[0].Cells[1].Paragraphs[0].SetText("Security");
+                doc.Save(false);
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            WordComparisonFinding paragraph = Assert.Single(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Paragraph &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified);
+            Assert.Equal("Classification: Internal", paragraph.SourceText);
+            Assert.Equal("Classification: Confidential", paragraph.TargetText);
+
+            WordComparisonFinding cell = Assert.Single(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.TableCell &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified);
+            Assert.Equal("Platform", cell.SourceText);
+            Assert.Equal("Security", cell.TargetText);
+        }
+
+        [Fact]
+        public void CompareStructureReportsExternalLinkedImageChanges() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_external_image.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                doc.AddParagraph().AddImage(new Uri("https://example.com/logo-a.png"), 50, 50);
+                doc.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_external_image.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                doc.AddParagraph().AddImage(new Uri("https://example.com/logo-b.png"), 50, 50);
+                doc.Save(false);
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            WordComparisonFinding image = Assert.Single(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Image &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified);
+            Assert.Equal("[Image: https://example.com/logo-a.png]", image.SourceText);
+            Assert.Equal("[Image: https://example.com/logo-b.png]", image.TargetText);
+        }
+
+        [Fact]
+        public void CompareStructureIncludesHeaderImages() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_header_image.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                doc.AddHeadersAndFooters();
+                doc.Header.Default!.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"));
+                doc.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_header_image.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                doc.AddHeadersAndFooters();
+                doc.Header.Default!.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"));
+                doc.Save(false);
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            WordComparisonFinding image = Assert.Single(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Image &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified);
+            Assert.Equal("image[0]", image.Location);
+        }
+
         private static void AssertNoTempArtifact(WordDocument document) {
             Assert.Equal(string.Empty, document.FilePath);
         }
