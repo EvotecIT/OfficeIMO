@@ -4,8 +4,12 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
-        private readonly record struct NativeTableStyleDefaults(PdfCore.PdfCellPadding? CellPadding, double? ParagraphLineHeight, double? ParagraphLineSpacingPoints, double? ParagraphSpacingAfter) {
-            public static NativeTableStyleDefaults Empty { get; } = new(null, null, null, null);
+        private readonly record struct NativeTableStyleDefaults(PdfCore.PdfCellPadding? CellPadding, double? ParagraphLineHeight, double? ParagraphLineSpacingPoints, double? ParagraphSpacingAfter, NativeTableRunStyleDefaults RunStyle) {
+            public static NativeTableStyleDefaults Empty { get; } = new(null, null, null, null, NativeTableRunStyleDefaults.Empty);
+        }
+
+        private readonly record struct NativeTableRunStyleDefaults(double? FontSize, string? FontFamily, bool? Bold, bool? Italic, bool? Underline, bool? Strike, string? ColorHex, W.HighlightColorValues? Highlight) {
+            public static NativeTableRunStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null);
         }
 
         private static NativeTableStyleDefaults GetNativeTableStyleDefaults(WordTable table, NativeDocumentDefaults nativeDefaults, bool ignoreFallbackTableStyle) {
@@ -26,6 +30,14 @@ namespace OfficeIMO.Word.Pdf {
             double? paragraphLineHeight = null;
             double? paragraphLineSpacingPoints = null;
             double? paragraphSpacingAfter = null;
+            double? fontSize = null;
+            string? fontFamily = null;
+            bool? bold = null;
+            bool? italic = null;
+            bool? underline = null;
+            bool? strike = null;
+            string? colorHex = null;
+            W.HighlightColorValues? highlight = null;
 
             foreach (W.Style style in styleChain) {
                 W.TableCellMarginDefault? margins = style.GetFirstChild<W.StyleTableProperties>()?.GetFirstChild<W.TableCellMarginDefault>();
@@ -56,6 +68,16 @@ namespace OfficeIMO.Word.Pdf {
 
                     paragraphSpacingAfter = ConvertNativeTwipsToPoints(spacing.After?.Value) ?? paragraphSpacingAfter;
                 }
+
+                W.StyleRunProperties? runProperties = style.GetFirstChild<W.StyleRunProperties>();
+                fontSize = GetNativeStyleFontSize(runProperties) ?? fontSize;
+                fontFamily = ResolveNativeRunFontsFamily(table.Document, runProperties?.GetFirstChild<W.RunFonts>()) ?? fontFamily;
+                bold = ReadNativeOnOff(runProperties?.GetFirstChild<W.Bold>()) ?? bold;
+                italic = ReadNativeOnOff(runProperties?.GetFirstChild<W.Italic>()) ?? italic;
+                underline = ReadNativeUnderline(runProperties?.GetFirstChild<W.Underline>()) ?? underline;
+                strike = ReadNativeOnOff(runProperties?.GetFirstChild<W.Strike>()) ?? ReadNativeOnOff(runProperties?.GetFirstChild<W.DoubleStrike>()) ?? strike;
+                colorHex = runProperties?.GetFirstChild<W.Color>()?.Val?.Value ?? colorHex;
+                highlight = runProperties?.GetFirstChild<W.Highlight>()?.Val?.Value ?? highlight;
             }
 
             PdfCore.PdfCellPadding? cellPadding = marginTop.HasValue || marginBottom.HasValue || marginLeft.HasValue || marginRight.HasValue
@@ -71,7 +93,16 @@ namespace OfficeIMO.Word.Pdf {
                 cellPadding,
                 paragraphLineHeight,
                 paragraphLineSpacingPoints,
-                paragraphSpacingAfter);
+                paragraphSpacingAfter,
+                new NativeTableRunStyleDefaults(
+                    fontSize,
+                    fontFamily,
+                    bold,
+                    italic,
+                    underline,
+                    strike,
+                    colorHex,
+                    highlight));
         }
 
         private static double? GetNativeTableStyleParagraphLineHeight(W.SpacingBetweenLines spacing) {

@@ -834,30 +834,31 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static NativeResolvedTextStyle ResolveNativeTextRunStyle(WordParagraph paragraph, WordParagraph? fallback = null) {
+        private static NativeResolvedTextStyle ResolveNativeTextRunStyle(WordParagraph paragraph, WordParagraph? fallback = null, NativeTableRunStyleDefaults tableRunStyleDefaults = default) {
             WordParagraph styleSource = fallback ?? paragraph;
             NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(styleSource);
             W.RunProperties? runProperties = GetNativeRunProperties(paragraph);
 
-            bool bold = ReadNativeOnOff(runProperties?.GetFirstChild<W.Bold>()) ?? styleDefaults.Bold ?? false;
-            bool italic = ReadNativeOnOff(runProperties?.GetFirstChild<W.Italic>()) ?? styleDefaults.Italic ?? false;
-            bool underline = ReadNativeUnderline(runProperties?.GetFirstChild<W.Underline>()) ?? styleDefaults.Underline ?? false;
+            bool bold = ReadNativeOnOff(runProperties?.GetFirstChild<W.Bold>()) ?? styleDefaults.Bold ?? tableRunStyleDefaults.Bold ?? false;
+            bool italic = ReadNativeOnOff(runProperties?.GetFirstChild<W.Italic>()) ?? styleDefaults.Italic ?? tableRunStyleDefaults.Italic ?? false;
+            bool underline = ReadNativeUnderline(runProperties?.GetFirstChild<W.Underline>()) ?? styleDefaults.Underline ?? tableRunStyleDefaults.Underline ?? false;
             bool strike =
                 ReadNativeOnOff(runProperties?.GetFirstChild<W.Strike>()) ??
                 ReadNativeOnOff(runProperties?.GetFirstChild<W.DoubleStrike>()) ??
                 styleDefaults.Strike ??
+                tableRunStyleDefaults.Strike ??
                 false;
             double? fontSize = paragraph.FontSize.HasValue && paragraph.FontSize.Value > 0
                 ? paragraph.FontSize.Value
-                : styleDefaults.FontSize;
-            PdfCore.PdfStandardFont? font = ResolveNativeTextRunFont(paragraph, fallback, styleDefaults);
+                : styleDefaults.FontSize ?? tableRunStyleDefaults.FontSize;
+            PdfCore.PdfStandardFont? font = ResolveNativeTextRunFont(paragraph, fallback, styleDefaults, tableRunStyleDefaults);
 
             PdfCore.PdfColor? color = TryGetNativeRunColor(runProperties, out PdfCore.PdfColor? directColor)
                 ? directColor
-                : ParseNativeColor(styleDefaults.ColorHex);
+                : ParseNativeColor(styleDefaults.ColorHex) ?? ParseNativeColor(tableRunStyleDefaults.ColorHex);
             PdfCore.PdfColor? background = TryGetNativeRunHighlight(runProperties, out PdfCore.PdfColor? directBackground)
                 ? directBackground
-                : MapNativeHighlight(styleDefaults.Highlight);
+                : MapNativeHighlight(styleDefaults.Highlight) ?? MapNativeHighlight(tableRunStyleDefaults.Highlight);
 
             return new NativeResolvedTextStyle(bold, underline, italic, strike, fontSize, font, color, background);
         }
@@ -865,10 +866,11 @@ namespace OfficeIMO.Word.Pdf {
         private static W.RunProperties? GetNativeRunProperties(WordParagraph paragraph) =>
             paragraph.IsHyperLink ? paragraph.Hyperlink?._runProperties : paragraph._runProperties;
 
-        private static PdfCore.PdfStandardFont? ResolveNativeTextRunFont(WordParagraph paragraph, WordParagraph? fallback, NativeParagraphStyleDefaults styleDefaults) {
+        private static PdfCore.PdfStandardFont? ResolveNativeTextRunFont(WordParagraph paragraph, WordParagraph? fallback, NativeParagraphStyleDefaults styleDefaults, NativeTableRunStyleDefaults tableRunStyleDefaults = default) {
             if (TryResolveNativeDirectRunFont(paragraph, out PdfCore.PdfStandardFont font) ||
                 (fallback != null && TryResolveNativeDirectRunFont(fallback, out font)) ||
-                PdfCore.PdfStandardFontMapper.TryMapFontFamily(styleDefaults.FontFamily, out font)) {
+                PdfCore.PdfStandardFontMapper.TryMapFontFamily(styleDefaults.FontFamily, out font) ||
+                PdfCore.PdfStandardFontMapper.TryMapFontFamily(tableRunStyleDefaults.FontFamily, out font)) {
                 return font;
             }
 

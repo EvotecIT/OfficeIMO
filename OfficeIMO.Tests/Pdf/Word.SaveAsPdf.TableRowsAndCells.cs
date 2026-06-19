@@ -237,6 +237,46 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Uses_Table_Style_Run_Properties_For_Cell_Text() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleRunProperties.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleRunProperties.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            const string styleId = "NativeTableRunProperties";
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(new Style(
+                new StyleName { Val = "Native Table Run Properties" },
+                new StyleRunProperties(
+                    new Color { Val = "C00000" },
+                    new FontSize { Val = "28" }))
+            {
+                Type = StyleValues.Table,
+                StyleId = styleId,
+                CustomStyle = true
+            });
+
+            WordTable table = document.AddTable(1, 1);
+            table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "StyledTableRun";
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = new PdfCore.PageSize(360, 220),
+                Margins = PdfCore.PageMargins.Uniform(40),
+                FontFamily = "Helvetica"
+            });
+        }
+
+        string content = ReadPdfPageContent(File.ReadAllBytes(pdfPath));
+        Assert.Matches(@"/F\d+\s+14\s+Tf", content);
+        Assert.Contains("0.753 0 0 rg", content);
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        Assert.Contains("StyledTableRun", pdf.GetPage(1).Text);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Uses_DocDefaults_For_Table_Cell_Paragraph_Spacing() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellParagraphSpacing.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellParagraphSpacing.pdf");
