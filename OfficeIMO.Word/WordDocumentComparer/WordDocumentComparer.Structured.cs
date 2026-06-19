@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using PIC = DocumentFormat.OpenXml.Drawing.Pictures;
 using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using V = DocumentFormat.OpenXml.Vml;
 
@@ -70,28 +71,49 @@ namespace OfficeIMO.Word {
             int targetStart,
             int targetEnd,
             WordComparisonResult result) {
-            int sourceCount = sourceEnd - sourceStart;
-            int targetCount = targetEnd - targetStart;
-            int pairedCount = Math.Min(sourceCount, targetCount);
+            int sourceIndex = sourceStart;
+            int targetIndex = targetStart;
 
-            for (int offset = 0; offset < pairedCount; offset++) {
-                int sourceIndex = sourceStart + offset;
-                int targetIndex = targetStart + offset;
+            while (sourceIndex < sourceEnd && targetIndex < targetEnd) {
+                if (targetEnd - targetIndex > sourceEnd - sourceIndex &&
+                    targetIndex + 1 < targetEnd &&
+                    GetTableSimilarity(sourceTables[sourceIndex], targetTables[targetIndex + 1]) >
+                    GetTableSimilarity(sourceTables[sourceIndex], targetTables[targetIndex])) {
+                    AddInsertedTableFinding(targetTables, targetIndex, result);
+                    targetIndex++;
+                    continue;
+                }
+
+                if (sourceEnd - sourceIndex > targetEnd - targetIndex &&
+                    sourceIndex + 1 < sourceEnd &&
+                    GetTableSimilarity(sourceTables[sourceIndex + 1], targetTables[targetIndex]) >
+                    GetTableSimilarity(sourceTables[sourceIndex], targetTables[targetIndex])) {
+                    AddDeletedTableFinding(sourceTables, sourceIndex, result);
+                    sourceIndex++;
+                    continue;
+                }
+
                 if (!string.Equals(sourceTables[sourceIndex].PartKey, targetTables[targetIndex].PartKey, StringComparison.Ordinal)) {
                     AddDeletedTableFinding(sourceTables, sourceIndex, result);
                     AddInsertedTableFinding(targetTables, targetIndex, result);
+                    sourceIndex++;
+                    targetIndex++;
                     continue;
                 }
 
                 AnalyzeTable(sourceTables[sourceIndex].Table, targetTables[targetIndex].Table, targetIndex, targetTables[targetIndex].DocumentOrder, result);
+                sourceIndex++;
+                targetIndex++;
             }
 
-            for (int offset = pairedCount; offset < targetCount; offset++) {
-                AddInsertedTableFinding(targetTables, targetStart + offset, result);
+            while (targetIndex < targetEnd) {
+                AddInsertedTableFinding(targetTables, targetIndex, result);
+                targetIndex++;
             }
 
-            for (int offset = pairedCount; offset < sourceCount; offset++) {
-                AddDeletedTableFinding(sourceTables, sourceStart + offset, result);
+            while (sourceIndex < sourceEnd) {
+                AddDeletedTableFinding(sourceTables, sourceIndex, result);
+                sourceIndex++;
             }
         }
 
@@ -256,13 +278,28 @@ namespace OfficeIMO.Word {
             int targetStart,
             int targetEnd,
             WordComparisonResult result) {
-            int sourceCount = sourceEnd - sourceStart;
-            int targetCount = targetEnd - targetStart;
-            int pairedCount = Math.Min(sourceCount, targetCount);
+            int sourceIndex = sourceStart;
+            int targetIndex = targetStart;
 
-            for (int offset = 0; offset < pairedCount; offset++) {
-                int sourceIndex = sourceStart + offset;
-                int targetIndex = targetStart + offset;
+            while (sourceIndex < sourceEnd && targetIndex < targetEnd) {
+                if (targetEnd - targetIndex > sourceEnd - sourceIndex &&
+                    targetIndex + 1 < targetEnd &&
+                    GetCellSimilarity(sourceCells[sourceIndex], targetCells[targetIndex + 1]) >
+                    GetCellSimilarity(sourceCells[sourceIndex], targetCells[targetIndex])) {
+                    AddInsertedTableCellFinding(targetCells, tableIndex, tableDocumentOrder, targetRowIndex, targetIndex, result);
+                    targetIndex++;
+                    continue;
+                }
+
+                if (sourceEnd - sourceIndex > targetEnd - targetIndex &&
+                    sourceIndex + 1 < sourceEnd &&
+                    GetCellSimilarity(sourceCells[sourceIndex + 1], targetCells[targetIndex]) >
+                    GetCellSimilarity(sourceCells[sourceIndex], targetCells[targetIndex])) {
+                    AddDeletedTableCellFinding(sourceCells, tableIndex, tableDocumentOrder, sourceRowIndex, sourceIndex, result);
+                    sourceIndex++;
+                    continue;
+                }
+
                 string sourceText = GetCellText(sourceCells[sourceIndex]);
                 string targetText = GetCellText(targetCells[targetIndex]);
 
@@ -278,35 +315,46 @@ namespace OfficeIMO.Word {
                         "Table cell text changed."),
                         GetTableChildDocumentOrder(tableDocumentOrder, targetCells[targetIndex]._tableCell));
                 }
+
+                sourceIndex++;
+                targetIndex++;
             }
 
-            for (int offset = pairedCount; offset < targetCount; offset++) {
-                int cellIndex = targetStart + offset;
-                result.Add(new WordComparisonFinding(
-                    WordComparisonScope.TableCell,
-                    WordComparisonChangeKind.Inserted,
-                    CellLocation(tableIndex, targetRowIndex, cellIndex),
-                    null,
-                    cellIndex,
-                    null,
-                    GetCellText(targetCells[cellIndex]),
-                    "Table cell inserted."),
-                    GetTableChildDocumentOrder(tableDocumentOrder, targetCells[cellIndex]._tableCell));
+            while (targetIndex < targetEnd) {
+                AddInsertedTableCellFinding(targetCells, tableIndex, tableDocumentOrder, targetRowIndex, targetIndex, result);
+                targetIndex++;
             }
 
-            for (int offset = pairedCount; offset < sourceCount; offset++) {
-                int cellIndex = sourceStart + offset;
-                result.Add(new WordComparisonFinding(
-                    WordComparisonScope.TableCell,
-                    WordComparisonChangeKind.Deleted,
-                    CellLocation(tableIndex, sourceRowIndex, cellIndex),
-                    cellIndex,
-                    null,
-                    GetCellText(sourceCells[cellIndex]),
-                    null,
-                    "Table cell deleted."),
-                    GetTableChildDocumentOrder(tableDocumentOrder, sourceCells[cellIndex]._tableCell));
+            while (sourceIndex < sourceEnd) {
+                AddDeletedTableCellFinding(sourceCells, tableIndex, tableDocumentOrder, sourceRowIndex, sourceIndex, result);
+                sourceIndex++;
             }
+        }
+
+        private static void AddInsertedTableCellFinding(IReadOnlyList<WordTableCell> targetCells, int tableIndex, int tableDocumentOrder, int targetRowIndex, int cellIndex, WordComparisonResult result) {
+            result.Add(new WordComparisonFinding(
+                WordComparisonScope.TableCell,
+                WordComparisonChangeKind.Inserted,
+                CellLocation(tableIndex, targetRowIndex, cellIndex),
+                null,
+                cellIndex,
+                null,
+                GetCellText(targetCells[cellIndex]),
+                "Table cell inserted."),
+                GetTableChildDocumentOrder(tableDocumentOrder, targetCells[cellIndex]._tableCell));
+        }
+
+        private static void AddDeletedTableCellFinding(IReadOnlyList<WordTableCell> sourceCells, int tableIndex, int tableDocumentOrder, int sourceRowIndex, int cellIndex, WordComparisonResult result) {
+            result.Add(new WordComparisonFinding(
+                WordComparisonScope.TableCell,
+                WordComparisonChangeKind.Deleted,
+                CellLocation(tableIndex, sourceRowIndex, cellIndex),
+                cellIndex,
+                null,
+                GetCellText(sourceCells[cellIndex]),
+                null,
+                "Table cell deleted."),
+                GetTableChildDocumentOrder(tableDocumentOrder, sourceCells[cellIndex]._tableCell));
         }
 
         private static void AnalyzeImages(WordDocument source, WordDocument target, WordComparisonResult result) {
@@ -337,16 +385,33 @@ namespace OfficeIMO.Word {
             int targetStart,
             int targetEnd,
             WordComparisonResult result) {
-            int sourceCount = sourceEnd - sourceStart;
-            int targetCount = targetEnd - targetStart;
-            int pairedCount = Math.Min(sourceCount, targetCount);
+            int sourceIndex = sourceStart;
+            int targetIndex = targetStart;
 
-            for (int offset = 0; offset < pairedCount; offset++) {
-                int sourceIndex = sourceStart + offset;
-                int targetIndex = targetStart + offset;
+            while (sourceIndex < sourceEnd && targetIndex < targetEnd) {
+                if (targetEnd - targetIndex > sourceEnd - sourceIndex &&
+                    targetIndex + 1 < targetEnd &&
+                    GetImageSimilarity(sourceImages[sourceIndex], targetImages[targetIndex + 1]) >
+                    GetImageSimilarity(sourceImages[sourceIndex], targetImages[targetIndex])) {
+                    AddInsertedImageFinding(targetImages, targetIndex, result);
+                    targetIndex++;
+                    continue;
+                }
+
+                if (sourceEnd - sourceIndex > targetEnd - targetIndex &&
+                    sourceIndex + 1 < sourceEnd &&
+                    GetImageSimilarity(sourceImages[sourceIndex + 1], targetImages[targetIndex]) >
+                    GetImageSimilarity(sourceImages[sourceIndex], targetImages[targetIndex])) {
+                    AddDeletedImageFinding(sourceImages, sourceIndex, result);
+                    sourceIndex++;
+                    continue;
+                }
+
                 if (!string.Equals(sourceImages[sourceIndex].PartKey, targetImages[targetIndex].PartKey, StringComparison.Ordinal)) {
                     AddDeletedImageFinding(sourceImages, sourceIndex, result);
                     AddInsertedImageFinding(targetImages, targetIndex, result);
+                    sourceIndex++;
+                    targetIndex++;
                     continue;
                 }
 
@@ -360,14 +425,19 @@ namespace OfficeIMO.Word {
                     targetImages[targetIndex].DisplayText,
                     "Image payload changed."),
                     targetImages[targetIndex].DocumentOrder);
+
+                sourceIndex++;
+                targetIndex++;
             }
 
-            for (int offset = pairedCount; offset < targetCount; offset++) {
-                AddInsertedImageFinding(targetImages, targetStart + offset, result);
+            while (targetIndex < targetEnd) {
+                AddInsertedImageFinding(targetImages, targetIndex, result);
+                targetIndex++;
             }
 
-            for (int offset = pairedCount; offset < sourceCount; offset++) {
-                AddDeletedImageFinding(sourceImages, sourceStart + offset, result);
+            while (sourceIndex < sourceEnd) {
+                AddDeletedImageFinding(sourceImages, sourceIndex, result);
+                sourceIndex++;
             }
         }
 
@@ -456,16 +526,40 @@ namespace OfficeIMO.Word {
             AddTableSnapshots(snapshots, document, mainPart?.Document?.Body, BodyPartKey, BodyPartOrderBase);
 
             if (mainPart != null) {
+                Dictionary<HeaderPart, string> headerPartKeys = CreateHeaderPartKeys(mainPart);
                 int headerIndex = 0;
                 foreach (HeaderPart headerPart in mainPart.HeaderParts) {
-                    AddTableSnapshots(snapshots, document, headerPart.Header, HeaderPartKeyPrefix + headerIndex.ToString(System.Globalization.CultureInfo.InvariantCulture), HeaderPartOrderBase + (headerIndex * RelatedPartOrderStride));
+                    AddTableSnapshots(snapshots, document, headerPart.Header, GetHeaderPartKey(headerPartKeys, headerPart, headerIndex), HeaderPartOrderBase + (headerIndex * RelatedPartOrderStride));
                     headerIndex++;
                 }
 
+                Dictionary<FooterPart, string> footerPartKeys = CreateFooterPartKeys(mainPart);
                 int footerIndex = 0;
                 foreach (FooterPart footerPart in mainPart.FooterParts) {
-                    AddTableSnapshots(snapshots, document, footerPart.Footer, FooterPartKeyPrefix + footerIndex.ToString(System.Globalization.CultureInfo.InvariantCulture), FooterPartOrderBase + (footerIndex * RelatedPartOrderStride));
+                    AddTableSnapshots(snapshots, document, footerPart.Footer, GetFooterPartKey(footerPartKeys, footerPart, footerIndex), FooterPartOrderBase + (footerIndex * RelatedPartOrderStride));
                     footerIndex++;
+                }
+
+                int footnoteIndex = 0;
+                foreach (Footnote footnote in mainPart.FootnotesPart?.Footnotes?.Elements<Footnote>() ?? Enumerable.Empty<Footnote>()) {
+                    if (footnote.Type != null) {
+                        continue;
+                    }
+
+                    string noteId = footnote.Id?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? footnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    AddTableSnapshots(snapshots, document, footnote, FootnotePartKeyPrefix + noteId, FootnotePartOrderBase + (footnoteIndex * RelatedPartOrderStride));
+                    footnoteIndex++;
+                }
+
+                int endnoteIndex = 0;
+                foreach (Endnote endnote in mainPart.EndnotesPart?.Endnotes?.Elements<Endnote>() ?? Enumerable.Empty<Endnote>()) {
+                    if (endnote.Type != null) {
+                        continue;
+                    }
+
+                    string noteId = endnote.Id?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? endnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    AddTableSnapshots(snapshots, document, endnote, EndnotePartKeyPrefix + noteId, EndnotePartOrderBase + (endnoteIndex * RelatedPartOrderStride));
+                    endnoteIndex++;
                 }
             }
 
@@ -529,22 +623,58 @@ namespace OfficeIMO.Word {
             return GetTextSimilarity(GetRowText(source), GetRowText(target));
         }
 
+        private static double GetTableSimilarity(TableSnapshot source, TableSnapshot target) {
+            if (!string.Equals(source.PartKey, target.PartKey, StringComparison.Ordinal)) {
+                return 0;
+            }
+
+            return GetTextSimilarity(source.Text, target.Text);
+        }
+
+        private static double GetCellSimilarity(WordTableCell source, WordTableCell target) {
+            return GetTextSimilarity(GetCellText(source), GetCellText(target));
+        }
+
         private static List<ImageSnapshot> GetImageSnapshots(WordDocument document) {
             var snapshots = new List<ImageSnapshot>();
             MainDocumentPart? mainPart = document._wordprocessingDocument.MainDocumentPart;
             AddImageSnapshots(snapshots, mainPart, mainPart?.Document?.Body, BodyPartKey, BodyPartOrderBase);
 
             if (mainPart != null) {
+                Dictionary<HeaderPart, string> headerPartKeys = CreateHeaderPartKeys(mainPart);
                 int headerIndex = 0;
                 foreach (HeaderPart headerPart in mainPart.HeaderParts) {
-                    AddImageSnapshots(snapshots, headerPart, headerPart.Header, HeaderPartKeyPrefix + headerIndex.ToString(System.Globalization.CultureInfo.InvariantCulture), HeaderPartOrderBase + (headerIndex * RelatedPartOrderStride));
+                    AddImageSnapshots(snapshots, headerPart, headerPart.Header, GetHeaderPartKey(headerPartKeys, headerPart, headerIndex), HeaderPartOrderBase + (headerIndex * RelatedPartOrderStride));
                     headerIndex++;
                 }
 
+                Dictionary<FooterPart, string> footerPartKeys = CreateFooterPartKeys(mainPart);
                 int footerIndex = 0;
                 foreach (FooterPart footerPart in mainPart.FooterParts) {
-                    AddImageSnapshots(snapshots, footerPart, footerPart.Footer, FooterPartKeyPrefix + footerIndex.ToString(System.Globalization.CultureInfo.InvariantCulture), FooterPartOrderBase + (footerIndex * RelatedPartOrderStride));
+                    AddImageSnapshots(snapshots, footerPart, footerPart.Footer, GetFooterPartKey(footerPartKeys, footerPart, footerIndex), FooterPartOrderBase + (footerIndex * RelatedPartOrderStride));
                     footerIndex++;
+                }
+
+                int footnoteIndex = 0;
+                foreach (Footnote footnote in mainPart.FootnotesPart?.Footnotes?.Elements<Footnote>() ?? Enumerable.Empty<Footnote>()) {
+                    if (footnote.Type != null) {
+                        continue;
+                    }
+
+                    string noteId = footnote.Id?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? footnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    AddImageSnapshots(snapshots, mainPart.FootnotesPart, footnote, FootnotePartKeyPrefix + noteId, FootnotePartOrderBase + (footnoteIndex * RelatedPartOrderStride));
+                    footnoteIndex++;
+                }
+
+                int endnoteIndex = 0;
+                foreach (Endnote endnote in mainPart.EndnotesPart?.Endnotes?.Elements<Endnote>() ?? Enumerable.Empty<Endnote>()) {
+                    if (endnote.Type != null) {
+                        continue;
+                    }
+
+                    string noteId = endnote.Id?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? endnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    AddImageSnapshots(snapshots, mainPart.EndnotesPart, endnote, EndnotePartKeyPrefix + noteId, EndnotePartOrderBase + (endnoteIndex * RelatedPartOrderStride));
+                    endnoteIndex++;
                 }
             }
 
@@ -619,6 +749,11 @@ namespace OfficeIMO.Word {
             }
 
             foreach (DW.DocProperties properties in clone.Descendants<DW.DocProperties>()) {
+                properties.Id = 0U;
+                properties.Name = string.Empty;
+            }
+
+            foreach (PIC.NonVisualDrawingProperties properties in clone.Descendants<PIC.NonVisualDrawingProperties>()) {
                 properties.Id = 0U;
                 properties.Name = string.Empty;
             }

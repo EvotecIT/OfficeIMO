@@ -77,8 +77,7 @@ namespace OfficeIMO.Word {
                 string sourceText = sourceParagraphs[sourceIndex].Text;
                 string targetText = targetParagraphs[targetIndex].Text;
 
-                if (!string.Equals(sourceParagraphs[sourceIndex].PartKind, targetParagraphs[targetIndex].PartKind, StringComparison.Ordinal) &&
-                    string.Equals(sourceText, targetText, StringComparison.Ordinal)) {
+                if (!string.Equals(sourceParagraphs[sourceIndex].PartKind, targetParagraphs[targetIndex].PartKind, StringComparison.Ordinal)) {
                     result.Add(new WordComparisonFinding(
                         WordComparisonScope.Paragraph,
                         WordComparisonChangeKind.Deleted,
@@ -153,18 +152,20 @@ namespace OfficeIMO.Word {
         private static List<ParagraphSnapshot> GetLogicalBodyParagraphs(WordDocument document) {
             var snapshots = new List<ParagraphSnapshot>();
             MainDocumentPart? mainPart = document._wordprocessingDocument.MainDocumentPart;
-            AddParagraphSnapshots(snapshots, mainPart?.Document?.Body, "body", BodyPartOrderBase);
+            AddParagraphSnapshots(snapshots, mainPart?.Document?.Body, BodyPartKey, BodyPartOrderBase);
 
             if (mainPart != null) {
+                Dictionary<HeaderPart, string> headerPartKeys = CreateHeaderPartKeys(mainPart);
                 int headerIndex = 0;
                 foreach (HeaderPart headerPart in mainPart.HeaderParts) {
-                    AddParagraphSnapshots(snapshots, headerPart.Header, "header", HeaderPartOrderBase + (headerIndex * RelatedPartOrderStride));
+                    AddParagraphSnapshots(snapshots, headerPart.Header, GetHeaderPartKey(headerPartKeys, headerPart, headerIndex), HeaderPartOrderBase + (headerIndex * RelatedPartOrderStride));
                     headerIndex++;
                 }
 
+                Dictionary<FooterPart, string> footerPartKeys = CreateFooterPartKeys(mainPart);
                 int footerIndex = 0;
                 foreach (FooterPart footerPart in mainPart.FooterParts) {
-                    AddParagraphSnapshots(snapshots, footerPart.Footer, "footer", FooterPartOrderBase + (footerIndex * RelatedPartOrderStride));
+                    AddParagraphSnapshots(snapshots, footerPart.Footer, GetFooterPartKey(footerPartKeys, footerPart, footerIndex), FooterPartOrderBase + (footerIndex * RelatedPartOrderStride));
                     footerIndex++;
                 }
 
@@ -240,6 +241,16 @@ namespace OfficeIMO.Word {
                             builder.Append(']');
                         }
 
+                        break;
+                    case FootnoteReference footnoteReference:
+                        builder.Append("[FootnoteReference:");
+                        builder.Append(footnoteReference.Id?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty);
+                        builder.Append(']');
+                        break;
+                    case EndnoteReference endnoteReference:
+                        builder.Append("[EndnoteReference:");
+                        builder.Append(endnoteReference.Id?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty);
+                        builder.Append(']');
                         break;
                 }
             }
