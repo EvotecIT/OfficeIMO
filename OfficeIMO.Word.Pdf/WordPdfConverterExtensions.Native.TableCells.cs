@@ -319,6 +319,7 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 (double Left, double Right, double FirstLine) indentation = ResolveNativeTableCellParagraphIndentation(paragraph);
+                IReadOnlyList<PdfCore.PdfTabStop> tabStops = ResolveNativeTableCellParagraphTabStops(paragraph, indentation.Left);
                 paragraphs.Add(new PdfCore.PdfTableCellParagraph(
                     paragraphRuns,
                     spacingAfter,
@@ -326,7 +327,9 @@ namespace OfficeIMO.Word.Pdf {
                     spacingBefore,
                     indentation.Left,
                     indentation.Right,
-                    indentation.FirstLine));
+                    indentation.FirstLine,
+                    nativeDefaults.DefaultTabStopWidth,
+                    tabStops));
                 pendingSpacingAfter = spacingAfter;
             }
 
@@ -365,6 +368,30 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             return (leftIndent, rightIndent, firstLineIndent);
+        }
+
+        private static IReadOnlyList<PdfCore.PdfTabStop> ResolveNativeTableCellParagraphTabStops(WordParagraph paragraph, double leftIndent) {
+            var result = new List<PdfCore.PdfTabStop>();
+            foreach (WordTabStop tabStop in GetNativeParagraphEffectiveTabStops(paragraph)
+                .Where(tabStop => tabStop.Position > 0 && IsNativeRenderableTextTabStop(tabStop.Alignment))
+                .OrderBy(tabStop => tabStop.Position)) {
+                double? position = ConvertNativeTwipsToPoints(tabStop.Position);
+                if (!position.HasValue) {
+                    continue;
+                }
+
+                double framePosition = position.Value - leftIndent;
+                if (framePosition <= 0D) {
+                    continue;
+                }
+
+                result.Add(new PdfCore.PdfTabStop(
+                    framePosition,
+                    MapNativeTabAlignment(tabStop.Alignment),
+                    MapNativeTabLeader(tabStop.Leader)));
+            }
+
+            return result;
         }
 
         private static double GetNativeCellParagraphSpacingBefore(WordParagraph paragraph, NativeDocumentDefaults nativeDefaults, NativeTableStyleDefaults tableStyleDefaults) {

@@ -534,7 +534,8 @@ internal static partial class PdfWriter {
         var lineWidths = new System.Collections.Generic.List<double>();
         for (int paragraphIndex = 0; paragraphIndex < paragraphs.Count; paragraphIndex++) {
             PdfTableCellParagraph paragraph = paragraphs[paragraphIndex];
-            var paragraphFrame = GetParagraphTextFrame(CreateTableCellParagraphStyle(paragraph), 0D, innerWidth);
+            PdfParagraphStyle paragraphStyle = CreateTableCellParagraphStyle(paragraph);
+            var paragraphFrame = GetParagraphTextFrame(paragraphStyle, 0D, innerWidth);
             var wrap = WrapRichRunsCoreWithFirstLineOrigin(
                 paragraph.Runs,
                 paragraphFrame.Width,
@@ -543,8 +544,9 @@ internal static partial class PdfWriter {
                 leading,
                 paragraphFrame.FirstLineWidth,
                 paragraphFrame.FirstLineX - paragraphFrame.X,
-                DefaultParagraphTabStopWidth,
-                options);
+                GetParagraphTabStopWidth(paragraphStyle),
+                options,
+                paragraphStyle.TabStops.ToArray());
             if (wrap.Lines.Count == 0) {
                 wrap.Lines.Add(new System.Collections.Generic.List<RichSeg>());
             }
@@ -588,12 +590,20 @@ internal static partial class PdfWriter {
         return new TableCellTextLayout(lines, lineHeights, lineAlignments, lineXOffsets, lineWidths);
     }
 
-    private static PdfParagraphStyle CreateTableCellParagraphStyle(PdfTableCellParagraph paragraph) =>
-        new PdfParagraphStyle {
+    private static PdfParagraphStyle CreateTableCellParagraphStyle(PdfTableCellParagraph paragraph) {
+        var style = new PdfParagraphStyle {
             LeftIndent = paragraph.LeftIndent,
             RightIndent = paragraph.RightIndent,
-            FirstLineIndent = paragraph.FirstLineIndent
+            FirstLineIndent = paragraph.FirstLineIndent,
+            DefaultTabStopWidth = paragraph.DefaultTabStopWidth
         };
+
+        foreach (PdfTabStop tabStop in paragraph.TabStops) {
+            style.TabStops.Add(tabStop.Clone());
+        }
+
+        return style;
+    }
 
     private static TableCellTextLayout CreateListItemTextLayout(PdfListItem item, double innerWidth, PdfStandardFont baseFont, double fontSize, double leading, PdfOptions? options) {
         var wrap = WrapRichRunsCore(item.Runs, innerWidth, fontSize, baseFont, leading, null, DefaultParagraphTabStopWidth, options);

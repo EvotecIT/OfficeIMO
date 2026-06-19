@@ -261,7 +261,7 @@ public sealed class PdfTableCell {
 }
 
 internal sealed class PdfTableCellParagraph {
-    public PdfTableCellParagraph(System.Collections.Generic.IEnumerable<TextRun> runs, double spacingAfter = 0D, PdfAlign? align = null, double spacingBefore = 0D, double leftIndent = 0D, double rightIndent = 0D, double firstLineIndent = 0D) {
+    public PdfTableCellParagraph(System.Collections.Generic.IEnumerable<TextRun> runs, double spacingAfter = 0D, PdfAlign? align = null, double spacingBefore = 0D, double leftIndent = 0D, double rightIndent = 0D, double firstLineIndent = 0D, double? defaultTabStopWidth = null, System.Collections.Generic.IEnumerable<PdfTabStop>? tabStops = null) {
         Guard.NotNull(runs, nameof(runs));
         if (spacingBefore < 0 || double.IsNaN(spacingBefore) || double.IsInfinity(spacingBefore)) {
             throw new System.ArgumentOutOfRangeException(nameof(spacingBefore), "Table cell paragraph spacing must be a non-negative finite value.");
@@ -283,6 +283,10 @@ internal sealed class PdfTableCellParagraph {
             throw new System.ArgumentOutOfRangeException(nameof(firstLineIndent), "Table cell paragraph first line indent must be a finite value.");
         }
 
+        if (defaultTabStopWidth.HasValue && (defaultTabStopWidth.Value <= 0 || double.IsNaN(defaultTabStopWidth.Value) || double.IsInfinity(defaultTabStopWidth.Value))) {
+            throw new System.ArgumentOutOfRangeException(nameof(defaultTabStopWidth), "Table cell paragraph default tab stop width must be a positive finite value.");
+        }
+
         var snapshot = new System.Collections.Generic.List<TextRun>();
         foreach (TextRun run in runs) {
             if (run is null) {
@@ -292,6 +296,17 @@ internal sealed class PdfTableCellParagraph {
             snapshot.Add(run);
         }
 
+        var tabStopSnapshot = new System.Collections.Generic.List<PdfTabStop>();
+        if (tabStops != null) {
+            foreach (PdfTabStop tabStop in tabStops) {
+                if (tabStop is null) {
+                    throw new System.ArgumentException("Table cell paragraph tab stops cannot contain null entries.", nameof(tabStops));
+                }
+
+                tabStopSnapshot.Add(tabStop.Clone());
+            }
+        }
+
         Runs = snapshot.AsReadOnly();
         SpacingBefore = spacingBefore;
         SpacingAfter = spacingAfter;
@@ -299,6 +314,8 @@ internal sealed class PdfTableCellParagraph {
         LeftIndent = leftIndent;
         RightIndent = rightIndent;
         FirstLineIndent = firstLineIndent;
+        DefaultTabStopWidth = defaultTabStopWidth;
+        TabStops = tabStopSnapshot.AsReadOnly();
     }
 
     public System.Collections.Generic.IReadOnlyList<TextRun> Runs { get; }
@@ -315,5 +332,9 @@ internal sealed class PdfTableCellParagraph {
 
     public double FirstLineIndent { get; }
 
-    internal PdfTableCellParagraph Clone() => new PdfTableCellParagraph(Runs, SpacingAfter, Align, SpacingBefore, LeftIndent, RightIndent, FirstLineIndent);
+    public double? DefaultTabStopWidth { get; }
+
+    public System.Collections.Generic.IReadOnlyList<PdfTabStop> TabStops { get; }
+
+    internal PdfTableCellParagraph Clone() => new PdfTableCellParagraph(Runs, SpacingAfter, Align, SpacingBefore, LeftIndent, RightIndent, FirstLineIndent, DefaultTabStopWidth, TabStops);
 }

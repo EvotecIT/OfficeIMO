@@ -638,6 +638,52 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Renders_Table_Cell_Paragraph_Tab_Leaders() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellParagraphTabs.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellParagraphTabs.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            WordTable table = document.AddTable(1, 1);
+            table.Width = 5200;
+            table.WidthType = TableWidthUnitValues.Dxa;
+            table.LayoutType = TableLayoutValues.Fixed;
+            table.Rows[0].Cells[0].Width = 5200;
+            table.Rows[0].Cells[0].WidthType = TableWidthUnitValues.Dxa;
+
+            WordParagraph paragraph = table.Rows[0].Cells[0].Paragraphs[0];
+            paragraph.Text = "CellTabRevenue\t42";
+            paragraph.AddTabStop(3600, TabStopValues.Right, TabStopLeaderCharValues.Dot);
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = new PdfCore.PageSize(420, 180),
+                Margins = PdfCore.PageMargins.Uniform(40),
+                FontFamily = "Helvetica"
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        var page = pdf.GetPage(1);
+        Assert.Contains("CellTabRevenue", page.Text);
+        Assert.Contains("42", page.Text);
+        int dotCount = page.Letters.Count(letter => letter.Value == ".");
+
+        Assert.True(dotCount >= 15,
+            $"Expected Word table-cell paragraph tab leader dots to render across the tab gap. Dot count: {dotCount}.");
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Uses_Document_Default_Tab_Stop_In_Table_Cell_Paragraphs() {
+        (double narrowLeftX, double narrowRightX) = RenderNativeTableCellDefaultTabStop(720, "PdfNativeTableCellDefaultTabStopNarrow");
+        (double wideLeftX, double wideRightX) = RenderNativeTableCellDefaultTabStop(2880, "PdfNativeTableCellDefaultTabStopWide");
+
+        Assert.InRange(Math.Abs(wideLeftX - narrowLeftX), 0D, 0.75D);
+        Assert.True(wideRightX > narrowRightX + 70D,
+            $"Expected wider Word document default tab stop to move implicit table-cell tab text right. Narrow x: {narrowRightX:0.##}; wide x: {wideRightX:0.##}.");
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Uses_DocDefaults_For_Table_Cell_Paragraph_Spacing() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellParagraphSpacing.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellParagraphSpacing.pdf");
@@ -785,6 +831,36 @@ public partial class Word {
         double secondGap = beta.BoundingBox.Bottom - gamma.BoundingBox.Bottom;
         Assert.InRange(firstGap, 13D, 18D);
         Assert.InRange(secondGap, 13D, 18D);
+    }
+
+    private (double LeftX, double RightX) RenderNativeTableCellDefaultTabStop(int defaultTabStopTwips, string fileName) {
+        string docPath = Path.Combine(_directoryWithFiles, fileName + ".docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, fileName + ".pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.Settings.DefaultTabStop = defaultTabStopTwips;
+            WordTable table = document.AddTable(1, 1);
+            table.Width = 5200;
+            table.WidthType = TableWidthUnitValues.Dxa;
+            table.LayoutType = TableLayoutValues.Fixed;
+            table.Rows[0].Cells[0].Width = 5200;
+            table.Rows[0].Cells[0].WidthType = TableWidthUnitValues.Dxa;
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "WWW\tDefaultCellTab";
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = new PdfCore.PageSize(420, 180),
+                Margins = PdfCore.PageMargins.Uniform(40),
+                FontFamily = "Helvetica"
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        var words = pdf.GetPage(1).GetWords().ToList();
+        return (
+            Assert.Single(words, word => word.Text == "WWW").BoundingBox.Left,
+            Assert.Single(words, word => word.Text == "DefaultCellTab").BoundingBox.Left);
     }
 
     private double RenderNativeTableCellParagraphSpacingGap(string fileNamePrefix, double firstSpacingAfter, double secondSpacingBefore) {
