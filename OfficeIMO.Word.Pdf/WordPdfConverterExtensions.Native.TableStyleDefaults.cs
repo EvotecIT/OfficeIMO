@@ -4,8 +4,8 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
-        private readonly record struct NativeTableStyleDefaults(PdfCore.PdfCellPadding? CellPadding, double? ParagraphLineHeight, double? ParagraphLineSpacingPoints, double? ParagraphSpacingAfter, NativeTableRunStyleDefaults RunStyle) {
-            public static NativeTableStyleDefaults Empty { get; } = new(null, null, null, null, NativeTableRunStyleDefaults.Empty);
+        private readonly record struct NativeTableStyleDefaults(PdfCore.PdfCellPadding? CellPadding, PdfCore.PdfColor? CellFill, double? ParagraphLineHeight, double? ParagraphLineSpacingPoints, double? ParagraphSpacingAfter, NativeTableRunStyleDefaults RunStyle) {
+            public static NativeTableStyleDefaults Empty { get; } = new(null, null, null, null, null, NativeTableRunStyleDefaults.Empty);
         }
 
         private readonly record struct NativeTableRunStyleDefaults(double? FontSize, string? FontFamily, bool? Bold, bool? Italic, bool? Underline, bool? Strike, string? ColorHex, W.HighlightColorValues? Highlight) {
@@ -27,6 +27,7 @@ namespace OfficeIMO.Word.Pdf {
             double? marginBottom = null;
             double? marginLeft = null;
             double? marginRight = null;
+            PdfCore.PdfColor? cellFill = null;
             double? paragraphLineHeight = null;
             double? paragraphLineSpacingPoints = null;
             double? paragraphSpacingAfter = null;
@@ -40,7 +41,8 @@ namespace OfficeIMO.Word.Pdf {
             W.HighlightColorValues? highlight = null;
 
             foreach (W.Style style in styleChain) {
-                W.TableCellMarginDefault? margins = style.GetFirstChild<W.StyleTableProperties>()?.GetFirstChild<W.TableCellMarginDefault>();
+                W.StyleTableProperties? tableProperties = style.GetFirstChild<W.StyleTableProperties>();
+                W.TableCellMarginDefault? margins = tableProperties?.GetFirstChild<W.TableCellMarginDefault>();
                 if (margins != null) {
                     double? top = ConvertNativeTwipsToPoints(margins.TopMargin?.Width?.Value);
                     double? bottom = ConvertNativeTwipsToPoints(margins.BottomMargin?.Width?.Value);
@@ -55,6 +57,11 @@ namespace OfficeIMO.Word.Pdf {
                     marginBottom = bottom ?? marginBottom;
                     marginLeft = left ?? marginLeft;
                     marginRight = right ?? marginRight;
+                }
+
+                W.Shading? shading = tableProperties?.GetFirstChild<W.Shading>();
+                if (shading != null) {
+                    cellFill = ParseNativeColor(shading.Fill?.Value);
                 }
 
                 W.SpacingBetweenLines? spacing = style.GetFirstChild<W.StyleParagraphProperties>()?.GetFirstChild<W.SpacingBetweenLines>();
@@ -91,6 +98,7 @@ namespace OfficeIMO.Word.Pdf {
 
             return new NativeTableStyleDefaults(
                 cellPadding,
+                cellFill,
                 paragraphLineHeight,
                 paragraphLineSpacingPoints,
                 paragraphSpacingAfter,

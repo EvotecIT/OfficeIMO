@@ -277,6 +277,48 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Uses_Table_Style_Shading_For_Cell_Fills() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleShading.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleShading.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            const string styleId = "NativeTableStyleShading";
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(new Style(
+                new StyleName { Val = "Native Table Style Shading" },
+                new StyleTableProperties(
+                    new Shading { Val = ShadingPatternValues.Clear, Fill = "D9EAD3" }))
+            {
+                Type = StyleValues.Table,
+                StyleId = styleId,
+                CustomStyle = true
+            });
+
+            WordTable table = document.AddTable(1, 2);
+            table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "InheritedFill";
+            table.Rows[0].Cells[1].Paragraphs[0].Text = "DirectFill";
+            table.Rows[0].Cells[1].ShadingFillColorHex = "F4CCCC";
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = new PdfCore.PageSize(420, 220),
+                Margins = PdfCore.PageMargins.Uniform(40)
+            });
+        }
+
+        string content = ReadPdfPageContent(File.ReadAllBytes(pdfPath));
+        Assert.Contains("0.851 0.918 0.827 rg", content);
+        Assert.Contains("0.957 0.8 0.8 rg", content);
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        string text = pdf.GetPage(1).Text;
+        Assert.Contains("InheritedFill", text);
+        Assert.Contains("DirectFill", text);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Uses_DocDefaults_For_Table_Cell_Paragraph_Spacing() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellParagraphSpacing.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellParagraphSpacing.pdf");

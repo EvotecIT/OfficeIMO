@@ -63,7 +63,7 @@ namespace OfficeIMO.Word.Pdf {
                         formFields.Count == 0 ? null : formFields,
                         images.Count == 0 ? null : images));
 
-                    PdfCore.PdfColor? fill = ParseNativeColor(cell.ShadingFillColorHex);
+                    PdfCore.PdfColor? fill = ParseNativeColor(cell.ShadingFillColorHex) ?? tableStyleDefaults.CellFill;
                     if (fill.HasValue) {
                         cellFills[(rowIndex, logicalColumnIndex)] = fill.Value;
                     }
