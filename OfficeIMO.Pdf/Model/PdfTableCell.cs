@@ -50,7 +50,7 @@ public sealed class PdfTableCell {
         Paragraphs = System.Array.AsReadOnly(System.Array.Empty<PdfTableCellParagraph>());
     }
 
-    internal PdfTableCell(System.Collections.Generic.IEnumerable<TextRun> runs, System.Collections.Generic.IEnumerable<PdfTableCellParagraph>? paragraphs, int columnSpan = 1, string? linkUri = null, string? linkContents = null, int rowSpan = 1, System.Collections.Generic.IEnumerable<PdfTableCellCheckBox>? checkBoxes = null, System.Collections.Generic.IEnumerable<PdfTableCellFormField>? formFields = null, System.Collections.Generic.IEnumerable<PdfTableCellImage>? images = null, string? linkDestinationName = null, string? namedDestinationName = null) {
+    internal PdfTableCell(System.Collections.Generic.IEnumerable<TextRun> runs, System.Collections.Generic.IEnumerable<PdfTableCellParagraph>? paragraphs, int columnSpan = 1, string? linkUri = null, string? linkContents = null, int rowSpan = 1, System.Collections.Generic.IEnumerable<PdfTableCellCheckBox>? checkBoxes = null, System.Collections.Generic.IEnumerable<PdfTableCellFormField>? formFields = null, System.Collections.Generic.IEnumerable<PdfTableCellImage>? images = null, string? linkDestinationName = null, string? namedDestinationName = null, bool noWrap = false) {
         Guard.NotNull(runs, nameof(runs));
         Validate(columnSpan, rowSpan, linkUri, linkDestinationName, linkContents, namedDestinationName);
         var snapshot = new System.Collections.Generic.List<TextRun>();
@@ -76,6 +76,7 @@ public sealed class PdfTableCell {
         FormFields = SnapshotFormFields(formFields, nameof(formFields));
         Images = SnapshotImages(images, nameof(images));
         Paragraphs = SnapshotParagraphs(paragraphs, nameof(paragraphs));
+        NoWrap = noWrap;
     }
 
     /// <summary>Cell text content.</summary>
@@ -112,6 +113,8 @@ public sealed class PdfTableCell {
     public System.Collections.Generic.IReadOnlyList<PdfTableCellImage> Images { get; }
 
     internal System.Collections.Generic.IReadOnlyList<PdfTableCellParagraph> Paragraphs { get; }
+
+    internal bool NoWrap { get; }
 
     /// <summary>Creates a single-column text cell.</summary>
     public static PdfTableCell TextCell(string? text, string? linkUri = null, string? linkContents = null, string? linkDestinationName = null, string? namedDestinationName = null) => new PdfTableCell(text, linkUri: linkUri, linkContents: linkContents, linkDestinationName: linkDestinationName, namedDestinationName: namedDestinationName);
@@ -150,9 +153,9 @@ public sealed class PdfTableCell {
     public static PdfTableCell WithImages(string? text, System.Collections.Generic.IEnumerable<PdfTableCellImage> images, int columnSpan = 1, string? linkUri = null, string? linkContents = null, int rowSpan = 1, System.Collections.Generic.IEnumerable<PdfTableCellCheckBox>? checkBoxes = null, System.Collections.Generic.IEnumerable<PdfTableCellFormField>? formFields = null, string? linkDestinationName = null) => new PdfTableCell(text, columnSpan, linkUri, linkContents, rowSpan, checkBoxes, formFields, images, linkDestinationName);
 
     /// <summary>Returns a copy of this cell with a PDF named destination defined at the cell.</summary>
-    public PdfTableCell WithNamedDestination(string? namedDestinationName) => new PdfTableCell(Runs, Paragraphs, ColumnSpan, LinkUri, LinkContents, RowSpan, CheckBoxes, FormFields, Images, LinkDestinationName, namedDestinationName);
+    public PdfTableCell WithNamedDestination(string? namedDestinationName) => new PdfTableCell(Runs, Paragraphs, ColumnSpan, LinkUri, LinkContents, RowSpan, CheckBoxes, FormFields, Images, LinkDestinationName, namedDestinationName, NoWrap);
 
-    internal PdfTableCell Clone() => new PdfTableCell(Runs, Paragraphs, ColumnSpan, LinkUri, LinkContents, RowSpan, CheckBoxes, FormFields, Images, LinkDestinationName, NamedDestinationName);
+    internal PdfTableCell Clone() => new PdfTableCell(Runs, Paragraphs, ColumnSpan, LinkUri, LinkContents, RowSpan, CheckBoxes, FormFields, Images, LinkDestinationName, NamedDestinationName, NoWrap);
 
     private static void Validate(int columnSpan, int rowSpan, string? linkUri, string? linkDestinationName, string? linkContents, string? namedDestinationName) {
         if (columnSpan < 1) {

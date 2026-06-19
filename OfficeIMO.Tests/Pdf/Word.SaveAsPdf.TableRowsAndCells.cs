@@ -84,6 +84,14 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Honors_Table_Cell_NoWrap_Text() {
+        double wrappedGap = RenderNativeTableCellWrapTextGap("PdfNativeTableCellWrapText", wrapText: true);
+        double noWrapGap = RenderNativeTableCellWrapTextGap("PdfNativeTableCellNoWrapText", wrapText: false);
+
+        Assert.True(wrappedGap > noWrapGap + 16D, $"Expected Word no-wrap table cell text to avoid vertical wrapping in native PDF output. Wrapped gap: {wrappedGap:0.##}; no-wrap gap: {noWrapGap:0.##}.");
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Expands_Percentage_Width_Table_To_Content_Frame() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativePercentageWidthTable.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativePercentageWidthTable.pdf");
@@ -187,6 +195,42 @@ public partial class Word {
                 WordParagraph blank = document.AddParagraph();
                 blank.LineSpacingAfterPoints = 6;
             }
+
+            WordParagraph after = document.AddParagraph(afterMarker);
+            after.LineSpacingAfterPoints = 0;
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = new PdfCore.PageSize(360, 260),
+                Margins = PdfCore.PageMargins.Uniform(36),
+                FontFamily = "Helvetica"
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        var words = pdf.GetPage(1).GetWords().ToList();
+        double tableY = Assert.Single(words, word => word.Text == tableMarker).BoundingBox.Bottom;
+        double afterY = Assert.Single(words, word => word.Text == afterMarker).BoundingBox.Bottom;
+        return tableY - afterY;
+    }
+
+    private double RenderNativeTableCellWrapTextGap(string fileNamePrefix, bool wrapText) {
+        const string tableMarker = "Start";
+        const string afterMarker = "After";
+        string docPath = Path.Combine(_directoryWithFiles, fileNamePrefix + ".docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, fileNamePrefix + ".pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            WordTable table = document.AddTable(1, 1);
+            table.Width = 900;
+            table.WidthType = TableWidthUnitValues.Dxa;
+            table.LayoutType = TableLayoutValues.Fixed;
+            WordTableCell cell = table.Rows[0].Cells[0];
+            cell.Width = 900;
+            cell.WidthType = TableWidthUnitValues.Dxa;
+            cell.WrapText = wrapText;
+            cell.Paragraphs[0].Text = tableMarker + " Alpha Beta Gamma Delta Epsilon";
 
             WordParagraph after = document.AddParagraph(afterMarker);
             after.LineSpacingAfterPoints = 0;

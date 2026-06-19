@@ -6,6 +6,7 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfWriter {
     private const double TableCellClipBleed = 2D;
     private const double TableCellCheckBoxGap = 2D;
+    private const double TableCellNoWrapWidth = 1000000D;
 
     // Helper shapes for column pagination
     private abstract class ColItem { public string Kind = string.Empty; }
@@ -35,7 +36,7 @@ internal static partial class PdfWriter {
         public int LineCount => System.Math.Max(1, Lines.Count);
     }
     private readonly struct TableCellLayout {
-        public TableCellLayout(int column, int columnSpan, int rowSpan, string text, System.Collections.Generic.IReadOnlyList<TextRun> runs, System.Collections.Generic.IReadOnlyList<PdfTableCellParagraph> paragraphs, string? linkUri, string? linkDestinationName, string? linkContents, string? namedDestinationName, System.Collections.Generic.IReadOnlyList<PdfTableCellCheckBox> checkBoxes, System.Collections.Generic.IReadOnlyList<PdfTableCellFormField> formFields, System.Collections.Generic.IReadOnlyList<PdfTableCellImage> images) {
+        public TableCellLayout(int column, int columnSpan, int rowSpan, string text, System.Collections.Generic.IReadOnlyList<TextRun> runs, System.Collections.Generic.IReadOnlyList<PdfTableCellParagraph> paragraphs, string? linkUri, string? linkDestinationName, string? linkContents, string? namedDestinationName, System.Collections.Generic.IReadOnlyList<PdfTableCellCheckBox> checkBoxes, System.Collections.Generic.IReadOnlyList<PdfTableCellFormField> formFields, System.Collections.Generic.IReadOnlyList<PdfTableCellImage> images, bool noWrap) {
             Column = column;
             ColumnSpan = columnSpan;
             RowSpan = rowSpan;
@@ -49,6 +50,7 @@ internal static partial class PdfWriter {
             CheckBoxes = checkBoxes;
             FormFields = formFields;
             Images = images;
+            NoWrap = noWrap;
         }
 
         public int Column { get; }
@@ -64,6 +66,7 @@ internal static partial class PdfWriter {
         public System.Collections.Generic.IReadOnlyList<PdfTableCellCheckBox> CheckBoxes { get; }
         public System.Collections.Generic.IReadOnlyList<PdfTableCellFormField> FormFields { get; }
         public System.Collections.Generic.IReadOnlyList<PdfTableCellImage> Images { get; }
+        public bool NoWrap { get; }
     }
 
     private static LayoutResult LayoutBlocks(IEnumerable<IPdfBlock> blocks, PdfOptions opts) {
