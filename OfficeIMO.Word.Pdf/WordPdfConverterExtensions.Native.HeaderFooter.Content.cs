@@ -381,6 +381,11 @@ namespace OfficeIMO.Word.Pdf {
                 yield return styleFamily!;
             }
 
+            string? characterStyleFamily = GetNativeCharacterStyleDefaults(paragraph._document, GetNativeRunProperties(paragraph)).FontFamily;
+            if (!string.IsNullOrWhiteSpace(characterStyleFamily)) {
+                yield return characterStyleFamily!;
+            }
+
             foreach (WordParagraph run in GetNativeRuns(paragraph)) {
                 if (run.IsImage || string.IsNullOrWhiteSpace(run.Text)) {
                     continue;
@@ -388,6 +393,11 @@ namespace OfficeIMO.Word.Pdf {
 
                 foreach (string familyName in EnumerateNativeParagraphOwnFontFamilies(run)) {
                     yield return familyName;
+                }
+
+                string? runCharacterStyleFamily = GetNativeCharacterStyleDefaults(run._document, GetNativeRunProperties(run)).FontFamily;
+                if (!string.IsNullOrWhiteSpace(runCharacterStyleFamily)) {
+                    yield return runCharacterStyleFamily!;
                 }
             }
         }
@@ -403,6 +413,11 @@ namespace OfficeIMO.Word.Pdf {
                 yield return styleColor.Value;
             }
 
+            PdfCore.PdfColor? characterStyleColor = ParseNativeColor(GetNativeCharacterStyleDefaults(paragraph._document, GetNativeRunProperties(paragraph)).ColorHex);
+            if (characterStyleColor.HasValue) {
+                yield return characterStyleColor.Value;
+            }
+
             foreach (WordParagraph run in GetNativeRuns(paragraph)) {
                 if (run.IsImage || string.IsNullOrWhiteSpace(run.Text)) {
                     continue;
@@ -411,6 +426,11 @@ namespace OfficeIMO.Word.Pdf {
                 PdfCore.PdfColor? runColor = ParseNativeColor(run.ColorHex);
                 if (runColor.HasValue) {
                     yield return runColor.Value;
+                }
+
+                PdfCore.PdfColor? runCharacterStyleColor = ParseNativeColor(GetNativeCharacterStyleDefaults(run._document, GetNativeRunProperties(run)).ColorHex);
+                if (runCharacterStyleColor.HasValue) {
+                    yield return runCharacterStyleColor.Value;
                 }
             }
         }
