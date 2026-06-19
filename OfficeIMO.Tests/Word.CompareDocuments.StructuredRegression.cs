@@ -221,6 +221,149 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Decision: Draft", result.Findings[1].SourceText);
         }
 
+        [Fact]
+        public void CompareStructureTreatsMovedBodyTableToHeaderAsDeleteInsert() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_body_table_to_header.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                WordTable table = doc.AddTable(1, 1);
+                table.Rows[0].Cells[0].Paragraphs[0].SetText("Review owner");
+                doc.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_body_table_to_header.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                doc.AddHeadersAndFooters();
+                WordTable table = doc.Header.Default!.AddTable(1, 1);
+                table.Rows[0].Cells[0].Paragraphs[0].SetText("Review owner");
+                doc.Save(false);
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Table &&
+                finding.ChangeKind == WordComparisonChangeKind.Deleted &&
+                finding.SourceText == "Review owner");
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Table &&
+                finding.ChangeKind == WordComparisonChangeKind.Inserted &&
+                finding.TargetText == "Review owner");
+        }
+
+        [Fact]
+        public void CompareStructureReportsTableRowShapeChangesWithSameJoinedText() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_table_shape.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                WordTable table = doc.AddTable(1, 2);
+                table.Rows[0].Cells[0].Paragraphs[0].SetText("Owner");
+                table.Rows[0].Cells[1].Paragraphs[0].SetText("Status");
+                doc.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_table_shape.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                WordTable table = doc.AddTable(1, 1);
+                table.Rows[0].Cells[0].Paragraphs[0].SetText("Owner | Status");
+                doc.Save(false);
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.TableRow &&
+                finding.ChangeKind == WordComparisonChangeKind.Deleted &&
+                finding.SourceText == "Owner | Status");
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.TableRow &&
+                finding.ChangeKind == WordComparisonChangeKind.Inserted &&
+                finding.TargetText == "Owner | Status");
+        }
+
+        [Fact]
+        public void CompareStructureUsesInvariantCellParagraphSeparators() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_cell_paragraph_separator.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                WordTable table = doc.AddTable(1, 1);
+                table.Rows[0].Cells[0]._tableCell.RemoveAllChildren<Paragraph>();
+                table.Rows[0].Cells[0]._tableCell.Append(
+                    new Paragraph(new Run(new Text("A"))),
+                    new Paragraph(new Run(new Text("B"))));
+                doc.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_cell_paragraph_separator.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                WordTable table = doc.AddTable(1, 1);
+                table.Rows[0].Cells[0]._tableCell.RemoveAllChildren<Paragraph>();
+                table.Rows[0].Cells[0]._tableCell.Append(
+                    new Paragraph(
+                        new Run(new Text("A")),
+                        new Run(new Break()),
+                        new Run(new Text("B"))));
+                doc.Save(false);
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            WordComparisonFinding cell = Assert.Single(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.TableCell &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified);
+            Assert.Equal("A[ParagraphBreak]B", cell.SourceText);
+            Assert.Equal("A\nB", cell.TargetText);
+        }
+
+        [Fact]
+        public void CompareStructureTreatsMovedBodyImageToHeaderAsDeleteInsert() {
+            string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_body_image_to_header.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                doc.AddParagraph().AddImage(imagePath, 80, 40);
+                doc.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_body_image_to_header.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                doc.AddHeadersAndFooters();
+                doc.Header.Default!.AddParagraph().AddImage(imagePath, 80, 40);
+                doc.Save(false);
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Image &&
+                finding.ChangeKind == WordComparisonChangeKind.Deleted);
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Image &&
+                finding.ChangeKind == WordComparisonChangeKind.Inserted);
+            Assert.DoesNotContain(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Image &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified);
+        }
+
+        [Fact]
+        public void CompareStructureReportsExternalVmlImageUriChanges() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_external_vml_image.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                AddExternalVmlImageParagraph(doc, "https://example.com/source.png");
+                doc.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_external_vml_image.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                AddExternalVmlImageParagraph(doc, "https://example.com/target.png");
+                doc.Save(false);
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            WordComparisonFinding image = Assert.Single(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Image &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified);
+            Assert.Equal("[Image: https://example.com/source.png]", image.SourceText);
+            Assert.Equal("[Image: https://example.com/target.png]", image.TargetText);
+        }
+
         private static void AddBreakParagraph(WordDocument document, BreakValues breakType) {
             WordParagraph paragraph = document.AddParagraph("Before");
             paragraph._paragraph.Append(new Run(new Break { Type = breakType }));
@@ -250,6 +393,26 @@ namespace OfficeIMO.Tests {
             };
             var shape = new V.Shape(imageData) {
                 Id = "LegacyImage",
+                Type = "#_x0000_t75",
+                Style = "width:72pt;height:72pt",
+                Filled = false,
+                Stroked = false
+            };
+
+            document._document.Body!.Append(new Paragraph(new Run(new Picture(shape))));
+        }
+
+        private static void AddExternalVmlImageParagraph(WordDocument document, string uri) {
+            MainDocumentPart mainPart = document._wordprocessingDocument.MainDocumentPart!;
+            ExternalRelationship relationship = mainPart.AddExternalRelationship(
+                "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+                new System.Uri(uri));
+            var imageData = new V.ImageData {
+                RelationshipId = relationship.Id,
+                Title = "Linked legacy image"
+            };
+            var shape = new V.Shape(imageData) {
+                Id = "LinkedLegacyImage",
                 Type = "#_x0000_t75",
                 Style = "width:72pt;height:72pt",
                 Filled = false,

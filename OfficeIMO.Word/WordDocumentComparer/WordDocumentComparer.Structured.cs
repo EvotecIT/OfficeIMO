@@ -11,6 +11,11 @@ namespace OfficeIMO.Word {
         private const int HeaderPartOrderBase = 1_000_000;
         private const int FooterPartOrderBase = 2_000_000;
         private const int RelatedPartOrderStride = 100_000;
+        private const string BodyPartKey = "body";
+        private const string HeaderPartKeyPrefix = "header:";
+        private const string FooterPartKeyPrefix = "footer:";
+        private const string TableRowSeparator = "\n";
+        private const string CellParagraphSeparator = "[ParagraphBreak]";
 
         /// <summary>
         /// Compares two documents and returns a machine-readable summary of structural differences.
@@ -37,8 +42,8 @@ namespace OfficeIMO.Word {
             List<TableSnapshot> sourceTables = GetTableSnapshots(source);
             List<TableSnapshot> targetTables = GetTableSnapshots(target);
             IReadOnlyList<MatchedIndexPair> matchedTables = FindMatchingIndexes(
-                sourceTables.Select(table => table.Text).ToList(),
-                targetTables.Select(table => table.Text).ToList(),
+                sourceTables.Select(table => table.MatchKey).ToList(),
+                targetTables.Select(table => table.MatchKey).ToList(),
                 StringComparer.Ordinal);
 
             int sourceStart = 0;
@@ -68,44 +73,56 @@ namespace OfficeIMO.Word {
             for (int offset = 0; offset < pairedCount; offset++) {
                 int sourceIndex = sourceStart + offset;
                 int targetIndex = targetStart + offset;
+                if (!string.Equals(sourceTables[sourceIndex].PartKey, targetTables[targetIndex].PartKey, StringComparison.Ordinal)) {
+                    AddDeletedTableFinding(sourceTables, sourceIndex, result);
+                    AddInsertedTableFinding(targetTables, targetIndex, result);
+                    continue;
+                }
+
                 AnalyzeTable(sourceTables[sourceIndex].Table, targetTables[targetIndex].Table, targetIndex, targetTables[targetIndex].DocumentOrder, result);
             }
 
             for (int offset = pairedCount; offset < targetCount; offset++) {
-                int tableIndex = targetStart + offset;
-                result.Add(new WordComparisonFinding(
-                    WordComparisonScope.Table,
-                    WordComparisonChangeKind.Inserted,
-                    TableLocation(tableIndex),
-                    null,
-                    tableIndex,
-                    null,
-                    targetTables[tableIndex].Text,
-                    "Table inserted."),
-                    targetTables[tableIndex].DocumentOrder);
+                AddInsertedTableFinding(targetTables, targetStart + offset, result);
             }
 
             for (int offset = pairedCount; offset < sourceCount; offset++) {
-                int tableIndex = sourceStart + offset;
-                result.Add(new WordComparisonFinding(
-                    WordComparisonScope.Table,
-                    WordComparisonChangeKind.Deleted,
-                    TableLocation(tableIndex),
-                    tableIndex,
-                    null,
-                    sourceTables[tableIndex].Text,
-                    null,
-                    "Table deleted."),
-                    sourceTables[tableIndex].DocumentOrder);
+                AddDeletedTableFinding(sourceTables, sourceStart + offset, result);
             }
+        }
+
+        private static void AddInsertedTableFinding(IReadOnlyList<TableSnapshot> targetTables, int tableIndex, WordComparisonResult result) {
+            result.Add(new WordComparisonFinding(
+                WordComparisonScope.Table,
+                WordComparisonChangeKind.Inserted,
+                TableLocation(tableIndex),
+                null,
+                tableIndex,
+                null,
+                targetTables[tableIndex].Text,
+                "Table inserted."),
+                targetTables[tableIndex].DocumentOrder);
+        }
+
+        private static void AddDeletedTableFinding(IReadOnlyList<TableSnapshot> sourceTables, int tableIndex, WordComparisonResult result) {
+            result.Add(new WordComparisonFinding(
+                WordComparisonScope.Table,
+                WordComparisonChangeKind.Deleted,
+                TableLocation(tableIndex),
+                tableIndex,
+                null,
+                sourceTables[tableIndex].Text,
+                null,
+                "Table deleted."),
+                sourceTables[tableIndex].DocumentOrder);
         }
 
         private static void AnalyzeTable(WordTable source, WordTable target, int tableIndex, int tableDocumentOrder, WordComparisonResult result) {
             List<WordTableRow> sourceRows = source.Rows.ToList();
             List<WordTableRow> targetRows = target.Rows.ToList();
             IReadOnlyList<MatchedIndexPair> matchedRows = FindMatchingIndexes(
-                sourceRows.Select(GetRowText).ToList(),
-                targetRows.Select(GetRowText).ToList(),
+                sourceRows.Select(GetRowMatchKey).ToList(),
+                targetRows.Select(GetRowMatchKey).ToList(),
                 StringComparer.Ordinal);
 
             int sourceStart = 0;
@@ -137,36 +154,49 @@ namespace OfficeIMO.Word {
             for (int offset = 0; offset < pairedCount; offset++) {
                 int sourceIndex = sourceStart + offset;
                 int targetIndex = targetStart + offset;
+                if (sourceRows[sourceIndex].Cells.Count != targetRows[targetIndex].Cells.Count &&
+                    string.Equals(GetRowText(sourceRows[sourceIndex]), GetRowText(targetRows[targetIndex]), StringComparison.Ordinal)) {
+                    AddDeletedTableRowFinding(sourceRows, tableIndex, tableDocumentOrder, sourceIndex, result);
+                    AddInsertedTableRowFinding(targetRows, tableIndex, tableDocumentOrder, targetIndex, result);
+                    continue;
+                }
+
                 AnalyzeTableRow(sourceRows[sourceIndex], targetRows[targetIndex], tableIndex, tableDocumentOrder, sourceIndex, targetIndex, result);
             }
 
             for (int offset = pairedCount; offset < targetCount; offset++) {
-                int rowIndex = targetStart + offset;
-                result.Add(new WordComparisonFinding(
-                    WordComparisonScope.TableRow,
-                    WordComparisonChangeKind.Inserted,
-                    RowLocation(tableIndex, rowIndex),
-                    null,
-                    rowIndex,
-                    null,
-                    GetRowText(targetRows[rowIndex]),
-                    "Table row inserted."),
-                    tableDocumentOrder + rowIndex);
+                AddInsertedTableRowFinding(targetRows, tableIndex, tableDocumentOrder, targetStart + offset, result);
             }
 
             for (int offset = pairedCount; offset < sourceCount; offset++) {
-                int rowIndex = sourceStart + offset;
-                result.Add(new WordComparisonFinding(
-                    WordComparisonScope.TableRow,
-                    WordComparisonChangeKind.Deleted,
-                    RowLocation(tableIndex, rowIndex),
-                    rowIndex,
-                    null,
-                    GetRowText(sourceRows[rowIndex]),
-                    null,
-                    "Table row deleted."),
-                    tableDocumentOrder + rowIndex);
+                AddDeletedTableRowFinding(sourceRows, tableIndex, tableDocumentOrder, sourceStart + offset, result);
             }
+        }
+
+        private static void AddInsertedTableRowFinding(IReadOnlyList<WordTableRow> targetRows, int tableIndex, int tableDocumentOrder, int rowIndex, WordComparisonResult result) {
+            result.Add(new WordComparisonFinding(
+                WordComparisonScope.TableRow,
+                WordComparisonChangeKind.Inserted,
+                RowLocation(tableIndex, rowIndex),
+                null,
+                rowIndex,
+                null,
+                GetRowText(targetRows[rowIndex]),
+                "Table row inserted."),
+                tableDocumentOrder + rowIndex);
+        }
+
+        private static void AddDeletedTableRowFinding(IReadOnlyList<WordTableRow> sourceRows, int tableIndex, int tableDocumentOrder, int rowIndex, WordComparisonResult result) {
+            result.Add(new WordComparisonFinding(
+                WordComparisonScope.TableRow,
+                WordComparisonChangeKind.Deleted,
+                RowLocation(tableIndex, rowIndex),
+                rowIndex,
+                null,
+                GetRowText(sourceRows[rowIndex]),
+                null,
+                "Table row deleted."),
+                tableDocumentOrder + rowIndex);
         }
 
         private static void AnalyzeTableRow(WordTableRow source, WordTableRow target, int tableIndex, int tableDocumentOrder, int sourceRowIndex, int targetRowIndex, WordComparisonResult result) {
@@ -289,6 +319,12 @@ namespace OfficeIMO.Word {
             for (int offset = 0; offset < pairedCount; offset++) {
                 int sourceIndex = sourceStart + offset;
                 int targetIndex = targetStart + offset;
+                if (!string.Equals(sourceImages[sourceIndex].PartKey, targetImages[targetIndex].PartKey, StringComparison.Ordinal)) {
+                    AddDeletedImageFinding(sourceImages, sourceIndex, result);
+                    AddInsertedImageFinding(targetImages, targetIndex, result);
+                    continue;
+                }
+
                 result.Add(new WordComparisonFinding(
                     WordComparisonScope.Image,
                     WordComparisonChangeKind.Modified,
@@ -302,32 +338,38 @@ namespace OfficeIMO.Word {
             }
 
             for (int offset = pairedCount; offset < targetCount; offset++) {
-                int imageIndex = targetStart + offset;
-                result.Add(new WordComparisonFinding(
-                    WordComparisonScope.Image,
-                    WordComparisonChangeKind.Inserted,
-                    ImageLocation(imageIndex),
-                    null,
-                    imageIndex,
-                    null,
-                    targetImages[imageIndex].DisplayText,
-                    "Image inserted."),
-                    targetImages[imageIndex].DocumentOrder);
+                AddInsertedImageFinding(targetImages, targetStart + offset, result);
             }
 
             for (int offset = pairedCount; offset < sourceCount; offset++) {
-                int imageIndex = sourceStart + offset;
-                result.Add(new WordComparisonFinding(
-                    WordComparisonScope.Image,
-                    WordComparisonChangeKind.Deleted,
-                    ImageLocation(imageIndex),
-                    imageIndex,
-                    null,
-                    sourceImages[imageIndex].DisplayText,
-                    null,
-                    "Image deleted."),
-                    sourceImages[imageIndex].DocumentOrder);
+                AddDeletedImageFinding(sourceImages, sourceStart + offset, result);
             }
+        }
+
+        private static void AddInsertedImageFinding(IReadOnlyList<ImageSnapshot> targetImages, int imageIndex, WordComparisonResult result) {
+            result.Add(new WordComparisonFinding(
+                WordComparisonScope.Image,
+                WordComparisonChangeKind.Inserted,
+                ImageLocation(imageIndex),
+                null,
+                imageIndex,
+                null,
+                targetImages[imageIndex].DisplayText,
+                "Image inserted."),
+                targetImages[imageIndex].DocumentOrder);
+        }
+
+        private static void AddDeletedImageFinding(IReadOnlyList<ImageSnapshot> sourceImages, int imageIndex, WordComparisonResult result) {
+            result.Add(new WordComparisonFinding(
+                WordComparisonScope.Image,
+                WordComparisonChangeKind.Deleted,
+                ImageLocation(imageIndex),
+                imageIndex,
+                null,
+                sourceImages[imageIndex].DisplayText,
+                null,
+                "Image deleted."),
+                sourceImages[imageIndex].DocumentOrder);
         }
 
         private static IReadOnlyList<MatchedIndexPair> FindMatchingIndexes<T>(IReadOnlyList<T> source, IReadOnlyList<T> target, IEqualityComparer<T> comparer) {
@@ -386,18 +428,18 @@ namespace OfficeIMO.Word {
         private static List<TableSnapshot> GetTableSnapshots(WordDocument document) {
             var snapshots = new List<TableSnapshot>();
             MainDocumentPart? mainPart = document._wordprocessingDocument.MainDocumentPart;
-            AddTableSnapshots(snapshots, document, mainPart?.Document?.Body, BodyPartOrderBase);
+            AddTableSnapshots(snapshots, document, mainPart?.Document?.Body, BodyPartKey, BodyPartOrderBase);
 
             if (mainPart != null) {
                 int headerIndex = 0;
                 foreach (HeaderPart headerPart in mainPart.HeaderParts) {
-                    AddTableSnapshots(snapshots, document, headerPart.Header, HeaderPartOrderBase + (headerIndex * RelatedPartOrderStride));
+                    AddTableSnapshots(snapshots, document, headerPart.Header, HeaderPartKeyPrefix + headerIndex.ToString(System.Globalization.CultureInfo.InvariantCulture), HeaderPartOrderBase + (headerIndex * RelatedPartOrderStride));
                     headerIndex++;
                 }
 
                 int footerIndex = 0;
                 foreach (FooterPart footerPart in mainPart.FooterParts) {
-                    AddTableSnapshots(snapshots, document, footerPart.Footer, FooterPartOrderBase + (footerIndex * RelatedPartOrderStride));
+                    AddTableSnapshots(snapshots, document, footerPart.Footer, FooterPartKeyPrefix + footerIndex.ToString(System.Globalization.CultureInfo.InvariantCulture), FooterPartOrderBase + (footerIndex * RelatedPartOrderStride));
                     footerIndex++;
                 }
             }
@@ -405,28 +447,45 @@ namespace OfficeIMO.Word {
             return snapshots;
         }
 
-        private static void AddTableSnapshots(List<TableSnapshot> snapshots, WordDocument document, OpenXmlElement? container, int orderBase) {
+        private static void AddTableSnapshots(List<TableSnapshot> snapshots, WordDocument document, OpenXmlElement? container, string partKey, int orderBase) {
             foreach (OrderedElement ordered in EnumerateDescendantsWithOrder(container, orderBase)) {
                 if (ordered.Element is not Table table) {
                     continue;
                 }
 
                 var wordTable = new WordTable(document, table);
-                snapshots.Add(new TableSnapshot(wordTable, GetTableText(wordTable), ordered.DocumentOrder));
+                string text = GetTableText(wordTable);
+                snapshots.Add(new TableSnapshot(wordTable, text, GetTableMatchKey(partKey, wordTable, text), partKey, ordered.DocumentOrder));
             }
         }
 
         private static string GetTableText(WordTable table) {
-            return string.Join(Environment.NewLine, table.Rows.Select(GetRowText).ToArray());
+            return string.Join(TableRowSeparator, table.Rows.Select(GetRowText).ToArray());
         }
 
         private static string GetRowText(WordTableRow row) {
             return string.Join(" | ", row.Cells.Select(GetCellText).ToArray());
         }
 
+        private static string GetTableMatchKey(string partKey, WordTable table, string text) {
+            return partKey + TableRowSeparator + GetTableShape(table) + TableRowSeparator + text;
+        }
+
+        private static string GetTableShape(WordTable table) {
+            return string.Join(";", table.Rows.Select(GetRowShape).ToArray());
+        }
+
+        private static string GetRowMatchKey(WordTableRow row) {
+            return GetRowShape(row) + TableRowSeparator + GetRowText(row);
+        }
+
+        private static string GetRowShape(WordTableRow row) {
+            return row.Cells.Count.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
+
         private static string GetCellText(WordTableCell cell) {
             return string.Join(
-                Environment.NewLine,
+                CellParagraphSeparator,
                 cell._tableCell.Descendants<Paragraph>()
                     .Where(paragraph => ReferenceEquals(paragraph.Ancestors<TableCell>().FirstOrDefault(), cell._tableCell))
                     .Select(GetParagraphText)
@@ -436,18 +495,18 @@ namespace OfficeIMO.Word {
         private static List<ImageSnapshot> GetImageSnapshots(WordDocument document) {
             var snapshots = new List<ImageSnapshot>();
             MainDocumentPart? mainPart = document._wordprocessingDocument.MainDocumentPart;
-            AddImageSnapshots(snapshots, mainPart, mainPart?.Document?.Body, BodyPartOrderBase);
+            AddImageSnapshots(snapshots, mainPart, mainPart?.Document?.Body, BodyPartKey, BodyPartOrderBase);
 
             if (mainPart != null) {
                 int headerIndex = 0;
                 foreach (HeaderPart headerPart in mainPart.HeaderParts) {
-                    AddImageSnapshots(snapshots, headerPart, headerPart.Header, HeaderPartOrderBase + (headerIndex * RelatedPartOrderStride));
+                    AddImageSnapshots(snapshots, headerPart, headerPart.Header, HeaderPartKeyPrefix + headerIndex.ToString(System.Globalization.CultureInfo.InvariantCulture), HeaderPartOrderBase + (headerIndex * RelatedPartOrderStride));
                     headerIndex++;
                 }
 
                 int footerIndex = 0;
                 foreach (FooterPart footerPart in mainPart.FooterParts) {
-                    AddImageSnapshots(snapshots, footerPart, footerPart.Footer, FooterPartOrderBase + (footerIndex * RelatedPartOrderStride));
+                    AddImageSnapshots(snapshots, footerPart, footerPart.Footer, FooterPartKeyPrefix + footerIndex.ToString(System.Globalization.CultureInfo.InvariantCulture), FooterPartOrderBase + (footerIndex * RelatedPartOrderStride));
                     footerIndex++;
                 }
             }
@@ -455,7 +514,7 @@ namespace OfficeIMO.Word {
             return snapshots;
         }
 
-        private static void AddImageSnapshots(List<ImageSnapshot> snapshots, OpenXmlPart? part, OpenXmlElement? container, int orderBase) {
+        private static void AddImageSnapshots(List<ImageSnapshot> snapshots, OpenXmlPart? part, OpenXmlElement? container, string partKey, int orderBase) {
             if (part == null || container == null) {
                 return;
             }
@@ -472,12 +531,12 @@ namespace OfficeIMO.Word {
 
                 string visualSignature = GetDrawingVisualSignature(drawing);
                 if (blip.Embed?.Value is string embeddedRelationshipId) {
-                    AddEmbeddedImageSnapshot(snapshots, part, embeddedRelationshipId, visualSignature, ordered.DocumentOrder);
+                    AddEmbeddedImageSnapshot(snapshots, part, embeddedRelationshipId, visualSignature, partKey, ordered.DocumentOrder);
                     continue;
                 }
 
                 if (blip.Link?.Value is string externalRelationshipId) {
-                    AddExternalImageSnapshot(snapshots, part, externalRelationshipId, visualSignature, ordered.DocumentOrder);
+                    AddExternalImageSnapshot(snapshots, part, externalRelationshipId, visualSignature, partKey, ordered.DocumentOrder);
                 }
             }
 
@@ -487,25 +546,37 @@ namespace OfficeIMO.Word {
                 }
 
                 if (imageData.RelationshipId?.Value is string relationshipId) {
-                    AddEmbeddedImageSnapshot(snapshots, part, relationshipId, GetVmlVisualSignature(imageData), ordered.DocumentOrder);
+                    string visualSignature = GetVmlVisualSignature(imageData);
+                    if (part.ExternalRelationships.Any(item => item.Id == relationshipId)) {
+                        AddExternalImageSnapshot(snapshots, part, relationshipId, visualSignature, partKey, ordered.DocumentOrder);
+                    } else {
+                        AddEmbeddedImageSnapshot(snapshots, part, relationshipId, visualSignature, partKey, ordered.DocumentOrder);
+                    }
                 }
             }
         }
 
-        private static void AddEmbeddedImageSnapshot(List<ImageSnapshot> snapshots, OpenXmlPart part, string relationshipId, string visualSignature, int documentOrder) {
-            if (part.GetPartById(relationshipId) is not ImagePart imagePart) {
+        private static void AddEmbeddedImageSnapshot(List<ImageSnapshot> snapshots, OpenXmlPart part, string relationshipId, string visualSignature, string partKey, int documentOrder) {
+            OpenXmlPart relatedPart;
+            try {
+                relatedPart = part.GetPartById(relationshipId);
+            } catch (ArgumentOutOfRangeException) {
+                return;
+            }
+
+            if (relatedPart is not ImagePart imagePart) {
                 return;
             }
 
             using Stream stream = imagePart.GetStream(FileMode.Open, FileAccess.Read);
             using var memoryStream = new MemoryStream();
             stream.CopyTo(memoryStream);
-            snapshots.Add(ImageSnapshot.FromEmbedded(memoryStream.ToArray(), visualSignature, documentOrder));
+            snapshots.Add(ImageSnapshot.FromEmbedded(memoryStream.ToArray(), visualSignature, partKey, documentOrder));
         }
 
-        private static void AddExternalImageSnapshot(List<ImageSnapshot> snapshots, OpenXmlPart part, string relationshipId, string visualSignature, int documentOrder) {
+        private static void AddExternalImageSnapshot(List<ImageSnapshot> snapshots, OpenXmlPart part, string relationshipId, string visualSignature, string partKey, int documentOrder) {
             ExternalRelationship? relationship = part.ExternalRelationships.FirstOrDefault(item => item.Id == relationshipId);
-            snapshots.Add(ImageSnapshot.FromExternal(relationship?.Uri?.ToString() ?? relationshipId, visualSignature, documentOrder));
+            snapshots.Add(ImageSnapshot.FromExternal(relationship?.Uri?.ToString() ?? relationshipId, visualSignature, partKey, documentOrder));
         }
 
         private static string GetDrawingVisualSignature(DocumentFormat.OpenXml.Wordprocessing.Drawing drawing) {
@@ -591,9 +662,11 @@ namespace OfficeIMO.Word {
         }
 
         private sealed class TableSnapshot {
-            internal TableSnapshot(WordTable table, string text, int documentOrder) {
+            internal TableSnapshot(WordTable table, string text, string matchKey, string partKey, int documentOrder) {
                 Table = table;
                 Text = text;
+                MatchKey = matchKey;
+                PartKey = partKey;
                 DocumentOrder = documentOrder;
             }
 
@@ -601,14 +674,19 @@ namespace OfficeIMO.Word {
 
             internal string Text { get; }
 
+            internal string MatchKey { get; }
+
+            internal string PartKey { get; }
+
             internal int DocumentOrder { get; }
         }
 
         private sealed class ImageSnapshot {
-            private ImageSnapshot(byte[]? embeddedBytes, string? externalUri, string visualSignature, int documentOrder) {
+            private ImageSnapshot(byte[]? embeddedBytes, string? externalUri, string visualSignature, string partKey, int documentOrder) {
                 EmbeddedBytes = embeddedBytes;
                 ExternalUri = externalUri;
                 VisualSignature = visualSignature;
+                PartKey = partKey;
                 DocumentOrder = documentOrder;
             }
 
@@ -618,16 +696,18 @@ namespace OfficeIMO.Word {
 
             internal string VisualSignature { get; }
 
+            internal string PartKey { get; }
+
             internal int DocumentOrder { get; }
 
             internal string DisplayText => ExternalUri == null ? "[Image]" : "[Image: " + ExternalUri + "]";
 
-            internal static ImageSnapshot FromEmbedded(byte[] embeddedBytes, string visualSignature, int documentOrder) {
-                return new ImageSnapshot(embeddedBytes, null, visualSignature, documentOrder);
+            internal static ImageSnapshot FromEmbedded(byte[] embeddedBytes, string visualSignature, string partKey, int documentOrder) {
+                return new ImageSnapshot(embeddedBytes, null, visualSignature, partKey, documentOrder);
             }
 
-            internal static ImageSnapshot FromExternal(string externalUri, string visualSignature, int documentOrder) {
-                return new ImageSnapshot(null, externalUri, visualSignature, documentOrder);
+            internal static ImageSnapshot FromExternal(string externalUri, string visualSignature, string partKey, int documentOrder) {
+                return new ImageSnapshot(null, externalUri, visualSignature, partKey, documentOrder);
             }
         }
 
@@ -644,28 +724,31 @@ namespace OfficeIMO.Word {
                 }
 
                 if (x.ExternalUri != null || y.ExternalUri != null) {
-                    return string.Equals(x.ExternalUri, y.ExternalUri, StringComparison.Ordinal) &&
+                    return string.Equals(x.PartKey, y.PartKey, StringComparison.Ordinal) &&
+                           string.Equals(x.ExternalUri, y.ExternalUri, StringComparison.Ordinal) &&
                            string.Equals(x.VisualSignature, y.VisualSignature, StringComparison.Ordinal);
                 }
 
                 return x.EmbeddedBytes != null &&
                        y.EmbeddedBytes != null &&
+                       string.Equals(x.PartKey, y.PartKey, StringComparison.Ordinal) &&
                        x.EmbeddedBytes.SequenceEqual(y.EmbeddedBytes) &&
                        string.Equals(x.VisualSignature, y.VisualSignature, StringComparison.Ordinal);
             }
 
             public int GetHashCode(ImageSnapshot obj) {
                 if (obj.ExternalUri != null) {
-                    return (StringComparer.Ordinal.GetHashCode(obj.ExternalUri) * 397) ^
-                           StringComparer.Ordinal.GetHashCode(obj.VisualSignature);
+                    int externalHash = StringComparer.Ordinal.GetHashCode(obj.PartKey);
+                    externalHash = (externalHash * 397) ^ StringComparer.Ordinal.GetHashCode(obj.ExternalUri);
+                    return (externalHash * 397) ^ StringComparer.Ordinal.GetHashCode(obj.VisualSignature);
                 }
 
                 if (obj.EmbeddedBytes == null) {
-                    return 0;
+                    return StringComparer.Ordinal.GetHashCode(obj.PartKey);
                 }
 
                 unchecked {
-                    int hashCode = 17;
+                    int hashCode = StringComparer.Ordinal.GetHashCode(obj.PartKey);
                     foreach (byte value in obj.EmbeddedBytes) {
                         hashCode = (hashCode * 31) + value;
                     }
