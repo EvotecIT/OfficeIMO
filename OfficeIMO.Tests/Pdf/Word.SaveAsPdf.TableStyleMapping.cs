@@ -108,6 +108,42 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Maps_Table_Style_Autofit_Layout() {
+        using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeTableStyleAutofitLayout.docx"));
+        Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+        styles.Append(new Style(
+            new StyleName { Val = "Generic Autofit Layout Table" },
+            new StyleTableProperties(new DocumentFormat.OpenXml.Wordprocessing.TableLayout {
+                Type = TableLayoutValues.Autofit
+            }))
+        { Type = StyleValues.Table, StyleId = "GenericAutofitLayoutTable" });
+
+        WordTable styledTable = document.AddTable(1, 2);
+        styledTable._tableProperties!.TableStyle = new TableStyle { Val = "GenericAutofitLayoutTable" };
+        styledTable._tableProperties.TableLayout?.Remove();
+        styledTable.Rows[0].Cells[0].Width = 2160;
+        styledTable.Rows[0].Cells[0].WidthType = TableWidthUnitValues.Dxa;
+        styledTable.Rows[0].Cells[1].Width = 2160;
+        styledTable.Rows[0].Cells[1].WidthType = TableWidthUnitValues.Dxa;
+
+        PdfCore.PdfTableStyle styled = CreateNativeTableStyleForTest(styledTable);
+
+        Assert.True(styled.AutoFitColumns);
+
+        WordTable directFixedTable = document.AddTable(1, 2);
+        directFixedTable._tableProperties!.TableStyle = new TableStyle { Val = "GenericAutofitLayoutTable" };
+        directFixedTable.LayoutType = TableLayoutValues.Fixed;
+        directFixedTable.Rows[0].Cells[0].Width = 2160;
+        directFixedTable.Rows[0].Cells[0].WidthType = TableWidthUnitValues.Dxa;
+        directFixedTable.Rows[0].Cells[1].Width = 2160;
+        directFixedTable.Rows[0].Cells[1].WidthType = TableWidthUnitValues.Dxa;
+
+        PdfCore.PdfTableStyle direct = CreateNativeTableStyleForTest(directFixedTable);
+
+        Assert.False(direct.AutoFitColumns);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Uses_Configured_Default_Table_Style_For_Unstyled_Native_Table() {
         using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeDefaultTableStyle.docx"));
         WordTable table = document.AddTable(2, 2);

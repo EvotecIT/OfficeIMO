@@ -4,8 +4,8 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
-        private readonly record struct NativeTableStyleDefaults(PdfCore.PdfCellPadding? CellPadding, PdfCore.PdfColor? CellFill, (PdfCore.PdfColor Color, double Width)? TableBorder, W.TableWidth? PreferredWidth, double? LeftIndent, double? CellSpacing, W.TableRowAlignmentValues? Alignment, double? ParagraphLineHeight, double? ParagraphLineSpacingPoints, W.LineSpacingRuleValues? ParagraphLineSpacingRule, double? ParagraphSpacingBefore, double? ParagraphSpacingAfter, NativeTableRunStyleDefaults RunStyle) {
-            public static NativeTableStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null, null, null, null, null, NativeTableRunStyleDefaults.Empty);
+        private readonly record struct NativeTableStyleDefaults(PdfCore.PdfCellPadding? CellPadding, PdfCore.PdfColor? CellFill, (PdfCore.PdfColor Color, double Width)? TableBorder, W.TableWidth? PreferredWidth, W.TableLayoutValues? Layout, double? LeftIndent, double? CellSpacing, W.TableRowAlignmentValues? Alignment, double? ParagraphLineHeight, double? ParagraphLineSpacingPoints, W.LineSpacingRuleValues? ParagraphLineSpacingRule, double? ParagraphSpacingBefore, double? ParagraphSpacingAfter, NativeTableRunStyleDefaults RunStyle) {
+            public static NativeTableStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null, null, null, null, null, null, NativeTableRunStyleDefaults.Empty);
         }
 
         private readonly record struct NativeTableRunStyleDefaults(double? FontSize, string? FontFamily, bool? Bold, bool? Italic, bool? Underline, bool? Strike, string? ColorHex, W.HighlightColorValues? Highlight) {
@@ -30,6 +30,7 @@ namespace OfficeIMO.Word.Pdf {
             PdfCore.PdfColor? cellFill = null;
             (PdfCore.PdfColor Color, double Width)? tableBorder = null;
             W.TableWidth? preferredWidth = null;
+            W.TableLayoutValues? layout = null;
             double? leftIndent = null;
             double? cellSpacing = null;
             W.TableRowAlignmentValues? alignment = null;
@@ -60,6 +61,7 @@ namespace OfficeIMO.Word.Pdf {
 
                 W.StyleTableProperties? tableProperties = style.GetFirstChild<W.StyleTableProperties>();
                 preferredWidth = tableProperties?.GetFirstChild<W.TableWidth>() ?? preferredWidth;
+                layout = tableProperties?.GetFirstChild<W.TableLayout>()?.Type?.Value ?? layout;
                 leftIndent = GetNativeTableLeftIndent(tableProperties?.GetFirstChild<W.TableIndentation>()) ?? leftIndent;
                 cellSpacing = GetNativeTableCellSpacing(tableProperties?.GetFirstChild<W.TableCellSpacing>()) ?? cellSpacing;
                 alignment = tableProperties?.GetFirstChild<W.TableJustification>()?.Val?.Value ?? alignment;
@@ -124,6 +126,7 @@ namespace OfficeIMO.Word.Pdf {
                 cellFill,
                 tableBorder,
                 preferredWidth,
+                layout,
                 leftIndent,
                 cellSpacing,
                 alignment,

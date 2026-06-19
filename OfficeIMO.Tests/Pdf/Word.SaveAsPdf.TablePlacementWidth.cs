@@ -225,4 +225,61 @@ public partial class Word {
         Assert.True(styledGap < defaultGap - 25D,
             $"Expected table style preferred width to narrow the styled native table. Default gap: {defaultGap:0.##}; styled gap: {styledGap:0.##}.");
     }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Renders_Table_Style_Autofit_Layout() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleAutofitLayout.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleAutofitLayout.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(new Style(
+                new StyleName { Val = "Generic Rendered Autofit Table" },
+                new StyleTableProperties(new DocumentFormat.OpenXml.Wordprocessing.TableLayout {
+                    Type = TableLayoutValues.Autofit
+                }))
+            { Type = StyleValues.Table, StyleId = "GenericRenderedAutofitTable" });
+
+            WordTable fixedTable = document.AddTable(1, 2);
+            fixedTable.LayoutType = TableLayoutValues.Fixed;
+            fixedTable.Rows[0].Cells[0].Width = 2880;
+            fixedTable.Rows[0].Cells[0].WidthType = TableWidthUnitValues.Dxa;
+            fixedTable.Rows[0].Cells[1].Width = 2880;
+            fixedTable.Rows[0].Cells[1].WidthType = TableWidthUnitValues.Dxa;
+            fixedTable.Rows[0].Cells[0].Paragraphs[0].Text = "FA";
+            fixedTable.Rows[0].Cells[1].Paragraphs[0].Text = "FixedWide";
+
+            document.AddParagraph("between style layout tables");
+
+            WordTable styledTable = document.AddTable(1, 2);
+            styledTable._tableProperties!.TableStyle = new TableStyle { Val = "GenericRenderedAutofitTable" };
+            styledTable._tableProperties.TableLayout?.Remove();
+            styledTable.Rows[0].Cells[0].Width = 2880;
+            styledTable.Rows[0].Cells[0].WidthType = TableWidthUnitValues.Dxa;
+            styledTable.Rows[0].Cells[1].Width = 2880;
+            styledTable.Rows[0].Cells[1].WidthType = TableWidthUnitValues.Dxa;
+            styledTable.Rows[0].Cells[0].Paragraphs[0].Text = "SA";
+            styledTable.Rows[0].Cells[1].Paragraphs[0].Text = "StyledWide";
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = new PdfCore.PageSize(420, 300),
+                Margins = PdfCore.PageMargins.Uniform(40)
+            });
+        }
+
+        byte[] bytes = File.ReadAllBytes(pdfPath);
+        using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
+        var words = pdf.GetPage(1).GetWords().ToList();
+        var fixedLeft = Assert.Single(words, word => word.Text == "FA");
+        var fixedRight = Assert.Single(words, word => word.Text == "FixedWide");
+        var styledLeft = Assert.Single(words, word => word.Text == "SA");
+        var styledRight = Assert.Single(words, word => word.Text == "StyledWide");
+
+        double fixedGap = fixedRight.BoundingBox.Left - fixedLeft.BoundingBox.Left;
+        double styledGap = styledRight.BoundingBox.Left - styledLeft.BoundingBox.Left;
+        Assert.True(styledGap < fixedGap - 25D,
+            $"Expected table style autofit layout to shrink the first-column gap. Fixed gap: {fixedGap:0.##}; styled gap: {styledGap:0.##}.");
+    }
 }

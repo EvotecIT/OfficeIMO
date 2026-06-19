@@ -235,8 +235,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static void ApplyNativeTableLayoutOptions(WordTable table, PdfCore.PdfTableStyle style, double? contentWidth, NativeTableStyleDefaults tableStyleDefaults) {
             W.TableProperties? properties = table._tableProperties;
-            if (IsNativeTableAutoFitLayout(properties) &&
-                (IsNativeExplicitAutoFitTableLayout(properties) || !HasNativeTableAuthoredFixedCellWidths(table))) {
+            if (ShouldUseNativeAutoFitTableLayout(table, properties, tableStyleDefaults)) {
                 style.AutoFitColumns = true;
             }
 
@@ -272,8 +271,18 @@ namespace OfficeIMO.Word.Pdf {
             return false;
         }
 
-        private static bool IsNativeExplicitAutoFitTableLayout(W.TableProperties? properties) =>
-            properties?.TableLayout?.Type?.Value == W.TableLayoutValues.Autofit;
+        private static bool ShouldUseNativeAutoFitTableLayout(WordTable table, W.TableProperties? properties, NativeTableStyleDefaults tableStyleDefaults) {
+            W.TableLayoutValues? effectiveLayout = properties?.TableLayout?.Type?.Value ?? tableStyleDefaults.Layout;
+            if (effectiveLayout == W.TableLayoutValues.Fixed) {
+                return false;
+            }
+
+            if (effectiveLayout == W.TableLayoutValues.Autofit) {
+                return true;
+            }
+
+            return IsNativeTableAutoFitLayout(properties) && !HasNativeTableAuthoredFixedCellWidths(table);
+        }
 
         private static bool IsNativeTableAutoFitToContents(W.TableProperties? properties) =>
             IsNativeTableAutoFitLayout(properties) &&
