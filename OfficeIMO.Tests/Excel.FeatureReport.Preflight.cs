@@ -4,6 +4,7 @@ using System.Text;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Excel;
 using Xunit;
+using X = DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Tests {
     public partial class Excel {
@@ -187,6 +188,56 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void FeatureReport_Preflight_BlocksUnsupportedFormulasEvenWhenDependenciesOnlyMissCaches() {
+            string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.UnsupportedFormulaChain.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Calc");
+                sheet.CellValue(1, 1, 2d);
+                sheet.CellFormula(1, 2, "A1+1");
+                sheet.CellFormula(1, 3, "UNIQUE(B1:B1)");
+                document.Save(false);
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelFeatureReport report = document.InspectFeatures();
+
+                Assert.False(report.Can(ExcelPreflightCapability.UseCachedFormulaValues));
+                Assert.False(report.Can(ExcelPreflightCapability.CalculateFormulas));
+                Assert.False(report.Can(ExcelPreflightCapability.ExportPdfReport));
+
+                string diagnostics = string.Join(Environment.NewLine,
+                    report.GetCapabilityDiagnostics(ExcelPreflightCapability.CalculateFormulas));
+                Assert.Contains("Formula calculation blockers", diagnostics);
+                Assert.Contains("UNIQUE", diagnostics);
+            }
+        }
+
+        [Fact]
+        public void FeatureReport_Preflight_AllowsPdfExportForCleanCachedUnsupportedFormulas() {
+            string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.CleanCachedUnsupportedFormula.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Calc");
+                sheet.CellValue(1, 1, 7d);
+                sheet.CellFormula(1, 2, "UNIQUE(A1:A1)");
+                document.Save(false);
+            }
+
+            AddCachedFormulaValue(filePath, "B1", "7");
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelFeatureReport report = document.InspectFeatures();
+
+                Assert.True(report.Can(ExcelPreflightCapability.UseCachedFormulaValues));
+                Assert.False(report.Can(ExcelPreflightCapability.CalculateFormulas));
+                Assert.True(report.Can(ExcelPreflightCapability.ExportPdfReport));
+                Assert.Contains(report.PreservedFeatures, feature => feature.Name == "Unsupported formulas");
+                Assert.Empty(report.GetCapabilityDiagnostics(ExcelPreflightCapability.ExportPdfReport));
+            }
+        }
+
+        [Fact]
         public void FeatureReport_Preflight_BlocksPdfExportForUnsupportedChartTypes() {
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.SurfaceChart.xlsx");
 
@@ -218,6 +269,92 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("PDF-unsupported charts", diagnostics);
                 Assert.Contains("Surface", diagnostics);
             }
+        }
+
+        [Fact]
+        public void FeatureReport_Preflight_BlocksPdfExportForMixedChartTypes() {
+            string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.ComboChart.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Charts");
+                var data = new ExcelChartData(
+                    new[] { "Q1", "Q2", "Q3" },
+                    new[] {
+                        new ExcelChartSeries("Sales", new[] { 10d, 20d, 30d }, ExcelChartType.ColumnClustered, ExcelChartAxisGroup.Primary),
+                        new ExcelChartSeries("Trend", new[] { 12d, 18d, 28d }, ExcelChartType.Line, ExcelChartAxisGroup.Secondary)
+                    });
+                sheet.AddChart(data, row: 1, column: 5, widthPixels: 360, heightPixels: 220,
+                    type: ExcelChartType.ColumnClustered, title: "Combo Chart");
+                document.Save(false);
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelFeatureReport report = document.InspectFeatures();
+
+                Assert.False(report.Can(ExcelPreflightCapability.ExportPdfReport));
+
+                string diagnostics = string.Join(Environment.NewLine,
+                    report.GetCapabilityDiagnostics(ExcelPreflightCapability.ExportPdfReport));
+                Assert.Contains("PDF-unsupported charts", diagnostics);
+                Assert.Contains("mixed per-series chart types", diagnostics);
+            }
+        }
+
+        [Fact]
+        public void FeatureReport_Preflight_BlocksPdfExportForNonWorksheetSheets() {
+            string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.ChartSheet.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "Value");
+                sheet.CellValue(2, 1, 10d);
+                document.Save(false);
+            }
+
+            AddChartSheet(filePath);
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelFeatureReport report = document.InspectFeatures();
+
+                Assert.False(report.Can(ExcelPreflightCapability.ExportPdfReport));
+                Assert.Contains(report.PreservedFeatures, feature => feature.Name == "Non-worksheet sheets");
+
+                string diagnostics = string.Join(Environment.NewLine,
+                    report.GetCapabilityDiagnostics(ExcelPreflightCapability.ExportPdfReport));
+                Assert.Contains("Non-worksheet sheets", diagnostics);
+                Assert.Contains("ChartOnly", diagnostics);
+            }
+        }
+
+        private static void AddCachedFormulaValue(string filePath, string cellReference, string value) {
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true);
+            WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            X.Cell cell = worksheetPart.Worksheet!.Descendants<X.Cell>()
+                .First(item => string.Equals(item.CellReference?.Value, cellReference, StringComparison.OrdinalIgnoreCase));
+            cell.CellValue = new X.CellValue(value);
+            cell.DataType = X.CellValues.Number;
+            cell.CellFormula!.CalculateCell = false;
+            worksheetPart.Worksheet.Save();
+        }
+
+        private static void AddChartSheet(string filePath) {
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true);
+            WorkbookPart workbookPart = spreadsheet.WorkbookPart!;
+            ChartsheetPart chartsheetPart = workbookPart.AddNewPart<ChartsheetPart>();
+            chartsheetPart.Chartsheet = new X.Chartsheet();
+
+            X.Sheets sheets = workbookPart.Workbook.Sheets ?? workbookPart.Workbook.AppendChild(new X.Sheets());
+            uint nextSheetId = sheets.Elements<X.Sheet>()
+                .Select(sheet => sheet.SheetId?.Value ?? 0U)
+                .DefaultIfEmpty(0U)
+                .Max() + 1U;
+            sheets.Append(new X.Sheet {
+                Id = workbookPart.GetIdOfPart(chartsheetPart),
+                SheetId = nextSheetId,
+                Name = "ChartOnly"
+            });
+            chartsheetPart.Chartsheet.Save();
+            workbookPart.Workbook.Save();
         }
 
         private static void AddDigitalSignatureMetadata(string filePath) {

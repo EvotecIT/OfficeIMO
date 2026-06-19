@@ -66,9 +66,10 @@ namespace OfficeIMO.Excel {
         /// True when the workbook is suitable for the first-party report-grade Excel-to-PDF export path.
         /// </summary>
         public bool CanExportPdfReport =>
-            !HasAdvancedFeatures &&
+            !HasPdfExportWorkbookBlockers() &&
             CanUseCachedFormulaValues &&
-            FindFeatureCount("PDF-unsupported charts") == 0;
+            FindFeatureCount("PDF-unsupported charts") == 0 &&
+            FindFeatureCount("Non-worksheet sheets") == 0;
 
         /// <summary>
         /// Returns true when the requested workflow-level capability can be attempted for this workbook.
@@ -145,10 +146,10 @@ namespace OfficeIMO.Excel {
                     AddPreservedDiagnostics(messages, "Template binding should not be attempted while preserve-only workbook features are present unless the workflow has explicit preservation coverage for those parts.");
                     break;
                 case ExcelPreflightCapability.ExportPdfReport:
-                    AddUnsupportedDiagnostics(messages, "Excel-to-PDF report export is blocked by unsupported workbook features.");
-                    AddPreservedDiagnostics(messages, "Excel-to-PDF report export does not render preserve-only workbook features.");
+                    AddPdfExportWorkbookDiagnostics(messages);
                     AddFormulaDiagnostics(messages, requireCachedValues: true, requireSupportedFormulas: false);
                     AddFeatureDiagnostics(messages, FindFeatures("PDF-unsupported charts"));
+                    AddFeatureDiagnostics(messages, FindFeatures("Non-worksheet sheets"));
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(capability), capability, "Unsupported Excel preflight capability.");
@@ -159,6 +160,48 @@ namespace OfficeIMO.Excel {
             }
 
             return messages.AsReadOnly();
+        }
+
+        private bool HasPdfExportWorkbookBlockers() {
+            if (UnsupportedFeatures.Count > 0) {
+                return true;
+            }
+
+            return PreservedFeatures.Any(IsPdfExportWorkbookBlocker);
+        }
+
+        private void AddPdfExportWorkbookDiagnostics(List<string> messages) {
+            AddUnsupportedDiagnostics(messages, "Excel-to-PDF report export is blocked by unsupported workbook features.");
+            var preservedBlockers = PreservedFeatures
+                .Where(IsPdfExportWorkbookBlocker)
+                .ToArray();
+            if (preservedBlockers.Length == 0) {
+                return;
+            }
+
+            AddDistinct(messages, "Excel-to-PDF report export does not render preserve-only workbook features.");
+            AddFeatureDiagnostics(messages, preservedBlockers);
+        }
+
+        private static bool IsPdfExportWorkbookBlocker(ExcelFeatureFinding finding) {
+            return !IsFormulaCachedValueFinding(finding);
+        }
+
+        private static bool IsFormulaCachedValueFinding(ExcelFeatureFinding finding) {
+            if (!string.Equals(finding.Category, "Calculation", StringComparison.Ordinal)) {
+                return false;
+            }
+
+            switch (finding.Name) {
+                case "Unsupported formulas":
+                case "Missing formula caches":
+                case "Dirty formula caches":
+                case "Formula dependency issues":
+                case "Formula calculation blockers":
+                    return true;
+                default:
+                    return false;
+            }
         }
 
         private void AddUnsupportedDiagnostics(List<string> messages, string fallbackMessage) {

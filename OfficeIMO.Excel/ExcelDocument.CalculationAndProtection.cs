@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
@@ -128,7 +129,17 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelFormulaInspection InspectFormulas() {
             var formulas = new List<ExcelFormulaCellInfo>();
-            foreach (var sheet in Sheets) {
+            var workbookPart = WorkbookPartRoot;
+            foreach (Sheet sheetElement in WorkbookRoot.Sheets?.Elements<Sheet>() ?? Enumerable.Empty<Sheet>()) {
+                if (string.IsNullOrWhiteSpace(sheetElement.Id?.Value)) {
+                    continue;
+                }
+
+                if (workbookPart.GetPartById(sheetElement.Id!.Value!) is not WorksheetPart) {
+                    continue;
+                }
+
+                var sheet = new ExcelSheet(this, _spreadSheetDocument!, sheetElement);
                 formulas.AddRange(sheet.GetFormulaCells());
             }
 

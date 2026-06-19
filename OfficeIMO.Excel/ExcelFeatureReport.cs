@@ -316,6 +316,8 @@ namespace OfficeIMO.Excel {
             Add(features, "Workbook", "Worksheets", ExcelFeatureSupportLevel.Editable, sheetElements.Count, null,
                 "Worksheets can be created, renamed, moved, hidden, inspected, copied, and removed.");
 
+            int nonWorksheetSheetCount = 0;
+            var nonWorksheetSheetDetails = new List<string>();
             int namedRangeCount = workbook.DefinedNames?.Elements<DocumentFormat.OpenXml.Spreadsheet.DefinedName>().Count() ?? 0;
             Add(features, "Workbook", "Named ranges", ExcelFeatureSupportLevel.Editable, namedRangeCount, null,
                 "Workbook and sheet-local named ranges are editable.");
@@ -345,7 +347,10 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                if (workbookPart.GetPartById(sheet.Id!.Value!) is not WorksheetPart worksheetPart) {
+                OpenXmlPart sheetPart = workbookPart.GetPartById(sheet.Id!.Value!);
+                if (sheetPart is not WorksheetPart worksheetPart) {
+                    nonWorksheetSheetCount++;
+                    nonWorksheetSheetDetails.Add($"{sheet.Name}: {sheetPart.GetType().Name} ({sheetPart.Uri})");
                     continue;
                 }
 
@@ -375,7 +380,10 @@ namespace OfficeIMO.Excel {
                     }
 
                     ExcelChartType chartType = ExcelChartUtils.InferChartType(plotArea);
-                    if (!IsPdfSupportedChartType(chartType)) {
+                    if (HasMixedPdfChartTypes(plotArea)) {
+                        pdfUnsupportedChartCount++;
+                        pdfUnsupportedChartDetails.Add($"{sheet.Name}: mixed per-series chart types ({chartPart.Uri})");
+                    } else if (!IsPdfSupportedChartType(chartType)) {
                         pdfUnsupportedChartCount++;
                         pdfUnsupportedChartDetails.Add($"{sheet.Name}: {chartType} ({chartPart.Uri})");
                     }
@@ -418,6 +426,9 @@ namespace OfficeIMO.Excel {
                 "Embedded OLE objects are advanced package content and should be treated as preserve-only.", oleObjectDetails);
             Add(features, "Compatibility", "Form controls", ExcelFeatureSupportLevel.Preserved, formControlCount, null,
                 "Form controls are preserve-only worksheet metadata.", formControlDetails);
+            Add(features, "Compatibility", "Non-worksheet sheets", ExcelFeatureSupportLevel.Preserved, nonWorksheetSheetCount, null,
+                "Chartsheets and other non-worksheet sheet parts are preserve-only and cannot be materialized by worksheet-only workflows.",
+                nonWorksheetSheetDetails);
 
             var formulas = InspectFormulas();
             Add(features, "Calculation", "Supported formulas", ExcelFeatureSupportLevel.PartiallyEditable, formulas.SupportedFormulas, null,
@@ -604,18 +615,60 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        private static bool HasMixedPdfChartTypes(C.PlotArea plotArea) {
+            string? firstFamily = null;
+            foreach (var chartElement in plotArea.ChildElements) {
+                string? family = GetPdfChartFamily(chartElement);
+                if (family == null) {
+                    continue;
+                }
+
+                if (firstFamily == null) {
+                    firstFamily = family;
+                    continue;
+                }
+
+                if (!string.Equals(firstFamily, family, StringComparison.Ordinal)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static string? GetPdfChartFamily(DocumentFormat.OpenXml.OpenXmlElement chartElement) {
+            switch (chartElement) {
+                case C.BarChart:
+                    return "Bar";
+                case C.LineChart:
+                    return "Line";
+                case C.AreaChart:
+                    return "Area";
+                case C.ScatterChart:
+                    return "Scatter";
+                case C.RadarChart:
+                    return "Radar";
+                case C.PieChart:
+                case C.Pie3DChart:
+                case C.OfPieChart:
+                    return "Pie";
+                case C.DoughnutChart:
+                    return "Doughnut";
+                default:
+                    return null;
+            }
+        }
+
         private static IEnumerable<string> GetFormulaCalculationBlockers(ExcelFormulaCellInfo formula) {
-            bool hasNonCacheDependencyIssue = false;
             foreach (string issue in formula.DependencyIssues) {
                 if (issue.IndexOf("without a cached result", StringComparison.OrdinalIgnoreCase) >= 0) {
                     continue;
                 }
 
-                hasNonCacheDependencyIssue = true;
                 yield return $"{formula.SheetName}!{formula.CellReference}: {issue}";
             }
 
-            if (!formula.IsSupportedByOfficeIMO && (!HasOnlyMissingCachedFormulaDependencyIssues(formula) || hasNonCacheDependencyIssue)) {
+            if (!formula.IsSupportedByOfficeIMO && !IsMissingCacheOnlyFormulaCalculationGap(formula)) {
                 string reason = string.IsNullOrWhiteSpace(formula.UnsupportedReason)
                     ? "Formula is outside OfficeIMO's lightweight evaluator support."
                     : formula.UnsupportedReason!;
@@ -623,9 +676,16 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static bool HasOnlyMissingCachedFormulaDependencyIssues(ExcelFormulaCellInfo formula) {
-            return formula.DependencyIssues.Count > 0
-                && formula.DependencyIssues.All(issue => issue.IndexOf("without a cached result", StringComparison.OrdinalIgnoreCase) >= 0);
+        private static bool IsMissingCacheOnlyFormulaCalculationGap(ExcelFormulaCellInfo formula) {
+            if (formula.DependencyIssues.Count == 0
+                || formula.DependencyIssues.Any(issue => issue.IndexOf("without a cached result", StringComparison.OrdinalIgnoreCase) < 0)) {
+                return false;
+            }
+
+            string reason = formula.UnsupportedReason ?? string.Empty;
+            return reason.Length == 0
+                || reason.IndexOf("Formula is outside OfficeIMO's lightweight evaluator support", StringComparison.OrdinalIgnoreCase) >= 0
+                || reason.IndexOf("Formula uses supported function", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         private static string DescribePart(OpenXmlPart part) {
