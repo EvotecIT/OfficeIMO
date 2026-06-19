@@ -169,6 +169,104 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Maps_Inherited_Character_Style_Run_Properties() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeInheritedCharacterStyleRun.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeInheritedCharacterStyleRun.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                styles.Append(new Style(
+                    new StyleName { Val = "Native Base Character Style" },
+                    new StyleRunProperties(
+                        new Color { Val = "C00000" },
+                        new FontSize { Val = "32" }))
+                {
+                    Type = StyleValues.Character,
+                    StyleId = "NativeBaseCharacterStyle",
+                    CustomStyle = true
+                });
+                styles.Append(new Style(
+                    new StyleName { Val = "Native Derived Character Style" },
+                    new BasedOn { Val = "NativeBaseCharacterStyle" },
+                    new StyleRunProperties(new Underline { Val = UnderlineValues.Single }))
+                {
+                    Type = StyleValues.Character,
+                    StyleId = "NativeDerivedCharacterStyle",
+                    CustomStyle = true
+                });
+
+                WordParagraph paragraph = document.AddParagraph();
+                paragraph.AddText("Before ");
+                paragraph.AddText("StyledChar").SetCharacterStyleId("NativeDerivedCharacterStyle");
+                paragraph.AddText(" After");
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false,
+                    FontFamily = "Helvetica"
+                });
+            }
+
+            byte[] bytes = File.ReadAllBytes(pdfPath);
+            string content = ReadPdfPageContent(bytes);
+            using (PdfPigDocument pdf = PdfPigDocument.Open(bytes)) {
+                string pageText = string.Concat(pdf.GetPages().Select(page => page.Text));
+
+                Assert.Equal(1, CountOccurrences(pageText, "Before"));
+                Assert.Equal(1, CountOccurrences(pageText, "StyledChar"));
+                Assert.Equal(1, CountOccurrences(pageText, "After"));
+            }
+
+            Assert.Matches(@"/F\d+\s+16\s+Tf", content);
+            Assert.Contains("0.753 0 0 rg", content);
+        }
+
+        [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Maps_Character_Style_Run_Properties_In_Table_Cells() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellCharacterStyleRun.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellCharacterStyleRun.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                const string styleId = "NativeTableCellCharacterStyle";
+                Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                styles.Append(new Style(
+                    new StyleName { Val = "Native Table Cell Character Style" },
+                    new StyleRunProperties(
+                        new Color { Val = "C00000" },
+                        new FontSize { Val = "36" }))
+                {
+                    Type = StyleValues.Character,
+                    StyleId = styleId,
+                    CustomStyle = true
+                });
+
+                WordTable table = document.AddTable(1, 1);
+                WordParagraph cellParagraph = table.Rows[0].Cells[0].Paragraphs[0];
+                cellParagraph.Text = string.Empty;
+                cellParagraph.AddText("CellStyledChar").SetCharacterStyleId(styleId);
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false,
+                    PageSize = new OfficeIMO.Pdf.PageSize(360, 220),
+                    Margins = PageMargins.Uniform(40),
+                    FontFamily = "Helvetica"
+                });
+            }
+
+            byte[] bytes = File.ReadAllBytes(pdfPath);
+            string content = ReadPdfPageContent(bytes);
+            using (PdfPigDocument pdf = PdfPigDocument.Open(bytes)) {
+                string pageText = string.Concat(pdf.GetPages().Select(page => page.Text));
+
+                Assert.Equal(1, CountOccurrences(pageText, "CellStyledChar"));
+            }
+
+            Assert.Matches(@"/F\d+\s+18\s+Tf", content);
+            Assert.Contains("0.753 0 0 rg", content);
+        }
+
+        [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Maps_Document_Background_Color() {
             string docPath = Path.Combine(_directoryWithFiles, "PdfNativeDocumentBackground.docx");
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeDocumentBackground.pdf");

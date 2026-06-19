@@ -44,6 +44,18 @@ namespace OfficeIMO.Word.Pdf {
             public static NativeParagraphBorders Empty { get; } = new(default, default, default, default);
         }
 
+        private readonly record struct NativeCharacterStyleDefaults(
+            double? FontSize,
+            string? FontFamily,
+            bool? Bold,
+            bool? Italic,
+            bool? Underline,
+            bool? Strike,
+            string? ColorHex,
+            W.HighlightColorValues? Highlight) {
+            public static NativeCharacterStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null);
+        }
+
         private static NativeParagraphStyleDefaults GetNativeParagraphStyleDefaults(WordParagraph paragraph) {
             IReadOnlyList<W.Style> styleChain = GetNativeParagraphStyleChain(paragraph._document, paragraph.StyleId);
             if (styleChain.Count == 0) {
@@ -189,6 +201,68 @@ namespace OfficeIMO.Word.Pdf {
             return chain;
         }
 
+        private static NativeCharacterStyleDefaults GetNativeCharacterStyleDefaults(WordDocument? document, W.RunProperties? runProperties) {
+            string? styleId = runProperties?.RunStyle?.Val?.Value;
+            IReadOnlyList<W.Style> styleChain = GetNativeCharacterStyleChain(document, styleId);
+            if (styleChain.Count == 0) {
+                return NativeCharacterStyleDefaults.Empty;
+            }
+
+            double? fontSize = null;
+            string? fontFamily = null;
+            bool? bold = null;
+            bool? italic = null;
+            bool? underline = null;
+            bool? strike = null;
+            string? colorHex = null;
+            W.HighlightColorValues? highlight = null;
+
+            foreach (W.Style style in styleChain) {
+                W.StyleRunProperties? styleRunProperties = style.GetFirstChild<W.StyleRunProperties>();
+                fontSize = GetNativeStyleFontSize(styleRunProperties) ?? fontSize;
+                fontFamily = ResolveNativeRunFontsFamily(document, styleRunProperties?.GetFirstChild<W.RunFonts>()) ?? fontFamily;
+                bold = ReadNativeOnOff(styleRunProperties?.GetFirstChild<W.Bold>()) ?? bold;
+                italic = ReadNativeOnOff(styleRunProperties?.GetFirstChild<W.Italic>()) ?? italic;
+                underline = ReadNativeUnderline(styleRunProperties?.GetFirstChild<W.Underline>()) ?? underline;
+                strike = ReadNativeOnOff(styleRunProperties?.GetFirstChild<W.Strike>()) ?? ReadNativeOnOff(styleRunProperties?.GetFirstChild<W.DoubleStrike>()) ?? strike;
+                colorHex = styleRunProperties?.GetFirstChild<W.Color>()?.Val?.Value ?? colorHex;
+                highlight = styleRunProperties?.GetFirstChild<W.Highlight>()?.Val?.Value ?? highlight;
+            }
+
+            return new NativeCharacterStyleDefaults(
+                fontSize,
+                fontFamily,
+                bold,
+                italic,
+                underline,
+                strike,
+                colorHex,
+                highlight);
+        }
+
+        private static IReadOnlyList<W.Style> GetNativeCharacterStyleChain(WordDocument? document, string? styleId) {
+            W.Styles? styles = document?._wordprocessingDocument?.MainDocumentPart?.StyleDefinitionsPart?.Styles;
+            if (styles == null || string.IsNullOrWhiteSpace(styleId)) {
+                return Array.Empty<W.Style>();
+            }
+
+            Dictionary<string, W.Style> characterStyles = styles
+                .Elements<W.Style>()
+                .Where(style => IsNativeCharacterStyle(style) && !string.IsNullOrEmpty(style.StyleId?.Value))
+                .ToDictionary(style => style.StyleId!.Value!, style => style, StringComparer.Ordinal);
+
+            var chain = new List<W.Style>();
+            var visited = new HashSet<string>(StringComparer.Ordinal);
+            string? currentStyleId = styleId;
+            while (!string.IsNullOrWhiteSpace(currentStyleId) && visited.Add(currentStyleId!) && characterStyles.TryGetValue(currentStyleId!, out W.Style? style)) {
+                chain.Add(style);
+                currentStyleId = style.BasedOn?.Val?.Value;
+            }
+
+            chain.Reverse();
+            return chain;
+        }
+
         private static IReadOnlyList<WordTabStop> GetNativeParagraphEffectiveTabStops(WordParagraph paragraph) {
             IReadOnlyList<WordTabStop> directTabStops = paragraph.TabStops;
             if (directTabStops.Count > 0) {
@@ -231,6 +305,17 @@ namespace OfficeIMO.Word.Pdf {
                 ? style.Type.Value.ToString()
                 : style.Type.InnerText;
             return string.Equals(type, "paragraph", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsNativeCharacterStyle(W.Style style) {
+            if (style.Type == null) {
+                return false;
+            }
+
+            string? type = string.IsNullOrWhiteSpace(style.Type.InnerText)
+                ? style.Type.Value.ToString()
+                : style.Type.InnerText;
+            return string.Equals(type, "character", StringComparison.OrdinalIgnoreCase);
         }
 
         private static NativeParagraphBorders MergeNativeParagraphBorders(NativeParagraphBorders current, W.ParagraphBorders? borders) {
