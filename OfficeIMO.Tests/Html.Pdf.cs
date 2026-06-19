@@ -403,6 +403,7 @@ public sealed class HtmlPdfTests {
 
         Assert.True(pdf.Length > 0);
         Assert.Contains(options.WordHtmlOptions.Diagnostics, diagnostic => diagnostic.Code == "StylesheetResourceRejectedByPolicy");
+        Assert.Contains(options.WordHtmlOptions.ConversionReport.Diagnostics, diagnostic => diagnostic.Code == "StylesheetResourceRejectedByPolicy" && diagnostic.Component == "OfficeIMO.Word.Html");
         PdfCore.PdfConversionWarning warning = Assert.Single(options.ConversionReport.Warnings, item => item.Code == "StylesheetResourceRejectedByPolicy");
         Assert.Equal("OfficeIMO.Word.Html", warning.Converter);
         Assert.Equal(PdfCore.PdfConversionWarningSeverity.Warning, warning.Severity);
@@ -428,6 +429,7 @@ public sealed class HtmlPdfTests {
 
         Assert.NotNull(pdf);
         Assert.Contains(options.WordHtmlOptions.Diagnostics, diagnostic => diagnostic.Code == "StylesheetResourceRejectedByPolicy");
+        Assert.Contains(options.WordHtmlOptions.ConversionReport.Diagnostics, diagnostic => diagnostic.Code == "StylesheetResourceRejectedByPolicy" && diagnostic.Component == "OfficeIMO.Word.Html");
         PdfCore.PdfConversionWarning warning = Assert.Single(options.ConversionReport.Warnings, item => item.Code == "StylesheetResourceRejectedByPolicy");
         Assert.Equal("OfficeIMO.Word.Html", warning.Converter);
         Assert.Contains("blocked.example.test", warning.Source, StringComparison.Ordinal);
@@ -453,6 +455,7 @@ public sealed class HtmlPdfTests {
         Assert.NotNull(pdf);
         Assert.NotNull(options.WordHtmlOptions);
         Assert.Contains(options.WordHtmlOptions!.Diagnostics, diagnostic => diagnostic.Code == "HtmlStylesheetLinkSkipped");
+        Assert.Contains(options.WordHtmlOptions.ConversionReport.Diagnostics, diagnostic => diagnostic.Code == "HtmlStylesheetLinkSkipped" && diagnostic.Component == "OfficeIMO.Word.Html");
         PdfCore.PdfConversionWarning warning = Assert.Single(options.ConversionReport.Warnings, item => item.Code == "HtmlStylesheetLinkSkipped");
         Assert.Equal("OfficeIMO.Word.Html", warning.Converter);
         Assert.Contains("blocked.example.test", warning.Source, StringComparison.Ordinal);
@@ -485,6 +488,7 @@ public sealed class HtmlPdfTests {
         Assert.True(blockedPdf.Length > 0);
         Assert.True(cleanPdf.Length > 0);
         Assert.DoesNotContain(options.WordHtmlOptions!.Diagnostics, diagnostic => diagnostic.Code == "StylesheetResourceRejectedByPolicy");
+        Assert.DoesNotContain(options.WordHtmlOptions.ConversionReport.Diagnostics, diagnostic => diagnostic.Code == "StylesheetResourceRejectedByPolicy");
         Assert.DoesNotContain(options.ConversionReport.Warnings, warning => warning.Code == "StylesheetResourceRejectedByPolicy");
     }
 

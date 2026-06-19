@@ -119,6 +119,7 @@ public static class HtmlPdfConverterExtensions {
         options.WordPdfOptions = wordPdfOptions;
         options.WordHtmlOptions = wordHtmlOptions;
         wordHtmlOptions.Diagnostics.Clear();
+        wordHtmlOptions.ConversionReport.Clear();
         using WordDocument document = html.LoadFromHtml(wordHtmlOptions);
         PdfCore.PdfDocument pdf = document.ToPdfDocument(wordPdfOptions);
         options.ConversionReport.LinkReport(wordPdfOptions.ConversionReport);
@@ -156,14 +157,14 @@ public static class HtmlPdfConverterExtensions {
             return;
         }
 
-        foreach (HtmlConversionDiagnostic diagnostic in options.WordHtmlOptions.Diagnostics) {
+        foreach (HtmlDiagnostic diagnostic in options.WordHtmlOptions.ConversionReport.Diagnostics) {
             var details = string.IsNullOrWhiteSpace(diagnostic.Detail)
                 ? null
                 : new Dictionary<string, string> {
                     ["Detail"] = diagnostic.Detail!
                 };
             warnings.Add(new PdfCore.PdfConversionWarning(
-                "OfficeIMO.Word.Html",
+                diagnostic.Component,
                 diagnostic.Code,
                 diagnostic.Source ?? "html",
                 diagnostic.Message,
@@ -172,10 +173,10 @@ public static class HtmlPdfConverterExtensions {
         }
     }
 
-    private static PdfCore.PdfConversionWarningSeverity MapSeverity(HtmlConversionDiagnosticSeverity severity) {
+    private static PdfCore.PdfConversionWarningSeverity MapSeverity(HtmlDiagnosticSeverity severity) {
         return severity switch {
-            HtmlConversionDiagnosticSeverity.Info => PdfCore.PdfConversionWarningSeverity.Information,
-            HtmlConversionDiagnosticSeverity.Error => PdfCore.PdfConversionWarningSeverity.Error,
+            HtmlDiagnosticSeverity.Info => PdfCore.PdfConversionWarningSeverity.Information,
+            HtmlDiagnosticSeverity.Error => PdfCore.PdfConversionWarningSeverity.Error,
             _ => PdfCore.PdfConversionWarningSeverity.Warning
         };
     }
