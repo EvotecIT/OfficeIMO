@@ -964,6 +964,55 @@ namespace OfficeIMO.Tests {
             Assert.Matches(new Regex(@"/F\d+ 14 Tf"), raw);
         }
 
+        [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Omits_Hidden_Body_Text_Runs() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHiddenBodyText.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHiddenBodyText.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                const string hiddenStyleId = "NativeHiddenRunStyle";
+                Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                styles.Append(new Style(
+                    new StyleName { Val = "Native Hidden Run Style" },
+                    new BasedOn { Val = "Normal" },
+                    new StyleRunProperties(new Vanish()))
+                {
+                    Type = StyleValues.Paragraph,
+                    StyleId = hiddenStyleId,
+                    CustomStyle = true
+                });
+
+                WordParagraph mixed = document.AddParagraph();
+                mixed.AddText("VisibleStart");
+                WordParagraph hiddenRun = mixed.AddText("HiddenBodyRun");
+                hiddenRun._run!.RunProperties ??= new RunProperties();
+                hiddenRun._run.RunProperties.Vanish = new Vanish();
+                mixed.AddText("VisibleEnd");
+
+                WordParagraph hiddenOnly = document.AddParagraph("HiddenOnlyParagraph");
+                hiddenOnly._run!.RunProperties ??= new RunProperties();
+                hiddenOnly._run.RunProperties.Vanish = new Vanish();
+
+                WordParagraph hiddenByStyle = document.AddParagraph("HiddenByStyle");
+                hiddenByStyle.SetStyleId(hiddenStyleId);
+
+                document.AddParagraph("VisibleAfterHiddenText");
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false
+                });
+            }
+
+            using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+            string text = string.Concat(pdf.GetPages().Select(page => page.Text));
+            Assert.Contains("VisibleStart", text);
+            Assert.Contains("VisibleEnd", text);
+            Assert.Contains("VisibleAfterHiddenText", text);
+            Assert.DoesNotContain("HiddenBodyRun", text);
+            Assert.DoesNotContain("HiddenOnlyParagraph", text);
+            Assert.DoesNotContain("HiddenByStyle", text);
+        }
+
         private static IReadOnlyList<(double X, double Y, double Width, double Height)> ExtractFilledRectangles(string rawPdf, string colorOperator) {
             string pattern = Regex.Escape(colorOperator) +
                 @"\s+(?<x>-?\d+(?:\.\d+)?) (?<y>-?\d+(?:\.\d+)?) (?<width>-?\d+(?:\.\d+)?) (?<height>-?\d+(?:\.\d+)?) re f";

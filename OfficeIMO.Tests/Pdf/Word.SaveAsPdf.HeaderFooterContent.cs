@@ -52,6 +52,43 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Omits_Hidden_HeaderFooter_Text_Runs() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHiddenHeaderFooterText.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHiddenHeaderFooterText.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.AddHeadersAndFooters();
+            WordParagraph headerParagraph = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph();
+            headerParagraph.AddText("VisibleHeaderStart");
+            WordParagraph hiddenHeader = headerParagraph.AddText("HiddenHeaderRun");
+            hiddenHeader._run!.RunProperties ??= new RunProperties();
+            hiddenHeader._run.RunProperties.Vanish = new Vanish();
+            headerParagraph.AddText("VisibleHeaderEnd");
+
+            WordFooter footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
+            WordParagraph hiddenFooter = footer.AddParagraph("HiddenFooterOnly");
+            hiddenFooter._run!.RunProperties ??= new RunProperties();
+            hiddenFooter._run.RunProperties.Vanish = new Vanish();
+            footer.AddParagraph("VisibleFooterAfterHidden");
+
+            document.AddParagraph("Hidden header footer body");
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        string text = pdf.GetPage(1).Text;
+        Assert.Contains("VisibleHeaderStart", text);
+        Assert.Contains("VisibleHeaderEnd", text);
+        Assert.Contains("VisibleFooterAfterHidden", text);
+        Assert.Contains("Hidden header footer body", text);
+        Assert.DoesNotContain("HiddenHeaderRun", text);
+        Assert.DoesNotContain("HiddenFooterOnly", text);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Skips_Unsupported_HeaderFooter_Images() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeUnsupportedHeaderImage.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeUnsupportedHeaderImage.pdf");

@@ -626,14 +626,14 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             pageNumberStyle = null;
-            if (paragraph.IsHyperLink && paragraph.Hyperlink != null) {
+            if (paragraph.IsHyperLink && paragraph.Hyperlink != null && !IsNativeHiddenTextRun(paragraph)) {
                 return AppendNativeHeaderFooterSupplementalText(paragraph.Hyperlink.Text, paragraph);
             }
 
             List<WordParagraph> runs = GetNativeRuns(paragraph);
             string? text = runs.Count > 0
-                ? string.Concat(runs.Select(run => run.Text))
-                : paragraph.Text;
+                ? string.Concat(runs.Where(run => !IsNativeHiddenTextRun(run, paragraph)).Select(run => run.Text))
+                : IsNativeHiddenTextRun(paragraph) ? string.Empty : paragraph.Text;
             text = AppendNativeHeaderFooterSupplementalText(text, paragraph);
             if (!string.IsNullOrWhiteSpace(text)) {
                 return text;
@@ -945,6 +945,10 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static void AppendNativeHeaderFooterRunText(W.Run run, StringBuilder builder, NativeHeaderFooterFieldState state, ref PdfCore.PdfPageNumberStyle? pageNumberStyle, ref bool hasConflictingStyles, ref bool hasFieldToken) {
+            if (IsNativeHiddenRun(run)) {
+                return;
+            }
+
             foreach (var child in run.ChildElements) {
                 if (child is W.FieldChar fieldChar) {
                     W.FieldCharValues? fieldCharType = fieldChar.FieldCharType?.Value;
@@ -991,6 +995,9 @@ namespace OfficeIMO.Word.Pdf {
                 }
             }
         }
+
+        private static bool IsNativeHiddenRun(W.Run run) =>
+            ReadNativeOnOff(run.RunProperties?.GetFirstChild<W.Vanish>()) == true;
 
         private static bool TryGetNativeHeaderFooterFieldToken(WordParagraph paragraph, out string? token, out PdfCore.PdfPageNumberStyle? style) {
             token = null;

@@ -42,6 +42,46 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Omits_Hidden_Table_Cell_Text_Runs() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHiddenTableCellText.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHiddenTableCellText.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            WordTable table = document.AddTable(1, 2);
+            table.LayoutType = TableLayoutValues.Fixed;
+            table.Rows[0].Cells[0].Width = 2400;
+            table.Rows[0].Cells[1].Width = 2400;
+
+            WordParagraph mixed = table.Rows[0].Cells[0].Paragraphs[0];
+            mixed.Text = string.Empty;
+            mixed.AddText("CellVisibleStart");
+            WordParagraph hiddenRun = mixed.AddText("HiddenCellRun");
+            hiddenRun._run!.RunProperties ??= new RunProperties();
+            hiddenRun._run.RunProperties.Vanish = new Vanish();
+            mixed.AddText("CellVisibleEnd");
+
+            WordParagraph hiddenOnly = table.Rows[0].Cells[1].Paragraphs[0];
+            hiddenOnly.Text = "HiddenOnlyCell";
+            hiddenOnly._run!.RunProperties ??= new RunProperties();
+            hiddenOnly._run.RunProperties.Vanish = new Vanish();
+
+            document.AddParagraph("AfterHiddenCellText");
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        string text = string.Concat(pdf.GetPages().Select(page => page.Text));
+        Assert.Contains("CellVisibleStart", text);
+        Assert.Contains("CellVisibleEnd", text);
+        Assert.Contains("AfterHiddenCellText", text);
+        Assert.DoesNotContain("HiddenCellRun", text);
+        Assert.DoesNotContain("HiddenOnlyCell", text);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Renders_Table_NonUniform_Row_Heights() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableNonUniformRowHeights.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableNonUniformRowHeights.pdf");
