@@ -148,6 +148,51 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Keeps_Paragraph_KeepWithNext_Chains_Together() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeKeepWithNextChain.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeKeepWithNextChain.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                const string styleId = "ChainKeepWithNext";
+                Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                styles.Append(new Style(
+                    new StyleName { Val = "Chain Keep With Next" },
+                    new BasedOn { Val = "Normal" },
+                    new StyleParagraphProperties(new KeepNext()))
+                {
+                    Type = StyleValues.Paragraph,
+                    StyleId = styleId,
+                    CustomStyle = true
+                });
+
+                WordParagraph intro = document.AddParagraph("ChainIntro");
+                intro.LineSpacingAfterPoints = 100;
+                document.AddParagraph("ChainLead").SetStyleId(styleId);
+                document.AddParagraph("ChainBridge").SetStyleId(styleId);
+                document.AddParagraph("ChainTarget");
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false,
+                    PageSize = new OfficeIMO.Pdf.PageSize(260, 220),
+                    Margins = OfficeIMO.Pdf.PageMargins.Uniform(30),
+                    FontFamily = "Helvetica"
+                });
+            }
+
+            using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+
+            Assert.Equal(2, pdf.NumberOfPages);
+            Assert.Contains("ChainIntro", pdf.GetPage(1).Text);
+            Assert.DoesNotContain("ChainLead", pdf.GetPage(1).Text);
+            Assert.DoesNotContain("ChainBridge", pdf.GetPage(1).Text);
+            Assert.DoesNotContain("ChainTarget", pdf.GetPage(1).Text);
+            Assert.Contains("ChainLead", pdf.GetPage(2).Text);
+            Assert.Contains("ChainBridge", pdf.GetPage(2).Text);
+            Assert.Contains("ChainTarget", pdf.GetPage(2).Text);
+        }
+
+        [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Applies_Inherited_PageBreakBefore() {
             string docPath = Path.Combine(_directoryWithFiles, "PdfNativeInheritedPageBreakBefore.docx");
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeInheritedPageBreakBefore.pdf");
