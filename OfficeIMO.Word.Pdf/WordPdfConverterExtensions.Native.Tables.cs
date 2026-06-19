@@ -30,6 +30,7 @@ namespace OfficeIMO.Word.Pdf {
             var cellVerticalAlignments = new Dictionary<(int Row, int Column), PdfCore.PdfCellVerticalAlign>();
             var horizontalAlignments = CreateNativeTableHorizontalAlignments(layout);
             var verticalAlignments = CreateNativeTableVerticalAlignments(layout);
+            int tableColumnCount = GetNativeTableColumnCount(layout);
             for (int rowIndex = 0; rowIndex < layout.Rows.Count; rowIndex++) {
                 IReadOnlyList<WordTableCell> row = layout.Rows[rowIndex];
                 var nativeCells = new List<PdfCore.PdfTableCell>();
@@ -46,7 +47,13 @@ namespace OfficeIMO.Word.Pdf {
                         continue;
                     }
 
-                    NativeCellText cellText = CreateNativeCellText(cell, footnoteNumbersById, nativeDefaults, tableStyleDefaults);
+                    NativeTableStyleDefaults cellStyleDefaults = GetNativeTableCellStyleDefaults(
+                        table,
+                        tableStyleDefaults,
+                        logicalColumnIndex,
+                        columnSpan,
+                        tableColumnCount);
+                    NativeCellText cellText = CreateNativeCellText(cell, footnoteNumbersById, nativeDefaults, cellStyleDefaults);
                     IReadOnlyList<PdfCore.PdfTableCellCheckBox> checkBoxes = CreateNativeTableCellCheckBoxes(cell);
                     IReadOnlyList<PdfCore.PdfTableCellFormField> formFields = CreateNativeTableCellFormFields(cell);
                     IReadOnlyList<PdfCore.PdfTableCellImage> images = CreateNativeTableCellImages(cell);
@@ -383,6 +390,33 @@ namespace OfficeIMO.Word.Pdf {
                     logicalColumnIndex += columnSpan;
                 }
             }
+        }
+
+        private static NativeTableStyleDefaults GetNativeTableCellStyleDefaults(WordTable table, NativeTableStyleDefaults tableStyleDefaults, int logicalColumnIndex, int columnSpan, int columnCount) {
+            NativeTableStyleDefaults result = tableStyleDefaults;
+            if (table.ConditionalFormattingFirstColumn == true && logicalColumnIndex == 0) {
+                result = ApplyNativeTableConditionalRunStyleDefaults(result, tableStyleDefaults.FirstColumnStyle);
+            }
+
+            if (table.ConditionalFormattingLastColumn == true && columnCount > 0 && logicalColumnIndex + columnSpan >= columnCount) {
+                result = ApplyNativeTableConditionalRunStyleDefaults(result, tableStyleDefaults.LastColumnStyle);
+            }
+
+            return result;
+        }
+
+        private static NativeTableStyleDefaults ApplyNativeTableConditionalRunStyleDefaults(NativeTableStyleDefaults tableStyleDefaults, NativeTableConditionalStyleDefaults conditionalStyle) {
+            if (!conditionalStyle.TextColor.HasValue && !conditionalStyle.Bold.HasValue) {
+                return tableStyleDefaults;
+            }
+
+            NativeTableRunStyleDefaults runStyle = tableStyleDefaults.RunStyle;
+            return tableStyleDefaults with {
+                RunStyle = runStyle with {
+                    Bold = conditionalStyle.Bold ?? runStyle.Bold,
+                    Color = conditionalStyle.TextColor ?? runStyle.Color
+                }
+            };
         }
 
         private static void ApplyNativeTableLayoutOptions(WordTable table, PdfCore.PdfTableStyle style, double? contentWidth, NativeTableStyleDefaults tableStyleDefaults) {

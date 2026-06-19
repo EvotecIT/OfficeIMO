@@ -859,7 +859,7 @@ namespace OfficeIMO.Word.Pdf {
 
             PdfCore.PdfColor? color = TryGetNativeRunColor(runProperties, out PdfCore.PdfColor? directColor)
                 ? directColor
-                : ParseNativeColor(styleDefaults.ColorHex) ?? ParseNativeColor(tableRunStyleDefaults.ColorHex);
+                : ParseNativeColor(styleDefaults.ColorHex) ?? tableRunStyleDefaults.Color ?? ParseNativeColor(tableRunStyleDefaults.ColorHex);
             PdfCore.PdfColor? background = TryGetNativeRunHighlight(runProperties, out PdfCore.PdfColor? directBackground)
                 ? directBackground
                 : MapNativeHighlight(styleDefaults.Highlight) ?? MapNativeHighlight(tableRunStyleDefaults.Highlight);

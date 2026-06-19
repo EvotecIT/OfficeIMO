@@ -283,6 +283,55 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Renders_Table_Style_First_And_Last_Column_Conditional_Text() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleColumnConditionalText.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleColumnConditionalText.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            const string styleId = "NativeColumnConditionalTextTable";
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(new Style(
+                new StyleName { Val = "Native Column Conditional Text Table" },
+                new TableStyleProperties(
+                    new RunPropertiesBaseStyle(new Bold(), new Color { Val = "112233" }))
+                { Type = TableStyleOverrideValues.FirstColumn },
+                new TableStyleProperties(
+                    new RunPropertiesBaseStyle(new Bold(), new Color { Val = "445566" }))
+                { Type = TableStyleOverrideValues.LastColumn })
+            { Type = StyleValues.Table, StyleId = styleId });
+
+            WordTable table = document.AddTable(2, 3);
+            table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
+            table.ConditionalFormattingFirstColumn = true;
+            table.ConditionalFormattingLastColumn = true;
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "FirstTextTop";
+            table.Rows[0].Cells[1].Paragraphs[0].Text = "MiddleTextTop";
+            table.Rows[0].Cells[2].Paragraphs[0].Text = "LastTextTop";
+            table.Rows[1].Cells[0].Paragraphs[0].Text = "FirstTextBottom";
+            table.Rows[1].Cells[1].Paragraphs[0].Text = "MiddleTextBottom";
+            table.Rows[1].Cells[2].Paragraphs[0].Text = "LastTextBottom";
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = new PdfCore.PageSize(420, 220),
+                Margins = PdfCore.PageMargins.Uniform(30)
+            });
+        }
+
+        byte[] bytes = File.ReadAllBytes(pdfPath);
+        using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
+        string text = string.Concat(pdf.GetPages().Select(page => page.Text));
+        Assert.Contains("FirstTextTop", text);
+        Assert.Contains("MiddleTextBottom", text);
+        Assert.Contains("LastTextBottom", text);
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("0.067 0.133 0.2 rg", raw);
+        Assert.Contains("0.267 0.333 0.4 rg", raw);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Renders_Table_Style_Horizontal_Banding_Fill() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleHorizontalBanding.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleHorizontalBanding.pdf");

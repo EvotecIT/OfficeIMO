@@ -8,8 +8,8 @@ namespace OfficeIMO.Word.Pdf {
             public static NativeTableStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null, null, null, null, null, null, null, NativeTableRunStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty);
         }
 
-        private readonly record struct NativeTableRunStyleDefaults(double? FontSize, string? FontFamily, bool? Bold, bool? Italic, bool? Underline, bool? Strike, string? ColorHex, W.HighlightColorValues? Highlight) {
-            public static NativeTableRunStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null);
+        private readonly record struct NativeTableRunStyleDefaults(double? FontSize, string? FontFamily, bool? Bold, bool? Italic, bool? Underline, bool? Strike, string? ColorHex, W.HighlightColorValues? Highlight, PdfCore.PdfColor? Color) {
+            public static NativeTableRunStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null, null);
         }
 
         private readonly record struct NativeTableConditionalStyleDefaults(PdfCore.PdfColor? CellFill, PdfCore.PdfColor? TextColor, bool? Bold) {
@@ -163,7 +163,8 @@ namespace OfficeIMO.Word.Pdf {
                     underline,
                     strike,
                     colorHex,
-                    highlight),
+                    highlight,
+                    null),
                 firstRowStyle,
                 lastRowStyle,
                 firstColumnStyle,
