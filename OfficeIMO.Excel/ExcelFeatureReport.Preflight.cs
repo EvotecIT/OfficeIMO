@@ -34,7 +34,9 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// True when OfficeIMO can attempt cell-value edits without known unsupported package features.
         /// </summary>
-        public bool CanEditCellValues => UnsupportedFeatures.Count == 0;
+        public bool CanEditCellValues =>
+            UnsupportedFeatures.Count == 0 &&
+            FindFeatureCount("Digital signatures") == 0;
 
         /// <summary>
         /// True when OfficeIMO can attempt structure-changing workbook edits without preserve-only or unsupported feature blockers.
@@ -46,14 +48,14 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public bool CanUseCachedFormulaValues =>
             FindFeatureCount("Missing formula caches") == 0 &&
+            FindFeatureCount("Dirty formula caches") == 0 &&
             FindFeatureCount("Formula dependency issues") == 0;
 
         /// <summary>
         /// True when OfficeIMO's lightweight evaluator can calculate all discovered formulas without known dependency issues.
         /// </summary>
         public bool CanCalculateFormulas =>
-            FindFeatureCount("Unsupported formulas") == 0 &&
-            FindFeatureCount("Formula dependency issues") == 0;
+            FindFeatureCount("Formula calculation blockers") == 0;
 
         /// <summary>
         /// True when template binding can be attempted without preserve-only or unsupported advanced package features.
@@ -65,7 +67,8 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public bool CanExportPdfReport =>
             !HasAdvancedFeatures &&
-            CanUseCachedFormulaValues;
+            CanUseCachedFormulaValues &&
+            FindFeatureCount("PDF-unsupported charts") == 0;
 
         /// <summary>
         /// Returns true when the requested workflow-level capability can be attempted for this workbook.
@@ -125,6 +128,7 @@ namespace OfficeIMO.Excel {
                     break;
                 case ExcelPreflightCapability.EditCellValues:
                     AddUnsupportedDiagnostics(messages, "Cell-value edits are blocked by unsupported workbook features.");
+                    AddFeatureDiagnostics(messages, FindFeatures("Digital signatures"));
                     break;
                 case ExcelPreflightCapability.EditWorkbookStructure:
                     AddUnsupportedDiagnostics(messages, "Structure-changing edits are blocked by unsupported workbook features.");
@@ -144,6 +148,7 @@ namespace OfficeIMO.Excel {
                     AddUnsupportedDiagnostics(messages, "Excel-to-PDF report export is blocked by unsupported workbook features.");
                     AddPreservedDiagnostics(messages, "Excel-to-PDF report export does not render preserve-only workbook features.");
                     AddFormulaDiagnostics(messages, requireCachedValues: true, requireSupportedFormulas: false);
+                    AddFeatureDiagnostics(messages, FindFeatures("PDF-unsupported charts"));
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(capability), capability, "Unsupported Excel preflight capability.");
@@ -176,14 +181,75 @@ namespace OfficeIMO.Excel {
 
         private void AddFormulaDiagnostics(List<string> messages, bool requireCachedValues, bool requireSupportedFormulas) {
             if (requireSupportedFormulas) {
-                AddFeatureDiagnostics(messages, FindFeatures("Unsupported formulas"));
+                AddFeatureDiagnostics(messages, FindFeatures("Formula calculation blockers"));
             }
 
             if (requireCachedValues) {
                 AddFeatureDiagnostics(messages, FindFeatures("Missing formula caches"));
+                AddFeatureDiagnostics(messages, FindFeatures("Dirty formula caches"));
+                AddFeatureDiagnostics(messages, FindFeatures("Formula dependency issues"));
+                return;
             }
 
-            AddFeatureDiagnostics(messages, FindFeatures("Formula dependency issues"));
+            AddFormulaDependencyDiagnostics(messages, includeMissingCachedDependencyIssues: false);
+        }
+
+        private void AddFormulaDependencyDiagnostics(List<string> messages, bool includeMissingCachedDependencyIssues) {
+            foreach (ExcelFeatureFinding finding in FindFeatures("Formula dependency issues")) {
+                IReadOnlyList<string> details = FilterFormulaDependencyIssueDetails(finding.Details, includeMissingCachedDependencyIssues);
+                if (details.Count == 0) {
+                    continue;
+                }
+
+                AddDistinct(messages, FormatCapabilityFinding(new ExcelFeatureFinding(
+                    finding.Category,
+                    finding.Name,
+                    finding.SupportLevel,
+                    details.Count,
+                    finding.Scope,
+                    finding.Note,
+                    details)));
+            }
+        }
+
+        private int CountFormulaDependencyIssues(bool includeMissingCachedDependencyIssues) {
+            int count = 0;
+            foreach (ExcelFeatureFinding finding in FindFeatures("Formula dependency issues")) {
+                count += includeMissingCachedDependencyIssues
+                    ? finding.Count
+                    : FilterFormulaDependencyIssueDetails(finding.Details, includeMissingCachedDependencyIssues).Count;
+            }
+
+            return count;
+        }
+
+        private static IReadOnlyList<string> FilterFormulaDependencyIssueDetails(IReadOnlyList<string> details, bool includeMissingCachedDependencyIssues) {
+            if (includeMissingCachedDependencyIssues) {
+                return details;
+            }
+
+            var filtered = new List<string>();
+            foreach (string detail in details) {
+                int separator = detail.IndexOf(": ", StringComparison.Ordinal);
+                if (separator < 0) {
+                    if (detail.IndexOf("without a cached result", StringComparison.OrdinalIgnoreCase) < 0) {
+                        filtered.Add(detail);
+                    }
+                    continue;
+                }
+
+                string prefix = detail.Substring(0, separator);
+                string[] issues = detail.Substring(separator + 2)
+                    .Split(new[] { "; " }, StringSplitOptions.RemoveEmptyEntries);
+                var calculationIssues = issues
+                    .Where(issue => issue.IndexOf("without a cached result", StringComparison.OrdinalIgnoreCase) < 0)
+                    .ToArray();
+                if (calculationIssues.Length > 0) {
+                    filtered.Add(prefix + ": " + string.Join("; ", calculationIssues));
+                }
+            }
+
+            return filtered;
         }
 
         private static void AddFeatureDiagnostics(List<string> messages, IEnumerable<ExcelFeatureFinding> findings) {

@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml.Packaging;
 using System.Text;
+using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.Excel {
     /// <summary>
@@ -331,10 +332,12 @@ namespace OfficeIMO.Excel {
             int oleObjectCount = 0;
             int formControlCount = 0;
             int externalHyperlinkCount = 0;
+            int pdfUnsupportedChartCount = 0;
             var threadedCommentDetails = new List<string>();
             var oleObjectDetails = new List<string>();
             var formControlDetails = new List<string>();
             var externalHyperlinkDetails = new List<string>();
+            var pdfUnsupportedChartDetails = new List<string>();
             var threadedCommentPeople = BuildThreadedCommentPersonMap(workbookPart);
 
             foreach (var sheet in sheetElements) {
@@ -363,7 +366,20 @@ namespace OfficeIMO.Excel {
                     threadedCommentDetails.Add($"{sheet.Name}: {threadedComment.CellReference} by {author}");
                 }
                 imagePartCount += worksheetPart.DrawingsPart?.ImageParts.Count() ?? 0;
-                chartCount += worksheetPart.DrawingsPart?.ChartParts.Count() ?? 0;
+                var chartParts = worksheetPart.DrawingsPart?.ChartParts.ToList() ?? new List<ChartPart>();
+                chartCount += chartParts.Count;
+                foreach (ChartPart chartPart in chartParts) {
+                    C.PlotArea? plotArea = chartPart.ChartSpace?.GetFirstChild<C.Chart>()?.GetFirstChild<C.PlotArea>();
+                    if (plotArea == null) {
+                        continue;
+                    }
+
+                    ExcelChartType chartType = ExcelChartUtils.InferChartType(plotArea);
+                    if (!IsPdfSupportedChartType(chartType)) {
+                        pdfUnsupportedChartCount++;
+                        pdfUnsupportedChartDetails.Add($"{sheet.Name}: {chartType} ({chartPart.Uri})");
+                    }
+                }
                 int sheetOleObjects = CountDescendantsByLocalName(worksheet, "oleObject");
                 int sheetFormControls = CountDescendantsByLocalName(worksheet, "control") + CountDescendantsByLocalName(worksheet, "formControl");
                 oleObjectCount += sheetOleObjects;
@@ -384,6 +400,9 @@ namespace OfficeIMO.Excel {
                 "Common rule types are editable; full Excel conditional-formatting parity remains a roadmap item.");
             Add(features, "Visualization", "Charts", ExcelFeatureSupportLevel.PartiallyEditable, chartCount, null,
                 "Common chart authoring and updates are supported, including stacked/100% stacked column/bar/line/area variants, 3-D area/line/column/bar/pie, pie-of-pie/bar-of-pie, radar, stock, and filled/wireframe/contour surface charts; advanced chart families remain partial.");
+            Add(features, "Visualization", "PDF-unsupported charts", ExcelFeatureSupportLevel.PartiallyEditable, pdfUnsupportedChartCount, null,
+                "These charts can be authored or preserved in the workbook but are skipped by the first-party Excel-to-PDF chart snapshot renderer.",
+                pdfUnsupportedChartDetails);
             Add(features, "Visualization", "Pivot tables", ExcelFeatureSupportLevel.PartiallyEditable, pivotCount, null,
                 "Source-range pivot creation and inspection are supported, including composable fluent field sort/subtotal/layout/display/number-format helpers with built-in/custom id/code readback, field item/page filters with fluent helpers plus hidden, visible, and selected-item readback, common label/value filters, negated filter variants, fixed and dynamic date filters, top/bottom count/percent/sum filters, formula-backed calculated fields with number-format id/code readback, date/number grouping metadata, generated multi-level date hierarchy fields with base/parent relationships, and explicit grouped-cache item metadata; slicers, deeper Excel interoperability checks, and advanced filters remain partial.");
             Add(features, "Visualization", "Sparklines", ExcelFeatureSupportLevel.Editable, sparklineCount, null,
@@ -407,6 +426,18 @@ namespace OfficeIMO.Excel {
                 "Unsupported formulas are preserved and should be recalculated by Excel or read from cached values.");
             Add(features, "Calculation", "Missing formula caches", ExcelFeatureSupportLevel.Preserved, formulas.MissingCachedResults, null,
                 "Formulas without cached results need OfficeIMO calculation support or Excel recalculation before cached-value reads are reliable.");
+            Add(features, "Calculation", "Dirty formula caches", ExcelFeatureSupportLevel.PartiallyEditable, formulas.DirtyFormulas, null,
+                "Dirty formulas have cached results that are explicitly awaiting recalculation before cached-value reads are reliable.",
+                formulas.Formulas
+                    .Where(formula => formula.IsDirty)
+                    .Select(formula => $"{formula.SheetName}!{formula.CellReference}")
+                    .ToArray());
+            var formulaCalculationBlockers = formulas.Formulas
+                .SelectMany(GetFormulaCalculationBlockers)
+                .ToArray();
+            Add(features, "Calculation", "Formula calculation blockers", ExcelFeatureSupportLevel.Preserved, formulaCalculationBlockers.Length, null,
+                "These formula cells need Excel recalculation or broader evaluator support before OfficeIMO can calculate the workbook.",
+                formulaCalculationBlockers);
             Add(features, "Calculation", "Formula dependency issues", ExcelFeatureSupportLevel.Preserved, formulas.DependencyIssueCount, null,
                 "Formula dependencies need review before cached-value reads, calculation, or report export can be trusted.",
                 formulas.Formulas
@@ -534,6 +565,67 @@ namespace OfficeIMO.Excel {
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
                 .ToList();
+        }
+
+        private static bool IsPdfSupportedChartType(ExcelChartType chartType) {
+            switch (chartType) {
+                case ExcelChartType.ColumnClustered:
+                case ExcelChartType.Column3DClustered:
+                case ExcelChartType.ColumnStacked:
+                case ExcelChartType.Column3DStacked:
+                case ExcelChartType.ColumnStacked100:
+                case ExcelChartType.Column3DStacked100:
+                case ExcelChartType.BarClustered:
+                case ExcelChartType.Bar3DClustered:
+                case ExcelChartType.BarStacked:
+                case ExcelChartType.Bar3DStacked:
+                case ExcelChartType.BarStacked100:
+                case ExcelChartType.Bar3DStacked100:
+                case ExcelChartType.Line:
+                case ExcelChartType.Line3D:
+                case ExcelChartType.LineStacked:
+                case ExcelChartType.LineStacked100:
+                case ExcelChartType.Area:
+                case ExcelChartType.Area3D:
+                case ExcelChartType.AreaStacked:
+                case ExcelChartType.Area3DStacked:
+                case ExcelChartType.AreaStacked100:
+                case ExcelChartType.Area3DStacked100:
+                case ExcelChartType.Scatter:
+                case ExcelChartType.Radar:
+                case ExcelChartType.Pie:
+                case ExcelChartType.Pie3D:
+                case ExcelChartType.PieOfPie:
+                case ExcelChartType.BarOfPie:
+                case ExcelChartType.Doughnut:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        private static IEnumerable<string> GetFormulaCalculationBlockers(ExcelFormulaCellInfo formula) {
+            bool hasNonCacheDependencyIssue = false;
+            foreach (string issue in formula.DependencyIssues) {
+                if (issue.IndexOf("without a cached result", StringComparison.OrdinalIgnoreCase) >= 0) {
+                    continue;
+                }
+
+                hasNonCacheDependencyIssue = true;
+                yield return $"{formula.SheetName}!{formula.CellReference}: {issue}";
+            }
+
+            if (!formula.IsSupportedByOfficeIMO && (!HasOnlyMissingCachedFormulaDependencyIssues(formula) || hasNonCacheDependencyIssue)) {
+                string reason = string.IsNullOrWhiteSpace(formula.UnsupportedReason)
+                    ? "Formula is outside OfficeIMO's lightweight evaluator support."
+                    : formula.UnsupportedReason!;
+                yield return $"{formula.SheetName}!{formula.CellReference}: {reason}";
+            }
+        }
+
+        private static bool HasOnlyMissingCachedFormulaDependencyIssues(ExcelFormulaCellInfo formula) {
+            return formula.DependencyIssues.Count > 0
+                && formula.DependencyIssues.All(issue => issue.IndexOf("without a cached result", StringComparison.OrdinalIgnoreCase) >= 0);
         }
 
         private static string DescribePart(OpenXmlPart part) {
