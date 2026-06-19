@@ -25,6 +25,7 @@ Keep this roadmap aligned with the current owner documents and proof manifests:
 - `Docs/pdf-conversion-scenarios.json`
 - `Docs/officeimo.visio.roadmap.md`
 - `Docs/officeimo.visio.premium-showcase.md`
+- `Docs/officeimo.word.market-readiness-roadmap.md`
 - `Docs/officeimo.word-html-roadmap.md`
 - `Docs/officeimo.word-html-support-matrix.md`
 
@@ -47,6 +48,17 @@ Keep this roadmap aligned with the current owner documents and proof manifests:
 The Word/HTML surface has advanced enough to be treated as a first-class document-intelligence path rather than a side converter. `OfficeIMO.Word.Html`, `OfficeIMO.Markdown.Html`, and `OfficeIMO.Html.Pdf` now cover practical HTML flows with better table import, CSS diagnostics, semantic profiles, and PDF output.
 
 The next HTML work is to align Word, Markdown, PDF logical readback, and Reader chunks around the same block/table/asset diagnostics instead of treating HTML as a separate endpoint.
+
+### Word Market Readiness
+
+`OfficeIMO.Word` has a separate non-PDF market-readiness roadmap in `Docs/officeimo.word.market-readiness-roadmap.md`. That roadmap keeps Word-focused product work grounded in four workflows:
+
+- template and document assembly polish
+- review, redline, and diff workflows
+- HTML and Markdown conversion fidelity with proof artifacts
+- real-document docs and showcase output
+
+Word-to-PDF parity remains owned by the `OfficeIMO.Word.Pdf` / `OfficeIMO.Pdf` workstream; the Word market-readiness roadmap should not make PDF fidelity promises.
 
 ### Drawing
 

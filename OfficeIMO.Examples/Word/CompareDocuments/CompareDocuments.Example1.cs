@@ -22,6 +22,11 @@ namespace OfficeIMO.Examples.Word {
 
             using WordDocument result = WordDocumentComparer.Compare(sourcePath, targetPath);
             result.Save(openWord);
+
+            WordComparisonResult structuredResult = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+            foreach (WordComparisonFinding finding in structuredResult.Findings) {
+                Console.WriteLine($"{finding.ChangeKind} {finding.Scope} at {finding.Location}: {finding.Message}");
+            }
         }
     }
 }

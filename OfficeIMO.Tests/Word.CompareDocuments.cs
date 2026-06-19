@@ -194,6 +194,97 @@ namespace OfficeIMO.Tests {
             AssertNoTempArtifact(result);
         }
 
+        [Fact]
+        public void CompareStructureReportsParagraphChanges() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_paragraph.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                doc.AddParagraph("Status: Draft");
+                doc.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_paragraph.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                doc.AddParagraph("Status: Approved");
+                doc.AddParagraph("Scope: Added");
+                doc.Save(false);
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.True(result.HasChanges);
+            WordComparisonFinding modified = Assert.Single(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Paragraph &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified);
+            Assert.Equal("paragraph[0]", modified.Location);
+            Assert.Equal("Status: Draft", modified.SourceText);
+            Assert.Equal("Status: Approved", modified.TargetText);
+
+            WordComparisonFinding inserted = Assert.Single(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Paragraph &&
+                finding.ChangeKind == WordComparisonChangeKind.Inserted);
+            Assert.Equal("paragraph[1]", inserted.Location);
+            Assert.Equal("Scope: Added", inserted.TargetText);
+        }
+
+        [Fact]
+        public void CompareStructureReportsTableCellAndRowChanges() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_table.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                WordTable table = doc.AddTable(1, 2);
+                table.Rows[0].Cells[0].Paragraphs[0].SetText("Control");
+                table.Rows[0].Cells[1].Paragraphs[0].SetText("Open");
+                doc.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_table.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                WordTable table = doc.AddTable(2, 2);
+                table.Rows[0].Cells[0].Paragraphs[0].SetText("Control");
+                table.Rows[0].Cells[1].Paragraphs[0].SetText("Closed");
+                table.Rows[1].Cells[0].Paragraphs[0].SetText("Evidence");
+                table.Rows[1].Cells[1].Paragraphs[0].SetText("Added");
+                doc.Save(false);
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            WordComparisonFinding cell = Assert.Single(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.TableCell &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified);
+            Assert.Equal("table[0]/row[0]/cell[1]", cell.Location);
+            Assert.Equal("Open", cell.SourceText);
+            Assert.Equal("Closed", cell.TargetText);
+
+            WordComparisonFinding row = Assert.Single(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.TableRow &&
+                finding.ChangeKind == WordComparisonChangeKind.Inserted);
+            Assert.Equal("table[0]/row[1]", row.Location);
+            Assert.Equal("Evidence | Added", row.TargetText);
+        }
+
+        [Fact]
+        public void CompareStructureReportsImageReplacement() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_image.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                doc.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"));
+                doc.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_image.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                doc.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "snail.bmp"));
+                doc.Save(false);
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            WordComparisonFinding image = Assert.Single(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Image &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified);
+            Assert.Equal("image[0]", image.Location);
+            Assert.Equal("Image payload changed.", image.Message);
+        }
+
         private static void AssertNoTempArtifact(WordDocument document) {
             Assert.Equal(string.Empty, document.FilePath);
         }
