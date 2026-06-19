@@ -346,8 +346,12 @@ namespace OfficeIMO.PowerPoint {
             Add(features, "Visualization", "SmartArt", PowerPointFeatureSupportLevel.PartiallyEditable, Math.Max(Slides.Sum(CountSlideSmartArt), diagramDetails.Count), null,
                 "SmartArt diagrams can be generated and discovered; rich diagram editing remains partial.",
                 diagramDetails);
+            var richNotesDetails = DescribeRichNotesContent();
             Add(features, "Presentation", "Speaker notes", PowerPointFeatureSupportLevel.Editable, Slides.Count(slide => slide.SlidePart.NotesSlidePart != null), null,
                 "Speaker notes can be authored, inspected, updated, and preserved.");
+            Add(features, "Presentation", "Rich notes content", PowerPointFeatureSupportLevel.Preserved, richNotesDetails.Count, null,
+                "Notes-page drawings beyond speaker text are detected as preserve-only presentation content.",
+                richNotesDetails);
             Add(features, "Presentation", "Slide transitions", PowerPointFeatureSupportLevel.Editable, Slides.Count(HasTransitionMarkup), null,
                 "Common transitions, Morph fallback markup, speed, duration, and advance timing can be authored and round-tripped.");
             var unsupportedTransitionDetails = DescribeUnsupportedTransitionMarkup();
@@ -369,7 +373,7 @@ namespace OfficeIMO.PowerPoint {
             var customXmlDetails = DescribePartsByUri(allParts, "/customXml/");
             var embeddedPackageDetails = DescribeNonChartEmbeddedPackageParts(allParts);
             var activeXControlDetails = DescribePartsByUriOrContentType(allParts, "activeX");
-            var vbaDetails = DescribePartsByUriOrContentType(allParts, "vbaProject");
+            var vbaDetails = DescribeVbaProjectParts(allParts);
             var webExtensionDetails = DescribePartsByUriOrContentType(allParts, "webextension")
                 .Concat(DescribePartsByUriOrContentType(allParts, "taskpane"))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -660,6 +664,11 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static bool IsMappedTransitionEffectElement(OpenXmlElement element) {
+            if (string.Equals(element.LocalName, "prstTrans", StringComparison.OrdinalIgnoreCase)) {
+                return string.Equals(element.NamespaceUri, "http://schemas.microsoft.com/office/powerpoint/2012/main", StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(element.GetAttribute("prst", string.Empty).Value, "morph", StringComparison.OrdinalIgnoreCase);
+            }
+
             var supportedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
                 "blinds",
                 "comb",
@@ -669,7 +678,6 @@ namespace OfficeIMO.PowerPoint {
                 "flash",
                 "morph",
                 "prism",
-                "prstTrans",
                 "push",
                 "warp",
                 "wipe"
@@ -804,6 +812,52 @@ namespace OfficeIMO.PowerPoint {
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
                 .ToList();
+        }
+
+        private static List<string> DescribeVbaProjectParts(IEnumerable<OpenXmlPart> parts) {
+            return parts
+                .Where(part => string.Equals(part.ContentType, "application/vnd.ms-office.vbaProject", StringComparison.OrdinalIgnoreCase))
+                .Select(DescribePart)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        private List<string> DescribeRichNotesContent() {
+            return Slides
+                .SelectMany((slide, index) => DescribeRichNotesContent(slide, index + 1))
+                .ToList();
+        }
+
+        private static IEnumerable<string> DescribeRichNotesContent(PowerPointSlide slide, int slideIndex) {
+            NotesSlide? notesSlide = slide.SlidePart.NotesSlidePart?.NotesSlide;
+            if (notesSlide == null) {
+                yield break;
+            }
+
+            int pictures = notesSlide.Descendants<Picture>()
+                .Count(picture => !PowerPointMedia.TryGetMediaKind(picture, out _));
+            int shapeFillImages = CountShapeFillImageElements(notesSlide);
+            int tables = notesSlide.Descendants<A.Table>().Count();
+            int smartArt = notesSlide
+                .Descendants<GraphicFrame>()
+                .Count(frame => frame.Graphic?.GraphicData?.GetFirstChild<Dgm.RelationshipIds>() != null);
+
+            if (pictures > 0) {
+                yield return $"slide {slideIndex} notes: {pictures} picture(s)";
+            }
+
+            if (shapeFillImages > 0) {
+                yield return $"slide {slideIndex} notes: {shapeFillImages} shape fill image(s)";
+            }
+
+            if (tables > 0) {
+                yield return $"slide {slideIndex} notes: {tables} table(s)";
+            }
+
+            if (smartArt > 0) {
+                yield return $"slide {slideIndex} notes: {smartArt} SmartArt diagram(s)";
+            }
         }
 
         private static List<string> DescribeDigitalSignatureParts(IEnumerable<OpenXmlPart> parts) {
