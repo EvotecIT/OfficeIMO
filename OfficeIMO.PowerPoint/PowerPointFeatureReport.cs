@@ -335,7 +335,7 @@ namespace OfficeIMO.PowerPoint {
             Add(features, "Visualization", "Charts", PowerPointFeatureSupportLevel.PartiallyEditable, Math.Max(Slides.Sum(slide => slide.Charts.Count()), chartDetails.Count), null,
                 "Common chart authoring and data updates are supported; advanced chart editing remains partial.",
                 chartDetails.Concat(chartCompanionDetails).Distinct(StringComparer.OrdinalIgnoreCase).ToList());
-            Add(features, "Media", "Images", PowerPointFeatureSupportLevel.PartiallyEditable, Slides.Sum(slide => slide.Pictures.Count(picture => picture is not PowerPointMedia)), null,
+            Add(features, "Media", "Images", PowerPointFeatureSupportLevel.PartiallyEditable, Slides.Sum(CountSlidePictures), null,
                 "Images can be inserted and inspected in common slide scenarios; advanced drawing behaviors remain partial.");
             Add(features, "Media", "Audio and video", PowerPointFeatureSupportLevel.PartiallyEditable, Slides.Sum(slide => slide.Media.Count()), null,
                 "Embedded audio and video can be authored with poster frames and playback timing; rich media editing remains partial.",
@@ -507,6 +507,13 @@ namespace OfficeIMO.PowerPoint {
 
         private static bool HasTransitionMarkup(PowerPointSlide slide) {
             return slide.Transition != SlideTransition.None;
+        }
+
+        private static int CountSlidePictures(PowerPointSlide slide) {
+            return slide.SlidePart.Slide?
+                .Descendants<Picture>()
+                .Count(picture => !PowerPointMedia.TryGetMediaKind(picture, out _))
+                ?? 0;
         }
 
         private List<string> DescribeUnsupportedTransitionMarkup() {

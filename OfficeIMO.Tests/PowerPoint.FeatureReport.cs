@@ -58,6 +58,35 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PowerPointFeatureReport_DetectsGroupedPictures() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            byte[] pixel = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    using var image = new MemoryStream(pixel);
+                    PowerPointPicture picture = slide.AddPicture(image, OfficeIMO.PowerPoint.ImagePartType.Png);
+                    PowerPointAutoShape shape = slide.AddRectangle(914400, 0, 914400, 914400);
+                    slide.GroupShapes(new PowerPointShape[] { picture, shape });
+                    presentation.Save();
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                    PowerPointFeatureReport report = presentation.InspectFeatures();
+                    PowerPointFeatureFinding images = Assert.Single(report.FindFeatures("Images"));
+
+                    Assert.Equal(1, images.Count);
+                    Assert.Throws<InvalidOperationException>(() => report.EnsureNoFeatures("Images"));
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void PowerPointFeatureReport_DoesNotBlockZeroCountEditableFeatures() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
