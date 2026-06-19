@@ -380,6 +380,22 @@ namespace OfficeIMO.Word {
                         }
                     }
                 }
+
+                if (mainPart.FootnotesPart?.Footnotes != null) {
+                    foreach (DocProperties properties in mainPart.FootnotesPart.Footnotes.Descendants<DocProperties>()) {
+                        if (properties.Id != null && properties.Id.Value > max) {
+                            max = properties.Id.Value;
+                        }
+                    }
+                }
+
+                if (mainPart.EndnotesPart?.Endnotes != null) {
+                    foreach (DocProperties properties in mainPart.EndnotesPart.Endnotes.Descendants<DocProperties>()) {
+                        if (properties.Id != null && properties.Id.Value > max) {
+                            max = properties.Id.Value;
+                        }
+                    }
+                }
             }
 
             return (UInt32Value)(max + 1U);

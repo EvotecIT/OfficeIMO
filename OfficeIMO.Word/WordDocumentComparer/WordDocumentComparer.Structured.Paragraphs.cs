@@ -194,7 +194,7 @@ namespace OfficeIMO.Word {
         private static List<ParagraphSnapshot> GetLogicalBodyParagraphs(WordDocument document) {
             var snapshots = new List<ParagraphSnapshot>();
             MainDocumentPart? mainPart = document._wordprocessingDocument.MainDocumentPart;
-            AddParagraphSnapshots(snapshots, mainPart?.Document?.Body, BodyPartKey, BodyPartOrderBase);
+            AddParagraphSnapshots(snapshots, mainPart, mainPart?.Document?.Body, BodyPartKey, BodyPartOrderBase);
 
             if (mainPart != null) {
                 Dictionary<HeaderPart, string> headerPartKeys = CreateHeaderPartKeys(mainPart);
@@ -204,7 +204,7 @@ namespace OfficeIMO.Word {
                         continue;
                     }
 
-                    AddParagraphSnapshots(snapshots, headerPart.Header, headerPartKey, HeaderPartOrderBase + (headerIndex * RelatedPartOrderStride));
+                    AddParagraphSnapshots(snapshots, headerPart, headerPart.Header, headerPartKey, HeaderPartOrderBase + (headerIndex * RelatedPartOrderStride));
                     headerIndex++;
                 }
 
@@ -215,7 +215,7 @@ namespace OfficeIMO.Word {
                         continue;
                     }
 
-                    AddParagraphSnapshots(snapshots, footerPart.Footer, footerPartKey, FooterPartOrderBase + (footerIndex * RelatedPartOrderStride));
+                    AddParagraphSnapshots(snapshots, footerPart, footerPart.Footer, footerPartKey, FooterPartOrderBase + (footerIndex * RelatedPartOrderStride));
                     footerIndex++;
                 }
 
@@ -225,8 +225,8 @@ namespace OfficeIMO.Word {
                         continue;
                     }
 
-                    string noteId = footnote.Id?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? footnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                    AddParagraphSnapshots(snapshots, footnote, FootnotePartKeyPrefix + noteId, FootnotePartOrderBase + (footnoteIndex * RelatedPartOrderStride));
+                    string noteId = footnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    AddParagraphSnapshots(snapshots, mainPart.FootnotesPart, footnote, FootnotePartKeyPrefix + noteId, FootnotePartOrderBase + (footnoteIndex * RelatedPartOrderStride));
                     footnoteIndex++;
                 }
 
@@ -236,8 +236,8 @@ namespace OfficeIMO.Word {
                         continue;
                     }
 
-                    string noteId = endnote.Id?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? endnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                    AddParagraphSnapshots(snapshots, endnote, EndnotePartKeyPrefix + noteId, EndnotePartOrderBase + (endnoteIndex * RelatedPartOrderStride));
+                    string noteId = endnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    AddParagraphSnapshots(snapshots, mainPart.EndnotesPart, endnote, EndnotePartKeyPrefix + noteId, EndnotePartOrderBase + (endnoteIndex * RelatedPartOrderStride));
                     endnoteIndex++;
                 }
             }
@@ -245,7 +245,7 @@ namespace OfficeIMO.Word {
             return snapshots;
         }
 
-        private static void AddParagraphSnapshots(List<ParagraphSnapshot> snapshots, OpenXmlElement? container, string partKind, int orderBase) {
+        private static void AddParagraphSnapshots(List<ParagraphSnapshot> snapshots, OpenXmlPart? part, OpenXmlElement? container, string partKind, int orderBase) {
             foreach (OrderedElement ordered in EnumerateDescendantsWithOrder(container, orderBase)) {
                 if (ordered.Element is not Paragraph paragraph) {
                     continue;
@@ -255,7 +255,7 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
-                ParagraphTextSnapshot text = GetParagraphTextSnapshot(paragraph);
+                ParagraphTextSnapshot text = GetParagraphTextSnapshot(paragraph, part);
                 if (text.Text.Length == 0 && HasImageContent(paragraph)) {
                     continue;
                 }
@@ -265,14 +265,18 @@ namespace OfficeIMO.Word {
         }
 
         private static string GetParagraphText(Paragraph paragraph) {
-            return GetParagraphTextSnapshot(paragraph).Text;
+            return GetParagraphTextSnapshot(paragraph, null).Text;
         }
 
         private static string GetParagraphMatchText(Paragraph paragraph) {
-            return GetParagraphTextSnapshot(paragraph).MatchText;
+            return GetParagraphTextSnapshot(paragraph, null).MatchText;
         }
 
-        private static ParagraphTextSnapshot GetParagraphTextSnapshot(Paragraph paragraph) {
+        private static string GetParagraphMatchText(Paragraph paragraph, OpenXmlPart? part) {
+            return GetParagraphTextSnapshot(paragraph, part).MatchText;
+        }
+
+        private static ParagraphTextSnapshot GetParagraphTextSnapshot(Paragraph paragraph, OpenXmlPart? part) {
             var textBuilder = new StringBuilder();
             var matchBuilder = new StringBuilder();
             var pendingTextBuilder = new StringBuilder();
@@ -285,6 +289,18 @@ namespace OfficeIMO.Word {
                     case Text text:
                         textBuilder.Append(text.Text);
                         pendingTextBuilder.Append(text.Text);
+                        break;
+                    case Hyperlink hyperlink:
+                        FlushPendingTextToken(matchBuilder, pendingTextBuilder);
+                        AppendMatchToken(matchBuilder, "hyperlink", GetHyperlinkSignature(part, hyperlink));
+                        break;
+                    case SimpleField simpleField:
+                        FlushPendingTextToken(matchBuilder, pendingTextBuilder);
+                        AppendMatchToken(matchBuilder, "simpleField", simpleField.Instruction?.Value ?? string.Empty);
+                        break;
+                    case FieldCode fieldCode:
+                        FlushPendingTextToken(matchBuilder, pendingTextBuilder);
+                        AppendMatchToken(matchBuilder, "fieldCode", fieldCode.Text ?? string.Empty);
                         break;
                     case TabChar:
                         FlushPendingTextToken(matchBuilder, pendingTextBuilder);
@@ -317,7 +333,7 @@ namespace OfficeIMO.Word {
                         textBuilder.Append("[FootnoteReference:");
                         textBuilder.Append(footnoteReferenceId);
                         textBuilder.Append(']');
-                        AppendMatchToken(matchBuilder, "footnoteReference", footnoteReferenceId);
+                        AppendMatchToken(matchBuilder, "footnoteReference", string.Empty);
                         break;
                     case EndnoteReference endnoteReference:
                         FlushPendingTextToken(matchBuilder, pendingTextBuilder);
@@ -325,7 +341,7 @@ namespace OfficeIMO.Word {
                         textBuilder.Append("[EndnoteReference:");
                         textBuilder.Append(endnoteReferenceId);
                         textBuilder.Append(']');
-                        AppendMatchToken(matchBuilder, "endnoteReference", endnoteReferenceId);
+                        AppendMatchToken(matchBuilder, "endnoteReference", string.Empty);
                         break;
                     case SymbolChar symbol:
                         FlushPendingTextToken(matchBuilder, pendingTextBuilder);
@@ -376,6 +392,49 @@ namespace OfficeIMO.Word {
             builder.Append(':');
             builder.Append(value);
             builder.Append(';');
+        }
+
+        private static string GetHyperlinkSignature(OpenXmlPart? part, Hyperlink hyperlink) {
+            var builder = new StringBuilder();
+            if (hyperlink.Id?.Value is string relationshipId) {
+                builder.Append("id:");
+                builder.Append(GetRelationshipTarget(part, relationshipId));
+            }
+
+            if (hyperlink.Anchor?.Value is string anchor) {
+                builder.Append("#");
+                builder.Append(anchor);
+            }
+
+            if (hyperlink.DocLocation?.Value is string docLocation) {
+                builder.Append("@");
+                builder.Append(docLocation);
+            }
+
+            if (hyperlink.History?.Value is bool history) {
+                builder.Append("|history=");
+                builder.Append(history ? "true" : "false");
+            }
+
+            return builder.ToString();
+        }
+
+        private static string GetRelationshipTarget(OpenXmlPart? part, string relationshipId) {
+            if (part == null) {
+                return relationshipId;
+            }
+
+            HyperlinkRelationship? hyperlinkRelationship = part.HyperlinkRelationships.FirstOrDefault(item => item.Id == relationshipId);
+            if (hyperlinkRelationship != null) {
+                return hyperlinkRelationship.Uri.ToString();
+            }
+
+            ExternalRelationship? externalRelationship = part.ExternalRelationships.FirstOrDefault(item => item.Id == relationshipId);
+            if (externalRelationship != null) {
+                return externalRelationship.Uri.ToString();
+            }
+
+            return relationshipId;
         }
 
         private static bool HasImageContent(Paragraph paragraph) {

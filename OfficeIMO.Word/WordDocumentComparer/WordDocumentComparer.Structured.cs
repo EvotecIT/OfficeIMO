@@ -250,8 +250,8 @@ namespace OfficeIMO.Word {
             List<WordTableCell> sourceCells = source.Cells.ToList();
             List<WordTableCell> targetCells = target.Cells.ToList();
             IReadOnlyList<MatchedIndexPair> matchedCells = FindMatchingIndexes(
-                sourceCells.Select(GetCellText).ToList(),
-                targetCells.Select(GetCellText).ToList(),
+                sourceCells.Select(GetCellMatchKey).ToList(),
+                targetCells.Select(GetCellMatchKey).ToList(),
                 StringComparer.Ordinal);
 
             int sourceStart = 0;
@@ -302,8 +302,13 @@ namespace OfficeIMO.Word {
 
                 string sourceText = GetCellText(sourceCells[sourceIndex]);
                 string targetText = GetCellText(targetCells[targetIndex]);
+                string sourceMatchText = GetCellMatchText(sourceCells[sourceIndex]);
+                string targetMatchText = GetCellMatchText(targetCells[targetIndex]);
+                string sourceCellShape = GetCellShape(sourceCells[sourceIndex]);
+                string targetCellShape = GetCellShape(targetCells[targetIndex]);
 
-                if (!string.Equals(sourceText, targetText, StringComparison.Ordinal)) {
+                if (!string.Equals(sourceMatchText, targetMatchText, StringComparison.Ordinal) ||
+                    !string.Equals(sourceCellShape, targetCellShape, StringComparison.Ordinal)) {
                     result.Add(new WordComparisonFinding(
                         WordComparisonScope.TableCell,
                         WordComparisonChangeKind.Modified,
@@ -312,7 +317,7 @@ namespace OfficeIMO.Word {
                         targetIndex,
                         sourceText,
                         targetText,
-                        "Table cell text changed."),
+                        string.Equals(sourceText, targetText, StringComparison.Ordinal) ? "Table cell structure changed." : "Table cell text changed."),
                         GetTableChildDocumentOrder(tableDocumentOrder, targetCells[targetIndex]._tableCell));
                 }
 
@@ -375,6 +380,37 @@ namespace OfficeIMO.Word {
             }
 
             AddImageRangeFindings(sourceImages, targetImages, sourceStart, sourceImages.Count, targetStart, targetImages.Count, result);
+            AddImagePositionFindings(sourceImages, targetImages, matchedImages, result);
+        }
+
+        private static void AddImagePositionFindings(
+            IReadOnlyList<ImageSnapshot> sourceImages,
+            IReadOnlyList<ImageSnapshot> targetImages,
+            IReadOnlyList<MatchedIndexPair> matchedImages,
+            WordComparisonResult result) {
+            if (sourceImages.Count != targetImages.Count || matchedImages.Count != sourceImages.Count) {
+                return;
+            }
+
+            foreach (MatchedIndexPair match in matchedImages) {
+                ImageSnapshot sourceImage = sourceImages[match.SourceIndex];
+                ImageSnapshot targetImage = targetImages[match.TargetIndex];
+                if (!ImageSnapshotEqualityComparer.Instance.Equals(sourceImage, targetImage) ||
+                    string.Equals(sourceImage.PositionKey, targetImage.PositionKey, StringComparison.Ordinal)) {
+                    continue;
+                }
+
+                result.Add(new WordComparisonFinding(
+                    WordComparisonScope.Image,
+                    WordComparisonChangeKind.Modified,
+                    ImageLocation(match.TargetIndex),
+                    match.SourceIndex,
+                    match.TargetIndex,
+                    sourceImage.DisplayText,
+                    targetImage.DisplayText,
+                    "Image position changed."),
+                    targetImage.DocumentOrder);
+            }
         }
 
         private static void AddImageRangeFindings(
@@ -554,7 +590,7 @@ namespace OfficeIMO.Word {
                         continue;
                     }
 
-                    string noteId = footnote.Id?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? footnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    string noteId = footnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
                     AddTableSnapshots(snapshots, document, footnote, FootnotePartKeyPrefix + noteId, FootnotePartOrderBase + (footnoteIndex * RelatedPartOrderStride));
                     footnoteIndex++;
                 }
@@ -565,7 +601,7 @@ namespace OfficeIMO.Word {
                         continue;
                     }
 
-                    string noteId = endnote.Id?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? endnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    string noteId = endnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
                     AddTableSnapshots(snapshots, document, endnote, EndnotePartKeyPrefix + noteId, EndnotePartOrderBase + (endnoteIndex * RelatedPartOrderStride));
                     endnoteIndex++;
                 }
@@ -616,7 +652,20 @@ namespace OfficeIMO.Word {
         }
 
         private static string GetRowShape(WordTableRow row) {
-            return row.Cells.Count.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            return row.Cells.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" +
+                   string.Join(",", row.Cells.Select(GetCellShape).ToArray());
+        }
+
+        private static string GetCellShape(WordTableCell cell) {
+            TableCellProperties? properties = cell._tableCell.GetFirstChild<TableCellProperties>();
+            if (properties == null) {
+                return string.Empty;
+            }
+
+            string gridSpan = properties.GridSpan?.Val?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
+            string horizontalMerge = properties.HorizontalMerge?.Val?.Value.ToString() ?? string.Empty;
+            string verticalMerge = properties.VerticalMerge?.Val?.Value.ToString() ?? string.Empty;
+            return "span=" + gridSpan + ";h=" + horizontalMerge + ";v=" + verticalMerge;
         }
 
         private static string GetCellText(WordTableCell cell) {
@@ -635,6 +684,10 @@ namespace OfficeIMO.Word {
                     .Where(paragraph => ReferenceEquals(paragraph.Ancestors<TableCell>().FirstOrDefault(), cell._tableCell))
                     .Select(GetParagraphMatchText)
                     .ToArray());
+        }
+
+        private static string GetCellMatchKey(WordTableCell cell) {
+            return GetCellShape(cell) + CellParagraphSeparator + GetCellMatchText(cell);
         }
 
         private static string EncodeMatchText(string value) {
@@ -695,7 +748,7 @@ namespace OfficeIMO.Word {
                         continue;
                     }
 
-                    string noteId = footnote.Id?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? footnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    string noteId = footnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
                     AddImageSnapshots(snapshots, mainPart.FootnotesPart, footnote, FootnotePartKeyPrefix + noteId, FootnotePartOrderBase + (footnoteIndex * RelatedPartOrderStride));
                     footnoteIndex++;
                 }
@@ -706,7 +759,7 @@ namespace OfficeIMO.Word {
                         continue;
                     }
 
-                    string noteId = endnote.Id?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? endnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    string noteId = endnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
                     AddImageSnapshots(snapshots, mainPart.EndnotesPart, endnote, EndnotePartKeyPrefix + noteId, EndnotePartOrderBase + (endnoteIndex * RelatedPartOrderStride));
                     endnoteIndex++;
                 }
@@ -728,20 +781,20 @@ namespace OfficeIMO.Word {
                             break;
                         }
 
-                        string drawingVisualSignature = GetDrawingVisualSignature(drawing);
+                        string drawingVisualSignature = GetDrawingVisualSignature(part, drawing);
                         if (blip.Embed?.Value is string embeddedRelationshipId) {
-                            AddEmbeddedImageSnapshot(snapshots, part, embeddedRelationshipId, drawingVisualSignature, partKey, ordered.DocumentOrder);
+                            AddEmbeddedImageSnapshot(snapshots, part, embeddedRelationshipId, drawingVisualSignature, partKey, ordered.DocumentOrder, GetImagePositionKey(partKey, ordered.DocumentOrder));
                         } else if (blip.Link?.Value is string externalRelationshipId) {
-                            AddExternalImageSnapshot(snapshots, part, externalRelationshipId, drawingVisualSignature, partKey, ordered.DocumentOrder);
+                            AddExternalImageSnapshot(snapshots, part, externalRelationshipId, drawingVisualSignature, partKey, ordered.DocumentOrder, GetImagePositionKey(partKey, ordered.DocumentOrder));
                         }
 
                         break;
                     case V.ImageData imageData when imageData.RelationshipId?.Value is string relationshipId:
-                        string vmlVisualSignature = GetVmlVisualSignature(imageData);
+                        string vmlVisualSignature = GetVmlVisualSignature(part, imageData);
                         if (part.ExternalRelationships.Any(item => item.Id == relationshipId)) {
-                            AddExternalImageSnapshot(snapshots, part, relationshipId, vmlVisualSignature, partKey, ordered.DocumentOrder);
+                            AddExternalImageSnapshot(snapshots, part, relationshipId, vmlVisualSignature, partKey, ordered.DocumentOrder, GetImagePositionKey(partKey, ordered.DocumentOrder));
                         } else {
-                            AddEmbeddedImageSnapshot(snapshots, part, relationshipId, vmlVisualSignature, partKey, ordered.DocumentOrder);
+                            AddEmbeddedImageSnapshot(snapshots, part, relationshipId, vmlVisualSignature, partKey, ordered.DocumentOrder, GetImagePositionKey(partKey, ordered.DocumentOrder));
                         }
 
                         break;
@@ -749,7 +802,7 @@ namespace OfficeIMO.Word {
                 }
         }
 
-        private static void AddEmbeddedImageSnapshot(List<ImageSnapshot> snapshots, OpenXmlPart part, string relationshipId, string visualSignature, string partKey, int documentOrder) {
+        private static void AddEmbeddedImageSnapshot(List<ImageSnapshot> snapshots, OpenXmlPart part, string relationshipId, string visualSignature, string partKey, int documentOrder, string positionKey) {
             OpenXmlPart relatedPart;
             try {
                 relatedPart = part.GetPartById(relationshipId);
@@ -762,15 +815,15 @@ namespace OfficeIMO.Word {
             }
 
             using Stream stream = imagePart.GetStream(FileMode.Open, FileAccess.Read);
-            snapshots.Add(ImageSnapshot.FromEmbedded(CreateImageFingerprint(stream), visualSignature, partKey, documentOrder));
+            snapshots.Add(ImageSnapshot.FromEmbedded(CreateImageFingerprint(stream), visualSignature, partKey, documentOrder, positionKey));
         }
 
-        private static void AddExternalImageSnapshot(List<ImageSnapshot> snapshots, OpenXmlPart part, string relationshipId, string visualSignature, string partKey, int documentOrder) {
+        private static void AddExternalImageSnapshot(List<ImageSnapshot> snapshots, OpenXmlPart part, string relationshipId, string visualSignature, string partKey, int documentOrder, string positionKey) {
             ExternalRelationship? relationship = part.ExternalRelationships.FirstOrDefault(item => item.Id == relationshipId);
-            snapshots.Add(ImageSnapshot.FromExternal(relationship?.Uri?.ToString() ?? relationshipId, visualSignature, partKey, documentOrder));
+            snapshots.Add(ImageSnapshot.FromExternal(relationship?.Uri?.ToString() ?? relationshipId, visualSignature, partKey, documentOrder, positionKey));
         }
 
-        private static string GetDrawingVisualSignature(DocumentFormat.OpenXml.Wordprocessing.Drawing drawing) {
+        private static string GetDrawingVisualSignature(OpenXmlPart part, DocumentFormat.OpenXml.Wordprocessing.Drawing drawing) {
             OpenXmlElement clone = drawing.CloneNode(true);
             foreach (DocumentFormat.OpenXml.Drawing.Blip blip in clone.Descendants<DocumentFormat.OpenXml.Drawing.Blip>()) {
                 blip.Embed = null;
@@ -792,10 +845,10 @@ namespace OfficeIMO.Word {
                 properties.Name = string.Empty;
             }
 
-            return clone.OuterXml;
+            return clone.OuterXml + GetImageHyperlinkSignature(part, drawing);
         }
 
-        private static string GetVmlVisualSignature(V.ImageData imageData) {
+        private static string GetVmlVisualSignature(OpenXmlPart part, V.ImageData imageData) {
             OpenXmlElement clone = (imageData.Parent ?? imageData).CloneNode(true);
             if (clone is V.ImageData clonedImageData) {
                 clonedImageData.RelationshipId = null;
@@ -805,7 +858,16 @@ namespace OfficeIMO.Word {
                 descendant.RelationshipId = null;
             }
 
-            return clone.OuterXml;
+            return clone.OuterXml + GetImageHyperlinkSignature(part, imageData);
+        }
+
+        private static string GetImageHyperlinkSignature(OpenXmlPart part, OpenXmlElement imageElement) {
+            Hyperlink? hyperlink = imageElement.Ancestors<Hyperlink>().FirstOrDefault();
+            return hyperlink == null ? string.Empty : "|hyperlink:" + GetHyperlinkSignature(part, hyperlink);
+        }
+
+        private static string GetImagePositionKey(string partKey, int documentOrder) {
+            return partKey + ":" + documentOrder.ToString(System.Globalization.CultureInfo.InvariantCulture);
         }
 
         private static IEnumerable<OrderedElement> EnumerateDescendantsWithOrder(OpenXmlElement? container, int orderBase) {
@@ -914,12 +976,13 @@ namespace OfficeIMO.Word {
         }
 
         private sealed class ImageSnapshot {
-            private ImageSnapshot(ImageFingerprint? embeddedFingerprint, string? externalUri, string visualSignature, string partKey, int documentOrder) {
+            private ImageSnapshot(ImageFingerprint? embeddedFingerprint, string? externalUri, string visualSignature, string partKey, int documentOrder, string positionKey) {
                 EmbeddedFingerprint = embeddedFingerprint;
                 ExternalUri = externalUri;
                 VisualSignature = visualSignature;
                 PartKey = partKey;
                 DocumentOrder = documentOrder;
+                PositionKey = positionKey;
             }
 
             internal ImageFingerprint? EmbeddedFingerprint { get; }
@@ -932,14 +995,16 @@ namespace OfficeIMO.Word {
 
             internal int DocumentOrder { get; }
 
+            internal string PositionKey { get; }
+
             internal string DisplayText => ExternalUri == null ? "[Image]" : "[Image: " + ExternalUri + "]";
 
-            internal static ImageSnapshot FromEmbedded(ImageFingerprint embeddedFingerprint, string visualSignature, string partKey, int documentOrder) {
-                return new ImageSnapshot(embeddedFingerprint, null, visualSignature, partKey, documentOrder);
+            internal static ImageSnapshot FromEmbedded(ImageFingerprint embeddedFingerprint, string visualSignature, string partKey, int documentOrder, string positionKey) {
+                return new ImageSnapshot(embeddedFingerprint, null, visualSignature, partKey, documentOrder, positionKey);
             }
 
-            internal static ImageSnapshot FromExternal(string externalUri, string visualSignature, string partKey, int documentOrder) {
-                return new ImageSnapshot(null, externalUri, visualSignature, partKey, documentOrder);
+            internal static ImageSnapshot FromExternal(string externalUri, string visualSignature, string partKey, int documentOrder, string positionKey) {
+                return new ImageSnapshot(null, externalUri, visualSignature, partKey, documentOrder, positionKey);
             }
         }
 

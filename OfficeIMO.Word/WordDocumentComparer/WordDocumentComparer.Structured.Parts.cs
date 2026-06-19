@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
@@ -8,6 +9,10 @@ namespace OfficeIMO.Word {
             var typeOrdinals = new Dictionary<string, int>(StringComparer.Ordinal);
             foreach (HeaderReference reference in mainPart.Document?.Descendants<HeaderReference>() ?? Enumerable.Empty<HeaderReference>()) {
                 if (reference.Id?.Value is not string relationshipId) {
+                    continue;
+                }
+
+                if (!IsHeaderFooterReferenceVisible(mainPart, reference.Type?.Value, reference)) {
                     continue;
                 }
 
@@ -28,6 +33,10 @@ namespace OfficeIMO.Word {
             var typeOrdinals = new Dictionary<string, int>(StringComparer.Ordinal);
             foreach (FooterReference reference in mainPart.Document?.Descendants<FooterReference>() ?? Enumerable.Empty<FooterReference>()) {
                 if (reference.Id?.Value is not string relationshipId) {
+                    continue;
+                }
+
+                if (!IsHeaderFooterReferenceVisible(mainPart, reference.Type?.Value, reference)) {
                     continue;
                 }
 
@@ -65,6 +74,25 @@ namespace OfficeIMO.Word {
             }
 
             return "default";
+        }
+
+        private static bool IsHeaderFooterReferenceVisible(MainDocumentPart mainPart, HeaderFooterValues? type, OpenXmlElement reference) {
+            if (type == HeaderFooterValues.First) {
+                SectionProperties? sectionProperties = reference.Ancestors<SectionProperties>().FirstOrDefault();
+                TitlePage? titlePage = sectionProperties?.Elements<TitlePage>().FirstOrDefault();
+                return titlePage != null && IsOnOffEnabled(titlePage);
+            }
+
+            if (type == HeaderFooterValues.Even) {
+                Settings? settings = mainPart.DocumentSettingsPart?.Settings;
+                return settings?.Elements<EvenAndOddHeaders>().Any(IsOnOffEnabled) == true;
+            }
+
+            return true;
+        }
+
+        private static bool IsOnOffEnabled(OnOffType onOff) {
+            return onOff.Val == null || onOff.Val.Value;
         }
 
         private static int GetAndIncrementOrdinal(Dictionary<string, int> ordinals, string typeKey) {
