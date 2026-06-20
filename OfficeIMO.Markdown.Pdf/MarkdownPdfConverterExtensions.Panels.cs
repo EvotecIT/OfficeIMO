@@ -16,20 +16,6 @@ public static partial class MarkdownPdfConverterExtensions {
                 return;
             }
 
-            bool renderedInsidePanel = false;
-            pdf.PanelParagraph(builder => {
-                builder.Italic(true);
-                if (canRenderChildrenInsidePanel) {
-                    renderedInsidePanel = TryAppendBlocksInsidePanel(builder, quote.Children, CreateInlineStyle(visualTheme).With(italic: true), visualTheme, lineBreakBeforeFirst: false);
-                } else {
-                    builder.Italic("Quote");
-                }
-            }, visualTheme.QuotePanelStyleSnapshot);
-
-            if (renderedInsidePanel) {
-                return;
-            }
-
             RenderBlocks(pdf, quote.Children, document, options, visualTheme);
             return;
         }

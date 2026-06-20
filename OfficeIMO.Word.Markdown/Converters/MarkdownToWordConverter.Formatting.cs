@@ -64,15 +64,16 @@ namespace OfficeIMO.Word.Markdown {
             Omd.MarkdownTableVisualStyle tableStyle = theme.TableSnapshot;
             string borderHex = palette.Border.ToRgbHex();
             DocumentFormat.OpenXml.UInt32Value borderSize = ToWordBorderSize(tableStyle.BorderWidth);
+            BorderValues borderStyle = IsPositiveFinite(tableStyle.BorderWidth) ? BorderValues.Single : BorderValues.None;
 
             for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
                 bool header = hasHeaderRow && rowIndex == 0;
                 bool stripe = !header && tableStyle.UseRowStripes && rowIndex % 2 == 0;
                 foreach (var cell in table.Rows[rowIndex].Cells) {
-                    cell.Borders.TopStyle = BorderValues.Single;
-                    cell.Borders.BottomStyle = BorderValues.Single;
-                    cell.Borders.LeftStyle = BorderValues.Single;
-                    cell.Borders.RightStyle = BorderValues.Single;
+                    cell.Borders.TopStyle = borderStyle;
+                    cell.Borders.BottomStyle = borderStyle;
+                    cell.Borders.LeftStyle = borderStyle;
+                    cell.Borders.RightStyle = borderStyle;
                     cell.Borders.TopSize = borderSize;
                     cell.Borders.BottomSize = borderSize;
                     cell.Borders.LeftSize = borderSize;
@@ -93,10 +94,17 @@ namespace OfficeIMO.Word.Markdown {
         }
 
         private static DocumentFormat.OpenXml.UInt32Value ToWordBorderSize(double borderWidth) {
-            double value = double.IsNaN(borderWidth) || double.IsInfinity(borderWidth) || borderWidth <= 0 ? 0.5 : borderWidth;
+            if (!IsPositiveFinite(borderWidth)) {
+                return 0U;
+            }
+
+            double value = borderWidth;
             uint size = (uint)Math.Max(2, Math.Min(96, Math.Round(value * 8, MidpointRounding.AwayFromZero)));
             return size;
         }
+
+        private static bool IsPositiveFinite(double value) =>
+            !double.IsNaN(value) && !double.IsInfinity(value) && value > 0;
 
         private static void ApplyCellRunColor(WordTableCell cell, string colorHex) {
             foreach (var paragraph in cell.Paragraphs) {

@@ -50,16 +50,35 @@ namespace OfficeIMO.Tests.MarkdownSuite {
                 .Table(t => t.Headers("Name", "Value").Row("Accent", "Emerald"))
                 .ToHtmlDocument(new HtmlOptions {
                     Title = "Shared Theme",
-                    Theme = theme,
+                    VisualTheme = theme,
                     Kind = HtmlKind.Document
                 });
 
+            Assert.Contains("body { --md-heading: #064e3b", html, StringComparison.Ordinal);
             Assert.Contains("article.markdown-body h1", html, StringComparison.Ordinal);
             Assert.Contains("--md-heading: #064e3b", html, StringComparison.Ordinal);
             Assert.Contains("border-color: #a7f3d0", html, StringComparison.Ordinal);
             Assert.Contains("border-width: 1.2px", html, StringComparison.Ordinal);
             Assert.Contains("padding: 5px 11px", html, StringComparison.Ordinal);
+            Assert.Contains("tbody tr:nth-child(2n) { background-color: transparent; }", html, StringComparison.Ordinal);
             Assert.DoesNotContain("tbody tr:nth-child(even)", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void ThemeColors_Property_Remains_Html_Color_Override_Api() {
+            string html = MarkdownDoc.Create()
+                .H1("Legacy colors")
+                .ToHtmlDocument(new HtmlOptions {
+                    Title = "Legacy",
+                    Theme = new ThemeColors {
+                        HeadingLight = "SeaGreen",
+                        AccentLight = "#123456"
+                    },
+                    Kind = HtmlKind.Document
+                });
+
+            Assert.Contains("body { --md-heading: #2e8b57; --md-accent: #123456;", html, StringComparison.Ordinal);
+            Assert.Contains("article.markdown-body h1", html, StringComparison.Ordinal);
         }
 
         [Fact]

@@ -3,7 +3,7 @@ using System.Globalization;
 namespace OfficeIMO.Markdown;
 
 /// <summary>
-/// Renderer-neutral RGB color used by shared Markdown visual themes.
+/// Renderer-neutral RGB or RGBA color used by shared Markdown visual themes, accepting hex values and Office-style named colors.
 /// </summary>
 public readonly struct MarkdownColor : IEquatable<MarkdownColor> {
     private static readonly Dictionary<string, MarkdownColor> NamedColors = new Dictionary<string, MarkdownColor>(StringComparer.OrdinalIgnoreCase) {

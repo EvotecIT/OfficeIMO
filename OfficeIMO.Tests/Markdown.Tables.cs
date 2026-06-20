@@ -62,6 +62,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void MarkdownToWord_SharedVisualTheme_AllowsBorderlessTables() {
+            MarkdownVisualTheme theme = MarkdownVisualTheme.Report()
+                .WithTable(table => table.BorderWidth = 0);
+            string md = """
+| Name | Value |
+| --- | --- |
+| First | 1 |
+""";
+
+            using var doc = md.LoadFromMarkdown(new MarkdownToWordOptions { Theme = theme });
+
+            var cell = doc.Tables[0].Rows[0].Cells[0];
+            Assert.Equal(BorderValues.None, cell.Borders.TopStyle);
+            Assert.Equal(0U, cell.Borders.TopSize?.Value);
+            Assert.Equal(BorderValues.None, cell.Borders.BottomStyle);
+            Assert.Equal(0U, cell.Borders.BottomSize?.Value);
+        }
+
+        [Fact]
         public void WordToMarkdown_TableAlignmentMarkers() {
             using var doc = WordDocument.Create();
             var table = doc.AddTable(2, 3);

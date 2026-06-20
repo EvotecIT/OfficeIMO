@@ -409,8 +409,8 @@ internal static class HtmlRenderer {
     }
 
     private static HtmlStyle GetEffectiveStyle(HtmlOptions options) {
-        if (options.Theme != null && options.Style == HtmlStyle.Clean) {
-            return options.Theme.HtmlStyle;
+        if (options.VisualTheme != null && options.Style == HtmlStyle.Clean) {
+            return options.VisualTheme.HtmlStyle;
         }
 
         return options.Style;
@@ -418,7 +418,7 @@ internal static class HtmlRenderer {
 
     private static string BuildThemeOverrides(HtmlOptions options) {
         ThemeColors t = BuildEffectiveThemeColors(options);
-        MarkdownVisualTheme? theme = options.Theme;
+        MarkdownVisualTheme? theme = options.VisualTheme;
         bool any = theme != null
                  || !string.IsNullOrWhiteSpace(t.AccentLight) || !string.IsNullOrWhiteSpace(t.AccentDark)
                  || !string.IsNullOrWhiteSpace(t.HeadingLight) || !string.IsNullOrWhiteSpace(t.HeadingDark)
@@ -430,6 +430,7 @@ internal static class HtmlRenderer {
         var scope = NormalizeScope(options.CssScopeSelector);
         // Expose variables on scope for both themes
         sb.Append('\n');
+        AppendThemeVariableBlock(sb, scope, t.HeadingLight, t.AccentLight, t.TocBgLight, t.TocBorderLight, t.ActiveLinkLight);
         sb.Append(CombineSelectors("html[data-theme=light]", scope)).Append(" {");
         if (!string.IsNullOrWhiteSpace(t.HeadingLight)) sb.Append(" --md-heading: ").Append(t.HeadingLight).Append(';');
         if (!string.IsNullOrWhiteSpace(t.AccentLight)) sb.Append(" --md-accent: ").Append(t.AccentLight).Append(';');
@@ -466,6 +467,8 @@ internal static class HtmlRenderer {
               .Append(table.CellPaddingX.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append("px; }\n");
             if (table.UseRowStripes) {
                 sb.Append(Descendant(scope, "tbody tr:nth-child(2n)")).Append(" { background-color: ").Append(palette.TableStripeBackground.ToCssColor()).Append("; }\n");
+            } else {
+                sb.Append(Descendant(scope, "tbody tr:nth-child(2n)")).Append(" { background-color: transparent; }\n");
             }
             sb.Append(Descendant(scope, "pre")).Append(" { background: ").Append(palette.CodeBackground.ToCssColor()).Append("; border-color: ").Append(palette.Border.ToCssColor()).Append("; }\n");
             sb.Append(Descendant(scope, "code")).Append(" { color: ").Append(palette.Text.ToCssColor()).Append("; }\n");
@@ -475,8 +478,8 @@ internal static class HtmlRenderer {
 
     private static ThemeColors BuildEffectiveThemeColors(HtmlOptions options) {
         var colors = new ThemeColors();
-        if (options.Theme != null) {
-            MarkdownVisualPalette palette = options.Theme.PaletteSnapshot;
+        if (options.VisualTheme != null) {
+            MarkdownVisualPalette palette = options.VisualTheme.PaletteSnapshot;
             colors.AccentLight = palette.Accent.ToCssColor();
             colors.AccentDark = palette.Accent.ToCssColor();
             colors.HeadingLight = palette.Heading.ToCssColor();
@@ -489,8 +492,19 @@ internal static class HtmlRenderer {
             colors.ActiveLinkDark = palette.Accent.ToCssColor();
         }
 
+        ApplyColorOverrides(colors, options.Theme);
         ApplyColorOverrides(colors, options.ColorOverrides);
         return colors;
+    }
+
+    private static void AppendThemeVariableBlock(StringBuilder sb, string selector, string? heading, string? accent, string? tocBackground, string? tocBorder, string? activeLink) {
+        sb.Append(selector).Append(" {");
+        if (!string.IsNullOrWhiteSpace(heading)) sb.Append(" --md-heading: ").Append(heading).Append(';');
+        if (!string.IsNullOrWhiteSpace(accent)) sb.Append(" --md-accent: ").Append(accent).Append(';');
+        if (!string.IsNullOrWhiteSpace(tocBackground)) sb.Append(" --md-toc-bg: ").Append(tocBackground).Append(';');
+        if (!string.IsNullOrWhiteSpace(tocBorder)) sb.Append(" --md-toc-border: ").Append(tocBorder).Append(';');
+        if (!string.IsNullOrWhiteSpace(activeLink)) sb.Append(" --md-active: ").Append(activeLink).Append(';');
+        sb.Append(" }\n");
     }
 
     private static void ApplyColorOverrides(ThemeColors target, ThemeColors? overrides) {

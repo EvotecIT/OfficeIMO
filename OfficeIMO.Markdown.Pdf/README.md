@@ -116,7 +116,7 @@ MarkdownVisualTheme theme = MarkdownVisualTheme.Report()
 
 MarkdownDoc document = MarkdownReader.Parse(markdown);
 
-document.SaveAsHtml("report.html", new HtmlOptions { Theme = theme });
+document.SaveAsHtml("report.html", new HtmlOptions { VisualTheme = theme });
 document.SaveAsPdf("report.pdf", new MarkdownPdfSaveOptions { Theme = theme });
 
 using var word = document.ToWordDocument(new MarkdownToWordOptions { Theme = theme });

@@ -54,6 +54,7 @@ public class MarkdownSaveAsPdfVisualTests {
         Assert.Contains(PdfCore.PdfImageExtractor.ExtractImages(bytes), image => image.IsImageFile && image.MimeType == "image/png");
         Assert.Contains("Inline badge caption", text, StringComparison.Ordinal);
         Assert.DoesNotContain("[Image:", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Quote", text, StringComparison.Ordinal);
     }
 
     [Fact]
