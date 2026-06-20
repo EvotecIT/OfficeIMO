@@ -639,6 +639,9 @@ public static class HtmlRoundTripScorer {
         AddAttributePart(parts, node, "href");
         AddAttributePart(parts, node, "xlink:href");
         AddAttributePart(parts, node, "srcset");
+        AddAttributePart(parts, node, "media");
+        AddAttributePart(parts, node, "type");
+        AddAttributePart(parts, node, "sizes");
         AddAttributePart(parts, node, "data-src");
         AddAttributePart(parts, node, "data-srcset");
         AddAttributePart(parts, node, "alt");

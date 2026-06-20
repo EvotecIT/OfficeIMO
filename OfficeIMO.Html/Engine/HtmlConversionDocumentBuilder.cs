@@ -37,13 +37,15 @@ public static class HtmlConversionDocumentBuilder {
     }
 
     private static HtmlNormalizationOptions ConfigureNormalization(IHtmlDocument document, HtmlConversionDocumentOptions options) {
-        HtmlNormalizationOptions normalization = options.NormalizationOptions ?? new HtmlNormalizationOptions();
-        if (normalization.BaseUri == null) {
-            normalization.BaseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, options.BaseUri);
-        }
-
-        normalization.UrlPolicy = options.UrlPolicy.Clone();
-        normalization.UseBodyContentsOnly = options.UseBodyContentsOnly;
-        return normalization;
+        HtmlNormalizationOptions source = options.NormalizationOptions ?? new HtmlNormalizationOptions();
+        return new HtmlNormalizationOptions {
+            BaseUri = source.BaseUri ?? HtmlDocumentParser.ResolveEffectiveBaseUri(document, options.BaseUri),
+            UrlPolicy = options.UrlPolicy.Clone(),
+            UseBodyContentsOnly = options.UseBodyContentsOnly,
+            PreserveComments = source.PreserveComments,
+            PreserveStyleElements = source.PreserveStyleElements,
+            RemoveEventHandlerAttributes = source.RemoveEventHandlerAttributes,
+            CollapseTextWhitespace = source.CollapseTextWhitespace
+        };
     }
 }

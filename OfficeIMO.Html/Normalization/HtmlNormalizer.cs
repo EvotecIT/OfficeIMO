@@ -8,6 +8,7 @@ namespace OfficeIMO.Html;
 /// Produces stable, policy-aware normalized HTML for OfficeIMO conversion workflows.
 /// </summary>
 public static class HtmlNormalizer {
+    private const int MaxSrcDocDepth = 8;
     private static readonly Regex CssUrlExpression = new Regex("url\\(\\s*(?:\"(?<url>[^\"]*)\"|'(?<url>[^']*)'|(?<url>[^)]+))\\s*\\)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
     private static readonly HashSet<string> BooleanAttributes = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
         "allowfullscreen", "async", "autofocus", "autoplay", "checked", "controls", "default", "defer", "disabled",
@@ -48,23 +49,27 @@ public static class HtmlNormalizer {
         }
 
         options ??= new HtmlNormalizationOptions();
+        return NormalizeDocument(document, options, 0);
+    }
+
+    private static string NormalizeDocument(IHtmlDocument document, HtmlNormalizationOptions options, int srcDocDepth) {
         INode root = options.UseBodyContentsOnly
             ? HtmlDocumentParser.GetConversionRoot(document, useBodyContentsOnly: true)
             : document.DocumentElement;
 
         var builder = new StringBuilder();
         if (!options.UseBodyContentsOnly && root is IElement documentElement) {
-            AppendElement(builder, documentElement, options);
+            AppendElement(builder, documentElement, options, srcDocDepth);
         } else {
             foreach (INode child in root.ChildNodes) {
-                AppendNode(builder, child, options);
+                AppendNode(builder, child, options, srcDocDepth);
             }
         }
 
         return builder.ToString().Trim();
     }
 
-    private static void AppendNode(StringBuilder builder, INode node, HtmlNormalizationOptions options) {
+    private static void AppendNode(StringBuilder builder, INode node, HtmlNormalizationOptions options, int srcDocDepth) {
         if (node.NodeType == NodeType.Text) {
             AppendText(builder, node.TextContent, options);
             return;
@@ -79,18 +84,18 @@ public static class HtmlNormalizer {
         }
 
         if (node is IElement element) {
-            AppendElement(builder, element, options);
+            AppendElement(builder, element, options, srcDocDepth);
         }
     }
 
-    private static void AppendElement(StringBuilder builder, IElement element, HtmlNormalizationOptions options) {
+    private static void AppendElement(StringBuilder builder, IElement element, HtmlNormalizationOptions options, int srcDocDepth) {
         string name = element.TagName.ToLowerInvariant();
         if (SkippedElements.Contains(name) || (name == "style" && !options.PreserveStyleElements)) {
             return;
         }
 
         builder.Append('<').Append(name);
-        foreach (KeyValuePair<string, string> attribute in NormalizeAttributes(element, options)) {
+        foreach (KeyValuePair<string, string> attribute in NormalizeAttributes(element, options, srcDocDepth)) {
             builder.Append(' ').Append(attribute.Key);
             if (!BooleanAttributes.Contains(attribute.Key) || !IsBooleanValue(attribute.Key, attribute.Value)) {
                 builder.Append("=\"").Append(WebUtility.HtmlEncode(attribute.Value)).Append('"');
@@ -102,11 +107,11 @@ public static class HtmlNormalizer {
             if (name == "style" && options.PreserveStyleElements) {
                 string styleText = NormalizeCssUrls(element.TextContent, options.BaseUri, options.UrlPolicy);
                 if (styleText.Length > 0) {
-                    builder.Append(WebUtility.HtmlEncode(styleText));
+                    builder.Append(EscapeRawTextElementContent(styleText, "style"));
                 }
             } else {
                 foreach (INode child in element.ChildNodes) {
-                    AppendNode(builder, child, options);
+                    AppendNode(builder, child, options, srcDocDepth);
                 }
             }
 
@@ -114,22 +119,24 @@ public static class HtmlNormalizer {
         }
     }
 
-    private static IReadOnlyList<KeyValuePair<string, string>> NormalizeAttributes(IElement element, HtmlNormalizationOptions options) {
+    private static IReadOnlyList<KeyValuePair<string, string>> NormalizeAttributes(IElement element, HtmlNormalizationOptions options, int srcDocDepth) {
         var attributes = new List<KeyValuePair<string, string>>();
+        bool preserveAttributeCasing = IsForeignContent(element);
         foreach (IAttr attribute in element.Attributes) {
             string name = attribute.Name.ToLowerInvariant();
             if (options.RemoveEventHandlerAttributes && name.StartsWith("on", StringComparison.OrdinalIgnoreCase)) {
                 continue;
             }
 
-            string value = NormalizeAttributeValue(element, name, attribute.Value, options);
+            string value = NormalizeAttributeValue(element, name, attribute.Value, options, srcDocDepth);
             if (IsUrlAttribute(element, name) || SrcSetAttributes.Contains(name)) {
                 if (string.IsNullOrWhiteSpace(value)) {
                     continue;
                 }
             }
 
-            attributes.Add(new KeyValuePair<string, string>(name, value));
+            string emittedName = preserveAttributeCasing ? attribute.Name : name;
+            attributes.Add(new KeyValuePair<string, string>(emittedName, value));
         }
 
         return attributes
@@ -138,9 +145,13 @@ public static class HtmlNormalizer {
             .ToList();
     }
 
-    private static string NormalizeAttributeValue(IElement element, string name, string value, HtmlNormalizationOptions options) {
+    private static string NormalizeAttributeValue(IElement element, string name, string value, HtmlNormalizationOptions options, int srcDocDepth) {
         if (BooleanAttributes.Contains(name) && IsBooleanValue(name, value)) {
             return name;
+        }
+
+        if (string.Equals(name, "srcdoc", StringComparison.OrdinalIgnoreCase)) {
+            return NormalizeSrcDoc(value, options, srcDocDepth);
         }
 
         if (SrcSetAttributes.Contains(name)) {
@@ -160,6 +171,30 @@ public static class HtmlNormalizer {
         }
 
         return value.Trim();
+    }
+
+    private static string NormalizeSrcDoc(string value, HtmlNormalizationOptions options, int srcDocDepth) {
+        if (string.IsNullOrWhiteSpace(value) || srcDocDepth >= MaxSrcDocDepth) {
+            return string.Empty;
+        }
+
+        IHtmlDocument nested = HtmlDocumentParser.ParseDocument(value);
+        HtmlNormalizationOptions nestedOptions = CopyOptions(options);
+        nestedOptions.BaseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(nested, options.BaseUri);
+        nestedOptions.UseBodyContentsOnly = true;
+        return NormalizeDocument(nested, nestedOptions, srcDocDepth + 1);
+    }
+
+    private static HtmlNormalizationOptions CopyOptions(HtmlNormalizationOptions options) {
+        return new HtmlNormalizationOptions {
+            BaseUri = options.BaseUri,
+            UrlPolicy = options.UrlPolicy,
+            UseBodyContentsOnly = options.UseBodyContentsOnly,
+            PreserveComments = options.PreserveComments,
+            PreserveStyleElements = options.PreserveStyleElements,
+            RemoveEventHandlerAttributes = options.RemoveEventHandlerAttributes,
+            CollapseTextWhitespace = options.CollapseTextWhitespace
+        };
     }
 
     private static void AppendText(StringBuilder builder, string? text, HtmlNormalizationOptions options) {
@@ -233,13 +268,37 @@ public static class HtmlNormalizer {
         return value.Replace("\\", "\\\\").Replace("\"", "\\\"");
     }
 
+    private static string EscapeRawTextElementContent(string value, string elementName) {
+        return Regex.Replace(
+            value,
+            "</\\s*" + Regex.Escape(elementName),
+            match => "<\\/" + match.Value.Substring(2),
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+    }
+
+    private static bool IsForeignContent(IElement element) {
+        IElement? current = element;
+        while (current != null) {
+            if (string.Equals(current.TagName, "svg", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(current.TagName, "math", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(current.NamespaceUri, "http://www.w3.org/2000/svg", StringComparison.Ordinal)
+                || string.Equals(current.NamespaceUri, "http://www.w3.org/1998/Math/MathML", StringComparison.Ordinal)) {
+                return true;
+            }
+
+            current = current.ParentElement;
+        }
+
+        return false;
+    }
+
     private static bool IsBooleanValue(string name, string? value) {
         return string.IsNullOrEmpty(value)
             || string.Equals(value, name, StringComparison.OrdinalIgnoreCase);
     }
 
     private static int AttributeOrder(string name) {
-        switch (name) {
+        switch (name.ToLowerInvariant()) {
             case "id":
                 return 0;
             case "class":

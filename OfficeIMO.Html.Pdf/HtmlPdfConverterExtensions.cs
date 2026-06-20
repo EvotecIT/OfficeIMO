@@ -42,6 +42,7 @@ public static class HtmlPdfConverterExtensions {
 
         options ??= new HtmlPdfSaveOptions();
         options.Profile = document.ProfileContract.Profile == HtmlConversionProfile.Document
+            || document.ProfileContract.Profile == HtmlConversionProfile.HighFidelityPrint
             ? HtmlPdfProfile.Document
             : HtmlPdfProfile.Semantic;
         return document.HtmlForConversion.ToPdfDocument(options);

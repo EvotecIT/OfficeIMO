@@ -360,6 +360,18 @@ public sealed class HtmlPdfTests {
 
         Assert.NotEmpty(pdf);
         Assert.Equal(HtmlPdfProfile.Document, options.Profile);
+
+        HtmlConversionDocument highFidelity = HtmlConversionDocumentBuilder.Build(
+            "<main><h1>High-fidelity profile</h1><p>Shared conversion document.</p></main>",
+            new HtmlConversionDocumentOptions {
+                Profile = HtmlConversionProfile.HighFidelityPrint
+            });
+        var highFidelityOptions = HtmlPdfSaveOptions.CreateSemanticProfile();
+
+        byte[] highFidelityPdf = highFidelity.SaveAsPdf(highFidelityOptions);
+
+        Assert.NotEmpty(highFidelityPdf);
+        Assert.Equal(HtmlPdfProfile.Document, highFidelityOptions.Profile);
     }
 
     [Fact]

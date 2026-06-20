@@ -86,7 +86,8 @@ public static class HtmlResourcePipeline {
             case "input":
                 AddSubmitterFormAction(manifest, element, baseUri, options);
                 if (string.Equals(element.GetAttribute("type"), "image", StringComparison.OrdinalIgnoreCase)) {
-                    AddImage(manifest, element, baseUri, options);
+                    AddAttribute(manifest, HtmlResourceKind.Image, element, "data-src", baseUri, options);
+                    AddAttribute(manifest, HtmlResourceKind.Image, element, "src", baseUri, options);
                 }
 
                 break;
@@ -377,14 +378,15 @@ public static class HtmlResourcePipeline {
         }
 
         css = StripCssCommentsOutsideStrings(css);
+        List<SourceRange> inactiveMediaRanges = GetInactiveMediaRanges(css);
         bool scanImports = !string.Equals(attributeName, "style", StringComparison.OrdinalIgnoreCase);
-        Dictionary<string, List<CssCustomPropertyDefinition>> customPropertyDefinitions = ExtractCustomPropertyDefinitions(css);
+        Dictionary<string, List<CssCustomPropertyDefinition>> customPropertyDefinitions = ExtractCustomPropertyDefinitions(css, inactiveMediaRanges);
         List<SourceRange> resolvedVarFallbackRanges = GetResolvedVarFallbackRanges(css, customPropertyDefinitions);
         var importRanges = new List<SourceRange>();
         if (scanImports) {
             foreach (CssImportReference reference in ExtractCssImports(css)) {
                 string source = reference.Source;
-                if (!string.IsNullOrWhiteSpace(source)) {
+                if (!string.IsNullOrWhiteSpace(source) && !IsInRanges(reference.Start, inactiveMediaRanges)) {
                     importRanges.Add(new SourceRange(reference.Start, reference.End));
                     AddRaw(manifest, HtmlResourceKind.Stylesheet, element, attributeName + "-import", DecodeCssEscapes(source), baseUri, options);
                 }
@@ -393,7 +395,7 @@ public static class HtmlResourcePipeline {
 
         AddUsedCustomPropertyUrls(manifest, element, attributeName, css, customPropertyDefinitions, baseUri, options);
         foreach (CssStringUrlReference reference in ExtractImageSetStringUrls(css)) {
-            if (!TryGetCustomPropertyName(css, reference.Start, out _) && IsSupportedCssUrlDeclaration(css, reference.Start)) {
+            if (!IsInRanges(reference.Start, inactiveMediaRanges) && !TryGetCustomPropertyName(css, reference.Start, out _) && IsSupportedCssUrlDeclaration(css, reference.Start)) {
                 AddRaw(manifest, ClassifyCssUrl(css, reference.Start), element, attributeName + "-image-set", DecodeCssEscapes(reference.Source), baseUri, options);
             }
         }
@@ -404,6 +406,7 @@ public static class HtmlResourcePipeline {
                 && IsCssFunctionNameAt(css, match.Index, "url")
                 && !IsImportUrl(match.Index, importRanges)
                 && !IsImportUrl(match.Index, resolvedVarFallbackRanges)
+                && !IsInRanges(match.Index, inactiveMediaRanges)
                 && !IsImportAtRuleUrl(css, match.Index)
                 && !IsAtRulePreludeUrl(css, match.Index)
                 && !IsInsideCssString(css, match.Index)
@@ -414,13 +417,16 @@ public static class HtmlResourcePipeline {
         }
     }
 
-    private static Dictionary<string, List<CssCustomPropertyDefinition>> ExtractCustomPropertyDefinitions(string css) {
+    private static Dictionary<string, List<CssCustomPropertyDefinition>> ExtractCustomPropertyDefinitions(string css, IReadOnlyList<SourceRange> inactiveMediaRanges) {
         var definitions = new Dictionary<string, List<CssCustomPropertyDefinition>>(StringComparer.Ordinal);
         foreach (Match match in CssCustomPropertyDeclarationExpression.Matches(css)) {
             string propertyName = match.Groups["name"].Value;
             int declarationStart = match.Index;
             int valueStart = css.IndexOf(':', declarationStart);
-            if (IsInsideCssString(css, declarationStart) || valueStart < 0 || GetCssDeclarationPropertyName(css, valueStart + 1) != propertyName) {
+            if (IsInsideCssString(css, declarationStart)
+                || IsInRanges(declarationStart, inactiveMediaRanges)
+                || valueStart < 0
+                || GetCssDeclarationPropertyName(css, valueStart + 1) != propertyName) {
                 continue;
             }
 
@@ -451,6 +457,118 @@ public static class HtmlResourcePipeline {
         }
 
         return definitions;
+    }
+
+    private static List<SourceRange> GetInactiveMediaRanges(string css) {
+        var ranges = new List<SourceRange>();
+        int index = 0;
+        while (index < css.Length) {
+            int mediaStart = css.IndexOf("@media", index, StringComparison.OrdinalIgnoreCase);
+            if (mediaStart < 0) {
+                break;
+            }
+
+            if (IsInsideCssString(css, mediaStart) || !HasAtRuleTokenBoundary(css, mediaStart, "@media")) {
+                index = mediaStart + 6;
+                continue;
+            }
+
+            int preludeStart = mediaStart + 6;
+            int open = FindNextTopLevelBlockStart(css, preludeStart);
+            if (open < 0) {
+                break;
+            }
+
+            int close = FindMatchingCssBrace(css, open);
+            if (close <= open) {
+                break;
+            }
+
+            string mediaText = css.Substring(preludeStart, open - preludeStart).Trim();
+            if (!IsApplicableMedia(mediaText)) {
+                ranges.Add(new SourceRange(open + 1, close));
+            }
+
+            index = close + 1;
+        }
+
+        return ranges;
+    }
+
+    private static int FindNextTopLevelBlockStart(string css, int start) {
+        int depth = 0;
+        char quote = '\0';
+        for (int i = start; i < css.Length; i++) {
+            char current = css[i];
+            if (quote != '\0') {
+                if (current == quote && !IsEscaped(css, i)) {
+                    quote = '\0';
+                }
+
+                continue;
+            }
+
+            if (current == '"' || current == '\'') {
+                quote = current;
+                continue;
+            }
+
+            if (current == '(') {
+                depth++;
+                continue;
+            }
+
+            if (current == ')') {
+                depth = Math.Max(0, depth - 1);
+                continue;
+            }
+
+            if (depth == 0) {
+                if (current == '{') {
+                    return i;
+                }
+
+                if (current == ';') {
+                    return -1;
+                }
+            }
+        }
+
+        return -1;
+    }
+
+    private static int FindMatchingCssBrace(string css, int open) {
+        int depth = 0;
+        char quote = '\0';
+        for (int i = open; i < css.Length; i++) {
+            char current = css[i];
+            if (quote != '\0') {
+                if (current == quote && !IsEscaped(css, i)) {
+                    quote = '\0';
+                }
+
+                continue;
+            }
+
+            if (current == '"' || current == '\'') {
+                quote = current;
+                continue;
+            }
+
+            if (current == '{') {
+                depth++;
+                continue;
+            }
+
+            if (current == '}') {
+                depth--;
+                if (depth == 0) {
+                    return i;
+                }
+            }
+        }
+
+        return -1;
     }
 
     private static void AddCustomPropertyDefinition(IDictionary<string, List<CssCustomPropertyDefinition>> definitions, string propertyName, string source, string selector, int declarationStart) {
@@ -1101,7 +1219,11 @@ public static class HtmlResourcePipeline {
     }
 
     private static bool HasImportTokenBoundary(string css, int importStart) {
-        int afterImport = importStart + 7;
+        return HasAtRuleTokenBoundary(css, importStart, "@import");
+    }
+
+    private static bool HasAtRuleTokenBoundary(string css, int atRuleStart, string atRuleName) {
+        int afterImport = atRuleStart + atRuleName.Length;
         return afterImport >= css.Length || char.IsWhiteSpace(css[afterImport]);
     }
 
@@ -1184,6 +1306,10 @@ public static class HtmlResourcePipeline {
     }
 
     private static bool IsImportUrl(int index, IEnumerable<SourceRange> ranges) {
+        return IsInRanges(index, ranges);
+    }
+
+    private static bool IsInRanges(int index, IEnumerable<SourceRange> ranges) {
         foreach (SourceRange range in ranges) {
             if (index >= range.Start && index < range.End) {
                 return true;
@@ -1313,9 +1439,7 @@ public static class HtmlResourcePipeline {
 
     private static bool TryReadMetaRefreshUrl(string content, out string source) {
         source = string.Empty;
-        string[] parts = content.Split(';');
-        for (int i = 1; i < parts.Length; i++) {
-            string parameter = parts[i].Trim();
+        foreach (string parameter in SplitMetaRefreshParameters(content).Skip(1)) {
             int separator = parameter.IndexOf('=');
             if (separator <= 0) {
                 continue;
@@ -1339,6 +1463,33 @@ public static class HtmlResourcePipeline {
         }
 
         return source.Length > 0;
+    }
+
+    private static IEnumerable<string> SplitMetaRefreshParameters(string content) {
+        int start = 0;
+        char quote = '\0';
+        for (int i = 0; i < content.Length; i++) {
+            char current = content[i];
+            if (quote != '\0') {
+                if (current == quote && !IsEscaped(content, i)) {
+                    quote = '\0';
+                }
+
+                continue;
+            }
+
+            if (current == '"' || current == '\'') {
+                quote = current;
+                continue;
+            }
+
+            if (current == ';') {
+                yield return content.Substring(start, i - start).Trim();
+                start = i + 1;
+            }
+        }
+
+        yield return content.Substring(start).Trim();
     }
 
     private static void AddRaw(HtmlResourceManifest manifest, HtmlResourceKind kind, IElement element, string attributeName, string source, Uri? baseUri, HtmlResourcePipelineOptions options) {
