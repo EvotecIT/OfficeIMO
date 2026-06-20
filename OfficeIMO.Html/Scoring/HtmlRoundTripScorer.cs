@@ -56,6 +56,7 @@ public static class HtmlRoundTripScorer {
         AddCountMetric(metrics, "images", target.Count(HtmlLogicalNodeKind.Image), source.Count(HtmlLogicalNodeKind.Image));
         AddSignatureMetric(metrics, "image-sources", ExtractSignatures(target, HtmlLogicalNodeKind.Image, CreateImageSignature), ExtractSignatures(source, HtmlLogicalNodeKind.Image, CreateImageSignature));
         AddCountMetric(metrics, "lists", target.Count(HtmlLogicalNodeKind.List), source.Count(HtmlLogicalNodeKind.List));
+        AddSignatureMetric(metrics, "list-kinds", ExtractSignatures(target, HtmlLogicalNodeKind.List, CreateElementNameSignature), ExtractSignatures(source, HtmlLogicalNodeKind.List, CreateElementNameSignature));
         AddCountMetric(metrics, "list-items", target.Count(HtmlLogicalNodeKind.ListItem), source.Count(HtmlLogicalNodeKind.ListItem));
         AddCountMetric(metrics, "forms", target.Count(HtmlLogicalNodeKind.FormControl) + target.Count(HtmlLogicalNodeKind.Form), source.Count(HtmlLogicalNodeKind.FormControl) + source.Count(HtmlLogicalNodeKind.Form));
         AddSignatureMetric(metrics, "form-state", ExtractFormSignatures(target), ExtractFormSignatures(source));
@@ -188,7 +189,7 @@ public static class HtmlRoundTripScorer {
     }
 
     private static void AppendFormSignatures(HtmlLogicalNode node, ICollection<string> signatures) {
-        if (node.Kind == HtmlLogicalNodeKind.FormControl) {
+        if (node.Kind == HtmlLogicalNodeKind.Form || node.Kind == HtmlLogicalNodeKind.FormControl) {
             signatures.Add(CreateFormSignature(node));
         }
 
@@ -202,7 +203,7 @@ public static class HtmlRoundTripScorer {
             node.Name
         };
 
-        foreach (string attributeName in new[] { "type", "name", "value", "checked", "selected", "disabled", "multiple", "placeholder" }) {
+        foreach (string attributeName in new[] { "action", "method", "enctype", "target", "type", "name", "value", "checked", "selected", "disabled", "multiple", "placeholder" }) {
             string? value;
             if (node.Attributes.TryGetValue(attributeName, out value)) {
                 parts.Add(attributeName + "=" + value);
@@ -215,6 +216,10 @@ public static class HtmlRoundTripScorer {
         }
 
         return string.Join("|", parts);
+    }
+
+    private static string CreateElementNameSignature(HtmlLogicalNode node) {
+        return node.Name;
     }
 
     private static string CreateTextualNodeSignature(HtmlLogicalNode node) {

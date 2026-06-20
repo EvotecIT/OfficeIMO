@@ -52,7 +52,7 @@ public static class HtmlComputedStyleEngine {
         if (parent != null) {
             foreach (var pair in parent.Properties) {
                 if (InheritedProperties.Contains(pair.Key)) {
-                    properties[pair.Key] = new CascadedProperty(pair.Value, false, -1, -1);
+                    properties[pair.Key] = new CascadedProperty(pair.Value, false, Specificity.Inherited, -1);
                 }
             }
         }
@@ -234,12 +234,12 @@ public static class HtmlComputedStyleEngine {
             }
 
             if (name.Length > 0 && value.Length > 0) {
-                ApplyDeclaration(properties, parentProperties, name, value, isImportant, 1000000, int.MaxValue);
+                ApplyDeclaration(properties, parentProperties, name, value, isImportant, Specificity.Inline, int.MaxValue);
             }
         }
     }
 
-    private static void ApplyDeclaration(IDictionary<string, CascadedProperty> properties, IReadOnlyDictionary<string, string>? parentProperties, string name, string value, bool isImportant, int specificity, int order) {
+    private static void ApplyDeclaration(IDictionary<string, CascadedProperty> properties, IReadOnlyDictionary<string, string>? parentProperties, string name, string value, bool isImportant, Specificity specificity, int order) {
         if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(value)) {
             return;
         }
@@ -283,13 +283,14 @@ public static class HtmlComputedStyleEngine {
         return CssKeywordResolution.ForValue(value);
     }
 
-    private static bool ShouldReplace(CascadedProperty existing, bool isImportant, int specificity, int order) {
+    private static bool ShouldReplace(CascadedProperty existing, bool isImportant, Specificity specificity, int order) {
         if (existing.IsImportant != isImportant) {
             return isImportant;
         }
 
-        if (existing.Specificity != specificity) {
-            return specificity >= existing.Specificity;
+        int specificityComparison = specificity.CompareTo(existing.Specificity);
+        if (specificityComparison != 0) {
+            return specificityComparison > 0;
         }
 
         return order >= existing.Order;
@@ -390,7 +391,7 @@ public static class HtmlComputedStyleEngine {
         return slashCount % 2 == 1;
     }
 
-    private static int CalculateSpecificity(string selector) {
+    private static Specificity CalculateSpecificity(string selector) {
         int ids = 0;
         int classesAttributesAndPseudoClasses = 0;
         int elements = 0;
@@ -461,26 +462,19 @@ public static class HtmlComputedStyleEngine {
             }
         }
 
-        return (ids * 10000) + (classesAttributesAndPseudoClasses * 100) + elements;
+        return new Specificity(ids, classesAttributesAndPseudoClasses, elements);
     }
 
     private static Specificity MaxSpecificity(string selectorList) {
         var max = new Specificity(0, 0, 0);
         foreach (string selector in SplitSelectorList(selectorList)) {
-            Specificity specificity = CalculateSpecificityParts(selector);
-            if (specificity.Score > max.Score) {
+            Specificity specificity = CalculateSpecificity(selector);
+            if (specificity.CompareTo(max) > 0) {
                 max = specificity;
             }
         }
 
         return max;
-    }
-
-    private static Specificity CalculateSpecificityParts(string selector) {
-        int score = CalculateSpecificity(selector);
-        int ids = score / 10000;
-        int remainder = score % 10000;
-        return new Specificity(ids, remainder / 100, remainder % 100);
     }
 
     private static int FindMatchingParenthesis(string text, int openIndex) {
@@ -554,7 +548,7 @@ public static class HtmlComputedStyleEngine {
     }
 
     private sealed class CascadedProperty {
-        internal CascadedProperty(string value, bool isImportant, int specificity, int order) {
+        internal CascadedProperty(string value, bool isImportant, Specificity specificity, int order) {
             Value = value;
             HasValue = true;
             IsImportant = isImportant;
@@ -562,7 +556,7 @@ public static class HtmlComputedStyleEngine {
             Order = order;
         }
 
-        private CascadedProperty(bool isImportant, int specificity, int order) {
+        private CascadedProperty(bool isImportant, Specificity specificity, int order) {
             Value = string.Empty;
             HasValue = false;
             IsImportant = isImportant;
@@ -570,14 +564,14 @@ public static class HtmlComputedStyleEngine {
             Order = order;
         }
 
-        internal static CascadedProperty Clear(bool isImportant, int specificity, int order) {
+        internal static CascadedProperty Clear(bool isImportant, Specificity specificity, int order) {
             return new CascadedProperty(isImportant, specificity, order);
         }
 
         internal string Value { get; }
         internal bool HasValue { get; }
         internal bool IsImportant { get; }
-        internal int Specificity { get; }
+        internal Specificity Specificity { get; }
         internal int Order { get; }
     }
 
@@ -604,11 +598,24 @@ public static class HtmlComputedStyleEngine {
         internal int Ids { get; }
         internal int ClassesAttributesAndPseudoClasses { get; }
         internal int Elements { get; }
-        internal int Score => (Ids * 10000) + (ClassesAttributesAndPseudoClasses * 100) + Elements;
+        internal static Specificity Inherited { get; } = new Specificity(-1, -1, -1);
+        internal static Specificity Inline { get; } = new Specificity(int.MaxValue, int.MaxValue, int.MaxValue);
+
+        internal int CompareTo(Specificity other) {
+            if (Ids != other.Ids) {
+                return Ids.CompareTo(other.Ids);
+            }
+
+            if (ClassesAttributesAndPseudoClasses != other.ClassesAttributesAndPseudoClasses) {
+                return ClassesAttributesAndPseudoClasses.CompareTo(other.ClassesAttributesAndPseudoClasses);
+            }
+
+            return Elements.CompareTo(other.Elements);
+        }
     }
 
     private sealed class StyleRule {
-        internal StyleRule(string selector, int specificity, int order, IDictionary<string, StyleDeclaration> declarations) {
+        internal StyleRule(string selector, Specificity specificity, int order, IDictionary<string, StyleDeclaration> declarations) {
             Selector = selector;
             Specificity = specificity;
             Order = order;
@@ -616,7 +623,7 @@ public static class HtmlComputedStyleEngine {
         }
 
         internal string Selector { get; }
-        internal int Specificity { get; }
+        internal Specificity Specificity { get; }
         internal int Order { get; }
         internal IReadOnlyDictionary<string, StyleDeclaration> Declarations { get; }
     }

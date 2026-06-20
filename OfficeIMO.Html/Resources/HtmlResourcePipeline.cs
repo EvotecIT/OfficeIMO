@@ -30,7 +30,7 @@ public static class HtmlResourcePipeline {
         options = options ?? new HtmlResourcePipelineOptions();
         Uri? baseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, options.BaseUri);
         var manifest = new HtmlResourceManifest();
-        foreach (IElement element in document.QuerySelectorAll("[src], [srcset], [href], [data], [data-src], [data-srcset], [poster], [data-poster], [action]")) {
+        foreach (IElement element in document.QuerySelectorAll("[src], [srcset], [href], [data], [data-src], [data-srcset], [poster], [data-poster], [action], [srcdoc]")) {
             AddElementResources(manifest, element, baseUri, options);
         }
 
@@ -72,7 +72,6 @@ public static class HtmlResourcePipeline {
                     AddImage(manifest, element, baseUri, options);
                 } else {
                     AddAttribute(manifest, HtmlResourceKind.Other, element, "src", baseUri, options);
-                    AddAttribute(manifest, HtmlResourceKind.Other, element, "data", baseUri, options);
                 }
 
                 break;
@@ -91,12 +90,16 @@ public static class HtmlResourcePipeline {
                 AddAttribute(manifest, HtmlResourceKind.Media, element, "data-src", baseUri, options);
                 break;
             case "object":
+            case "embed":
                 AddAttribute(manifest, HtmlResourceKind.Other, element, "data", baseUri, options);
+                break;
+            case "iframe":
+                AddAttribute(manifest, HtmlResourceKind.Other, element, "src", baseUri, options);
+                AddSrcDocResources(manifest, element, baseUri, options);
                 break;
             default:
                 AddAttribute(manifest, HtmlResourceKind.Other, element, "src", baseUri, options);
                 AddAttribute(manifest, HtmlResourceKind.Other, element, "href", baseUri, options);
-                AddAttribute(manifest, HtmlResourceKind.Other, element, "data", baseUri, options);
                 break;
         }
     }
@@ -174,6 +177,21 @@ public static class HtmlResourcePipeline {
         }
     }
 
+    private static void AddSrcDocResources(HtmlResourceManifest manifest, IElement element, Uri? baseUri, HtmlResourcePipelineOptions options) {
+        string? srcdoc = element.GetAttribute("srcdoc");
+        if (string.IsNullOrWhiteSpace(srcdoc)) {
+            return;
+        }
+
+        IHtmlDocument nested = HtmlDocumentParser.ParseDocument(srcdoc!);
+        Uri? nestedBaseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(nested, baseUri);
+        foreach (IElement nestedElement in nested.QuerySelectorAll("[src], [srcset], [href], [data], [data-src], [data-srcset], [poster], [data-poster], [action], [srcdoc]")) {
+            AddElementResources(manifest, nestedElement, nestedBaseUri, options);
+        }
+
+        AddCssResources(manifest, nested, nestedBaseUri, options);
+    }
+
     private static void AddCssReferences(HtmlResourceManifest manifest, IElement element, string attributeName, string css, Uri? baseUri, HtmlResourcePipelineOptions options) {
         if (string.IsNullOrWhiteSpace(css)) {
             return;
@@ -181,12 +199,10 @@ public static class HtmlResourcePipeline {
 
         css = CssCommentExpression.Replace(css, string.Empty);
         var importRanges = new List<SourceRange>();
-        var importedSources = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (CssImportReference reference in ExtractCssImports(css)) {
             string source = reference.Source;
             if (!string.IsNullOrWhiteSpace(source)) {
                 importRanges.Add(new SourceRange(reference.Start, reference.End));
-                importedSources.Add(NormalizeSource(source));
                 AddRaw(manifest, HtmlResourceKind.Stylesheet, element, attributeName + "-import", source, baseUri, options);
             }
         }
@@ -195,8 +211,7 @@ public static class HtmlResourcePipeline {
             string source = match.Groups["url"].Value.Trim().Trim('\'', '"');
             if (!string.IsNullOrWhiteSpace(source)
                 && !IsImportUrl(match.Index, importRanges)
-                && !IsInsideCssString(css, match.Index)
-                && !importedSources.Contains(NormalizeSource(source))) {
+                && !IsInsideCssString(css, match.Index)) {
                 AddRaw(manifest, ClassifyCssUrl(css, match.Index), element, attributeName + "-url", source, baseUri, options);
             }
         }
@@ -343,6 +358,7 @@ public static class HtmlResourcePipeline {
 
         if (declaration.IndexOf("background", StringComparison.Ordinal) >= 0
             || declaration.IndexOf("image", StringComparison.Ordinal) >= 0
+            || declaration.IndexOf("content", StringComparison.Ordinal) >= 0
             || declaration.IndexOf("cursor", StringComparison.Ordinal) >= 0
             || declaration.IndexOf("list-style", StringComparison.Ordinal) >= 0) {
             return HtmlResourceKind.Image;

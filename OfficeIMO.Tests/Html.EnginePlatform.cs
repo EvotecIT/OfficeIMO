@@ -217,7 +217,14 @@ public partial class Html {
 
     [Fact]
     public void HtmlEnginePlatform_ComputedStylesHonorUniversalSpecificityAndInlineCssSyntax() {
-        const string html = """
+        var classNames = new List<string>();
+        for (int i = 1; i <= 101; i++) {
+            classNames.Add("c" + i.ToString("000"));
+        }
+
+        string manyClassSelector = "." + string.Join(".", classNames);
+        string manyClassAttribute = string.Join(" ", classNames);
+        string html = $$"""
             <main>
                 <style>
                     p { color: #aa0000; }
@@ -233,6 +240,8 @@ public partial class Html {
                     span.reset { color: #ff0000; border-color: #ff0000; }
                     span.reset-later { color: initial; }
                     span { color: #0000ff; }
+                    #specificity-id { outline-color: #00ff00; }
+                    {{manyClassSelector}} { outline-color: #ff0000; }
                 </style>
                 <div style="color: #123456"><p style="background-image: url('data:image/svg+xml;utf8,<svg></svg>'); font-family: 'A;B'; color: inherit;">Hello</p></div>
                 <span class="x">Pseudo specificity</span>
@@ -240,6 +249,7 @@ public partial class Html {
                 <em class="media">Media rule</em>
                 <div style="color: #123456"><span class="reset" style="color: initial; border-color: unset;">Reset</span></div>
                 <span class="reset-later">Reset wins lower specificity</span>
+                <span id="specificity-id" class="{{manyClassAttribute}}">Specificity tuple</span>
                 <style media="not all">span.inactive { text-decoration-line: underline; }</style>
                 <style media="speech">span.speech { text-decoration-line: underline; }</style>
                 <span class="inactive">Inactive media</span>
@@ -255,6 +265,7 @@ public partial class Html {
         IElement media = parsed.QuerySelector("em.media")!;
         IElement reset = parsed.QuerySelector("span.reset")!;
         IElement resetLater = parsed.QuerySelector("span.reset-later")!;
+        IElement specificityId = parsed.QuerySelector("#specificity-id")!;
         IElement inactive = parsed.QuerySelector("span.inactive")!;
         IElement speech = parsed.QuerySelector("span.speech")!;
 
@@ -267,6 +278,7 @@ public partial class Html {
         Assert.Equal(string.Empty, styles[reset].GetValue("color"));
         Assert.Equal(string.Empty, styles[reset].GetValue("border-color"));
         Assert.Equal(string.Empty, styles[resetLater].GetValue("color"));
+        Assert.Equal("rgba(0, 255, 0, 1)", styles[specificityId].GetValue("outline-color"));
         Assert.Equal(string.Empty, styles[inactive].GetValue("text-decoration-line"));
         Assert.Equal(string.Empty, styles[speech].GetValue("text-decoration-line"));
     }
@@ -283,7 +295,10 @@ public partial class Html {
                     /* @import url('file:///secret/commented.css'); */
                     @import url('file:///secret/theme.css');
                     @import "https://example.test/themes/dark mode.css";
+                    @import url('https://example.test/images/shared.png');
                     .hero { background-image: url('https://example.test/images/bg.png'); }
+                    .reuse { background-image: url('https://example.test/images/shared.png'); }
+                    .logo::before { content: url('file:///secret/logo.png'); }
                     .label::before { content: "@import url(file:///secret/content.css)"; }
                     .label::before { content: "url(file:///secret/label.png)"; }
                 </style>
@@ -295,6 +310,8 @@ public partial class Html {
                 <video data-src="https://example.test/media/movie.mp4"></video>
                 <form action="file:///secret/upload"></form>
                 <input type="image" src="file:///secret/submit.png">
+                <div data="file:///secret/metadata"></div>
+                <iframe srcdoc="<img src=&quot;file:///secret/srcdoc.png&quot;><style>.nested { content: url(file:///secret/srcdoc-content.png); }</style>"></iframe>
                 <div class="hero"></div>
             </body>
             </html>
@@ -308,8 +325,11 @@ public partial class Html {
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/commented.css");
         Assert.Single(manifest.Resources, resource => resource.Source == "file:///secret/theme.css");
         Assert.Single(manifest.Resources, resource => resource.Source == "https://example.test/themes/dark mode.css");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/shared.png" && resource.Kind == HtmlResourceKind.Stylesheet);
+        Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/shared.png" && resource.Kind == HtmlResourceKind.Image);
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/content.css");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/label.png");
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/metadata");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/app.js" && resource.Kind == HtmlResourceKind.Script);
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/favicon.png" && resource.Kind == HtmlResourceKind.Image);
         Assert.Contains(manifest.Resources, resource => resource.Source == "mailto:ops@example.test" && resource.Kind == HtmlResourceKind.Script && !resource.IsAllowed && resource.DiagnosticCode == "ScriptResourceRejectedByPolicy");
@@ -318,6 +338,9 @@ public partial class Html {
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/media/movie.mp4" && resource.Kind == HtmlResourceKind.Media && resource.AttributeName == "data-src");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/upload" && resource.Kind == HtmlResourceKind.Hyperlink && resource.AttributeName == "action");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/submit.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "src" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/logo.png" && resource.Kind == HtmlResourceKind.Image && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/srcdoc.png" && resource.Kind == HtmlResourceKind.Image && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/srcdoc-content.png" && resource.Kind == HtmlResourceKind.Image && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/bg.png" && resource.Kind == HtmlResourceKind.Image && resource.IsAllowed);
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "https://example.test/images/bg.png" && resource.Kind == HtmlResourceKind.Font);
     }
@@ -359,6 +382,19 @@ public partial class Html {
         Assert.Equal(1D, tableSpanScore.Metrics["table-rows"], 3);
         Assert.Equal(1D, tableSpanScore.Metrics["table-cells"], 3);
         Assert.InRange(tableSpanScore.Metrics["table-grid"], 0D, 0.99D);
+
+        HtmlRoundTripScore listKindScore = HtmlRoundTripScorer.Compare(
+            "<main><ol><li>Step</li></ol></main>",
+            "<main><ul><li>Step</li></ul></main>");
+        Assert.Equal(1D, listKindScore.Metrics["lists"], 3);
+        Assert.Equal(1D, listKindScore.Metrics["list-items"], 3);
+        Assert.InRange(listKindScore.Metrics["list-kinds"], 0D, 0.99D);
+
+        HtmlRoundTripScore formTargetScore = HtmlRoundTripScorer.Compare(
+            "<main><form action=\"/save\" method=\"post\"><input name=\"x\"></form></main>",
+            "<main><form action=\"/delete\" method=\"post\"><input name=\"x\"></form></main>");
+        Assert.Equal(1D, formTargetScore.Metrics["forms"], 3);
+        Assert.InRange(formTargetScore.Metrics["form-state"], 0D, 0.99D);
 
         HtmlRoundTripScore linkScore = HtmlRoundTripScorer.Compare(
             "<main><a href=\"https://example.test/a\">same text</a></main>",
