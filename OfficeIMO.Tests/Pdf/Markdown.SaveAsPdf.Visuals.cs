@@ -94,6 +94,16 @@ public class MarkdownSaveAsPdfVisualTests {
     }
 
     [Fact]
+    public void ToPdfDocument_MarkdownLinkedImageWithBlankAlt_RendersWithoutBlankLinkContentsException() {
+        string dataUri = CreateDataUriPng();
+        string markdown = "[![](" + dataUri + ")](https://example.test/report)\n";
+
+        byte[] bytes = markdown.ToPdfDocument(CreateVisualOptions()).ToBytes();
+
+        Assert.Contains(PdfCore.PdfImageExtractor.ExtractImages(bytes), image => image.IsImageFile && image.MimeType == "image/png");
+    }
+
+    [Fact]
     public void ToPdfDocument_MarkdownChartFence_RendersChartVisualInsteadOfJsonCodePanel() {
         const string markdown = """
 # Quarterly report
@@ -276,6 +286,58 @@ _Figure 2. Revenue chart_
     }
 
     [Fact]
+    public void ToPdfDocument_MarkdownChartFence_MergesObjectPointCategoriesAcrossDatasetsWhenLabelsAreMissing() {
+        var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "bar",
+  "data": {
+    "datasets": [
+      { "label": "Actual", "data": [
+        { "x": "Q1", "y": 10 }
+      ] },
+      { "label": "Forecast", "data": [
+        { "x": "Q2", "y": 14 }
+      ] }
+    ]
+  }
+}
+""");
+
+        bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
+
+        Assert.True(created, warning);
+        Assert.Equal(new[] { "Q1", "Q2" }, snapshot!.Data.Categories);
+        Assert.Equal(10D, snapshot.Data.Series[0].Values[0]);
+        Assert.True(double.IsNaN(snapshot.Data.Series[0].Values[1]));
+        Assert.True(double.IsNaN(snapshot.Data.Series[1].Values[0]));
+        Assert.Equal(14D, snapshot.Data.Series[1].Values[1]);
+    }
+
+    [Fact]
+    public void ToPdfDocument_MarkdownChartFence_AlignsObjectPointCategoriesToExplicitLabels() {
+        var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "bar",
+  "data": {
+    "labels": ["Q1", "Q2"],
+    "datasets": [
+      { "label": "Actual", "data": [
+        { "x": "Q2", "y": 14 }
+      ] }
+    ]
+  }
+}
+""");
+
+        bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
+
+        Assert.True(created, warning);
+        OfficeChartSeries series = Assert.Single(snapshot!.Data.Series);
+        Assert.True(double.IsNaN(series.Values[0]));
+        Assert.Equal(14D, series.Values[1]);
+    }
+
+    [Fact]
     public void ToPdfDocument_MarkdownChartFence_UsesMaximumScalarDatasetLengthWhenLabelsAreMissing() {
         var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
 {
@@ -341,6 +403,27 @@ _Figure 2. Revenue chart_
         Assert.True(double.IsNaN(series.Values[1]));
         Assert.Equal(3D, series.Values[2]);
         Assert.True(double.IsNaN(series.Values[3]));
+    }
+
+    [Fact]
+    public void ToPdfDocument_MarkdownChartFence_WarnsWhenSeriesContainsOnlyMissingValues() {
+        var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "line",
+  "data": {
+    "labels": ["Q1"],
+    "datasets": [
+      { "label": "Actual", "data": [null] }
+    ]
+  }
+}
+""");
+
+        bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
+
+        Assert.False(created);
+        Assert.Null(snapshot);
+        Assert.Contains("finite", warning, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -437,6 +520,27 @@ _Figure 2. Revenue chart_
         Assert.False(created);
         Assert.Null(snapshot);
         Assert.Contains("three categories", warning, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ToPdfDocument_MarkdownAreaChartFence_WarnsWhenCategoryCountCannotRenderArea() {
+        var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "area",
+  "data": {
+    "labels": ["Q1"],
+    "datasets": [
+      { "label": "Actual", "data": [10] }
+    ]
+  }
+}
+""");
+
+        bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
+
+        Assert.False(created);
+        Assert.Null(snapshot);
+        Assert.Contains("two categories", warning, StringComparison.Ordinal);
     }
 
     [Fact]

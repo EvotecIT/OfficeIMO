@@ -98,8 +98,9 @@ public static partial class MarkdownPdfConverterExtensions {
         double height = heightHint ?? GetImageHeightPoints(info, width, options);
         MarkdownPdfFigureStyle figureStyle = visualTheme.FigureStyleSnapshot;
         PdfCore.PdfImageStyle imageStyle = CreateConverterImageStyle(figureStyle, altText);
+        string? normalizedLinkContents = linkUri == null || string.IsNullOrWhiteSpace(linkContents) ? null : linkContents;
 
-        pdf.Image(bytes, width, height, align: null, clipPath: null, fit: null, spacingBefore: null, spacingAfter: null, style: imageStyle, linkUri: linkUri, linkContents: linkUri == null ? null : linkContents);
+        pdf.Image(bytes, width, height, align: null, clipPath: null, fit: null, spacingBefore: null, spacingAfter: null, style: imageStyle, linkUri: linkUri, linkContents: normalizedLinkContents);
         RenderFigureCaption(pdf, caption, figureStyle);
     }
 
