@@ -75,6 +75,13 @@ public static class HtmlRoundTripScorer {
         "autocomplete",
         "inputmode"
     };
+    private static readonly HashSet<string> SubmitterOverrideAttributes = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
+        "formaction",
+        "formmethod",
+        "formenctype",
+        "formtarget",
+        "formnovalidate"
+    };
     private static readonly HashSet<string> BooleanSignatureAttributes = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
         "checked",
         "selected",
@@ -306,7 +313,7 @@ public static class HtmlRoundTripScorer {
             };
 
             foreach (string attributeName in FormControlStateAttributes) {
-                if (control.HasAttribute(attributeName)) {
+                if (ShouldIncludeFormControlAttribute(control, attributeName) && control.HasAttribute(attributeName)) {
                     parts.Add(FormatAttributePart(attributeName, control.GetAttribute(attributeName)));
                 }
             }
@@ -463,9 +470,10 @@ public static class HtmlRoundTripScorer {
         };
 
         foreach (string attributeName in FormStateAttributes) {
-            string? value;
-            if (node.Attributes.TryGetValue(attributeName, out value)) {
-                parts.Add(FormatAttributePart(attributeName, value));
+            if (node.Kind == HtmlLogicalNodeKind.FormControl) {
+                AddFormControlAttributePart(parts, node, attributeName);
+            } else {
+                AddAttributePart(parts, node, attributeName);
             }
         }
 
@@ -489,7 +497,7 @@ public static class HtmlRoundTripScorer {
         };
 
         foreach (string attributeName in FormControlStateAttributes) {
-            AddAttributePart(parts, node, attributeName);
+            AddFormControlAttributePart(parts, node, attributeName);
         }
 
         string text = ExtractLogicalNodeText(node);
@@ -498,6 +506,43 @@ public static class HtmlRoundTripScorer {
         }
 
         return string.Join("|", parts);
+    }
+
+    private static void AddFormControlAttributePart(ICollection<string> parts, HtmlLogicalNode node, string attributeName) {
+        if (SubmitterOverrideAttributes.Contains(attributeName) && !IsSubmitterControl(node)) {
+            return;
+        }
+
+        AddAttributePart(parts, node, attributeName);
+    }
+
+    private static bool ShouldIncludeFormControlAttribute(AngleSharp.Dom.IElement control, string attributeName) {
+        return !SubmitterOverrideAttributes.Contains(attributeName) || IsSubmitterControl(control);
+    }
+
+    private static bool IsSubmitterControl(AngleSharp.Dom.IElement control) {
+        string name = control.TagName.ToLowerInvariant();
+        string type = (control.GetAttribute("type") ?? string.Empty).Trim();
+        if (string.Equals(name, "button", StringComparison.OrdinalIgnoreCase)) {
+            return !string.Equals(type, "button", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(type, "reset", StringComparison.OrdinalIgnoreCase);
+        }
+
+        return string.Equals(name, "input", StringComparison.OrdinalIgnoreCase)
+            && (string.Equals(type, "submit", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(type, "image", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static bool IsSubmitterControl(HtmlLogicalNode node) {
+        string type = node.Attributes.TryGetValue("type", out string? value) ? value.Trim() : string.Empty;
+        if (string.Equals(node.Name, "button", StringComparison.OrdinalIgnoreCase)) {
+            return !string.Equals(type, "button", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(type, "reset", StringComparison.OrdinalIgnoreCase);
+        }
+
+        return string.Equals(node.Name, "input", StringComparison.OrdinalIgnoreCase)
+            && (string.Equals(type, "submit", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(type, "image", StringComparison.OrdinalIgnoreCase));
     }
 
     private static string CreateElementNameSignature(HtmlLogicalNode node) {

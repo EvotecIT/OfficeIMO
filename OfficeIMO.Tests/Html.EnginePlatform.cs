@@ -378,9 +378,17 @@ public partial class Html {
                     .cascaded { --cascaded-hero: url(file:///secret/old-cascaded-property.png); }
                     .cascaded { --cascaded-hero: url(https://example.test/images/cascaded-property.png); }
                     .cascaded .card { background-image: var(--cascaded-hero); }
+                    .compound { --same-element-hero: url(file:///secret/same-element-property.png); }
+                    .compound.highlight { background-image: var(--same-element-hero); }
+                    .multi { --multi-hero: url(file:///secret/multi-property-a.png), url(https://example.test/images/multi-property-b.png); }
+                    .multi .card { background-image: var(--multi-hero); }
+                    :root { --notvar-hero: url(file:///secret/notvar-custom-property.png); }
+                    .notvar { background-image: notvar(--notvar-hero); }
                     .escaped { background-image: url(\66 ile:///secret/escaped.png); }
                     .invalid-escape { background-image: url(\ffffff.png); }
                     .not-url { background-image: noturl(file:///secret/not-url-function.png); }
+                    .unsupported-url { background-notimage: url(file:///secret/unsupported-property.png); }
+                    .unsupported-image-set { background-notimage: image-set("file:///secret/unsupported-image-set.png" 1x); }
                     .masked { mask: url(file:///secret/mask.svg); }
                     .image-set { background-image: image-set("file:///secret/hero.png" 1x, url(https://example.test/images/hero-2x.png) 2x, "https://example.test/images/hero.avif" type("image/avif")); }
                     .not-image-set { background-image: notimage-set("file:///secret/not-image-set.png" 1x); }
@@ -399,7 +407,7 @@ public partial class Html {
                 <img src="mailto:ops@example.test">
                 <svg><image href="https://example.test/images/vector.png" /><image xlink:href="file:///secret/vector-xlink.png" /></svg>
                 <video poster="file:///secret/poster.png" data-src="https://example.test/media/movie.mp4"></video>
-                <embed src="file:///secret/embed.pdf">
+                <embed data="file:///secret/embed-data.pdf" src="file:///secret/embed.pdf">
                 <form action="file:///secret/upload"></form>
                 <button formaction="file:///secret/delete">Delete</button>
                 <button type="bogus" formaction="file:///secret/bogus-delete">Delete anyway</button>
@@ -412,6 +420,8 @@ public partial class Html {
                 <iframe src="file:///secret/empty-srcdoc-frame.html" srcdoc=""></iframe>
                 <div class="theme"><div class="card"></div></div>
                 <div class="cascaded"><div class="card"></div></div>
+                <div class="compound highlight"></div>
+                <div class="multi"><div class="card"></div></div>
                 <div class="hero"></div>
             </body>
             </html>
@@ -444,12 +454,19 @@ public partial class Html {
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/not-url-function.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/old-cascaded-property.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/not-image-set.png");
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/notvar-custom-property.png");
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/unsupported-property.png");
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/unsupported-image-set.png");
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/embed-data.pdf");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/script-data.json");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/not-refresh.html");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/ignored-picture-source.png");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/custom-property-used.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/inherited-custom-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/cascaded-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/same-element-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/multi-property-a.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/multi-property-b.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/grouped-custom-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/escaped.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/hero.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-image-set" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
@@ -687,6 +704,12 @@ public partial class Html {
             "<main><form><button type=\"submit\">Go</button></form></main>");
         Assert.Equal(1D, submitterOverrideScore.Metrics["forms"], 3);
         Assert.InRange(submitterOverrideScore.Metrics["form-state"], 0D, 0.99D);
+
+        HtmlRoundTripScore inertSubmitterOverrideScore = HtmlRoundTripScorer.Compare(
+            "<main><form><input type=\"text\" name=\"x\" formaction=\"/save\" formmethod=\"post\"></form></main>",
+            "<main><form><input type=\"text\" name=\"x\"></form></main>");
+        Assert.Equal(1D, inertSubmitterOverrideScore.Metrics["forms"], 3);
+        Assert.Equal(1D, inertSubmitterOverrideScore.Metrics["form-state"], 3);
 
         HtmlRoundTripScore linkScore = HtmlRoundTripScorer.Compare(
             "<main><a href=\"https://example.test/a\">same text</a></main>",

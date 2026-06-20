@@ -101,7 +101,6 @@ public static class HtmlResourcePipeline {
                 AddAttribute(manifest, HtmlResourceKind.Other, element, "data", baseUri, options);
                 break;
             case "embed":
-                AddAttribute(manifest, HtmlResourceKind.Other, element, "data", baseUri, options);
                 AddAttribute(manifest, HtmlResourceKind.Other, element, "src", baseUri, options);
                 break;
             case "iframe":
@@ -291,7 +290,7 @@ public static class HtmlResourcePipeline {
 
         AddUsedCustomPropertyUrls(manifest, element, attributeName, css, customPropertyUrls, baseUri, options);
         foreach (CssStringUrlReference reference in ExtractImageSetStringUrls(css)) {
-            if (!TryGetCustomPropertyName(css, reference.Start, out _)) {
+            if (!TryGetCustomPropertyName(css, reference.Start, out _) && IsSupportedCssUrlDeclaration(css, reference.Start)) {
                 AddRaw(manifest, ClassifyCssUrl(css, reference.Start), element, attributeName + "-image-set", DecodeCssEscapes(reference.Source), baseUri, options);
             }
         }
@@ -305,7 +304,8 @@ public static class HtmlResourcePipeline {
                 && !IsImportAtRuleUrl(css, match.Index)
                 && !IsAtRulePreludeUrl(css, match.Index)
                 && !IsInsideCssString(css, match.Index)
-                && !IsCustomPropertyUrl(css, match.Index)) {
+                && !IsCustomPropertyUrl(css, match.Index)
+                && IsSupportedCssUrlDeclaration(css, match.Index)) {
                 AddRaw(manifest, ClassifyCssUrl(css, match.Index), element, attributeName + "-url", DecodeCssEscapes(source), baseUri, options);
             }
         }
@@ -315,20 +315,20 @@ public static class HtmlResourcePipeline {
         var urls = new Dictionary<string, List<CssCustomPropertyUrl>>(StringComparer.Ordinal);
         foreach (Match match in CssUrlExpression.Matches(css)) {
             if (TryGetCustomPropertyName(css, match.Index, out string propertyName)) {
-                AddCustomPropertyUrl(urls, propertyName, DecodeCssEscapes(match.Groups["url"].Value.Trim().Trim('\'', '"')), GetDeclarationSelector(css, match.Index));
+                AddCustomPropertyUrl(urls, propertyName, DecodeCssEscapes(match.Groups["url"].Value.Trim().Trim('\'', '"')), GetDeclarationSelector(css, match.Index), GetDeclarationStart(css, match.Index));
             }
         }
 
         foreach (CssStringUrlReference reference in ExtractImageSetStringUrls(css)) {
             if (TryGetCustomPropertyName(css, reference.Start, out string propertyName)) {
-                AddCustomPropertyUrl(urls, propertyName, DecodeCssEscapes(reference.Source), GetDeclarationSelector(css, reference.Start));
+                AddCustomPropertyUrl(urls, propertyName, DecodeCssEscapes(reference.Source), GetDeclarationSelector(css, reference.Start), GetDeclarationStart(css, reference.Start));
             }
         }
 
         return urls;
     }
 
-    private static void AddCustomPropertyUrl(IDictionary<string, List<CssCustomPropertyUrl>> urls, string propertyName, string source, string selector) {
+    private static void AddCustomPropertyUrl(IDictionary<string, List<CssCustomPropertyUrl>> urls, string propertyName, string source, string selector, int declarationStart) {
         if (string.IsNullOrWhiteSpace(source)) {
             return;
         }
@@ -338,7 +338,7 @@ public static class HtmlResourcePipeline {
             urls[propertyName] = values;
         }
 
-        values.Add(new CssCustomPropertyUrl(source, selector));
+        values.Add(new CssCustomPropertyUrl(source, selector, declarationStart));
     }
 
     private static void AddUsedCustomPropertyUrls(HtmlResourceManifest manifest, IElement element, string attributeName, string css, IReadOnlyDictionary<string, List<CssCustomPropertyUrl>> customPropertyUrls, Uri? baseUri, HtmlResourcePipelineOptions options) {
@@ -348,7 +348,7 @@ public static class HtmlResourcePipeline {
 
         foreach (Match match in CssVarExpression.Matches(css)) {
             string propertyName = match.Groups["name"].Value;
-            if (IsInsideCssString(css, match.Index) || !customPropertyUrls.TryGetValue(propertyName, out List<CssCustomPropertyUrl>? sources)) {
+            if (!IsCssFunctionNameAt(css, match.Index, "var") || IsInsideCssString(css, match.Index) || !customPropertyUrls.TryGetValue(propertyName, out List<CssCustomPropertyUrl>? sources)) {
                 continue;
             }
 
@@ -358,15 +358,19 @@ public static class HtmlResourcePipeline {
             }
 
             string useSelector = GetDeclarationSelector(css, match.Index);
-            CssCustomPropertyUrl? selectedSource = null;
+            int selectedDeclarationStart = -1;
             foreach (CssCustomPropertyUrl source in sources) {
-                if (CanSubstituteCustomProperty(source.Selector, useSelector)) {
-                    selectedSource = source;
+                if (CanSubstituteCustomProperty(source.Selector, useSelector) && source.DeclarationStart >= selectedDeclarationStart) {
+                    selectedDeclarationStart = source.DeclarationStart;
                 }
             }
 
-            if (selectedSource != null) {
-                AddRaw(manifest, kind, element, attributeName + "-var-url", selectedSource.Source, baseUri, options);
+            if (selectedDeclarationStart >= 0) {
+                foreach (CssCustomPropertyUrl source in sources) {
+                    if (source.DeclarationStart == selectedDeclarationStart && CanSubstituteCustomProperty(source.Selector, useSelector)) {
+                        AddRaw(manifest, kind, element, attributeName + "-var-url", source.Source, baseUri, options);
+                    }
+                }
             }
         }
     }
@@ -390,7 +394,7 @@ public static class HtmlResourcePipeline {
 
             foreach (string usePart in useSelector.Split(',')) {
                 string normalizedUse = usePart.Trim();
-                if (IsAncestorSelector(normalizedDefinition, normalizedUse)) {
+                if (IsAncestorSelector(normalizedDefinition, normalizedUse) || IsSameElementSelectorPrefix(normalizedDefinition, normalizedUse)) {
                     return true;
                 }
             }
@@ -407,7 +411,7 @@ public static class HtmlResourcePipeline {
 
         foreach (Match match in CssVarExpression.Matches(css)) {
             string propertyName = match.Groups["name"].Value;
-            if (IsInsideCssString(css, match.Index) || !customPropertyUrls.TryGetValue(propertyName, out List<CssCustomPropertyUrl>? sources)) {
+            if (!IsCssFunctionNameAt(css, match.Index, "var") || IsInsideCssString(css, match.Index) || !customPropertyUrls.TryGetValue(propertyName, out List<CssCustomPropertyUrl>? sources)) {
                 continue;
             }
 
@@ -487,6 +491,22 @@ public static class HtmlResourcePipeline {
         return char.IsWhiteSpace(next) || next == '>';
     }
 
+    private static bool IsSameElementSelectorPrefix(string definitionSelector, string useSelector) {
+        if (definitionSelector.Length == 0 || useSelector.Length <= definitionSelector.Length) {
+            return false;
+        }
+
+        if (!useSelector.StartsWith(definitionSelector, StringComparison.OrdinalIgnoreCase)) {
+            return false;
+        }
+
+        char next = useSelector[definitionSelector.Length];
+        return next == '.'
+            || next == '#'
+            || next == '['
+            || next == ':';
+    }
+
     private static string GetDeclarationSelector(string css, int index) {
         int blockStart = css.LastIndexOf('{', Math.Max(0, index - 1));
         if (blockStart < 0) {
@@ -501,6 +521,12 @@ public static class HtmlResourcePipeline {
         return groupingStart >= 0
             ? selector.Substring(groupingStart + 1).Trim()
             : selector;
+    }
+
+    private static int GetDeclarationStart(string css, int index) {
+        int blockStart = css.LastIndexOf('{', Math.Max(0, index - 1));
+        int previousStatementEnd = css.LastIndexOf(';', Math.Max(0, index - 1));
+        return Math.Max(0, Math.Max(blockStart, previousStatementEnd) + 1);
     }
 
     private static IEnumerable<CssStringUrlReference> ExtractImageSetStringUrls(string css) {
@@ -914,9 +940,8 @@ public static class HtmlResourcePipeline {
     }
 
     private static HtmlResourceKind ClassifyCssUrl(string css, int index) {
+        string propertyName = GetCssDeclarationPropertyName(css, index);
         int blockStart = css.LastIndexOf('{', Math.Max(0, index - 1));
-        int previousBoundary = Math.Max(css.LastIndexOf(';', Math.Max(0, index - 1)), blockStart);
-        string declaration = css.Substring(Math.Max(0, previousBoundary + 1), index - Math.Max(0, previousBoundary + 1)).ToLowerInvariant();
         string blockPrefix = blockStart >= 0 ? css.Substring(0, blockStart).ToLowerInvariant() : string.Empty;
         int fontFaceStart = blockPrefix.LastIndexOf("@font-face", StringComparison.Ordinal);
         int previousBlockEnd = blockPrefix.LastIndexOf('}');
@@ -924,16 +949,45 @@ public static class HtmlResourcePipeline {
             return HtmlResourceKind.Font;
         }
 
-        if (declaration.IndexOf("background", StringComparison.Ordinal) >= 0
-            || declaration.IndexOf("image", StringComparison.Ordinal) >= 0
-            || declaration.IndexOf("mask", StringComparison.Ordinal) >= 0
-            || declaration.IndexOf("content", StringComparison.Ordinal) >= 0
-            || declaration.IndexOf("cursor", StringComparison.Ordinal) >= 0
-            || declaration.IndexOf("list-style", StringComparison.Ordinal) >= 0) {
+        if (IsSupportedCssImageUrlProperty(propertyName)) {
             return HtmlResourceKind.Image;
         }
 
         return HtmlResourceKind.Other;
+    }
+
+    private static bool IsSupportedCssUrlDeclaration(string css, int index) {
+        return ClassifyCssUrl(css, index) != HtmlResourceKind.Other;
+    }
+
+    private static string GetCssDeclarationPropertyName(string css, int index) {
+        int declarationStart = GetDeclarationStart(css, index);
+        int separator = css.IndexOf(':', declarationStart, Math.Max(0, index - declarationStart));
+        if (separator <= declarationStart) {
+            return string.Empty;
+        }
+
+        return css.Substring(declarationStart, separator - declarationStart).Trim().ToLowerInvariant();
+    }
+
+    private static bool IsSupportedCssImageUrlProperty(string propertyName) {
+        switch (propertyName) {
+            case "background":
+            case "background-image":
+            case "border-image":
+            case "border-image-source":
+            case "content":
+            case "cursor":
+            case "list-style":
+            case "list-style-image":
+            case "mask":
+            case "mask-image":
+            case "-webkit-mask":
+            case "-webkit-mask-image":
+                return true;
+            default:
+                return false;
+        }
     }
 
     private static bool IsImportUrl(int index, IEnumerable<SourceRange> ranges) {
@@ -1170,12 +1224,14 @@ public static class HtmlResourcePipeline {
     }
 
     private sealed class CssCustomPropertyUrl {
-        internal CssCustomPropertyUrl(string source, string selector) {
+        internal CssCustomPropertyUrl(string source, string selector, int declarationStart) {
             Source = source;
             Selector = selector;
+            DeclarationStart = declarationStart;
         }
 
         internal string Source { get; }
         internal string Selector { get; }
+        internal int DeclarationStart { get; }
     }
 }
