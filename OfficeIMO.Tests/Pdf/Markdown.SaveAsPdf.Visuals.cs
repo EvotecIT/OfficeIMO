@@ -210,6 +210,91 @@ _Figure 2. Revenue chart_
     }
 
     [Fact]
+    public void ToPdfDocument_MarkdownChartFence_WarnsForMixedChartJsDatasetTypes() {
+        var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "bar",
+  "data": {
+    "labels": ["Q1", "Q2"],
+    "datasets": [
+      { "label": "Actual", "data": [3, 7] },
+      { "type": "line", "label": "Target", "data": [4, 8] }
+    ]
+  }
+}
+""");
+
+        bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
+
+        Assert.False(created);
+        Assert.Null(snapshot);
+        Assert.Contains("mixed per-dataset chart types", warning, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ToPdfDocument_MarkdownStackedChartFence_WarnsForSeparateChartJsStackGroups() {
+        var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "bar",
+  "options": {
+    "scales": {
+      "x": { "stacked": true },
+      "y": { "stacked": true }
+    }
+  },
+  "data": {
+    "labels": ["Q1", "Q2"],
+    "datasets": [
+      { "label": "Actual", "stack": "current", "data": [3, 7] },
+      { "label": "Target", "stack": "planned", "data": [4, 8] }
+    ]
+  }
+}
+""");
+
+        bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
+
+        Assert.False(created);
+        Assert.Null(snapshot);
+        Assert.Contains("separate stack groups", warning, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ToPdfDocument_MarkdownChartFence_RespectsDisabledChartJsScaleAxes() {
+        var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "bar",
+  "data": {
+    "labels": ["Q1", "Q2"],
+    "datasets": [
+      { "label": "Actual", "data": [3, 7] }
+    ]
+  },
+  "options": {
+    "scales": {
+      "x": { "display": false },
+      "y": {
+        "ticks": { "display": false },
+        "grid": { "display": false }
+      }
+    }
+  }
+}
+""");
+
+        bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
+
+        Assert.True(created, warning);
+        Assert.False(snapshot!.Layout.ShowCategoryAxis);
+        Assert.False(snapshot.Layout.ShowCategoryAxisLine);
+        Assert.False(snapshot.Layout.ShowCategoryAxisLabels);
+        Assert.True(snapshot.Layout.ShowValueAxis);
+        Assert.True(snapshot.Layout.ShowValueAxisLine);
+        Assert.False(snapshot.Layout.ShowValueAxisLabels);
+        Assert.False(snapshot.Style.ShowGridLines);
+    }
+
+    [Fact]
     public void ToPdfDocument_MarkdownScatterChartFence_PreservesExplicitXValuesAndMissingYValues() {
         var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
 {
