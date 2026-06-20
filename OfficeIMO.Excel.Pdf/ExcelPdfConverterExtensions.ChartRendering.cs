@@ -65,7 +65,7 @@ namespace OfficeIMO.Excel.Pdf {
             var data = new OfficeChartData(snapshot.Data.Categories, series);
             return new OfficeChartSnapshot(
                 snapshot.Name,
-                title: null,
+                snapshot.Title,
                 chartKind,
                 data,
                 PixelsToPoints(snapshot.WidthPixels),

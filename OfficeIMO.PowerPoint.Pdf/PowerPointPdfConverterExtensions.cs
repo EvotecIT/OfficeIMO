@@ -708,7 +708,7 @@ public static partial class PowerPointPdfConverterExtensions {
     private static void RenderAutoShape(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointAutoShape autoShape, double x, double y, double width, double height, int slideNumber, PowerPointPdfSaveOptions options) {
         OfficeShape? shape = CreateOfficeShape(autoShape.ShapeType, autoShape, width, height);
         if (shape == null) {
-            AddWarning(options, slideNumber, "unsupported-auto-shape", "Skipped unsupported PowerPoint auto-shape type '" + autoShape.ShapeType + "'.");
+            AddWarning(options, slideNumber, "unsupported-auto-shape", "Skipped unsupported PowerPoint auto-shape type '" + GetShapePresetName(autoShape.ShapeType) + "'.");
             return;
         }
 
@@ -733,27 +733,38 @@ public static partial class PowerPointPdfConverterExtensions {
     }
 
     private static OfficeShape? CreateOfficeShape(ShapeTypeValues? type, PptCore.PowerPointShape source, double width, double height) {
-        if (type == ShapeTypeValues.Rectangle) {
-            return OfficeShape.Rectangle(width, height);
+        return type.HasValue &&
+               OfficeShapePresets.TryCreate(GetShapePresetName(type), width, height, source.HorizontalFlip == true, source.VerticalFlip == true, out OfficeShape? shape)
+            ? shape
+            : null;
+    }
+
+    private static string? GetShapePresetName(ShapeTypeValues? type) {
+        if (!type.HasValue) {
+            return null;
         }
 
-        if (type == ShapeTypeValues.RoundRectangle) {
-            return OfficeShape.RoundedRectangle(width, height, Math.Min(width, height) * 0.18D);
-        }
-
-        if (type == ShapeTypeValues.Ellipse) {
-            return OfficeShape.Ellipse(width, height);
-        }
-
-        if (type == ShapeTypeValues.Line) {
-            double startX = source.HorizontalFlip == true ? width : 0D;
-            double endX = source.HorizontalFlip == true ? 0D : width;
-            double startY = source.VerticalFlip == true ? height : 0D;
-            double endY = source.VerticalFlip == true ? 0D : height;
-            return OfficeShape.Line(startX, startY, endX, endY);
-        }
-
-        return null;
+        ShapeTypeValues value = type.Value;
+        if (value == ShapeTypeValues.Rectangle) return "rect";
+        if (value == ShapeTypeValues.RoundRectangle) return "roundRect";
+        if (value == ShapeTypeValues.Ellipse) return "ellipse";
+        if (value == ShapeTypeValues.Line || value == ShapeTypeValues.StraightConnector1) return "line";
+        if (value == ShapeTypeValues.Triangle) return "triangle";
+        if (value == ShapeTypeValues.RightTriangle) return "rtTriangle";
+        if (value == ShapeTypeValues.Diamond) return "diamond";
+        if (value == ShapeTypeValues.Parallelogram) return "parallelogram";
+        if (value == ShapeTypeValues.Trapezoid) return "trapezoid";
+        if (value == ShapeTypeValues.Pentagon) return "pentagon";
+        if (value == ShapeTypeValues.Hexagon) return "hexagon";
+        if (value == ShapeTypeValues.Octagon) return "octagon";
+        if (value == ShapeTypeValues.Plus) return "plus";
+        if (value == ShapeTypeValues.Chevron) return "chevron";
+        if (value == ShapeTypeValues.RightArrow) return "rightArrow";
+        if (value == ShapeTypeValues.LeftArrow) return "leftArrow";
+        if (value == ShapeTypeValues.UpArrow) return "upArrow";
+        if (value == ShapeTypeValues.DownArrow) return "downArrow";
+        if (value == ShapeTypeValues.Star5) return "star5";
+        return value.ToString();
     }
 
     private static void ApplyShapeStyle(PptCore.PowerPointShape source, OfficeShape target) {

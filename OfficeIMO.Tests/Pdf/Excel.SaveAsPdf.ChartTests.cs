@@ -43,6 +43,9 @@ public partial class Excel {
             Assert.Equal(ExcelChartType.ColumnClustered, snapshot.ChartType);
             Assert.Equal(3, snapshot.Data.Categories.Count);
             Assert.Equal(2, snapshot.Data.Series.Count);
+            MethodInfo createSnapshot = typeof(ExcelPdfConverterExtensions).GetMethod("CreateOfficeChartSnapshot", BindingFlags.NonPublic | BindingFlags.Static)!;
+            var sharedSnapshot = Assert.IsType<OfficeChartSnapshot>(createSnapshot.Invoke(null, new object[] { snapshot, new ExcelPdfSaveOptions() }));
+            Assert.Equal("Revenue Chart", sharedSnapshot.Title);
 
             document.Save(false);
 

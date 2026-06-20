@@ -429,6 +429,7 @@
         "theme-colors",
         "gradient-background",
         "text-boxes",
+        "preset-auto-shapes",
         "grouped-shapes",
         "group-transform"
       ],
@@ -448,6 +449,7 @@
         "logicalSignals": [
           "theme-color",
           "gradient-background",
+          "preset-auto-shape",
           "group-transform",
           "page-geometry"
         ],

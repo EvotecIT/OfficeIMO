@@ -197,6 +197,46 @@ public partial class Excel {
     }
 
     [Fact]
+    public void ToPdfDocument_ExcelWorkbook_Maps_Worksheet_FitToHeight_To_Table_Scaling() {
+        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfWorksheetFitToHeight.xlsx");
+
+        PdfCore.PdfDocument pdfDocument;
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "PageSetup")) {
+            ExcelSheet sheet = document.Sheets[0];
+            sheet.Cell(1, 1, "Name");
+            sheet.Cell(1, 2, "Value");
+            for (int row = 2; row <= 10; row++) {
+                sheet.Cell(row, 1, "Row " + row.ToString(CultureInfo.InvariantCulture));
+                sheet.Cell(row, 2, row);
+            }
+
+            for (int row = 1; row <= 10; row++) {
+                sheet.SetRowHeight(row, 36D);
+            }
+
+            sheet.SetPageSetup(fitToWidth: 1U, fitToHeight: 1U);
+            document.Save(false);
+
+            pdfDocument = document.ToPdfDocument(new ExcelPdfSaveOptions {
+                IncludeSheetHeadings = false,
+                HeaderRowCount = 1,
+                PageSize = new PdfCore.PageSize(220, 144),
+                Margins = PdfCore.PageMargins.Uniform(18)
+            });
+        }
+
+        PdfCore.PageBlock page = Assert.IsType<PdfCore.PageBlock>(Assert.Single(pdfDocument.Blocks));
+        PdfCore.TableBlock table = Assert.Single(page.Blocks.OfType<PdfCore.TableBlock>());
+        Assert.NotNull(table.Style);
+        PdfCore.PdfTableStyle style = table.Style!;
+        Assert.Equal(1, style.HeaderRowCount);
+        Assert.NotNull(style.FixedRowHeights);
+        Assert.Equal(10, style.FixedRowHeights!.Count);
+        Assert.InRange(style.FixedRowHeights.Sum(height => height ?? 0D), 107D, 108.1D);
+        Assert.True(style.CellPaddingY < 3D, "Fit-to-height scaling should shrink default vertical padding along with row heights.");
+    }
+
+    [Fact]
     public void SaveAsPdf_ExcelWorkbook_Uses_Print_Title_Rows_As_Repeating_Table_Header() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfPrintTitles.xlsx");
 

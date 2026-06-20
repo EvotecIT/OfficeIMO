@@ -27,6 +27,8 @@ namespace OfficeIMO.Excel.Pdf {
                     .ToList();
             }
 
+            ApplyFitToHeight(tableStyle, options, pageSetup, rowIndexes, rowHeights);
+
             Dictionary<(int Row, int Column), PdfCore.PdfColor>? cellFills = CreateCellFills(styles, conditionalFills, rowIndexes, columnOffset, exportedColumns);
             if (cellFills != null) {
                 tableStyle.CellFills = cellFills;
@@ -101,6 +103,77 @@ namespace OfficeIMO.Excel.Pdf {
 
         private static bool IsFitToWidth(ExcelSheetPageSetup? pageSetup) {
             return pageSetup?.FitToWidth is uint fitToWidth && fitToWidth > 0U;
+        }
+
+        private static void ApplyFitToHeight(PdfCore.PdfTableStyle tableStyle, ExcelPdfSaveOptions options, ExcelSheetPageSetup? pageSetup, IReadOnlyList<int> rowIndexes, RowLayoutData? rowHeights) {
+            if (!IsFitToHeight(pageSetup) || rowIndexes.Count == 0) {
+                return;
+            }
+
+            double targetHeight = CalculateFitToHeightMaxHeight(options, pageSetup);
+            List<double> currentHeights = CreateApproximateRowHeights(tableStyle, rowIndexes, rowHeights);
+            double currentHeight = currentHeights.Sum();
+            if (currentHeight <= targetHeight || currentHeight <= 0D) {
+                return;
+            }
+
+            double scale = Math.Max(0.05D, targetHeight / currentHeight);
+            tableStyle.FixedRowHeights = currentHeights
+                .Select(height => (double?)Math.Max(1D, height * scale))
+                .ToList();
+
+            tableStyle.CellPaddingY *= scale;
+            tableStyle.CellPaddingTop = ScaleOptional(tableStyle.CellPaddingTop, scale);
+            tableStyle.CellPaddingBottom = ScaleOptional(tableStyle.CellPaddingBottom, scale);
+            tableStyle.FontSize = ScaleFontSize(tableStyle.FontSize, scale);
+            tableStyle.HeaderFontSize = ScaleFontSize(tableStyle.HeaderFontSize, scale);
+            tableStyle.FooterFontSize = ScaleFontSize(tableStyle.FooterFontSize, scale);
+            tableStyle.MinRowHeight *= scale;
+            if (tableStyle.RowMinHeights != null) {
+                tableStyle.RowMinHeights = tableStyle.RowMinHeights
+                    .Select(height => height.HasValue ? (double?)Math.Max(1D, height.Value * scale) : null)
+                    .ToList();
+            }
+        }
+
+        private static bool IsFitToHeight(ExcelSheetPageSetup? pageSetup) {
+            return pageSetup?.FitToHeight is uint fitToHeight && fitToHeight > 0U;
+        }
+
+        private static double CalculateFitToHeightMaxHeight(ExcelPdfSaveOptions options, ExcelSheetPageSetup? pageSetup) {
+            PdfCore.PageSize pageSize = GetEffectivePageSize(options, pageSetup);
+            PdfCore.PageMargins margins = GetEffectiveMargins(options, pageSetup);
+            double pageContentHeight = Math.Max(24D, pageSize.Height - margins.Top - margins.Bottom);
+            uint fitToHeight = pageSetup?.FitToHeight ?? 1U;
+            return pageContentHeight * Math.Max(1U, fitToHeight);
+        }
+
+        private static List<double> CreateApproximateRowHeights(PdfCore.PdfTableStyle tableStyle, IReadOnlyList<int> rowIndexes, RowLayoutData? rowHeights) {
+            var heights = new List<double>(rowIndexes.Count);
+            double fallbackHeight = GetDefaultApproximateRowHeight(tableStyle);
+            for (int i = 0; i < rowIndexes.Count; i++) {
+                int row = rowIndexes[i];
+                double? configuredHeight = rowHeights != null && row >= 0 && row < rowHeights.MinHeights.Count
+                    ? rowHeights.MinHeights[row]
+                    : null;
+                heights.Add(Math.Max(1D, configuredHeight ?? fallbackHeight));
+            }
+
+            return heights;
+        }
+
+        private static double GetDefaultApproximateRowHeight(PdfCore.PdfTableStyle tableStyle) {
+            double fontSize = tableStyle.FontSize ?? 10D;
+            double lineHeight = tableStyle.LineHeight.HasValue ? fontSize * tableStyle.LineHeight.Value : fontSize * 1.4D;
+            return Math.Max(tableStyle.MinRowHeight, lineHeight + tableStyle.CellPaddingY * 2D);
+        }
+
+        private static double? ScaleOptional(double? value, double scale) {
+            return value.HasValue ? Math.Max(0D, value.Value * scale) : null;
+        }
+
+        private static double? ScaleFontSize(double? value, double scale) {
+            return value.HasValue ? Math.Max(0.1D, value.Value * scale) : value;
         }
 
         private static double CalculateFitToWidthMaxWidth(ExcelPdfSaveOptions options, ExcelSheetPageSetup? pageSetup) {

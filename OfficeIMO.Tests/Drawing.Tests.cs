@@ -485,6 +485,45 @@ public class DrawingTests {
     }
 
     [Fact]
+    public void OfficeShapePresetsCreateReusableDrawingMlGeometry() {
+        Assert.True(OfficeShapePresets.TryCreate("triangle", 120, 80, out OfficeShape? triangle));
+        Assert.NotNull(triangle);
+        Assert.Equal(OfficeShapeKind.Polygon, triangle!.Kind);
+        Assert.Equal(120, triangle.Width);
+        Assert.Equal(80, triangle.Height);
+        Assert.Equal(new OfficePoint(60, 0), triangle.Points[0]);
+        Assert.Equal(new OfficePoint(120, 80), triangle.Points[1]);
+        Assert.Equal(new OfficePoint(0, 80), triangle.Points[2]);
+
+        Assert.True(OfficeShapePresets.TryCreate("parallelogram", 100, 40, horizontalFlip: true, verticalFlip: false, out OfficeShape? flipped));
+        Assert.NotNull(flipped);
+        Assert.Equal(new OfficePoint(78, 0), flipped!.Points[0]);
+        Assert.Equal(new OfficePoint(0, 0), flipped.Points[1]);
+
+        Assert.True(OfficeShapePresets.TryCreate("rightArrow", 140, 50, out OfficeShape? arrow));
+        Assert.NotNull(arrow);
+        Assert.Equal(OfficeShapeKind.Polygon, arrow!.Kind);
+        Assert.Equal(7, arrow.Points.Count);
+
+        Assert.True(OfficeShapePresets.TryCreate("ShapeTypeValues { InnerText = triangle }", 60, 40, out OfficeShape? openXmlDiagnostic));
+        Assert.NotNull(openXmlDiagnostic);
+        Assert.Equal(60, openXmlDiagnostic!.Width);
+
+        Assert.True(OfficeShapePresets.TryCreate("hexagon", 120, 80, out OfficeShape? hexagon));
+        Assert.NotNull(hexagon);
+        Assert.Equal(120, hexagon!.Width);
+        Assert.Equal(80, hexagon.Height);
+
+        Assert.True(OfficeShapePresets.TryCreate("star5", 90, 90, out OfficeShape? star));
+        Assert.NotNull(star);
+        Assert.Equal(90, star!.Width);
+        Assert.Equal(90, star.Height);
+
+        Assert.False(OfficeShapePresets.TryCreate("cloud", 100, 60, out OfficeShape? unsupported));
+        Assert.Null(unsupported);
+    }
+
+    [Fact]
     public void OfficeShapeRejectsEmptyLineDrawingIntent() {
         Assert.Throws<ArgumentException>(() => OfficeShape.Line(10, 20, 10, 20));
     }
