@@ -399,6 +399,29 @@ _Figure 2. Revenue chart_
     }
 
     [Fact]
+    public void ToPdfDocument_MarkdownScatterChartFence_WarnsWhenExplicitXValuesCannotRenderPoint() {
+        var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "scatter",
+  "data": {
+    "datasets": [
+      { "label": "Samples", "data": [
+        { "x": "2026-01-01", "y": 4 },
+        { "x": "2026-01-02", "y": 8 }
+      ] }
+    ]
+  }
+}
+""");
+
+        bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
+
+        Assert.False(created);
+        Assert.Null(snapshot);
+        Assert.Contains("finite X/Y point", warning, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ToPdfDocument_MarkdownChartFence_PreservesMissingArrayValuesAsNaN() {
         var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
 {
@@ -671,6 +694,43 @@ _Figure 2. Revenue chart_
 
         Assert.DoesNotContain(options.Warnings, warning => warning.Code == "UnsupportedChartFence");
         Assert.Contains("\"datasets\"", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ToPdfDocument_MarkdownChartFence_WithDecorativeFigureDrawingStyle_RendersWithChartAltText() {
+        const string markdown = """
+```chart
+{
+  "type": "bar",
+  "title": "Decorative source style",
+  "data": {
+    "labels": ["Q1"],
+    "datasets": [
+      { "label": "Actual", "data": [10] }
+    ]
+  }
+}
+```
+""";
+
+        MarkdownPdfVisualTheme theme = MarkdownPdfVisualTheme.Report();
+        MarkdownPdfFigureStyle figureStyle = theme.FigureStyle!;
+        figureStyle.DrawingStyle = new PdfCore.PdfDrawingStyle {
+            Align = PdfCore.PdfAlign.Center,
+            Decorative = true,
+            KeepWithNext = true,
+            SpacingBefore = 2,
+            SpacingAfter = 4
+        };
+        theme.FigureStyle = figureStyle;
+        var options = CreateVisualOptions();
+        options.VisualTheme = theme;
+
+        byte[] bytes = markdown.ToPdfDocument(options).ToBytes();
+        string text = PdfCore.PdfReadDocument.Load(bytes).ExtractText();
+
+        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "UnsupportedChartFence");
+        Assert.Contains("Decorative source style", text, StringComparison.Ordinal);
     }
 
     [Fact]

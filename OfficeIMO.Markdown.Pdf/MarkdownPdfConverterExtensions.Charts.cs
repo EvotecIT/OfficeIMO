@@ -26,6 +26,7 @@ public static partial class MarkdownPdfConverterExtensions {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(snapshot!);
         MarkdownPdfFigureStyle figureStyle = visualTheme.FigureStyleSnapshot;
         PdfCore.PdfDrawingStyle drawingStyle = figureStyle.DrawingStyleSnapshot;
+        drawingStyle.Decorative = false;
         drawingStyle.AlternativeText = string.IsNullOrWhiteSpace(snapshot!.Title)
             ? "Markdown chart"
             : "Markdown chart: " + snapshot.Title;
@@ -82,6 +83,11 @@ public static partial class MarkdownPdfConverterExtensions {
 
             if (!HasFiniteValue(series)) {
                 warningMessage = "The Markdown chart fence does not contain finite renderable chart values and is rendered as a semantic code panel.";
+                return false;
+            }
+
+            if (chartKind == OfficeChartKind.Scatter && !HasDrawableScatterPoint(series)) {
+                warningMessage = "The Markdown scatter chart fence does not contain a finite X/Y point and is rendered as a semantic code panel.";
                 return false;
             }
 
@@ -172,6 +178,32 @@ public static partial class MarkdownPdfConverterExtensions {
             for (int valueIndex = 0; valueIndex < values.Count; valueIndex++) {
                 double value = values[valueIndex];
                 if (IsFiniteChartValue(value)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static bool HasDrawableScatterPoint(IReadOnlyList<OfficeChartSeries> series) {
+        for (int seriesIndex = 0; seriesIndex < series.Count; seriesIndex++) {
+            OfficeChartSeries item = series[seriesIndex];
+            IReadOnlyList<double>? xValues = item.XValues;
+            IReadOnlyList<double> yValues = item.Values;
+            if (xValues == null) {
+                for (int valueIndex = 0; valueIndex < yValues.Count; valueIndex++) {
+                    if (IsFiniteChartValue(yValues[valueIndex])) {
+                        return true;
+                    }
+                }
+
+                continue;
+            }
+
+            int count = Math.Min(xValues.Count, yValues.Count);
+            for (int valueIndex = 0; valueIndex < count; valueIndex++) {
+                if (IsFiniteChartValue(xValues[valueIndex]) && IsFiniteChartValue(yValues[valueIndex])) {
                     return true;
                 }
             }
