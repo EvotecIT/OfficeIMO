@@ -179,7 +179,9 @@ public static class HtmlResourcePipeline {
         }
 
         AddAttribute(manifest, kind, element, "href", baseUri, options);
-        AddSrcSet(manifest, kind, element, "imagesrcset", baseUri, options);
+        if (relTokens.Contains("preload") && kind == HtmlResourceKind.Image) {
+            AddSrcSet(manifest, HtmlResourceKind.Image, element, "imagesrcset", baseUri, options);
+        }
     }
 
     private static HashSet<string> GetRelTokens(string rel) {
@@ -255,7 +257,7 @@ public static class HtmlResourcePipeline {
 
         css = StripCssCommentsOutsideStrings(css);
         bool scanImports = !string.Equals(attributeName, "style", StringComparison.OrdinalIgnoreCase);
-        Dictionary<string, List<string>> customPropertyUrls = ExtractCustomPropertyUrls(css);
+        Dictionary<string, List<CssCustomPropertyUrl>> customPropertyUrls = ExtractCustomPropertyUrls(css);
         var importRanges = new List<SourceRange>();
         if (scanImports) {
             foreach (CssImportReference reference in ExtractCssImports(css)) {
@@ -286,44 +288,44 @@ public static class HtmlResourcePipeline {
         }
     }
 
-    private static Dictionary<string, List<string>> ExtractCustomPropertyUrls(string css) {
-        var urls = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+    private static Dictionary<string, List<CssCustomPropertyUrl>> ExtractCustomPropertyUrls(string css) {
+        var urls = new Dictionary<string, List<CssCustomPropertyUrl>>(StringComparer.Ordinal);
         foreach (Match match in CssUrlExpression.Matches(css)) {
             if (TryGetCustomPropertyName(css, match.Index, out string propertyName)) {
-                AddCustomPropertyUrl(urls, propertyName, match.Groups["url"].Value.Trim().Trim('\'', '"'));
+                AddCustomPropertyUrl(urls, propertyName, match.Groups["url"].Value.Trim().Trim('\'', '"'), GetDeclarationSelector(css, match.Index));
             }
         }
 
         foreach (CssStringUrlReference reference in ExtractImageSetStringUrls(css)) {
             if (TryGetCustomPropertyName(css, reference.Start, out string propertyName)) {
-                AddCustomPropertyUrl(urls, propertyName, reference.Source);
+                AddCustomPropertyUrl(urls, propertyName, reference.Source, GetDeclarationSelector(css, reference.Start));
             }
         }
 
         return urls;
     }
 
-    private static void AddCustomPropertyUrl(IDictionary<string, List<string>> urls, string propertyName, string source) {
+    private static void AddCustomPropertyUrl(IDictionary<string, List<CssCustomPropertyUrl>> urls, string propertyName, string source, string selector) {
         if (string.IsNullOrWhiteSpace(source)) {
             return;
         }
 
-        if (!urls.TryGetValue(propertyName, out List<string>? values)) {
-            values = new List<string>();
+        if (!urls.TryGetValue(propertyName, out List<CssCustomPropertyUrl>? values)) {
+            values = new List<CssCustomPropertyUrl>();
             urls[propertyName] = values;
         }
 
-        values.Add(source);
+        values.Add(new CssCustomPropertyUrl(source, selector));
     }
 
-    private static void AddUsedCustomPropertyUrls(HtmlResourceManifest manifest, IElement element, string attributeName, string css, IReadOnlyDictionary<string, List<string>> customPropertyUrls, Uri? baseUri, HtmlResourcePipelineOptions options) {
+    private static void AddUsedCustomPropertyUrls(HtmlResourceManifest manifest, IElement element, string attributeName, string css, IReadOnlyDictionary<string, List<CssCustomPropertyUrl>> customPropertyUrls, Uri? baseUri, HtmlResourcePipelineOptions options) {
         if (customPropertyUrls.Count == 0) {
             return;
         }
 
         foreach (Match match in CssVarExpression.Matches(css)) {
             string propertyName = match.Groups["name"].Value;
-            if (IsInsideCssString(css, match.Index) || !customPropertyUrls.TryGetValue(propertyName, out List<string>? sources)) {
+            if (IsInsideCssString(css, match.Index) || !customPropertyUrls.TryGetValue(propertyName, out List<CssCustomPropertyUrl>? sources)) {
                 continue;
             }
 
@@ -332,10 +334,46 @@ public static class HtmlResourcePipeline {
                 continue;
             }
 
-            foreach (string source in sources) {
-                AddRaw(manifest, kind, element, attributeName + "-var-url", source, baseUri, options);
+            string useSelector = GetDeclarationSelector(css, match.Index);
+            foreach (CssCustomPropertyUrl source in sources) {
+                if (CanSubstituteCustomProperty(source.Selector, useSelector)) {
+                    AddRaw(manifest, kind, element, attributeName + "-var-url", source.Source, baseUri, options);
+                }
             }
         }
+    }
+
+    private static bool CanSubstituteCustomProperty(string definitionSelector, string useSelector) {
+        if (string.IsNullOrWhiteSpace(definitionSelector)) {
+            return string.IsNullOrWhiteSpace(useSelector);
+        }
+
+        if (string.Equals(definitionSelector, useSelector, StringComparison.OrdinalIgnoreCase)) {
+            return true;
+        }
+
+        foreach (string selector in definitionSelector.Split(',')) {
+            string normalized = selector.Trim();
+            if (string.Equals(normalized, ":root", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(normalized, "html", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(normalized, "body", StringComparison.OrdinalIgnoreCase)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static string GetDeclarationSelector(string css, int index) {
+        int blockStart = css.LastIndexOf('{', Math.Max(0, index - 1));
+        if (blockStart < 0) {
+            return string.Empty;
+        }
+
+        int previousBlockEnd = css.LastIndexOf('}', Math.Max(0, blockStart - 1));
+        int previousStatementEnd = css.LastIndexOf(';', Math.Max(0, blockStart - 1));
+        int selectorStart = Math.Max(0, Math.Max(previousBlockEnd, previousStatementEnd) + 1);
+        return css.Substring(selectorStart, blockStart - selectorStart).Trim();
     }
 
     private static IEnumerable<CssStringUrlReference> ExtractImageSetStringUrls(string css) {
@@ -851,5 +889,15 @@ public static class HtmlResourcePipeline {
         internal int Start { get; }
         internal int End { get; }
         internal string Source { get; }
+    }
+
+    private sealed class CssCustomPropertyUrl {
+        internal CssCustomPropertyUrl(string source, string selector) {
+            Source = source;
+            Selector = selector;
+        }
+
+        internal string Source { get; }
+        internal string Selector { get; }
     }
 }

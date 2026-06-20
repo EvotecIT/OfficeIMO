@@ -19,6 +19,9 @@ public static class HtmlRoundTripScorer {
         "placeholder",
         "form",
         "formaction",
+        "src",
+        "data-src",
+        "alt",
         "required",
         "readonly",
         "min",
@@ -48,6 +51,9 @@ public static class HtmlRoundTripScorer {
         "placeholder",
         "form",
         "formaction",
+        "src",
+        "data-src",
+        "alt",
         "required",
         "readonly",
         "min",
@@ -213,11 +219,14 @@ public static class HtmlRoundTripScorer {
         }
 
         var policy = HtmlUrlPolicy.CreateOfficeIMOProfile();
-        foreach (var element in document.QuerySelectorAll("a,area,form,input,button,img,image,source")) {
+        foreach (var element in document.QuerySelectorAll("a,area,form,input,button,img,image,source,video,audio,track")) {
             ResolveUrlAttribute(element, "href", baseUri, policy);
             ResolveUrlAttribute(element, "action", baseUri, policy);
             ResolveUrlAttribute(element, "formaction", baseUri, policy);
             ResolveUrlAttribute(element, "src", baseUri, policy);
+            ResolveUrlAttribute(element, "data-src", baseUri, policy);
+            ResolveUrlAttribute(element, "poster", baseUri, policy);
+            ResolveUrlAttribute(element, "data-poster", baseUri, policy);
             ResolveUrlAttribute(element, "xlink:href", baseUri, policy);
             ResolveSrcSetAttribute(element, "srcset", baseUri, policy);
             ResolveSrcSetAttribute(element, "data-srcset", baseUri, policy);
@@ -261,6 +270,7 @@ public static class HtmlRoundTripScorer {
 
     private static IReadOnlyList<string> ExtractFormOwnerSignatures(string html) {
         var document = HtmlDocumentParser.ParseDocument(html);
+        ResolveResourceSourceAttributes(document);
         var signatures = new List<string>();
         foreach (var control in document.QuerySelectorAll("input,select,textarea,button,option")) {
             var parts = new List<string> {
@@ -574,19 +584,34 @@ public static class HtmlRoundTripScorer {
     }
 
     private static void AppendVisibleText(INode node, ICollection<string> parts, IReadOnlyDictionary<IElement, HtmlComputedStyle> styles) {
+        AppendVisibleText(node, parts, styles, true);
+    }
+
+    private static void AppendVisibleText(INode node, ICollection<string> parts, IReadOnlyDictionary<IElement, HtmlComputedStyle> styles, bool inheritedVisibility) {
+        bool currentVisibility = inheritedVisibility;
         if (node is IElement element) {
-            if (IsNonVisibleTextElement(element.TagName) || IsHiddenElement(element, styles)) {
+            if (IsNonVisibleTextElement(element.TagName) || IsDisplayNoneElement(element, styles)) {
                 return;
+            }
+
+            HtmlComputedStyle? computedStyle;
+            if (styles.TryGetValue(element, out computedStyle) && computedStyle != null) {
+                string visibility = computedStyle.GetValue("visibility");
+                if (string.Equals(visibility, "hidden", StringComparison.OrdinalIgnoreCase)) {
+                    currentVisibility = false;
+                } else if (string.Equals(visibility, "visible", StringComparison.OrdinalIgnoreCase)) {
+                    currentVisibility = true;
+                }
             }
         }
 
-        if (node.NodeType == NodeType.Text && !string.IsNullOrWhiteSpace(node.TextContent)) {
+        if (currentVisibility && node.NodeType == NodeType.Text && !string.IsNullOrWhiteSpace(node.TextContent)) {
             parts.Add(node.TextContent);
             return;
         }
 
         foreach (INode child in node.ChildNodes) {
-            AppendVisibleText(child, parts, styles);
+            AppendVisibleText(child, parts, styles, currentVisibility);
         }
     }
 
@@ -631,7 +656,7 @@ public static class HtmlRoundTripScorer {
             || string.Equals(name, "noscript", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static bool IsHiddenElement(IElement element, IReadOnlyDictionary<IElement, HtmlComputedStyle> styles) {
+    private static bool IsDisplayNoneElement(IElement element, IReadOnlyDictionary<IElement, HtmlComputedStyle> styles) {
         if (element.HasAttribute("hidden")) {
             return true;
         }
@@ -643,8 +668,7 @@ public static class HtmlRoundTripScorer {
 
         HtmlComputedStyle? computedStyle;
         if (styles.TryGetValue(element, out computedStyle) && computedStyle != null) {
-            return string.Equals(computedStyle.GetValue("display"), "none", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(computedStyle.GetValue("visibility"), "hidden", StringComparison.OrdinalIgnoreCase);
+            return string.Equals(computedStyle.GetValue("display"), "none", StringComparison.OrdinalIgnoreCase);
         }
 
         return false;

@@ -300,6 +300,11 @@ public partial class Html {
             "<main><style media=\"not print\">.draft{display:none}</style><p>Visible <span class=\"draft\">draft</span></p></main>",
             "<main><p>Visible</p></main>");
         Assert.Equal(1D, notPrintHiddenTextScore.Metrics["text"], 3);
+
+        HtmlRoundTripScore notUnsupportedSupportsScore = HtmlRoundTripScorer.Compare(
+            "<main><style>@supports not (not-a-real-prop: value){.draft{display:none}}</style><p>Visible <span class=\"draft\">draft</span></p></main>",
+            "<main><p>Visible</p></main>");
+        Assert.Equal(1D, notUnsupportedSupportsScore.Metrics["text"], 3);
     }
 
     [Fact]
@@ -312,6 +317,7 @@ public partial class Html {
                 <link rel="icon" href="https://example.test/favicon.png">
                 <link rel="notstylesheet" href="file:///secret/notstylesheet.css">
                 <link rel="preload" as="image" imagesrcset="file:///secret/preload.png 1x, https://example.test/images/preload-large.png 2x">
+                <link rel="stylesheet" href="https://example.test/app.css" imagesrcset="file:///secret/stylesheet-image.png 1x">
                 <style>
                     /* @import url('file:///secret/commented.css'); */
                     @import url('file:///secret/theme.css');
@@ -320,6 +326,7 @@ public partial class Html {
                     @import url('https://example.test/images/shared.png');
                     @importurl(file:///secret/import-token.css);
                     :root { --hero: url(file:///secret/custom-property.png); --used-hero: url(file:///secret/custom-property-used.png); }
+                    .unused { --card-hero: url(file:///secret/unused-custom-property.png); }
                     .late { color: red; } @import url(file:///secret/late.css);
                     .comment-url { background-image: url('https://example.test/images/a/*v*/b.png'); }
                     .hero { background-image: var(--used-hero), url('https://example.test/images/bg.png'); }
@@ -367,7 +374,9 @@ public partial class Html {
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/import-token.css");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/inline-import.css");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/notstylesheet.css" && resource.Kind == HtmlResourceKind.Stylesheet);
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/stylesheet-image.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/metadata");
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/unused-custom-property.png");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/custom-property-used.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/hero.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-image-set" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/hero-2x.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-url");
@@ -446,6 +455,11 @@ public partial class Html {
             "<main></main>");
         Assert.InRange(inlineCascadeVisibleTextScore.Metrics["text"], 0D, 0.99D);
 
+        HtmlRoundTripScore visibilityDescendantTextScore = HtmlRoundTripScorer.Compare(
+            "<main><div style=\"visibility:hidden\"><span style=\"visibility:visible\">Visible</span></div></main>",
+            "<main></main>");
+        Assert.InRange(visibilityDescendantTextScore.Metrics["text"], 0D, 0.99D);
+
         HtmlRoundTripScore pictureSourceScore = HtmlRoundTripScorer.Compare(
             "<main><picture><source srcset=\"wide.png\"><img src=\"small.png\"></picture></main>",
             "<main><img src=\"small.png\"></main>");
@@ -463,6 +477,11 @@ public partial class Html {
             "<main><video src=\"movie.mp4\"><track src=\"captions.vtt\"></video></main>");
         Assert.Equal(1D, mediaPlaybackScore.Metrics["media"], 3);
         Assert.InRange(mediaPlaybackScore.Metrics["media-sources"], 0D, 0.99D);
+
+        HtmlRoundTripScore resolvedMediaScore = HtmlRoundTripScorer.Compare(
+            "<html><head><base href=\"https://example.test/media/\"></head><body><main><video src=\"movie.mp4\" poster=\"poster.png\"><track src=\"captions.vtt\"></video></main></body></html>",
+            "<main><video src=\"https://example.test/media/movie.mp4\" poster=\"https://example.test/media/poster.png\"><track src=\"https://example.test/media/captions.vtt\"></video></main>");
+        Assert.Equal(1D, resolvedMediaScore.Metrics["media-sources"], 3);
 
         HtmlRoundTripScore headingLevelScore = HtmlRoundTripScorer.Compare(
             "<main><h1>Title</h1></main>",
@@ -527,11 +546,22 @@ public partial class Html {
         Assert.Equal(1D, formOwnerScore.Metrics["forms"], 3);
         Assert.InRange(formOwnerScore.Metrics["form-state"], 0D, 0.99D);
 
+        HtmlRoundTripScore resolvedFormOwnerScore = HtmlRoundTripScorer.Compare(
+            "<html><head><base href=\"https://example.test/\"></head><body><main><form action=\"save\"><input name=\"x\"></form></main></body></html>",
+            "<main><form action=\"https://example.test/save\"><input name=\"x\"></form></main>");
+        Assert.Equal(1D, resolvedFormOwnerScore.Metrics["form-state"], 3);
+
         HtmlRoundTripScore requiredFormScore = HtmlRoundTripScorer.Compare(
             "<main><form><input name=\"email\" required pattern=\".+@.+\"></form></main>",
             "<main><form><input name=\"email\"></form></main>");
         Assert.Equal(1D, requiredFormScore.Metrics["forms"], 3);
         Assert.InRange(requiredFormScore.Metrics["form-state"], 0D, 0.99D);
+
+        HtmlRoundTripScore imageSubmitterScore = HtmlRoundTripScorer.Compare(
+            "<main><form><input type=\"image\" src=\"save-a.png\" alt=\"Save\"></form></main>",
+            "<main><form><input type=\"image\" src=\"save-b.png\" alt=\"Save\"></form></main>");
+        Assert.Equal(1D, imageSubmitterScore.Metrics["forms"], 3);
+        Assert.InRange(imageSubmitterScore.Metrics["form-state"], 0D, 0.99D);
 
         HtmlRoundTripScore linkScore = HtmlRoundTripScorer.Compare(
             "<main><a href=\"https://example.test/a\">same text</a></main>",

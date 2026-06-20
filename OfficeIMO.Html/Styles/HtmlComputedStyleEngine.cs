@@ -236,7 +236,7 @@ public static class HtmlComputedStyleEngine {
 
         string normalized = conditionText.Trim();
         if (normalized.StartsWith("not ", StringComparison.OrdinalIgnoreCase)) {
-            return false;
+            return !ContainsSupportedDeclarationCondition(normalized.Substring(4).Trim());
         }
 
         return ContainsSupportedDeclarationCondition(normalized);
