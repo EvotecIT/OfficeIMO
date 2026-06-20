@@ -102,6 +102,10 @@ public static class HtmlComputedStyleEngine {
         var rules = new List<StyleRule>();
         var parser = new CssParser();
         foreach (IElement styleElement in document.QuerySelectorAll("style")) {
+            if (!IsCssStyleElement(styleElement)) {
+                continue;
+            }
+
             if (!IsApplicableMedia(styleElement.GetAttribute("media") ?? string.Empty)) {
                 continue;
             }
@@ -118,6 +122,20 @@ public static class HtmlComputedStyleEngine {
         }
 
         return rules;
+    }
+
+    private static bool IsCssStyleElement(IElement styleElement) {
+        string type = (styleElement.GetAttribute("type") ?? string.Empty).Trim();
+        if (type.Length == 0) {
+            return true;
+        }
+
+        int parameterStart = type.IndexOf(';');
+        if (parameterStart >= 0) {
+            type = type.Substring(0, parameterStart).Trim();
+        }
+
+        return string.Equals(type, "text/css", StringComparison.OrdinalIgnoreCase);
     }
 
     private static void AddStyleRules(AngleSharp.Css.Dom.ICssRule rule, ICollection<StyleRule> rules) {
@@ -234,37 +252,106 @@ public static class HtmlComputedStyleEngine {
             return true;
         }
 
-        string normalized = conditionText.Trim();
-        if (normalized.StartsWith("not ", StringComparison.OrdinalIgnoreCase)) {
-            return !ContainsSupportedDeclarationCondition(normalized.Substring(4).Trim());
-        }
-
-        return ContainsSupportedDeclarationCondition(normalized);
+        return EvaluateSupportsCondition(conditionText.Trim());
     }
 
-    private static bool ContainsSupportedDeclarationCondition(string conditionText) {
-        int open = conditionText.IndexOf('(');
-        while (open >= 0 && open + 1 < conditionText.Length) {
-            int close = FindMatchingParenthesis(conditionText, open);
-            if (close <= open + 1) {
-                return false;
-            }
-
-            string declaration = conditionText.Substring(open + 1, close - open - 1).Trim();
-            int separator = declaration.IndexOf(':');
-            if (separator <= 0) {
-                return false;
-            }
-
-            string propertyName = declaration.Substring(0, separator).Trim();
-            if (!SupportedProperties.Contains(propertyName)) {
-                return false;
-            }
-
-            open = conditionText.IndexOf('(', close + 1);
+    private static bool EvaluateSupportsCondition(string conditionText) {
+        string normalized = conditionText.Trim();
+        if (normalized.Length == 0) {
+            return true;
         }
 
-        return true;
+        if (StartsWithLogicalNot(normalized)) {
+            return !EvaluateSupportsCondition(normalized.Substring(3).TrimStart());
+        }
+
+        List<string> orParts = SplitTopLevelLogical(normalized, "or").ToList();
+        if (orParts.Count > 1) {
+            return orParts.Any(EvaluateSupportsCondition);
+        }
+
+        List<string> andParts = SplitTopLevelLogical(normalized, "and").ToList();
+        if (andParts.Count > 1) {
+            return andParts.All(EvaluateSupportsCondition);
+        }
+
+        if (normalized[0] == '(') {
+            int close = FindMatchingParenthesis(normalized, 0);
+            if (close == normalized.Length - 1) {
+                return EvaluateSupportsCondition(normalized.Substring(1, normalized.Length - 2));
+            }
+        }
+
+        int separator = normalized.IndexOf(':');
+        if (separator <= 0) {
+            return false;
+        }
+
+        string propertyName = normalized.Substring(0, separator).Trim();
+        return SupportedProperties.Contains(propertyName);
+    }
+
+    private static bool StartsWithLogicalNot(string conditionText) {
+        return conditionText.Length > 3
+            && conditionText.StartsWith("not", StringComparison.OrdinalIgnoreCase)
+            && char.IsWhiteSpace(conditionText[3]);
+    }
+
+    private static IEnumerable<string> SplitTopLevelLogical(string conditionText, string logicalOperator) {
+        int depth = 0;
+        char quote = '\0';
+        int start = 0;
+        for (int i = 0; i < conditionText.Length; i++) {
+            char current = conditionText[i];
+            if (quote != '\0') {
+                if (current == quote && !IsEscaped(conditionText, i)) {
+                    quote = '\0';
+                }
+
+                continue;
+            }
+
+            if (current == '"' || current == '\'') {
+                quote = current;
+                continue;
+            }
+
+            if (current == '(') {
+                depth++;
+                continue;
+            }
+
+            if (current == ')') {
+                if (depth > 0) {
+                    depth--;
+                }
+
+                continue;
+            }
+
+            if (depth == 0 && IsLogicalOperatorAt(conditionText, i, logicalOperator)) {
+                yield return conditionText.Substring(start, i - start).Trim();
+                i += logicalOperator.Length - 1;
+                start = i + 1;
+            }
+        }
+
+        yield return conditionText.Substring(start).Trim();
+    }
+
+    private static bool IsLogicalOperatorAt(string conditionText, int index, string logicalOperator) {
+        if (index < 0 || index + logicalOperator.Length > conditionText.Length) {
+            return false;
+        }
+
+        if (string.Compare(conditionText, index, logicalOperator, 0, logicalOperator.Length, StringComparison.OrdinalIgnoreCase) != 0) {
+            return false;
+        }
+
+        bool hasLeftBoundary = index == 0 || char.IsWhiteSpace(conditionText[index - 1]);
+        int after = index + logicalOperator.Length;
+        bool hasRightBoundary = after >= conditionText.Length || char.IsWhiteSpace(conditionText[after]);
+        return hasLeftBoundary && hasRightBoundary;
     }
 
     private static bool MatchesSelector(IElement element, string selector) {
@@ -373,17 +460,27 @@ public static class HtmlComputedStyleEngine {
         }
 
         string trimmed = value.TrimEnd();
-        int importantStart = trimmed.Length - 10;
-        if (importantStart < 0 || !string.Equals(trimmed.Substring(importantStart), "!important", StringComparison.OrdinalIgnoreCase)) {
+        const string ImportantKeyword = "important";
+        int importantStart = trimmed.Length - ImportantKeyword.Length;
+        if (importantStart < 0 || !string.Equals(trimmed.Substring(importantStart), ImportantKeyword, StringComparison.OrdinalIgnoreCase)) {
             return value;
         }
 
-        if (IsInsideCssString(trimmed, importantStart) || IsInsideCssComment(trimmed, importantStart)) {
+        int bangIndex = importantStart - 1;
+        while (bangIndex >= 0 && char.IsWhiteSpace(trimmed[bangIndex])) {
+            bangIndex--;
+        }
+
+        if (bangIndex < 0 || trimmed[bangIndex] != '!') {
+            return value;
+        }
+
+        if (IsInsideCssString(trimmed, bangIndex) || IsInsideCssComment(trimmed, bangIndex)) {
             return value;
         }
 
         isImportant = true;
-        return trimmed.Substring(0, importantStart).TrimEnd();
+        return trimmed.Substring(0, bangIndex).TrimEnd();
     }
 
     private static bool IsInsideCssComment(string text, int index) {

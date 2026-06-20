@@ -106,7 +106,7 @@ public static class HtmlResourcePipeline {
                 AddAttribute(manifest, HtmlResourceKind.Other, element, "src", baseUri, options);
                 break;
             case "iframe":
-                if (string.IsNullOrWhiteSpace(element.GetAttribute("srcdoc"))) {
+                if (!element.HasAttribute("srcdoc")) {
                     AddAttribute(manifest, HtmlResourceKind.Other, element, "src", baseUri, options);
                 }
 
@@ -352,16 +352,36 @@ public static class HtmlResourcePipeline {
             return true;
         }
 
-        foreach (string selector in definitionSelector.Split(',')) {
-            string normalized = selector.Trim();
-            if (string.Equals(normalized, ":root", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(normalized, "html", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(normalized, "body", StringComparison.OrdinalIgnoreCase)) {
+        foreach (string definitionPart in definitionSelector.Split(',')) {
+            string normalizedDefinition = definitionPart.Trim();
+            if (string.Equals(normalizedDefinition, ":root", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(normalizedDefinition, "html", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(normalizedDefinition, "body", StringComparison.OrdinalIgnoreCase)) {
                 return true;
+            }
+
+            foreach (string usePart in useSelector.Split(',')) {
+                string normalizedUse = usePart.Trim();
+                if (IsAncestorSelector(normalizedDefinition, normalizedUse)) {
+                    return true;
+                }
             }
         }
 
         return false;
+    }
+
+    private static bool IsAncestorSelector(string definitionSelector, string useSelector) {
+        if (definitionSelector.Length == 0 || useSelector.Length <= definitionSelector.Length) {
+            return false;
+        }
+
+        if (!useSelector.StartsWith(definitionSelector, StringComparison.OrdinalIgnoreCase)) {
+            return false;
+        }
+
+        char next = useSelector[definitionSelector.Length];
+        return char.IsWhiteSpace(next) || next == '>';
     }
 
     private static string GetDeclarationSelector(string css, int index) {
