@@ -123,8 +123,11 @@ public static class HtmlLogicalDocumentBuilder {
                 return HtmlLogicalNodeKind.Paragraph;
             case "ul":
             case "ol":
+            case "dl":
                 return HtmlLogicalNodeKind.List;
             case "li":
+            case "dt":
+            case "dd":
                 return HtmlLogicalNodeKind.ListItem;
             case "table":
                 return HtmlLogicalNodeKind.Table;

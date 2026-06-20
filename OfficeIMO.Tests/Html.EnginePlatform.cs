@@ -322,6 +322,11 @@ public partial class Html {
             "<main><p>Visible</p></main>");
         Assert.InRange(invalidSupportsValueScore.Metrics["text"], 0D, 0.99D);
 
+        HtmlRoundTripScore mediaListFallbackScore = HtmlRoundTripScorer.Compare(
+            "<main><style>@media screen and (max-width:0px), screen {.draft{display:none}}</style><p>Visible <span class=\"draft\">draft</span></p></main>",
+            "<main><p>Visible</p></main>");
+        Assert.Equal(1D, mediaListFallbackScore.Metrics["text"], 3);
+
         HtmlRoundTripScore nonCssStyleScore = HtmlRoundTripScorer.Compare(
             "<main><style type=\"text/plain\">.screen{display:none}</style><span class=\"screen\">Visible</span></main>",
             "<main></main>");
@@ -370,11 +375,15 @@ public partial class Html {
                     .comment-url { background-image: url('https://example.test/images/a/*v*/b.png'); }
                     .hero { background-image: var(--used-hero, url(file:///secret/unused-fallback.png)), url('https://example.test/images/bg.png'); }
                     .theme .card { background-image: var(--theme-hero); }
+                    .cascaded { --cascaded-hero: url(file:///secret/old-cascaded-property.png); }
+                    .cascaded { --cascaded-hero: url(https://example.test/images/cascaded-property.png); }
+                    .cascaded .card { background-image: var(--cascaded-hero); }
                     .escaped { background-image: url(\66 ile:///secret/escaped.png); }
                     .invalid-escape { background-image: url(\ffffff.png); }
                     .not-url { background-image: noturl(file:///secret/not-url-function.png); }
                     .masked { mask: url(file:///secret/mask.svg); }
                     .image-set { background-image: image-set("file:///secret/hero.png" 1x, url(https://example.test/images/hero-2x.png) 2x, "https://example.test/images/hero.avif" type("image/avif")); }
+                    .not-image-set { background-image: notimage-set("file:///secret/not-image-set.png" 1x); }
                     .reuse { background-image: url('https://example.test/images/shared.png'); }
                     .logo::before { content: url('file:///secret/logo.png'); }
                     .label::before { content: "@import url(file:///secret/content.css)"; }
@@ -402,6 +411,7 @@ public partial class Html {
                 <iframe src="file:///secret/ignored-frame.html" srcdoc="<img src=&quot;file:///secret/srcdoc.png&quot;><style>.nested { content: url(file:///secret/srcdoc-content.png); }</style>"></iframe>
                 <iframe src="file:///secret/empty-srcdoc-frame.html" srcdoc=""></iframe>
                 <div class="theme"><div class="card"></div></div>
+                <div class="cascaded"><div class="card"></div></div>
                 <div class="hero"></div>
             </body>
             </html>
@@ -432,11 +442,14 @@ public partial class Html {
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/plain-style.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/unused-fallback.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/not-url-function.png");
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/old-cascaded-property.png");
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/not-image-set.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/script-data.json");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/not-refresh.html");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/ignored-picture-source.png");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/custom-property-used.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/inherited-custom-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/cascaded-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/grouped-custom-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/escaped.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/hero.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-image-set" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
@@ -499,6 +512,9 @@ public partial class Html {
         Assert.Equal(2, inlineSvg.Count(HtmlLogicalNodeKind.Image));
         HtmlLogicalDocument imageMap = HtmlLogicalDocumentBuilder.FromHtml("<main><map name=\"m\"><area href=\"https://example.test/a\" alt=\"A\"></map></main>");
         Assert.Equal(1, imageMap.Count(HtmlLogicalNodeKind.Link));
+        HtmlLogicalDocument definitionList = HtmlLogicalDocumentBuilder.FromHtml("<main><dl><dt>Term</dt><dd>Definition</dd></dl></main>");
+        Assert.Equal(1, definitionList.Count(HtmlLogicalNodeKind.List));
+        Assert.Equal(2, definitionList.Count(HtmlLogicalNodeKind.ListItem));
 
         HtmlRoundTripScore repeatedTextScore = HtmlRoundTripScorer.Compare(
             "<main><p>" + new string('a', 100) + "</p></main>",
@@ -608,6 +624,12 @@ public partial class Html {
         Assert.Equal(1D, listKindScore.Metrics["list-items"], 3);
         Assert.InRange(listKindScore.Metrics["list-kinds"], 0D, 0.99D);
 
+        HtmlRoundTripScore definitionListScore = HtmlRoundTripScorer.Compare(
+            "<main><dl><dt>Term</dt><dd>Definition</dd></dl></main>",
+            "<main><p>Term</p><p>Definition</p></main>");
+        Assert.InRange(definitionListScore.Metrics["lists"], 0D, 0.99D);
+        Assert.InRange(definitionListScore.Metrics["list-items"], 0D, 0.99D);
+
         HtmlRoundTripScore formTargetScore = HtmlRoundTripScorer.Compare(
             "<main><form action=\"/save\" method=\"post\"><input name=\"x\"></form></main>",
             "<main><form action=\"/delete\" method=\"post\"><input name=\"x\"></form></main>");
@@ -677,6 +699,12 @@ public partial class Html {
             "<main><a href=\"https://example.test/report\">Report</a></main>");
         Assert.Equal(1D, linkBrowsingScore.Metrics["links"], 3);
         Assert.InRange(linkBrowsingScore.Metrics["link-targets"], 0D, 0.99D);
+
+        HtmlRoundTripScore downloadFilenameScore = HtmlRoundTripScorer.Compare(
+            "<main><a href=\"https://example.test/report\" download=\"q1.pdf\">Report</a></main>",
+            "<main><a href=\"https://example.test/report\" download=\"q2.pdf\">Report</a></main>");
+        Assert.Equal(1D, downloadFilenameScore.Metrics["links"], 3);
+        Assert.InRange(downloadFilenameScore.Metrics["link-targets"], 0D, 0.99D);
 
         HtmlRoundTripScore resolvedLinkScore = HtmlRoundTripScorer.Compare(
             "<html><head><base href=\"https://example.test/docs/\"></head><body><main><a href=\"page.html\">Docs</a></main></body></html>",

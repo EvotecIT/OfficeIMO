@@ -89,8 +89,7 @@ public static class HtmlRoundTripScorer {
         "autoplay",
         "loop",
         "muted",
-        "default",
-        "download"
+        "default"
     };
 
     /// <summary>
@@ -603,6 +602,10 @@ public static class HtmlRoundTripScorer {
     }
 
     private static string FormatAttributePart(string attributeName, string? value) {
+        if (string.Equals(attributeName, "download", StringComparison.OrdinalIgnoreCase) && string.IsNullOrEmpty(value)) {
+            return attributeName + "=present";
+        }
+
         if (BooleanSignatureAttributes.Contains(attributeName)) {
             return attributeName + "=present";
         }

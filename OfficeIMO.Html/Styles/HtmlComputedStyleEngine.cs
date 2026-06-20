@@ -209,11 +209,17 @@ public static class HtmlComputedStyleEngine {
             }
 
             if (ContainsMediaType(normalized, "all") || ContainsMediaType(normalized, "screen")) {
-                return AreMediaFeaturesApplicable(normalized);
+                if (AreMediaFeaturesApplicable(normalized)) {
+                    return true;
+                }
+
+                continue;
             }
 
             if (!ContainsExplicitMediaType(normalized) && HasMediaFeatureConstraint(normalized)) {
-                return AreMediaFeaturesApplicable(normalized);
+                if (AreMediaFeaturesApplicable(normalized)) {
+                    return true;
+                }
             }
         }
 

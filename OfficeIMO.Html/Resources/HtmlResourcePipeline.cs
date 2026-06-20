@@ -358,10 +358,15 @@ public static class HtmlResourcePipeline {
             }
 
             string useSelector = GetDeclarationSelector(css, match.Index);
+            CssCustomPropertyUrl? selectedSource = null;
             foreach (CssCustomPropertyUrl source in sources) {
                 if (CanSubstituteCustomProperty(source.Selector, useSelector)) {
-                    AddRaw(manifest, kind, element, attributeName + "-var-url", source.Source, baseUri, options);
+                    selectedSource = source;
                 }
+            }
+
+            if (selectedSource != null) {
+                AddRaw(manifest, kind, element, attributeName + "-var-url", selectedSource.Source, baseUri, options);
             }
         }
     }
@@ -511,7 +516,12 @@ public static class HtmlResourcePipeline {
                 continue;
             }
 
-            int cursor = SkipWhitespace(css, functionStart + 9);
+            if (!TryGetImageSetFunction(css, functionStart, out int nameStart, out int nameLength)) {
+                index = functionStart + 9;
+                continue;
+            }
+
+            int cursor = SkipWhitespace(css, nameStart + nameLength);
             if (cursor >= css.Length || css[cursor] != '(') {
                 index = functionStart + 9;
                 continue;
@@ -541,6 +551,27 @@ public static class HtmlResourcePipeline {
 
             index = close + 1;
         }
+    }
+
+    private static bool TryGetImageSetFunction(string css, int imageSetIndex, out int functionStart, out int nameLength) {
+        const string ImageSet = "image-set";
+        const string WebKitImageSet = "-webkit-image-set";
+
+        functionStart = imageSetIndex;
+        nameLength = ImageSet.Length;
+
+        int prefixedStart = imageSetIndex - (WebKitImageSet.Length - ImageSet.Length);
+        if (StartsWith(css, prefixedStart, WebKitImageSet)) {
+            functionStart = prefixedStart;
+            nameLength = WebKitImageSet.Length;
+        }
+
+        if (functionStart > 0 && IsCssIdentifierCharacter(css[functionStart - 1])) {
+            return false;
+        }
+
+        int afterName = functionStart + nameLength;
+        return afterName >= css.Length || !IsCssIdentifierCharacter(css[afterName]);
     }
 
     private static bool IsCssTypeFunctionString(string css, int quoteIndex) {
