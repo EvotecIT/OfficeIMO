@@ -14,7 +14,7 @@ public static partial class MarkdownPdfConverterExtensions {
                 RenderHeading(pdf, heading, document, visualTheme);
                 break;
             case ParagraphBlock paragraph:
-                RenderParagraph(pdf, paragraph.Inlines, visualTheme);
+                RenderParagraph(pdf, paragraph.Inlines, options, visualTheme);
                 break;
             case OrderedListBlock ordered:
                 RenderOrderedList(pdf, ordered, document, options, visualTheme);
@@ -29,7 +29,7 @@ public static partial class MarkdownPdfConverterExtensions {
                 RenderCodeBlock(pdf, code, visualTheme);
                 break;
             case SemanticFencedBlock semantic:
-                RenderSemanticFencedBlock(pdf, semantic, visualTheme);
+                RenderSemanticFencedBlock(pdf, semantic, options, visualTheme);
                 break;
             case CalloutBlock callout:
                 RenderCalloutBlock(pdf, callout, document, options, visualTheme);
@@ -53,7 +53,7 @@ public static partial class MarkdownPdfConverterExtensions {
                 pdf.HR();
                 break;
             case ImageBlock image:
-                RenderImageBlock(pdf, image, options);
+                RenderImageBlock(pdf, image, options, visualTheme);
                 break;
             case FrontMatterBlock frontMatter:
                 RenderFrontMatter(pdf, frontMatter, document, options, visualTheme);
@@ -98,7 +98,11 @@ public static partial class MarkdownPdfConverterExtensions {
         }
     }
 
-    private static void RenderParagraph(PdfCore.PdfDocument pdf, InlineSequence inlines, MarkdownPdfVisualTheme visualTheme) {
+    private static void RenderParagraph(PdfCore.PdfDocument pdf, InlineSequence inlines, MarkdownPdfSaveOptions options, MarkdownPdfVisualTheme visualTheme) {
+        if (TryRenderImageOnlyParagraph(pdf, inlines, options, visualTheme)) {
+            return;
+        }
+
         if (IsEmpty(inlines)) {
             return;
         }
@@ -243,7 +247,7 @@ public static partial class MarkdownPdfConverterExtensions {
         for (int i = 0; i < items.Count; i++) {
             ListItem item = items[i];
             for (int paragraphIndex = 0; paragraphIndex < item.AdditionalParagraphs.Count; paragraphIndex++) {
-                RenderParagraph(pdf, item.AdditionalParagraphs[paragraphIndex], visualTheme);
+                RenderParagraph(pdf, item.AdditionalParagraphs[paragraphIndex], options, visualTheme);
             }
 
             for (int childIndex = 0; childIndex < item.ChildBlocks.Count; childIndex++) {

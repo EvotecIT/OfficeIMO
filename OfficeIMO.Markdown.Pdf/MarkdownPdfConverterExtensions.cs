@@ -17,7 +17,7 @@ public static partial class MarkdownPdfConverterExtensions {
         }
 
         options ??= new MarkdownPdfSaveOptions();
-        MarkdownDoc document = MarkdownReader.Parse(markdown, options.ReaderOptions);
+        MarkdownDoc document = MarkdownReader.Parse(markdown, ResolveReaderOptions(options));
         return document.ToPdfDocument(options);
     }
 
@@ -86,6 +86,38 @@ public static partial class MarkdownPdfConverterExtensions {
     private static void ApplyMarkdownDefaultFont(PdfCore.PdfDocument pdf, MarkdownPdfSaveOptions options) {
         if (PdfCore.PdfStandardFontMapper.TryMapFontFamily(options.FontFamily, out PdfCore.PdfStandardFont font)) {
             pdf.DefaultTextStyle(style => style.Font(PdfCore.PdfStandardFontMapper.GetFontFamily(font)));
+        }
+    }
+
+    private static MarkdownReaderOptions ResolveReaderOptions(MarkdownPdfSaveOptions options) {
+        if (options.ReaderOptions != null) {
+            return options.ReaderOptions;
+        }
+
+        MarkdownReaderOptions readerOptions = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        readerOptions.FencedBlockExtensions.Add(new MarkdownFencedBlockExtension(
+            "OfficeIMO Markdown PDF visual fences",
+            new[] { "chart", "ix-chart", "mermaid", "network", "visnetwork", "ix-network", "dataview", "ix-dataview" },
+            static context => new SemanticFencedBlock(ResolveVisualFenceSemanticKind(context.Language), context.InfoString, context.Content, context.Caption)));
+        return readerOptions;
+    }
+
+    private static string ResolveVisualFenceSemanticKind(string? language) {
+        switch ((language ?? string.Empty).Trim().ToLowerInvariant()) {
+            case "chart":
+            case "ix-chart":
+                return MarkdownSemanticKinds.Chart;
+            case "mermaid":
+                return MarkdownSemanticKinds.Mermaid;
+            case "network":
+            case "visnetwork":
+            case "ix-network":
+                return MarkdownSemanticKinds.Network;
+            case "dataview":
+            case "ix-dataview":
+                return MarkdownSemanticKinds.DataView;
+            default:
+                return MarkdownSemanticKinds.Custom;
         }
     }
 

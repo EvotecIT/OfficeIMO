@@ -44,6 +44,7 @@ public sealed class MarkdownPdfVisualTheme {
     private PdfCore.PdfColor? _linkColor;
     private bool? _underlineLinks;
     private MarkdownPdfPageDecoration? _pageDecoration;
+    private MarkdownPdfFigureStyle? _figureStyle;
 
     /// <summary>Name of the profile for diagnostics and documentation.</summary>
     public string Name { get; set; } = "Custom";
@@ -276,6 +277,12 @@ public sealed class MarkdownPdfVisualTheme {
         set => _pageDecoration = value?.Clone();
     }
 
+    /// <summary>Figure styling used for Markdown images and generated visual blocks.</summary>
+    public MarkdownPdfFigureStyle? FigureStyle {
+        get => _figureStyle?.Clone();
+        set => _figureStyle = value?.Clone();
+    }
+
     /// <summary>Creates a built-in visual profile.</summary>
     public static MarkdownPdfVisualTheme Create(MarkdownPdfThemeKind kind) {
         switch (kind) {
@@ -374,7 +381,8 @@ public sealed class MarkdownPdfVisualTheme {
         TocLinkColor = Color(37, 99, 235),
         TocTextColor = Color(100, 116, 139),
         LinkColor = Color(37, 99, 235),
-        UnderlineLinks = true
+        UnderlineLinks = true,
+        FigureStyle = MarkdownPdfFigureStyle.Plain()
     };
 
     /// <summary>Neutral Word-like profile for general Markdown documents.</summary>
@@ -424,7 +432,13 @@ public sealed class MarkdownPdfVisualTheme {
         TocLinkColor = Color(9, 105, 218),
         TocTextColor = Color(100, 116, 139),
         LinkColor = Color(9, 105, 218),
-        UnderlineLinks = true
+        UnderlineLinks = true,
+        FigureStyle = MarkdownPdfFigureStyle.Framed(
+            Color(248, 250, 252),
+            Color(203, 213, 225),
+            Color(71, 85, 105),
+            Color(100, 116, 139),
+            borderWidth: 0.45)
     };
 
     /// <summary>GitHub-inspired profile for README-style exports.</summary>
@@ -465,7 +479,13 @@ public sealed class MarkdownPdfVisualTheme {
         TocLinkColor = Color(9, 105, 218),
         TocTextColor = Color(87, 96, 106),
         LinkColor = Color(9, 105, 218),
-        UnderlineLinks = true
+        UnderlineLinks = true,
+        FigureStyle = MarkdownPdfFigureStyle.Framed(
+            Color(246, 248, 250),
+            Color(208, 215, 222),
+            Color(87, 96, 106),
+            Color(87, 96, 106),
+            borderWidth: 0.45)
     };
 
     /// <summary>Compact profile for dense technical notes.</summary>
@@ -506,7 +526,8 @@ public sealed class MarkdownPdfVisualTheme {
         TocLinkColor = Color(37, 99, 235),
         TocTextColor = Color(100, 116, 139),
         LinkColor = Color(37, 99, 235),
-        UnderlineLinks = true
+        UnderlineLinks = true,
+        FigureStyle = MarkdownPdfFigureStyle.Plain()
     };
 
     /// <summary>Report-oriented profile with stronger hierarchy and tables.</summary>
@@ -548,7 +569,13 @@ public sealed class MarkdownPdfVisualTheme {
         TocLinkColor = Color(30, 64, 175),
         TocTextColor = Color(71, 85, 105),
         LinkColor = Color(30, 64, 175),
-        UnderlineLinks = true
+        UnderlineLinks = true,
+        FigureStyle = MarkdownPdfFigureStyle.Framed(
+            Color(239, 246, 255),
+            Color(191, 219, 254),
+            Color(30, 64, 175),
+            Color(71, 85, 105),
+            borderWidth: 0.5)
     };
 
     /// <summary>Creates a copy of this visual theme.</summary>
@@ -591,7 +618,8 @@ public sealed class MarkdownPdfVisualTheme {
         TocTextColor = _tocTextColor,
         LinkColor = _linkColor,
         UnderlineLinks = _underlineLinks,
-        PageDecoration = _pageDecoration
+        PageDecoration = _pageDecoration,
+        FigureStyle = _figureStyle
     };
 
     internal PdfCore.PdfTheme? DocumentThemeSnapshot => _documentTheme?.Clone();
@@ -630,6 +658,7 @@ public sealed class MarkdownPdfVisualTheme {
     internal PdfCore.PdfColor TocTextColorSnapshot => _tocTextColor ?? Plain()._tocTextColor ?? Color(100, 116, 139);
     internal PdfCore.PdfColor LinkColorSnapshot => _linkColor ?? _tocLinkColor ?? Plain()._linkColor ?? Color(37, 99, 235);
     internal bool UnderlineLinksSnapshot => _underlineLinks ?? Plain()._underlineLinks ?? true;
+    internal MarkdownPdfFigureStyle FigureStyleSnapshot => (_figureStyle ?? Plain()._figureStyle ?? MarkdownPdfFigureStyle.Plain()).Clone();
 
     internal void ApplyPageDecorations(PdfCore.PdfDocument pdf, PdfCore.PdfOptions options) {
         if (pdf == null) {

@@ -8,39 +8,140 @@ namespace OfficeIMO.Markdown.Pdf;
 /// First-party Markdown to PDF conversion helpers.
 /// </summary>
 public static partial class MarkdownPdfConverterExtensions {
-    private static void RenderImageBlock(PdfCore.PdfDocument pdf, ImageBlock image, MarkdownPdfSaveOptions options) {
+    private static void RenderImageBlock(PdfCore.PdfDocument pdf, ImageBlock image, MarkdownPdfSaveOptions options, MarkdownPdfVisualTheme visualTheme) {
         if (!TryReadImageBytes(image.Path, options, out byte[] bytes, out string sourceName, out string warningCode, out string warningMessage)) {
             AddWarning(options, warningCode, image.Path, warningMessage);
-            RenderImagePlaceholder(pdf, image);
+            RenderImagePlaceholder(pdf, image.PlainAlt ?? image.Alt ?? image.Path, visualTheme);
             return;
         }
 
+        RenderImageFigure(
+            pdf,
+            bytes,
+            sourceName,
+            image.Width,
+            image.Height,
+            image.PlainAlt ?? image.Alt,
+            image.Caption,
+            NormalizeAbsoluteLink(image.LinkUrl),
+            image.LinkTitle ?? image.PlainAlt ?? image.Alt,
+            options,
+            visualTheme);
+    }
+
+    private static bool TryRenderImageOnlyParagraph(PdfCore.PdfDocument pdf, InlineSequence inlines, MarkdownPdfSaveOptions options, MarkdownPdfVisualTheme visualTheme) {
+        if (inlines.Nodes.Count != 1) {
+            return false;
+        }
+
+        if (inlines.Nodes[0] is ImageInline image) {
+            RenderInlineImageFigure(pdf, image.Src, image.PlainAlt.Length == 0 ? image.Alt : image.PlainAlt, image.Title, linkUrl: null, linkTitle: null, options, visualTheme);
+            return true;
+        }
+
+        if (inlines.Nodes[0] is ImageLinkInline imageLink) {
+            RenderInlineImageFigure(pdf, imageLink.ImageUrl, imageLink.PlainAlt.Length == 0 ? imageLink.Alt : imageLink.PlainAlt, imageLink.Title, imageLink.LinkUrl, imageLink.LinkTitle, options, visualTheme);
+            return true;
+        }
+
+        return false;
+    }
+
+    private static void RenderInlineImageFigure(
+        PdfCore.PdfDocument pdf,
+        string source,
+        string? altText,
+        string? title,
+        string? linkUrl,
+        string? linkTitle,
+        MarkdownPdfSaveOptions options,
+        MarkdownPdfVisualTheme visualTheme) {
+        if (!TryReadImageBytes(source, options, out byte[] bytes, out string sourceName, out string warningCode, out string warningMessage)) {
+            AddWarning(options, warningCode, source, warningMessage);
+            RenderImagePlaceholder(pdf, altText ?? source, visualTheme);
+            return;
+        }
+
+        RenderImageFigure(
+            pdf,
+            bytes,
+            sourceName,
+            widthHint: null,
+            heightHint: null,
+            altText,
+            caption: title,
+            linkUri: NormalizeAbsoluteLink(linkUrl),
+            linkContents: linkTitle ?? altText,
+            options,
+            visualTheme);
+    }
+
+    private static void RenderImageFigure(
+        PdfCore.PdfDocument pdf,
+        byte[] bytes,
+        string sourceName,
+        double? widthHint,
+        double? heightHint,
+        string? altText,
+        string? caption,
+        string? linkUri,
+        string? linkContents,
+        MarkdownPdfSaveOptions options,
+        MarkdownPdfVisualTheme visualTheme) {
         OfficeImageInfo? info = OfficeImageReader.TryIdentify(bytes, sourceName, out OfficeImageInfo? detected)
             ? detected
             : null;
-        double width = image.Width ?? GetImageWidthPoints(info, options);
-        double height = image.Height ?? GetImageHeightPoints(info, width, options);
-        string? linkUri = NormalizeAbsoluteLink(image.LinkUrl);
-        pdf.Image(bytes, width, height, PdfCore.PdfAlign.Left, spacingBefore: 4, spacingAfter: 6, style: CreateConverterImageStyle(), linkUri: linkUri, linkContents: linkUri == null ? null : image.PlainAlt ?? image.Alt);
+        double width = widthHint ?? GetImageWidthPoints(info, options);
+        double height = heightHint ?? GetImageHeightPoints(info, width, options);
+        MarkdownPdfFigureStyle figureStyle = visualTheme.FigureStyleSnapshot;
+        PdfCore.PdfImageStyle imageStyle = CreateConverterImageStyle(figureStyle, altText);
 
-        if (!string.IsNullOrWhiteSpace(image.Caption)) {
-            pdf.Paragraph(builder => builder.Italic(image.Caption!), style: new PdfCore.PdfParagraphStyle { SpacingAfter = 8 });
-        }
+        pdf.Image(bytes, width, height, align: null, clipPath: null, fit: null, spacingBefore: null, spacingAfter: null, style: imageStyle, linkUri: linkUri, linkContents: linkUri == null ? null : linkContents);
+        RenderFigureCaption(pdf, caption, figureStyle);
     }
 
-    private static void RenderImagePlaceholder(PdfCore.PdfDocument pdf, ImageBlock image) {
-        string label = image.PlainAlt ?? image.Alt ?? image.Path;
+    private static void RenderImagePlaceholder(PdfCore.PdfDocument pdf, string? label, MarkdownPdfVisualTheme visualTheme) {
         if (string.IsNullOrWhiteSpace(label)) {
             label = "Image";
         }
 
-        pdf.Paragraph(builder => builder.Italic("[Image: " + label + "]"));
+        MarkdownPdfFigureStyle figureStyle = visualTheme.FigureStyleSnapshot;
+        PdfCore.PanelStyle? panelStyle = figureStyle.PanelStyleSnapshot;
+        Action<PdfCore.PdfParagraphBuilder> render = builder => builder
+            .Italic(true)
+            .Color(figureStyle.PlaceholderColorSnapshot)
+            .Text("[Image unavailable: " + label + "]");
+
+        if (panelStyle != null) {
+            pdf.PanelParagraph(render, panelStyle, defaultColor: figureStyle.PlaceholderColorSnapshot);
+            return;
+        }
+
+        pdf.Paragraph(render, defaultColor: figureStyle.PlaceholderColorSnapshot);
     }
 
-    private static PdfCore.PdfImageStyle CreateConverterImageStyle() => new() {
-        ScaleDownToFit = true
-    };
+    private static PdfCore.PdfImageStyle CreateConverterImageStyle(MarkdownPdfFigureStyle figureStyle, string? altText) {
+        PdfCore.PdfImageStyle style = figureStyle.ImageStyleSnapshot;
+        style.ScaleDownToFit = true;
+        if (!string.IsNullOrWhiteSpace(altText)) {
+            style.AlternativeText = altText!.Trim();
+        }
 
+        return style;
+    }
+
+    private static void RenderFigureCaption(PdfCore.PdfDocument pdf, string? caption, MarkdownPdfFigureStyle figureStyle) {
+        if (string.IsNullOrWhiteSpace(caption)) {
+            return;
+        }
+
+        pdf.Paragraph(builder => {
+            builder.Italic(true)
+                .FontSize(figureStyle.CaptionFontSizeSnapshot)
+                .Color(figureStyle.CaptionColorSnapshot)
+                .Text(caption!.Trim());
+        }, align: figureStyle.CaptionAlignSnapshot, defaultColor: figureStyle.CaptionColorSnapshot, style: new PdfCore.PdfParagraphStyle { SpacingBefore = 2, SpacingAfter = 2 });
+    }
 
     private static bool TryReadImageBytes(string path, MarkdownPdfSaveOptions options, out byte[] bytes, out string sourceName, out string warningCode, out string warningMessage) {
         bytes = Array.Empty<byte>();
