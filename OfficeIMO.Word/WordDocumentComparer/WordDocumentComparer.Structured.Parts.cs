@@ -228,30 +228,39 @@ namespace OfficeIMO.Word {
         }
 
         private static List<Footnote> GetReferencedFootnotes(MainDocumentPart mainPart) {
-            HashSet<long> referencedIds = GetReferencedNoteIds<FootnoteReference>(mainPart);
-            return mainPart.FootnotesPart?.Footnotes?.Elements<Footnote>()
-                .Where(footnote => footnote.Id?.Value is long noteId && referencedIds.Contains(noteId) && IsVisibleNote(footnote))
-                .ToList() ?? new List<Footnote>();
+            Dictionary<long, Footnote> footnotesById = mainPart.FootnotesPart?.Footnotes?.Elements<Footnote>()
+                .Where(IsVisibleNote)
+                .Where(footnote => footnote.Id?.Value != null)
+                .ToDictionary(footnote => footnote.Id!.Value, footnote => footnote) ?? new Dictionary<long, Footnote>();
+            return GetReferencedNoteIds<FootnoteReference>(mainPart)
+                .Where(footnotesById.ContainsKey)
+                .Select(noteId => footnotesById[noteId])
+                .ToList();
         }
 
         private static List<Endnote> GetReferencedEndnotes(MainDocumentPart mainPart) {
-            HashSet<long> referencedIds = GetReferencedNoteIds<EndnoteReference>(mainPart);
-            return mainPart.EndnotesPart?.Endnotes?.Elements<Endnote>()
-                .Where(endnote => endnote.Id?.Value is long noteId && referencedIds.Contains(noteId) && IsVisibleNote(endnote))
-                .ToList() ?? new List<Endnote>();
+            Dictionary<long, Endnote> endnotesById = mainPart.EndnotesPart?.Endnotes?.Elements<Endnote>()
+                .Where(IsVisibleNote)
+                .Where(endnote => endnote.Id?.Value != null)
+                .ToDictionary(endnote => endnote.Id!.Value, endnote => endnote) ?? new Dictionary<long, Endnote>();
+            return GetReferencedNoteIds<EndnoteReference>(mainPart)
+                .Where(endnotesById.ContainsKey)
+                .Select(noteId => endnotesById[noteId])
+                .ToList();
         }
 
-        private static HashSet<long> GetReferencedNoteIds<TReference>(MainDocumentPart mainPart)
+        private static List<long> GetReferencedNoteIds<TReference>(MainDocumentPart mainPart)
             where TReference : OpenXmlElement {
-            var ids = new HashSet<long>();
+            var ids = new List<long>();
+            var seenIds = new HashSet<long>();
             foreach (OpenXmlElement root in GetNoteReferenceRoots(mainPart)) {
-                foreach (TReference reference in root.Descendants<TReference>()) {
+                foreach (TReference reference in EnumerateComparableDescendants(root).OfType<TReference>()) {
                     long? noteId = reference switch {
                         FootnoteReference footnoteReference => footnoteReference.Id?.Value,
                         EndnoteReference endnoteReference => endnoteReference.Id?.Value,
                         _ => null
                     };
-                    if (noteId != null) {
+                    if (noteId != null && seenIds.Add(noteId.Value)) {
                         ids.Add(noteId.Value);
                     }
                 }

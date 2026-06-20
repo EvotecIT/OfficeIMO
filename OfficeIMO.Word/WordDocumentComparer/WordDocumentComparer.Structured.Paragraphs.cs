@@ -290,7 +290,7 @@ namespace OfficeIMO.Word {
             var matchBuilder = new StringBuilder();
             var pendingTextBuilder = new StringBuilder();
             AppendNumberingMatchToken(matchBuilder, paragraph, part);
-            foreach (OpenXmlElement element in paragraph.Descendants()) {
+            foreach (OpenXmlElement element in EnumerateComparableDescendants(paragraph)) {
                 if (element.Ancestors<Paragraph>().FirstOrDefault() != paragraph) {
                     continue;
                 }
@@ -299,6 +299,14 @@ namespace OfficeIMO.Word {
                     case Text text:
                         textBuilder.Append(text.Text);
                         pendingTextBuilder.Append(text.Text);
+                        break;
+                    case DeletedText deletedText:
+                        FlushPendingTextToken(matchBuilder, pendingTextBuilder);
+                        string deletedValue = deletedText.Text ?? string.Empty;
+                        textBuilder.Append("[Deleted:");
+                        textBuilder.Append(deletedValue);
+                        textBuilder.Append(']');
+                        AppendMatchToken(matchBuilder, "deletedText", deletedValue);
                         break;
                     case Hyperlink hyperlink:
                         FlushPendingTextToken(matchBuilder, pendingTextBuilder);
@@ -410,6 +418,10 @@ namespace OfficeIMO.Word {
 
             NumberingInstance? instance = numbering.Elements<NumberingInstance>()
                 .FirstOrDefault(item => item.NumberID?.Value == numberingId.Value);
+            if (instance == null) {
+                return numberingId.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            }
+
             int? abstractNumberId = instance?.AbstractNumId?.Val?.Value;
             if (abstractNumberId == null) {
                 return numberingId.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
@@ -426,7 +438,15 @@ namespace OfficeIMO.Word {
                 clonedAbstract.AbstractNumberId = 0;
             }
 
-            return clone.OuterXml + "|level:" + level;
+            OpenXmlElement instanceClone = instance!.CloneNode(true);
+            if (instanceClone is NumberingInstance clonedInstance) {
+                clonedInstance.NumberID = 0;
+                if (clonedInstance.AbstractNumId != null) {
+                    clonedInstance.AbstractNumId.Val = 0;
+                }
+            }
+
+            return clone.OuterXml + "|instance:" + instanceClone.OuterXml + "|level:" + level;
         }
 
         private static MainDocumentPart? GetMainDocumentPart(OpenXmlPart? part) {

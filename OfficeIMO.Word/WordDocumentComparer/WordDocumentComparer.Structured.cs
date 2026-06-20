@@ -971,7 +971,7 @@ namespace OfficeIMO.Word {
 
         private static int GetImageOrdinalWithinBlock(OpenXmlElement block, OpenXmlElement imageElement) {
             int ordinal = 0;
-            foreach (OpenXmlElement element in block.Descendants()) {
+            foreach (OpenXmlElement element in EnumerateComparableDescendants(block)) {
                 if (ReferenceEquals(element, imageElement)) {
                     return ordinal;
                 }
@@ -986,7 +986,7 @@ namespace OfficeIMO.Word {
 
         private static int GetImageInlineOffsetWithinBlock(OpenXmlElement block, OpenXmlElement imageElement) {
             int offset = 0;
-            foreach (OpenXmlElement element in block.Descendants()) {
+            foreach (OpenXmlElement element in EnumerateComparableDescendants(block)) {
                 if (ReferenceEquals(element, imageElement)) {
                     return offset;
                 }
@@ -1018,9 +1018,52 @@ namespace OfficeIMO.Word {
             }
 
             int order = orderBase;
-            foreach (OpenXmlElement element in container.Descendants()) {
+            foreach (OpenXmlElement element in EnumerateComparableDescendants(container)) {
                 yield return new OrderedElement(element, order);
                 order++;
+            }
+        }
+
+        private static IEnumerable<OpenXmlElement> EnumerateComparableDescendants(OpenXmlElement container) {
+            foreach (OpenXmlElement child in GetComparableChildren(container)) {
+                yield return child;
+                foreach (OpenXmlElement descendant in EnumerateComparableDescendants(child)) {
+                    yield return descendant;
+                }
+            }
+        }
+
+        private static IEnumerable<OpenXmlElement> GetComparableChildren(OpenXmlElement element) {
+            if (element is AlternateContent alternateContent) {
+                foreach (OpenXmlElement child in GetActiveAlternateContentChildren(alternateContent)) {
+                    yield return child;
+                }
+
+                yield break;
+            }
+
+            foreach (OpenXmlElement child in element.ChildElements) {
+                yield return child;
+            }
+        }
+
+        private static IEnumerable<OpenXmlElement> GetActiveAlternateContentChildren(AlternateContent alternateContent) {
+            AlternateContentChoice? choice = alternateContent.Elements<AlternateContentChoice>().FirstOrDefault();
+            if (choice != null) {
+                foreach (OpenXmlElement child in choice.ChildElements) {
+                    yield return child;
+                }
+
+                yield break;
+            }
+
+            AlternateContentFallback? fallback = alternateContent.GetFirstChild<AlternateContentFallback>();
+            if (fallback == null) {
+                yield break;
+            }
+
+            foreach (OpenXmlElement child in fallback.ChildElements) {
+                yield return child;
             }
         }
 

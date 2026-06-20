@@ -262,12 +262,93 @@ namespace OfficeIMO.Tests {
                 finding.TargetText == "Item");
         }
 
+        [Fact]
+        public void CompareStructureKeepsReferencedFootnotesInReferenceOrder() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_reference_order_notes.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                doc.AddParagraph("Policy A").AddFootNote("Alpha note");
+                doc.AddParagraph("Policy B").AddFootNote("Beta note");
+                doc.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_reference_order_notes.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                doc.AddParagraph("Policy A").AddFootNote("Alpha note");
+                doc.AddParagraph("Policy B").AddFootNote("Beta note");
+                doc.Save(false);
+            }
+
+            ReverseNormalFootnotePartOrder(targetPath);
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Empty(result.Findings);
+        }
+
+        [Fact]
+        public void CompareStructureReportsNumberingInstanceOverrideChanges() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_numbering_override.docx");
+            CreateDocumentWithNumberedItem(sourcePath, "Item");
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_numbering_override.docx");
+            CreateDocumentWithNumberedItem(targetPath, "Item");
+            SetFirstNumberingInstanceStartOverride(targetPath, 0, 5);
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Paragraph &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified &&
+                finding.SourceText == "Item" &&
+                finding.TargetText == "Item");
+        }
+
+        [Fact]
+        public void CompareStructureIgnoresInactiveAlternateContentFallbackImages() {
+            string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_alternate_content_fallback.docx");
+            CreateAlternateContentImageDocument(sourcePath, imagePath, "width:80pt;height:40pt");
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_alternate_content_fallback.docx");
+            CreateAlternateContentImageDocument(targetPath, imagePath, "width:120pt;height:40pt");
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.DoesNotContain(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Image &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified);
+        }
+
+        [Fact]
+        public void CompareStructureReportsTrackedDeletedTextInParagraphs() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_deleted_text.docx");
+            CreateDocumentWithParagraphsForReviewWave(sourcePath, "Keep");
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_deleted_text.docx");
+            CreateDocumentWithDeletedTextParagraph(targetPath, "Keep", "Removed");
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Paragraph &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified &&
+                finding.SourceText == "Keep" &&
+                finding.TargetText == "Keep[Deleted:Removed]");
+        }
+
         private static void CreateDocumentWithParagraphsForReviewWave(string path, params string[] paragraphs) {
             using WordDocument doc = WordDocument.Create(path);
             foreach (string paragraph in paragraphs) {
                 doc.AddParagraph(paragraph);
             }
 
+            doc.Save(false);
+        }
+
+        private static void CreateDocumentWithNumberedItem(string path, string text) {
+            using WordDocument doc = WordDocument.Create(path);
+            WordList list = doc.AddList(WordListStyle.Numbered);
+            list.AddItem(text);
             doc.Save(false);
         }
 
@@ -467,6 +548,90 @@ namespace OfficeIMO.Tests {
                 .Max() + 1;
             footnotesPart.Footnotes.Append(new Footnote(new Paragraph(new Run(new Text(text)))) { Id = nextId });
             footnotesPart.Footnotes.Save();
+        }
+
+        private static void ReverseNormalFootnotePartOrder(string path) {
+            using WordprocessingDocument document = WordprocessingDocument.Open(path, true);
+            Footnotes footnotes = document.MainDocumentPart!.FootnotesPart!.Footnotes!;
+            List<Footnote> normalFootnotes = footnotes.Elements<Footnote>()
+                .Where(footnote => footnote.Type == null || footnote.Type.Value == FootnoteEndnoteValues.Normal)
+                .ToList();
+            foreach (Footnote footnote in normalFootnotes) {
+                footnote.Remove();
+            }
+
+            foreach (Footnote footnote in normalFootnotes.AsEnumerable().Reverse()) {
+                footnotes.Append(footnote);
+            }
+
+            footnotes.Save();
+        }
+
+        private static void SetFirstNumberingInstanceStartOverride(string path, int level, int start) {
+            using WordprocessingDocument document = WordprocessingDocument.Open(path, true);
+            Numbering numbering = document.MainDocumentPart!.NumberingDefinitionsPart!.Numbering;
+            NumberingInstance instance = numbering.Elements<NumberingInstance>().First();
+            foreach (LevelOverride existingOverride in instance.Elements<LevelOverride>().Where(item => item.LevelIndex?.Value == level).ToList()) {
+                existingOverride.Remove();
+            }
+
+            instance.Append(new LevelOverride(new StartOverrideNumberingValue { Val = start }) { LevelIndex = level });
+            numbering.Save();
+        }
+
+        private static void CreateAlternateContentImageDocument(string path, string imagePath, string fallbackStyle) {
+            using (WordDocument doc = WordDocument.Create(path)) {
+                doc.AddParagraph("Placeholder");
+                doc.Save(false);
+            }
+
+            using WordprocessingDocument document = WordprocessingDocument.Open(path, true);
+            MainDocumentPart mainPart = document.MainDocumentPart!;
+            string choiceRelationshipId = AddImagePart(mainPart, imagePath);
+            string fallbackRelationshipId = AddImagePart(mainPart, imagePath);
+            var alternateContent = new AlternateContent(
+                new AlternateContentChoice(
+                    new Run(CreateInlineDrawing(choiceRelationshipId, 701U))) { Requires = "wps" },
+                new AlternateContentFallback(
+                    new Run(new Picture(
+                        new V.Shape(
+                            new V.ImageData { RelationshipId = fallbackRelationshipId }) {
+                                Id = "_x0000_s701",
+                                Style = fallbackStyle,
+                                Type = "#_x0000_t75"
+                            }))));
+
+            Body body = mainPart.Document.Body!;
+            body.RemoveAllChildren<Paragraph>();
+            body.PrependChild(new Paragraph(alternateContent));
+            mainPart.Document.Save();
+        }
+
+        private static string AddImagePart(MainDocumentPart mainPart, string imagePath) {
+            ImagePart imagePart = mainPart.AddImagePart(ImagePartType.Png);
+            using (FileStream stream = File.OpenRead(imagePath)) {
+                imagePart.FeedData(stream);
+            }
+
+            return mainPart.GetIdOfPart(imagePart);
+        }
+
+        private static void CreateDocumentWithDeletedTextParagraph(string path, string text, string deletedText) {
+            using WordDocument doc = WordDocument.Create(path);
+            doc.AddParagraph("Placeholder");
+            doc.Save(false);
+
+            using WordprocessingDocument document = WordprocessingDocument.Open(path, true);
+            Body body = document.MainDocumentPart!.Document.Body!;
+            body.RemoveAllChildren<Paragraph>();
+            body.PrependChild(new Paragraph(
+                new Run(new Text(text)),
+                new DeletedRun(new Run(new DeletedText(deletedText) { Space = SpaceProcessingModeValues.Preserve })) {
+                    Author = "Codex",
+                    Date = new DateTime(2026, 1, 1),
+                    Id = "1"
+                }));
+            document.MainDocumentPart.Document.Save();
         }
 
         private static SectionProperties GetOrCreateSectionProperties(MainDocumentPart mainPart) {
