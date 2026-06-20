@@ -177,9 +177,12 @@ public partial class Html {
                 <main>
                     <h1>Canonical Contract</h1>
                     <p class="lead">Visible text</p>
+                    <p><span>Hello </span><span>world</span></p>
                     <p class="secret">Internal draft</p>
                     <img src="chart.png" srcset="chart.png 1x, file:///secret/chart.png 2x" alt="Chart">
+                    <object data="file:///secret/object.pdf"></object>
                     <a href="javascript:alert(1)">Unsafe link</a>
+                    <div style="background-image:url(file:///secret/inline.png); color: red"></div>
                     <form action="submit"><input type="checkbox" checked></form>
                 </main>
             </body>
@@ -205,6 +208,7 @@ public partial class Html {
         Assert.True(conversion.ResourcePlan.HasBlockedResources);
 
         Assert.Contains("https://example.test/reports/chart.png", conversion.NormalizedHtml);
+        Assert.Contains("Hello </span><span>world", conversion.NormalizedHtml);
         Assert.Contains("checked", conversion.NormalizedHtml);
         Assert.DoesNotContain("javascript:", conversion.NormalizedHtml, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("onclick", conversion.NormalizedHtml, StringComparison.OrdinalIgnoreCase);
@@ -477,7 +481,9 @@ public partial class Html {
                 <input type="image" src="file:///secret/submit.png">
                 <input type="text" src="file:///secret/input-metadata">
                 <picture><source src="file:///secret/ignored-picture-source.png" srcset="https://example.test/images/picture-source.png 1x"><img src="https://example.test/images/picture-fallback.png"></picture>
+                <picture><source media="print" srcset="file:///secret/print-picture-source.png 1x"><img src="https://example.test/images/screen-picture.png"></picture>
                 <div data="file:///secret/metadata"></div>
+                <div background="file:///secret/not-legacy-background.png"></div>
                 <div style="@import url(file:///secret/inline-import.css); background-image: url(https://example.test/images/inline.png)"></div>
                 <iframe src="file:///secret/ignored-frame.html" srcdoc="<img src=&quot;file:///secret/srcdoc.png&quot;><style>.nested { content: url(file:///secret/srcdoc-content.png); }</style>"></iframe>
                 <iframe src="file:///secret/empty-srcdoc-frame.html" srcdoc=""></iframe>
@@ -511,6 +517,7 @@ public partial class Html {
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/notstylesheet.css" && resource.Kind == HtmlResourceKind.Stylesheet);
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/stylesheet-image.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/metadata");
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/not-legacy-background.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/unused-custom-property.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/supports-condition.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/plain-style.png");
@@ -526,6 +533,7 @@ public partial class Html {
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/script-data.json");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/not-refresh.html");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/ignored-picture-source.png");
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/print-picture-source.png");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/custom-property-used.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/inherited-custom-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/nearer-custom-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
@@ -760,6 +768,16 @@ public partial class Html {
             "<main><form><input name=\"x\"><button>Save</button></form></main>",
             "<main><form><input type=\"text\" name=\"x\"><button type=\"submit\">Save</button></form></main>");
         Assert.Equal(1D, defaultTypeScore.Metrics["form-state"], 3);
+
+        HtmlRoundTripScore invalidTypeScore = HtmlRoundTripScorer.Compare(
+            "<main><form><input type=\"bogus\" name=\"x\"><button type=\"bogus\">Save</button></form></main>",
+            "<main><form><input type=\"text\" name=\"x\"><button type=\"submit\">Save</button></form></main>");
+        Assert.Equal(1D, invalidTypeScore.Metrics["form-state"], 3);
+
+        HtmlRoundTripScore checkboxDefaultValueScore = HtmlRoundTripScorer.Compare(
+            "<main><form><input type=\"checkbox\" name=\"agree\" checked><input type=\"radio\" name=\"tier\" checked></form></main>",
+            "<main><form><input type=\"checkbox\" name=\"agree\" value=\"on\" checked><input type=\"radio\" name=\"tier\" value=\"on\" checked></form></main>");
+        Assert.Equal(1D, checkboxDefaultValueScore.Metrics["form-state"], 3);
 
         HtmlRoundTripScore implicitOptionValueScore = HtmlRoundTripScorer.Compare(
             "<main><form><select><option selected>Gold</option></select></form></main>",

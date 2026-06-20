@@ -43,7 +43,19 @@ public static class HtmlResourcePipeline {
 
     private static void AddElementResources(HtmlResourceManifest manifest, IElement element, Uri? baseUri, HtmlResourcePipelineOptions options, int srcDocDepth) {
         string name = element.TagName.ToLowerInvariant();
-        AddLegacyBackground(manifest, element, baseUri, options);
+        switch (name) {
+            case "body":
+            case "table":
+            case "thead":
+            case "tbody":
+            case "tfoot":
+            case "tr":
+            case "td":
+            case "th":
+                AddLegacyBackground(manifest, element, baseUri, options);
+                break;
+        }
+
         switch (name) {
             case "img":
                 AddImage(manifest, element, baseUri, options);
@@ -150,8 +162,11 @@ public static class HtmlResourcePipeline {
         string parentName = element.ParentElement?.TagName.ToLowerInvariant() ?? string.Empty;
         switch (parentName) {
             case "picture":
-                AddSrcSet(manifest, HtmlResourceKind.Image, element, "srcset", baseUri, options);
-                AddSrcSet(manifest, HtmlResourceKind.Image, element, "data-srcset", baseUri, options);
+                if (IsApplicableMedia(element.GetAttribute("media") ?? string.Empty)) {
+                    AddSrcSet(manifest, HtmlResourceKind.Image, element, "srcset", baseUri, options);
+                    AddSrcSet(manifest, HtmlResourceKind.Image, element, "data-srcset", baseUri, options);
+                }
+
                 break;
             case "audio":
             case "video":
@@ -199,6 +214,93 @@ public static class HtmlResourcePipeline {
         }
 
         return tokens;
+    }
+
+    private static bool IsApplicableMedia(string mediaText) {
+        if (string.IsNullOrWhiteSpace(mediaText)) {
+            return true;
+        }
+
+        foreach (string query in SplitTopLevelList(mediaText)) {
+            string normalized = query.Trim();
+            if (normalized.Length == 0) {
+                continue;
+            }
+
+            if (normalized.StartsWith("not ", StringComparison.OrdinalIgnoreCase)) {
+                string negated = normalized.Substring(4).Trim();
+                if (ContainsMediaType(negated, "screen") || ContainsMediaType(negated, "all")) {
+                    continue;
+                }
+
+                if (ContainsMediaType(negated, "print") || !ContainsExplicitMediaType(negated)) {
+                    return true;
+                }
+
+                continue;
+            }
+
+            if (ContainsMediaType(normalized, "all") || ContainsMediaType(normalized, "screen") || !ContainsExplicitMediaType(normalized)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool ContainsMediaType(string mediaQuery, string mediaType) {
+        foreach (string token in mediaQuery.Split(new[] { ' ', '\t', '\r', '\n', '\f' }, StringSplitOptions.RemoveEmptyEntries)) {
+            if (string.Equals(token.Trim(), mediaType, StringComparison.OrdinalIgnoreCase)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool ContainsExplicitMediaType(string mediaQuery) {
+        return ContainsMediaType(mediaQuery, "all")
+            || ContainsMediaType(mediaQuery, "screen")
+            || ContainsMediaType(mediaQuery, "print")
+            || ContainsMediaType(mediaQuery, "speech");
+    }
+
+    private static IEnumerable<string> SplitTopLevelList(string text) {
+        int start = 0;
+        int depth = 0;
+        char quote = '\0';
+        for (int i = 0; i < text.Length; i++) {
+            char current = text[i];
+            if (quote != '\0') {
+                if (current == quote && !IsEscaped(text, i)) {
+                    quote = '\0';
+                }
+
+                continue;
+            }
+
+            if (current == '"' || current == '\'') {
+                quote = current;
+                continue;
+            }
+
+            if (current == '(') {
+                depth++;
+                continue;
+            }
+
+            if (current == ')') {
+                depth = Math.Max(0, depth - 1);
+                continue;
+            }
+
+            if (depth == 0 && current == ',') {
+                yield return text.Substring(start, i - start);
+                start = i + 1;
+            }
+        }
+
+        yield return text.Substring(start);
     }
 
     private static HtmlResourceKind GetPreloadKind(string? asAttribute) {

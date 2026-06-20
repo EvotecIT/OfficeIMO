@@ -1,5 +1,6 @@
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
+using System.Text.RegularExpressions;
 
 namespace OfficeIMO.Html;
 
@@ -7,6 +8,7 @@ namespace OfficeIMO.Html;
 /// Produces stable, policy-aware normalized HTML for OfficeIMO conversion workflows.
 /// </summary>
 public static class HtmlNormalizer {
+    private static readonly Regex CssUrlExpression = new Regex("url\\(\\s*(?:\"(?<url>[^\"]*)\"|'(?<url>[^']*)'|(?<url>[^)]+))\\s*\\)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
     private static readonly HashSet<string> BooleanAttributes = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
         "allowfullscreen", "async", "autofocus", "autoplay", "checked", "controls", "default", "defer", "disabled",
         "formnovalidate", "hidden", "loop", "multiple", "muted", "nomodule", "novalidate", "open", "readonly",
@@ -97,8 +99,15 @@ public static class HtmlNormalizer {
 
         builder.Append('>');
         if (!VoidElements.Contains(name)) {
-            foreach (INode child in element.ChildNodes) {
-                AppendNode(builder, child, options);
+            if (name == "style" && options.PreserveStyleElements) {
+                string styleText = NormalizeCssUrls(element.TextContent, options.BaseUri, options.UrlPolicy);
+                if (styleText.Length > 0) {
+                    builder.Append(WebUtility.HtmlEncode(styleText));
+                }
+            } else {
+                foreach (INode child in element.ChildNodes) {
+                    AppendNode(builder, child, options);
+                }
             }
 
             builder.Append("</").Append(name).Append('>');
@@ -114,7 +123,7 @@ public static class HtmlNormalizer {
             }
 
             string value = NormalizeAttributeValue(element, name, attribute.Value, options);
-            if (UrlAttributes.Contains(name) || SrcSetAttributes.Contains(name)) {
+            if (IsUrlAttribute(element, name) || SrcSetAttributes.Contains(name)) {
                 if (string.IsNullOrWhiteSpace(value)) {
                     continue;
                 }
@@ -138,8 +147,12 @@ public static class HtmlNormalizer {
             return HtmlImageSourceResolver.ResolveNormalizedSrcSet(value, options.BaseUri, options.UrlPolicy);
         }
 
-        if (UrlAttributes.Contains(name)) {
+        if (IsUrlAttribute(element, name)) {
             return HtmlUrlPolicyEvaluator.ResolveUrl(value, options.BaseUri, options.UrlPolicy);
+        }
+
+        if (string.Equals(name, "style", StringComparison.OrdinalIgnoreCase)) {
+            return NormalizeCssUrls(value, options.BaseUri, options.UrlPolicy).Trim();
         }
 
         if (string.Equals(name, "class", StringComparison.OrdinalIgnoreCase)) {
@@ -150,16 +163,74 @@ public static class HtmlNormalizer {
     }
 
     private static void AppendText(StringBuilder builder, string? text, HtmlNormalizationOptions options) {
-        if (string.IsNullOrWhiteSpace(text)) {
+        if (string.IsNullOrEmpty(text)) {
             return;
         }
 
         string value = options.CollapseTextWhitespace
-            ? string.Join(" ", text!.Split(WhitespaceSeparators, StringSplitOptions.RemoveEmptyEntries))
+            ? CollapseWhitespaceRuns(text!)
             : text!;
         if (value.Length > 0) {
+            if (options.CollapseTextWhitespace) {
+                if (value == " ") {
+                    if (builder.Length == 0 || char.IsWhiteSpace(builder[builder.Length - 1])) {
+                        return;
+                    }
+                } else if (value[0] == ' ' && (builder.Length == 0 || char.IsWhiteSpace(builder[builder.Length - 1]))) {
+                    value = value.TrimStart();
+                }
+            }
+
             builder.Append(WebUtility.HtmlEncode(value));
         }
+    }
+
+    private static bool IsUrlAttribute(IElement element, string name) {
+        if (UrlAttributes.Contains(name)) {
+            return true;
+        }
+
+        return string.Equals(name, "data", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(element.TagName, "object", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string CollapseWhitespaceRuns(string text) {
+        var builder = new StringBuilder(text.Length);
+        bool inWhitespace = false;
+        for (int i = 0; i < text.Length; i++) {
+            char current = text[i];
+            if (char.IsWhiteSpace(current)) {
+                if (!inWhitespace) {
+                    builder.Append(' ');
+                    inWhitespace = true;
+                }
+
+                continue;
+            }
+
+            builder.Append(current);
+            inWhitespace = false;
+        }
+
+        return builder.ToString();
+    }
+
+    private static string NormalizeCssUrls(string css, Uri? baseUri, HtmlUrlPolicy policy) {
+        if (string.IsNullOrWhiteSpace(css)) {
+            return string.Empty;
+        }
+
+        return CssUrlExpression.Replace(css, match => {
+            string source = match.Groups["url"].Value.Trim().Trim('\'', '"');
+            string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(source, baseUri, policy);
+            return string.IsNullOrWhiteSpace(resolved)
+                ? "url(\"\")"
+                : "url(\"" + EscapeCssString(resolved) + "\")";
+        });
+    }
+
+    private static string EscapeCssString(string value) {
+        return value.Replace("\\", "\\\\").Replace("\"", "\\\"");
     }
 
     private static bool IsBooleanValue(string name, string? value) {

@@ -78,7 +78,11 @@ public static class HtmlPdfConverterExtensions {
             throw new ArgumentNullException(nameof(document));
         }
 
-        return document.HtmlForConversion.SaveAsPdf(options);
+        options ??= new HtmlPdfSaveOptions();
+        PdfCore.PdfDocument pdf = document.ToPdfDocument(options);
+        byte[] bytes = pdf.ToBytes();
+        SyncSelectedProfileReport(options);
+        return bytes;
     }
 
     /// <summary>

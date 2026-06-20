@@ -1,3 +1,4 @@
+using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Markdown.Html;
 using OfficeIMO.Markdown.Pdf;
@@ -344,6 +345,21 @@ public sealed class HtmlPdfTests {
         Assert.Equal(HtmlPdfProfile.Document, trustedDocument.Profile);
         Assert.NotNull(trustedDocument.WordHtmlOptions);
         Assert.NotNull(trustedDocument.WordPdfOptions);
+    }
+
+    [Fact]
+    public void HtmlConversionDocument_SaveAsPdf_UsesSharedDocumentProfile() {
+        HtmlConversionDocument conversion = HtmlConversionDocumentBuilder.Build(
+            "<main><h1>Document profile</h1><p>Shared conversion document.</p></main>",
+            new HtmlConversionDocumentOptions {
+                Profile = HtmlConversionProfile.Document
+            });
+        var options = HtmlPdfSaveOptions.CreateSemanticProfile();
+
+        byte[] pdf = conversion.SaveAsPdf(options);
+
+        Assert.NotEmpty(pdf);
+        Assert.Equal(HtmlPdfProfile.Document, options.Profile);
     }
 
     [Fact]

@@ -22,7 +22,7 @@ public static class HtmlConversionDocumentBuilder {
         HtmlResourceManifest manifest = HtmlResourcePipeline.BuildManifest(document, options.ToResourcePipelineOptions());
         HtmlResourceDependencyPlan resourcePlan = HtmlResourceDependencyPlanner.Create(manifest);
         string normalized = options.IncludeNormalizedHtml
-            ? HtmlNormalizer.Normalize(document, ConfigureNormalization(options))
+            ? HtmlNormalizer.Normalize(document, ConfigureNormalization(document, options))
             : string.Empty;
 
         return new HtmlConversionDocument(
@@ -36,10 +36,10 @@ public static class HtmlConversionDocumentBuilder {
             normalized);
     }
 
-    private static HtmlNormalizationOptions ConfigureNormalization(HtmlConversionDocumentOptions options) {
+    private static HtmlNormalizationOptions ConfigureNormalization(IHtmlDocument document, HtmlConversionDocumentOptions options) {
         HtmlNormalizationOptions normalization = options.NormalizationOptions ?? new HtmlNormalizationOptions();
         if (normalization.BaseUri == null) {
-            normalization.BaseUri = options.BaseUri;
+            normalization.BaseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, options.BaseUri);
         }
 
         normalization.UrlPolicy = options.UrlPolicy.Clone();

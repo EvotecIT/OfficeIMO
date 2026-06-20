@@ -318,19 +318,17 @@ public static class HtmlRoundTripScorer {
                 }
 
                 if (string.Equals(attributeName, "type", StringComparison.OrdinalIgnoreCase)) {
-                    string defaultType = GetDefaultFormControlType(control.TagName.ToLowerInvariant());
-                    if (!control.HasAttribute(attributeName) && !string.IsNullOrWhiteSpace(defaultType)) {
+                    string defaultType = GetEffectiveFormControlType(control.TagName.ToLowerInvariant(), control.GetAttribute(attributeName));
+                    if (!string.IsNullOrWhiteSpace(defaultType) && (!control.HasAttribute(attributeName) || !IsValidFormControlType(control.TagName, control.GetAttribute(attributeName)))) {
                         parts.Add("type=" + defaultType);
                         continue;
                     }
                 }
 
-                if (string.Equals(attributeName, "value", StringComparison.OrdinalIgnoreCase)
-                    && string.Equals(control.TagName, "option", StringComparison.OrdinalIgnoreCase)
-                    && !control.HasAttribute(attributeName)) {
-                    string text = NormalizeText(control.TextContent);
-                    if (!string.IsNullOrWhiteSpace(text)) {
-                        parts.Add("value=" + text);
+                if (string.Equals(attributeName, "value", StringComparison.OrdinalIgnoreCase) && !control.HasAttribute(attributeName)) {
+                    string defaultValue = GetDefaultFormControlValue(control.TagName, control.GetAttribute("type"), control.TextContent);
+                    if (!string.IsNullOrWhiteSpace(defaultValue)) {
+                        parts.Add("value=" + defaultValue);
                         continue;
                     }
                 }
@@ -536,19 +534,19 @@ public static class HtmlRoundTripScorer {
         }
 
         if (string.Equals(attributeName, "type", StringComparison.OrdinalIgnoreCase)) {
-            string defaultType = GetDefaultFormControlType(node.Name);
-            if (!string.IsNullOrWhiteSpace(defaultType) && !node.Attributes.ContainsKey(attributeName)) {
+            node.Attributes.TryGetValue(attributeName, out string? rawType);
+            string defaultType = GetEffectiveFormControlType(node.Name, rawType);
+            if (!string.IsNullOrWhiteSpace(defaultType) && (!node.Attributes.ContainsKey(attributeName) || !IsValidFormControlType(node.Name, rawType))) {
                 parts.Add("type=" + defaultType);
                 return;
             }
         }
 
-        if (string.Equals(attributeName, "value", StringComparison.OrdinalIgnoreCase)
-            && string.Equals(node.Name, "option", StringComparison.OrdinalIgnoreCase)
-            && !node.Attributes.ContainsKey(attributeName)) {
-            string text = ExtractLogicalNodeText(node);
-            if (!string.IsNullOrWhiteSpace(text)) {
-                parts.Add("value=" + NormalizeText(text));
+        if (string.Equals(attributeName, "value", StringComparison.OrdinalIgnoreCase) && !node.Attributes.ContainsKey(attributeName)) {
+            node.Attributes.TryGetValue("type", out string? rawType);
+            string defaultValue = GetDefaultFormControlValue(node.Name, rawType, ExtractLogicalNodeText(node));
+            if (!string.IsNullOrWhiteSpace(defaultValue)) {
+                parts.Add("value=" + defaultValue);
                 return;
             }
         }
@@ -562,7 +560,7 @@ public static class HtmlRoundTripScorer {
 
     private static bool IsSubmitterControl(AngleSharp.Dom.IElement control) {
         string name = control.TagName.ToLowerInvariant();
-        string type = (control.GetAttribute("type") ?? string.Empty).Trim();
+        string type = GetEffectiveFormControlType(name, control.GetAttribute("type"));
         if (string.Equals(name, "button", StringComparison.OrdinalIgnoreCase)) {
             return !string.Equals(type, "button", StringComparison.OrdinalIgnoreCase)
                 && !string.Equals(type, "reset", StringComparison.OrdinalIgnoreCase);
@@ -574,7 +572,7 @@ public static class HtmlRoundTripScorer {
     }
 
     private static bool IsSubmitterControl(HtmlLogicalNode node) {
-        string type = node.Attributes.TryGetValue("type", out string? value) ? value.Trim() : string.Empty;
+        string type = GetEffectiveFormControlType(node.Name, node.Attributes.TryGetValue("type", out string? value) ? value : null);
         if (string.Equals(node.Name, "button", StringComparison.OrdinalIgnoreCase)) {
             return !string.Equals(type, "button", StringComparison.OrdinalIgnoreCase)
                 && !string.Equals(type, "reset", StringComparison.OrdinalIgnoreCase);
@@ -705,13 +703,79 @@ public static class HtmlRoundTripScorer {
         return attributeName + "=" + (value ?? string.Empty);
     }
 
-    private static string GetDefaultFormControlType(string name) {
+    private static string GetEffectiveFormControlType(string name, string? type) {
+        string normalized = (type ?? string.Empty).Trim().ToLowerInvariant();
         if (string.Equals(name, "input", StringComparison.OrdinalIgnoreCase)) {
-            return "text";
+            return IsValidInputType(normalized) ? normalized : "text";
         }
 
         if (string.Equals(name, "button", StringComparison.OrdinalIgnoreCase)) {
-            return "submit";
+            return IsValidButtonType(normalized) ? normalized : "submit";
+        }
+
+        return string.Empty;
+    }
+
+    private static bool IsValidFormControlType(string name, string? type) {
+        string normalized = (type ?? string.Empty).Trim().ToLowerInvariant();
+        if (string.Equals(name, "input", StringComparison.OrdinalIgnoreCase)) {
+            return IsValidInputType(normalized);
+        }
+
+        if (string.Equals(name, "button", StringComparison.OrdinalIgnoreCase)) {
+            return IsValidButtonType(normalized);
+        }
+
+        return false;
+    }
+
+    private static bool IsValidInputType(string type) {
+        switch (type) {
+            case "button":
+            case "checkbox":
+            case "color":
+            case "date":
+            case "datetime-local":
+            case "email":
+            case "file":
+            case "hidden":
+            case "image":
+            case "month":
+            case "number":
+            case "password":
+            case "radio":
+            case "range":
+            case "reset":
+            case "search":
+            case "submit":
+            case "tel":
+            case "text":
+            case "time":
+            case "url":
+            case "week":
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private static bool IsValidButtonType(string type) {
+        return string.Equals(type, "submit", StringComparison.Ordinal)
+            || string.Equals(type, "reset", StringComparison.Ordinal)
+            || string.Equals(type, "button", StringComparison.Ordinal);
+    }
+
+    private static string GetDefaultFormControlValue(string name, string? type, string textContent) {
+        if (string.Equals(name, "option", StringComparison.OrdinalIgnoreCase)) {
+            return NormalizeText(textContent);
+        }
+
+        if (string.Equals(name, "input", StringComparison.OrdinalIgnoreCase)) {
+            string effectiveType = GetEffectiveFormControlType(name, type);
+            if (string.Equals(effectiveType, "checkbox", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(effectiveType, "radio", StringComparison.OrdinalIgnoreCase)) {
+                return "on";
+            }
         }
 
         return string.Empty;
