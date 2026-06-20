@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Globalization;
 
 namespace OfficeIMO.Html;
 
@@ -44,14 +45,20 @@ public static class HtmlRoundTripScorer {
         var metrics = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
         AddMetric(metrics, "nodes", Ratio(SumCounts(target), SumCounts(source)));
         AddMetric(metrics, "headings", Ratio(target.Count(HtmlLogicalNodeKind.Heading), source.Count(HtmlLogicalNodeKind.Heading)));
+        AddMetric(metrics, "heading-levels", SignatureSimilarity(ExtractSignatures(target, HtmlLogicalNodeKind.Heading, CreateTextualNodeSignature), ExtractSignatures(source, HtmlLogicalNodeKind.Heading, CreateTextualNodeSignature)));
         AddMetric(metrics, "paragraphs", Ratio(target.Count(HtmlLogicalNodeKind.Paragraph), source.Count(HtmlLogicalNodeKind.Paragraph)));
         AddMetric(metrics, "tables", Ratio(target.Count(HtmlLogicalNodeKind.Table), source.Count(HtmlLogicalNodeKind.Table)));
+        AddMetric(metrics, "table-rows", Ratio(target.Count(HtmlLogicalNodeKind.TableRow), source.Count(HtmlLogicalNodeKind.TableRow)));
+        AddMetric(metrics, "table-cells", Ratio(target.Count(HtmlLogicalNodeKind.TableCell), source.Count(HtmlLogicalNodeKind.TableCell)));
+        AddMetric(metrics, "table-grid", SignatureSimilarity(ExtractTableGridSignatures(target), ExtractTableGridSignatures(source)));
         AddMetric(metrics, "images", Ratio(target.Count(HtmlLogicalNodeKind.Image), source.Count(HtmlLogicalNodeKind.Image)));
+        AddMetric(metrics, "image-sources", SignatureSimilarity(ExtractSignatures(target, HtmlLogicalNodeKind.Image, CreateImageSignature), ExtractSignatures(source, HtmlLogicalNodeKind.Image, CreateImageSignature)));
         AddMetric(metrics, "lists", Ratio(target.Count(HtmlLogicalNodeKind.List), source.Count(HtmlLogicalNodeKind.List)));
         AddMetric(metrics, "list-items", Ratio(target.Count(HtmlLogicalNodeKind.ListItem), source.Count(HtmlLogicalNodeKind.ListItem)));
         AddMetric(metrics, "forms", Ratio(target.Count(HtmlLogicalNodeKind.FormControl) + target.Count(HtmlLogicalNodeKind.Form), source.Count(HtmlLogicalNodeKind.FormControl) + source.Count(HtmlLogicalNodeKind.Form)));
         AddMetric(metrics, "form-state", SignatureSimilarity(ExtractFormSignatures(target), ExtractFormSignatures(source)));
         AddMetric(metrics, "links", Ratio(target.Count(HtmlLogicalNodeKind.Link), source.Count(HtmlLogicalNodeKind.Link)));
+        AddMetric(metrics, "link-targets", SignatureSimilarity(ExtractSignatures(target, HtmlLogicalNodeKind.Link, CreateLinkSignature), ExtractSignatures(source, HtmlLogicalNodeKind.Link, CreateLinkSignature)));
         AddMetric(metrics, "text", textSimilarity);
 
         int compared = metrics.Count;
@@ -108,6 +115,55 @@ public static class HtmlRoundTripScorer {
         return signatures;
     }
 
+    private static IReadOnlyList<string> ExtractSignatures(HtmlLogicalDocument document, HtmlLogicalNodeKind kind, Func<HtmlLogicalNode, string> createSignature) {
+        var signatures = new List<string>();
+        AppendSignatures(document.Root, kind, createSignature, signatures);
+        return signatures;
+    }
+
+    private static void AppendSignatures(HtmlLogicalNode node, HtmlLogicalNodeKind kind, Func<HtmlLogicalNode, string> createSignature, ICollection<string> signatures) {
+        if (node.Kind == kind) {
+            signatures.Add(createSignature(node));
+        }
+
+        foreach (HtmlLogicalNode child in node.Children) {
+            AppendSignatures(child, kind, createSignature, signatures);
+        }
+    }
+
+    private static IReadOnlyList<string> ExtractTableGridSignatures(HtmlLogicalDocument document) {
+        var signatures = new List<string>();
+        AppendTableGridSignatures(document.Root, signatures);
+        return signatures;
+    }
+
+    private static void AppendTableGridSignatures(HtmlLogicalNode node, ICollection<string> signatures) {
+        if (node.Kind == HtmlLogicalNodeKind.Table) {
+            var rowCellCounts = new List<string>();
+            foreach (HtmlLogicalNode row in Descendants(node, HtmlLogicalNodeKind.TableRow)) {
+                rowCellCounts.Add(Descendants(row, HtmlLogicalNodeKind.TableCell).Count().ToString(CultureInfo.InvariantCulture));
+            }
+
+            signatures.Add("table|" + string.Join(",", rowCellCounts));
+        }
+
+        foreach (HtmlLogicalNode child in node.Children) {
+            AppendTableGridSignatures(child, signatures);
+        }
+    }
+
+    private static IEnumerable<HtmlLogicalNode> Descendants(HtmlLogicalNode node, HtmlLogicalNodeKind kind) {
+        foreach (HtmlLogicalNode child in node.Children) {
+            if (child.Kind == kind) {
+                yield return child;
+            }
+
+            foreach (HtmlLogicalNode descendant in Descendants(child, kind)) {
+                yield return descendant;
+            }
+        }
+    }
+
     private static void AppendFormSignatures(HtmlLogicalNode node, ICollection<string> signatures) {
         if (node.Kind == HtmlLogicalNodeKind.FormControl) {
             signatures.Add(CreateFormSignature(node));
@@ -138,6 +194,45 @@ public static class HtmlRoundTripScorer {
         return string.Join("|", parts);
     }
 
+    private static string CreateTextualNodeSignature(HtmlLogicalNode node) {
+        string text = ExtractLogicalNodeText(node);
+        return string.IsNullOrWhiteSpace(text)
+            ? node.Name
+            : node.Name + "|text=" + NormalizeText(text);
+    }
+
+    private static string CreateLinkSignature(HtmlLogicalNode node) {
+        var parts = new List<string> {
+            node.Name
+        };
+        AddAttributePart(parts, node, "href");
+        string text = ExtractLogicalNodeText(node);
+        if (!string.IsNullOrWhiteSpace(text)) {
+            parts.Add("text=" + NormalizeText(text));
+        }
+
+        return string.Join("|", parts);
+    }
+
+    private static string CreateImageSignature(HtmlLogicalNode node) {
+        var parts = new List<string> {
+            node.Name
+        };
+        AddAttributePart(parts, node, "src");
+        AddAttributePart(parts, node, "srcset");
+        AddAttributePart(parts, node, "data-src");
+        AddAttributePart(parts, node, "data-srcset");
+        AddAttributePart(parts, node, "alt");
+        return string.Join("|", parts);
+    }
+
+    private static void AddAttributePart(ICollection<string> parts, HtmlLogicalNode node, string attributeName) {
+        string? value;
+        if (node.Attributes.TryGetValue(attributeName, out value)) {
+            parts.Add(attributeName + "=" + value);
+        }
+    }
+
     private static string ExtractLogicalNodeText(HtmlLogicalNode node) {
         var parts = new List<string>();
         AppendLogicalText(node, parts);
@@ -155,14 +250,14 @@ public static class HtmlRoundTripScorer {
             return 1D;
         }
 
-        HashSet<string> sourceWindows = HashWindows(sourceText);
-        HashSet<string> targetWindows = HashWindows(targetText);
-        int unionCount = sourceWindows.Union(targetWindows).Count();
+        Dictionary<string, int> sourceWindows = HashWindows(sourceText);
+        Dictionary<string, int> targetWindows = HashWindows(targetText);
+        int unionCount = CountWindowUnion(sourceWindows, targetWindows);
         if (unionCount == 0) {
             return 1D;
         }
 
-        return sourceWindows.Intersect(targetWindows).Count() / (double)unionCount;
+        return CountWindowIntersection(sourceWindows, targetWindows) / (double)unionCount;
     }
 
     private static string ExtractVisibleTextFromHtml(string html) {
@@ -181,8 +276,10 @@ public static class HtmlRoundTripScorer {
     }
 
     private static void AppendVisibleText(INode node, ICollection<string> parts) {
-        if (node is IElement element && IsNonVisibleTextElement(element.TagName)) {
-            return;
+        if (node is IElement element) {
+            if (IsNonVisibleTextElement(element.TagName) || IsHiddenElement(element)) {
+                return;
+            }
         }
 
         if (node.NodeType == NodeType.Text && !string.IsNullOrWhiteSpace(node.TextContent)) {
@@ -206,7 +303,7 @@ public static class HtmlRoundTripScorer {
     }
 
     private static void AppendLogicalText(HtmlLogicalNode node, ICollection<string> parts) {
-        if (IsNonVisibleTextElement(node.Name)) {
+        if (IsNonVisibleTextElement(node.Name) || IsHiddenLogicalNode(node)) {
             return;
         }
 
@@ -236,19 +333,91 @@ public static class HtmlRoundTripScorer {
             || string.Equals(name, "noscript", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static HashSet<string> HashWindows(string text) {
-        var windows = new HashSet<string>(StringComparer.Ordinal);
+    private static bool IsHiddenElement(IElement element) {
+        if (element.HasAttribute("hidden")) {
+            return true;
+        }
+
+        string? ariaHidden = element.GetAttribute("aria-hidden");
+        if (string.Equals(ariaHidden, "true", StringComparison.OrdinalIgnoreCase)) {
+            return true;
+        }
+
+        return ContainsHiddenStyle(element.GetAttribute("style"));
+    }
+
+    private static bool IsHiddenLogicalNode(HtmlLogicalNode node) {
+        if (node.Attributes.ContainsKey("hidden")) {
+            return true;
+        }
+
+        string? ariaHidden;
+        if (node.Attributes.TryGetValue("aria-hidden", out ariaHidden) && string.Equals(ariaHidden, "true", StringComparison.OrdinalIgnoreCase)) {
+            return true;
+        }
+
+        string? style;
+        return node.Attributes.TryGetValue("style", out style) && ContainsHiddenStyle(style);
+    }
+
+    private static bool ContainsHiddenStyle(string? style) {
+        if (string.IsNullOrWhiteSpace(style)) {
+            return false;
+        }
+
+        string styleText = style!;
+        return styleText.IndexOf("display:none", StringComparison.OrdinalIgnoreCase) >= 0
+            || styleText.IndexOf("display: none", StringComparison.OrdinalIgnoreCase) >= 0
+            || styleText.IndexOf("visibility:hidden", StringComparison.OrdinalIgnoreCase) >= 0
+            || styleText.IndexOf("visibility: hidden", StringComparison.OrdinalIgnoreCase) >= 0;
+    }
+
+    private static Dictionary<string, int> HashWindows(string text) {
+        var windows = new Dictionary<string, int>(StringComparer.Ordinal);
         if (text.Length <= 32) {
-            windows.Add(Hash(text));
+            AddWindow(windows, Hash(text));
             return windows;
         }
 
         for (int i = 0; i <= text.Length - 32; i += 16) {
-            windows.Add(Hash(text.Substring(i, 32)));
+            AddWindow(windows, Hash(text.Substring(i, 32)));
         }
 
-        windows.Add(Hash(text.Substring(text.Length - 32, 32)));
+        AddWindow(windows, Hash(text.Substring(text.Length - 32, 32)));
         return windows;
+    }
+
+    private static void AddWindow(IDictionary<string, int> windows, string hash) {
+        int count;
+        windows.TryGetValue(hash, out count);
+        windows[hash] = count + 1;
+    }
+
+    private static int CountWindowIntersection(IReadOnlyDictionary<string, int> source, IReadOnlyDictionary<string, int> target) {
+        int count = 0;
+        foreach (KeyValuePair<string, int> pair in source) {
+            int targetCount;
+            if (target.TryGetValue(pair.Key, out targetCount)) {
+                count += Math.Min(pair.Value, targetCount);
+            }
+        }
+
+        return count;
+    }
+
+    private static int CountWindowUnion(IReadOnlyDictionary<string, int> source, IReadOnlyDictionary<string, int> target) {
+        int count = 0;
+        var keys = new HashSet<string>(source.Keys, StringComparer.Ordinal);
+        keys.UnionWith(target.Keys);
+        foreach (string key in keys) {
+            int sourceCount;
+            int targetCount;
+            source.TryGetValue(key, out sourceCount);
+            target.TryGetValue(key, out targetCount);
+            count += Math.Max(sourceCount, targetCount);
+        }
+
+        return count;
     }
 
     private static string NormalizeText(string text) {

@@ -10,6 +10,7 @@ namespace OfficeIMO.Html;
 public static class HtmlResourcePipeline {
     private static readonly Regex CssImportExpression = new Regex("@import\\s+(?:url\\(\\s*)?[\"']?(?<url>[^\"')\\s;]+)[\"']?\\s*\\)?", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
     private static readonly Regex CssUrlExpression = new Regex("url\\(\\s*(?:\"(?<url>[^\"]+)\"|'(?<url>[^']+)'|(?<url>[^)]+))\\s*\\)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+    private static readonly Regex CssCommentExpression = new Regex("/\\*.*?\\*/", RegexOptions.Singleline | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
     /// <summary>
     /// Parses raw HTML and builds a resource manifest.
@@ -67,10 +68,12 @@ public static class HtmlResourcePipeline {
                 AddAttribute(manifest, HtmlResourceKind.Media, element, "poster", baseUri, options);
                 AddAttribute(manifest, HtmlResourceKind.Media, element, "data-poster", baseUri, options);
                 AddAttribute(manifest, HtmlResourceKind.Media, element, "src", baseUri, options);
+                AddAttribute(manifest, HtmlResourceKind.Media, element, "data-src", baseUri, options);
                 break;
             case "audio":
             case "track":
                 AddAttribute(manifest, HtmlResourceKind.Media, element, "src", baseUri, options);
+                AddAttribute(manifest, HtmlResourceKind.Media, element, "data-src", baseUri, options);
                 break;
             case "object":
                 AddAttribute(manifest, HtmlResourceKind.Other, element, "data", baseUri, options);
@@ -110,10 +113,14 @@ public static class HtmlResourcePipeline {
         HtmlResourceKind kind;
         if (rel.IndexOf("stylesheet", StringComparison.OrdinalIgnoreCase) >= 0) {
             kind = HtmlResourceKind.Stylesheet;
-        } else if (rel.IndexOf("preload", StringComparison.OrdinalIgnoreCase) >= 0 || rel.IndexOf("modulepreload", StringComparison.OrdinalIgnoreCase) >= 0) {
+        } else if (rel.IndexOf("modulepreload", StringComparison.OrdinalIgnoreCase) >= 0) {
+            kind = HtmlResourceKind.Script;
+        } else if (rel.IndexOf("preload", StringComparison.OrdinalIgnoreCase) >= 0) {
             kind = GetPreloadKind(element.GetAttribute("as"));
         } else if (rel.IndexOf("font", StringComparison.OrdinalIgnoreCase) >= 0) {
             kind = HtmlResourceKind.Font;
+        } else if (rel.IndexOf("icon", StringComparison.OrdinalIgnoreCase) >= 0) {
+            kind = HtmlResourceKind.Image;
         } else {
             kind = HtmlResourceKind.Hyperlink;
         }
@@ -157,6 +164,7 @@ public static class HtmlResourcePipeline {
             return;
         }
 
+        css = CssCommentExpression.Replace(css, string.Empty);
         var importRanges = new List<SourceRange>();
         var importedSources = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (Match match in CssImportExpression.Matches(css)) {

@@ -220,6 +220,7 @@ public partial class Html {
                     :where(strong) { font-weight: 900; }
                     strong { font-weight: 400; }
                     @media all { em.media { text-transform: uppercase; } }
+                    @media not screen { em.media { text-transform: lowercase; } }
                 </style>
                 <p style="background-image: url('data:image/svg+xml;utf8,<svg></svg>'); font-family: 'A;B';">Hello</p>
                 <span class="x">Pseudo specificity</span>
@@ -249,12 +250,15 @@ public partial class Html {
             <html>
             <head>
                 <base href="file:///secret/">
+                <link rel="modulepreload" href="https://example.test/app.js">
+                <link rel="icon" href="https://example.test/favicon.png">
                 <style>
+                    /* @import url('file:///secret/commented.css'); */
                     @import url('file:///secret/theme.css');
                     .hero { background-image: url('https://example.test/images/bg.png'); }
                 </style>
             </head>
-            <body><div class="hero"></div></body>
+            <body><video data-src="https://example.test/media/movie.mp4"></video><div class="hero"></div></body>
             </html>
             """;
 
@@ -263,8 +267,50 @@ public partial class Html {
         });
 
         Assert.DoesNotContain(manifest.Resources, resource => resource.ElementName == "base");
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/commented.css");
         Assert.Single(manifest.Resources, resource => resource.Source == "file:///secret/theme.css");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/app.js" && resource.Kind == HtmlResourceKind.Script);
+        Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/favicon.png" && resource.Kind == HtmlResourceKind.Image);
+        Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/media/movie.mp4" && resource.Kind == HtmlResourceKind.Media && resource.AttributeName == "data-src");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/bg.png" && resource.Kind == HtmlResourceKind.Image && resource.IsAllowed);
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "https://example.test/images/bg.png" && resource.Kind == HtmlResourceKind.Font);
+    }
+
+    [Fact]
+    public void HtmlEnginePlatform_RoundTripScorerComparesSemanticSignaturesAndVisibleText() {
+        HtmlRoundTripScore repeatedTextScore = HtmlRoundTripScorer.Compare(
+            "<main><p>" + new string('a', 100) + "</p></main>",
+            "<main><p>" + new string('a', 32) + "</p></main>");
+        Assert.InRange(repeatedTextScore.Metrics["text"], 0D, 0.99D);
+
+        HtmlRoundTripScore hiddenTextScore = HtmlRoundTripScorer.Compare(
+            "<main><p>Visible <span hidden>draft</span><span aria-hidden=\"true\">internal</span></p></main>",
+            "<main><p>Visible</p></main>");
+        Assert.Equal(1D, hiddenTextScore.Metrics["text"], 3);
+
+        HtmlRoundTripScore headingLevelScore = HtmlRoundTripScorer.Compare(
+            "<main><h1>Title</h1></main>",
+            "<main><h6>Title</h6></main>");
+        Assert.Equal(1D, headingLevelScore.Metrics["headings"], 3);
+        Assert.InRange(headingLevelScore.Metrics["heading-levels"], 0D, 0.99D);
+
+        HtmlRoundTripScore tableShapeScore = HtmlRoundTripScorer.Compare(
+            "<main><table><tr><td>A</td><td>B</td></tr><tr><td>C</td><td>D</td></tr></table></main>",
+            "<main><table><tr><td>A</td><td>B</td><td>C</td><td>D</td></tr></table></main>");
+        Assert.Equal(1D, tableShapeScore.Metrics["tables"], 3);
+        Assert.InRange(tableShapeScore.Metrics["table-rows"], 0D, 0.99D);
+        Assert.InRange(tableShapeScore.Metrics["table-grid"], 0D, 0.99D);
+
+        HtmlRoundTripScore linkScore = HtmlRoundTripScorer.Compare(
+            "<main><a href=\"https://example.test/a\">same text</a></main>",
+            "<main><a href=\"https://example.test/b\">same text</a></main>");
+        Assert.Equal(1D, linkScore.Metrics["links"], 3);
+        Assert.InRange(linkScore.Metrics["link-targets"], 0D, 0.99D);
+
+        HtmlRoundTripScore imageScore = HtmlRoundTripScorer.Compare(
+            "<main><img src=\"https://example.test/a.png\" alt=\"Chart A\"></main>",
+            "<main><img src=\"https://example.test/b.png\" alt=\"Chart B\"></main>");
+        Assert.Equal(1D, imageScore.Metrics["images"], 3);
+        Assert.InRange(imageScore.Metrics["image-sources"], 0D, 0.99D);
     }
 }

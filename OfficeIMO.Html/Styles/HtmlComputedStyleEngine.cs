@@ -138,9 +138,20 @@ public static class HtmlComputedStyleEngine {
             return true;
         }
 
-        return mediaText.IndexOf("all", StringComparison.OrdinalIgnoreCase) >= 0
-            || mediaText.IndexOf("screen", StringComparison.OrdinalIgnoreCase) >= 0
-            || mediaText.IndexOf("print", StringComparison.OrdinalIgnoreCase) >= 0;
+        foreach (string query in SplitSelectorList(mediaText)) {
+            string normalized = query.Trim();
+            if (normalized.StartsWith("not ", StringComparison.OrdinalIgnoreCase)) {
+                continue;
+            }
+
+            if (normalized.IndexOf("all", StringComparison.OrdinalIgnoreCase) >= 0
+                || normalized.IndexOf("screen", StringComparison.OrdinalIgnoreCase) >= 0
+                || normalized.IndexOf("print", StringComparison.OrdinalIgnoreCase) >= 0) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static bool MatchesSelector(IElement element, string selector) {
