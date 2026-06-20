@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Html;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -71,6 +72,30 @@ namespace OfficeIMO.Word.Html {
         /// <returns>A new <see cref="WordDocument"/> instance.</returns>
         public static WordDocument LoadFromHtml(this string html, HtmlToWordOptions? options = null) {
             return LoadFromHtmlAsync(html, options).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Creates a new document from a shared OfficeIMO HTML conversion document.
+        /// </summary>
+        /// <param name="document">Shared HTML conversion document.</param>
+        /// <param name="options">Optional conversion options.</param>
+        /// <returns>A new <see cref="WordDocument"/> instance.</returns>
+        public static WordDocument LoadFromHtml(this HtmlConversionDocument document, HtmlToWordOptions? options = null) {
+            return LoadFromHtmlAsync(document, options).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Asynchronously creates a new document from a shared OfficeIMO HTML conversion document.
+        /// </summary>
+        /// <param name="document">Shared HTML conversion document.</param>
+        /// <param name="options">Optional conversion options.</param>
+        /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
+        /// <returns>A new <see cref="WordDocument"/> instance.</returns>
+        public static Task<WordDocument> LoadFromHtmlAsync(this HtmlConversionDocument document, HtmlToWordOptions? options = null, CancellationToken cancellationToken = default) {
+            if (document == null) throw new System.ArgumentNullException(nameof(document));
+            options ??= new HtmlToWordOptions();
+            options.ConversionProfile = document.ProfileContract.Profile;
+            return LoadFromHtmlAsync(document.HtmlForConversion, options, cancellationToken);
         }
 
         /// <summary>

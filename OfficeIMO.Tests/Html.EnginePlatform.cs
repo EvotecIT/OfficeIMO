@@ -1,5 +1,6 @@
 using AngleSharp.Dom;
 using OfficeIMO.Html;
+using OfficeIMO.Markdown.Html;
 using OfficeIMO.Word.Html;
 using Xunit;
 
@@ -156,6 +157,63 @@ public partial class Html {
         HtmlToWordOptions trusted = HtmlToWordOptions.CreateTrustedDocumentProfile();
         Assert.Equal(HtmlConversionProfile.Semantic, untrusted.ConversionProfile);
         Assert.Equal(HtmlConversionProfile.Document, trusted.Clone().ConversionProfile);
+    }
+
+    [Fact]
+    public void HtmlEnginePlatform_BuildsCanonicalConversionDocumentAndNormalizedHtmlForAdapters() {
+        const string html = """
+            <!doctype html>
+            <html>
+            <head>
+                <base href="https://example.test/reports/">
+                <title>Canonical Contract</title>
+                <link rel="stylesheet" href="/assets/report.css">
+                <style>
+                    body { color: #123456; font-family: Aptos; }
+                    .secret { display: none; }
+                </style>
+            </head>
+            <body onclick="alert(1)">
+                <main>
+                    <h1>Canonical Contract</h1>
+                    <p class="lead">Visible text</p>
+                    <p class="secret">Internal draft</p>
+                    <img src="chart.png" srcset="chart.png 1x, file:///secret/chart.png 2x" alt="Chart">
+                    <a href="javascript:alert(1)">Unsafe link</a>
+                    <form action="submit"><input type="checkbox" checked></form>
+                </main>
+            </body>
+            </html>
+            """;
+
+        HtmlConversionDocument conversion = HtmlConversionDocumentBuilder.Build(html, new HtmlConversionDocumentOptions {
+            Profile = HtmlConversionProfile.Document,
+            BaseUri = new Uri("https://example.test/reports/"),
+            UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile()
+        });
+
+        Assert.Equal(HtmlConversionProfile.Document, conversion.ProfileContract.Profile);
+        Assert.Contains("forms", conversion.LogicalDocument.Capabilities);
+        Assert.Contains("images", conversion.LogicalDocument.Capabilities);
+        Assert.Contains("font-family", conversion.StyleSummary.PropertyNames);
+        Assert.Contains("Aptos", conversion.StyleSummary.FontFamilies);
+        Assert.True(conversion.StyleSummary.HiddenElementCount >= 1);
+
+        HtmlResourceDependencySummary imageSummary = conversion.ResourcePlan.GetSummary(HtmlResourceKind.Image);
+        Assert.True(imageSummary.AllowedCount >= 1);
+        Assert.True(imageSummary.BlockedCount >= 1);
+        Assert.True(conversion.ResourcePlan.HasBlockedResources);
+
+        Assert.Contains("https://example.test/reports/chart.png", conversion.NormalizedHtml);
+        Assert.Contains("checked", conversion.NormalizedHtml);
+        Assert.DoesNotContain("javascript:", conversion.NormalizedHtml, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("onclick", conversion.NormalizedHtml, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("file:///secret", conversion.NormalizedHtml, StringComparison.OrdinalIgnoreCase);
+
+        string markdown = conversion.ToMarkdown();
+        Assert.Contains("# Canonical Contract", markdown);
+        using var wordDocument = WordHtmlConverterExtensions.LoadFromHtml(conversion);
+        Assert.NotNull(wordDocument);
     }
 
     [Fact]

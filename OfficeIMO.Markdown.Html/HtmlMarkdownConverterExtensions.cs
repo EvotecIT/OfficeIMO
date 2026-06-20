@@ -1,4 +1,5 @@
 using OfficeIMO.Markdown;
+using OfficeIMO.Html;
 
 namespace OfficeIMO.Markdown.Html;
 
@@ -15,6 +16,17 @@ public static class HtmlMarkdownConverterExtensions {
     public static string ToMarkdown(this string html, HtmlToMarkdownOptions? options = null) {
         var converter = new HtmlToMarkdownConverter();
         return converter.Convert(html, options);
+    }
+
+    /// <summary>
+    /// Converts a shared OfficeIMO HTML conversion document into Markdown text.
+    /// </summary>
+    /// <param name="document">Shared HTML conversion document.</param>
+    /// <param name="options">Optional conversion options. Default options are used when omitted.</param>
+    /// <returns>The rendered Markdown text.</returns>
+    public static string ToMarkdown(this HtmlConversionDocument document, HtmlToMarkdownOptions? options = null) {
+        if (document == null) throw new ArgumentNullException(nameof(document));
+        return document.HtmlForConversion.ToMarkdown(options);
     }
 
     /// <summary>
@@ -38,6 +50,17 @@ public static class HtmlMarkdownConverterExtensions {
     public static MarkdownDoc LoadFromHtml(this string html, HtmlToMarkdownOptions? options = null) {
         var converter = new HtmlToMarkdownConverter();
         return converter.ConvertToDocument(html, options);
+    }
+
+    /// <summary>
+    /// Converts a shared OfficeIMO HTML conversion document into a Markdown document model.
+    /// </summary>
+    /// <param name="document">Shared HTML conversion document.</param>
+    /// <param name="options">Optional conversion options. Default options are used when omitted.</param>
+    /// <returns>A structural <see cref="MarkdownDoc"/> representing the converted Markdown.</returns>
+    public static MarkdownDoc LoadFromHtml(this HtmlConversionDocument document, HtmlToMarkdownOptions? options = null) {
+        if (document == null) throw new ArgumentNullException(nameof(document));
+        return document.HtmlForConversion.LoadFromHtml(options);
     }
 
     /// <summary>

@@ -33,6 +33,21 @@ public static class HtmlPdfConverterExtensions {
     }
 
     /// <summary>
+    /// Converts a shared OfficeIMO HTML conversion document to a first-party OfficeIMO PDF document model.
+    /// </summary>
+    public static PdfCore.PdfDocument ToPdfDocument(this HtmlConversionDocument document, HtmlPdfSaveOptions? options = null) {
+        if (document == null) {
+            throw new ArgumentNullException(nameof(document));
+        }
+
+        options ??= new HtmlPdfSaveOptions();
+        options.Profile = document.ProfileContract.Profile == HtmlConversionProfile.Document
+            ? HtmlPdfProfile.Document
+            : HtmlPdfProfile.Semantic;
+        return document.HtmlForConversion.ToPdfDocument(options);
+    }
+
+    /// <summary>
     /// Converts HTML stream content to a first-party OfficeIMO PDF document model using UTF-8.
     /// </summary>
     public static PdfCore.PdfDocument ToPdfDocument(this Stream htmlStream, HtmlPdfSaveOptions? options = null) {
@@ -53,6 +68,17 @@ public static class HtmlPdfConverterExtensions {
         byte[] bytes = pdf.ToBytes();
         SyncSelectedProfileReport(options);
         return bytes;
+    }
+
+    /// <summary>
+    /// Converts a shared OfficeIMO HTML conversion document to PDF bytes.
+    /// </summary>
+    public static byte[] SaveAsPdf(this HtmlConversionDocument document, HtmlPdfSaveOptions? options = null) {
+        if (document == null) {
+            throw new ArgumentNullException(nameof(document));
+        }
+
+        return document.HtmlForConversion.SaveAsPdf(options);
     }
 
     /// <summary>

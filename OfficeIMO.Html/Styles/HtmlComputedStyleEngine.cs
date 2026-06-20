@@ -70,6 +70,49 @@ public static class HtmlComputedStyleEngine {
         return Compute(HtmlDocumentParser.ParseDocument(html));
     }
 
+    /// <summary>
+    /// Creates a compact summary from computed style results.
+    /// </summary>
+    public static HtmlComputedStyleSummary Summarize(IReadOnlyDictionary<IElement, HtmlComputedStyle> styles) {
+        if (styles == null) {
+            throw new ArgumentNullException(nameof(styles));
+        }
+
+        var propertyNames = new List<string>();
+        var fontFamilies = new List<string>();
+        var colorValues = new List<string>();
+        int styledElementCount = 0;
+        int hiddenElementCount = 0;
+        foreach (HtmlComputedStyle style in styles.Values) {
+            if (style.Properties.Count > 0) {
+                styledElementCount++;
+            }
+
+            if (IsEffectivelyHidden(style)) {
+                hiddenElementCount++;
+            }
+
+            foreach (KeyValuePair<string, string> pair in style.Properties) {
+                propertyNames.Add(pair.Key);
+                if (string.Equals(pair.Key, "font-family", StringComparison.OrdinalIgnoreCase)) {
+                    fontFamilies.Add(pair.Value);
+                }
+
+                if (IsColorProperty(pair.Key)) {
+                    colorValues.Add(pair.Value);
+                }
+            }
+        }
+
+        return new HtmlComputedStyleSummary(
+            styles.Count,
+            styledElementCount,
+            hiddenElementCount,
+            propertyNames,
+            fontFamilies,
+            colorValues);
+    }
+
     private static void ComputeElement(IElement element, HtmlComputedStyle? parent, IReadOnlyList<StyleRule> rules, IDictionary<IElement, HtmlComputedStyle> computed) {
         var properties = new Dictionary<string, CascadedProperty>(StringComparer.OrdinalIgnoreCase);
         if (parent != null) {
@@ -123,6 +166,16 @@ public static class HtmlComputedStyleEngine {
         }
 
         return rules;
+    }
+
+    private static bool IsEffectivelyHidden(HtmlComputedStyle style) {
+        return string.Equals(style.GetValue("display"), "none", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(style.GetValue("visibility"), "hidden", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(style.GetValue("visibility"), "collapse", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsColorProperty(string propertyName) {
+        return propertyName.IndexOf("color", StringComparison.OrdinalIgnoreCase) >= 0;
     }
 
     private static bool IsCssStyleElement(IElement styleElement) {
