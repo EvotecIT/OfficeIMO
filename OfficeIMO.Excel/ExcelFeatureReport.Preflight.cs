@@ -69,12 +69,16 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public bool CanExportPdfReport =>
             !HasPdfExportWorkbookBlockers() &&
-            CanUseCachedFormulaValues &&
+            FindFeatureCount("PDF-missing formula caches") == 0 &&
+            FindFeatureCount("PDF-dirty formula caches") == 0 &&
+            FindFeatureCount("PDF-workbook recalculation requests") == 0 &&
             FindFeatureCount("PDF-unsupported charts") == 0 &&
             FindFeatureCount("PDF-unreadable charts") == 0 &&
             FindFeatureCount("PDF-unsupported images") == 0 &&
             FindFeatureCount("PDF-unsupported hyperlinks") == 0 &&
             FindFeatureCount("PDF-unrendered drawing shapes") == 0 &&
+            FindFeatureCount("PDF-unsupported print areas") == 0 &&
+            FindFeatureCount("PDF-unsupported header/footer formatting") == 0 &&
             FindFeatureCount("PDF-unrendered pivot tables") == 0 &&
             FindFeatureCount("PDF-unrendered sparklines") == 0 &&
             FindFeatureCount("Non-worksheet sheets") == 0;
@@ -156,12 +160,16 @@ namespace OfficeIMO.Excel {
                     break;
                 case ExcelPreflightCapability.ExportPdfReport:
                     AddPdfExportWorkbookDiagnostics(messages);
-                    AddFormulaDiagnostics(messages, requireCachedValues: true, requireSupportedFormulas: false);
+                    AddFeatureDiagnostics(messages, FindFeatures("PDF-missing formula caches"));
+                    AddFeatureDiagnostics(messages, FindFeatures("PDF-dirty formula caches"));
+                    AddFeatureDiagnostics(messages, FindFeatures("PDF-workbook recalculation requests"));
                     AddFeatureDiagnostics(messages, FindFeatures("PDF-unsupported charts"));
                     AddFeatureDiagnostics(messages, FindFeatures("PDF-unreadable charts"));
                     AddFeatureDiagnostics(messages, FindFeatures("PDF-unsupported images"));
                     AddFeatureDiagnostics(messages, FindFeatures("PDF-unsupported hyperlinks"));
                     AddFeatureDiagnostics(messages, FindFeatures("PDF-unrendered drawing shapes"));
+                    AddFeatureDiagnostics(messages, FindFeatures("PDF-unsupported print areas"));
+                    AddFeatureDiagnostics(messages, FindFeatures("PDF-unsupported header/footer formatting"));
                     AddFeatureDiagnostics(messages, FindFeatures("PDF-unrendered pivot tables"));
                     AddFeatureDiagnostics(messages, FindFeatures("PDF-unrendered sparklines"));
                     AddFeatureDiagnostics(messages, FindFeatures("Non-worksheet sheets"));
@@ -212,6 +220,9 @@ namespace OfficeIMO.Excel {
                 case "Missing formula caches":
                 case "Dirty formula caches":
                 case "Workbook recalculation requests":
+                case "PDF-missing formula caches":
+                case "PDF-dirty formula caches":
+                case "PDF-workbook recalculation requests":
                 case "Formula dependency issues":
                 case "Formula calculation blockers":
                     return true;

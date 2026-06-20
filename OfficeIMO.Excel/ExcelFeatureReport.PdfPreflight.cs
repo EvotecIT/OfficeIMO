@@ -1,5 +1,5 @@
-using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Excel {
@@ -42,6 +42,200 @@ namespace OfficeIMO.Excel {
 
             count++;
             details.Add($"{sheetName} {location}: {reason}");
+        }
+
+        private static void AddUnsupportedHeaderFooterFormatting(ExcelSheet.HeaderFooterSnapshot headerFooter, string sheetName, ref int count, List<string> details) {
+            foreach (var section in EnumerateHeaderFooterSections(headerFooter)) {
+                if (!TryGetUnsupportedHeaderFooterFormattingReason(section.Text, out string reason)) {
+                    continue;
+                }
+
+                count++;
+                details.Add($"{sheetName} {section.Location}: {reason} is simplified by the first-party PDF header/footer writer.");
+            }
+        }
+
+        private static IEnumerable<(string Location, string Text)> EnumerateHeaderFooterSections(ExcelSheet.HeaderFooterSnapshot headerFooter) {
+            yield return ("header left", headerFooter.HeaderLeft);
+            yield return ("header center", headerFooter.HeaderCenter);
+            yield return ("header right", headerFooter.HeaderRight);
+            yield return ("footer left", headerFooter.FooterLeft);
+            yield return ("footer center", headerFooter.FooterCenter);
+            yield return ("footer right", headerFooter.FooterRight);
+            yield return ("first header left", headerFooter.FirstHeaderLeft);
+            yield return ("first header center", headerFooter.FirstHeaderCenter);
+            yield return ("first header right", headerFooter.FirstHeaderRight);
+            yield return ("first footer left", headerFooter.FirstFooterLeft);
+            yield return ("first footer center", headerFooter.FirstFooterCenter);
+            yield return ("first footer right", headerFooter.FirstFooterRight);
+            yield return ("even header left", headerFooter.EvenHeaderLeft);
+            yield return ("even header center", headerFooter.EvenHeaderCenter);
+            yield return ("even header right", headerFooter.EvenHeaderRight);
+            yield return ("even footer left", headerFooter.EvenFooterLeft);
+            yield return ("even footer center", headerFooter.EvenFooterCenter);
+            yield return ("even footer right", headerFooter.EvenFooterRight);
+        }
+
+        private static bool TryGetUnsupportedHeaderFooterFormattingReason(string text, out string reason) {
+            reason = string.Empty;
+            if (string.IsNullOrEmpty(text)) {
+                return false;
+            }
+
+            bool hasVisibleContent = false;
+            for (int i = 0; i < text.Length; i++) {
+                char current = text[i];
+                if (current != '&') {
+                    hasVisibleContent = true;
+                    continue;
+                }
+
+                if (i + 1 >= text.Length) {
+                    hasVisibleContent = true;
+                    continue;
+                }
+
+                char token = text[++i];
+                switch (char.ToUpperInvariant(token)) {
+                    case '&':
+                        hasVisibleContent = true;
+                        break;
+                    case 'P':
+                    case 'N':
+                    case 'D':
+                    case 'T':
+                    case 'A':
+                    case 'F':
+                    case 'Z':
+                    case 'G':
+                        hasVisibleContent = true;
+                        break;
+                    case 'U':
+                        reason = "underline formatting";
+                        return true;
+                    case 'S':
+                        reason = "strikethrough formatting";
+                        return true;
+                    case 'B':
+                    case 'I':
+                        if (hasVisibleContent) {
+                            reason = token == 'B' ? "partial bold formatting" : "partial italic formatting";
+                            return true;
+                        }
+                        break;
+                    case 'K':
+                        if (!TrySkipHeaderFooterColorToken(text, ref i)) {
+                            reason = "malformed color formatting";
+                            return true;
+                        }
+
+                        if (hasVisibleContent) {
+                            reason = "partial color formatting";
+                            return true;
+                        }
+
+                        break;
+                    case '"':
+                        if (!TrySkipHeaderFooterFontToken(text, ref i)) {
+                            reason = "malformed font formatting";
+                            return true;
+                        }
+
+                        if (hasVisibleContent) {
+                            reason = "partial font formatting";
+                            return true;
+                        }
+
+                        break;
+                    case 'L':
+                    case 'C':
+                    case 'R':
+                        break;
+                    default:
+                        if (char.IsDigit(token)) {
+                            TrySkipHeaderFooterFontSizeToken(text, ref i);
+                            if (hasVisibleContent) {
+                                reason = "partial font-size formatting";
+                                return true;
+                            }
+                        } else {
+                            hasVisibleContent = true;
+                        }
+
+                        break;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool TrySkipHeaderFooterColorToken(string text, ref int index) {
+            int start = index + 1;
+            int length = 0;
+            while (start + length < text.Length && length < 6 && IsHexDigit(text[start + length])) {
+                length++;
+            }
+
+            if (length != 6) {
+                return false;
+            }
+
+            index = start + length - 1;
+            return true;
+        }
+
+        private static bool TrySkipHeaderFooterFontToken(string text, ref int index) {
+            int closingQuote = text.IndexOf('"', index + 1);
+            if (closingQuote < 0) {
+                return false;
+            }
+
+            index = closingQuote;
+            return true;
+        }
+
+        private static void TrySkipHeaderFooterFontSizeToken(string text, ref int index) {
+            while (index + 1 < text.Length && char.IsDigit(text[index + 1])) {
+                index++;
+            }
+        }
+
+        private static bool IsHexDigit(char value) {
+            return (value >= '0' && value <= '9')
+                   || (value >= 'a' && value <= 'f')
+                   || (value >= 'A' && value <= 'F');
+        }
+
+        private static void AddUnsupportedPrintArea(ExcelSheet sheet, string sheetName, ref int count, List<string> details) {
+            string? printArea = sheet.GetPrintArea();
+            if (string.IsNullOrWhiteSpace(printArea) || !ContainsMultiplePrintAreas(printArea!)) {
+                return;
+            }
+
+            count++;
+            details.Add($"{sheetName}: {printArea} uses multiple print areas; the first-party PDF path exports the worksheet used range instead.");
+        }
+
+        private static bool ContainsMultiplePrintAreas(string printArea) {
+            bool inQuotedSheetName = false;
+            for (int i = 0; i < printArea.Length; i++) {
+                char current = printArea[i];
+                if (current == '\'') {
+                    if (inQuotedSheetName && i + 1 < printArea.Length && printArea[i + 1] == '\'') {
+                        i++;
+                        continue;
+                    }
+
+                    inQuotedSheetName = !inQuotedSheetName;
+                    continue;
+                }
+
+                if (current == ',' && !inQuotedSheetName) {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static void AddUnrenderedDrawingShapes(WorksheetPart worksheetPart, string sheetName, ref int count, List<string> details) {
@@ -293,12 +487,25 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static string GetChartDisplayName(ExcelChart chart) {
-            if (!string.IsNullOrWhiteSpace(chart.Title)) {
-                return chart.Title!;
+        private static string GetSafeChartDisplayName(ExcelChart chart) {
+            try {
+                if (!string.IsNullOrWhiteSpace(chart.Title)) {
+                    return chart.Title!;
+                }
+            } catch {
+                // Dangling chart relationships can make title lookup fail; fall back to frame metadata.
             }
 
-            return string.IsNullOrWhiteSpace(chart.Name) ? chart.ChartType.ToString() : chart.Name;
+            string name = chart.Name;
+            if (!string.IsNullOrWhiteSpace(name)) {
+                return name;
+            }
+
+            try {
+                return chart.ChartType.ToString();
+            } catch {
+                return "unnamed chart";
+            }
         }
 
         private static string GetChartDisplayName(ExcelChartSnapshot snapshot) {

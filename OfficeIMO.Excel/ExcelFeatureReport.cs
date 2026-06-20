@@ -340,6 +340,8 @@ namespace OfficeIMO.Excel {
             int pdfUnsupportedImageCount = 0;
             int pdfUnsupportedHyperlinkCount = 0;
             int pdfUnrenderedDrawingShapeCount = 0;
+            int pdfUnsupportedPrintAreaCount = 0;
+            int pdfUnsupportedHeaderFooterFormattingCount = 0;
             var threadedCommentDetails = new List<string>();
             var oleObjectDetails = new List<string>();
             var formControlDetails = new List<string>();
@@ -348,12 +350,15 @@ namespace OfficeIMO.Excel {
             var pdfUnreadableChartDetails = new List<string>();
             var pdfUnsupportedImageDetails = new List<string>();
             var pdfUnsupportedHyperlinkDetails = new List<string>();
+            var pdfUnsupportedPrintAreaDetails = new List<string>();
+            var pdfUnsupportedHeaderFooterFormattingDetails = new List<string>();
             var pivotDetails = new List<string>();
             var pdfUnrenderedPivotDetails = new List<string>();
             var sparklineDetails = new List<string>();
             var pdfUnrenderedSparklineDetails = new List<string>();
             var pdfUnrenderedDrawingShapeDetails = new List<string>();
             var threadedCommentPeople = BuildThreadedCommentPersonMap(workbookPart);
+            var defaultPdfExportSheetNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var sheet in sheetElements) {
                 if (string.IsNullOrWhiteSpace(sheet.Id?.Value)) {
@@ -370,6 +375,10 @@ namespace OfficeIMO.Excel {
                 var excelSheet = new ExcelSheet(this, _spreadSheetDocument!, sheet);
                 var worksheet = worksheetPart.Worksheet;
                 bool isVisibleForDefaultPdfExport = !IsHiddenSheet(sheet);
+                string sheetName = sheet.Name?.Value ?? string.Empty;
+                if (isVisibleForDefaultPdfExport && !string.IsNullOrWhiteSpace(sheetName)) {
+                    defaultPdfExportSheetNames.Add(sheetName);
+                }
                 tableCount += worksheetPart.TableDefinitionParts.Count();
                 int sheetPivotCount = worksheetPart.PivotTableParts.Count();
                 pivotCount += sheetPivotCount;
@@ -410,7 +419,7 @@ namespace OfficeIMO.Excel {
                 foreach (ExcelChart chart in charts.Where(_ => isVisibleForDefaultPdfExport)) {
                     if (!chart.TryGetSnapshot(out ExcelChartSnapshot snapshot)) {
                         pdfUnreadableChartCount++;
-                        pdfUnreadableChartDetails.Add($"{sheet.Name}: {GetChartDisplayName(chart)} data could not be read into a PDF snapshot.");
+                        pdfUnreadableChartDetails.Add($"{sheet.Name}: {GetSafeChartDisplayName(chart)} data could not be read into a PDF snapshot.");
                         continue;
                     }
 
@@ -426,10 +435,13 @@ namespace OfficeIMO.Excel {
                     }
                 }
                 if (isVisibleForDefaultPdfExport) {
-                    AddUnsupportedHeaderFooterImages(excelSheet.GetHeaderFooter(), sheet.Name?.Value ?? string.Empty, ref pdfUnsupportedImageCount, pdfUnsupportedImageDetails);
-                    AddUnrenderedDrawingShapes(worksheetPart, sheet.Name?.Value ?? string.Empty, ref pdfUnrenderedDrawingShapeCount, pdfUnrenderedDrawingShapeDetails);
-                    AddUnsupportedWorksheetHyperlinks(workbookPart, sheetElements, worksheetPart, sheet.Name?.Value ?? string.Empty, ref pdfUnsupportedHyperlinkCount, pdfUnsupportedHyperlinkDetails);
-                    AddUnsupportedDrawingHyperlinks(worksheetPart, sheet.Name?.Value ?? string.Empty, ref pdfUnsupportedHyperlinkCount, pdfUnsupportedHyperlinkDetails);
+                    ExcelSheet.HeaderFooterSnapshot headerFooter = excelSheet.GetHeaderFooter();
+                    AddUnsupportedHeaderFooterImages(headerFooter, sheetName, ref pdfUnsupportedImageCount, pdfUnsupportedImageDetails);
+                    AddUnsupportedHeaderFooterFormatting(headerFooter, sheetName, ref pdfUnsupportedHeaderFooterFormattingCount, pdfUnsupportedHeaderFooterFormattingDetails);
+                    AddUnsupportedPrintArea(excelSheet, sheetName, ref pdfUnsupportedPrintAreaCount, pdfUnsupportedPrintAreaDetails);
+                    AddUnrenderedDrawingShapes(worksheetPart, sheetName, ref pdfUnrenderedDrawingShapeCount, pdfUnrenderedDrawingShapeDetails);
+                    AddUnsupportedWorksheetHyperlinks(workbookPart, sheetElements, worksheetPart, sheetName, ref pdfUnsupportedHyperlinkCount, pdfUnsupportedHyperlinkDetails);
+                    AddUnsupportedDrawingHyperlinks(worksheetPart, sheetName, ref pdfUnsupportedHyperlinkCount, pdfUnsupportedHyperlinkDetails);
                 }
                 int sheetOleObjects = CountDescendantsByLocalName(worksheet, "oleObject");
                 int sheetFormControls = CountDescendantsByLocalName(worksheet, "control") + CountDescendantsByLocalName(worksheet, "formControl");
@@ -484,6 +496,12 @@ namespace OfficeIMO.Excel {
             Add(features, "Media", "PDF-unrendered drawing shapes", ExcelFeatureSupportLevel.PartiallyEditable, pdfUnrenderedDrawingShapeCount, null,
                 "Worksheet drawing shapes and text boxes are present but are skipped by the first-party Excel-to-PDF path.",
                 pdfUnrenderedDrawingShapeDetails);
+            Add(features, "Layout", "PDF-unsupported print areas", ExcelFeatureSupportLevel.PartiallyEditable, pdfUnsupportedPrintAreaCount, null,
+                "Worksheet print-area settings are present but the first-party Excel-to-PDF path falls back to the worksheet used range for multi-area print areas.",
+                pdfUnsupportedPrintAreaDetails);
+            Add(features, "Layout", "PDF-unsupported header/footer formatting", ExcelFeatureSupportLevel.PartiallyEditable, pdfUnsupportedHeaderFooterFormattingCount, null,
+                "Header or footer text uses formatting that is simplified by the first-party Excel-to-PDF path.",
+                pdfUnsupportedHeaderFooterFormattingDetails);
             Add(features, "Compatibility", "OLE objects", ExcelFeatureSupportLevel.Preserved, oleObjectCount, null,
                 "Embedded OLE objects are advanced package content and should be treated as preserve-only.", oleObjectDetails);
             Add(features, "Compatibility", "Form controls", ExcelFeatureSupportLevel.Preserved, formControlCount, null,
@@ -499,7 +517,11 @@ namespace OfficeIMO.Excel {
                 nonWorksheetSheetDetails);
 
             var formulas = InspectFormulas();
+            var pdfExportFormulas = formulas.Formulas
+                .Where(formula => defaultPdfExportSheetNames.Contains(formula.SheetName))
+                .ToArray();
             bool hasWorkbookRecalculationRequest = formulas.Formulas.Count > 0 && HasWorkbookRecalculationRequest(workbook);
+            bool hasPdfWorkbookRecalculationRequest = pdfExportFormulas.Length > 0 && HasWorkbookRecalculationRequest(workbook);
             Add(features, "Calculation", "Supported formulas", ExcelFeatureSupportLevel.PartiallyEditable, formulas.SupportedFormulas, null,
                 "Simple supported formulas can be recalculated by OfficeIMO.");
             Add(features, "Calculation", "Unsupported formulas", ExcelFeatureSupportLevel.Preserved, formulas.UnsupportedFormulas, null,
@@ -515,6 +537,21 @@ namespace OfficeIMO.Excel {
             Add(features, "Calculation", "Workbook recalculation requests", ExcelFeatureSupportLevel.Preserved, hasWorkbookRecalculationRequest ? 1 : 0, null,
                 "The workbook requests full recalculation on open, so cached formula values should be refreshed before cached-value reads are trusted.",
                 hasWorkbookRecalculationRequest ? DescribeWorkbookRecalculationRequest(workbook).ToArray() : Array.Empty<string>());
+            Add(features, "Calculation", "PDF-missing formula caches", ExcelFeatureSupportLevel.Preserved, pdfExportFormulas.Count(formula => !formula.HasCachedValue), null,
+                "Visible worksheet formulas without cached results need OfficeIMO calculation support or Excel recalculation before PDF export can trust cached values.",
+                pdfExportFormulas
+                    .Where(formula => !formula.HasCachedValue)
+                    .Select(formula => $"{formula.SheetName}!{formula.CellReference}")
+                    .ToArray());
+            Add(features, "Calculation", "PDF-dirty formula caches", ExcelFeatureSupportLevel.PartiallyEditable, pdfExportFormulas.Count(formula => formula.IsDirty), null,
+                "Visible worksheet formulas with dirty cached results need recalculation before PDF export can trust cached values.",
+                pdfExportFormulas
+                    .Where(formula => formula.IsDirty)
+                    .Select(formula => $"{formula.SheetName}!{formula.CellReference}")
+                    .ToArray());
+            Add(features, "Calculation", "PDF-workbook recalculation requests", ExcelFeatureSupportLevel.Preserved, hasPdfWorkbookRecalculationRequest ? 1 : 0, null,
+                "The workbook requests full recalculation on open while visible worksheet formulas are exported to PDF, so cached values should be refreshed first.",
+                hasPdfWorkbookRecalculationRequest ? DescribeWorkbookRecalculationRequest(workbook).ToArray() : Array.Empty<string>());
             var formulaCalculationBlockers = formulas.Formulas
                 .SelectMany(GetFormulaCalculationBlockers)
                 .ToArray();

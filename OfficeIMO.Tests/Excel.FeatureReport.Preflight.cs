@@ -247,6 +247,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void FeatureReport_Preflight_AllowsPdfExportWhenUnsafeFormulaCachesAreOnlyHidden() {
+            string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.HiddenFormulaCaches.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet visible = document.AddWorkSheet("Report");
+                visible.CellValue(1, 1, "Ready");
+
+                ExcelSheet hidden = document.AddWorkSheet("Scratch");
+                hidden.CellValue(1, 1, 2d);
+                hidden.CellFormula(1, 2, "A1+1");
+                hidden.SetHidden(true);
+                document.Save(false);
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelFeatureReport report = document.InspectFeatures();
+
+                Assert.False(report.Can(ExcelPreflightCapability.UseCachedFormulaValues));
+                Assert.True(report.Can(ExcelPreflightCapability.ExportPdfReport));
+                Assert.Contains(report.PreservedFeatures, feature => feature.Name == "Missing formula caches");
+                Assert.DoesNotContain(report.PreservedFeatures, feature => feature.Name == "PDF-missing formula caches");
+                Assert.Empty(report.GetCapabilityDiagnostics(ExcelPreflightCapability.ExportPdfReport));
+            }
+        }
+
+        [Fact]
         public void FeatureReport_Preflight_IgnoresWorkbookRecalculationRequestWhenNoFormulasExist() {
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.RecalcNoFormulas.xlsx");
 
@@ -517,6 +543,38 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void FeatureReport_Preflight_ReportsDanglingChartPartsWithoutThrowing() {
+            string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.DanglingChart.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Charts");
+                sheet.CellValue(1, 1, "Zone");
+                sheet.CellValue(1, 2, "Value");
+                sheet.CellValue(2, 1, "North");
+                sheet.CellValue(2, 2, 10d);
+                sheet.CellValue(3, 1, "South");
+                sheet.CellValue(3, 2, 12d);
+                ExcelChart chart = sheet.AddChartFromRange("A1:B3", row: 1, column: 5, widthPixels: 320, heightPixels: 180,
+                    type: ExcelChartType.ColumnClustered, title: "Dangling Chart");
+                chart.Name = "Dangling chart frame";
+                document.Save(false);
+            }
+
+            RemoveFirstChartPart(filePath);
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelFeatureReport report = document.InspectFeatures();
+
+                Assert.False(report.Can(ExcelPreflightCapability.ExportPdfReport));
+
+                string diagnostics = string.Join(Environment.NewLine,
+                    report.GetCapabilityDiagnostics(ExcelPreflightCapability.ExportPdfReport));
+                Assert.Contains("PDF-unreadable charts", diagnostics);
+                Assert.Contains("Dangling chart frame", diagnostics);
+            }
+        }
+
+        [Fact]
         public void FeatureReport_Preflight_BlocksPdfExportForUnsupportedWorksheetImages() {
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.UnsupportedImage.xlsx");
 
@@ -562,6 +620,56 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("PDF-unsupported images", diagnostics);
                 Assert.Contains("header center", diagnostics);
                 Assert.Contains("image/gif", diagnostics);
+            }
+        }
+
+        [Fact]
+        public void FeatureReport_Preflight_BlocksPdfExportForUnsupportedHeaderFooterFormatting() {
+            string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.UnsupportedHeaderFormatting.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Headers");
+                sheet.CellValue(1, 1, "Report");
+                sheet.SetHeaderFooter(headerCenter: "&UConfidential");
+                document.Save(false);
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelFeatureReport report = document.InspectFeatures();
+
+                Assert.False(report.Can(ExcelPreflightCapability.ExportPdfReport));
+
+                string diagnostics = string.Join(Environment.NewLine,
+                    report.GetCapabilityDiagnostics(ExcelPreflightCapability.ExportPdfReport));
+                Assert.Contains("PDF-unsupported header/footer formatting", diagnostics);
+                Assert.Contains("underline formatting", diagnostics);
+            }
+        }
+
+        [Fact]
+        public void FeatureReport_Preflight_BlocksPdfExportForMultiAreaPrintAreas() {
+            string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.MultiAreaPrintArea.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Report");
+                sheet.CellValue(1, 1, "Top");
+                sheet.CellValue(2, 2, "Area one");
+                sheet.CellValue(2, 4, "Area two");
+                sheet.CellValue(5, 5, "Bottom");
+                document.Save(false);
+            }
+
+            AddMultiAreaPrintArea(filePath);
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelFeatureReport report = document.InspectFeatures();
+
+                Assert.False(report.Can(ExcelPreflightCapability.ExportPdfReport));
+
+                string diagnostics = string.Join(Environment.NewLine,
+                    report.GetCapabilityDiagnostics(ExcelPreflightCapability.ExportPdfReport));
+                Assert.Contains("PDF-unsupported print areas", diagnostics);
+                Assert.Contains("multiple print areas", diagnostics);
             }
         }
 
@@ -823,6 +931,33 @@ namespace OfficeIMO.Tests {
             });
             chartsheetPart.Chartsheet.Save();
             workbookPart.Workbook.Save();
+        }
+
+        private static void AddMultiAreaPrintArea(string filePath) {
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true);
+            WorkbookPart workbookPart = spreadsheet.WorkbookPart!;
+            X.Workbook workbook = workbookPart.Workbook;
+            workbook.DefinedNames ??= new X.DefinedNames();
+            workbook.DefinedNames.Elements<X.DefinedName>()
+                .Where(name => string.Equals(name.Name?.Value, "_xlnm.Print_Area", StringComparison.OrdinalIgnoreCase))
+                .ToList()
+                .ForEach(name => name.Remove());
+            workbook.DefinedNames.Append(new X.DefinedName {
+                Name = "_xlnm.Print_Area",
+                LocalSheetId = 0U,
+                Text = "'Report'!$B$2:$B$2,'Report'!$D$2:$D$2"
+            });
+            workbook.Save();
+        }
+
+        private static void RemoveFirstChartPart(string filePath) {
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true);
+            DrawingsPart drawingsPart = spreadsheet.WorkbookPart!.WorksheetParts
+                .Select(part => part.DrawingsPart)
+                .First(part => part?.ChartParts.Any() == true)!;
+            ChartPart chartPart = drawingsPart.ChartParts.First();
+            drawingsPart.DeletePart(chartPart);
+            drawingsPart.WorksheetDrawing?.Save();
         }
 
         private static void RemoveChartRangeFormulas(string filePath) {
