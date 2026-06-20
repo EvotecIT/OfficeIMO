@@ -13,9 +13,8 @@ namespace OfficeIMO.Excel.Pdf {
 
         private static void AddWorksheetChart(PdfCore.PdfItemCompose item, WorksheetChartExportData chart, string sheetName, ExcelPdfSaveOptions options) {
             ExcelChartSnapshot snapshot = chart.Snapshot;
-            string title = string.IsNullOrWhiteSpace(snapshot.Title) ? snapshot.Name : snapshot.Title!;
-            if (!string.IsNullOrWhiteSpace(title)) {
-                item.H2(title, PdfCore.PdfAlign.Left, PdfCore.PdfColor.FromRgb(31, 78, 121));
+            if (string.IsNullOrWhiteSpace(snapshot.Title) && !string.IsNullOrWhiteSpace(snapshot.Name)) {
+                item.H2(snapshot.Name, PdfCore.PdfAlign.Left, PdfCore.PdfColor.FromRgb(31, 78, 121));
             }
 
             OfficeChartRenderingResult rendering = OfficeChartDrawingRenderer.RenderWithQuality(CreateOfficeChartSnapshot(snapshot, options));

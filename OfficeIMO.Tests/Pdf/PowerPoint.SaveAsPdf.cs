@@ -1578,6 +1578,26 @@ public class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
+    public void SaveAsPdf_PowerPointPresentation_RendersZeroThicknessStraightConnectors() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        PowerPointSlide slide = presentation.Slides[0];
+        slide.AddShapePoints(ShapeTypeValues.StraightConnector1, 20, 40, 100, 0).Stroke("1E5A96", 1.5D);
+        slide.AddShapePoints(ShapeTypeValues.StraightConnector1, 140, 30, 0, 80).Stroke("C00000", 1.5D);
+        var options = new PowerPointPdfSaveOptions();
+
+        byte[] bytes = presentation.SaveAsPdf(options);
+
+        Assert.Empty(options.Warnings);
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("20 120 m", raw, StringComparison.Ordinal);
+        Assert.Contains("120 120 l", raw, StringComparison.Ordinal);
+        Assert.Contains("140 130 m", raw, StringComparison.Ordinal);
+        Assert.Contains("140 50 l", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SaveAsPdf_PowerPointPresentation_PreservesFlippedLineAutoShapes() {
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);

@@ -234,6 +234,12 @@ public partial class Excel {
         Assert.Equal(10, style.FixedRowHeights!.Count);
         Assert.InRange(style.FixedRowHeights.Sum(height => height ?? 0D), 107D, 108.1D);
         Assert.True(style.CellPaddingY < 3D, "Fit-to-height scaling should shrink default vertical padding along with row heights.");
+        Assert.NotNull(style.FontSize);
+        Assert.NotNull(style.HeaderFontSize);
+        Assert.NotNull(style.FooterFontSize);
+        Assert.InRange(style.FontSize!.Value, 3.2D, 3.4D);
+        Assert.Equal(style.FontSize.Value, style.HeaderFontSize!.Value);
+        Assert.Equal(style.FontSize.Value, style.FooterFontSize!.Value);
     }
 
     [Fact]

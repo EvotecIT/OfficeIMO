@@ -111,7 +111,8 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             double targetHeight = CalculateFitToHeightMaxHeight(options, pageSetup);
-            List<double> currentHeights = CreateApproximateRowHeights(tableStyle, rowIndexes, rowHeights);
+            double defaultFontSize = GetDefaultTableFontSize(options);
+            List<double> currentHeights = CreateApproximateRowHeights(tableStyle, rowIndexes, rowHeights, defaultFontSize);
             double currentHeight = currentHeights.Sum();
             if (currentHeight <= targetHeight || currentHeight <= 0D) {
                 return;
@@ -125,9 +126,10 @@ namespace OfficeIMO.Excel.Pdf {
             tableStyle.CellPaddingY *= scale;
             tableStyle.CellPaddingTop = ScaleOptional(tableStyle.CellPaddingTop, scale);
             tableStyle.CellPaddingBottom = ScaleOptional(tableStyle.CellPaddingBottom, scale);
-            tableStyle.FontSize = ScaleFontSize(tableStyle.FontSize, scale);
-            tableStyle.HeaderFontSize = ScaleFontSize(tableStyle.HeaderFontSize, scale);
-            tableStyle.FooterFontSize = ScaleFontSize(tableStyle.FooterFontSize, scale);
+            double bodyFontSize = tableStyle.FontSize ?? defaultFontSize;
+            tableStyle.FontSize = ScaleFontSize(tableStyle.FontSize, defaultFontSize, scale);
+            tableStyle.HeaderFontSize = ScaleFontSize(tableStyle.HeaderFontSize, bodyFontSize, scale);
+            tableStyle.FooterFontSize = ScaleFontSize(tableStyle.FooterFontSize, bodyFontSize, scale);
             tableStyle.MinRowHeight *= scale;
             if (tableStyle.RowMinHeights != null) {
                 tableStyle.RowMinHeights = tableStyle.RowMinHeights
@@ -148,9 +150,9 @@ namespace OfficeIMO.Excel.Pdf {
             return pageContentHeight * Math.Max(1U, fitToHeight);
         }
 
-        private static List<double> CreateApproximateRowHeights(PdfCore.PdfTableStyle tableStyle, IReadOnlyList<int> rowIndexes, RowLayoutData? rowHeights) {
+        private static List<double> CreateApproximateRowHeights(PdfCore.PdfTableStyle tableStyle, IReadOnlyList<int> rowIndexes, RowLayoutData? rowHeights, double defaultFontSize) {
             var heights = new List<double>(rowIndexes.Count);
-            double fallbackHeight = GetDefaultApproximateRowHeight(tableStyle);
+            double fallbackHeight = GetDefaultApproximateRowHeight(tableStyle, defaultFontSize);
             for (int i = 0; i < rowIndexes.Count; i++) {
                 int row = rowIndexes[i];
                 double? configuredHeight = rowHeights != null && row >= 0 && row < rowHeights.MinHeights.Count
@@ -162,8 +164,8 @@ namespace OfficeIMO.Excel.Pdf {
             return heights;
         }
 
-        private static double GetDefaultApproximateRowHeight(PdfCore.PdfTableStyle tableStyle) {
-            double fontSize = tableStyle.FontSize ?? 10D;
+        private static double GetDefaultApproximateRowHeight(PdfCore.PdfTableStyle tableStyle, double defaultFontSize) {
+            double fontSize = tableStyle.FontSize ?? defaultFontSize;
             double lineHeight = tableStyle.LineHeight.HasValue ? fontSize * tableStyle.LineHeight.Value : fontSize * 1.4D;
             return Math.Max(tableStyle.MinRowHeight, lineHeight + tableStyle.CellPaddingY * 2D);
         }
@@ -172,8 +174,12 @@ namespace OfficeIMO.Excel.Pdf {
             return value.HasValue ? Math.Max(0D, value.Value * scale) : null;
         }
 
-        private static double? ScaleFontSize(double? value, double scale) {
-            return value.HasValue ? Math.Max(0.1D, value.Value * scale) : value;
+        private static double GetDefaultTableFontSize(ExcelPdfSaveOptions options) {
+            return options.PdfOptions?.DefaultFontSize ?? 11D;
+        }
+
+        private static double ScaleFontSize(double? value, double defaultFontSize, double scale) {
+            return Math.Max(0.1D, (value ?? defaultFontSize) * scale);
         }
 
         private static double CalculateFitToWidthMaxWidth(ExcelPdfSaveOptions options, ExcelSheetPageSetup? pageSetup) {

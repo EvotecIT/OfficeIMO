@@ -798,7 +798,7 @@ public static partial class PowerPointPdfConverterExtensions {
             }
         }
 
-        bool isLineShape = shape is PptCore.PowerPointAutoShape autoShape && autoShape.ShapeType == ShapeTypeValues.Line;
+        bool isLineShape = IsLineShape(shape);
         bool hasRenderableSize = isLineShape
             ? width >= 0D && height >= 0D && (width > 0D || height > 0D)
             : width > 0D && height > 0D;
@@ -811,6 +811,11 @@ public static partial class PowerPointPdfConverterExtensions {
         }
 
         return false;
+    }
+
+    private static bool IsLineShape(PptCore.PowerPointShape shape) {
+        return shape is PptCore.PowerPointAutoShape autoShape &&
+               (autoShape.ShapeType == ShapeTypeValues.Line || autoShape.ShapeType == ShapeTypeValues.StraightConnector1);
     }
 
     private static bool IntersectsPage(double x, double y, double width, double height, double pageWidth, double pageHeight) =>

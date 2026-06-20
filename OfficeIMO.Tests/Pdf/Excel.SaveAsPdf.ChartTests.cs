@@ -68,6 +68,7 @@ public partial class Excel {
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         string text = pdf.GetPage(1).Text;
         Assert.Contains("Revenue Chart", text);
+        Assert.Single(Regex.Matches(text, "Revenue Chart").Cast<Match>());
         Assert.Contains("Actual", text);
         Assert.Contains("Target", text);
 
