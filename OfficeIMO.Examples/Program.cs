@@ -324,6 +324,10 @@ namespace OfficeIMO.Examples {
             // Excel.ReadPresetsAndHelpers.Example(folderPath, false);
             // // Excel/Read for PowerShell consumption (emits JSON rows)
             // Excel.ReadForPowerShell.Example(folderPath, false);
+            // // Excel/Feature preflight for read/edit/template/PDF workflow routing
+            // Excel.FeaturePreflight.Example(folderPath, false);
+            // // Excel/Report workflow with template, formulas, chart, pivot, preflight, and PDF
+            // Excel.ReportWorkflow.Example(folderPath, false);
             // // Excel/PowerShell-style round trip: write → read → modify → write → JSON
             // Excel.PowerShellRoundTrip.Example(folderPath, false);
             // // Excel/Headers + Footers + Properties

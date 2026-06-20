@@ -22,7 +22,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Workbook-level feature and compatibility report.
     /// </summary>
-    public sealed class ExcelFeatureReport {
+    public sealed partial class ExcelFeatureReport {
         private readonly List<ExcelFeatureFinding> _features = new List<ExcelFeatureFinding>();
 
         internal ExcelFeatureReport(IReadOnlyList<ExcelFeatureFinding> features) {
@@ -173,6 +173,21 @@ namespace OfficeIMO.Excel {
             builder.AppendLine($"Preserved features: {PreservedFeatures.Count}");
             builder.AppendLine($"Unsupported features: {UnsupportedFeatures.Count}");
             builder.AppendLine();
+            builder.AppendLine("## Capability Preflight");
+            builder.AppendLine();
+            builder.AppendLine("| Capability | Can attempt | Diagnostics |");
+            builder.AppendLine("| --- | --- | --- |");
+            foreach (ExcelPreflightCapability capability in Enum.GetValues(typeof(ExcelPreflightCapability))) {
+                builder.Append("| ");
+                builder.Append(capability);
+                builder.Append(" | ");
+                builder.Append(Can(capability) ? "yes" : "no");
+                builder.Append(" | ");
+                builder.Append(EscapeMarkdownCell(string.Join("; ", GetCapabilityDiagnostics(capability))));
+                builder.AppendLine(" |");
+            }
+
+            builder.AppendLine();
             builder.AppendLine("| Category | Feature | Count | Support | Scope | Note | Details |");
             builder.AppendLine("| --- | --- | --- | --- | --- | --- | --- |");
 
@@ -300,6 +315,8 @@ namespace OfficeIMO.Excel {
             Add(features, "Workbook", "Worksheets", ExcelFeatureSupportLevel.Editable, sheetElements.Count, null,
                 "Worksheets can be created, renamed, moved, hidden, inspected, copied, and removed.");
 
+            int nonWorksheetSheetCount = 0;
+            var nonWorksheetSheetDetails = new List<string>();
             int namedRangeCount = workbook.DefinedNames?.Elements<DocumentFormat.OpenXml.Spreadsheet.DefinedName>().Count() ?? 0;
             Add(features, "Workbook", "Named ranges", ExcelFeatureSupportLevel.Editable, namedRangeCount, null,
                 "Workbook and sheet-local named ranges are editable.");
@@ -310,33 +327,75 @@ namespace OfficeIMO.Excel {
             int dataValidationCount = 0;
             int conditionalFormattingCount = 0;
             int sparklineCount = 0;
+            int pdfUnrenderedPivotCount = 0;
+            int pdfUnrenderedSparklineCount = 0;
             int legacyCommentCount = 0;
             int threadedCommentPartCount = 0;
             int imagePartCount = 0;
             int oleObjectCount = 0;
             int formControlCount = 0;
             int externalHyperlinkCount = 0;
+            int pdfUnsupportedChartCount = 0;
+            int pdfUnreadableChartCount = 0;
+            int pdfUnsupportedImageCount = 0;
+            int pdfUnsupportedHyperlinkCount = 0;
+            int pdfUnrenderedDrawingShapeCount = 0;
+            int pdfUnsupportedPrintAreaCount = 0;
+            int pdfUnsupportedPrintTitleCount = 0;
+            int pdfUnsupportedHeaderFooterFormattingCount = 0;
             var threadedCommentDetails = new List<string>();
             var oleObjectDetails = new List<string>();
             var formControlDetails = new List<string>();
             var externalHyperlinkDetails = new List<string>();
+            var pdfUnsupportedChartDetails = new List<string>();
+            var pdfUnreadableChartDetails = new List<string>();
+            var pdfUnsupportedImageDetails = new List<string>();
+            var pdfUnsupportedHyperlinkDetails = new List<string>();
+            var pdfUnsupportedPrintAreaDetails = new List<string>();
+            var pdfUnsupportedPrintTitleDetails = new List<string>();
+            var pdfUnsupportedHeaderFooterFormattingDetails = new List<string>();
+            var pivotDetails = new List<string>();
+            var pdfUnrenderedPivotDetails = new List<string>();
+            var sparklineDetails = new List<string>();
+            var pdfUnrenderedSparklineDetails = new List<string>();
+            var pdfUnrenderedDrawingShapeDetails = new List<string>();
             var threadedCommentPeople = BuildThreadedCommentPersonMap(workbookPart);
+            var defaultPdfExportSheetsByName = new Dictionary<string, ExcelSheet>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var sheet in sheetElements) {
                 if (string.IsNullOrWhiteSpace(sheet.Id?.Value)) {
                     continue;
                 }
 
-                if (workbookPart.GetPartById(sheet.Id!.Value!) is not WorksheetPart worksheetPart) {
+                OpenXmlPart sheetPart = workbookPart.GetPartById(sheet.Id!.Value!);
+                if (sheetPart is not WorksheetPart worksheetPart) {
+                    nonWorksheetSheetCount++;
+                    nonWorksheetSheetDetails.Add($"{sheet.Name}: {sheetPart.GetType().Name} ({sheetPart.Uri})");
                     continue;
                 }
 
+                var excelSheet = new ExcelSheet(this, _spreadSheetDocument!, sheet);
                 var worksheet = worksheetPart.Worksheet;
+                bool isVisibleForDefaultPdfExport = !IsHiddenSheet(sheet);
+                string sheetName = sheet.Name?.Value ?? string.Empty;
+                if (isVisibleForDefaultPdfExport && !string.IsNullOrWhiteSpace(sheetName)) {
+                    defaultPdfExportSheetsByName[sheetName] = excelSheet;
+                }
                 tableCount += worksheetPart.TableDefinitionParts.Count();
-                pivotCount += worksheetPart.PivotTableParts.Count();
+                int sheetPivotCount = worksheetPart.PivotTableParts.Count();
+                pivotCount += sheetPivotCount;
                 dataValidationCount += worksheet?.Descendants<DocumentFormat.OpenXml.Spreadsheet.DataValidation>().Count() ?? 0;
                 conditionalFormattingCount += worksheet?.Elements<DocumentFormat.OpenXml.Spreadsheet.ConditionalFormatting>().Count() ?? 0;
-                sparklineCount += CountDescendantsByLocalName(worksheet, "sparkline");
+                int sheetSparklineCount = CountDescendantsByLocalName(worksheet, "sparkline");
+                sparklineCount += sheetSparklineCount;
+                if (sheetPivotCount > 0) pivotDetails.Add($"{sheet.Name}: {sheetPivotCount} pivot table(s)");
+                if (sheetSparklineCount > 0) sparklineDetails.Add($"{sheet.Name}: {sheetSparklineCount} sparkline(s)");
+                if (isVisibleForDefaultPdfExport) {
+                    pdfUnrenderedPivotCount += sheetPivotCount;
+                    pdfUnrenderedSparklineCount += sheetSparklineCount;
+                    if (sheetPivotCount > 0) pdfUnrenderedPivotDetails.Add($"{sheet.Name}: {sheetPivotCount} pivot table(s)");
+                    if (sheetSparklineCount > 0) pdfUnrenderedSparklineDetails.Add($"{sheet.Name}: {sheetSparklineCount} sparkline(s)");
+                }
                 legacyCommentCount += worksheetPart.WorksheetCommentsPart?.Comments?.CommentList?.Elements<DocumentFormat.OpenXml.Spreadsheet.Comment>().Count() ?? 0;
                 var threadedComments = BuildThreadedCommentMap(worksheetPart, threadedCommentPeople)
                     .Values
@@ -347,8 +406,46 @@ namespace OfficeIMO.Excel {
                     string author = string.IsNullOrWhiteSpace(threadedComment.Author) ? threadedComment.PersonId ?? "unknown author" : threadedComment.Author!;
                     threadedCommentDetails.Add($"{sheet.Name}: {threadedComment.CellReference} by {author}");
                 }
-                imagePartCount += worksheetPart.DrawingsPart?.ImageParts.Count() ?? 0;
-                chartCount += worksheetPart.DrawingsPart?.ChartParts.Count() ?? 0;
+
+                var images = excelSheet.Images.ToList();
+                imagePartCount += images.Count;
+                foreach (ExcelImage image in images) {
+                    if (isVisibleForDefaultPdfExport && !IsPdfSupportedWorksheetImage(image, out string reason)) {
+                        pdfUnsupportedImageCount++;
+                        pdfUnsupportedImageDetails.Add($"{sheet.Name}!{A1.CellReference(image.RowIndex, image.ColumnIndex)}: {reason}");
+                    }
+                }
+
+                var charts = excelSheet.Charts.ToList();
+                chartCount += charts.Count;
+                foreach (ExcelChart chart in charts.Where(_ => isVisibleForDefaultPdfExport)) {
+                    if (!chart.TryGetSnapshot(out ExcelChartSnapshot snapshot)) {
+                        pdfUnreadableChartCount++;
+                        pdfUnreadableChartDetails.Add($"{sheet.Name}: {GetSafeChartDisplayName(chart)} data could not be read into a PDF snapshot.");
+                        continue;
+                    }
+
+                    if (!HasRenderablePdfChartData(snapshot)) {
+                        pdfUnreadableChartCount++;
+                        pdfUnreadableChartDetails.Add($"{sheet.Name}: {GetChartDisplayName(snapshot)} does not contain renderable chart categories and series.");
+                    } else if (HasMixedPdfChartTypes(snapshot)) {
+                        pdfUnsupportedChartCount++;
+                        pdfUnsupportedChartDetails.Add($"{sheet.Name}: mixed per-series chart types ({GetChartDisplayName(snapshot)})");
+                    } else if (!IsPdfSupportedChartType(snapshot.ChartType)) {
+                        pdfUnsupportedChartCount++;
+                        pdfUnsupportedChartDetails.Add($"{sheet.Name}: {snapshot.ChartType} ({GetChartDisplayName(snapshot)})");
+                    }
+                }
+                if (isVisibleForDefaultPdfExport) {
+                    ExcelSheet.HeaderFooterSnapshot headerFooter = excelSheet.GetHeaderFooter();
+                    AddUnsupportedHeaderFooterImages(headerFooter, sheetName, ref pdfUnsupportedImageCount, pdfUnsupportedImageDetails);
+                    AddUnsupportedHeaderFooterFormatting(headerFooter, sheetName, ref pdfUnsupportedHeaderFooterFormattingCount, pdfUnsupportedHeaderFooterFormattingDetails);
+                    AddUnsupportedPrintArea(excelSheet, sheetName, ref pdfUnsupportedPrintAreaCount, pdfUnsupportedPrintAreaDetails);
+                    AddUnsupportedPrintTitles(excelSheet, sheetName, ref pdfUnsupportedPrintTitleCount, pdfUnsupportedPrintTitleDetails);
+                    AddUnrenderedDrawingShapes(worksheetPart, sheetName, ref pdfUnrenderedDrawingShapeCount, pdfUnrenderedDrawingShapeDetails);
+                    AddUnsupportedWorksheetHyperlinks(workbookPart, sheetElements, worksheetPart, sheetName, ref pdfUnsupportedHyperlinkCount, pdfUnsupportedHyperlinkDetails);
+                    AddUnsupportedDrawingHyperlinks(worksheetPart, sheetName, ref pdfUnsupportedHyperlinkCount, pdfUnsupportedHyperlinkDetails);
+                }
                 int sheetOleObjects = CountDescendantsByLocalName(worksheet, "oleObject");
                 int sheetFormControls = CountDescendantsByLocalName(worksheet, "control") + CountDescendantsByLocalName(worksheet, "formControl");
                 oleObjectCount += sheetOleObjects;
@@ -358,6 +455,10 @@ namespace OfficeIMO.Excel {
                 if (sheetFormControls > 0) formControlDetails.Add($"{sheet.Name}: {sheetFormControls} form control marker(s)");
                 foreach (var relationship in worksheetPart.HyperlinkRelationships) {
                     externalHyperlinkDetails.Add($"{sheet.Name}: {relationship.Id} -> {relationship.Uri}");
+                    if (isVisibleForDefaultPdfExport && !IsSupportedPdfExternalHyperlink(relationship.Uri)) {
+                        pdfUnsupportedHyperlinkCount++;
+                        pdfUnsupportedHyperlinkDetails.Add($"{sheet.Name}: {relationship.Id} -> {relationship.Uri} is not an absolute URI supported by the first-party PDF hyperlink writer.");
+                    }
                 }
             }
 
@@ -369,10 +470,22 @@ namespace OfficeIMO.Excel {
                 "Common rule types are editable; full Excel conditional-formatting parity remains a roadmap item.");
             Add(features, "Visualization", "Charts", ExcelFeatureSupportLevel.PartiallyEditable, chartCount, null,
                 "Common chart authoring and updates are supported, including stacked/100% stacked column/bar/line/area variants, 3-D area/line/column/bar/pie, pie-of-pie/bar-of-pie, radar, stock, and filled/wireframe/contour surface charts; advanced chart families remain partial.");
+            Add(features, "Visualization", "PDF-unsupported charts", ExcelFeatureSupportLevel.PartiallyEditable, pdfUnsupportedChartCount, null,
+                "These charts can be authored or preserved in the workbook but are skipped by the first-party Excel-to-PDF chart snapshot renderer.",
+                pdfUnsupportedChartDetails);
+            Add(features, "Visualization", "PDF-unreadable charts", ExcelFeatureSupportLevel.PartiallyEditable, pdfUnreadableChartCount, null,
+                "These charts are present in the workbook but cannot be read into the first-party Excel-to-PDF chart snapshot model.",
+                pdfUnreadableChartDetails);
             Add(features, "Visualization", "Pivot tables", ExcelFeatureSupportLevel.PartiallyEditable, pivotCount, null,
                 "Source-range pivot creation and inspection are supported, including composable fluent field sort/subtotal/layout/display/number-format helpers with built-in/custom id/code readback, field item/page filters with fluent helpers plus hidden, visible, and selected-item readback, common label/value filters, negated filter variants, fixed and dynamic date filters, top/bottom count/percent/sum filters, formula-backed calculated fields with number-format id/code readback, date/number grouping metadata, generated multi-level date hierarchy fields with base/parent relationships, and explicit grouped-cache item metadata; slicers, deeper Excel interoperability checks, and advanced filters remain partial.");
+            Add(features, "Visualization", "PDF-unrendered pivot tables", ExcelFeatureSupportLevel.PartiallyEditable, pdfUnrenderedPivotCount, null,
+                "Pivot table metadata is not rendered by the first-party Excel-to-PDF path unless the pivot output is already materialized as ordinary worksheet cells.",
+                pdfUnrenderedPivotDetails);
             Add(features, "Visualization", "Sparklines", ExcelFeatureSupportLevel.Editable, sparklineCount, null,
                 "Line, column, and win/loss sparklines can be authored.");
+            Add(features, "Visualization", "PDF-unrendered sparklines", ExcelFeatureSupportLevel.PartiallyEditable, pdfUnrenderedSparklineCount, null,
+                "Sparkline metadata is authored and preserved in worksheets, but the first-party Excel-to-PDF path does not render sparkline visuals.",
+                pdfUnrenderedSparklineDetails);
             Add(features, "Collaboration", "Legacy comments", ExcelFeatureSupportLevel.PartiallyEditable, legacyCommentCount, null,
                 "Legacy comments can be authored and inspected, including rich-text runs for authored comments; threaded comment workflows remain preserve-only.");
             Add(features, "Collaboration", "Threaded comments", ExcelFeatureSupportLevel.Preserved, threadedCommentPartCount, null,
@@ -380,18 +493,83 @@ namespace OfficeIMO.Excel {
                 threadedCommentDetails);
             Add(features, "Media", "Images", ExcelFeatureSupportLevel.PartiallyEditable, imagePartCount, null,
                 "Images can be inserted in common worksheet/header/footer scenarios; advanced drawing behaviors remain partial.");
+            Add(features, "Media", "PDF-unsupported images", ExcelFeatureSupportLevel.PartiallyEditable, pdfUnsupportedImageCount, null,
+                "Worksheet images are present but are skipped by the first-party Excel-to-PDF image writer because only valid PNG and JPEG images are rendered.",
+                pdfUnsupportedImageDetails);
+            Add(features, "Media", "PDF-unrendered drawing shapes", ExcelFeatureSupportLevel.PartiallyEditable, pdfUnrenderedDrawingShapeCount, null,
+                "Worksheet drawing shapes and text boxes are present but are skipped by the first-party Excel-to-PDF path.",
+                pdfUnrenderedDrawingShapeDetails);
+            Add(features, "Layout", "PDF-unsupported print areas", ExcelFeatureSupportLevel.PartiallyEditable, pdfUnsupportedPrintAreaCount, null,
+                "Worksheet print-area settings are present but the first-party Excel-to-PDF path falls back to the worksheet used range for multi-area print areas.",
+                pdfUnsupportedPrintAreaDetails);
+            Add(features, "Layout", "PDF-unsupported print titles", ExcelFeatureSupportLevel.PartiallyEditable, pdfUnsupportedPrintTitleCount, null,
+                "Worksheet print-title columns are configured but the first-party Excel-to-PDF path currently repeats print-title rows only.",
+                pdfUnsupportedPrintTitleDetails);
+            Add(features, "Layout", "PDF-unsupported header/footer formatting", ExcelFeatureSupportLevel.PartiallyEditable, pdfUnsupportedHeaderFooterFormattingCount, null,
+                "Header or footer text uses formatting that is simplified by the first-party Excel-to-PDF path.",
+                pdfUnsupportedHeaderFooterFormattingDetails);
             Add(features, "Compatibility", "OLE objects", ExcelFeatureSupportLevel.Preserved, oleObjectCount, null,
                 "Embedded OLE objects are advanced package content and should be treated as preserve-only.", oleObjectDetails);
             Add(features, "Compatibility", "Form controls", ExcelFeatureSupportLevel.Preserved, formControlCount, null,
                 "Form controls are preserve-only worksheet metadata.", formControlDetails);
+            Add(features, "Compatibility", "External hyperlinks", ExcelFeatureSupportLevel.PartiallyEditable, externalHyperlinkCount, null,
+                "Worksheet external hyperlinks can be authored and are rendered by PDF export when they target absolute URIs.",
+                externalHyperlinkDetails);
+            Add(features, "Compatibility", "PDF-unsupported hyperlinks", ExcelFeatureSupportLevel.PartiallyEditable, pdfUnsupportedHyperlinkCount, null,
+                "These external hyperlinks are present but are skipped by the first-party Excel-to-PDF hyperlink writer.",
+                pdfUnsupportedHyperlinkDetails);
+            Add(features, "Compatibility", "Non-worksheet sheets", ExcelFeatureSupportLevel.Preserved, nonWorksheetSheetCount, null,
+                "Chartsheets and other non-worksheet sheet parts are preserve-only and cannot be materialized by worksheet-only workflows.",
+                nonWorksheetSheetDetails);
 
             var formulas = InspectFormulas();
+            var pdfExportFormulas = formulas.Formulas
+                .Where(formula => IsDefaultPdfExportedFormulaCell(formula, defaultPdfExportSheetsByName))
+                .ToArray();
+            bool hasWorkbookRecalculationRequest = formulas.Formulas.Count > 0 && HasWorkbookRecalculationRequest(workbook);
+            bool hasPdfWorkbookRecalculationRequest = pdfExportFormulas.Length > 0 && HasWorkbookRecalculationRequest(workbook);
             Add(features, "Calculation", "Supported formulas", ExcelFeatureSupportLevel.PartiallyEditable, formulas.SupportedFormulas, null,
                 "Simple supported formulas can be recalculated by OfficeIMO.");
             Add(features, "Calculation", "Unsupported formulas", ExcelFeatureSupportLevel.Preserved, formulas.UnsupportedFormulas, null,
                 "Unsupported formulas are preserved and should be recalculated by Excel or read from cached values.");
             Add(features, "Calculation", "Missing formula caches", ExcelFeatureSupportLevel.Preserved, formulas.MissingCachedResults, null,
                 "Formulas without cached results need OfficeIMO calculation support or Excel recalculation before cached-value reads are reliable.");
+            Add(features, "Calculation", "Dirty formula caches", ExcelFeatureSupportLevel.PartiallyEditable, formulas.DirtyFormulas, null,
+                "Dirty formulas have cached results that are explicitly awaiting recalculation before cached-value reads are reliable.",
+                formulas.Formulas
+                    .Where(formula => formula.IsDirty)
+                    .Select(formula => $"{formula.SheetName}!{formula.CellReference}")
+                    .ToArray());
+            Add(features, "Calculation", "Workbook recalculation requests", ExcelFeatureSupportLevel.Preserved, hasWorkbookRecalculationRequest ? 1 : 0, null,
+                "The workbook requests full recalculation on open, so cached formula values should be refreshed before cached-value reads are trusted.",
+                hasWorkbookRecalculationRequest ? DescribeWorkbookRecalculationRequest(workbook).ToArray() : Array.Empty<string>());
+            Add(features, "Calculation", "PDF-missing formula caches", ExcelFeatureSupportLevel.Preserved, pdfExportFormulas.Count(formula => !formula.HasCachedValue), null,
+                "Visible worksheet formulas without cached results need OfficeIMO calculation support or Excel recalculation before PDF export can trust cached values.",
+                pdfExportFormulas
+                    .Where(formula => !formula.HasCachedValue)
+                    .Select(formula => $"{formula.SheetName}!{formula.CellReference}")
+                    .ToArray());
+            Add(features, "Calculation", "PDF-dirty formula caches", ExcelFeatureSupportLevel.PartiallyEditable, pdfExportFormulas.Count(formula => formula.IsDirty), null,
+                "Visible worksheet formulas with dirty cached results need recalculation before PDF export can trust cached values.",
+                pdfExportFormulas
+                    .Where(formula => formula.IsDirty)
+                    .Select(formula => $"{formula.SheetName}!{formula.CellReference}")
+                    .ToArray());
+            Add(features, "Calculation", "PDF-workbook recalculation requests", ExcelFeatureSupportLevel.Preserved, hasPdfWorkbookRecalculationRequest ? 1 : 0, null,
+                "The workbook requests full recalculation on open while visible worksheet formulas are exported to PDF, so cached values should be refreshed first.",
+                hasPdfWorkbookRecalculationRequest ? DescribeWorkbookRecalculationRequest(workbook).ToArray() : Array.Empty<string>());
+            var formulaCalculationBlockers = formulas.Formulas
+                .SelectMany(GetFormulaCalculationBlockers)
+                .ToArray();
+            Add(features, "Calculation", "Formula calculation blockers", ExcelFeatureSupportLevel.Preserved, formulaCalculationBlockers.Length, null,
+                "These formula cells need Excel recalculation or broader evaluator support before OfficeIMO can calculate the workbook.",
+                formulaCalculationBlockers);
+            Add(features, "Calculation", "Formula dependency issues", ExcelFeatureSupportLevel.Preserved, formulas.DependencyIssueCount, null,
+                "Formula dependencies need review before OfficeIMO calculation can be trusted; clean cached values remain usable when every formula cache is present and current.",
+                formulas.Formulas
+                    .Where(formula => formula.DependencyIssues.Count > 0)
+                    .Select(formula => $"{formula.SheetName}!{formula.CellReference}: {string.Join("; ", formula.DependencyIssues)}")
+                    .ToArray());
 
             var allParts = EnumeratePackageParts(_spreadSheetDocument).ToList();
             var vbaDetails = DescribePartsByUriOrContentType(allParts, "vbaProject");
@@ -411,8 +589,7 @@ namespace OfficeIMO.Excel {
             if (_spreadSheetDocument.ExtendedFilePropertiesPart?.Properties?.DigitalSignature != null) {
                 signatureDetails.Add("Extended application properties contain digital signature metadata.");
             }
-            var externalRelationshipDetails = DescribeExternalRelationships(allParts)
-                .Concat(externalHyperlinkDetails)
+            var externalRelationshipDetails = DescribeExternalRelationships(allParts, includeHyperlinks: false)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
@@ -423,7 +600,7 @@ namespace OfficeIMO.Excel {
             Add(features, "Compatibility", "Timelines", ExcelFeatureSupportLevel.Preserved, timelineDetails.Count, null,
                 "Timeline metadata is preserve-only; authoring timelines remains a roadmap item.", timelineDetails);
             Add(features, "Compatibility", "External workbook links", ExcelFeatureSupportLevel.Preserved, externalLinkDetails.Count + externalRelationshipDetails.Count, null,
-                "External relationships, external hyperlinks, and workbook-link parts should be treated carefully during round trips.",
+                "External relationships and workbook-link parts should be treated carefully during round trips.",
                 externalLinkDetails.Concat(externalRelationshipDetails).ToArray());
             Add(features, "Compatibility", "Connections and query tables", ExcelFeatureSupportLevel.Preserved, connectionDetails.Count, null,
                 "Connections and query-table metadata are preserve-only.", connectionDetails);
@@ -506,13 +683,43 @@ namespace OfficeIMO.Excel {
                 .ToList();
         }
 
-        private static List<string> DescribeExternalRelationships(IEnumerable<OpenXmlPart> parts) {
+        private static List<string> DescribeExternalRelationships(IEnumerable<OpenXmlPart> parts, bool includeHyperlinks = true) {
             return parts
-                .SelectMany(part => part.ExternalRelationships.Select(relationship =>
-                    $"{part.Uri}: {relationship.Id} -> {relationship.Uri}"))
+                .SelectMany(part => part.ExternalRelationships
+                    .Where(relationship => includeHyperlinks || !IsHyperlinkRelationship(relationship))
+                    .Select(relationship => $"{part.Uri}: {relationship.Id} -> {relationship.Uri}"))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
                 .ToList();
+        }
+
+        private static IEnumerable<string> GetFormulaCalculationBlockers(ExcelFormulaCellInfo formula) {
+            foreach (string issue in formula.DependencyIssues) {
+                if (issue.IndexOf("without a cached result", StringComparison.OrdinalIgnoreCase) >= 0) {
+                    continue;
+                }
+
+                yield return $"{formula.SheetName}!{formula.CellReference}: {issue}";
+            }
+
+            if (!formula.IsSupportedByOfficeIMO && !IsMissingCacheOnlyFormulaCalculationGap(formula)) {
+                string reason = string.IsNullOrWhiteSpace(formula.UnsupportedReason)
+                    ? "Formula is outside OfficeIMO's lightweight evaluator support."
+                    : formula.UnsupportedReason!;
+                yield return $"{formula.SheetName}!{formula.CellReference}: {reason}";
+            }
+        }
+
+        private static bool IsMissingCacheOnlyFormulaCalculationGap(ExcelFormulaCellInfo formula) {
+            if (formula.DependencyIssues.Count == 0
+                || formula.DependencyIssues.Any(issue => issue.IndexOf("without a cached result", StringComparison.OrdinalIgnoreCase) < 0)) {
+                return false;
+            }
+
+            string reason = formula.UnsupportedReason ?? string.Empty;
+            return reason.Length == 0
+                || reason.IndexOf("Formula is outside OfficeIMO's lightweight evaluator support", StringComparison.OrdinalIgnoreCase) >= 0
+                || reason.IndexOf("Formula uses supported function", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         private static string DescribePart(OpenXmlPart part) {

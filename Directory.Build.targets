@@ -11,9 +11,9 @@
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
   </PropertyGroup>
 
-  <!-- Examples are executable documentation. Keep samples focused on API usage rather than nullable ceremony. -->
+  <!-- Examples are executable documentation. Keep nullable enabled so annotated samples do not emit CS8632 noise. -->
   <PropertyGroup Condition="'$(MSBuildProjectName)' == 'OfficeIMO.Examples'">
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
-    <Nullable>disable</Nullable>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 </Project>

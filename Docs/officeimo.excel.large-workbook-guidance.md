@@ -43,6 +43,20 @@ formulas.EnsureAllHaveCachedResults();
 
 Use `EnsureNoAdvancedFeatures()` only for workflows that must avoid preserve-only package content such as custom XML, macros, slicers, timelines, embedded packages, or external workbook relationships.
 
+For workflow routing, prefer the capability preflight API over ad hoc feature-name checks:
+
+```csharp
+ExcelFeatureReport features = document.InspectFeatures();
+
+features.EnsureCan(ExcelPreflightCapability.EditCellValues);
+
+if (!features.Can(ExcelPreflightCapability.ExportPdfReport)) {
+    File.WriteAllText("excel-preflight.md", features.ToMarkdown());
+}
+```
+
+`ExcelPreflightCapability` covers readback, cell-value edits, structure-changing edits, cached formula reads, OfficeIMO formula calculation, template binding, and first-party PDF report export. This is intentionally separate from benchmark guidance and does not require benchmark runs in CI.
+
 ## Measuring A Change
 
 Use the benchmark harness for repeatable local evidence:
