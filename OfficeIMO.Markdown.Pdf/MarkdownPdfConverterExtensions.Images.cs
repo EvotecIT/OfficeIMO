@@ -88,9 +88,12 @@ public static partial class MarkdownPdfConverterExtensions {
         string? linkContents,
         MarkdownPdfSaveOptions options,
         MarkdownPdfVisualTheme visualTheme) {
-        OfficeImageInfo? info = OfficeImageReader.TryIdentify(bytes, sourceName, out OfficeImageInfo? detected)
-            ? detected
-            : null;
+        if (!PdfCore.PdfDocument.TryValidateImageBytes(bytes, out OfficeImageInfo? info, out string? unsupportedReason)) {
+            AddWarning(options, "UnsupportedImage", sourceName, "The Markdown image bytes are not supported by the PDF image renderer. " + unsupportedReason);
+            RenderImagePlaceholder(pdf, altText ?? sourceName, visualTheme);
+            return;
+        }
+
         double width = widthHint ?? GetImageWidthPoints(info, options);
         double height = heightHint ?? GetImageHeightPoints(info, width, options);
         MarkdownPdfFigureStyle figureStyle = visualTheme.FigureStyleSnapshot;

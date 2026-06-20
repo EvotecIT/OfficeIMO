@@ -85,6 +85,12 @@ public static partial class MarkdownPdfConverterExtensions {
 
     private static bool CanRenderListItemsInsidePanel(IReadOnlyList<ListItem> items) {
         for (int i = 0; i < items.Count; i++) {
+            for (int paragraphIndex = 0; paragraphIndex < items[i].AdditionalParagraphs.Count; paragraphIndex++) {
+                if (IsImageOnlyInlines(items[i].AdditionalParagraphs[paragraphIndex])) {
+                    return false;
+                }
+            }
+
             if (items[i].ChildBlocks.Count > 0 && !CanRenderBlocksInsidePanel(items[i].ChildBlocks)) {
                 return false;
             }
@@ -94,7 +100,11 @@ public static partial class MarkdownPdfConverterExtensions {
     }
 
     private static bool IsImageOnlyParagraph(ParagraphBlock paragraph) {
-        IReadOnlyList<IMarkdownInline> nodes = paragraph.Inlines.Nodes;
+        return IsImageOnlyInlines(paragraph.Inlines);
+    }
+
+    private static bool IsImageOnlyInlines(InlineSequence inlines) {
+        IReadOnlyList<IMarkdownInline> nodes = inlines.Nodes;
         return nodes.Count == 1 && (nodes[0] is ImageInline || nodes[0] is ImageLinkInline);
     }
 

@@ -15,7 +15,7 @@ public static partial class MarkdownPdfConverterExtensions {
             return false;
         }
 
-        if (!TryCreateChartSnapshot(semantic, options, out OfficeChartSnapshot? snapshot, out string? warningMessage)) {
+        if (!TryCreateChartSnapshot(semantic, options, out OfficeChartSnapshot? snapshot, out string? warningMessage, visualTheme)) {
             if (!string.IsNullOrWhiteSpace(warningMessage)) {
                 AddWarning(options, "UnsupportedChartFence", semantic.Language, warningMessage!);
             }
@@ -38,7 +38,7 @@ public static partial class MarkdownPdfConverterExtensions {
     private static bool IsChartSemanticFence(SemanticFencedBlock semantic) =>
         string.Equals(semantic.SemanticKind, MarkdownSemanticKinds.Chart, StringComparison.OrdinalIgnoreCase);
 
-    internal static bool TryCreateChartSnapshot(SemanticFencedBlock semantic, MarkdownPdfSaveOptions options, out OfficeChartSnapshot? snapshot, out string? warningMessage) {
+    internal static bool TryCreateChartSnapshot(SemanticFencedBlock semantic, MarkdownPdfSaveOptions options, out OfficeChartSnapshot? snapshot, out string? warningMessage, MarkdownPdfVisualTheme? visualTheme = null) {
         snapshot = null;
         warningMessage = null;
         if (string.IsNullOrWhiteSpace(semantic.Content)) {
@@ -69,11 +69,20 @@ public static partial class MarkdownPdfConverterExtensions {
                 return false;
             }
 
+            if ((chartKind == OfficeChartKind.Pie || chartKind == OfficeChartKind.Doughnut) && !HasPositiveFiniteSlice(series)) {
+                warningMessage = "The Markdown pie or doughnut chart fence does not contain a positive finite slice and is rendered as a semantic code panel.";
+                return false;
+            }
+
             if (labels.Count == 0) {
                 int maxValues = series.Max(item => item.Values.Count);
                 for (int i = 0; i < maxValues; i++) {
                     labels.Add((i + 1).ToString(CultureInfo.InvariantCulture));
                 }
+            }
+
+            if (chartKind != OfficeChartKind.Scatter) {
+                series = NormalizeSeriesToLabelCount(series, labels.Count);
             }
 
             if (labels.Count == 0) {
@@ -86,8 +95,9 @@ public static partial class MarkdownPdfConverterExtensions {
                 return false;
             }
 
-            if (TryGetAvailablePdfContentHeight(options, out double availableHeight) && availableHeight < MinimumChartHeight) {
-                warningMessage = "The Markdown chart fence needs at least 150 PDF points of content height for native rendering and is rendered as a semantic code panel.";
+            MarkdownPdfVisualTheme resolvedVisualTheme = ResolveChartVisualTheme(options, visualTheme);
+            if (TryGetAvailableChartContentHeight(options, resolvedVisualTheme, out double availableHeight) && availableHeight < MinimumChartHeight) {
+                warningMessage = "The Markdown chart fence needs at least 150 PDF points of content height after figure spacing for native rendering and is rendered as a semantic code panel.";
                 return false;
             }
 
@@ -101,7 +111,7 @@ public static partial class MarkdownPdfConverterExtensions {
             double height = ReadPositiveDouble(root, "height") ?? options.DefaultImageHeight;
             width = Math.Max(MinimumChartWidth, Math.Min(520D, width));
             height = Math.Max(150D, Math.Min(320D, height));
-            FitChartToPageFrame(options, ref width, ref height);
+            FitChartToPageFrame(options, resolvedVisualTheme, ref width, ref height);
 
             snapshot = new OfficeChartSnapshot(
                 "Markdown chart",
@@ -122,14 +132,41 @@ public static partial class MarkdownPdfConverterExtensions {
         }
     }
 
-    private static void FitChartToPageFrame(MarkdownPdfSaveOptions options, ref double width, ref double height) {
+    private static bool HasPositiveFiniteSlice(IReadOnlyList<OfficeChartSeries> series) {
+        for (int seriesIndex = 0; seriesIndex < series.Count; seriesIndex++) {
+            IReadOnlyList<double> values = series[seriesIndex].Values;
+            for (int valueIndex = 0; valueIndex < values.Count; valueIndex++) {
+                double value = values[valueIndex];
+                if (value > 0D && !double.IsNaN(value) && !double.IsInfinity(value)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static MarkdownPdfVisualTheme ResolveChartVisualTheme(MarkdownPdfSaveOptions options, MarkdownPdfVisualTheme? visualTheme) {
+        if (visualTheme != null) {
+            return visualTheme.Clone();
+        }
+
+        MarkdownPdfVisualTheme? explicitTheme = options.VisualTheme;
+        if (explicitTheme != null) {
+            return explicitTheme;
+        }
+
+        return options.ApplyWordLikeTheme ? MarkdownPdfVisualTheme.WordLike() : MarkdownPdfVisualTheme.Plain();
+    }
+
+    private static void FitChartToPageFrame(MarkdownPdfSaveOptions options, MarkdownPdfVisualTheme visualTheme, ref double width, ref double height) {
         if (!TryGetAvailablePdfContentWidth(options, out double availableWidth)) {
             availableWidth = width;
         }
 
         double maxWidth = Math.Max(MinimumChartWidth, availableWidth);
         double maxHeight = height;
-        if (TryGetAvailablePdfContentHeight(options, out double availableHeight)) {
+        if (TryGetAvailableChartContentHeight(options, visualTheme, out double availableHeight)) {
             maxHeight = Math.Max(MinimumChartHeight, availableHeight);
         }
 
@@ -151,6 +188,16 @@ public static partial class MarkdownPdfConverterExtensions {
     private static bool TryGetAvailablePdfContentHeight(MarkdownPdfSaveOptions options, out double availableHeight) {
         PdfCore.PdfOptions pdfOptions = options.PdfOptions ?? new PdfCore.PdfOptions();
         availableHeight = pdfOptions.PageHeight - pdfOptions.MarginTop - pdfOptions.MarginBottom;
+        return availableHeight > 0D && !double.IsNaN(availableHeight) && !double.IsInfinity(availableHeight);
+    }
+
+    private static bool TryGetAvailableChartContentHeight(MarkdownPdfSaveOptions options, MarkdownPdfVisualTheme visualTheme, out double availableHeight) {
+        if (!TryGetAvailablePdfContentHeight(options, out availableHeight)) {
+            return false;
+        }
+
+        PdfCore.PdfDrawingStyle drawingStyle = visualTheme.FigureStyleSnapshot.DrawingStyleSnapshot;
+        availableHeight -= drawingStyle.SpacingBefore + drawingStyle.SpacingAfter;
         return availableHeight > 0D && !double.IsNaN(availableHeight) && !double.IsInfinity(availableHeight);
     }
 
@@ -252,6 +299,7 @@ public static partial class MarkdownPdfConverterExtensions {
         List<double>? xValues = captureXValues ? new List<double>() : null;
         List<string>? categoryLabels = captureCategoryLabels ? new List<string>() : null;
         bool hasExplicitXValue = false;
+        bool hasExplicitCategoryLabel = false;
         if (element.Kind != MarkdownPdfJsonValueKind.Array) {
             return new MarkdownChartSeriesValues(values, null, null);
         }
@@ -273,6 +321,7 @@ public static partial class MarkdownPdfConverterExtensions {
                     hasPoint = true;
                     hasExplicitXValue = true;
                     categoryLabel = pointValues[0].ReadScalarAsText();
+                    hasExplicitCategoryLabel |= !string.IsNullOrWhiteSpace(categoryLabel);
                     if (TryReadNumber(pointValues[0], out double parsedX)) {
                         xValue = parsedX;
                     }
@@ -293,6 +342,7 @@ public static partial class MarkdownPdfConverterExtensions {
                     if (hasX) {
                         hasExplicitXValue = true;
                         categoryLabel = x.ReadScalarAsText();
+                        hasExplicitCategoryLabel |= !string.IsNullOrWhiteSpace(categoryLabel);
                         if (TryReadNumber(x, out double parsedX)) {
                             xValue = parsedX;
                         }
@@ -314,7 +364,7 @@ public static partial class MarkdownPdfConverterExtensions {
             }
         }
 
-        return new MarkdownChartSeriesValues(values, hasExplicitXValue ? xValues : null, categoryLabels != null && categoryLabels.Count > 0 ? categoryLabels : null);
+        return new MarkdownChartSeriesValues(values, hasExplicitXValue ? xValues : null, hasExplicitCategoryLabel && categoryLabels != null && categoryLabels.Count > 0 ? categoryLabels : null);
     }
 
     private static void EnsureLabelsCoverValues(List<string> labels, int valueCount) {
@@ -330,6 +380,45 @@ public static partial class MarkdownPdfConverterExtensions {
 
         while (values.Count < labelCount) {
             values.Add(double.NaN);
+        }
+
+        if (values.Count > labelCount) {
+            values.RemoveRange(labelCount, values.Count - labelCount);
+        }
+    }
+
+    private static List<OfficeChartSeries> NormalizeSeriesToLabelCount(IReadOnlyList<OfficeChartSeries> series, int labelCount) {
+        if (labelCount <= 0) {
+            return new List<OfficeChartSeries>(series);
+        }
+
+        var normalized = new List<OfficeChartSeries>(series.Count);
+        for (int i = 0; i < series.Count; i++) {
+            OfficeChartSeries item = series[i];
+            var values = new List<double>(item.Values);
+            NormalizeSeriesLength(values, labelCount);
+
+            List<double>? xValues = null;
+            if (item.XValues != null) {
+                xValues = new List<double>(item.XValues);
+                NormalizeSeriesLength(xValues, labelCount);
+            }
+
+            List<OfficeColor?>? pointColors = null;
+            if (item.PointColors != null) {
+                pointColors = new List<OfficeColor?>(item.PointColors);
+                NormalizePointColorLength(pointColors, labelCount);
+            }
+
+            normalized.Add(new OfficeChartSeries(item.Name, values, xValues, item.Color, pointColors, item.ShowMarkers, item.ShowInLegend, item.ConnectLine));
+        }
+
+        return normalized;
+    }
+
+    private static void NormalizePointColorLength(List<OfficeColor?> values, int labelCount) {
+        while (values.Count < labelCount) {
+            values.Add(null);
         }
 
         if (values.Count > labelCount) {

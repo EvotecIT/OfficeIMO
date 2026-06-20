@@ -57,6 +57,43 @@ public class MarkdownSaveAsPdfVisualTests {
     }
 
     [Fact]
+    public void ToPdfDocument_MarkdownImageOnlyListContinuationInsideQuote_RendersOutsidePanelWithoutThrowing() {
+        string dataUri = CreateDataUriPng();
+        var item = ListItem.Text("Evidence");
+        item.AdditionalParagraphs.Add(new InlineSequence().Image("Inline badge", dataUri, "Inline badge caption"));
+        var list = new UnorderedListBlock();
+        list.Items.Add(item);
+        var quote = new QuoteBlock();
+        quote.Children.Add(list);
+        MarkdownDoc document = MarkdownDoc
+            .Create()
+            .Add(quote);
+
+        byte[] bytes = document.ToPdfDocument(CreateVisualOptions()).ToBytes();
+        string text = PdfCore.PdfReadDocument.Load(bytes).ExtractText();
+
+        Assert.Contains(PdfCore.PdfImageExtractor.ExtractImages(bytes), image => image.IsImageFile && image.MimeType == "image/png");
+        Assert.Contains("Inline badge caption", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("[Image:", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ToPdfDocument_MarkdownImageOnlyParagraph_WarnsAndFallsBackWhenBytesAreUnsupportedByPdfRenderer() {
+        const string imageUrl = "https://example.test/badge.gif";
+        MarkdownDoc document = MarkdownDoc
+            .Create()
+            .Add(new ParagraphBlock(new InlineSequence().Image("Remote badge", imageUrl, "Remote badge caption")));
+        var options = CreateVisualOptions();
+        options.RemoteImageResolver = _ => CreateGifBytes();
+
+        byte[] bytes = document.ToPdfDocument(options).ToBytes();
+        string text = PdfCore.PdfReadDocument.Load(bytes).ExtractText();
+
+        Assert.Contains(options.Warnings, warning => warning.Code == "UnsupportedImage" && warning.Source == imageUrl);
+        Assert.Contains("[Image unavailable: Remote badge]", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ToPdfDocument_MarkdownChartFence_RendersChartVisualInsteadOfJsonCodePanel() {
         const string markdown = """
 # Quarterly report
@@ -239,6 +276,29 @@ _Figure 2. Revenue chart_
     }
 
     [Fact]
+    public void ToPdfDocument_MarkdownChartFence_UsesMaximumScalarDatasetLengthWhenLabelsAreMissing() {
+        var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "bar",
+  "data": {
+    "datasets": [
+      { "label": "Short", "data": [1] },
+      { "label": "Long", "data": [2, 3] }
+    ]
+  }
+}
+""");
+
+        bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
+
+        Assert.True(created, warning);
+        Assert.Equal(new[] { "1", "2" }, snapshot!.Data.Categories);
+        Assert.Equal(1D, snapshot.Data.Series[0].Values[0]);
+        Assert.True(double.IsNaN(snapshot.Data.Series[0].Values[1]));
+        Assert.Equal(new[] { 2D, 3D }, snapshot.Data.Series[1].Values);
+    }
+
+    [Fact]
     public void ToPdfDocument_MarkdownScatterChartFence_ReadsTuplePointArrays() {
         var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
 {
@@ -334,6 +394,31 @@ _Figure 2. Revenue chart_
     }
 
     [Fact]
+    public void ToPdfDocument_MarkdownChartFence_WarnsWhenFigureSpacingLeavesPageTooShortForNativeChartRenderer() {
+        var options = CreateVisualOptions();
+        options.PdfOptions!.PageHeight = 226;
+        options.PdfOptions.MarginTop = 36;
+        options.PdfOptions.MarginBottom = 36;
+        var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "bar",
+  "data": {
+    "labels": ["Q1"],
+    "datasets": [
+      { "label": "Actual", "data": [10] }
+    ]
+  }
+}
+""");
+
+        bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, options, out OfficeChartSnapshot? snapshot, out string? warning);
+
+        Assert.False(created);
+        Assert.Null(snapshot);
+        Assert.Contains("figure spacing", warning, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ToPdfDocument_MarkdownRadarChartFence_WarnsWhenCategoryCountCannotRenderRadar() {
         var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
 {
@@ -376,6 +461,27 @@ _Figure 2. Revenue chart_
         Assert.Equal(2, snapshot.Data.Series.Count);
         Assert.Equal("Outer", snapshot.Data.Series[0].Name);
         Assert.Equal("Inner", snapshot.Data.Series[1].Name);
+    }
+
+    [Fact]
+    public void ToPdfDocument_MarkdownPieChartFence_WarnsWhenNoPositiveFiniteSliceCanRender() {
+        var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "pie",
+  "data": {
+    "labels": ["Passed", "Failed", "Skipped"],
+    "datasets": [
+      { "label": "Status", "data": [0, -2, null] }
+    ]
+  }
+}
+""");
+
+        bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
+
+        Assert.False(created);
+        Assert.Null(snapshot);
+        Assert.Contains("positive finite slice", warning, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -457,4 +563,6 @@ _Figure 3. Flow fallback_
         string base64 = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 1));
         return "data:image/png;base64," + base64;
     }
+
+    private static byte[] CreateGifBytes() => Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==");
 }
