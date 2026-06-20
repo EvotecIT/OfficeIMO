@@ -60,12 +60,12 @@ public static class HtmlComputedStyleEngine {
         foreach (StyleRule rule in rules) {
             if (MatchesSelector(element, rule.Selector)) {
                 foreach (var declaration in rule.Declarations) {
-                    ApplyDeclaration(properties, declaration.Key, declaration.Value.Value, declaration.Value.IsImportant, rule.Specificity, rule.Order);
+                    ApplyDeclaration(properties, parent?.Properties, declaration.Key, declaration.Value.Value, declaration.Value.IsImportant, rule.Specificity, rule.Order);
                 }
             }
         }
 
-        ApplyInlineDeclarations(properties, element.GetAttribute("style"));
+        ApplyInlineDeclarations(properties, parent?.Properties, element.GetAttribute("style"));
         var style = new HtmlComputedStyle(properties.ToDictionary(pair => pair.Key, pair => pair.Value.Value, StringComparer.OrdinalIgnoreCase));
         computed[element] = style;
 
@@ -101,6 +101,10 @@ public static class HtmlComputedStyleEngine {
 
         var mediaRule = rule as AngleSharp.Css.Dom.ICssMediaRule;
         if (mediaRule != null && !IsApplicableMedia(mediaRule.ConditionText)) {
+            return;
+        }
+
+        if (IsSupportsRule(rule) && !IsApplicableSupports(GetConditionText(rule))) {
             return;
         }
 
@@ -154,6 +158,28 @@ public static class HtmlComputedStyleEngine {
         return false;
     }
 
+    private static bool IsSupportsRule(AngleSharp.Css.Dom.ICssRule rule) {
+        string name = rule.GetType().Name;
+        string? fullName = rule.GetType().FullName;
+        return name.IndexOf("Supports", StringComparison.OrdinalIgnoreCase) >= 0
+            || (fullName != null && fullName.IndexOf("Supports", StringComparison.OrdinalIgnoreCase) >= 0);
+    }
+
+    private static string GetConditionText(AngleSharp.Css.Dom.ICssRule rule) {
+        var property = rule.GetType().GetProperty("ConditionText");
+        object? value = property?.GetValue(rule, null);
+        return value as string ?? string.Empty;
+    }
+
+    private static bool IsApplicableSupports(string conditionText) {
+        if (string.IsNullOrWhiteSpace(conditionText)) {
+            return true;
+        }
+
+        string normalized = conditionText.Trim();
+        return !normalized.StartsWith("not ", StringComparison.OrdinalIgnoreCase);
+    }
+
     private static bool MatchesSelector(IElement element, string selector) {
         try {
             return element.Matches(selector);
@@ -174,7 +200,7 @@ public static class HtmlComputedStyleEngine {
         return string.Equals(element.TagName, selector, StringComparison.OrdinalIgnoreCase);
     }
 
-    private static void ApplyInlineDeclarations(IDictionary<string, CascadedProperty> properties, string? styleText) {
+    private static void ApplyInlineDeclarations(IDictionary<string, CascadedProperty> properties, IReadOnlyDictionary<string, string>? parentProperties, string? styleText) {
         if (string.IsNullOrWhiteSpace(styleText)) {
             return;
         }
@@ -193,13 +219,18 @@ public static class HtmlComputedStyleEngine {
             }
 
             if (name.Length > 0 && value.Length > 0) {
-                ApplyDeclaration(properties, name, value, isImportant, 1000000, int.MaxValue);
+                ApplyDeclaration(properties, parentProperties, name, value, isImportant, 1000000, int.MaxValue);
             }
         }
     }
 
-    private static void ApplyDeclaration(IDictionary<string, CascadedProperty> properties, string name, string value, bool isImportant, int specificity, int order) {
+    private static void ApplyDeclaration(IDictionary<string, CascadedProperty> properties, IReadOnlyDictionary<string, string>? parentProperties, string name, string value, bool isImportant, int specificity, int order) {
         if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(value)) {
+            return;
+        }
+
+        value = ResolveCssWideKeyword(name, value, parentProperties);
+        if (string.IsNullOrWhiteSpace(value)) {
             return;
         }
 
@@ -209,6 +240,26 @@ public static class HtmlComputedStyleEngine {
         }
 
         properties[name] = new CascadedProperty(value, isImportant, specificity, order);
+    }
+
+    private static string ResolveCssWideKeyword(string name, string value, IReadOnlyDictionary<string, string>? parentProperties) {
+        string trimmed = value.Trim();
+        if (string.Equals(trimmed, "inherit", StringComparison.OrdinalIgnoreCase)
+            || (string.Equals(trimmed, "unset", StringComparison.OrdinalIgnoreCase) && InheritedProperties.Contains(name))) {
+            string? inheritedValue;
+            return parentProperties != null && parentProperties.TryGetValue(name, out inheritedValue)
+                ? inheritedValue
+                : string.Empty;
+        }
+
+        if (string.Equals(trimmed, "initial", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(trimmed, "revert", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(trimmed, "revert-layer", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(trimmed, "unset", StringComparison.OrdinalIgnoreCase)) {
+            return string.Empty;
+        }
+
+        return value;
     }
 
     private static bool ShouldReplace(CascadedProperty existing, bool isImportant, int specificity, int order) {

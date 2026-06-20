@@ -178,10 +178,33 @@ public static class HtmlResourcePipeline {
 
         foreach (Match match in CssUrlExpression.Matches(css)) {
             string source = match.Groups["url"].Value.Trim().Trim('\'', '"');
-            if (!string.IsNullOrWhiteSpace(source) && !IsImportUrl(match.Index, importRanges) && !importedSources.Contains(NormalizeSource(source))) {
+            if (!string.IsNullOrWhiteSpace(source)
+                && !IsImportUrl(match.Index, importRanges)
+                && !IsInsideCssString(css, match.Index)
+                && !importedSources.Contains(NormalizeSource(source))) {
                 AddRaw(manifest, ClassifyCssUrl(css, match.Index), element, attributeName + "-url", source, baseUri, options);
             }
         }
+    }
+
+    private static bool IsInsideCssString(string css, int index) {
+        char quote = '\0';
+        for (int i = 0; i < index && i < css.Length; i++) {
+            char current = css[i];
+            if (quote != '\0') {
+                if (current == quote && !IsEscaped(css, i)) {
+                    quote = '\0';
+                }
+
+                continue;
+            }
+
+            if (current == '"' || current == '\'') {
+                quote = current;
+            }
+        }
+
+        return quote != '\0';
     }
 
     private static HtmlResourceKind ClassifyCssUrl(string css, int index) {
@@ -217,6 +240,15 @@ public static class HtmlResourcePipeline {
 
     private static string NormalizeSource(string source) {
         return source.Trim().Trim('\'', '"');
+    }
+
+    private static bool IsEscaped(string text, int index) {
+        int slashCount = 0;
+        for (int i = index - 1; i >= 0 && text[i] == '\\'; i--) {
+            slashCount++;
+        }
+
+        return slashCount % 2 == 1;
     }
 
     private static void AddSrcSet(HtmlResourceManifest manifest, HtmlResourceKind kind, IElement element, string attributeName, Uri? baseUri, HtmlResourcePipelineOptions options) {

@@ -221,8 +221,9 @@ public partial class Html {
                     strong { font-weight: 400; }
                     @media all { em.media { text-transform: uppercase; } }
                     @media not screen { em.media { text-transform: lowercase; } }
+                    @supports not (color: red) { em.media { text-transform: lowercase; } }
                 </style>
-                <p style="background-image: url('data:image/svg+xml;utf8,<svg></svg>'); font-family: 'A;B';">Hello</p>
+                <div style="color: #123456"><p style="background-image: url('data:image/svg+xml;utf8,<svg></svg>'); font-family: 'A;B'; color: inherit;">Hello</p></div>
                 <span class="x">Pseudo specificity</span>
                 <strong>Where specificity</strong>
                 <em class="media">Media rule</em>
@@ -236,7 +237,7 @@ public partial class Html {
         IElement where = parsed.QuerySelector("strong")!;
         IElement media = parsed.QuerySelector("em.media")!;
 
-        Assert.Equal("rgba(170, 0, 0, 1)", styles[paragraph].GetValue("color"));
+        Assert.Equal("#123456", styles[paragraph].GetValue("color"));
         Assert.Contains("data:image/svg+xml;utf8", styles[paragraph].GetValue("background-image"));
         Assert.Equal("'A;B'", styles[paragraph].GetValue("font-family"));
         Assert.Equal("rgba(0, 0, 170, 1)", styles[pseudo].GetValue("color"));
@@ -256,6 +257,7 @@ public partial class Html {
                     /* @import url('file:///secret/commented.css'); */
                     @import url('file:///secret/theme.css');
                     .hero { background-image: url('https://example.test/images/bg.png'); }
+                    .label::before { content: "url(file:///secret/label.png)"; }
                 </style>
             </head>
             <body><video data-src="https://example.test/media/movie.mp4"></video><div class="hero"></div></body>
@@ -269,6 +271,7 @@ public partial class Html {
         Assert.DoesNotContain(manifest.Resources, resource => resource.ElementName == "base");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/commented.css");
         Assert.Single(manifest.Resources, resource => resource.Source == "file:///secret/theme.css");
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/label.png");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/app.js" && resource.Kind == HtmlResourceKind.Script);
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/favicon.png" && resource.Kind == HtmlResourceKind.Image);
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/media/movie.mp4" && resource.Kind == HtmlResourceKind.Media && resource.AttributeName == "data-src");
@@ -278,6 +281,10 @@ public partial class Html {
 
     [Fact]
     public void HtmlEnginePlatform_RoundTripScorerComparesSemanticSignaturesAndVisibleText() {
+        HtmlLogicalDocument textLeaf = HtmlLogicalDocumentBuilder.FromHtml("<main><custom>Total</custom></main>");
+        Assert.Equal(1, textLeaf.Count(HtmlLogicalNodeKind.Text));
+        Assert.Empty(textLeaf.Root.Children[0].Children[0].Children);
+
         HtmlRoundTripScore repeatedTextScore = HtmlRoundTripScorer.Compare(
             "<main><p>" + new string('a', 100) + "</p></main>",
             "<main><p>" + new string('a', 32) + "</p></main>");

@@ -41,8 +41,13 @@ public static class HtmlLogicalDocumentBuilder {
             }
         }
 
+        bool suppressCapturedTextChildren = source is IElement && node.Kind == HtmlLogicalNodeKind.Text && node.Text.Length > 0;
         foreach (INode child in source.ChildNodes) {
             if (child.NodeType == NodeType.Comment) {
+                continue;
+            }
+
+            if (suppressCapturedTextChildren && child.NodeType == NodeType.Text) {
                 continue;
             }
 
@@ -86,7 +91,9 @@ public static class HtmlLogicalDocumentBuilder {
         }
 
         string name = element.TagName.ToLowerInvariant();
-        return new HtmlLogicalNode(MapKind(name, element), name, CaptureText(name, element));
+        HtmlLogicalNodeKind kind = MapKind(name, element);
+        string capturedText = kind == HtmlLogicalNodeKind.Text ? NormalizeText(element.TextContent) : CaptureText(name, element);
+        return new HtmlLogicalNode(kind, name, capturedText);
     }
 
     private static HtmlLogicalNodeKind MapKind(string name, IElement element) {
