@@ -313,7 +313,29 @@ public static class HtmlRoundTripScorer {
             };
 
             foreach (string attributeName in FormControlStateAttributes) {
-                if (ShouldIncludeFormControlAttribute(control, attributeName) && control.HasAttribute(attributeName)) {
+                if (!ShouldIncludeFormControlAttribute(control, attributeName)) {
+                    continue;
+                }
+
+                if (string.Equals(attributeName, "type", StringComparison.OrdinalIgnoreCase)) {
+                    string defaultType = GetDefaultFormControlType(control.TagName.ToLowerInvariant());
+                    if (!control.HasAttribute(attributeName) && !string.IsNullOrWhiteSpace(defaultType)) {
+                        parts.Add("type=" + defaultType);
+                        continue;
+                    }
+                }
+
+                if (string.Equals(attributeName, "value", StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(control.TagName, "option", StringComparison.OrdinalIgnoreCase)
+                    && !control.HasAttribute(attributeName)) {
+                    string text = NormalizeText(control.TextContent);
+                    if (!string.IsNullOrWhiteSpace(text)) {
+                        parts.Add("value=" + text);
+                        continue;
+                    }
+                }
+
+                if (control.HasAttribute(attributeName)) {
                     parts.Add(FormatAttributePart(attributeName, control.GetAttribute(attributeName)));
                 }
             }
@@ -513,6 +535,24 @@ public static class HtmlRoundTripScorer {
             return;
         }
 
+        if (string.Equals(attributeName, "type", StringComparison.OrdinalIgnoreCase)) {
+            string defaultType = GetDefaultFormControlType(node.Name);
+            if (!string.IsNullOrWhiteSpace(defaultType) && !node.Attributes.ContainsKey(attributeName)) {
+                parts.Add("type=" + defaultType);
+                return;
+            }
+        }
+
+        if (string.Equals(attributeName, "value", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(node.Name, "option", StringComparison.OrdinalIgnoreCase)
+            && !node.Attributes.ContainsKey(attributeName)) {
+            string text = ExtractLogicalNodeText(node);
+            if (!string.IsNullOrWhiteSpace(text)) {
+                parts.Add("value=" + NormalizeText(text));
+                return;
+            }
+        }
+
         AddAttributePart(parts, node, attributeName);
     }
 
@@ -612,9 +652,12 @@ public static class HtmlRoundTripScorer {
             node.Name
         };
         AddAttributePart(parts, node, "src");
-        AddAttributePart(parts, node, "srcset");
         AddAttributePart(parts, node, "data-src");
-        AddAttributePart(parts, node, "data-srcset");
+        if (!string.Equals(node.Name, "source", StringComparison.OrdinalIgnoreCase)) {
+            AddAttributePart(parts, node, "srcset");
+            AddAttributePart(parts, node, "data-srcset");
+        }
+
         AddAttributePart(parts, node, "poster");
         AddAttributePart(parts, node, "data-poster");
         AddAttributePart(parts, node, "kind");
@@ -655,7 +698,35 @@ public static class HtmlRoundTripScorer {
             return attributeName + "=present";
         }
 
+        if (string.Equals(attributeName, "rel", StringComparison.OrdinalIgnoreCase)) {
+            return attributeName + "=" + NormalizeTokenList(value);
+        }
+
         return attributeName + "=" + (value ?? string.Empty);
+    }
+
+    private static string GetDefaultFormControlType(string name) {
+        if (string.Equals(name, "input", StringComparison.OrdinalIgnoreCase)) {
+            return "text";
+        }
+
+        if (string.Equals(name, "button", StringComparison.OrdinalIgnoreCase)) {
+            return "submit";
+        }
+
+        return string.Empty;
+    }
+
+    private static string NormalizeTokenList(string? value) {
+        if (string.IsNullOrWhiteSpace(value)) {
+            return string.Empty;
+        }
+
+        return string.Join(" ", value!
+            .Split(WhitespaceSeparators, StringSplitOptions.RemoveEmptyEntries)
+            .Select(token => token.Trim().ToLowerInvariant())
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(token => token, StringComparer.Ordinal));
     }
 
     private static string ExtractLogicalNodeText(HtmlLogicalNode node) {

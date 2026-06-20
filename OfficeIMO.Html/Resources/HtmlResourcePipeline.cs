@@ -12,6 +12,7 @@ public static class HtmlResourcePipeline {
     private const string ResourceSelector = "image, meta[http-equiv], [src], [srcset], [href], [xlink\\:href], [data], [data-src], [data-srcset], [poster], [data-poster], [action], [formaction], [background], [srcdoc], [imagesrcset]";
     private static readonly Regex CssUrlExpression = new Regex("url\\(\\s*(?:\"(?<url>[^\"]+)\"|'(?<url>[^']+)'|(?<url>[^)]+))\\s*\\)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
     private static readonly Regex CssVarExpression = new Regex("var\\(\\s*(?<name>--[A-Za-z0-9_-]+)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+    private static readonly Regex CssCustomPropertyDeclarationExpression = new Regex("(?<name>--[A-Za-z0-9_-]+)\\s*:", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
     /// <summary>
     /// Parses raw HTML and builds a resource manifest.
@@ -275,8 +276,8 @@ public static class HtmlResourcePipeline {
 
         css = StripCssCommentsOutsideStrings(css);
         bool scanImports = !string.Equals(attributeName, "style", StringComparison.OrdinalIgnoreCase);
-        Dictionary<string, List<CssCustomPropertyUrl>> customPropertyUrls = ExtractCustomPropertyUrls(css);
-        List<SourceRange> resolvedVarFallbackRanges = GetResolvedVarFallbackRanges(css, customPropertyUrls);
+        Dictionary<string, List<CssCustomPropertyDefinition>> customPropertyDefinitions = ExtractCustomPropertyDefinitions(css);
+        List<SourceRange> resolvedVarFallbackRanges = GetResolvedVarFallbackRanges(css, customPropertyDefinitions);
         var importRanges = new List<SourceRange>();
         if (scanImports) {
             foreach (CssImportReference reference in ExtractCssImports(css)) {
@@ -288,7 +289,7 @@ public static class HtmlResourcePipeline {
             }
         }
 
-        AddUsedCustomPropertyUrls(manifest, element, attributeName, css, customPropertyUrls, baseUri, options);
+        AddUsedCustomPropertyUrls(manifest, element, attributeName, css, customPropertyDefinitions, baseUri, options);
         foreach (CssStringUrlReference reference in ExtractImageSetStringUrls(css)) {
             if (!TryGetCustomPropertyName(css, reference.Start, out _) && IsSupportedCssUrlDeclaration(css, reference.Start)) {
                 AddRaw(manifest, ClassifyCssUrl(css, reference.Start), element, attributeName + "-image-set", DecodeCssEscapes(reference.Source), baseUri, options);
@@ -311,44 +312,62 @@ public static class HtmlResourcePipeline {
         }
     }
 
-    private static Dictionary<string, List<CssCustomPropertyUrl>> ExtractCustomPropertyUrls(string css) {
-        var urls = new Dictionary<string, List<CssCustomPropertyUrl>>(StringComparer.Ordinal);
-        foreach (Match match in CssUrlExpression.Matches(css)) {
-            if (TryGetCustomPropertyName(css, match.Index, out string propertyName)) {
-                AddCustomPropertyUrl(urls, propertyName, DecodeCssEscapes(match.Groups["url"].Value.Trim().Trim('\'', '"')), GetDeclarationSelector(css, match.Index), GetDeclarationStart(css, match.Index));
+    private static Dictionary<string, List<CssCustomPropertyDefinition>> ExtractCustomPropertyDefinitions(string css) {
+        var definitions = new Dictionary<string, List<CssCustomPropertyDefinition>>(StringComparer.Ordinal);
+        foreach (Match match in CssCustomPropertyDeclarationExpression.Matches(css)) {
+            string propertyName = match.Groups["name"].Value;
+            int declarationStart = match.Index;
+            int valueStart = css.IndexOf(':', declarationStart);
+            if (IsInsideCssString(css, declarationStart) || valueStart < 0 || GetCssDeclarationPropertyName(css, valueStart + 1) != propertyName) {
+                continue;
+            }
+
+            int valueEnd = FindDeclarationValueEnd(css, valueStart + 1);
+            string selector = GetDeclarationSelector(css, declarationStart);
+            bool addedUrl = false;
+            foreach (Match urlMatch in CssUrlExpression.Matches(css)) {
+                if (urlMatch.Index < valueStart || urlMatch.Index >= valueEnd || !IsCssFunctionNameAt(css, urlMatch.Index, "url") || IsInsideCssString(css, urlMatch.Index)) {
+                    continue;
+                }
+
+                AddCustomPropertyDefinition(definitions, propertyName, DecodeCssEscapes(urlMatch.Groups["url"].Value.Trim().Trim('\'', '"')), selector, declarationStart);
+                addedUrl = true;
+            }
+
+            foreach (CssStringUrlReference reference in ExtractImageSetStringUrls(css)) {
+                if (reference.Start < valueStart || reference.Start >= valueEnd) {
+                    continue;
+                }
+
+                AddCustomPropertyDefinition(definitions, propertyName, DecodeCssEscapes(reference.Source), selector, declarationStart);
+                addedUrl = true;
+            }
+
+            if (!addedUrl) {
+                AddCustomPropertyDefinition(definitions, propertyName, string.Empty, selector, declarationStart);
             }
         }
 
-        foreach (CssStringUrlReference reference in ExtractImageSetStringUrls(css)) {
-            if (TryGetCustomPropertyName(css, reference.Start, out string propertyName)) {
-                AddCustomPropertyUrl(urls, propertyName, DecodeCssEscapes(reference.Source), GetDeclarationSelector(css, reference.Start), GetDeclarationStart(css, reference.Start));
-            }
-        }
-
-        return urls;
+        return definitions;
     }
 
-    private static void AddCustomPropertyUrl(IDictionary<string, List<CssCustomPropertyUrl>> urls, string propertyName, string source, string selector, int declarationStart) {
-        if (string.IsNullOrWhiteSpace(source)) {
-            return;
+    private static void AddCustomPropertyDefinition(IDictionary<string, List<CssCustomPropertyDefinition>> definitions, string propertyName, string source, string selector, int declarationStart) {
+        if (!definitions.TryGetValue(propertyName, out List<CssCustomPropertyDefinition>? values)) {
+            values = new List<CssCustomPropertyDefinition>();
+            definitions[propertyName] = values;
         }
 
-        if (!urls.TryGetValue(propertyName, out List<CssCustomPropertyUrl>? values)) {
-            values = new List<CssCustomPropertyUrl>();
-            urls[propertyName] = values;
-        }
-
-        values.Add(new CssCustomPropertyUrl(source, selector, declarationStart));
+        values.Add(new CssCustomPropertyDefinition(source, selector, declarationStart, !string.IsNullOrWhiteSpace(source)));
     }
 
-    private static void AddUsedCustomPropertyUrls(HtmlResourceManifest manifest, IElement element, string attributeName, string css, IReadOnlyDictionary<string, List<CssCustomPropertyUrl>> customPropertyUrls, Uri? baseUri, HtmlResourcePipelineOptions options) {
-        if (customPropertyUrls.Count == 0) {
+    private static void AddUsedCustomPropertyUrls(HtmlResourceManifest manifest, IElement element, string attributeName, string css, IReadOnlyDictionary<string, List<CssCustomPropertyDefinition>> customPropertyDefinitions, Uri? baseUri, HtmlResourcePipelineOptions options) {
+        if (customPropertyDefinitions.Count == 0) {
             return;
         }
 
         foreach (Match match in CssVarExpression.Matches(css)) {
             string propertyName = match.Groups["name"].Value;
-            if (!IsCssFunctionNameAt(css, match.Index, "var") || IsInsideCssString(css, match.Index) || !customPropertyUrls.TryGetValue(propertyName, out List<CssCustomPropertyUrl>? sources)) {
+            if (!IsCssFunctionNameAt(css, match.Index, "var") || IsInsideCssString(css, match.Index) || !customPropertyDefinitions.TryGetValue(propertyName, out List<CssCustomPropertyDefinition>? sources)) {
                 continue;
             }
 
@@ -358,16 +377,11 @@ public static class HtmlResourcePipeline {
             }
 
             string useSelector = GetDeclarationSelector(css, match.Index);
-            int selectedDeclarationStart = -1;
-            foreach (CssCustomPropertyUrl source in sources) {
-                if (CanSubstituteCustomProperty(source.Selector, useSelector) && source.DeclarationStart >= selectedDeclarationStart) {
-                    selectedDeclarationStart = source.DeclarationStart;
-                }
-            }
+            int selectedDeclarationStart = SelectCustomPropertyDeclaration(sources, useSelector);
 
             if (selectedDeclarationStart >= 0) {
-                foreach (CssCustomPropertyUrl source in sources) {
-                    if (source.DeclarationStart == selectedDeclarationStart && CanSubstituteCustomProperty(source.Selector, useSelector)) {
+                foreach (CssCustomPropertyDefinition source in sources) {
+                    if (source.HasUrl && source.DeclarationStart == selectedDeclarationStart && CanSubstituteCustomProperty(source.Selector, useSelector)) {
                         AddRaw(manifest, kind, element, attributeName + "-var-url", source.Source, baseUri, options);
                     }
                 }
@@ -403,15 +417,54 @@ public static class HtmlResourcePipeline {
         return false;
     }
 
-    private static List<SourceRange> GetResolvedVarFallbackRanges(string css, IReadOnlyDictionary<string, List<CssCustomPropertyUrl>> customPropertyUrls) {
+    private static int SelectCustomPropertyDeclaration(IEnumerable<CssCustomPropertyDefinition> sources, string useSelector) {
+        int selectedDeclarationStart = -1;
+        int selectedRank = -1;
+        foreach (CssCustomPropertyDefinition source in sources) {
+            int rank = GetSubstitutionRank(source.Selector, useSelector);
+            if (rank > selectedRank || (rank == selectedRank && rank >= 0 && source.DeclarationStart >= selectedDeclarationStart)) {
+                selectedRank = rank;
+                selectedDeclarationStart = source.DeclarationStart;
+            }
+        }
+
+        return selectedRank >= 0 ? selectedDeclarationStart : -1;
+    }
+
+    private static int GetSubstitutionRank(string definitionSelector, string useSelector) {
+        if (string.IsNullOrWhiteSpace(definitionSelector)) {
+            return string.IsNullOrWhiteSpace(useSelector) ? 3 : -1;
+        }
+
+        int best = -1;
+        foreach (string definitionPart in definitionSelector.Split(',')) {
+            string normalizedDefinition = definitionPart.Trim();
+            foreach (string usePart in useSelector.Split(',')) {
+                string normalizedUse = usePart.Trim();
+                if (string.Equals(normalizedDefinition, normalizedUse, StringComparison.OrdinalIgnoreCase)) {
+                    best = Math.Max(best, 3);
+                } else if (IsAncestorSelector(normalizedDefinition, normalizedUse) || IsSameElementSelectorPrefix(normalizedDefinition, normalizedUse)) {
+                    best = Math.Max(best, 2);
+                } else if (string.Equals(normalizedDefinition, ":root", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(normalizedDefinition, "html", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(normalizedDefinition, "body", StringComparison.OrdinalIgnoreCase)) {
+                    best = Math.Max(best, 1);
+                }
+            }
+        }
+
+        return best;
+    }
+
+    private static List<SourceRange> GetResolvedVarFallbackRanges(string css, IReadOnlyDictionary<string, List<CssCustomPropertyDefinition>> customPropertyDefinitions) {
         var ranges = new List<SourceRange>();
-        if (customPropertyUrls.Count == 0) {
+        if (customPropertyDefinitions.Count == 0) {
             return ranges;
         }
 
         foreach (Match match in CssVarExpression.Matches(css)) {
             string propertyName = match.Groups["name"].Value;
-            if (!IsCssFunctionNameAt(css, match.Index, "var") || IsInsideCssString(css, match.Index) || !customPropertyUrls.TryGetValue(propertyName, out List<CssCustomPropertyUrl>? sources)) {
+            if (!IsCssFunctionNameAt(css, match.Index, "var") || IsInsideCssString(css, match.Index) || !customPropertyDefinitions.TryGetValue(propertyName, out List<CssCustomPropertyDefinition>? sources)) {
                 continue;
             }
 
@@ -426,7 +479,7 @@ public static class HtmlResourcePipeline {
             }
 
             string useSelector = GetDeclarationSelector(css, match.Index);
-            if (!sources.Any(source => CanSubstituteCustomProperty(source.Selector, useSelector))) {
+            if (SelectCustomPropertyDeclaration(sources, useSelector) < 0) {
                 continue;
             }
 
@@ -437,6 +490,42 @@ public static class HtmlResourcePipeline {
         }
 
         return ranges;
+    }
+
+    private static int FindDeclarationValueEnd(string css, int start) {
+        int depth = 0;
+        char quote = '\0';
+        for (int i = start; i < css.Length; i++) {
+            char current = css[i];
+            if (quote != '\0') {
+                if (current == quote && !IsEscaped(css, i)) {
+                    quote = '\0';
+                }
+
+                continue;
+            }
+
+            if (current == '"' || current == '\'') {
+                quote = current;
+                continue;
+            }
+
+            if (current == '(') {
+                depth++;
+                continue;
+            }
+
+            if (current == ')') {
+                depth = Math.Max(0, depth - 1);
+                continue;
+            }
+
+            if (depth == 0 && (current == ';' || current == '}')) {
+                return i;
+            }
+        }
+
+        return css.Length;
     }
 
     private static int FindTopLevelComma(string css, int start, int end) {
@@ -984,6 +1073,8 @@ public static class HtmlResourcePipeline {
             case "mask-image":
             case "-webkit-mask":
             case "-webkit-mask-image":
+            case "filter":
+            case "clip-path":
                 return true;
             default:
                 return false;
@@ -1223,15 +1314,17 @@ public static class HtmlResourcePipeline {
         internal string Source { get; }
     }
 
-    private sealed class CssCustomPropertyUrl {
-        internal CssCustomPropertyUrl(string source, string selector, int declarationStart) {
+    private sealed class CssCustomPropertyDefinition {
+        internal CssCustomPropertyDefinition(string source, string selector, int declarationStart, bool hasUrl) {
             Source = source;
             Selector = selector;
             DeclarationStart = declarationStart;
+            HasUrl = hasUrl;
         }
 
         internal string Source { get; }
         internal string Selector { get; }
         internal int DeclarationStart { get; }
+        internal bool HasUrl { get; }
     }
 }
