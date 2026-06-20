@@ -28,19 +28,12 @@ public static class HtmlLogicalDocumentBuilder {
         INode rootNode = HtmlDocumentParser.GetConversionRoot(document, useBodyContentsOnly);
         var counts = new Dictionary<HtmlLogicalNodeKind, int>();
         var capabilities = new List<string>();
-        HtmlLogicalNode root = Build(rootNode, counts, capabilities);
+        HtmlLogicalNode root = Build(rootNode, counts, capabilities, forceRetain: true)!;
         return new HtmlLogicalDocument(root, counts, capabilities);
     }
 
-    private static HtmlLogicalNode Build(INode source, IDictionary<HtmlLogicalNodeKind, int> counts, ICollection<string> capabilities) {
+    private static HtmlLogicalNode? Build(INode source, IDictionary<HtmlLogicalNodeKind, int> counts, ICollection<string> capabilities, bool forceRetain = false) {
         HtmlLogicalNode node = CreateNode(source);
-        Count(counts, node.Kind);
-        foreach (string capability in InferCapabilities(node)) {
-            node.AddCapability(capability);
-            if (!capabilities.Contains(capability)) {
-                capabilities.Add(capability);
-            }
-        }
 
         if (source is IElement element) {
             foreach (IAttr attribute in element.Attributes) {
@@ -53,13 +46,29 @@ public static class HtmlLogicalDocumentBuilder {
                 continue;
             }
 
-            HtmlLogicalNode childNode = Build(child, counts, capabilities);
-            if (childNode.Kind != HtmlLogicalNodeKind.Unknown || childNode.Children.Count > 0 || childNode.Text.Length > 0) {
+            HtmlLogicalNode? childNode = Build(child, counts, capabilities);
+            if (childNode != null) {
                 node.AddChild(childNode);
             }
         }
 
+        if (!forceRetain && !ShouldRetain(node)) {
+            return null;
+        }
+
+        Count(counts, node.Kind);
+        foreach (string capability in InferCapabilities(node)) {
+            node.AddCapability(capability);
+            if (!capabilities.Contains(capability)) {
+                capabilities.Add(capability);
+            }
+        }
+
         return node;
+    }
+
+    private static bool ShouldRetain(HtmlLogicalNode node) {
+        return node.Kind != HtmlLogicalNodeKind.Unknown || node.Children.Count > 0 || node.Text.Length > 0;
     }
 
     private static HtmlLogicalNode CreateNode(INode source) {

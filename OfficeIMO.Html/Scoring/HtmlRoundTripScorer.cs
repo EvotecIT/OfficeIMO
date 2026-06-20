@@ -14,17 +14,25 @@ public static class HtmlRoundTripScorer {
     public static HtmlRoundTripScore Compare(string sourceHtml, string targetHtml) {
         HtmlLogicalDocument source = HtmlLogicalDocumentBuilder.FromHtml(sourceHtml);
         HtmlLogicalDocument target = HtmlLogicalDocumentBuilder.FromHtml(targetHtml);
-        return Compare(source, target, sourceHtml, targetHtml);
+        return Compare(source, target, TextSimilarityFromHtml(sourceHtml, targetHtml));
     }
 
     /// <summary>
     /// Compares logical documents and returns a structural score.
     /// </summary>
     public static HtmlRoundTripScore Compare(HtmlLogicalDocument source, HtmlLogicalDocument target) {
-        return Compare(source, target, string.Empty, string.Empty);
+        if (source == null) {
+            throw new ArgumentNullException(nameof(source));
+        }
+
+        if (target == null) {
+            throw new ArgumentNullException(nameof(target));
+        }
+
+        return Compare(source, target, TextSimilarityFromText(ExtractLogicalText(source), ExtractLogicalText(target)));
     }
 
-    private static HtmlRoundTripScore Compare(HtmlLogicalDocument source, HtmlLogicalDocument target, string sourceHtml, string targetHtml) {
+    private static HtmlRoundTripScore Compare(HtmlLogicalDocument source, HtmlLogicalDocument target, double textSimilarity) {
         if (source == null) {
             throw new ArgumentNullException(nameof(source));
         }
@@ -40,7 +48,7 @@ public static class HtmlRoundTripScorer {
         AddMetric(metrics, "images", Ratio(target.Count(HtmlLogicalNodeKind.Image), source.Count(HtmlLogicalNodeKind.Image)));
         AddMetric(metrics, "forms", Ratio(target.Count(HtmlLogicalNodeKind.FormControl) + target.Count(HtmlLogicalNodeKind.Form), source.Count(HtmlLogicalNodeKind.FormControl) + source.Count(HtmlLogicalNodeKind.Form)));
         AddMetric(metrics, "links", Ratio(target.Count(HtmlLogicalNodeKind.Link), source.Count(HtmlLogicalNodeKind.Link)));
-        AddMetric(metrics, "text", TextSimilarity(sourceHtml, targetHtml));
+        AddMetric(metrics, "text", textSimilarity);
 
         int compared = metrics.Count;
         int matched = metrics.Values.Count(value => value >= 0.95D);
@@ -64,13 +72,19 @@ public static class HtmlRoundTripScorer {
         return Math.Min(actual, expected) / (double)Math.Max(actual, expected);
     }
 
-    private static double TextSimilarity(string sourceHtml, string targetHtml) {
+    private static double TextSimilarityFromHtml(string sourceHtml, string targetHtml) {
         if (string.IsNullOrWhiteSpace(sourceHtml) && string.IsNullOrWhiteSpace(targetHtml)) {
             return 1D;
         }
 
         string sourceText = NormalizeText(HtmlDocumentParser.ParseDocument(sourceHtml).Body?.TextContent ?? sourceHtml);
         string targetText = NormalizeText(HtmlDocumentParser.ParseDocument(targetHtml).Body?.TextContent ?? targetHtml);
+        return TextSimilarityFromText(sourceText, targetText);
+    }
+
+    private static double TextSimilarityFromText(string sourceText, string targetText) {
+        sourceText = NormalizeText(sourceText);
+        targetText = NormalizeText(targetText);
         if (sourceText.Length == 0 && targetText.Length == 0) {
             return 1D;
         }
@@ -80,6 +94,36 @@ public static class HtmlRoundTripScorer {
         }
 
         return Ratio(HashWindows(sourceText).Intersect(HashWindows(targetText)).Count(), HashWindows(sourceText).Count);
+    }
+
+    private static string ExtractLogicalText(HtmlLogicalDocument document) {
+        if (document == null) {
+            throw new ArgumentNullException(nameof(document));
+        }
+
+        var parts = new List<string>();
+        AppendLogicalText(document.Root, parts);
+        return string.Join(" ", parts);
+    }
+
+    private static void AppendLogicalText(HtmlLogicalNode node, ICollection<string> parts) {
+        if (!string.IsNullOrWhiteSpace(node.Text) && (node.Kind == HtmlLogicalNodeKind.Text || !HasTextChild(node))) {
+            parts.Add(node.Text);
+        }
+
+        foreach (HtmlLogicalNode child in node.Children) {
+            AppendLogicalText(child, parts);
+        }
+    }
+
+    private static bool HasTextChild(HtmlLogicalNode node) {
+        foreach (HtmlLogicalNode child in node.Children) {
+            if (!string.IsNullOrWhiteSpace(child.Text) || HasTextChild(child)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static HashSet<string> HashWindows(string text) {
@@ -93,6 +137,7 @@ public static class HtmlRoundTripScorer {
             windows.Add(Hash(text.Substring(i, 32)));
         }
 
+        windows.Add(Hash(text.Substring(text.Length - 32, 32)));
         return windows;
     }
 

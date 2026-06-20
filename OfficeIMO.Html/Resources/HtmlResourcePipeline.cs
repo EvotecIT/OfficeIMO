@@ -26,7 +26,7 @@ public static class HtmlResourcePipeline {
         options = options ?? new HtmlResourcePipelineOptions();
         Uri? baseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, options.BaseUri);
         var manifest = new HtmlResourceManifest();
-        foreach (IElement element in document.QuerySelectorAll("[src], [srcset], [href], [data-src], [data-srcset]")) {
+        foreach (IElement element in document.QuerySelectorAll("[src], [srcset], [href], [data], [data-src], [data-srcset], [poster], [data-poster]")) {
             AddElementResources(manifest, element, baseUri, options);
         }
 
@@ -40,8 +40,9 @@ public static class HtmlResourcePipeline {
                 AddImage(manifest, element, baseUri, options);
                 break;
             case "source":
-                AddSrcSet(manifest, HtmlResourceKind.Image, element, "srcset", baseUri, options);
-                AddAttribute(manifest, HtmlResourceKind.Image, element, "src", baseUri, options);
+                HtmlResourceKind sourceKind = GetSourceKind(element);
+                AddSrcSet(manifest, sourceKind, element, "srcset", baseUri, options);
+                AddAttribute(manifest, sourceKind, element, "src", baseUri, options);
                 break;
             case "link":
                 AddLink(manifest, element, baseUri, options);
@@ -54,13 +55,21 @@ public static class HtmlResourcePipeline {
                 AddAttribute(manifest, HtmlResourceKind.Script, element, "src", baseUri, options);
                 break;
             case "video":
+                AddAttribute(manifest, HtmlResourceKind.Media, element, "poster", baseUri, options);
+                AddAttribute(manifest, HtmlResourceKind.Media, element, "data-poster", baseUri, options);
+                AddAttribute(manifest, HtmlResourceKind.Media, element, "src", baseUri, options);
+                break;
             case "audio":
             case "track":
                 AddAttribute(manifest, HtmlResourceKind.Media, element, "src", baseUri, options);
                 break;
+            case "object":
+                AddAttribute(manifest, HtmlResourceKind.Other, element, "data", baseUri, options);
+                break;
             default:
                 AddAttribute(manifest, HtmlResourceKind.Other, element, "src", baseUri, options);
                 AddAttribute(manifest, HtmlResourceKind.Other, element, "href", baseUri, options);
+                AddAttribute(manifest, HtmlResourceKind.Other, element, "data", baseUri, options);
                 break;
         }
     }
@@ -72,6 +81,19 @@ public static class HtmlResourcePipeline {
 
         AddSrcSet(manifest, HtmlResourceKind.Image, element, "srcset", baseUri, options);
         AddSrcSet(manifest, HtmlResourceKind.Image, element, "data-srcset", baseUri, options);
+    }
+
+    private static HtmlResourceKind GetSourceKind(IElement element) {
+        string parentName = element.ParentElement?.TagName.ToLowerInvariant() ?? string.Empty;
+        switch (parentName) {
+            case "picture":
+                return HtmlResourceKind.Image;
+            case "audio":
+            case "video":
+                return HtmlResourceKind.Media;
+            default:
+                return HtmlResourceKind.Other;
+        }
     }
 
     private static void AddLink(HtmlResourceManifest manifest, IElement element, Uri? baseUri, HtmlResourcePipelineOptions options) {
@@ -126,6 +148,10 @@ public static class HtmlResourcePipeline {
                 return "HyperlinkRejectedByPolicy";
             case HtmlResourceKind.Script:
                 return "ScriptResourceRejectedByPolicy";
+            case HtmlResourceKind.Media:
+                return "MediaResourceRejectedByPolicy";
+            case HtmlResourceKind.Font:
+                return "FontResourceRejectedByPolicy";
             default:
                 return "HtmlResourceRejectedByPolicy";
         }

@@ -29,6 +29,24 @@ public static class HtmlDiagnosticCatalog {
             HtmlDiagnosticSeverity.Warning,
             "A hyperlink target was rejected because its URI is not allowed by policy.",
             "Use http, https, mailto, or a caller-approved scheme instead of script or local file targets."),
+        ["ScriptResourceRejectedByPolicy"] = new HtmlDiagnosticDefinition(
+            "ScriptResourceRejectedByPolicy",
+            "ResourcePolicy",
+            HtmlDiagnosticSeverity.Warning,
+            "A script dependency was rejected before loading because its URI is not allowed by policy.",
+            "Use caller-provided script handling for trusted automation scenarios, or remove script dependencies from document-oriented HTML inputs."),
+        ["MediaResourceRejectedByPolicy"] = new HtmlDiagnosticDefinition(
+            "MediaResourceRejectedByPolicy",
+            "ResourcePolicy",
+            HtmlDiagnosticSeverity.Warning,
+            "A media dependency was rejected before loading because its URI is not allowed by policy.",
+            "Allow trusted media hosts explicitly, package approved media with the input, or provide a local resource resolver."),
+        ["FontResourceRejectedByPolicy"] = new HtmlDiagnosticDefinition(
+            "FontResourceRejectedByPolicy",
+            "ResourcePolicy",
+            HtmlDiagnosticSeverity.Warning,
+            "A font dependency was rejected before loading because its URI is not allowed by policy.",
+            "Use packaged fonts from trusted locations or allow approved font hosts in the URL policy."),
         ["UnsupportedCssDeclaration"] = new HtmlDiagnosticDefinition(
             "UnsupportedCssDeclaration",
             "CssFidelity",
