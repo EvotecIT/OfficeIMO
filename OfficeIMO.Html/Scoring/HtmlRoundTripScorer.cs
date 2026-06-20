@@ -346,17 +346,18 @@ public static class HtmlRoundTripScorer {
 
         var parts = new List<string>();
         var document = HtmlDocumentParser.ParseDocument(html);
+        IReadOnlyDictionary<IElement, HtmlComputedStyle> styles = HtmlComputedStyleEngine.Compute(document);
         INode? root = document.Body ?? (INode?)document.DocumentElement;
         if (root != null) {
-            AppendVisibleText(root, parts);
+            AppendVisibleText(root, parts, styles);
         }
 
         return string.Join(" ", parts);
     }
 
-    private static void AppendVisibleText(INode node, ICollection<string> parts) {
+    private static void AppendVisibleText(INode node, ICollection<string> parts, IReadOnlyDictionary<IElement, HtmlComputedStyle> styles) {
         if (node is IElement element) {
-            if (IsNonVisibleTextElement(element.TagName) || IsHiddenElement(element)) {
+            if (IsNonVisibleTextElement(element.TagName) || IsHiddenElement(element, styles)) {
                 return;
             }
         }
@@ -367,7 +368,7 @@ public static class HtmlRoundTripScorer {
         }
 
         foreach (INode child in node.ChildNodes) {
-            AppendVisibleText(child, parts);
+            AppendVisibleText(child, parts, styles);
         }
     }
 
@@ -412,7 +413,7 @@ public static class HtmlRoundTripScorer {
             || string.Equals(name, "noscript", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static bool IsHiddenElement(IElement element) {
+    private static bool IsHiddenElement(IElement element, IReadOnlyDictionary<IElement, HtmlComputedStyle> styles) {
         if (element.HasAttribute("hidden")) {
             return true;
         }
@@ -422,7 +423,17 @@ public static class HtmlRoundTripScorer {
             return true;
         }
 
-        return ContainsHiddenStyle(element.GetAttribute("style"));
+        if (ContainsHiddenStyle(element.GetAttribute("style"))) {
+            return true;
+        }
+
+        HtmlComputedStyle? computedStyle;
+        if (styles.TryGetValue(element, out computedStyle) && computedStyle != null) {
+            return string.Equals(computedStyle.GetValue("display"), "none", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(computedStyle.GetValue("visibility"), "hidden", StringComparison.OrdinalIgnoreCase);
+        }
+
+        return false;
     }
 
     private static bool IsHiddenLogicalNode(HtmlLogicalNode node) {

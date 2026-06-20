@@ -30,7 +30,7 @@ public static class HtmlResourcePipeline {
         options = options ?? new HtmlResourcePipelineOptions();
         Uri? baseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, options.BaseUri);
         var manifest = new HtmlResourceManifest();
-        foreach (IElement element in document.QuerySelectorAll("[src], [srcset], [href], [data], [data-src], [data-srcset], [poster], [data-poster], [action], [srcdoc], [imagesrcset]")) {
+        foreach (IElement element in document.QuerySelectorAll("image, [src], [srcset], [href], [xlink\\:href], [data], [data-src], [data-srcset], [poster], [data-poster], [action], [srcdoc], [imagesrcset]")) {
             AddElementResources(manifest, element, baseUri, options);
         }
 
@@ -46,6 +46,7 @@ public static class HtmlResourcePipeline {
                 break;
             case "image":
                 AddAttribute(manifest, HtmlResourceKind.Image, element, "href", baseUri, options);
+                AddAttribute(manifest, HtmlResourceKind.Image, element, "xlink:href", baseUri, options);
                 AddAttribute(manifest, HtmlResourceKind.Image, element, "src", baseUri, options);
                 break;
             case "source":
@@ -95,7 +96,10 @@ public static class HtmlResourcePipeline {
                 AddAttribute(manifest, HtmlResourceKind.Other, element, "src", baseUri, options);
                 break;
             case "iframe":
-                AddAttribute(manifest, HtmlResourceKind.Other, element, "src", baseUri, options);
+                if (string.IsNullOrWhiteSpace(element.GetAttribute("srcdoc"))) {
+                    AddAttribute(manifest, HtmlResourceKind.Other, element, "src", baseUri, options);
+                }
+
                 AddSrcDocResources(manifest, element, baseUri, options);
                 break;
             default:
@@ -187,7 +191,7 @@ public static class HtmlResourcePipeline {
 
         IHtmlDocument nested = HtmlDocumentParser.ParseDocument(srcdoc!);
         Uri? nestedBaseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(nested, baseUri);
-        foreach (IElement nestedElement in nested.QuerySelectorAll("[src], [srcset], [href], [data], [data-src], [data-srcset], [poster], [data-poster], [action], [srcdoc], [imagesrcset]")) {
+        foreach (IElement nestedElement in nested.QuerySelectorAll("image, [src], [srcset], [href], [xlink\\:href], [data], [data-src], [data-srcset], [poster], [data-poster], [action], [srcdoc], [imagesrcset]")) {
             AddElementResources(manifest, nestedElement, nestedBaseUri, options);
         }
 
@@ -213,7 +217,9 @@ public static class HtmlResourcePipeline {
             string source = match.Groups["url"].Value.Trim().Trim('\'', '"');
             if (!string.IsNullOrWhiteSpace(source)
                 && !IsImportUrl(match.Index, importRanges)
-                && !IsInsideCssString(css, match.Index)) {
+                && !IsImportAtRuleUrl(css, match.Index)
+                && !IsInsideCssString(css, match.Index)
+                && !IsCustomPropertyUrl(css, match.Index)) {
                 AddRaw(manifest, ClassifyCssUrl(css, match.Index), element, attributeName + "-url", source, baseUri, options);
             }
         }
@@ -230,6 +236,10 @@ public static class HtmlResourcePipeline {
             if (IsInsideCssString(css, importStart)) {
                 index = importStart + 7;
                 continue;
+            }
+
+            if (HasStyleRuleBefore(css, importStart)) {
+                yield break;
             }
 
             int cursor = SkipWhitespace(css, importStart + 7);
@@ -345,6 +355,46 @@ public static class HtmlResourcePipeline {
         }
 
         return quote != '\0';
+    }
+
+    private static bool IsCustomPropertyUrl(string css, int index) {
+        int blockStart = css.LastIndexOf('{', Math.Max(0, index - 1));
+        int previousBoundary = Math.Max(css.LastIndexOf(';', Math.Max(0, index - 1)), blockStart);
+        string declaration = css.Substring(Math.Max(0, previousBoundary + 1), index - Math.Max(0, previousBoundary + 1)).TrimStart();
+        return declaration.StartsWith("--", StringComparison.Ordinal);
+    }
+
+    private static bool IsImportAtRuleUrl(string css, int index) {
+        int previousSemicolon = css.LastIndexOf(';', Math.Max(0, index - 1));
+        int previousBlockEnd = css.LastIndexOf('}', Math.Max(0, index - 1));
+        int previousBoundary = Math.Max(previousSemicolon, previousBlockEnd);
+        string statement = css.Substring(Math.Max(0, previousBoundary + 1), index - Math.Max(0, previousBoundary + 1));
+        return statement.IndexOf("@import", StringComparison.OrdinalIgnoreCase) >= 0;
+    }
+
+    private static bool HasStyleRuleBefore(string css, int index) {
+        char quote = '\0';
+        for (int i = 0; i < index && i < css.Length; i++) {
+            char current = css[i];
+            if (quote != '\0') {
+                if (current == quote && !IsEscaped(css, i)) {
+                    quote = '\0';
+                }
+
+                continue;
+            }
+
+            if (current == '"' || current == '\'') {
+                quote = current;
+                continue;
+            }
+
+            if (current == '{' || current == '}') {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static HtmlResourceKind ClassifyCssUrl(string css, int index) {

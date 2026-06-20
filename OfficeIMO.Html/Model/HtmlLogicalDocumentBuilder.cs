@@ -33,6 +33,10 @@ public static class HtmlLogicalDocumentBuilder {
     }
 
     private static HtmlLogicalNode? Build(INode source, IDictionary<HtmlLogicalNodeKind, int> counts, ICollection<string> capabilities, bool forceRetain = false) {
+        if (!forceRetain && source is IElement sourceElement && IsNonDocumentLogicalElement(sourceElement.TagName)) {
+            return null;
+        }
+
         HtmlLogicalNode node = CreateNode(source);
 
         if (source is IElement element) {
@@ -74,6 +78,13 @@ public static class HtmlLogicalDocumentBuilder {
 
     private static bool ShouldRetain(HtmlLogicalNode node) {
         return node.Kind != HtmlLogicalNodeKind.Unknown || node.Children.Count > 0 || node.Text.Length > 0;
+    }
+
+    private static bool IsNonDocumentLogicalElement(string name) {
+        return string.Equals(name, "script", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(name, "style", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(name, "template", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(name, "noscript", StringComparison.OrdinalIgnoreCase);
     }
 
     private static HtmlLogicalNode CreateNode(INode source) {

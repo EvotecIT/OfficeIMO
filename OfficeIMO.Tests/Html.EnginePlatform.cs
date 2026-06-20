@@ -165,6 +165,10 @@ public partial class Html {
         Assert.Equal(0, logical.Count(HtmlLogicalNodeKind.Unknown));
         Assert.True(logical.Count(HtmlLogicalNodeKind.Text) >= 1);
         Assert.Equal(4, logical.GetCounts().Values.Sum());
+
+        HtmlLogicalDocument scriptBody = HtmlLogicalDocumentBuilder.FromHtml("<main><p>Hello</p><script>console.log('internal')</script><style>.x{display:none}</style></main>");
+        Assert.Equal(0, scriptBody.Count(HtmlLogicalNodeKind.Metadata));
+        Assert.Equal(4, scriptBody.GetCounts().Values.Sum());
     }
 
     [Fact]
@@ -242,6 +246,7 @@ public partial class Html {
                     span { color: #0000ff; }
                     #specificity-id { outline-color: #00ff00; }
                     {{manyClassSelector}} { outline-color: #ff0000; }
+                    span.brand { font-family: Corporate !important; }
                 </style>
                 <div style="color: #123456"><p style="background-image: url('data:image/svg+xml;utf8,<svg></svg>'); font-family: 'A;B'; color: inherit;">Hello</p></div>
                 <span class="x">Pseudo specificity</span>
@@ -249,6 +254,7 @@ public partial class Html {
                 <em class="media">Media rule</em>
                 <div style="color: #123456"><span class="reset" style="color: initial; border-color: unset;">Reset</span></div>
                 <span class="reset-later">Reset wins lower specificity</span>
+                <span class="brand" style="font-family: 'Brand!important'">Important string</span>
                 <span id="specificity-id" class="{{manyClassAttribute}}">Specificity tuple</span>
                 <style media="not all">span.inactive { text-decoration-line: underline; }</style>
                 <style media="speech">span.speech { text-decoration-line: underline; }</style>
@@ -265,6 +271,7 @@ public partial class Html {
         IElement media = parsed.QuerySelector("em.media")!;
         IElement reset = parsed.QuerySelector("span.reset")!;
         IElement resetLater = parsed.QuerySelector("span.reset-later")!;
+        IElement brand = parsed.QuerySelector("span.brand")!;
         IElement specificityId = parsed.QuerySelector("#specificity-id")!;
         IElement inactive = parsed.QuerySelector("span.inactive")!;
         IElement speech = parsed.QuerySelector("span.speech")!;
@@ -278,6 +285,7 @@ public partial class Html {
         Assert.Equal(string.Empty, styles[reset].GetValue("color"));
         Assert.Equal(string.Empty, styles[reset].GetValue("border-color"));
         Assert.Equal(string.Empty, styles[resetLater].GetValue("color"));
+        Assert.Equal("Corporate", styles[brand].GetValue("font-family"));
         Assert.Equal("rgba(0, 255, 0, 1)", styles[specificityId].GetValue("outline-color"));
         Assert.Equal(string.Empty, styles[inactive].GetValue("text-decoration-line"));
         Assert.Equal(string.Empty, styles[speech].GetValue("text-decoration-line"));
@@ -297,6 +305,8 @@ public partial class Html {
                     @import url('file:///secret/theme.css');
                     @import "https://example.test/themes/dark mode.css";
                     @import url('https://example.test/images/shared.png');
+                    :root { --hero: url(file:///secret/custom-property.png); }
+                    .late { color: red; } @import url(file:///secret/late.css);
                     .hero { background-image: url('https://example.test/images/bg.png'); }
                     .reuse { background-image: url('https://example.test/images/shared.png'); }
                     .logo::before { content: url('file:///secret/logo.png'); }
@@ -307,14 +317,14 @@ public partial class Html {
             <body>
                 <script src="mailto:ops@example.test"></script>
                 <img src="mailto:ops@example.test">
-                <svg><image href="https://example.test/images/vector.png" /></svg>
+                <svg><image href="https://example.test/images/vector.png" /><image xlink:href="file:///secret/vector-xlink.png" /></svg>
                 <video poster="file:///secret/poster.png" data-src="https://example.test/media/movie.mp4"></video>
                 <embed src="file:///secret/embed.pdf">
                 <form action="file:///secret/upload"></form>
                 <input type="image" src="file:///secret/submit.png">
                 <input type="text" src="file:///secret/input-metadata">
                 <div data="file:///secret/metadata"></div>
-                <iframe srcdoc="<img src=&quot;file:///secret/srcdoc.png&quot;><style>.nested { content: url(file:///secret/srcdoc-content.png); }</style>"></iframe>
+                <iframe src="file:///secret/ignored-frame.html" srcdoc="<img src=&quot;file:///secret/srcdoc.png&quot;><style>.nested { content: url(file:///secret/srcdoc-content.png); }</style>"></iframe>
                 <div class="hero"></div>
             </body>
             </html>
@@ -332,6 +342,8 @@ public partial class Html {
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/shared.png" && resource.Kind == HtmlResourceKind.Image);
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/content.css");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/label.png");
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/custom-property.png");
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/late.css");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/metadata");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/app.js" && resource.Kind == HtmlResourceKind.Script);
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/favicon.png" && resource.Kind == HtmlResourceKind.Image);
@@ -340,6 +352,7 @@ public partial class Html {
         Assert.Contains(manifest.Resources, resource => resource.Source == "mailto:ops@example.test" && resource.Kind == HtmlResourceKind.Script && !resource.IsAllowed && resource.DiagnosticCode == "ScriptResourceRejectedByPolicy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "mailto:ops@example.test" && resource.Kind == HtmlResourceKind.Image && !resource.IsAllowed && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/vector.png" && resource.Kind == HtmlResourceKind.Image && resource.ElementName == "image");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/vector-xlink.png" && resource.Kind == HtmlResourceKind.Image && resource.ElementName == "image" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/poster.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "poster" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/media/movie.mp4" && resource.Kind == HtmlResourceKind.Media && resource.AttributeName == "data-src");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/embed.pdf" && resource.Kind == HtmlResourceKind.Other && resource.ElementName == "embed" && resource.AttributeName == "src");
@@ -347,6 +360,7 @@ public partial class Html {
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/submit.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "src" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/input-metadata");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/logo.png" && resource.Kind == HtmlResourceKind.Image && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/ignored-frame.html");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/srcdoc.png" && resource.Kind == HtmlResourceKind.Image && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/srcdoc-content.png" && resource.Kind == HtmlResourceKind.Image && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/bg.png" && resource.Kind == HtmlResourceKind.Image && resource.IsAllowed);
@@ -374,6 +388,11 @@ public partial class Html {
             "<main><p>Visible <span hidden>draft</span><span aria-hidden=\"true\">internal</span></p></main>",
             "<main><p>Visible</p></main>");
         Assert.Equal(1D, hiddenTextScore.Metrics["text"], 3);
+
+        HtmlRoundTripScore stylesheetHiddenTextScore = HtmlRoundTripScorer.Compare(
+            "<main><style>.draft{display:none}.private{visibility:hidden}</style><p>Visible <span class=\"draft\">draft</span><span class=\"private\">internal</span></p></main>",
+            "<main><p>Visible</p></main>");
+        Assert.Equal(1D, stylesheetHiddenTextScore.Metrics["text"], 3);
 
         HtmlRoundTripScore headingLevelScore = HtmlRoundTripScorer.Compare(
             "<main><h1>Title</h1></main>",

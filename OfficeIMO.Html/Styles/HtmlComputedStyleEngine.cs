@@ -228,10 +228,8 @@ public static class HtmlComputedStyleEngine {
 
             string name = declaration.Substring(0, separator).Trim();
             string value = declaration.Substring(separator + 1).Trim();
-            bool isImportant = EndsWithImportant(value);
-            if (isImportant) {
-                value = value.Substring(0, value.Length - 10).TrimEnd();
-            }
+            bool isImportant;
+            value = StripTrailingImportant(value, out isImportant);
 
             if (name.Length > 0 && value.Length > 0) {
                 ApplyDeclaration(properties, parentProperties, name, value, isImportant, Specificity.Inline, int.MaxValue);
@@ -296,8 +294,34 @@ public static class HtmlComputedStyleEngine {
         return order >= existing.Order;
     }
 
-    private static bool EndsWithImportant(string value) {
-        return value.EndsWith("!important", StringComparison.OrdinalIgnoreCase);
+    private static string StripTrailingImportant(string value, out bool isImportant) {
+        isImportant = false;
+        if (string.IsNullOrWhiteSpace(value)) {
+            return value;
+        }
+
+        string trimmed = value.TrimEnd();
+        int importantStart = trimmed.Length - 10;
+        if (importantStart < 0 || !string.Equals(trimmed.Substring(importantStart), "!important", StringComparison.OrdinalIgnoreCase)) {
+            return value;
+        }
+
+        if (IsInsideCssString(trimmed, importantStart) || IsInsideCssComment(trimmed, importantStart)) {
+            return value;
+        }
+
+        isImportant = true;
+        return trimmed.Substring(0, importantStart).TrimEnd();
+    }
+
+    private static bool IsInsideCssComment(string text, int index) {
+        int open = text.LastIndexOf("/*", Math.Max(0, index), StringComparison.Ordinal);
+        if (open < 0) {
+            return false;
+        }
+
+        int close = text.LastIndexOf("*/", Math.Max(0, index), StringComparison.Ordinal);
+        return close < open;
     }
 
     private static IEnumerable<string> SplitSelectorList(string selectorText) {
@@ -380,6 +404,26 @@ public static class HtmlComputedStyleEngine {
         }
 
         yield return styleText.Substring(start);
+    }
+
+    private static bool IsInsideCssString(string text, int index) {
+        char quote = '\0';
+        for (int i = 0; i < index && i < text.Length; i++) {
+            char current = text[i];
+            if (quote != '\0') {
+                if (current == quote && !IsEscaped(text, i)) {
+                    quote = '\0';
+                }
+
+                continue;
+            }
+
+            if (current == '"' || current == '\'') {
+                quote = current;
+            }
+        }
+
+        return quote != '\0';
     }
 
     private static bool IsEscaped(string text, int index) {
