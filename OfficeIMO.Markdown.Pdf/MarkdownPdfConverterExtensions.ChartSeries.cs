@@ -6,7 +6,7 @@ namespace OfficeIMO.Markdown.Pdf;
 /// First-party Markdown to PDF conversion helpers.
 /// </summary>
 public static partial class MarkdownPdfConverterExtensions {
-    private static List<OfficeChartSeries> ReadSeries(MarkdownPdfJsonValue dataElement, List<string> labels, OfficeChartKind chartKind) {
+    private static List<OfficeChartSeries> ReadSeries(MarkdownPdfJsonValue dataElement, List<string> labels, OfficeChartKind chartKind, bool defaultConnectLine) {
         var drafts = new List<MarkdownChartSeriesDraft>();
         var series = new List<OfficeChartSeries>();
         bool captureXValues = chartKind == OfficeChartKind.Scatter;
@@ -18,6 +18,10 @@ public static partial class MarkdownPdfConverterExtensions {
                     continue;
                 }
 
+                if (ReadBool(dataset, "hidden") == true) {
+                    continue;
+                }
+
                 MarkdownChartSeriesValues seriesValues = ReadDataValues(dataset, captureXValues, captureCategoryLabels);
                 if (seriesValues.Values.Count == 0) {
                     continue;
@@ -26,7 +30,8 @@ public static partial class MarkdownPdfConverterExtensions {
                 OfficeColor? color = ReadColor(dataset, "borderColor") ?? ReadColor(dataset, "backgroundColor");
                 IReadOnlyList<OfficeColor?>? pointColors = ReadPointColors(dataset, "backgroundColor", seriesValues.Values.Count);
                 string name = ReadString(dataset, "label") ?? "Series " + (index + 1).ToString(CultureInfo.InvariantCulture);
-                drafts.Add(new MarkdownChartSeriesDraft(name, seriesValues.Values, seriesValues.XValues, seriesValues.CategoryLabels, color, pointColors));
+                bool connectLine = ReadBool(dataset, "showLine") ?? defaultConnectLine;
+                drafts.Add(new MarkdownChartSeriesDraft(name, seriesValues.Values, seriesValues.XValues, seriesValues.CategoryLabels, color, pointColors, connectLine));
                 index++;
             }
         }
@@ -34,7 +39,7 @@ public static partial class MarkdownPdfConverterExtensions {
         if (drafts.Count == 0 && TryGetProperty(dataElement, "values", out MarkdownPdfJsonValue valuesElement)) {
             MarkdownChartSeriesValues values = ReadNumberArray(valuesElement, captureXValues, captureCategoryLabels);
             if (values.Values.Count > 0) {
-                drafts.Add(new MarkdownChartSeriesDraft("Values", values.Values, values.XValues, values.CategoryLabels, null, null));
+                drafts.Add(new MarkdownChartSeriesDraft("Values", values.Values, values.XValues, values.CategoryLabels, null, null, defaultConnectLine));
             }
         }
 
@@ -99,7 +104,7 @@ public static partial class MarkdownPdfConverterExtensions {
             }
         }
 
-        return new OfficeChartSeries(draft.Name, values, xValues, draft.Color, pointColors);
+        return new OfficeChartSeries(draft.Name, values, xValues, draft.Color, pointColors, showMarkers: true, showInLegend: true, connectLine: draft.ConnectLine);
     }
 
     private static bool HasCategoryLabels(IReadOnlyList<string?>? categoryLabels) {
@@ -245,6 +250,10 @@ public static partial class MarkdownPdfConverterExtensions {
                 continue;
             }
 
+            if (xValues != null && hasExplicitXValue && !IsFiniteChartValue(xValue)) {
+                yValue = double.NaN;
+            }
+
             values.Add(yValue);
             if (xValues != null) {
                 xValues.Add(xValue);
@@ -377,13 +386,14 @@ public static partial class MarkdownPdfConverterExtensions {
     }
 
     private sealed class MarkdownChartSeriesDraft {
-        public MarkdownChartSeriesDraft(string name, List<double> values, List<double>? xValues, List<string?>? categoryLabels, OfficeColor? color, IReadOnlyList<OfficeColor?>? pointColors) {
+        public MarkdownChartSeriesDraft(string name, List<double> values, List<double>? xValues, List<string?>? categoryLabels, OfficeColor? color, IReadOnlyList<OfficeColor?>? pointColors, bool connectLine) {
             Name = name;
             Values = values;
             XValues = xValues;
             CategoryLabels = categoryLabels;
             Color = color;
             PointColors = pointColors;
+            ConnectLine = connectLine;
         }
 
         public string Name { get; }
@@ -397,5 +407,7 @@ public static partial class MarkdownPdfConverterExtensions {
         public OfficeColor? Color { get; }
 
         public IReadOnlyList<OfficeColor?>? PointColors { get; }
+
+        public bool ConnectLine { get; }
     }
 }

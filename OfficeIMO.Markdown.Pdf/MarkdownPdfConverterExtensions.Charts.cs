@@ -55,7 +55,7 @@ public static partial class MarkdownPdfConverterExtensions {
             }
 
             string type = ReadString(root, "type") ?? "bar";
-            if (!TryMapChartKind(type, UsesHorizontalIndexAxis(root), out OfficeChartKind chartKind)) {
+            if (!TryMapChartKind(type, UsesHorizontalIndexAxis(root), UsesStackedScale(root), out OfficeChartKind chartKind)) {
                 warningMessage = "The Markdown chart fence uses an unsupported chart type and is rendered as a semantic code panel.";
                 return false;
             }
@@ -64,7 +64,8 @@ public static partial class MarkdownPdfConverterExtensions {
                 ? data
                 : root;
             List<string> labels = ReadLabels(dataElement);
-            List<OfficeChartSeries> series = ReadSeries(dataElement, labels, chartKind);
+            bool defaultConnectLine = chartKind != OfficeChartKind.Scatter || ReadChartShowLine(root) == true;
+            List<OfficeChartSeries> series = ReadSeries(dataElement, labels, chartKind, defaultConnectLine);
             if (series.Count == 0) {
                 warningMessage = "The Markdown chart fence does not contain renderable chart series and is rendered as a semantic code panel.";
                 return false;
@@ -81,13 +82,13 @@ public static partial class MarkdownPdfConverterExtensions {
                 series = NormalizeSeriesToLabelCount(series, labels.Count);
             }
 
-            if (!HasFiniteValue(series)) {
-                warningMessage = "The Markdown chart fence does not contain finite renderable chart values and is rendered as a semantic code panel.";
+            if (chartKind == OfficeChartKind.Scatter && !HasDrawableScatterPoint(series)) {
+                warningMessage = "The Markdown scatter chart fence does not contain a finite X/Y point and is rendered as a semantic code panel.";
                 return false;
             }
 
-            if (chartKind == OfficeChartKind.Scatter && !HasDrawableScatterPoint(series)) {
-                warningMessage = "The Markdown scatter chart fence does not contain a finite X/Y point and is rendered as a semantic code panel.";
+            if (!HasFiniteValue(series)) {
+                warningMessage = "The Markdown chart fence does not contain finite renderable chart values and is rendered as a semantic code panel.";
                 return false;
             }
 
@@ -127,6 +128,14 @@ public static partial class MarkdownPdfConverterExtensions {
                 return false;
             }
 
+            if (chartKind == OfficeChartKind.Area) {
+                series = FilterDrawableAreaSeries(series, labels.Count);
+                if (series.Count == 0) {
+                    warningMessage = "The Markdown area chart fence does not contain two adjacent finite values and is rendered as a semantic code panel.";
+                    return false;
+                }
+            }
+
             if (chartKind == OfficeChartKind.Area && !HasAdjacentFiniteRun(series, labels.Count)) {
                 warningMessage = "The Markdown area chart fence does not contain two adjacent finite values and is rendered as a semantic code panel.";
                 return false;
@@ -147,7 +156,7 @@ public static partial class MarkdownPdfConverterExtensions {
                 width,
                 height,
                 OfficeChartStyle.Default,
-                CreateMarkdownChartLayout(chartKind));
+                CreateMarkdownChartLayout(root, chartKind, series));
             return true;
         } catch (FormatException) {
             warningMessage = "The Markdown chart fence is not valid JSON and is rendered as a semantic code panel.";
@@ -210,6 +219,18 @@ public static partial class MarkdownPdfConverterExtensions {
         }
 
         return false;
+    }
+
+    private static List<OfficeChartSeries> FilterDrawableAreaSeries(IReadOnlyList<OfficeChartSeries> series, int labelCount) {
+        var filtered = new List<OfficeChartSeries>(series.Count);
+        for (int seriesIndex = 0; seriesIndex < series.Count; seriesIndex++) {
+            OfficeChartSeries item = series[seriesIndex];
+            if (HasAdjacentFiniteRun(item.Values, labelCount)) {
+                filtered.Add(item);
+            }
+        }
+
+        return filtered;
     }
 
     private static bool HasAdjacentFiniteRun(IReadOnlyList<OfficeChartSeries> series, int labelCount) {
@@ -315,9 +336,12 @@ public static partial class MarkdownPdfConverterExtensions {
         return availableHeight > 0D && !double.IsNaN(availableHeight) && !double.IsInfinity(availableHeight);
     }
 
-    private static OfficeChartLayout CreateMarkdownChartLayout(OfficeChartKind chartKind) {
+    private static OfficeChartLayout CreateMarkdownChartLayout(MarkdownPdfJsonValue root, OfficeChartKind chartKind, IReadOnlyList<OfficeChartSeries> series) {
         bool pie = chartKind == OfficeChartKind.Pie || chartKind == OfficeChartKind.Doughnut;
+        bool showLegend = ReadChartLegendDisplay(root) != false;
+        bool connectScatterPoints = chartKind == OfficeChartKind.Scatter && HasScatterSeriesLine(series);
         return new OfficeChartLayout(
+            showLegend: showLegend,
             legendPosition: pie ? OfficeChartLegendPosition.Right : OfficeChartLegendPosition.Bottom,
             showDataLabels: pie,
             showDataLabelValues: false,
@@ -326,7 +350,18 @@ public static partial class MarkdownPdfConverterExtensions {
             dataLabelFontSize: 7D,
             maximumCategoryAxisLabels: 8,
             maximumHorizontalCategoryAxisLabels: 8,
-            showMarkers: chartKind == OfficeChartKind.Line || chartKind == OfficeChartKind.Scatter);
+            showMarkers: chartKind == OfficeChartKind.Line || chartKind == OfficeChartKind.Scatter,
+            connectScatterPoints: connectScatterPoints);
+    }
+
+    private static bool HasScatterSeriesLine(IReadOnlyList<OfficeChartSeries> series) {
+        for (int seriesIndex = 0; seriesIndex < series.Count; seriesIndex++) {
+            if (series[seriesIndex].ConnectLine) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static List<string> ReadLabels(MarkdownPdfJsonValue dataElement) {
@@ -353,6 +388,10 @@ public static partial class MarkdownPdfConverterExtensions {
             TryGetProperty(options, "plugins", out MarkdownPdfJsonValue plugins) &&
             TryGetProperty(plugins, "title", out MarkdownPdfJsonValue titleElement)) {
             if (titleElement.Kind == MarkdownPdfJsonValueKind.Object && TryGetProperty(titleElement, "text", out MarkdownPdfJsonValue textElement)) {
+                if (ReadBool(titleElement, "display") == false) {
+                    return null;
+                }
+
                 return textElement.ReadScalarAsText();
             }
 
@@ -366,18 +405,35 @@ public static partial class MarkdownPdfConverterExtensions {
         TryGetProperty(root, "options", out MarkdownPdfJsonValue options) &&
         string.Equals(ReadString(options, "indexAxis"), "y", StringComparison.OrdinalIgnoreCase);
 
-    private static bool TryMapChartKind(string? type, bool horizontalIndexAxis, out OfficeChartKind kind) {
+    private static bool UsesStackedScale(MarkdownPdfJsonValue root) =>
+        TryGetProperty(root, "options", out MarkdownPdfJsonValue options) &&
+        TryGetProperty(options, "scales", out MarkdownPdfJsonValue scales) &&
+        (ReadScaleStacked(scales, "x") == true || ReadScaleStacked(scales, "y") == true);
+
+    private static bool? ReadScaleStacked(MarkdownPdfJsonValue scales, string axisName) {
+        if (!TryGetProperty(scales, axisName, out MarkdownPdfJsonValue axis) || axis.Kind != MarkdownPdfJsonValueKind.Object) {
+            return null;
+        }
+
+        return ReadBool(axis, "stacked");
+    }
+
+    private static bool TryMapChartKind(string? type, bool horizontalIndexAxis, bool stacked, out OfficeChartKind kind) {
         string normalized = NormalizeChartType(type);
         switch (normalized) {
             case "bar":
-                kind = horizontalIndexAxis ? OfficeChartKind.BarClustered : OfficeChartKind.ColumnClustered;
+                if (horizontalIndexAxis) {
+                    kind = stacked ? OfficeChartKind.BarStacked : OfficeChartKind.BarClustered;
+                } else {
+                    kind = stacked ? OfficeChartKind.ColumnStacked : OfficeChartKind.ColumnClustered;
+                }
                 return true;
             case "column":
-                kind = OfficeChartKind.ColumnClustered;
+                kind = stacked ? OfficeChartKind.ColumnStacked : OfficeChartKind.ColumnClustered;
                 return true;
             case "horizontalbar":
             case "barhorizontal":
-                kind = OfficeChartKind.BarClustered;
+                kind = stacked ? OfficeChartKind.BarStacked : OfficeChartKind.BarClustered;
                 return true;
             case "line":
                 kind = OfficeChartKind.Line;
@@ -422,6 +478,54 @@ public static partial class MarkdownPdfConverterExtensions {
 
     private static string? ReadString(MarkdownPdfJsonValue element, string propertyName) =>
         TryGetProperty(element, propertyName, out MarkdownPdfJsonValue value) ? value.ReadScalarAsText() : null;
+
+    private static bool? ReadBool(MarkdownPdfJsonValue element, string propertyName) {
+        if (!TryGetProperty(element, propertyName, out MarkdownPdfJsonValue value)) {
+            return null;
+        }
+
+        switch (value.Kind) {
+            case MarkdownPdfJsonValueKind.True:
+                return true;
+            case MarkdownPdfJsonValueKind.False:
+                return false;
+            case MarkdownPdfJsonValueKind.String:
+                if (bool.TryParse(value.StringValue, out bool parsed)) {
+                    return parsed;
+                }
+
+                return null;
+            default:
+                return null;
+        }
+    }
+
+    private static bool? ReadChartShowLine(MarkdownPdfJsonValue root) {
+        bool? showLine = ReadBool(root, "showLine");
+        if (showLine.HasValue) {
+            return showLine;
+        }
+
+        if (TryGetProperty(root, "options", out MarkdownPdfJsonValue options)) {
+            showLine = ReadBool(options, "showLine");
+            if (showLine.HasValue) {
+                return showLine;
+            }
+        }
+
+        return null;
+    }
+
+    private static bool? ReadChartLegendDisplay(MarkdownPdfJsonValue root) {
+        if (TryGetProperty(root, "options", out MarkdownPdfJsonValue options) &&
+            TryGetProperty(options, "plugins", out MarkdownPdfJsonValue plugins) &&
+            TryGetProperty(plugins, "legend", out MarkdownPdfJsonValue legend) &&
+            legend.Kind == MarkdownPdfJsonValueKind.Object) {
+            return ReadBool(legend, "display");
+        }
+
+        return null;
+    }
 
     private static double? ReadPositiveDouble(MarkdownPdfJsonValue element, string propertyName) {
         if (!TryGetProperty(element, propertyName, out MarkdownPdfJsonValue value) || !TryReadNumber(value, out double number)) {
