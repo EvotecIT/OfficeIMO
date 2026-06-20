@@ -192,16 +192,16 @@ public static class HtmlComputedStyleEngine {
             string normalized = query.Trim();
             if (normalized.StartsWith("not ", StringComparison.OrdinalIgnoreCase)) {
                 string negated = normalized.Substring(4).Trim();
-                if (HasMediaFeatureConstraint(negated)) {
-                    continue;
-                }
-
                 if (ContainsMediaType(negated, "screen") || ContainsMediaType(negated, "all")) {
                     continue;
                 }
 
                 if (ContainsMediaType(negated, "print")) {
                     return true;
+                }
+
+                if (HasMediaFeatureConstraint(negated)) {
+                    continue;
                 }
 
                 continue;
@@ -476,8 +476,13 @@ public static class HtmlComputedStyleEngine {
 
         if (string.Equals(trimmed, "initial", StringComparison.OrdinalIgnoreCase)
             || string.Equals(trimmed, "revert", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(trimmed, "revert-layer", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(trimmed, "unset", StringComparison.OrdinalIgnoreCase)) {
+            || string.Equals(trimmed, "revert-layer", StringComparison.OrdinalIgnoreCase)) {
+            return string.Equals(name, "visibility", StringComparison.OrdinalIgnoreCase)
+                ? CssKeywordResolution.ForValue("visible")
+                : CssKeywordResolution.Clear;
+        }
+
+        if (string.Equals(trimmed, "unset", StringComparison.OrdinalIgnoreCase)) {
             return CssKeywordResolution.Clear;
         }
 

@@ -239,6 +239,7 @@ public partial class Html {
                     strong { font-weight: 400; }
                     @media all { em.media { text-transform: uppercase; } }
                     @media not screen { em.media { text-transform: lowercase; } }
+                    @media not print and (color) { em.media { white-space: pre-wrap; } }
                     @media screen and (max-width: 0px) { em.media { text-transform: lowercase; } }
                     @supports (not-a-real-prop: value) { em.media { text-transform: lowercase; } }
                     @supports not (color: red) { em.media { text-transform: lowercase; } }
@@ -285,6 +286,7 @@ public partial class Html {
         Assert.Equal("400", styles[where].GetValue("font-weight"));
         Assert.Equal("uppercase", styles[media].GetValue("text-transform"));
         Assert.Equal("underline", styles[media].GetValue("text-decoration-line"));
+        Assert.Equal("pre-wrap", styles[media].GetValue("white-space"));
         Assert.Equal(string.Empty, styles[reset].GetValue("color"));
         Assert.Equal(string.Empty, styles[reset].GetValue("border-color"));
         Assert.Equal(string.Empty, styles[resetLater].GetValue("color"));
@@ -359,9 +361,11 @@ public partial class Html {
                     @supports (background-image:url(file:///secret/supports-condition.png)) { .ok { color: red; } }
                     .late { color: red; } @import url(file:///secret/late.css);
                     .comment-url { background-image: url('https://example.test/images/a/*v*/b.png'); }
-                    .hero { background-image: var(--used-hero), url('https://example.test/images/bg.png'); }
+                    .hero { background-image: var(--used-hero, url(file:///secret/unused-fallback.png)), url('https://example.test/images/bg.png'); }
                     .theme .card { background-image: var(--theme-hero); }
                     .escaped { background-image: url(\66 ile:///secret/escaped.png); }
+                    .invalid-escape { background-image: url(\ffffff.png); }
+                    .not-url { background-image: noturl(file:///secret/not-url-function.png); }
                     .image-set { background-image: image-set("file:///secret/hero.png" 1x, url(https://example.test/images/hero-2x.png) 2x, "https://example.test/images/hero.avif" type("image/avif")); }
                     .reuse { background-image: url('https://example.test/images/shared.png'); }
                     .logo::before { content: url('file:///secret/logo.png'); }
@@ -374,6 +378,7 @@ public partial class Html {
             </head>
             <body background="file:///secret/body-bg.png">
                 <script src="mailto:ops@example.test"></script>
+                <script type="application/json" src="file:///secret/script-data.json"></script>
                 <img src="mailto:ops@example.test">
                 <svg><image href="https://example.test/images/vector.png" /><image xlink:href="file:///secret/vector-xlink.png" /></svg>
                 <video poster="file:///secret/poster.png" data-src="https://example.test/media/movie.mp4"></video>
@@ -416,6 +421,9 @@ public partial class Html {
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/unused-custom-property.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/supports-condition.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/plain-style.png");
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/unused-fallback.png");
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/not-url-function.png");
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/script-data.json");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/not-refresh.html");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/ignored-picture-source.png");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/custom-property-used.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
@@ -505,6 +513,11 @@ public partial class Html {
             "<main><div style=\"visibility:hidden\"><span style=\"visibility:visible\">Visible</span></div></main>",
             "<main></main>");
         Assert.InRange(visibilityDescendantTextScore.Metrics["text"], 0D, 0.99D);
+
+        HtmlRoundTripScore visibilityInitialDescendantTextScore = HtmlRoundTripScorer.Compare(
+            "<main><div style=\"visibility:hidden\"><span style=\"visibility:initial\">Visible</span></div></main>",
+            "<main></main>");
+        Assert.InRange(visibilityInitialDescendantTextScore.Metrics["text"], 0D, 0.99D);
 
         HtmlRoundTripScore pictureSourceScore = HtmlRoundTripScorer.Compare(
             "<main><picture><source srcset=\"wide.png\"><img src=\"small.png\"></picture></main>",
@@ -597,6 +610,17 @@ public partial class Html {
             "<main><form><fieldset><input name=\"x\"></fieldset></form></main>");
         Assert.Equal(1D, fieldsetDisabledScore.Metrics["forms"], 3);
         Assert.InRange(fieldsetDisabledScore.Metrics["form-state"], 0D, 0.99D);
+
+        HtmlRoundTripScore fieldsetLegendScore = HtmlRoundTripScorer.Compare(
+            "<main><form><fieldset disabled><legend><input name=\"title\"></legend><input name=\"x\"></fieldset></form></main>",
+            "<main><form><fieldset disabled><legend><input name=\"title\" data-fieldset-disabled=\"true\"></legend><input name=\"x\"></fieldset></form></main>");
+        Assert.Equal(1D, fieldsetLegendScore.Metrics["forms"], 3);
+        Assert.InRange(fieldsetLegendScore.Metrics["form-state"], 0D, 0.99D);
+
+        HtmlRoundTripScore booleanAttributeScore = HtmlRoundTripScorer.Compare(
+            "<main><form><input type=\"checkbox\" checked></form></main>",
+            "<main><form><input type=\"checkbox\" checked=\"checked\"></form></main>");
+        Assert.Equal(1D, booleanAttributeScore.Metrics["form-state"], 3);
 
         HtmlRoundTripScore resolvedFormOwnerScore = HtmlRoundTripScorer.Compare(
             "<html><head><base href=\"https://example.test/\"></head><body><main><form action=\"save\"><input name=\"x\"></form></main></body></html>",

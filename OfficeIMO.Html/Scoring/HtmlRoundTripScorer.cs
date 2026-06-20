@@ -75,6 +75,17 @@ public static class HtmlRoundTripScorer {
         "autocomplete",
         "inputmode"
     };
+    private static readonly HashSet<string> BooleanFormStateAttributes = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
+        "checked",
+        "selected",
+        "disabled",
+        "multiple",
+        "formnovalidate",
+        "data-fieldset-disabled",
+        "novalidate",
+        "required",
+        "readonly"
+    };
 
     /// <summary>
     /// Compares source HTML with target HTML and returns a structural score.
@@ -290,9 +301,8 @@ public static class HtmlRoundTripScorer {
             };
 
             foreach (string attributeName in FormControlStateAttributes) {
-                string? value = control.GetAttribute(attributeName);
-                if (!string.IsNullOrWhiteSpace(value)) {
-                    parts.Add(attributeName + "=" + value);
+                if (control.HasAttribute(attributeName)) {
+                    parts.Add(FormatAttributePart(attributeName, control.GetAttribute(attributeName)));
                 }
             }
 
@@ -309,10 +319,28 @@ public static class HtmlRoundTripScorer {
 
     private static void PropagateFieldsetDisabledState(AngleSharp.Html.Dom.IHtmlDocument document) {
         foreach (var fieldset in document.QuerySelectorAll("fieldset[disabled]")) {
+            AngleSharp.Dom.IElement? firstLegend = fieldset.Children.FirstOrDefault(child => string.Equals(child.TagName, "legend", StringComparison.OrdinalIgnoreCase));
             foreach (var control in fieldset.QuerySelectorAll("input,select,textarea,button")) {
+                if (firstLegend != null && IsDescendantOf(control, firstLegend)) {
+                    continue;
+                }
+
                 control.SetAttribute("data-fieldset-disabled", "true");
             }
         }
+    }
+
+    private static bool IsDescendantOf(AngleSharp.Dom.IElement element, AngleSharp.Dom.IElement ancestor) {
+        AngleSharp.Dom.IElement? current = element;
+        while (current != null) {
+            if (ReferenceEquals(current, ancestor)) {
+                return true;
+            }
+
+            current = current.ParentElement;
+        }
+
+        return false;
     }
 
     private static string ResolveFormOwnerSignature(AngleSharp.Dom.IElement control) {
@@ -432,7 +460,7 @@ public static class HtmlRoundTripScorer {
         foreach (string attributeName in FormStateAttributes) {
             string? value;
             if (node.Attributes.TryGetValue(attributeName, out value)) {
-                parts.Add(attributeName + "=" + value);
+                parts.Add(FormatAttributePart(attributeName, value));
             }
         }
 
@@ -561,8 +589,16 @@ public static class HtmlRoundTripScorer {
     private static void AddAttributePart(ICollection<string> parts, HtmlLogicalNode node, string attributeName) {
         string? value;
         if (node.Attributes.TryGetValue(attributeName, out value)) {
-            parts.Add(attributeName + "=" + value);
+            parts.Add(FormatAttributePart(attributeName, value));
         }
+    }
+
+    private static string FormatAttributePart(string attributeName, string? value) {
+        if (BooleanFormStateAttributes.Contains(attributeName)) {
+            return attributeName + "=present";
+        }
+
+        return attributeName + "=" + (value ?? string.Empty);
     }
 
     private static string ExtractLogicalNodeText(HtmlLogicalNode node) {

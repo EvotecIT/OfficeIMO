@@ -81,7 +81,10 @@ public static class HtmlResourcePipeline {
                 AddSubmitterFormAction(manifest, element, baseUri, options);
                 break;
             case "script":
-                AddAttribute(manifest, HtmlResourceKind.Script, element, "src", baseUri, options);
+                if (IsExecutableScriptElement(element)) {
+                    AddAttribute(manifest, HtmlResourceKind.Script, element, "src", baseUri, options);
+                }
+
                 break;
             case "video":
                 AddAttribute(manifest, HtmlResourceKind.Image, element, "poster", baseUri, options);
@@ -274,6 +277,7 @@ public static class HtmlResourcePipeline {
         css = StripCssCommentsOutsideStrings(css);
         bool scanImports = !string.Equals(attributeName, "style", StringComparison.OrdinalIgnoreCase);
         Dictionary<string, List<CssCustomPropertyUrl>> customPropertyUrls = ExtractCustomPropertyUrls(css);
+        List<SourceRange> resolvedVarFallbackRanges = GetResolvedVarFallbackRanges(css, customPropertyUrls);
         var importRanges = new List<SourceRange>();
         if (scanImports) {
             foreach (CssImportReference reference in ExtractCssImports(css)) {
@@ -295,7 +299,9 @@ public static class HtmlResourcePipeline {
         foreach (Match match in CssUrlExpression.Matches(css)) {
             string source = match.Groups["url"].Value.Trim().Trim('\'', '"');
             if (!string.IsNullOrWhiteSpace(source)
+                && IsCssFunctionNameAt(css, match.Index, "url")
                 && !IsImportUrl(match.Index, importRanges)
+                && !IsImportUrl(match.Index, resolvedVarFallbackRanges)
                 && !IsImportAtRuleUrl(css, match.Index)
                 && !IsAtRulePreludeUrl(css, match.Index)
                 && !IsInsideCssString(css, match.Index)
@@ -386,6 +392,81 @@ public static class HtmlResourcePipeline {
         }
 
         return false;
+    }
+
+    private static List<SourceRange> GetResolvedVarFallbackRanges(string css, IReadOnlyDictionary<string, List<CssCustomPropertyUrl>> customPropertyUrls) {
+        var ranges = new List<SourceRange>();
+        if (customPropertyUrls.Count == 0) {
+            return ranges;
+        }
+
+        foreach (Match match in CssVarExpression.Matches(css)) {
+            string propertyName = match.Groups["name"].Value;
+            if (IsInsideCssString(css, match.Index) || !customPropertyUrls.TryGetValue(propertyName, out List<CssCustomPropertyUrl>? sources)) {
+                continue;
+            }
+
+            int open = css.IndexOf('(', match.Index);
+            if (open < 0) {
+                continue;
+            }
+
+            int close = FindMatchingCssParenthesis(css, open);
+            if (close <= open) {
+                continue;
+            }
+
+            string useSelector = GetDeclarationSelector(css, match.Index);
+            if (!sources.Any(source => CanSubstituteCustomProperty(source.Selector, useSelector))) {
+                continue;
+            }
+
+            int comma = FindTopLevelComma(css, open + 1, close);
+            if (comma >= 0) {
+                ranges.Add(new SourceRange(comma + 1, close));
+            }
+        }
+
+        return ranges;
+    }
+
+    private static int FindTopLevelComma(string css, int start, int end) {
+        int depth = 0;
+        char quote = '\0';
+        for (int i = start; i < end; i++) {
+            char current = css[i];
+            if (quote != '\0') {
+                if (current == quote && !IsEscaped(css, i)) {
+                    quote = '\0';
+                }
+
+                continue;
+            }
+
+            if (current == '"' || current == '\'') {
+                quote = current;
+                continue;
+            }
+
+            if (current == '(') {
+                depth++;
+                continue;
+            }
+
+            if (current == ')') {
+                if (depth > 0) {
+                    depth--;
+                }
+
+                continue;
+            }
+
+            if (depth == 0 && current == ',') {
+                return i;
+            }
+        }
+
+        return -1;
     }
 
     private static bool IsAncestorSelector(string definitionSelector, string useSelector) {
@@ -637,6 +718,26 @@ public static class HtmlResourcePipeline {
             && string.Compare(text, index, value, 0, value.Length, StringComparison.OrdinalIgnoreCase) == 0;
     }
 
+    private static bool IsCssFunctionNameAt(string css, int index, string functionName) {
+        if (!StartsWith(css, index, functionName)) {
+            return false;
+        }
+
+        int afterName = index + functionName.Length;
+        if (afterName >= css.Length || css[afterName] != '(') {
+            return false;
+        }
+
+        return index == 0 || !IsCssIdentifierCharacter(css[index - 1]);
+    }
+
+    private static bool IsCssIdentifierCharacter(char value) {
+        return char.IsLetterOrDigit(value)
+            || value == '_'
+            || value == '-'
+            || value >= 0x80;
+    }
+
     private static bool IsInsideCssString(string css, int index) {
         char quote = '\0';
         for (int i = 0; i < index && i < css.Length; i++) {
@@ -838,8 +939,15 @@ public static class HtmlResourcePipeline {
 
             if (cursor > hexStart) {
                 string hex = source.Substring(hexStart, cursor - hexStart);
-                int codePoint = int.Parse(hex, System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture);
-                result.Append(char.ConvertFromUtf32(codePoint));
+                if (!int.TryParse(hex, System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out int codePoint)
+                    || codePoint == 0
+                    || codePoint > 0x10FFFF
+                    || (codePoint >= 0xD800 && codePoint <= 0xDFFF)) {
+                    result.Append('\uFFFD');
+                } else {
+                    result.Append(char.ConvertFromUtf32(codePoint));
+                }
+
                 if (cursor < source.Length && char.IsWhiteSpace(source[cursor])) {
                     cursor++;
                 }
@@ -853,6 +961,25 @@ public static class HtmlResourcePipeline {
         }
 
         return result.ToString();
+    }
+
+    private static bool IsExecutableScriptElement(IElement element) {
+        string type = (element.GetAttribute("type") ?? string.Empty).Trim();
+        if (type.Length == 0) {
+            return true;
+        }
+
+        int parameterStart = type.IndexOf(';');
+        if (parameterStart >= 0) {
+            type = type.Substring(0, parameterStart).Trim();
+        }
+
+        return string.Equals(type, "module", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(type, "text/javascript", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(type, "application/javascript", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(type, "application/ecmascript", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(type, "text/ecmascript", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(type, "text/jscript", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool IsHexDigit(char value) {
