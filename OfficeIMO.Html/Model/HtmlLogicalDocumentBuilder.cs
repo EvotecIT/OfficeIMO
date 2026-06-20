@@ -144,6 +144,14 @@ public static class HtmlLogicalDocumentBuilder {
                 return HtmlLogicalNodeKind.Image;
             case "picture":
                 return HtmlLogicalNodeKind.Inline;
+            case "source":
+                return string.Equals(element.ParentElement?.TagName, "picture", StringComparison.OrdinalIgnoreCase)
+                    ? HtmlLogicalNodeKind.Image
+                    : HtmlLogicalNodeKind.Media;
+            case "video":
+            case "audio":
+            case "track":
+                return HtmlLogicalNodeKind.Media;
             case "a":
                 return HtmlLogicalNodeKind.Link;
             case "form":
@@ -209,6 +217,9 @@ public static class HtmlLogicalDocumentBuilder {
                 break;
             case HtmlLogicalNodeKind.Image:
                 yield return "images";
+                break;
+            case HtmlLogicalNodeKind.Media:
+                yield return "media";
                 break;
             case HtmlLogicalNodeKind.Form:
             case HtmlLogicalNodeKind.FormControl:

@@ -56,6 +56,8 @@ public static class HtmlRoundTripScorer {
         AddSignatureMetric(metrics, "figure-signatures", ExtractSignatures(target, HtmlLogicalNodeKind.Figure, CreateFigureSignature), ExtractSignatures(source, HtmlLogicalNodeKind.Figure, CreateFigureSignature));
         AddCountMetric(metrics, "images", target.Count(HtmlLogicalNodeKind.Image), source.Count(HtmlLogicalNodeKind.Image));
         AddSignatureMetric(metrics, "image-sources", ExtractSignatures(target, HtmlLogicalNodeKind.Image, CreateImageSignature), ExtractSignatures(source, HtmlLogicalNodeKind.Image, CreateImageSignature));
+        AddCountMetric(metrics, "media", target.Count(HtmlLogicalNodeKind.Media), source.Count(HtmlLogicalNodeKind.Media));
+        AddSignatureMetric(metrics, "media-sources", ExtractSignatures(target, HtmlLogicalNodeKind.Media, CreateMediaSignature), ExtractSignatures(source, HtmlLogicalNodeKind.Media, CreateMediaSignature));
         AddCountMetric(metrics, "lists", target.Count(HtmlLogicalNodeKind.List), source.Count(HtmlLogicalNodeKind.List));
         AddSignatureMetric(metrics, "list-kinds", ExtractSignatures(target, HtmlLogicalNodeKind.List, CreateElementNameSignature), ExtractSignatures(source, HtmlLogicalNodeKind.List, CreateElementNameSignature));
         AddCountMetric(metrics, "list-items", target.Count(HtmlLogicalNodeKind.ListItem), source.Count(HtmlLogicalNodeKind.ListItem));
@@ -160,9 +162,9 @@ public static class HtmlRoundTripScorer {
     private static void AppendTableGridSignatures(HtmlLogicalNode node, ICollection<string> signatures) {
         if (node.Kind == HtmlLogicalNodeKind.Table) {
             var rowSignatures = new List<string>();
-            foreach (HtmlLogicalNode row in Descendants(node, HtmlLogicalNodeKind.TableRow)) {
+            foreach (HtmlLogicalNode row in DirectTableRows(node)) {
                 var cellSignatures = new List<string>();
-                foreach (HtmlLogicalNode cell in Descendants(row, HtmlLogicalNodeKind.TableCell)) {
+                foreach (HtmlLogicalNode cell in row.Children.Where(child => child.Kind == HtmlLogicalNodeKind.TableCell)) {
                     cellSignatures.Add(CreateTableCellGridSignature(cell));
                 }
 
@@ -175,6 +177,27 @@ public static class HtmlRoundTripScorer {
         foreach (HtmlLogicalNode child in node.Children) {
             AppendTableGridSignatures(child, signatures);
         }
+    }
+
+    private static IEnumerable<HtmlLogicalNode> DirectTableRows(HtmlLogicalNode table) {
+        foreach (HtmlLogicalNode child in table.Children) {
+            if (child.Kind == HtmlLogicalNodeKind.TableRow) {
+                yield return child;
+                continue;
+            }
+
+            if (IsTableRowGroup(child.Name)) {
+                foreach (HtmlLogicalNode row in child.Children.Where(row => row.Kind == HtmlLogicalNodeKind.TableRow)) {
+                    yield return row;
+                }
+            }
+        }
+    }
+
+    private static bool IsTableRowGroup(string name) {
+        return string.Equals(name, "thead", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(name, "tbody", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(name, "tfoot", StringComparison.OrdinalIgnoreCase);
     }
 
     private static IEnumerable<HtmlLogicalNode> Descendants(HtmlLogicalNode node, HtmlLogicalNodeKind kind) {
@@ -293,6 +316,22 @@ public static class HtmlRoundTripScorer {
         AddAttributePart(parts, node, "data-src");
         AddAttributePart(parts, node, "data-srcset");
         AddAttributePart(parts, node, "alt");
+        return string.Join("|", parts);
+    }
+
+    private static string CreateMediaSignature(HtmlLogicalNode node) {
+        var parts = new List<string> {
+            node.Name
+        };
+        AddAttributePart(parts, node, "src");
+        AddAttributePart(parts, node, "srcset");
+        AddAttributePart(parts, node, "data-src");
+        AddAttributePart(parts, node, "data-srcset");
+        AddAttributePart(parts, node, "poster");
+        AddAttributePart(parts, node, "data-poster");
+        AddAttributePart(parts, node, "kind");
+        AddAttributePart(parts, node, "srclang");
+        AddAttributePart(parts, node, "type");
         return string.Join("|", parts);
     }
 

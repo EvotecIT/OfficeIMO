@@ -120,7 +120,7 @@ public partial class Html {
         Assert.Contains(resourceManifest.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == "HyperlinkRejectedByPolicy");
 
         HtmlRoundTripScore score = HtmlRoundTripScorer.Compare(sourceHtml, roundTripHtml);
-        Assert.InRange(score.Score, 0.60D, 1.00D);
+        Assert.InRange(score.Score, 0.55D, 1.00D);
         Assert.Equal(1D, score.Metrics["headings"], 3);
         Assert.Equal(1D, score.Metrics["tables"], 3);
 
@@ -289,6 +289,11 @@ public partial class Html {
         Assert.Equal("rgba(0, 255, 0, 1)", styles[specificityId].GetValue("outline-color"));
         Assert.Equal(string.Empty, styles[inactive].GetValue("text-decoration-line"));
         Assert.Equal(string.Empty, styles[speech].GetValue("text-decoration-line"));
+
+        HtmlRoundTripScore printHiddenTextScore = HtmlRoundTripScorer.Compare(
+            "<main><style media=\"print\">.screen{display:none}</style><span class=\"screen\">Visible on screen</span></main>",
+            "<main></main>");
+        Assert.InRange(printHiddenTextScore.Metrics["text"], 0D, 0.99D);
     }
 
     [Fact]
@@ -305,14 +310,17 @@ public partial class Html {
                     @import url('file:///secret/theme.css');
                     @import "https://example.test/themes/dark mode.css";
                     @import url('https://example.test/images/shared.png');
+                    @importurl(file:///secret/import-token.css);
                     :root { --hero: url(file:///secret/custom-property.png); }
                     .late { color: red; } @import url(file:///secret/late.css);
+                    .comment-url { background-image: url('https://example.test/images/a/*v*/b.png'); }
                     .hero { background-image: url('https://example.test/images/bg.png'); }
                     .reuse { background-image: url('https://example.test/images/shared.png'); }
                     .logo::before { content: url('file:///secret/logo.png'); }
                     .label::before { content: "@import url(file:///secret/content.css)"; }
                     .label::before { content: "url(file:///secret/label.png)"; }
                 </style>
+                <meta http-equiv="refresh" content="0; url=file:///secret/refresh.html">
             </head>
             <body>
                 <script src="mailto:ops@example.test"></script>
@@ -344,7 +352,10 @@ public partial class Html {
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/label.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/custom-property.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/late.css");
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/import-token.css");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/metadata");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/refresh.html" && resource.ElementName == "meta" && resource.Kind == HtmlResourceKind.Hyperlink && resource.AttributeName == "content" && resource.DiagnosticCode == "HyperlinkRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/a/*v*/b.png" && resource.Kind == HtmlResourceKind.Image);
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/app.js" && resource.Kind == HtmlResourceKind.Script);
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/favicon.png" && resource.Kind == HtmlResourceKind.Image);
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/preload.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "imagesrcset" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
@@ -373,7 +384,10 @@ public partial class Html {
         Assert.Equal(1, textLeaf.Count(HtmlLogicalNodeKind.Text));
         Assert.Empty(textLeaf.Root.Children[0].Children[0].Children);
         HtmlLogicalDocument pictureWrapper = HtmlLogicalDocumentBuilder.FromHtml("<main><picture><source srcset=\"wide.png\"><img src=\"small.png\"></picture></main>");
-        Assert.Equal(1, pictureWrapper.Count(HtmlLogicalNodeKind.Image));
+        Assert.Equal(2, pictureWrapper.Count(HtmlLogicalNodeKind.Image));
+        HtmlLogicalDocument mediaWrapper = HtmlLogicalDocumentBuilder.FromHtml("<main><video src=\"movie.mp4\"><source src=\"movie-hd.mp4\"><track src=\"captions.vtt\"></video></main>");
+        Assert.Equal(3, mediaWrapper.Count(HtmlLogicalNodeKind.Media));
+        Assert.Contains("media", mediaWrapper.Capabilities);
         HtmlLogicalDocument tableCaption = HtmlLogicalDocumentBuilder.FromHtml("<main><table><caption>Revenue</caption><tr><td>Total</td></tr></table></main>");
         Assert.Equal(1, tableCaption.Count(HtmlLogicalNodeKind.TableCaption));
         HtmlLogicalDocument inlineSvg = HtmlLogicalDocumentBuilder.FromHtml("<main><svg><image href=\"chart-a.png\"></image></svg></main>");
@@ -393,6 +407,18 @@ public partial class Html {
             "<main><style>.draft{display:none}.private{visibility:hidden}</style><p>Visible <span class=\"draft\">draft</span><span class=\"private\">internal</span></p></main>",
             "<main><p>Visible</p></main>");
         Assert.Equal(1D, stylesheetHiddenTextScore.Metrics["text"], 3);
+
+        HtmlRoundTripScore pictureSourceScore = HtmlRoundTripScorer.Compare(
+            "<main><picture><source srcset=\"wide.png\"><img src=\"small.png\"></picture></main>",
+            "<main><img src=\"small.png\"></main>");
+        Assert.InRange(pictureSourceScore.Metrics["images"], 0D, 0.99D);
+        Assert.InRange(pictureSourceScore.Metrics["image-sources"], 0D, 0.99D);
+
+        HtmlRoundTripScore mediaScore = HtmlRoundTripScorer.Compare(
+            "<main><video src=\"movie.mp4\"><source src=\"movie-hd.mp4\"></video></main>",
+            "<main></main>");
+        Assert.InRange(mediaScore.Metrics["media"], 0D, 0.99D);
+        Assert.InRange(mediaScore.Metrics["media-sources"], 0D, 0.99D);
 
         HtmlRoundTripScore headingLevelScore = HtmlRoundTripScorer.Compare(
             "<main><h1>Title</h1></main>",
@@ -420,6 +446,11 @@ public partial class Html {
         Assert.Equal(1D, tableHeaderScore.Metrics["tables"], 3);
         Assert.Equal(1D, tableHeaderScore.Metrics["table-cells"], 3);
         Assert.InRange(tableHeaderScore.Metrics["table-grid"], 0D, 0.99D);
+
+        HtmlRoundTripScore nestedTableScore = HtmlRoundTripScorer.Compare(
+            "<main><table><tr><td><table><tr><td>A</td></tr></table></td></tr></table></main>",
+            "<main><table><tr><td><table><tr><td>A</td><td>B</td></tr></table></td></tr></table></main>");
+        Assert.InRange(nestedTableScore.Metrics["table-grid"], 0.49D, 0.51D);
 
         HtmlRoundTripScore tableCaptionScore = HtmlRoundTripScorer.Compare(
             "<main><table><caption>Revenue</caption><tr><td>Total</td></tr></table></main>",

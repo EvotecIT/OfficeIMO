@@ -26,6 +26,8 @@ public enum HtmlLogicalNodeKind {
     Figure,
     /// <summary>Image, picture, or inline SVG.</summary>
     Image,
+    /// <summary>Audio, video, source, or track media element.</summary>
+    Media,
     /// <summary>Hyperlink element.</summary>
     Link,
     /// <summary>Form container.</summary>

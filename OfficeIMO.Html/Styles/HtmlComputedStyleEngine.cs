@@ -159,8 +159,7 @@ public static class HtmlComputedStyleEngine {
             }
 
             if (normalized.IndexOf("all", StringComparison.OrdinalIgnoreCase) >= 0
-                || normalized.IndexOf("screen", StringComparison.OrdinalIgnoreCase) >= 0
-                || normalized.IndexOf("print", StringComparison.OrdinalIgnoreCase) >= 0) {
+                || normalized.IndexOf("screen", StringComparison.OrdinalIgnoreCase) >= 0) {
                 return true;
             }
         }

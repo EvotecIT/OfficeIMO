@@ -9,7 +9,6 @@ namespace OfficeIMO.Html;
 /// </summary>
 public static class HtmlResourcePipeline {
     private static readonly Regex CssUrlExpression = new Regex("url\\(\\s*(?:\"(?<url>[^\"]+)\"|'(?<url>[^']+)'|(?<url>[^)]+))\\s*\\)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
-    private static readonly Regex CssCommentExpression = new Regex("/\\*.*?\\*/", RegexOptions.Singleline | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
     /// <summary>
     /// Parses raw HTML and builds a resource manifest.
@@ -30,7 +29,7 @@ public static class HtmlResourcePipeline {
         options = options ?? new HtmlResourcePipelineOptions();
         Uri? baseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, options.BaseUri);
         var manifest = new HtmlResourceManifest();
-        foreach (IElement element in document.QuerySelectorAll("image, [src], [srcset], [href], [xlink\\:href], [data], [data-src], [data-srcset], [poster], [data-poster], [action], [srcdoc], [imagesrcset]")) {
+        foreach (IElement element in document.QuerySelectorAll("image, meta[http-equiv], [src], [srcset], [href], [xlink\\:href], [data], [data-src], [data-srcset], [poster], [data-poster], [action], [srcdoc], [imagesrcset]")) {
             AddElementResources(manifest, element, baseUri, options);
         }
 
@@ -60,6 +59,9 @@ public static class HtmlResourcePipeline {
                 AddLink(manifest, element, baseUri, options);
                 break;
             case "base":
+                break;
+            case "meta":
+                AddMetaRefresh(manifest, element, baseUri, options);
                 break;
             case "a":
             case "area":
@@ -191,7 +193,7 @@ public static class HtmlResourcePipeline {
 
         IHtmlDocument nested = HtmlDocumentParser.ParseDocument(srcdoc!);
         Uri? nestedBaseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(nested, baseUri);
-        foreach (IElement nestedElement in nested.QuerySelectorAll("image, [src], [srcset], [href], [xlink\\:href], [data], [data-src], [data-srcset], [poster], [data-poster], [action], [srcdoc], [imagesrcset]")) {
+        foreach (IElement nestedElement in nested.QuerySelectorAll("image, meta[http-equiv], [src], [srcset], [href], [xlink\\:href], [data], [data-src], [data-srcset], [poster], [data-poster], [action], [srcdoc], [imagesrcset]")) {
             AddElementResources(manifest, nestedElement, nestedBaseUri, options);
         }
 
@@ -203,7 +205,7 @@ public static class HtmlResourcePipeline {
             return;
         }
 
-        css = CssCommentExpression.Replace(css, string.Empty);
+        css = StripCssCommentsOutsideStrings(css);
         var importRanges = new List<SourceRange>();
         foreach (CssImportReference reference in ExtractCssImports(css)) {
             string source = reference.Source;
@@ -234,6 +236,11 @@ public static class HtmlResourcePipeline {
             }
 
             if (IsInsideCssString(css, importStart)) {
+                index = importStart + 7;
+                continue;
+            }
+
+            if (!HasImportTokenBoundary(css, importStart)) {
                 index = importStart + 7;
                 continue;
             }
@@ -357,6 +364,45 @@ public static class HtmlResourcePipeline {
         return quote != '\0';
     }
 
+    private static string StripCssCommentsOutsideStrings(string css) {
+        var result = new System.Text.StringBuilder(css.Length);
+        char quote = '\0';
+        for (int i = 0; i < css.Length; i++) {
+            char current = css[i];
+            if (quote != '\0') {
+                result.Append(current);
+                if (current == quote && !IsEscaped(css, i)) {
+                    quote = '\0';
+                }
+
+                continue;
+            }
+
+            if (current == '"' || current == '\'') {
+                quote = current;
+                result.Append(current);
+                continue;
+            }
+
+            if (current == '/' && i + 1 < css.Length && css[i + 1] == '*') {
+                i += 2;
+                while (i + 1 < css.Length && !(css[i] == '*' && css[i + 1] == '/')) {
+                    i++;
+                }
+
+                if (i + 1 < css.Length) {
+                    i++;
+                }
+
+                continue;
+            }
+
+            result.Append(current);
+        }
+
+        return result.ToString();
+    }
+
     private static bool IsCustomPropertyUrl(string css, int index) {
         int blockStart = css.LastIndexOf('{', Math.Max(0, index - 1));
         int previousBoundary = Math.Max(css.LastIndexOf(';', Math.Max(0, index - 1)), blockStart);
@@ -369,7 +415,13 @@ public static class HtmlResourcePipeline {
         int previousBlockEnd = css.LastIndexOf('}', Math.Max(0, index - 1));
         int previousBoundary = Math.Max(previousSemicolon, previousBlockEnd);
         string statement = css.Substring(Math.Max(0, previousBoundary + 1), index - Math.Max(0, previousBoundary + 1));
-        return statement.IndexOf("@import", StringComparison.OrdinalIgnoreCase) >= 0;
+        int importStart = statement.IndexOf("@import", StringComparison.OrdinalIgnoreCase);
+        return importStart >= 0 && HasImportTokenBoundary(statement, importStart);
+    }
+
+    private static bool HasImportTokenBoundary(string css, int importStart) {
+        int afterImport = importStart + 7;
+        return afterImport >= css.Length || char.IsWhiteSpace(css[afterImport]);
     }
 
     private static bool HasStyleRuleBefore(string css, int index) {
@@ -457,6 +509,41 @@ public static class HtmlResourcePipeline {
         string? source = element.GetAttribute(attributeName);
         if (!string.IsNullOrWhiteSpace(source)) {
             AddRaw(manifest, kind, element, attributeName, source!, baseUri, options);
+        }
+    }
+
+    private static void AddMetaRefresh(HtmlResourceManifest manifest, IElement element, Uri? baseUri, HtmlResourcePipelineOptions options) {
+        if (!string.Equals(element.GetAttribute("http-equiv"), "refresh", StringComparison.OrdinalIgnoreCase)) {
+            return;
+        }
+
+        string? content = element.GetAttribute("content");
+        if (string.IsNullOrWhiteSpace(content)) {
+            return;
+        }
+
+        string contentText = content!;
+        int urlIndex = contentText.IndexOf("url", StringComparison.OrdinalIgnoreCase);
+        if (urlIndex < 0) {
+            return;
+        }
+
+        int cursor = urlIndex + 3;
+        while (cursor < contentText.Length && char.IsWhiteSpace(contentText[cursor])) {
+            cursor++;
+        }
+
+        if (cursor >= contentText.Length || contentText[cursor] != '=') {
+            return;
+        }
+
+        string source = contentText.Substring(cursor + 1).Trim();
+        if (source.Length > 1 && ((source[0] == '"' && source[source.Length - 1] == '"') || (source[0] == '\'' && source[source.Length - 1] == '\''))) {
+            source = source.Substring(1, source.Length - 2).Trim();
+        }
+
+        if (!string.IsNullOrWhiteSpace(source)) {
+            AddRaw(manifest, HtmlResourceKind.Hyperlink, element, "content", source, baseUri, options);
         }
     }
 
