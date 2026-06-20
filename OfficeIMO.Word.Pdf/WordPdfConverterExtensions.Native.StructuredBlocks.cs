@@ -43,7 +43,8 @@ namespace OfficeIMO.Word.Pdf {
                     tableOfContentsEntries,
                     headingDestinations,
                     contentWidth,
-                    nativeDefaults);
+                    nativeDefaults,
+                    nextElement: GetNextNativeRenderableElement(elements, i));
             }
         }
 

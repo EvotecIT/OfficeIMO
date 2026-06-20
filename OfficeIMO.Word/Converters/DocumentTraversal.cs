@@ -21,7 +21,17 @@ namespace OfficeIMO.Word {
             /// <param name="text">Raw text pattern defining the marker.</param>
             /// <param name="leftIndentTwips">List text position in twentieths of a point, when defined.</param>
             /// <param name="hangingIndentTwips">List marker hanging indentation in twentieths of a point, when defined.</param>
-            public ListInfo(int level, bool ordered, int start, NumberFormatValues? format, string? text, int? leftIndentTwips = null, int? hangingIndentTwips = null) {
+            /// <param name="markerFontFamily">Marker font family from the numbering level, when defined.</param>
+            /// <param name="markerBold">Marker bold setting from the numbering level, when defined.</param>
+            /// <param name="markerItalic">Marker italic setting from the numbering level, when defined.</param>
+            /// <param name="markerColorHex">Marker color from the numbering level, when defined.</param>
+            /// <param name="levelJustification">Marker justification from the numbering level, when defined.</param>
+            /// <param name="levelSuffix">Marker suffix from the numbering level, when defined.</param>
+            public ListInfo(int level, bool ordered, int start, NumberFormatValues? format, string? text, int? leftIndentTwips = null, int? hangingIndentTwips = null, string? markerFontFamily = null, bool? markerBold = null, bool? markerItalic = null, string? markerColorHex = null, LevelJustificationValues? levelJustification = null, LevelSuffixValues? levelSuffix = null)
+                : this(level, ordered, start, format, text, leftIndentTwips, hangingIndentTwips, markerFontFamily, markerBold, markerItalic, markerColorHex, markerFontSize: null, levelJustification, levelSuffix) {
+            }
+
+            internal ListInfo(int level, bool ordered, int start, NumberFormatValues? format, string? text, int? leftIndentTwips, int? hangingIndentTwips, string? markerFontFamily, bool? markerBold, bool? markerItalic, string? markerColorHex, double? markerFontSize, LevelJustificationValues? levelJustification, LevelSuffixValues? levelSuffix) {
                 Level = level;
                 Ordered = ordered;
                 Start = start;
@@ -29,6 +39,13 @@ namespace OfficeIMO.Word {
                 LevelText = text;
                 LeftIndentTwips = leftIndentTwips;
                 HangingIndentTwips = hangingIndentTwips;
+                MarkerFontFamily = markerFontFamily;
+                MarkerBold = markerBold;
+                MarkerItalic = markerItalic;
+                MarkerColorHex = markerColorHex;
+                MarkerFontSize = markerFontSize;
+                LevelJustification = levelJustification;
+                LevelSuffix = levelSuffix;
             }
 
             /// <summary>Zero-based nesting level.</summary>
@@ -45,6 +62,20 @@ namespace OfficeIMO.Word {
             public int? LeftIndentTwips { get; }
             /// <summary>List marker hanging indentation in twentieths of a point, when defined.</summary>
             public int? HangingIndentTwips { get; }
+            /// <summary>Marker font family from the numbering level, when defined.</summary>
+            public string? MarkerFontFamily { get; }
+            /// <summary>Marker bold setting from the numbering level, when defined.</summary>
+            public bool? MarkerBold { get; }
+            /// <summary>Marker italic setting from the numbering level, when defined.</summary>
+            public bool? MarkerItalic { get; }
+            /// <summary>Marker color from the numbering level, when defined.</summary>
+            public string? MarkerColorHex { get; }
+            /// <summary>Marker font size from the numbering level, in points, when defined.</summary>
+            public double? MarkerFontSize { get; }
+            /// <summary>Marker justification from the numbering level, when defined.</summary>
+            public LevelJustificationValues? LevelJustification { get; }
+            /// <summary>Marker suffix from the numbering level, when defined.</summary>
+            public LevelSuffixValues? LevelSuffix { get; }
         }
 
         /// <summary>
@@ -80,6 +111,13 @@ namespace OfficeIMO.Word {
             string? levelText = null;
             int? leftIndentTwips = null;
             int? hangingIndentTwips = null;
+            string? markerFontFamily = null;
+            bool? markerBold = null;
+            bool? markerItalic = null;
+            string? markerColorHex = null;
+            double? markerFontSize = null;
+            LevelJustificationValues? levelJustification = null;
+            LevelSuffixValues? levelSuffix = null;
 
             int? numberId = paragraph._listNumberId;
             ListNumberingDefinition? definition = null;
@@ -101,6 +139,13 @@ namespace OfficeIMO.Word {
                 levelText = levelDefinition.LevelText;
                 leftIndentTwips = levelDefinition.LeftIndentTwips;
                 hangingIndentTwips = levelDefinition.HangingIndentTwips;
+                markerFontFamily = levelDefinition.MarkerFontFamily;
+                markerBold = levelDefinition.MarkerBold;
+                markerItalic = levelDefinition.MarkerItalic;
+                markerColorHex = levelDefinition.MarkerColorHex;
+                markerFontSize = levelDefinition.MarkerFontSize;
+                levelJustification = levelDefinition.LevelJustification;
+                levelSuffix = levelDefinition.LevelSuffix;
             }
 
             bool ordered = definition?.Style switch {
@@ -108,7 +153,7 @@ namespace OfficeIMO.Word {
                 WordListStyle.BulletedChars => false,
                 _ => true,
             };
-            return new ListInfo(level, ordered, start, numberFormat, levelText, leftIndentTwips, hangingIndentTwips);
+            return new ListInfo(level, ordered, start, numberFormat, levelText, leftIndentTwips, hangingIndentTwips, markerFontFamily, markerBold, markerItalic, markerColorHex, markerFontSize, levelJustification, levelSuffix);
         }
 
         private static int? ParseOptionalInt32(string? value) {
@@ -234,13 +279,21 @@ namespace OfficeIMO.Word {
                     .Where(level => level.LevelIndex?.Value != null)
                     .Select(level => {
                         var indentation = level.GetFirstChild<PreviousParagraphProperties>()?.GetFirstChild<Indentation>();
+                        NumberingSymbolRunProperties? markerProperties = level.GetFirstChild<NumberingSymbolRunProperties>();
                         return new ListLevelDefinition(
                             level: level.LevelIndex!.Value,
                             start: level.StartNumberingValue?.Val?.Value ?? 1,
                             numberFormat: level.NumberingFormat?.Val?.Value,
                             levelText: level.LevelText?.Val?.Value,
                             leftIndentTwips: ParseOptionalInt32(indentation?.Left?.Value),
-                            hangingIndentTwips: ParseOptionalInt32(indentation?.Hanging?.Value));
+                            hangingIndentTwips: ParseOptionalInt32(indentation?.Hanging?.Value),
+                            markerFontFamily: ResolveListMarkerFontFamily(markerProperties),
+                            markerBold: ReadListMarkerOnOff(markerProperties?.GetFirstChild<Bold>()),
+                            markerItalic: ReadListMarkerOnOff(markerProperties?.GetFirstChild<Italic>()),
+                            markerColorHex: markerProperties?.GetFirstChild<Color>()?.Val?.Value,
+                            markerFontSize: ResolveListMarkerFontSize(markerProperties),
+                            levelJustification: level.LevelJustification?.Val?.Value,
+                            levelSuffix: level.LevelSuffix?.Val?.Value);
                     })
                     .ToDictionary(level => level.Level, level => level) ?? new Dictionary<int, ListLevelDefinition>();
 
@@ -302,13 +355,27 @@ namespace OfficeIMO.Word {
                 NumberFormatValues? numberFormat,
                 string? levelText,
                 int? leftIndentTwips,
-                int? hangingIndentTwips) {
+                int? hangingIndentTwips,
+                string? markerFontFamily,
+                bool? markerBold,
+                bool? markerItalic,
+                string? markerColorHex,
+                double? markerFontSize,
+                LevelJustificationValues? levelJustification,
+                LevelSuffixValues? levelSuffix) {
                 Level = level;
                 Start = start;
                 NumberFormat = numberFormat;
                 LevelText = levelText;
                 LeftIndentTwips = leftIndentTwips;
                 HangingIndentTwips = hangingIndentTwips;
+                MarkerFontFamily = markerFontFamily;
+                MarkerBold = markerBold;
+                MarkerItalic = markerItalic;
+                MarkerColorHex = markerColorHex;
+                MarkerFontSize = markerFontSize;
+                LevelJustification = levelJustification;
+                LevelSuffix = levelSuffix;
             }
 
             internal int Level { get; }
@@ -317,6 +384,52 @@ namespace OfficeIMO.Word {
             internal string? LevelText { get; }
             internal int? LeftIndentTwips { get; }
             internal int? HangingIndentTwips { get; }
+            internal string? MarkerFontFamily { get; }
+            internal bool? MarkerBold { get; }
+            internal bool? MarkerItalic { get; }
+            internal string? MarkerColorHex { get; }
+            internal double? MarkerFontSize { get; }
+            internal LevelJustificationValues? LevelJustification { get; }
+            internal LevelSuffixValues? LevelSuffix { get; }
+        }
+
+        private static double? ResolveListMarkerFontSize(NumberingSymbolRunProperties? markerProperties) {
+            string? value = markerProperties?.GetFirstChild<FontSize>()?.Val?.Value;
+            if (!double.TryParse(value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double halfPoints) ||
+                halfPoints <= 0D ||
+                double.IsNaN(halfPoints) ||
+                double.IsInfinity(halfPoints)) {
+                return null;
+            }
+
+            return halfPoints / 2D;
+        }
+
+        private static string? ResolveListMarkerFontFamily(NumberingSymbolRunProperties? markerProperties) {
+            RunFonts? runFonts = markerProperties?.GetFirstChild<RunFonts>();
+            return FirstNonWhiteSpace(runFonts?.Ascii?.Value, runFonts?.HighAnsi?.Value);
+        }
+
+        private static bool? ReadListMarkerOnOff(OnOffType? value) {
+            if (value == null) {
+                return null;
+            }
+
+            if (value.Val == null) {
+                return true;
+            }
+
+            return value.Val.Value;
+        }
+
+        private static string? FirstNonWhiteSpace(params string?[] values) {
+            foreach (string? value in values) {
+                if (!string.IsNullOrWhiteSpace(value)) {
+                    return value;
+                }
+            }
+
+            return null;
         }
 
         private sealed class ParagraphReferenceComparer : IEqualityComparer<WordParagraph> {
@@ -350,12 +463,28 @@ namespace OfficeIMO.Word {
                 return ToRoman(number);
             }
             if (format == NumberFormatValues.LowerLetter) {
-                return ((char)("a"[0] + number - 1)).ToString();
+                return ToAlphabeticSequence(number, uppercase: false);
             }
             if (format == NumberFormatValues.UpperLetter) {
-                return ((char)("A"[0] + number - 1)).ToString();
+                return ToAlphabeticSequence(number, uppercase: true);
             }
             return number.ToString();
+        }
+
+        private static string ToAlphabeticSequence(int number, bool uppercase) {
+            if (number <= 0) {
+                return number.ToString();
+            }
+
+            char baseCharacter = uppercase ? 'A' : 'a';
+            StringBuilder sb = new();
+            while (number > 0) {
+                number--;
+                sb.Insert(0, (char)(baseCharacter + (number % 26)));
+                number /= 26;
+            }
+
+            return sb.ToString();
         }
 
         private static string ToRoman(int number) {

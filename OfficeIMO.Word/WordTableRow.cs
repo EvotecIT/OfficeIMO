@@ -83,7 +83,7 @@ namespace OfficeIMO.Word {
                 if (_tableRow.TableRowProperties != null) {
                     var cantSplit = _tableRow.TableRowProperties.OfType<CantSplit>().FirstOrDefault();
                     if (cantSplit != null) {
-                        return false;
+                        return !ReadOnOff(cantSplit);
                     }
                 }
 
@@ -120,7 +120,7 @@ namespace OfficeIMO.Word {
                 if (_tableRow.TableRowProperties != null) {
                     var rowHeader = _tableRow.TableRowProperties.OfType<TableHeader>().FirstOrDefault();
                     if (rowHeader != null) {
-                        return true;
+                        return ReadOnOff(rowHeader);
                     }
                 }
                 return false;
@@ -205,6 +205,27 @@ namespace OfficeIMO.Word {
                 _tableRow.InsertAt(new TableRowProperties(), 0);
             }
         }
+
+        private static bool ReadOnOff(CantSplit value) {
+            if (value.Val == null) {
+                return true;
+            }
+
+            return ReadOnOffValue(value.Val.InnerText);
+        }
+
+        private static bool ReadOnOff(TableHeader value) {
+            if (value.Val == null) {
+                return true;
+            }
+
+            return ReadOnOffValue(value.Val.InnerText);
+        }
+
+        private static bool ReadOnOffValue(string? value) =>
+            !string.Equals(value, "0", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(value, "false", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(value, "off", StringComparison.OrdinalIgnoreCase);
 
         /// <summary>
         /// Merges cells starting from the specified column across subsequent rows.

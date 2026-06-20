@@ -376,6 +376,29 @@ public partial class PdfDocumentComplianceAssessmentTests {
     }
 
     [Fact]
+    public void TaggedTableAlternativeTextEmitsTableStructureAltText() {
+        PdfTableStyle style = TableStyles.Minimal();
+        style.HeaderRowCount = 1;
+        style.AlternativeText = "Quarterly status summary";
+
+        byte[] pdf = PdfDocument.Create(new PdfOptions {
+                CompressContentStreams = false
+            })
+            .TaggedPdfCatalogMarkers()
+            .Table(new[] {
+                new[] { "Name", "Status" },
+                new[] { "Alpha", "Ready" }
+            }, style: style)
+            .ToBytes();
+
+        PdfDocumentInfo info = PdfInspector.Inspect(pdf);
+        PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(info.TaggedContent);
+        PdfStructureElementInfo table = Assert.Single(tagged.StructureElements, element => element.StructureType == "Table");
+
+        Assert.Equal("Quarterly status summary", table.AlternateText);
+    }
+
+    [Fact]
     public void TaggedRowColumnTableCaptionEmitsCaptionStructureReferences() {
         PdfTableStyle style = TableStyles.Minimal();
         style.HeaderRowCount = 1;

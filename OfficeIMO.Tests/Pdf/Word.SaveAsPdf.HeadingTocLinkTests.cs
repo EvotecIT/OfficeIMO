@@ -390,5 +390,52 @@ namespace OfficeIMO.Tests {
 
             Assert.False(string.IsNullOrWhiteSpace(familyName));
         }
+
+        [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Uses_Declared_Word_Heading_Formatting() {
+            using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeDeclaredHeadingFormatting.docx"));
+            WordParagraph heading = document.AddParagraph("Native declared heading formatting").SetStyle(WordParagraphStyles.Heading1);
+            heading.FontSize = 30;
+            heading.LineSpacingBeforePoints = 12D;
+            heading.LineSpacingAfterPoints = 3D;
+            heading.LineSpacingPoints = 36D;
+            heading.LineSpacingRule = LineSpacingRuleValues.Exact;
+            document.Save();
+
+            MethodInfo paragraphStyleMethod = typeof(WordPdfConverterExtensions).GetMethod(
+                "CreateNativeParagraphStyle",
+                BindingFlags.NonPublic | BindingFlags.Static,
+                binder: null,
+                new[] { typeof(WordParagraph) },
+                modifiers: null)!;
+            PdfParagraphStyle paragraphStyle = Assert.IsType<PdfParagraphStyle>(paragraphStyleMethod.Invoke(null, new object[] { heading }));
+
+            MethodInfo headingStyleMethod = typeof(WordPdfConverterExtensions).GetMethod(
+                "CreateNativeWordHeadingStyle",
+                BindingFlags.NonPublic | BindingFlags.Static,
+                binder: null,
+                new[] {
+                    typeof(int),
+                    typeof(WordParagraph),
+                    typeof(PdfParagraphStyle),
+                    typeof(WordPdfConverterExtensions).GetNestedType("NativeFontMap", BindingFlags.NonPublic)!
+                },
+                modifiers: null)!;
+            object nativeFontMap = Activator.CreateInstance(
+                typeof(WordPdfConverterExtensions).GetNestedType("NativeFontMap", BindingFlags.NonPublic)!,
+                nonPublic: true)!;
+            PdfHeadingStyle headingStyle = Assert.IsType<PdfHeadingStyle>(headingStyleMethod.Invoke(null, new object[] {
+                1,
+                heading,
+                paragraphStyle,
+                nativeFontMap
+            }));
+
+            Assert.Equal(30D, headingStyle.FontSize);
+            Assert.Equal(1.2D, headingStyle.LineHeight!.Value, 3);
+            Assert.Equal(12D, headingStyle.SpacingBefore);
+            Assert.Equal(3D, headingStyle.SpacingAfter!.Value);
+            Assert.True(headingStyle.KeepWithNext);
+        }
     }
 }

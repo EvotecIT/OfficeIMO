@@ -68,7 +68,7 @@ internal static partial class PdfWriter {
             y -= textHeight + spacingAfter;
         }
 
-        private void RenderRichParagraphFlowBlock(RichParagraphBlock rpb, IPdfBlock? nextBlock) {
+        private void RenderRichParagraphFlowBlock(RichParagraphBlock rpb, IPdfBlock? nextBlock, System.Collections.Generic.IList<IPdfBlock> blockList, int blockIndex) {
             double size = currentOpts.DefaultFontSize;
             PdfParagraphStyle? paragraphStyle = EffectiveParagraphStyle(rpb);
             double leading = GetParagraphLeading(paragraphStyle, size);
@@ -77,7 +77,7 @@ internal static partial class PdfWriter {
             var textFrame = GetParagraphTextFrame(paragraphStyle, currentOpts.MarginLeft, width);
             var (lines, lineHeights) = WrapRichRunsCoreWithFirstLineOrigin(rpb.Runs, textFrame.Width, size, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray());
             if (paragraphStyle?.KeepWithNext == true && nextBlock != null && lines.Count > 0) {
-                double nextHeight = MeasureNextBlockFirstVisualHeight(nextBlock, currentOpts.MarginLeft, width, size);
+                double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, size);
                 double keepHeight = spacingBefore + lineHeights.Sum() + spacingAfter + nextHeight;
                 double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
                 if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && y < yStart - 0.001 && y - keepHeight < currentOpts.MarginBottom) {

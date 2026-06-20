@@ -50,7 +50,7 @@ public sealed class PdfTableCell {
         Paragraphs = System.Array.AsReadOnly(System.Array.Empty<PdfTableCellParagraph>());
     }
 
-    internal PdfTableCell(System.Collections.Generic.IEnumerable<TextRun> runs, System.Collections.Generic.IEnumerable<PdfTableCellParagraph>? paragraphs, int columnSpan = 1, string? linkUri = null, string? linkContents = null, int rowSpan = 1, System.Collections.Generic.IEnumerable<PdfTableCellCheckBox>? checkBoxes = null, System.Collections.Generic.IEnumerable<PdfTableCellFormField>? formFields = null, System.Collections.Generic.IEnumerable<PdfTableCellImage>? images = null, string? linkDestinationName = null, string? namedDestinationName = null) {
+    internal PdfTableCell(System.Collections.Generic.IEnumerable<TextRun> runs, System.Collections.Generic.IEnumerable<PdfTableCellParagraph>? paragraphs, int columnSpan = 1, string? linkUri = null, string? linkContents = null, int rowSpan = 1, System.Collections.Generic.IEnumerable<PdfTableCellCheckBox>? checkBoxes = null, System.Collections.Generic.IEnumerable<PdfTableCellFormField>? formFields = null, System.Collections.Generic.IEnumerable<PdfTableCellImage>? images = null, string? linkDestinationName = null, string? namedDestinationName = null, bool noWrap = false) {
         Guard.NotNull(runs, nameof(runs));
         Validate(columnSpan, rowSpan, linkUri, linkDestinationName, linkContents, namedDestinationName);
         var snapshot = new System.Collections.Generic.List<TextRun>();
@@ -76,6 +76,7 @@ public sealed class PdfTableCell {
         FormFields = SnapshotFormFields(formFields, nameof(formFields));
         Images = SnapshotImages(images, nameof(images));
         Paragraphs = SnapshotParagraphs(paragraphs, nameof(paragraphs));
+        NoWrap = noWrap;
     }
 
     /// <summary>Cell text content.</summary>
@@ -112,6 +113,8 @@ public sealed class PdfTableCell {
     public System.Collections.Generic.IReadOnlyList<PdfTableCellImage> Images { get; }
 
     internal System.Collections.Generic.IReadOnlyList<PdfTableCellParagraph> Paragraphs { get; }
+
+    internal bool NoWrap { get; }
 
     /// <summary>Creates a single-column text cell.</summary>
     public static PdfTableCell TextCell(string? text, string? linkUri = null, string? linkContents = null, string? linkDestinationName = null, string? namedDestinationName = null) => new PdfTableCell(text, linkUri: linkUri, linkContents: linkContents, linkDestinationName: linkDestinationName, namedDestinationName: namedDestinationName);
@@ -150,9 +153,9 @@ public sealed class PdfTableCell {
     public static PdfTableCell WithImages(string? text, System.Collections.Generic.IEnumerable<PdfTableCellImage> images, int columnSpan = 1, string? linkUri = null, string? linkContents = null, int rowSpan = 1, System.Collections.Generic.IEnumerable<PdfTableCellCheckBox>? checkBoxes = null, System.Collections.Generic.IEnumerable<PdfTableCellFormField>? formFields = null, string? linkDestinationName = null) => new PdfTableCell(text, columnSpan, linkUri, linkContents, rowSpan, checkBoxes, formFields, images, linkDestinationName);
 
     /// <summary>Returns a copy of this cell with a PDF named destination defined at the cell.</summary>
-    public PdfTableCell WithNamedDestination(string? namedDestinationName) => new PdfTableCell(Runs, Paragraphs, ColumnSpan, LinkUri, LinkContents, RowSpan, CheckBoxes, FormFields, Images, LinkDestinationName, namedDestinationName);
+    public PdfTableCell WithNamedDestination(string? namedDestinationName) => new PdfTableCell(Runs, Paragraphs, ColumnSpan, LinkUri, LinkContents, RowSpan, CheckBoxes, FormFields, Images, LinkDestinationName, namedDestinationName, NoWrap);
 
-    internal PdfTableCell Clone() => new PdfTableCell(Runs, Paragraphs, ColumnSpan, LinkUri, LinkContents, RowSpan, CheckBoxes, FormFields, Images, LinkDestinationName, NamedDestinationName);
+    internal PdfTableCell Clone() => new PdfTableCell(Runs, Paragraphs, ColumnSpan, LinkUri, LinkContents, RowSpan, CheckBoxes, FormFields, Images, LinkDestinationName, NamedDestinationName, NoWrap);
 
     private static void Validate(int columnSpan, int rowSpan, string? linkUri, string? linkDestinationName, string? linkContents, string? namedDestinationName) {
         if (columnSpan < 1) {
@@ -258,10 +261,34 @@ public sealed class PdfTableCell {
 }
 
 internal sealed class PdfTableCellParagraph {
-    public PdfTableCellParagraph(System.Collections.Generic.IEnumerable<TextRun> runs, double spacingAfter = 0D) {
+    public PdfTableCellParagraph(System.Collections.Generic.IEnumerable<TextRun> runs, double spacingAfter = 0D, PdfAlign? align = null, double spacingBefore = 0D, double leftIndent = 0D, double rightIndent = 0D, double firstLineIndent = 0D, double? lineHeight = null, double? defaultTabStopWidth = null, System.Collections.Generic.IEnumerable<PdfTabStop>? tabStops = null) {
         Guard.NotNull(runs, nameof(runs));
+        if (spacingBefore < 0 || double.IsNaN(spacingBefore) || double.IsInfinity(spacingBefore)) {
+            throw new System.ArgumentOutOfRangeException(nameof(spacingBefore), "Table cell paragraph spacing must be a non-negative finite value.");
+        }
+
         if (spacingAfter < 0 || double.IsNaN(spacingAfter) || double.IsInfinity(spacingAfter)) {
             throw new System.ArgumentOutOfRangeException(nameof(spacingAfter), "Table cell paragraph spacing must be a non-negative finite value.");
+        }
+
+        if (leftIndent < 0 || double.IsNaN(leftIndent) || double.IsInfinity(leftIndent)) {
+            throw new System.ArgumentOutOfRangeException(nameof(leftIndent), "Table cell paragraph left indent must be a non-negative finite value.");
+        }
+
+        if (rightIndent < 0 || double.IsNaN(rightIndent) || double.IsInfinity(rightIndent)) {
+            throw new System.ArgumentOutOfRangeException(nameof(rightIndent), "Table cell paragraph right indent must be a non-negative finite value.");
+        }
+
+        if (double.IsNaN(firstLineIndent) || double.IsInfinity(firstLineIndent)) {
+            throw new System.ArgumentOutOfRangeException(nameof(firstLineIndent), "Table cell paragraph first line indent must be a finite value.");
+        }
+
+        if (lineHeight.HasValue && (lineHeight.Value <= 0 || double.IsNaN(lineHeight.Value) || double.IsInfinity(lineHeight.Value))) {
+            throw new System.ArgumentOutOfRangeException(nameof(lineHeight), "Table cell paragraph line height must be a positive finite value.");
+        }
+
+        if (defaultTabStopWidth.HasValue && (defaultTabStopWidth.Value <= 0 || double.IsNaN(defaultTabStopWidth.Value) || double.IsInfinity(defaultTabStopWidth.Value))) {
+            throw new System.ArgumentOutOfRangeException(nameof(defaultTabStopWidth), "Table cell paragraph default tab stop width must be a positive finite value.");
         }
 
         var snapshot = new System.Collections.Generic.List<TextRun>();
@@ -273,13 +300,48 @@ internal sealed class PdfTableCellParagraph {
             snapshot.Add(run);
         }
 
+        var tabStopSnapshot = new System.Collections.Generic.List<PdfTabStop>();
+        if (tabStops != null) {
+            foreach (PdfTabStop tabStop in tabStops) {
+                if (tabStop is null) {
+                    throw new System.ArgumentException("Table cell paragraph tab stops cannot contain null entries.", nameof(tabStops));
+                }
+
+                tabStopSnapshot.Add(tabStop.Clone());
+            }
+        }
+
         Runs = snapshot.AsReadOnly();
+        SpacingBefore = spacingBefore;
         SpacingAfter = spacingAfter;
+        Align = align;
+        LeftIndent = leftIndent;
+        RightIndent = rightIndent;
+        FirstLineIndent = firstLineIndent;
+        LineHeight = lineHeight;
+        DefaultTabStopWidth = defaultTabStopWidth;
+        TabStops = tabStopSnapshot.AsReadOnly();
     }
 
     public System.Collections.Generic.IReadOnlyList<TextRun> Runs { get; }
 
+    public double SpacingBefore { get; }
+
     public double SpacingAfter { get; }
 
-    internal PdfTableCellParagraph Clone() => new PdfTableCellParagraph(Runs, SpacingAfter);
+    public PdfAlign? Align { get; }
+
+    public double LeftIndent { get; }
+
+    public double RightIndent { get; }
+
+    public double FirstLineIndent { get; }
+
+    public double? LineHeight { get; }
+
+    public double? DefaultTabStopWidth { get; }
+
+    public System.Collections.Generic.IReadOnlyList<PdfTabStop> TabStops { get; }
+
+    internal PdfTableCellParagraph Clone() => new PdfTableCellParagraph(Runs, SpacingAfter, Align, SpacingBefore, LeftIndent, RightIndent, FirstLineIndent, LineHeight, DefaultTabStopWidth, TabStops);
 }

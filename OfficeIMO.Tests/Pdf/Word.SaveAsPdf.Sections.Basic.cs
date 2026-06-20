@@ -3,6 +3,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using System;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -39,6 +40,54 @@ public partial class Word {
         }
 
         Assert.True(File.Exists(pdfPath));
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Keeps_Compatible_Continuous_Sections_On_Same_Page() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeContinuousSectionSamePage.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeContinuousSectionSamePage.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.AddParagraph("ContinuousSectionBefore");
+            document.AddSection(SectionMarkValues.Continuous);
+            document.AddParagraph("ContinuousSectionAfter");
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = new PdfCore.PageSize(400, 300),
+                Margins = PdfCore.PageMargins.Uniform(50)
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        Assert.Equal(1, pdf.NumberOfPages);
+        Assert.Contains("ContinuousSectionBefore", pdf.GetPage(1).Text);
+        Assert.Contains("ContinuousSectionAfter", pdf.GetPage(1).Text);
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Keeps_NextPage_Sections_On_New_Page() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeNextPageSectionBreak.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeNextPageSectionBreak.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.AddParagraph("NextPageSectionBefore");
+            document.AddSection(SectionMarkValues.NextPage);
+            document.AddParagraph("NextPageSectionAfter");
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = new PdfCore.PageSize(400, 300),
+                Margins = PdfCore.PageMargins.Uniform(50)
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.Contains("NextPageSectionBefore", pdf.GetPage(1).Text);
+        Assert.Contains("NextPageSectionAfter", pdf.GetPage(2).Text);
     }
 
     [Fact]
@@ -87,6 +136,272 @@ public partial class Word {
             Assert.Contains("Native Default Footer", allText);
             Assert.Contains("Native body text", allText);
         }
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Maps_HeaderFooter_Explicit_Font_Families_To_Page_Text_Fonts() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterFonts.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterFonts.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.AddHeadersAndFooters();
+            WordParagraph header = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph("QSerifHeader");
+            header.SetFontFamily("Georgia");
+            WordParagraph footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph("XMonoFooter");
+            footer.SetFontFamily("Courier New");
+            document.AddParagraph("Plain body text");
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false
+            });
+        }
+
+        Assert.True(File.Exists(pdfPath));
+        using (PdfPigDocument pdf = PdfPigDocument.Open(pdfPath)) {
+            var page = pdf.GetPage(1);
+            var headerLetter = page.Letters.Single(letter => letter.Value == "Q");
+            var footerLetter = page.Letters.Single(letter => letter.Value == "X");
+
+            Assert.Contains("Times", headerLetter.FontName, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("Courier", footerLetter.FontName, StringComparison.OrdinalIgnoreCase);
+        }
+
+        string pdfContent = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        Assert.Contains("/BaseFont /Times", pdfContent, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("/BaseFont /Courier", pdfContent, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Maps_HeaderFooter_Direct_And_Style_Font_Sizes_To_Page_Text() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterFontSizes.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterFontSizes.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            const string footerStyleId = "NativeSizedFooter";
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(
+                new Style(
+                    new StyleName { Val = "Native Sized Footer" },
+                    new StyleRunProperties(
+                        new FontSize { Val = "32" }))
+                {
+                    Type = StyleValues.Paragraph,
+                    StyleId = footerStyleId,
+                    CustomStyle = true
+                });
+
+            document.AddHeadersAndFooters();
+            WordParagraph header = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph("BigNativeHeader");
+            header.FontSize = 18;
+            WordParagraph footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph("StyledNativeFooter");
+            footer.SetStyleId(footerStyleId);
+            document.AddParagraph("Plain body text");
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false
+            });
+        }
+
+        Assert.True(File.Exists(pdfPath));
+        using (PdfPigDocument pdf = PdfPigDocument.Open(pdfPath)) {
+            var page = pdf.GetPage(1);
+            Assert.Contains("BigNativeHeader", page.Text);
+            Assert.Contains("StyledNativeFooter", page.Text);
+
+            var textLines = page.Letters
+                .Where(letter => !string.IsNullOrWhiteSpace(letter.Value))
+                .GroupBy(letter => Math.Round(letter.StartBaseLine.Y, 1))
+                .Select(group => group.OrderBy(letter => letter.StartBaseLine.X).ToList())
+                .ToList();
+            var headerLetters = textLines.Single(line => string.Concat(line.Select(letter => letter.Value)).Contains("BigNativeHeader", StringComparison.Ordinal));
+            var footerLetters = textLines.Single(line => string.Concat(line.Select(letter => letter.Value)).Contains("StyledNativeFooter", StringComparison.Ordinal));
+            double headerSize = headerLetters.Average(letter => letter.PointSize);
+            double footerSize = footerLetters.Average(letter => letter.PointSize);
+
+            Assert.InRange(headerSize, 17.5D, 18.5D);
+            Assert.InRange(footerSize, 15.5D, 16.5D);
+        }
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Maps_HeaderFooter_Explicit_Text_Colors_To_Page_Text_Colors() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterColors.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterColors.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.AddHeadersAndFooters();
+            WordParagraph header = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph("RedNativeHeader");
+            header.ColorHex = "ff0000";
+            WordParagraph footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph("BlueNativeFooter");
+            footer.ColorHex = "0000ff";
+            document.AddParagraph("Plain body text");
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false
+            });
+        }
+
+        byte[] bytes = File.ReadAllBytes(pdfPath);
+        string content = ReadPdfPageContent(bytes);
+        using (PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes))) {
+            string text = pdf.GetPage(1).Text;
+            Assert.Contains("RedNativeHeader", text);
+            Assert.Contains("BlueNativeFooter", text);
+        }
+
+        Assert.Contains("1 0 0 rg", content, StringComparison.Ordinal);
+        Assert.Contains("0 0 1 rg", content, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Maps_HeaderFooter_Paragraph_Style_Font_And_Color_To_Page_Text() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterStyleText.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterStyleText.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            const string headerStyleId = "NativeStyledHeader";
+            const string footerStyleId = "NativeStyledFooter";
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(
+                new Style(
+                    new StyleName { Val = "Native Styled Header" },
+                    new StyleRunProperties(
+                        new RunFonts { Ascii = "Georgia", HighAnsi = "Georgia" }))
+                {
+                    Type = StyleValues.Paragraph,
+                    StyleId = headerStyleId,
+                    CustomStyle = true
+                },
+                new Style(
+                    new StyleName { Val = "Native Styled Footer" },
+                    new StyleRunProperties(
+                        new Color { Val = "008000" }))
+                {
+                    Type = StyleValues.Paragraph,
+                    StyleId = footerStyleId,
+                    CustomStyle = true
+                });
+
+            document.AddHeadersAndFooters();
+            WordParagraph header = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph("QStyledHeader");
+            header.SetStyleId(headerStyleId);
+            WordParagraph footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph("GreenStyledFooter");
+            footer.SetStyleId(footerStyleId);
+            document.AddParagraph("Plain body text");
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false
+            });
+        }
+
+        Assert.True(File.Exists(pdfPath));
+        using (PdfPigDocument pdf = PdfPigDocument.Open(pdfPath)) {
+            var page = pdf.GetPage(1);
+            Assert.Contains("QStyledHeader", page.Text);
+            Assert.Contains("GreenStyledFooter", page.Text);
+
+            var headerLetter = page.Letters.Single(letter => letter.Value == "Q");
+            Assert.Contains("Times", headerLetter.FontName, StringComparison.OrdinalIgnoreCase);
+        }
+
+        string content = ReadPdfPageContent(File.ReadAllBytes(pdfPath));
+        Assert.Contains("0 0.502 0 rg", content, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Maps_HeaderFooter_Character_Style_Font_And_Color_To_Page_Text() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterCharacterStyleText.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterCharacterStyleText.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            const string headerStyleId = "NativeCharacterStyledHeader";
+            const string footerStyleId = "NativeCharacterStyledFooter";
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(
+                new Style(
+                    new StyleName { Val = "Native Character Styled Header" },
+                    new StyleRunProperties(
+                        new RunFonts { Ascii = "Georgia", HighAnsi = "Georgia" }))
+                {
+                    Type = StyleValues.Character,
+                    StyleId = headerStyleId,
+                    CustomStyle = true
+                },
+                new Style(
+                    new StyleName { Val = "Native Character Styled Footer" },
+                    new StyleRunProperties(
+                        new Color { Val = "008000" }))
+                {
+                    Type = StyleValues.Character,
+                    StyleId = footerStyleId,
+                    CustomStyle = true
+                });
+
+            document.AddHeadersAndFooters();
+            WordParagraph header = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph();
+            header.AddText("QCharStyledHeader").SetCharacterStyleId(headerStyleId);
+            WordParagraph footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph();
+            footer.AddText("GreenCharStyledFooter").SetCharacterStyleId(footerStyleId);
+            document.AddParagraph("Plain body text");
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false
+            });
+        }
+
+        Assert.True(File.Exists(pdfPath));
+        using (PdfPigDocument pdf = PdfPigDocument.Open(pdfPath)) {
+            var page = pdf.GetPage(1);
+            Assert.Contains("QCharStyledHeader", page.Text);
+            Assert.Contains("GreenCharStyledFooter", page.Text);
+
+            var headerLetter = page.Letters.Single(letter => letter.Value == "Q");
+            Assert.Contains("Times", headerLetter.FontName, StringComparison.OrdinalIgnoreCase);
+        }
+
+        string content = ReadPdfPageContent(File.ReadAllBytes(pdfPath));
+        Assert.Contains("0 0.502 0 rg", content, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Maps_HeaderFooter_Bold_And_Italic_To_Page_Text_Fonts() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterEmphasis.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterEmphasis.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.AddHeadersAndFooters();
+            WordParagraph header = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph("QBoldSerifHeader");
+            header.SetFontFamily("Georgia");
+            header.Bold = true;
+            WordParagraph footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph("XItalicMonoFooter");
+            footer.SetFontFamily("Courier New");
+            footer.Italic = true;
+            document.AddParagraph("Plain body text");
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false
+            });
+        }
+
+        Assert.True(File.Exists(pdfPath));
+        using (PdfPigDocument pdf = PdfPigDocument.Open(pdfPath)) {
+            var page = pdf.GetPage(1);
+            var headerLetter = page.Letters.Single(letter => letter.Value == "Q");
+            var footerLetter = page.Letters.Single(letter => letter.Value == "X");
+
+            Assert.Contains("Times-Bold", headerLetter.FontName, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("Courier-Oblique", footerLetter.FontName, StringComparison.OrdinalIgnoreCase);
+        }
+
+        string pdfContent = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        Assert.Contains("/BaseFont /Times-Bold", pdfContent, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("/BaseFont /Courier-Oblique", pdfContent, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -262,6 +577,43 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Reserves_Body_Clearance_For_Large_Multiline_Header_Font_Size() {
+        string defaultDocPath = Path.Combine(_directoryWithFiles, "PdfNativeDefaultMultilineHeaderClearance.docx");
+        string defaultPdfPath = Path.Combine(_directoryWithFiles, "PdfNativeDefaultMultilineHeaderClearance.pdf");
+        string largeDocPath = Path.Combine(_directoryWithFiles, "PdfNativeLargeMultilineHeaderClearance.docx");
+        string largePdfPath = Path.Combine(_directoryWithFiles, "PdfNativeLargeMultilineHeaderClearance.pdf");
+
+        CreateMultilineHeaderDocument(defaultDocPath, defaultPdfPath, "DefaultHeaderClearanceBody", null);
+        CreateMultilineHeaderDocument(largeDocPath, largePdfPath, "LargeHeaderClearanceBody", 24);
+
+        using PdfPigDocument defaultPdf = PdfPigDocument.Open(defaultPdfPath);
+        using PdfPigDocument largePdf = PdfPigDocument.Open(largePdfPath);
+        double defaultBodyY = FindWordStartY(defaultPdf.GetPage(1), "DefaultHeaderClearanceBody");
+        double largeBodyY = FindWordStartY(largePdf.GetPage(1), "LargeHeaderClearanceBody");
+
+        Assert.True(defaultBodyY > largeBodyY + 25D, $"Expected a large multiline Word header font to reserve more body clearance. Default body y: {defaultBodyY:0.##}, large body y: {largeBodyY:0.##}.");
+
+        static void CreateMultilineHeaderDocument(string docPath, string pdfPath, string bodyText, int? headerFontSize) {
+            using WordDocument document = WordDocument.Create(docPath);
+            document.AddHeadersAndFooters();
+            WordHeader header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
+            for (int index = 1; index <= 4; index++) {
+                WordParagraph paragraph = header.AddParagraph("ClearanceHeaderLine" + index.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                if (headerFontSize.HasValue) {
+                    paragraph.FontSize = headerFontSize.Value;
+                }
+            }
+
+            document.AddParagraph(bodyText).SetStyle(WordParagraphStyles.Heading1);
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = PdfCore.PageSizes.Letter
+            });
+        }
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Preserves_HeaderFooter_Paragraph_Lines() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeMultilineHeaderFooter.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeMultilineHeaderFooter.pdf");
@@ -332,8 +684,44 @@ public partial class Word {
             double firstFooterY = FindWordStartY(page, "NativeFooterBandLineOne");
             double secondFooterY = FindWordStartY(page, "NativeFooterBandLineTwo");
 
-            Assert.InRange(firstFooterY, 67D, 73D);
-            Assert.InRange(secondFooterY, 45D, 52D);
+            Assert.InRange(firstFooterY, 74D, 77D);
+            Assert.InRange(secondFooterY, 52D, 56D);
+        }
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Places_Large_Multiline_Footer_Inside_Page_Bounds() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeLargeMultilineFooterPlacement.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeLargeMultilineFooterPlacement.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.AddHeadersAndFooters();
+            WordFooter footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
+            for (int index = 1; index <= 4; index++) {
+                WordParagraph paragraph = footer.AddParagraph("LargeFooterLine" + index.ToString(CultureInfo.InvariantCulture));
+                paragraph.FontSize = 24;
+            }
+
+            document.AddParagraph("Large footer placement body");
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = PdfCore.PageSizes.Letter
+            });
+        }
+
+        Assert.True(File.Exists(pdfPath));
+        using (PdfPigDocument pdf = PdfPigDocument.Open(pdfPath)) {
+            var page = pdf.GetPage(1);
+            double firstFooterY = FindWordStartY(page, "LargeFooterLine1");
+            double secondFooterY = FindWordStartY(page, "LargeFooterLine2");
+            double thirdFooterY = FindWordStartY(page, "LargeFooterLine3");
+            double fourthFooterY = FindWordStartY(page, "LargeFooterLine4");
+
+            Assert.True(firstFooterY > secondFooterY + 25D, $"Expected large footer line 1 above line 2. First: {firstFooterY:0.##}, second: {secondFooterY:0.##}.");
+            Assert.True(secondFooterY > thirdFooterY + 25D, $"Expected large footer line 2 above line 3. Second: {secondFooterY:0.##}, third: {thirdFooterY:0.##}.");
+            Assert.True(thirdFooterY > fourthFooterY + 25D, $"Expected large footer line 3 above line 4. Third: {thirdFooterY:0.##}, fourth: {fourthFooterY:0.##}.");
+            Assert.True(fourthFooterY > 20D, $"Expected the final large Word footer line to stay inside the page bounds. Fourth line y: {fourthFooterY:0.##}.");
         }
     }
 
@@ -360,6 +748,6 @@ public partial class Word {
         Assert.Equal(30D, margins.Top);
         Assert.Equal(30D, margins.Left);
         Assert.Equal(30D, margins.Right);
-        Assert.InRange(margins.Bottom, 47D, 49D);
+        Assert.InRange(margins.Bottom, 53D, 55D);
     }
 }

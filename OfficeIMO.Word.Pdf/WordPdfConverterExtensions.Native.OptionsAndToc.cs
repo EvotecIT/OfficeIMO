@@ -34,7 +34,59 @@ namespace OfficeIMO.Word.Pdf {
             RegisterNativeEmbeddedTextFallbacks(pdfOptions, registeredFontSlots, allowSystemFontEmbedding);
             pdfOptions.BackgroundColor = ParseNativeColor(document.Background?.Color);
             pdfOptions.CreateOutlineFromHeadings = true;
+            ApplyNativeBiDiViewerPreferences(document, pdfOptions);
             return pdfOptions;
+        }
+
+        private static void ApplyNativeBiDiViewerPreferences(WordDocument document, PdfCore.PdfOptions pdfOptions) {
+            if (!HasNativeBiDiParagraph(document)) {
+                return;
+            }
+
+            pdfOptions.ConfigureViewerPreferences(viewerPreferences => {
+                if (!viewerPreferences.Direction.HasValue) {
+                    viewerPreferences.Direction = PdfCore.PdfViewerDirection.RightToLeft;
+                }
+            });
+        }
+
+        private static bool HasNativeBiDiParagraph(WordDocument document) {
+            foreach (WordSection section in document.Sections) {
+                if (section.Elements.Any(HasNativeBiDiParagraph) ||
+                    HasNativeBiDiParagraph(section.Header?.Default) ||
+                    HasNativeBiDiParagraph(section.Header?.First) ||
+                    HasNativeBiDiParagraph(section.Header?.Even) ||
+                    HasNativeBiDiParagraph(section.Footer?.Default) ||
+                    HasNativeBiDiParagraph(section.Footer?.First) ||
+                    HasNativeBiDiParagraph(section.Footer?.Even)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool HasNativeBiDiParagraph(WordHeaderFooter? headerFooter) =>
+            headerFooter?.Elements.Any(HasNativeBiDiParagraph) == true;
+
+        private static bool HasNativeBiDiParagraph(WordElement element) {
+            if (element is WordParagraph paragraph) {
+                return IsNativeBiDiParagraph(paragraph);
+            }
+
+            if (element is WordTable table) {
+                foreach (WordTableRow row in table.Rows) {
+                    foreach (WordTableCell cell in row.Cells) {
+                        foreach (WordElement cellElement in cell.Elements) {
+                            if (HasNativeBiDiParagraph(cellElement)) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            return false;
         }
 
         private static bool ApplyNativeDefaultFont(WordDocument document, PdfSaveOptions? options, PdfCore.PdfOptions pdfOptions, bool allowSystemFontEmbedding) {
@@ -362,7 +414,7 @@ namespace OfficeIMO.Word.Pdf {
                         continue;
                     }
 
-                    if (element is WordParagraph paragraph && paragraph.PageBreakBefore) {
+                    if (element is WordParagraph paragraph && HasNativePageBreakBefore(paragraph)) {
                         currentPage++;
                         consumedOnPage = 0D;
                     }
@@ -431,7 +483,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static bool IsNativeTableOfContentsExplicitPageBreak(WordElement element) {
             if (element is WordParagraph paragraph) {
-                return paragraph.PageBreakBefore || paragraph.IsPageBreak;
+                return HasNativePageBreakBefore(paragraph) || paragraph.IsPageBreak;
             }
 
             return element is WordBreak wordBreak && wordBreak.BreakType == W.BreakValues.Page;
@@ -511,11 +563,9 @@ namespace OfficeIMO.Word.Pdf {
 
             double fontSize = paragraph.FontSize.HasValue && paragraph.FontSize.Value > 0 ? paragraph.FontSize.Value : 11D;
             double height = EstimateNativeLineCount(text, contentWidth, fontSize) * fontSize * NativeDefaultParagraphLineHeight + NativeDefaultParagraphSpacingAfter;
-            if (!string.IsNullOrWhiteSpace(paragraph.ShadingFillColorHex) ||
-                HasNativeBorder(paragraph.Borders.TopStyle) ||
-                HasNativeBorder(paragraph.Borders.BottomStyle) ||
-                HasNativeBorder(paragraph.Borders.LeftStyle) ||
-                HasNativeBorder(paragraph.Borders.RightStyle)) {
+            NativeParagraphBorders borders = GetNativeEffectiveParagraphBorders(paragraph);
+            if (!string.IsNullOrWhiteSpace(GetNativeEffectiveParagraphShadingFill(paragraph)) ||
+                HasNativeParagraphBorder(borders)) {
                 height += 8D;
             }
 

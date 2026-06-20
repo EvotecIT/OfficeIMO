@@ -1,5 +1,6 @@
 using OfficeIMO.Word.Pdf;
 using OfficeIMO.Word;
+using W = DocumentFormat.OpenXml.Wordprocessing;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf {
@@ -46,6 +47,26 @@ namespace OfficeIMO.Tests.Pdf {
 
             Assert.Equal(120f, layout.ColumnWidths[0]);
             Assert.Equal(36f, layout.ColumnWidths[1]);
+        }
+
+        [Fact]
+        public void RowGridBeforeOffsetsCellsAndExpandsColumnCount() {
+            using WordDocument document = WordDocument.Create();
+            WordTable table = document.AddTable(2, 3);
+            table.GridColumnWidth = new List<int>();
+            table.Rows[1].Cells[2].Remove();
+            table.Rows[1]._tableRow.TableRowProperties ??= new W.TableRowProperties();
+            table.Rows[1]._tableRow.TableRowProperties.Append(new W.GridBefore { Val = 1 });
+            table.Rows[1]._tableRow.TableRowProperties.Append(new W.GridAfter { Val = 1 });
+            table.Rows[1].Cells[0].Width = 2880;
+            table.Rows[1].Cells[0].WidthType = W.TableWidthUnitValues.Dxa;
+
+            TableLayout layout = TableLayoutCache.GetLayout(table);
+
+            Assert.Equal(4, layout.ColumnWidths.Length);
+            Assert.Equal(0, layout.GetRowStartColumn(0));
+            Assert.Equal(1, layout.GetRowStartColumn(1));
+            Assert.Equal(144f, layout.ColumnWidths[1]);
         }
 
         [Fact]

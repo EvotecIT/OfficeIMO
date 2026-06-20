@@ -135,14 +135,18 @@ internal static partial class PdfWriter {
 
             var heights = new double[rows];
             double total = 0D;
-            bool allFixed = style.RowMinHeights != null && style.RowMinHeights.Count >= rows;
+            bool allFixed = (style.FixedRowHeights != null && style.FixedRowHeights.Count >= rows) ||
+                (style.RowMinHeights != null && style.RowMinHeights.Count >= rows);
             for (int row = 0; row < rows; row++) {
-                double? fixedHeight = style.RowMinHeights != null &&
+                double? fixedHeight = GetTableRowFixedHeight(style, row);
+                if (!fixedHeight.HasValue &&
+                    style.RowMinHeights != null &&
                     row < style.RowMinHeights.Count &&
                     style.RowMinHeights[row].HasValue &&
-                    style.RowMinHeights[row]!.Value > 0D
-                        ? style.RowMinHeights[row]!.Value
-                        : (double?)null;
+                    style.RowMinHeights[row]!.Value > 0D) {
+                    fixedHeight = style.RowMinHeights[row]!.Value;
+                }
+
                 if (!fixedHeight.HasValue) {
                     allFixed = false;
                     break;
@@ -236,6 +240,9 @@ internal static partial class PdfWriter {
             double firstBaseline = cellTop - padTop - verticalOffset - GetAscenderForOptions(cellFont, fontSize, currentOpts) + style.RowBaselineOffset;
             var visibleLines = SliceTableCellLines(lines, 0, lineCount);
             var visibleHeights = SliceTableCellLineHeights(lines, 0, lineCount, leading);
+            var visibleAlignments = SliceTableCellLineAlignments(lines, 0, lineCount);
+            var visibleXOffsets = SliceTableCellLineXOffsets(lines, 0, lineCount);
+            var visibleWidths = SliceTableCellLineWidths(lines, 0, lineCount, innerWidth);
             string? linkUri = cell.LinkUri;
             string? linkDestinationName = cell.LinkDestinationName;
             string? linkContents = cell.LinkContents;
@@ -265,7 +272,10 @@ internal static partial class PdfWriter {
                 innerWidth,
                 structureType: rowIsHeader ? "TH" : "TD",
                 markedContentId: markedContentId,
-                structurePage: currentPage);
+                structurePage: currentPage,
+                lineAlignments: visibleAlignments,
+                lineXOffsets: visibleXOffsets,
+                lineWidths: visibleWidths);
             if (cell.Runs.Any(run => run.Bold || rowUsesBold)) {
                 currentPage!.UsedBold = true;
                 usedBold = true;

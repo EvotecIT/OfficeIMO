@@ -5,43 +5,43 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
-        private void RenderHorizontalRuleFlowBlock(HorizontalRuleBlock hr, IPdfBlock? nextBlock) {
+        private void RenderHorizontalRuleFlowBlock(HorizontalRuleBlock hr, IPdfBlock? nextBlock, System.Collections.Generic.IList<IPdfBlock> blockList, int blockIndex) {
             PdfHorizontalRuleStyle ruleStyle = ResolveHorizontalRuleStyle(hr, currentOpts);
             ValidateHorizontalRule(ruleStyle);
             if (ruleStyle.KeepWithNext && nextBlock != null) {
                 double needed = ruleStyle.SpacingBefore + ruleStyle.Thickness + ruleStyle.SpacingAfter;
-                double nextHeight = MeasureNextBlockFirstVisualHeight(nextBlock, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize);
+                double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize);
                 KeepFixedBlockWithNext(needed, nextHeight);
             }
 
             RenderHorizontalRuleBlock(hr, currentOpts.MarginLeft, width);
         }
 
-        private void RenderShapeFlowBlock(ShapeBlock sbk, IPdfBlock? nextBlock) {
+        private void RenderShapeFlowBlock(ShapeBlock sbk, IPdfBlock? nextBlock, System.Collections.Generic.IList<IPdfBlock> blockList, int blockIndex) {
             PdfDrawingStyle shapeStyle = ResolveDrawingStyle(sbk, currentOpts);
             PdfDocument.ValidateDrawingStyle(shapeStyle, "Shape");
             if (shapeStyle.KeepWithNext && nextBlock != null) {
                 double needed = shapeStyle.SpacingBefore + sbk.Shape.Height + shapeStyle.SpacingAfter;
-                double nextHeight = MeasureNextBlockFirstVisualHeight(nextBlock, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize);
+                double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize);
                 KeepFixedBlockWithNext(needed, nextHeight);
             }
 
             RenderShapeBlock(sbk, currentOpts.MarginLeft, width);
         }
 
-        private void RenderDrawingFlowBlock(DrawingBlock dbk, IPdfBlock? nextBlock) {
+        private void RenderDrawingFlowBlock(DrawingBlock dbk, IPdfBlock? nextBlock, System.Collections.Generic.IList<IPdfBlock> blockList, int blockIndex) {
             PdfDrawingStyle drawingStyle = ResolveDrawingStyle(dbk, currentOpts);
             PdfDocument.ValidateDrawingStyle(drawingStyle, "Drawing");
             if (drawingStyle.KeepWithNext && nextBlock != null) {
                 double needed = drawingStyle.SpacingBefore + dbk.Drawing.Height + drawingStyle.SpacingAfter;
-                double nextHeight = MeasureNextBlockFirstVisualHeight(nextBlock, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize);
+                double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize);
                 KeepFixedBlockWithNext(needed, nextHeight);
             }
 
             RenderDrawingBlock(dbk, currentOpts.MarginLeft, width);
         }
 
-        private void RenderImageFlowBlock(ImageBlock ib, IPdfBlock? nextBlock) {
+        private void RenderImageFlowBlock(ImageBlock ib, IPdfBlock? nextBlock, System.Collections.Generic.IList<IPdfBlock> blockList, int blockIndex) {
             double xImg = currentOpts.MarginLeft;
             double contentWidth = currentOpts.PageWidth - currentOpts.MarginLeft - currentOpts.MarginRight;
             PdfImageStyle imageStyle = ResolveImageStyle(ib, currentOpts);
@@ -54,7 +54,7 @@ internal static partial class PdfWriter {
             else if (imageStyle.Align == PdfAlign.Right) xImg = currentOpts.MarginLeft + Math.Max(0, contentWidth - imageBox.Width);
             EnsureFixedFlowBlockFits("Image", imageBox.Width, needed, contentWidth);
             if (imageStyle.KeepWithNext && nextBlock != null) {
-                double nextHeight = MeasureNextBlockFirstVisualHeight(nextBlock, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize);
+                double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize);
                 double keepHeight = needed + nextHeight;
                 double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
                 if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && y < yStart - 0.001 && y - keepHeight < currentOpts.MarginBottom) {
@@ -90,7 +90,7 @@ internal static partial class PdfWriter {
             y -= imageBox.Height + imageStyle.SpacingAfter;
         }
 
-        private void RenderPanelFlowBlock(PanelParagraphBlock ppb, IPdfBlock? nextBlock) {
+        private void RenderPanelFlowBlock(PanelParagraphBlock ppb, IPdfBlock? nextBlock, System.Collections.Generic.IList<IPdfBlock> blockList, int blockIndex) {
             double size = currentOpts.DefaultFontSize;
             double leading = size * 1.4;
             var panelFont = ChooseNormal(currentOpts.DefaultFont);
@@ -109,7 +109,7 @@ internal static partial class PdfWriter {
 
             if (panelStyle.KeepWithNext && nextBlock != null && lines.Count > 0) {
                 double panelHeight = panelSpacingBefore + panelStyle.PaddingY + lineHeights.Sum() + panelStyle.PaddingY + panelStyle.SpacingAfter;
-                double nextHeight = MeasureNextBlockFirstVisualHeight(nextBlock, currentOpts.MarginLeft, width, size);
+                double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, size);
                 double keepHeight = panelHeight + nextHeight;
                 double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
                 if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && y < yStart - 0.001 && y - keepHeight < currentOpts.MarginBottom) {

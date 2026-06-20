@@ -17,28 +17,43 @@ namespace OfficeIMO.Word.Pdf {
         private static PdfCore.PdfParagraphStyle CreateNativeParagraphStyle(WordParagraph paragraph, NativeDocumentDefaults nativeDefaults) {
             NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);
             var style = new PdfCore.PdfParagraphStyle();
+            double fontSize = ResolveNativeParagraphEffectiveFontSize(paragraph, nativeDefaults, styleDefaults);
+            double lineHeight = ResolveNativeParagraphLineHeight(paragraph, fontSize, nativeDefaults, styleDefaults);
+            W.SpacingBetweenLines? directSpacing = paragraph._paragraph?.ParagraphProperties?.GetFirstChild<W.SpacingBetweenLines>();
             if (paragraph.LineSpacingBeforePoints.HasValue) {
                 style.SpacingBefore = paragraph.LineSpacingBeforePoints.Value;
+            } else if (GetNativeSpacingBeforePoints(directSpacing, fontSize, lineHeight) is { } directSpacingBefore) {
+                style.SpacingBefore = directSpacingBefore;
             } else if (styleDefaults.SpacingBefore.HasValue) {
                 style.SpacingBefore = styleDefaults.SpacingBefore.Value;
+            } else if (nativeDefaults.ParagraphSpacingBeforeDeclared) {
+                style.SpacingBefore = nativeDefaults.ParagraphSpacingBefore;
             }
 
             if (paragraph.LineSpacingAfterPoints.HasValue) {
                 style.SpacingAfter = paragraph.LineSpacingAfterPoints.Value;
+            } else if (GetNativeSpacingAfterPoints(directSpacing, fontSize, lineHeight) is { } directSpacingAfter) {
+                style.SpacingAfter = directSpacingAfter;
             } else if (styleDefaults.SpacingAfter.HasValue) {
                 style.SpacingAfter = styleDefaults.SpacingAfter.Value;
             }
 
             if (paragraph.IndentationBeforePoints.HasValue) {
                 style.LeftIndent = paragraph.IndentationBeforePoints.Value;
+            } else if (styleDefaults.LeftIndent.HasValue) {
+                style.LeftIndent = styleDefaults.LeftIndent.Value;
             }
 
             if (paragraph.IndentationAfterPoints.HasValue) {
                 style.RightIndent = paragraph.IndentationAfterPoints.Value;
+            } else if (styleDefaults.RightIndent.HasValue) {
+                style.RightIndent = styleDefaults.RightIndent.Value;
             }
 
             if (paragraph.IndentationFirstLinePoints.HasValue) {
                 style.FirstLineIndent = paragraph.IndentationFirstLinePoints.Value;
+            } else if (styleDefaults.FirstLineIndent.HasValue) {
+                style.FirstLineIndent = styleDefaults.FirstLineIndent.Value;
             }
 
             if (paragraph.IndentationHangingPoints.HasValue) {
@@ -48,16 +63,22 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 style.FirstLineIndent = -hangingIndent;
+            } else if (style.FirstLineIndent < 0D && style.LeftIndent < -style.FirstLineIndent) {
+                style.LeftIndent = -style.FirstLineIndent;
             }
 
-            double fontSize = ResolveNativeParagraphFontSize(paragraph, nativeDefaults, styleDefaults);
-            style.LineHeight = ResolveNativeParagraphLineHeight(paragraph, fontSize, nativeDefaults, styleDefaults);
+            style.LineHeight = lineHeight;
+            if (nativeDefaults.DefaultTabStopWidth.HasValue) {
+                style.DefaultTabStopWidth = nativeDefaults.DefaultTabStopWidth.Value;
+            }
 
-            if (!paragraph.LineSpacingAfterPoints.HasValue && !styleDefaults.SpacingAfter.HasValue) {
+            if (!paragraph.LineSpacingAfterPoints.HasValue &&
+                GetNativeSpacingAfterPoints(directSpacing, fontSize, lineHeight) == null &&
+                !styleDefaults.SpacingAfter.HasValue) {
                 style.SpacingAfter = nativeDefaults.ParagraphSpacingAfter;
             }
 
-            foreach (WordTabStop tabStop in paragraph.TabStops
+            foreach (WordTabStop tabStop in GetNativeParagraphEffectiveTabStops(paragraph)
                 .Where(tabStop => tabStop.Position > 0 && IsNativeRenderableTextTabStop(tabStop.Alignment))
                 .OrderBy(tabStop => tabStop.Position)) {
                 double? position = ConvertNativeTwipsToPoints(tabStop.Position);
@@ -82,6 +103,32 @@ namespace OfficeIMO.Word.Pdf {
             return style;
         }
 
+        private static bool ShouldSuppressNativeContextualSpacingAfter(WordParagraph paragraph, WordParagraph? nextParagraph) {
+            if (nextParagraph == null ||
+                paragraph.IsPageBreak ||
+                nextParagraph.IsPageBreak ||
+                HasNativePageBreakBefore(nextParagraph)) {
+                return false;
+            }
+
+            NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);
+            bool contextualSpacing = ReadNativeDirectParagraphOnOff<W.ContextualSpacing>(paragraph) ?? styleDefaults.ContextualSpacing ?? false;
+            return contextualSpacing &&
+                   string.Equals(
+                       GetNativeParagraphStyleIdentity(paragraph),
+                       GetNativeParagraphStyleIdentity(nextParagraph),
+                       StringComparison.Ordinal);
+        }
+
+        private static string GetNativeParagraphStyleIdentity(WordParagraph paragraph) {
+            IReadOnlyList<W.Style> styleChain = GetNativeParagraphStyleChain(paragraph._document, paragraph.StyleId);
+            if (styleChain.Count > 0) {
+                return styleChain[styleChain.Count - 1].StyleId?.Value ?? string.Empty;
+            }
+
+            return paragraph.StyleId ?? string.Empty;
+        }
+
         private static bool IsNativeRenderableTextTabStop(W.TabStopValues alignment) =>
             alignment != W.TabStopValues.Bar &&
             alignment != W.TabStopValues.Clear;
@@ -98,13 +145,44 @@ namespace OfficeIMO.Word.Pdf {
                 ? paragraph.FontSize.Value
                 : styleDefaults.FontSize ?? nativeDefaults.FontSize;
 
+        private static double ResolveNativeParagraphEffectiveFontSize(WordParagraph paragraph, NativeDocumentDefaults nativeDefaults, NativeParagraphStyleDefaults styleDefaults) =>
+            ResolveNativeParagraphEffectiveFontSize(paragraph, nativeDefaults, styleDefaults, NativeTableRunStyleDefaults.Empty);
+
+        private static double ResolveNativeParagraphEffectiveFontSize(WordParagraph paragraph, NativeDocumentDefaults nativeDefaults, NativeParagraphStyleDefaults styleDefaults, NativeTableRunStyleDefaults tableRunStyleDefaults) {
+            double fontSize = ResolveNativeParagraphFontSize(paragraph, nativeDefaults, styleDefaults);
+            List<WordParagraph> runs = GetNativeRuns(paragraph);
+            if (runs.Count == 0 && !string.IsNullOrWhiteSpace(paragraph.Text)) {
+                NativeResolvedTextStyle paragraphTextStyle = ResolveNativeTextRunStyle(paragraph, tableRunStyleDefaults: tableRunStyleDefaults, nativeDefaults: nativeDefaults);
+                if (paragraphTextStyle.FontSize.HasValue && paragraphTextStyle.FontSize.Value > fontSize) {
+                    fontSize = paragraphTextStyle.FontSize.Value;
+                }
+            }
+
+            foreach (WordParagraph run in runs) {
+                if (run.IsImage || string.IsNullOrWhiteSpace(run.Text)) {
+                    continue;
+                }
+
+                NativeResolvedTextStyle runTextStyle = ResolveNativeTextRunStyle(run, paragraph, tableRunStyleDefaults, nativeDefaults);
+                if (runTextStyle.FontSize.HasValue && runTextStyle.FontSize.Value > fontSize) {
+                    fontSize = runTextStyle.FontSize.Value;
+                }
+            }
+
+            return fontSize;
+        }
+
         private static double ResolveNativeParagraphLineHeight(WordParagraph paragraph, double fontSize, NativeDocumentDefaults nativeDefaults, NativeParagraphStyleDefaults styleDefaults) {
             if (paragraph.LineSpacing.HasValue && paragraph.LineSpacingRule == W.LineSpacingRuleValues.Auto) {
                 return Math.Max(0.01D, NativeWordAutoLineSpacingHeight * (paragraph.LineSpacing.Value / 240D));
             }
 
             if (paragraph.LineSpacingPoints.HasValue && fontSize > 0D) {
-                return paragraph.LineSpacingPoints.Value / fontSize;
+                return ResolveNativeLineSpacingHeight(paragraph.LineSpacingPoints.Value, paragraph.LineSpacingRule, fontSize, nativeDefaults.ParagraphLineHeight);
+            }
+
+            if (styleDefaults.LineSpacingPoints.HasValue && fontSize > 0D) {
+                return ResolveNativeLineSpacingHeight(styleDefaults.LineSpacingPoints.Value, styleDefaults.LineSpacingRule, fontSize, nativeDefaults.ParagraphLineHeight);
             }
 
             if (styleDefaults.LineHeight.HasValue) {
@@ -112,6 +190,15 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             return nativeDefaults.ParagraphLineHeight;
+        }
+
+        private static double ResolveNativeLineSpacingHeight(double lineSpacingPoints, W.LineSpacingRuleValues? lineSpacingRule, double fontSize, double naturalLineHeight) {
+            double requestedLineHeight = lineSpacingPoints / fontSize;
+            if (lineSpacingRule == W.LineSpacingRuleValues.AtLeast) {
+                return Math.Max(naturalLineHeight, requestedLineHeight);
+            }
+
+            return requestedLineHeight;
         }
 
         private static PdfCore.PdfTabLeaderStyle MapNativeTabLeader(W.TabStopLeaderCharValues leader) {
@@ -147,15 +234,16 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static PdfCore.PanelStyle? CreateNativeParagraphPanelStyle(WordParagraph paragraph, PdfCore.PdfParagraphStyle paragraphStyle) {
-            PdfCore.PdfColor? background = ParseNativeColor(paragraph.ShadingFillColorHex);
-            (PdfCore.PdfColor? Color, double Width)? border = GetNativeUniformParagraphBorder(paragraph.Borders);
+            NativeParagraphBorders borders = GetNativeEffectiveParagraphBorders(paragraph);
+            PdfCore.PdfColor? background = ParseNativeColor(GetNativeEffectiveParagraphShadingFill(paragraph));
+            (PdfCore.PdfColor? Color, double Width)? border = GetNativeUniformParagraphBorder(borders);
             bool renderAsRule = !background.HasValue &&
-                (HasNativeOnlyTopParagraphBorder(paragraph.Borders) || HasNativeOnlyBottomParagraphBorder(paragraph.Borders));
+                (HasNativeOnlyTopParagraphBorder(borders) || HasNativeOnlyBottomParagraphBorder(borders));
             if (renderAsRule) {
                 return null;
             }
 
-            bool hasParagraphBorder = HasNativeParagraphBorder(paragraph.Borders);
+            bool hasParagraphBorder = HasNativeParagraphBorder(borders);
             if (!background.HasValue && border == null && !hasParagraphBorder) {
                 return null;
             }
@@ -165,18 +253,18 @@ namespace OfficeIMO.Word.Pdf {
                 Background = background,
                 BorderColor = border?.Color,
                 BorderWidth = border?.Width ?? 0D,
-                PaddingX = 6,
-                PaddingY = backgroundOnly ? 0D : 4D,
+                PaddingX = ResolveNativeParagraphPanelPaddingX(borders, 6D),
+                PaddingY = backgroundOnly ? 0D : ResolveNativeParagraphPanelPaddingY(borders, 4D),
                 SpacingBefore = paragraphStyle.SpacingBefore,
                 SpacingAfter = backgroundOnly ? 0D : paragraphStyle.SpacingAfter ?? 6D,
-                Align = MapNativeParagraphAlign(paragraph.ParagraphAlignment, allowJustify: false)
+                Align = ResolveNativeParagraphAlign(paragraph, allowJustify: false)
             };
 
             if (border == null && hasParagraphBorder) {
-                style.TopBorder = CreateNativePanelBorder(paragraph.Borders.TopStyle, paragraph.Borders.TopColorHex, paragraph.Borders.TopSize);
-                style.RightBorder = CreateNativePanelBorder(paragraph.Borders.RightStyle, paragraph.Borders.RightColorHex, paragraph.Borders.RightSize);
-                style.BottomBorder = CreateNativePanelBorder(paragraph.Borders.BottomStyle, paragraph.Borders.BottomColorHex, paragraph.Borders.BottomSize);
-                style.LeftBorder = CreateNativePanelBorder(paragraph.Borders.LeftStyle, paragraph.Borders.LeftColorHex, paragraph.Borders.LeftSize);
+                style.TopBorder = CreateNativePanelBorder(borders.Top);
+                style.RightBorder = CreateNativePanelBorder(borders.Right);
+                style.BottomBorder = CreateNativePanelBorder(borders.Bottom);
+                style.LeftBorder = CreateNativePanelBorder(borders.Left);
             }
 
             return style;
@@ -191,79 +279,79 @@ namespace OfficeIMO.Word.Pdf {
                 return false;
             }
 
-            return HasNativeOnlyBottomParagraphBorder(paragraph.Borders);
+            return HasNativeOnlyBottomParagraphBorder(GetNativeEffectiveParagraphBorders(paragraph));
         }
 
         private static PdfCore.PdfHorizontalRuleStyle? CreateNativeHorizontalRuleStyle(WordParagraph paragraph, PdfCore.PdfParagraphStyle paragraphStyle) {
-            WordParagraphBorders borders = paragraph.Borders;
-            if (!HasNativeBorder(borders.BottomStyle)) {
+            NativeParagraphBorders borders = GetNativeEffectiveParagraphBorders(paragraph);
+            if (!HasNativeBorder(borders.Bottom.Style)) {
                 return null;
             }
 
             return new PdfCore.PdfHorizontalRuleStyle {
-                Thickness = (borders.BottomSize?.Value ?? 4U) / 8D,
-                Color = ParseNativeColor(NormalizeNativeBorderColor(borders.BottomColorHex)) ?? PdfCore.PdfColor.Black,
+                Thickness = (borders.Bottom.Size ?? 4U) / 8D,
+                Color = ParseNativeColor(NormalizeNativeBorderColor(borders.Bottom.ColorHex)) ?? PdfCore.PdfColor.Black,
                 SpacingBefore = paragraphStyle.SpacingBefore,
-                SpacingAfter = paragraphStyle.SpacingAfter ?? (borders.BottomSpace?.Value ?? 6U),
+                SpacingAfter = paragraphStyle.SpacingAfter ?? (borders.Bottom.Space ?? 6U),
                 KeepWithNext = paragraphStyle.KeepWithNext
             };
         }
 
         private static PdfCore.PdfHorizontalRuleStyle? CreateNativeBottomBorderRuleStyle(WordParagraph paragraph, PdfCore.PdfParagraphStyle paragraphStyle) {
-            WordParagraphBorders borders = paragraph.Borders;
+            NativeParagraphBorders borders = GetNativeEffectiveParagraphBorders(paragraph);
             if (!HasNativeOnlyBottomParagraphBorder(borders)) {
                 return null;
             }
 
             return new PdfCore.PdfHorizontalRuleStyle {
-                Thickness = (borders.BottomSize?.Value ?? 4U) / 8D,
-                Color = ParseNativeColor(NormalizeNativeBorderColor(borders.BottomColorHex)) ?? PdfCore.PdfColor.Black,
-                SpacingBefore = borders.BottomSpace?.Value ?? 0D,
+                Thickness = (borders.Bottom.Size ?? 4U) / 8D,
+                Color = ParseNativeColor(NormalizeNativeBorderColor(borders.Bottom.ColorHex)) ?? PdfCore.PdfColor.Black,
+                SpacingBefore = borders.Bottom.Space ?? 0D,
                 SpacingAfter = paragraphStyle.SpacingAfter ?? 6D,
                 KeepWithNext = paragraphStyle.KeepWithNext
             };
         }
 
         private static PdfCore.PdfHorizontalRuleStyle? CreateNativeTopBorderRuleStyle(WordParagraph paragraph, PdfCore.PdfParagraphStyle paragraphStyle) {
-            WordParagraphBorders borders = paragraph.Borders;
+            NativeParagraphBorders borders = GetNativeEffectiveParagraphBorders(paragraph);
             if (!HasNativeOnlyTopParagraphBorder(borders)) {
                 return null;
             }
 
             return new PdfCore.PdfHorizontalRuleStyle {
-                Thickness = (borders.TopSize?.Value ?? 4U) / 8D,
-                Color = ParseNativeColor(NormalizeNativeBorderColor(borders.TopColorHex)) ?? PdfCore.PdfColor.Black,
+                Thickness = (borders.Top.Size ?? 4U) / 8D,
+                Color = ParseNativeColor(NormalizeNativeBorderColor(borders.Top.ColorHex)) ?? PdfCore.PdfColor.Black,
                 SpacingBefore = paragraphStyle.SpacingBefore,
-                SpacingAfter = borders.TopSpace?.Value ?? 0D,
+                SpacingAfter = borders.Top.Space ?? 0D,
                 KeepWithNext = true
             };
         }
 
-        private static (PdfCore.PdfColor? Color, double Width)? GetNativeUniformParagraphBorder(WordParagraphBorders borders) {
-            if (!HasNativeBorder(borders.TopStyle) ||
-                !HasNativeBorder(borders.BottomStyle) ||
-                !HasNativeBorder(borders.LeftStyle) ||
-                !HasNativeBorder(borders.RightStyle)) {
+        private static (PdfCore.PdfColor? Color, double Width)? GetNativeUniformParagraphBorder(NativeParagraphBorders borders) {
+            if (!HasNativeBorder(borders.Top.Style) ||
+                !HasNativeBorder(borders.Bottom.Style) ||
+                !HasNativeBorder(borders.Left.Style) ||
+                !HasNativeBorder(borders.Right.Style)) {
                 return null;
             }
 
-            if (borders.TopStyle != borders.BottomStyle ||
-                borders.TopStyle != borders.LeftStyle ||
-                borders.TopStyle != borders.RightStyle) {
+            if (borders.Top.Style != borders.Bottom.Style ||
+                borders.Top.Style != borders.Left.Style ||
+                borders.Top.Style != borders.Right.Style) {
                 return null;
             }
 
-            uint topSize = borders.TopSize?.Value ?? 4U;
-            if (topSize != (borders.BottomSize?.Value ?? 4U) ||
-                topSize != (borders.LeftSize?.Value ?? 4U) ||
-                topSize != (borders.RightSize?.Value ?? 4U)) {
+            uint topSize = borders.Top.Size ?? 4U;
+            if (topSize != (borders.Bottom.Size ?? 4U) ||
+                topSize != (borders.Left.Size ?? 4U) ||
+                topSize != (borders.Right.Size ?? 4U)) {
                 return null;
             }
 
-            string? topColor = NormalizeNativeBorderColor(borders.TopColorHex);
-            if (!string.Equals(topColor, NormalizeNativeBorderColor(borders.BottomColorHex), StringComparison.OrdinalIgnoreCase) ||
-                !string.Equals(topColor, NormalizeNativeBorderColor(borders.LeftColorHex), StringComparison.OrdinalIgnoreCase) ||
-                !string.Equals(topColor, NormalizeNativeBorderColor(borders.RightColorHex), StringComparison.OrdinalIgnoreCase)) {
+            string? topColor = NormalizeNativeBorderColor(borders.Top.ColorHex);
+            if (!string.Equals(topColor, NormalizeNativeBorderColor(borders.Bottom.ColorHex), StringComparison.OrdinalIgnoreCase) ||
+                !string.Equals(topColor, NormalizeNativeBorderColor(borders.Left.ColorHex), StringComparison.OrdinalIgnoreCase) ||
+                !string.Equals(topColor, NormalizeNativeBorderColor(borders.Right.ColorHex), StringComparison.OrdinalIgnoreCase)) {
                 return null;
             }
 
@@ -274,39 +362,87 @@ namespace OfficeIMO.Word.Pdf {
         private static bool HasNativeBorder(W.BorderValues? style) =>
             style != null && style != W.BorderValues.Nil && style != W.BorderValues.None;
 
-        private static bool HasNativeParagraphBorder(WordParagraphBorders borders) =>
-            HasNativeBorder(borders.TopStyle) ||
-            HasNativeBorder(borders.RightStyle) ||
-            HasNativeBorder(borders.BottomStyle) ||
-            HasNativeBorder(borders.LeftStyle);
+        private static bool HasNativeParagraphBorder(NativeParagraphBorders borders) =>
+            HasNativeBorder(borders.Top.Style) ||
+            HasNativeBorder(borders.Right.Style) ||
+            HasNativeBorder(borders.Bottom.Style) ||
+            HasNativeBorder(borders.Left.Style);
 
-        private static PdfCore.PdfPanelBorder? CreateNativePanelBorder(W.BorderValues? borderStyle, string? color, DocumentFormat.OpenXml.UInt32Value? size) {
-            if (!HasNativeBorder(borderStyle)) {
+        private static PdfCore.PdfPanelBorder? CreateNativePanelBorder(NativeParagraphBorderSide border) {
+            if (!HasNativeBorder(border.Style)) {
                 return null;
             }
 
             return new PdfCore.PdfPanelBorder {
-                Color = ParseNativeColor(NormalizeNativeBorderColor(color)) ?? PdfCore.PdfColor.Black,
-                Width = (size?.Value ?? 4U) / 8D
+                Color = ParseNativeColor(NormalizeNativeBorderColor(border.ColorHex)) ?? PdfCore.PdfColor.Black,
+                Width = (border.Size ?? 4U) / 8D
             };
         }
 
-        private static bool HasNativeOnlyBottomParagraphBorder(WordParagraphBorders borders) =>
-            HasNativeBorder(borders.BottomStyle) &&
-            !HasNativeBorder(borders.TopStyle) &&
-            !HasNativeBorder(borders.LeftStyle) &&
-            !HasNativeBorder(borders.RightStyle);
+        private static double ResolveNativeParagraphPanelPaddingX(NativeParagraphBorders borders, double defaultPadding) {
+            uint? left = HasNativeBorder(borders.Left.Style) ? borders.Left.Space : null;
+            uint? right = HasNativeBorder(borders.Right.Style) ? borders.Right.Space : null;
+            if (!left.HasValue && !right.HasValue) {
+                return defaultPadding;
+            }
 
-        private static bool HasNativeOnlyTopParagraphBorder(WordParagraphBorders borders) =>
-            HasNativeBorder(borders.TopStyle) &&
-            !HasNativeBorder(borders.BottomStyle) &&
-            !HasNativeBorder(borders.LeftStyle) &&
-            !HasNativeBorder(borders.RightStyle);
+            return Math.Max(left.GetValueOrDefault(), right.GetValueOrDefault());
+        }
+
+        private static double ResolveNativeParagraphPanelPaddingY(NativeParagraphBorders borders, double defaultPadding) {
+            uint? top = HasNativeBorder(borders.Top.Style) ? borders.Top.Space : null;
+            uint? bottom = HasNativeBorder(borders.Bottom.Style) ? borders.Bottom.Space : null;
+            if (!top.HasValue && !bottom.HasValue) {
+                return defaultPadding;
+            }
+
+            return Math.Max(top.GetValueOrDefault(), bottom.GetValueOrDefault());
+        }
+
+        private static bool HasNativeOnlyBottomParagraphBorder(NativeParagraphBorders borders) =>
+            HasNativeBorder(borders.Bottom.Style) &&
+            !HasNativeBorder(borders.Top.Style) &&
+            !HasNativeBorder(borders.Left.Style) &&
+            !HasNativeBorder(borders.Right.Style);
+
+        private static bool HasNativeOnlyTopParagraphBorder(NativeParagraphBorders borders) =>
+            HasNativeBorder(borders.Top.Style) &&
+            !HasNativeBorder(borders.Bottom.Style) &&
+            !HasNativeBorder(borders.Left.Style) &&
+            !HasNativeBorder(borders.Right.Style);
 
         private static string? NormalizeNativeBorderColor(string? color) =>
             string.IsNullOrWhiteSpace(color) || string.Equals(color, "auto", StringComparison.OrdinalIgnoreCase)
                 ? null
                 : color;
+
+        private static string? NormalizeNativeShadingFill(string? color) =>
+            string.IsNullOrWhiteSpace(color) || string.Equals(color, "auto", StringComparison.OrdinalIgnoreCase)
+                ? null
+                : color;
+
+        private static string? GetNativeEffectiveParagraphShadingFill(WordParagraph paragraph) =>
+            NormalizeNativeShadingFill(paragraph.ShadingFillColorHex) ?? GetNativeParagraphStyleDefaults(paragraph).ShadingFillColorHex;
+
+        private static NativeParagraphBorders GetNativeEffectiveParagraphBorders(WordParagraph paragraph) =>
+            MergeNativeParagraphBorders(GetNativeParagraphStyleDefaults(paragraph).Borders, GetNativeDirectParagraphBorders(paragraph));
+
+        private static NativeParagraphBorders GetNativeDirectParagraphBorders(WordParagraph paragraph) {
+            WordParagraphBorders borders = paragraph.Borders;
+            return new NativeParagraphBorders(
+                new NativeParagraphBorderSide(borders.TopStyle, NormalizeNativeBorderColor(borders.TopColorHex), borders.TopSize?.Value, borders.TopSpace?.Value),
+                new NativeParagraphBorderSide(borders.RightStyle, NormalizeNativeBorderColor(borders.RightColorHex), borders.RightSize?.Value, borders.RightSpace?.Value),
+                new NativeParagraphBorderSide(borders.BottomStyle, NormalizeNativeBorderColor(borders.BottomColorHex), borders.BottomSize?.Value, borders.BottomSpace?.Value),
+                new NativeParagraphBorderSide(borders.LeftStyle, NormalizeNativeBorderColor(borders.LeftColorHex), borders.LeftSize?.Value, borders.LeftSpace?.Value));
+        }
+
+        private static NativeParagraphBorders MergeNativeParagraphBorders(NativeParagraphBorders styleBorders, NativeParagraphBorders directBorders) =>
+            styleBorders with {
+                Top = directBorders.Top.IsEmpty ? styleBorders.Top : directBorders.Top,
+                Right = directBorders.Right.IsEmpty ? styleBorders.Right : directBorders.Right,
+                Bottom = directBorders.Bottom.IsEmpty ? styleBorders.Bottom : directBorders.Bottom,
+                Left = directBorders.Left.IsEmpty ? styleBorders.Left : directBorders.Left
+            };
 
         private static PdfCore.PdfAlign MapNativeParagraphAlign(W.JustificationValues? alignment, bool allowJustify = true) {
             if (alignment == W.JustificationValues.Center) {
@@ -330,6 +466,25 @@ namespace OfficeIMO.Word.Pdf {
             return PdfCore.PdfAlign.Left;
         }
 
+        private static W.JustificationValues? ResolveNativeParagraphJustification(WordParagraph paragraph) =>
+            paragraph.ParagraphAlignment ?? GetNativeParagraphStyleDefaults(paragraph).Alignment;
+
+        private static PdfCore.PdfAlign ResolveNativeParagraphAlign(WordParagraph paragraph, bool allowJustify = true) {
+            W.JustificationValues? alignment = ResolveNativeParagraphJustification(paragraph);
+            if (alignment == null && IsNativeBiDiParagraph(paragraph)) {
+                return PdfCore.PdfAlign.Right;
+            }
+
+            return MapNativeParagraphAlign(alignment, allowJustify);
+        }
+
+        private static bool IsNativeBiDiParagraph(WordParagraph paragraph) =>
+            paragraph.BiDi ||
+            paragraph._paragraph?.ParagraphProperties?.GetFirstChild<W.BiDi>() != null;
+
+        private static PdfCore.PdfColumnAlign ResolveNativeColumnAlign(WordParagraph paragraph) =>
+            MapNativeColumnAlign(ResolveNativeParagraphJustification(paragraph));
+
         private static PdfCore.PdfColumnAlign MapNativeColumnAlign(W.JustificationValues? alignment) {
             if (alignment == W.JustificationValues.Center) {
                 return PdfCore.PdfColumnAlign.Center;
@@ -342,7 +497,14 @@ namespace OfficeIMO.Word.Pdf {
             return PdfCore.PdfColumnAlign.Left;
         }
 
-        private static PdfCore.PdfCellVerticalAlign MapNativeCellVerticalAlign(W.TableVerticalAlignmentValues? alignment) {
+        private static PdfCore.PdfCellVerticalAlign MapNativeCellVerticalAlign(W.TableVerticalAlignmentValues? alignment) =>
+            MapNativeNullableCellVerticalAlign(alignment) ?? PdfCore.PdfCellVerticalAlign.Top;
+
+        private static PdfCore.PdfCellVerticalAlign? MapNativeNullableCellVerticalAlign(W.TableVerticalAlignmentValues? alignment) {
+            if (!alignment.HasValue) {
+                return null;
+            }
+
             if (alignment == W.TableVerticalAlignmentValues.Center) {
                 return PdfCore.PdfCellVerticalAlign.Middle;
             }
@@ -462,7 +624,7 @@ namespace OfficeIMO.Word.Pdf {
                 maxLines = Math.Max(maxLines, GetNativeHeaderFooterLineCount(variant));
             }
 
-            return GetNativeHeaderFooterMarginExpansion(maxLines);
+            return GetNativeHeaderFooterMarginExpansion(maxLines, GetNativeHeaderFooterLineHeight(variants));
         }
 
         private static double GetNativeFooterMarginExpansion(params WordHeaderFooter?[] variants) {
@@ -471,7 +633,7 @@ namespace OfficeIMO.Word.Pdf {
                 maxLines = Math.Max(maxLines, GetNativeHeaderFooterLineCount(variant));
             }
 
-            return GetNativeFooterMarginExpansion(maxLines);
+            return GetNativeFooterMarginExpansion(maxLines, GetNativeHeaderFooterLineHeight(variants));
         }
 
         private static double GetNativeHeaderFooterTextMarginExpansion(params NativeHeaderFooterText?[] variants) {
@@ -483,20 +645,33 @@ namespace OfficeIMO.Word.Pdf {
             return GetNativeHeaderFooterMarginExpansion(maxLines);
         }
 
-        private static double GetNativeHeaderFooterMarginExpansion(int maxLines) {
+        private static double GetNativeHeaderFooterMarginExpansion(int maxLines, double lineHeight = NativeHeaderFooterLineHeight) {
             if (maxLines <= 2) {
                 return 0D;
             }
 
-            return (maxLines - 2) * NativeHeaderFooterLineHeight + NativeHeaderFooterBodyGap;
+            return (maxLines - 2) * lineHeight + NativeHeaderFooterBodyGap;
         }
 
-        private static double GetNativeFooterMarginExpansion(int maxLines) {
+        private static double GetNativeFooterMarginExpansion(int maxLines, double lineHeight = NativeHeaderFooterLineHeight) {
             if (maxLines <= 1) {
                 return 0D;
             }
 
-            return ((maxLines - 1) * NativeHeaderFooterLineHeight * 0.75D) + NativeHeaderFooterBodyGap;
+            return ((maxLines - 1) * lineHeight) + NativeHeaderFooterBodyGap;
+        }
+
+        private static double GetNativeHeaderFooterLineHeight(params WordHeaderFooter?[] variants) {
+            double maxFontSize = NativeHeaderFooterFontSize;
+            foreach (WordHeaderFooter? variant in variants) {
+                foreach (double fontSize in EnumerateNativeHeaderFooterFontSizes(variant)) {
+                    if (fontSize > maxFontSize) {
+                        maxFontSize = fontSize;
+                    }
+                }
+            }
+
+            return maxFontSize * 1.2D;
         }
 
         private static int GetNativeHeaderFooterLineCount(WordHeaderFooter? headerFooter) {

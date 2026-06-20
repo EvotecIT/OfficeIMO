@@ -5,7 +5,7 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
-        private void RenderRowFlowBlock(RowBlock rb, IPdfBlock? nextBlock) {
+        private void RenderRowFlowBlock(RowBlock rb, IPdfBlock? nextBlock, System.Collections.Generic.IList<IPdfBlock> blockList, int blockIndex) {
             double contentWidth = currentOpts.PageWidth - currentOpts.MarginLeft - currentOpts.MarginRight;
             int ncols = rb.Columns.Count;
             PdfRowStyle? rowStyle = rb.StyleSnapshot ?? currentOpts.DefaultRowStyleSnapshot;
@@ -86,7 +86,7 @@ internal static partial class PdfWriter {
             if (rowStyle?.KeepWithNext == true && nextBlock != null) {
                 double rowContentHeight = GetRowContentHeight();
                 double rowHeight = rowSpacingBefore + rowContentHeight + rowSpacingAfter;
-                double nextHeight = MeasureNextBlockFirstVisualHeight(nextBlock, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize);
+                double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize);
                 double keepHeight = rowHeight + nextHeight;
                 double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
                 if (nextHeight > 0.001 && rowHeight <= availableHeight + 0.001 && keepHeight <= availableHeight + 0.001 && y < yStart - 0.001 && y - keepHeight < currentOpts.MarginBottom) {
@@ -153,7 +153,7 @@ internal static partial class PdfWriter {
                             double spacingBefore = line == 0 && consumed > 0.001 ? GetParagraphSpacingBefore(paragraphStyle) : 0;
                             double spacingAfter = GetParagraphSpacingAfter(paragraphStyle, leading);
                             if (paragraphStyle?.KeepWithNext == true && line == 0 && idx + 1 < items.Count) {
-                                double nextHeight = MeasureColItemFirstVisualHeight(items[idx + 1]);
+                                double nextHeight = MeasureColKeepWithNextChainHeight(items, idx + 1);
                                 double keepHeight = spacingBefore + heights.Sum() + spacingAfter + nextHeight;
                                 double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
                                 if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && keepHeight > remain + 0.001) {
@@ -223,7 +223,7 @@ internal static partial class PdfWriter {
                             double textHeight = MeasureRichLinesHeight(heights, lines.Count, leading);
                             double needed = spacingBefore + textHeight + ch.SpacingAfter;
                             if (ch.KeepWithNext && idx + 1 < items.Count) {
-                                double nextHeight = MeasureColItemFirstVisualHeight(items[idx + 1]);
+                                double nextHeight = MeasureColKeepWithNextChainHeight(items, idx + 1);
                                 double keepHeight = needed + nextHeight;
                                 double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
                                 if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && keepHeight > remain + 0.001) {
@@ -290,7 +290,7 @@ internal static partial class PdfWriter {
                             if (line == 0 && listItem.KeepWithNext && listItem.IsFirstInKeepWithNextGroup) {
                                 int nextItemIndex = idx + listItem.KeepWithNextGroupItemCount;
                                 if (nextItemIndex < items.Count) {
-                                    double nextHeight = MeasureColItemFirstVisualHeight(items[nextItemIndex]);
+                                    double nextHeight = MeasureColKeepWithNextChainHeight(items, nextItemIndex);
                                     double keepHeight = listItem.KeepWithNextGroupHeight - listItem.SpacingBefore + spacingBefore + nextHeight;
                                     double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
                                     if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && keepHeight > remain + 0.001) {
@@ -348,7 +348,8 @@ internal static partial class PdfWriter {
 
                                 var markerLines = new System.Collections.Generic.List<string>(1) { listItem.Marker };
                                 int? labelMarkedContentId = RegisterTextStructureElement("Lbl", listItemElementIndex);
-                                WriteLinesInternal("F1", listItem.Size, leading, xCol + listItem.MarkerXOffset, listItem.MarkerWidth, baselineY, markerLines, listItem.MarkerAlign, listItem.Color, applyBaselineTweak: true, structureType: "Lbl", markedContentId: labelMarkedContentId);
+                                MarkSimpleFont(listItem.MarkerFont);
+                                WriteLinesInternal(GetStandardFontResourceName(listItem.MarkerFont, ChooseNormal(currentOpts.DefaultFont)), listItem.MarkerSize, leading, xCol + listItem.MarkerXOffset, listItem.MarkerWidth, baselineY, markerLines, listItem.MarkerAlign, listItem.MarkerColor ?? listItem.Color, applyBaselineTweak: true, structureType: "Lbl", markedContentId: labelMarkedContentId);
                             }
 
                             int? bodyMarkedContentId = line == 0 || listItem.StructureElement == null
@@ -379,7 +380,7 @@ internal static partial class PdfWriter {
                             double xPanel = xCol + panel.XOffset;
                             double spacingBefore = line == 0 ? ResolveColumnSpacingBefore(panelStyle.SpacingBefore, consumed) : 0D;
                             if (line == 0 && panelStyle.KeepWithNext && idx + 1 < items.Count) {
-                                double nextHeight = MeasureColItemFirstVisualHeight(items[idx + 1]);
+                                double nextHeight = MeasureColKeepWithNextChainHeight(items, idx + 1);
                                 double panelHeight = spacingBefore + panelStyle.PaddingY + heights.Sum() + panelStyle.PaddingY + panelStyle.SpacingAfter;
                                 double keepHeight = panelHeight + nextHeight;
                                 double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
@@ -522,7 +523,7 @@ internal static partial class PdfWriter {
 
                             if (line == 0 && tableStyle.KeepWithNext && idx + 1 < items.Count) {
                                 double tableHeight = tableSpacingBefore + table.CaptionHeight + GetTableRowsHeight(table.RowHeights, 0, table.RowHeights.Length, columnTableRowGap) + tableStyle.SpacingAfter;
-                                double nextHeight = MeasureColItemFirstVisualHeight(items[idx + 1]);
+                                double nextHeight = MeasureColKeepWithNextChainHeight(items, idx + 1);
                                 double keepHeight = tableHeight + nextHeight;
                                 if (nextHeight > 0.001 && tableHeight <= maxContentHeight + 0.001 && keepHeight <= maxContentHeight + 0.001 && keepHeight > remain + 0.001) {
                                     if (consumed > 0) break;
@@ -548,7 +549,7 @@ internal static partial class PdfWriter {
 
                                 if (!ReferenceEquals(tableStructurePage, currentPage)) {
                                     tableStructurePage = currentPage;
-                                    tableStructureElementIndex = RegisterStructureContainer("Table");
+                                    tableStructureElementIndex = RegisterStructureContainer("Table", alternativeText: tableStyle.AlternativeText);
                                 }
 
                                 return tableStructureElementIndex;
@@ -778,6 +779,9 @@ internal static partial class PdfWriter {
                                         var visibleLines = SliceTableCellLines(lines, sourceStartLine, visibleLineCount);
                                         visibleLines = StripRichLineLinksWhenCellLinked(visibleLines, linkUri, linkDestinationName);
                                         var visibleHeights = SliceTableCellLineHeights(lines, sourceStartLine, visibleLineCount, rowLeading);
+                                        var visibleAlignments = SliceTableCellLineAlignments(lines, sourceStartLine, visibleLineCount);
+                                        var visibleXOffsets = SliceTableCellLineXOffsets(lines, sourceStartLine, visibleLineCount);
+                                        var visibleWidths = SliceTableCellLineWidths(lines, sourceStartLine, visibleLineCount, innerW);
                                         var paragraph = new RichParagraphBlock(StripRunLinksWhenCellLinked(cell.Runs, linkUri, linkDestinationName), MapTableCellAlignment(align), textColor);
                                         string structureType = renderAsHeader ? "TH" : "TD";
                                         int tableColumnSpan = cell.ColumnSpan > 1 ? cell.ColumnSpan : 1;
@@ -794,7 +798,7 @@ internal static partial class PdfWriter {
                                             markedContentId = RegisterTextStructureElement(structureType, rowStructureElementIndex, renderAsHeader ? "Column" : string.Empty, tableColumnSpan, tableRowSpan);
                                         }
 
-                                        WriteClippedRichParagraph(sb, paragraph, visibleLines, visibleHeights, currentOpts, firstBaseline, rowSize, rowLeading, currentPage!.Annotations, xi - TableCellClipBleed, cellBottom - TableCellClipBleed, cellWidth + (TableCellClipBleed * 2D), cellHeight + (TableCellClipBleed * 2D), xi + cellPadLeft, innerW, structureType: markedStructureType, markedContentId: markedContentId, structurePage: currentPage);
+                                        WriteClippedRichParagraph(sb, paragraph, visibleLines, visibleHeights, currentOpts, firstBaseline, rowSize, rowLeading, currentPage!.Annotations, xi - TableCellClipBleed, cellBottom - TableCellClipBleed, cellWidth + (TableCellClipBleed * 2D), cellHeight + (TableCellClipBleed * 2D), xi + cellPadLeft, innerW, structureType: markedStructureType, markedContentId: markedContentId, structurePage: currentPage, lineAlignments: visibleAlignments, lineXOffsets: visibleXOffsets, lineWidths: visibleWidths);
                                     }
                                     if (!suppressCellObjects && (cell.Images.Count > 0 || cell.CheckBoxes.Count > 0 || cell.FormFields.Count > 0) && sourceStartLine == 0) {
                                         if (CanRenderTableCellCheckBoxInline(cell, lines, sourceStartLine, visibleLineCount)) {
@@ -987,7 +991,7 @@ internal static partial class PdfWriter {
                             double needed = spacingBefore + hr2.Thickness + hr2.SpacingAfter;
                             EnsureFixedFlowBlockFits("Horizontal rule", wCol, needed, wCol);
                             if (line == 0 && hr2.KeepWithNext && idx + 1 < items.Count) {
-                                double nextHeight = MeasureColItemFirstVisualHeight(items[idx + 1]);
+                                double nextHeight = MeasureColKeepWithNextChainHeight(items, idx + 1);
                                 double keepHeight = needed + nextHeight;
                                 double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
                                 if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && keepHeight > remain + 0.001) {
@@ -1013,7 +1017,7 @@ internal static partial class PdfWriter {
                             double needed = spacingBefore + ciimg.Height + imageStyle.SpacingAfter;
                             EnsureFixedFlowBlockFits("Image", ciimg.Width, needed, wCol);
                             if (imageStyle.KeepWithNext && idx + 1 < items.Count) {
-                                double nextHeight = MeasureColItemFirstVisualHeight(items[idx + 1]);
+                                double nextHeight = MeasureColKeepWithNextChainHeight(items, idx + 1);
                                 double keepHeight = needed + nextHeight;
                                 double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
                                 if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && keepHeight > remain + 0.001) {
@@ -1042,7 +1046,7 @@ internal static partial class PdfWriter {
                             double needed = spacingBefore + shape.Shape.Height + shapeStyle.SpacingAfter;
                             EnsureFixedFlowBlockFits("Shape", shape.Shape.Width, needed, wCol);
                             if (shapeStyle.KeepWithNext && idx + 1 < items.Count) {
-                                double nextHeight = MeasureColItemFirstVisualHeight(items[idx + 1]);
+                                double nextHeight = MeasureColKeepWithNextChainHeight(items, idx + 1);
                                 double keepHeight = needed + nextHeight;
                                 double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
                                 if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && keepHeight > remain + 0.001) {
@@ -1069,7 +1073,7 @@ internal static partial class PdfWriter {
                             double needed = spacingBefore + drawing.Drawing.Height + drawingStyle.SpacingAfter;
                             EnsureFixedFlowBlockFits("Drawing", drawing.Drawing.Width, needed, wCol);
                             if (drawingStyle.KeepWithNext && idx + 1 < items.Count) {
-                                double nextHeight = MeasureColItemFirstVisualHeight(items[idx + 1]);
+                                double nextHeight = MeasureColKeepWithNextChainHeight(items, idx + 1);
                                 double keepHeight = needed + nextHeight;
                                 double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
                                 if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && keepHeight > remain + 0.001) {

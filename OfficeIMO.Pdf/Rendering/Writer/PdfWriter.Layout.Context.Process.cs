@@ -33,11 +33,11 @@ internal static partial class PdfWriter {
                 if (block is BookmarkBlock bookmark) { AddNamedDestination(bookmark, y); continue; }
                 if (block is SpacerBlock spacer) { ConsumeSpacer(spacer.Height); continue; }
                 if (block is HeadingBlock heading) { RenderHeadingFlowBlock(heading, nextBlock, blockList, blockIndex); continue; }
-                if (block is RichParagraphBlock paragraph) { RenderRichParagraphFlowBlock(paragraph, nextBlock); continue; }
-                if (block is BulletListBlock bulletList) { RenderBulletListFlowBlock(bulletList, nextBlock); continue; }
-                if (block is NumberedListBlock numberedList) { RenderNumberedListFlowBlock(numberedList, nextBlock); continue; }
-                if (block is TableBlock table) { RenderTableFlowBlock(table, nextBlock); continue; }
-                if (block is HorizontalRuleBlock horizontalRule) { RenderHorizontalRuleFlowBlock(horizontalRule, nextBlock); continue; }
+                if (block is RichParagraphBlock paragraph) { RenderRichParagraphFlowBlock(paragraph, nextBlock, blockList, blockIndex); continue; }
+                if (block is BulletListBlock bulletList) { RenderBulletListFlowBlock(bulletList, nextBlock, blockList, blockIndex); continue; }
+                if (block is NumberedListBlock numberedList) { RenderNumberedListFlowBlock(numberedList, nextBlock, blockList, blockIndex); continue; }
+                if (block is TableBlock table) { RenderTableFlowBlock(table, nextBlock, blockList, blockIndex); continue; }
+                if (block is HorizontalRuleBlock horizontalRule) { RenderHorizontalRuleFlowBlock(horizontalRule, nextBlock, blockList, blockIndex); continue; }
                 if (block is TextFieldBlock textField) { RenderTextFieldBlock(textField, currentOpts.MarginLeft, width); continue; }
                 if (block is CheckBoxBlock checkBox) { RenderCheckBoxBlock(checkBox, currentOpts.MarginLeft, width); continue; }
                 if (block is ChoiceFieldBlock choice) { RenderChoiceFieldBlock(choice, currentOpts.MarginLeft, width); continue; }
@@ -46,11 +46,11 @@ internal static partial class PdfWriter {
                 if (block is FreeTextAnnotationBlock freeTextAnnotation) { RenderFreeTextAnnotationFlowBlock(freeTextAnnotation); continue; }
                 if (block is HighlightAnnotationBlock highlightAnnotation) { RenderHighlightAnnotationFlowBlock(highlightAnnotation); continue; }
                 if (block is PdfCanvasBlock canvas) { RenderCanvasBlock(canvas); continue; }
-                if (block is ShapeBlock shape) { RenderShapeFlowBlock(shape, nextBlock); continue; }
-                if (block is DrawingBlock drawing) { RenderDrawingFlowBlock(drawing, nextBlock); continue; }
-                if (block is RowBlock row) { RenderRowFlowBlock(row, nextBlock); continue; }
-                if (block is ImageBlock image) { RenderImageFlowBlock(image, nextBlock); continue; }
-                if (block is PanelParagraphBlock panel) { RenderPanelFlowBlock(panel, nextBlock); continue; }
+                if (block is ShapeBlock shape) { RenderShapeFlowBlock(shape, nextBlock, blockList, blockIndex); continue; }
+                if (block is DrawingBlock drawing) { RenderDrawingFlowBlock(drawing, nextBlock, blockList, blockIndex); continue; }
+                if (block is RowBlock row) { RenderRowFlowBlock(row, nextBlock, blockList, blockIndex); continue; }
+                if (block is ImageBlock image) { RenderImageFlowBlock(image, nextBlock, blockList, blockIndex); continue; }
+                if (block is PanelParagraphBlock panel) { RenderPanelFlowBlock(panel, nextBlock, blockList, blockIndex); continue; }
             }
         }
 

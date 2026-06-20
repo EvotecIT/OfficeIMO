@@ -44,7 +44,7 @@ namespace OfficeIMO.Word.Pdf {
                 for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
                     IReadOnlyList<WordElement> columnElements = columns[columnIndex];
                     row.Column(columnWidthPercents[columnIndex], column => {
-                        var flow = new NativePdfColumnFlow(page, column);
+                        INativePdfFlow flow = new NativeSpacingCollapseFlow(new NativePdfColumnFlow(page, column));
                         double columnContentWidth = availableColumnWidth * columnWidthPercents[columnIndex] / 100D;
                         bool hasContent = false;
                         for (int i = 0; i < columnElements.Count; i++) {
@@ -78,7 +78,8 @@ namespace OfficeIMO.Word.Pdf {
                                 columnContentWidth,
                                 nativeDefaults,
                                 nativeFontMap,
-                                renderSpacingOnlyEmptyParagraphLineBox: IsPreviousNativeElementTable(columnElements, i));
+                                renderSpacingOnlyEmptyParagraphLineBox: IsPreviousNativeElementTable(columnElements, i),
+                                nextElement: GetNextNativeRenderableElement(columnElements, i));
                             hasContent = true;
                         }
 
@@ -444,7 +445,12 @@ namespace OfficeIMO.Word.Pdf {
 
         private static bool ShouldKeepNativeElementWithFollowingContent(WordElement element) =>
             element is WordParagraph paragraph &&
-            (paragraph.KeepWithNext || GetHeadingLevel(paragraph) > 0);
+            (ShouldKeepNativeParagraphWithFollowingContent(paragraph) || GetHeadingLevel(paragraph) > 0);
+
+        private static bool ShouldKeepNativeParagraphWithFollowingContent(WordParagraph paragraph) =>
+            ReadNativeDirectParagraphOnOff<W.KeepNext>(paragraph) ??
+            GetNativeParagraphStyleDefaults(paragraph).KeepWithNext ??
+            false;
 
         private static int GetNativeAutomaticColumnWeight(WordElement element) {
             if (element is WordParagraph paragraph) {

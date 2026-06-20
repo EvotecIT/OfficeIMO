@@ -854,7 +854,8 @@ internal static partial class PdfWriter {
                         elementChildIds,
                         element.TableHeaderScope,
                         element.TableColumnSpan,
-                        element.TableRowSpan);
+                        element.TableRowSpan,
+                        element.AlternativeText);
                 }
 
                 ReplaceObject(objects, element.ObjectId, structElement);

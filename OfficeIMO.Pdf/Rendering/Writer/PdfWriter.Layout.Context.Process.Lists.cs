@@ -5,16 +5,19 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
-        private void RenderBulletListFlowBlock(BulletListBlock bl, IPdfBlock? nextBlock) {
+        private void RenderBulletListFlowBlock(BulletListBlock bl, IPdfBlock? nextBlock, System.Collections.Generic.IList<IPdfBlock> blockList, int blockIndex) {
             PdfListStyle? listStyle = ResolveListStyle(bl, currentOpts);
             double size = GetListFontSize(listStyle, currentOpts.DefaultFontSize);
-            double leading = GetListLeading(listStyle, size);
+            double markerSize = GetListMarkerFontSize(listStyle, size);
+            double leading = Math.Max(GetListLeading(listStyle, size), GetListLeading(listStyle, markerSize));
             var baseFont = ChooseNormal(currentOpts.DefaultFont);
+            PdfStandardFont markerFont = GetListMarkerFont(listStyle, currentOpts.DefaultFont);
             const string bulletGlyph = "•";
-            double bulletWidth = bl.RichItems.Count == 0
-                ? EstimateSimpleTextWidthForOptions(bulletGlyph, baseFont, size, currentOpts)
-                : bl.RichItems.Max(item => EstimateSimpleTextWidthForOptions(item.Marker ?? bulletGlyph, baseFont, size, currentOpts));
-            double spaceAdvance = EstimateSimpleTextWidthForOptions(" ", baseFont, size, currentOpts);
+            double estimatedBulletWidth = bl.RichItems.Count == 0
+                ? EstimateSimpleTextWidthForOptions(bulletGlyph, markerFont, markerSize, currentOpts)
+                : bl.RichItems.Max(item => EstimateSimpleTextWidthForOptions(item.Marker ?? bulletGlyph, markerFont, markerSize, currentOpts));
+            double bulletWidth = GetListMarkerWidth(listStyle, estimatedBulletWidth);
+            double spaceAdvance = EstimateSimpleTextWidthForOptions(" ", markerFont, markerSize, currentOpts);
             double markerGap = GetListMarkerGap(listStyle, spaceAdvance);
             double indent = bulletWidth + markerGap;
             double listLeftIndent = listStyle?.LeftIndent ?? 0D;
@@ -44,7 +47,7 @@ internal static partial class PdfWriter {
             }
 
             if (listStyle?.KeepWithNext == true && nextBlock != null && wrappedItems.Count > 0) {
-                double nextHeight = MeasureNextBlockFirstVisualHeight(nextBlock, currentOpts.MarginLeft, width, size);
+                double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, size);
                 double keepHeight = listHeight + nextHeight;
                 double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
                 if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && y < yStart - 0.001 && y - keepHeight < currentOpts.MarginBottom) {
@@ -67,23 +70,27 @@ internal static partial class PdfWriter {
 
                 double spacingBefore = itemIndex == 0 ? listSpacingBefore : 0D;
                 double spacingAfter = itemIndex == bl.RichItems.Count - 1 ? listSpacingAfter : itemSpacing;
-                RenderListItem(item.Runs, layout.Lines, layout.LineHeights, marker, currentOpts.MarginLeft + listLeftIndent + firstLineDx, bulletWidth, PdfAlign.Left, currentOpts.MarginLeft + listLeftIndent + indent, alignmentWidth, bl.Align, bl.Color ?? listStyle?.Color, size, leading, spacingBefore, spacingAfter, item.BookmarkName, ref listStructureElementIndex, ref listStructurePage);
+                PdfColor? listColor = bl.Color ?? listStyle?.Color;
+                RenderListItem(item.Runs, layout.Lines, layout.LineHeights, marker, markerFont, markerSize, listStyle?.MarkerColor ?? listColor, currentOpts.MarginLeft + listLeftIndent + firstLineDx, bulletWidth, GetBulletMarkerAlign(listStyle), currentOpts.MarginLeft + listLeftIndent + indent, alignmentWidth, bl.Align, listColor, size, leading, spacingBefore, spacingAfter, item.BookmarkName, ref listStructureElementIndex, ref listStructurePage);
             }
         }
 
-        private void RenderNumberedListFlowBlock(NumberedListBlock nl, IPdfBlock? nextBlock) {
+        private void RenderNumberedListFlowBlock(NumberedListBlock nl, IPdfBlock? nextBlock, System.Collections.Generic.IList<IPdfBlock> blockList, int blockIndex) {
             PdfListStyle? listStyle = ResolveListStyle(nl, currentOpts);
             double size = GetListFontSize(listStyle, currentOpts.DefaultFontSize);
-            double leading = GetListLeading(listStyle, size);
+            double markerSize = GetListMarkerFontSize(listStyle, size);
+            double leading = Math.Max(GetListLeading(listStyle, size), GetListLeading(listStyle, markerSize));
             var baseFont = ChooseNormal(currentOpts.DefaultFont);
+            PdfStandardFont markerFont = GetListMarkerFont(listStyle, currentOpts.DefaultFont);
             int lastNumber = nl.StartNumber + Math.Max(0, nl.RichItems.Count - 1);
             string widestMarker = lastNumber.ToString(CultureInfo.InvariantCulture) + ".";
-            double markerWidth = nl.RichItems.Count == 0
-                ? EstimateSimpleTextWidthForOptions(widestMarker, baseFont, size, currentOpts)
+            double estimatedMarkerWidth = nl.RichItems.Count == 0
+                ? EstimateSimpleTextWidthForOptions(widestMarker, markerFont, markerSize, currentOpts)
                 : nl.RichItems
                     .Select((item, itemIndex) => item.Marker ?? ((nl.StartNumber + itemIndex).ToString(CultureInfo.InvariantCulture) + "."))
-                    .Max(marker => EstimateSimpleTextWidthForOptions(marker, baseFont, size, currentOpts));
-            double spaceAdvance = EstimateSimpleTextWidthForOptions(" ", baseFont, size, currentOpts);
+                    .Max(marker => EstimateSimpleTextWidthForOptions(marker, markerFont, markerSize, currentOpts));
+            double markerWidth = GetListMarkerWidth(listStyle, estimatedMarkerWidth);
+            double spaceAdvance = EstimateSimpleTextWidthForOptions(" ", markerFont, markerSize, currentOpts);
             double markerGap = GetListMarkerGap(listStyle, spaceAdvance);
             double indent = markerWidth + markerGap;
             double rawTextWidth = width - (listStyle?.LeftIndent ?? 0D) - indent;
@@ -113,7 +120,7 @@ internal static partial class PdfWriter {
             }
 
             if (listStyle?.KeepWithNext == true && nextBlock != null && wrappedItems.Count > 0) {
-                double nextHeight = MeasureNextBlockFirstVisualHeight(nextBlock, currentOpts.MarginLeft, width, size);
+                double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, size);
                 double keepHeight = listHeight + nextHeight;
                 double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
                 if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && y < yStart - 0.001 && y - keepHeight < currentOpts.MarginBottom) {
@@ -136,7 +143,8 @@ internal static partial class PdfWriter {
 
                 double spacingBefore = itemIndex == 0 ? listSpacingBefore : 0D;
                 double spacingAfter = itemIndex == nl.RichItems.Count - 1 ? listSpacingAfter : itemSpacing;
-                RenderListItem(item.Runs, layout.Lines, layout.LineHeights, marker, currentOpts.MarginLeft + listLeftIndent + firstLineDx, markerWidth, PdfAlign.Right, currentOpts.MarginLeft + listLeftIndent + indent, alignmentWidth, nl.Align, nl.Color ?? listStyle?.Color, size, leading, spacingBefore, spacingAfter, item.BookmarkName, ref listStructureElementIndex, ref listStructurePage);
+                PdfColor? listColor = nl.Color ?? listStyle?.Color;
+                RenderListItem(item.Runs, layout.Lines, layout.LineHeights, marker, markerFont, markerSize, listStyle?.MarkerColor ?? listColor, currentOpts.MarginLeft + listLeftIndent + firstLineDx, markerWidth, GetNumberedMarkerAlign(listStyle), currentOpts.MarginLeft + listLeftIndent + indent, alignmentWidth, nl.Align, listColor, size, leading, spacingBefore, spacingAfter, item.BookmarkName, ref listStructureElementIndex, ref listStructurePage);
             }
         }
 

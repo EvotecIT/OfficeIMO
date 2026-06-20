@@ -193,6 +193,53 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Keeps_Styled_Automatic_Column_Content_With_Following_Content() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeAutomaticSectionColumnStyledKeep.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeAutomaticSectionColumnStyledKeep.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            WordSection section = document.Sections[0];
+            section.ColumnCount = 2;
+            section.ColumnsSpace = 720;
+
+            const string styleId = "AutomaticColumnStyledKeepNext";
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(new Style(
+                new StyleName { Val = "Automatic Column Styled Keep Next" },
+                new BasedOn { Val = "Normal" },
+                new StyleParagraphProperties(new KeepNext()))
+            {
+                Type = StyleValues.Paragraph,
+                StyleId = styleId,
+                CustomStyle = true
+            });
+
+            document.AddParagraph("StyledColumnKeepPrelude");
+            document.AddParagraph("StyledColumnKeepHeading").SetStyleId(styleId);
+            document.AddParagraph("StyledColumnKeepBody follows the styled paragraph.");
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false,
+                PageSize = new PdfCore.PageSize(612, 792),
+                Margins = PdfCore.PageMargins.Uniform(36)
+            });
+        }
+
+        byte[] bytes = File.ReadAllBytes(pdfPath);
+        using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
+        var page = pdf.GetPage(1);
+
+        double preludeX = FindWordStartX(page, "StyledColumnKeepPrelude");
+        double headingX = FindWordStartX(page, "StyledColumnKeepHeading");
+        double bodyX = FindWordStartX(page, "StyledColumnKeepBody");
+
+        Assert.InRange(preludeX, 35D, 48D);
+        Assert.True(headingX > preludeX + 250D, $"Expected the styled keep-next paragraph to move into the second automatic column. Prelude x: {preludeX:0.##}, heading x: {headingX:0.##}.");
+        Assert.InRange(Math.Abs(bodyX - headingX), 0D, 8D);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Splits_Inline_Word_Column_Breaks() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeInlineSectionColumnBreak.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeInlineSectionColumnBreak.pdf");

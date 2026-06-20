@@ -6,6 +6,7 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfWriter {
     private const double TableCellClipBleed = 2D;
     private const double TableCellCheckBoxGap = 2D;
+    private const double TableCellNoWrapWidth = 1000000D;
 
     // Helper shapes for column pagination
     private abstract class ColItem { public string Kind = string.Empty; }
@@ -18,22 +19,28 @@ internal static partial class PdfWriter {
     private sealed class ColForm : ColItem { public IPdfBlock Block = null!; public ColForm() { Kind = "FORM"; } }
     private sealed class ColBookmark : ColItem { public BookmarkBlock Block = null!; public ColBookmark() { Kind = "B"; } }
     private sealed class ColSpacer : ColItem { public SpacerBlock Block = null!; public ColSpacer() { Kind = "SPACE"; } }
-    private sealed class ColListItem : ColItem { public System.Collections.Generic.IReadOnlyList<TextRun> Runs = null!; public System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines = null!; public System.Collections.Generic.List<double> Heights = null!; public string Marker = string.Empty; public double MarkerXOffset; public double MarkerWidth; public PdfAlign MarkerAlign; public double TextXOffset; public double TextWidth; public PdfAlign TextAlign; public PdfColor? Color; public double Leading; public double Size; public double SpacingBefore; public double SpacingAfter; public string? BookmarkName; public int ListGroupId; public bool KeepTogether; public bool IsFirstInKeepGroup; public double KeepGroupHeight; public bool KeepWithNext; public bool IsFirstInKeepWithNextGroup; public int KeepWithNextGroupItemCount; public double KeepWithNextGroupHeight; public PageStructElement? StructureElement; public ColListItem() { Kind = "L"; } }
+    private sealed class ColListItem : ColItem { public System.Collections.Generic.IReadOnlyList<TextRun> Runs = null!; public System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines = null!; public System.Collections.Generic.List<double> Heights = null!; public string Marker = string.Empty; public PdfStandardFont MarkerFont; public double MarkerSize; public PdfColor? MarkerColor; public double MarkerXOffset; public double MarkerWidth; public PdfAlign MarkerAlign; public double TextXOffset; public double TextWidth; public PdfAlign TextAlign; public PdfColor? Color; public double Leading; public double Size; public double SpacingBefore; public double SpacingAfter; public string? BookmarkName; public int ListGroupId; public bool KeepTogether; public bool IsFirstInKeepGroup; public double KeepGroupHeight; public bool KeepWithNext; public bool IsFirstInKeepWithNextGroup; public int KeepWithNextGroupItemCount; public double KeepWithNextGroupHeight; public PageStructElement? StructureElement; public ColListItem() { Kind = "L"; } }
     private sealed class ColPanel : ColItem { public PanelParagraphBlock Block = null!; public PanelStyle Style = null!; public System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines = null!; public System.Collections.Generic.List<double> Heights = null!; public double Leading; public double Size; public double FirstBaselineOffset; public double XOffset; public double PanelWidth; public double TextWidth; public ColPanel() { Kind = "PANEL"; } }
     private sealed class ColTable : ColItem { public TableBlock Block = null!; public PdfTableStyle Style = null!; public int Columns; public double[] ColumnWidths = null!; public TableCellTextLayout[][] RowLines = null!; public int[] RowLineCounts = null!; public double[] RowHeights = null!; public double[] RowLeadings = null!; public double[] RowSizes = null!; public bool[] RowBold = null!; public double Width; public double Size; public int HeaderRowCount; public int RepeatHeaderRowCount; public int FooterStartRowIndex; public System.Collections.Generic.IReadOnlyList<TextRun>? CaptionRuns; public System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>>? CaptionLines; public System.Collections.Generic.List<double>? CaptionLineHeights; public double CaptionLeading; public double CaptionHeight; public ColTable() { Kind = "T"; } }
     private sealed class TableColumnLayout { public double[] Widths = null!; public double Width; }
     private sealed class TableCellTextLayout {
-        public TableCellTextLayout(System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights) {
+        public TableCellTextLayout(System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, System.Collections.Generic.List<PdfAlign?>? lineAlignments = null, System.Collections.Generic.List<double>? lineXOffsets = null, System.Collections.Generic.List<double>? lineWidths = null) {
             Lines = lines;
             LineHeights = lineHeights;
+            LineAlignments = lineAlignments;
+            LineXOffsets = lineXOffsets;
+            LineWidths = lineWidths;
         }
 
         public System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines { get; }
         public System.Collections.Generic.List<double> LineHeights { get; }
+        public System.Collections.Generic.List<PdfAlign?>? LineAlignments { get; }
+        public System.Collections.Generic.List<double>? LineXOffsets { get; }
+        public System.Collections.Generic.List<double>? LineWidths { get; }
         public int LineCount => System.Math.Max(1, Lines.Count);
     }
     private readonly struct TableCellLayout {
-        public TableCellLayout(int column, int columnSpan, int rowSpan, string text, System.Collections.Generic.IReadOnlyList<TextRun> runs, System.Collections.Generic.IReadOnlyList<PdfTableCellParagraph> paragraphs, string? linkUri, string? linkDestinationName, string? linkContents, string? namedDestinationName, System.Collections.Generic.IReadOnlyList<PdfTableCellCheckBox> checkBoxes, System.Collections.Generic.IReadOnlyList<PdfTableCellFormField> formFields, System.Collections.Generic.IReadOnlyList<PdfTableCellImage> images) {
+        public TableCellLayout(int column, int columnSpan, int rowSpan, string text, System.Collections.Generic.IReadOnlyList<TextRun> runs, System.Collections.Generic.IReadOnlyList<PdfTableCellParagraph> paragraphs, string? linkUri, string? linkDestinationName, string? linkContents, string? namedDestinationName, System.Collections.Generic.IReadOnlyList<PdfTableCellCheckBox> checkBoxes, System.Collections.Generic.IReadOnlyList<PdfTableCellFormField> formFields, System.Collections.Generic.IReadOnlyList<PdfTableCellImage> images, bool noWrap) {
             Column = column;
             ColumnSpan = columnSpan;
             RowSpan = rowSpan;
@@ -47,6 +54,7 @@ internal static partial class PdfWriter {
             CheckBoxes = checkBoxes;
             FormFields = formFields;
             Images = images;
+            NoWrap = noWrap;
         }
 
         public int Column { get; }
@@ -62,6 +70,7 @@ internal static partial class PdfWriter {
         public System.Collections.Generic.IReadOnlyList<PdfTableCellCheckBox> CheckBoxes { get; }
         public System.Collections.Generic.IReadOnlyList<PdfTableCellFormField> FormFields { get; }
         public System.Collections.Generic.IReadOnlyList<PdfTableCellImage> Images { get; }
+        public bool NoWrap { get; }
     }
 
     private static LayoutResult LayoutBlocks(IEnumerable<IPdfBlock> blocks, PdfOptions opts) {

@@ -5,7 +5,7 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
-        private void RenderTableFlowBlock(TableBlock tb, IPdfBlock? nextBlock) {
+        private void RenderTableFlowBlock(TableBlock tb, IPdfBlock? nextBlock, System.Collections.Generic.IList<IPdfBlock> blockList, int blockIndex) {
             PdfTableStyle style = tb.Style ?? currentOpts.DefaultTableStyleSnapshot ?? TableStyles.Light();
             int cols = GetTableColumnCount(tb);
             if (cols == 0) return;
@@ -159,7 +159,7 @@ internal static partial class PdfWriter {
                     }
                 }
                 rowLineCounts[ri] = maxLines;
-                rowHeights[ri] = Math.Max(maxRequiredHeight, GetTableRowMinHeight(style, ri));
+                rowHeights[ri] = ResolveTableRowHeight(style, ri, maxRequiredHeight);
             }
             ApplyTableRowSpanHeights(tb, style, cols, colPixel, rowLines, rowHeights, rowLeadings, colGapPx, rowGapPx);
             double xOrigin = ResolveTableX(tb.Align, style, currentOpts.MarginLeft, contentWidth, tableWidth);
@@ -201,7 +201,7 @@ internal static partial class PdfWriter {
 
             if (style.KeepWithNext && nextBlock != null) {
                 double tableHeight = tableSpacingBefore + tableContentHeight + style.SpacingAfter;
-                double nextHeight = MeasureNextBlockFirstVisualHeight(nextBlock, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize);
+                double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize);
                 double keepHeight = tableHeight + nextHeight;
                 if (nextHeight > 0.001 && tableHeight <= maxContentHeight + 0.001 && keepHeight <= maxContentHeight + 0.001 && y < yStart - 0.001 && y - keepHeight < currentOpts.MarginBottom) {
                     NewPage();
@@ -227,7 +227,7 @@ internal static partial class PdfWriter {
 
                 if (!ReferenceEquals(tableStructurePage, currentPage)) {
                     tableStructurePage = currentPage;
-                    tableStructureElementIndex = RegisterStructureContainer("Table");
+                    tableStructureElementIndex = RegisterStructureContainer("Table", alternativeText: style.AlternativeText);
                 }
 
                 return tableStructureElementIndex;
@@ -556,6 +556,9 @@ internal static partial class PdfWriter {
                         var visibleLines = SliceTableCellLines(lines, sourceStartLine, visibleLineCount);
                         visibleLines = StripRichLineLinksWhenCellLinked(visibleLines, linkUri, linkDestinationName);
                         var visibleHeights = SliceTableCellLineHeights(lines, sourceStartLine, visibleLineCount, rowLeading);
+                        var visibleAlignments = SliceTableCellLineAlignments(lines, sourceStartLine, visibleLineCount);
+                        var visibleXOffsets = SliceTableCellLineXOffsets(lines, sourceStartLine, visibleLineCount);
+                        var visibleWidths = SliceTableCellLineWidths(lines, sourceStartLine, visibleLineCount, innerW);
                         var paragraph = new RichParagraphBlock(StripRunLinksWhenCellLinked(cell.Runs, linkUri, linkDestinationName), MapTableCellAlignment(align), textColor);
                         string structureType = renderAsHeader ? "TH" : "TD";
                         int tableColumnSpan = cell.ColumnSpan > 1 ? cell.ColumnSpan : 1;
@@ -581,7 +584,7 @@ internal static partial class PdfWriter {
                                 : RegisterTextStructureElement(structureType, rowStructureElement, renderAsHeader ? "Column" : string.Empty, tableColumnSpan, tableRowSpan);
                         }
 
-                        WriteClippedRichParagraph(sb, paragraph, visibleLines, visibleHeights, currentOpts, firstBaseline, rowSize, rowLeading, currentPage!.Annotations, xi - TableCellClipBleed, cellBottom - TableCellClipBleed, cellWidth + (TableCellClipBleed * 2D), cellHeight + (TableCellClipBleed * 2D), xi + cellPadLeft, innerW, structureType: markedStructureType, markedContentId: markedContentId, structurePage: currentPage);
+                        WriteClippedRichParagraph(sb, paragraph, visibleLines, visibleHeights, currentOpts, firstBaseline, rowSize, rowLeading, currentPage!.Annotations, xi - TableCellClipBleed, cellBottom - TableCellClipBleed, cellWidth + (TableCellClipBleed * 2D), cellHeight + (TableCellClipBleed * 2D), xi + cellPadLeft, innerW, structureType: markedStructureType, markedContentId: markedContentId, structurePage: currentPage, lineAlignments: visibleAlignments, lineXOffsets: visibleXOffsets, lineWidths: visibleWidths);
                     }
                     if (!suppressCellObjects && (cell.Images.Count > 0 || cell.CheckBoxes.Count > 0 || cell.FormFields.Count > 0) && sourceStartLine == 0) {
                         if (CanRenderTableCellCheckBoxInline(cell, lines, sourceStartLine, visibleLineCount)) {
