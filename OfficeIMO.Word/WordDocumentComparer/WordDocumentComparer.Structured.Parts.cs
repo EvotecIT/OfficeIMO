@@ -227,6 +227,57 @@ namespace OfficeIMO.Word {
             return endnote.Type == null || endnote.Type.Value == FootnoteEndnoteValues.Normal;
         }
 
+        private static List<Footnote> GetReferencedFootnotes(MainDocumentPart mainPart) {
+            HashSet<long> referencedIds = GetReferencedNoteIds<FootnoteReference>(mainPart);
+            return mainPart.FootnotesPart?.Footnotes?.Elements<Footnote>()
+                .Where(footnote => footnote.Id?.Value is long noteId && referencedIds.Contains(noteId) && IsVisibleNote(footnote))
+                .ToList() ?? new List<Footnote>();
+        }
+
+        private static List<Endnote> GetReferencedEndnotes(MainDocumentPart mainPart) {
+            HashSet<long> referencedIds = GetReferencedNoteIds<EndnoteReference>(mainPart);
+            return mainPart.EndnotesPart?.Endnotes?.Elements<Endnote>()
+                .Where(endnote => endnote.Id?.Value is long noteId && referencedIds.Contains(noteId) && IsVisibleNote(endnote))
+                .ToList() ?? new List<Endnote>();
+        }
+
+        private static HashSet<long> GetReferencedNoteIds<TReference>(MainDocumentPart mainPart)
+            where TReference : OpenXmlElement {
+            var ids = new HashSet<long>();
+            foreach (OpenXmlElement root in GetNoteReferenceRoots(mainPart)) {
+                foreach (TReference reference in root.Descendants<TReference>()) {
+                    long? noteId = reference switch {
+                        FootnoteReference footnoteReference => footnoteReference.Id?.Value,
+                        EndnoteReference endnoteReference => endnoteReference.Id?.Value,
+                        _ => null
+                    };
+                    if (noteId != null) {
+                        ids.Add(noteId.Value);
+                    }
+                }
+            }
+
+            return ids;
+        }
+
+        private static IEnumerable<OpenXmlElement> GetNoteReferenceRoots(MainDocumentPart mainPart) {
+            if (mainPart.Document != null) {
+                yield return mainPart.Document;
+            }
+
+            foreach (HeaderPart headerPart in mainPart.HeaderParts) {
+                if (headerPart.Header != null) {
+                    yield return headerPart.Header;
+                }
+            }
+
+            foreach (FooterPart footerPart in mainPart.FooterParts) {
+                if (footerPart.Footer != null) {
+                    yield return footerPart.Footer;
+                }
+            }
+        }
+
         private static double GetImageSimilarity(ImageSnapshot source, ImageSnapshot target) {
             if (!string.Equals(source.PartKey, target.PartKey, StringComparison.Ordinal)) {
                 return 0;

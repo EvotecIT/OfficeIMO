@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
+using A = DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Wordprocessing;
 using PIC = DocumentFormat.OpenXml.Drawing.Pictures;
 using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
@@ -181,16 +182,22 @@ namespace OfficeIMO.Word {
 
             while (sourceIndex < sourceEnd && targetIndex < targetEnd) {
                 int betterTargetIndex = FindBetterTargetRowAlignmentIndex(sourceRows[sourceIndex], targetRows, targetIndex, targetEnd);
-                if (targetEnd - targetIndex > sourceEnd - sourceIndex && betterTargetIndex > targetIndex) {
-                    AddInsertedTableRowFinding(targetRows, tableIndex, tableDocumentOrder, targetIndex, result);
-                    targetIndex++;
+                if (betterTargetIndex > targetIndex) {
+                    while (targetIndex < betterTargetIndex) {
+                        AddInsertedTableRowFinding(targetRows, tableIndex, tableDocumentOrder, targetIndex, result);
+                        targetIndex++;
+                    }
+
                     continue;
                 }
 
                 int betterSourceIndex = FindBetterSourceRowAlignmentIndex(sourceRows, sourceIndex, sourceEnd, targetRows[targetIndex]);
-                if (sourceEnd - sourceIndex > targetEnd - targetIndex && betterSourceIndex > sourceIndex) {
-                    AddDeletedTableRowFinding(sourceRows, tableIndex, tableDocumentOrder, sourceIndex, result);
-                    sourceIndex++;
+                if (betterSourceIndex > sourceIndex) {
+                    while (sourceIndex < betterSourceIndex) {
+                        AddDeletedTableRowFinding(sourceRows, tableIndex, tableDocumentOrder, sourceIndex, result);
+                        sourceIndex++;
+                    }
+
                     continue;
                 }
 
@@ -615,26 +622,16 @@ namespace OfficeIMO.Word {
                     footerIndex++;
                 }
 
-                int footnoteIndex = 0;
-                foreach (Footnote footnote in mainPart.FootnotesPart?.Footnotes?.Elements<Footnote>() ?? Enumerable.Empty<Footnote>()) {
-                    if (!IsVisibleNote(footnote)) {
-                        continue;
-                    }
-
+                List<Footnote> footnotes = GetReferencedFootnotes(mainPart);
+                for (int footnoteIndex = 0; footnoteIndex < footnotes.Count; footnoteIndex++) {
                     string noteId = footnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                    AddTableSnapshots(snapshots, document, mainPart.FootnotesPart, footnote, FootnotePartKeyPrefix + noteId, FootnotePartOrderBase + (footnoteIndex * RelatedPartOrderStride));
-                    footnoteIndex++;
+                    AddTableSnapshots(snapshots, document, mainPart.FootnotesPart, footnotes[footnoteIndex], FootnotePartKeyPrefix + noteId, FootnotePartOrderBase + (footnoteIndex * RelatedPartOrderStride));
                 }
 
-                int endnoteIndex = 0;
-                foreach (Endnote endnote in mainPart.EndnotesPart?.Endnotes?.Elements<Endnote>() ?? Enumerable.Empty<Endnote>()) {
-                    if (!IsVisibleNote(endnote)) {
-                        continue;
-                    }
-
+                List<Endnote> endnotes = GetReferencedEndnotes(mainPart);
+                for (int endnoteIndex = 0; endnoteIndex < endnotes.Count; endnoteIndex++) {
                     string noteId = endnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                    AddTableSnapshots(snapshots, document, mainPart.EndnotesPart, endnote, EndnotePartKeyPrefix + noteId, EndnotePartOrderBase + (endnoteIndex * RelatedPartOrderStride));
-                    endnoteIndex++;
+                    AddTableSnapshots(snapshots, document, mainPart.EndnotesPart, endnotes[endnoteIndex], EndnotePartKeyPrefix + noteId, EndnotePartOrderBase + (endnoteIndex * RelatedPartOrderStride));
                 }
             }
 
@@ -750,7 +747,7 @@ namespace OfficeIMO.Word {
                 return 0;
             }
 
-            return GetTextSimilarity(GetRowText(source), GetRowText(target));
+            return GetContainmentAwareTextSimilarity(GetRowText(source), GetRowText(target));
         }
 
         private static double GetTableSimilarity(TableSnapshot source, TableSnapshot target) {
@@ -783,26 +780,16 @@ namespace OfficeIMO.Word {
                     footerIndex++;
                 }
 
-                int footnoteIndex = 0;
-                foreach (Footnote footnote in mainPart.FootnotesPart?.Footnotes?.Elements<Footnote>() ?? Enumerable.Empty<Footnote>()) {
-                    if (!IsVisibleNote(footnote)) {
-                        continue;
-                    }
-
+                List<Footnote> footnotes = GetReferencedFootnotes(mainPart);
+                for (int footnoteIndex = 0; footnoteIndex < footnotes.Count; footnoteIndex++) {
                     string noteId = footnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                    AddImageSnapshots(snapshots, mainPart.FootnotesPart, footnote, FootnotePartKeyPrefix + noteId, FootnotePartOrderBase + (footnoteIndex * RelatedPartOrderStride));
-                    footnoteIndex++;
+                    AddImageSnapshots(snapshots, mainPart.FootnotesPart, footnotes[footnoteIndex], FootnotePartKeyPrefix + noteId, FootnotePartOrderBase + (footnoteIndex * RelatedPartOrderStride));
                 }
 
-                int endnoteIndex = 0;
-                foreach (Endnote endnote in mainPart.EndnotesPart?.Endnotes?.Elements<Endnote>() ?? Enumerable.Empty<Endnote>()) {
-                    if (!IsVisibleNote(endnote)) {
-                        continue;
-                    }
-
+                List<Endnote> endnotes = GetReferencedEndnotes(mainPart);
+                for (int endnoteIndex = 0; endnoteIndex < endnotes.Count; endnoteIndex++) {
                     string noteId = endnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                    AddImageSnapshots(snapshots, mainPart.EndnotesPart, endnote, EndnotePartKeyPrefix + noteId, EndnotePartOrderBase + (endnoteIndex * RelatedPartOrderStride));
-                    endnoteIndex++;
+                    AddImageSnapshots(snapshots, mainPart.EndnotesPart, endnotes[endnoteIndex], EndnotePartKeyPrefix + noteId, EndnotePartOrderBase + (endnoteIndex * RelatedPartOrderStride));
                 }
             }
 
@@ -914,15 +901,38 @@ namespace OfficeIMO.Word {
         }
 
         private static string GetImageHyperlinkSignature(OpenXmlPart part, OpenXmlElement imageElement) {
+            var tokens = new List<string>();
             Hyperlink? hyperlink = imageElement.Ancestors<Hyperlink>().FirstOrDefault();
-            return hyperlink == null ? string.Empty : "|hyperlink:" + GetHyperlinkSignature(part, hyperlink);
+            if (hyperlink != null) {
+                tokens.Add("word:" + GetHyperlinkSignature(part, hyperlink));
+            }
+
+            foreach (A.HyperlinkOnClick drawingHyperlink in imageElement.Descendants<A.HyperlinkOnClick>()) {
+                tokens.Add("drawing:" + GetDrawingHyperlinkSignature(part, drawingHyperlink));
+            }
+
+            return tokens.Count == 0 ? string.Empty : "|hyperlink:" + string.Join("|", tokens.ToArray());
+        }
+
+        private static string GetDrawingHyperlinkSignature(OpenXmlPart part, A.HyperlinkOnClick hyperlink) {
+            return string.Join(
+                "|",
+                hyperlink.GetAttributes()
+                    .OrderBy(attribute => attribute.NamespaceUri, StringComparer.Ordinal)
+                    .ThenBy(attribute => attribute.LocalName, StringComparer.Ordinal)
+                    .Select(attribute => attribute.LocalName == "id"
+                        ? attribute.LocalName + "=" + GetRelationshipTarget(part, attribute.Value ?? string.Empty)
+                        : attribute.LocalName + "=" + (attribute.Value ?? string.Empty))
+                    .ToArray());
         }
 
         private static string GetImagePositionKey(string partKey, OpenXmlElement imageElement) {
             OpenXmlElement block = imageElement.Ancestors<Paragraph>().FirstOrDefault() ??
                                    imageElement.Ancestors<Table>().FirstOrDefault() ??
                                    imageElement;
-            return partKey + ":" + GetStableElementPath(block) + ":image:" + GetImageOrdinalWithinBlock(block, imageElement).ToString(System.Globalization.CultureInfo.InvariantCulture);
+            return partKey + ":" + GetStableElementPath(block) +
+                   ":image:" + GetImageOrdinalWithinBlock(block, imageElement).ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                   ":offset:" + GetImageInlineOffsetWithinBlock(block, imageElement).ToString(System.Globalization.CultureInfo.InvariantCulture);
         }
 
         private static void RemoveVolatileDrawingAttributes(OpenXmlElement element) {
@@ -972,6 +982,34 @@ namespace OfficeIMO.Word {
             }
 
             return ordinal;
+        }
+
+        private static int GetImageInlineOffsetWithinBlock(OpenXmlElement block, OpenXmlElement imageElement) {
+            int offset = 0;
+            foreach (OpenXmlElement element in block.Descendants()) {
+                if (ReferenceEquals(element, imageElement)) {
+                    return offset;
+                }
+
+                offset += GetInlinePositionLength(element);
+            }
+
+            return offset;
+        }
+
+        private static int GetInlinePositionLength(OpenXmlElement element) {
+            return element switch {
+                Text text => text.Text?.Length ?? 0,
+                TabChar => 1,
+                Break => 1,
+                SymbolChar => 1,
+                NoBreakHyphen => 1,
+                SoftHyphen => 1,
+                CarriageReturn => 1,
+                FootnoteReference => 1,
+                EndnoteReference => 1,
+                _ => 0
+            };
         }
 
         private static IEnumerable<OrderedElement> EnumerateDescendantsWithOrder(OpenXmlElement? container, int orderBase) {

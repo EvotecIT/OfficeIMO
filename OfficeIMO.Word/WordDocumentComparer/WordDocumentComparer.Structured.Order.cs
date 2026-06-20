@@ -48,26 +48,16 @@ namespace OfficeIMO.Word {
                     footerIndex++;
                 }
 
-                int footnoteIndex = 0;
-                foreach (Footnote footnote in mainPart.FootnotesPart?.Footnotes?.Elements<Footnote>() ?? Enumerable.Empty<Footnote>()) {
-                    if (!IsVisibleNote(footnote)) {
-                        continue;
-                    }
-
+                List<Footnote> footnotes = GetReferencedFootnotes(mainPart);
+                for (int footnoteIndex = 0; footnoteIndex < footnotes.Count; footnoteIndex++) {
                     string noteId = footnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                    AddBlockOrderSnapshots(snapshots, document, mainPart.FootnotesPart, footnote, FootnotePartKeyPrefix + noteId, FootnotePartOrderBase + (footnoteIndex * RelatedPartOrderStride));
-                    footnoteIndex++;
+                    AddBlockOrderSnapshots(snapshots, document, mainPart.FootnotesPart, footnotes[footnoteIndex], FootnotePartKeyPrefix + noteId, FootnotePartOrderBase + (footnoteIndex * RelatedPartOrderStride));
                 }
 
-                int endnoteIndex = 0;
-                foreach (Endnote endnote in mainPart.EndnotesPart?.Endnotes?.Elements<Endnote>() ?? Enumerable.Empty<Endnote>()) {
-                    if (!IsVisibleNote(endnote)) {
-                        continue;
-                    }
-
+                List<Endnote> endnotes = GetReferencedEndnotes(mainPart);
+                for (int endnoteIndex = 0; endnoteIndex < endnotes.Count; endnoteIndex++) {
                     string noteId = endnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                    AddBlockOrderSnapshots(snapshots, document, mainPart.EndnotesPart, endnote, EndnotePartKeyPrefix + noteId, EndnotePartOrderBase + (endnoteIndex * RelatedPartOrderStride));
-                    endnoteIndex++;
+                    AddBlockOrderSnapshots(snapshots, document, mainPart.EndnotesPart, endnotes[endnoteIndex], EndnotePartKeyPrefix + noteId, EndnotePartOrderBase + (endnoteIndex * RelatedPartOrderStride));
                 }
             }
 

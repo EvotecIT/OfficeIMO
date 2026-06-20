@@ -6,6 +6,7 @@ using A = DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
+using PIC = DocumentFormat.OpenXml.Drawing.Pictures;
 using OfficeIMO.Word;
 using V = DocumentFormat.OpenXml.Vml;
 using Xunit;
@@ -158,10 +159,123 @@ namespace OfficeIMO.Tests {
                 finding.TargetText == "Merged");
         }
 
+        [Fact]
+        public void CompareStructureAlignsBalancedTableRowInsertDeleteRanges() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_balanced_table_row_range.docx");
+            CreateDocumentWithOneColumnTableForReviewWave(sourcePath, "Terms", "Obsolete", "Closing");
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_balanced_table_row_range.docx");
+            CreateDocumentWithOneColumnTableForReviewWave(targetPath, "Cover", "Terms updated", "Closing");
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.TableRow &&
+                finding.ChangeKind == WordComparisonChangeKind.Inserted &&
+                finding.TargetText == "Cover");
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.TableCell &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified &&
+                finding.SourceText == "Terms" &&
+                finding.TargetText == "Terms updated");
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.TableRow &&
+                finding.ChangeKind == WordComparisonChangeKind.Deleted &&
+                finding.SourceText == "Obsolete");
+        }
+
+        [Fact]
+        public void CompareStructureReportsInlineImagePositionChangesInsideParagraphText() {
+            string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_inline_image_offset.docx");
+            CreateInlineImageParagraphDocument(sourcePath, imagePath, imageFirst: false);
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_inline_image_offset.docx");
+            CreateInlineImageParagraphDocument(targetPath, imagePath, imageFirst: true);
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Image &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified &&
+                finding.Message == "Image position changed.");
+        }
+
+        [Fact]
+        public void CompareStructureReportsDrawingImageHyperlinkClickTargetChanges() {
+            string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_drawing_image_hlink.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                doc.AddParagraph().AddImage(imagePath, 80, 40);
+                doc.Save(false);
+            }
+
+            AddDrawingImageHyperlinkClick(sourcePath, "https://evotec.xyz/source-click");
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_drawing_image_hlink.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                doc.AddParagraph().AddImage(imagePath, 80, 40);
+                doc.Save(false);
+            }
+
+            AddDrawingImageHyperlinkClick(targetPath, "https://evotec.xyz/target-click");
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Image &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified);
+        }
+
+        [Fact]
+        public void CompareStructureIgnoresUnreferencedNormalNotes() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_unreferenced_note.docx");
+            CreateDocumentWithParagraphsForReviewWave(sourcePath, "Policy");
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_unreferenced_note.docx");
+            CreateDocumentWithParagraphsForReviewWave(targetPath, "Policy");
+            AddUnreferencedFootnote(targetPath, "Orphaned note text");
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Empty(result.Findings);
+        }
+
+        [Fact]
+        public void CompareStructureReportsParagraphNumberingStructureChanges() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_numbering_structure.docx");
+            CreateDocumentWithParagraphsForReviewWave(sourcePath, "Item");
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_numbering_structure.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                WordList list = doc.AddList(WordListStyle.Numbered);
+                list.AddItem("Item");
+                doc.Save(false);
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Paragraph &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified &&
+                finding.SourceText == "Item" &&
+                finding.TargetText == "Item");
+        }
+
         private static void CreateDocumentWithParagraphsForReviewWave(string path, params string[] paragraphs) {
             using WordDocument doc = WordDocument.Create(path);
             foreach (string paragraph in paragraphs) {
                 doc.AddParagraph(paragraph);
+            }
+
+            doc.Save(false);
+        }
+
+        private static void CreateDocumentWithOneColumnTableForReviewWave(string path, params string[] rows) {
+            using WordDocument doc = WordDocument.Create(path);
+            WordTable table = doc.AddTable(rows.Length, 1);
+            for (int row = 0; row < rows.Length; row++) {
+                table.Rows[row].Cells[0].Paragraphs[0].SetText(rows[row]);
             }
 
             doc.Save(false);
@@ -301,6 +415,58 @@ namespace OfficeIMO.Tests {
             TableCellProperties properties = cell.GetFirstChild<TableCellProperties>() ?? cell.PrependChild(new TableCellProperties());
             properties.HorizontalMerge = new HorizontalMerge();
             document.MainDocumentPart.Document.Save();
+        }
+
+        private static void CreateInlineImageParagraphDocument(string path, string imagePath, bool imageFirst) {
+            using (WordDocument doc = WordDocument.Create(path)) {
+                doc.AddParagraph("Placeholder");
+                doc.Save(false);
+            }
+
+            using WordprocessingDocument document = WordprocessingDocument.Open(path, true);
+            MainDocumentPart mainPart = document.MainDocumentPart!;
+            ImagePart imagePart = mainPart.AddImagePart(ImagePartType.Png);
+            using (FileStream stream = File.OpenRead(imagePath)) {
+                imagePart.FeedData(stream);
+            }
+
+            string relationshipId = mainPart.GetIdOfPart(imagePart);
+            Paragraph paragraph = imageFirst
+                ? new Paragraph(
+                    new Run(CreateInlineDrawing(relationshipId, 601U)),
+                    new Run(new Text("Before After")))
+                : new Paragraph(
+                    new Run(new Text("Before ")),
+                    new Run(CreateInlineDrawing(relationshipId, 601U)),
+                    new Run(new Text(" After")));
+            Body body = mainPart.Document.Body!;
+            body.RemoveAllChildren<Paragraph>();
+            body.PrependChild(paragraph);
+            mainPart.Document.Save();
+        }
+
+        private static void AddDrawingImageHyperlinkClick(string path, string url) {
+            using WordprocessingDocument document = WordprocessingDocument.Open(path, true);
+            MainDocumentPart mainPart = document.MainDocumentPart!;
+            string relationshipId = mainPart.AddHyperlinkRelationship(new Uri(url), true).Id;
+            PIC.NonVisualDrawingProperties properties = mainPart.Document.Descendants<PIC.NonVisualDrawingProperties>().First();
+            properties.RemoveAllChildren<A.HyperlinkOnClick>();
+            properties.Append(new A.HyperlinkOnClick { Id = relationshipId });
+            mainPart.Document.Save();
+        }
+
+        private static void AddUnreferencedFootnote(string path, string text) {
+            using WordprocessingDocument document = WordprocessingDocument.Open(path, true);
+            MainDocumentPart mainPart = document.MainDocumentPart!;
+            FootnotesPart footnotesPart = mainPart.FootnotesPart ?? mainPart.AddNewPart<FootnotesPart>();
+            footnotesPart.Footnotes ??= new Footnotes();
+            long nextId = footnotesPart.Footnotes.Elements<Footnote>()
+                .Where(footnote => footnote.Id?.Value != null)
+                .Select(footnote => footnote.Id!.Value)
+                .DefaultIfEmpty(1)
+                .Max() + 1;
+            footnotesPart.Footnotes.Append(new Footnote(new Paragraph(new Run(new Text(text)))) { Id = nextId });
+            footnotesPart.Footnotes.Save();
         }
 
         private static SectionProperties GetOrCreateSectionProperties(MainDocumentPart mainPart) {

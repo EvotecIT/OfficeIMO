@@ -188,7 +188,7 @@ namespace OfficeIMO.Word {
                 targetParagraph.Text.Length > 0 &&
                 (sourceParagraph.Text.IndexOf(targetParagraph.Text, StringComparison.Ordinal) >= 0 ||
                  targetParagraph.Text.IndexOf(sourceParagraph.Text, StringComparison.Ordinal) >= 0)) {
-                return 0.75 + (0.25 * Math.Min(sourceParagraph.Text.Length, targetParagraph.Text.Length) / Math.Max(sourceParagraph.Text.Length, targetParagraph.Text.Length));
+                return GetContainmentAwareTextSimilarity(sourceParagraph.Text, targetParagraph.Text);
             }
 
             return GetTextSimilarity(sourceParagraph.Text, targetParagraph.Text);
@@ -238,26 +238,16 @@ namespace OfficeIMO.Word {
                     footerIndex++;
                 }
 
-                int footnoteIndex = 0;
-                foreach (Footnote footnote in mainPart.FootnotesPart?.Footnotes?.Elements<Footnote>() ?? Enumerable.Empty<Footnote>()) {
-                    if (!IsVisibleNote(footnote)) {
-                        continue;
-                    }
-
+                List<Footnote> footnotes = GetReferencedFootnotes(mainPart);
+                for (int footnoteIndex = 0; footnoteIndex < footnotes.Count; footnoteIndex++) {
                     string noteId = footnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                    AddParagraphSnapshots(snapshots, mainPart.FootnotesPart, footnote, FootnotePartKeyPrefix + noteId, FootnotePartOrderBase + (footnoteIndex * RelatedPartOrderStride));
-                    footnoteIndex++;
+                    AddParagraphSnapshots(snapshots, mainPart.FootnotesPart, footnotes[footnoteIndex], FootnotePartKeyPrefix + noteId, FootnotePartOrderBase + (footnoteIndex * RelatedPartOrderStride));
                 }
 
-                int endnoteIndex = 0;
-                foreach (Endnote endnote in mainPart.EndnotesPart?.Endnotes?.Elements<Endnote>() ?? Enumerable.Empty<Endnote>()) {
-                    if (!IsVisibleNote(endnote)) {
-                        continue;
-                    }
-
+                List<Endnote> endnotes = GetReferencedEndnotes(mainPart);
+                for (int endnoteIndex = 0; endnoteIndex < endnotes.Count; endnoteIndex++) {
                     string noteId = endnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                    AddParagraphSnapshots(snapshots, mainPart.EndnotesPart, endnote, EndnotePartKeyPrefix + noteId, EndnotePartOrderBase + (endnoteIndex * RelatedPartOrderStride));
-                    endnoteIndex++;
+                    AddParagraphSnapshots(snapshots, mainPart.EndnotesPart, endnotes[endnoteIndex], EndnotePartKeyPrefix + noteId, EndnotePartOrderBase + (endnoteIndex * RelatedPartOrderStride));
                 }
             }
 
@@ -299,6 +289,7 @@ namespace OfficeIMO.Word {
             var textBuilder = new StringBuilder();
             var matchBuilder = new StringBuilder();
             var pendingTextBuilder = new StringBuilder();
+            AppendNumberingMatchToken(matchBuilder, paragraph, part);
             foreach (OpenXmlElement element in paragraph.Descendants()) {
                 if (element.Ancestors<Paragraph>().FirstOrDefault() != paragraph) {
                     continue;
@@ -395,6 +386,57 @@ namespace OfficeIMO.Word {
             return new ParagraphTextSnapshot(textBuilder.ToString(), matchBuilder.ToString());
         }
 
+        private static void AppendNumberingMatchToken(StringBuilder builder, Paragraph paragraph, OpenXmlPart? part) {
+            NumberingProperties? numberingProperties = paragraph.ParagraphProperties?.NumberingProperties;
+            if (numberingProperties == null) {
+                return;
+            }
+
+            string level = numberingProperties.NumberingLevelReference?.Val?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
+            int? numberingId = numberingProperties.NumberingId?.Val?.Value;
+            AppendMatchToken(builder, "numbering", "level=" + level + ";definition=" + GetNumberingDefinitionSignature(part, numberingId, level));
+        }
+
+        private static string GetNumberingDefinitionSignature(OpenXmlPart? part, int? numberingId, string level) {
+            if (numberingId == null) {
+                return string.Empty;
+            }
+
+            MainDocumentPart? mainPart = GetMainDocumentPart(part);
+            Numbering? numbering = mainPart?.NumberingDefinitionsPart?.Numbering;
+            if (numbering == null) {
+                return numberingId.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            }
+
+            NumberingInstance? instance = numbering.Elements<NumberingInstance>()
+                .FirstOrDefault(item => item.NumberID?.Value == numberingId.Value);
+            int? abstractNumberId = instance?.AbstractNumId?.Val?.Value;
+            if (abstractNumberId == null) {
+                return numberingId.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            }
+
+            AbstractNum? abstractNum = numbering.Elements<AbstractNum>()
+                .FirstOrDefault(item => item.AbstractNumberId?.Value == abstractNumberId.Value);
+            if (abstractNum == null) {
+                return abstractNumberId.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            }
+
+            OpenXmlElement clone = abstractNum.CloneNode(true);
+            if (clone is AbstractNum clonedAbstract) {
+                clonedAbstract.AbstractNumberId = 0;
+            }
+
+            return clone.OuterXml + "|level:" + level;
+        }
+
+        private static MainDocumentPart? GetMainDocumentPart(OpenXmlPart? part) {
+            if (part is MainDocumentPart mainPart) {
+                return mainPart;
+            }
+
+            return (part?.OpenXmlPackage as WordprocessingDocument)?.MainDocumentPart;
+        }
+
         private static void FlushPendingTextToken(StringBuilder builder, StringBuilder pendingTextBuilder) {
             if (pendingTextBuilder.Length == 0) {
                 return;
@@ -487,6 +529,17 @@ namespace OfficeIMO.Word {
         private static bool HasImageContent(Paragraph paragraph) {
             return paragraph.Descendants<DocumentFormat.OpenXml.Wordprocessing.Drawing>().Any() ||
                    paragraph.Descendants<V.ImageData>().Any();
+        }
+
+        private static double GetContainmentAwareTextSimilarity(string source, string target) {
+            if (source.Length > 0 &&
+                target.Length > 0 &&
+                (source.IndexOf(target, StringComparison.Ordinal) >= 0 ||
+                 target.IndexOf(source, StringComparison.Ordinal) >= 0)) {
+                return 0.75 + (0.25 * Math.Min(source.Length, target.Length) / Math.Max(source.Length, target.Length));
+            }
+
+            return GetTextSimilarity(source, target);
         }
 
         private static double GetTextSimilarity(string source, string target) {
