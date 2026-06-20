@@ -360,6 +360,10 @@ public sealed class HtmlPdfTests {
 
         Assert.NotEmpty(pdf);
         Assert.Equal(HtmlPdfProfile.Document, options.Profile);
+        Assert.NotNull(options.WordHtmlOptions);
+        Assert.NotNull(options.WordPdfOptions);
+        Assert.Equal(ImageProcessingMode.Embed, options.WordHtmlOptions.ImageProcessing);
+        Assert.True(options.WordHtmlOptions.AllowDocumentStylesheetLinks);
 
         HtmlConversionDocument highFidelity = HtmlConversionDocumentBuilder.Build(
             "<main><h1>High-fidelity profile</h1><p>Shared conversion document.</p></main>",
@@ -372,6 +376,10 @@ public sealed class HtmlPdfTests {
 
         Assert.NotEmpty(highFidelityPdf);
         Assert.Equal(HtmlPdfProfile.Document, highFidelityOptions.Profile);
+        Assert.NotNull(highFidelityOptions.WordHtmlOptions);
+        Assert.NotNull(highFidelityOptions.WordPdfOptions);
+        Assert.Equal(ImageProcessingMode.Embed, highFidelityOptions.WordHtmlOptions.ImageProcessing);
+        Assert.True(highFidelityOptions.WordHtmlOptions.AllowDocumentStylesheetLinks);
     }
 
     [Fact]

@@ -82,6 +82,11 @@ public static class HtmlRoundTripScorer {
         "formtarget",
         "formnovalidate"
     };
+    private static readonly HashSet<string> ImageSubmitterAttributes = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
+        "src",
+        "data-src",
+        "alt"
+    };
     private static readonly HashSet<string> BooleanSignatureAttributes = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
         "checked",
         "selected",
@@ -547,6 +552,10 @@ public static class HtmlRoundTripScorer {
             return;
         }
 
+        if (ImageSubmitterAttributes.Contains(attributeName) && !IsImageSubmitterControl(node)) {
+            return;
+        }
+
         if (string.Equals(attributeName, "type", StringComparison.OrdinalIgnoreCase)) {
             node.Attributes.TryGetValue(attributeName, out string? rawType);
             string defaultType = GetEffectiveFormControlType(node.Name, rawType);
@@ -569,7 +578,15 @@ public static class HtmlRoundTripScorer {
     }
 
     private static bool ShouldIncludeFormControlAttribute(AngleSharp.Dom.IElement control, string attributeName) {
-        return !SubmitterOverrideAttributes.Contains(attributeName) || IsSubmitterControl(control);
+        if (SubmitterOverrideAttributes.Contains(attributeName) && !IsSubmitterControl(control)) {
+            return false;
+        }
+
+        if (ImageSubmitterAttributes.Contains(attributeName) && !IsImageSubmitterControl(control)) {
+            return false;
+        }
+
+        return true;
     }
 
     private static bool IsSubmitterControl(AngleSharp.Dom.IElement control) {
@@ -595,6 +612,19 @@ public static class HtmlRoundTripScorer {
         return string.Equals(node.Name, "input", StringComparison.OrdinalIgnoreCase)
             && (string.Equals(type, "submit", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(type, "image", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static bool IsImageSubmitterControl(AngleSharp.Dom.IElement control) {
+        string name = control.TagName.ToLowerInvariant();
+        string type = GetEffectiveFormControlType(name, control.GetAttribute("type"));
+        return string.Equals(name, "input", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(type, "image", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsImageSubmitterControl(HtmlLogicalNode node) {
+        string type = GetEffectiveFormControlType(node.Name, node.Attributes.TryGetValue("type", out string? value) ? value : null);
+        return string.Equals(node.Name, "input", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(type, "image", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string CreateElementNameSignature(HtmlLogicalNode node) {
@@ -649,14 +679,21 @@ public static class HtmlRoundTripScorer {
         var parts = new List<string> {
             node.Name
         };
-        AddAttributePart(parts, node, "src");
+        bool isPictureSource = string.Equals(node.Name, "source", StringComparison.OrdinalIgnoreCase);
+        if (!isPictureSource) {
+            AddAttributePart(parts, node, "src");
+        }
+
         AddAttributePart(parts, node, "href");
         AddAttributePart(parts, node, "xlink:href");
         AddAttributePart(parts, node, "srcset");
         AddAttributePart(parts, node, "media");
         AddAttributePart(parts, node, "type");
         AddAttributePart(parts, node, "sizes");
-        AddAttributePart(parts, node, "data-src");
+        if (!isPictureSource) {
+            AddAttributePart(parts, node, "data-src");
+        }
+
         AddAttributePart(parts, node, "data-srcset");
         AddAttributePart(parts, node, "alt");
         return string.Join("|", parts);

@@ -50,5 +50,5 @@ public sealed class HtmlConversionDocument {
     public string NormalizedHtml { get; }
 
     /// <summary>HTML text target adapters should use when no adapter-specific source preference is configured.</summary>
-    public string HtmlForConversion => SourceHtml;
+    public string HtmlForConversion => string.IsNullOrWhiteSpace(NormalizedHtml) ? SourceHtml : NormalizedHtml;
 }

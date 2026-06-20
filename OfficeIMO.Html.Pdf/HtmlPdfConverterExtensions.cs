@@ -41,10 +41,16 @@ public static class HtmlPdfConverterExtensions {
         }
 
         options ??= new HtmlPdfSaveOptions();
-        options.Profile = document.ProfileContract.Profile == HtmlConversionProfile.Document
-            || document.ProfileContract.Profile == HtmlConversionProfile.HighFidelityPrint
+        bool useDocumentProfile = document.ProfileContract.Profile == HtmlConversionProfile.Document
+            || document.ProfileContract.Profile == HtmlConversionProfile.HighFidelityPrint;
+        options.Profile = useDocumentProfile
             ? HtmlPdfProfile.Document
             : HtmlPdfProfile.Semantic;
+        if (useDocumentProfile) {
+            options.WordHtmlOptions ??= HtmlToWordOptions.CreateTrustedDocumentProfile();
+            options.WordPdfOptions ??= new PdfSaveOptions();
+        }
+
         return document.HtmlForConversion.ToPdfDocument(options);
     }
 
