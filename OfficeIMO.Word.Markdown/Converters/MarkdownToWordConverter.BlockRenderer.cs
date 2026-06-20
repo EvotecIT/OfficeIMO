@@ -81,6 +81,7 @@ namespace OfficeIMO.Word.Markdown {
                 ApplyBlockParagraphFormatting(headingParagraph, _quoteDepth, _alignment);
                 ProcessInlinesOmd(block.Inlines, headingParagraph, _options, _document, _currentFootnotes, _pageContentWidthPixels, _listLevel, _quoteDepth);
                 headingParagraph.Style = HeadingStyleMapper.GetHeadingStyleForLevel(block.Level);
+                ApplyHeadingTheme(headingParagraph, _options);
             }
 
             protected override void VisitParagraphBlock(Omd.ParagraphBlock block) {
@@ -116,6 +117,7 @@ namespace OfficeIMO.Word.Markdown {
                 ApplyBlockParagraphFormatting(codeParagraph, _quoteDepth, _alignment);
                 var monoFont = FontResolver.Resolve("monospace") ?? "Consolas";
                 codeParagraph.AddFormattedText(block.Content ?? string.Empty).SetFontFamily(monoFont);
+                ApplyCodeTheme(codeParagraph, _options);
                 if (!string.IsNullOrWhiteSpace(block.Caption)) {
                     var captionParagraph = _host.CreateParagraph();
                     ApplyBlockParagraphFormatting(captionParagraph, _quoteDepth, _alignment);
@@ -136,6 +138,7 @@ namespace OfficeIMO.Word.Markdown {
                 ApplyBlockParagraphFormatting(paragraph, _quoteDepth, _alignment);
                 var monoFont = FontResolver.Resolve("monospace") ?? "Consolas";
                 paragraph.AddFormattedText(block.Content ?? string.Empty).SetFontFamily(monoFont);
+                ApplyCodeTheme(paragraph, _options);
                 if (!string.IsNullOrWhiteSpace(block.Caption)) {
                     var captionParagraph = _host.CreateParagraph();
                     ApplyBlockParagraphFormatting(captionParagraph, _quoteDepth, _alignment);
@@ -215,6 +218,7 @@ namespace OfficeIMO.Word.Markdown {
                 ApplyBlockParagraphFormatting(headingParagraph, _quoteDepth, _alignment);
                 headingParagraph.AddText(block.Title.Trim());
                 headingParagraph.Style = HeadingStyleMapper.GetHeadingStyleForLevel(NormalizeTocTitleLevel(block.TitleLevel));
+                ApplyHeadingTheme(headingParagraph, _options);
             }
 
             protected override void VisitTocMarkerBlock(Omd.TocMarkerBlock block) {
@@ -322,6 +326,7 @@ namespace OfficeIMO.Word.Markdown {
                     var paragraph = _host.CreateParagraph();
                     ApplyBlockParagraphFormatting(paragraph, _quoteDepth, _alignment);
                     paragraph.AddFormattedText(lines[i]).SetFontFamily(monoFont);
+                    ApplyCodeTheme(paragraph, _options);
                 }
             }
 

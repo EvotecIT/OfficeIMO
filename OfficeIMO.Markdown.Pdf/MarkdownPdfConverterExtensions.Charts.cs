@@ -300,6 +300,11 @@ public static partial class MarkdownPdfConverterExtensions {
             return explicitTheme;
         }
 
+        MarkdownVisualTheme? sharedTheme = options.ThemeSnapshot;
+        if (sharedTheme != null) {
+            return MarkdownPdfVisualTheme.FromMarkdownTheme(sharedTheme);
+        }
+
         return options.ApplyWordLikeTheme ? MarkdownPdfVisualTheme.WordLike() : MarkdownPdfVisualTheme.Plain();
     }
 

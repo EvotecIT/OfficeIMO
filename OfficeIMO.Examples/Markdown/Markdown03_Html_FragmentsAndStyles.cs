@@ -32,7 +32,7 @@ namespace OfficeIMO.Examples.Markdown {
 
             // Full document with external CSS sidecar
             var externalPath = Path.Combine(outDir, "Sample.Document.External.html");
-            doc.SaveHtml(externalPath, new HtmlOptions { Title = "Sample External", Style = HtmlStyle.Clean, CssDelivery = CssDelivery.ExternalFile });
+            doc.SaveAsHtml(externalPath, new HtmlOptions { Title = "Sample External", Style = HtmlStyle.Clean, CssDelivery = CssDelivery.ExternalFile });
             Console.WriteLine($"✓ HTML document (external CSS): {externalPath}");
 
             // Online mode referencing a CDN CSS, and Offline mode that downloads and inlines it

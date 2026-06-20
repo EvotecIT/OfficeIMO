@@ -30,10 +30,36 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             Directory.CreateDirectory(temp);
             var path = Path.Combine(temp, "sample.html");
             var doc = MarkdownDoc.Create().H1("Title");
-            doc.SaveHtml(path, new HtmlOptions { Title = "Doc", Style = HtmlStyle.Clean, CssDelivery = CssDelivery.ExternalFile });
+            doc.SaveAsHtml(path, new HtmlOptions { Title = "Doc", Style = HtmlStyle.Clean, CssDelivery = CssDelivery.ExternalFile });
             Assert.True(File.Exists(path));
             var cssPath = Path.ChangeExtension(path, ".css");
             Assert.True(File.Exists(cssPath));
+        }
+
+        [Fact]
+        public void Shared_VisualTheme_Emits_Consistent_Html_Css() {
+            MarkdownVisualTheme theme = MarkdownVisualTheme.Report()
+                .WithColorScheme(MarkdownColorSchemeKind.Emerald)
+                .WithColors(accent: "SeaGreen", heading: "#064e3b");
+            theme.Table.BorderWidth = 1.2;
+            theme.Table.CellPaddingX = 11;
+            theme.Table.UseRowStripes = false;
+
+            string html = MarkdownDoc.Create()
+                .H1("Theme")
+                .Table(t => t.Headers("Name", "Value").Row("Accent", "Emerald"))
+                .ToHtmlDocument(new HtmlOptions {
+                    Title = "Shared Theme",
+                    Theme = theme,
+                    Kind = HtmlKind.Document
+                });
+
+            Assert.Contains("article.markdown-body h1", html, StringComparison.Ordinal);
+            Assert.Contains("--md-heading: #064e3b", html, StringComparison.Ordinal);
+            Assert.Contains("border-color: #a7f3d0", html, StringComparison.Ordinal);
+            Assert.Contains("border-width: 1.2px", html, StringComparison.Ordinal);
+            Assert.Contains("padding: 5px 11px", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("tbody tr:nth-child(even)", html, StringComparison.Ordinal);
         }
 
         [Fact]

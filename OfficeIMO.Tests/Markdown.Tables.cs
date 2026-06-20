@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Markdown;
 using OfficeIMO.Markdown.Html;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Markdown;
@@ -23,6 +24,41 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains(leftParagraph.GetRuns(), r => r.Bold);
             Assert.Contains(centerParagraph.GetRuns(), r => r.Italic);
+        }
+
+        [Fact]
+        public void MarkdownToWord_AppliesSharedVisualThemeToHeadingsAndTables() {
+            MarkdownVisualTheme theme = MarkdownVisualTheme.Report()
+                .WithColors(
+                    heading: "#064e3b",
+                    border: "#123456",
+                    tableHeaderBackground: "#fedcba",
+                    tableHeaderText: "#010203",
+                    tableStripeBackground: "#f0f9ff")
+                .WithTable(table => {
+                    table.BorderWidth = 1.25;
+                    table.UseRowStripes = true;
+                });
+            string md = """
+# Report Theme
+
+| Name | Value |
+| --- | --- |
+| First | 1 |
+| Second | 2 |
+""";
+
+            using var doc = md.LoadFromMarkdown(new MarkdownToWordOptions { Theme = theme });
+
+            var heading = doc.Paragraphs.First(p => p.Text == "Report Theme");
+            Assert.Contains(heading.GetRuns(), run => string.Equals(run.ColorHex, "064e3b", System.StringComparison.OrdinalIgnoreCase));
+
+            var table = doc.Tables[0];
+            Assert.Equal("fedcba", table.Rows[0].Cells[0].ShadingFillColorHex);
+            Assert.Equal("123456", table.Rows[0].Cells[0].Borders.TopColorHex);
+            Assert.Equal(10U, table.Rows[0].Cells[0].Borders.TopSize?.Value);
+            Assert.Contains(table.Rows[0].Cells[0].Paragraphs.SelectMany(p => p.GetRuns()), run => string.Equals(run.ColorHex, "010203", System.StringComparison.OrdinalIgnoreCase));
+            Assert.Equal("f0f9ff", table.Rows[2].Cells[0].ShadingFillColorHex);
         }
 
         [Fact]

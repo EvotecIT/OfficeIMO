@@ -25,6 +25,87 @@ namespace OfficeIMO.Word.Markdown {
             ApplyAlignment(alignment, paragraph);
         }
 
+        private static Omd.MarkdownVisualTheme ResolveTheme(MarkdownToWordOptions options) =>
+            options.ThemeSnapshot ?? Omd.MarkdownVisualTheme.WordLike();
+
+        private static void ApplyHeadingTheme(WordParagraph paragraph, MarkdownToWordOptions options) {
+            Omd.MarkdownVisualPalette palette = ResolveTheme(options).PaletteSnapshot;
+            foreach (var run in paragraph.GetRuns()) {
+                run.SetColorHex(palette.Heading.ToRgbHex());
+            }
+        }
+
+        private static void ApplyCodeTheme(WordParagraph paragraph, MarkdownToWordOptions options) {
+            Omd.MarkdownVisualPalette palette = ResolveTheme(options).PaletteSnapshot;
+            paragraph.ShadingFillColorHex = palette.CodeBackground.ToRgbHex();
+            paragraph.Borders.LeftStyle = BorderValues.Single;
+            paragraph.Borders.LeftColorHex = palette.Border.ToRgbHex();
+            paragraph.Borders.LeftSize = 4;
+            foreach (var run in paragraph.GetRuns()) {
+                run.SetColorHex(palette.Text.ToRgbHex());
+            }
+        }
+
+        private static void ApplyCalloutTitleTheme(WordParagraph paragraph, MarkdownToWordOptions options) {
+            Omd.MarkdownVisualPalette palette = ResolveTheme(options).PaletteSnapshot;
+            paragraph.ShadingFillColorHex = palette.Surface.ToRgbHex();
+            paragraph.Borders.LeftStyle = BorderValues.Single;
+            paragraph.Borders.LeftColorHex = palette.Accent.ToRgbHex();
+            paragraph.Borders.LeftSize = 8;
+            foreach (var run in paragraph.GetRuns()) {
+                run.SetColorHex(palette.Accent.ToRgbHex());
+                run.SetBold();
+            }
+        }
+
+        private static void ApplyTableTheme(WordTable table, MarkdownToWordOptions options, bool hasHeaderRow) {
+            Omd.MarkdownVisualTheme theme = ResolveTheme(options);
+            Omd.MarkdownVisualPalette palette = theme.PaletteSnapshot;
+            Omd.MarkdownTableVisualStyle tableStyle = theme.TableSnapshot;
+            string borderHex = palette.Border.ToRgbHex();
+            DocumentFormat.OpenXml.UInt32Value borderSize = ToWordBorderSize(tableStyle.BorderWidth);
+
+            for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
+                bool header = hasHeaderRow && rowIndex == 0;
+                bool stripe = !header && tableStyle.UseRowStripes && rowIndex % 2 == 0;
+                foreach (var cell in table.Rows[rowIndex].Cells) {
+                    cell.Borders.TopStyle = BorderValues.Single;
+                    cell.Borders.BottomStyle = BorderValues.Single;
+                    cell.Borders.LeftStyle = BorderValues.Single;
+                    cell.Borders.RightStyle = BorderValues.Single;
+                    cell.Borders.TopSize = borderSize;
+                    cell.Borders.BottomSize = borderSize;
+                    cell.Borders.LeftSize = borderSize;
+                    cell.Borders.RightSize = borderSize;
+                    cell.Borders.TopColorHex = borderHex;
+                    cell.Borders.BottomColorHex = borderHex;
+                    cell.Borders.LeftColorHex = borderHex;
+                    cell.Borders.RightColorHex = borderHex;
+
+                    if (header && tableStyle.EmphasizeHeader) {
+                        cell.ShadingFillColorHex = palette.TableHeaderBackground.ToRgbHex();
+                        ApplyCellRunColor(cell, palette.TableHeaderText.ToRgbHex());
+                    } else if (stripe) {
+                        cell.ShadingFillColorHex = palette.TableStripeBackground.ToRgbHex();
+                    }
+                }
+            }
+        }
+
+        private static DocumentFormat.OpenXml.UInt32Value ToWordBorderSize(double borderWidth) {
+            double value = double.IsNaN(borderWidth) || double.IsInfinity(borderWidth) || borderWidth <= 0 ? 0.5 : borderWidth;
+            uint size = (uint)Math.Max(2, Math.Min(96, Math.Round(value * 8, MidpointRounding.AwayFromZero)));
+            return size;
+        }
+
+        private static void ApplyCellRunColor(WordTableCell cell, string colorHex) {
+            foreach (var paragraph in cell.Paragraphs) {
+                foreach (var run in paragraph.GetRuns()) {
+                    run.SetColorHex(colorHex);
+                }
+            }
+        }
+
         private static void ApplyAlignment(Omd.ColumnAlignment align, WordParagraph para) {
             switch (align) {
                 case Omd.ColumnAlignment.Left: para.ParagraphAlignment = JustificationValues.Left; break;

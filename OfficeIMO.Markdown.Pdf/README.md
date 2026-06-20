@@ -98,6 +98,31 @@ var options = new MarkdownPdfSaveOptions {
 MarkdownPdfConverter.SaveFileAsPdf("Docs/status.md", "Artifacts/status.pdf", options);
 ```
 
+### Reuse one visual theme across HTML, PDF, and Word
+
+```csharp
+using OfficeIMO.Markdown;
+using OfficeIMO.Markdown.Pdf;
+using OfficeIMO.Word.Markdown;
+
+MarkdownVisualTheme theme = MarkdownVisualTheme.Report()
+    .WithColorScheme(MarkdownColorSchemeKind.Emerald)
+    .WithColors(accent: "SeaGreen", heading: "#064e3b")
+    .WithTable(table => {
+        table.BorderWidth = 0.9;
+        table.CellPaddingX = 8;
+        table.UseRowStripes = true;
+    });
+
+MarkdownDoc document = MarkdownReader.Parse(markdown);
+
+document.SaveAsHtml("report.html", new HtmlOptions { Theme = theme });
+document.SaveAsPdf("report.pdf", new MarkdownPdfSaveOptions { Theme = theme });
+
+using var word = document.ToWordDocument(new MarkdownToWordOptions { Theme = theme });
+word.SaveAs("report.docx");
+```
+
 ### Write to bytes or streams
 
 ```csharp
@@ -153,6 +178,8 @@ MarkdownPdfConverter.SaveFileAsPdf("README.md", "README.pdf", options);
 ```
 
 Built-in themes include `Plain`, `WordLike`, `TechnicalDocument`, `GitHubLike`, `Compact`, and `Report`. Front matter can select a theme with `pdfTheme` or `pdf-theme`.
+
+`MarkdownVisualTheme` is the shared cross-format theme object. It accepts color schemes plus individual color overrides using either hex values such as `#064e3b` or OfficeIMO-style named colors such as `SeaGreen` and `CornflowerBlue`. `MarkdownPdfVisualTheme` remains available when PDF-only details such as page decoration or low-level panel styles need to diverge.
 
 ## Boundaries
 

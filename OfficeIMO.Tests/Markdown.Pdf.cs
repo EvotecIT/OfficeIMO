@@ -448,6 +448,66 @@ _Figure 1. Embedded from a relative Markdown path._
     }
 
     [Fact]
+    public void MarkdownPdfVisualTheme_Maps_SharedMarkdownTheme() {
+        MarkdownVisualTheme sharedTheme = MarkdownVisualTheme.Report()
+            .WithColors(
+                accent: "#ff0000",
+                heading: "#00ff00",
+                text: "#0000ff",
+                border: "#112233",
+                tableHeaderBackground: "#ffff00",
+                tableHeaderText: "#000000")
+            .WithTable(table => {
+                table.BorderWidth = 1.25;
+                table.CellPaddingX = 11;
+                table.CellPaddingY = 7;
+            });
+
+        MarkdownPdfVisualTheme pdfTheme = MarkdownPdfVisualTheme.FromMarkdownTheme(sharedTheme);
+
+        Assert.Equal("Report", pdfTheme.Name);
+        Assert.Equal(0, pdfTheme.DocumentHeaderTitleColor!.Value.R, 3);
+        Assert.Equal(1, pdfTheme.DocumentHeaderTitleColor!.Value.G, 3);
+        Assert.Equal(0, pdfTheme.DocumentHeaderTitleColor!.Value.B, 3);
+        Assert.Equal(1, pdfTheme.LinkColor!.Value.R, 3);
+        Assert.Equal(0, pdfTheme.LinkColor!.Value.G, 3);
+        Assert.Equal(0, pdfTheme.LinkColor!.Value.B, 3);
+        Assert.Equal(1.25, pdfTheme.TableStyle!.BorderWidth);
+        Assert.Equal(11, pdfTheme.TableStyle.CellPaddingX);
+        Assert.Equal(7, pdfTheme.TableStyle.CellPaddingY);
+        Assert.Equal(1, pdfTheme.TableStyle.HeaderFill!.Value.R, 3);
+        Assert.Equal(1, pdfTheme.TableStyle.HeaderFill!.Value.G, 3);
+        Assert.Equal(0, pdfTheme.TableStyle.HeaderFill!.Value.B, 3);
+    }
+
+    [Fact]
+    public void Markdown_SaveAsPdf_Renders_With_SharedMarkdownTheme() {
+        MarkdownVisualTheme theme = MarkdownVisualTheme.Report()
+            .WithColorScheme(MarkdownColorSchemeKind.Emerald);
+        string markdown = """
+# Shared Theme
+
+Markdown PDF should accept the same visual theme object as HTML and Word.
+
+| Surface | Status |
+| --- | --- |
+| PDF | themed |
+""";
+
+        var options = new MarkdownPdfSaveOptions {
+            Theme = theme
+        };
+
+        byte[] pdf = markdown.SaveAsPdf(options);
+        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+
+        Assert.True(pdf.Length > 0);
+        Assert.Empty(options.Warnings);
+        Assert.Contains("Shared Theme", text);
+        Assert.Contains("themed", text);
+    }
+
+    [Fact]
     public void Markdown_SaveAsPdf_AppliesVisualThemeLinkStyleAcrossInlineSurfaces() {
         MarkdownPdfVisualTheme theme = MarkdownPdfVisualTheme.TechnicalDocument();
         theme.LinkColor = PdfCore.PdfColor.FromRgb(128, 0, 128);

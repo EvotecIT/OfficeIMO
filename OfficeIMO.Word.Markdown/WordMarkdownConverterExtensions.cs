@@ -368,7 +368,7 @@ namespace OfficeIMO.Word.Markdown {
             if (options.InjectTocAtTop && !model.Blocks.Any(b => string.Equals(b.GetType().Name, "TocPlaceholderBlock", System.StringComparison.Ordinal))) {
                 model.TocAtTop(options.InjectTocTitle, options.InjectTocMinLevel, options.InjectTocMaxLevel, options.InjectTocOrdered, options.InjectTocTitleLevel);
             }
-            model.SaveHtml(path, options);
+            model.SaveAsHtml(path, options);
         }
 
         /// <summary>
@@ -382,8 +382,8 @@ namespace OfficeIMO.Word.Markdown {
             if (options.InjectTocAtTop && !model.Blocks.Any(b => string.Equals(b.GetType().Name, "TocPlaceholderBlock", System.StringComparison.Ordinal))) {
                 model.TocAtTop(options.InjectTocTitle, options.InjectTocMinLevel, options.InjectTocMaxLevel, options.InjectTocOrdered, options.InjectTocTitleLevel);
             }
-            // MarkdownDoc.SaveHtml does sync I/O; for now, delegate synchronously to keep surface small
-            model.SaveHtml(path, options);
+            // MarkdownDoc.SaveAsHtml does sync I/O; for now, delegate synchronously to keep surface small.
+            model.SaveAsHtml(path, options);
         }
     }
 }

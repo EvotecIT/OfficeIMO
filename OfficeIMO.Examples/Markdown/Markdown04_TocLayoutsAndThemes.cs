@@ -81,14 +81,8 @@ namespace OfficeIMO.Examples.Markdown {
                 }
             }
             File.WriteAllText(mdPath, md.ToMarkdown(), Encoding.UTF8);
-            var indigo = new ThemeColors {
-                AccentLight = "#4f46e5", AccentDark = "#8b9cfb",
-                HeadingLight = "#111827", HeadingDark = "#e5e7eb",
-                TocBgLight = "#eef2ff", TocBorderLight = "#c7d2fe",
-                TocBgDark = "#1f2937", TocBorderDark = "#374151",
-                ActiveLinkLight = "#4338ca", ActiveLinkDark = "#a5b4fc"
-            };
-            var html = md.ToHtmlDocument(new HtmlOptions { Title = "ScrollSpy Indigo", Style = HtmlStyle.Word, Kind = HtmlKind.Document, ThemeToggle = true, IncludeAnchorLinks = true, BackToTopLinks = true, Theme = indigo });
+            var indigo = MarkdownVisualTheme.WordLike().WithColorScheme(MarkdownColorSchemeKind.Indigo);
+            var html = md.ToHtmlDocument(new HtmlOptions { Title = "ScrollSpy Indigo", Kind = HtmlKind.Document, ThemeToggle = true, IncludeAnchorLinks = true, BackToTopLinks = true, Theme = indigo });
             File.WriteAllText(htmlPath, html, Encoding.UTF8);
             Console.WriteLine($"✓ HTML: {htmlPath}");
         }

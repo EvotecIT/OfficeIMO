@@ -352,6 +352,8 @@ namespace OfficeIMO.Word.Markdown {
                 }
                 rowIndex++;
             }
+
+            ApplyTableTheme(wordTable, options, headerCells.Count > 0);
         }
 
         private static void RenderSharedCalloutBlockOmd(
@@ -372,6 +374,8 @@ namespace OfficeIMO.Word.Markdown {
             } else {
                 titleParagraph.AddFormattedText(callout.Title, bold: true);
             }
+
+            ApplyCalloutTitleTheme(titleParagraph, options);
 
             if (callout.ChildBlocks.Count > 0) {
                 RenderSharedBlocksOmd(callout.ChildBlocks, host, options, document, quoteDepth: quoteDepth, pageContentWidthPixels: pageContentWidthPixels, alignment: alignment);
