@@ -338,6 +338,31 @@ _Figure 2. Revenue chart_
     }
 
     [Fact]
+    public void ToPdfDocument_MarkdownChartFence_PreservesMixedScalarAndObjectPointPositionsWithExplicitLabels() {
+        var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "bar",
+  "data": {
+    "labels": ["Q1", "Q2"],
+    "datasets": [
+      { "label": "Actual", "data": [
+        10,
+        { "x": "Q2", "y": 14 }
+      ] }
+    ]
+  }
+}
+""");
+
+        bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
+
+        Assert.True(created, warning);
+        OfficeChartSeries series = Assert.Single(snapshot!.Data.Series);
+        Assert.Equal(10D, series.Values[0]);
+        Assert.Equal(14D, series.Values[1]);
+    }
+
+    [Fact]
     public void ToPdfDocument_MarkdownChartFence_UsesMaximumScalarDatasetLengthWhenLabelsAreMissing() {
         var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
 {
@@ -819,6 +844,31 @@ _Figure 2. Revenue chart_
     }
 
     [Fact]
+    public void ToPdfDocument_MarkdownChartFence_IgnoresChartJsTitlePluginUnlessDisplayIsEnabled() {
+        var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "bar",
+  "options": {
+    "plugins": {
+      "title": { "text": "Metadata title" }
+    }
+  },
+  "data": {
+    "labels": ["Q1"],
+    "datasets": [
+      { "label": "Actual", "data": [10] }
+    ]
+  }
+}
+""");
+
+        bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
+
+        Assert.True(created, warning);
+        Assert.Null(snapshot!.Title);
+    }
+
+    [Fact]
     public void ToPdfDocument_MarkdownChartFence_MapsChartJsStackedBars() {
         var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
 {
@@ -843,6 +893,32 @@ _Figure 2. Revenue chart_
 
         Assert.True(created, warning);
         Assert.Equal(OfficeChartKind.ColumnStacked, snapshot!.ChartKind);
+    }
+
+    [Fact]
+    public void ToPdfDocument_MarkdownChartFence_MapsChartJsStackedLines() {
+        var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "line",
+  "options": {
+    "scales": {
+      "y": { "stacked": true }
+    }
+  },
+  "data": {
+    "labels": ["Q1", "Q2"],
+    "datasets": [
+      { "label": "Actual", "data": [10, 12] },
+      { "label": "Forecast", "data": [8, 11] }
+    ]
+  }
+}
+""");
+
+        bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
+
+        Assert.True(created, warning);
+        Assert.Equal(OfficeChartKind.LineStacked, snapshot!.ChartKind);
     }
 
     [Fact]

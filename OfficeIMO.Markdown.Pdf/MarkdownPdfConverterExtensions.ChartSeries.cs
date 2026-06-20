@@ -127,6 +127,10 @@ public static partial class MarkdownPdfConverterExtensions {
         for (int i = 0; i < count; i++) {
             string? category = categoryLabels[i];
             if (string.IsNullOrWhiteSpace(category)) {
+                if (i < labels.Count) {
+                    aligned[i] = values[i];
+                }
+
                 continue;
             }
 
@@ -149,6 +153,10 @@ public static partial class MarkdownPdfConverterExtensions {
         for (int i = 0; i < count; i++) {
             string? category = categoryLabels[i];
             if (string.IsNullOrWhiteSpace(category)) {
+                if (i < labels.Count) {
+                    aligned[i] = values[i];
+                }
+
                 continue;
             }
 
@@ -260,7 +268,7 @@ public static partial class MarkdownPdfConverterExtensions {
             }
 
             if (categoryLabels != null) {
-                categoryLabels.Add(string.IsNullOrWhiteSpace(categoryLabel) ? values.Count.ToString(CultureInfo.InvariantCulture) : categoryLabel!);
+                categoryLabels.Add(string.IsNullOrWhiteSpace(categoryLabel) ? null : categoryLabel);
             }
         }
 

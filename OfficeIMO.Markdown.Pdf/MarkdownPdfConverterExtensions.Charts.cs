@@ -388,7 +388,7 @@ public static partial class MarkdownPdfConverterExtensions {
             TryGetProperty(options, "plugins", out MarkdownPdfJsonValue plugins) &&
             TryGetProperty(plugins, "title", out MarkdownPdfJsonValue titleElement)) {
             if (titleElement.Kind == MarkdownPdfJsonValueKind.Object && TryGetProperty(titleElement, "text", out MarkdownPdfJsonValue textElement)) {
-                if (ReadBool(titleElement, "display") == false) {
+                if (ReadBool(titleElement, "display") != true) {
                     return null;
                 }
 
@@ -436,7 +436,7 @@ public static partial class MarkdownPdfConverterExtensions {
                 kind = stacked ? OfficeChartKind.BarStacked : OfficeChartKind.BarClustered;
                 return true;
             case "line":
-                kind = OfficeChartKind.Line;
+                kind = stacked ? OfficeChartKind.LineStacked : OfficeChartKind.Line;
                 return true;
             case "area":
                 kind = OfficeChartKind.Area;
