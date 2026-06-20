@@ -30,7 +30,7 @@ public static class HtmlResourcePipeline {
         options = options ?? new HtmlResourcePipelineOptions();
         Uri? baseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, options.BaseUri);
         var manifest = new HtmlResourceManifest();
-        foreach (IElement element in document.QuerySelectorAll("[src], [srcset], [href], [data], [data-src], [data-srcset], [poster], [data-poster], [action], [srcdoc]")) {
+        foreach (IElement element in document.QuerySelectorAll("[src], [srcset], [href], [data], [data-src], [data-srcset], [poster], [data-poster], [action], [srcdoc], [imagesrcset]")) {
             AddElementResources(manifest, element, baseUri, options);
         }
 
@@ -70,8 +70,6 @@ public static class HtmlResourcePipeline {
             case "input":
                 if (string.Equals(element.GetAttribute("type"), "image", StringComparison.OrdinalIgnoreCase)) {
                     AddImage(manifest, element, baseUri, options);
-                } else {
-                    AddAttribute(manifest, HtmlResourceKind.Other, element, "src", baseUri, options);
                 }
 
                 break;
@@ -79,8 +77,8 @@ public static class HtmlResourcePipeline {
                 AddAttribute(manifest, HtmlResourceKind.Script, element, "src", baseUri, options);
                 break;
             case "video":
-                AddAttribute(manifest, HtmlResourceKind.Media, element, "poster", baseUri, options);
-                AddAttribute(manifest, HtmlResourceKind.Media, element, "data-poster", baseUri, options);
+                AddAttribute(manifest, HtmlResourceKind.Image, element, "poster", baseUri, options);
+                AddAttribute(manifest, HtmlResourceKind.Image, element, "data-poster", baseUri, options);
                 AddAttribute(manifest, HtmlResourceKind.Media, element, "src", baseUri, options);
                 AddAttribute(manifest, HtmlResourceKind.Media, element, "data-src", baseUri, options);
                 break;
@@ -90,8 +88,11 @@ public static class HtmlResourcePipeline {
                 AddAttribute(manifest, HtmlResourceKind.Media, element, "data-src", baseUri, options);
                 break;
             case "object":
+                AddAttribute(manifest, HtmlResourceKind.Other, element, "data", baseUri, options);
+                break;
             case "embed":
                 AddAttribute(manifest, HtmlResourceKind.Other, element, "data", baseUri, options);
+                AddAttribute(manifest, HtmlResourceKind.Other, element, "src", baseUri, options);
                 break;
             case "iframe":
                 AddAttribute(manifest, HtmlResourceKind.Other, element, "src", baseUri, options);
@@ -144,6 +145,7 @@ public static class HtmlResourcePipeline {
         }
 
         AddAttribute(manifest, kind, element, "href", baseUri, options);
+        AddSrcSet(manifest, kind, element, "imagesrcset", baseUri, options);
     }
 
     private static HtmlResourceKind GetPreloadKind(string? asAttribute) {
@@ -185,7 +187,7 @@ public static class HtmlResourcePipeline {
 
         IHtmlDocument nested = HtmlDocumentParser.ParseDocument(srcdoc!);
         Uri? nestedBaseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(nested, baseUri);
-        foreach (IElement nestedElement in nested.QuerySelectorAll("[src], [srcset], [href], [data], [data-src], [data-srcset], [poster], [data-poster], [action], [srcdoc]")) {
+        foreach (IElement nestedElement in nested.QuerySelectorAll("[src], [srcset], [href], [data], [data-src], [data-srcset], [poster], [data-poster], [action], [srcdoc], [imagesrcset]")) {
             AddElementResources(manifest, nestedElement, nestedBaseUri, options);
         }
 

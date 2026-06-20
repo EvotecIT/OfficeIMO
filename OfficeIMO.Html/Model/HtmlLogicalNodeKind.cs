@@ -39,5 +39,7 @@ public enum HtmlLogicalNodeKind {
     /// <summary>Document metadata element.</summary>
     Metadata,
     /// <summary>Node that does not map to a known logical kind.</summary>
-    Unknown
+    Unknown,
+    /// <summary>Table caption.</summary>
+    TableCaption
 }

@@ -51,6 +51,7 @@ public static class HtmlRoundTripScorer {
         AddCountMetric(metrics, "table-rows", target.Count(HtmlLogicalNodeKind.TableRow), source.Count(HtmlLogicalNodeKind.TableRow));
         AddCountMetric(metrics, "table-cells", target.Count(HtmlLogicalNodeKind.TableCell), source.Count(HtmlLogicalNodeKind.TableCell));
         AddSignatureMetric(metrics, "table-grid", ExtractTableGridSignatures(target), ExtractTableGridSignatures(source));
+        AddSignatureMetric(metrics, "table-captions", ExtractSignatures(target, HtmlLogicalNodeKind.TableCaption, CreateTextualNodeSignature), ExtractSignatures(source, HtmlLogicalNodeKind.TableCaption, CreateTextualNodeSignature));
         AddCountMetric(metrics, "figures", target.Count(HtmlLogicalNodeKind.Figure), source.Count(HtmlLogicalNodeKind.Figure));
         AddSignatureMetric(metrics, "figure-signatures", ExtractSignatures(target, HtmlLogicalNodeKind.Figure, CreateFigureSignature), ExtractSignatures(source, HtmlLogicalNodeKind.Figure, CreateFigureSignature));
         AddCountMetric(metrics, "images", target.Count(HtmlLogicalNodeKind.Image), source.Count(HtmlLogicalNodeKind.Image));
@@ -215,6 +216,29 @@ public static class HtmlRoundTripScorer {
             parts.Add("text=" + NormalizeText(text));
         }
 
+        if (node.Kind == HtmlLogicalNodeKind.Form) {
+            foreach (HtmlLogicalNode control in Descendants(node, HtmlLogicalNodeKind.FormControl)) {
+                parts.Add("control=" + CreateFormControlSignature(control));
+            }
+        }
+
+        return string.Join("|", parts);
+    }
+
+    private static string CreateFormControlSignature(HtmlLogicalNode node) {
+        var parts = new List<string> {
+            node.Name
+        };
+
+        foreach (string attributeName in new[] { "type", "name", "value", "checked", "selected", "disabled", "multiple", "placeholder" }) {
+            AddAttributePart(parts, node, attributeName);
+        }
+
+        string text = ExtractLogicalNodeText(node);
+        if (!string.IsNullOrWhiteSpace(text)) {
+            parts.Add("text=" + NormalizeText(text));
+        }
+
         return string.Join("|", parts);
     }
 
@@ -263,6 +287,8 @@ public static class HtmlRoundTripScorer {
             node.Name
         };
         AddAttributePart(parts, node, "src");
+        AddAttributePart(parts, node, "href");
+        AddAttributePart(parts, node, "xlink:href");
         AddAttributePart(parts, node, "srcset");
         AddAttributePart(parts, node, "data-src");
         AddAttributePart(parts, node, "data-srcset");
@@ -272,7 +298,7 @@ public static class HtmlRoundTripScorer {
 
     private static string CreateTableCellGridSignature(HtmlLogicalNode node) {
         var parts = new List<string> {
-            "cell"
+            node.Name
         };
         AddAttributePart(parts, node, "colspan");
         AddAttributePart(parts, node, "rowspan");

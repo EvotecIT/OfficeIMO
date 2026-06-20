@@ -122,10 +122,13 @@ public static class HtmlLogicalDocumentBuilder {
             case "td":
             case "th":
                 return HtmlLogicalNodeKind.TableCell;
+            case "caption":
+                return HtmlLogicalNodeKind.TableCaption;
             case "figure":
             case "figcaption":
                 return HtmlLogicalNodeKind.Figure;
             case "img":
+            case "image":
             case "svg":
                 return HtmlLogicalNodeKind.Image;
             case "picture":
@@ -175,6 +178,7 @@ public static class HtmlLogicalDocumentBuilder {
             case "title":
             case "p":
             case "figcaption":
+            case "caption":
             case "label":
                 return NormalizeText(element.TextContent);
             default:
@@ -189,6 +193,7 @@ public static class HtmlLogicalDocumentBuilder {
                 break;
             case HtmlLogicalNodeKind.Table:
             case HtmlLogicalNodeKind.TableCell:
+            case HtmlLogicalNodeKind.TableCaption:
                 yield return "tables";
                 break;
             case HtmlLogicalNodeKind.Image:
