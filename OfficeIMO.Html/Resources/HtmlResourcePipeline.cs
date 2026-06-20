@@ -8,7 +8,6 @@ namespace OfficeIMO.Html;
 /// Shared resource discovery and policy planning for OfficeIMO HTML workflows.
 /// </summary>
 public static class HtmlResourcePipeline {
-    private static readonly Regex CssImportExpression = new Regex("@import\\s+(?:url\\(\\s*)?[\"']?(?<url>[^\"')\\s;]+)[\"']?\\s*\\)?", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
     private static readonly Regex CssUrlExpression = new Regex("url\\(\\s*(?:\"(?<url>[^\"]+)\"|'(?<url>[^']+)'|(?<url>[^)]+))\\s*\\)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
     private static readonly Regex CssCommentExpression = new Regex("/\\*.*?\\*/", RegexOptions.Singleline | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
@@ -44,6 +43,10 @@ public static class HtmlResourcePipeline {
         switch (name) {
             case "img":
                 AddImage(manifest, element, baseUri, options);
+                break;
+            case "image":
+                AddAttribute(manifest, HtmlResourceKind.Image, element, "href", baseUri, options);
+                AddAttribute(manifest, HtmlResourceKind.Image, element, "src", baseUri, options);
                 break;
             case "source":
                 HtmlResourceKind sourceKind = GetSourceKind(element);
@@ -167,10 +170,10 @@ public static class HtmlResourcePipeline {
         css = CssCommentExpression.Replace(css, string.Empty);
         var importRanges = new List<SourceRange>();
         var importedSources = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (Match match in CssImportExpression.Matches(css)) {
-            string source = match.Groups["url"].Value;
+        foreach (CssImportReference reference in ExtractCssImports(css)) {
+            string source = reference.Source;
             if (!string.IsNullOrWhiteSpace(source)) {
-                importRanges.Add(new SourceRange(match.Index, match.Index + match.Length));
+                importRanges.Add(new SourceRange(reference.Start, reference.End));
                 importedSources.Add(NormalizeSource(source));
                 AddRaw(manifest, HtmlResourceKind.Stylesheet, element, attributeName + "-import", source, baseUri, options);
             }
@@ -185,6 +188,114 @@ public static class HtmlResourcePipeline {
                 AddRaw(manifest, ClassifyCssUrl(css, match.Index), element, attributeName + "-url", source, baseUri, options);
             }
         }
+    }
+
+    private static IEnumerable<CssImportReference> ExtractCssImports(string css) {
+        int index = 0;
+        while (index < css.Length) {
+            int importStart = css.IndexOf("@import", index, StringComparison.OrdinalIgnoreCase);
+            if (importStart < 0) {
+                yield break;
+            }
+
+            if (IsInsideCssString(css, importStart)) {
+                index = importStart + 7;
+                continue;
+            }
+
+            int cursor = SkipWhitespace(css, importStart + 7);
+            string source;
+            int end;
+            if (StartsWith(css, cursor, "url(")) {
+                cursor = SkipWhitespace(css, cursor + 4);
+                if (!TryReadCssUrlFunctionSource(css, cursor, out source, out end)) {
+                    index = importStart + 7;
+                    continue;
+                }
+            } else if (cursor < css.Length && (css[cursor] == '"' || css[cursor] == '\'')) {
+                if (!TryReadCssQuotedValue(css, cursor, out source, out end)) {
+                    index = importStart + 7;
+                    continue;
+                }
+            } else {
+                int sourceStart = cursor;
+                while (cursor < css.Length && !char.IsWhiteSpace(css[cursor]) && css[cursor] != ';') {
+                    cursor++;
+                }
+
+                source = css.Substring(sourceStart, cursor - sourceStart);
+                end = cursor;
+            }
+
+            int importEnd = end;
+            while (importEnd < css.Length && css[importEnd] != ';') {
+                importEnd++;
+            }
+
+            if (importEnd < css.Length) {
+                importEnd++;
+            }
+
+            yield return new CssImportReference(importStart, importEnd, source);
+            index = importEnd;
+        }
+    }
+
+    private static bool TryReadCssUrlFunctionSource(string css, int cursor, out string source, out int end) {
+        if (cursor < css.Length && (css[cursor] == '"' || css[cursor] == '\'')) {
+            if (!TryReadCssQuotedValue(css, cursor, out source, out cursor)) {
+                end = cursor;
+                return false;
+            }
+        } else {
+            int sourceStart = cursor;
+            while (cursor < css.Length && css[cursor] != ')') {
+                cursor++;
+            }
+
+            source = css.Substring(sourceStart, cursor - sourceStart).Trim();
+        }
+
+        cursor = SkipWhitespace(css, cursor);
+        if (cursor < css.Length && css[cursor] == ')') {
+            cursor++;
+        }
+
+        end = cursor;
+        return true;
+    }
+
+    private static bool TryReadCssQuotedValue(string css, int cursor, out string value, out int end) {
+        char quote = css[cursor];
+        int start = cursor + 1;
+        cursor = start;
+        while (cursor < css.Length) {
+            if (css[cursor] == quote && !IsEscaped(css, cursor)) {
+                value = css.Substring(start, cursor - start);
+                end = cursor + 1;
+                return true;
+            }
+
+            cursor++;
+        }
+
+        value = string.Empty;
+        end = cursor;
+        return false;
+    }
+
+    private static int SkipWhitespace(string text, int index) {
+        while (index < text.Length && char.IsWhiteSpace(text[index])) {
+            index++;
+        }
+
+        return index;
+    }
+
+    private static bool StartsWith(string text, int index, string value) {
+        return index >= 0
+            && index + value.Length <= text.Length
+            && string.Compare(text, index, value, 0, value.Length, StringComparison.OrdinalIgnoreCase) == 0;
     }
 
     private static bool IsInsideCssString(string css, int index) {
@@ -271,7 +382,7 @@ public static class HtmlResourcePipeline {
 
     private static void AddRaw(HtmlResourceManifest manifest, HtmlResourceKind kind, IElement element, string attributeName, string source, Uri? baseUri, HtmlResourcePipelineOptions options) {
         string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(source, baseUri, options.UrlPolicy);
-        bool isAllowed = !string.IsNullOrWhiteSpace(resolved);
+        bool isAllowed = !string.IsNullOrWhiteSpace(resolved) && IsResourceKindSchemeAllowed(kind, resolved);
         manifest.Add(new HtmlResourceReference(
             kind,
             element.TagName.ToLowerInvariant(),
@@ -299,6 +410,27 @@ public static class HtmlResourcePipeline {
             default:
                 return "HtmlResourceRejectedByPolicy";
         }
+    }
+
+    private static bool IsResourceKindSchemeAllowed(HtmlResourceKind kind, string resolved) {
+        if (kind == HtmlResourceKind.Hyperlink) {
+            return true;
+        }
+
+        return !Uri.TryCreate(resolved, UriKind.Absolute, out var uri)
+            || !uri.Scheme.Equals(Uri.UriSchemeMailto, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private sealed class CssImportReference {
+        internal CssImportReference(int start, int end, string source) {
+            Start = start;
+            End = end;
+            Source = source;
+        }
+
+        internal int Start { get; }
+        internal int End { get; }
+        internal string Source { get; }
     }
 
     private sealed class SourceRange {

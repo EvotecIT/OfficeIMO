@@ -78,6 +78,10 @@ public static class HtmlComputedStyleEngine {
         var rules = new List<StyleRule>();
         var parser = new CssParser();
         foreach (IElement styleElement in document.QuerySelectorAll("style")) {
+            if (!IsApplicableMedia(styleElement.GetAttribute("media") ?? string.Empty)) {
+                continue;
+            }
+
             string css = styleElement.TextContent;
             if (string.IsNullOrWhiteSpace(css)) {
                 continue;
@@ -148,6 +152,10 @@ public static class HtmlComputedStyleEngine {
                 continue;
             }
 
+            if (HasMediaFeatureConstraint(normalized)) {
+                continue;
+            }
+
             if (normalized.IndexOf("all", StringComparison.OrdinalIgnoreCase) >= 0
                 || normalized.IndexOf("screen", StringComparison.OrdinalIgnoreCase) >= 0
                 || normalized.IndexOf("print", StringComparison.OrdinalIgnoreCase) >= 0) {
@@ -156,6 +164,11 @@ public static class HtmlComputedStyleEngine {
         }
 
         return false;
+    }
+
+    private static bool HasMediaFeatureConstraint(string mediaQuery) {
+        return mediaQuery.IndexOf("(", StringComparison.Ordinal) >= 0
+            || mediaQuery.IndexOf(":", StringComparison.Ordinal) >= 0;
     }
 
     private static bool IsSupportsRule(AngleSharp.Css.Dom.ICssRule rule) {
@@ -229,8 +242,14 @@ public static class HtmlComputedStyleEngine {
             return;
         }
 
-        value = ResolveCssWideKeyword(name, value, parentProperties);
-        if (string.IsNullOrWhiteSpace(value)) {
+        var resolved = ResolveCssWideKeyword(name, value, parentProperties);
+        if (!resolved.HasValue) {
+            CascadedProperty? resetExisting;
+            if (properties.TryGetValue(name, out resetExisting) && resetExisting != null && !ShouldReplace(resetExisting, isImportant, specificity, order)) {
+                return;
+            }
+
+            properties.Remove(name);
             return;
         }
 
@@ -239,27 +258,27 @@ public static class HtmlComputedStyleEngine {
             return;
         }
 
-        properties[name] = new CascadedProperty(value, isImportant, specificity, order);
+        properties[name] = new CascadedProperty(resolved.Value, isImportant, specificity, order);
     }
 
-    private static string ResolveCssWideKeyword(string name, string value, IReadOnlyDictionary<string, string>? parentProperties) {
+    private static CssKeywordResolution ResolveCssWideKeyword(string name, string value, IReadOnlyDictionary<string, string>? parentProperties) {
         string trimmed = value.Trim();
         if (string.Equals(trimmed, "inherit", StringComparison.OrdinalIgnoreCase)
             || (string.Equals(trimmed, "unset", StringComparison.OrdinalIgnoreCase) && InheritedProperties.Contains(name))) {
             string? inheritedValue;
-            return parentProperties != null && parentProperties.TryGetValue(name, out inheritedValue)
-                ? inheritedValue
-                : string.Empty;
+            return parentProperties != null && parentProperties.TryGetValue(name, out inheritedValue) && !string.IsNullOrWhiteSpace(inheritedValue)
+                ? CssKeywordResolution.ForValue(inheritedValue)
+                : CssKeywordResolution.Clear;
         }
 
         if (string.Equals(trimmed, "initial", StringComparison.OrdinalIgnoreCase)
             || string.Equals(trimmed, "revert", StringComparison.OrdinalIgnoreCase)
             || string.Equals(trimmed, "revert-layer", StringComparison.OrdinalIgnoreCase)
             || string.Equals(trimmed, "unset", StringComparison.OrdinalIgnoreCase)) {
-            return string.Empty;
+            return CssKeywordResolution.Clear;
         }
 
-        return value;
+        return CssKeywordResolution.ForValue(value);
     }
 
     private static bool ShouldReplace(CascadedProperty existing, bool isImportant, int specificity, int order) {
@@ -544,6 +563,19 @@ public static class HtmlComputedStyleEngine {
         internal bool IsImportant { get; }
         internal int Specificity { get; }
         internal int Order { get; }
+    }
+
+    private readonly struct CssKeywordResolution {
+        private CssKeywordResolution(bool hasValue, string value) {
+            HasValue = hasValue;
+            Value = value;
+        }
+
+        internal static CssKeywordResolution Clear => new CssKeywordResolution(false, string.Empty);
+        internal static CssKeywordResolution ForValue(string value) => new CssKeywordResolution(true, value);
+
+        internal bool HasValue { get; }
+        internal string Value { get; }
     }
 
     private sealed class Specificity {

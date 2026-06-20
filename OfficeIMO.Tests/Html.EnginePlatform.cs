@@ -206,6 +206,13 @@ public partial class Html {
             "<main><input type=\"checkbox\" name=\"approval\" value=\"rejected\"></main>");
         Assert.Equal(1D, formStateScore.Metrics["forms"], 3);
         Assert.InRange(formStateScore.Metrics["form-state"], 0D, 0.99D);
+
+        HtmlRoundTripScore textOnlyLossScore = HtmlRoundTripScorer.Compare(
+            "<main><p>Critical retained text</p></main>",
+            "<main></main>");
+        Assert.DoesNotContain("images", textOnlyLossScore.Metrics.Keys);
+        Assert.DoesNotContain("links", textOnlyLossScore.Metrics.Keys);
+        Assert.InRange(textOnlyLossScore.Score, 0D, 0.50D);
     }
 
     [Fact]
@@ -221,12 +228,19 @@ public partial class Html {
                     strong { font-weight: 400; }
                     @media all { em.media { text-transform: uppercase; } }
                     @media not screen { em.media { text-transform: lowercase; } }
+                    @media screen and (max-width: 0px) { em.media { text-transform: lowercase; } }
                     @supports not (color: red) { em.media { text-transform: lowercase; } }
+                    span.reset { color: #ff0000; border-color: #ff0000; }
                 </style>
                 <div style="color: #123456"><p style="background-image: url('data:image/svg+xml;utf8,<svg></svg>'); font-family: 'A;B'; color: inherit;">Hello</p></div>
                 <span class="x">Pseudo specificity</span>
                 <strong>Where specificity</strong>
                 <em class="media">Media rule</em>
+                <div style="color: #123456"><span class="reset" style="color: initial; border-color: unset;">Reset</span></div>
+                <style media="not all">span.inactive { text-decoration-line: underline; }</style>
+                <style media="speech">span.speech { text-decoration-line: underline; }</style>
+                <span class="inactive">Inactive media</span>
+                <span class="speech">Speech media</span>
             </main>
             """;
 
@@ -236,6 +250,9 @@ public partial class Html {
         IElement pseudo = parsed.QuerySelector("span.x")!;
         IElement where = parsed.QuerySelector("strong")!;
         IElement media = parsed.QuerySelector("em.media")!;
+        IElement reset = parsed.QuerySelector("span.reset")!;
+        IElement inactive = parsed.QuerySelector("span.inactive")!;
+        IElement speech = parsed.QuerySelector("span.speech")!;
 
         Assert.Equal("#123456", styles[paragraph].GetValue("color"));
         Assert.Contains("data:image/svg+xml;utf8", styles[paragraph].GetValue("background-image"));
@@ -243,6 +260,10 @@ public partial class Html {
         Assert.Equal("rgba(0, 0, 170, 1)", styles[pseudo].GetValue("color"));
         Assert.Equal("400", styles[where].GetValue("font-weight"));
         Assert.Equal("uppercase", styles[media].GetValue("text-transform"));
+        Assert.Equal(string.Empty, styles[reset].GetValue("color"));
+        Assert.Equal(string.Empty, styles[reset].GetValue("border-color"));
+        Assert.Equal(string.Empty, styles[inactive].GetValue("text-decoration-line"));
+        Assert.Equal(string.Empty, styles[speech].GetValue("text-decoration-line"));
     }
 
     [Fact]
@@ -256,11 +277,19 @@ public partial class Html {
                 <style>
                     /* @import url('file:///secret/commented.css'); */
                     @import url('file:///secret/theme.css');
+                    @import "https://example.test/themes/dark mode.css";
                     .hero { background-image: url('https://example.test/images/bg.png'); }
+                    .label::before { content: "@import url(file:///secret/content.css)"; }
                     .label::before { content: "url(file:///secret/label.png)"; }
                 </style>
             </head>
-            <body><video data-src="https://example.test/media/movie.mp4"></video><div class="hero"></div></body>
+            <body>
+                <script src="mailto:ops@example.test"></script>
+                <img src="mailto:ops@example.test">
+                <svg><image href="https://example.test/images/vector.png" /></svg>
+                <video data-src="https://example.test/media/movie.mp4"></video>
+                <div class="hero"></div>
+            </body>
             </html>
             """;
 
@@ -271,9 +300,14 @@ public partial class Html {
         Assert.DoesNotContain(manifest.Resources, resource => resource.ElementName == "base");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/commented.css");
         Assert.Single(manifest.Resources, resource => resource.Source == "file:///secret/theme.css");
+        Assert.Single(manifest.Resources, resource => resource.Source == "https://example.test/themes/dark mode.css");
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/content.css");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/label.png");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/app.js" && resource.Kind == HtmlResourceKind.Script);
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/favicon.png" && resource.Kind == HtmlResourceKind.Image);
+        Assert.Contains(manifest.Resources, resource => resource.Source == "mailto:ops@example.test" && resource.Kind == HtmlResourceKind.Script && !resource.IsAllowed && resource.DiagnosticCode == "ScriptResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "mailto:ops@example.test" && resource.Kind == HtmlResourceKind.Image && !resource.IsAllowed && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/vector.png" && resource.Kind == HtmlResourceKind.Image && resource.ElementName == "image");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/media/movie.mp4" && resource.Kind == HtmlResourceKind.Media && resource.AttributeName == "data-src");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/bg.png" && resource.Kind == HtmlResourceKind.Image && resource.IsAllowed);
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "https://example.test/images/bg.png" && resource.Kind == HtmlResourceKind.Font);
@@ -319,5 +353,11 @@ public partial class Html {
             "<main><img src=\"https://example.test/b.png\" alt=\"Chart B\"></main>");
         Assert.Equal(1D, imageScore.Metrics["images"], 3);
         Assert.InRange(imageScore.Metrics["image-sources"], 0D, 0.99D);
+
+        HtmlRoundTripScore figureScore = HtmlRoundTripScorer.Compare(
+            "<main><figure><img src=\"https://example.test/chart.png\" alt=\"Chart\"><figcaption>Revenue</figcaption></figure></main>",
+            "<main><div><img src=\"https://example.test/chart.png\" alt=\"Chart\"><p>Revenue</p></div></main>");
+        Assert.InRange(figureScore.Metrics["figures"], 0D, 0.99D);
+        Assert.InRange(figureScore.Metrics["figure-signatures"], 0D, 0.99D);
     }
 }

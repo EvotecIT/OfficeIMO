@@ -44,21 +44,23 @@ public static class HtmlRoundTripScorer {
 
         var metrics = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
         AddMetric(metrics, "nodes", Ratio(SumCounts(target), SumCounts(source)));
-        AddMetric(metrics, "headings", Ratio(target.Count(HtmlLogicalNodeKind.Heading), source.Count(HtmlLogicalNodeKind.Heading)));
-        AddMetric(metrics, "heading-levels", SignatureSimilarity(ExtractSignatures(target, HtmlLogicalNodeKind.Heading, CreateTextualNodeSignature), ExtractSignatures(source, HtmlLogicalNodeKind.Heading, CreateTextualNodeSignature)));
-        AddMetric(metrics, "paragraphs", Ratio(target.Count(HtmlLogicalNodeKind.Paragraph), source.Count(HtmlLogicalNodeKind.Paragraph)));
-        AddMetric(metrics, "tables", Ratio(target.Count(HtmlLogicalNodeKind.Table), source.Count(HtmlLogicalNodeKind.Table)));
-        AddMetric(metrics, "table-rows", Ratio(target.Count(HtmlLogicalNodeKind.TableRow), source.Count(HtmlLogicalNodeKind.TableRow)));
-        AddMetric(metrics, "table-cells", Ratio(target.Count(HtmlLogicalNodeKind.TableCell), source.Count(HtmlLogicalNodeKind.TableCell)));
-        AddMetric(metrics, "table-grid", SignatureSimilarity(ExtractTableGridSignatures(target), ExtractTableGridSignatures(source)));
-        AddMetric(metrics, "images", Ratio(target.Count(HtmlLogicalNodeKind.Image), source.Count(HtmlLogicalNodeKind.Image)));
-        AddMetric(metrics, "image-sources", SignatureSimilarity(ExtractSignatures(target, HtmlLogicalNodeKind.Image, CreateImageSignature), ExtractSignatures(source, HtmlLogicalNodeKind.Image, CreateImageSignature)));
-        AddMetric(metrics, "lists", Ratio(target.Count(HtmlLogicalNodeKind.List), source.Count(HtmlLogicalNodeKind.List)));
-        AddMetric(metrics, "list-items", Ratio(target.Count(HtmlLogicalNodeKind.ListItem), source.Count(HtmlLogicalNodeKind.ListItem)));
-        AddMetric(metrics, "forms", Ratio(target.Count(HtmlLogicalNodeKind.FormControl) + target.Count(HtmlLogicalNodeKind.Form), source.Count(HtmlLogicalNodeKind.FormControl) + source.Count(HtmlLogicalNodeKind.Form)));
-        AddMetric(metrics, "form-state", SignatureSimilarity(ExtractFormSignatures(target), ExtractFormSignatures(source)));
-        AddMetric(metrics, "links", Ratio(target.Count(HtmlLogicalNodeKind.Link), source.Count(HtmlLogicalNodeKind.Link)));
-        AddMetric(metrics, "link-targets", SignatureSimilarity(ExtractSignatures(target, HtmlLogicalNodeKind.Link, CreateLinkSignature), ExtractSignatures(source, HtmlLogicalNodeKind.Link, CreateLinkSignature)));
+        AddCountMetric(metrics, "headings", target.Count(HtmlLogicalNodeKind.Heading), source.Count(HtmlLogicalNodeKind.Heading));
+        AddSignatureMetric(metrics, "heading-levels", ExtractSignatures(target, HtmlLogicalNodeKind.Heading, CreateTextualNodeSignature), ExtractSignatures(source, HtmlLogicalNodeKind.Heading, CreateTextualNodeSignature));
+        AddCountMetric(metrics, "paragraphs", target.Count(HtmlLogicalNodeKind.Paragraph), source.Count(HtmlLogicalNodeKind.Paragraph));
+        AddCountMetric(metrics, "tables", target.Count(HtmlLogicalNodeKind.Table), source.Count(HtmlLogicalNodeKind.Table));
+        AddCountMetric(metrics, "table-rows", target.Count(HtmlLogicalNodeKind.TableRow), source.Count(HtmlLogicalNodeKind.TableRow));
+        AddCountMetric(metrics, "table-cells", target.Count(HtmlLogicalNodeKind.TableCell), source.Count(HtmlLogicalNodeKind.TableCell));
+        AddSignatureMetric(metrics, "table-grid", ExtractTableGridSignatures(target), ExtractTableGridSignatures(source));
+        AddCountMetric(metrics, "figures", target.Count(HtmlLogicalNodeKind.Figure), source.Count(HtmlLogicalNodeKind.Figure));
+        AddSignatureMetric(metrics, "figure-signatures", ExtractSignatures(target, HtmlLogicalNodeKind.Figure, CreateFigureSignature), ExtractSignatures(source, HtmlLogicalNodeKind.Figure, CreateFigureSignature));
+        AddCountMetric(metrics, "images", target.Count(HtmlLogicalNodeKind.Image), source.Count(HtmlLogicalNodeKind.Image));
+        AddSignatureMetric(metrics, "image-sources", ExtractSignatures(target, HtmlLogicalNodeKind.Image, CreateImageSignature), ExtractSignatures(source, HtmlLogicalNodeKind.Image, CreateImageSignature));
+        AddCountMetric(metrics, "lists", target.Count(HtmlLogicalNodeKind.List), source.Count(HtmlLogicalNodeKind.List));
+        AddCountMetric(metrics, "list-items", target.Count(HtmlLogicalNodeKind.ListItem), source.Count(HtmlLogicalNodeKind.ListItem));
+        AddCountMetric(metrics, "forms", target.Count(HtmlLogicalNodeKind.FormControl) + target.Count(HtmlLogicalNodeKind.Form), source.Count(HtmlLogicalNodeKind.FormControl) + source.Count(HtmlLogicalNodeKind.Form));
+        AddSignatureMetric(metrics, "form-state", ExtractFormSignatures(target), ExtractFormSignatures(source));
+        AddCountMetric(metrics, "links", target.Count(HtmlLogicalNodeKind.Link), source.Count(HtmlLogicalNodeKind.Link));
+        AddSignatureMetric(metrics, "link-targets", ExtractSignatures(target, HtmlLogicalNodeKind.Link, CreateLinkSignature), ExtractSignatures(source, HtmlLogicalNodeKind.Link, CreateLinkSignature));
         AddMetric(metrics, "text", textSimilarity);
 
         int compared = metrics.Count;
@@ -69,6 +71,22 @@ public static class HtmlRoundTripScorer {
 
     private static void AddMetric(IDictionary<string, double> metrics, string name, double value) {
         metrics[name] = Math.Max(0D, Math.Min(1D, value));
+    }
+
+    private static void AddCountMetric(IDictionary<string, double> metrics, string name, int actual, int expected) {
+        if (actual == 0 && expected == 0) {
+            return;
+        }
+
+        AddMetric(metrics, name, Ratio(actual, expected));
+    }
+
+    private static void AddSignatureMetric(IDictionary<string, double> metrics, string name, IReadOnlyList<string> actual, IReadOnlyList<string> expected) {
+        if (actual.Count == 0 && expected.Count == 0) {
+            return;
+        }
+
+        AddMetric(metrics, name, SignatureSimilarity(actual, expected));
     }
 
     private static int SumCounts(HtmlLogicalDocument document) {
@@ -209,6 +227,22 @@ public static class HtmlRoundTripScorer {
         string text = ExtractLogicalNodeText(node);
         if (!string.IsNullOrWhiteSpace(text)) {
             parts.Add("text=" + NormalizeText(text));
+        }
+
+        return string.Join("|", parts);
+    }
+
+    private static string CreateFigureSignature(HtmlLogicalNode node) {
+        var parts = new List<string> {
+            node.Name
+        };
+        string text = ExtractLogicalNodeText(node);
+        if (!string.IsNullOrWhiteSpace(text)) {
+            parts.Add("text=" + NormalizeText(text));
+        }
+
+        foreach (HtmlLogicalNode image in Descendants(node, HtmlLogicalNodeKind.Image)) {
+            parts.Add("image=" + CreateImageSignature(image));
         }
 
         return string.Join("|", parts);
