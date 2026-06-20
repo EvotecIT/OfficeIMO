@@ -191,6 +191,76 @@ _Figure 2. Revenue chart_
     }
 
     [Fact]
+    public void ToPdfDocument_MarkdownChartFence_WarnsWhenPageIsTooShortForNativeChartRenderer() {
+        var options = CreateVisualOptions();
+        options.PdfOptions!.PageHeight = 180;
+        options.PdfOptions.MarginTop = 36;
+        options.PdfOptions.MarginBottom = 36;
+        var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "bar",
+  "data": {
+    "labels": ["Q1"],
+    "datasets": [
+      { "label": "Actual", "data": [10] }
+    ]
+  }
+}
+""");
+
+        bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, options, out OfficeChartSnapshot? snapshot, out string? warning);
+
+        Assert.False(created);
+        Assert.Null(snapshot);
+        Assert.Contains("150", warning, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ToPdfDocument_MarkdownRadarChartFence_WarnsWhenCategoryCountCannotRenderRadar() {
+        var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "radar",
+  "data": {
+    "labels": ["Quality", "Speed"],
+    "datasets": [
+      { "label": "Score", "data": [8, 9] }
+    ]
+  }
+}
+""");
+
+        bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
+
+        Assert.False(created);
+        Assert.Null(snapshot);
+        Assert.Contains("three categories", warning, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ToPdfDocument_MarkdownDoughnutChartFence_PreservesMultipleDatasets() {
+        var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "doughnut",
+  "data": {
+    "labels": ["Passed", "Failed"],
+    "datasets": [
+      { "label": "Outer", "data": [8, 2] },
+      { "label": "Inner", "data": [6, 4] }
+    ]
+  }
+}
+""");
+
+        bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
+
+        Assert.True(created, warning);
+        Assert.Equal(OfficeChartKind.Doughnut, snapshot!.ChartKind);
+        Assert.Equal(2, snapshot.Data.Series.Count);
+        Assert.Equal("Outer", snapshot.Data.Series[0].Name);
+        Assert.Equal("Inner", snapshot.Data.Series[1].Name);
+    }
+
+    [Fact]
     public void ToPdfDocument_CustomReaderOptionsWithoutSemanticChartExtension_LeavesChartFenceAsCodePanel() {
         const string markdown = """
 ```chart

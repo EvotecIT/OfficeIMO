@@ -8,6 +8,7 @@ namespace OfficeIMO.Markdown.Pdf;
 /// </summary>
 public static partial class MarkdownPdfConverterExtensions {
     private const double MinimumChartWidth = 240D;
+    private const double MinimumChartHeight = 150D;
 
     private static bool TryRenderChartFencedBlock(PdfCore.PdfDocument pdf, SemanticFencedBlock semantic, MarkdownPdfSaveOptions options, MarkdownPdfVisualTheme visualTheme) {
         if (!IsChartSemanticFence(semantic)) {
@@ -85,12 +86,22 @@ public static partial class MarkdownPdfConverterExtensions {
                 return false;
             }
 
+            if (TryGetAvailablePdfContentHeight(options, out double availableHeight) && availableHeight < MinimumChartHeight) {
+                warningMessage = "The Markdown chart fence needs at least 150 PDF points of content height for native rendering and is rendered as a semantic code panel.";
+                return false;
+            }
+
+            if (chartKind == OfficeChartKind.Radar && labels.Count < 3) {
+                warningMessage = "The Markdown radar chart fence needs at least three categories and is rendered as a semantic code panel.";
+                return false;
+            }
+
             string? title = ReadChartTitle(root) ?? semantic.FenceInfo.Title;
             double width = ReadPositiveDouble(root, "width") ?? options.DefaultImageWidth;
             double height = ReadPositiveDouble(root, "height") ?? options.DefaultImageHeight;
             width = Math.Max(MinimumChartWidth, Math.Min(520D, width));
             height = Math.Max(150D, Math.Min(320D, height));
-            FitChartToPageWidth(options, ref width, ref height);
+            FitChartToPageFrame(options, ref width, ref height);
 
             snapshot = new OfficeChartSnapshot(
                 "Markdown chart",
@@ -111,25 +122,36 @@ public static partial class MarkdownPdfConverterExtensions {
         }
     }
 
-    private static void FitChartToPageWidth(MarkdownPdfSaveOptions options, ref double width, ref double height) {
+    private static void FitChartToPageFrame(MarkdownPdfSaveOptions options, ref double width, ref double height) {
         if (!TryGetAvailablePdfContentWidth(options, out double availableWidth)) {
-            return;
+            availableWidth = width;
         }
 
         double maxWidth = Math.Max(MinimumChartWidth, availableWidth);
-        if (width <= maxWidth) {
+        double maxHeight = height;
+        if (TryGetAvailablePdfContentHeight(options, out double availableHeight)) {
+            maxHeight = Math.Max(MinimumChartHeight, availableHeight);
+        }
+
+        if (width <= maxWidth && height <= maxHeight) {
             return;
         }
 
-        double scale = maxWidth / width;
-        width = maxWidth;
-        height = Math.Max(120D, height * scale);
+        double scale = Math.Min(maxWidth / width, maxHeight / height);
+        width = Math.Max(MinimumChartWidth, width * scale);
+        height = Math.Max(MinimumChartHeight, height * scale);
     }
 
     private static bool TryGetAvailablePdfContentWidth(MarkdownPdfSaveOptions options, out double availableWidth) {
         PdfCore.PdfOptions pdfOptions = options.PdfOptions ?? new PdfCore.PdfOptions();
         availableWidth = pdfOptions.PageWidth - pdfOptions.MarginLeft - pdfOptions.MarginRight;
         return availableWidth > 0D && !double.IsNaN(availableWidth) && !double.IsInfinity(availableWidth);
+    }
+
+    private static bool TryGetAvailablePdfContentHeight(MarkdownPdfSaveOptions options, out double availableHeight) {
+        PdfCore.PdfOptions pdfOptions = options.PdfOptions ?? new PdfCore.PdfOptions();
+        availableHeight = pdfOptions.PageHeight - pdfOptions.MarginTop - pdfOptions.MarginBottom;
+        return availableHeight > 0D && !double.IsNaN(availableHeight) && !double.IsInfinity(availableHeight);
     }
 
     private static OfficeChartLayout CreateMarkdownChartLayout(OfficeChartKind chartKind) {
@@ -196,7 +218,7 @@ public static partial class MarkdownPdfConverterExtensions {
             }
         }
 
-        if ((chartKind == OfficeChartKind.Pie || chartKind == OfficeChartKind.Doughnut) && series.Count > 1) {
+        if (chartKind == OfficeChartKind.Pie && series.Count > 1) {
             return new List<OfficeChartSeries> { series[0] };
         }
 
