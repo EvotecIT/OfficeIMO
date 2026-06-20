@@ -190,6 +190,76 @@ _Figure 2. Revenue chart_
     }
 
     [Fact]
+    public void ToPdfDocument_MarkdownScatterChartFence_PreservesPointCountWhenLabelsAreMetadata() {
+        var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "scatter",
+  "data": {
+    "labels": ["Reference"],
+    "datasets": [
+      { "label": "Samples", "data": [
+        { "x": 10, "y": 2 },
+        { "x": 25, "y": 4 }
+      ] }
+    ]
+  }
+}
+""");
+
+        bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
+
+        Assert.True(created, warning);
+        OfficeChartSeries series = Assert.Single(snapshot!.Data.Series);
+        Assert.Equal(new[] { 10D, 25D }, series.XValues);
+        Assert.Equal(new[] { 2D, 4D }, series.Values);
+        Assert.Equal(2, snapshot.Data.Categories.Count);
+    }
+
+    [Fact]
+    public void ToPdfDocument_MarkdownChartFence_PreservesObjectPointCategoriesWhenLabelsAreMissing() {
+        var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "bar",
+  "data": {
+    "datasets": [
+      { "label": "Actual", "data": [
+        { "x": "Q1", "y": 10 },
+        { "x": "Q2", "y": 14 }
+      ] }
+    ]
+  }
+}
+""");
+
+        bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
+
+        Assert.True(created, warning);
+        Assert.Equal(new[] { "Q1", "Q2" }, snapshot!.Data.Categories);
+        Assert.Equal(new[] { 10D, 14D }, Assert.Single(snapshot.Data.Series).Values);
+    }
+
+    [Fact]
+    public void ToPdfDocument_MarkdownScatterChartFence_ReadsTuplePointArrays() {
+        var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "scatter",
+  "data": {
+    "datasets": [
+      { "label": "Samples", "data": [[10, 2], [25, 4]] }
+    ]
+  }
+}
+""");
+
+        bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
+
+        Assert.True(created, warning);
+        OfficeChartSeries series = Assert.Single(snapshot!.Data.Series);
+        Assert.Equal(new[] { 10D, 25D }, series.XValues);
+        Assert.Equal(new[] { 2D, 4D }, series.Values);
+    }
+
+    [Fact]
     public void ToPdfDocument_MarkdownChartFence_PreservesMissingArrayValuesAsNaN() {
         var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
 {

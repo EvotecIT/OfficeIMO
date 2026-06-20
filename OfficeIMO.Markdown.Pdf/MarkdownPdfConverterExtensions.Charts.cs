@@ -63,7 +63,7 @@ public static partial class MarkdownPdfConverterExtensions {
                 ? data
                 : root;
             List<string> labels = ReadLabels(dataElement);
-            List<OfficeChartSeries> series = ReadSeries(dataElement, labels.Count, chartKind);
+            List<OfficeChartSeries> series = ReadSeries(dataElement, labels, chartKind);
             if (series.Count == 0) {
                 warningMessage = "The Markdown chart fence does not contain renderable chart series and is rendered as a semantic code panel.";
                 return false;
@@ -182,9 +182,10 @@ public static partial class MarkdownPdfConverterExtensions {
         return labels;
     }
 
-    private static List<OfficeChartSeries> ReadSeries(MarkdownPdfJsonValue dataElement, int labelCount, OfficeChartKind chartKind) {
+    private static List<OfficeChartSeries> ReadSeries(MarkdownPdfJsonValue dataElement, List<string> labels, OfficeChartKind chartKind) {
         var series = new List<OfficeChartSeries>();
         bool captureXValues = chartKind == OfficeChartKind.Scatter;
+        bool canUsePointCategories = labels.Count == 0 && !captureXValues;
         if (TryGetProperty(dataElement, "datasets", out MarkdownPdfJsonValue datasets) && datasets.Kind == MarkdownPdfJsonValueKind.Array) {
             int index = 0;
             foreach (MarkdownPdfJsonValue dataset in datasets.ArrayValues) {
@@ -192,14 +193,23 @@ public static partial class MarkdownPdfConverterExtensions {
                     continue;
                 }
 
-                MarkdownChartSeriesValues seriesValues = ReadDataValues(dataset, captureXValues);
+                MarkdownChartSeriesValues seriesValues = ReadDataValues(dataset, captureXValues, canUsePointCategories && series.Count == 0);
                 if (seriesValues.Values.Count == 0) {
                     continue;
                 }
 
-                NormalizeSeriesLength(seriesValues.Values, labelCount);
-                if (seriesValues.XValues != null) {
-                    NormalizeSeriesLength(seriesValues.XValues, labelCount);
+                if (canUsePointCategories && seriesValues.CategoryLabels != null && seriesValues.CategoryLabels.Count > 0) {
+                    labels.AddRange(seriesValues.CategoryLabels);
+                    canUsePointCategories = false;
+                }
+
+                if (captureXValues) {
+                    EnsureLabelsCoverValues(labels, seriesValues.Values.Count);
+                } else {
+                    NormalizeSeriesLength(seriesValues.Values, labels.Count);
+                    if (seriesValues.XValues != null) {
+                        NormalizeSeriesLength(seriesValues.XValues, labels.Count);
+                    }
                 }
 
                 OfficeColor? color = ReadColor(dataset, "borderColor") ?? ReadColor(dataset, "backgroundColor");
@@ -211,9 +221,13 @@ public static partial class MarkdownPdfConverterExtensions {
         }
 
         if (series.Count == 0 && TryGetProperty(dataElement, "values", out MarkdownPdfJsonValue valuesElement)) {
-            MarkdownChartSeriesValues values = ReadNumberArray(valuesElement, captureXValues: false);
+            MarkdownChartSeriesValues values = ReadNumberArray(valuesElement, captureXValues: false, captureCategoryLabels: labels.Count == 0);
             if (values.Values.Count > 0) {
-                NormalizeSeriesLength(values.Values, labelCount);
+                if (labels.Count == 0 && values.CategoryLabels != null && values.CategoryLabels.Count > 0) {
+                    labels.AddRange(values.CategoryLabels);
+                }
+
+                NormalizeSeriesLength(values.Values, labels.Count);
                 series.Add(new OfficeChartSeries("Values", values.Values));
             }
         }
@@ -225,32 +239,48 @@ public static partial class MarkdownPdfConverterExtensions {
         return series;
     }
 
-    private static MarkdownChartSeriesValues ReadDataValues(MarkdownPdfJsonValue dataset, bool captureXValues) {
+    private static MarkdownChartSeriesValues ReadDataValues(MarkdownPdfJsonValue dataset, bool captureXValues, bool captureCategoryLabels) {
         if (!TryGetProperty(dataset, "data", out MarkdownPdfJsonValue data)) {
-            return new MarkdownChartSeriesValues(new List<double>(), null);
+            return new MarkdownChartSeriesValues(new List<double>(), null, null);
         }
 
-        return ReadNumberArray(data, captureXValues);
+        return ReadNumberArray(data, captureXValues, captureCategoryLabels);
     }
 
-    private static MarkdownChartSeriesValues ReadNumberArray(MarkdownPdfJsonValue element, bool captureXValues) {
+    private static MarkdownChartSeriesValues ReadNumberArray(MarkdownPdfJsonValue element, bool captureXValues, bool captureCategoryLabels) {
         var values = new List<double>();
         List<double>? xValues = captureXValues ? new List<double>() : null;
+        List<string>? categoryLabels = captureCategoryLabels ? new List<string>() : null;
         bool hasExplicitXValue = false;
         if (element.Kind != MarkdownPdfJsonValueKind.Array) {
-            return new MarkdownChartSeriesValues(values, null);
+            return new MarkdownChartSeriesValues(values, null, null);
         }
 
         foreach (MarkdownPdfJsonValue item in element.ArrayValues) {
             bool hasPoint = false;
             double yValue = double.NaN;
             double xValue = double.NaN;
+            string? categoryLabel = null;
 
             if (TryReadNumber(item, out double scalarValue)) {
                 yValue = scalarValue;
                 hasPoint = true;
             } else if (item.Kind == MarkdownPdfJsonValueKind.Null) {
                 hasPoint = true;
+            } else if (item.Kind == MarkdownPdfJsonValueKind.Array) {
+                IReadOnlyList<MarkdownPdfJsonValue> pointValues = item.ArrayValues;
+                if (pointValues.Count >= 2) {
+                    hasPoint = true;
+                    hasExplicitXValue = true;
+                    categoryLabel = pointValues[0].ReadScalarAsText();
+                    if (TryReadNumber(pointValues[0], out double parsedX)) {
+                        xValue = parsedX;
+                    }
+
+                    if (TryReadNumber(pointValues[1], out double parsedY)) {
+                        yValue = parsedY;
+                    }
+                }
             } else if (item.Kind == MarkdownPdfJsonValueKind.Object) {
                 bool hasY = TryGetProperty(item, "y", out MarkdownPdfJsonValue y);
                 bool hasX = TryGetProperty(item, "x", out MarkdownPdfJsonValue x);
@@ -262,6 +292,7 @@ public static partial class MarkdownPdfConverterExtensions {
 
                     if (hasX) {
                         hasExplicitXValue = true;
+                        categoryLabel = x.ReadScalarAsText();
                         if (TryReadNumber(x, out double parsedX)) {
                             xValue = parsedX;
                         }
@@ -277,9 +308,19 @@ public static partial class MarkdownPdfConverterExtensions {
             if (xValues != null) {
                 xValues.Add(xValue);
             }
+
+            if (categoryLabels != null) {
+                categoryLabels.Add(string.IsNullOrWhiteSpace(categoryLabel) ? values.Count.ToString(CultureInfo.InvariantCulture) : categoryLabel!);
+            }
         }
 
-        return new MarkdownChartSeriesValues(values, hasExplicitXValue ? xValues : null);
+        return new MarkdownChartSeriesValues(values, hasExplicitXValue ? xValues : null, categoryLabels != null && categoryLabels.Count > 0 ? categoryLabels : null);
+    }
+
+    private static void EnsureLabelsCoverValues(List<string> labels, int valueCount) {
+        for (int i = labels.Count; i < valueCount; i++) {
+            labels.Add((i + 1).ToString(CultureInfo.InvariantCulture));
+        }
     }
 
     private static void NormalizeSeriesLength(List<double> values, int labelCount) {
@@ -435,13 +476,16 @@ public static partial class MarkdownPdfConverterExtensions {
         element.TryGetProperty(propertyName, out value);
 
     private sealed class MarkdownChartSeriesValues {
-        public MarkdownChartSeriesValues(List<double> values, List<double>? xValues) {
+        public MarkdownChartSeriesValues(List<double> values, List<double>? xValues, List<string>? categoryLabels) {
             Values = values;
             XValues = xValues;
+            CategoryLabels = categoryLabels;
         }
 
         public List<double> Values { get; }
 
         public List<double>? XValues { get; }
+
+        public List<string>? CategoryLabels { get; }
     }
 }
