@@ -288,7 +288,51 @@ public static class HtmlComputedStyleEngine {
         }
 
         string propertyName = normalized.Substring(0, separator).Trim();
-        return SupportedProperties.Contains(propertyName);
+        string value = normalized.Substring(separator + 1).Trim();
+        return IsSupportedDeclarationValue(propertyName, value);
+    }
+
+    private static bool IsSupportedDeclarationValue(string propertyName, string value) {
+        if (!SupportedProperties.Contains(propertyName) || string.IsNullOrWhiteSpace(value)) {
+            return false;
+        }
+
+        string normalized = value.Trim().Trim('\'', '"').ToLowerInvariant();
+        switch (propertyName.ToLowerInvariant()) {
+            case "display":
+                return IsKnownKeyword(normalized, "block", "inline", "inline-block", "none", "flex", "inline-flex", "grid", "inline-grid", "table", "table-row", "table-cell", "list-item", "contents", "flow-root");
+            case "visibility":
+                return IsKnownKeyword(normalized, "visible", "hidden", "collapse");
+            case "text-transform":
+                return IsKnownKeyword(normalized, "none", "uppercase", "lowercase", "capitalize", "full-width", "full-size-kana");
+            case "text-decoration-line":
+                return normalized.Split(new[] { ' ', '\t', '\r', '\n', '\f' }, StringSplitOptions.RemoveEmptyEntries)
+                    .All(token => IsKnownKeyword(token, "none", "underline", "overline", "line-through", "blink"));
+            case "font-style":
+                return normalized == "normal" || normalized == "italic" || normalized.StartsWith("oblique", StringComparison.Ordinal);
+            case "font-weight":
+                int weight;
+                return IsKnownKeyword(normalized, "normal", "bold", "bolder", "lighter")
+                    || (int.TryParse(normalized, out weight) && weight >= 1 && weight <= 1000);
+            case "text-align":
+                return IsKnownKeyword(normalized, "left", "right", "center", "justify", "start", "end", "match-parent");
+            case "direction":
+                return IsKnownKeyword(normalized, "ltr", "rtl");
+            case "white-space":
+                return IsKnownKeyword(normalized, "normal", "nowrap", "pre", "pre-wrap", "pre-line", "break-spaces");
+            default:
+                return !normalized.StartsWith("not-a-real", StringComparison.Ordinal);
+        }
+    }
+
+    private static bool IsKnownKeyword(string value, params string[] keywords) {
+        foreach (string keyword in keywords) {
+            if (string.Equals(value, keyword, StringComparison.OrdinalIgnoreCase)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static bool StartsWithLogicalNot(string conditionText) {
@@ -379,7 +423,7 @@ public static class HtmlComputedStyleEngine {
             return;
         }
 
-        foreach (string declaration in SplitCssDeclarations(styleText!)) {
+        foreach (string declaration in SplitCssDeclarations(StripCssCommentsOutsideStrings(styleText!))) {
             int separator = declaration.IndexOf(':');
             if (separator <= 0) {
                 continue;
@@ -491,6 +535,46 @@ public static class HtmlComputedStyleEngine {
 
         int close = text.LastIndexOf("*/", Math.Max(0, index), StringComparison.Ordinal);
         return close < open;
+    }
+
+    private static string StripCssCommentsOutsideStrings(string css) {
+        var result = new System.Text.StringBuilder(css.Length);
+        char quote = '\0';
+        for (int i = 0; i < css.Length; i++) {
+            char current = css[i];
+            if (quote != '\0') {
+                result.Append(current);
+                if (current == quote && !IsEscaped(css, i)) {
+                    quote = '\0';
+                }
+
+                continue;
+            }
+
+            if (current == '"' || current == '\'') {
+                quote = current;
+                result.Append(current);
+                continue;
+            }
+
+            if (current == '/' && i + 1 < css.Length && css[i + 1] == '*') {
+                i += 2;
+                while (i + 1 < css.Length && !(css[i] == '*' && css[i + 1] == '/')) {
+                    i++;
+                }
+
+                if (i + 1 < css.Length) {
+                    i++;
+                }
+
+                result.Append(' ');
+                continue;
+            }
+
+            result.Append(current);
+        }
+
+        return result.ToString();
     }
 
     private static IEnumerable<string> SplitSelectorList(string selectorText) {

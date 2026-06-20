@@ -23,6 +23,7 @@ public static class HtmlRoundTripScorer {
         "formenctype",
         "formtarget",
         "formnovalidate",
+        "data-fieldset-disabled",
         "src",
         "data-src",
         "alt",
@@ -59,6 +60,7 @@ public static class HtmlRoundTripScorer {
         "formenctype",
         "formtarget",
         "formnovalidate",
+        "data-fieldset-disabled",
         "src",
         "data-src",
         "alt",
@@ -217,6 +219,7 @@ public static class HtmlRoundTripScorer {
     private static HtmlLogicalDocument BuildLogicalDocumentForScoring(string html) {
         var document = HtmlDocumentParser.ParseDocument(html);
         ResolveResourceSourceAttributes(document);
+        PropagateFieldsetDisabledState(document);
         return HtmlLogicalDocumentBuilder.FromDocument(document);
     }
 
@@ -279,6 +282,7 @@ public static class HtmlRoundTripScorer {
     private static IReadOnlyList<string> ExtractFormOwnerSignatures(string html) {
         var document = HtmlDocumentParser.ParseDocument(html);
         ResolveResourceSourceAttributes(document);
+        PropagateFieldsetDisabledState(document);
         var signatures = new List<string>();
         foreach (var control in document.QuerySelectorAll("input,select,textarea,button,option")) {
             var parts = new List<string> {
@@ -301,6 +305,14 @@ public static class HtmlRoundTripScorer {
         }
 
         return signatures;
+    }
+
+    private static void PropagateFieldsetDisabledState(AngleSharp.Html.Dom.IHtmlDocument document) {
+        foreach (var fieldset in document.QuerySelectorAll("fieldset[disabled]")) {
+            foreach (var control in fieldset.QuerySelectorAll("input,select,textarea,button")) {
+                control.SetAttribute("data-fieldset-disabled", "true");
+            }
+        }
     }
 
     private static string ResolveFormOwnerSignature(AngleSharp.Dom.IElement control) {
@@ -471,6 +483,11 @@ public static class HtmlRoundTripScorer {
             node.Name
         };
         AddAttributePart(parts, node, "href");
+        AddAttributePart(parts, node, "shape");
+        AddAttributePart(parts, node, "coords");
+        AddAttributePart(parts, node, "alt");
+        AddAttributePart(parts, node, "aria-label");
+        AddAttributePart(parts, node, "title");
         string text = ExtractLogicalNodeText(node);
         if (!string.IsNullOrWhiteSpace(text)) {
             parts.Add("text=" + NormalizeText(text));
