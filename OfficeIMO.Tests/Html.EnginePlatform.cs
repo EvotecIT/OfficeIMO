@@ -19,6 +19,7 @@ public partial class Html {
                 <link rel="preload" as="image" href="/images/preload.png">
                 <style>
                     @import "file:///secret/theme.css";
+                    @import url('file:///secret/print.css');
                     @font-face { font-family: Demo; src: url('file:///secret/font.woff2'); }
                     body { color: #222; font-family: Aptos; }
                     article.report { color: #123456; }
@@ -109,8 +110,10 @@ public partial class Html {
         Assert.Contains(resourceManifest.Resources, resource => resource.ElementName == "source" && resource.AttributeName == "data-srcset" && resource.Kind == HtmlResourceKind.Image && resource.IsAllowed);
         Assert.Contains(resourceManifest.Resources, resource => resource.ElementName == "object" && resource.AttributeName == "data" && resource.DiagnosticCode == "HtmlResourceRejectedByPolicy");
         Assert.Contains(resourceManifest.Resources, resource => resource.ElementName == "style" && resource.AttributeName == "css-import" && resource.DiagnosticCode == "StylesheetResourceRejectedByPolicy");
+        Assert.DoesNotContain(resourceManifest.Resources, resource => resource.ElementName == "style" && resource.AttributeName == "css-url" && resource.Source == "file:///secret/print.css");
         Assert.Contains(resourceManifest.Resources, resource => resource.ElementName == "style" && resource.AttributeName == "css-url" && resource.Kind == HtmlResourceKind.Font && resource.DiagnosticCode == "FontResourceRejectedByPolicy");
         Assert.Contains(resourceManifest.Resources, resource => resource.ElementName == "style" && resource.AttributeName == "css-url" && resource.Kind == HtmlResourceKind.Image && resource.IsAllowed);
+        Assert.DoesNotContain(resourceManifest.Resources, resource => resource.ElementName == "base");
         Assert.Contains(resourceManifest.Resources, resource => resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.Contains(resourceManifest.Resources, resource => resource.DiagnosticCode == "HyperlinkRejectedByPolicy");
         Assert.Contains(resourceManifest.Resources, resource => resource.DiagnosticCode == "ScriptResourceRejectedByPolicy");
@@ -192,6 +195,17 @@ public partial class Html {
             "<main><div><p>One</p><p>Two</p></div></main>");
         Assert.InRange(listScore.Metrics["lists"], 0D, 0.99D);
         Assert.InRange(listScore.Metrics["list-items"], 0D, 0.99D);
+
+        HtmlRoundTripScore paragraphScore = HtmlRoundTripScorer.Compare(
+            "<main><p>Block text</p></main>",
+            "<main><div>Block text</div></main>");
+        Assert.InRange(paragraphScore.Metrics["paragraphs"], 0D, 0.99D);
+
+        HtmlRoundTripScore formStateScore = HtmlRoundTripScorer.Compare(
+            "<main><input type=\"checkbox\" name=\"approval\" value=\"approved\" checked></main>",
+            "<main><input type=\"checkbox\" name=\"approval\" value=\"rejected\"></main>");
+        Assert.Equal(1D, formStateScore.Metrics["forms"], 3);
+        Assert.InRange(formStateScore.Metrics["form-state"], 0D, 0.99D);
     }
 
     [Fact]
@@ -201,17 +215,56 @@ public partial class Html {
                 <style>
                     p { color: #aa0000; }
                     * { color: #0000aa; }
+                    :not(p) { color: #aa0000; }
+                    .x { color: #0000aa; }
+                    :where(strong) { font-weight: 900; }
+                    strong { font-weight: 400; }
+                    @media all { em.media { text-transform: uppercase; } }
                 </style>
                 <p style="background-image: url('data:image/svg+xml;utf8,<svg></svg>'); font-family: 'A;B';">Hello</p>
+                <span class="x">Pseudo specificity</span>
+                <strong>Where specificity</strong>
+                <em class="media">Media rule</em>
             </main>
             """;
 
         var parsed = HtmlDocumentParser.ParseDocument(html);
         IReadOnlyDictionary<IElement, HtmlComputedStyle> styles = HtmlComputedStyleEngine.Compute(parsed);
         IElement paragraph = parsed.QuerySelector("p")!;
+        IElement pseudo = parsed.QuerySelector("span.x")!;
+        IElement where = parsed.QuerySelector("strong")!;
+        IElement media = parsed.QuerySelector("em.media")!;
 
         Assert.Equal("rgba(170, 0, 0, 1)", styles[paragraph].GetValue("color"));
         Assert.Contains("data:image/svg+xml;utf8", styles[paragraph].GetValue("background-image"));
         Assert.Equal("'A;B'", styles[paragraph].GetValue("font-family"));
+        Assert.Equal("rgba(0, 0, 170, 1)", styles[pseudo].GetValue("color"));
+        Assert.Equal("400", styles[where].GetValue("font-weight"));
+        Assert.Equal("uppercase", styles[media].GetValue("text-transform"));
+    }
+
+    [Fact]
+    public void HtmlEnginePlatform_ResourcePipelineAvoidsMetadataDuplicatesAndFontMisclassification() {
+        const string html = """
+            <html>
+            <head>
+                <base href="file:///secret/">
+                <style>
+                    @import url('file:///secret/theme.css');
+                    .hero { background-image: url('https://example.test/images/bg.png'); }
+                </style>
+            </head>
+            <body><div class="hero"></div></body>
+            </html>
+            """;
+
+        var manifest = HtmlResourcePipeline.BuildManifest(html, new HtmlResourcePipelineOptions {
+            UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile()
+        });
+
+        Assert.DoesNotContain(manifest.Resources, resource => resource.ElementName == "base");
+        Assert.Single(manifest.Resources, resource => resource.Source == "file:///secret/theme.css");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/bg.png" && resource.Kind == HtmlResourceKind.Image && resource.IsAllowed);
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "https://example.test/images/bg.png" && resource.Kind == HtmlResourceKind.Font);
     }
 }

@@ -85,31 +85,62 @@ public static class HtmlComputedStyleEngine {
 
             var stylesheet = parser.ParseStyleSheet(css);
             foreach (var rule in stylesheet.Rules) {
-                var styleRule = rule as AngleSharp.Css.Dom.ICssStyleRule;
-                if (styleRule == null) {
-                    continue;
-                }
-
-                var declarations = new Dictionary<string, StyleDeclaration>(StringComparer.OrdinalIgnoreCase);
-                for (int i = 0; i < styleRule.Style.Length; i++) {
-                    string propertyName = styleRule.Style[i];
-                    if (!string.IsNullOrWhiteSpace(propertyName)) {
-                        declarations[propertyName] = new StyleDeclaration(
-                            styleRule.Style.GetPropertyValue(propertyName),
-                            string.Equals(styleRule.Style.GetPropertyPriority(propertyName), "important", StringComparison.OrdinalIgnoreCase));
-                    }
-                }
-
-                foreach (string selector in SplitSelectorList(styleRule.SelectorText)) {
-                    string trimmedSelector = selector.Trim();
-                    if (trimmedSelector.Length > 0 && declarations.Count > 0) {
-                        rules.Add(new StyleRule(trimmedSelector, CalculateSpecificity(trimmedSelector), rules.Count, declarations));
-                    }
-                }
+                AddStyleRules(rule, rules);
             }
         }
 
         return rules;
+    }
+
+    private static void AddStyleRules(AngleSharp.Css.Dom.ICssRule rule, ICollection<StyleRule> rules) {
+        var styleRule = rule as AngleSharp.Css.Dom.ICssStyleRule;
+        if (styleRule != null) {
+            AddStyleRule(styleRule, rules);
+            return;
+        }
+
+        var mediaRule = rule as AngleSharp.Css.Dom.ICssMediaRule;
+        if (mediaRule != null && !IsApplicableMedia(mediaRule.ConditionText)) {
+            return;
+        }
+
+        var groupingRule = rule as AngleSharp.Css.Dom.ICssGroupingRule;
+        if (groupingRule == null) {
+            return;
+        }
+
+        foreach (var childRule in groupingRule.Rules) {
+            AddStyleRules(childRule, rules);
+        }
+    }
+
+    private static void AddStyleRule(AngleSharp.Css.Dom.ICssStyleRule styleRule, ICollection<StyleRule> rules) {
+        var declarations = new Dictionary<string, StyleDeclaration>(StringComparer.OrdinalIgnoreCase);
+        for (int i = 0; i < styleRule.Style.Length; i++) {
+            string propertyName = styleRule.Style[i];
+            if (!string.IsNullOrWhiteSpace(propertyName)) {
+                declarations[propertyName] = new StyleDeclaration(
+                    styleRule.Style.GetPropertyValue(propertyName),
+                    string.Equals(styleRule.Style.GetPropertyPriority(propertyName), "important", StringComparison.OrdinalIgnoreCase));
+            }
+        }
+
+        foreach (string selector in SplitSelectorList(styleRule.SelectorText)) {
+            string trimmedSelector = selector.Trim();
+            if (trimmedSelector.Length > 0 && declarations.Count > 0) {
+                rules.Add(new StyleRule(trimmedSelector, CalculateSpecificity(trimmedSelector), rules.Count, declarations));
+            }
+        }
+    }
+
+    private static bool IsApplicableMedia(string mediaText) {
+        if (string.IsNullOrWhiteSpace(mediaText)) {
+            return true;
+        }
+
+        return mediaText.IndexOf("all", StringComparison.OrdinalIgnoreCase) >= 0
+            || mediaText.IndexOf("screen", StringComparison.OrdinalIgnoreCase) >= 0
+            || mediaText.IndexOf("print", StringComparison.OrdinalIgnoreCase) >= 0;
     }
 
     private static bool MatchesSelector(IElement element, string selector) {
@@ -309,8 +340,37 @@ public static class HtmlComputedStyleEngine {
                     elements++;
                     i = SkipIdentifier(selector, i + 2);
                 } else {
+                    int nameStart = i + 1;
+                    int nameEnd = SkipIdentifier(selector, nameStart);
+                    string pseudoName = selector.Substring(nameStart, nameEnd - nameStart + 1);
+                    if (nameEnd + 1 < selector.Length && selector[nameEnd + 1] == '(') {
+                        int close = FindMatchingParenthesis(selector, nameEnd + 1);
+                        if (close > nameEnd + 1) {
+                            string argument = selector.Substring(nameEnd + 2, close - nameEnd - 2);
+                            if (string.Equals(pseudoName, "where", StringComparison.OrdinalIgnoreCase)) {
+                                i = close;
+                                continue;
+                            }
+
+                            if (string.Equals(pseudoName, "is", StringComparison.OrdinalIgnoreCase)
+                                || string.Equals(pseudoName, "not", StringComparison.OrdinalIgnoreCase)
+                                || string.Equals(pseudoName, "has", StringComparison.OrdinalIgnoreCase)) {
+                                Specificity argumentSpecificity = MaxSpecificity(argument);
+                                ids += argumentSpecificity.Ids;
+                                classesAttributesAndPseudoClasses += argumentSpecificity.ClassesAttributesAndPseudoClasses;
+                                elements += argumentSpecificity.Elements;
+                                i = close;
+                                continue;
+                            }
+
+                            classesAttributesAndPseudoClasses++;
+                            i = close;
+                            continue;
+                        }
+                    }
+
                     classesAttributesAndPseudoClasses++;
-                    i = SkipIdentifier(selector, i + 1);
+                    i = nameEnd;
                 }
             } else if (IsElementStart(selector, i)) {
                 elements++;
@@ -319,6 +379,56 @@ public static class HtmlComputedStyleEngine {
         }
 
         return (ids * 10000) + (classesAttributesAndPseudoClasses * 100) + elements;
+    }
+
+    private static Specificity MaxSpecificity(string selectorList) {
+        var max = new Specificity(0, 0, 0);
+        foreach (string selector in SplitSelectorList(selectorList)) {
+            Specificity specificity = CalculateSpecificityParts(selector);
+            if (specificity.Score > max.Score) {
+                max = specificity;
+            }
+        }
+
+        return max;
+    }
+
+    private static Specificity CalculateSpecificityParts(string selector) {
+        int score = CalculateSpecificity(selector);
+        int ids = score / 10000;
+        int remainder = score % 10000;
+        return new Specificity(ids, remainder / 100, remainder % 100);
+    }
+
+    private static int FindMatchingParenthesis(string text, int openIndex) {
+        int depth = 0;
+        char quote = '\0';
+        for (int i = openIndex; i < text.Length; i++) {
+            char current = text[i];
+            if (quote != '\0') {
+                if (current == quote && !IsEscaped(text, i)) {
+                    quote = '\0';
+                }
+
+                continue;
+            }
+
+            if (current == '"' || current == '\'') {
+                quote = current;
+                continue;
+            }
+
+            if (current == '(') {
+                depth++;
+            } else if (current == ')') {
+                depth--;
+                if (depth == 0) {
+                    return i;
+                }
+            }
+        }
+
+        return -1;
     }
 
     private static int SkipIdentifier(string selector, int index) {
@@ -372,6 +482,19 @@ public static class HtmlComputedStyleEngine {
         internal bool IsImportant { get; }
         internal int Specificity { get; }
         internal int Order { get; }
+    }
+
+    private sealed class Specificity {
+        internal Specificity(int ids, int classesAttributesAndPseudoClasses, int elements) {
+            Ids = ids;
+            ClassesAttributesAndPseudoClasses = classesAttributesAndPseudoClasses;
+            Elements = elements;
+        }
+
+        internal int Ids { get; }
+        internal int ClassesAttributesAndPseudoClasses { get; }
+        internal int Elements { get; }
+        internal int Score => (Ids * 10000) + (ClassesAttributesAndPseudoClasses * 100) + Elements;
     }
 
     private sealed class StyleRule {

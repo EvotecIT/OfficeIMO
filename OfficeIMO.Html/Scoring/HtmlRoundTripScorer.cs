@@ -44,11 +44,13 @@ public static class HtmlRoundTripScorer {
         var metrics = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
         AddMetric(metrics, "nodes", Ratio(SumCounts(target), SumCounts(source)));
         AddMetric(metrics, "headings", Ratio(target.Count(HtmlLogicalNodeKind.Heading), source.Count(HtmlLogicalNodeKind.Heading)));
+        AddMetric(metrics, "paragraphs", Ratio(target.Count(HtmlLogicalNodeKind.Paragraph), source.Count(HtmlLogicalNodeKind.Paragraph)));
         AddMetric(metrics, "tables", Ratio(target.Count(HtmlLogicalNodeKind.Table), source.Count(HtmlLogicalNodeKind.Table)));
         AddMetric(metrics, "images", Ratio(target.Count(HtmlLogicalNodeKind.Image), source.Count(HtmlLogicalNodeKind.Image)));
         AddMetric(metrics, "lists", Ratio(target.Count(HtmlLogicalNodeKind.List), source.Count(HtmlLogicalNodeKind.List)));
         AddMetric(metrics, "list-items", Ratio(target.Count(HtmlLogicalNodeKind.ListItem), source.Count(HtmlLogicalNodeKind.ListItem)));
         AddMetric(metrics, "forms", Ratio(target.Count(HtmlLogicalNodeKind.FormControl) + target.Count(HtmlLogicalNodeKind.Form), source.Count(HtmlLogicalNodeKind.FormControl) + source.Count(HtmlLogicalNodeKind.Form)));
+        AddMetric(metrics, "form-state", SignatureSimilarity(ExtractFormSignatures(target), ExtractFormSignatures(source)));
         AddMetric(metrics, "links", Ratio(target.Count(HtmlLogicalNodeKind.Link), source.Count(HtmlLogicalNodeKind.Link)));
         AddMetric(metrics, "text", textSimilarity);
 
@@ -72,6 +74,74 @@ public static class HtmlRoundTripScorer {
         }
 
         return Math.Min(actual, expected) / (double)Math.Max(actual, expected);
+    }
+
+    private static double SignatureSimilarity(IReadOnlyList<string> actual, IReadOnlyList<string> expected) {
+        if (expected.Count == 0) {
+            return actual.Count == 0 ? 1D : 0D;
+        }
+
+        var remaining = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (string signature in expected) {
+            if (!remaining.ContainsKey(signature)) {
+                remaining[signature] = 0;
+            }
+
+            remaining[signature]++;
+        }
+
+        int matched = 0;
+        foreach (string signature in actual) {
+            int count;
+            if (remaining.TryGetValue(signature, out count) && count > 0) {
+                remaining[signature] = count - 1;
+                matched++;
+            }
+        }
+
+        return matched / (double)Math.Max(actual.Count, expected.Count);
+    }
+
+    private static IReadOnlyList<string> ExtractFormSignatures(HtmlLogicalDocument document) {
+        var signatures = new List<string>();
+        AppendFormSignatures(document.Root, signatures);
+        return signatures;
+    }
+
+    private static void AppendFormSignatures(HtmlLogicalNode node, ICollection<string> signatures) {
+        if (node.Kind == HtmlLogicalNodeKind.FormControl) {
+            signatures.Add(CreateFormSignature(node));
+        }
+
+        foreach (HtmlLogicalNode child in node.Children) {
+            AppendFormSignatures(child, signatures);
+        }
+    }
+
+    private static string CreateFormSignature(HtmlLogicalNode node) {
+        var parts = new List<string> {
+            node.Name
+        };
+
+        foreach (string attributeName in new[] { "type", "name", "value", "checked", "selected", "disabled", "multiple", "placeholder" }) {
+            string? value;
+            if (node.Attributes.TryGetValue(attributeName, out value)) {
+                parts.Add(attributeName + "=" + value);
+            }
+        }
+
+        string text = ExtractLogicalNodeText(node);
+        if (!string.IsNullOrWhiteSpace(text)) {
+            parts.Add("text=" + NormalizeText(text));
+        }
+
+        return string.Join("|", parts);
+    }
+
+    private static string ExtractLogicalNodeText(HtmlLogicalNode node) {
+        var parts = new List<string>();
+        AppendLogicalText(node, parts);
+        return string.Join(" ", parts);
     }
 
     private static double TextSimilarityFromText(string sourceText, string targetText) {

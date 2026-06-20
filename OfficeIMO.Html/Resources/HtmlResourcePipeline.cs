@@ -54,6 +54,8 @@ public static class HtmlResourcePipeline {
             case "link":
                 AddLink(manifest, element, baseUri, options);
                 break;
+            case "base":
+                break;
             case "a":
             case "area":
                 AddAttribute(manifest, HtmlResourceKind.Hyperlink, element, "href", baseUri, options);
@@ -155,16 +157,20 @@ public static class HtmlResourcePipeline {
             return;
         }
 
+        var importRanges = new List<SourceRange>();
+        var importedSources = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (Match match in CssImportExpression.Matches(css)) {
             string source = match.Groups["url"].Value;
             if (!string.IsNullOrWhiteSpace(source)) {
+                importRanges.Add(new SourceRange(match.Index, match.Index + match.Length));
+                importedSources.Add(NormalizeSource(source));
                 AddRaw(manifest, HtmlResourceKind.Stylesheet, element, attributeName + "-import", source, baseUri, options);
             }
         }
 
         foreach (Match match in CssUrlExpression.Matches(css)) {
             string source = match.Groups["url"].Value.Trim().Trim('\'', '"');
-            if (!string.IsNullOrWhiteSpace(source)) {
+            if (!string.IsNullOrWhiteSpace(source) && !IsImportUrl(match.Index, importRanges) && !importedSources.Contains(NormalizeSource(source))) {
                 AddRaw(manifest, ClassifyCssUrl(css, match.Index), element, attributeName + "-url", source, baseUri, options);
             }
         }
@@ -175,7 +181,9 @@ public static class HtmlResourcePipeline {
         int previousBoundary = Math.Max(css.LastIndexOf(';', Math.Max(0, index - 1)), blockStart);
         string declaration = css.Substring(Math.Max(0, previousBoundary + 1), index - Math.Max(0, previousBoundary + 1)).ToLowerInvariant();
         string blockPrefix = blockStart >= 0 ? css.Substring(0, blockStart).ToLowerInvariant() : string.Empty;
-        if (blockPrefix.LastIndexOf("@font-face", StringComparison.Ordinal) >= blockPrefix.LastIndexOf('}')) {
+        int fontFaceStart = blockPrefix.LastIndexOf("@font-face", StringComparison.Ordinal);
+        int previousBlockEnd = blockPrefix.LastIndexOf('}');
+        if (fontFaceStart >= 0 && fontFaceStart > previousBlockEnd) {
             return HtmlResourceKind.Font;
         }
 
@@ -187,6 +195,20 @@ public static class HtmlResourcePipeline {
         }
 
         return HtmlResourceKind.Other;
+    }
+
+    private static bool IsImportUrl(int index, IEnumerable<SourceRange> ranges) {
+        foreach (SourceRange range in ranges) {
+            if (index >= range.Start && index < range.End) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static string NormalizeSource(string source) {
+        return source.Trim().Trim('\'', '"');
     }
 
     private static void AddSrcSet(HtmlResourceManifest manifest, HtmlResourceKind kind, IElement element, string attributeName, Uri? baseUri, HtmlResourcePipelineOptions options) {
@@ -237,5 +259,15 @@ public static class HtmlResourcePipeline {
             default:
                 return "HtmlResourceRejectedByPolicy";
         }
+    }
+
+    private sealed class SourceRange {
+        internal SourceRange(int start, int end) {
+            Start = start;
+            End = end;
+        }
+
+        internal int Start { get; }
+        internal int End { get; }
     }
 }
