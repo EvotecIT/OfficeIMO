@@ -1,4 +1,3 @@
-using System.Text.Json;
 using OfficeIMO.Drawing;
 using PdfCore = OfficeIMO.Pdf;
 
@@ -8,12 +7,18 @@ namespace OfficeIMO.Markdown.Pdf;
 /// First-party Markdown to PDF conversion helpers.
 /// </summary>
 public static partial class MarkdownPdfConverterExtensions {
+    private const double MinimumChartWidth = 240D;
+
     private static bool TryRenderChartFencedBlock(PdfCore.PdfDocument pdf, SemanticFencedBlock semantic, MarkdownPdfSaveOptions options, MarkdownPdfVisualTheme visualTheme) {
         if (!IsChartSemanticFence(semantic)) {
             return false;
         }
 
-        if (!TryCreateChartSnapshot(semantic, options, out OfficeChartSnapshot? snapshot)) {
+        if (!TryCreateChartSnapshot(semantic, options, out OfficeChartSnapshot? snapshot, out string? warningMessage)) {
+            if (!string.IsNullOrWhiteSpace(warningMessage)) {
+                AddWarning(options, "UnsupportedChartFence", semantic.Language, warningMessage!);
+            }
+
             return false;
         }
 
@@ -32,30 +37,34 @@ public static partial class MarkdownPdfConverterExtensions {
     private static bool IsChartSemanticFence(SemanticFencedBlock semantic) =>
         string.Equals(semantic.SemanticKind, MarkdownSemanticKinds.Chart, StringComparison.OrdinalIgnoreCase);
 
-    private static bool TryCreateChartSnapshot(SemanticFencedBlock semantic, MarkdownPdfSaveOptions options, out OfficeChartSnapshot? snapshot) {
+    internal static bool TryCreateChartSnapshot(SemanticFencedBlock semantic, MarkdownPdfSaveOptions options, out OfficeChartSnapshot? snapshot, out string? warningMessage) {
         snapshot = null;
+        warningMessage = null;
         if (string.IsNullOrWhiteSpace(semantic.Content)) {
+            warningMessage = "The Markdown chart fence is empty and is rendered as a semantic code panel.";
             return false;
         }
 
         try {
-            using JsonDocument document = JsonDocument.Parse(semantic.Content);
-            JsonElement root = document.RootElement;
-            if (root.ValueKind != JsonValueKind.Object) {
+            MarkdownPdfJsonValue root = MarkdownPdfJsonValue.Parse(semantic.Content);
+            if (root.Kind != MarkdownPdfJsonValueKind.Object) {
+                warningMessage = "The Markdown chart fence must contain a JSON object and is rendered as a semantic code panel.";
                 return false;
             }
 
             string type = ReadString(root, "type") ?? "bar";
-            if (!TryMapChartKind(type, out OfficeChartKind chartKind)) {
+            if (!TryMapChartKind(type, UsesHorizontalIndexAxis(root), out OfficeChartKind chartKind)) {
+                warningMessage = "The Markdown chart fence uses an unsupported chart type and is rendered as a semantic code panel.";
                 return false;
             }
 
-            JsonElement dataElement = TryGetProperty(root, "data", out JsonElement data)
+            MarkdownPdfJsonValue dataElement = TryGetProperty(root, "data", out MarkdownPdfJsonValue data)
                 ? data
                 : root;
             List<string> labels = ReadLabels(dataElement);
             List<OfficeChartSeries> series = ReadSeries(dataElement, labels.Count, chartKind);
             if (series.Count == 0) {
+                warningMessage = "The Markdown chart fence does not contain renderable chart series and is rendered as a semantic code panel.";
                 return false;
             }
 
@@ -67,13 +76,19 @@ public static partial class MarkdownPdfConverterExtensions {
             }
 
             if (labels.Count == 0) {
+                warningMessage = "The Markdown chart fence does not contain renderable chart labels and is rendered as a semantic code panel.";
                 return false;
             }
 
-            string? title = ReadChartTitle(root);
+            if (TryGetAvailablePdfContentWidth(options, out double availableWidth) && availableWidth < MinimumChartWidth) {
+                warningMessage = "The Markdown chart fence needs at least 240 PDF points of content width for native rendering and is rendered as a semantic code panel.";
+                return false;
+            }
+
+            string? title = ReadChartTitle(root) ?? semantic.FenceInfo.Title;
             double width = ReadPositiveDouble(root, "width") ?? options.DefaultImageWidth;
             double height = ReadPositiveDouble(root, "height") ?? options.DefaultImageHeight;
-            width = Math.Max(240D, Math.Min(520D, width));
+            width = Math.Max(MinimumChartWidth, Math.Min(520D, width));
             height = Math.Max(150D, Math.Min(320D, height));
             FitChartToPageWidth(options, ref width, ref height);
 
@@ -87,23 +102,21 @@ public static partial class MarkdownPdfConverterExtensions {
                 OfficeChartStyle.Default,
                 CreateMarkdownChartLayout(chartKind));
             return true;
-        } catch (JsonException) {
-            AddWarning(options, "UnsupportedChartFence", semantic.Language, "The Markdown chart fence is not valid JSON and is rendered as a semantic code panel.");
+        } catch (FormatException) {
+            warningMessage = "The Markdown chart fence is not valid JSON and is rendered as a semantic code panel.";
             return false;
         } catch (ArgumentException ex) {
-            AddWarning(options, "UnsupportedChartFence", semantic.Language, "The Markdown chart fence could not be rendered as a chart: " + ex.Message);
+            warningMessage = "The Markdown chart fence could not be rendered as a chart: " + ex.Message;
             return false;
         }
     }
 
     private static void FitChartToPageWidth(MarkdownPdfSaveOptions options, ref double width, ref double height) {
-        PdfCore.PdfOptions pdfOptions = options.PdfOptions ?? new PdfCore.PdfOptions();
-        double availableWidth = pdfOptions.PageWidth - pdfOptions.MarginLeft - pdfOptions.MarginRight;
-        if (availableWidth <= 0 || double.IsNaN(availableWidth) || double.IsInfinity(availableWidth)) {
+        if (!TryGetAvailablePdfContentWidth(options, out double availableWidth)) {
             return;
         }
 
-        double maxWidth = Math.Max(120D, availableWidth);
+        double maxWidth = Math.Max(MinimumChartWidth, availableWidth);
         if (width <= maxWidth) {
             return;
         }
@@ -111,6 +124,12 @@ public static partial class MarkdownPdfConverterExtensions {
         double scale = maxWidth / width;
         width = maxWidth;
         height = Math.Max(120D, height * scale);
+    }
+
+    private static bool TryGetAvailablePdfContentWidth(MarkdownPdfSaveOptions options, out double availableWidth) {
+        PdfCore.PdfOptions pdfOptions = options.PdfOptions ?? new PdfCore.PdfOptions();
+        availableWidth = pdfOptions.PageWidth - pdfOptions.MarginLeft - pdfOptions.MarginRight;
+        return availableWidth > 0D && !double.IsNaN(availableWidth) && !double.IsInfinity(availableWidth);
     }
 
     private static OfficeChartLayout CreateMarkdownChartLayout(OfficeChartKind chartKind) {
@@ -127,48 +146,53 @@ public static partial class MarkdownPdfConverterExtensions {
             showMarkers: chartKind == OfficeChartKind.Line || chartKind == OfficeChartKind.Scatter);
     }
 
-    private static List<string> ReadLabels(JsonElement dataElement) {
+    private static List<string> ReadLabels(MarkdownPdfJsonValue dataElement) {
         var labels = new List<string>();
-        if (!TryGetProperty(dataElement, "labels", out JsonElement labelElement) || labelElement.ValueKind != JsonValueKind.Array) {
+        if (!TryGetProperty(dataElement, "labels", out MarkdownPdfJsonValue labelElement) || labelElement.Kind != MarkdownPdfJsonValueKind.Array) {
             return labels;
         }
 
-        foreach (JsonElement item in labelElement.EnumerateArray()) {
-            string? label = ReadJsonScalarAsText(item);
+        foreach (MarkdownPdfJsonValue item in labelElement.ArrayValues) {
+            string? label = item.ReadScalarAsText();
             labels.Add(string.IsNullOrWhiteSpace(label) ? string.Empty : label!);
         }
 
         return labels;
     }
 
-    private static List<OfficeChartSeries> ReadSeries(JsonElement dataElement, int labelCount, OfficeChartKind chartKind) {
+    private static List<OfficeChartSeries> ReadSeries(MarkdownPdfJsonValue dataElement, int labelCount, OfficeChartKind chartKind) {
         var series = new List<OfficeChartSeries>();
-        if (TryGetProperty(dataElement, "datasets", out JsonElement datasets) && datasets.ValueKind == JsonValueKind.Array) {
+        bool captureXValues = chartKind == OfficeChartKind.Scatter;
+        if (TryGetProperty(dataElement, "datasets", out MarkdownPdfJsonValue datasets) && datasets.Kind == MarkdownPdfJsonValueKind.Array) {
             int index = 0;
-            foreach (JsonElement dataset in datasets.EnumerateArray()) {
-                if (dataset.ValueKind != JsonValueKind.Object) {
+            foreach (MarkdownPdfJsonValue dataset in datasets.ArrayValues) {
+                if (dataset.Kind != MarkdownPdfJsonValueKind.Object) {
                     continue;
                 }
 
-                List<double> values = ReadDataValues(dataset);
-                if (values.Count == 0) {
+                MarkdownChartSeriesValues seriesValues = ReadDataValues(dataset, captureXValues);
+                if (seriesValues.Values.Count == 0) {
                     continue;
                 }
 
-                NormalizeSeriesLength(values, labelCount);
+                NormalizeSeriesLength(seriesValues.Values, labelCount);
+                if (seriesValues.XValues != null) {
+                    NormalizeSeriesLength(seriesValues.XValues, labelCount);
+                }
+
                 OfficeColor? color = ReadColor(dataset, "borderColor") ?? ReadColor(dataset, "backgroundColor");
-                IReadOnlyList<OfficeColor?>? pointColors = ReadPointColors(dataset, "backgroundColor", values.Count);
+                IReadOnlyList<OfficeColor?>? pointColors = ReadPointColors(dataset, "backgroundColor", seriesValues.Values.Count);
                 string name = ReadString(dataset, "label") ?? "Series " + (index + 1).ToString(CultureInfo.InvariantCulture);
-                series.Add(new OfficeChartSeries(name, values, xValues: null, color, pointColors));
+                series.Add(new OfficeChartSeries(name, seriesValues.Values, seriesValues.XValues, color, pointColors));
                 index++;
             }
         }
 
-        if (series.Count == 0 && TryGetProperty(dataElement, "values", out JsonElement valuesElement)) {
-            List<double> values = ReadNumberArray(valuesElement);
-            if (values.Count > 0) {
-                NormalizeSeriesLength(values, labelCount);
-                series.Add(new OfficeChartSeries("Values", values));
+        if (series.Count == 0 && TryGetProperty(dataElement, "values", out MarkdownPdfJsonValue valuesElement)) {
+            MarkdownChartSeriesValues values = ReadNumberArray(valuesElement, captureXValues: false);
+            if (values.Values.Count > 0) {
+                NormalizeSeriesLength(values.Values, labelCount);
+                series.Add(new OfficeChartSeries("Values", values.Values));
             }
         }
 
@@ -179,29 +203,61 @@ public static partial class MarkdownPdfConverterExtensions {
         return series;
     }
 
-    private static List<double> ReadDataValues(JsonElement dataset) {
-        if (!TryGetProperty(dataset, "data", out JsonElement data)) {
-            return new List<double>();
+    private static MarkdownChartSeriesValues ReadDataValues(MarkdownPdfJsonValue dataset, bool captureXValues) {
+        if (!TryGetProperty(dataset, "data", out MarkdownPdfJsonValue data)) {
+            return new MarkdownChartSeriesValues(new List<double>(), null);
         }
 
-        return ReadNumberArray(data);
+        return ReadNumberArray(data, captureXValues);
     }
 
-    private static List<double> ReadNumberArray(JsonElement element) {
+    private static MarkdownChartSeriesValues ReadNumberArray(MarkdownPdfJsonValue element, bool captureXValues) {
         var values = new List<double>();
-        if (element.ValueKind != JsonValueKind.Array) {
-            return values;
+        List<double>? xValues = captureXValues ? new List<double>() : null;
+        bool hasExplicitXValue = false;
+        if (element.Kind != MarkdownPdfJsonValueKind.Array) {
+            return new MarkdownChartSeriesValues(values, null);
         }
 
-        foreach (JsonElement item in element.EnumerateArray()) {
-            if (TryReadNumber(item, out double value)) {
-                values.Add(value);
-            } else if (item.ValueKind == JsonValueKind.Object && TryGetProperty(item, "y", out JsonElement y) && TryReadNumber(y, out double yValue)) {
-                values.Add(yValue);
+        foreach (MarkdownPdfJsonValue item in element.ArrayValues) {
+            bool hasPoint = false;
+            double yValue = double.NaN;
+            double xValue = double.NaN;
+
+            if (TryReadNumber(item, out double scalarValue)) {
+                yValue = scalarValue;
+                hasPoint = true;
+            } else if (item.Kind == MarkdownPdfJsonValueKind.Null) {
+                hasPoint = true;
+            } else if (item.Kind == MarkdownPdfJsonValueKind.Object) {
+                bool hasY = TryGetProperty(item, "y", out MarkdownPdfJsonValue y);
+                bool hasX = TryGetProperty(item, "x", out MarkdownPdfJsonValue x);
+                if (hasY || hasX) {
+                    hasPoint = true;
+                    if (hasY && TryReadNumber(y, out double parsedY)) {
+                        yValue = parsedY;
+                    }
+
+                    if (hasX) {
+                        hasExplicitXValue = true;
+                        if (TryReadNumber(x, out double parsedX)) {
+                            xValue = parsedX;
+                        }
+                    }
+                }
+            }
+
+            if (!hasPoint) {
+                continue;
+            }
+
+            values.Add(yValue);
+            if (xValues != null) {
+                xValues.Add(xValue);
             }
         }
 
-        return values;
+        return new MarkdownChartSeriesValues(values, hasExplicitXValue ? xValues : null);
     }
 
     private static void NormalizeSeriesLength(List<double> values, int labelCount) {
@@ -210,7 +266,7 @@ public static partial class MarkdownPdfConverterExtensions {
         }
 
         while (values.Count < labelCount) {
-            values.Add(0D);
+            values.Add(double.NaN);
         }
 
         if (values.Count > labelCount) {
@@ -218,18 +274,18 @@ public static partial class MarkdownPdfConverterExtensions {
         }
     }
 
-    private static OfficeColor? ReadColor(JsonElement element, string propertyName) {
-        if (!TryGetProperty(element, propertyName, out JsonElement colorElement)) {
+    private static OfficeColor? ReadColor(MarkdownPdfJsonValue element, string propertyName) {
+        if (!TryGetProperty(element, propertyName, out MarkdownPdfJsonValue colorElement)) {
             return null;
         }
 
-        if (colorElement.ValueKind == JsonValueKind.String && OfficeColor.TryParse(colorElement.GetString(), out OfficeColor color)) {
+        if (colorElement.Kind == MarkdownPdfJsonValueKind.String && OfficeColor.TryParse(colorElement.StringValue, out OfficeColor color)) {
             return color;
         }
 
-        if (colorElement.ValueKind == JsonValueKind.Array) {
-            foreach (JsonElement item in colorElement.EnumerateArray()) {
-                if (item.ValueKind == JsonValueKind.String && OfficeColor.TryParse(item.GetString(), out color)) {
+        if (colorElement.Kind == MarkdownPdfJsonValueKind.Array) {
+            foreach (MarkdownPdfJsonValue item in colorElement.ArrayValues) {
+                if (item.Kind == MarkdownPdfJsonValueKind.String && OfficeColor.TryParse(item.StringValue, out color)) {
                     return color;
                 }
             }
@@ -238,14 +294,14 @@ public static partial class MarkdownPdfConverterExtensions {
         return null;
     }
 
-    private static IReadOnlyList<OfficeColor?>? ReadPointColors(JsonElement element, string propertyName, int expectedCount) {
-        if (!TryGetProperty(element, propertyName, out JsonElement colorElement) || colorElement.ValueKind != JsonValueKind.Array) {
+    private static IReadOnlyList<OfficeColor?>? ReadPointColors(MarkdownPdfJsonValue element, string propertyName, int expectedCount) {
+        if (!TryGetProperty(element, propertyName, out MarkdownPdfJsonValue colorElement) || colorElement.Kind != MarkdownPdfJsonValueKind.Array) {
             return null;
         }
 
         var colors = new List<OfficeColor?>();
-        foreach (JsonElement item in colorElement.EnumerateArray()) {
-            colors.Add(item.ValueKind == JsonValueKind.String && OfficeColor.TryParse(item.GetString(), out OfficeColor color) ? color : null);
+        foreach (MarkdownPdfJsonValue item in colorElement.ArrayValues) {
+            colors.Add(item.Kind == MarkdownPdfJsonValueKind.String && OfficeColor.TryParse(item.StringValue, out OfficeColor color) ? color : null);
         }
 
         if (colors.Count == 0) {
@@ -263,29 +319,35 @@ public static partial class MarkdownPdfConverterExtensions {
         return colors;
     }
 
-    private static string? ReadChartTitle(JsonElement root) {
+    private static string? ReadChartTitle(MarkdownPdfJsonValue root) {
         string? title = ReadString(root, "title");
         if (!string.IsNullOrWhiteSpace(title)) {
             return title;
         }
 
-        if (TryGetProperty(root, "options", out JsonElement options) &&
-            TryGetProperty(options, "plugins", out JsonElement plugins) &&
-            TryGetProperty(plugins, "title", out JsonElement titleElement)) {
-            if (titleElement.ValueKind == JsonValueKind.Object && TryGetProperty(titleElement, "text", out JsonElement textElement)) {
-                return ReadJsonScalarAsText(textElement);
+        if (TryGetProperty(root, "options", out MarkdownPdfJsonValue options) &&
+            TryGetProperty(options, "plugins", out MarkdownPdfJsonValue plugins) &&
+            TryGetProperty(plugins, "title", out MarkdownPdfJsonValue titleElement)) {
+            if (titleElement.Kind == MarkdownPdfJsonValueKind.Object && TryGetProperty(titleElement, "text", out MarkdownPdfJsonValue textElement)) {
+                return textElement.ReadScalarAsText();
             }
 
-            return ReadJsonScalarAsText(titleElement);
+            return titleElement.ReadScalarAsText();
         }
 
         return null;
     }
 
-    private static bool TryMapChartKind(string? type, out OfficeChartKind kind) {
+    private static bool UsesHorizontalIndexAxis(MarkdownPdfJsonValue root) =>
+        TryGetProperty(root, "options", out MarkdownPdfJsonValue options) &&
+        string.Equals(ReadString(options, "indexAxis"), "y", StringComparison.OrdinalIgnoreCase);
+
+    private static bool TryMapChartKind(string? type, bool horizontalIndexAxis, out OfficeChartKind kind) {
         string normalized = NormalizeChartType(type);
         switch (normalized) {
             case "bar":
+                kind = horizontalIndexAxis ? OfficeChartKind.BarClustered : OfficeChartKind.ColumnClustered;
+                return true;
             case "column":
                 kind = OfficeChartKind.ColumnClustered;
                 return true;
@@ -334,66 +396,30 @@ public static partial class MarkdownPdfConverterExtensions {
         return builder.ToString();
     }
 
-    private static string? ReadString(JsonElement element, string propertyName) =>
-        TryGetProperty(element, propertyName, out JsonElement value) ? ReadJsonScalarAsText(value) : null;
+    private static string? ReadString(MarkdownPdfJsonValue element, string propertyName) =>
+        TryGetProperty(element, propertyName, out MarkdownPdfJsonValue value) ? value.ReadScalarAsText() : null;
 
-    private static double? ReadPositiveDouble(JsonElement element, string propertyName) {
-        if (!TryGetProperty(element, propertyName, out JsonElement value) || !TryReadNumber(value, out double number)) {
+    private static double? ReadPositiveDouble(MarkdownPdfJsonValue element, string propertyName) {
+        if (!TryGetProperty(element, propertyName, out MarkdownPdfJsonValue value) || !TryReadNumber(value, out double number)) {
             return null;
         }
 
         return number > 0D && !double.IsNaN(number) && !double.IsInfinity(number) ? number : null;
     }
 
-    private static bool TryReadNumber(JsonElement element, out double value) {
-        value = 0D;
-        if (element.ValueKind == JsonValueKind.Number) {
-            return element.TryGetDouble(out value);
+    private static bool TryReadNumber(MarkdownPdfJsonValue element, out double value) => element.TryGetDouble(out value);
+
+    private static bool TryGetProperty(MarkdownPdfJsonValue element, string propertyName, out MarkdownPdfJsonValue value) =>
+        element.TryGetProperty(propertyName, out value);
+
+    private sealed class MarkdownChartSeriesValues {
+        public MarkdownChartSeriesValues(List<double> values, List<double>? xValues) {
+            Values = values;
+            XValues = xValues;
         }
 
-        if (element.ValueKind == JsonValueKind.String) {
-            return double.TryParse(element.GetString(), NumberStyles.Float, CultureInfo.InvariantCulture, out value);
-        }
+        public List<double> Values { get; }
 
-        return false;
-    }
-
-    private static string? ReadJsonScalarAsText(JsonElement element) {
-        switch (element.ValueKind) {
-            case JsonValueKind.String:
-                return element.GetString();
-            case JsonValueKind.Number:
-                return element.ToString();
-            case JsonValueKind.True:
-                return "true";
-            case JsonValueKind.False:
-                return "false";
-            case JsonValueKind.Array:
-                var parts = new List<string>();
-                foreach (JsonElement item in element.EnumerateArray()) {
-                    string? text = ReadJsonScalarAsText(item);
-                    if (!string.IsNullOrWhiteSpace(text)) {
-                        parts.Add(text!);
-                    }
-                }
-
-                return parts.Count == 0 ? null : string.Join(" ", parts);
-            default:
-                return null;
-        }
-    }
-
-    private static bool TryGetProperty(JsonElement element, string propertyName, out JsonElement value) {
-        if (element.ValueKind == JsonValueKind.Object) {
-            foreach (JsonProperty property in element.EnumerateObject()) {
-                if (string.Equals(property.Name, propertyName, StringComparison.OrdinalIgnoreCase)) {
-                    value = property.Value;
-                    return true;
-                }
-            }
-        }
-
-        value = default;
-        return false;
+        public List<double>? XValues { get; }
     }
 }

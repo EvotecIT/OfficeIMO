@@ -157,7 +157,7 @@ Console.WriteLine("OfficeIMO");
 
             MarkdownPdfExportWarning warning = Assert.Single(options.Warnings);
             Assert.Equal("LocalImageDisabled", warning.Code);
-            Assert.Contains("[Image:", text, StringComparison.Ordinal);
+            Assert.Contains("[Image unavailable:", text, StringComparison.Ordinal);
             Assert.Empty(images);
         } finally {
             if (Directory.Exists(directory)) {
@@ -211,7 +211,7 @@ Console.WriteLine("OfficeIMO");
         MarkdownPdfExportWarning warning = Assert.Single(options.Warnings);
         Assert.Equal("ImageTooLarge", warning.Code);
         Assert.Contains("OfficeIMO logo", text);
-        Assert.Contains("[Image:", text, StringComparison.Ordinal);
+        Assert.Contains("[Image unavailable:", text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -284,7 +284,7 @@ _Figure 1. Embedded from a relative Markdown path._
             MarkdownPdfExportWarning warning = Assert.Single(options.Warnings);
             Assert.Equal("LocalImageOutsideBaseDirectory", warning.Code);
             Assert.Null(options.BaseDirectory);
-            Assert.Contains("[Image:", text, StringComparison.Ordinal);
+            Assert.Contains("[Image unavailable:", text, StringComparison.Ordinal);
             Assert.Empty(images);
         } finally {
             if (Directory.Exists(directory)) {
@@ -589,7 +589,7 @@ author: OfficeIMO
         string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
 
         Assert.True(pdf.Length > 0);
-        Assert.Empty(options.Warnings);
+        Assert.Contains(options.Warnings, warning => warning.Code == "UnsupportedSemanticFence" && warning.Source == "diagram");
         Assert.Contains("PDF Playbook", text);
         Assert.Contains("Deployment note", text);
         Assert.Contains("Keep backup enabled", text);

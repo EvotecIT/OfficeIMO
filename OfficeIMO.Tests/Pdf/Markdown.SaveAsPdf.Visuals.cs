@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing;
 using OfficeIMO.Markdown;
 using OfficeIMO.Markdown.Pdf;
 using PdfCore = OfficeIMO.Pdf;
@@ -70,6 +71,123 @@ _Figure 2. Revenue chart_
         Assert.Contains("Q1", text, StringComparison.Ordinal);
         Assert.Contains("Figure 2. Revenue chart", text, StringComparison.Ordinal);
         Assert.DoesNotContain("\"datasets\"", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ToPdfDocument_MarkdownChartFence_UsesFenceTitleWhenJsonTitleIsMissing() {
+        var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart title=\"Fence revenue\"", """
+{
+  "type": "bar",
+  "data": {
+    "labels": ["Q1"],
+    "datasets": [
+      { "label": "Actual", "data": [10] }
+    ]
+  }
+}
+""");
+
+        bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
+
+        Assert.True(created, warning);
+        Assert.Equal("Fence revenue", snapshot!.Title);
+    }
+
+    [Fact]
+    public void ToPdfDocument_MarkdownChartFence_MapsChartJsHorizontalBar() {
+        var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "bar",
+  "options": { "indexAxis": "y" },
+  "data": {
+    "labels": ["Backlog", "Done"],
+    "datasets": [
+      { "label": "Items", "data": [3, 7] }
+    ]
+  }
+}
+""");
+
+        bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
+
+        Assert.True(created, warning);
+        Assert.Equal(OfficeChartKind.BarClustered, snapshot!.ChartKind);
+    }
+
+    [Fact]
+    public void ToPdfDocument_MarkdownScatterChartFence_PreservesExplicitXValuesAndMissingYValues() {
+        var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "scatter",
+  "data": {
+    "datasets": [
+      { "label": "Samples", "data": [
+        { "x": 10, "y": 2 },
+        { "x": 25, "y": null },
+        { "x": 40, "y": 8 }
+      ] }
+    ]
+  }
+}
+""");
+
+        bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
+
+        Assert.True(created, warning);
+        OfficeChartSeries series = Assert.Single(snapshot!.Data.Series);
+        Assert.Equal(new[] { 10D, 25D, 40D }, series.XValues);
+        Assert.Equal(2D, series.Values[0]);
+        Assert.True(double.IsNaN(series.Values[1]));
+        Assert.Equal(8D, series.Values[2]);
+    }
+
+    [Fact]
+    public void ToPdfDocument_MarkdownChartFence_PreservesMissingArrayValuesAsNaN() {
+        var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "line",
+  "data": {
+    "labels": ["A", "B", "C", "D"],
+    "datasets": [
+      { "label": "Actual", "data": [1, null, 3] }
+    ]
+  }
+}
+""");
+
+        bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
+
+        Assert.True(created, warning);
+        OfficeChartSeries series = Assert.Single(snapshot!.Data.Series);
+        Assert.Equal(1D, series.Values[0]);
+        Assert.True(double.IsNaN(series.Values[1]));
+        Assert.Equal(3D, series.Values[2]);
+        Assert.True(double.IsNaN(series.Values[3]));
+    }
+
+    [Fact]
+    public void ToPdfDocument_MarkdownChartFence_WarnsWhenPageIsTooNarrowForNativeChartRenderer() {
+        var options = CreateVisualOptions();
+        options.PdfOptions!.PageWidth = 220;
+        options.PdfOptions.MarginLeft = 36;
+        options.PdfOptions.MarginRight = 36;
+        var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "bar",
+  "data": {
+    "labels": ["Q1"],
+    "datasets": [
+      { "label": "Actual", "data": [10] }
+    ]
+  }
+}
+""");
+
+        bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, options, out OfficeChartSnapshot? snapshot, out string? warning);
+
+        Assert.False(created);
+        Assert.Null(snapshot);
+        Assert.Contains("240", warning, StringComparison.Ordinal);
     }
 
     [Fact]
