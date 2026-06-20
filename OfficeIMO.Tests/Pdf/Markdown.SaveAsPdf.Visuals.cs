@@ -682,6 +682,29 @@ _Figure 2. Revenue chart_
     }
 
     [Fact]
+    public void ToPdfDocument_MarkdownRadarChartFence_ExcludesNonDrawableSeries() {
+        var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "radar",
+  "data": {
+    "labels": ["Quality", "Speed", "Cost"],
+    "datasets": [
+      { "label": "Visible", "data": [1, 2, 3] },
+      { "label": "Invisible", "data": [1000, null, null] }
+    ]
+  }
+}
+""");
+
+        bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
+
+        Assert.True(created, warning);
+        OfficeChartSeries series = Assert.Single(snapshot!.Data.Series);
+        Assert.Equal("Visible", series.Name);
+        Assert.Equal(new[] { 1D, 2D, 3D }, series.Values);
+    }
+
+    [Fact]
     public void ToPdfDocument_MarkdownAreaChartFence_WarnsWhenCategoryCountCannotRenderArea() {
         var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
 {
@@ -744,6 +767,32 @@ _Figure 2. Revenue chart_
         OfficeChartSeries series = Assert.Single(snapshot!.Data.Series);
         Assert.Equal("Visible", series.Name);
         Assert.Equal(new[] { 1D, 2D }, series.Values);
+    }
+
+    [Fact]
+    public void ToPdfDocument_MarkdownAreaChartFence_MapsChartJsStackedAreas() {
+        var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "area",
+  "options": {
+    "scales": {
+      "y": { "stacked": true }
+    }
+  },
+  "data": {
+    "labels": ["Q1", "Q2"],
+    "datasets": [
+      { "label": "Actual", "data": [10, 12] },
+      { "label": "Forecast", "data": [8, 11] }
+    ]
+  }
+}
+""");
+
+        bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
+
+        Assert.True(created, warning);
+        Assert.Equal(OfficeChartKind.AreaStacked, snapshot!.ChartKind);
     }
 
     [Fact]
@@ -919,6 +968,32 @@ _Figure 2. Revenue chart_
 
         Assert.True(created, warning);
         Assert.Equal(OfficeChartKind.LineStacked, snapshot!.ChartKind);
+    }
+
+    [Fact]
+    public void ToPdfDocument_MarkdownChartFence_EnablesMarkersForChartJsStackedLines() {
+        var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "line",
+  "options": {
+    "scales": {
+      "y": { "stacked": true }
+    }
+  },
+  "data": {
+    "labels": ["Q1"],
+    "datasets": [
+      { "label": "Actual", "data": [10] }
+    ]
+  }
+}
+""");
+
+        bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
+
+        Assert.True(created, warning);
+        Assert.Equal(OfficeChartKind.LineStacked, snapshot!.ChartKind);
+        Assert.True(snapshot.Layout.ShowMarkers);
     }
 
     [Fact]

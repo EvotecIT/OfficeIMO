@@ -118,17 +118,20 @@ public static partial class MarkdownPdfConverterExtensions {
                 return false;
             }
 
-            if (chartKind == OfficeChartKind.Radar && !HasDrawableRadarSeries(series, labels.Count)) {
-                warningMessage = "The Markdown radar chart fence does not contain drawable adjacent or complete finite data and is rendered as a semantic code panel.";
-                return false;
+            if (chartKind == OfficeChartKind.Radar) {
+                series = FilterDrawableRadarSeries(series, labels.Count);
+                if (series.Count == 0) {
+                    warningMessage = "The Markdown radar chart fence does not contain drawable adjacent or complete finite data and is rendered as a semantic code panel.";
+                    return false;
+                }
             }
 
-            if (chartKind == OfficeChartKind.Area && labels.Count < 2) {
+            if (IsAreaChart(chartKind) && labels.Count < 2) {
                 warningMessage = "The Markdown area chart fence needs at least two categories and is rendered as a semantic code panel.";
                 return false;
             }
 
-            if (chartKind == OfficeChartKind.Area) {
+            if (IsAreaChart(chartKind)) {
                 series = FilterDrawableAreaSeries(series, labels.Count);
                 if (series.Count == 0) {
                     warningMessage = "The Markdown area chart fence does not contain two adjacent finite values and is rendered as a semantic code panel.";
@@ -136,7 +139,7 @@ public static partial class MarkdownPdfConverterExtensions {
                 }
             }
 
-            if (chartKind == OfficeChartKind.Area && !HasAdjacentFiniteRun(series, labels.Count)) {
+            if (IsAreaChart(chartKind) && !HasAdjacentFiniteRun(series, labels.Count)) {
                 warningMessage = "The Markdown area chart fence does not contain two adjacent finite values and is rendered as a semantic code panel.";
                 return false;
             }
@@ -233,20 +236,21 @@ public static partial class MarkdownPdfConverterExtensions {
         return filtered;
     }
 
-    private static bool HasAdjacentFiniteRun(IReadOnlyList<OfficeChartSeries> series, int labelCount) {
+    private static List<OfficeChartSeries> FilterDrawableRadarSeries(IReadOnlyList<OfficeChartSeries> series, int labelCount) {
+        var filtered = new List<OfficeChartSeries>(series.Count);
         for (int seriesIndex = 0; seriesIndex < series.Count; seriesIndex++) {
-            if (HasAdjacentFiniteRun(series[seriesIndex].Values, labelCount)) {
-                return true;
+            OfficeChartSeries item = series[seriesIndex];
+            if (HasCompleteFiniteRun(item.Values, labelCount) || HasAdjacentFiniteRun(item.Values, labelCount)) {
+                filtered.Add(item);
             }
         }
 
-        return false;
+        return filtered;
     }
 
-    private static bool HasDrawableRadarSeries(IReadOnlyList<OfficeChartSeries> series, int labelCount) {
+    private static bool HasAdjacentFiniteRun(IReadOnlyList<OfficeChartSeries> series, int labelCount) {
         for (int seriesIndex = 0; seriesIndex < series.Count; seriesIndex++) {
-            IReadOnlyList<double> values = series[seriesIndex].Values;
-            if (HasCompleteFiniteRun(values, labelCount) || HasAdjacentFiniteRun(values, labelCount)) {
+            if (HasAdjacentFiniteRun(series[seriesIndex].Values, labelCount)) {
                 return true;
             }
         }
@@ -350,7 +354,7 @@ public static partial class MarkdownPdfConverterExtensions {
             dataLabelFontSize: 7D,
             maximumCategoryAxisLabels: 8,
             maximumHorizontalCategoryAxisLabels: 8,
-            showMarkers: chartKind == OfficeChartKind.Line || chartKind == OfficeChartKind.Scatter,
+            showMarkers: IsLineChart(chartKind) || chartKind == OfficeChartKind.Scatter,
             connectScatterPoints: connectScatterPoints);
     }
 
@@ -439,7 +443,7 @@ public static partial class MarkdownPdfConverterExtensions {
                 kind = stacked ? OfficeChartKind.LineStacked : OfficeChartKind.Line;
                 return true;
             case "area":
-                kind = OfficeChartKind.Area;
+                kind = stacked ? OfficeChartKind.AreaStacked : OfficeChartKind.Area;
                 return true;
             case "pie":
                 kind = OfficeChartKind.Pie;
@@ -459,6 +463,16 @@ public static partial class MarkdownPdfConverterExtensions {
                 return false;
         }
     }
+
+    private static bool IsLineChart(OfficeChartKind chartKind) =>
+        chartKind == OfficeChartKind.Line ||
+        chartKind == OfficeChartKind.LineStacked ||
+        chartKind == OfficeChartKind.LineStacked100;
+
+    private static bool IsAreaChart(OfficeChartKind chartKind) =>
+        chartKind == OfficeChartKind.Area ||
+        chartKind == OfficeChartKind.AreaStacked ||
+        chartKind == OfficeChartKind.AreaStacked100;
 
     private static string NormalizeChartType(string? value) {
         if (string.IsNullOrWhiteSpace(value)) {
