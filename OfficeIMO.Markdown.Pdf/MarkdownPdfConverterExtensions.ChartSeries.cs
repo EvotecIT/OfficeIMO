@@ -32,9 +32,9 @@ public static partial class MarkdownPdfConverterExtensions {
         }
 
         if (drafts.Count == 0 && TryGetProperty(dataElement, "values", out MarkdownPdfJsonValue valuesElement)) {
-            MarkdownChartSeriesValues values = ReadNumberArray(valuesElement, captureXValues: false, captureCategoryLabels: true);
+            MarkdownChartSeriesValues values = ReadNumberArray(valuesElement, captureXValues, captureCategoryLabels);
             if (values.Values.Count > 0) {
-                drafts.Add(new MarkdownChartSeriesDraft("Values", values.Values, null, values.CategoryLabels, null, null));
+                drafts.Add(new MarkdownChartSeriesDraft("Values", values.Values, values.XValues, values.CategoryLabels, null, null));
             }
         }
 

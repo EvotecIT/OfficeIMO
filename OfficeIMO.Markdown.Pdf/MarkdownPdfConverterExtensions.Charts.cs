@@ -111,8 +111,18 @@ public static partial class MarkdownPdfConverterExtensions {
                 return false;
             }
 
+            if (chartKind == OfficeChartKind.Radar && !HasDrawableRadarSeries(series, labels.Count)) {
+                warningMessage = "The Markdown radar chart fence does not contain drawable adjacent or complete finite data and is rendered as a semantic code panel.";
+                return false;
+            }
+
             if (chartKind == OfficeChartKind.Area && labels.Count < 2) {
                 warningMessage = "The Markdown area chart fence needs at least two categories and is rendered as a semantic code panel.";
+                return false;
+            }
+
+            if (chartKind == OfficeChartKind.Area && !HasAdjacentFiniteRun(series, labels.Count)) {
+                warningMessage = "The Markdown area chart fence does not contain two adjacent finite values and is rendered as a semantic code panel.";
                 return false;
             }
 
@@ -161,7 +171,7 @@ public static partial class MarkdownPdfConverterExtensions {
             IReadOnlyList<double> values = series[seriesIndex].Values;
             for (int valueIndex = 0; valueIndex < values.Count; valueIndex++) {
                 double value = values[valueIndex];
-                if (!double.IsNaN(value) && !double.IsInfinity(value)) {
+                if (IsFiniteChartValue(value)) {
                     return true;
                 }
             }
@@ -169,6 +179,54 @@ public static partial class MarkdownPdfConverterExtensions {
 
         return false;
     }
+
+    private static bool HasAdjacentFiniteRun(IReadOnlyList<OfficeChartSeries> series, int labelCount) {
+        for (int seriesIndex = 0; seriesIndex < series.Count; seriesIndex++) {
+            if (HasAdjacentFiniteRun(series[seriesIndex].Values, labelCount)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool HasDrawableRadarSeries(IReadOnlyList<OfficeChartSeries> series, int labelCount) {
+        for (int seriesIndex = 0; seriesIndex < series.Count; seriesIndex++) {
+            IReadOnlyList<double> values = series[seriesIndex].Values;
+            if (HasCompleteFiniteRun(values, labelCount) || HasAdjacentFiniteRun(values, labelCount)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool HasAdjacentFiniteRun(IReadOnlyList<double> values, int labelCount) {
+        int count = Math.Min(labelCount, values.Count);
+        for (int valueIndex = 1; valueIndex < count; valueIndex++) {
+            if (IsFiniteChartValue(values[valueIndex - 1]) && IsFiniteChartValue(values[valueIndex])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool HasCompleteFiniteRun(IReadOnlyList<double> values, int labelCount) {
+        if (labelCount <= 0 || values.Count < labelCount) {
+            return false;
+        }
+
+        for (int valueIndex = 0; valueIndex < labelCount; valueIndex++) {
+            if (!IsFiniteChartValue(values[valueIndex])) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool IsFiniteChartValue(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
 
     private static MarkdownPdfVisualTheme ResolveChartVisualTheme(MarkdownPdfSaveOptions options, MarkdownPdfVisualTheme? visualTheme) {
         if (visualTheme != null) {
