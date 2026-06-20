@@ -386,6 +386,31 @@ _Figure 2. Revenue chart_
     }
 
     [Fact]
+    public void ToPdfDocument_MarkdownChartFence_ExtendsGeneratedLabelsForPositionalDatasetsWhenObjectLabelsExist() {
+        var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "bar",
+  "data": {
+    "datasets": [
+      { "label": "Object", "data": [
+        { "x": "Q1", "y": 1 }
+      ] },
+      { "label": "Positional", "data": [2, 3] }
+    ]
+  }
+}
+""");
+
+        bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
+
+        Assert.True(created, warning);
+        Assert.Equal(new[] { "Q1", "2" }, snapshot!.Data.Categories);
+        Assert.Equal(1D, snapshot.Data.Series[0].Values[0]);
+        Assert.True(double.IsNaN(snapshot.Data.Series[0].Values[1]));
+        Assert.Equal(new[] { 2D, 3D }, snapshot.Data.Series[1].Values);
+    }
+
+    [Fact]
     public void ToPdfDocument_MarkdownScatterChartFence_ReadsTuplePointArrays() {
         var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
 {
@@ -404,6 +429,29 @@ _Figure 2. Revenue chart_
         OfficeChartSeries series = Assert.Single(snapshot!.Data.Series);
         Assert.Equal(new[] { 10D, 25D }, series.XValues);
         Assert.Equal(new[] { 2D, 4D }, series.Values);
+    }
+
+    [Fact]
+    public void ToPdfDocument_MarkdownScatterChartFence_MarksEarlierScalarPointsMissingWhenExplicitXValuesAppear() {
+        var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "scatter",
+  "data": {
+    "datasets": [
+      { "label": "Samples", "data": [1000000, { "x": 1, "y": 2 }] }
+    ]
+  }
+}
+""");
+
+        bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
+
+        Assert.True(created, warning);
+        OfficeChartSeries series = Assert.Single(snapshot!.Data.Series);
+        Assert.True(double.IsNaN(series.XValues![0]));
+        Assert.Equal(1D, series.XValues[1]);
+        Assert.True(double.IsNaN(series.Values[0]));
+        Assert.Equal(2D, series.Values[1]);
     }
 
     [Fact]
@@ -1015,6 +1063,28 @@ _Figure 2. Revenue chart_
         Assert.False(created);
         Assert.Null(snapshot);
         Assert.Contains("positive finite slice", warning, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ToPdfDocument_MarkdownPieChartFence_WarnsWhenMultipleVisibleDatasetsWouldDropData() {
+        var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "pie",
+  "data": {
+    "labels": ["Passed", "Failed"],
+    "datasets": [
+      { "label": "Outer", "data": [8, 2] },
+      { "label": "Inner", "data": [6, 4] }
+    ]
+  }
+}
+""");
+
+        bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
+
+        Assert.False(created);
+        Assert.Null(snapshot);
+        Assert.Contains("multiple visible datasets", warning, StringComparison.Ordinal);
     }
 
     [Fact]

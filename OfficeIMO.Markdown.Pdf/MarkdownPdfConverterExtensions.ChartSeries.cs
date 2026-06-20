@@ -45,6 +45,9 @@ public static partial class MarkdownPdfConverterExtensions {
 
         if (!captureXValues && labels.Count == 0) {
             MergeCategoryLabels(labels, drafts);
+            if (labels.Count > 0) {
+                EnsureLabelsCoverValues(labels, GetMaximumDraftValueCount(drafts));
+            }
         }
 
         for (int i = 0; i < drafts.Count; i++) {
@@ -56,11 +59,16 @@ public static partial class MarkdownPdfConverterExtensions {
             series.Add(CreateOfficeChartSeries(draft, labels, captureXValues));
         }
 
-        if (chartKind == OfficeChartKind.Pie && series.Count > 1) {
-            return new List<OfficeChartSeries> { series[0] };
+        return series;
+    }
+
+    private static int GetMaximumDraftValueCount(IReadOnlyList<MarkdownChartSeriesDraft> drafts) {
+        int maxValues = 0;
+        for (int i = 0; i < drafts.Count; i++) {
+            maxValues = Math.Max(maxValues, drafts[i].Values.Count);
         }
 
-        return series;
+        return maxValues;
     }
 
     private static void MergeCategoryLabels(List<string> labels, IReadOnlyList<MarkdownChartSeriesDraft> drafts) {
@@ -269,6 +277,14 @@ public static partial class MarkdownPdfConverterExtensions {
 
             if (categoryLabels != null) {
                 categoryLabels.Add(string.IsNullOrWhiteSpace(categoryLabel) ? null : categoryLabel);
+            }
+        }
+
+        if (xValues != null && hasExplicitXValue) {
+            for (int i = 0; i < values.Count && i < xValues.Count; i++) {
+                if (!IsFiniteChartValue(xValues[i])) {
+                    values[i] = double.NaN;
+                }
             }
         }
 

@@ -97,6 +97,11 @@ public static partial class MarkdownPdfConverterExtensions {
                 return false;
             }
 
+            if (chartKind == OfficeChartKind.Pie && series.Count > 1) {
+                warningMessage = "The Markdown pie chart fence contains multiple visible datasets that cannot be rendered without dropping data and is rendered as a semantic code panel.";
+                return false;
+            }
+
             if (labels.Count == 0) {
                 warningMessage = "The Markdown chart fence does not contain renderable chart labels and is rendered as a semantic code panel.";
                 return false;
