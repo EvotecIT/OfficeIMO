@@ -126,9 +126,10 @@ public static class HtmlLogicalDocumentBuilder {
             case "figcaption":
                 return HtmlLogicalNodeKind.Figure;
             case "img":
-            case "picture":
             case "svg":
                 return HtmlLogicalNodeKind.Image;
+            case "picture":
+                return HtmlLogicalNodeKind.Inline;
             case "a":
                 return HtmlLogicalNodeKind.Link;
             case "form":

@@ -157,12 +157,17 @@ public static class HtmlRoundTripScorer {
 
     private static void AppendTableGridSignatures(HtmlLogicalNode node, ICollection<string> signatures) {
         if (node.Kind == HtmlLogicalNodeKind.Table) {
-            var rowCellCounts = new List<string>();
+            var rowSignatures = new List<string>();
             foreach (HtmlLogicalNode row in Descendants(node, HtmlLogicalNodeKind.TableRow)) {
-                rowCellCounts.Add(Descendants(row, HtmlLogicalNodeKind.TableCell).Count().ToString(CultureInfo.InvariantCulture));
+                var cellSignatures = new List<string>();
+                foreach (HtmlLogicalNode cell in Descendants(row, HtmlLogicalNodeKind.TableCell)) {
+                    cellSignatures.Add(CreateTableCellGridSignature(cell));
+                }
+
+                rowSignatures.Add(string.Join("+", cellSignatures));
             }
 
-            signatures.Add("table|" + string.Join(",", rowCellCounts));
+            signatures.Add("table|" + string.Join(",", rowSignatures));
         }
 
         foreach (HtmlLogicalNode child in node.Children) {
@@ -257,6 +262,15 @@ public static class HtmlRoundTripScorer {
         AddAttributePart(parts, node, "data-src");
         AddAttributePart(parts, node, "data-srcset");
         AddAttributePart(parts, node, "alt");
+        return string.Join("|", parts);
+    }
+
+    private static string CreateTableCellGridSignature(HtmlLogicalNode node) {
+        var parts = new List<string> {
+            "cell"
+        };
+        AddAttributePart(parts, node, "colspan");
+        AddAttributePart(parts, node, "rowspan");
         return string.Join("|", parts);
     }
 

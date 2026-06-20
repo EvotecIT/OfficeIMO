@@ -231,12 +231,15 @@ public partial class Html {
                     @media screen and (max-width: 0px) { em.media { text-transform: lowercase; } }
                     @supports not (color: red) { em.media { text-transform: lowercase; } }
                     span.reset { color: #ff0000; border-color: #ff0000; }
+                    span.reset-later { color: initial; }
+                    span { color: #0000ff; }
                 </style>
                 <div style="color: #123456"><p style="background-image: url('data:image/svg+xml;utf8,<svg></svg>'); font-family: 'A;B'; color: inherit;">Hello</p></div>
                 <span class="x">Pseudo specificity</span>
                 <strong>Where specificity</strong>
                 <em class="media">Media rule</em>
                 <div style="color: #123456"><span class="reset" style="color: initial; border-color: unset;">Reset</span></div>
+                <span class="reset-later">Reset wins lower specificity</span>
                 <style media="not all">span.inactive { text-decoration-line: underline; }</style>
                 <style media="speech">span.speech { text-decoration-line: underline; }</style>
                 <span class="inactive">Inactive media</span>
@@ -251,6 +254,7 @@ public partial class Html {
         IElement where = parsed.QuerySelector("strong")!;
         IElement media = parsed.QuerySelector("em.media")!;
         IElement reset = parsed.QuerySelector("span.reset")!;
+        IElement resetLater = parsed.QuerySelector("span.reset-later")!;
         IElement inactive = parsed.QuerySelector("span.inactive")!;
         IElement speech = parsed.QuerySelector("span.speech")!;
 
@@ -262,6 +266,7 @@ public partial class Html {
         Assert.Equal("uppercase", styles[media].GetValue("text-transform"));
         Assert.Equal(string.Empty, styles[reset].GetValue("color"));
         Assert.Equal(string.Empty, styles[reset].GetValue("border-color"));
+        Assert.Equal(string.Empty, styles[resetLater].GetValue("color"));
         Assert.Equal(string.Empty, styles[inactive].GetValue("text-decoration-line"));
         Assert.Equal(string.Empty, styles[speech].GetValue("text-decoration-line"));
     }
@@ -288,6 +293,8 @@ public partial class Html {
                 <img src="mailto:ops@example.test">
                 <svg><image href="https://example.test/images/vector.png" /></svg>
                 <video data-src="https://example.test/media/movie.mp4"></video>
+                <form action="file:///secret/upload"></form>
+                <input type="image" src="file:///secret/submit.png">
                 <div class="hero"></div>
             </body>
             </html>
@@ -309,6 +316,8 @@ public partial class Html {
         Assert.Contains(manifest.Resources, resource => resource.Source == "mailto:ops@example.test" && resource.Kind == HtmlResourceKind.Image && !resource.IsAllowed && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/vector.png" && resource.Kind == HtmlResourceKind.Image && resource.ElementName == "image");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/media/movie.mp4" && resource.Kind == HtmlResourceKind.Media && resource.AttributeName == "data-src");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/upload" && resource.Kind == HtmlResourceKind.Hyperlink && resource.AttributeName == "action");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/submit.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "src" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/bg.png" && resource.Kind == HtmlResourceKind.Image && resource.IsAllowed);
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "https://example.test/images/bg.png" && resource.Kind == HtmlResourceKind.Font);
     }
@@ -318,6 +327,8 @@ public partial class Html {
         HtmlLogicalDocument textLeaf = HtmlLogicalDocumentBuilder.FromHtml("<main><custom>Total</custom></main>");
         Assert.Equal(1, textLeaf.Count(HtmlLogicalNodeKind.Text));
         Assert.Empty(textLeaf.Root.Children[0].Children[0].Children);
+        HtmlLogicalDocument pictureWrapper = HtmlLogicalDocumentBuilder.FromHtml("<main><picture><source srcset=\"wide.png\"><img src=\"small.png\"></picture></main>");
+        Assert.Equal(1, pictureWrapper.Count(HtmlLogicalNodeKind.Image));
 
         HtmlRoundTripScore repeatedTextScore = HtmlRoundTripScorer.Compare(
             "<main><p>" + new string('a', 100) + "</p></main>",
@@ -341,6 +352,13 @@ public partial class Html {
         Assert.Equal(1D, tableShapeScore.Metrics["tables"], 3);
         Assert.InRange(tableShapeScore.Metrics["table-rows"], 0D, 0.99D);
         Assert.InRange(tableShapeScore.Metrics["table-grid"], 0D, 0.99D);
+        HtmlRoundTripScore tableSpanScore = HtmlRoundTripScorer.Compare(
+            "<main><table><tr><td colspan=\"2\">A</td></tr></table></main>",
+            "<main><table><tr><td colspan=\"3\">A</td></tr></table></main>");
+        Assert.Equal(1D, tableSpanScore.Metrics["tables"], 3);
+        Assert.Equal(1D, tableSpanScore.Metrics["table-rows"], 3);
+        Assert.Equal(1D, tableSpanScore.Metrics["table-cells"], 3);
+        Assert.InRange(tableSpanScore.Metrics["table-grid"], 0D, 0.99D);
 
         HtmlRoundTripScore linkScore = HtmlRoundTripScorer.Compare(
             "<main><a href=\"https://example.test/a\">same text</a></main>",

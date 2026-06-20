@@ -30,7 +30,7 @@ public static class HtmlResourcePipeline {
         options = options ?? new HtmlResourcePipelineOptions();
         Uri? baseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, options.BaseUri);
         var manifest = new HtmlResourceManifest();
-        foreach (IElement element in document.QuerySelectorAll("[src], [srcset], [href], [data], [data-src], [data-srcset], [poster], [data-poster]")) {
+        foreach (IElement element in document.QuerySelectorAll("[src], [srcset], [href], [data], [data-src], [data-srcset], [poster], [data-poster], [action]")) {
             AddElementResources(manifest, element, baseUri, options);
         }
 
@@ -63,6 +63,18 @@ public static class HtmlResourcePipeline {
             case "a":
             case "area":
                 AddAttribute(manifest, HtmlResourceKind.Hyperlink, element, "href", baseUri, options);
+                break;
+            case "form":
+                AddAttribute(manifest, HtmlResourceKind.Hyperlink, element, "action", baseUri, options);
+                break;
+            case "input":
+                if (string.Equals(element.GetAttribute("type"), "image", StringComparison.OrdinalIgnoreCase)) {
+                    AddImage(manifest, element, baseUri, options);
+                } else {
+                    AddAttribute(manifest, HtmlResourceKind.Other, element, "src", baseUri, options);
+                    AddAttribute(manifest, HtmlResourceKind.Other, element, "data", baseUri, options);
+                }
+
                 break;
             case "script":
                 AddAttribute(manifest, HtmlResourceKind.Script, element, "src", baseUri, options);

@@ -66,7 +66,9 @@ public static class HtmlComputedStyleEngine {
         }
 
         ApplyInlineDeclarations(properties, parent?.Properties, element.GetAttribute("style"));
-        var style = new HtmlComputedStyle(properties.ToDictionary(pair => pair.Key, pair => pair.Value.Value, StringComparer.OrdinalIgnoreCase));
+        var style = new HtmlComputedStyle(properties
+            .Where(pair => pair.Value.HasValue)
+            .ToDictionary(pair => pair.Key, pair => pair.Value.Value, StringComparer.OrdinalIgnoreCase));
         computed[element] = style;
 
         foreach (IElement child in element.Children) {
@@ -249,7 +251,7 @@ public static class HtmlComputedStyleEngine {
                 return;
             }
 
-            properties.Remove(name);
+            properties[name] = CascadedProperty.Clear(isImportant, specificity, order);
             return;
         }
 
@@ -554,12 +556,26 @@ public static class HtmlComputedStyleEngine {
     private sealed class CascadedProperty {
         internal CascadedProperty(string value, bool isImportant, int specificity, int order) {
             Value = value;
+            HasValue = true;
             IsImportant = isImportant;
             Specificity = specificity;
             Order = order;
         }
 
+        private CascadedProperty(bool isImportant, int specificity, int order) {
+            Value = string.Empty;
+            HasValue = false;
+            IsImportant = isImportant;
+            Specificity = specificity;
+            Order = order;
+        }
+
+        internal static CascadedProperty Clear(bool isImportant, int specificity, int order) {
+            return new CascadedProperty(isImportant, specificity, order);
+        }
+
         internal string Value { get; }
+        internal bool HasValue { get; }
         internal bool IsImportant { get; }
         internal int Specificity { get; }
         internal int Order { get; }
