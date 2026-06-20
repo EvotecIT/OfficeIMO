@@ -153,6 +153,7 @@ public static class HtmlLogicalDocumentBuilder {
             case "track":
                 return HtmlLogicalNodeKind.Media;
             case "a":
+            case "area":
                 return HtmlLogicalNodeKind.Link;
             case "form":
                 return HtmlLogicalNodeKind.Form;

@@ -8,6 +8,57 @@ namespace OfficeIMO.Html;
 /// </summary>
 public static class HtmlRoundTripScorer {
     private static readonly char[] WhitespaceSeparators = { ' ', '\t', '\r', '\n', '\f' };
+    private static readonly string[] FormControlStateAttributes = {
+        "type",
+        "name",
+        "value",
+        "checked",
+        "selected",
+        "disabled",
+        "multiple",
+        "placeholder",
+        "form",
+        "formaction",
+        "required",
+        "readonly",
+        "min",
+        "max",
+        "minlength",
+        "maxlength",
+        "pattern",
+        "step",
+        "autocomplete",
+        "inputmode"
+    };
+    private static readonly string[] FormStateAttributes = {
+        "id",
+        "action",
+        "method",
+        "enctype",
+        "target",
+        "novalidate",
+        "accept-charset",
+        "type",
+        "name",
+        "value",
+        "checked",
+        "selected",
+        "disabled",
+        "multiple",
+        "placeholder",
+        "form",
+        "formaction",
+        "required",
+        "readonly",
+        "min",
+        "max",
+        "minlength",
+        "maxlength",
+        "pattern",
+        "step",
+        "autocomplete",
+        "inputmode"
+    };
 
     /// <summary>
     /// Compares source HTML with target HTML and returns a structural score.
@@ -151,20 +202,22 @@ public static class HtmlRoundTripScorer {
 
     private static HtmlLogicalDocument BuildLogicalDocumentForScoring(string html) {
         var document = HtmlDocumentParser.ParseDocument(html);
-        ResolveImageSourceAttributes(document);
+        ResolveResourceSourceAttributes(document);
         return HtmlLogicalDocumentBuilder.FromDocument(document);
     }
 
-    private static void ResolveImageSourceAttributes(AngleSharp.Html.Dom.IHtmlDocument document) {
+    private static void ResolveResourceSourceAttributes(AngleSharp.Html.Dom.IHtmlDocument document) {
         Uri? baseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, null);
         if (baseUri == null) {
             return;
         }
 
         var policy = HtmlUrlPolicy.CreateOfficeIMOProfile();
-        foreach (var element in document.QuerySelectorAll("img,image,source")) {
-            ResolveUrlAttribute(element, "src", baseUri, policy);
+        foreach (var element in document.QuerySelectorAll("a,area,form,input,button,img,image,source")) {
             ResolveUrlAttribute(element, "href", baseUri, policy);
+            ResolveUrlAttribute(element, "action", baseUri, policy);
+            ResolveUrlAttribute(element, "formaction", baseUri, policy);
+            ResolveUrlAttribute(element, "src", baseUri, policy);
             ResolveUrlAttribute(element, "xlink:href", baseUri, policy);
             ResolveSrcSetAttribute(element, "srcset", baseUri, policy);
             ResolveSrcSetAttribute(element, "data-srcset", baseUri, policy);
@@ -214,7 +267,7 @@ public static class HtmlRoundTripScorer {
                 control.TagName.ToLowerInvariant()
             };
 
-            foreach (string attributeName in new[] { "type", "name", "value", "checked", "selected", "disabled", "multiple", "placeholder" }) {
+            foreach (string attributeName in FormControlStateAttributes) {
                 string? value = control.GetAttribute(attributeName);
                 if (!string.IsNullOrWhiteSpace(value)) {
                     parts.Add(attributeName + "=" + value);
@@ -346,7 +399,7 @@ public static class HtmlRoundTripScorer {
             node.Name
         };
 
-        foreach (string attributeName in new[] { "id", "action", "method", "enctype", "target", "type", "name", "value", "checked", "selected", "disabled", "multiple", "placeholder" }) {
+        foreach (string attributeName in FormStateAttributes) {
             string? value;
             if (node.Attributes.TryGetValue(attributeName, out value)) {
                 parts.Add(attributeName + "=" + value);
@@ -372,7 +425,7 @@ public static class HtmlRoundTripScorer {
             node.Name
         };
 
-        foreach (string attributeName in new[] { "type", "name", "value", "checked", "selected", "disabled", "multiple", "placeholder", "form" }) {
+        foreach (string attributeName in FormControlStateAttributes) {
             AddAttributePart(parts, node, attributeName);
         }
 
@@ -451,6 +504,13 @@ public static class HtmlRoundTripScorer {
         AddAttributePart(parts, node, "kind");
         AddAttributePart(parts, node, "srclang");
         AddAttributePart(parts, node, "type");
+        AddAttributePart(parts, node, "controls");
+        AddAttributePart(parts, node, "autoplay");
+        AddAttributePart(parts, node, "loop");
+        AddAttributePart(parts, node, "muted");
+        AddAttributePart(parts, node, "preload");
+        AddAttributePart(parts, node, "default");
+        AddAttributePart(parts, node, "label");
         return string.Join("|", parts);
     }
 

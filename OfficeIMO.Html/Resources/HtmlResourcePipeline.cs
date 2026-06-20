@@ -8,7 +8,10 @@ namespace OfficeIMO.Html;
 /// Shared resource discovery and policy planning for OfficeIMO HTML workflows.
 /// </summary>
 public static class HtmlResourcePipeline {
+    private const int MaxSrcDocDepth = 8;
+    private const string ResourceSelector = "image, meta[http-equiv], [src], [srcset], [href], [xlink\\:href], [data], [data-src], [data-srcset], [poster], [data-poster], [action], [formaction], [background], [srcdoc], [imagesrcset]";
     private static readonly Regex CssUrlExpression = new Regex("url\\(\\s*(?:\"(?<url>[^\"]+)\"|'(?<url>[^']+)'|(?<url>[^)]+))\\s*\\)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+    private static readonly Regex CssVarExpression = new Regex("var\\(\\s*(?<name>--[A-Za-z0-9_-]+)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
     /// <summary>
     /// Parses raw HTML and builds a resource manifest.
@@ -29,16 +32,17 @@ public static class HtmlResourcePipeline {
         options = options ?? new HtmlResourcePipelineOptions();
         Uri? baseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, options.BaseUri);
         var manifest = new HtmlResourceManifest();
-        foreach (IElement element in document.QuerySelectorAll("image, meta[http-equiv], [src], [srcset], [href], [xlink\\:href], [data], [data-src], [data-srcset], [poster], [data-poster], [action], [srcdoc], [imagesrcset]")) {
-            AddElementResources(manifest, element, baseUri, options);
+        foreach (IElement element in document.QuerySelectorAll(ResourceSelector)) {
+            AddElementResources(manifest, element, baseUri, options, 0);
         }
 
         AddCssResources(manifest, document, baseUri, options);
         return manifest;
     }
 
-    private static void AddElementResources(HtmlResourceManifest manifest, IElement element, Uri? baseUri, HtmlResourcePipelineOptions options) {
+    private static void AddElementResources(HtmlResourceManifest manifest, IElement element, Uri? baseUri, HtmlResourcePipelineOptions options, int srcDocDepth) {
         string name = element.TagName.ToLowerInvariant();
+        AddLegacyBackground(manifest, element, baseUri, options);
         switch (name) {
             case "img":
                 AddImage(manifest, element, baseUri, options);
@@ -71,10 +75,14 @@ public static class HtmlResourcePipeline {
                 AddAttribute(manifest, HtmlResourceKind.Hyperlink, element, "action", baseUri, options);
                 break;
             case "input":
+                AddSubmitterFormAction(manifest, element, baseUri, options);
                 if (string.Equals(element.GetAttribute("type"), "image", StringComparison.OrdinalIgnoreCase)) {
                     AddImage(manifest, element, baseUri, options);
                 }
 
+                break;
+            case "button":
+                AddSubmitterFormAction(manifest, element, baseUri, options);
                 break;
             case "script":
                 AddAttribute(manifest, HtmlResourceKind.Script, element, "src", baseUri, options);
@@ -102,12 +110,31 @@ public static class HtmlResourcePipeline {
                     AddAttribute(manifest, HtmlResourceKind.Other, element, "src", baseUri, options);
                 }
 
-                AddSrcDocResources(manifest, element, baseUri, options);
+                AddSrcDocResources(manifest, element, baseUri, options, srcDocDepth);
                 break;
             default:
                 AddAttribute(manifest, HtmlResourceKind.Other, element, "src", baseUri, options);
                 AddAttribute(manifest, HtmlResourceKind.Other, element, "href", baseUri, options);
                 break;
+        }
+    }
+
+    private static void AddLegacyBackground(HtmlResourceManifest manifest, IElement element, Uri? baseUri, HtmlResourcePipelineOptions options) {
+        AddAttribute(manifest, HtmlResourceKind.Image, element, "background", baseUri, options);
+    }
+
+    private static void AddSubmitterFormAction(HtmlResourceManifest manifest, IElement element, Uri? baseUri, HtmlResourcePipelineOptions options) {
+        if (!element.HasAttribute("formaction")) {
+            return;
+        }
+
+        string name = element.TagName.ToLowerInvariant();
+        string type = (element.GetAttribute("type") ?? string.Empty).Trim();
+        bool isSubmitter = string.Equals(name, "button", StringComparison.OrdinalIgnoreCase)
+            ? type.Length == 0 || string.Equals(type, "submit", StringComparison.OrdinalIgnoreCase)
+            : string.Equals(type, "submit", StringComparison.OrdinalIgnoreCase) || string.Equals(type, "image", StringComparison.OrdinalIgnoreCase);
+        if (isSubmitter) {
+            AddAttribute(manifest, HtmlResourceKind.Hyperlink, element, "formaction", baseUri, options);
         }
     }
 
@@ -202,16 +229,20 @@ public static class HtmlResourcePipeline {
         }
     }
 
-    private static void AddSrcDocResources(HtmlResourceManifest manifest, IElement element, Uri? baseUri, HtmlResourcePipelineOptions options) {
+    private static void AddSrcDocResources(HtmlResourceManifest manifest, IElement element, Uri? baseUri, HtmlResourcePipelineOptions options, int srcDocDepth) {
         string? srcdoc = element.GetAttribute("srcdoc");
         if (string.IsNullOrWhiteSpace(srcdoc)) {
             return;
         }
 
+        if (srcDocDepth >= MaxSrcDocDepth) {
+            return;
+        }
+
         IHtmlDocument nested = HtmlDocumentParser.ParseDocument(srcdoc!);
         Uri? nestedBaseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(nested, baseUri);
-        foreach (IElement nestedElement in nested.QuerySelectorAll("image, meta[http-equiv], [src], [srcset], [href], [xlink\\:href], [data], [data-src], [data-srcset], [poster], [data-poster], [action], [srcdoc], [imagesrcset]")) {
-            AddElementResources(manifest, nestedElement, nestedBaseUri, options);
+        foreach (IElement nestedElement in nested.QuerySelectorAll(ResourceSelector)) {
+            AddElementResources(manifest, nestedElement, nestedBaseUri, options, srcDocDepth + 1);
         }
 
         AddCssResources(manifest, nested, nestedBaseUri, options);
@@ -224,6 +255,7 @@ public static class HtmlResourcePipeline {
 
         css = StripCssCommentsOutsideStrings(css);
         bool scanImports = !string.Equals(attributeName, "style", StringComparison.OrdinalIgnoreCase);
+        Dictionary<string, List<string>> customPropertyUrls = ExtractCustomPropertyUrls(css);
         var importRanges = new List<SourceRange>();
         if (scanImports) {
             foreach (CssImportReference reference in ExtractCssImports(css)) {
@@ -232,6 +264,13 @@ public static class HtmlResourcePipeline {
                     importRanges.Add(new SourceRange(reference.Start, reference.End));
                     AddRaw(manifest, HtmlResourceKind.Stylesheet, element, attributeName + "-import", source, baseUri, options);
                 }
+            }
+        }
+
+        AddUsedCustomPropertyUrls(manifest, element, attributeName, css, customPropertyUrls, baseUri, options);
+        foreach (CssStringUrlReference reference in ExtractImageSetStringUrls(css)) {
+            if (!TryGetCustomPropertyName(css, reference.Start, out _)) {
+                AddRaw(manifest, ClassifyCssUrl(css, reference.Start), element, attributeName + "-image-set", reference.Source, baseUri, options);
             }
         }
 
@@ -245,6 +284,161 @@ public static class HtmlResourcePipeline {
                 AddRaw(manifest, ClassifyCssUrl(css, match.Index), element, attributeName + "-url", source, baseUri, options);
             }
         }
+    }
+
+    private static Dictionary<string, List<string>> ExtractCustomPropertyUrls(string css) {
+        var urls = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+        foreach (Match match in CssUrlExpression.Matches(css)) {
+            if (TryGetCustomPropertyName(css, match.Index, out string propertyName)) {
+                AddCustomPropertyUrl(urls, propertyName, match.Groups["url"].Value.Trim().Trim('\'', '"'));
+            }
+        }
+
+        foreach (CssStringUrlReference reference in ExtractImageSetStringUrls(css)) {
+            if (TryGetCustomPropertyName(css, reference.Start, out string propertyName)) {
+                AddCustomPropertyUrl(urls, propertyName, reference.Source);
+            }
+        }
+
+        return urls;
+    }
+
+    private static void AddCustomPropertyUrl(IDictionary<string, List<string>> urls, string propertyName, string source) {
+        if (string.IsNullOrWhiteSpace(source)) {
+            return;
+        }
+
+        if (!urls.TryGetValue(propertyName, out List<string>? values)) {
+            values = new List<string>();
+            urls[propertyName] = values;
+        }
+
+        values.Add(source);
+    }
+
+    private static void AddUsedCustomPropertyUrls(HtmlResourceManifest manifest, IElement element, string attributeName, string css, IReadOnlyDictionary<string, List<string>> customPropertyUrls, Uri? baseUri, HtmlResourcePipelineOptions options) {
+        if (customPropertyUrls.Count == 0) {
+            return;
+        }
+
+        foreach (Match match in CssVarExpression.Matches(css)) {
+            string propertyName = match.Groups["name"].Value;
+            if (IsInsideCssString(css, match.Index) || !customPropertyUrls.TryGetValue(propertyName, out List<string>? sources)) {
+                continue;
+            }
+
+            HtmlResourceKind kind = ClassifyCssUrl(css, match.Index);
+            if (kind == HtmlResourceKind.Other) {
+                continue;
+            }
+
+            foreach (string source in sources) {
+                AddRaw(manifest, kind, element, attributeName + "-var-url", source, baseUri, options);
+            }
+        }
+    }
+
+    private static IEnumerable<CssStringUrlReference> ExtractImageSetStringUrls(string css) {
+        int index = 0;
+        while (index < css.Length) {
+            int functionStart = css.IndexOf("image-set", index, StringComparison.OrdinalIgnoreCase);
+            if (functionStart < 0) {
+                yield break;
+            }
+
+            if (IsInsideCssString(css, functionStart)) {
+                index = functionStart + 9;
+                continue;
+            }
+
+            int cursor = SkipWhitespace(css, functionStart + 9);
+            if (cursor >= css.Length || css[cursor] != '(') {
+                index = functionStart + 9;
+                continue;
+            }
+
+            int close = FindMatchingCssParenthesis(css, cursor);
+            if (close <= cursor) {
+                yield break;
+            }
+
+            int valueCursor = cursor + 1;
+            while (valueCursor < close) {
+                char current = css[valueCursor];
+                if ((current == '"' || current == '\'') && !IsCssTypeFunctionString(css, valueCursor)) {
+                    if (TryReadCssQuotedValue(css, valueCursor, out string source, out int end)) {
+                        if (!string.IsNullOrWhiteSpace(source)) {
+                            yield return new CssStringUrlReference(functionStart, end, source);
+                        }
+
+                        valueCursor = end;
+                        continue;
+                    }
+                }
+
+                valueCursor++;
+            }
+
+            index = close + 1;
+        }
+    }
+
+    private static bool IsCssTypeFunctionString(string css, int quoteIndex) {
+        int cursor = quoteIndex - 1;
+        while (cursor >= 0 && char.IsWhiteSpace(css[cursor])) {
+            cursor--;
+        }
+
+        if (cursor < 0 || css[cursor] != '(') {
+            return false;
+        }
+
+        cursor--;
+        while (cursor >= 0 && char.IsWhiteSpace(css[cursor])) {
+            cursor--;
+        }
+
+        int end = cursor + 1;
+        while (cursor >= 0 && (char.IsLetter(css[cursor]) || css[cursor] == '-')) {
+            cursor--;
+        }
+
+        string functionName = css.Substring(cursor + 1, end - cursor - 1);
+        return string.Equals(functionName, "type", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static int FindMatchingCssParenthesis(string css, int open) {
+        int depth = 0;
+        char quote = '\0';
+        for (int i = open; i < css.Length; i++) {
+            char current = css[i];
+            if (quote != '\0') {
+                if (current == quote && !IsEscaped(css, i)) {
+                    quote = '\0';
+                }
+
+                continue;
+            }
+
+            if (current == '"' || current == '\'') {
+                quote = current;
+                continue;
+            }
+
+            if (current == '(') {
+                depth++;
+                continue;
+            }
+
+            if (current == ')') {
+                depth--;
+                if (depth == 0) {
+                    return i;
+                }
+            }
+        }
+
+        return -1;
     }
 
     private static IEnumerable<CssImportReference> ExtractCssImports(string css) {
@@ -414,6 +608,7 @@ public static class HtmlResourcePipeline {
                     i++;
                 }
 
+                result.Append(' ');
                 continue;
             }
 
@@ -424,10 +619,26 @@ public static class HtmlResourcePipeline {
     }
 
     private static bool IsCustomPropertyUrl(string css, int index) {
+        return TryGetCustomPropertyName(css, index, out _);
+    }
+
+    private static bool TryGetCustomPropertyName(string css, int index, out string propertyName) {
         int blockStart = css.LastIndexOf('{', Math.Max(0, index - 1));
         int previousBoundary = Math.Max(css.LastIndexOf(';', Math.Max(0, index - 1)), blockStart);
         string declaration = css.Substring(Math.Max(0, previousBoundary + 1), index - Math.Max(0, previousBoundary + 1)).TrimStart();
-        return declaration.StartsWith("--", StringComparison.Ordinal);
+        if (!declaration.StartsWith("--", StringComparison.Ordinal)) {
+            propertyName = string.Empty;
+            return false;
+        }
+
+        int separator = declaration.IndexOf(':');
+        if (separator <= 0) {
+            propertyName = string.Empty;
+            return false;
+        }
+
+        propertyName = declaration.Substring(0, separator).Trim();
+        return propertyName.Length > 2;
     }
 
     private static bool IsImportAtRuleUrl(string css, int index) {
@@ -628,5 +839,17 @@ public static class HtmlResourcePipeline {
 
         internal int Start { get; }
         internal int End { get; }
+    }
+
+    private sealed class CssStringUrlReference {
+        internal CssStringUrlReference(int start, int end, string source) {
+            Start = start;
+            End = end;
+            Source = source;
+        }
+
+        internal int Start { get; }
+        internal int End { get; }
+        internal string Source { get; }
     }
 }
