@@ -137,7 +137,7 @@ public static class HtmlComputedStyleEngine {
             return;
         }
 
-        foreach (string declaration in styleText!.Split(';')) {
+        foreach (string declaration in SplitCssDeclarations(styleText!)) {
             int separator = declaration.IndexOf(':');
             if (separator <= 0) {
                 continue;
@@ -226,6 +226,47 @@ public static class HtmlComputedStyleEngine {
         yield return selectorText.Substring(start);
     }
 
+    private static IEnumerable<string> SplitCssDeclarations(string styleText) {
+        int depth = 0;
+        char quote = '\0';
+        int start = 0;
+        for (int i = 0; i < styleText.Length; i++) {
+            char current = styleText[i];
+            if (quote != '\0') {
+                if (current == quote && !IsEscaped(styleText, i)) {
+                    quote = '\0';
+                }
+
+                continue;
+            }
+
+            if (current == '"' || current == '\'') {
+                quote = current;
+                continue;
+            }
+
+            if (current == '(') {
+                depth++;
+                continue;
+            }
+
+            if (current == ')') {
+                if (depth > 0) {
+                    depth--;
+                }
+
+                continue;
+            }
+
+            if (current == ';' && depth == 0) {
+                yield return styleText.Substring(start, i - start);
+                start = i + 1;
+            }
+        }
+
+        yield return styleText.Substring(start);
+    }
+
     private static bool IsEscaped(string text, int index) {
         int slashCount = 0;
         for (int i = index - 1; i >= 0 && text[i] == '\\'; i--) {
@@ -291,7 +332,7 @@ public static class HtmlComputedStyleEngine {
 
     private static bool IsElementStart(string selector, int index) {
         char current = selector[index];
-        if (!char.IsLetter(current) && current != '*') {
+        if (!char.IsLetter(current)) {
             return false;
         }
 

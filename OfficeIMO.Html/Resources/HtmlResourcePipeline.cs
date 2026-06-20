@@ -1,5 +1,6 @@
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
+using System.Text.RegularExpressions;
 
 namespace OfficeIMO.Html;
 
@@ -7,6 +8,9 @@ namespace OfficeIMO.Html;
 /// Shared resource discovery and policy planning for OfficeIMO HTML workflows.
 /// </summary>
 public static class HtmlResourcePipeline {
+    private static readonly Regex CssImportExpression = new Regex("@import\\s+(?:url\\(\\s*)?[\"']?(?<url>[^\"')\\s;]+)[\"']?\\s*\\)?", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+    private static readonly Regex CssUrlExpression = new Regex("url\\(\\s*(?:\"(?<url>[^\"]+)\"|'(?<url>[^']+)'|(?<url>[^)]+))\\s*\\)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
     /// <summary>
     /// Parses raw HTML and builds a resource manifest.
     /// </summary>
@@ -30,6 +34,7 @@ public static class HtmlResourcePipeline {
             AddElementResources(manifest, element, baseUri, options);
         }
 
+        AddCssResources(manifest, document, baseUri, options);
         return manifest;
     }
 
@@ -42,7 +47,9 @@ public static class HtmlResourcePipeline {
             case "source":
                 HtmlResourceKind sourceKind = GetSourceKind(element);
                 AddSrcSet(manifest, sourceKind, element, "srcset", baseUri, options);
+                AddSrcSet(manifest, sourceKind, element, "data-srcset", baseUri, options);
                 AddAttribute(manifest, sourceKind, element, "src", baseUri, options);
+                AddAttribute(manifest, sourceKind, element, "data-src", baseUri, options);
                 break;
             case "link":
                 AddLink(manifest, element, baseUri, options);
@@ -98,13 +105,88 @@ public static class HtmlResourcePipeline {
 
     private static void AddLink(HtmlResourceManifest manifest, IElement element, Uri? baseUri, HtmlResourcePipelineOptions options) {
         string rel = element.GetAttribute("rel") ?? string.Empty;
-        HtmlResourceKind kind = rel.IndexOf("stylesheet", StringComparison.OrdinalIgnoreCase) >= 0
-            ? HtmlResourceKind.Stylesheet
-            : rel.IndexOf("font", StringComparison.OrdinalIgnoreCase) >= 0 || rel.IndexOf("preload", StringComparison.OrdinalIgnoreCase) >= 0
-                ? HtmlResourceKind.Font
-                : HtmlResourceKind.Hyperlink;
+        HtmlResourceKind kind;
+        if (rel.IndexOf("stylesheet", StringComparison.OrdinalIgnoreCase) >= 0) {
+            kind = HtmlResourceKind.Stylesheet;
+        } else if (rel.IndexOf("preload", StringComparison.OrdinalIgnoreCase) >= 0 || rel.IndexOf("modulepreload", StringComparison.OrdinalIgnoreCase) >= 0) {
+            kind = GetPreloadKind(element.GetAttribute("as"));
+        } else if (rel.IndexOf("font", StringComparison.OrdinalIgnoreCase) >= 0) {
+            kind = HtmlResourceKind.Font;
+        } else {
+            kind = HtmlResourceKind.Hyperlink;
+        }
 
         AddAttribute(manifest, kind, element, "href", baseUri, options);
+    }
+
+    private static HtmlResourceKind GetPreloadKind(string? asAttribute) {
+        switch ((asAttribute ?? string.Empty).Trim().ToLowerInvariant()) {
+            case "script":
+            case "worker":
+            case "serviceworker":
+                return HtmlResourceKind.Script;
+            case "style":
+                return HtmlResourceKind.Stylesheet;
+            case "image":
+                return HtmlResourceKind.Image;
+            case "font":
+                return HtmlResourceKind.Font;
+            case "audio":
+            case "track":
+            case "video":
+                return HtmlResourceKind.Media;
+            default:
+                return HtmlResourceKind.Other;
+        }
+    }
+
+    private static void AddCssResources(HtmlResourceManifest manifest, IHtmlDocument document, Uri? baseUri, HtmlResourcePipelineOptions options) {
+        foreach (IElement styleElement in document.QuerySelectorAll("style")) {
+            AddCssReferences(manifest, styleElement, "css", styleElement.TextContent, baseUri, options);
+        }
+
+        foreach (IElement element in document.QuerySelectorAll("[style]")) {
+            AddCssReferences(manifest, element, "style", element.GetAttribute("style") ?? string.Empty, baseUri, options);
+        }
+    }
+
+    private static void AddCssReferences(HtmlResourceManifest manifest, IElement element, string attributeName, string css, Uri? baseUri, HtmlResourcePipelineOptions options) {
+        if (string.IsNullOrWhiteSpace(css)) {
+            return;
+        }
+
+        foreach (Match match in CssImportExpression.Matches(css)) {
+            string source = match.Groups["url"].Value;
+            if (!string.IsNullOrWhiteSpace(source)) {
+                AddRaw(manifest, HtmlResourceKind.Stylesheet, element, attributeName + "-import", source, baseUri, options);
+            }
+        }
+
+        foreach (Match match in CssUrlExpression.Matches(css)) {
+            string source = match.Groups["url"].Value.Trim().Trim('\'', '"');
+            if (!string.IsNullOrWhiteSpace(source)) {
+                AddRaw(manifest, ClassifyCssUrl(css, match.Index), element, attributeName + "-url", source, baseUri, options);
+            }
+        }
+    }
+
+    private static HtmlResourceKind ClassifyCssUrl(string css, int index) {
+        int blockStart = css.LastIndexOf('{', Math.Max(0, index - 1));
+        int previousBoundary = Math.Max(css.LastIndexOf(';', Math.Max(0, index - 1)), blockStart);
+        string declaration = css.Substring(Math.Max(0, previousBoundary + 1), index - Math.Max(0, previousBoundary + 1)).ToLowerInvariant();
+        string blockPrefix = blockStart >= 0 ? css.Substring(0, blockStart).ToLowerInvariant() : string.Empty;
+        if (blockPrefix.LastIndexOf("@font-face", StringComparison.Ordinal) >= blockPrefix.LastIndexOf('}')) {
+            return HtmlResourceKind.Font;
+        }
+
+        if (declaration.IndexOf("background", StringComparison.Ordinal) >= 0
+            || declaration.IndexOf("image", StringComparison.Ordinal) >= 0
+            || declaration.IndexOf("cursor", StringComparison.Ordinal) >= 0
+            || declaration.IndexOf("list-style", StringComparison.Ordinal) >= 0) {
+            return HtmlResourceKind.Image;
+        }
+
+        return HtmlResourceKind.Other;
     }
 
     private static void AddSrcSet(HtmlResourceManifest manifest, HtmlResourceKind kind, IElement element, string attributeName, Uri? baseUri, HtmlResourcePipelineOptions options) {

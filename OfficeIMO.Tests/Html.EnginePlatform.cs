@@ -15,13 +15,18 @@ public partial class Html {
                 <base href="https://example.test/reports/">
                 <title>Market Report</title>
                 <link rel="stylesheet" href="/assets/report.css">
+                <link rel="preload" as="script" href="javascript:alert(2)">
+                <link rel="preload" as="image" href="/images/preload.png">
                 <style>
+                    @import "file:///secret/theme.css";
+                    @font-face { font-family: Demo; src: url('file:///secret/font.woff2'); }
                     body { color: #222; font-family: Aptos; }
                     article.report { color: #123456; }
                     .warning { color: #aa0000; }
                     p { color: #0000aa; }
                     p.force { color: #0000aa !important; }
                     a[href*=','] { font-weight: 700; }
+                    .hero { background-image: url('/images/background.png'); }
                     table.financials td { color: #654321; border: 1px solid #444; padding: 4pt; }
                 </style>
             </head>
@@ -35,11 +40,14 @@ public partial class Html {
                     <a href="javascript:alert(1)">unsafe link</a>
                     <picture>
                         <source srcset="/images/chart-large.png 2x, file:///secret/chart.png 3x">
+                        <source data-srcset="/images/chart-lazy.png 2x">
                         <img src="/images/chart.png" alt="Revenue chart">
                     </picture>
                     <video poster="/media/poster.png">
                         <source src="/media/demo.mp4" type="video/mp4">
+                        <source data-src="/media/lazy-demo.mp4" type="video/mp4">
                     </video>
+                    <div class="hero"></div>
                     <object data="file:///secret/report.pdf"></object>
                     <script src="javascript:alert(1)"></script>
                     <table class="financials">
@@ -93,9 +101,16 @@ public partial class Html {
         Assert.True(resourceManifest.AllowedCount >= 3);
         Assert.True(resourceManifest.BlockedCount >= 2);
         Assert.Contains(resourceManifest.Resources, resource => resource.Kind == HtmlResourceKind.Stylesheet && resource.IsAllowed);
+        Assert.Contains(resourceManifest.Resources, resource => resource.Kind == HtmlResourceKind.Script && resource.AttributeName == "href" && resource.DiagnosticCode == "ScriptResourceRejectedByPolicy");
+        Assert.Contains(resourceManifest.Resources, resource => resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "href" && resource.IsAllowed);
         Assert.Contains(resourceManifest.Resources, resource => resource.ElementName == "video" && resource.AttributeName == "poster" && resource.Kind == HtmlResourceKind.Media && resource.IsAllowed);
         Assert.Contains(resourceManifest.Resources, resource => resource.ElementName == "source" && resource.Kind == HtmlResourceKind.Media && resource.IsAllowed);
+        Assert.Contains(resourceManifest.Resources, resource => resource.ElementName == "source" && resource.AttributeName == "data-src" && resource.Kind == HtmlResourceKind.Media && resource.IsAllowed);
+        Assert.Contains(resourceManifest.Resources, resource => resource.ElementName == "source" && resource.AttributeName == "data-srcset" && resource.Kind == HtmlResourceKind.Image && resource.IsAllowed);
         Assert.Contains(resourceManifest.Resources, resource => resource.ElementName == "object" && resource.AttributeName == "data" && resource.DiagnosticCode == "HtmlResourceRejectedByPolicy");
+        Assert.Contains(resourceManifest.Resources, resource => resource.ElementName == "style" && resource.AttributeName == "css-import" && resource.DiagnosticCode == "StylesheetResourceRejectedByPolicy");
+        Assert.Contains(resourceManifest.Resources, resource => resource.ElementName == "style" && resource.AttributeName == "css-url" && resource.Kind == HtmlResourceKind.Font && resource.DiagnosticCode == "FontResourceRejectedByPolicy");
+        Assert.Contains(resourceManifest.Resources, resource => resource.ElementName == "style" && resource.AttributeName == "css-url" && resource.Kind == HtmlResourceKind.Image && resource.IsAllowed);
         Assert.Contains(resourceManifest.Resources, resource => resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.Contains(resourceManifest.Resources, resource => resource.DiagnosticCode == "HyperlinkRejectedByPolicy");
         Assert.Contains(resourceManifest.Resources, resource => resource.DiagnosticCode == "ScriptResourceRejectedByPolicy");
@@ -161,5 +176,42 @@ public partial class Html {
             "<main><p>0123456789 0123456789 0123456789 identical-prefix trailing-alpha</p></main>",
             "<main><p>0123456789 0123456789 0123456789 identical-prefix trailing-beta</p></main>");
         Assert.InRange(htmlScore.Metrics["text"], 0D, 0.99D);
+
+        HtmlRoundTripScore appendedTextScore = HtmlRoundTripScorer.Compare(
+            "<main><p>Alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu</p></main>",
+            "<main><p>Alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu inserted target-only content</p></main>");
+        Assert.InRange(appendedTextScore.Metrics["text"], 0D, 0.99D);
+
+        HtmlRoundTripScore nonVisibleTextScore = HtmlRoundTripScorer.Compare(
+            "<main><p>Visible text stays.</p><script>console.log('not document text')</script><style>.x{color:red}</style></main>",
+            "<main><p>Visible text stays.</p></main>");
+        Assert.Equal(1D, nonVisibleTextScore.Metrics["text"], 3);
+
+        HtmlRoundTripScore listScore = HtmlRoundTripScorer.Compare(
+            "<main><ul><li>One</li><li>Two</li></ul></main>",
+            "<main><div><p>One</p><p>Two</p></div></main>");
+        Assert.InRange(listScore.Metrics["lists"], 0D, 0.99D);
+        Assert.InRange(listScore.Metrics["list-items"], 0D, 0.99D);
+    }
+
+    [Fact]
+    public void HtmlEnginePlatform_ComputedStylesHonorUniversalSpecificityAndInlineCssSyntax() {
+        const string html = """
+            <main>
+                <style>
+                    p { color: #aa0000; }
+                    * { color: #0000aa; }
+                </style>
+                <p style="background-image: url('data:image/svg+xml;utf8,<svg></svg>'); font-family: 'A;B';">Hello</p>
+            </main>
+            """;
+
+        var parsed = HtmlDocumentParser.ParseDocument(html);
+        IReadOnlyDictionary<IElement, HtmlComputedStyle> styles = HtmlComputedStyleEngine.Compute(parsed);
+        IElement paragraph = parsed.QuerySelector("p")!;
+
+        Assert.Equal("rgba(170, 0, 0, 1)", styles[paragraph].GetValue("color"));
+        Assert.Contains("data:image/svg+xml;utf8", styles[paragraph].GetValue("background-image"));
+        Assert.Equal("'A;B'", styles[paragraph].GetValue("font-family"));
     }
 }
