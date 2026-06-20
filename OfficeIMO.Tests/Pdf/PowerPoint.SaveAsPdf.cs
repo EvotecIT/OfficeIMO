@@ -172,7 +172,7 @@ public class PowerPointSaveAsPdfTests {
     public void ToPdfDocument_PowerPointPresentation_WarnsForUnsupportedShapes() {
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.Slides[0].AddShape(ShapeTypeValues.Triangle, PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(50), PowerPointUnits.FromPoints(40));
+        presentation.Slides[0].AddShape(ShapeTypeValues.Cloud, PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(50), PowerPointUnits.FromPoints(40));
         var options = new PowerPointPdfSaveOptions();
 
         presentation.ToPdfDocument(options).ToBytes();
@@ -180,6 +180,26 @@ public class PowerPointSaveAsPdfTests {
         PowerPointPdfExportWarning warning = Assert.Single(options.Warnings);
         Assert.Equal(1, warning.SlideNumber);
         Assert.Equal("unsupported-auto-shape", warning.Code);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_RendersCommonPresetAutoShapes() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(260, 160);
+        PowerPointSlide slide = presentation.Slides[0];
+        slide.AddShapePoints(ShapeTypeValues.Triangle, 20, 24, 58, 44).Fill("1F4E79").Stroke("1F4E79", 1D);
+        slide.AddShapePoints(ShapeTypeValues.Parallelogram, 96, 24, 74, 44).Fill("1976D2").Stroke("1976D2", 1D);
+        slide.AddShapePoints(ShapeTypeValues.RightArrow, 36, 94, 112, 34).Fill("16A34A").Stroke("16A34A", 1D);
+        var options = new PowerPointPdfSaveOptions();
+
+        byte[] bytes = presentation.SaveAsPdf(options);
+
+        Assert.Empty(options.Warnings);
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("0.122 0.306 0.475 rg", raw, StringComparison.Ordinal);
+        Assert.Contains("0.098 0.463 0.824 rg", raw, StringComparison.Ordinal);
+        Assert.Contains("0.086 0.639 0.29 rg", raw, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -596,6 +616,35 @@ public class PowerPointSaveAsPdfTests {
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(bytes);
 
         Assert.Equal(new[] { "https://officeimo.net/layout" }, info.LinkUris);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_RendersInheritedLayoutPresetAutoShapes() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        PowerPointSlide slide = presentation.Slides[0];
+        SlideLayoutPart layoutPart = slide.SlidePart.SlideLayoutPart!;
+        ShapeTree tree = layoutPart.SlideLayout.CommonSlideData!.ShapeTree!;
+        tree.AppendChild(new DocumentFormat.OpenXml.Presentation.Shape(
+            new DocumentFormat.OpenXml.Presentation.NonVisualShapeProperties(
+                new DocumentFormat.OpenXml.Presentation.NonVisualDrawingProperties { Id = 702U, Name = "Layout Triangle" },
+                new DocumentFormat.OpenXml.Presentation.NonVisualShapeDrawingProperties(),
+                new ApplicationNonVisualDrawingProperties()),
+            new DocumentFormat.OpenXml.Presentation.ShapeProperties(
+                new Transform2D(
+                    new Offset { X = PowerPointUnits.FromPoints(30), Y = PowerPointUnits.FromPoints(44) },
+                    new Extents { Cx = PowerPointUnits.FromPoints(72), Cy = PowerPointUnits.FromPoints(48) }),
+                new PresetGeometry(new AdjustValueList()) { Preset = ShapeTypeValues.Triangle },
+                new SolidFill(new RgbColorModelHex { Val = "1F4E79" }))));
+        layoutPart.SlideLayout.Save();
+        var options = new PowerPointPdfSaveOptions();
+
+        byte[] bytes = presentation.SaveAsPdf(options);
+
+        Assert.Empty(options.Warnings);
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("0.122 0.306 0.475 rg", raw, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1516,6 +1565,26 @@ public class PowerPointSaveAsPdfTests {
         PowerPointSlide slide = presentation.Slides[0];
         slide.AddShapePoints(ShapeTypeValues.Line, 20, 40, 100, 0).Stroke("1E5A96", 1.5D);
         slide.AddShapePoints(ShapeTypeValues.Line, 140, 30, 0, 80).Stroke("C00000", 1.5D);
+        var options = new PowerPointPdfSaveOptions();
+
+        byte[] bytes = presentation.SaveAsPdf(options);
+
+        Assert.Empty(options.Warnings);
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("20 120 m", raw, StringComparison.Ordinal);
+        Assert.Contains("120 120 l", raw, StringComparison.Ordinal);
+        Assert.Contains("140 130 m", raw, StringComparison.Ordinal);
+        Assert.Contains("140 50 l", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_RendersZeroThicknessStraightConnectors() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        PowerPointSlide slide = presentation.Slides[0];
+        slide.AddShapePoints(ShapeTypeValues.StraightConnector1, 20, 40, 100, 0).Stroke("1E5A96", 1.5D);
+        slide.AddShapePoints(ShapeTypeValues.StraightConnector1, 140, 30, 0, 80).Stroke("C00000", 1.5D);
         var options = new PowerPointPdfSaveOptions();
 
         byte[] bytes = presentation.SaveAsPdf(options);

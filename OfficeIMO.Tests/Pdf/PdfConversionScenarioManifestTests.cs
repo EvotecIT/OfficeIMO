@@ -224,6 +224,7 @@ public sealed class PdfConversionScenarioManifestTests {
         Assert.Contains("Grouped transform marker", text, StringComparison.Ordinal);
         Assert.Contains("20 100 60 40 re", raw, StringComparison.Ordinal);
         Assert.Contains("100 100 60 40 re", raw, StringComparison.Ordinal);
+        Assert.Contains("0.122 0.306 0.475 rg", raw, StringComparison.Ordinal);
 
         WriteReviewArtifact("powerpoint-layout-theme-groups.pdf", pdf);
     }
@@ -937,6 +938,9 @@ public sealed class PdfConversionScenarioManifestTests {
         PowerPointTextBox marker = slide.AddTextBoxPoints("Grouped transform marker", 20, 58, 150, 20);
         marker.FontSize = 9;
         marker.Color = "0F172A";
+        PowerPointAutoShape preset = slide.AddShapePoints(DocumentFormat.OpenXml.Drawing.ShapeTypeValues.Triangle, 176, 44, 36, 36);
+        preset.FillColor = "1F4E79";
+        preset.OutlineColor = "1F4E79";
         PowerPointAutoShape first = slide.AddRectanglePoints(20, 20, 30, 20);
         first.FillColor = "FF0000";
         PowerPointAutoShape second = slide.AddRectanglePoints(60, 20, 30, 20);
