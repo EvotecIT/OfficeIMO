@@ -40,6 +40,23 @@ public class MarkdownSaveAsPdfVisualTests {
     }
 
     [Fact]
+    public void ToPdfDocument_MarkdownImageOnlyParagraphInsideQuote_RendersOutsidePanelWithoutThrowing() {
+        string dataUri = CreateDataUriPng();
+        var quote = new QuoteBlock();
+        quote.Children.Add(new ParagraphBlock(new InlineSequence().Image("Inline badge", dataUri, "Inline badge caption")));
+        MarkdownDoc document = MarkdownDoc
+            .Create()
+            .Add(quote);
+
+        byte[] bytes = document.ToPdfDocument(CreateVisualOptions()).ToBytes();
+        string text = PdfCore.PdfReadDocument.Load(bytes).ExtractText();
+
+        Assert.Contains(PdfCore.PdfImageExtractor.ExtractImages(bytes), image => image.IsImageFile && image.MimeType == "image/png");
+        Assert.Contains("Inline badge caption", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("[Image:", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ToPdfDocument_MarkdownChartFence_RendersChartVisualInsteadOfJsonCodePanel() {
         const string markdown = """
 # Quarterly report
@@ -70,6 +87,37 @@ _Figure 2. Revenue chart_
         Assert.Contains("Actual", text, StringComparison.Ordinal);
         Assert.Contains("Q1", text, StringComparison.Ordinal);
         Assert.Contains("Figure 2. Revenue chart", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"datasets\"", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ToPdfDocument_MarkdownChartFenceInsideCallout_RendersOutsidePanelWithoutThrowing() {
+        var callout = new CalloutBlock("note", "Visual", new IMarkdownBlock[] {
+            new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "bar",
+  "title": "Quarter revenue",
+  "data": {
+    "labels": ["Q1", "Q2"],
+    "datasets": [
+      { "label": "Actual", "data": [10, 14] }
+    ]
+  }
+}
+""")
+        });
+        MarkdownDoc document = MarkdownDoc
+            .Create()
+            .Add(callout);
+
+        var options = CreateVisualOptions();
+        byte[] bytes = document.ToPdfDocument(options).ToBytes();
+        string text = PdfCore.PdfReadDocument.Load(bytes).ExtractText();
+
+        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "UnsupportedChartFence");
+        Assert.Contains("Visual", text, StringComparison.Ordinal);
+        Assert.Contains("Quarter revenue", text, StringComparison.Ordinal);
+        Assert.Contains("Actual", text, StringComparison.Ordinal);
         Assert.DoesNotContain("\"datasets\"", text, StringComparison.Ordinal);
     }
 

@@ -60,14 +60,16 @@ public static partial class MarkdownPdfConverterExtensions {
 
     private static bool CanRenderBlockInsidePanel(IMarkdownBlock block) {
         switch (block) {
-            case ParagraphBlock:
+            case ParagraphBlock paragraph:
+                return !IsImageOnlyParagraph(paragraph);
             case HeadingBlock:
             case CodeBlock:
-            case SemanticFencedBlock:
             case TableBlock:
             case HorizontalRuleBlock:
             case DefinitionListBlock:
                 return true;
+            case SemanticFencedBlock semantic:
+                return !IsChartSemanticFence(semantic);
             case UnorderedListBlock unordered:
                 return CanRenderListItemsInsidePanel(unordered.Items);
             case OrderedListBlock ordered:
@@ -89,6 +91,11 @@ public static partial class MarkdownPdfConverterExtensions {
         }
 
         return true;
+    }
+
+    private static bool IsImageOnlyParagraph(ParagraphBlock paragraph) {
+        IReadOnlyList<IMarkdownInline> nodes = paragraph.Inlines.Nodes;
+        return nodes.Count == 1 && (nodes[0] is ImageInline || nodes[0] is ImageLinkInline);
     }
 
     private static bool TryAppendBlocksInsidePanel(PdfCore.PdfParagraphBuilder builder, IReadOnlyList<IMarkdownBlock> blocks, InlineStyle style, MarkdownPdfVisualTheme visualTheme, bool lineBreakBeforeFirst) {
