@@ -3,6 +3,7 @@ using System.IO;
 using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Validation;
 using HeaderFooterValues = DocumentFormat.OpenXml.Wordprocessing.HeaderFooterValues;
 using OfficeIMO.Word;
 using Xunit;
@@ -122,6 +123,20 @@ namespace OfficeIMO.Tests {
                 Assert.Single(document.Images);
                 Assert.Equal("Kulek.jpg", document.Images[0].FileName);
             }
+        }
+
+        [Fact]
+        public void Test_CreatingWordDocumentWithMultipleImagesUsesUniqueDrawingIds() {
+            string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithMultipleImagesUniqueDrawingIds.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"), 100, 40);
+                document.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 100, 100);
+                document.Save(false);
+            }
+
+            using WordprocessingDocument package = WordprocessingDocument.Open(filePath, false);
+            var errors = new OpenXmlValidator().Validate(package).ToList();
+            Assert.Empty(errors);
         }
 
 

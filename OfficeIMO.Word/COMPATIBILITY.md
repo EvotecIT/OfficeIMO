@@ -24,7 +24,7 @@ It is intentionally honest. "Partial" means usable, not "done".
 | HTML and Markdown conversion | Partial | Adjacent packages provide practical HTML and Markdown workflows. Fidelity corpus coverage and destination-specific diagnostics remain ongoing work. |
 | PDF output | Experimental | Word-to-PDF currently depends on temporary PDF infrastructure and should not be treated as a finished compatibility promise yet. |
 | Feature inspection | Partial | `InspectFeatures()` reports editable, partially editable, preserved, and unsupported document features, including core content, document variables, bibliography sources, footnotes/endnotes, review metadata, charts, SmartArt diagram package parts, equations, content controls, content-control data bindings, external links, externally linked images, attached template relationships, glossary/building-block metadata, modern comment metadata, web extension/task-pane metadata, ActiveX control package metadata, altChunks, embedded packages, custom XML, VBA projects, and digital signature metadata. Round-trip preservation proof now covers those advanced package signals, including ActiveX XML/binary control metadata; broader corpus-backed preservation proof remains a target. |
-| Document compare and diff | Partial | A document comparer exists and lifecycle ownership regressions are covered. Structured diff output, richer table/image/field fidelity, and review-report workflows remain roadmap items. |
+| Document compare and diff | Partial | A document comparer exists and lifecycle ownership regressions are covered. `WordDocumentComparer.CompareStructure(...)` now returns deterministic paragraph, table, row, cell, and image findings for review/report automation. Richer run-level formatting diffs, field/content-control diffs, redline reports, and full review workflows remain roadmap items. |
 
 ## Current Strengths
 
@@ -33,6 +33,17 @@ It is intentionally honest. "Partial" means usable, not "done".
 - managed Open XML automation without requiring Office installation
 - feature inspection for safer automation against unknown documents
 - adjacent HTML, Markdown, and PDF packages for destination-specific workflows
+
+## Near-Term Market Readiness Focus
+
+Word-to-PDF fidelity is tracked separately in `OfficeIMO.Word.Pdf` / `OfficeIMO.Pdf`. The non-PDF Word push should focus on the surfaces that can make `OfficeIMO.Word` stand out as a practical open-source Word automation engine:
+
+1. Template and document assembly polish: make the existing merge fields, repeated regions, content-control bindings, validation, and batch output story obvious through scenario docs, proof artifacts, and workflow APIs.
+2. Review, redline, and diff workflows: turn comments, revisions, visible markup, and `WordDocumentComparer` into a structured review story with deterministic diff output, review reports, and redline documents.
+3. HTML and Markdown conversion fidelity: keep expanding the real-world conversion corpus, diagnostics, support matrix, and generated artifact gallery for Word/HTML/Markdown workflows.
+4. Real-document docs and showcase: lead with concrete documents, source inputs, validation status, and known limitations instead of only listing object-model features.
+
+Keep this section aligned with the generated proof-gallery example and the public Word market-readiness docs as implementation slices land.
 
 ## Highest-Priority Gaps
 

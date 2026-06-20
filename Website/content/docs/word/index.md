@@ -120,3 +120,4 @@ document.Save();
 - [Tables](/docs/word/tables) -- Creating and styling tables.
 - [Images](/docs/word/images) -- Adding images from files, streams, URLs, and base64.
 - [Headers and Footers](/docs/word/headers-footers) -- Page numbers, different first page headers, and section-specific content.
+- [Market readiness](/docs/word/market-readiness) -- Current non-PDF readiness snapshot for templates, review workflows, conversion proof, and real-document showcase work.

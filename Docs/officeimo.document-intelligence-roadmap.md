@@ -48,6 +48,17 @@ The Word/HTML surface has advanced enough to be treated as a first-class documen
 
 The next HTML work is to align Word, Markdown, PDF logical readback, and Reader chunks around the same block/table/asset diagnostics instead of treating HTML as a separate endpoint.
 
+### Word Market Readiness
+
+`OfficeIMO.Word` keeps its non-PDF market-readiness story grounded in four workflows:
+
+- template and document assembly polish
+- review, redline, and diff workflows
+- HTML and Markdown conversion fidelity with proof artifacts
+- real-document docs and showcase output
+
+Word-to-PDF parity remains owned by the `OfficeIMO.Word.Pdf` / `OfficeIMO.Pdf` workstream; the Word market-readiness story should not make PDF fidelity promises.
+
 ### Drawing
 
 `OfficeIMO.Drawing` is becoming the shared visual primitive layer used by PDF, Excel/PDF, PowerPoint/PDF, and Visio export work. It now supports reusable chart snapshots, chart rendering quality reports, text measurement, managed TrueType/OpenType font paths, color and image abstractions, vector/raster primitives, and drawing quality diagnostics.

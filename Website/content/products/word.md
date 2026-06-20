@@ -13,6 +13,8 @@ api_url: "/api/word/"
 
 OfficeIMO.Word helps .NET applications generate and modify `.docx` files without COM interop or Office automation. It is a good fit for reports, contracts, invoices, and other structured document workflows where you want code-first control over content, layout, and packaging.
 
+The best fit is modern document automation: assemble real documents, inspect them before editing, convert selected content through HTML or Markdown, and keep review metadata visible when documents move through approval workflows.
+
 ## Features
 
 - **Paragraphs & text styling** -- fonts, sizes, colors, bold, italic, underline, strikethrough, highlight, and spacing
@@ -27,6 +29,15 @@ OfficeIMO.Word helps .NET applications generate and modify `.docx` files without
 - **Document protection** -- read-only, password protection, and editing restrictions
 - **Footnotes & endnotes** -- numbered references with custom formatting
 - **Sections & page numbering** -- multiple sections with independent orientation, margins, and numbering
+
+## Workflow Focus
+
+| Workflow | What OfficeIMO.Word owns | Current product direction |
+|----------|--------------------------|---------------------------|
+| Document assembly | Merge fields, repeated regions, content-control bindings, validation, and batch output | Make template automation easy to evaluate with guides and proof artifacts. |
+| Review automation | Comments, revisions, visible markup, document comparison, and feature inspection | Build a structured review/redline/diff story for contracts, policies, proposals, and audit documents. |
+| HTML and Markdown conversion | Word/HTML and Word/Markdown converter packages with diagnostics and resource policy | Expand real-world conversion fixtures, support matrices, and generated artifact galleries. |
+| Real-document proof | Examples, tests, docs, and website showcase content | Lead with source inputs, generated DOCX files, validation status, and known limitations. |
 
 ## Quick start
 
@@ -81,6 +92,7 @@ OfficeIMO.Word runs on Windows, Linux, and macOS. It produces standard `.docx` f
 |-------|-------------|
 | [Word documentation](/docs/word/) | Start with the package overview and document structure. |
 | [Tables guide](/docs/word/tables/) | Build styled tables, merged cells, and richer layouts. |
+| [Market readiness](/docs/word/market-readiness/) | See the current non-PDF readiness snapshot for templates, review workflows, conversion proof, and showcase work. |
 | [Word to HTML](/docs/converters/word-html/) | Convert generated documents to and from HTML. |
 | [PSWriteOffice Word cmdlets](/docs/pswriteoffice/word/) | Automate Word output from PowerShell scripts. |
 

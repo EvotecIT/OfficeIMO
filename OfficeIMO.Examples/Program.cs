@@ -192,6 +192,11 @@ namespace OfficeIMO.Examples {
                 return;
             }
 
+            if (HasArgument(args, "--word-market-readiness")) {
+                Word.MarketReadinessProofGallery.Example_GenerateWordMarketReadinessProof(folderPath, HasArgument(args, "--open-word"));
+                return;
+            }
+
             if (HasArgument(args, "--visio-premium") || HasArgument(args, "--premium-visio")) {
                 Visio.PremiumVisioShowcase.Example_PremiumVisioShowcase(folderPath, HasArgument(args, "--open-visio") || HasArgument(args, "--visio-open"));
                 return;
@@ -624,6 +629,7 @@ namespace OfficeIMO.Examples {
             // // Word/MailMerge
             // Word.MailMerge.Example_MailMergeAdvanced(folderPath, false);
             // Word.MailMerge.Example_MailMergeSimple(folderPath, false);
+            // Word.MarketReadinessProofGallery.Example_GenerateWordMarketReadinessProof(folderPath, false);
             // // Word/PageBreaks
             // Word.PageBreaks.Example_PageBreaks(folderPath, false);
             // Word.PageBreaks.Example_PageBreaks1(folderPath, false);
