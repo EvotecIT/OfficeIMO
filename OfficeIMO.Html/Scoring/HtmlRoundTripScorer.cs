@@ -493,7 +493,7 @@ public static class HtmlRoundTripScorer {
             if (node.Kind == HtmlLogicalNodeKind.FormControl) {
                 AddFormControlAttributePart(parts, node, attributeName);
             } else {
-                AddAttributePart(parts, node, attributeName);
+                AddFormAttributePart(parts, node, attributeName);
             }
         }
 
@@ -526,6 +526,20 @@ public static class HtmlRoundTripScorer {
         }
 
         return string.Join("|", parts);
+    }
+
+    private static void AddFormAttributePart(ICollection<string> parts, HtmlLogicalNode node, string attributeName) {
+        if (string.Equals(attributeName, "method", StringComparison.OrdinalIgnoreCase)) {
+            parts.Add("method=" + GetEffectiveFormMethod(node.Attributes.TryGetValue(attributeName, out string? value) ? value : null));
+            return;
+        }
+
+        if (string.Equals(attributeName, "enctype", StringComparison.OrdinalIgnoreCase)) {
+            parts.Add("enctype=" + GetEffectiveFormEncoding(node.Attributes.TryGetValue(attributeName, out string? value) ? value : null));
+            return;
+        }
+
+        AddAttributePart(parts, node, attributeName);
     }
 
     private static void AddFormControlAttributePart(ICollection<string> parts, HtmlLogicalNode node, string attributeName) {
@@ -766,6 +780,30 @@ public static class HtmlRoundTripScorer {
         return string.Equals(type, "submit", StringComparison.Ordinal)
             || string.Equals(type, "reset", StringComparison.Ordinal)
             || string.Equals(type, "button", StringComparison.Ordinal);
+    }
+
+    private static string GetEffectiveFormMethod(string? method) {
+        string normalized = (method ?? string.Empty).Trim().ToLowerInvariant();
+        switch (normalized) {
+            case "get":
+            case "post":
+            case "dialog":
+                return normalized;
+            default:
+                return "get";
+        }
+    }
+
+    private static string GetEffectiveFormEncoding(string? enctype) {
+        string normalized = (enctype ?? string.Empty).Trim().ToLowerInvariant();
+        switch (normalized) {
+            case "application/x-www-form-urlencoded":
+            case "multipart/form-data":
+            case "text/plain":
+                return normalized;
+            default:
+                return "application/x-www-form-urlencoded";
+        }
     }
 
     private static string GetDefaultFormControlValue(string name, string? type, string textContent) {

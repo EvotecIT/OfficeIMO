@@ -163,7 +163,8 @@ public static class HtmlResourcePipeline {
         string parentName = element.ParentElement?.TagName.ToLowerInvariant() ?? string.Empty;
         switch (parentName) {
             case "picture":
-                if (IsApplicableMedia(element.GetAttribute("media") ?? string.Empty)) {
+                if (IsApplicableMedia(element.GetAttribute("media") ?? string.Empty)
+                    && IsSupportedPictureSourceType(element.GetAttribute("type"))) {
                     AddSrcSet(manifest, HtmlResourceKind.Image, element, "srcset", baseUri, options);
                     AddSrcSet(manifest, HtmlResourceKind.Image, element, "data-srcset", baseUri, options);
                 }
@@ -326,16 +327,19 @@ public static class HtmlResourcePipeline {
     }
 
     private static void AddCssResources(HtmlResourceManifest manifest, IHtmlDocument document, Uri? baseUri, HtmlResourcePipelineOptions options) {
+        Dictionary<string, List<CssCustomPropertyDefinition>> documentCustomPropertyDefinitions = ExtractDocumentCustomPropertyDefinitions(document);
+        int inlineSourceOrder = GetDocumentCssSourceOrder(document);
         foreach (IElement styleElement in document.QuerySelectorAll("style")) {
-            if (!IsCssStyleElement(styleElement)) {
+            if (!IsCssStyleElement(styleElement) || !IsApplicableMedia(styleElement.GetAttribute("media") ?? string.Empty)) {
                 continue;
             }
 
-            AddCssReferences(manifest, styleElement, "css", styleElement.TextContent, baseUri, options);
+            AddCssReferences(manifest, styleElement, "css", styleElement.TextContent, documentCustomPropertyDefinitions, sourceOrderBase: 0, includeLocalDefinitions: false, baseUri, options);
         }
 
         foreach (IElement element in document.QuerySelectorAll("[style]")) {
-            AddCssReferences(manifest, element, "style", element.GetAttribute("style") ?? string.Empty, baseUri, options);
+            AddCssReferences(manifest, element, "style", element.GetAttribute("style") ?? string.Empty, documentCustomPropertyDefinitions, inlineSourceOrder, includeLocalDefinitions: true, baseUri, options);
+            inlineSourceOrder += (element.GetAttribute("style") ?? string.Empty).Length + 1;
         }
     }
 
@@ -351,6 +355,35 @@ public static class HtmlResourcePipeline {
         }
 
         return string.Equals(type, "text/css", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsSupportedPictureSourceType(string? type) {
+        if (string.IsNullOrWhiteSpace(type)) {
+            return true;
+        }
+
+        string normalized = type!.Trim();
+        int parameterStart = normalized.IndexOf(';');
+        if (parameterStart >= 0) {
+            normalized = normalized.Substring(0, parameterStart).Trim();
+        }
+
+        switch (normalized.ToLowerInvariant()) {
+            case "image/apng":
+            case "image/avif":
+            case "image/bmp":
+            case "image/gif":
+            case "image/jpeg":
+            case "image/jpg":
+            case "image/png":
+            case "image/svg+xml":
+            case "image/webp":
+            case "image/x-icon":
+            case "image/vnd.microsoft.icon":
+                return true;
+            default:
+                return false;
+        }
     }
 
     private static void AddSrcDocResources(HtmlResourceManifest manifest, IElement element, Uri? baseUri, HtmlResourcePipelineOptions options, int srcDocDepth) {
@@ -372,7 +405,16 @@ public static class HtmlResourcePipeline {
         AddCssResources(manifest, nested, nestedBaseUri, options);
     }
 
-    private static void AddCssReferences(HtmlResourceManifest manifest, IElement element, string attributeName, string css, Uri? baseUri, HtmlResourcePipelineOptions options) {
+    private static void AddCssReferences(
+        HtmlResourceManifest manifest,
+        IElement element,
+        string attributeName,
+        string css,
+        IReadOnlyDictionary<string, List<CssCustomPropertyDefinition>> ambientCustomPropertyDefinitions,
+        int sourceOrderBase,
+        bool includeLocalDefinitions,
+        Uri? baseUri,
+        HtmlResourcePipelineOptions options) {
         if (string.IsNullOrWhiteSpace(css)) {
             return;
         }
@@ -380,7 +422,9 @@ public static class HtmlResourcePipeline {
         css = StripCssCommentsOutsideStrings(css);
         List<SourceRange> inactiveMediaRanges = GetInactiveMediaRanges(css);
         bool scanImports = !string.Equals(attributeName, "style", StringComparison.OrdinalIgnoreCase);
-        Dictionary<string, List<CssCustomPropertyDefinition>> customPropertyDefinitions = ExtractCustomPropertyDefinitions(css, inactiveMediaRanges);
+        Dictionary<string, List<CssCustomPropertyDefinition>> customPropertyDefinitions = includeLocalDefinitions
+            ? MergeCustomPropertyDefinitions(ambientCustomPropertyDefinitions, ExtractCustomPropertyDefinitions(css, inactiveMediaRanges, sourceOrderBase))
+            : CloneCustomPropertyDefinitions(ambientCustomPropertyDefinitions);
         List<SourceRange> resolvedVarFallbackRanges = GetResolvedVarFallbackRanges(css, customPropertyDefinitions);
         var importRanges = new List<SourceRange>();
         if (scanImports) {
@@ -417,7 +461,34 @@ public static class HtmlResourcePipeline {
         }
     }
 
-    private static Dictionary<string, List<CssCustomPropertyDefinition>> ExtractCustomPropertyDefinitions(string css, IReadOnlyList<SourceRange> inactiveMediaRanges) {
+    private static Dictionary<string, List<CssCustomPropertyDefinition>> ExtractDocumentCustomPropertyDefinitions(IHtmlDocument document) {
+        var definitions = new Dictionary<string, List<CssCustomPropertyDefinition>>(StringComparer.Ordinal);
+        int sourceOrderBase = 0;
+        foreach (IElement styleElement in document.QuerySelectorAll("style")) {
+            string css = styleElement.TextContent;
+            if (!IsCssStyleElement(styleElement) || !IsApplicableMedia(styleElement.GetAttribute("media") ?? string.Empty) || string.IsNullOrWhiteSpace(css)) {
+                sourceOrderBase += css.Length + 1;
+                continue;
+            }
+
+            css = StripCssCommentsOutsideStrings(css);
+            MergeCustomPropertyDefinitionsInto(definitions, ExtractCustomPropertyDefinitions(css, GetInactiveMediaRanges(css), sourceOrderBase));
+            sourceOrderBase += css.Length + 1;
+        }
+
+        return definitions;
+    }
+
+    private static int GetDocumentCssSourceOrder(IHtmlDocument document) {
+        int sourceOrder = 0;
+        foreach (IElement styleElement in document.QuerySelectorAll("style")) {
+            sourceOrder += styleElement.TextContent.Length + 1;
+        }
+
+        return sourceOrder;
+    }
+
+    private static Dictionary<string, List<CssCustomPropertyDefinition>> ExtractCustomPropertyDefinitions(string css, IReadOnlyList<SourceRange> inactiveMediaRanges, int sourceOrderBase) {
         var definitions = new Dictionary<string, List<CssCustomPropertyDefinition>>(StringComparer.Ordinal);
         foreach (Match match in CssCustomPropertyDeclarationExpression.Matches(css)) {
             string propertyName = match.Groups["name"].Value;
@@ -432,13 +503,14 @@ public static class HtmlResourcePipeline {
 
             int valueEnd = FindDeclarationValueEnd(css, valueStart + 1);
             string selector = GetDeclarationSelector(css, declarationStart);
+            bool isImportant = IsImportantDeclarationValue(css, valueStart + 1, valueEnd);
             bool addedUrl = false;
             foreach (Match urlMatch in CssUrlExpression.Matches(css)) {
                 if (urlMatch.Index < valueStart || urlMatch.Index >= valueEnd || !IsCssFunctionNameAt(css, urlMatch.Index, "url") || IsInsideCssString(css, urlMatch.Index)) {
                     continue;
                 }
 
-                AddCustomPropertyDefinition(definitions, propertyName, DecodeCssEscapes(urlMatch.Groups["url"].Value.Trim().Trim('\'', '"')), selector, declarationStart);
+                AddCustomPropertyDefinition(definitions, propertyName, DecodeCssEscapes(urlMatch.Groups["url"].Value.Trim().Trim('\'', '"')), selector, sourceOrderBase + declarationStart, isImportant);
                 addedUrl = true;
             }
 
@@ -447,16 +519,58 @@ public static class HtmlResourcePipeline {
                     continue;
                 }
 
-                AddCustomPropertyDefinition(definitions, propertyName, DecodeCssEscapes(reference.Source), selector, declarationStart);
+                AddCustomPropertyDefinition(definitions, propertyName, DecodeCssEscapes(reference.Source), selector, sourceOrderBase + declarationStart, isImportant);
                 addedUrl = true;
             }
 
             if (!addedUrl) {
-                AddCustomPropertyDefinition(definitions, propertyName, string.Empty, selector, declarationStart);
+                AddCustomPropertyDefinition(definitions, propertyName, string.Empty, selector, sourceOrderBase + declarationStart, isImportant);
             }
         }
 
         return definitions;
+    }
+
+    private static bool IsImportantDeclarationValue(string css, int valueStart, int valueEnd) {
+        int index = valueEnd - 1;
+        while (index >= valueStart && char.IsWhiteSpace(css[index])) {
+            index--;
+        }
+
+        const string Important = "!important";
+        if (index - Important.Length + 1 < valueStart) {
+            return false;
+        }
+
+        string suffix = css.Substring(index - Important.Length + 1, Important.Length);
+        return string.Equals(suffix, Important, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static Dictionary<string, List<CssCustomPropertyDefinition>> CloneCustomPropertyDefinitions(IReadOnlyDictionary<string, List<CssCustomPropertyDefinition>> definitions) {
+        var clone = new Dictionary<string, List<CssCustomPropertyDefinition>>(StringComparer.Ordinal);
+        MergeCustomPropertyDefinitionsInto(clone, definitions);
+        return clone;
+    }
+
+    private static Dictionary<string, List<CssCustomPropertyDefinition>> MergeCustomPropertyDefinitions(
+        IReadOnlyDictionary<string, List<CssCustomPropertyDefinition>> first,
+        IReadOnlyDictionary<string, List<CssCustomPropertyDefinition>> second) {
+        Dictionary<string, List<CssCustomPropertyDefinition>> merged = CloneCustomPropertyDefinitions(first);
+        MergeCustomPropertyDefinitionsInto(merged, second);
+        return merged;
+    }
+
+    private static void MergeCustomPropertyDefinitionsInto(
+        IDictionary<string, List<CssCustomPropertyDefinition>> target,
+        IReadOnlyDictionary<string, List<CssCustomPropertyDefinition>> source) {
+        foreach (KeyValuePair<string, List<CssCustomPropertyDefinition>> pair in source) {
+            if (!target.TryGetValue(pair.Key, out List<CssCustomPropertyDefinition>? values)) {
+                values = new List<CssCustomPropertyDefinition>();
+                target[pair.Key] = values;
+            }
+
+            values.AddRange(pair.Value);
+        }
     }
 
     private static List<SourceRange> GetInactiveMediaRanges(string css) {
@@ -571,13 +685,13 @@ public static class HtmlResourcePipeline {
         return -1;
     }
 
-    private static void AddCustomPropertyDefinition(IDictionary<string, List<CssCustomPropertyDefinition>> definitions, string propertyName, string source, string selector, int declarationStart) {
+    private static void AddCustomPropertyDefinition(IDictionary<string, List<CssCustomPropertyDefinition>> definitions, string propertyName, string source, string selector, int declarationStart, bool isImportant) {
         if (!definitions.TryGetValue(propertyName, out List<CssCustomPropertyDefinition>? values)) {
             values = new List<CssCustomPropertyDefinition>();
             definitions[propertyName] = values;
         }
 
-        values.Add(new CssCustomPropertyDefinition(source, selector, declarationStart, !string.IsNullOrWhiteSpace(source)));
+        values.Add(new CssCustomPropertyDefinition(source, selector, declarationStart, !string.IsNullOrWhiteSpace(source), isImportant));
     }
 
     private static void AddUsedCustomPropertyUrls(HtmlResourceManifest manifest, IElement element, string attributeName, string css, IReadOnlyDictionary<string, List<CssCustomPropertyDefinition>> customPropertyDefinitions, Uri? baseUri, HtmlResourcePipelineOptions options) {
@@ -640,9 +754,16 @@ public static class HtmlResourcePipeline {
     private static int SelectCustomPropertyDeclaration(IEnumerable<CssCustomPropertyDefinition> sources, string useSelector) {
         int selectedDeclarationStart = -1;
         int selectedRank = -1;
+        bool selectedImportant = false;
         foreach (CssCustomPropertyDefinition source in sources) {
             int rank = GetSubstitutionRank(source.Selector, useSelector);
-            if (rank > selectedRank || (rank == selectedRank && rank >= 0 && source.DeclarationStart >= selectedDeclarationStart)) {
+            if (rank < 0) {
+                continue;
+            }
+
+            if ((!selectedImportant && source.IsImportant)
+                || (source.IsImportant == selectedImportant && (rank > selectedRank || (rank == selectedRank && source.DeclarationStart >= selectedDeclarationStart)))) {
+                selectedImportant = source.IsImportant;
                 selectedRank = rank;
                 selectedDeclarationStart = source.DeclarationStart;
             }
@@ -1568,16 +1689,18 @@ public static class HtmlResourcePipeline {
     }
 
     private sealed class CssCustomPropertyDefinition {
-        internal CssCustomPropertyDefinition(string source, string selector, int declarationStart, bool hasUrl) {
+        internal CssCustomPropertyDefinition(string source, string selector, int declarationStart, bool hasUrl, bool isImportant) {
             Source = source;
             Selector = selector;
             DeclarationStart = declarationStart;
             HasUrl = hasUrl;
+            IsImportant = isImportant;
         }
 
         internal string Source { get; }
         internal string Selector { get; }
         internal int DeclarationStart { get; }
         internal bool HasUrl { get; }
+        internal bool IsImportant { get; }
     }
 }

@@ -94,7 +94,8 @@ public static class HtmlNormalizer {
             return;
         }
 
-        builder.Append('<').Append(name);
+        string emittedName = IsForeignContent(element) ? element.TagName : name;
+        builder.Append('<').Append(emittedName);
         foreach (KeyValuePair<string, string> attribute in NormalizeAttributes(element, options, srcDocDepth)) {
             builder.Append(' ').Append(attribute.Key);
             if (!BooleanAttributes.Contains(attribute.Key) || !IsBooleanValue(attribute.Key, attribute.Value)) {
@@ -115,7 +116,7 @@ public static class HtmlNormalizer {
                 }
             }
 
-            builder.Append("</").Append(name).Append('>');
+            builder.Append("</").Append(emittedName).Append('>');
         }
     }
 
@@ -256,6 +257,10 @@ public static class HtmlNormalizer {
         }
 
         return CssUrlExpression.Replace(css, match => {
+            if (!IsCssFunctionNameAt(css, match.Index, "url") || IsInsideCssString(css, match.Index)) {
+                return match.Value;
+            }
+
             string source = match.Groups["url"].Value.Trim().Trim('\'', '"');
             string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(source, baseUri, policy);
             return string.IsNullOrWhiteSpace(resolved)
@@ -266,6 +271,61 @@ public static class HtmlNormalizer {
 
     private static string EscapeCssString(string value) {
         return value.Replace("\\", "\\\\").Replace("\"", "\\\"");
+    }
+
+    private static bool IsCssFunctionNameAt(string css, int index, string functionName) {
+        if (!StartsWith(css, index, functionName)) {
+            return false;
+        }
+
+        int afterName = index + functionName.Length;
+        if (afterName >= css.Length || css[afterName] != '(') {
+            return false;
+        }
+
+        return index == 0 || !IsCssIdentifierCharacter(css[index - 1]);
+    }
+
+    private static bool StartsWith(string text, int index, string value) {
+        return index >= 0
+            && index + value.Length <= text.Length
+            && string.Compare(text, index, value, 0, value.Length, StringComparison.OrdinalIgnoreCase) == 0;
+    }
+
+    private static bool IsCssIdentifierCharacter(char value) {
+        return char.IsLetterOrDigit(value)
+            || value == '_'
+            || value == '-'
+            || value >= 0x80;
+    }
+
+    private static bool IsInsideCssString(string css, int index) {
+        char quote = '\0';
+        for (int i = 0; i < index && i < css.Length; i++) {
+            char current = css[i];
+            if (quote != '\0') {
+                if (current == quote && !IsEscaped(css, i)) {
+                    quote = '\0';
+                }
+
+                continue;
+            }
+
+            if (current == '"' || current == '\'') {
+                quote = current;
+            }
+        }
+
+        return quote != '\0';
+    }
+
+    private static bool IsEscaped(string text, int index) {
+        int slashCount = 0;
+        for (int i = index - 1; i >= 0 && text[i] == '\\'; i--) {
+            slashCount++;
+        }
+
+        return slashCount % 2 == 1;
     }
 
     private static string EscapeRawTextElementContent(string value, string elementName) {

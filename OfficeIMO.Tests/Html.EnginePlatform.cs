@@ -457,6 +457,7 @@ public partial class Html {
                     @import url('https://example.test/images/shared.png');
                     @importurl(file:///secret/import-token.css);
                     :root { --hero: url(file:///secret/custom-property.png); --used-hero: url(file:///secret/custom-property-used.png); }
+                    :root { --cross-block-hero: url(file:///secret/cross-block-property.png); --important-hero: url(file:///secret/important-property.png) !important; }
                     .unused { --card-hero: url(file:///secret/unused-custom-property.png); }
                     .theme { --theme-hero: url(file:///secret/inherited-custom-property.png); }
                     .theme-late { --theme-late-hero: url(file:///secret/nearer-custom-property.png); }
@@ -469,6 +470,9 @@ public partial class Html {
                     .comment-url { background-image: url('https://example.test/images/a/*v*/b.png'); }
                     .hero { background-image: var(--used-hero, url(file:///secret/unused-fallback.png)), url('https://example.test/images/bg.png'); }
                     .defined-non-url { --defined-hero: none; background-image: var(--defined-hero, url(file:///secret/defined-fallback.png)); }
+                    :root { --important-hero: url(https://example.test/images/non-important-property.png); }
+                    .cross-block { background-image: var(--cross-block-hero); }
+                    .important { background-image: var(--important-hero); }
                     .theme .card { background-image: var(--theme-hero); }
                     .cascaded { --cascaded-hero: url(file:///secret/old-cascaded-property.png); }
                     .cascaded { --cascaded-hero: url(https://example.test/images/cascaded-property.png); }
@@ -493,6 +497,7 @@ public partial class Html {
                     .label::before { content: "@import url(file:///secret/content.css)"; }
                     .label::before { content: "url(file:///secret/label.png)"; }
                 </style>
+                <style media="print">.inactive-media-style { background-image: url(file:///secret/inactive-media-style.png); }</style>
                 <style type="text/plain">.plain { background-image: url(file:///secret/plain-style.png); }</style>
                 <meta http-equiv="refresh" content="0; url=file:///secret/refresh.html">
                 <meta http-equiv="refresh" content="0; url='https://example.test/report;v=1.html'">
@@ -512,6 +517,7 @@ public partial class Html {
                 <input type="text" src="file:///secret/input-metadata">
                 <picture><source src="file:///secret/ignored-picture-source.png" srcset="https://example.test/images/picture-source.png 1x"><img src="https://example.test/images/picture-fallback.png"></picture>
                 <picture><source media="print" srcset="file:///secret/print-picture-source.png 1x"><img src="https://example.test/images/screen-picture.png"></picture>
+                <picture><source type="image/not-real" srcset="file:///secret/unsupported-picture-type.png 1x"><img src="https://example.test/images/typed-fallback.png"></picture>
                 <div data="file:///secret/metadata"></div>
                 <div background="file:///secret/not-legacy-background.png"></div>
                 <div style="@import url(file:///secret/inline-import.css); background-image: url(https://example.test/images/inline.png)"></div>
@@ -552,6 +558,7 @@ public partial class Html {
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/supports-condition.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/print-only.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/print-custom-property.png");
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/inactive-media-style.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/plain-style.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/unused-fallback.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/defined-fallback.png");
@@ -567,7 +574,11 @@ public partial class Html {
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/inert-submit-srcset.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/ignored-picture-source.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/print-picture-source.png");
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/unsupported-picture-type.png");
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "https://example.test/images/non-important-property.png");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/custom-property-used.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/cross-block-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/important-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/inherited-custom-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/nearer-custom-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "https://example.test/images/later-root-property.png");
@@ -625,6 +636,23 @@ public partial class Html {
     }
 
     [Fact]
+    public void HtmlEnginePlatform_NormalizerPreservesCssStringsAndSvgElementCasing() {
+        string normalized = HtmlNormalizer.Normalize(
+            "<main><style>.label::before{content:\"url(file:///secret/literal.png)\"}.real{background-image:url(file:///secret/bg.png)}</style><svg viewBox=\"0 0 10 10\"><defs><linearGradient id=\"g\"></linearGradient><clipPath id=\"c\"></clipPath></defs></svg></main>",
+            new HtmlNormalizationOptions {
+                UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile()
+            });
+
+        Assert.Contains("content:\"url(file:///secret/literal.png)\"", normalized);
+        Assert.Contains("background-image:url(\"\")", normalized);
+        Assert.Contains("<linearGradient", normalized);
+        Assert.Contains("</linearGradient>", normalized);
+        Assert.Contains("<clipPath", normalized);
+        Assert.DoesNotContain("<lineargradient", normalized, StringComparison.Ordinal);
+        Assert.DoesNotContain("<clippath", normalized, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlEnginePlatform_RoundTripScorerComparesSemanticSignaturesAndVisibleText() {
         HtmlLogicalDocument textLeaf = HtmlLogicalDocumentBuilder.FromHtml("<main><custom>Total</custom></main>");
         Assert.Equal(1, textLeaf.Count(HtmlLogicalNodeKind.Text));
@@ -653,6 +681,11 @@ public partial class Html {
             "<main><p>Visible <span hidden>draft</span><span aria-hidden=\"true\">internal</span></p></main>",
             "<main><p>Visible</p></main>");
         Assert.Equal(1D, hiddenTextScore.Metrics["text"], 3);
+
+        HtmlRoundTripScore formDefaultScore = HtmlRoundTripScorer.Compare(
+            "<main><form><input name=\"q\"></form></main>",
+            "<main><form method=\"get\" enctype=\"application/x-www-form-urlencoded\"><input name=\"q\"></form></main>");
+        Assert.Equal(1D, formDefaultScore.Metrics["form-state"], 3);
 
         HtmlRoundTripScore stylesheetHiddenTextScore = HtmlRoundTripScorer.Compare(
             "<main><style>.draft{display:none}.private{visibility:hidden}</style><p>Visible <span class=\"draft\">draft</span><span class=\"private\">internal</span></p></main>",
