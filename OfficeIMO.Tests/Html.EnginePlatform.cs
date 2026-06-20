@@ -240,6 +240,7 @@ public partial class Html {
                     @media all { em.media { text-transform: uppercase; } }
                     @media not screen { em.media { text-transform: lowercase; } }
                     @media screen and (max-width: 0px) { em.media { text-transform: lowercase; } }
+                    @supports (not-a-real-prop: value) { em.media { text-transform: lowercase; } }
                     @supports not (color: red) { em.media { text-transform: lowercase; } }
                     span.reset { color: #ff0000; border-color: #ff0000; }
                     span.reset-later { color: initial; }
@@ -294,6 +295,11 @@ public partial class Html {
             "<main><style media=\"print\">.screen{display:none}</style><span class=\"screen\">Visible on screen</span></main>",
             "<main></main>");
         Assert.InRange(printHiddenTextScore.Metrics["text"], 0D, 0.99D);
+
+        HtmlRoundTripScore notPrintHiddenTextScore = HtmlRoundTripScorer.Compare(
+            "<main><style media=\"not print\">.draft{display:none}</style><p>Visible <span class=\"draft\">draft</span></p></main>",
+            "<main><p>Visible</p></main>");
+        Assert.Equal(1D, notPrintHiddenTextScore.Metrics["text"], 3);
     }
 
     [Fact]
@@ -304,6 +310,7 @@ public partial class Html {
                 <base href="file:///secret/">
                 <link rel="modulepreload" href="https://example.test/app.js">
                 <link rel="icon" href="https://example.test/favicon.png">
+                <link rel="notstylesheet" href="file:///secret/notstylesheet.css">
                 <link rel="preload" as="image" imagesrcset="file:///secret/preload.png 1x, https://example.test/images/preload-large.png 2x">
                 <style>
                     /* @import url('file:///secret/commented.css'); */
@@ -332,6 +339,7 @@ public partial class Html {
                 <input type="image" src="file:///secret/submit.png">
                 <input type="text" src="file:///secret/input-metadata">
                 <div data="file:///secret/metadata"></div>
+                <div style="@import url(file:///secret/inline-import.css); background-image: url(https://example.test/images/inline.png)"></div>
                 <iframe src="file:///secret/ignored-frame.html" srcdoc="<img src=&quot;file:///secret/srcdoc.png&quot;><style>.nested { content: url(file:///secret/srcdoc-content.png); }</style>"></iframe>
                 <div class="hero"></div>
             </body>
@@ -353,9 +361,12 @@ public partial class Html {
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/custom-property.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/late.css");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/import-token.css");
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/inline-import.css");
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/notstylesheet.css" && resource.Kind == HtmlResourceKind.Stylesheet);
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/metadata");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/refresh.html" && resource.ElementName == "meta" && resource.Kind == HtmlResourceKind.Hyperlink && resource.AttributeName == "content" && resource.DiagnosticCode == "HyperlinkRejectedByPolicy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/a/*v*/b.png" && resource.Kind == HtmlResourceKind.Image);
+        Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/inline.png" && resource.Kind == HtmlResourceKind.Image);
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/app.js" && resource.Kind == HtmlResourceKind.Script);
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/favicon.png" && resource.Kind == HtmlResourceKind.Image);
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/preload.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "imagesrcset" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
@@ -407,6 +418,11 @@ public partial class Html {
             "<main><style>.draft{display:none}.private{visibility:hidden}</style><p>Visible <span class=\"draft\">draft</span><span class=\"private\">internal</span></p></main>",
             "<main><p>Visible</p></main>");
         Assert.Equal(1D, stylesheetHiddenTextScore.Metrics["text"], 3);
+
+        HtmlRoundTripScore inlineCascadeVisibleTextScore = HtmlRoundTripScorer.Compare(
+            "<main><span style=\"display:none; display:inline\">Visible</span></main>",
+            "<main></main>");
+        Assert.InRange(inlineCascadeVisibleTextScore.Metrics["text"], 0D, 0.99D);
 
         HtmlRoundTripScore pictureSourceScore = HtmlRoundTripScorer.Compare(
             "<main><picture><source srcset=\"wide.png\"><img src=\"small.png\"></picture></main>",
@@ -477,6 +493,12 @@ public partial class Html {
         Assert.Equal(1D, formAssociationScore.Metrics["forms"], 3);
         Assert.InRange(formAssociationScore.Metrics["form-state"], 0D, 0.99D);
 
+        HtmlRoundTripScore formOwnerScore = HtmlRoundTripScorer.Compare(
+            "<main><form id=\"save\" action=\"/save\"></form><form id=\"delete\" action=\"/delete\"></form><input form=\"save\" name=\"x\"><input form=\"delete\" name=\"y\"></main>",
+            "<main><form id=\"save\" action=\"/save\"></form><form id=\"delete\" action=\"/delete\"></form><input form=\"delete\" name=\"x\"><input form=\"save\" name=\"y\"></main>");
+        Assert.Equal(1D, formOwnerScore.Metrics["forms"], 3);
+        Assert.InRange(formOwnerScore.Metrics["form-state"], 0D, 0.99D);
+
         HtmlRoundTripScore linkScore = HtmlRoundTripScorer.Compare(
             "<main><a href=\"https://example.test/a\">same text</a></main>",
             "<main><a href=\"https://example.test/b\">same text</a></main>");
@@ -488,6 +510,11 @@ public partial class Html {
             "<main><img src=\"https://example.test/b.png\" alt=\"Chart B\"></main>");
         Assert.Equal(1D, imageScore.Metrics["images"], 3);
         Assert.InRange(imageScore.Metrics["image-sources"], 0D, 0.99D);
+
+        HtmlRoundTripScore resolvedImageScore = HtmlRoundTripScorer.Compare(
+            "<html><head><base href=\"https://example.test/dir/\"></head><body><main><img src=\"chart.png\"></main></body></html>",
+            "<main><img src=\"https://example.test/dir/chart.png\"></main>");
+        Assert.Equal(1D, resolvedImageScore.Metrics["image-sources"], 3);
 
         HtmlRoundTripScore svgImageScore = HtmlRoundTripScorer.Compare(
             "<main><svg><image href=\"https://example.test/a.svg\"></image></svg></main>",

@@ -13,9 +13,14 @@ public static class HtmlRoundTripScorer {
     /// Compares source HTML with target HTML and returns a structural score.
     /// </summary>
     public static HtmlRoundTripScore Compare(string sourceHtml, string targetHtml) {
-        HtmlLogicalDocument source = HtmlLogicalDocumentBuilder.FromHtml(sourceHtml);
-        HtmlLogicalDocument target = HtmlLogicalDocumentBuilder.FromHtml(targetHtml);
-        return Compare(source, target, TextSimilarityFromText(ExtractVisibleTextFromHtml(sourceHtml), ExtractVisibleTextFromHtml(targetHtml)));
+        HtmlLogicalDocument source = BuildLogicalDocumentForScoring(sourceHtml);
+        HtmlLogicalDocument target = BuildLogicalDocumentForScoring(targetHtml);
+        IReadOnlyList<string> sourceFormOwners = ExtractFormOwnerSignatures(sourceHtml);
+        IReadOnlyList<string> targetFormOwners = ExtractFormOwnerSignatures(targetHtml);
+        double? formOwnerSimilarity = sourceFormOwners.Count == 0 && targetFormOwners.Count == 0
+            ? (double?)null
+            : SignatureSimilarity(targetFormOwners, sourceFormOwners);
+        return Compare(source, target, TextSimilarityFromText(ExtractVisibleTextFromHtml(sourceHtml), ExtractVisibleTextFromHtml(targetHtml)), formOwnerSimilarity);
     }
 
     /// <summary>
@@ -33,7 +38,7 @@ public static class HtmlRoundTripScorer {
         return Compare(source, target, TextSimilarityFromText(ExtractLogicalText(source), ExtractLogicalText(target)));
     }
 
-    private static HtmlRoundTripScore Compare(HtmlLogicalDocument source, HtmlLogicalDocument target, double textSimilarity) {
+    private static HtmlRoundTripScore Compare(HtmlLogicalDocument source, HtmlLogicalDocument target, double textSimilarity, double? formOwnerSimilarity = null) {
         if (source == null) {
             throw new ArgumentNullException(nameof(source));
         }
@@ -63,6 +68,13 @@ public static class HtmlRoundTripScorer {
         AddCountMetric(metrics, "list-items", target.Count(HtmlLogicalNodeKind.ListItem), source.Count(HtmlLogicalNodeKind.ListItem));
         AddCountMetric(metrics, "forms", target.Count(HtmlLogicalNodeKind.FormControl) + target.Count(HtmlLogicalNodeKind.Form), source.Count(HtmlLogicalNodeKind.FormControl) + source.Count(HtmlLogicalNodeKind.Form));
         AddSignatureMetric(metrics, "form-state", ExtractFormSignatures(target), ExtractFormSignatures(source));
+        if (formOwnerSimilarity.HasValue) {
+            double existingFormState;
+            metrics["form-state"] = metrics.TryGetValue("form-state", out existingFormState)
+                ? Math.Min(existingFormState, formOwnerSimilarity.Value)
+                : formOwnerSimilarity.Value;
+        }
+
         AddCountMetric(metrics, "links", target.Count(HtmlLogicalNodeKind.Link), source.Count(HtmlLogicalNodeKind.Link));
         AddSignatureMetric(metrics, "link-targets", ExtractSignatures(target, HtmlLogicalNodeKind.Link, CreateLinkSignature), ExtractSignatures(source, HtmlLogicalNodeKind.Link, CreateLinkSignature));
         AddMetric(metrics, "text", textSimilarity);
@@ -135,6 +147,113 @@ public static class HtmlRoundTripScorer {
         var signatures = new List<string>();
         AppendFormSignatures(document.Root, signatures);
         return signatures;
+    }
+
+    private static HtmlLogicalDocument BuildLogicalDocumentForScoring(string html) {
+        var document = HtmlDocumentParser.ParseDocument(html);
+        ResolveImageSourceAttributes(document);
+        return HtmlLogicalDocumentBuilder.FromDocument(document);
+    }
+
+    private static void ResolveImageSourceAttributes(AngleSharp.Html.Dom.IHtmlDocument document) {
+        Uri? baseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, null);
+        if (baseUri == null) {
+            return;
+        }
+
+        var policy = HtmlUrlPolicy.CreateOfficeIMOProfile();
+        foreach (var element in document.QuerySelectorAll("img,image,source")) {
+            ResolveUrlAttribute(element, "src", baseUri, policy);
+            ResolveUrlAttribute(element, "href", baseUri, policy);
+            ResolveUrlAttribute(element, "xlink:href", baseUri, policy);
+            ResolveSrcSetAttribute(element, "srcset", baseUri, policy);
+            ResolveSrcSetAttribute(element, "data-srcset", baseUri, policy);
+        }
+    }
+
+    private static void ResolveUrlAttribute(AngleSharp.Dom.IElement element, string attributeName, Uri baseUri, HtmlUrlPolicy policy) {
+        string? raw = element.GetAttribute(attributeName);
+        if (string.IsNullOrWhiteSpace(raw)) {
+            return;
+        }
+
+        string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(raw, baseUri, policy);
+        if (!string.IsNullOrWhiteSpace(resolved)) {
+            element.SetAttribute(attributeName, resolved);
+        }
+    }
+
+    private static void ResolveSrcSetAttribute(AngleSharp.Dom.IElement element, string attributeName, Uri baseUri, HtmlUrlPolicy policy) {
+        string? raw = element.GetAttribute(attributeName);
+        if (string.IsNullOrWhiteSpace(raw)) {
+            return;
+        }
+
+        var parts = new List<string>();
+        foreach (HtmlSrcSetCandidate candidate in HtmlSrcSetParser.Parse(raw)) {
+            string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(candidate.Url, baseUri, policy);
+            if (string.IsNullOrWhiteSpace(resolved)) {
+                resolved = candidate.Url;
+            }
+
+            parts.Add(string.IsNullOrWhiteSpace(candidate.Descriptor)
+                ? resolved
+                : resolved + " " + candidate.Descriptor);
+        }
+
+        if (parts.Count > 0) {
+            element.SetAttribute(attributeName, string.Join(", ", parts));
+        }
+    }
+
+    private static IReadOnlyList<string> ExtractFormOwnerSignatures(string html) {
+        var document = HtmlDocumentParser.ParseDocument(html);
+        var signatures = new List<string>();
+        foreach (var control in document.QuerySelectorAll("input,select,textarea,button,option")) {
+            var parts = new List<string> {
+                control.TagName.ToLowerInvariant()
+            };
+
+            foreach (string attributeName in new[] { "type", "name", "value", "checked", "selected", "disabled", "multiple", "placeholder" }) {
+                string? value = control.GetAttribute(attributeName);
+                if (!string.IsNullOrWhiteSpace(value)) {
+                    parts.Add(attributeName + "=" + value);
+                }
+            }
+
+            string owner = ResolveFormOwnerSignature(control);
+            if (!string.IsNullOrWhiteSpace(owner)) {
+                parts.Add("owner=" + owner);
+            }
+
+            signatures.Add(string.Join("|", parts));
+        }
+
+        return signatures;
+    }
+
+    private static string ResolveFormOwnerSignature(AngleSharp.Dom.IElement control) {
+        string? explicitOwner = control.GetAttribute("form");
+        if (!string.IsNullOrWhiteSpace(explicitOwner)) {
+            return explicitOwner!.Trim();
+        }
+
+        AngleSharp.Dom.IElement? current = control.ParentElement;
+        while (current != null) {
+            if (string.Equals(current.TagName, "form", StringComparison.OrdinalIgnoreCase)) {
+                string? id = current.GetAttribute("id");
+                if (!string.IsNullOrWhiteSpace(id)) {
+                    return id!.Trim();
+                }
+
+                string? action = current.GetAttribute("action");
+                return string.IsNullOrWhiteSpace(action) ? "ancestor-form" : action!.Trim();
+            }
+
+            current = current.ParentElement;
+        }
+
+        return string.Empty;
     }
 
     private static IReadOnlyList<string> ExtractSignatures(HtmlLogicalDocument document, HtmlLogicalNodeKind kind, Func<HtmlLogicalNode, string> createSignature) {
@@ -227,7 +346,7 @@ public static class HtmlRoundTripScorer {
             node.Name
         };
 
-        foreach (string attributeName in new[] { "action", "method", "enctype", "target", "type", "name", "value", "checked", "selected", "disabled", "multiple", "placeholder" }) {
+        foreach (string attributeName in new[] { "id", "action", "method", "enctype", "target", "type", "name", "value", "checked", "selected", "disabled", "multiple", "placeholder" }) {
             string? value;
             if (node.Attributes.TryGetValue(attributeName, out value)) {
                 parts.Add(attributeName + "=" + value);
@@ -253,7 +372,7 @@ public static class HtmlRoundTripScorer {
             node.Name
         };
 
-        foreach (string attributeName in new[] { "type", "name", "value", "checked", "selected", "disabled", "multiple", "placeholder" }) {
+        foreach (string attributeName in new[] { "type", "name", "value", "checked", "selected", "disabled", "multiple", "placeholder", "form" }) {
             AddAttributePart(parts, node, attributeName);
         }
 
@@ -459,10 +578,6 @@ public static class HtmlRoundTripScorer {
 
         string? ariaHidden = element.GetAttribute("aria-hidden");
         if (string.Equals(ariaHidden, "true", StringComparison.OrdinalIgnoreCase)) {
-            return true;
-        }
-
-        if (ContainsHiddenStyle(element.GetAttribute("style"))) {
             return true;
         }
 

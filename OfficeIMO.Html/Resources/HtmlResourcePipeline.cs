@@ -135,16 +135,17 @@ public static class HtmlResourcePipeline {
 
     private static void AddLink(HtmlResourceManifest manifest, IElement element, Uri? baseUri, HtmlResourcePipelineOptions options) {
         string rel = element.GetAttribute("rel") ?? string.Empty;
+        HashSet<string> relTokens = GetRelTokens(rel);
         HtmlResourceKind kind;
-        if (rel.IndexOf("stylesheet", StringComparison.OrdinalIgnoreCase) >= 0) {
+        if (relTokens.Contains("stylesheet")) {
             kind = HtmlResourceKind.Stylesheet;
-        } else if (rel.IndexOf("modulepreload", StringComparison.OrdinalIgnoreCase) >= 0) {
+        } else if (relTokens.Contains("modulepreload")) {
             kind = HtmlResourceKind.Script;
-        } else if (rel.IndexOf("preload", StringComparison.OrdinalIgnoreCase) >= 0) {
+        } else if (relTokens.Contains("preload")) {
             kind = GetPreloadKind(element.GetAttribute("as"));
-        } else if (rel.IndexOf("font", StringComparison.OrdinalIgnoreCase) >= 0) {
+        } else if (relTokens.Contains("font")) {
             kind = HtmlResourceKind.Font;
-        } else if (rel.IndexOf("icon", StringComparison.OrdinalIgnoreCase) >= 0) {
+        } else if (relTokens.Contains("icon") || relTokens.Contains("apple-touch-icon") || relTokens.Contains("shortcut icon")) {
             kind = HtmlResourceKind.Image;
         } else {
             kind = HtmlResourceKind.Hyperlink;
@@ -152,6 +153,22 @@ public static class HtmlResourcePipeline {
 
         AddAttribute(manifest, kind, element, "href", baseUri, options);
         AddSrcSet(manifest, kind, element, "imagesrcset", baseUri, options);
+    }
+
+    private static HashSet<string> GetRelTokens(string rel) {
+        var tokens = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (string token in rel.Split(new[] { ' ', '\t', '\r', '\n', '\f' }, StringSplitOptions.RemoveEmptyEntries)) {
+            string normalized = token.Trim();
+            if (normalized.Length > 0) {
+                tokens.Add(normalized);
+            }
+        }
+
+        if (tokens.Contains("shortcut") && tokens.Contains("icon")) {
+            tokens.Add("shortcut icon");
+        }
+
+        return tokens;
     }
 
     private static HtmlResourceKind GetPreloadKind(string? asAttribute) {
@@ -206,12 +223,15 @@ public static class HtmlResourcePipeline {
         }
 
         css = StripCssCommentsOutsideStrings(css);
+        bool scanImports = !string.Equals(attributeName, "style", StringComparison.OrdinalIgnoreCase);
         var importRanges = new List<SourceRange>();
-        foreach (CssImportReference reference in ExtractCssImports(css)) {
-            string source = reference.Source;
-            if (!string.IsNullOrWhiteSpace(source)) {
-                importRanges.Add(new SourceRange(reference.Start, reference.End));
-                AddRaw(manifest, HtmlResourceKind.Stylesheet, element, attributeName + "-import", source, baseUri, options);
+        if (scanImports) {
+            foreach (CssImportReference reference in ExtractCssImports(css)) {
+                string source = reference.Source;
+                if (!string.IsNullOrWhiteSpace(source)) {
+                    importRanges.Add(new SourceRange(reference.Start, reference.End));
+                    AddRaw(manifest, HtmlResourceKind.Stylesheet, element, attributeName + "-import", source, baseUri, options);
+                }
             }
         }
 

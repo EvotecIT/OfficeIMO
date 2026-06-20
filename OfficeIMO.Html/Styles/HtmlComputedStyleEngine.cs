@@ -21,6 +21,28 @@ public static class HtmlComputedStyleEngine {
         "visibility",
         "white-space"
     };
+    private static readonly HashSet<string> SupportedProperties = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
+        "background",
+        "background-image",
+        "border",
+        "border-color",
+        "color",
+        "cursor",
+        "display",
+        "font-family",
+        "font-size",
+        "font-style",
+        "font-weight",
+        "line-height",
+        "list-style",
+        "outline-color",
+        "padding",
+        "text-align",
+        "text-decoration-line",
+        "text-transform",
+        "visibility",
+        "white-space"
+    };
 
     /// <summary>
     /// Computes styles for every element in the supplied document using style tags and inline style attributes.
@@ -151,6 +173,19 @@ public static class HtmlComputedStyleEngine {
         foreach (string query in SplitSelectorList(mediaText)) {
             string normalized = query.Trim();
             if (normalized.StartsWith("not ", StringComparison.OrdinalIgnoreCase)) {
+                string negated = normalized.Substring(4).Trim();
+                if (HasMediaFeatureConstraint(negated)) {
+                    continue;
+                }
+
+                if (ContainsMediaType(negated, "screen") || ContainsMediaType(negated, "all")) {
+                    continue;
+                }
+
+                if (ContainsMediaType(negated, "print")) {
+                    return true;
+                }
+
                 continue;
             }
 
@@ -158,8 +193,17 @@ public static class HtmlComputedStyleEngine {
                 continue;
             }
 
-            if (normalized.IndexOf("all", StringComparison.OrdinalIgnoreCase) >= 0
-                || normalized.IndexOf("screen", StringComparison.OrdinalIgnoreCase) >= 0) {
+            if (ContainsMediaType(normalized, "all") || ContainsMediaType(normalized, "screen")) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool ContainsMediaType(string mediaQuery, string mediaType) {
+        foreach (string token in mediaQuery.Split(new[] { ' ', '\t', '\r', '\n', '\f' }, StringSplitOptions.RemoveEmptyEntries)) {
+            if (string.Equals(token.Trim(), mediaType, StringComparison.OrdinalIgnoreCase)) {
                 return true;
             }
         }
@@ -191,7 +235,36 @@ public static class HtmlComputedStyleEngine {
         }
 
         string normalized = conditionText.Trim();
-        return !normalized.StartsWith("not ", StringComparison.OrdinalIgnoreCase);
+        if (normalized.StartsWith("not ", StringComparison.OrdinalIgnoreCase)) {
+            return false;
+        }
+
+        return ContainsSupportedDeclarationCondition(normalized);
+    }
+
+    private static bool ContainsSupportedDeclarationCondition(string conditionText) {
+        int open = conditionText.IndexOf('(');
+        while (open >= 0 && open + 1 < conditionText.Length) {
+            int close = FindMatchingParenthesis(conditionText, open);
+            if (close <= open + 1) {
+                return false;
+            }
+
+            string declaration = conditionText.Substring(open + 1, close - open - 1).Trim();
+            int separator = declaration.IndexOf(':');
+            if (separator <= 0) {
+                return false;
+            }
+
+            string propertyName = declaration.Substring(0, separator).Trim();
+            if (!SupportedProperties.Contains(propertyName)) {
+                return false;
+            }
+
+            open = conditionText.IndexOf('(', close + 1);
+        }
+
+        return true;
     }
 
     private static bool MatchesSelector(IElement element, string selector) {
