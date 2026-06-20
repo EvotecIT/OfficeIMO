@@ -341,6 +341,7 @@ namespace OfficeIMO.Excel {
             int pdfUnsupportedHyperlinkCount = 0;
             int pdfUnrenderedDrawingShapeCount = 0;
             int pdfUnsupportedPrintAreaCount = 0;
+            int pdfUnsupportedPrintTitleCount = 0;
             int pdfUnsupportedHeaderFooterFormattingCount = 0;
             var threadedCommentDetails = new List<string>();
             var oleObjectDetails = new List<string>();
@@ -351,6 +352,7 @@ namespace OfficeIMO.Excel {
             var pdfUnsupportedImageDetails = new List<string>();
             var pdfUnsupportedHyperlinkDetails = new List<string>();
             var pdfUnsupportedPrintAreaDetails = new List<string>();
+            var pdfUnsupportedPrintTitleDetails = new List<string>();
             var pdfUnsupportedHeaderFooterFormattingDetails = new List<string>();
             var pivotDetails = new List<string>();
             var pdfUnrenderedPivotDetails = new List<string>();
@@ -358,7 +360,7 @@ namespace OfficeIMO.Excel {
             var pdfUnrenderedSparklineDetails = new List<string>();
             var pdfUnrenderedDrawingShapeDetails = new List<string>();
             var threadedCommentPeople = BuildThreadedCommentPersonMap(workbookPart);
-            var defaultPdfExportSheetNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var defaultPdfExportSheetsByName = new Dictionary<string, ExcelSheet>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var sheet in sheetElements) {
                 if (string.IsNullOrWhiteSpace(sheet.Id?.Value)) {
@@ -377,7 +379,7 @@ namespace OfficeIMO.Excel {
                 bool isVisibleForDefaultPdfExport = !IsHiddenSheet(sheet);
                 string sheetName = sheet.Name?.Value ?? string.Empty;
                 if (isVisibleForDefaultPdfExport && !string.IsNullOrWhiteSpace(sheetName)) {
-                    defaultPdfExportSheetNames.Add(sheetName);
+                    defaultPdfExportSheetsByName[sheetName] = excelSheet;
                 }
                 tableCount += worksheetPart.TableDefinitionParts.Count();
                 int sheetPivotCount = worksheetPart.PivotTableParts.Count();
@@ -439,6 +441,7 @@ namespace OfficeIMO.Excel {
                     AddUnsupportedHeaderFooterImages(headerFooter, sheetName, ref pdfUnsupportedImageCount, pdfUnsupportedImageDetails);
                     AddUnsupportedHeaderFooterFormatting(headerFooter, sheetName, ref pdfUnsupportedHeaderFooterFormattingCount, pdfUnsupportedHeaderFooterFormattingDetails);
                     AddUnsupportedPrintArea(excelSheet, sheetName, ref pdfUnsupportedPrintAreaCount, pdfUnsupportedPrintAreaDetails);
+                    AddUnsupportedPrintTitles(excelSheet, sheetName, ref pdfUnsupportedPrintTitleCount, pdfUnsupportedPrintTitleDetails);
                     AddUnrenderedDrawingShapes(worksheetPart, sheetName, ref pdfUnrenderedDrawingShapeCount, pdfUnrenderedDrawingShapeDetails);
                     AddUnsupportedWorksheetHyperlinks(workbookPart, sheetElements, worksheetPart, sheetName, ref pdfUnsupportedHyperlinkCount, pdfUnsupportedHyperlinkDetails);
                     AddUnsupportedDrawingHyperlinks(worksheetPart, sheetName, ref pdfUnsupportedHyperlinkCount, pdfUnsupportedHyperlinkDetails);
@@ -499,6 +502,9 @@ namespace OfficeIMO.Excel {
             Add(features, "Layout", "PDF-unsupported print areas", ExcelFeatureSupportLevel.PartiallyEditable, pdfUnsupportedPrintAreaCount, null,
                 "Worksheet print-area settings are present but the first-party Excel-to-PDF path falls back to the worksheet used range for multi-area print areas.",
                 pdfUnsupportedPrintAreaDetails);
+            Add(features, "Layout", "PDF-unsupported print titles", ExcelFeatureSupportLevel.PartiallyEditable, pdfUnsupportedPrintTitleCount, null,
+                "Worksheet print-title columns are configured but the first-party Excel-to-PDF path currently repeats print-title rows only.",
+                pdfUnsupportedPrintTitleDetails);
             Add(features, "Layout", "PDF-unsupported header/footer formatting", ExcelFeatureSupportLevel.PartiallyEditable, pdfUnsupportedHeaderFooterFormattingCount, null,
                 "Header or footer text uses formatting that is simplified by the first-party Excel-to-PDF path.",
                 pdfUnsupportedHeaderFooterFormattingDetails);
@@ -518,7 +524,7 @@ namespace OfficeIMO.Excel {
 
             var formulas = InspectFormulas();
             var pdfExportFormulas = formulas.Formulas
-                .Where(formula => defaultPdfExportSheetNames.Contains(formula.SheetName))
+                .Where(formula => IsDefaultPdfExportedFormulaCell(formula, defaultPdfExportSheetsByName))
                 .ToArray();
             bool hasWorkbookRecalculationRequest = formulas.Formulas.Count > 0 && HasWorkbookRecalculationRequest(workbook);
             bool hasPdfWorkbookRecalculationRequest = pdfExportFormulas.Length > 0 && HasWorkbookRecalculationRequest(workbook);
