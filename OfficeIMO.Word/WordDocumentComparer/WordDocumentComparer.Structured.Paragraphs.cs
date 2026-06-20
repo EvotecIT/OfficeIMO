@@ -39,8 +39,7 @@ namespace OfficeIMO.Word {
 
             while (sourceIndex < sourceEnd && targetIndex < targetEnd) {
                 int betterTargetIndex = FindBetterTargetAlignmentIndex(sourceParagraphs[sourceIndex], targetParagraphs, targetIndex, targetEnd);
-                if (targetEnd - targetIndex > sourceEnd - sourceIndex &&
-                    betterTargetIndex > targetIndex) {
+                if (betterTargetIndex > targetIndex) {
                     while (targetIndex < betterTargetIndex) {
                         AddInsertedParagraphFinding(targetParagraphs, targetIndex, result);
                         targetIndex++;
@@ -50,8 +49,7 @@ namespace OfficeIMO.Word {
                 }
 
                 int betterSourceIndex = FindBetterSourceAlignmentIndex(sourceParagraphs, sourceIndex, sourceEnd, targetParagraphs[targetIndex]);
-                if (sourceEnd - sourceIndex > targetEnd - targetIndex &&
-                    betterSourceIndex > sourceIndex) {
+                if (betterSourceIndex > sourceIndex) {
                     while (sourceIndex < betterSourceIndex) {
                         AddDeletedParagraphFinding(sourceParagraphs, sourceIndex, result);
                         sourceIndex++;
@@ -119,14 +117,19 @@ namespace OfficeIMO.Word {
 
         private static int FindBetterTargetAlignmentIndex(ParagraphSnapshot sourceParagraph, IReadOnlyList<ParagraphSnapshot> targetParagraphs, int targetStart, int targetEnd) {
             int bestIndex = targetStart;
+            double currentVisibleSimilarity = GetParagraphVisibleTextSimilarity(sourceParagraph, targetParagraphs[targetStart]);
+            double bestVisibleSimilarity = currentVisibleSimilarity;
             double bestSimilarity = GetParagraphSimilarity(sourceParagraph, targetParagraphs[targetStart]);
 
             for (int index = targetStart + 1; index < targetEnd; index++) {
+                double visibleSimilarity = GetParagraphVisibleTextSimilarity(sourceParagraph, targetParagraphs[index]);
                 double similarity = GetParagraphSimilarity(sourceParagraph, targetParagraphs[index]);
-                if (similarity <= bestSimilarity) {
+                if (visibleSimilarity < bestVisibleSimilarity ||
+                    (visibleSimilarity == bestVisibleSimilarity && similarity <= bestSimilarity)) {
                     continue;
                 }
 
+                bestVisibleSimilarity = visibleSimilarity;
                 bestSimilarity = similarity;
                 bestIndex = index;
                 if (similarity >= 1) {
@@ -134,19 +137,26 @@ namespace OfficeIMO.Word {
                 }
             }
 
-            return bestIndex;
+            return bestVisibleSimilarity > currentVisibleSimilarity || bestSimilarity > GetParagraphSimilarity(sourceParagraph, targetParagraphs[targetStart])
+                ? bestIndex
+                : targetStart;
         }
 
         private static int FindBetterSourceAlignmentIndex(IReadOnlyList<ParagraphSnapshot> sourceParagraphs, int sourceStart, int sourceEnd, ParagraphSnapshot targetParagraph) {
             int bestIndex = sourceStart;
+            double currentVisibleSimilarity = GetParagraphVisibleTextSimilarity(sourceParagraphs[sourceStart], targetParagraph);
+            double bestVisibleSimilarity = currentVisibleSimilarity;
             double bestSimilarity = GetParagraphSimilarity(sourceParagraphs[sourceStart], targetParagraph);
 
             for (int index = sourceStart + 1; index < sourceEnd; index++) {
+                double visibleSimilarity = GetParagraphVisibleTextSimilarity(sourceParagraphs[index], targetParagraph);
                 double similarity = GetParagraphSimilarity(sourceParagraphs[index], targetParagraph);
-                if (similarity <= bestSimilarity) {
+                if (visibleSimilarity < bestVisibleSimilarity ||
+                    (visibleSimilarity == bestVisibleSimilarity && similarity <= bestSimilarity)) {
                     continue;
                 }
 
+                bestVisibleSimilarity = visibleSimilarity;
                 bestSimilarity = similarity;
                 bestIndex = index;
                 if (similarity >= 1) {
@@ -154,7 +164,9 @@ namespace OfficeIMO.Word {
                 }
             }
 
-            return bestIndex;
+            return bestVisibleSimilarity > currentVisibleSimilarity || bestSimilarity > GetParagraphSimilarity(sourceParagraphs[sourceStart], targetParagraph)
+                ? bestIndex
+                : sourceStart;
         }
 
         private static double GetParagraphSimilarity(ParagraphSnapshot sourceParagraph, ParagraphSnapshot targetParagraph) {
@@ -162,7 +174,24 @@ namespace OfficeIMO.Word {
                 return 0;
             }
 
-            return GetTextSimilarity(sourceParagraph.MatchText, targetParagraph.MatchText);
+            return Math.Max(
+                GetTextSimilarity(sourceParagraph.MatchText, targetParagraph.MatchText),
+                GetTextSimilarity(sourceParagraph.Text, targetParagraph.Text));
+        }
+
+        private static double GetParagraphVisibleTextSimilarity(ParagraphSnapshot sourceParagraph, ParagraphSnapshot targetParagraph) {
+            if (!string.Equals(sourceParagraph.PartKind, targetParagraph.PartKind, StringComparison.Ordinal)) {
+                return 0;
+            }
+
+            if (sourceParagraph.Text.Length > 0 &&
+                targetParagraph.Text.Length > 0 &&
+                (sourceParagraph.Text.IndexOf(targetParagraph.Text, StringComparison.Ordinal) >= 0 ||
+                 targetParagraph.Text.IndexOf(sourceParagraph.Text, StringComparison.Ordinal) >= 0)) {
+                return 0.75 + (0.25 * Math.Min(sourceParagraph.Text.Length, targetParagraph.Text.Length) / Math.Max(sourceParagraph.Text.Length, targetParagraph.Text.Length));
+            }
+
+            return GetTextSimilarity(sourceParagraph.Text, targetParagraph.Text);
         }
 
         private static void AddInsertedParagraphFinding(IReadOnlyList<ParagraphSnapshot> targetParagraphs, int targetIndex, WordComparisonResult result) {
@@ -197,25 +226,15 @@ namespace OfficeIMO.Word {
             AddParagraphSnapshots(snapshots, mainPart, mainPart?.Document?.Body, BodyPartKey, BodyPartOrderBase);
 
             if (mainPart != null) {
-                Dictionary<HeaderPart, string> headerPartKeys = CreateHeaderPartKeys(mainPart);
                 int headerIndex = 0;
-                foreach (HeaderPart headerPart in mainPart.HeaderParts) {
-                    if (!headerPartKeys.TryGetValue(headerPart, out string? headerPartKey)) {
-                        continue;
-                    }
-
-                    AddParagraphSnapshots(snapshots, headerPart, headerPart.Header, headerPartKey, HeaderPartOrderBase + (headerIndex * RelatedPartOrderStride));
+                foreach (KeyValuePair<HeaderPart, string> headerPartKey in CreateOrderedHeaderPartKeys(mainPart)) {
+                    AddParagraphSnapshots(snapshots, headerPartKey.Key, headerPartKey.Key.Header, headerPartKey.Value, HeaderPartOrderBase + (headerIndex * RelatedPartOrderStride));
                     headerIndex++;
                 }
 
-                Dictionary<FooterPart, string> footerPartKeys = CreateFooterPartKeys(mainPart);
                 int footerIndex = 0;
-                foreach (FooterPart footerPart in mainPart.FooterParts) {
-                    if (!footerPartKeys.TryGetValue(footerPart, out string? footerPartKey)) {
-                        continue;
-                    }
-
-                    AddParagraphSnapshots(snapshots, footerPart, footerPart.Footer, footerPartKey, FooterPartOrderBase + (footerIndex * RelatedPartOrderStride));
+                foreach (KeyValuePair<FooterPart, string> footerPartKey in CreateOrderedFooterPartKeys(mainPart)) {
+                    AddParagraphSnapshots(snapshots, footerPartKey.Key, footerPartKey.Key.Footer, footerPartKey.Value, FooterPartOrderBase + (footerIndex * RelatedPartOrderStride));
                     footerIndex++;
                 }
 

@@ -36,25 +36,15 @@ namespace OfficeIMO.Word {
             AddBlockOrderSnapshots(snapshots, document, mainPart, mainPart?.Document?.Body, BodyPartKey, BodyPartOrderBase);
 
             if (mainPart != null) {
-                Dictionary<HeaderPart, string> headerPartKeys = CreateHeaderPartKeys(mainPart);
                 int headerIndex = 0;
-                foreach (HeaderPart headerPart in mainPart.HeaderParts) {
-                    if (!headerPartKeys.TryGetValue(headerPart, out string? headerPartKey)) {
-                        continue;
-                    }
-
-                    AddBlockOrderSnapshots(snapshots, document, headerPart, headerPart.Header, headerPartKey, HeaderPartOrderBase + (headerIndex * RelatedPartOrderStride));
+                foreach (KeyValuePair<HeaderPart, string> headerPartKey in CreateOrderedHeaderPartKeys(mainPart)) {
+                    AddBlockOrderSnapshots(snapshots, document, headerPartKey.Key, headerPartKey.Key.Header, headerPartKey.Value, HeaderPartOrderBase + (headerIndex * RelatedPartOrderStride));
                     headerIndex++;
                 }
 
-                Dictionary<FooterPart, string> footerPartKeys = CreateFooterPartKeys(mainPart);
                 int footerIndex = 0;
-                foreach (FooterPart footerPart in mainPart.FooterParts) {
-                    if (!footerPartKeys.TryGetValue(footerPart, out string? footerPartKey)) {
-                        continue;
-                    }
-
-                    AddBlockOrderSnapshots(snapshots, document, footerPart, footerPart.Footer, footerPartKey, FooterPartOrderBase + (footerIndex * RelatedPartOrderStride));
+                foreach (KeyValuePair<FooterPart, string> footerPartKey in CreateOrderedFooterPartKeys(mainPart)) {
+                    AddBlockOrderSnapshots(snapshots, document, footerPartKey.Key, footerPartKey.Key.Footer, footerPartKey.Value, FooterPartOrderBase + (footerIndex * RelatedPartOrderStride));
                     footerIndex++;
                 }
 
@@ -113,7 +103,39 @@ namespace OfficeIMO.Word {
                             "table:" + GetTableText(wordTable),
                             ordered.DocumentOrder));
                         break;
+                    case TableCell cell:
+                        AddTableCellBlockOrderSnapshots(snapshots, document, part, cell, partKey, ordered.DocumentOrder);
+                        break;
                 }
+            }
+        }
+
+        private static void AddTableCellBlockOrderSnapshots(List<BlockOrderSnapshot> snapshots, WordDocument document, OpenXmlPart? part, TableCell cell, string partKey, int orderBase) {
+            int blockIndex = 0;
+            string cellKey = partKey + ":cell:" + GetStableElementPath(cell);
+            foreach (OpenXmlElement child in cell.Elements()) {
+                switch (child) {
+                    case Paragraph paragraph:
+                        string paragraphText = GetParagraphText(paragraph);
+                        if (paragraphText.Length == 0 && HasImageContent(paragraph)) {
+                            break;
+                        }
+
+                        snapshots.Add(new BlockOrderSnapshot(
+                            "cell-paragraph:" + cellKey + ":" + GetParagraphMatchText(paragraph, part),
+                            "cell-paragraph:" + paragraphText,
+                            orderBase + blockIndex));
+                        break;
+                    case Table table:
+                        var wordTable = new WordTable(document, table);
+                        snapshots.Add(new BlockOrderSnapshot(
+                            "cell-table:" + cellKey + ":" + GetTableMatchKey(partKey, wordTable, part),
+                            "cell-table:" + GetTableText(wordTable),
+                            orderBase + blockIndex));
+                        break;
+                }
+
+                blockIndex++;
             }
         }
 

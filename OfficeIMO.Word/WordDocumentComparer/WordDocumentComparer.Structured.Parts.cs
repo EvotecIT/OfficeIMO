@@ -8,6 +8,11 @@ using V = DocumentFormat.OpenXml.Vml;
 namespace OfficeIMO.Word {
     public static partial class WordDocumentComparer {
         private static Dictionary<HeaderPart, string> CreateHeaderPartKeys(MainDocumentPart mainPart) {
+            return CreateOrderedHeaderPartKeys(mainPart).ToDictionary(item => item.Key, item => item.Value);
+        }
+
+        private static List<KeyValuePair<HeaderPart, string>> CreateOrderedHeaderPartKeys(MainDocumentPart mainPart) {
+            var orderedKeys = new List<KeyValuePair<HeaderPart, string>>();
             var keys = new Dictionary<HeaderPart, string>();
             var typeOrdinals = new Dictionary<string, int>(StringComparer.Ordinal);
             var seenEffectiveParts = new HashSet<string>(StringComparer.Ordinal);
@@ -30,13 +35,20 @@ namespace OfficeIMO.Word {
                 }
 
                 int ordinal = GetAndIncrementOrdinal(typeOrdinals, typeKey);
-                keys[headerPart] = HeaderPartKeyPrefix + typeKey + ":" + ordinal.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                string key = HeaderPartKeyPrefix + typeKey + ":" + ordinal.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                keys[headerPart] = key;
+                orderedKeys.Add(new KeyValuePair<HeaderPart, string>(headerPart, key));
             }
 
-            return keys;
+            return orderedKeys;
         }
 
         private static Dictionary<FooterPart, string> CreateFooterPartKeys(MainDocumentPart mainPart) {
+            return CreateOrderedFooterPartKeys(mainPart).ToDictionary(item => item.Key, item => item.Value);
+        }
+
+        private static List<KeyValuePair<FooterPart, string>> CreateOrderedFooterPartKeys(MainDocumentPart mainPart) {
+            var orderedKeys = new List<KeyValuePair<FooterPart, string>>();
             var keys = new Dictionary<FooterPart, string>();
             var typeOrdinals = new Dictionary<string, int>(StringComparer.Ordinal);
             var seenEffectiveParts = new HashSet<string>(StringComparer.Ordinal);
@@ -59,10 +71,12 @@ namespace OfficeIMO.Word {
                 }
 
                 int ordinal = GetAndIncrementOrdinal(typeOrdinals, typeKey);
-                keys[footerPart] = FooterPartKeyPrefix + typeKey + ":" + ordinal.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                string key = FooterPartKeyPrefix + typeKey + ":" + ordinal.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                keys[footerPart] = key;
+                orderedKeys.Add(new KeyValuePair<FooterPart, string>(footerPart, key));
             }
 
-            return keys;
+            return orderedKeys;
         }
 
         private static string GetHeaderPartKey(IReadOnlyDictionary<HeaderPart, string> keys, HeaderPart headerPart, int fallbackIndex) {
@@ -94,8 +108,8 @@ namespace OfficeIMO.Word {
                 return string.Empty;
             }
 
-            if (!HasHeaderFooterStructuralContent(root)) {
-                return root.InnerText ?? string.Empty;
+            if (IsTextOnlyHeaderFooterContent(root)) {
+                return GetTextOnlyHeaderFooterPartSignature(part, root);
             }
 
             OpenXmlElement clone = root.CloneNode(true);
@@ -103,13 +117,24 @@ namespace OfficeIMO.Word {
             return clone.OuterXml;
         }
 
-        private static bool HasHeaderFooterStructuralContent(OpenXmlElement root) {
-            return root.Descendants<Table>().Any() ||
-                   root.Descendants<DocumentFormat.OpenXml.Wordprocessing.Drawing>().Any() ||
-                   root.Descendants<V.ImageData>().Any() ||
-                   root.Descendants<Hyperlink>().Any() ||
-                   root.Descendants<SimpleField>().Any() ||
-                   root.Descendants<FieldCode>().Any();
+        private static bool IsTextOnlyHeaderFooterContent(OpenXmlElement root) {
+            return !root.Descendants<Table>().Any() &&
+                   !root.Descendants<DocumentFormat.OpenXml.Wordprocessing.Drawing>().Any() &&
+                   !root.Descendants<V.ImageData>().Any() &&
+                   !root.Descendants<Hyperlink>().Any() &&
+                   !root.Descendants<SimpleField>().Any() &&
+                   !root.Descendants<FieldCode>().Any();
+        }
+
+        private static string GetTextOnlyHeaderFooterPartSignature(OpenXmlPart part, OpenXmlElement root) {
+            string[] paragraphs = root.Descendants<Paragraph>()
+                .Where(paragraph => paragraph.Ancestors<TableCell>().FirstOrDefault() == null)
+                .Select(paragraph => "p:" + GetParagraphMatchText(paragraph, part))
+                .ToArray();
+
+            return paragraphs.Length == 0
+                ? root.InnerText ?? string.Empty
+                : string.Join("\n", paragraphs);
         }
 
         private static void NormalizeHeaderFooterSignatureElement(OpenXmlPart part, OpenXmlElement root) {

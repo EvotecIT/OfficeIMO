@@ -603,25 +603,15 @@ namespace OfficeIMO.Word {
             AddTableSnapshots(snapshots, document, mainPart, mainPart?.Document?.Body, BodyPartKey, BodyPartOrderBase);
 
             if (mainPart != null) {
-                Dictionary<HeaderPart, string> headerPartKeys = CreateHeaderPartKeys(mainPart);
                 int headerIndex = 0;
-                foreach (HeaderPart headerPart in mainPart.HeaderParts) {
-                    if (!headerPartKeys.TryGetValue(headerPart, out string? headerPartKey)) {
-                        continue;
-                    }
-
-                    AddTableSnapshots(snapshots, document, headerPart, headerPart.Header, headerPartKey, HeaderPartOrderBase + (headerIndex * RelatedPartOrderStride));
+                foreach (KeyValuePair<HeaderPart, string> headerPartKey in CreateOrderedHeaderPartKeys(mainPart)) {
+                    AddTableSnapshots(snapshots, document, headerPartKey.Key, headerPartKey.Key.Header, headerPartKey.Value, HeaderPartOrderBase + (headerIndex * RelatedPartOrderStride));
                     headerIndex++;
                 }
 
-                Dictionary<FooterPart, string> footerPartKeys = CreateFooterPartKeys(mainPart);
                 int footerIndex = 0;
-                foreach (FooterPart footerPart in mainPart.FooterParts) {
-                    if (!footerPartKeys.TryGetValue(footerPart, out string? footerPartKey)) {
-                        continue;
-                    }
-
-                    AddTableSnapshots(snapshots, document, footerPart, footerPart.Footer, footerPartKey, FooterPartOrderBase + (footerIndex * RelatedPartOrderStride));
+                foreach (KeyValuePair<FooterPart, string> footerPartKey in CreateOrderedFooterPartKeys(mainPart)) {
+                    AddTableSnapshots(snapshots, document, footerPartKey.Key, footerPartKey.Key.Footer, footerPartKey.Value, FooterPartOrderBase + (footerIndex * RelatedPartOrderStride));
                     footerIndex++;
                 }
 
@@ -704,9 +694,25 @@ namespace OfficeIMO.Word {
             }
 
             string gridSpan = properties.GridSpan?.Val?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
-            string horizontalMerge = properties.HorizontalMerge?.Val?.Value.ToString() ?? string.Empty;
-            string verticalMerge = properties.VerticalMerge?.Val?.Value.ToString() ?? string.Empty;
+            string horizontalMerge = GetMergeShapeValue(properties.HorizontalMerge);
+            string verticalMerge = GetMergeShapeValue(properties.VerticalMerge);
             return "span=" + gridSpan + ";h=" + horizontalMerge + ";v=" + verticalMerge;
+        }
+
+        private static string GetMergeShapeValue(OpenXmlLeafElement? merge) {
+            if (merge == null) {
+                return string.Empty;
+            }
+
+            if (merge is HorizontalMerge horizontalMerge) {
+                return horizontalMerge.Val?.Value.ToString() ?? "continue";
+            }
+
+            if (merge is VerticalMerge verticalMerge) {
+                return verticalMerge.Val?.Value.ToString() ?? "continue";
+            }
+
+            return string.Empty;
         }
 
         private static string GetCellText(WordTableCell cell) {
@@ -765,25 +771,15 @@ namespace OfficeIMO.Word {
             AddImageSnapshots(snapshots, mainPart, mainPart?.Document?.Body, BodyPartKey, BodyPartOrderBase);
 
             if (mainPart != null) {
-                Dictionary<HeaderPart, string> headerPartKeys = CreateHeaderPartKeys(mainPart);
                 int headerIndex = 0;
-                foreach (HeaderPart headerPart in mainPart.HeaderParts) {
-                    if (!headerPartKeys.TryGetValue(headerPart, out string? headerPartKey)) {
-                        continue;
-                    }
-
-                    AddImageSnapshots(snapshots, headerPart, headerPart.Header, headerPartKey, HeaderPartOrderBase + (headerIndex * RelatedPartOrderStride));
+                foreach (KeyValuePair<HeaderPart, string> headerPartKey in CreateOrderedHeaderPartKeys(mainPart)) {
+                    AddImageSnapshots(snapshots, headerPartKey.Key, headerPartKey.Key.Header, headerPartKey.Value, HeaderPartOrderBase + (headerIndex * RelatedPartOrderStride));
                     headerIndex++;
                 }
 
-                Dictionary<FooterPart, string> footerPartKeys = CreateFooterPartKeys(mainPart);
                 int footerIndex = 0;
-                foreach (FooterPart footerPart in mainPart.FooterParts) {
-                    if (!footerPartKeys.TryGetValue(footerPart, out string? footerPartKey)) {
-                        continue;
-                    }
-
-                    AddImageSnapshots(snapshots, footerPart, footerPart.Footer, footerPartKey, FooterPartOrderBase + (footerIndex * RelatedPartOrderStride));
+                foreach (KeyValuePair<FooterPart, string> footerPartKey in CreateOrderedFooterPartKeys(mainPart)) {
+                    AddImageSnapshots(snapshots, footerPartKey.Key, footerPartKey.Key.Footer, footerPartKey.Value, FooterPartOrderBase + (footerIndex * RelatedPartOrderStride));
                     footerIndex++;
                 }
 
@@ -827,19 +823,21 @@ namespace OfficeIMO.Word {
                         }
 
                         string drawingVisualSignature = GetDrawingVisualSignature(part, drawing);
+                        string drawingPositionKey = GetImagePositionKey(partKey, drawing);
                         if (blip.Embed?.Value is string embeddedRelationshipId) {
-                            AddEmbeddedImageSnapshot(snapshots, part, embeddedRelationshipId, drawingVisualSignature, partKey, ordered.DocumentOrder, GetImagePositionKey(partKey, ordered.DocumentOrder));
+                            AddEmbeddedImageSnapshot(snapshots, part, embeddedRelationshipId, drawingVisualSignature, partKey, ordered.DocumentOrder, drawingPositionKey);
                         } else if (blip.Link?.Value is string externalRelationshipId) {
-                            AddExternalImageSnapshot(snapshots, part, externalRelationshipId, drawingVisualSignature, partKey, ordered.DocumentOrder, GetImagePositionKey(partKey, ordered.DocumentOrder));
+                            AddExternalImageSnapshot(snapshots, part, externalRelationshipId, drawingVisualSignature, partKey, ordered.DocumentOrder, drawingPositionKey);
                         }
 
                         break;
                     case V.ImageData imageData when imageData.RelationshipId?.Value is string relationshipId:
                         string vmlVisualSignature = GetVmlVisualSignature(part, imageData);
+                        string vmlPositionKey = GetImagePositionKey(partKey, imageData);
                         if (part.ExternalRelationships.Any(item => item.Id == relationshipId)) {
-                            AddExternalImageSnapshot(snapshots, part, relationshipId, vmlVisualSignature, partKey, ordered.DocumentOrder, GetImagePositionKey(partKey, ordered.DocumentOrder));
+                            AddExternalImageSnapshot(snapshots, part, relationshipId, vmlVisualSignature, partKey, ordered.DocumentOrder, vmlPositionKey);
                         } else {
-                            AddEmbeddedImageSnapshot(snapshots, part, relationshipId, vmlVisualSignature, partKey, ordered.DocumentOrder, GetImagePositionKey(partKey, ordered.DocumentOrder));
+                            AddEmbeddedImageSnapshot(snapshots, part, relationshipId, vmlVisualSignature, partKey, ordered.DocumentOrder, vmlPositionKey);
                         }
 
                         break;
@@ -875,9 +873,10 @@ namespace OfficeIMO.Word {
                 blip.Link = null;
             }
 
-            foreach (OpenXmlElement element in clone.Descendants()) {
+            foreach (OpenXmlElement element in new[] { clone }.Concat(clone.Descendants())) {
                 element.RemoveAttribute("embed", "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
                 element.RemoveAttribute("link", "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
+                RemoveVolatileDrawingAttributes(element);
             }
 
             foreach (DW.DocProperties properties in clone.Descendants<DW.DocProperties>()) {
@@ -903,6 +902,14 @@ namespace OfficeIMO.Word {
                 descendant.RelationshipId = null;
             }
 
+            foreach (OpenXmlElement element in new[] { clone }.Concat(clone.Descendants())) {
+                if (element is V.Shape shape) {
+                    shape.Id = null;
+                }
+
+                RemoveVolatileVmlAttributes(element);
+            }
+
             return clone.OuterXml + GetImageHyperlinkSignature(part, imageData);
         }
 
@@ -911,8 +918,60 @@ namespace OfficeIMO.Word {
             return hyperlink == null ? string.Empty : "|hyperlink:" + GetHyperlinkSignature(part, hyperlink);
         }
 
-        private static string GetImagePositionKey(string partKey, int documentOrder) {
-            return partKey + ":" + documentOrder.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        private static string GetImagePositionKey(string partKey, OpenXmlElement imageElement) {
+            OpenXmlElement block = imageElement.Ancestors<Paragraph>().FirstOrDefault() ??
+                                   imageElement.Ancestors<Table>().FirstOrDefault() ??
+                                   imageElement;
+            return partKey + ":" + GetStableElementPath(block) + ":image:" + GetImageOrdinalWithinBlock(block, imageElement).ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        private static void RemoveVolatileDrawingAttributes(OpenXmlElement element) {
+            foreach (OpenXmlAttribute attribute in element.GetAttributes().ToList()) {
+                if (attribute.LocalName == "editId" || attribute.LocalName == "anchorId") {
+                    element.RemoveAttribute(attribute.LocalName, attribute.NamespaceUri);
+                }
+            }
+        }
+
+        private static void RemoveVolatileVmlAttributes(OpenXmlElement element) {
+            foreach (OpenXmlAttribute attribute in element.GetAttributes().ToList()) {
+                if (attribute.LocalName == "id" ||
+                    attribute.LocalName == "spid" ||
+                    attribute.LocalName == "connectortype") {
+                    element.RemoveAttribute(attribute.LocalName, attribute.NamespaceUri);
+                }
+            }
+        }
+
+        private static string GetStableElementPath(OpenXmlElement element) {
+            var segments = new Stack<string>();
+            OpenXmlElement? current = element;
+            while (current != null && current.Parent != null) {
+                OpenXmlElement parent = current.Parent;
+                int ordinal = parent.Elements()
+                    .Where(item => item.GetType() == current.GetType())
+                    .TakeWhile(item => !ReferenceEquals(item, current))
+                    .Count();
+                segments.Push(current.GetType().Name + "[" + ordinal.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]");
+                current = parent;
+            }
+
+            return string.Join("/", segments.ToArray());
+        }
+
+        private static int GetImageOrdinalWithinBlock(OpenXmlElement block, OpenXmlElement imageElement) {
+            int ordinal = 0;
+            foreach (OpenXmlElement element in block.Descendants()) {
+                if (ReferenceEquals(element, imageElement)) {
+                    return ordinal;
+                }
+
+                if (element is DocumentFormat.OpenXml.Wordprocessing.Drawing || element is V.ImageData) {
+                    ordinal++;
+                }
+            }
+
+            return ordinal;
         }
 
         private static IEnumerable<OrderedElement> EnumerateDescendantsWithOrder(OpenXmlElement? container, int orderBase) {
