@@ -1,0 +1,212 @@
+using AngleSharp.Dom;
+using AngleSharp.Html.Dom;
+
+namespace OfficeIMO.Html;
+
+/// <summary>
+/// Builds the shared OfficeIMO HTML logical document model from parsed or raw HTML.
+/// </summary>
+public static class HtmlLogicalDocumentBuilder {
+    private static readonly char[] WhitespaceSeparators = { ' ', '\t', '\r', '\n', '\f' };
+
+    /// <summary>
+    /// Parses raw HTML and builds a logical document from the conversion root.
+    /// </summary>
+    public static HtmlLogicalDocument FromHtml(string html, bool useBodyContentsOnly = true) {
+        IHtmlDocument document = HtmlDocumentParser.ParseDocument(html);
+        return FromDocument(document, useBodyContentsOnly);
+    }
+
+    /// <summary>
+    /// Builds a logical document from an AngleSharp HTML document.
+    /// </summary>
+    public static HtmlLogicalDocument FromDocument(IHtmlDocument document, bool useBodyContentsOnly = true) {
+        if (document == null) {
+            throw new ArgumentNullException(nameof(document));
+        }
+
+        INode rootNode = HtmlDocumentParser.GetConversionRoot(document, useBodyContentsOnly);
+        var counts = new Dictionary<HtmlLogicalNodeKind, int>();
+        var capabilities = new List<string>();
+        HtmlLogicalNode root = Build(rootNode, counts, capabilities);
+        return new HtmlLogicalDocument(root, counts, capabilities);
+    }
+
+    private static HtmlLogicalNode Build(INode source, IDictionary<HtmlLogicalNodeKind, int> counts, ICollection<string> capabilities) {
+        HtmlLogicalNode node = CreateNode(source);
+        Count(counts, node.Kind);
+        foreach (string capability in InferCapabilities(node)) {
+            node.AddCapability(capability);
+            if (!capabilities.Contains(capability)) {
+                capabilities.Add(capability);
+            }
+        }
+
+        if (source is IElement element) {
+            foreach (IAttr attribute in element.Attributes) {
+                node.AddAttribute(attribute.Name, attribute.Value);
+            }
+        }
+
+        foreach (INode child in source.ChildNodes) {
+            if (child.NodeType == NodeType.Comment) {
+                continue;
+            }
+
+            HtmlLogicalNode childNode = Build(child, counts, capabilities);
+            if (childNode.Kind != HtmlLogicalNodeKind.Unknown || childNode.Children.Count > 0 || childNode.Text.Length > 0) {
+                node.AddChild(childNode);
+            }
+        }
+
+        return node;
+    }
+
+    private static HtmlLogicalNode CreateNode(INode source) {
+        if (source.NodeType == NodeType.Text) {
+            string text = NormalizeText(source.TextContent);
+            return new HtmlLogicalNode(text.Length == 0 ? HtmlLogicalNodeKind.Unknown : HtmlLogicalNodeKind.Text, "#text", text);
+        }
+
+        if (source is IHtmlDocument) {
+            return new HtmlLogicalNode(HtmlLogicalNodeKind.Document, "#document", string.Empty);
+        }
+
+        if (!(source is IElement element)) {
+            return new HtmlLogicalNode(HtmlLogicalNodeKind.Unknown, source.NodeName ?? string.Empty, NormalizeText(source.TextContent));
+        }
+
+        string name = element.TagName.ToLowerInvariant();
+        return new HtmlLogicalNode(MapKind(name, element), name, CaptureText(name, element));
+    }
+
+    private static HtmlLogicalNodeKind MapKind(string name, IElement element) {
+        if (name == "body" || name == "main" || name == "article" || name == "section" || name == "aside" || name == "header" || name == "footer") {
+            return HtmlLogicalNodeKind.Section;
+        }
+
+        if (name.Length == 2 && name[0] == 'h' && name[1] >= '1' && name[1] <= '6') {
+            return HtmlLogicalNodeKind.Heading;
+        }
+
+        switch (name) {
+            case "p":
+            case "blockquote":
+            case "pre":
+                return HtmlLogicalNodeKind.Paragraph;
+            case "ul":
+            case "ol":
+                return HtmlLogicalNodeKind.List;
+            case "li":
+                return HtmlLogicalNodeKind.ListItem;
+            case "table":
+                return HtmlLogicalNodeKind.Table;
+            case "tr":
+                return HtmlLogicalNodeKind.TableRow;
+            case "td":
+            case "th":
+                return HtmlLogicalNodeKind.TableCell;
+            case "figure":
+            case "figcaption":
+                return HtmlLogicalNodeKind.Figure;
+            case "img":
+            case "picture":
+            case "svg":
+                return HtmlLogicalNodeKind.Image;
+            case "a":
+                return HtmlLogicalNodeKind.Link;
+            case "form":
+                return HtmlLogicalNodeKind.Form;
+            case "input":
+            case "select":
+            case "textarea":
+            case "button":
+            case "option":
+                return HtmlLogicalNodeKind.FormControl;
+            case "title":
+            case "meta":
+            case "base":
+            case "link":
+            case "style":
+                return HtmlLogicalNodeKind.Metadata;
+            case "span":
+            case "strong":
+            case "em":
+            case "b":
+            case "i":
+            case "u":
+            case "small":
+            case "sub":
+            case "sup":
+            case "code":
+                return HtmlLogicalNodeKind.Inline;
+            default:
+                return element.Children.Length == 0 && NormalizeText(element.TextContent).Length > 0
+                    ? HtmlLogicalNodeKind.Text
+                    : HtmlLogicalNodeKind.Unknown;
+        }
+    }
+
+    private static string CaptureText(string name, IElement element) {
+        switch (name) {
+            case "h1":
+            case "h2":
+            case "h3":
+            case "h4":
+            case "h5":
+            case "h6":
+            case "title":
+            case "p":
+            case "figcaption":
+            case "label":
+                return NormalizeText(element.TextContent);
+            default:
+                return string.Empty;
+        }
+    }
+
+    private static IEnumerable<string> InferCapabilities(HtmlLogicalNode node) {
+        switch (node.Kind) {
+            case HtmlLogicalNodeKind.Heading:
+                yield return "headings";
+                break;
+            case HtmlLogicalNodeKind.Table:
+            case HtmlLogicalNodeKind.TableCell:
+                yield return "tables";
+                break;
+            case HtmlLogicalNodeKind.Image:
+                yield return "images";
+                break;
+            case HtmlLogicalNodeKind.Form:
+            case HtmlLogicalNodeKind.FormControl:
+                yield return "forms";
+                break;
+            case HtmlLogicalNodeKind.Link:
+                yield return "links";
+                break;
+            case HtmlLogicalNodeKind.List:
+            case HtmlLogicalNodeKind.ListItem:
+                yield return "lists";
+                break;
+            case HtmlLogicalNodeKind.Figure:
+                yield return "figures";
+                break;
+        }
+    }
+
+    private static void Count(IDictionary<HtmlLogicalNodeKind, int> counts, HtmlLogicalNodeKind kind) {
+        if (!counts.ContainsKey(kind)) {
+            counts[kind] = 0;
+        }
+
+        counts[kind]++;
+    }
+
+    private static string NormalizeText(string text) {
+        if (string.IsNullOrWhiteSpace(text)) {
+            return string.Empty;
+        }
+
+        return string.Join(" ", text.Split(WhitespaceSeparators, StringSplitOptions.RemoveEmptyEntries));
+    }
+}
