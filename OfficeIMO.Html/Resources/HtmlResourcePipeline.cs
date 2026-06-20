@@ -130,7 +130,7 @@ public static class HtmlResourcePipeline {
         string name = element.TagName.ToLowerInvariant();
         string type = (element.GetAttribute("type") ?? string.Empty).Trim();
         bool isSubmitter = string.Equals(name, "button", StringComparison.OrdinalIgnoreCase)
-            ? type.Length == 0 || string.Equals(type, "submit", StringComparison.OrdinalIgnoreCase)
+            ? !string.Equals(type, "button", StringComparison.OrdinalIgnoreCase) && !string.Equals(type, "reset", StringComparison.OrdinalIgnoreCase)
             : string.Equals(type, "submit", StringComparison.OrdinalIgnoreCase) || string.Equals(type, "image", StringComparison.OrdinalIgnoreCase);
         if (isSubmitter) {
             AddAttribute(manifest, HtmlResourceKind.Hyperlink, element, "formaction", baseUri, options);
@@ -895,6 +895,7 @@ public static class HtmlResourcePipeline {
 
         if (declaration.IndexOf("background", StringComparison.Ordinal) >= 0
             || declaration.IndexOf("image", StringComparison.Ordinal) >= 0
+            || declaration.IndexOf("mask", StringComparison.Ordinal) >= 0
             || declaration.IndexOf("content", StringComparison.Ordinal) >= 0
             || declaration.IndexOf("cursor", StringComparison.Ordinal) >= 0
             || declaration.IndexOf("list-style", StringComparison.Ordinal) >= 0) {

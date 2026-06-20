@@ -75,7 +75,7 @@ public static class HtmlRoundTripScorer {
         "autocomplete",
         "inputmode"
     };
-    private static readonly HashSet<string> BooleanFormStateAttributes = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
+    private static readonly HashSet<string> BooleanSignatureAttributes = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
         "checked",
         "selected",
         "disabled",
@@ -84,7 +84,13 @@ public static class HtmlRoundTripScorer {
         "data-fieldset-disabled",
         "novalidate",
         "required",
-        "readonly"
+        "readonly",
+        "controls",
+        "autoplay",
+        "loop",
+        "muted",
+        "default",
+        "download"
     };
 
     /// <summary>
@@ -516,6 +522,9 @@ public static class HtmlRoundTripScorer {
         AddAttributePart(parts, node, "alt");
         AddAttributePart(parts, node, "aria-label");
         AddAttributePart(parts, node, "title");
+        AddAttributePart(parts, node, "target");
+        AddAttributePart(parts, node, "rel");
+        AddAttributePart(parts, node, "download");
         string text = ExtractLogicalNodeText(node);
         if (!string.IsNullOrWhiteSpace(text)) {
             parts.Add("text=" + NormalizeText(text));
@@ -594,7 +603,7 @@ public static class HtmlRoundTripScorer {
     }
 
     private static string FormatAttributePart(string attributeName, string? value) {
-        if (BooleanFormStateAttributes.Contains(attributeName)) {
+        if (BooleanSignatureAttributes.Contains(attributeName)) {
             return attributeName + "=present";
         }
 
@@ -658,7 +667,8 @@ public static class HtmlRoundTripScorer {
             HtmlComputedStyle? computedStyle;
             if (styles.TryGetValue(element, out computedStyle) && computedStyle != null) {
                 string visibility = computedStyle.GetValue("visibility");
-                if (string.Equals(visibility, "hidden", StringComparison.OrdinalIgnoreCase)) {
+                if (string.Equals(visibility, "hidden", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(visibility, "collapse", StringComparison.OrdinalIgnoreCase)) {
                     currentVisibility = false;
                 } else if (string.Equals(visibility, "visible", StringComparison.OrdinalIgnoreCase)) {
                     currentVisibility = true;

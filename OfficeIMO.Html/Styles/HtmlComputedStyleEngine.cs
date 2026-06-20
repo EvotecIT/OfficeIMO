@@ -28,6 +28,7 @@ public static class HtmlComputedStyleEngine {
         "border-color",
         "color",
         "cursor",
+        "direction",
         "display",
         "font-family",
         "font-size",
@@ -207,12 +208,12 @@ public static class HtmlComputedStyleEngine {
                 continue;
             }
 
-            if (HasMediaFeatureConstraint(normalized)) {
-                continue;
+            if (ContainsMediaType(normalized, "all") || ContainsMediaType(normalized, "screen")) {
+                return AreMediaFeaturesApplicable(normalized);
             }
 
-            if (ContainsMediaType(normalized, "all") || ContainsMediaType(normalized, "screen")) {
-                return true;
+            if (!ContainsExplicitMediaType(normalized) && HasMediaFeatureConstraint(normalized)) {
+                return AreMediaFeaturesApplicable(normalized);
             }
         }
 
@@ -229,10 +230,75 @@ public static class HtmlComputedStyleEngine {
         return false;
     }
 
+    private static bool ContainsExplicitMediaType(string mediaQuery) {
+        return ContainsMediaType(mediaQuery, "all")
+            || ContainsMediaType(mediaQuery, "screen")
+            || ContainsMediaType(mediaQuery, "print")
+            || ContainsMediaType(mediaQuery, "speech");
+    }
+
     private static bool HasMediaFeatureConstraint(string mediaQuery) {
         return mediaQuery.IndexOf("(", StringComparison.Ordinal) >= 0
             || mediaQuery.IndexOf(":", StringComparison.Ordinal) >= 0;
     }
+
+    private static bool AreMediaFeaturesApplicable(string mediaQuery) {
+        int index = 0;
+        bool foundFeature = false;
+        while (index < mediaQuery.Length) {
+            int open = mediaQuery.IndexOf('(', index);
+            if (open < 0) {
+                break;
+            }
+
+            int close = FindMatchingParenthesis(mediaQuery, open);
+            if (close <= open) {
+                return false;
+            }
+
+            foundFeature = true;
+            string feature = mediaQuery.Substring(open + 1, close - open - 1).Trim().ToLowerInvariant();
+            if (!IsScreenMediaFeatureApplicable(feature)) {
+                return false;
+            }
+
+            index = close + 1;
+        }
+
+        return foundFeature || !HasMediaFeatureConstraint(mediaQuery);
+    }
+
+    private static bool IsScreenMediaFeatureApplicable(string feature) {
+        if (feature.Length == 0 || feature.IndexOf("not-a-real", StringComparison.Ordinal) >= 0) {
+            return false;
+        }
+
+        if (feature.StartsWith("color", StringComparison.Ordinal)
+            || feature.StartsWith("min-color", StringComparison.Ordinal)
+            || feature.StartsWith("monochrome", StringComparison.Ordinal)) {
+            return true;
+        }
+
+        if (feature.StartsWith("max-width", StringComparison.Ordinal)
+            || feature.StartsWith("max-height", StringComparison.Ordinal)) {
+            return !feature.EndsWith(":0", StringComparison.Ordinal)
+                && !feature.EndsWith(": 0", StringComparison.Ordinal)
+                && feature.IndexOf(":0px", StringComparison.Ordinal) < 0
+                && feature.IndexOf(": 0px", StringComparison.Ordinal) < 0;
+        }
+
+        if (feature.StartsWith("min-width", StringComparison.Ordinal)
+            || feature.StartsWith("min-height", StringComparison.Ordinal)
+            || feature.StartsWith("orientation", StringComparison.Ordinal)
+            || feature.StartsWith("resolution", StringComparison.Ordinal)
+            || feature.StartsWith("hover", StringComparison.Ordinal)
+            || feature.StartsWith("pointer", StringComparison.Ordinal)) {
+            return true;
+        }
+
+        return false;
+    }
+
 
     private static bool IsSupportsRule(AngleSharp.Css.Dom.ICssRule rule) {
         string name = rule.GetType().Name;
@@ -453,6 +519,10 @@ public static class HtmlComputedStyleEngine {
             }
 
             properties[name] = CascadedProperty.Clear(isImportant, specificity, order);
+            return;
+        }
+
+        if (!IsSupportedDeclarationValue(name, resolved.Value)) {
             return;
         }
 
