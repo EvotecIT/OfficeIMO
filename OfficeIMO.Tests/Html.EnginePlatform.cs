@@ -262,6 +262,16 @@ public partial class Html {
         Assert.DoesNotContain("onclick", adapterOnlyConversion.HtmlForConversion, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("javascript:", adapterOnlyConversion.HtmlForConversion, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("file:///secret", adapterOnlyConversion.HtmlForConversion, StringComparison.OrdinalIgnoreCase);
+
+        HtmlConversionDocument reviewOnlyNormalization = HtmlConversionDocumentBuilder.Build(
+            "<html><head><style>.keep { color: red; }</style></head><body><p class=\"keep\">Styled</p></body></html>",
+            new HtmlConversionDocumentOptions {
+                NormalizationOptions = new HtmlNormalizationOptions {
+                    PreserveStyleElements = false
+                }
+            });
+        Assert.DoesNotContain("<style", reviewOnlyNormalization.NormalizedHtml, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("<style", reviewOnlyNormalization.HtmlForConversion, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -304,6 +314,7 @@ public partial class Html {
             <html>
             <head>
                 <link rel="stylesheet" media="screen" href="file:///secret/print-screen.css">
+                <link rel="stylesheet" media="print" href="file:///secret/print-only-link.css">
                 <style media="screen">
                     .total { color: #ff0000; }
                 </style>
@@ -316,7 +327,16 @@ public partial class Html {
                     .total { color: #ff0000; }
                 </style>
             </head>
-            <body><main><p class="total">Total</p></main></body>
+            <body>
+                <main>
+                    <p class="total">Total</p>
+                    <picture>
+                        <source media="screen" srcset="https://example.test/images/screen-chart.png 1x">
+                        <source media="print" srcset="https://example.test/images/print-chart.png 1x">
+                        <img src="https://example.test/images/fallback-chart.png" alt="Chart">
+                    </picture>
+                </main>
+            </body>
             </html>
             """;
 
@@ -330,9 +350,25 @@ public partial class Html {
         });
 
         Assert.DoesNotContain(screen.ResourceManifest.Resources, resource => resource.Source == "file:///secret/print-total.png");
+        Assert.DoesNotContain(screen.ResourceManifest.Resources, resource => resource.Source == "file:///secret/print-only-link.css");
         Assert.Contains(print.ResourceManifest.Resources, resource => resource.Source == "file:///secret/print-total.png" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(print.ResourceManifest.Resources, resource => resource.Source == "file:///secret/print-only-link.css" && resource.DiagnosticCode == "StylesheetResourceRejectedByPolicy");
         Assert.DoesNotContain(print.ResourceManifest.Resources, resource => resource.Source == "file:///secret/print-future.png");
         Assert.Contains("background-image", print.StyleSummary.PropertyNames);
+
+        string screenWordHtml = WordHtmlConverterExtensions.PrepareHtmlForSharedWordConversion(screen);
+        string printWordHtml = WordHtmlConverterExtensions.PrepareHtmlForSharedWordConversion(print);
+        Assert.Contains("https://example.test/images/screen-chart.png", screenWordHtml);
+        Assert.DoesNotContain("https://example.test/images/print-chart.png", screenWordHtml);
+        Assert.DoesNotContain("https://example.test/images/screen-chart.png", printWordHtml);
+        Assert.Contains("https://example.test/images/print-chart.png", printWordHtml);
+        string printMarkdown = print.ToMarkdown();
+        Assert.DoesNotContain("https://example.test/images/screen-chart.png", printMarkdown);
+        Assert.Contains("https://example.test/images/print-chart.png", printMarkdown);
+
+        using var screenWordDocument = WordHtmlConverterExtensions.LoadFromHtml(screen);
+        var screenRun = screenWordDocument.Paragraphs.Single(paragraph => paragraph.Text.Contains("Total", StringComparison.Ordinal)).GetRuns().First();
+        Assert.Equal("ff0000", screenRun.ColorHex);
 
         using var printWordDocument = WordHtmlConverterExtensions.LoadFromHtml(print);
         var printRun = printWordDocument.Paragraphs.Single(paragraph => paragraph.Text.Contains("Total", StringComparison.Ordinal)).GetRuns().First();
@@ -340,6 +376,123 @@ public partial class Html {
 
         byte[] printPdf = print.SaveAsPdf();
         Assert.NotEmpty(printPdf);
+    }
+
+    [Fact]
+    public void HtmlEnginePlatform_ResourceManifestHandlesCiteSrcSetAndCustomPropertyCascadeEdges() {
+        const string html = """
+            <html>
+            <head>
+                <style>
+                    :root { --escaped: url(file:///secret/escaped-var.png); }
+                    .escaped { background-image: \76ar(--escaped); }
+                    .card { --hero: url(file:///secret/stylesheet-var.png); background-image: var(--hero); }
+                    .pseudo::before { --hero: url(file:///secret/pseudo-var.png); }
+                    .pseudo { background-image: var(--hero, url(https://example.test/fallback.png)); }
+                    .importantInline { --hero: url(file:///secret/important-inline.png) !important; background-image: var(--hero); }
+                </style>
+            </head>
+            <body>
+                <picture><source srcset="   "><img src="file:///secret/fallback-image.png" alt="Fallback"></picture>
+                <blockquote cite="file:///secret/source.html">Quoted material</blockquote>
+                <div class="escaped"></div>
+                <div class="card" style="--hero: url(https://example.test/inline-var.png)"></div>
+                <div class="pseudo"></div>
+                <div class="importantInline" style="--hero: url(https://example.test/inline-overridden.png)"></div>
+            </body>
+            </html>
+            """;
+
+        HtmlResourceManifest manifest = HtmlResourcePipeline.BuildManifest(
+            html,
+            new HtmlResourcePipelineOptions {
+                UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile()
+            });
+
+        Assert.Contains(manifest.Resources, resource =>
+            resource.ElementName == "img"
+            && resource.AttributeName == "src"
+            && resource.Source == "file:///secret/fallback-image.png"
+            && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource =>
+            resource.ElementName == "blockquote"
+            && resource.AttributeName == "cite"
+            && resource.Source == "file:///secret/source.html"
+            && resource.DiagnosticCode == "HyperlinkRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource =>
+            resource.ElementName == "style"
+            && resource.AttributeName == "css-var-url"
+            && resource.Source == "file:///secret/escaped-var.png"
+            && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource =>
+            resource.ElementName == "style"
+            && resource.AttributeName == "css-var-url"
+            && resource.Source == "https://example.test/inline-var.png"
+            && resource.IsAllowed);
+        Assert.Contains(manifest.Resources, resource =>
+            resource.ElementName == "style"
+            && resource.AttributeName == "css-url"
+            && resource.Source == "https://example.test/fallback.png"
+            && resource.IsAllowed);
+        Assert.Contains(manifest.Resources, resource =>
+            resource.ElementName == "style"
+            && resource.AttributeName == "css-var-url"
+            && resource.Source == "file:///secret/important-inline.png"
+            && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/stylesheet-var.png");
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/pseudo-var.png");
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "https://example.test/inline-overridden.png");
+    }
+
+    [Fact]
+    public void HtmlEnginePlatform_ResourceManifestHandlesVarFallbackInheritanceAndPseudoSelectors() {
+        const string html = """
+            <html>
+            <head>
+                <style>
+                    :root {
+                        --ok: url(https://example.test/ok.png);
+                        --resolved: var(--ok, url(file:///secret/resolved-fallback.png));
+                        --broken: var(--missing, url(file:///secret/alias-fallback.png));
+                    }
+                    .resolved { background-image: var(--resolved); }
+                    .broken { background-image: var(--broken); }
+                    .outer { --hero: var(--missing); background-image: var(--hero, url(file:///secret/outer-fallback.png)); }
+                    .parent { --hero: url(https://example.test/inherited.png); }
+                    .child { --hero: inherit; background-image: var(--hero); }
+                    .unicode { --zażółć: url(file:///secret/unicode.png); background-image: var(--zażółć); }
+                    .escapedName { --escaped-\6e ame: url(file:///secret/escaped-name.png); background-image: var(--escaped-\6e ame); }
+                    a:hover { background-image: url(file:///secret/hover.png); }
+                    ::before { content: url(file:///secret/bare-before.png); }
+                </style>
+            </head>
+            <body>
+                <div class="resolved"></div>
+                <div class="broken"></div>
+                <div class="outer"></div>
+                <div class="parent"><div class="child"></div></div>
+                <div class="unicode"></div>
+                <div class="escapedName"></div>
+                <a href="https://example.test/">Hover</a>
+            </body>
+            </html>
+            """;
+
+        HtmlResourceManifest manifest = HtmlResourcePipeline.BuildManifest(
+            html,
+            new HtmlResourcePipelineOptions {
+                UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile()
+            });
+
+        Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/ok.png" && resource.IsAllowed);
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/alias-fallback.png" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/outer-fallback.png" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/inherited.png" && resource.IsAllowed);
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/unicode.png" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/escaped-name.png" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/hover.png" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/bare-before.png" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/resolved-fallback.png");
     }
 
     [Fact]
@@ -552,9 +705,12 @@ public partial class Html {
                 <style>
                     /* @import url('file:///secret/commented.css'); */
                     @import url('file:///secret/theme.css');
+                    @import url(file:///secret/print-import.css) print;
+                    @import url(file:///secret/screen-import.css) screen;
                     @import/*comment*/url('file:///secret/comment-import.css');
                     @import "https://example.test/themes/dark mode.css";
                     @import url('https://example.test/images/shared.png');
+                    @import \75rl(file:///secret/escaped-import.css);
                     @importurl(file:///secret/import-token.css);
                     :root { --hero: url(file:///secret/custom-property.png); --used-hero: url(file:///secret/custom-property-used.png); }
                     :root { --alias-target: url(file:///secret/alias-target.png); --alias-hero: var(--alias-target); }
@@ -581,6 +737,12 @@ public partial class Html {
                     #specific-card { --specific-hero: url(file:///secret/specific-property.png); }
                     .specific-card { --specific-hero: url(https://example.test/images/specific-property.png); }
                     .specific-card { background-image: var(--specific-hero); }
+                    .where-theme { --where-hero: url(https://example.test/images/where-ok.png); }
+                    :where(.where-theme) { --where-hero: url(file:///secret/where-zero.png); }
+                    .where-theme .card { background-image: var(--where-hero); }
+                    :is(.is-theme) { --is-hero: url(file:///secret/is-functional.png); }
+                    .is-theme { --is-hero: url(https://example.test/images/is-ok.png); }
+                    .is-theme .card { background-image: var(--is-hero); }
                     .theme-fallback { --fallback-hero: url(https://example.test/images/inherited-fallback.png); }
                     .card-fallback { background-image: var(--fallback-hero, url(file:///secret/inherited-fallback.png)); }
                     .theme-element-fallback { --element-fallback-hero: url(https://example.test/images/element-fallback.png); }
@@ -621,12 +783,16 @@ public partial class Html {
                     .unused-resource { background-image: url(file:///secret/unused-rule.png); }
                     @media (max-width: 0px) { .zero-media { background-image: url(file:///secret/zero-media.png); } }
                     @media(max-width:0px){.zero-media-minified{background-image:url(file:///secret/zero-media-minified.png)}}
+                    @media (max-width: 0em) { .zero-media-em { background-image: url(file:///secret/zero-media-em.png); } }
                     @media (not-a-real-feature) { .unknown-feature { background-image: url(file:///secret/unknown-media-feature.png); } }
                     .masked { mask: url(file:///secret/mask.svg); }
                     .filtered { filter: url(file:///secret/filter.svg#f); clip-path: url(file:///secret/clip.svg#c); }
                     .fragment-only { filter: url(#blur); clip-path: url("#shape"); background-image: var(--fragment-hero); }
                     :root { --fragment-hero: url(#internal-image); }
                     .image-set { background-image: image-set("file:///secret/hero.png" 1x, url(https://example.test/images/hero-2x.png) 2x, "https://example.test/images/hero.avif" type("image/avif")); }
+                    .escaped-image-set { background-image: \69mage-set("file:///secret/escaped-image-set.png" 1x); }
+                    .escaped-type-image-set { background-image: image-set("https://example.test/images/typed.avif" \74ype("image/avif")); }
+                    .commented-type-image-set { background-image: image-set("https://example.test/images/commented-type.avif" type(/*c*/"image/avif")); }
                     .fragment-image-set { background-image: image-set("#inline-sprite" 1x); }
                     .not-image-set { background-image: notimage-set("file:///secret/not-image-set.png" 1x); }
                     .reuse { background-image: url('https://example.test/images/shared.png'); }
@@ -636,6 +802,8 @@ public partial class Html {
                     .alias { background-image: var(--alias-hero); }
                     .inline-ancestor-card { background-image: var(--inline-ancestor-hero); }
                     .inline-self-card { background-image: var(--inline-self-hero); }
+                    .inline-override-card { --inline-override-hero: url(https://example.test/images/inline-override.png); background-image: var(--inline-override-hero); }
+                    a:hover { --hover-hero: url(file:///secret/hover-var.png); background-image: var(--hover-hero); }
                 </style>
                 <style media="print">.inactive-media-style { background-image: url(file:///secret/inactive-media-style.png); }</style>
                 <style type="text/plain">.plain { background-image: url(file:///secret/plain-style.png); }</style>
@@ -649,11 +817,13 @@ public partial class Html {
                 <svg><script href="file:///secret/svg-script.js" /></svg>
                 <img src="mailto:ops@example.test">
                 <svg><defs><symbol id="icon" /></defs><image href="https://example.test/images/vector.png" /><image xlink:href="file:///secret/vector-xlink.png" /><feImage href="file:///secret/filter-image.png" /><use href="#icon" /><use href="file:///secret/symbols.svg#icon" /></svg>
+                <img data-lazy-src="file:///secret/lazy-img.png" data-original-srcset="file:///secret/original-img.png 1x, https://example.test/images/original-img.png 2x">
                 <video poster="file:///secret/poster.png" data-src="https://example.test/media/movie.mp4"></video>
                 <video src="https://example.test/media/selected.mp4"><source src="file:///secret/ignored-child-source.mp4" type="video/mp4"></video>
                 <video><source src="file:///secret/unsupported-child-source.mp4" type="video/not-real"></video>
                 <video><source src="file:///secret/selected-child-source.mp4" type="video/mp4"></video>
                 <video><source src="https://example.test/media/first-playable.mp4" type="video/mp4"><source src="file:///secret/unselected-playable.mp4" type="video/mp4"></video>
+                <video><source src="file:///secret/blocked-video.mp4" type="video/mp4"><source src="https://example.test/media/policy-fallback.mp4" type="video/mp4"></video>
                 <embed data="file:///secret/embed-data.pdf" src="file:///secret/embed.pdf">
                 <form action="file:///secret/upload"></form>
                 <button formaction="file:///secret/delete">Delete</button>
@@ -667,6 +837,11 @@ public partial class Html {
                 <picture><source media="(max-width: 0px)" srcset="file:///secret/zero-picture-source.png 1x"><img src="https://example.test/images/zero-picture-fallback.png"></picture>
                 <picture><source type="image/not-real" srcset="file:///secret/unsupported-picture-type.png 1x"><img src="https://example.test/images/typed-fallback.png"></picture>
                 <picture><source data-srcset="https://example.test/images/lazy-only.png 1x"><img src="file:///secret/lazy-fallback.png"></picture>
+                <picture><source src="file:///secret/source-url-only.png"><img src="https://example.test/images/source-url-fallback.png"></picture>
+                <picture><source srcset="file:///secret/policy-source.png 1x"><img src="https://example.test/images/policy-fallback.png"></picture>
+                <picture><source srcset="file:///secret/blocked-wide.png 1x"><source srcset="https://example.test/images/next-wide.png 1x"><img src="https://example.test/images/unused-wide-fallback.png"></picture>
+                <picture><source srcset="file:///secret/mixed-picture.png 1x, https://example.test/images/mixed-picture.png 2x"><source srcset="https://example.test/images/unused-mixed-next.png 1x"><img src="https://example.test/images/unused-mixed-fallback.png"></picture>
+                <picture><source type="image/avif" srcset="https://example.test/images/word-skipped.avif 1x"><img src="https://example.test/images/word-fallback.png"></picture>
                 <div data="file:///secret/metadata"></div>
                 <x-card href="file:///secret/custom-href.png" src="file:///secret/custom-src.png"></x-card>
                 <div background="file:///secret/not-legacy-background.png"></div>
@@ -681,6 +856,8 @@ public partial class Html {
                 <div class="spaced-important"></div>
                 <div class="split-theme"><div class="card"></div></div>
                 <div id="specific-card" class="specific-card"></div>
+                <div class="where-theme"><div class="card"></div></div>
+                <div class="is-theme"><div class="card"></div></div>
                 <div class="theme-fallback"><div class="card-fallback"></div></div>
                 <div class="theme-element-fallback"><div class="card-element-fallback"></div></div>
                 <div class="card-element-fallback"></div>
@@ -693,6 +870,7 @@ public partial class Html {
                 <div class="alias"></div>
                 <div class="zero-media"></div>
                 <div class="zero-media-minified"></div>
+                <div class="zero-media-em"></div>
                 <div class="unknown-feature"></div>
                 <div class="media-hero"></div>
                 <div class="inactive-var-use"></div>
@@ -709,6 +887,9 @@ public partial class Html {
                 <div class="filtered"></div>
                 <div class="fragment-only"></div>
                 <div class="image-set"></div>
+                <div class="escaped-image-set"></div>
+                <div class="escaped-type-image-set"></div>
+                <div class="commented-type-image-set"></div>
                 <div class="fragment-image-set"></div>
                 <div class="reuse"></div>
                 <div class="logo"></div>
@@ -716,6 +897,8 @@ public partial class Html {
                 <div style="--inline-inherited: url(file:///secret/inline-inherited-property.png)"><span style="background-image: var(--inline-inherited)"></span></div>
                 <div style="--inline-ancestor-hero: url(file:///secret/inline-ancestor-stylesheet-property.png)"><div class="inline-ancestor-card"></div></div>
                 <div class="inline-self-card" style="--inline-self-hero: url(file:///secret/inline-self-stylesheet-property.png)"></div>
+                <div style="--inline-override-hero: url(file:///secret/inline-override-ancestor.png)"><div class="inline-override-card"></div></div>
+                <a href="https://example.test/hover">Hover</a>
             </body>
             </html>
             """;
@@ -728,6 +911,9 @@ public partial class Html {
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/commented.css");
         Assert.Single(manifest.Resources, resource => resource.Source == "file:///secret/theme.css");
         Assert.Single(manifest.Resources, resource => resource.Source == "file:///secret/comment-import.css");
+        Assert.Single(manifest.Resources, resource => resource.Source == "file:///secret/escaped-import.css");
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/print-import.css");
+        Assert.Single(manifest.Resources, resource => resource.Source == "file:///secret/screen-import.css");
         Assert.Single(manifest.Resources, resource => resource.Source == "https://example.test/themes/dark mode.css");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/shared.png" && resource.Kind == HtmlResourceKind.Stylesheet);
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/shared.png" && resource.Kind == HtmlResourceKind.Image);
@@ -757,6 +943,7 @@ public partial class Html {
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/inactive-preload-2x.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/zero-media.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/zero-media-minified.png");
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/zero-media-em.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/unknown-media-feature.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/nested-print-in-screen.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/zero-picture-source.png");
@@ -767,9 +954,11 @@ public partial class Html {
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/old-cascaded-property.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/root-important-rank.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/nearest-outer-property.png");
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/where-zero.png");
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/is-functional.png");
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/inline-override-ancestor.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "https://example.test/images/spaced-important-property.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/inherited-fallback.png");
-        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "https://example.test/images/lazy-only.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/not-image-set.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/notvar-custom-property.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/unsupported-property.png");
@@ -778,7 +967,7 @@ public partial class Html {
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/script-data.json");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/not-refresh.html");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/inert-submit-srcset.png");
-        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/ignored-picture-source.png");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/ignored-picture-source.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "src" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/unselected-picture.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/selected-fallback.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/print-picture-source.png");
@@ -800,6 +989,8 @@ public partial class Html {
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/split-selector-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/specific-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "https://example.test/images/specific-property.png");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/where-ok.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/is-ok.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/inherited-fallback.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/element-fallback.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/element-fallback.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
@@ -813,10 +1004,16 @@ public partial class Html {
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/inline-card-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "style-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/inline-ancestor-stylesheet-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/inline-self-stylesheet-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/inline-override.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/hover-var.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/escaped.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/escaped-function.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/custom-supports.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/hero.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-image-set" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/escaped-image-set.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-image-set" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/typed.avif" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-image-set");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/commented-type.avif" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-image-set");
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "image/avif");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/hero-2x.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-url");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/hero.avif" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-image-set");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/refresh.html" && resource.ElementName == "meta" && resource.Kind == HtmlResourceKind.Hyperlink && resource.AttributeName == "content" && resource.DiagnosticCode == "HyperlinkRejectedByPolicy");
@@ -830,6 +1027,20 @@ public partial class Html {
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/preload-large.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "imagesrcset");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/picture-source.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "srcset");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/selected-picture.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "srcset");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/lazy-only.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "data-srcset");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/source-url-only.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "src" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/source-url-fallback.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "src");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/policy-source.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "srcset" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/policy-fallback.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "src");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/blocked-wide.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "srcset" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/next-wide.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "srcset");
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "https://example.test/images/unused-wide-fallback.png");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/mixed-picture.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "srcset" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/mixed-picture.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "srcset");
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "https://example.test/images/unused-mixed-next.png");
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "https://example.test/images/unused-mixed-fallback.png");
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "https://example.test/images/word-skipped.avif");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/word-fallback.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "src");
         Assert.Contains(manifest.Resources, resource => resource.Source == "mailto:ops@example.test" && resource.Kind == HtmlResourceKind.Script && !resource.IsAllowed && resource.DiagnosticCode == "ScriptResourceRejectedByPolicy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/svg-script.js" && resource.Kind == HtmlResourceKind.Script && resource.AttributeName == "href" && resource.DiagnosticCode == "ScriptResourceRejectedByPolicy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "mailto:ops@example.test" && resource.Kind == HtmlResourceKind.Image && !resource.IsAllowed && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
@@ -837,11 +1048,16 @@ public partial class Html {
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/vector-xlink.png" && resource.Kind == HtmlResourceKind.Image && resource.ElementName == "image" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/filter-image.png" && resource.Kind == HtmlResourceKind.Image && resource.ElementName == "feimage" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/symbols.svg#icon" && resource.Kind == HtmlResourceKind.Image && resource.ElementName == "use" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/lazy-img.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "data-lazy-src" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/original-img.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "data-original-srcset" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/original-img.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "data-original-srcset");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/poster.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "poster" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/media/movie.mp4" && resource.Kind == HtmlResourceKind.Media && resource.AttributeName == "data-src");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/selected-child-source.mp4" && resource.Kind == HtmlResourceKind.Media && resource.AttributeName == "src" && resource.DiagnosticCode == "MediaResourceRejectedByPolicy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/media/first-playable.mp4" && resource.Kind == HtmlResourceKind.Media && resource.AttributeName == "src");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/unselected-playable.mp4");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/blocked-video.mp4" && resource.Kind == HtmlResourceKind.Media && resource.AttributeName == "src" && resource.DiagnosticCode == "MediaResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/media/policy-fallback.mp4" && resource.Kind == HtmlResourceKind.Media && resource.AttributeName == "src");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/negated-active-feature.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/embed.pdf" && resource.Kind == HtmlResourceKind.Other && resource.ElementName == "embed" && resource.AttributeName == "src");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/body-bg.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "background" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
@@ -849,7 +1065,7 @@ public partial class Html {
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/delete" && resource.Kind == HtmlResourceKind.Hyperlink && resource.AttributeName == "formaction");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/bogus-delete" && resource.Kind == HtmlResourceKind.Hyperlink && resource.AttributeName == "formaction");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/submit.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "src" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
-        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/lazy-fallback.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "src" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/lazy-fallback.png");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/mask.svg" && resource.Kind == HtmlResourceKind.Image && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/filter.svg#f" && resource.Kind == HtmlResourceKind.Image && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/clip.svg#c" && resource.Kind == HtmlResourceKind.Image && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
@@ -880,7 +1096,7 @@ public partial class Html {
     [Fact]
     public void HtmlEnginePlatform_NormalizerPreservesCssStringsAndSvgElementCasing() {
         string normalized = HtmlNormalizer.Normalize(
-            "<main><style>@import \"file:///secret/theme.css\";@import url('file:///secret/import-url.css');@import/*x*/\"file:///secret/comment-import.css\";.label::before{content:\"url(file:///secret/literal.png)\"}.escaped{background-image:url(\\66 ile:///secret/escaped.png)}.escaped-fn{background-image:\\75rl(file:///secret/escaped-function.png)}.real{background-image:url(file:///secret/bg.png);background-image:image-set(\"file:///secret/hero.png\" 1x)}</style><pre>line 1\n  line 2</pre><textarea>  draft\n text</textarea><input name=\"code\" value=\"  A  \"><svg viewBox=\"0 0 10 10\"><defs><linearGradient id=\"g\"></linearGradient><clipPath id=\"c\"></clipPath></defs></svg></main>",
+            "<main><style>@import \"file:///secret/theme.css\";@import url('file:///secret/import-url.css');@import/*x*/\"file:///secret/comment-import.css\";.label::before{content:\"url(file:///secret/literal.png)\"}.escaped{background-image:url(\\66 ile:///secret/escaped.png)}.escaped-fn{background-image:\\75rl(file:///secret/escaped-function.png)}.real{background-image:url(file:///secret/bg.png);background-image:image-set(\"file:///secret/hero.png\" 1x);background-image:\\69mage-set(\"file:///secret/escaped-hero.png\" 1x);background-image:image-set(\"https://example.test/images/typed.avif\" \\74ype(\"image/avif\"));background-image:image-set(\"https://example.test/images/commented-type.avif\" type(/*c*/\"image/avif\"))}</style><pre>line 1\n  line 2</pre><textarea>  draft\n text</textarea><input name=\"code\" value=\"  A  \"><svg viewBox=\"0 0 10 10\"><defs><linearGradient id=\"g\"></linearGradient><clipPath id=\"c\"></clipPath></defs></svg></main>",
             new HtmlNormalizationOptions {
                 UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile()
             });
@@ -893,6 +1109,9 @@ public partial class Html {
         Assert.DoesNotContain("file:///secret/escaped.png", normalized);
         Assert.DoesNotContain("file:///secret/escaped-function.png", normalized);
         Assert.DoesNotContain("file:///secret/hero.png", normalized);
+        Assert.DoesNotContain("file:///secret/escaped-hero.png", normalized);
+        Assert.Contains("https://example.test/images/commented-type.avif", normalized);
+        Assert.Contains("image/avif", normalized);
         Assert.Contains("line 1\n  line 2", normalized);
         Assert.Contains("  draft\n text", normalized);
         Assert.Contains("value=\"  A  \"", normalized);
@@ -911,6 +1130,27 @@ public partial class Html {
         Assert.Contains("href=\"mailto:ops@example.test\"", policyNormalized);
         Assert.DoesNotContain("src=\"mailto:ops@example.test\"", policyNormalized);
         Assert.DoesNotContain("file:///secret/page.html", policyNormalized);
+
+        string lazyPolicyNormalized = HtmlNormalizer.Normalize(
+            "<main><img data-lazy-src=\"file:///secret/lazy.png\" data-original-src=\"https://example.test/images/original.png\" data-lazy-srcset=\"file:///secret/lazy-1x.png 1x, https://example.test/images/lazy-2x.png 2x\"></main>",
+            new HtmlNormalizationOptions {
+                UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile()
+            });
+        Assert.DoesNotContain("file:///secret", lazyPolicyNormalized);
+        Assert.Contains("data-original-src=\"https://example.test/images/original.png\"", lazyPolicyNormalized);
+        Assert.Contains("data-lazy-srcset=\"https://example.test/images/lazy-2x.png 2x\"", lazyPolicyNormalized);
+
+        string metadataNormalized = HtmlNormalizer.Normalize(
+            "<main><div data-src=\"invoice-42\" data-original=\"batch-7\" data-lazy-srcset=\"not-a-resource\"></div><img data-src=\"file:///secret/lazy.png\" data-original=\"https://example.test/images/original.png\"></main>",
+            new HtmlNormalizationOptions {
+                BaseUri = new Uri("https://example.test/root/"),
+                UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile()
+            });
+        Assert.Contains("data-src=\"invoice-42\"", metadataNormalized);
+        Assert.Contains("data-original=\"batch-7\"", metadataNormalized);
+        Assert.Contains("data-lazy-srcset=\"not-a-resource\"", metadataNormalized);
+        Assert.DoesNotContain("file:///secret/lazy.png", metadataNormalized);
+        Assert.Contains("data-original=\"https://example.test/images/original.png\"", metadataNormalized);
 
         string refreshNormalized = HtmlNormalizer.Normalize(
             "<html><head><meta http-equiv=\"refresh\" content=\"0; url=javascript:alert(1)\"><meta http-equiv=\"refresh\" content=\"5; url='next.html'\"></head><body></body></html>",
@@ -967,6 +1207,11 @@ public partial class Html {
             "<main><form method=\"get\" enctype=\"application/x-www-form-urlencoded\"><input name=\"q\"></form></main>");
         Assert.Equal(1D, formDefaultScore.Metrics["form-state"], 3);
 
+        HtmlRoundTripScore emptyActionScore = HtmlRoundTripScorer.Compare(
+            "<main><form action=\"\"><input name=\"q\"></form></main>",
+            "<main><form><input name=\"q\"></form></main>");
+        Assert.Equal(1D, emptyActionScore.Metrics["form-state"], 3);
+
         HtmlRoundTripScore stylesheetHiddenTextScore = HtmlRoundTripScorer.Compare(
             "<main><style>.draft{display:none}.private{visibility:hidden}</style><p>Visible <span class=\"draft\">draft</span><span class=\"private\">internal</span></p></main>",
             "<main><p>Visible</p></main>");
@@ -977,6 +1222,11 @@ public partial class Html {
             "<main><p>Visible</p></main>");
         Assert.Equal(1D, hiddenParagraphScore.Metrics["nodes"], 3);
         Assert.Equal(1D, hiddenParagraphScore.Metrics["paragraphs"], 3);
+
+        HtmlRoundTripScore hiddenControlOwnerScore = HtmlRoundTripScorer.Compare(
+            "<main><style>.draft{display:none}</style><form id=\"f\"><input class=\"draft\" form=\"missing\" name=\"q\"></form></main>",
+            "<main><form id=\"f\"></form></main>");
+        Assert.Equal(1D, hiddenControlOwnerScore.Metrics["form-state"], 3);
 
         HtmlRoundTripScore visibilityHiddenParagraphScore = HtmlRoundTripScorer.Compare(
             "<main><style>.private{visibility:hidden}</style><p>Visible</p><p class=\"private\">Internal</p></main>",
@@ -1016,10 +1266,10 @@ public partial class Html {
         Assert.Equal(1D, pictureSelectionScore.Metrics["images"], 3);
         Assert.InRange(pictureSelectionScore.Metrics["image-sources"], 0D, 0.99D);
 
-        HtmlRoundTripScore inertPictureSourceSrcScore = HtmlRoundTripScorer.Compare(
+        HtmlRoundTripScore pictureSourceSrcScore = HtmlRoundTripScorer.Compare(
             "<main><picture><source src=\"unused.png\" data-src=\"unused-data.png\" srcset=\"wide.png\"><img src=\"small.png\"></picture></main>",
             "<main><picture><source srcset=\"wide.png\"><img src=\"small.png\"></picture></main>");
-        Assert.Equal(1D, inertPictureSourceSrcScore.Metrics["image-sources"], 3);
+        Assert.InRange(pictureSourceSrcScore.Metrics["image-sources"], 0D, 0.99D);
 
         HtmlRoundTripScore figcaptionWrapperScore = HtmlRoundTripScorer.Compare(
             "<main><figure><img src=\"chart.png\"><figcaption>Quarterly result</figcaption></figure></main>",
@@ -1126,7 +1376,12 @@ public partial class Html {
         HtmlRoundTripScore unresolvedFormOwnerScore = HtmlRoundTripScorer.Compare(
             "<main><input form=\"missing\" name=\"q\"></main>",
             "<main><input name=\"q\"></main>");
-        Assert.Equal(1D, unresolvedFormOwnerScore.Metrics["form-state"], 3);
+        Assert.InRange(unresolvedFormOwnerScore.Metrics["form-state"], 0D, 0.99D);
+
+        HtmlRoundTripScore invalidExplicitOwnerInsideFormScore = HtmlRoundTripScorer.Compare(
+            "<main><form id=\"f\"><input form=\"missing\" name=\"q\"></form></main>",
+            "<main><form id=\"f\"><input name=\"q\"></form></main>");
+        Assert.InRange(invalidExplicitOwnerInsideFormScore.Metrics["form-state"], 0D, 0.99D);
 
         HtmlRoundTripScore fieldsetDisabledScore = HtmlRoundTripScorer.Compare(
             "<main><form><fieldset disabled><input name=\"x\"></fieldset></form></main>",
@@ -1255,6 +1510,12 @@ public partial class Html {
             "<main><img src=\"https://example.test/b.png\" alt=\"Chart B\"></main>");
         Assert.Equal(1D, imageScore.Metrics["images"], 3);
         Assert.InRange(imageScore.Metrics["image-sources"], 0D, 0.99D);
+
+        HtmlRoundTripScore lazyImageScore = HtmlRoundTripScorer.Compare(
+            "<main><img data-original=\"https://example.test/chart.png\" data-lazy-srcset=\"https://example.test/chart.png 1x, https://example.test/chart@2x.png 2x\" alt=\"Chart\"></main>",
+            "<main><img alt=\"Chart\"></main>");
+        Assert.Equal(1D, lazyImageScore.Metrics["images"], 3);
+        Assert.InRange(lazyImageScore.Metrics["image-sources"], 0D, 0.99D);
 
         HtmlRoundTripScore resolvedImageScore = HtmlRoundTripScorer.Compare(
             "<html><head><base href=\"https://example.test/dir/\"></head><body><main><img src=\"chart.png\"></main></body></html>",

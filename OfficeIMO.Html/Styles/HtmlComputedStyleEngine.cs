@@ -1,6 +1,7 @@
 using AngleSharp.Css.Parser;
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
+using System.Globalization;
 
 namespace OfficeIMO.Html;
 
@@ -374,10 +375,7 @@ public static class HtmlComputedStyleEngine {
 
         if (feature.StartsWith("max-width", StringComparison.Ordinal)
             || feature.StartsWith("max-height", StringComparison.Ordinal)) {
-            return !feature.EndsWith(":0", StringComparison.Ordinal)
-                && !feature.EndsWith(": 0", StringComparison.Ordinal)
-                && feature.IndexOf(":0px", StringComparison.Ordinal) < 0
-                && feature.IndexOf(": 0px", StringComparison.Ordinal) < 0;
+            return !IsZeroMaxMediaLength(feature);
         }
 
         if (feature.StartsWith("min-width", StringComparison.Ordinal)
@@ -394,6 +392,63 @@ public static class HtmlComputedStyleEngine {
         }
 
         return false;
+    }
+
+    private static bool IsZeroMaxMediaLength(string feature) {
+        int colon = feature.IndexOf(':');
+        if (colon < 0) {
+            return false;
+        }
+
+        string value = feature.Substring(colon + 1).Trim();
+        if (value.Length == 0) {
+            return false;
+        }
+
+        int cursor = 0;
+        if (value[cursor] == '+' || value[cursor] == '-') {
+            cursor++;
+        }
+
+        bool hasDigit = false;
+        while (cursor < value.Length && char.IsDigit(value[cursor])) {
+            hasDigit = true;
+            cursor++;
+        }
+
+        if (cursor < value.Length && value[cursor] == '.') {
+            cursor++;
+            while (cursor < value.Length && char.IsDigit(value[cursor])) {
+                hasDigit = true;
+                cursor++;
+            }
+        }
+
+        if (!hasDigit) {
+            return false;
+        }
+
+        string number = value.Substring(0, cursor);
+        string unit = value.Substring(cursor).Trim();
+        if (!double.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
+            || Math.Abs(parsed) > double.Epsilon) {
+            return false;
+        }
+
+        return unit.Length == 0
+            || unit == "px"
+            || unit == "em"
+            || unit == "rem"
+            || unit == "vw"
+            || unit == "vh"
+            || unit == "vmin"
+            || unit == "vmax"
+            || unit == "cm"
+            || unit == "mm"
+            || unit == "q"
+            || unit == "in"
+            || unit == "pc"
+            || unit == "pt";
     }
 
 

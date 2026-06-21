@@ -60,6 +60,7 @@ public static class HtmlConversionDocumentBuilder {
         HtmlNormalizationOptions source = options.NormalizationOptions ?? new HtmlNormalizationOptions();
         normalization.BaseElementBaseUri = source.BaseElementBaseUri ?? source.BaseUri ?? options.BaseUri;
         normalization.UseBodyContentsOnly = false;
+        normalization.PreserveStyleElements = true;
         return normalization;
     }
 }

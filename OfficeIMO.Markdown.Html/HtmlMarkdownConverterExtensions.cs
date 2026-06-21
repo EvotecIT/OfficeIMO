@@ -26,7 +26,7 @@ public static class HtmlMarkdownConverterExtensions {
     /// <returns>The rendered Markdown text.</returns>
     public static string ToMarkdown(this HtmlConversionDocument document, HtmlToMarkdownOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        return document.HtmlForConversion.ToMarkdown(options);
+        return PrepareHtmlForSharedMarkdownConversion(document).ToMarkdown(options);
     }
 
     /// <summary>
@@ -60,7 +60,14 @@ public static class HtmlMarkdownConverterExtensions {
     /// <returns>A structural <see cref="MarkdownDoc"/> representing the converted Markdown.</returns>
     public static MarkdownDoc LoadFromHtml(this HtmlConversionDocument document, HtmlToMarkdownOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        return document.HtmlForConversion.LoadFromHtml(options);
+        return PrepareHtmlForSharedMarkdownConversion(document).LoadFromHtml(options);
+    }
+
+    private static string PrepareHtmlForSharedMarkdownConversion(HtmlConversionDocument document) {
+        HtmlCssMediaContext mediaContext = document.ProfileContract.Profile == HtmlConversionProfile.HighFidelityPrint
+            ? HtmlCssMediaContext.Print
+            : HtmlCssMediaContext.Screen;
+        return HtmlActiveMediaFilter.Filter(document.HtmlForConversion, mediaContext);
     }
 
     /// <summary>

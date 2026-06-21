@@ -248,7 +248,6 @@ public static class HtmlRoundTripScorer {
         var document = HtmlDocumentParser.ParseDocument(html);
         ResolveResourceSourceAttributes(document);
         SynthesizeImplicitSelectedOptions(document);
-        RemoveUnresolvedFormOwnerAttributes(document);
         PropagateFieldsetDisabledState(document);
         PruneHiddenStructure(document);
         return HtmlLogicalDocumentBuilder.FromDocument(document);
@@ -278,11 +277,16 @@ public static class HtmlRoundTripScorer {
             ResolveUrlAttribute(element, "formaction", baseUri, policy);
             ResolveUrlAttribute(element, "src", baseUri, policy);
             ResolveUrlAttribute(element, "data-src", baseUri, policy);
+            ResolveUrlAttribute(element, "data-original", baseUri, policy);
+            ResolveUrlAttribute(element, "data-original-src", baseUri, policy);
+            ResolveUrlAttribute(element, "data-lazy-src", baseUri, policy);
             ResolveUrlAttribute(element, "poster", baseUri, policy);
             ResolveUrlAttribute(element, "data-poster", baseUri, policy);
             ResolveUrlAttribute(element, "xlink:href", baseUri, policy);
             ResolveSrcSetAttribute(element, "srcset", baseUri, policy);
             ResolveSrcSetAttribute(element, "data-srcset", baseUri, policy);
+            ResolveSrcSetAttribute(element, "data-original-srcset", baseUri, policy);
+            ResolveSrcSetAttribute(element, "data-lazy-srcset", baseUri, policy);
         }
     }
 
@@ -325,8 +329,8 @@ public static class HtmlRoundTripScorer {
         var document = HtmlDocumentParser.ParseDocument(html);
         ResolveResourceSourceAttributes(document);
         SynthesizeImplicitSelectedOptions(document);
-        RemoveUnresolvedFormOwnerAttributes(document);
         PropagateFieldsetDisabledState(document);
+        PruneHiddenStructure(document);
         var signatures = new List<string>();
         foreach (var control in document.QuerySelectorAll("input,select,textarea,button")) {
             var parts = new List<string> {
@@ -378,17 +382,6 @@ public static class HtmlRoundTripScorer {
 
             AngleSharp.Dom.IElement? firstOption = select.QuerySelector("option");
             firstOption?.SetAttribute("selected", string.Empty);
-        }
-    }
-
-    private static void RemoveUnresolvedFormOwnerAttributes(AngleSharp.Html.Dom.IHtmlDocument document) {
-        foreach (var control in document.QuerySelectorAll("input[form],select[form],textarea[form],button[form],option[form]")) {
-            string? owner = control.GetAttribute("form");
-            if (string.IsNullOrWhiteSpace(owner) || HasFormWithId(document, owner!.Trim())) {
-                continue;
-            }
-
-            control.RemoveAttribute("form");
         }
     }
 
@@ -573,6 +566,14 @@ public static class HtmlRoundTripScorer {
     }
 
     private static void AddFormAttributePart(ICollection<string> parts, HtmlLogicalNode node, string attributeName) {
+        if (string.Equals(attributeName, "action", StringComparison.OrdinalIgnoreCase)) {
+            if (node.Attributes.TryGetValue(attributeName, out string? value) && !string.IsNullOrWhiteSpace(value)) {
+                parts.Add("action=" + value);
+            }
+
+            return;
+        }
+
         if (string.Equals(attributeName, "method", StringComparison.OrdinalIgnoreCase)) {
             parts.Add("method=" + GetEffectiveFormMethod(node.Attributes.TryGetValue(attributeName, out string? value) ? value : null));
             return;
@@ -733,21 +734,19 @@ public static class HtmlRoundTripScorer {
         var parts = new List<string> {
             node.Name
         };
-        bool isPictureSource = string.Equals(node.Name, "source", StringComparison.OrdinalIgnoreCase);
-        if (!isPictureSource) {
-            AddAttributePart(parts, node, "src");
-        }
-
+        AddAttributePart(parts, node, "src");
         AddAttributePart(parts, node, "href");
         AddAttributePart(parts, node, "xlink:href");
         AddAttributePart(parts, node, "srcset");
+        AddAttributePart(parts, node, "data-original-srcset");
+        AddAttributePart(parts, node, "data-lazy-srcset");
         AddAttributePart(parts, node, "media");
         AddAttributePart(parts, node, "type");
         AddAttributePart(parts, node, "sizes");
-        if (!isPictureSource) {
-            AddAttributePart(parts, node, "data-src");
-        }
-
+        AddAttributePart(parts, node, "data-src");
+        AddAttributePart(parts, node, "data-original");
+        AddAttributePart(parts, node, "data-original-src");
+        AddAttributePart(parts, node, "data-lazy-src");
         AddAttributePart(parts, node, "data-srcset");
         AddAttributePart(parts, node, "alt");
         return string.Join("|", parts);

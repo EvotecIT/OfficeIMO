@@ -23,10 +23,16 @@ public static class HtmlNormalizer {
         "script", "template"
     };
     private static readonly HashSet<string> UrlAttributes = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
-        "action", "background", "cite", "data-poster", "data-src", "formaction", "href", "poster", "src", "xlink:href"
+        "action", "background", "cite", "data-original", "data-original-src", "data-lazy-src", "data-poster", "data-src", "formaction", "href", "poster", "src", "xlink:href"
+    };
+    private static readonly HashSet<string> LazyUrlAttributes = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
+        "data-original", "data-original-src", "data-lazy-src", "data-poster", "data-src"
     };
     private static readonly HashSet<string> SrcSetAttributes = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
-        "data-srcset", "imagesrcset", "srcset"
+        "data-original-srcset", "data-lazy-srcset", "data-srcset", "imagesrcset", "srcset"
+    };
+    private static readonly HashSet<string> LazySrcSetAttributes = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
+        "data-original-srcset", "data-lazy-srcset", "data-srcset"
     };
     private static readonly char[] WhitespaceSeparators = { ' ', '\t', '\r', '\n', '\f' };
 
@@ -132,7 +138,7 @@ public static class HtmlNormalizer {
             }
 
             string value = NormalizeAttributeValue(element, name, attribute.Value, options, srcDocDepth);
-            if (IsUrlAttribute(element, name) || SrcSetAttributes.Contains(name)) {
+            if (IsUrlAttribute(element, name) || IsSrcSetAttribute(element, name)) {
                 if (string.IsNullOrWhiteSpace(value) && !ShouldPreserveEmptyUrlAttribute(element, name, attribute.Value)) {
                     continue;
                 }
@@ -157,7 +163,7 @@ public static class HtmlNormalizer {
             return NormalizeSrcDoc(value, options, srcDocDepth);
         }
 
-        if (SrcSetAttributes.Contains(name)) {
+        if (IsSrcSetAttribute(element, name)) {
             return HtmlImageSourceResolver.ResolveNormalizedSrcSet(value, options.BaseUri, GetResourceUrlPolicy(options.UrlPolicy));
         }
 
@@ -244,12 +250,57 @@ public static class HtmlNormalizer {
     }
 
     private static bool IsUrlAttribute(IElement element, string name) {
+        if (LazyUrlAttributes.Contains(name)) {
+            return IsLazyUrlElement(element, name);
+        }
+
         if (UrlAttributes.Contains(name)) {
             return true;
         }
 
         return string.Equals(name, "data", StringComparison.OrdinalIgnoreCase)
             && string.Equals(element.TagName, "object", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsSrcSetAttribute(IElement element, string name) {
+        if (!SrcSetAttributes.Contains(name)) {
+            return false;
+        }
+
+        if (LazySrcSetAttributes.Contains(name)) {
+            return IsImageSourceElement(element);
+        }
+
+        if (string.Equals(name, "imagesrcset", StringComparison.OrdinalIgnoreCase)) {
+            return string.Equals(element.TagName, "link", StringComparison.OrdinalIgnoreCase);
+        }
+
+        return IsImageSourceElement(element);
+    }
+
+    private static bool IsLazyUrlElement(IElement element, string name) {
+        string tagName = element.TagName.ToLowerInvariant();
+        if (string.Equals(name, "data-poster", StringComparison.OrdinalIgnoreCase)) {
+            return string.Equals(tagName, "video", StringComparison.OrdinalIgnoreCase);
+        }
+
+        if (string.Equals(name, "data-src", StringComparison.OrdinalIgnoreCase)
+            && (string.Equals(tagName, "video", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(tagName, "audio", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(tagName, "track", StringComparison.OrdinalIgnoreCase))) {
+            return true;
+        }
+
+        return IsImageSourceElement(element)
+            || (string.Equals(tagName, "input", StringComparison.OrdinalIgnoreCase)
+                && string.Equals((element.GetAttribute("type") ?? string.Empty).Trim(), "image", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static bool IsImageSourceElement(IElement element) {
+        string tagName = element.TagName.ToLowerInvariant();
+        return string.Equals(tagName, "img", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(tagName, "image", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(tagName, "source", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool ShouldPreserveEmptyUrlAttribute(IElement element, string name, string value) {
@@ -443,8 +494,9 @@ public static class HtmlNormalizer {
     private static bool TryReadCssImportValue(string css, int cursor, out int sourceStart, out int sourceEnd) {
         sourceStart = 0;
         sourceEnd = 0;
-        if (StartsWith(css, cursor, "url(")) {
-            cursor = SkipCssWhitespaceAndComments(css, cursor + 4);
+        if (IsCssFunctionNameAt(css, cursor, "url")) {
+            int open = css.IndexOf('(', cursor);
+            cursor = SkipCssWhitespaceAndComments(css, open + 1);
             if (cursor < css.Length && (css[cursor] == '"' || css[cursor] == '\'')) {
                 if (!TryReadCssQuotedValue(css, cursor, out _, out int end)) {
                     return false;
@@ -494,19 +546,13 @@ public static class HtmlNormalizer {
     private static void AddImageSetStringResourceReplacements(string css, Uri? baseUri, HtmlUrlPolicy policy, ICollection<CssReplacement> replacements) {
         int index = 0;
         while (index < css.Length) {
-            int imageSetIndex = css.IndexOf("image-set", index, StringComparison.OrdinalIgnoreCase);
-            if (imageSetIndex < 0) {
+            if (!TryFindNextCssFunction(css, index, out int functionStart, out int open, "image-set", "-webkit-image-set")) {
                 return;
             }
 
-            if (IsInsideCssString(css, imageSetIndex) || !IsImageSetFunction(css, imageSetIndex)) {
-                index = imageSetIndex + 9;
+            if (IsInsideCssString(css, functionStart)) {
+                index = open + 1;
                 continue;
-            }
-
-            int open = css.IndexOf('(', imageSetIndex);
-            if (open < 0) {
-                return;
             }
 
             int close = FindMatchingCssParenthesis(css, open);
@@ -575,47 +621,79 @@ public static class HtmlNormalizer {
         return index == 0 || !IsCssIdentifierCharacter(css[index - 1]);
     }
 
-    private static bool IsImageSetFunction(string css, int imageSetIndex) {
-        const string ImageSet = "image-set";
-        const string WebKitImageSet = "-webkit-image-set";
-        int functionStart = imageSetIndex;
-        int nameLength = ImageSet.Length;
-        int prefixedStart = imageSetIndex - (WebKitImageSet.Length - ImageSet.Length);
-        if (StartsWith(css, prefixedStart, WebKitImageSet)) {
-            functionStart = prefixedStart;
-            nameLength = WebKitImageSet.Length;
+    private static bool TryFindNextCssFunction(string css, int startIndex, out int functionStart, out int open, params string[] functionNames) {
+        for (open = css.IndexOf('(', Math.Max(0, startIndex)); open >= 0; open = css.IndexOf('(', open + 1)) {
+            int nameEnd = open;
+            int cursor = nameEnd - 1;
+            while (cursor >= 0 && char.IsWhiteSpace(css[cursor])) {
+                cursor--;
+            }
+
+            int trimmedEnd = cursor + 1;
+            while (cursor >= 0 && (IsCssIdentifierCharacter(css[cursor]) || css[cursor] == '\\')) {
+                cursor--;
+            }
+
+            int nameStart = cursor + 1;
+            if (nameStart >= trimmedEnd || (nameStart > 0 && IsCssIdentifierCharacter(css[nameStart - 1]))) {
+                continue;
+            }
+
+            string decodedName = DecodeCssEscapes(css.Substring(nameStart, trimmedEnd - nameStart));
+            foreach (string functionName in functionNames) {
+                if (string.Equals(decodedName, functionName, StringComparison.OrdinalIgnoreCase)) {
+                    functionStart = nameStart;
+                    return true;
+                }
+            }
         }
 
-        if (functionStart > 0 && IsCssIdentifierCharacter(css[functionStart - 1])) {
-            return false;
-        }
-
-        int afterName = functionStart + nameLength;
-        return afterName >= css.Length || !IsCssIdentifierCharacter(css[afterName]);
+        functionStart = -1;
+        open = -1;
+        return false;
     }
 
     private static bool IsCssTypeFunctionString(string css, int quoteIndex) {
         int cursor = quoteIndex - 1;
-        while (cursor >= 0 && char.IsWhiteSpace(css[cursor])) {
-            cursor--;
-        }
+        cursor = SkipCssWhitespaceAndCommentsBackward(css, cursor);
 
         if (cursor < 0 || css[cursor] != '(') {
             return false;
         }
 
         cursor--;
-        while (cursor >= 0 && char.IsWhiteSpace(css[cursor])) {
-            cursor--;
-        }
+        cursor = SkipCssWhitespaceAndCommentsBackward(css, cursor);
 
         int end = cursor + 1;
-        while (cursor >= 0 && (char.IsLetter(css[cursor]) || css[cursor] == '-')) {
+        while (cursor >= 0 && (IsCssIdentifierCharacter(css[cursor]) || css[cursor] == '\\')) {
             cursor--;
         }
 
         string functionName = css.Substring(cursor + 1, end - cursor - 1);
-        return string.Equals(functionName, "type", StringComparison.OrdinalIgnoreCase);
+        return string.Equals(DecodeCssEscapes(functionName), "type", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static int SkipCssWhitespaceAndCommentsBackward(string css, int cursor) {
+        while (cursor >= 0) {
+            if (char.IsWhiteSpace(css[cursor])) {
+                cursor--;
+                continue;
+            }
+
+            if (cursor > 0 && css[cursor - 1] == '*' && css[cursor] == '/') {
+                int commentStart = css.LastIndexOf("/*", cursor - 2, StringComparison.Ordinal);
+                if (commentStart < 0) {
+                    return cursor;
+                }
+
+                cursor = commentStart - 1;
+                continue;
+            }
+
+            break;
+        }
+
+        return cursor;
     }
 
     private static int FindMatchingCssParenthesis(string css, int open) {

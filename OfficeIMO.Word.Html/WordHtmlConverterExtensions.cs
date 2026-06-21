@@ -1,9 +1,5 @@
-using AngleSharp.Css.Dom;
-using AngleSharp.Css.Parser;
-using AngleSharp.Html.Dom;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Html;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -114,106 +110,11 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private static string PrepareHtmlForSharedWordConversion(HtmlConversionDocument document) {
-            return document.ProfileContract.Profile == HtmlConversionProfile.HighFidelityPrint
-                ? ExpandActiveMediaStyles(document.HtmlForConversion, HtmlCssMediaContext.Print)
-                : document.HtmlForConversion;
-        }
-
-        private static string ExpandActiveMediaStyles(string html, HtmlCssMediaContext mediaContext) {
-            try {
-                IHtmlDocument parsed = HtmlDocumentParser.ParseDocument(html);
-                bool changed = false;
-                foreach (IHtmlLinkElement linkElement in parsed.QuerySelectorAll("link").OfType<IHtmlLinkElement>()) {
-                    if (string.Equals(linkElement.Relation, "stylesheet", StringComparison.OrdinalIgnoreCase)
-                        && !HtmlComputedStyleEngine.IsApplicableMedia(linkElement.GetAttribute("media") ?? string.Empty, mediaContext)) {
-                        linkElement.Remove();
-                        changed = true;
-                    }
-                }
-
-                foreach (IHtmlStyleElement styleElement in parsed.QuerySelectorAll("style").OfType<IHtmlStyleElement>()) {
-                    if (!IsCssStyleElement(styleElement)
-                        || !HtmlComputedStyleEngine.IsApplicableMedia(styleElement.GetAttribute("media") ?? string.Empty, mediaContext)) {
-                        styleElement.Remove();
-                        changed = true;
-                        continue;
-                    }
-
-                    string expanded = ExpandActiveMediaStyleRules(styleElement.TextContent, mediaContext, out bool stylesheetChanged);
-                    if (stylesheetChanged) {
-                        styleElement.TextContent = expanded;
-                        changed = true;
-                    }
-                }
-
-                return changed && parsed.DocumentElement != null
-                    ? parsed.DocumentElement.OuterHtml
-                    : html;
-            } catch {
-                return html;
-            }
-        }
-
-        private static bool IsCssStyleElement(IHtmlStyleElement styleElement) {
-            string type = styleElement.GetAttribute("type") ?? string.Empty;
-            if (string.IsNullOrWhiteSpace(type)) {
-                return true;
-            }
-
-            string mediaType = type.Split(';')[0].Trim();
-            return string.Equals(mediaType, "text/css", StringComparison.OrdinalIgnoreCase);
-        }
-
-        private static string ExpandActiveMediaStyleRules(string css, HtmlCssMediaContext mediaContext, out bool changed) {
-            changed = false;
-            if (string.IsNullOrWhiteSpace(css)) {
-                return css;
-            }
-
-            try {
-                var parser = new CssParser();
-                var stylesheet = parser.ParseStyleSheet(css);
-                var builder = new StringBuilder();
-                foreach (ICssRule rule in stylesheet.Rules) {
-                    AppendActiveMediaStyleRule(builder, rule, mediaContext, ref changed);
-                }
-
-                return changed ? builder.ToString() : css;
-            } catch {
-                return css;
-            }
-        }
-
-        private static void AppendActiveMediaStyleRule(StringBuilder builder, ICssRule rule, HtmlCssMediaContext mediaContext, ref bool changed) {
-            if (rule is ICssStyleRule styleRule) {
-                builder.AppendLine(styleRule.CssText);
-                return;
-            }
-
-            if (rule is ICssMediaRule mediaRule) {
-                changed = true;
-                if (HtmlComputedStyleEngine.IsApplicableMedia(mediaRule.ConditionText, mediaContext)) {
-                    foreach (ICssRule childRule in mediaRule.Rules) {
-                        AppendActiveMediaStyleRule(builder, childRule, mediaContext, ref changed);
-                    }
-                }
-
-                return;
-            }
-
-            if (rule is ICssSupportsRule supportsRule) {
-                changed = true;
-                if (HtmlComputedStyleEngine.IsApplicableSupports(supportsRule.ConditionText)) {
-                    foreach (ICssRule childRule in supportsRule.Rules) {
-                        AppendActiveMediaStyleRule(builder, childRule, mediaContext, ref changed);
-                    }
-                }
-
-                return;
-            }
-
-            builder.AppendLine(rule.CssText);
+        internal static string PrepareHtmlForSharedWordConversion(HtmlConversionDocument document) {
+            HtmlCssMediaContext mediaContext = document.ProfileContract.Profile == HtmlConversionProfile.HighFidelityPrint
+                ? HtmlCssMediaContext.Print
+                : HtmlCssMediaContext.Screen;
+            return HtmlActiveMediaFilter.Filter(document.HtmlForConversion, mediaContext);
         }
 
         /// <summary>
