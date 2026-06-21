@@ -100,6 +100,11 @@ public static partial class MarkdownPdfConverterExtensions {
                 return false;
             }
 
+            if (chartKind == OfficeChartKind.Radar && HasUnsupportedRadarScaleVisibility(root)) {
+                warningMessage = "The Markdown Chart.js radar fence uses radial scale visibility settings that cannot be represented by the native PDF chart renderer and is rendered as a semantic code panel.";
+                return false;
+            }
+
             if (HasExplicitChartScaleBounds(root)) {
                 warningMessage = "The Markdown Chart.js fence uses explicit scale min/max bounds that cannot be preserved by the native PDF chart renderer and is rendered as a semantic code panel.";
                 return false;
@@ -115,6 +120,11 @@ public static partial class MarkdownPdfConverterExtensions {
             List<OfficeChartSeries> series = ReadSeries(dataElement, labels, chartKind, defaultConnectLine, defaultShowMarkers, horizontalIndexAxis);
             if (series.Count == 0) {
                 warningMessage = "The Markdown chart fence does not contain renderable chart series and is rendered as a semantic code panel.";
+                return false;
+            }
+
+            if (HasTranslucentChartColors(series)) {
+                warningMessage = "The Markdown Chart.js fence uses translucent colors that cannot be represented by the native PDF chart renderer and is rendered as a semantic code panel.";
                 return false;
             }
 
@@ -668,7 +678,7 @@ public static partial class MarkdownPdfConverterExtensions {
             dataLabelFontSize: 7D,
             maximumCategoryAxisLabels: 8,
             maximumHorizontalCategoryAxisLabels: 8,
-            showMarkers: (IsLineChart(chartKind) || chartKind == OfficeChartKind.Scatter) && HasVisibleMarkers(series),
+            showMarkers: (IsLineChart(chartKind) || chartKind == OfficeChartKind.Scatter || chartKind == OfficeChartKind.Radar) && HasVisibleMarkers(series),
             connectScatterPoints: connectScatterPoints,
             categoryAxisTitle: categoryAxisTitle,
             valueAxisTitle: valueAxisTitle,
@@ -753,7 +763,7 @@ public static partial class MarkdownPdfConverterExtensions {
             return null;
         }
 
-        if (ReadBool(title, "display") == false) {
+        if (ReadBool(title, "display") != true) {
             return null;
         }
 
@@ -771,6 +781,21 @@ public static partial class MarkdownPdfConverterExtensions {
         axis.Kind == MarkdownPdfJsonValueKind.Object &&
         ((TryGetProperty(axis, "min", out MarkdownPdfJsonValue min) && min.Kind != MarkdownPdfJsonValueKind.Null) ||
          (TryGetProperty(axis, "max", out MarkdownPdfJsonValue max) && max.Kind != MarkdownPdfJsonValueKind.Null));
+
+    private static bool HasUnsupportedRadarScaleVisibility(MarkdownPdfJsonValue root) {
+        if (!TryGetProperty(root, "options", out MarkdownPdfJsonValue options) ||
+            !TryGetProperty(options, "scales", out MarkdownPdfJsonValue scales) ||
+            !TryGetProperty(scales, "r", out MarkdownPdfJsonValue radialScale) ||
+            radialScale.Kind != MarkdownPdfJsonValueKind.Object) {
+            return false;
+        }
+
+        ChartScaleVisibility visibility = ReadChartScaleVisibility(root, "r");
+        return !visibility.ShowAxis ||
+               !visibility.ShowLine ||
+               !visibility.ShowLabels ||
+               !visibility.ShowGrid;
+    }
 
     private static bool ReadRenderedScaleGridDisplay(MarkdownPdfJsonValue root, OfficeChartKind chartKind) {
         ChartScaleVisibility xScale = ReadChartScaleVisibility(root, "x");
@@ -821,6 +846,34 @@ public static partial class MarkdownPdfConverterExtensions {
         return false;
     }
 
+    private static bool HasTranslucentChartColors(IReadOnlyList<OfficeChartSeries> series) {
+        for (int seriesIndex = 0; seriesIndex < series.Count; seriesIndex++) {
+            OfficeChartSeries item = series[seriesIndex];
+            if (IsTranslucentColor(item.Color) || HasTranslucentPointColor(item.PointColors)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool HasTranslucentPointColor(IReadOnlyList<OfficeColor?>? colors) {
+        if (colors == null) {
+            return false;
+        }
+
+        for (int i = 0; i < colors.Count; i++) {
+            if (IsTranslucentColor(colors[i])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsTranslucentColor(OfficeColor? color) =>
+        color.HasValue && color.Value.A < byte.MaxValue;
+
     private static List<string> ReadLabels(MarkdownPdfJsonValue dataElement) {
         var labels = new List<string>();
         if (!TryGetProperty(dataElement, "labels", out MarkdownPdfJsonValue labelElement) || labelElement.Kind != MarkdownPdfJsonValueKind.Array) {
@@ -844,6 +897,10 @@ public static partial class MarkdownPdfConverterExtensions {
         if (TryGetProperty(root, "options", out MarkdownPdfJsonValue options) &&
             TryGetProperty(options, "plugins", out MarkdownPdfJsonValue plugins) &&
             TryGetProperty(plugins, "title", out MarkdownPdfJsonValue titleElement)) {
+            if (titleElement.Kind == MarkdownPdfJsonValueKind.False || titleElement.Kind == MarkdownPdfJsonValueKind.Null) {
+                return null;
+            }
+
             if (titleElement.Kind == MarkdownPdfJsonValueKind.Object && TryGetProperty(titleElement, "text", out MarkdownPdfJsonValue textElement)) {
                 if (ReadBool(titleElement, "display") != true) {
                     return null;
@@ -1010,10 +1067,20 @@ public static partial class MarkdownPdfConverterExtensions {
 
     private static bool? ReadChartLegendDisplay(MarkdownPdfJsonValue root) {
         if (TryGetProperty(root, "options", out MarkdownPdfJsonValue options) &&
-            TryGetProperty(options, "plugins", out MarkdownPdfJsonValue plugins) &&
-            TryGetProperty(plugins, "legend", out MarkdownPdfJsonValue legend) &&
-            legend.Kind == MarkdownPdfJsonValueKind.Object) {
-            return ReadBool(legend, "display");
+            TryGetProperty(options, "plugins", out MarkdownPdfJsonValue plugins)) {
+            if (plugins.Kind == MarkdownPdfJsonValueKind.False) {
+                return false;
+            }
+
+            if (TryGetProperty(plugins, "legend", out MarkdownPdfJsonValue legend)) {
+                if (legend.Kind == MarkdownPdfJsonValueKind.False || legend.Kind == MarkdownPdfJsonValueKind.Null) {
+                    return false;
+                }
+
+                if (legend.Kind == MarkdownPdfJsonValueKind.Object) {
+                    return ReadBool(legend, "display");
+                }
+            }
         }
 
         return null;

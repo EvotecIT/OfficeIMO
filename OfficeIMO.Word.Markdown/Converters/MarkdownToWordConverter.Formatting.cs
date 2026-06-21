@@ -124,10 +124,10 @@ namespace OfficeIMO.Word.Markdown {
                     cell.Borders.RightColorHex = borderHex;
 
                     if (header && tableStyle.EmphasizeHeader) {
-                        cell.ShadingFillColorHex = palette.TableHeaderBackground.ToRgbHex();
-                        ApplyCellRunColor(cell, palette.TableHeaderText.ToRgbHex());
+                        ApplyCellFillColor(cell, palette.TableHeaderBackground);
+                        ApplyCellRunColor(cell, palette.TableHeaderText);
                     } else if (stripe) {
-                        cell.ShadingFillColorHex = palette.TableStripeBackground.ToRgbHex();
+                        ApplyCellFillColor(cell, palette.TableStripeBackground);
                     }
                 }
             }
@@ -154,7 +154,18 @@ namespace OfficeIMO.Word.Markdown {
         private static bool IsPositiveFinite(double value) =>
             !double.IsNaN(value) && !double.IsInfinity(value) && value > 0;
 
-        private static void ApplyCellRunColor(WordTableCell cell, string colorHex) {
+        private static void ApplyCellFillColor(WordTableCell cell, Omd.MarkdownColor color) {
+            if (color.A > 0) {
+                cell.ShadingFillColorHex = color.ToRgbHex();
+            }
+        }
+
+        private static void ApplyCellRunColor(WordTableCell cell, Omd.MarkdownColor color) {
+            if (color.A == 0) {
+                return;
+            }
+
+            string colorHex = color.ToRgbHex();
             foreach (var paragraph in cell.Paragraphs) {
                 foreach (var run in paragraph.GetRuns()) {
                     run.SetColorHex(colorHex);

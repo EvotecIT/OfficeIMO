@@ -124,6 +124,29 @@ Console.WriteLine("ready");
         }
 
         [Fact]
+        public void MarkdownToWord_SharedVisualTheme_TreatsTransparentTableFillsAsNoFill() {
+            MarkdownVisualTheme theme = MarkdownVisualTheme.Report()
+                .WithColors(
+                    tableHeaderBackground: "Transparent",
+                    tableHeaderText: "Transparent",
+                    tableStripeBackground: "#00000000")
+                .WithTable(table => table.UseRowStripes = true);
+            string md = """
+| Name | Value |
+| --- | --- |
+| First | 1 |
+| Second | 2 |
+""";
+
+            using var doc = md.LoadFromMarkdown(new MarkdownToWordOptions { Theme = theme });
+
+            var table = doc.Tables[0];
+            Assert.True(string.IsNullOrEmpty(table.Rows[0].Cells[0].ShadingFillColorHex));
+            Assert.DoesNotContain(table.Rows[0].Cells[0].Paragraphs.SelectMany(p => p.GetRuns()), run => string.Equals(run.ColorHex, "000000", System.StringComparison.OrdinalIgnoreCase));
+            Assert.True(string.IsNullOrEmpty(table.Rows[2].Cells[0].ShadingFillColorHex));
+        }
+
+        [Fact]
         public void WordToMarkdown_TableAlignmentMarkers() {
             using var doc = WordDocument.Create();
             var table = doc.AddTable(2, 3);
