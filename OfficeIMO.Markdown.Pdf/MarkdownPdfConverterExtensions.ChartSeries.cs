@@ -6,7 +6,7 @@ namespace OfficeIMO.Markdown.Pdf;
 /// First-party Markdown to PDF conversion helpers.
 /// </summary>
 public static partial class MarkdownPdfConverterExtensions {
-    private static List<OfficeChartSeries> ReadSeries(MarkdownPdfJsonValue dataElement, List<string> labels, OfficeChartKind chartKind, bool defaultConnectLine) {
+    private static List<OfficeChartSeries> ReadSeries(MarkdownPdfJsonValue dataElement, List<string> labels, OfficeChartKind chartKind, bool defaultConnectLine, bool horizontalBarChart = false) {
         var drafts = new List<MarkdownChartSeriesDraft>();
         var series = new List<OfficeChartSeries>();
         bool captureXValues = chartKind == OfficeChartKind.Scatter;
@@ -22,12 +22,12 @@ public static partial class MarkdownPdfConverterExtensions {
                     continue;
                 }
 
-                MarkdownChartSeriesValues seriesValues = ReadDataValues(dataset, captureXValues, captureCategoryLabels);
+                MarkdownChartSeriesValues seriesValues = ReadDataValues(dataset, captureXValues, captureCategoryLabels, horizontalBarChart);
                 if (seriesValues.Values.Count == 0) {
                     continue;
                 }
 
-                OfficeColor? color = ReadColor(dataset, "borderColor") ?? ReadColor(dataset, "backgroundColor");
+                OfficeColor? color = ReadSeriesColor(dataset, chartKind);
                 IReadOnlyList<OfficeColor?>? pointColors = ReadPointColors(dataset, "backgroundColor", seriesValues.Values.Count);
                 string name = ReadString(dataset, "label") ?? "Series " + (index + 1).ToString(CultureInfo.InvariantCulture);
                 bool connectLine = ReadBool(dataset, "showLine") ?? defaultConnectLine;
@@ -37,7 +37,7 @@ public static partial class MarkdownPdfConverterExtensions {
         }
 
         if (drafts.Count == 0 && TryGetProperty(dataElement, "values", out MarkdownPdfJsonValue valuesElement)) {
-            MarkdownChartSeriesValues values = ReadNumberArray(valuesElement, captureXValues, captureCategoryLabels);
+            MarkdownChartSeriesValues values = ReadNumberArray(valuesElement, captureXValues, captureCategoryLabels, horizontalBarChart);
             if (values.Values.Count > 0) {
                 drafts.Add(new MarkdownChartSeriesDraft("Values", values.Values, values.XValues, values.CategoryLabels, null, null, defaultConnectLine));
             }
@@ -198,15 +198,15 @@ public static partial class MarkdownPdfConverterExtensions {
         return -1;
     }
 
-    private static MarkdownChartSeriesValues ReadDataValues(MarkdownPdfJsonValue dataset, bool captureXValues, bool captureCategoryLabels) {
+    private static MarkdownChartSeriesValues ReadDataValues(MarkdownPdfJsonValue dataset, bool captureXValues, bool captureCategoryLabels, bool horizontalBarChart) {
         if (!TryGetProperty(dataset, "data", out MarkdownPdfJsonValue data)) {
             return new MarkdownChartSeriesValues(new List<double>(), null, null);
         }
 
-        return ReadNumberArray(data, captureXValues, captureCategoryLabels);
+        return ReadNumberArray(data, captureXValues, captureCategoryLabels, horizontalBarChart);
     }
 
-    private static MarkdownChartSeriesValues ReadNumberArray(MarkdownPdfJsonValue element, bool captureXValues, bool captureCategoryLabels) {
+    private static MarkdownChartSeriesValues ReadNumberArray(MarkdownPdfJsonValue element, bool captureXValues, bool captureCategoryLabels, bool horizontalBarChart = false) {
         var values = new List<double>();
         List<double>? xValues = captureXValues ? new List<double>() : null;
         List<string?>? categoryLabels = captureCategoryLabels ? new List<string?>() : null;
@@ -247,15 +247,19 @@ public static partial class MarkdownPdfConverterExtensions {
                 bool hasX = TryGetProperty(item, "x", out MarkdownPdfJsonValue x);
                 if (hasY || hasX) {
                     hasPoint = true;
-                    if (hasY && TryReadNumber(y, out double parsedY)) {
+                    MarkdownPdfJsonValue valueElement = horizontalBarChart ? x : y;
+                    MarkdownPdfJsonValue categoryElement = horizontalBarChart ? y : x;
+                    bool hasValue = horizontalBarChart ? hasX : hasY;
+                    bool hasCategory = horizontalBarChart ? hasY : hasX;
+                    if (hasValue && TryReadNumber(valueElement, out double parsedY)) {
                         yValue = parsedY;
                     }
 
-                    if (hasX) {
+                    if (hasCategory) {
                         hasExplicitXValue = true;
-                        categoryLabel = x.ReadScalarAsText();
+                        categoryLabel = categoryElement.ReadScalarAsText();
                         hasExplicitCategoryLabel |= !string.IsNullOrWhiteSpace(categoryLabel);
-                        if (TryReadNumber(x, out double parsedX)) {
+                        if (TryReadNumber(categoryElement, out double parsedX)) {
                             xValue = parsedX;
                         }
                     }
@@ -354,18 +358,39 @@ public static partial class MarkdownPdfConverterExtensions {
         }
     }
 
+    private static OfficeColor? ReadSeriesColor(MarkdownPdfJsonValue dataset, OfficeChartKind chartKind) {
+        if (UsesFilledSeriesColor(chartKind)) {
+            return ReadColor(dataset, "backgroundColor") ?? ReadColor(dataset, "borderColor");
+        }
+
+        return ReadColor(dataset, "borderColor") ?? ReadColor(dataset, "backgroundColor");
+    }
+
+    private static bool UsesFilledSeriesColor(OfficeChartKind chartKind) =>
+        chartKind == OfficeChartKind.BarClustered ||
+        chartKind == OfficeChartKind.BarStacked ||
+        chartKind == OfficeChartKind.BarStacked100 ||
+        chartKind == OfficeChartKind.ColumnClustered ||
+        chartKind == OfficeChartKind.ColumnStacked ||
+        chartKind == OfficeChartKind.ColumnStacked100 ||
+        chartKind == OfficeChartKind.Pie ||
+        chartKind == OfficeChartKind.Doughnut ||
+        chartKind == OfficeChartKind.Area ||
+        chartKind == OfficeChartKind.AreaStacked ||
+        chartKind == OfficeChartKind.AreaStacked100;
+
     private static OfficeColor? ReadColor(MarkdownPdfJsonValue element, string propertyName) {
         if (!TryGetProperty(element, propertyName, out MarkdownPdfJsonValue colorElement)) {
             return null;
         }
 
-        if (colorElement.Kind == MarkdownPdfJsonValueKind.String && OfficeColor.TryParse(colorElement.StringValue, out OfficeColor color)) {
+        if (colorElement.Kind == MarkdownPdfJsonValueKind.String && TryParseChartColor(colorElement.StringValue, out OfficeColor color)) {
             return color;
         }
 
         if (colorElement.Kind == MarkdownPdfJsonValueKind.Array) {
             foreach (MarkdownPdfJsonValue item in colorElement.ArrayValues) {
-                if (item.Kind == MarkdownPdfJsonValueKind.String && OfficeColor.TryParse(item.StringValue, out color)) {
+                if (item.Kind == MarkdownPdfJsonValueKind.String && TryParseChartColor(item.StringValue, out color)) {
                     return color;
                 }
             }
@@ -381,7 +406,7 @@ public static partial class MarkdownPdfConverterExtensions {
 
         var colors = new List<OfficeColor?>();
         foreach (MarkdownPdfJsonValue item in colorElement.ArrayValues) {
-            colors.Add(item.Kind == MarkdownPdfJsonValueKind.String && OfficeColor.TryParse(item.StringValue, out OfficeColor color) ? color : null);
+            colors.Add(item.Kind == MarkdownPdfJsonValueKind.String && TryParseChartColor(item.StringValue, out OfficeColor color) ? color : null);
         }
 
         if (colors.Count == 0) {
@@ -397,6 +422,97 @@ public static partial class MarkdownPdfConverterExtensions {
         }
 
         return colors;
+    }
+
+    private static bool TryParseChartColor(string? value, out OfficeColor color) {
+        if (OfficeColor.TryParse(value, out color)) {
+            return true;
+        }
+
+        return TryParseCssRgbColor(value, out color);
+    }
+
+    private static bool TryParseCssRgbColor(string? value, out OfficeColor color) {
+        color = default;
+        if (string.IsNullOrWhiteSpace(value)) {
+            return false;
+        }
+
+        string trimmed = value!.Trim();
+        bool rgba = trimmed.StartsWith("rgba(", StringComparison.OrdinalIgnoreCase);
+        bool rgb = trimmed.StartsWith("rgb(", StringComparison.OrdinalIgnoreCase);
+        if (!rgba && !rgb) {
+            return false;
+        }
+
+        int open = trimmed.IndexOf('(');
+        int close = trimmed.LastIndexOf(')');
+        if (open < 0 || close <= open) {
+            return false;
+        }
+
+        string[] parts = trimmed.Substring(open + 1, close - open - 1).Split(',');
+        if ((!rgba && parts.Length != 3) || (rgba && parts.Length != 4)) {
+            return false;
+        }
+
+        if (!TryParseCssColorByte(parts[0], out byte red) ||
+            !TryParseCssColorByte(parts[1], out byte green) ||
+            !TryParseCssColorByte(parts[2], out byte blue)) {
+            return false;
+        }
+
+        byte alpha = 255;
+        if (rgba && !TryParseCssAlphaByte(parts[3], out alpha)) {
+            return false;
+        }
+
+        color = OfficeColor.FromRgba(red, green, blue, alpha);
+        return true;
+    }
+
+    private static bool TryParseCssColorByte(string value, out byte component) {
+        component = 0;
+        string trimmed = value.Trim();
+        bool percent = trimmed.EndsWith("%", StringComparison.Ordinal);
+        if (percent) {
+            trimmed = trimmed.Substring(0, trimmed.Length - 1);
+        }
+
+        if (!double.TryParse(trimmed, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed) ||
+            double.IsNaN(parsed) ||
+            double.IsInfinity(parsed)) {
+            return false;
+        }
+
+        if (percent) {
+            parsed = parsed * 255D / 100D;
+        }
+
+        component = (byte)Math.Max(0D, Math.Min(255D, Math.Round(parsed, MidpointRounding.AwayFromZero)));
+        return true;
+    }
+
+    private static bool TryParseCssAlphaByte(string value, out byte alpha) {
+        alpha = 255;
+        string trimmed = value.Trim();
+        bool percent = trimmed.EndsWith("%", StringComparison.Ordinal);
+        if (percent) {
+            trimmed = trimmed.Substring(0, trimmed.Length - 1);
+        }
+
+        if (!double.TryParse(trimmed, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed) ||
+            double.IsNaN(parsed) ||
+            double.IsInfinity(parsed)) {
+            return false;
+        }
+
+        if (percent) {
+            parsed /= 100D;
+        }
+
+        alpha = (byte)Math.Max(0D, Math.Min(255D, Math.Round(parsed * 255D, MidpointRounding.AwayFromZero)));
+        return true;
     }
 
     private sealed class MarkdownChartSeriesValues {

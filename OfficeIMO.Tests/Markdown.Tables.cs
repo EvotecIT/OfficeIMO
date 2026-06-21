@@ -92,6 +92,22 @@ Narrative body text.
         }
 
         [Fact]
+        public void MarkdownToWord_SharedVisualTheme_TreatsTransparentCodeBackgroundAsNoFill() {
+            MarkdownVisualTheme theme = MarkdownVisualTheme.Report()
+                .WithColors(codeBackground: "Transparent");
+            string md = """
+```csharp
+Console.WriteLine("ready");
+```
+""";
+
+            using var doc = md.LoadFromMarkdown(new MarkdownToWordOptions { Theme = theme });
+
+            var codeParagraph = doc.Paragraphs.First(p => p.Text.Contains("Console.WriteLine", System.StringComparison.Ordinal));
+            Assert.True(string.IsNullOrEmpty(codeParagraph.ShadingFillColorHex));
+        }
+
+        [Fact]
         public void WordToMarkdown_TableAlignmentMarkers() {
             using var doc = WordDocument.Create();
             var table = doc.AddTable(2, 3);

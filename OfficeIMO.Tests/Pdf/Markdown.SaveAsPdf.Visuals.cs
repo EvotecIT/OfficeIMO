@@ -266,6 +266,30 @@ _Figure 2. Revenue chart_
     }
 
     [Fact]
+    public void ToPdfDocument_MarkdownChartFence_ReadsHorizontalBarObjectValuesFromX() {
+        var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "bar",
+  "options": { "indexAxis": "y" },
+  "data": {
+    "datasets": [
+      { "label": "Items", "data": [
+        { "x": 10, "y": "Backlog" },
+        { "x": 14, "y": "Done" }
+      ] }
+    ]
+  }
+}
+""");
+
+        bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
+
+        Assert.True(created, warning);
+        Assert.Equal(new[] { "Backlog", "Done" }, snapshot!.Data.Categories);
+        Assert.Equal(new[] { 10D, 14D }, Assert.Single(snapshot.Data.Series).Values);
+    }
+
+    [Fact]
     public void ToPdfDocument_MarkdownChartFence_WarnsForMixedChartJsDatasetTypes() {
         var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
 {
@@ -313,6 +337,34 @@ _Figure 2. Revenue chart_
         Assert.False(created);
         Assert.Null(snapshot);
         Assert.Contains("separate stack groups", warning, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ToPdfDocument_MarkdownChartFence_WarnsForSecondaryChartJsAxes() {
+        var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "bar",
+  "data": {
+    "labels": ["Q1"],
+    "datasets": [
+      { "label": "Revenue", "data": [100], "yAxisID": "y" },
+      { "label": "Margin", "data": [42], "yAxisID": "y1" }
+    ]
+  },
+  "options": {
+    "scales": {
+      "y": { "type": "linear" },
+      "y1": { "type": "linear" }
+    }
+  }
+}
+""");
+
+        bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
+
+        Assert.False(created);
+        Assert.Null(snapshot);
+        Assert.Contains("secondary dataset axes", warning, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -425,6 +477,32 @@ _Figure 2. Revenue chart_
         Assert.False(created);
         Assert.Null(snapshot);
         Assert.Contains("scale min/max", warning, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ToPdfDocument_MarkdownChartFence_WarnsForUnsupportedChartJsScaleTypes() {
+        var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "bar",
+  "options": {
+    "scales": {
+      "y": { "type": "logarithmic" }
+    }
+  },
+  "data": {
+    "labels": ["Q1"],
+    "datasets": [
+      { "label": "Actual", "data": [10] }
+    ]
+  }
+}
+""");
+
+        bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
+
+        Assert.False(created);
+        Assert.Null(snapshot);
+        Assert.Contains("scale types", warning, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1117,6 +1195,30 @@ _Figure 2. Revenue chart_
     }
 
     [Fact]
+    public void ToPdfDocument_MarkdownDoughnutChartFence_WarnsForCustomChartJsCutout() {
+        var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "doughnut",
+  "options": {
+    "cutout": "70%"
+  },
+  "data": {
+    "labels": ["Passed", "Failed"],
+    "datasets": [
+      { "label": "Status", "data": [8, 2] }
+    ]
+  }
+}
+""");
+
+        bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
+
+        Assert.False(created);
+        Assert.Null(snapshot);
+        Assert.Contains("custom cutout", warning, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ToPdfDocument_MarkdownChartFence_SkipsHiddenChartJsDatasets() {
         var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
 {
@@ -1137,6 +1239,35 @@ _Figure 2. Revenue chart_
         OfficeChartSeries series = Assert.Single(snapshot!.Data.Series);
         Assert.Equal("Visible", series.Name);
         Assert.Equal(2D, Assert.Single(series.Values));
+    }
+
+    [Fact]
+    public void ToPdfDocument_MarkdownChartFence_UsesCssBackgroundColorForFilledSeries() {
+        var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "bar",
+  "data": {
+    "labels": ["Q1"],
+    "datasets": [
+      {
+        "label": "Actual",
+        "data": [10],
+        "backgroundColor": "rgba(54, 162, 235, 0.2)",
+        "borderColor": "#111111"
+      }
+    ]
+  }
+}
+""");
+
+        bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
+
+        Assert.True(created, warning);
+        OfficeColor color = Assert.Single(snapshot!.Data.Series).Color!.Value;
+        Assert.Equal(54, color.R);
+        Assert.Equal(162, color.G);
+        Assert.Equal(235, color.B);
+        Assert.Equal(51, color.A);
     }
 
     [Fact]

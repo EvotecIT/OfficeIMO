@@ -37,7 +37,10 @@ namespace OfficeIMO.Word.Markdown {
 
         private static void ApplyCodeTheme(WordParagraph paragraph, MarkdownToWordOptions options) {
             Omd.MarkdownVisualPalette palette = ResolveTheme(options).PaletteSnapshot;
-            paragraph.ShadingFillColorHex = palette.CodeBackground.ToRgbHex();
+            if (palette.CodeBackground.A > 0) {
+                paragraph.ShadingFillColorHex = palette.CodeBackground.ToRgbHex();
+            }
+
             paragraph.Borders.LeftStyle = BorderValues.Single;
             paragraph.Borders.LeftColorHex = palette.Border.ToRgbHex();
             paragraph.Borders.LeftSize = 4;

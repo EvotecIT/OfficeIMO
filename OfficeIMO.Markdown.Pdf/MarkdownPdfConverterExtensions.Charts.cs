@@ -63,7 +63,22 @@ public static partial class MarkdownPdfConverterExtensions {
                 return false;
             }
 
-            bool horizontalIndexAxis = UsesHorizontalIndexAxis(root);
+            if (HasUnsupportedSecondaryAxes(dataElement)) {
+                warningMessage = "The Markdown Chart.js fence uses secondary dataset axes that cannot be represented by the native PDF chart renderer and is rendered as a semantic code panel.";
+                return false;
+            }
+
+            if (HasUnsupportedScaleTypes(root)) {
+                warningMessage = "The Markdown Chart.js fence uses non-linear or otherwise unsupported scale types that cannot be represented by the native PDF chart renderer and is rendered as a semantic code panel.";
+                return false;
+            }
+
+            if (HasUnsupportedDoughnutCutout(root, type)) {
+                warningMessage = "The Markdown Chart.js doughnut fence uses a custom cutout that cannot be represented by the native PDF chart renderer and is rendered as a semantic code panel.";
+                return false;
+            }
+
+            bool horizontalIndexAxis = UsesHorizontalIndexAxis(root) || UsesHorizontalBarType(type);
             bool stackedScale = UsesStackedScale(root);
             if (stackedScale && HasUnsupportedChartJsStackGroups(dataElement)) {
                 warningMessage = "The Markdown Chart.js fence uses separate stack groups that cannot be rendered as one native Office stacked chart and is rendered as a semantic code panel.";
@@ -91,7 +106,7 @@ public static partial class MarkdownPdfConverterExtensions {
 
             List<string> labels = ReadLabels(dataElement);
             bool defaultConnectLine = chartKind != OfficeChartKind.Scatter || ReadChartShowLine(root) == true;
-            List<OfficeChartSeries> series = ReadSeries(dataElement, labels, chartKind, defaultConnectLine);
+            List<OfficeChartSeries> series = ReadSeries(dataElement, labels, chartKind, defaultConnectLine, horizontalIndexAxis);
             if (series.Count == 0) {
                 warningMessage = "The Markdown chart fence does not contain renderable chart series and is rendered as a semantic code panel.";
                 return false;
@@ -233,6 +248,76 @@ public static partial class MarkdownPdfConverterExtensions {
 
         return (string.Equals(first, "doughnut", StringComparison.Ordinal) && string.Equals(second, "donut", StringComparison.Ordinal)) ||
                (string.Equals(first, "donut", StringComparison.Ordinal) && string.Equals(second, "doughnut", StringComparison.Ordinal));
+    }
+
+    private static bool HasUnsupportedSecondaryAxes(MarkdownPdfJsonValue dataElement) {
+        if (!TryGetProperty(dataElement, "datasets", out MarkdownPdfJsonValue datasets) || datasets.Kind != MarkdownPdfJsonValueKind.Array) {
+            return false;
+        }
+
+        for (int i = 0; i < datasets.ArrayValues.Count; i++) {
+            MarkdownPdfJsonValue dataset = datasets.ArrayValues[i];
+            if (dataset.Kind != MarkdownPdfJsonValueKind.Object || ReadBool(dataset, "hidden") == true) {
+                continue;
+            }
+
+            if (HasUnsupportedAxisId(dataset, "xAxisID", "x") ||
+                HasUnsupportedAxisId(dataset, "yAxisID", "y")) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool HasUnsupportedAxisId(MarkdownPdfJsonValue dataset, string propertyName, string defaultAxisId) {
+        string? axisId = ReadString(dataset, propertyName);
+        return !string.IsNullOrWhiteSpace(axisId) &&
+               !string.Equals(axisId!.Trim(), defaultAxisId, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool HasUnsupportedScaleTypes(MarkdownPdfJsonValue root) {
+        if (!TryGetProperty(root, "options", out MarkdownPdfJsonValue options) ||
+            !TryGetProperty(options, "scales", out MarkdownPdfJsonValue scales) ||
+            scales.Kind != MarkdownPdfJsonValueKind.Object) {
+            return false;
+        }
+
+        foreach (KeyValuePair<string, MarkdownPdfJsonValue> scale in scales.ObjectValues) {
+            if (scale.Value.Kind != MarkdownPdfJsonValueKind.Object ||
+                !TryGetProperty(scale.Value, "type", out MarkdownPdfJsonValue typeElement) ||
+                typeElement.Kind == MarkdownPdfJsonValueKind.Null) {
+                continue;
+            }
+
+            string? type = typeElement.ReadScalarAsText();
+            if (string.IsNullOrWhiteSpace(type)) {
+                continue;
+            }
+
+            string normalized = NormalizeChartType(type);
+            if (string.Equals(normalized, "linear", StringComparison.Ordinal) ||
+                string.Equals(normalized, "category", StringComparison.Ordinal) ||
+                string.Equals(normalized, "radiallinear", StringComparison.Ordinal)) {
+                continue;
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool HasUnsupportedDoughnutCutout(MarkdownPdfJsonValue root, string type) {
+        string normalized = NormalizeChartType(type);
+        if (!string.Equals(normalized, "doughnut", StringComparison.Ordinal) &&
+            !string.Equals(normalized, "donut", StringComparison.Ordinal)) {
+            return false;
+        }
+
+        return TryGetProperty(root, "options", out MarkdownPdfJsonValue options) &&
+               ((TryGetProperty(options, "cutout", out MarkdownPdfJsonValue cutout) && cutout.Kind != MarkdownPdfJsonValueKind.Null) ||
+                (TryGetProperty(options, "cutoutPercentage", out MarkdownPdfJsonValue cutoutPercentage) && cutoutPercentage.Kind != MarkdownPdfJsonValueKind.Null));
     }
 
     private static bool HasUnsupportedChartJsStackGroups(MarkdownPdfJsonValue dataElement) {
@@ -671,6 +756,12 @@ public static partial class MarkdownPdfConverterExtensions {
     private static bool UsesHorizontalIndexAxis(MarkdownPdfJsonValue root) =>
         TryGetProperty(root, "options", out MarkdownPdfJsonValue options) &&
         string.Equals(ReadString(options, "indexAxis"), "y", StringComparison.OrdinalIgnoreCase);
+
+    private static bool UsesHorizontalBarType(string? type) {
+        string normalized = NormalizeChartType(type);
+        return string.Equals(normalized, "horizontalbar", StringComparison.Ordinal) ||
+               string.Equals(normalized, "barhorizontal", StringComparison.Ordinal);
+    }
 
     private static bool UsesStackedScale(MarkdownPdfJsonValue root) =>
         TryGetProperty(root, "options", out MarkdownPdfJsonValue options) &&

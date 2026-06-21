@@ -37,6 +37,13 @@ internal sealed class MarkdownPdfJsonValue {
         ? _arrayValues
         : System.Array.Empty<MarkdownPdfJsonValue>();
 
+    public IReadOnlyDictionary<string, MarkdownPdfJsonValue> ObjectValues => _objectValues != null
+        ? _objectValues
+        : EmptyObjectValues;
+
+    private static readonly IReadOnlyDictionary<string, MarkdownPdfJsonValue> EmptyObjectValues =
+        new Dictionary<string, MarkdownPdfJsonValue>();
+
     public static MarkdownPdfJsonValue Parse(string json) {
         var parser = new Parser(json);
         return parser.ParseRoot();
