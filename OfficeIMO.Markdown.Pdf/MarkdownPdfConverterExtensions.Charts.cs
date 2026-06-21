@@ -84,14 +84,21 @@ public static partial class MarkdownPdfConverterExtensions {
             }
 
             bool horizontalIndexAxis = UsesHorizontalIndexAxis(root) || UsesHorizontalBarType(type);
+            if (horizontalIndexAxis && IsLineFamilyType(type)) {
+                warningMessage = "The Markdown Chart.js fence uses a vertical line orientation that cannot be represented by the native PDF chart renderer and is rendered as a semantic code panel.";
+                return false;
+            }
+
             bool stackedScale = UsesStackedScale(root);
             if (stackedScale && HasUnsupportedChartJsStackGroups(dataElement)) {
                 warningMessage = "The Markdown Chart.js fence uses separate stack groups that cannot be rendered as one native Office stacked chart and is rendered as a semantic code panel.";
                 return false;
             }
 
-            if (!TryResolveFilledLineChart(dataElement, type, out bool filledLineChart)) {
-                warningMessage = "The Markdown Chart.js fence mixes filled and unfilled visible line datasets that cannot be rendered as one native Office chart and is rendered as a semantic code panel.";
+            if (!TryResolveFilledLineChart(root, dataElement, type, out bool filledLineChart, out bool unsupportedLineFillMode)) {
+                warningMessage = unsupportedLineFillMode
+                    ? "The Markdown Chart.js fence uses line fill targets that cannot be represented by the native PDF chart renderer and is rendered as a semantic code panel."
+                    : "The Markdown Chart.js fence mixes filled and unfilled visible line datasets that cannot be rendered as one native Office chart and is rendered as a semantic code panel.";
                 return false;
             }
 
@@ -102,6 +109,11 @@ public static partial class MarkdownPdfConverterExtensions {
 
             if (HasUnsupportedLineInterpolation(root, dataElement, type)) {
                 warningMessage = "The Markdown Chart.js fence uses stepped or curved line interpolation that cannot be represented by the native PDF chart renderer and is rendered as a semantic code panel.";
+                return false;
+            }
+
+            if (HasUnsupportedLineDash(root, dataElement, type)) {
+                warningMessage = "The Markdown Chart.js fence uses dashed line styles that cannot be represented by the native PDF chart renderer and is rendered as a semantic code panel.";
                 return false;
             }
 
@@ -125,6 +137,11 @@ public static partial class MarkdownPdfConverterExtensions {
                 return false;
             }
 
+            if (HasUnsupportedBarBase(dataElement, chartKind)) {
+                warningMessage = "The Markdown Chart.js bar fence uses custom bar baselines that cannot be represented by the native PDF chart renderer and is rendered as a semantic code panel.";
+                return false;
+            }
+
             bool fillRadarSeries = true;
             if (chartKind == OfficeChartKind.Radar && !TryResolveRadarFill(dataElement, out fillRadarSeries)) {
                 warningMessage = "The Markdown Chart.js radar fence mixes filled and unfilled visible datasets that cannot be rendered as one native PDF radar chart and is rendered as a semantic code panel.";
@@ -132,7 +149,7 @@ public static partial class MarkdownPdfConverterExtensions {
             }
 
             if (HasExplicitChartScaleBounds(root)) {
-                warningMessage = "The Markdown Chart.js fence uses explicit scale min/max bounds that cannot be preserved by the native PDF chart renderer and is rendered as a semantic code panel.";
+                warningMessage = "The Markdown Chart.js fence uses explicit scale min/max or suggested bounds that cannot be preserved by the native PDF chart renderer and is rendered as a semantic code panel.";
                 return false;
             }
 
@@ -385,8 +402,9 @@ public static partial class MarkdownPdfConverterExtensions {
         return hasExplicitStack && visibleDatasetCount > 1 && stackGroups.Count > 1;
     }
 
-    private static bool TryResolveFilledLineChart(MarkdownPdfJsonValue dataElement, string rootType, out bool filledLineChart) {
+    private static bool TryResolveFilledLineChart(MarkdownPdfJsonValue root, MarkdownPdfJsonValue dataElement, string rootType, out bool filledLineChart, out bool unsupportedFillMode) {
         filledLineChart = false;
+        unsupportedFillMode = false;
         if (!string.Equals(NormalizeChartType(rootType), "line", StringComparison.Ordinal)) {
             return true;
         }
@@ -402,7 +420,12 @@ public static partial class MarkdownPdfConverterExtensions {
                 continue;
             }
 
-            if (ReadChartJsFill(dataset)) {
+            if (!TryResolveChartJsLineFill(root, dataset, out bool fill)) {
+                unsupportedFillMode = true;
+                return false;
+            }
+
+            if (fill) {
                 hasFilled = true;
             } else {
                 hasUnfilled = true;
@@ -418,7 +441,7 @@ public static partial class MarkdownPdfConverterExtensions {
     }
 
     private static bool HasUnsupportedLineInterpolation(MarkdownPdfJsonValue root, MarkdownPdfJsonValue dataElement, string rootType) {
-        if (!IsLineFamilyType(rootType)) {
+        if (!HasVisibleLineSegments(root, dataElement, rootType)) {
             return false;
         }
 
@@ -428,6 +451,13 @@ public static partial class MarkdownPdfConverterExtensions {
 
         if (TryGetProperty(root, "options", out MarkdownPdfJsonValue options)) {
             if (HasUnsupportedLineInterpolation(options)) {
+                return true;
+            }
+
+            if (TryGetProperty(options, "datasets", out MarkdownPdfJsonValue datasetOptions) &&
+                TryGetProperty(datasetOptions, "line", out MarkdownPdfJsonValue lineDatasetOptions) &&
+                lineDatasetOptions.Kind == MarkdownPdfJsonValueKind.Object &&
+                HasUnsupportedLineInterpolation(lineDatasetOptions)) {
                 return true;
             }
 
@@ -456,6 +486,57 @@ public static partial class MarkdownPdfConverterExtensions {
         return false;
     }
 
+    private static bool HasUnsupportedLineDash(MarkdownPdfJsonValue root, MarkdownPdfJsonValue dataElement, string rootType) {
+        if (!HasVisibleLineSegments(root, dataElement, rootType)) {
+            return false;
+        }
+
+        if (HasNonEmptyBorderDash(root)) {
+            return true;
+        }
+
+        if (TryGetProperty(root, "options", out MarkdownPdfJsonValue options)) {
+            if (HasNonEmptyBorderDash(options)) {
+                return true;
+            }
+
+            if (TryGetProperty(options, "datasets", out MarkdownPdfJsonValue datasetOptions) &&
+                TryGetProperty(datasetOptions, "line", out MarkdownPdfJsonValue lineDatasetOptions) &&
+                lineDatasetOptions.Kind == MarkdownPdfJsonValueKind.Object &&
+                HasNonEmptyBorderDash(lineDatasetOptions)) {
+                return true;
+            }
+
+            if (TryGetProperty(options, "elements", out MarkdownPdfJsonValue elements) &&
+                TryGetProperty(elements, "line", out MarkdownPdfJsonValue line) &&
+                line.Kind == MarkdownPdfJsonValueKind.Object &&
+                HasNonEmptyBorderDash(line)) {
+                return true;
+            }
+        }
+
+        if (!TryGetProperty(dataElement, "datasets", out MarkdownPdfJsonValue datasets) || datasets.Kind != MarkdownPdfJsonValueKind.Array) {
+            return false;
+        }
+
+        foreach (MarkdownPdfJsonValue dataset in datasets.ArrayValues) {
+            if (dataset.Kind != MarkdownPdfJsonValueKind.Object || ReadBool(dataset, "hidden") == true) {
+                continue;
+            }
+
+            if (HasNonEmptyBorderDash(dataset)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool HasNonEmptyBorderDash(MarkdownPdfJsonValue element) =>
+        TryGetProperty(element, "borderDash", out MarkdownPdfJsonValue borderDash) &&
+        borderDash.Kind == MarkdownPdfJsonValueKind.Array &&
+        borderDash.ArrayValues.Count > 0;
+
     private static bool HasUnsupportedLineInterpolation(MarkdownPdfJsonValue element) =>
         IsSteppedLine(element) || HasNonZeroTension(element);
 
@@ -481,6 +562,34 @@ public static partial class MarkdownPdfConverterExtensions {
                string.Equals(normalized, "area", StringComparison.Ordinal);
     }
 
+    private static bool HasVisibleLineSegments(MarkdownPdfJsonValue root, MarkdownPdfJsonValue dataElement, string rootType) {
+        string normalized = NormalizeChartType(rootType);
+        if (IsLineFamilyType(rootType)) {
+            return true;
+        }
+
+        if (!string.Equals(normalized, "scatter", StringComparison.Ordinal)) {
+            return false;
+        }
+
+        bool defaultShowLine = ReadChartShowLine(root) == true;
+        if (!TryGetProperty(dataElement, "datasets", out MarkdownPdfJsonValue datasets) || datasets.Kind != MarkdownPdfJsonValueKind.Array) {
+            return defaultShowLine;
+        }
+
+        foreach (MarkdownPdfJsonValue dataset in datasets.ArrayValues) {
+            if (dataset.Kind != MarkdownPdfJsonValueKind.Object || ReadBool(dataset, "hidden") == true) {
+                continue;
+            }
+
+            if ((ReadBool(dataset, "showLine") ?? defaultShowLine) == true) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static bool ReadChartJsFill(MarkdownPdfJsonValue dataset) {
         if (!TryGetProperty(dataset, "fill", out MarkdownPdfJsonValue fill)) {
             return false;
@@ -497,6 +606,62 @@ public static partial class MarkdownPdfConverterExtensions {
                        !string.Equals(fill.StringValue, "false", StringComparison.OrdinalIgnoreCase);
             default:
                 return true;
+        }
+    }
+
+    private static bool TryResolveChartJsLineFill(MarkdownPdfJsonValue root, MarkdownPdfJsonValue dataset, out bool fill) {
+        if (TryGetProperty(dataset, "fill", out MarkdownPdfJsonValue datasetFill) && datasetFill.Kind != MarkdownPdfJsonValueKind.Null) {
+            return TryReadSupportedChartJsLineFill(datasetFill, out fill);
+        }
+
+        if (TryGetProperty(root, "options", out MarkdownPdfJsonValue options)) {
+            if (TryGetProperty(options, "datasets", out MarkdownPdfJsonValue datasetOptions) &&
+                TryGetProperty(datasetOptions, "line", out MarkdownPdfJsonValue lineDatasetOptions) &&
+                lineDatasetOptions.Kind == MarkdownPdfJsonValueKind.Object &&
+                TryGetProperty(lineDatasetOptions, "fill", out MarkdownPdfJsonValue defaultDatasetFill) &&
+                defaultDatasetFill.Kind != MarkdownPdfJsonValueKind.Null) {
+                return TryReadSupportedChartJsLineFill(defaultDatasetFill, out fill);
+            }
+
+            if (TryGetProperty(options, "elements", out MarkdownPdfJsonValue elements) &&
+                TryGetProperty(elements, "line", out MarkdownPdfJsonValue line) &&
+                line.Kind == MarkdownPdfJsonValueKind.Object &&
+                TryGetProperty(line, "fill", out MarkdownPdfJsonValue elementFill) &&
+                elementFill.Kind != MarkdownPdfJsonValueKind.Null) {
+                return TryReadSupportedChartJsLineFill(elementFill, out fill);
+            }
+        }
+
+        fill = false;
+        return true;
+    }
+
+    private static bool TryReadSupportedChartJsLineFill(MarkdownPdfJsonValue fillElement, out bool fill) {
+        switch (fillElement.Kind) {
+            case MarkdownPdfJsonValueKind.False:
+            case MarkdownPdfJsonValueKind.Null:
+                fill = false;
+                return true;
+            case MarkdownPdfJsonValueKind.True:
+                fill = true;
+                return true;
+            case MarkdownPdfJsonValueKind.String:
+                if (string.IsNullOrWhiteSpace(fillElement.StringValue) ||
+                    string.Equals(fillElement.StringValue, "false", StringComparison.OrdinalIgnoreCase)) {
+                    fill = false;
+                    return true;
+                }
+
+                if (string.Equals(fillElement.StringValue, "origin", StringComparison.OrdinalIgnoreCase)) {
+                    fill = true;
+                    return true;
+                }
+
+                fill = false;
+                return false;
+            default:
+                fill = false;
+                return false;
         }
     }
 
@@ -807,7 +972,9 @@ public static partial class MarkdownPdfConverterExtensions {
         TryGetProperty(scales, axisName, out MarkdownPdfJsonValue axis) &&
         axis.Kind == MarkdownPdfJsonValueKind.Object &&
         ((TryGetProperty(axis, "min", out MarkdownPdfJsonValue min) && min.Kind != MarkdownPdfJsonValueKind.Null) ||
-         (TryGetProperty(axis, "max", out MarkdownPdfJsonValue max) && max.Kind != MarkdownPdfJsonValueKind.Null));
+         (TryGetProperty(axis, "max", out MarkdownPdfJsonValue max) && max.Kind != MarkdownPdfJsonValueKind.Null) ||
+         (TryGetProperty(axis, "suggestedMin", out MarkdownPdfJsonValue suggestedMin) && suggestedMin.Kind != MarkdownPdfJsonValueKind.Null) ||
+         (TryGetProperty(axis, "suggestedMax", out MarkdownPdfJsonValue suggestedMax) && suggestedMax.Kind != MarkdownPdfJsonValueKind.Null));
 
     private static bool HasUnsupportedRadarScaleVisibility(MarkdownPdfJsonValue root) {
         if (!TryGetProperty(root, "options", out MarkdownPdfJsonValue options) ||

@@ -638,6 +638,32 @@ _Figure 2. Revenue chart_
     }
 
     [Fact]
+    public void ToPdfDocument_MarkdownChartFence_WarnsForSuggestedChartJsScaleBounds() {
+        var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "bar",
+  "options": {
+    "scales": {
+      "y": { "suggestedMin": 0, "suggestedMax": 100 }
+    }
+  },
+  "data": {
+    "labels": ["Q1"],
+    "datasets": [
+      { "label": "Actual", "data": [55] }
+    ]
+  }
+}
+""");
+
+        bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
+
+        Assert.False(created);
+        Assert.Null(snapshot);
+        Assert.Contains("suggested bounds", warning, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ToPdfDocument_MarkdownChartFence_WarnsForUnsupportedChartJsScaleTypes() {
         var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
 {
@@ -963,6 +989,27 @@ _Figure 2. Revenue chart_
     }
 
     [Fact]
+    public void ToPdfDocument_MarkdownChartFence_WarnsForCustomBarBaselines() {
+        var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "bar",
+  "data": {
+    "labels": ["Q1"],
+    "datasets": [
+      { "label": "Range", "base": 50, "data": [60] }
+    ]
+  }
+}
+""");
+
+        bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
+
+        Assert.False(created);
+        Assert.Null(snapshot);
+        Assert.Contains("custom bar baselines", warning, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ToPdfDocument_MarkdownScatterChartFence_MarksEarlierScalarPointsMissingWhenExplicitXValuesAppear() {
         var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
 {
@@ -1128,6 +1175,33 @@ _Figure 2. Revenue chart_
     }
 
     [Fact]
+    public void ToPdfDocument_MarkdownScatterChartFence_WarnsForCurvedConnectedLines() {
+        var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "scatter",
+  "options": {
+    "showLine": true,
+    "elements": { "line": { "tension": 0.35 } }
+  },
+  "data": {
+    "datasets": [
+      { "label": "Samples", "data": [
+        { "x": 1, "y": 2 },
+        { "x": 2, "y": 4 }
+      ] }
+    ]
+  }
+}
+""");
+
+        bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
+
+        Assert.False(created);
+        Assert.Null(snapshot);
+        Assert.Contains("stepped or curved", warning, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ToPdfDocument_MarkdownChartFence_PreservesMissingArrayValuesAsNaN() {
         var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
 {
@@ -1239,6 +1313,54 @@ _Figure 2. Revenue chart_
         Assert.False(curvedCreated);
         Assert.Null(curvedSnapshot);
         Assert.Contains("stepped or curved", curvedWarning, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ToPdfDocument_MarkdownLineChartFence_WarnsForDashedLineStyles() {
+        var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "line",
+  "options": {
+    "elements": { "line": { "borderDash": [6, 3] } }
+  },
+  "data": {
+    "labels": ["A", "B"],
+    "datasets": [
+      { "label": "Actual", "data": [1, 3] }
+    ]
+  }
+}
+""");
+
+        bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
+
+        Assert.False(created);
+        Assert.Null(snapshot);
+        Assert.Contains("dashed line styles", warning, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ToPdfDocument_MarkdownLineChartFence_WarnsForVerticalOrientation() {
+        var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "line",
+  "options": {
+    "indexAxis": "y"
+  },
+  "data": {
+    "labels": ["A", "B"],
+    "datasets": [
+      { "label": "Actual", "data": [1, 3] }
+    ]
+  }
+}
+""");
+
+        bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
+
+        Assert.False(created);
+        Assert.Null(snapshot);
+        Assert.Contains("vertical line orientation", warning, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1462,6 +1584,48 @@ _Figure 2. Revenue chart_
 
         Assert.True(created, warning);
         Assert.False(snapshot!.Layout.FillRadarSeries);
+    }
+
+    [Fact]
+    public void ToPdfDocument_MarkdownRadarChartFence_LeavesDatasetsUnfilledByDefault() {
+        var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "radar",
+  "data": {
+    "labels": ["Quality", "Speed", "Cost"],
+    "datasets": [
+      { "label": "Score", "backgroundColor": "#4472c4", "data": [8, 9, 7] }
+    ]
+  }
+}
+""");
+
+        bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
+
+        Assert.True(created, warning);
+        Assert.False(snapshot!.Layout.FillRadarSeries);
+    }
+
+    [Fact]
+    public void ToPdfDocument_MarkdownRadarChartFence_WarnsForMixedDefaultAndFilledDatasets() {
+        var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "radar",
+  "data": {
+    "labels": ["Quality", "Speed", "Cost"],
+    "datasets": [
+      { "label": "Score", "fill": true, "data": [8, 9, 7] },
+      { "label": "Target", "data": [7, 8, 8] }
+    ]
+  }
+}
+""");
+
+        bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
+
+        Assert.False(created);
+        Assert.Null(snapshot);
+        Assert.Contains("filled and unfilled", warning, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1950,6 +2114,54 @@ _Figure 2. Revenue chart_
 
         Assert.True(created, warning);
         Assert.Equal(OfficeChartKind.Area, snapshot!.ChartKind);
+    }
+
+    [Fact]
+    public void ToPdfDocument_MarkdownChartFence_MapsInheritedFilledChartJsLinesToAreaCharts() {
+        var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "line",
+  "options": {
+    "datasets": {
+      "line": { "fill": "origin" }
+    }
+  },
+  "data": {
+    "labels": ["Q1", "Q2"],
+    "datasets": [
+      { "label": "Actual", "data": [10, 12] },
+      { "label": "Forecast", "data": [8, 11] }
+    ]
+  }
+}
+""");
+
+        bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
+
+        Assert.True(created, warning);
+        Assert.Equal(OfficeChartKind.Area, snapshot!.ChartKind);
+    }
+
+    [Fact]
+    public void ToPdfDocument_MarkdownChartFence_WarnsForUnsupportedChartJsLineFillTargets() {
+        var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "line",
+  "data": {
+    "labels": ["Q1", "Q2"],
+    "datasets": [
+      { "label": "Actual", "fill": "+1", "data": [10, 12] },
+      { "label": "Forecast", "fill": "+1", "data": [8, 11] }
+    ]
+  }
+}
+""");
+
+        bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
+
+        Assert.False(created);
+        Assert.Null(snapshot);
+        Assert.Contains("line fill targets", warning, StringComparison.Ordinal);
     }
 
     [Fact]

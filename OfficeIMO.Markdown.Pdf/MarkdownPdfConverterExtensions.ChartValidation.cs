@@ -90,7 +90,7 @@ public static partial class MarkdownPdfConverterExtensions {
     }
 
     private static bool TryResolveRadarFill(MarkdownPdfJsonValue dataElement, out bool fillRadarSeries) {
-        fillRadarSeries = true;
+        fillRadarSeries = false;
         if (!TryGetProperty(dataElement, "datasets", out MarkdownPdfJsonValue datasets) || datasets.Kind != MarkdownPdfJsonValueKind.Array) {
             return true;
         }
@@ -103,6 +103,7 @@ public static partial class MarkdownPdfConverterExtensions {
             }
 
             if (!TryReadChartJsFillDirective(dataset, out bool fill)) {
+                hasUnfilled = true;
                 continue;
             }
 
@@ -117,7 +118,7 @@ public static partial class MarkdownPdfConverterExtensions {
             return false;
         }
 
-        fillRadarSeries = !hasUnfilled;
+        fillRadarSeries = hasFilled;
         return true;
     }
 
@@ -127,6 +128,28 @@ public static partial class MarkdownPdfConverterExtensions {
         }
 
         return HasNumericTupleData(dataElement);
+    }
+
+    private static bool HasUnsupportedBarBase(MarkdownPdfJsonValue dataElement, OfficeChartKind chartKind) {
+        if (!IsBarChart(chartKind) && !IsColumnChart(chartKind)) {
+            return false;
+        }
+
+        if (!TryGetProperty(dataElement, "datasets", out MarkdownPdfJsonValue datasets) || datasets.Kind != MarkdownPdfJsonValueKind.Array) {
+            return false;
+        }
+
+        foreach (MarkdownPdfJsonValue dataset in datasets.ArrayValues) {
+            if (dataset.Kind != MarkdownPdfJsonValueKind.Object || ReadBool(dataset, "hidden") == true) {
+                continue;
+            }
+
+            if (TryGetProperty(dataset, "base", out MarkdownPdfJsonValue baseline) && baseline.Kind != MarkdownPdfJsonValueKind.Null) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static bool HasNumericTupleData(MarkdownPdfJsonValue dataElement) {
