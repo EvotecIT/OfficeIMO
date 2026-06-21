@@ -4,7 +4,7 @@
         <Description>Google Sheets planning and export scaffolding for OfficeIMO.Excel.</Description>
         <AssemblyName>OfficeIMO.Excel.GoogleSheets</AssemblyName>
         <AssemblyTitle>OfficeIMO.Excel.GoogleSheets</AssemblyTitle>
-        <VersionPrefix>0.1.6</VersionPrefix>
+        <VersionPrefix>0.1.7</VersionPrefix>
         <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
         <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
             $(TargetFrameworks);net472</TargetFrameworks>
