@@ -237,7 +237,7 @@ public static class HtmlComputedStyleEngine {
         }
     }
 
-    private static bool IsApplicableMedia(string mediaText, HtmlCssMediaContext mediaContext) {
+    internal static bool IsApplicableMedia(string mediaText, HtmlCssMediaContext mediaContext) {
         if (string.IsNullOrWhiteSpace(mediaText)) {
             return true;
         }

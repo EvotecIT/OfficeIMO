@@ -156,12 +156,38 @@ public static class HtmlResourcePipeline {
     }
 
     private static void AddImage(HtmlResourceManifest manifest, IElement element, Uri? baseUri, HtmlResourcePipelineOptions options) {
+        if (HasSelectedPictureSourceBeforeFallback(element, options)) {
+            return;
+        }
+
         foreach (string attribute in new[] { "data-src", "src" }) {
             AddAttribute(manifest, HtmlResourceKind.Image, element, attribute, baseUri, options);
         }
 
         AddSrcSet(manifest, HtmlResourceKind.Image, element, "srcset", baseUri, options);
         AddSrcSet(manifest, HtmlResourceKind.Image, element, "data-srcset", baseUri, options);
+    }
+
+    private static bool HasSelectedPictureSourceBeforeFallback(IElement element, HtmlResourcePipelineOptions options) {
+        IElement? parent = element.ParentElement;
+        if (parent == null || !string.Equals(parent.TagName, "picture", StringComparison.OrdinalIgnoreCase)) {
+            return false;
+        }
+
+        foreach (IElement sibling in parent.Children) {
+            if (ReferenceEquals(sibling, element)) {
+                return false;
+            }
+
+            if (string.Equals(sibling.TagName, "source", StringComparison.OrdinalIgnoreCase)
+                && (sibling.HasAttribute("srcset") || sibling.HasAttribute("data-srcset"))
+                && IsApplicableMedia(sibling.GetAttribute("media") ?? string.Empty, options.MediaContext)
+                && IsSupportedPictureSourceType(sibling.GetAttribute("type"))) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static void AddSource(HtmlResourceManifest manifest, IElement element, Uri? baseUri, HtmlResourcePipelineOptions options) {
@@ -301,55 +327,7 @@ public static class HtmlResourcePipeline {
     }
 
     private static bool IsApplicableMedia(string mediaText, HtmlCssMediaContext mediaContext = HtmlCssMediaContext.Screen) {
-        if (string.IsNullOrWhiteSpace(mediaText)) {
-            return true;
-        }
-
-        string activeType = mediaContext == HtmlCssMediaContext.Print ? "print" : "screen";
-        foreach (string query in SplitTopLevelList(mediaText)) {
-            string normalized = query.Trim();
-            if (normalized.Length == 0) {
-                continue;
-            }
-
-            if (normalized.StartsWith("not ", StringComparison.OrdinalIgnoreCase)) {
-                if (!IsPositiveMediaQueryApplicable(normalized.Substring(4).Trim(), activeType)) {
-                    return true;
-                }
-
-                continue;
-            }
-
-            if (IsPositiveMediaQueryApplicable(normalized, activeType)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private static bool IsPositiveMediaQueryApplicable(string mediaQuery, string activeType) {
-        return MediaFeaturesMatch(mediaQuery)
-            && (ContainsMediaType(mediaQuery, "all") || ContainsMediaType(mediaQuery, activeType) || !ContainsExplicitMediaType(mediaQuery));
-    }
-
-    private static bool MediaFeaturesMatch(string mediaQuery) {
-        foreach (Match match in MediaLengthFeatureExpression.Matches(mediaQuery)) {
-            if (!double.TryParse(match.Groups["value"].Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double value)) {
-                continue;
-            }
-
-            string name = match.Groups["name"].Value;
-            if ((string.Equals(name, "max-width", StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(name, "max-height", StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(name, "width", StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(name, "height", StringComparison.OrdinalIgnoreCase))
-                && value <= 0D) {
-                return false;
-            }
-        }
-
-        return true;
+        return HtmlComputedStyleEngine.IsApplicableMedia(mediaText, mediaContext);
     }
 
     private static bool ContainsMediaType(string mediaQuery, string mediaType) {
@@ -996,6 +974,7 @@ public static class HtmlResourcePipeline {
             foreach (string usePart in useSelector.Split(',')) {
                 string normalizedUse = usePart.Trim();
                 if (IsAncestorSelector(normalizedDefinition, normalizedUse)
+                    || SelectorSameElementMatches(document, normalizedDefinition, normalizedUse)
                     || IsSameElementSelectorPrefix(normalizedDefinition, normalizedUse)
                     || SelectorRelationshipMatches(document, normalizedDefinition, normalizedUse)) {
                     return true;
@@ -1009,6 +988,7 @@ public static class HtmlResourcePipeline {
     private static int SelectCustomPropertyDeclaration(IEnumerable<CssCustomPropertyDefinition> sources, string useSelector, IHtmlDocument? document = null, IElement? useElement = null) {
         int selectedDeclarationStart = -1;
         int selectedRank = -1;
+        int selectedSpecificity = -1;
         bool selectedImportant = false;
         foreach (CssCustomPropertyDefinition source in sources) {
             int rank = GetSubstitutionRank(source.Selector, useSelector, document, useElement);
@@ -1016,12 +996,16 @@ public static class HtmlResourcePipeline {
                 continue;
             }
 
+            int specificity = GetMatchingSelectorSpecificity(source.Selector, useSelector, document, useElement);
             if (rank > selectedRank
                 || (rank == selectedRank
                     && ((!selectedImportant && source.IsImportant)
-                        || (source.IsImportant == selectedImportant && source.DeclarationStart >= selectedDeclarationStart)))) {
+                        || (source.IsImportant == selectedImportant
+                            && (specificity > selectedSpecificity
+                                || (specificity == selectedSpecificity && source.DeclarationStart >= selectedDeclarationStart)))))) {
                 selectedImportant = source.IsImportant;
                 selectedRank = rank;
+                selectedSpecificity = specificity;
                 selectedDeclarationStart = source.DeclarationStart;
             }
         }
@@ -1041,6 +1025,8 @@ public static class HtmlResourcePipeline {
             foreach (string usePart in useSelector.Split(',')) {
                 string normalizedUse = usePart.Trim();
                 if (string.Equals(normalizedDefinition, normalizedUse, StringComparison.OrdinalIgnoreCase)) {
+                    best = Math.Max(best, 3);
+                } else if (SelectorSameElementMatches(document, normalizedDefinition, normalizedUse)) {
                     best = Math.Max(best, 3);
                 } else if (string.Equals(normalizedDefinition, ":root", StringComparison.OrdinalIgnoreCase)
                     || string.Equals(normalizedDefinition, "html", StringComparison.OrdinalIgnoreCase)
@@ -1073,6 +1059,119 @@ public static class HtmlResourcePipeline {
         }
 
         return -1;
+    }
+
+    private static int GetMatchingSelectorSpecificity(string definitionSelector, string useSelector, IHtmlDocument? document, IElement? useElement) {
+        int best = -1;
+        foreach (string definitionPart in definitionSelector.Split(',')) {
+            string normalizedDefinition = definitionPart.Trim();
+            if (normalizedDefinition.Length == 0) {
+                continue;
+            }
+
+            bool matches = SelectorMatchesElementOrAncestor(normalizedDefinition, useElement)
+                || string.Equals(normalizedDefinition, ":root", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(normalizedDefinition, "html", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(normalizedDefinition, "body", StringComparison.OrdinalIgnoreCase);
+            if (!matches) {
+                foreach (string usePart in useSelector.Split(',')) {
+                    string normalizedUse = usePart.Trim();
+                    if (string.Equals(normalizedDefinition, normalizedUse, StringComparison.OrdinalIgnoreCase)
+                        || SelectorSameElementMatches(document, normalizedDefinition, normalizedUse)
+                        || IsAncestorSelector(normalizedDefinition, normalizedUse)
+                        || IsSameElementSelectorPrefix(normalizedDefinition, normalizedUse)
+                        || SelectorRelationshipMatches(document, normalizedDefinition, normalizedUse)) {
+                        matches = true;
+                        break;
+                    }
+                }
+            }
+
+            if (matches) {
+                best = Math.Max(best, CalculateSelectorSpecificity(normalizedDefinition));
+            }
+        }
+
+        return best;
+    }
+
+    private static int CalculateSelectorSpecificity(string selector) {
+        int ids = 0;
+        int classesAttributesAndPseudoClasses = 0;
+        int elements = 0;
+        bool inAttribute = false;
+        for (int i = 0; i < selector.Length; i++) {
+            char current = selector[i];
+            if (current == '[') {
+                inAttribute = true;
+                classesAttributesAndPseudoClasses++;
+                continue;
+            }
+
+            if (current == ']') {
+                inAttribute = false;
+                continue;
+            }
+
+            if (inAttribute) {
+                continue;
+            }
+
+            if (current == '#') {
+                ids++;
+                i = SkipCssIdentifier(selector, i + 1);
+            } else if (current == '.') {
+                classesAttributesAndPseudoClasses++;
+                i = SkipCssIdentifier(selector, i + 1);
+            } else if (current == ':') {
+                if (i + 1 < selector.Length && selector[i + 1] == ':') {
+                    elements++;
+                    i = SkipCssIdentifier(selector, i + 2);
+                } else {
+                    classesAttributesAndPseudoClasses++;
+                    i = SkipCssIdentifier(selector, i + 1);
+                }
+            } else if (IsSelectorElementStart(selector, i)) {
+                elements++;
+                i = SkipCssIdentifier(selector, i);
+            }
+        }
+
+        return (ids * 10000) + (classesAttributesAndPseudoClasses * 100) + elements;
+    }
+
+    private static int SkipCssIdentifier(string selector, int start) {
+        int cursor = start;
+        while (cursor < selector.Length && (IsCssIdentifierCharacter(selector[cursor]) || selector[cursor] == '\\')) {
+            cursor++;
+        }
+
+        return Math.Max(start, cursor) - 1;
+    }
+
+    private static bool IsSelectorElementStart(string selector, int index) {
+        char current = selector[index];
+        if (!char.IsLetter(current) && current != '*') {
+            return false;
+        }
+
+        if (current == '*') {
+            return false;
+        }
+
+        if (index > 0) {
+            char previous = selector[index - 1];
+            if (previous == '#'
+                || previous == '.'
+                || previous == ':'
+                || previous == '-'
+                || previous == '_'
+                || char.IsLetterOrDigit(previous)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static bool SelectorMatchesElementOrAncestor(string selector, IElement? useElement) {
@@ -1296,7 +1395,43 @@ public static class HtmlResourcePipeline {
         }
 
         try {
-            return document.QuerySelector(normalizedDefinition + " " + normalizedUse) != null;
+            if (document.QuerySelector(normalizedDefinition + " " + normalizedUse) != null) {
+                return true;
+            }
+
+            foreach (IElement useMatch in document.QuerySelectorAll(normalizedUse)) {
+                for (IElement? ancestor = useMatch.ParentElement; ancestor != null; ancestor = ancestor.ParentElement) {
+                    if (ancestor.Matches(normalizedDefinition)) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        } catch {
+            return false;
+        }
+    }
+
+    private static bool SelectorSameElementMatches(IHtmlDocument? document, string definitionSelector, string useSelector) {
+        if (document == null || string.IsNullOrWhiteSpace(definitionSelector) || string.IsNullOrWhiteSpace(useSelector)) {
+            return false;
+        }
+
+        string normalizedDefinition = NormalizeSelectorForQuery(definitionSelector);
+        string normalizedUse = NormalizeSelectorForQuery(useSelector);
+        if (normalizedDefinition.Length == 0 || normalizedUse.Length == 0) {
+            return false;
+        }
+
+        try {
+            foreach (IElement useMatch in document.QuerySelectorAll(normalizedUse)) {
+                if (useMatch.Matches(normalizedDefinition)) {
+                    return true;
+                }
+            }
+
+            return false;
         } catch {
             return false;
         }
@@ -1704,7 +1839,7 @@ public static class HtmlResourcePipeline {
 
     private static bool HasAtRuleTokenBoundary(string css, int atRuleStart, string atRuleName) {
         int afterImport = atRuleStart + atRuleName.Length;
-        return afterImport >= css.Length || char.IsWhiteSpace(css[afterImport]);
+        return afterImport >= css.Length || !IsCssIdentifierCharacter(css[afterImport]);
     }
 
     private static bool HasStyleRuleBefore(string css, int index) {

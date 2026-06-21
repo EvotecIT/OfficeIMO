@@ -526,6 +526,9 @@ public partial class Html {
                     .theme-important { --rank-hero: url(https://example.test/images/rank-local.png); }
                     :root { --rank-hero: url(file:///secret/root-important-rank.png) !important; }
                     .theme-important .card { background-image: var(--rank-hero); }
+                    #specific-card { --specific-hero: url(file:///secret/specific-property.png); }
+                    .specific-card { --specific-hero: url(https://example.test/images/specific-property.png); }
+                    .specific-card { background-image: var(--specific-hero); }
                     .theme-fallback { --fallback-hero: url(https://example.test/images/inherited-fallback.png); }
                     .card-fallback { background-image: var(--fallback-hero, url(file:///secret/inherited-fallback.png)); }
                     @media screen { :root { --media-hero: url(file:///secret/grouped-custom-property.png); } .media-hero { background-image: var(--media-hero); } }
@@ -558,6 +561,8 @@ public partial class Html {
                     .unsupported-image-set { background-notimage: image-set("file:///secret/unsupported-image-set.png" 1x); }
                     .unused-resource { background-image: url(file:///secret/unused-rule.png); }
                     @media (max-width: 0px) { .zero-media { background-image: url(file:///secret/zero-media.png); } }
+                    @media(max-width:0px){.zero-media-minified{background-image:url(file:///secret/zero-media-minified.png)}}
+                    @media (not-a-real-feature) { .unknown-feature { background-image: url(file:///secret/unknown-media-feature.png); } }
                     .masked { mask: url(file:///secret/mask.svg); }
                     .filtered { filter: url(file:///secret/filter.svg#f); clip-path: url(file:///secret/clip.svg#c); }
                     .image-set { background-image: image-set("file:///secret/hero.png" 1x, url(https://example.test/images/hero-2x.png) 2x, "https://example.test/images/hero.avif" type("image/avif")); }
@@ -591,7 +596,7 @@ public partial class Html {
                 <input type="image" src="file:///secret/submit.png" srcset="file:///secret/inert-submit-srcset.png 2x">
                 <input type="text" src="file:///secret/input-metadata">
                 <picture><source src="file:///secret/ignored-picture-source.png" srcset="https://example.test/images/picture-source.png 1x"><img src="https://example.test/images/picture-fallback.png"></picture>
-                <picture><source srcset="https://example.test/images/selected-picture.png 1x"><source srcset="file:///secret/unselected-picture.png 1x"><img src="https://example.test/images/selected-fallback.png"></picture>
+                <picture><source srcset="https://example.test/images/selected-picture.png 1x"><source srcset="file:///secret/unselected-picture.png 1x"><img src="file:///secret/selected-fallback.png"></picture>
                 <picture><source media="print" srcset="file:///secret/print-picture-source.png 1x"><img src="https://example.test/images/screen-picture.png"></picture>
                 <picture><source media="(max-width: 0px)" srcset="file:///secret/zero-picture-source.png 1x"><img src="https://example.test/images/zero-picture-fallback.png"></picture>
                 <picture><source type="image/not-real" srcset="file:///secret/unsupported-picture-type.png 1x"><img src="https://example.test/images/typed-fallback.png"></picture>
@@ -605,6 +610,7 @@ public partial class Html {
                 <div class="theme-dom"><div class="card-dom"></div></div>
                 <div class="theme-late"><div class="card"></div></div>
                 <div class="theme-important"><div class="card"></div></div>
+                <div id="specific-card" class="specific-card"></div>
                 <div class="theme-fallback"><div class="card-fallback"></div></div>
                 <div class="cascaded"><div class="card"></div></div>
                 <div class="cross-block"></div>
@@ -614,6 +620,8 @@ public partial class Html {
                 <div class="hero"></div>
                 <div class="alias"></div>
                 <div class="zero-media"></div>
+                <div class="zero-media-minified"></div>
+                <div class="unknown-feature"></div>
                 <div class="media-hero"></div>
                 <div class="inactive-var-use"></div>
                 <div class="negated-active-feature"></div>
@@ -665,6 +673,8 @@ public partial class Html {
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/inactive-preload.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/inactive-preload-2x.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/zero-media.png");
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/zero-media-minified.png");
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/unknown-media-feature.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/zero-picture-source.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/plain-style.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/unused-fallback.png");
@@ -683,6 +693,7 @@ public partial class Html {
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/inert-submit-srcset.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/ignored-picture-source.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/unselected-picture.png");
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/selected-fallback.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/print-picture-source.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/unsupported-picture-type.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/ignored-child-source.mp4");
@@ -696,6 +707,8 @@ public partial class Html {
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/nearer-custom-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "https://example.test/images/later-root-property.png");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/rank-local.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/specific-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "https://example.test/images/specific-property.png");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/inherited-fallback.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/cascaded-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/same-element-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
@@ -803,6 +816,8 @@ public partial class Html {
         HtmlLogicalDocument definitionList = HtmlLogicalDocumentBuilder.FromHtml("<main><dl><dt>Term</dt><dd>Definition</dd></dl></main>");
         Assert.Equal(1, definitionList.Count(HtmlLogicalNodeKind.List));
         Assert.Equal(2, definitionList.Count(HtmlLogicalNodeKind.ListItem));
+        HtmlLogicalDocument noscriptFallback = HtmlLogicalDocumentBuilder.FromHtml("<main><noscript><p>Enable billing exports manually</p></noscript></main>");
+        Assert.Equal(1, noscriptFallback.Count(HtmlLogicalNodeKind.Paragraph));
 
         HtmlRoundTripScore repeatedTextScore = HtmlRoundTripScorer.Compare(
             "<main><p>" + new string('a', 100) + "</p></main>",
@@ -1017,6 +1032,11 @@ public partial class Html {
             "<main><form><select><option>Gold</option></select></form></main>",
             "<main><form><select><option selected>Gold</option></select></form></main>");
         Assert.Equal(1D, implicitSelectedOptionScore.Metrics["form-state"], 3);
+
+        HtmlRoundTripScore inertOptionFormScore = HtmlRoundTripScorer.Compare(
+            "<main><form id=\"f\"></form><select><option form=\"f\">Gold</option></select></main>",
+            "<main><form id=\"f\"></form><select><option>Gold</option></select></main>");
+        Assert.Equal(1D, inertOptionFormScore.Metrics["form-state"], 3);
 
         HtmlRoundTripScore resolvedFormOwnerScore = HtmlRoundTripScorer.Compare(
             "<html><head><base href=\"https://example.test/\"></head><body><main><form action=\"save\"><input name=\"x\"></form></main></body></html>",

@@ -83,8 +83,7 @@ public static class HtmlLogicalDocumentBuilder {
     private static bool IsNonDocumentLogicalElement(string name) {
         return string.Equals(name, "script", StringComparison.OrdinalIgnoreCase)
             || string.Equals(name, "style", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(name, "template", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(name, "noscript", StringComparison.OrdinalIgnoreCase);
+            || string.Equals(name, "template", StringComparison.OrdinalIgnoreCase);
     }
 
     private static HtmlLogicalNode CreateNode(INode source) {

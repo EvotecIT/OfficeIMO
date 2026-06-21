@@ -328,7 +328,7 @@ public static class HtmlRoundTripScorer {
         RemoveUnresolvedFormOwnerAttributes(document);
         PropagateFieldsetDisabledState(document);
         var signatures = new List<string>();
-        foreach (var control in document.QuerySelectorAll("input,select,textarea,button,option")) {
+        foreach (var control in document.QuerySelectorAll("input,select,textarea,button")) {
             var parts = new List<string> {
                 control.TagName.ToLowerInvariant()
             };
@@ -587,6 +587,10 @@ public static class HtmlRoundTripScorer {
     }
 
     private static void AddFormControlAttributePart(ICollection<string> parts, HtmlLogicalNode node, string attributeName) {
+        if (string.Equals(attributeName, "form", StringComparison.OrdinalIgnoreCase) && !IsFormAssociatedControl(node.Name)) {
+            return;
+        }
+
         if (SubmitterOverrideAttributes.Contains(attributeName) && !IsSubmitterControl(node)) {
             return;
         }
@@ -617,6 +621,10 @@ public static class HtmlRoundTripScorer {
     }
 
     private static bool ShouldIncludeFormControlAttribute(AngleSharp.Dom.IElement control, string attributeName) {
+        if (string.Equals(attributeName, "form", StringComparison.OrdinalIgnoreCase) && !IsFormAssociatedControl(control.TagName)) {
+            return false;
+        }
+
         if (SubmitterOverrideAttributes.Contains(attributeName) && !IsSubmitterControl(control)) {
             return false;
         }
@@ -626,6 +634,13 @@ public static class HtmlRoundTripScorer {
         }
 
         return true;
+    }
+
+    private static bool IsFormAssociatedControl(string name) {
+        return string.Equals(name, "input", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(name, "select", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(name, "textarea", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(name, "button", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool IsSubmitterControl(AngleSharp.Dom.IElement control) {
