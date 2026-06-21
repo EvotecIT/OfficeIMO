@@ -248,7 +248,19 @@ public static class HtmlRoundTripScorer {
         var document = HtmlDocumentParser.ParseDocument(html);
         ResolveResourceSourceAttributes(document);
         PropagateFieldsetDisabledState(document);
+        PruneHiddenStructure(document);
         return HtmlLogicalDocumentBuilder.FromDocument(document);
+    }
+
+    private static void PruneHiddenStructure(AngleSharp.Html.Dom.IHtmlDocument document) {
+        IReadOnlyDictionary<IElement, HtmlComputedStyle> styles = HtmlComputedStyleEngine.Compute(document);
+        foreach (IElement element in document.QuerySelectorAll("*").Reverse().ToList()) {
+            if (element.ParentElement == null || !IsDisplayNoneElement(element, styles)) {
+                continue;
+            }
+
+            element.ParentElement.RemoveChild(element);
+        }
     }
 
     private static void ResolveResourceSourceAttributes(AngleSharp.Html.Dom.IHtmlDocument document) {

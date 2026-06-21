@@ -48,12 +48,12 @@ public static class HtmlComputedStyleEngine {
     /// <summary>
     /// Computes styles for every element in the supplied document using style tags and inline style attributes.
     /// </summary>
-    public static IReadOnlyDictionary<IElement, HtmlComputedStyle> Compute(IHtmlDocument document) {
+    public static IReadOnlyDictionary<IElement, HtmlComputedStyle> Compute(IHtmlDocument document, HtmlCssMediaContext mediaContext = HtmlCssMediaContext.Screen) {
         if (document == null) {
             throw new ArgumentNullException(nameof(document));
         }
 
-        IReadOnlyList<StyleRule> rules = ParseStyleRules(document);
+        IReadOnlyList<StyleRule> rules = ParseStyleRules(document, mediaContext);
         var computed = new Dictionary<IElement, HtmlComputedStyle>();
         IElement? root = document.DocumentElement ?? document.Body;
         if (root != null) {
@@ -66,8 +66,8 @@ public static class HtmlComputedStyleEngine {
     /// <summary>
     /// Parses raw HTML and computes styles for matching elements.
     /// </summary>
-    public static IReadOnlyDictionary<IElement, HtmlComputedStyle> Compute(string html) {
-        return Compute(HtmlDocumentParser.ParseDocument(html));
+    public static IReadOnlyDictionary<IElement, HtmlComputedStyle> Compute(string html, HtmlCssMediaContext mediaContext = HtmlCssMediaContext.Screen) {
+        return Compute(HtmlDocumentParser.ParseDocument(html), mediaContext);
     }
 
     /// <summary>
@@ -142,7 +142,7 @@ public static class HtmlComputedStyleEngine {
         }
     }
 
-    private static IReadOnlyList<StyleRule> ParseStyleRules(IHtmlDocument document) {
+    private static IReadOnlyList<StyleRule> ParseStyleRules(IHtmlDocument document, HtmlCssMediaContext mediaContext) {
         var rules = new List<StyleRule>();
         var parser = new CssParser();
         foreach (IElement styleElement in document.QuerySelectorAll("style")) {
@@ -150,7 +150,7 @@ public static class HtmlComputedStyleEngine {
                 continue;
             }
 
-            if (!IsApplicableMedia(styleElement.GetAttribute("media") ?? string.Empty)) {
+            if (!IsApplicableMedia(styleElement.GetAttribute("media") ?? string.Empty, mediaContext)) {
                 continue;
             }
 
@@ -161,7 +161,7 @@ public static class HtmlComputedStyleEngine {
 
             var stylesheet = parser.ParseStyleSheet(css);
             foreach (var rule in stylesheet.Rules) {
-                AddStyleRules(rule, rules);
+                AddStyleRules(rule, rules, mediaContext);
             }
         }
 
@@ -192,7 +192,7 @@ public static class HtmlComputedStyleEngine {
         return string.Equals(type, "text/css", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static void AddStyleRules(AngleSharp.Css.Dom.ICssRule rule, ICollection<StyleRule> rules) {
+    private static void AddStyleRules(AngleSharp.Css.Dom.ICssRule rule, ICollection<StyleRule> rules, HtmlCssMediaContext mediaContext) {
         var styleRule = rule as AngleSharp.Css.Dom.ICssStyleRule;
         if (styleRule != null) {
             AddStyleRule(styleRule, rules);
@@ -200,7 +200,7 @@ public static class HtmlComputedStyleEngine {
         }
 
         var mediaRule = rule as AngleSharp.Css.Dom.ICssMediaRule;
-        if (mediaRule != null && !IsApplicableMedia(mediaRule.ConditionText)) {
+        if (mediaRule != null && !IsApplicableMedia(mediaRule.ConditionText, mediaContext)) {
             return;
         }
 
@@ -214,7 +214,7 @@ public static class HtmlComputedStyleEngine {
         }
 
         foreach (var childRule in groupingRule.Rules) {
-            AddStyleRules(childRule, rules);
+            AddStyleRules(childRule, rules, mediaContext);
         }
     }
 
@@ -237,42 +237,35 @@ public static class HtmlComputedStyleEngine {
         }
     }
 
-    private static bool IsApplicableMedia(string mediaText) {
+    private static bool IsApplicableMedia(string mediaText, HtmlCssMediaContext mediaContext) {
         if (string.IsNullOrWhiteSpace(mediaText)) {
             return true;
         }
 
+        string activeType = mediaContext == HtmlCssMediaContext.Print ? "print" : "screen";
+        string inactiveType = mediaContext == HtmlCssMediaContext.Print ? "screen" : "print";
         foreach (string query in SplitSelectorList(mediaText)) {
             string normalized = query.Trim();
             if (normalized.StartsWith("not ", StringComparison.OrdinalIgnoreCase)) {
                 string negated = normalized.Substring(4).Trim();
-                if (ContainsMediaType(negated, "screen") || ContainsMediaType(negated, "all")) {
+                if ((ContainsMediaType(negated, activeType) || ContainsMediaType(negated, "all")) && AreMediaFeaturesApplicable(negated, mediaContext)) {
                     continue;
                 }
 
-                if (ContainsMediaType(negated, "print")) {
-                    return true;
-                }
-
-                if (HasMediaFeatureConstraint(negated)) {
-                    continue;
-                }
-
-                continue;
-            }
-
-            if (ContainsMediaType(normalized, "all") || ContainsMediaType(normalized, "screen")) {
-                if (AreMediaFeaturesApplicable(normalized)) {
+                if (ContainsMediaType(negated, inactiveType)
+                    || (!ContainsExplicitMediaType(negated) && !AreMediaFeaturesApplicable(negated, mediaContext))) {
                     return true;
                 }
 
                 continue;
             }
 
-            if (!ContainsExplicitMediaType(normalized) && HasMediaFeatureConstraint(normalized)) {
-                if (AreMediaFeaturesApplicable(normalized)) {
+            if (ContainsMediaType(normalized, "all") || ContainsMediaType(normalized, activeType) || !ContainsExplicitMediaType(normalized)) {
+                if (AreMediaFeaturesApplicable(normalized, mediaContext)) {
                     return true;
                 }
+
+                continue;
             }
         }
 
@@ -301,7 +294,7 @@ public static class HtmlComputedStyleEngine {
             || mediaQuery.IndexOf(":", StringComparison.Ordinal) >= 0;
     }
 
-    private static bool AreMediaFeaturesApplicable(string mediaQuery) {
+    private static bool AreMediaFeaturesApplicable(string mediaQuery, HtmlCssMediaContext mediaContext) {
         int index = 0;
         bool foundFeature = false;
         while (index < mediaQuery.Length) {
@@ -317,7 +310,7 @@ public static class HtmlComputedStyleEngine {
 
             foundFeature = true;
             string feature = mediaQuery.Substring(open + 1, close - open - 1).Trim().ToLowerInvariant();
-            if (!IsScreenMediaFeatureApplicable(feature)) {
+            if (!IsMediaFeatureApplicable(feature, mediaContext)) {
                 return false;
             }
 
@@ -327,9 +320,14 @@ public static class HtmlComputedStyleEngine {
         return foundFeature || !HasMediaFeatureConstraint(mediaQuery);
     }
 
-    private static bool IsScreenMediaFeatureApplicable(string feature) {
+    private static bool IsMediaFeatureApplicable(string feature, HtmlCssMediaContext mediaContext) {
         if (feature.Length == 0 || feature.IndexOf("not-a-real", StringComparison.Ordinal) >= 0) {
             return false;
+        }
+
+        if (mediaContext == HtmlCssMediaContext.Print) {
+            return !feature.StartsWith("hover", StringComparison.Ordinal)
+                && !feature.StartsWith("pointer", StringComparison.Ordinal);
         }
 
         if (feature.StartsWith("color", StringComparison.Ordinal)

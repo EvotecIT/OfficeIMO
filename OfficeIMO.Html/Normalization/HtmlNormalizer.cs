@@ -10,6 +10,7 @@ namespace OfficeIMO.Html;
 public static class HtmlNormalizer {
     private const int MaxSrcDocDepth = 8;
     private static readonly Regex CssUrlExpression = new Regex("url\\(\\s*(?:\"(?<url>[^\"]*)\"|'(?<url>[^']*)'|(?<url>[^)]+))\\s*\\)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+    private static readonly Regex CssImportExpression = new Regex("@import\\s+(?:url\\(\\s*(?:\"(?<url>[^\"]*)\"|'(?<url>[^']*)'|(?<url>[^)]+))\\s*\\)|\"(?<url>[^\"]*)\"|'(?<url>[^']*)')", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
     private static readonly HashSet<string> BooleanAttributes = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
         "allowfullscreen", "async", "autofocus", "autoplay", "checked", "controls", "default", "defer", "disabled",
         "formnovalidate", "hidden", "loop", "multiple", "muted", "nomodule", "novalidate", "open", "readonly",
@@ -62,16 +63,16 @@ public static class HtmlNormalizer {
             AppendElement(builder, documentElement, options, srcDocDepth);
         } else {
             foreach (INode child in root.ChildNodes) {
-                AppendNode(builder, child, options, srcDocDepth);
+                AppendNode(builder, child, options, srcDocDepth, preserveWhitespace: false);
             }
         }
 
         return builder.ToString().Trim();
     }
 
-    private static void AppendNode(StringBuilder builder, INode node, HtmlNormalizationOptions options, int srcDocDepth) {
+    private static void AppendNode(StringBuilder builder, INode node, HtmlNormalizationOptions options, int srcDocDepth, bool preserveWhitespace = false) {
         if (node.NodeType == NodeType.Text) {
-            AppendText(builder, node.TextContent, options);
+            AppendText(builder, node.TextContent, options, preserveWhitespace);
             return;
         }
 
@@ -84,11 +85,11 @@ public static class HtmlNormalizer {
         }
 
         if (node is IElement element) {
-            AppendElement(builder, element, options, srcDocDepth);
+            AppendElement(builder, element, options, srcDocDepth, preserveWhitespace);
         }
     }
 
-    private static void AppendElement(StringBuilder builder, IElement element, HtmlNormalizationOptions options, int srcDocDepth) {
+    private static void AppendElement(StringBuilder builder, IElement element, HtmlNormalizationOptions options, int srcDocDepth, bool preserveWhitespace = false) {
         string name = element.TagName.ToLowerInvariant();
         if (SkippedElements.Contains(name) || (name == "style" && !options.PreserveStyleElements)) {
             return;
@@ -111,8 +112,9 @@ public static class HtmlNormalizer {
                     builder.Append(EscapeRawTextElementContent(styleText, "style"));
                 }
             } else {
+                bool childPreserveWhitespace = preserveWhitespace || IsPreformattedElement(name);
                 foreach (INode child in element.ChildNodes) {
-                    AppendNode(builder, child, options, srcDocDepth);
+                    AppendNode(builder, child, options, srcDocDepth, childPreserveWhitespace);
                 }
             }
 
@@ -171,7 +173,7 @@ public static class HtmlNormalizer {
             return string.Join(" ", value.Split(WhitespaceSeparators, StringSplitOptions.RemoveEmptyEntries));
         }
 
-        return value.Trim();
+        return value;
     }
 
     private static string NormalizeSrcDoc(string value, HtmlNormalizationOptions options, int srcDocDepth) {
@@ -198,16 +200,16 @@ public static class HtmlNormalizer {
         };
     }
 
-    private static void AppendText(StringBuilder builder, string? text, HtmlNormalizationOptions options) {
+    private static void AppendText(StringBuilder builder, string? text, HtmlNormalizationOptions options, bool preserveWhitespace) {
         if (string.IsNullOrEmpty(text)) {
             return;
         }
 
-        string value = options.CollapseTextWhitespace
+        string value = options.CollapseTextWhitespace && !preserveWhitespace
             ? CollapseWhitespaceRuns(text!)
             : text!;
         if (value.Length > 0) {
-            if (options.CollapseTextWhitespace) {
+            if (options.CollapseTextWhitespace && !preserveWhitespace) {
                 if (value == " ") {
                     if (builder.Length == 0 || char.IsWhiteSpace(builder[builder.Length - 1])) {
                         return;
@@ -219,6 +221,11 @@ public static class HtmlNormalizer {
 
             builder.Append(WebUtility.HtmlEncode(value));
         }
+    }
+
+    private static bool IsPreformattedElement(string name) {
+        return string.Equals(name, "pre", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(name, "textarea", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool IsUrlAttribute(IElement element, string name) {
@@ -256,17 +263,112 @@ public static class HtmlNormalizer {
             return string.Empty;
         }
 
-        return CssUrlExpression.Replace(css, match => {
+        var replacements = new List<CssReplacement>();
+        foreach (Match match in CssUrlExpression.Matches(css)) {
             if (!IsCssFunctionNameAt(css, match.Index, "url") || IsInsideCssString(css, match.Index)) {
-                return match.Value;
+                continue;
             }
 
             string source = match.Groups["url"].Value.Trim().Trim('\'', '"');
             string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(source, baseUri, policy);
-            return string.IsNullOrWhiteSpace(resolved)
+            string replacement = string.IsNullOrWhiteSpace(resolved)
                 ? "url(\"\")"
                 : "url(\"" + EscapeCssString(resolved) + "\")";
-        });
+            replacements.Add(new CssReplacement(match.Index, match.Index + match.Length, replacement));
+        }
+
+        AddCssStringResourceReplacements(css, CssImportExpression, baseUri, policy, replacements);
+        AddImageSetStringResourceReplacements(css, baseUri, policy, replacements);
+        return ApplyCssReplacements(css, replacements);
+    }
+
+    private static void AddCssStringResourceReplacements(string css, Regex expression, Uri? baseUri, HtmlUrlPolicy policy, ICollection<CssReplacement> replacements) {
+        foreach (Match match in expression.Matches(css)) {
+            if (IsInsideCssString(css, match.Index)) {
+                continue;
+            }
+
+            Group group = match.Groups["url"];
+            if (!group.Success) {
+                continue;
+            }
+
+            string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(group.Value.Trim(), baseUri, policy);
+            replacements.Add(new CssReplacement(group.Index, group.Index + group.Length, EscapeCssString(resolved)));
+        }
+    }
+
+    private static void AddImageSetStringResourceReplacements(string css, Uri? baseUri, HtmlUrlPolicy policy, ICollection<CssReplacement> replacements) {
+        int index = 0;
+        while (index < css.Length) {
+            int imageSetIndex = css.IndexOf("image-set", index, StringComparison.OrdinalIgnoreCase);
+            if (imageSetIndex < 0) {
+                return;
+            }
+
+            if (IsInsideCssString(css, imageSetIndex) || !IsImageSetFunction(css, imageSetIndex)) {
+                index = imageSetIndex + 9;
+                continue;
+            }
+
+            int open = css.IndexOf('(', imageSetIndex);
+            if (open < 0) {
+                return;
+            }
+
+            int close = FindMatchingCssParenthesis(css, open);
+            if (close <= open) {
+                return;
+            }
+
+            int cursor = open + 1;
+            while (cursor < close) {
+                char current = css[cursor];
+                if ((current == '"' || current == '\'') && !IsCssTypeFunctionString(css, cursor)) {
+                    if (TryReadCssQuotedValue(css, cursor, out string source, out int end)) {
+                        string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(source, baseUri, policy);
+                        replacements.Add(new CssReplacement(cursor + 1, end - 1, EscapeCssString(resolved)));
+                        cursor = end;
+                        continue;
+                    }
+                }
+
+                cursor++;
+            }
+
+            index = close + 1;
+        }
+    }
+
+    private static string ApplyCssReplacements(string css, IEnumerable<CssReplacement> replacements) {
+        var ordered = replacements
+            .OrderByDescending(range => range.Start)
+            .ToList();
+        var builder = new StringBuilder(css);
+        foreach (CssReplacement replacement in ordered) {
+            if (OverlapsLaterReplacement(replacement, ordered)) {
+                continue;
+            }
+
+            builder.Remove(replacement.Start, replacement.End - replacement.Start);
+            builder.Insert(replacement.Start, replacement.Value);
+        }
+
+        return builder.ToString();
+    }
+
+    private static bool OverlapsLaterReplacement(CssReplacement replacement, IReadOnlyList<CssReplacement> replacements) {
+        foreach (CssReplacement other in replacements) {
+            if (other == replacement) {
+                return false;
+            }
+
+            if (other.Start <= replacement.Start && other.End > replacement.Start) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static string EscapeCssString(string value) {
@@ -284,6 +386,102 @@ public static class HtmlNormalizer {
         }
 
         return index == 0 || !IsCssIdentifierCharacter(css[index - 1]);
+    }
+
+    private static bool IsImageSetFunction(string css, int imageSetIndex) {
+        const string ImageSet = "image-set";
+        const string WebKitImageSet = "-webkit-image-set";
+        int functionStart = imageSetIndex;
+        int nameLength = ImageSet.Length;
+        int prefixedStart = imageSetIndex - (WebKitImageSet.Length - ImageSet.Length);
+        if (StartsWith(css, prefixedStart, WebKitImageSet)) {
+            functionStart = prefixedStart;
+            nameLength = WebKitImageSet.Length;
+        }
+
+        if (functionStart > 0 && IsCssIdentifierCharacter(css[functionStart - 1])) {
+            return false;
+        }
+
+        int afterName = functionStart + nameLength;
+        return afterName >= css.Length || !IsCssIdentifierCharacter(css[afterName]);
+    }
+
+    private static bool IsCssTypeFunctionString(string css, int quoteIndex) {
+        int cursor = quoteIndex - 1;
+        while (cursor >= 0 && char.IsWhiteSpace(css[cursor])) {
+            cursor--;
+        }
+
+        if (cursor < 0 || css[cursor] != '(') {
+            return false;
+        }
+
+        cursor--;
+        while (cursor >= 0 && char.IsWhiteSpace(css[cursor])) {
+            cursor--;
+        }
+
+        int end = cursor + 1;
+        while (cursor >= 0 && (char.IsLetter(css[cursor]) || css[cursor] == '-')) {
+            cursor--;
+        }
+
+        string functionName = css.Substring(cursor + 1, end - cursor - 1);
+        return string.Equals(functionName, "type", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static int FindMatchingCssParenthesis(string css, int open) {
+        int depth = 0;
+        char quote = '\0';
+        for (int i = open; i < css.Length; i++) {
+            char current = css[i];
+            if (quote != '\0') {
+                if (current == quote && !IsEscaped(css, i)) {
+                    quote = '\0';
+                }
+
+                continue;
+            }
+
+            if (current == '"' || current == '\'') {
+                quote = current;
+                continue;
+            }
+
+            if (current == '(') {
+                depth++;
+                continue;
+            }
+
+            if (current == ')') {
+                depth--;
+                if (depth == 0) {
+                    return i;
+                }
+            }
+        }
+
+        return -1;
+    }
+
+    private static bool TryReadCssQuotedValue(string css, int cursor, out string value, out int end) {
+        char quote = css[cursor];
+        int start = cursor + 1;
+        cursor = start;
+        while (cursor < css.Length) {
+            if (css[cursor] == quote && !IsEscaped(css, cursor)) {
+                value = css.Substring(start, cursor - start);
+                end = cursor + 1;
+                return true;
+            }
+
+            cursor++;
+        }
+
+        value = string.Empty;
+        end = cursor;
+        return false;
     }
 
     private static bool StartsWith(string text, int index, string value) {
@@ -376,5 +574,17 @@ public static class HtmlNormalizer {
             default:
                 return 5;
         }
+    }
+
+    private sealed class CssReplacement {
+        internal CssReplacement(int start, int end, string value) {
+            Start = start;
+            End = end;
+            Value = value;
+        }
+
+        internal int Start { get; }
+        internal int End { get; }
+        internal string Value { get; }
     }
 }

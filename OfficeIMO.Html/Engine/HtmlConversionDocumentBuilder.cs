@@ -17,12 +17,18 @@ public static class HtmlConversionDocumentBuilder {
         options ??= new HtmlConversionDocumentOptions();
         IHtmlDocument document = HtmlDocumentParser.ParseDocument(html);
         HtmlLogicalDocument logical = HtmlLogicalDocumentBuilder.FromDocument(document, options.UseBodyContentsOnly);
-        var styles = HtmlComputedStyleEngine.Compute(document);
+        HtmlCssMediaContext mediaContext = options.Profile == HtmlConversionProfile.HighFidelityPrint
+            ? HtmlCssMediaContext.Print
+            : HtmlCssMediaContext.Screen;
+        var styles = HtmlComputedStyleEngine.Compute(document, mediaContext);
         HtmlComputedStyleSummary styleSummary = HtmlComputedStyleEngine.Summarize(styles);
         HtmlResourceManifest manifest = HtmlResourcePipeline.BuildManifest(document, options.ToResourcePipelineOptions());
         HtmlResourceDependencyPlan resourcePlan = HtmlResourceDependencyPlanner.Create(manifest);
         string normalized = options.IncludeNormalizedHtml
             ? HtmlNormalizer.Normalize(document, ConfigureNormalization(document, options))
+            : string.Empty;
+        string adapterHtml = options.IncludeNormalizedHtml
+            ? HtmlNormalizer.Normalize(document, ConfigureAdapterNormalization(document, options))
             : string.Empty;
 
         return new HtmlConversionDocument(
@@ -33,7 +39,8 @@ public static class HtmlConversionDocumentBuilder {
             styleSummary,
             manifest,
             resourcePlan,
-            normalized);
+            normalized,
+            adapterHtml);
     }
 
     private static HtmlNormalizationOptions ConfigureNormalization(IHtmlDocument document, HtmlConversionDocumentOptions options) {
@@ -47,5 +54,11 @@ public static class HtmlConversionDocumentBuilder {
             RemoveEventHandlerAttributes = source.RemoveEventHandlerAttributes,
             CollapseTextWhitespace = source.CollapseTextWhitespace
         };
+    }
+
+    private static HtmlNormalizationOptions ConfigureAdapterNormalization(IHtmlDocument document, HtmlConversionDocumentOptions options) {
+        HtmlNormalizationOptions normalization = ConfigureNormalization(document, options);
+        normalization.UseBodyContentsOnly = false;
+        return normalization;
     }
 }

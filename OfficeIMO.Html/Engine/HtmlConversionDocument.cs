@@ -14,7 +14,8 @@ public sealed class HtmlConversionDocument {
         HtmlComputedStyleSummary styleSummary,
         HtmlResourceManifest resourceManifest,
         HtmlResourceDependencyPlan resourcePlan,
-        string normalizedHtml) {
+        string normalizedHtml,
+        string adapterHtml) {
         SourceHtml = sourceHtml ?? throw new ArgumentNullException(nameof(sourceHtml));
         ProfileContract = profileContract ?? throw new ArgumentNullException(nameof(profileContract));
         LogicalDocument = logicalDocument ?? throw new ArgumentNullException(nameof(logicalDocument));
@@ -23,6 +24,7 @@ public sealed class HtmlConversionDocument {
         ResourceManifest = resourceManifest ?? throw new ArgumentNullException(nameof(resourceManifest));
         ResourcePlan = resourcePlan ?? throw new ArgumentNullException(nameof(resourcePlan));
         NormalizedHtml = normalizedHtml ?? string.Empty;
+        AdapterHtml = adapterHtml ?? string.Empty;
     }
 
     /// <summary>Original HTML supplied by the caller.</summary>
@@ -49,6 +51,8 @@ public sealed class HtmlConversionDocument {
     /// <summary>Policy-aware normalized HTML, or an empty string when normalization was disabled.</summary>
     public string NormalizedHtml { get; }
 
+    private string AdapterHtml { get; }
+
     /// <summary>HTML text target adapters should use when no adapter-specific source preference is configured.</summary>
-    public string HtmlForConversion => string.IsNullOrWhiteSpace(NormalizedHtml) ? SourceHtml : NormalizedHtml;
+    public string HtmlForConversion => string.IsNullOrWhiteSpace(AdapterHtml) ? SourceHtml : AdapterHtml;
 }
