@@ -7,6 +7,9 @@ public sealed class HtmlNormalizationOptions {
     /// <summary>Optional base URI used to resolve URL-bearing attributes.</summary>
     public Uri? BaseUri { get; set; }
 
+    /// <summary>Optional base URI used only when resolving the document <c>base</c> element itself.</summary>
+    public Uri? BaseElementBaseUri { get; set; }
+
     /// <summary>URL policy applied before URL-bearing attributes are emitted.</summary>
     public HtmlUrlPolicy UrlPolicy { get; set; } = HtmlUrlPolicy.CreateOfficeIMOProfile();
 

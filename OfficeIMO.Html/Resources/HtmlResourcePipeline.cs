@@ -104,6 +104,8 @@ public static class HtmlResourcePipeline {
             case "script":
                 if (IsExecutableScriptElement(element)) {
                     AddAttribute(manifest, HtmlResourceKind.Script, element, "src", baseUri, options);
+                    AddAttribute(manifest, HtmlResourceKind.Script, element, "href", baseUri, options);
+                    AddAttribute(manifest, HtmlResourceKind.Script, element, "xlink:href", baseUri, options);
                 }
 
                 break;
@@ -530,7 +532,10 @@ public static class HtmlResourcePipeline {
         Dictionary<string, List<CssCustomPropertyDefinition>> customPropertyDefinitions = includeLocalDefinitions
             ? MergeCustomPropertyDefinitions(ambientCustomPropertyDefinitions, ExtractCustomPropertyDefinitions(css, inactiveMediaRanges, sourceOrderBase))
             : CloneCustomPropertyDefinitions(ambientCustomPropertyDefinitions);
-        List<SourceRange> resolvedVarFallbackRanges = GetResolvedVarFallbackRanges(css, customPropertyDefinitions, document);
+        IElement? inlineUseElement = string.Equals(attributeName, "style", StringComparison.OrdinalIgnoreCase)
+            ? element
+            : null;
+        List<SourceRange> resolvedVarFallbackRanges = GetResolvedVarFallbackRanges(css, customPropertyDefinitions, document, inlineUseElement, inactiveMediaRanges);
         var importRanges = new List<SourceRange>();
         if (scanImports) {
             foreach (CssImportReference reference in ExtractCssImports(css)) {
@@ -542,7 +547,7 @@ public static class HtmlResourcePipeline {
             }
         }
 
-        AddUsedCustomPropertyUrls(manifest, element, attributeName, css, customPropertyDefinitions, baseUri, options, document);
+        AddUsedCustomPropertyUrls(manifest, element, attributeName, css, customPropertyDefinitions, inactiveMediaRanges, baseUri, options, document, inlineUseElement);
         foreach (CssStringUrlReference reference in ExtractImageSetStringUrls(css)) {
             if (!IsInRanges(reference.Start, inactiveMediaRanges) && !TryGetCustomPropertyName(css, reference.Start, out _) && IsSupportedCssUrlDeclaration(css, reference.Start) && IsCssReferenceForMatchingSelector(document, attributeName, css, reference.Start)) {
                 AddRaw(manifest, ClassifyCssUrl(css, reference.Start), element, attributeName + "-image-set", DecodeCssEscapes(reference.Source), baseUri, options);
@@ -888,14 +893,27 @@ public static class HtmlResourcePipeline {
         values.Add(new CssCustomPropertyDefinition(source, selector, declarationStart, !string.IsNullOrWhiteSpace(source), isImportant, aliases));
     }
 
-    private static void AddUsedCustomPropertyUrls(HtmlResourceManifest manifest, IElement element, string attributeName, string css, IReadOnlyDictionary<string, List<CssCustomPropertyDefinition>> customPropertyDefinitions, Uri? baseUri, HtmlResourcePipelineOptions options, IHtmlDocument? document) {
+    private static void AddUsedCustomPropertyUrls(
+        HtmlResourceManifest manifest,
+        IElement element,
+        string attributeName,
+        string css,
+        IReadOnlyDictionary<string, List<CssCustomPropertyDefinition>> customPropertyDefinitions,
+        IReadOnlyList<SourceRange> inactiveRanges,
+        Uri? baseUri,
+        HtmlResourcePipelineOptions options,
+        IHtmlDocument? document,
+        IElement? useElement) {
         if (customPropertyDefinitions.Count == 0) {
             return;
         }
 
         foreach (Match match in CssVarExpression.Matches(css)) {
             string propertyName = match.Groups["name"].Value;
-            if (!IsCssFunctionNameAt(css, match.Index, "var") || IsInsideCssString(css, match.Index) || !customPropertyDefinitions.TryGetValue(propertyName, out List<CssCustomPropertyDefinition>? sources)) {
+            if (IsInRanges(match.Index, inactiveRanges)
+                || !IsCssFunctionNameAt(css, match.Index, "var")
+                || IsInsideCssString(css, match.Index)
+                || !customPropertyDefinitions.TryGetValue(propertyName, out List<CssCustomPropertyDefinition>? sources)) {
                 continue;
             }
 
@@ -909,7 +927,7 @@ public static class HtmlResourcePipeline {
                 continue;
             }
 
-            foreach (CssCustomPropertyDefinition source in ResolveCustomPropertyUrlDefinitions(propertyName, customPropertyDefinitions, useSelector, document, new HashSet<string>(StringComparer.Ordinal), depth: 0)) {
+            foreach (CssCustomPropertyDefinition source in ResolveCustomPropertyUrlDefinitions(propertyName, customPropertyDefinitions, useSelector, document, useElement, new HashSet<string>(StringComparer.Ordinal), depth: 0)) {
                 AddRaw(manifest, kind, element, attributeName + "-var-url", source.Source, baseUri, options);
             }
         }
@@ -920,6 +938,7 @@ public static class HtmlResourcePipeline {
         IReadOnlyDictionary<string, List<CssCustomPropertyDefinition>> customPropertyDefinitions,
         string useSelector,
         IHtmlDocument? document,
+        IElement? useElement,
         ISet<string> visited,
         int depth) {
         if (depth >= MaxCustomPropertyResolutionDepth
@@ -928,14 +947,14 @@ public static class HtmlResourcePipeline {
             yield break;
         }
 
-        int selectedDeclarationStart = SelectCustomPropertyDeclaration(sources, useSelector, document);
+        int selectedDeclarationStart = SelectCustomPropertyDeclaration(sources, useSelector, document, useElement);
         if (selectedDeclarationStart < 0) {
             visited.Remove(propertyName);
             yield break;
         }
 
         foreach (CssCustomPropertyDefinition source in sources) {
-            if (source.DeclarationStart != selectedDeclarationStart || !CanSubstituteCustomProperty(source.Selector, useSelector, document)) {
+            if (source.DeclarationStart != selectedDeclarationStart || !CanSubstituteCustomProperty(source.Selector, useSelector, document, useElement)) {
                 continue;
             }
 
@@ -944,7 +963,7 @@ public static class HtmlResourcePipeline {
             }
 
             foreach (string alias in source.Aliases) {
-                foreach (CssCustomPropertyDefinition aliasSource in ResolveCustomPropertyUrlDefinitions(alias, customPropertyDefinitions, useSelector, document, visited, depth + 1)) {
+                foreach (CssCustomPropertyDefinition aliasSource in ResolveCustomPropertyUrlDefinitions(alias, customPropertyDefinitions, useSelector, document, useElement, visited, depth + 1)) {
                     yield return aliasSource;
                 }
             }
@@ -953,7 +972,7 @@ public static class HtmlResourcePipeline {
         visited.Remove(propertyName);
     }
 
-    private static bool CanSubstituteCustomProperty(string definitionSelector, string useSelector, IHtmlDocument? document = null) {
+    private static bool CanSubstituteCustomProperty(string definitionSelector, string useSelector, IHtmlDocument? document = null, IElement? useElement = null) {
         if (string.IsNullOrWhiteSpace(definitionSelector)) {
             return string.IsNullOrWhiteSpace(useSelector);
         }
@@ -964,6 +983,10 @@ public static class HtmlResourcePipeline {
 
         foreach (string definitionPart in definitionSelector.Split(',')) {
             string normalizedDefinition = definitionPart.Trim();
+            if (SelectorMatchesElementOrAncestor(normalizedDefinition, useElement)) {
+                return true;
+            }
+
             if (string.Equals(normalizedDefinition, ":root", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(normalizedDefinition, "html", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(normalizedDefinition, "body", StringComparison.OrdinalIgnoreCase)) {
@@ -983,12 +1006,12 @@ public static class HtmlResourcePipeline {
         return false;
     }
 
-    private static int SelectCustomPropertyDeclaration(IEnumerable<CssCustomPropertyDefinition> sources, string useSelector, IHtmlDocument? document = null) {
+    private static int SelectCustomPropertyDeclaration(IEnumerable<CssCustomPropertyDefinition> sources, string useSelector, IHtmlDocument? document = null, IElement? useElement = null) {
         int selectedDeclarationStart = -1;
         int selectedRank = -1;
         bool selectedImportant = false;
         foreach (CssCustomPropertyDefinition source in sources) {
-            int rank = GetSubstitutionRank(source.Selector, useSelector, document);
+            int rank = GetSubstitutionRank(source.Selector, useSelector, document, useElement);
             if (rank < 0) {
                 continue;
             }
@@ -1006,7 +1029,7 @@ public static class HtmlResourcePipeline {
         return selectedRank >= 0 ? selectedDeclarationStart : -1;
     }
 
-    private static int GetSubstitutionRank(string definitionSelector, string useSelector, IHtmlDocument? document = null) {
+    private static int GetSubstitutionRank(string definitionSelector, string useSelector, IHtmlDocument? document = null, IElement? useElement = null) {
         if (string.IsNullOrWhiteSpace(definitionSelector)) {
             return string.IsNullOrWhiteSpace(useSelector) ? 3 : -1;
         }
@@ -1014,6 +1037,7 @@ public static class HtmlResourcePipeline {
         int best = -1;
         foreach (string definitionPart in definitionSelector.Split(',')) {
             string normalizedDefinition = definitionPart.Trim();
+            best = Math.Max(best, GetElementSubstitutionRank(normalizedDefinition, useElement));
             foreach (string usePart in useSelector.Split(',')) {
                 string normalizedUse = usePart.Trim();
                 if (string.Equals(normalizedDefinition, normalizedUse, StringComparison.OrdinalIgnoreCase)) {
@@ -1033,7 +1057,47 @@ public static class HtmlResourcePipeline {
         return best;
     }
 
-    private static List<SourceRange> GetResolvedVarFallbackRanges(string css, IReadOnlyDictionary<string, List<CssCustomPropertyDefinition>> customPropertyDefinitions, IHtmlDocument? document) {
+    private static int GetElementSubstitutionRank(string definitionSelector, IElement? useElement) {
+        if (useElement == null || string.IsNullOrWhiteSpace(definitionSelector)) {
+            return -1;
+        }
+
+        if (ElementMatchesSelector(useElement, definitionSelector)) {
+            return 3;
+        }
+
+        for (IElement? ancestor = useElement.ParentElement; ancestor != null; ancestor = ancestor.ParentElement) {
+            if (ElementMatchesSelector(ancestor, definitionSelector)) {
+                return 2;
+            }
+        }
+
+        return -1;
+    }
+
+    private static bool SelectorMatchesElementOrAncestor(string selector, IElement? useElement) {
+        return GetElementSubstitutionRank(selector, useElement) >= 0;
+    }
+
+    private static bool ElementMatchesSelector(IElement element, string selector) {
+        string normalized = NormalizeSelectorForQuery(selector);
+        if (normalized.Length == 0 || normalized.StartsWith("@", StringComparison.Ordinal)) {
+            return false;
+        }
+
+        try {
+            return element.Matches(normalized);
+        } catch {
+            return false;
+        }
+    }
+
+    private static List<SourceRange> GetResolvedVarFallbackRanges(
+        string css,
+        IReadOnlyDictionary<string, List<CssCustomPropertyDefinition>> customPropertyDefinitions,
+        IHtmlDocument? document,
+        IElement? useElement,
+        IReadOnlyList<SourceRange> inactiveRanges) {
         var ranges = new List<SourceRange>();
         if (customPropertyDefinitions.Count == 0) {
             return ranges;
@@ -1041,7 +1105,10 @@ public static class HtmlResourcePipeline {
 
         foreach (Match match in CssVarExpression.Matches(css)) {
             string propertyName = match.Groups["name"].Value;
-            if (!IsCssFunctionNameAt(css, match.Index, "var") || IsInsideCssString(css, match.Index) || !customPropertyDefinitions.TryGetValue(propertyName, out List<CssCustomPropertyDefinition>? sources)) {
+            if (IsInRanges(match.Index, inactiveRanges)
+                || !IsCssFunctionNameAt(css, match.Index, "var")
+                || IsInsideCssString(css, match.Index)
+                || !customPropertyDefinitions.TryGetValue(propertyName, out List<CssCustomPropertyDefinition>? sources)) {
                 continue;
             }
 
@@ -1056,7 +1123,7 @@ public static class HtmlResourcePipeline {
             }
 
             string useSelector = GetDeclarationSelector(css, match.Index);
-            if (SelectCustomPropertyDeclaration(sources, useSelector, document) < 0) {
+            if (SelectCustomPropertyDeclaration(sources, useSelector, document, useElement) < 0) {
                 continue;
             }
 

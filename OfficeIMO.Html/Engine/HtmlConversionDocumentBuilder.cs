@@ -47,6 +47,7 @@ public static class HtmlConversionDocumentBuilder {
         HtmlNormalizationOptions source = options.NormalizationOptions ?? new HtmlNormalizationOptions();
         return new HtmlNormalizationOptions {
             BaseUri = source.BaseUri ?? HtmlDocumentParser.ResolveEffectiveBaseUri(document, options.BaseUri),
+            BaseElementBaseUri = source.BaseElementBaseUri,
             UrlPolicy = options.UrlPolicy.Clone(),
             UseBodyContentsOnly = options.UseBodyContentsOnly,
             PreserveComments = source.PreserveComments,
@@ -59,7 +60,7 @@ public static class HtmlConversionDocumentBuilder {
     private static HtmlNormalizationOptions ConfigureAdapterNormalization(IHtmlDocument document, HtmlConversionDocumentOptions options) {
         HtmlNormalizationOptions normalization = ConfigureNormalization(document, options);
         HtmlNormalizationOptions source = options.NormalizationOptions ?? new HtmlNormalizationOptions();
-        normalization.BaseUri = source.BaseUri ?? options.BaseUri;
+        normalization.BaseElementBaseUri = source.BaseElementBaseUri ?? source.BaseUri ?? options.BaseUri;
         normalization.UseBodyContentsOnly = false;
         return normalization;
     }

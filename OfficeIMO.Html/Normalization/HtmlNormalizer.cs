@@ -1,5 +1,6 @@
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
+using System.Globalization;
 using System.Text.RegularExpressions;
 
 namespace OfficeIMO.Html;
@@ -19,7 +20,7 @@ public static class HtmlNormalizer {
         "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"
     };
     private static readonly HashSet<string> SkippedElements = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
-        "script", "template", "noscript"
+        "script", "template"
     };
     private static readonly HashSet<string> UrlAttributes = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
         "action", "background", "cite", "data-poster", "data-src", "formaction", "href", "poster", "src", "xlink:href"
@@ -165,7 +166,12 @@ public static class HtmlNormalizer {
                 return options.BaseUri?.AbsoluteUri ?? string.Empty;
             }
 
-            return HtmlUrlPolicyEvaluator.ResolveUrl(value, options.BaseUri, options.UrlPolicy);
+            Uri? baseUri = string.Equals(element.TagName, "base", StringComparison.OrdinalIgnoreCase)
+                && string.Equals(name, "href", StringComparison.OrdinalIgnoreCase)
+                && options.BaseElementBaseUri != null
+                    ? options.BaseElementBaseUri
+                    : options.BaseUri;
+            return HtmlUrlPolicyEvaluator.ResolveUrl(value, baseUri, options.UrlPolicy);
         }
 
         if (string.Equals(name, "style", StringComparison.OrdinalIgnoreCase)) {
@@ -194,6 +200,7 @@ public static class HtmlNormalizer {
     private static HtmlNormalizationOptions CopyOptions(HtmlNormalizationOptions options) {
         return new HtmlNormalizationOptions {
             BaseUri = options.BaseUri,
+            BaseElementBaseUri = options.BaseElementBaseUri,
             UrlPolicy = options.UrlPolicy,
             UseBodyContentsOnly = options.UseBodyContentsOnly,
             PreserveComments = options.PreserveComments,
@@ -288,7 +295,7 @@ public static class HtmlNormalizer {
                 continue;
             }
 
-            string source = match.Groups["url"].Value.Trim().Trim('\'', '"');
+            string source = DecodeCssEscapes(match.Groups["url"].Value.Trim().Trim('\'', '"'));
             string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(source, baseUri, policy);
             string replacement = string.IsNullOrWhiteSpace(resolved)
                 ? "url(\"\")"
@@ -320,7 +327,7 @@ public static class HtmlNormalizer {
                 continue;
             }
 
-            string source = css.Substring(sourceStart, sourceEnd - sourceStart).Trim();
+            string source = DecodeCssEscapes(css.Substring(sourceStart, sourceEnd - sourceStart).Trim());
             string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(source, baseUri, policy);
             replacements.Add(new CssReplacement(sourceStart, sourceEnd, EscapeCssString(resolved)));
             index = sourceEnd;
@@ -406,7 +413,7 @@ public static class HtmlNormalizer {
                 char current = css[cursor];
                 if ((current == '"' || current == '\'') && !IsCssTypeFunctionString(css, cursor)) {
                     if (TryReadCssQuotedValue(css, cursor, out string source, out int end)) {
-                        string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(source, baseUri, policy);
+                        string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(DecodeCssEscapes(source), baseUri, policy);
                         replacements.Add(new CssReplacement(cursor + 1, end - 1, EscapeCssString(resolved)));
                         cursor = end;
                         continue;
@@ -597,6 +604,55 @@ public static class HtmlNormalizer {
             || value == '_'
             || value == '-'
             || value >= 0x80;
+    }
+
+    private static string DecodeCssEscapes(string source) {
+        if (source.IndexOf('\\') < 0) {
+            return source;
+        }
+
+        var result = new StringBuilder(source.Length);
+        for (int i = 0; i < source.Length; i++) {
+            char current = source[i];
+            if (current != '\\' || i + 1 >= source.Length) {
+                result.Append(current);
+                continue;
+            }
+
+            int cursor = i + 1;
+            if (!IsHexDigit(source[cursor])) {
+                result.Append(source[cursor]);
+                i = cursor;
+                continue;
+            }
+
+            int hexStart = cursor;
+            while (cursor < source.Length && cursor - hexStart < 6 && IsHexDigit(source[cursor])) {
+                cursor++;
+            }
+
+            string hex = source.Substring(hexStart, cursor - hexStart);
+            if (int.TryParse(hex, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out int codePoint)
+                && codePoint > 0
+                && codePoint <= 0x10FFFF
+                && (codePoint < 0xD800 || codePoint > 0xDFFF)) {
+                result.Append(char.ConvertFromUtf32(codePoint));
+            }
+
+            if (cursor < source.Length && char.IsWhiteSpace(source[cursor])) {
+                cursor++;
+            }
+
+            i = cursor - 1;
+        }
+
+        return result.ToString();
+    }
+
+    private static bool IsHexDigit(char value) {
+        return (value >= '0' && value <= '9')
+            || (value >= 'a' && value <= 'f')
+            || (value >= 'A' && value <= 'F');
     }
 
     private static bool IsInsideCssString(string css, int index) {
