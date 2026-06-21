@@ -243,33 +243,27 @@ public static class HtmlComputedStyleEngine {
         }
 
         string activeType = mediaContext == HtmlCssMediaContext.Print ? "print" : "screen";
-        string inactiveType = mediaContext == HtmlCssMediaContext.Print ? "screen" : "print";
         foreach (string query in SplitSelectorList(mediaText)) {
             string normalized = query.Trim();
             if (normalized.StartsWith("not ", StringComparison.OrdinalIgnoreCase)) {
-                string negated = normalized.Substring(4).Trim();
-                if ((ContainsMediaType(negated, activeType) || ContainsMediaType(negated, "all")) && AreMediaFeaturesApplicable(negated, mediaContext)) {
-                    continue;
-                }
-
-                if (ContainsMediaType(negated, inactiveType)
-                    || (!ContainsExplicitMediaType(negated) && !AreMediaFeaturesApplicable(negated, mediaContext))) {
+                if (!IsPositiveMediaQueryApplicable(normalized.Substring(4).Trim(), activeType, mediaContext)) {
                     return true;
                 }
 
                 continue;
             }
 
-            if (ContainsMediaType(normalized, "all") || ContainsMediaType(normalized, activeType) || !ContainsExplicitMediaType(normalized)) {
-                if (AreMediaFeaturesApplicable(normalized, mediaContext)) {
-                    return true;
-                }
-
-                continue;
+            if (IsPositiveMediaQueryApplicable(normalized, activeType, mediaContext)) {
+                return true;
             }
         }
 
         return false;
+    }
+
+    private static bool IsPositiveMediaQueryApplicable(string mediaQuery, string activeType, HtmlCssMediaContext mediaContext) {
+        return AreMediaFeaturesApplicable(mediaQuery, mediaContext)
+            && (ContainsMediaType(mediaQuery, "all") || ContainsMediaType(mediaQuery, activeType) || !ContainsExplicitMediaType(mediaQuery));
     }
 
     private static bool ContainsMediaType(string mediaQuery, string mediaType) {

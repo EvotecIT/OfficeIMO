@@ -10,7 +10,6 @@ namespace OfficeIMO.Html;
 public static class HtmlNormalizer {
     private const int MaxSrcDocDepth = 8;
     private static readonly Regex CssUrlExpression = new Regex("url\\(\\s*(?:\"(?<url>[^\"]*)\"|'(?<url>[^']*)'|(?<url>[^)]+))\\s*\\)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
-    private static readonly Regex CssImportExpression = new Regex("@import\\s+(?:url\\(\\s*(?:\"(?<url>[^\"]*)\"|'(?<url>[^']*)'|(?<url>[^)]+))\\s*\\)|\"(?<url>[^\"]*)\"|'(?<url>[^']*)')", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
     private static readonly HashSet<string> BooleanAttributes = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
         "allowfullscreen", "async", "autofocus", "autoplay", "checked", "controls", "default", "defer", "disabled",
         "formnovalidate", "hidden", "loop", "multiple", "muted", "nomodule", "novalidate", "open", "readonly",
@@ -297,25 +296,86 @@ public static class HtmlNormalizer {
             replacements.Add(new CssReplacement(match.Index, match.Index + match.Length, replacement));
         }
 
-        AddCssStringResourceReplacements(css, CssImportExpression, baseUri, policy, replacements);
+        AddCssImportResourceReplacements(css, baseUri, policy, replacements);
         AddImageSetStringResourceReplacements(css, baseUri, policy, replacements);
         return ApplyCssReplacements(css, replacements);
     }
 
-    private static void AddCssStringResourceReplacements(string css, Regex expression, Uri? baseUri, HtmlUrlPolicy policy, ICollection<CssReplacement> replacements) {
-        foreach (Match match in expression.Matches(css)) {
-            if (IsInsideCssString(css, match.Index)) {
+    private static void AddCssImportResourceReplacements(string css, Uri? baseUri, HtmlUrlPolicy policy, ICollection<CssReplacement> replacements) {
+        int index = 0;
+        while (index < css.Length) {
+            int importStart = css.IndexOf("@import", index, StringComparison.OrdinalIgnoreCase);
+            if (importStart < 0) {
+                return;
+            }
+
+            if (IsInsideCssString(css, importStart) || !HasAtRuleTokenBoundary(css, importStart, "@import")) {
+                index = importStart + 7;
                 continue;
             }
 
-            Group group = match.Groups["url"];
-            if (!group.Success) {
+            int cursor = SkipCssWhitespaceAndComments(css, importStart + 7);
+            if (!TryReadCssImportValue(css, cursor, out int sourceStart, out int sourceEnd)) {
+                index = importStart + 7;
                 continue;
             }
 
-            string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(group.Value.Trim(), baseUri, policy);
-            replacements.Add(new CssReplacement(group.Index, group.Index + group.Length, EscapeCssString(resolved)));
+            string source = css.Substring(sourceStart, sourceEnd - sourceStart).Trim();
+            string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(source, baseUri, policy);
+            replacements.Add(new CssReplacement(sourceStart, sourceEnd, EscapeCssString(resolved)));
+            index = sourceEnd;
         }
+    }
+
+    private static bool TryReadCssImportValue(string css, int cursor, out int sourceStart, out int sourceEnd) {
+        sourceStart = 0;
+        sourceEnd = 0;
+        if (StartsWith(css, cursor, "url(")) {
+            cursor = SkipCssWhitespaceAndComments(css, cursor + 4);
+            if (cursor < css.Length && (css[cursor] == '"' || css[cursor] == '\'')) {
+                if (!TryReadCssQuotedValue(css, cursor, out _, out int end)) {
+                    return false;
+                }
+
+                sourceStart = cursor + 1;
+                sourceEnd = end - 1;
+                return true;
+            }
+
+            sourceStart = cursor;
+            while (cursor < css.Length && css[cursor] != ')') {
+                cursor++;
+            }
+
+            sourceEnd = TrimCssValueEnd(css, sourceStart, cursor);
+            return sourceEnd >= sourceStart;
+        }
+
+        if (cursor < css.Length && (css[cursor] == '"' || css[cursor] == '\'')) {
+            if (!TryReadCssQuotedValue(css, cursor, out _, out int end)) {
+                return false;
+            }
+
+            sourceStart = cursor + 1;
+            sourceEnd = end - 1;
+            return true;
+        }
+
+        sourceStart = cursor;
+        while (cursor < css.Length && !char.IsWhiteSpace(css[cursor]) && css[cursor] != ';') {
+            cursor++;
+        }
+
+        sourceEnd = cursor;
+        return sourceEnd > sourceStart;
+    }
+
+    private static int TrimCssValueEnd(string css, int start, int end) {
+        while (end > start && char.IsWhiteSpace(css[end - 1])) {
+            end--;
+        }
+
+        return end;
     }
 
     private static void AddImageSetStringResourceReplacements(string css, Uri? baseUri, HtmlUrlPolicy policy, ICollection<CssReplacement> replacements) {
@@ -501,6 +561,35 @@ public static class HtmlNormalizer {
         return index >= 0
             && index + value.Length <= text.Length
             && string.Compare(text, index, value, 0, value.Length, StringComparison.OrdinalIgnoreCase) == 0;
+    }
+
+    private static bool HasAtRuleTokenBoundary(string css, int index, string token) {
+        int after = index + token.Length;
+        return (index == 0 || !IsCssIdentifierCharacter(css[index - 1]))
+            && (after >= css.Length || !IsCssIdentifierCharacter(css[after]));
+    }
+
+    private static int SkipCssWhitespaceAndComments(string css, int index) {
+        while (index < css.Length) {
+            if (char.IsWhiteSpace(css[index])) {
+                index++;
+                continue;
+            }
+
+            if (index + 1 < css.Length && css[index] == '/' && css[index + 1] == '*') {
+                int commentEnd = css.IndexOf("*/", index + 2, StringComparison.Ordinal);
+                if (commentEnd < 0) {
+                    return css.Length;
+                }
+
+                index = commentEnd + 2;
+                continue;
+            }
+
+            break;
+        }
+
+        return index;
     }
 
     private static bool IsCssIdentifierCharacter(char value) {

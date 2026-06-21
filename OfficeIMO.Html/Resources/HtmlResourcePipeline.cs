@@ -67,6 +67,11 @@ public static class HtmlResourcePipeline {
                 AddAttribute(manifest, HtmlResourceKind.Image, element, "xlink:href", baseUri, options);
                 AddAttribute(manifest, HtmlResourceKind.Image, element, "src", baseUri, options);
                 break;
+            case "feimage":
+            case "use":
+                AddAttribute(manifest, HtmlResourceKind.Image, element, "href", baseUri, options);
+                AddAttribute(manifest, HtmlResourceKind.Image, element, "xlink:href", baseUri, options);
+                break;
             case "source":
                 AddSource(manifest, element, baseUri, options);
                 break;
@@ -171,8 +176,11 @@ public static class HtmlResourcePipeline {
                 break;
             case "audio":
             case "video":
-                AddAttribute(manifest, HtmlResourceKind.Media, element, "src", baseUri, options);
-                AddAttribute(manifest, HtmlResourceKind.Media, element, "data-src", baseUri, options);
+                if (IsSelectableMediaSource(element)) {
+                    AddAttribute(manifest, HtmlResourceKind.Media, element, "src", baseUri, options);
+                    AddAttribute(manifest, HtmlResourceKind.Media, element, "data-src", baseUri, options);
+                }
+
                 break;
         }
     }
@@ -200,6 +208,49 @@ public static class HtmlResourcePipeline {
         }
 
         return true;
+    }
+
+    private static bool IsSelectableMediaSource(IElement element) {
+        IElement? parent = element.ParentElement;
+        if (parent == null) {
+            return true;
+        }
+
+        string parentName = parent.TagName.ToLowerInvariant();
+        if (!string.Equals(parentName, "audio", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(parentName, "video", StringComparison.OrdinalIgnoreCase)) {
+            return true;
+        }
+
+        if (HasNonEmptyAttribute(parent, "src")) {
+            return false;
+        }
+
+        return IsSupportedMediaSourceType(element.GetAttribute("type"), parentName);
+    }
+
+    private static bool IsSupportedMediaSourceType(string? type, string parentName) {
+        if (string.IsNullOrWhiteSpace(type)) {
+            return true;
+        }
+
+        string mediaType = type!.Split(';')[0].Trim().ToLowerInvariant();
+        if (parentName == "video") {
+            return mediaType == "video/mp4" || mediaType == "video/webm" || mediaType == "video/ogg";
+        }
+
+        return mediaType == "audio/mpeg"
+            || mediaType == "audio/mp4"
+            || mediaType == "audio/ogg"
+            || mediaType == "audio/webm"
+            || mediaType == "audio/wav"
+            || mediaType == "audio/wave"
+            || mediaType == "audio/aac"
+            || mediaType == "audio/flac";
+    }
+
+    private static bool HasNonEmptyAttribute(IElement element, string attributeName) {
+        return !string.IsNullOrWhiteSpace(element.GetAttribute(attributeName));
     }
 
     private static void AddLink(HtmlResourceManifest manifest, IElement element, Uri? baseUri, HtmlResourcePipelineOptions options) {
@@ -253,34 +304,31 @@ public static class HtmlResourcePipeline {
         }
 
         string activeType = mediaContext == HtmlCssMediaContext.Print ? "print" : "screen";
-        string inactiveType = mediaContext == HtmlCssMediaContext.Print ? "screen" : "print";
         foreach (string query in SplitTopLevelList(mediaText)) {
             string normalized = query.Trim();
             if (normalized.Length == 0) {
                 continue;
             }
 
-            bool mediaFeaturesMatch = MediaFeaturesMatch(normalized);
             if (normalized.StartsWith("not ", StringComparison.OrdinalIgnoreCase)) {
-                string negated = normalized.Substring(4).Trim();
-                bool negatedFeaturesMatch = MediaFeaturesMatch(negated);
-                if ((ContainsMediaType(negated, activeType) || ContainsMediaType(negated, "all")) && negatedFeaturesMatch) {
-                    continue;
-                }
-
-                if (ContainsMediaType(negated, inactiveType) || (!ContainsExplicitMediaType(negated) && !negatedFeaturesMatch)) {
+                if (!IsPositiveMediaQueryApplicable(normalized.Substring(4).Trim(), activeType)) {
                     return true;
                 }
 
                 continue;
             }
 
-            if (mediaFeaturesMatch && (ContainsMediaType(normalized, "all") || ContainsMediaType(normalized, activeType) || !ContainsExplicitMediaType(normalized))) {
+            if (IsPositiveMediaQueryApplicable(normalized, activeType)) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    private static bool IsPositiveMediaQueryApplicable(string mediaQuery, string activeType) {
+        return MediaFeaturesMatch(mediaQuery)
+            && (ContainsMediaType(mediaQuery, "all") || ContainsMediaType(mediaQuery, activeType) || !ContainsExplicitMediaType(mediaQuery));
     }
 
     private static bool MediaFeaturesMatch(string mediaQuery) {

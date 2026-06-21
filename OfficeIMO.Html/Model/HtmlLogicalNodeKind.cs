@@ -22,7 +22,7 @@ public enum HtmlLogicalNodeKind {
     TableRow,
     /// <summary>Table header or data cell.</summary>
     TableCell,
-    /// <summary>Figure or figure caption.</summary>
+    /// <summary>Figure element.</summary>
     Figure,
     /// <summary>Image, picture, or inline SVG.</summary>
     Image,
