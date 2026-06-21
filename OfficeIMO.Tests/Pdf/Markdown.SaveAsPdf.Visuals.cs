@@ -105,6 +105,16 @@ public class MarkdownSaveAsPdfVisualTests {
     }
 
     [Fact]
+    public void FromMarkdownTheme_TreatsTransparentSharedBackgroundAsNoPageDecoration() {
+        MarkdownVisualTheme sharedTheme = MarkdownVisualTheme.Report()
+            .WithColors(background: "Transparent");
+
+        MarkdownPdfVisualTheme pdfTheme = MarkdownPdfVisualTheme.FromMarkdownTheme(sharedTheme);
+
+        Assert.Null(pdfTheme.PageDecoration);
+    }
+
+    [Fact]
     public void ToPdfDocument_SharedMarkdownTheme_DoesNotOverrideExplicitPdfBackground() {
         MarkdownVisualTheme sharedTheme = MarkdownVisualTheme.Report()
             .WithColors(background: "#112233");
@@ -159,6 +169,33 @@ public class MarkdownSaveAsPdfVisualTests {
 
         Assert.Null(pdfTheme.TableStyle!.RowStripeFill);
         Assert.Null(pdfTheme.CodeBlockPanelStyle!.Background);
+    }
+
+    [Fact]
+    public void ToPdfDocument_QuoteWithImageOnlyChildKeepsTextInsideQuotePanel() {
+        string markdown = $"""
+> Intro text.
+>
+> ![Badge]({CreateDataUriPng()})
+>
+> Outro text.
+""";
+        MarkdownPdfVisualTheme visualTheme = MarkdownPdfVisualTheme.Plain();
+        visualTheme.QuotePanelStyle = new PdfCore.PanelStyle {
+            Background = PdfCore.PdfColor.FromRgb(0xff, 0, 0),
+            PaddingX = 8,
+            PaddingY = 6
+        };
+        var options = CreateVisualOptions();
+        options.VisualTheme = visualTheme;
+
+        byte[] bytes = markdown.ToPdfDocument(options).ToBytes();
+        string raw = Encoding.ASCII.GetString(bytes);
+        string text = PdfCore.PdfReadDocument.Load(bytes).ExtractText();
+
+        Assert.Contains("Intro text.", text, StringComparison.Ordinal);
+        Assert.Contains("Outro text.", text, StringComparison.Ordinal);
+        Assert.Contains("1 0 0 rg", raw, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -73,6 +73,21 @@ Narrative body text.
         }
 
         [Fact]
+        public void MarkdownToWord_SharedVisualTheme_PreservesLinkAccentInsideHeadings() {
+            MarkdownVisualTheme theme = MarkdownVisualTheme.Report()
+                .WithColors(heading: "#064e3b", accent: "#dc2626");
+            string md = "# [Documentation](https://example.com/docs)";
+
+            using var doc = md.LoadFromMarkdown(new MarkdownToWordOptions { Theme = theme });
+
+            var linkRuns = doc.Paragraphs.SelectMany(p => p.GetRuns())
+                .Where(run => run.IsHyperLink && run.Text == "Documentation")
+                .ToArray();
+            Assert.NotEmpty(linkRuns);
+            Assert.All(linkRuns, run => Assert.Equal("dc2626", run.ColorHex));
+        }
+
+        [Fact]
         public void MarkdownToWord_DoesNotApplySharedVisualThemeWhenThemeIsOmitted() {
             string md = """
 # Heading
@@ -105,6 +120,28 @@ Narrative body text.
             Assert.Equal(0U, cell.Borders.TopSize?.Value);
             Assert.Equal(BorderValues.None, cell.Borders.BottomStyle);
             Assert.Equal(0U, cell.Borders.BottomSize?.Value);
+        }
+
+        [Fact]
+        public void MarkdownToWord_SharedVisualTheme_TreatsTransparentTableBordersAsNoBorder() {
+            MarkdownVisualTheme theme = MarkdownVisualTheme.Report()
+                .WithColors(border: "Transparent")
+                .WithTable(table => table.BorderWidth = 1.25);
+            string md = """
+| Name | Value |
+| --- | --- |
+| First | 1 |
+""";
+
+            using var doc = md.LoadFromMarkdown(new MarkdownToWordOptions { Theme = theme });
+
+            var cell = doc.Tables[0].Rows[0].Cells[0];
+            Assert.Equal(BorderValues.None, cell.Borders.TopStyle);
+            Assert.Equal(0U, cell.Borders.TopSize?.Value);
+            Assert.True(string.IsNullOrEmpty(cell.Borders.TopColorHex));
+            Assert.Equal(BorderValues.None, cell.Borders.BottomStyle);
+            Assert.Equal(0U, cell.Borders.BottomSize?.Value);
+            Assert.True(string.IsNullOrEmpty(cell.Borders.BottomColorHex));
         }
 
         [Fact]

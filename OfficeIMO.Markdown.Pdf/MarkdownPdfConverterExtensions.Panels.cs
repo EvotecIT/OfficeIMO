@@ -10,13 +10,7 @@ namespace OfficeIMO.Markdown.Pdf;
 public static partial class MarkdownPdfConverterExtensions {
     private static void RenderQuoteBlock(PdfCore.PdfDocument pdf, QuoteBlock quote, MarkdownDoc document, MarkdownPdfSaveOptions options, MarkdownPdfVisualTheme visualTheme) {
         if (quote.Children.Count > 0) {
-            bool canRenderChildrenInsidePanel = CanRenderBlocksInsidePanel(quote.Children);
-            if (canRenderChildrenInsidePanel) {
-                pdf.Panel(_ => RenderBlocks(pdf, quote.Children, document, options, visualTheme), visualTheme.QuotePanelStyleSnapshot);
-                return;
-            }
-
-            RenderBlocks(pdf, quote.Children, document, options, visualTheme);
+            RenderBlocksWithPanelRuns(pdf, quote.Children, document, options, visualTheme, visualTheme.QuotePanelStyleSnapshot);
             return;
         }
 
@@ -28,6 +22,63 @@ public static partial class MarkdownPdfConverterExtensions {
                 AppendTextWithLineBreaks(builder, text);
             }, visualTheme.QuotePanelStyleSnapshot);
         }
+    }
+
+    private static void RenderBlocksWithPanelRuns(
+        PdfCore.PdfDocument pdf,
+        IReadOnlyList<IMarkdownBlock> blocks,
+        MarkdownDoc document,
+        MarkdownPdfSaveOptions options,
+        MarkdownPdfVisualTheme visualTheme,
+        PdfCore.PanelStyle panelStyle,
+        Action<PdfCore.PdfItemCompose>? renderFirstPanelHeader = null) {
+        var panelBlocks = new List<IMarkdownBlock>();
+        bool renderedHeader = false;
+
+        for (int i = 0; i < blocks.Count; i++) {
+            IMarkdownBlock block = blocks[i];
+            if (CanRenderBlockInsidePanel(block)) {
+                panelBlocks.Add(block);
+                continue;
+            }
+
+            FlushPanelBlocks(pdf, panelBlocks, document, options, visualTheme, panelStyle, renderFirstPanelHeader, ref renderedHeader);
+            if (!renderedHeader && renderFirstPanelHeader != null) {
+                pdf.Panel(panel => renderFirstPanelHeader(panel), panelStyle);
+                renderedHeader = true;
+            }
+
+            RenderBlock(pdf, block, document, options, visualTheme);
+        }
+
+        FlushPanelBlocks(pdf, panelBlocks, document, options, visualTheme, panelStyle, renderFirstPanelHeader, ref renderedHeader);
+    }
+
+    private static void FlushPanelBlocks(
+        PdfCore.PdfDocument pdf,
+        List<IMarkdownBlock> panelBlocks,
+        MarkdownDoc document,
+        MarkdownPdfSaveOptions options,
+        MarkdownPdfVisualTheme visualTheme,
+        PdfCore.PanelStyle panelStyle,
+        Action<PdfCore.PdfItemCompose>? renderFirstPanelHeader,
+        ref bool renderedHeader) {
+        if (panelBlocks.Count == 0) {
+            return;
+        }
+
+        IMarkdownBlock[] batch = panelBlocks.ToArray();
+        panelBlocks.Clear();
+        Action<PdfCore.PdfItemCompose>? header = !renderedHeader ? renderFirstPanelHeader : null;
+
+        pdf.Panel(panel => {
+            if (header != null) {
+                header(panel);
+            }
+
+            RenderBlocks(pdf, batch, document, options, visualTheme);
+        }, panelStyle);
+        renderedHeader = true;
     }
 
     private static bool CanRenderBlocksInsidePanel(IReadOnlyList<IMarkdownBlock> blocks) {

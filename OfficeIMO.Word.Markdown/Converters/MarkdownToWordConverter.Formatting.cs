@@ -36,6 +36,10 @@ namespace OfficeIMO.Word.Markdown {
 
             Omd.MarkdownVisualPalette palette = theme.PaletteSnapshot;
             foreach (var run in paragraph.GetRuns()) {
+                if (run.IsHyperLink) {
+                    continue;
+                }
+
                 run.SetColorHex(palette.Heading.ToRgbHex());
             }
         }
@@ -99,9 +103,10 @@ namespace OfficeIMO.Word.Markdown {
 
             Omd.MarkdownVisualPalette palette = theme.PaletteSnapshot;
             Omd.MarkdownTableVisualStyle tableStyle = theme.TableSnapshot;
-            string borderHex = palette.Border.ToRgbHex();
-            DocumentFormat.OpenXml.UInt32Value borderSize = ToWordBorderSize(tableStyle.BorderWidth);
-            BorderValues borderStyle = IsPositiveFinite(tableStyle.BorderWidth) ? BorderValues.Single : BorderValues.None;
+            bool hasVisibleBorder = palette.Border.A > 0 && IsPositiveFinite(tableStyle.BorderWidth);
+            string? borderHex = hasVisibleBorder ? palette.Border.ToRgbHex() : null;
+            DocumentFormat.OpenXml.UInt32Value borderSize = hasVisibleBorder ? ToWordBorderSize(tableStyle.BorderWidth) : 0U;
+            BorderValues borderStyle = hasVisibleBorder ? BorderValues.Single : BorderValues.None;
             short horizontalPadding = ToWordCellMarginWidth(tableStyle.CellPaddingX);
             short verticalPadding = ToWordCellMarginWidth(tableStyle.CellPaddingY);
 
