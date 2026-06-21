@@ -255,7 +255,23 @@ public static class HtmlResourcePipeline {
             return false;
         }
 
-        return IsSupportedMediaSourceType(element.GetAttribute("type"), parentName);
+        if (!IsSupportedMediaSourceType(element.GetAttribute("type"), parentName)) {
+            return false;
+        }
+
+        foreach (IElement sibling in parent.Children) {
+            if (ReferenceEquals(sibling, element)) {
+                return true;
+            }
+
+            if (string.Equals(sibling.TagName, "source", StringComparison.OrdinalIgnoreCase)
+                && HasNonEmptyAttribute(sibling, "src")
+                && IsSupportedMediaSourceType(sibling.GetAttribute("type"), parentName)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static bool IsSupportedMediaSourceType(string? type, string parentName) {
@@ -528,14 +544,20 @@ public static class HtmlResourcePipeline {
 
         AddUsedCustomPropertyUrls(manifest, element, attributeName, css, customPropertyDefinitions, inlineSourceOrders, inactiveMediaRanges, baseUri, options, document, inlineUseElement);
         foreach (CssStringUrlReference reference in ExtractImageSetStringUrls(css)) {
-            if (!IsInRanges(reference.Start, inactiveMediaRanges) && !TryGetCustomPropertyName(css, reference.Start, out _) && IsSupportedCssUrlDeclaration(css, reference.Start) && IsCssReferenceForMatchingSelector(document, attributeName, css, reference.Start)) {
-                AddRaw(manifest, ClassifyCssUrl(css, reference.Start), element, attributeName + "-image-set", DecodeCssEscapes(reference.Source), baseUri, options);
+            string source = DecodeCssEscapes(reference.Source);
+            if (!IsInRanges(reference.Start, inactiveMediaRanges)
+                && !IsFragmentOnlyReference(source)
+                && !TryGetCustomPropertyName(css, reference.Start, out _)
+                && IsSupportedCssUrlDeclaration(css, reference.Start)
+                && IsCssReferenceForMatchingSelector(document, attributeName, css, reference.Start)) {
+                AddRaw(manifest, ClassifyCssUrl(css, reference.Start), element, attributeName + "-image-set", source, baseUri, options);
             }
         }
 
         foreach (Match match in CssUrlExpression.Matches(css)) {
-            string source = match.Groups["url"].Value.Trim().Trim('\'', '"');
+            string source = DecodeCssEscapes(match.Groups["url"].Value.Trim().Trim('\'', '"'));
             if (!string.IsNullOrWhiteSpace(source)
+                && !IsFragmentOnlyReference(source)
                 && IsCssFunctionNameAt(css, match.Index, "url")
                 && !IsImportUrl(match.Index, importRanges)
                 && !IsResolvedVarFallbackUrl(css, match.Index, customPropertyDefinitions, inlineSourceOrders, document, inlineUseElement, inactiveMediaRanges, options, attributeName)
@@ -546,7 +568,7 @@ public static class HtmlResourcePipeline {
                 && !IsCustomPropertyUrl(css, match.Index)
                 && IsSupportedCssUrlDeclaration(css, match.Index)
                 && IsCssReferenceForMatchingSelector(document, attributeName, css, match.Index)) {
-                AddRaw(manifest, ClassifyCssUrl(css, match.Index), element, attributeName + "-url", DecodeCssEscapes(source), baseUri, options);
+                AddRaw(manifest, ClassifyCssUrl(css, match.Index), element, attributeName + "-url", source, baseUri, options);
             }
         }
     }
@@ -927,7 +949,7 @@ public static class HtmlResourcePipeline {
                             ? CloneCustomPropertyDefinitions(customPropertyDefinitions)
                             : MergeCustomPropertyDefinitions(customPropertyDefinitions, inlineDefinitions);
                         foreach (CssCustomPropertyDefinition source in ResolveCustomPropertyUrlDefinitions(propertyName, mergedDefinitions, string.Empty, document, matchedElement, new HashSet<string>(StringComparer.Ordinal), depth: 0)) {
-                            if (addedSources.Add(source.Source)) {
+                            if (!IsFragmentOnlyReference(source.Source) && addedSources.Add(source.Source)) {
                                 AddRaw(manifest, kind, element, attributeName + "-var-url", source.Source, baseUri, options);
                             }
                         }
@@ -938,7 +960,7 @@ public static class HtmlResourcePipeline {
             }
 
             foreach (CssCustomPropertyDefinition source in ResolveCustomPropertyUrlDefinitions(propertyName, customPropertyDefinitions, useSelector, document, useElement, new HashSet<string>(StringComparer.Ordinal), depth: 0)) {
-                if (addedSources.Add(source.Source)) {
+                if (!IsFragmentOnlyReference(source.Source) && addedSources.Add(source.Source)) {
                     AddRaw(manifest, kind, element, attributeName + "-var-url", source.Source, baseUri, options);
                 }
             }

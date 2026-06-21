@@ -161,6 +161,10 @@ public static class HtmlNormalizer {
             return HtmlImageSourceResolver.ResolveNormalizedSrcSet(value, options.BaseUri, GetResourceUrlPolicy(options.UrlPolicy));
         }
 
+        if (IsMetaRefreshContentAttribute(element, name)) {
+            return NormalizeMetaRefreshContent(value, options);
+        }
+
         if (IsUrlAttribute(element, name)) {
             HtmlUrlPolicy attributePolicy = GetAttributeUrlPolicy(element, name, options.UrlPolicy);
             if (string.IsNullOrWhiteSpace(value) && ShouldPreserveEmptyUrlAttribute(element, name, value)) {
@@ -262,6 +266,74 @@ public static class HtmlNormalizer {
             || (string.Equals(name, "formaction", StringComparison.OrdinalIgnoreCase)
                 && (string.Equals(tagName, "button", StringComparison.OrdinalIgnoreCase)
                     || string.Equals(tagName, "input", StringComparison.OrdinalIgnoreCase)));
+    }
+
+    private static bool IsMetaRefreshContentAttribute(IElement element, string name) {
+        return string.Equals(name, "content", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(element.TagName, "meta", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(element.GetAttribute("http-equiv"), "refresh", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string NormalizeMetaRefreshContent(string content, HtmlNormalizationOptions options) {
+        List<string> parameters = SplitMetaRefreshParameters(content).ToList();
+        if (parameters.Count == 0) {
+            return content;
+        }
+
+        var normalizedParameters = new List<string> {
+            parameters[0]
+        };
+        bool changedUrl = false;
+        for (int i = 1; i < parameters.Count; i++) {
+            string parameter = parameters[i];
+            int separator = parameter.IndexOf('=');
+            if (separator <= 0 || !string.Equals(parameter.Substring(0, separator).Trim(), "url", StringComparison.OrdinalIgnoreCase)) {
+                normalizedParameters.Add(parameter);
+                continue;
+            }
+
+            changedUrl = true;
+            string source = parameter.Substring(separator + 1).Trim();
+            if (source.Length > 1 && ((source[0] == '"' && source[source.Length - 1] == '"') || (source[0] == '\'' && source[source.Length - 1] == '\''))) {
+                source = source.Substring(1, source.Length - 2).Trim();
+            }
+
+            string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(source, options.BaseUri, options.UrlPolicy);
+            if (!string.IsNullOrWhiteSpace(resolved)) {
+                normalizedParameters.Add("url=" + resolved);
+            }
+        }
+
+        return changedUrl
+            ? string.Join("; ", normalizedParameters.Where(parameter => parameter.Length > 0))
+            : content;
+    }
+
+    private static IEnumerable<string> SplitMetaRefreshParameters(string content) {
+        int start = 0;
+        char quote = '\0';
+        for (int i = 0; i < content.Length; i++) {
+            char current = content[i];
+            if (quote != '\0') {
+                if (current == quote && !IsEscaped(content, i)) {
+                    quote = '\0';
+                }
+
+                continue;
+            }
+
+            if (current == '"' || current == '\'') {
+                quote = current;
+                continue;
+            }
+
+            if (current == ';') {
+                yield return content.Substring(start, i - start).Trim();
+                start = i + 1;
+            }
+        }
+
+        yield return content.Substring(start).Trim();
     }
 
     private static HtmlUrlPolicy GetAttributeUrlPolicy(IElement element, string name, HtmlUrlPolicy policy) {

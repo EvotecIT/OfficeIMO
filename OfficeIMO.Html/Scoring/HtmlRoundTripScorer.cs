@@ -257,7 +257,7 @@ public static class HtmlRoundTripScorer {
     private static void PruneHiddenStructure(AngleSharp.Html.Dom.IHtmlDocument document) {
         IReadOnlyDictionary<IElement, HtmlComputedStyle> styles = HtmlComputedStyleEngine.Compute(document);
         foreach (IElement element in document.QuerySelectorAll("*").Reverse().ToList()) {
-            if (element.ParentElement == null || !IsDisplayNoneElement(element, styles)) {
+            if (element.ParentElement == null || !IsPrunableHiddenElement(element, styles)) {
                 continue;
             }
 
@@ -985,7 +985,7 @@ public static class HtmlRoundTripScorer {
     private static void AppendVisibleText(INode node, ICollection<string> parts, IReadOnlyDictionary<IElement, HtmlComputedStyle> styles, bool inheritedVisibility) {
         bool currentVisibility = inheritedVisibility;
         if (node is IElement element) {
-            if (IsNonVisibleTextElement(element.TagName) || IsDisplayNoneElement(element, styles)) {
+            if (IsNonVisibleTextElement(element.TagName) || IsPrunableHiddenElement(element, styles)) {
                 return;
             }
 
@@ -1048,11 +1048,10 @@ public static class HtmlRoundTripScorer {
     private static bool IsNonVisibleTextElement(string name) {
         return string.Equals(name, "script", StringComparison.OrdinalIgnoreCase)
             || string.Equals(name, "style", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(name, "template", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(name, "noscript", StringComparison.OrdinalIgnoreCase);
+            || string.Equals(name, "template", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static bool IsDisplayNoneElement(IElement element, IReadOnlyDictionary<IElement, HtmlComputedStyle> styles) {
+    private static bool IsPrunableHiddenElement(IElement element, IReadOnlyDictionary<IElement, HtmlComputedStyle> styles) {
         if (element.HasAttribute("hidden")) {
             return true;
         }
@@ -1064,7 +1063,33 @@ public static class HtmlRoundTripScorer {
 
         HtmlComputedStyle? computedStyle;
         if (styles.TryGetValue(element, out computedStyle) && computedStyle != null) {
-            return string.Equals(computedStyle.GetValue("display"), "none", StringComparison.OrdinalIgnoreCase);
+            if (string.Equals(computedStyle.GetValue("display"), "none", StringComparison.OrdinalIgnoreCase)) {
+                return true;
+            }
+
+            string visibility = computedStyle.GetValue("visibility");
+            if ((string.Equals(visibility, "hidden", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(visibility, "collapse", StringComparison.OrdinalIgnoreCase))
+                && !HasVisibleVisibilityDescendant(element, styles)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool HasVisibleVisibilityDescendant(IElement element, IReadOnlyDictionary<IElement, HtmlComputedStyle> styles) {
+        foreach (IElement descendant in element.QuerySelectorAll("*")) {
+            HtmlComputedStyle? descendantStyle;
+            if (!styles.TryGetValue(descendant, out descendantStyle) || descendantStyle == null) {
+                continue;
+            }
+
+            string visibility = descendantStyle.GetValue("visibility");
+            if (!string.Equals(visibility, "hidden", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(visibility, "collapse", StringComparison.OrdinalIgnoreCase)) {
+                return true;
+            }
         }
 
         return false;

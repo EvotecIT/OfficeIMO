@@ -133,7 +133,8 @@ namespace OfficeIMO.Word.Html {
                 }
 
                 foreach (IHtmlStyleElement styleElement in parsed.QuerySelectorAll("style").OfType<IHtmlStyleElement>()) {
-                    if (!HtmlComputedStyleEngine.IsApplicableMedia(styleElement.GetAttribute("media") ?? string.Empty, mediaContext)) {
+                    if (!IsCssStyleElement(styleElement)
+                        || !HtmlComputedStyleEngine.IsApplicableMedia(styleElement.GetAttribute("media") ?? string.Empty, mediaContext)) {
                         styleElement.Remove();
                         changed = true;
                         continue;
@@ -152,6 +153,16 @@ namespace OfficeIMO.Word.Html {
             } catch {
                 return html;
             }
+        }
+
+        private static bool IsCssStyleElement(IHtmlStyleElement styleElement) {
+            string type = styleElement.GetAttribute("type") ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(type)) {
+                return true;
+            }
+
+            string mediaType = type.Split(';')[0].Trim();
+            return string.Equals(mediaType, "text/css", StringComparison.OrdinalIgnoreCase);
         }
 
         private static string ExpandActiveMediaStyleRules(string css, HtmlCssMediaContext mediaContext, out bool changed) {
