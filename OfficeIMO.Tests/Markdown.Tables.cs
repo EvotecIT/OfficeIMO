@@ -147,6 +147,21 @@ Console.WriteLine("ready");
         }
 
         [Fact]
+        public void MarkdownToWord_SharedVisualTheme_TreatsTransparentCalloutTitleSurfaceAsNoFill() {
+            MarkdownVisualTheme theme = MarkdownVisualTheme.Report()
+                .WithColors(surface: "Transparent");
+            string md = """
+> [!NOTE] Heads up
+> Body text.
+""";
+
+            using var doc = md.LoadFromMarkdown(new MarkdownToWordOptions { Theme = theme });
+
+            var title = doc.Paragraphs.First(p => p.Text == "Heads up");
+            Assert.True(string.IsNullOrEmpty(title.ShadingFillColorHex));
+        }
+
+        [Fact]
         public void WordToMarkdown_TableAlignmentMarkers() {
             using var doc = WordDocument.Create();
             var table = doc.AddTable(2, 3);

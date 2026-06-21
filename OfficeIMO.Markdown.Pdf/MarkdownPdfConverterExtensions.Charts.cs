@@ -73,6 +73,11 @@ public static partial class MarkdownPdfConverterExtensions {
                 return false;
             }
 
+            if (HasReversedScales(root)) {
+                warningMessage = "The Markdown Chart.js fence uses reversed scales that cannot be represented by the native PDF chart renderer and is rendered as a semantic code panel.";
+                return false;
+            }
+
             if (HasUnsupportedDoughnutCutout(root, type)) {
                 warningMessage = "The Markdown Chart.js doughnut fence uses a custom cutout that cannot be represented by the native PDF chart renderer and is rendered as a semantic code panel.";
                 return false;
@@ -90,6 +95,11 @@ public static partial class MarkdownPdfConverterExtensions {
                 return false;
             }
 
+            if (HasUnsupportedSpanGaps(root, dataElement, type)) {
+                warningMessage = "The Markdown Chart.js fence uses spanGaps across missing line points that cannot be represented by the native PDF chart renderer and is rendered as a semantic code panel.";
+                return false;
+            }
+
             if (HasUnsupportedLineInterpolation(root, dataElement, type)) {
                 warningMessage = "The Markdown Chart.js fence uses stepped or curved line interpolation that cannot be represented by the native PDF chart renderer and is rendered as a semantic code panel.";
                 return false;
@@ -100,8 +110,24 @@ public static partial class MarkdownPdfConverterExtensions {
                 return false;
             }
 
+            if (HasUnsupportedCategoryScaleType(root, chartKind)) {
+                warningMessage = "The Markdown Chart.js fence uses a linear or otherwise non-category scale for the native chart category axis and is rendered as a semantic code panel.";
+                return false;
+            }
+
             if (chartKind == OfficeChartKind.Radar && HasUnsupportedRadarScaleVisibility(root)) {
                 warningMessage = "The Markdown Chart.js radar fence uses radial scale visibility settings that cannot be represented by the native PDF chart renderer and is rendered as a semantic code panel.";
+                return false;
+            }
+
+            if (HasUnsupportedFloatingBarTuples(dataElement, chartKind)) {
+                warningMessage = "The Markdown Chart.js bar fence uses floating bar tuples that cannot be represented by the native PDF chart renderer and is rendered as a semantic code panel.";
+                return false;
+            }
+
+            bool fillRadarSeries = true;
+            if (chartKind == OfficeChartKind.Radar && !TryResolveRadarFill(dataElement, out fillRadarSeries)) {
+                warningMessage = "The Markdown Chart.js radar fence mixes filled and unfilled visible datasets that cannot be rendered as one native PDF radar chart and is rendered as a semantic code panel.";
                 return false;
             }
 
@@ -221,7 +247,7 @@ public static partial class MarkdownPdfConverterExtensions {
                 width,
                 height,
                 CreateMarkdownChartStyle(root, chartKind),
-                CreateMarkdownChartLayout(root, chartKind, series, legendPosition));
+                CreateMarkdownChartLayout(root, chartKind, series, legendPosition, fillRadarSeries));
             return true;
         } catch (FormatException) {
             warningMessage = "The Markdown chart fence is not valid JSON and is rendered as a semantic code panel.";
@@ -654,7 +680,7 @@ public static partial class MarkdownPdfConverterExtensions {
         return showGridLines ? OfficeChartStyle.Default : new OfficeChartStyle(showGridLines: false);
     }
 
-    private static OfficeChartLayout CreateMarkdownChartLayout(MarkdownPdfJsonValue root, OfficeChartKind chartKind, IReadOnlyList<OfficeChartSeries> series, OfficeChartLegendPosition legendPosition) {
+    private static OfficeChartLayout CreateMarkdownChartLayout(MarkdownPdfJsonValue root, OfficeChartKind chartKind, IReadOnlyList<OfficeChartSeries> series, OfficeChartLegendPosition legendPosition, bool fillRadarSeries) {
         bool pie = chartKind == OfficeChartKind.Pie || chartKind == OfficeChartKind.Doughnut;
         bool showLegend = ReadChartLegendDisplay(root) != false;
         bool showRequestedDataLabels = ReadChartDataLabelsDisplay(root) == true;
@@ -680,6 +706,7 @@ public static partial class MarkdownPdfConverterExtensions {
             maximumHorizontalCategoryAxisLabels: 8,
             showMarkers: (IsLineChart(chartKind) || chartKind == OfficeChartKind.Scatter || chartKind == OfficeChartKind.Radar) && HasVisibleMarkers(series),
             connectScatterPoints: connectScatterPoints,
+            fillRadarSeries: fillRadarSeries,
             categoryAxisTitle: categoryAxisTitle,
             valueAxisTitle: valueAxisTitle,
             showCategoryAxis: categoryScale.ShowAxis,
@@ -794,7 +821,9 @@ public static partial class MarkdownPdfConverterExtensions {
         return !visibility.ShowAxis ||
                !visibility.ShowLine ||
                !visibility.ShowLabels ||
-               !visibility.ShowGrid;
+               !visibility.ShowGrid ||
+               ReadNestedDisplay(radialScale, "pointLabels") == false ||
+               ReadNestedDisplay(radialScale, "angleLines") == false;
     }
 
     private static bool ReadRenderedScaleGridDisplay(MarkdownPdfJsonValue root, OfficeChartKind chartKind) {

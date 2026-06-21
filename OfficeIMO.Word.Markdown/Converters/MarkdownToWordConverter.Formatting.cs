@@ -78,7 +78,10 @@ namespace OfficeIMO.Word.Markdown {
             }
 
             Omd.MarkdownVisualPalette palette = theme.PaletteSnapshot;
-            paragraph.ShadingFillColorHex = palette.Surface.ToRgbHex();
+            if (palette.Surface.A > 0) {
+                paragraph.ShadingFillColorHex = palette.Surface.ToRgbHex();
+            }
+
             paragraph.Borders.LeftStyle = BorderValues.Single;
             paragraph.Borders.LeftColorHex = palette.Accent.ToRgbHex();
             paragraph.Borders.LeftSize = 8;

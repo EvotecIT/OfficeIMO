@@ -91,11 +91,20 @@ public static partial class MarkdownPdfConverterExtensions {
             pdf.H3(text);
         } else {
             double fontSize = heading.Level == 4 ? 13D : 11.5D;
+            PdfCore.PdfColor headingColor = ResolveManualHeadingColor(visualTheme);
             pdf.Paragraph(builder => {
                 builder.Bold(true).FontSize(fontSize);
-                AppendInlines(builder, heading.Inlines, CreateInlineStyle(visualTheme).With(bold: true, fontSize: fontSize));
+                AppendInlines(builder, heading.Inlines, CreateInlineStyle(visualTheme).With(bold: true, color: headingColor, fontSize: fontSize));
             }, style: new PdfCore.PdfParagraphStyle { SpacingBefore = 8, SpacingAfter = 4, KeepWithNext = true });
         }
+    }
+
+    private static PdfCore.PdfColor ResolveManualHeadingColor(MarkdownPdfVisualTheme visualTheme) {
+        PdfCore.PdfHeadingStyles? headingStyles = visualTheme.DocumentThemeSnapshot?.HeadingStyles;
+        return headingStyles?.Level3?.Color ??
+               headingStyles?.Level2?.Color ??
+               headingStyles?.Level1?.Color ??
+               visualTheme.DocumentHeaderTitleColorSnapshot;
     }
 
     private static void RenderParagraph(PdfCore.PdfDocument pdf, InlineSequence inlines, MarkdownPdfSaveOptions options, MarkdownPdfVisualTheme visualTheme) {
