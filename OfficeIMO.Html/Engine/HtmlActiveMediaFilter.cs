@@ -36,6 +36,12 @@ public static class HtmlActiveMediaFilter {
                 if (!HtmlComputedStyleEngine.IsApplicableMedia(sourceElement.GetAttribute("media") ?? string.Empty, mediaContext)) {
                     sourceElement.Remove();
                     changed = true;
+                    continue;
+                }
+
+                if (!HtmlPictureSourceSupport.IsSupportedConversionContentType(sourceElement.GetAttribute("type"))) {
+                    sourceElement.Remove();
+                    changed = true;
                 }
             }
 

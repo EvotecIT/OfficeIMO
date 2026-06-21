@@ -394,9 +394,7 @@ public static class HtmlNormalizer {
     }
 
     private static HtmlUrlPolicy GetResourceUrlPolicy(HtmlUrlPolicy policy) {
-        HtmlUrlPolicy resourcePolicy = policy.Clone();
-        resourcePolicy.AllowMailtoUrls = false;
-        return resourcePolicy;
+        return HtmlResourceUrlPolicy.Create(policy);
     }
 
     private static bool IsHyperlinkUrlAttribute(IElement element, string name) {

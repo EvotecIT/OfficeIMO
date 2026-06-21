@@ -327,15 +327,17 @@ public static partial class HtmlResourcePipeline {
     }
 
     private static bool HasAllowedPictureSourceCandidate(IElement element, Uri? baseUri, HtmlResourcePipelineOptions options) {
+        HtmlUrlPolicy resourcePolicy = HtmlResourceUrlPolicy.Create(options.UrlPolicy);
         foreach (string attribute in new[] { "srcset", "data-srcset", "data-original-srcset", "data-lazy-srcset" }) {
-            if (HtmlImageSourceResolver.ResolveSrcSetCandidates(element.GetAttribute(attribute), baseUri, options.UrlPolicy).Count > 0) {
-                return true;
+            foreach (HtmlSrcSetCandidate candidate in HtmlSrcSetParser.Enumerate(element.GetAttribute(attribute))) {
+                if (IsAllowedResourceCandidate(HtmlResourceKind.Image, candidate.Url, baseUri, resourcePolicy)) {
+                    return true;
+                }
             }
         }
 
         foreach (string attribute in new[] { "src", "data-src", "data-original", "data-original-src", "data-lazy-src" }) {
-            string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(element.GetAttribute(attribute), baseUri, options.UrlPolicy);
-            if (!string.IsNullOrWhiteSpace(resolved)) {
+            if (IsAllowedResourceCandidate(HtmlResourceKind.Image, element.GetAttribute(attribute), baseUri, resourcePolicy)) {
                 return true;
             }
         }
@@ -516,31 +518,7 @@ public static partial class HtmlResourcePipeline {
     }
 
     private static bool IsSupportedPictureSourceType(string? type) {
-        if (string.IsNullOrWhiteSpace(type)) {
-            return true;
-        }
-
-        string normalized = type!.Trim();
-        int parameterStart = normalized.IndexOf(';');
-        if (parameterStart >= 0) {
-            normalized = normalized.Substring(0, parameterStart).Trim();
-        }
-
-        switch (normalized.ToLowerInvariant()) {
-            case "image/apng":
-            case "image/bmp":
-            case "image/gif":
-            case "image/jpeg":
-            case "image/jpg":
-            case "image/png":
-            case "image/svg+xml":
-            case "image/webp":
-            case "image/x-icon":
-            case "image/vnd.microsoft.icon":
-                return true;
-            default:
-                return false;
-        }
+        return HtmlPictureSourceSupport.IsSupportedConversionContentType(type);
     }
 
     private static void AddSrcDocResources(HtmlResourceManifest manifest, IElement element, Uri? baseUri, HtmlResourcePipelineOptions options, int srcDocDepth) {
@@ -1599,7 +1577,7 @@ public static partial class HtmlResourcePipeline {
                 } else if (source.HasUrl) {
                     resolved = source.FallbackAlias == null
                         || !HasResolvedCustomProperty(source.FallbackAlias, customPropertyDefinitions, document, useElement, visited, depth + 1, useSelector);
-                } else if (source.Aliases.Count == 0) {
+                } else if (source.Aliases.Count == 0 && !source.IsCssWideInvalidatingKeyword) {
                     resolved = true;
                 } else {
                     foreach (string alias in source.Aliases) {
@@ -2457,9 +2435,9 @@ public static partial class HtmlResourcePipeline {
             return string.Empty;
         }
 
-        string propertyName = css.Substring(declarationStart, separator - declarationStart).Trim();
+        string propertyName = DecodeCssEscapes(css.Substring(declarationStart, separator - declarationStart).Trim());
         return propertyName.StartsWith("--", StringComparison.Ordinal)
-            ? DecodeCssEscapes(propertyName)
+            ? propertyName
             : propertyName.ToLowerInvariant();
     }
 
@@ -2681,7 +2659,10 @@ public static partial class HtmlResourcePipeline {
     }
 
     private static void AddRaw(HtmlResourceManifest manifest, HtmlResourceKind kind, IElement element, string attributeName, string source, Uri? baseUri, HtmlResourcePipelineOptions options) {
-        string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(source, baseUri, options.UrlPolicy);
+        HtmlUrlPolicy? policy = kind == HtmlResourceKind.Hyperlink
+            ? options.UrlPolicy
+            : HtmlResourceUrlPolicy.Create(options.UrlPolicy);
+        string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(source, baseUri, policy);
         bool isAllowed = !string.IsNullOrWhiteSpace(resolved) && IsResourceKindSchemeAllowed(kind, resolved);
         manifest.Add(new HtmlResourceReference(
             kind,
@@ -2719,6 +2700,11 @@ public static partial class HtmlResourcePipeline {
 
         return !Uri.TryCreate(resolved, UriKind.Absolute, out var uri)
             || !uri.Scheme.Equals(Uri.UriSchemeMailto, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsAllowedResourceCandidate(HtmlResourceKind kind, string? source, Uri? baseUri, HtmlUrlPolicy resourcePolicy) {
+        string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(source, baseUri, resourcePolicy);
+        return !string.IsNullOrWhiteSpace(resolved) && IsResourceKindSchemeAllowed(kind, resolved);
     }
 
     private sealed class CssImportReference {
@@ -2783,5 +2769,8 @@ public static partial class HtmlResourcePipeline {
         internal string? FallbackAlias { get; }
         internal bool IsInheritedKeyword => string.Equals(ValueText, "inherit", StringComparison.OrdinalIgnoreCase)
             || string.Equals(ValueText, "unset", StringComparison.OrdinalIgnoreCase);
+        internal bool IsCssWideInvalidatingKeyword => string.Equals(ValueText, "initial", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(ValueText, "revert", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(ValueText, "revert-layer", StringComparison.OrdinalIgnoreCase);
     }
 }

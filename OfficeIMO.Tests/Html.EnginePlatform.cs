@@ -314,6 +314,7 @@ public partial class Html {
             <html>
             <head>
                 <link rel="stylesheet" media="screen" href="file:///secret/print-screen.css">
+                <link rel="stylesheet" media="print/*c*/ and (color)" href="file:///secret/commented-print-link.css">
                 <link rel="stylesheet" media="print" href="file:///secret/print-only-link.css">
                 <style media="screen">
                     .total { color: #ff0000; }
@@ -332,6 +333,7 @@ public partial class Html {
                     <p class="total">Total</p>
                     <picture>
                         <source media="screen" srcset="https://example.test/images/screen-chart.png 1x">
+                        <source media="print/*c*/ and (color)" type="image/avif" srcset="https://example.test/images/ignored-print-chart.avif 1x">
                         <source media="print" srcset="https://example.test/images/print-chart.png 1x">
                         <img src="https://example.test/images/fallback-chart.png" alt="Chart">
                     </picture>
@@ -352,6 +354,7 @@ public partial class Html {
         Assert.DoesNotContain(screen.ResourceManifest.Resources, resource => resource.Source == "file:///secret/print-total.png");
         Assert.DoesNotContain(screen.ResourceManifest.Resources, resource => resource.Source == "file:///secret/print-only-link.css");
         Assert.Contains(print.ResourceManifest.Resources, resource => resource.Source == "file:///secret/print-total.png" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(print.ResourceManifest.Resources, resource => resource.Source == "file:///secret/commented-print-link.css" && resource.DiagnosticCode == "StylesheetResourceRejectedByPolicy");
         Assert.Contains(print.ResourceManifest.Resources, resource => resource.Source == "file:///secret/print-only-link.css" && resource.DiagnosticCode == "StylesheetResourceRejectedByPolicy");
         Assert.DoesNotContain(print.ResourceManifest.Resources, resource => resource.Source == "file:///secret/print-future.png");
         Assert.Contains("background-image", print.StyleSummary.PropertyNames);
@@ -361,9 +364,11 @@ public partial class Html {
         Assert.Contains("https://example.test/images/screen-chart.png", screenWordHtml);
         Assert.DoesNotContain("https://example.test/images/print-chart.png", screenWordHtml);
         Assert.DoesNotContain("https://example.test/images/screen-chart.png", printWordHtml);
+        Assert.DoesNotContain("https://example.test/images/ignored-print-chart.avif", printWordHtml);
         Assert.Contains("https://example.test/images/print-chart.png", printWordHtml);
         string printMarkdown = print.ToMarkdown();
         Assert.DoesNotContain("https://example.test/images/screen-chart.png", printMarkdown);
+        Assert.DoesNotContain("https://example.test/images/ignored-print-chart.avif", printMarkdown);
         Assert.Contains("https://example.test/images/print-chart.png", printMarkdown);
 
         using var screenWordDocument = WordHtmlConverterExtensions.LoadFromHtml(screen);
@@ -376,6 +381,50 @@ public partial class Html {
 
         byte[] printPdf = print.SaveAsPdf();
         Assert.NotEmpty(printPdf);
+    }
+
+    [Fact]
+    public void HtmlEnginePlatform_SharedManifestMatchesFilteredAdapterResources() {
+        string blockedSrcSet = string.Join(", ", Enumerable.Range(1, 32).Select(index => $"file:///secret/blocked-{index}.png {index}w"));
+        string html = $$"""
+            <html>
+            <head>
+                <style>
+                    .invalid-var { --hero: initial; background-image: var(--hero, url(file:///secret/invalid-var-fallback.png)); }
+                    .escaped-property { background-\69mage: url(file:///secret/escaped-property.png); }
+                </style>
+            </head>
+            <body>
+                <main>
+                    <picture><source srcset="mailto:ops@example.test"><img src="https://example.test/images/mailto-fallback.png" alt="Mail fallback"></picture>
+                    <picture><source type="image/avif" srcset="https://example.test/images/ignored.avif 1x"><img src="https://example.test/images/adapter-fallback.png" alt="Type fallback"></picture>
+                    <img alt="Late candidate" srcset="{{blockedSrcSet}}, https://example.test/images/late-candidate.png 33w">
+                    <div class="invalid-var"></div>
+                    <div class="escaped-property"></div>
+                </main>
+            </body>
+            </html>
+            """;
+
+        HtmlConversionDocument document = HtmlConversionDocumentBuilder.Build(html, new HtmlConversionDocumentOptions {
+            Profile = HtmlConversionProfile.Semantic,
+            UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile()
+        });
+
+        Assert.Contains(document.ResourceManifest.Resources, resource => resource.Source == "https://example.test/images/mailto-fallback.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "src");
+        Assert.Contains(document.ResourceManifest.Resources, resource => resource.Source == "mailto:ops@example.test" && resource.Kind == HtmlResourceKind.Image && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.DoesNotContain(document.ResourceManifest.Resources, resource => resource.Source == "https://example.test/images/ignored.avif");
+        Assert.Contains(document.ResourceManifest.Resources, resource => resource.Source == "https://example.test/images/adapter-fallback.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "src");
+        Assert.Contains(document.ResourceManifest.Resources, resource => resource.Source == "https://example.test/images/late-candidate.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "srcset");
+        Assert.Contains(document.ResourceManifest.Resources, resource => resource.Source == "file:///secret/invalid-var-fallback.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(document.ResourceManifest.Resources, resource => resource.Source == "file:///secret/escaped-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+
+        string markdown = document.ToMarkdown();
+        Assert.DoesNotContain("https://example.test/images/ignored.avif", markdown);
+        Assert.Contains("https://example.test/images/adapter-fallback.png", markdown);
+
+        byte[] pdf = document.SaveAsPdf();
+        Assert.NotEmpty(pdf);
     }
 
     [Fact]

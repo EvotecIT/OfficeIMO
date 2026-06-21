@@ -246,6 +246,7 @@ public static class HtmlComputedStyleEngine {
             return true;
         }
 
+        mediaText = StripCssCommentsOutsideStrings(mediaText);
         string activeType = mediaContext == HtmlCssMediaContext.Print ? "print" : "screen";
         foreach (string query in SplitSelectorList(mediaText)) {
             string normalized = query.Trim();

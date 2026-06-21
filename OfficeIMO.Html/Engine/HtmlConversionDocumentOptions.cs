@@ -27,6 +27,7 @@ public sealed class HtmlConversionDocumentOptions {
         return new HtmlResourcePipelineOptions {
             BaseUri = BaseUri,
             UrlPolicy = (UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile()).Clone(),
+            MaxResponsiveImageCandidates = null,
             MediaContext = Profile == HtmlConversionProfile.HighFidelityPrint
                 ? HtmlCssMediaContext.Print
                 : HtmlCssMediaContext.Screen

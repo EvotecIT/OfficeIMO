@@ -52,7 +52,8 @@ public static class HtmlPdfConverterExtensions {
         }
 
         if (!useDocumentProfile) {
-            return document.HtmlForConversion.ToPdfDocument(options);
+            string adapterHtml = HtmlActiveMediaFilter.Filter(document.HtmlForConversion, GetMediaContext(document));
+            return adapterHtml.ToPdfDocument(options);
         }
 
         options.ResetExportState();
@@ -181,6 +182,12 @@ public static class HtmlPdfConverterExtensions {
         PdfCore.PdfDocument pdf = document.ToPdfDocument(wordPdfOptions);
         options.ConversionReport.LinkReport(wordPdfOptions.ConversionReport);
         return pdf;
+    }
+
+    private static HtmlCssMediaContext GetMediaContext(HtmlConversionDocument document) {
+        return document.ProfileContract.Profile == HtmlConversionProfile.HighFidelityPrint
+            ? HtmlCssMediaContext.Print
+            : HtmlCssMediaContext.Screen;
     }
 
     private static void SyncSelectedProfileReport(HtmlPdfSaveOptions options) {
