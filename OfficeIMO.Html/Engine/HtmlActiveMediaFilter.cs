@@ -10,6 +10,8 @@ namespace OfficeIMO.Html;
 /// Filters shared HTML adapter input to the active CSS media context.
 /// </summary>
 public static class HtmlActiveMediaFilter {
+    private const string FragmentRootElementName = "officeimo-fragment-root";
+
     /// <summary>
     /// Removes inactive stylesheet links, picture sources, and media-gated style rules for the requested media context.
     /// </summary>
@@ -22,7 +24,10 @@ public static class HtmlActiveMediaFilter {
         }
 
         try {
-            IHtmlDocument parsed = HtmlDocumentParser.ParseDocument(html);
+            bool isFragment = !ContainsHtmlDocumentElement(html);
+            IHtmlDocument parsed = HtmlDocumentParser.ParseDocument(isFragment
+                ? "<html><body><" + FragmentRootElementName + ">" + html + "</" + FragmentRootElementName + "></body></html>"
+                : html);
             bool changed = false;
             foreach (IHtmlLinkElement linkElement in parsed.QuerySelectorAll("link").OfType<IHtmlLinkElement>()) {
                 if (string.Equals(linkElement.Relation, "stylesheet", StringComparison.OrdinalIgnoreCase)
@@ -60,12 +65,49 @@ public static class HtmlActiveMediaFilter {
                 }
             }
 
-            return changed && parsed.DocumentElement != null
-                ? parsed.DocumentElement.OuterHtml
-                : html;
+            if (!changed) {
+                return html;
+            }
+
+            if (isFragment) {
+                return parsed.QuerySelector(FragmentRootElementName)?.InnerHtml ?? string.Empty;
+            }
+
+            return parsed.DocumentElement?.OuterHtml ?? html;
         } catch {
             return html;
         }
+    }
+
+    private static bool ContainsHtmlDocumentElement(string html) {
+        for (int i = 0; i < html.Length; i++) {
+            if (html[i] != '<') {
+                continue;
+            }
+
+            int cursor = i + 1;
+            while (cursor < html.Length && char.IsWhiteSpace(html[cursor])) {
+                cursor++;
+            }
+
+            if (cursor < html.Length && html[cursor] == '/') {
+                cursor++;
+                while (cursor < html.Length && char.IsWhiteSpace(html[cursor])) {
+                    cursor++;
+                }
+            }
+
+            if (cursor + 4 > html.Length || !html.Substring(cursor).StartsWith("html", StringComparison.OrdinalIgnoreCase)) {
+                continue;
+            }
+
+            int end = cursor + 4;
+            if (end == html.Length || char.IsWhiteSpace(html[end]) || html[end] == '>' || html[end] == '/') {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static bool IsCssStyleElement(IHtmlStyleElement styleElement) {

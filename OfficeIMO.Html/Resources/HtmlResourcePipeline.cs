@@ -346,9 +346,9 @@ public static partial class HtmlResourcePipeline {
     }
 
     private static bool HasAllowedMediaSourceCandidate(IElement element, Uri? baseUri, HtmlResourcePipelineOptions options) {
+        HtmlUrlPolicy resourcePolicy = HtmlResourceUrlPolicy.Create(options.UrlPolicy);
         foreach (string attribute in new[] { "src", "data-src" }) {
-            string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(element.GetAttribute(attribute), baseUri, options.UrlPolicy);
-            if (!string.IsNullOrWhiteSpace(resolved)) {
+            if (IsAllowedResourceCandidate(HtmlResourceKind.Media, element.GetAttribute(attribute), baseUri, resourcePolicy)) {
                 return true;
             }
         }
