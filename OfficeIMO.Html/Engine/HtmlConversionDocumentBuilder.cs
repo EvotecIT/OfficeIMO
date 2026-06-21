@@ -48,7 +48,7 @@ public static class HtmlConversionDocumentBuilder {
         return new HtmlNormalizationOptions {
             BaseUri = source.BaseUri ?? HtmlDocumentParser.ResolveEffectiveBaseUri(document, options.BaseUri),
             BaseElementBaseUri = source.BaseElementBaseUri,
-            UrlPolicy = options.UrlPolicy.Clone(),
+            UrlPolicy = (options.UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile()).Clone(),
             UseBodyContentsOnly = options.UseBodyContentsOnly,
             PreserveComments = source.PreserveComments,
             PreserveStyleElements = source.PreserveStyleElements,

@@ -959,7 +959,7 @@ public static class HtmlResourcePipeline {
             return true;
         }
 
-        foreach (string definitionPart in definitionSelector.Split(',')) {
+        foreach (string definitionPart in SplitTopLevelList(definitionSelector)) {
             string normalizedDefinition = definitionPart.Trim();
             if (SelectorMatchesElementOrAncestor(normalizedDefinition, useElement)) {
                 return true;
@@ -971,7 +971,7 @@ public static class HtmlResourcePipeline {
                 return true;
             }
 
-            foreach (string usePart in useSelector.Split(',')) {
+            foreach (string usePart in SplitTopLevelList(useSelector)) {
                 string normalizedUse = usePart.Trim();
                 if (IsAncestorSelector(normalizedDefinition, normalizedUse)
                     || SelectorSameElementMatches(document, normalizedDefinition, normalizedUse)
@@ -1019,10 +1019,10 @@ public static class HtmlResourcePipeline {
         }
 
         int best = -1;
-        foreach (string definitionPart in definitionSelector.Split(',')) {
+        foreach (string definitionPart in SplitTopLevelList(definitionSelector)) {
             string normalizedDefinition = definitionPart.Trim();
             best = Math.Max(best, GetElementSubstitutionRank(normalizedDefinition, useElement));
-            foreach (string usePart in useSelector.Split(',')) {
+            foreach (string usePart in SplitTopLevelList(useSelector)) {
                 string normalizedUse = usePart.Trim();
                 if (string.Equals(normalizedDefinition, normalizedUse, StringComparison.OrdinalIgnoreCase)) {
                     best = Math.Max(best, 3);
@@ -1063,7 +1063,7 @@ public static class HtmlResourcePipeline {
 
     private static int GetMatchingSelectorSpecificity(string definitionSelector, string useSelector, IHtmlDocument? document, IElement? useElement) {
         int best = -1;
-        foreach (string definitionPart in definitionSelector.Split(',')) {
+        foreach (string definitionPart in SplitTopLevelList(definitionSelector)) {
             string normalizedDefinition = definitionPart.Trim();
             if (normalizedDefinition.Length == 0) {
                 continue;
@@ -1074,7 +1074,7 @@ public static class HtmlResourcePipeline {
                 || string.Equals(normalizedDefinition, "html", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(normalizedDefinition, "body", StringComparison.OrdinalIgnoreCase);
             if (!matches) {
-                foreach (string usePart in useSelector.Split(',')) {
+                foreach (string usePart in SplitTopLevelList(useSelector)) {
                     string normalizedUse = usePart.Trim();
                     if (string.Equals(normalizedDefinition, normalizedUse, StringComparison.OrdinalIgnoreCase)
                         || SelectorSameElementMatches(document, normalizedDefinition, normalizedUse)

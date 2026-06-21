@@ -242,6 +242,14 @@ public partial class Html {
         Assert.True(sharedWordDefaults.AllowDocumentStylesheetLinks);
         using var wordDocument = WordHtmlConverterExtensions.LoadFromHtml(conversion);
         Assert.NotNull(wordDocument);
+
+        HtmlConversionDocument nullPolicyConversion = HtmlConversionDocumentBuilder.Build(
+            "<main><img src=\"chart.png\" alt=\"Chart\"></main>",
+            new HtmlConversionDocumentOptions {
+                BaseUri = new Uri("https://example.test/reports/"),
+                UrlPolicy = null!
+            });
+        Assert.Contains("https://example.test/reports/chart.png", nullPolicyConversion.NormalizedHtml);
     }
 
     [Fact]
@@ -526,6 +534,8 @@ public partial class Html {
                     .theme-important { --rank-hero: url(https://example.test/images/rank-local.png); }
                     :root { --rank-hero: url(file:///secret/root-important-rank.png) !important; }
                     .theme-important .card { background-image: var(--rank-hero); }
+                    :is(.split-theme,.unused-theme) { --split-hero: url(file:///secret/split-selector-property.png); }
+                    .split-theme .card { background-image: var(--split-hero); }
                     #specific-card { --specific-hero: url(file:///secret/specific-property.png); }
                     .specific-card { --specific-hero: url(https://example.test/images/specific-property.png); }
                     .specific-card { background-image: var(--specific-hero); }
@@ -610,6 +620,7 @@ public partial class Html {
                 <div class="theme-dom"><div class="card-dom"></div></div>
                 <div class="theme-late"><div class="card"></div></div>
                 <div class="theme-important"><div class="card"></div></div>
+                <div class="split-theme"><div class="card"></div></div>
                 <div id="specific-card" class="specific-card"></div>
                 <div class="theme-fallback"><div class="card-fallback"></div></div>
                 <div class="cascaded"><div class="card"></div></div>
@@ -707,6 +718,7 @@ public partial class Html {
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/nearer-custom-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "https://example.test/images/later-root-property.png");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/rank-local.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/split-selector-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/specific-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "https://example.test/images/specific-property.png");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/inherited-fallback.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url");

@@ -26,7 +26,7 @@ public sealed class HtmlConversionDocumentOptions {
     public HtmlResourcePipelineOptions ToResourcePipelineOptions() {
         return new HtmlResourcePipelineOptions {
             BaseUri = BaseUri,
-            UrlPolicy = UrlPolicy.Clone(),
+            UrlPolicy = (UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile()).Clone(),
             MediaContext = Profile == HtmlConversionProfile.HighFidelityPrint
                 ? HtmlCssMediaContext.Print
                 : HtmlCssMediaContext.Screen
