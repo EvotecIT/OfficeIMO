@@ -247,6 +247,8 @@ public static class HtmlRoundTripScorer {
     private static HtmlLogicalDocument BuildLogicalDocumentForScoring(string html) {
         var document = HtmlDocumentParser.ParseDocument(html);
         ResolveResourceSourceAttributes(document);
+        SynthesizeImplicitSelectedOptions(document);
+        RemoveUnresolvedFormOwnerAttributes(document);
         PropagateFieldsetDisabledState(document);
         PruneHiddenStructure(document);
         return HtmlLogicalDocumentBuilder.FromDocument(document);
@@ -322,6 +324,8 @@ public static class HtmlRoundTripScorer {
     private static IReadOnlyList<string> ExtractFormOwnerSignatures(string html) {
         var document = HtmlDocumentParser.ParseDocument(html);
         ResolveResourceSourceAttributes(document);
+        SynthesizeImplicitSelectedOptions(document);
+        RemoveUnresolvedFormOwnerAttributes(document);
         PropagateFieldsetDisabledState(document);
         var signatures = new List<string>();
         foreach (var control in document.QuerySelectorAll("input,select,textarea,button,option")) {
@@ -355,7 +359,7 @@ public static class HtmlRoundTripScorer {
                 }
             }
 
-            string owner = ResolveFormOwnerSignature(control);
+            string owner = ResolveFormOwnerSignature(document, control);
             if (!string.IsNullOrWhiteSpace(owner)) {
                 parts.Add("owner=" + owner);
             }
@@ -364,6 +368,28 @@ public static class HtmlRoundTripScorer {
         }
 
         return signatures;
+    }
+
+    private static void SynthesizeImplicitSelectedOptions(AngleSharp.Html.Dom.IHtmlDocument document) {
+        foreach (var select in document.QuerySelectorAll("select:not([multiple])")) {
+            if (select.QuerySelector("option[selected]") != null) {
+                continue;
+            }
+
+            AngleSharp.Dom.IElement? firstOption = select.QuerySelector("option");
+            firstOption?.SetAttribute("selected", string.Empty);
+        }
+    }
+
+    private static void RemoveUnresolvedFormOwnerAttributes(AngleSharp.Html.Dom.IHtmlDocument document) {
+        foreach (var control in document.QuerySelectorAll("input[form],select[form],textarea[form],button[form],option[form]")) {
+            string? owner = control.GetAttribute("form");
+            if (string.IsNullOrWhiteSpace(owner) || HasFormWithId(document, owner!.Trim())) {
+                continue;
+            }
+
+            control.RemoveAttribute("form");
+        }
     }
 
     private static void PropagateFieldsetDisabledState(AngleSharp.Html.Dom.IHtmlDocument document) {
@@ -392,10 +418,11 @@ public static class HtmlRoundTripScorer {
         return false;
     }
 
-    private static string ResolveFormOwnerSignature(AngleSharp.Dom.IElement control) {
+    private static string ResolveFormOwnerSignature(AngleSharp.Html.Dom.IHtmlDocument document, AngleSharp.Dom.IElement control) {
         string? explicitOwner = control.GetAttribute("form");
         if (!string.IsNullOrWhiteSpace(explicitOwner)) {
-            return explicitOwner!.Trim();
+            string owner = explicitOwner!.Trim();
+            return HasFormWithId(document, owner) ? owner : string.Empty;
         }
 
         AngleSharp.Dom.IElement? current = control.ParentElement;
@@ -780,6 +807,16 @@ public static class HtmlRoundTripScorer {
         }
 
         return string.Empty;
+    }
+
+    private static bool HasFormWithId(AngleSharp.Html.Dom.IHtmlDocument document, string id) {
+        foreach (AngleSharp.Dom.IElement form in document.QuerySelectorAll("form[id]")) {
+            if (string.Equals(form.GetAttribute("id"), id, StringComparison.Ordinal)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static bool IsValidFormControlType(string name, string? type) {

@@ -370,7 +370,7 @@ public static class HtmlComputedStyleEngine {
         return value as string ?? string.Empty;
     }
 
-    private static bool IsApplicableSupports(string conditionText) {
+    internal static bool IsApplicableSupports(string conditionText) {
         if (string.IsNullOrWhiteSpace(conditionText)) {
             return true;
         }

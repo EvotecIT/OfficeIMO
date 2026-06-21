@@ -93,9 +93,21 @@ namespace OfficeIMO.Word.Html {
         /// <returns>A new <see cref="WordDocument"/> instance.</returns>
         public static Task<WordDocument> LoadFromHtmlAsync(this HtmlConversionDocument document, HtmlToWordOptions? options = null, CancellationToken cancellationToken = default) {
             if (document == null) throw new System.ArgumentNullException(nameof(document));
-            options ??= new HtmlToWordOptions();
+            options ??= CreateWordOptionsForSharedDocument(document.ProfileContract.Profile);
             options.ConversionProfile = document.ProfileContract.Profile;
             return LoadFromHtmlAsync(document.HtmlForConversion, options, cancellationToken);
+        }
+
+        internal static HtmlToWordOptions CreateWordOptionsForSharedDocument(HtmlConversionProfile profile) {
+            switch (profile) {
+                case HtmlConversionProfile.Document:
+                case HtmlConversionProfile.HighFidelityPrint:
+                    return HtmlToWordOptions.CreateTrustedDocumentProfile();
+                case HtmlConversionProfile.Semantic:
+                    return HtmlToWordOptions.CreateUntrustedHtmlProfile();
+                default:
+                    return HtmlToWordOptions.CreateOfficeIMOProfile();
+            }
         }
 
         /// <summary>

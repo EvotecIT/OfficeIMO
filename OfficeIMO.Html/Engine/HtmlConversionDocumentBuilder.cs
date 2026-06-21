@@ -58,6 +58,8 @@ public static class HtmlConversionDocumentBuilder {
 
     private static HtmlNormalizationOptions ConfigureAdapterNormalization(IHtmlDocument document, HtmlConversionDocumentOptions options) {
         HtmlNormalizationOptions normalization = ConfigureNormalization(document, options);
+        HtmlNormalizationOptions source = options.NormalizationOptions ?? new HtmlNormalizationOptions();
+        normalization.BaseUri = source.BaseUri ?? options.BaseUri;
         normalization.UseBodyContentsOnly = false;
         return normalization;
     }

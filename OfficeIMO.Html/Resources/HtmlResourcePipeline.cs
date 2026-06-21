@@ -161,7 +161,8 @@ public static class HtmlResourcePipeline {
         string parentName = element.ParentElement?.TagName.ToLowerInvariant() ?? string.Empty;
         switch (parentName) {
             case "picture":
-                if (IsApplicableMedia(element.GetAttribute("media") ?? string.Empty, options.MediaContext)
+                if (IsFirstApplicablePictureSource(element, options)
+                    && IsApplicableMedia(element.GetAttribute("media") ?? string.Empty, options.MediaContext)
                     && IsSupportedPictureSourceType(element.GetAttribute("type"))) {
                     AddSrcSet(manifest, HtmlResourceKind.Image, element, "srcset", baseUri, options);
                     AddSrcSet(manifest, HtmlResourceKind.Image, element, "data-srcset", baseUri, options);
@@ -174,6 +175,31 @@ public static class HtmlResourcePipeline {
                 AddAttribute(manifest, HtmlResourceKind.Media, element, "data-src", baseUri, options);
                 break;
         }
+    }
+
+    private static bool IsFirstApplicablePictureSource(IElement element, HtmlResourcePipelineOptions options) {
+        IElement? parent = element.ParentElement;
+        if (parent == null || !string.Equals(parent.TagName, "picture", StringComparison.OrdinalIgnoreCase)) {
+            return true;
+        }
+
+        foreach (IElement sibling in parent.Children) {
+            if (ReferenceEquals(sibling, element)) {
+                return true;
+            }
+
+            if (!string.Equals(sibling.TagName, "source", StringComparison.OrdinalIgnoreCase)) {
+                continue;
+            }
+
+            if ((sibling.HasAttribute("srcset") || sibling.HasAttribute("data-srcset"))
+                && IsApplicableMedia(sibling.GetAttribute("media") ?? string.Empty, options.MediaContext)
+                && IsSupportedPictureSourceType(sibling.GetAttribute("type"))) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static void AddLink(HtmlResourceManifest manifest, IElement element, Uri? baseUri, HtmlResourcePipelineOptions options) {
@@ -451,12 +477,12 @@ public static class HtmlResourcePipeline {
         }
 
         css = StripCssCommentsOutsideStrings(css);
-        List<SourceRange> inactiveMediaRanges = GetInactiveMediaRanges(css, options.MediaContext);
+        List<SourceRange> inactiveMediaRanges = GetInactiveCssRuleRanges(css, options.MediaContext);
         bool scanImports = !string.Equals(attributeName, "style", StringComparison.OrdinalIgnoreCase);
         Dictionary<string, List<CssCustomPropertyDefinition>> customPropertyDefinitions = includeLocalDefinitions
             ? MergeCustomPropertyDefinitions(ambientCustomPropertyDefinitions, ExtractCustomPropertyDefinitions(css, inactiveMediaRanges, sourceOrderBase))
             : CloneCustomPropertyDefinitions(ambientCustomPropertyDefinitions);
-        List<SourceRange> resolvedVarFallbackRanges = GetResolvedVarFallbackRanges(css, customPropertyDefinitions);
+        List<SourceRange> resolvedVarFallbackRanges = GetResolvedVarFallbackRanges(css, customPropertyDefinitions, document);
         var importRanges = new List<SourceRange>();
         if (scanImports) {
             foreach (CssImportReference reference in ExtractCssImports(css)) {
@@ -504,7 +530,7 @@ public static class HtmlResourcePipeline {
             }
 
             css = StripCssCommentsOutsideStrings(css);
-            MergeCustomPropertyDefinitionsInto(definitions, ExtractCustomPropertyDefinitions(css, GetInactiveMediaRanges(css, mediaContext), sourceOrderBase));
+            MergeCustomPropertyDefinitionsInto(definitions, ExtractCustomPropertyDefinitions(css, GetInactiveCssRuleRanges(css, mediaContext), sourceOrderBase));
             sourceOrderBase += css.Length + 1;
         }
 
@@ -540,7 +566,7 @@ public static class HtmlResourcePipeline {
             }
 
             string css = StripCssCommentsOutsideStrings(style);
-            MergeCustomPropertyDefinitionsInto(definitions, ExtractCustomPropertyDefinitions(css, GetInactiveMediaRanges(css, mediaContext), sourceOrderBase));
+            MergeCustomPropertyDefinitionsInto(definitions, ExtractCustomPropertyDefinitions(css, GetInactiveCssRuleRanges(css, mediaContext), sourceOrderBase));
         }
 
         return definitions;
@@ -651,6 +677,12 @@ public static class HtmlResourcePipeline {
         }
     }
 
+    private static List<SourceRange> GetInactiveCssRuleRanges(string css, HtmlCssMediaContext mediaContext) {
+        List<SourceRange> ranges = GetInactiveMediaRanges(css, mediaContext);
+        ranges.AddRange(GetInactiveSupportsRanges(css));
+        return ranges;
+    }
+
     private static List<SourceRange> GetInactiveMediaRanges(string css, HtmlCssMediaContext mediaContext) {
         var ranges = new List<SourceRange>();
         int index = 0;
@@ -678,6 +710,42 @@ public static class HtmlResourcePipeline {
 
             string mediaText = css.Substring(preludeStart, open - preludeStart).Trim();
             if (!IsApplicableMedia(mediaText, mediaContext)) {
+                ranges.Add(new SourceRange(open + 1, close));
+            }
+
+            index = close + 1;
+        }
+
+        return ranges;
+    }
+
+    private static List<SourceRange> GetInactiveSupportsRanges(string css) {
+        var ranges = new List<SourceRange>();
+        int index = 0;
+        while (index < css.Length) {
+            int supportsStart = css.IndexOf("@supports", index, StringComparison.OrdinalIgnoreCase);
+            if (supportsStart < 0) {
+                break;
+            }
+
+            if (IsInsideCssString(css, supportsStart) || !HasAtRuleTokenBoundary(css, supportsStart, "@supports")) {
+                index = supportsStart + 9;
+                continue;
+            }
+
+            int preludeStart = supportsStart + 9;
+            int open = FindNextTopLevelBlockStart(css, preludeStart);
+            if (open < 0) {
+                break;
+            }
+
+            int close = FindMatchingCssBrace(css, open);
+            if (close <= open) {
+                break;
+            }
+
+            string conditionText = css.Substring(preludeStart, open - preludeStart).Trim();
+            if (!HtmlComputedStyleEngine.IsApplicableSupports(conditionText)) {
                 ranges.Add(new SourceRange(open + 1, close));
             }
 
@@ -877,8 +945,10 @@ public static class HtmlResourcePipeline {
                 continue;
             }
 
-            if ((!selectedImportant && source.IsImportant)
-                || (source.IsImportant == selectedImportant && (rank > selectedRank || (rank == selectedRank && source.DeclarationStart >= selectedDeclarationStart)))) {
+            if (rank > selectedRank
+                || (rank == selectedRank
+                    && ((!selectedImportant && source.IsImportant)
+                        || (source.IsImportant == selectedImportant && source.DeclarationStart >= selectedDeclarationStart)))) {
                 selectedImportant = source.IsImportant;
                 selectedRank = rank;
                 selectedDeclarationStart = source.DeclarationStart;
@@ -915,7 +985,7 @@ public static class HtmlResourcePipeline {
         return best;
     }
 
-    private static List<SourceRange> GetResolvedVarFallbackRanges(string css, IReadOnlyDictionary<string, List<CssCustomPropertyDefinition>> customPropertyDefinitions) {
+    private static List<SourceRange> GetResolvedVarFallbackRanges(string css, IReadOnlyDictionary<string, List<CssCustomPropertyDefinition>> customPropertyDefinitions, IHtmlDocument? document) {
         var ranges = new List<SourceRange>();
         if (customPropertyDefinitions.Count == 0) {
             return ranges;
@@ -938,7 +1008,7 @@ public static class HtmlResourcePipeline {
             }
 
             string useSelector = GetDeclarationSelector(css, match.Index);
-            if (SelectCustomPropertyDeclaration(sources, useSelector) < 0) {
+            if (SelectCustomPropertyDeclaration(sources, useSelector, document) < 0) {
                 continue;
             }
 

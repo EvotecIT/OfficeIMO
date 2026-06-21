@@ -133,7 +133,7 @@ public static class HtmlNormalizer {
 
             string value = NormalizeAttributeValue(element, name, attribute.Value, options, srcDocDepth);
             if (IsUrlAttribute(element, name) || SrcSetAttributes.Contains(name)) {
-                if (string.IsNullOrWhiteSpace(value)) {
+                if (string.IsNullOrWhiteSpace(value) && !ShouldPreserveEmptyUrlAttribute(element, name, attribute.Value)) {
                     continue;
                 }
             }
@@ -162,6 +162,10 @@ public static class HtmlNormalizer {
         }
 
         if (IsUrlAttribute(element, name)) {
+            if (string.IsNullOrWhiteSpace(value) && ShouldPreserveEmptyUrlAttribute(element, name, value)) {
+                return options.BaseUri?.AbsoluteUri ?? string.Empty;
+            }
+
             return HtmlUrlPolicyEvaluator.ResolveUrl(value, options.BaseUri, options.UrlPolicy);
         }
 
@@ -235,6 +239,22 @@ public static class HtmlNormalizer {
 
         return string.Equals(name, "data", StringComparison.OrdinalIgnoreCase)
             && string.Equals(element.TagName, "object", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool ShouldPreserveEmptyUrlAttribute(IElement element, string name, string value) {
+        if (!string.IsNullOrWhiteSpace(value)) {
+            return false;
+        }
+
+        string tagName = element.TagName.ToLowerInvariant();
+        return (string.Equals(name, "href", StringComparison.OrdinalIgnoreCase)
+                && (string.Equals(tagName, "a", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(tagName, "area", StringComparison.OrdinalIgnoreCase)))
+            || (string.Equals(name, "action", StringComparison.OrdinalIgnoreCase)
+                && string.Equals(tagName, "form", StringComparison.OrdinalIgnoreCase))
+            || (string.Equals(name, "formaction", StringComparison.OrdinalIgnoreCase)
+                && (string.Equals(tagName, "button", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(tagName, "input", StringComparison.OrdinalIgnoreCase)));
     }
 
     private static string CollapseWhitespaceRuns(string text) {
@@ -343,32 +363,25 @@ public static class HtmlNormalizer {
     private static string ApplyCssReplacements(string css, IEnumerable<CssReplacement> replacements) {
         var ordered = replacements
             .OrderByDescending(range => range.Start)
+            .ThenByDescending(range => range.End - range.Start)
             .ToList();
         var builder = new StringBuilder(css);
+        var applied = new List<CssReplacement>();
         foreach (CssReplacement replacement in ordered) {
-            if (OverlapsLaterReplacement(replacement, ordered)) {
+            if (applied.Any(appliedReplacement => RangesOverlap(replacement, appliedReplacement))) {
                 continue;
             }
 
             builder.Remove(replacement.Start, replacement.End - replacement.Start);
             builder.Insert(replacement.Start, replacement.Value);
+            applied.Add(replacement);
         }
 
         return builder.ToString();
     }
 
-    private static bool OverlapsLaterReplacement(CssReplacement replacement, IReadOnlyList<CssReplacement> replacements) {
-        foreach (CssReplacement other in replacements) {
-            if (other == replacement) {
-                return false;
-            }
-
-            if (other.Start <= replacement.Start && other.End > replacement.Start) {
-                return true;
-            }
-        }
-
-        return false;
+    private static bool RangesOverlap(CssReplacement first, CssReplacement second) {
+        return first.Start < second.End && second.Start < first.End;
     }
 
     private static string EscapeCssString(string value) {
