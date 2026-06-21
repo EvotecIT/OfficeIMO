@@ -232,6 +232,16 @@ public static partial class MarkdownPdfConverterExtensions {
         }
 
         if (options.UseFrontMatterVisualTheme && document.DocumentHeader != null) {
+            string? frontMatterPdfTheme = GetFrontMatterMetadata(document.DocumentHeader, "pdfTheme")
+                ?? GetFrontMatterMetadata(document.DocumentHeader, "pdf-theme");
+            if (frontMatterPdfTheme != null) {
+                if (TryResolveSharedOrPdfTheme(frontMatterPdfTheme, sharedFirst: false, out MarkdownPdfVisualTheme? theme)) {
+                    return theme!;
+                }
+
+                AddWarning(options, "UnsupportedVisualTheme", frontMatterPdfTheme, "The requested Markdown PDF visual theme is not recognized; the configured fallback visual profile is used.");
+            }
+
             string? frontMatterTheme = GetFrontMatterMetadata(document.DocumentHeader, "theme")
                 ?? GetFrontMatterMetadata(document.DocumentHeader, "visualTheme")
                 ?? GetFrontMatterMetadata(document.DocumentHeader, "visual-theme");
@@ -241,16 +251,6 @@ public static partial class MarkdownPdfConverterExtensions {
                 }
 
                 AddWarning(options, "UnsupportedVisualTheme", frontMatterTheme, "The requested Markdown visual theme is not recognized; the configured fallback visual profile is used.");
-            }
-
-            string? frontMatterPdfTheme = GetFrontMatterMetadata(document.DocumentHeader, "pdfTheme")
-                ?? GetFrontMatterMetadata(document.DocumentHeader, "pdf-theme");
-            if (frontMatterPdfTheme != null) {
-                if (TryResolveSharedOrPdfTheme(frontMatterPdfTheme, sharedFirst: false, out MarkdownPdfVisualTheme? theme)) {
-                    return theme!;
-                }
-
-                AddWarning(options, "UnsupportedVisualTheme", frontMatterPdfTheme, "The requested Markdown PDF visual theme is not recognized; the configured fallback visual profile is used.");
             }
         }
 

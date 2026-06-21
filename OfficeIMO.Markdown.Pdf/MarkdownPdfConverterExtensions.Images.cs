@@ -69,7 +69,7 @@ public static partial class MarkdownPdfConverterExtensions {
             widthHint: null,
             heightHint: null,
             altText,
-            caption: title,
+            caption: null,
             linkUri: NormalizeAbsoluteLink(linkUrl),
             linkContents: linkTitle ?? altText,
             options,

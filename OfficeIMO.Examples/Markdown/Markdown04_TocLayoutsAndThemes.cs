@@ -82,7 +82,7 @@ namespace OfficeIMO.Examples.Markdown {
             }
             File.WriteAllText(mdPath, md.ToMarkdown(), Encoding.UTF8);
             var indigo = MarkdownVisualTheme.WordLike().WithColorScheme(MarkdownColorSchemeKind.Indigo);
-            var html = md.ToHtmlDocument(new HtmlOptions { Title = "ScrollSpy Indigo", Kind = HtmlKind.Document, ThemeToggle = true, IncludeAnchorLinks = true, BackToTopLinks = true, Theme = indigo });
+            var html = md.ToHtmlDocument(new HtmlOptions { Title = "ScrollSpy Indigo", Kind = HtmlKind.Document, ThemeToggle = true, IncludeAnchorLinks = true, BackToTopLinks = true, VisualTheme = indigo });
             File.WriteAllText(htmlPath, html, Encoding.UTF8);
             Console.WriteLine($"✓ HTML: {htmlPath}");
         }

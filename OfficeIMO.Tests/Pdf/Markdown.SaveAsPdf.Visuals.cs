@@ -3,6 +3,7 @@ using OfficeIMO.Markdown;
 using OfficeIMO.Markdown.Pdf;
 using PdfCore = OfficeIMO.Pdf;
 using System;
+using System.Reflection;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
@@ -35,7 +36,7 @@ public class MarkdownSaveAsPdfVisualTests {
         string text = PdfCore.PdfReadDocument.Load(bytes).ExtractText();
 
         Assert.Contains(PdfCore.PdfImageExtractor.ExtractImages(bytes), image => image.IsImageFile && image.MimeType == "image/png");
-        Assert.Contains("Inline badge caption", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Inline badge caption", text, StringComparison.Ordinal);
         Assert.DoesNotContain("[Image:", text, StringComparison.Ordinal);
     }
 
@@ -52,7 +53,7 @@ public class MarkdownSaveAsPdfVisualTests {
         string text = PdfCore.PdfReadDocument.Load(bytes).ExtractText();
 
         Assert.Contains(PdfCore.PdfImageExtractor.ExtractImages(bytes), image => image.IsImageFile && image.MimeType == "image/png");
-        Assert.Contains("Inline badge caption", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Inline badge caption", text, StringComparison.Ordinal);
         Assert.DoesNotContain("[Image:", text, StringComparison.Ordinal);
         Assert.DoesNotContain("Quote", text, StringComparison.Ordinal);
     }
@@ -74,8 +75,37 @@ public class MarkdownSaveAsPdfVisualTests {
         string text = PdfCore.PdfReadDocument.Load(bytes).ExtractText();
 
         Assert.Contains(PdfCore.PdfImageExtractor.ExtractImages(bytes), image => image.IsImageFile && image.MimeType == "image/png");
-        Assert.Contains("Inline badge caption", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Inline badge caption", text, StringComparison.Ordinal);
         Assert.DoesNotContain("[Image:", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FromMarkdownTheme_AppliesSharedHeadingAndTextColorsToPdfDocumentTheme() {
+        MarkdownVisualTheme sharedTheme = MarkdownVisualTheme.Report()
+            .WithColors(heading: "#123456", text: "#654321");
+
+        MarkdownPdfVisualTheme pdfTheme = MarkdownPdfVisualTheme.FromMarkdownTheme(sharedTheme);
+        PdfCore.PdfTheme documentTheme = pdfTheme.DocumentTheme!;
+
+        Assert.Equal(PdfCore.PdfColor.FromRgb(0x65, 0x43, 0x21), documentTheme.TextStyle!.Color);
+        Assert.Equal(PdfCore.PdfColor.FromRgb(0x12, 0x34, 0x56), documentTheme.HeadingStyles!.Level1!.Color);
+        Assert.Equal(PdfCore.PdfColor.FromRgb(0x12, 0x34, 0x56), documentTheme.HeadingStyles.Level2!.Color);
+        Assert.Equal(PdfCore.PdfColor.FromRgb(0x12, 0x34, 0x56), documentTheme.HeadingStyles.Level3!.Color);
+    }
+
+    [Fact]
+    public void ToPdfDocument_FrontMatterPdfThemeOverridesGenericTheme() {
+        MarkdownDoc document = MarkdownDoc.Create()
+            .FrontMatter(new { theme = "report", pdfTheme = "technicalDocument" })
+            .H1("Themed document");
+        var options = new MarkdownPdfSaveOptions {
+            UseFrontMatterVisualTheme = true
+        };
+        MethodInfo method = typeof(MarkdownPdfConverterExtensions).GetMethod("ResolveVisualTheme", BindingFlags.NonPublic | BindingFlags.Static)!;
+
+        MarkdownPdfVisualTheme resolved = (MarkdownPdfVisualTheme)method.Invoke(null, new object[] { document, options })!;
+
+        Assert.Equal("TechnicalDocument", resolved.Name);
     }
 
     [Fact]
@@ -316,7 +346,9 @@ _Figure 2. Revenue chart_
 
         Assert.True(created, warning);
         OfficeChartSeries series = Assert.Single(snapshot!.Data.Series);
-        Assert.Equal(new[] { 10D, 25D, 40D }, series.XValues);
+        Assert.Equal(10D, series.XValues![0]);
+        Assert.True(double.IsNaN(series.XValues[1]));
+        Assert.Equal(40D, series.XValues[2]);
         Assert.Equal(2D, series.Values[0]);
         Assert.True(double.IsNaN(series.Values[1]));
         Assert.Equal(8D, series.Values[2]);
@@ -538,6 +570,35 @@ _Figure 2. Revenue chart_
         Assert.Equal(1D, series.XValues[1]);
         Assert.True(double.IsNaN(series.Values[0]));
         Assert.Equal(2D, series.Values[1]);
+    }
+
+    [Fact]
+    public void ToPdfDocument_MarkdownScatterChartFence_DropsExplicitXWhenYIsMissing() {
+        var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "scatter",
+  "data": {
+    "datasets": [
+      { "label": "Gaps", "data": [
+        { "x": 1000000, "y": null },
+        { "x": 2, "y": 4 }
+      ] },
+      { "label": "Visible", "data": [
+        { "x": 1, "y": 2 }
+      ] }
+    ]
+  }
+}
+""");
+
+        bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
+
+        Assert.True(created, warning);
+        OfficeChartSeries series = snapshot!.Data.Series[0];
+        Assert.True(double.IsNaN(series.XValues![0]));
+        Assert.True(double.IsNaN(series.Values[0]));
+        Assert.Equal(2D, series.XValues[1]);
+        Assert.Equal(4D, series.Values[1]);
     }
 
     [Fact]

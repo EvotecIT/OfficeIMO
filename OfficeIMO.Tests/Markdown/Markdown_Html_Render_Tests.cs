@@ -40,9 +40,10 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         public void Shared_VisualTheme_Emits_Consistent_Html_Css() {
             MarkdownVisualTheme theme = MarkdownVisualTheme.Report()
                 .WithColorScheme(MarkdownColorSchemeKind.Emerald)
-                .WithColors(accent: "SeaGreen", heading: "#064e3b");
+                .WithColors(accent: "SeaGreen", heading: "#064e3b", text: "#102030");
             theme.Table.BorderWidth = 1.2;
             theme.Table.CellPaddingX = 11;
+            theme.Table.EmphasizeHeader = false;
             theme.Table.UseRowStripes = false;
 
             string html = MarkdownDoc.Create()
@@ -57,11 +58,27 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             Assert.Contains("body { --md-heading: #064e3b", html, StringComparison.Ordinal);
             Assert.Contains("article.markdown-body h1", html, StringComparison.Ordinal);
             Assert.Contains("--md-heading: #064e3b", html, StringComparison.Ordinal);
+            Assert.Contains("article.markdown-body { color: #102030; }", html, StringComparison.Ordinal);
             Assert.Contains("border-color: #a7f3d0", html, StringComparison.Ordinal);
             Assert.Contains("border-width: 1.2px", html, StringComparison.Ordinal);
+            Assert.Contains("article.markdown-body th { background: transparent; color: inherit; }", html, StringComparison.Ordinal);
+            Assert.Contains("article.markdown-body th, article.markdown-body td { border-color: #a7f3d0; border-width: 1.2px; padding: 5px 11px; }", html, StringComparison.Ordinal);
             Assert.Contains("padding: 5px 11px", html, StringComparison.Ordinal);
             Assert.Contains("tbody tr:nth-child(2n) { background-color: transparent; }", html, StringComparison.Ordinal);
             Assert.DoesNotContain("tbody tr:nth-child(even)", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void SaveHtml_Remains_Compatibility_Alias_For_SaveAsHtml() {
+            var temp = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(temp);
+            var path = Path.Combine(temp, "compat.html");
+            var doc = MarkdownDoc.Create().H1("Title");
+
+            doc.SaveHtml(path, new HtmlOptions { Title = "Compat", Style = HtmlStyle.Clean });
+
+            Assert.True(File.Exists(path));
+            Assert.Contains("Title", File.ReadAllText(path), StringComparison.Ordinal);
         }
 
         [Fact]

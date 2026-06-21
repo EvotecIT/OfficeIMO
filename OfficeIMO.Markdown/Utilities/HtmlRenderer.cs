@@ -460,9 +460,16 @@ internal static class HtmlRenderer {
         if (theme != null) {
             var palette = theme.PaletteSnapshot;
             var table = theme.TableSnapshot;
+            sb.Append(scope).Append(" { color: ").Append(palette.Text.ToCssColor()).Append("; }\n");
             sb.Append(Descendant(scope, "table")).Append(" { border-color: ").Append(palette.Border.ToCssColor()).Append("; border-width: ").Append(table.BorderWidth.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append("px; }\n");
-            sb.Append(Descendant(scope, "th")).Append(" { background: ").Append(palette.TableHeaderBackground.ToCssColor()).Append("; color: ").Append(palette.TableHeaderText.ToCssColor()).Append("; }\n");
-            sb.Append(Descendant(scope, "th, ")).Append(Descendant(scope, "td")).Append(" { border-color: ").Append(palette.Border.ToCssColor()).Append("; padding: ")
+            if (table.EmphasizeHeader) {
+                sb.Append(Descendant(scope, "th")).Append(" { background: ").Append(palette.TableHeaderBackground.ToCssColor()).Append("; color: ").Append(palette.TableHeaderText.ToCssColor()).Append("; }\n");
+            } else {
+                sb.Append(Descendant(scope, "th")).Append(" { background: transparent; color: inherit; }\n");
+            }
+
+            sb.Append(Descendant(scope, "th, ")).Append(Descendant(scope, "td")).Append(" { border-color: ").Append(palette.Border.ToCssColor()).Append("; border-width: ")
+              .Append(table.BorderWidth.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append("px; padding: ")
               .Append(table.CellPaddingY.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append("px ")
               .Append(table.CellPaddingX.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append("px; }\n");
             if (table.UseRowStripes) {

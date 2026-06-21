@@ -270,6 +270,10 @@ public static partial class MarkdownPdfConverterExtensions {
                 yValue = double.NaN;
             }
 
+            if (xValues != null && hasExplicitXValue && !IsFiniteChartValue(yValue)) {
+                xValue = double.NaN;
+            }
+
             values.Add(yValue);
             if (xValues != null) {
                 xValues.Add(xValue);

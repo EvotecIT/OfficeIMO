@@ -42,6 +42,7 @@ public sealed partial class MarkdownPdfVisualTheme {
         PdfCore.PdfColor surface = ToPdfColor(palette.Surface);
         PdfCore.PdfColor border = ToPdfColor(palette.Border);
 
+        ApplySharedDocumentTheme(pdfTheme, heading, text);
         pdfTheme.DocumentHeaderTitleColor = heading;
         pdfTheme.DocumentHeaderSubtitleColor = accent;
         pdfTheme.DocumentHeaderMetadataColor = muted;
@@ -86,6 +87,40 @@ public sealed partial class MarkdownPdfVisualTheme {
         pdfTheme.CalloutPanelStyle = PanelFromShared(palette.Surface, palette.Accent, Math.Max(0.7, table.BorderWidth), 10, 8, 4, 9);
         pdfTheme.TocPanelStyle = PanelWithLeftRuleFromShared(palette.Surface, palette.Border, palette.Accent, table.BorderWidth, 3, 11, 8, 4, 10);
         pdfTheme.FigureStyle = MarkdownPdfFigureStyle.Framed(surface, border, accent, muted, table.BorderWidth);
+    }
+
+    private static void ApplySharedDocumentTheme(MarkdownPdfVisualTheme pdfTheme, PdfCore.PdfColor heading, PdfCore.PdfColor text) {
+        PdfCore.PdfTheme documentTheme = pdfTheme.DocumentThemeSnapshot ?? PdfCore.PdfTheme.WordLike();
+        PdfCore.PdfTextStyle textStyle = documentTheme.TextStyle ?? new PdfCore.PdfTextStyle();
+        textStyle.Color = text;
+        documentTheme.TextStyle = textStyle;
+
+        PdfCore.PdfHeadingStyles headingStyles = documentTheme.HeadingStyles ?? new PdfCore.PdfHeadingStyles();
+        ApplyHeadingColor(headingStyles, 1, heading);
+        ApplyHeadingColor(headingStyles, 2, heading);
+        ApplyHeadingColor(headingStyles, 3, heading);
+        documentTheme.HeadingStyles = headingStyles;
+        pdfTheme.DocumentTheme = documentTheme;
+    }
+
+    private static void ApplyHeadingColor(PdfCore.PdfHeadingStyles headingStyles, int level, PdfCore.PdfColor color) {
+        PdfCore.PdfHeadingStyle style = level switch {
+            1 => headingStyles.Level1 ?? new PdfCore.PdfHeadingStyle(),
+            2 => headingStyles.Level2 ?? new PdfCore.PdfHeadingStyle(),
+            _ => headingStyles.Level3 ?? new PdfCore.PdfHeadingStyle()
+        };
+        style.Color = color;
+        switch (level) {
+            case 1:
+                headingStyles.Level1 = style;
+                break;
+            case 2:
+                headingStyles.Level2 = style;
+                break;
+            default:
+                headingStyles.Level3 = style;
+                break;
+        }
     }
 
     private static PdfCore.PanelStyle PanelFromShared(MarkdownColor background, MarkdownColor border, double borderWidth, double paddingX, double paddingY, double spacingBefore, double spacingAfter) => new PdfCore.PanelStyle {
