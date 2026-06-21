@@ -588,7 +588,7 @@ public class MarkdownDoc : MarkdownObject {
     /// Saves HTML to the specified file. When <see cref="CssDelivery.ExternalFile"/> is used,
     /// writes a sidecar CSS file next to the HTML and links it.
     /// </summary>
-    public void SaveHtml(string path, HtmlOptions? options = null) {
+    public void SaveAsHtml(string path, HtmlOptions? options = null) {
         options ??= new HtmlOptions();
         // If external CSS requested, compute sidecar path and let renderer know
         if (options.CssDelivery == CssDelivery.ExternalFile) {
@@ -606,10 +606,15 @@ public class MarkdownDoc : MarkdownObject {
     }
 
     /// <summary>
+    /// Saves HTML to the specified file. Alias for <see cref="SaveAsHtml"/> preserved for existing callers.
+    /// </summary>
+    public void SaveHtml(string path, HtmlOptions? options = null) => SaveAsHtml(path, options);
+
+    /// <summary>
     /// Asynchronously saves HTML to the specified file. When <see cref="CssDelivery.ExternalFile"/> is used,
     /// writes a sidecar CSS file next to the HTML and links it.
     /// </summary>
-    public async System.Threading.Tasks.Task SaveHtmlAsync(string path, HtmlOptions? options = null) {
+    public async System.Threading.Tasks.Task SaveAsHtmlAsync(string path, HtmlOptions? options = null) {
         options ??= new HtmlOptions();
         if (options.CssDelivery == CssDelivery.ExternalFile) {
             var basePath = System.IO.Path.ChangeExtension(path, null);
@@ -623,6 +628,11 @@ public class MarkdownDoc : MarkdownObject {
             await FileCompat.WriteAllTextAsync(options.ExternalCssOutputPath!, options._externalCssContentToWrite, System.Text.Encoding.UTF8).ConfigureAwait(false);
         }
     }
+
+    /// <summary>
+    /// Asynchronously saves HTML to the specified file. Alias for <see cref="SaveAsHtmlAsync"/> preserved for existing callers.
+    /// </summary>
+    public System.Threading.Tasks.Task SaveHtmlAsync(string path, HtmlOptions? options = null) => SaveAsHtmlAsync(path, options);
 
     /// <summary>
     /// Generates a Table of Contents from headings already present in the document and inserts it.

@@ -193,8 +193,19 @@ public sealed class HtmlOptions {
     internal string? ExternalCssOutputPath { get; set; }
     internal string? _externalCssContentToWrite { get; set; }
 
-    /// <summary>Optional theme color overrides for links, headings, and TOC.</summary>
+    /// <summary>
+    /// Optional color overrides for links, headings, and TOC. This property keeps the historical HTML theming API.
+    /// </summary>
     public ThemeColors Theme { get; set; } = new ThemeColors();
+
+    /// <summary>Shared visual theme used to keep Markdown HTML, PDF, and Word exports visually aligned.</summary>
+    public MarkdownVisualTheme? VisualTheme { get; set; }
+
+    /// <summary>
+    /// Optional additional color overrides for links, headings, and TOC.
+    /// Values set here override colors derived from <see cref="VisualTheme"/> and <see cref="Theme"/>.
+    /// </summary>
+    public ThemeColors ColorOverrides { get; set; } = new ThemeColors();
 
     // TOC injection (used by higher-level pipelines like Word→Markdown→HTML)
     /// <summary>

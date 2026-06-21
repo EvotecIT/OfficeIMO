@@ -68,6 +68,7 @@ namespace OfficeIMO.Word.Markdown {
                 var fallback = _host.CreateParagraph();
                 ApplyBlockParagraphFormatting(fallback, _quoteDepth, _alignment);
                 fallback.AddText(block.RenderMarkdown());
+                ApplyBodyTextTheme(fallback, _options);
             }
 
             protected override void VisitBlock(Omd.MarkdownBlock block) {
@@ -81,6 +82,7 @@ namespace OfficeIMO.Word.Markdown {
                 ApplyBlockParagraphFormatting(headingParagraph, _quoteDepth, _alignment);
                 ProcessInlinesOmd(block.Inlines, headingParagraph, _options, _document, _currentFootnotes, _pageContentWidthPixels, _listLevel, _quoteDepth);
                 headingParagraph.Style = HeadingStyleMapper.GetHeadingStyleForLevel(block.Level);
+                ApplyHeadingTheme(headingParagraph, _options);
             }
 
             protected override void VisitParagraphBlock(Omd.ParagraphBlock block) {
@@ -108,6 +110,7 @@ namespace OfficeIMO.Word.Markdown {
                     var captionParagraph = _host.CreateParagraph();
                     ApplyBlockParagraphFormatting(captionParagraph, _quoteDepth, _alignment);
                     captionParagraph.AddText(block.Caption!);
+                    ApplyBodyTextTheme(captionParagraph, _options);
                 }
             }
 
@@ -116,10 +119,12 @@ namespace OfficeIMO.Word.Markdown {
                 ApplyBlockParagraphFormatting(codeParagraph, _quoteDepth, _alignment);
                 var monoFont = FontResolver.Resolve("monospace") ?? "Consolas";
                 codeParagraph.AddFormattedText(block.Content ?? string.Empty).SetFontFamily(monoFont);
+                ApplyCodeTheme(codeParagraph, _options);
                 if (!string.IsNullOrWhiteSpace(block.Caption)) {
                     var captionParagraph = _host.CreateParagraph();
                     ApplyBlockParagraphFormatting(captionParagraph, _quoteDepth, _alignment);
                     captionParagraph.AddText(block.Caption!);
+                    ApplyBodyTextTheme(captionParagraph, _options);
                 }
             }
 
@@ -136,10 +141,12 @@ namespace OfficeIMO.Word.Markdown {
                 ApplyBlockParagraphFormatting(paragraph, _quoteDepth, _alignment);
                 var monoFont = FontResolver.Resolve("monospace") ?? "Consolas";
                 paragraph.AddFormattedText(block.Content ?? string.Empty).SetFontFamily(monoFont);
+                ApplyCodeTheme(paragraph, _options);
                 if (!string.IsNullOrWhiteSpace(block.Caption)) {
                     var captionParagraph = _host.CreateParagraph();
                     ApplyBlockParagraphFormatting(captionParagraph, _quoteDepth, _alignment);
                     captionParagraph.AddText(block.Caption!);
+                    ApplyBodyTextTheme(captionParagraph, _options);
                 }
             }
 
@@ -200,6 +207,7 @@ namespace OfficeIMO.Word.Markdown {
                         paragraph.AddHyperLink(entry.Text, entry.Anchor.TrimStart('#'), addStyle: true);
                     } else {
                         paragraph.AddText(entry.Text);
+                        ApplyBodyTextTheme(paragraph, _options);
                     }
                 }
 
@@ -215,6 +223,7 @@ namespace OfficeIMO.Word.Markdown {
                 ApplyBlockParagraphFormatting(headingParagraph, _quoteDepth, _alignment);
                 headingParagraph.AddText(block.Title.Trim());
                 headingParagraph.Style = HeadingStyleMapper.GetHeadingStyleForLevel(NormalizeTocTitleLevel(block.TitleLevel));
+                ApplyHeadingTheme(headingParagraph, _options);
             }
 
             protected override void VisitTocMarkerBlock(Omd.TocMarkerBlock block) {
@@ -248,6 +257,7 @@ namespace OfficeIMO.Word.Markdown {
                     var htmlParagraph = _host.CreateParagraph();
                     ApplyBlockParagraphFormatting(htmlParagraph, _quoteDepth, _alignment);
                     htmlParagraph.AddText(((Omd.IMarkdownBlock)block).RenderMarkdown());
+                    ApplyBodyTextTheme(htmlParagraph, _options);
                 }
             }
 
@@ -258,6 +268,7 @@ namespace OfficeIMO.Word.Markdown {
                     var ruleParagraph = _host.CreateParagraph();
                     ApplyBlockParagraphFormatting(ruleParagraph, _quoteDepth, _alignment);
                     ruleParagraph.AddText("---");
+                    ApplyBodyTextTheme(ruleParagraph, _options);
                 }
             }
 
@@ -322,6 +333,7 @@ namespace OfficeIMO.Word.Markdown {
                     var paragraph = _host.CreateParagraph();
                     ApplyBlockParagraphFormatting(paragraph, _quoteDepth, _alignment);
                     paragraph.AddFormattedText(lines[i]).SetFontFamily(monoFont);
+                    ApplyCodeTheme(paragraph, _options);
                 }
             }
 

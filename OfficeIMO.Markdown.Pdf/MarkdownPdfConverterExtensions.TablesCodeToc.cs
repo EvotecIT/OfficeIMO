@@ -460,7 +460,15 @@ public static partial class MarkdownPdfConverterExtensions {
         }
     }
 
-    private static void RenderSemanticFencedBlock(PdfCore.PdfDocument pdf, SemanticFencedBlock semantic, MarkdownPdfVisualTheme visualTheme) {
+    private static void RenderSemanticFencedBlock(PdfCore.PdfDocument pdf, SemanticFencedBlock semantic, MarkdownPdfSaveOptions options, MarkdownPdfVisualTheme visualTheme) {
+        if (TryRenderChartFencedBlock(pdf, semantic, options, visualTheme)) {
+            return;
+        }
+
+        if (!IsChartSemanticFence(semantic)) {
+            AddWarning(options, "UnsupportedSemanticFence", semantic.SemanticKind, "The Markdown semantic fenced block is rendered as a styled code panel because no PDF visual renderer is registered for its semantic kind.");
+        }
+
         string label = semantic.SemanticKind;
         if (!string.IsNullOrWhiteSpace(semantic.Language)) {
             label += " / " + semantic.Language;
@@ -535,7 +543,20 @@ public static partial class MarkdownPdfConverterExtensions {
         }, panelStyle);
 
         if (children.Count > 0 && !renderedInsidePanel) {
-            RenderBlocks(pdf, children, document, options, visualTheme);
+            RenderBlocksWithPanelRuns(
+                pdf,
+                children,
+                document,
+                options,
+                visualTheme,
+                panelStyle,
+                panel => panel.Paragraph(builder => {
+                    if (IsEmpty(callout.TitleInlines)) {
+                        builder.Bold(title);
+                    } else {
+                        AppendInlines(builder, callout.TitleInlines, CreateInlineStyle(visualTheme).With(bold: true));
+                    }
+                }));
         }
     }
 

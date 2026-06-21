@@ -10,27 +10,7 @@ namespace OfficeIMO.Markdown.Pdf;
 public static partial class MarkdownPdfConverterExtensions {
     private static void RenderQuoteBlock(PdfCore.PdfDocument pdf, QuoteBlock quote, MarkdownDoc document, MarkdownPdfSaveOptions options, MarkdownPdfVisualTheme visualTheme) {
         if (quote.Children.Count > 0) {
-            bool canRenderChildrenInsidePanel = CanRenderBlocksInsidePanel(quote.Children);
-            if (canRenderChildrenInsidePanel) {
-                pdf.Panel(_ => RenderBlocks(pdf, quote.Children, document, options, visualTheme), visualTheme.QuotePanelStyleSnapshot);
-                return;
-            }
-
-            bool renderedInsidePanel = false;
-            pdf.PanelParagraph(builder => {
-                builder.Italic(true);
-                if (canRenderChildrenInsidePanel) {
-                    renderedInsidePanel = TryAppendBlocksInsidePanel(builder, quote.Children, CreateInlineStyle(visualTheme).With(italic: true), visualTheme, lineBreakBeforeFirst: false);
-                } else {
-                    builder.Italic("Quote");
-                }
-            }, visualTheme.QuotePanelStyleSnapshot);
-
-            if (renderedInsidePanel) {
-                return;
-            }
-
-            RenderBlocks(pdf, quote.Children, document, options, visualTheme);
+            RenderBlocksWithPanelRuns(pdf, quote.Children, document, options, visualTheme, visualTheme.QuotePanelStyleSnapshot);
             return;
         }
 
@@ -42,6 +22,63 @@ public static partial class MarkdownPdfConverterExtensions {
                 AppendTextWithLineBreaks(builder, text);
             }, visualTheme.QuotePanelStyleSnapshot);
         }
+    }
+
+    private static void RenderBlocksWithPanelRuns(
+        PdfCore.PdfDocument pdf,
+        IReadOnlyList<IMarkdownBlock> blocks,
+        MarkdownDoc document,
+        MarkdownPdfSaveOptions options,
+        MarkdownPdfVisualTheme visualTheme,
+        PdfCore.PanelStyle panelStyle,
+        Action<PdfCore.PdfItemCompose>? renderFirstPanelHeader = null) {
+        var panelBlocks = new List<IMarkdownBlock>();
+        bool renderedHeader = false;
+
+        for (int i = 0; i < blocks.Count; i++) {
+            IMarkdownBlock block = blocks[i];
+            if (CanRenderBlockInsidePanel(block)) {
+                panelBlocks.Add(block);
+                continue;
+            }
+
+            FlushPanelBlocks(pdf, panelBlocks, document, options, visualTheme, panelStyle, renderFirstPanelHeader, ref renderedHeader);
+            if (!renderedHeader && renderFirstPanelHeader != null) {
+                pdf.Panel(panel => renderFirstPanelHeader(panel), panelStyle);
+                renderedHeader = true;
+            }
+
+            RenderBlock(pdf, block, document, options, visualTheme);
+        }
+
+        FlushPanelBlocks(pdf, panelBlocks, document, options, visualTheme, panelStyle, renderFirstPanelHeader, ref renderedHeader);
+    }
+
+    private static void FlushPanelBlocks(
+        PdfCore.PdfDocument pdf,
+        List<IMarkdownBlock> panelBlocks,
+        MarkdownDoc document,
+        MarkdownPdfSaveOptions options,
+        MarkdownPdfVisualTheme visualTheme,
+        PdfCore.PanelStyle panelStyle,
+        Action<PdfCore.PdfItemCompose>? renderFirstPanelHeader,
+        ref bool renderedHeader) {
+        if (panelBlocks.Count == 0) {
+            return;
+        }
+
+        IMarkdownBlock[] batch = panelBlocks.ToArray();
+        panelBlocks.Clear();
+        Action<PdfCore.PdfItemCompose>? header = !renderedHeader ? renderFirstPanelHeader : null;
+
+        pdf.Panel(panel => {
+            if (header != null) {
+                header(panel);
+            }
+
+            RenderBlocks(pdf, batch, document, options, visualTheme);
+        }, panelStyle);
+        renderedHeader = true;
     }
 
     private static bool CanRenderBlocksInsidePanel(IReadOnlyList<IMarkdownBlock> blocks) {
@@ -60,14 +97,16 @@ public static partial class MarkdownPdfConverterExtensions {
 
     private static bool CanRenderBlockInsidePanel(IMarkdownBlock block) {
         switch (block) {
-            case ParagraphBlock:
+            case ParagraphBlock paragraph:
+                return !IsImageOnlyParagraph(paragraph);
             case HeadingBlock:
             case CodeBlock:
-            case SemanticFencedBlock:
             case TableBlock:
             case HorizontalRuleBlock:
             case DefinitionListBlock:
                 return true;
+            case SemanticFencedBlock semantic:
+                return !IsChartSemanticFence(semantic);
             case UnorderedListBlock unordered:
                 return CanRenderListItemsInsidePanel(unordered.Items);
             case OrderedListBlock ordered:
@@ -83,12 +122,27 @@ public static partial class MarkdownPdfConverterExtensions {
 
     private static bool CanRenderListItemsInsidePanel(IReadOnlyList<ListItem> items) {
         for (int i = 0; i < items.Count; i++) {
+            for (int paragraphIndex = 0; paragraphIndex < items[i].AdditionalParagraphs.Count; paragraphIndex++) {
+                if (IsImageOnlyInlines(items[i].AdditionalParagraphs[paragraphIndex])) {
+                    return false;
+                }
+            }
+
             if (items[i].ChildBlocks.Count > 0 && !CanRenderBlocksInsidePanel(items[i].ChildBlocks)) {
                 return false;
             }
         }
 
         return true;
+    }
+
+    private static bool IsImageOnlyParagraph(ParagraphBlock paragraph) {
+        return IsImageOnlyInlines(paragraph.Inlines);
+    }
+
+    private static bool IsImageOnlyInlines(InlineSequence inlines) {
+        IReadOnlyList<IMarkdownInline> nodes = inlines.Nodes;
+        return nodes.Count == 1 && (nodes[0] is ImageInline || nodes[0] is ImageLinkInline);
     }
 
     private static bool TryAppendBlocksInsidePanel(PdfCore.PdfParagraphBuilder builder, IReadOnlyList<IMarkdownBlock> blocks, InlineStyle style, MarkdownPdfVisualTheme visualTheme, bool lineBreakBeforeFirst) {

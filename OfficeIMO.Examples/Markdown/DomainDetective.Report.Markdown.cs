@@ -241,7 +241,7 @@ namespace OfficeIMO.Examples.Markdown {
                 BackToTopText = "Back to top",
                 ThemeToggle = true
             };
-            md.SaveHtml(htmlPath, htmlOptions);
+            md.SaveAsHtml(htmlPath, htmlOptions);
 
             // Optional sidebar variant (left, outline chrome) for comparison
             // Variants to showcase options
@@ -252,7 +252,7 @@ namespace OfficeIMO.Examples.Markdown {
                 var h = new HtmlOptions { Kind = HtmlKind.Document, Title = $"Domain Detective — {suffix}", Style = HtmlStyle.Word, ThemeToggle = true, IncludeAnchorLinks = true, BackToTopLinks = true };
                 configureHtml?.Invoke(h);
                 var path = Path.Combine(mdFolder, $"DomainDetective.Report.{suffix.Replace(' ', '.').Replace('/', '-')}.html");
-                v.SaveHtml(path, h);
+                v.SaveAsHtml(path, h);
                 Console.WriteLine($"✓ Variant saved: {path}");
             }
 
@@ -275,7 +275,7 @@ namespace OfficeIMO.Examples.Markdown {
                 vMd.Add(b);
             }
             var htmlPathCollapsible = Path.Combine(mdFolder, "DomainDetective.Report.Top.Collapsible.html");
-            vMd.SaveHtml(htmlPathCollapsible, new HtmlOptions { Kind = HtmlKind.Document, Title = "Domain Detective — Top Collapsible", Style = HtmlStyle.Word, ThemeToggle = true, IncludeAnchorLinks = true, BackToTopLinks = true });
+            vMd.SaveAsHtml(htmlPathCollapsible, new HtmlOptions { Kind = HtmlKind.Document, Title = "Domain Detective — Top Collapsible", Style = HtmlStyle.Word, ThemeToggle = true, IncludeAnchorLinks = true, BackToTopLinks = true });
 
             Console.WriteLine($"✓ Markdown saved: {mdPath}");
             Console.WriteLine($"✓ HTML saved:     {htmlPath}");

@@ -869,6 +869,12 @@
         <member name="P:OfficeIMO.Markdown.TableBlock.Alignments">
             <summary>Optional column alignments per column (used when headers are present).</summary>
         </member>
+        <member name="P:OfficeIMO.Markdown.TableBlock.ColumnWidthPoints">
+            <summary>Optional fixed column widths in points. Null entries are sized by weights or defaults.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.TableBlock.ColumnWidthWeights">
+            <summary>Optional relative column width weights. Missing columns default to 1.0 in consumers that support widths.</summary>
+        </member>
         <member name="P:OfficeIMO.Markdown.TableBlock.SkippedRowCount">
             <summary>Number of rows skipped due to table limits.</summary>
         </member>
@@ -901,6 +907,33 @@
         <member name="P:OfficeIMO.Markdown.TableCell.ColumnIndex">
             <summary>Zero-based column index within the row.</summary>
         </member>
+        <member name="P:OfficeIMO.Markdown.TableCell.Alignment">
+            <summary>Optional cell-level horizontal alignment override.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.TableCell.BackgroundColor">
+            <summary>Optional CSS-compatible cell background color token.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.TableCell.TextColor">
+            <summary>Optional CSS-compatible cell text color token.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.TableCell.Bold">
+            <summary>Whether cell text should be rendered with bold emphasis.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.TableCell.Italic">
+            <summary>Whether cell text should be rendered with italic emphasis.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.TableCell.Underline">
+            <summary>Whether cell text should be rendered with underline decoration.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.TableCell.Strikethrough">
+            <summary>Whether cell text should be rendered with strikethrough decoration.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.TableCell.ColumnSpan">
+            <summary>Number of logical table columns covered by this cell.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.TableCell.RowSpan">
+            <summary>Number of logical table rows covered by this cell.</summary>
+        </member>
         <member name="M:OfficeIMO.Markdown.TableCell.#ctor(System.Collections.Generic.IEnumerable{OfficeIMO.Markdown.IMarkdownBlock})">
             <summary>Creates a typed table cell.</summary>
         </member>
@@ -930,6 +963,39 @@
         <member name="P:OfficeIMO.Markdown.TocBlock.NormalizeLevels">
             <summary>Normalize indentation to the minimum included heading level (default true).</summary>
         </member>
+        <member name="P:OfficeIMO.Markdown.TocBlock.IncludeTitle">
+            <summary>Include a title above the generated table of contents when an output format supports it.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.TocBlock.Title">
+            <summary>Title text for output formats that render TOC chrome.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.TocBlock.TitleLevel">
+            <summary>Heading level for the title when an output format renders it as a heading.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.TocBlock.MinLevel">
+            <summary>Minimum heading level included by the table of contents.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.TocBlock.MaxLevel">
+            <summary>Maximum heading level included by the table of contents.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.TocBlock.Layout">
+            <summary>Preferred visual layout for output formats that support TOC chrome.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.TocBlock.Chrome">
+            <summary>Preferred visual chrome for output formats that support TOC containers.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.TocBlock.Scope">
+            <summary>Scope used when the TOC entries were realized from a placeholder.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.TocBlock.ScopeHeadingTitle">
+            <summary>Heading title used when <see cref="P:OfficeIMO.Markdown.TocBlock.Scope"/> is <see cref="F:OfficeIMO.Markdown.TocScope.HeadingTitle"/>.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.TocBlock.RequireTopLevel">
+            <summary>When true, top-level headings are included even when <see cref="P:OfficeIMO.Markdown.TocBlock.MinLevel"/> starts deeper.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.TocBlock.TitleHeadingAlreadyRendered">
+            <summary>True when a TOC builder already emitted the title as the preceding heading.</summary>
+        </member>
         <member name="P:OfficeIMO.Markdown.TocBlock.Entries">
             <summary>Entries included in the TOC.</summary>
         </member>
@@ -937,6 +1003,38 @@
             <inheritdoc />
         </member>
         <member name="M:OfficeIMO.Markdown.TocBlock.OfficeIMO#Markdown#IMarkdownBlock#RenderHtml">
+            <inheritdoc />
+        </member>
+        <member name="T:OfficeIMO.Markdown.TocMarkerBlock">
+            <summary>
+            Markdown table-of-contents marker that preserves a semantic TOC placeholder when rendering back to Markdown.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.TocMarkerBlock.MinLevel">
+            <summary>Minimum heading level included by the table of contents.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.TocMarkerBlock.MaxLevel">
+            <summary>Maximum heading level included by the table of contents.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.TocMarkerBlock.IncludeTitle">
+            <summary>When true, output formats may render a title above the generated table of contents.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.TocMarkerBlock.Title">
+            <summary>Title text for output formats that render TOC chrome.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.TocMarkerBlock.TitleLevel">
+            <summary>Heading level for the title when an output format renders it as a heading.</summary>
+        </member>
+        <member name="M:OfficeIMO.Markdown.TocMarkerBlock.OfficeIMO#Markdown#IMarkdownBlock#RenderMarkdown">
+            <inheritdoc />
+        </member>
+        <member name="M:OfficeIMO.Markdown.TocMarkerBlock.OfficeIMO#Markdown#IMarkdownBlock#RenderHtml">
+            <inheritdoc />
+        </member>
+        <member name="M:OfficeIMO.Markdown.TocMarkerBlock.OfficeIMO#Markdown#IContextualHtmlMarkdownBlock#RenderHtml(OfficeIMO.Markdown.MarkdownBodyRenderContext)">
+            <inheritdoc />
+        </member>
+        <member name="M:OfficeIMO.Markdown.TocMarkerBlock.OfficeIMO#Markdown#ISyntaxMarkdownBlock#BuildSyntaxNode(System.Nullable{OfficeIMO.Markdown.MarkdownSourceSpan})">
             <inheritdoc />
         </member>
         <member name="T:OfficeIMO.Markdown.TocPlaceholderBlock">
@@ -1385,13 +1483,13 @@
         <member name="M:OfficeIMO.Markdown.MarkdownDoc.ToHtmlParts(OfficeIMO.Markdown.HtmlOptions)">
             <summary>Returns rendered parts for advanced embedding (Head, Body, Css, Scripts).</summary>
         </member>
-        <member name="M:OfficeIMO.Markdown.MarkdownDoc.SaveHtml(System.String,OfficeIMO.Markdown.HtmlOptions)">
+        <member name="M:OfficeIMO.Markdown.MarkdownDoc.SaveAsHtml(System.String,OfficeIMO.Markdown.HtmlOptions)">
             <summary>
             Saves HTML to the specified file. When <see cref="F:OfficeIMO.Markdown.CssDelivery.ExternalFile"/> is used,
             writes a sidecar CSS file next to the HTML and links it.
             </summary>
         </member>
-        <member name="M:OfficeIMO.Markdown.MarkdownDoc.SaveHtmlAsync(System.String,OfficeIMO.Markdown.HtmlOptions)">
+        <member name="M:OfficeIMO.Markdown.MarkdownDoc.SaveAsHtmlAsync(System.String,OfficeIMO.Markdown.HtmlOptions)">
             <summary>
             Asynchronously saves HTML to the specified file. When <see cref="F:OfficeIMO.Markdown.CssDelivery.ExternalFile"/> is used,
             writes a sidecar CSS file next to the HTML and links it.
@@ -1775,6 +1873,11 @@
         <member name="M:OfficeIMO.Markdown.ItalicSequenceInline.#ctor(OfficeIMO.Markdown.InlineSequence)">
             <summary>Creates an italic inline with nested inline content.</summary>
         </member>
+        <member name="T:OfficeIMO.Markdown.LineStartEscapedTextRun">
+            <summary>
+            Text run that preserves semantic text while escaping Markdown block markers during serialization.
+            </summary>
+        </member>
         <member name="T:OfficeIMO.Markdown.LinkInline">
             <summary>
             Hyperlink inline.
@@ -1962,6 +2065,950 @@
         </member>
         <member name="M:OfficeIMO.Markdown.UnorderedList.OfficeIMO#Markdown#IMarkdownBlock#RenderHtml">
             <inheritdoc />
+        </member>
+        <member name="T:OfficeIMO.Markdown.MarkdownNativeBlockKind">
+            <summary>
+            High-level block categories exposed by the native markdown projection.
+            </summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownNativeBlockKind.Heading">
+            <summary>Heading text with level and inline markdown nodes.</summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownNativeBlockKind.Paragraph">
+            <summary>Paragraph text with inline markdown nodes.</summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownNativeBlockKind.List">
+            <summary>Ordered or unordered list with native list items.</summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownNativeBlockKind.Quote">
+            <summary>Quoted content with nested native blocks.</summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownNativeBlockKind.Callout">
+            <summary>Docs-style callout/admonition with title and nested native blocks.</summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownNativeBlockKind.Image">
+            <summary>Image block with source, alternate text, title, sizing, link, and caption metadata.</summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownNativeBlockKind.Code">
+            <summary>Fenced or indented code block.</summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownNativeBlockKind.Table">
+            <summary>Markdown table with structured cells.</summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownNativeBlockKind.Visual">
+            <summary>Semantic fenced block for diagrams, charts, networks, data views, or host-defined visuals.</summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownNativeBlockKind.Details">
+            <summary>HTML details/disclosure block with summary and nested native blocks.</summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownNativeBlockKind.FrontMatter">
+            <summary>YAML front matter entries.</summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownNativeBlockKind.Html">
+            <summary>Raw HTML or HTML comment block.</summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownNativeBlockKind.Other">
+            <summary>Any block that does not have a specialized native projection yet.</summary>
+        </member>
+        <member name="T:OfficeIMO.Markdown.MarkdownNativeBlock">
+            <summary>
+            Base type for an AST-backed native markdown block projection.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeBlock.Id">
+            <summary>Deterministic identity for this projection within stable markdown input.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeBlock.Kind">
+            <summary>Native projection kind.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeBlock.SourceSpan">
+            <summary>Source span in the normalized markdown text when available.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeBlock.SyntaxNode">
+            <summary>Syntax node that produced this native block.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeBlock.SourceBlock">
+            <summary>Original OfficeIMO markdown block backing this projection.</summary>
+        </member>
+        <member name="M:OfficeIMO.Markdown.MarkdownNativeBlock.ContainsLine(System.Int32)">
+            <summary>Returns <see langword="true"/> when this block's source span contains the supplied 1-based line.</summary>
+        </member>
+        <member name="M:OfficeIMO.Markdown.MarkdownNativeBlock.ToSnapshot">
+            <summary>Creates a UI-safe snapshot of this block without parser object references.</summary>
+        </member>
+        <member name="T:OfficeIMO.Markdown.MarkdownNativeParagraphBlock">
+            <summary>
+            Native projection for a paragraph block.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeParagraphBlock.Paragraph">
+            <summary>Source paragraph block.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeParagraphBlock.Text">
+            <summary>Plain-text paragraph content.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeParagraphBlock.Inlines">
+            <summary>Structured inline nodes.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeParagraphBlock.InlineRuns">
+            <summary>AST-backed native inline projection with source spans.</summary>
+        </member>
+        <member name="T:OfficeIMO.Markdown.MarkdownNativeCodeBlock">
+            <summary>
+            Native projection for a code block.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeCodeBlock.Code">
+            <summary>Source code block.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeCodeBlock.Language">
+            <summary>Primary fence language token.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeCodeBlock.InfoString">
+            <summary>Full fenced-code info string.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeCodeBlock.FenceInfo">
+            <summary>Structured fenced-code metadata.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeCodeBlock.Content">
+            <summary>Code content with normalized line endings.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeCodeBlock.Caption">
+            <summary>Optional code-block caption.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeCodeBlock.Attributes">
+            <summary>Parsed fence attributes.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeCodeBlock.Classes">
+            <summary>Parsed fence classes.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeCodeBlock.ElementId">
+            <summary>Parsed fence element id.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeCodeBlock.Title">
+            <summary>Convenience title resolved from fence metadata.</summary>
+        </member>
+        <member name="T:OfficeIMO.Markdown.MarkdownNativeVisualBlock">
+            <summary>
+            Native projection for a semantic visual fenced block.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeVisualBlock.Visual">
+            <summary>Source semantic fenced block.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeVisualBlock.SemanticKind">
+            <summary>Host-defined semantic kind such as chart, network, dataview, or mermaid.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeVisualBlock.Language">
+            <summary>Primary fence language token.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeVisualBlock.InfoString">
+            <summary>Full fenced-code info string.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeVisualBlock.FenceInfo">
+            <summary>Structured fenced-code metadata.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeVisualBlock.Content">
+            <summary>Visual payload with normalized line endings.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeVisualBlock.Caption">
+            <summary>Optional visual-block caption.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeVisualBlock.Attributes">
+            <summary>Parsed fence attributes.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeVisualBlock.Classes">
+            <summary>Parsed fence classes.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeVisualBlock.ElementId">
+            <summary>Parsed fence element id.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeVisualBlock.Title">
+            <summary>Convenience title resolved from fence metadata.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeVisualBlock.Payload">
+            <summary>Dependency-free typed payload hints for visual UI hosts.</summary>
+        </member>
+        <member name="T:OfficeIMO.Markdown.MarkdownNativeTableBlock">
+            <summary>
+            Native projection for a markdown table.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeTableBlock.Table">
+            <summary>Source table block.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeTableBlock.HeaderCells">
+            <summary>Header cells in document order.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeTableBlock.Rows">
+            <summary>Body rows and cells in document order.</summary>
+        </member>
+        <member name="T:OfficeIMO.Markdown.MarkdownNativeTableCell">
+            <summary>
+            Native projection for a table cell.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeTableCell.RawText">
+            <summary>Raw cell text from the table source.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeTableCell.Text">
+            <summary>Plain-text cell content.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeTableCell.Markdown">
+            <summary>Markdown representation of the cell content.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeTableCell.Blocks">
+            <summary>Structured child blocks in the cell.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeTableCell.Children">
+            <summary>Native child blocks projected from structured cell content.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeTableCell.SourceCell">
+            <summary>Source table cell when structured cell data is available.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeTableCell.SyntaxNode">
+            <summary>Syntax node that produced this cell when available.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeTableCell.SourceSpan">
+            <summary>Source span in the normalized markdown text when available.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeTableCell.IsHeader">
+            <summary>Whether this cell belongs to the table header.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeTableCell.RowIndex">
+            <summary>Zero-based data row index, or <c>-1</c> for header cells.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeTableCell.ColumnIndex">
+            <summary>Zero-based column index.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeTableCell.Alignment">
+            <summary>Cell-level alignment override when present.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeTableCell.InlineRuns">
+            <summary>AST-backed native inline projection for the cell content when available.</summary>
+        </member>
+        <member name="T:OfficeIMO.Markdown.MarkdownNativeOtherBlock">
+            <summary>
+            Native projection for a markdown block without a specialized projection.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeOtherBlock.Markdown">
+            <summary>Markdown representation of the source block.</summary>
+        </member>
+        <member name="T:OfficeIMO.Markdown.MarkdownNativeQuoteBlock">
+            <summary>
+            Native projection for quoted content.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeQuoteBlock.Quote">
+            <summary>Source quote block.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeQuoteBlock.Lines">
+            <summary>Raw quote lines captured by the reader when available.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeQuoteBlock.Children">
+            <summary>Nested native blocks in quote order.</summary>
+        </member>
+        <member name="T:OfficeIMO.Markdown.MarkdownNativeCalloutBlock">
+            <summary>
+            Native projection for a docs-style callout/admonition.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeCalloutBlock.Callout">
+            <summary>Source callout block.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeCalloutBlock.CalloutKind">
+            <summary>Callout kind such as info, warning, note, or success.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeCalloutBlock.Title">
+            <summary>Plain-text title.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeCalloutBlock.TitleInlines">
+            <summary>Structured title inline nodes.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeCalloutBlock.TitleInlineRuns">
+            <summary>AST-backed native title inline projection with source spans.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeCalloutBlock.Body">
+            <summary>Rendered markdown body.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeCalloutBlock.Children">
+            <summary>Nested native body blocks.</summary>
+        </member>
+        <member name="T:OfficeIMO.Markdown.MarkdownNativeDetailsBlock">
+            <summary>
+            Native projection for a details/disclosure block.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeDetailsBlock.Details">
+            <summary>Source details block.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeDetailsBlock.Open">
+            <summary>Whether the details element is initially expanded.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeDetailsBlock.Summary">
+            <summary>Plain-text summary when available.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeDetailsBlock.SummaryInlines">
+            <summary>Structured summary inline nodes when available.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeDetailsBlock.SummaryInlineRuns">
+            <summary>AST-backed native summary inline projection with source spans.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeDetailsBlock.Children">
+            <summary>Nested native body blocks.</summary>
+        </member>
+        <member name="T:OfficeIMO.Markdown.MarkdownNativeHeadingBlock">
+            <summary>
+            Native projection for a heading block.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeHeadingBlock.Heading">
+            <summary>Source heading block.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeHeadingBlock.Level">
+            <summary>Heading level, where 1 is H1.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeHeadingBlock.Text">
+            <summary>Plain-text heading content.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeHeadingBlock.Inlines">
+            <summary>Structured inline nodes.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeHeadingBlock.InlineRuns">
+            <summary>AST-backed native inline projection with source spans.</summary>
+        </member>
+        <member name="T:OfficeIMO.Markdown.MarkdownNativeListBlock">
+            <summary>
+            Native projection for an ordered or unordered list block.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeListBlock.List">
+            <summary>Source list block.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeListBlock.IsOrdered">
+            <summary>Whether the list is ordered.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeListBlock.Start">
+            <summary>Ordered-list start value, or <c>null</c> for unordered lists.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeListBlock.Items">
+            <summary>Native list items in document order.</summary>
+        </member>
+        <member name="T:OfficeIMO.Markdown.MarkdownNativeListItem">
+            <summary>
+            Native projection for a list item.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeListItem.Id">
+            <summary>Deterministic identity for this list item within stable markdown input.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeListItem.Item">
+            <summary>Source list item.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeListItem.SyntaxNode">
+            <summary>Syntax node that produced this list item.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeListItem.SourceSpan">
+            <summary>Source span in the normalized markdown text when available.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeListItem.Text">
+            <summary>Plain-text lead content.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeListItem.Inlines">
+            <summary>Structured lead inline nodes.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeListItem.InlineRuns">
+            <summary>AST-backed native inline projection for the lead content.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeListItem.AdditionalParagraphs">
+            <summary>Additional paragraph inline nodes owned by this list item.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeListItem.Children">
+            <summary>Nested native blocks, including lead paragraph blocks when present in the syntax tree.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeListItem.IsTask">
+            <summary>Whether this list item is a task item.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeListItem.Checked">
+            <summary>Whether this task item is checked.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeListItem.Level">
+            <summary>Indentation level from the source list item.</summary>
+        </member>
+        <member name="T:OfficeIMO.Markdown.MarkdownNativeImageBlock">
+            <summary>
+            Native projection for an image block.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeImageBlock.Image">
+            <summary>Source image block.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeImageBlock.Source">
+            <summary>Image source path or URL.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeImageBlock.Alt">
+            <summary>Alternate text markdown when available.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeImageBlock.PlainAlt">
+            <summary>Plain alternate text when available.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeImageBlock.Title">
+            <summary>Image title when available.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeImageBlock.Width">
+            <summary>Requested display width when available.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeImageBlock.Height">
+            <summary>Requested display height when available.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeImageBlock.Caption">
+            <summary>Optional image caption.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeImageBlock.LinkUrl">
+            <summary>Optional link target wrapping the image.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeImageBlock.LinkTitle">
+            <summary>Optional link title.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeImageBlock.LinkTarget">
+            <summary>Optional link HTML target.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeImageBlock.LinkRel">
+            <summary>Optional link rel value.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeImageBlock.PictureFallbackPath">
+            <summary>Optional fallback path for picture sources.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeImageBlock.PictureSources">
+            <summary>Responsive picture sources in source order.</summary>
+        </member>
+        <member name="T:OfficeIMO.Markdown.MarkdownNativeFrontMatterBlock">
+            <summary>
+            Native projection for front matter.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeFrontMatterBlock.FrontMatter">
+            <summary>Source front matter block.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeFrontMatterBlock.Entries">
+            <summary>Structured front matter entries in source order.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeFrontMatterBlock.Values">
+            <summary>Front matter values by key.</summary>
+        </member>
+        <member name="T:OfficeIMO.Markdown.MarkdownNativeHtmlBlock">
+            <summary>
+            Native projection for raw HTML and HTML comments.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeHtmlBlock.Html">
+            <summary>Raw HTML or comment text.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeHtmlBlock.IsComment">
+            <summary>Whether this block came from an HTML comment.</summary>
+        </member>
+        <member name="T:OfficeIMO.Markdown.MarkdownNativeDiagnosticSeverity">
+            <summary>
+            Severity for native markdown projection diagnostics.
+            </summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownNativeDiagnosticSeverity.Info">
+            <summary>Informational diagnostic.</summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownNativeDiagnosticSeverity.Warning">
+            <summary>Warning diagnostic.</summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownNativeDiagnosticSeverity.Error">
+            <summary>Error diagnostic.</summary>
+        </member>
+        <member name="T:OfficeIMO.Markdown.MarkdownNativeDiagnostic">
+            <summary>
+            Diagnostic emitted while building the native markdown projection.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeDiagnostic.Id">
+            <summary>Stable diagnostic identifier.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeDiagnostic.Message">
+            <summary>Human-readable diagnostic message.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeDiagnostic.Severity">
+            <summary>Diagnostic severity.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeDiagnostic.SourceSpan">
+            <summary>Source span associated with the diagnostic when available.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeDiagnostic.Block">
+            <summary>Native block associated with the diagnostic when available.</summary>
+        </member>
+        <member name="T:OfficeIMO.Markdown.MarkdownNativeDocument">
+            <summary>
+            Native, AST-backed projection of a parsed markdown document for UI hosts that need structured blocks and source spans.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeDocument.ParseResult">
+            <summary>Underlying parse result, including original/final syntax trees and diagnostics.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeDocument.Document">
+            <summary>Parsed OfficeIMO markdown document.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeDocument.SyntaxTree">
+            <summary>Original syntax tree produced before document transforms were applied.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeDocument.FinalSyntaxTree">
+            <summary>Final syntax tree aligned with <see cref="P:OfficeIMO.Markdown.MarkdownNativeDocument.Document"/>.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeDocument.TransformDiagnostics">
+            <summary>Document-transform diagnostics captured during parsing.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeDocument.SourceMarkdown">
+            <summary>Markdown source text whose source spans back this projection.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeDocument.SourceKind">
+            <summary>Identifies whether <see cref="P:OfficeIMO.Markdown.MarkdownNativeDocument.SourceMarkdown"/> is direct reader input or renderer-preprocessed markdown.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeDocument.Blocks">
+            <summary>Top-level native block projection in document order.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeDocument.Diagnostics">
+            <summary>Projection diagnostics including transform notices and unsupported block fallbacks.</summary>
+        </member>
+        <member name="M:OfficeIMO.Markdown.MarkdownNativeDocument.Parse(System.String,OfficeIMO.Markdown.MarkdownReaderOptions)">
+            <summary>
+            Parses markdown into the typed object model, syntax tree, diagnostics, and native block projection.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.Markdown.MarkdownNativeDocument.FromParseResult(OfficeIMO.Markdown.MarkdownParseResult,System.String,OfficeIMO.Markdown.MarkdownNativeDocumentSourceKind)">
+            <summary>
+            Builds a native projection from an existing syntax-backed parse result.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.Markdown.MarkdownNativeDocument.FindBlockAtLine(System.Int32)">
+            <summary>Finds the first native block whose source span contains the supplied 1-based line.</summary>
+        </member>
+        <member name="M:OfficeIMO.Markdown.MarkdownNativeDocument.FindBlockAtPosition(System.Int32,System.Int32)">
+            <summary>Finds the first native block whose source span contains the supplied 1-based line and column.</summary>
+        </member>
+        <member name="M:OfficeIMO.Markdown.MarkdownNativeDocument.FindBlockById(System.String)">
+            <summary>Finds a native block by deterministic id.</summary>
+        </member>
+        <member name="M:OfficeIMO.Markdown.MarkdownNativeDocument.FindInlineAtPosition(System.Int32,System.Int32)">
+            <summary>Finds the first native inline whose source span contains the supplied 1-based line and column.</summary>
+        </member>
+        <member name="M:OfficeIMO.Markdown.MarkdownNativeDocument.FindInlineById(System.String)">
+            <summary>Finds a native inline by deterministic id.</summary>
+        </member>
+        <member name="M:OfficeIMO.Markdown.MarkdownNativeDocument.GetBlockPath(System.String)">
+            <summary>Returns the top-level-to-target block path for a block id.</summary>
+        </member>
+        <member name="M:OfficeIMO.Markdown.MarkdownNativeDocument.BlocksOfType``1">
+            <summary>Enumerates top-level native blocks of the requested projection type.</summary>
+        </member>
+        <member name="M:OfficeIMO.Markdown.MarkdownNativeDocument.DescendantBlocksAndSelf">
+            <summary>Enumerates all native blocks in document order, including nested blocks.</summary>
+        </member>
+        <member name="M:OfficeIMO.Markdown.MarkdownNativeDocument.EnumerateInlines">
+            <summary>Enumerates all native inline runs in document order.</summary>
+        </member>
+        <member name="M:OfficeIMO.Markdown.MarkdownNativeDocument.ToSnapshot">
+            <summary>Creates a UI-safe snapshot of this document without parser object references.</summary>
+        </member>
+        <member name="M:OfficeIMO.Markdown.MarkdownNativeDocument.CreateReplaceEdit(OfficeIMO.Markdown.MarkdownSourceSpan,System.String)">
+            <summary>Creates a non-mutating source edit that replaces a source span.</summary>
+        </member>
+        <member name="M:OfficeIMO.Markdown.MarkdownNativeDocument.CreateReplaceEdit(OfficeIMO.Markdown.MarkdownNativeBlock,System.String)">
+            <summary>Creates a non-mutating source edit that replaces a native block.</summary>
+        </member>
+        <member name="M:OfficeIMO.Markdown.MarkdownNativeDocument.CreateReplaceEdit(OfficeIMO.Markdown.MarkdownNativeInline,System.String)">
+            <summary>Creates a non-mutating source edit that replaces a native inline.</summary>
+        </member>
+        <member name="T:OfficeIMO.Markdown.MarkdownNativeDocumentSourceKind">
+            <summary>
+            Identifies the markdown source represented by a native projection.
+            </summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownNativeDocumentSourceKind.ReaderInput">
+            <summary>The source text is the reader input supplied directly to OfficeIMO.Markdown.</summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownNativeDocumentSourceKind.RendererPreprocessed">
+            <summary>The source text is renderer-preprocessed markdown after host preprocessing ran.</summary>
+        </member>
+        <member name="T:OfficeIMO.Markdown.MarkdownNativeInlineKind">
+            <summary>
+            Native inline projection kind for UI/read-model consumers.
+            </summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownNativeInlineKind.Text">
+            <summary>Plain text content.</summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownNativeInlineKind.Code">
+            <summary>Inline code span.</summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownNativeInlineKind.Link">
+            <summary>Hyperlink inline.</summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownNativeInlineKind.Image">
+            <summary>Standalone inline image.</summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownNativeInlineKind.ImageLink">
+            <summary>Linked inline image.</summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownNativeInlineKind.Strong">
+            <summary>Strong/bold inline content.</summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownNativeInlineKind.Emphasis">
+            <summary>Emphasis/italic inline content.</summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownNativeInlineKind.StrongEmphasis">
+            <summary>Combined strong and emphasis inline content.</summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownNativeInlineKind.Strikethrough">
+            <summary>Strikethrough inline content.</summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownNativeInlineKind.Highlight">
+            <summary>Highlighted inline content.</summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownNativeInlineKind.Underline">
+            <summary>Underline inline content.</summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownNativeInlineKind.HardBreak">
+            <summary>Hard line break.</summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownNativeInlineKind.HtmlTag">
+            <summary>Inline HTML tag wrapper.</summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownNativeInlineKind.HtmlRaw">
+            <summary>Raw inline HTML.</summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownNativeInlineKind.FootnoteRef">
+            <summary>Footnote reference.</summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownNativeInlineKind.Other">
+            <summary>Inline node without a specialized native projection.</summary>
+        </member>
+        <member name="T:OfficeIMO.Markdown.MarkdownNativeInlineMetadata">
+            <summary>
+            Source-backed metadata attached to a native inline, such as a link target or image title.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeInlineMetadata.Name">
+            <summary>Stable metadata name such as <c>target</c>, <c>title</c>, <c>alt</c>, or <c>source</c>.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeInlineMetadata.Value">
+            <summary>Metadata value.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeInlineMetadata.SyntaxNode">
+            <summary>Syntax node that produced this metadata value.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeInlineMetadata.SourceSpan">
+            <summary>Source span for the metadata value when available.</summary>
+        </member>
+        <member name="T:OfficeIMO.Markdown.MarkdownNativeInline">
+            <summary>
+            AST-backed native projection for a markdown inline node.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeInline.Id">
+            <summary>Deterministic identity for this inline projection within stable markdown input.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeInline.Kind">
+            <summary>Native inline projection kind.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeInline.SyntaxKind">
+            <summary>Syntax kind that produced this native inline.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeInline.SourceSpan">
+            <summary>Source span in the normalized markdown text when available.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeInline.SyntaxNode">
+            <summary>Syntax node that produced this native inline.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeInline.SourceInline">
+            <summary>Original OfficeIMO markdown inline backing this projection when available.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeInline.Literal">
+            <summary>Literal syntax payload for leaf-like inline nodes.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeInline.Text">
+            <summary>Plain text represented by this inline node.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeInline.Markdown">
+            <summary>Markdown represented by this inline node when renderable.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeInline.Children">
+            <summary>Nested native inline nodes, excluding metadata leaves such as link target/title.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeInline.Metadata">
+            <summary>Source-backed metadata leaves such as link target/title or image alt/source.</summary>
+        </member>
+        <member name="M:OfficeIMO.Markdown.MarkdownNativeInline.GetMetadata(System.String)">
+            <summary>Returns the first metadata value with the supplied name.</summary>
+        </member>
+        <member name="M:OfficeIMO.Markdown.MarkdownNativeInline.ContainsPosition(System.Int32,System.Int32)">
+            <summary>Returns <see langword="true"/> when this inline's source span contains the supplied 1-based position.</summary>
+        </member>
+        <member name="T:OfficeIMO.Markdown.MarkdownNativeDocumentSnapshot">
+            <summary>
+            UI-safe snapshot of a native markdown document without parser object references.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeDocumentSnapshot.SourceKind">
+            <summary>Identifies the markdown source backing this snapshot.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeDocumentSnapshot.Blocks">
+            <summary>Top-level block snapshots.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeDocumentSnapshot.Diagnostics">
+            <summary>Projection diagnostics.</summary>
+        </member>
+        <member name="T:OfficeIMO.Markdown.MarkdownNativeBlockSnapshot">
+            <summary>
+            UI-safe snapshot of a native block.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeBlockSnapshot.Id">
+            <summary>Stable block id.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeBlockSnapshot.Kind">
+            <summary>Native block kind.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeBlockSnapshot.SourceSpan">
+            <summary>Source span snapshot when available.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeBlockSnapshot.Text">
+            <summary>Common text payload when the block exposes one.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeBlockSnapshot.Markdown">
+            <summary>Common markdown payload when the block exposes one.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeBlockSnapshot.Fields">
+            <summary>String fields for block-specific metadata.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeBlockSnapshot.Inlines">
+            <summary>Inline snapshots owned directly by this block.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeBlockSnapshot.Children">
+            <summary>Nested child block snapshots.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeBlockSnapshot.Items">
+            <summary>List item snapshots for native list blocks.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeBlockSnapshot.HeaderCells">
+            <summary>Table header cell snapshots.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeBlockSnapshot.Rows">
+            <summary>Table body row snapshots.</summary>
+        </member>
+        <member name="T:OfficeIMO.Markdown.MarkdownNativeInlineSnapshot">
+            <summary>
+            UI-safe snapshot of a native inline.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeInlineSnapshot.Id">
+            <summary>Stable inline id.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeInlineSnapshot.Kind">
+            <summary>Native inline kind.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeInlineSnapshot.SyntaxKind">
+            <summary>Syntax kind that produced this inline.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeInlineSnapshot.Text">
+            <summary>Plain text represented by this inline.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeInlineSnapshot.Markdown">
+            <summary>Markdown represented by this inline.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeInlineSnapshot.Literal">
+            <summary>Literal syntax payload.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeInlineSnapshot.SourceSpan">
+            <summary>Source span snapshot when available.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeInlineSnapshot.Metadata">
+            <summary>Metadata values such as target/title/source/alt.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeInlineSnapshot.Children">
+            <summary>Nested inline snapshots.</summary>
+        </member>
+        <member name="T:OfficeIMO.Markdown.MarkdownNativeListItemSnapshot">
+            <summary>
+            UI-safe snapshot of a native list item.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeListItemSnapshot.Id">
+            <summary>Stable list item id.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeListItemSnapshot.Text">
+            <summary>Plain text lead content.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeListItemSnapshot.IsTask">
+            <summary>Whether the item is a task item.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeListItemSnapshot.IsChecked">
+            <summary>Whether the task item is checked.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeListItemSnapshot.Level">
+            <summary>Indentation level from the source item.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeListItemSnapshot.SourceSpan">
+            <summary>Source span snapshot when available.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeListItemSnapshot.Inlines">
+            <summary>Lead inline snapshots.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeListItemSnapshot.Children">
+            <summary>Nested child block snapshots.</summary>
+        </member>
+        <member name="T:OfficeIMO.Markdown.MarkdownNativeTableCellSnapshot">
+            <summary>
+            UI-safe snapshot of a native table cell.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeTableCellSnapshot.Text">
+            <summary>Plain text cell content.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeTableCellSnapshot.Markdown">
+            <summary>Markdown cell content.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeTableCellSnapshot.IsHeader">
+            <summary>Whether this is a header cell.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeTableCellSnapshot.RowIndex">
+            <summary>Zero-based row index, or -1 for headers.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeTableCellSnapshot.ColumnIndex">
+            <summary>Zero-based column index.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeTableCellSnapshot.Alignment">
+            <summary>Projected alignment.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeTableCellSnapshot.SourceSpan">
+            <summary>Source span snapshot when available.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeTableCellSnapshot.Inlines">
+            <summary>Inline snapshots for cell content when available.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeTableCellSnapshot.Children">
+            <summary>Native child block snapshots projected from structured cell content.</summary>
+        </member>
+        <member name="T:OfficeIMO.Markdown.MarkdownNativeSourceSpanSnapshot">
+            <summary>
+            UI-safe source span snapshot.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeSourceSpanSnapshot.StartLine">
+            <summary>1-based start line.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeSourceSpanSnapshot.StartColumn">
+            <summary>1-based start column when available.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeSourceSpanSnapshot.EndLine">
+            <summary>1-based end line.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeSourceSpanSnapshot.EndColumn">
+            <summary>1-based end column when available.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeSourceSpanSnapshot.StartOffset">
+            <summary>0-based start offset when available.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeSourceSpanSnapshot.EndOffset">
+            <summary>0-based end offset when available.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeSourceSpanSnapshot.Display">
+            <summary>Human-readable span display.</summary>
+        </member>
+        <member name="T:OfficeIMO.Markdown.MarkdownNativeDiagnosticSnapshot">
+            <summary>
+            UI-safe diagnostic snapshot.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeDiagnosticSnapshot.Id">
+            <summary>Diagnostic id.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeDiagnosticSnapshot.Message">
+            <summary>Diagnostic message.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeDiagnosticSnapshot.Severity">
+            <summary>Diagnostic severity.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeDiagnosticSnapshot.SourceSpan">
+            <summary>Source span snapshot when available.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeDiagnosticSnapshot.BlockId">
+            <summary>Associated block id when available.</summary>
+        </member>
+        <member name="T:OfficeIMO.Markdown.MarkdownNativeSourceEdit">
+            <summary>
+            Non-mutating source edit derived from a native markdown source span.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeSourceEdit.SourceSpan">
+            <summary>Source span this edit replaces.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeSourceEdit.StartOffset">
+            <summary>0-based inclusive start offset in the source markdown.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeSourceEdit.EndOffsetInclusive">
+            <summary>0-based inclusive end offset in the source markdown.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeSourceEdit.ReplacementMarkdown">
+            <summary>Replacement markdown.</summary>
+        </member>
+        <member name="M:OfficeIMO.Markdown.MarkdownNativeSourceEdit.Apply(System.String)">
+            <summary>Applies this edit to the supplied markdown source and returns the edited text.</summary>
+        </member>
+        <member name="T:OfficeIMO.Markdown.MarkdownNativeVisualPayload">
+            <summary>
+            Dependency-free typed metadata for a semantic visual fenced-block payload.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeVisualPayload.Format">
+            <summary>Classified payload format.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeVisualPayload.IsJson">
+            <summary>Whether the payload appears to be JSON.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeVisualPayload.IsMermaid">
+            <summary>Whether the payload appears to be a Mermaid diagram.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeVisualPayload.DeclaredSemanticKind">
+            <summary>Semantic kind declared by the fenced block.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeVisualPayload.DetectedSemanticKind">
+            <summary>Best-effort semantic kind detected from the payload, when available.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeVisualPayload.JsonType">
+            <summary>Best-effort value of a JSON <c>type</c> property, when available.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownNativeVisualPayload.Signals">
+            <summary>Small dependency-free signal map for UI hosts that need quick routing hints.</summary>
+        </member>
+        <member name="M:OfficeIMO.Markdown.MarkdownNativeVisualPayload.Create(OfficeIMO.Markdown.SemanticFencedBlock)">
+            <summary>
+            Classifies a semantic fenced block payload without introducing a JSON parser dependency.
+            </summary>
+        </member>
+        <member name="T:OfficeIMO.Markdown.MarkdownNativeVisualPayloadFormat">
+            <summary>
+            Lightweight visual payload format classification.
+            </summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownNativeVisualPayloadFormat.Unknown">
+            <summary>Payload format is unknown or empty.</summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownNativeVisualPayloadFormat.Text">
+            <summary>Plain text payload.</summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownNativeVisualPayloadFormat.JsonObject">
+            <summary>JSON object payload.</summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownNativeVisualPayloadFormat.JsonArray">
+            <summary>JSON array payload.</summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownNativeVisualPayloadFormat.Mermaid">
+            <summary>Mermaid diagram payload.</summary>
         </member>
         <member name="T:OfficeIMO.Markdown.AssetEmitMode">
             <summary>
@@ -2247,7 +3294,13 @@
             </summary>
         </member>
         <member name="P:OfficeIMO.Markdown.HtmlOptions.Theme">
-            <summary>Optional theme color overrides for links, headings, and TOC.</summary>
+            <summary>Shared visual theme used to keep Markdown HTML, PDF, and Word exports visually aligned.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.HtmlOptions.ColorOverrides">
+            <summary>
+            Optional legacy color overrides for links, headings, and TOC.
+            Prefer <see cref="P:OfficeIMO.Markdown.HtmlOptions.Theme"/> for new code so all Markdown exporters can share the same visual profile.
+            </summary>
         </member>
         <member name="P:OfficeIMO.Markdown.HtmlOptions.InjectTocAtTop">
             <summary>
@@ -2427,6 +3480,88 @@
         <member name="M:OfficeIMO.Markdown.MarkdownBlockRenderBuiltInExtensions.AddPortableFootnoteSectionHtmlFallback(OfficeIMO.Markdown.HtmlOptions)">
             <summary>Adds a portable HTML fallback for the aggregated footnote section.</summary>
         </member>
+        <member name="T:OfficeIMO.Markdown.MarkdownColor">
+            <summary>
+            Renderer-neutral RGB color used by shared Markdown visual themes.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.Markdown.MarkdownColor.#ctor(System.Byte,System.Byte,System.Byte,System.Byte)">
+            <summary>Creates an RGB or RGBA Markdown color.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownColor.R">
+            <summary>Red component.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownColor.G">
+            <summary>Green component.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownColor.B">
+            <summary>Blue component.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownColor.A">
+            <summary>Alpha component.</summary>
+        </member>
+        <member name="M:OfficeIMO.Markdown.MarkdownColor.FromRgb(System.Byte,System.Byte,System.Byte)">
+            <summary>Creates an opaque color from RGB components.</summary>
+        </member>
+        <member name="M:OfficeIMO.Markdown.MarkdownColor.Parse(System.String)">
+            <summary>Parses a named color, #RGB, RGB, #RRGGBB, RRGGBB, #RRGGBBAA, or RRGGBBAA value.</summary>
+        </member>
+        <member name="M:OfficeIMO.Markdown.MarkdownColor.TryParse(System.String,OfficeIMO.Markdown.MarkdownColor@)">
+            <summary>Tries to parse a named or hexadecimal color.</summary>
+        </member>
+        <member name="M:OfficeIMO.Markdown.MarkdownColor.ToCssColor">
+            <summary>Returns the color as #RRGGBB or #RRGGBBAA.</summary>
+        </member>
+        <member name="M:OfficeIMO.Markdown.MarkdownColor.ToRgbHex">
+            <summary>Returns RRGGBB.</summary>
+        </member>
+        <member name="M:OfficeIMO.Markdown.MarkdownColor.ToRgbaHex">
+            <summary>Returns RRGGBBAA.</summary>
+        </member>
+        <member name="M:OfficeIMO.Markdown.MarkdownColor.ToString">
+            <inheritdoc />
+        </member>
+        <member name="M:OfficeIMO.Markdown.MarkdownColor.Equals(OfficeIMO.Markdown.MarkdownColor)">
+            <inheritdoc />
+        </member>
+        <member name="M:OfficeIMO.Markdown.MarkdownColor.Equals(System.Object)">
+            <inheritdoc />
+        </member>
+        <member name="M:OfficeIMO.Markdown.MarkdownColor.GetHashCode">
+            <inheritdoc />
+        </member>
+        <member name="M:OfficeIMO.Markdown.MarkdownColor.op_Equality(OfficeIMO.Markdown.MarkdownColor,OfficeIMO.Markdown.MarkdownColor)">
+            <summary>Equality operator.</summary>
+        </member>
+        <member name="M:OfficeIMO.Markdown.MarkdownColor.op_Inequality(OfficeIMO.Markdown.MarkdownColor,OfficeIMO.Markdown.MarkdownColor)">
+            <summary>Inequality operator.</summary>
+        </member>
+        <member name="T:OfficeIMO.Markdown.MarkdownColorSchemeKind">
+            <summary>
+            Built-in accent color schemes that can be applied to shared Markdown visual themes.
+            </summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownColorSchemeKind.Default">
+            <summary>Use the theme's default blue/slate document palette.</summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownColorSchemeKind.Blue">
+            <summary>Blue accent palette for general documents.</summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownColorSchemeKind.Emerald">
+            <summary>Emerald accent palette for calm operational reports.</summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownColorSchemeKind.Indigo">
+            <summary>Indigo accent palette for technical documents.</summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownColorSchemeKind.Rose">
+            <summary>Rose accent palette for review or exception reports.</summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownColorSchemeKind.Amber">
+            <summary>Amber accent palette for warnings and operational notes.</summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownColorSchemeKind.Slate">
+            <summary>Slate accent palette for understated internal documents.</summary>
+        </member>
         <member name="T:OfficeIMO.Markdown.MarkdownImageRenderingMode">
             <summary>
             Controls how images are emitted when rendering a typed document back to markdown text.
@@ -2446,6 +3581,152 @@
             <summary>
             Emit raw HTML for images so width, height, and richer HTML metadata round-trip exactly.
             </summary>
+        </member>
+        <member name="T:OfficeIMO.Markdown.MarkdownTableVisualStyle">
+            <summary>
+            Renderer-neutral table styling hints for Markdown exporters.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownTableVisualStyle.UseRowStripes">
+            <summary>When true, exporters should use alternating row fills where supported.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownTableVisualStyle.EmphasizeHeader">
+            <summary>When true, exporters should emphasize the first row as a header.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownTableVisualStyle.BorderWidth">
+            <summary>Table border width in renderer points/pixels where applicable.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownTableVisualStyle.CellPaddingX">
+            <summary>Horizontal cell padding in renderer points/pixels where applicable.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownTableVisualStyle.CellPaddingY">
+            <summary>Vertical cell padding in renderer points/pixels where applicable.</summary>
+        </member>
+        <member name="M:OfficeIMO.Markdown.MarkdownTableVisualStyle.Clone">
+            <summary>Creates a copy of this table style.</summary>
+        </member>
+        <member name="T:OfficeIMO.Markdown.MarkdownVisualPalette">
+            <summary>
+            Shared semantic color palette used by Markdown exporters.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownVisualPalette.Accent">
+            <summary>Primary accent color for headings, links, rules, and active UI affordances.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownVisualPalette.Heading">
+            <summary>Document heading color.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownVisualPalette.Text">
+            <summary>Main body text color.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownVisualPalette.MutedText">
+            <summary>Secondary text color for metadata, captions, and muted content.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownVisualPalette.Background">
+            <summary>Page or body background color.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownVisualPalette.Surface">
+            <summary>Panel, code, and callout surface color.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownVisualPalette.Border">
+            <summary>Default border and rule color.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownVisualPalette.CodeBackground">
+            <summary>Code block background color.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownVisualPalette.TableHeaderBackground">
+            <summary>Table header background color.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownVisualPalette.TableHeaderText">
+            <summary>Table header text color.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownVisualPalette.TableStripeBackground">
+            <summary>Alternating table row background color.</summary>
+        </member>
+        <member name="M:OfficeIMO.Markdown.MarkdownVisualPalette.Clone">
+            <summary>Creates a copy of this palette.</summary>
+        </member>
+        <member name="T:OfficeIMO.Markdown.MarkdownVisualTheme">
+            <summary>
+            Shared visual profile used to keep Markdown exports visually consistent across HTML, PDF, and Word.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.Markdown.MarkdownVisualTheme.#ctor">
+            <summary>Creates a custom visual theme.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownVisualTheme.Kind">
+            <summary>Theme kind used for diagnostics and renderer mapping.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownVisualTheme.Name">
+            <summary>Human-readable theme name.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownVisualTheme.HtmlStyle">
+            <summary>Preferred built-in HTML style preset when rendering this theme to HTML.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownVisualTheme.Palette">
+            <summary>Semantic color palette shared by exporters.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownVisualTheme.Table">
+            <summary>Table styling shared by exporters.</summary>
+        </member>
+        <member name="M:OfficeIMO.Markdown.MarkdownVisualTheme.Create(OfficeIMO.Markdown.MarkdownVisualThemeKind)">
+            <summary>Creates one of the built-in shared visual themes.</summary>
+        </member>
+        <member name="M:OfficeIMO.Markdown.MarkdownVisualTheme.TryCreate(System.String,OfficeIMO.Markdown.MarkdownVisualTheme@)">
+            <summary>Tries to create a built-in shared visual theme from an API or front-matter name.</summary>
+        </member>
+        <member name="M:OfficeIMO.Markdown.MarkdownVisualTheme.Plain">
+            <summary>Plain profile with minimal visual opinions.</summary>
+        </member>
+        <member name="M:OfficeIMO.Markdown.MarkdownVisualTheme.WordLike">
+            <summary>Neutral Word-like profile for general documents.</summary>
+        </member>
+        <member name="M:OfficeIMO.Markdown.MarkdownVisualTheme.TechnicalDocument">
+            <summary>Polished profile for technical guides, specs, and READMEs.</summary>
+        </member>
+        <member name="M:OfficeIMO.Markdown.MarkdownVisualTheme.GitHubLike">
+            <summary>GitHub-inspired profile for README-style exports.</summary>
+        </member>
+        <member name="M:OfficeIMO.Markdown.MarkdownVisualTheme.Compact">
+            <summary>Compact profile for dense technical notes.</summary>
+        </member>
+        <member name="M:OfficeIMO.Markdown.MarkdownVisualTheme.Report">
+            <summary>Report-oriented profile with stronger hierarchy and tables.</summary>
+        </member>
+        <member name="M:OfficeIMO.Markdown.MarkdownVisualTheme.WithColorScheme(OfficeIMO.Markdown.MarkdownColorSchemeKind)">
+            <summary>Returns a copy of this theme with the requested color scheme applied.</summary>
+        </member>
+        <member name="M:OfficeIMO.Markdown.MarkdownVisualTheme.WithColors(System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.String)">
+            <summary>Returns a copy of this theme with selected palette colors overridden.</summary>
+        </member>
+        <member name="M:OfficeIMO.Markdown.MarkdownVisualTheme.WithTable(System.Action{OfficeIMO.Markdown.MarkdownTableVisualStyle})">
+            <summary>Returns a copy of this theme with table styling configured.</summary>
+        </member>
+        <member name="M:OfficeIMO.Markdown.MarkdownVisualTheme.Clone">
+            <summary>Creates a copy of this visual theme.</summary>
+        </member>
+        <member name="T:OfficeIMO.Markdown.MarkdownVisualThemeKind">
+            <summary>
+            Built-in visual profiles shared by Markdown exporters.
+            </summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownVisualThemeKind.Plain">
+            <summary>No opinionated document styling beyond each renderer's defaults.</summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownVisualThemeKind.WordLike">
+            <summary>Neutral document styling that resembles a clean Word document.</summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownVisualThemeKind.TechnicalDocument">
+            <summary>Polished technical-document styling for guides, READMEs, and specifications.</summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownVisualThemeKind.GitHubLike">
+            <summary>GitHub-inspired Markdown styling.</summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownVisualThemeKind.Compact">
+            <summary>Compact styling for dense notes and command output.</summary>
+        </member>
+        <member name="F:OfficeIMO.Markdown.MarkdownVisualThemeKind.Report">
+            <summary>Report-oriented styling with stronger tables and section hierarchy.</summary>
         </member>
         <member name="T:OfficeIMO.Markdown.MarkdownWriteOptions">
             <summary>
@@ -2468,6 +3749,16 @@
         <member name="P:OfficeIMO.Markdown.MarkdownWriteOptions.ImageRenderingMode">
             <summary>
             Controls how image blocks and image inlines are serialized back to markdown text.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownWriteOptions.OutputLineEnding">
+            <summary>
+            Optional line ending to use in rendered Markdown. When unset, the platform default is used.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownWriteOptions.UnorderedListMarker">
+            <summary>
+            Marker used when rendering unordered list items. CommonMark-compatible values are <c>-</c>, <c>*</c>, and <c>+</c>.
             </summary>
         </member>
         <member name="P:OfficeIMO.Markdown.MarkdownWriteOptions.BlockRenderExtensions">
@@ -3509,6 +4800,9 @@
         </member>
         <member name="P:OfficeIMO.Markdown.MarkdownParseResult.FinalSyntaxTree">
             <summary>The syntax tree corresponding to the final returned <see cref="P:OfficeIMO.Markdown.MarkdownParseResult.Document"/>.</summary>
+        </member>
+        <member name="P:OfficeIMO.Markdown.MarkdownParseResult.SourceMarkdown">
+            <summary>The normalized markdown source text used to compute syntax source spans.</summary>
         </member>
         <member name="P:OfficeIMO.Markdown.MarkdownParseResult.TransformDiagnostics">
             <summary>Optional document-transform diagnostics captured during parsing.</summary>
