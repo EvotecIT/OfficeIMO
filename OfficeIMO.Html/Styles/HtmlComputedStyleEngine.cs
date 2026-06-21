@@ -366,11 +366,6 @@ public static class HtmlComputedStyleEngine {
             return false;
         }
 
-        if (mediaContext == HtmlCssMediaContext.Print) {
-            return !feature.StartsWith("hover", StringComparison.Ordinal)
-                && !feature.StartsWith("pointer", StringComparison.Ordinal);
-        }
-
         if (feature.StartsWith("color", StringComparison.Ordinal)
             || feature.StartsWith("min-color", StringComparison.Ordinal)
             || feature.StartsWith("monochrome", StringComparison.Ordinal)) {
@@ -388,9 +383,13 @@ public static class HtmlComputedStyleEngine {
         if (feature.StartsWith("min-width", StringComparison.Ordinal)
             || feature.StartsWith("min-height", StringComparison.Ordinal)
             || feature.StartsWith("orientation", StringComparison.Ordinal)
-            || feature.StartsWith("resolution", StringComparison.Ordinal)
-            || feature.StartsWith("hover", StringComparison.Ordinal)
-            || feature.StartsWith("pointer", StringComparison.Ordinal)) {
+            || feature.StartsWith("resolution", StringComparison.Ordinal)) {
+            return true;
+        }
+
+        if (mediaContext != HtmlCssMediaContext.Print
+            && (feature.StartsWith("hover", StringComparison.Ordinal)
+                || feature.StartsWith("pointer", StringComparison.Ordinal))) {
             return true;
         }
 

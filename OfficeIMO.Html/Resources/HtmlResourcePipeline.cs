@@ -92,7 +92,7 @@ public static class HtmlResourcePipeline {
                 break;
             case "input":
                 AddSubmitterFormAction(manifest, element, baseUri, options);
-                if (string.Equals(element.GetAttribute("type"), "image", StringComparison.OrdinalIgnoreCase)) {
+                if (string.Equals((element.GetAttribute("type") ?? string.Empty).Trim(), "image", StringComparison.OrdinalIgnoreCase)) {
                     AddAttribute(manifest, HtmlResourceKind.Image, element, "data-src", baseUri, options);
                     AddAttribute(manifest, HtmlResourceKind.Image, element, "src", baseUri, options);
                 }
@@ -673,13 +673,22 @@ public static class HtmlResourcePipeline {
             index--;
         }
 
-        const string Important = "!important";
+        const string Important = "important";
         if (index - Important.Length + 1 < valueStart) {
             return false;
         }
 
         string suffix = css.Substring(index - Important.Length + 1, Important.Length);
-        return string.Equals(suffix, Important, StringComparison.OrdinalIgnoreCase);
+        if (!string.Equals(suffix, Important, StringComparison.OrdinalIgnoreCase)) {
+            return false;
+        }
+
+        index -= Important.Length;
+        while (index >= valueStart && char.IsWhiteSpace(css[index])) {
+            index--;
+        }
+
+        return index >= valueStart && css[index] == '!';
     }
 
     private static Dictionary<string, List<CssCustomPropertyDefinition>> CloneCustomPropertyDefinitions(IReadOnlyDictionary<string, List<CssCustomPropertyDefinition>> definitions) {
@@ -907,27 +916,28 @@ public static class HtmlResourcePipeline {
             }
 
             var addedSources = new HashSet<string>(StringComparer.Ordinal);
+            if (document != null && useElement == null && !string.Equals(attributeName, "style", StringComparison.OrdinalIgnoreCase)) {
+                IElement[] matchedElements = GetElementsMatchingSelectorList(document, useSelector).ToArray();
+                if (matchedElements.Length > 0) {
+                    foreach (IElement matchedElement in matchedElements) {
+                        Dictionary<string, List<CssCustomPropertyDefinition>> inlineDefinitions = ExtractInlineCustomPropertyDefinitions(matchedElement, inlineSourceOrders, options.MediaContext, includeSelf: true);
+                        Dictionary<string, List<CssCustomPropertyDefinition>> mergedDefinitions = inlineDefinitions.Count == 0
+                            ? CloneCustomPropertyDefinitions(customPropertyDefinitions)
+                            : MergeCustomPropertyDefinitions(customPropertyDefinitions, inlineDefinitions);
+                        foreach (CssCustomPropertyDefinition source in ResolveCustomPropertyUrlDefinitions(propertyName, mergedDefinitions, string.Empty, document, matchedElement, new HashSet<string>(StringComparer.Ordinal), depth: 0)) {
+                            if (addedSources.Add(source.Source)) {
+                                AddRaw(manifest, kind, element, attributeName + "-var-url", source.Source, baseUri, options);
+                            }
+                        }
+                    }
+
+                    continue;
+                }
+            }
+
             foreach (CssCustomPropertyDefinition source in ResolveCustomPropertyUrlDefinitions(propertyName, customPropertyDefinitions, useSelector, document, useElement, new HashSet<string>(StringComparer.Ordinal), depth: 0)) {
                 if (addedSources.Add(source.Source)) {
                     AddRaw(manifest, kind, element, attributeName + "-var-url", source.Source, baseUri, options);
-                }
-            }
-
-            if (document == null || useElement != null || string.Equals(attributeName, "style", StringComparison.OrdinalIgnoreCase)) {
-                continue;
-            }
-
-            foreach (IElement matchedElement in GetElementsMatchingSelectorList(document, useSelector)) {
-                Dictionary<string, List<CssCustomPropertyDefinition>> inlineDefinitions = ExtractInlineCustomPropertyDefinitions(matchedElement, inlineSourceOrders, options.MediaContext, includeSelf: true);
-                if (inlineDefinitions.Count == 0) {
-                    continue;
-                }
-
-                Dictionary<string, List<CssCustomPropertyDefinition>> mergedDefinitions = MergeCustomPropertyDefinitions(customPropertyDefinitions, inlineDefinitions);
-                foreach (CssCustomPropertyDefinition source in ResolveCustomPropertyUrlDefinitions(propertyName, mergedDefinitions, string.Empty, document, matchedElement, new HashSet<string>(StringComparer.Ordinal), depth: 0)) {
-                    if (addedSources.Add(source.Source)) {
-                        AddRaw(manifest, kind, element, attributeName + "-var-url", source.Source, baseUri, options);
-                    }
                 }
             }
         }
@@ -1011,6 +1021,7 @@ public static class HtmlResourcePipeline {
         int selectedDeclarationStart = -1;
         int selectedRank = -1;
         int selectedSpecificity = -1;
+        int selectedDistance = int.MaxValue;
         bool selectedImportant = false;
         foreach (CssCustomPropertyDefinition source in sources) {
             int rank = GetSubstitutionRank(source.Selector, useSelector, document, useElement);
@@ -1018,16 +1029,20 @@ public static class HtmlResourcePipeline {
                 continue;
             }
 
+            int distance = GetElementSubstitutionDistance(source.Selector, useElement);
             int specificity = GetMatchingSelectorSpecificity(source.Selector, useSelector, document, useElement);
             if (rank > selectedRank
                 || (rank == selectedRank
-                    && ((!selectedImportant && source.IsImportant)
-                        || (source.IsImportant == selectedImportant
-                            && (specificity > selectedSpecificity
-                                || (specificity == selectedSpecificity && source.DeclarationStart >= selectedDeclarationStart)))))) {
+                    && (distance < selectedDistance
+                        || (distance == selectedDistance
+                            && ((!selectedImportant && source.IsImportant)
+                                || (source.IsImportant == selectedImportant
+                                    && (specificity > selectedSpecificity
+                                        || (specificity == selectedSpecificity && source.DeclarationStart >= selectedDeclarationStart)))))))) {
                 selectedImportant = source.IsImportant;
                 selectedRank = rank;
                 selectedSpecificity = specificity;
+                selectedDistance = distance;
                 selectedDeclarationStart = source.DeclarationStart;
             }
         }
@@ -1081,6 +1096,31 @@ public static class HtmlResourcePipeline {
         }
 
         return -1;
+    }
+
+    private static int GetElementSubstitutionDistance(string definitionSelector, IElement? useElement) {
+        if (useElement == null || string.IsNullOrWhiteSpace(definitionSelector)) {
+            return int.MaxValue;
+        }
+
+        int best = int.MaxValue;
+        foreach (string definitionPart in SplitTopLevelList(definitionSelector)) {
+            string normalizedDefinition = definitionPart.Trim();
+            if (ElementMatchesSelector(useElement, normalizedDefinition)) {
+                best = Math.Min(best, 0);
+                continue;
+            }
+
+            int distance = 1;
+            for (IElement? ancestor = useElement.ParentElement; ancestor != null; ancestor = ancestor.ParentElement, distance++) {
+                if (ElementMatchesSelector(ancestor, normalizedDefinition)) {
+                    best = Math.Min(best, distance);
+                    break;
+                }
+            }
+        }
+
+        return best;
     }
 
     private static int GetMatchingSelectorSpecificity(string definitionSelector, string useSelector, IHtmlDocument? document, IElement? useElement) {

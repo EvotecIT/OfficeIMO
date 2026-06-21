@@ -124,6 +124,14 @@ namespace OfficeIMO.Word.Html {
             try {
                 IHtmlDocument parsed = HtmlDocumentParser.ParseDocument(html);
                 bool changed = false;
+                foreach (IHtmlLinkElement linkElement in parsed.QuerySelectorAll("link").OfType<IHtmlLinkElement>()) {
+                    if (string.Equals(linkElement.Relation, "stylesheet", StringComparison.OrdinalIgnoreCase)
+                        && !HtmlComputedStyleEngine.IsApplicableMedia(linkElement.GetAttribute("media") ?? string.Empty, mediaContext)) {
+                        linkElement.Remove();
+                        changed = true;
+                    }
+                }
+
                 foreach (IHtmlStyleElement styleElement in parsed.QuerySelectorAll("style").OfType<IHtmlStyleElement>()) {
                     if (!HtmlComputedStyleEngine.IsApplicableMedia(styleElement.GetAttribute("media") ?? string.Empty, mediaContext)) {
                         styleElement.Remove();

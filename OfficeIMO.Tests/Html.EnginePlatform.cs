@@ -300,11 +300,13 @@ public partial class Html {
         const string html = """
             <html>
             <head>
+                <link rel="stylesheet" media="screen" href="file:///secret/print-screen.css">
                 <style media="screen">
                     .total { color: #ff0000; }
                 </style>
                 <style>
                     @media print { @supports (color: red) { .total { background-image: url(file:///secret/print-total.png); color: #123456; } } }
+                    @media print and (future-feature) { .total { background-image: url(file:///secret/print-future.png); color: #ff00ff; } }
                     @media screen { .total { background-image: url(file:///secret/screen-total.png); } }
                 </style>
             </head>
@@ -323,6 +325,7 @@ public partial class Html {
 
         Assert.DoesNotContain(screen.ResourceManifest.Resources, resource => resource.Source == "file:///secret/print-total.png");
         Assert.Contains(print.ResourceManifest.Resources, resource => resource.Source == "file:///secret/print-total.png" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.DoesNotContain(print.ResourceManifest.Resources, resource => resource.Source == "file:///secret/print-future.png");
         Assert.Contains("background-image", print.StyleSummary.PropertyNames);
 
         using var printWordDocument = WordHtmlConverterExtensions.LoadFromHtml(print);
@@ -557,9 +560,15 @@ public partial class Html {
                     .theme-late { --theme-late-hero: url(file:///secret/nearer-custom-property.png); }
                     :root { --theme-late-hero: url(https://example.test/images/later-root-property.png); }
                     .theme-late .card { background-image: var(--theme-late-hero); }
+                    .nearest-inner { --nearest-hero: url(https://example.test/images/nearest-property.png); }
+                    .nearest-outer { --nearest-hero: url(file:///secret/nearest-outer-property.png); }
+                    .nearest-card { background-image: var(--nearest-hero); }
                     .theme-important { --rank-hero: url(https://example.test/images/rank-local.png); }
                     :root { --rank-hero: url(file:///secret/root-important-rank.png) !important; }
                     .theme-important .card { background-image: var(--rank-hero); }
+                    :root { --spaced-important-hero: url(file:///secret/spaced-important-property.png) ! important; }
+                    :root { --spaced-important-hero: url(https://example.test/images/spaced-important-property.png); }
+                    .spaced-important { background-image: var(--spaced-important-hero); }
                     :is(.split-theme,.unused-theme) { --split-hero: url(file:///secret/split-selector-property.png); }
                     .split-theme .card { background-image: var(--split-hero); }
                     #specific-card { --specific-hero: url(file:///secret/specific-property.png); }
@@ -634,6 +643,7 @@ public partial class Html {
                 <button formaction="file:///secret/delete">Delete</button>
                 <button type="bogus" formaction="file:///secret/bogus-delete">Delete anyway</button>
                 <input type="image" src="file:///secret/submit.png" srcset="file:///secret/inert-submit-srcset.png 2x">
+                <input type=" image " src="file:///secret/spaced-submit.png">
                 <input type="text" src="file:///secret/input-metadata">
                 <picture><source src="file:///secret/ignored-picture-source.png" srcset="https://example.test/images/picture-source.png 1x"><img src="https://example.test/images/picture-fallback.png"></picture>
                 <picture><source srcset="https://example.test/images/selected-picture.png 1x"><source srcset="file:///secret/unselected-picture.png 1x"><img src="file:///secret/selected-fallback.png"></picture>
@@ -649,7 +659,9 @@ public partial class Html {
                 <div class="theme"><div class="card"></div></div>
                 <div class="theme-dom"><div class="card-dom"></div></div>
                 <div class="theme-late"><div class="card"></div></div>
+                <div class="nearest-outer"><div class="nearest-inner"><div class="nearest-card"></div></div></div>
                 <div class="theme-important"><div class="card"></div></div>
+                <div class="spaced-important"></div>
                 <div class="split-theme"><div class="card"></div></div>
                 <div id="specific-card" class="specific-card"></div>
                 <div class="theme-fallback"><div class="card-fallback"></div></div>
@@ -729,6 +741,8 @@ public partial class Html {
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/not-url-function.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/old-cascaded-property.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/root-important-rank.png");
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/nearest-outer-property.png");
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "https://example.test/images/spaced-important-property.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/inherited-fallback.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/not-image-set.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/notvar-custom-property.png");
@@ -753,6 +767,8 @@ public partial class Html {
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/inherited-custom-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/dom-inherited-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/nearer-custom-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/nearest-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/spaced-important-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "https://example.test/images/later-root-property.png");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/rank-local.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url");
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/split-selector-property.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "css-var-url" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
@@ -780,6 +796,7 @@ public partial class Html {
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/app.js" && resource.Kind == HtmlResourceKind.Script);
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/favicon.png" && resource.Kind == HtmlResourceKind.Image);
         Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/preload.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "imagesrcset" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/spaced-submit.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "src" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/preload-large.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "imagesrcset");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/picture-source.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "srcset");
         Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/images/selected-picture.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "srcset");
