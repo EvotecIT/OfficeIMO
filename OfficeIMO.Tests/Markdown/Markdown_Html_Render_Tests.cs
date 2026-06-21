@@ -40,7 +40,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         public void Shared_VisualTheme_Emits_Consistent_Html_Css() {
             MarkdownVisualTheme theme = MarkdownVisualTheme.Report()
                 .WithColorScheme(MarkdownColorSchemeKind.Emerald)
-                .WithColors(accent: "SeaGreen", heading: "#064e3b", text: "#102030");
+                .WithColors(accent: "SeaGreen", heading: "#064e3b", text: "#102030", background: "#f7fbff");
             theme.Table.BorderWidth = 1.2;
             theme.Table.CellPaddingX = 11;
             theme.Table.EmphasizeHeader = false;
@@ -58,7 +58,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             Assert.Contains("body { --md-heading: #064e3b", html, StringComparison.Ordinal);
             Assert.Contains("article.markdown-body h1", html, StringComparison.Ordinal);
             Assert.Contains("--md-heading: #064e3b", html, StringComparison.Ordinal);
-            Assert.Contains("article.markdown-body { color: #102030; }", html, StringComparison.Ordinal);
+            Assert.Contains("article.markdown-body { color: #102030; background: #f7fbff; }", html, StringComparison.Ordinal);
             Assert.Contains("border-color: #a7f3d0", html, StringComparison.Ordinal);
             Assert.Contains("border-width: 1.2px", html, StringComparison.Ordinal);
             Assert.Contains("article.markdown-body th { background: transparent; color: inherit; }", html, StringComparison.Ordinal);

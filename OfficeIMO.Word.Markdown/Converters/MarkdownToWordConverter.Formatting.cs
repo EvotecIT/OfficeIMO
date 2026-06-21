@@ -46,6 +46,13 @@ namespace OfficeIMO.Word.Markdown {
             }
         }
 
+        private static void ApplyBodyTextTheme(WordParagraph paragraph, MarkdownToWordOptions options) {
+            string textHex = ResolveTheme(options).PaletteSnapshot.Text.ToRgbHex();
+            foreach (var run in paragraph.GetRuns()) {
+                run.SetColorHex(textHex);
+            }
+        }
+
         private static void ApplyCalloutTitleTheme(WordParagraph paragraph, MarkdownToWordOptions options) {
             Omd.MarkdownVisualPalette palette = ResolveTheme(options).PaletteSnapshot;
             paragraph.ShadingFillColorHex = palette.Surface.ToRgbHex();
@@ -65,11 +72,17 @@ namespace OfficeIMO.Word.Markdown {
             string borderHex = palette.Border.ToRgbHex();
             DocumentFormat.OpenXml.UInt32Value borderSize = ToWordBorderSize(tableStyle.BorderWidth);
             BorderValues borderStyle = IsPositiveFinite(tableStyle.BorderWidth) ? BorderValues.Single : BorderValues.None;
+            short horizontalPadding = ToWordCellMarginWidth(tableStyle.CellPaddingX);
+            short verticalPadding = ToWordCellMarginWidth(tableStyle.CellPaddingY);
 
             for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
                 bool header = hasHeaderRow && rowIndex == 0;
                 bool stripe = !header && tableStyle.UseRowStripes && rowIndex % 2 == 0;
                 foreach (var cell in table.Rows[rowIndex].Cells) {
+                    cell.MarginLeftWidth = horizontalPadding;
+                    cell.MarginRightWidth = horizontalPadding;
+                    cell.MarginTopWidth = verticalPadding;
+                    cell.MarginBottomWidth = verticalPadding;
                     cell.Borders.TopStyle = borderStyle;
                     cell.Borders.BottomStyle = borderStyle;
                     cell.Borders.LeftStyle = borderStyle;
@@ -101,6 +114,14 @@ namespace OfficeIMO.Word.Markdown {
             double value = borderWidth;
             uint size = (uint)Math.Max(2, Math.Min(96, Math.Round(value * 8, MidpointRounding.AwayFromZero)));
             return size;
+        }
+
+        private static short ToWordCellMarginWidth(double padding) {
+            if (!IsPositiveFinite(padding)) {
+                return 0;
+            }
+
+            return (short)Math.Max(0, Math.Min(short.MaxValue, Math.Round(padding * 20, MidpointRounding.AwayFromZero)));
         }
 
         private static bool IsPositiveFinite(double value) =>

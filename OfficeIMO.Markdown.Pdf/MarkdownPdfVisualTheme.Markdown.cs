@@ -35,12 +35,12 @@ public sealed partial class MarkdownPdfVisualTheme {
     }
 
     private static void ApplySharedPalette(MarkdownPdfVisualTheme pdfTheme, MarkdownVisualPalette palette, MarkdownTableVisualStyle table) {
-        PdfCore.PdfColor accent = ToPdfColor(palette.Accent);
-        PdfCore.PdfColor heading = ToPdfColor(palette.Heading);
-        PdfCore.PdfColor text = ToPdfColor(palette.Text);
-        PdfCore.PdfColor muted = ToPdfColor(palette.MutedText);
-        PdfCore.PdfColor surface = ToPdfColor(palette.Surface);
-        PdfCore.PdfColor border = ToPdfColor(palette.Border);
+        PdfCore.PdfColor accent = ToPdfColorOrNull(palette.Accent) ?? pdfTheme.LinkColorSnapshot;
+        PdfCore.PdfColor heading = ToPdfColorOrNull(palette.Heading) ?? pdfTheme.DocumentHeaderTitleColorSnapshot;
+        PdfCore.PdfColor text = ToPdfColorOrNull(palette.Text) ?? pdfTheme.CodeBlockTextColorSnapshot;
+        PdfCore.PdfColor muted = ToPdfColorOrNull(palette.MutedText) ?? pdfTheme.DocumentHeaderMetadataColorSnapshot;
+        PdfCore.PdfColor? surface = ToPdfColorOrNull(palette.Surface);
+        PdfCore.PdfColor? border = ToPdfColorOrNull(palette.Border);
 
         ApplySharedDocumentTheme(pdfTheme, heading, text);
         pdfTheme.DocumentHeaderTitleColor = heading;
@@ -64,10 +64,10 @@ public sealed partial class MarkdownPdfVisualTheme {
         PdfCore.PdfTableStyle tableStyle = pdfTheme.TableStyleSnapshot;
         tableStyle.BorderColor = border;
         tableStyle.RowSeparatorColor = border;
-        tableStyle.HeaderFill = ToPdfColor(palette.TableHeaderBackground);
-        tableStyle.HeaderTextColor = ToPdfColor(palette.TableHeaderText);
+        tableStyle.HeaderFill = table.EmphasizeHeader ? ToPdfColorOrNull(palette.TableHeaderBackground) : null;
+        tableStyle.HeaderTextColor = table.EmphasizeHeader ? ToPdfColorOrNull(palette.TableHeaderText) : null;
         tableStyle.TextColor = text;
-        tableStyle.RowStripeFill = table.UseRowStripes ? ToPdfColor(palette.TableStripeBackground) : null;
+        tableStyle.RowStripeFill = table.UseRowStripes ? ToPdfColorOrNull(palette.TableStripeBackground) : null;
         tableStyle.BorderWidth = table.BorderWidth;
         tableStyle.CellPaddingX = table.CellPaddingX;
         tableStyle.CellPaddingY = table.CellPaddingY;
@@ -86,7 +86,14 @@ public sealed partial class MarkdownPdfVisualTheme {
         pdfTheme.QuotePanelStyle = PanelWithLeftRuleFromShared(palette.Background, palette.Border, palette.Accent, 0.0, 3, 10, 8, 2, 9);
         pdfTheme.CalloutPanelStyle = PanelFromShared(palette.Surface, palette.Accent, Math.Max(0.7, table.BorderWidth), 10, 8, 4, 9);
         pdfTheme.TocPanelStyle = PanelWithLeftRuleFromShared(palette.Surface, palette.Border, palette.Accent, table.BorderWidth, 3, 11, 8, 4, 10);
-        pdfTheme.FigureStyle = MarkdownPdfFigureStyle.Framed(surface, border, accent, muted, table.BorderWidth);
+        MarkdownPdfFigureStyle figureStyle = MarkdownPdfFigureStyle.Framed(surface ?? PdfCore.PdfColor.White, border ?? PdfCore.PdfColor.LightGray, accent, muted, table.BorderWidth);
+        if (surface == null && figureStyle.PanelStyle != null) {
+            PdfCore.PanelStyle panelStyle = figureStyle.PanelStyle;
+            panelStyle.Background = null;
+            figureStyle.PanelStyle = panelStyle;
+        }
+
+        pdfTheme.FigureStyle = figureStyle;
     }
 
     private static void ApplySharedDocumentTheme(MarkdownPdfVisualTheme pdfTheme, PdfCore.PdfColor heading, PdfCore.PdfColor text) {
@@ -124,8 +131,8 @@ public sealed partial class MarkdownPdfVisualTheme {
     }
 
     private static PdfCore.PanelStyle PanelFromShared(MarkdownColor background, MarkdownColor border, double borderWidth, double paddingX, double paddingY, double spacingBefore, double spacingAfter) => new PdfCore.PanelStyle {
-        Background = ToPdfColor(background),
-        BorderColor = ToPdfColor(border),
+        Background = ToPdfColorOrNull(background),
+        BorderColor = ToPdfColorOrNull(border),
         BorderWidth = borderWidth,
         PaddingX = paddingX,
         PaddingY = paddingY,
@@ -137,11 +144,13 @@ public sealed partial class MarkdownPdfVisualTheme {
     private static PdfCore.PanelStyle PanelWithLeftRuleFromShared(MarkdownColor background, MarkdownColor border, MarkdownColor left, double borderWidth, double leftWidth, double paddingX, double paddingY, double spacingBefore, double spacingAfter) {
         PdfCore.PanelStyle style = PanelFromShared(background, border, borderWidth, paddingX, paddingY, spacingBefore, spacingAfter);
         style.LeftBorder = new PdfCore.PdfPanelBorder {
-            Color = ToPdfColor(left),
+            Color = ToPdfColorOrNull(left),
             Width = leftWidth
         };
         return style;
     }
 
     private static PdfCore.PdfColor ToPdfColor(MarkdownColor color) => PdfCore.PdfColor.FromRgb(color.R, color.G, color.B);
+
+    private static PdfCore.PdfColor? ToPdfColorOrNull(MarkdownColor color) => color.A == 0 ? null : ToPdfColor(color);
 }

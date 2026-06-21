@@ -31,16 +31,21 @@ namespace OfficeIMO.Tests {
             MarkdownVisualTheme theme = MarkdownVisualTheme.Report()
                 .WithColors(
                     heading: "#064e3b",
+                    text: "#102030",
                     border: "#123456",
                     tableHeaderBackground: "#fedcba",
                     tableHeaderText: "#010203",
                     tableStripeBackground: "#f0f9ff")
                 .WithTable(table => {
                     table.BorderWidth = 1.25;
+                    table.CellPaddingX = 9;
+                    table.CellPaddingY = 4;
                     table.UseRowStripes = true;
                 });
             string md = """
 # Report Theme
+
+Narrative body text.
 
 | Name | Value |
 | --- | --- |
@@ -52,11 +57,17 @@ namespace OfficeIMO.Tests {
 
             var heading = doc.Paragraphs.First(p => p.Text == "Report Theme");
             Assert.Contains(heading.GetRuns(), run => string.Equals(run.ColorHex, "064e3b", System.StringComparison.OrdinalIgnoreCase));
+            var body = doc.Paragraphs.First(p => p.Text == "Narrative body text.");
+            Assert.Contains(body.GetRuns(), run => string.Equals(run.ColorHex, "102030", System.StringComparison.OrdinalIgnoreCase));
 
             var table = doc.Tables[0];
             Assert.Equal("fedcba", table.Rows[0].Cells[0].ShadingFillColorHex);
             Assert.Equal("123456", table.Rows[0].Cells[0].Borders.TopColorHex);
             Assert.Equal(10U, table.Rows[0].Cells[0].Borders.TopSize?.Value);
+            Assert.Equal((short?)180, table.Rows[0].Cells[0].MarginLeftWidth);
+            Assert.Equal((short?)180, table.Rows[0].Cells[0].MarginRightWidth);
+            Assert.Equal((short?)80, table.Rows[0].Cells[0].MarginTopWidth);
+            Assert.Equal((short?)80, table.Rows[0].Cells[0].MarginBottomWidth);
             Assert.Contains(table.Rows[0].Cells[0].Paragraphs.SelectMany(p => p.GetRuns()), run => string.Equals(run.ColorHex, "010203", System.StringComparison.OrdinalIgnoreCase));
             Assert.Equal("f0f9ff", table.Rows[2].Cells[0].ShadingFillColorHex);
         }

@@ -54,24 +54,38 @@ public static partial class MarkdownPdfConverterExtensions {
                 return false;
             }
 
-            string type = ReadString(root, "type") ?? "bar";
-            bool horizontalIndexAxis = UsesHorizontalIndexAxis(root);
-            bool stackedScale = UsesStackedScale(root);
-            if (!TryMapChartKind(type, horizontalIndexAxis, stackedScale, out OfficeChartKind chartKind)) {
-                warningMessage = "The Markdown chart fence uses an unsupported chart type and is rendered as a semantic code panel.";
-                return false;
-            }
-
             MarkdownPdfJsonValue dataElement = TryGetProperty(root, "data", out MarkdownPdfJsonValue data)
                 ? data
                 : root;
+            string type = ReadString(root, "type") ?? "bar";
             if (HasMixedVisibleDatasetTypes(dataElement, type)) {
                 warningMessage = "The Markdown Chart.js fence uses mixed per-dataset chart types that cannot be rendered as one native Office chart and is rendered as a semantic code panel.";
                 return false;
             }
 
+            bool horizontalIndexAxis = UsesHorizontalIndexAxis(root);
+            bool stackedScale = UsesStackedScale(root);
             if (stackedScale && HasUnsupportedChartJsStackGroups(dataElement)) {
                 warningMessage = "The Markdown Chart.js fence uses separate stack groups that cannot be rendered as one native Office stacked chart and is rendered as a semantic code panel.";
+                return false;
+            }
+
+            if (!TryResolveFilledLineChart(dataElement, type, out bool filledLineChart)) {
+                warningMessage = "The Markdown Chart.js fence mixes filled and unfilled visible line datasets that cannot be rendered as one native Office chart and is rendered as a semantic code panel.";
+                return false;
+            }
+
+            if (!TryMapChartKind(type, horizontalIndexAxis, stackedScale, filledLineChart, out OfficeChartKind chartKind)) {
+                warningMessage = "The Markdown chart fence uses an unsupported chart type and is rendered as a semantic code panel.";
+                return false;
+            }
+
+            if (HasExplicitChartScaleBounds(root)) {
+                warningMessage = "The Markdown Chart.js fence uses explicit scale min/max bounds that cannot be preserved by the native PDF chart renderer and is rendered as a semantic code panel.";
+                return false;
+            }
+
+            if (!TryReadChartLegendPosition(root, chartKind, out OfficeChartLegendPosition legendPosition, out warningMessage)) {
                 return false;
             }
 
@@ -176,7 +190,7 @@ public static partial class MarkdownPdfConverterExtensions {
                 width,
                 height,
                 CreateMarkdownChartStyle(root, chartKind),
-                CreateMarkdownChartLayout(root, chartKind, series));
+                CreateMarkdownChartLayout(root, chartKind, series, legendPosition));
             return true;
         } catch (FormatException) {
             warningMessage = "The Markdown chart fence is not valid JSON and is rendered as a semantic code panel.";
@@ -242,6 +256,57 @@ public static partial class MarkdownPdfConverterExtensions {
         }
 
         return hasExplicitStack && visibleDatasetCount > 1 && stackGroups.Count > 1;
+    }
+
+    private static bool TryResolveFilledLineChart(MarkdownPdfJsonValue dataElement, string rootType, out bool filledLineChart) {
+        filledLineChart = false;
+        if (!string.Equals(NormalizeChartType(rootType), "line", StringComparison.Ordinal)) {
+            return true;
+        }
+
+        if (!TryGetProperty(dataElement, "datasets", out MarkdownPdfJsonValue datasets) || datasets.Kind != MarkdownPdfJsonValueKind.Array) {
+            return true;
+        }
+
+        bool hasFilled = false;
+        bool hasUnfilled = false;
+        foreach (MarkdownPdfJsonValue dataset in datasets.ArrayValues) {
+            if (dataset.Kind != MarkdownPdfJsonValueKind.Object || ReadBool(dataset, "hidden") == true) {
+                continue;
+            }
+
+            if (ReadChartJsFill(dataset)) {
+                hasFilled = true;
+            } else {
+                hasUnfilled = true;
+            }
+        }
+
+        if (hasFilled && hasUnfilled) {
+            return false;
+        }
+
+        filledLineChart = hasFilled;
+        return true;
+    }
+
+    private static bool ReadChartJsFill(MarkdownPdfJsonValue dataset) {
+        if (!TryGetProperty(dataset, "fill", out MarkdownPdfJsonValue fill)) {
+            return false;
+        }
+
+        switch (fill.Kind) {
+            case MarkdownPdfJsonValueKind.False:
+            case MarkdownPdfJsonValueKind.Null:
+                return false;
+            case MarkdownPdfJsonValueKind.True:
+                return true;
+            case MarkdownPdfJsonValueKind.String:
+                return !string.IsNullOrWhiteSpace(fill.StringValue) &&
+                       !string.Equals(fill.StringValue, "false", StringComparison.OrdinalIgnoreCase);
+            default:
+                return true;
+        }
     }
 
     private static bool HasPositiveFiniteSlice(IReadOnlyList<OfficeChartSeries> series) {
@@ -424,9 +489,10 @@ public static partial class MarkdownPdfConverterExtensions {
         return showGridLines ? OfficeChartStyle.Default : new OfficeChartStyle(showGridLines: false);
     }
 
-    private static OfficeChartLayout CreateMarkdownChartLayout(MarkdownPdfJsonValue root, OfficeChartKind chartKind, IReadOnlyList<OfficeChartSeries> series) {
+    private static OfficeChartLayout CreateMarkdownChartLayout(MarkdownPdfJsonValue root, OfficeChartKind chartKind, IReadOnlyList<OfficeChartSeries> series, OfficeChartLegendPosition legendPosition) {
         bool pie = chartKind == OfficeChartKind.Pie || chartKind == OfficeChartKind.Doughnut;
         bool showLegend = ReadChartLegendDisplay(root) != false;
+        bool showPieDataLabels = pie && ReadChartDataLabelsDisplay(root) == true;
         bool connectScatterPoints = chartKind == OfficeChartKind.Scatter && HasScatterSeriesLine(series);
         ChartScaleVisibility xScale = ReadChartScaleVisibility(root, "x");
         ChartScaleVisibility yScale = ReadChartScaleVisibility(root, "y");
@@ -435,11 +501,11 @@ public static partial class MarkdownPdfConverterExtensions {
         ChartScaleVisibility valueScale = barChart ? xScale : yScale;
         return new OfficeChartLayout(
             showLegend: showLegend,
-            legendPosition: pie ? OfficeChartLegendPosition.Right : OfficeChartLegendPosition.Bottom,
-            showDataLabels: pie,
+            legendPosition: legendPosition,
+            showDataLabels: showPieDataLabels,
             showDataLabelValues: false,
-            showDataLabelPercentages: pie,
-            showDataLabelCategoryNames: pie,
+            showDataLabelPercentages: showPieDataLabels,
+            showDataLabelCategoryNames: showPieDataLabels,
             dataLabelFontSize: 7D,
             maximumCategoryAxisLabels: 8,
             maximumHorizontalCategoryAxisLabels: 8,
@@ -452,6 +518,79 @@ public static partial class MarkdownPdfConverterExtensions {
             showCategoryAxisLabels: categoryScale.ShowLabels,
             showValueAxisLabels: valueScale.ShowLabels);
     }
+
+    private static bool TryReadChartLegendPosition(MarkdownPdfJsonValue root, OfficeChartKind chartKind, out OfficeChartLegendPosition position, out string? warningMessage) {
+        position = chartKind == OfficeChartKind.Pie || chartKind == OfficeChartKind.Doughnut
+            ? OfficeChartLegendPosition.Right
+            : OfficeChartLegendPosition.Bottom;
+        warningMessage = null;
+        if (ReadChartLegendDisplay(root) == false) {
+            return true;
+        }
+
+        if (!TryGetProperty(root, "options", out MarkdownPdfJsonValue options) ||
+            !TryGetProperty(options, "plugins", out MarkdownPdfJsonValue plugins) ||
+            !TryGetProperty(plugins, "legend", out MarkdownPdfJsonValue legend) ||
+            legend.Kind != MarkdownPdfJsonValueKind.Object ||
+            !TryGetProperty(legend, "position", out MarkdownPdfJsonValue positionElement)) {
+            return true;
+        }
+
+        string? value = positionElement.ReadScalarAsText();
+        if (string.IsNullOrWhiteSpace(value)) {
+            return true;
+        }
+
+        switch (value!.Trim().ToLowerInvariant()) {
+            case "left":
+                position = OfficeChartLegendPosition.Left;
+                return true;
+            case "right":
+                position = OfficeChartLegendPosition.Right;
+                return true;
+            case "top":
+                position = OfficeChartLegendPosition.Top;
+                return true;
+            case "bottom":
+                position = OfficeChartLegendPosition.Bottom;
+                return true;
+            default:
+                warningMessage = "The Markdown Chart.js fence uses a legend position that cannot be represented by the native PDF chart renderer and is rendered as a semantic code panel.";
+                return false;
+        }
+    }
+
+    private static bool? ReadChartDataLabelsDisplay(MarkdownPdfJsonValue root) {
+        if (!TryGetProperty(root, "options", out MarkdownPdfJsonValue options) ||
+            !TryGetProperty(options, "plugins", out MarkdownPdfJsonValue plugins) ||
+            !TryGetProperty(plugins, "datalabels", out MarkdownPdfJsonValue dataLabels)) {
+            return null;
+        }
+
+        switch (dataLabels.Kind) {
+            case MarkdownPdfJsonValueKind.True:
+                return true;
+            case MarkdownPdfJsonValueKind.False:
+            case MarkdownPdfJsonValueKind.Null:
+                return false;
+            case MarkdownPdfJsonValueKind.Object:
+                bool? display = ReadBool(dataLabels, "display");
+                return display ?? true;
+            default:
+                return null;
+        }
+    }
+
+    private static bool HasExplicitChartScaleBounds(MarkdownPdfJsonValue root) =>
+        TryGetProperty(root, "options", out MarkdownPdfJsonValue options) &&
+        TryGetProperty(options, "scales", out MarkdownPdfJsonValue scales) &&
+        (HasExplicitScaleBounds(scales, "x") || HasExplicitScaleBounds(scales, "y") || HasExplicitScaleBounds(scales, "r"));
+
+    private static bool HasExplicitScaleBounds(MarkdownPdfJsonValue scales, string axisName) =>
+        TryGetProperty(scales, axisName, out MarkdownPdfJsonValue axis) &&
+        axis.Kind == MarkdownPdfJsonValueKind.Object &&
+        ((TryGetProperty(axis, "min", out MarkdownPdfJsonValue min) && min.Kind != MarkdownPdfJsonValueKind.Null) ||
+         (TryGetProperty(axis, "max", out MarkdownPdfJsonValue max) && max.Kind != MarkdownPdfJsonValueKind.Null));
 
     private static bool ReadRenderedScaleGridDisplay(MarkdownPdfJsonValue root, OfficeChartKind chartKind) {
         ChartScaleVisibility xScale = ReadChartScaleVisibility(root, "x");
@@ -546,7 +685,7 @@ public static partial class MarkdownPdfConverterExtensions {
         return ReadBool(axis, "stacked");
     }
 
-    private static bool TryMapChartKind(string? type, bool horizontalIndexAxis, bool stacked, out OfficeChartKind kind) {
+    private static bool TryMapChartKind(string? type, bool horizontalIndexAxis, bool stacked, bool filledLineChart, out OfficeChartKind kind) {
         string normalized = NormalizeChartType(type);
         switch (normalized) {
             case "bar":
@@ -564,7 +703,9 @@ public static partial class MarkdownPdfConverterExtensions {
                 kind = stacked ? OfficeChartKind.BarStacked : OfficeChartKind.BarClustered;
                 return true;
             case "line":
-                kind = stacked ? OfficeChartKind.LineStacked : OfficeChartKind.Line;
+                kind = filledLineChart
+                    ? (stacked ? OfficeChartKind.AreaStacked : OfficeChartKind.Area)
+                    : (stacked ? OfficeChartKind.LineStacked : OfficeChartKind.Line);
                 return true;
             case "area":
                 kind = stacked ? OfficeChartKind.AreaStacked : OfficeChartKind.Area;

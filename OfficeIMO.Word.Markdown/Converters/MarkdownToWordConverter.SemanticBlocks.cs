@@ -383,6 +383,7 @@ namespace OfficeIMO.Word.Markdown {
                 var bodyParagraph = host.CreateParagraph();
                 ApplyBlockParagraphFormatting(bodyParagraph, quoteDepth, alignment);
                 bodyParagraph.AddText(callout.Body);
+                ApplyBodyTextTheme(bodyParagraph, options);
             }
         }
     }
