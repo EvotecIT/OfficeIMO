@@ -27,9 +27,7 @@ public static class HtmlConversionDocumentBuilder {
         string normalized = options.IncludeNormalizedHtml
             ? HtmlNormalizer.Normalize(document, ConfigureNormalization(document, options))
             : string.Empty;
-        string adapterHtml = options.IncludeNormalizedHtml
-            ? HtmlNormalizer.Normalize(document, ConfigureAdapterNormalization(document, options))
-            : string.Empty;
+        string adapterHtml = HtmlNormalizer.Normalize(document, ConfigureAdapterNormalization(document, options));
 
         return new HtmlConversionDocument(
             html,

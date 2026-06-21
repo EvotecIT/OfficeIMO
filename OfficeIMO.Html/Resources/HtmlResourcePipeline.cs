@@ -63,14 +63,14 @@ public static class HtmlResourcePipeline {
                 AddImage(manifest, element, baseUri, options);
                 break;
             case "image":
-                AddAttribute(manifest, HtmlResourceKind.Image, element, "href", baseUri, options);
-                AddAttribute(manifest, HtmlResourceKind.Image, element, "xlink:href", baseUri, options);
+                AddAttribute(manifest, HtmlResourceKind.Image, element, "href", baseUri, options, skipFragmentOnly: true);
+                AddAttribute(manifest, HtmlResourceKind.Image, element, "xlink:href", baseUri, options, skipFragmentOnly: true);
                 AddAttribute(manifest, HtmlResourceKind.Image, element, "src", baseUri, options);
                 break;
             case "feimage":
             case "use":
-                AddAttribute(manifest, HtmlResourceKind.Image, element, "href", baseUri, options);
-                AddAttribute(manifest, HtmlResourceKind.Image, element, "xlink:href", baseUri, options);
+                AddAttribute(manifest, HtmlResourceKind.Image, element, "href", baseUri, options, skipFragmentOnly: true);
+                AddAttribute(manifest, HtmlResourceKind.Image, element, "xlink:href", baseUri, options, skipFragmentOnly: true);
                 break;
             case "source":
                 AddSource(manifest, element, baseUri, options);
@@ -414,16 +414,16 @@ public static class HtmlResourcePipeline {
                 continue;
             }
 
-            AddCssReferences(manifest, styleElement, "css", styleElement.TextContent, documentCustomPropertyDefinitions, sourceOrderBase: 0, includeLocalDefinitions: false, baseUri, options, document);
+            AddCssReferences(manifest, styleElement, "css", styleElement.TextContent, documentCustomPropertyDefinitions, inlineSourceOrders, sourceOrderBase: 0, includeLocalDefinitions: false, baseUri, options, document);
         }
 
         foreach (IElement element in document.QuerySelectorAll("[style]")) {
             int sourceOrderBase = inlineSourceOrders.TryGetValue(element, out int inlineSourceOrder)
                 ? inlineSourceOrder
                 : GetDocumentCssSourceOrder(document);
-            Dictionary<string, List<CssCustomPropertyDefinition>> inheritedDefinitions = ExtractInheritedInlineCustomPropertyDefinitions(element, inlineSourceOrders, options.MediaContext);
+            Dictionary<string, List<CssCustomPropertyDefinition>> inheritedDefinitions = ExtractInlineCustomPropertyDefinitions(element, inlineSourceOrders, options.MediaContext, includeSelf: false);
             Dictionary<string, List<CssCustomPropertyDefinition>> ambientDefinitions = MergeCustomPropertyDefinitions(documentCustomPropertyDefinitions, inheritedDefinitions);
-            AddCssReferences(manifest, element, "style", element.GetAttribute("style") ?? string.Empty, ambientDefinitions, sourceOrderBase, includeLocalDefinitions: true, baseUri, options, document);
+            AddCssReferences(manifest, element, "style", element.GetAttribute("style") ?? string.Empty, ambientDefinitions, inlineSourceOrders, sourceOrderBase, includeLocalDefinitions: true, baseUri, options, document);
         }
     }
 
@@ -495,6 +495,7 @@ public static class HtmlResourcePipeline {
         string attributeName,
         string css,
         IReadOnlyDictionary<string, List<CssCustomPropertyDefinition>> ambientCustomPropertyDefinitions,
+        IReadOnlyDictionary<IElement, int> inlineSourceOrders,
         int sourceOrderBase,
         bool includeLocalDefinitions,
         Uri? baseUri,
@@ -525,7 +526,7 @@ public static class HtmlResourcePipeline {
             }
         }
 
-        AddUsedCustomPropertyUrls(manifest, element, attributeName, css, customPropertyDefinitions, inactiveMediaRanges, baseUri, options, document, inlineUseElement);
+        AddUsedCustomPropertyUrls(manifest, element, attributeName, css, customPropertyDefinitions, inlineSourceOrders, inactiveMediaRanges, baseUri, options, document, inlineUseElement);
         foreach (CssStringUrlReference reference in ExtractImageSetStringUrls(css)) {
             if (!IsInRanges(reference.Start, inactiveMediaRanges) && !TryGetCustomPropertyName(css, reference.Start, out _) && IsSupportedCssUrlDeclaration(css, reference.Start) && IsCssReferenceForMatchingSelector(document, attributeName, css, reference.Start)) {
                 AddRaw(manifest, ClassifyCssUrl(css, reference.Start), element, attributeName + "-image-set", DecodeCssEscapes(reference.Source), baseUri, options);
@@ -588,11 +589,11 @@ public static class HtmlResourcePipeline {
         return sourceOrders;
     }
 
-    private static Dictionary<string, List<CssCustomPropertyDefinition>> ExtractInheritedInlineCustomPropertyDefinitions(IElement element, IReadOnlyDictionary<IElement, int> inlineSourceOrders, HtmlCssMediaContext mediaContext) {
+    private static Dictionary<string, List<CssCustomPropertyDefinition>> ExtractInlineCustomPropertyDefinitions(IElement element, IReadOnlyDictionary<IElement, int> inlineSourceOrders, HtmlCssMediaContext mediaContext, bool includeSelf) {
         var definitions = new Dictionary<string, List<CssCustomPropertyDefinition>>(StringComparer.Ordinal);
-        for (IElement? ancestor = element.ParentElement; ancestor != null; ancestor = ancestor.ParentElement) {
-            string style = ancestor.GetAttribute("style") ?? string.Empty;
-            if (style.Length == 0 || !inlineSourceOrders.TryGetValue(ancestor, out int sourceOrderBase)) {
+        for (IElement? current = includeSelf ? element : element.ParentElement; current != null; current = current.ParentElement) {
+            string style = current.GetAttribute("style") ?? string.Empty;
+            if (style.Length == 0 || !inlineSourceOrders.TryGetValue(current, out int sourceOrderBase)) {
                 continue;
             }
 
@@ -877,6 +878,7 @@ public static class HtmlResourcePipeline {
         string attributeName,
         string css,
         IReadOnlyDictionary<string, List<CssCustomPropertyDefinition>> customPropertyDefinitions,
+        IReadOnlyDictionary<IElement, int> inlineSourceOrders,
         IReadOnlyList<SourceRange> inactiveRanges,
         Uri? baseUri,
         HtmlResourcePipelineOptions options,
@@ -890,8 +892,7 @@ public static class HtmlResourcePipeline {
             string propertyName = match.Groups["name"].Value;
             if (IsInRanges(match.Index, inactiveRanges)
                 || !IsCssFunctionNameAt(css, match.Index, "var")
-                || IsInsideCssString(css, match.Index)
-                || !customPropertyDefinitions.TryGetValue(propertyName, out List<CssCustomPropertyDefinition>? sources)) {
+                || IsInsideCssString(css, match.Index)) {
                 continue;
             }
 
@@ -905,8 +906,29 @@ public static class HtmlResourcePipeline {
                 continue;
             }
 
+            var addedSources = new HashSet<string>(StringComparer.Ordinal);
             foreach (CssCustomPropertyDefinition source in ResolveCustomPropertyUrlDefinitions(propertyName, customPropertyDefinitions, useSelector, document, useElement, new HashSet<string>(StringComparer.Ordinal), depth: 0)) {
-                AddRaw(manifest, kind, element, attributeName + "-var-url", source.Source, baseUri, options);
+                if (addedSources.Add(source.Source)) {
+                    AddRaw(manifest, kind, element, attributeName + "-var-url", source.Source, baseUri, options);
+                }
+            }
+
+            if (document == null || useElement != null || string.Equals(attributeName, "style", StringComparison.OrdinalIgnoreCase)) {
+                continue;
+            }
+
+            foreach (IElement matchedElement in GetElementsMatchingSelectorList(document, useSelector)) {
+                Dictionary<string, List<CssCustomPropertyDefinition>> inlineDefinitions = ExtractInlineCustomPropertyDefinitions(matchedElement, inlineSourceOrders, options.MediaContext, includeSelf: true);
+                if (inlineDefinitions.Count == 0) {
+                    continue;
+                }
+
+                Dictionary<string, List<CssCustomPropertyDefinition>> mergedDefinitions = MergeCustomPropertyDefinitions(customPropertyDefinitions, inlineDefinitions);
+                foreach (CssCustomPropertyDefinition source in ResolveCustomPropertyUrlDefinitions(propertyName, mergedDefinitions, string.Empty, document, matchedElement, new HashSet<string>(StringComparer.Ordinal), depth: 0)) {
+                    if (addedSources.Add(source.Source)) {
+                        AddRaw(manifest, kind, element, attributeName + "-var-url", source.Source, baseUri, options);
+                    }
+                }
             }
         }
     }
@@ -1381,6 +1403,33 @@ public static class HtmlResourcePipeline {
         }
 
         return false;
+    }
+
+    private static IEnumerable<IElement> GetElementsMatchingSelectorList(IHtmlDocument document, string selector) {
+        if (string.IsNullOrWhiteSpace(selector) || selector.TrimStart().StartsWith("@", StringComparison.Ordinal)) {
+            yield break;
+        }
+
+        var seen = new HashSet<IElement>();
+        foreach (string selectorPart in SplitTopLevelList(selector)) {
+            string normalized = NormalizeSelectorForQuery(selectorPart);
+            if (normalized.Length == 0) {
+                continue;
+            }
+
+            IEnumerable<IElement> matches;
+            try {
+                matches = document.QuerySelectorAll(normalized).OfType<IElement>().ToArray();
+            } catch {
+                continue;
+            }
+
+            foreach (IElement match in matches) {
+                if (seen.Add(match)) {
+                    yield return match;
+                }
+            }
+        }
     }
 
     private static bool SelectorRelationshipMatches(IHtmlDocument? document, string definitionSelector, string useSelector) {
@@ -2028,11 +2077,19 @@ public static class HtmlResourcePipeline {
         }
     }
 
-    private static void AddAttribute(HtmlResourceManifest manifest, HtmlResourceKind kind, IElement element, string attributeName, Uri? baseUri, HtmlResourcePipelineOptions options) {
+    private static void AddAttribute(HtmlResourceManifest manifest, HtmlResourceKind kind, IElement element, string attributeName, Uri? baseUri, HtmlResourcePipelineOptions options, bool skipFragmentOnly = false) {
         string? source = element.GetAttribute(attributeName);
+        if (skipFragmentOnly && IsFragmentOnlyReference(source)) {
+            return;
+        }
+
         if (!string.IsNullOrWhiteSpace(source)) {
             AddRaw(manifest, kind, element, attributeName, source!, baseUri, options);
         }
+    }
+
+    private static bool IsFragmentOnlyReference(string? source) {
+        return !string.IsNullOrWhiteSpace(source) && source!.TrimStart().StartsWith("#", StringComparison.Ordinal);
     }
 
     private static void AddMetaRefresh(HtmlResourceManifest manifest, IElement element, Uri? baseUri, HtmlResourcePipelineOptions options) {

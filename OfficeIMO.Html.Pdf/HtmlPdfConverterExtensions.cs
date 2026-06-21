@@ -51,7 +51,14 @@ public static class HtmlPdfConverterExtensions {
             options.WordPdfOptions ??= new PdfSaveOptions();
         }
 
-        return document.HtmlForConversion.ToPdfDocument(options);
+        if (!useDocumentProfile) {
+            return document.HtmlForConversion.ToPdfDocument(options);
+        }
+
+        options.ResetExportState();
+        PdfCore.PdfDocument pdf = ConvertDocument(document, options);
+        AddCurrentHtmlImportDiagnostics(options);
+        return pdf;
     }
 
     /// <summary>
@@ -158,6 +165,19 @@ public static class HtmlPdfConverterExtensions {
         wordHtmlOptions.Diagnostics.Clear();
         wordHtmlOptions.ConversionReport.Clear();
         using WordDocument document = html.LoadFromHtml(wordHtmlOptions);
+        PdfCore.PdfDocument pdf = document.ToPdfDocument(wordPdfOptions);
+        options.ConversionReport.LinkReport(wordPdfOptions.ConversionReport);
+        return pdf;
+    }
+
+    private static PdfCore.PdfDocument ConvertDocument(HtmlConversionDocument conversionDocument, HtmlPdfSaveOptions options) {
+        PdfSaveOptions wordPdfOptions = options.WordPdfOptions ?? new PdfSaveOptions();
+        HtmlToWordOptions wordHtmlOptions = options.WordHtmlOptions ?? HtmlToWordOptions.CreateTrustedDocumentProfile();
+        options.WordPdfOptions = wordPdfOptions;
+        options.WordHtmlOptions = wordHtmlOptions;
+        wordHtmlOptions.Diagnostics.Clear();
+        wordHtmlOptions.ConversionReport.Clear();
+        using WordDocument document = WordHtmlConverterExtensions.LoadFromHtml(conversionDocument, wordHtmlOptions);
         PdfCore.PdfDocument pdf = document.ToPdfDocument(wordPdfOptions);
         options.ConversionReport.LinkReport(wordPdfOptions.ConversionReport);
         return pdf;

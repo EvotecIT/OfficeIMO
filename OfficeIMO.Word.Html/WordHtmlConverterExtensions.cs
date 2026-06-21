@@ -125,6 +125,12 @@ namespace OfficeIMO.Word.Html {
                 IHtmlDocument parsed = HtmlDocumentParser.ParseDocument(html);
                 bool changed = false;
                 foreach (IHtmlStyleElement styleElement in parsed.QuerySelectorAll("style").OfType<IHtmlStyleElement>()) {
+                    if (!HtmlComputedStyleEngine.IsApplicableMedia(styleElement.GetAttribute("media") ?? string.Empty, mediaContext)) {
+                        styleElement.Remove();
+                        changed = true;
+                        continue;
+                    }
+
                     string expanded = ExpandActiveMediaStyleRules(styleElement.TextContent, mediaContext, out bool stylesheetChanged);
                     if (stylesheetChanged) {
                         styleElement.TextContent = expanded;
@@ -170,6 +176,17 @@ namespace OfficeIMO.Word.Html {
                 changed = true;
                 if (HtmlComputedStyleEngine.IsApplicableMedia(mediaRule.ConditionText, mediaContext)) {
                     foreach (ICssRule childRule in mediaRule.Rules) {
+                        AppendActiveMediaStyleRule(builder, childRule, mediaContext, ref changed);
+                    }
+                }
+
+                return;
+            }
+
+            if (rule is ICssSupportsRule supportsRule) {
+                changed = true;
+                if (HtmlComputedStyleEngine.IsApplicableSupports(supportsRule.ConditionText)) {
+                    foreach (ICssRule childRule in supportsRule.Rules) {
                         AppendActiveMediaStyleRule(builder, childRule, mediaContext, ref changed);
                     }
                 }

@@ -411,7 +411,10 @@ public static class HtmlComputedStyleEngine {
         return value as string ?? string.Empty;
     }
 
-    internal static bool IsApplicableSupports(string conditionText) {
+    /// <summary>
+    /// Evaluates whether a CSS supports condition is active for the OfficeIMO CSS subset.
+    /// </summary>
+    public static bool IsApplicableSupports(string conditionText) {
         if (string.IsNullOrWhiteSpace(conditionText)) {
             return true;
         }
