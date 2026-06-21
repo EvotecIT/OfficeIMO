@@ -56,53 +56,29 @@ namespace OfficeIMO.Examples.Markdown {
             File.WriteAllText(md4, baseDoc.ToMarkdown(), Encoding.UTF8);
             File.WriteAllText(html4, baseDoc.ToHtmlDocument(new HtmlOptions { Title = "Theme: GitHub Auto", Style = HtmlStyle.GithubAuto, Kind = HtmlKind.Document, ThemeToggle = true, IncludeAnchorLinks = true, BackToTopLinks = true }), Encoding.UTF8);
 
-            // Custom Indigo accents (toggle enabled)
+            // Shared Indigo accents (toggle enabled)
             var (md5, html5) = Paths(folderPath, "Markdown_Theme_Indigo");
-            var indigo = new ThemeColors {
-                AccentLight = "#4f46e5", AccentDark = "#8b9cfb",
-                HeadingLight = "#111827", HeadingDark = "#e5e7eb",
-                TocBgLight = "#eef2ff", TocBorderLight = "#c7d2fe",
-                TocBgDark = "#1f2937", TocBorderDark = "#374151",
-                ActiveLinkLight = "#4338ca", ActiveLinkDark = "#a5b4fc"
-            };
+            var indigo = MarkdownVisualTheme.Report().WithColorScheme(MarkdownColorSchemeKind.Indigo);
             File.WriteAllText(md5, baseDoc.ToMarkdown(), Encoding.UTF8);
-            File.WriteAllText(html5, baseDoc.ToHtmlDocument(new HtmlOptions { Title = "Theme: Indigo", Style = HtmlStyle.GithubAuto, Kind = HtmlKind.Document, ThemeToggle = true, IncludeAnchorLinks = true, BackToTopLinks = true, Theme = indigo }), Encoding.UTF8);
+            File.WriteAllText(html5, baseDoc.ToHtmlDocument(new HtmlOptions { Title = "Theme: Indigo", Kind = HtmlKind.Document, ThemeToggle = true, IncludeAnchorLinks = true, BackToTopLinks = true, VisualTheme = indigo }), Encoding.UTF8);
 
-            // Custom Blue accents
+            // Shared Blue accents
             var (md6, html6) = Paths(folderPath, "Markdown_Theme_Blue");
-            var blue = new ThemeColors {
-                AccentLight = "#1d4ed8", AccentDark = "#60a5fa",
-                HeadingLight = "#0f172a", HeadingDark = "#e5e7eb",
-                TocBgLight = "#eff6ff", TocBorderLight = "#bfdbfe",
-                TocBgDark = "#111827", TocBorderDark = "#1f2937",
-                ActiveLinkLight = "#1e40af", ActiveLinkDark = "#93c5fd"
-            };
+            var blue = MarkdownVisualTheme.Report().WithColorScheme(MarkdownColorSchemeKind.Blue);
             File.WriteAllText(md6, baseDoc.ToMarkdown(), Encoding.UTF8);
-            File.WriteAllText(html6, baseDoc.ToHtmlDocument(new HtmlOptions { Title = "Theme: Blue", Style = HtmlStyle.GithubAuto, Kind = HtmlKind.Document, ThemeToggle = true, IncludeAnchorLinks = true, BackToTopLinks = true, Theme = blue }), Encoding.UTF8);
+            File.WriteAllText(html6, baseDoc.ToHtmlDocument(new HtmlOptions { Title = "Theme: Blue", Kind = HtmlKind.Document, ThemeToggle = true, IncludeAnchorLinks = true, BackToTopLinks = true, VisualTheme = blue }), Encoding.UTF8);
 
-            // Custom Emerald accents
+            // Shared Emerald accents
             var (md7, html7) = Paths(folderPath, "Markdown_Theme_Emerald");
-            var emerald = new ThemeColors {
-                AccentLight = "#059669", AccentDark = "#34d399",
-                HeadingLight = "#064e3b", HeadingDark = "#d1fae5",
-                TocBgLight = "#ecfdf5", TocBorderLight = "#a7f3d0",
-                TocBgDark = "#052e23", TocBorderDark = "#065f46",
-                ActiveLinkLight = "#047857", ActiveLinkDark = "#6ee7b7"
-            };
+            var emerald = MarkdownVisualTheme.Report().WithColorScheme(MarkdownColorSchemeKind.Emerald);
             File.WriteAllText(md7, baseDoc.ToMarkdown(), Encoding.UTF8);
-            File.WriteAllText(html7, baseDoc.ToHtmlDocument(new HtmlOptions { Title = "Theme: Emerald", Style = HtmlStyle.GithubAuto, Kind = HtmlKind.Document, ThemeToggle = true, IncludeAnchorLinks = true, BackToTopLinks = true, Theme = emerald }), Encoding.UTF8);
+            File.WriteAllText(html7, baseDoc.ToHtmlDocument(new HtmlOptions { Title = "Theme: Emerald", Kind = HtmlKind.Document, ThemeToggle = true, IncludeAnchorLinks = true, BackToTopLinks = true, VisualTheme = emerald }), Encoding.UTF8);
 
-            // Custom Rose accents
+            // Shared Rose accents
             var (md8, html8) = Paths(folderPath, "Markdown_Theme_Rose");
-            var rose = new ThemeColors {
-                AccentLight = "#e11d48", AccentDark = "#fb7185",
-                HeadingLight = "#111827", HeadingDark = "#fde2e2",
-                TocBgLight = "#fff1f2", TocBorderLight = "#fecdd3",
-                TocBgDark = "#1f2937", TocBorderDark = "#4b5563",
-                ActiveLinkLight = "#be123c", ActiveLinkDark = "#fda4af"
-            };
+            var rose = MarkdownVisualTheme.Report().WithColorScheme(MarkdownColorSchemeKind.Rose);
             File.WriteAllText(md8, baseDoc.ToMarkdown(), Encoding.UTF8);
-            File.WriteAllText(html8, baseDoc.ToHtmlDocument(new HtmlOptions { Title = "Theme: Rose", Style = HtmlStyle.GithubAuto, Kind = HtmlKind.Document, ThemeToggle = true, IncludeAnchorLinks = true, BackToTopLinks = true, Theme = rose }), Encoding.UTF8);
+            File.WriteAllText(html8, baseDoc.ToHtmlDocument(new HtmlOptions { Title = "Theme: Rose", Kind = HtmlKind.Document, ThemeToggle = true, IncludeAnchorLinks = true, BackToTopLinks = true, VisualTheme = rose }), Encoding.UTF8);
 
             Console.WriteLine($"✓ HTML (Clean):        {html1}");
             Console.WriteLine($"✓ HTML (Word):        {html1b}");

@@ -23,18 +23,30 @@ public sealed class MarkdownPdfSaveOptions {
     /// <summary>Applies the built-in Word-like PDF theme before rendering Markdown blocks.</summary>
     public bool ApplyWordLikeTheme { get; set; } = true;
 
+    private MarkdownVisualTheme? _theme;
     private MarkdownPdfVisualTheme? _visualTheme;
 
     /// <summary>
-    /// Markdown-aware visual theme. When null, the adapter uses the front matter <c>pdfTheme</c> value when present,
-    /// otherwise falls back to the Word-like profile when <see cref="ApplyWordLikeTheme"/> is true.
+    /// Shared Markdown visual theme used to align PDF output with HTML and Word exporters.
+    /// When set, this is translated into the PDF-specific visual theme unless <see cref="VisualTheme"/> is also set.
+    /// </summary>
+    public MarkdownVisualTheme? Theme {
+        get => _theme?.Clone();
+        set => _theme = value?.Clone();
+    }
+
+    internal MarkdownVisualTheme? ThemeSnapshot => _theme?.Clone();
+
+    /// <summary>
+    /// PDF-specific visual theme override. Prefer <see cref="Theme"/> for new code when the same visual profile
+    /// should be reused across Markdown HTML, PDF, and Word exports.
     /// </summary>
     public MarkdownPdfVisualTheme? VisualTheme {
         get => _visualTheme?.Clone();
         set => _visualTheme = value?.Clone();
     }
 
-    /// <summary>Use a <c>pdfTheme</c> or <c>pdf-theme</c> front matter value as the visual profile when no explicit visual theme is set.</summary>
+    /// <summary>Use <c>theme</c>, <c>visualTheme</c>, <c>pdfTheme</c>, or equivalent front matter values as the visual profile when no explicit theme is set.</summary>
     public bool UseFrontMatterVisualTheme { get; set; } = true;
 
     /// <summary>Create PDF outlines from supported Markdown headings.</summary>

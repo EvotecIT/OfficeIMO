@@ -357,6 +357,8 @@ namespace OfficeIMO.Examples {
             // Markdown.Markdown04_TocLayoutsAndThemes.Example_Toc_ScrollSpy_Long_IndigoTheme(folderPath, false);
             // // Markdown: Built-in HTML style gallery
             // Markdown.Markdown05_ThemesGallery.Example_Themes(folderPath, false);
+            // // Markdown: One shared visual theme across Markdown, HTML, PDF, and Word
+            // Markdown.Markdown10_VisualThemesAcrossFormats.Example_SharedVisualTheme(folderPath, false);
             // // Markdown: Custom parser/AST/HTML extensions
             // Markdown.Markdown07_Custom_Extensions.Example_Custom_Extensions(folderPath, false);
             // // Markdown: Delegate-based custom block parser extensions

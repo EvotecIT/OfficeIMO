@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using OfficeIMO.Markdown;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Markdown;
 using Xunit;
@@ -42,6 +43,25 @@ namespace OfficeIMO.Tests {
 
             Assert.Matches("\\[\\*\\*bold link\\*\\*\\]\\(https://example\\.com/?\\)", roundTrip);
             Assert.Matches("\\[==highlighted==\\]\\(https://example\\.org/?\\)", roundTrip);
+        }
+
+        [Fact]
+        public void MarkdownToWord_AppliesSharedVisualThemeAccentToHyperlinks() {
+            MarkdownVisualTheme theme = MarkdownVisualTheme.Report()
+                .WithColors(accent: "#aa5500");
+            string md = "See [plain](https://example.com) and [**bold** link](https://example.org).";
+
+            using var doc = md.LoadFromMarkdown(new MarkdownToWordOptions { Theme = theme });
+
+            var hyperlinkRuns = doc.Paragraphs[0].GetRuns().Where(r => r.IsHyperLink).ToList();
+
+            Assert.Contains(hyperlinkRuns, run =>
+                string.Equals(run.Text, "plain", StringComparison.Ordinal) &&
+                string.Equals(run.ColorHex, "aa5500", StringComparison.OrdinalIgnoreCase));
+            Assert.Contains(hyperlinkRuns, run =>
+                string.Equals(run.Text, "bold", StringComparison.Ordinal) &&
+                run.Bold &&
+                string.Equals(run.ColorHex, "aa5500", StringComparison.OrdinalIgnoreCase));
         }
 
         [Fact]

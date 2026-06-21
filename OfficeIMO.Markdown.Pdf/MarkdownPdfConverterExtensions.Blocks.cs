@@ -14,7 +14,7 @@ public static partial class MarkdownPdfConverterExtensions {
                 RenderHeading(pdf, heading, document, visualTheme);
                 break;
             case ParagraphBlock paragraph:
-                RenderParagraph(pdf, paragraph.Inlines, visualTheme);
+                RenderParagraph(pdf, paragraph.Inlines, options, visualTheme);
                 break;
             case OrderedListBlock ordered:
                 RenderOrderedList(pdf, ordered, document, options, visualTheme);
@@ -29,7 +29,7 @@ public static partial class MarkdownPdfConverterExtensions {
                 RenderCodeBlock(pdf, code, visualTheme);
                 break;
             case SemanticFencedBlock semantic:
-                RenderSemanticFencedBlock(pdf, semantic, visualTheme);
+                RenderSemanticFencedBlock(pdf, semantic, options, visualTheme);
                 break;
             case CalloutBlock callout:
                 RenderCalloutBlock(pdf, callout, document, options, visualTheme);
@@ -53,7 +53,7 @@ public static partial class MarkdownPdfConverterExtensions {
                 pdf.HR();
                 break;
             case ImageBlock image:
-                RenderImageBlock(pdf, image, options);
+                RenderImageBlock(pdf, image, options, visualTheme);
                 break;
             case FrontMatterBlock frontMatter:
                 RenderFrontMatter(pdf, frontMatter, document, options, visualTheme);
@@ -91,14 +91,27 @@ public static partial class MarkdownPdfConverterExtensions {
             pdf.H3(text);
         } else {
             double fontSize = heading.Level == 4 ? 13D : 11.5D;
+            PdfCore.PdfColor headingColor = ResolveManualHeadingColor(visualTheme);
             pdf.Paragraph(builder => {
                 builder.Bold(true).FontSize(fontSize);
-                AppendInlines(builder, heading.Inlines, CreateInlineStyle(visualTheme).With(bold: true, fontSize: fontSize));
+                AppendInlines(builder, heading.Inlines, CreateInlineStyle(visualTheme).With(bold: true, color: headingColor, fontSize: fontSize));
             }, style: new PdfCore.PdfParagraphStyle { SpacingBefore = 8, SpacingAfter = 4, KeepWithNext = true });
         }
     }
 
-    private static void RenderParagraph(PdfCore.PdfDocument pdf, InlineSequence inlines, MarkdownPdfVisualTheme visualTheme) {
+    private static PdfCore.PdfColor ResolveManualHeadingColor(MarkdownPdfVisualTheme visualTheme) {
+        PdfCore.PdfHeadingStyles? headingStyles = visualTheme.DocumentThemeSnapshot?.HeadingStyles;
+        return headingStyles?.Level3?.Color ??
+               headingStyles?.Level2?.Color ??
+               headingStyles?.Level1?.Color ??
+               visualTheme.DocumentHeaderTitleColorSnapshot;
+    }
+
+    private static void RenderParagraph(PdfCore.PdfDocument pdf, InlineSequence inlines, MarkdownPdfSaveOptions options, MarkdownPdfVisualTheme visualTheme) {
+        if (TryRenderImageOnlyParagraph(pdf, inlines, options, visualTheme)) {
+            return;
+        }
+
         if (IsEmpty(inlines)) {
             return;
         }
@@ -243,7 +256,7 @@ public static partial class MarkdownPdfConverterExtensions {
         for (int i = 0; i < items.Count; i++) {
             ListItem item = items[i];
             for (int paragraphIndex = 0; paragraphIndex < item.AdditionalParagraphs.Count; paragraphIndex++) {
-                RenderParagraph(pdf, item.AdditionalParagraphs[paragraphIndex], visualTheme);
+                RenderParagraph(pdf, item.AdditionalParagraphs[paragraphIndex], options, visualTheme);
             }
 
             for (int childIndex = 0; childIndex < item.ChildBlocks.Count; childIndex++) {

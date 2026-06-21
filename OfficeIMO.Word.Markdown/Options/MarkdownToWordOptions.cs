@@ -5,6 +5,18 @@ namespace OfficeIMO.Word.Markdown {
     /// Options controlling Markdown to Word conversion.
     /// </summary>
     public class MarkdownToWordOptions {
+        private OfficeIMO.Markdown.MarkdownVisualTheme? _theme;
+
+        /// <summary>
+        /// Shared Markdown visual theme used to align generated Word output with Markdown HTML and PDF exports.
+        /// </summary>
+        public OfficeIMO.Markdown.MarkdownVisualTheme? Theme {
+            get => _theme?.Clone();
+            set => _theme = value?.Clone();
+        }
+
+        internal OfficeIMO.Markdown.MarkdownVisualTheme? ThemeSnapshot => _theme?.Clone();
+
         /// <summary>
         /// Optional font family applied to created runs during conversion.
         /// </summary>

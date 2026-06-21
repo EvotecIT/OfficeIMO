@@ -32,7 +32,7 @@ internal static class HtmlRenderer {
             : null;
         using var _ctx = HtmlRenderContext.Push(options, footnoteState);
         var css = BuildCss(options, out string? cssLinkTag, out string? cssToWrite, out string? extraHeadLinks);
-        options._externalCssContentToWrite = cssToWrite; // pass back for SaveHtml
+        options._externalCssContentToWrite = cssToWrite; // pass back for SaveAsHtml
 
         // Insert a top anchor for back-to-top links
         var blocksForRendering = doc.Blocks;
@@ -341,9 +341,10 @@ internal static class HtmlRenderer {
     private static string? BuildCss(HtmlOptions options, out string? cssLinkTag, out string? cssToWrite, out string? extraHeadLinks) {
         cssLinkTag = null; cssToWrite = null; extraHeadLinks = null;
         // Cache scoped base CSS (style preset + common extras) by (style|scopeSelector)
-        string cacheKey = ((int)options.Style).ToString() + "|" + (options.CssScopeSelector ?? string.Empty);
+        HtmlStyle effectiveStyle = GetEffectiveStyle(options);
+        string cacheKey = ((int)effectiveStyle).ToString() + "|" + (options.CssScopeSelector ?? string.Empty);
         if (!_scopedBaseCssCache.TryGetValue(cacheKey, out var baseCss)) {
-            baseCss = ScopeCss(HtmlResources.GetStyleCss(options.Style) + HtmlResources.CommonExtraCss, options.CssScopeSelector);
+            baseCss = ScopeCss(HtmlResources.GetStyleCss(effectiveStyle) + HtmlResources.CommonExtraCss, options.CssScopeSelector);
             _scopedBaseCssCache[cacheKey] = baseCss;
         }
 
@@ -400,16 +401,26 @@ internal static class HtmlRenderer {
             // Renderer expects caller to write this CSS; return empty inline CSS but set writable content
             cssToWrite = aggregatedCss;
             var fileName = options.ExternalCssOutputPath != null ? System.IO.Path.GetFileName(options.ExternalCssOutputPath) : "styles.css";
-            var styleId = $"omd-style:{options.Style}";
+            var styleId = $"omd-style:{effectiveStyle}";
             cssLinkTag = $"<link rel=\"stylesheet\" data-asset-id=\"{System.Net.WebUtility.HtmlEncode(styleId)}\" href=\"{System.Net.WebUtility.HtmlEncode(fileName)}\">\n";
             return string.Empty;
         }
         return aggregatedCss;
     }
 
+    private static HtmlStyle GetEffectiveStyle(HtmlOptions options) {
+        if (options.VisualTheme != null && options.Style == HtmlStyle.Clean) {
+            return options.VisualTheme.HtmlStyle;
+        }
+
+        return options.Style;
+    }
+
     private static string BuildThemeOverrides(HtmlOptions options) {
-        var t = options.Theme ?? new ThemeColors();
-        bool any = !string.IsNullOrWhiteSpace(t.AccentLight) || !string.IsNullOrWhiteSpace(t.AccentDark)
+        ThemeColors t = BuildEffectiveThemeColors(options);
+        MarkdownVisualTheme? theme = options.VisualTheme;
+        bool any = theme != null
+                 || !string.IsNullOrWhiteSpace(t.AccentLight) || !string.IsNullOrWhiteSpace(t.AccentDark)
                  || !string.IsNullOrWhiteSpace(t.HeadingLight) || !string.IsNullOrWhiteSpace(t.HeadingDark)
                  || !string.IsNullOrWhiteSpace(t.TocBgLight) || !string.IsNullOrWhiteSpace(t.TocBgDark)
                  || !string.IsNullOrWhiteSpace(t.TocBorderLight) || !string.IsNullOrWhiteSpace(t.TocBorderDark)
@@ -419,6 +430,7 @@ internal static class HtmlRenderer {
         var scope = NormalizeScope(options.CssScopeSelector);
         // Expose variables on scope for both themes
         sb.Append('\n');
+        AppendThemeVariableBlock(sb, scope, t.HeadingLight, t.AccentLight, t.TocBgLight, t.TocBorderLight, t.ActiveLinkLight);
         sb.Append(CombineSelectors("html[data-theme=light]", scope)).Append(" {");
         if (!string.IsNullOrWhiteSpace(t.HeadingLight)) sb.Append(" --md-heading: ").Append(t.HeadingLight).Append(';');
         if (!string.IsNullOrWhiteSpace(t.AccentLight)) sb.Append(" --md-accent: ").Append(t.AccentLight).Append(';');
@@ -445,8 +457,82 @@ internal static class HtmlRenderer {
         sb.Append(Descendant(scope, "blockquote")).Append(" { border-left-color: var(--md-accent, #d0d7de); }\n");
         sb.Append(Descendant(scope, "blockquote.callout")).Append(" { border-left-color: var(--md-accent, #0969da); background: var(--md-toc-bg, #f6f8fa); }\n");
         sb.Append(Descendant(scope, ".heading-anchor")).Append(" { color: var(--md-accent, inherit); }\n");
+        if (theme != null) {
+            var palette = theme.PaletteSnapshot;
+            var table = theme.TableSnapshot;
+            sb.Append(scope).Append(" { color: ").Append(palette.Text.ToCssColor()).Append("; background: ").Append(palette.Background.ToCssColor()).Append("; }\n");
+            sb.Append(Descendant(scope, "table")).Append(" { border-color: ").Append(palette.Border.ToCssColor()).Append("; border-width: ").Append(table.BorderWidth.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append("px; }\n");
+            if (table.EmphasizeHeader) {
+                sb.Append(Descendant(scope, "th")).Append(" { background: ").Append(palette.TableHeaderBackground.ToCssColor()).Append("; color: ").Append(palette.TableHeaderText.ToCssColor()).Append("; }\n");
+            } else {
+                sb.Append(Descendant(scope, "th")).Append(" { background: transparent; color: inherit; }\n");
+            }
+
+            sb.Append(Descendant(scope, "th, ")).Append(Descendant(scope, "td")).Append(" { border-color: ").Append(palette.Border.ToCssColor()).Append("; border-width: ")
+              .Append(table.BorderWidth.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append("px; padding: ")
+              .Append(table.CellPaddingY.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append("px ")
+              .Append(table.CellPaddingX.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append("px; }\n");
+            if (table.UseRowStripes) {
+                sb.Append(Descendant(scope, "tbody tr:nth-child(2n)")).Append(" { background-color: ").Append(palette.TableStripeBackground.ToCssColor()).Append("; }\n");
+            } else {
+                sb.Append(Descendant(scope, "tbody tr:nth-child(2n)")).Append(" { background-color: transparent; }\n");
+            }
+            sb.Append(Descendant(scope, "pre")).Append(" { background: ").Append(palette.CodeBackground.ToCssColor()).Append("; border-color: ").Append(palette.Border.ToCssColor()).Append("; }\n");
+            sb.Append(Descendant(scope, "code")).Append(" { color: ").Append(palette.Text.ToCssColor()).Append("; }\n");
+        }
         return sb.ToString();
     }
+
+    private static ThemeColors BuildEffectiveThemeColors(HtmlOptions options) {
+        var colors = new ThemeColors();
+        if (options.VisualTheme != null) {
+            MarkdownVisualPalette palette = options.VisualTheme.PaletteSnapshot;
+            colors.AccentLight = palette.Accent.ToCssColor();
+            colors.AccentDark = palette.Accent.ToCssColor();
+            colors.HeadingLight = palette.Heading.ToCssColor();
+            colors.HeadingDark = palette.Heading.ToCssColor();
+            colors.TocBgLight = palette.Surface.ToCssColor();
+            colors.TocBgDark = palette.Surface.ToCssColor();
+            colors.TocBorderLight = palette.Border.ToCssColor();
+            colors.TocBorderDark = palette.Border.ToCssColor();
+            colors.ActiveLinkLight = palette.Accent.ToCssColor();
+            colors.ActiveLinkDark = palette.Accent.ToCssColor();
+        }
+
+        ApplyColorOverrides(colors, options.Theme);
+        ApplyColorOverrides(colors, options.ColorOverrides);
+        return colors;
+    }
+
+    private static void AppendThemeVariableBlock(StringBuilder sb, string selector, string? heading, string? accent, string? tocBackground, string? tocBorder, string? activeLink) {
+        sb.Append(selector).Append(" {");
+        if (!string.IsNullOrWhiteSpace(heading)) sb.Append(" --md-heading: ").Append(heading).Append(';');
+        if (!string.IsNullOrWhiteSpace(accent)) sb.Append(" --md-accent: ").Append(accent).Append(';');
+        if (!string.IsNullOrWhiteSpace(tocBackground)) sb.Append(" --md-toc-bg: ").Append(tocBackground).Append(';');
+        if (!string.IsNullOrWhiteSpace(tocBorder)) sb.Append(" --md-toc-border: ").Append(tocBorder).Append(';');
+        if (!string.IsNullOrWhiteSpace(activeLink)) sb.Append(" --md-active: ").Append(activeLink).Append(';');
+        sb.Append(" }\n");
+    }
+
+    private static void ApplyColorOverrides(ThemeColors target, ThemeColors? overrides) {
+        if (overrides == null) {
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(overrides.AccentLight)) target.AccentLight = NormalizeCssColor(overrides.AccentLight!);
+        if (!string.IsNullOrWhiteSpace(overrides.AccentDark)) target.AccentDark = NormalizeCssColor(overrides.AccentDark!);
+        if (!string.IsNullOrWhiteSpace(overrides.HeadingLight)) target.HeadingLight = NormalizeCssColor(overrides.HeadingLight!);
+        if (!string.IsNullOrWhiteSpace(overrides.HeadingDark)) target.HeadingDark = NormalizeCssColor(overrides.HeadingDark!);
+        if (!string.IsNullOrWhiteSpace(overrides.TocBgLight)) target.TocBgLight = NormalizeCssColor(overrides.TocBgLight!);
+        if (!string.IsNullOrWhiteSpace(overrides.TocBgDark)) target.TocBgDark = NormalizeCssColor(overrides.TocBgDark!);
+        if (!string.IsNullOrWhiteSpace(overrides.TocBorderLight)) target.TocBorderLight = NormalizeCssColor(overrides.TocBorderLight!);
+        if (!string.IsNullOrWhiteSpace(overrides.TocBorderDark)) target.TocBorderDark = NormalizeCssColor(overrides.TocBorderDark!);
+        if (!string.IsNullOrWhiteSpace(overrides.ActiveLinkLight)) target.ActiveLinkLight = NormalizeCssColor(overrides.ActiveLinkLight!);
+        if (!string.IsNullOrWhiteSpace(overrides.ActiveLinkDark)) target.ActiveLinkDark = NormalizeCssColor(overrides.ActiveLinkDark!);
+    }
+
+    private static string NormalizeCssColor(string value) =>
+        MarkdownColor.TryParse(value, out MarkdownColor color) ? color.ToCssColor() : value;
 
     internal static string TryDownloadText(string? url) {
         try {

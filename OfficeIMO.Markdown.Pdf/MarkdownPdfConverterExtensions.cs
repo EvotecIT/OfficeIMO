@@ -17,7 +17,7 @@ public static partial class MarkdownPdfConverterExtensions {
         }
 
         options ??= new MarkdownPdfSaveOptions();
-        MarkdownDoc document = MarkdownReader.Parse(markdown, options.ReaderOptions);
+        MarkdownDoc document = MarkdownReader.Parse(markdown, ResolveReaderOptions(options));
         return document.ToPdfDocument(options);
     }
 
@@ -86,6 +86,38 @@ public static partial class MarkdownPdfConverterExtensions {
     private static void ApplyMarkdownDefaultFont(PdfCore.PdfDocument pdf, MarkdownPdfSaveOptions options) {
         if (PdfCore.PdfStandardFontMapper.TryMapFontFamily(options.FontFamily, out PdfCore.PdfStandardFont font)) {
             pdf.DefaultTextStyle(style => style.Font(PdfCore.PdfStandardFontMapper.GetFontFamily(font)));
+        }
+    }
+
+    private static MarkdownReaderOptions ResolveReaderOptions(MarkdownPdfSaveOptions options) {
+        if (options.ReaderOptions != null) {
+            return options.ReaderOptions;
+        }
+
+        MarkdownReaderOptions readerOptions = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        readerOptions.FencedBlockExtensions.Add(new MarkdownFencedBlockExtension(
+            "OfficeIMO Markdown PDF visual fences",
+            new[] { "chart", "ix-chart", "mermaid", "network", "visnetwork", "ix-network", "dataview", "ix-dataview" },
+            static context => new SemanticFencedBlock(ResolveVisualFenceSemanticKind(context.Language), context.InfoString, context.Content, context.Caption)));
+        return readerOptions;
+    }
+
+    private static string ResolveVisualFenceSemanticKind(string? language) {
+        switch ((language ?? string.Empty).Trim().ToLowerInvariant()) {
+            case "chart":
+            case "ix-chart":
+                return MarkdownSemanticKinds.Chart;
+            case "mermaid":
+                return MarkdownSemanticKinds.Mermaid;
+            case "network":
+            case "visnetwork":
+            case "ix-network":
+                return MarkdownSemanticKinds.Network;
+            case "dataview":
+            case "ix-dataview":
+                return MarkdownSemanticKinds.DataView;
+            default:
+                return MarkdownSemanticKinds.Custom;
         }
     }
 
@@ -194,20 +226,56 @@ public static partial class MarkdownPdfConverterExtensions {
             return explicitTheme;
         }
 
+        MarkdownVisualTheme? sharedTheme = options.ThemeSnapshot;
+        if (sharedTheme != null) {
+            return MarkdownPdfVisualTheme.FromMarkdownTheme(sharedTheme);
+        }
+
         if (options.UseFrontMatterVisualTheme && document.DocumentHeader != null) {
-            string? frontMatterTheme = GetFrontMatterMetadata(document.DocumentHeader, "pdfTheme") ?? GetFrontMatterMetadata(document.DocumentHeader, "pdf-theme");
-            if (frontMatterTheme != null) {
-                if (MarkdownPdfVisualTheme.TryCreate(frontMatterTheme, out MarkdownPdfVisualTheme? theme)) {
+            string? frontMatterPdfTheme = GetFrontMatterMetadata(document.DocumentHeader, "pdfTheme")
+                ?? GetFrontMatterMetadata(document.DocumentHeader, "pdf-theme");
+            if (frontMatterPdfTheme != null) {
+                if (TryResolveSharedOrPdfTheme(frontMatterPdfTheme, sharedFirst: false, out MarkdownPdfVisualTheme? theme)) {
                     return theme!;
                 }
 
-                AddWarning(options, "UnsupportedVisualTheme", frontMatterTheme, "The requested Markdown PDF visual theme is not recognized; the configured fallback visual profile is used.");
+                AddWarning(options, "UnsupportedVisualTheme", frontMatterPdfTheme, "The requested Markdown PDF visual theme is not recognized; the configured fallback visual profile is used.");
+            }
+
+            string? frontMatterTheme = GetFrontMatterMetadata(document.DocumentHeader, "theme")
+                ?? GetFrontMatterMetadata(document.DocumentHeader, "visualTheme")
+                ?? GetFrontMatterMetadata(document.DocumentHeader, "visual-theme");
+            if (frontMatterTheme != null) {
+                if (TryResolveSharedOrPdfTheme(frontMatterTheme, sharedFirst: true, out MarkdownPdfVisualTheme? theme)) {
+                    return theme!;
+                }
+
+                AddWarning(options, "UnsupportedVisualTheme", frontMatterTheme, "The requested Markdown visual theme is not recognized; the configured fallback visual profile is used.");
             }
         }
 
         return options.ApplyWordLikeTheme
             ? MarkdownPdfVisualTheme.WordLike()
             : MarkdownPdfVisualTheme.Plain();
+    }
+
+    private static bool TryResolveSharedOrPdfTheme(string themeName, bool sharedFirst, out MarkdownPdfVisualTheme? theme) {
+        theme = null;
+        if (sharedFirst && MarkdownVisualTheme.TryCreate(themeName, out MarkdownVisualTheme? markdownTheme)) {
+            theme = MarkdownPdfVisualTheme.FromMarkdownTheme(markdownTheme!);
+            return true;
+        }
+
+        if (MarkdownPdfVisualTheme.TryCreate(themeName, out theme)) {
+            return true;
+        }
+
+        if (!sharedFirst && MarkdownVisualTheme.TryCreate(themeName, out MarkdownVisualTheme? fallbackMarkdownTheme)) {
+            theme = MarkdownPdfVisualTheme.FromMarkdownTheme(fallbackMarkdownTheme!);
+            return true;
+        }
+
+        return false;
     }
 
     private static void RenderBlocks(PdfCore.PdfDocument pdf, IEnumerable<IMarkdownBlock> blocks, MarkdownDoc document, MarkdownPdfSaveOptions options, MarkdownPdfVisualTheme visualTheme, string? skipFirstHeadingTitle = null) {
