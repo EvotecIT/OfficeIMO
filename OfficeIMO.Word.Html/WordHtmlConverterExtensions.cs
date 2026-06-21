@@ -1,5 +1,9 @@
+using AngleSharp.Css.Dom;
+using AngleSharp.Css.Parser;
+using AngleSharp.Html.Dom;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Html;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -95,7 +99,7 @@ namespace OfficeIMO.Word.Html {
             if (document == null) throw new System.ArgumentNullException(nameof(document));
             options ??= CreateWordOptionsForSharedDocument(document.ProfileContract.Profile);
             options.ConversionProfile = document.ProfileContract.Profile;
-            return LoadFromHtmlAsync(document.HtmlForConversion, options, cancellationToken);
+            return LoadFromHtmlAsync(PrepareHtmlForSharedWordConversion(document), options, cancellationToken);
         }
 
         internal static HtmlToWordOptions CreateWordOptionsForSharedDocument(HtmlConversionProfile profile) {
@@ -108,6 +112,72 @@ namespace OfficeIMO.Word.Html {
                 default:
                     return HtmlToWordOptions.CreateOfficeIMOProfile();
             }
+        }
+
+        private static string PrepareHtmlForSharedWordConversion(HtmlConversionDocument document) {
+            return document.ProfileContract.Profile == HtmlConversionProfile.HighFidelityPrint
+                ? ExpandActiveMediaStyles(document.HtmlForConversion, HtmlCssMediaContext.Print)
+                : document.HtmlForConversion;
+        }
+
+        private static string ExpandActiveMediaStyles(string html, HtmlCssMediaContext mediaContext) {
+            try {
+                IHtmlDocument parsed = HtmlDocumentParser.ParseDocument(html);
+                bool changed = false;
+                foreach (IHtmlStyleElement styleElement in parsed.QuerySelectorAll("style").OfType<IHtmlStyleElement>()) {
+                    string expanded = ExpandActiveMediaStyleRules(styleElement.TextContent, mediaContext, out bool stylesheetChanged);
+                    if (stylesheetChanged) {
+                        styleElement.TextContent = expanded;
+                        changed = true;
+                    }
+                }
+
+                return changed && parsed.DocumentElement != null
+                    ? parsed.DocumentElement.OuterHtml
+                    : html;
+            } catch {
+                return html;
+            }
+        }
+
+        private static string ExpandActiveMediaStyleRules(string css, HtmlCssMediaContext mediaContext, out bool changed) {
+            changed = false;
+            if (string.IsNullOrWhiteSpace(css)) {
+                return css;
+            }
+
+            try {
+                var parser = new CssParser();
+                var stylesheet = parser.ParseStyleSheet(css);
+                var builder = new StringBuilder();
+                foreach (ICssRule rule in stylesheet.Rules) {
+                    AppendActiveMediaStyleRule(builder, rule, mediaContext, ref changed);
+                }
+
+                return changed ? builder.ToString() : css;
+            } catch {
+                return css;
+            }
+        }
+
+        private static void AppendActiveMediaStyleRule(StringBuilder builder, ICssRule rule, HtmlCssMediaContext mediaContext, ref bool changed) {
+            if (rule is ICssStyleRule styleRule) {
+                builder.AppendLine(styleRule.CssText);
+                return;
+            }
+
+            if (rule is ICssMediaRule mediaRule) {
+                changed = true;
+                if (HtmlComputedStyleEngine.IsApplicableMedia(mediaRule.ConditionText, mediaContext)) {
+                    foreach (ICssRule childRule in mediaRule.Rules) {
+                        AppendActiveMediaStyleRule(builder, childRule, mediaContext, ref changed);
+                    }
+                }
+
+                return;
+            }
+
+            builder.AppendLine(rule.CssText);
         }
 
         /// <summary>

@@ -309,6 +309,10 @@ public partial class Html {
         Assert.DoesNotContain(screen.ResourceManifest.Resources, resource => resource.Source == "file:///secret/print-total.png");
         Assert.Contains(print.ResourceManifest.Resources, resource => resource.Source == "file:///secret/print-total.png" && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.Contains("background-image", print.StyleSummary.PropertyNames);
+
+        using var printWordDocument = WordHtmlConverterExtensions.LoadFromHtml(print);
+        var printRun = printWordDocument.Paragraphs.Single(paragraph => paragraph.Text.Contains("Total", StringComparison.Ordinal)).GetRuns().First();
+        Assert.Equal("123456", printRun.ColorHex);
     }
 
     [Fact]
@@ -393,6 +397,8 @@ public partial class Html {
                     @media all { em.media { text-transform: uppercase; } }
                     @media not screen { em.media { text-transform: lowercase; } }
                     @media not print and (color) { em.media { white-space: pre-wrap; } }
+                    @media projection { em.media { font-style: italic; } }
+                    @media not projection { em.media { font-size: 18px; } }
                     @media screen and (color) { em.media { direction: rtl; } }
                     @media screen and (max-width: 0px) { em.media { text-transform: lowercase; } }
                     @supports (not-a-real-prop: value) { em.media { text-transform: lowercase; } }
@@ -441,6 +447,8 @@ public partial class Html {
         Assert.Equal("uppercase", styles[media].GetValue("text-transform"));
         Assert.Equal("underline", styles[media].GetValue("text-decoration-line"));
         Assert.Equal("pre-wrap", styles[media].GetValue("white-space"));
+        Assert.Equal(string.Empty, styles[media].GetValue("font-style"));
+        Assert.Equal("18px", styles[media].GetValue("font-size"));
         Assert.Equal("rtl", styles[media].GetValue("direction"));
         Assert.Equal(string.Empty, styles[reset].GetValue("color"));
         Assert.Equal(string.Empty, styles[reset].GetValue("border-color"));
@@ -545,6 +553,8 @@ public partial class Html {
                     :root { --inactive-use-hero: url(file:///secret/inactive-var-use.png); }
                     @media print { :root { --print-hero: url(file:///secret/print-custom-property.png); } .print-only { background-image: url(file:///secret/print-only.png); } .print-card { background-image: var(--print-hero); } .inactive-var-use { background-image: var(--inactive-use-hero); } }
                     @media not screen and (max-width: 0px) { .negated-active-feature { background-image: url(file:///secret/negated-active-feature.png); } }
+                    @media projection { .projection-only { background-image: url(file:///secret/projection-only.png); } }
+                    @media not projection { .not-projection { background-image: url(file:///secret/not-projection.png); } }
                     @supports (background-image:url(file:///secret/supports-condition.png)) { .ok { color: red; } }
                     @supports (not-a-real-prop:value) { .supports-inactive { background-image: url(file:///secret/supports-inactive.png); } }
                     .late { color: red; } @import url(file:///secret/late.css);
@@ -636,6 +646,8 @@ public partial class Html {
                 <div class="media-hero"></div>
                 <div class="inactive-var-use"></div>
                 <div class="negated-active-feature"></div>
+                <div class="projection-only"></div>
+                <div class="not-projection"></div>
                 <div class="supports-inactive"></div>
                 <div class="comment-url"></div>
                 <div class="escaped"></div>
@@ -680,6 +692,8 @@ public partial class Html {
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/print-only.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/print-custom-property.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/inactive-var-use.png");
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/projection-only.png");
+        Assert.Contains(manifest.Resources, resource => resource.Source == "file:///secret/not-projection.png" && resource.Kind == HtmlResourceKind.Image && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/inactive-media-style.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/inactive-preload.png");
         Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "file:///secret/inactive-preload-2x.png");

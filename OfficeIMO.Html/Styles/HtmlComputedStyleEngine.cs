@@ -237,7 +237,10 @@ public static class HtmlComputedStyleEngine {
         }
     }
 
-    internal static bool IsApplicableMedia(string mediaText, HtmlCssMediaContext mediaContext) {
+    /// <summary>
+    /// Evaluates whether a CSS media query list applies to the requested OfficeIMO media context.
+    /// </summary>
+    public static bool IsApplicableMedia(string mediaText, HtmlCssMediaContext mediaContext) {
         if (string.IsNullOrWhiteSpace(mediaText)) {
             return true;
         }
@@ -245,8 +248,8 @@ public static class HtmlComputedStyleEngine {
         string activeType = mediaContext == HtmlCssMediaContext.Print ? "print" : "screen";
         foreach (string query in SplitSelectorList(mediaText)) {
             string normalized = query.Trim();
-            if (normalized.StartsWith("not ", StringComparison.OrdinalIgnoreCase)) {
-                if (!IsPositiveMediaQueryApplicable(normalized.Substring(4).Trim(), activeType, mediaContext)) {
+            if (TryConsumeMediaModifier(normalized, "not", out string negatedQuery)) {
+                if (!IsPositiveMediaQueryApplicable(negatedQuery, activeType, mediaContext)) {
                     return true;
                 }
 
@@ -277,10 +280,54 @@ public static class HtmlComputedStyleEngine {
     }
 
     private static bool ContainsExplicitMediaType(string mediaQuery) {
-        return ContainsMediaType(mediaQuery, "all")
-            || ContainsMediaType(mediaQuery, "screen")
-            || ContainsMediaType(mediaQuery, "print")
-            || ContainsMediaType(mediaQuery, "speech");
+        return TryReadExplicitMediaType(mediaQuery, out _);
+    }
+
+    private static bool TryReadExplicitMediaType(string mediaQuery, out string mediaType) {
+        mediaType = string.Empty;
+        string normalized = mediaQuery.TrimStart();
+        if (TryConsumeMediaModifier(normalized, "not", out string withoutNot)) {
+            normalized = withoutNot;
+        } else if (TryConsumeMediaModifier(normalized, "only", out string withoutOnly)) {
+            normalized = withoutOnly;
+        }
+
+        if (normalized.Length == 0 || normalized[0] == '(') {
+            return false;
+        }
+
+        int cursor = 0;
+        while (cursor < normalized.Length && (char.IsLetterOrDigit(normalized[cursor]) || normalized[cursor] == '-' || normalized[cursor] == '_')) {
+            cursor++;
+        }
+
+        if (cursor == 0) {
+            return false;
+        }
+
+        string token = normalized.Substring(0, cursor);
+        if (string.Equals(token, "and", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(token, "or", StringComparison.OrdinalIgnoreCase)) {
+            return false;
+        }
+
+        mediaType = token;
+        return true;
+    }
+
+    private static bool TryConsumeMediaModifier(string mediaQuery, string modifier, out string remaining) {
+        remaining = mediaQuery;
+        if (mediaQuery.Length <= modifier.Length || !mediaQuery.StartsWith(modifier, StringComparison.OrdinalIgnoreCase)) {
+            return false;
+        }
+
+        char separator = mediaQuery[modifier.Length];
+        if (!char.IsWhiteSpace(separator)) {
+            return false;
+        }
+
+        remaining = mediaQuery.Substring(modifier.Length + 1).TrimStart();
+        return true;
     }
 
     private static bool HasMediaFeatureConstraint(string mediaQuery) {
