@@ -19,7 +19,6 @@ internal static class HtmlPictureSourceSupport {
         }
 
         switch (normalized.ToLowerInvariant()) {
-            case "image/apng":
             case "image/bmp":
             case "image/gif":
             case "image/jpeg":

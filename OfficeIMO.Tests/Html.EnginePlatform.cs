@@ -398,6 +398,7 @@ public partial class Html {
                 <main>
                     <picture><source srcset="mailto:ops@example.test"><img src="https://example.test/images/mailto-fallback.png" alt="Mail fallback"></picture>
                     <picture><source type="image/avif" srcset="https://example.test/images/ignored.avif 1x"><img src="https://example.test/images/adapter-fallback.png" alt="Type fallback"></picture>
+                    <picture><source type="image/apng" srcset="https://example.test/images/ignored.apng 1x"><img src="https://example.test/images/apng-fallback.png" alt="APNG fallback"></picture>
                     <img alt="Late candidate" srcset="{{blockedSrcSet}}, https://example.test/images/late-candidate.png 33w">
                     <video><source src="mailto:media@example.test" type="video/mp4"><source src="https://example.test/media/fallback.mp4" type="video/mp4"></video>
                     <div class="invalid-var"></div>
@@ -416,6 +417,8 @@ public partial class Html {
         Assert.Contains(document.ResourceManifest.Resources, resource => resource.Source == "mailto:ops@example.test" && resource.Kind == HtmlResourceKind.Image && resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.DoesNotContain(document.ResourceManifest.Resources, resource => resource.Source == "https://example.test/images/ignored.avif");
         Assert.Contains(document.ResourceManifest.Resources, resource => resource.Source == "https://example.test/images/adapter-fallback.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "src");
+        Assert.DoesNotContain(document.ResourceManifest.Resources, resource => resource.Source == "https://example.test/images/ignored.apng");
+        Assert.Contains(document.ResourceManifest.Resources, resource => resource.Source == "https://example.test/images/apng-fallback.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "src");
         Assert.Contains(document.ResourceManifest.Resources, resource => resource.Source == "https://example.test/images/late-candidate.png" && resource.Kind == HtmlResourceKind.Image && resource.AttributeName == "srcset");
         Assert.Contains(document.ResourceManifest.Resources, resource => resource.Source == "mailto:media@example.test" && resource.Kind == HtmlResourceKind.Media && resource.DiagnosticCode == "MediaResourceRejectedByPolicy");
         Assert.Contains(document.ResourceManifest.Resources, resource => resource.Source == "https://example.test/media/fallback.mp4" && resource.Kind == HtmlResourceKind.Media && resource.AttributeName == "src");
@@ -425,6 +428,8 @@ public partial class Html {
         string markdown = document.ToMarkdown();
         Assert.DoesNotContain("https://example.test/images/ignored.avif", markdown);
         Assert.Contains("https://example.test/images/adapter-fallback.png", markdown);
+        Assert.DoesNotContain("https://example.test/images/ignored.apng", markdown);
+        Assert.Contains("https://example.test/images/apng-fallback.png", markdown);
 
         byte[] pdf = document.SaveAsPdf();
         Assert.NotEmpty(pdf);
