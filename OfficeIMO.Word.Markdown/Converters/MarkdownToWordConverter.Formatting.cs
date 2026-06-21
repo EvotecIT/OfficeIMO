@@ -25,18 +25,28 @@ namespace OfficeIMO.Word.Markdown {
             ApplyAlignment(alignment, paragraph);
         }
 
-        private static Omd.MarkdownVisualTheme ResolveTheme(MarkdownToWordOptions options) =>
-            options.ThemeSnapshot ?? Omd.MarkdownVisualTheme.WordLike();
+        private static Omd.MarkdownVisualTheme? ResolveTheme(MarkdownToWordOptions options) =>
+            options.ThemeSnapshot;
 
         private static void ApplyHeadingTheme(WordParagraph paragraph, MarkdownToWordOptions options) {
-            Omd.MarkdownVisualPalette palette = ResolveTheme(options).PaletteSnapshot;
+            Omd.MarkdownVisualTheme? theme = ResolveTheme(options);
+            if (theme == null) {
+                return;
+            }
+
+            Omd.MarkdownVisualPalette palette = theme.PaletteSnapshot;
             foreach (var run in paragraph.GetRuns()) {
                 run.SetColorHex(palette.Heading.ToRgbHex());
             }
         }
 
         private static void ApplyCodeTheme(WordParagraph paragraph, MarkdownToWordOptions options) {
-            Omd.MarkdownVisualPalette palette = ResolveTheme(options).PaletteSnapshot;
+            Omd.MarkdownVisualTheme? theme = ResolveTheme(options);
+            if (theme == null) {
+                return;
+            }
+
+            Omd.MarkdownVisualPalette palette = theme.PaletteSnapshot;
             if (palette.CodeBackground.A > 0) {
                 paragraph.ShadingFillColorHex = palette.CodeBackground.ToRgbHex();
             }
@@ -50,14 +60,24 @@ namespace OfficeIMO.Word.Markdown {
         }
 
         private static void ApplyBodyTextTheme(WordParagraph paragraph, MarkdownToWordOptions options) {
-            string textHex = ResolveTheme(options).PaletteSnapshot.Text.ToRgbHex();
+            Omd.MarkdownVisualTheme? theme = ResolveTheme(options);
+            if (theme == null) {
+                return;
+            }
+
+            string textHex = theme.PaletteSnapshot.Text.ToRgbHex();
             foreach (var run in paragraph.GetRuns()) {
                 run.SetColorHex(textHex);
             }
         }
 
         private static void ApplyCalloutTitleTheme(WordParagraph paragraph, MarkdownToWordOptions options) {
-            Omd.MarkdownVisualPalette palette = ResolveTheme(options).PaletteSnapshot;
+            Omd.MarkdownVisualTheme? theme = ResolveTheme(options);
+            if (theme == null) {
+                return;
+            }
+
+            Omd.MarkdownVisualPalette palette = theme.PaletteSnapshot;
             paragraph.ShadingFillColorHex = palette.Surface.ToRgbHex();
             paragraph.Borders.LeftStyle = BorderValues.Single;
             paragraph.Borders.LeftColorHex = palette.Accent.ToRgbHex();
@@ -69,7 +89,11 @@ namespace OfficeIMO.Word.Markdown {
         }
 
         private static void ApplyTableTheme(WordTable table, MarkdownToWordOptions options, bool hasHeaderRow) {
-            Omd.MarkdownVisualTheme theme = ResolveTheme(options);
+            Omd.MarkdownVisualTheme? theme = ResolveTheme(options);
+            if (theme == null) {
+                return;
+            }
+
             Omd.MarkdownVisualPalette palette = theme.PaletteSnapshot;
             Omd.MarkdownTableVisualStyle tableStyle = theme.TableSnapshot;
             string borderHex = palette.Border.ToRgbHex();

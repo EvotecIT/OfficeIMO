@@ -94,6 +94,32 @@ public class MarkdownSaveAsPdfVisualTests {
     }
 
     [Fact]
+    public void FromMarkdownTheme_AppliesSharedBackgroundToPdfPageDecoration() {
+        MarkdownVisualTheme sharedTheme = MarkdownVisualTheme.Report()
+            .WithColors(background: "#112233");
+
+        MarkdownPdfVisualTheme pdfTheme = MarkdownPdfVisualTheme.FromMarkdownTheme(sharedTheme);
+
+        Assert.Equal(PdfCore.PdfColor.FromRgb(0x11, 0x22, 0x33), pdfTheme.PageDecoration!.BackgroundColor);
+    }
+
+    [Fact]
+    public void ToPdfDocument_SharedMarkdownTheme_DoesNotOverrideExplicitPdfBackground() {
+        MarkdownVisualTheme sharedTheme = MarkdownVisualTheme.Report()
+            .WithColors(background: "#112233");
+        var options = new MarkdownPdfSaveOptions {
+            Theme = sharedTheme,
+            PdfOptions = new PdfCore.PdfOptions {
+                BackgroundColor = PdfCore.PdfColor.FromRgb(0xaa, 0xbb, 0xcc)
+            }
+        };
+
+        PdfCore.PdfDocument pdf = "# Themed".ToPdfDocument(options);
+
+        Assert.Equal(PdfCore.PdfColor.FromRgb(0xaa, 0xbb, 0xcc), GetPdfOptions(pdf).BackgroundColor);
+    }
+
+    [Fact]
     public void FromMarkdownTheme_HonorsDisabledTableHeaderEmphasis() {
         MarkdownVisualTheme sharedTheme = MarkdownVisualTheme.Report()
             .WithColors(tableHeaderBackground: "#fedcba", tableHeaderText: "#010203")
@@ -290,6 +316,30 @@ _Figure 2. Revenue chart_
     }
 
     [Fact]
+    public void ToPdfDocument_MarkdownChartFence_ReadsHorizontalBarTupleValuesFromX() {
+        var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "bar",
+  "options": { "indexAxis": "y" },
+  "data": {
+    "datasets": [
+      { "label": "Items", "data": [
+        [10, "Backlog"],
+        [14, "Done"]
+      ] }
+    ]
+  }
+}
+""");
+
+        bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
+
+        Assert.True(created, warning);
+        Assert.Equal(new[] { "Backlog", "Done" }, snapshot!.Data.Categories);
+        Assert.Equal(new[] { 10D, 14D }, Assert.Single(snapshot.Data.Series).Values);
+    }
+
+    [Fact]
     public void ToPdfDocument_MarkdownChartFence_WarnsForMixedChartJsDatasetTypes() {
         var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
 {
@@ -400,6 +450,33 @@ _Figure 2. Revenue chart_
         Assert.True(snapshot.Layout.ShowValueAxisLine);
         Assert.False(snapshot.Layout.ShowValueAxisLabels);
         Assert.False(snapshot.Style.ShowGridLines);
+    }
+
+    [Fact]
+    public void ToPdfDocument_MarkdownChartFence_MapsChartJsScaleTitles() {
+        var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "bar",
+  "data": {
+    "labels": ["Q1"],
+    "datasets": [
+      { "label": "Actual", "data": [10] }
+    ]
+  },
+  "options": {
+    "scales": {
+      "x": { "title": { "display": true, "text": "Quarter" } },
+      "y": { "title": { "text": "Revenue" } }
+    }
+  }
+}
+""");
+
+        bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
+
+        Assert.True(created, warning);
+        Assert.Equal("Quarter", snapshot!.Layout.CategoryAxisTitle);
+        Assert.Equal("Revenue", snapshot.Layout.ValueAxisTitle);
     }
 
     [Fact]
@@ -916,6 +993,72 @@ _Figure 2. Revenue chart_
         Assert.True(double.IsNaN(series.Values[1]));
         Assert.Equal(3D, series.Values[2]);
         Assert.True(double.IsNaN(series.Values[3]));
+    }
+
+    [Fact]
+    public void ToPdfDocument_MarkdownLineChartFence_DisablesMarkersForChartJsZeroPointRadius() {
+        var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "line",
+  "options": {
+    "elements": { "point": { "radius": 0 } }
+  },
+  "data": {
+    "labels": ["A", "B"],
+    "datasets": [
+      { "label": "Actual", "data": [1, 3] }
+    ]
+  }
+}
+""");
+
+        bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
+
+        Assert.True(created, warning);
+        Assert.False(snapshot!.Layout.ShowMarkers);
+        Assert.False(Assert.Single(snapshot.Data.Series).ShowMarkers);
+    }
+
+    [Fact]
+    public void ToPdfDocument_MarkdownLineChartFence_WarnsForSteppedOrCurvedLineInterpolation() {
+        var stepped = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "line",
+  "data": {
+    "labels": ["A", "B"],
+    "datasets": [
+      { "label": "Actual", "stepped": true, "data": [1, 3] }
+    ]
+  }
+}
+""");
+
+        bool steppedCreated = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(stepped, CreateVisualOptions(), out OfficeChartSnapshot? steppedSnapshot, out string? steppedWarning);
+
+        Assert.False(steppedCreated);
+        Assert.Null(steppedSnapshot);
+        Assert.Contains("stepped or curved", steppedWarning, StringComparison.Ordinal);
+
+        var curved = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "line",
+  "options": {
+    "elements": { "line": { "tension": 0.35 } }
+  },
+  "data": {
+    "labels": ["A", "B"],
+    "datasets": [
+      { "label": "Actual", "data": [1, 3] }
+    ]
+  }
+}
+""");
+
+        bool curvedCreated = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(curved, CreateVisualOptions(), out OfficeChartSnapshot? curvedSnapshot, out string? curvedWarning);
+
+        Assert.False(curvedCreated);
+        Assert.Null(curvedSnapshot);
+        Assert.Contains("stepped or curved", curvedWarning, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1511,6 +1654,34 @@ _Figure 2. Revenue chart_
     }
 
     [Fact]
+    public void ToPdfDocument_MarkdownCartesianChartFence_ShowsDataLabelsWhenChartJsDataLabelsAreRequested() {
+        var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
+{
+  "type": "bar",
+  "options": {
+    "plugins": {
+      "datalabels": { "display": true }
+    }
+  },
+  "data": {
+    "labels": ["Q1"],
+    "datasets": [
+      { "label": "Actual", "data": [8] }
+    ]
+  }
+}
+""");
+
+        bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
+
+        Assert.True(created, warning);
+        Assert.True(snapshot!.Layout.ShowDataLabels);
+        Assert.True(snapshot.Layout.ShowDataLabelValues);
+        Assert.False(snapshot.Layout.ShowDataLabelPercentages);
+        Assert.False(snapshot.Layout.ShowDataLabelCategoryNames);
+    }
+
+    [Fact]
     public void ToPdfDocument_MarkdownPieChartFence_ShowsDataLabelsWhenChartJsDataLabelsAreRequested() {
         var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
 {
@@ -1670,6 +1841,11 @@ _Figure 3. Flow fallback_
             MarginBottom = 36
         }
     };
+
+    private static PdfCore.PdfOptions GetPdfOptions(PdfCore.PdfDocument document) {
+        PropertyInfo property = typeof(PdfCore.PdfDocument).GetProperty("Options", BindingFlags.NonPublic | BindingFlags.Instance)!;
+        return (PdfCore.PdfOptions)property.GetValue(document)!;
+    }
 
     private static string CreateDataUriPng() {
         string base64 = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 1));

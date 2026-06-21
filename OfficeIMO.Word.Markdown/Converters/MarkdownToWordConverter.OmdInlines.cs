@@ -221,7 +221,7 @@ namespace OfficeIMO.Word.Markdown {
             if (inlines == null) return;
 
             string? defaultFont = ResolveDefaultFontFamily(options);
-            string? defaultTextColorHex = ResolveTheme(options).PaletteSnapshot.Text.ToRgbHex();
+            string? defaultTextColorHex = ResolveTheme(options)?.PaletteSnapshot.Text.ToRgbHex();
             new ParagraphInlineWriter(
                 paragraph,
                 options,
@@ -297,13 +297,14 @@ namespace OfficeIMO.Word.Markdown {
                     if (inline.LabelInlines != null && inline.LabelInlines.Nodes.Count > 0) {
                         var labelRuns = BuildLinkLabelRunsOmd(inline.LabelInlines, _document, _fmt, _defaultFont);
                         if (labelRuns.Count > 0) {
+                            ApplyHyperlinkRunFormattingOmd(labelRuns, _options);
                             WordHyperLink.AddHyperLink(_paragraph, labelRuns, uri);
                             return;
                         }
                     }
 
                     var hyperlink = _paragraph.AddHyperLink(inline.Text, uri);
-                    ApplyHyperlinkFormattingOmd(hyperlink, _fmt, _defaultFont);
+                    ApplyHyperlinkFormattingOmd(hyperlink, _fmt, _defaultFont, _options);
                 } catch (UriFormatException ex) {
                     _options.OnWarning?.Invoke($"Invalid URI '{inline.Url}' - emitting as text. {ex.Message}");
                     if (inline.LabelInlines != null && inline.LabelInlines.Nodes.Count > 0) {
@@ -325,7 +326,7 @@ namespace OfficeIMO.Word.Markdown {
 
                     var uri = new Uri(linkUrl, UriKind.RelativeOrAbsolute);
                     var hyperlink = _paragraph.AddHyperLink(label, uri);
-                    ApplyHyperlinkFormattingOmd(hyperlink, _fmt, _defaultFont);
+                    ApplyHyperlinkFormattingOmd(hyperlink, _fmt, _defaultFont, _options);
                 } catch (UriFormatException ex) {
                     _options.OnWarning?.Invoke($"Invalid URI '{linkUrl}' - emitting alt text. {ex.Message}");
                     AddRun(_paragraph, label, _fmt, _defaultFont, _defaultTextColorHex);
@@ -417,7 +418,7 @@ namespace OfficeIMO.Word.Markdown {
             }
         }
 
-        private static void ApplyHyperlinkFormattingOmd(WordParagraph hyperlink, InlineFormatState fmt, string? defaultFont) {
+        private static void ApplyHyperlinkFormattingOmd(WordParagraph hyperlink, InlineFormatState fmt, string? defaultFont, MarkdownToWordOptions options) {
             if (fmt.Bold) hyperlink.SetBold();
             if (fmt.Italic) hyperlink.SetItalic();
             if (fmt.Underline.HasValue && fmt.Underline.Value != UnderlineValues.None) hyperlink.SetUnderline(fmt.Underline.Value);
@@ -425,6 +426,19 @@ namespace OfficeIMO.Word.Markdown {
             if (fmt.Highlight.HasValue && fmt.Highlight.Value != HighlightColorValues.None) hyperlink.SetHighlight(fmt.Highlight.Value);
             if (fmt.VerticalTextAlignment.HasValue) hyperlink.SetVerticalTextAlignment(fmt.VerticalTextAlignment.Value);
             if (!string.IsNullOrEmpty(defaultFont)) hyperlink.SetFontFamily(defaultFont!);
+            string? accentHex = ResolveTheme(options)?.PaletteSnapshot.Accent.ToRgbHex();
+            if (!string.IsNullOrEmpty(accentHex)) hyperlink.SetColorHex(accentHex!);
+        }
+
+        private static void ApplyHyperlinkRunFormattingOmd(IEnumerable<WordParagraph> runs, MarkdownToWordOptions options) {
+            string? accentHex = ResolveTheme(options)?.PaletteSnapshot.Accent.ToRgbHex();
+            if (string.IsNullOrEmpty(accentHex)) {
+                return;
+            }
+
+            foreach (WordParagraph run in runs) {
+                run.SetColorHex(accentHex!);
+            }
         }
     }
 }

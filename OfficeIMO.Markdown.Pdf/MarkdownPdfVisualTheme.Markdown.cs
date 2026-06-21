@@ -41,8 +41,10 @@ public sealed partial class MarkdownPdfVisualTheme {
         PdfCore.PdfColor muted = ToPdfColorOrNull(palette.MutedText) ?? pdfTheme.DocumentHeaderMetadataColorSnapshot;
         PdfCore.PdfColor? surface = ToPdfColorOrNull(palette.Surface);
         PdfCore.PdfColor? border = ToPdfColorOrNull(palette.Border);
+        PdfCore.PdfColor? background = ToPdfColorOrNull(palette.Background);
 
         ApplySharedDocumentTheme(pdfTheme, heading, text);
+        ApplySharedPageBackground(pdfTheme, background);
         pdfTheme.DocumentHeaderTitleColor = heading;
         pdfTheme.DocumentHeaderSubtitleColor = accent;
         pdfTheme.DocumentHeaderMetadataColor = muted;
@@ -94,6 +96,16 @@ public sealed partial class MarkdownPdfVisualTheme {
         }
 
         pdfTheme.FigureStyle = figureStyle;
+    }
+
+    private static void ApplySharedPageBackground(MarkdownPdfVisualTheme pdfTheme, PdfCore.PdfColor? background) {
+        if (!background.HasValue) {
+            return;
+        }
+
+        MarkdownPdfPageDecoration decoration = pdfTheme.PageDecoration ?? new MarkdownPdfPageDecoration();
+        decoration.BackgroundColor = background.Value;
+        pdfTheme.PageDecoration = decoration;
     }
 
     private static void ApplySharedDocumentTheme(MarkdownPdfVisualTheme pdfTheme, PdfCore.PdfColor heading, PdfCore.PdfColor text) {

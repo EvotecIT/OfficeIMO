@@ -73,6 +73,22 @@ Narrative body text.
         }
 
         [Fact]
+        public void MarkdownToWord_DoesNotApplySharedVisualThemeWhenThemeIsOmitted() {
+            string md = """
+# Heading
+
+Narrative body text.
+""";
+
+            using var doc = md.LoadFromMarkdown(new MarkdownToWordOptions());
+
+            var heading = doc.Paragraphs.First(p => p.Text == "Heading");
+            Assert.DoesNotContain(heading.GetRuns(), run => !string.IsNullOrWhiteSpace(run.ColorHex));
+            var body = doc.Paragraphs.First(p => p.Text == "Narrative body text.");
+            Assert.DoesNotContain(body.GetRuns(), run => !string.IsNullOrWhiteSpace(run.ColorHex));
+        }
+
+        [Fact]
         public void MarkdownToWord_SharedVisualTheme_AllowsBorderlessTables() {
             MarkdownVisualTheme theme = MarkdownVisualTheme.Report()
                 .WithTable(table => table.BorderWidth = 0);
