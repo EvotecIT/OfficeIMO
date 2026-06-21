@@ -459,6 +459,10 @@ public static class HtmlComputedStyleEngine {
     }
 
     private static bool IsSupportedDeclarationValue(string propertyName, string value) {
+        if (propertyName.StartsWith("--", StringComparison.Ordinal) && !string.IsNullOrWhiteSpace(value)) {
+            return true;
+        }
+
         if (!SupportedProperties.Contains(propertyName) || string.IsNullOrWhiteSpace(value)) {
             return false;
         }

@@ -10,7 +10,7 @@ namespace OfficeIMO.Html;
 /// </summary>
 public static class HtmlNormalizer {
     private const int MaxSrcDocDepth = 8;
-    private static readonly Regex CssUrlExpression = new Regex("url\\(\\s*(?:\"(?<url>[^\"]*)\"|'(?<url>[^']*)'|(?<url>[^)]+))\\s*\\)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+    private static readonly Regex CssUrlExpression = new Regex("(?<name>(?:[uU]|\\\\0{0,4}(?:75|55)\\s?|\\\\[uU])(?:[rR]|\\\\0{0,4}(?:72|52)\\s?|\\\\[rR])(?:[lL]|\\\\0{0,4}(?:6[cC]|4[cC])\\s?|\\\\[lL]))\\(\\s*(?:\"(?<url>[^\"]*)\"|'(?<url>[^']*)'|(?<url>[^)]+))\\s*\\)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
     private static readonly HashSet<string> BooleanAttributes = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
         "allowfullscreen", "async", "autofocus", "autoplay", "checked", "controls", "default", "defer", "disabled",
         "formnovalidate", "hidden", "loop", "multiple", "muted", "nomodule", "novalidate", "open", "readonly",
@@ -107,7 +107,7 @@ public static class HtmlNormalizer {
         builder.Append('>');
         if (!VoidElements.Contains(name)) {
             if (name == "style" && options.PreserveStyleElements) {
-                string styleText = NormalizeCssUrls(element.TextContent, options.BaseUri, options.UrlPolicy);
+                string styleText = NormalizeCssUrls(element.TextContent, options.BaseUri, GetResourceUrlPolicy(options.UrlPolicy));
                 if (styleText.Length > 0) {
                     builder.Append(EscapeRawTextElementContent(styleText, "style"));
                 }
@@ -158,12 +158,13 @@ public static class HtmlNormalizer {
         }
 
         if (SrcSetAttributes.Contains(name)) {
-            return HtmlImageSourceResolver.ResolveNormalizedSrcSet(value, options.BaseUri, options.UrlPolicy);
+            return HtmlImageSourceResolver.ResolveNormalizedSrcSet(value, options.BaseUri, GetResourceUrlPolicy(options.UrlPolicy));
         }
 
         if (IsUrlAttribute(element, name)) {
+            HtmlUrlPolicy attributePolicy = GetAttributeUrlPolicy(element, name, options.UrlPolicy);
             if (string.IsNullOrWhiteSpace(value) && ShouldPreserveEmptyUrlAttribute(element, name, value)) {
-                return options.BaseUri?.AbsoluteUri ?? string.Empty;
+                return HtmlUrlPolicyEvaluator.ResolveUrl(options.BaseUri?.AbsoluteUri, null, attributePolicy);
             }
 
             Uri? baseUri = string.Equals(element.TagName, "base", StringComparison.OrdinalIgnoreCase)
@@ -171,11 +172,11 @@ public static class HtmlNormalizer {
                 && options.BaseElementBaseUri != null
                     ? options.BaseElementBaseUri
                     : options.BaseUri;
-            return HtmlUrlPolicyEvaluator.ResolveUrl(value, baseUri, options.UrlPolicy);
+            return HtmlUrlPolicyEvaluator.ResolveUrl(value, baseUri, attributePolicy);
         }
 
         if (string.Equals(name, "style", StringComparison.OrdinalIgnoreCase)) {
-            return NormalizeCssUrls(value, options.BaseUri, options.UrlPolicy).Trim();
+            return NormalizeCssUrls(value, options.BaseUri, GetResourceUrlPolicy(options.UrlPolicy)).Trim();
         }
 
         if (string.Equals(name, "class", StringComparison.OrdinalIgnoreCase)) {
@@ -261,6 +262,39 @@ public static class HtmlNormalizer {
             || (string.Equals(name, "formaction", StringComparison.OrdinalIgnoreCase)
                 && (string.Equals(tagName, "button", StringComparison.OrdinalIgnoreCase)
                     || string.Equals(tagName, "input", StringComparison.OrdinalIgnoreCase)));
+    }
+
+    private static HtmlUrlPolicy GetAttributeUrlPolicy(IElement element, string name, HtmlUrlPolicy policy) {
+        return IsHyperlinkUrlAttribute(element, name)
+            ? policy
+            : GetResourceUrlPolicy(policy);
+    }
+
+    private static HtmlUrlPolicy GetResourceUrlPolicy(HtmlUrlPolicy policy) {
+        HtmlUrlPolicy resourcePolicy = policy.Clone();
+        resourcePolicy.AllowMailtoUrls = false;
+        return resourcePolicy;
+    }
+
+    private static bool IsHyperlinkUrlAttribute(IElement element, string name) {
+        string tagName = element.TagName.ToLowerInvariant();
+        if (string.Equals(name, "href", StringComparison.OrdinalIgnoreCase)) {
+            return string.Equals(tagName, "a", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(tagName, "area", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(tagName, "base", StringComparison.OrdinalIgnoreCase);
+        }
+
+        if (string.Equals(name, "cite", StringComparison.OrdinalIgnoreCase)) {
+            return true;
+        }
+
+        if (string.Equals(name, "action", StringComparison.OrdinalIgnoreCase)) {
+            return string.Equals(tagName, "form", StringComparison.OrdinalIgnoreCase);
+        }
+
+        return string.Equals(name, "formaction", StringComparison.OrdinalIgnoreCase)
+            && (string.Equals(tagName, "button", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(tagName, "input", StringComparison.OrdinalIgnoreCase));
     }
 
     private static string CollapseWhitespaceRuns(string text) {
@@ -456,12 +490,13 @@ public static class HtmlNormalizer {
     }
 
     private static bool IsCssFunctionNameAt(string css, int index, string functionName) {
-        if (!StartsWith(css, index, functionName)) {
+        int open = css.IndexOf('(', index);
+        if (open <= index) {
             return false;
         }
 
-        int afterName = index + functionName.Length;
-        if (afterName >= css.Length || css[afterName] != '(') {
+        string rawName = css.Substring(index, open - index).Trim();
+        if (!string.Equals(DecodeCssEscapes(rawName), functionName, StringComparison.OrdinalIgnoreCase)) {
             return false;
         }
 

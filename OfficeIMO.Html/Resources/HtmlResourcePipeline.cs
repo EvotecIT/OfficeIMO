@@ -11,7 +11,7 @@ public static class HtmlResourcePipeline {
     private const int MaxSrcDocDepth = 8;
     private const int MaxCustomPropertyResolutionDepth = 8;
     private const string ResourceSelector = "image, meta[http-equiv], [src], [srcset], [href], [xlink\\:href], [data], [data-src], [data-srcset], [poster], [data-poster], [action], [formaction], [background], [srcdoc], [imagesrcset]";
-    private static readonly Regex CssUrlExpression = new Regex("url\\(\\s*(?:\"(?<url>[^\"]+)\"|'(?<url>[^']+)'|(?<url>[^)]+))\\s*\\)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+    private static readonly Regex CssUrlExpression = new Regex("(?<name>(?:[uU]|\\\\0{0,4}(?:75|55)\\s?|\\\\[uU])(?:[rR]|\\\\0{0,4}(?:72|52)\\s?|\\\\[rR])(?:[lL]|\\\\0{0,4}(?:6[cC]|4[cC])\\s?|\\\\[lL]))\\(\\s*(?:\"(?<url>[^\"]+)\"|'(?<url>[^']+)'|(?<url>[^)]+))\\s*\\)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
     private static readonly Regex CssVarExpression = new Regex("var\\(\\s*(?<name>--[A-Za-z0-9_-]+)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
     private static readonly Regex CssCustomPropertyDeclarationExpression = new Regex("(?<name>--[A-Za-z0-9_-]+)\\s*:", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
     private static readonly Regex MediaLengthFeatureExpression = new Regex("\\(\\s*(?<name>max-width|max-height|width|height)\\s*:\\s*(?<value>[+-]?(?:\\d+\\.?\\d*|\\.\\d+))\\s*(?<unit>px|em|rem|vw|vh|vmin|vmax|cm|mm|in|pt|pc)?\\s*\\)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
@@ -180,7 +180,7 @@ public static class HtmlResourcePipeline {
             }
 
             if (string.Equals(sibling.TagName, "source", StringComparison.OrdinalIgnoreCase)
-                && (sibling.HasAttribute("srcset") || sibling.HasAttribute("data-srcset"))
+                && sibling.HasAttribute("srcset")
                 && IsApplicableMedia(sibling.GetAttribute("media") ?? string.Empty, options.MediaContext)
                 && IsSupportedPictureSourceType(sibling.GetAttribute("type"))) {
                 return true;
@@ -195,6 +195,7 @@ public static class HtmlResourcePipeline {
         switch (parentName) {
             case "picture":
                 if (IsFirstApplicablePictureSource(element, options)
+                    && element.HasAttribute("srcset")
                     && IsApplicableMedia(element.GetAttribute("media") ?? string.Empty, options.MediaContext)
                     && IsSupportedPictureSourceType(element.GetAttribute("type"))) {
                     AddSrcSet(manifest, HtmlResourceKind.Image, element, "srcset", baseUri, options);
@@ -228,7 +229,7 @@ public static class HtmlResourcePipeline {
                 continue;
             }
 
-            if ((sibling.HasAttribute("srcset") || sibling.HasAttribute("data-srcset"))
+            if (sibling.HasAttribute("srcset")
                 && IsApplicableMedia(sibling.GetAttribute("media") ?? string.Empty, options.MediaContext)
                 && IsSupportedPictureSourceType(sibling.GetAttribute("type"))) {
                 return false;
@@ -514,7 +515,6 @@ public static class HtmlResourcePipeline {
         IElement? inlineUseElement = string.Equals(attributeName, "style", StringComparison.OrdinalIgnoreCase)
             ? element
             : null;
-        List<SourceRange> resolvedVarFallbackRanges = GetResolvedVarFallbackRanges(css, customPropertyDefinitions, document, inlineUseElement, inactiveMediaRanges);
         var importRanges = new List<SourceRange>();
         if (scanImports) {
             foreach (CssImportReference reference in ExtractCssImports(css)) {
@@ -538,7 +538,7 @@ public static class HtmlResourcePipeline {
             if (!string.IsNullOrWhiteSpace(source)
                 && IsCssFunctionNameAt(css, match.Index, "url")
                 && !IsImportUrl(match.Index, importRanges)
-                && !IsImportUrl(match.Index, resolvedVarFallbackRanges)
+                && !IsResolvedVarFallbackUrl(css, match.Index, customPropertyDefinitions, inlineSourceOrders, document, inlineUseElement, inactiveMediaRanges, options, attributeName)
                 && !IsInRanges(match.Index, inactiveMediaRanges)
                 && !IsImportAtRuleUrl(css, match.Index)
                 && !IsAtRulePreludeUrl(css, match.Index)
@@ -752,9 +752,10 @@ public static class HtmlResourcePipeline {
             string mediaText = css.Substring(preludeStart, open - preludeStart).Trim();
             if (!IsApplicableMedia(mediaText, mediaContext)) {
                 ranges.Add(new SourceRange(open + 1, close));
+                index = close + 1;
+            } else {
+                index = open + 1;
             }
-
-            index = close + 1;
         }
 
         return ranges;
@@ -788,9 +789,10 @@ public static class HtmlResourcePipeline {
             string conditionText = css.Substring(preludeStart, open - preludeStart).Trim();
             if (!HtmlComputedStyleEngine.IsApplicableSupports(conditionText)) {
                 ranges.Add(new SourceRange(open + 1, close));
+                index = close + 1;
+            } else {
+                index = open + 1;
             }
-
-            index = close + 1;
         }
 
         return ranges;
@@ -1253,15 +1255,18 @@ public static class HtmlResourcePipeline {
         }
     }
 
-    private static List<SourceRange> GetResolvedVarFallbackRanges(
+    private static bool IsResolvedVarFallbackUrl(
         string css,
+        int urlIndex,
         IReadOnlyDictionary<string, List<CssCustomPropertyDefinition>> customPropertyDefinitions,
+        IReadOnlyDictionary<IElement, int> inlineSourceOrders,
         IHtmlDocument? document,
         IElement? useElement,
-        IReadOnlyList<SourceRange> inactiveRanges) {
-        var ranges = new List<SourceRange>();
+        IReadOnlyList<SourceRange> inactiveRanges,
+        HtmlResourcePipelineOptions options,
+        string attributeName) {
         if (customPropertyDefinitions.Count == 0) {
-            return ranges;
+            return false;
         }
 
         foreach (Match match in CssVarExpression.Matches(css)) {
@@ -1283,18 +1288,38 @@ public static class HtmlResourcePipeline {
                 continue;
             }
 
-            string useSelector = GetDeclarationSelector(css, match.Index);
-            if (SelectCustomPropertyDeclaration(sources, useSelector, document, useElement) < 0) {
+            int comma = FindTopLevelComma(css, open + 1, close);
+            if (comma < 0 || urlIndex <= comma || urlIndex >= close) {
                 continue;
             }
 
-            int comma = FindTopLevelComma(css, open + 1, close);
-            if (comma >= 0) {
-                ranges.Add(new SourceRange(comma + 1, close));
+            string useSelector = GetDeclarationSelector(css, match.Index);
+            if (document != null && useElement == null && !string.Equals(attributeName, "style", StringComparison.OrdinalIgnoreCase)) {
+                IElement[] matchedElements = GetElementsMatchingSelectorList(document, useSelector).ToArray();
+                if (matchedElements.Length > 0) {
+                    return matchedElements.All(matchedElement => HasResolvedCustomProperty(propertyName, customPropertyDefinitions, inlineSourceOrders, document, matchedElement, options));
+                }
             }
+
+            return SelectCustomPropertyDeclaration(sources, useSelector, document, useElement) >= 0;
         }
 
-        return ranges;
+        return false;
+    }
+
+    private static bool HasResolvedCustomProperty(
+        string propertyName,
+        IReadOnlyDictionary<string, List<CssCustomPropertyDefinition>> customPropertyDefinitions,
+        IReadOnlyDictionary<IElement, int> inlineSourceOrders,
+        IHtmlDocument document,
+        IElement useElement,
+        HtmlResourcePipelineOptions options) {
+        Dictionary<string, List<CssCustomPropertyDefinition>> inlineDefinitions = ExtractInlineCustomPropertyDefinitions(useElement, inlineSourceOrders, options.MediaContext, includeSelf: true);
+        IReadOnlyDictionary<string, List<CssCustomPropertyDefinition>> mergedDefinitions = inlineDefinitions.Count == 0
+            ? customPropertyDefinitions
+            : MergeCustomPropertyDefinitions(customPropertyDefinitions, inlineDefinitions);
+        return mergedDefinitions.TryGetValue(propertyName, out List<CssCustomPropertyDefinition>? sources)
+            && SelectCustomPropertyDeclaration(sources, string.Empty, document, useElement) >= 0;
     }
 
     private static int FindDeclarationValueEnd(string css, int start) {
@@ -1789,12 +1814,13 @@ public static class HtmlResourcePipeline {
     }
 
     private static bool IsCssFunctionNameAt(string css, int index, string functionName) {
-        if (!StartsWith(css, index, functionName)) {
+        int open = css.IndexOf('(', index);
+        if (open <= index) {
             return false;
         }
 
-        int afterName = index + functionName.Length;
-        if (afterName >= css.Length || css[afterName] != '(') {
+        string rawName = css.Substring(index, open - index).Trim();
+        if (!string.Equals(DecodeCssEscapes(rawName), functionName, StringComparison.OrdinalIgnoreCase)) {
             return false;
         }
 
