@@ -1,3 +1,4 @@
+using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Markdown.Html;
 using OfficeIMO.Markdown.Pdf;
@@ -344,6 +345,41 @@ public sealed class HtmlPdfTests {
         Assert.Equal(HtmlPdfProfile.Document, trustedDocument.Profile);
         Assert.NotNull(trustedDocument.WordHtmlOptions);
         Assert.NotNull(trustedDocument.WordPdfOptions);
+    }
+
+    [Fact]
+    public void HtmlConversionDocument_SaveAsPdf_UsesSharedDocumentProfile() {
+        HtmlConversionDocument conversion = HtmlConversionDocumentBuilder.Build(
+            "<main><h1>Document profile</h1><p>Shared conversion document.</p></main>",
+            new HtmlConversionDocumentOptions {
+                Profile = HtmlConversionProfile.Document
+            });
+        var options = HtmlPdfSaveOptions.CreateSemanticProfile();
+
+        byte[] pdf = conversion.SaveAsPdf(options);
+
+        Assert.NotEmpty(pdf);
+        Assert.Equal(HtmlPdfProfile.Document, options.Profile);
+        Assert.NotNull(options.WordHtmlOptions);
+        Assert.NotNull(options.WordPdfOptions);
+        Assert.Equal(ImageProcessingMode.Embed, options.WordHtmlOptions.ImageProcessing);
+        Assert.True(options.WordHtmlOptions.AllowDocumentStylesheetLinks);
+
+        HtmlConversionDocument highFidelity = HtmlConversionDocumentBuilder.Build(
+            "<main><h1>High-fidelity profile</h1><p>Shared conversion document.</p></main>",
+            new HtmlConversionDocumentOptions {
+                Profile = HtmlConversionProfile.HighFidelityPrint
+            });
+        var highFidelityOptions = HtmlPdfSaveOptions.CreateSemanticProfile();
+
+        byte[] highFidelityPdf = highFidelity.SaveAsPdf(highFidelityOptions);
+
+        Assert.NotEmpty(highFidelityPdf);
+        Assert.Equal(HtmlPdfProfile.Document, highFidelityOptions.Profile);
+        Assert.NotNull(highFidelityOptions.WordHtmlOptions);
+        Assert.NotNull(highFidelityOptions.WordPdfOptions);
+        Assert.Equal(ImageProcessingMode.Embed, highFidelityOptions.WordHtmlOptions.ImageProcessing);
+        Assert.True(highFidelityOptions.WordHtmlOptions.AllowDocumentStylesheetLinks);
     }
 
     [Fact]

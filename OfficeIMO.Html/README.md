@@ -69,6 +69,26 @@ var scenario = new HtmlCapabilityGalleryScenario(
 
 `HtmlDiagnosticReport` and the capability-gallery contracts provide a common shape for HTML converters, PDF bridges, readers, tests, and future documentation generators. Format-specific packages can keep their existing compatibility APIs while also publishing shared diagnostics and artifact metadata for market-facing proof galleries.
 
+## Conversion Document And Normalized HTML
+
+```csharp
+var conversion = HtmlConversionDocumentBuilder.Build(html, new HtmlConversionDocumentOptions {
+    Profile = HtmlConversionProfile.Document,
+    BaseUri = new Uri("https://example.com/reports/"),
+    UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile()
+});
+
+string normalized = conversion.NormalizedHtml;
+var resources = conversion.ResourcePlan.GetSummary(HtmlResourceKind.Image);
+var styles = conversion.StyleSummary;
+```
+
+`HtmlConversionDocument` is the shared conversion contract for OfficeIMO HTML workflows. It keeps the original source HTML together with the logical document model, computed-style summary, resource manifest, resource dependency plan, normalized HTML, and profile contract.
+
+Target packages can accept this shared document while keeping target-specific rendering in their owning packages. For example, `OfficeIMO.Word.Html` can load it into `WordDocument`, `OfficeIMO.Markdown.Html` can render Markdown from it, and `OfficeIMO.Html.Pdf` can choose the matching bridge profile.
+
+Normalized HTML output is policy-aware: URL-bearing attributes are resolved against the configured base URI, disallowed URLs are removed, boolean attributes are normalized, event-handler attributes are stripped by default, and non-document executable elements are skipped. It is intended for clean review, gallery proof, and downstream adapter input selection, not for pretending OfficeIMO is a browser layout engine.
+
 ## Image Sources
 
 ```csharp

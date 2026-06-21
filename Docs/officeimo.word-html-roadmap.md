@@ -18,6 +18,11 @@ The library should preserve the content people expect from real documents, expos
 
 ## Recently Fixed Issues
 
+- The shared `OfficeIMO.Html` layer now exposes `HtmlConversionDocumentBuilder`, giving adapters one canonical document contract that combines the source HTML, profile contract, logical model, computed-style summary, resource manifest, resource dependency plan, and normalized HTML output.
+- `OfficeIMO.Word.Html`, `OfficeIMO.Markdown.Html`, and `OfficeIMO.Html.Pdf` now accept the shared conversion document through thin adapter overloads while keeping target-specific rendering in the owning packages.
+- Normalized HTML output now provides a policy-aware review/export lane that resolves allowed URLs against the base URI, removes disallowed URL targets, normalizes boolean attributes, strips event-handler attributes by default, and skips executable non-document elements.
+- Resource manifests can now be grouped into adapter-facing dependency plans with allowed/blocked resources and per-kind summaries for reports, galleries, and target policy decisions.
+- The computed-style engine now emits a compact style summary so reports and profile contracts can reason about discovered properties, font families, colors, and hidden elements without reparsing raw style dictionaries.
 - HTML table import now computes grid width with existing row and column spans before allocating the Word table. This fixes valid tables where a `rowspan` reserves a column and later rows add more cells.
 - CSS color parsing now accepts modern `rgb()` syntax with space-separated channels, percentage channels, and slash alpha notation. Alpha is ignored because Word run color is opaque.
 - HTML import now maps `break-before`, `break-after`, and legacy `page-break-before` / `page-break-after` CSS values to Word page breaks, including container-level `break-after` without duplicating breaks on every child paragraph.
@@ -101,6 +106,8 @@ The library should preserve the content people expect from real documents, expos
 
 ## Capability Gaps To Close
 
+- Canonical IR depth: continue enriching `HtmlConversionDocument` beyond the current logical model so target adapters can consume richer block, run, resource, style, accessibility, and page-intent facts without re-parsing target-specific HTML details.
+- Normalized HTML profiles: add documented profile presets for safe review HTML, email-safe HTML, document-round-trip HTML, and adapter-preferred HTML.
 - CSS cascade quality: continue improving selector specificity, inherited computed styles, shorthand expansion, `!important`, style precedence, and broader value-level diagnostics for unsupported or degraded declarations.
 - CSS resource robustness: continue aligning linked stylesheets with the broader resource pipeline through optional prefetching and broader non-image resource budget coverage beyond CSS.
 - Layout and page controls: cover remaining margin and flow placement cases around constrained containers.

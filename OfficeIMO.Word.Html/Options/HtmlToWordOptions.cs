@@ -14,7 +14,8 @@ namespace OfficeIMO.Word.Html {
         public static HtmlToWordOptions CreateOfficeIMOProfile() {
             var options = new HtmlToWordOptions {
                 ImageProcessing = ImageProcessingMode.Embed,
-                MaxTableCells = null
+                MaxTableCells = null,
+                ConversionProfile = HtmlConversionProfile.Document
             };
             options.AllowedImageUriSchemes.Add(Uri.UriSchemeFile);
             return options;
@@ -42,7 +43,8 @@ namespace OfficeIMO.Word.Html {
                 MaxTotalCssBytes = 512L * 1024L,
                 MaxTableCells = 50000,
                 EnableAccessibilityDiagnostics = true,
-                UnsupportedCssHandling = HtmlUnsupportedCssHandling.Warn
+                UnsupportedCssHandling = HtmlUnsupportedCssHandling.Warn,
+                ConversionProfile = HtmlConversionProfile.Semantic
             };
 
             options.AllowedImageUriSchemes.Clear();
@@ -64,7 +66,8 @@ namespace OfficeIMO.Word.Html {
         public static HtmlToWordOptions CreateTrustedDocumentProfile() {
             var options = new HtmlToWordOptions {
                 ImageProcessing = ImageProcessingMode.Embed,
-                AllowDocumentStylesheetLinks = true
+                AllowDocumentStylesheetLinks = true,
+                ConversionProfile = HtmlConversionProfile.Document
             };
             options.AllowedImageUriSchemes.Add(Uri.UriSchemeFile);
             return options;
@@ -135,6 +138,12 @@ namespace OfficeIMO.Word.Html {
         /// Shared URL policy applied before imported HTML anchors are materialized as Word hyperlinks.
         /// </summary>
         public HtmlUrlPolicy HyperlinkUrlPolicy { get; set; } = HtmlUrlPolicy.CreateHyperlinkProfile();
+
+        /// <summary>
+        /// Shared OfficeIMO HTML conversion profile represented by this options instance.
+        /// The value is surfaced in gallery manifests, diagnostics, and downstream tooling.
+        /// </summary>
+        public HtmlConversionProfile ConversionProfile { get; set; } = HtmlConversionProfile.Semantic;
 
         /// <summary>
         /// Controls how images are processed during conversion.
@@ -380,6 +389,7 @@ namespace OfficeIMO.Word.Html {
                 NoteReferenceType = NoteReferenceType,
                 LinkNoteUrls = LinkNoteUrls,
                 HyperlinkUrlPolicy = HyperlinkUrlPolicy?.Clone() ?? HtmlUrlPolicy.CreateHyperlinkProfile(),
+                ConversionProfile = ConversionProfile,
                 ImageProcessing = ImageProcessing,
                 HttpClient = HttpClient,
                 ResourceTimeout = ResourceTimeout,
