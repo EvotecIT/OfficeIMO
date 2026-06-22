@@ -5,6 +5,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using Xunit;
+using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 
 namespace OfficeIMO.Tests {
     public partial class Excel {
@@ -24,6 +25,21 @@ namespace OfficeIMO.Tests {
             destination.Position = 0;
             using var loaded = ExcelDocument.Load(destination, readOnly: true);
             Assert.Equal("$A$1", loaded.GetNamedRange("Anchor", loaded["Data"]));
+        }
+
+        [Fact]
+        public void Test_DelimitedImport_DetectsDelimiterIgnoringQuotedFields() {
+            using var document = ExcelDocument.Create(new MemoryStream(), autoSave: false);
+            ExcelDelimitedImportResult result = document.ImportDelimitedText("\"Name, with comma\";Value\r\nAlpha;42", new ExcelDelimitedImportOptions {
+                SheetName = "Import"
+            });
+
+            Assert.Equal(';', result.Delimiter);
+            ExcelSheet sheet = document["Import"];
+            Assert.True(sheet.TryGetCellText(2, 1, out string? name));
+            Assert.Equal("Alpha", name);
+            Assert.True(sheet.TryGetCellText(2, 2, out string? value));
+            Assert.Equal("42", value);
         }
 
         [Fact]
@@ -190,6 +206,37 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.Contains(diff.Differences, difference => difference.Category == "Comment" && difference.RightValue?.Contains("Blank cell note", StringComparison.Ordinal) == true);
+        }
+
+        [Fact]
+        public void Test_ImageMoveTo_RejectsAbsoluteAnchors() {
+            string filePath = Path.Combine(_directoryWithFiles, "ImageMove.AbsoluteAnchor.xlsx");
+            byte[] image = File.ReadAllBytes(Path.Combine(_directoryWithImages, "EvotecLogo.png"));
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Images");
+                sheet.AddImage(1, 1, image, "image/png", widthPixels: 16, heightPixels: 16, name: "Absolute image");
+                document.Save();
+            }
+
+            using (SpreadsheetDocument package = SpreadsheetDocument.Open(filePath, true)) {
+                WorksheetPart worksheetPart = package.WorkbookPart!.WorksheetParts.Single();
+                Xdr.WorksheetDrawing drawing = worksheetPart.DrawingsPart!.WorksheetDrawing!;
+                Xdr.OneCellAnchor oneCell = Assert.Single(drawing.Elements<Xdr.OneCellAnchor>());
+                var absolute = new Xdr.AbsoluteAnchor(
+                    new Xdr.Position { X = 0L, Y = 0L },
+                    (Xdr.Extent)oneCell.Extent!.CloneNode(true),
+                    (Xdr.Picture)oneCell.Descendants<Xdr.Picture>().Single().CloneNode(true),
+                    new Xdr.ClientData());
+                oneCell.Remove();
+                drawing.Append(absolute);
+                drawing.Save();
+            }
+
+            using (var document = ExcelDocument.Load(filePath)) {
+                ExcelImage imageRecord = Assert.Single(document["Images"].Images);
+                Assert.Throws<NotSupportedException>(() => imageRecord.MoveTo(2, 2));
+            }
         }
     }
 }

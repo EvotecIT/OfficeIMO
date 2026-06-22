@@ -574,9 +574,28 @@ namespace OfficeIMO.Excel {
             string firstLine = text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None).FirstOrDefault() ?? string.Empty;
             var candidates = new[] { ',', ';', '\t', '|' };
             return candidates
-                .Select(candidate => new { Delimiter = candidate, Count = firstLine.Count(ch => ch == candidate) })
+                .Select(candidate => new { Delimiter = candidate, Count = CountUnquoted(firstLine, candidate) })
                 .OrderByDescending(item => item.Count)
                 .First().Delimiter;
+        }
+
+        private static int CountUnquoted(string text, char delimiter) {
+            int count = 0;
+            bool quoted = false;
+            for (int i = 0; i < text.Length; i++) {
+                char ch = text[i];
+                if (ch == '"') {
+                    if (quoted && i + 1 < text.Length && text[i + 1] == '"') {
+                        i++;
+                    } else {
+                        quoted = !quoted;
+                    }
+                } else if (ch == delimiter && !quoted) {
+                    count++;
+                }
+            }
+
+            return count;
         }
 
         private static DataTable ParseDelimitedText(string text, char delimiter, ExcelDelimitedImportOptions options, ICollection<string> warnings) {

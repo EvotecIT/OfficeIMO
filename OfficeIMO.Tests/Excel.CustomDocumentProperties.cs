@@ -104,5 +104,26 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Reviewed", document.CustomDocumentProperties["Workflow"].Text);
             }
         }
+
+        [Fact]
+        public void Test_ExcelCustomDocumentProperties_DirectValueEditsAreTracked() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelCustomDocumentProperties.DirectValueEdit.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                document.AddWorkSheet("Data").CellValue(1, 1, "Ready");
+                document.SetCustomDocumentProperty("Workflow", "Draft");
+                document.Save();
+            }
+
+            using (var document = ExcelDocument.Load(filePath)) {
+                document.CustomDocumentProperties["Workflow"].Value = "Reviewed";
+                document.CustomDocumentProperties["Workflow"].PropertyType = ExcelCustomPropertyType.Text;
+                document.Save();
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Equal("Reviewed", document.CustomDocumentProperties["Workflow"].Text);
+            }
+        }
     }
 }

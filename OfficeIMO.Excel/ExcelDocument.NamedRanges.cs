@@ -63,7 +63,7 @@ namespace OfficeIMO.Excel {
                 definedNames.Append(dnNew);
             }
             MarkPackageDirty();
-            if (save) WorkbookRoot.Save();
+            SaveWorkbookScopedChange(save);
         }
 
         /// <summary>
@@ -86,7 +86,7 @@ namespace OfficeIMO.Excel {
             string normalized = NormalizeRange($"'{EscapeSheetName(sheet.Name)}'!{range}");
             var printArea = new DefinedName { Name = "_xlnm.Print_Area", LocalSheetId = sheetPos, Text = normalized };
             definedNames.Append(printArea);
-            if (save) workbook.Save();
+            SaveWorkbookScopedChange(save);
         }
 
         /// <summary>
@@ -178,9 +178,7 @@ namespace OfficeIMO.Excel {
                 WorkbookRoot.DefinedNames = null;
             }
             MarkPackageDirty();
-            if (save) {
-                WorkbookRoot.Save();
-            }
+            SaveWorkbookScopedChange(save);
             return true;
         }
 
@@ -233,7 +231,7 @@ namespace OfficeIMO.Excel {
             bool hasRows = firstRow.HasValue && lastRow.HasValue && firstRow.Value > 0 && lastRow.Value >= firstRow.Value;
             bool hasCols = firstCol.HasValue && lastCol.HasValue && firstCol.Value > 0 && lastCol.Value >= firstCol.Value;
             if (!hasRows && !hasCols) {
-                if (save) workbook.Save();
+                SaveWorkbookScopedChange(save);
                 return;
             }
 
@@ -250,7 +248,22 @@ namespace OfficeIMO.Excel {
             string text = hasRows && hasCols ? string.Concat(rowsPart, ",", colsPart) : (rowsPart ?? colsPart)!;
             var dnNew = new DefinedName { Name = "_xlnm.Print_Titles", LocalSheetId = sheetPos, Text = text };
             definedNames.Append(dnNew);
-            if (save) workbook.Save();
+            SaveWorkbookScopedChange(save);
+        }
+
+        private void SaveWorkbookScopedChange(bool save) {
+            if (!save) {
+                return;
+            }
+
+            WorkbookRoot.Save();
+            if (_packageContentTypesKnownNormalized
+                && !string.IsNullOrEmpty(FilePath)
+                && !_copyPackageToFilePathOnDispose
+                && !_copyPackageToSourceOnDispose
+                && _spreadSheetDocument.FileOpenAccess != System.IO.FileAccess.Read) {
+                Save(FilePath, openExcel: false);
+            }
         }
 
         /// <summary>

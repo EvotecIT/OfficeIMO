@@ -14,7 +14,7 @@ namespace OfficeIMO.Excel {
             if (data.Columns.Count == 0) throw new ArgumentException("Dashboard data must contain at least one column.", nameof(data));
             if (opts.TableRow <= 0) throw new ArgumentOutOfRangeException(nameof(ExcelDashboardOptions.TableRow));
             if (opts.TableColumn <= 0) throw new ArgumentOutOfRangeException(nameof(ExcelDashboardOptions.TableColumn));
-            ValidateDashboardLayout(opts);
+            ValidateDashboardLayout(opts, data);
 
             WriteDashboardHeader(opts);
 
@@ -76,7 +76,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void ValidateDashboardLayout(ExcelDashboardOptions options) {
+        private static void ValidateDashboardLayout(ExcelDashboardOptions options, DataTable data) {
             int headerLastRow = 0;
             if (!string.IsNullOrWhiteSpace(options.Title)) {
                 headerLastRow = 1;
@@ -88,6 +88,20 @@ namespace OfficeIMO.Excel {
 
             if (headerLastRow > 0 && options.TableRow <= headerLastRow) {
                 throw new ArgumentException("Dashboard table row overlaps the configured title or subtitle rows.", nameof(options));
+            }
+
+            long tableLastRow = (long)options.TableRow + data.Rows.Count;
+            long tableLastColumn = (long)options.TableColumn + data.Columns.Count - 1L;
+            if (tableLastRow > A1.MaxRows || tableLastColumn > A1.MaxColumns) {
+                throw new ArgumentException("Dashboard table exceeds Excel worksheet bounds.", nameof(options));
+            }
+
+            if (options.AddChart) {
+                int chartRow = options.ChartRow ?? options.TableRow;
+                int chartColumn = options.ChartColumn ?? options.TableColumn + data.Columns.Count + 2;
+                if (chartRow <= 0 || chartRow > A1.MaxRows || chartColumn <= 0 || chartColumn > A1.MaxColumns) {
+                    throw new ArgumentOutOfRangeException(nameof(options), "Dashboard chart anchor exceeds Excel worksheet bounds.");
+                }
             }
         }
     }

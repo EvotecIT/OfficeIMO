@@ -91,5 +91,27 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(result.TableRange, sheet.GetTableRange(result.TableName!));
             }
         }
+
+        [Fact]
+        public void Test_DashboardBuilder_RejectsWorksheetBoundsOverflow() {
+            string filePath = Path.Combine(_directoryWithFiles, "DashboardBuilder.Bounds.xlsx");
+            var data = new DataTable("Sales");
+            data.Columns.Add("Region", typeof(string));
+            data.Columns.Add("Revenue", typeof(int));
+            data.Rows.Add("EU", 100);
+
+            using var document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("Dashboard");
+
+            Assert.Throws<ArgumentException>(() => sheet.AddDashboard(data, new ExcelDashboardOptions {
+                TableRow = A1.MaxRows,
+                AddChart = false
+            }));
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddDashboard(data, new ExcelDashboardOptions {
+                TableRow = 3,
+                ChartColumn = A1.MaxColumns + 1
+            }));
+        }
     }
 }

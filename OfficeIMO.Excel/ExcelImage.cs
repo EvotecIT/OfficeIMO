@@ -198,8 +198,7 @@ namespace OfficeIMO.Excel {
 
             var marker = _anchor.GetFirstChild<Xdr.FromMarker>();
             if (marker == null) {
-                marker = new Xdr.FromMarker();
-                _anchor.PrependChild(marker);
+                throw new NotSupportedException("Only images anchored to worksheet cells can be moved. Absolute image anchors do not have a cell marker.");
             }
 
             marker.ColumnId = new Xdr.ColumnId((column - 1).ToString(CultureInfo.InvariantCulture));

@@ -94,7 +94,7 @@ namespace OfficeIMO.Excel {
 
             SetOrientation(orientation);
             SetMarginsPreset(margins);
-            SetPageSetup(fitToWidth, fitToHeight, scale, pageOrder);
+            SetPageSetupAndClearStaleFit(fitToWidth, fitToHeight, scale, pageOrder);
 
             if (!string.IsNullOrWhiteSpace(options.PrintArea)) {
                 _excelDocument.SetPrintArea(this, options.PrintArea!, save: false);

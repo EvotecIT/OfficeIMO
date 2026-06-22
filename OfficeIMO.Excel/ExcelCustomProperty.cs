@@ -7,15 +7,35 @@ namespace OfficeIMO.Excel {
     /// Represents a custom workbook property value.
     /// </summary>
     public sealed class ExcelCustomProperty {
+        private object? _value;
+        private ExcelCustomPropertyType _propertyType;
+        private Action? _changed;
+
         /// <summary>
         /// Gets or sets the raw value of the custom property.
         /// </summary>
-        public object? Value { get; set; }
+        public object? Value {
+            get => _value;
+            set {
+                if (!Equals(_value, value)) {
+                    _value = value;
+                    MarkChanged();
+                }
+            }
+        }
 
         /// <summary>
         /// Gets the custom property value type.
         /// </summary>
-        public ExcelCustomPropertyType PropertyType { get; set; }
+        public ExcelCustomPropertyType PropertyType {
+            get => _propertyType;
+            set {
+                if (_propertyType != value) {
+                    _propertyType = value;
+                    MarkChanged();
+                }
+            }
+        }
 
         /// <summary>
         /// Gets the value as a date/time when the property type is a date.
@@ -46,16 +66,16 @@ namespace OfficeIMO.Excel {
         /// Creates an empty custom property.
         /// </summary>
         public ExcelCustomProperty() {
-            Value = string.Empty;
-            PropertyType = ExcelCustomPropertyType.Text;
+            _value = string.Empty;
+            _propertyType = ExcelCustomPropertyType.Text;
         }
 
         /// <summary>
         /// Creates a custom property with the specified value and type.
         /// </summary>
         public ExcelCustomProperty(object? value, ExcelCustomPropertyType propertyType) {
-            Value = value;
-            PropertyType = propertyType;
+            _value = value;
+            _propertyType = propertyType;
         }
 
         /// <summary>
@@ -85,49 +105,53 @@ namespace OfficeIMO.Excel {
 
         internal ExcelCustomProperty(CustomDocumentProperty property) {
             if (property.VTInt32 != null) {
-                Value = int.Parse(property.VTInt32.Text, CultureInfo.InvariantCulture);
-                PropertyType = ExcelCustomPropertyType.NumberInteger;
+                _value = int.Parse(property.VTInt32.Text, CultureInfo.InvariantCulture);
+                _propertyType = ExcelCustomPropertyType.NumberInteger;
             } else if (property.VTInt64 != null) {
                 long value = long.Parse(property.VTInt64.Text, CultureInfo.InvariantCulture);
-                Value = value >= int.MinValue && value <= int.MaxValue ? (int)value : value;
-                PropertyType = ExcelCustomPropertyType.NumberInteger;
+                _value = value >= int.MinValue && value <= int.MaxValue ? (int)value : value;
+                _propertyType = ExcelCustomPropertyType.NumberInteger;
             } else if (property.VTUnsignedByte != null) {
-                Value = byte.Parse(property.VTUnsignedByte.Text, CultureInfo.InvariantCulture);
-                PropertyType = ExcelCustomPropertyType.NumberInteger;
+                _value = byte.Parse(property.VTUnsignedByte.Text, CultureInfo.InvariantCulture);
+                _propertyType = ExcelCustomPropertyType.NumberInteger;
             } else if (property.VTUnsignedShort != null) {
-                Value = ushort.Parse(property.VTUnsignedShort.Text, CultureInfo.InvariantCulture);
-                PropertyType = ExcelCustomPropertyType.NumberInteger;
+                _value = ushort.Parse(property.VTUnsignedShort.Text, CultureInfo.InvariantCulture);
+                _propertyType = ExcelCustomPropertyType.NumberInteger;
             } else if (property.VTUnsignedInt32 != null) {
-                Value = uint.Parse(property.VTUnsignedInt32.Text, CultureInfo.InvariantCulture);
-                PropertyType = ExcelCustomPropertyType.NumberInteger;
+                _value = uint.Parse(property.VTUnsignedInt32.Text, CultureInfo.InvariantCulture);
+                _propertyType = ExcelCustomPropertyType.NumberInteger;
             } else if (property.VTUnsignedInteger != null) {
-                Value = ulong.Parse(property.VTUnsignedInteger.Text, CultureInfo.InvariantCulture);
-                PropertyType = ExcelCustomPropertyType.NumberInteger;
+                _value = ulong.Parse(property.VTUnsignedInteger.Text, CultureInfo.InvariantCulture);
+                _propertyType = ExcelCustomPropertyType.NumberInteger;
             } else if (property.VTUnsignedInt64 != null) {
-                Value = ulong.Parse(property.VTUnsignedInt64.Text, CultureInfo.InvariantCulture);
-                PropertyType = ExcelCustomPropertyType.NumberInteger;
+                _value = ulong.Parse(property.VTUnsignedInt64.Text, CultureInfo.InvariantCulture);
+                _propertyType = ExcelCustomPropertyType.NumberInteger;
             } else if (property.VTFileTime != null) {
-                Value = DateTime.Parse(property.VTFileTime.Text, CultureInfo.InvariantCulture).ToUniversalTime();
-                PropertyType = ExcelCustomPropertyType.DateTime;
+                _value = DateTime.Parse(property.VTFileTime.Text, CultureInfo.InvariantCulture).ToUniversalTime();
+                _propertyType = ExcelCustomPropertyType.DateTime;
             } else if (property.VTDate != null) {
-                Value = DateTime.Parse(property.VTDate.Text, CultureInfo.InvariantCulture).ToUniversalTime();
-                PropertyType = ExcelCustomPropertyType.DateTime;
+                _value = DateTime.Parse(property.VTDate.Text, CultureInfo.InvariantCulture).ToUniversalTime();
+                _propertyType = ExcelCustomPropertyType.DateTime;
             } else if (property.VTFloat != null) {
-                Value = double.Parse(property.VTFloat.Text, CultureInfo.InvariantCulture);
-                PropertyType = ExcelCustomPropertyType.NumberDouble;
+                _value = double.Parse(property.VTFloat.Text, CultureInfo.InvariantCulture);
+                _propertyType = ExcelCustomPropertyType.NumberDouble;
             } else if (property.VTDouble != null) {
-                Value = double.Parse(property.VTDouble.Text, CultureInfo.InvariantCulture);
-                PropertyType = ExcelCustomPropertyType.NumberDouble;
+                _value = double.Parse(property.VTDouble.Text, CultureInfo.InvariantCulture);
+                _propertyType = ExcelCustomPropertyType.NumberDouble;
             } else if (property.VTLPWSTR != null) {
-                Value = property.VTLPWSTR.Text;
-                PropertyType = ExcelCustomPropertyType.Text;
+                _value = property.VTLPWSTR.Text;
+                _propertyType = ExcelCustomPropertyType.Text;
             } else if (property.VTBool != null) {
-                Value = ParseBooleanProperty(property.VTBool.Text);
-                PropertyType = ExcelCustomPropertyType.YesNo;
+                _value = ParseBooleanProperty(property.VTBool.Text);
+                _propertyType = ExcelCustomPropertyType.YesNo;
             } else {
-                Value = string.Empty;
-                PropertyType = ExcelCustomPropertyType.Text;
+                _value = string.Empty;
+                _propertyType = ExcelCustomPropertyType.Text;
             }
+        }
+
+        internal void SetChangeHandler(Action? changed) {
+            _changed = changed;
         }
 
         internal CustomDocumentProperty ToOpenXml(string name) {
@@ -178,6 +202,10 @@ namespace OfficeIMO.Excel {
             }
 
             throw new FormatException($"The custom property boolean value '{text}' is not valid.");
+        }
+
+        private void MarkChanged() {
+            _changed?.Invoke();
         }
     }
 }

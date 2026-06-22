@@ -46,5 +46,29 @@ namespace OfficeIMO.Tests {
                 Assert.True(worksheet.GetFirstChild<SheetProperties>()?.GetFirstChild<PageSetupProperties>()?.FitToPage?.Value);
             }
         }
+
+        [Fact]
+        public void Test_PrintLayoutPreset_ClearsStaleFitToPageSettings() {
+            string filePath = Path.Combine(_directoryWithFiles, "PrintLayoutPreset.ClearFit.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Report");
+                sheet.CellValue(1, 1, "Region");
+                sheet.SetPageSetup(fitToWidth: 1U, fitToHeight: 0U);
+                sheet.ApplyPrintLayout(new ExcelPrintLayoutOptions {
+                    Preset = ExcelPrintLayoutPreset.Worksheet
+                });
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                Worksheet worksheet = spreadsheet.WorkbookPart!.WorksheetParts.Single().Worksheet;
+                PageSetup setup = worksheet.GetFirstChild<PageSetup>()!;
+                Assert.Null(setup.FitToWidth);
+                Assert.Null(setup.FitToHeight);
+                Assert.Equal(100U, setup.Scale!.Value);
+                Assert.Null(worksheet.GetFirstChild<SheetProperties>()?.GetFirstChild<PageSetupProperties>()?.FitToPage);
+            }
+        }
     }
 }

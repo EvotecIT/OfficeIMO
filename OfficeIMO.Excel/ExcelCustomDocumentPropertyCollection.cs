@@ -20,9 +20,12 @@ namespace OfficeIMO.Excel {
         internal void ReplaceWith(IEnumerable<KeyValuePair<string, ExcelCustomProperty>> properties) {
             _suppressChangeTracking = true;
             try {
+                DetachAll();
                 _properties.Clear();
                 foreach (var property in properties) {
-                    _properties[property.Key] = property.Value;
+                    ExcelCustomProperty value = property.Value ?? throw new ArgumentNullException(nameof(properties));
+                    Attach(value);
+                    _properties[property.Key] = value;
                 }
             } finally {
                 _suppressChangeTracking = false;
@@ -33,7 +36,12 @@ namespace OfficeIMO.Excel {
         public ExcelCustomProperty this[string key] {
             get => _properties[key];
             set {
-                _properties[key] = value ?? throw new ArgumentNullException(nameof(value));
+                if (_properties.TryGetValue(key, out ExcelCustomProperty? previous)) {
+                    Detach(previous);
+                }
+
+                Attach(value ?? throw new ArgumentNullException(nameof(value)));
+                _properties[key] = value;
                 MarkChanged();
             }
         }
@@ -56,6 +64,7 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc />
         public void Add(string key, ExcelCustomProperty value) {
+            Attach(value ?? throw new ArgumentNullException(nameof(value)));
             _properties.Add(key, value);
             MarkChanged();
         }
@@ -67,8 +76,13 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc />
         public bool Remove(string key) {
+            if (!_properties.TryGetValue(key, out ExcelCustomProperty? property)) {
+                return false;
+            }
+
             bool removed = _properties.Remove(key);
             if (removed) {
+                Detach(property);
                 MarkChanged();
             }
 
@@ -91,6 +105,7 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
+            DetachAll();
             _properties.Clear();
             MarkChanged();
         }
@@ -109,6 +124,7 @@ namespace OfficeIMO.Excel {
         public bool Remove(KeyValuePair<string, ExcelCustomProperty> item) {
             bool removed = ((ICollection<KeyValuePair<string, ExcelCustomProperty>>)_properties).Remove(item);
             if (removed) {
+                Detach(item.Value);
                 MarkChanged();
             }
 
@@ -127,6 +143,20 @@ namespace OfficeIMO.Excel {
         private void MarkChanged() {
             if (!_suppressChangeTracking) {
                 _changed?.Invoke();
+            }
+        }
+
+        private void Attach(ExcelCustomProperty property) {
+            property.SetChangeHandler(MarkChanged);
+        }
+
+        private static void Detach(ExcelCustomProperty property) {
+            property.SetChangeHandler(null);
+        }
+
+        private void DetachAll() {
+            foreach (ExcelCustomProperty property in _properties.Values) {
+                Detach(property);
             }
         }
     }
