@@ -7,20 +7,44 @@ internal static partial class PdfSyntax {
         PdfReadOptions? options,
         out PdfStandardSecurityHandler? decryptor) {
         decryptor = null;
-        if (!TryReadLastReferenceObjectNumber(trailerRaw, "Encrypt").HasValue) {
+        PdfReference? encryptReference = TryReadLastReference(trailerRaw, "Encrypt");
+        if (encryptReference is null) {
             return false;
         }
 
-        int encryptObjectNumber = TryReadLastReferenceObjectNumber(trailerRaw, "Encrypt")!.Value;
-        if (!PdfObjectLookup.TryGet(map, new PdfReference(encryptObjectNumber, 0), out PdfIndirectObject? encryptObject) ||
+        if (!PdfObjectLookup.TryGet(map, encryptReference, out PdfIndirectObject? encryptObject) ||
             encryptObject.Value is not PdfDictionary encryptionDictionary) {
             throw new PdfUnsupportedEncryptionException("PDF encryption dictionary could not be read.");
         }
 
-        byte[] fileId = ReadFirstFileId(trailerRaw);
+        byte[] fileId = ReadFirstFileId(map, trailerRaw);
         bool supplied = options != null && options.Password != null;
         decryptor = PdfStandardSecurityHandler.Create(encryptionDictionary, fileId, options?.Password, supplied);
         return true;
+    }
+
+    private static byte[] ReadFirstFileId(Dictionary<int, PdfIndirectObject> map, string trailerRaw) {
+        foreach (PdfIndirectObject indirect in map.Values) {
+            if (indirect.Value is PdfStream stream &&
+                stream.Dictionary.Get<PdfName>("Type")?.Name == "XRef" &&
+                TryReadFirstFileId(stream.Dictionary, out byte[] fileId)) {
+                return fileId;
+            }
+        }
+
+        return ReadFirstFileId(trailerRaw);
+    }
+
+    private static bool TryReadFirstFileId(PdfDictionary dictionary, out byte[] fileId) {
+        fileId = Array.Empty<byte>();
+        if (dictionary.Get<PdfArray>("ID") is PdfArray idArray &&
+            idArray.Items.Count > 0 &&
+            idArray.Items[0] is PdfStringObj firstId) {
+            fileId = firstId.RawBytes;
+            return true;
+        }
+
+        return false;
     }
 
     private static byte[] ReadFirstFileId(string trailerRaw) {

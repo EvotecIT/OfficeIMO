@@ -78,7 +78,8 @@ internal static partial class PdfSyntax {
             encryptionPermissions = null;
             encryptMetadata = null;
             if (encryptObjectNumber.HasValue &&
-                PdfObjectLookup.TryGet(objects, new PdfReference(encryptObjectNumber.Value, 0), out PdfIndirectObject? encryptionObject) &&
+                TryReadLastReference(trailerRaw, "Encrypt") is PdfReference encryptReference &&
+                PdfObjectLookup.TryGet(objects, encryptReference, out PdfIndirectObject? encryptionObject) &&
                 encryptionObject.Value is PdfDictionary parsedEncryptionDictionary) {
                 encryptionFilter = TryReadName(parsedEncryptionDictionary, "Filter");
                 encryptionSubFilter = TryReadName(parsedEncryptionDictionary, "SubFilter");
@@ -467,19 +468,24 @@ internal static partial class PdfSyntax {
     }
 
     private static int? TryReadLastReferenceObjectNumber(string text, string key) {
+        return TryReadLastReference(text, key)?.ObjectNumber;
+    }
+
+    private static PdfReference? TryReadLastReference(string text, string key) {
 #if NET8_0_OR_GREATER
-        var regex = new Regex(@"/" + Regex.Escape(key) + @"\s+(\d+)\s+\d+\s+R", RegexOptions.Compiled | RegexOptions.NonBacktracking, RegexTimeout);
+        var regex = new Regex(@"/" + Regex.Escape(key) + @"\s+(\d+)\s+(\d+)\s+R", RegexOptions.Compiled | RegexOptions.NonBacktracking, RegexTimeout);
 #else
-        var regex = new Regex(@"/" + Regex.Escape(key) + @"\s+(\d+)\s+\d+\s+R", RegexOptions.Compiled, RegexTimeout);
+        var regex = new Regex(@"/" + Regex.Escape(key) + @"\s+(\d+)\s+(\d+)\s+R", RegexOptions.Compiled, RegexTimeout);
 #endif
-        int? objectNumber = null;
+        PdfReference? reference = null;
         foreach (Match match in regex.Matches(text)) {
-            if (int.TryParse(match.Groups[1].Value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int parsed)) {
-                objectNumber = parsed;
+            if (int.TryParse(match.Groups[1].Value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int objectNumber) &&
+                int.TryParse(match.Groups[2].Value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int generation)) {
+                reference = new PdfReference(objectNumber, generation);
             }
         }
 
-        return objectNumber;
+        return reference;
     }
 
     private static int CountPdfNameOccurrences(string text, string name) {
@@ -639,7 +645,7 @@ internal static partial class PdfSyntax {
     private static int? TryReadContentsSizeBytes(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary) {
         return dictionary.Items.TryGetValue("Contents", out PdfObject? contentsObject) &&
             ResolveObject(objects, contentsObject) is PdfStringObj contents
-            ? contents.Value.Length
+            ? contents.RawBytes.Length
             : null;
     }
 

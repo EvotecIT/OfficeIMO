@@ -190,6 +190,23 @@ public class PdfITextInspiredCoverageTests {
     }
 
     [Fact]
+    public void IncrementalUpdater_PreservesTrailerReferenceGenerationsWhenAppendingFormFieldRevision() {
+        byte[] pdf = BuildGeneratedFormPdfWithTrailerGenerations();
+
+        byte[] updated = PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
+            ["Name"] = "Grace"
+        });
+
+        string updatedText = PdfEncoding.Latin1GetString(updated);
+        int appendedTrailer = updatedText.LastIndexOf("trailer", StringComparison.Ordinal);
+
+        Assert.True(appendedTrailer >= PdfEncoding.Latin1GetString(pdf).Length);
+        Assert.Contains("/Root 1 2 R", updatedText.Substring(appendedTrailer), StringComparison.Ordinal);
+        Assert.Contains("/Info 8 3 R", updatedText.Substring(appendedTrailer), StringComparison.Ordinal);
+        Assert.Equal("Grace", Assert.Single(PdfInspector.Inspect(updated).FormFields).Value);
+    }
+
+    [Fact]
     public void PageEditor_SetsProductionBoundaryBoxes() {
         byte[] pdf = PdfPageGeometrySupport.BuildPageGeometryPdf();
 
@@ -369,6 +386,35 @@ public class PdfITextInspiredCoverageTests {
 
         builder.AppendLine("trailer");
         builder.AppendLine("<< /Root 1 0 R /Size 8 >>");
+        builder.AppendLine("startxref");
+        builder.AppendLine("123");
+        builder.AppendLine("%%EOF");
+        return Encoding.ASCII.GetBytes(builder.ToString());
+    }
+
+    private static byte[] BuildGeneratedFormPdfWithTrailerGenerations() {
+        var entries = new List<(int ObjectNumber, int Generation, string Body)> {
+            (1, 2, "<< /Type /Catalog /Pages 2 0 R /AcroForm 6 0 R >>"),
+            (2, 0, "<< /Type /Pages /Count 1 /Kids [3 0 R] >>"),
+            (3, 0, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R >> >> /Annots [5 0 R] /Contents 7 0 R >>"),
+            (4, 0, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"),
+            (5, 0, "<< /Type /Annot /Subtype /Widget /FT /Tx /T (Name) /V (Ada) /Rect [50 50 180 70] /F 4 >>"),
+            (6, 0, "<< /Fields [5 0 R] /SigFlags 2 >>"),
+            (7, 0, BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 72 720 Td (Generated form) Tj ET"))),
+            (8, 3, "<< /Producer (OfficeIMO) >>")
+        };
+
+        var builder = new StringBuilder();
+        builder.AppendLine("%PDF-1.7");
+        foreach ((int objectNumber, int generation, string body) in entries) {
+            builder.Append(objectNumber.ToString(CultureInfo.InvariantCulture)).Append(' ')
+                .Append(generation.ToString(CultureInfo.InvariantCulture)).AppendLine(" obj");
+            builder.AppendLine(body);
+            builder.AppendLine("endobj");
+        }
+
+        builder.AppendLine("trailer");
+        builder.AppendLine("<< /Root 1 2 R /Info 8 3 R /Size 9 >>");
         builder.AppendLine("startxref");
         builder.AppendLine("123");
         builder.AppendLine("%%EOF");

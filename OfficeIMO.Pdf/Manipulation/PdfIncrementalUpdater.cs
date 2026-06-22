@@ -305,6 +305,13 @@ public static partial class PdfIncrementalUpdater {
         return string.Empty;
     }
 
+    private static string BuildExistingTrailerReference(Dictionary<int, PdfIndirectObject> objects, int objectNumber) {
+        int generation = objects.TryGetValue(objectNumber, out PdfIndirectObject? indirect)
+            ? indirect.Generation
+            : 0;
+        return PdfSyntaxEscaper.IndirectReference(objectNumber, generation);
+    }
+
     private static int IndexOfName(string value, string name) {
         string token = "/" + name;
         int index = 0;

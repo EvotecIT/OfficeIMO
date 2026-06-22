@@ -47,7 +47,7 @@ namespace OfficeIMO.Word.Pdf {
             return null;
         }
 
-        private static void ConfigureNativeHeaderFooter(PdfCore.PdfPageCompose page, WordSection section, PdfSaveOptions? options, double headerMarginExpansion, double footerMarginExpansion) {
+        private static void ConfigureNativeHeaderFooter(PdfCore.PdfPageCompose page, WordSection section, PdfSaveOptions? options, double headerMarginExpansion, double footerMarginExpansion, NativeFontMap nativeFontMap) {
             RecordNativeHeaderFooterDiagnostics(section.Header?.Default, options, "default header");
             RecordNativeHeaderFooterDiagnostics(section.Header?.First, options, "first header");
             RecordNativeHeaderFooterDiagnostics(section.Header?.Even, options, "even header");
@@ -76,11 +76,13 @@ namespace OfficeIMO.Word.Pdf {
             IReadOnlyList<NativeHeaderFooterShape> evenFooterShapes = section.DifferentOddAndEvenPages ? GetNativeHeaderFooterShapes(section.Footer?.Even) : Array.Empty<NativeHeaderFooterShape>();
             PdfCore.PdfStandardFont? headerFont = ResolveNativeHeaderFooterFont(
                 ResolveNativeHeaderFooterBaseFont(section._document, options, isHeader: true),
+                nativeFontMap,
                 section.Header?.Default,
                 section.DifferentFirstPage ? section.Header?.First : null,
                 section.DifferentOddAndEvenPages ? section.Header?.Even : null);
             PdfCore.PdfStandardFont? footerFont = ResolveNativeHeaderFooterFont(
                 ResolveNativeHeaderFooterBaseFont(section._document, options, isHeader: false),
+                nativeFontMap,
                 section.Footer?.Default,
                 section.DifferentFirstPage ? section.Footer?.First : null,
                 section.DifferentOddAndEvenPages ? section.Footer?.Even : null);

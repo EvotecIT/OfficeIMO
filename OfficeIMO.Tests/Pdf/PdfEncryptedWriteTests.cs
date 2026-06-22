@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using OfficeIMO.Pdf;
 using Xunit;
 
@@ -58,6 +59,9 @@ public class PdfEncryptedWriteTests {
         Assert.Contains(
             "Encrypted PDF files are not supported for form filling or flattening by OfficeIMO.Pdf yet.",
             preflight.GetCapabilityDiagnostics(PdfPreflightCapability.FillSimpleFormFields));
+        Assert.Throws<NotSupportedException>(() => PdfFormFiller.FillFields(pdf, new Dictionary<string, string> {
+            ["Name"] = "Grace"
+        }));
     }
 
     [Fact]
@@ -70,5 +74,33 @@ public class PdfEncryptedWriteTests {
         string text = PdfTextExtractor.ExtractAllText(pdf, (PdfTextLayoutOptions?)null, new PdfReadOptions { Password = "open" });
 
         Assert.Contains("Fluent Encryption Secret", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GeneratedEncryptedPdfReadsTextWithOwnerPasswordForWinAnsiUserPassword() {
+        byte[] pdf = PdfDocument.Create(new PdfOptions().SetEncryption("€", "owner"))
+            .Paragraph(paragraph => paragraph.Text("Owner Password Secret"))
+            .ToBytes();
+
+        string text = PdfTextExtractor.ExtractAllText(pdf, (PdfTextLayoutOptions?)null, new PdfReadOptions { Password = "owner" });
+
+        Assert.Contains("Owner Password Secret", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GeneratedEncryptedPdfReadsWhenEncryptReferenceHasNonZeroGeneration() {
+        byte[] pdf = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
+            .Paragraph(paragraph => paragraph.Text("Generation Encryption Secret"))
+            .ToBytes();
+        string text = PdfEncoding.Latin1GetString(pdf);
+        Match match = Regex.Match(text, @"/Encrypt\s+(\d+)\s+0\s+R");
+        Assert.True(match.Success);
+        string objectNumber = match.Groups[1].Value;
+        text = text.Replace("/Encrypt " + objectNumber + " 0 R", "/Encrypt " + objectNumber + " 2 R")
+            .Replace("\n" + objectNumber + " 0 obj", "\n" + objectNumber + " 2 obj");
+
+        string extracted = PdfTextExtractor.ExtractAllText(PdfEncoding.Latin1GetBytes(text), (PdfTextLayoutOptions?)null, new PdfReadOptions { Password = "open" });
+
+        Assert.Contains("Generation Encryption Secret", extracted, StringComparison.Ordinal);
     }
 }

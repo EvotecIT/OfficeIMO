@@ -485,8 +485,8 @@ public static partial class PdfIncrementalUpdater {
 
         writer.WriteLine("trailer");
         writer.WriteLine("<< /Size " + size.ToString(CultureInfo.InvariantCulture) +
-            " /Root " + PdfSyntaxEscaper.IndirectReference(security.RootObjectNumber.Value) +
-            (security.InfoObjectNumber.HasValue ? " /Info " + PdfSyntaxEscaper.IndirectReference(security.InfoObjectNumber.Value) : string.Empty) +
+            " /Root " + BuildExistingTrailerReference(objects, security.RootObjectNumber.Value) +
+            (security.InfoObjectNumber.HasValue ? " /Info " + BuildExistingTrailerReference(objects, security.InfoObjectNumber.Value) : string.Empty) +
             " /Prev " + security.LastStartXrefOffset.Value.ToString(CultureInfo.InvariantCulture) +
             ReadTrailerIdEntry(trailerRaw) +
             " >>");

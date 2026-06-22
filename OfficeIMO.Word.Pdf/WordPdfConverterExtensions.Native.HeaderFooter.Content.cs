@@ -68,11 +68,11 @@ namespace OfficeIMO.Word.Pdf {
             return parts.HasContent ? parts : null;
         }
 
-        private static PdfCore.PdfStandardFont? ResolveNativeHeaderFooterFont(PdfCore.PdfStandardFont baseFont, params WordHeaderFooter?[] headerFooters) {
+        private static PdfCore.PdfStandardFont? ResolveNativeHeaderFooterFont(PdfCore.PdfStandardFont baseFont, NativeFontMap? nativeFontMap, params WordHeaderFooter?[] headerFooters) {
             PdfCore.PdfStandardFont? resolvedFont = null;
             foreach (WordHeaderFooter? headerFooter in headerFooters) {
                 foreach (string familyName in EnumerateNativeHeaderFooterFontFamilies(headerFooter)) {
-                    if (!PdfCore.PdfStandardFontMapper.TryMapFontFamily(familyName, out PdfCore.PdfStandardFont mappedFont)) {
+                    if (!TryResolveNativeMappedFont(familyName, nativeFontMap, out PdfCore.PdfStandardFont mappedFont)) {
                         continue;
                     }
 

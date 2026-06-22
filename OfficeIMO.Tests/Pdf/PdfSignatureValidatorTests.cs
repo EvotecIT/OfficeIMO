@@ -39,15 +39,16 @@ public class PdfSignatureValidatorTests {
 
         PdfSignatureValidationResult result = Assert.Single(report.Signatures);
         Assert.Equal("Approval", result.Signature.FieldName);
-        Assert.Equal(new long[] { 0, 10, 20, 30 }, result.Signature.ByteRangeValues);
+        Assert.Equal(new long[] { 0, 8, 16, 30 }, result.Signature.ByteRangeValues);
         Assert.True(result.Signature.HasRecognizedSubFilter);
         Assert.True(result.Signature.UsesDetachedCmsSubFilter);
         Assert.True(result.HasCompleteByteRangeShape);
         Assert.True(result.ByteRangeSegmentsAreOrdered);
         Assert.False(result.ByteRangeCoversEndOfFile);
-        Assert.Equal(40, result.ByteRangeCoveredBytes);
-        Assert.Equal(10, result.ByteRangeGapStart);
-        Assert.Equal(10, result.ByteRangeGapLength);
+        Assert.Equal(38, result.ByteRangeCoveredBytes);
+        Assert.Equal(8, result.ByteRangeGapStart);
+        Assert.Equal(8, result.ByteRangeGapLength);
+        Assert.True(result.ByteRangeGapMatchesContents);
         Assert.True(result.UnsignedByteCount > 0);
         Assert.True(result.ByteRangeCoverageRatio > 0);
         Assert.Contains(report.Findings, finding => finding.Code == "SignatureByteRangeDoesNotCoverEof");
@@ -67,6 +68,17 @@ public class PdfSignatureValidatorTests {
         Assert.Equal("StructuralIssues", report.ProofStatus);
         Assert.Contains(report.Findings, finding => finding.Code == "SignatureUnsupportedByteRangeShape");
         Assert.Contains(report.Findings, finding => finding.Code == "SignatureMissingContents");
+    }
+
+    [Fact]
+    public void Validate_FlagsByteRangeGapThatDoesNotMatchContentsHexLiteral() {
+        PdfSignatureValidationReport report = PdfSignatureValidator.Validate(BuildMismatchedSignatureGapPdf());
+
+        Assert.True(report.HasSignatures);
+        Assert.False(report.IsStructurallyValid);
+        PdfSignatureValidationResult result = Assert.Single(report.Signatures);
+        Assert.False(result.ByteRangeGapMatchesContents);
+        Assert.Contains(report.Findings, finding => finding.Code == "SignatureByteRangeContentsGapMismatch");
     }
 
     [Fact]
@@ -182,7 +194,7 @@ public class PdfSignatureValidatorTests {
             "<< /FT /Sig /T (Approval) /V 6 0 R /Subtype /Widget /Rect [10 10 120 40] >>",
             "endobj",
             "6 0 obj",
-            "<< /Type /Sig /Filter /Adobe.PPKLite /SubFilter /adbe.pkcs7.detached /Name (Alice) /ByteRange [0 10 20 30] /Contents <001122> /Reference [<< /TransformMethod /DocMDP /TransformParams << /Type /TransformParams /V /1.2 /P 2 >> >>] >>",
+            "<< /Type /Sig /Filter /Adobe.PPKLite /SubFilter /adbe.pkcs7.detached /Name (Alice) /ByteRange [0 8 16 30] /Contents <001122> /Reference [<< /TransformMethod /DocMDP /TransformParams << /Type /TransformParams /V /1.2 /P 2 >> >>] >>",
             "endobj",
             "7 0 obj",
             "<< /Fields [5 0 R] /SigFlags 3 >>",
@@ -212,6 +224,37 @@ public class PdfSignatureValidatorTests {
             "%%EOF",
             "startxref",
             "200",
+            "%%EOF"
+        });
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildMismatchedSignatureGapPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] >>",
+            "endobj",
+            "4 0 obj",
+            "<< /FT /Sig /T (Mismatch) /V 6 0 R >>",
+            "endobj",
+            "5 0 obj",
+            "<< /Fields [4 0 R] /SigFlags 1 >>",
+            "endobj",
+            "6 0 obj",
+            "<< /Type /Sig /Filter /Adobe.PPKLite /SubFilter /adbe.pkcs7.detached /ByteRange [0 10 20 30] /Contents <001122> >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 7 >>",
+            "startxref",
+            "123",
             "%%EOF"
         });
 
