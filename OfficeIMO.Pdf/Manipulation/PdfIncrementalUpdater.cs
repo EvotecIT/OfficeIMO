@@ -239,19 +239,29 @@ public static partial class PdfIncrementalUpdater {
             }
 
             if (fieldLock.LocksIncludedFields &&
-                fieldLock.Fields.Any(requestedFields.Contains)) {
+                fieldLock.Fields.Any(lockedField => requestedFields.Any(requestedField => FieldNamesOverlap(lockedField, requestedField)))) {
                 return true;
             }
 
             if (fieldLock.LocksAllExceptListedFields) {
-                var excluded = new HashSet<string>(fieldLock.Fields, StringComparer.Ordinal);
-                if (requestedFields.Any(field => !excluded.Contains(field))) {
+                if (requestedFields.Any(requestedField => !fieldLock.Fields.Any(excludedField => FieldNamesOverlap(excludedField, requestedField)))) {
                     return true;
                 }
             }
         }
 
         return false;
+    }
+
+    private static bool FieldNamesOverlap(string lockFieldName, string requestedFieldName) {
+        if (string.IsNullOrWhiteSpace(lockFieldName) ||
+            string.IsNullOrWhiteSpace(requestedFieldName)) {
+            return false;
+        }
+
+        return string.Equals(lockFieldName, requestedFieldName, StringComparison.Ordinal) ||
+            requestedFieldName.StartsWith(lockFieldName + ".", StringComparison.Ordinal) ||
+            lockFieldName.StartsWith(requestedFieldName + ".", StringComparison.Ordinal);
     }
 
     private static string ReadTrailerIdEntry(string trailerRaw) {

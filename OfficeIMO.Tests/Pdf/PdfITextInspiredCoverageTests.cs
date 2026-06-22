@@ -204,6 +204,22 @@ public class PdfITextInspiredCoverageTests {
     }
 
     [Fact]
+    public void IncrementalUpdater_BlocksDocMDPCertifiedFormFillWhenSignatureFieldLockIncludesParentField() {
+        byte[] pdf = BuildDocMdpFormPdf(
+            permissionLevel: 2,
+            signatureFieldLock: " /Lock << /Type /SigFieldLock /Action /Include /Fields [(Billing)] >>",
+            textFieldName: "Billing.Name");
+
+        var exception = Assert.Throws<NotSupportedException>(() => PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
+            ["Billing.Name"] = "Grace"
+        }, new PdfIncrementalFormFieldUpdateOptions {
+            GenerateAppearanceStreams = true,
+            KeepNeedAppearances = false
+        }));
+        Assert.Contains("SignatureFieldLock", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PageEditor_SetsProductionBoundaryBoxes() {
         byte[] pdf = PdfPageGeometrySupport.BuildPageGeometryPdf();
 
@@ -459,13 +475,13 @@ public class PdfITextInspiredCoverageTests {
         return Encoding.ASCII.GetBytes(BuildPdf(objects));
     }
 
-    private static byte[] BuildDocMdpFormPdf(int permissionLevel, string signatureFieldLock = "") {
+    private static byte[] BuildDocMdpFormPdf(int permissionLevel, string signatureFieldLock = "", string textFieldName = "Name") {
         var objects = new List<string> {
             "<< /Type /Catalog /Pages 2 0 R /AcroForm 8 0 R /Perms << /DocMDP 7 0 R >> >>",
             "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R >> >> /Annots [5 0 R 6 0 R] /Contents 9 0 R >>",
             "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
-            "<< /Type /Annot /Subtype /Widget /FT /Tx /T (Name) /V (Ada) /Rect [50 50 180 70] /F 4 >>",
+            "<< /Type /Annot /Subtype /Widget /FT /Tx /T (" + textFieldName + ") /V (Ada) /Rect [50 50 180 70] /F 4 >>",
             "<< /FT /Sig /T (Approval) /V 7 0 R /Subtype /Widget /Rect [10 10 120 40]" + signatureFieldLock + " >>",
             "<< /Type /Sig /Filter /Adobe.PPKLite /SubFilter /adbe.pkcs7.detached /Name (Alice) /ByteRange [0 10 20 30] /Contents <001122> /Reference [<< /TransformMethod /DocMDP /TransformParams << /Type /TransformParams /V /1.2 /P " + permissionLevel.ToString(CultureInfo.InvariantCulture) + " >> >>] >>",
             "<< /Fields [5 0 R 6 0 R] /SigFlags 3 >>",

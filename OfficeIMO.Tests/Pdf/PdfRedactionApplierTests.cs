@@ -22,6 +22,7 @@ public class PdfRedactionApplierTests {
         Assert.Contains("Visible after", text, StringComparison.Ordinal);
         Assert.DoesNotContain("Secret account", text, StringComparison.Ordinal);
         Assert.DoesNotContain("123-45", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Secret account", PdfEncoding.Latin1GetString(redacted), StringComparison.Ordinal);
 
         PdfRedactionPlan redactedPlan = PdfRedactionPlanner.Plan(redacted, new[] { area });
         Assert.DoesNotContain(redactedPlan.Matches, match => match.Text != null && match.Text.Contains("Secret account", StringComparison.Ordinal));
@@ -102,6 +103,30 @@ public class PdfRedactionApplierTests {
     }
 
     [Fact]
+    public void Apply_ClonesSharedPageContentBeforeScrubbingText() {
+        byte[] source = BuildSharedPageContentPdf();
+        PdfRedactionArea area = FindAreasForText(source, "Shared page secret")
+            .Single(redactionArea => redactionArea.PageNumber == 1);
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
+        string text = PdfTextExtractor.ExtractAllText(redacted);
+
+        Assert.Equal(1, CountOccurrences(text, "Shared page secret"));
+    }
+
+    [Fact]
+    public void Apply_ClonesSharedFormXObjectBeforeScrubbingText() {
+        byte[] source = BuildSharedFormXObjectTextPdf();
+        PdfRedactionArea area = FindAreasForText(source, "Shared form secret")
+            .Single(redactionArea => redactionArea.PageNumber == 1);
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
+        string text = PdfTextExtractor.ExtractAllText(redacted);
+
+        Assert.Equal(1, CountOccurrences(text, "Shared form secret"));
+    }
+
+    [Fact]
     public void Apply_RemovesDirectAnnotationDictionariesAndLinkedPopups() {
         byte[] source = BuildDirectAnnotationWithPopupPdf();
 
@@ -145,6 +170,34 @@ public class PdfRedactionApplierTests {
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /XObject << /Fm1 5 0 R >> >> /Contents 6 0 R >>",
             "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
             BuildStream("BT\n/F1 12 Tf\n0 0 Td\n(Form secret) Tj\nET", "/Type /XObject /Subtype /Form /BBox [0 0 200 50] /Resources << /Font << /F1 4 0 R >> >>"),
+            BuildStream("q\n1 0 0 1 100 100 cm\n/Fm1 Do\nQ")
+        };
+
+        return Encoding.ASCII.GetBytes(BuildPdf(objects));
+    }
+
+    private static byte[] BuildSharedPageContentPdf() {
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 2 /Kids [3 0 R 4 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 5 0 R >> >> /Contents 6 0 R >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 5 0 R >> >> /Contents 6 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            BuildStream("BT\n/F1 12 Tf\n72 120 Td\n(Shared page secret) Tj\nET")
+        };
+
+        return Encoding.ASCII.GetBytes(BuildPdf(objects));
+    }
+
+    private static byte[] BuildSharedFormXObjectTextPdf() {
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 2 /Kids [3 0 R 4 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /XObject << /Fm1 6 0 R >> >> /Contents 7 0 R >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /XObject << /Fm1 6 0 R >> >> /Contents 8 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            BuildStream("BT\n/F1 12 Tf\n0 0 Td\n(Shared form secret) Tj\nET", "/Type /XObject /Subtype /Form /BBox [0 0 200 50] /Resources << /Font << /F1 5 0 R >> >>"),
+            BuildStream("q\n1 0 0 1 100 100 cm\n/Fm1 Do\nQ"),
             BuildStream("q\n1 0 0 1 100 100 cm\n/Fm1 Do\nQ")
         };
 

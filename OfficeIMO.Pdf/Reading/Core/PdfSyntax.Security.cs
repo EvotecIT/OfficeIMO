@@ -31,7 +31,9 @@ internal static partial class PdfSyntax {
         PdfReference? rootReference = TryReadLastReference(text, "Root");
         int? rootObjectNumber = rootReference?.ObjectNumber;
         int? rootObjectGeneration = rootReference?.Generation;
-        int? infoObjectNumber = TryReadLastReferenceObjectNumber(text, "Info");
+        PdfReference? infoReference = TryReadLastReference(text, "Info");
+        int? infoObjectNumber = infoReference?.ObjectNumber;
+        int? infoObjectGeneration = infoReference?.Generation;
         string? encryptionFilter = null;
         string? encryptionSubFilter = null;
         int? encryptionVersion = null;
@@ -74,6 +76,12 @@ internal static partial class PdfSyntax {
             if (rootReference is not null) {
                 rootObjectNumber = rootReference.ObjectNumber;
                 rootObjectGeneration = rootReference.Generation;
+            }
+
+            infoReference = TryReadLastReference(trailerRaw, "Info");
+            if (infoReference is not null) {
+                infoObjectNumber = infoReference.ObjectNumber;
+                infoObjectGeneration = infoReference.Generation;
             }
 
             PdfReference? encryptReference = TryReadLastReference(trailerRaw, "Encrypt");
@@ -168,7 +176,8 @@ internal static partial class PdfSyntax {
                         entry.Key,
                         dictionary,
                         field,
-                        currentByteRangeValues));
+                        currentByteRangeValues,
+                        text));
                 }
             }
         } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
@@ -205,6 +214,7 @@ internal static partial class PdfSyntax {
             rootObjectNumber,
             rootObjectGeneration,
             infoObjectNumber,
+            infoObjectGeneration,
             hasTrailerId,
             startXrefCount,
             lastStartXrefOffset,
@@ -266,10 +276,12 @@ internal static partial class PdfSyntax {
         int objectNumber,
         PdfDictionary dictionary,
         SignatureFieldState? field,
-        IReadOnlyList<long> byteRangeValues) {
+        IReadOnlyList<long> byteRangeValues,
+        string sourceText) {
         bool hasByteRange = byteRangeValues.Count > 0;
         bool hasContents = dictionary.Items.ContainsKey("Contents");
         int? contentsSizeBytes = TryReadContentsSizeBytes(objects, dictionary);
+        int? contentsEncodedSizeBytes = TryReadContentsEncodedSizeBytes(sourceText, objectNumber);
         int referenceCount = TryReadReferenceCount(objects, dictionary);
 
         return new PdfSignatureInfo(
@@ -290,6 +302,7 @@ internal static partial class PdfSyntax {
             byteRangeValues.Count,
             hasContents,
             contentsSizeBytes,
+            contentsEncodedSizeBytes,
             referenceCount);
     }
 
@@ -656,6 +669,16 @@ internal static partial class PdfSyntax {
             ResolveObject(objects, contentsObject) is PdfStringObj contents
             ? contents.Value.Length
             : null;
+    }
+
+    private static int? TryReadContentsEncodedSizeBytes(string text, int objectNumber) {
+#if NET8_0_OR_GREATER
+        var regex = new Regex(@"\b" + objectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + @"\s+\d+\s+obj\b[\s\S]*?/Contents\s+(?<token><[0-9A-Fa-f\s]*>|\((?:\\.|[^\\()])*\))", RegexOptions.Compiled | RegexOptions.NonBacktracking, RegexTimeout);
+#else
+        var regex = new Regex(@"\b" + objectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + @"\s+\d+\s+obj\b[\s\S]*?/Contents\s+(?<token><[0-9A-Fa-f\s]*>|\((?:\\.|[^\\()])*\))", RegexOptions.Compiled, RegexTimeout);
+#endif
+        Match match = regex.Match(text);
+        return match.Success ? match.Groups["token"].Length : null;
     }
 
     private static int TryReadReferenceCount(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary) {

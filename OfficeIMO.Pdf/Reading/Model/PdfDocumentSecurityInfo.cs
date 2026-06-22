@@ -44,6 +44,7 @@ public sealed class PdfDocumentSecurityInfo {
         int? rootObjectNumber,
         int? rootObjectGeneration,
         int? infoObjectNumber,
+        int? infoObjectGeneration,
         bool hasTrailerId,
         int startXrefCount,
         int? lastStartXrefOffset,
@@ -81,6 +82,7 @@ public sealed class PdfDocumentSecurityInfo {
         RootObjectNumber = rootObjectNumber;
         RootObjectGeneration = rootObjectGeneration;
         InfoObjectNumber = infoObjectNumber;
+        InfoObjectGeneration = infoObjectGeneration;
         HasTrailerId = hasTrailerId;
         StartXrefCount = startXrefCount;
         LastStartXrefOffset = lastStartXrefOffset;
@@ -231,6 +233,9 @@ public sealed class PdfDocumentSecurityInfo {
 
     /// <summary>Trailer info dictionary object number, when readable.</summary>
     public int? InfoObjectNumber { get; }
+
+    /// <summary>Trailer info dictionary generation, when readable.</summary>
+    public int? InfoObjectGeneration { get; }
 
     /// <summary>True when a trailer /ID entry was found.</summary>
     public bool HasTrailerId { get; }

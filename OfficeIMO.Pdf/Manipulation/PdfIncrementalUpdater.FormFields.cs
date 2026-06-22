@@ -353,13 +353,13 @@ public static partial class PdfIncrementalUpdater {
         ref int nextObjectNumber,
         ref int helveticaFontObjectNumber) {
         double fontSize = Math.Max(6D, Math.Min(12D, height - 4D));
-        int fontObjectNumber = EnsureIncrementalHelveticaFont(objects, inheritedDefaultResources, ref nextObjectNumber, ref helveticaFontObjectNumber);
+        PdfReference fontReference = EnsureIncrementalHelveticaFont(objects, inheritedDefaultResources, ref nextObjectNumber, ref helveticaFontObjectNumber);
         string content = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceContent(width, height, value, fontSize, style);
         var dictionary = new PdfDictionary();
         dictionary.Items["Type"] = new PdfName("XObject");
         dictionary.Items["Subtype"] = new PdfName("Form");
         dictionary.Items["BBox"] = CreateNumberArray(0D, 0D, width, height);
-        dictionary.Items["Resources"] = CreateIncrementalAppearanceResources(fontObjectNumber);
+        dictionary.Items["Resources"] = CreateIncrementalAppearanceResources(fontReference);
         return new PdfStream(dictionary, PdfEncoding.Latin1GetBytes(content));
     }
 
@@ -372,13 +372,13 @@ public static partial class PdfIncrementalUpdater {
         return new PdfStream(dictionary, PdfEncoding.Latin1GetBytes(content));
     }
 
-    private static int EnsureIncrementalHelveticaFont(
+    private static PdfReference EnsureIncrementalHelveticaFont(
         Dictionary<int, PdfIndirectObject> objects,
         PdfDictionary? inheritedDefaultResources,
         ref int nextObjectNumber,
         ref int helveticaFontObjectNumber) {
-        if (TryFindFontResource(objects, inheritedDefaultResources, "Helv", out int existingFontObjectNumber)) {
-            return existingFontObjectNumber;
+        if (TryFindFontResource(objects, inheritedDefaultResources, "Helv", out PdfReference existingFontReference)) {
+            return existingFontReference;
         }
 
         if (helveticaFontObjectNumber == 0) {
@@ -386,19 +386,19 @@ public static partial class PdfIncrementalUpdater {
             objects[helveticaFontObjectNumber] = new PdfIndirectObject(helveticaFontObjectNumber, 0, PdfStandardFontDictionaryBuilder.BuildStandardType1FontDictionary(PdfStandardFont.Helvetica));
         }
 
-        return helveticaFontObjectNumber;
+        return new PdfReference(helveticaFontObjectNumber, 0);
     }
 
-    private static PdfDictionary CreateIncrementalAppearanceResources(int helveticaFontObjectNumber) {
+    private static PdfDictionary CreateIncrementalAppearanceResources(PdfReference helveticaFontReference) {
         var fonts = new PdfDictionary();
-        fonts.Items["Helv"] = new PdfReference(helveticaFontObjectNumber, 0);
+        fonts.Items["Helv"] = helveticaFontReference;
         var resources = new PdfDictionary();
         resources.Items["Font"] = fonts;
         return resources;
     }
 
-    private static bool TryFindFontResource(Dictionary<int, PdfIndirectObject> objects, PdfDictionary? resources, string name, out int objectNumber) {
-        objectNumber = 0;
+    private static bool TryFindFontResource(Dictionary<int, PdfIndirectObject> objects, PdfDictionary? resources, string name, out PdfReference reference) {
+        reference = null!;
         if (resources is null ||
             ResolveDictionary(objects, resources.Items.TryGetValue("Font", out PdfObject? fontsObject) ? fontsObject : null) is not PdfDictionary fonts ||
             !fonts.Items.TryGetValue(name, out PdfObject? fontObject) ||
@@ -406,7 +406,7 @@ public static partial class PdfIncrementalUpdater {
             return false;
         }
 
-        objectNumber = fontReference.ObjectNumber;
+        reference = fontReference;
         return true;
     }
 
@@ -662,7 +662,7 @@ public static partial class PdfIncrementalUpdater {
         writer.WriteLine("trailer");
         writer.WriteLine("<< /Size " + size.ToString(CultureInfo.InvariantCulture) +
             " /Root " + PdfSyntaxEscaper.IndirectReference(security.RootObjectNumber.Value, security.RootObjectGeneration ?? 0) +
-            (security.InfoObjectNumber.HasValue ? " /Info " + PdfSyntaxEscaper.IndirectReference(security.InfoObjectNumber.Value) : string.Empty) +
+            (security.InfoObjectNumber.HasValue ? " /Info " + PdfSyntaxEscaper.IndirectReference(security.InfoObjectNumber.Value, security.InfoObjectGeneration ?? 0) : string.Empty) +
             " /Prev " + security.LastStartXrefOffset.Value.ToString(CultureInfo.InvariantCulture) +
             ReadTrailerIdEntry(trailerRaw) +
             " >>");

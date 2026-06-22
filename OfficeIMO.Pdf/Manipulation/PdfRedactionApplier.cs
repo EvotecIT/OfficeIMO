@@ -136,7 +136,7 @@ public static class PdfRedactionApplier {
                 continue;
             }
 
-            bool pageChanged = RemoveMatchedTextObjects(objects, pageDictionary, pageMatches ?? Array.Empty<PdfRedactionMatch>());
+            bool pageChanged = RemoveMatchedTextObjects(objects, pageDictionary, pageMatches ?? Array.Empty<PdfRedactionMatch>(), ref nextObjectNumber);
             pageChanged = RemoveMatchedAnnotations(objects, pageDictionary, pageMatches ?? Array.Empty<PdfRedactionMatch>()) || pageChanged;
 
             PdfRedactionArea[] paintAreas = SelectPaintAreas(pageAreas ?? Array.Empty<PdfRedactionArea>(), pageMatches ?? Array.Empty<PdfRedactionMatch>(), options);
@@ -164,7 +164,8 @@ public static class PdfRedactionApplier {
     private static bool RemoveMatchedTextObjects(
         Dictionary<int, PdfIndirectObject> objects,
         PdfDictionary pageDictionary,
-        IReadOnlyList<PdfRedactionMatch> matches) {
+        IReadOnlyList<PdfRedactionMatch> matches,
+        ref int nextObjectNumber) {
         TextMatchTarget[] textMatches = matches
             .Where(match => match.Kind == PdfRedactionMatchKind.TextBlock && !string.IsNullOrWhiteSpace(match.Text))
             .Select(match => new TextMatchTarget(NormalizeText(match.Text!), match.X, match.Y, match.Width, match.Height))
@@ -190,11 +191,19 @@ public static class PdfRedactionApplier {
                 continue;
             }
 
-            objects[reference.ObjectNumber] = new PdfIndirectObject(reference.ObjectNumber, reference.Generation, new PdfStream(CleanStreamDictionary(stream.Dictionary), PdfEncoding.Latin1GetBytes(scrubbed)));
+            PdfStream scrubbedStream = new PdfStream(CleanStreamDictionary(stream.Dictionary), PdfEncoding.Latin1GetBytes(scrubbed));
+            if (CountPageContentReferences(objects, reference) <= 1) {
+                objects[reference.ObjectNumber] = new PdfIndirectObject(reference.ObjectNumber, reference.Generation, scrubbedStream);
+            } else {
+                int clonedObjectNumber = nextObjectNumber++;
+                objects[clonedObjectNumber] = new PdfIndirectObject(clonedObjectNumber, 0, scrubbedStream);
+                ReplacePageContentReference(objects, pageDictionary, reference, new PdfReference(clonedObjectNumber, 0));
+            }
+
             changed = true;
         }
 
-        changed = ScrubFormXObjects(objects, pageDictionary, textMatches, new HashSet<int>()) || changed;
+        changed = ScrubFormXObjects(objects, pageDictionary, textMatches, new HashSet<int>(), ref nextObjectNumber) || changed;
         return changed;
     }
 
@@ -225,15 +234,16 @@ public static class PdfRedactionApplier {
         Dictionary<int, PdfIndirectObject> objects,
         PdfDictionary ownerDictionary,
         TextMatchTarget[] textMatches,
-        HashSet<int> visitedFormObjects) {
+        HashSet<int> visitedFormObjects,
+        ref int nextObjectNumber) {
         if (textMatches.Length == 0 ||
-            ResolveDictionary(objects, ownerDictionary.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ? resourcesObject : null) is not PdfDictionary resources ||
-            ResolveDictionary(objects, resources.Items.TryGetValue("XObject", out PdfObject? xObjectObject) ? xObjectObject : null) is not PdfDictionary xObjects) {
+            !TryCloneXObjectResourceDictionary(objects, ownerDictionary, out PdfDictionary xObjects)) {
             return false;
         }
 
         bool changed = false;
-        foreach (PdfObject xObject in xObjects.Items.Values) {
+        foreach (KeyValuePair<string, PdfObject> entry in xObjects.Items.ToArray()) {
+            PdfObject xObject = entry.Value;
             if (xObject is not PdfReference reference ||
                 !visitedFormObjects.Add(reference.ObjectNumber) ||
                 !PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) ||
@@ -246,16 +256,120 @@ public static class PdfRedactionApplier {
             byte[] contentBytes = StreamDecoder.Decode(stream.Dictionary, stream.Data, objects);
             string content = PdfEncoding.Latin1GetString(contentBytes);
             string scrubbed = ScrubTextObjects(content, textMatches, requireIntersection: false);
-            bool nestedChanged = ScrubFormXObjects(objects, stream.Dictionary, textMatches, visitedFormObjects);
+            PdfDictionary clonedFormDictionary = CloneDictionary(stream.Dictionary);
+            bool nestedChanged = ScrubFormXObjects(objects, clonedFormDictionary, textMatches, visitedFormObjects, ref nextObjectNumber);
             if (string.Equals(content, scrubbed, StringComparison.Ordinal) && !nestedChanged) {
                 continue;
             }
 
-            objects[reference.ObjectNumber] = new PdfIndirectObject(reference.ObjectNumber, reference.Generation, new PdfStream(CleanStreamDictionary(stream.Dictionary), PdfEncoding.Latin1GetBytes(scrubbed)));
+            PdfDictionary streamDictionary = CleanStreamDictionary(clonedFormDictionary);
+            if (CountXObjectReferences(objects, reference.ObjectNumber) <= 1) {
+                objects[reference.ObjectNumber] = new PdfIndirectObject(reference.ObjectNumber, reference.Generation, new PdfStream(streamDictionary, PdfEncoding.Latin1GetBytes(scrubbed)));
+                xObjects.Items[entry.Key] = reference;
+            } else {
+                int clonedObjectNumber = nextObjectNumber++;
+                objects[clonedObjectNumber] = new PdfIndirectObject(clonedObjectNumber, 0, new PdfStream(streamDictionary, PdfEncoding.Latin1GetBytes(scrubbed)));
+                xObjects.Items[entry.Key] = new PdfReference(clonedObjectNumber, 0);
+            }
+
             changed = true;
         }
 
         return changed;
+    }
+
+    private static int CountXObjectReferences(Dictionary<int, PdfIndirectObject> objects, int objectNumber) {
+        int count = 0;
+        foreach (PdfIndirectObject indirect in objects.Values) {
+            PdfDictionary? dictionary = indirect.Value switch {
+                PdfDictionary value => value,
+                PdfStream stream => stream.Dictionary,
+                _ => null
+            };
+            if (dictionary is null ||
+                ResolveDictionary(objects, dictionary.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ? resourcesObject : null) is not PdfDictionary resources ||
+                ResolveDictionary(objects, resources.Items.TryGetValue("XObject", out PdfObject? xObjectObject) ? xObjectObject : null) is not PdfDictionary xObjects) {
+                continue;
+            }
+
+            count += xObjects.Items.Values.Count(value => value is PdfReference reference && reference.ObjectNumber == objectNumber);
+        }
+
+        return count;
+    }
+
+    private static int CountPageContentReferences(Dictionary<int, PdfIndirectObject> objects, PdfReference contentReference) {
+        int count = 0;
+        foreach (PdfIndirectObject indirect in objects.Values) {
+            if (indirect.Value is not PdfDictionary dictionary ||
+                !dictionary.Items.ContainsKey("Contents")) {
+                continue;
+            }
+
+            count += EnumerateContentReferences(objects, dictionary.Items["Contents"])
+                .Count(reference => reference.ObjectNumber == contentReference.ObjectNumber && reference.Generation == contentReference.Generation);
+        }
+
+        return count;
+    }
+
+    private static bool TryCloneXObjectResourceDictionary(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary ownerDictionary,
+        out PdfDictionary xObjects) {
+        xObjects = null!;
+        if (ResolveDictionary(objects, ownerDictionary.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ? resourcesObject : null) is not PdfDictionary resources ||
+            ResolveDictionary(objects, resources.Items.TryGetValue("XObject", out PdfObject? xObjectObject) ? xObjectObject : null) is not PdfDictionary sourceXObjects) {
+            return false;
+        }
+
+        PdfDictionary clonedResources = CloneDictionary(resources);
+        xObjects = CloneDictionary(sourceXObjects);
+        clonedResources.Items["XObject"] = xObjects;
+        ownerDictionary.Items["Resources"] = clonedResources;
+        return true;
+    }
+
+    private static PdfDictionary CloneDictionary(PdfDictionary source) {
+        var clone = new PdfDictionary();
+        foreach (KeyValuePair<string, PdfObject> item in source.Items) {
+            clone.Items[item.Key] = item.Value;
+        }
+
+        return clone;
+    }
+
+    private static void ReplacePageContentReference(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary pageDictionary,
+        PdfReference oldReference,
+        PdfReference newReference) {
+        if (!pageDictionary.Items.TryGetValue("Contents", out PdfObject? contentsObject)) {
+            return;
+        }
+
+        if (ReferenceEquals(oldReference, contentsObject) || PdfReferenceEquals(contentsObject, oldReference)) {
+            pageDictionary.Items["Contents"] = newReference;
+            return;
+        }
+
+        PdfArray? sourceArray = PdfObjectLookup.Resolve(objects, contentsObject) as PdfArray;
+        if (sourceArray is null) {
+            return;
+        }
+
+        var clonedArray = new PdfArray();
+        foreach (PdfObject item in sourceArray.Items) {
+            clonedArray.Items.Add(PdfReferenceEquals(item, oldReference) ? newReference : item);
+        }
+
+        pageDictionary.Items["Contents"] = clonedArray;
+    }
+
+    private static bool PdfReferenceEquals(PdfObject value, PdfReference reference) {
+        return value is PdfReference other &&
+            other.ObjectNumber == reference.ObjectNumber &&
+            other.Generation == reference.Generation;
     }
 
     private static bool IsFormXObject(PdfDictionary dictionary) =>

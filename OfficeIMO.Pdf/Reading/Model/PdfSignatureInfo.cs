@@ -22,6 +22,7 @@ public sealed class PdfSignatureInfo {
         int byteRangeValueCount,
         bool hasContents,
         int? contentsSizeBytes,
+        int? contentsEncodedSizeBytes,
         int referenceCount) {
         ObjectNumber = objectNumber;
         FieldObjectNumber = fieldObjectNumber;
@@ -40,6 +41,7 @@ public sealed class PdfSignatureInfo {
         ByteRangeValueCount = byteRangeValueCount;
         HasContents = hasContents;
         ContentsSizeBytes = contentsSizeBytes;
+        ContentsEncodedSizeBytes = contentsEncodedSizeBytes;
         ReferenceCount = referenceCount;
     }
 
@@ -120,6 +122,9 @@ public sealed class PdfSignatureInfo {
 
     /// <summary>Decoded /Contents byte count when the value could be read as a PDF string.</summary>
     public int? ContentsSizeBytes { get; }
+
+    /// <summary>Encoded /Contents placeholder byte count, including delimiters, when readable from source syntax.</summary>
+    public int? ContentsEncodedSizeBytes { get; }
 
     /// <summary>True when /Contents contains at least one decoded byte.</summary>
     public bool HasNonEmptyContents => ContentsSizeBytes.GetValueOrDefault() > 0;
