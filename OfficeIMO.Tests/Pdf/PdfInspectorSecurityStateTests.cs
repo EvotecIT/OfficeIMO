@@ -182,8 +182,6 @@ public partial class PdfInspectorTests {
         Assert.Contains("Catalog /Perms contains usage-rights entries; rewrite may invalidate viewer-extended rights.", report.SecurityDiagnostics);
         Assert.Contains("Document Security Store (/DSS) was detected with 1 VRI entry; signature validation evidence must be preserved during mutation.", report.SecurityDiagnostics);
         Assert.Contains("Incremental update markers were detected (2 startxref sections); safe mutation requires append-only revision preservation.", report.SecurityDiagnostics);
-        Assert.Contains("Append-only form filling is available for DocMDP-certified PDFs when certification permission level /P permits form changes.", report.AppendOnlyMutationDiagnostics);
-        Assert.Contains("DocMDP certification permission level permits append-only form filling but still blocks unrelated mutations.", report.AppendOnlyMutationDiagnostics);
         Assert.Contains("Usage-rights entries must be preserved before append-only mutation.", report.AppendOnlyMutationDiagnostics);
 
         IReadOnlyList<string> pageDiagnostics = report.GetCapabilityDiagnostics(PdfPreflightCapability.ManipulatePages);

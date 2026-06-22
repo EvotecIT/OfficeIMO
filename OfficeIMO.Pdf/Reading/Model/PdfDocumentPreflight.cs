@@ -134,7 +134,8 @@ public sealed partial class PdfDocumentPreflight {
     }
 
     private bool HasFormMutationBlocker() {
-        return Probe.HasSignatures ||
+        return Probe.HasEncryption ||
+            Probe.HasSignatures ||
             Probe.HasActiveContent ||
             DocumentInfo?.AcroFormSignaturesExist == true ||
             DocumentInfo?.HasActiveContent == true;
@@ -261,6 +262,11 @@ public sealed partial class PdfDocumentPreflight {
         if (!CanRead) {
             AddRange(messages, GetReadCapabilityDiagnostics("PDF form operations are not available because OfficeIMO.Pdf cannot read this PDF."));
             return messages.AsReadOnly();
+        }
+
+        if (Probe.HasEncryption) {
+            AddDistinct(messages, "Encrypted PDF files are not supported for form filling or flattening by OfficeIMO.Pdf yet.");
+            AddRange(messages, SecurityDiagnostics);
         }
 
         if (Probe.HasSignatures || DocumentInfo?.AcroFormSignaturesExist == true) {

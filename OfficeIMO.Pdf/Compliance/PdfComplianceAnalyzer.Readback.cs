@@ -38,17 +38,17 @@ public static partial class PdfComplianceAnalyzer {
         }
 
         if (RequiresPdf17FileVersion(profile)) {
-            Add(requirements, "readback-pdf-file-version", "Readback PDF 1.7 file header",
-                string.Equals(info.HeaderVersion, "1.7", StringComparison.Ordinal),
-                "The saved PDF header is PDF 1.7.",
-                "Generate the saved PDF with a PDF 1.7 file header before checking PDF/A-2, PDF/A-3, PDF/UA-1, or e-invoice profile evidence.");
+            Add(requirements, "readback-pdf-file-version", "Readback effective PDF 1.7 version",
+                ComparePdfVersion(info.EffectiveVersion, "1.7") >= 0,
+                "The saved PDF effective version is PDF 1.7 or newer.",
+                "Generate the saved PDF with a PDF 1.7 header or catalog /Version before checking PDF/A-2, PDF/A-3, PDF/UA-1, or e-invoice profile evidence.");
         }
 
         if (RequiresPdf20FileVersion(profile)) {
-            Add(requirements, "readback-pdf-file-version", "Readback PDF 2.0 file header",
-                string.Equals(info.HeaderVersion, "2.0", StringComparison.Ordinal),
-                "The saved PDF header is PDF 2.0.",
-                "Generate the saved PDF with a PDF 2.0 file header before checking PDF/A-4 or PDF/UA-2 profile evidence.");
+            Add(requirements, "readback-pdf-file-version", "Readback effective PDF 2.0 version",
+                ComparePdfVersion(info.EffectiveVersion, "2.0") >= 0,
+                "The saved PDF effective version is PDF 2.0 or newer.",
+                "Generate the saved PDF with a PDF 2.0 header or catalog /Version before checking PDF/A-4 or PDF/UA-2 profile evidence.");
         }
 
         if (IsPdfA(profile) || IsElectronicInvoice(profile)) {
@@ -129,6 +129,32 @@ public static partial class PdfComplianceAnalyzer {
             "Readback sRGB output-intent policy",
             PdfComplianceRequirementStatus.Satisfied,
             "The saved PDF contains an sRGB IEC61966-2.1 /GTS_PDFA1 output intent with RGB ICC profile evidence.");
+    }
+
+    private static int ComparePdfVersion(string? left, string? right) {
+        if (!TryParsePdfVersion(left, out int leftMajor, out int leftMinor)) {
+            return TryParsePdfVersion(right, out _, out _) ? -1 : 0;
+        }
+
+        if (!TryParsePdfVersion(right, out int rightMajor, out int rightMinor)) {
+            return 1;
+        }
+
+        int majorComparison = leftMajor.CompareTo(rightMajor);
+        return majorComparison != 0 ? majorComparison : leftMinor.CompareTo(rightMinor);
+    }
+
+    private static bool TryParsePdfVersion(string? version, out int major, out int minor) {
+        major = 0;
+        minor = 0;
+        if (string.IsNullOrWhiteSpace(version)) {
+            return false;
+        }
+
+        string[] parts = version!.Split('.');
+        return parts.Length == 2 &&
+            int.TryParse(parts[0], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out major) &&
+            int.TryParse(parts[1], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out minor);
     }
 
     private static void AddAccessibilityReadbackRequirements(List<PdfComplianceRequirement> requirements, PdfComplianceProfile profile, PdfDocumentInfo info) {

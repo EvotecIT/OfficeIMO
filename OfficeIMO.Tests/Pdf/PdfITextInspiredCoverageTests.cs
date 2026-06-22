@@ -117,9 +117,13 @@ public class PdfITextInspiredCoverageTests {
         byte[] pdf = BuildDocMdpFormPdf(permissionLevel: 2);
 
         PdfAppendOnlyMutationReport plan = PdfIncrementalUpdater.AnalyzeAppendOnlyMutation(pdf);
+        PdfDocumentPreflight preflight = PdfInspector.Preflight(pdf);
         Assert.True(plan.CanAppendFormFields);
         Assert.False(plan.CanAppendMetadata);
         Assert.Contains("SignedDocMDPFormFill", plan.Warnings);
+        Assert.True(preflight.RequiresAppendOnlyMutation);
+        Assert.True(preflight.CanAppendOnlyMutate);
+        Assert.Empty(preflight.AppendOnlyMutationDiagnostics);
 
         byte[] updated = PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
             ["Name"] = "Grace"

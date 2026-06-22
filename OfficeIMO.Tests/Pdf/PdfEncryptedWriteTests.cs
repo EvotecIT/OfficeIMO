@@ -44,6 +44,23 @@ public class PdfEncryptedWriteTests {
     }
 
     [Fact]
+    public void GeneratedEncryptedFormPdfBlocksFormMutationEvenWithPassword() {
+        byte[] pdf = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
+            .TextField("Name", width: 180, height: 24, value: "Ada")
+            .ToBytes();
+
+        PdfDocumentPreflight preflight = PdfInspector.Preflight(pdf, new PdfReadOptions { Password = "open" });
+
+        Assert.True(preflight.CanRead);
+        Assert.False(preflight.CanFillSimpleFormFields);
+        Assert.False(preflight.CanFlattenSimpleFormFields);
+        Assert.False(preflight.Can(PdfPreflightCapability.FillSimpleFormFields));
+        Assert.Contains(
+            "Encrypted PDF files are not supported for form filling or flattening by OfficeIMO.Pdf yet.",
+            preflight.GetCapabilityDiagnostics(PdfPreflightCapability.FillSimpleFormFields));
+    }
+
+    [Fact]
     public void GeneratedEncryptedPdfCanBeConfiguredThroughDocumentFluentApi() {
         byte[] pdf = PdfDocument.Create()
             .Encryption("open", "owner")
