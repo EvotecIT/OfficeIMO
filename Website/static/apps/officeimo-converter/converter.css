@@ -10,6 +10,35 @@
   padding: 0;
 }
 
+.ocx-launcher {
+  min-height: calc(100vh - 4rem);
+  padding: clamp(1.5rem, 4vw, 4rem) 0 clamp(3rem, 5vw, 5rem);
+  color: var(--imo-text, #e8edf5);
+  background: var(--imo-bg, #030711);
+}
+
+.ocx-launcher-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+  gap: clamp(1.25rem, 3vw, 3rem);
+  align-items: end;
+}
+
+.ocx-launcher-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.8rem;
+  margin-top: clamp(1rem, 2vw, 1.5rem);
+}
+
+.ocx-embed-host {
+  margin-top: 1rem;
+  border: 1px solid var(--imo-glass-border, rgba(255, 255, 255, 0.07));
+  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.025);
+  overflow: hidden;
+}
+
 .ocx-embed-shell {
   min-height: calc(100vh - 4rem);
   background: var(--imo-bg, #030711);
@@ -480,6 +509,16 @@
   color: var(--imo-text-secondary, #7a8ba8);
 }
 
+.ocx-noscript {
+  margin-top: 1rem;
+  color: var(--imo-text-secondary, #7a8ba8);
+}
+
+.ocx-noscript a {
+  color: var(--imo-accent, #38bdf8);
+  font-weight: 800;
+}
+
 #blazor-error-ui {
   display: none;
   position: fixed;
@@ -501,6 +540,7 @@
 
 @media (max-width: 1050px) {
   .ocx-hero,
+  .ocx-launcher-hero,
   .ocx-workbench {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -520,6 +560,7 @@
   }
 
   .ocx-status-strip,
+  .ocx-launcher-grid,
   .ocx-matrix {
     grid-template-columns: 1fr;
   }
