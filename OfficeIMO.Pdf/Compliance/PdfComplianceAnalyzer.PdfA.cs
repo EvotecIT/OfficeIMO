@@ -22,6 +22,8 @@ public static partial class PdfComplianceAnalyzer {
             "PDF/A identification metadata matches " + expectedIdentification + ".",
             "Set PdfOptions.SetPdfAIdentification(...) to " + expectedIdentification + " before claiming this profile.");
 
+        requirements.Add(BuildPdfAEncryptionPolicyRequirement(options));
+
         Add(requirements, "output-intent", "Catalog output intent",
             options.OutputIntent != null,
             "A catalog output intent with a parseable RGB, GRAY, or CMYK ICC profile is configured.",
@@ -36,6 +38,22 @@ public static partial class PdfComplianceAnalyzer {
             "veraPDF validation evidence",
             PdfComplianceRequirementStatus.Unsupported,
             "The optional veraPDF test gate exists for groundwork fixtures, but profile success has not been enabled for generated output."));
+    }
+
+    private static PdfComplianceRequirement BuildPdfAEncryptionPolicyRequirement(PdfOptions options) {
+        if (options.EncryptionSnapshot == null) {
+            return new PdfComplianceRequirement(
+                "pdfa-no-encryption",
+                "PDF/A encryption policy",
+                PdfComplianceRequirementStatus.Satisfied,
+                "No Standard security encryption is configured for the PDF/A-backed output.");
+        }
+
+        return new PdfComplianceRequirement(
+            "pdfa-no-encryption",
+            "PDF/A encryption policy",
+            PdfComplianceRequirementStatus.Missing,
+            "PDF/A-backed profiles cannot be claimed with Standard security encryption. Clear PdfOptions.Encryption before assessing or claiming PDF/A or e-invoice readiness.");
     }
 
     private static PdfComplianceRequirement BuildOutputIntentPolicyRequirement(PdfOptions options) {

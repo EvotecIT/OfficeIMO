@@ -165,7 +165,7 @@
                     <h2>Text bridge</h2>
                     <div class="ocx-field">
                         <label class="ocx-label" for="markupMode">Conversion route</label>
-                        <select id="markupMode" @bind="MarkupMode">
+                        <select id="markupMode" value="@MarkupMode" @onchange="HandleMarkupModeChangedAsync">
                             <option value="markdown-html">Markdown to HTML</option>
                             <option value="html-markdown">HTML to Markdown</option>
                             <option value="markdown-docx">Markdown to DOCX</option>
@@ -503,6 +503,19 @@ This **Markdown** is rendered by `OfficeIMO.MarkdownRenderer`.
         MarkupOutput = "Run HTML to Markdown to see portable Markdown output.";
         MarkupDiagnostics.Clear();
         MarkupDiagnostics.Add(new ConverterDiagnostic("Sample loaded", "HTML sample is ready for local conversion.", "ocx-dot--good"));
+    }
+
+    private async Task HandleMarkupModeChangedAsync(ChangeEventArgs args) {
+        string nextMode = args.Value?.ToString() ?? "markdown-html";
+        if (string.Equals(MarkupMode, nextMode, StringComparison.Ordinal)) {
+            return;
+        }
+
+        MarkupMode = nextMode;
+        await ResetMarkupAsync();
+        MarkupOutput = "Run the selected text conversion to generate fresh output.";
+        MarkupDiagnostics.Clear();
+        MarkupDiagnostics.Add(new ConverterDiagnostic("Route changed", "The previous download was cleared.", "ocx-dot--warn"));
     }
 
     private async Task ConvertMarkupAsync() {
