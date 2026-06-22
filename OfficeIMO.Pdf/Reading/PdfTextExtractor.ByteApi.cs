@@ -18,7 +18,7 @@ public static partial class PdfTextExtractor {
         string? readModelText = null;
         try {
             readModelText = PdfReadDocument.Load(pdf, readOptions).ExtractText();
-        } catch (Exception ex) when (ex is not NotSupportedException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
+        } catch (Exception ex) when (ex is not PdfEncryptionException && ex is not NotSupportedException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
             // Keep the legacy stream scan as a fallback for malformed-but-readable PDFs.
         }
 

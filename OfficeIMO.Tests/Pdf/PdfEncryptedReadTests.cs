@@ -193,9 +193,9 @@ public class PdfEncryptedReadTests {
         }
 
         private static string EscapePdfString(string value) {
-            return value.Replace("\\", "\\\\", StringComparison.Ordinal)
-                .Replace("(", "\\(", StringComparison.Ordinal)
-                .Replace(")", "\\)", StringComparison.Ordinal);
+            return value.Replace("\\", "\\\\")
+                .Replace("(", "\\(")
+                .Replace(")", "\\)");
         }
 
         private static byte[] Ascii(string value) {

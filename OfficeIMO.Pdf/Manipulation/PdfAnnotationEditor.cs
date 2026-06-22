@@ -17,6 +17,7 @@ public static class PdfAnnotationEditor {
 
         List<int> pageObjectNumbers = GetPageObjectNumbersInDocumentOrder(objects);
         var removed = new HashSet<int>();
+        bool changed = false;
         for (int pageIndex = 0; pageIndex < pageObjectNumbers.Count; pageIndex++) {
             if (effectiveOptions.PageNumber.HasValue && effectiveOptions.PageNumber.Value != pageIndex + 1) {
                 continue;
@@ -52,10 +53,16 @@ public static class PdfAnnotationEditor {
                 }
 
                 annotations.Items.RemoveAt(i);
+                changed = true;
+            }
+
+            if (effectiveOptions.RemoveMatchingPopups) {
+                RemovePopupReferences(annotations, removed, ref changed);
             }
 
             if (annotations.Items.Count == 0) {
                 page.Items.Remove("Annots");
+                changed = true;
             }
         }
 
@@ -63,12 +70,12 @@ public static class PdfAnnotationEditor {
             objects.Remove(objectNumber);
         }
 
-        if (removed.Count == 0) {
+        if (!changed && removed.Count == 0) {
             return new PdfAnnotationEditResult((byte[])pdf.Clone(), 0);
         }
 
         byte[] rewritten = RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Load(pdf).Metadata, pdf);
-        return new PdfAnnotationEditResult(rewritten, removed.Count);
+        return new PdfAnnotationEditResult(rewritten, Math.Max(removed.Count, 1));
     }
 
     /// <summary>Updates a single indirect annotation and returns rewritten PDF bytes.</summary>
@@ -203,6 +210,22 @@ public static class PdfAnnotationEditor {
 
     private static bool IsAnnotation(PdfDictionary dictionary) {
         return dictionary.Get<PdfName>("Type")?.Name == "Annot" || dictionary.Items.ContainsKey("Subtype");
+    }
+
+    private static void RemovePopupReferences(PdfArray annotations, HashSet<int> removed, ref bool changed) {
+        if (removed.Count == 0) {
+            return;
+        }
+
+        for (int i = annotations.Items.Count - 1; i >= 0; i--) {
+            if (annotations.Items[i] is not PdfReference reference ||
+                !removed.Contains(reference.ObjectNumber)) {
+                continue;
+            }
+
+            annotations.Items.RemoveAt(i);
+            changed = true;
+        }
     }
 
     private static string? TryReadName(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, string key) {

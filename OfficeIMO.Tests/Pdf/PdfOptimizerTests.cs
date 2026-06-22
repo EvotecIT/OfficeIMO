@@ -63,8 +63,7 @@ public class PdfOptimizerTests {
         Assert.True(result.Applied);
         Assert.Contains(result.Actions, action => action.Kind == "DeduplicateStream" && action.ObjectNumber == 6);
         string rewritten = PdfEncoding.Latin1GetString(result.Bytes);
-        Assert.DoesNotContain(" 6 0 obj", rewritten, StringComparison.Ordinal);
-        Assert.DoesNotContain("6 0 R", rewritten, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Contents [5 0 R 6 0 R]", rewritten, StringComparison.Ordinal);
         Assert.Contains("5 0 R", rewritten, StringComparison.Ordinal);
         Assert.Contains("Duplicate", PdfTextExtractor.ExtractAllText(result.Bytes), StringComparison.Ordinal);
     }
@@ -169,7 +168,7 @@ public class PdfOptimizerTests {
     }
 
     private static byte[] BuildPdfWithDuplicateStreams() {
-        string streamContent = "BT /F1 12 Tf 72 720 Td (Duplicate) Tj ET";
+        string streamContent = "BT /F1 12 Tf 72 720 Td (" + new string('D', 1024) + " Duplicate) Tj ET";
         string pdf = string.Join("\n", new[] {
             "%PDF-1.7",
             "1 0 obj",

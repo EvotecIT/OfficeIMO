@@ -45,7 +45,7 @@ public static class PdfOptimizer {
             RemoveUnreferencedObjects(optimizedObjects, catalogObjectNumber, actions);
         }
 
-        byte[] candidate = RewriteAllObjects(optimizedObjects, catalogObjectNumber, pdf);
+        byte[] candidate = RewriteAllObjects(optimizedObjects, catalogObjectNumber, PdfReadDocument.Load(pdf).Metadata, pdf);
         PdfOptimizationReport reportAfter = PdfDiagnostics.AnalyzeOptimization(candidate);
         if (effectiveOptions.KeepOriginalWhenNotSmaller && candidate.Length >= pdf.Length) {
             return new PdfOptimizationActionResult(
@@ -280,7 +280,7 @@ public static class PdfOptimizer {
         }
     }
 
-    private static byte[] RewriteAllObjects(Dictionary<int, PdfIndirectObject> objects, int catalogObjectNumber, byte[] sourcePdf) {
+    private static byte[] RewriteAllObjects(Dictionary<int, PdfIndirectObject> objects, int catalogObjectNumber, PdfMetadata metadata, byte[] sourcePdf) {
         int[] sourceIds = objects.Keys.OrderBy(static id => id).ToArray();
         var numberMap = new Dictionary<int, int>(sourceIds.Length);
         for (int i = 0; i < sourceIds.Length; i++) {
@@ -294,7 +294,7 @@ public static class PdfOptimizer {
         }
 
         int infoId = rewritten.Count + 1;
-        rewritten.Add(PdfPageExtractor.WrapObject(infoId, PdfEncoding.Latin1GetBytes(PdfPageExtractor.BuildInfoDictionary(new PdfMetadata()))));
+        rewritten.Add(PdfPageExtractor.WrapObject(infoId, PdfEncoding.Latin1GetBytes(PdfPageExtractor.BuildInfoDictionary(metadata))));
 
         PdfFileVersion fileVersion = PdfFileAssembler.ParseHeaderVersionOrDefault(PdfSyntax.GetHeaderVersion(sourcePdf));
         return PdfPageExtractor.Assemble(rewritten, numberMap[catalogObjectNumber], infoId, fileVersion);

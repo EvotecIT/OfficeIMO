@@ -10,8 +10,10 @@ namespace OfficeIMO.Pdf;
 public static class PdfRedactionApplier {
     private static readonly TimeSpan RegexTimeout = TimeSpan.FromSeconds(2);
     private static readonly Regex TextObjectRegex = new Regex(@"\bBT\b[\s\S]*?\bET\b", RegexOptions.Compiled, RegexTimeout);
+    private static readonly Regex TextStringRegex = new Regex(@"<([0-9A-Fa-f\s]+)>|(\((?:\\.|[^\\()])*\))", RegexOptions.Compiled, RegexTimeout);
     private static readonly Regex HexStringRegex = new Regex(@"<([0-9A-Fa-f\s]+)>", RegexOptions.Compiled, RegexTimeout);
     private static readonly Regex LiteralStringRegex = new Regex(@"\((?:\\.|[^\\()])*\)", RegexOptions.Compiled, RegexTimeout);
+    private static readonly Regex FontSelectionRegex = new Regex(@"/([^\s/]+)\s+[-+]?(?:\d+(?:\.\d+)?|\.\d+)\s+Tf\b", RegexOptions.Compiled, RegexTimeout);
 
     /// <summary>
     /// Applies rectangle-based redactions to a PDF byte array and returns rewritten PDF bytes.
@@ -118,10 +120,6 @@ public static class PdfRedactionApplier {
         var areasByPage = areas
             .GroupBy(area => area.PageNumber)
             .ToDictionary(group => group.Key, group => group.ToArray());
-        var annotationObjectNumbers = new HashSet<int>(plan.Matches
-            .Where(match => match.Kind == PdfRedactionMatchKind.Annotation && match.ObjectNumber.HasValue)
-            .Select(match => match.ObjectNumber!.Value));
-
         bool changed = false;
         int nextObjectNumber = objects.Keys.Count == 0 ? 1 : objects.Keys.Max() + 1;
         for (int pageIndex = 0; pageIndex < document.Pages.Count; pageIndex++) {
@@ -139,10 +137,11 @@ public static class PdfRedactionApplier {
                 continue;
             }
 
-            bool pageChanged = RemoveMatchedTextObjects(objects, pageDictionary, pageMatches ?? Array.Empty<PdfRedactionMatch>());
-            pageChanged = RemoveMatchedAnnotations(objects, pageDictionary, annotationObjectNumbers) || pageChanged;
+            PdfRedactionMatch[] currentMatches = pageMatches ?? Array.Empty<PdfRedactionMatch>();
+            bool pageChanged = RemoveMatchedTextObjects(objects, pageDictionary, currentMatches);
+            pageChanged = RemoveMatchedAnnotations(objects, pageDictionary, currentMatches) || pageChanged;
 
-            PdfRedactionArea[] paintAreas = SelectPaintAreas(pageAreas ?? Array.Empty<PdfRedactionArea>(), pageMatches ?? Array.Empty<PdfRedactionMatch>(), options);
+            PdfRedactionArea[] paintAreas = SelectPaintAreas(pageAreas ?? Array.Empty<PdfRedactionArea>(), currentMatches, options);
             if (paintAreas.Length > 0) {
                 int contentObjectNumber = nextObjectNumber++;
                 objects[contentObjectNumber] = new PdfIndirectObject(contentObjectNumber, 0, BuildRedactionContentStream(paintAreas, options.FillColor));
@@ -181,7 +180,8 @@ public static class PdfRedactionApplier {
 
             byte[] contentBytes = StreamDecoder.Decode(stream.Dictionary, stream.Data, objects);
             string content = PdfEncoding.Latin1GetString(contentBytes);
-            string scrubbed = ScrubTextObjects(content, textMatches);
+            Dictionary<string, Func<byte[], string>> fontDecoders = ResourceResolver.GetFontDecoders(pageDictionary, objects);
+            string scrubbed = ScrubTextObjects(content, textMatches, fontDecoders);
             if (string.Equals(content, scrubbed, StringComparison.Ordinal)) {
                 continue;
             }
@@ -193,37 +193,111 @@ public static class PdfRedactionApplier {
         return changed;
     }
 
-    private static string ScrubTextObjects(string content, string[] normalizedTextMatches) {
-        return TextObjectRegex.Replace(content, match => {
-            string shownText = NormalizeText(ExtractTextFromTextObject(match.Value));
-            if (shownText.Length == 0) {
-                return match.Value;
-            }
-
-            for (int i = 0; i < normalizedTextMatches.Length; i++) {
-                if (ContainsOrdinal(shownText, normalizedTextMatches[i])) {
-                    return string.Empty;
-                }
-            }
-
-            return match.Value;
-        });
-    }
-
-    private static string ExtractTextFromTextObject(string textObject) {
-        var builder = new StringBuilder();
-        foreach (Match match in HexStringRegex.Matches(textObject)) {
-            builder.Append(DecodeHexString(match.Groups[1].Value));
+    private static string ScrubTextObjects(
+        string content,
+        string[] normalizedTextMatches,
+        IReadOnlyDictionary<string, Func<byte[], string>> fontDecoders) {
+        List<RedactionTextObject> textObjects = CollectTextObjects(content, fontDecoders);
+        if (textObjects.Count == 0) {
+            return content;
         }
 
-        foreach (Match match in LiteralStringRegex.Matches(textObject)) {
-            builder.Append(DecodeLiteralString(match.Value));
+        var removeByIndex = new HashSet<int>();
+        for (int targetIndex = 0; targetIndex < normalizedTextMatches.Length; targetIndex++) {
+            MarkMatchingTextObjects(textObjects, normalizedTextMatches[targetIndex], removeByIndex);
+        }
+
+        if (removeByIndex.Count == 0) {
+            return content;
+        }
+
+        return TextObjectRegex.Replace(content, match => removeByIndex.Contains(match.Index) ? string.Empty : match.Value);
+    }
+
+    private static List<RedactionTextObject> CollectTextObjects(
+        string content,
+        IReadOnlyDictionary<string, Func<byte[], string>> fontDecoders) {
+        var textObjects = new List<RedactionTextObject>();
+        foreach (Match match in TextObjectRegex.Matches(content)) {
+            string shownText = NormalizeText(ExtractTextFromTextObject(match.Value, fontDecoders));
+            if (shownText.Length == 0) {
+                continue;
+            }
+
+            textObjects.Add(new RedactionTextObject(match.Index, shownText));
+        }
+
+        return textObjects;
+    }
+
+    private static void MarkMatchingTextObjects(
+        List<RedactionTextObject> textObjects,
+        string normalizedTextMatch,
+        HashSet<int> removeByIndex) {
+        if (normalizedTextMatch.Length == 0) {
+            return;
+        }
+
+        for (int start = 0; start < textObjects.Count; start++) {
+            if (ContainsOrdinal(textObjects[start].Text, normalizedTextMatch)) {
+                removeByIndex.Add(textObjects[start].Index);
+                continue;
+            }
+
+            var builder = new StringBuilder();
+            for (int end = start; end < textObjects.Count; end++) {
+                if (builder.Length > 0) {
+                    builder.Append(' ');
+                }
+
+                builder.Append(textObjects[end].Text);
+                string combined = NormalizeText(builder.ToString());
+                if (!combined.StartsWith(normalizedTextMatch, StringComparison.Ordinal)) {
+                    continue;
+                }
+
+                for (int remove = start; remove <= end; remove++) {
+                    removeByIndex.Add(textObjects[remove].Index);
+                }
+
+                break;
+            }
+        }
+    }
+
+    private static string ExtractTextFromTextObject(
+        string textObject,
+        IReadOnlyDictionary<string, Func<byte[], string>> fontDecoders) {
+        var builder = new StringBuilder();
+        string? currentFont = null;
+        int cursor = 0;
+        foreach (Match match in TextStringRegex.Matches(textObject)) {
+            currentFont = ReadLastFontName(textObject.Substring(cursor, match.Index - cursor)) ?? currentFont;
+            if (match.Groups[1].Success) {
+                builder.Append(DecodeHexString(match.Groups[1].Value, currentFont, fontDecoders));
+            } else {
+                builder.Append(DecodeLiteralString(match.Groups[2].Value));
+            }
+
+            cursor = match.Index + match.Length;
         }
 
         return builder.ToString();
     }
 
-    private static string DecodeHexString(string value) {
+    private static string? ReadLastFontName(string value) {
+        string? fontName = null;
+        foreach (Match match in FontSelectionRegex.Matches(value)) {
+            fontName = match.Groups[1].Value;
+        }
+
+        return fontName;
+    }
+
+    private static string DecodeHexString(
+        string value,
+        string? currentFont,
+        IReadOnlyDictionary<string, Func<byte[], string>> fontDecoders) {
         string hex = RemoveWhitespace(value);
         if (hex.Length == 0) {
             return string.Empty;
@@ -236,6 +310,11 @@ public static class PdfRedactionApplier {
         var bytes = new byte[hex.Length / 2];
         for (int i = 0; i < bytes.Length; i++) {
             bytes[i] = Convert.ToByte(hex.Substring(i * 2, 2), 16);
+        }
+
+        if (!string.IsNullOrEmpty(currentFont) &&
+            fontDecoders.TryGetValue(currentFont!, out Func<byte[], string>? decoder)) {
+            return decoder(bytes);
         }
 
         return PdfWinAnsiEncoding.Decode(bytes);
@@ -272,24 +351,47 @@ public static class PdfRedactionApplier {
     private static bool RemoveMatchedAnnotations(
         Dictionary<int, PdfIndirectObject> objects,
         PdfDictionary pageDictionary,
-        HashSet<int> annotationObjectNumbers) {
-        if (annotationObjectNumbers.Count == 0 ||
+        IReadOnlyList<PdfRedactionMatch> matches) {
+        PdfRedactionMatch[] annotationMatches = matches
+            .Where(match => match.Kind == PdfRedactionMatchKind.Annotation)
+            .ToArray();
+        if (annotationMatches.Length == 0 ||
             !pageDictionary.Items.TryGetValue("Annots", out PdfObject? annotsObject) ||
             PdfObjectLookup.Resolve(objects, annotsObject) is not PdfArray annotations) {
             return false;
         }
 
+        var annotationObjectNumbers = new HashSet<int>(annotationMatches
+            .Where(match => match.ObjectNumber.HasValue)
+            .Select(match => match.ObjectNumber!.Value));
+        var popupObjectNumbers = new HashSet<int>();
         bool changed = false;
         for (int i = annotations.Items.Count - 1; i >= 0; i--) {
-            if (annotations.Items[i] is not PdfReference reference ||
-                !annotationObjectNumbers.Contains(reference.ObjectNumber)) {
+            PdfObject item = annotations.Items[i];
+            PdfReference? reference = item as PdfReference;
+            PdfDictionary? annotation = PdfObjectLookup.Resolve(objects, item) as PdfDictionary;
+            if (annotation is null) {
                 continue;
             }
 
+            bool removeAnnotation =
+                (reference is not null && annotationObjectNumbers.Contains(reference.ObjectNumber)) ||
+                MatchesAnnotationRedaction(objects, annotation, annotationMatches);
+            if (!removeAnnotation) {
+                continue;
+            }
+
+            AddPopupObjectNumber(annotation, popupObjectNumbers);
+            if (reference is not null) {
+                annotationObjectNumbers.Add(reference.ObjectNumber);
+                objects.Remove(reference.ObjectNumber);
+            }
+
             annotations.Items.RemoveAt(i);
-            objects.Remove(reference.ObjectNumber);
             changed = true;
         }
+
+        RemovePopupReferences(objects, annotations, annotationObjectNumbers, popupObjectNumbers, ref changed);
 
         if (!changed) {
             return false;
@@ -299,6 +401,129 @@ public static class PdfRedactionApplier {
             pageDictionary.Items.Remove("Annots");
         }
 
+        return true;
+    }
+
+    private static bool MatchesAnnotationRedaction(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary annotation,
+        PdfRedactionMatch[] annotationMatches) {
+        if (!TryReadRect(objects, annotation, out double x, out double y, out double width, out double height)) {
+            return false;
+        }
+
+        string? subtype = TryReadName(objects, annotation, "Subtype");
+        for (int i = 0; i < annotationMatches.Length; i++) {
+            PdfRedactionMatch match = annotationMatches[i];
+            if (!string.IsNullOrEmpty(match.Subtype) &&
+                !string.Equals(match.Subtype, subtype, StringComparison.OrdinalIgnoreCase)) {
+                continue;
+            }
+
+            if (AreClose(match.X, x) &&
+                AreClose(match.Y, y) &&
+                AreClose(match.Width, width) &&
+                AreClose(match.Height, height)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static void AddPopupObjectNumber(PdfDictionary annotation, HashSet<int> popupObjectNumbers) {
+        if (annotation.Items.TryGetValue("Popup", out PdfObject? popupObject) &&
+            popupObject is PdfReference popupReference) {
+            popupObjectNumbers.Add(popupReference.ObjectNumber);
+        }
+    }
+
+    private static void RemovePopupReferences(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfArray annotations,
+        HashSet<int> removedAnnotationObjectNumbers,
+        HashSet<int> popupObjectNumbers,
+        ref bool changed) {
+        for (int i = annotations.Items.Count - 1; i >= 0; i--) {
+            PdfObject item = annotations.Items[i];
+            PdfReference? reference = item as PdfReference;
+            PdfDictionary? annotation = PdfObjectLookup.Resolve(objects, item) as PdfDictionary;
+            if (annotation is null) {
+                continue;
+            }
+
+            bool removePopup =
+                (reference is not null && popupObjectNumbers.Contains(reference.ObjectNumber)) ||
+                IsPopupForRemovedAnnotation(annotation, removedAnnotationObjectNumbers);
+            if (!removePopup) {
+                continue;
+            }
+
+            if (reference is not null) {
+                objects.Remove(reference.ObjectNumber);
+            }
+
+            annotations.Items.RemoveAt(i);
+            changed = true;
+        }
+    }
+
+    private static bool IsPopupForRemovedAnnotation(PdfDictionary annotation, HashSet<int> removedAnnotationObjectNumbers) {
+        if (!string.Equals(annotation.Get<PdfName>("Subtype")?.Name, "Popup", StringComparison.OrdinalIgnoreCase)) {
+            return false;
+        }
+
+        return annotation.Items.TryGetValue("Parent", out PdfObject? parentObject) &&
+            parentObject is PdfReference parentReference &&
+            removedAnnotationObjectNumbers.Contains(parentReference.ObjectNumber);
+    }
+
+    private static string? TryReadName(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, string key) {
+        return dictionary.Items.TryGetValue(key, out PdfObject? value) &&
+            PdfObjectLookup.Resolve(objects, value) is PdfName name &&
+            !string.IsNullOrEmpty(name.Name)
+            ? name.Name
+            : null;
+    }
+
+    private static bool TryReadRect(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary dictionary,
+        out double x,
+        out double y,
+        out double width,
+        out double height) {
+        x = 0D;
+        y = 0D;
+        width = 0D;
+        height = 0D;
+        if (!dictionary.Items.TryGetValue("Rect", out PdfObject? rectObject) ||
+            PdfObjectLookup.Resolve(objects, rectObject) is not PdfArray rect ||
+            rect.Items.Count < 4 ||
+            PdfObjectLookup.Resolve(objects, rect.Items[0]) is not PdfNumber x1 ||
+            PdfObjectLookup.Resolve(objects, rect.Items[1]) is not PdfNumber y1 ||
+            PdfObjectLookup.Resolve(objects, rect.Items[2]) is not PdfNumber x2 ||
+            PdfObjectLookup.Resolve(objects, rect.Items[3]) is not PdfNumber y2) {
+            return false;
+        }
+
+        double left = Math.Min(x1.Value, x2.Value);
+        double right = Math.Max(x1.Value, x2.Value);
+        double bottom = Math.Min(y1.Value, y2.Value);
+        double top = Math.Max(y1.Value, y2.Value);
+        if (double.IsNaN(left) || double.IsInfinity(left) ||
+            double.IsNaN(right) || double.IsInfinity(right) ||
+            double.IsNaN(bottom) || double.IsInfinity(bottom) ||
+            double.IsNaN(top) || double.IsInfinity(top) ||
+            right <= left ||
+            top <= bottom) {
+            return false;
+        }
+
+        x = left;
+        y = bottom;
+        width = right - left;
+        height = top - bottom;
         return true;
     }
 
@@ -527,5 +752,16 @@ public static class PdfRedactionApplier {
         }
 
         public bool HasChanges { get; }
+    }
+
+    private readonly struct RedactionTextObject {
+        public RedactionTextObject(int index, string text) {
+            Index = index;
+            Text = text;
+        }
+
+        public int Index { get; }
+
+        public string Text { get; }
     }
 }

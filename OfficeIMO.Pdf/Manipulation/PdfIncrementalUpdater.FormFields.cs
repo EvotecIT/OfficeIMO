@@ -45,10 +45,12 @@ public static partial class PdfIncrementalUpdater {
         int inheritedFlags = 0;
         int nextObjectNumber = objects.Keys.Count == 0 ? 1 : objects.Keys.Max() + 1;
         int helveticaFontObjectNumber = 0;
+        int? fieldsContainerObjectNumber = fieldsObject is PdfReference fieldsReference ? fieldsReference.ObjectNumber : null;
         for (int i = 0; i < fields.Items.Count; i++) {
             UpdateFormField(
                 objects,
                 fields.Items[i],
+                fieldsContainerObjectNumber,
                 null,
                 null,
                 inheritedFlags,
@@ -140,6 +142,7 @@ public static partial class PdfIncrementalUpdater {
     private static void UpdateFormField(
         Dictionary<int, PdfIndirectObject> objects,
         PdfObject fieldObject,
+        int? containingObjectNumber,
         string? parentName,
         string? inheritedFieldType,
         int inheritedFlags,
@@ -178,6 +181,8 @@ public static partial class PdfIncrementalUpdater {
             SetIncrementalFieldValue(field, fieldType, actualValue);
             if (objectNumber.HasValue) {
                 changedObjectNumbers.Add(objectNumber.Value);
+            } else if (containingObjectNumber.HasValue) {
+                changedObjectNumbers.Add(containingObjectNumber.Value);
             }
 
             if (options.GenerateAppearanceStreams) {
@@ -199,7 +204,8 @@ public static partial class PdfIncrementalUpdater {
         }
 
         for (int i = 0; i < kids.Items.Count; i++) {
-            UpdateFormField(objects, kids.Items[i], fullName, fieldType, fieldFlags, fieldQuadding, fieldMaxLength, defaultResources, fieldValues, remaining, changedObjectNumbers, options, visited, ref nextObjectNumber, ref helveticaFontObjectNumber);
+            int? kidsContainerObjectNumber = kidsObject is PdfReference kidsReference ? kidsReference.ObjectNumber : objectNumber;
+            UpdateFormField(objects, kids.Items[i], kidsContainerObjectNumber, fullName, fieldType, fieldFlags, fieldQuadding, fieldMaxLength, defaultResources, fieldValues, remaining, changedObjectNumbers, options, visited, ref nextObjectNumber, ref helveticaFontObjectNumber);
         }
     }
 

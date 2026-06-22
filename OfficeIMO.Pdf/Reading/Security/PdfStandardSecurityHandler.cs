@@ -213,7 +213,7 @@ internal sealed class PdfStandardSecurityHandler {
         if (revision >= 3) {
             byte[] current = Take(digest, keyLengthBytes);
             for (int i = 0; i < 50; i++) {
-                current = Md5(current);
+                current = Md5(Take(current, keyLengthBytes));
             }
 
             digest = current;
