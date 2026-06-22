@@ -1,6 +1,6 @@
 ---
 title: "Conversion Playground"
-description: "Convert DOCX, XLSX, and PPTX files to PDF locally in the browser with OfficeIMO WebAssembly."
+description: "Run selected OfficeIMO document conversions locally in the browser with WebAssembly."
 layout: playground
 ---
 
@@ -9,8 +9,8 @@ layout: playground
     <section class="ocx-launcher-hero">
       <div>
         <p class="ocx-eyebrow">OfficeIMO WebAssembly</p>
-        <h1 class="ocx-title">Convert Office files to PDF in your browser.</h1>
-        <p class="ocx-lede">Run the OfficeIMO converter locally for DOCX, XLSX, and PPTX files. The WebAssembly app loads only when you start it, so this page stays lightweight until you need the engine.</p>
+        <h1 class="ocx-title">Show the OfficeIMO conversion engine in the browser.</h1>
+        <p class="ocx-lede">Run selected OfficeIMO engines locally: DOCX, XLSX, and PPTX to PDF; Markdown to HTML; HTML to Markdown; and Markdown to DOCX. The app also maps the wider engine surface: Word to Markdown, Word to HTML, Excel to CSV/JSON/HTML-style outputs, Reader extraction, PDF operations, Markup exporters, MCP tools, skills, and server workflows.</p>
         <div class="ocx-hero-actions">
           <button class="ocx-button ocx-button--primary" type="button" data-ocx-start>Start converter</button>
           <a class="ocx-button" href="/apps/officeimo-converter/" data-ocx-direct>Open full app</a>
@@ -27,22 +27,22 @@ layout: playground
         </div>
         <div class="ocx-status-card">
           <span class="ocx-status-label">Formats</span>
-          <span class="ocx-status-value">DOCX XLSX PPTX</span>
+          <span class="ocx-status-value">PDF MD HTML DOCX</span>
         </div>
       </div>
     </section>
     <section class="ocx-launcher-grid" aria-label="Conversion capabilities">
       <div class="ocx-matrix-item">
-        <strong>Word to PDF</strong>
-        <span>Simple DOCX files convert in the browser. Rich Word files can still expose Unicode font embedding gaps.</span>
+        <strong>Office to PDF</strong>
+        <span>DOCX, XLSX, and PPTX streams convert locally with OfficeIMO.Word.Pdf, OfficeIMO.Excel.Pdf, and OfficeIMO.PowerPoint.Pdf.</span>
       </div>
       <div class="ocx-matrix-item">
-        <strong>Excel to PDF</strong>
-        <span>Workbook streams flow through OfficeIMO.Excel.Pdf and download as local PDF output.</span>
+        <strong>Markdown and HTML</strong>
+        <span>Markdown renders to HTML, HTML converts back to Markdown, and Markdown can generate a downloadable DOCX package.</span>
       </div>
       <div class="ocx-matrix-item">
-        <strong>PowerPoint to PDF</strong>
-        <span>Presentation streams flow through OfficeIMO.PowerPoint.Pdf with no Office or server process.</span>
+        <strong>Engine roadmap</strong>
+        <span>The in-app map separates live browser routes from next browser routes and CLI, PowerShell, MCP, plugin, skill, and server candidates.</span>
       </div>
     </section>
     <div class="ocx-embed-host" data-ocx-frame-host hidden></div>
