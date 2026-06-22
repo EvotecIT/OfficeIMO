@@ -103,6 +103,17 @@ public class PdfRedactionApplierTests {
     }
 
     [Fact]
+    public void Apply_ScrubsFormXObjectsFromInheritedPageResources() {
+        byte[] source = BuildInheritedFormXObjectTextPdf();
+        PdfRedactionArea area = FindAreaForText(source, "Inherited form secret");
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
+        string text = PdfTextExtractor.ExtractAllText(redacted);
+
+        Assert.DoesNotContain("Inherited form secret", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Apply_ClonesSharedPageContentBeforeScrubbingText() {
         byte[] source = BuildSharedPageContentPdf();
         PdfRedactionArea area = FindAreasForText(source, "Shared page secret")
@@ -170,6 +181,19 @@ public class PdfRedactionApplierTests {
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /XObject << /Fm1 5 0 R >> >> /Contents 6 0 R >>",
             "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
             BuildStream("BT\n/F1 12 Tf\n0 0 Td\n(Form secret) Tj\nET", "/Type /XObject /Subtype /Form /BBox [0 0 200 50] /Resources << /Font << /F1 4 0 R >> >>"),
+            BuildStream("q\n1 0 0 1 100 100 cm\n/Fm1 Do\nQ")
+        };
+
+        return Encoding.ASCII.GetBytes(BuildPdf(objects));
+    }
+
+    private static byte[] BuildInheritedFormXObjectTextPdf() {
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] /Resources << /XObject << /Fm1 5 0 R >> >> >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Contents 6 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            BuildStream("BT\n/F1 12 Tf\n0 0 Td\n(Inherited form secret) Tj\nET", "/Type /XObject /Subtype /Form /BBox [0 0 200 50] /Resources << /Font << /F1 4 0 R >> >>"),
             BuildStream("q\n1 0 0 1 100 100 cm\n/Fm1 Do\nQ")
         };
 

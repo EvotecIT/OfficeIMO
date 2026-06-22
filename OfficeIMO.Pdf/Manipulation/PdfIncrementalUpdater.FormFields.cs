@@ -48,11 +48,14 @@ public static partial class PdfIncrementalUpdater {
         int? acroFormContainerObjectNumber = acroFormObject is PdfReference acroFormReference
             ? acroFormReference.ObjectNumber
             : security.RootObjectNumber.Value;
+        int? fieldContainerObjectNumber = fieldsObject is PdfReference fieldsReference
+            ? fieldsReference.ObjectNumber
+            : acroFormContainerObjectNumber;
         for (int i = 0; i < fields.Items.Count; i++) {
             UpdateFormField(
                 objects,
                 fields.Items[i],
-                acroFormContainerObjectNumber,
+                fieldContainerObjectNumber,
                 null,
                 null,
                 inheritedFlags,

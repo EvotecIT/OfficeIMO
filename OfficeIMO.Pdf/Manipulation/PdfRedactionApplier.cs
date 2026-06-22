@@ -318,7 +318,8 @@ public static class PdfRedactionApplier {
         PdfDictionary ownerDictionary,
         out PdfDictionary xObjects) {
         xObjects = null!;
-        if (ResolveDictionary(objects, ownerDictionary.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ? resourcesObject : null) is not PdfDictionary resources ||
+        if (!TryGetInheritedValue(objects, ownerDictionary, "Resources", out PdfObject? resourcesObject) ||
+            ResolveDictionary(objects, resourcesObject) is not PdfDictionary resources ||
             ResolveDictionary(objects, resources.Items.TryGetValue("XObject", out PdfObject? xObjectObject) ? xObjectObject : null) is not PdfDictionary sourceXObjects) {
             return false;
         }
@@ -337,6 +338,40 @@ public static class PdfRedactionApplier {
         }
 
         return clone;
+    }
+
+    private static bool TryGetInheritedValue(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary dictionary,
+        string key,
+        out PdfObject? value) {
+        var visitedParents = new HashSet<int>();
+        PdfDictionary? current = dictionary;
+        while (current is not null) {
+            if (current.Items.TryGetValue(key, out value)) {
+                return true;
+            }
+
+            if (!current.Items.TryGetValue("Parent", out PdfObject? parentObject)) {
+                break;
+            }
+
+            if (parentObject is PdfReference parentReference) {
+                if (!visitedParents.Add(parentReference.ObjectNumber) ||
+                    !PdfObjectLookup.TryGet(objects, parentReference, out PdfIndirectObject? parentIndirect) ||
+                    parentIndirect.Value is not PdfDictionary parentDictionary) {
+                    break;
+                }
+
+                current = parentDictionary;
+                continue;
+            }
+
+            current = ResolveDictionary(objects, parentObject);
+        }
+
+        value = null;
+        return false;
     }
 
     private static void ReplacePageContentReference(

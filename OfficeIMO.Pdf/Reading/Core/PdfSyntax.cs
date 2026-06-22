@@ -31,6 +31,21 @@ internal static partial class PdfSyntax {
             int end = FindObjectEnd(text, start);
             if (end < 0) end = (i + 1 < matches.Count) ? matches[i + 1].Index : text.Length;
 
+            int preliminaryBodyEnd = end;
+            if (preliminaryBodyEnd - 6 >= bodyStart && string.Equals(text.Substring(preliminaryBodyEnd - 6, 6), "endobj", StringComparison.Ordinal)) {
+                preliminaryBodyEnd -= 6;
+            }
+
+            string preliminaryBody = SafeSlice(text, bodyStart, preliminaryBodyEnd - bodyStart, 1_000_000).Trim();
+            if (preliminaryBody.Length > 0 && preliminaryBody[0] == '[') {
+                var parsedArray = ParseTopLevelObject(preliminaryBody);
+                if (parsedArray is not null) {
+                    map[id] = new PdfIndirectObject(id, gen, parsedArray);
+                    parsedOffsets[id] = start;
+                    continue;
+                }
+            }
+
             // Extract dictionary (balanced << >>) within object bounds
             int dictStart = text.IndexOf("<<", start, end - start, System.StringComparison.Ordinal);
             if (dictStart >= 0) {
@@ -74,13 +89,7 @@ internal static partial class PdfSyntax {
             }
 
             if (!map.ContainsKey(id)) {
-                int bodyEnd = end;
-                if (bodyEnd - 6 >= bodyStart && string.Equals(text.Substring(bodyEnd - 6, 6), "endobj", StringComparison.Ordinal)) {
-                    bodyEnd -= 6;
-                }
-
-                string body = SafeSlice(text, bodyStart, bodyEnd - bodyStart, 1_000_000).Trim();
-                var parsed = ParseTopLevelObject(body);
+                var parsed = ParseTopLevelObject(preliminaryBody);
                 if (parsed is not null) {
                     map[id] = new PdfIndirectObject(id, gen, parsed);
                     parsedOffsets[id] = start;
