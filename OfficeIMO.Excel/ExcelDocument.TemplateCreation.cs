@@ -67,6 +67,7 @@ namespace OfficeIMO.Excel {
                 throw new FileNotFoundException($"Workbook package '{resolvedSourcePath}' was not found.", resolvedSourcePath);
             }
 
+            EnsureMacroCompatibleCopy(resolvedSourcePath, resolvedDestinationPath);
             EnsureDestinationDirectory(resolvedDestinationPath);
             File.Copy(resolvedSourcePath, resolvedDestinationPath, overwrite);
             NormalizeTemplateWorkbookContentType(resolvedDestinationPath);
@@ -99,7 +100,13 @@ namespace OfficeIMO.Excel {
                 sourceStream.CopyTo(targetStream);
             }
 
-            NormalizeTemplateWorkbookContentType(targetPath);
+            try {
+                EnsureMacroCompatibleCopy(targetPath, targetPath);
+                NormalizeTemplateWorkbookContentType(targetPath);
+            } catch {
+                File.Delete(targetPath);
+                throw;
+            }
         }
 
         private static void EnsureDestinationDirectory(string filePath) {
@@ -145,6 +152,54 @@ namespace OfficeIMO.Excel {
             ZipArchiveEntry replacement = archive.CreateEntry("[Content_Types].xml", CompressionLevel.Optimal);
             using Stream replacementStream = replacement.Open();
             document.Save(replacementStream, SaveOptions.DisableFormatting);
+        }
+
+        private static void EnsureMacroCompatibleCopy(string sourcePath, string destinationPath) {
+            if (AllowsMacroWorkbookContent(destinationPath) || !ForcesMacroFreeWorkbookContent(destinationPath)) {
+                return;
+            }
+
+            if (PackageContainsMacroContent(sourcePath)) {
+                throw new InvalidOperationException("Macro-enabled workbook packages cannot be copied to a macro-free .xlsx or .xltx destination. Use .xlsm or .xltm to preserve macros.");
+            }
+        }
+
+        private static bool PackageContainsMacroContent(string filePath) {
+            using ZipArchive archive = ZipFile.OpenRead(filePath);
+            if (archive.GetEntry("xl/vbaProject.bin") != null) {
+                return true;
+            }
+
+            string? workbookContentType = ReadWorkbookOverrideContentType(archive);
+            return string.Equals(workbookContentType, MacroEnabledWorkbookContentType, StringComparison.Ordinal)
+                || string.Equals(workbookContentType, MacroEnabledTemplateWorkbookContentType, StringComparison.Ordinal);
+        }
+
+        private static string? ReadWorkbookOverrideContentType(ZipArchive archive) {
+            ZipArchiveEntry? contentTypesEntry = archive.GetEntry("[Content_Types].xml");
+            if (contentTypesEntry == null) {
+                return null;
+            }
+
+            using Stream stream = contentTypesEntry.Open();
+            XDocument document = XDocument.Load(stream);
+            XNamespace ns = "http://schemas.openxmlformats.org/package/2006/content-types";
+            return document
+                .Root?
+                .Elements(ns + "Override")
+                .FirstOrDefault(element => string.Equals((string?)element.Attribute("PartName"), "/xl/workbook.xml", StringComparison.OrdinalIgnoreCase))
+                ?.Attribute("ContentType")
+                ?.Value;
+        }
+
+        private static bool AllowsMacroWorkbookContent(string filePath) {
+            string extension = Path.GetExtension(filePath).ToLowerInvariant();
+            return extension is ".xlsm" or ".xltm";
+        }
+
+        private static bool ForcesMacroFreeWorkbookContent(string filePath) {
+            string extension = Path.GetExtension(filePath).ToLowerInvariant();
+            return extension is ".xlsx" or ".xltx";
         }
 
         private static string? ResolveWorkbookContentTypeForPath(string filePath) {

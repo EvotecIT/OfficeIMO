@@ -616,6 +616,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_WorksheetViewOptions_StreamBackedWorkbookPersistsOnDispose() {
+            using var stream = new MemoryStream();
+            using (var document = ExcelDocument.Create(stream)) {
+                var sheet = document.AddWorkSheet("View");
+                sheet.CellValue(1, 1, "Header");
+                sheet.SetViewOptions(showGridlines: false, rightToLeft: true);
+            }
+
+            stream.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(stream, false);
+            WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            SheetView sheetView = wsPart.Worksheet.GetFirstChild<SheetViews>()!.GetFirstChild<SheetView>()!;
+            Assert.False(sheetView.ShowGridLines!.Value);
+            Assert.True(sheetView.RightToLeft!.Value);
+        }
+
+        [Fact]
         public void Test_WorkbookActiveWorksheetSetAndInspect() {
             var filePath = Path.Combine(_directoryWithFiles, "ExcelWorkbookActiveWorksheet.xlsx");
 

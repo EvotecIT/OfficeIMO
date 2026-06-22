@@ -75,7 +75,7 @@ namespace OfficeIMO.Excel {
             if (string.IsNullOrWhiteSpace(options.Text)) throw new ArgumentException("Threaded comment text is required.", nameof(options));
 
             var (row, column) = A1.ParseCellRef(options.Address);
-            if (row <= 0 || column <= 0) {
+            if (row <= 0 || column <= 0 || row > A1.MaxRows || column > A1.MaxColumns) {
                 throw new ArgumentException($"Address '{options.Address}' is not a valid A1 reference.", nameof(options));
             }
 

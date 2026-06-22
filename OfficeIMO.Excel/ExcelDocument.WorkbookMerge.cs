@@ -28,7 +28,7 @@ namespace OfficeIMO.Excel {
                 createdTargetNames.Add(targetSheet.Name);
             }
 
-            Save();
+            MarkPackageDirty();
             return new ExcelWorkbookMergeResult(importedSourceNames, createdTargetNames);
         }
 

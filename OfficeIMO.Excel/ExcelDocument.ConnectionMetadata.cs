@@ -19,9 +19,9 @@ namespace OfficeIMO.Excel {
         /// OfficeIMO preserves this metadata but does not execute or refresh external connections.
         /// </summary>
         /// <param name="xml">Connection metadata XML.</param>
-        /// <returns>The added package part.</returns>
-        public ExtendedPart AddWorkbookConnectionMetadata(string xml) {
-            ExtendedPart? existingPart = GetWorkbookConnectionPart();
+        /// <returns>The added or updated package part.</returns>
+        public OpenXmlPart AddWorkbookConnectionMetadata(string xml) {
+            OpenXmlPart? existingPart = GetWorkbookConnectionPart();
             if (existingPart == null) {
                 return AddWorkbookMetadataPart(
                 WorkbookConnectionRelationshipType,
@@ -116,11 +116,10 @@ namespace OfficeIMO.Excel {
             return part;
         }
 
-        private ExtendedPart? GetWorkbookConnectionPart() {
-            return WorkbookPartRoot.Parts
-                .Select(pair => pair.OpenXmlPart)
-                .OfType<ExtendedPart>()
-                .FirstOrDefault(part => string.Equals(part.ContentType, WorkbookConnectionContentType, StringComparison.OrdinalIgnoreCase));
+        private OpenXmlPart? GetWorkbookConnectionPart() {
+            return EnumerateWorkbookConnectionParts()
+                .FirstOrDefault(part => string.Equals(part.ContentType, WorkbookConnectionContentType, StringComparison.OrdinalIgnoreCase)
+                    || part is ConnectionsPart);
         }
 
         private IEnumerable<OpenXmlPart> EnumerateWorkbookConnectionParts() {
@@ -153,11 +152,11 @@ namespace OfficeIMO.Excel {
             return existingDocument.ToString(SaveOptions.DisableFormatting);
         }
 
-        private static string ReadMetadataPart(ExtendedPart part) {
+        private static string ReadMetadataPart(OpenXmlPart part) {
             return ReadOpenXmlPartText(part);
         }
 
-        private static void WriteMetadataPart(ExtendedPart part, string xml) {
+        private static void WriteMetadataPart(OpenXmlPart part, string xml) {
             WriteOpenXmlPartText(part, xml);
         }
 

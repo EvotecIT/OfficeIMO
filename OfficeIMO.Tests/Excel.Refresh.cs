@@ -76,7 +76,8 @@ namespace OfficeIMO.Tests {
                 ExcelPowerQueryMetadataResult metadata = document.AddPowerQueryMetadata(new ExcelPowerQueryMetadataOptions {
                     Name = "AddedQuery",
                     WorksheetName = "Data",
-                    CommandText = "let Source = Excel.CurrentWorkbook() in Source"
+                    CommandText = "let Source = Excel.CurrentWorkbook() in Source",
+                    RefreshOnOpen = true
                 });
                 Assert.Equal(3U, metadata.ConnectionId);
                 document.Save();
@@ -86,6 +87,7 @@ namespace OfficeIMO.Tests {
                 ConnectionsPart connectionsPart = spreadsheet.WorkbookPart!.GetPartsOfType<ConnectionsPart>()
                     .First(part => part.Connections?.Elements<Connection>().Any(connection => connection.Name?.Value == "ExistingOne") == true);
                 Assert.All(connectionsPart.Connections!.Elements<Connection>(), connection => Assert.True(connection.RefreshOnLoad!.Value));
+                Assert.DoesNotContain(spreadsheet.WorkbookPart!.Parts.Select(pair => pair.OpenXmlPart), part => part is ExtendedPart && part.ContentType.IndexOf("connections", StringComparison.OrdinalIgnoreCase) >= 0);
 
                 XElement addedConnection = EnumerateWorkbookConnectionXml(spreadsheet.WorkbookPart!)
                     .Select(XDocument.Parse)

@@ -39,6 +39,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 WorksheetRoot.Save();
+                _excelDocument.MarkPackageDirty();
             });
         }
 

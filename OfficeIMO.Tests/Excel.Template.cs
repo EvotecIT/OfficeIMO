@@ -174,6 +174,22 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ExcelTemplate_RepeatingRowsRejectsExpansionBeyondWorksheetLimit() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.RepeatingRowsBounds.xlsx");
+
+            using var document = ExcelDocument.Create(filePath);
+            var sheet = document.AddWorkSheet("Invoice");
+            sheet.CellAt(A1.MaxRows, 1).SetValue("{{Name}}");
+
+            ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
+                sheet.ApplyTemplateRows(A1.MaxRows, new[] {
+                    new Dictionary<string, object?> { ["Name"] = "One" },
+                    new Dictionary<string, object?> { ["Name"] = "Two" }
+                }));
+            Assert.Equal("rowBindings", exception.ParamName);
+        }
+
+        [Fact]
         public void Test_ExcelTemplate_RepeatingRowsRebasesFormulasAndShiftedMerges() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.RepeatingRowsFormulas.xlsx");
 

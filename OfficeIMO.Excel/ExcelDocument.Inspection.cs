@@ -44,7 +44,10 @@ namespace OfficeIMO.Excel {
 
                 for (int sheetIndex = 0; sheetIndex < sheetElements.Count; sheetIndex++) {
                     var sheet = sheetElements[sheetIndex];
-                    var worksheetPart = (WorksheetPart)workbookPart.GetPartById(sheet.Id!);
+                    if (sheet.Id == null || workbookPart.GetPartById(sheet.Id!) is not WorksheetPart worksheetPart) {
+                        continue;
+                    }
+
                     var worksheet = worksheetPart.Worksheet ?? throw new InvalidOperationException("Worksheet is missing.");
                     var sheetName = sheet.Name?.Value ?? $"Sheet{sheetIndex + 1}";
                     var readerSheet = reader.GetSheet(sheetName);

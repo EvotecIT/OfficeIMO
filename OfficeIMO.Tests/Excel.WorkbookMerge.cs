@@ -36,5 +36,34 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("South value", importedValue);
             }
         }
+
+        [Fact]
+        public void Test_ExcelWorkbookMerge_StreamBackedWorkbookDoesNotForceSave() {
+            using var targetStream = new MemoryStream();
+            using var sourceStream = new MemoryStream();
+
+            using (var source = ExcelDocument.Create(sourceStream, autoSave: false)) {
+                source.AddWorkSheet("Source").CellValue(1, 1, "Imported");
+                source.Save(sourceStream);
+            }
+
+            sourceStream.Position = 0;
+            using (var target = ExcelDocument.Create(targetStream, autoSave: false))
+            using (var source = ExcelDocument.Load(sourceStream, readOnly: true)) {
+                target.AddWorkSheet("Target");
+                ExcelWorkbookMergeResult result = target.MergeWorkbookFrom(source);
+
+                Assert.Equal(1, result.SheetCount);
+                Assert.True(target["Source"].TryGetCellText(1, 1, out var imported));
+                Assert.Equal("Imported", imported);
+                target.Save(targetStream);
+            }
+
+            targetStream.Position = 0;
+            using var reloaded = ExcelDocument.Load(targetStream, readOnly: true);
+            Assert.Equal(2, reloaded.Sheets.Count);
+            Assert.True(reloaded["Source"].TryGetCellText(1, 1, out var value));
+            Assert.Equal("Imported", value);
+        }
     }
 }

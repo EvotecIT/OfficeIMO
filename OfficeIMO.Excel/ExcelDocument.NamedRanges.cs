@@ -62,7 +62,8 @@ namespace OfficeIMO.Excel {
                 var dnNew = new DefinedName { Name = name, Text = localRef, LocalSheetId = sheetPos, Hidden = hidden ? true : (bool?)null };
                 definedNames.Append(dnNew);
             }
-            if (save) workbook.Save();
+            MarkPackageDirty();
+            if (save) Save();
         }
 
         /// <summary>
@@ -176,8 +177,9 @@ namespace OfficeIMO.Excel {
             if (!definedNames.Elements<DefinedName>().Any()) {
                 WorkbookRoot.DefinedNames = null;
             }
+            MarkPackageDirty();
             if (save) {
-                WorkbookRoot.Save();
+                Save();
             }
             return true;
         }

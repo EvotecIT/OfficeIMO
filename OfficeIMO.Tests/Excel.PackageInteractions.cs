@@ -3,6 +3,7 @@ using System.IO.Compression;
 using System.Text;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using Xunit;
 
@@ -84,6 +85,58 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_InspectionSnapshot_SkipsNonWorksheetSheetParts() {
+            string filePath = Path.Combine(_directoryWithFiles, "PackageInteractions.ChartSheetInspection.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                document.AddWorkSheet("Data").CellValue(1, 1, "Value");
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                var workbookPart = spreadsheet.WorkbookPart!;
+                ChartsheetPart chartsheetPart = workbookPart.AddNewPart<ChartsheetPart>();
+                chartsheetPart.Chartsheet = new Chartsheet(new SheetViews(new SheetView { WorkbookViewId = 0U }));
+                chartsheetPart.Chartsheet.Save();
+
+                Sheets sheets = workbookPart.Workbook.Sheets!;
+                uint nextSheetId = sheets.Elements<Sheet>().Select(sheet => sheet.SheetId?.Value ?? 0U).Max() + 1U;
+                sheets.Append(new Sheet {
+                    Id = workbookPart.GetIdOfPart(chartsheetPart),
+                    SheetId = nextSheetId,
+                    Name = "Chart View"
+                });
+                workbookPart.Workbook.Save();
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelWorkbookSnapshot snapshot = document.CreateInspectionSnapshot();
+                ExcelWorksheetSnapshot worksheet = Assert.Single(snapshot.Worksheets);
+                Assert.Equal("Data", worksheet.Name);
+            }
+        }
+
+
+        [Fact]
+        public void Test_CopyPackage_RejectsMacroEnabledSourceToMacroFreeDestination() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "PackageClone.MacroSource.xlsx");
+            string macroPath = Path.Combine(_directoryWithFiles, "PackageClone.MacroSource.xlsm");
+            string destinationPath = Path.Combine(_directoryWithFiles, "PackageClone.MacroBlocked.xlsx");
+
+            using (var document = ExcelDocument.Create(sourcePath)) {
+                document.AddWorkSheet("Data").CellValue(1, 1, "Value");
+                document.Save();
+            }
+
+            ExcelDocument.CopyPackage(sourcePath, macroPath);
+
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+                ExcelDocument.CopyPackage(macroPath, destinationPath));
+            Assert.Contains("Macro-enabled workbook packages", exception.Message);
+            Assert.False(File.Exists(destinationPath));
+        }
+
+        [Fact]
         public void Test_ConnectionAndQueryTableMetadataParts_AreAuthoredAndInspected() {
             string filePath = Path.Combine(_directoryWithFiles, "PackageInteractions.ConnectionMetadata.xlsx");
             const string connectionXml = "<connections xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" count=\"1\"><connection id=\"1\" name=\"SalesConnection\" type=\"5\" refreshedVersion=\"7\"/></connections>";
@@ -110,6 +163,38 @@ namespace OfficeIMO.Tests {
 
                 var worksheetPart = workbookPart.WorksheetParts.Single();
                 Assert.Contains("SalesQuery", ReadSinglePackagePartText(worksheetPart, "queryTable"));
+            }
+        }
+
+        [Fact]
+        public void Test_ConnectionMetadata_MergesIntoTypedWorkbookConnectionsPart() {
+            string filePath = Path.Combine(_directoryWithFiles, "PackageInteractions.TypedConnectionMetadata.xlsx");
+            const string connectionXml = "<connections xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" count=\"1\"><connection id=\"2\" name=\"Added\" type=\"5\" refreshedVersion=\"7\"/></connections>";
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                document.AddWorkSheet("Data");
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                ConnectionsPart connectionsPart = spreadsheet.WorkbookPart!.AddNewPart<ConnectionsPart>();
+                connectionsPart.Connections = new Connections(
+                    new Connection { Id = 1U, Name = "Existing", Type = 5, RefreshedVersion = 7 });
+                connectionsPart.Connections.Save();
+            }
+
+            using (var document = ExcelDocument.Load(filePath)) {
+                OpenXmlPart part = document.AddWorkbookConnectionMetadata(connectionXml);
+                Assert.IsType<ConnectionsPart>(part);
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                var workbookPart = spreadsheet.WorkbookPart!;
+                ConnectionsPart connectionsPart = Assert.Single(workbookPart.GetPartsOfType<ConnectionsPart>());
+                Assert.Contains(connectionsPart.Connections!.Elements<Connection>(), connection => connection.Name?.Value == "Existing");
+                Assert.Contains(connectionsPart.Connections!.Elements<Connection>(), connection => connection.Name?.Value == "Added");
+                Assert.DoesNotContain(workbookPart.Parts.Select(pair => pair.OpenXmlPart), part => part is ExtendedPart && part.ContentType.IndexOf("connections", StringComparison.OrdinalIgnoreCase) >= 0);
             }
         }
 

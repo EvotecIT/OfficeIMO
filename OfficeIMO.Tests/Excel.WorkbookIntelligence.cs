@@ -166,6 +166,30 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ExcelWorkbookIntelligence_NamedRangeSavePersistsPackage() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelWorkbookIntelligence.NamedRangeSave.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "Name");
+                sheet.CellValue(1, 2, "Value");
+                document.SetNamedRange("Totals", "'Data'!A1:B1", scope: sheet, save: true);
+            }
+
+            using (var document = ExcelDocument.Load(filePath)) {
+                ExcelSheet sheet = document["Data"];
+                Assert.True(document.RenameNamedRange("Totals", "GrandTotal", sheet, save: true));
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelSheet sheet = document["Data"];
+                Assert.Null(document.GetNamedRange("Totals", sheet));
+                Assert.Equal("$A$1:$B$1", document.GetNamedRange("GrandTotal", sheet));
+            }
+        }
+
+
+        [Fact]
         public void Test_ExcelWorkbookDiff_ReportsRightOnlyCellsWithinSameDimension() {
             string leftPath = Path.Combine(_directoryWithFiles, "ExcelWorkbookDiff.LeftSparse.xlsx");
             string rightPath = Path.Combine(_directoryWithFiles, "ExcelWorkbookDiff.RightSparse.xlsx");
@@ -241,6 +265,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(2U, second.ConnectionId);
                 Assert.Equal("ReviewQueryTable", first.QueryTableName);
                 Assert.Equal("ReviewQueryRefreshTable", second.QueryTableName);
+                Assert.Throws<ArgumentException>(() => sheet.AddThreadedComment("XFE1", "Outside sheet"));
                 document.Save();
             }
 
