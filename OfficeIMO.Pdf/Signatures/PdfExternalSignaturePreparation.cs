@@ -1,0 +1,67 @@
+using System.Security.Cryptography;
+
+namespace OfficeIMO.Pdf;
+
+/// <summary>Prepared PDF bytes and byte ranges for an external signing operation.</summary>
+public sealed class PdfExternalSignaturePreparation {
+    internal PdfExternalSignaturePreparation(
+        byte[] preparedPdf,
+        string fieldName,
+        string filter,
+        string subFilter,
+        IReadOnlyList<long> byteRangeValues,
+        int contentsHexOffset,
+        int contentsHexLength,
+        int reservedSignatureContentsBytes) {
+        PreparedPdf = preparedPdf;
+        FieldName = fieldName;
+        Filter = filter;
+        SubFilter = subFilter;
+        ByteRangeValues = byteRangeValues;
+        ContentsHexOffset = contentsHexOffset;
+        ContentsHexLength = contentsHexLength;
+        ReservedSignatureContentsBytes = reservedSignatureContentsBytes;
+    }
+
+    /// <summary>PDF bytes containing a patched /ByteRange and zero-filled reserved /Contents placeholder.</summary>
+    public byte[] PreparedPdf { get; }
+
+    /// <summary>Name of the AcroForm signature field appended to the document.</summary>
+    public string FieldName { get; }
+
+    /// <summary>PDF signature filter emitted in the signature dictionary.</summary>
+    public string Filter { get; }
+
+    /// <summary>PDF signature subfilter emitted in the signature dictionary.</summary>
+    public string SubFilter { get; }
+
+    /// <summary>Four-value detached signature /ByteRange array.</summary>
+    public IReadOnlyList<long> ByteRangeValues { get; }
+
+    /// <summary>Offset of the first hex character inside the reserved /Contents value.</summary>
+    public int ContentsHexOffset { get; }
+
+    /// <summary>Number of hex characters reserved inside /Contents.</summary>
+    public int ContentsHexLength { get; }
+
+    /// <summary>Number of raw signature bytes that can be injected into /Contents.</summary>
+    public int ReservedSignatureContentsBytes { get; }
+
+    /// <summary>Bytes covered by the /ByteRange and intended for external digest/signing.</summary>
+    public byte[] SignedContent {
+        get {
+            using var stream = new MemoryStream();
+            stream.Write(PreparedPdf, (int)ByteRangeValues[0], (int)ByteRangeValues[1]);
+            stream.Write(PreparedPdf, (int)ByteRangeValues[2], (int)ByteRangeValues[3]);
+            return stream.ToArray();
+        }
+    }
+
+    /// <summary>Computes the SHA-256 digest of <see cref="SignedContent"/> for external signing services.</summary>
+#pragma warning disable CA1850
+    public byte[] ComputeSha256Digest() {
+        using SHA256 sha256 = SHA256.Create();
+        return sha256.ComputeHash(SignedContent);
+    }
+#pragma warning restore CA1850
+}

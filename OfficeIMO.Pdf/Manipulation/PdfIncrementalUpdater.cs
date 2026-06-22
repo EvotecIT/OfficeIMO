@@ -181,6 +181,14 @@ public static partial class PdfIncrementalUpdater {
             supported.Add("FormFill");
         }
 
+        bool canPrepareSignature =
+            commonBlockers.Count == 0 &&
+            !hasSignatureContent &&
+            !security.HasDocMDPPermissions;
+        if (canPrepareSignature) {
+            supported.Add("SignaturePrepare");
+        }
+
         var blocked = new List<string>();
         if (metadataBlockers.Count > 0) {
             blocked.Add("Metadata");
@@ -188,6 +196,10 @@ public static partial class PdfIncrementalUpdater {
 
         if (formBlockers.Count > 0) {
             blocked.Add("FormFill");
+        }
+
+        if (!canPrepareSignature) {
+            blocked.Add("SignaturePrepare");
         }
 
         blocked.Add("Annotations");

@@ -69,6 +69,73 @@ public class PdfSignatureValidatorTests {
         Assert.Contains(report.Findings, finding => finding.Code == "SignatureMissingContents");
     }
 
+    [Fact]
+    public void PrepareExternalSignature_AppendsSignablePlaceholderAndDigest() {
+        byte[] pdf = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("External signing draft"))
+            .ToBytes();
+
+        PdfAppendOnlyMutationReport appendOnly = PdfIncrementalUpdater.AnalyzeAppendOnlyMutation(pdf);
+        Assert.True(appendOnly.CanPrepareExternalSignature);
+        Assert.Contains("SignaturePrepare", appendOnly.SupportedActions);
+
+        PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
+            pdf,
+            new PdfExternalSignatureOptions {
+                FieldName = "Approval",
+                Name = "Alice",
+                Reason = "Approval",
+                ReservedSignatureContentsBytes = 512,
+                SigningTime = new DateTimeOffset(2026, 6, 22, 12, 0, 0, TimeSpan.Zero)
+            });
+
+        Assert.True(preparation.PreparedPdf.Length > pdf.Length);
+        Assert.Equal("Approval", preparation.FieldName);
+        Assert.Equal("adbe.pkcs7.detached", preparation.SubFilter);
+        Assert.Equal(4, preparation.ByteRangeValues.Count);
+        Assert.Equal(0, preparation.ByteRangeValues[0]);
+        Assert.Equal(preparation.ContentsHexOffset - 1, preparation.ByteRangeValues[1]);
+        Assert.Equal(preparation.ContentsHexOffset + preparation.ContentsHexLength + 1, preparation.ByteRangeValues[2]);
+        Assert.Equal(preparation.PreparedPdf.LongLength, preparation.ByteRangeValues[2] + preparation.ByteRangeValues[3]);
+        Assert.Equal(32, preparation.ComputeSha256Digest().Length);
+
+        PdfSignatureValidationReport report = PdfSignatureValidator.Validate(preparation.PreparedPdf);
+
+        Assert.True(report.HasSignatures);
+        Assert.True(report.IsStructurallyValid);
+        PdfSignatureValidationResult result = Assert.Single(report.Signatures);
+        Assert.Equal("Approval", result.Signature.FieldName);
+        Assert.True(result.ByteRangeCoversEndOfFile);
+        Assert.True(result.Signature.HasContents);
+        Assert.True(result.Signature.ContentsSizeBytes >= 512);
+        Assert.Contains(report.Findings, finding => finding.Code == "SignatureDetachedCmsSubFilter");
+        Assert.Contains(report.Findings, finding => finding.Code == "AcroFormAppendOnly");
+    }
+
+    [Fact]
+    public void ApplyExternalSignature_PatchesReservedContentsWithoutChangingByteRange() {
+        byte[] pdf = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("External signature injection"))
+            .ToBytes();
+        PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
+            pdf,
+            new PdfExternalSignatureOptions {
+                FieldName = "Approval",
+                ReservedSignatureContentsBytes = 256
+            });
+
+        byte[] signature = { 0x30, 0x82, 0x01, 0x0A, 0xAA, 0x55 };
+        byte[] signed = PdfIncrementalUpdater.ApplyExternalSignature(preparation, signature);
+
+        Assert.Equal(preparation.PreparedPdf.Length, signed.Length);
+        Assert.Contains("3082010AAA55", Encoding.ASCII.GetString(signed));
+        PdfSignatureValidationReport report = PdfSignatureValidator.Validate(signed);
+        PdfSignatureValidationResult result = Assert.Single(report.Signatures);
+        Assert.Equal(preparation.ByteRangeValues, result.Signature.ByteRangeValues);
+        Assert.True(result.Signature.ContentsSizeBytes >= signature.Length);
+        Assert.DoesNotContain(report.Findings, finding => finding.Code == "SignatureEmptyContents");
+    }
+
     private static byte[] BuildSignedIncrementalPdf() {
         string pdf = string.Join("\n", new[] {
             "%PDF-1.7",
