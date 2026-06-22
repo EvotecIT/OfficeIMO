@@ -301,7 +301,7 @@ namespace OfficeIMO.Excel {
                 actions.Add(new ExcelWorkbookRepairAction("Workbook", "Normalized workbook views, styles, and shared strings."));
             }
 
-            if (options.Save) {
+            if (options.Save && CanSaveToDefaultDestination()) {
                 Save(false);
             }
 
@@ -318,6 +318,9 @@ namespace OfficeIMO.Excel {
             int maxDifferences = Math.Max(1, options.MaxDifferences);
             var differences = new List<ExcelWorkbookDifference>();
             var otherSheets = other.Sheets.ToDictionary(sheet => sheet.Name, StringComparer.OrdinalIgnoreCase);
+            bool compareSnapshots = options.CompareTables || options.CompareWorksheetMetadata || options.CompareComments;
+            ExcelWorkbookSnapshot? leftSnapshot = compareSnapshots ? CreateInspectionSnapshot() : null;
+            ExcelWorkbookSnapshot? rightSnapshot = compareSnapshots ? other.CreateInspectionSnapshot() : null;
 
             foreach (ExcelSheet sheet in Sheets) {
                 if (!otherSheets.TryGetValue(sheet.Name, out ExcelSheet? otherSheet)) {
@@ -331,8 +334,8 @@ namespace OfficeIMO.Excel {
                 if (options.CompareCellStyles) {
                     CompareCellStyles(sheet, otherSheet, differences, maxDifferences);
                 }
-                if (options.CompareTables || options.CompareWorksheetMetadata || options.CompareComments) {
-                    CompareSheetSnapshots(CreateInspectionSnapshot(), other.CreateInspectionSnapshot(), sheet.Name, differences, maxDifferences, options);
+                if (compareSnapshots) {
+                    CompareSheetSnapshots(leftSnapshot!, rightSnapshot!, sheet.Name, differences, maxDifferences, options);
                 }
                 if (differences.Count >= maxDifferences) break;
             }
@@ -348,6 +351,9 @@ namespace OfficeIMO.Excel {
 
             return new ExcelWorkbookDiffReport(differences);
         }
+
+        private bool CanSaveToDefaultDestination()
+            => !string.IsNullOrEmpty(FilePath) || _sourceStream != null;
 
         /// <summary>
         /// Audits legacy notes and threaded comments across the workbook.
@@ -404,13 +410,18 @@ namespace OfficeIMO.Excel {
             if (options == null) throw new ArgumentNullException(nameof(options));
             string name = string.IsNullOrWhiteSpace(options.Name) ? "OfficeIMOQuery" : options.Name.Trim();
             string commandText = options.CommandText ?? string.Empty;
+            string? worksheetName = null;
+            if (!string.IsNullOrWhiteSpace(options.WorksheetName)) {
+                worksheetName = this[options.WorksheetName!].Name;
+            }
+
             uint connectionId = GetNextPowerQueryConnectionId();
             AddWorkbookConnectionMetadata(BuildConnectionMetadataXml(name, options.Description, commandText, options.RefreshOnOpen, connectionId));
             bool addedQueryTable = false;
             string? queryTableName = null;
-            if (!string.IsNullOrWhiteSpace(options.WorksheetName)) {
+            if (worksheetName != null) {
                 queryTableName = NormalizeQueryTableName(options.QueryTableName, name);
-                AddWorksheetQueryTableMetadata(options.WorksheetName!, BuildQueryTableMetadataXml(queryTableName, connectionId));
+                AddWorksheetQueryTableMetadata(worksheetName, BuildQueryTableMetadataXml(queryTableName, connectionId));
                 addedQueryTable = true;
             }
 

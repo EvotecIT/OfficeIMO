@@ -103,11 +103,12 @@ namespace OfficeIMO.Tests {
                     RefreshOnOpen = true
                 });
                 document.AddWorkbookConnectionMetadata("<?xml version=\"1.0\" encoding=\"UTF-8\"?><connections xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><connection id=\"77\" name=\"Existing\" refreshOnLoad=\"0\" type=\"1\"/></connections>");
-                document.AddPowerQueryMetadata(new ExcelPowerQueryMetadataOptions {
+                ExcelPowerQueryMetadataResult isolatedRefresh = document.AddPowerQueryMetadata(new ExcelPowerQueryMetadataOptions {
                     Name = "IsolatedRefresh",
                     CommandText = "let Source = Excel.CurrentWorkbook() in Source",
                     RefreshOnOpen = true
                 });
+                Assert.Equal(78U, isolatedRefresh.ConnectionId);
                 document.Save();
             }
 
@@ -185,6 +186,38 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document["Data"];
                 Assert.Null(document.GetNamedRange("Totals", sheet));
                 Assert.Equal("$A$1:$B$1", document.GetNamedRange("GrandTotal", sheet));
+            }
+        }
+
+        [Fact]
+        public void Test_ExcelWorkbookIntelligence_RepairSaveSkipsMissingDefaultDestination() {
+            using var stream = new MemoryStream();
+            using (var document = ExcelDocument.Create(stream, autoSave: true)) {
+                document.AddWorkSheet("Data").CellValue(1, 1, "Ready");
+            }
+
+            stream.Position = 0;
+            using (var document = ExcelDocument.Load(stream, readOnly: false, autoSave: false)) {
+                ExcelWorkbookRepairReport repair = document.RepairWorkbook(new ExcelWorkbookRepairOptions { Save = true });
+                Assert.NotNull(repair.Before);
+                Assert.NotNull(repair.After);
+            }
+        }
+
+        [Fact]
+        public void Test_ExcelWorkbookIntelligence_PowerQueryRejectsMissingWorksheetBeforeConnectionMutation() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelWorkbookIntelligence.QueryMissingSheet.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                document.AddWorkSheet("Data");
+
+                Assert.Throws<ArgumentOutOfRangeException>(() => document.AddPowerQueryMetadata(new ExcelPowerQueryMetadataOptions {
+                    Name = "MissingSheetQuery",
+                    WorksheetName = "Missing",
+                    CommandText = "let Source = Excel.CurrentWorkbook() in Source"
+                }));
+
+                Assert.False(document.InspectDataModel().HasDataModelOrQueries);
             }
         }
 

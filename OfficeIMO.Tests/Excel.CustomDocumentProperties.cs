@@ -47,9 +47,11 @@ namespace OfficeIMO.Tests {
         public void Test_ExcelCustomDocumentProperties_PreserveNumericCompatibilityTypes() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCustomDocumentProperties.NumericCompatibility.xlsx");
             long largeTicket = (long)int.MaxValue + 42L;
+            ulong unsignedTicket = ulong.MaxValue;
 
             using (var document = ExcelDocument.Create(filePath)) {
                 document.SetCustomDocumentProperty("LargeTicket", largeTicket);
+                document.SetCustomDocumentProperty("UnsignedTicket", unsignedTicket);
                 document.SetCustomDocumentProperty("Score", 12345.6789012345D);
                 document.SetCustomDocumentProperty("Reviewed", true);
                 document.AddWorkSheet("Data").CellValue(1, 1, "Ready");
@@ -65,6 +67,7 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Load(filePath, readOnly: false)) {
                 Assert.Equal(largeTicket, document.CustomDocumentProperties["LargeTicket"].Value);
+                Assert.Equal(unsignedTicket, document.CustomDocumentProperties["UnsignedTicket"].Value);
                 Assert.True(document.CustomDocumentProperties["Reviewed"].Bool);
                 document.Save();
             }
@@ -72,9 +75,12 @@ namespace OfficeIMO.Tests {
             using (SpreadsheetDocument package = SpreadsheetDocument.Open(filePath, false)) {
                 CustomFilePropertiesPart customPart = package.CustomFilePropertiesPart!;
                 CustomDocumentProperty large = customPart.Properties!.Elements<CustomDocumentProperty>().First(property => property.Name == "LargeTicket");
+                CustomDocumentProperty unsigned = customPart.Properties!.Elements<CustomDocumentProperty>().First(property => property.Name == "UnsignedTicket");
                 CustomDocumentProperty score = customPart.Properties!.Elements<CustomDocumentProperty>().First(property => property.Name == "Score");
                 Assert.NotNull(large.VTInt64);
                 Assert.Equal(largeTicket.ToString(System.Globalization.CultureInfo.InvariantCulture), large.VTInt64!.Text);
+                Assert.NotNull(unsigned.VTUnsignedInt64);
+                Assert.Equal(unsignedTicket.ToString(System.Globalization.CultureInfo.InvariantCulture), unsigned.VTUnsignedInt64!.Text);
                 Assert.NotNull(score.VTDouble);
             }
         }

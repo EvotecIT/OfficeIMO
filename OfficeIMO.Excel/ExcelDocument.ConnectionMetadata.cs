@@ -174,6 +174,11 @@ namespace OfficeIMO.Excel {
             using Stream stream = part.GetStream(FileMode.Create, FileAccess.Write);
             byte[] bytes = Encoding.UTF8.GetBytes(xml);
             stream.Write(bytes, 0, bytes.Length);
+            if (part is ConnectionsPart connectionsPart) {
+                var connections = new Connections();
+                connections.Load(connectionsPart);
+                connectionsPart.Connections = connections;
+            }
         }
 
         private void MarkMetadataPartChanged() {

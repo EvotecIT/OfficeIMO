@@ -91,6 +91,21 @@ namespace OfficeIMO.Excel {
                 long value = long.Parse(property.VTInt64.Text, CultureInfo.InvariantCulture);
                 Value = value >= int.MinValue && value <= int.MaxValue ? (int)value : value;
                 PropertyType = ExcelCustomPropertyType.NumberInteger;
+            } else if (property.VTUnsignedByte != null) {
+                Value = byte.Parse(property.VTUnsignedByte.Text, CultureInfo.InvariantCulture);
+                PropertyType = ExcelCustomPropertyType.NumberInteger;
+            } else if (property.VTUnsignedShort != null) {
+                Value = ushort.Parse(property.VTUnsignedShort.Text, CultureInfo.InvariantCulture);
+                PropertyType = ExcelCustomPropertyType.NumberInteger;
+            } else if (property.VTUnsignedInt32 != null) {
+                Value = uint.Parse(property.VTUnsignedInt32.Text, CultureInfo.InvariantCulture);
+                PropertyType = ExcelCustomPropertyType.NumberInteger;
+            } else if (property.VTUnsignedInteger != null) {
+                Value = ulong.Parse(property.VTUnsignedInteger.Text, CultureInfo.InvariantCulture);
+                PropertyType = ExcelCustomPropertyType.NumberInteger;
+            } else if (property.VTUnsignedInt64 != null) {
+                Value = ulong.Parse(property.VTUnsignedInt64.Text, CultureInfo.InvariantCulture);
+                PropertyType = ExcelCustomPropertyType.NumberInteger;
             } else if (property.VTFileTime != null) {
                 Value = DateTime.Parse(property.VTFileTime.Text, CultureInfo.InvariantCulture).ToUniversalTime();
                 PropertyType = ExcelCustomPropertyType.DateTime;
@@ -126,11 +141,17 @@ namespace OfficeIMO.Excel {
                     property.VTFileTime = new VTFileTime(string.Format(CultureInfo.InvariantCulture, "{0:s}Z", Convert.ToDateTime(Value, CultureInfo.InvariantCulture).ToUniversalTime()));
                     break;
                 case ExcelCustomPropertyType.NumberInteger:
-                    long integer = Convert.ToInt64(Value, CultureInfo.InvariantCulture);
-                    if (integer >= int.MinValue && integer <= int.MaxValue) {
-                        property.VTInt32 = new VTInt32(integer.ToString(CultureInfo.InvariantCulture));
+                    if (Value is ulong unsignedLong) {
+                        property.VTUnsignedInt64 = new VTUnsignedInt64(unsignedLong.ToString(CultureInfo.InvariantCulture));
+                    } else if (Value is uint unsignedInteger) {
+                        property.VTUnsignedInt32 = new VTUnsignedInt32(unsignedInteger.ToString(CultureInfo.InvariantCulture));
                     } else {
-                        property.VTInt64 = new VTInt64(integer.ToString(CultureInfo.InvariantCulture));
+                        long integer = Convert.ToInt64(Value, CultureInfo.InvariantCulture);
+                        if (integer >= int.MinValue && integer <= int.MaxValue) {
+                            property.VTInt32 = new VTInt32(integer.ToString(CultureInfo.InvariantCulture));
+                        } else {
+                            property.VTInt64 = new VTInt64(integer.ToString(CultureInfo.InvariantCulture));
+                        }
                     }
                     break;
                 case ExcelCustomPropertyType.NumberDouble:

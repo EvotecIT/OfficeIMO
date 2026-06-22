@@ -12,11 +12,13 @@ namespace OfficeIMO.Excel {
         private readonly Xdr.Picture _picture;
         private readonly OpenXmlElement _anchor;
         private readonly DrawingsPart _drawingsPart;
+        private readonly ExcelDocument _document;
 
-        internal ExcelImage(Xdr.Picture picture, OpenXmlElement anchor, DrawingsPart drawingsPart) {
+        internal ExcelImage(Xdr.Picture picture, OpenXmlElement anchor, DrawingsPart drawingsPart, ExcelDocument document) {
             _picture = picture ?? throw new ArgumentNullException(nameof(picture));
             _anchor = anchor ?? throw new ArgumentNullException(nameof(anchor));
             _drawingsPart = drawingsPart ?? throw new ArgumentNullException(nameof(drawingsPart));
+            _document = document ?? throw new ArgumentNullException(nameof(document));
         }
 
         /// <summary>
@@ -228,6 +230,7 @@ namespace OfficeIMO.Excel {
 
         private void Save() {
             _drawingsPart.WorksheetDrawing?.Save();
+            _document.MarkPackageDirty();
         }
 
         private static long PxToEmu(int px) => (long)Math.Round(px * 9525.0);
