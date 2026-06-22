@@ -2,6 +2,35 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Edits or removes PDF annotations without third-party dependencies.</summary>
 public static class PdfAnnotationEditor {
+    private static readonly HashSet<string> KnownAnnotationSubtypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
+        "Text",
+        "Link",
+        "FreeText",
+        "Line",
+        "Square",
+        "Circle",
+        "Polygon",
+        "PolyLine",
+        "Highlight",
+        "Underline",
+        "Squiggly",
+        "StrikeOut",
+        "Caret",
+        "Stamp",
+        "Ink",
+        "Popup",
+        "FileAttachment",
+        "Sound",
+        "Movie",
+        "Widget",
+        "Screen",
+        "PrinterMark",
+        "TrapNet",
+        "Watermark",
+        "3D",
+        "Redact"
+    };
+
     /// <summary>Removes annotations matching the supplied filters and returns rewritten PDF bytes.</summary>
     public static PdfAnnotationEditResult RemoveAnnotations(byte[] pdf, PdfAnnotationRemovalOptions? options = null) {
         Guard.NotNull(pdf, nameof(pdf));
@@ -74,6 +103,7 @@ public static class PdfAnnotationEditor {
             return new PdfAnnotationEditResult((byte[])pdf.Clone(), 0);
         }
 
+        PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalogObjectNumber);
         byte[] rewritten = RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Load(pdf).Metadata, pdf);
         return new PdfAnnotationEditResult(rewritten, Math.Max(removed.Count, 1));
     }
@@ -102,6 +132,7 @@ public static class PdfAnnotationEditor {
         }
 
         ApplyUpdates(annotation, options);
+        PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalogObjectNumber);
         byte[] rewritten = RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Load(pdf).Metadata, pdf);
         return new PdfAnnotationEditResult(rewritten, 1);
     }
@@ -216,7 +247,17 @@ public static class PdfAnnotationEditor {
     }
 
     private static bool IsAnnotation(PdfDictionary dictionary) {
-        return dictionary.Get<PdfName>("Type")?.Name == "Annot" || dictionary.Items.ContainsKey("Subtype");
+        string? type = dictionary.Get<PdfName>("Type")?.Name;
+        if (string.Equals(type, "Annot", StringComparison.Ordinal)) {
+            return true;
+        }
+
+        if (!string.IsNullOrEmpty(type)) {
+            return false;
+        }
+
+        return dictionary.Get<PdfName>("Subtype") is PdfName subtype &&
+            KnownAnnotationSubtypes.Contains(subtype.Name);
     }
 
     private static void RemovePopupReferences(PdfArray annotations, HashSet<int> removed, ref bool changed) {

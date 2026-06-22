@@ -48,7 +48,7 @@ public static partial class PdfRedactionApplier {
             return pdf.ToArray();
         }
 
-        PruneUnreachableObjects(objects, catalogObjectNumber);
+        PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalogObjectNumber);
         return RewriteAllObjects(objects, catalogObjectNumber, document.Metadata, pdf);
     }
 
@@ -141,6 +141,7 @@ public static partial class PdfRedactionApplier {
 
             PdfRedactionArea[] paintAreas = SelectPaintAreas(pageAreas ?? Array.Empty<PdfRedactionArea>(), currentMatches, options);
             if (paintAreas.Length > 0) {
+                IsolateExistingPageContents(objects, pageDictionary);
                 int contentObjectNumber = nextObjectNumber++;
                 objects[contentObjectNumber] = new PdfIndirectObject(contentObjectNumber, 0, BuildRedactionContentStream(paintAreas, options.FillColor));
                 AppendPageContent(objects, pageDictionary, contentObjectNumber);
@@ -419,49 +420,21 @@ public static partial class PdfRedactionApplier {
         yield return contents;
     }
 
-    private static void PruneUnreachableObjects(Dictionary<int, PdfIndirectObject> objects, int catalogObjectNumber) {
-        if (!objects.TryGetValue(catalogObjectNumber, out PdfIndirectObject? catalogObject)) {
+    private static void IsolateExistingPageContents(Dictionary<int, PdfIndirectObject> objects, PdfDictionary pageDictionary) {
+        if (!pageDictionary.Items.TryGetValue("Contents", out PdfObject? contentsObject)) {
             return;
         }
 
-        var reachable = new HashSet<int>();
-        CollectReachableObjectNumbers(objects, new PdfReference(catalogObjectNumber, catalogObject.Generation), reachable);
-        foreach (int objectNumber in objects.Keys.ToArray()) {
-            if (!reachable.Contains(objectNumber)) {
-                objects.Remove(objectNumber);
-            }
-        }
-    }
-
-    private static void CollectReachableObjectNumbers(Dictionary<int, PdfIndirectObject> objects, PdfObject? value, HashSet<int> reachable) {
-        if (value is PdfReference reference) {
+        foreach (PdfReference reference in EnumerateContentReferences(objects, contentsObject)) {
             if (!PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) ||
-                !reachable.Add(indirect.ObjectNumber)) {
-                return;
+                indirect.Value is not PdfStream stream ||
+                stream.DecodingFailed) {
+                continue;
             }
 
-            CollectReachableObjectNumbers(objects, indirect.Value, reachable);
-            return;
-        }
-
-        if (value is PdfArray array) {
-            for (int i = 0; i < array.Items.Count; i++) {
-                CollectReachableObjectNumbers(objects, array.Items[i], reachable);
-            }
-
-            return;
-        }
-
-        if (value is PdfDictionary dictionary) {
-            foreach (PdfObject child in dictionary.Items.Values) {
-                CollectReachableObjectNumbers(objects, child, reachable);
-            }
-
-            return;
-        }
-
-        if (value is PdfStream stream) {
-            CollectReachableObjectNumbers(objects, stream.Dictionary, reachable);
+            string content = PdfEncoding.Latin1GetString(StreamDecoder.Decode(stream.Dictionary, stream.Data, objects));
+            string isolated = "q\n" + content + "\nQ\n";
+            objects[reference.ObjectNumber] = new PdfIndirectObject(reference.ObjectNumber, reference.Generation, new PdfStream(CleanStreamDictionary(stream.Dictionary), PdfEncoding.Latin1GetBytes(isolated)));
         }
     }
 

@@ -341,6 +341,30 @@ public class PdfITextInspiredCoverageTests {
     }
 
     [Fact]
+    public void AnnotationEditor_PrunesOrphanedAppearanceAndActionObjectsWhenUpdating() {
+        byte[] pdf = BuildAnnotationEditPdf();
+
+        PdfAnnotationEditResult updated = PdfAnnotationEditor.UpdateAnnotation(pdf, 6, new PdfAnnotationUpdateOptions {
+            Contents = "Updated note",
+            RemoveActions = true
+        });
+        string raw = PdfEncoding.Latin1GetString(updated.Bytes);
+
+        Assert.True(updated.Applied);
+        Assert.DoesNotContain("Old note appearance", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("old-action", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AnnotationEditor_RejectsNonAnnotationDictionaryWithSubtype() {
+        byte[] pdf = BuildAnnotationEditPdf();
+
+        Assert.Throws<ArgumentException>(() => PdfAnnotationEditor.UpdateAnnotation(pdf, 4, new PdfAnnotationUpdateOptions {
+            Contents = "Not an annotation"
+        }));
+    }
+
+    [Fact]
     public void ExternalValidationResult_FromExitCodeImportsProcessOutcome() {
         PdfExternalValidationResult passed = PdfExternalValidationResult.FromExitCode(
             PdfExternalValidatorKind.VeraPdf,
@@ -400,8 +424,9 @@ public class PdfITextInspiredCoverageTests {
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R >> >> /Annots [6 0 R] /Contents 5 0 R >>",
             "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
             BuildStream(contentBytes),
-            "<< /Type /Annot /Subtype /Text /Rect [20 20 40 40] /Contents (Review note) /F 132 /NM (Note-1) /T (Reviewer) /M (D:20260622090000Z) /C [1 0 0] /AP << /N 7 0 R >> /A << /S /URI /URI (https://example.com) >> >>",
-            BuildStream(appearanceBytes)
+            "<< /Type /Annot /Subtype /Text /Rect [20 20 40 40] /Contents (Review note) /F 132 /NM (Note-1) /T (Reviewer) /M (D:20260622090000Z) /C [1 0 0] /AP << /N 7 0 R >> /A 8 0 R >>",
+            BuildStream(appearanceBytes),
+            "<< /S /URI /URI (https://example.com/old-action) >>"
         };
 
         return Encoding.ASCII.GetBytes(BuildPdf(objects));

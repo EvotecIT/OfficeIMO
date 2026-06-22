@@ -94,6 +94,34 @@ public class PdfRedactionApplierTests {
     }
 
     [Fact]
+    public void Apply_ScrubsMatchedTextInsideNestedFormXObjects() {
+        byte[] source = BuildNestedFormXObjectRedactionSource();
+        PdfRedactionArea area = FindAreaForText(source, "Nested secret account 123-45");
+        Assert.Contains("Nested secret account 123-45", PdfTextExtractor.ExtractAllText(source), StringComparison.Ordinal);
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
+        string text = PdfTextExtractor.ExtractAllText(redacted);
+        string raw = PdfEncoding.Latin1GetString(redacted);
+
+        Assert.DoesNotContain("Nested secret", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("123-45", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Nested secret account 123-45", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Apply_IsolatesExistingContentBeforePaintingRedactionOverlay() {
+        byte[] source = BuildLeakingGraphicsStateRedactionSource();
+        var area = new PdfRedactionArea(1, 40, 40, 80, 24, "manual");
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
+        string raw = PdfEncoding.Latin1GetString(redacted);
+
+        Assert.Contains("q\nq\n0 0 1 1 re W n", raw, StringComparison.Ordinal);
+        Assert.Contains("\nQ\n", raw, StringComparison.Ordinal);
+        Assert.Contains("40 40 80 24 re", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Apply_ScopesDuplicateTextRedactionToIntersectingInstance() {
         byte[] source = BuildDuplicateRedactionSource();
         PdfRedactionArea area = FindAreaForTextOccurrence(source, "Repeat secret", occurrenceFromTop: 1);
@@ -239,6 +267,44 @@ public class PdfRedactionApplierTests {
             "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
             BuildStreamObject(5, Encoding.ASCII.GetBytes(pageContent)),
             BuildStreamObject(6, Encoding.ASCII.GetBytes(formContent), "/Type /XObject /Subtype /Form /BBox [0 0 220 40] /Resources << /Font << /F1 4 0 R >> >>")
+        };
+
+        return BuildPdf(objects, rootObjectNumber: 1);
+    }
+
+    private static byte[] BuildNestedFormXObjectRedactionSource() {
+        string pageContent = "q\n1 0 0 1 72 700 cm\n/FmOuter Do\nQ\n";
+        string outerFormContent = "q\n1 0 0 1 0 0 cm\n/FmInner Do\nQ\n";
+        string innerFormContent = "BT\n/F1 12 Tf\n0 0 Td\n(Nested secret account 123-45) Tj\nET\n";
+        var objects = new[] {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /XObject << /FmOuter 6 0 R >> >> /Contents 5 0 R >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
+            BuildStreamObject(5, Encoding.ASCII.GetBytes(pageContent)),
+            BuildStreamObject(6, Encoding.ASCII.GetBytes(outerFormContent), "/Type /XObject /Subtype /Form /BBox [0 0 220 40] /Resources << /XObject << /FmInner 7 0 R >> >>"),
+            BuildStreamObject(7, Encoding.ASCII.GetBytes(innerFormContent), "/Type /XObject /Subtype /Form /BBox [0 0 220 40] /Resources << /Font << /F1 4 0 R >> >>")
+        };
+
+        return BuildPdf(objects, rootObjectNumber: 1);
+    }
+
+    private static byte[] BuildLeakingGraphicsStateRedactionSource() {
+        string streamContent = string.Join("\n", new[] {
+            "q",
+            "0 0 1 1 re W n",
+            "BT",
+            "/F1 12 Tf",
+            "72 720 Td",
+            "(Visible page text) Tj",
+            "ET"
+        });
+        var objects = new[] {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 5 0 R >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
+            BuildStreamObject(5, Encoding.ASCII.GetBytes(streamContent))
         };
 
         return BuildPdf(objects, rootObjectNumber: 1);
