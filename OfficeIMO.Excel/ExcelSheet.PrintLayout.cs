@@ -91,6 +91,7 @@ namespace OfficeIMO.Excel {
             var repeatLastRow = options.RepeatLastRow ?? (options.SuppressPresetPrintTitles ? null : preset.RepeatLastRow);
             var repeatFirstColumn = options.RepeatFirstColumn ?? preset.RepeatFirstColumn;
             var repeatLastColumn = options.RepeatLastColumn ?? preset.RepeatLastColumn;
+            ValidatePrintLayoutScale(scale);
 
             SetOrientation(orientation);
             SetMarginsPreset(margins);
@@ -110,6 +111,12 @@ namespace OfficeIMO.Excel {
 
             WorksheetRoot.Save();
             return this;
+        }
+
+        private static void ValidatePrintLayoutScale(uint? scale) {
+            if (scale is < 10U or > 400U) {
+                throw new ArgumentOutOfRangeException(nameof(ExcelPrintLayoutOptions.Scale), "Manual print scale must be between 10 and 400 percent.");
+            }
         }
 
         private static ResolvedPrintLayoutPreset ResolvePrintLayoutPreset(ExcelPrintLayoutPreset preset) {

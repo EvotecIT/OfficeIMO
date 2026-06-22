@@ -86,6 +86,7 @@ namespace OfficeIMO.Excel {
             string normalized = NormalizeRange($"'{EscapeSheetName(sheet.Name)}'!{range}");
             var printArea = new DefinedName { Name = "_xlnm.Print_Area", LocalSheetId = sheetPos, Text = normalized };
             definedNames.Append(printArea);
+            MarkPackageDirty();
             SaveWorkbookScopedChange(save);
         }
 
@@ -223,8 +224,10 @@ namespace OfficeIMO.Excel {
             // Remove existing sheet-local Print_Titles for this sheet
             ushort sheetPos = GetSheetPositionIndex(sheet);
             foreach (var dn in definedNames.Elements<DefinedName>().Where(d => d.Name == "_xlnm.Print_Titles").ToList()) {
-                if (dn.LocalSheetId != null && dn.LocalSheetId.Value == sheetPos)
+                if (dn.LocalSheetId != null && dn.LocalSheetId.Value == sheetPos) {
                     dn.Remove();
+                    MarkPackageDirty();
+                }
             }
 
             // Nothing to set? stop here (clears existing titles)
@@ -248,6 +251,7 @@ namespace OfficeIMO.Excel {
             string text = hasRows && hasCols ? string.Concat(rowsPart, ",", colsPart) : (rowsPart ?? colsPart)!;
             var dnNew = new DefinedName { Name = "_xlnm.Print_Titles", LocalSheetId = sheetPos, Text = text };
             definedNames.Append(dnNew);
+            MarkPackageDirty();
             SaveWorkbookScopedChange(save);
         }
 

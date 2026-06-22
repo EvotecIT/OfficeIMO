@@ -145,6 +145,10 @@ namespace OfficeIMO.Excel {
         /// <param name="scale">Manual scale (10-400). Ignored if FitToWidth/Height are specified.</param>
         /// <param name="pageOrder">Optional multi-page print order.</param>
         public void SetPageSetup(uint? fitToWidth = null, uint? fitToHeight = null, uint? scale = null, ExcelPageOrder? pageOrder = null) {
+            if (scale is < 10U or > 400U) {
+                throw new ArgumentOutOfRangeException(nameof(scale), "Manual print scale must be between 10 and 400 percent.");
+            }
+
             WriteLock(() => {
                 var ws = WorksheetRoot;
                 var pageSetup = ws.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.PageSetup>();
@@ -185,6 +189,10 @@ namespace OfficeIMO.Excel {
         }
 
         internal void SetPageSetupAndClearStaleFit(uint? fitToWidth = null, uint? fitToHeight = null, uint? scale = null, ExcelPageOrder? pageOrder = null) {
+            if (scale is < 10U or > 400U) {
+                throw new ArgumentOutOfRangeException(nameof(scale), "Manual print scale must be between 10 and 400 percent.");
+            }
+
             WriteLock(() => {
                 var ws = WorksheetRoot;
                 var pageSetup = ws.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.PageSetup>();

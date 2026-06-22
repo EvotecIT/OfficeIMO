@@ -2,6 +2,7 @@ using System;
 using System.Data;
 using System.IO;
 using System.Linq;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
@@ -363,6 +364,104 @@ namespace OfficeIMO.Tests {
                 ExcelImage imageRecord = Assert.Single(document["Images"].Images);
                 Assert.Throws<NotSupportedException>(() => imageRecord.MoveTo(2, 2));
             }
+        }
+
+        [Fact]
+        public void Test_ImageMoveTo_RejectsOutOfBoundsCellAnchors() {
+            string filePath = Path.Combine(_directoryWithFiles, "ImageMove.Bounds.xlsx");
+            byte[] image = File.ReadAllBytes(Path.Combine(_directoryWithImages, "EvotecLogo.png"));
+
+            using var document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("Images");
+            ExcelImage imageRecord = sheet.AddImage(1, 1, image, "image/png", widthPixels: 16, heightPixels: 16);
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => imageRecord.MoveTo(A1.MaxRows + 1, 1));
+            Assert.Throws<ArgumentOutOfRangeException>(() => imageRecord.MoveTo(1, A1.MaxColumns + 1));
+        }
+
+        [Fact]
+        public void Test_DashboardChart_RejectsOutOfBoundsAnchorsAndDimensions() {
+            using var document = ExcelDocument.Create(new MemoryStream(), autoSave: false);
+            ExcelSheet sheet = document.AddWorkSheet("Dashboard");
+            sheet.CellValue(1, 1, "Region");
+            sheet.CellValue(1, 2, "Sales");
+            sheet.CellValue(2, 1, "EU");
+            sheet.CellValue(2, 2, 10);
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddDashboardChart(new ExcelDashboardChartOptions { Range = "A1:B2", Row = A1.MaxRows + 1, Column = 1 }));
+            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddDashboardChart(new ExcelDashboardChartOptions { Range = "A1:B2", Row = 1, Column = A1.MaxColumns + 1 }));
+            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddDashboardChart(new ExcelDashboardChartOptions { Range = "A1:B2", WidthPixels = 0 }));
+            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddDashboardChart(new ExcelDashboardChartOptions { Range = "A1:B2", HeightPixels = -1 }));
+        }
+
+        [Fact]
+        public void Test_PrintAreaAndTitles_MarkStreamWorkbookDirty() {
+            using var source = new MemoryStream();
+            using (var document = ExcelDocument.Create(source, autoSave: false)) {
+                ExcelSheet sheet = document.AddWorkSheet("Report");
+                sheet.CellValue(1, 1, "Region");
+                document.Save(source);
+            }
+
+            source.Position = 0;
+            using var destination = new MemoryStream();
+            using (var document = ExcelDocument.Load(source)) {
+                ExcelSheet sheet = document["Report"];
+                document.SetPrintArea(sheet, "A1:B2", save: false);
+                document.SetPrintTitles(sheet, firstRow: 1, lastRow: 1, firstCol: 1, lastCol: 1, save: false);
+                document.Save(destination);
+            }
+
+            destination.Position = 0;
+            using var loaded = ExcelDocument.Load(destination, readOnly: true);
+            ExcelSheet loadedSheet = loaded["Report"];
+            Assert.Equal("$A$1:$B$2", loadedSheet.GetPrintArea());
+            ExcelPrintTitles titles = loadedSheet.GetPrintTitles();
+            Assert.Equal(1, titles.FirstRow);
+            Assert.Equal(1, titles.LastRow);
+            Assert.Equal(1, titles.FirstColumn);
+            Assert.Equal(1, titles.LastColumn);
+        }
+
+        [Fact]
+        public void Test_WorksheetQueryTableMetadata_LinksWorksheetRelationship() {
+            string filePath = Path.Combine(_directoryWithFiles, "QueryTableMetadata.Linked.xlsx");
+            const string queryTableXml = "<queryTable xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" name=\"SalesQuery\" connectionId=\"1\"/>";
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                document.AddWorkSheet("Data");
+                document.AddWorksheetQueryTableMetadata("Data", queryTableXml);
+                document.Save();
+            }
+
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false);
+            WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single();
+            Worksheet worksheet = worksheetPart.Worksheet!;
+            OpenXmlElement queryTableParts = Assert.Single(worksheet.ChildElements,
+                element => element.LocalName == "queryTableParts" && element.NamespaceUri == "http://schemas.openxmlformats.org/spreadsheetml/2006/main");
+            OpenXmlElement queryTablePart = Assert.Single(queryTableParts.ChildElements,
+                element => element.LocalName == "queryTablePart" && element.NamespaceUri == "http://schemas.openxmlformats.org/spreadsheetml/2006/main");
+            Assert.Equal("1", queryTableParts.GetAttribute("count", string.Empty).Value);
+            string? relationshipId = queryTablePart.GetAttribute("id", "http://schemas.openxmlformats.org/officeDocument/2006/relationships").Value;
+
+            Assert.False(string.IsNullOrWhiteSpace(relationshipId));
+            Assert.NotNull(worksheetPart.GetPartById(relationshipId!));
+            Assert.Contains("SalesQuery", ReadSinglePackagePartText(worksheetPart, "queryTable"));
+        }
+
+        [Fact]
+        public void Test_PrintLayout_RejectsScaleOutsideExcelBounds() {
+            using var document = ExcelDocument.Create(new MemoryStream(), autoSave: false);
+            ExcelSheet sheet = document.AddWorkSheet("Report");
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.ApplyPrintLayout(new ExcelPrintLayoutOptions {
+                Preset = ExcelPrintLayoutPreset.Worksheet,
+                Scale = 1U
+            }));
+            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.ApplyPrintLayout(new ExcelPrintLayoutOptions {
+                Preset = ExcelPrintLayoutPreset.Worksheet,
+                Scale = 401U
+            }));
         }
     }
 }

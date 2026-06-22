@@ -67,8 +67,10 @@ namespace OfficeIMO.Excel {
         /// <returns>The created chart.</returns>
         public ExcelChart AddDashboardChart(ExcelDashboardChartOptions options) {
             if (options == null) throw new ArgumentNullException(nameof(options));
-            if (options.Row <= 0) throw new ArgumentOutOfRangeException(nameof(options.Row));
-            if (options.Column <= 0) throw new ArgumentOutOfRangeException(nameof(options.Column));
+            if (options.Row <= 0 || options.Row > A1.MaxRows) throw new ArgumentOutOfRangeException(nameof(options.Row), "Chart row must be between 1 and the Excel row limit.");
+            if (options.Column <= 0 || options.Column > A1.MaxColumns) throw new ArgumentOutOfRangeException(nameof(options.Column), "Chart column must be between 1 and the Excel column limit.");
+            if (options.WidthPixels <= 0) throw new ArgumentOutOfRangeException(nameof(options.WidthPixels), "Chart width must be greater than zero.");
+            if (options.HeightPixels <= 0) throw new ArgumentOutOfRangeException(nameof(options.HeightPixels), "Chart height must be greater than zero.");
             if (string.IsNullOrWhiteSpace(options.Range) == string.IsNullOrWhiteSpace(options.TableName)) {
                 throw new ArgumentException("Provide either Range or TableName.", nameof(options));
             }
