@@ -107,23 +107,26 @@ public static partial class PdfHtmlConverter {
 
     private static PdfCore.PdfLogicalDocument LoadLogical(byte[] pdf, PdfHtmlSaveOptions options) {
         PdfCore.PdfPageRange[]? ranges = CopyPageRanges(options);
+        PdfCore.PdfReadDocument document = PdfCore.PdfReadDocument.Load(pdf, options.ReadOptions);
         return ranges.Length > 0
-            ? PdfCore.PdfLogicalDocument.LoadPageRanges(pdf, options.LayoutOptions, ranges)
-            : PdfCore.PdfLogicalDocument.Load(pdf, options.LayoutOptions);
+            ? PdfCore.PdfLogicalDocument.FromPageRanges(document, options.LayoutOptions, ranges)
+            : PdfCore.PdfLogicalDocument.From(document, options.LayoutOptions);
     }
 
     private static PdfCore.PdfLogicalDocument LoadLogical(string path, PdfHtmlSaveOptions options) {
         PdfCore.PdfPageRange[]? ranges = CopyPageRanges(options);
+        PdfCore.PdfReadDocument document = PdfCore.PdfReadDocument.Load(path, options.ReadOptions);
         return ranges.Length > 0
-            ? PdfCore.PdfLogicalDocument.LoadPageRanges(path, options.LayoutOptions, ranges)
-            : PdfCore.PdfLogicalDocument.Load(path, options.LayoutOptions);
+            ? PdfCore.PdfLogicalDocument.FromPageRanges(document, options.LayoutOptions, ranges)
+            : PdfCore.PdfLogicalDocument.From(document, options.LayoutOptions);
     }
 
     private static PdfCore.PdfLogicalDocument LoadLogical(Stream stream, PdfHtmlSaveOptions options) {
         PdfCore.PdfPageRange[]? ranges = CopyPageRanges(options);
+        PdfCore.PdfReadDocument document = PdfCore.PdfReadDocument.Load(stream, options.ReadOptions);
         return ranges.Length > 0
-            ? PdfCore.PdfLogicalDocument.LoadPageRanges(stream, options.LayoutOptions, ranges)
-            : PdfCore.PdfLogicalDocument.Load(stream, options.LayoutOptions);
+            ? PdfCore.PdfLogicalDocument.FromPageRanges(document, options.LayoutOptions, ranges)
+            : PdfCore.PdfLogicalDocument.From(document, options.LayoutOptions);
     }
 
     private static PdfCore.PdfLogicalDocument LoadLogical(PdfCore.PdfReadDocument document, PdfHtmlSaveOptions options) {

@@ -101,11 +101,10 @@ public static class PdfInspector {
         }
 
         if (probe.HasEncryption) {
-            AddReadBlocker(PdfReadBlockerKind.Encryption, "Encrypted PDF files are not supported by OfficeIMO.Pdf yet.");
-            AddRewriteBlocker(PdfRewriteBlockerKind.Encryption, "Encrypted PDF files are not supported by OfficeIMO.Pdf yet.");
+            AddRewriteBlocker(PdfRewriteBlockerKind.Encryption, "Encrypted PDF files can be read when the password is valid, but rewriting encrypted PDFs is not supported yet.");
         }
 
-        bool canRead = diagnostics.Count == 0;
+        bool canRead = readBlockers.Count == 0;
         if (canRead) {
             try {
                 readDocument = PdfReadDocument.Load(pdf, options);
@@ -122,13 +121,22 @@ public static class PdfInspector {
                         "PDF page content streams use unsupported filter(s): " + string.Join(", ", unsupportedContentFilters) + ".");
                     canRead = false;
                 }
+            } catch (PdfPasswordRequiredException ex) {
+                AddReadBlocker(PdfReadBlockerKind.Encryption, ex.Message);
+                canRead = false;
+            } catch (PdfInvalidPasswordException ex) {
+                AddReadBlocker(PdfReadBlockerKind.Encryption, ex.Message);
+                canRead = false;
+            } catch (PdfUnsupportedEncryptionException ex) {
+                AddReadBlocker(PdfReadBlockerKind.Encryption, ex.Message);
+                canRead = false;
             } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
                 AddReadBlocker(PdfReadBlockerKind.ParserUnsupported, "PDF could not be parsed by OfficeIMO.Pdf: " + ex.Message);
                 canRead = false;
             }
         }
 
-        if (canRead && readDocument is not null) {
+        if (canRead && readDocument is not null && !probe.HasEncryption) {
             try {
                 ValidateRewriteObjectGraph(pdf, readDocument);
             } catch (Exception ex) when (ex is InvalidOperationException || ex is NotSupportedException || ex is ArgumentException) {

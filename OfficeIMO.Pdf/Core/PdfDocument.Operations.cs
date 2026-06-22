@@ -5,14 +5,35 @@ public sealed partial class PdfDocument {
     /// Inspects metadata, pages, annotations, fields, and catalog-level state.
     /// </summary>
     public PdfDocumentInfo Inspect(PdfReadOptions? options = null) {
-        return PdfInspector.Inspect(Snapshot(), options);
+        return PdfInspector.Inspect(Snapshot(), options ?? ReadOptions);
     }
 
     /// <summary>
     /// Reports read and rewrite capabilities for this PDF.
     /// </summary>
     public PdfDocumentPreflight Preflight(PdfReadOptions? options = null) {
-        return PdfInspector.Preflight(Snapshot(), options);
+        return PdfInspector.Preflight(Snapshot(), options ?? ReadOptions);
+    }
+
+    /// <summary>
+    /// Builds a combined PDF diagnostic report for this document.
+    /// </summary>
+    public PdfDiagnosticReport Diagnostics(PdfReadOptions? options = null) {
+        return PdfDiagnostics.Analyze(Snapshot(), options ?? ReadOptions);
+    }
+
+    /// <summary>
+    /// Builds an optimization opportunity report for this document without modifying it.
+    /// </summary>
+    public PdfOptimizationReport AnalyzeOptimization(PdfReadOptions? options = null) {
+        return PdfDiagnostics.AnalyzeOptimization(Snapshot(), options ?? ReadOptions);
+    }
+
+    /// <summary>
+    /// Plans rectangle-based redaction impact without modifying the PDF.
+    /// </summary>
+    public PdfRedactionPlan PlanRedactions(IEnumerable<PdfRedactionArea> areas, PdfTextLayoutOptions? layoutOptions = null, PdfReadOptions? options = null) {
+        return PdfRedactionPlanner.Plan(Snapshot(), areas, layoutOptions, options ?? ReadOptions);
     }
 
     internal PdfOperationResult<T> TryOperation<T>(
@@ -103,6 +124,20 @@ public sealed partial class PdfDocument {
     public PdfOperationResult<PdfDocument> TryMergeWith(Stream stream, PdfReadOptions? options = null) {
         Guard.NotNull(stream, nameof(stream));
         return TryOperation("Merge documents", PdfPreflightCapability.ManipulatePages, () => MergeWith(stream), options);
+    }
+
+    /// <summary>
+    /// Creates a new PDF with visual annotation appearance streams painted into page content where supported.
+    /// </summary>
+    public PdfDocument FlattenVisualAnnotations() {
+        return FromBytes(PdfAnnotationFlattener.FlattenVisualAnnotations(Snapshot()));
+    }
+
+    /// <summary>
+    /// Attempts to flatten visual annotation appearance streams, returning diagnostics when blocked or failed.
+    /// </summary>
+    public PdfOperationResult<PdfDocument> TryFlattenVisualAnnotations(PdfReadOptions? options = null) {
+        return TryOperation("Flatten visual annotations", PdfPreflightCapability.ManipulatePages, FlattenVisualAnnotations, options);
     }
 
     /// <summary>

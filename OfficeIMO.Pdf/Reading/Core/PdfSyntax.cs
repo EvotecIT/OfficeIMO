@@ -14,6 +14,10 @@ internal static partial class PdfSyntax {
     private static readonly Regex TrailerRootRegex = new Regex(@"/Root\s+(\d+)\s+(\d+)\s+R", RegexOptions.Compiled, RegexTimeout);
 
     internal static (Dictionary<int, PdfIndirectObject> Map, string TrailerRaw) ParseObjects(byte[] pdf) {
+        return ParseObjects(pdf, null);
+    }
+
+    internal static (Dictionary<int, PdfIndirectObject> Map, string TrailerRaw) ParseObjects(byte[] pdf, PdfReadOptions? options) {
         string text = PdfEncoding.Latin1GetString(pdf);
         var map = new Dictionary<int, PdfIndirectObject>();
         var parsedOffsets = new Dictionary<int, int>();
@@ -83,19 +87,29 @@ internal static partial class PdfSyntax {
                 }
             }
         }
-        string trailerRaw = GetActiveTrailerRaw(text, map, parsedOffsets);
-        ThrowIfEncrypted(trailerRaw);
-
         ResolveIndirectStreamLengths(map, pdf, streamLocations);
         var activeClassicObjectNumbers = new HashSet<int>();
         bool appliedXrefStreamEntries = ApplyClassicXrefEntries(map, pdf, parsedOffsets, activeClassicObjectNumbers, out bool appliedClassicEntries);
         appliedXrefStreamEntries = ApplyXrefStreamEntries(map, pdf, parsedOffsets) || appliedXrefStreamEntries;
+        string trailerRaw = GetActiveTrailerRaw(text, map, parsedOffsets);
+        PdfStandardSecurityHandler? decryptor = null;
+        int? encryptObjectNumber = TryReadLastReferenceObjectNumber(trailerRaw, "Encrypt");
+        if (encryptObjectNumber.HasValue) {
+            TryCreateDecryptor(map, trailerRaw, options, out decryptor);
+            if (decryptor is not null) {
+                DecryptObjects(map, decryptor, encryptObjectNumber.Value);
+            }
+        }
+
         if (!appliedXrefStreamEntries) {
             // Compatibility fallback for simple parser-supported files whose compressed objects are only discoverable by scanning.
             ExpandObjectStreams(map, pdf, parsedOffsets, appliedClassicEntries ? activeClassicObjectNumbers : null);
         }
 
-        ThrowIfEncryptedXrefStream(map);
+        if (decryptor is null) {
+            ThrowIfEncryptedXrefStream(map);
+        }
+
         return (map, trailerRaw);
     }
 }

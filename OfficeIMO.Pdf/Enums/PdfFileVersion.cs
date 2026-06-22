@@ -11,5 +11,7 @@ public enum PdfFileVersion {
     /// <summary>PDF 1.6.</summary>
     Pdf16,
     /// <summary>PDF 1.7.</summary>
-    Pdf17
+    Pdf17,
+    /// <summary>PDF 2.0.</summary>
+    Pdf20
 }

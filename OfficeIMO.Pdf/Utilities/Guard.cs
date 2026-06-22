@@ -238,8 +238,9 @@ internal static class Guard {
         if (value != PdfFileVersion.Pdf14 &&
             value != PdfFileVersion.Pdf15 &&
             value != PdfFileVersion.Pdf16 &&
-            value != PdfFileVersion.Pdf17) {
-            throw new System.ArgumentOutOfRangeException(paramName, "PDF file version must be Pdf14, Pdf15, Pdf16, or Pdf17.");
+            value != PdfFileVersion.Pdf17 &&
+            value != PdfFileVersion.Pdf20) {
+            throw new System.ArgumentOutOfRangeException(paramName, "PDF file version must be Pdf14, Pdf15, Pdf16, Pdf17, or Pdf20.");
         }
     }
 

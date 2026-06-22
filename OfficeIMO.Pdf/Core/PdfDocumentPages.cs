@@ -57,10 +57,128 @@ public sealed class PdfDocumentPages {
     }
 
     /// <summary>
+    /// Creates PDFs containing consecutive groups of the requested page count.
+    /// </summary>
+    public IReadOnlyList<PdfDocument> Split(int pagesPerDocument) {
+        if (pagesPerDocument <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(pagesPerDocument), pagesPerDocument, "Pages per document must be greater than zero.");
+        }
+
+        int pageCount = _document.Inspect().PageCount;
+        if (pageCount == 0) {
+            throw new InvalidOperationException("PDF does not contain any readable pages.");
+        }
+
+        var ranges = new List<PdfPageRange>();
+        for (int firstPage = 1; firstPage <= pageCount; firstPage += pagesPerDocument) {
+            int lastPage = Math.Min(firstPage + pagesPerDocument - 1, pageCount);
+            ranges.Add(PdfPageRange.From(firstPage, lastPage));
+        }
+
+        return Split(ranges);
+    }
+
+    /// <summary>
+    /// Creates one PDF for each supplied page selection.
+    /// </summary>
+    public IReadOnlyList<PdfDocument> Split(params PdfPageSelection[] selections) {
+        Guard.NotNull(selections, nameof(selections));
+        if (selections.Length == 0) {
+            throw new ArgumentException("At least one page selection must be specified.", nameof(selections));
+        }
+
+        var documents = new PdfDocument[selections.Length];
+        for (int i = 0; i < selections.Length; i++) {
+            Guard.NotNull(selections[i], nameof(selections));
+            documents[i] = Extract(selections[i]);
+        }
+
+        return documents;
+    }
+
+    /// <summary>
+    /// Creates one PDF for each supplied inclusive page range.
+    /// </summary>
+    public IReadOnlyList<PdfDocument> Split(IEnumerable<PdfPageRange> pageRanges) {
+        Guard.NotNull(pageRanges, nameof(pageRanges));
+        PdfPageRange[] ranges = pageRanges.ToArray();
+        if (ranges.Length == 0) {
+            throw new ArgumentException("At least one page range must be specified.", nameof(pageRanges));
+        }
+
+        return PdfPageExtractor.SplitPageRanges(_document.Snapshot(), ranges)
+            .Select(PdfDocument.FromBytes)
+            .ToArray();
+    }
+
+    /// <summary>
+    /// Returns outline/bookmark-derived page ranges in document order.
+    /// </summary>
+    public IReadOnlyList<PdfBookmarkPageRange> BookmarkPageRanges(params string[] bookmarkTitles) {
+        PdfDocumentInfo info = _document.Inspect();
+        PdfBookmarkPageRange[] allRanges = BuildBookmarkPageRanges(info);
+        if (bookmarkTitles is null || bookmarkTitles.Length == 0) {
+            return allRanges;
+        }
+
+        var selected = new List<PdfBookmarkPageRange>(bookmarkTitles.Length);
+        for (int i = 0; i < bookmarkTitles.Length; i++) {
+            string title = bookmarkTitles[i];
+            Guard.NotNullOrWhiteSpace(title, nameof(bookmarkTitles));
+            PdfBookmarkPageRange? match = allRanges.FirstOrDefault(range => string.Equals(range.Title, title, StringComparison.Ordinal));
+            if (match is null) {
+                throw new ArgumentException("Bookmark title '" + title + "' was not found or does not resolve to a page.", nameof(bookmarkTitles));
+            }
+
+            selected.Add(match);
+        }
+
+        return selected.AsReadOnly();
+    }
+
+    /// <summary>
+    /// Creates one PDF for each outline/bookmark-derived page range.
+    /// </summary>
+    public IReadOnlyList<PdfDocument> SplitByBookmarks(params string[] bookmarkTitles) {
+        IReadOnlyList<PdfBookmarkPageRange> ranges = BookmarkPageRanges(bookmarkTitles);
+        if (ranges.Count == 0) {
+            throw new InvalidOperationException("PDF does not contain any readable bookmarks with page destinations.");
+        }
+
+        return Split(ranges.Select(range => range.PageRange));
+    }
+
+    /// <summary>
     /// Attempts to create one PDF per page, returning diagnostics when blocked or failed.
     /// </summary>
     public PdfOperationResult<IReadOnlyList<PdfDocument>> TrySplit(PdfReadOptions? options = null) {
         return _document.TryOperation("Split pages", PdfPreflightCapability.ManipulatePages, Split, options);
+    }
+
+    /// <summary>
+    /// Attempts to create PDFs containing consecutive groups of the requested page count.
+    /// </summary>
+    public PdfOperationResult<IReadOnlyList<PdfDocument>> TrySplit(int pagesPerDocument, PdfReadOptions? options = null) {
+        return _document.TryOperation("Split page groups", PdfPreflightCapability.ManipulatePages, () => Split(pagesPerDocument), options);
+    }
+
+    /// <summary>
+    /// Attempts to create one PDF for each supplied page selection.
+    /// </summary>
+    public PdfOperationResult<IReadOnlyList<PdfDocument>> TrySplit(IReadOnlyList<PdfPageSelection> selections, PdfReadOptions? options = null) {
+        Guard.NotNull(selections, nameof(selections));
+        return _document.TryOperation("Split page selections", PdfPreflightCapability.ManipulatePages, () => Split(selections.ToArray()), options);
+    }
+
+    /// <summary>
+    /// Attempts to create one PDF for each outline/bookmark-derived page range.
+    /// </summary>
+    public PdfOperationResult<IReadOnlyList<PdfDocument>> TrySplitByBookmarks(IReadOnlyList<string>? bookmarkTitles = null, PdfReadOptions? options = null) {
+        return _document.TryOperation(
+            "Split bookmarks",
+            PdfPreflightCapability.ManipulatePages,
+            () => SplitByBookmarks(bookmarkTitles is null ? Array.Empty<string>() : bookmarkTitles.ToArray()),
+            options);
     }
 
     /// <summary>
@@ -243,5 +361,56 @@ public sealed class PdfDocumentPages {
     /// </summary>
     public PdfDocument Rotate(int rotationDegrees, string pageRanges) {
         return Rotate(rotationDegrees, PdfPageSelection.Parse(pageRanges));
+    }
+
+    private static PdfBookmarkPageRange[] BuildBookmarkPageRanges(PdfDocumentInfo info) {
+        var outlines = new List<PdfOutlineItem>();
+        FlattenOutlines(info.Outlines, outlines);
+
+        var anchors = new List<PdfOutlineItem>();
+        for (int i = 0; i < outlines.Count; i++) {
+            if (outlines[i].PageNumber.HasValue) {
+                int pageNumber = outlines[i].PageNumber!.Value;
+                if (pageNumber >= 1 && pageNumber <= info.PageCount) {
+                    anchors.Add(outlines[i]);
+                }
+            }
+        }
+
+        if (anchors.Count == 0) {
+            return Array.Empty<PdfBookmarkPageRange>();
+        }
+
+        var ranges = new List<PdfBookmarkPageRange>(anchors.Count);
+        for (int i = 0; i < anchors.Count; i++) {
+            PdfOutlineItem anchor = anchors[i];
+            int firstPage = anchor.PageNumber!.Value;
+            int lastPage = info.PageCount;
+            for (int j = i + 1; j < anchors.Count; j++) {
+                int nextPage = anchors[j].PageNumber!.Value;
+                if (nextPage > firstPage) {
+                    lastPage = nextPage - 1;
+                    break;
+                }
+            }
+
+            if (lastPage < firstPage) {
+                lastPage = firstPage;
+            }
+
+            ranges.Add(new PdfBookmarkPageRange(anchor.Title, anchor.Level, PdfPageRange.From(firstPage, lastPage), anchor));
+        }
+
+        return ranges.ToArray();
+    }
+
+    private static void FlattenOutlines(IReadOnlyList<PdfOutlineItem> source, List<PdfOutlineItem> destination) {
+        for (int i = 0; i < source.Count; i++) {
+            PdfOutlineItem outline = source[i];
+            destination.Add(outline);
+            if (outline.Children.Count > 0) {
+                FlattenOutlines(outline.Children, destination);
+            }
+        }
     }
 }

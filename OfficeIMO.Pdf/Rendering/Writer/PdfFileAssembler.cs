@@ -46,6 +46,8 @@ internal static class PdfFileAssembler {
                 return "1.6";
             case PdfFileVersion.Pdf17:
                 return "1.7";
+            case PdfFileVersion.Pdf20:
+                return "2.0";
             default:
                 Guard.FileVersion(fileVersion, nameof(fileVersion));
                 return "1.4";
@@ -66,6 +68,8 @@ internal static class PdfFileAssembler {
                 return PdfFileVersion.Pdf16;
             case "1.7":
                 return PdfFileVersion.Pdf17;
+            case "2.0":
+                return PdfFileVersion.Pdf20;
             default:
                 return PdfFileVersion.Pdf14;
         }

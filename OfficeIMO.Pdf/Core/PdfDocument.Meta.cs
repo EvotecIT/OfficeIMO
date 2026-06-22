@@ -9,6 +9,7 @@ public sealed partial class PdfDocument : IDisposable {
     private readonly PdfOptions _options;
     private readonly System.Collections.Generic.Stack<System.Action<IPdfBlock>> _blockScopes;
     private readonly byte[]? _loadedPdf;
+    private readonly PdfReadOptions? _readOptions;
 
     // Metadata
     private string? _title;
@@ -26,8 +27,9 @@ public sealed partial class PdfDocument : IDisposable {
         Forms = new PdfDocumentForms(this);
     }
 
-    private PdfDocument(byte[] pdf) : this() {
+    private PdfDocument(byte[] pdf, PdfReadOptions? readOptions = null) : this() {
         _loadedPdf = (byte[])pdf.Clone();
+        _readOptions = readOptions;
     }
 
     /// <summary>
@@ -46,11 +48,27 @@ public sealed partial class PdfDocument : IDisposable {
     }
 
     /// <summary>
+    /// Opens an existing PDF from bytes and snapshots the input.
+    /// </summary>
+    public static PdfDocument Open(byte[] pdf, PdfReadOptions? readOptions) {
+        Guard.NotNull(pdf, nameof(pdf));
+        return new PdfDocument(pdf, readOptions);
+    }
+
+    /// <summary>
     /// Opens an existing PDF from a file path.
     /// </summary>
     public static PdfDocument Open(string path) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
         return Open(File.ReadAllBytes(path));
+    }
+
+    /// <summary>
+    /// Opens an existing PDF from a file path.
+    /// </summary>
+    public static PdfDocument Open(string path, PdfReadOptions? readOptions) {
+        Guard.NotNullOrWhiteSpace(path, nameof(path));
+        return Open(File.ReadAllBytes(path), readOptions);
     }
 
     /// <summary>
@@ -65,6 +83,20 @@ public sealed partial class PdfDocument : IDisposable {
         using var buffer = new MemoryStream();
         stream.CopyTo(buffer);
         return Open(buffer.ToArray());
+    }
+
+    /// <summary>
+    /// Opens an existing PDF from the current position of a readable stream.
+    /// </summary>
+    public static PdfDocument Open(Stream stream, PdfReadOptions? readOptions) {
+        Guard.NotNull(stream, nameof(stream));
+        if (!stream.CanRead) {
+            throw new ArgumentException("Stream must be readable.", nameof(stream));
+        }
+
+        using var buffer = new MemoryStream();
+        stream.CopyTo(buffer);
+        return Open(buffer.ToArray(), readOptions);
     }
 
     /// <summary>
@@ -163,6 +195,8 @@ public sealed partial class PdfDocument : IDisposable {
     internal byte[] Snapshot() {
         return ToBytes();
     }
+
+    internal PdfReadOptions? ReadOptions => _readOptions;
 
     internal static PdfDocument FromBytes(byte[] pdf) {
         Guard.NotNull(pdf, nameof(pdf));
