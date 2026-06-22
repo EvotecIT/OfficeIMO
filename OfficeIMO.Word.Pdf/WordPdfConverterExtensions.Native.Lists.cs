@@ -18,9 +18,10 @@ namespace OfficeIMO.Word.Pdf {
             Dictionary<WordParagraph, (int Level, string Marker)> listMarkers,
             Dictionary<WordParagraph, (int Level, int Index)> listIndices,
             Dictionary<long, int> footnoteNumbersById,
-            NativeDocumentDefaults nativeDefaults) {
+            NativeDocumentDefaults nativeDefaults,
+            NativeFontMap nativeFontMap) {
             if (elements[index] is not WordParagraph firstParagraph ||
-                !TryGetNativeListItem(firstParagraph, listMarkers, listIndices, footnoteNumbersById, nativeDefaults, out bool ordered, out int level, out int startNumber, out PdfCore.PdfListItem? item, out PdfCore.PdfAlign align, out PdfCore.PdfColor? color, out PdfCore.PdfListStyle? style)) {
+                !TryGetNativeListItem(firstParagraph, listMarkers, listIndices, footnoteNumbersById, nativeDefaults, nativeFontMap, out bool ordered, out int level, out int startNumber, out PdfCore.PdfListItem? item, out PdfCore.PdfAlign align, out PdfCore.PdfColor? color, out PdfCore.PdfListStyle? style)) {
                 return false;
             }
 
@@ -30,7 +31,7 @@ namespace OfficeIMO.Word.Pdf {
             int expectedNumber = startNumber + 1;
             while (nextIndex < elements.Count &&
                    elements[nextIndex] is WordParagraph paragraph &&
-                   TryGetNativeListItem(paragraph, listMarkers, listIndices, footnoteNumbersById, nativeDefaults, out bool nextOrdered, out int nextLevel, out int nextNumber, out PdfCore.PdfListItem? nextItem, out PdfCore.PdfAlign nextAlign, out PdfCore.PdfColor? nextColor, out PdfCore.PdfListStyle? nextStyle) &&
+                   TryGetNativeListItem(paragraph, listMarkers, listIndices, footnoteNumbersById, nativeDefaults, nativeFontMap, out bool nextOrdered, out int nextLevel, out int nextNumber, out PdfCore.PdfListItem? nextItem, out PdfCore.PdfAlign nextAlign, out PdfCore.PdfColor? nextColor, out PdfCore.PdfListStyle? nextStyle) &&
                    nextOrdered == ordered &&
                    nextLevel == level &&
                    nextAlign == align &&
@@ -60,6 +61,7 @@ namespace OfficeIMO.Word.Pdf {
             Dictionary<WordParagraph, (int Level, int Index)> listIndices,
             Dictionary<long, int> footnoteNumbersById,
             NativeDocumentDefaults nativeDefaults,
+            NativeFontMap nativeFontMap,
             out bool ordered,
             out int level,
             out int index,
@@ -101,7 +103,7 @@ namespace OfficeIMO.Word.Pdf {
                 return false;
             }
 
-            List<PdfCore.TextRun> richRuns = CreateNativeCellParagraphRuns(paragraph, footnoteNumbersById, NativeTableStyleDefaults.Empty, nativeDefaults);
+            List<PdfCore.TextRun> richRuns = CreateNativeCellParagraphRuns(paragraph, footnoteNumbersById, NativeTableStyleDefaults.Empty, nativeDefaults, nativeFontMap);
             string content = string.Concat(richRuns.Select(run => run.Text));
             if (string.IsNullOrWhiteSpace(content)) {
                 return false;
@@ -116,7 +118,7 @@ namespace OfficeIMO.Word.Pdf {
             index = listIndex.Index;
             item = new PdfCore.PdfListItem(richRuns, paragraph.Bookmark?.Name, string.IsNullOrWhiteSpace(displayMarker) ? null : displayMarker);
             align = ResolveNativeParagraphAlign(paragraph, allowJustify: false);
-            NativeResolvedTextStyle textStyle = ResolveNativeTextRunStyle(paragraph, nativeDefaults: nativeDefaults);
+            NativeResolvedTextStyle textStyle = ResolveNativeTextRunStyle(paragraph, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
             color = textStyle.Color;
             style = CreateNativeListStyle(paragraph, info.Value, displayMarker, nativeDefaults, textStyle);
             return true;

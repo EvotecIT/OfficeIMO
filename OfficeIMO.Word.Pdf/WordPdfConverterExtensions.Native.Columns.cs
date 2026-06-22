@@ -60,7 +60,8 @@ namespace OfficeIMO.Word.Pdf {
                                 listMarkers,
                                 listIndices,
                                 footnoteNumbersById,
-                                nativeDefaults)) {
+                                nativeDefaults,
+                                nativeFontMap)) {
                                 hasContent = true;
                                 continue;
                             }

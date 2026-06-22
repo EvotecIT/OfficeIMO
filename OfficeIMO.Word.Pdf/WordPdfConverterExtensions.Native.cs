@@ -176,7 +176,8 @@ namespace OfficeIMO.Word.Pdf {
                                 listMarkers,
                                 listIndices,
                                 footnoteNumbersById,
-                                nativeDefaults)) {
+                                nativeDefaults,
+                                nativeFontMap)) {
                                 continue;
                             }
 
