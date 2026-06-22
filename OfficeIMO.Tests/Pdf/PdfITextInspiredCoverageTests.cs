@@ -350,6 +350,24 @@ public class PdfITextInspiredCoverageTests {
     }
 
     [Fact]
+    public void AnnotationEditor_ClearsParentPopupReferenceWhenRemovingPopupAnnotation() {
+        byte[] pdf = BuildAnnotationWithLinkedPopupPdf();
+
+        PdfAnnotationEditResult removed = PdfAnnotationEditor.RemoveAnnotations(pdf, new PdfAnnotationRemovalOptions {
+            Subtype = "Popup"
+        });
+
+        PdfDocumentInfo info = PdfInspector.Inspect(removed.Bytes);
+        string text = PdfEncoding.Latin1GetString(removed.Bytes);
+        Assert.True(removed.Applied);
+        Assert.Equal(1, removed.AffectedAnnotationCount);
+        Assert.Single(info.GetAnnotationsBySubtype("Text"));
+        Assert.Empty(info.GetAnnotationsBySubtype("Popup"));
+        Assert.DoesNotContain("/Subtype /Popup", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Popup 7 0 R", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ExternalValidationResult_FromExitCodeImportsProcessOutcome() {
         PdfExternalValidationResult passed = PdfExternalValidationResult.FromExitCode(
             PdfExternalValidatorKind.VeraPdf,

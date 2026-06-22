@@ -329,10 +329,22 @@ This **Markdown** is rendered by `OfficeIMO.MarkdownRenderer`.
 
         switch (route.Trim().ToLowerInvariant()) {
             case "markdown-html":
+                ActiveWorkspace = Workspace.TextBridge;
+                MarkupMode = "markdown-html";
+                MarkupInput = DefaultMarkdown;
+                MarkupOutput = "Run Markdown to HTML, HTML to Markdown, or Markdown to DOCX.";
+                break;
             case "html-markdown":
+                ActiveWorkspace = Workspace.TextBridge;
+                MarkupMode = "html-markdown";
+                MarkupInput = DefaultHtml;
+                MarkupOutput = "Run HTML to Markdown to see portable Markdown output.";
+                break;
             case "markdown-docx":
                 ActiveWorkspace = Workspace.TextBridge;
-                MarkupMode = route.Trim().ToLowerInvariant();
+                MarkupMode = "markdown-docx";
+                MarkupInput = DefaultMarkdown;
+                MarkupOutput = "Run Markdown to DOCX to generate a downloadable Word package.";
                 break;
             case "office-pdf":
             case "docx-pdf":

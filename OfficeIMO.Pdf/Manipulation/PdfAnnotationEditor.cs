@@ -65,6 +65,10 @@ public static class PdfAnnotationEditor {
             }
         }
 
+        if (removed.Count > 0) {
+            ClearRemovedPopupReferences(objects, removed);
+        }
+
         foreach (int objectNumber in removed) {
             objects.Remove(objectNumber);
         }
@@ -148,6 +152,23 @@ public static class PdfAnnotationEditor {
         }
 
         return removed;
+    }
+
+    private static void ClearRemovedPopupReferences(Dictionary<int, PdfIndirectObject> objects, HashSet<int> removedObjectNumbers) {
+        if (removedObjectNumbers.Count == 0) {
+            return;
+        }
+
+        foreach (PdfIndirectObject indirect in objects.Values) {
+            if (indirect.Value is not PdfDictionary dictionary ||
+                !dictionary.Items.TryGetValue("Popup", out PdfObject? popupObject) ||
+                popupObject is not PdfReference popupReference ||
+                !removedObjectNumbers.Contains(popupReference.ObjectNumber)) {
+                continue;
+            }
+
+            dictionary.Items.Remove("Popup");
+        }
     }
 
     private static void ApplyUpdates(PdfDictionary annotation, PdfAnnotationUpdateOptions options) {
