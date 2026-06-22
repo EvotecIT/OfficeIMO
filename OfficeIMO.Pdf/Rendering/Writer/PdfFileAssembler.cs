@@ -3,8 +3,15 @@ using System.Globalization;
 namespace OfficeIMO.Pdf;
 
 internal static class PdfFileAssembler {
-    internal static byte[] Assemble(IReadOnlyList<byte[]> objects, int catalogId, int infoId, PdfFileVersion fileVersion = PdfFileVersion.Pdf14) {
+    internal static byte[] Assemble(IReadOnlyList<byte[]> objects, int catalogId, int infoId, PdfFileVersion fileVersion = PdfFileVersion.Pdf14, PdfStandardEncryptionOptions? encryption = null) {
         Guard.FileVersion(fileVersion, nameof(fileVersion));
+        Guard.NotNull(objects, nameof(objects));
+
+        PdfEncryptionAssembly? encryptionAssembly = null;
+        if (encryption != null) {
+            encryptionAssembly = PdfStandardSecurityWriter.Encrypt(objects, encryption);
+            objects = encryptionAssembly.Objects;
+        }
 
         using var ms = new MemoryStream();
         byte[] header = PdfEncoding.Latin1GetBytes("%PDF-" + GetHeaderVersion(fileVersion) + "\n%\u00e2\u00e3\u00cf\u00d3\n");
@@ -27,13 +34,23 @@ internal static class PdfFileAssembler {
         }
 
         writer.WriteLine("trailer");
-        writer.WriteLine("<< /Size " + (objects.Count + 1).ToString(CultureInfo.InvariantCulture) + " /Root " + PdfSyntaxEscaper.IndirectReference(catalogId) + " /Info " + PdfSyntaxEscaper.IndirectReference(infoId) + " >>");
+        writer.WriteLine("<< /Size " + (objects.Count + 1).ToString(CultureInfo.InvariantCulture) + " /Root " + PdfSyntaxEscaper.IndirectReference(catalogId) + " /Info " + PdfSyntaxEscaper.IndirectReference(infoId) + BuildTrailerSecurityEntries(encryptionAssembly) + " >>");
         writer.WriteLine("startxref");
         writer.WriteLine(xrefPos.ToString(CultureInfo.InvariantCulture));
         writer.WriteLine("%%EOF");
         writer.Flush();
 
         return ms.ToArray();
+    }
+
+    private static string BuildTrailerSecurityEntries(PdfEncryptionAssembly? encryptionAssembly) {
+        if (encryptionAssembly == null) {
+            return string.Empty;
+        }
+
+        string id = PdfSyntaxEscaper.HexString(encryptionAssembly.FileId);
+        return " /Encrypt " + PdfSyntaxEscaper.IndirectReference(encryptionAssembly.EncryptionObjectNumber) +
+            " /ID [" + id + " " + id + "]";
     }
 
     internal static string GetHeaderVersion(PdfFileVersion fileVersion) {

@@ -255,6 +255,20 @@ public sealed partial class PdfDocument {
         return this;
     }
 
+    /// <summary>Sets or clears Standard password security for generated PDF output.</summary>
+    public PdfDocument Encryption(PdfStandardEncryptionOptions? encryption) {
+        EnsureGeneratedDocument();
+        _options.SetEncryption(encryption);
+        return this;
+    }
+
+    /// <summary>Sets Standard password security for generated PDF output.</summary>
+    public PdfDocument Encryption(string userPassword, string? ownerPassword = null, int permissions = PdfStandardEncryptionOptions.AllowAllPermissions) {
+        EnsureGeneratedDocument();
+        _options.SetEncryption(userPassword, ownerPassword, permissions);
+        return this;
+    }
+
     /// <summary>Sets PDF/A XMP identification metadata. This does not by itself certify PDF/A conformance.</summary>
     public PdfDocument PdfAIdentification(PdfAIdentification? identification) {
         _options.SetPdfAIdentification(identification);

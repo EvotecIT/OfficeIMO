@@ -144,6 +144,35 @@ public sealed partial class PdfOptions {
 
     internal string? CatalogUriBaseSnapshot => _catalogUriBase;
 
+    /// <summary>Optional Standard password security for generated PDFs.</summary>
+    public PdfStandardEncryptionOptions? Encryption {
+        get => _encryption?.Clone();
+        set => _encryption = value?.Clone();
+    }
+
+    internal PdfStandardEncryptionOptions? EncryptionSnapshot => _encryption?.Clone();
+
+    /// <summary>Sets Standard password security for generated PDFs.</summary>
+    public PdfOptions SetEncryption(string userPassword, string? ownerPassword = null, int permissions = PdfStandardEncryptionOptions.AllowAllPermissions) {
+        Encryption = new PdfStandardEncryptionOptions(userPassword) {
+            OwnerPassword = ownerPassword,
+            Permissions = permissions
+        };
+        return this;
+    }
+
+    /// <summary>Sets or clears Standard password security for generated PDFs.</summary>
+    public PdfOptions SetEncryption(PdfStandardEncryptionOptions? encryption) {
+        Encryption = encryption;
+        return this;
+    }
+
+    /// <summary>Clears generated PDF password security.</summary>
+    public PdfOptions ClearEncryption() {
+        _encryption = null;
+        return this;
+    }
+
     /// <summary>Optional AcroForm default text alignment emitted as catalog-level /Q quadding.</summary>
     public PdfFormFieldTextAlignment? AcroFormDefaultTextAlignment {
         get => _acroFormDefaultTextAlignment;
