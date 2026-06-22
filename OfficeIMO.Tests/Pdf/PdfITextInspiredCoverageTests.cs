@@ -105,6 +105,92 @@ public class PdfITextInspiredCoverageTests {
         Assert.Equal(244, geometry.TrimBox.Top);
     }
 
+    [Fact]
+    public void SecurityInfo_ReportsObjectStreamRewriteReadiness() {
+        byte[] pdf = Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 0 /Kids [] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /ObjStm /N 0 /First 0 /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 4 >>",
+            "startxref",
+            "123",
+            "%%EOF"
+        }));
+
+        PdfDocumentSecurityInfo security = PdfInspector.Probe(pdf).Security;
+
+        Assert.True(security.HasObjectStreams);
+        Assert.True(security.BlocksOfficeIMOFullRewriteMutation);
+    }
+
+    [Fact]
+    public void AnnotationEditor_UpdatesAndRemovesAnnotations() {
+        byte[] pdf = BuildCoveragePdf();
+
+        PdfAnnotationEditResult updated = PdfAnnotationEditor.UpdateAnnotation(pdf, 6, new PdfAnnotationUpdateOptions {
+            Contents = "Updated note",
+            Title = "Lead reviewer",
+            Name = "Note-2",
+            Flags = 4,
+            Color = new[] { 0D, 0.5D, 1D },
+            RemoveActions = true
+        });
+
+        Assert.True(updated.Applied);
+        PdfAnnotation annotation = Assert.Single(PdfInspector.Inspect(updated.Bytes).GetAnnotationsBySubtype("Text"));
+        Assert.Equal("Updated note", annotation.Contents);
+        Assert.Equal("Lead reviewer", annotation.Title);
+        Assert.Equal("Note-2", annotation.Name);
+        Assert.False(annotation.HasActions);
+        Assert.Equal(4, annotation.Flags);
+
+        PdfAnnotationEditResult removed = PdfAnnotationEditor.RemoveAnnotations(updated.Bytes, new PdfAnnotationRemovalOptions {
+            Subtype = "Text"
+        });
+
+        Assert.True(removed.Applied);
+        PdfDocumentInfo info = PdfInspector.Inspect(removed.Bytes);
+        Assert.Empty(info.GetAnnotationsBySubtype("Text"));
+        Assert.Equal(1, info.FormWidgetCount);
+    }
+
+    [Fact]
+    public void ExternalValidationResult_FromExitCodeImportsProcessOutcome() {
+        PdfExternalValidationResult passed = PdfExternalValidationResult.FromExitCode(
+            PdfExternalValidatorKind.VeraPdf,
+            0,
+            "veraPDF",
+            "passed",
+            profile: "PDF/A-3b",
+            executablePath: "verapdf",
+            arguments: "--format text file.pdf");
+
+        PdfExternalValidationResult failed = PdfExternalValidationResult.FromExitCode(
+            PdfExternalValidatorKind.PdfUaValidator,
+            2,
+            "pdfua",
+            "failed",
+            profile: "PDF/UA-1");
+
+        Assert.Equal(PdfExternalValidationStatus.Passed, passed.Status);
+        Assert.Equal(0, passed.ExitCode);
+        Assert.Equal("verapdf", passed.ExecutablePath);
+        Assert.Equal("--format text file.pdf", passed.Arguments);
+        Assert.Equal(PdfExternalValidationStatus.Failed, failed.Status);
+        Assert.Equal(2, failed.ExitCode);
+    }
+
     private static byte[] BuildCoveragePdf() {
         string longText = new string('A', 512);
         byte[] contentBytes = Encoding.ASCII.GetBytes("BT\n/F1 12 Tf\n72 720 Td\n(" + longText + ") Tj\nET\n");

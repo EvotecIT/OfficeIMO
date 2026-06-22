@@ -25,6 +25,7 @@ internal static partial class PdfSyntax {
         bool hasPreviousRevision = previousXrefOffsets.Count > 0;
         IReadOnlyList<PdfDocumentRevisionInfo> revisions = BuildRevisionInfo(startXrefOffsets, previousXrefOffsets);
         bool hasXrefStreams = ContainsPdfName(text, "XRef") && ContainsPdfName(text, "W");
+        bool hasObjectStreams = ContainsPdfName(text, "ObjStm");
         bool hasTrailerId = ContainsPdfName(text, "ID");
 
         int? rootObjectNumber = TryReadLastReferenceObjectNumber(text, "Root");
@@ -201,7 +202,8 @@ internal static partial class PdfSyntax {
             previousXrefOffsets,
             revisions,
             hasPreviousRevision,
-            hasXrefStreams);
+            hasXrefStreams,
+            hasObjectStreams);
     }
 
     private static void ReadCatalogSecurityState(
