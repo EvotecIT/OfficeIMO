@@ -9,12 +9,14 @@ public static partial class PdfPageExtractor {
             int pagesObjectId,
             Dictionary<int, Dictionary<string, PdfObject>> materializedPageValues,
             Dictionary<int, PdfIndirectObject>? sourceObjects = null,
-            Dictionary<int, Dictionary<string, PdfObject>>? pageOverrides = null) {
+            Dictionary<int, Dictionary<string, PdfObject>>? pageOverrides = null,
+            bool preserveReferenceGenerations = false) {
             NumberMap = numberMap;
             PagesObjectId = pagesObjectId;
             MaterializedPageValues = materializedPageValues;
             SourceObjectGenerations = sourceObjects?.ToDictionary(entry => entry.Key, entry => entry.Value.Generation) ?? new Dictionary<int, int>();
             PageOverrides = pageOverrides ?? new Dictionary<int, Dictionary<string, PdfObject>>();
+            PreserveReferenceGenerations = preserveReferenceGenerations;
         }
     
         public Dictionary<int, int> NumberMap { get; }
@@ -26,6 +28,8 @@ public static partial class PdfPageExtractor {
         public Dictionary<int, int> SourceObjectGenerations { get; }
     
         public Dictionary<int, Dictionary<string, PdfObject>> PageOverrides { get; }
+
+        public bool PreserveReferenceGenerations { get; }
     }
     
     internal sealed class AdditionalObject {

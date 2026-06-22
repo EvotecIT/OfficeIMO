@@ -625,7 +625,7 @@ public static partial class PdfIncrementalUpdater {
         }
 
         var identityMap = objects.Keys.ToDictionary(static objectNumber => objectNumber, static objectNumber => objectNumber);
-        var context = new PdfPageExtractor.SerializationContext(identityMap, pagesObjectId: 0, new Dictionary<int, Dictionary<string, PdfObject>>(), objects);
+        var context = new PdfPageExtractor.SerializationContext(identityMap, pagesObjectId: 0, new Dictionary<int, Dictionary<string, PdfObject>>(), objects, preserveReferenceGenerations: true);
         int[] objectNumbers = changedObjectNumbers.OrderBy(static objectNumber => objectNumber).ToArray();
         var serialized = new List<(int ObjectNumber, int Generation, byte[] Bytes)>(objectNumbers.Length);
         foreach (int objectNumber in objectNumbers) {
