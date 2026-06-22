@@ -100,15 +100,13 @@ namespace OfficeIMO.Excel {
                 _excelDocument.SetPrintArea(this, options.PrintArea!, save: false);
             }
 
-            if (repeatFirstRow.HasValue || repeatLastRow.HasValue || repeatFirstColumn.HasValue || repeatLastColumn.HasValue) {
-                _excelDocument.SetPrintTitles(
-                    this,
-                    repeatFirstRow,
-                    repeatLastRow,
-                    repeatFirstColumn,
-                    repeatLastColumn,
-                    save: false);
-            }
+            _excelDocument.SetPrintTitles(
+                this,
+                repeatFirstRow,
+                repeatLastRow,
+                repeatFirstColumn,
+                repeatLastColumn,
+                save: false);
 
             WorksheetRoot.Save();
             return this;

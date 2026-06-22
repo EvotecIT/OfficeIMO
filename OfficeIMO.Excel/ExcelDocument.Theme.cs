@@ -17,7 +17,10 @@ namespace OfficeIMO.Excel {
         /// Ensures the workbook contains the default Office theme and stylesheet parts.
         /// </summary>
         public ExcelDocument EnsureWorkbookTheme() {
-            EnsureWorkbookThemeAndStyles();
+            if (EnsureWorkbookThemeAndStyles()) {
+                MarkPackageDirty();
+            }
+
             return this;
         }
 

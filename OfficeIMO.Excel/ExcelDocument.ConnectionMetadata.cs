@@ -24,9 +24,9 @@ namespace OfficeIMO.Excel {
             OpenXmlPart? existingPart = GetWorkbookConnectionPart();
             if (existingPart == null) {
                 return AddWorkbookMetadataPart(
-                WorkbookConnectionRelationshipType,
-                WorkbookConnectionContentType,
-                xml);
+                    WorkbookConnectionRelationshipType,
+                    WorkbookConnectionContentType,
+                    NormalizeWorkbookConnectionMetadata(xml));
             }
 
             string mergedXml = MergeWorkbookConnectionMetadata(ReadMetadataPart(existingPart), xml);
@@ -101,6 +101,10 @@ namespace OfficeIMO.Excel {
         /// <returns>The added package part.</returns>
         public ExtendedPart AddWorksheetMetadataPart(ExcelSheet sheet, string relationshipType, string contentType, string xml, string targetExtension = "xml") {
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            if (!ReferenceEquals(sheet.Document, this)) {
+                throw new ArgumentException("Worksheet metadata can only be added to a worksheet owned by this workbook.", nameof(sheet));
+            }
+
             return AddMetadataPart(sheet.WorksheetPart, relationshipType, contentType, xml, targetExtension);
         }
 
@@ -150,6 +154,22 @@ namespace OfficeIMO.Excel {
 
             existingDocument.Root.SetAttributeValue("count", existingDocument.Root.Elements().Count(element => element.Name.LocalName == "connection").ToString(System.Globalization.CultureInfo.InvariantCulture));
             return existingDocument.ToString(SaveOptions.DisableFormatting);
+        }
+
+        private static string NormalizeWorkbookConnectionMetadata(string xml) {
+            XDocument document = XDocument.Parse(xml);
+            if (document.Root == null) {
+                throw new InvalidDataException("Workbook connection metadata must have a document root.");
+            }
+
+            if (document.Root.Name.LocalName != "connection") {
+                return document.ToString(SaveOptions.DisableFormatting);
+            }
+
+            XNamespace ns = document.Root.Name.Namespace;
+            var connections = new XElement(ns + "connections", new XElement(document.Root));
+            connections.SetAttributeValue("count", "1");
+            return new XDocument(connections).ToString(SaveOptions.DisableFormatting);
         }
 
         private static string ReadMetadataPart(OpenXmlPart part) {

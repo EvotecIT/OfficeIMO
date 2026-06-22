@@ -30,6 +30,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 properties.Date1904 = use1904 ? true : null;
+                RefreshDeferredDirectDataSetDateSystem(value);
                 WorkbookRoot.Save();
                 MarkPackageDirty();
             }

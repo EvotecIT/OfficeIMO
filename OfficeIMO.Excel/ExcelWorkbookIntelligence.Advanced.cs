@@ -301,8 +301,11 @@ namespace OfficeIMO.Excel {
                 actions.Add(new ExcelWorkbookRepairAction("Workbook", "Normalized workbook views, styles, and shared strings."));
             }
 
-            if (options.Save && CanSaveToDefaultDestination()) {
-                Save(false);
+            if (actions.Count > 0) {
+                MarkPackageDirty();
+                if (options.Save && CanSaveToDefaultDestination()) {
+                    Save(false);
+                }
             }
 
             ExcelWorkbookDiagnosticReport after = RunWorkbookDoctor(new ExcelWorkbookDoctorOptions { ValidateOpenXml = false });

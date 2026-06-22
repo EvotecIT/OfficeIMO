@@ -304,16 +304,21 @@ namespace OfficeIMO.Excel {
                     IsExternal = isExternal,
                     Target = target!,
                 };
-                AddSnapshotForReference(map, reference!, snapshot);
+                AddSnapshotForReference(map, worksheet, reference!, snapshot);
             }
 
             return map;
         }
 
-        private static void AddSnapshotForReference<TSnapshot>(Dictionary<string, TSnapshot> map, string reference, TSnapshot snapshot) {
+        private static void AddSnapshotForReference<TSnapshot>(Dictionary<string, TSnapshot> map, Worksheet worksheet, string reference, TSnapshot snapshot) {
             if (A1.TryParseRange(reference, out int rowStart, out int columnStart, out int rowEnd, out int columnEnd)) {
-                for (int row = rowStart; row <= rowEnd; row++) {
-                    for (int column = columnStart; column <= columnEnd; column++) {
+                foreach (var cell in worksheet.Descendants<Cell>()) {
+                    string? cellReference = cell.CellReference?.Value;
+                    if (!A1.TryParseCellReferenceFast(cellReference, out int row, out int column)) {
+                        continue;
+                    }
+
+                    if (row >= rowStart && row <= rowEnd && column >= columnStart && column <= columnEnd) {
                         map[A1.CellReference(row, column)] = snapshot;
                     }
                 }

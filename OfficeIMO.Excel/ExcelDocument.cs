@@ -91,20 +91,30 @@ namespace OfficeIMO.Excel {
         internal ReaderWriterLockSlim EnsureLock()
             => _lock ??= new ReaderWriterLockSlim(); // default: NoRecursion
 
-        internal void EnsureWorkbookThemeAndStyles() {
+        internal bool EnsureWorkbookThemeAndStyles() {
             var workbookPart = _spreadSheetDocument?.WorkbookPart ?? _workBookPart;
+            bool changed = false;
 
             if (!workbookPart.GetPartsOfType<ThemePart>().Any()) {
                 ThemePart themePart = workbookPart.AddNewPart<ThemePart>();
                 using var themeStream = new MemoryStream(DefaultThemeBytes.Value);
                 themePart.FeedData(themeStream);
+                changed = true;
             }
 
-            var stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
+            var stylesPart = workbookPart.WorkbookStylesPart;
+            if (stylesPart == null) {
+                stylesPart = workbookPart.AddNewPart<WorkbookStylesPart>();
+                changed = true;
+            }
+
             if (stylesPart.Stylesheet == null) {
                 stylesPart.Stylesheet = CreateDefaultStylesheet();
                 stylesPart.Stylesheet.Save();
+                changed = true;
             }
+
+            return changed;
         }
 
         private static Stylesheet CreateDefaultStylesheet() {

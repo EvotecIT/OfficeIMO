@@ -29,6 +29,12 @@ namespace OfficeIMO.Excel {
 
             internal ExcelDateSystem DateSystem { get; }
 
+            internal DirectDataSetWorkbookModel WithDateSystem(ExcelDateSystem dateSystem) {
+                return dateSystem == DateSystem
+                    ? this
+                    : new DirectDataSetWorkbookModel(Sheets, Results, DateTimeOffsetWriteStrategy, dateSystem);
+            }
+
             internal DirectDataSetWorkbookModel WithWorksheetMetadata(IReadOnlyList<DirectWorksheetMetadata?> metadata) {
                 if (metadata == null) throw new ArgumentNullException(nameof(metadata));
                 if (metadata.Count != Sheets.Count) {

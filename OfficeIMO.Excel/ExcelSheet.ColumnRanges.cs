@@ -46,6 +46,10 @@ namespace OfficeIMO.Excel {
                 return TryGetTableColumnRangeByHeader(headerName, tableName!, includeHeader, normalizeHeader, out range);
             }
 
+            if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
+                _excelDocument.MaterializeDeferredDataSetImport();
+            }
+
             string usedRange = GetUsedRangeA1();
             if (!A1.TryParseRange(usedRange, out int usedStartRow, out int usedStartColumn, out int usedEndRow, out int usedEndColumn)) {
                 return false;

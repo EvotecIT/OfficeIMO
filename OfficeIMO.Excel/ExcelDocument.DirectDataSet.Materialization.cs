@@ -150,6 +150,17 @@ namespace OfficeIMO.Excel {
 
         internal bool HasPendingDirectCellValues => _pendingDirectCellValueSheet != null;
 
+        internal void RefreshDeferredDirectDataSetDateSystem(ExcelDateSystem dateSystem) {
+            var candidate = _directDataSetSaveCandidate;
+            if (candidate == null || !candidate.IsDeferred || !candidate.IsValid) {
+                return;
+            }
+
+            var updated = candidate.WithModel(candidate.Model.WithDateSystem(dateSystem));
+            _directDataSetSaveCandidate = updated;
+            candidate.Dispose();
+        }
+
         private void MaterializeDirectDataSetModel(DirectDataSetWorkbookModel model) {
             foreach (var sheetModel in model.Sheets) {
                 ExcelSheet sheet = TryGetExistingSheet(sheetModel.SheetName)

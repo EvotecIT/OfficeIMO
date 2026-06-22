@@ -1,4 +1,5 @@
 using System;
+using System.Data;
 using System.IO;
 using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
@@ -142,6 +143,130 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_WorkbookConnectionMetadata_WrapsSingletonConnectionXml() {
+            string filePath = Path.Combine(_directoryWithFiles, "ConnectionMetadata.Singleton.xlsx");
+            const string connectionXml = "<connection xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" id=\"1\" name=\"SalesConnection\" type=\"5\" refreshedVersion=\"7\"/>";
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                document.AddWorkSheet("Data");
+                document.AddWorkbookConnectionMetadata(connectionXml);
+                document.Save();
+            }
+
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false);
+            string xml = ReadSinglePackagePartText(spreadsheet.WorkbookPart!, "connections");
+            Assert.Contains("<connections", xml, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("count=\"1\"", xml, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("SalesConnection", xml, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Test_WorksheetMetadata_RejectsForeignWorksheet() {
+            using var left = ExcelDocument.Create(new MemoryStream(), autoSave: false);
+            using var right = ExcelDocument.Create(new MemoryStream(), autoSave: false);
+            ExcelSheet foreignSheet = left.AddWorkSheet("Foreign");
+
+            Assert.Throws<ArgumentException>(() => right.AddWorksheetMetadataPart(
+                foreignSheet,
+                "http://schemas.openxmlformats.org/officeDocument/2006/relationships/queryTable",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.queryTable+xml",
+                "<queryTable xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" name=\"Foreign\"/>"));
+        }
+
+        [Fact]
+        public void Test_PrintLayoutWorksheetPreset_ClearsStalePrintTitles() {
+            string filePath = Path.Combine(_directoryWithFiles, "PrintLayoutPreset.ClearTitles.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Report");
+                sheet.CellValue(1, 1, "Region");
+                document.SetPrintTitles(sheet, firstRow: 1, lastRow: 1, firstCol: 1, lastCol: 1, save: false);
+
+                sheet.ApplyPrintLayout(new ExcelPrintLayoutOptions {
+                    Preset = ExcelPrintLayoutPreset.Worksheet
+                });
+                document.Save();
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Null(document.GetNamedRange("_xlnm.Print_Titles", document["Report"]));
+            }
+        }
+
+        [Fact]
+        public void Test_ColumnRangeByHeader_MaterializesDeferredWorksheetData() {
+            string filePath = Path.Combine(_directoryWithFiles, "ColumnRangeByHeader.Deferred.xlsx");
+            var dataSet = new DataSet("Export");
+            var table = new DataTable("Items");
+            table.Columns.Add("Name", typeof(string));
+            table.Columns.Add("Sales Amount", typeof(int));
+            table.Rows.Add("Alpha", 10);
+            table.Rows.Add("Beta", 20);
+            dataSet.Tables.Add(table);
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                document.InsertDataSet(dataSet);
+
+                Assert.Equal("B2:B3", document["Items"].GetColumnRangeByHeader("Sales Amount"));
+                document.Save();
+            }
+        }
+
+        [Fact]
+        public void Test_DateSystemChange_UpdatesDeferredDataSetImport() {
+            string filePath = Path.Combine(_directoryWithFiles, "DateSystem.DeferredChange.xlsx");
+            var date = new DateTime(2024, 2, 3);
+            var dataSet = new DataSet("Export");
+            var table = new DataTable("Items");
+            table.Columns.Add("When", typeof(DateTime));
+            table.Rows.Add(date);
+            dataSet.Tables.Add(table);
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                document.InsertDataSet(dataSet);
+                document.DateSystem = ExcelDateSystem.NineteenFour;
+                document.Save();
+            }
+
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false);
+            WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single();
+            string serialText = GetCellValueText(worksheetPart, "A2");
+            Assert.Equal(Expected1904Serial(date), double.Parse(serialText, System.Globalization.CultureInfo.InvariantCulture), 6);
+        }
+
+        [Fact]
+        public void Test_EnsureWorkbookTheme_SavesEnsuredPartsForStreamWorkbook() {
+            using var source = new MemoryStream();
+            using (var document = ExcelDocument.Create(source, autoSave: false)) {
+                document.AddWorkSheet("Data").CellValue(1, 1, "Ready");
+                document.Save(source);
+            }
+
+            source.Position = 0;
+            using (SpreadsheetDocument package = SpreadsheetDocument.Open(source, true)) {
+                foreach (ThemePart themePart in package.WorkbookPart!.GetPartsOfType<ThemePart>().ToList()) {
+                    package.WorkbookPart.DeletePart(themePart);
+                }
+
+                if (package.WorkbookPart.WorkbookStylesPart != null) {
+                    package.WorkbookPart.DeletePart(package.WorkbookPart.WorkbookStylesPart);
+                }
+            }
+
+            source.Position = 0;
+            using var destination = new MemoryStream();
+            using (var document = ExcelDocument.Load(source)) {
+                document.EnsureWorkbookTheme();
+                document.Save(destination);
+            }
+
+            destination.Position = 0;
+            using SpreadsheetDocument saved = SpreadsheetDocument.Open(destination, false);
+            Assert.Single(saved.WorkbookPart!.GetPartsOfType<ThemePart>());
+            Assert.NotNull(saved.WorkbookPart.WorkbookStylesPart);
+        }
+
+        [Fact]
         public void Test_InspectionSnapshot_ExpandsRangeHyperlinksToCells() {
             string filePath = Path.Combine(_directoryWithFiles, "Inspection.RangeHyperlinks.xlsx");
 
@@ -157,7 +282,7 @@ namespace OfficeIMO.Tests {
                 WorksheetPart worksheetPart = package.WorkbookPart!.WorksheetParts.Single();
                 worksheetPart.AddHyperlinkRelationship(new Uri("https://example.com/report", UriKind.Absolute), true, "rIdRangeHyperlink");
                 worksheetPart.Worksheet.Append(new Hyperlinks(new Hyperlink {
-                    Reference = "A1:A3",
+                    Reference = "A1:XFD1048576",
                     Id = "rIdRangeHyperlink"
                 }));
                 worksheetPart.Worksheet.Save();
@@ -166,6 +291,7 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
                 ExcelWorksheetSnapshot sheet = Assert.Single(document.CreateInspectionSnapshot().Worksheets);
                 Assert.All(sheet.Cells.Where(cell => cell.Row >= 1 && cell.Row <= 3), cell => Assert.NotNull(cell.Hyperlink));
+                Assert.Equal(3, sheet.Cells.Count(cell => cell.Hyperlink != null));
             }
         }
 
