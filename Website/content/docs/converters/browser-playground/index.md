@@ -4,7 +4,7 @@ description: Static Blazor WebAssembly conversion path for OfficeIMO.com and Git
 order: 90
 ---
 
-The OfficeIMO browser conversion playground is a static Blazor WebAssembly app hosted by OfficeIMO.com. It converts selected files and text locally in the browser and returns downloadable output without sending document contents to a server.
+The OfficeIMO browser conversion playground is a lightweight static route picker backed by a Blazor WebAssembly converter hosted by OfficeIMO.com. The page shows live and planned conversion routes immediately, then loads the WebAssembly engine only when a live route is selected.
 
 ## Boundary
 
@@ -41,6 +41,8 @@ Basic DOCX, XLSX, and PPTX conversion can produce `%PDF` bytes inside the browse
 
 The text workspace calls `OfficeIMO.MarkdownRenderer`, `OfficeIMO.Markdown.Html`, and `OfficeIMO.Word.Markdown` directly from WebAssembly. It can render Markdown HTML previews, download Markdown converted from HTML, and generate DOCX bytes from Markdown.
 
+The `/playground/` shell should not force users through a separate "full app" choice. It displays the usable conversion routes up front and passes the selected route to `/apps/officeimo-converter/?route=...` when the engine iframe is created.
+
 ## Engine Map
 
 The playground also shows OfficeIMO conversion families that should become richer playground, CLI, PowerShell, MCP, plugin, skill, or server routes:
@@ -70,7 +72,7 @@ The public URL should be:
 /apps/officeimo-converter/
 ```
 
-The website page at `/playground/` embeds the mounted app under the OfficeIMO site chrome.
+The website page at `/playground/` displays a static route board under the OfficeIMO site chrome and lazy-loads the mounted app iframe only after a live route button is used.
 
 ## Validation
 
@@ -97,6 +99,8 @@ Do not publish directly into `Website/static/apps/officeimo-converter/`, because
 
 Then verify in a real browser:
 
+- `/playground/` shows the conversion routes without loading the WebAssembly iframe.
+- Selecting a live route creates an iframe for `/apps/officeimo-converter/?route=...`.
 - DOCX to PDF returns bytes beginning with `%PDF`.
 - XLSX to PDF returns bytes beginning with `%PDF`.
 - PPTX to PDF returns bytes beginning with `%PDF`.

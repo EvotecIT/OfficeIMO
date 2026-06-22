@@ -12,6 +12,7 @@
 @using OfficeIMO.Word.Pdf
 @inject HttpClient Http
 @inject IJSRuntime JS
+@inject NavigationManager Navigation
 
 <PageTitle>OfficeIMO Browser Converter</PageTitle>
 
@@ -315,6 +316,52 @@ This **Markdown** is rendered by `OfficeIMO.MarkdownRenderer`.
         new ConversionCapability("Markup to Office", "Engine route", "OfficeIMO.Markup.* exporters", "One authoring model can export Word, Excel, PowerPoint, C#, and PowerShell emitters.", "ocx-chip--cold"),
         new ConversionCapability("Agent tools", "MCP / skill route", "OfficeIMO conversion tools", "Expose repeatable conversions and diagnostics through MCP tools, Codex skills, and packaging/release plugins.", "ocx-chip--cold")
     ];
+
+    protected override void OnInitialized() {
+        ApplyInitialRoute();
+    }
+
+    private void ApplyInitialRoute() {
+        string route = GetQueryValue("route");
+        if (string.IsNullOrWhiteSpace(route)) {
+            return;
+        }
+
+        switch (route.Trim().ToLowerInvariant()) {
+            case "markdown-html":
+            case "html-markdown":
+            case "markdown-docx":
+                ActiveWorkspace = Workspace.TextBridge;
+                MarkupMode = route.Trim().ToLowerInvariant();
+                break;
+            case "office-pdf":
+            case "docx-pdf":
+            case "xlsx-pdf":
+            case "pptx-pdf":
+                ActiveWorkspace = Workspace.OfficePdf;
+                break;
+        }
+    }
+
+    private string GetQueryValue(string name) {
+        var uri = new Uri(Navigation.Uri);
+        string query = uri.Query;
+        if (query.Length <= 1) {
+            return string.Empty;
+        }
+
+        foreach (string pair in query[1..].Split('&', StringSplitOptions.RemoveEmptyEntries)) {
+            string[] parts = pair.Split('=', 2);
+            string key = Uri.UnescapeDataString(parts[0]);
+            if (!string.Equals(key, name, StringComparison.OrdinalIgnoreCase)) {
+                continue;
+            }
+
+            return parts.Length == 2 ? Uri.UnescapeDataString(parts[1].Replace("+", " ")) : string.Empty;
+        }
+
+        return string.Empty;
+    }
 
     private bool CanConvert => SelectedFile is not null && IsSupported(SelectedFile.Extension) && !IsBusy;
     private string OutputStatus => IsBusy ? "Converting" : PdfBytes is null ? "Waiting" : "Ready";

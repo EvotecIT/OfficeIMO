@@ -35,35 +35,69 @@
       var launcher = document.querySelector('[data-ocx-launcher]');
       if (!launcher) return;
 
-      var startButton = launcher.querySelector('[data-ocx-start]');
+      var startButtons = Array.prototype.slice.call(launcher.querySelectorAll('[data-ocx-start]'));
       var host = launcher.querySelector('[data-ocx-frame-host]');
-      if (!startButton || !host) return;
+      var loadedTitle = launcher.querySelector('[data-ocx-loaded-title]');
+      if (!startButtons.length || !host) return;
 
-      startButton.addEventListener('click', function () {
-        if (launcher.getAttribute('data-ocx-loaded') === 'true') {
+      function routeLabel(route) {
+        switch (route) {
+          case 'markdown-html': return 'Markdown to HTML';
+          case 'html-markdown': return 'HTML to Markdown';
+          case 'markdown-docx': return 'Markdown to DOCX';
+          case 'office-pdf':
+          default: return 'Office to PDF';
+        }
+      }
+
+      function resetButtons() {
+        startButtons.forEach(function (button) {
+          button.removeAttribute('disabled');
+          button.removeAttribute('aria-busy');
+          button.textContent = button.getAttribute('data-ocx-original-text') || button.textContent;
+        });
+      }
+
+      function loadRoute(route, button) {
+        var label = routeLabel(route);
+        var source = '/apps/officeimo-converter/?route=' + encodeURIComponent(route);
+        var existingFrame = host.querySelector('iframe');
+
+        if (loadedTitle) {
+          loadedTitle.textContent = label;
+        }
+
+        if (launcher.getAttribute('data-ocx-loaded') === 'true' && existingFrame && existingFrame.getAttribute('src') === source) {
           host.scrollIntoView({ behavior: 'smooth', block: 'start' });
           return;
         }
 
         launcher.setAttribute('data-ocx-loaded', 'true');
-        startButton.textContent = 'Loading converter...';
-        startButton.setAttribute('disabled', 'disabled');
-        startButton.setAttribute('aria-busy', 'true');
+        if (!button.getAttribute('data-ocx-original-text')) {
+          button.setAttribute('data-ocx-original-text', button.textContent);
+        }
+        button.textContent = 'Loading engine...';
+        button.setAttribute('disabled', 'disabled');
+        button.setAttribute('aria-busy', 'true');
 
         var frame = document.createElement('iframe');
         frame.className = 'ocx-embed-frame';
-        frame.src = '/apps/officeimo-converter/';
+        frame.src = source;
         frame.title = 'OfficeIMO Browser Converter';
         frame.loading = 'eager';
         frame.addEventListener('load', function () {
-          startButton.textContent = 'Converter loaded';
-          startButton.removeAttribute('disabled');
-          startButton.removeAttribute('aria-busy');
+          resetButtons();
           host.scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
 
         host.hidden = false;
         host.replaceChildren(frame);
+      }
+
+      startButtons.forEach(function (button) {
+        button.addEventListener('click', function () {
+          loadRoute(button.getAttribute('data-ocx-route') || 'office-pdf', button);
+        });
       });
     })();
   </script>

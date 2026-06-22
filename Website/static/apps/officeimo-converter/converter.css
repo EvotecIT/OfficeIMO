@@ -61,6 +61,10 @@
   background: var(--ocx-page-bg);
 }
 
+.ocx-launcher--routes {
+  padding-top: clamp(1.25rem, 3vw, 2.5rem);
+}
+
 .ocx-launcher-hero {
   display: grid;
   grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
@@ -68,11 +72,116 @@
   align-items: end;
 }
 
+.ocx-route-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(320px, 0.8fr);
+  gap: clamp(1rem, 3vw, 2.25rem);
+  align-items: end;
+  margin-bottom: 1rem;
+}
+
 .ocx-launcher-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.8rem;
   margin-top: clamp(1rem, 2vw, 1.5rem);
+}
+
+.ocx-route-board {
+  display: grid;
+  grid-template-columns: minmax(280px, 1.25fr) repeat(3, minmax(220px, 0.9fr));
+  gap: 0.85rem;
+  align-items: stretch;
+  margin-bottom: 1rem;
+}
+
+.ocx-route-card {
+  display: grid;
+  gap: 0.75rem;
+  align-content: start;
+  min-height: 17rem;
+  padding: clamp(1rem, 1.6vw, 1.25rem);
+  border: 1px solid var(--ocx-border);
+  border-radius: 0.85rem;
+  background: var(--ocx-surface);
+  box-shadow: var(--ocx-shadow);
+}
+
+.ocx-route-card--primary {
+  background: linear-gradient(135deg, var(--ocx-control-bg-hover), var(--ocx-surface));
+  border-color: var(--ocx-border-strong);
+}
+
+.ocx-route-card h2,
+.ocx-route-card p {
+  margin: 0;
+}
+
+.ocx-route-card h2 {
+  color: var(--ocx-text);
+  font-size: clamp(1.25rem, 1.7vw, 1.7rem);
+  line-height: 1.12;
+}
+
+.ocx-route-card p {
+  color: var(--ocx-muted);
+  line-height: 1.58;
+}
+
+.ocx-route-card .ocx-button {
+  width: 100%;
+  margin-top: auto;
+}
+
+.ocx-route-card > .ocx-chip {
+  justify-self: start;
+}
+
+.ocx-route-formats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.ocx-route-formats span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.85rem;
+  padding: 0.25rem 0.55rem;
+  border: 1px solid var(--ocx-border);
+  border-radius: 999px;
+  color: var(--ocx-text);
+  background: var(--ocx-control-bg);
+  font-size: 0.75rem;
+  font-weight: 850;
+}
+
+.ocx-route-backlog {
+  margin-top: 1rem;
+}
+
+.ocx-engine-dock {
+  margin-top: 1rem;
+  border: 1px solid var(--ocx-border);
+  border-radius: 0.85rem;
+  background: var(--ocx-surface);
+  box-shadow: var(--ocx-shadow);
+  overflow: hidden;
+}
+
+.ocx-engine-dock-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: end;
+  padding: 1rem 1.15rem;
+  border-bottom: 1px solid var(--ocx-border);
+}
+
+.ocx-engine-dock-head h2 {
+  margin: 0;
+  color: var(--ocx-text);
+  font-size: 1.2rem;
 }
 
 .ocx-embed-host {
@@ -92,7 +201,7 @@
 .ocx-embed-frame {
   display: block;
   width: 100%;
-  height: calc(100vh - 4rem);
+  height: calc(100vh - 5rem);
   min-height: 760px;
   border: 0;
   background: var(--ocx-page-bg-flat);
@@ -756,11 +865,16 @@
 @media (max-width: 1050px) {
   .ocx-hero,
   .ocx-launcher-hero,
+  .ocx-route-hero,
   .ocx-workbench,
   .ocx-workbench--text,
   .ocx-section-head,
   .ocx-showcase-grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ocx-route-board {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .ocx-preview-column {
@@ -779,9 +893,14 @@
 
   .ocx-status-strip,
   .ocx-launcher-grid,
+  .ocx-route-board,
   .ocx-route-switcher,
   .ocx-matrix {
     grid-template-columns: 1fr;
+  }
+
+  .ocx-route-card {
+    min-height: auto;
   }
 
   .ocx-output-head,
