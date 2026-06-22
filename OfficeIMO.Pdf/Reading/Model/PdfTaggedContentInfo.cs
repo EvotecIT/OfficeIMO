@@ -94,4 +94,25 @@ public sealed class PdfTaggedContentInfo {
         .Where(static element => !string.IsNullOrEmpty(element.StructureType))
         .GroupBy(static element => element.StructureType!, StringComparer.Ordinal)
         .ToDictionary(static group => group.Key, static group => group.Count(), StringComparer.Ordinal);
+
+    /// <summary>Number of structure elements with a readable /Lang value.</summary>
+    public int LanguageElementCount => StructureElements.Count(static element => !string.IsNullOrEmpty(element.Language));
+
+    /// <summary>Number of structure elements with readable /Alt alternate text.</summary>
+    public int AlternateTextElementCount => StructureElements.Count(static element => !string.IsNullOrEmpty(element.AlternateText));
+
+    /// <summary>Number of Figure structure elements without readable alternate text.</summary>
+    public int FigureWithoutAlternateTextCount => StructureElements.Count(static element =>
+        string.Equals(element.StructureType, "Figure", StringComparison.Ordinal) &&
+        string.IsNullOrEmpty(element.AlternateText));
+
+    /// <summary>True when role mapping, language, alternate text, and parent-tree evidence is present for deeper tagged PDF workflows.</summary>
+    public bool HasDeepTaggedPdfEvidence =>
+        Marked == true &&
+        StructureElementCount > 0 &&
+        ParentTreeEntryCount > 0 &&
+        (HasRoleMap || StructureTypeCounts.Count > 0);
+
+    /// <summary>True when all readable Figure structure elements have alternate text.</summary>
+    public bool FiguresHaveAlternateText => FigureWithoutAlternateTextCount == 0;
 }

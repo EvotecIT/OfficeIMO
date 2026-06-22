@@ -74,6 +74,44 @@ public sealed class PdfComplianceProofReport {
         HasRequiredExternalValidation &&
         FailedExternalValidations.Count == 0;
 
+    /// <summary>Number of required external validator families.</summary>
+    public int RequiredExternalValidatorCount => _requiredExternalValidators.Count;
+
+    /// <summary>Number of caller-supplied passing validation results for the requested profile and required validator families.</summary>
+    public int PassedExternalValidationCount => CountExternalValidations(PdfExternalValidationStatus.Passed);
+
+    /// <summary>Number of caller-supplied failed or errored validation results for the requested profile and required validator families.</summary>
+    public int FailedExternalValidationCount => FailedExternalValidations.Count;
+
+    /// <summary>Number of required validator families without a current passing result.</summary>
+    public int MissingExternalValidatorCount => MissingExternalValidators.Count;
+
+    /// <summary>True when the profile requires external validation before conformance can be claimed.</summary>
+    public bool RequiresExternalValidation => RequiredExternalValidatorCount > 0;
+
+    /// <summary>Stable proof state for automation: None, InternalGaps, MissingExternalValidation, ExternalValidationFailed, or Claimable.</summary>
+    public string ProofStatus {
+        get {
+            if (Profile == PdfComplianceProfile.None) {
+                return "None";
+            }
+
+            if (!IsInternallyReady) {
+                return "InternalGaps";
+            }
+
+            if (FailedExternalValidationCount > 0) {
+                return "ExternalValidationFailed";
+            }
+
+            if (!HasRequiredExternalValidation) {
+                return "MissingExternalValidation";
+            }
+
+            return "Claimable";
+        }
+    }
+
     /// <summary>Required external validators that do not have a passing result.</summary>
     public IReadOnlyList<PdfExternalValidatorKind> MissingExternalValidators {
         get {
@@ -139,6 +177,20 @@ public sealed class PdfComplianceProofReport {
         }
 
         return false;
+    }
+
+    private int CountExternalValidations(PdfExternalValidationStatus status) {
+        int count = 0;
+        for (int i = 0; i < _externalValidations.Count; i++) {
+            PdfExternalValidationResult result = _externalValidations[i];
+            if (_requiredExternalValidators.Contains(result.ValidatorKind) &&
+                IsExternalValidationForRequestedProfile(result) &&
+                result.Status == status) {
+                count++;
+            }
+        }
+
+        return count;
     }
 
     private bool HasFailedExternalValidation(PdfExternalValidatorKind validatorKind) {

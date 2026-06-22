@@ -165,7 +165,12 @@ public sealed partial class PdfReadPage {
             string? actionType = TryReadActionType(actionObject);
             IReadOnlyList<PdfAnnotationAdditionalAction> additionalActions = ReadAdditionalActions(additionalActionsObject);
             IReadOnlyList<PdfAnnotationChainedAction> chainedActions = ReadAnnotationChainedActions(actionObject, additionalActionsObject);
-            result.Add(new PdfAnnotation(objectNumber, null, subtype!, contents, rect.X1, rect.Y1, rect.X2, rect.Y2, hasNormalAppearance, actionType, additionalActions, chainedActions));
+            int? flags = TryReadInteger(annotation.Items.TryGetValue("F", out var flagsObject) ? flagsObject : null);
+            TryGetString(annotation.Items.TryGetValue("NM", out var nameObject) ? nameObject : null, out string? name);
+            TryGetString(annotation.Items.TryGetValue("T", out var titleObject) ? titleObject : null, out string? title);
+            TryGetString(annotation.Items.TryGetValue("M", out var modifiedObject) ? modifiedObject : null, out string? modified);
+            IReadOnlyList<double> color = ReadNumberArray(annotation.Items.TryGetValue("C", out var colorObject) ? colorObject : null);
+            result.Add(new PdfAnnotation(objectNumber, null, subtype!, contents, rect.X1, rect.Y1, rect.X2, rect.Y2, hasNormalAppearance, actionType, additionalActions, chainedActions, flags, name, title, modified, color));
         }
 
         return result.Count == 0 ? Array.Empty<PdfAnnotation>() : result.AsReadOnly();
@@ -607,6 +612,33 @@ public sealed partial class PdfReadPage {
         var action = ResolveDictionary(obj);
         string? actionType = action?.Get<PdfName>("S")?.Name;
         return string.IsNullOrEmpty(actionType) ? null : actionType;
+    }
+
+    private int? TryReadInteger(PdfObject? obj) {
+        if (ResolveObject(obj) is PdfNumber number &&
+            number.Value >= int.MinValue &&
+            number.Value <= int.MaxValue &&
+            Math.Abs(number.Value - Math.Truncate(number.Value)) < double.Epsilon) {
+            return (int)number.Value;
+        }
+
+        return null;
+    }
+
+    private IReadOnlyList<double> ReadNumberArray(PdfObject? obj) {
+        PdfArray? array = ResolveArray(obj);
+        if (array is null || array.Items.Count == 0) {
+            return Array.Empty<double>();
+        }
+
+        var values = new List<double>();
+        for (int i = 0; i < array.Items.Count; i++) {
+            if (ResolveObject(array.Items[i]) is PdfNumber number) {
+                values.Add(number.Value);
+            }
+        }
+
+        return values.Count == 0 ? Array.Empty<double>() : values.AsReadOnly();
     }
 
     private IReadOnlyList<PdfAnnotationAdditionalAction> ReadAdditionalActions(PdfObject? obj) {

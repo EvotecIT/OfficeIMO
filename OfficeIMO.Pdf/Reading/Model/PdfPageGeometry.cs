@@ -75,4 +75,10 @@ public sealed class PdfPageGeometry {
 
     /// <summary>True when at least one non-default boundary box was readable.</summary>
     public bool HasNonDefaultBoundaryBoxes => CropBox is not null || BleedBox is not null || TrimBox is not null || ArtBox is not null;
+
+    /// <summary>True when TrimBox, BleedBox, or ArtBox information was readable for production workflows.</summary>
+    public bool HasProductionBoundaryBoxes => TrimBox is not null || BleedBox is not null || ArtBox is not null;
+
+    /// <summary>True when both TrimBox and BleedBox are readable, a common print-production preflight pair.</summary>
+    public bool HasPrintProductionBoxes => TrimBox is not null && BleedBox is not null;
 }

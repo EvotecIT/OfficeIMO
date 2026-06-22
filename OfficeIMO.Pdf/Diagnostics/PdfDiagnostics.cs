@@ -18,6 +18,7 @@ public static class PdfDiagnostics {
 
         var objectTypeCounts = new Dictionary<string, int>(StringComparer.Ordinal);
         var streamTypeCounts = new Dictionary<string, int>(StringComparer.Ordinal);
+        var fonts = new List<PdfFontDiagnostic>();
         var streams = new List<PdfStreamDiagnostic>();
         bool objectGraphParsed = false;
         string? objectGraphError = null;
@@ -34,6 +35,17 @@ public static class PdfDiagnostics {
                     streams.Add(streamDiagnostic);
                     Increment(streamTypeCounts, streamDiagnostic.Kind);
                     AddStreamFindings(streamDiagnostic, findings);
+                } else if (indirect.Value is PdfDictionary dictionary &&
+                    string.Equals(dictionary.Get<PdfName>("Type")?.Name, "Font", StringComparison.Ordinal)) {
+                    PdfFontDiagnostic font = BuildFontDiagnostic(indirect, dictionary, objects);
+                    fonts.Add(font);
+                    if (font.RequiresEmbeddingReview) {
+                        findings.Add(new PdfDiagnosticFinding(
+                            PdfDiagnosticSeverity.Warning,
+                            "FontEmbeddingReview",
+                            "Font dictionary does not expose an embedded font file.",
+                            indirect.ObjectNumber));
+                    }
                 }
             }
         } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
@@ -64,6 +76,7 @@ public static class PdfDiagnostics {
             info,
             new SortedDictionary<string, int>(objectTypeCounts, StringComparer.Ordinal),
             new SortedDictionary<string, int>(streamTypeCounts, StringComparer.Ordinal),
+            fonts.AsReadOnly(),
             streams.AsReadOnly(),
             findings.AsReadOnly(),
             objectGraphParsed,
@@ -264,6 +277,81 @@ public static class PdfDiagnostics {
             GetInt(stream.Dictionary, "BitsPerComponent"),
             ComputeHash(stream.Data));
     }
+
+    private static PdfFontDiagnostic BuildFontDiagnostic(PdfIndirectObject indirect, PdfDictionary dictionary, Dictionary<int, PdfIndirectObject> objects) {
+        string? subtype = dictionary.Get<PdfName>("Subtype")?.Name;
+        string? baseFont = dictionary.Get<PdfName>("BaseFont")?.Name;
+        string? encoding = dictionary.Get<PdfName>("Encoding")?.Name;
+        int? descriptorObjectNumber = null;
+        PdfDictionary? descriptor = null;
+        if (dictionary.Items.TryGetValue("FontDescriptor", out PdfObject? descriptorObject)) {
+            if (descriptorObject is PdfReference descriptorReference) {
+                descriptorObjectNumber = descriptorReference.ObjectNumber;
+            }
+
+            descriptor = ResolveDictionary(descriptorObject, objects);
+        }
+
+        string? embeddedKind = null;
+        if (descriptor is not null) {
+            embeddedKind = FindEmbeddedFontFileKind(descriptor);
+        }
+
+        if (embeddedKind is null &&
+            dictionary.Items.TryGetValue("DescendantFonts", out PdfObject? descendantsObject) &&
+            ResolveObject(descendantsObject, objects) is PdfArray descendants) {
+            for (int i = 0; i < descendants.Items.Count && embeddedKind is null; i++) {
+                PdfDictionary? descendant = ResolveDictionary(descendants.Items[i], objects);
+                if (descendant is null ||
+                    !descendant.Items.TryGetValue("FontDescriptor", out PdfObject? descendantDescriptorObject)) {
+                    continue;
+                }
+
+                if (!descriptorObjectNumber.HasValue && descendantDescriptorObject is PdfReference descendantDescriptorReference) {
+                    descriptorObjectNumber = descendantDescriptorReference.ObjectNumber;
+                }
+
+                embeddedKind = FindEmbeddedFontFileKind(ResolveDictionary(descendantDescriptorObject, objects));
+            }
+        }
+
+        return new PdfFontDiagnostic(
+            indirect.ObjectNumber,
+            subtype,
+            baseFont,
+            encoding,
+            descriptorObjectNumber,
+            embeddedKind is not null,
+            embeddedKind);
+    }
+
+    private static string? FindEmbeddedFontFileKind(PdfDictionary? descriptor) {
+        if (descriptor is null) {
+            return null;
+        }
+
+        if (descriptor.Items.ContainsKey("FontFile")) {
+            return "FontFile";
+        }
+
+        if (descriptor.Items.ContainsKey("FontFile2")) {
+            return "FontFile2";
+        }
+
+        return descriptor.Items.ContainsKey("FontFile3") ? "FontFile3" : null;
+    }
+
+    private static PdfObject? ResolveObject(PdfObject? obj, Dictionary<int, PdfIndirectObject> objects) {
+        if (obj is PdfReference reference &&
+            PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect)) {
+            return indirect.Value;
+        }
+
+        return obj;
+    }
+
+    private static PdfDictionary? ResolveDictionary(PdfObject? obj, Dictionary<int, PdfIndirectObject> objects) =>
+        ResolveObject(obj, objects) as PdfDictionary;
 
     private static IReadOnlyList<string> GetFilterNames(PdfDictionary dictionary) {
         if (!dictionary.Items.TryGetValue("Filter", out PdfObject? value)) {

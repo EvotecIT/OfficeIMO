@@ -8,6 +8,7 @@ public sealed class PdfDiagnosticReport {
         PdfDocumentInfo? info,
         IReadOnlyDictionary<string, int> objectTypeCounts,
         IReadOnlyDictionary<string, int> streamTypeCounts,
+        IReadOnlyList<PdfFontDiagnostic> fonts,
         IReadOnlyList<PdfStreamDiagnostic> streams,
         IReadOnlyList<PdfDiagnosticFinding> findings,
         bool objectGraphParsed,
@@ -17,6 +18,7 @@ public sealed class PdfDiagnosticReport {
         Info = info;
         ObjectTypeCounts = objectTypeCounts;
         StreamTypeCounts = streamTypeCounts;
+        Fonts = fonts;
         Streams = streams;
         Findings = findings;
         ObjectGraphParsed = objectGraphParsed;
@@ -74,6 +76,9 @@ public sealed class PdfDiagnosticReport {
     /// <summary>Count of parsed stream objects by stream kind.</summary>
     public IReadOnlyDictionary<string, int> StreamTypeCounts { get; }
 
+    /// <summary>Parsed font dictionary summaries.</summary>
+    public IReadOnlyList<PdfFontDiagnostic> Fonts { get; }
+
     /// <summary>Parsed stream summaries.</summary>
     public IReadOnlyList<PdfStreamDiagnostic> Streams { get; }
 
@@ -91,6 +96,15 @@ public sealed class PdfDiagnosticReport {
 
     /// <summary>Total parsed stream count.</summary>
     public int StreamCount => Streams.Count;
+
+    /// <summary>Total parsed font dictionary count.</summary>
+    public int FontCount => Fonts.Count;
+
+    /// <summary>Number of parsed font dictionaries with embedded font file evidence.</summary>
+    public int EmbeddedFontCount => Fonts.Count(static font => font.HasEmbeddedFontFile);
+
+    /// <summary>Number of parsed font dictionaries that should be reviewed for embedding-sensitive workflows.</summary>
+    public int FontEmbeddingReviewCount => Fonts.Count(static font => font.RequiresEmbeddingReview);
 
     /// <summary>Diagnostic findings.</summary>
     public IReadOnlyList<PdfDiagnosticFinding> Findings { get; }

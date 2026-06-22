@@ -7,6 +7,32 @@ namespace OfficeIMO.Pdf;
 /// </summary>
 public static class PdfIncrementalUpdater {
     /// <summary>
+    /// Analyzes append-only mutation support for a PDF byte array.
+    /// </summary>
+    public static PdfAppendOnlyMutationReport AnalyzeAppendOnlyMutation(byte[] pdf) {
+        Guard.NotNull(pdf, nameof(pdf));
+        return BuildAppendOnlyMutationReport(PdfSyntax.ReadDocumentSecurityInfo(pdf));
+    }
+
+    /// <summary>Analyzes append-only mutation support for a readable PDF stream.</summary>
+    public static PdfAppendOnlyMutationReport AnalyzeAppendOnlyMutation(Stream input) {
+        Guard.NotNull(input, nameof(input));
+        if (!input.CanRead) {
+            throw new ArgumentException("Stream must be readable.", nameof(input));
+        }
+
+        using var buffer = new MemoryStream();
+        input.CopyTo(buffer);
+        return AnalyzeAppendOnlyMutation(buffer.ToArray());
+    }
+
+    /// <summary>Analyzes append-only mutation support for a PDF file.</summary>
+    public static PdfAppendOnlyMutationReport AnalyzeAppendOnlyMutation(string inputPath) {
+        Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
+        return AnalyzeAppendOnlyMutation(File.ReadAllBytes(inputPath));
+    }
+
+    /// <summary>
     /// Appends a metadata-only revision to a PDF byte array without rewriting the existing bytes.
     /// </summary>
     public static byte[] UpdateMetadata(byte[] pdf, string? title = null, string? author = null, string? subject = null, string? keywords = null) {
@@ -85,17 +111,68 @@ public static class PdfIncrementalUpdater {
     }
 
     private static void ValidateAppendOnlyMetadataInput(PdfDocumentSecurityInfo security) {
+        PdfAppendOnlyMutationReport report = BuildAppendOnlyMutationReport(security);
+        if (!report.CanAppendMetadata) {
+            throw new NotSupportedException("Incremental metadata updates are not supported for this PDF: " + string.Join(", ", report.Blockers));
+        }
+    }
+
+    private static PdfAppendOnlyMutationReport BuildAppendOnlyMutationReport(PdfDocumentSecurityInfo security) {
+        var blockers = new List<string>();
+        var warnings = new List<string>();
         if (security.HasEncryption) {
-            throw new NotSupportedException("Encrypted PDFs are not supported for incremental metadata updates.");
+            blockers.Add("Encrypted");
         }
 
-        if (security.HasSignatures || security.HasDocMDPPermissions || security.HasUsageRights) {
-            throw new NotSupportedException("Signed, certification-constrained, or usage-rights PDFs are not supported for incremental metadata updates yet.");
+        if (security.HasSignatures) {
+            blockers.Add("Signed");
+        }
+
+        if (security.HasDocMDPPermissions) {
+            blockers.Add("DocMDP");
+        }
+
+        if (security.HasUsageRights) {
+            blockers.Add("UsageRights");
         }
 
         if (security.HasXrefStreams) {
-            throw new NotSupportedException("PDFs with xref streams are not supported for incremental metadata updates yet.");
+            blockers.Add("XrefStream");
         }
+
+        if (!security.RootObjectNumber.HasValue) {
+            blockers.Add("MissingRoot");
+        }
+
+        if (!security.LastStartXrefOffset.HasValue) {
+            blockers.Add("MissingStartXref");
+        }
+
+        if (security.HasIncrementalUpdates) {
+            warnings.Add("ExistingIncrementalRevisions");
+        }
+
+        if (security.AcroFormAppendOnly) {
+            warnings.Add("AcroFormAppendOnly");
+        }
+
+        string[] supported = blockers.Count == 0 ? new[] { "Metadata" } : Array.Empty<string>();
+        var blocked = new List<string>();
+        if (blockers.Count > 0) {
+            blocked.Add("Metadata");
+        }
+
+        blocked.Add("FormFill");
+        blocked.Add("Annotations");
+        blocked.Add("PageTree");
+        blocked.Add("Attachments");
+
+        return new PdfAppendOnlyMutationReport(
+            security,
+            supported,
+            blocked.AsReadOnly(),
+            blockers.AsReadOnly(),
+            warnings.AsReadOnly());
     }
 
     private static string ReadTrailerIdEntry(string trailerRaw) {
