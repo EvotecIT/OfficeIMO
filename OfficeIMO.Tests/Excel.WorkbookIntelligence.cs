@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Excel;
 using Xunit;
 
@@ -66,10 +67,11 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Create(filePath)) {
                 ExcelDelimitedImportResult result = document.ImportDelimitedText(
                     "Name;Amount\r\nAlpha;10.5\r\nBeta;11.75",
-                    new ExcelDelimitedImportOptions { Delimiter = ';', SheetName = "Import" });
+                    new ExcelDelimitedImportOptions { Delimiter = ';', SheetName = "Import", TableName = "ImportData" });
 
                 Assert.Equal(';', result.Delimiter);
                 Assert.Equal("A1:B3", result.ImportResult.Range);
+                Assert.Equal("ImportData", result.ImportResult.TableName);
                 Assert.Equal(2, result.ImportResult.RowCount);
                 Assert.Equal(2, result.ImportResult.ColumnCount);
                 document.Save();
@@ -97,6 +99,12 @@ namespace OfficeIMO.Tests {
                 document.AddPowerQueryMetadata(new ExcelPowerQueryMetadataOptions {
                     Name = "CustomerQuery",
                     WorksheetName = "Data",
+                    CommandText = "let Source = Excel.CurrentWorkbook() in Source",
+                    RefreshOnOpen = true
+                });
+                document.AddWorkbookConnectionMetadata("<?xml version=\"1.0\" encoding=\"UTF-8\"?><connections xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><connection id=\"77\" name=\"Existing\" refreshOnLoad=\"0\" type=\"1\"/></connections>");
+                document.AddPowerQueryMetadata(new ExcelPowerQueryMetadataOptions {
+                    Name = "IsolatedRefresh",
                     CommandText = "let Source = Excel.CurrentWorkbook() in Source",
                     RefreshOnOpen = true
                 });
@@ -132,6 +140,11 @@ namespace OfficeIMO.Tests {
                 Assert.True(dataModel.HasDataModelOrQueries);
                 Assert.True(dataModel.ConnectionPartCount > 0);
                 Assert.True(dataModel.QueryTablePartCount > 0);
+                using (SpreadsheetDocument package = SpreadsheetDocument.Open(leftPath, false)) {
+                    string existingConnection = EnumerateWorkbookConnectionXml(package.WorkbookPart!)
+                        .First(text => text.Contains("Existing", System.StringComparison.Ordinal));
+                    Assert.Contains("refreshOnLoad=\"0\"", existingConnection);
+                }
 
                 ExcelWorkbookDiffReport diff = left.CompareWorkbook(right, new ExcelWorkbookDiffOptions {
                     CompareComments = true,
@@ -149,6 +162,33 @@ namespace OfficeIMO.Tests {
                 Assert.True(repair.ActionCount > 0);
                 Assert.NotNull(repair.Before);
                 Assert.NotNull(repair.After);
+            }
+        }
+
+        [Fact]
+        public void Test_ExcelWorkbookDiff_ReportsRightOnlyCellsWithinSameDimension() {
+            string leftPath = Path.Combine(_directoryWithFiles, "ExcelWorkbookDiff.LeftSparse.xlsx");
+            string rightPath = Path.Combine(_directoryWithFiles, "ExcelWorkbookDiff.RightSparse.xlsx");
+
+            using (var document = ExcelDocument.Create(leftPath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "A");
+                sheet.CellValue(1, 3, "C");
+                document.Save();
+            }
+
+            using (var document = ExcelDocument.Create(rightPath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "A");
+                sheet.CellValue(1, 2, "B");
+                sheet.CellValue(1, 3, "C");
+                document.Save();
+            }
+
+            using (var left = ExcelDocument.Load(leftPath, readOnly: true))
+            using (var right = ExcelDocument.Load(rightPath, readOnly: true)) {
+                ExcelWorkbookDiffReport diff = left.CompareWorkbook(right);
+                Assert.Contains(diff.Differences, difference => difference.Category == "Cell" && difference.Address == "B1" && difference.RightValue == "B");
             }
         }
 
@@ -213,8 +253,29 @@ namespace OfficeIMO.Tests {
 
                 ExcelDataModelReport dataModel = document.InspectDataModel();
                 Assert.True(dataModel.HasDataModelOrQueries);
-                Assert.Equal(2, dataModel.ConnectionPartCount);
+                Assert.Equal(1, dataModel.ConnectionPartCount);
                 Assert.Equal(2, dataModel.QueryTablePartCount);
+            }
+        }
+
+        private static string ReadExtendedPartText(ExtendedPart part) {
+            using Stream stream = part.GetStream(FileMode.Open, FileAccess.Read);
+            using var reader = new StreamReader(stream);
+            return reader.ReadToEnd();
+        }
+
+        private static IEnumerable<string> EnumerateWorkbookConnectionXml(OpenXmlPartContainer container) {
+            foreach (IdPartPair pair in container.Parts) {
+                if (pair.OpenXmlPart is ConnectionsPart connectionsPart && connectionsPart.Connections != null) {
+                    yield return connectionsPart.Connections.OuterXml;
+                } else if (pair.OpenXmlPart is ExtendedPart extendedPart
+                    && extendedPart.ContentType.IndexOf("connections", System.StringComparison.OrdinalIgnoreCase) >= 0) {
+                    yield return ReadExtendedPartText(extendedPart);
+                }
+
+                foreach (string child in EnumerateWorkbookConnectionXml(pair.OpenXmlPart)) {
+                    yield return child;
+                }
             }
         }
     }

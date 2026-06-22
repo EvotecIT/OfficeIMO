@@ -413,9 +413,6 @@ namespace OfficeIMO.Excel {
                 AddWorksheetQueryTableMetadata(options.WorksheetName!, BuildQueryTableMetadataXml(queryTableName, connectionId));
                 addedQueryTable = true;
             }
-            if (options.RefreshOnOpen) {
-                SetRefreshOnOpen(enabled: true, pivotTables: false, connections: true);
-            }
 
             return new ExcelPowerQueryMetadataResult(name, connectionId, queryTableName, addedWorkbookConnection: true, addedQueryTable, options.RefreshOnOpen);
         }

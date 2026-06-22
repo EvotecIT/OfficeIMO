@@ -162,8 +162,8 @@ namespace OfficeIMO.Excel {
         /// Adds a manual worksheet row page break after the specified one-based row.
         /// </summary>
         public void AddManualRowPageBreak(int row, bool save = true) {
-            if (row <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(row), "Row page break must be one-based and positive.");
+            if (row <= 0 || row > A1.MaxRows) {
+                throw new ArgumentOutOfRangeException(nameof(row), "Row page break must be between 1 and the Excel row limit.");
             }
 
             WriteLock(() => {
@@ -179,8 +179,8 @@ namespace OfficeIMO.Excel {
         /// Adds a manual worksheet column page break after the specified one-based column.
         /// </summary>
         public void AddManualColumnPageBreak(int column, bool save = true) {
-            if (column <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(column), "Column page break must be one-based and positive.");
+            if (column <= 0 || column > A1.MaxColumns) {
+                throw new ArgumentOutOfRangeException(nameof(column), "Column page break must be between 1 and the Excel column limit.");
             }
 
             WriteLock(() => {
@@ -389,8 +389,7 @@ namespace OfficeIMO.Excel {
                 existing.ManualPageBreak = true;
             }
 
-            uint count = (uint)breaks.Elements<Break>().Count();
-            UpdateManualPageBreakCounts(breaks, count);
+            UpdatePageBreakCounts(breaks);
         }
 
         private static bool RemoveManualPageBreak(OpenXmlCompositeElement? breaks, uint id) {
@@ -408,7 +407,7 @@ namespace OfficeIMO.Excel {
             if (count == 0U) {
                 breaks.Remove();
             } else {
-                UpdateManualPageBreakCounts(breaks, count);
+                UpdatePageBreakCounts(breaks);
             }
 
             return true;
@@ -419,20 +418,38 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            bool changed = breaks.Elements<Break>().Any();
-            breaks.Remove();
-            return changed;
+            var manualBreaks = breaks.Elements<Break>()
+                .Where(item => item.ManualPageBreak?.Value == true)
+                .ToList();
+            if (manualBreaks.Count == 0) {
+                return false;
+            }
+
+            foreach (Break manualBreak in manualBreaks) {
+                manualBreak.Remove();
+            }
+
+            uint count = (uint)breaks.Elements<Break>().Count();
+            if (count == 0U) {
+                breaks.Remove();
+            } else {
+                UpdatePageBreakCounts(breaks);
+            }
+
+            return true;
         }
 
-        private static void UpdateManualPageBreakCounts(OpenXmlCompositeElement breaks, uint count) {
+        private static void UpdatePageBreakCounts(OpenXmlCompositeElement breaks) {
+            uint count = (uint)breaks.Elements<Break>().Count();
+            uint manualCount = (uint)breaks.Elements<Break>().Count(item => item.ManualPageBreak?.Value == true);
             switch (breaks) {
                 case RowBreaks rowBreaks:
                     rowBreaks.Count = count;
-                    rowBreaks.ManualBreakCount = count;
+                    rowBreaks.ManualBreakCount = manualCount;
                     break;
                 case ColumnBreaks columnBreaks:
                     columnBreaks.Count = count;
-                    columnBreaks.ManualBreakCount = count;
+                    columnBreaks.ManualBreakCount = manualCount;
                     break;
             }
         }

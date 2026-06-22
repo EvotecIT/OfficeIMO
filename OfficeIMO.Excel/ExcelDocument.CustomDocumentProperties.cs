@@ -17,6 +17,7 @@ namespace OfficeIMO.Excel {
 
             CustomDocumentProperties[name.Trim()] = property;
             _customDocumentPropertiesDirty = true;
+            DisqualifyDirectDataSetFastSaveState();
             MarkPackageDirty();
         }
 
@@ -38,6 +39,7 @@ namespace OfficeIMO.Excel {
             bool removed = CustomDocumentProperties.Remove(name.Trim());
             if (removed) {
                 _customDocumentPropertiesDirty = true;
+                DisqualifyDirectDataSetFastSaveState();
                 MarkPackageDirty();
             }
 
@@ -113,6 +115,10 @@ namespace OfficeIMO.Excel {
                 return new ExcelCustomProperty(integer);
             }
 
+            if (value is long or uint or ulong) {
+                return new ExcelCustomProperty(value, ExcelCustomPropertyType.NumberInteger);
+            }
+
             if (value is float or double or decimal) {
                 return new ExcelCustomProperty(Convert.ToDouble(value, System.Globalization.CultureInfo.InvariantCulture));
             }
@@ -150,6 +156,12 @@ namespace OfficeIMO.Excel {
                     result = default;
                     return false;
             }
+        }
+
+        private void DisqualifyDirectDataSetFastSaveState() {
+            ClearDirectDataSetSaveCandidate();
+            _materializedDirectDataSetFastSaveModel = null;
+            _materializedDirectDataSetFastSaveModelHasMaterializedWorksheet = false;
         }
     }
 }

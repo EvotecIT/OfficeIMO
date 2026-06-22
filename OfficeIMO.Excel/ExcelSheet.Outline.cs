@@ -13,6 +13,9 @@ namespace OfficeIMO.Excel {
         public void GroupRows(int startRow, int endRow, byte outlineLevel = 1, bool collapsed = false, bool hidden = false) {
             ValidateOutlineRange(startRow, endRow, nameof(startRow), nameof(endRow));
             ValidateOutlineLevel(outlineLevel);
+            if (endRow >= A1.MaxRows && collapsed) {
+                throw new ArgumentOutOfRangeException(nameof(endRow), "Collapsed row groups require a following summary row.");
+            }
 
             _excelDocument.MaterializeDeferredDataSetImport();
             WriteLock(() => {

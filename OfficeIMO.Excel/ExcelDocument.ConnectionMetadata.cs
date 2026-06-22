@@ -1,4 +1,5 @@
 using System.Text;
+using System.Xml.Linq;
 using DocumentFormat.OpenXml.Packaging;
 
 namespace OfficeIMO.Excel {
@@ -19,10 +20,18 @@ namespace OfficeIMO.Excel {
         /// <param name="xml">Connection metadata XML.</param>
         /// <returns>The added package part.</returns>
         public ExtendedPart AddWorkbookConnectionMetadata(string xml) {
-            return AddWorkbookMetadataPart(
+            ExtendedPart? existingPart = GetWorkbookConnectionPart();
+            if (existingPart == null) {
+                return AddWorkbookMetadataPart(
                 WorkbookConnectionRelationshipType,
                 WorkbookConnectionContentType,
                 xml);
+            }
+
+            string mergedXml = MergeWorkbookConnectionMetadata(ReadMetadataPart(existingPart), xml);
+            WriteMetadataPart(existingPart, mergedXml);
+            MarkMetadataPartChanged();
+            return existingPart;
         }
 
         /// <summary>
@@ -101,16 +110,54 @@ namespace OfficeIMO.Excel {
             if (string.IsNullOrWhiteSpace(xml)) throw new ArgumentNullException(nameof(xml));
 
             var part = container.AddExtendedPart(relationshipType, contentType, NormalizeMetadataPartExtension(targetExtension));
-            using (Stream stream = part.GetStream(FileMode.Create, FileAccess.Write)) {
-                byte[] bytes = Encoding.UTF8.GetBytes(xml);
-                stream.Write(bytes, 0, bytes.Length);
+            WriteMetadataPart(part, xml);
+            MarkMetadataPartChanged();
+            return part;
+        }
+
+        private ExtendedPart? GetWorkbookConnectionPart() {
+            return WorkbookPartRoot.Parts
+                .Select(pair => pair.OpenXmlPart)
+                .OfType<ExtendedPart>()
+                .FirstOrDefault(part => string.Equals(part.ContentType, WorkbookConnectionContentType, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static string MergeWorkbookConnectionMetadata(string existingXml, string newXml) {
+            XDocument existingDocument = XDocument.Parse(existingXml);
+            XDocument newDocument = XDocument.Parse(newXml);
+            if (existingDocument.Root == null || newDocument.Root == null) {
+                throw new InvalidDataException("Workbook connection metadata must have a document root.");
             }
 
+            IEnumerable<XElement> newConnections = newDocument.Root.Name.LocalName == "connection"
+                ? new[] { newDocument.Root }
+                : newDocument.Root.Elements().Where(element => element.Name.LocalName == "connection");
+
+            foreach (XElement connection in newConnections) {
+                existingDocument.Root.Add(new XElement(connection));
+            }
+
+            existingDocument.Root.SetAttributeValue("count", existingDocument.Root.Elements().Count(element => element.Name.LocalName == "connection").ToString(System.Globalization.CultureInfo.InvariantCulture));
+            return existingDocument.ToString(SaveOptions.DisableFormatting);
+        }
+
+        private static string ReadMetadataPart(ExtendedPart part) {
+            using Stream stream = part.GetStream(FileMode.Open, FileAccess.Read);
+            using var reader = new StreamReader(stream, Encoding.UTF8);
+            return reader.ReadToEnd();
+        }
+
+        private static void WriteMetadataPart(ExtendedPart part, string xml) {
+            using Stream stream = part.GetStream(FileMode.Create, FileAccess.Write);
+            byte[] bytes = Encoding.UTF8.GetBytes(xml);
+            stream.Write(bytes, 0, bytes.Length);
+        }
+
+        private void MarkMetadataPartChanged() {
             _packageDirty = true;
             _packageContentTypesKnownNormalized = true;
             _simplePackageContentKnown = false;
             MarkRequiresSavePreflight();
-            return part;
         }
 
         private static string NormalizeMetadataPartExtension(string targetExtension) {

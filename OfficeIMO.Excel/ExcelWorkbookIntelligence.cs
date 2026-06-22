@@ -388,8 +388,19 @@ namespace OfficeIMO.Excel {
 
             var dataSet = new DataSet();
             dataSet.Tables.Add(table);
-            IReadOnlyList<ExcelDataSetImportResult> results = InsertDataSet(dataSet, createTables: options.CreateTable, tableStyle: options.TableStyle, includeHeaders: true, includeAutoFilter: true, autoFit: false);
-            return new ExcelDelimitedImportResult(results[0], delimiter, "UTF-16 string", warnings);
+            IReadOnlyList<ExcelDataSetImportResult> results = InsertDataSet(dataSet, createTables: false, tableStyle: options.TableStyle, includeHeaders: true, includeAutoFilter: true, autoFit: false);
+            ExcelDataSetImportResult result = results[0];
+            if (options.CreateTable && !string.IsNullOrWhiteSpace(result.Range)) {
+                ExcelSheet sheet = this[result.SheetName];
+                string requestedTableName = string.IsNullOrWhiteSpace(options.TableName) ? result.SheetName : options.TableName!.Trim();
+                sheet.AddTable(result.Range, hasHeader: true, requestedTableName, options.TableStyle, includeAutoFilter: true);
+                string? actualTableName = sheet.WorksheetPart.TableDefinitionParts
+                    .Select(part => part.Table?.Name?.Value ?? part.Table?.DisplayName?.Value)
+                    .FirstOrDefault(name => !string.IsNullOrWhiteSpace(name));
+                result = new ExcelDataSetImportResult(result.SheetName, actualTableName, result.Range, result.RowCount, result.ColumnCount);
+            }
+
+            return new ExcelDelimitedImportResult(result, delimiter, "UTF-16 string", warnings);
         }
 
         /// <summary>
@@ -653,6 +664,9 @@ namespace OfficeIMO.Excel {
                 if (string.IsNullOrWhiteSpace(address)) continue;
 
                 rightCells.TryGetValue(address!, out Cell? rightCell);
+                if (rightCell != null) {
+                    rightCells.Remove(address!);
+                }
                 string leftValue = left.GetCellText(leftCell);
                 string rightValue = rightCell == null ? string.Empty : right.GetCellText(rightCell);
                 string? leftFormula = leftCell.CellFormula?.Text;
@@ -660,6 +674,13 @@ namespace OfficeIMO.Excel {
                 if (!string.Equals(leftValue, rightValue, StringComparison.Ordinal) || !string.Equals(leftFormula, rightFormula, StringComparison.Ordinal)) {
                     AddDifference(differences, maxDifferences, new ExcelWorkbookDifference("Cell", "Cell value or formula differs.", left.Name, address, leftFormula ?? leftValue, rightFormula ?? rightValue));
                 }
+            }
+
+            foreach (KeyValuePair<string, Cell> rightOnly in rightCells) {
+                if (differences.Count >= maxDifferences) break;
+                string rightValue = right.GetCellText(rightOnly.Value);
+                string? rightFormula = rightOnly.Value.CellFormula?.Text;
+                AddDifference(differences, maxDifferences, new ExcelWorkbookDifference("Cell", "Cell exists only in right workbook.", left.Name, rightOnly.Key, string.Empty, rightFormula ?? rightValue));
             }
         }
 

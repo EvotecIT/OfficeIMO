@@ -107,7 +107,7 @@ namespace OfficeIMO.Excel {
                 Value = property.VTLPWSTR.Text;
                 PropertyType = ExcelCustomPropertyType.Text;
             } else if (property.VTBool != null) {
-                Value = bool.Parse(property.VTBool.Text);
+                Value = ParseBooleanProperty(property.VTBool.Text);
                 PropertyType = ExcelCustomPropertyType.YesNo;
             } else {
                 Value = string.Empty;
@@ -126,10 +126,15 @@ namespace OfficeIMO.Excel {
                     property.VTFileTime = new VTFileTime(string.Format(CultureInfo.InvariantCulture, "{0:s}Z", Convert.ToDateTime(Value, CultureInfo.InvariantCulture).ToUniversalTime()));
                     break;
                 case ExcelCustomPropertyType.NumberInteger:
-                    property.VTInt32 = new VTInt32(Convert.ToInt32(Value, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture));
+                    long integer = Convert.ToInt64(Value, CultureInfo.InvariantCulture);
+                    if (integer >= int.MinValue && integer <= int.MaxValue) {
+                        property.VTInt32 = new VTInt32(integer.ToString(CultureInfo.InvariantCulture));
+                    } else {
+                        property.VTInt64 = new VTInt64(integer.ToString(CultureInfo.InvariantCulture));
+                    }
                     break;
                 case ExcelCustomPropertyType.NumberDouble:
-                    property.VTFloat = new VTFloat(Convert.ToDouble(Value, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture));
+                    property.VTDouble = new VTDouble(Convert.ToDouble(Value, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture));
                     break;
                 case ExcelCustomPropertyType.YesNo:
                     property.VTBool = new VTBool(Convert.ToBoolean(Value, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture).ToLowerInvariant());
@@ -140,6 +145,18 @@ namespace OfficeIMO.Excel {
             }
 
             return property;
+        }
+
+        private static bool ParseBooleanProperty(string text) {
+            if (bool.TryParse(text, out bool result)) {
+                return result;
+            }
+
+            if (int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int numeric) && (numeric == 0 || numeric == 1)) {
+                return numeric == 1;
+            }
+
+            throw new FormatException($"The custom property boolean value '{text}' is not valid.");
         }
     }
 }
