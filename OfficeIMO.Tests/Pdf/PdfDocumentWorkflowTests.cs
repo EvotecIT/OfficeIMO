@@ -343,6 +343,18 @@ public class PdfDocumentWorkflowTests {
     }
 
     [Fact]
+    public void PageOperations_BookmarkPageRangesUsePageOrderWhenOutlineOrderDiffers() {
+        PdfDocument document = PdfDocument.Open(BuildOutOfOrderBookmarkPdf());
+
+        IReadOnlyList<PdfBookmarkPageRange> ranges = document.Pages.BookmarkPageRanges();
+
+        Assert.Equal(new[] { "Chapter One", "Chapter Two", "Chapter Three" }, ranges.Select(range => range.Title).ToArray());
+        Assert.Equal(PdfPageRange.From(1, 1), ranges[0].PageRange);
+        Assert.Equal(PdfPageRange.From(2, 2), ranges[1].PageRange);
+        Assert.Equal(PdfPageRange.From(3, 3), ranges[2].PageRange);
+    }
+
+    [Fact]
     public void MergeMetadataAndStamping_StayFluentAndDelegateToCurrentEngine() {
         byte[] source = BuildThreePagePdf();
         byte[] appendix = BuildPdf("Appendix", "Appendix body");
@@ -749,6 +761,68 @@ public class PdfDocumentWorkflowTests {
             .H1("Chapter Three")
             .Paragraph(p => p.Text("Third chapter body"))
             .ToBytes();
+    }
+
+    private static byte[] BuildOutOfOrderBookmarkPdf() {
+        string pageOneContent = BuildStreamObject("BT /F1 12 Tf 72 720 Td (Chapter One) Tj ET");
+        string pageTwoContent = BuildStreamObject("BT /F1 12 Tf 72 720 Td (Chapter Two) Tj ET");
+        string pageThreeContent = BuildStreamObject("BT /F1 12 Tf 72 720 Td (Chapter Three) Tj ET");
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /Outlines 9 0 R /PageMode /UseOutlines >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 3 /Kids [3 0 R 4 0 R 5 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 6 0 R >> >> /Contents 7 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 6 0 R >> >> /Contents 8 0 R >>",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 6 0 R >> >> /Contents 10 0 R >>",
+            "endobj",
+            "6 0 obj",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            "endobj",
+            "7 0 obj",
+            pageOneContent,
+            "endobj",
+            "8 0 obj",
+            pageTwoContent,
+            "endobj",
+            "9 0 obj",
+            "<< /Type /Outlines /First 11 0 R /Last 13 0 R /Count 3 >>",
+            "endobj",
+            "10 0 obj",
+            pageThreeContent,
+            "endobj",
+            "11 0 obj",
+            "<< /Title (Chapter Three) /Parent 9 0 R /Dest [5 0 R /Fit] /Next 12 0 R >>",
+            "endobj",
+            "12 0 obj",
+            "<< /Title (Chapter One) /Parent 9 0 R /Dest [3 0 R /Fit] /Prev 11 0 R /Next 13 0 R >>",
+            "endobj",
+            "13 0 obj",
+            "<< /Title (Chapter Two) /Parent 9 0 R /Dest [4 0 R /Fit] /Prev 12 0 R >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 14 >>",
+            "startxref",
+            "123",
+            "%%EOF"
+        });
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static string BuildStreamObject(string content) {
+        byte[] bytes = Encoding.ASCII.GetBytes(content);
+        return "<< /Length " + bytes.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>\nstream\n" +
+            content +
+            "\nendstream";
     }
 
     private static byte[] BuildPdf(string title, string text) {

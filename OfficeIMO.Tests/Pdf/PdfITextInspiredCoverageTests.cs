@@ -421,6 +421,38 @@ public class PdfITextInspiredCoverageTests {
     }
 
     [Fact]
+    public void AnnotationEditor_ClearsParentPopupReferencesWhenRemovingPopupAnnotations() {
+        byte[] pdf = BuildAnnotationWithPopupPdf();
+
+        PdfAnnotationEditResult removed = PdfAnnotationEditor.RemoveAnnotations(pdf, new PdfAnnotationRemovalOptions {
+            Subtype = "Popup"
+        });
+        string raw = PdfEncoding.Latin1GetString(removed.Bytes);
+
+        Assert.True(removed.Applied);
+        Assert.DoesNotContain("/Subtype /Popup", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Popup", raw, StringComparison.Ordinal);
+        Assert.Single(PdfInspector.Inspect(removed.Bytes).GetAnnotationsBySubtype("Text"));
+    }
+
+    [Fact]
+    public void PdfOptions_RejectsEncryptionWithPdfABackedGroundwork() {
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create(
+                new PdfOptions()
+                    .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA4)
+                    .SetEncryption("open"))
+            .Paragraph(p => p.Text("PDF/A and encryption should not mix."))
+            .ToBytes());
+
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create(
+                new PdfOptions()
+                    .ConfigureFacturXGroundwork(Encoding.UTF8.GetBytes("<rsm:CrossIndustryInvoice xmlns:rsm=\"urn:invoice\"/>"))
+                    .SetEncryption("open"))
+            .Paragraph(p => p.Text("Factur-X and encryption should not mix."))
+            .ToBytes());
+    }
+
+    [Fact]
     public void ExternalValidationResult_FromExitCodeImportsProcessOutcome() {
         PdfExternalValidationResult passed = PdfExternalValidationResult.FromExitCode(
             PdfExternalValidatorKind.VeraPdf,
@@ -483,6 +515,21 @@ public class PdfITextInspiredCoverageTests {
             "<< /Type /Annot /Subtype /Text /Rect [20 20 40 40] /Contents (Review note) /F 132 /NM (Note-1) /T (Reviewer) /M (D:20260622090000Z) /C [1 0 0] /AP << /N 7 0 R >> /A 8 0 R >>",
             BuildStream(appearanceBytes),
             "<< /S /URI /URI (https://example.com/old-action) >>"
+        };
+
+        return Encoding.ASCII.GetBytes(BuildPdf(objects));
+    }
+
+    private static byte[] BuildAnnotationWithPopupPdf() {
+        byte[] contentBytes = Encoding.ASCII.GetBytes("BT\n/F1 12 Tf\n72 720 Td\n(Annotation popup cleanup) Tj\nET\n");
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R >> >> /Annots [6 0 R 7 0 R] /Contents 5 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            BuildStream(contentBytes),
+            "<< /Type /Annot /Subtype /Text /Rect [20 20 40 40] /Contents (Review note) /Popup 7 0 R >>",
+            "<< /Type /Annot /Subtype /Popup /Rect [50 50 150 120] /Parent 6 0 R >>"
         };
 
         return Encoding.ASCII.GetBytes(BuildPdf(objects));

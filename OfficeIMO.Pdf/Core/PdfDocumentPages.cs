@@ -381,6 +381,10 @@ public sealed class PdfDocumentPages {
             return Array.Empty<PdfBookmarkPageRange>();
         }
 
+        anchors = anchors
+            .OrderBy(anchor => anchor.PageNumber!.Value)
+            .ToList();
+
         var ranges = new List<PdfBookmarkPageRange>(anchors.Count);
         for (int i = 0; i < anchors.Count; i++) {
             PdfOutlineItem anchor = anchors[i];
