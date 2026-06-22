@@ -78,4 +78,33 @@ public sealed class PdfSignatureValidationReport {
 
     /// <summary>True when any readable signature declares an RFC 3161 document timestamp subfilter.</summary>
     public bool HasDocumentTimestampSignature => Signatures.Any(static signature => signature.Signature.IsDocumentTimestamp);
+
+    /// <summary>True when the file exposes enough structural LTV markers for an external validator to attempt offline long-term validation.</summary>
+    public bool HasOfflineLongTermValidationReadiness =>
+        HasLongTermValidationEvidence &&
+        Security.DocumentSecurityStore.TopLevelEvidenceObjectCount > 0 &&
+        Security.DocumentSecurityStore.VriEntryCount > 0;
+
+    /// <summary>Stable no-dependency signature proof state: Unsigned, StructuralIssues, LtvEvidenceReady, LtvEvidencePartial, or ExternalCryptoValidationRequired.</summary>
+    public string ProofStatus {
+        get {
+            if (!HasSignatures) {
+                return "Unsigned";
+            }
+
+            if (!IsStructurallyValid) {
+                return "StructuralIssues";
+            }
+
+            if (HasOfflineLongTermValidationReadiness) {
+                return "LtvEvidenceReady";
+            }
+
+            if (HasLongTermValidationEvidence) {
+                return "LtvEvidencePartial";
+            }
+
+            return "ExternalCryptoValidationRequired";
+        }
+    }
 }

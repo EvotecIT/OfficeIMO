@@ -5,7 +5,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Append-only PDF update helpers for changes that can be represented as a new incremental revision.
 /// </summary>
-public static class PdfIncrementalUpdater {
+public static partial class PdfIncrementalUpdater {
     /// <summary>
     /// Analyzes append-only mutation support for a PDF byte array.
     /// </summary>
@@ -118,34 +118,50 @@ public static class PdfIncrementalUpdater {
     }
 
     private static PdfAppendOnlyMutationReport BuildAppendOnlyMutationReport(PdfDocumentSecurityInfo security) {
-        var blockers = new List<string>();
+        var commonBlockers = new List<string>();
+        var metadataBlockers = new List<string>();
+        var formBlockers = new List<string>();
         var warnings = new List<string>();
         if (security.HasEncryption) {
-            blockers.Add("Encrypted");
+            commonBlockers.Add("Encrypted");
         }
 
-        if (security.HasSignatures) {
-            blockers.Add("Signed");
-        }
-
-        if (security.HasDocMDPPermissions) {
-            blockers.Add("DocMDP");
-        }
-
+        bool hasSignatureContent = security.SignatureFieldCount > 0 || security.SignatureCount > 0 || security.HasByteRange;
         if (security.HasUsageRights) {
-            blockers.Add("UsageRights");
+            commonBlockers.Add("UsageRights");
         }
 
         if (security.HasXrefStreams) {
-            blockers.Add("XrefStream");
+            commonBlockers.Add("XrefStream");
         }
 
         if (!security.RootObjectNumber.HasValue) {
-            blockers.Add("MissingRoot");
+            commonBlockers.Add("MissingRoot");
         }
 
         if (!security.LastStartXrefOffset.HasValue) {
-            blockers.Add("MissingStartXref");
+            commonBlockers.Add("MissingStartXref");
+        }
+
+        metadataBlockers.AddRange(commonBlockers);
+        formBlockers.AddRange(commonBlockers);
+
+        if (hasSignatureContent) {
+            metadataBlockers.Add("Signed");
+            if (!CanAppendFormFieldsWithDocMDP(security)) {
+                formBlockers.Add("Signed");
+            } else {
+                warnings.Add("SignedDocMDPFormFill");
+            }
+        }
+
+        if (security.HasDocMDPPermissions) {
+            metadataBlockers.Add("DocMDP");
+            if (!CanAppendFormFieldsWithDocMDP(security)) {
+                formBlockers.Add("DocMDP");
+            } else {
+                warnings.Add("DocMDPAllowsFormFill");
+            }
         }
 
         if (security.HasIncrementalUpdates) {
@@ -156,23 +172,46 @@ public static class PdfIncrementalUpdater {
             warnings.Add("AcroFormAppendOnly");
         }
 
-        string[] supported = blockers.Count == 0 ? new[] { "Metadata" } : Array.Empty<string>();
+        var supported = new List<string>();
+        if (metadataBlockers.Count == 0) {
+            supported.Add("Metadata");
+        }
+
+        if (formBlockers.Count == 0) {
+            supported.Add("FormFill");
+        }
+
         var blocked = new List<string>();
-        if (blockers.Count > 0) {
+        if (metadataBlockers.Count > 0) {
             blocked.Add("Metadata");
         }
 
-        blocked.Add("FormFill");
+        if (formBlockers.Count > 0) {
+            blocked.Add("FormFill");
+        }
+
         blocked.Add("Annotations");
         blocked.Add("PageTree");
         blocked.Add("Attachments");
 
+        var blockers = metadataBlockers
+            .Concat(formBlockers)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+
         return new PdfAppendOnlyMutationReport(
             security,
-            supported,
+            supported.AsReadOnly(),
             blocked.AsReadOnly(),
-            blockers.AsReadOnly(),
-            warnings.AsReadOnly());
+            blockers,
+            warnings.Distinct(StringComparer.Ordinal).ToArray());
+    }
+
+    private static bool CanAppendFormFieldsWithDocMDP(PdfDocumentSecurityInfo security) {
+        return security.HasDocMDPPermissions &&
+            security.DocMDPPermissionLevel.HasValue &&
+            security.DocMDPPermissionLevel.Value >= 2 &&
+            security.DocMDPPermissionLevel.Value <= 3;
     }
 
     private static string ReadTrailerIdEntry(string trailerRaw) {

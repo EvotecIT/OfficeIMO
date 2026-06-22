@@ -23,6 +23,9 @@ public sealed class PdfAppendOnlyMutationReport {
     /// <summary>True when OfficeIMO.Pdf can append a metadata-only incremental revision to this input.</summary>
     public bool CanAppendMetadata => SupportedActions.Contains("Metadata", StringComparer.Ordinal);
 
+    /// <summary>True when OfficeIMO.Pdf can append simple AcroForm field-value updates to this input.</summary>
+    public bool CanAppendFormFields => SupportedActions.Contains("FormFill", StringComparer.Ordinal);
+
     /// <summary>True when any append-only action can currently be applied by OfficeIMO.Pdf.</summary>
     public bool CanAppendAny => SupportedActions.Count > 0;
 
@@ -47,10 +50,10 @@ public sealed class PdfAppendOnlyMutationReport {
     /// <summary>Human-readable summary suitable for command-line surfaces.</summary>
     public string Summary {
         get {
-            if (CanAppendMetadata) {
+            if (CanAppendMetadata || CanAppendFormFields) {
                 return RequiresAppendOnlyMutation
-                    ? "Metadata-only incremental updates are supported; other changes must remain append-only or be avoided."
-                    : "Metadata-only incremental updates are supported; full rewrites may also be possible depending on preflight.";
+                    ? "Incremental updates are supported for: " + string.Join(", ", SupportedActions) + "; other changes must remain append-only or be avoided."
+                    : "Incremental updates are supported for: " + string.Join(", ", SupportedActions) + "; full rewrites may also be possible depending on preflight.";
             }
 
             return Blockers.Count == 0

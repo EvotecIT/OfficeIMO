@@ -37,6 +37,14 @@ public static class PdfOptimizer {
             CompressUnfilteredStreams(optimizedObjects, effectiveOptions, actions, skippedActions);
         }
 
+        if (effectiveOptions.DeduplicateIdenticalStreams) {
+            DeduplicateIdenticalStreams(optimizedObjects, actions);
+        }
+
+        if (effectiveOptions.RemoveUnreferencedObjects) {
+            RemoveUnreferencedObjects(optimizedObjects, catalogObjectNumber, actions);
+        }
+
         byte[] candidate = RewriteAllObjects(optimizedObjects, catalogObjectNumber, pdf);
         PdfOptimizationReport reportAfter = PdfDiagnostics.AnalyzeOptimization(candidate);
         if (effectiveOptions.KeepOriginalWhenNotSmaller && candidate.Length >= pdf.Length) {
@@ -178,6 +186,100 @@ public static class PdfOptimizer {
         return output.ToArray();
     }
 
+    private static void DeduplicateIdenticalStreams(
+        Dictionary<int, PdfIndirectObject> objects,
+        List<PdfOptimizationAction> actions) {
+        var numberMap = objects.Keys.ToDictionary(static id => id, static id => id);
+        var context = new PdfPageExtractor.SerializationContext(numberMap, pagesObjectId: 0, new Dictionary<int, Dictionary<string, PdfObject>>(), objects);
+        var streamGroups = new Dictionary<string, List<int>>(StringComparer.Ordinal);
+        foreach (KeyValuePair<int, PdfIndirectObject> entry in objects.OrderBy(static item => item.Key)) {
+            if (entry.Value.Value is not PdfStream) {
+                continue;
+            }
+
+            byte[] serialized = PdfPageExtractor.SerializeObject(entry.Value.Value, context);
+            string fingerprint = Convert.ToBase64String(serialized);
+            if (!streamGroups.TryGetValue(fingerprint, out List<int>? group)) {
+                group = new List<int>();
+                streamGroups[fingerprint] = group;
+            }
+
+            group.Add(entry.Key);
+        }
+
+        var replacements = new Dictionary<int, int>();
+        foreach (List<int> group in streamGroups.Values) {
+            if (group.Count < 2) {
+                continue;
+            }
+
+            int keeper = group[0];
+            for (int i = 1; i < group.Count; i++) {
+                replacements[group[i]] = keeper;
+            }
+        }
+
+        if (replacements.Count == 0) {
+            return;
+        }
+
+        foreach (int objectNumber in objects.Keys.OrderBy(static key => key).ToArray()) {
+            PdfIndirectObject indirect = objects[objectNumber];
+            PdfObject rewritten = ReplaceReferences(indirect.Value, replacements);
+            if (!ReferenceEquals(rewritten, indirect.Value)) {
+                objects[objectNumber] = new PdfIndirectObject(indirect.ObjectNumber, indirect.Generation, rewritten);
+            }
+        }
+
+        foreach (KeyValuePair<int, int> replacement in replacements.OrderBy(static item => item.Key)) {
+            if (!objects.TryGetValue(replacement.Key, out PdfIndirectObject? duplicate)) {
+                continue;
+            }
+
+            long originalLength = EstimateObjectLength(duplicate);
+            objects.Remove(replacement.Key);
+            actions.Add(new PdfOptimizationAction(
+                "DeduplicateStream",
+                replacement.Key,
+                originalLength,
+                0,
+                "Rewrote references to duplicate stream object " + replacement.Key.ToString(System.Globalization.CultureInfo.InvariantCulture) + " to use object " + replacement.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) + "."));
+        }
+    }
+
+    private static PdfObject ReplaceReferences(PdfObject value, IReadOnlyDictionary<int, int> replacements) {
+        if (value is PdfReference reference &&
+            replacements.TryGetValue(reference.ObjectNumber, out int replacementObjectNumber)) {
+            return new PdfReference(replacementObjectNumber, reference.Generation);
+        }
+
+        if (value is PdfArray array) {
+            for (int i = 0; i < array.Items.Count; i++) {
+                array.Items[i] = ReplaceReferences(array.Items[i], replacements);
+            }
+
+            return value;
+        }
+
+        if (value is PdfDictionary dictionary) {
+            ReplaceReferences(dictionary, replacements);
+            return value;
+        }
+
+        if (value is PdfStream stream) {
+            ReplaceReferences(stream.Dictionary, replacements);
+            return value;
+        }
+
+        return value;
+    }
+
+    private static void ReplaceReferences(PdfDictionary dictionary, IReadOnlyDictionary<int, int> replacements) {
+        foreach (string key in dictionary.Items.Keys.ToArray()) {
+            dictionary.Items[key] = ReplaceReferences(dictionary.Items[key], replacements);
+        }
+    }
+
     private static byte[] RewriteAllObjects(Dictionary<int, PdfIndirectObject> objects, int catalogObjectNumber, byte[] sourcePdf) {
         int[] sourceIds = objects.Keys.OrderBy(static id => id).ToArray();
         var numberMap = new Dictionary<int, int>(sourceIds.Length);
@@ -196,6 +298,71 @@ public static class PdfOptimizer {
 
         PdfFileVersion fileVersion = PdfFileAssembler.ParseHeaderVersionOrDefault(PdfSyntax.GetHeaderVersion(sourcePdf));
         return PdfPageExtractor.Assemble(rewritten, numberMap[catalogObjectNumber], infoId, fileVersion);
+    }
+
+    private static void RemoveUnreferencedObjects(
+        Dictionary<int, PdfIndirectObject> objects,
+        int catalogObjectNumber,
+        List<PdfOptimizationAction> actions) {
+        var reachable = new HashSet<int>();
+        CollectReachableObjectNumbers(objects, new PdfReference(catalogObjectNumber, objects[catalogObjectNumber].Generation), reachable);
+        foreach (int objectNumber in objects.Keys.OrderBy(static key => key).ToArray()) {
+            if (reachable.Contains(objectNumber)) {
+                continue;
+            }
+
+            long originalLength = EstimateObjectLength(objects[objectNumber]);
+            objects.Remove(objectNumber);
+            actions.Add(new PdfOptimizationAction(
+                "RemoveUnreferencedObject",
+                objectNumber,
+                originalLength,
+                0,
+                "Removed indirect object that is not reachable from the document catalog."));
+        }
+    }
+
+    private static void CollectReachableObjectNumbers(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfObject? value,
+        HashSet<int> reachable) {
+        if (value is PdfReference reference) {
+            if (!PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) ||
+                !reachable.Add(indirect.ObjectNumber)) {
+                return;
+            }
+
+            CollectReachableObjectNumbers(objects, indirect.Value, reachable);
+            return;
+        }
+
+        if (value is PdfArray array) {
+            for (int i = 0; i < array.Items.Count; i++) {
+                CollectReachableObjectNumbers(objects, array.Items[i], reachable);
+            }
+
+            return;
+        }
+
+        if (value is PdfDictionary dictionary) {
+            foreach (PdfObject child in dictionary.Items.Values) {
+                CollectReachableObjectNumbers(objects, child, reachable);
+            }
+
+            return;
+        }
+
+        if (value is PdfStream stream) {
+            CollectReachableObjectNumbers(objects, stream.Dictionary, reachable);
+        }
+    }
+
+    private static long EstimateObjectLength(PdfIndirectObject indirect) {
+        if (indirect.Value is PdfStream stream) {
+            return stream.Data.LongLength;
+        }
+
+        return 0;
     }
 
     private static int FindCatalogObjectNumber(Dictionary<int, PdfIndirectObject> objects, string trailerRaw) {

@@ -7,6 +7,8 @@ public sealed class PdfFontDiagnostic {
         string? subtype,
         string? baseFont,
         string? encoding,
+        bool hasToUnicodeMap,
+        int? toUnicodeObjectNumber,
         int? fontDescriptorObjectNumber,
         bool hasEmbeddedFontFile,
         string? embeddedFontFileKind) {
@@ -14,6 +16,8 @@ public sealed class PdfFontDiagnostic {
         Subtype = subtype;
         BaseFont = baseFont;
         Encoding = encoding;
+        HasToUnicodeMap = hasToUnicodeMap;
+        ToUnicodeObjectNumber = toUnicodeObjectNumber;
         FontDescriptorObjectNumber = fontDescriptorObjectNumber;
         HasEmbeddedFontFile = hasEmbeddedFontFile;
         EmbeddedFontFileKind = embeddedFontFileKind;
@@ -31,6 +35,12 @@ public sealed class PdfFontDiagnostic {
     /// <summary>Encoding name from /Encoding, when present as a name.</summary>
     public string? Encoding { get; }
 
+    /// <summary>True when the font exposes a /ToUnicode CMap.</summary>
+    public bool HasToUnicodeMap { get; }
+
+    /// <summary>Referenced /ToUnicode CMap object number, when present as an indirect reference.</summary>
+    public int? ToUnicodeObjectNumber { get; }
+
     /// <summary>Referenced font descriptor object number, when present.</summary>
     public int? FontDescriptorObjectNumber { get; }
 
@@ -45,6 +55,37 @@ public sealed class PdfFontDiagnostic {
 
     /// <summary>True when the font should be reviewed for PDF/A or PDF/UA workflows because no embedded font file was found.</summary>
     public bool RequiresEmbeddingReview => !HasEmbeddedFontFile && !IsStandardBase14Font;
+
+    /// <summary>True when the font should be reviewed for extraction/accessibility workflows because no /ToUnicode map was found.</summary>
+    public bool RequiresToUnicodeReview =>
+        !HasToUnicodeMap &&
+        (string.Equals(Subtype, "Type0", StringComparison.Ordinal) ||
+         string.Equals(Encoding, "Identity-H", StringComparison.Ordinal) ||
+         string.Equals(Encoding, "Identity-V", StringComparison.Ordinal));
+
+    /// <summary>True when the font uses an identity CMap encoding.</summary>
+    public bool UsesIdentityEncoding =>
+        string.Equals(Encoding, "Identity-H", StringComparison.Ordinal) ||
+        string.Equals(Encoding, "Identity-V", StringComparison.Ordinal);
+
+    /// <summary>Coarse repair-readiness state for no-dependency PDF/A and PDF/UA workflows.</summary>
+    public string RepairReadiness {
+        get {
+            if (RequiresEmbeddingReview && RequiresToUnicodeReview) {
+                return "NeedsEmbeddingAndToUnicode";
+            }
+
+            if (RequiresEmbeddingReview) {
+                return "NeedsEmbedding";
+            }
+
+            if (RequiresToUnicodeReview) {
+                return "NeedsToUnicode";
+            }
+
+            return "Ready";
+        }
+    }
 
     private static bool IsBase14Font(string? baseFont) {
         if (string.IsNullOrEmpty(baseFont)) {

@@ -50,7 +50,8 @@ public sealed class PdfDocumentSecurityInfo {
         IReadOnlyList<int> previousXrefOffsets,
         IReadOnlyList<PdfDocumentRevisionInfo> revisions,
         bool hasPreviousRevision,
-        bool hasXrefStreams) {
+        bool hasXrefStreams,
+        bool hasObjectStreams) {
         HasEncryption = hasEncryption;
         EncryptObjectNumber = encryptObjectNumber;
         EncryptionFilter = encryptionFilter;
@@ -86,6 +87,7 @@ public sealed class PdfDocumentSecurityInfo {
         Revisions = revisions;
         HasPreviousRevision = hasPreviousRevision;
         HasXrefStreams = hasXrefStreams;
+        HasObjectStreams = hasObjectStreams;
     }
 
     /// <summary>True when the file contains an /Encrypt marker.</summary>
@@ -255,6 +257,9 @@ public sealed class PdfDocumentSecurityInfo {
     /// <summary>True when xref stream markers were found.</summary>
     public bool HasXrefStreams { get; }
 
+    /// <summary>True when object stream markers were found.</summary>
+    public bool HasObjectStreams { get; }
+
     /// <summary>True when mutation must preserve the existing file by appending a new revision instead of rewriting bytes in place.</summary>
     public bool RequiresAppendOnlyMutation =>
         HasSignatures ||
@@ -270,6 +275,15 @@ public sealed class PdfDocumentSecurityInfo {
         HasDocMDPPermissions ||
         HasUsageRights ||
         HasXrefStreams;
+
+    /// <summary>True when OfficeIMO.Pdf should avoid safe full-rewrite mutation for this input.</summary>
+    public bool BlocksOfficeIMOFullRewriteMutation =>
+        HasEncryption ||
+        HasSignatures ||
+        HasDocMDPPermissions ||
+        HasUsageRights ||
+        HasXrefStreams ||
+        HasObjectStreams;
 
     private bool? ReadPermission(int bit) {
         return EncryptionPermissions.HasValue ? (EncryptionPermissions.Value & bit) != 0 : (bool?)null;

@@ -15,7 +15,9 @@ public class PdfITextInspiredCoverageTests {
             .ToBytes();
         PdfAppendOnlyMutationReport appendPlan = PdfIncrementalUpdater.AnalyzeAppendOnlyMutation(appendablePdf);
         Assert.True(appendPlan.CanAppendMetadata);
+        Assert.True(appendPlan.CanAppendFormFields);
         Assert.Contains("Metadata", appendPlan.SupportedActions);
+        Assert.Contains("FormFill", appendPlan.SupportedActions);
 
         PdfDocumentInfo info = PdfInspector.Inspect(pdf);
         Assert.Equal(1, info.TextFormFieldCount);
@@ -49,6 +51,7 @@ public class PdfITextInspiredCoverageTests {
         Assert.True(diagnostics.FontCount >= 2);
         Assert.Contains(diagnostics.Fonts, font => font.ObjectNumber == 4 && font.IsStandardBase14Font);
         Assert.Contains(diagnostics.Fonts, font => font.ObjectNumber == 14 && font.HasEmbeddedFontFile && font.EmbeddedFontFileKind == "FontFile2");
+        Assert.Contains(diagnostics.Fonts, font => font.ObjectNumber == 14 && font.RepairReadiness == "Ready");
 
         PdfOptimizationReport optimization = PdfDiagnostics.AnalyzeOptimization(pdf);
         Assert.True(optimization.StreamCount > 0);
@@ -68,7 +71,188 @@ public class PdfITextInspiredCoverageTests {
         Assert.True(proof.RequiresExternalValidation);
         Assert.True(proof.RequiredExternalValidatorCount > 0);
         Assert.Equal("InternalGaps", proof.ProofStatus);
+        Assert.Contains("Missing external validation", proof.ExternalProofSummary, StringComparison.Ordinal);
         Assert.False(proof.CanClaimConformance);
+    }
+
+    [Fact]
+    public void IncrementalUpdater_AppendsSimpleFormFieldRevision() {
+        byte[] pdf = BuildCoveragePdf();
+
+        byte[] updated = PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
+            ["Name"] = "Grace"
+        });
+
+        Assert.True(updated.Length > pdf.Length);
+        PdfDocumentInfo info = PdfInspector.Inspect(updated);
+        PdfFormField field = Assert.Single(info.FormFields);
+        Assert.Equal("Grace", field.Value);
+        Assert.True(info.AcroFormNeedAppearances);
+        Assert.True(info.Security.HasIncrementalUpdates);
+    }
+
+    [Fact]
+    public void IncrementalUpdater_AppendsFormAppearanceStreams() {
+        byte[] pdf = BuildCoveragePdf();
+
+        byte[] updated = PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
+            ["Name"] = "Grace"
+        }, new PdfIncrementalFormFieldUpdateOptions {
+            GenerateAppearanceStreams = true,
+            KeepNeedAppearances = false
+        });
+
+        string text = PdfEncoding.Latin1GetString(updated);
+        PdfDocumentInfo info = PdfInspector.Inspect(updated);
+        PdfFormField field = Assert.Single(info.FormFields);
+        Assert.Equal("Grace", field.Value);
+        Assert.Equal(false, info.AcroFormNeedAppearances);
+        Assert.Contains("/AP", text, StringComparison.Ordinal);
+        Assert.Contains("/Subtype /Form", text, StringComparison.Ordinal);
+        Assert.Contains("/BaseFont /Helvetica", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void IncrementalUpdater_AllowsDocMDPCertifiedFormFillWhenPermissionPermits() {
+        byte[] pdf = BuildDocMdpFormPdf(permissionLevel: 2);
+
+        PdfAppendOnlyMutationReport plan = PdfIncrementalUpdater.AnalyzeAppendOnlyMutation(pdf);
+        Assert.True(plan.CanAppendFormFields);
+        Assert.False(plan.CanAppendMetadata);
+        Assert.Contains("SignedDocMDPFormFill", plan.Warnings);
+
+        byte[] updated = PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
+            ["Name"] = "Grace"
+        }, new PdfIncrementalFormFieldUpdateOptions {
+            GenerateAppearanceStreams = true,
+            KeepNeedAppearances = false
+        });
+
+        PdfDocumentInfo info = PdfInspector.Inspect(updated);
+        PdfFormField textField = Assert.Single(info.FormFields, static field => field.Name == "Name");
+        Assert.Equal("Grace", textField.Value);
+        Assert.True(info.Security.HasSignatures);
+        Assert.True(info.Security.HasDocMDPPermissions);
+        Assert.True(info.Security.HasIncrementalUpdates);
+        Assert.Contains("/Prev", PdfEncoding.Latin1GetString(updated), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void IncrementalUpdater_BlocksDocMDPCertifiedFormFillWhenPermissionForbidsChanges() {
+        byte[] pdf = BuildDocMdpFormPdf(permissionLevel: 1);
+
+        PdfAppendOnlyMutationReport plan = PdfIncrementalUpdater.AnalyzeAppendOnlyMutation(pdf);
+
+        Assert.False(plan.CanAppendFormFields);
+        Assert.Contains("DocMDP", plan.Blockers);
+        Assert.Throws<NotSupportedException>(() => PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
+            ["Name"] = "Grace"
+        }, new PdfIncrementalFormFieldUpdateOptions {
+            GenerateAppearanceStreams = true,
+            KeepNeedAppearances = false
+        }));
+    }
+
+    [Fact]
+    public void PageEditor_SetsProductionBoundaryBoxes() {
+        byte[] pdf = PdfPageGeometrySupport.BuildPageGeometryPdf();
+
+        byte[] updated = PdfPageEditor.SetPageBox(pdf, "TrimBox", 12, 14, 222, 244);
+
+        PdfPageGeometry geometry = PdfInspector.Inspect(updated).Pages[0].Geometry!;
+        Assert.NotNull(geometry.TrimBox);
+        Assert.Equal(12, geometry.TrimBox!.Left);
+        Assert.Equal(14, geometry.TrimBox.Bottom);
+        Assert.Equal(222, geometry.TrimBox.Right);
+        Assert.Equal(244, geometry.TrimBox.Top);
+    }
+
+    [Fact]
+    public void SecurityInfo_ReportsObjectStreamRewriteReadiness() {
+        byte[] pdf = Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 0 /Kids [] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /ObjStm /N 0 /First 0 /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 4 >>",
+            "startxref",
+            "123",
+            "%%EOF"
+        }));
+
+        PdfDocumentSecurityInfo security = PdfInspector.Probe(pdf).Security;
+
+        Assert.True(security.HasObjectStreams);
+        Assert.True(security.BlocksOfficeIMOFullRewriteMutation);
+    }
+
+    [Fact]
+    public void AnnotationEditor_UpdatesAndRemovesAnnotations() {
+        byte[] pdf = BuildAnnotationEditPdf();
+
+        PdfAnnotationEditResult updated = PdfAnnotationEditor.UpdateAnnotation(pdf, 6, new PdfAnnotationUpdateOptions {
+            Contents = "Updated note",
+            Title = "Lead reviewer",
+            Name = "Note-2",
+            Flags = 4,
+            Color = new[] { 0D, 0.5D, 1D },
+            RemoveActions = true
+        });
+
+        Assert.True(updated.Applied);
+        PdfAnnotation annotation = Assert.Single(PdfInspector.Inspect(updated.Bytes).GetAnnotationsBySubtype("Text"));
+        Assert.Equal("Updated note", annotation.Contents);
+        Assert.Equal("Lead reviewer", annotation.Title);
+        Assert.Equal("Note-2", annotation.Name);
+        Assert.False(annotation.HasAction);
+        Assert.False(annotation.HasAdditionalActions);
+        Assert.False(annotation.HasChainedActions);
+        Assert.Equal(4, annotation.Flags);
+
+        PdfAnnotationEditResult removed = PdfAnnotationEditor.RemoveAnnotations(updated.Bytes, new PdfAnnotationRemovalOptions {
+            Subtype = "Text"
+        });
+
+        Assert.True(removed.Applied);
+        PdfDocumentInfo info = PdfInspector.Inspect(removed.Bytes);
+        Assert.Empty(info.GetAnnotationsBySubtype("Text"));
+        Assert.Equal(0, info.AnnotationCount);
+    }
+
+    [Fact]
+    public void ExternalValidationResult_FromExitCodeImportsProcessOutcome() {
+        PdfExternalValidationResult passed = PdfExternalValidationResult.FromExitCode(
+            PdfExternalValidatorKind.VeraPdf,
+            0,
+            "veraPDF",
+            "passed",
+            profile: "PDF/A-3b",
+            executablePath: "verapdf",
+            arguments: "--format text file.pdf");
+
+        PdfExternalValidationResult failed = PdfExternalValidationResult.FromExitCode(
+            PdfExternalValidatorKind.PdfUaValidator,
+            2,
+            "pdfua",
+            "failed",
+            profile: "PDF/UA-1");
+
+        Assert.Equal(PdfExternalValidationStatus.Passed, passed.Status);
+        Assert.Equal(0, passed.ExitCode);
+        Assert.Equal("verapdf", passed.ExecutablePath);
+        Assert.Equal("--format text file.pdf", passed.Arguments);
+        Assert.Equal(PdfExternalValidationStatus.Failed, failed.Status);
+        Assert.Equal(2, failed.ExitCode);
     }
 
     private static byte[] BuildCoveragePdf() {
@@ -91,6 +275,36 @@ public class PdfITextInspiredCoverageTests {
             "<< /Nums [0 12 0 R] >>",
             "<< /Type /Font /Subtype /TrueType /BaseFont /EmbeddedSans /FontDescriptor 9 0 R >>",
             BuildStream(fontBytes)
+        };
+
+        return Encoding.ASCII.GetBytes(BuildPdf(objects));
+    }
+
+    private static byte[] BuildAnnotationEditPdf() {
+        byte[] contentBytes = Encoding.ASCII.GetBytes("BT\n/F1 12 Tf\n72 720 Td\n(Annotation editing) Tj\nET\n");
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R >> >> /Annots [6 0 R] /Contents 5 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            BuildStream(contentBytes),
+            "<< /Type /Annot /Subtype /Text /Rect [20 20 40 40] /Contents (Review note) /F 132 /NM (Note-1) /T (Reviewer) /M (D:20260622090000Z) /C [1 0 0] /A << /S /URI /URI (https://example.com) >> >>"
+        };
+
+        return Encoding.ASCII.GetBytes(BuildPdf(objects));
+    }
+
+    private static byte[] BuildDocMdpFormPdf(int permissionLevel) {
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm 8 0 R /Perms << /DocMDP 7 0 R >> >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R >> >> /Annots [5 0 R 6 0 R] /Contents 9 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            "<< /Type /Annot /Subtype /Widget /FT /Tx /T (Name) /V (Ada) /Rect [50 50 180 70] /F 4 >>",
+            "<< /FT /Sig /T (Approval) /V 7 0 R /Subtype /Widget /Rect [10 10 120 40] >>",
+            "<< /Type /Sig /Filter /Adobe.PPKLite /SubFilter /adbe.pkcs7.detached /Name (Alice) /ByteRange [0 10 20 30] /Contents <001122> /Reference [<< /TransformMethod /DocMDP /TransformParams << /Type /TransformParams /V /1.2 /P " + permissionLevel.ToString(CultureInfo.InvariantCulture) + " >> >>] >>",
+            "<< /Fields [5 0 R 6 0 R] /SigFlags 3 >>",
+            BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 72 720 Td (Signed form) Tj ET"))
         };
 
         return Encoding.ASCII.GetBytes(BuildPdf(objects));
