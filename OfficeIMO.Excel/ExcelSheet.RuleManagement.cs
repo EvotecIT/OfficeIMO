@@ -240,9 +240,10 @@ namespace OfficeIMO.Excel {
         /// Adds a time-period conditional formatting rule.
         /// </summary>
         public void AddConditionalTimePeriodRule(string range, TimePeriodValues timePeriod, bool stopIfTrue = false) {
+            string firstCell = GetFirstCellReference(range);
             AddConditionalRuleCore(range, ConditionalFormatValues.TimePeriod, rule => {
                 rule.TimePeriod = timePeriod;
-            }, Array.Empty<string>(), stopIfTrue);
+            }, new[] { BuildTimePeriodFormula(firstCell, timePeriod) }, stopIfTrue);
         }
 
         /// <summary>
@@ -365,6 +366,22 @@ namespace OfficeIMO.Excel {
 
         private static string EscapeFormulaString(string value) {
             return value.Replace("\"", "\"\"");
+        }
+
+        private static string BuildTimePeriodFormula(string firstCell, TimePeriodValues timePeriod) {
+            string day = $"FLOOR({firstCell},1)";
+            if (timePeriod == TimePeriodValues.Yesterday) return $"{day}=TODAY()-1";
+            if (timePeriod == TimePeriodValues.Today) return $"{day}=TODAY()";
+            if (timePeriod == TimePeriodValues.Tomorrow) return $"{day}=TODAY()+1";
+            if (timePeriod == TimePeriodValues.Last7Days) return $"AND(TODAY()-FLOOR({firstCell},1)<=6,FLOOR({firstCell},1)<=TODAY())";
+            if (timePeriod == TimePeriodValues.LastWeek) return $"AND({day}>=TODAY()-WEEKDAY(TODAY(),2)-6,{day}<=TODAY()-WEEKDAY(TODAY(),2))";
+            if (timePeriod == TimePeriodValues.ThisWeek) return $"AND({day}>=TODAY()-WEEKDAY(TODAY(),2)+1,{day}<=TODAY()-WEEKDAY(TODAY(),2)+7)";
+            if (timePeriod == TimePeriodValues.NextWeek) return $"AND({day}>=TODAY()-WEEKDAY(TODAY(),2)+8,{day}<=TODAY()-WEEKDAY(TODAY(),2)+14)";
+            if (timePeriod == TimePeriodValues.LastMonth) return $"AND({day}>=DATE(YEAR(TODAY()),MONTH(TODAY())-1,1),{day}<DATE(YEAR(TODAY()),MONTH(TODAY()),1))";
+            if (timePeriod == TimePeriodValues.ThisMonth) return $"AND({day}>=DATE(YEAR(TODAY()),MONTH(TODAY()),1),{day}<DATE(YEAR(TODAY()),MONTH(TODAY())+1,1))";
+            if (timePeriod == TimePeriodValues.NextMonth) return $"AND({day}>=DATE(YEAR(TODAY()),MONTH(TODAY())+1,1),{day}<DATE(YEAR(TODAY()),MONTH(TODAY())+2,1))";
+
+            return $"{day}=TODAY()";
         }
 
         private void ClearConditionalFormattingCore(string? a1Range) {

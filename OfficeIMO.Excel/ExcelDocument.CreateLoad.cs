@@ -95,6 +95,7 @@ namespace OfficeIMO.Excel {
             // Initialize document property helpers
             document.BuiltinDocumentProperties = new BuiltinDocumentProperties(document);
             document.ApplicationProperties = new ApplicationProperties(document);
+            document.CustomDocumentProperties.SetChangeHandler(document.MarkCustomDocumentPropertiesChanged);
             document.LoadCustomDocumentProperties();
 
             return document;
@@ -131,6 +132,7 @@ namespace OfficeIMO.Excel {
 
             document.BuiltinDocumentProperties = new BuiltinDocumentProperties(document);
             document.ApplicationProperties = new ApplicationProperties(document);
+            document.CustomDocumentProperties.SetChangeHandler(document.MarkCustomDocumentPropertiesChanged);
             document.LoadCustomDocumentProperties();
             ExcelChartAxisIdGenerator.Initialize(document._spreadSheetDocument);
             return document;

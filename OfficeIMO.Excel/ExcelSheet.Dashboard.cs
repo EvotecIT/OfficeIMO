@@ -14,6 +14,7 @@ namespace OfficeIMO.Excel {
             if (data.Columns.Count == 0) throw new ArgumentException("Dashboard data must contain at least one column.", nameof(data));
             if (opts.TableRow <= 0) throw new ArgumentOutOfRangeException(nameof(ExcelDashboardOptions.TableRow));
             if (opts.TableColumn <= 0) throw new ArgumentOutOfRangeException(nameof(ExcelDashboardOptions.TableColumn));
+            ValidateDashboardLayout(opts);
 
             WriteDashboardHeader(opts);
 
@@ -72,6 +73,21 @@ namespace OfficeIMO.Excel {
 
             if (!string.IsNullOrWhiteSpace(options.Subtitle)) {
                 CellValue(2, 1, options.Subtitle!);
+            }
+        }
+
+        private static void ValidateDashboardLayout(ExcelDashboardOptions options) {
+            int headerLastRow = 0;
+            if (!string.IsNullOrWhiteSpace(options.Title)) {
+                headerLastRow = 1;
+            }
+
+            if (!string.IsNullOrWhiteSpace(options.Subtitle)) {
+                headerLastRow = 2;
+            }
+
+            if (headerLastRow > 0 && options.TableRow <= headerLastRow) {
+                throw new ArgumentException("Dashboard table row overlaps the configured title or subtitle rows.", nameof(options));
             }
         }
     }

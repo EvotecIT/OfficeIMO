@@ -376,10 +376,10 @@ namespace OfficeIMO.Excel {
             var threaded = CreateInspectionSnapshot().Worksheets.SelectMany(sheet => sheet.ThreadedComments).ToList();
             foreach (ExcelThreadedCommentSnapshot comment in threaded) {
                 if (string.IsNullOrWhiteSpace(comment.Author)) {
-                    issues.Add(new ExcelWorkbookDiagnosticIssue("ThreadedComment", ExcelFindingSeverity.Warning, "Threaded comment has no resolved author.", address: comment.CellReference));
+                    issues.Add(new ExcelWorkbookDiagnosticIssue("ThreadedComment", ExcelFindingSeverity.Warning, "Threaded comment has no resolved author.", comment.SheetName, comment.CellReference));
                 }
                 if (!string.IsNullOrWhiteSpace(comment.ParentId) && threaded.All(parent => !string.Equals(parent.Id, comment.ParentId, StringComparison.OrdinalIgnoreCase))) {
-                    issues.Add(new ExcelWorkbookDiagnosticIssue("ThreadedComment", ExcelFindingSeverity.Warning, "Threaded comment reply references a missing parent.", address: comment.CellReference));
+                    issues.Add(new ExcelWorkbookDiagnosticIssue("ThreadedComment", ExcelFindingSeverity.Warning, "Threaded comment reply references a missing parent.", comment.SheetName, comment.CellReference));
                 }
             }
 

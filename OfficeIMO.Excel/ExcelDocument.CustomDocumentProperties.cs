@@ -47,10 +47,11 @@ namespace OfficeIMO.Excel {
         }
 
         internal void LoadCustomDocumentProperties() {
-            CustomDocumentProperties.Clear();
+            var loadedProperties = new Dictionary<string, ExcelCustomProperty>(StringComparer.OrdinalIgnoreCase);
             _customDocumentPropertiesDirty = false;
             CustomFilePropertiesPart? customPart = _spreadSheetDocument.CustomFilePropertiesPart;
             if (customPart?.Properties == null) {
+                CustomDocumentProperties.ReplaceWith(loadedProperties);
                 return;
             }
 
@@ -59,8 +60,10 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                CustomDocumentProperties[property.Name!.Value!] = new ExcelCustomProperty(property);
+                loadedProperties[property.Name!.Value!] = new ExcelCustomProperty(property);
             }
+
+            CustomDocumentProperties.ReplaceWith(loadedProperties);
         }
 
         internal void SaveCustomDocumentProperties() {
@@ -162,6 +165,12 @@ namespace OfficeIMO.Excel {
             ClearDirectDataSetSaveCandidate();
             _materializedDirectDataSetFastSaveModel = null;
             _materializedDirectDataSetFastSaveModelHasMaterializedWorksheet = false;
+        }
+
+        private void MarkCustomDocumentPropertiesChanged() {
+            _customDocumentPropertiesDirty = true;
+            DisqualifyDirectDataSetFastSaveState();
+            MarkPackageDirty();
         }
     }
 }

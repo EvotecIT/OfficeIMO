@@ -63,7 +63,7 @@ namespace OfficeIMO.Excel {
                 definedNames.Append(dnNew);
             }
             MarkPackageDirty();
-            if (save) Save();
+            if (save) WorkbookRoot.Save();
         }
 
         /// <summary>
@@ -179,7 +179,7 @@ namespace OfficeIMO.Excel {
             }
             MarkPackageDirty();
             if (save) {
-                Save();
+                WorkbookRoot.Save();
             }
             return true;
         }

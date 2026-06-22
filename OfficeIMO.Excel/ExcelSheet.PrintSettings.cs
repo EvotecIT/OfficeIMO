@@ -375,7 +375,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static void AddManualPageBreak(OpenXmlCompositeElement breaks, uint id, uint max) {
-            Break? existing = breaks.Elements<Break>().FirstOrDefault(item => item.Id?.Value == id && item.ManualPageBreak?.Value == true);
+            Break? existing = breaks.Elements<Break>().FirstOrDefault(item => item.Id?.Value == id);
             if (existing == null) {
                 breaks.Append(new Break {
                     Id = id,

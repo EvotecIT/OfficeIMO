@@ -445,6 +445,11 @@ namespace OfficeIMO.Excel {
     /// </summary>
     public sealed class ExcelThreadedCommentSnapshot {
         /// <summary>
+        /// Worksheet name that owns the threaded comment.
+        /// </summary>
+        public string SheetName { get; internal set; } = string.Empty;
+
+        /// <summary>
         /// Cell reference in A1 notation.
         /// </summary>
         public string CellReference { get; internal set; } = string.Empty;

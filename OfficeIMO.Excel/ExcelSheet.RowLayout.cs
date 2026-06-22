@@ -8,8 +8,8 @@ namespace OfficeIMO.Excel {
         /// <param name="rowIndex">The 1-based row index to update.</param>
         /// <param name="options">The layout options to apply.</param>
         public void SetRowLayout(int rowIndex, ExcelRowLayoutOptions options) {
-            if (rowIndex <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(rowIndex), "Row index must be 1 or greater.");
+            if (rowIndex <= 0 || rowIndex > A1.MaxRows) {
+                throw new ArgumentOutOfRangeException(nameof(rowIndex), "Row index must be between 1 and the Excel row limit.");
             }
 
             if (options == null) {

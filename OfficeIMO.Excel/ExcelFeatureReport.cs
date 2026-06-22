@@ -418,7 +418,7 @@ namespace OfficeIMO.Excel {
                     if (sheetSparklineCount > 0) pdfUnrenderedSparklineDetails.Add($"{sheet.Name}: {sheetSparklineCount} sparkline(s)");
                 }
                 legacyCommentCount += worksheetPart.WorksheetCommentsPart?.Comments?.CommentList?.Elements<DocumentFormat.OpenXml.Spreadsheet.Comment>().Count() ?? 0;
-                var threadedComments = BuildThreadedCommentMap(worksheetPart, threadedCommentPeople)
+                var threadedComments = BuildThreadedCommentMap(worksheetPart, threadedCommentPeople, sheetName)
                     .Values
                     .SelectMany(comments => comments)
                     .ToList();

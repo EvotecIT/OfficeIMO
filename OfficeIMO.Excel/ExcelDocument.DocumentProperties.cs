@@ -33,7 +33,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Custom workbook properties keyed by property name.
         /// </summary>
-        public readonly Dictionary<string, ExcelCustomProperty> CustomDocumentProperties = new Dictionary<string, ExcelCustomProperty>(StringComparer.OrdinalIgnoreCase);
+        public readonly ExcelCustomDocumentPropertyCollection CustomDocumentProperties = new ExcelCustomDocumentPropertyCollection();
 
         /// <summary>
         /// FileOpenAccess of the document

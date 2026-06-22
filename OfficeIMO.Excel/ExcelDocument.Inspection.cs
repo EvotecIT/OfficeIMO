@@ -54,7 +54,7 @@ namespace OfficeIMO.Excel {
                     var typedValues = BuildTypedCellMap(readerSheet);
                     var hyperlinkMap = BuildHyperlinkMap(worksheetPart);
                     var commentMap = BuildCommentMap(worksheetPart);
-                    var threadedCommentMap = BuildThreadedCommentMap(worksheetPart, threadedCommentPeople);
+                    var threadedCommentMap = BuildThreadedCommentMap(worksheetPart, threadedCommentPeople, sheetName);
 
                     var outlineProperties = worksheet.GetFirstChild<SheetProperties>()?.GetFirstChild<OutlineProperties>();
                     var sheetView = worksheet
@@ -150,6 +150,8 @@ namespace OfficeIMO.Excel {
                             }
                         }
                     }
+
+                    AddCommentOnlyCells(worksheetSnapshot, commentMap);
 
                     foreach (var threadedComments in threadedCommentMap.Values) {
                         foreach (var threadedComment in threadedComments) {
@@ -298,13 +300,28 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                map[reference!] = new ExcelHyperlinkSnapshot {
+                var snapshot = new ExcelHyperlinkSnapshot {
                     IsExternal = isExternal,
                     Target = target!,
                 };
+                AddSnapshotForReference(map, reference!, snapshot);
             }
 
             return map;
+        }
+
+        private static void AddSnapshotForReference<TSnapshot>(Dictionary<string, TSnapshot> map, string reference, TSnapshot snapshot) {
+            if (A1.TryParseRange(reference, out int rowStart, out int columnStart, out int rowEnd, out int columnEnd)) {
+                for (int row = rowStart; row <= rowEnd; row++) {
+                    for (int column = columnStart; column <= columnEnd; column++) {
+                        map[A1.CellReference(row, column)] = snapshot;
+                    }
+                }
+
+                return;
+            }
+
+            map[reference] = snapshot;
         }
 
         private static Dictionary<string, ExcelCommentSnapshot> BuildCommentMap(WorksheetPart worksheetPart) {
@@ -340,6 +357,33 @@ namespace OfficeIMO.Excel {
             }
 
             return map;
+        }
+
+        private static void AddCommentOnlyCells(ExcelWorksheetSnapshot worksheetSnapshot, IReadOnlyDictionary<string, ExcelCommentSnapshot> commentMap) {
+            if (commentMap.Count == 0) {
+                return;
+            }
+
+            var existingCells = new HashSet<string>(
+                worksheetSnapshot.Cells.Select(cell => A1.CellReference(cell.Row, cell.Column)),
+                StringComparer.OrdinalIgnoreCase);
+
+            foreach (var pair in commentMap) {
+                if (existingCells.Contains(pair.Key)) {
+                    continue;
+                }
+
+                var (row, column) = A1.ParseCellRef(pair.Key);
+                if (row <= 0 || column <= 0) {
+                    continue;
+                }
+
+                worksheetSnapshot.AddCell(new ExcelCellSnapshot {
+                    Row = row,
+                    Column = column,
+                    Comment = pair.Value,
+                });
+            }
         }
 
         private static string ExtractCommentText(CommentText? commentText) {
@@ -388,7 +432,8 @@ namespace OfficeIMO.Excel {
 
         private static Dictionary<string, List<ExcelThreadedCommentSnapshot>> BuildThreadedCommentMap(
             WorksheetPart worksheetPart,
-            IReadOnlyDictionary<string, string> people) {
+            IReadOnlyDictionary<string, string> people,
+            string sheetName) {
             var map = new Dictionary<string, List<ExcelThreadedCommentSnapshot>>(StringComparer.OrdinalIgnoreCase);
             foreach (var commentsPart in worksheetPart.WorksheetThreadedCommentsParts) {
                 var threadedComments = commentsPart.ThreadedComments;
@@ -409,6 +454,7 @@ namespace OfficeIMO.Excel {
                     }
 
                     var snapshot = new ExcelThreadedCommentSnapshot {
+                        SheetName = sheetName,
                         CellReference = reference!,
                         Id = NullIfWhiteSpace(comment.Id?.Value),
                         ParentId = NullIfWhiteSpace(comment.ParentId?.Value),
