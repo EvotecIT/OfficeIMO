@@ -24,7 +24,7 @@ public static class PdfRedactionPlanner {
             return new PdfRedactionPlan(preflight, areaArray, Array.Empty<PdfRedactionMatch>(), findings.AsReadOnly());
         }
 
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(pdf, layoutOptions);
+        PdfLogicalDocument logical = PdfLogicalDocument.From(PdfReadDocument.Load(pdf, options), layoutOptions);
         PdfDocumentInfo info = preflight.DocumentInfo ?? PdfInspector.Inspect(pdf, options);
         var matches = new List<PdfRedactionMatch>();
 

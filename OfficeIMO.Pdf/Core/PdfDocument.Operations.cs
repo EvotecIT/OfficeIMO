@@ -36,6 +36,21 @@ public sealed partial class PdfDocument {
         return PdfRedactionPlanner.Plan(Snapshot(), areas, layoutOptions, options ?? ReadOptions);
     }
 
+    /// <summary>
+    /// Creates a new PDF with matching text objects and annotations removed from the supplied redaction areas.
+    /// </summary>
+    public PdfDocument ApplyRedactions(IEnumerable<PdfRedactionArea> areas, PdfRedactionApplyOptions? applyOptions = null, PdfTextLayoutOptions? layoutOptions = null, PdfReadOptions? options = null) {
+        return FromBytes(PdfRedactionApplier.Apply(Snapshot(), areas, applyOptions, layoutOptions, options ?? ReadOptions));
+    }
+
+    /// <summary>
+    /// Attempts to apply rectangle-based redactions, returning diagnostics when blocked or failed.
+    /// </summary>
+    public PdfOperationResult<PdfDocument> TryApplyRedactions(IEnumerable<PdfRedactionArea> areas, PdfRedactionApplyOptions? applyOptions = null, PdfTextLayoutOptions? layoutOptions = null, PdfReadOptions? options = null) {
+        Guard.NotNull(areas, nameof(areas));
+        return TryOperation("Apply redactions", PdfPreflightCapability.ManipulatePages, () => ApplyRedactions(areas, applyOptions, layoutOptions, options), options ?? ReadOptions);
+    }
+
     internal PdfOperationResult<T> TryOperation<T>(
         string operationName,
         PdfPreflightCapability capability,
