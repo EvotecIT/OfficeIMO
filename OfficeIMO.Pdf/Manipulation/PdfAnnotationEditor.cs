@@ -96,7 +96,7 @@ public static class PdfAnnotationEditor {
 
         if (!objects.TryGetValue(objectNumber, out PdfIndirectObject? indirect) ||
             indirect.Value is not PdfDictionary annotation ||
-            !IsAnnotation(annotation)) {
+            !IsAnnotationUpdateTarget(objects, objectNumber, annotation)) {
             throw new ArgumentException("PDF annotation object was not found: " + objectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".", nameof(objectNumber));
         }
 
@@ -135,7 +135,7 @@ public static class PdfAnnotationEditor {
             }
         }
 
-        return IsAnnotation(annotation);
+        return IsAnnotation(annotation) || HasAnnotationSubtype(annotation);
     }
 
     private static int RemovePageAnnotationReferences(PdfArray annotations, HashSet<int> removedObjectNumbers) {
@@ -220,7 +220,35 @@ public static class PdfAnnotationEditor {
     }
 
     private static bool IsAnnotation(PdfDictionary dictionary) {
-        return dictionary.Get<PdfName>("Type")?.Name == "Annot" || dictionary.Items.ContainsKey("Subtype");
+        return dictionary.Get<PdfName>("Type")?.Name == "Annot";
+    }
+
+    private static bool HasAnnotationSubtype(PdfDictionary dictionary) {
+        return dictionary.Items.ContainsKey("Subtype");
+    }
+
+    private static bool IsAnnotationUpdateTarget(Dictionary<int, PdfIndirectObject> objects, int objectNumber, PdfDictionary dictionary) {
+        return IsAnnotation(dictionary) || IsReferencedFromPageAnnotations(objects, objectNumber);
+    }
+
+    private static bool IsReferencedFromPageAnnotations(Dictionary<int, PdfIndirectObject> objects, int objectNumber) {
+        foreach (int pageObjectNumber in GetPageObjectNumbersInDocumentOrder(objects)) {
+            if (!objects.TryGetValue(pageObjectNumber, out PdfIndirectObject? pageObject) ||
+                pageObject.Value is not PdfDictionary page ||
+                !page.Items.TryGetValue("Annots", out PdfObject? annotsObject) ||
+                PdfObjectLookup.Resolve(objects, annotsObject) is not PdfArray annotations) {
+                continue;
+            }
+
+            for (int i = 0; i < annotations.Items.Count; i++) {
+                if (annotations.Items[i] is PdfReference reference &&
+                    reference.ObjectNumber == objectNumber) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private static string? TryReadName(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, string key) {

@@ -27,7 +27,7 @@ public static partial class PdfIncrementalUpdater {
         PdfIncrementalFormFieldUpdateOptions effectiveOptions = options ?? new PdfIncrementalFormFieldUpdateOptions();
 
         PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(pdf);
-        ValidateAppendOnlyFormInput(security);
+        ValidateAppendOnlyFormInput(security, fieldValues.Keys);
 
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
         if (!security.RootObjectNumber.HasValue ||
@@ -117,8 +117,8 @@ public static partial class PdfIncrementalUpdater {
         File.WriteAllBytes(outputPath, UpdateFormFields(File.ReadAllBytes(inputPath), fieldValues, options));
     }
 
-    private static void ValidateAppendOnlyFormInput(PdfDocumentSecurityInfo security) {
-        PdfAppendOnlyMutationReport report = BuildAppendOnlyMutationReport(security);
+    private static void ValidateAppendOnlyFormInput(PdfDocumentSecurityInfo security, IEnumerable<string> fieldNames) {
+        PdfAppendOnlyMutationReport report = BuildAppendOnlyMutationReport(security, fieldNames);
         if (!report.SupportedActions.Contains("FormFill", StringComparer.Ordinal)) {
             throw new NotSupportedException("Incremental form field updates are not supported for this PDF: " + string.Join(", ", report.Blockers));
         }

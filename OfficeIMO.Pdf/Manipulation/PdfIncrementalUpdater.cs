@@ -11,7 +11,7 @@ public static partial class PdfIncrementalUpdater {
     /// </summary>
     public static PdfAppendOnlyMutationReport AnalyzeAppendOnlyMutation(byte[] pdf) {
         Guard.NotNull(pdf, nameof(pdf));
-        return BuildAppendOnlyMutationReport(PdfSyntax.ReadDocumentSecurityInfo(pdf));
+        return BuildAppendOnlyMutationReport(PdfSyntax.ReadDocumentSecurityInfo(pdf), fieldNames: null);
     }
 
     /// <summary>Analyzes append-only mutation support for a readable PDF stream.</summary>
@@ -111,13 +111,13 @@ public static partial class PdfIncrementalUpdater {
     }
 
     private static void ValidateAppendOnlyMetadataInput(PdfDocumentSecurityInfo security) {
-        PdfAppendOnlyMutationReport report = BuildAppendOnlyMutationReport(security);
+        PdfAppendOnlyMutationReport report = BuildAppendOnlyMutationReport(security, fieldNames: null);
         if (!report.CanAppendMetadata) {
             throw new NotSupportedException("Incremental metadata updates are not supported for this PDF: " + string.Join(", ", report.Blockers));
         }
     }
 
-    private static PdfAppendOnlyMutationReport BuildAppendOnlyMutationReport(PdfDocumentSecurityInfo security) {
+    private static PdfAppendOnlyMutationReport BuildAppendOnlyMutationReport(PdfDocumentSecurityInfo security, IEnumerable<string>? fieldNames) {
         var commonBlockers = new List<string>();
         var metadataBlockers = new List<string>();
         var formBlockers = new List<string>();
@@ -145,10 +145,11 @@ public static partial class PdfIncrementalUpdater {
 
         metadataBlockers.AddRange(commonBlockers);
         formBlockers.AddRange(commonBlockers);
+        bool blockedBySignatureFieldLock = HasBlockingSignatureFieldLock(security, fieldNames);
 
         if (hasSignatureContent) {
             metadataBlockers.Add("Signed");
-            if (!CanAppendFormFieldsWithDocMDP(security)) {
+            if (!CanAppendFormFieldsWithDocMDP(security, fieldNames)) {
                 formBlockers.Add("Signed");
             } else {
                 warnings.Add("SignedDocMDPFormFill");
@@ -157,11 +158,15 @@ public static partial class PdfIncrementalUpdater {
 
         if (security.HasDocMDPPermissions) {
             metadataBlockers.Add("DocMDP");
-            if (!CanAppendFormFieldsWithDocMDP(security)) {
+            if (!CanAppendFormFieldsWithDocMDP(security, fieldNames)) {
                 formBlockers.Add("DocMDP");
             } else {
                 warnings.Add("DocMDPAllowsFormFill");
             }
+        }
+
+        if (blockedBySignatureFieldLock) {
+            formBlockers.Add("SignatureFieldLock");
         }
 
         if (security.HasIncrementalUpdates) {
@@ -207,11 +212,46 @@ public static partial class PdfIncrementalUpdater {
             warnings.Distinct(StringComparer.Ordinal).ToArray());
     }
 
-    private static bool CanAppendFormFieldsWithDocMDP(PdfDocumentSecurityInfo security) {
+    private static bool CanAppendFormFieldsWithDocMDP(PdfDocumentSecurityInfo security, IEnumerable<string>? fieldNames) {
         return security.HasDocMDPPermissions &&
             security.DocMDPPermissionLevel.HasValue &&
             security.DocMDPPermissionLevel.Value >= 2 &&
-            security.DocMDPPermissionLevel.Value <= 3;
+            security.DocMDPPermissionLevel.Value <= 3 &&
+            !HasBlockingSignatureFieldLock(security, fieldNames);
+    }
+
+    private static bool HasBlockingSignatureFieldLock(PdfDocumentSecurityInfo security, IEnumerable<string>? fieldNames) {
+        HashSet<string>? requestedFields = fieldNames is null
+            ? null
+            : new HashSet<string>(fieldNames.Where(static field => !string.IsNullOrWhiteSpace(field)), StringComparer.Ordinal);
+        foreach (PdfSignatureInfo signature in security.Signatures) {
+            PdfSignatureFieldLockInfo? fieldLock = signature.FieldLock;
+            if (fieldLock is null) {
+                continue;
+            }
+
+            if (requestedFields is null) {
+                return true;
+            }
+
+            if (fieldLock.LocksAllFields) {
+                return true;
+            }
+
+            if (fieldLock.LocksIncludedFields &&
+                fieldLock.Fields.Any(requestedFields.Contains)) {
+                return true;
+            }
+
+            if (fieldLock.LocksAllExceptListedFields) {
+                var excluded = new HashSet<string>(fieldLock.Fields, StringComparer.Ordinal);
+                if (requestedFields.Any(field => !excluded.Contains(field))) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private static string ReadTrailerIdEntry(string trailerRaw) {

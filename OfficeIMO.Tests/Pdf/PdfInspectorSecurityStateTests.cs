@@ -182,10 +182,10 @@ public partial class PdfInspectorTests {
         Assert.Contains("Catalog /Perms contains usage-rights entries; rewrite may invalidate viewer-extended rights.", report.SecurityDiagnostics);
         Assert.Contains("Document Security Store (/DSS) was detected with 1 VRI entry; signature validation evidence must be preserved during mutation.", report.SecurityDiagnostics);
         Assert.Contains("Incremental update markers were detected (2 startxref sections); safe mutation requires append-only revision preservation.", report.SecurityDiagnostics);
-        Assert.Contains("Append-only signature preservation is not implemented by OfficeIMO.Pdf yet.", report.AppendOnlyMutationDiagnostics);
-        Assert.Contains("DocMDP certification permissions must be evaluated before append-only mutation.", report.AppendOnlyMutationDiagnostics);
+        Assert.Contains("Signature field locks restrict append-only form filling; requested fields must be checked before update.", report.AppendOnlyMutationDiagnostics);
+        Assert.Contains("Append-only form filling is available for DocMDP-certified PDFs when certification permission level /P permits form changes.", report.AppendOnlyMutationDiagnostics);
+        Assert.Contains("DocMDP certification permission level permits append-only form filling but still blocks unrelated mutations.", report.AppendOnlyMutationDiagnostics);
         Assert.Contains("Usage-rights entries must be preserved before append-only mutation.", report.AppendOnlyMutationDiagnostics);
-        Assert.Contains("Append-only PDF writing is not implemented by OfficeIMO.Pdf yet.", report.AppendOnlyMutationDiagnostics);
 
         IReadOnlyList<string> pageDiagnostics = report.GetCapabilityDiagnostics(PdfPreflightCapability.ManipulatePages);
         Assert.Contains("Signed PDF files are not supported for rewriting by OfficeIMO.Pdf yet.", pageDiagnostics);

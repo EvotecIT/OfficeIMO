@@ -44,6 +44,7 @@ public static class PdfRedactionApplier {
         }
 
         PdfReadDocument document = PdfReadDocument.Load(pdf, readOptions);
+        ValidateRedactionAreas(areaArray, document.Pages.Count);
         RedactionMutation mutation = ApplyToObjects(objects, document, plan, areaArray, effectiveOptions);
         if (!mutation.HasChanges) {
             return pdf.ToArray();
@@ -118,10 +119,6 @@ public static class PdfRedactionApplier {
         var areasByPage = areas
             .GroupBy(area => area.PageNumber)
             .ToDictionary(group => group.Key, group => group.ToArray());
-        var annotationObjectNumbers = new HashSet<int>(plan.Matches
-            .Where(match => match.Kind == PdfRedactionMatchKind.Annotation && match.ObjectNumber.HasValue)
-            .Select(match => match.ObjectNumber!.Value));
-
         bool changed = false;
         int nextObjectNumber = objects.Keys.Count == 0 ? 1 : objects.Keys.Max() + 1;
         for (int pageIndex = 0; pageIndex < document.Pages.Count; pageIndex++) {
@@ -140,7 +137,7 @@ public static class PdfRedactionApplier {
             }
 
             bool pageChanged = RemoveMatchedTextObjects(objects, pageDictionary, pageMatches ?? Array.Empty<PdfRedactionMatch>());
-            pageChanged = RemoveMatchedAnnotations(objects, pageDictionary, annotationObjectNumbers) || pageChanged;
+            pageChanged = RemoveMatchedAnnotations(objects, pageDictionary, pageMatches ?? Array.Empty<PdfRedactionMatch>()) || pageChanged;
 
             PdfRedactionArea[] paintAreas = SelectPaintAreas(pageAreas ?? Array.Empty<PdfRedactionArea>(), pageMatches ?? Array.Empty<PdfRedactionMatch>(), options);
             if (paintAreas.Length > 0) {
@@ -154,6 +151,14 @@ public static class PdfRedactionApplier {
         }
 
         return new RedactionMutation(changed);
+    }
+
+    private static void ValidateRedactionAreas(PdfRedactionArea[] areas, int pageCount) {
+        for (int i = 0; i < areas.Length; i++) {
+            if (areas[i].PageNumber > pageCount) {
+                throw new ArgumentOutOfRangeException(nameof(areas), "Redaction area page number " + areas[i].PageNumber.ToString(CultureInfo.InvariantCulture) + " is outside the document page count " + pageCount.ToString(CultureInfo.InvariantCulture) + ".");
+            }
+        }
     }
 
     private static bool RemoveMatchedTextObjects(
@@ -189,25 +194,80 @@ public static class PdfRedactionApplier {
             changed = true;
         }
 
+        changed = ScrubFormXObjects(objects, pageDictionary, textMatches, new HashSet<int>()) || changed;
         return changed;
     }
 
-    private static string ScrubTextObjects(string content, TextMatchTarget[] normalizedTextMatches) {
+    private static string ScrubTextObjects(string content, TextMatchTarget[] normalizedTextMatches, bool requireIntersection = true) {
         return TextObjectRegex.Replace(content, match => {
             string shownText = NormalizeText(ExtractTextFromTextObject(match.Value));
-            if (shownText.Length == 0) {
-                return match.Value;
-            }
+            bool hasShownText = shownText.Length > 0;
+            string contextualTextObject = BuildContextualTextObject(content, match);
 
             for (int i = 0; i < normalizedTextMatches.Length; i++) {
-                if (ContainsOrdinal(shownText, normalizedTextMatches[i].Text) &&
-                    TextObjectIntersects(match.Value, normalizedTextMatches[i])) {
+                bool intersects = TextObjectIntersects(contextualTextObject, normalizedTextMatches[i]);
+                if (hasShownText &&
+                    ContainsOrdinal(shownText, normalizedTextMatches[i].Text) &&
+                    (!requireIntersection || intersects)) {
+                    return string.Empty;
+                }
+
+                if (intersects) {
                     return string.Empty;
                 }
             }
 
             return match.Value;
         });
+    }
+
+    private static bool ScrubFormXObjects(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary ownerDictionary,
+        TextMatchTarget[] textMatches,
+        HashSet<int> visitedFormObjects) {
+        if (textMatches.Length == 0 ||
+            ResolveDictionary(objects, ownerDictionary.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ? resourcesObject : null) is not PdfDictionary resources ||
+            ResolveDictionary(objects, resources.Items.TryGetValue("XObject", out PdfObject? xObjectObject) ? xObjectObject : null) is not PdfDictionary xObjects) {
+            return false;
+        }
+
+        bool changed = false;
+        foreach (PdfObject xObject in xObjects.Items.Values) {
+            if (xObject is not PdfReference reference ||
+                !visitedFormObjects.Add(reference.ObjectNumber) ||
+                !PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) ||
+                indirect.Value is not PdfStream stream ||
+                stream.DecodingFailed ||
+                !IsFormXObject(stream.Dictionary)) {
+                continue;
+            }
+
+            byte[] contentBytes = StreamDecoder.Decode(stream.Dictionary, stream.Data, objects);
+            string content = PdfEncoding.Latin1GetString(contentBytes);
+            string scrubbed = ScrubTextObjects(content, textMatches, requireIntersection: false);
+            bool nestedChanged = ScrubFormXObjects(objects, stream.Dictionary, textMatches, visitedFormObjects);
+            if (string.Equals(content, scrubbed, StringComparison.Ordinal) && !nestedChanged) {
+                continue;
+            }
+
+            objects[reference.ObjectNumber] = new PdfIndirectObject(reference.ObjectNumber, reference.Generation, new PdfStream(CleanStreamDictionary(stream.Dictionary), PdfEncoding.Latin1GetBytes(scrubbed)));
+            changed = true;
+        }
+
+        return changed;
+    }
+
+    private static bool IsFormXObject(PdfDictionary dictionary) =>
+        dictionary.Get<PdfName>("Type")?.Name == "XObject" &&
+        dictionary.Get<PdfName>("Subtype")?.Name == "Form";
+
+    private static PdfDictionary? ResolveDictionary(Dictionary<int, PdfIndirectObject> objects, PdfObject? value) =>
+        PdfObjectLookup.Resolve(objects, value) as PdfDictionary;
+
+    private static string BuildContextualTextObject(string content, Match textObjectMatch) {
+        string prefix = content.Substring(0, textObjectMatch.Index);
+        return TextObjectRegex.Replace(prefix, string.Empty) + textObjectMatch.Value;
     }
 
     private static bool TextObjectIntersects(string textObject, TextMatchTarget target) {
@@ -302,23 +362,46 @@ public static class PdfRedactionApplier {
     private static bool RemoveMatchedAnnotations(
         Dictionary<int, PdfIndirectObject> objects,
         PdfDictionary pageDictionary,
-        HashSet<int> annotationObjectNumbers) {
-        if (annotationObjectNumbers.Count == 0 ||
+        IReadOnlyList<PdfRedactionMatch> matches) {
+        AnnotationMatchTarget[] annotationMatches = matches
+            .Where(match => match.Kind == PdfRedactionMatchKind.Annotation)
+            .Select(static match => new AnnotationMatchTarget(match.ObjectNumber, match.X, match.Y, match.Width, match.Height))
+            .ToArray();
+        if (annotationMatches.Length == 0 ||
             !pageDictionary.Items.TryGetValue("Annots", out PdfObject? annotsObject) ||
             PdfObjectLookup.Resolve(objects, annotsObject) is not PdfArray annotations) {
             return false;
         }
 
+        var removedObjectNumbers = new HashSet<int>();
         bool changed = false;
         for (int i = annotations.Items.Count - 1; i >= 0; i--) {
-            if (annotations.Items[i] is not PdfReference reference ||
-                !annotationObjectNumbers.Contains(reference.ObjectNumber)) {
+            PdfObject item = annotations.Items[i];
+            int? objectNumber = item is PdfReference reference ? reference.ObjectNumber : null;
+            PdfDictionary? annotation = PdfObjectLookup.Resolve(objects, item) as PdfDictionary;
+            if (annotation is null ||
+                !MatchesAnnotationRedaction(objects, annotation, objectNumber, annotationMatches)) {
                 continue;
             }
 
             annotations.Items.RemoveAt(i);
-            objects.Remove(reference.ObjectNumber);
+            if (annotation.Items.TryGetValue("Popup", out PdfObject? popupObject) &&
+                popupObject is PdfReference popupReference) {
+                removedObjectNumbers.Add(popupReference.ObjectNumber);
+            }
+
+            if (objectNumber.HasValue) {
+                removedObjectNumbers.Add(objectNumber.Value);
+            }
+
             changed = true;
+        }
+
+        if (removedObjectNumbers.Count > 0) {
+            changed = RemoveLinkedPopupAnnotations(objects, annotations, removedObjectNumbers) || changed;
+            foreach (int objectNumber in removedObjectNumbers) {
+                objects.Remove(objectNumber);
+            }
         }
 
         if (!changed) {
@@ -330,6 +413,88 @@ public static class PdfRedactionApplier {
         }
 
         return true;
+    }
+
+    private static bool MatchesAnnotationRedaction(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary annotation,
+        int? objectNumber,
+        AnnotationMatchTarget[] annotationMatches) {
+        for (int i = 0; i < annotationMatches.Length; i++) {
+            AnnotationMatchTarget target = annotationMatches[i];
+            if (objectNumber.HasValue &&
+                target.ObjectNumber.HasValue &&
+                objectNumber.Value == target.ObjectNumber.Value) {
+                return true;
+            }
+
+            if (!objectNumber.HasValue &&
+                TryReadRectangle(objects, annotation, "Rect", out double x, out double y, out double width, out double height) &&
+                Intersects(target.X, target.Y, target.Width, target.Height, x, y, width, height)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool RemoveLinkedPopupAnnotations(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfArray annotations,
+        HashSet<int> removedObjectNumbers) {
+        bool changed = false;
+        for (int i = annotations.Items.Count - 1; i >= 0; i--) {
+            if (annotations.Items[i] is not PdfReference reference ||
+                !PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) ||
+                indirect.Value is not PdfDictionary annotation) {
+                continue;
+            }
+
+            if (removedObjectNumbers.Contains(reference.ObjectNumber) ||
+                IsPopupForRemovedAnnotation(annotation, removedObjectNumbers)) {
+                annotations.Items.RemoveAt(i);
+                removedObjectNumbers.Add(reference.ObjectNumber);
+                changed = true;
+            }
+        }
+
+        return changed;
+    }
+
+    private static bool IsPopupForRemovedAnnotation(PdfDictionary annotation, HashSet<int> removedObjectNumbers) {
+        return annotation.Get<PdfName>("Subtype")?.Name == "Popup" &&
+            annotation.Items.TryGetValue("Parent", out PdfObject? parentObject) &&
+            parentObject is PdfReference parentReference &&
+            removedObjectNumbers.Contains(parentReference.ObjectNumber);
+    }
+
+    private static bool TryReadRectangle(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary dictionary,
+        string key,
+        out double x,
+        out double y,
+        out double width,
+        out double height) {
+        x = 0D;
+        y = 0D;
+        width = 0D;
+        height = 0D;
+        if (!dictionary.Items.TryGetValue(key, out PdfObject? rectObject) ||
+            PdfObjectLookup.Resolve(objects, rectObject) is not PdfArray rect ||
+            rect.Items.Count < 4 ||
+            PdfObjectLookup.Resolve(objects, rect.Items[0]) is not PdfNumber x1 ||
+            PdfObjectLookup.Resolve(objects, rect.Items[1]) is not PdfNumber y1 ||
+            PdfObjectLookup.Resolve(objects, rect.Items[2]) is not PdfNumber x2 ||
+            PdfObjectLookup.Resolve(objects, rect.Items[3]) is not PdfNumber y2) {
+            return false;
+        }
+
+        x = Math.Min(x1.Value, x2.Value);
+        y = Math.Min(y1.Value, y2.Value);
+        width = Math.Abs(x2.Value - x1.Value);
+        height = Math.Abs(y2.Value - y1.Value);
+        return width > 0D && height > 0D;
     }
 
     private static PdfRedactionArea[] SelectPaintAreas(PdfRedactionArea[] areas, PdfRedactionMatch[] matches, PdfRedactionApplyOptions options) {
@@ -569,6 +734,22 @@ public static class PdfRedactionApplier {
         }
 
         public string Text { get; }
+        public double X { get; }
+        public double Y { get; }
+        public double Width { get; }
+        public double Height { get; }
+    }
+
+    private readonly struct AnnotationMatchTarget {
+        public AnnotationMatchTarget(int? objectNumber, double x, double y, double width, double height) {
+            ObjectNumber = objectNumber;
+            X = x;
+            Y = y;
+            Width = width;
+            Height = height;
+        }
+
+        public int? ObjectNumber { get; }
         public double X { get; }
         public double Y { get; }
         public double Width { get; }
