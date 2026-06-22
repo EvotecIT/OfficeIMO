@@ -131,6 +131,49 @@ public class PdfITextInspiredCoverageTests {
     }
 
     [Fact]
+    public void IncrementalUpdater_ResolvesCheckboxTruthyValueToAvailableAppearanceState() {
+        byte[] pdf = PdfDocument.Create()
+            .CheckBox("Accept", isChecked: false)
+            .ToBytes();
+
+        byte[] updated = PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
+            ["Accept"] = "true"
+        });
+
+        string appended = PdfEncoding.Latin1GetString(updated).Substring(PdfEncoding.Latin1GetString(pdf).Length);
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(updated).FormFields);
+
+        Assert.Equal("Yes", field.Value);
+        Assert.Contains("/V /Yes", appended, StringComparison.Ordinal);
+        Assert.Contains("/AS /Yes", appended, StringComparison.Ordinal);
+        Assert.DoesNotContain("/AS /true", appended, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void IncrementalUpdater_PreservesRadioWidgetOnStatesWhenRegeneratingAppearances() {
+        byte[] pdf = PdfDocument.Create()
+            .RadioButtonGroup("Payment.Method", new[] { "Card", "Cash", "Wire" }, value: "Card")
+            .ToBytes();
+
+        byte[] updated = PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
+            ["Payment.Method"] = "Cash"
+        }, new PdfIncrementalFormFieldUpdateOptions {
+            GenerateAppearanceStreams = true,
+            KeepNeedAppearances = false
+        });
+
+        byte[] updatedAgain = PdfIncrementalUpdater.UpdateFormFields(updated, new Dictionary<string, string> {
+            ["Payment.Method"] = "Card"
+        }, new PdfIncrementalFormFieldUpdateOptions {
+            GenerateAppearanceStreams = true,
+            KeepNeedAppearances = false
+        });
+
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(updatedAgain).FormFields);
+        Assert.Equal("Card", field.Value);
+    }
+
+    [Fact]
     public void IncrementalUpdater_RejectsInvalidNonEditableChoiceValue() {
         byte[] pdf = PdfDocument.Create()
             .ChoiceField("Country", new[] { "PL", "DE" }, value: "PL")
@@ -260,6 +303,19 @@ public class PdfITextInspiredCoverageTests {
         Assert.Equal(14, geometry.TrimBox.Bottom);
         Assert.Equal(222, geometry.TrimBox.Right);
         Assert.Equal(244, geometry.TrimBox.Top);
+    }
+
+    [Fact]
+    public void PageEditor_SetPageBoxPreservesSourceHeaderVersion() {
+        byte[] pdf = BuildVersionedPageBoxPdf("2.0");
+
+        byte[] updated = PdfPageEditor.SetPageBox(pdf, "TrimBox", 12, 14, 222, 244);
+        PdfDocumentInfo info = PdfInspector.Inspect(updated);
+
+        Assert.StartsWith("%PDF-2.0", PdfEncoding.Latin1GetString(updated), StringComparison.Ordinal);
+        Assert.Equal("2.0", info.HeaderVersion);
+        Assert.Equal("2.0", info.EffectiveVersion);
+        Assert.Equal(12, info.Pages[0].Geometry!.TrimBox!.Left);
     }
 
     [Fact]
@@ -513,6 +569,18 @@ public class PdfITextInspiredCoverageTests {
         builder.AppendLine("123");
         builder.AppendLine("%%EOF");
         return Encoding.ASCII.GetBytes(builder.ToString());
+    }
+
+    private static byte[] BuildVersionedPageBoxPdf(string version) {
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R /UserUnit 2 >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 72 720 Td (Versioned page box) Tj ET"))
+        };
+
+        return Encoding.ASCII.GetBytes(BuildPdf(objects).Replace("%PDF-1.7", "%PDF-" + version));
     }
 
     private static string BuildStream(byte[] data) =>

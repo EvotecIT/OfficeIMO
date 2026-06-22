@@ -168,7 +168,7 @@ public static partial class PdfRedactionApplier {
             return content;
         }
 
-        return TextObjectRegex.Replace(content, match => removeByIndex.Contains(match.Index) ? string.Empty : match.Value);
+        return RemoveTextObjectSpans(content, removeByIndex);
     }
 
     private static List<RedactionTextObject> CollectTextObjects(
@@ -176,16 +176,144 @@ public static partial class PdfRedactionApplier {
         IReadOnlyDictionary<string, Func<byte[], string>> fontDecoders,
         IReadOnlyList<Matrix2D> transforms) {
         var textObjects = new List<RedactionTextObject>();
-        foreach (Match match in TextObjectRegex.Matches(content)) {
-            string shownText = NormalizeText(ExtractTextFromTextObject(match.Value, fontDecoders));
+        foreach (TextObjectSpan span in EnumerateTextObjectSpans(content)) {
+            string shownText = NormalizeText(ExtractTextFromTextObject(span.Value, fontDecoders));
             if (shownText.Length == 0) {
                 continue;
             }
 
-            textObjects.Add(BuildRedactionTextObject(match.Index, match.Value, shownText, fontDecoders, transforms));
+            textObjects.Add(BuildRedactionTextObject(span.Index, span.Value, shownText, fontDecoders, transforms));
         }
 
         return textObjects;
+    }
+
+    private static string RemoveTextObjectSpans(string content, HashSet<int> removeByIndex) {
+        var builder = new StringBuilder(content.Length);
+        int cursor = 0;
+        foreach (TextObjectSpan span in EnumerateTextObjectSpans(content)) {
+            if (!removeByIndex.Contains(span.Index)) {
+                continue;
+            }
+
+            builder.Append(content, cursor, span.Index - cursor);
+            cursor = span.Index + span.Length;
+        }
+
+        if (cursor == 0) {
+            return content;
+        }
+
+        builder.Append(content, cursor, content.Length - cursor);
+        return builder.ToString();
+    }
+
+    private static IEnumerable<TextObjectSpan> EnumerateTextObjectSpans(string content) {
+        int start = -1;
+        for (int i = 0; i < content.Length;) {
+            if (TrySkipPdfStringOrComment(content, i, out int nextIndex)) {
+                i = nextIndex;
+                continue;
+            }
+
+            if (start < 0 && IsPdfOperatorAt(content, i, "BT")) {
+                start = i;
+                i += 2;
+                continue;
+            }
+
+            if (start >= 0 && IsPdfOperatorAt(content, i, "ET")) {
+                int end = i + 2;
+                yield return new TextObjectSpan(start, end - start, content.Substring(start, end - start));
+                start = -1;
+                i = end;
+                continue;
+            }
+
+            i++;
+        }
+    }
+
+    private static bool TrySkipPdfStringOrComment(string content, int index, out int nextIndex) {
+        nextIndex = index;
+        if (content[index] == '%') {
+            nextIndex = index + 1;
+            while (nextIndex < content.Length && content[nextIndex] != '\r' && content[nextIndex] != '\n') {
+                nextIndex++;
+            }
+
+            return true;
+        }
+
+        if (content[index] == '(') {
+            nextIndex = SkipLiteralString(content, index);
+            return true;
+        }
+
+        if (content[index] == '<' && (index + 1 >= content.Length || content[index + 1] != '<')) {
+            nextIndex = SkipHexString(content, index);
+            return true;
+        }
+
+        return false;
+    }
+
+    private static int SkipLiteralString(string content, int index) {
+        int depth = 1;
+        bool escaped = false;
+        index++;
+        while (index < content.Length && depth > 0) {
+            char current = content[index++];
+            if (escaped) {
+                escaped = false;
+            } else if (current == '\\') {
+                escaped = true;
+            } else if (current == '(') {
+                depth++;
+            } else if (current == ')') {
+                depth--;
+            }
+        }
+
+        return index;
+    }
+
+    private static int SkipHexString(string content, int index) {
+        index++;
+        while (index < content.Length && content[index] != '>') {
+            index++;
+        }
+
+        return index < content.Length ? index + 1 : index;
+    }
+
+    private static bool IsPdfOperatorAt(string content, int index, string operatorName) {
+        if (index + operatorName.Length > content.Length ||
+            !string.Equals(content.Substring(index, operatorName.Length), operatorName, StringComparison.Ordinal)) {
+            return false;
+        }
+
+        return IsPdfTokenBoundary(content, index - 1) &&
+            IsPdfTokenBoundary(content, index + operatorName.Length);
+    }
+
+    private static bool IsPdfTokenBoundary(string content, int index) {
+        if (index < 0 || index >= content.Length) {
+            return true;
+        }
+
+        char value = content[index];
+        return char.IsWhiteSpace(value) ||
+            value == '(' ||
+            value == ')' ||
+            value == '<' ||
+            value == '>' ||
+            value == '[' ||
+            value == ']' ||
+            value == '{' ||
+            value == '}' ||
+            value == '/' ||
+            value == '%';
     }
 
     private static RedactionTextObject BuildRedactionTextObject(
@@ -584,6 +712,20 @@ public static partial class PdfRedactionApplier {
         public int Length { get; }
 
         public bool IsHex { get; }
+
+        public string Value { get; }
+    }
+
+    private readonly struct TextObjectSpan {
+        public TextObjectSpan(int index, int length, string value) {
+            Index = index;
+            Length = length;
+            Value = value;
+        }
+
+        public int Index { get; }
+
+        public int Length { get; }
 
         public string Value { get; }
     }
