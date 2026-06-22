@@ -206,6 +206,85 @@ namespace OfficeIMO.Excel {
             return GetManualPageBreaks(WorksheetRoot.GetFirstChild<ColumnBreaks>());
         }
 
+        /// <summary>
+        /// Removes a manual worksheet row page break.
+        /// </summary>
+        public bool RemoveManualRowPageBreak(int row, bool save = true) {
+            if (row <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(row), "Row page break must be one-based and positive.");
+            }
+
+            bool changed = false;
+            WriteLock(() => {
+                changed = RemoveManualPageBreak(WorksheetRoot.GetFirstChild<RowBreaks>(), (uint)row);
+                if (changed && save) {
+                    WorksheetRoot.Save();
+                }
+            });
+            return changed;
+        }
+
+        /// <summary>
+        /// Removes a manual worksheet column page break.
+        /// </summary>
+        public bool RemoveManualColumnPageBreak(int column, bool save = true) {
+            if (column <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(column), "Column page break must be one-based and positive.");
+            }
+
+            bool changed = false;
+            WriteLock(() => {
+                changed = RemoveManualPageBreak(WorksheetRoot.GetFirstChild<ColumnBreaks>(), (uint)column);
+                if (changed && save) {
+                    WorksheetRoot.Save();
+                }
+            });
+            return changed;
+        }
+
+        /// <summary>
+        /// Clears all manual worksheet row page breaks.
+        /// </summary>
+        public bool ClearManualRowPageBreaks(bool save = true) {
+            bool changed = false;
+            WriteLock(() => {
+                changed = ClearManualPageBreaks(WorksheetRoot.GetFirstChild<RowBreaks>());
+                if (changed && save) {
+                    WorksheetRoot.Save();
+                }
+            });
+            return changed;
+        }
+
+        /// <summary>
+        /// Clears all manual worksheet column page breaks.
+        /// </summary>
+        public bool ClearManualColumnPageBreaks(bool save = true) {
+            bool changed = false;
+            WriteLock(() => {
+                changed = ClearManualPageBreaks(WorksheetRoot.GetFirstChild<ColumnBreaks>());
+                if (changed && save) {
+                    WorksheetRoot.Save();
+                }
+            });
+            return changed;
+        }
+
+        /// <summary>
+        /// Clears all manual worksheet row and column page breaks.
+        /// </summary>
+        public bool ClearManualPageBreaks(bool save = true) {
+            bool changed = false;
+            WriteLock(() => {
+                changed = ClearManualPageBreaks(WorksheetRoot.GetFirstChild<RowBreaks>());
+                changed |= ClearManualPageBreaks(WorksheetRoot.GetFirstChild<ColumnBreaks>());
+                if (changed && save) {
+                    WorksheetRoot.Save();
+                }
+            });
+            return changed;
+        }
+
         private static IEnumerable<string> SplitDefinedNameParts(string text) {
             var parts = new List<string>();
             int start = 0;
@@ -311,6 +390,41 @@ namespace OfficeIMO.Excel {
             }
 
             uint count = (uint)breaks.Elements<Break>().Count();
+            UpdateManualPageBreakCounts(breaks, count);
+        }
+
+        private static bool RemoveManualPageBreak(OpenXmlCompositeElement? breaks, uint id) {
+            if (breaks == null) {
+                return false;
+            }
+
+            Break? existing = breaks.Elements<Break>().FirstOrDefault(item => item.Id?.Value == id);
+            if (existing == null) {
+                return false;
+            }
+
+            existing.Remove();
+            uint count = (uint)breaks.Elements<Break>().Count();
+            if (count == 0U) {
+                breaks.Remove();
+            } else {
+                UpdateManualPageBreakCounts(breaks, count);
+            }
+
+            return true;
+        }
+
+        private static bool ClearManualPageBreaks(OpenXmlCompositeElement? breaks) {
+            if (breaks == null) {
+                return false;
+            }
+
+            bool changed = breaks.Elements<Break>().Any();
+            breaks.Remove();
+            return changed;
+        }
+
+        private static void UpdateManualPageBreakCounts(OpenXmlCompositeElement breaks, uint count) {
             switch (breaks) {
                 case RowBreaks rowBreaks:
                     rowBreaks.Count = count;

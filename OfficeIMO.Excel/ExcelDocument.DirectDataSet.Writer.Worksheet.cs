@@ -7,7 +7,7 @@ using System.Threading;
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
         private static partial class DirectDataSetWorkbookWriter {
-            private static void WriteWorksheet(ZipArchive archive, DirectDataSetSheetModel sheet, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy, DirectSharedStringTable? sharedStrings, DirectStylePlan stylePlan, DirectColumnWritePlan columnWritePlan, CancellationToken ct, string? worksheetPath = null, string? tableRelationshipId = null) {
+            private static void WriteWorksheet(ZipArchive archive, DirectDataSetSheetModel sheet, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy, ExcelDateSystem dateSystem, DirectSharedStringTable? sharedStrings, DirectStylePlan stylePlan, DirectColumnWritePlan columnWritePlan, CancellationToken ct, string? worksheetPath = null, string? tableRelationshipId = null) {
                 var entry = archive.CreateEntry(worksheetPath ?? "xl/worksheets/sheet" + InvariantNumberText.Get(sheet.Index) + ".xml", CompressionLevel.Fastest);
                 using var stream = entry.Open();
                 using var writer = new StreamWriter(stream, Utf8NoBom, XmlWriterBufferSize);
@@ -48,10 +48,10 @@ namespace OfficeIMO.Excel {
                     const string headerRowReference = "1";
                     writer.Write("<row r=\"1\">");
                     for (int c = 0; c < columnCount; c++) {
-                        WriteCell(writer, headerRowReference, cellReferencePrefixes[c], sheet.Table.GetColumnName(c), null, dateTimeOffsetWriteStrategy, sharedStrings);
+                        WriteCell(writer, headerRowReference, cellReferencePrefixes[c], sheet.Table.GetColumnName(c), null, dateTimeOffsetWriteStrategy, dateSystem, sharedStrings);
                     }
 
-                    WriteOverlayCellsForRow(writer, overlayCellsByRow, 1, stylePlan, dateTimeOffsetWriteStrategy, sharedStrings);
+                    WriteOverlayCellsForRow(writer, overlayCellsByRow, 1, stylePlan, dateTimeOffsetWriteStrategy, dateSystem, sharedStrings);
                     writer.Write("</row>");
                     rowIndex++;
                 }
@@ -59,7 +59,7 @@ namespace OfficeIMO.Excel {
                 bool hasBufferedRows = sheet.Table.TryGetBufferedRows(out DirectBufferedRows bufferedRows);
                 bool hasCellValueRows = sheet.Table.TryGetCellValueRows(out DirectCellValueRows cellValueRows);
                 if (hasInlineOverlayCells) {
-                    WriteDirectValueRows(writer, sheet, rowCount, columnCount, rowIndex, cellReferencePrefixes, styleAttributes, cellValueKinds, valueStyleColumns, stylePlan, dateTimeOffsetWriteStrategy, sharedStrings, ct, overlayCellsByRow);
+                    WriteDirectValueRows(writer, sheet, rowCount, columnCount, rowIndex, cellReferencePrefixes, styleAttributes, cellValueKinds, valueStyleColumns, stylePlan, dateTimeOffsetWriteStrategy, dateSystem, sharedStrings, ct, overlayCellsByRow);
                     rowIndex += rowCount;
                 } else if (hasBufferedRows
                     && !sheet.OmitBlankCells
@@ -71,12 +71,12 @@ namespace OfficeIMO.Excel {
                 } else if (hasBufferedRows
                     && !sheet.OmitBlankCells
                     && valueStyleColumns == null) {
-                    WriteFixedKindBufferedRows(writer, bufferedRows, rowCount, columnCount, rowIndex, cellReferencePrefixes, styleAttributes, cellValueKinds, dateTimeOffsetWriteStrategy, sharedStrings, ct);
+                    WriteFixedKindBufferedRows(writer, bufferedRows, rowCount, columnCount, rowIndex, cellReferencePrefixes, styleAttributes, cellValueKinds, dateTimeOffsetWriteStrategy, dateSystem, sharedStrings, ct);
                     rowIndex += rowCount;
                 } else if (hasCellValueRows
                     && !sheet.OmitBlankCells
                     && valueStyleColumns == null) {
-                    WriteFixedKindCellValueRows(writer, cellValueRows, rowCount, columnCount, rowIndex, cellReferencePrefixes, styleAttributes, cellValueKinds, dateTimeOffsetWriteStrategy, sharedStrings, ct);
+                    WriteFixedKindCellValueRows(writer, cellValueRows, rowCount, columnCount, rowIndex, cellReferencePrefixes, styleAttributes, cellValueKinds, dateTimeOffsetWriteStrategy, dateSystem, sharedStrings, ct);
                     rowIndex += rowCount;
                 } else if (valueStyleColumns == null) {
                     if (hasBufferedRows) {
@@ -102,7 +102,7 @@ namespace OfficeIMO.Excel {
                                         rowStarted = true;
                                     }
 
-                                    WriteCell(writer, rowReference, cellReferencePrefixes[c], value, styleAttributes?[c], cellValueKinds[c], dateTimeOffsetWriteStrategy, sharedStrings);
+                                    WriteCell(writer, rowReference, cellReferencePrefixes[c], value, styleAttributes?[c], cellValueKinds[c], dateTimeOffsetWriteStrategy, dateSystem, sharedStrings);
                                 }
 
                                 if (rowStarted) {
@@ -123,7 +123,7 @@ namespace OfficeIMO.Excel {
                                 writer.Write(rowReference);
                                 writer.Write("\">");
                                 for (int c = 0; c < columnCount; c++) {
-                                    WriteCell(writer, rowReference, cellReferencePrefixes[c], bufferedRow[c], styleAttributes?[c], cellValueKinds[c], dateTimeOffsetWriteStrategy, sharedStrings);
+                                    WriteCell(writer, rowReference, cellReferencePrefixes[c], bufferedRow[c], styleAttributes?[c], cellValueKinds[c], dateTimeOffsetWriteStrategy, dateSystem, sharedStrings);
                                 }
 
                                 writer.Write("</row>");
@@ -153,7 +153,7 @@ namespace OfficeIMO.Excel {
                                         rowStarted = true;
                                     }
 
-                                    WriteCell(writer, rowReference, cellReferencePrefixes[c], value, styleAttributes?[c], cellValueKinds[c], dateTimeOffsetWriteStrategy, sharedStrings);
+                                    WriteCell(writer, rowReference, cellReferencePrefixes[c], value, styleAttributes?[c], cellValueKinds[c], dateTimeOffsetWriteStrategy, dateSystem, sharedStrings);
                                 }
 
                                 if (rowStarted) {
@@ -174,7 +174,7 @@ namespace OfficeIMO.Excel {
                                 writer.Write(rowReference);
                                 writer.Write("\">");
                                 for (int c = 0; c < columnCount; c++) {
-                                    WriteCell(writer, rowReference, cellReferencePrefixes[c], sourceRow[c], styleAttributes?[c], cellValueKinds[c], dateTimeOffsetWriteStrategy, sharedStrings);
+                                    WriteCell(writer, rowReference, cellReferencePrefixes[c], sourceRow[c], styleAttributes?[c], cellValueKinds[c], dateTimeOffsetWriteStrategy, dateSystem, sharedStrings);
                                 }
 
                                 writer.Write("</row>");
@@ -182,7 +182,7 @@ namespace OfficeIMO.Excel {
                             }
                         }
                     } else {
-                        WriteDirectValueRows(writer, sheet, rowCount, columnCount, rowIndex, cellReferencePrefixes, styleAttributes, cellValueKinds, valueStyleColumns: null, stylePlan, dateTimeOffsetWriteStrategy, sharedStrings, ct);
+                        WriteDirectValueRows(writer, sheet, rowCount, columnCount, rowIndex, cellReferencePrefixes, styleAttributes, cellValueKinds, valueStyleColumns: null, stylePlan, dateTimeOffsetWriteStrategy, dateSystem, sharedStrings, ct);
                         rowIndex += rowCount;
                     }
                 } else if (hasBufferedRows) {
@@ -208,7 +208,7 @@ namespace OfficeIMO.Excel {
                                     rowStarted = true;
                                 }
 
-                                WriteCell(writer, rowReference, cellReferencePrefixes[c], value, styleAttributes?[c], valueStyleColumns[c], cellValueKinds[c], sheet.UseCellValueNumberFormats, dateTimeOffsetWriteStrategy, sharedStrings);
+                                WriteCell(writer, rowReference, cellReferencePrefixes[c], value, styleAttributes?[c], valueStyleColumns[c], cellValueKinds[c], sheet.UseCellValueNumberFormats, dateTimeOffsetWriteStrategy, dateSystem, sharedStrings);
                             }
 
                             if (rowStarted) {
@@ -229,7 +229,7 @@ namespace OfficeIMO.Excel {
                             writer.Write(rowReference);
                             writer.Write("\">");
                             for (int c = 0; c < columnCount; c++) {
-                                WriteCell(writer, rowReference, cellReferencePrefixes[c], bufferedRow[c], styleAttributes?[c], valueStyleColumns[c], cellValueKinds[c], sheet.UseCellValueNumberFormats, dateTimeOffsetWriteStrategy, sharedStrings);
+                                WriteCell(writer, rowReference, cellReferencePrefixes[c], bufferedRow[c], styleAttributes?[c], valueStyleColumns[c], cellValueKinds[c], sheet.UseCellValueNumberFormats, dateTimeOffsetWriteStrategy, dateSystem, sharedStrings);
                             }
 
                             writer.Write("</row>");
@@ -259,7 +259,7 @@ namespace OfficeIMO.Excel {
                                     rowStarted = true;
                                 }
 
-                                WriteCell(writer, rowReference, cellReferencePrefixes[c], value, styleAttributes?[c], valueStyleColumns[c], cellValueKinds[c], sheet.UseCellValueNumberFormats, dateTimeOffsetWriteStrategy, sharedStrings);
+                                WriteCell(writer, rowReference, cellReferencePrefixes[c], value, styleAttributes?[c], valueStyleColumns[c], cellValueKinds[c], sheet.UseCellValueNumberFormats, dateTimeOffsetWriteStrategy, dateSystem, sharedStrings);
                             }
 
                             if (rowStarted) {
@@ -280,7 +280,7 @@ namespace OfficeIMO.Excel {
                             writer.Write(rowReference);
                             writer.Write("\">");
                             for (int c = 0; c < columnCount; c++) {
-                                WriteCell(writer, rowReference, cellReferencePrefixes[c], sourceRow[c], styleAttributes?[c], valueStyleColumns[c], cellValueKinds[c], sheet.UseCellValueNumberFormats, dateTimeOffsetWriteStrategy, sharedStrings);
+                                WriteCell(writer, rowReference, cellReferencePrefixes[c], sourceRow[c], styleAttributes?[c], valueStyleColumns[c], cellValueKinds[c], sheet.UseCellValueNumberFormats, dateTimeOffsetWriteStrategy, dateSystem, sharedStrings);
                             }
 
                             writer.Write("</row>");
@@ -288,12 +288,16 @@ namespace OfficeIMO.Excel {
                         }
                     }
                 } else {
-                    WriteDirectValueRows(writer, sheet, rowCount, columnCount, rowIndex, cellReferencePrefixes, styleAttributes, cellValueKinds, valueStyleColumns, stylePlan, dateTimeOffsetWriteStrategy, sharedStrings, ct);
+                    WriteDirectValueRows(writer, sheet, rowCount, columnCount, rowIndex, cellReferencePrefixes, styleAttributes, cellValueKinds, valueStyleColumns, stylePlan, dateTimeOffsetWriteStrategy, dateSystem, sharedStrings, ct);
                     rowIndex += rowCount;
                 }
 
-                WriteOverlayCells(writer, overlayCells, stylePlan, dateTimeOffsetWriteStrategy, sharedStrings, directLastRow);
+                WriteOverlayCells(writer, overlayCells, stylePlan, dateTimeOffsetWriteStrategy, dateSystem, sharedStrings, directLastRow);
                 writer.Write("</sheetData>");
+                if (!string.IsNullOrEmpty(metadata?.SheetProtectionXml)) {
+                    writer.Write(metadata!.SheetProtectionXml);
+                }
+
                 if (!string.IsNullOrEmpty(metadata?.AutoFilterXml)) {
                     writer.Write(metadata!.AutoFilterXml);
                 }
@@ -337,6 +341,7 @@ namespace OfficeIMO.Excel {
                 string?[]? styleAttributes,
                 DirectCellValueKind[] cellValueKinds,
                 Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy,
+                ExcelDateSystem dateSystem,
                 DirectSharedStringTable? sharedStrings,
                 CancellationToken ct) {
                 bool canCancel = ct.CanBeCanceled;
@@ -357,7 +362,7 @@ namespace OfficeIMO.Excel {
                             writer.Write(cellReferencePrefixes[c]);
                             writer.Write(rowReference);
                             writer.Write('"');
-                            WriteCellValue(writer, values[rowOffset + c], cellValueKinds[c], dateTimeOffsetWriteStrategy, sharedStrings);
+                            WriteCellValue(writer, values[rowOffset + c], cellValueKinds[c], dateTimeOffsetWriteStrategy, dateSystem, sharedStrings);
                         }
 
                         writer.Write("</row>");
@@ -388,7 +393,7 @@ namespace OfficeIMO.Excel {
                             writer.Write(styleAttribute);
                         }
 
-                        WriteCellValue(writer, styledValues[styledRowOffset + c], cellValueKinds[c], dateTimeOffsetWriteStrategy, sharedStrings);
+                        WriteCellValue(writer, styledValues[styledRowOffset + c], cellValueKinds[c], dateTimeOffsetWriteStrategy, dateSystem, sharedStrings);
                     }
 
                     writer.Write("</row>");
@@ -407,6 +412,7 @@ namespace OfficeIMO.Excel {
                 string?[]? styleAttributes,
                 DirectCellValueKind[] cellValueKinds,
                 Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy,
+                ExcelDateSystem dateSystem,
                 DirectSharedStringTable? sharedStrings,
                 CancellationToken ct) {
                 bool canCancel = ct.CanBeCanceled;
@@ -426,7 +432,7 @@ namespace OfficeIMO.Excel {
                             writer.Write(cellReferencePrefixes[c]);
                             writer.Write(rowReference);
                             writer.Write('"');
-                            WriteCellValue(writer, bufferedRow[c], cellValueKinds[c], dateTimeOffsetWriteStrategy, sharedStrings);
+                            WriteCellValue(writer, bufferedRow[c], cellValueKinds[c], dateTimeOffsetWriteStrategy, dateSystem, sharedStrings);
                         }
 
                         writer.Write("</row>");
@@ -455,7 +461,7 @@ namespace OfficeIMO.Excel {
                             writer.Write(styleAttribute);
                         }
 
-                        WriteCellValue(writer, bufferedRow[c], cellValueKinds[c], dateTimeOffsetWriteStrategy, sharedStrings);
+                        WriteCellValue(writer, bufferedRow[c], cellValueKinds[c], dateTimeOffsetWriteStrategy, dateSystem, sharedStrings);
                     }
 
                     writer.Write("</row>");
@@ -586,6 +592,7 @@ namespace OfficeIMO.Excel {
                 IReadOnlyList<DirectOverlayCell>? overlayCells,
                 DirectStylePlan stylePlan,
                 Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy,
+                ExcelDateSystem dateSystem,
                 DirectSharedStringTable? sharedStrings,
                 int skipRowsAtOrBefore = 0) {
                 if (overlayCells == null || overlayCells.Count == 0) {
@@ -617,6 +624,7 @@ namespace OfficeIMO.Excel {
                         cell.Value,
                         CreateOverlayStyleAttribute(cell, stylePlan),
                         dateTimeOffsetWriteStrategy,
+                        dateSystem,
                         sharedStrings);
                 }
 
@@ -658,6 +666,7 @@ namespace OfficeIMO.Excel {
                 int row,
                 DirectStylePlan stylePlan,
                 Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy,
+                ExcelDateSystem dateSystem,
                 DirectSharedStringTable? sharedStrings) {
                 if (overlayCellsByRow == null || !overlayCellsByRow.TryGetValue(row, out var rowOverlayCells)) {
                     return false;
@@ -677,6 +686,7 @@ namespace OfficeIMO.Excel {
                         cell.Value,
                         CreateOverlayStyleAttribute(cell, stylePlan),
                         dateTimeOffsetWriteStrategy,
+                        dateSystem,
                         sharedStrings);
                 }
 

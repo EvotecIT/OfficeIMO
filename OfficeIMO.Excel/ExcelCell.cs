@@ -150,6 +150,14 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Sets a two-color linear gradient fill using hex color values.
+        /// </summary>
+        public ExcelCell SetGradientFill(string fromHexColor, string toHexColor, double degree = 0) {
+            Sheet.CellGradientBackground(Row, Column, fromHexColor, toHexColor, degree);
+            return this;
+        }
+
+        /// <summary>
         /// Applies a border style to the cell.
         /// </summary>
         public ExcelCell SetBorder(BorderStyleValues style, string? hexColor = null) {
@@ -348,6 +356,14 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Applies a two-color linear gradient fill to every cell in the range.
+        /// </summary>
+        public ExcelRange SetGradientFill(string fromHexColor, string toHexColor, double degree = 0) {
+            Sheet.FillRangeGradient(Address, fromHexColor, toHexColor, degree);
+            return this;
+        }
+
+        /// <summary>
         /// Applies a font color to every cell in the range.
         /// </summary>
         public ExcelRange SetFontColor(string hexColor) {
@@ -508,6 +524,14 @@ namespace OfficeIMO.Excel {
         public ExcelTable SortByColumn(int columnOffset, bool ascending = true) {
             AsRange().SortByColumn(columnOffset, ascending, hasHeader: true);
             return this;
+        }
+
+        /// <summary>
+        /// Resolves a data-column range in this table by its header text.
+        /// </summary>
+        public ExcelRange Column(string headerName, bool includeHeader = false, bool normalizeHeader = true) {
+            string range = Sheet.GetColumnRangeByHeader(headerName, NameOrRange, headerRow: 0, includeHeader, normalizeHeader);
+            return Sheet.Range(range);
         }
     }
 

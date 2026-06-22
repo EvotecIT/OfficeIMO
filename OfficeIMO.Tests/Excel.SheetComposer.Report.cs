@@ -178,6 +178,44 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Composer_TableFrom_AppliesTableVisualStyleFlags() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            var rows = new[] {
+                new ComposerTableRow("Alpha", 10),
+                new ComposerTableRow("Beta", 20)
+            };
+
+            using (var doc = ExcelDocument.Create(filePath)) {
+                doc.Compose("Report", c => {
+                    c.TableFrom(
+                        rows,
+                        title: "Scores",
+                        visuals: options => {
+                            options.ShowFirstColumn = true;
+                            options.ShowLastColumn = true;
+                            options.ShowRowStripes = false;
+                            options.ShowColumnStripes = true;
+                        });
+                    c.Finish(autoFitColumns: false);
+                });
+
+                doc.Save();
+            }
+
+            using (var ss = SpreadsheetDocument.Open(filePath, false)) {
+                var tablePart = Assert.Single(ss.WorkbookPart!.WorksheetParts.First().TableDefinitionParts);
+                Assert.NotNull(tablePart.Table);
+                var styleInfo = Assert.IsType<TableStyleInfo>(tablePart.Table!.TableStyleInfo);
+                Assert.True(styleInfo.ShowFirstColumn?.Value);
+                Assert.True(styleInfo.ShowLastColumn?.Value);
+                Assert.False(styleInfo.ShowRowStripes?.Value);
+                Assert.True(styleInfo.ShowColumnStripes?.Value);
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
         public void Composer_ColumnTableFrom_SummarizeOverflowPreservesMoreColumn() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             var rows = new[] {

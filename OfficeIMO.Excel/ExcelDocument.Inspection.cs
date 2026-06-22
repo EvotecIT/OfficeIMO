@@ -16,6 +16,7 @@ namespace OfficeIMO.Excel {
 
             var snapshot = new ExcelWorkbookSnapshot {
                 FilePath = string.IsNullOrWhiteSpace(FilePath) ? null : FilePath,
+                DateSystem = DateSystem,
             };
 
             try {
@@ -27,8 +28,18 @@ namespace OfficeIMO.Excel {
             using (var reader = CreateReader(effectiveOptions)) {
                 var workbookPart = WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is missing.");
                 var workbook = workbookPart.Workbook ?? throw new InvalidOperationException("Workbook is missing.");
+                snapshot.SlicerPartCount = CountPackagePartsByContentType(workbookPart, "slicer");
+                snapshot.TimelinePartCount = CountPackagePartsByContentType(workbookPart, "timeline");
+                snapshot.ConnectionPartCount = CountPackagePartsByContentType(workbookPart, "connections");
+                snapshot.QueryTablePartCount = CountPackagePartsByContentType(workbookPart, "queryTable");
                 var styleContext = StyleInspectionContext.Create(workbookPart.WorkbookStylesPart?.Stylesheet);
                 var sheetElements = workbook.Sheets?.Elements<Sheet>().ToList() ?? new List<Sheet>();
+                int? activeWorksheetIndex = GetActiveWorksheetIndex(workbook, sheetElements.Count);
+                if (activeWorksheetIndex.HasValue) {
+                    snapshot.ActiveWorksheetIndex = activeWorksheetIndex.Value;
+                    snapshot.ActiveWorksheetName = sheetElements[activeWorksheetIndex.Value].Name?.Value;
+                }
+
                 var threadedCommentPeople = BuildThreadedCommentPersonMap(workbookPart);
 
                 for (int sheetIndex = 0; sheetIndex < sheetElements.Count; sheetIndex++) {
@@ -42,24 +53,28 @@ namespace OfficeIMO.Excel {
                     var commentMap = BuildCommentMap(worksheetPart);
                     var threadedCommentMap = BuildThreadedCommentMap(worksheetPart, threadedCommentPeople);
 
+                    var outlineProperties = worksheet.GetFirstChild<SheetProperties>()?.GetFirstChild<OutlineProperties>();
+                    var sheetView = worksheet
+                        .GetFirstChild<SheetViews>()?
+                        .Elements<SheetView>()
+                        .FirstOrDefault();
                     var worksheetSnapshot = new ExcelWorksheetSnapshot {
                         Name = sheetName,
                         Index = sheetIndex,
                         Hidden = sheet.State?.Value == SheetStateValues.Hidden || sheet.State?.Value == SheetStateValues.VeryHidden,
-                        RightToLeft = worksheet
-                            .GetFirstChild<SheetViews>()?
-                            .Elements<SheetView>()
-                            .FirstOrDefault()?
-                            .RightToLeft?.Value == true,
+                        IsActive = activeWorksheetIndex == sheetIndex,
+                        RightToLeft = sheetView?.RightToLeft?.Value == true,
+                        ShowGridlines = sheetView?.ShowGridLines?.Value ?? true,
+                        View = sheetView?.View?.InnerText,
+                        ZoomScale = sheetView?.ZoomScale?.Value,
+                        ZoomScaleNormal = sheetView?.ZoomScaleNormal?.Value,
                         TabColorArgb = GetColorArgb(worksheet.GetFirstChild<SheetProperties>()?.TabColor),
+                        OutlineSummaryBelow = outlineProperties?.SummaryBelow?.Value,
+                        OutlineSummaryRight = outlineProperties?.SummaryRight?.Value,
                         UsedRangeA1 = readerSheet.GetUsedRangeA1(),
                     };
 
-                    var pane = worksheet
-                        .GetFirstChild<SheetViews>()?
-                        .Elements<SheetView>()
-                        .FirstOrDefault()?
-                        .GetFirstChild<Pane>();
+                    var pane = sheetView?.GetFirstChild<Pane>();
 
                     if (pane != null && (pane.State?.Value == PaneStateValues.Frozen || pane.State?.Value == PaneStateValues.FrozenSplit)) {
                         worksheetSnapshot.FrozenRowCount = ConvertToInt(pane.VerticalSplit);
@@ -81,6 +96,8 @@ namespace OfficeIMO.Excel {
                                 Width = column.Width?.Value,
                                 Hidden = column.Hidden?.Value == true,
                                 CustomWidth = column.CustomWidth?.Value == true,
+                                OutlineLevel = column.OutlineLevel?.Value,
+                                Collapsed = column.Collapsed?.Value == true,
                             });
                         }
                     }
@@ -89,12 +106,19 @@ namespace OfficeIMO.Excel {
                     if (sheetData != null) {
                         foreach (var row in sheetData.Elements<Row>()) {
                             var rowIndex = checked((int)(row.RowIndex?.Value ?? 0U));
-                            if (rowIndex > 0 && (row.Hidden?.Value == true || row.CustomHeight?.Value == true || row.Height != null)) {
+                            if (rowIndex > 0
+                                && (row.Hidden?.Value == true
+                                    || row.CustomHeight?.Value == true
+                                    || row.Height != null
+                                    || row.OutlineLevel != null
+                                    || row.Collapsed?.Value == true)) {
                                 worksheetSnapshot.AddRow(new ExcelRowSnapshot {
                                     Index = rowIndex,
                                     Height = row.Height?.Value,
                                     Hidden = row.Hidden?.Value == true,
                                     CustomHeight = row.CustomHeight?.Value == true,
+                                    OutlineLevel = row.OutlineLevel?.Value,
+                                    Collapsed = row.Collapsed?.Value == true,
                                 });
                             }
 
@@ -194,6 +218,22 @@ namespace OfficeIMO.Excel {
             }
 
             return snapshot;
+        }
+
+        private static int CountPackagePartsByContentType(OpenXmlPartContainer container, string marker) {
+            if (string.IsNullOrWhiteSpace(marker)) return 0;
+
+            int count = 0;
+            foreach (var relationship in container.Parts) {
+                var part = relationship.OpenXmlPart;
+                if (part.ContentType.IndexOf(marker, StringComparison.OrdinalIgnoreCase) >= 0) {
+                    count++;
+                }
+
+                count += CountPackagePartsByContentType(part, marker);
+            }
+
+            return count;
         }
 
         private static ExcelWorksheetProtectionSnapshot? BuildWorksheetProtectionSnapshot(SheetProtection? protection) {
@@ -678,6 +718,23 @@ namespace OfficeIMO.Excel {
             }
 
             return rgb.Length == 8 ? rgb.ToUpperInvariant() : null;
+        }
+
+        private static int? GetActiveWorksheetIndex(Workbook workbook, int sheetCount) {
+            if (sheetCount <= 0) {
+                return null;
+            }
+
+            uint activeTab = workbook.GetFirstChild<BookViews>()?
+                .Elements<WorkbookView>()
+                .FirstOrDefault()?
+                .ActiveTab?.Value ?? 0U;
+
+            if (activeTab >= sheetCount) {
+                return sheetCount - 1;
+            }
+
+            return checked((int)activeTab);
         }
 
         private static Dictionary<long, object?> BuildTypedCellMap(ExcelSheetReader readerSheet) {

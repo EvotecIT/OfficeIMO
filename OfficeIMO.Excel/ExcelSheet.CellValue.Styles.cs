@@ -46,6 +46,33 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Applies or clears wrap text on a single cell.
+        /// </summary>
+        /// <param name="row">The 1-based row index of the cell to modify.</param>
+        /// <param name="column">The 1-based column index of the cell to modify.</param>
+        /// <param name="wrapText">Whether text should wrap within the cell.</param>
+        public void CellWrapText(int row, int column, bool wrapText = true) {
+            WriteLockConditional(() => {
+                var cell = GetCell(row, column);
+                var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
+                var stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
+                var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
+                EnsureDefaultStylePrimitives(stylesheet);
+
+                ApplyCellFormatOverride(stylesheet, cell, format => {
+                    var alignment = format.Alignment != null
+                        ? (Alignment)format.Alignment.CloneNode(true)
+                        : new Alignment();
+                    alignment.WrapText = wrapText ? true : null;
+                    format.Alignment = alignment;
+                    format.ApplyAlignment = true;
+                });
+
+                stylesPart.Stylesheet.Save();
+            });
+        }
+
+        /// <summary>
         /// Applies a font family name to a single cell.
         /// </summary>
         /// <param name="row">The 1-based row index of the cell to modify.</param>

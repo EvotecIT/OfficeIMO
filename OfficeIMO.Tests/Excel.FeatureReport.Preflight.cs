@@ -247,6 +247,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void FeatureReport_Preflight_ReportsRepairHintsForBlockedCapabilities() {
+            string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.RepairHints.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Calc");
+                sheet.CellValue(1, 1, 2d);
+                sheet.CellFormula(1, 2, "A1+1");
+                document.ConfigureFullCalculationOnOpen();
+                document.Save(false);
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelFeatureReport report = document.InspectFeatures();
+
+                var hints = report.GetRepairHints(ExcelPreflightCapability.UseCachedFormulaValues);
+                Assert.Contains(hints, hint => hint.FeatureName == "Missing formula caches");
+                Assert.Contains(hints, hint => hint.FeatureName == "Workbook recalculation requests");
+                Assert.Contains(hints, hint => hint.Action.Contains("Refresh cached formula values", StringComparison.Ordinal));
+
+                string markdown = report.ToMarkdown();
+                Assert.Contains("## Repair Hints", markdown);
+                Assert.Contains("Refresh cached formula values", markdown);
+            }
+        }
+
+        [Fact]
         public void FeatureReport_Preflight_AllowsPdfExportWhenUnsafeFormulaCachesAreOnlyHidden() {
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.HiddenFormulaCaches.xlsx");
 

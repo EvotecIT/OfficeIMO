@@ -525,7 +525,7 @@ namespace OfficeIMO.Excel {
             }
 
             try {
-                date = DateTime.FromOADate(serial);
+                date = ExcelDateSystemConverter.FromSerial(serial, _excelDocument.DateSystem);
                 return true;
             } catch (ArgumentException) {
                 date = default;
@@ -557,7 +557,7 @@ namespace OfficeIMO.Excel {
                 DateOnly dateOnly => PivotFieldValue.FromDate(dateOnly.ToDateTime(TimeOnly.MinValue)),
 #endif
                 string text => CreatePivotFieldTextValue(TrimPivotFieldText(text)),
-                _ => PivotFieldValue.FromText(FormatPivotFieldText(value, _excelDocument.DateTimeOffsetWriteStrategy))
+                _ => PivotFieldValue.FromText(FormatPivotFieldText(value, _excelDocument.DateTimeOffsetWriteStrategy, _excelDocument.DateSystem))
             };
         }
 
@@ -566,20 +566,20 @@ namespace OfficeIMO.Excel {
                 return string.Empty;
             }
 
-            return FormatPivotFieldText(value, _excelDocument.DateTimeOffsetWriteStrategy);
+            return FormatPivotFieldText(value, _excelDocument.DateTimeOffsetWriteStrategy, _excelDocument.DateSystem);
         }
 
         private static PivotFieldValue CreatePivotFieldTextValue(string text)
             => text.Length == 0 ? PivotFieldValue.Blank() : PivotFieldValue.FromText(text);
 
-        private static string FormatPivotFieldText(object value, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy) {
+        private static string FormatPivotFieldText(object value, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy, ExcelDateSystem dateSystem) {
             return value switch {
                 string text => TrimPivotFieldText(text),
                 bool boolean => boolean ? "1" : "0",
-                DateTime dateTime => dateTime.ToOADate().ToString(CultureInfo.InvariantCulture),
-                DateTimeOffset dateTimeOffset => dateTimeOffsetWriteStrategy(dateTimeOffset).ToOADate().ToString(CultureInfo.InvariantCulture),
+                DateTime dateTime => ExcelDateSystemConverter.ToSerial(dateTime, dateSystem).ToString(CultureInfo.InvariantCulture),
+                DateTimeOffset dateTimeOffset => ExcelDateSystemConverter.ToSerial(dateTimeOffsetWriteStrategy(dateTimeOffset), dateSystem).ToString(CultureInfo.InvariantCulture),
 #if NET6_0_OR_GREATER
-                DateOnly dateOnly => dateOnly.ToDateTime(TimeOnly.MinValue).ToOADate().ToString(CultureInfo.InvariantCulture),
+                DateOnly dateOnly => ExcelDateSystemConverter.ToSerial(dateOnly.ToDateTime(TimeOnly.MinValue), dateSystem).ToString(CultureInfo.InvariantCulture),
 #endif
                 double number => FormatPivotDoubleText(number),
                 float number => FormatPivotDoubleText(number),
@@ -627,7 +627,7 @@ namespace OfficeIMO.Excel {
             var snapshot = GetCellValueSnapshot(row, column);
             if (snapshot.Value is double serial) {
                 try {
-                    date = DateTime.FromOADate(serial);
+                    date = ExcelDateSystemConverter.FromSerial(serial, _excelDocument.DateSystem);
                     return true;
                 } catch {
                     // Fall through to string parsing when a numeric value is not a valid Excel date.

@@ -3,6 +3,20 @@ namespace OfficeIMO.Excel {
     /// Options controlling worksheet protection behavior.
     /// </summary>
     public sealed class ExcelSheetProtectionOptions {
+        /// <summary>
+        /// Creates protection options that keep the sheet protected while allowing common table editing workflows.
+        /// </summary>
+        public static ExcelSheetProtectionOptions TableEditing(string? password = null) {
+            return new ExcelSheetProtectionOptions {
+                AllowSelectLockedCells = true,
+                AllowSelectUnlockedCells = true,
+                AllowInsertRows = true,
+                AllowSort = true,
+                AllowAutoFilter = true,
+                Password = password
+            };
+        }
+
         /// <summary>Allow selecting locked cells.</summary>
         public bool AllowSelectLockedCells { get; set; } = true;
         /// <summary>Allow selecting unlocked cells.</summary>

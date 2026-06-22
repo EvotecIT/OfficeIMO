@@ -33,7 +33,8 @@ namespace OfficeIMO.Excel {
                     autoFit,
                     _dateTimeOffsetWriteStrategy,
                     ct,
-                    snapshotTables: true);
+                    snapshotTables: true,
+                    dateSystem: DateSystem);
                 _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(dataSet, model, MaterializeDeferredDataSetImport, isDeferred: true, subscribeToSourceChanges: false);
                 _directDataSetMetadataSourceSheet = null;
                 _packageDirty = true;
@@ -165,19 +166,29 @@ namespace OfficeIMO.Excel {
                 ResetWorksheetForDirectDataSetMaterialization(sheet.WorksheetPart);
                 using var noLock = sheet.BeginNoLock();
                 if (sheetModel.HasTable) {
-                    string materializedRange = sheet.InsertTabularRowSourceAsTableForDeferredMaterialization(
+                    string tableRange = sheet.InsertTabularRowSourceAsTableForDeferredMaterialization(
                         sheetModel.Table,
                         includeHeaders: sheetModel.IncludeHeaders,
                         tableName: sheetModel.TableName,
                         style: sheetModel.TableStyle,
                         includeAutoFilter: sheetModel.IncludeAutoFilter);
-                    if (materializedRange.Length == 0) {
-                        sheet.InsertDataTableAsTable(
+                    if (tableRange.Length == 0) {
+                        tableRange = sheet.InsertDataTableAsTable(
                             sheetModel.Table.ToDataTable(),
                             includeHeaders: sheetModel.IncludeHeaders,
                             tableName: sheetModel.TableName,
                             style: sheetModel.TableStyle,
                             includeAutoFilter: sheetModel.IncludeAutoFilter);
+                    }
+
+                    if (tableRange.Length > 0) {
+                        sheet.SetTableStyle(
+                            tableRange,
+                            sheetModel.TableStyle,
+                            sheetModel.ShowFirstColumn,
+                            sheetModel.ShowLastColumn,
+                            sheetModel.ShowRowStripes,
+                            sheetModel.ShowColumnStripes);
                     }
                 } else {
                     if (!sheet.TryInsertTabularRowSourceForDeferredMaterialization(
@@ -196,7 +207,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 ApplyDirectMaterializedColumnNumberFormats(sheet, sheetModel);
-                ApplyCapturedDirectWorksheetMetadata(sheet.WorksheetPart.Worksheet!, preservedMetadata);
+                ApplyCapturedDirectWorksheetMetadata(sheet.WorksheetPart.Worksheet!, preservedMetadata, DateSystem);
             }
         }
 
@@ -221,7 +232,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void ApplyCapturedDirectWorksheetMetadata(Worksheet worksheet, DirectWorksheetMetadata? metadata) {
+        private static void ApplyCapturedDirectWorksheetMetadata(Worksheet worksheet, DirectWorksheetMetadata? metadata, ExcelDateSystem dateSystem) {
             if (metadata == null || metadata.IsEmpty) {
                 return;
             }
@@ -236,6 +247,10 @@ namespace OfficeIMO.Excel {
 
             if (!string.IsNullOrEmpty(metadata.SheetFormatPropertiesXml)) {
                 InsertWorksheetMetadataElement(worksheet, CreateElementWithAttributes<SheetFormatProperties>(metadata.SheetFormatPropertiesXml!), typeof(Columns), typeof(SheetData));
+            }
+
+            if (!string.IsNullOrEmpty(metadata.SheetProtectionXml)) {
+                InsertWorksheetMetadataElement(worksheet, CreateElementWithAttributes<SheetProtection>(metadata.SheetProtectionXml!), typeof(AutoFilter), typeof(DocumentFormat.OpenXml.Spreadsheet.ConditionalFormatting), typeof(DataValidations), typeof(TableParts));
             }
 
             if (!string.IsNullOrEmpty(metadata.AutoFilterXml)) {
@@ -261,10 +276,10 @@ namespace OfficeIMO.Excel {
                 InsertWorksheetMetadataElement(worksheet, CreateElementWithAttributes<DocumentFormat.OpenXml.Spreadsheet.Drawing>(metadata.DrawingXml!), typeof(TableParts));
             }
 
-            ApplyCapturedDirectOverlayCells(worksheet, metadata.OverlayCells);
+            ApplyCapturedDirectOverlayCells(worksheet, metadata.OverlayCells, dateSystem);
         }
 
-        private static void ApplyCapturedDirectOverlayCells(Worksheet worksheet, IReadOnlyList<DirectOverlayCell> overlayCells) {
+        private static void ApplyCapturedDirectOverlayCells(Worksheet worksheet, IReadOnlyList<DirectOverlayCell> overlayCells, ExcelDateSystem dateSystem) {
             if (overlayCells.Count == 0) {
                 return;
             }
@@ -278,7 +293,7 @@ namespace OfficeIMO.Excel {
                 Row row = GetOrCreateDirectOverlayRow(sheetData, overlayCell.Row);
                 Cell cell = GetOrCreateDirectOverlayCell(row, overlayCell.Row, overlayCell.Column);
                 cell.StyleIndex = overlayCell.StyleIndex.HasValue ? overlayCell.StyleIndex.Value : null;
-                ApplyCapturedDirectOverlayCellValue(cell, overlayCell.Value);
+                ApplyCapturedDirectOverlayCellValue(cell, overlayCell.Value, dateSystem);
             }
         }
 
@@ -348,7 +363,7 @@ namespace OfficeIMO.Excel {
             return created;
         }
 
-        private static void ApplyCapturedDirectOverlayCellValue(Cell cell, object? value) {
+        private static void ApplyCapturedDirectOverlayCellValue(Cell cell, object? value, ExcelDateSystem dateSystem) {
             cell.CellFormula = null;
             cell.InlineString = null;
 
@@ -410,7 +425,7 @@ namespace OfficeIMO.Excel {
                     ApplyCapturedDirectOverlayNumber(cell, number);
                     break;
                 case DateTime dateTime:
-                    ApplyCapturedDirectOverlayNumber(cell, dateTime.ToOADate());
+                    ApplyCapturedDirectOverlayNumber(cell, ExcelDateSystemConverter.ToSerial(dateTime, dateSystem));
                     break;
                 default:
                     cell.CellValue = new CellValue(Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty);

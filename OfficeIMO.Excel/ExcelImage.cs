@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
+using System.Globalization;
 using A = DocumentFormat.OpenXml.Drawing;
 using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 
@@ -178,6 +179,31 @@ namespace OfficeIMO.Excel {
                 transformExtents.Cy = cy;
             }
 
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        /// Moves the image to a one-cell anchor position and optionally applies pixel offsets.
+        /// </summary>
+        /// <param name="row">1-based target row.</param>
+        /// <param name="column">1-based target column.</param>
+        /// <param name="offsetXPixels">Horizontal offset from the cell edge, in pixels.</param>
+        /// <param name="offsetYPixels">Vertical offset from the cell edge, in pixels.</param>
+        public ExcelImage MoveTo(int row, int column, int offsetXPixels = 0, int offsetYPixels = 0) {
+            if (row <= 0) throw new ArgumentOutOfRangeException(nameof(row));
+            if (column <= 0) throw new ArgumentOutOfRangeException(nameof(column));
+
+            var marker = _anchor.GetFirstChild<Xdr.FromMarker>();
+            if (marker == null) {
+                marker = new Xdr.FromMarker();
+                _anchor.PrependChild(marker);
+            }
+
+            marker.ColumnId = new Xdr.ColumnId((column - 1).ToString(CultureInfo.InvariantCulture));
+            marker.ColumnOffset = new Xdr.ColumnOffset(PxToEmu(offsetXPixels).ToString(CultureInfo.InvariantCulture));
+            marker.RowId = new Xdr.RowId((row - 1).ToString(CultureInfo.InvariantCulture));
+            marker.RowOffset = new Xdr.RowOffset(PxToEmu(offsetYPixels).ToString(CultureInfo.InvariantCulture));
             Save();
             return this;
         }

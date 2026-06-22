@@ -56,6 +56,13 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Applies worksheet protection with permissions for common Excel table editing workflows.
+        /// </summary>
+        public void ProtectTableEditing(string? password = null) {
+            Protect(ExcelSheetProtectionOptions.TableEditing(password));
+        }
+
+        /// <summary>
         /// Removes worksheet protection.
         /// </summary>
         public void Unprotect() {

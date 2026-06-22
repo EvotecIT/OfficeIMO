@@ -50,7 +50,15 @@ namespace OfficeIMO.Excel {
 
                 builder.Append("</tableColumns><tableStyleInfo name=\"");
                 builder.Append(sheet.TableStyle.ToString());
-                builder.Append("\" showFirstColumn=\"0\" showLastColumn=\"0\" showRowStripes=\"1\" showColumnStripes=\"0\"/></table>");
+                builder.Append("\" showFirstColumn=\"");
+                builder.Append(sheet.ShowFirstColumn ? "1" : "0");
+                builder.Append("\" showLastColumn=\"");
+                builder.Append(sheet.ShowLastColumn ? "1" : "0");
+                builder.Append("\" showRowStripes=\"");
+                builder.Append(sheet.ShowRowStripes ? "1" : "0");
+                builder.Append("\" showColumnStripes=\"");
+                builder.Append(sheet.ShowColumnStripes ? "1" : "0");
+                builder.Append("\"/></table>");
                 WriteTextEntry(archive, "xl/tables/table" + sheetIndexText + ".xml", builder.ToString());
             }
 

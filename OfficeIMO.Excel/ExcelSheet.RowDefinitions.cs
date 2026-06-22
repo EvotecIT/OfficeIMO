@@ -20,7 +20,7 @@ namespace OfficeIMO.Excel {
 
                 bool hidden = row.Hidden?.Value == true;
                 bool customHeight = row.CustomHeight?.Value == true;
-                if (!hidden && !customHeight && row.Height == null) {
+                if (!hidden && !customHeight && row.Height == null && row.OutlineLevel == null && row.Collapsed?.Value != true) {
                     continue;
                 }
 
@@ -28,7 +28,9 @@ namespace OfficeIMO.Excel {
                     Index = index,
                     Height = row.Height?.Value,
                     Hidden = hidden,
-                    CustomHeight = customHeight
+                    CustomHeight = customHeight,
+                    OutlineLevel = row.OutlineLevel?.Value,
+                    Collapsed = row.Collapsed?.Value == true
                 });
             }
 

@@ -212,6 +212,7 @@ namespace OfficeIMO.Excel {
                         existing.SheetPropertiesXml,
                         existing.SheetViewsXml,
                         existing.SheetFormatPropertiesXml,
+                        existing.SheetProtectionXml,
                         existing.AutoFilterXml,
                         existing.ConditionalFormattingXml,
                         existing.DataValidationsXml,
@@ -230,6 +231,7 @@ namespace OfficeIMO.Excel {
                 existing.SheetPropertiesXml ?? captured.SheetPropertiesXml,
                 existing.SheetViewsXml ?? captured.SheetViewsXml,
                 existing.SheetFormatPropertiesXml ?? captured.SheetFormatPropertiesXml,
+                existing.SheetProtectionXml ?? captured.SheetProtectionXml,
                 existing.AutoFilterXml ?? captured.AutoFilterXml,
                 CombineMetadataXmlLists(existing.ConditionalFormattingXml, captured.ConditionalFormattingXml),
                 existing.DataValidationsXml ?? captured.DataValidationsXml,
@@ -264,6 +266,7 @@ namespace OfficeIMO.Excel {
                         metadata.SheetPropertiesXml,
                         metadata.SheetViewsXml,
                         metadata.SheetFormatPropertiesXml,
+                        metadata.SheetProtectionXml,
                         metadata.AutoFilterXml,
                         metadata.ConditionalFormattingXml,
                         metadata.DataValidationsXml,
@@ -389,6 +392,7 @@ namespace OfficeIMO.Excel {
             string? sheetPropertiesXml = null;
             string? sheetViewsXml = null;
             string? sheetFormatPropertiesXml = null;
+            string? sheetProtectionXml = null;
             string? autoFilterXml = null;
             string? dataValidationsXml = null;
             string? drawingXml = null;
@@ -412,6 +416,9 @@ namespace OfficeIMO.Excel {
                         break;
                     case SheetFormatProperties sheetFormatProperties when sheetFormatPropertiesXml == null:
                         sheetFormatPropertiesXml = sheetFormatProperties.OuterXml;
+                        break;
+                    case SheetProtection sheetProtection when sheetProtectionXml == null:
+                        sheetProtectionXml = sheetProtection.OuterXml;
                         break;
                     case Columns when sheetModel.ColumnWidths is { Length: > 0 }:
                         break;
@@ -453,6 +460,7 @@ namespace OfficeIMO.Excel {
             if (sheetPropertiesXml == null
                 && sheetViewsXml == null
                 && sheetFormatPropertiesXml == null
+                && sheetProtectionXml == null
                 && autoFilterXml == null
                 && dataValidationsXml == null
                 && drawingXml == null
@@ -466,6 +474,7 @@ namespace OfficeIMO.Excel {
                 sheetPropertiesXml,
                 sheetViewsXml,
                 sheetFormatPropertiesXml,
+                sheetProtectionXml,
                 autoFilterXml,
                 conditionalFormattingXml?.ToArray() ?? Array.Empty<string>(),
                 dataValidationsXml,

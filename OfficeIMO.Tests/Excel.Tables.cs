@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -32,6 +33,39 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("A1:B2", tablePart.Table.Reference!.Value);
                 Assert.Equal("MyTable", tablePart.Table.Name);
                 Assert.Equal("TableStyleMedium9", tablePart.Table.TableStyleInfo!.Name!.Value);
+            }
+        }
+
+        [Fact]
+        public void Test_InsertDataTableAsTableSetStylePersistsDirectTableVisualOptions() {
+            string filePath = Path.Combine(_directoryWithFiles, "Table.DirectVisualStyle.xlsx");
+            var table = new DataTable("Sales");
+            table.Columns.Add("Region", typeof(string));
+            table.Columns.Add("Sales", typeof(int));
+            table.Rows.Add("NA", 100);
+            table.Rows.Add("EMEA", 200);
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.GetOrCreateSheet("Data", SheetNameValidationMode.Sanitize);
+                string range = sheet.InsertDataTableAsTable(table, tableName: "Sales", style: TableStyle.TableStyleMedium9);
+                sheet.SetTableStyle(
+                    range,
+                    TableStyle.TableStyleMedium9,
+                    showFirstColumn: true,
+                    showLastColumn: true,
+                    showRowStripes: false,
+                    showColumnStripes: true);
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                TableDefinitionPart tablePart = wsPart.TableDefinitionParts.First();
+                TableStyleInfo styleInfo = tablePart.Table.TableStyleInfo!;
+                Assert.True(styleInfo.ShowFirstColumn!.Value);
+                Assert.True(styleInfo.ShowLastColumn!.Value);
+                Assert.False(styleInfo.ShowRowStripes!.Value);
+                Assert.True(styleInfo.ShowColumnStripes!.Value);
             }
         }
 

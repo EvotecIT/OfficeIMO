@@ -1555,6 +1555,37 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ManualPageBreaks_CanBeRemovedAndCleared() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (var doc = ExcelDocument.Create(path)) {
+                var sheet = doc.AddWorkSheet("Print");
+                sheet.CellValue(1, 1, "Value");
+
+                sheet.AddManualRowPageBreak(3, save: false);
+                sheet.AddManualRowPageBreak(6, save: false);
+                sheet.AddManualColumnPageBreak(2, save: false);
+                sheet.AddManualColumnPageBreak(4, save: false);
+
+                Assert.Equal(new[] { 3, 6 }, sheet.GetManualRowPageBreaks());
+                Assert.Equal(new[] { 2, 4 }, sheet.GetManualColumnPageBreaks());
+
+                Assert.True(sheet.RemoveManualRowPageBreak(3, save: false));
+                Assert.False(sheet.RemoveManualRowPageBreak(99, save: false));
+                Assert.Equal(new[] { 6 }, sheet.GetManualRowPageBreaks());
+
+                Assert.True(sheet.ClearManualColumnPageBreaks(save: false));
+                Assert.False(sheet.ClearManualColumnPageBreaks(save: false));
+                Assert.Empty(sheet.GetManualColumnPageBreaks());
+
+                Assert.True(sheet.ClearManualPageBreaks(save: false));
+                Assert.False(sheet.ClearManualPageBreaks(save: false));
+                Assert.Empty(sheet.GetManualRowPageBreaks());
+            }
+
+            File.Delete(path);
+        }
+
+        [Fact]
         public void Preflight_NormalizesPrintMarginsAndScaleBeforeSave() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");

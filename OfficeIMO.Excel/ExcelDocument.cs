@@ -37,6 +37,7 @@ namespace OfficeIMO.Excel {
         private System.Collections.Generic.IEqualityComparer<string> _tableNameComparer = System.StringComparer.OrdinalIgnoreCase;
         private List<ExcelSheet>? _cachedSheets;
         private bool _sheetCacheDirty = true;
+        private bool _customDocumentPropertiesDirty;
 
         /// <summary>
         /// Enables caching of <see cref="ExcelSheet"/> wrappers for faster repeat access at the cost of higher memory usage.

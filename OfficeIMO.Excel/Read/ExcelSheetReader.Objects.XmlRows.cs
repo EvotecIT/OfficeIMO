@@ -406,7 +406,7 @@ namespace OfficeIMO.Excel {
                 && Styles.IsDateLike(styleIndex.Value)) {
                 if (TryParseInvariantDoubleFast(rawText, out var oa)
                     || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa)) {
-                    DateTime dateValue = DateTime.FromOADate(oa);
+                    DateTime dateValue = FromExcelSerialDate(oa);
                     if (binding.SetDateTime != null && binding.BindingKind == TypedBindingKind.DateTime) {
                         binding.SetDateTime(target, dateValue);
                         return true;

@@ -98,8 +98,8 @@ namespace OfficeIMO.Excel {
         /// Applies a date validation to the specified A1 range.
         /// </summary>
         public void ValidationDate(string a1Range, DataValidationOperatorValues @operator, DateTime formula1, DateTime? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) {
-            string f1 = formula1.ToOADate().ToString(System.Globalization.CultureInfo.InvariantCulture);
-            string? f2 = formula2?.ToOADate().ToString(System.Globalization.CultureInfo.InvariantCulture);
+            string f1 = ExcelDateSystemConverter.ToSerial(formula1, _excelDocument.DateSystem).ToString(System.Globalization.CultureInfo.InvariantCulture);
+            string? f2 = formula2.HasValue ? ExcelDateSystemConverter.ToSerial(formula2.Value, _excelDocument.DateSystem).ToString(System.Globalization.CultureInfo.InvariantCulture) : null;
             ValidationAdd(a1Range, DataValidationValues.Date, @operator, f1, f2, allowBlank, errorTitle, errorMessage);
         }
 

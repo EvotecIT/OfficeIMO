@@ -14,17 +14,15 @@ namespace OfficeIMO.Excel {
             internal static void Write(Stream destination, FastWorkbookPackageModel model, CancellationToken ct) {
                 using (var archive = new ZipArchive(destination, ZipArchiveMode.Create, leaveOpen: true)) {
                     ct.ThrowIfCancellationRequested();
-                    WriteContentTypesEntry(archive, model.HasStyles, model.HasSharedStrings, model.Worksheets.Count, model.Tables.Count);
+                    WriteContentTypesEntry(archive, model.HasStyles, model.HasSharedStrings, model.HasCustomProperties, model.Worksheets.Count, model.Tables.Count);
                     ct.ThrowIfCancellationRequested();
-                    WriteTextEntry(archive, "_rels/.rels",
-                        "<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
-                        "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">" +
-                        "<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"xl/workbook.xml\"/>" +
-                        "<Relationship Id=\"rId2\" Type=\"http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties\" Target=\"docProps/core.xml\"/>" +
-                        "<Relationship Id=\"rId3\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties\" Target=\"docProps/app.xml\"/>" +
-                        "</Relationships>");
+                    WriteTextEntry(archive, "_rels/.rels", CreatePackageRelationshipsXml(model.HasCustomProperties));
                     WriteCorePropertiesEntry(archive);
                     WriteAppPropertiesEntry(archive);
+                    if (model.CustomProperties != null) {
+                        WriteOpenXmlElementEntry(archive, "docProps/custom.xml", model.CustomProperties);
+                    }
+
                     ct.ThrowIfCancellationRequested();
                     WriteWorkbookEntry(archive, model);
                     WriteWorkbookRelationshipsEntry(archive, model.Worksheets, model.HasStyles, model.HasSharedStrings);
@@ -53,6 +51,21 @@ namespace OfficeIMO.Excel {
                     }
                 }
             }
+
+            private static string CreatePackageRelationshipsXml(bool hasCustomProperties) {
+                var builder = new System.Text.StringBuilder(384);
+                builder.Append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
+                builder.Append("<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">");
+                builder.Append("<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"xl/workbook.xml\"/>");
+                builder.Append("<Relationship Id=\"rId2\" Type=\"http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties\" Target=\"docProps/core.xml\"/>");
+                builder.Append("<Relationship Id=\"rId3\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties\" Target=\"docProps/app.xml\"/>");
+                if (hasCustomProperties) {
+                    builder.Append("<Relationship Id=\"rId4\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/custom-properties\" Target=\"docProps/custom.xml\"/>");
+                }
+
+                builder.Append("</Relationships>");
+                return builder.ToString();
+            }
         }
 
         private sealed class FastWorkbookPackageModel {
@@ -67,7 +80,8 @@ namespace OfficeIMO.Excel {
                 WorkbookProtection? workbookProtection,
                 BookViews? bookViews,
                 DefinedNames? definedNames,
-                CalculationProperties? calculationProperties) {
+                CalculationProperties? calculationProperties,
+                DocumentFormat.OpenXml.CustomProperties.Properties? customProperties) {
                 Worksheets = worksheets;
                 Stylesheet = stylesheet;
                 SharedStrings = sharedStrings;
@@ -79,6 +93,7 @@ namespace OfficeIMO.Excel {
                 BookViews = bookViews;
                 DefinedNames = definedNames;
                 CalculationProperties = calculationProperties;
+                CustomProperties = customProperties;
             }
 
             internal IReadOnlyList<FastWorksheetPackageModel> Worksheets { get; }
@@ -106,6 +121,10 @@ namespace OfficeIMO.Excel {
             internal DefinedNames? DefinedNames { get; }
 
             internal CalculationProperties? CalculationProperties { get; }
+
+            internal DocumentFormat.OpenXml.CustomProperties.Properties? CustomProperties { get; }
+
+            internal bool HasCustomProperties => CustomProperties != null && CustomProperties.Elements<DocumentFormat.OpenXml.CustomProperties.CustomDocumentProperty>().Any();
 
             internal static bool TryCreate(SpreadsheetDocument document, out FastWorkbookPackageModel model, out string? skipReason) {
                 model = null!;
@@ -215,6 +234,13 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 
+                var customProperties = document.CustomFilePropertiesPart?.Properties;
+                if (customProperties != null
+                    && customProperties.Descendants<DocumentFormat.OpenXml.OpenXmlUnknownElement>().Any()) {
+                    skipReason = "Workbook custom properties contain unknown Open XML elements.";
+                    return false;
+                }
+
                 model = new FastWorkbookPackageModel(
                     worksheets,
                     workbookPart.WorkbookStylesPart?.Stylesheet,
@@ -226,7 +252,8 @@ namespace OfficeIMO.Excel {
                     workbookPart.Workbook.GetFirstChild<WorkbookProtection>(),
                     workbookPart.Workbook.GetFirstChild<BookViews>(),
                     definedNames,
-                    workbookPart.Workbook.GetFirstChild<CalculationProperties>());
+                    workbookPart.Workbook.GetFirstChild<CalculationProperties>(),
+                    customProperties);
                 return true;
             }
 

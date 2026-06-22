@@ -125,7 +125,7 @@ namespace OfficeIMO.Excel {
                 if (styleIndex is not null && Styles.IsDateLike(styleIndex.Value)) {
                     if ((TryParseInvariantDoubleFast(rawText, out var oa)
                             || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa))
-                        && ReturnBindingConversion(TryConvertDateTimeForBinding(DateTime.FromOADate(oa), binding, out converted), binding, converted)) {
+                        && ReturnBindingConversion(TryConvertDateTimeForBinding(FromExcelSerialDate(oa), binding, out converted), binding, converted)) {
                         return true;
                     }
 
@@ -228,7 +228,7 @@ namespace OfficeIMO.Excel {
                 && Styles.IsDateLike(raw.StyleIndex.Value)) {
                 if (TryParseInvariantDoubleFast(raw.RawText, out var oa)
                     || double.TryParse(raw.RawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa)) {
-                    return TryConvertDateTimeForBinding(DateTime.FromOADate(oa), binding, out converted);
+                    return TryConvertDateTimeForBinding(FromExcelSerialDate(oa), binding, out converted);
                 }
 
                 return TryConvertStringForBinding(raw.RawText, binding, out converted);
@@ -370,7 +370,7 @@ namespace OfficeIMO.Excel {
                 && Styles.IsDateLike(raw.StyleIndex.Value)) {
                 if (TryParseInvariantDoubleFast(raw.RawText, out var oa)
                     || double.TryParse(raw.RawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa)) {
-                    DateTime dateValue = DateTime.FromOADate(oa);
+                    DateTime dateValue = FromExcelSerialDate(oa);
                     if (binding.SetDateTime != null && binding.BindingKind == TypedBindingKind.DateTime) {
                         binding.SetDateTime(target, dateValue);
                         return true;

@@ -90,7 +90,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (IsDateNumberFormat(numberFormatId, formatCode)) {
-                return FormatAutoFitDateValue(value, numberFormatId, formatCode!);
+                return FormatAutoFitDateValue(value, numberFormatId, formatCode!, _excelDocument.DateSystem);
             }
 
             return FormatAutoFitNumberValue(value, numberFormatId, formatCode!) ?? raw;
@@ -194,7 +194,7 @@ namespace OfficeIMO.Excel {
             => numberFormatId is 14 or 15 or 16 or 17 or 18 or 19 or 20 or 21 or 22 or 45 or 46 or 47
             || ExcelNumberFormatClassifier.LooksLikeDateFormat(formatCode);
 
-        private static string FormatAutoFitDateValue(double value, uint numberFormatId, string formatCode) {
+        private static string FormatAutoFitDateValue(double value, uint numberFormatId, string formatCode, ExcelDateSystem dateSystem) {
             if (numberFormatId == 46U || formatCode.IndexOf("[h]", StringComparison.OrdinalIgnoreCase) >= 0) {
                 TimeSpan duration = TimeSpan.FromDays(value);
                 int totalHours = (int)Math.Floor(duration.TotalHours);
@@ -203,7 +203,7 @@ namespace OfficeIMO.Excel {
 
             DateTime date;
             try {
-                date = DateTime.FromOADate(value);
+                date = ExcelDateSystemConverter.FromSerial(value, dateSystem);
             } catch {
                 return value.ToString(CultureInfo.InvariantCulture);
             }
