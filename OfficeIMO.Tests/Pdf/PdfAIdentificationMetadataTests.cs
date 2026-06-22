@@ -54,9 +54,12 @@ public class PdfAIdentificationMetadataTests {
         Assert.Equal("A", new PdfAIdentification(2, "a").Conformance);
         Assert.Equal("B", new PdfAIdentification(3, "B").Conformance);
         Assert.Equal("U", new PdfAIdentification(3, " u ").Conformance);
+        Assert.Equal(string.Empty, PdfAIdentification.PdfA4().Conformance);
+        Assert.Equal("E", PdfAIdentification.PdfA4E().Conformance);
+        Assert.Equal("F", PdfAIdentification.PdfA4F().Conformance);
 
         Assert.Throws<ArgumentOutOfRangeException>(() => new PdfAIdentification(1, "B"));
-        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfAIdentification(4, "B"));
+        Assert.Throws<ArgumentException>(() => new PdfAIdentification(4, "B"));
         Assert.Throws<ArgumentException>(() => new PdfAIdentification(3, "X"));
         Assert.Throws<ArgumentException>(() => new PdfAIdentification(3, ""));
     }
@@ -98,6 +101,34 @@ public class PdfAIdentificationMetadataTests {
         Assert.True(info.HasTaggedContent);
         Assert.Equal("en-GB", info.CatalogLanguage);
         Assert.Throws<ArgumentException>(() => new PdfOptions().ConfigurePdfAGroundwork(PdfComplianceProfile.PdfUa1));
+    }
+
+    [Fact]
+    public void PdfA4GroundworkHelper_EmitsPdf20ArchivalPrerequisitesWithoutFormalProfile() {
+        var options = new PdfOptions()
+            .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA4F, "en-US");
+
+        byte[] bytes = PdfDocument.Create()
+            .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA4, "en-US")
+            .Meta(title: "PDF/A-4 groundwork bundle", author: "OfficeIMO")
+            .Paragraph(p => p.Text("PDF/A-4 groundwork bundle keeps formal profile generation disabled."))
+            .ToBytes();
+
+        string raw = Encoding.UTF8.GetString(bytes);
+        PdfDocumentInfo info = PdfInspector.Inspect(bytes);
+        PdfOptions clone = options.Clone();
+
+        Assert.Equal(PdfComplianceProfile.None, options.ComplianceProfile);
+        Assert.Equal(PdfFileVersion.Pdf20, clone.FileVersion);
+        Assert.True(clone.IncludeXmpMetadata);
+        Assert.True(clone.IncludeStandardFontToUnicodeMaps);
+        Assert.Equal(4, clone.PdfAIdentification!.Part);
+        Assert.Equal("F", clone.PdfAIdentification.Conformance);
+        Assert.StartsWith("%PDF-2.0", raw, StringComparison.Ordinal);
+        Assert.Contains("<pdfaid:part>4</pdfaid:part>", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("<pdfaid:conformance>", raw, StringComparison.Ordinal);
+        Assert.True(info.IsPdf20OrLater);
+        Assert.Equal("2.0", info.EffectiveVersion);
     }
 
     [Fact]
@@ -165,6 +196,36 @@ public class PdfAIdentificationMetadataTests {
     }
 
     [Fact]
+    public void FacturXInvoiceXmlFileHelper_EmitsCanonicalAttachmentAndMatchingXmp() {
+        byte[] invoiceXml = CreateCiiXml();
+        string invoicePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "officeimo-facturx-" + Guid.NewGuid().ToString("N") + ".xml");
+        System.IO.File.WriteAllBytes(invoicePath, invoiceXml);
+        try {
+            var options = new PdfOptions()
+                .AddFacturXInvoiceXmlFile(invoicePath, "BASIC");
+
+            byte[] bytes = PdfDocument.Create()
+                .AttachFacturXInvoiceXmlFile(invoicePath, "EN 16931")
+                .Meta(title: "E-invoice file attachment primitive", author: "OfficeIMO")
+                .Paragraph(p => p.Text("Factur-X/ZUGFeRD attachment metadata can be configured from a source XML file."))
+                .ToBytes();
+
+            PdfExtractedAttachment attachment = Assert.Single(PdfAttachmentExtractor.ExtractAttachments(bytes));
+
+            Assert.Equal("BASIC", options.ElectronicInvoiceMetadata!.ConformanceLevel);
+            Assert.Equal("factur-x.xml", Assert.Single(options.EmbeddedFiles).FileName);
+            Assert.Equal("factur-x.xml", attachment.FileName);
+            Assert.Equal("application/xml", attachment.MimeType);
+            Assert.Equal(PdfAssociatedFileRelationship.Data, attachment.Relationship);
+            Assert.Equal(invoiceXml, attachment.Bytes);
+        } finally {
+            if (System.IO.File.Exists(invoicePath)) {
+                System.IO.File.Delete(invoicePath);
+            }
+        }
+    }
+
+    [Fact]
     public void FacturXGroundworkHelper_EmitsPdfA3EinvoicePrerequisitesWithoutFormalProfile() {
         byte[] invoiceXml = CreateCiiXml();
         var fallbackProbe = new PdfOptions();
@@ -207,6 +268,22 @@ public class PdfAIdentificationMetadataTests {
     }
 
     [Fact]
+    public void ElectronicInvoiceGroundworkHelper_AcceptsFacturXAndZugferdProfiles() {
+        byte[] invoiceXml = CreateCiiXml();
+        var facturXOptions = new PdfOptions()
+            .ConfigureElectronicInvoiceGroundwork(PdfComplianceProfile.FacturX, invoiceXml, "BASIC");
+        var zugferdOptions = new PdfOptions()
+            .ConfigureElectronicInvoiceGroundwork(PdfComplianceProfile.Zugferd, invoiceXml, "EN 16931");
+
+        Assert.Equal(PdfComplianceProfile.None, facturXOptions.ComplianceProfile);
+        Assert.Equal("BASIC", facturXOptions.ElectronicInvoiceMetadata!.ConformanceLevel);
+        Assert.Equal(3, facturXOptions.PdfAIdentification!.Part);
+        Assert.Equal("EN 16931", zugferdOptions.ElectronicInvoiceMetadata!.ConformanceLevel);
+        Assert.Equal("factur-x.xml", Assert.Single(zugferdOptions.EmbeddedFiles).FileName);
+        Assert.Throws<ArgumentException>(() => new PdfOptions().ConfigureElectronicInvoiceGroundwork(PdfComplianceProfile.PdfA3B, invoiceXml));
+    }
+
+    [Fact]
     public void FacturXGroundworkHelper_CanPreserveCallerFontState() {
         var options = new PdfOptions()
             .ConfigureFacturXGroundwork(CreateCiiXml(), useDocumentFontFallback: false);
@@ -242,6 +319,26 @@ public class PdfAIdentificationMetadataTests {
         Assert.Contains("xmlns:pdfuaid=\"http://www.aiim.org/pdfua/ns/id/\"", raw, StringComparison.Ordinal);
         Assert.Contains("<pdfuaid:part>1</pdfuaid:part>", raw, StringComparison.Ordinal);
         Assert.Equal(1, cloneIdentification.Part);
+    }
+
+    [Fact]
+    public void PdfUa2Identification_CanBeEmittedInXmpWithoutFormalComplianceProfile() {
+        var options = new PdfOptions()
+            .SetPdfUaIdentification(PdfUaIdentification.PdfUa2());
+
+        byte[] bytes = PdfDocument.Create(options)
+            .PdfUaIdentification(2)
+            .Meta(title: "PDF/UA-2 identification primitive", author: "OfficeIMO")
+            .Paragraph(p => p.Text("PDF/UA-2 identification metadata is groundwork, not certification."))
+            .ToBytes();
+
+        string raw = Encoding.UTF8.GetString(bytes);
+        PdfUaIdentification cloneIdentification = options.Clone().PdfUaIdentification!;
+
+        Assert.True(options.IncludeXmpMetadata);
+        Assert.Equal(PdfComplianceProfile.None, options.ComplianceProfile);
+        Assert.Contains("<pdfuaid:part>2</pdfuaid:part>", raw, StringComparison.Ordinal);
+        Assert.Equal(2, cloneIdentification.Part);
     }
 
     [Fact]
@@ -285,14 +382,41 @@ public class PdfAIdentificationMetadataTests {
     }
 
     [Fact]
+    public void PdfUa2GroundworkHelper_EmitsPdf20AccessibilityPrerequisitesWithoutFormalProfile() {
+        var options = new PdfOptions()
+            .ConfigurePdfUaGroundwork(PdfComplianceProfile.PdfUa2, "pl-PL");
+
+        byte[] bytes = PdfDocument.Create()
+            .ConfigurePdfUaGroundwork(PdfComplianceProfile.PdfUa2, "en-US")
+            .Meta(title: "PDF/UA-2 groundwork bundle", author: "OfficeIMO")
+            .H1("PDF/UA-2 groundwork")
+            .Paragraph(p => p.Text("PDF/UA-2 groundwork bundle keeps formal profile generation disabled."))
+            .ToBytes();
+
+        string raw = Encoding.UTF8.GetString(bytes);
+        PdfDocumentInfo info = PdfInspector.Inspect(bytes);
+        PdfOptions clone = options.Clone();
+
+        Assert.Equal(PdfFileVersion.Pdf20, clone.FileVersion);
+        Assert.Equal(2, clone.PdfUaIdentification!.Part);
+        Assert.Equal("pl-PL", clone.Language);
+        Assert.StartsWith("%PDF-2.0", raw, StringComparison.Ordinal);
+        Assert.Contains("<pdfuaid:part>2</pdfuaid:part>", raw, StringComparison.Ordinal);
+        Assert.True(info.IsPdf20OrLater);
+        Assert.True(info.TaggedContent!.HasDocumentStructureElement);
+        Assert.True(info.TaggedContent.MarkedContentReferenceCount > 0);
+    }
+
+    [Fact]
     public void PdfUaIdentification_ValidatesSupportedPartsAndSnapshotsState() {
         var identification = PdfUaIdentification.PdfUa1();
         var options = new PdfOptions { PdfUaIdentification = identification };
 
         Assert.Equal(1, options.PdfUaIdentification!.Part);
         Assert.Equal(1, options.Clone().PdfUaIdentification!.Part);
+        Assert.Equal(2, PdfUaIdentification.PdfUa2().Part);
         Assert.Throws<ArgumentOutOfRangeException>(() => new PdfUaIdentification(0));
-        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfUaIdentification(2));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfUaIdentification(3));
     }
 
     [Fact]

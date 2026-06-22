@@ -18,6 +18,11 @@ public sealed class PdfHtmlSaveOptions {
     public PdfCore.PdfTextLayoutOptions? LayoutOptions { get; set; }
 
     /// <summary>
+    /// PDF read options used when loading bytes, paths, or streams, including password handling for encrypted PDFs.
+    /// </summary>
+    public PdfCore.PdfReadOptions? ReadOptions { get; set; }
+
+    /// <summary>
     /// Optional selected source page ranges. When omitted, all pages are exported.
     /// </summary>
     public IReadOnlyList<PdfCore.PdfPageRange>? PageRanges { get; set; }

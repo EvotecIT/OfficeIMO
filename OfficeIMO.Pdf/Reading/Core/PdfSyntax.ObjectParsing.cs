@@ -45,12 +45,12 @@ internal static partial class PdfSyntax {
             // literal string
             int end = s.LastIndexOf(')');
             string inner = end > 1 ? s.Substring(1, end - 1) : s.Substring(1);
-            return CreateParsedString(PdfTextString.DecodeLiteral(inner));
+            return CreateParsedString(PdfStringParser.ParseLiteralToBytes(inner));
         }
         if (s.Length > 0 && s[0] == '<' && (s.Length == 1 || s[1] != '<')) {
             int end = s.IndexOf('>');
             string inner = end > 1 ? s.Substring(1, end - 1) : s.Substring(1);
-            return CreateParsedString(DecodeHexString(inner));
+            return CreateParsedString(PdfTextString.DecodeHexBytes(inner));
         }
         // number or name fallbacks
         var tokens = Tokenize(s);
@@ -117,9 +117,9 @@ internal static partial class PdfSyntax {
             return (arr, j - i);
         }
         if (tok.Length > 0 && tok[0] == '/') return (new PdfName(DecodeName(tok.Substring(1))), 0);
-        if (tok.Length > 0 && tok[0] == '(') return (CreateParsedString(PdfTextString.DecodeLiteral(tok.Substring(1, tok.Length - 2))), 0);
+        if (tok.Length > 0 && tok[0] == '(') return (CreateParsedString(PdfStringParser.ParseLiteralToBytes(tok.Substring(1, tok.Length - 2))), 0);
         if (tok.Length > 1 && tok[0] == '<' && tok[tok.Length - 1] == '>' && (tok.Length == 2 || tok[1] != '<')) {
-            return (CreateParsedString(DecodeHexString(tok.Substring(1, tok.Length - 2))), 0);
+            return (CreateParsedString(PdfTextString.DecodeHexBytes(tok.Substring(1, tok.Length - 2))), 0);
         }
         if (string.Equals(tok, "true", StringComparison.Ordinal)) return (new PdfBoolean(true), 0);
         if (string.Equals(tok, "false", StringComparison.Ordinal)) return (new PdfBoolean(false), 0);
@@ -226,12 +226,9 @@ internal static partial class PdfSyntax {
         return sb.ToString();
     }
 
-    private static string DecodeHexString(string raw) {
-        return PdfTextString.DecodeHex(raw);
-    }
-
-    private static PdfStringObj CreateParsedString(string value) {
-        return new PdfStringObj(value, useTextStringEncoding: !PdfWinAnsiEncoding.CanEncode(value, out _));
+    private static PdfStringObj CreateParsedString(byte[] bytes) {
+        string value = PdfTextString.Decode(bytes);
+        return new PdfStringObj(bytes, useTextStringEncoding: !PdfWinAnsiEncoding.CanEncode(value, out _));
     }
 
     private static bool TryHexNibble(char c, out int value) {

@@ -1,0 +1,7 @@
+interface:
+  display_name: OfficeIMO Build Release
+  short_description: Build, package, and validate OfficeIMO release surfaces.
+  default_prompt: >-
+    Use OfficeIMO repo build entrypoints, keep packaging behavior in shared
+    PowerForge or PSPublishModule sources, and distinguish local source from
+    published packages before calling a release state clean.

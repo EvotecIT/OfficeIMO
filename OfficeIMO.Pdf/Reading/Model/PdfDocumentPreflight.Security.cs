@@ -134,11 +134,28 @@ public sealed partial class PdfDocumentPreflight {
             }
 
             if (security.HasSignatures) {
-                AddDistinct(messages, "Append-only signature preservation is not implemented by OfficeIMO.Pdf yet.");
+                if (security.Signatures.Any(static signature => signature.HasFieldLock)) {
+                    AddDistinct(messages, "Signature field locks restrict append-only form filling; requested fields must be checked before update.");
+                }
+
+                if (security.HasDocMDPPermissions &&
+                    security.DocMDPPermissionLevel.HasValue &&
+                    security.DocMDPPermissionLevel.Value >= 2 &&
+                    security.DocMDPPermissionLevel.Value <= 3) {
+                    AddDistinct(messages, "Append-only form filling is available for DocMDP-certified PDFs when certification permission level /P permits form changes.");
+                } else {
+                    AddDistinct(messages, "Append-only signature preservation is not implemented by OfficeIMO.Pdf yet.");
+                }
             }
 
             if (security.HasDocMDPPermissions) {
-                AddDistinct(messages, "DocMDP certification permissions must be evaluated before append-only mutation.");
+                if (security.DocMDPPermissionLevel.HasValue &&
+                    security.DocMDPPermissionLevel.Value >= 2 &&
+                    security.DocMDPPermissionLevel.Value <= 3) {
+                    AddDistinct(messages, "DocMDP certification permission level permits append-only form filling but still blocks unrelated mutations.");
+                } else {
+                    AddDistinct(messages, "DocMDP certification permissions do not allow append-only form filling.");
+                }
             }
 
             if (security.HasUsageRights) {
@@ -149,7 +166,9 @@ public sealed partial class PdfDocumentPreflight {
                 AddDistinct(messages, "Append-only mutation for xref-stream PDFs is not implemented by OfficeIMO.Pdf yet.");
             }
 
-            AddDistinct(messages, "Append-only PDF writing is not implemented by OfficeIMO.Pdf yet.");
+            if (messages.Count == 0) {
+                AddDistinct(messages, "Append-only mutation is required; only supported OfficeIMO.Pdf append-only actions should be used.");
+            }
             _appendOnlyMutationDiagnostics = messages.AsReadOnly();
             return _appendOnlyMutationDiagnostics;
         }

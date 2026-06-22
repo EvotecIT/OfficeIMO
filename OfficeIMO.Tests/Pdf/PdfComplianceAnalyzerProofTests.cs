@@ -48,6 +48,28 @@ public partial class PdfComplianceAnalyzerTests {
     }
 
     [Fact]
+    public void ProofReportCountsUnprofiledValidatorResultForRequestedProof() {
+        var options = new PdfOptions()
+            .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B);
+        PdfExternalValidationResult veraPdf = PdfExternalValidationResult.Passed(
+            PdfExternalValidatorKind.VeraPdf,
+            "veraPDF",
+            "PDF/A profile accepted.");
+
+        PdfComplianceProofReport proof = PdfComplianceAnalyzer.AssessProof(
+            PdfComplianceProfile.PdfA3B,
+            options,
+            new[] { veraPdf },
+            generatedStandardFonts: Array.Empty<PdfStandardFont>());
+
+        Assert.True(proof.IsInternallyReady);
+        Assert.True(proof.HasRequiredExternalValidation);
+        Assert.True(proof.CanClaimConformance);
+        Assert.Equal(1, proof.PassedExternalValidationCount);
+        Assert.Empty(proof.MissingExternalValidators);
+    }
+
+    [Fact]
     public void ReadinessAcceptsOpenTypeCffEmbeddedFontsForPdfAFontCoverage() {
         string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
         Assert.NotNull(fontPath);
@@ -175,9 +197,11 @@ public partial class PdfComplianceAnalyzerTests {
         Assert.Contains(PdfExternalValidatorKind.Mustang, proof.MissingExternalValidators);
     }
 
-    [Fact]
-    public void ProofReportRequiresPdfUaValidatorForPdfUaProfiles() {
-        PdfComplianceReadinessReport readiness = PdfComplianceAnalyzer.Assess(PdfComplianceProfile.PdfUa1, new PdfOptions());
+    [Theory]
+    [InlineData(PdfComplianceProfile.PdfUa1)]
+    [InlineData(PdfComplianceProfile.PdfUa2)]
+    public void ProofReportRequiresPdfUaValidatorForPdfUaProfiles(PdfComplianceProfile profile) {
+        PdfComplianceReadinessReport readiness = PdfComplianceAnalyzer.Assess(profile, new PdfOptions());
 
         PdfComplianceProofReport proof = PdfComplianceAnalyzer.AssessProof(readiness);
 

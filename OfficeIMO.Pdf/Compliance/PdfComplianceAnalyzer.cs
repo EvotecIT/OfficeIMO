@@ -44,6 +44,10 @@ public static partial class PdfComplianceAnalyzer {
             AddFileVersionRequirement(requirements, options);
         }
 
+        if (RequiresPdf20FileVersion(profile)) {
+            AddPdf20FileVersionRequirement(requirements, options);
+        }
+
         if (IsPdfA(profile) || IsElectronicInvoice(profile)) {
             AddPdfARequirements(requirements, profile, options, generatedFontSnapshot, generatedFontUsageSnapshot);
         }
@@ -172,24 +176,50 @@ public static partial class PdfComplianceAnalyzer {
         profile == PdfComplianceProfile.PdfA2A ||
         profile == PdfComplianceProfile.PdfA3B ||
         profile == PdfComplianceProfile.PdfA3U ||
-        profile == PdfComplianceProfile.PdfA3A;
+        profile == PdfComplianceProfile.PdfA3A ||
+        profile == PdfComplianceProfile.PdfA4 ||
+        profile == PdfComplianceProfile.PdfA4E ||
+        profile == PdfComplianceProfile.PdfA4F;
 
     private static bool RequiresPdf17FileVersion(PdfComplianceProfile profile) =>
-        IsPdfA(profile) ||
+        profile == PdfComplianceProfile.PdfA2B ||
+        profile == PdfComplianceProfile.PdfA2U ||
+        profile == PdfComplianceProfile.PdfA2A ||
+        profile == PdfComplianceProfile.PdfA3B ||
+        profile == PdfComplianceProfile.PdfA3U ||
+        profile == PdfComplianceProfile.PdfA3A ||
         profile == PdfComplianceProfile.PdfUa1 ||
         IsElectronicInvoice(profile);
+
+    private static bool RequiresPdf20FileVersion(PdfComplianceProfile profile) =>
+        profile == PdfComplianceProfile.PdfA4 ||
+        profile == PdfComplianceProfile.PdfA4E ||
+        profile == PdfComplianceProfile.PdfA4F ||
+        profile == PdfComplianceProfile.PdfUa2;
+
+    private static void AddPdf20FileVersionRequirement(List<PdfComplianceRequirement> requirements, PdfOptions options) {
+        Add(requirements, "pdf-file-version", "PDF 2.0 file header",
+            options.FileVersion == PdfFileVersion.Pdf20,
+            "Generated output is configured for a PDF 2.0 file header.",
+            "Set PdfOptions.FileVersion or PdfDocument.FileVersion(...) to PdfFileVersion.Pdf20 for PDF/A-4 and PDF/UA-2 groundwork.");
+    }
 
     private static bool RequiresUnicodeMapping(PdfComplianceProfile profile) =>
         profile == PdfComplianceProfile.PdfA2U ||
         profile == PdfComplianceProfile.PdfA2A ||
         profile == PdfComplianceProfile.PdfA3U ||
         profile == PdfComplianceProfile.PdfA3A ||
-        profile == PdfComplianceProfile.PdfUa1;
+        profile == PdfComplianceProfile.PdfA4 ||
+        profile == PdfComplianceProfile.PdfA4E ||
+        profile == PdfComplianceProfile.PdfA4F ||
+        profile == PdfComplianceProfile.PdfUa1 ||
+        profile == PdfComplianceProfile.PdfUa2;
 
     private static bool RequiresAccessibility(PdfComplianceProfile profile) =>
         profile == PdfComplianceProfile.PdfA2A ||
         profile == PdfComplianceProfile.PdfA3A ||
-        profile == PdfComplianceProfile.PdfUa1;
+        profile == PdfComplianceProfile.PdfUa1 ||
+        profile == PdfComplianceProfile.PdfUa2;
 
     private static bool IsElectronicInvoice(PdfComplianceProfile profile) =>
         profile == PdfComplianceProfile.FacturX ||
@@ -209,8 +239,16 @@ public static partial class PdfComplianceAnalyzer {
                 return "PDF/A-3u";
             case PdfComplianceProfile.PdfA3A:
                 return "PDF/A-3a";
+            case PdfComplianceProfile.PdfA4:
+                return "PDF/A-4";
+            case PdfComplianceProfile.PdfA4E:
+                return "PDF/A-4e";
+            case PdfComplianceProfile.PdfA4F:
+                return "PDF/A-4f";
             case PdfComplianceProfile.PdfUa1:
                 return "PDF/UA-1";
+            case PdfComplianceProfile.PdfUa2:
+                return "PDF/UA-2";
             case PdfComplianceProfile.FacturX:
                 return "Factur-X";
             case PdfComplianceProfile.Zugferd:

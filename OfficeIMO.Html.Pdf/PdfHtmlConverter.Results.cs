@@ -83,15 +83,15 @@ public static partial class PdfHtmlConverter {
     }
 
     private static LogicalResultSource LoadLogicalResult(byte[] pdf, PdfHtmlSaveOptions options) {
-        return LoadLogicalResult(PdfCore.PdfReadDocument.Load(pdf), options);
+        return LoadLogicalResult(PdfCore.PdfReadDocument.Load(pdf, options.ReadOptions), options);
     }
 
     private static LogicalResultSource LoadLogicalResult(string path, PdfHtmlSaveOptions options) {
-        return LoadLogicalResult(PdfCore.PdfReadDocument.Load(path), options);
+        return LoadLogicalResult(PdfCore.PdfReadDocument.Load(path, options.ReadOptions), options);
     }
 
     private static LogicalResultSource LoadLogicalResult(Stream stream, PdfHtmlSaveOptions options) {
-        return LoadLogicalResult(PdfCore.PdfReadDocument.Load(stream), options);
+        return LoadLogicalResult(PdfCore.PdfReadDocument.Load(stream, options.ReadOptions), options);
     }
 
     private static LogicalResultSource LoadLogicalResult(PdfCore.PdfReadDocument document, PdfHtmlSaveOptions options) {

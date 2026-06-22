@@ -13,7 +13,7 @@ public static partial class PdfComplianceAnalyzer {
 
         bool hasMatchingIdentification = identification != null &&
             identification.Part == target.Part &&
-            (target.Conformance == null || string.Equals(identification.Conformance, target.Conformance, StringComparison.Ordinal));
+            IsPdfAConformanceMatch(identification.Conformance, target.Conformance);
         string expectedIdentification = target.Conformance == null
             ? "PDF/A-" + target.Part.ToString(System.Globalization.CultureInfo.InvariantCulture)
             : "PDF/A-" + target.Part.ToString(System.Globalization.CultureInfo.InvariantCulture) + target.Conformance!.ToLowerInvariant();
@@ -21,6 +21,8 @@ public static partial class PdfComplianceAnalyzer {
             hasMatchingIdentification,
             "PDF/A identification metadata matches " + expectedIdentification + ".",
             "Set PdfOptions.SetPdfAIdentification(...) to " + expectedIdentification + " before claiming this profile.");
+
+        requirements.Add(BuildPdfAEncryptionPolicyRequirement(options));
 
         Add(requirements, "output-intent", "Catalog output intent",
             options.OutputIntent != null,
@@ -36,6 +38,22 @@ public static partial class PdfComplianceAnalyzer {
             "veraPDF validation evidence",
             PdfComplianceRequirementStatus.Unsupported,
             "The optional veraPDF test gate exists for groundwork fixtures, but profile success has not been enabled for generated output."));
+    }
+
+    private static PdfComplianceRequirement BuildPdfAEncryptionPolicyRequirement(PdfOptions options) {
+        if (options.EncryptionSnapshot == null) {
+            return new PdfComplianceRequirement(
+                "pdfa-no-encryption",
+                "PDF/A encryption policy",
+                PdfComplianceRequirementStatus.Satisfied,
+                "No Standard security encryption is configured for the PDF/A-backed output.");
+        }
+
+        return new PdfComplianceRequirement(
+            "pdfa-no-encryption",
+            "PDF/A encryption policy",
+            PdfComplianceRequirementStatus.Missing,
+            "PDF/A-backed profiles cannot be claimed with Standard security encryption. Clear PdfOptions.Encryption before assessing or claiming PDF/A or e-invoice readiness.");
     }
 
     private static PdfComplianceRequirement BuildOutputIntentPolicyRequirement(PdfOptions options) {
@@ -211,11 +229,29 @@ public static partial class PdfComplianceAnalyzer {
                 return (3, "U");
             case PdfComplianceProfile.PdfA3A:
                 return (3, "A");
+            case PdfComplianceProfile.PdfA4:
+                return (4, string.Empty);
+            case PdfComplianceProfile.PdfA4E:
+                return (4, "E");
+            case PdfComplianceProfile.PdfA4F:
+                return (4, "F");
             case PdfComplianceProfile.FacturX:
             case PdfComplianceProfile.Zugferd:
                 return (3, null);
             default:
                 return (0, null);
         }
+    }
+
+    private static bool IsPdfAConformanceMatch(string? actual, string? expected) {
+        if (expected == null) {
+            return true;
+        }
+
+        if (expected.Length == 0) {
+            return string.IsNullOrEmpty(actual);
+        }
+
+        return string.Equals(actual, expected, StringComparison.OrdinalIgnoreCase);
     }
 }
