@@ -45,9 +45,9 @@ public static partial class PdfComplianceAnalyzer {
         }
 
         if (RequiresPdf20FileVersion(profile)) {
-            Add(requirements, "readback-pdf-file-version", "Readback PDF 2.0 file header",
-                string.Equals(info.HeaderVersion, "2.0", StringComparison.Ordinal),
-                "The saved PDF header is PDF 2.0.",
+            Add(requirements, "readback-pdf-file-version", "Readback PDF 2.0 effective version",
+                string.Equals(info.EffectiveVersion, "2.0", StringComparison.Ordinal),
+                "The saved PDF effective version is PDF 2.0.",
                 "Generate the saved PDF with a PDF 2.0 file header before checking PDF/A-4 or PDF/UA-2 profile evidence.");
         }
 
