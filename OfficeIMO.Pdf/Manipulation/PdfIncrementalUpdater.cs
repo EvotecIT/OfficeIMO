@@ -5,7 +5,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Append-only PDF update helpers for changes that can be represented as a new incremental revision.
 /// </summary>
-public static class PdfIncrementalUpdater {
+public static partial class PdfIncrementalUpdater {
     /// <summary>
     /// Analyzes append-only mutation support for a PDF byte array.
     /// </summary>
@@ -124,7 +124,8 @@ public static class PdfIncrementalUpdater {
             blockers.Add("Encrypted");
         }
 
-        if (security.HasSignatures) {
+        bool hasSignatureContent = security.SignatureFieldCount > 0 || security.SignatureCount > 0 || security.HasByteRange;
+        if (hasSignatureContent) {
             blockers.Add("Signed");
         }
 
@@ -156,13 +157,13 @@ public static class PdfIncrementalUpdater {
             warnings.Add("AcroFormAppendOnly");
         }
 
-        string[] supported = blockers.Count == 0 ? new[] { "Metadata" } : Array.Empty<string>();
+        string[] supported = blockers.Count == 0 ? new[] { "Metadata", "FormFill" } : Array.Empty<string>();
         var blocked = new List<string>();
         if (blockers.Count > 0) {
             blocked.Add("Metadata");
+            blocked.Add("FormFill");
         }
 
-        blocked.Add("FormFill");
         blocked.Add("Annotations");
         blocked.Add("PageTree");
         blocked.Add("Attachments");

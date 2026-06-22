@@ -46,6 +46,14 @@ public static class PdfDiagnostics {
                             "Font dictionary does not expose an embedded font file.",
                             indirect.ObjectNumber));
                     }
+
+                    if (font.RequiresToUnicodeReview) {
+                        findings.Add(new PdfDiagnosticFinding(
+                            PdfDiagnosticSeverity.Warning,
+                            "FontToUnicodeReview",
+                            "Composite or identity-encoded font dictionary does not expose a /ToUnicode CMap.",
+                            indirect.ObjectNumber));
+                    }
                 }
             }
         } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
@@ -282,6 +290,11 @@ public static class PdfDiagnostics {
         string? subtype = dictionary.Get<PdfName>("Subtype")?.Name;
         string? baseFont = dictionary.Get<PdfName>("BaseFont")?.Name;
         string? encoding = dictionary.Get<PdfName>("Encoding")?.Name;
+        bool hasToUnicodeMap = dictionary.Items.ContainsKey("ToUnicode");
+        int? toUnicodeObjectNumber = dictionary.Items.TryGetValue("ToUnicode", out PdfObject? toUnicodeObject) &&
+            toUnicodeObject is PdfReference toUnicodeReference
+                ? toUnicodeReference.ObjectNumber
+                : null;
         int? descriptorObjectNumber = null;
         PdfDictionary? descriptor = null;
         if (dictionary.Items.TryGetValue("FontDescriptor", out PdfObject? descriptorObject)) {
@@ -320,6 +333,8 @@ public static class PdfDiagnostics {
             subtype,
             baseFont,
             encoding,
+            hasToUnicodeMap,
+            toUnicodeObjectNumber,
             descriptorObjectNumber,
             embeddedKind is not null,
             embeddedKind);

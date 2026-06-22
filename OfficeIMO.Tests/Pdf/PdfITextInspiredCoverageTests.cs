@@ -15,7 +15,9 @@ public class PdfITextInspiredCoverageTests {
             .ToBytes();
         PdfAppendOnlyMutationReport appendPlan = PdfIncrementalUpdater.AnalyzeAppendOnlyMutation(appendablePdf);
         Assert.True(appendPlan.CanAppendMetadata);
+        Assert.True(appendPlan.CanAppendFormFields);
         Assert.Contains("Metadata", appendPlan.SupportedActions);
+        Assert.Contains("FormFill", appendPlan.SupportedActions);
 
         PdfDocumentInfo info = PdfInspector.Inspect(pdf);
         Assert.Equal(1, info.TextFormFieldCount);
@@ -49,6 +51,7 @@ public class PdfITextInspiredCoverageTests {
         Assert.True(diagnostics.FontCount >= 2);
         Assert.Contains(diagnostics.Fonts, font => font.ObjectNumber == 4 && font.IsStandardBase14Font);
         Assert.Contains(diagnostics.Fonts, font => font.ObjectNumber == 14 && font.HasEmbeddedFontFile && font.EmbeddedFontFileKind == "FontFile2");
+        Assert.Contains(diagnostics.Fonts, font => font.ObjectNumber == 14 && font.RepairReadiness == "Ready");
 
         PdfOptimizationReport optimization = PdfDiagnostics.AnalyzeOptimization(pdf);
         Assert.True(optimization.StreamCount > 0);
@@ -68,7 +71,38 @@ public class PdfITextInspiredCoverageTests {
         Assert.True(proof.RequiresExternalValidation);
         Assert.True(proof.RequiredExternalValidatorCount > 0);
         Assert.Equal("InternalGaps", proof.ProofStatus);
+        Assert.Contains("Missing external validation", proof.ExternalProofSummary, StringComparison.Ordinal);
         Assert.False(proof.CanClaimConformance);
+    }
+
+    [Fact]
+    public void IncrementalUpdater_AppendsSimpleFormFieldRevision() {
+        byte[] pdf = BuildCoveragePdf();
+
+        byte[] updated = PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
+            ["Name"] = "Grace"
+        });
+
+        Assert.True(updated.Length > pdf.Length);
+        PdfDocumentInfo info = PdfInspector.Inspect(updated);
+        PdfFormField field = Assert.Single(info.FormFields);
+        Assert.Equal("Grace", field.Value);
+        Assert.True(info.AcroFormNeedAppearances);
+        Assert.True(info.Security.HasIncrementalUpdates);
+    }
+
+    [Fact]
+    public void PageEditor_SetsProductionBoundaryBoxes() {
+        byte[] pdf = PdfPageGeometrySupport.BuildPageGeometryPdf();
+
+        byte[] updated = PdfPageEditor.SetPageBox(pdf, "TrimBox", 12, 14, 222, 244);
+
+        PdfPageGeometry geometry = PdfInspector.Inspect(updated).Pages[0].Geometry!;
+        Assert.NotNull(geometry.TrimBox);
+        Assert.Equal(12, geometry.TrimBox!.Left);
+        Assert.Equal(14, geometry.TrimBox.Bottom);
+        Assert.Equal(222, geometry.TrimBox.Right);
+        Assert.Equal(244, geometry.TrimBox.Top);
     }
 
     private static byte[] BuildCoveragePdf() {

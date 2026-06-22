@@ -37,6 +37,10 @@ public static class PdfOptimizer {
             CompressUnfilteredStreams(optimizedObjects, effectiveOptions, actions, skippedActions);
         }
 
+        if (effectiveOptions.RemoveUnreferencedObjects) {
+            RemoveUnreferencedObjects(optimizedObjects, catalogObjectNumber, actions);
+        }
+
         byte[] candidate = RewriteAllObjects(optimizedObjects, catalogObjectNumber, pdf);
         PdfOptimizationReport reportAfter = PdfDiagnostics.AnalyzeOptimization(candidate);
         if (effectiveOptions.KeepOriginalWhenNotSmaller && candidate.Length >= pdf.Length) {
@@ -196,6 +200,71 @@ public static class PdfOptimizer {
 
         PdfFileVersion fileVersion = PdfFileAssembler.ParseHeaderVersionOrDefault(PdfSyntax.GetHeaderVersion(sourcePdf));
         return PdfPageExtractor.Assemble(rewritten, numberMap[catalogObjectNumber], infoId, fileVersion);
+    }
+
+    private static void RemoveUnreferencedObjects(
+        Dictionary<int, PdfIndirectObject> objects,
+        int catalogObjectNumber,
+        List<PdfOptimizationAction> actions) {
+        var reachable = new HashSet<int>();
+        CollectReachableObjectNumbers(objects, new PdfReference(catalogObjectNumber, objects[catalogObjectNumber].Generation), reachable);
+        foreach (int objectNumber in objects.Keys.OrderBy(static key => key).ToArray()) {
+            if (reachable.Contains(objectNumber)) {
+                continue;
+            }
+
+            long originalLength = EstimateObjectLength(objects[objectNumber]);
+            objects.Remove(objectNumber);
+            actions.Add(new PdfOptimizationAction(
+                "RemoveUnreferencedObject",
+                objectNumber,
+                originalLength,
+                0,
+                "Removed indirect object that is not reachable from the document catalog."));
+        }
+    }
+
+    private static void CollectReachableObjectNumbers(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfObject? value,
+        HashSet<int> reachable) {
+        if (value is PdfReference reference) {
+            if (!PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) ||
+                !reachable.Add(indirect.ObjectNumber)) {
+                return;
+            }
+
+            CollectReachableObjectNumbers(objects, indirect.Value, reachable);
+            return;
+        }
+
+        if (value is PdfArray array) {
+            for (int i = 0; i < array.Items.Count; i++) {
+                CollectReachableObjectNumbers(objects, array.Items[i], reachable);
+            }
+
+            return;
+        }
+
+        if (value is PdfDictionary dictionary) {
+            foreach (PdfObject child in dictionary.Items.Values) {
+                CollectReachableObjectNumbers(objects, child, reachable);
+            }
+
+            return;
+        }
+
+        if (value is PdfStream stream) {
+            CollectReachableObjectNumbers(objects, stream.Dictionary, reachable);
+        }
+    }
+
+    private static long EstimateObjectLength(PdfIndirectObject indirect) {
+        if (indirect.Value is PdfStream stream) {
+            return stream.Data.LongLength;
+        }
+
+        return 0;
     }
 
     private static int FindCatalogObjectNumber(Dictionary<int, PdfIndirectObject> objects, string trailerRaw) {

@@ -74,6 +74,14 @@ public sealed class PdfComplianceProofReport {
         HasRequiredExternalValidation &&
         FailedExternalValidations.Count == 0;
 
+    /// <summary>True when OfficeIMO.Pdf readiness is complete and the remaining proof work is external validation.</summary>
+    public bool ReadyForExternalValidation =>
+        Profile != PdfComplianceProfile.None &&
+        IsInternallyReady &&
+        RequiresExternalValidation &&
+        !HasRequiredExternalValidation &&
+        FailedExternalValidationCount == 0;
+
     /// <summary>Number of required external validator families.</summary>
     public int RequiredExternalValidatorCount => _requiredExternalValidators.Count;
 
@@ -109,6 +117,25 @@ public sealed class PdfComplianceProofReport {
             }
 
             return "Claimable";
+        }
+    }
+
+    /// <summary>Human-readable external proof summary suitable for command-line output.</summary>
+    public string ExternalProofSummary {
+        get {
+            if (!RequiresExternalValidation) {
+                return "No external validator is required for this profile.";
+            }
+
+            if (FailedExternalValidationCount > 0) {
+                return "External validation failed or errored: " + string.Join(", ", FailedExternalValidations.Select(static result => result.ValidatorName));
+            }
+
+            if (HasRequiredExternalValidation) {
+                return "Required external validators passed.";
+            }
+
+            return "Missing external validation: " + string.Join(", ", MissingExternalValidators.Select(static validator => validator.ToString()));
         }
     }
 

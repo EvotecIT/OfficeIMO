@@ -15,6 +15,7 @@ public class PdfSignatureValidatorTests {
 
         Assert.False(report.HasSignatures);
         Assert.True(report.IsStructurallyValid);
+        Assert.Equal("Unsigned", report.ProofStatus);
         Assert.False(report.CryptographicTrustVerified);
         Assert.Contains(report.Findings, finding => finding.Code == "NoSignatures");
     }
@@ -28,6 +29,8 @@ public class PdfSignatureValidatorTests {
         Assert.True(report.HasWarnings);
         Assert.True(report.RequiresAppendOnlyMutation);
         Assert.True(report.HasLongTermValidationEvidence);
+        Assert.True(report.HasOfflineLongTermValidationReadiness);
+        Assert.Equal("LtvEvidenceReady", report.ProofStatus);
         Assert.False(report.CryptographicTrustVerified);
         Assert.False(report.DigestVerified);
         Assert.False(report.CertificateChainVerified);
@@ -61,6 +64,7 @@ public class PdfSignatureValidatorTests {
 
         Assert.True(report.HasSignatures);
         Assert.False(report.IsStructurallyValid);
+        Assert.Equal("StructuralIssues", report.ProofStatus);
         Assert.Contains(report.Findings, finding => finding.Code == "SignatureUnsupportedByteRangeShape");
         Assert.Contains(report.Findings, finding => finding.Code == "SignatureMissingContents");
     }

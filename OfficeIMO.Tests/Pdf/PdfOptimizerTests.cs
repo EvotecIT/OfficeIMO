@@ -40,6 +40,18 @@ public class PdfOptimizerTests {
     }
 
     [Fact]
+    public void Optimize_RemovesUnreferencedObjects() {
+        byte[] source = BuildPdfWithUnreferencedStream();
+
+        PdfOptimizationActionResult result = PdfOptimizer.Optimize(source);
+
+        Assert.True(result.Applied);
+        Assert.Contains(result.Actions, action => action.Kind == "RemoveUnreferencedObject" && action.ObjectNumber == 6);
+        Assert.True(result.OptimizedLengthBytes < result.OriginalLengthBytes);
+        Assert.DoesNotContain("ORPHAN", PdfEncoding.Latin1GetString(result.Bytes), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Optimize_RejectsSignedPdf() {
         byte[] signed = Encoding.ASCII.GetBytes(string.Join("\n", new[] {
             "%PDF-1.7",
@@ -92,6 +104,44 @@ public class PdfOptimizerTests {
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 6 >>",
+            "startxref",
+            "123",
+            "%%EOF"
+        });
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildPdfWithUnreferencedStream() {
+        string orphan = new string('O', 4096) + "ORPHAN";
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            "endobj",
+            "5 0 obj",
+            "<< /Length 34 >>",
+            "stream",
+            "BT /F1 12 Tf 72 720 Td (Text) Tj ET",
+            "endstream",
+            "endobj",
+            "6 0 obj",
+            "<< /Length " + orphan.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>",
+            "stream",
+            orphan,
+            "endstream",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 7 >>",
             "startxref",
             "123",
             "%%EOF"
