@@ -145,9 +145,9 @@ internal static partial class PdfSyntax {
                 }
 
                 bool isSignatureValue = TryReadName(objects, dictionary, "Type") == "Sig";
-                if (TryCountByteRangeValues(objects, dictionary, out int currentByteRangeValueCount)) {
+                if (TryReadByteRangeValues(objects, dictionary, out IReadOnlyList<long> currentByteRangeValues)) {
                     isSignatureValue = true;
-                    byteRangeValueCount += currentByteRangeValueCount;
+                    byteRangeValueCount += currentByteRangeValues.Count;
                 }
 
                 if (isSignatureValue) {
@@ -158,7 +158,7 @@ internal static partial class PdfSyntax {
                         entry.Key,
                         dictionary,
                         field,
-                        currentByteRangeValueCount));
+                        currentByteRangeValues));
                 }
             }
         } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
@@ -254,8 +254,8 @@ internal static partial class PdfSyntax {
         int objectNumber,
         PdfDictionary dictionary,
         SignatureFieldState? field,
-        int byteRangeValueCount) {
-        bool hasByteRange = byteRangeValueCount > 0;
+        IReadOnlyList<long> byteRangeValues) {
+        bool hasByteRange = byteRangeValues.Count > 0;
         bool hasContents = dictionary.Items.ContainsKey("Contents");
         int? contentsSizeBytes = TryReadContentsSizeBytes(objects, dictionary);
         int referenceCount = TryReadReferenceCount(objects, dictionary);
@@ -274,7 +274,8 @@ internal static partial class PdfSyntax {
             TryReadText(objects, dictionary, "ContactInfo"),
             TryReadText(objects, dictionary, "M"),
             hasByteRange,
-            byteRangeValueCount,
+            byteRangeValues,
+            byteRangeValues.Count,
             hasContents,
             contentsSizeBytes,
             referenceCount);
@@ -602,20 +603,35 @@ internal static partial class PdfSyntax {
         return (int)number.Value;
     }
 
-    private static bool TryCountByteRangeValues(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, out int count) {
-        count = 0;
+    private static bool TryReadByteRangeValues(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, out IReadOnlyList<long> values) {
+        values = Array.Empty<long>();
         if (!dictionary.Items.TryGetValue("ByteRange", out PdfObject? byteRangeObject) ||
             ResolveObject(objects, byteRangeObject) is not PdfArray byteRange) {
             return false;
         }
 
+        var ranges = new List<long>(byteRange.Items.Count);
         for (int i = 0; i < byteRange.Items.Count; i++) {
-            if (ResolveObject(objects, byteRange.Items[i]) is PdfNumber) {
-                count++;
+            if (ResolveObject(objects, byteRange.Items[i]) is PdfNumber number &&
+                TryToInt64(number, out long value)) {
+                ranges.Add(value);
             }
         }
 
-        return count > 0;
+        values = ranges.Count == 0 ? Array.Empty<long>() : ranges.AsReadOnly();
+        return ranges.Count > 0;
+    }
+
+    private static bool TryToInt64(PdfNumber number, out long value) {
+        value = 0;
+        if (number.Value < long.MinValue ||
+            number.Value > long.MaxValue ||
+            Math.Truncate(number.Value) != number.Value) {
+            return false;
+        }
+
+        value = (long)number.Value;
+        return true;
     }
 
     private static int? TryReadContentsSizeBytes(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary) {

@@ -18,6 +18,7 @@ public sealed class PdfSignatureInfo {
         string? contactInfo,
         string? signingTimeRaw,
         bool hasByteRange,
+        IReadOnlyList<long> byteRangeValues,
         int byteRangeValueCount,
         bool hasContents,
         int? contentsSizeBytes,
@@ -35,6 +36,7 @@ public sealed class PdfSignatureInfo {
         ContactInfo = contactInfo;
         SigningTimeRaw = signingTimeRaw;
         HasByteRange = hasByteRange;
+        ByteRangeValues = byteRangeValues;
         ByteRangeValueCount = byteRangeValueCount;
         HasContents = hasContents;
         ContentsSizeBytes = contentsSizeBytes;
@@ -85,6 +87,9 @@ public sealed class PdfSignatureInfo {
 
     /// <summary>True when the signature dictionary contains a readable /ByteRange array.</summary>
     public bool HasByteRange { get; }
+
+    /// <summary>Exact numeric values read from the signature dictionary /ByteRange array.</summary>
+    public IReadOnlyList<long> ByteRangeValues { get; }
 
     /// <summary>Number of numeric values found in the signature dictionary /ByteRange array.</summary>
     public int ByteRangeValueCount { get; }
