@@ -141,7 +141,7 @@ public static partial class PdfRedactionApplier {
 
             PdfRedactionArea[] paintAreas = SelectPaintAreas(pageAreas ?? Array.Empty<PdfRedactionArea>(), currentMatches, options);
             if (paintAreas.Length > 0) {
-                IsolateExistingPageContents(objects, pageDictionary);
+                IsolateExistingPageContents(objects, pageDictionary, ref nextObjectNumber);
                 int contentObjectNumber = nextObjectNumber++;
                 objects[contentObjectNumber] = new PdfIndirectObject(contentObjectNumber, 0, BuildRedactionContentStream(paintAreas, options.FillColor));
                 AppendPageContent(objects, pageDictionary, contentObjectNumber);
@@ -428,22 +428,29 @@ public static partial class PdfRedactionApplier {
         yield return contents;
     }
 
-    private static void IsolateExistingPageContents(Dictionary<int, PdfIndirectObject> objects, PdfDictionary pageDictionary) {
+    private static void IsolateExistingPageContents(Dictionary<int, PdfIndirectObject> objects, PdfDictionary pageDictionary, ref int nextObjectNumber) {
         if (!pageDictionary.Items.TryGetValue("Contents", out PdfObject? contentsObject)) {
             return;
         }
 
-        foreach (PdfReference reference in EnumerateContentReferences(objects, contentsObject)) {
-            if (!PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) ||
-                indirect.Value is not PdfStream stream ||
-                stream.DecodingFailed) {
-                continue;
-            }
-
-            string content = PdfEncoding.Latin1GetString(StreamDecoder.Decode(stream.Dictionary, stream.Data, objects));
-            string isolated = "q\n" + content + "\nQ\n";
-            objects[reference.ObjectNumber] = new PdfIndirectObject(reference.ObjectNumber, reference.Generation, new PdfStream(CleanStreamDictionary(stream.Dictionary), PdfEncoding.Latin1GetBytes(isolated)));
+        PdfObject[] originalContents = EnumerateContentObjects(objects, contentsObject).ToArray();
+        if (originalContents.Length == 0) {
+            return;
         }
+
+        int saveStateObjectNumber = nextObjectNumber++;
+        int restoreStateObjectNumber = nextObjectNumber++;
+        objects[saveStateObjectNumber] = new PdfIndirectObject(saveStateObjectNumber, 0, new PdfStream(new PdfDictionary(), PdfEncoding.Latin1GetBytes("q\n")));
+        objects[restoreStateObjectNumber] = new PdfIndirectObject(restoreStateObjectNumber, 0, new PdfStream(new PdfDictionary(), PdfEncoding.Latin1GetBytes("\nQ\n")));
+
+        var isolatedContents = new PdfArray();
+        isolatedContents.Items.Add(new PdfReference(saveStateObjectNumber, 0));
+        for (int i = 0; i < originalContents.Length; i++) {
+            isolatedContents.Items.Add(originalContents[i]);
+        }
+
+        isolatedContents.Items.Add(new PdfReference(restoreStateObjectNumber, 0));
+        pageDictionary.Items["Contents"] = isolatedContents;
     }
 
     private static PdfDictionary CleanStreamDictionary(PdfDictionary source) {

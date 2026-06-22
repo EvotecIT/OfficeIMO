@@ -45,8 +45,8 @@ public static partial class PdfComplianceAnalyzer {
 
         if (RequiresPdf17FileVersion(profile)) {
             Add(requirements, "readback-pdf-file-version", "Readback effective PDF 1.7 version",
-                ComparePdfVersion(info.EffectiveVersion, "1.7") >= 0,
-                "The saved PDF effective version is PDF 1.7 or newer.",
+                ComparePdfVersion(info.EffectiveVersion, "1.7") == 0,
+                "The saved PDF effective version is PDF 1.7.",
                 "Generate the saved PDF with a PDF 1.7 header or catalog /Version before checking PDF/A-2, PDF/A-3, PDF/UA-1, or e-invoice profile evidence.");
         }
 

@@ -135,9 +135,24 @@ public class PdfRedactionApplierTests {
         byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
         string raw = PdfEncoding.Latin1GetString(redacted);
 
-        Assert.Contains("q\nq\n0 0 1 1 re W n", raw, StringComparison.Ordinal);
+        Assert.Contains("\nq\n", raw, StringComparison.Ordinal);
+        Assert.Contains("0 0 1 1 re W n", raw, StringComparison.Ordinal);
         Assert.Contains("\nQ\n", raw, StringComparison.Ordinal);
         Assert.Contains("40 40 80 24 re", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Apply_IsolatesContentArrayAsSingleSequenceBeforeOverlay() {
+        byte[] source = BuildSplitContentStateRedactionSource();
+        var area = new PdfRedactionArea(1, 40, 40, 80, 24, "manual");
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
+        string raw = PdfEncoding.Latin1GetString(redacted);
+
+        Assert.Contains("\nq\n", raw, StringComparison.Ordinal);
+        Assert.Contains("\nQ\n", raw, StringComparison.Ordinal);
+        Assert.Contains("/F1 12 Tf", raw, StringComparison.Ordinal);
+        Assert.Contains("(Visible split text) Tj", raw, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -353,6 +368,19 @@ public class PdfRedactionApplierTests {
             "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 5 0 R >>\nendobj",
             "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
             BuildStreamObject(5, Encoding.ASCII.GetBytes(streamContent))
+        };
+
+        return BuildPdf(objects, rootObjectNumber: 1);
+    }
+
+    private static byte[] BuildSplitContentStateRedactionSource() {
+        var objects = new[] {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents [5 0 R 6 0 R] >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
+            BuildStreamObject(5, Encoding.ASCII.GetBytes("/F1 12 Tf")),
+            BuildStreamObject(6, Encoding.ASCII.GetBytes("72 720 Td (Visible split text) Tj"))
         };
 
         return BuildPdf(objects, rootObjectNumber: 1);

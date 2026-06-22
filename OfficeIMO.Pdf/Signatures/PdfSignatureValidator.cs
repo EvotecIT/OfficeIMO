@@ -128,9 +128,9 @@ public static class PdfSignatureValidator {
         }
 
         if (gapLength.HasValue &&
-            signature.ContentsSizeBytes.HasValue &&
-            gapLength.Value != (signature.ContentsSizeBytes.Value * 2L) + 2L) {
-            AddSignatureFinding(findings, signature, PdfDiagnosticSeverity.Error, "SignatureByteRangeContentsGapMismatch", "Signature /ByteRange gap does not match the full /Contents hex literal length.");
+            signature.ContentsEncodedSizeBytes.HasValue &&
+            gapLength.Value != signature.ContentsEncodedSizeBytes.Value) {
+            AddSignatureFinding(findings, signature, PdfDiagnosticSeverity.Error, "SignatureByteRangeContentsGapMismatch", "Signature /ByteRange gap does not match the full /Contents token span.");
         }
 
         if (string.IsNullOrEmpty(signature.Filter)) {

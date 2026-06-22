@@ -263,7 +263,16 @@ internal static partial class PdfSyntax {
         xrefStreams.Sort(static (left, right) => left.Offset.CompareTo(right.Offset));
         var activeChainOffsets = GetXrefStreamChainOffsets(xrefStreams, activeXrefOffset);
         if (activeChainOffsets.Count == 0) {
-            return false;
+            activeChainOffsets = GetClassicXrefTableChain(text, activeXrefOffset)
+                .Select(static table => table.XrefStreamOffset)
+                .Where(static offset => offset.HasValue)
+                .Select(static offset => offset!.Value)
+                .Distinct()
+                .OrderBy(static offset => offset)
+                .ToList();
+            if (activeChainOffsets.Count == 0) {
+                return false;
+            }
         }
 
         bool applied = false;

@@ -71,6 +71,18 @@ public class PdfSignatureValidatorTests {
     }
 
     [Fact]
+    public void Validate_ComparesByteRangeGapWithActualContentsTokenSpan() {
+        PdfSignatureValidationReport report = PdfSignatureValidator.Validate(BuildSignedPdfWithWhitespaceContentsGap());
+
+        PdfSignatureValidationResult result = Assert.Single(report.Signatures);
+        Assert.Equal(10, result.ByteRangeGapLength);
+        Assert.Equal(3, result.Signature.ContentsSizeBytes);
+        Assert.Equal(10, result.Signature.ContentsEncodedSizeBytes);
+        Assert.True(result.ByteRangeGapMatchesContents);
+        Assert.DoesNotContain(report.Findings, finding => finding.Code == "SignatureByteRangeContentsGapMismatch");
+    }
+
+    [Fact]
     public void Validate_FlagsMalformedSignatureByteRange() {
         PdfSignatureValidationReport report = PdfSignatureValidator.Validate(BuildMalformedSignaturePdf());
 
@@ -371,6 +383,37 @@ public class PdfSignatureValidatorTests {
             "endobj",
             "6 0 obj",
             "<< /Type /Sig /Filter /Adobe.PPKLite /SubFilter /adbe.pkcs7.detached /ByteRange [0 10 18 30] /Contents <001122> >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 7 >>",
+            "startxref",
+            "123",
+            "%%EOF"
+        });
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildSignedPdfWithWhitespaceContentsGap() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] >>",
+            "endobj",
+            "4 0 obj",
+            "<< /FT /Sig /T (Approval) /V 6 0 R >>",
+            "endobj",
+            "5 0 obj",
+            "<< /Fields [4 0 R] /SigFlags 1 >>",
+            "endobj",
+            "6 0 obj",
+            "<< /Type /Sig /Filter /Adobe.PPKLite /SubFilter /adbe.pkcs7.detached /ByteRange [0 10 20 30] /Contents <00 11\n22> >>",
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 7 >>",
