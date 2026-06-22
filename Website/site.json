@@ -373,6 +373,7 @@
             ]
           },
           { "Title": "Docs", "Url": "/docs/" },
+          { "Title": "Playground", "Url": "/playground/" },
           { "Title": "Blog", "Url": "/blog/" },
           {
             "Title": "API",
@@ -442,6 +443,7 @@
           { "Title": "Changelog", "Url": "/changelog/" },
           { "Title": "Benchmarks", "Url": "/benchmarks/" },
           { "Title": "Comparison", "Url": "/comparison/" },
+          { "Title": "Playground", "Url": "/playground/" },
           { "Title": "Pricing", "Url": "/pricing/" },
           { "Title": "Showcase", "Url": "/showcase/" },
           { "Title": "Blog", "Url": "/blog/" }

@@ -14,8 +14,8 @@ public partial class PdfInspectorTests {
         Assert.True(report.Probe.HasEncryption);
         Assert.Null(report.DocumentInfo);
         Assert.True(report.HasSecurityDiagnostics);
-        AssertReadBlocker(report, PdfReadBlockerKind.Encryption, "Encrypted PDF files are not supported by OfficeIMO.Pdf yet.");
-        AssertRewriteBlocker(report, PdfRewriteBlockerKind.Encryption, "Encrypted PDF files are not supported by OfficeIMO.Pdf yet.");
+        AssertReadBlocker(report, PdfReadBlockerKind.Encryption, "PDF encryption dictionary is missing /O.");
+        AssertRewriteBlocker(report, PdfRewriteBlockerKind.Encryption, "Encrypted PDF files can be read when the password is valid, but rewriting encrypted PDFs is not supported yet.");
 
         PdfDocumentSecurityInfo security = report.Probe.Security;
         Assert.True(security.HasEncryption);

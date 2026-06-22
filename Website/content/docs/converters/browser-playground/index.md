@@ -2,6 +2,7 @@
 title: Browser Conversion Playground
 description: Static Blazor WebAssembly conversion path for OfficeIMO.com and GitHub Pages-style hosting.
 order: 90
+meta.head_html: '<link rel="alternate" hreflang="en" href="https://officeimo.com/docs/converters/browser-playground/" /><link rel="alternate" hreflang="x-default" href="https://officeimo.com/docs/converters/browser-playground/" />'
 ---
 
 The OfficeIMO browser conversion playground is a lightweight static route picker backed by a Blazor WebAssembly converter hosted by OfficeIMO.com. The page shows live and planned conversion routes immediately, then loads the WebAssembly engine only when a live route is selected.

@@ -2,6 +2,7 @@
 title: "Conversion Playground"
 description: "Choose OfficeIMO conversion routes immediately, then load the WebAssembly engine only when a route is used."
 layout: playground
+meta.head_html: '<link rel="alternate" hreflang="en" href="https://officeimo.com/playground/" /><link rel="alternate" hreflang="x-default" href="https://officeimo.com/playground/" />'
 ---
 
 <section class="ocx-launcher ocx-launcher--routes" data-ocx-launcher aria-label="OfficeIMO Browser Converter">
