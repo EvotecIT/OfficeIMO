@@ -205,8 +205,17 @@ public static class PdfAnnotationEditor {
     }
 
     private static void ValidateUpdateOptions(PdfAnnotationUpdateOptions options) {
-        if (options.Color is not null && options.Color.Count != 3) {
-            throw new ArgumentException("Color must contain exactly three RGB values.", nameof(options));
+        if (options.Color is not null) {
+            if (options.Color.Count != 3) {
+                throw new ArgumentException("Color must contain exactly three RGB values.", nameof(options));
+            }
+
+            for (int i = 0; i < options.Color.Count; i++) {
+                double component = options.Color[i];
+                if (double.IsNaN(component) || double.IsInfinity(component)) {
+                    throw new ArgumentException("Color values must be finite RGB components.", nameof(options));
+                }
+            }
         }
 
         if (options.Contents is null &&

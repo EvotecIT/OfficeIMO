@@ -11,7 +11,7 @@ internal static partial class PdfSyntax {
     private static readonly Regex ObjectHeaderTemplateRegex = new Regex(@"^\s*(\d+)\s+(\d+)\s+obj\b", RegexOptions.Compiled, RegexTimeout);
 #endif
 
-    internal static PdfDocumentSecurityInfo ReadDocumentSecurityInfo(byte[] pdf) {
+    internal static PdfDocumentSecurityInfo ReadDocumentSecurityInfo(byte[] pdf, PdfReadOptions? options = null) {
         Guard.NotNull(pdf, nameof(pdf));
 
         string text = PdfEncoding.Latin1GetString(pdf);
@@ -71,7 +71,7 @@ internal static partial class PdfSyntax {
         PdfDocumentDssInfo documentSecurityStore = PdfDocumentDssInfo.Empty;
 
         try {
-            var (objects, trailerRaw) = ParseObjects(pdf);
+            var (objects, trailerRaw) = ParseObjects(pdf, options);
             rootReference = TryReadLastReference(trailerRaw, "Root");
             if (rootReference is not null) {
                 rootObjectNumber = rootReference.ObjectNumber;

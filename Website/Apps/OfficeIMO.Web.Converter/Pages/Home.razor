@@ -485,8 +485,9 @@ This **Markdown** is rendered by `OfficeIMO.MarkdownRenderer`.
         }
     }
 
-    private void LoadMarkdownSample() {
+    private async Task LoadMarkdownSample() {
         ActiveWorkspace = Workspace.TextBridge;
+        await ResetMarkupAsync();
         MarkupMode = "markdown-html";
         MarkupInput = DefaultMarkdown;
         MarkupOutput = "Run Markdown to HTML, HTML to Markdown, or Markdown to DOCX.";
@@ -494,8 +495,9 @@ This **Markdown** is rendered by `OfficeIMO.MarkdownRenderer`.
         MarkupDiagnostics.Add(new ConverterDiagnostic("Sample loaded", "Markdown sample is ready for local conversion.", "ocx-dot--good"));
     }
 
-    private void LoadHtmlSample() {
+    private async Task LoadHtmlSample() {
         ActiveWorkspace = Workspace.TextBridge;
+        await ResetMarkupAsync();
         MarkupMode = "html-markdown";
         MarkupInput = DefaultHtml;
         MarkupOutput = "Run HTML to Markdown to see portable Markdown output.";

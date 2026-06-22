@@ -307,6 +307,17 @@ public class PdfITextInspiredCoverageTests {
     }
 
     [Fact]
+    public void AnnotationEditor_UpdateRejectsNonFiniteColorComponents() {
+        byte[] pdf = BuildAnnotationEditPdf();
+
+        var exception = Assert.Throws<ArgumentException>(() => PdfAnnotationEditor.UpdateAnnotation(pdf, 6, new PdfAnnotationUpdateOptions {
+            Color = new[] { 0D, double.NaN, 1D }
+        }));
+
+        Assert.Contains("finite RGB", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void AnnotationEditor_RemovesDirectAnnotationDictionaries() {
         byte[] pdf = BuildDirectAnnotationPdf();
 
