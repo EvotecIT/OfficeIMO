@@ -36,10 +36,10 @@ namespace OfficeIMO.Word.Pdf {
                     RenderNativeShape(pdf, shape);
                     break;
                 case WordCoverPage coverPage:
-                    RenderNativeCoverPage(pdf, coverPage, activeSection, getMarker, footnoteNumbersById, options, tableOfContentsEntries, headingDestinations, contentWidth, nativeDefaults);
+                    RenderNativeCoverPage(pdf, coverPage, activeSection, getMarker, footnoteNumbersById, options, tableOfContentsEntries, headingDestinations, contentWidth, nativeDefaults, nativeFontMap);
                     break;
                 case WordStructuredDocumentTag structuredDocumentTag:
-                    RenderNativeStructuredDocumentTag(pdf, structuredDocumentTag, activeSection, getMarker, footnoteNumbersById, options, tableOfContentsEntries, headingDestinations, contentWidth, nativeDefaults);
+                    RenderNativeStructuredDocumentTag(pdf, structuredDocumentTag, activeSection, getMarker, footnoteNumbersById, options, tableOfContentsEntries, headingDestinations, contentWidth, nativeDefaults, nativeFontMap);
                     break;
                 case WordWatermark:
                     break;
