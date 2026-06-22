@@ -4,7 +4,7 @@ description: Static Blazor WebAssembly conversion path for OfficeIMO.com and Git
 order: 90
 ---
 
-The OfficeIMO browser conversion playground is planned as a static Blazor WebAssembly app hosted by OfficeIMO.com. It should convert user-selected files locally in the browser and return downloadable output without sending document contents to a server.
+The OfficeIMO browser conversion playground is a static Blazor WebAssembly app hosted by OfficeIMO.com. It converts user-selected files locally in the browser and returns downloadable PDF output without sending document contents to a server.
 
 ## Boundary
 
@@ -23,16 +23,18 @@ It should not require:
 - Redis, queues, databases, or background jobs;
 - private server storage.
 
-## Initial Scope
+## Current Scope
 
-The first useful version should support:
+The current version supports:
 
 - DOCX to PDF;
 - XLSX to PDF;
 - PPTX to PDF;
 - structured diagnostics for unsupported features, font gaps, and large files.
 
-The current proof shows basic DOCX, XLSX, and PPTX conversion can produce `%PDF` bytes inside the browser runtime. A richer Word fixture still exposes a Unicode/font embedding gap, so diagnostics need to be part of the first public surface.
+The playground includes small built-in DOCX, XLSX, and PPTX samples so browser smoke tests can prove conversion without uploading local files. User-selected files still use the same byte and stream conversion path.
+
+Basic DOCX, XLSX, and PPTX conversion can produce `%PDF` bytes inside the browser runtime. A richer Word fixture still exposes a Unicode/font embedding gap, so diagnostics remain part of the public surface.
 
 ## Static Mount
 
@@ -48,14 +50,15 @@ The public URL should be:
 /apps/officeimo-converter/
 ```
 
-The website page at `/playground/` can introduce the feature and link to the mounted app when the Blazor build is ready.
+The website page at `/playground/` embeds the mounted app under the OfficeIMO site chrome.
 
 ## Validation
 
 Before publishing a playground build:
 
 ```powershell
-dotnet publish <BlazorWasmProject>.csproj -c Release
+dotnet build Website\Apps\OfficeIMO.Web.Converter\OfficeIMO.Web.Converter.csproj -c Release
+dotnet publish Website\Apps\OfficeIMO.Web.Converter\OfficeIMO.Web.Converter.csproj -c Release -o Website\_temp\officeimo-converter-publish
 ```
 
 Then verify in a real browser:

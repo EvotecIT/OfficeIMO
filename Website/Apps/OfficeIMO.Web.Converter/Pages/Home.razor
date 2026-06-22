@@ -1,0 +1,340 @@
+@page "/"
+@using System.Diagnostics
+@using OfficeIMO.Excel
+@using OfficeIMO.Excel.Pdf
+@using OfficeIMO.PowerPoint
+@using OfficeIMO.PowerPoint.Pdf
+@using OfficeIMO.Word
+@using OfficeIMO.Word.Pdf
+@inject HttpClient Http
+@inject IJSRuntime JS
+
+<PageTitle>OfficeIMO Browser Converter</PageTitle>
+
+<main class="ocx-shell">
+    <div class="ocx-container">
+        <section class="ocx-hero">
+            <div>
+                <p class="ocx-eyebrow">OfficeIMO WebAssembly</p>
+                <h1 class="ocx-title">Convert Office files to PDF in your browser.</h1>
+                <p class="ocx-lede">Drop in a DOCX, XLSX, or PPTX file. OfficeIMO opens the package locally, calls its first-party PDF engine, and gives you a PDF download without Office, LibreOffice, a server, or native graphics dependencies.</p>
+                <div class="ocx-hero-actions">
+                    <label class="ocx-button ocx-button--primary">
+                        Choose file
+                        <InputFile class="ocx-hidden-input" OnChange="HandleFileSelectedAsync" accept=".docx,.xlsx,.pptx" />
+                    </label>
+                    <button class="ocx-button" disabled="@(!CanConvert)" @onclick="ConvertAsync">Convert to PDF</button>
+                </div>
+                <div class="ocx-sample-grid" aria-label="Sample documents">
+                    @foreach (SampleDocument sample in Samples) {
+                        <button type="button" @onclick="() => LoadSampleAsync(sample)">@sample.Label</button>
+                    }
+                </div>
+            </div>
+
+            <div class="ocx-status-strip" aria-label="Conversion status">
+                <div class="ocx-status-card">
+                    <span class="ocx-status-label">Runtime</span>
+                    <span class="ocx-status-value">Static WASM</span>
+                </div>
+                <div class="ocx-status-card">
+                    <span class="ocx-status-label">Privacy</span>
+                    <span class="ocx-status-value">Local only</span>
+                </div>
+                <div class="ocx-status-card">
+                    <span class="ocx-status-label">Output</span>
+                    <span class="ocx-status-value">@OutputStatus</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="ocx-workbench">
+            <div class="ocx-panel">
+                <h2>Source document</h2>
+
+                <label class="ocx-dropzone">
+                    <InputFile class="ocx-hidden-input" OnChange="HandleFileSelectedAsync" accept=".docx,.xlsx,.pptx" />
+                    <span class="ocx-dropzone-inner">
+                        <span class="ocx-drop-icon">PDF</span>
+                        <strong>@(SelectedFile is null ? "Choose a DOCX, XLSX, or PPTX file" : SelectedFile.Name)</strong>
+                        <span>@(SelectedFile is null ? "Files stay in this browser session." : $"{SelectedFile.FormatLabel} - {FormatBytes(SelectedFile.Size)}")</span>
+                    </span>
+                </label>
+
+                <div class="ocx-field">
+                    <label class="ocx-label" for="profile">Conversion profile</label>
+                    <select id="profile" @bind="Profile">
+                        <option value="balanced">Balanced fidelity</option>
+                        <option value="fast">Fast preview</option>
+                    </select>
+                    <p class="ocx-hint">Fast preview limits Excel rows per sheet. Balanced fidelity keeps the converter defaults.</p>
+                </div>
+
+                <div class="ocx-checks">
+                    <label><input type="checkbox" @bind="IncludeDiagnostics" /> Include conversion warnings on screen</label>
+                    <label><input type="checkbox" @bind="PreviewPdf" /> Preview PDF after conversion</label>
+                </div>
+
+                <div class="ocx-matrix">
+                    <div class="ocx-matrix-item">
+                        <strong>DOCX</strong>
+                        <span>Works for simple Word files. Rich documents can still hit the Unicode font embedding gap.</span>
+                    </div>
+                    <div class="ocx-matrix-item">
+                        <strong>XLSX</strong>
+                        <span>Uses workbook byte streams and the OfficeIMO.Excel.Pdf engine.</span>
+                    </div>
+                    <div class="ocx-matrix-item">
+                        <strong>PPTX</strong>
+                        <span>Uses presentation byte streams and the OfficeIMO.PowerPoint.Pdf engine.</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ocx-preview-column">
+                <div class="ocx-output">
+                    <div class="ocx-output-head">
+                        <h2>PDF output</h2>
+                        @if (!string.IsNullOrEmpty(PdfUrl)) {
+                            <a class="ocx-button ocx-button--primary" href="@PdfUrl" download="@OutputFileName">Download PDF</a>
+                        }
+                    </div>
+
+                    <div class="ocx-output-stage">
+                        @if (!string.IsNullOrEmpty(PdfUrl) && PreviewPdf) {
+                            <iframe class="ocx-pdf-preview" src="@PdfUrl" title="Converted PDF preview"></iframe>
+                        } else {
+                            <div class="ocx-file-card">
+                                <p class="ocx-file-title">@StageTitle</p>
+                                <p class="ocx-muted">@StageMessage</p>
+                                @if (SelectedFile is not null) {
+                                    <div class="ocx-file-meta">
+                                        <span class="ocx-chip ocx-chip--cold">@SelectedFile.FormatLabel</span>
+                                        <span class="ocx-chip">@FormatBytes(SelectedFile.Size)</span>
+                                        <span class="ocx-chip @(IsBusy ? "ocx-chip--warn" : PdfBytes is null ? "" : "ocx-chip--good")">@OutputStatus</span>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+
+                    @if (IncludeDiagnostics) {
+                        <div class="ocx-diagnostics">
+                            @foreach (var item in Diagnostics) {
+                                <div class="ocx-diagnostic">
+                                    <span class="ocx-dot @item.DotClass"></span>
+                                    <div>
+                                        <strong>@item.Title</strong>
+                                        <span>@item.Message</span>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+
+                <div class="ocx-code-card">
+                    <h2>Engine path</h2>
+                    <pre><code>@EnginePath</code></pre>
+                </div>
+            </div>
+        </section>
+    </div>
+</main>
+
+@code {
+    private const long MaxUploadBytes = 25L * 1024L * 1024L;
+
+    private SelectedOfficeFile? SelectedFile { get; set; }
+    private byte[]? PdfBytes { get; set; }
+    private string? PdfUrl { get; set; }
+    private string OutputFileName { get; set; } = "officeimo-output.pdf";
+    private string Profile { get; set; } = "balanced";
+    private bool IncludeDiagnostics { get; set; } = true;
+    private bool PreviewPdf { get; set; } = true;
+    private bool IsBusy { get; set; }
+    private List<ConverterDiagnostic> Diagnostics { get; } = new();
+    private static IReadOnlyList<SampleDocument> Samples { get; } = [
+        new SampleDocument("Sample DOCX", "samples/basic.docx", "OfficeIMO-Basic.docx", ".docx"),
+        new SampleDocument("Sample XLSX", "samples/basic.xlsx", "OfficeIMO-Basic.xlsx", ".xlsx"),
+        new SampleDocument("Sample PPTX", "samples/basic.pptx", "OfficeIMO-Basic.pptx", ".pptx")
+    ];
+
+    private bool CanConvert => SelectedFile is not null && IsSupported(SelectedFile.Extension) && !IsBusy;
+    private string OutputStatus => IsBusy ? "Converting" : PdfBytes is null ? "Waiting" : "Ready";
+    private string StageTitle => IsBusy ? "Converting..." : PdfBytes is null ? "No PDF yet" : OutputFileName;
+    private string StageMessage => IsBusy
+        ? "OfficeIMO is converting the document inside WebAssembly."
+        : PdfBytes is null
+            ? "Choose a supported file, then convert it to generate a local PDF download."
+            : $"Generated {FormatBytes(PdfBytes.Length)}.";
+
+    private string EnginePath => SelectedFile?.Extension switch {
+        ".docx" => "WordDocument.Load(stream).SaveAsPdf(options)",
+        ".xlsx" => "ExcelDocument.Load(stream).SaveAsPdf(options)",
+        ".pptx" => "PowerPointPresentation.Open(stream).SaveAsPdf(options)",
+        _ => "Select a DOCX, XLSX, or PPTX file."
+    };
+
+    private async Task HandleFileSelectedAsync(InputFileChangeEventArgs args) {
+        await ResetPdfAsync();
+        Diagnostics.Clear();
+
+        IBrowserFile file = args.File;
+        string extension = Path.GetExtension(file.Name).ToLowerInvariant();
+        if (!IsSupported(extension)) {
+            SelectedFile = null;
+            Diagnostics.Add(new ConverterDiagnostic("Unsupported format", "Choose a DOCX, XLSX, or PPTX file.", "ocx-dot--bad"));
+            return;
+        }
+
+        try {
+            await using Stream source = file.OpenReadStream(MaxUploadBytes);
+            using var buffer = new MemoryStream();
+            await source.CopyToAsync(buffer);
+            SelectedFile = new SelectedOfficeFile(file.Name, extension, FormatLabel(extension), file.Size, buffer.ToArray());
+            OutputFileName = Path.GetFileNameWithoutExtension(file.Name) + ".pdf";
+            Diagnostics.Add(new ConverterDiagnostic("File loaded", $"{file.Name} is ready for local conversion.", "ocx-dot--good"));
+        } catch (IOException ex) {
+            SelectedFile = null;
+            Diagnostics.Add(new ConverterDiagnostic("File is too large", $"The playground limit is {FormatBytes(MaxUploadBytes)}. {ex.Message}", "ocx-dot--bad"));
+        } catch (Exception ex) {
+            SelectedFile = null;
+            Diagnostics.Add(new ConverterDiagnostic("File load failed", ex.Message, "ocx-dot--bad"));
+        }
+    }
+
+    private async Task LoadSampleAsync(SampleDocument sample) {
+        await ResetPdfAsync();
+        Diagnostics.Clear();
+
+        try {
+            byte[] bytes = await Http.GetByteArrayAsync(sample.Path);
+            SelectedFile = new SelectedOfficeFile(sample.FileName, sample.Extension, FormatLabel(sample.Extension), bytes.LongLength, bytes);
+            OutputFileName = Path.GetFileNameWithoutExtension(sample.FileName) + ".pdf";
+            Diagnostics.Add(new ConverterDiagnostic("Sample loaded", $"{sample.FileName} is ready for local conversion.", "ocx-dot--good"));
+        } catch (Exception ex) {
+            SelectedFile = null;
+            Diagnostics.Add(new ConverterDiagnostic("Sample load failed", ex.Message, "ocx-dot--bad"));
+        }
+    }
+
+    private async Task ConvertAsync() {
+        if (SelectedFile is null || IsBusy) {
+            return;
+        }
+
+        IsBusy = true;
+        await ResetPdfAsync();
+        Diagnostics.RemoveAll(item => item.Title is "Conversion complete" or "Conversion failed" or "PDF validation");
+        var stopwatch = Stopwatch.StartNew();
+
+        try {
+            ConversionOutput output = SelectedFile.Extension switch {
+                ".docx" => ConvertWord(SelectedFile),
+                ".xlsx" => ConvertExcel(SelectedFile),
+                ".pptx" => ConvertPowerPoint(SelectedFile),
+                _ => throw new NotSupportedException("Unsupported file extension.")
+            };
+
+            stopwatch.Stop();
+            PdfBytes = output.Bytes;
+            if (!LooksLikePdf(PdfBytes)) {
+                throw new InvalidDataException("The conversion returned bytes that do not start with a PDF header.");
+            }
+
+            PdfUrl = await JS.InvokeAsync<string>("officeimoConverter.createObjectUrl", PdfBytes, "application/pdf");
+            Diagnostics.Add(new ConverterDiagnostic("Conversion complete", $"Generated {FormatBytes(PdfBytes.Length)} in {stopwatch.ElapsedMilliseconds} ms.", "ocx-dot--good"));
+            Diagnostics.Add(new ConverterDiagnostic("PDF validation", "The output starts with the %PDF header.", "ocx-dot--good"));
+
+            foreach (string warning in output.Warnings.Take(8)) {
+                Diagnostics.Add(new ConverterDiagnostic("Conversion warning", warning, "ocx-dot--warn"));
+            }
+        } catch (Exception ex) {
+            PdfBytes = null;
+            Diagnostics.Add(new ConverterDiagnostic("Conversion failed", DescribeFailure(ex), "ocx-dot--bad"));
+        } finally {
+            IsBusy = false;
+        }
+    }
+
+    private static ConversionOutput ConvertWord(SelectedOfficeFile file) {
+        using var stream = new MemoryStream(file.Bytes, writable: false);
+        using WordDocument document = WordDocument.Load(stream, readOnly: true);
+        var options = new PdfSaveOptions {
+            Title = Path.GetFileNameWithoutExtension(file.Name),
+            IncludePageNumbers = true
+        };
+
+        byte[] bytes = document.SaveAsPdf(options);
+        return new ConversionOutput(bytes, options.Warnings.Select(warning => warning.ToString()).ToArray());
+    }
+
+    private ConversionOutput ConvertExcel(SelectedOfficeFile file) {
+        using var stream = new MemoryStream(file.Bytes, writable: false);
+        using ExcelDocument document = ExcelDocument.Load(stream, readOnly: true);
+        var options = new ExcelPdfSaveOptions {
+            MaxRowsPerSheet = Profile == "fast" ? 250 : null
+        };
+
+        byte[] bytes = document.SaveAsPdf(options);
+        return new ConversionOutput(bytes, options.Warnings.Select(warning => warning.ToString()).ToArray());
+    }
+
+    private static ConversionOutput ConvertPowerPoint(SelectedOfficeFile file) {
+        using var stream = new MemoryStream(file.Bytes, writable: false);
+        using PowerPointPresentation presentation = PowerPointPresentation.Open(stream, readOnly: true);
+        var options = new PowerPointPdfSaveOptions {
+            WarnOnPictureAspectRatioDistortion = true
+        };
+
+        byte[] bytes = presentation.SaveAsPdf(options);
+        return new ConversionOutput(bytes, options.Warnings.Select(warning => warning.Code + ": " + warning.Message).ToArray());
+    }
+
+    private async Task ResetPdfAsync() {
+        PdfBytes = null;
+        if (!string.IsNullOrEmpty(PdfUrl)) {
+            await JS.InvokeVoidAsync("officeimoConverter.revokeObjectUrl", PdfUrl);
+            PdfUrl = null;
+        }
+    }
+
+    private static bool IsSupported(string extension) =>
+        extension is ".docx" or ".xlsx" or ".pptx";
+
+    private static string FormatLabel(string extension) => extension switch {
+        ".docx" => "Word DOCX",
+        ".xlsx" => "Excel XLSX",
+        ".pptx" => "PowerPoint PPTX",
+        _ => "Unknown"
+    };
+
+    private static bool LooksLikePdf(byte[] bytes) =>
+        bytes.Length >= 4 && bytes[0] == 0x25 && bytes[1] == 0x50 && bytes[2] == 0x44 && bytes[3] == 0x46;
+
+    private static string FormatBytes(long bytes) {
+        string[] units = ["B", "KB", "MB", "GB"];
+        double value = bytes;
+        int unit = 0;
+        while (value >= 1024 && unit < units.Length - 1) {
+            value /= 1024;
+            unit++;
+        }
+
+        return unit == 0 ? $"{bytes} B" : $"{value:0.##} {units[unit]}";
+    }
+
+    private static string DescribeFailure(Exception ex) {
+        if (ex.GetType().Name.Contains("PdfTextEncodingPreflightException", StringComparison.Ordinal)) {
+            return "This Word document contains text that needs embedded Unicode font support before it can be exported in the browser. " + ex.Message;
+        }
+
+        return ex.Message;
+    }
+
+    private sealed record SelectedOfficeFile(string Name, string Extension, string FormatLabel, long Size, byte[] Bytes);
+    private sealed record SampleDocument(string Label, string Path, string FileName, string Extension);
+    private sealed record ConversionOutput(byte[] Bytes, IReadOnlyList<string> Warnings);
+    private sealed record ConverterDiagnostic(string Title, string Message, string DotClass);
+}

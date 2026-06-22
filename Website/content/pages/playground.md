@@ -1,7 +1,9 @@
 ---
 title: "Conversion Playground"
-description: "Inspect document conversion readiness locally in the browser and prepare OfficeIMO WebAssembly conversions."
+description: "Convert DOCX, XLSX, and PPTX files to PDF locally in the browser with OfficeIMO WebAssembly."
 layout: playground
 ---
 
-<div data-officeimo-converter-app data-mode="site"></div>
+<section class="ocx-embed-shell" aria-label="OfficeIMO Browser Converter">
+  <iframe class="ocx-embed-frame" src="/apps/officeimo-converter/" title="OfficeIMO Browser Converter"></iframe>
+</section>

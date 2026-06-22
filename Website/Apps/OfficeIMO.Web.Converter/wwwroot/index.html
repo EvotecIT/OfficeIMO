@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OfficeIMO Browser Converter</title>
+    <meta name="description" content="Convert DOCX, XLSX, and PPTX files to PDF locally in the browser with OfficeIMO WebAssembly." />
+    <base href="/apps/officeimo-converter/" />
+    <link rel="preload" id="webassembly" />
+    <script>(function(){var t=localStorage.getItem('imo-theme');if(t!=='light'&&t!=='dark'){t=matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';}document.documentElement.setAttribute('data-theme',t);document.documentElement.style.colorScheme=t;})();</script>
+    <link rel="stylesheet" href="/css/app.css" />
+    <link rel="stylesheet" href="converter.css" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <script type="importmap"></script>
+</head>
+
+<body class="imo-body officeimo-converter-standalone">
+    <div id="app">
+        <main class="ocx-shell">
+            <div class="ocx-container">
+                <div class="ocx-loading">Loading OfficeIMO converter...</div>
+            </div>
+        </main>
+    </div>
+
+    <div id="blazor-error-ui">
+        An unhandled error has occurred.
+        <a href="." class="reload">Reload</a>
+        <span class="dismiss">x</span>
+    </div>
+    <script src="converter-interop.js"></script>
+    <script src="_framework/blazor.webassembly#[.{fingerprint}].js"></script>
+</body>
+
+</html>
