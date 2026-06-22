@@ -612,6 +612,7 @@
       "hashAssets": true,
       "hashExtensions": [".css", ".js"],
       "hashExclude": [
+        "**/apps/officeimo-converter/**",
         "**/assets/prism/components/**",
         "**/css/prism-theme.css"
       ],
@@ -659,7 +660,8 @@
       "navSelector": "header nav",
       "navCanonicalPath": "index.html",
       "navCanonicalRequired": true,
-      "requiredRoutes": "/,/docs/,/404.html,/api/,/api/powershell/,/api/powerpoint/,/api/csv/,/api/visio/,/api/reader/,/blog/,/showcase/,/products/word/"
+      "ignoreNav": "apps/officeimo-converter/**,sitemap/index.html",
+      "requiredRoutes": "/,/docs/,/404.html,/api/,/api/powershell/,/api/powerpoint/,/api/csv/,/api/visio/,/api/reader/,/blog/,/showcase/,/playground/,/products/word/"
     },
     {
       "task": "doctor",
@@ -673,7 +675,8 @@
       "navSelector": "header nav",
       "navCanonicalPath": "index.html",
       "navCanonicalRequired": true,
-      "requiredRoutes": "/,/docs/,/404.html,/api/,/api/powershell/,/api/powerpoint/,/api/csv/,/api/visio/,/api/reader/,/blog/,/showcase/,/products/word/"
+      "ignoreNav": "apps/officeimo-converter/**,sitemap/index.html",
+      "requiredRoutes": "/,/docs/,/404.html,/api/,/api/powershell/,/api/powerpoint/,/api/csv/,/api/visio/,/api/reader/,/blog/,/showcase/,/playground/,/products/word/"
     }
   ]
 }

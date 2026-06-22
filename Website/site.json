@@ -244,7 +244,11 @@
     "Hashing": {
       "Enabled": true,
       "Extensions": [".css", ".js"],
-      "Exclude": ["**/assets/prism/components/**", "**/css/prism-theme.css"]
+      "Exclude": [
+        "**/apps/officeimo-converter/**",
+        "**/assets/prism/components/**",
+        "**/css/prism-theme.css"
+      ]
     },
     "CacheHeaders": {
       "Enabled": true,
