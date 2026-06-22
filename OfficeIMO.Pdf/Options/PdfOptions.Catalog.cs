@@ -588,6 +588,19 @@ public sealed partial class PdfOptions {
     }
 
     /// <summary>
+    /// Adds the canonical Factur-X/ZUGFeRD CrossIndustryInvoice XML file and matching XMP extension metadata.
+    /// </summary>
+    public PdfOptions AddFacturXInvoiceXmlFile(
+        string ciiXmlPath,
+        string conformanceLevel = "EN 16931",
+        string version = "1.0",
+        PdfAssociatedFileRelationship relationship = PdfAssociatedFileRelationship.Data,
+        string? description = "Factur-X/ZUGFeRD invoice XML") {
+        Guard.NotNullOrWhiteSpace(ciiXmlPath, nameof(ciiXmlPath));
+        return AddFacturXInvoiceXml(System.IO.File.ReadAllBytes(ciiXmlPath), conformanceLevel, version, relationship, description);
+    }
+
+    /// <summary>
     /// Configures common PDF/A-3 Factur-X/ZUGFeRD groundwork without enabling formal compliance profile generation.
     /// </summary>
     public PdfOptions ConfigureFacturXGroundwork(
@@ -612,6 +625,50 @@ public sealed partial class PdfOptions {
         SetPdfAIdentification(pdfAIdentification);
         SetOutputIntent(outputIntent);
         return SetElectronicInvoiceMetadata(metadata);
+    }
+
+    /// <summary>
+    /// Configures common PDF/A-3 Factur-X/ZUGFeRD groundwork from a CrossIndustryInvoice XML file.
+    /// </summary>
+    public PdfOptions ConfigureFacturXGroundworkFile(
+        string ciiXmlPath,
+        string conformanceLevel = "EN 16931",
+        string version = "1.0",
+        PdfAssociatedFileRelationship relationship = PdfAssociatedFileRelationship.Data,
+        string? description = "Factur-X/ZUGFeRD invoice XML",
+        bool useDocumentFontFallback = true) {
+        Guard.NotNullOrWhiteSpace(ciiXmlPath, nameof(ciiXmlPath));
+        return ConfigureFacturXGroundwork(System.IO.File.ReadAllBytes(ciiXmlPath), conformanceLevel, version, relationship, description, useDocumentFontFallback);
+    }
+
+    /// <summary>
+    /// Configures common PDF/A-3 e-invoice groundwork for Factur-X or ZUGFeRD without enabling formal compliance profile generation.
+    /// </summary>
+    public PdfOptions ConfigureElectronicInvoiceGroundwork(
+        PdfComplianceProfile profile,
+        byte[] ciiXml,
+        string conformanceLevel = "EN 16931",
+        string version = "1.0",
+        PdfAssociatedFileRelationship relationship = PdfAssociatedFileRelationship.Data,
+        string? description = "Factur-X/ZUGFeRD invoice XML",
+        bool useDocumentFontFallback = true) {
+        ValidateElectronicInvoiceProfile(profile);
+        return ConfigureFacturXGroundwork(ciiXml, conformanceLevel, version, relationship, description, useDocumentFontFallback);
+    }
+
+    /// <summary>
+    /// Configures common PDF/A-3 e-invoice groundwork for Factur-X or ZUGFeRD from a CrossIndustryInvoice XML file.
+    /// </summary>
+    public PdfOptions ConfigureElectronicInvoiceGroundworkFile(
+        PdfComplianceProfile profile,
+        string ciiXmlPath,
+        string conformanceLevel = "EN 16931",
+        string version = "1.0",
+        PdfAssociatedFileRelationship relationship = PdfAssociatedFileRelationship.Data,
+        string? description = "Factur-X/ZUGFeRD invoice XML",
+        bool useDocumentFontFallback = true) {
+        Guard.NotNullOrWhiteSpace(ciiXmlPath, nameof(ciiXmlPath));
+        return ConfigureElectronicInvoiceGroundwork(profile, System.IO.File.ReadAllBytes(ciiXmlPath), conformanceLevel, version, relationship, description, useDocumentFontFallback);
     }
 
     /// <summary>Removes all embedded files associated with the generated PDF catalog.</summary>
@@ -836,6 +893,13 @@ public sealed partial class PdfOptions {
             relationship != PdfAssociatedFileRelationship.Data &&
             relationship != PdfAssociatedFileRelationship.Source) {
             throw new System.ArgumentException("Factur-X/ZUGFeRD invoice XML must use Alternative, Data, or Source associated-file relationship.", nameof(relationship));
+        }
+    }
+
+    private static void ValidateElectronicInvoiceProfile(PdfComplianceProfile profile) {
+        if (profile != PdfComplianceProfile.FacturX &&
+            profile != PdfComplianceProfile.Zugferd) {
+            throw new System.ArgumentException("PDF e-invoice groundwork requires FacturX or Zugferd compliance profile.", nameof(profile));
         }
     }
 }

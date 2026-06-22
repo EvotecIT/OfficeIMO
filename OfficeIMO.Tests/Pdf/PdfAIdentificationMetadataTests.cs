@@ -165,6 +165,36 @@ public class PdfAIdentificationMetadataTests {
     }
 
     [Fact]
+    public void FacturXInvoiceXmlFileHelper_EmitsCanonicalAttachmentAndMatchingXmp() {
+        byte[] invoiceXml = CreateCiiXml();
+        string invoicePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "officeimo-facturx-" + Guid.NewGuid().ToString("N") + ".xml");
+        System.IO.File.WriteAllBytes(invoicePath, invoiceXml);
+        try {
+            var options = new PdfOptions()
+                .AddFacturXInvoiceXmlFile(invoicePath, "BASIC");
+
+            byte[] bytes = PdfDocument.Create()
+                .AttachFacturXInvoiceXmlFile(invoicePath, "EN 16931")
+                .Meta(title: "E-invoice file attachment primitive", author: "OfficeIMO")
+                .Paragraph(p => p.Text("Factur-X/ZUGFeRD attachment metadata can be configured from a source XML file."))
+                .ToBytes();
+
+            PdfExtractedAttachment attachment = Assert.Single(PdfAttachmentExtractor.ExtractAttachments(bytes));
+
+            Assert.Equal("BASIC", options.ElectronicInvoiceMetadata!.ConformanceLevel);
+            Assert.Equal("factur-x.xml", Assert.Single(options.EmbeddedFiles).FileName);
+            Assert.Equal("factur-x.xml", attachment.FileName);
+            Assert.Equal("application/xml", attachment.MimeType);
+            Assert.Equal(PdfAssociatedFileRelationship.Data, attachment.Relationship);
+            Assert.Equal(invoiceXml, attachment.Bytes);
+        } finally {
+            if (System.IO.File.Exists(invoicePath)) {
+                System.IO.File.Delete(invoicePath);
+            }
+        }
+    }
+
+    [Fact]
     public void FacturXGroundworkHelper_EmitsPdfA3EinvoicePrerequisitesWithoutFormalProfile() {
         byte[] invoiceXml = CreateCiiXml();
         var fallbackProbe = new PdfOptions();
@@ -204,6 +234,22 @@ public class PdfAIdentificationMetadataTests {
         Assert.Equal("application/xml", attachment.MimeType);
         Assert.Equal(PdfAssociatedFileRelationship.Data, attachment.Relationship);
         Assert.Equal(invoiceXml, attachment.Bytes);
+    }
+
+    [Fact]
+    public void ElectronicInvoiceGroundworkHelper_AcceptsFacturXAndZugferdProfiles() {
+        byte[] invoiceXml = CreateCiiXml();
+        var facturXOptions = new PdfOptions()
+            .ConfigureElectronicInvoiceGroundwork(PdfComplianceProfile.FacturX, invoiceXml, "BASIC");
+        var zugferdOptions = new PdfOptions()
+            .ConfigureElectronicInvoiceGroundwork(PdfComplianceProfile.Zugferd, invoiceXml, "EN 16931");
+
+        Assert.Equal(PdfComplianceProfile.None, facturXOptions.ComplianceProfile);
+        Assert.Equal("BASIC", facturXOptions.ElectronicInvoiceMetadata!.ConformanceLevel);
+        Assert.Equal(3, facturXOptions.PdfAIdentification!.Part);
+        Assert.Equal("EN 16931", zugferdOptions.ElectronicInvoiceMetadata!.ConformanceLevel);
+        Assert.Equal("factur-x.xml", Assert.Single(zugferdOptions.EmbeddedFiles).FileName);
+        Assert.Throws<ArgumentException>(() => new PdfOptions().ConfigureElectronicInvoiceGroundwork(PdfComplianceProfile.PdfA3B, invoiceXml));
     }
 
     [Fact]
