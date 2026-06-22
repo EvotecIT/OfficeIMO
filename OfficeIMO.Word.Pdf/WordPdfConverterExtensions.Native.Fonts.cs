@@ -42,12 +42,19 @@ namespace OfficeIMO.Word.Pdf {
 
                 PdfCore.PdfStandardFont slot = SelectNativeAdditionalFontSlot(familyName!, registeredFontSlots);
                 bool slotAlreadyEmbedded = pdfOptions.HasEmbeddedStandardFontFamily(slot);
-                registeredFontSlots.Add(slot);
                 if (!slotAlreadyEmbedded) {
                     pdfOptions.RegisterOfficeFontFamily(familyName, slot, embedSystemFont: true);
                 }
 
-                nativeFontMap.Register(familyName!, slot);
+                if (slotAlreadyEmbedded || pdfOptions.HasEmbeddedStandardFontFamily(slot)) {
+                    registeredFontSlots.Add(slot);
+                    nativeFontMap.Register(familyName!, slot);
+                    continue;
+                }
+
+                if (PdfCore.PdfStandardFontMapper.TryMapFontFamily(familyName, out PdfCore.PdfStandardFont mappedFont)) {
+                    nativeFontMap.Register(familyName!, PdfCore.PdfStandardFontMapper.GetFontFamily(mappedFont));
+                }
             }
         }
 
