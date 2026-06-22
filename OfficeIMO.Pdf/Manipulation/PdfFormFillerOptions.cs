@@ -10,6 +10,12 @@ public sealed class PdfFormFillerOptions {
     private string _diagnosticsConverter = "OfficeIMO.Pdf";
 
     /// <summary>
+    /// When true, keeps the AcroForm /NeedAppearances flag set after filling fields for legacy viewers that ignore normal appearance streams.
+    /// </summary>
+    /// <remarks>The default is false because OfficeIMO synthesizes normal widget appearances during filling.</remarks>
+    public bool KeepNeedAppearances { get; set; }
+
+    /// <summary>
     /// Optional TrueType font family used to synthesize embedded Unicode text appearances when a parsed PDF does not already provide a reusable embedded appearance font.
     /// </summary>
     public PdfEmbeddedFontFamily? AppearanceFontFamily {

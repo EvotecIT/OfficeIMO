@@ -19,8 +19,26 @@ public partial class PdfFormFillerTests {
         Assert.Equal(new[] { "Person.Name", "AcceptTerms" }, info.FormFieldNames);
         Assert.Equal("Evotec", info.FormFields[0].Value);
         Assert.Equal("Off", info.FormFields[1].Value);
-        Assert.Contains("/NeedAppearances true", Encoding.ASCII.GetString(filled));
+        Assert.Contains("/NeedAppearances false", Encoding.ASCII.GetString(filled));
+        Assert.Equal(false, info.AcroFormNeedAppearances);
         Assert.False(PdfInspector.Preflight(filled).CanRewrite);
+    }
+
+    [Fact]
+    public void FillFields_CanKeepNeedAppearancesForLegacyViewers() {
+        var options = new PdfFormFillerOptions {
+            KeepNeedAppearances = true
+        };
+
+        byte[] filled = PdfFormFiller.FillFields(BuildHierarchicalFormPdf(), new Dictionary<string, string> {
+            ["Person.Name"] = "Evotec",
+            ["AcceptTerms"] = "Off"
+        }, options);
+
+        PdfDocumentInfo info = PdfInspector.Inspect(filled);
+
+        Assert.Contains("/NeedAppearances true", Encoding.ASCII.GetString(filled));
+        Assert.Equal(true, info.AcroFormNeedAppearances);
     }
 
     [Fact]
