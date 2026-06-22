@@ -40,6 +40,17 @@ public class PdfEncryptedWriteTests {
     }
 
     [Fact]
+    public void GeneratedEncryptedPdfReadsTextWithOwnerPasswordWhenUserPasswordUsesUtf8Fallback() {
+        byte[] pdf = PdfDocument.Create(new PdfOptions().SetEncryption("open \ud83d\udd12", "owner"))
+            .Paragraph(paragraph => paragraph.Text("Generated UTF8 Password Secret"))
+            .ToBytes();
+
+        string text = PdfTextExtractor.ExtractAllText(pdf, (PdfTextLayoutOptions?)null, new PdfReadOptions { Password = "owner" });
+
+        Assert.Contains("Generated UTF8 Password Secret", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void GeneratedEncryptedPdfCanBeConfiguredThroughDocumentFluentApi() {
         byte[] pdf = PdfDocument.Create()
             .Encryption("open", "owner")

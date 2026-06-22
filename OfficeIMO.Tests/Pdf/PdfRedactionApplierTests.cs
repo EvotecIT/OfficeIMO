@@ -177,6 +177,22 @@ public class PdfRedactionApplierTests {
         Assert.DoesNotContain("/Subtype /Popup", raw, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Apply_ClearsParentPopupReferenceWhenOnlyPopupIsRedacted() {
+        byte[] source = BuildIndirectAnnotationWithPopupPdf();
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] {
+            new PdfRedactionArea(1, 95, 95, 80, 80)
+        });
+
+        PdfDocumentInfo info = PdfInspector.Inspect(redacted);
+        string raw = PdfEncoding.Latin1GetString(redacted);
+        Assert.Equal(1, info.AnnotationCount);
+        Assert.Contains("Keep parent note", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Popup 5 0 R", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Subtype /Popup", raw, StringComparison.Ordinal);
+    }
+
     private static byte[] BuildRedactionSource() {
         return PdfDocument.Create(new PdfOptions {
                 CompressContentStreams = false
@@ -285,6 +301,19 @@ public class PdfRedactionApplierTests {
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Annots [<< /Type /Annot /Subtype /Text /Rect [20 20 40 40] /Contents (Direct redaction note) /Popup 5 0 R >> 5 0 R] /Contents 4 0 R >>",
             BuildStream("BT\n/F1 12 Tf\n72 720 Td\n(Annotation carrier) Tj\nET"),
             "<< /Type /Annot /Subtype /Popup /Rect [45 20 120 80] >>"
+        };
+
+        return Encoding.ASCII.GetBytes(BuildPdf(objects));
+    }
+
+    private static byte[] BuildIndirectAnnotationWithPopupPdf() {
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Annots [4 0 R 5 0 R] /Contents 6 0 R >>",
+            "<< /Type /Annot /Subtype /Text /Rect [20 20 40 40] /Contents (Keep parent note) /Popup 5 0 R >>",
+            "<< /Type /Annot /Subtype /Popup /Rect [100 100 160 160] /Parent 4 0 R >>",
+            BuildStream("BT\n/F1 12 Tf\n72 720 Td\n(Annotation carrier) Tj\nET")
         };
 
         return Encoding.ASCII.GetBytes(BuildPdf(objects));

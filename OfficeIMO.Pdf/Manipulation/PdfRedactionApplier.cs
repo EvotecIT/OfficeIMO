@@ -552,6 +552,7 @@ public static class PdfRedactionApplier {
 
         if (removedObjectNumbers.Count > 0) {
             changed = RemoveLinkedPopupAnnotations(objects, annotations, removedObjectNumbers) || changed;
+            changed = ClearRemovedPopupReferences(objects, annotations, removedObjectNumbers) || changed;
             foreach (int objectNumber in removedObjectNumbers) {
                 objects.Remove(objectNumber);
             }
@@ -612,6 +613,30 @@ public static class PdfRedactionApplier {
         }
 
         return changed;
+    }
+
+    private static bool ClearRemovedPopupReferences(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfObject annotationObject,
+        HashSet<int> removedObjectNumbers) {
+        if (PdfObjectLookup.Resolve(objects, annotationObject) is PdfArray annotations) {
+            bool changed = false;
+            for (int i = 0; i < annotations.Items.Count; i++) {
+                changed = ClearRemovedPopupReferences(objects, annotations.Items[i], removedObjectNumbers) || changed;
+            }
+
+            return changed;
+        }
+
+        if (PdfObjectLookup.Resolve(objects, annotationObject) is not PdfDictionary annotation ||
+            !annotation.Items.TryGetValue("Popup", out PdfObject? popupObject) ||
+            popupObject is not PdfReference popupReference ||
+            !removedObjectNumbers.Contains(popupReference.ObjectNumber)) {
+            return false;
+        }
+
+        annotation.Items.Remove("Popup");
+        return true;
     }
 
     private static bool IsPopupForRemovedAnnotation(PdfDictionary annotation, HashSet<int> removedObjectNumbers) {

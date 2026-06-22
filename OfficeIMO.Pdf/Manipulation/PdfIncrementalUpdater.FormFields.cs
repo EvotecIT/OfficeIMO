@@ -207,8 +207,11 @@ public static partial class PdfIncrementalUpdater {
             return;
         }
 
+        int? kidsContainerObjectNumber = kidsObject is PdfReference kidsReference
+            ? kidsReference.ObjectNumber
+            : objectNumber ?? containingObjectNumber;
         for (int i = 0; i < kids.Items.Count; i++) {
-            UpdateFormField(objects, kids.Items[i], objectNumber ?? containingObjectNumber, fullName, fieldType, fieldFlags, fieldQuadding, fieldMaxLength, defaultResources, fieldValues, remaining, changedObjectNumbers, options, visited, ref nextObjectNumber, ref helveticaFontObjectNumber);
+            UpdateFormField(objects, kids.Items[i], kidsContainerObjectNumber, fullName, fieldType, fieldFlags, fieldQuadding, fieldMaxLength, defaultResources, fieldValues, remaining, changedObjectNumbers, options, visited, ref nextObjectNumber, ref helveticaFontObjectNumber);
         }
     }
 

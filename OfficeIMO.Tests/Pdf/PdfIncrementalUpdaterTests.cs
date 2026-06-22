@@ -100,6 +100,22 @@ public class PdfIncrementalUpdaterTests {
         Assert.Contains("/V <4772616365>", appended, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void UpdateFormFields_AppendsIndirectKidsArrayContainingDirectChildField() {
+        byte[] original = BuildIndirectKidsArrayWithDirectChildFieldPdf();
+
+        byte[] updated = PdfIncrementalUpdater.UpdateFormFields(original, new Dictionary<string, string> {
+            ["Parent.Name"] = "Grace"
+        }, new PdfIncrementalFormFieldUpdateOptions {
+            GenerateAppearanceStreams = false,
+            KeepNeedAppearances = true
+        });
+        string appended = PdfEncoding.Latin1GetString(updated).Substring(PdfEncoding.Latin1GetString(original).Length);
+
+        Assert.Contains("9 0 obj", appended, StringComparison.Ordinal);
+        Assert.Contains("/V <4772616365>", appended, StringComparison.Ordinal);
+    }
+
     private static byte[] BuildGeneratedFormPdfWithInfoGeneration() {
         return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
             "%PDF-1.7",
@@ -158,6 +174,35 @@ public class PdfIncrementalUpdaterTests {
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 9 >>",
+            "startxref",
+            "123",
+            "%%EOF"
+        }));
+    }
+
+    private static byte[] BuildIndirectKidsArrayWithDirectChildFieldPdf() {
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm 7 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] >>",
+            "endobj",
+            "7 0 obj",
+            "<< /Fields [8 0 R] >>",
+            "endobj",
+            "8 0 obj",
+            "<< /FT /Tx /T (Parent) /Kids 9 0 R >>",
+            "endobj",
+            "9 0 obj",
+            "[<< /T (Name) /V (Ada) /Rect [50 50 180 70] /F 4 >>]",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 10 >>",
             "startxref",
             "123",
             "%%EOF"

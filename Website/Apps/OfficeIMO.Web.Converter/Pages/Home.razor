@@ -175,7 +175,7 @@
 
                     <div class="ocx-field">
                         <label class="ocx-label" for="markupInput">Input</label>
-                        <textarea id="markupInput" class="ocx-textarea" @bind="MarkupInput" @bind:event="oninput"></textarea>
+                        <textarea id="markupInput" class="ocx-textarea" value="@MarkupInput" @oninput="HandleMarkupInputAsync"></textarea>
                     </div>
 
                     <div class="ocx-hero-actions">
@@ -528,6 +528,13 @@ This **Markdown** is rendered by `OfficeIMO.MarkdownRenderer`.
         MarkupOutput = "Run the selected text conversion to generate fresh output.";
         MarkupDiagnostics.Clear();
         MarkupDiagnostics.Add(new ConverterDiagnostic("Route changed", "The previous download was cleared.", "ocx-dot--warn"));
+    }
+
+    private async Task HandleMarkupInputAsync(ChangeEventArgs args) {
+        MarkupInput = args.Value?.ToString() ?? string.Empty;
+        await ResetMarkupAsync();
+        MarkupOutput = "Run the selected text conversion to generate fresh output.";
+        MarkupDiagnostics.Clear();
     }
 
     private async Task ConvertMarkupAsync() {
