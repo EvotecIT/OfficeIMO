@@ -343,6 +343,18 @@ public class PdfDocumentWorkflowTests {
     }
 
     [Fact]
+    public void PageOperations_BookmarkRangesFollowPageOrderWhenOutlineTreeIsOutOfOrder() {
+        PdfDocument bookmarkDocument = PdfDocument.Open(BuildOutOfOrderBookmarkPdf());
+
+        IReadOnlyList<PdfBookmarkPageRange> ranges = bookmarkDocument.Pages.BookmarkPageRanges();
+
+        Assert.Equal(new[] { "Chapter One", "Chapter Two", "Chapter Three" }, ranges.Select(range => range.Title).ToArray());
+        Assert.Equal(PdfPageRange.From(1, 1), ranges[0].PageRange);
+        Assert.Equal(PdfPageRange.From(2, 2), ranges[1].PageRange);
+        Assert.Equal(PdfPageRange.From(3, 3), ranges[2].PageRange);
+    }
+
+    [Fact]
     public void MergeMetadataAndStamping_StayFluentAndDelegateToCurrentEngine() {
         byte[] source = BuildThreePagePdf();
         byte[] appendix = BuildPdf("Appendix", "Appendix body");
@@ -749,6 +761,48 @@ public class PdfDocumentWorkflowTests {
             .H1("Chapter Three")
             .Paragraph(p => p.Text("Third chapter body"))
             .ToBytes();
+    }
+
+    private static byte[] BuildOutOfOrderBookmarkPdf() {
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R /Outlines 10 0 R /PageMode /UseOutlines >>",
+            "<< /Type /Pages /Count 3 /Kids [3 0 R 4 0 R 5 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 9 0 R >> >> /Contents 6 0 R >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 9 0 R >> >> /Contents 7 0 R >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 9 0 R >> >> /Contents 8 0 R >>",
+            BuildWorkflowStream("BT\n/F1 12 Tf\n72 200 Td\n(Chapter One body) Tj\nET"),
+            BuildWorkflowStream("BT\n/F1 12 Tf\n72 200 Td\n(Chapter Two body) Tj\nET"),
+            BuildWorkflowStream("BT\n/F1 12 Tf\n72 200 Td\n(Chapter Three body) Tj\nET"),
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            "<< /Type /Outlines /First 11 0 R /Last 13 0 R /Count 3 >>",
+            "<< /Title (Chapter Three) /Parent 10 0 R /Next 12 0 R /Dest [5 0 R /XYZ 0 200 0] >>",
+            "<< /Title (Chapter One) /Parent 10 0 R /Prev 11 0 R /Next 13 0 R /Dest [3 0 R /XYZ 0 200 0] >>",
+            "<< /Title (Chapter Two) /Parent 10 0 R /Prev 12 0 R /Dest [4 0 R /XYZ 0 200 0] >>"
+        };
+
+        return Encoding.ASCII.GetBytes(BuildWorkflowPdf(objects));
+    }
+
+    private static string BuildWorkflowStream(string content) {
+        byte[] bytes = Encoding.ASCII.GetBytes(content);
+        return "<< /Length " + bytes.Length.ToString(CultureInfo.InvariantCulture) + " >>\nstream\n" + content + "\nendstream";
+    }
+
+    private static string BuildWorkflowPdf(IReadOnlyList<string> objects) {
+        var builder = new StringBuilder();
+        builder.AppendLine("%PDF-1.7");
+        for (int i = 0; i < objects.Count; i++) {
+            builder.Append((i + 1).ToString(CultureInfo.InvariantCulture)).AppendLine(" 0 obj");
+            builder.AppendLine(objects[i]);
+            builder.AppendLine("endobj");
+        }
+
+        builder.AppendLine("trailer");
+        builder.Append("<< /Root 1 0 R /Size ").Append(objects.Count + 1).AppendLine(" >>");
+        builder.AppendLine("startxref");
+        builder.AppendLine("123");
+        builder.AppendLine("%%EOF");
+        return builder.ToString();
     }
 
     private static byte[] BuildPdf(string title, string text) {

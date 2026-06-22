@@ -202,7 +202,7 @@ public sealed class PdfLogicalPage {
                 : listLines.Contains(NormalizeForKindComparison(text)) || LooksLikeListItem(text)
                 ? PdfLogicalElementKind.ListItem
                 : PdfLogicalElementKind.TextBlock;
-            var block = new PdfLogicalTextBlock(pageNumber, kind, text, line.XStart, line.XEnd, line.Y, line.SpanCount);
+            var block = new PdfLogicalTextBlock(pageNumber, kind, text, line.XStart, line.XEnd, line.Y, line.FontSize, line.SpanCount);
             textBlocks.Add(block);
             elements.Add(block);
         }

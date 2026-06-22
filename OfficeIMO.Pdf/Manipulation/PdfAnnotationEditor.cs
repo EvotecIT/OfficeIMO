@@ -160,14 +160,33 @@ public static class PdfAnnotationEditor {
         }
 
         foreach (PdfIndirectObject indirect in objects.Values) {
-            if (indirect.Value is not PdfDictionary dictionary ||
-                !dictionary.Items.TryGetValue("Popup", out PdfObject? popupObject) ||
-                popupObject is not PdfReference popupReference ||
-                !removedObjectNumbers.Contains(popupReference.ObjectNumber)) {
-                continue;
+            ClearRemovedPopupReferences(indirect.Value, removedObjectNumbers, new HashSet<PdfObject>());
+        }
+    }
+
+    private static void ClearRemovedPopupReferences(PdfObject value, HashSet<int> removedObjectNumbers, HashSet<PdfObject> visited) {
+        if (!visited.Add(value)) {
+            return;
+        }
+
+        if (value is PdfDictionary dictionary) {
+            if (dictionary.Items.TryGetValue("Popup", out PdfObject? popupObject) &&
+                popupObject is PdfReference popupReference &&
+                removedObjectNumbers.Contains(popupReference.ObjectNumber)) {
+                dictionary.Items.Remove("Popup");
             }
 
-            dictionary.Items.Remove("Popup");
+            foreach (PdfObject child in dictionary.Items.Values.ToArray()) {
+                ClearRemovedPopupReferences(child, removedObjectNumbers, visited);
+            }
+
+            return;
+        }
+
+        if (value is PdfArray array) {
+            foreach (PdfObject child in array.Items.ToArray()) {
+                ClearRemovedPopupReferences(child, removedObjectNumbers, visited);
+            }
         }
     }
 

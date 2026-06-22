@@ -368,6 +368,24 @@ public class PdfITextInspiredCoverageTests {
     }
 
     [Fact]
+    public void AnnotationEditor_ClearsDirectParentPopupReferenceWhenRemovingPopupAnnotation() {
+        byte[] pdf = BuildDirectAnnotationWithLinkedPopupPdf();
+
+        PdfAnnotationEditResult removed = PdfAnnotationEditor.RemoveAnnotations(pdf, new PdfAnnotationRemovalOptions {
+            Subtype = "Popup"
+        });
+
+        PdfDocumentInfo info = PdfInspector.Inspect(removed.Bytes);
+        string text = PdfEncoding.Latin1GetString(removed.Bytes);
+        Assert.True(removed.Applied);
+        Assert.Equal(1, removed.AffectedAnnotationCount);
+        Assert.Single(info.GetAnnotationsBySubtype("Text"));
+        Assert.Empty(info.GetAnnotationsBySubtype("Popup"));
+        Assert.DoesNotContain("/Subtype /Popup", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Popup 7 0 R", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ExternalValidationResult_FromExitCodeImportsProcessOutcome() {
         PdfExternalValidationResult passed = PdfExternalValidationResult.FromExitCode(
             PdfExternalValidatorKind.VeraPdf,
@@ -455,6 +473,21 @@ public class PdfITextInspiredCoverageTests {
             BuildStream(contentBytes),
             "<< /Type /Annot /Subtype /Text /Rect [20 20 40 40] /Contents (Parent note) /Popup 7 0 R >>",
             "<< /Type /Annot /Subtype /Popup /Rect [45 20 120 80] /Parent 6 0 R >>"
+        };
+
+        return Encoding.ASCII.GetBytes(BuildPdf(objects));
+    }
+
+    private static byte[] BuildDirectAnnotationWithLinkedPopupPdf() {
+        byte[] contentBytes = Encoding.ASCII.GetBytes("BT\n/F1 12 Tf\n72 720 Td\n(Direct popup annotation) Tj\nET\n");
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R >> >> /Annots [<< /Type /Annot /Subtype /Text /Rect [20 20 40 40] /Contents (Direct parent note) /Popup 7 0 R >> 7 0 R] /Contents 5 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            BuildStream(contentBytes),
+            "<< /Producer (OfficeIMO) >>",
+            "<< /Type /Annot /Subtype /Popup /Rect [45 20 120 80] >>"
         };
 
         return Encoding.ASCII.GetBytes(BuildPdf(objects));

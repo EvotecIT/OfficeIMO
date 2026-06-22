@@ -138,6 +138,31 @@ public class PdfRedactionApplierTests {
     }
 
     [Fact]
+    public void Apply_ScrubsInvokedAliasWhenFormXObjectHasMultipleResourceNames() {
+        byte[] source = BuildAliasedFormXObjectTextPdf();
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] {
+            new PdfRedactionArea(1, 95, 82, 180, 30)
+        });
+
+        string text = PdfTextExtractor.ExtractAllText(redacted);
+        Assert.DoesNotContain("Aliased form secret", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Aliased form secret", PdfEncoding.Latin1GetString(redacted), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Apply_UsesLargeTextBoundsWhenPlanningRedaction() {
+        byte[] source = BuildLargeTextPdf();
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] {
+            new PdfRedactionArea(1, 70, 120, 220, 10)
+        });
+
+        string text = PdfTextExtractor.ExtractAllText(redacted);
+        Assert.DoesNotContain("Large secret heading", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Apply_RemovesDirectAnnotationDictionariesAndLinkedPopups() {
         byte[] source = BuildDirectAnnotationWithPopupPdf();
 
@@ -223,6 +248,31 @@ public class PdfRedactionApplierTests {
             BuildStream("BT\n/F1 12 Tf\n0 0 Td\n(Shared form secret) Tj\nET", "/Type /XObject /Subtype /Form /BBox [0 0 200 50] /Resources << /Font << /F1 5 0 R >> >>"),
             BuildStream("q\n1 0 0 1 100 100 cm\n/Fm1 Do\nQ"),
             BuildStream("q\n1 0 0 1 100 100 cm\n/Fm1 Do\nQ")
+        };
+
+        return Encoding.ASCII.GetBytes(BuildPdf(objects));
+    }
+
+    private static byte[] BuildAliasedFormXObjectTextPdf() {
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /XObject << /FmUnused 5 0 R /FmPainted 5 0 R >> >> /Contents 6 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            BuildStream("BT\n/F1 12 Tf\n0 0 Td\n(Aliased form secret) Tj\nET", "/Type /XObject /Subtype /Form /BBox [0 0 200 50] /Resources << /Font << /F1 4 0 R >> >>"),
+            BuildStream("q\n1 0 0 1 100 100 cm\n/FmPainted Do\nQ")
+        };
+
+        return Encoding.ASCII.GetBytes(BuildPdf(objects));
+    }
+
+    private static byte[] BuildLargeTextPdf() {
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 400 300] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            BuildStream("BT\n/F1 48 Tf\n72 100 Td\n(Large secret heading) Tj\nET")
         };
 
         return Encoding.ASCII.GetBytes(BuildPdf(objects));

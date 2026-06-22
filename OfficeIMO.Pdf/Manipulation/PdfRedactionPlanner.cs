@@ -67,8 +67,10 @@ public static class PdfRedactionPlanner {
 
             double x = Math.Min(block.XStart, block.XEnd);
             double width = Math.Abs(block.XEnd - block.XStart);
-            double y = block.BaselineY - DefaultTextHeight;
-            if (!Intersects(area.X, area.Y, area.Width, area.Height, x, y, width, DefaultTextHeight * 1.5D)) {
+            double fontSize = GetEffectiveFontSize(block);
+            double height = fontSize * 1.5D;
+            double y = block.BaselineY - fontSize;
+            if (!Intersects(area.X, area.Y, area.Width, area.Height, x, y, width, height)) {
                 continue;
             }
 
@@ -79,11 +81,17 @@ public static class PdfRedactionPlanner {
                 x,
                 y,
                 width,
-                DefaultTextHeight * 1.5D,
+                height,
                 block.Text,
                 null,
                 null));
         }
+    }
+
+    private static double GetEffectiveFontSize(PdfLogicalTextBlock block) {
+        return block.FontSize > 0D && !double.IsNaN(block.FontSize) && !double.IsInfinity(block.FontSize)
+            ? block.FontSize
+            : DefaultTextHeight;
     }
 
     private static void AddAnnotationMatches(PdfRedactionArea area, IReadOnlyList<PdfPageInfo> pages, List<PdfRedactionMatch> matches) {

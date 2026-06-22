@@ -245,11 +245,14 @@ public static class PdfRedactionApplier {
         foreach (KeyValuePair<string, PdfObject> entry in xObjects.Items.ToArray()) {
             PdfObject xObject = entry.Value;
             if (xObject is not PdfReference reference ||
-                !visitedFormObjects.Add(reference.ObjectNumber) ||
                 !PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) ||
                 indirect.Value is not PdfStream stream ||
                 stream.DecodingFailed ||
                 !IsFormXObject(stream.Dictionary)) {
+                continue;
+            }
+
+            if (!visitedFormObjects.Add(reference.ObjectNumber)) {
                 continue;
             }
 
@@ -258,6 +261,7 @@ public static class PdfRedactionApplier {
             string scrubbed = ScrubTextObjects(content, textMatches, requireIntersection: false);
             PdfDictionary clonedFormDictionary = CloneDictionary(stream.Dictionary);
             bool nestedChanged = ScrubFormXObjects(objects, clonedFormDictionary, textMatches, visitedFormObjects, ref nextObjectNumber);
+            visitedFormObjects.Remove(reference.ObjectNumber);
             if (string.Equals(content, scrubbed, StringComparison.Ordinal) && !nestedChanged) {
                 continue;
             }
