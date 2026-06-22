@@ -106,10 +106,34 @@ public class PdfSignatureValidatorTests {
         PdfSignatureValidationResult result = Assert.Single(report.Signatures);
         Assert.Equal("Approval", result.Signature.FieldName);
         Assert.True(result.ByteRangeCoversEndOfFile);
+        Assert.True(result.ByteRangeGapMatchesContents);
         Assert.True(result.Signature.HasContents);
         Assert.True(result.Signature.ContentsSizeBytes >= 512);
         Assert.Contains(report.Findings, finding => finding.Code == "SignatureDetachedCmsSubFilter");
         Assert.Contains(report.Findings, finding => finding.Code == "AcroFormAppendOnly");
+    }
+
+    [Fact]
+    public void PrepareExternalSignature_EmitsDocTimeStampTypeForDocumentTimestamps() {
+        byte[] pdf = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Timestamp signing draft"))
+            .ToBytes();
+
+        PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
+            pdf,
+            new PdfExternalSignatureOptions {
+                FieldName = "Timestamp",
+                SubFilter = PdfExternalSignatureSubFilter.DocumentTimestamp,
+                ReservedSignatureContentsBytes = 256
+            });
+
+        string preparedText = Encoding.ASCII.GetString(preparation.PreparedPdf);
+        PdfSignatureValidationResult signature = Assert.Single(PdfSignatureValidator.Validate(preparation.PreparedPdf).Signatures);
+
+        Assert.Equal("ETSI.RFC3161", preparation.SubFilter);
+        Assert.Contains("/Type /DocTimeStamp", preparedText, StringComparison.Ordinal);
+        Assert.Contains("/SubFilter /ETSI.RFC3161", preparedText, StringComparison.Ordinal);
+        Assert.True(signature.Signature.IsDocumentTimestamp);
     }
 
     [Fact]

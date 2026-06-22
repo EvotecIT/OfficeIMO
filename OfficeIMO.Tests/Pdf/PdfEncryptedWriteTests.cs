@@ -28,7 +28,9 @@ public class PdfEncryptedWriteTests {
         var readOptions = new PdfReadOptions { Password = "open" };
         PdfDocumentPreflight preflight = PdfInspector.Preflight(pdf, readOptions);
         string text = PdfTextExtractor.ExtractAllText(pdf, (PdfTextLayoutOptions?)null, readOptions);
-        string fluentText = PdfDocument.Open(pdf, readOptions).Read.Text();
+        PdfDocument opened = PdfDocument.Open(pdf, readOptions);
+        string fluentText = opened.Read.Text();
+        PdfOperationResult<string> tryText = opened.Read.TryText();
 
         Assert.True(preflight.CanRead);
         Assert.False(preflight.CanRewrite);
@@ -37,6 +39,8 @@ public class PdfEncryptedWriteTests {
         Assert.Equal(128, preflight.Probe.Security.EncryptionLengthBits);
         Assert.Contains("Generated Secret PDF Text", text, StringComparison.Ordinal);
         Assert.Contains("Generated Secret PDF Text", fluentText, StringComparison.Ordinal);
+        Assert.True(tryText.Succeeded, string.Join(" ", tryText.Diagnostics));
+        Assert.Contains("Generated Secret PDF Text", tryText.Value, StringComparison.Ordinal);
     }
 
     [Fact]

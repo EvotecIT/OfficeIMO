@@ -241,6 +241,68 @@ internal static partial class PdfSyntax {
         return true;
     }
 
+    private static bool ApplyCompressedXrefStreamEntries(Dictionary<int, PdfIndirectObject> map, byte[] pdf, Dictionary<int, int> parsedOffsets) {
+        var xrefStreams = new List<(int ObjectNumber, int Offset, PdfStream Stream)>();
+        foreach (var entry in map.Values) {
+            if (entry.Value is PdfStream stream &&
+                stream.Dictionary.Get<PdfName>("Type")?.Name == "XRef") {
+                int offset = parsedOffsets.TryGetValue(entry.ObjectNumber, out int parsedOffset) ? parsedOffset : int.MaxValue;
+                xrefStreams.Add((entry.ObjectNumber, offset, stream));
+            }
+        }
+
+        if (xrefStreams.Count == 0) {
+            return false;
+        }
+
+        string text = PdfEncoding.Latin1GetString(pdf);
+        if (!TryGetLatestStartXrefOffset(text, out int activeXrefOffset)) {
+            return false;
+        }
+
+        xrefStreams.Sort(static (left, right) => left.Offset.CompareTo(right.Offset));
+        var activeChainOffsets = GetXrefStreamChainOffsets(xrefStreams, activeXrefOffset);
+        if (activeChainOffsets.Count == 0) {
+            return false;
+        }
+
+        bool applied = false;
+        foreach (int chainOffset in activeChainOffsets) {
+            var xrefStream = xrefStreams.First(item => item.Offset == chainOffset);
+            applied = ApplyCompressedXrefStreamObjectEntries(map, parsedOffsets, xrefStream.Stream) || applied;
+        }
+
+        return applied;
+    }
+
+    private static bool ApplyCompressedXrefStreamObjectEntries(
+        Dictionary<int, PdfIndirectObject> map,
+        Dictionary<int, int> parsedOffsets,
+        PdfStream xrefStream) {
+        byte[] data = Filters.StreamDecoder.Decode(xrefStream.Dictionary, xrefStream.Data, map);
+        var entries = ReadXrefStreamEntries(xrefStream.Dictionary, data).ToList();
+        bool applied = false;
+        foreach (var entry in entries) {
+            if (entry.Type != 2 ||
+                entry.Field1 < 0 ||
+                entry.Field1 > int.MaxValue ||
+                entry.Field2 < 0 ||
+                entry.Field2 > int.MaxValue) {
+                continue;
+            }
+
+            int objectStreamNumber = (int)entry.Field1;
+            int objectStreamIndex = (int)entry.Field2;
+            if (TryParseObjectFromObjectStream(map, parsedOffsets, objectStreamNumber, objectStreamIndex, entry.ObjectNumber, out var parsed, out int objectStreamOffset)) {
+                map[entry.ObjectNumber] = parsed;
+                parsedOffsets[entry.ObjectNumber] = objectStreamOffset;
+                applied = true;
+            }
+        }
+
+        return applied;
+    }
+
     private static bool ApplyXrefStreamAtOffset(
         Dictionary<int, PdfIndirectObject> map,
         byte[] pdf,

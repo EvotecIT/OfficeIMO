@@ -52,10 +52,10 @@ public sealed class PdfSignatureValidationResult {
     /// <summary>Fraction of input bytes covered by the parsed /ByteRange values, when readable.</summary>
     public double? ByteRangeCoverageRatio { get; }
 
-    /// <summary>True when the unsigned /ByteRange gap length matches the decoded /Contents size, when both are readable.</summary>
+    /// <summary>True when the unsigned /ByteRange gap length matches the full /Contents hex literal length, when both are readable.</summary>
     public bool? ByteRangeGapMatchesContents =>
         ByteRangeGapLength.HasValue && Signature.ContentsSizeBytes.HasValue
-            ? ByteRangeGapLength.Value == Signature.ContentsSizeBytes.Value
+            ? ByteRangeGapLength.Value == (Signature.ContentsSizeBytes.Value * 2L) + 2L
             : null;
 
     /// <summary>Findings for this signature value.</summary>

@@ -231,7 +231,8 @@ public static partial class PdfIncrementalUpdater {
     private static string BuildSignaturePlaceholderDictionary(PdfExternalSignatureOptions options) {
         string zeros = new string('0', options.ReservedSignatureContentsBytes * 2);
         var builder = new StringBuilder();
-        builder.Append("<< /Type /Sig");
+        builder.Append("<< /Type /");
+        builder.Append(options.SubFilter == PdfExternalSignatureSubFilter.DocumentTimestamp ? "DocTimeStamp" : "Sig");
         builder.Append(" /Filter /").Append(PdfSyntaxEscaper.Name(options.Filter));
         builder.Append(" /SubFilter /").Append(PdfSyntaxEscaper.Name(ToSubFilterName(options.SubFilter)));
         builder.Append(" /ByteRange [").Append(SignatureByteRangePlaceholder).Append(']');
@@ -445,10 +446,10 @@ public static partial class PdfIncrementalUpdater {
             .ToArray();
 
         var rawByObjectNumber = rawObjects.ToDictionary(static item => item.ObjectNumber, static item => item.Bytes);
-        var serialized = new List<(int ObjectNumber, byte[] Bytes)>(objectNumbers.Length);
+        var serialized = new List<(int ObjectNumber, int Generation, byte[] Bytes)>(objectNumbers.Length);
         foreach (int objectNumber in objectNumbers) {
             if (rawByObjectNumber.TryGetValue(objectNumber, out byte[]? rawBytes)) {
-                serialized.Add((objectNumber, rawBytes));
+                serialized.Add((objectNumber, 0, rawBytes));
                 continue;
             }
 
@@ -456,7 +457,7 @@ public static partial class PdfIncrementalUpdater {
                 throw new InvalidOperationException("PDF object " + objectNumber.ToString(CultureInfo.InvariantCulture) + " was changed but could not be found.");
             }
 
-            serialized.Add((objectNumber, PdfObjectBytes.WrapIndirectObject(objectNumber, PdfPageExtractor.SerializeObject(indirect.Value, context))));
+            serialized.Add((objectNumber, indirect.Generation, PdfObjectBytes.WrapIndirectObject(objectNumber, indirect.Generation, PdfPageExtractor.SerializeObject(indirect.Value, context))));
         }
 
         using var output = new MemoryStream(pdf.Length + serialized.Sum(static item => item.Bytes.Length) + (serialized.Count * 32) + 256);
@@ -477,8 +478,9 @@ public static partial class PdfIncrementalUpdater {
         using var writer = new StreamWriter(output, Encoding.ASCII, 1024, leaveOpen: true) { NewLine = "\n" };
         writer.WriteLine("xref");
         foreach (int objectNumber in objectNumbers) {
+            int generation = serialized.First(item => item.ObjectNumber == objectNumber).Generation;
             writer.WriteLine(objectNumber.ToString(CultureInfo.InvariantCulture) + " 1");
-            writer.WriteLine(offsets[objectNumber].ToString("0000000000", CultureInfo.InvariantCulture) + " 00000 n ");
+            writer.WriteLine(offsets[objectNumber].ToString("0000000000", CultureInfo.InvariantCulture) + " " + generation.ToString("00000", CultureInfo.InvariantCulture) + " n ");
         }
 
         writer.WriteLine("trailer");

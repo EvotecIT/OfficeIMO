@@ -154,6 +154,38 @@ public class PdfITextInspiredCoverageTests {
     }
 
     [Fact]
+    public void IncrementalUpdater_BlocksDocMDPFormFillForLockedRequestedField() {
+        byte[] pdf = BuildDocMdpFormPdf(
+            permissionLevel: 2,
+            lockDictionary: "<< /Type /SigFieldLock /Action /Include /Fields [(Name)] >>");
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() => PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
+            ["Name"] = "Grace"
+        }));
+
+        Assert.Contains("locked by a signature field lock", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void IncrementalUpdater_PreservesObjectGenerationWhenAppendingFormFieldRevision() {
+        byte[] pdf = BuildGeneratedFormPdf();
+
+        byte[] updated = PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
+            ["Name"] = "Grace"
+        });
+
+        string updatedText = PdfEncoding.Latin1GetString(updated);
+        int originalLength = PdfEncoding.Latin1GetString(pdf).Length;
+        int appendedFieldObject = updatedText.IndexOf("5 2 obj\n", originalLength, StringComparison.Ordinal);
+
+        Assert.True(appendedFieldObject >= originalLength);
+        Assert.Contains("\n5 1\n", updatedText, StringComparison.Ordinal);
+        Assert.Contains(" 00002 n ", updatedText, StringComparison.Ordinal);
+        Assert.Contains("[ 5 2 R ]", updatedText, StringComparison.Ordinal);
+        Assert.Equal("Grace", Assert.Single(PdfInspector.Inspect(updated).FormFields).Value);
+    }
+
+    [Fact]
     public void PageEditor_SetsProductionBoundaryBoxes() {
         byte[] pdf = PdfPageGeometrySupport.BuildPageGeometryPdf();
 
@@ -294,20 +326,49 @@ public class PdfITextInspiredCoverageTests {
         return Encoding.ASCII.GetBytes(BuildPdf(objects));
     }
 
-    private static byte[] BuildDocMdpFormPdf(int permissionLevel) {
+    private static byte[] BuildDocMdpFormPdf(int permissionLevel, string? lockDictionary = null) {
+        string lockEntry = string.IsNullOrWhiteSpace(lockDictionary) ? string.Empty : " /Lock " + lockDictionary;
         var objects = new List<string> {
             "<< /Type /Catalog /Pages 2 0 R /AcroForm 8 0 R /Perms << /DocMDP 7 0 R >> >>",
             "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R >> >> /Annots [5 0 R 6 0 R] /Contents 9 0 R >>",
             "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
             "<< /Type /Annot /Subtype /Widget /FT /Tx /T (Name) /V (Ada) /Rect [50 50 180 70] /F 4 >>",
-            "<< /FT /Sig /T (Approval) /V 7 0 R /Subtype /Widget /Rect [10 10 120 40] >>",
+            "<< /FT /Sig /T (Approval) /V 7 0 R /Subtype /Widget /Rect [10 10 120 40]" + lockEntry + " >>",
             "<< /Type /Sig /Filter /Adobe.PPKLite /SubFilter /adbe.pkcs7.detached /Name (Alice) /ByteRange [0 10 20 30] /Contents <001122> /Reference [<< /TransformMethod /DocMDP /TransformParams << /Type /TransformParams /V /1.2 /P " + permissionLevel.ToString(CultureInfo.InvariantCulture) + " >> >>] >>",
             "<< /Fields [5 0 R 6 0 R] /SigFlags 3 >>",
             BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 72 720 Td (Signed form) Tj ET"))
         };
 
         return Encoding.ASCII.GetBytes(BuildPdf(objects));
+    }
+
+    private static byte[] BuildGeneratedFormPdf() {
+        var entries = new List<(int ObjectNumber, int Generation, string Body)> {
+            (1, 0, "<< /Type /Catalog /Pages 2 0 R /AcroForm 6 0 R >>"),
+            (2, 0, "<< /Type /Pages /Count 1 /Kids [3 0 R] >>"),
+            (3, 0, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R >> >> /Annots [5 2 R] /Contents 7 0 R >>"),
+            (4, 0, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"),
+            (5, 2, "<< /Type /Annot /Subtype /Widget /FT /Tx /T (Name) /V (Ada) /Rect [50 50 180 70] /F 4 >>"),
+            (6, 0, "<< /Fields [5 2 R] /SigFlags 2 >>"),
+            (7, 0, BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 72 720 Td (Generated form) Tj ET")))
+        };
+
+        var builder = new StringBuilder();
+        builder.AppendLine("%PDF-1.7");
+        foreach ((int objectNumber, int generation, string body) in entries) {
+            builder.Append(objectNumber.ToString(CultureInfo.InvariantCulture)).Append(' ')
+                .Append(generation.ToString(CultureInfo.InvariantCulture)).AppendLine(" obj");
+            builder.AppendLine(body);
+            builder.AppendLine("endobj");
+        }
+
+        builder.AppendLine("trailer");
+        builder.AppendLine("<< /Root 1 0 R /Size 8 >>");
+        builder.AppendLine("startxref");
+        builder.AppendLine("123");
+        builder.AppendLine("%%EOF");
+        return Encoding.ASCII.GetBytes(builder.ToString());
     }
 
     private static string BuildStream(byte[] data) =>

@@ -148,7 +148,7 @@ public static partial class PdfIncrementalUpdater {
 
         if (hasSignatureContent) {
             metadataBlockers.Add("Signed");
-            if (!CanAppendFormFieldsWithDocMDP(security)) {
+            if (!CanAppendFormFieldsWithDocMDP(security, null)) {
                 formBlockers.Add("Signed");
             } else {
                 warnings.Add("SignedDocMDPFormFill");
@@ -157,7 +157,7 @@ public static partial class PdfIncrementalUpdater {
 
         if (security.HasDocMDPPermissions) {
             metadataBlockers.Add("DocMDP");
-            if (!CanAppendFormFieldsWithDocMDP(security)) {
+            if (!CanAppendFormFieldsWithDocMDP(security, null)) {
                 formBlockers.Add("DocMDP");
             } else {
                 warnings.Add("DocMDPAllowsFormFill");
@@ -219,11 +219,64 @@ public static partial class PdfIncrementalUpdater {
             warnings.Distinct(StringComparer.Ordinal).ToArray());
     }
 
-    private static bool CanAppendFormFieldsWithDocMDP(PdfDocumentSecurityInfo security) {
-        return security.HasDocMDPPermissions &&
-            security.DocMDPPermissionLevel.HasValue &&
-            security.DocMDPPermissionLevel.Value >= 2 &&
-            security.DocMDPPermissionLevel.Value <= 3;
+    private static bool CanAppendFormFieldsWithDocMDP(PdfDocumentSecurityInfo security, IEnumerable<string>? fieldNames) {
+        if (!security.HasDocMDPPermissions ||
+            !security.DocMDPPermissionLevel.HasValue ||
+            security.DocMDPPermissionLevel.Value < 2 ||
+            security.DocMDPPermissionLevel.Value > 3) {
+            return false;
+        }
+
+        if (fieldNames is null) {
+            return !security.Signatures.Any(static signature => LocksEveryField(signature.FieldLock));
+        }
+
+        return GetFirstLockedFormFieldName(security, fieldNames) is null;
+    }
+
+    private static string? GetFirstLockedFormFieldName(PdfDocumentSecurityInfo security, IEnumerable<string> fieldNames) {
+        var requested = new HashSet<string>(fieldNames, StringComparer.Ordinal);
+        if (requested.Count == 0) {
+            return null;
+        }
+
+        foreach (PdfSignatureInfo signature in security.Signatures) {
+            PdfSignatureFieldLockInfo? fieldLock = signature.FieldLock;
+            if (fieldLock is null) {
+                continue;
+            }
+
+            foreach (string fieldName in requested) {
+                if (IsFieldLocked(fieldLock, fieldName)) {
+                    return fieldName;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static bool IsFieldLocked(PdfSignatureFieldLockInfo fieldLock, string fieldName) {
+        if (fieldLock.LocksAllFields) {
+            return true;
+        }
+
+        bool listed = fieldLock.Fields.Contains(fieldName, StringComparer.Ordinal);
+        if (fieldLock.LocksIncludedFields) {
+            return listed;
+        }
+
+        if (fieldLock.LocksAllExceptListedFields) {
+            return !listed;
+        }
+
+        return false;
+    }
+
+    private static bool LocksEveryField(PdfSignatureFieldLockInfo? fieldLock) {
+        return fieldLock is not null &&
+            (fieldLock.LocksAllFields ||
+            (fieldLock.LocksAllExceptListedFields && fieldLock.Fields.Count == 0));
     }
 
     private static string ReadTrailerIdEntry(string trailerRaw) {

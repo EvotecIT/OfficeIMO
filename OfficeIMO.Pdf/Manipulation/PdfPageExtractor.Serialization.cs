@@ -121,8 +121,9 @@ public static partial class PdfPageExtractor {
                 if (!context.NumberMap.TryGetValue(reference.ObjectNumber, out int newObjectNumber)) {
                     throw new InvalidOperationException("PDF object " + reference.ObjectNumber.ToString(CultureInfo.InvariantCulture) + " was referenced but not copied.");
                 }
-    
-                sb.Append(PdfSyntaxEscaper.IndirectReference(newObjectNumber));
+
+                int generation = newObjectNumber == reference.ObjectNumber ? reference.Generation : 0;
+                sb.Append(PdfSyntaxEscaper.IndirectReference(newObjectNumber, generation));
                 break;
             case PdfArray array:
                 sb.Append("[ ");

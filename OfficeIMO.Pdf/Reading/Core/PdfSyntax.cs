@@ -98,6 +98,9 @@ internal static partial class PdfSyntax {
             TryCreateDecryptor(map, trailerRaw, options, out decryptor);
             if (decryptor is not null) {
                 DecryptObjects(map, decryptor, encryptObjectNumber.Value);
+                if (appliedXrefStreamEntries) {
+                    ApplyCompressedXrefStreamEntries(map, pdf, parsedOffsets);
+                }
             }
         }
 
