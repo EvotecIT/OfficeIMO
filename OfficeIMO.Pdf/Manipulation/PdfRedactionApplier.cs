@@ -10,9 +10,6 @@ namespace OfficeIMO.Pdf;
 public static partial class PdfRedactionApplier {
     private static readonly TimeSpan RegexTimeout = TimeSpan.FromSeconds(2);
     private static readonly Regex TextObjectRegex = new Regex(@"\bBT\b[\s\S]*?\bET\b", RegexOptions.Compiled, RegexTimeout);
-    private static readonly Regex TextStringRegex = new Regex(@"<([0-9A-Fa-f\s]+)>|(\((?:\\.|[^\\()])*\))", RegexOptions.Compiled, RegexTimeout);
-    private static readonly Regex HexStringRegex = new Regex(@"<([0-9A-Fa-f\s]+)>", RegexOptions.Compiled, RegexTimeout);
-    private static readonly Regex LiteralStringRegex = new Regex(@"\((?:\\.|[^\\()])*\)", RegexOptions.Compiled, RegexTimeout);
     private static readonly Regex FontSelectionRegex = new Regex(@"/([^\s/]+)\s+[-+]?(?:\d+(?:\.\d+)?|\.\d+)\s+Tf\b", RegexOptions.Compiled, RegexTimeout);
 
     /// <summary>

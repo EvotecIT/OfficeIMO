@@ -53,6 +53,21 @@ public class PdfRedactionApplierTests {
     }
 
     [Fact]
+    public void Apply_DecodesNestedLiteralStringsBeforeMatchingTextObjects() {
+        byte[] source = BuildNestedLiteralRedactionSource();
+        PdfRedactionArea area = FindAreaForText(source, "Account (secret)");
+        Assert.Contains("Account (secret)", PdfTextExtractor.ExtractAllText(source), StringComparison.Ordinal);
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
+        string text = PdfTextExtractor.ExtractAllText(redacted);
+
+        Assert.DoesNotContain("Account (secret)", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("secret", text, StringComparison.Ordinal);
+        Assert.Contains("Visible before", text, StringComparison.Ordinal);
+        Assert.Contains("Visible after", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Apply_UsesFontDecoderForLiteralRedactionText() {
         byte[] source = BuildToUnicodeLiteralRedactionSource();
         PdfRedactionArea area = FindAreaForText(source, "Secret account 123-45");
@@ -143,6 +158,35 @@ public class PdfRedactionApplierTests {
         });
 
         return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildNestedLiteralRedactionSource() {
+        string streamContent = string.Join("\n", new[] {
+            "BT",
+            "/F1 12 Tf",
+            "72 720 Td",
+            "(Visible before) Tj",
+            "ET",
+            "BT",
+            "/F1 12 Tf",
+            "72 702 Td",
+            "(Account (secret)) Tj",
+            "ET",
+            "BT",
+            "/F1 12 Tf",
+            "72 650 Td",
+            "(Visible after) Tj",
+            "ET"
+        });
+        var objects = new[] {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 5 0 R >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
+            BuildStreamObject(5, Encoding.ASCII.GetBytes(streamContent))
+        };
+
+        return BuildPdf(objects, rootObjectNumber: 1);
     }
 
     private static byte[] BuildToUnicodeLiteralRedactionSource() {

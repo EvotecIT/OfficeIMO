@@ -308,18 +308,97 @@ public static partial class PdfRedactionApplier {
         var builder = new StringBuilder();
         string? currentFont = null;
         int cursor = 0;
-        foreach (Match match in TextStringRegex.Matches(textObject)) {
-            currentFont = ReadLastFontName(textObject.Substring(cursor, match.Index - cursor)) ?? currentFont;
-            if (match.Groups[1].Success) {
-                builder.Append(DecodeHexString(match.Groups[1].Value, currentFont, fontDecoders));
+        foreach (RedactionTextStringToken token in EnumerateTextStringTokens(textObject)) {
+            currentFont = ReadLastFontName(textObject.Substring(cursor, token.Index - cursor)) ?? currentFont;
+            if (token.IsHex) {
+                builder.Append(DecodeHexString(token.Value, currentFont, fontDecoders));
             } else {
-                builder.Append(DecodeLiteralString(match.Groups[2].Value, currentFont, fontDecoders));
+                builder.Append(DecodeLiteralString(token.Value, currentFont, fontDecoders));
             }
 
-            cursor = match.Index + match.Length;
+            cursor = token.Index + token.Length;
         }
 
         return builder.ToString();
+    }
+
+    private static IEnumerable<RedactionTextStringToken> EnumerateTextStringTokens(string value) {
+        for (int i = 0; i < value.Length;) {
+            char current = value[i];
+            if (current == '(') {
+                if (TryReadLiteralStringToken(value, i, out RedactionTextStringToken token)) {
+                    yield return token;
+                    i += token.Length;
+                    continue;
+                }
+
+                yield break;
+            }
+
+            if (current == '<' && (i + 1 >= value.Length || value[i + 1] != '<')) {
+                if (TryReadHexStringToken(value, i, out RedactionTextStringToken token)) {
+                    yield return token;
+                    i += token.Length;
+                    continue;
+                }
+            }
+
+            i++;
+        }
+    }
+
+    private static bool TryReadLiteralStringToken(string value, int start, out RedactionTextStringToken token) {
+        int depth = 1;
+        bool escaped = false;
+        int index = start + 1;
+        while (index < value.Length && depth > 0) {
+            char current = value[index++];
+            if (escaped) {
+                escaped = false;
+            } else if (current == '\\') {
+                escaped = true;
+            } else if (current == '(') {
+                depth++;
+            } else if (current == ')') {
+                depth--;
+            }
+        }
+
+        if (depth != 0) {
+            token = default;
+            return false;
+        }
+
+        int length = index - start;
+        token = new RedactionTextStringToken(start, length, isHex: false, value.Substring(start, length));
+        return true;
+    }
+
+    private static bool TryReadHexStringToken(string value, int start, out RedactionTextStringToken token) {
+        int index = start + 1;
+        while (index < value.Length && value[index] != '>') {
+            if (!IsHexStringCharacter(value[index])) {
+                token = default;
+                return false;
+            }
+
+            index++;
+        }
+
+        if (index >= value.Length || value[index] != '>') {
+            token = default;
+            return false;
+        }
+
+        token = new RedactionTextStringToken(start, index - start + 1, isHex: true, value.Substring(start + 1, index - start - 1));
+        return true;
+    }
+
+    private static bool IsHexStringCharacter(char value) {
+        return char.IsWhiteSpace(value) ||
+            (value >= '0' && value <= '9') ||
+            (value >= 'A' && value <= 'F') ||
+            (value >= 'a' && value <= 'f');
     }
 
     private static string? ReadLastFontName(string value) {
@@ -484,6 +563,23 @@ public static partial class PdfRedactionApplier {
         public string Text { get; }
 
         public RedactionTextBounds? Bounds { get; }
+    }
+
+    private readonly struct RedactionTextStringToken {
+        public RedactionTextStringToken(int index, int length, bool isHex, string value) {
+            Index = index;
+            Length = length;
+            IsHex = isHex;
+            Value = value;
+        }
+
+        public int Index { get; }
+
+        public int Length { get; }
+
+        public bool IsHex { get; }
+
+        public string Value { get; }
     }
 
     private readonly struct RedactionTextBounds {
