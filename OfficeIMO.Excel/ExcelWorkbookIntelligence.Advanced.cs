@@ -426,10 +426,19 @@ namespace OfficeIMO.Excel {
                 string? address = leftCell.CellReference?.Value;
                 if (string.IsNullOrWhiteSpace(address)) continue;
                 rightCells.TryGetValue(address!, out Cell? rightCell);
+                rightCells.Remove(address!);
                 string leftStyle = leftCell.StyleIndex?.Value.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
                 string rightStyle = rightCell?.StyleIndex?.Value.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
                 if (!string.Equals(leftStyle, rightStyle, StringComparison.Ordinal)) {
                     AddDifference(differences, maxDifferences, new ExcelWorkbookDifference("CellStyle", "Cell style index differs.", left.Name, address, leftStyle, rightStyle));
+                }
+            }
+
+            foreach (KeyValuePair<string, Cell> rightOnly in rightCells) {
+                if (differences.Count >= maxDifferences) break;
+                string rightStyle = rightOnly.Value.StyleIndex?.Value.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
+                if (!string.IsNullOrEmpty(rightStyle)) {
+                    AddDifference(differences, maxDifferences, new ExcelWorkbookDifference("CellStyle", "Cell style index differs.", left.Name, rightOnly.Key, string.Empty, rightStyle));
                 }
             }
         }
@@ -481,10 +490,9 @@ namespace OfficeIMO.Excel {
 
         private uint GetNextPowerQueryConnectionId() {
             uint maxId = 0;
-            foreach (ExtendedPart part in WorkbookPartRoot.Parts.Select(pair => pair.OpenXmlPart).OfType<ExtendedPart>()) {
+            foreach (OpenXmlPart part in EnumerateWorkbookConnectionParts()) {
                 try {
-                    using Stream stream = part.GetStream(FileMode.Open, FileAccess.Read);
-                    XDocument document = XDocument.Load(stream);
+                    XDocument document = XDocument.Parse(ReadOpenXmlPartText(part));
                     foreach (XElement connection in document.Descendants().Where(element => element.Name.LocalName == "connection")) {
                         if (uint.TryParse(connection.Attribute("id")?.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out uint id)) {
                             maxId = Math.Max(maxId, id);

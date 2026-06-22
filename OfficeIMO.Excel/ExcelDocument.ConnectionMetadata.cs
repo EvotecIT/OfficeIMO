@@ -1,6 +1,7 @@
 using System.Text;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
@@ -122,6 +123,17 @@ namespace OfficeIMO.Excel {
                 .FirstOrDefault(part => string.Equals(part.ContentType, WorkbookConnectionContentType, StringComparison.OrdinalIgnoreCase));
         }
 
+        private IEnumerable<OpenXmlPart> EnumerateWorkbookConnectionParts() {
+            foreach (IdPartPair pair in WorkbookPartRoot.Parts) {
+                OpenXmlPart part = pair.OpenXmlPart;
+                if (part is ConnectionsPart
+                    || string.Equals(part.RelationshipType, WorkbookConnectionRelationshipType, StringComparison.Ordinal)
+                    || part.ContentType.IndexOf("connections", StringComparison.OrdinalIgnoreCase) >= 0) {
+                    yield return part;
+                }
+            }
+        }
+
         private static string MergeWorkbookConnectionMetadata(string existingXml, string newXml) {
             XDocument existingDocument = XDocument.Parse(existingXml);
             XDocument newDocument = XDocument.Parse(newXml);
@@ -142,12 +154,24 @@ namespace OfficeIMO.Excel {
         }
 
         private static string ReadMetadataPart(ExtendedPart part) {
+            return ReadOpenXmlPartText(part);
+        }
+
+        private static void WriteMetadataPart(ExtendedPart part, string xml) {
+            WriteOpenXmlPartText(part, xml);
+        }
+
+        private static string ReadOpenXmlPartText(OpenXmlPart part) {
+            if (part is ConnectionsPart connectionsPart && connectionsPart.Connections != null) {
+                return connectionsPart.Connections.OuterXml;
+            }
+
             using Stream stream = part.GetStream(FileMode.Open, FileAccess.Read);
             using var reader = new StreamReader(stream, Encoding.UTF8);
             return reader.ReadToEnd();
         }
 
-        private static void WriteMetadataPart(ExtendedPart part, string xml) {
+        private static void WriteOpenXmlPartText(OpenXmlPart part, string xml) {
             using Stream stream = part.GetStream(FileMode.Create, FileAccess.Write);
             byte[] bytes = Encoding.UTF8.GetBytes(xml);
             stream.Write(bytes, 0, bytes.Length);

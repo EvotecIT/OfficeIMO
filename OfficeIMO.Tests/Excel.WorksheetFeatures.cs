@@ -670,6 +670,8 @@ namespace OfficeIMO.Tests {
                 sheet.GroupRows(2, 3, outlineLevel: 1, collapsed: true);
                 sheet.GroupColumns(2, 3, outlineLevel: 1, collapsed: true);
                 Assert.Throws<ArgumentOutOfRangeException>(() => sheet.GroupRows(A1.MaxRows, A1.MaxRows, outlineLevel: 1, collapsed: true));
+                Assert.Throws<ArgumentOutOfRangeException>(() => sheet.GroupRows(A1.MaxRows + 1, A1.MaxRows + 1));
+                Assert.Throws<ArgumentOutOfRangeException>(() => sheet.GroupColumns(A1.MaxColumns + 1, A1.MaxColumns + 1));
                 document.Save(false);
             }
 

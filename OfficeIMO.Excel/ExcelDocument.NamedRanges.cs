@@ -47,18 +47,18 @@ namespace OfficeIMO.Excel {
             name = EnsureValidDefinedName(name, validationMode);
 
             if (scope == null) {
+                string reference = NormalizeRange(range, validationMode); // may already contain a sheet prefix
                 // Workbook-global name: remove any existing global with same name
                 foreach (var dn in definedNames.Elements<DefinedName>().Where(d => d.Name == name && d.LocalSheetId == null).ToList())
                     dn.Remove();
-                string reference = NormalizeRange(range, validationMode); // may already contain a sheet prefix
                 var dnNew = new DefinedName { Name = name, Text = reference, Hidden = hidden ? true : (bool?)null };
                 definedNames.Append(dnNew);
             } else {
                 // Sheet-local name: remove existing with same name for this sheet
                 ushort sheetPos = GetSheetPositionIndex(scope);
+                string localRef = NormalizeLocalNamedRange(scope, range, validationMode);
                 foreach (var dn in definedNames.Elements<DefinedName>().Where(d => d.Name == name && d.LocalSheetId != null && d.LocalSheetId.Value == sheetPos).ToList())
                     dn.Remove();
-                string localRef = NormalizeLocalNamedRange(scope, range, validationMode);
                 var dnNew = new DefinedName { Name = name, Text = localRef, LocalSheetId = sheetPos, Hidden = hidden ? true : (bool?)null };
                 definedNames.Append(dnNew);
             }

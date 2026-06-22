@@ -157,10 +157,11 @@ namespace OfficeIMO.Tests {
             stream.Write(bytes, 0, bytes.Length);
         }
 
-        private static string ReadSinglePackagePartText(OpenXmlPartContainer container, string contentTypeMarker) {
+        private static string ReadSinglePackagePartText(OpenXmlPartContainer container, string contentTypeMarker, bool skipTypedParts = false) {
             var part = Assert.Single(
                 container.Parts.Select(relationship => relationship.OpenXmlPart),
-                part => part.ContentType.IndexOf(contentTypeMarker, StringComparison.OrdinalIgnoreCase) >= 0);
+                part => (!skipTypedParts || part is ExtendedPart)
+                    && part.ContentType.IndexOf(contentTypeMarker, StringComparison.OrdinalIgnoreCase) >= 0);
 
             using Stream stream = part.GetStream(FileMode.Open, FileAccess.Read);
             using var reader = new StreamReader(stream, Encoding.UTF8);

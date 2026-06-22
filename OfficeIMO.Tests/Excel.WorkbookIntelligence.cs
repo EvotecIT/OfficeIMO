@@ -278,5 +278,42 @@ namespace OfficeIMO.Tests {
                 }
             }
         }
+
+        [Fact]
+        public void Test_ExcelWorkbookDiff_ReportsRightOnlyCellStyles() {
+            string leftPath = Path.Combine(_directoryWithFiles, "ExcelWorkbookDiff.LeftStyle.xlsx");
+            string rightPath = Path.Combine(_directoryWithFiles, "ExcelWorkbookDiff.RightStyle.xlsx");
+
+            using (var left = ExcelDocument.Create(leftPath)) {
+                left.AddWorkSheet("Data");
+                left.Save();
+            }
+
+            using (var right = ExcelDocument.Create(rightPath)) {
+                var sheet = right.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "Styled");
+                sheet.CellBold(1, 1, true);
+                right.Save();
+            }
+
+            using (var left = ExcelDocument.Load(leftPath, readOnly: true))
+            using (var right = ExcelDocument.Load(rightPath, readOnly: true)) {
+                ExcelWorkbookDiffReport report = left.CompareWorkbook(right, new ExcelWorkbookDiffOptions {
+                    CompareCells = false,
+                    CompareCellStyles = true,
+                    CompareWorksheetMetadata = false,
+                    CompareTables = false,
+                    CompareNamedRanges = false,
+                    CompareComments = false
+                });
+
+                Assert.Contains(report.Differences, difference =>
+                    difference.Category == "CellStyle"
+                    && difference.SheetName == "Data"
+                    && difference.Address == "A1"
+                    && string.IsNullOrEmpty(difference.LeftValue)
+                    && !string.IsNullOrEmpty(difference.RightValue));
+            }
+        }
     }
 }

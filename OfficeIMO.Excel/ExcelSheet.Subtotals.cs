@@ -17,6 +17,7 @@ namespace OfficeIMO.Excel {
             if (groups.Length == 0) {
                 throw new InvalidOperationException("No data rows were available for subtotal summary generation.");
             }
+            ValidateSubtotalOutputBounds(options, groups.Length);
 
             int summaryStartRow = options.SummaryStartRow ?? checked(options.DataEndRow + 2);
             int currentRow = summaryStartRow;
@@ -132,11 +133,26 @@ namespace OfficeIMO.Excel {
             if (options.DataStartRow <= 0) throw new ArgumentOutOfRangeException(nameof(options.DataStartRow), "Data start row must be 1 or greater.");
             if (options.DataEndRow < options.DataStartRow) throw new ArgumentOutOfRangeException(nameof(options.DataEndRow), "Data end row must be greater than or equal to the data start row.");
             if (options.GroupColumn <= 0) throw new ArgumentOutOfRangeException(nameof(options.GroupColumn), "Group column must be 1 or greater.");
+            if (options.HeaderRow > A1.MaxRows || options.DataStartRow > A1.MaxRows || options.DataEndRow > A1.MaxRows) throw new ArgumentOutOfRangeException(nameof(options.DataEndRow), "Subtotal source rows must not exceed the Excel row limit.");
+            if (options.GroupColumn > A1.MaxColumns) throw new ArgumentOutOfRangeException(nameof(options.GroupColumn), "Group column must not exceed the Excel column limit.");
             if (options.ValueColumns == null || options.ValueColumns.Count == 0) throw new ArgumentException("At least one value column is required.", nameof(options.ValueColumns));
             if (options.ValueColumns.Any(column => column <= 0)) throw new ArgumentOutOfRangeException(nameof(options.ValueColumns), "Value columns must be 1 or greater.");
+            if (options.ValueColumns.Any(column => column > A1.MaxColumns)) throw new ArgumentOutOfRangeException(nameof(options.ValueColumns), "Value columns must not exceed the Excel column limit.");
             if (options.OutlineLevel < 1 || options.OutlineLevel > 7) throw new ArgumentOutOfRangeException(nameof(options.OutlineLevel), "Excel outline level must be between 1 and 7.");
             int summaryStartRow = options.SummaryStartRow ?? checked(options.DataEndRow + 2);
             if (summaryStartRow <= options.DataEndRow) throw new ArgumentOutOfRangeException(nameof(options.SummaryStartRow), "Summary start row must be below the source data range.");
+            if (summaryStartRow > A1.MaxRows) throw new ArgumentOutOfRangeException(nameof(options.SummaryStartRow), "Summary start row must not exceed the Excel row limit.");
+        }
+
+        private static void ValidateSubtotalOutputBounds(ExcelSubtotalOptions options, int groupCount) {
+            int summaryStartRow = options.SummaryStartRow ?? checked(options.DataEndRow + 2);
+            int rowCount = groupCount
+                + (options.IncludeHeader ? 1 : 0)
+                + (options.IncludeGrandTotal ? 1 : 0);
+            int summaryEndRow = checked(summaryStartRow + rowCount - 1);
+            if (summaryEndRow > A1.MaxRows) {
+                throw new ArgumentOutOfRangeException(nameof(options.SummaryStartRow), "Subtotal summary output must not exceed the Excel row limit.");
+            }
         }
 
         private static int GetSubtotalFunctionCode(ExcelSubtotalFunction function) {

@@ -61,5 +61,31 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
+
+        [Fact]
+        public void Test_SubtotalSummary_RejectsOutputBeyondWorksheetBounds() {
+            string filePath = Path.Combine(_directoryWithFiles, "SubtotalSummaryBounds.xlsx");
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "Region");
+                sheet.CellValue(1, 2, "Sales");
+                sheet.CellValue(2, 1, "NA");
+                sheet.CellValue(2, 2, 100);
+
+                Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddSubtotalSummary(new ExcelSubtotalOptions {
+                    DataEndRow = 2,
+                    GroupColumn = 1,
+                    ValueColumns = new[] { 2 },
+                    SummaryStartRow = A1.MaxRows
+                }));
+
+                Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddSubtotalSummary(new ExcelSubtotalOptions {
+                    DataEndRow = 2,
+                    GroupColumn = A1.MaxColumns + 1,
+                    ValueColumns = new[] { 2 },
+                    SummaryStartRow = 5
+                }));
+            }
+        }
     }
 }

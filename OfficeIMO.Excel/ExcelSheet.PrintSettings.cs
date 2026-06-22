@@ -210,8 +210,8 @@ namespace OfficeIMO.Excel {
         /// Removes a manual worksheet row page break.
         /// </summary>
         public bool RemoveManualRowPageBreak(int row, bool save = true) {
-            if (row <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(row), "Row page break must be one-based and positive.");
+            if (row <= 0 || row > A1.MaxRows) {
+                throw new ArgumentOutOfRangeException(nameof(row), "Row page break must be between 1 and the Excel row limit.");
             }
 
             bool changed = false;
@@ -228,8 +228,8 @@ namespace OfficeIMO.Excel {
         /// Removes a manual worksheet column page break.
         /// </summary>
         public bool RemoveManualColumnPageBreak(int column, bool save = true) {
-            if (column <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(column), "Column page break must be one-based and positive.");
+            if (column <= 0 || column > A1.MaxColumns) {
+                throw new ArgumentOutOfRangeException(nameof(column), "Column page break must be between 1 and the Excel column limit.");
             }
 
             bool changed = false;
@@ -375,7 +375,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static void AddManualPageBreak(OpenXmlCompositeElement breaks, uint id, uint max) {
-            Break? existing = breaks.Elements<Break>().FirstOrDefault(item => item.Id?.Value == id);
+            Break? existing = breaks.Elements<Break>().FirstOrDefault(item => item.Id?.Value == id && item.ManualPageBreak?.Value == true);
             if (existing == null) {
                 breaks.Append(new Break {
                     Id = id,
@@ -397,7 +397,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            Break? existing = breaks.Elements<Break>().FirstOrDefault(item => item.Id?.Value == id);
+            Break? existing = breaks.Elements<Break>().FirstOrDefault(item => item.Id?.Value == id && item.ManualPageBreak?.Value == true);
             if (existing == null) {
                 return false;
             }

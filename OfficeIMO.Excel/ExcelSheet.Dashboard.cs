@@ -28,6 +28,7 @@ namespace OfficeIMO.Excel {
                 tableName: tableName,
                 style: opts.TableStyle,
                 includeAutoFilter: opts.IncludeAutoFilter);
+            string? actualTableName = ResolveTableNameByRange(tableRange) ?? tableName;
 
             if (opts.AutoFit) {
                 AutoFitColumnsFor(Enumerable.Range(opts.TableColumn, data.Columns.Count));
@@ -47,7 +48,20 @@ namespace OfficeIMO.Excel {
                 });
             }
 
-            return new ExcelDashboardResult(tableRange, tableName, chart);
+            return new ExcelDashboardResult(tableRange, actualTableName, chart);
+        }
+
+        private string? ResolveTableNameByRange(string tableRange) {
+            if (string.IsNullOrWhiteSpace(tableRange)) {
+                return null;
+            }
+
+            return _worksheetPart.TableDefinitionParts
+                .Select(part => part.Table)
+                .FirstOrDefault(table => string.Equals(table?.Reference?.Value, tableRange, StringComparison.OrdinalIgnoreCase))
+                is { } table
+                    ? table.Name?.Value ?? table.DisplayName?.Value
+                    : null;
         }
 
         private void WriteDashboardHeader(ExcelDashboardOptions options) {

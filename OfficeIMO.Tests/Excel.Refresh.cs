@@ -2,6 +2,7 @@ using System.IO;
 using System.Linq;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using Xunit;
 
@@ -48,6 +49,49 @@ namespace OfficeIMO.Tests {
                 XDocument connections = XDocument.Parse(connectionText);
                 XElement connection = connections.Descendants().Single(element => element.Name.LocalName == "connection");
                 Assert.Equal("1", connection.Attribute("refreshOnLoad")?.Value);
+            }
+        }
+
+        [Fact]
+        public void Test_ExcelRefreshOnOpen_UpdatesTypedConnectionsAndAllocatesNextConnectionId() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelRefreshOnOpen.TypedConnections.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                document.AddWorkSheet("Data");
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                ConnectionsPart connectionsPart = spreadsheet.WorkbookPart!.AddNewPart<ConnectionsPart>();
+                connectionsPart.Connections = new Connections(
+                    new Connection { Id = 1U, Name = "ExistingOne", Type = 5, RefreshedVersion = 7 },
+                    new Connection { Id = 2U, Name = "ExistingTwo", Type = 5, RefreshedVersion = 7 });
+                connectionsPart.Connections.Save();
+            }
+
+            using (var document = ExcelDocument.Load(filePath)) {
+                ExcelRefreshOnOpenResult refresh = document.SetRefreshOnOpen(pivotTables: false, connections: true);
+                Assert.Equal(2, refresh.ConnectionCount);
+
+                ExcelPowerQueryMetadataResult metadata = document.AddPowerQueryMetadata(new ExcelPowerQueryMetadataOptions {
+                    Name = "AddedQuery",
+                    WorksheetName = "Data",
+                    CommandText = "let Source = Excel.CurrentWorkbook() in Source"
+                });
+                Assert.Equal(3U, metadata.ConnectionId);
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                ConnectionsPart connectionsPart = spreadsheet.WorkbookPart!.GetPartsOfType<ConnectionsPart>()
+                    .First(part => part.Connections?.Elements<Connection>().Any(connection => connection.Name?.Value == "ExistingOne") == true);
+                Assert.All(connectionsPart.Connections!.Elements<Connection>(), connection => Assert.True(connection.RefreshOnLoad!.Value));
+
+                XElement addedConnection = EnumerateWorkbookConnectionXml(spreadsheet.WorkbookPart!)
+                    .Select(XDocument.Parse)
+                    .SelectMany(document => document.Descendants().Where(element => element.Name.LocalName == "connection"))
+                    .Single(element => element.Attribute("name")?.Value == "AddedQuery");
+                Assert.Equal("3", addedConnection.Attribute("id")?.Value);
             }
         }
     }

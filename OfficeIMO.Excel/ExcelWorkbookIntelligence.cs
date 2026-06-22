@@ -370,8 +370,13 @@ namespace OfficeIMO.Excel {
                 .FirstOrDefault(item => string.Equals(item.Name, oldName, StringComparison.OrdinalIgnoreCase)
                     && string.Equals(item.SheetName, scope?.Name, StringComparison.OrdinalIgnoreCase))?.Hidden ?? false;
 
+            string validatedName = EnsureValidDefinedName(newName, validationMode);
+            string validatedReference = scope == null
+                ? NormalizeRange(reference, validationMode)
+                : NormalizeLocalNamedRange(scope, reference, validationMode);
+
             RemoveNamedRange(oldName, scope, save: false);
-            SetNamedRange(newName, reference, scope, save: save, hidden: hidden, validationMode: validationMode);
+            SetNamedRange(validatedName, validatedReference, scope, save: save, hidden: hidden, validationMode: validationMode);
             return true;
         }
 

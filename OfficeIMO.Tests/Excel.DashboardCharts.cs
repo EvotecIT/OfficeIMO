@@ -71,5 +71,25 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Revenue", chart.Title);
             }
         }
+
+        [Fact]
+        public void Test_DashboardBuilder_ReturnsActualSanitizedTableName() {
+            string filePath = Path.Combine(_directoryWithFiles, "DashboardBuilderResolvedTableName.xlsx");
+            var data = new DataTable("Sales Data");
+            data.Columns.Add("Region", typeof(string));
+            data.Columns.Add("Revenue", typeof(int));
+            data.Rows.Add("EU", 100);
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Dashboard");
+                ExcelDashboardResult result = sheet.AddDashboard(data, new ExcelDashboardOptions {
+                    TableName = "Sales Data",
+                    AddChart = false
+                });
+
+                Assert.Equal("Sales_Data", result.TableName);
+                Assert.Equal(result.TableRange, sheet.GetTableRange(result.TableName!));
+            }
+        }
     }
 }

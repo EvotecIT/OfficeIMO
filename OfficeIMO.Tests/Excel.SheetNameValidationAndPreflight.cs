@@ -1569,8 +1569,18 @@ namespace OfficeIMO.Tests {
                 sheet.AddManualColumnPageBreak(2, save: false);
                 sheet.AddManualColumnPageBreak(4, save: false);
 
+                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
+                Assert.NotNull(wsPartField);
+                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                RowBreaks rowBreaks = wsPart.Worksheet.GetFirstChild<RowBreaks>()!;
+                rowBreaks.Append(new Break { Id = 9U, Min = 0U, Max = 16383U, ManualPageBreak = false });
+                rowBreaks.Count = 3U;
+                rowBreaks.ManualBreakCount = 2U;
+
                 Assert.Equal(new[] { 3, 6 }, sheet.GetManualRowPageBreaks());
                 Assert.Equal(new[] { 2, 4 }, sheet.GetManualColumnPageBreaks());
+                Assert.False(sheet.RemoveManualRowPageBreak(9, save: false));
+                Assert.Contains(rowBreaks.Elements<Break>(), pageBreak => pageBreak.Id?.Value == 9U && pageBreak.ManualPageBreak?.Value != true);
 
                 Assert.True(sheet.RemoveManualRowPageBreak(3, save: false));
                 Assert.False(sheet.RemoveManualRowPageBreak(99, save: false));
@@ -1583,6 +1593,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(sheet.ClearManualPageBreaks(save: false));
                 Assert.False(sheet.ClearManualPageBreaks(save: false));
                 Assert.Empty(sheet.GetManualRowPageBreaks());
+                Assert.Contains(rowBreaks.Elements<Break>(), pageBreak => pageBreak.Id?.Value == 9U && pageBreak.ManualPageBreak?.Value != true);
             }
 
             File.Delete(path);

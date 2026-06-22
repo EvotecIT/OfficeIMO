@@ -11,7 +11,7 @@ namespace OfficeIMO.Excel {
         /// <param name="collapsed">Whether to hide the grouped rows and mark the summary row as collapsed.</param>
         /// <param name="hidden">Whether to hide the grouped rows without marking the group as collapsed.</param>
         public void GroupRows(int startRow, int endRow, byte outlineLevel = 1, bool collapsed = false, bool hidden = false) {
-            ValidateOutlineRange(startRow, endRow, nameof(startRow), nameof(endRow));
+            ValidateOutlineRange(startRow, endRow, nameof(startRow), nameof(endRow), A1.MaxRows, "row");
             ValidateOutlineLevel(outlineLevel);
             if (endRow >= A1.MaxRows && collapsed) {
                 throw new ArgumentOutOfRangeException(nameof(endRow), "Collapsed row groups require a following summary row.");
@@ -43,7 +43,7 @@ namespace OfficeIMO.Excel {
         /// <param name="endRow">Last 1-based row to clear.</param>
         /// <param name="unhide">Whether hidden rows in the cleared range should be shown.</param>
         public void ClearRowGroup(int startRow, int endRow, bool unhide = true) {
-            ValidateOutlineRange(startRow, endRow, nameof(startRow), nameof(endRow));
+            ValidateOutlineRange(startRow, endRow, nameof(startRow), nameof(endRow), A1.MaxRows, "row");
 
             _excelDocument.MaterializeDeferredDataSetImport();
             WriteLock(() => {
@@ -88,7 +88,7 @@ namespace OfficeIMO.Excel {
         /// <param name="collapsed">Whether to hide the grouped columns and mark the summary column as collapsed.</param>
         /// <param name="hidden">Whether to hide the grouped columns without marking the group as collapsed.</param>
         public void GroupColumns(int startColumn, int endColumn, byte outlineLevel = 1, bool collapsed = false, bool hidden = false) {
-            ValidateOutlineRange(startColumn, endColumn, nameof(startColumn), nameof(endColumn));
+            ValidateOutlineRange(startColumn, endColumn, nameof(startColumn), nameof(endColumn), A1.MaxColumns, "column");
             ValidateOutlineLevel(outlineLevel);
             if (endColumn >= A1.MaxColumns && collapsed) {
                 throw new ArgumentOutOfRangeException(nameof(endColumn), "Collapsed column groups require a following summary column.");
@@ -121,7 +121,7 @@ namespace OfficeIMO.Excel {
         /// <param name="endColumn">Last 1-based column to clear.</param>
         /// <param name="unhide">Whether hidden columns in the cleared range should be shown.</param>
         public void ClearColumnGroup(int startColumn, int endColumn, bool unhide = true) {
-            ValidateOutlineRange(startColumn, endColumn, nameof(startColumn), nameof(endColumn));
+            ValidateOutlineRange(startColumn, endColumn, nameof(startColumn), nameof(endColumn), A1.MaxColumns, "column");
 
             _excelDocument.MaterializeDeferredDataSetImport();
             WriteLock(() => {
@@ -227,13 +227,17 @@ namespace OfficeIMO.Excel {
             return column;
         }
 
-        private static void ValidateOutlineRange(int start, int end, string startParameter, string endParameter) {
+        private static void ValidateOutlineRange(int start, int end, string startParameter, string endParameter, int max, string unitName) {
             if (start <= 0) {
                 throw new ArgumentOutOfRangeException(startParameter, "Outline range start must be 1 or greater.");
             }
 
             if (end < start) {
                 throw new ArgumentException("Outline range end must be greater than or equal to the start.", endParameter);
+            }
+
+            if (start > max || end > max) {
+                throw new ArgumentOutOfRangeException(endParameter, $"Outline {unitName} range must not exceed the Excel {unitName} limit.");
             }
         }
 

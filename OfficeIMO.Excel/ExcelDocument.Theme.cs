@@ -48,10 +48,13 @@ namespace OfficeIMO.Excel {
             ThemePart themePart = workbookPart.GetPartsOfType<ThemePart>().FirstOrDefault() ?? workbookPart.AddNewPart<ThemePart>();
             byte[] bytes = Encoding.UTF8.GetBytes(themeXml);
             using var stream = new MemoryStream(bytes);
+            MarkPackageDirty();
             themePart.FeedData(stream);
 
             EnsureWorkbookThemeAndStyles();
-            Save();
+            if (!string.IsNullOrEmpty(FilePath)) {
+                Save();
+            }
             return this;
         }
 

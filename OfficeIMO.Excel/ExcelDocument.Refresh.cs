@@ -39,12 +39,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (connections) {
-                foreach (var part in WorkbookPartRoot.Parts.Select(relationship => relationship.OpenXmlPart).OfType<ExtendedPart>()) {
-                    if (!string.Equals(part.RelationshipType, WorkbookConnectionRelationshipType, StringComparison.Ordinal)
-                        && part.ContentType.IndexOf("connections", StringComparison.OrdinalIgnoreCase) < 0) {
-                        continue;
-                    }
-
+                foreach (OpenXmlPart part in EnumerateWorkbookConnectionParts()) {
                     connectionCount += SetConnectionPartRefreshOnOpen(part, enabled);
                 }
             }
@@ -56,11 +51,9 @@ namespace OfficeIMO.Excel {
             return new ExcelRefreshOnOpenResult(enabled, pivotCacheCount, connectionCount);
         }
 
-        private static int SetConnectionPartRefreshOnOpen(ExtendedPart part, bool enabled) {
+        private static int SetConnectionPartRefreshOnOpen(OpenXmlPart part, bool enabled) {
             XDocument document;
-            using (Stream stream = part.GetStream(FileMode.Open, FileAccess.Read)) {
-                document = XDocument.Load(stream, LoadOptions.PreserveWhitespace);
-            }
+            document = XDocument.Parse(ReadOpenXmlPartText(part), LoadOptions.PreserveWhitespace);
 
             int count = 0;
             foreach (XElement connection in document.Descendants().Where(element => element.Name.LocalName == "connection")) {
@@ -72,10 +65,7 @@ namespace OfficeIMO.Excel {
                 return 0;
             }
 
-            using (Stream stream = part.GetStream(FileMode.Create, FileAccess.Write)) {
-                using var writer = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
-                document.Save(writer, SaveOptions.DisableFormatting);
-            }
+            WriteOpenXmlPartText(part, document.ToString(SaveOptions.DisableFormatting));
 
             return count;
         }
