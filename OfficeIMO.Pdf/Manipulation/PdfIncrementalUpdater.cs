@@ -78,7 +78,7 @@ public static partial class PdfIncrementalUpdater {
         writer.WriteLine(objectOffset.ToString("0000000000", CultureInfo.InvariantCulture) + " 00000 n ");
         writer.WriteLine("trailer");
         writer.WriteLine("<< /Size " + size.ToString(CultureInfo.InvariantCulture) +
-            " /Root " + PdfSyntaxEscaper.IndirectReference(security.RootObjectNumber.Value) +
+            " /Root " + BuildExistingTrailerReference(objects, security.RootObjectNumber.Value) +
             " /Info " + PdfSyntaxEscaper.IndirectReference(newInfoObjectNumber) +
             " /Prev " + security.LastStartXrefOffset.Value.ToString(CultureInfo.InvariantCulture) +
             ReadTrailerIdEntry(trailerRaw) +

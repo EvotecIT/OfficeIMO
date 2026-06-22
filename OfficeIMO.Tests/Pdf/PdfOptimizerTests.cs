@@ -21,6 +21,10 @@ public class PdfOptimizerTests {
         Assert.Equal("CompressStream", action.Kind);
         Assert.Equal(5, action.ObjectNumber);
         Assert.Contains("/Filter /FlateDecode", PdfEncoding.Latin1GetString(result.Bytes), StringComparison.Ordinal);
+        byte[] compressedStream = ExtractFirstStreamData(result.Bytes);
+        Assert.True(compressedStream.Length > 2);
+        Assert.Equal(0x78, compressedStream[0]);
+        Assert.Equal(0, ((compressedStream[0] << 8) + compressedStream[1]) % 31);
         Assert.Contains(new string('A', 64), PdfTextExtractor.ExtractAllText(result.Bytes), StringComparison.Ordinal);
     }
 
@@ -127,6 +131,37 @@ public class PdfOptimizerTests {
         });
 
         return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] ExtractFirstStreamData(byte[] pdf) {
+        byte[] streamMarker = Encoding.ASCII.GetBytes("stream\n");
+        byte[] endMarker = Encoding.ASCII.GetBytes("\nendstream");
+        int start = IndexOf(pdf, streamMarker, 0);
+        Assert.True(start >= 0);
+        start += streamMarker.Length;
+        int end = IndexOf(pdf, endMarker, start);
+        Assert.True(end > start);
+        var data = new byte[end - start];
+        Buffer.BlockCopy(pdf, start, data, 0, data.Length);
+        return data;
+    }
+
+    private static int IndexOf(byte[] buffer, byte[] pattern, int startIndex) {
+        for (int i = startIndex; i <= buffer.Length - pattern.Length; i++) {
+            bool match = true;
+            for (int j = 0; j < pattern.Length; j++) {
+                if (buffer[i + j] != pattern[j]) {
+                    match = false;
+                    break;
+                }
+            }
+
+            if (match) {
+                return i;
+            }
+        }
+
+        return -1;
     }
 
     private static byte[] BuildPdfWithUnreferencedStream() {

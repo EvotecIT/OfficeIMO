@@ -207,6 +207,19 @@ public class PdfITextInspiredCoverageTests {
     }
 
     [Fact]
+    public void IncrementalUpdater_RejectsUnknownRadioButtonState() {
+        byte[] pdf = PdfDocument.Create()
+            .RadioButtonGroup("Payment.Method", new[] { "Card", "Cash", "Wire" }, value: "Card")
+            .ToBytes();
+
+        Assert.Throws<ArgumentException>(() => PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
+            ["Payment.Method"] = "Crypto"
+        }, new PdfIncrementalFormFieldUpdateOptions {
+            GenerateAppearanceStreams = true
+        }));
+    }
+
+    [Fact]
     public void PageEditor_SetsProductionBoundaryBoxes() {
         byte[] pdf = PdfPageGeometrySupport.BuildPageGeometryPdf();
 

@@ -326,26 +326,7 @@ public static class PdfRedactionApplier {
         }
 
         string body = value.Substring(1, value.Length - 2);
-        var builder = new StringBuilder(body.Length);
-        for (int i = 0; i < body.Length; i++) {
-            char ch = body[i];
-            if (ch != '\\' || i + 1 >= body.Length) {
-                builder.Append(ch);
-                continue;
-            }
-
-            char next = body[++i];
-            builder.Append(next switch {
-                'n' => '\n',
-                'r' => '\r',
-                't' => '\t',
-                'b' => '\b',
-                'f' => '\f',
-                _ => next
-            });
-        }
-
-        return builder.ToString();
+        return PdfWinAnsiEncoding.Decode(PdfStringParser.ParseLiteralToBytes(body));
     }
 
     private static bool RemoveMatchedAnnotations(
