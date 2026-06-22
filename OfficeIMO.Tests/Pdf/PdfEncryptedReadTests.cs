@@ -10,7 +10,9 @@ public class PdfEncryptedReadTests {
         byte[] pdf = EncryptedPdfFixture.CreateRevision2("open", "owner", "Secret PDF Text");
 
         Assert.Throws<PdfPasswordRequiredException>(() => PdfReadDocument.Load(pdf));
+        Assert.Throws<PdfPasswordRequiredException>(() => PdfTextExtractor.ExtractAllText(pdf));
         Assert.Throws<PdfInvalidPasswordException>(() => PdfReadDocument.Load(pdf, new PdfReadOptions { Password = "wrong" }));
+        Assert.Throws<PdfInvalidPasswordException>(() => PdfTextExtractor.ExtractAllText(pdf, (PdfTextLayoutOptions?)null, new PdfReadOptions { Password = "wrong" }));
     }
 
     [Fact]
@@ -39,6 +41,19 @@ public class PdfEncryptedReadTests {
         string text = PdfTextExtractor.ExtractAllText(pdf, (PdfTextLayoutOptions?)null, new PdfReadOptions { Password = "open" });
 
         Assert.Contains("Revision 3 forty bit text", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void StandardPasswordEncryptedPdf_ReadsEncryptDictionaryWithNonZeroGeneration() {
+        byte[] pdf = EncryptedPdfFixture.CreateRevision2("open", "owner", "Generated encrypt reference", encryptGeneration: 2);
+
+        PdfDocumentPreflight preflight = PdfInspector.Preflight(pdf, new PdfReadOptions { Password = "open" });
+        string text = PdfTextExtractor.ExtractAllText(pdf, (PdfTextLayoutOptions?)null, new PdfReadOptions { Password = "open" });
+
+        Assert.True(preflight.CanRead);
+        Assert.True(preflight.Probe.Security.HasReadableEncryptionSettings);
+        Assert.Equal(6, preflight.Probe.Security.EncryptObjectNumber);
+        Assert.Contains("Generated encrypt reference", text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -85,7 +100,7 @@ public class PdfEncryptedReadTests {
             0x2F, 0x0C, 0xA9, 0xFE, 0x64, 0x53, 0x69, 0x7A
         };
 
-        public static byte[] CreateRevision2(string userPassword, string ownerPassword, string visibleText) {
+        public static byte[] CreateRevision2(string userPassword, string ownerPassword, string visibleText, int encryptGeneration = 0) {
             byte[] fileId = new byte[] {
                 0x10, 0x45, 0xA8, 0x7C, 0x22, 0x18, 0x4E, 0xC1,
                 0x91, 0x4A, 0xCF, 0x66, 0x31, 0xD2, 0x74, 0x03
@@ -110,8 +125,9 @@ public class PdfEncryptedReadTests {
             WriteAscii(output, "%PDF-1.4\n%\xE2\xE3\xCF\xD3\n");
             var offsets = new List<long> { 0 };
             for (int i = 0; i < objects.Count; i++) {
+                int generation = i == 5 ? encryptGeneration : 0;
                 offsets.Add(output.Position);
-                WriteAscii(output, (i + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) + " 0 obj\n");
+                WriteAscii(output, (i + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) + " " + generation.ToString(System.Globalization.CultureInfo.InvariantCulture) + " obj\n");
                 output.Write(objects[i], 0, objects[i].Length);
                 WriteAscii(output, "\nendobj\n");
             }
@@ -119,11 +135,12 @@ public class PdfEncryptedReadTests {
             long xrefOffset = output.Position;
             WriteAscii(output, "xref\n0 7\n0000000000 65535 f \n");
             for (int i = 1; i < offsets.Count; i++) {
-                WriteAscii(output, offsets[i].ToString("0000000000", System.Globalization.CultureInfo.InvariantCulture) + " 00000 n \n");
+                int generation = i == 6 ? encryptGeneration : 0;
+                WriteAscii(output, offsets[i].ToString("0000000000", System.Globalization.CultureInfo.InvariantCulture) + " " + generation.ToString("00000", System.Globalization.CultureInfo.InvariantCulture) + " n \n");
             }
 
             string idHex = Hex(fileId);
-            WriteAscii(output, "trailer\n<< /Size 7 /Root 1 0 R /Encrypt 6 0 R /ID [<" + idHex + "> <" + idHex + ">] >>\nstartxref\n");
+            WriteAscii(output, "trailer\n<< /Size 7 /Root 1 0 R /Encrypt 6 " + encryptGeneration.ToString(System.Globalization.CultureInfo.InvariantCulture) + " R /ID [<" + idHex + "> <" + idHex + ">] >>\nstartxref\n");
             WriteAscii(output, xrefOffset.ToString(System.Globalization.CultureInfo.InvariantCulture));
             WriteAscii(output, "\n%%EOF\n");
             return output.ToArray();

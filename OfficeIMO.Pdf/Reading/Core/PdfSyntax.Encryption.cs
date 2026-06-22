@@ -7,12 +7,12 @@ internal static partial class PdfSyntax {
         PdfReadOptions? options,
         out PdfStandardSecurityHandler? decryptor) {
         decryptor = null;
-        if (!TryReadLastReferenceObjectNumber(trailerRaw, "Encrypt").HasValue) {
+        PdfReference? encryptReference = TryReadLastReference(trailerRaw, "Encrypt");
+        if (encryptReference is null) {
             return false;
         }
 
-        int encryptObjectNumber = TryReadLastReferenceObjectNumber(trailerRaw, "Encrypt")!.Value;
-        if (!PdfObjectLookup.TryGet(map, new PdfReference(encryptObjectNumber, 0), out PdfIndirectObject? encryptObject) ||
+        if (!PdfObjectLookup.TryGet(map, encryptReference, out PdfIndirectObject? encryptObject) ||
             encryptObject.Value is not PdfDictionary encryptionDictionary) {
             throw new PdfUnsupportedEncryptionException("PDF encryption dictionary could not be read.");
         }

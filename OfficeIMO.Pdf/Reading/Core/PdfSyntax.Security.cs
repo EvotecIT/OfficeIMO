@@ -68,8 +68,9 @@ internal static partial class PdfSyntax {
 
         try {
             var (objects, trailerRaw) = ParseObjects(pdf);
-            encryptObjectNumber = TryReadLastReferenceObjectNumber(trailerRaw, "Encrypt");
-            hasEncryption = encryptObjectNumber.HasValue;
+            PdfReference? encryptReference = TryReadLastReference(trailerRaw, "Encrypt");
+            encryptObjectNumber = encryptReference?.ObjectNumber;
+            hasEncryption = encryptReference is not null;
             encryptionFilter = null;
             encryptionSubFilter = null;
             encryptionVersion = null;
@@ -77,8 +78,8 @@ internal static partial class PdfSyntax {
             encryptionLengthBits = null;
             encryptionPermissions = null;
             encryptMetadata = null;
-            if (encryptObjectNumber.HasValue &&
-                PdfObjectLookup.TryGet(objects, new PdfReference(encryptObjectNumber.Value, 0), out PdfIndirectObject? encryptionObject) &&
+            if (encryptReference is not null &&
+                PdfObjectLookup.TryGet(objects, encryptReference, out PdfIndirectObject? encryptionObject) &&
                 encryptionObject.Value is PdfDictionary parsedEncryptionDictionary) {
                 encryptionFilter = TryReadName(parsedEncryptionDictionary, "Filter");
                 encryptionSubFilter = TryReadName(parsedEncryptionDictionary, "SubFilter");
@@ -467,19 +468,24 @@ internal static partial class PdfSyntax {
     }
 
     private static int? TryReadLastReferenceObjectNumber(string text, string key) {
+        return TryReadLastReference(text, key)?.ObjectNumber;
+    }
+
+    private static PdfReference? TryReadLastReference(string text, string key) {
 #if NET8_0_OR_GREATER
-        var regex = new Regex(@"/" + Regex.Escape(key) + @"\s+(\d+)\s+\d+\s+R", RegexOptions.Compiled | RegexOptions.NonBacktracking, RegexTimeout);
+        var regex = new Regex(@"/" + Regex.Escape(key) + @"\s+(\d+)\s+(\d+)\s+R", RegexOptions.Compiled | RegexOptions.NonBacktracking, RegexTimeout);
 #else
-        var regex = new Regex(@"/" + Regex.Escape(key) + @"\s+(\d+)\s+\d+\s+R", RegexOptions.Compiled, RegexTimeout);
+        var regex = new Regex(@"/" + Regex.Escape(key) + @"\s+(\d+)\s+(\d+)\s+R", RegexOptions.Compiled, RegexTimeout);
 #endif
-        int? objectNumber = null;
+        PdfReference? reference = null;
         foreach (Match match in regex.Matches(text)) {
-            if (int.TryParse(match.Groups[1].Value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int parsed)) {
-                objectNumber = parsed;
+            if (int.TryParse(match.Groups[1].Value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int objectNumber) &&
+                int.TryParse(match.Groups[2].Value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int generation)) {
+                reference = new PdfReference(objectNumber, generation);
             }
         }
 
-        return objectNumber;
+        return reference;
     }
 
     private static int CountPdfNameOccurrences(string text, string name) {
