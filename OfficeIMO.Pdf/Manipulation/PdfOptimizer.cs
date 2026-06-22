@@ -33,6 +33,7 @@ public static class PdfOptimizer {
         var actions = new List<PdfOptimizationAction>();
         var skippedActions = new List<PdfOptimizationSkippedAction>();
         var optimizedObjects = new Dictionary<int, PdfIndirectObject>(objects);
+        PdfMetadata metadata = PdfReadDocument.Load(pdf).Metadata;
         if (effectiveOptions.CompressUnfilteredStreams) {
             CompressUnfilteredStreams(optimizedObjects, effectiveOptions, actions, skippedActions);
         }
@@ -45,7 +46,7 @@ public static class PdfOptimizer {
             RemoveUnreferencedObjects(optimizedObjects, catalogObjectNumber, actions);
         }
 
-        byte[] candidate = RewriteAllObjects(optimizedObjects, catalogObjectNumber, pdf);
+        byte[] candidate = RewriteAllObjects(optimizedObjects, catalogObjectNumber, metadata, pdf);
         PdfOptimizationReport reportAfter = PdfDiagnostics.AnalyzeOptimization(candidate);
         if (effectiveOptions.KeepOriginalWhenNotSmaller && candidate.Length >= pdf.Length) {
             return new PdfOptimizationActionResult(
@@ -223,9 +224,13 @@ public static class PdfOptimizer {
             return;
         }
 
+        var replacementReferences = replacements.ToDictionary(
+            static item => item.Key,
+            item => new PdfReference(item.Value, objects[item.Value].Generation));
+
         foreach (int objectNumber in objects.Keys.OrderBy(static key => key).ToArray()) {
             PdfIndirectObject indirect = objects[objectNumber];
-            PdfObject rewritten = ReplaceReferences(indirect.Value, replacements);
+            PdfObject rewritten = ReplaceReferences(indirect.Value, replacementReferences);
             if (!ReferenceEquals(rewritten, indirect.Value)) {
                 objects[objectNumber] = new PdfIndirectObject(indirect.ObjectNumber, indirect.Generation, rewritten);
             }
@@ -247,10 +252,10 @@ public static class PdfOptimizer {
         }
     }
 
-    private static PdfObject ReplaceReferences(PdfObject value, IReadOnlyDictionary<int, int> replacements) {
+    private static PdfObject ReplaceReferences(PdfObject value, IReadOnlyDictionary<int, PdfReference> replacements) {
         if (value is PdfReference reference &&
-            replacements.TryGetValue(reference.ObjectNumber, out int replacementObjectNumber)) {
-            return new PdfReference(replacementObjectNumber, reference.Generation);
+            replacements.TryGetValue(reference.ObjectNumber, out PdfReference? replacementReference)) {
+            return replacementReference;
         }
 
         if (value is PdfArray array) {
@@ -274,13 +279,13 @@ public static class PdfOptimizer {
         return value;
     }
 
-    private static void ReplaceReferences(PdfDictionary dictionary, IReadOnlyDictionary<int, int> replacements) {
+    private static void ReplaceReferences(PdfDictionary dictionary, IReadOnlyDictionary<int, PdfReference> replacements) {
         foreach (string key in dictionary.Items.Keys.ToArray()) {
             dictionary.Items[key] = ReplaceReferences(dictionary.Items[key], replacements);
         }
     }
 
-    private static byte[] RewriteAllObjects(Dictionary<int, PdfIndirectObject> objects, int catalogObjectNumber, byte[] sourcePdf) {
+    private static byte[] RewriteAllObjects(Dictionary<int, PdfIndirectObject> objects, int catalogObjectNumber, PdfMetadata metadata, byte[] sourcePdf) {
         int[] sourceIds = objects.Keys.OrderBy(static id => id).ToArray();
         var numberMap = new Dictionary<int, int>(sourceIds.Length);
         for (int i = 0; i < sourceIds.Length; i++) {
@@ -294,7 +299,7 @@ public static class PdfOptimizer {
         }
 
         int infoId = rewritten.Count + 1;
-        rewritten.Add(PdfPageExtractor.WrapObject(infoId, PdfEncoding.Latin1GetBytes(PdfPageExtractor.BuildInfoDictionary(new PdfMetadata()))));
+        rewritten.Add(PdfPageExtractor.WrapObject(infoId, PdfEncoding.Latin1GetBytes(PdfPageExtractor.BuildInfoDictionary(metadata))));
 
         PdfFileVersion fileVersion = PdfFileAssembler.ParseHeaderVersionOrDefault(PdfSyntax.GetHeaderVersion(sourcePdf));
         return PdfPageExtractor.Assemble(rewritten, numberMap[catalogObjectNumber], infoId, fileVersion);

@@ -614,15 +614,20 @@ public static partial class PdfIncrementalUpdater {
         }
 
         var identityMap = objects.Keys.ToDictionary(static objectNumber => objectNumber, static objectNumber => objectNumber);
-        var context = new PdfPageExtractor.SerializationContext(identityMap, pagesObjectId: 0, new Dictionary<int, Dictionary<string, PdfObject>>(), objects);
+        var context = new PdfPageExtractor.SerializationContext(
+            identityMap,
+            pagesObjectId: 0,
+            new Dictionary<int, Dictionary<string, PdfObject>>(),
+            objects,
+            preserveReferenceGenerations: true);
         int[] objectNumbers = changedObjectNumbers.OrderBy(static objectNumber => objectNumber).ToArray();
-        var serialized = new List<(int ObjectNumber, byte[] Bytes)>(objectNumbers.Length);
+        var serialized = new List<(int ObjectNumber, int Generation, byte[] Bytes)>(objectNumbers.Length);
         foreach (int objectNumber in objectNumbers) {
             if (!objects.TryGetValue(objectNumber, out PdfIndirectObject? indirect)) {
                 throw new InvalidOperationException("PDF object " + objectNumber.ToString(CultureInfo.InvariantCulture) + " was changed but could not be found.");
             }
 
-            serialized.Add((objectNumber, PdfObjectBytes.WrapIndirectObject(objectNumber, PdfPageExtractor.SerializeObject(indirect.Value, context))));
+            serialized.Add((objectNumber, indirect.Generation, PdfObjectBytes.WrapIndirectObject(objectNumber, indirect.Generation, PdfPageExtractor.SerializeObject(indirect.Value, context))));
         }
 
         using var output = new MemoryStream(pdf.Length + serialized.Sum(static item => item.Bytes.Length) + (serialized.Count * 32) + 256);
@@ -643,8 +648,9 @@ public static partial class PdfIncrementalUpdater {
         using var writer = new StreamWriter(output, Encoding.ASCII, 1024, leaveOpen: true) { NewLine = "\n" };
         writer.WriteLine("xref");
         foreach (int objectNumber in objectNumbers) {
+            int generation = objects[objectNumber].Generation;
             writer.WriteLine(objectNumber.ToString(CultureInfo.InvariantCulture) + " 1");
-            writer.WriteLine(offsets[objectNumber].ToString("0000000000", CultureInfo.InvariantCulture) + " 00000 n ");
+            writer.WriteLine(offsets[objectNumber].ToString("0000000000", CultureInfo.InvariantCulture) + " " + generation.ToString("00000", CultureInfo.InvariantCulture) + " n ");
         }
 
         writer.WriteLine("trailer");

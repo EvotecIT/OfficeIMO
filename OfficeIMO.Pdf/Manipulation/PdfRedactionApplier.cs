@@ -160,11 +160,10 @@ public static class PdfRedactionApplier {
         Dictionary<int, PdfIndirectObject> objects,
         PdfDictionary pageDictionary,
         IReadOnlyList<PdfRedactionMatch> matches) {
-        string[] textMatches = matches
+        TextMatchTarget[] textMatches = matches
             .Where(match => match.Kind == PdfRedactionMatchKind.TextBlock && !string.IsNullOrWhiteSpace(match.Text))
-            .Select(match => NormalizeText(match.Text!))
-            .Where(text => text.Length > 0)
-            .Distinct(StringComparer.Ordinal)
+            .Select(match => new TextMatchTarget(NormalizeText(match.Text!), match.X, match.Y, match.Width, match.Height))
+            .Where(target => target.Text.Length > 0)
             .ToArray();
         if (textMatches.Length == 0 ||
             !pageDictionary.Items.TryGetValue("Contents", out PdfObject? contentsObject)) {
@@ -193,7 +192,7 @@ public static class PdfRedactionApplier {
         return changed;
     }
 
-    private static string ScrubTextObjects(string content, string[] normalizedTextMatches) {
+    private static string ScrubTextObjects(string content, TextMatchTarget[] normalizedTextMatches) {
         return TextObjectRegex.Replace(content, match => {
             string shownText = NormalizeText(ExtractTextFromTextObject(match.Value));
             if (shownText.Length == 0) {
@@ -201,13 +200,44 @@ public static class PdfRedactionApplier {
             }
 
             for (int i = 0; i < normalizedTextMatches.Length; i++) {
-                if (ContainsOrdinal(shownText, normalizedTextMatches[i])) {
+                if (ContainsOrdinal(shownText, normalizedTextMatches[i].Text) &&
+                    TextObjectIntersects(match.Value, normalizedTextMatches[i])) {
                     return string.Empty;
                 }
             }
 
             return match.Value;
         });
+    }
+
+    private static bool TextObjectIntersects(string textObject, TextMatchTarget target) {
+        List<PdfTextSpan> spans = TextContentParser.Parse(
+            textObject,
+            static (_, bytes) => PdfWinAnsiEncoding.Decode(bytes),
+            static (_, bytes) => Math.Max(0D, bytes.Length * 500D));
+        if (spans.Count == 0) {
+            return false;
+        }
+
+        for (int i = 0; i < spans.Count; i++) {
+            PdfTextSpan span = spans[i];
+            double width = Math.Max(span.Advance, Math.Max(1, span.Text.Length) * Math.Max(1D, span.FontSize) * 0.5D);
+            double height = Math.Max(1D, span.FontSize) * 1.5D;
+            double x = Math.Min(span.X, span.X + width);
+            double y = span.Y - Math.Max(1D, span.FontSize);
+            if (Intersects(target.X, target.Y, target.Width, target.Height, x, y, Math.Abs(width), height)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool Intersects(double ax, double ay, double aw, double ah, double bx, double by, double bw, double bh) {
+        return ax < bx + bw &&
+            ax + aw > bx &&
+            ay < by + bh &&
+            ay + ah > by;
     }
 
     private static string ExtractTextFromTextObject(string textObject) {
@@ -527,5 +557,21 @@ public static class PdfRedactionApplier {
         }
 
         public bool HasChanges { get; }
+    }
+
+    private readonly struct TextMatchTarget {
+        public TextMatchTarget(string text, double x, double y, double width, double height) {
+            Text = text;
+            X = x;
+            Y = y;
+            Width = width;
+            Height = height;
+        }
+
+        public string Text { get; }
+        public double X { get; }
+        public double Y { get; }
+        public double Width { get; }
+        public double Height { get; }
     }
 }

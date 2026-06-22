@@ -63,9 +63,34 @@ public class PdfOptimizerTests {
         Assert.True(result.Applied);
         Assert.Contains(result.Actions, action => action.Kind == "DeduplicateStream" && action.ObjectNumber == 6);
         string rewritten = PdfEncoding.Latin1GetString(result.Bytes);
-        Assert.DoesNotContain(" 6 0 obj", rewritten, StringComparison.Ordinal);
-        Assert.DoesNotContain("6 0 R", rewritten, StringComparison.Ordinal);
-        Assert.Contains("5 0 R", rewritten, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Contents [5 0 R 6 0 R]", rewritten, StringComparison.Ordinal);
+        Assert.Contains("Duplicate", PdfTextExtractor.ExtractAllText(result.Bytes), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Optimize_PreservesDocumentInfoMetadata() {
+        byte[] source = BuildPdfWithMetadataAndUncompressedText();
+
+        PdfOptimizationActionResult result = PdfOptimizer.Optimize(source);
+
+        PdfMetadata metadata = PdfInspector.Inspect(result.Bytes).Metadata;
+        Assert.Equal("Optimization title", metadata.Title);
+        Assert.Equal("OfficeIMO", metadata.Author);
+        Assert.Equal("Regression", metadata.Subject);
+        Assert.Equal("pdf,optimization", metadata.Keywords);
+    }
+
+    [Fact]
+    public void Optimize_DeduplicatesToNonZeroGenerationKeeper() {
+        byte[] source = BuildPdfWithDuplicateStreamsUsingNonZeroGenerationKeeper();
+
+        PdfOptimizationActionResult result = PdfOptimizer.Optimize(source, new PdfOptimizationOptions {
+            CompressUnfilteredStreams = false,
+            KeepOriginalWhenNotSmaller = false
+        });
+
+        Assert.True(result.Applied);
+        Assert.Contains(result.Actions, action => action.Kind == "DeduplicateStream" && action.ObjectNumber == 6);
         Assert.Contains("Duplicate", PdfTextExtractor.ExtractAllText(result.Bytes), StringComparison.Ordinal);
     }
 
@@ -169,7 +194,7 @@ public class PdfOptimizerTests {
     }
 
     private static byte[] BuildPdfWithDuplicateStreams() {
-        string streamContent = "BT /F1 12 Tf 72 720 Td (Duplicate) Tj ET";
+        string streamContent = "BT /F1 12 Tf 72 720 Td (Duplicate " + new string('D', 1024) + ") Tj ET";
         string pdf = string.Join("\n", new[] {
             "%PDF-1.7",
             "1 0 obj",
@@ -185,6 +210,80 @@ public class PdfOptimizerTests {
             "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
             "endobj",
             "5 0 obj",
+            "<< /Length " + streamContent.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>",
+            "stream",
+            streamContent,
+            "endstream",
+            "endobj",
+            "6 0 obj",
+            "<< /Length " + streamContent.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>",
+            "stream",
+            streamContent,
+            "endstream",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 7 >>",
+            "startxref",
+            "123",
+            "%%EOF"
+        });
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildPdfWithMetadataAndUncompressedText() {
+        string streamContent = "BT\n/F1 12 Tf\n72 720 Td\n(" + new string('M', 4096) + ") Tj\nET\n";
+        byte[] streamBytes = Encoding.ASCII.GetBytes(streamContent);
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            "endobj",
+            "5 0 obj",
+            "<< /Length " + streamBytes.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>",
+            "stream",
+            streamContent.TrimEnd('\n'),
+            "endstream",
+            "endobj",
+            "6 0 obj",
+            "<< /Title (Optimization title) /Author (OfficeIMO) /Subject (Regression) /Keywords (pdf,optimization) >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Info 6 0 R /Size 7 >>",
+            "startxref",
+            "123",
+            "%%EOF"
+        });
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildPdfWithDuplicateStreamsUsingNonZeroGenerationKeeper() {
+        string streamContent = "BT /F1 12 Tf 72 720 Td (Duplicate " + new string('D', 1024) + ") Tj ET";
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R >> >> /Contents [5 2 R 6 0 R] >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            "endobj",
+            "5 2 obj",
             "<< /Length " + streamContent.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>",
             "stream",
             streamContent,

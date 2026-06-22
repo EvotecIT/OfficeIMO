@@ -9,13 +9,17 @@ internal static class PdfObjectBytes {
     }
 
     internal static byte[] WrapIndirectObject(int objectNumber, byte[] body) {
+        return WrapIndirectObject(objectNumber, 0, body);
+    }
+
+    internal static byte[] WrapIndirectObject(int objectNumber, int generation, byte[] body) {
         Guard.NotNull(body, nameof(body));
         if (objectNumber < 1) {
             throw new ArgumentOutOfRangeException(nameof(objectNumber), "PDF object number must be positive.");
         }
 
         return Concat(
-            PdfEncoding.Latin1GetBytes(objectNumber.ToString(CultureInfo.InvariantCulture) + " 0 obj\n"),
+            PdfEncoding.Latin1GetBytes(objectNumber.ToString(CultureInfo.InvariantCulture) + " " + generation.ToString(CultureInfo.InvariantCulture) + " obj\n"),
             body,
             PdfEncoding.Latin1GetBytes("endobj\n"));
     }

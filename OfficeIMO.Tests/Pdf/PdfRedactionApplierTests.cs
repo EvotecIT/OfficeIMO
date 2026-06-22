@@ -39,6 +39,22 @@ public class PdfRedactionApplierTests {
         Assert.DoesNotContain("Secret account", result.RequireValue().Read.Text(), StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Apply_RemovesOnlyRepeatedTextInsideSelectedArea() {
+        byte[] source = PdfDocument.Create(new PdfOptions {
+                CompressContentStreams = false
+            })
+            .Paragraph(paragraph => paragraph.Text("Repeated secret"))
+            .Paragraph(paragraph => paragraph.Text("Repeated secret"))
+            .ToBytes();
+        PdfRedactionArea[] areas = FindAreasForText(source, "Repeated secret");
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { areas[0] });
+        string text = PdfTextExtractor.ExtractAllText(redacted);
+
+        Assert.Equal(1, CountOccurrences(text, "Repeated secret"));
+    }
+
     private static byte[] BuildRedactionSource() {
         return PdfDocument.Create(new PdfOptions {
                 CompressContentStreams = false
@@ -50,12 +66,29 @@ public class PdfRedactionApplierTests {
     }
 
     private static PdfRedactionArea FindAreaForText(byte[] pdf, string text) {
-        PdfLogicalTextBlock block = PdfLogicalDocument.Load(pdf)
-            .TextBlocks
-            .Single(item => item.Text.Contains(text, StringComparison.Ordinal));
+        return FindAreasForText(pdf, text).Single();
+    }
 
-        double x = Math.Min(block.XStart, block.XEnd) - 2D;
-        double width = Math.Abs(block.XEnd - block.XStart) + 4D;
-        return new PdfRedactionArea(block.PageNumber, x, block.BaselineY - 14D, width, 20D, "secret");
+    private static PdfRedactionArea[] FindAreasForText(byte[] pdf, string text) {
+        return PdfLogicalDocument.Load(pdf)
+            .TextBlocks
+            .Where(item => item.Text.Contains(text, StringComparison.Ordinal))
+            .Select(static block => {
+                double x = Math.Min(block.XStart, block.XEnd) - 2D;
+                double width = Math.Abs(block.XEnd - block.XStart) + 4D;
+                return new PdfRedactionArea(block.PageNumber, x, block.BaselineY - 14D, width, 20D, "secret");
+            })
+            .ToArray();
+    }
+
+    private static int CountOccurrences(string value, string search) {
+        int count = 0;
+        int index = 0;
+        while ((index = value.IndexOf(search, index, StringComparison.Ordinal)) >= 0) {
+            count++;
+            index += search.Length;
+        }
+
+        return count;
     }
 }

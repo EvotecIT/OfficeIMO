@@ -43,6 +43,22 @@ public class PdfEncryptedReadTests {
         Assert.Contains(preflight.RewriteBlockers, blocker => blocker.Kind == PdfRewriteBlockerKind.Encryption);
     }
 
+    [Fact]
+    public void StandardPasswordEncryptedFormPdf_BlocksFormFillEvenWithValidPassword() {
+        byte[] pdf = EncryptedPdfFixture.CreateRevision2WithTextField("open", "owner", "Secret PDF Text");
+
+        PdfDocumentPreflight preflight = PdfInspector.Preflight(pdf, new PdfReadOptions { Password = "open" });
+
+        Assert.True(preflight.CanRead);
+        Assert.False(preflight.CanRewrite);
+        Assert.False(preflight.CanFillSimpleFormFields);
+        Assert.False(preflight.Can(PdfPreflightCapability.FillSimpleFormFields));
+        Assert.Contains(preflight.RewriteBlockers, blocker => blocker.Kind == PdfRewriteBlockerKind.Encryption);
+        Assert.Contains(
+            "Encrypted PDF files can be read when the password is valid, but rewriting encrypted PDFs is not supported yet.",
+            preflight.GetCapabilityDiagnostics(PdfPreflightCapability.FillSimpleFormFields));
+    }
+
     private static class EncryptedPdfFixture {
         private static readonly byte[] PasswordPadding = new byte[] {
             0x28, 0xBF, 0x4E, 0x5E, 0x4E, 0x75, 0x8A, 0x41,
@@ -90,6 +106,54 @@ public class PdfEncryptedReadTests {
 
             string idHex = Hex(fileId);
             WriteAscii(output, "trailer\n<< /Size 7 /Root 1 0 R /Encrypt 6 0 R /ID [<" + idHex + "> <" + idHex + ">] >>\nstartxref\n");
+            WriteAscii(output, xrefOffset.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            WriteAscii(output, "\n%%EOF\n");
+            return output.ToArray();
+        }
+
+        public static byte[] CreateRevision2WithTextField(string userPassword, string ownerPassword, string visibleText) {
+            byte[] fileId = new byte[] {
+                0x11, 0x46, 0xA9, 0x7D, 0x23, 0x19, 0x4F, 0xC2,
+                0x92, 0x4B, 0xD0, 0x67, 0x32, 0xD3, 0x75, 0x04
+            };
+            const int permissions = -4;
+            byte[] ownerEntry = Rc4(ComputeOwnerKey(ownerPassword), PadPassword(userPassword));
+            byte[] fileKey = ComputeFileKey(userPassword, ownerEntry, permissions, fileId);
+            byte[] userEntry = Rc4(fileKey, PasswordPadding);
+
+            string content = "BT /F1 12 Tf 72 120 Td (" + EscapePdfString(visibleText) + ") Tj ET";
+            byte[] encryptedContent = Rc4(ComputeObjectKey(fileKey, 5, 0), Encoding.ASCII.GetBytes(content));
+            string encryptedFieldName = Hex(Rc4(ComputeObjectKey(fileKey, 6, 0), Encoding.ASCII.GetBytes("Name")));
+            string encryptedFieldValue = Hex(Rc4(ComputeObjectKey(fileKey, 6, 0), Encoding.ASCII.GetBytes("Ada")));
+
+            var objects = new List<byte[]>();
+            objects.Add(Ascii("<< /Type /Catalog /Pages 2 0 R /AcroForm 7 0 R >>"));
+            objects.Add(Ascii("<< /Type /Pages /Kids [3 0 R] /Count 1 >>"));
+            objects.Add(Ascii("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 200] /Resources << /Font << /F1 4 0 R >> >> /Annots [6 0 R] /Contents 5 0 R >>"));
+            objects.Add(Ascii("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"));
+            objects.Add(BuildStreamObject(encryptedContent));
+            objects.Add(Ascii("<< /Type /Annot /Subtype /Widget /FT /Tx /T <" + encryptedFieldName + "> /V <" + encryptedFieldValue + "> /Rect [50 50 180 70] /F 4 >>"));
+            objects.Add(Ascii("<< /Fields [6 0 R] >>"));
+            objects.Add(Ascii("<< /Filter /Standard /V 1 /R 2 /Length 40 /O <" + Hex(ownerEntry) + "> /U <" + Hex(userEntry) + "> /P " + permissions.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>"));
+
+            using var output = new MemoryStream();
+            WriteAscii(output, "%PDF-1.4\n%\xE2\xE3\xCF\xD3\n");
+            var offsets = new List<long> { 0 };
+            for (int i = 0; i < objects.Count; i++) {
+                offsets.Add(output.Position);
+                WriteAscii(output, (i + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) + " 0 obj\n");
+                output.Write(objects[i], 0, objects[i].Length);
+                WriteAscii(output, "\nendobj\n");
+            }
+
+            long xrefOffset = output.Position;
+            WriteAscii(output, "xref\n0 9\n0000000000 65535 f \n");
+            for (int i = 1; i < offsets.Count; i++) {
+                WriteAscii(output, offsets[i].ToString("0000000000", System.Globalization.CultureInfo.InvariantCulture) + " 00000 n \n");
+            }
+
+            string idHex = Hex(fileId);
+            WriteAscii(output, "trailer\n<< /Size 9 /Root 1 0 R /Encrypt 8 0 R /ID [<" + idHex + "> <" + idHex + ">] >>\nstartxref\n");
             WriteAscii(output, xrefOffset.ToString(System.Globalization.CultureInfo.InvariantCulture));
             WriteAscii(output, "\n%%EOF\n");
             return output.ToArray();

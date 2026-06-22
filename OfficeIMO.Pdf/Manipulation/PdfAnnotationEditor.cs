@@ -17,6 +17,7 @@ public static class PdfAnnotationEditor {
 
         List<int> pageObjectNumbers = GetPageObjectNumbersInDocumentOrder(objects);
         var removed = new HashSet<int>();
+        int removedArrayEntries = 0;
         for (int pageIndex = 0; pageIndex < pageObjectNumbers.Count; pageIndex++) {
             if (effectiveOptions.PageNumber.HasValue && effectiveOptions.PageNumber.Value != pageIndex + 1) {
                 continue;
@@ -52,6 +53,11 @@ public static class PdfAnnotationEditor {
                 }
 
                 annotations.Items.RemoveAt(i);
+                removedArrayEntries++;
+            }
+
+            if (removed.Count > 0) {
+                removedArrayEntries += RemovePageAnnotationReferences(annotations, removed);
             }
 
             if (annotations.Items.Count == 0) {
@@ -63,12 +69,12 @@ public static class PdfAnnotationEditor {
             objects.Remove(objectNumber);
         }
 
-        if (removed.Count == 0) {
+        if (removed.Count == 0 && removedArrayEntries == 0) {
             return new PdfAnnotationEditResult((byte[])pdf.Clone(), 0);
         }
 
         byte[] rewritten = RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Load(pdf).Metadata, pdf);
-        return new PdfAnnotationEditResult(rewritten, removed.Count);
+        return new PdfAnnotationEditResult(rewritten, removedArrayEntries);
     }
 
     /// <summary>Updates a single indirect annotation and returns rewritten PDF bytes.</summary>
@@ -130,6 +136,18 @@ public static class PdfAnnotationEditor {
         }
 
         return IsAnnotation(annotation);
+    }
+
+    private static int RemovePageAnnotationReferences(PdfArray annotations, HashSet<int> removedObjectNumbers) {
+        int removed = 0;
+        for (int i = annotations.Items.Count - 1; i >= 0; i--) {
+            if (annotations.Items[i] is PdfReference reference && removedObjectNumbers.Contains(reference.ObjectNumber)) {
+                annotations.Items.RemoveAt(i);
+                removed++;
+            }
+        }
+
+        return removed;
     }
 
     private static void ApplyUpdates(PdfDictionary annotation, PdfAnnotationUpdateOptions options) {
