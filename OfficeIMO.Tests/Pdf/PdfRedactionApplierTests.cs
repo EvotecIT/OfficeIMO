@@ -128,6 +128,30 @@ public class PdfRedactionApplierTests {
     }
 
     [Fact]
+    public void Apply_ClonesSharedPageContentBeforeScrubbingMatchedText() {
+        byte[] source = BuildSharedPageContentPdf();
+        PdfRedactionArea area = FindAreasForText(source, "Shared page secret").Single(redaction => redaction.PageNumber == 1);
+        Assert.Equal(2, CountOccurrences(PdfTextExtractor.ExtractAllText(source), "Shared page secret"));
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
+        string text = PdfTextExtractor.ExtractAllText(redacted);
+
+        Assert.Equal(1, CountOccurrences(text, "Shared page secret"));
+    }
+
+    [Fact]
+    public void Apply_ClonesSharedFormXObjectBeforeScrubbingMatchedText() {
+        byte[] source = BuildSharedFormXObjectTextPdf();
+        PdfRedactionArea area = FindAreasForText(source, "Shared form secret").Single(redaction => redaction.PageNumber == 1);
+        Assert.Equal(2, CountOccurrences(PdfTextExtractor.ExtractAllText(source), "Shared form secret"));
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
+        string text = PdfTextExtractor.ExtractAllText(redacted);
+
+        Assert.Equal(1, CountOccurrences(text, "Shared form secret"));
+    }
+
+    [Fact]
     public void Apply_IsolatesExistingContentBeforePaintingRedactionOverlay() {
         byte[] source = BuildLeakingGraphicsStateRedactionSource();
         var area = new PdfRedactionArea(1, 40, 40, 80, 24, "manual");
@@ -182,6 +206,19 @@ public class PdfRedactionApplierTests {
         Assert.DoesNotContain("Sensitive annotation", raw, StringComparison.Ordinal);
         Assert.DoesNotContain("Old sensitive appearance", raw, StringComparison.Ordinal);
         Assert.Empty(PdfInspector.Inspect(redacted).GetAnnotationsBySubtype("FreeText"));
+    }
+
+    [Fact]
+    public void Apply_ClearsParentPopupReferenceWhenRedactingPopupAnnotation() {
+        byte[] source = BuildIndirectAnnotationWithPopupPdf();
+        var area = new PdfRedactionArea(1, 100, 100, 60, 60, "popup");
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
+        string raw = PdfEncoding.Latin1GetString(redacted);
+
+        Assert.DoesNotContain("/Popup", raw, StringComparison.Ordinal);
+        Assert.Single(PdfInspector.Inspect(redacted).GetAnnotationsBySubtype("Text"));
+        Assert.Empty(PdfInspector.Inspect(redacted).GetAnnotationsBySubtype("Popup"));
     }
 
     private static byte[] BuildRedactionSource() {

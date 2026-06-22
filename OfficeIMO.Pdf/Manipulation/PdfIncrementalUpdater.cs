@@ -309,7 +309,7 @@ public static partial class PdfIncrementalUpdater {
             return true;
         }
 
-        bool listed = fieldLock.Fields.Contains(fieldName, StringComparer.Ordinal);
+        bool listed = fieldLock.Fields.Any(lockedField => FieldNamesOverlap(lockedField, fieldName));
         if (fieldLock.LocksIncludedFields) {
             return listed;
         }

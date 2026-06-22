@@ -10,7 +10,8 @@ public static partial class PdfRedactionApplier {
     private static bool RemoveMatchedTextObjects(
         Dictionary<int, PdfIndirectObject> objects,
         PdfDictionary pageDictionary,
-        IReadOnlyList<PdfRedactionMatch> matches) {
+        IReadOnlyList<PdfRedactionMatch> matches,
+        ref int nextObjectNumber) {
         RedactionTextTarget[] textTargets = BuildTextTargets(matches);
         if (textTargets.Length == 0 ||
             !pageDictionary.Items.TryGetValue("Contents", out PdfObject? contentsObject)) {
@@ -18,6 +19,7 @@ public static partial class PdfRedactionApplier {
         }
 
         bool changed = false;
+        Dictionary<int, int> referenceCounts = CountIndirectReferenceUsage(objects);
         Dictionary<string, Func<byte[], string>> fontDecoders = ResourceResolver.GetFontDecoders(pageDictionary, objects);
         foreach (PdfReference reference in EnumerateContentReferences(objects, contentsObject)) {
             if (!PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) ||
@@ -33,11 +35,17 @@ public static partial class PdfRedactionApplier {
                 continue;
             }
 
-            objects[reference.ObjectNumber] = new PdfIndirectObject(reference.ObjectNumber, reference.Generation, new PdfStream(CleanStreamDictionary(stream.Dictionary), PdfEncoding.Latin1GetBytes(scrubbed)));
+            PdfReference targetReference = reference;
+            if (IsSharedReference(referenceCounts, reference)) {
+                targetReference = CloneIndirectObject(objects, reference, indirect, ref nextObjectNumber);
+                ReplacePageContentReference(objects, pageDictionary, contentsObject, reference, targetReference);
+            }
+
+            objects[targetReference.ObjectNumber] = new PdfIndirectObject(targetReference.ObjectNumber, targetReference.Generation, new PdfStream(CleanStreamDictionary(stream.Dictionary), PdfEncoding.Latin1GetBytes(scrubbed)));
             changed = true;
         }
 
-        return ScrubMatchedFormXObjects(objects, pageDictionary, contentsObject, textTargets, fontDecoders) || changed;
+        return ScrubMatchedFormXObjects(objects, pageDictionary, contentsObject, textTargets, fontDecoders, referenceCounts, ref nextObjectNumber) || changed;
     }
 
     private static RedactionTextTarget[] BuildTextTargets(IReadOnlyList<PdfRedactionMatch> matches) {
@@ -58,12 +66,17 @@ public static partial class PdfRedactionApplier {
         PdfDictionary pageDictionary,
         PdfObject contentsObject,
         RedactionTextTarget[] textTargets,
-        IReadOnlyDictionary<string, Func<byte[], string>> pageFontDecoders) {
+        IReadOnlyDictionary<string, Func<byte[], string>> pageFontDecoders,
+        IReadOnlyDictionary<int, int> referenceCounts,
+        ref int nextObjectNumber) {
         PdfDictionary? resources = GetInheritedDictionary(objects, pageDictionary, "Resources");
-        if (resources is null) {
+        if (resources is null ||
+            !resources.Items.ContainsKey("XObject")) {
             return false;
         }
 
+        PdfDictionary xObjects = PdfPageResourceHelper.EnsurePageXObjects(objects, pageDictionary, "redaction text scrubbing");
+        resources = ResolveDictionary(objects, pageDictionary.Items.TryGetValue("Resources", out PdfObject? pageResources) ? pageResources : null) ?? resources;
         bool changed = false;
         foreach (PdfReference reference in EnumerateContentReferences(objects, contentsObject)) {
             if (!PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) ||
@@ -73,7 +86,7 @@ public static partial class PdfRedactionApplier {
             }
 
             string content = PdfEncoding.Latin1GetString(StreamDecoder.Decode(stream.Dictionary, stream.Data, objects));
-            changed = ScrubFormInvocations(objects, resources, content, textTargets, pageFontDecoders, new[] { Matrix2D.Identity }, new HashSet<int>()) || changed;
+            changed = ScrubFormInvocations(objects, resources, xObjects, content, textTargets, pageFontDecoders, new[] { Matrix2D.Identity }, referenceCounts, new HashSet<int>(), ref nextObjectNumber) || changed;
         }
 
         return changed;
@@ -82,21 +95,34 @@ public static partial class PdfRedactionApplier {
     private static bool ScrubFormInvocations(
         Dictionary<int, PdfIndirectObject> objects,
         PdfDictionary resources,
+        PdfDictionary xObjects,
         string content,
         RedactionTextTarget[] textTargets,
         IReadOnlyDictionary<string, Func<byte[], string>> parentFontDecoders,
         IReadOnlyList<Matrix2D> parentTransforms,
-        HashSet<int> activeForms) {
+        IReadOnlyDictionary<int, int> referenceCounts,
+        HashSet<int> activeForms,
+        ref int nextObjectNumber) {
         bool changed = false;
         foreach (TextContentParser.FormInvocation invocation in TextContentParser.ExtractFormInvocations(content)) {
-            if (!TryGetFormXObject(objects, resources, invocation.Name, out PdfReference reference, out PdfStream formStream) ||
+            if (!TryGetFormXObject(objects, xObjects, invocation.Name, out PdfReference reference, out PdfStream formStream) ||
                 formStream.DecodingFailed ||
                 !activeForms.Add(reference.ObjectNumber)) {
                 continue;
             }
 
+            int activeObjectNumber = reference.ObjectNumber;
             try {
+                if (IsSharedReference(referenceCounts, reference) &&
+                    PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? sourceIndirect)) {
+                    reference = CloneIndirectObject(objects, reference, sourceIndirect, ref nextObjectNumber);
+                    xObjects.Items[invocation.Name] = reference;
+                    formStream = (PdfStream)objects[reference.ObjectNumber].Value;
+                    changed = true;
+                }
+
                 PdfDictionary formResources = ResolveDictionary(objects, formStream.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ? resourcesObject : null) ?? resources;
+                PdfDictionary formXObjects = ResolveDictionary(objects, formResources.Items.TryGetValue("XObject", out PdfObject? formXObjectObject) ? formXObjectObject : null) ?? new PdfDictionary();
                 Dictionary<string, Func<byte[], string>> formDecoders = MergeDecoders(parentFontDecoders, ResourceResolver.GetFontDecodersForForm(formStream.Dictionary, objects));
                 Matrix2D[] effectiveTransforms = parentTransforms
                     .Select(parent => ApplyFormMatrix(Matrix2D.Multiply(parent, invocation.Transform), formStream.Dictionary))
@@ -110,19 +136,17 @@ public static partial class PdfRedactionApplier {
                     changed = true;
                 }
 
-                changed = ScrubFormInvocations(objects, formResources, formContent, textTargets, formDecoders, effectiveTransforms, activeForms) || changed;
+                changed = ScrubFormInvocations(objects, formResources, formXObjects, formContent, textTargets, formDecoders, effectiveTransforms, referenceCounts, activeForms, ref nextObjectNumber) || changed;
             } finally {
-                activeForms.Remove(reference.ObjectNumber);
+                activeForms.Remove(activeObjectNumber);
             }
         }
 
         return changed;
     }
 
-    private static bool TryGetFormXObject(Dictionary<int, PdfIndirectObject> objects, PdfDictionary resources, string name, out PdfReference reference, out PdfStream stream) {
-        if (resources.Items.TryGetValue("XObject", out PdfObject? xObjectValue) &&
-            ResolveDictionary(objects, xObjectValue) is PdfDictionary xObjects &&
-            xObjects.Items.TryGetValue(name, out PdfObject? value) &&
+    private static bool TryGetFormXObject(Dictionary<int, PdfIndirectObject> objects, PdfDictionary xObjects, string name, out PdfReference reference, out PdfStream stream) {
+        if (xObjects.Items.TryGetValue(name, out PdfObject? value) &&
             value is PdfReference formReference &&
             PdfObjectLookup.TryGet(objects, formReference, out PdfIndirectObject? indirect) &&
             indirect.Value is PdfStream formStream &&

@@ -243,6 +243,21 @@ public class PdfITextInspiredCoverageTests {
     }
 
     [Fact]
+    public void IncrementalUpdater_AllowsHierarchicalDocMDPFieldLockExclude() {
+        byte[] pdf = BuildDocMdpFormPdf(
+            permissionLevel: 2,
+            lockDictionary: "<< /Type /SigFieldLock /Action /Exclude /Fields [(Parent)] >>",
+            fieldName: "Parent.Child");
+
+        byte[] updated = PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
+            ["Parent.Child"] = "Grace"
+        });
+
+        PdfFormField textField = Assert.Single(PdfInspector.Inspect(updated).FormFields, static field => field.Name == "Parent.Child");
+        Assert.Equal("Grace", textField.Value);
+    }
+
+    [Fact]
     public void IncrementalUpdater_PreservesObjectGenerationWhenAppendingFormFieldRevision() {
         byte[] pdf = BuildGeneratedFormPdf();
 
@@ -544,14 +559,14 @@ public class PdfITextInspiredCoverageTests {
         return pdf.Substring(start, end - start);
     }
 
-    private static byte[] BuildDocMdpFormPdf(int permissionLevel, string? lockDictionary = null) {
+    private static byte[] BuildDocMdpFormPdf(int permissionLevel, string? lockDictionary = null, string fieldName = "Name") {
         string lockEntry = string.IsNullOrWhiteSpace(lockDictionary) ? string.Empty : " /Lock " + lockDictionary;
         var objects = new List<string> {
             "<< /Type /Catalog /Pages 2 0 R /AcroForm 8 0 R /Perms << /DocMDP 7 0 R >> >>",
             "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R >> >> /Annots [5 0 R 6 0 R] /Contents 9 0 R >>",
             "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
-            "<< /Type /Annot /Subtype /Widget /FT /Tx /T (Name) /V (Ada) /Rect [50 50 180 70] /F 4 >>",
+            "<< /Type /Annot /Subtype /Widget /FT /Tx /T (" + fieldName + ") /V (Ada) /Rect [50 50 180 70] /F 4 >>",
             "<< /FT /Sig /T (Approval) /V 7 0 R /Subtype /Widget /Rect [10 10 120 40]" + lockEntry + " >>",
             "<< /Type /Sig /Filter /Adobe.PPKLite /SubFilter /adbe.pkcs7.detached /Name (Alice) /ByteRange [0 10 20 30] /Contents <001122> /Reference [<< /TransformMethod /DocMDP /TransformParams << /Type /TransformParams /V /1.2 /P " + permissionLevel.ToString(CultureInfo.InvariantCulture) + " >> >>] >>",
             "<< /Fields [5 0 R 6 0 R] /SigFlags 3 >>",
