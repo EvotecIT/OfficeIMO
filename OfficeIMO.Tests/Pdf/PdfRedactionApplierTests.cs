@@ -52,6 +52,47 @@ public class PdfRedactionApplierTests {
         Assert.DoesNotContain("123-45", text, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Apply_UsesFontDecoderForLiteralRedactionText() {
+        byte[] source = BuildToUnicodeLiteralRedactionSource();
+        PdfRedactionArea area = FindAreaForText(source, "Secret account 123-45");
+        Assert.Contains("Secret account 123-45", ExtractLogicalText(source), StringComparison.Ordinal);
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
+        string text = ExtractLogicalText(redacted);
+
+        Assert.DoesNotContain("Secret account", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("123-45", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Apply_ScrubsMatchedTextInsideFormXObjects() {
+        byte[] source = BuildFormXObjectRedactionSource();
+        PdfRedactionArea area = FindAreaForText(source, "Secret account 123-45");
+        Assert.Contains("Secret account 123-45", PdfTextExtractor.ExtractAllText(source), StringComparison.Ordinal);
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
+        string text = PdfTextExtractor.ExtractAllText(redacted);
+
+        Assert.DoesNotContain("Secret account", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("123-45", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Apply_ScopesDuplicateTextRedactionToIntersectingInstance() {
+        byte[] source = BuildDuplicateRedactionSource();
+        PdfRedactionArea area = FindAreaForTextOccurrence(source, "Repeat secret", occurrenceFromTop: 1);
+        string originalText = PdfTextExtractor.ExtractAllText(source);
+        Assert.Equal(2, CountOccurrences(originalText, "Repeat secret"));
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
+        string text = PdfTextExtractor.ExtractAllText(redacted);
+
+        Assert.Equal(1, CountOccurrences(text, "Repeat secret"));
+        Assert.Contains("Visible before", text, StringComparison.Ordinal);
+        Assert.Contains("Visible after", text, StringComparison.Ordinal);
+    }
+
     private static byte[] BuildRedactionSource() {
         return PdfDocument.Create(new PdfOptions {
                 CompressContentStreams = false
@@ -104,6 +145,81 @@ public class PdfRedactionApplierTests {
         return Encoding.ASCII.GetBytes(pdf);
     }
 
+    private static byte[] BuildToUnicodeLiteralRedactionSource() {
+        string secret = "Secret account 123-45";
+        string streamContent = string.Join("\n", new[] {
+            "BT",
+            "/F1 12 Tf",
+            "72 720 Td",
+            "(Visible before) Tj",
+            "0 -18 Td",
+            "(" + EncodeLiteralGlyphBytes(secret) + ") Tj",
+            "0 -18 Td",
+            "(Visible after) Tj",
+            "ET"
+        });
+        string cmap = BuildSingleByteToUnicodeCMap(secret);
+        var objects = new[] {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 5 0 R >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /AAAAAA+Helvetica /Encoding /WinAnsiEncoding /ToUnicode 6 0 R >>\nendobj",
+            BuildStreamObject(5, Encoding.ASCII.GetBytes(streamContent)),
+            BuildStreamObject(6, Encoding.ASCII.GetBytes(cmap))
+        };
+
+        return BuildPdf(objects, rootObjectNumber: 1);
+    }
+
+    private static byte[] BuildFormXObjectRedactionSource() {
+        string pageContent = "q\n1 0 0 1 72 700 cm\n/Fm1 Do\nQ\n";
+        string formContent = "BT\n/F1 12 Tf\n0 0 Td\n(Secret account 123-45) Tj\nET\n";
+        var objects = new[] {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /XObject << /Fm1 6 0 R >> >> /Contents 5 0 R >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
+            BuildStreamObject(5, Encoding.ASCII.GetBytes(pageContent)),
+            BuildStreamObject(6, Encoding.ASCII.GetBytes(formContent), "/Type /XObject /Subtype /Form /BBox [0 0 220 40] /Resources << /Font << /F1 4 0 R >> >>")
+        };
+
+        return BuildPdf(objects, rootObjectNumber: 1);
+    }
+
+    private static byte[] BuildDuplicateRedactionSource() {
+        string streamContent = string.Join("\n", new[] {
+            "BT",
+            "/F1 12 Tf",
+            "72 740 Td",
+            "(Visible before) Tj",
+            "ET",
+            "BT",
+            "/F1 12 Tf",
+            "72 700 Td",
+            "(Repeat secret) Tj",
+            "ET",
+            "BT",
+            "/F1 12 Tf",
+            "72 660 Td",
+            "(Repeat secret) Tj",
+            "ET",
+            "BT",
+            "/F1 12 Tf",
+            "72 620 Td",
+            "(Visible after) Tj",
+            "ET"
+        });
+        var objects = new[] {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 5 0 R >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
+            BuildStreamObject(5, Encoding.ASCII.GetBytes(streamContent))
+        };
+
+        return BuildPdf(objects, rootObjectNumber: 1);
+    }
+
     private static PdfRedactionArea FindAreaForText(byte[] pdf, string text) {
         PdfLogicalTextBlock block = PdfLogicalDocument.Load(pdf)
             .TextBlocks
@@ -112,5 +228,120 @@ public class PdfRedactionApplierTests {
         double x = Math.Min(block.XStart, block.XEnd) - 2D;
         double width = Math.Abs(block.XEnd - block.XStart) + 4D;
         return new PdfRedactionArea(block.PageNumber, x, block.BaselineY - 14D, width, 20D, "secret");
+    }
+
+    private static PdfRedactionArea FindAreaForTextOccurrence(byte[] pdf, string text, int occurrenceFromTop) {
+        PdfLogicalTextBlock block = PdfLogicalDocument.Load(pdf)
+            .TextBlocks
+            .Where(item => item.Text.Contains(text, StringComparison.Ordinal))
+            .OrderByDescending(item => item.BaselineY)
+            .ElementAt(occurrenceFromTop);
+
+        double x = Math.Min(block.XStart, block.XEnd) - 2D;
+        double width = Math.Abs(block.XEnd - block.XStart) + 4D;
+        return new PdfRedactionArea(block.PageNumber, x, block.BaselineY - 14D, width, 20D, "secret");
+    }
+
+    private static string BuildSingleByteToUnicodeCMap(string text) {
+        var builder = new StringBuilder();
+        builder.Append("/CIDInit /ProcSet findresource begin\n");
+        builder.Append("12 dict begin\n");
+        builder.Append("begincmap\n");
+        builder.Append(text.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append(" beginbfchar\n");
+        for (int i = 0; i < text.Length; i++) {
+            builder.Append('<')
+                .Append((i + 1).ToString("X2", System.Globalization.CultureInfo.InvariantCulture))
+                .Append("> <")
+                .Append(((int)text[i]).ToString("X4", System.Globalization.CultureInfo.InvariantCulture))
+                .Append(">\n");
+        }
+
+        builder.Append("endbfchar\n");
+        builder.Append("endcmap\n");
+        builder.Append("CMapName currentdict /CMap defineresource pop\n");
+        builder.Append("end\n");
+        builder.Append("end\n");
+        return builder.ToString();
+    }
+
+    private static string EncodeLiteralGlyphBytes(string text) {
+        var builder = new StringBuilder(text.Length * 4);
+        for (int i = 0; i < text.Length; i++) {
+            builder.Append('\\')
+                .Append(Convert.ToString(i + 1, 8).PadLeft(3, '0'));
+        }
+
+        return builder.ToString();
+    }
+
+    private static string BuildStreamObject(int objectNumber, byte[] streamBytes, string extraDictionary = "") {
+        string dictionary = "<< /Length " + streamBytes.Length.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        if (!string.IsNullOrWhiteSpace(extraDictionary)) {
+            dictionary += " " + extraDictionary.Trim();
+        }
+
+        dictionary += " >>";
+        return objectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + " 0 obj\n" +
+            dictionary + "\nstream\n" +
+            Encoding.ASCII.GetString(streamBytes) + "\nendstream\nendobj";
+    }
+
+    private static byte[] BuildPdf(IReadOnlyList<string> objects, int rootObjectNumber) {
+        var offsets = new Dictionary<int, int>();
+        using var stream = new MemoryStream();
+        using var writer = new StreamWriter(stream, Encoding.ASCII, 1024, leaveOpen: true);
+
+        writer.WriteLine("%PDF-1.4");
+        writer.Flush();
+        int maxObjectNumber = 0;
+        foreach (string obj in objects) {
+            int objectNumber = ReadObjectNumber(obj);
+            offsets[objectNumber] = (int)stream.Position;
+            maxObjectNumber = Math.Max(maxObjectNumber, objectNumber);
+            writer.WriteLine(obj);
+            writer.Flush();
+        }
+
+        int xrefOffset = (int)stream.Position;
+        writer.WriteLine("xref");
+        writer.WriteLine("0 " + (maxObjectNumber + 1).ToString(System.Globalization.CultureInfo.InvariantCulture));
+        writer.WriteLine("0000000000 65535 f ");
+        for (int i = 1; i <= maxObjectNumber; i++) {
+            if (offsets.TryGetValue(i, out int offset)) {
+                writer.WriteLine(offset.ToString("D10", System.Globalization.CultureInfo.InvariantCulture) + " 00000 n ");
+            } else {
+                writer.WriteLine("0000000000 65535 f ");
+            }
+        }
+
+        writer.WriteLine("trailer");
+        writer.WriteLine("<< /Size " + (maxObjectNumber + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) + " /Root " + rootObjectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + " 0 R >>");
+        writer.WriteLine("startxref");
+        writer.WriteLine(xrefOffset.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        writer.WriteLine("%%EOF");
+        writer.Flush();
+        return stream.ToArray();
+    }
+
+    private static int ReadObjectNumber(string obj) {
+        int space = obj.IndexOf(' ');
+        return int.Parse(obj.Substring(0, space), System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    private static int CountOccurrences(string value, string text) {
+        int count = 0;
+        int index = 0;
+        while ((index = value.IndexOf(text, index, StringComparison.Ordinal)) >= 0) {
+            count++;
+            index += text.Length;
+        }
+
+        return count;
+    }
+
+    private static string ExtractLogicalText(byte[] pdf) {
+        return string.Join(
+            Environment.NewLine,
+            PdfLogicalDocument.Load(pdf).TextBlocks.Select(item => item.Text));
     }
 }
