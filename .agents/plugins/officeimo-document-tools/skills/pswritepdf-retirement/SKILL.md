@@ -1,9 +1,9 @@
 ---
-name: pswriteoffice-retirement
-description: Use when retiring PSWritePDF behavior into OfficeIMO/PSWriteOffice, comparing PDF gaps, or deciding where PowerShell-facing PDF features should live. Keep reusable PDF behavior in OfficeIMO and PSWriteOffice cmdlets thin and friendly.
+name: pswritepdf-retirement
+description: Use when retiring PSWritePDF behavior into OfficeIMO and PSWriteOffice, comparing PDF gaps, or deciding where PowerShell-facing PDF features should live. Keep reusable PDF behavior in OfficeIMO and PSWriteOffice cmdlets thin and friendly.
 ---
 
-# PSWriteOffice Retirement
+# PSWritePDF Retirement
 
 Use this skill for PSWritePDF retirement and PSWriteOffice PDF surface work.
 

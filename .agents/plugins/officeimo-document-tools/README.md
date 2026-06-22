@@ -1,6 +1,6 @@
 # OfficeIMO Document Tools Plugin
 
-This repo-local Codex plugin exposes OfficeIMO operating skills for conversion, PDF, website/WASM, and PSWriteOffice retirement work.
+This repo-local Codex plugin exposes OfficeIMO operating skills for conversion, PDF, website/WASM, and PSWritePDF retirement work.
 
 The plugin intentionally does not declare an MCP server yet. The OfficeIMO MCP server should be added only when the CLI/server entrypoint exists, so plugin installation does not advertise a dead command.
 

@@ -17,7 +17,7 @@ These should share the same OfficeIMO core conversion APIs. The browser app shou
 
 The browser path is good for private, local-in-browser conversion of user-selected files. It needs byte and stream APIs, Blazor WebAssembly publishing, friendly diagnostics, and strict dependency control.
 
-The MCP path is good for agent workflows: inspecting repository fixtures, comparing outputs, running conversion checks, surfacing package/release state, and helping PSWriteOffice retirement work. It can use local files and developer tooling, but it should still call OfficeIMO core APIs rather than duplicating conversion logic.
+The MCP path is good for agent workflows: inspecting repository fixtures, comparing outputs, running conversion checks, surfacing package/release state, and helping PSWritePDF retirement work. It can use local files and developer tooling, but it should still call OfficeIMO core APIs rather than duplicating conversion logic.
 
 ## Current Evidence
 
@@ -43,7 +43,7 @@ The plugin exposes four skills:
 - `officeimo-conversion-operator`
 - `officeimo-build-release`
 - `officeimo-website-wasm`
-- `pswriteoffice-retirement`
+- `pswritepdf-retirement`
 
 The plugin intentionally does not declare an MCP server yet. The MCP manifest should be added when an actual `officeimo mcp serve` or equivalent entrypoint exists.
 
@@ -124,7 +124,7 @@ The first public implementation should support drag/drop DOCX, XLSX, and PPTX in
 - Add mutating or artifact-producing conversion tools only after path scoping and output directory behavior are explicit.
 - Add the plugin `.mcp.json` only after the server command is present and validated.
 
-### Phase 4 - PSWriteOffice Retirement
+### Phase 4 - PSWritePDF Retirement
 
 - Use the MCP server and plugin skills to compare old PSWritePDF scenarios against OfficeIMO/PSWriteOffice replacements.
 - Move reusable behavior into OfficeIMO first.
@@ -140,7 +140,7 @@ The first public implementation should support drag/drop DOCX, XLSX, and PPTX in
 | Website content | JSON validity, route content present, and static manifest present |
 | Browser conversion | Blazor WASM publish plus real browser checks |
 | PDF fidelity | Fixture-based `%PDF` output and known-gap diagnostics |
-| PSWriteOffice retirement | Source and package-mode smoke tests where package boundaries are involved |
+| PSWritePDF retirement | Source and package-mode smoke tests where package boundaries are involved |
 
 ## Open Gaps
 
