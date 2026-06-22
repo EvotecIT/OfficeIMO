@@ -31,19 +31,24 @@ public static class PdfOptimizer {
         }
 
         var actions = new List<PdfOptimizationAction>();
+        var skippedActions = new List<PdfOptimizationSkippedAction>();
         var optimizedObjects = new Dictionary<int, PdfIndirectObject>(objects);
         if (effectiveOptions.CompressUnfilteredStreams) {
-            CompressUnfilteredStreams(optimizedObjects, effectiveOptions, actions);
+            CompressUnfilteredStreams(optimizedObjects, effectiveOptions, actions, skippedActions);
         }
 
         byte[] candidate = RewriteAllObjects(optimizedObjects, catalogObjectNumber, pdf);
+        PdfOptimizationReport reportAfter = PdfDiagnostics.AnalyzeOptimization(candidate);
         if (effectiveOptions.KeepOriginalWhenNotSmaller && candidate.Length >= pdf.Length) {
             return new PdfOptimizationActionResult(
                 (byte[])pdf.Clone(),
                 pdf.LongLength,
                 pdf.LongLength,
+                candidate.LongLength,
                 reportBefore,
+                reportAfter,
                 actions.AsReadOnly(),
+                skippedActions.AsReadOnly(),
                 returnedOriginal: true);
         }
 
@@ -51,8 +56,11 @@ public static class PdfOptimizer {
             candidate,
             pdf.LongLength,
             candidate.LongLength,
+            candidate.LongLength,
             reportBefore,
+            reportAfter,
             actions.AsReadOnly(),
+            skippedActions.AsReadOnly(),
             returnedOriginal: false);
     }
 
@@ -92,17 +100,42 @@ public static class PdfOptimizer {
     private static void CompressUnfilteredStreams(
         Dictionary<int, PdfIndirectObject> objects,
         PdfOptimizationOptions options,
-        List<PdfOptimizationAction> actions) {
+        List<PdfOptimizationAction> actions,
+        List<PdfOptimizationSkippedAction> skippedActions) {
         foreach (int objectNumber in objects.Keys.OrderBy(static key => key).ToArray()) {
             PdfIndirectObject indirect = objects[objectNumber];
-            if (indirect.Value is not PdfStream stream ||
-                stream.Data.Length < options.MinimumStreamCompressionBytes ||
-                stream.Dictionary.Items.ContainsKey("Filter")) {
+            if (indirect.Value is not PdfStream stream) {
+                continue;
+            }
+
+            if (stream.Data.Length < options.MinimumStreamCompressionBytes) {
+                skippedActions.Add(new PdfOptimizationSkippedAction(
+                    "CompressStream",
+                    objectNumber,
+                    stream.Data.LongLength,
+                    "BelowMinimumSize",
+                    "Skipped unfiltered stream because it is below the configured minimum compression size."));
+                continue;
+            }
+
+            if (stream.Dictionary.Items.ContainsKey("Filter")) {
+                skippedActions.Add(new PdfOptimizationSkippedAction(
+                    "CompressStream",
+                    objectNumber,
+                    stream.Data.LongLength,
+                    "AlreadyFiltered",
+                    "Skipped stream because it already declares a filter."));
                 continue;
             }
 
             byte[] compressed = CompressFlate(stream.Data);
             if (compressed.Length >= stream.Data.Length) {
+                skippedActions.Add(new PdfOptimizationSkippedAction(
+                    "CompressStream",
+                    objectNumber,
+                    stream.Data.LongLength,
+                    "NotSmaller",
+                    "Skipped unfiltered stream because FlateDecode output was not smaller."));
                 continue;
             }
 

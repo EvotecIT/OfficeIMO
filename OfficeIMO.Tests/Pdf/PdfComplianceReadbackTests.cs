@@ -28,6 +28,22 @@ public class PdfComplianceReadbackTests {
     }
 
     [Fact]
+    public void AssessReadback_ReportsPdfA4GroundworkFromSavedPdf() {
+        byte[] pdf = PdfDocument.Create()
+            .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA4F, "en-US")
+            .Meta(title: "Readback PDF/A-4", author: "OfficeIMO")
+            .Paragraph(paragraph => paragraph.Text("Readback PDF/A-4 groundwork"))
+            .ToBytes();
+
+        PdfComplianceReadinessReport report = PdfComplianceAnalyzer.AssessReadback(PdfComplianceProfile.PdfA4F, pdf);
+
+        AssertRequirement(report, "readback-pdf-file-version", PdfComplianceRequirementStatus.Satisfied);
+        AssertRequirement(report, "readback-xmp-metadata", PdfComplianceRequirementStatus.Satisfied);
+        AssertRequirement(report, "readback-pdfa-identification", PdfComplianceRequirementStatus.Satisfied);
+        AssertRequirement(report, "readback-output-intent", PdfComplianceRequirementStatus.Satisfied);
+    }
+
+    [Fact]
     public void AssessReadback_ReportsPdfUaGroundworkFromSavedPdf() {
         byte[] pdf = PdfDocument.Create(new PdfOptions {
                 FileVersion = PdfFileVersion.Pdf17,
@@ -50,6 +66,24 @@ public class PdfComplianceReadbackTests {
         AssertRequirement(report, "readback-structure-root", PdfComplianceRequirementStatus.Satisfied);
         AssertRequirement(report, "readback-parent-tree-next-key", PdfComplianceRequirementStatus.Satisfied);
         AssertRequirement(report, "readback-document-structure-element", PdfComplianceRequirementStatus.Satisfied);
+        AssertRequirement(report, "pdfua-validation", PdfComplianceRequirementStatus.Unsupported);
+    }
+
+    [Fact]
+    public void AssessReadback_ReportsPdfUa2GroundworkFromSavedPdf() {
+        byte[] pdf = PdfDocument.Create()
+            .ConfigurePdfUaGroundwork(PdfComplianceProfile.PdfUa2, "en-US")
+            .Meta(title: "Readback PDF/UA-2", author: "OfficeIMO")
+            .H1("Readback PDF/UA-2")
+            .Paragraph(paragraph => paragraph.Text("Readback PDF/UA-2 groundwork"))
+            .ToBytes();
+
+        PdfComplianceReadinessReport report = PdfComplianceAnalyzer.AssessReadback(PdfComplianceProfile.PdfUa2, pdf);
+
+        AssertRequirement(report, "readback-pdf-file-version", PdfComplianceRequirementStatus.Satisfied);
+        AssertRequirement(report, "readback-pdfua-identification", PdfComplianceRequirementStatus.Satisfied);
+        AssertRequirement(report, "readback-structure-element-count", PdfComplianceRequirementStatus.Satisfied);
+        AssertRequirement(report, "readback-marked-content-references", PdfComplianceRequirementStatus.Satisfied);
         AssertRequirement(report, "pdfua-validation", PdfComplianceRequirementStatus.Unsupported);
     }
 

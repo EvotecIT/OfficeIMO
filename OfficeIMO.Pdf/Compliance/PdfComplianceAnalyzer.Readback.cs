@@ -44,6 +44,13 @@ public static partial class PdfComplianceAnalyzer {
                 "Generate the saved PDF with a PDF 1.7 file header before checking PDF/A-2, PDF/A-3, PDF/UA-1, or e-invoice profile evidence.");
         }
 
+        if (RequiresPdf20FileVersion(profile)) {
+            Add(requirements, "readback-pdf-file-version", "Readback PDF 2.0 file header",
+                string.Equals(info.HeaderVersion, "2.0", StringComparison.Ordinal),
+                "The saved PDF header is PDF 2.0.",
+                "Generate the saved PDF with a PDF 2.0 file header before checking PDF/A-4 or PDF/UA-2 profile evidence.");
+        }
+
         if (IsPdfA(profile) || IsElectronicInvoice(profile)) {
             AddPdfAReadbackRequirements(requirements, profile, info);
         }
@@ -70,7 +77,7 @@ public static partial class PdfComplianceAnalyzer {
 
         bool hasMatchingIdentification = xmp != null &&
             xmp.PdfAPart == target.Part &&
-            (target.Conformance == null || string.Equals(xmp.PdfAConformance, target.Conformance, StringComparison.OrdinalIgnoreCase));
+            IsPdfAConformanceMatch(xmp.PdfAConformance, target.Conformance);
         Add(requirements, "readback-pdfa-identification", "Readback PDF/A identification XMP",
             hasMatchingIdentification,
             "The saved PDF contains PDF/A identification metadata for " + GetDisplayName(profile) + ".",
@@ -126,11 +133,12 @@ public static partial class PdfComplianceAnalyzer {
 
     private static void AddAccessibilityReadbackRequirements(List<PdfComplianceRequirement> requirements, PdfComplianceProfile profile, PdfDocumentInfo info) {
         PdfXmpMetadataInfo? xmp = info.XmpMetadata;
-        if (profile == PdfComplianceProfile.PdfUa1) {
+        if (profile == PdfComplianceProfile.PdfUa1 || profile == PdfComplianceProfile.PdfUa2) {
+            int expectedPart = profile == PdfComplianceProfile.PdfUa2 ? 2 : 1;
             Add(requirements, "readback-pdfua-identification", "Readback PDF/UA identification XMP",
-                xmp?.PdfUaPart == 1,
-                "The saved PDF contains PDF/UA-1 identification metadata.",
-                "The saved PDF XMP metadata must contain pdfuaid:part=1.");
+                xmp?.PdfUaPart == expectedPart,
+                "The saved PDF contains " + GetDisplayName(profile) + " identification metadata.",
+                "The saved PDF XMP metadata must contain pdfuaid:part=" + expectedPart.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".");
 
             Add(requirements, "readback-document-title", "Readback document title metadata",
                 !string.IsNullOrWhiteSpace(xmp?.Title),
@@ -146,7 +154,7 @@ public static partial class PdfComplianceAnalyzer {
                 "pdfua-validation",
                 "PDF/UA validator evidence",
                 PdfComplianceRequirementStatus.Unsupported,
-                "Run a PDF/UA validator against the saved PDF before claiming PDF/UA-1 conformance."));
+                "Run a PDF/UA validator against the saved PDF before claiming " + GetDisplayName(profile) + " conformance."));
         }
 
         Add(requirements, "readback-document-language", "Readback document language",
@@ -176,6 +184,16 @@ public static partial class PdfComplianceAnalyzer {
             hasDocumentElement,
             "The saved PDF contains a readable /Document structure element.",
             "The saved PDF structure tree must contain a readable /Document structure element.");
+
+        Add(requirements, "readback-structure-element-count", "Readback structure element count",
+            tagged != null && tagged.StructureElementCount > 0,
+            "The saved PDF contains " + (tagged?.StructureElementCount ?? 0).ToString(System.Globalization.CultureInfo.InvariantCulture) + " readable structure element(s).",
+            "The saved PDF structure tree must contain at least one readable structure element.");
+
+        Add(requirements, "readback-marked-content-references", "Readback marked-content references",
+            tagged != null && tagged.MarkedContentReferenceCount > 0,
+            "The saved PDF contains " + (tagged?.MarkedContentReferenceCount ?? 0).ToString(System.Globalization.CultureInfo.InvariantCulture) + " structure-tree marked-content reference(s).",
+            "The saved PDF structure tree must contain marked-content references that connect structure elements to page content.");
 
         requirements.Add(new PdfComplianceRequirement(
             "tagged-structure",

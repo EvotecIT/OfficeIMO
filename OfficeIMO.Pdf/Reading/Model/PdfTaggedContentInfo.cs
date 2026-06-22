@@ -66,6 +66,21 @@ public sealed class PdfTaggedContentInfo {
     /// <summary>Number of readable structure element objects.</summary>
     public int StructureElementCount => StructureElements.Count;
 
+    /// <summary>True when a readable top-level /Document structure element was discovered.</summary>
+    public bool HasDocumentStructureElement => StructureElements.Any(static element => string.Equals(element.StructureType, "Document", StringComparison.Ordinal));
+
+    /// <summary>Total marked-content references discovered in readable structure element /K entries.</summary>
+    public int MarkedContentReferenceCount => StructureElements.Sum(static element => element.MarkedContentReferenceCount);
+
+    /// <summary>Total object references discovered in readable structure element /K entries.</summary>
+    public int ObjectReferenceCount => StructureElements.Sum(static element => element.ObjectReferenceCount);
+
+    /// <summary>True when at least one structure element links to marked page content.</summary>
+    public bool HasMarkedContentReferences => MarkedContentReferenceCount > 0;
+
+    /// <summary>True when at least one structure element references an object such as a widget or annotation.</summary>
+    public bool HasObjectReferences => ObjectReferenceCount > 0;
+
     /// <summary>Distinct readable structure types in first-seen object order.</summary>
     public IReadOnlyList<string> StructureTypes => StructureElements
         .Select(element => element.StructureType)
@@ -73,4 +88,10 @@ public sealed class PdfTaggedContentInfo {
         .Cast<string>()
         .Distinct(StringComparer.Ordinal)
         .ToArray();
+
+    /// <summary>Readable structure element counts grouped by structure type.</summary>
+    public IReadOnlyDictionary<string, int> StructureTypeCounts => StructureElements
+        .Where(static element => !string.IsNullOrEmpty(element.StructureType))
+        .GroupBy(static element => element.StructureType!, StringComparer.Ordinal)
+        .ToDictionary(static group => group.Key, static group => group.Count(), StringComparer.Ordinal);
 }

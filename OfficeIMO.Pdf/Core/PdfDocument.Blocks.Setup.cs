@@ -443,7 +443,13 @@ public sealed partial class PdfDocument {
         return this;
     }
 
-    /// <summary>Configures common PDF/A-2 or PDF/A-3 groundwork without enabling formal compliance profile generation.</summary>
+    /// <summary>Configures common PDF/UA-1 or PDF/UA-2 groundwork without enabling formal compliance profile generation.</summary>
+    public PdfDocument ConfigurePdfUaGroundwork(PdfComplianceProfile profile, string language = "en-US") {
+        _options.ConfigurePdfUaGroundwork(profile, language);
+        return this;
+    }
+
+    /// <summary>Configures common PDF/A-2, PDF/A-3, or PDF/A-4 groundwork without enabling formal compliance profile generation.</summary>
     public PdfDocument ConfigurePdfAGroundwork(PdfComplianceProfile profile, string language = "en-US") {
         _options.ConfigurePdfAGroundwork(profile, language);
         return this;

@@ -226,10 +226,14 @@ internal static class Guard {
             value != PdfComplianceProfile.PdfA3B &&
             value != PdfComplianceProfile.PdfA3U &&
             value != PdfComplianceProfile.PdfA3A &&
+            value != PdfComplianceProfile.PdfA4 &&
+            value != PdfComplianceProfile.PdfA4E &&
+            value != PdfComplianceProfile.PdfA4F &&
             value != PdfComplianceProfile.PdfUa1 &&
+            value != PdfComplianceProfile.PdfUa2 &&
             value != PdfComplianceProfile.FacturX &&
             value != PdfComplianceProfile.Zugferd) {
-            throw new System.ArgumentOutOfRangeException(paramName, "PDF compliance profile must be None, PdfA2B, PdfA2U, PdfA2A, PdfA3B, PdfA3U, PdfA3A, PdfUa1, FacturX, or Zugferd.");
+            throw new System.ArgumentOutOfRangeException(paramName, "PDF compliance profile must be None, PdfA2B, PdfA2U, PdfA2A, PdfA3B, PdfA3U, PdfA3A, PdfA4, PdfA4E, PdfA4F, PdfUa1, PdfUa2, FacturX, or Zugferd.");
         }
     }
 

@@ -18,8 +18,16 @@ public enum PdfComplianceProfile {
     PdfA3U,
     /// <summary>PDF/A-3a archival profile with accessibility structure requirements.</summary>
     PdfA3A,
+    /// <summary>PDF/A-4 archival profile.</summary>
+    PdfA4,
+    /// <summary>PDF/A-4e archival profile for engineering documents.</summary>
+    PdfA4E,
+    /// <summary>PDF/A-4f archival profile with embedded-file support.</summary>
+    PdfA4F,
     /// <summary>PDF/UA-1 accessibility profile.</summary>
     PdfUa1,
+    /// <summary>PDF/UA-2 accessibility profile.</summary>
+    PdfUa2,
     /// <summary>Factur-X e-invoice profile, built on PDF/A-3 plus embedded EN 16931 XML.</summary>
     FacturX,
     /// <summary>ZUGFeRD e-invoice profile, built on PDF/A-3 plus embedded EN 16931 XML.</summary>

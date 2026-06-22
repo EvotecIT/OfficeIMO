@@ -13,6 +13,10 @@ public class PdfOptimizerTests {
 
         Assert.True(result.Applied);
         Assert.True(result.OptimizedLengthBytes < result.OriginalLengthBytes);
+        Assert.NotNull(result.ReportAfter);
+        Assert.True(result.CandidateLengthBytes <= result.OriginalLengthBytes);
+        Assert.True(result.CandidateSavedBytes > 0);
+        Assert.True(result.SkippedActionCount >= 0);
         PdfOptimizationAction action = Assert.Single(result.Actions);
         Assert.Equal("CompressStream", action.Kind);
         Assert.Equal(5, action.ObjectNumber);
@@ -28,6 +32,9 @@ public class PdfOptimizerTests {
 
         Assert.False(result.Applied);
         Assert.True(result.ReturnedOriginal);
+        Assert.True(result.CandidateLengthBytes >= result.OriginalLengthBytes);
+        Assert.Equal(0, result.CandidateSavedBytes);
+        Assert.Contains(result.SkippedActions, action => action.Reason == "BelowMinimumSize" || action.Reason == "NotSmaller");
         Assert.Equal(source.Length, result.Bytes.Length);
         Assert.Equal(source, result.Bytes);
     }

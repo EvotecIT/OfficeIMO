@@ -70,6 +70,24 @@ public sealed class PdfSignatureInfo {
     /// <summary>Signature /SubFilter name, for example adbe.pkcs7.detached, when readable.</summary>
     public string? SubFilter { get; }
 
+    /// <summary>True when the /SubFilter is one of the common CMS, CAdES, or timestamp signature subfilters.</summary>
+    public bool HasRecognizedSubFilter =>
+        string.Equals(SubFilter, "adbe.pkcs7.detached", StringComparison.Ordinal) ||
+        string.Equals(SubFilter, "adbe.pkcs7.sha1", StringComparison.Ordinal) ||
+        string.Equals(SubFilter, "ETSI.CAdES.detached", StringComparison.Ordinal) ||
+        string.Equals(SubFilter, "ETSI.RFC3161", StringComparison.Ordinal);
+
+    /// <summary>True when the signature declares a detached CMS/PKCS#7 subfilter.</summary>
+    public bool UsesDetachedCmsSubFilter =>
+        string.Equals(SubFilter, "adbe.pkcs7.detached", StringComparison.Ordinal) ||
+        string.Equals(SubFilter, "adbe.pkcs7.sha1", StringComparison.Ordinal);
+
+    /// <summary>True when the signature declares an ETSI CAdES subfilter.</summary>
+    public bool UsesCadesSubFilter => string.Equals(SubFilter, "ETSI.CAdES.detached", StringComparison.Ordinal);
+
+    /// <summary>True when the signature declares an RFC 3161 document timestamp subfilter.</summary>
+    public bool IsDocumentTimestamp => string.Equals(SubFilter, "ETSI.RFC3161", StringComparison.Ordinal);
+
     /// <summary>Signer /Name value, when present in the signature dictionary.</summary>
     public string? SignerName { get; }
 
@@ -102,6 +120,9 @@ public sealed class PdfSignatureInfo {
 
     /// <summary>Decoded /Contents byte count when the value could be read as a PDF string.</summary>
     public int? ContentsSizeBytes { get; }
+
+    /// <summary>True when /Contents contains at least one decoded byte.</summary>
+    public bool HasNonEmptyContents => ContentsSizeBytes.GetValueOrDefault() > 0;
 
     /// <summary>Number of entries in the signature dictionary /Reference array, when readable.</summary>
     public int ReferenceCount { get; }

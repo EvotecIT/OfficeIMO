@@ -514,10 +514,21 @@ public sealed partial class PdfOptions {
     /// Configures common PDF/UA-1 groundwork without enabling formal compliance profile generation.
     /// </summary>
     public PdfOptions ConfigurePdfUaGroundwork(string language = "en-US") {
+        return ConfigurePdfUaGroundwork(PdfComplianceProfile.PdfUa1, language);
+    }
+
+    /// <summary>
+    /// Configures common PDF/UA-1 or PDF/UA-2 groundwork without enabling formal compliance profile generation.
+    /// </summary>
+    public PdfOptions ConfigurePdfUaGroundwork(PdfComplianceProfile profile, string language = "en-US") {
+        if (profile != PdfComplianceProfile.PdfUa1 && profile != PdfComplianceProfile.PdfUa2) {
+            throw new System.ArgumentException("PDF/UA groundwork requires a PDF/UA-1 or PDF/UA-2 compliance profile.", nameof(profile));
+        }
+
         Language = language;
-        FileVersion = PdfFileVersion.Pdf17;
+        FileVersion = profile == PdfComplianceProfile.PdfUa2 ? PdfFileVersion.Pdf20 : PdfFileVersion.Pdf17;
         IncludeStandardFontToUnicodeMaps = true;
-        SetPdfUaIdentification();
+        SetPdfUaIdentification(profile == PdfComplianceProfile.PdfUa2 ? 2 : 1);
         EnableTaggedPdfCatalogMarkers();
 
         var preferences = _viewerPreferences?.Clone() ?? new PdfViewerPreferencesOptions();
@@ -527,11 +538,13 @@ public sealed partial class PdfOptions {
     }
 
     /// <summary>
-    /// Configures common PDF/A-2 or PDF/A-3 groundwork without enabling formal compliance profile generation.
+    /// Configures common PDF/A-2, PDF/A-3, or PDF/A-4 groundwork without enabling formal compliance profile generation.
     /// </summary>
     public PdfOptions ConfigurePdfAGroundwork(PdfComplianceProfile profile, string language = "en-US") {
         PdfAIdentification identification = CreatePdfAIdentification(profile);
-        FileVersion = PdfFileVersion.Pdf17;
+        FileVersion = profile == PdfComplianceProfile.PdfA4 || profile == PdfComplianceProfile.PdfA4E || profile == PdfComplianceProfile.PdfA4F
+            ? PdfFileVersion.Pdf20
+            : PdfFileVersion.Pdf17;
         SetPdfAIdentification(identification);
         SetSrgbOutputIntent();
 
@@ -862,8 +875,14 @@ public sealed partial class PdfOptions {
                 return new PdfAIdentification(3, "U");
             case PdfComplianceProfile.PdfA3A:
                 return new PdfAIdentification(3, "A");
+            case PdfComplianceProfile.PdfA4:
+                return PdfAIdentification.PdfA4();
+            case PdfComplianceProfile.PdfA4E:
+                return PdfAIdentification.PdfA4E();
+            case PdfComplianceProfile.PdfA4F:
+                return PdfAIdentification.PdfA4F();
             default:
-                throw new System.ArgumentException("PDF/A groundwork requires a PDF/A-2 or PDF/A-3 compliance profile.", nameof(profile));
+                throw new System.ArgumentException("PDF/A groundwork requires a PDF/A-2, PDF/A-3, or PDF/A-4 compliance profile.", nameof(profile));
         }
     }
 
@@ -871,7 +890,10 @@ public sealed partial class PdfOptions {
         return profile == PdfComplianceProfile.PdfA2U ||
             profile == PdfComplianceProfile.PdfA2A ||
             profile == PdfComplianceProfile.PdfA3U ||
-            profile == PdfComplianceProfile.PdfA3A;
+            profile == PdfComplianceProfile.PdfA3A ||
+            profile == PdfComplianceProfile.PdfA4 ||
+            profile == PdfComplianceProfile.PdfA4E ||
+            profile == PdfComplianceProfile.PdfA4F;
     }
 
     private static bool RequiresPdfAAccessibilityGroundwork(PdfComplianceProfile profile) {

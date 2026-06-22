@@ -29,17 +29,27 @@ public class PdfSignatureValidatorTests {
         Assert.True(report.RequiresAppendOnlyMutation);
         Assert.True(report.HasLongTermValidationEvidence);
         Assert.False(report.CryptographicTrustVerified);
+        Assert.False(report.DigestVerified);
+        Assert.False(report.CertificateChainVerified);
+        Assert.False(report.RevocationChecked);
+        Assert.False(report.TimestampValidationPerformed);
 
         PdfSignatureValidationResult result = Assert.Single(report.Signatures);
         Assert.Equal("Approval", result.Signature.FieldName);
         Assert.Equal(new long[] { 0, 10, 20, 30 }, result.Signature.ByteRangeValues);
+        Assert.True(result.Signature.HasRecognizedSubFilter);
+        Assert.True(result.Signature.UsesDetachedCmsSubFilter);
         Assert.True(result.HasCompleteByteRangeShape);
         Assert.True(result.ByteRangeSegmentsAreOrdered);
         Assert.False(result.ByteRangeCoversEndOfFile);
         Assert.Equal(40, result.ByteRangeCoveredBytes);
         Assert.Equal(10, result.ByteRangeGapStart);
         Assert.Equal(10, result.ByteRangeGapLength);
+        Assert.True(result.UnsignedByteCount > 0);
+        Assert.True(result.ByteRangeCoverageRatio > 0);
         Assert.Contains(report.Findings, finding => finding.Code == "SignatureByteRangeDoesNotCoverEof");
+        Assert.Contains(report.Findings, finding => finding.Code == "SignatureDetachedCmsSubFilter");
+        Assert.Contains(report.Findings, finding => finding.Code == "SignatureByteRangeCoverage");
         Assert.Contains(report.Findings, finding => finding.Code == "DocMDPDetected");
         Assert.Contains(report.Findings, finding => finding.Code == "LongTermValidationEvidenceDetected");
         Assert.Contains(report.Findings, finding => finding.Code == "CryptographicTrustNotVerified");

@@ -10,6 +10,8 @@ public sealed class PdfSignatureValidationResult {
         long? byteRangeCoveredBytes,
         long? byteRangeGapStart,
         long? byteRangeGapLength,
+        long? unsignedByteCount,
+        double? byteRangeCoverageRatio,
         IReadOnlyList<PdfSignatureValidationFinding> findings) {
         Signature = signature;
         HasCompleteByteRangeShape = hasCompleteByteRangeShape;
@@ -18,6 +20,8 @@ public sealed class PdfSignatureValidationResult {
         ByteRangeCoveredBytes = byteRangeCoveredBytes;
         ByteRangeGapStart = byteRangeGapStart;
         ByteRangeGapLength = byteRangeGapLength;
+        UnsignedByteCount = unsignedByteCount;
+        ByteRangeCoverageRatio = byteRangeCoverageRatio;
         Findings = findings;
     }
 
@@ -41,6 +45,18 @@ public sealed class PdfSignatureValidationResult {
 
     /// <summary>Length of the unsigned gap between the first two /ByteRange segments, when readable.</summary>
     public long? ByteRangeGapLength { get; }
+
+    /// <summary>Bytes outside the parsed signed byte ranges, when readable.</summary>
+    public long? UnsignedByteCount { get; }
+
+    /// <summary>Fraction of input bytes covered by the parsed /ByteRange values, when readable.</summary>
+    public double? ByteRangeCoverageRatio { get; }
+
+    /// <summary>True when the unsigned /ByteRange gap length matches the decoded /Contents size, when both are readable.</summary>
+    public bool? ByteRangeGapMatchesContents =>
+        ByteRangeGapLength.HasValue && Signature.ContentsSizeBytes.HasValue
+            ? ByteRangeGapLength.Value == Signature.ContentsSizeBytes.Value
+            : null;
 
     /// <summary>Findings for this signature value.</summary>
     public IReadOnlyList<PdfSignatureValidationFinding> Findings { get; }

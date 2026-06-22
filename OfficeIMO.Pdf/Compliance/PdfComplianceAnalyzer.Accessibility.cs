@@ -3,15 +3,15 @@ namespace OfficeIMO.Pdf;
 public static partial class PdfComplianceAnalyzer {
 
     private static void AddAccessibilityRequirements(List<PdfComplianceRequirement> requirements, PdfComplianceProfile profile, PdfOptions options, string? documentTitle, bool hasDocumentMetadataEvidence, PdfGeneratedImageAccessibilityEvidence[]? generatedImages, PdfGeneratedDrawingAccessibilityEvidence[]? generatedDrawings, PdfGeneratedFormAccessibilityEvidence[]? generatedForms) {
-        if (profile == PdfComplianceProfile.PdfUa1) {
-            AddPdfUaIdentificationRequirement(requirements, options);
+        if (profile == PdfComplianceProfile.PdfUa1 || profile == PdfComplianceProfile.PdfUa2) {
+            AddPdfUaIdentificationRequirement(requirements, profile, options);
             requirements.Add(BuildDocumentTitleRequirement(options, documentTitle, hasDocumentMetadataEvidence));
             requirements.Add(BuildDisplayDocumentTitleRequirement(options));
             requirements.Add(new PdfComplianceRequirement(
                 "pdfua-validation",
                 "PDF/UA validator evidence",
                 PdfComplianceRequirementStatus.Unsupported,
-                "External PDF/UA validator evidence has not been supplied. Use PdfComplianceAnalyzer.AssessProof(...) with a passing PDF/UA validator result before claiming PDF/UA-1."));
+                "External PDF/UA validator evidence has not been supplied. Use PdfComplianceAnalyzer.AssessProof(...) with a passing PDF/UA validator result before claiming " + GetDisplayName(profile) + "."));
         }
 
         requirements.Add(BuildDocumentLanguageRequirement(options));
@@ -210,12 +210,13 @@ public static partial class PdfComplianceAnalyzer {
         return true;
     }
 
-    private static void AddPdfUaIdentificationRequirement(List<PdfComplianceRequirement> requirements, PdfOptions options) {
+    private static void AddPdfUaIdentificationRequirement(List<PdfComplianceRequirement> requirements, PdfComplianceProfile profile, PdfOptions options) {
         PdfUaIdentification? identification = options.PdfUaIdentification;
+        int expectedPart = profile == PdfComplianceProfile.PdfUa2 ? 2 : 1;
         Add(requirements, "pdfua-identification", "PDF/UA identification XMP",
-            identification != null && identification.Part == 1,
-            "PDF/UA identification metadata matches PDF/UA-1.",
-            "Set PdfOptions.SetPdfUaIdentification(1) before claiming PDF/UA-1.");
+            identification != null && identification.Part == expectedPart,
+            "PDF/UA identification metadata matches " + GetDisplayName(profile) + ".",
+            "Set PdfOptions.SetPdfUaIdentification(" + expectedPart.ToString(System.Globalization.CultureInfo.InvariantCulture) + ") before claiming " + GetDisplayName(profile) + ".");
     }
 
     private static PdfComplianceRequirement BuildDocumentTitleRequirement(PdfOptions options, string? documentTitle, bool hasDocumentMetadataEvidence) {

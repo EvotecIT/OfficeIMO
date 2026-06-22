@@ -13,7 +13,7 @@ public static partial class PdfComplianceAnalyzer {
 
         bool hasMatchingIdentification = identification != null &&
             identification.Part == target.Part &&
-            (target.Conformance == null || string.Equals(identification.Conformance, target.Conformance, StringComparison.Ordinal));
+            IsPdfAConformanceMatch(identification.Conformance, target.Conformance);
         string expectedIdentification = target.Conformance == null
             ? "PDF/A-" + target.Part.ToString(System.Globalization.CultureInfo.InvariantCulture)
             : "PDF/A-" + target.Part.ToString(System.Globalization.CultureInfo.InvariantCulture) + target.Conformance!.ToLowerInvariant();
@@ -211,11 +211,29 @@ public static partial class PdfComplianceAnalyzer {
                 return (3, "U");
             case PdfComplianceProfile.PdfA3A:
                 return (3, "A");
+            case PdfComplianceProfile.PdfA4:
+                return (4, string.Empty);
+            case PdfComplianceProfile.PdfA4E:
+                return (4, "E");
+            case PdfComplianceProfile.PdfA4F:
+                return (4, "F");
             case PdfComplianceProfile.FacturX:
             case PdfComplianceProfile.Zugferd:
                 return (3, null);
             default:
                 return (0, null);
         }
+    }
+
+    private static bool IsPdfAConformanceMatch(string? actual, string? expected) {
+        if (expected == null) {
+            return true;
+        }
+
+        if (expected.Length == 0) {
+            return string.IsNullOrEmpty(actual);
+        }
+
+        return string.Equals(actual, expected, StringComparison.OrdinalIgnoreCase);
     }
 }

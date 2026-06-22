@@ -21,7 +21,7 @@ internal static class PdfComplianceValidator {
     };
 
     private static readonly string[] PdfUaRequirements = {
-        "PDF 1.7 file header and catalog version policy",
+        "profile-specific PDF file header and catalog version policy",
         "PDF/UA identification XMP",
         "document title metadata",
         "catalog ViewerPreferences DisplayDocTitle true"
@@ -67,7 +67,7 @@ internal static class PdfComplianceValidator {
             }
         }
 
-        if (profile == PdfComplianceProfile.PdfUa1) {
+        if (profile == PdfComplianceProfile.PdfUa1 || profile == PdfComplianceProfile.PdfUa2) {
             foreach (string requirement in PdfUaRequirements) {
                 yield return requirement;
             }
@@ -83,7 +83,7 @@ internal static class PdfComplianceValidator {
     private static IEnumerable<string> GetBaseRequirements(PdfComplianceProfile profile) =>
         RequiresElectronicInvoice(profile)
             ? PdfABaseRequirements.Concat(UnicodeRequirements)
-            : profile == PdfComplianceProfile.PdfUa1
+            : profile == PdfComplianceProfile.PdfUa1 || profile == PdfComplianceProfile.PdfUa2
                 ? System.Array.Empty<string>()
                 : PdfABaseRequirements;
 
@@ -92,19 +92,24 @@ internal static class PdfComplianceValidator {
         profile == PdfComplianceProfile.PdfA2A ||
         profile == PdfComplianceProfile.PdfA3U ||
         profile == PdfComplianceProfile.PdfA3A ||
-        profile == PdfComplianceProfile.PdfUa1;
+        profile == PdfComplianceProfile.PdfA4 ||
+        profile == PdfComplianceProfile.PdfA4E ||
+        profile == PdfComplianceProfile.PdfA4F ||
+        profile == PdfComplianceProfile.PdfUa1 ||
+        profile == PdfComplianceProfile.PdfUa2;
 
     private static bool RequiresAccessibility(PdfComplianceProfile profile) =>
         profile == PdfComplianceProfile.PdfA2A ||
         profile == PdfComplianceProfile.PdfA3A ||
-        profile == PdfComplianceProfile.PdfUa1;
+        profile == PdfComplianceProfile.PdfUa1 ||
+        profile == PdfComplianceProfile.PdfUa2;
 
     private static bool RequiresElectronicInvoice(PdfComplianceProfile profile) =>
         profile == PdfComplianceProfile.FacturX ||
         profile == PdfComplianceProfile.Zugferd;
 
     private static string GetProfileFamily(PdfComplianceProfile profile) {
-        if (profile == PdfComplianceProfile.PdfUa1) {
+        if (profile == PdfComplianceProfile.PdfUa1 || profile == PdfComplianceProfile.PdfUa2) {
             return "PDF/UA";
         }
 
@@ -123,7 +128,11 @@ internal static class PdfComplianceValidator {
             PdfComplianceProfile.PdfA3B => "PDF/A-3b",
             PdfComplianceProfile.PdfA3U => "PDF/A-3u",
             PdfComplianceProfile.PdfA3A => "PDF/A-3a",
+            PdfComplianceProfile.PdfA4 => "PDF/A-4",
+            PdfComplianceProfile.PdfA4E => "PDF/A-4e",
+            PdfComplianceProfile.PdfA4F => "PDF/A-4f",
             PdfComplianceProfile.PdfUa1 => "PDF/UA-1",
+            PdfComplianceProfile.PdfUa2 => "PDF/UA-2",
             PdfComplianceProfile.FacturX => "Factur-X",
             PdfComplianceProfile.Zugferd => "ZUGFeRD",
             _ => "None"

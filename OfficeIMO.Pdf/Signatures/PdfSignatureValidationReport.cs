@@ -16,6 +16,10 @@ public sealed class PdfSignatureValidationReport {
         ObjectGraphParsed = objectGraphParsed;
         ObjectGraphError = objectGraphError;
         CryptographicTrustVerified = false;
+        DigestVerified = false;
+        CertificateChainVerified = false;
+        RevocationChecked = false;
+        TimestampValidationPerformed = false;
     }
 
     /// <summary>Security, signature, and revision markers read from the PDF.</summary>
@@ -59,4 +63,19 @@ public sealed class PdfSignatureValidationReport {
 
     /// <summary>False because OfficeIMO.Pdf does not perform certificate-chain or cryptographic signature verification.</summary>
     public bool CryptographicTrustVerified { get; }
+
+    /// <summary>False because OfficeIMO.Pdf does not recompute signed byte-range digests.</summary>
+    public bool DigestVerified { get; }
+
+    /// <summary>False because OfficeIMO.Pdf does not build certificate chains.</summary>
+    public bool CertificateChainVerified { get; }
+
+    /// <summary>False because OfficeIMO.Pdf does not perform OCSP/CRL revocation checks.</summary>
+    public bool RevocationChecked { get; }
+
+    /// <summary>False because OfficeIMO.Pdf does not validate RFC 3161 timestamps cryptographically.</summary>
+    public bool TimestampValidationPerformed { get; }
+
+    /// <summary>True when any readable signature declares an RFC 3161 document timestamp subfilter.</summary>
+    public bool HasDocumentTimestampSignature => Signatures.Any(static signature => signature.Signature.IsDocumentTimestamp);
 }

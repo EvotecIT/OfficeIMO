@@ -78,6 +78,8 @@ public static class PdfSignatureValidator {
         long? coveredBytes = null;
         long? gapStart = null;
         long? gapLength = null;
+        long? unsignedByteCount = null;
+        double? byteRangeCoverageRatio = null;
 
         if (!signature.HasByteRange) {
             AddSignatureFinding(findings, signature, PdfDiagnosticSeverity.Error, "SignatureMissingByteRange", "Signature value does not contain a readable /ByteRange array.");
@@ -97,6 +99,8 @@ public static class PdfSignatureValidator {
             coveredBytes = inBounds ? firstLength + secondLength : null;
             gapStart = inBounds ? firstEnd : null;
             gapLength = inBounds ? secondStart - firstEnd : null;
+            unsignedByteCount = coveredBytes.HasValue ? Math.Max(0, fileLength - coveredBytes.Value) : null;
+            byteRangeCoverageRatio = coveredBytes.HasValue && fileLength > 0 ? coveredBytes.Value / (double)fileLength : null;
 
             if (!nonNegative || !inBounds) {
                 AddSignatureFinding(findings, signature, PdfDiagnosticSeverity.Error, "SignatureByteRangeOutOfBounds", "Signature /ByteRange contains negative values, overflowing ranges, or ranges beyond the input file length.");
@@ -110,6 +114,10 @@ public static class PdfSignatureValidator {
 
             if (inBounds && !coversEndOfFile) {
                 AddSignatureFinding(findings, signature, PdfDiagnosticSeverity.Warning, "SignatureByteRangeDoesNotCoverEof", "Signature /ByteRange does not end at the input file length; bytes after the signed ranges may be unsigned.");
+            }
+
+            if (byteRangeCoverageRatio.HasValue) {
+                AddSignatureFinding(findings, signature, PdfDiagnosticSeverity.Info, "SignatureByteRangeCoverage", "Signature /ByteRange covers " + byteRangeCoverageRatio.Value.ToString("P2", System.Globalization.CultureInfo.InvariantCulture) + " of the input bytes.");
             }
         }
 
@@ -125,6 +133,14 @@ public static class PdfSignatureValidator {
 
         if (string.IsNullOrEmpty(signature.SubFilter)) {
             AddSignatureFinding(findings, signature, PdfDiagnosticSeverity.Warning, "SignatureMissingSubFilter", "Signature value does not identify a signature /SubFilter.");
+        } else if (!signature.HasRecognizedSubFilter) {
+            AddSignatureFinding(findings, signature, PdfDiagnosticSeverity.Warning, "SignatureUnknownSubFilter", "Signature /SubFilter /" + signature.SubFilter + " is not one of the common CMS, CAdES, or RFC 3161 subfilters recognized by OfficeIMO.Pdf.");
+        } else if (signature.IsDocumentTimestamp) {
+            AddSignatureFinding(findings, signature, PdfDiagnosticSeverity.Info, "SignatureDocumentTimestampSubFilter", "Signature declares the ETSI.RFC3161 document timestamp subfilter.");
+        } else if (signature.UsesCadesSubFilter) {
+            AddSignatureFinding(findings, signature, PdfDiagnosticSeverity.Info, "SignatureCadesSubFilter", "Signature declares the ETSI.CAdES.detached subfilter.");
+        } else if (signature.UsesDetachedCmsSubFilter) {
+            AddSignatureFinding(findings, signature, PdfDiagnosticSeverity.Info, "SignatureDetachedCmsSubFilter", "Signature declares a detached CMS/PKCS#7 subfilter.");
         }
 
         if (!signature.FieldObjectNumber.HasValue) {
@@ -140,6 +156,8 @@ public static class PdfSignatureValidator {
             coveredBytes,
             gapStart,
             gapLength,
+            unsignedByteCount,
+            byteRangeCoverageRatio,
             findings.AsReadOnly());
     }
 
