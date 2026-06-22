@@ -73,6 +73,24 @@ public class PdfOptimizerTests {
     }
 
     [Fact]
+    public void Optimize_DeduplicatesStreamsUsingKeeperGeneration() {
+        byte[] source = BuildPdfWithGeneratedDuplicateStreams();
+
+        PdfOptimizationActionResult result = PdfOptimizer.Optimize(source, new PdfOptimizationOptions {
+            CompressUnfilteredStreams = false,
+            KeepOriginalWhenNotSmaller = false
+        });
+
+        string rewritten = PdfEncoding.Latin1GetString(result.Bytes);
+
+        Assert.True(result.Applied);
+        Assert.Contains(result.Actions, action => action.Kind == "DeduplicateStream" && action.ObjectNumber == 6);
+        Assert.Contains("5 0 R", rewritten, StringComparison.Ordinal);
+        Assert.DoesNotContain("5 2 R", rewritten, StringComparison.Ordinal);
+        Assert.Contains("Duplicate", PdfTextExtractor.ExtractAllText(result.Bytes), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Optimize_RejectsSignedPdf() {
         byte[] signed = Encoding.ASCII.GetBytes(string.Join("\n", new[] {
             "%PDF-1.7",
@@ -225,6 +243,44 @@ public class PdfOptimizerTests {
             "endstream",
             "endobj",
             "6 0 obj",
+            "<< /Length " + streamContent.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>",
+            "stream",
+            streamContent,
+            "endstream",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 7 >>",
+            "startxref",
+            "123",
+            "%%EOF"
+        });
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildPdfWithGeneratedDuplicateStreams() {
+        string streamContent = "BT /F1 12 Tf 72 720 Td (" + new string('G', 1024) + " Duplicate) Tj ET";
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R >> >> /Contents [5 0 R 6 2 R] >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            "endobj",
+            "5 0 obj",
+            "<< /Length " + streamContent.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>",
+            "stream",
+            streamContent,
+            "endstream",
+            "endobj",
+            "6 2 obj",
             "<< /Length " + streamContent.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>",
             "stream",
             streamContent,

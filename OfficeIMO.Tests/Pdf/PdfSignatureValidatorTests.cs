@@ -126,6 +126,22 @@ public class PdfSignatureValidatorTests {
     }
 
     [Fact]
+    public void PrepareExternalSignature_IgnoresEarlierMatchingContentsPlaceholders() {
+        byte[] pdf = BuildPdfWithEarlierContentsPlaceholder(reservedSignatureContentsBytes: 256);
+
+        PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
+            pdf,
+            new PdfExternalSignatureOptions {
+                FieldName = "Approval",
+                ReservedSignatureContentsBytes = 256
+            });
+
+        Assert.True(preparation.ContentsHexOffset > pdf.Length);
+        Assert.Equal(preparation.ContentsHexOffset - 1, preparation.ByteRangeValues[1]);
+        Assert.True(PdfSignatureValidator.Validate(preparation.PreparedPdf).IsStructurallyValid);
+    }
+
+    [Fact]
     public void PrepareExternalSignature_EmitsDocTimeStampTypeForDocumentTimestamps() {
         byte[] pdf = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Timestamp signing draft"))
@@ -224,6 +240,38 @@ public class PdfSignatureValidatorTests {
             "%%EOF",
             "startxref",
             "200",
+            "%%EOF"
+        });
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildPdfWithEarlierContentsPlaceholder(int reservedSignatureContentsBytes) {
+        string zeros = new string('0', reservedSignatureContentsBytes * 2);
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Annots [4 0 R] /Contents 5 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Type /Annot /Subtype /Text /Rect [10 10 30 30] /Contents <" + zeros + "> >>",
+            "endobj",
+            "5 0 obj",
+            "<< /Length 34 >>",
+            "stream",
+            "BT /F1 12 Tf 72 720 Td (Text) Tj ET",
+            "endstream",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 6 >>",
+            "startxref",
+            "123",
             "%%EOF"
         });
 

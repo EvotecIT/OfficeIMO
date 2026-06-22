@@ -108,6 +108,20 @@ public class PdfRedactionApplierTests {
         Assert.Contains("Visible after", text, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Apply_PrunesRemovedAnnotationAppearanceStreams() {
+        byte[] source = BuildAnnotationAppearanceRedactionSource();
+        var area = new PdfRedactionArea(1, 20, 20, 40, 40, "annotation");
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
+        string raw = PdfEncoding.Latin1GetString(redacted);
+
+        Assert.Contains("Sensitive annotation", PdfEncoding.Latin1GetString(source), StringComparison.Ordinal);
+        Assert.DoesNotContain("Sensitive annotation", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("Old sensitive appearance", raw, StringComparison.Ordinal);
+        Assert.Empty(PdfInspector.Inspect(redacted).GetAnnotationsBySubtype("FreeText"));
+    }
+
     private static byte[] BuildRedactionSource() {
         return PdfDocument.Create(new PdfOptions {
                 CompressContentStreams = false
@@ -259,6 +273,22 @@ public class PdfRedactionApplierTests {
             "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 5 0 R >>\nendobj",
             "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
             BuildStreamObject(5, Encoding.ASCII.GetBytes(streamContent))
+        };
+
+        return BuildPdf(objects, rootObjectNumber: 1);
+    }
+
+    private static byte[] BuildAnnotationAppearanceRedactionSource() {
+        string pageContent = "BT\n/F1 12 Tf\n72 720 Td\n(Visible page text) Tj\nET";
+        string appearanceContent = "BT /F1 12 Tf 0 0 Td (Old sensitive appearance Sensitive annotation) Tj ET";
+        var objects = new[] {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R >> >> /Annots [6 0 R] /Contents 5 0 R >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
+            BuildStreamObject(5, Encoding.ASCII.GetBytes(pageContent)),
+            "6 0 obj\n<< /Type /Annot /Subtype /FreeText /Rect [20 20 60 60] /Contents (Sensitive annotation) /AP << /N 7 0 R >> >>\nendobj",
+            BuildStreamObject(7, Encoding.ASCII.GetBytes(appearanceContent), "/Type /XObject /Subtype /Form /BBox [0 0 40 40] /Resources << /Font << /F1 4 0 R >> >>")
         };
 
         return BuildPdf(objects, rootObjectNumber: 1);

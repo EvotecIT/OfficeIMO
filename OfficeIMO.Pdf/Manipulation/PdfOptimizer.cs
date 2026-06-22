@@ -226,15 +226,16 @@ public static class PdfOptimizer {
             group.Add(entry.Key);
         }
 
-        var replacements = new Dictionary<int, int>();
+        var replacements = new Dictionary<int, PdfReference>();
         foreach (List<int> group in streamGroups.Values) {
             if (group.Count < 2) {
                 continue;
             }
 
             int keeper = group[0];
+            int keeperGeneration = objects.TryGetValue(keeper, out PdfIndirectObject? keeperObject) ? keeperObject.Generation : 0;
             for (int i = 1; i < group.Count; i++) {
-                replacements[group[i]] = keeper;
+                replacements[group[i]] = new PdfReference(keeper, keeperGeneration);
             }
         }
 
@@ -250,7 +251,7 @@ public static class PdfOptimizer {
             }
         }
 
-        foreach (KeyValuePair<int, int> replacement in replacements.OrderBy(static item => item.Key)) {
+        foreach (KeyValuePair<int, PdfReference> replacement in replacements.OrderBy(static item => item.Key)) {
             if (!objects.TryGetValue(replacement.Key, out PdfIndirectObject? duplicate)) {
                 continue;
             }
@@ -262,14 +263,15 @@ public static class PdfOptimizer {
                 replacement.Key,
                 originalLength,
                 0,
-                "Rewrote references to duplicate stream object " + replacement.Key.ToString(System.Globalization.CultureInfo.InvariantCulture) + " to use object " + replacement.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) + "."));
+                "Rewrote references to duplicate stream object " + replacement.Key.ToString(System.Globalization.CultureInfo.InvariantCulture) + " to use object " + replacement.Value.ObjectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + "."));
         }
     }
 
-    private static PdfObject ReplaceReferences(PdfObject value, IReadOnlyDictionary<int, int> replacements) {
+    private static PdfObject ReplaceReferences(PdfObject value, IReadOnlyDictionary<int, PdfReference> replacements) {
         if (value is PdfReference reference &&
-            replacements.TryGetValue(reference.ObjectNumber, out int replacementObjectNumber)) {
-            return new PdfReference(replacementObjectNumber, reference.Generation);
+            replacements.TryGetValue(reference.ObjectNumber, out PdfReference? replacementReference) &&
+            replacementReference is not null) {
+            return replacementReference;
         }
 
         if (value is PdfArray array) {
@@ -293,7 +295,7 @@ public static class PdfOptimizer {
         return value;
     }
 
-    private static void ReplaceReferences(PdfDictionary dictionary, IReadOnlyDictionary<int, int> replacements) {
+    private static void ReplaceReferences(PdfDictionary dictionary, IReadOnlyDictionary<int, PdfReference> replacements) {
         foreach (string key in dictionary.Items.Keys.ToArray()) {
             dictionary.Items[key] = ReplaceReferences(dictionary.Items[key], replacements);
         }

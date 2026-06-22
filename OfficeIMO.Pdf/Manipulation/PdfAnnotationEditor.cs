@@ -140,8 +140,10 @@ public static class PdfAnnotationEditor {
     }
 
     private static void ApplyUpdates(PdfDictionary annotation, PdfAnnotationUpdateOptions options) {
+        bool invalidateAppearance = false;
         if (options.Contents is not null) {
             annotation.Items["Contents"] = new PdfStringObj(options.Contents, useTextStringEncoding: true);
+            invalidateAppearance = true;
         }
 
         if (options.Title is not null) {
@@ -158,11 +160,16 @@ public static class PdfAnnotationEditor {
 
         if (options.Color is not null) {
             annotation.Items["C"] = CreateColorArray(options.Color);
+            invalidateAppearance = true;
         }
 
         if (options.RemoveActions) {
             annotation.Items.Remove("A");
             annotation.Items.Remove("AA");
+        }
+
+        if (invalidateAppearance) {
+            annotation.Items.Remove("AP");
         }
     }
 

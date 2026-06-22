@@ -113,6 +113,35 @@ public class PdfITextInspiredCoverageTests {
     }
 
     [Fact]
+    public void IncrementalUpdater_UpdatesButtonAppearanceStateWithoutRegeneratingAppearances() {
+        byte[] pdf = PdfDocument.Create()
+            .CheckBox("Accept", isChecked: false)
+            .ToBytes();
+
+        byte[] updated = PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
+            ["Accept"] = "Yes"
+        });
+
+        string appended = PdfEncoding.Latin1GetString(updated).Substring(PdfEncoding.Latin1GetString(pdf).Length);
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(updated).FormFields);
+
+        Assert.Equal("Yes", field.Value);
+        Assert.Contains("/AS /Yes", appended, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Subtype /Form", appended, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void IncrementalUpdater_RejectsInvalidNonEditableChoiceValue() {
+        byte[] pdf = PdfDocument.Create()
+            .ChoiceField("Country", new[] { "PL", "DE" }, value: "PL")
+            .ToBytes();
+
+        Assert.Throws<ArgumentException>(() => PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
+            ["Country"] = "US"
+        }));
+    }
+
+    [Fact]
     public void IncrementalUpdater_AllowsDocMDPCertifiedFormFillWhenPermissionPermits() {
         byte[] pdf = BuildDocMdpFormPdf(permissionLevel: 2);
 
@@ -296,6 +325,22 @@ public class PdfITextInspiredCoverageTests {
     }
 
     [Fact]
+    public void AnnotationEditor_InvalidatesAppearanceWhenUpdatingVisibleAnnotationText() {
+        byte[] pdf = BuildAnnotationEditPdf();
+
+        PdfAnnotationEditResult updated = PdfAnnotationEditor.UpdateAnnotation(pdf, 6, new PdfAnnotationUpdateOptions {
+            Contents = "Updated note"
+        });
+
+        string annotationObject = ExtractObjectBlock(PdfEncoding.Latin1GetString(updated.Bytes), 6);
+        PdfAnnotation annotation = Assert.Single(PdfInspector.Inspect(updated.Bytes).GetAnnotationsBySubtype("Text"));
+
+        Assert.True(updated.Applied);
+        Assert.Equal("Updated note", annotation.Contents);
+        Assert.DoesNotContain("/AP", annotationObject, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ExternalValidationResult_FromExitCodeImportsProcessOutcome() {
         PdfExternalValidationResult passed = PdfExternalValidationResult.FromExitCode(
             PdfExternalValidatorKind.VeraPdf,
@@ -348,16 +393,27 @@ public class PdfITextInspiredCoverageTests {
 
     private static byte[] BuildAnnotationEditPdf() {
         byte[] contentBytes = Encoding.ASCII.GetBytes("BT\n/F1 12 Tf\n72 720 Td\n(Annotation editing) Tj\nET\n");
+        byte[] appearanceBytes = Encoding.ASCII.GetBytes("BT /F1 12 Tf 0 0 Td (Old note appearance) Tj ET");
         var objects = new List<string> {
             "<< /Type /Catalog /Pages 2 0 R >>",
             "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R >> >> /Annots [6 0 R] /Contents 5 0 R >>",
             "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
             BuildStream(contentBytes),
-            "<< /Type /Annot /Subtype /Text /Rect [20 20 40 40] /Contents (Review note) /F 132 /NM (Note-1) /T (Reviewer) /M (D:20260622090000Z) /C [1 0 0] /A << /S /URI /URI (https://example.com) >> >>"
+            "<< /Type /Annot /Subtype /Text /Rect [20 20 40 40] /Contents (Review note) /F 132 /NM (Note-1) /T (Reviewer) /M (D:20260622090000Z) /C [1 0 0] /AP << /N 7 0 R >> /A << /S /URI /URI (https://example.com) >> >>",
+            BuildStream(appearanceBytes)
         };
 
         return Encoding.ASCII.GetBytes(BuildPdf(objects));
+    }
+
+    private static string ExtractObjectBlock(string pdf, int objectNumber) {
+        string marker = objectNumber.ToString(CultureInfo.InvariantCulture) + " 0 obj";
+        int start = pdf.IndexOf(marker, StringComparison.Ordinal);
+        Assert.True(start >= 0);
+        int end = pdf.IndexOf("endobj", start, StringComparison.Ordinal);
+        Assert.True(end > start);
+        return pdf.Substring(start, end - start);
     }
 
     private static byte[] BuildDocMdpFormPdf(int permissionLevel, string? lockDictionary = null) {

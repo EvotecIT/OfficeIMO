@@ -287,13 +287,24 @@ public static partial class PdfIncrementalUpdater {
 
     private static PdfExternalSignaturePreparation PatchSignatureByteRange(byte[] prepared, PdfExternalSignatureOptions options, int signatureObjectNumber) {
         byte[] output = (byte[])prepared.Clone();
-        int byteRangeOffset = IndexOf(output, PdfEncoding.Latin1GetBytes(SignatureByteRangePlaceholder), 0);
+        byte[] objectHeader = PdfEncoding.Latin1GetBytes(signatureObjectNumber.ToString(CultureInfo.InvariantCulture) + " 0 obj");
+        int objectStart = IndexOf(output, objectHeader, 0);
+        if (objectStart < 0) {
+            throw new InvalidOperationException("Prepared PDF does not contain appended signature object " + signatureObjectNumber.ToString(CultureInfo.InvariantCulture) + ".");
+        }
+
+        int objectEnd = IndexOf(output, PdfEncoding.Latin1GetBytes("endobj"), objectStart);
+        if (objectEnd < 0) {
+            objectEnd = output.Length;
+        }
+
+        int byteRangeOffset = IndexOf(output, PdfEncoding.Latin1GetBytes(SignatureByteRangePlaceholder), objectStart, objectEnd);
         if (byteRangeOffset < 0) {
             throw new InvalidOperationException("Prepared signature object " + signatureObjectNumber.ToString(CultureInfo.InvariantCulture) + " does not contain the expected /ByteRange placeholder.");
         }
 
         byte[] contentsMarker = PdfEncoding.Latin1GetBytes("/Contents <" + new string('0', options.ReservedSignatureContentsBytes * 2) + ">");
-        int contentsMarkerOffset = IndexOf(output, contentsMarker, 0);
+        int contentsMarkerOffset = IndexOf(output, contentsMarker, byteRangeOffset, objectEnd);
         if (contentsMarkerOffset < 0) {
             throw new InvalidOperationException("Prepared signature object " + signatureObjectNumber.ToString(CultureInfo.InvariantCulture) + " does not contain the expected /Contents placeholder.");
         }
@@ -394,11 +405,16 @@ public static partial class PdfIncrementalUpdater {
         (value >= (byte)'a' && value <= (byte)'f');
 
     private static int IndexOf(byte[] haystack, byte[] needle, int startOffset) {
+        return IndexOf(haystack, needle, startOffset, haystack.Length);
+    }
+
+    private static int IndexOf(byte[] haystack, byte[] needle, int startOffset, int endExclusive) {
         if (needle.Length == 0) {
             return startOffset;
         }
 
-        for (int i = Math.Max(0, startOffset); i <= haystack.Length - needle.Length; i++) {
+        int lastStart = Math.Min(endExclusive, haystack.Length) - needle.Length;
+        for (int i = Math.Max(0, startOffset); i <= lastStart; i++) {
             bool match = true;
             for (int j = 0; j < needle.Length; j++) {
                 if (haystack[i + j] != needle[j]) {
