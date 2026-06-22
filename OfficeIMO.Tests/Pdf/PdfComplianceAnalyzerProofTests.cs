@@ -175,9 +175,11 @@ public partial class PdfComplianceAnalyzerTests {
         Assert.Contains(PdfExternalValidatorKind.Mustang, proof.MissingExternalValidators);
     }
 
-    [Fact]
-    public void ProofReportRequiresPdfUaValidatorForPdfUaProfiles() {
-        PdfComplianceReadinessReport readiness = PdfComplianceAnalyzer.Assess(PdfComplianceProfile.PdfUa1, new PdfOptions());
+    [Theory]
+    [InlineData(PdfComplianceProfile.PdfUa1)]
+    [InlineData(PdfComplianceProfile.PdfUa2)]
+    public void ProofReportRequiresPdfUaValidatorForPdfUaProfiles(PdfComplianceProfile profile) {
+        PdfComplianceReadinessReport readiness = PdfComplianceAnalyzer.Assess(profile, new PdfOptions());
 
         PdfComplianceProofReport proof = PdfComplianceAnalyzer.AssessProof(readiness);
 

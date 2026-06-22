@@ -42,6 +42,7 @@ public sealed class PdfDocumentSecurityInfo {
         IReadOnlyList<int> usageRightsObjectNumbers,
         PdfDocumentDssInfo documentSecurityStore,
         int? rootObjectNumber,
+        int? rootObjectGeneration,
         int? infoObjectNumber,
         bool hasTrailerId,
         int startXrefCount,
@@ -78,6 +79,7 @@ public sealed class PdfDocumentSecurityInfo {
         UsageRightsObjectNumbers = usageRightsObjectNumbers;
         DocumentSecurityStore = documentSecurityStore;
         RootObjectNumber = rootObjectNumber;
+        RootObjectGeneration = rootObjectGeneration;
         InfoObjectNumber = infoObjectNumber;
         HasTrailerId = hasTrailerId;
         StartXrefCount = startXrefCount;
@@ -223,6 +225,9 @@ public sealed class PdfDocumentSecurityInfo {
 
     /// <summary>Trailer root catalog object number, when readable.</summary>
     public int? RootObjectNumber { get; }
+
+    /// <summary>Trailer root catalog generation, when readable.</summary>
+    public int? RootObjectGeneration { get; }
 
     /// <summary>Trailer info dictionary object number, when readable.</summary>
     public int? InfoObjectNumber { get; }

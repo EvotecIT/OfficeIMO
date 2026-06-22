@@ -129,6 +129,21 @@ public class PdfITextInspiredCoverageTests {
     }
 
     [Fact]
+    public void IncrementalUpdater_AppendsParentObjectForDirectChildFields() {
+        byte[] pdf = BuildDirectChildFormPdf();
+
+        byte[] updated = PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
+            ["Parent.Child"] = "Grace"
+        });
+
+        PdfDocumentInfo info = PdfInspector.Inspect(updated);
+        PdfFormField field = Assert.Single(info.FormFields);
+        Assert.Equal("Parent.Child", field.Name);
+        Assert.Equal("Grace", field.Value);
+        Assert.Contains("5 0 obj", PdfEncoding.Latin1GetString(updated), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void IncrementalUpdater_AllowsDocMDPCertifiedFormFillWhenPermissionPermits() {
         byte[] pdf = BuildDocMdpFormPdf(permissionLevel: 2);
 
@@ -429,6 +444,19 @@ public class PdfITextInspiredCoverageTests {
         builder.AppendLine("123");
         builder.AppendLine("%%EOF");
         return Encoding.ASCII.GetBytes(builder.ToString());
+    }
+
+    private static byte[] BuildDirectChildFormPdf() {
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm 6 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Contents 4 0 R >>",
+            BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 72 720 Td (Direct child form) Tj ET")),
+            "<< /T (Parent) /Kids [<< /Type /Annot /Subtype /Widget /FT /Tx /T (Child) /V (Ada) /Rect [50 50 180 70] /F 4 >>] >>",
+            "<< /Fields [5 0 R] >>"
+        };
+
+        return Encoding.ASCII.GetBytes(BuildPdf(objects));
     }
 
     private static byte[] BuildDocMdpFormPdf(int permissionLevel, string signatureFieldLock = "") {

@@ -180,11 +180,30 @@ public static class PdfOptimizer {
 
     private static byte[] CompressFlate(byte[] data) {
         using var output = new MemoryStream();
+        output.WriteByte(0x78);
+        output.WriteByte(0x9C);
         using (var deflate = new DeflateStream(output, CompressionLevel.Optimal, leaveOpen: true)) {
             deflate.Write(data, 0, data.Length);
         }
 
+        uint adler = Adler32(data);
+        output.WriteByte((byte)((adler >> 24) & 0xFF));
+        output.WriteByte((byte)((adler >> 16) & 0xFF));
+        output.WriteByte((byte)((adler >> 8) & 0xFF));
+        output.WriteByte((byte)(adler & 0xFF));
         return output.ToArray();
+    }
+
+    private static uint Adler32(byte[] data) {
+        const uint ModAdler = 65521;
+        uint a = 1;
+        uint b = 0;
+        for (int i = 0; i < data.Length; i++) {
+            a = (a + data[i]) % ModAdler;
+            b = (b + a) % ModAdler;
+        }
+
+        return (b << 16) | a;
     }
 
     private static void DeduplicateIdenticalStreams(

@@ -45,10 +45,14 @@ public static partial class PdfIncrementalUpdater {
         int inheritedFlags = 0;
         int nextObjectNumber = objects.Keys.Count == 0 ? 1 : objects.Keys.Max() + 1;
         int helveticaFontObjectNumber = 0;
+        int? acroFormContainerObjectNumber = acroFormObject is PdfReference acroFormReference
+            ? acroFormReference.ObjectNumber
+            : security.RootObjectNumber.Value;
         for (int i = 0; i < fields.Items.Count; i++) {
             UpdateFormField(
                 objects,
                 fields.Items[i],
+                acroFormContainerObjectNumber,
                 null,
                 null,
                 inheritedFlags,
@@ -69,8 +73,8 @@ public static partial class PdfIncrementalUpdater {
         }
 
         acroForm.Items["NeedAppearances"] = new PdfBoolean(effectiveOptions.KeepNeedAppearances);
-        if (acroFormObject is PdfReference acroFormReference) {
-            changedObjectNumbers.Add(acroFormReference.ObjectNumber);
+        if (acroFormObject is PdfReference acroFormReferenceForNeedAppearances) {
+            changedObjectNumbers.Add(acroFormReferenceForNeedAppearances.ObjectNumber);
         } else {
             changedObjectNumbers.Add(security.RootObjectNumber.Value);
         }
@@ -140,6 +144,7 @@ public static partial class PdfIncrementalUpdater {
     private static void UpdateFormField(
         Dictionary<int, PdfIndirectObject> objects,
         PdfObject fieldObject,
+        int? containingObjectNumber,
         string? parentName,
         string? inheritedFieldType,
         int inheritedFlags,
@@ -176,8 +181,9 @@ public static partial class PdfIncrementalUpdater {
         if (fullName is not null && remaining.Contains(fullName) && fieldValues.TryGetValue(fullName, out string? value)) {
             string actualValue = value ?? string.Empty;
             SetIncrementalFieldValue(field, fieldType, actualValue);
-            if (objectNumber.HasValue) {
-                changedObjectNumbers.Add(objectNumber.Value);
+            int? changedOwnerObjectNumber = objectNumber ?? containingObjectNumber;
+            if (changedOwnerObjectNumber.HasValue) {
+                changedObjectNumbers.Add(changedOwnerObjectNumber.Value);
             }
 
             if (options.GenerateAppearanceStreams) {
@@ -199,7 +205,7 @@ public static partial class PdfIncrementalUpdater {
         }
 
         for (int i = 0; i < kids.Items.Count; i++) {
-            UpdateFormField(objects, kids.Items[i], fullName, fieldType, fieldFlags, fieldQuadding, fieldMaxLength, defaultResources, fieldValues, remaining, changedObjectNumbers, options, visited, ref nextObjectNumber, ref helveticaFontObjectNumber);
+            UpdateFormField(objects, kids.Items[i], objectNumber ?? containingObjectNumber, fullName, fieldType, fieldFlags, fieldQuadding, fieldMaxLength, defaultResources, fieldValues, remaining, changedObjectNumbers, options, visited, ref nextObjectNumber, ref helveticaFontObjectNumber);
         }
     }
 
@@ -655,7 +661,7 @@ public static partial class PdfIncrementalUpdater {
 
         writer.WriteLine("trailer");
         writer.WriteLine("<< /Size " + size.ToString(CultureInfo.InvariantCulture) +
-            " /Root " + PdfSyntaxEscaper.IndirectReference(security.RootObjectNumber.Value) +
+            " /Root " + PdfSyntaxEscaper.IndirectReference(security.RootObjectNumber.Value, security.RootObjectGeneration ?? 0) +
             (security.InfoObjectNumber.HasValue ? " /Info " + PdfSyntaxEscaper.IndirectReference(security.InfoObjectNumber.Value) : string.Empty) +
             " /Prev " + security.LastStartXrefOffset.Value.ToString(CultureInfo.InvariantCulture) +
             ReadTrailerIdEntry(trailerRaw) +

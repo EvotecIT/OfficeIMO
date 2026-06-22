@@ -28,7 +28,9 @@ internal static partial class PdfSyntax {
         bool hasObjectStreams = ContainsPdfName(text, "ObjStm");
         bool hasTrailerId = ContainsPdfName(text, "ID");
 
-        int? rootObjectNumber = TryReadLastReferenceObjectNumber(text, "Root");
+        PdfReference? rootReference = TryReadLastReference(text, "Root");
+        int? rootObjectNumber = rootReference?.ObjectNumber;
+        int? rootObjectGeneration = rootReference?.Generation;
         int? infoObjectNumber = TryReadLastReferenceObjectNumber(text, "Info");
         string? encryptionFilter = null;
         string? encryptionSubFilter = null;
@@ -68,6 +70,12 @@ internal static partial class PdfSyntax {
 
         try {
             var (objects, trailerRaw) = ParseObjects(pdf);
+            rootReference = TryReadLastReference(trailerRaw, "Root");
+            if (rootReference is not null) {
+                rootObjectNumber = rootReference.ObjectNumber;
+                rootObjectGeneration = rootReference.Generation;
+            }
+
             PdfReference? encryptReference = TryReadLastReference(trailerRaw, "Encrypt");
             encryptObjectNumber = encryptReference?.ObjectNumber;
             hasEncryption = encryptReference is not null;
@@ -195,6 +203,7 @@ internal static partial class PdfSyntax {
             usageRightsObjectNumbers.Count == 0 ? Array.Empty<int>() : usageRightsObjectNumbers.AsReadOnly(),
             documentSecurityStore,
             rootObjectNumber,
+            rootObjectGeneration,
             infoObjectNumber,
             hasTrailerId,
             startXrefCount,

@@ -69,6 +69,14 @@ public class PdfRedactionApplierTests {
     }
 
     [Fact]
+    public void RedactionArea_RejectsNonFiniteCoordinates() {
+        Assert.Equal("x", Assert.Throws<ArgumentOutOfRangeException>(() => new PdfRedactionArea(1, double.NaN, 0, 100, 100)).ParamName);
+        Assert.Equal("y", Assert.Throws<ArgumentOutOfRangeException>(() => new PdfRedactionArea(1, 0, double.PositiveInfinity, 100, 100)).ParamName);
+        Assert.Equal("width", Assert.Throws<ArgumentOutOfRangeException>(() => new PdfRedactionArea(1, 0, 0, double.NegativeInfinity, 100)).ParamName);
+        Assert.Equal("height", Assert.Throws<ArgumentOutOfRangeException>(() => new PdfRedactionArea(1, 0, 0, 100, double.NaN)).ParamName);
+    }
+
+    [Fact]
     public void Apply_PreservesGraphicsTransformWhenRemovingMatchedText() {
         byte[] source = BuildTransformedTextPdf();
 

@@ -8,12 +8,20 @@ public sealed class PdfRedactionArea {
             throw new ArgumentOutOfRangeException(nameof(pageNumber), "Page number must be greater than zero.");
         }
 
-        if (width <= 0D) {
-            throw new ArgumentOutOfRangeException(nameof(width), "Width must be greater than zero.");
+        if (!IsFinite(x)) {
+            throw new ArgumentOutOfRangeException(nameof(x), "X coordinate must be finite.");
         }
 
-        if (height <= 0D) {
-            throw new ArgumentOutOfRangeException(nameof(height), "Height must be greater than zero.");
+        if (!IsFinite(y)) {
+            throw new ArgumentOutOfRangeException(nameof(y), "Y coordinate must be finite.");
+        }
+
+        if (!IsFinite(width) || width <= 0D) {
+            throw new ArgumentOutOfRangeException(nameof(width), "Width must be finite and greater than zero.");
+        }
+
+        if (!IsFinite(height) || height <= 0D) {
+            throw new ArgumentOutOfRangeException(nameof(height), "Height must be finite and greater than zero.");
         }
 
         PageNumber = pageNumber;
@@ -47,4 +55,6 @@ public sealed class PdfRedactionArea {
 
     /// <summary>Top coordinate in PDF points.</summary>
     public double Top => Y + Height;
+
+    private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
 }
