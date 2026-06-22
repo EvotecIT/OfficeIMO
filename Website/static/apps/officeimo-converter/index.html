@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OfficeIMO Browser Converter</title>
+  <meta name="description" content="Inspect OfficeIMO document conversion readiness locally in the browser." />
+  <script>(function(){var t=localStorage.getItem('imo-theme');if(t!=='light'&&t!=='dark'){t=matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';}document.documentElement.setAttribute('data-theme',t);document.documentElement.style.colorScheme=t;})();</script>
+  <link rel="stylesheet" href="/css/app.css" />
+  <link rel="stylesheet" href="/apps/officeimo-converter/converter.css" />
+</head>
+<body class="imo-body officeimo-converter-standalone">
+  <main id="content">
+    <div data-officeimo-converter-app data-mode="standalone"></div>
+  </main>
+  <script src="/apps/officeimo-converter/converter.js" defer></script>
+</body>
+</html>

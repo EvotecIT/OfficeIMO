@@ -1,0 +1,575 @@
+.officeimo-converter-standalone {
+  background:
+    radial-gradient(circle at 18% 10%, rgba(56, 189, 248, 0.12), transparent 28rem),
+    radial-gradient(circle at 86% 12%, rgba(45, 212, 191, 0.1), transparent 24rem),
+    var(--imo-bg, #030711);
+}
+
+.imo-body--playground .imo-footer {
+  margin-top: 0;
+}
+
+.ocx-shell {
+  min-height: calc(100vh - 64px);
+  padding: clamp(2rem, 4vw, 4.5rem) 0 clamp(3rem, 5vw, 5rem);
+  color: var(--imo-text, #e8edf5);
+}
+
+.officeimo-converter-standalone .ocx-shell {
+  min-height: 100vh;
+}
+
+.ocx-container {
+  width: min(1240px, calc(100% - 2rem));
+  margin: 0 auto;
+}
+
+.ocx-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.ocx-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  color: var(--imo-text, #e8edf5);
+  font-weight: 800;
+}
+
+.ocx-brand-mark {
+  display: inline-grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  border-radius: 0.65rem;
+  color: #03111d;
+  background: var(--imo-accent-gradient, linear-gradient(135deg, #3b82f6, #38bdf8, #2dd4bf));
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.22);
+}
+
+.ocx-topbar-links {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.88rem;
+}
+
+.ocx-link {
+  color: var(--imo-accent, #38bdf8);
+  font-weight: 700;
+}
+
+.ocx-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(360px, 1.05fr);
+  gap: clamp(1.5rem, 3vw, 3rem);
+  align-items: end;
+  margin-bottom: 2rem;
+}
+
+.ocx-title {
+  max-width: 760px;
+  margin: 0 0 1rem;
+  font-size: clamp(2.45rem, 4.6vw, 5rem);
+  line-height: 0.98;
+  letter-spacing: 0;
+  color: var(--imo-text, #e8edf5);
+}
+
+.ocx-lede {
+  max-width: 720px;
+  margin: 0;
+  color: var(--imo-text-secondary, #7a8ba8);
+  font-size: clamp(1rem, 1.2vw, 1.12rem);
+  line-height: 1.75;
+}
+
+.ocx-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  margin-top: 1.35rem;
+}
+
+.ocx-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  padding: 0.72rem 1.05rem;
+  border: 1px solid var(--imo-glass-border-hover, rgba(255, 255, 255, 0.14));
+  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--imo-text, #e8edf5);
+  font-size: 0.9rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+
+.ocx-button:hover {
+  transform: translateY(-1px);
+  border-color: rgba(56, 189, 248, 0.5);
+  background: rgba(56, 189, 248, 0.08);
+}
+
+.ocx-button--primary {
+  border-color: transparent;
+  color: #03111d;
+  background: var(--imo-accent-gradient, linear-gradient(135deg, #3b82f6, #38bdf8, #2dd4bf));
+}
+
+.ocx-button--primary:hover {
+  background: var(--imo-accent-gradient, linear-gradient(135deg, #3b82f6, #38bdf8, #2dd4bf));
+  box-shadow: 0 0 22px rgba(56, 189, 248, 0.22);
+}
+
+.ocx-button[disabled] {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.ocx-status-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.ocx-status-card,
+.ocx-panel,
+.ocx-output,
+.ocx-code-card {
+  border: 1px solid var(--imo-glass-border, rgba(255, 255, 255, 0.07));
+  border-radius: 1rem;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.024));
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.24);
+}
+
+.ocx-status-card {
+  padding: 1rem;
+}
+
+.ocx-status-label,
+.ocx-label {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: var(--imo-text-muted, #4a5972);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ocx-status-value {
+  display: block;
+  color: var(--imo-text, #e8edf5);
+  font-size: 0.98rem;
+  font-weight: 800;
+}
+
+.ocx-workbench {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(380px, 1.1fr);
+  gap: 1rem;
+  align-items: start;
+  min-width: 0;
+}
+
+.ocx-panel {
+  padding: clamp(1.1rem, 2vw, 1.55rem);
+  min-width: 0;
+}
+
+.ocx-panel h2,
+.ocx-output h2,
+.ocx-code-card h2 {
+  margin: 0 0 1rem;
+  font-size: 1.2rem;
+}
+
+.ocx-field {
+  margin-bottom: 1rem;
+}
+
+.ocx-field input,
+.ocx-field select {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.65rem 0.78rem;
+  border: 1px solid var(--imo-glass-border-hover, rgba(255, 255, 255, 0.14));
+  border-radius: 0.7rem;
+  background: rgba(3, 7, 17, 0.72);
+  color: var(--imo-text, #e8edf5);
+  font-size: 0.92rem;
+}
+
+.ocx-field input:focus,
+.ocx-field select:focus {
+  outline: 2px solid rgba(56, 189, 248, 0.22);
+  border-color: rgba(56, 189, 248, 0.5);
+}
+
+.ocx-dropzone {
+  position: relative;
+  display: grid;
+  min-height: 15rem;
+  place-items: center;
+  padding: 1.5rem;
+  border: 2px dashed rgba(122, 139, 168, 0.46);
+  border-radius: 1rem;
+  background:
+    linear-gradient(135deg, rgba(56, 189, 248, 0.08), rgba(45, 212, 191, 0.04)),
+    rgba(255, 255, 255, 0.025);
+  cursor: pointer;
+  transition: border-color 180ms ease, background 180ms ease, transform 180ms ease;
+}
+
+.ocx-dropzone.is-active,
+.ocx-dropzone:hover {
+  border-color: rgba(56, 189, 248, 0.82);
+  background:
+    linear-gradient(135deg, rgba(56, 189, 248, 0.14), rgba(45, 212, 191, 0.08)),
+    rgba(255, 255, 255, 0.035);
+  transform: translateY(-1px);
+}
+
+.ocx-dropzone input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.ocx-dropzone-inner {
+  display: grid;
+  gap: 0.55rem;
+  justify-items: center;
+  text-align: center;
+  pointer-events: none;
+}
+
+.ocx-drop-icon {
+  display: grid;
+  width: 4rem;
+  height: 4rem;
+  place-items: center;
+  border-radius: 1.15rem;
+  color: var(--imo-accent, #38bdf8);
+  background: rgba(56, 189, 248, 0.1);
+}
+
+.ocx-dropzone strong {
+  font-size: 1.05rem;
+}
+
+.ocx-muted,
+.ocx-hint {
+  color: var(--imo-text-secondary, #7a8ba8);
+}
+
+.ocx-hint {
+  margin-top: 0.65rem;
+  font-size: 0.84rem;
+  line-height: 1.55;
+}
+
+.ocx-segmented {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.45rem;
+  padding: 0.35rem;
+  border: 1px solid var(--imo-glass-border, rgba(255, 255, 255, 0.07));
+  border-radius: 0.8rem;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.ocx-sample-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.ocx-sample-grid button {
+  min-height: 2.45rem;
+  padding: 0.48rem 0.55rem;
+  border: 1px solid var(--imo-glass-border, rgba(255, 255, 255, 0.07));
+  border-radius: 0.65rem;
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--imo-text-secondary, #7a8ba8);
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.ocx-sample-grid button:hover {
+  border-color: rgba(56, 189, 248, 0.42);
+  color: var(--imo-text, #e8edf5);
+  background: rgba(56, 189, 248, 0.08);
+}
+
+.ocx-segmented button {
+  min-height: 2.25rem;
+  border: 0;
+  border-radius: 0.55rem;
+  background: transparent;
+  color: var(--imo-text-secondary, #7a8ba8);
+  font-size: 0.84rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.ocx-segmented button.is-selected {
+  color: #03111d;
+  background: var(--imo-accent-gradient, linear-gradient(135deg, #3b82f6, #38bdf8, #2dd4bf));
+}
+
+.ocx-checks {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.ocx-checks label {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: var(--imo-text-secondary, #7a8ba8);
+  font-weight: 650;
+}
+
+.ocx-checks input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--imo-accent, #38bdf8);
+}
+
+.ocx-preview-column {
+  display: grid;
+  gap: 1rem;
+  position: sticky;
+  top: 5rem;
+  min-width: 0;
+}
+
+.ocx-output {
+  min-height: 30rem;
+  padding: clamp(1.1rem, 2vw, 1.55rem);
+  min-width: 0;
+}
+
+.ocx-output-stage {
+  display: grid;
+  min-height: 18rem;
+  place-items: center;
+  padding: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 1rem;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.018)),
+    repeating-linear-gradient(135deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 14px);
+}
+
+.ocx-file-card {
+  width: min(100%, 34rem);
+  padding: 1.25rem;
+  border: 1px solid rgba(56, 189, 248, 0.22);
+  border-radius: 1rem;
+  background: rgba(3, 7, 17, 0.72);
+}
+
+.ocx-file-title {
+  margin: 0 0 0.35rem;
+  font-size: 1.15rem;
+  font-weight: 850;
+  word-break: break-word;
+}
+
+.ocx-file-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.ocx-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.8rem;
+  padding: 0.28rem 0.55rem;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 999px;
+  color: var(--imo-text-secondary, #7a8ba8);
+  background: rgba(255, 255, 255, 0.035);
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.ocx-chip--good {
+  color: #6ee7b7;
+  border-color: rgba(16, 185, 129, 0.32);
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.ocx-chip--warn {
+  color: #fbbf24;
+  border-color: rgba(251, 191, 36, 0.28);
+  background: rgba(251, 191, 36, 0.09);
+}
+
+.ocx-chip--cold {
+  color: var(--imo-accent, #38bdf8);
+  border-color: rgba(56, 189, 248, 0.3);
+  background: rgba(56, 189, 248, 0.09);
+}
+
+.ocx-diagnostics {
+  display: grid;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+.ocx-diagnostic {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.65rem;
+  align-items: start;
+  padding: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.028);
+}
+
+.ocx-dot {
+  width: 0.65rem;
+  height: 0.65rem;
+  margin-top: 0.45rem;
+  border-radius: 999px;
+  background: var(--imo-accent, #38bdf8);
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.35);
+}
+
+.ocx-dot--good {
+  background: #10b981;
+}
+
+.ocx-dot--warn {
+  background: #f59e0b;
+}
+
+.ocx-dot--bad {
+  background: #f43f5e;
+}
+
+.ocx-diagnostic strong {
+  display: block;
+  margin-bottom: 0.15rem;
+  font-size: 0.9rem;
+}
+
+.ocx-diagnostic span {
+  color: var(--imo-text-secondary, #7a8ba8);
+  font-size: 0.84rem;
+  line-height: 1.55;
+}
+
+.ocx-log {
+  display: grid;
+  gap: 0.45rem;
+  margin-top: 1rem;
+  padding: 0.9rem;
+  border-radius: 0.85rem;
+  background: rgba(0, 0, 0, 0.22);
+  color: var(--imo-text-secondary, #7a8ba8);
+  font-family: var(--imo-font-mono, "Cascadia Code", Consolas, monospace);
+  font-size: 0.78rem;
+}
+
+.ocx-code-card {
+  padding: 1.1rem;
+  min-width: 0;
+}
+
+.ocx-code-card pre {
+  margin: 0;
+  max-height: 14rem;
+}
+
+.ocx-matrix {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.7rem;
+  margin-top: 1rem;
+}
+
+.ocx-matrix-item {
+  padding: 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 0.85rem;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.ocx-matrix-item strong {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.9rem;
+}
+
+.ocx-matrix-item span {
+  color: var(--imo-text-secondary, #7a8ba8);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 1050px) {
+  .ocx-hero,
+  .ocx-workbench {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ocx-preview-column {
+    position: static;
+  }
+}
+
+@media (max-width: 720px) {
+  .ocx-shell {
+    padding-top: 1.5rem;
+  }
+
+  .ocx-topbar,
+  .ocx-hero-actions {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .ocx-status-strip,
+  .ocx-matrix {
+    grid-template-columns: 1fr;
+  }
+
+  .ocx-title {
+    font-size: clamp(2.2rem, 13vw, 3.5rem);
+  }
+
+  .ocx-output {
+    min-height: 0;
+  }
+
+  .ocx-segmented {
+    grid-template-columns: 1fr;
+  }
+
+  .ocx-sample-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ocx-code-card pre {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+}
