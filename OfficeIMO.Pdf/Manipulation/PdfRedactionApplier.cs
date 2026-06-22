@@ -42,6 +42,7 @@ public static partial class PdfRedactionApplier {
         }
 
         PdfReadDocument document = PdfReadDocument.Load(pdf, readOptions);
+        ValidateRedactionAreas(areaArray, document.Pages.Count);
         RedactionMutation mutation = ApplyToObjects(objects, document, plan, areaArray, effectiveOptions);
         if (!mutation.HasChanges) {
             return pdf.ToArray();
@@ -151,6 +152,14 @@ public static partial class PdfRedactionApplier {
         }
 
         return new RedactionMutation(changed);
+    }
+
+    private static void ValidateRedactionAreas(PdfRedactionArea[] areas, int pageCount) {
+        for (int i = 0; i < areas.Length; i++) {
+            if (areas[i].PageNumber > pageCount) {
+                throw new ArgumentOutOfRangeException(nameof(areas), "Redaction area page number " + areas[i].PageNumber.ToString(CultureInfo.InvariantCulture) + " is outside the document page count " + pageCount.ToString(CultureInfo.InvariantCulture) + ".");
+            }
+        }
     }
 
     private static bool RemoveMatchedAnnotations(

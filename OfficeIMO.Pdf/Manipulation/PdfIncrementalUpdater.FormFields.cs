@@ -72,8 +72,8 @@ public static partial class PdfIncrementalUpdater {
         }
 
         acroForm.Items["NeedAppearances"] = new PdfBoolean(effectiveOptions.KeepNeedAppearances);
-        if (acroFormObject is PdfReference acroFormReference) {
-            changedObjectNumbers.Add(acroFormReference.ObjectNumber);
+        if (acroFormObject is PdfReference acroFormReferenceForNeedAppearances) {
+            changedObjectNumbers.Add(acroFormReferenceForNeedAppearances.ObjectNumber);
         } else {
             changedObjectNumbers.Add(security.RootObjectNumber.Value);
         }
@@ -121,14 +121,14 @@ public static partial class PdfIncrementalUpdater {
     }
 
     private static void ValidateAppendOnlyFormInput(PdfDocumentSecurityInfo security, IEnumerable<string> fieldNames) {
-        PdfAppendOnlyMutationReport report = BuildAppendOnlyMutationReport(security);
-        if (!report.SupportedActions.Contains("FormFill", StringComparer.Ordinal)) {
-            throw new NotSupportedException("Incremental form field updates are not supported for this PDF: " + string.Join(", ", report.Blockers));
-        }
-
         string? lockedFieldName = GetFirstLockedFormFieldName(security, fieldNames);
         if (lockedFieldName is not null) {
             throw new NotSupportedException("Incremental form field updates are not supported for field " + lockedFieldName + " because it is locked by a signature field lock.");
+        }
+
+        PdfAppendOnlyMutationReport report = BuildAppendOnlyMutationReport(security, fieldNames);
+        if (!report.SupportedActions.Contains("FormFill", StringComparer.Ordinal)) {
+            throw new NotSupportedException("Incremental form field updates are not supported for this PDF: " + string.Join(", ", report.Blockers));
         }
     }
 
@@ -208,8 +208,10 @@ public static partial class PdfIncrementalUpdater {
             return;
         }
 
+        int? kidsContainerObjectNumber = kidsObject is PdfReference kidsReference
+            ? kidsReference.ObjectNumber
+            : objectNumber ?? containingObjectNumber;
         for (int i = 0; i < kids.Items.Count; i++) {
-            int? kidsContainerObjectNumber = kidsObject is PdfReference kidsReference ? kidsReference.ObjectNumber : objectNumber;
             UpdateFormField(objects, kids.Items[i], kidsContainerObjectNumber, fullName, fieldType, fieldFlags, fieldQuadding, fieldMaxLength, defaultResources, fieldValues, remaining, changedObjectNumbers, options, visited, ref nextObjectNumber, ref helveticaFontObjectNumber);
         }
     }
@@ -460,13 +462,13 @@ public static partial class PdfIncrementalUpdater {
         ref int nextObjectNumber,
         ref int helveticaFontObjectNumber) {
         double fontSize = Math.Max(6D, Math.Min(12D, height - 4D));
-        int fontObjectNumber = EnsureIncrementalHelveticaFont(objects, inheritedDefaultResources, ref nextObjectNumber, ref helveticaFontObjectNumber);
+        PdfReference fontReference = EnsureIncrementalHelveticaFont(objects, inheritedDefaultResources, ref nextObjectNumber, ref helveticaFontObjectNumber);
         string content = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceContent(width, height, value, fontSize, style);
         var dictionary = new PdfDictionary();
         dictionary.Items["Type"] = new PdfName("XObject");
         dictionary.Items["Subtype"] = new PdfName("Form");
         dictionary.Items["BBox"] = CreateNumberArray(0D, 0D, width, height);
-        dictionary.Items["Resources"] = CreateIncrementalAppearanceResources(fontObjectNumber);
+        dictionary.Items["Resources"] = CreateIncrementalAppearanceResources(fontReference);
         return new PdfStream(dictionary, PdfEncoding.Latin1GetBytes(content));
     }
 
@@ -479,13 +481,13 @@ public static partial class PdfIncrementalUpdater {
         return new PdfStream(dictionary, PdfEncoding.Latin1GetBytes(content));
     }
 
-    private static int EnsureIncrementalHelveticaFont(
+    private static PdfReference EnsureIncrementalHelveticaFont(
         Dictionary<int, PdfIndirectObject> objects,
         PdfDictionary? inheritedDefaultResources,
         ref int nextObjectNumber,
         ref int helveticaFontObjectNumber) {
-        if (TryFindFontResource(objects, inheritedDefaultResources, "Helv", out int existingFontObjectNumber)) {
-            return existingFontObjectNumber;
+        if (TryFindFontResource(objects, inheritedDefaultResources, "Helv", out PdfReference existingFontReference)) {
+            return existingFontReference;
         }
 
         if (helveticaFontObjectNumber == 0) {
@@ -493,19 +495,19 @@ public static partial class PdfIncrementalUpdater {
             objects[helveticaFontObjectNumber] = new PdfIndirectObject(helveticaFontObjectNumber, 0, PdfStandardFontDictionaryBuilder.BuildStandardType1FontDictionary(PdfStandardFont.Helvetica));
         }
 
-        return helveticaFontObjectNumber;
+        return new PdfReference(helveticaFontObjectNumber, 0);
     }
 
-    private static PdfDictionary CreateIncrementalAppearanceResources(int helveticaFontObjectNumber) {
+    private static PdfDictionary CreateIncrementalAppearanceResources(PdfReference helveticaFontReference) {
         var fonts = new PdfDictionary();
-        fonts.Items["Helv"] = new PdfReference(helveticaFontObjectNumber, 0);
+        fonts.Items["Helv"] = helveticaFontReference;
         var resources = new PdfDictionary();
         resources.Items["Font"] = fonts;
         return resources;
     }
 
-    private static bool TryFindFontResource(Dictionary<int, PdfIndirectObject> objects, PdfDictionary? resources, string name, out int objectNumber) {
-        objectNumber = 0;
+    private static bool TryFindFontResource(Dictionary<int, PdfIndirectObject> objects, PdfDictionary? resources, string name, out PdfReference reference) {
+        reference = null!;
         if (resources is null ||
             ResolveDictionary(objects, resources.Items.TryGetValue("Font", out PdfObject? fontsObject) ? fontsObject : null) is not PdfDictionary fonts ||
             !fonts.Items.TryGetValue(name, out PdfObject? fontObject) ||
@@ -513,7 +515,7 @@ public static partial class PdfIncrementalUpdater {
             return false;
         }
 
-        objectNumber = fontReference.ObjectNumber;
+        reference = fontReference;
         return true;
     }
 

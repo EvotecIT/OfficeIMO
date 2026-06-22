@@ -241,7 +241,7 @@ public sealed class PdfComplianceProofReport {
 
         string? resultProfile = result.Profile;
         if (string.IsNullOrWhiteSpace(resultProfile)) {
-            return false;
+            return true;
         }
 
         string normalizedResult = NormalizeProfileName(resultProfile!);

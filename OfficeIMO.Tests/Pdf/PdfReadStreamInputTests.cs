@@ -89,11 +89,16 @@ public partial class PdfReadStreamTests {
     public void ReadApis_RejectEncryptedPdfsWithClearUnsupportedDiagnostic() {
         byte[] encrypted = BuildEncryptedPdfMarker();
 
-        AssertEncrypted(() => PdfReadDocument.Load(encrypted));
-        AssertEncrypted(() => PdfTextExtractor.ExtractAllText(encrypted));
+        AssertPreciseEncryptedReadFailure(() => PdfReadDocument.Load(encrypted));
+        AssertPreciseEncryptedReadFailure(() => PdfTextExtractor.ExtractAllText(encrypted));
         AssertEncrypted(() => PdfTextExtractor.GetMetadata(encrypted));
-        AssertEncrypted(() => PdfImageExtractor.ExtractImages(encrypted));
+        AssertPreciseEncryptedReadFailure(() => PdfImageExtractor.ExtractImages(encrypted));
         AssertEncrypted(() => PdfPageExtractor.ExtractPages(encrypted, 1));
+
+        static void AssertPreciseEncryptedReadFailure(Action action) {
+            var exception = Assert.Throws<PdfPasswordRequiredException>(action);
+            Assert.Contains("Encrypted PDF requires a password.", exception.Message, StringComparison.Ordinal);
+        }
 
         static void AssertEncrypted(Action action) {
             var exception = Assert.ThrowsAny<NotSupportedException>(action);

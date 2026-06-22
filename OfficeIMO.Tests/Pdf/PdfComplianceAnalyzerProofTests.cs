@@ -48,6 +48,28 @@ public partial class PdfComplianceAnalyzerTests {
     }
 
     [Fact]
+    public void ProofReportCountsUnprofiledValidatorResultForRequestedProof() {
+        var options = new PdfOptions()
+            .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B);
+        PdfExternalValidationResult veraPdf = PdfExternalValidationResult.Passed(
+            PdfExternalValidatorKind.VeraPdf,
+            "veraPDF",
+            "PDF/A profile accepted.");
+
+        PdfComplianceProofReport proof = PdfComplianceAnalyzer.AssessProof(
+            PdfComplianceProfile.PdfA3B,
+            options,
+            new[] { veraPdf },
+            generatedStandardFonts: Array.Empty<PdfStandardFont>());
+
+        Assert.True(proof.IsInternallyReady);
+        Assert.True(proof.HasRequiredExternalValidation);
+        Assert.True(proof.CanClaimConformance);
+        Assert.Equal(1, proof.PassedExternalValidationCount);
+        Assert.Empty(proof.MissingExternalValidators);
+    }
+
+    [Fact]
     public void ReadinessAcceptsOpenTypeCffEmbeddedFontsForPdfAFontCoverage() {
         string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
         Assert.NotNull(fontPath);

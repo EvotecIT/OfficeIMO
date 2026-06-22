@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text;
 using OfficeIMO.Pdf;
 using Xunit;
 
@@ -20,6 +22,7 @@ public class PdfRedactionApplierTests {
         Assert.Contains("Visible after", text, StringComparison.Ordinal);
         Assert.DoesNotContain("Secret account", text, StringComparison.Ordinal);
         Assert.DoesNotContain("123-45", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Secret account", PdfEncoding.Latin1GetString(redacted), StringComparison.Ordinal);
 
         PdfRedactionPlan redactedPlan = PdfRedactionPlanner.Plan(redacted, new[] { area });
         Assert.DoesNotContain(redactedPlan.Matches, match => match.Text != null && match.Text.Contains("Secret account", StringComparison.Ordinal));
@@ -405,14 +408,157 @@ public class PdfRedactionApplierTests {
         return BuildPdf(objects, rootObjectNumber: 1);
     }
 
-    private static PdfRedactionArea FindAreaForText(byte[] pdf, string text) {
-        PdfLogicalTextBlock block = PdfLogicalDocument.Load(pdf)
-            .TextBlocks
-            .Single(item => item.Text.Contains(text, StringComparison.Ordinal));
+    private static byte[] BuildFormXObjectTextPdf() {
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /XObject << /Fm1 5 0 R >> >> /Contents 6 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            BuildStream("BT\n/F1 12 Tf\n0 0 Td\n(Form secret) Tj\nET", "/Type /XObject /Subtype /Form /BBox [0 0 200 50] /Resources << /Font << /F1 4 0 R >> >>"),
+            BuildStream("q\n1 0 0 1 100 100 cm\n/Fm1 Do\nQ")
+        };
 
-        double x = Math.Min(block.XStart, block.XEnd) - 2D;
-        double width = Math.Abs(block.XEnd - block.XStart) + 4D;
-        return new PdfRedactionArea(block.PageNumber, x, block.BaselineY - 14D, width, 20D, "secret");
+        return Encoding.ASCII.GetBytes(BuildPdf(objects));
+    }
+
+    private static byte[] BuildInheritedFormXObjectTextPdf() {
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] /Resources << /XObject << /Fm1 5 0 R >> >> >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Contents 6 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            BuildStream("BT\n/F1 12 Tf\n0 0 Td\n(Inherited form secret) Tj\nET", "/Type /XObject /Subtype /Form /BBox [0 0 200 50] /Resources << /Font << /F1 4 0 R >> >>"),
+            BuildStream("q\n1 0 0 1 100 100 cm\n/Fm1 Do\nQ")
+        };
+
+        return Encoding.ASCII.GetBytes(BuildPdf(objects));
+    }
+
+    private static byte[] BuildSharedPageContentPdf() {
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 2 /Kids [3 0 R 4 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 5 0 R >> >> /Contents 6 0 R >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 5 0 R >> >> /Contents 6 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            BuildStream("BT\n/F1 12 Tf\n72 120 Td\n(Shared page secret) Tj\nET")
+        };
+
+        return Encoding.ASCII.GetBytes(BuildPdf(objects));
+    }
+
+    private static byte[] BuildSharedFormXObjectTextPdf() {
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 2 /Kids [3 0 R 4 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /XObject << /Fm1 6 0 R >> >> /Contents 7 0 R >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /XObject << /Fm1 6 0 R >> >> /Contents 8 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            BuildStream("BT\n/F1 12 Tf\n0 0 Td\n(Shared form secret) Tj\nET", "/Type /XObject /Subtype /Form /BBox [0 0 200 50] /Resources << /Font << /F1 5 0 R >> >>"),
+            BuildStream("q\n1 0 0 1 100 100 cm\n/Fm1 Do\nQ"),
+            BuildStream("q\n1 0 0 1 100 100 cm\n/Fm1 Do\nQ")
+        };
+
+        return Encoding.ASCII.GetBytes(BuildPdf(objects));
+    }
+
+    private static byte[] BuildAliasedFormXObjectTextPdf() {
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /XObject << /FmUnused 5 0 R /FmPainted 5 0 R >> >> /Contents 6 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            BuildStream("BT\n/F1 12 Tf\n0 0 Td\n(Aliased form secret) Tj\nET", "/Type /XObject /Subtype /Form /BBox [0 0 200 50] /Resources << /Font << /F1 4 0 R >> >>"),
+            BuildStream("q\n1 0 0 1 100 100 cm\n/FmPainted Do\nQ")
+        };
+
+        return Encoding.ASCII.GetBytes(BuildPdf(objects));
+    }
+
+    private static byte[] BuildLargeTextPdf() {
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 400 300] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            BuildStream("BT\n/F1 48 Tf\n72 100 Td\n(Large secret heading) Tj\nET")
+        };
+
+        return Encoding.ASCII.GetBytes(BuildPdf(objects));
+    }
+
+    private static byte[] BuildDirectAnnotationWithPopupPdf() {
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Annots [<< /Type /Annot /Subtype /Text /Rect [20 20 40 40] /Contents (Direct redaction note) /Popup 5 0 R >> 5 0 R] /Contents 4 0 R >>",
+            BuildStream("BT\n/F1 12 Tf\n72 720 Td\n(Annotation carrier) Tj\nET"),
+            "<< /Type /Annot /Subtype /Popup /Rect [45 20 120 80] >>"
+        };
+
+        return Encoding.ASCII.GetBytes(BuildPdf(objects));
+    }
+
+    private static byte[] BuildIndirectAnnotationWithPopupPdf() {
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Annots [4 0 R 5 0 R] /Contents 6 0 R >>",
+            "<< /Type /Annot /Subtype /Text /Rect [20 20 40 40] /Contents (Keep parent note) /Popup 5 0 R >>",
+            "<< /Type /Annot /Subtype /Popup /Rect [100 100 160 160] /Parent 4 0 R >>",
+            BuildStream("BT\n/F1 12 Tf\n72 720 Td\n(Annotation carrier) Tj\nET")
+        };
+
+        return Encoding.ASCII.GetBytes(BuildPdf(objects));
+    }
+
+    private static string BuildStream(string content, string dictionaryEntries = "") {
+        byte[] bytes = Encoding.ASCII.GetBytes(content);
+        return "<< " + dictionaryEntries + (dictionaryEntries.Length == 0 ? string.Empty : " ") + "/Length " + bytes.Length.ToString(CultureInfo.InvariantCulture) + " >>\nstream\n" + content + "\nendstream";
+    }
+
+    private static string BuildPdf(IReadOnlyList<string> objects) {
+        var builder = new StringBuilder();
+        builder.AppendLine("%PDF-1.7");
+        for (int i = 0; i < objects.Count; i++) {
+            builder.Append((i + 1).ToString(CultureInfo.InvariantCulture)).AppendLine(" 0 obj");
+            builder.AppendLine(objects[i]);
+            builder.AppendLine("endobj");
+        }
+
+        builder.AppendLine("trailer");
+        builder.Append("<< /Root 1 0 R /Size ").Append(objects.Count + 1).AppendLine(" >>");
+        builder.AppendLine("startxref");
+        builder.AppendLine("123");
+        builder.AppendLine("%%EOF");
+        return builder.ToString();
+    }
+
+    private static PdfRedactionArea FindAreaForText(byte[] pdf, string text) {
+        return FindAreasForText(pdf, text).Single();
+    }
+
+    private static PdfRedactionArea[] FindAreasForText(byte[] pdf, string text) {
+        return PdfLogicalDocument.Load(pdf)
+            .TextBlocks
+            .Where(item => item.Text.Contains(text, StringComparison.Ordinal))
+            .Select(static block => {
+                double x = Math.Min(block.XStart, block.XEnd) - 2D;
+                double width = Math.Abs(block.XEnd - block.XStart) + 4D;
+                return new PdfRedactionArea(block.PageNumber, x, block.BaselineY - 14D, width, 20D, "secret");
+            })
+            .ToArray();
+    }
+
+    private static int CountOccurrences(string value, string search) {
+        int count = 0;
+        int index = 0;
+        while ((index = value.IndexOf(search, index, StringComparison.Ordinal)) >= 0) {
+            count++;
+            index += search.Length;
+        }
+
+        return count;
     }
 
     private static PdfRedactionArea FindAreaForTextOccurrence(byte[] pdf, string text, int occurrenceFromTop) {
@@ -511,17 +657,6 @@ public class PdfRedactionApplierTests {
     private static int ReadObjectNumber(string obj) {
         int space = obj.IndexOf(' ');
         return int.Parse(obj.Substring(0, space), System.Globalization.CultureInfo.InvariantCulture);
-    }
-
-    private static int CountOccurrences(string value, string text) {
-        int count = 0;
-        int index = 0;
-        while ((index = value.IndexOf(text, index, StringComparison.Ordinal)) >= 0) {
-            count++;
-            index += text.Length;
-        }
-
-        return count;
     }
 
     private static string ExtractLogicalText(byte[] pdf) {

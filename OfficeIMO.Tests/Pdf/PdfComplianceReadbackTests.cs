@@ -1,3 +1,4 @@
+using System.Text;
 using OfficeIMO.Pdf;
 using Xunit;
 
@@ -67,6 +68,27 @@ public class PdfComplianceReadbackTests {
         AssertRequirement(report, "readback-xmp-metadata", PdfComplianceRequirementStatus.Satisfied);
         AssertRequirement(report, "readback-pdfa-identification", PdfComplianceRequirementStatus.Satisfied);
         AssertRequirement(report, "readback-output-intent", PdfComplianceRequirementStatus.Satisfied);
+    }
+
+    [Fact]
+    public void AssessReadback_UsesCatalogVersionOverrideForPdfA4() {
+        byte[] pdf = PdfDocument.Create()
+            .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA4F, "en-US")
+            .Meta(title: "Catalog version PDF/A-4", author: "OfficeIMO")
+            .Paragraph(paragraph => paragraph.Text("Catalog version override"))
+            .ToBytes();
+        string raw = Encoding.ASCII.GetString(pdf)
+            .Replace("%PDF-2.0", "%PDF-1.7")
+            .Replace("/Type /Catalog", "/Type /Catalog /Version /2.0");
+        byte[] header17Catalog20 = Encoding.ASCII.GetBytes(raw);
+
+        PdfDocumentInfo info = PdfInspector.Inspect(header17Catalog20);
+        PdfComplianceReadinessReport report = PdfComplianceAnalyzer.AssessReadback(PdfComplianceProfile.PdfA4F, info);
+
+        Assert.Equal("1.7", info.HeaderVersion);
+        Assert.Equal("2.0", info.CatalogVersion);
+        Assert.Equal("2.0", info.EffectiveVersion);
+        AssertRequirement(report, "readback-pdf-file-version", PdfComplianceRequirementStatus.Satisfied);
     }
 
     [Fact]

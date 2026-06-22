@@ -75,7 +75,8 @@
     "title": "Converters",
     "items": [
       { "title": "Word to HTML", "path": "converters/word-html/index.md", "href": "/docs/converters/word-html/" },
-      { "title": "Word to Markdown", "path": "converters/word-markdown/index.md", "href": "/docs/converters/word-markdown/" }
+      { "title": "Word to Markdown", "path": "converters/word-markdown/index.md", "href": "/docs/converters/word-markdown/" },
+      { "title": "Browser Playground", "path": "converters/browser-playground/index.md", "href": "/docs/converters/browser-playground/" }
     ]
   },
   {

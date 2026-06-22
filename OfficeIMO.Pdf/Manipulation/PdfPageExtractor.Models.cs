@@ -26,10 +26,10 @@ public static partial class PdfPageExtractor {
         public Dictionary<int, Dictionary<string, PdfObject>> MaterializedPageValues { get; }
     
         public Dictionary<int, int> SourceObjectGenerations { get; }
-    
-        public Dictionary<int, Dictionary<string, PdfObject>> PageOverrides { get; }
 
         public bool PreserveReferenceGenerations { get; }
+    
+        public Dictionary<int, Dictionary<string, PdfObject>> PageOverrides { get; }
     }
     
     internal sealed class AdditionalObject {

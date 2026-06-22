@@ -3,7 +3,7 @@ namespace OfficeIMO.Pdf;
 public sealed partial class PdfReadDocument {
     /// <summary>Loads a PDF from bytes into a typed object model.</summary>
     public static PdfReadDocument Load(byte[] pdf, PdfReadOptions? options = null) {
-        PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(pdf);
+        PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(pdf, options);
         var (map, trailer) = PdfSyntax.ParseObjects(pdf, options);
         if (options?.Password is not null && security.HasEncryption) {
             security = PdfSyntax.ReadDocumentSecurityInfo(pdf, map, trailer, security);

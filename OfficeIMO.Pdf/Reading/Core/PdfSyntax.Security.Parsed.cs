@@ -119,7 +119,8 @@ internal static partial class PdfSyntax {
                     entry.Key,
                     dictionary,
                     field,
-                    currentByteRangeValues));
+                    currentByteRangeValues,
+                    text));
             }
         }
 
@@ -154,7 +155,9 @@ internal static partial class PdfSyntax {
             usageRightsObjectNumbers.Count == 0 ? Array.Empty<int>() : usageRightsObjectNumbers.AsReadOnly(),
             documentSecurityStore,
             rootObjectNumber,
+            fallback.RootObjectGeneration,
             infoObjectNumber,
+            fallback.InfoObjectGeneration,
             fallback.HasTrailerId,
             fallback.StartXrefCount,
             fallback.LastStartXrefOffset,

@@ -95,6 +95,10 @@ public static class PdfAnnotationEditor {
             }
         }
 
+        if (removed.Count > 0) {
+            ClearRemovedPopupReferences(objects, removed);
+        }
+
         foreach (int objectNumber in removed) {
             objects.Remove(objectNumber);
         }
@@ -127,7 +131,7 @@ public static class PdfAnnotationEditor {
 
         if (!objects.TryGetValue(objectNumber, out PdfIndirectObject? indirect) ||
             indirect.Value is not PdfDictionary annotation ||
-            !IsAnnotation(annotation)) {
+            !IsAnnotationUpdateTarget(objects, objectNumber, annotation)) {
             throw new ArgumentException("PDF annotation object was not found: " + objectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".", nameof(objectNumber));
         }
 
@@ -167,7 +171,55 @@ public static class PdfAnnotationEditor {
             }
         }
 
-        return IsAnnotation(annotation);
+        return IsAnnotation(annotation) || HasAnnotationSubtype(annotation);
+    }
+
+    private static int RemovePageAnnotationReferences(PdfArray annotations, HashSet<int> removedObjectNumbers) {
+        int removed = 0;
+        for (int i = annotations.Items.Count - 1; i >= 0; i--) {
+            if (annotations.Items[i] is PdfReference reference && removedObjectNumbers.Contains(reference.ObjectNumber)) {
+                annotations.Items.RemoveAt(i);
+                removed++;
+            }
+        }
+
+        return removed;
+    }
+
+    private static void ClearRemovedPopupReferences(Dictionary<int, PdfIndirectObject> objects, HashSet<int> removedObjectNumbers) {
+        if (removedObjectNumbers.Count == 0) {
+            return;
+        }
+
+        foreach (PdfIndirectObject indirect in objects.Values) {
+            ClearRemovedPopupReferences(indirect.Value, removedObjectNumbers, new HashSet<PdfObject>());
+        }
+    }
+
+    private static void ClearRemovedPopupReferences(PdfObject value, HashSet<int> removedObjectNumbers, HashSet<PdfObject> visited) {
+        if (!visited.Add(value)) {
+            return;
+        }
+
+        if (value is PdfDictionary dictionary) {
+            if (dictionary.Items.TryGetValue("Popup", out PdfObject? popupObject) &&
+                popupObject is PdfReference popupReference &&
+                removedObjectNumbers.Contains(popupReference.ObjectNumber)) {
+                dictionary.Items.Remove("Popup");
+            }
+
+            foreach (PdfObject child in dictionary.Items.Values.ToArray()) {
+                ClearRemovedPopupReferences(child, removedObjectNumbers, visited);
+            }
+
+            return;
+        }
+
+        if (value is PdfArray array) {
+            foreach (PdfObject child in array.Items.ToArray()) {
+                ClearRemovedPopupReferences(child, removedObjectNumbers, visited);
+            }
+        }
     }
 
     private static void ApplyUpdates(PdfDictionary annotation, PdfAnnotationUpdateOptions options) {
@@ -232,8 +284,17 @@ public static class PdfAnnotationEditor {
     }
 
     private static void ValidateUpdateOptions(PdfAnnotationUpdateOptions options) {
-        if (options.Color is not null && options.Color.Count != 3) {
-            throw new ArgumentException("Color must contain exactly three RGB values.", nameof(options));
+        if (options.Color is not null) {
+            if (options.Color.Count != 3) {
+                throw new ArgumentException("Color must contain exactly three RGB values.", nameof(options));
+            }
+
+            for (int i = 0; i < options.Color.Count; i++) {
+                double component = options.Color[i];
+                if (double.IsNaN(component) || double.IsInfinity(component)) {
+                    throw new ArgumentException("Color values must be finite RGB components.", nameof(options));
+                }
+            }
         }
 
         if (options.Contents is null &&
@@ -258,6 +319,34 @@ public static class PdfAnnotationEditor {
 
         return dictionary.Get<PdfName>("Subtype") is PdfName subtype &&
             KnownAnnotationSubtypes.Contains(subtype.Name);
+    }
+
+    private static bool HasAnnotationSubtype(PdfDictionary dictionary) {
+        return dictionary.Items.ContainsKey("Subtype");
+    }
+
+    private static bool IsAnnotationUpdateTarget(Dictionary<int, PdfIndirectObject> objects, int objectNumber, PdfDictionary dictionary) {
+        return IsAnnotation(dictionary) || IsReferencedFromPageAnnotations(objects, objectNumber);
+    }
+
+    private static bool IsReferencedFromPageAnnotations(Dictionary<int, PdfIndirectObject> objects, int objectNumber) {
+        foreach (int pageObjectNumber in GetPageObjectNumbersInDocumentOrder(objects)) {
+            if (!objects.TryGetValue(pageObjectNumber, out PdfIndirectObject? pageObject) ||
+                pageObject.Value is not PdfDictionary page ||
+                !page.Items.TryGetValue("Annots", out PdfObject? annotsObject) ||
+                PdfObjectLookup.Resolve(objects, annotsObject) is not PdfArray annotations) {
+                continue;
+            }
+
+            for (int i = 0; i < annotations.Items.Count; i++) {
+                if (annotations.Items[i] is PdfReference reference &&
+                    reference.ObjectNumber == objectNumber) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private static void RemovePopupReferences(Dictionary<int, PdfIndirectObject> objects, PdfArray annotations, HashSet<int> removed, ref bool changed) {

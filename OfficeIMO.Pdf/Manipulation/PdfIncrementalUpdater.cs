@@ -11,7 +11,7 @@ public static partial class PdfIncrementalUpdater {
     /// </summary>
     public static PdfAppendOnlyMutationReport AnalyzeAppendOnlyMutation(byte[] pdf) {
         Guard.NotNull(pdf, nameof(pdf));
-        return BuildAppendOnlyMutationReport(PdfSyntax.ReadDocumentSecurityInfo(pdf));
+        return BuildAppendOnlyMutationReport(PdfSyntax.ReadDocumentSecurityInfo(pdf), fieldNames: null);
     }
 
     /// <summary>Analyzes append-only mutation support for a readable PDF stream.</summary>
@@ -111,13 +111,13 @@ public static partial class PdfIncrementalUpdater {
     }
 
     private static void ValidateAppendOnlyMetadataInput(PdfDocumentSecurityInfo security) {
-        PdfAppendOnlyMutationReport report = BuildAppendOnlyMutationReport(security);
+        PdfAppendOnlyMutationReport report = BuildAppendOnlyMutationReport(security, fieldNames: null);
         if (!report.CanAppendMetadata) {
             throw new NotSupportedException("Incremental metadata updates are not supported for this PDF: " + string.Join(", ", report.Blockers));
         }
     }
 
-    private static PdfAppendOnlyMutationReport BuildAppendOnlyMutationReport(PdfDocumentSecurityInfo security) {
+    private static PdfAppendOnlyMutationReport BuildAppendOnlyMutationReport(PdfDocumentSecurityInfo security, IEnumerable<string>? fieldNames) {
         var commonBlockers = new List<string>();
         var metadataBlockers = new List<string>();
         var formBlockers = new List<string>();
@@ -145,6 +145,7 @@ public static partial class PdfIncrementalUpdater {
 
         metadataBlockers.AddRange(commonBlockers);
         formBlockers.AddRange(commonBlockers);
+        bool blockedBySignatureFieldLock = HasBlockingSignatureFieldLock(security, fieldNames);
 
         if (hasSignatureContent) {
             metadataBlockers.Add("Signed");
@@ -162,6 +163,10 @@ public static partial class PdfIncrementalUpdater {
             } else {
                 warnings.Add("DocMDPAllowsFormFill");
             }
+        }
+
+        if (blockedBySignatureFieldLock) {
+            formBlockers.Add("SignatureFieldLock");
         }
 
         if (security.HasIncrementalUpdates) {
@@ -232,6 +237,49 @@ public static partial class PdfIncrementalUpdater {
         }
 
         return GetFirstLockedFormFieldName(security, fieldNames) is null;
+    }
+
+    private static bool HasBlockingSignatureFieldLock(PdfDocumentSecurityInfo security, IEnumerable<string>? fieldNames) {
+        HashSet<string>? requestedFields = fieldNames is null
+            ? null
+            : new HashSet<string>(fieldNames.Where(static field => !string.IsNullOrWhiteSpace(field)), StringComparer.Ordinal);
+        foreach (PdfSignatureInfo signature in security.Signatures) {
+            PdfSignatureFieldLockInfo? fieldLock = signature.FieldLock;
+            if (fieldLock is null) {
+                continue;
+            }
+
+            if (requestedFields is null) {
+                return true;
+            }
+
+            if (fieldLock.LocksAllFields) {
+                return true;
+            }
+
+            if (fieldLock.LocksIncludedFields &&
+                fieldLock.Fields.Any(lockedField => requestedFields.Any(requestedField => FieldNamesOverlap(lockedField, requestedField)))) {
+                return true;
+            }
+
+            if (fieldLock.LocksAllExceptListedFields &&
+                requestedFields.Any(requestedField => !fieldLock.Fields.Any(excludedField => FieldNamesOverlap(excludedField, requestedField)))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool FieldNamesOverlap(string lockFieldName, string requestedFieldName) {
+        if (string.IsNullOrWhiteSpace(lockFieldName) ||
+            string.IsNullOrWhiteSpace(requestedFieldName)) {
+            return false;
+        }
+
+        return string.Equals(lockFieldName, requestedFieldName, StringComparison.Ordinal) ||
+            requestedFieldName.StartsWith(lockFieldName + ".", StringComparison.Ordinal) ||
+            lockFieldName.StartsWith(requestedFieldName + ".", StringComparison.Ordinal);
     }
 
     private static string? GetFirstLockedFormFieldName(PdfDocumentSecurityInfo security, IEnumerable<string> fieldNames) {

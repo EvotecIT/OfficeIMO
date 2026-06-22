@@ -134,6 +134,10 @@ public sealed partial class PdfDocumentPreflight {
             }
 
             if (security.HasSignatures) {
+                if (security.Signatures.Any(static signature => signature.HasFieldLock)) {
+                    AddDistinct(messages, "Signature field locks restrict append-only form filling; requested fields must be checked before update.");
+                }
+
                 if (security.HasDocMDPPermissions &&
                     security.DocMDPPermissionLevel.HasValue &&
                     security.DocMDPPermissionLevel.Value >= 2 &&
