@@ -25,6 +25,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             BiffChartTextMetadataReader.TryReadTick(record, out LegacyXlsChartTick? tick);
             TryReadPosition(record, out LegacyXlsChartPosition? position);
             TryReadFrame(record, out LegacyXlsChartFrame? frame);
+            TryReadPlotGrowth(record, out LegacyXlsChartPlotGrowth? plotGrowth);
             records.Add(new LegacyXlsChartRecord(
                 GetKind(record.Type),
                 BiffUnsupportedRecordDiagnostics.GetBiffRecordName(record.Type),
@@ -63,7 +64,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 legend,
                 tick,
                 position,
-                frame));
+                frame,
+                plotGrowth));
             return true;
         }
 
@@ -262,6 +264,20 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 flags,
                 (flags & 0x0001) != 0,
                 (flags & 0x0002) != 0);
+            return true;
+        }
+
+        private static bool TryReadPlotGrowth(BiffRecord record, out LegacyXlsChartPlotGrowth? plotGrowth) {
+            plotGrowth = null;
+            if (record.Type != 0x1060 || record.Payload.Length < 8) {
+                return false;
+            }
+
+            plotGrowth = new LegacyXlsChartPlotGrowth(
+                BiffRecordReader.ReadInt16(record.Payload, 0),
+                BiffRecordReader.ReadUInt16(record.Payload, 2),
+                BiffRecordReader.ReadInt16(record.Payload, 4),
+                BiffRecordReader.ReadUInt16(record.Payload, 6));
             return true;
         }
 

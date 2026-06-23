@@ -494,6 +494,7 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x1027, BuildObjectLinkPayload());
                 WriteRecord(stream, 0x1015, BuildLegendPayload());
                 WriteRecord(stream, 0x1051, BuildChartPositionPayload());
+                WriteRecord(stream, 0x1060, BuildChartPlotGrowthPayload());
                 WriteRecord(stream, 0x101b, Array.Empty<byte>());
                 WriteRecord(stream, 0x01b6, new byte[18]);
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
@@ -1485,6 +1486,18 @@ namespace OfficeIMO.Tests {
                 WriteUInt16(stream, 120);
                 WriteUInt16(stream, 0);
                 return stream.ToArray();
+            }
+
+            private static byte[] BuildChartPlotGrowthPayload() {
+                using var stream = new MemoryStream();
+                WriteFixedPoint(stream, 1, 0x4000);
+                WriteFixedPoint(stream, 2, 0x8000);
+                return stream.ToArray();
+            }
+
+            private static void WriteFixedPoint(Stream stream, short integral, ushort fractional) {
+                WriteUInt16(stream, unchecked((ushort)integral));
+                WriteUInt16(stream, fractional);
             }
 
             private static byte[] BuildTickPayload() {

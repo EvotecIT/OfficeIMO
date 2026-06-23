@@ -1,5 +1,6 @@
 using OfficeIMO.Excel.LegacyXls.Diagnostics;
 using OfficeIMO.Excel.LegacyXls.Model;
+using System.Globalization;
 using System.Text;
 
 namespace OfficeIMO.Excel.LegacyXls {
@@ -294,6 +295,9 @@ namespace OfficeIMO.Excel.LegacyXls {
             ChartFrameAutoStates = CountByCode(workbook.ChartRecords
                 .Where(record => record.Frame != null)
                 .Select(record => $"AutoSize:{record.Frame!.AutomaticSize};AutoPosition:{record.Frame.AutomaticPosition}"));
+            ChartPlotGrowthFactors = CountByCode(workbook.ChartRecords
+                .Where(record => record.PlotGrowth != null)
+                .Select(record => $"Horizontal:{FormatDouble(record.PlotGrowth!.HorizontalGrowthPoints)};Vertical:{FormatDouble(record.PlotGrowth.VerticalGrowthPoints)}"));
             ChartRecordsByLocation = CountByCode(workbook.ChartRecords.Select(GetChartRecordLocationKey));
             DrawingRecordsByKind = CountDrawingRecordsByKind(workbook.DrawingRecords);
             DrawingRecordsByName = CountByCode(workbook.DrawingRecords.Select(record => record.RecordName));
@@ -816,6 +820,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets Frame records grouped by automatic size and position flags.</summary>
         public IReadOnlyDictionary<string, int> ChartFrameAutoStates { get; }
 
+        /// <summary>Gets PlotGrowth records grouped by decoded horizontal and vertical growth factors.</summary>
+        public IReadOnlyDictionary<string, int> ChartPlotGrowthFactors { get; }
+
         /// <summary>Gets preserve-only chart BIFF records grouped by workbook or sheet location.</summary>
         public IReadOnlyDictionary<string, int> ChartRecordsByLocation { get; }
 
@@ -1108,6 +1115,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Chart Position Rectangles", ChartPositionRectangles);
             AppendDictionary(builder, "Chart Frame Types", ChartFrameTypes);
             AppendDictionary(builder, "Chart Frame Auto States", ChartFrameAutoStates);
+            AppendDictionary(builder, "Chart PlotGrowth Factors", ChartPlotGrowthFactors);
             AppendDictionary(builder, "Chart Records By Location", ChartRecordsByLocation);
             AppendDictionary(builder, "Drawing Records By Kind", DrawingRecordsByKind.ToDictionary(
                 entry => entry.Key.ToString(),
@@ -1342,6 +1350,10 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         private static string GetChartRecordLocationKey(LegacyXlsChartRecord record) {
             return string.IsNullOrWhiteSpace(record.SheetName) ? "(workbook)" : record.SheetName!;
+        }
+
+        private static string FormatDouble(double value) {
+            return value.ToString("G15", CultureInfo.InvariantCulture);
         }
 
         private static string GetDrawingRecordLocationKey(LegacyXlsDrawingRecord record) {

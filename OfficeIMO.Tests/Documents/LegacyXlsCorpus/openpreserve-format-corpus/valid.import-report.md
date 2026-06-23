@@ -712,6 +712,16 @@ Warnings: 2
 | AutoSize:False;AutoPosition:True | 2 |
 | AutoSize:True;AutoPosition:True | 8 |
 
+## Chart PlotGrowth Factors
+
+| Key | Count |
+| --- | --- |
+| Horizontal:9578.08558654785;Vertical:200 | 2 |
+| Horizontal:9578.08558654785;Vertical:200.000015258789 | 2 |
+| Horizontal:9585.08560180664;Vertical:200 | 6 |
+| Horizontal:9585.08560180664;Vertical:200.000015258789 | 6 |
+| Horizontal:9597.08576965332;Vertical:200 | 6 |
+
 ## Chart Records By Location
 
 | Key | Count |
