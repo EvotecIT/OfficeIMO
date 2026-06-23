@@ -1,5 +1,6 @@
 using System;
 using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Drawing;
 using OpenXmlImagePartType = DocumentFormat.OpenXml.Packaging.ImagePartType;
 
 namespace OfficeIMO.PowerPoint {
@@ -16,6 +17,22 @@ namespace OfficeIMO.PowerPoint {
             ImagePartType.Icon => OpenXmlImagePartType.Icon,
             ImagePartType.Pcx => OpenXmlImagePartType.Pcx,
             _ => throw new NotSupportedException($"Image type {type} is not supported."),
+        };
+
+        public static ImagePartType FromImagePath(string imagePath) =>
+            FromOfficeImageFormat(OfficeImageReader.FromExtension(imagePath));
+
+        public static ImagePartType FromOfficeImageFormat(OfficeImageFormat format) => format switch {
+            OfficeImageFormat.Jpeg => ImagePartType.Jpeg,
+            OfficeImageFormat.Gif => ImagePartType.Gif,
+            OfficeImageFormat.Bmp => ImagePartType.Bmp,
+            OfficeImageFormat.Tiff => ImagePartType.Tiff,
+            OfficeImageFormat.Svg => ImagePartType.Svg,
+            OfficeImageFormat.Emf => ImagePartType.Emf,
+            OfficeImageFormat.Wmf => ImagePartType.Wmf,
+            OfficeImageFormat.Icon => ImagePartType.Icon,
+            OfficeImageFormat.Pcx => ImagePartType.Pcx,
+            _ => ImagePartType.Png
         };
     }
 }

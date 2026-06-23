@@ -102,6 +102,8 @@ Latest WebP image-format checkpoint: `OfficeIMO.Drawing` now recognizes WebP as 
 
 Latest PDF image content-type checkpoint: `OfficeImagePdfCompatibility` now owns the first-party PDF image MIME support contract for PNG/JPEG declarations. Excel PDF export and Excel PDF preflight both consume that shared Drawing policy instead of carrying parallel `image/png`/`image/jpeg` checks, while Excel keeps its own warning wording and source-specific diagnostics.
 
+Latest PowerPoint image-extension checkpoint: PowerPoint path-based picture, background, and poster-image entrypoints now resolve image file extensions through `OfficeImageReader.FromExtension` and a small PowerPoint-owned adapter to `ImagePartType`. PowerPoint still owns OpenXML image part creation, relationship wiring, and media placement, while Drawing owns the shared extension-to-image-format vocabulary.
+
 ## Goal
 
 Build a dependency-free OfficeIMO image conversion stack that can render selected Office content to PNG and SVG in a deterministic, server-safe way.

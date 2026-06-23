@@ -15,6 +15,31 @@ namespace OfficeIMO.Tests {
 
         [Theory]
         [MemberData(nameof(ImageData))]
+        public void CanAddPictureFromPathWithSharedImageExtensionMapping(string image, ImagePartType expectedType, string expectedContentType) {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", image);
+            Assert.Equal(expectedType, ImagePartTypeExtensions.FromImagePath(imagePath));
+
+            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                PowerPointSlide slide = presentation.AddSlide();
+                PowerPointPicture picture = slide.AddPicture(imagePath);
+
+                Assert.Equal(expectedContentType, picture.ContentType);
+                Assert.Equal(expectedContentType, picture.MimeType);
+                presentation.Save();
+            }
+
+            using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                PowerPointPicture picture = Assert.Single(presentation.Slides.Single().Pictures);
+                Assert.Equal(expectedContentType, picture.ContentType);
+                Assert.Equal(expectedContentType, picture.MimeType);
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Theory]
+        [MemberData(nameof(ImageData))]
         public void CanUpdatePicture(string newImage, ImagePartType type, string expectedContentType) {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             string originalImage = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "BackgroundImage.png");
