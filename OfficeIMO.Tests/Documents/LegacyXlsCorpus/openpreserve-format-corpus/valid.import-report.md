@@ -9,7 +9,7 @@ Hyperlinks: 0
 Data validations: 0
 Conditional formatting rules: 0
 AutoFilter criteria columns: 0
-Defined names: 1
+Defined names: 3
 External references: 3
 External sheet names: 3
 External names: 1
@@ -32,7 +32,7 @@ Unsupported sheet metadata records: 8
 Unsupported features: 1488
 Preserved feature records: 1481
 Errors: 0
-Warnings: 2
+Warnings: 0
 
 ## Diagnostics By Code
 
@@ -43,7 +43,6 @@ Warnings: 2
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 44 |
 | XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 2 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 16 |
-| XLS-BIFF-LBL-SCOPE-INVALID | 2 |
 | XLS-BIFF-RECORD-UNSUPPORTED | 2 |
 | XLS-BIFF-SORT-RESERVED-BYTES | 1 |
 | XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED | 1 |

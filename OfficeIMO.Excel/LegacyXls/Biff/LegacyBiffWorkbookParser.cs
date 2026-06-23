@@ -10,6 +10,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             var numberFormatsById = new Dictionary<ushort, string>();
             var externSheets = new List<BiffExternSheetReference>();
             var boundSheetNames = new List<string>();
+            var boundSheetProjectedWorksheetIndexes = new List<int?>();
             var definedNameTable = new List<string?>();
             LegacyXlsExternalReference? currentExternalReference = null;
             LegacyXlsExternalCellCache? currentExternalCellCache = null;
@@ -28,8 +29,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     }
 
                     if (sheet != null && sheet.SheetType == 0) {
+                        boundSheetProjectedWorksheetIndexes.Add(workbook.MutableWorksheets.Count);
                         workbook.MutableWorksheets.Add(sheet);
                     } else if (sheet != null) {
+                        boundSheetProjectedWorksheetIndexes.Add(null);
                         LegacyXlsUnsupportedSheet unsupportedSheet = ToUnsupportedSheet(sheet, ToUnsupportedSheetKind(sheet.SheetType));
                         workbook.MutableUnsupportedSheets.Add(unsupportedSheet);
                         workbook.MutableUnsupportedFeatures.Add(BiffUnsupportedRecordDiagnostics.CreateUnsupportedSheetTypeFeature(record, unsupportedSheet));
@@ -50,7 +53,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 } else if (record.Type == (ushort)BiffRecordType.Format) {
                     ReadFormat(record, workbook, numberFormatsById, workbook.MutableDiagnostics);
                 } else if (record.Type == (ushort)BiffRecordType.Lbl) {
-                    ReadDefinedName(record, workbook, externSheets, workbook.ExternalReferences, boundSheetNames, definedNameTable, workbook.MutableDiagnostics);
+                    ReadDefinedName(record, workbook, externSheets, workbook.ExternalReferences, boundSheetNames, boundSheetProjectedWorksheetIndexes, definedNameTable, workbook.MutableDiagnostics);
                 } else if (record.Type == (ushort)BiffRecordType.Palette) {
                     ReadPalette(record, workbook, workbook.MutableDiagnostics);
                 } else if (record.Type == (ushort)BiffRecordType.Password) {
@@ -353,6 +356,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             IReadOnlyList<BiffExternSheetReference> externSheets,
             IReadOnlyList<LegacyXlsExternalReference> externalReferences,
             IReadOnlyList<string> sheetNames,
+            IReadOnlyList<int?> boundSheetProjectedWorksheetIndexes,
             List<string?> definedNameTable,
             List<LegacyXlsImportDiagnostic> diagnostics) {
             string? formulaName = null;
@@ -401,7 +405,31 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     return;
                 }
 
-                int? localSheetIndex = oneBasedSheetIndex == 0 ? null : oneBasedSheetIndex - 1;
+                int? localSheetIndex = null;
+                if (oneBasedSheetIndex != 0) {
+                    int boundSheetIndex = oneBasedSheetIndex - 1;
+                    if (boundSheetIndex < 0 || boundSheetIndex >= boundSheetProjectedWorksheetIndexes.Count) {
+                        diagnostics.Add(new LegacyXlsImportDiagnostic(
+                            LegacyXlsDiagnosticSeverity.Warning,
+                            "XLS-BIFF-LBL-SCOPE-INVALID",
+                            $"Defined name '{name}' references a sheet scope outside the workbook.",
+                            recordOffset: record.Offset,
+                            recordType: record.Type));
+                        return;
+                    }
+
+                    localSheetIndex = boundSheetProjectedWorksheetIndexes[boundSheetIndex];
+                    if (!localSheetIndex.HasValue) {
+                        diagnostics.Add(new LegacyXlsImportDiagnostic(
+                            LegacyXlsDiagnosticSeverity.Info,
+                            "XLS-BIFF-LBL-SCOPE-UNSUPPORTED",
+                            $"Defined name '{name}' is scoped to a sheet type that is not imported yet.",
+                            recordOffset: record.Offset,
+                            recordType: record.Type));
+                        return;
+                    }
+                }
+
                 if (localSheetIndex.HasValue && (localSheetIndex.Value < 0 || localSheetIndex.Value >= workbook.Worksheets.Count)) {
                     diagnostics.Add(new LegacyXlsImportDiagnostic(
                         LegacyXlsDiagnosticSeverity.Warning,
