@@ -377,6 +377,15 @@ Warnings: 0
 | ObjectType:0x0005 | 4 |
 | ObjectType:0x0006 | 8 |
 
+## Drawing Records By Escher Record Type
+
+| Key | Count |
+| --- | --- |
+| EscherRecordType:0xF000 | 1 |
+| EscherRecordType:0xF002 | 11 |
+| EscherRecordType:0xF004 | 4 |
+| EscherRecordType:0xF00D | 8 |
+
 ## Drawing Records By Location
 
 | Key | Count |

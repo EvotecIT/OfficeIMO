@@ -462,14 +462,14 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
                 long dataBoundSheetPosition = stream.Position;
                 WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "FeatureMap"));
-                WriteRecord(stream, 0x00eb, Array.Empty<byte>());
+                WriteRecord(stream, 0x00eb, BuildEscherHeaderPayload(0xf000, instance: 2, version: 0x0f, length: 8));
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 int sheetOffset = checked((int)stream.Position);
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
                 WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Imported"));
                 WriteRecord(stream, 0x005d, BuildObjectPayload(0x0008, 1));
-                WriteRecord(stream, 0x00ec, Array.Empty<byte>());
+                WriteRecord(stream, 0x00ec, BuildEscherHeaderPayload(0xf002, instance: 1, version: 0x0f, length: 0));
                 WriteRecord(stream, 0x1002, Array.Empty<byte>());
                 WriteRecord(stream, 0x00b0, Array.Empty<byte>());
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
@@ -1019,6 +1019,14 @@ namespace OfficeIMO.Tests {
                 WriteUInt16(stream, 0x0000);
                 WriteUInt32(stream, 0);
                 WriteUInt32(stream, 0);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildEscherHeaderPayload(ushort recordType, ushort instance, byte version, uint length) {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, checked((ushort)((instance << 4) | (version & 0x0f))));
+                WriteUInt16(stream, recordType);
+                WriteUInt32(stream, length);
                 return stream.ToArray();
             }
 

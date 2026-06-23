@@ -14,7 +14,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             ushort recordType,
             int payloadLength,
             ushort? objectType = null,
-            ushort? objectId = null) {
+            ushort? objectId = null,
+            ushort? escherRecordType = null,
+            ushort? escherRecordInstance = null,
+            byte? escherRecordVersion = null,
+            uint? escherPayloadLength = null) {
             if (payloadLength < 0) {
                 throw new ArgumentOutOfRangeException(nameof(payloadLength));
             }
@@ -27,6 +31,10 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             PayloadLength = payloadLength;
             ObjectType = objectType;
             ObjectId = objectId;
+            EscherRecordType = escherRecordType;
+            EscherRecordInstance = escherRecordInstance;
+            EscherRecordVersion = escherRecordVersion;
+            EscherPayloadLength = escherPayloadLength;
         }
 
         /// <summary>Gets the shallow drawing record category.</summary>
@@ -52,5 +60,17 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets the decoded OBJ object identifier, when present.</summary>
         public ushort? ObjectId { get; }
+
+        /// <summary>Gets the top-level Escher record type from MsoDrawing payloads, when present.</summary>
+        public ushort? EscherRecordType { get; }
+
+        /// <summary>Gets the top-level Escher record instance from MsoDrawing payloads, when present.</summary>
+        public ushort? EscherRecordInstance { get; }
+
+        /// <summary>Gets the top-level Escher record version from MsoDrawing payloads, when present.</summary>
+        public byte? EscherRecordVersion { get; }
+
+        /// <summary>Gets the declared top-level Escher payload length from MsoDrawing payloads, when present.</summary>
+        public uint? EscherPayloadLength { get; }
     }
 }

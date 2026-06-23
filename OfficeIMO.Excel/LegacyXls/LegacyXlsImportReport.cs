@@ -93,6 +93,9 @@ namespace OfficeIMO.Excel.LegacyXls {
             DrawingRecordsByObjectType = CountByCode(workbook.DrawingRecords
                 .Where(record => record.ObjectType.HasValue)
                 .Select(record => $"ObjectType:0x{record.ObjectType!.Value:X4}"));
+            DrawingRecordsByEscherRecordType = CountByCode(workbook.DrawingRecords
+                .Where(record => record.EscherRecordType.HasValue)
+                .Select(record => $"EscherRecordType:0x{record.EscherRecordType!.Value:X4}"));
             DrawingRecordsByLocation = CountByCode(workbook.DrawingRecords.Select(GetDrawingRecordLocationKey));
             CompoundFeatureRecordsByKind = CountCompoundFeatureRecordsByKind(workbook.CompoundFeatureRecords);
             CompoundFeatureEntriesByKind = CountCompoundFeatureEntriesByKind(workbook.CompoundFeatureRecords);
@@ -294,6 +297,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets OBJ records grouped by decoded common-object type identifier.</summary>
         public IReadOnlyDictionary<string, int> DrawingRecordsByObjectType { get; }
 
+        /// <summary>Gets MsoDrawing records grouped by decoded top-level Escher record type.</summary>
+        public IReadOnlyDictionary<string, int> DrawingRecordsByEscherRecordType { get; }
+
         /// <summary>Gets preserve-only drawing and object BIFF records grouped by workbook or sheet location.</summary>
         public IReadOnlyDictionary<string, int> DrawingRecordsByLocation { get; }
 
@@ -429,6 +435,7 @@ namespace OfficeIMO.Excel.LegacyXls {
                 StringComparer.OrdinalIgnoreCase));
             AppendDictionary(builder, "Drawing Records By Name", DrawingRecordsByName);
             AppendDictionary(builder, "Drawing Records By Object Type", DrawingRecordsByObjectType);
+            AppendDictionary(builder, "Drawing Records By Escher Record Type", DrawingRecordsByEscherRecordType);
             AppendDictionary(builder, "Drawing Records By Location", DrawingRecordsByLocation);
             AppendDictionary(builder, "Compound Feature Records By Kind", CompoundFeatureRecordsByKind.ToDictionary(
                 entry => entry.Key.ToString(),

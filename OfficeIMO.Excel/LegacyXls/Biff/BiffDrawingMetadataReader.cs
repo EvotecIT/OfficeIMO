@@ -11,6 +11,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             TryReadObjectCommonData(record, out ushort? objectType, out ushort? objectId);
+            TryReadEscherHeader(record, out ushort? escherRecordType, out ushort? escherRecordInstance, out byte? escherRecordVersion, out uint? escherPayloadLength);
             records.Add(new LegacyXlsDrawingRecord(
                 GetKind(record.Type),
                 BiffUnsupportedRecordDiagnostics.GetBiffRecordName(record.Type),
@@ -19,7 +20,39 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 record.Type,
                 record.Payload.Length,
                 objectType,
-                objectId));
+                objectId,
+                escherRecordType,
+                escherRecordInstance,
+                escherRecordVersion,
+                escherPayloadLength));
+            return true;
+        }
+
+        private static bool TryReadEscherHeader(
+            BiffRecord record,
+            out ushort? recordType,
+            out ushort? recordInstance,
+            out byte? recordVersion,
+            out uint? payloadLength) {
+            recordType = null;
+            recordInstance = null;
+            recordVersion = null;
+            payloadLength = null;
+            byte[] payload = record.Payload;
+            if (record.Type != (ushort)BiffRecordType.DrawingGroup &&
+                record.Type != (ushort)BiffRecordType.Drawing) {
+                return false;
+            }
+
+            if (payload.Length < 8) {
+                return false;
+            }
+
+            ushort options = BiffRecordReader.ReadUInt16(payload, 0);
+            recordVersion = checked((byte)(options & 0x000f));
+            recordInstance = checked((ushort)(options >> 4));
+            recordType = BiffRecordReader.ReadUInt16(payload, 2);
+            payloadLength = BiffRecordReader.ReadUInt32(payload, 4);
             return true;
         }
 
