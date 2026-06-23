@@ -6,6 +6,7 @@ using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
 using Anchor = DocumentFormat.OpenXml.Drawing.Wordprocessing.Anchor;
 using ShapeProperties = DocumentFormat.OpenXml.Drawing.Pictures.ShapeProperties;
 using V = DocumentFormat.OpenXml.Vml;
+using OfficeIMO.Drawing;
 
 #nullable enable annotations
 using DocumentFormat.OpenXml.Office2010.Word.Drawing;
@@ -165,7 +166,7 @@ namespace OfficeIMO.Word {
 
             blipExtensionList.Append(blipExtension1);
 
-            if (System.IO.Path.GetExtension(fileName).Equals(".svg", StringComparison.OrdinalIgnoreCase)) {
+            if (OfficeImageReader.FromExtension(fileName) == OfficeImageFormat.Svg) {
                 // Add Office 2010 a14:svgBlip extension that points to the SVG ImagePart
                 var svgExt = new BlipExtension() {
                     Uri = "{96DAC541-7B7A-43D3-8B79-8F7C33B92B69}"
