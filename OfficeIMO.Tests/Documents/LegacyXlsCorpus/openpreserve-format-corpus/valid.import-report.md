@@ -52,6 +52,37 @@ Warnings: 2
 | --- | --- |
 | Visible | 10 |
 
+## Workbook CodeName States
+
+| Key | Count |
+| --- | --- |
+| Present | 1 |
+
+## Workbook CodeNames
+
+| Key | Count |
+| --- | --- |
+| ThisWorkbook | 1 |
+
+## Worksheet CodeName States
+
+| Key | Count |
+| --- | --- |
+| Missing | 3 |
+| Present | 7 |
+
+## Worksheet CodeNames
+
+| Key | Count |
+| --- | --- |
+| Sheet1 | 1 |
+| Sheet2 | 1 |
+| Sheet3 | 1 |
+| Sheet4 | 1 |
+| Sheet5 | 1 |
+| Sheet6 | 1 |
+| Sheet8 | 1 |
+
 ## Unsupported Features By Code
 
 | Key | Count |
@@ -823,6 +854,13 @@ Warnings: 2
 | Sheet6 | 1 |
 | Sheet8 | 1 |
 | ThisWorkbook | 1 |
+
+## Compound VBA Modules By CodeName Match
+
+| Key | Count |
+| --- | --- |
+| WorkbookCodeName | 1 |
+| WorksheetCodeName | 7 |
 
 ## Compound VBA Projects By Module Count
 

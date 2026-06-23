@@ -67,6 +67,12 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .Where(criteria => criteria.IsTop10 && criteria.Top10Value.HasValue)
                 .Select(criteria => $"{GetAutoFilterTop10KindKey(criteria)}:{criteria.Top10Value!.Value}"));
             WorksheetsByVisibility = CountByCode(workbook.Worksheets.Select(sheet => sheet.VisibilityName));
+            WorkbookCodeNameStates = CountByCode(new[] { string.IsNullOrWhiteSpace(workbook.CodeName) ? "Missing" : "Present" });
+            WorkbookCodeNames = CountByCode(string.IsNullOrWhiteSpace(workbook.CodeName) ? Array.Empty<string>() : new[] { workbook.CodeName! });
+            WorksheetCodeNameStates = CountByCode(workbook.Worksheets.Select(sheet => string.IsNullOrWhiteSpace(sheet.CodeName) ? "Missing" : "Present"));
+            WorksheetCodeNames = CountByCode(workbook.Worksheets
+                .Where(sheet => !string.IsNullOrWhiteSpace(sheet.CodeName))
+                .Select(sheet => sheet.CodeName!));
             DefinedNameCount = workbook.DefinedNames.Count;
             ExternalReferenceCount = workbook.ExternalReferences.Count;
             ExternalSheetNameCount = workbook.ExternalReferences.Sum(reference => reference.SheetNames.Count);
@@ -330,6 +336,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             CompoundFeatureEntriesByKindAndRole = CountByCode(workbook.CompoundFeatureRecords
                 .SelectMany(record => record.EntryRoles.Values.Select(role => $"{record.Kind}|{role}")));
             CompoundVbaModulesByName = CountByCode(workbook.CompoundFeatureRecords.SelectMany(record => record.VbaModuleNames));
+            CompoundVbaModulesByCodeNameMatch = CountByCode(GetCompoundVbaModuleCodeNameMatchKeys(workbook));
             CompoundVbaProjectsByModuleCount = CountByCode(workbook.CompoundFeatureRecords
                 .Where(record => record.Kind == LegacyXlsCompoundFeatureRecordKind.VbaProject)
                 .Select(record => $"Modules:{record.VbaModuleCount}"));
@@ -442,6 +449,18 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets imported worksheets grouped by decoded BoundSheet visibility state.</summary>
         public IReadOnlyDictionary<string, int> WorksheetsByVisibility { get; }
+
+        /// <summary>Gets whether the workbook CodeName record was present.</summary>
+        public IReadOnlyDictionary<string, int> WorkbookCodeNameStates { get; }
+
+        /// <summary>Gets workbook CodeName values grouped by name.</summary>
+        public IReadOnlyDictionary<string, int> WorkbookCodeNames { get; }
+
+        /// <summary>Gets imported worksheets grouped by CodeName record presence.</summary>
+        public IReadOnlyDictionary<string, int> WorksheetCodeNameStates { get; }
+
+        /// <summary>Gets worksheet CodeName values grouped by name.</summary>
+        public IReadOnlyDictionary<string, int> WorksheetCodeNames { get; }
 
         /// <summary>Gets the number of imported defined names.</summary>
         public int DefinedNameCount { get; }
@@ -812,6 +831,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets VBA module streams grouped by module name.</summary>
         public IReadOnlyDictionary<string, int> CompoundVbaModulesByName { get; }
 
+        /// <summary>Gets VBA module streams grouped by whether they match workbook or worksheet CodeName records.</summary>
+        public IReadOnlyDictionary<string, int> CompoundVbaModulesByCodeNameMatch { get; }
+
         /// <summary>Gets VBA project compound features grouped by discovered module count.</summary>
         public IReadOnlyDictionary<string, int> CompoundVbaProjectsByModuleCount { get; }
 
@@ -909,6 +931,10 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "AutoFilter Top10 Kinds", AutoFilterTop10Kinds);
             AppendDictionary(builder, "AutoFilter Top10 Values", AutoFilterTop10Values);
             AppendDictionary(builder, "Worksheets By Visibility", WorksheetsByVisibility);
+            AppendDictionary(builder, "Workbook CodeName States", WorkbookCodeNameStates);
+            AppendDictionary(builder, "Workbook CodeNames", WorkbookCodeNames);
+            AppendDictionary(builder, "Worksheet CodeName States", WorksheetCodeNameStates);
+            AppendDictionary(builder, "Worksheet CodeNames", WorksheetCodeNames);
             AppendDictionary(builder, "Unsupported Features By Code", UnsupportedFeaturesByCode);
             AppendDictionary(builder, "Unsupported Features By Kind", UnsupportedFeaturesByKind.ToDictionary(
                 entry => entry.Key.ToString(),
@@ -1038,6 +1064,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Compound Feature Entries By Role", CompoundFeatureEntriesByRole);
             AppendDictionary(builder, "Compound Feature Entries By Kind And Role", CompoundFeatureEntriesByKindAndRole);
             AppendDictionary(builder, "Compound VBA Modules By Name", CompoundVbaModulesByName);
+            AppendDictionary(builder, "Compound VBA Modules By CodeName Match", CompoundVbaModulesByCodeNameMatch);
             AppendDictionary(builder, "Compound VBA Projects By Module Count", CompoundVbaProjectsByModuleCount);
             AppendDictionary(builder, "Calculation Settings By Kind", CalculationSettingsByKind.ToDictionary(
                 entry => entry.Key.ToString(),
@@ -1165,6 +1192,29 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .GroupBy(record => record.Kind)
                 .OrderBy(group => group.Key.ToString(), StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(group => group.Key, group => group.Sum(record => record.Entries.Count));
+        }
+
+        private static IEnumerable<string> GetCompoundVbaModuleCodeNameMatchKeys(LegacyXlsWorkbook workbook) {
+            var workbookCodeNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (!string.IsNullOrWhiteSpace(workbook.CodeName)) {
+                workbookCodeNames.Add(workbook.CodeName!);
+            }
+
+            var worksheetCodeNames = new HashSet<string>(
+                workbook.Worksheets
+                    .Where(sheet => !string.IsNullOrWhiteSpace(sheet.CodeName))
+                    .Select(sheet => sheet.CodeName!),
+                StringComparer.OrdinalIgnoreCase);
+
+            foreach (string moduleName in workbook.CompoundFeatureRecords.SelectMany(record => record.VbaModuleNames)) {
+                if (workbookCodeNames.Contains(moduleName)) {
+                    yield return "WorkbookCodeName";
+                } else if (worksheetCodeNames.Contains(moduleName)) {
+                    yield return "WorksheetCodeName";
+                } else {
+                    yield return "UnmatchedCodeName";
+                }
+            }
         }
 
         private static IReadOnlyDictionary<LegacyXlsWorkbookMetadataKind, int> CountWorkbookMetadataRecordsByKind(IEnumerable<LegacyXlsWorkbookMetadataRecord> records) {

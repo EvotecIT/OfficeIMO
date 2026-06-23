@@ -778,12 +778,17 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_ImportReport_SummarizesCompoundVbaModuleNames() {
             var workbook = new LegacyXlsWorkbook();
+            workbook.SetCodeName("ThisWorkbook");
+            var sheet = new LegacyXlsWorksheet("Data", 0, 0, 0);
+            sheet.SetCodeName("Sheet1");
+            workbook.MutableWorksheets.Add(sheet);
             var entryRoles = new Dictionary<string, LegacyXlsCompoundFeatureEntryRole>(StringComparer.OrdinalIgnoreCase) {
                 ["_VBA_PROJECT_CUR"] = LegacyXlsCompoundFeatureEntryRole.VbaProjectStorage,
                 ["_VBA_PROJECT_CUR/VBA"] = LegacyXlsCompoundFeatureEntryRole.VbaStorage,
                 ["_VBA_PROJECT_CUR/VBA/dir"] = LegacyXlsCompoundFeatureEntryRole.VbaDirStream,
                 ["_VBA_PROJECT_CUR/VBA/Sheet1"] = LegacyXlsCompoundFeatureEntryRole.VbaModuleStream,
                 ["_VBA_PROJECT_CUR/VBA/ThisWorkbook"] = LegacyXlsCompoundFeatureEntryRole.VbaModuleStream,
+                ["_VBA_PROJECT_CUR/VBA/LooseModule"] = LegacyXlsCompoundFeatureEntryRole.VbaModuleStream,
                 ["_VBA_PROJECT_CUR/VBA/_VBA_PROJECT"] = LegacyXlsCompoundFeatureEntryRole.VbaProjectStream
             };
             var record = new LegacyXlsCompoundFeatureRecord(
@@ -794,15 +799,20 @@ namespace OfficeIMO.Tests {
 
             LegacyXlsImportReport report = workbook.CreateImportReport();
 
-            Assert.Equal(new[] { "Sheet1", "ThisWorkbook" }, record.VbaModuleNames);
-            Assert.Equal(2, record.VbaModuleCount);
-            Assert.Equal(2, report.CompoundVbaModuleCount);
+            Assert.Equal(new[] { "Sheet1", "ThisWorkbook", "LooseModule" }, record.VbaModuleNames);
+            Assert.Equal(3, record.VbaModuleCount);
+            Assert.Equal(3, report.CompoundVbaModuleCount);
             Assert.Equal(1, report.CompoundVbaModulesByName["Sheet1"]);
             Assert.Equal(1, report.CompoundVbaModulesByName["ThisWorkbook"]);
-            Assert.Equal(1, report.CompoundVbaProjectsByModuleCount["Modules:2"]);
+            Assert.Equal(1, report.CompoundVbaModulesByName["LooseModule"]);
+            Assert.Equal(1, report.CompoundVbaModulesByCodeNameMatch["WorksheetCodeName"]);
+            Assert.Equal(1, report.CompoundVbaModulesByCodeNameMatch["WorkbookCodeName"]);
+            Assert.Equal(1, report.CompoundVbaModulesByCodeNameMatch["UnmatchedCodeName"]);
+            Assert.Equal(1, report.CompoundVbaProjectsByModuleCount["Modules:3"]);
             string markdown = report.ToMarkdown();
-            Assert.Contains("Compound VBA modules: 2", markdown);
+            Assert.Contains("Compound VBA modules: 3", markdown);
             Assert.Contains("Compound VBA Modules By Name", markdown);
+            Assert.Contains("Compound VBA Modules By CodeName Match", markdown);
             Assert.Contains("Compound VBA Projects By Module Count", markdown);
         }
 

@@ -49,6 +49,18 @@ Warnings: 0
 | --- | --- |
 | Visible | 7 |
 
+## Workbook CodeName States
+
+| Key | Count |
+| --- | --- |
+| Missing | 1 |
+
+## Worksheet CodeName States
+
+| Key | Count |
+| --- | --- |
+| Missing | 7 |
+
 ## Unsupported Features By Code
 
 | Key | Count |
