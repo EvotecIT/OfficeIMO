@@ -47,6 +47,16 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         public byte Visibility { get; }
 
         /// <summary>
+        /// Gets the decoded sheet visibility state, when the BoundSheet value is recognized.
+        /// </summary>
+        public LegacyXlsSheetVisibility? VisibilityKind => LegacyXlsSheetVisibilityDecoder.ToKind(Visibility);
+
+        /// <summary>
+        /// Gets the decoded sheet visibility state name, or a hexadecimal fallback for unknown values.
+        /// </summary>
+        public string VisibilityName => LegacyXlsSheetVisibilityDecoder.ToName(Visibility);
+
+        /// <summary>
         /// Gets the legacy sheet type flag.
         /// </summary>
         public byte SheetType { get; }

@@ -46,6 +46,12 @@ Warnings: 2
 | XLS-BIFF-SORT-RESERVED-BYTES | 1 |
 | XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED | 1 |
 
+## Worksheets By Visibility
+
+| Key | Count |
+| --- | --- |
+| Visible | 10 |
+
 ## Unsupported Features By Code
 
 | Key | Count |
@@ -230,6 +236,18 @@ Warnings: 2
 | cl_chart | 1 |
 | c_chart | 1 |
 | lb_chart | 1 |
+
+## Unsupported Sheets By Visibility
+
+| Key | Count |
+| --- | --- |
+| Visible | 4 |
+
+## Unsupported Sheets By Kind And Visibility
+
+| Key | Count |
+| --- | --- |
+| ChartSheet\|Visible | 4 |
 
 ## Unsupported Chart Sheet Print Sizes
 

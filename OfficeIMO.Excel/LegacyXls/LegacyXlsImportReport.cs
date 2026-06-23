@@ -66,6 +66,7 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .SelectMany(sheet => sheet.AutoFilterCriteria)
                 .Where(criteria => criteria.IsTop10 && criteria.Top10Value.HasValue)
                 .Select(criteria => $"{GetAutoFilterTop10KindKey(criteria)}:{criteria.Top10Value!.Value}"));
+            WorksheetsByVisibility = CountByCode(workbook.Worksheets.Select(sheet => sheet.VisibilityName));
             DefinedNameCount = workbook.DefinedNames.Count;
             ExternalReferenceCount = workbook.ExternalReferences.Count;
             ExternalSheetNameCount = workbook.ExternalReferences.Sum(reference => reference.SheetNames.Count);
@@ -130,6 +131,8 @@ namespace OfficeIMO.Excel.LegacyXls {
             UnsupportedSheetsByKind = CountUnsupportedSheetsByKind(workbook.UnsupportedSheets);
             UnsupportedSheetsByType = CountByCode(workbook.UnsupportedSheets.Select(sheet => $"0x{sheet.SheetType:X2}|{sheet.Kind}"));
             UnsupportedSheetsByName = CountByCode(workbook.UnsupportedSheets.Select(sheet => sheet.Name));
+            UnsupportedSheetsByVisibility = CountByCode(workbook.UnsupportedSheets.Select(sheet => sheet.VisibilityName));
+            UnsupportedSheetsByKindAndVisibility = CountByCode(workbook.UnsupportedSheets.Select(sheet => $"{sheet.Kind}|{sheet.VisibilityName}"));
             UnsupportedChartSheetPrintSizes = CountByCode(workbook.UnsupportedSheets
                 .Where(sheet => sheet.Kind == LegacyXlsUnsupportedSheetKind.ChartSheet && sheet.ChartPrintSize.HasValue)
                 .Select(sheet => $"PrintSize:{sheet.ChartPrintSize!.Value}"));
@@ -437,6 +440,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets imported Top/Bottom AutoFilter criteria grouped by shape and value.</summary>
         public IReadOnlyDictionary<string, int> AutoFilterTop10Values { get; }
 
+        /// <summary>Gets imported worksheets grouped by decoded BoundSheet visibility state.</summary>
+        public IReadOnlyDictionary<string, int> WorksheetsByVisibility { get; }
+
         /// <summary>Gets the number of imported defined names.</summary>
         public int DefinedNameCount { get; }
 
@@ -553,6 +559,12 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets unsupported sheet entries grouped by sheet name.</summary>
         public IReadOnlyDictionary<string, int> UnsupportedSheetsByName { get; }
+
+        /// <summary>Gets unsupported sheet entries grouped by decoded BoundSheet visibility state.</summary>
+        public IReadOnlyDictionary<string, int> UnsupportedSheetsByVisibility { get; }
+
+        /// <summary>Gets unsupported sheet entries grouped by sheet kind and decoded visibility state.</summary>
+        public IReadOnlyDictionary<string, int> UnsupportedSheetsByKindAndVisibility { get; }
 
         /// <summary>Gets unsupported chart sheets grouped by raw PrintSize value.</summary>
         public IReadOnlyDictionary<string, int> UnsupportedChartSheetPrintSizes { get; }
@@ -896,6 +908,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "AutoFilter Criteria By Join Operator", AutoFilterCriteriaByJoinOperator);
             AppendDictionary(builder, "AutoFilter Top10 Kinds", AutoFilterTop10Kinds);
             AppendDictionary(builder, "AutoFilter Top10 Values", AutoFilterTop10Values);
+            AppendDictionary(builder, "Worksheets By Visibility", WorksheetsByVisibility);
             AppendDictionary(builder, "Unsupported Features By Code", UnsupportedFeaturesByCode);
             AppendDictionary(builder, "Unsupported Features By Kind", UnsupportedFeaturesByKind.ToDictionary(
                 entry => entry.Key.ToString(),
@@ -914,6 +927,8 @@ namespace OfficeIMO.Excel.LegacyXls {
                 StringComparer.OrdinalIgnoreCase));
             AppendDictionary(builder, "Unsupported Sheets By Type", UnsupportedSheetsByType);
             AppendDictionary(builder, "Unsupported Sheets By Name", UnsupportedSheetsByName);
+            AppendDictionary(builder, "Unsupported Sheets By Visibility", UnsupportedSheetsByVisibility);
+            AppendDictionary(builder, "Unsupported Sheets By Kind And Visibility", UnsupportedSheetsByKindAndVisibility);
             AppendDictionary(builder, "Unsupported Chart Sheet Print Sizes", UnsupportedChartSheetPrintSizes);
             AppendDictionary(builder, "Unsupported Chart Sheet Print Size Kinds", UnsupportedChartSheetPrintSizeKinds);
             AppendDictionary(builder, "Unsupported Chart Sheet Text Object Counts", UnsupportedChartSheetTextObjectCounts);

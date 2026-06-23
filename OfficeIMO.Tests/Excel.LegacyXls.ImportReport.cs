@@ -37,6 +37,11 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.UnsupportedSheetsByName["Macro1"]);
             Assert.Equal(1, report.UnsupportedSheetsByName["Chart1"]);
             Assert.Equal(1, report.UnsupportedSheetsByName["Module1"]);
+            Assert.Equal(1, report.WorksheetsByVisibility["Visible"]);
+            Assert.Equal(3, report.UnsupportedSheetsByVisibility["Visible"]);
+            Assert.Equal(1, report.UnsupportedSheetsByKindAndVisibility["MacroSheet|Visible"]);
+            Assert.Equal(1, report.UnsupportedSheetsByKindAndVisibility["ChartSheet|Visible"]);
+            Assert.Equal(1, report.UnsupportedSheetsByKindAndVisibility["VbaModuleSheet|Visible"]);
             Assert.Equal(1, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.MacroSheet]);
             Assert.Equal(1, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.ChartSheet]);
             Assert.Equal(1, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.VbaModuleSheet]);
@@ -53,6 +58,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Unsupported Feature Record Types", markdown);
             Assert.Contains("Unsupported Feature Details", markdown);
             Assert.Contains("Unsupported Sheets By Kind", markdown);
+            Assert.Contains("Unsupported Sheets By Visibility", markdown);
             Assert.Contains("Sheet:ChartSheet", markdown);
         }
 

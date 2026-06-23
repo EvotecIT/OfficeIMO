@@ -552,8 +552,18 @@ namespace OfficeIMO.Tests {
             Assert.Equal(18.5d, layout.DefaultRowHeight);
             Assert.False(layout.DefaultRowsHidden);
             Assert.Equal(11d, layout.DefaultColumnWidth);
+            Assert.Equal(LegacyXlsSheetVisibility.Visible, layout.VisibilityKind);
+            Assert.Equal("Visible", layout.VisibilityName);
             Assert.Equal(1, legacy.Worksheets[1].Visibility);
+            Assert.Equal(LegacyXlsSheetVisibility.Hidden, legacy.Worksheets[1].VisibilityKind);
+            Assert.Equal("Hidden", legacy.Worksheets[1].VisibilityName);
             Assert.Equal(2, legacy.Worksheets[2].Visibility);
+            Assert.Equal(LegacyXlsSheetVisibility.VeryHidden, legacy.Worksheets[2].VisibilityKind);
+            Assert.Equal("VeryHidden", legacy.Worksheets[2].VisibilityName);
+            LegacyXlsImportReport report = legacy.CreateImportReport();
+            Assert.Equal(1, report.WorksheetsByVisibility["Visible"]);
+            Assert.Equal(1, report.WorksheetsByVisibility["Hidden"]);
+            Assert.Equal(1, report.WorksheetsByVisibility["VeryHidden"]);
 
             using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound), new LegacyXlsImportOptions {
                 ReportUnsupportedRecords = false

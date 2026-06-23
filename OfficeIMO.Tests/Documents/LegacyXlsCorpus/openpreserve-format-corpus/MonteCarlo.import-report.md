@@ -43,6 +43,12 @@ Warnings: 0
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 27 |
 | XLS-BIFF-RECORD-UNSUPPORTED | 2 |
 
+## Worksheets By Visibility
+
+| Key | Count |
+| --- | --- |
+| Visible | 7 |
+
 ## Unsupported Features By Code
 
 | Key | Count |
@@ -217,6 +223,18 @@ Warnings: 0
 | LBMAQ_RAIN_CHART | 1 |
 | ZPFCUM_CHART | 1 |
 | ZRAINCUM_CHART | 1 |
+
+## Unsupported Sheets By Visibility
+
+| Key | Count |
+| --- | --- |
+| Visible | 4 |
+
+## Unsupported Sheets By Kind And Visibility
+
+| Key | Count |
+| --- | --- |
+| ChartSheet\|Visible | 4 |
 
 ## Unsupported Chart Sheet Print Sizes
 
