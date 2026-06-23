@@ -445,6 +445,59 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SvgRendererWrapsTextThroughSharedOfficeTextMeasurer() {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Shared Text Measure").Size(4, 3);
+            string text = "WWW approval iii review required";
+            VisioShape shape = page.AddRectangle(2, 1.5, 1.4, 1.1, text);
+            shape.TextStyle = new VisioTextStyle {
+                FontFamily = "Aptos",
+                Size = 12,
+                Bold = true,
+                TextWidth = 0.76,
+                TextHeight = 0.96,
+                HorizontalAlignment = VisioTextHorizontalAlignment.Center,
+                VerticalAlignment = VisioTextVerticalAlignment.Middle
+            };
+
+            string svg = page.ToSvg(new VisioSvgSaveOptions {
+                BackgroundColor = null,
+                PixelsPerInch = 100
+            });
+
+            XDocument parsed = XDocument.Parse(svg);
+            XNamespace ns = "http://www.w3.org/2000/svg";
+            string[] actualLines = parsed.Root!
+                .Descendants(ns + "g")
+                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id)
+                .Descendants(ns + "text")
+                .Single()
+                .Elements(ns + "tspan")
+                .Select(tspan => tspan.Value)
+                .ToArray();
+
+            double fontSize = 12D * 100D / 72D;
+            double maxWidth = (0.76D - 0.10D) * 100D;
+            double maxHeight = (0.96D - 0.06D) * 100D;
+            OfficeTextMeasurer measurer = OfficeTextMeasurer.Create(new OfficeFontInfo("Aptos", fontSize, OfficeFontStyle.Bold));
+            OfficeTextBlockLayout expectedLayout = OfficeTextLayoutEngine.FitWrappedText(
+                text,
+                fontSize,
+                maxWidth,
+                maxHeight,
+                lineHeightFactor: 1.2D,
+                minimumFontSize: 5D,
+                (candidate, candidateFontSize) => measurer.MeasureWidth(
+                    candidate,
+                    measurer.CreateStyle(new OfficeFontInfo("Aptos", candidateFontSize, OfficeFontStyle.Bold), dpi: 72D)));
+            string[] expectedLines = expectedLayout.Lines.Select(line => line.Text).ToArray();
+
+            Assert.True(expectedLines.Length > 1);
+            Assert.Equal(expectedLines, actualLines);
+        }
+
+        [Fact]
         public void SvgRendererPreservesHardBreaksThroughSharedTextLayout() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);

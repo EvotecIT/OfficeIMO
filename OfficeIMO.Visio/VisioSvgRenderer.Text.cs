@@ -56,6 +56,9 @@ namespace OfficeIMO.Visio {
             bool drawLabelBackground = false,
             bool labelAdjusted = false) {
             double fontSize = PointsToSvgPixels(style?.Size ?? defaultSize, scale);
+            string fontFamily = ResolveSvgTextFontFamily(style);
+            OfficeFontStyle fontStyle = ResolveOfficeFontStyle(style);
+            OfficeTextMeasurer textMeasurer = OfficeTextMeasurer.Create(new OfficeFontInfo(fontFamily, fontSize, fontStyle));
             double availableWidth = IsFinitePositive(maxWidth) ? maxWidth : double.PositiveInfinity;
             double availableHeight = IsFinitePositive(maxHeight) ? maxHeight : double.PositiveInfinity;
             OfficeTextBlockLayout layout = OfficeTextLayoutEngine.FitWrappedText(
@@ -65,7 +68,7 @@ namespace OfficeIMO.Visio {
                 availableHeight,
                 lineHeightFactor: 1.2D,
                 minimumFontSize: 5D,
-                EstimateTextWidth);
+                (candidate, candidateFontSize) => MeasureSvgTextWidth(textMeasurer, candidate, candidateFontSize, fontFamily, fontStyle));
             fontSize = layout.FontSize;
             OfficeTextAlignment alignment = VisioDrawingTextAlignment.ToOfficeTextAlignment(style?.HorizontalAlignment);
             OfficeTextVerticalAlignment verticalAlignment = VisioDrawingTextAlignment.ToOfficeTextVerticalAlignment(style?.VerticalAlignment);
@@ -109,7 +112,7 @@ namespace OfficeIMO.Visio {
                 availableWidth,
                 availableHeight,
                 style?.Color ?? Color.FromRgb(17, 24, 39),
-                string.IsNullOrWhiteSpace(style?.FontFamily) ? "Aptos, Calibri, Arial, sans-serif" : style!.FontFamily,
+                fontFamily,
                 alignment,
                 verticalAlignment,
                 style?.Bold == true,
@@ -186,27 +189,27 @@ namespace OfficeIMO.Visio {
             return false;
         }
 
-        private static double EstimateTextWidth(string? text, double fontSize) {
-            if (string.IsNullOrEmpty(text)) {
-                return 0D;
+        private static double MeasureSvgTextWidth(OfficeTextMeasurer measurer, string? text, double fontSize, string fontFamily, OfficeFontStyle fontStyle) =>
+            measurer.MeasureWidth(text, measurer.CreateStyle(new OfficeFontInfo(fontFamily, fontSize, fontStyle), dpi: 72D));
+
+        private static string ResolveSvgTextFontFamily(VisioTextStyle? style) =>
+            string.IsNullOrWhiteSpace(style?.FontFamily) ? "Aptos, Calibri, Arial, sans-serif" : style!.FontFamily!;
+
+        private static OfficeFontStyle ResolveOfficeFontStyle(VisioTextStyle? style) {
+            OfficeFontStyle fontStyle = OfficeFontStyle.Regular;
+            if (style?.Bold == true) {
+                fontStyle |= OfficeFontStyle.Bold;
             }
 
-            double width = 0D;
-            foreach (char c in text!) {
-                if (char.IsWhiteSpace(c)) {
-                    width += fontSize * 0.32D;
-                } else if ("ilI.,'!:;|".IndexOf(c) >= 0) {
-                    width += fontSize * 0.26D;
-                } else if ("MW@#%&".IndexOf(c) >= 0) {
-                    width += fontSize * 0.86D;
-                } else if (char.IsDigit(c)) {
-                    width += fontSize * 0.56D;
-                } else {
-                    width += fontSize * 0.54D;
-                }
+            if (style?.Italic == true) {
+                fontStyle |= OfficeFontStyle.Italic;
             }
 
-            return width;
+            if (style?.Underline == true) {
+                fontStyle |= OfficeFontStyle.Underline;
+            }
+
+            return fontStyle;
         }
 
         private static bool IsFinitePositive(double value) =>
