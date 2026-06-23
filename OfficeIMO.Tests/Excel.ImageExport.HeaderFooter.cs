@@ -111,6 +111,52 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelWorksheet_PageSlicedSvgExportRendersBasicFormattedHeaderFooterText() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("Report");
+            FillPageBreakGrid(sheet);
+            sheet.SetHeaderFooter(headerCenter: "&B&I&UStyled &A", footerRight: "Printed &BConfidential");
+            sheet.AddManualRowPageBreak(2, save: false);
+
+            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelWorksheetImageExportOptions {
+                Range = "A1:P4",
+                SplitByManualPageBreaks = true,
+                ShowGridlines = false
+            });
+
+            string svg = Encoding.UTF8.GetString(results[1].Bytes);
+            Assert.DoesNotContain(results[1].Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterUnsupported);
+            Assert.Contains(results[1].Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterFormattingApproximation);
+            Assert.Contains("font-weight=\"700\"", svg);
+            Assert.Contains("font-style=\"italic\"", svg);
+            Assert.Contains("text-decoration=\"underline\"", svg);
+            Assert.Contains(">Styled Report<", svg);
+            Assert.Contains(">Printed ", svg);
+            Assert.Contains(">Confidential<", svg);
+        }
+
+        [Fact]
+        public void ExcelWorksheet_PageSlicedSvgExportKeepsRicherHeaderFooterFormattingUnsupported() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("Report");
+            FillPageBreakGrid(sheet);
+            sheet.SetHeaderFooter(headerCenter: "&KFF0000Red Header");
+            sheet.AddManualRowPageBreak(2, save: false);
+
+            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelWorksheetImageExportOptions {
+                Range = "A1:D4",
+                SplitByManualPageBreaks = true,
+                ShowGridlines = false
+            });
+
+            Assert.Contains(results[1].Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterUnsupported);
+            Assert.DoesNotContain(results[1].Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterFormattingApproximation);
+            Assert.DoesNotContain("Red Header", Encoding.UTF8.GetString(results[1].Bytes));
+        }
+
+        [Fact]
         public void ExcelWorksheet_PageSlicedSvgExportClipsHeaderFooterTextZones() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             DateTime headerFooterDateTime = new DateTime(2026, 6, 23, 14, 35, 0);

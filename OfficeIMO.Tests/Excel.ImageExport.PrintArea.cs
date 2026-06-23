@@ -262,7 +262,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void ExcelWorksheet_PageSlicedImageExportReportsUnsupportedPageChromeSemantics() {
+        public void ExcelWorksheet_PageSlicedImageExportReportsRemainingPageChromeDiagnostics() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorkSheet("Report");
@@ -286,8 +286,10 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(result.Diagnostics, item =>
                     item.Code == ExcelImageExportDiagnosticCodes.PageSetupUnsupported &&
                     item.Source == "Report!pageSetup");
+                Assert.DoesNotContain(result.Diagnostics, item =>
+                    item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterUnsupported);
                 Assert.Contains(result.Diagnostics, item =>
-                    item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterUnsupported &&
+                    item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterFormattingApproximation &&
                     item.Source == "Report!headerFooter");
                 Assert.Contains(result.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ManualPageBreaksSplit);
                 Assert.True(OfficeImageReader.Identify(result.Bytes).Width > 0);

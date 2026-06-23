@@ -21,6 +21,18 @@ namespace OfficeIMO.Excel {
                 return content;
             }
 
+            IReadOnlyList<OfficeImageExportDiagnostic> diagnostics = content.Diagnostics;
+            if (chrome.HasFormatting) {
+                var combinedDiagnostics = new List<OfficeImageExportDiagnostic>(content.Diagnostics.Count + 1);
+                combinedDiagnostics.AddRange(content.Diagnostics);
+                combinedDiagnostics.Add(new OfficeImageExportDiagnostic(
+                    OfficeImageExportDiagnosticSeverity.Info,
+                    ExcelImageExportDiagnosticCodes.HeaderFooterFormattingApproximation,
+                    "Worksheet header/footer text formatting was rendered through the dependency-free image approximation path.",
+                    Name + "!headerFooter"));
+                diagnostics = combinedDiagnostics.AsReadOnly();
+            }
+
             double scale = options.Scale;
             int headerHeight = chrome.HasHeader ? Math.Max(1, (int)Math.Ceiling(HeaderFooterBandHeight * scale)) : 0;
             int footerHeight = chrome.HasFooter ? Math.Max(1, (int)Math.Ceiling(HeaderFooterBandHeight * scale)) : 0;
@@ -46,7 +58,7 @@ namespace OfficeIMO.Excel {
                         beforeLayers: builder => AppendHeaderFooterSvgText(builder, chrome, width, height, headerHeight, options.Scale)),
                     content.Name,
                     content.Source,
-                    content.Diagnostics);
+                    diagnostics);
             }
 
             if (!OfficePngReader.TryDecode(content.Bytes, out OfficeRasterImage? contentImage) || contentImage == null) {
@@ -66,7 +78,7 @@ namespace OfficeIMO.Excel {
                     beforeLayers: canvas => DrawHeaderFooterRaster(canvas, chrome, width, height, headerHeight, footerHeight, scale)),
                 content.Name,
                 content.Source,
-                content.Diagnostics);
+                diagnostics);
         }
 
         private bool CanRenderHeaderFooterTextChrome(DateTime headerFooterDateTime) {
@@ -159,12 +171,12 @@ namespace OfficeIMO.Excel {
             DateTime headerFooterDateTime,
             out HeaderFooterTextChrome chrome) {
             chrome = default;
-            if (!TryResolveHeaderFooterText(headerLeftSource, pageNumber, pageCount, headerFooterDateTime, out string headerLeft) ||
-                !TryResolveHeaderFooterText(headerCenterSource, pageNumber, pageCount, headerFooterDateTime, out string headerCenter) ||
-                !TryResolveHeaderFooterText(headerRightSource, pageNumber, pageCount, headerFooterDateTime, out string headerRight) ||
-                !TryResolveHeaderFooterText(footerLeftSource, pageNumber, pageCount, headerFooterDateTime, out string footerLeft) ||
-                !TryResolveHeaderFooterText(footerCenterSource, pageNumber, pageCount, headerFooterDateTime, out string footerCenter) ||
-                !TryResolveHeaderFooterText(footerRightSource, pageNumber, pageCount, headerFooterDateTime, out string footerRight)) {
+            if (!TryResolveHeaderFooterText(headerLeftSource, pageNumber, pageCount, headerFooterDateTime, out HeaderFooterTextSection headerLeft) ||
+                !TryResolveHeaderFooterText(headerCenterSource, pageNumber, pageCount, headerFooterDateTime, out HeaderFooterTextSection headerCenter) ||
+                !TryResolveHeaderFooterText(headerRightSource, pageNumber, pageCount, headerFooterDateTime, out HeaderFooterTextSection headerRight) ||
+                !TryResolveHeaderFooterText(footerLeftSource, pageNumber, pageCount, headerFooterDateTime, out HeaderFooterTextSection footerLeft) ||
+                !TryResolveHeaderFooterText(footerCenterSource, pageNumber, pageCount, headerFooterDateTime, out HeaderFooterTextSection footerCenter) ||
+                !TryResolveHeaderFooterText(footerRightSource, pageNumber, pageCount, headerFooterDateTime, out HeaderFooterTextSection footerRight)) {
                 return false;
             }
 
@@ -218,153 +230,6 @@ namespace OfficeIMO.Excel {
                 snapshot.FooterRight);
         }
 
-        private bool TryResolveHeaderFooterText(string? text, int pageNumber, int pageCount, DateTime headerFooterDateTime, out string normalized) {
-            normalized = string.Empty;
-            if (string.IsNullOrWhiteSpace(text)) {
-                return true;
-            }
-
-            var builder = new StringBuilder(text!.Length);
-            for (int i = 0; i < text.Length; i++) {
-                char ch = text[i];
-                if (ch != '&') {
-                    builder.Append(ch);
-                    continue;
-                }
-
-                if (i + 1 >= text.Length) {
-                    return false;
-                }
-
-                char token = text[++i];
-                if (token == '&') {
-                    builder.Append('&');
-                } else if (token == 'P') {
-                    builder.Append(pageNumber.ToString(CultureInfo.InvariantCulture));
-                } else if (token == 'N') {
-                    builder.Append(pageCount.ToString(CultureInfo.InvariantCulture));
-                } else if (token == 'D') {
-                    builder.Append(FormatHeaderFooterDate(headerFooterDateTime));
-                } else if (token == 'T') {
-                    builder.Append(FormatHeaderFooterTime(headerFooterDateTime));
-                } else if (token == 'A') {
-                    builder.Append(Name);
-                } else if (token == 'F') {
-                    if (!TryGetWorkbookFileName(out string fileName)) {
-                        return false;
-                    }
-
-                    builder.Append(fileName);
-                } else if (token == 'Z') {
-                    if (!TryGetWorkbookPathPrefix(out string pathPrefix)) {
-                        return false;
-                    }
-
-                    builder.Append(pathPrefix);
-                } else if (token == '[') {
-                    int end = text.IndexOf(']', i + 1);
-                    if (end < 0) {
-                        return false;
-                    }
-
-                    string fieldName = text.Substring(i + 1, end - i - 1);
-                    if (!TryAppendHeaderFooterField(builder, fieldName, pageNumber, pageCount, headerFooterDateTime)) {
-                        return false;
-                    }
-
-                    i = end;
-                } else {
-                    return false;
-                }
-            }
-
-            normalized = builder.ToString().Trim();
-            return true;
-        }
-
-        private bool TryAppendHeaderFooterField(StringBuilder builder, string fieldName, int pageNumber, int pageCount, DateTime headerFooterDateTime) {
-            if (string.Equals(fieldName, "Page", StringComparison.OrdinalIgnoreCase)) {
-                builder.Append(pageNumber.ToString(CultureInfo.InvariantCulture));
-                return true;
-            }
-
-            if (string.Equals(fieldName, "Pages", StringComparison.OrdinalIgnoreCase)) {
-                builder.Append(pageCount.ToString(CultureInfo.InvariantCulture));
-                return true;
-            }
-
-            if (string.Equals(fieldName, "Tab", StringComparison.OrdinalIgnoreCase)) {
-                builder.Append(Name);
-                return true;
-            }
-
-            if (string.Equals(fieldName, "Date", StringComparison.OrdinalIgnoreCase)) {
-                builder.Append(FormatHeaderFooterDate(headerFooterDateTime));
-                return true;
-            }
-
-            if (string.Equals(fieldName, "Time", StringComparison.OrdinalIgnoreCase)) {
-                builder.Append(FormatHeaderFooterTime(headerFooterDateTime));
-                return true;
-            }
-
-            if (string.Equals(fieldName, "File", StringComparison.OrdinalIgnoreCase)) {
-                if (!TryGetWorkbookFileName(out string fileName)) {
-                    return false;
-                }
-
-                builder.Append(fileName);
-                return true;
-            }
-
-            if (string.Equals(fieldName, "Path", StringComparison.OrdinalIgnoreCase)) {
-                if (!TryGetWorkbookPathPrefix(out string pathPrefix)) {
-                    return false;
-                }
-
-                builder.Append(pathPrefix);
-                return true;
-            }
-
-            return false;
-        }
-
-        private static string FormatHeaderFooterDate(DateTime headerFooterDateTime) =>
-            headerFooterDateTime.ToString("d", CultureInfo.CurrentCulture);
-
-        private static string FormatHeaderFooterTime(DateTime headerFooterDateTime) =>
-            headerFooterDateTime.ToString("t", CultureInfo.CurrentCulture);
-
-        private bool TryGetWorkbookFileName(out string fileName) {
-            fileName = string.Empty;
-            string path = _excelDocument.FilePath;
-            if (string.IsNullOrWhiteSpace(path)) {
-                return false;
-            }
-
-            fileName = Path.GetFileName(path);
-            return !string.IsNullOrWhiteSpace(fileName);
-        }
-
-        private bool TryGetWorkbookPathPrefix(out string pathPrefix) {
-            pathPrefix = string.Empty;
-            string path = _excelDocument.FilePath;
-            if (string.IsNullOrWhiteSpace(path)) {
-                return false;
-            }
-
-            string? directory = Path.GetDirectoryName(Path.GetFullPath(path));
-            if (string.IsNullOrWhiteSpace(directory)) {
-                return true;
-            }
-
-            pathPrefix = directory!.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal) ||
-                directory.EndsWith(Path.AltDirectorySeparatorChar.ToString(), StringComparison.Ordinal)
-                ? directory
-                : directory + Path.DirectorySeparatorChar;
-            return true;
-        }
-
         private static void DrawHeaderFooterRaster(
             OfficeRasterCanvas canvas,
             HeaderFooterTextChrome chrome,
@@ -393,22 +258,61 @@ namespace OfficeIMO.Excel {
 
         private static void DrawHeaderFooterRasterLine(
             OfficeRasterCanvas canvas,
-            string text,
+            HeaderFooterTextSection section,
             OfficeTextZone zone,
             double y,
             double fontSize,
             OfficeTextAlignment alignment) {
-            if (string.IsNullOrWhiteSpace(text)) {
-                return;
-            }
-
-            string displayText = ResolveHeaderFooterZoneText(text, fontSize, zone.Width, canvas.MeasureText, alignment);
-            if (string.IsNullOrWhiteSpace(displayText)) {
+            if (!section.HasText) {
                 return;
             }
 
             using (canvas.PushClipRectangle(zone.X, 0D, zone.Width, canvas.Height)) {
-                canvas.DrawTextLine(displayText, zone.AnchorX, y, fontSize, HeaderFooterTextColor, alignment: alignment);
+                if (section.HasFormatting) {
+                    DrawHeaderFooterRasterRichLine(canvas, section, zone, y, fontSize, alignment);
+                } else {
+                    string displayText = ResolveHeaderFooterZoneText(section.Text, fontSize, zone.Width, canvas.MeasureText, alignment);
+                    if (!string.IsNullOrWhiteSpace(displayText)) {
+                        canvas.DrawTextLine(displayText, zone.AnchorX, y, fontSize, HeaderFooterTextColor, alignment: alignment);
+                    }
+                }
+            }
+        }
+
+        private static void DrawHeaderFooterRasterRichLine(
+            OfficeRasterCanvas canvas,
+            HeaderFooterTextSection section,
+            OfficeTextZone zone,
+            double y,
+            double fontSize,
+            OfficeTextAlignment alignment) {
+            OfficeRichTextBlockLayout layout = OfficeTextLayoutEngine.LayoutRichTextBlock(
+                section.ToOfficeRuns(fontSize, HeaderFooterTextColor),
+                zone.Width,
+                Math.Ceiling(fontSize * 1.2D),
+                1.2D,
+                canvas.MeasureText,
+                wrap: false);
+            DrawHeaderFooterRasterRichLayout(canvas, layout, zone, y, alignment);
+        }
+
+        private static void DrawHeaderFooterRasterRichLayout(OfficeRasterCanvas canvas, OfficeRichTextBlockLayout layout, OfficeTextZone zone, double y, OfficeTextAlignment alignment) {
+            if (layout.Lines.Count == 0) {
+                return;
+            }
+
+            OfficeRichTextLine line = layout.Lines[0];
+            double cursor = OfficeTextPlacement.ResolveLineLeft(zone.X, zone.Width, line.Width, alignment);
+            for (int index = 0; index < line.Segments.Count; index++) {
+                OfficeRichTextSegment segment = line.Segments[index];
+                double runTop = y + Math.Max(0D, (layout.LineHeight - segment.FontSize) / 2D);
+                canvas.DrawTextLine(segment.Text, cursor, runTop, segment.FontSize, segment.Color, segment.Bold, segment.Italic, OfficeTextAlignment.Left);
+                if (segment.Underline && segment.Width > 0D) {
+                    double underlineY = runTop + (segment.FontSize * 0.86D);
+                    canvas.DrawLine(cursor, underlineY, cursor + segment.Width, underlineY, segment.Color, Math.Max(1D, segment.FontSize / 16D));
+                }
+
+                cursor += segment.Width;
             }
         }
 
@@ -442,7 +346,7 @@ namespace OfficeIMO.Excel {
 
         private static void AppendHeaderFooterSvgLine(
             StringBuilder builder,
-            string text,
+            HeaderFooterTextSection section,
             OfficeTextZone zone,
             double bandTop,
             double bandHeight,
@@ -452,28 +356,60 @@ namespace OfficeIMO.Excel {
             OfficeTextAlignment alignment,
             string clipSuffix,
             Func<string?, double, double> measure) {
-            if (string.IsNullOrWhiteSpace(text)) {
-                return;
-            }
-
-            string displayText = ResolveHeaderFooterZoneText(text, fontSize, zone.Width, measure, alignment);
-            if (string.IsNullOrWhiteSpace(displayText)) {
+            if (!section.HasText) {
                 return;
             }
 
             string clipId = "xl-header-footer-" + clipSuffix;
             builder.AppendRectClipPathDefinition(clipId, zone.X, bandTop, zone.Width, bandHeight, wrapInDefs: true);
             builder.Append("<g").AppendClipPathReference(clipId).Append(">");
-            builder.AppendSvgTextElement(
-                displayText,
-                zone.AnchorX,
-                baseline,
-                lineHeight,
-                HeaderFooterTextColor,
-                "Arial, sans-serif",
-                fontSize,
-                alignment);
+            if (section.HasFormatting) {
+                AppendHeaderFooterSvgRichLine(builder, section, zone, baseline, fontSize, lineHeight, alignment, measure);
+            } else {
+                string displayText = ResolveHeaderFooterZoneText(section.Text, fontSize, zone.Width, measure, alignment);
+                if (!string.IsNullOrWhiteSpace(displayText)) {
+                    builder.AppendSvgTextElement(
+                        displayText,
+                        zone.AnchorX,
+                        baseline,
+                        lineHeight,
+                        HeaderFooterTextColor,
+                        "Arial, sans-serif",
+                        fontSize,
+                        alignment);
+                }
+            }
+
             builder.Append("</g>");
+        }
+
+        private static void AppendHeaderFooterSvgRichLine(
+            StringBuilder builder,
+            HeaderFooterTextSection section,
+            OfficeTextZone zone,
+            double baseline,
+            double fontSize,
+            double lineHeight,
+            OfficeTextAlignment alignment,
+            Func<string?, double, double> measure) {
+            OfficeRichTextBlockLayout layout = OfficeTextLayoutEngine.LayoutRichTextBlock(
+                section.ToOfficeRuns(fontSize, HeaderFooterTextColor),
+                zone.Width,
+                lineHeight,
+                1.2D,
+                measure,
+                wrap: false);
+            if (layout.Lines.Count == 0) {
+                return;
+            }
+
+            OfficeRichTextLine line = layout.Lines[0];
+            double cursor = OfficeTextPlacement.ResolveLineLeft(zone.X, zone.Width, line.Width, alignment);
+            for (int index = 0; index < line.Segments.Count; index++) {
+                OfficeRichTextSegment segment = line.Segments[index];
+                builder.AppendSvgRichTextSegment(segment, cursor, baseline);
+                cursor += segment.Width;
+            }
         }
 
         private static string ResolveHeaderFooterZoneText(
@@ -491,12 +427,12 @@ namespace OfficeIMO.Excel {
 
         private readonly struct HeaderFooterTextChrome {
             internal HeaderFooterTextChrome(
-                string headerLeft,
-                string headerCenter,
-                string headerRight,
-                string footerLeft,
-                string footerCenter,
-                string footerRight) {
+                HeaderFooterTextSection headerLeft,
+                HeaderFooterTextSection headerCenter,
+                HeaderFooterTextSection headerRight,
+                HeaderFooterTextSection footerLeft,
+                HeaderFooterTextSection footerCenter,
+                HeaderFooterTextSection footerRight) {
                 HeaderLeft = headerLeft;
                 HeaderCenter = headerCenter;
                 HeaderRight = headerRight;
@@ -505,16 +441,22 @@ namespace OfficeIMO.Excel {
                 FooterRight = footerRight;
             }
 
-            internal string HeaderLeft { get; }
-            internal string HeaderCenter { get; }
-            internal string HeaderRight { get; }
-            internal string FooterLeft { get; }
-            internal string FooterCenter { get; }
-            internal string FooterRight { get; }
-            internal bool HasHeader => HasText(HeaderLeft) || HasText(HeaderCenter) || HasText(HeaderRight);
-            internal bool HasFooter => HasText(FooterLeft) || HasText(FooterCenter) || HasText(FooterRight);
+            internal HeaderFooterTextSection HeaderLeft { get; }
+            internal HeaderFooterTextSection HeaderCenter { get; }
+            internal HeaderFooterTextSection HeaderRight { get; }
+            internal HeaderFooterTextSection FooterLeft { get; }
+            internal HeaderFooterTextSection FooterCenter { get; }
+            internal HeaderFooterTextSection FooterRight { get; }
+            internal bool HasHeader => HeaderLeft.HasText || HeaderCenter.HasText || HeaderRight.HasText;
+            internal bool HasFooter => FooterLeft.HasText || FooterCenter.HasText || FooterRight.HasText;
             internal bool HasAnyText => HasHeader || HasFooter;
-            private static bool HasText(string text) => !string.IsNullOrWhiteSpace(text);
+            internal bool HasFormatting =>
+                HeaderLeft.HasFormatting ||
+                HeaderCenter.HasFormatting ||
+                HeaderRight.HasFormatting ||
+                FooterLeft.HasFormatting ||
+                FooterCenter.HasFormatting ||
+                FooterRight.HasFormatting;
         }
 
         private readonly struct HeaderFooterVariantText {

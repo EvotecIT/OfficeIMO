@@ -180,6 +180,9 @@ public static class ExcelImageExportDiagnosticCodes {
     /// <summary>Worksheet headers or footers are not rendered in image page output yet.</summary>
     public const string HeaderFooterUnsupported = "ExcelHeaderFooterUnsupported";
 
+    /// <summary>Worksheet header/footer text formatting is rendered through an approximate image-export path.</summary>
+    public const string HeaderFooterFormattingApproximation = "ExcelHeaderFooterFormattingApproximation";
+
     /// <summary>Sparkline kind is not rendered by the image exporter yet.</summary>
     public const string SparklineKindUnsupported = "ExcelSparklineKindUnsupported";
 
