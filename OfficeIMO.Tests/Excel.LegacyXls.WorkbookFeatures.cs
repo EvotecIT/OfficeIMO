@@ -1100,6 +1100,13 @@ namespace OfficeIMO.Tests {
             Assert.True(validation.SuppressDropDown);
             Assert.Equal("D2:D5", Assert.Single(validation.Ranges));
             Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.DataValidation);
+            LegacyXlsImportReport report = legacy.CreateImportReport();
+            Assert.Equal(1, report.DataValidationsByAllowBlankState["AllowBlank"]);
+            Assert.Equal(1, report.DataValidationsByInputMessageState["ShowInputMessage"]);
+            Assert.Equal(1, report.DataValidationsByErrorMessageState["ShowErrorMessage"]);
+            Assert.Equal(1, report.DataValidationsByPromptTextState["Present"]);
+            Assert.Equal(1, report.DataValidationsByErrorTextState["Present"]);
+            Assert.Equal(1, report.DataValidationsByDropDownState["Suppressed"]);
 
             using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound), new LegacyXlsImportOptions {
                 ReportUnsupportedRecords = true

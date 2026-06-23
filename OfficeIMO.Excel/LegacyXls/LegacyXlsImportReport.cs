@@ -10,6 +10,7 @@ namespace OfficeIMO.Excel.LegacyXls {
         internal LegacyXlsImportReport(LegacyXlsWorkbook workbook) {
             if (workbook == null) throw new ArgumentNullException(nameof(workbook));
 
+            LegacyXlsDataValidation[] dataValidations = workbook.Worksheets.SelectMany(sheet => sheet.DataValidations).ToArray();
             LegacyXlsConditionalFormatting[] conditionalFormattings = workbook.Worksheets.SelectMany(sheet => sheet.ConditionalFormattings).ToArray();
             WorksheetCount = workbook.Worksheets.Count;
             UnsupportedSheetCount = workbook.UnsupportedSheets.Count;
@@ -17,14 +18,19 @@ namespace OfficeIMO.Excel.LegacyXls {
             FormulaCellCount = workbook.Worksheets.Sum(sheet => sheet.Cells.Count(cell => cell.IsFormula));
             CommentCount = workbook.Worksheets.Sum(sheet => sheet.Comments.Count);
             HyperlinkCount = workbook.Worksheets.Sum(sheet => sheet.Hyperlinks.Count);
-            DataValidationCount = workbook.Worksheets.Sum(sheet => sheet.DataValidations.Count);
+            DataValidationCount = dataValidations.Length;
             ConditionalFormattingCount = conditionalFormattings.Length;
             AutoFilterCriteriaCount = workbook.Worksheets.Sum(sheet => sheet.AutoFilterCriteria.Count);
-            DataValidationsByType = CountByCode(workbook.Worksheets.SelectMany(sheet => sheet.DataValidations).Select(validation => validation.Type.ToString()));
-            DataValidationsByOperator = CountByCode(workbook.Worksheets.SelectMany(sheet => sheet.DataValidations).Select(validation => validation.Operator.ToString()));
-            DataValidationsByErrorStyle = CountByCode(workbook.Worksheets.SelectMany(sheet => sheet.DataValidations).Select(validation => validation.ErrorStyle.ToString()));
-            DataValidationListSourcesByKind = CountByCode(workbook.Worksheets
-                .SelectMany(sheet => sheet.DataValidations)
+            DataValidationsByType = CountByCode(dataValidations.Select(validation => validation.Type.ToString()));
+            DataValidationsByOperator = CountByCode(dataValidations.Select(validation => validation.Operator.ToString()));
+            DataValidationsByErrorStyle = CountByCode(dataValidations.Select(validation => validation.ErrorStyle.ToString()));
+            DataValidationsByAllowBlankState = CountByCode(dataValidations.Select(validation => validation.AllowBlank ? "AllowBlank" : "RejectBlank"));
+            DataValidationsByInputMessageState = CountByCode(dataValidations.Select(validation => validation.ShowInputMessage ? "ShowInputMessage" : "HideInputMessage"));
+            DataValidationsByErrorMessageState = CountByCode(dataValidations.Select(validation => validation.ShowErrorMessage ? "ShowErrorMessage" : "HideErrorMessage"));
+            DataValidationsByPromptTextState = CountByCode(dataValidations.Select(validation => validation.PromptTitle != null || validation.Prompt != null ? "Present" : "Missing"));
+            DataValidationsByErrorTextState = CountByCode(dataValidations.Select(validation => validation.ErrorTitle != null || validation.Error != null ? "Present" : "Missing"));
+            DataValidationsByDropDownState = CountByCode(dataValidations.Select(GetDataValidationDropDownState));
+            DataValidationListSourcesByKind = CountByCode(dataValidations
                 .Where(validation => validation.Type == LegacyXlsDataValidationType.List)
                 .Select(validation => validation.ListSourceKind.ToString()));
             ConditionalFormattingsByType = CountByCode(conditionalFormattings.Select(formatting => formatting.Type.ToString()));
@@ -314,6 +320,24 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets imported data validations grouped by error alert style.</summary>
         public IReadOnlyDictionary<string, int> DataValidationsByErrorStyle { get; }
+
+        /// <summary>Gets imported data validations grouped by blank-value handling.</summary>
+        public IReadOnlyDictionary<string, int> DataValidationsByAllowBlankState { get; }
+
+        /// <summary>Gets imported data validations grouped by input-prompt display state.</summary>
+        public IReadOnlyDictionary<string, int> DataValidationsByInputMessageState { get; }
+
+        /// <summary>Gets imported data validations grouped by error-alert display state.</summary>
+        public IReadOnlyDictionary<string, int> DataValidationsByErrorMessageState { get; }
+
+        /// <summary>Gets imported data validations grouped by input prompt text presence.</summary>
+        public IReadOnlyDictionary<string, int> DataValidationsByPromptTextState { get; }
+
+        /// <summary>Gets imported data validations grouped by error alert text presence.</summary>
+        public IReadOnlyDictionary<string, int> DataValidationsByErrorTextState { get; }
+
+        /// <summary>Gets imported list data validations grouped by in-cell dropdown behavior.</summary>
+        public IReadOnlyDictionary<string, int> DataValidationsByDropDownState { get; }
 
         /// <summary>Gets imported list data validations grouped by source shape.</summary>
         public IReadOnlyDictionary<string, int> DataValidationListSourcesByKind { get; }
@@ -723,6 +747,12 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Data Validations By Type", DataValidationsByType);
             AppendDictionary(builder, "Data Validations By Operator", DataValidationsByOperator);
             AppendDictionary(builder, "Data Validations By Error Style", DataValidationsByErrorStyle);
+            AppendDictionary(builder, "Data Validations By Allow Blank State", DataValidationsByAllowBlankState);
+            AppendDictionary(builder, "Data Validations By Input Message State", DataValidationsByInputMessageState);
+            AppendDictionary(builder, "Data Validations By Error Message State", DataValidationsByErrorMessageState);
+            AppendDictionary(builder, "Data Validations By Prompt Text State", DataValidationsByPromptTextState);
+            AppendDictionary(builder, "Data Validations By Error Text State", DataValidationsByErrorTextState);
+            AppendDictionary(builder, "Data Validations By Drop Down State", DataValidationsByDropDownState);
             AppendDictionary(builder, "Data Validation List Sources By Kind", DataValidationListSourcesByKind);
             AppendDictionary(builder, "Conditional Formatting By Type", ConditionalFormattingsByType);
             AppendDictionary(builder, "Conditional Formatting By Operator", ConditionalFormattingsByOperator);
@@ -1037,6 +1067,14 @@ namespace OfficeIMO.Excel.LegacyXls {
             string rank = criteria.Top10IsTop ? "Top" : "Bottom";
             string unit = criteria.Top10IsPercent ? "Percent" : "Items";
             return rank + unit;
+        }
+
+        private static string GetDataValidationDropDownState(LegacyXlsDataValidation validation) {
+            if (validation.Type != LegacyXlsDataValidationType.List) {
+                return "NotList";
+            }
+
+            return validation.SuppressDropDown ? "Suppressed" : "Visible";
         }
 
         private static IEnumerable<string> GetConditionalFormattingDifferentialFillKeys(LegacyXlsConditionalFormatting formatting) {

@@ -584,12 +584,27 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.DataValidationsByOperator["GreaterThanOrEqual"]);
             Assert.Equal(1, report.DataValidationsByOperator["LessThanOrEqual"]);
             Assert.Equal(3, report.DataValidationsByErrorStyle["Stop"]);
+            Assert.Equal(2, report.DataValidationsByAllowBlankState["AllowBlank"]);
+            Assert.Equal(1, report.DataValidationsByAllowBlankState["RejectBlank"]);
+            Assert.Equal(1, report.DataValidationsByInputMessageState["ShowInputMessage"]);
+            Assert.Equal(2, report.DataValidationsByInputMessageState["HideInputMessage"]);
+            Assert.Equal(3, report.DataValidationsByErrorMessageState["ShowErrorMessage"]);
+            Assert.Equal(1, report.DataValidationsByPromptTextState["Present"]);
+            Assert.Equal(2, report.DataValidationsByPromptTextState["Missing"]);
+            Assert.Equal(3, report.DataValidationsByErrorTextState["Present"]);
+            Assert.Equal(3, report.DataValidationsByDropDownState["NotList"]);
             Assert.Empty(report.DataValidationListSourcesByKind);
             string markdown = report.ToMarkdown();
             Assert.Contains("Data validations: 3", markdown);
             Assert.Contains("Data Validations By Type", markdown);
             Assert.Contains("Data Validations By Operator", markdown);
             Assert.Contains("Data Validations By Error Style", markdown);
+            Assert.Contains("Data Validations By Allow Blank State", markdown);
+            Assert.Contains("Data Validations By Input Message State", markdown);
+            Assert.Contains("Data Validations By Error Message State", markdown);
+            Assert.Contains("Data Validations By Prompt Text State", markdown);
+            Assert.Contains("Data Validations By Error Text State", markdown);
+            Assert.Contains("Data Validations By Drop Down State", markdown);
         }
 
         [Fact]
