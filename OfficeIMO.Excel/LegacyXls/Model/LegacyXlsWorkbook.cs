@@ -188,6 +188,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         public bool HasVbaProjectMarker { get; private set; }
 
         /// <summary>
+        /// Gets whether the workbook stream declares a VBA project with no forms, modules, or class modules.
+        /// </summary>
+        public bool HasVbaProjectWithoutMacros { get; private set; }
+
+        /// <summary>
         /// Gets whether workbook windows are locked from moving or resizing.
         /// </summary>
         public bool? WindowsLocked { get; private set; }
@@ -196,6 +201,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// Gets whether workbook revision tracking is locked.
         /// </summary>
         public bool? RevisionTrackingLocked { get; private set; }
+
+        /// <summary>
+        /// Gets the legacy password verifier for workbook revision-tracking protection.
+        /// </summary>
+        public ushort? RevisionTrackingPasswordHash { get; private set; }
 
         /// <summary>
         /// Gets the raw print size mode decoded from a PrintSize record.
@@ -308,12 +318,21 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             HasVbaProjectMarker = true;
         }
 
+        internal void SetHasVbaProjectWithoutMacros() {
+            HasVbaProjectMarker = true;
+            HasVbaProjectWithoutMacros = true;
+        }
+
         internal void SetWindowsLocked(bool value) {
             WindowsLocked = value;
         }
 
         internal void SetRevisionTrackingLocked(bool value) {
             RevisionTrackingLocked = value;
+        }
+
+        internal void SetRevisionTrackingPasswordHash(ushort value) {
+            RevisionTrackingPasswordHash = value;
         }
 
         internal void SetPrintSize(ushort value) {

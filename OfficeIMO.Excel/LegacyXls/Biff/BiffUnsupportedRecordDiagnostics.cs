@@ -299,9 +299,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case 0x01B7: return "RefreshAll";
                 case 0x01B8: return "HLink";
                 case 0x01BA: return "CodeName";
-                case 0x01BC: return "SxViewEx";
-                case 0x01BD: return "Sxth";
+                case 0x01BC: return "Prot4RevPass";
+                case 0x01BD: return "ObNoMacros";
                 case 0x01BE: return "Dv";
+                case 0x080B: return "SxViewEx";
+                case 0x080C: return "Sxth";
                 case 0x020B: return "Index";
                 case 0x0293: return "Style";
                 case 0x0892: return "StyleExt";

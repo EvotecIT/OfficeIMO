@@ -21,6 +21,8 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x004d, BuildPrinterSettingsPayload());
                 WriteRecord(stream, 0x0033, BuildUInt16Payload(2));
                 WriteRecord(stream, 0x01af, BuildUInt16Payload(1));
+                WriteRecord(stream, 0x01bc, BuildUInt16Payload(0x1234));
+                WriteRecord(stream, 0x01bd, Array.Empty<byte>());
                 WriteRecord(stream, 0x013d, BuildSheetTabIdsPayload(1, 2));
                 WriteRecord(stream, 0x0160, BuildUInt16Payload(1));
                 WriteRecord(stream, 0x008c, BuildCountryPayload(defaultCountryCode: 48, systemCountryCode: 1));

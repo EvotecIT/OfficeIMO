@@ -48,8 +48,14 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>Revision-tracking lock state from a Prot4Rev record.</summary>
         RevisionProtection,
 
+        /// <summary>Revision-tracking password verifier from a Prot4RevPass record.</summary>
+        RevisionProtectionPassword,
+
         /// <summary>Sheet tab identifier array from a TabId record.</summary>
         SheetTabIds,
+
+        /// <summary>VBA project marker indicating the project contains no forms, modules, or class modules.</summary>
+        VbaProjectNoMacrosMarker,
 
         /// <summary>Workbook window lock state from a WinProtect record.</summary>
         WindowProtection,

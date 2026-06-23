@@ -73,6 +73,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         PrintRowCol = 0x002A,
         Protect = 0x0012,
         Prot4Rev = 0x01AF,
+        Prot4RevPass = 0x01BC,
+        ObNoMacros = 0x01BD,
         RightMargin = 0x0027,
         Row = 0x0208,
         TabId = 0x013D,

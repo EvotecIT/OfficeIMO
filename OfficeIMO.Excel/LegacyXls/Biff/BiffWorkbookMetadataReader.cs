@@ -99,6 +99,14 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     workbook.AddMetadataRecord(LegacyXlsWorkbookMetadataKind.RevisionProtection, record.Offset, record.Type);
                     return true;
 
+                case BiffRecordType.Prot4RevPass:
+                    if (TryReadUInt16(record, diagnostics, out ushort revisionTrackingPasswordHash)) {
+                        workbook.SetRevisionTrackingPasswordHash(revisionTrackingPasswordHash);
+                    }
+
+                    workbook.AddMetadataRecord(LegacyXlsWorkbookMetadataKind.RevisionProtectionPassword, record.Offset, record.Type);
+                    return true;
+
                 case BiffRecordType.TabId:
                     if (TryReadSheetTabIds(record, diagnostics, out LegacyXlsSheetTabIdCollection? sheetTabIds)) {
                         workbook.SetSheetTabIds(sheetTabIds!);
@@ -118,6 +126,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case BiffRecordType.ObProj:
                     workbook.SetHasVbaProjectMarker();
                     workbook.AddMetadataRecord(LegacyXlsWorkbookMetadataKind.VbaProjectMarker, record.Offset, record.Type);
+                    return true;
+
+                case BiffRecordType.ObNoMacros:
+                    workbook.SetHasVbaProjectWithoutMacros();
+                    workbook.AddMetadataRecord(LegacyXlsWorkbookMetadataKind.VbaProjectNoMacrosMarker, record.Offset, record.Type);
                     return true;
 
                 case BiffRecordType.Window1:
