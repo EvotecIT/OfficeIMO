@@ -455,6 +455,66 @@ Warnings: 2
 | SizeTwips:100 | 48 |
 | SizeTwips:60 | 8 |
 
+## Chart DefaultText Targets
+
+| Key | Count |
+| --- | --- |
+| ChartScaledText | 8 |
+| ChartUnscaledText | 8 |
+
+## Chart Text Horizontal Alignments
+
+| Key | Count |
+| --- | --- |
+| Center | 40 |
+
+## Chart Text Vertical Alignments
+
+| Key | Count |
+| --- | --- |
+| Center | 40 |
+
+## Chart Text Data Label Positions
+
+| Key | Count |
+| --- | --- |
+| Auto | 40 |
+
+## Chart Text Flags
+
+| Key | Count |
+| --- | --- |
+| AutoColor | 40 |
+| AutoMode | 40 |
+| AutoText | 24 |
+| Generated | 24 |
+
+## Chart ObjectLink Targets
+
+| Key | Count |
+| --- | --- |
+| CategoryAxis | 8 |
+| ValueAxis | 8 |
+
+## Chart Legend Layouts
+
+| Key | Count |
+| --- | --- |
+| MultiColumnOrManual | 2 |
+| Vertical | 6 |
+
+## Chart Tick Major Locations
+
+| Key | Count |
+| --- | --- |
+| Outside | 16 |
+
+## Chart Tick Label Locations
+
+| Key | Count |
+| --- | --- |
+| NextToAxis | 16 |
+
 ## Chart Records By Location
 
 | Key | Count |

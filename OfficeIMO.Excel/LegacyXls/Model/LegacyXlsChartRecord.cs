@@ -34,7 +34,13 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             string? dataFormatTarget = null,
             LegacyXlsChartLineFormat? lineFormat = null,
             LegacyXlsChartAreaFormat? areaFormat = null,
-            LegacyXlsChartMarkerFormat? markerFormat = null) {
+            LegacyXlsChartMarkerFormat? markerFormat = null,
+            ushort? defaultTextId = null,
+            string? defaultTextTargetName = null,
+            LegacyXlsChartText? text = null,
+            LegacyXlsChartObjectLink? objectLink = null,
+            LegacyXlsChartLegend? legend = null,
+            LegacyXlsChartTick? tick = null) {
             if (payloadLength < 0) {
                 throw new ArgumentOutOfRangeException(nameof(payloadLength));
             }
@@ -67,6 +73,12 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             LineFormat = lineFormat;
             AreaFormat = areaFormat;
             MarkerFormat = markerFormat;
+            DefaultTextId = defaultTextId;
+            DefaultTextTargetName = string.IsNullOrWhiteSpace(defaultTextTargetName) ? null : defaultTextTargetName;
+            Text = text;
+            ObjectLink = objectLink;
+            Legend = legend;
+            Tick = tick;
         }
 
         /// <summary>Gets the shallow chart record category.</summary>
@@ -152,5 +164,23 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets decoded marker-format metadata from MarkerFormat records, when present.</summary>
         public LegacyXlsChartMarkerFormat? MarkerFormat { get; }
+
+        /// <summary>Gets the raw DefaultText target identifier, when present.</summary>
+        public ushort? DefaultTextId { get; }
+
+        /// <summary>Gets the decoded DefaultText target name, when present.</summary>
+        public string? DefaultTextTargetName { get; }
+
+        /// <summary>Gets decoded text metadata from Text records, when present.</summary>
+        public LegacyXlsChartText? Text { get; }
+
+        /// <summary>Gets decoded linked-object metadata from ObjectLink records, when present.</summary>
+        public LegacyXlsChartObjectLink? ObjectLink { get; }
+
+        /// <summary>Gets decoded legend metadata from Legend records, when present.</summary>
+        public LegacyXlsChartLegend? Legend { get; }
+
+        /// <summary>Gets decoded axis tick metadata from Tick records, when present.</summary>
+        public LegacyXlsChartTick? Tick { get; }
     }
 }

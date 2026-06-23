@@ -157,6 +157,33 @@ namespace OfficeIMO.Excel.LegacyXls {
             ChartMarkerFormatSizes = CountByCode(workbook.ChartRecords
                 .Where(record => record.MarkerFormat != null)
                 .Select(record => $"SizeTwips:{record.MarkerFormat!.SizeTwips}"));
+            ChartDefaultTextTargets = CountByCode(workbook.ChartRecords
+                .Where(record => !string.IsNullOrWhiteSpace(record.DefaultTextTargetName))
+                .Select(record => record.DefaultTextTargetName!));
+            ChartTextHorizontalAlignments = CountByCode(workbook.ChartRecords
+                .Where(record => record.Text != null)
+                .Select(record => record.Text!.HorizontalAlignmentName));
+            ChartTextVerticalAlignments = CountByCode(workbook.ChartRecords
+                .Where(record => record.Text != null)
+                .Select(record => record.Text!.VerticalAlignmentName));
+            ChartTextDataLabelPositions = CountByCode(workbook.ChartRecords
+                .Where(record => record.Text != null)
+                .Select(record => record.Text!.DataLabelPositionName));
+            ChartTextFlags = CountByCode(workbook.ChartRecords
+                .Where(record => record.Text != null)
+                .SelectMany(record => record.Text!.FlagNames));
+            ChartObjectLinkTargets = CountByCode(workbook.ChartRecords
+                .Where(record => record.ObjectLink != null)
+                .Select(record => record.ObjectLink!.LinkedObjectName));
+            ChartLegendLayouts = CountByCode(workbook.ChartRecords
+                .Where(record => record.Legend != null)
+                .Select(record => record.Legend!.Vertical ? "Vertical" : "MultiColumnOrManual"));
+            ChartTickMajorLocations = CountByCode(workbook.ChartRecords
+                .Where(record => record.Tick != null)
+                .Select(record => record.Tick!.MajorTickLocationName));
+            ChartTickLabelLocations = CountByCode(workbook.ChartRecords
+                .Where(record => record.Tick != null)
+                .Select(record => record.Tick!.LabelLocationName));
             ChartRecordsByLocation = CountByCode(workbook.ChartRecords.Select(GetChartRecordLocationKey));
             DrawingRecordsByKind = CountDrawingRecordsByKind(workbook.DrawingRecords);
             DrawingRecordsByName = CountByCode(workbook.DrawingRecords.Select(record => record.RecordName));
@@ -452,6 +479,33 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets MarkerFormat records grouped by marker size in twips.</summary>
         public IReadOnlyDictionary<string, int> ChartMarkerFormatSizes { get; }
 
+        /// <summary>Gets DefaultText records grouped by decoded target scope.</summary>
+        public IReadOnlyDictionary<string, int> ChartDefaultTextTargets { get; }
+
+        /// <summary>Gets Text records grouped by decoded horizontal alignment.</summary>
+        public IReadOnlyDictionary<string, int> ChartTextHorizontalAlignments { get; }
+
+        /// <summary>Gets Text records grouped by decoded vertical alignment.</summary>
+        public IReadOnlyDictionary<string, int> ChartTextVerticalAlignments { get; }
+
+        /// <summary>Gets Text records grouped by decoded data-label position.</summary>
+        public IReadOnlyDictionary<string, int> ChartTextDataLabelPositions { get; }
+
+        /// <summary>Gets Text records grouped by decoded flag name.</summary>
+        public IReadOnlyDictionary<string, int> ChartTextFlags { get; }
+
+        /// <summary>Gets ObjectLink records grouped by decoded linked chart object.</summary>
+        public IReadOnlyDictionary<string, int> ChartObjectLinkTargets { get; }
+
+        /// <summary>Gets Legend records grouped by decoded layout.</summary>
+        public IReadOnlyDictionary<string, int> ChartLegendLayouts { get; }
+
+        /// <summary>Gets Tick records grouped by decoded major tick-mark location.</summary>
+        public IReadOnlyDictionary<string, int> ChartTickMajorLocations { get; }
+
+        /// <summary>Gets Tick records grouped by decoded axis-label location.</summary>
+        public IReadOnlyDictionary<string, int> ChartTickLabelLocations { get; }
+
         /// <summary>Gets preserve-only chart BIFF records grouped by workbook or sheet location.</summary>
         public IReadOnlyDictionary<string, int> ChartRecordsByLocation { get; }
 
@@ -647,6 +701,15 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Chart AreaFormat Patterns", ChartAreaFormatPatterns);
             AppendDictionary(builder, "Chart MarkerFormat Types", ChartMarkerFormatTypes);
             AppendDictionary(builder, "Chart MarkerFormat Sizes", ChartMarkerFormatSizes);
+            AppendDictionary(builder, "Chart DefaultText Targets", ChartDefaultTextTargets);
+            AppendDictionary(builder, "Chart Text Horizontal Alignments", ChartTextHorizontalAlignments);
+            AppendDictionary(builder, "Chart Text Vertical Alignments", ChartTextVerticalAlignments);
+            AppendDictionary(builder, "Chart Text Data Label Positions", ChartTextDataLabelPositions);
+            AppendDictionary(builder, "Chart Text Flags", ChartTextFlags);
+            AppendDictionary(builder, "Chart ObjectLink Targets", ChartObjectLinkTargets);
+            AppendDictionary(builder, "Chart Legend Layouts", ChartLegendLayouts);
+            AppendDictionary(builder, "Chart Tick Major Locations", ChartTickMajorLocations);
+            AppendDictionary(builder, "Chart Tick Label Locations", ChartTickLabelLocations);
             AppendDictionary(builder, "Chart Records By Location", ChartRecordsByLocation);
             AppendDictionary(builder, "Drawing Records By Kind", DrawingRecordsByKind.ToDictionary(
                 entry => entry.Key.ToString(),

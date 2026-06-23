@@ -18,6 +18,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             TryReadLineFormat(record, out LegacyXlsChartLineFormat? lineFormat);
             TryReadAreaFormat(record, out LegacyXlsChartAreaFormat? areaFormat);
             TryReadMarkerFormat(record, out LegacyXlsChartMarkerFormat? markerFormat);
+            BiffChartTextMetadataReader.TryReadDefaultText(record, out ushort? defaultTextId, out string? defaultTextTargetName);
+            BiffChartTextMetadataReader.TryReadText(record, out LegacyXlsChartText? text);
+            BiffChartTextMetadataReader.TryReadObjectLink(record, out LegacyXlsChartObjectLink? objectLink);
+            BiffChartTextMetadataReader.TryReadLegend(record, out LegacyXlsChartLegend? legend);
+            BiffChartTextMetadataReader.TryReadTick(record, out LegacyXlsChartTick? tick);
             records.Add(new LegacyXlsChartRecord(
                 GetKind(record.Type),
                 BiffUnsupportedRecordDiagnostics.GetBiffRecordName(record.Type),
@@ -46,7 +51,13 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 dataFormatTarget,
                 lineFormat,
                 areaFormat,
-                markerFormat));
+                markerFormat,
+                defaultTextId,
+                defaultTextTargetName,
+                text,
+                objectLink,
+                legend,
+                tick));
             return true;
         }
 

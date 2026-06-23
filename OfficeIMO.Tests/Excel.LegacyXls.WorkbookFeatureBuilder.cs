@@ -455,12 +455,17 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x1002, BuildChartPayload(100, 200, 3000, 2200));
                 WriteRecord(stream, 0x1014, Array.Empty<byte>());
                 WriteRecord(stream, 0x101d, BuildAxisPayload(0x0001));
+                WriteRecord(stream, 0x101e, BuildTickPayload());
                 WriteRecord(stream, 0x1045, BuildUInt16Payload(1));
                 WriteRecord(stream, 0x1003, BuildSeriesPayload(0x0003, categoryCount: 4, valueCount: 4, bubbleSizeCount: 0));
                 WriteRecord(stream, 0x1006, BuildDataFormatPayload(pointIndex: 0xffff, seriesIndex: 2, order: 1));
                 WriteRecord(stream, 0x1007, BuildLineFormatPayload(style: 0x0001, weight: 1, flags: 0x0004, colorIndex: 0x004d));
                 WriteRecord(stream, 0x100a, BuildAreaFormatPayload(pattern: 0x0001, flags: 0x0003, foregroundColorIndex: 0x004e, backgroundColorIndex: 0x004d));
                 WriteRecord(stream, 0x1009, BuildMarkerFormatPayload(markerType: 0x0008, flags: 0x0021, foregroundColorIndex: 0x004e, backgroundColorIndex: 0x004d, sizeTwips: 240));
+                WriteRecord(stream, 0x1024, BuildUInt16Payload(0x0002));
+                WriteRecord(stream, 0x1025, BuildChartTextPayload());
+                WriteRecord(stream, 0x1027, BuildObjectLinkPayload());
+                WriteRecord(stream, 0x1015, BuildLegendPayload());
                 WriteRecord(stream, 0x101b, Array.Empty<byte>());
                 WriteRecord(stream, 0x01b6, new byte[18]);
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
@@ -1352,6 +1357,60 @@ namespace OfficeIMO.Tests {
                 WriteUInt16(stream, foregroundColorIndex);
                 WriteUInt16(stream, backgroundColorIndex);
                 WriteUInt32(stream, sizeTwips);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildChartTextPayload() {
+                using var stream = new MemoryStream();
+                stream.WriteByte(0x02);
+                stream.WriteByte(0x03);
+                WriteUInt16(stream, 0x0001);
+                WriteLongRgb(stream, 0x22, 0x44, 0x66);
+                WriteInt32(stream, 120);
+                WriteInt32(stream, 240);
+                WriteInt32(stream, 800);
+                WriteInt32(stream, 160);
+                WriteUInt16(stream, 0x4095);
+                WriteUInt16(stream, 0x004d);
+                WriteUInt16(stream, 0x4003);
+                WriteUInt16(stream, 45);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildObjectLinkPayload() {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, 0x0004);
+                WriteUInt16(stream, 2);
+                WriteUInt16(stream, 0xffff);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildLegendPayload() {
+                using var stream = new MemoryStream();
+                WriteUInt32(stream, 10);
+                WriteUInt32(stream, 20);
+                WriteUInt32(stream, 300);
+                WriteUInt32(stream, 400);
+                stream.WriteByte(0);
+                stream.WriteByte(1);
+                WriteUInt16(stream, 0x001d);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildTickPayload() {
+                using var stream = new MemoryStream();
+                stream.WriteByte(0x02);
+                stream.WriteByte(0x01);
+                stream.WriteByte(0x03);
+                stream.WriteByte(0x01);
+                WriteLongRgb(stream, 0x99, 0x88, 0x77);
+                WriteUInt32(stream, 0);
+                WriteUInt32(stream, 0);
+                WriteUInt32(stream, 0);
+                WriteUInt32(stream, 0);
+                WriteUInt16(stream, 0x402d);
+                WriteUInt16(stream, 0x004d);
+                WriteUInt16(stream, 30);
                 return stream.ToArray();
             }
 
