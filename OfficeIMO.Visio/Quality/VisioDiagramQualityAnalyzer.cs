@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Visio {
     /// <summary>
@@ -369,20 +370,17 @@ namespace OfficeIMO.Visio {
         private static List<Point> BuildConnectorPath(VisioConnector connector) {
             ResolveEndpoint(connector.From, connector.To, connector.FromConnectionPoint, out double startX, out double startY);
             ResolveEndpoint(connector.To, connector.From, connector.ToConnectionPoint, out double endX, out double endY);
-            List<Point> points = new() {
-                new Point(startX, startY)
-            };
+            List<(double X, double Y)> waypoints = connector.Waypoints
+                .Select(waypoint => (X: waypoint.X, Y: waypoint.Y))
+                .ToList();
 
-            if (connector.Waypoints.Count > 0) {
-                foreach (VisioConnectorWaypoint waypoint in connector.Waypoints) {
-                    points.Add(new Point(waypoint.X, waypoint.Y));
-                }
-            } else if (connector.Kind == ConnectorKind.RightAngle) {
-                points.Add(new Point(startX, endY));
-            }
-
-            points.Add(new Point(endX, endY));
-            return points;
+            return OfficeGeometry.BuildConnectorPolyline(
+                    (startX, startY),
+                    (endX, endY),
+                    waypoints,
+                    connector.Kind == ConnectorKind.RightAngle)
+                .Select(point => new Point(point.X, point.Y))
+                .ToList();
         }
 
         private static void ResolveEndpoint(VisioShape shape, VisioShape other, VisioConnectionPoint? connectionPoint, out double x, out double y) {
@@ -426,37 +424,10 @@ namespace OfficeIMO.Visio {
         }
 
         private static Point ResolvePathPoint(IReadOnlyList<Point> points, double position) {
-            double clampedPosition = VisioConnectorLabelPlacement.ClampPosition(position);
-            double totalLength = 0D;
-            for (int i = 1; i < points.Count; i++) {
-                totalLength += Distance(points[i - 1], points[i]);
-            }
-
-            if (totalLength <= 0D) {
-                return points[0];
-            }
-
-            double targetLength = totalLength * clampedPosition;
-            double traversed = 0D;
-            for (int i = 1; i < points.Count; i++) {
-                Point from = points[i - 1];
-                Point to = points[i];
-                double segmentLength = Distance(from, to);
-                if (segmentLength <= 0D) {
-                    continue;
-                }
-
-                if (traversed + segmentLength >= targetLength) {
-                    double segmentPosition = (targetLength - traversed) / segmentLength;
-                    return new Point(
-                        from.X + ((to.X - from.X) * segmentPosition),
-                        from.Y + ((to.Y - from.Y) * segmentPosition));
-                }
-
-                traversed += segmentLength;
-            }
-
-            return points[points.Count - 1];
+            (double x, double y) = OfficeGeometry.InterpolatePolyline(
+                points.Select(point => (X: point.X, Y: point.Y)).ToList(),
+                position);
+            return new Point(x, y);
         }
 
         private static bool PathIntersectsBounds(IReadOnlyList<Point> points, VisioShapeBounds bounds) {
@@ -545,12 +516,6 @@ namespace OfficeIMO.Visio {
 
         private static double BoundsArea(VisioShapeBounds bounds) {
             return bounds.IsEmpty ? 0D : Math.Max(0D, bounds.Width) * Math.Max(0D, bounds.Height);
-        }
-
-        private static double Distance(Point from, Point to) {
-            double dx = to.X - from.X;
-            double dy = to.Y - from.Y;
-            return Math.Sqrt((dx * dx) + (dy * dy));
         }
 
         private static bool IsZero(double value) {

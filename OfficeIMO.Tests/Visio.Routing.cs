@@ -3,6 +3,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Xml.Linq;
+using OfficeIMO.Drawing;
 using OfficeIMO.Visio;
 using OfficeIMO.Visio.Fluent;
 using OfficeIMO.Visio.Stencils;
@@ -507,14 +508,16 @@ namespace OfficeIMO.Tests {
         private static RouteSegment[] GetRouteSegments(VisioConnector connector) {
             ResolveEndpoint(connector.From, connector.To, connector.FromConnectionPoint, out RoutePoint start);
             ResolveEndpoint(connector.To, connector.From, connector.ToConnectionPoint, out RoutePoint end);
-            List<RoutePoint> points = new() { start };
-            if (connector.Waypoints.Count > 0) {
-                points.AddRange(connector.Waypoints.Select(waypoint => new RoutePoint(waypoint.X, waypoint.Y)));
-            } else if (connector.Kind == ConnectorKind.RightAngle) {
-                points.Add(new RoutePoint(start.X, end.Y));
-            }
-
-            points.Add(end);
+            List<(double X, double Y)> waypoints = connector.Waypoints
+                .Select(waypoint => (X: waypoint.X, Y: waypoint.Y))
+                .ToList();
+            List<RoutePoint> points = OfficeGeometry.BuildConnectorPolyline(
+                    (start.X, start.Y),
+                    (end.X, end.Y),
+                    waypoints,
+                    connector.Kind == ConnectorKind.RightAngle)
+                .Select(point => new RoutePoint(point.X, point.Y))
+                .ToList();
             return points.Zip(points.Skip(1), (from, to) => new RouteSegment(from, to)).ToArray();
         }
 

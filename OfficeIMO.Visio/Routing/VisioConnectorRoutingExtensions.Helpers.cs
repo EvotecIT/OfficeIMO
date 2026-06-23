@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Visio {
     public static partial class VisioConnectorRoutingExtensions {
@@ -278,20 +279,17 @@ namespace OfficeIMO.Visio {
         }
 
         private static List<RoutePoint> GetConnectorPath(VisioConnector connector, double startX, double startY, double endX, double endY) {
-            List<RoutePoint> points = new() {
-                new RoutePoint(startX, startY)
-            };
+            List<(double X, double Y)> waypoints = connector.Waypoints
+                .Select(waypoint => (X: waypoint.X, Y: waypoint.Y))
+                .ToList();
 
-            if (connector.Waypoints.Count > 0) {
-                foreach (VisioConnectorWaypoint waypoint in connector.Waypoints) {
-                    points.Add(new RoutePoint(waypoint.X, waypoint.Y));
-                }
-            } else if (connector.Kind == ConnectorKind.RightAngle) {
-                points.Add(new RoutePoint(startX, endY));
-            }
-
-            points.Add(new RoutePoint(endX, endY));
-            return points;
+            return OfficeGeometry.BuildConnectorPolyline(
+                    (startX, startY),
+                    (endX, endY),
+                    waypoints,
+                    connector.Kind == ConnectorKind.RightAngle)
+                .Select(point => new RoutePoint(point.X, point.Y))
+                .ToList();
         }
 
         private static List<IReadOnlyList<RoutePoint>> GetConnectorReferencePaths(VisioConnector connector, IEnumerable<VisioConnector>? referenceConnectors) {
