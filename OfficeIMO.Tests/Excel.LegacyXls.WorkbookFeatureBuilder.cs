@@ -193,6 +193,7 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x0082, BuildUInt16Payload(1));
                 WriteRecord(stream, 0x020b, BuildIndexPayload(firstRow: 0, rowAfterLast: 4, reservedRecordOffset: 1234, dbCellOffsets: new uint[] { 200, 240 }));
                 WriteRecord(stream, 0x001d, BuildSelectionPayload());
+                WriteRecord(stream, 0x0090, BuildSortPayload("Region", "Amount", "Date"));
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 byte[] bytes = stream.ToArray();
@@ -1395,6 +1396,19 @@ namespace OfficeIMO.Tests {
                 WriteUInt16(stream, 3);
                 stream.WriteByte(1);
                 stream.WriteByte(2);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildSortPayload(string key1, string key2, string key3) {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, 0x047b);
+                stream.WriteByte(checked((byte)key1.Length));
+                stream.WriteByte(checked((byte)key2.Length));
+                stream.WriteByte(checked((byte)key3.Length));
+                WriteCompressedUnicodeStringNoCch(stream, key1);
+                WriteCompressedUnicodeStringNoCch(stream, key2);
+                WriteCompressedUnicodeStringNoCch(stream, key3);
+                stream.WriteByte(0);
                 return stream.ToArray();
             }
 

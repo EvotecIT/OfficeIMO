@@ -25,6 +25,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         PrinterSettings,
 
         /// <summary>Worksheet printed-size mode from a PrintSize record.</summary>
-        PrintSize
+        PrintSize,
+
+        /// <summary>Worksheet sort dialog metadata from a Sort record.</summary>
+        Sort
     }
 }

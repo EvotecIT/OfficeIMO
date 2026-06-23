@@ -356,6 +356,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     case BiffRecordType.Setup:
                         ParseSetup(sheet, payload);
                         break;
+                    case BiffRecordType.Sort:
+                        ParseSortSettings(sheet, payload, diagnostics, offset);
+                        sheet.AddMetadataRecord(LegacyXlsWorksheetMetadataKind.Sort, offset, type);
+                        break;
                     case BiffRecordType.Rk:
                         if (payload.Length >= 10) {
                             sheet.AddCell(new LegacyXlsCell(
@@ -826,6 +830,59 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             sheet.SetProtection(BiffRecordReader.ReadUInt16(payload, 0) != 0);
+        }
+
+        private static void ParseSortSettings(LegacyXlsWorksheet sheet, byte[] payload, List<LegacyXlsImportDiagnostic> diagnostics, int recordOffset) {
+            if (payload.Length < 6) {
+                diagnostics.Add(new LegacyXlsImportDiagnostic(
+                    LegacyXlsDiagnosticSeverity.Warning,
+                    "XLS-BIFF-SORT-SHORT",
+                    "The Sort record is too short.",
+                    sheetName: sheet.Name,
+                    recordOffset: recordOffset,
+                    recordType: (ushort)BiffRecordType.Sort));
+                return;
+            }
+
+            ushort flags = BiffRecordReader.ReadUInt16(payload, 0);
+            int offset = 5;
+            string? key1 = ReadSortKey(payload, ref offset, payload[2]);
+            string? key2 = ReadSortKey(payload, ref offset, payload[3]);
+            string? key3 = ReadSortKey(payload, ref offset, payload[4]);
+            if (offset >= payload.Length) {
+                throw new InvalidDataException("The Sort record ended before the reserved byte.");
+            }
+
+            byte reserved = payload[offset++];
+            if ((flags & 0xf800) != 0 || reserved != 0 || offset != payload.Length) {
+                diagnostics.Add(new LegacyXlsImportDiagnostic(
+                    LegacyXlsDiagnosticSeverity.Info,
+                    "XLS-BIFF-SORT-RESERVED-BYTES",
+                    "The Sort record contains non-default reserved data; parsed known sort settings only.",
+                    sheetName: sheet.Name,
+                    recordOffset: recordOffset,
+                    recordType: (ushort)BiffRecordType.Sort));
+            }
+
+            sheet.SetSortSettings(new LegacyXlsSortSettings(
+                (flags & 0x0001) != 0,
+                (flags & 0x0002) != 0,
+                (flags & 0x0004) != 0,
+                (flags & 0x0008) != 0,
+                (flags & 0x0010) != 0,
+                (flags >> 5) & 0x001f,
+                (flags & 0x0400) != 0,
+                key1,
+                key2,
+                key3));
+        }
+
+        private static string? ReadSortKey(byte[] payload, ref int offset, byte characterCount) {
+            if (characterCount == 0) {
+                return null;
+            }
+
+            return BiffStringReader.ReadUnicodeStringNoCch(payload, ref offset, characterCount);
         }
 
         private static void ParseSetup(LegacyXlsWorksheet sheet, byte[] payload) {

@@ -127,6 +127,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         public IReadOnlyList<LegacyXlsSelection> Selections => _selections;
 
         /// <summary>
+        /// Gets parsed worksheet sort dialog metadata, when present.
+        /// </summary>
+        public LegacyXlsSortSettings? SortSettings { get; private set; }
+
+        /// <summary>
         /// Gets parsed frozen pane metadata for this worksheet.
         /// </summary>
         public LegacyXlsFreezePane? FreezePane { get; private set; }
@@ -323,6 +328,10 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         internal void AddSelection(LegacyXlsSelection selection) {
             _selections.Add(selection);
+        }
+
+        internal void SetSortSettings(LegacyXlsSortSettings sortSettings) {
+            SortSettings = sortSettings;
         }
 
         internal void SetFreezePane(LegacyXlsFreezePane freezePane) {

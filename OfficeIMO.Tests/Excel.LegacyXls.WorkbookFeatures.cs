@@ -312,7 +312,7 @@ namespace OfficeIMO.Tests {
             Assert.False(result.HasImportErrors);
             Assert.False(result.HasUnsupportedFeatures);
             LegacyXlsWorksheet legacySheet = Assert.Single(result.Workbook.Worksheets);
-            Assert.Equal(5, legacySheet.MetadataRecords.Count);
+            Assert.Equal(6, legacySheet.MetadataRecords.Count);
             Assert.True(legacySheet.AutomaticPageBreaksVisible);
             Assert.True(legacySheet.ApplyOutlineStyles);
             Assert.True(legacySheet.SummaryRowsBelow);
@@ -338,13 +338,25 @@ namespace OfficeIMO.Tests {
             Assert.Equal((ushort)0, selection.ActiveRangeIndex);
             LegacyXlsSelectedRange selectedRange = Assert.Single(selection.SelectedRanges);
             Assert.Equal("B3:C4", selectedRange.Reference);
-            Assert.Equal(5, result.ImportReport.WorksheetMetadataRecordCount);
+            LegacyXlsSortSettings sortSettings = Assert.IsType<LegacyXlsSortSettings>(legacySheet.SortSettings);
+            Assert.True(sortSettings.SortLeftToRight);
+            Assert.True(sortSettings.Key1Descending);
+            Assert.False(sortSettings.Key2Descending);
+            Assert.True(sortSettings.Key3Descending);
+            Assert.True(sortSettings.CaseSensitive);
+            Assert.Equal(3, sortSettings.CustomListIndex);
+            Assert.True(sortSettings.UsePhoneticInformation);
+            Assert.Equal("Region", sortSettings.Key1);
+            Assert.Equal("Amount", sortSettings.Key2);
+            Assert.Equal("Date", sortSettings.Key3);
+            Assert.Equal(6, result.ImportReport.WorksheetMetadataRecordCount);
             Assert.Equal(1, result.ImportReport.WorksheetMetadataRecordsByKind[LegacyXlsWorksheetMetadataKind.SheetOptions]);
             Assert.Equal(1, result.ImportReport.WorksheetMetadataRecordsByKind[LegacyXlsWorksheetMetadataKind.OutlineLevels]);
             Assert.Equal(1, result.ImportReport.WorksheetMetadataRecordsByKind[LegacyXlsWorksheetMetadataKind.GridSet]);
             Assert.Equal(1, result.ImportReport.WorksheetMetadataRecordsByKind[LegacyXlsWorksheetMetadataKind.RowBlockIndex]);
             Assert.Equal(1, result.ImportReport.WorksheetMetadataRecordsByKind[LegacyXlsWorksheetMetadataKind.Selection]);
-            Assert.DoesNotContain(result.Workbook.UnsupportedFeatures, feature => feature.RecordType is 0x0081 or 0x0080 or 0x0082 or 0x020b or 0x001d);
+            Assert.Equal(1, result.ImportReport.WorksheetMetadataRecordsByKind[LegacyXlsWorksheetMetadataKind.Sort]);
+            Assert.DoesNotContain(result.Workbook.UnsupportedFeatures, feature => feature.RecordType is 0x0081 or 0x0080 or 0x0082 or 0x020b or 0x001d or 0x0090);
 
             using var output = new MemoryStream();
             result.Document.Save(output);

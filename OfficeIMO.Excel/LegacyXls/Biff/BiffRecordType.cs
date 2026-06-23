@@ -78,6 +78,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         Scl = 0x00A0,
         Selection = 0x001D,
         Setup = 0x00A1,
+        Sort = 0x0090,
         AutoFilterInfo = 0x009D,
         AutoFilter = 0x009E,
         Rk = 0x027E,
