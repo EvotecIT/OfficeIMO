@@ -37,13 +37,15 @@ namespace OfficeIMO.Excel {
                 WorksheetPart copiedPart = WorkbookPartRoot.AddNewPart<WorksheetPart>();
                 copiedPart.Worksheet = (Worksheet)sourcePart.Worksheet!.CloneNode(true);
                 RewriteSharedStringCellsToInlineStrings(copiedPart.Worksheet, sourceDocument.WorkbookPartRoot.SharedStringTablePart);
-                RemapCopiedWorksheetStyles(sourceDocument.WorkbookPartRoot.WorkbookStylesPart?.Stylesheet, WorkbookPartRoot, copiedPart.Worksheet);
+                WorksheetStyleCopyMap styleMap = RemapCopiedWorksheetStyles(sourceDocument.WorkbookPartRoot.WorkbookStylesPart?.Stylesheet, WorkbookPartRoot, copiedPart.Worksheet);
+                RemapCopiedWorksheetConditionalFormats(copiedPart.Worksheet, styleMap.DifferentialFormats);
                 RemoveRelationshipBackedWorksheetFeatures(copiedPart.Worksheet);
                 CopyWorksheetTables(sourcePart, copiedPart);
                 copiedPart.Worksheet.Save();
 
                 Sheet sheet = AppendWorksheetElement(copiedPart, validatedName);
                 MarkSheetCacheDirty();
+                MarkPackageDirty();
                 WorkbookRoot.Save();
                 return new ExcelSheet(this, _spreadSheetDocument, sheet);
             });
@@ -79,9 +81,9 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void RemapCopiedWorksheetStyles(Stylesheet? sourceStylesheet, WorkbookPart targetWorkbookPart, Worksheet worksheet) {
+        private static WorksheetStyleCopyMap RemapCopiedWorksheetStyles(Stylesheet? sourceStylesheet, WorkbookPart targetWorkbookPart, Worksheet worksheet) {
             if (sourceStylesheet?.CellFormats == null) {
-                return;
+                return WorksheetStyleCopyMap.Empty;
             }
 
             WorkbookStylesPart targetStylesPart = targetWorkbookPart.WorkbookStylesPart ?? targetWorkbookPart.AddNewPart<WorkbookStylesPart>();
@@ -94,6 +96,7 @@ namespace OfficeIMO.Excel {
             Dictionary<uint, uint> borderMap = AppendStyleElements<Borders, Border>(sourceStylesheet.Borders, targetStylesheet.Borders!, (container, count) => container.Count = count);
             Dictionary<uint, uint> styleFormatMap = AppendCellStyleFormats(sourceStylesheet.CellStyleFormats, targetStylesheet.CellStyleFormats!, numberingMap, fontMap, fillMap, borderMap);
             Dictionary<uint, uint> cellFormatMap = AppendCellFormats(sourceStylesheet.CellFormats, targetStylesheet.CellFormats!, numberingMap, fontMap, fillMap, borderMap, styleFormatMap);
+            Dictionary<uint, uint> differentialFormatMap = AppendDifferentialFormats(sourceStylesheet.DifferentialFormats, targetStylesheet.DifferentialFormats!);
 
             foreach (Cell cell in worksheet.Descendants<Cell>()) {
                 uint? oldStyleIndex = cell.StyleIndex?.Value;
@@ -102,8 +105,36 @@ namespace OfficeIMO.Excel {
                 }
             }
 
+            foreach (Row row in worksheet.Descendants<Row>()) {
+                uint? oldStyleIndex = row.StyleIndex?.Value;
+                if (oldStyleIndex.HasValue && cellFormatMap.TryGetValue(oldStyleIndex.Value, out uint newStyleIndex)) {
+                    row.StyleIndex = newStyleIndex;
+                }
+            }
+
+            foreach (Column column in worksheet.Descendants<Column>()) {
+                uint? oldStyleIndex = column.Style?.Value;
+                if (oldStyleIndex.HasValue && cellFormatMap.TryGetValue(oldStyleIndex.Value, out uint newStyleIndex)) {
+                    column.Style = newStyleIndex;
+                }
+            }
+
             EnsureStylesheetPrimitives(targetStylesheet);
             targetStylesheet.Save();
+            return new WorksheetStyleCopyMap(cellFormatMap, differentialFormatMap);
+        }
+
+        private static void RemapCopiedWorksheetConditionalFormats(Worksheet worksheet, IReadOnlyDictionary<uint, uint> differentialFormatMap) {
+            if (differentialFormatMap.Count == 0) {
+                return;
+            }
+
+            foreach (ConditionalFormattingRule rule in worksheet.Descendants<ConditionalFormattingRule>()) {
+                uint? oldDxfId = rule.FormatId?.Value;
+                if (oldDxfId.HasValue && differentialFormatMap.TryGetValue(oldDxfId.Value, out uint newDxfId)) {
+                    rule.FormatId = newDxfId;
+                }
+            }
         }
 
         private static Dictionary<uint, uint> AppendNumberingFormats(Stylesheet sourceStylesheet, Stylesheet targetStylesheet) {
@@ -241,12 +272,47 @@ namespace OfficeIMO.Excel {
             return map;
         }
 
+        private static Dictionary<uint, uint> AppendDifferentialFormats(DifferentialFormats? source, DifferentialFormats target) {
+            var map = new Dictionary<uint, uint>();
+            if (source == null) {
+                return map;
+            }
+
+            uint offset = (uint)target.Elements<DifferentialFormat>().Count();
+            uint index = 0;
+            foreach (DifferentialFormat sourceFormat in source.Elements<DifferentialFormat>()) {
+                uint newIndex = offset + index;
+                target.Append(sourceFormat.CloneNode(true));
+                map[index] = newIndex;
+                index++;
+            }
+
+            target.Count = (uint)target.Elements<DifferentialFormat>().Count();
+            return map;
+        }
+
         private static uint MapValue(uint? value, IReadOnlyDictionary<uint, uint> map) {
             if (!value.HasValue) {
                 return 0U;
             }
 
             return map.TryGetValue(value.Value, out uint mapped) ? mapped : value.Value;
+        }
+
+        private sealed class WorksheetStyleCopyMap {
+            internal static readonly WorksheetStyleCopyMap Empty = new WorksheetStyleCopyMap(
+                new Dictionary<uint, uint>(),
+                new Dictionary<uint, uint>());
+
+            internal WorksheetStyleCopyMap(
+                IReadOnlyDictionary<uint, uint> cellFormats,
+                IReadOnlyDictionary<uint, uint> differentialFormats) {
+                CellFormats = cellFormats;
+                DifferentialFormats = differentialFormats;
+            }
+
+            internal IReadOnlyDictionary<uint, uint> CellFormats { get; }
+            internal IReadOnlyDictionary<uint, uint> DifferentialFormats { get; }
         }
     }
 }

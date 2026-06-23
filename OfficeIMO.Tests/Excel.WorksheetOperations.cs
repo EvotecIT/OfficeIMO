@@ -1,6 +1,7 @@
 using System.IO;
 using System.Linq;
 using System.Data;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
@@ -341,6 +342,134 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_CopyWorkSheetFrom_PackageModeStreamSavePersistsCopiedSheet() {
+            using var sourceStream = new MemoryStream();
+            using var targetSeedStream = new MemoryStream();
+            using var savedStream = new MemoryStream();
+
+            using (var sourceDocument = ExcelDocument.Create(sourceStream, autoSave: false)) {
+                sourceDocument.AddWorkSheet("Source").CellValue(1, 1, "Copied");
+                sourceDocument.Save(sourceStream);
+            }
+
+            using (var targetDocument = ExcelDocument.Create(targetSeedStream, autoSave: false)) {
+                targetDocument.AddWorkSheet("Existing").CellValue(1, 1, "Existing");
+                targetDocument.Save(targetSeedStream);
+            }
+
+            sourceStream.Position = 0;
+            targetSeedStream.Position = 0;
+            using (var sourceDocument = ExcelDocument.Load(sourceStream, readOnly: true))
+            using (var targetDocument = ExcelDocument.Load(targetSeedStream, readOnly: false, autoSave: false)) {
+                targetDocument.CopyWorkSheetFrom(sourceDocument, "Source", "Imported", SheetNameValidationMode.Sanitize, new ExcelWorksheetCopyOptions {
+                    CopyMode = ExcelWorksheetCopyMode.Package
+                });
+                targetDocument.Save(savedStream);
+            }
+
+            savedStream.Position = 0;
+            using var reloaded = ExcelDocument.Load(savedStream, readOnly: true);
+            Assert.Equal(2, reloaded.Sheets.Count);
+            Assert.True(reloaded["Imported"].TryGetCellText(1, 1, out var value));
+            Assert.Equal("Copied", value);
+        }
+
+        [Fact]
+        public void Test_CopyWorkSheetFrom_PackageModeRemapsStylesAndConditionalFormatDxf() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageStyleSource.xlsx");
+            string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageStyleTarget.xlsx");
+
+            using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
+                ExcelSheet source = sourceDocument.AddWorkSheet("Styled");
+                source.CellValue(1, 1, 10);
+                source.CellBackground(1, 1, "#D9EAD3");
+                sourceDocument.Save();
+            }
+
+            AddSourceWorksheetPackageArtifacts(sourcePath, "Styled");
+
+            using (var targetDocument = ExcelDocument.Create(targetPath)) {
+                targetDocument.AddWorkSheet("Existing").CellValue(1, 1, "Existing");
+                targetDocument.Save();
+            }
+
+            AddDummyDifferentialFormat(targetPath);
+
+            using (var sourceDocument = ExcelDocument.Load(sourcePath, readOnly: true))
+            using (var targetDocument = ExcelDocument.Load(targetPath)) {
+                targetDocument.CopyWorkSheetFrom(sourceDocument, "Styled", "Imported", SheetNameValidationMode.Sanitize, new ExcelWorksheetCopyOptions {
+                    CopyMode = ExcelWorksheetCopyMode.Package
+                });
+                targetDocument.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(targetPath, false)) {
+                WorksheetPart copiedPart = GetWorksheetPartByNameForOperations(spreadsheet, "Imported");
+                Worksheet worksheet = copiedPart.Worksheet;
+                Stylesheet stylesheet = spreadsheet.WorkbookPart!.WorkbookStylesPart!.Stylesheet!;
+                uint cellFormatCount = (uint)stylesheet.CellFormats!.Elements<CellFormat>().Count();
+                uint differentialFormatCount = (uint)stylesheet.DifferentialFormats!.Elements<DifferentialFormat>().Count();
+
+                Row row = Assert.Single(worksheet.Descendants<Row>(), item => item.RowIndex?.Value == 1U);
+                Column column = Assert.Single(worksheet.Elements<Columns>().Single().Elements<Column>());
+                ConditionalFormattingRule rule = Assert.Single(worksheet.Descendants<ConditionalFormattingRule>());
+
+                Assert.True(row.StyleIndex?.Value > 0U && row.StyleIndex.Value < cellFormatCount);
+                Assert.True(column.Style?.Value > 0U && column.Style.Value < cellFormatCount);
+                Assert.True(rule.FormatId?.Value == 1U && rule.FormatId.Value < differentialFormatCount);
+                Assert.Empty(worksheet.Elements<OleObjects>());
+                Assert.Empty(worksheet.Elements<Controls>());
+                Assert.Empty(worksheet.Elements<Picture>());
+                Assert.Empty(worksheet.Elements<LegacyDrawing>());
+            }
+
+            File.Delete(sourcePath);
+            File.Delete(targetPath);
+        }
+
+        [Fact]
+        public void Test_CopyWorkSheetFrom_PackageModeRewritesStructuredReferencesInWorksheetFormulas() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageStructuredSource.xlsx");
+            string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageStructuredTarget.xlsx");
+
+            using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
+                ExcelSheet source = sourceDocument.AddWorkSheet("Source");
+                source.CellValue(1, 1, "Name");
+                source.CellValue(2, 1, "Ada");
+                source.AddTable("A1:A2", hasHeader: true, name: "People", OfficeIMO.Excel.TableStyle.TableStyleMedium9);
+                source.ValidationCustomFormula("B2", "COUNTIF(People[Name],B2)>0");
+                sourceDocument.Save();
+            }
+
+            using (var targetDocument = ExcelDocument.Create(targetPath)) {
+                ExcelSheet existing = targetDocument.AddWorkSheet("Existing");
+                existing.CellValue(1, 1, "Name");
+                existing.CellValue(2, 1, "Grace");
+                existing.AddTable("A1:A2", hasHeader: true, name: "People", OfficeIMO.Excel.TableStyle.TableStyleMedium9);
+                targetDocument.Save();
+            }
+
+            using (var sourceDocument = ExcelDocument.Load(sourcePath, readOnly: true))
+            using (var targetDocument = ExcelDocument.Load(targetPath)) {
+                targetDocument.CopyWorkSheetFrom(sourceDocument, "Source", "Imported", SheetNameValidationMode.Sanitize, new ExcelWorksheetCopyOptions {
+                    CopyMode = ExcelWorksheetCopyMode.Package
+                });
+                targetDocument.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(targetPath, false)) {
+                WorksheetPart copiedPart = GetWorksheetPartByNameForOperations(spreadsheet, "Imported");
+                string copiedTableName = Assert.Single(copiedPart.TableDefinitionParts).Table.Name!.Value!;
+                Assert.NotEqual("People", copiedTableName);
+                Formula1 formula = Assert.Single(copiedPart.Worksheet.Descendants<Formula1>());
+                Assert.Equal($"COUNTIF({copiedTableName}[Name],B2)>0", formula.Text);
+            }
+
+            File.Delete(sourcePath);
+            File.Delete(targetPath);
+        }
+
+        [Fact]
         public void Test_CopyWorkSheetFrom_ValuesModeKeepsReaderWriterFallback() {
             string sourcePath = Path.Combine(_directoryWithFiles, "WorksheetCopyValuesModeSource.xlsx");
             string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyValuesModeTarget.xlsx");
@@ -377,6 +506,57 @@ namespace OfficeIMO.Tests {
 
             File.Delete(sourcePath);
             File.Delete(targetPath);
+        }
+
+        private static void AddSourceWorksheetPackageArtifacts(string path, string sheetName) {
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(path, true);
+            WorksheetPart worksheetPart = GetWorksheetPartByNameForOperations(spreadsheet, sheetName);
+            Worksheet worksheet = worksheetPart.Worksheet;
+            Cell cell = worksheet.Descendants<Cell>().Single(item => item.CellReference?.Value == "A1");
+            uint styleIndex = cell.StyleIndex?.Value ?? 0U;
+
+            SheetData sheetData = worksheet.GetFirstChild<SheetData>()!;
+            Row row = sheetData.Elements<Row>().Single(item => item.RowIndex?.Value == 1U);
+            row.StyleIndex = styleIndex;
+            row.CustomFormat = true;
+            worksheet.InsertBefore(new Columns(new Column {
+                Min = 1U,
+                Max = 1U,
+                Style = styleIndex,
+                Width = 14D,
+                CustomWidth = true
+            }), sheetData);
+
+            Stylesheet stylesheet = spreadsheet.WorkbookPart!.WorkbookStylesPart!.Stylesheet!;
+            stylesheet.DifferentialFormats ??= new DifferentialFormats();
+            stylesheet.DifferentialFormats.Append(new DifferentialFormat(new Fill(new PatternFill(new ForegroundColor { Rgb = "FFFF0000" }) {
+                PatternType = PatternValues.Solid
+            })));
+            stylesheet.DifferentialFormats.Count = (uint)stylesheet.DifferentialFormats.Elements<DifferentialFormat>().Count();
+            stylesheet.Save();
+
+            worksheet.Append(new ConditionalFormatting(
+                new ConditionalFormattingRule(new Formula("A1>0")) {
+                    Type = ConditionalFormatValues.Expression,
+                    FormatId = 0U,
+                    Priority = 1
+                }) {
+                SequenceOfReferences = new ListValue<StringValue> { InnerText = "A1" }
+            });
+            worksheet.Append(new OleObjects());
+            worksheet.Append(new Controls());
+            worksheet.Append(new Picture { Id = "rId999" });
+            worksheet.Append(new LegacyDrawing { Id = "rId998" });
+            worksheet.Save();
+        }
+
+        private static void AddDummyDifferentialFormat(string path) {
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(path, true);
+            Stylesheet stylesheet = spreadsheet.WorkbookPart!.WorkbookStylesPart!.Stylesheet!;
+            stylesheet.DifferentialFormats ??= new DifferentialFormats();
+            stylesheet.DifferentialFormats.Append(new DifferentialFormat(new Font(new Bold())));
+            stylesheet.DifferentialFormats.Count = (uint)stylesheet.DifferentialFormats.Elements<DifferentialFormat>().Count();
+            stylesheet.Save();
         }
 
         [Fact]

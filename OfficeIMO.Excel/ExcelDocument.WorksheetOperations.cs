@@ -351,6 +351,9 @@ namespace OfficeIMO.Excel {
             worksheet.RemoveAllChildren<LegacyDrawing>();
             worksheet.RemoveAllChildren<LegacyDrawingHeaderFooter>();
             worksheet.RemoveAllChildren<TableParts>();
+            worksheet.RemoveAllChildren<OleObjects>();
+            worksheet.RemoveAllChildren<Controls>();
+            worksheet.RemoveAllChildren<Picture>();
 
             foreach (Hyperlinks hyperlinks in worksheet.Elements<Hyperlinks>().ToList()) {
                 foreach (Hyperlink hyperlink in hyperlinks.Elements<Hyperlink>().Where(h => h.Id != null).ToList()) {
@@ -363,7 +366,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private void CopyWorksheetTables(WorksheetPart sourcePart, WorksheetPart copiedPart) {
+        private Dictionary<string, string> CopyWorksheetTables(WorksheetPart sourcePart, WorksheetPart copiedPart) {
             TableParts? copiedTableParts = null;
             var tableNameMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             var copiedTables = new List<Table>();
@@ -408,6 +411,8 @@ namespace OfficeIMO.Excel {
             if (copiedTableParts != null) {
                 copiedTableParts.Count = (uint)copiedTableParts.Elements<TablePart>().Count();
             }
+
+            return tableNameMap;
         }
 
         private uint GetNextUniqueTableId() {
@@ -489,6 +494,18 @@ namespace OfficeIMO.Excel {
 
         private static void RewriteStructuredTableReferences(Worksheet worksheet, IReadOnlyDictionary<string, string> tableNameMap) {
             foreach (CellFormula formula in worksheet.Descendants<CellFormula>()) {
+                formula.Text = RewriteStructuredTableReferences(formula.Text, tableNameMap);
+            }
+
+            foreach (Formula formula in worksheet.Descendants<Formula>()) {
+                formula.Text = RewriteStructuredTableReferences(formula.Text, tableNameMap);
+            }
+
+            foreach (Formula1 formula in worksheet.Descendants<Formula1>()) {
+                formula.Text = RewriteStructuredTableReferences(formula.Text, tableNameMap);
+            }
+
+            foreach (Formula2 formula in worksheet.Descendants<Formula2>()) {
                 formula.Text = RewriteStructuredTableReferences(formula.Text, tableNameMap);
             }
         }

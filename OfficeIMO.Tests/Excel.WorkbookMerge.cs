@@ -1,4 +1,7 @@
 using System.IO;
+using System.Linq;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using Xunit;
 
@@ -64,6 +67,44 @@ namespace OfficeIMO.Tests {
             Assert.Equal(2, reloaded.Sheets.Count);
             Assert.True(reloaded["Source"].TryGetCellText(1, 1, out var value));
             Assert.Equal("Imported", value);
+        }
+
+        [Fact]
+        public void Test_ExcelWorkbookMerge_RewritesCopiedWorksheetFormulasForPrefixedNames() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "ExcelWorkbookMerge.FormulaSource.xlsx");
+            string targetPath = Path.Combine(_directoryWithFiles, "ExcelWorkbookMerge.FormulaTarget.xlsx");
+
+            using (var source = ExcelDocument.Create(sourcePath)) {
+                ExcelSheet data = source.AddWorkSheet("Data");
+                data.CellValue(1, 1, 42);
+
+                ExcelSheet summary = source.AddWorkSheet("Summary");
+                summary.CellFormula(1, 1, "Data!A1");
+                summary.ValidationCustomFormula("B2", "COUNTIF(Data!$A$1:$A$1,\">0\")>0");
+                source.Save();
+            }
+
+            using (var target = ExcelDocument.Create(targetPath))
+            using (var source = ExcelDocument.Load(sourcePath, readOnly: true)) {
+                target.AddWorkSheet("Existing").CellValue(1, 1, "Existing");
+                target.MergeWorkbookFrom(source, new ExcelWorkbookMergeOptions {
+                    SheetNamePrefix = "Imported ",
+                    CopyMode = ExcelWorksheetCopyMode.Package
+                });
+                target.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(targetPath, false)) {
+                WorksheetPart summaryPart = GetWorksheetPartByNameForOperations(spreadsheet, "Imported Summary");
+                Cell formulaCell = summaryPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A1");
+                Formula1 validationFormula = Assert.Single(summaryPart.Worksheet.Descendants<Formula1>());
+
+                Assert.Equal("'Imported Data'!A1", formulaCell.CellFormula?.Text);
+                Assert.Equal("COUNTIF('Imported Data'!$A$1:$A$1,\">0\")>0", validationFormula.Text);
+            }
+
+            File.Delete(sourcePath);
+            File.Delete(targetPath);
         }
     }
 }
