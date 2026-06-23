@@ -606,6 +606,37 @@ public class DrawingTests {
     }
 
     [Fact]
+    public void OfficeGeometryCalculatesReusableArrowheadGeometry() {
+        Assert.True(OfficeGeometry.TryCreateArrowheadPoints(new OfficePoint(10D, 10D), new OfficePoint(0D, 10D), 2D, out OfficePoint[] arrow));
+        Assert.Equal(3, arrow.Length);
+        Assert.Equal(10D, arrow[0].X);
+        Assert.Equal(10D, arrow[0].Y);
+        Assert.Equal(arrow[1].X, arrow[2].X, precision: 6);
+        Assert.True(arrow[1].Y > arrow[0].Y);
+        Assert.True(arrow[2].Y < arrow[0].Y);
+
+        Assert.False(OfficeGeometry.TryCreateArrowheadPoints(new OfficePoint(10D, 10D), new OfficePoint(10D, 10D), 2D, out arrow));
+        Assert.Empty(arrow);
+    }
+
+    [Fact]
+    public void OfficeGeometryFindsReusableArrowheadSegments() {
+        var points = new[] {
+            (X: 0D, Y: 0D),
+            (X: 0D, Y: 0D),
+            (X: 3D, Y: 4D)
+        };
+
+        Assert.True(OfficeGeometry.TryGetArrowheadSegment(points, fromStart: true, out (double X, double Y) startTip, out (double X, double Y) startFrom));
+        Assert.Equal((0D, 0D), startTip);
+        Assert.Equal((3D, 4D), startFrom);
+
+        Assert.True(OfficeGeometry.TryGetArrowheadSegment(points, fromStart: false, out (double X, double Y) endTip, out (double X, double Y) endFrom));
+        Assert.Equal((3D, 4D), endTip);
+        Assert.Equal((0D, 0D), endFrom);
+    }
+
+    [Fact]
     public void OfficeSvgFormattingFormatsReusableSvgValues() {
         Assert.Equal("12.346", OfficeSvgFormatting.FormatNumber(12.34567D));
         Assert.Equal("0", OfficeSvgFormatting.FormatNumber(0.00000001D));

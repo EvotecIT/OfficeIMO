@@ -252,11 +252,11 @@ namespace OfficeIMO.Visio {
             double weight = Math.Max(connector.LineWeight * canvas.Scale, canvas.Supersampling);
             canvas.StrokePolyline(points, visibleLine ? connector.LineColor : Color.Transparent, weight, OfficeStrokeDashStyleMapper.FromVisioLinePattern(connector.LinePattern));
 
-            if (visibleLine && connector.BeginArrow.HasValue && connector.BeginArrow.Value != EndArrow.None && TryGetArrowSegment(points, fromStart: true, out (double X, double Y) beginTip, out (double X, double Y) beginFrom)) {
+            if (visibleLine && connector.BeginArrow.HasValue && connector.BeginArrow.Value != EndArrow.None && OfficeGeometry.TryGetArrowheadSegment(points, fromStart: true, out (double X, double Y) beginTip, out (double X, double Y) beginFrom)) {
                 DrawArrow(canvas, beginTip, beginFrom, connector.LineColor, weight);
             }
 
-            if (visibleLine && connector.EndArrow.HasValue && connector.EndArrow.Value != EndArrow.None && TryGetArrowSegment(points, fromStart: false, out (double X, double Y) endTip, out (double X, double Y) endFrom)) {
+            if (visibleLine && connector.EndArrow.HasValue && connector.EndArrow.Value != EndArrow.None && OfficeGeometry.TryGetArrowheadSegment(points, fromStart: false, out (double X, double Y) endTip, out (double X, double Y) endFrom)) {
                 DrawArrow(canvas, endTip, endFrom, connector.LineColor, weight);
             }
 
@@ -271,48 +271,25 @@ namespace OfficeIMO.Visio {
         }
 
         private static void DrawArrow(RasterCanvas canvas, (double X, double Y) tip, (double X, double Y) from, Color color, double weight) {
-            double angle = Math.Atan2(tip.Y - from.Y, tip.X - from.X);
-            double length = Math.Max(weight * 4D, canvas.Supersampling * 8D);
-            double wing = Math.PI / 7D;
-            List<(double X, double Y)> arrow = new() {
-                tip,
-                (tip.X - Math.Cos(angle - wing) * length, tip.Y - Math.Sin(angle - wing) * length),
-                (tip.X - Math.Cos(angle + wing) * length, tip.Y - Math.Sin(angle + wing) * length)
-            };
-            canvas.FillPolygon(arrow, color);
+            if (!OfficeGeometry.TryCreateArrowheadPoints(
+                    new OfficePoint(tip.X, tip.Y),
+                    new OfficePoint(from.X, from.Y),
+                    weight,
+                    out OfficePoint[] arrow,
+                    minimumLength: canvas.Supersampling * 8D)) {
+                return;
+            }
+
+            canvas.FillPolygon(ToTuples(arrow), color);
         }
 
-        private static bool TryGetArrowSegment(
-            IReadOnlyList<(double X, double Y)> points,
-            bool fromStart,
-            out (double X, double Y) tip,
-            out (double X, double Y) from) {
-            if (points.Count < 2) {
-                tip = default;
-                from = default;
-                return false;
+        private static List<(double X, double Y)> ToTuples(IReadOnlyList<OfficePoint> points) {
+            List<(double X, double Y)> converted = new(points.Count);
+            for (int i = 0; i < points.Count; i++) {
+                converted.Add((points[i].X, points[i].Y));
             }
 
-            if (fromStart) {
-                tip = points[0];
-                for (int i = 1; i < points.Count; i++) {
-                    if (Distance(tip, points[i]) > 1e-6D) {
-                        from = points[i];
-                        return true;
-                    }
-                }
-            } else {
-                tip = points[points.Count - 1];
-                for (int i = points.Count - 2; i >= 0; i--) {
-                    if (Distance(tip, points[i]) > 1e-6D) {
-                        from = points[i];
-                        return true;
-                    }
-                }
-            }
-
-            from = default;
-            return false;
+            return converted;
         }
 
     }

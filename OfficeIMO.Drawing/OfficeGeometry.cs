@@ -7,6 +7,8 @@ namespace OfficeIMO.Drawing;
 /// Reusable dependency-free geometry helpers shared by OfficeIMO renderers.
 /// </summary>
 public static class OfficeGeometry {
+    private const double DefaultArrowheadWingAngleRadians = Math.PI / 7D;
+
     /// <summary>
     /// Calculates the Euclidean distance between two points.
     /// </summary>
@@ -60,6 +62,153 @@ public static class OfficeGeometry {
         offsetX = -dy / length * half;
         offsetY = dx / length * half;
         return true;
+    }
+
+    /// <summary>
+    /// Calculates the triangular arrowhead points for a connector segment.
+    /// </summary>
+    /// <param name="tip">Arrowhead tip point.</param>
+    /// <param name="from">A non-collapsed point behind the tip on the connector segment.</param>
+    /// <param name="strokeWidth">Connector stroke width used to scale the arrowhead length.</param>
+    /// <param name="points">Three arrowhead points: tip, first wing, and second wing.</param>
+    /// <param name="minimumLength">Minimum arrowhead length in drawing units.</param>
+    /// <param name="lengthMultiplier">Multiplier applied to <paramref name="strokeWidth"/>.</param>
+    /// <param name="wingAngleRadians">Angle between the connector segment and each arrowhead wing.</param>
+    /// <returns><see langword="true" /> when the segment and sizing inputs can produce an arrowhead.</returns>
+    public static bool TryCreateArrowheadPoints(
+        OfficePoint tip,
+        OfficePoint from,
+        double strokeWidth,
+        out OfficePoint[] points,
+        double minimumLength = 8D,
+        double lengthMultiplier = 4D,
+        double wingAngleRadians = DefaultArrowheadWingAngleRadians) {
+        points = Array.Empty<OfficePoint>();
+        if (!IsFinite(tip.X) ||
+            !IsFinite(tip.Y) ||
+            !IsFinite(from.X) ||
+            !IsFinite(from.Y) ||
+            !IsFinite(strokeWidth) ||
+            !IsFinite(minimumLength) ||
+            !IsFinite(lengthMultiplier) ||
+            !IsFinite(wingAngleRadians)) {
+            return false;
+        }
+
+        double dx = tip.X - from.X;
+        double dy = tip.Y - from.Y;
+        if ((dx * dx) + (dy * dy) <= 0D) {
+            return false;
+        }
+
+        double length = Math.Max(strokeWidth * lengthMultiplier, minimumLength);
+        if (length <= 0D) {
+            return false;
+        }
+
+        double angle = Math.Atan2(dy, dx);
+        points = new[] {
+            tip,
+            new OfficePoint(tip.X - Math.Cos(angle - wingAngleRadians) * length, tip.Y - Math.Sin(angle - wingAngleRadians) * length),
+            new OfficePoint(tip.X - Math.Cos(angle + wingAngleRadians) * length, tip.Y - Math.Sin(angle + wingAngleRadians) * length)
+        };
+        return true;
+    }
+
+    /// <summary>
+    /// Finds the terminal non-collapsed segment that should receive an arrowhead.
+    /// </summary>
+    /// <param name="points">Connector polyline points in drawing coordinates.</param>
+    /// <param name="fromStart">When true, resolves the first segment; otherwise resolves the last segment.</param>
+    /// <param name="tip">Resolved arrow tip point.</param>
+    /// <param name="from">Resolved point behind the arrow tip.</param>
+    /// <param name="tolerance">Minimum segment length considered non-collapsed.</param>
+    /// <returns><see langword="true" /> when a non-collapsed terminal segment exists.</returns>
+    public static bool TryGetArrowheadSegment(
+        IReadOnlyList<OfficePoint> points,
+        bool fromStart,
+        out OfficePoint tip,
+        out OfficePoint from,
+        double tolerance = 1e-6D) {
+        if (points == null) {
+            throw new ArgumentNullException(nameof(points));
+        }
+
+        if (points.Count < 2) {
+            tip = default;
+            from = default;
+            return false;
+        }
+
+        double minimumDistance = NormalizeNonNegative(tolerance);
+        if (fromStart) {
+            tip = points[0];
+            for (int i = 1; i < points.Count; i++) {
+                if (Distance(tip, points[i]) > minimumDistance) {
+                    from = points[i];
+                    return true;
+                }
+            }
+        } else {
+            tip = points[points.Count - 1];
+            for (int i = points.Count - 2; i >= 0; i--) {
+                if (Distance(tip, points[i]) > minimumDistance) {
+                    from = points[i];
+                    return true;
+                }
+            }
+        }
+
+        from = default;
+        return false;
+    }
+
+    /// <summary>
+    /// Finds the terminal non-collapsed tuple segment that should receive an arrowhead.
+    /// </summary>
+    /// <param name="points">Connector polyline points in drawing coordinates.</param>
+    /// <param name="fromStart">When true, resolves the first segment; otherwise resolves the last segment.</param>
+    /// <param name="tip">Resolved arrow tip point.</param>
+    /// <param name="from">Resolved point behind the arrow tip.</param>
+    /// <param name="tolerance">Minimum segment length considered non-collapsed.</param>
+    /// <returns><see langword="true" /> when a non-collapsed terminal segment exists.</returns>
+    public static bool TryGetArrowheadSegment(
+        IReadOnlyList<(double X, double Y)> points,
+        bool fromStart,
+        out (double X, double Y) tip,
+        out (double X, double Y) from,
+        double tolerance = 1e-6D) {
+        if (points == null) {
+            throw new ArgumentNullException(nameof(points));
+        }
+
+        if (points.Count < 2) {
+            tip = default;
+            from = default;
+            return false;
+        }
+
+        double minimumDistance = NormalizeNonNegative(tolerance);
+        if (fromStart) {
+            tip = points[0];
+            for (int i = 1; i < points.Count; i++) {
+                if (Distance(tip, points[i]) > minimumDistance) {
+                    from = points[i];
+                    return true;
+                }
+            }
+        } else {
+            tip = points[points.Count - 1];
+            for (int i = points.Count - 2; i >= 0; i--) {
+                if (Distance(tip, points[i]) > minimumDistance) {
+                    from = points[i];
+                    return true;
+                }
+            }
+        }
+
+        from = default;
+        return false;
     }
 
     /// <summary>
@@ -222,6 +371,9 @@ public static class OfficeGeometry {
 
         return position > 1D ? 1D : position;
     }
+
+    private static double NormalizeNonNegative(double value) =>
+        value >= 0D && IsFinite(value) ? value : 0D;
 
     private static bool IsFinite(double value) =>
         !double.IsNaN(value) && !double.IsInfinity(value);

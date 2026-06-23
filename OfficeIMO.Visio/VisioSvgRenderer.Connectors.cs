@@ -33,11 +33,11 @@ namespace OfficeIMO.Visio {
             writer.WriteEndElement();
 
             if (visibleLine) {
-                if (connector.BeginArrow.HasValue && connector.BeginArrow.Value != EndArrow.None && TryGetArrowSegment(points, fromStart: true, out (double X, double Y) beginTip, out (double X, double Y) beginFrom)) {
+                if (connector.BeginArrow.HasValue && connector.BeginArrow.Value != EndArrow.None && OfficeGeometry.TryGetArrowheadSegment(points, fromStart: true, out (double X, double Y) beginTip, out (double X, double Y) beginFrom)) {
                     WriteArrow(writer, page, beginTip, beginFrom, scale, connector.LineColor, strokeWidth, "start");
                 }
 
-                if (connector.EndArrow.HasValue && connector.EndArrow.Value != EndArrow.None && TryGetArrowSegment(points, fromStart: false, out (double X, double Y) endTip, out (double X, double Y) endFrom)) {
+                if (connector.EndArrow.HasValue && connector.EndArrow.Value != EndArrow.None && OfficeGeometry.TryGetArrowheadSegment(points, fromStart: false, out (double X, double Y) endTip, out (double X, double Y) endFrom)) {
                     WriteArrow(writer, page, endTip, endFrom, scale, connector.LineColor, strokeWidth, "end");
                 }
             }
