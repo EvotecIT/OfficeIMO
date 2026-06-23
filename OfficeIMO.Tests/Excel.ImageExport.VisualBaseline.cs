@@ -20,6 +20,7 @@ namespace OfficeIMO.Tests {
         private const string TransformedImageBaselineName = "officeimo-excel-image-transformed-image";
         private const string DrawingObjectBaselineName = "officeimo-excel-image-drawing-object";
         private const string RichTextBaselineName = "officeimo-excel-image-rich-text";
+        private const string StackedTextBaselineName = "officeimo-excel-image-stacked-text";
         private const string PatternFillBaselineName = "officeimo-excel-image-pattern-fills";
 
         [Fact]
@@ -226,6 +227,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void StackedTextImageExportMatchesApprovedBaselines() {
+            using ExcelBaselineFixture fixture = CreateStackedTextBaselineWorkbook();
+            ExcelRange range = fixture.Sheet.Range("A1:D5");
+            ExcelImageExportOptions options = CreateBaselineOptions();
+
+            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
+            OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg, options);
+            string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
+
+            Assert.Equal(3, png.Diagnostics.Count(item => item.Code == ExcelImageExportDiagnosticCodes.CellTextRotationApproximation));
+            Assert.DoesNotContain(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.CellStackedTextRotationUnsupported);
+            Assert.DoesNotContain(svg.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.CellStackedTextRotationUnsupported);
+            Assert.DoesNotContain(png.Diagnostics, item => item.Severity == OfficeImageExportDiagnosticSeverity.Error);
+            Assert.DoesNotContain(svg.Diagnostics, item => item.Severity == OfficeImageExportDiagnosticSeverity.Error);
+            Assert.Contains(">S</text>", svgText, StringComparison.Ordinal);
+            Assert.Contains(">K</text>", svgText, StringComparison.Ordinal);
+            Assert.Contains(">R</text>", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("rotate(", svgText, StringComparison.Ordinal);
+            AssertRasterBaseline(StackedTextBaselineName + ".png", png.Bytes);
+            AssertTextBaseline(StackedTextBaselineName + ".svg", svgText);
+        }
+
+        [Fact]
         public void PatternFillImageExportMatchesApprovedBaselines() {
             using ExcelBaselineFixture fixture = CreatePatternFillBaselineWorkbook();
             ExcelRange range = fixture.Sheet.Range("A1:D5");
@@ -326,6 +350,40 @@ namespace OfficeIMO.Tests {
             Assert.Contains("#7C3AED", svg, StringComparison.Ordinal);
             Assert.Contains("#DC2626", svg, StringComparison.Ordinal);
             Assert.Contains("font-size", svg, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void ApprovedStackedTextBaselinesAreRenderableAndNonBlank() {
+            string baselineDirectory = BaselineDirectory;
+            string pngPath = Path.Combine(baselineDirectory, StackedTextBaselineName + ".png");
+            string svgPath = Path.Combine(baselineDirectory, StackedTextBaselineName + ".svg");
+            if (UpdateBaselines) {
+                using ExcelBaselineFixture fixture = CreateStackedTextBaselineWorkbook();
+                ExcelRange range = fixture.Sheet.Range("A1:D5");
+                ExcelImageExportOptions options = CreateBaselineOptions();
+                AssertRasterBaseline(StackedTextBaselineName + ".png", range.ExportImage(OfficeImageExportFormat.Png, options).Bytes);
+                AssertTextBaseline(StackedTextBaselineName + ".svg", System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeImageExportFormat.Svg, options).Bytes));
+            }
+
+            Assert.True(File.Exists(pngPath), "Missing approved stacked-text PNG baseline: " + pngPath);
+            Assert.True(File.Exists(svgPath), "Missing approved stacked-text SVG baseline: " + svgPath);
+
+            OfficeRasterImage image = VisualBaselineTestSupport.DecodePng(File.ReadAllBytes(pngPath), "Approved stacked-text PNG baseline is not a supported PNG file.");
+            Assert.True(image.Width >= 420, "Stacked-text PNG baseline width is unexpectedly small.");
+            Assert.True(image.Height >= 230, "Stacked-text PNG baseline height is unexpectedly small.");
+            int nonBackgroundPixels = VisualBaselineTestSupport.CountNonBackgroundPixels(image, OfficeColor.White);
+            Assert.True(nonBackgroundPixels >= 1200, "Stacked-text PNG baseline appears blank or nearly blank. Visible pixels: " + nonBackgroundPixels + ".");
+
+            string svg = File.ReadAllText(svgPath);
+            Assert.Contains("<svg", svg, StringComparison.Ordinal);
+            Assert.Contains("Stacked Text Fidelity", svg, StringComparison.Ordinal);
+            Assert.Contains(">S</text>", svg, StringComparison.Ordinal);
+            Assert.Contains(">K</text>", svg, StringComparison.Ordinal);
+            Assert.Contains(">R</text>", svg, StringComparison.Ordinal);
+            Assert.DoesNotContain("rotate(", svg, StringComparison.Ordinal);
+            Assert.Contains("#0F766E", svg, StringComparison.Ordinal);
+            Assert.Contains("#7C3AED", svg, StringComparison.Ordinal);
+            Assert.Contains("#DC2626", svg, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -750,6 +808,80 @@ namespace OfficeIMO.Tests {
                 }
             }
 
+            return new ExcelBaselineFixture(document, sheet);
+        }
+
+        private static ExcelBaselineFixture CreateStackedTextBaselineWorkbook() {
+            string filePath = Path.Combine(Path.GetTempPath(), "OfficeIMO-ExcelStackedTextBaseline-" + Guid.NewGuid().ToString("N") + ".xlsx");
+            ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("StackedText");
+
+            sheet.CellValue(1, 1, "Stacked Text Fidelity");
+            sheet.Range("A1:D1").Merge();
+            sheet.Range("A1:D1").SetFillColor("0F172A").SetFontColor("FFFFFF").SetBold();
+            sheet.CellAlign(1, 1, HorizontalAlignmentValues.Center);
+            sheet.CellVerticalAlign(1, 1, VerticalAlignmentValues.Center);
+
+            string[] headers = { "Case", "Status", "Narrow", "Marker" };
+            for (int column = 1; column <= headers.Length; column++) {
+                sheet.CellValue(2, column, headers[column - 1]);
+                sheet.CellAt(2, column).SetFillColor("E2E8F0").SetFontColor("0F172A").SetBold();
+                sheet.CellAlign(2, column, HorizontalAlignmentValues.Center);
+                sheet.CellVerticalAlign(2, column, VerticalAlignmentValues.Center);
+            }
+
+            sheet.CellValue(3, 1, "Centered");
+            sheet.CellValue(4, 1, "Shrink");
+            sheet.CellValue(5, 1, "Mixed");
+            sheet.Range("A3:A5").SetFillColor("F8FAFC").SetFontColor("334155");
+
+            sheet.CellValue(3, 2, "STACK");
+            sheet.CellAt(3, 2).SetTextRotation(255).SetFontColor("0F766E").SetBold().SetFontSize(12);
+            sheet.CellAlign(3, 2, HorizontalAlignmentValues.Center);
+            sheet.CellVerticalAlign(3, 2, VerticalAlignmentValues.Center);
+
+            sheet.CellValue(3, 3, "EXPORT");
+            sheet.CellAt(3, 3).SetTextRotation(255).SetFontColor("7C3AED").SetBold().SetShrinkToFit().SetFontSize(14);
+            sheet.CellAlign(3, 3, HorizontalAlignmentValues.Center);
+            sheet.CellVerticalAlign(3, 3, VerticalAlignmentValues.Center);
+
+            sheet.CellValue(3, 4, "READY");
+            sheet.CellAt(3, 4).SetTextRotation(255).SetFontColor("DC2626").SetBold().SetFontSize(12);
+            sheet.CellAlign(3, 4, HorizontalAlignmentValues.Center);
+            sheet.CellVerticalAlign(3, 4, VerticalAlignmentValues.Center);
+
+            sheet.CellValue(4, 2, "PNG");
+            sheet.CellValue(4, 3, "SVG");
+            sheet.CellValue(4, 4, "Drawing-owned stacked layout");
+            sheet.CellAt(4, 2).SetFontColor("0F766E").SetBold();
+            sheet.CellAt(4, 3).SetFontColor("7C3AED").SetBold();
+            sheet.CellAt(4, 4).SetFontColor("475569").SetShrinkToFit();
+
+            sheet.CellValue(5, 2, "Shared layout");
+            sheet.CellValue(5, 3, "No old unsupported diagnostic");
+            sheet.CellValue(5, 4, "PNG/SVG baseline gate");
+            sheet.Range("B5:D5").SetFontColor("475569");
+            sheet.WrapCells(5, 5, 3);
+
+            sheet.SetColumnWidth(1, 14);
+            sheet.SetColumnWidth(2, 12);
+            sheet.SetColumnWidth(3, 10);
+            sheet.SetColumnWidth(4, 20);
+            sheet.SetRowHeight(1, 28);
+            sheet.SetRowHeight(2, 26);
+            sheet.SetRowHeight(3, 96);
+            sheet.SetRowHeight(4, 30);
+            sheet.SetRowHeight(5, 42);
+
+            for (int row = 1; row <= 5; row++) {
+                for (int column = 1; column <= 4; column++) {
+                    sheet.CellAt(row, column).SetBorder(BorderStyleValues.Thin, "CBD5E1");
+                    sheet.CellVerticalAlign(row, column, VerticalAlignmentValues.Center);
+                }
+            }
+
+            sheet.Range("B3:D3").SetFillColor("F8FAFC");
+            sheet.Range("B4:D5").SetFillColor("FFFFFF");
             return new ExcelBaselineFixture(document, sheet);
         }
 
