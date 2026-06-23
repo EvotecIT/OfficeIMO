@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Text;
 using OfficeIMO.Drawing;
 
@@ -319,7 +318,7 @@ namespace OfficeIMO.Visio.Stencils {
 
             StringBuilder builder = new();
             builder.AppendLine("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
-            builder.AppendLine("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"" + width + "\" height=\"" + height + "\" viewBox=\"0 0 " + width + " " + height + "\" role=\"img\" aria-label=\"" + EscapeXml(displayName) + "\">");
+            builder.AppendLine("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"" + width + "\" height=\"" + height + "\" viewBox=\"0 0 " + width + " " + height + "\" role=\"img\" aria-label=\"" + Escape(displayName) + "\">");
             builder.Append("  ").AppendRectElement(0D, 0D, options.ThumbnailWidth, options.ThumbnailHeight, 8D, 8D, " fill=\"#FFFFFF\"").AppendLine();
             builder.Append("  ").AppendRectElement(0.5D, 0.5D, options.ThumbnailWidth - 1D, options.ThumbnailHeight - 1D, 7.5D, 7.5D, " fill=\"none\" stroke=\"#D3E0EC\"").AppendLine();
             builder.Append("  ");
@@ -349,21 +348,7 @@ namespace OfficeIMO.Visio.Stencils {
             builder.AppendLine("            <dt>" + Escape(name) + "</dt><dd>" + Escape(value) + "</dd>");
         }
 
-        private static string Escape(string value) {
-            return WebUtility.HtmlEncode(value);
-        }
-
-        private static string EscapeXml(string value) {
-            return SecurityElementEscape(value);
-        }
-
-        private static string SecurityElementEscape(string value) {
-            return value
-                .Replace("&", "&amp;")
-                .Replace("\"", "&quot;")
-                .Replace("<", "&lt;")
-                .Replace(">", "&gt;");
-        }
+        private static string Escape(string? value) => OfficeSvgFormatting.Escape(value);
 
         private static string GetContentTypeFromExtension(string? extension) {
             if (string.IsNullOrWhiteSpace(extension)) {

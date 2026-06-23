@@ -951,7 +951,9 @@ namespace OfficeIMO.Tests {
         public void PackageStencilPreviewGalleryWritesBrowserRenderableThumbnailArtifacts() {
             string packagePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vssx");
             byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lM9sWQAAAABJRU5ErkJggg==");
-            CreatePackageWithRawGroupMaster(packagePath, "FancyCloud", "Fancy Cloud", "png", png);
+            const string displayName = "Fancy <Cloud> & \"QA\"";
+            const string escapedDisplayName = "Fancy &lt;Cloud&gt; &amp; &quot;QA&quot;";
+            CreatePackageWithRawGroupMaster(packagePath, "FancyCloud", displayName, "png", png);
             string outputDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
 
             VisioStencilPreviewGallery gallery = VisioStencilPackageCatalog.CreatePreviewGallery(
@@ -985,16 +987,18 @@ namespace OfficeIMO.Tests {
             Assert.Contains("height=\"120\"", thumbnail);
             Assert.Contains("data:image/png;base64,", thumbnail);
             Assert.Contains(Convert.ToBase64String(png), thumbnail);
-            Assert.Contains("Fancy Cloud", thumbnail);
+            Assert.Contains("aria-label=\"" + escapedDisplayName + "\"", thumbnail);
+            Assert.Contains(escapedDisplayName, thumbnail);
             Assert.Contains("<rect x=\"0\" y=\"0\" width=\"180\" height=\"120\" rx=\"8\" ry=\"8\" fill=\"#FFFFFF\"/>", thumbnail);
             Assert.Contains("<rect x=\"0.5\" y=\"0.5\" width=\"179\" height=\"119\" rx=\"7.5\" ry=\"7.5\" fill=\"none\" stroke=\"#D3E0EC\"/>", thumbnail);
             Assert.Contains("<image x=\"14\" y=\"12\" width=\"152\" height=\"78\" preserveAspectRatio=\"xMidYMid meet\" href=\"data:image/png;base64,", thumbnail);
-            Assert.Contains("<text x=\"14\" y=\"106\" font-family=\"Aptos, Segoe UI, Arial, sans-serif\" font-size=\"12\" text-anchor=\"start\" fill=\"#657586\">Fancy Cloud</text>", thumbnail);
+            Assert.Contains("<text x=\"14\" y=\"106\" font-family=\"Aptos, Segoe UI, Arial, sans-serif\" font-size=\"12\" text-anchor=\"start\" fill=\"#657586\">" + escapedDisplayName + "</text>", thumbnail);
 
             string html = File.ReadAllText(gallery.IndexPath!);
             Assert.Contains("<strong>1</strong> thumbnails", html);
             Assert.Contains("thumbs/42-FancyCloud.thumbnail.svg", html);
             Assert.Contains("assets/42-FancyCloud.png", html);
+            Assert.Contains("<h2>" + escapedDisplayName + "</h2>", html);
         }
 
         [Fact]
