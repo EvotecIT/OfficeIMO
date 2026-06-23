@@ -138,10 +138,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 code = "XLS-BIFF-FEATURE-COMMENT-UNSUPPORTED";
                 message = "Comment records are present but comment import is not implemented in this phase.";
                 detailCode = "Comment:" + GetBiffRecordName(type);
-            } else if (type == (ushort)BiffRecordType.Obj
-                || type == (ushort)BiffRecordType.DrawingGroup
-                || type == (ushort)BiffRecordType.Drawing
-                || type == (ushort)BiffRecordType.Txo) {
+            } else if (IsDrawingRecord(type)) {
                 kind = LegacyXlsUnsupportedFeatureKind.DrawingObject;
                 code = "XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED";
                 message = "Drawing or object records are present but drawing import is not implemented in this phase.";
@@ -400,6 +397,13 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
         internal static bool IsChartRecord(ushort type) {
             return type >= 0x1000 && type <= 0x1066;
+        }
+
+        internal static bool IsDrawingRecord(ushort type) {
+            return type == (ushort)BiffRecordType.Obj
+                || type == (ushort)BiffRecordType.DrawingGroup
+                || type == (ushort)BiffRecordType.Drawing
+                || type == (ushort)BiffRecordType.Txo;
         }
 
         internal static bool IsPivotTableRecord(ushort type) {

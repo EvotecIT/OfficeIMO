@@ -13,6 +13,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             List<LegacyXlsPreservedFeatureRecord> preservedFeatureRecords,
             List<LegacyXlsPivotTableRecord> pivotTableRecords,
             List<LegacyXlsChartRecord> chartRecords,
+            List<LegacyXlsDrawingRecord> drawingRecords,
             List<LegacyXlsImportDiagnostic> diagnostics,
             LegacyXlsImportOptions options) {
             foreach (LegacyXlsUnsupportedSheet sheet in unsupportedSheets) {
@@ -20,7 +21,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     continue;
                 }
 
-                ScanSheet(workbookStream, sheet, unsupportedFeatures, preservedFeatureRecords, pivotTableRecords, chartRecords, diagnostics, options);
+                ScanSheet(workbookStream, sheet, unsupportedFeatures, preservedFeatureRecords, pivotTableRecords, chartRecords, drawingRecords, diagnostics, options);
             }
         }
 
@@ -36,6 +37,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             List<LegacyXlsPreservedFeatureRecord> preservedFeatureRecords,
             List<LegacyXlsPivotTableRecord> pivotTableRecords,
             List<LegacyXlsChartRecord> chartRecords,
+            List<LegacyXlsDrawingRecord> drawingRecords,
             List<LegacyXlsImportDiagnostic> diagnostics,
             LegacyXlsImportOptions options) {
             if (sheet.StreamOffset >= workbookStream.Length) {
@@ -81,7 +83,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     return;
                 }
 
-                if (TryReadUnsupportedSheetMetadata(workbookStream, sheet, diagnostics, type, offset, payloadOffset, length)) {
+                if (TryReadUnsupportedSheetMetadata(workbookStream, sheet, diagnostics, type, offset, payloadOffset, length, drawingRecords)) {
                     offset = payloadOffset + length;
                     continue;
                 }
@@ -90,6 +92,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     && BiffUnsupportedRecordDiagnostics.IsPreserveOnlyFeatureRecord(type)) {
                     byte[] payload = new byte[length];
                     Buffer.BlockCopy(workbookStream, payloadOffset, payload, 0, length);
+                    BiffDrawingMetadataReader.TryRead(new BiffRecord(type, offset, payload), sheet.Name, drawingRecords);
                     BiffChartMetadataReader.TryRead(new BiffRecord(type, offset, payload), sheet.Name, chartRecords);
                     BiffPivotTableMetadataReader.TryRead(new BiffRecord(type, offset, payload), sheet.Name, pivotTableRecords, diagnostics);
                     LegacyXlsUnsupportedFeature feature = BiffUnsupportedRecordDiagnostics.CreateUnsupportedRecordFeature(type, offset, sheet.Name);
@@ -114,12 +117,16 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             ushort type,
             int recordOffset,
             int payloadOffset,
-            ushort payloadLength) {
+            ushort payloadLength,
+            List<LegacyXlsDrawingRecord> drawingRecords) {
             if (sheet.Kind != LegacyXlsUnsupportedSheetKind.ChartSheet) {
                 return false;
             }
 
             if (type == (ushort)BiffRecordType.Txo) {
+                byte[] payload = new byte[payloadLength];
+                Buffer.BlockCopy(workbookStream, payloadOffset, payload, 0, payloadLength);
+                BiffDrawingMetadataReader.TryRead(new BiffRecord(type, recordOffset, payload), sheet.Name, drawingRecords);
                 sheet.IncrementChartTextObjectCount();
                 sheet.AddMetadataRecord(LegacyXlsUnsupportedSheetMetadataKind.ChartTextObject, recordOffset, type);
                 return true;

@@ -15,6 +15,7 @@ External cell caches: 2
 External cached cells: 914
 Pivot table records: 16
 Chart records: 1079
+Drawing records: 36
 Calculation setting records: 61
 Cell style records: 6
 Workbook metadata records: 20
@@ -276,6 +277,39 @@ Warnings: 2
 | graphs1 | 184 |
 | graphs2 | 185 |
 | lb_chart | 185 |
+
+## Drawing Records By Kind
+
+| Key | Count |
+| --- | --- |
+| Drawing | 19 |
+| DrawingGroup | 1 |
+| Object | 10 |
+| TextObject | 6 |
+
+## Drawing Records By Name
+
+| Key | Count |
+| --- | --- |
+| MsoDrawing | 19 |
+| MsoDrawingGroup | 1 |
+| Obj | 10 |
+| TxO | 6 |
+
+## Drawing Records By Location
+
+| Key | Count |
+| --- | --- |
+| (workbook) | 1 |
+| All | 1 |
+| b | 1 |
+| b_chart | 4 |
+| cl | 1 |
+| cl_chart | 4 |
+| c_chart | 4 |
+| graphs1 | 8 |
+| graphs2 | 8 |
+| lb_chart | 4 |
 
 ## Calculation Settings By Kind
 

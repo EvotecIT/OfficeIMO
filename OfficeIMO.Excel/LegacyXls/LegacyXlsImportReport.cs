@@ -25,6 +25,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             ExternalCachedCellCount = workbook.ExternalReferences.Sum(reference => reference.CachedCellCaches.Sum(cache => cache.Cells.Count));
             PivotTableRecordCount = workbook.PivotTableRecords.Count;
             ChartRecordCount = workbook.ChartRecords.Count;
+            DrawingRecordCount = workbook.DrawingRecords.Count;
             CalculationSettingRecordCount = workbook.CalculationSettings.Records.Count;
             CellStyleRecordCount = workbook.CellStyles.Count;
             WorkbookMetadataRecordCount = workbook.MetadataRecords.Count;
@@ -53,6 +54,9 @@ namespace OfficeIMO.Excel.LegacyXls {
             ChartRecordsByKind = CountChartRecordsByKind(workbook.ChartRecords);
             ChartRecordsByName = CountByCode(workbook.ChartRecords.Select(record => record.RecordName));
             ChartRecordsByLocation = CountByCode(workbook.ChartRecords.Select(GetChartRecordLocationKey));
+            DrawingRecordsByKind = CountDrawingRecordsByKind(workbook.DrawingRecords);
+            DrawingRecordsByName = CountByCode(workbook.DrawingRecords.Select(record => record.RecordName));
+            DrawingRecordsByLocation = CountByCode(workbook.DrawingRecords.Select(GetDrawingRecordLocationKey));
             CalculationSettingsByKind = CountCalculationSettingsByKind(workbook.CalculationSettings.Records);
             CellStylesByKind = CountByCode(workbook.CellStyles.Select(style => style.IsBuiltIn ? "BuiltIn" : "Custom"));
             WorkbookMetadataRecordsByKind = CountWorkbookMetadataRecordsByKind(workbook.MetadataRecords);
@@ -108,6 +112,9 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets the number of preserve-only chart BIFF records discovered during import.</summary>
         public int ChartRecordCount { get; }
+
+        /// <summary>Gets the number of preserve-only drawing and object BIFF records discovered during import.</summary>
+        public int DrawingRecordCount { get; }
 
         /// <summary>Gets the number of calculation setting records parsed from BIFF records.</summary>
         public int CalculationSettingRecordCount { get; }
@@ -172,6 +179,15 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets preserve-only chart BIFF records grouped by workbook or sheet location.</summary>
         public IReadOnlyDictionary<string, int> ChartRecordsByLocation { get; }
 
+        /// <summary>Gets preserve-only drawing and object BIFF records grouped by shallow category.</summary>
+        public IReadOnlyDictionary<LegacyXlsDrawingRecordKind, int> DrawingRecordsByKind { get; }
+
+        /// <summary>Gets preserve-only drawing and object BIFF records grouped by record name.</summary>
+        public IReadOnlyDictionary<string, int> DrawingRecordsByName { get; }
+
+        /// <summary>Gets preserve-only drawing and object BIFF records grouped by workbook or sheet location.</summary>
+        public IReadOnlyDictionary<string, int> DrawingRecordsByLocation { get; }
+
         /// <summary>Gets parsed calculation setting records grouped by setting kind.</summary>
         public IReadOnlyDictionary<LegacyXlsCalculationSettingKind, int> CalculationSettingsByKind { get; }
 
@@ -221,6 +237,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             builder.AppendLine($"External cached cells: {ExternalCachedCellCount}");
             builder.AppendLine($"Pivot table records: {PivotTableRecordCount}");
             builder.AppendLine($"Chart records: {ChartRecordCount}");
+            builder.AppendLine($"Drawing records: {DrawingRecordCount}");
             builder.AppendLine($"Calculation setting records: {CalculationSettingRecordCount}");
             builder.AppendLine($"Cell style records: {CellStyleRecordCount}");
             builder.AppendLine($"Workbook metadata records: {WorkbookMetadataRecordCount}");
@@ -251,6 +268,12 @@ namespace OfficeIMO.Excel.LegacyXls {
                 StringComparer.OrdinalIgnoreCase));
             AppendDictionary(builder, "Chart Records By Name", ChartRecordsByName);
             AppendDictionary(builder, "Chart Records By Location", ChartRecordsByLocation);
+            AppendDictionary(builder, "Drawing Records By Kind", DrawingRecordsByKind.ToDictionary(
+                entry => entry.Key.ToString(),
+                entry => entry.Value,
+                StringComparer.OrdinalIgnoreCase));
+            AppendDictionary(builder, "Drawing Records By Name", DrawingRecordsByName);
+            AppendDictionary(builder, "Drawing Records By Location", DrawingRecordsByLocation);
             AppendDictionary(builder, "Calculation Settings By Kind", CalculationSettingsByKind.ToDictionary(
                 entry => entry.Key.ToString(),
                 entry => entry.Value,
@@ -319,6 +342,13 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .ToDictionary(group => group.Key, group => group.Count());
         }
 
+        private static IReadOnlyDictionary<LegacyXlsDrawingRecordKind, int> CountDrawingRecordsByKind(IEnumerable<LegacyXlsDrawingRecord> records) {
+            return records
+                .GroupBy(record => record.Kind)
+                .OrderBy(group => group.Key.ToString(), StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(group => group.Key, group => group.Count());
+        }
+
         private static IReadOnlyDictionary<LegacyXlsWorkbookMetadataKind, int> CountWorkbookMetadataRecordsByKind(IEnumerable<LegacyXlsWorkbookMetadataRecord> records) {
             return records
                 .GroupBy(record => record.Kind)
@@ -346,6 +376,10 @@ namespace OfficeIMO.Excel.LegacyXls {
         }
 
         private static string GetChartRecordLocationKey(LegacyXlsChartRecord record) {
+            return string.IsNullOrWhiteSpace(record.SheetName) ? "(workbook)" : record.SheetName!;
+        }
+
+        private static string GetDrawingRecordLocationKey(LegacyXlsDrawingRecord record) {
             return string.IsNullOrWhiteSpace(record.SheetName) ? "(workbook)" : record.SheetName!;
         }
 

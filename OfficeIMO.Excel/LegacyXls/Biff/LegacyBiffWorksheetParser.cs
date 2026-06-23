@@ -15,6 +15,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             List<LegacyXlsPreservedFeatureRecord> preservedFeatureRecords,
             List<LegacyXlsPivotTableRecord> pivotTableRecords,
             List<LegacyXlsChartRecord> chartRecords,
+            List<LegacyXlsDrawingRecord> drawingRecords,
             LegacyXlsCalculationSettings calculationSettings,
             List<LegacyXlsImportDiagnostic> diagnostics,
             LegacyXlsImportOptions options) {
@@ -86,7 +87,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     return;
                 }
 
-                ParseWorksheetRecord(sheet, sharedStrings, externSheets, externalReferences, sheetNames, definedNames, unsupportedFeatures, preservedFeatureRecords, pivotTableRecords, chartRecords, calculationSettings, diagnostics, options, commentState, conditionalFormattingState, sharedFormulaState, type, offset, payload, ref frozenWindow, ref pendingFormulaString);
+                ParseWorksheetRecord(sheet, sharedStrings, externSheets, externalReferences, sheetNames, definedNames, unsupportedFeatures, preservedFeatureRecords, pivotTableRecords, chartRecords, drawingRecords, calculationSettings, diagnostics, options, commentState, conditionalFormattingState, sharedFormulaState, type, offset, payload, ref frozenWindow, ref pendingFormulaString);
                 offset = payloadOffset + length;
             }
 
@@ -107,6 +108,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             List<LegacyXlsPreservedFeatureRecord> preservedFeatureRecords,
             List<LegacyXlsPivotTableRecord> pivotTableRecords,
             List<LegacyXlsChartRecord> chartRecords,
+            List<LegacyXlsDrawingRecord> drawingRecords,
             LegacyXlsCalculationSettings calculationSettings,
             List<LegacyXlsImportDiagnostic> diagnostics,
             LegacyXlsImportOptions options,
@@ -320,6 +322,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                         break;
                     case BiffRecordType.Obj:
                         if (!commentState.TryReadObject(payload)) {
+                            BiffDrawingMetadataReader.TryRead(new BiffRecord(type, offset, payload), sheet.Name, drawingRecords);
                             AddUnsupportedFeature(unsupportedFeatures, preservedFeatureRecords, diagnostics, options, type, offset, sheet.Name, payload.Length);
                         }
 
@@ -401,6 +404,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                         break;
                     case BiffRecordType.Txo:
                         if (!commentState.TryReadTextObject(payload)) {
+                            BiffDrawingMetadataReader.TryRead(new BiffRecord(type, offset, payload), sheet.Name, drawingRecords);
                             AddUnsupportedFeature(unsupportedFeatures, preservedFeatureRecords, diagnostics, options, type, offset, sheet.Name, payload.Length);
                         }
 
@@ -417,6 +421,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                         break;
                     default:
                         if (type != (ushort)BiffRecordType.Bof) {
+                            if (BiffDrawingMetadataReader.TryRead(new BiffRecord(type, offset, payload), sheet.Name, drawingRecords)) {
+                                AddUnsupportedFeature(unsupportedFeatures, preservedFeatureRecords, diagnostics, options, type, offset, sheet.Name, payload.Length);
+                                break;
+                            }
+
                             if (BiffChartMetadataReader.TryRead(new BiffRecord(type, offset, payload), sheet.Name, chartRecords)) {
                                 AddUnsupportedFeature(unsupportedFeatures, preservedFeatureRecords, diagnostics, options, type, offset, sheet.Name, payload.Length);
                                 break;

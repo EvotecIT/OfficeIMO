@@ -15,6 +15,7 @@ External cell caches: 6
 External cached cells: 8
 Pivot table records: 27
 Chart records: 841
+Drawing records: 34
 Calculation setting records: 43
 Cell style records: 6
 Workbook metadata records: 17
@@ -262,6 +263,37 @@ Warnings: 0
 | LBMAQ_RAIN_CHART | 177 |
 | ZPFCUM_CHART | 115 |
 | ZRAINCUM_CHART | 97 |
+
+## Drawing Records By Kind
+
+| Key | Count |
+| --- | --- |
+| Drawing | 17 |
+| DrawingGroup | 1 |
+| Object | 10 |
+| TextObject | 6 |
+
+## Drawing Records By Name
+
+| Key | Count |
+| --- | --- |
+| MsoDrawing | 17 |
+| MsoDrawingGroup | 1 |
+| Obj | 10 |
+| TxO | 6 |
+
+## Drawing Records By Location
+
+| Key | Count |
+| --- | --- |
+| (workbook) | 1 |
+| graphs1 | 8 |
+| graphs2 | 8 |
+| LBMAQ_PF_CHART | 4 |
+| LBMAQ_RAIN_CHART | 4 |
+| LB_MAQU_PF | 1 |
+| ZPFCUM_CHART | 4 |
+| ZRAINCUM_CHART | 4 |
 
 ## Calculation Settings By Kind
 

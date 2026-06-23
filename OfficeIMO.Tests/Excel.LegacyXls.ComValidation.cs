@@ -50,6 +50,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains(result.Workbook.PreservedFeatureRecords, record => record.Kind == LegacyXlsUnsupportedFeatureKind.DrawingObject);
             Assert.Contains(result.Workbook.PreservedFeatureRecords, record => record.Kind == LegacyXlsUnsupportedFeatureKind.Chart);
             Assert.Contains(result.Workbook.ChartRecords, record => record.Kind != LegacyXlsChartRecordKind.PreserveOnly);
+            Assert.Contains(result.Workbook.DrawingRecords, record => record.Kind != LegacyXlsDrawingRecordKind.PreserveOnly);
 
             result.Document.Save(importedXlsxPath, openExcel: false);
             AssertWorkbooksOpenViaExcelComWhenAvailable(new[] { importedXlsxPath }, "The imported XLSX workbook did not open through desktop Excel.");
