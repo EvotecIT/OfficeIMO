@@ -276,6 +276,43 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_Load_ImportsFormulaCommonFunctionTokens() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateFormulaCommonFunctionWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED");
+            LegacyXlsWorksheet sheet = Assert.Single(legacy.Worksheets);
+            AssertFormula(sheet, 2, 1, "LEFT(A1,6)", "Office");
+            AssertFormula(sheet, 3, 1, "RIGHT(A1,3)", "IMO");
+            AssertFormula(sheet, 4, 1, "DATE(2026,6,23)", 46196d);
+            AssertFormula(sheet, 5, 1, "YEAR(B1)", 2024d);
+            AssertFormula(sheet, 6, 1, "MONTH(B1)", 10d);
+            AssertFormula(sheet, 7, 1, "DAY(B1)", 1d);
+            AssertFormula(sheet, 8, 1, "COUNTIF(A1:A3,\"*IMO\")", 2d);
+
+            using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            using var output = new MemoryStream();
+            document.Save(output);
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
+            WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single();
+            AssertProjectedFormula(worksheetPart, "A2", "LEFT(A1,6)", "Office");
+            AssertProjectedFormula(worksheetPart, "A3", "RIGHT(A1,3)", "IMO");
+            AssertProjectedFormula(worksheetPart, "A4", "DATE(2026,6,23)", "46196");
+            AssertProjectedFormula(worksheetPart, "A5", "YEAR(B1)", "2024");
+            AssertProjectedFormula(worksheetPart, "A6", "MONTH(B1)", "10");
+            AssertProjectedFormula(worksheetPart, "A7", "DAY(B1)", "1");
+            AssertProjectedFormula(worksheetPart, "A8", "COUNTIF(A1:A3,\"*IMO\")", "2");
+        }
+
+        [Fact]
         public void LegacyXls_Load_ImportsFormulaLookupFunctionTokens() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateFormulaLookupFunctionWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
@@ -895,6 +932,29 @@ namespace OfficeIMO.Tests {
             Assert.Equal("99", cachedText);
         }
 
+        private static void AssertFormula(LegacyXlsWorksheet sheet, int row, int column, string expectedFormula, object expectedValue) {
+            LegacyXlsCell formula = Assert.Single(sheet.Cells, cell => cell.Row == row && cell.Column == column);
+            Assert.True(formula.IsFormula);
+            Assert.Equal(expectedValue, formula.Value);
+            Assert.Equal(expectedFormula, formula.FormulaText);
+        }
+
+        private static void AssertProjectedFormula(WorksheetPart worksheetPart, string cellReference, string expectedFormula, string expectedValue) {
+            Cell projectedFormula = worksheetPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference!.Value == cellReference);
+            Assert.Equal(expectedFormula, projectedFormula.CellFormula!.Text);
+            Assert.Equal(expectedValue, GetProjectedCellValue(worksheetPart, projectedFormula));
+        }
+
+        private static string GetProjectedCellValue(WorksheetPart worksheetPart, Cell cell) {
+            string value = cell.CellValue!.Text;
+            if (cell.DataType?.Value != CellValues.SharedString || !int.TryParse(value, out int sharedStringIndex)) {
+                return value;
+            }
+
+            WorkbookPart workbookPart = worksheetPart.GetParentParts().OfType<WorkbookPart>().Single();
+            return workbookPart.SharedStringTablePart!.SharedStringTable!.Elements<SharedStringItem>().ElementAt(sharedStringIndex).InnerText;
+        }
+
         private static partial class LegacyXlsTestWorkbookBuilder {
             internal static byte[] CreateFormulaStringLiteralWorkbookStream() {
                 using var stream = new MemoryStream();
@@ -1058,6 +1118,33 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x0006, BuildFormulaBooleanPayload(0, 3, value: false, formulaTokens: BuildLogicalFixedFunctionFormulaTokens(0x0025, false, false)));
                 WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(2, 4, 1d, formulaTokens: BuildRsqFormulaTokens()));
                 WriteRecord(stream, 0x0006, BuildFormulaErrorResultPayload(2, 5, 0x2a, formulaTokens: BuildFixedNoArgumentFunctionFormulaTokens(0x000a)));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)boundSheetPosition + 4), 4);
+                return bytes;
+            }
+
+            internal static byte[] CreateFormulaCommonFunctionWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long boundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "CommonFunc"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "OfficeIMO"));
+                WriteRecord(stream, 0x0203, BuildNumberPayload(0, 1, 45566d));
+                WriteRecord(stream, 0x0006, BuildFormulaStringResultPayload(1, 0, BuildLeftRightFormulaTokens(0x0073, 0, 0, 6)));
+                WriteRecord(stream, 0x0207, BuildFormulaStringPayload("Office"));
+                WriteRecord(stream, 0x0006, BuildFormulaStringResultPayload(2, 0, BuildLeftRightFormulaTokens(0x0074, 0, 0, 3)));
+                WriteRecord(stream, 0x0207, BuildFormulaStringPayload("IMO"));
+                WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(3, 0, 46196d, formulaTokens: BuildDateFormulaTokens(2026, 6, 23)));
+                WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(4, 0, 2024d, formulaTokens: BuildSingleReferenceFixedFunctionFormulaTokens(0x0045, 0, 1)));
+                WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(5, 0, 10d, formulaTokens: BuildSingleReferenceFixedFunctionFormulaTokens(0x0044, 0, 1)));
+                WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(6, 0, 1d, formulaTokens: BuildSingleReferenceFixedFunctionFormulaTokens(0x0043, 0, 1)));
+                WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(7, 0, 2d, formulaTokens: BuildCountIfFormulaTokens()));
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 byte[] bytes = stream.ToArray();
@@ -1531,6 +1618,50 @@ namespace OfficeIMO.Tests {
                 stream.WriteByte(0x42);
                 stream.WriteByte(0x04);
                 WriteUInt16(stream, 0x0066);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildLeftRightFormulaTokens(ushort functionId, ushort row, ushort column, ushort characterCount) {
+                using var stream = new MemoryStream();
+                byte[] reference = BuildCellReferenceFormulaToken(row, column);
+                stream.Write(reference, 0, reference.Length);
+                stream.WriteByte(0x1e);
+                WriteUInt16(stream, characterCount);
+                stream.WriteByte(0x42);
+                stream.WriteByte(0x02);
+                WriteUInt16(stream, functionId);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildDateFormulaTokens(ushort year, ushort month, ushort day) {
+                using var stream = new MemoryStream();
+                stream.WriteByte(0x1e);
+                WriteUInt16(stream, year);
+                stream.WriteByte(0x1e);
+                WriteUInt16(stream, month);
+                stream.WriteByte(0x1e);
+                WriteUInt16(stream, day);
+                stream.WriteByte(0x41);
+                WriteUInt16(stream, 0x0041);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildSingleReferenceFixedFunctionFormulaTokens(ushort functionId, ushort row, ushort column) {
+                using var stream = new MemoryStream();
+                byte[] reference = BuildCellReferenceFormulaToken(row, column);
+                stream.Write(reference, 0, reference.Length);
+                stream.WriteByte(0x41);
+                WriteUInt16(stream, functionId);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildCountIfFormulaTokens() {
+                using var stream = new MemoryStream();
+                byte[] area = BuildAreaReferenceFormulaToken(0, 0, 2, 0);
+                stream.Write(area, 0, area.Length);
+                WriteStringLiteralFormulaToken(stream, "*IMO");
+                stream.WriteByte(0x41);
+                WriteUInt16(stream, 0x015a);
                 return stream.ToArray();
             }
 

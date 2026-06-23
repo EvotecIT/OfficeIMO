@@ -435,7 +435,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
                         ushort fixedFunctionId = BiffRecordReader.ReadUInt16(formulaPayload, offset);
                         offset += 2;
-                        if (!TryGetFixedFunctionMetadata(fixedFunctionId, out _, out _)) {
+                        if (!BiffFormulaFunctionMetadata.TryGetFixedFunctionMetadata(fixedFunctionId, out _, out _)) {
                             return BiffFormulaReadFailure.UnsupportedFixedFunction(fixedFunctionId, token, tokenOffset);
                         }
 
@@ -452,7 +452,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                         offset += 2;
                         bool isCetabFunction = (functionBits & 0x8000) != 0;
                         ushort functionId = (ushort)(functionBits & 0x7fff);
-                        if (isCetabFunction || !TryGetFunctionName(functionId, out _)) {
+                        if (isCetabFunction || !BiffFormulaFunctionMetadata.TryGetFunctionName(functionId, out _)) {
                             if (!isCetabFunction && functionId == 0x00ff && parameterCount > 0) {
                                 break;
                             }
@@ -460,7 +460,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                             return BiffFormulaReadFailure.UnsupportedVariableFunction(functionId, isCetabFunction, token, tokenOffset);
                         }
 
-                        if (!IsSupportedVariableFunctionArgumentCount(functionId, parameterCount)) {
+                        if (!BiffFormulaFunctionMetadata.IsSupportedVariableFunctionArgumentCount(functionId, parameterCount)) {
                             return BiffFormulaReadFailure.UnsupportedFunctionArguments(functionId, parameterCount, token, tokenOffset);
                         }
 
@@ -838,7 +838,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         }
 
         private static bool ApplyFixedFunction(Stack<FormulaExpression> stack, ushort functionId) {
-            if (!TryGetFixedFunctionMetadata(functionId, out string? functionName, out int parameterCount) || stack.Count < parameterCount) {
+            if (!BiffFormulaFunctionMetadata.TryGetFixedFunctionMetadata(functionId, out string? functionName, out int parameterCount) || stack.Count < parameterCount) {
                 return false;
             }
 
@@ -859,8 +859,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             if (isCetabFunction
-                || !TryGetFunctionName(functionId, out string? functionName)
-                || !IsSupportedVariableFunctionArgumentCount(functionId, parameterCount)
+                || !BiffFormulaFunctionMetadata.TryGetFunctionName(functionId, out string? functionName)
+                || !BiffFormulaFunctionMetadata.IsSupportedVariableFunctionArgumentCount(functionId, parameterCount)
                 || stack.Count < parameterCount) {
                 return false;
             }
@@ -891,177 +891,6 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
             stack.Push(new FormulaExpression(functionName + "(" + string.Join(",", arguments.Skip(1)) + ")", 4));
             return true;
-        }
-
-        private static bool TryGetFixedFunctionMetadata(ushort functionId, out string? functionName, out int parameterCount) {
-            switch (functionId) {
-                case 0x000a:
-                    functionName = "NA";
-                    parameterCount = 0;
-                    return true;
-                case 0x000f:
-                    functionName = "SIN";
-                    parameterCount = 1;
-                    return true;
-                case 0x0010:
-                    functionName = "COS";
-                    parameterCount = 1;
-                    return true;
-                case 0x0011:
-                    functionName = "TAN";
-                    parameterCount = 1;
-                    return true;
-                case 0x0012:
-                    functionName = "ATAN";
-                    parameterCount = 1;
-                    return true;
-                case 0x0013:
-                    functionName = "PI";
-                    parameterCount = 0;
-                    return true;
-                case 0x0014:
-                    functionName = "SQRT";
-                    parameterCount = 1;
-                    return true;
-                case 0x0015:
-                    functionName = "EXP";
-                    parameterCount = 1;
-                    return true;
-                case 0x0016:
-                    functionName = "LN";
-                    parameterCount = 1;
-                    return true;
-                case 0x0017:
-                    functionName = "LOG10";
-                    parameterCount = 1;
-                    return true;
-                case 0x0018:
-                    functionName = "ABS";
-                    parameterCount = 1;
-                    return true;
-                case 0x0019:
-                    functionName = "INT";
-                    parameterCount = 1;
-                    return true;
-                case 0x001a:
-                    functionName = "SIGN";
-                    parameterCount = 1;
-                    return true;
-                case 0x001b:
-                    functionName = "ROUND";
-                    parameterCount = 2;
-                    return true;
-                case 0x001e:
-                    functionName = "REPT";
-                    parameterCount = 2;
-                    return true;
-                case 0x001f:
-                    functionName = "MID";
-                    parameterCount = 3;
-                    return true;
-                case 0x0020:
-                    functionName = "LEN";
-                    parameterCount = 1;
-                    return true;
-                case 0x0021:
-                    functionName = "VALUE";
-                    parameterCount = 1;
-                    return true;
-                case 0x0022:
-                    functionName = "TRUE";
-                    parameterCount = 0;
-                    return true;
-                case 0x0023:
-                    functionName = "FALSE";
-                    parameterCount = 0;
-                    return true;
-                case 0x0024:
-                    functionName = "AND";
-                    parameterCount = 2;
-                    return true;
-                case 0x0025:
-                    functionName = "OR";
-                    parameterCount = 2;
-                    return true;
-                case 0x0026:
-                    functionName = "NOT";
-                    parameterCount = 1;
-                    return true;
-                case 0x0027:
-                    functionName = "MOD";
-                    parameterCount = 2;
-                    return true;
-                case 0x0030:
-                    functionName = "TEXT";
-                    parameterCount = 2;
-                    return true;
-                case 0x0139:
-                    functionName = "RSQ";
-                    parameterCount = 2;
-                    return true;
-                default:
-                    functionName = null;
-                    parameterCount = 0;
-                    return false;
-            }
-        }
-
-        private static bool TryGetFunctionName(ushort functionId, out string? functionName) {
-            switch (functionId) {
-                case 0x0000:
-                    functionName = "COUNT";
-                    return true;
-                case 0x0001:
-                    functionName = "IF";
-                    return true;
-                case 0x0004:
-                    functionName = "SUM";
-                    return true;
-                case 0x0005:
-                    functionName = "AVERAGE";
-                    return true;
-                case 0x0006:
-                    functionName = "MIN";
-                    return true;
-                case 0x0007:
-                    functionName = "MAX";
-                    return true;
-                case 0x0064:
-                    functionName = "CHOOSE";
-                    return true;
-                case 0x0065:
-                    functionName = "HLOOKUP";
-                    return true;
-                case 0x0066:
-                    functionName = "VLOOKUP";
-                    return true;
-                case 0x00a9:
-                    functionName = "COUNTA";
-                    return true;
-                case 0x00b7:
-                    functionName = "PRODUCT";
-                    return true;
-                case 0x00e3:
-                    functionName = "MEDIAN";
-                    return true;
-                default:
-                    functionName = null;
-                    return false;
-            }
-        }
-
-        private static bool IsSupportedVariableFunctionArgumentCount(ushort functionId, byte parameterCount) {
-            switch (functionId) {
-                case 0x0001:
-                    return parameterCount == 2 || parameterCount == 3;
-                case 0x0065:
-                case 0x0066:
-                    return parameterCount == 3 || parameterCount == 4;
-                case 0x0064:
-                    return parameterCount >= 2 && parameterCount <= 30;
-                default:
-                    return parameterCount > 0;
-            }
         }
 
         private static string ReadCellReference(byte[] bytes, int offset) {
