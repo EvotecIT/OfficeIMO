@@ -26,7 +26,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             IReadOnlyList<LegacyXlsDrawingShape>? shapeEntries = null,
             IReadOnlyList<LegacyXlsDrawingAnchor>? anchorEntries = null,
             IReadOnlyList<LegacyXlsDrawingChildAnchor>? childAnchorEntries = null,
-            IReadOnlyList<LegacyXlsDrawingOfficeArtRecord>? officeArtRecords = null) {
+            IReadOnlyList<LegacyXlsDrawingOfficeArtRecord>? officeArtRecords = null,
+            IReadOnlyList<LegacyXlsDrawingShapeProperty>? shapeProperties = null) {
             if (payloadLength < 0) {
                 throw new ArgumentOutOfRangeException(nameof(payloadLength));
             }
@@ -54,6 +55,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             AnchorEntries = anchorEntries?.ToArray() ?? Array.Empty<LegacyXlsDrawingAnchor>();
             ChildAnchorEntries = childAnchorEntries?.ToArray() ?? Array.Empty<LegacyXlsDrawingChildAnchor>();
             OfficeArtRecords = officeArtRecords?.ToArray() ?? Array.Empty<LegacyXlsDrawingOfficeArtRecord>();
+            ShapeProperties = shapeProperties?.ToArray() ?? Array.Empty<LegacyXlsDrawingShapeProperty>();
         }
 
         /// <summary>Gets the shallow drawing record category.</summary>
@@ -163,6 +165,12 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets whether this drawing record contains discovered OfficeArt record headers.</summary>
         public bool HasOfficeArtRecords => OfficeArtRecords.Count > 0;
+
+        /// <summary>Gets preserve-only OfficeArtFOPT shape properties discovered under this drawing record.</summary>
+        public IReadOnlyList<LegacyXlsDrawingShapeProperty> ShapeProperties { get; }
+
+        /// <summary>Gets whether this drawing record contains discovered OfficeArtFOPT shape properties.</summary>
+        public bool HasShapeProperties => ShapeProperties.Count > 0;
 
         private static LegacyXlsDrawingObjectType? TryGetObjectTypeKind(ushort? objectType) {
             if (!objectType.HasValue) {

@@ -19,6 +19,7 @@ Pivot table records: 27
 Chart records: 1134
 Drawing records: 46
 Drawing OfficeArt records: 38
+Drawing shape properties: 43
 Differential formats: 0
 Compound feature records: 0
 Compound feature entries: 0
@@ -868,6 +869,44 @@ Warnings: 0
 | PayloadLength:60 | 4 |
 | PayloadLength:72 | 1 |
 | PayloadLength:8 | 6 |
+
+## Drawing Shape Properties By Id
+
+| Key | Count |
+| --- | --- |
+| PropertyId:0x007F | 4 |
+| PropertyId:0x00BF | 5 |
+| PropertyId:0x0181 | 5 |
+| PropertyId:0x0183 | 4 |
+| PropertyId:0x01BF | 4 |
+| PropertyId:0x01C0 | 5 |
+| PropertyId:0x01CB | 4 |
+| PropertyId:0x01FF | 4 |
+| PropertyId:0x023F | 4 |
+| PropertyId:0x03BF | 4 |
+
+## Drawing Shape Properties By Flag State
+
+| Key | Count |
+| --- | --- |
+| Simple | 43 |
+
+## Drawing Shape Properties By Value
+
+| Key | Count |
+| --- | --- |
+| PropertyId:0x007F;Value:0x01040104 | 4 |
+| PropertyId:0x00BF;Value:0x00080008 | 5 |
+| PropertyId:0x0181;Value:0x08000009 | 1 |
+| PropertyId:0x0181;Value:0x0800004E | 4 |
+| PropertyId:0x0183;Value:0x0800004D | 4 |
+| PropertyId:0x01BF;Value:0x00110000 | 4 |
+| PropertyId:0x01C0;Value:0x08000040 | 1 |
+| PropertyId:0x01C0;Value:0x0800004D | 4 |
+| PropertyId:0x01CB;Value:0x00000001 | 4 |
+| PropertyId:0x01FF;Value:0x00080000 | 4 |
+| PropertyId:0x023F;Value:0x00020000 | 4 |
+| PropertyId:0x03BF;Value:0x00080000 | 4 |
 
 ## Drawing Shape Entries By Type
 

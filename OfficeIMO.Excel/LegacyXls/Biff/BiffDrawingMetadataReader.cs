@@ -18,7 +18,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 out IReadOnlyList<LegacyXlsDrawingShape> shapeEntries,
                 out IReadOnlyList<LegacyXlsDrawingAnchor> anchorEntries,
                 out IReadOnlyList<LegacyXlsDrawingChildAnchor> childAnchorEntries,
-                out IReadOnlyList<LegacyXlsDrawingOfficeArtRecord> officeArtRecords);
+                out IReadOnlyList<LegacyXlsDrawingOfficeArtRecord> officeArtRecords,
+                out IReadOnlyList<LegacyXlsDrawingShapeProperty> shapeProperties);
             records.Add(new LegacyXlsDrawingRecord(
                 GetKind(record.Type),
                 BiffUnsupportedRecordDiagnostics.GetBiffRecordName(record.Type),
@@ -37,7 +38,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 shapeEntries: shapeEntries,
                 anchorEntries: anchorEntries,
                 childAnchorEntries: childAnchorEntries,
-                officeArtRecords: officeArtRecords));
+                officeArtRecords: officeArtRecords,
+                shapeProperties: shapeProperties));
             return true;
         }
 
@@ -47,13 +49,15 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             out IReadOnlyList<LegacyXlsDrawingShape> shapeEntries,
             out IReadOnlyList<LegacyXlsDrawingAnchor> anchorEntries,
             out IReadOnlyList<LegacyXlsDrawingChildAnchor> childAnchorEntries,
-            out IReadOnlyList<LegacyXlsDrawingOfficeArtRecord> officeArtRecords) {
+            out IReadOnlyList<LegacyXlsDrawingOfficeArtRecord> officeArtRecords,
+            out IReadOnlyList<LegacyXlsDrawingShapeProperty> shapeProperties) {
             if (record.Type != (ushort)BiffRecordType.DrawingGroup && record.Type != (ushort)BiffRecordType.Drawing) {
                 blipStoreEntries = Array.Empty<LegacyXlsDrawingBlipStoreEntry>();
                 shapeEntries = Array.Empty<LegacyXlsDrawingShape>();
                 anchorEntries = Array.Empty<LegacyXlsDrawingAnchor>();
                 childAnchorEntries = Array.Empty<LegacyXlsDrawingChildAnchor>();
                 officeArtRecords = Array.Empty<LegacyXlsDrawingOfficeArtRecord>();
+                shapeProperties = Array.Empty<LegacyXlsDrawingShapeProperty>();
                 return;
             }
 
@@ -62,12 +66,14 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             var anchors = new List<LegacyXlsDrawingAnchor>();
             var childAnchors = new List<LegacyXlsDrawingChildAnchor>();
             var records = new List<LegacyXlsDrawingOfficeArtRecord>();
-            TryReadOfficeArtRecords(record.Payload, 0, record.Payload.Length, records, blips, shapes, anchors, childAnchors, depth: 0);
+            var properties = new List<LegacyXlsDrawingShapeProperty>();
+            TryReadOfficeArtRecords(record.Payload, 0, record.Payload.Length, records, blips, shapes, anchors, childAnchors, properties, depth: 0);
             blipStoreEntries = blips;
             shapeEntries = shapes;
             anchorEntries = anchors;
             childAnchorEntries = childAnchors;
             officeArtRecords = records;
+            shapeProperties = properties;
         }
 
         private static void TryReadOfficeArtRecords(
@@ -79,6 +85,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             List<LegacyXlsDrawingShape> shapeEntries,
             List<LegacyXlsDrawingAnchor> anchorEntries,
             List<LegacyXlsDrawingChildAnchor> childAnchorEntries,
+            List<LegacyXlsDrawingShapeProperty> shapeProperties,
             int depth) {
             if (depth > 8) {
                 return;
@@ -107,10 +114,12 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     anchorEntries.Add(anchorEntry!);
                 } else if (recordType == 0xF00F && TryReadChildAnchor(payload, contentStart, contentEnd, out LegacyXlsDrawingChildAnchor? childAnchorEntry)) {
                     childAnchorEntries.Add(childAnchorEntry!);
+                } else if (recordType == 0xF00B) {
+                    TryReadShapeProperties(payload, contentStart, contentEnd, instance, shapeProperties);
                 }
 
                 if (version == 0x0f) {
-                    TryReadOfficeArtRecords(payload, contentStart, contentEnd, officeArtRecords, blipStoreEntries, shapeEntries, anchorEntries, childAnchorEntries, depth + 1);
+                    TryReadOfficeArtRecords(payload, contentStart, contentEnd, officeArtRecords, blipStoreEntries, shapeEntries, anchorEntries, childAnchorEntries, shapeProperties, depth + 1);
                 }
 
                 offset = contentEnd;
@@ -209,6 +218,42 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 BiffRecordReader.ReadInt32(payload, contentStart + 8),
                 BiffRecordReader.ReadInt32(payload, contentStart + 12));
             return true;
+        }
+
+        private static void TryReadShapeProperties(
+            byte[] payload,
+            int contentStart,
+            int contentEnd,
+            ushort propertyCount,
+            List<LegacyXlsDrawingShapeProperty> properties) {
+            int fixedLength = propertyCount * 6;
+            if (propertyCount == 0 || contentStart < 0 || contentStart + fixedLength > contentEnd) {
+                return;
+            }
+
+            int complexOffset = contentStart + fixedLength;
+            for (int index = 0; index < propertyCount; index++) {
+                int propertyOffset = contentStart + index * 6;
+                ushort rawOperationId = BiffRecordReader.ReadUInt16(payload, propertyOffset);
+                uint value = BiffRecordReader.ReadUInt32(payload, propertyOffset + 2);
+                bool isComplex = (rawOperationId & 0x8000) != 0;
+                int? availableComplexDataLength = null;
+                if (isComplex) {
+                    availableComplexDataLength = GetAvailableComplexDataLength(value, complexOffset, contentEnd);
+                    complexOffset += availableComplexDataLength.Value;
+                }
+
+                properties.Add(new LegacyXlsDrawingShapeProperty(index, rawOperationId, value, availableComplexDataLength));
+            }
+        }
+
+        private static int GetAvailableComplexDataLength(uint declaredLength, int complexOffset, int contentEnd) {
+            if (declaredLength > int.MaxValue || complexOffset >= contentEnd) {
+                return 0;
+            }
+
+            int remaining = contentEnd - complexOffset;
+            return Math.Min((int)declaredLength, remaining);
         }
 
         private static bool TryReadEscherHeader(

@@ -88,6 +88,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             ChartRecordCount = workbook.ChartRecords.Count;
             DrawingRecordCount = workbook.DrawingRecords.Count;
             DrawingOfficeArtRecordCount = workbook.DrawingRecords.Sum(record => record.OfficeArtRecords.Count);
+            DrawingShapePropertyCount = workbook.DrawingRecords.Sum(record => record.ShapeProperties.Count);
             DifferentialFormatCount = workbook.DifferentialFormats.Count;
             CompoundFeatureRecordCount = workbook.CompoundFeatureRecords.Count;
             CompoundFeatureEntryCount = workbook.CompoundFeatureRecords.Sum(record => record.Entries.Count);
@@ -350,6 +351,24 @@ namespace OfficeIMO.Excel.LegacyXls {
             DrawingOfficeArtRecordsByPayloadLength = CountByCode(workbook.DrawingRecords
                 .SelectMany(record => record.OfficeArtRecords)
                 .Select(record => $"PayloadLength:{record.PayloadLength}"));
+            DrawingShapePropertiesById = CountByCode(workbook.DrawingRecords
+                .SelectMany(record => record.ShapeProperties)
+                .Select(property => property.PropertyIdKey));
+            DrawingShapePropertiesByFlagState = CountByCode(workbook.DrawingRecords
+                .SelectMany(record => record.ShapeProperties)
+                .Select(GetShapePropertyFlagState));
+            DrawingShapePropertiesByValue = CountByCode(workbook.DrawingRecords
+                .SelectMany(record => record.ShapeProperties)
+                .Where(property => !property.IsComplex)
+                .Select(property => $"{property.PropertyIdKey};Value:0x{property.Value:X8}"));
+            DrawingShapeComplexPropertiesByDeclaredLength = CountByCode(workbook.DrawingRecords
+                .SelectMany(record => record.ShapeProperties)
+                .Where(property => property.DeclaredComplexDataLength.HasValue)
+                .Select(property => $"{property.PropertyIdKey};DeclaredBytes:{property.DeclaredComplexDataLength!.Value}"));
+            DrawingShapeComplexPropertiesByAvailableLength = CountByCode(workbook.DrawingRecords
+                .SelectMany(record => record.ShapeProperties)
+                .Where(property => property.AvailableComplexDataLength.HasValue)
+                .Select(property => $"{property.PropertyIdKey};AvailableBytes:{property.AvailableComplexDataLength!.Value}"));
             DrawingBlipStoreEntriesByType = CountByCode(workbook.DrawingRecords
                 .SelectMany(record => record.BlipStoreEntries)
                 .Select(entry => entry.RecordInstanceBlipTypeName));
@@ -569,6 +588,9 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets the number of OfficeArt record headers discovered under preserve-only drawing records.</summary>
         public int DrawingOfficeArtRecordCount { get; }
+
+        /// <summary>Gets the number of OfficeArtFOPT shape property entries discovered under preserve-only drawing records.</summary>
+        public int DrawingShapePropertyCount { get; }
 
         /// <summary>Gets the number of parsed differential formats discovered during import.</summary>
         public int DifferentialFormatCount { get; }
@@ -921,6 +943,21 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets nested OfficeArt records grouped by declared payload length.</summary>
         public IReadOnlyDictionary<string, int> DrawingOfficeArtRecordsByPayloadLength { get; }
 
+        /// <summary>Gets OfficeArtFOPT shape properties grouped by property identifier.</summary>
+        public IReadOnlyDictionary<string, int> DrawingShapePropertiesById { get; }
+
+        /// <summary>Gets OfficeArtFOPT shape properties grouped by complex and BLIP flag state.</summary>
+        public IReadOnlyDictionary<string, int> DrawingShapePropertiesByFlagState { get; }
+
+        /// <summary>Gets simple OfficeArtFOPT shape properties grouped by raw value.</summary>
+        public IReadOnlyDictionary<string, int> DrawingShapePropertiesByValue { get; }
+
+        /// <summary>Gets complex OfficeArtFOPT shape properties grouped by declared complex byte length.</summary>
+        public IReadOnlyDictionary<string, int> DrawingShapeComplexPropertiesByDeclaredLength { get; }
+
+        /// <summary>Gets complex OfficeArtFOPT shape properties grouped by available complex byte length.</summary>
+        public IReadOnlyDictionary<string, int> DrawingShapeComplexPropertiesByAvailableLength { get; }
+
         /// <summary>Gets OfficeArt FBSE image-store entries grouped by decoded BLIP type.</summary>
         public IReadOnlyDictionary<string, int> DrawingBlipStoreEntriesByType { get; }
 
@@ -1040,6 +1077,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             builder.AppendLine($"Chart records: {ChartRecordCount}");
             builder.AppendLine($"Drawing records: {DrawingRecordCount}");
             builder.AppendLine($"Drawing OfficeArt records: {DrawingOfficeArtRecordCount}");
+            builder.AppendLine($"Drawing shape properties: {DrawingShapePropertyCount}");
             builder.AppendLine($"Differential formats: {DifferentialFormatCount}");
             builder.AppendLine($"Compound feature records: {CompoundFeatureRecordCount}");
             builder.AppendLine($"Compound feature entries: {CompoundFeatureEntryCount}");
@@ -1216,6 +1254,11 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Drawing OfficeArt Records By Depth", DrawingOfficeArtRecordsByDepth);
             AppendDictionary(builder, "Drawing OfficeArt Records By Container State", DrawingOfficeArtRecordsByContainerState);
             AppendDictionary(builder, "Drawing OfficeArt Records By Payload Length", DrawingOfficeArtRecordsByPayloadLength);
+            AppendDictionary(builder, "Drawing Shape Properties By Id", DrawingShapePropertiesById);
+            AppendDictionary(builder, "Drawing Shape Properties By Flag State", DrawingShapePropertiesByFlagState);
+            AppendDictionary(builder, "Drawing Shape Properties By Value", DrawingShapePropertiesByValue);
+            AppendDictionary(builder, "Drawing Shape Complex Properties By Declared Length", DrawingShapeComplexPropertiesByDeclaredLength);
+            AppendDictionary(builder, "Drawing Shape Complex Properties By Available Length", DrawingShapeComplexPropertiesByAvailableLength);
             AppendDictionary(builder, "Drawing BLIP Store Entries By Type", DrawingBlipStoreEntriesByType);
             AppendDictionary(builder, "Drawing BLIP Store Entries By Embedded Record Type", DrawingBlipStoreEntriesByEmbeddedRecordType);
             AppendDictionary(builder, "Drawing BLIP Store Entries By Size", DrawingBlipStoreEntriesBySize);
@@ -1458,6 +1501,18 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         private static string GetDrawingRecordLocationKey(LegacyXlsDrawingRecord record) {
             return string.IsNullOrWhiteSpace(record.SheetName) ? "(workbook)" : record.SheetName!;
+        }
+
+        private static string GetShapePropertyFlagState(LegacyXlsDrawingShapeProperty property) {
+            if (property.IsComplex && property.IsBlipId) {
+                return "Complex|Blip";
+            }
+
+            if (property.IsComplex) {
+                return "Complex";
+            }
+
+            return property.IsBlipId ? "Blip" : "Simple";
         }
 
         private static string GetExternalReferenceTargetKey(LegacyXlsExternalReference reference) {
