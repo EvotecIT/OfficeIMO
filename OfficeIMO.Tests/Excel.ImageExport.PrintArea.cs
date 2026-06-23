@@ -270,7 +270,7 @@ namespace OfficeIMO.Tests {
             document.SetPrintTitles(sheet, firstRow: 1, lastRow: 1, firstCol: null, lastCol: null, save: false);
             sheet.SetOrientation(ExcelPageOrientation.Landscape);
             sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 1);
-            sheet.SetHeaderFooter(headerCenter: "Confidential", footerRight: "Page &[Page]");
+            sheet.SetHeaderFooter(headerCenter: "Confidential", footerRight: "Printed &[Date]");
             sheet.AddManualRowPageBreak(2, save: false);
 
             IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelWorksheetImageExportOptions {

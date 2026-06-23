@@ -581,6 +581,7 @@ namespace OfficeIMO.Excel {
                     case 'I':
                     case 'U':
                     case 'S': // bold, italic, underline, strike
+                    case '[': // bracketed fields such as &[Page], &[Pages], &[Tab]
                         return true;
                 }
                 return false;

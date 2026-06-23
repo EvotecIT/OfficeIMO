@@ -31,8 +31,8 @@ namespace OfficeIMO.Excel {
             ExcelWorksheetImageExportOptions resolved = NormalizeWorksheetOptions(options);
             IReadOnlyList<WorksheetImageRangeResolution> ranges = ResolveWorksheetImageRanges(resolved, allowMultipleResults: true);
             var results = new List<OfficeImageExportResult>(ranges.Count);
-            foreach (WorksheetImageRangeResolution range in ranges) {
-                results.Add(RenderWorksheetImageResult(format, range, resolved));
+            for (int index = 0; index < ranges.Count; index++) {
+                results.Add(RenderWorksheetImageResult(format, ranges[index], resolved, index + 1, ranges.Count));
             }
 
             return results.AsReadOnly();

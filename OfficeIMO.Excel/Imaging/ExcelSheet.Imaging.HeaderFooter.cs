@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using OfficeIMO.Drawing;
 
@@ -11,8 +12,10 @@ namespace OfficeIMO.Excel {
         private OfficeImageExportResult ApplyHeaderFooterTextChrome(
             OfficeImageExportFormat format,
             OfficeImageExportResult content,
-            ExcelWorksheetImageExportOptions options) {
-            if (!TryCreateHeaderFooterTextChrome(out HeaderFooterTextChrome chrome)) {
+            ExcelWorksheetImageExportOptions options,
+            int pageNumber,
+            int pageCount) {
+            if (!TryCreateHeaderFooterTextChrome(pageNumber, pageCount, out HeaderFooterTextChrome chrome)) {
                 return content;
             }
 
@@ -69,10 +72,10 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            return TryCreateHeaderFooterTextChrome(out _);
+            return TryCreateHeaderFooterTextChrome(1, 1, out _);
         }
 
-        private bool TryCreateHeaderFooterTextChrome(out HeaderFooterTextChrome chrome) {
+        private bool TryCreateHeaderFooterTextChrome(int pageNumber, int pageCount, out HeaderFooterTextChrome chrome) {
             chrome = default;
             HeaderFooterSnapshot snapshot = GetHeaderFooter();
             if (snapshot.DifferentFirstPage ||
@@ -88,12 +91,12 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            if (!TryNormalizePlainHeaderFooterText(snapshot.HeaderLeft, out string headerLeft) ||
-                !TryNormalizePlainHeaderFooterText(snapshot.HeaderCenter, out string headerCenter) ||
-                !TryNormalizePlainHeaderFooterText(snapshot.HeaderRight, out string headerRight) ||
-                !TryNormalizePlainHeaderFooterText(snapshot.FooterLeft, out string footerLeft) ||
-                !TryNormalizePlainHeaderFooterText(snapshot.FooterCenter, out string footerCenter) ||
-                !TryNormalizePlainHeaderFooterText(snapshot.FooterRight, out string footerRight)) {
+            if (!TryResolveHeaderFooterText(snapshot.HeaderLeft, pageNumber, pageCount, out string headerLeft) ||
+                !TryResolveHeaderFooterText(snapshot.HeaderCenter, pageNumber, pageCount, out string headerCenter) ||
+                !TryResolveHeaderFooterText(snapshot.HeaderRight, pageNumber, pageCount, out string headerRight) ||
+                !TryResolveHeaderFooterText(snapshot.FooterLeft, pageNumber, pageCount, out string footerLeft) ||
+                !TryResolveHeaderFooterText(snapshot.FooterCenter, pageNumber, pageCount, out string footerCenter) ||
+                !TryResolveHeaderFooterText(snapshot.FooterRight, pageNumber, pageCount, out string footerRight)) {
                 return false;
             }
 
@@ -107,7 +110,7 @@ namespace OfficeIMO.Excel {
             return chrome.HasAnyText;
         }
 
-        private static bool TryNormalizePlainHeaderFooterText(string? text, out string normalized) {
+        private bool TryResolveHeaderFooterText(string? text, int pageNumber, int pageCount, out string normalized) {
             normalized = string.Empty;
             if (string.IsNullOrWhiteSpace(text)) {
                 return true;
@@ -121,11 +124,57 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                return false;
+                if (i + 1 >= text.Length) {
+                    return false;
+                }
+
+                char token = text[++i];
+                if (token == '&') {
+                    builder.Append('&');
+                } else if (token == 'P') {
+                    builder.Append(pageNumber.ToString(CultureInfo.InvariantCulture));
+                } else if (token == 'N') {
+                    builder.Append(pageCount.ToString(CultureInfo.InvariantCulture));
+                } else if (token == 'A') {
+                    builder.Append(Name);
+                } else if (token == '[') {
+                    int end = text.IndexOf(']', i + 1);
+                    if (end < 0) {
+                        return false;
+                    }
+
+                    string fieldName = text.Substring(i + 1, end - i - 1);
+                    if (!TryAppendHeaderFooterField(builder, fieldName, pageNumber, pageCount)) {
+                        return false;
+                    }
+
+                    i = end;
+                } else {
+                    return false;
+                }
             }
 
             normalized = builder.ToString().Trim();
             return true;
+        }
+
+        private bool TryAppendHeaderFooterField(StringBuilder builder, string fieldName, int pageNumber, int pageCount) {
+            if (string.Equals(fieldName, "Page", StringComparison.OrdinalIgnoreCase)) {
+                builder.Append(pageNumber.ToString(CultureInfo.InvariantCulture));
+                return true;
+            }
+
+            if (string.Equals(fieldName, "Pages", StringComparison.OrdinalIgnoreCase)) {
+                builder.Append(pageCount.ToString(CultureInfo.InvariantCulture));
+                return true;
+            }
+
+            if (string.Equals(fieldName, "Tab", StringComparison.OrdinalIgnoreCase)) {
+                builder.Append(Name);
+                return true;
+            }
+
+            return false;
         }
 
         private static void DrawHeaderFooterRaster(

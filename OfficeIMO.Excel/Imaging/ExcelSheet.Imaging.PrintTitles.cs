@@ -5,7 +5,9 @@ namespace OfficeIMO.Excel {
         private OfficeImageExportResult RenderWorksheetImageResult(
             OfficeImageExportFormat format,
             WorksheetImageRangeResolution range,
-            ExcelWorksheetImageExportOptions options) {
+            ExcelWorksheetImageExportOptions options,
+            int pageNumber,
+            int pageCount) {
             OfficeImageExportResult result;
             if (options.SplitByManualPageBreaks &&
                 TryCreatePrintTitleLayout(range.Range, out PrintTitleLayout layout)) {
@@ -16,7 +18,7 @@ namespace OfficeIMO.Excel {
             }
 
             return options.SplitByManualPageBreaks
-                ? ApplyHeaderFooterTextChrome(format, result, options)
+                ? ApplyHeaderFooterTextChrome(format, result, options, pageNumber, pageCount)
                 : result;
         }
 
