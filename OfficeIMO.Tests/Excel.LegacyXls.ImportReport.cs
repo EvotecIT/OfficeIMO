@@ -626,9 +626,12 @@ namespace OfficeIMO.Tests {
             Assert.Equal(0, report.UnsupportedFeatureCount);
             Assert.Equal(1, report.AutoFilterCriteriaByOperator["Equal"]);
             Assert.Equal(1, report.AutoFilterCriteriaByOperator["GreaterThanOrEqual"]);
+            Assert.Equal(1, report.AutoFilterCriteriaByValueKind["Text"]);
+            Assert.Equal(1, report.AutoFilterCriteriaByValueKind["Number"]);
             string markdown = report.ToMarkdown();
             Assert.Contains("AutoFilter criteria columns: 2", markdown);
             Assert.Contains("AutoFilter Criteria By Operator", markdown);
+            Assert.Contains("AutoFilter Criteria By Value Kind", markdown);
         }
 
         [Fact]

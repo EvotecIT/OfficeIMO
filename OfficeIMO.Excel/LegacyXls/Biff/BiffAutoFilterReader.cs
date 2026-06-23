@@ -86,16 +86,20 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             string value;
+            LegacyXlsAutoFilterValueKind valueKind;
             switch (valueType) {
                 case 0x02:
                     value = BiffRkNumberReader.ReadRkNumber(BiffRecordReader.ReadUInt32(payload, offset + 2)).ToString("G15", CultureInfo.InvariantCulture);
+                    valueKind = LegacyXlsAutoFilterValueKind.RkNumber;
                     break;
                 case 0x04:
                     value = BiffRecordReader.ReadDouble(payload, offset + 2).ToString("G15", CultureInfo.InvariantCulture);
+                    valueKind = LegacyXlsAutoFilterValueKind.Number;
                     break;
                 case 0x06:
                     int charCount = payload[offset + 6];
                     value = BiffStringReader.ReadUnicodeStringNoCch(payload, ref stringOffset, charCount);
+                    valueKind = LegacyXlsAutoFilterValueKind.Text;
                     break;
                 case 0x08:
                     if (payload[offset + 2] != 0) {
@@ -104,6 +108,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                         value = payload[offset + 3] == 0 ? "FALSE" : "TRUE";
                     }
 
+                    valueKind = LegacyXlsAutoFilterValueKind.BooleanOrError;
                     break;
                 case 0x0c:
                     if (@operator != LegacyXlsAutoFilterOperator.Equal) {
@@ -111,6 +116,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     }
 
                     value = string.Empty;
+                    valueKind = LegacyXlsAutoFilterValueKind.Blank;
                     specialKind = LegacyXlsAutoFilterKind.Blanks;
                     break;
                 case 0x0e:
@@ -119,13 +125,14 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     }
 
                     value = string.Empty;
+                    valueKind = LegacyXlsAutoFilterValueKind.NonBlank;
                     specialKind = LegacyXlsAutoFilterKind.NonBlanks;
                     break;
                 default:
                     return false;
             }
 
-            condition = new LegacyXlsAutoFilterCondition(@operator, value);
+            condition = new LegacyXlsAutoFilterCondition(@operator, value, valueKind);
             return true;
         }
 

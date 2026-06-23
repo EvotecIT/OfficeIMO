@@ -665,11 +665,13 @@ namespace OfficeIMO.Tests {
             LegacyXlsAutoFilterCondition statusCondition = Assert.Single(statusCriteria.Conditions);
             Assert.Equal(LegacyXlsAutoFilterOperator.Equal, statusCondition.Operator);
             Assert.Equal("Open", statusCondition.Value);
+            Assert.Equal(LegacyXlsAutoFilterValueKind.Text, statusCondition.ValueKind);
             LegacyXlsAutoFilterCriteria amountCriteria = legacySheet.AutoFilterCriteria[1];
             Assert.Equal(1U, amountCriteria.ColumnId);
             LegacyXlsAutoFilterCondition amountCondition = Assert.Single(amountCriteria.Conditions);
             Assert.Equal(LegacyXlsAutoFilterOperator.GreaterThanOrEqual, amountCondition.Operator);
             Assert.Equal("10", amountCondition.Value);
+            Assert.Equal(LegacyXlsAutoFilterValueKind.Number, amountCondition.ValueKind);
             Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.AutoFilterCriteria);
 
             using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
@@ -769,6 +771,7 @@ namespace OfficeIMO.Tests {
             LegacyXlsAutoFilterCondition blankCondition = Assert.Single(blankCriteria.Conditions);
             Assert.Equal(LegacyXlsAutoFilterOperator.Equal, blankCondition.Operator);
             Assert.Equal(string.Empty, blankCondition.Value);
+            Assert.Equal(LegacyXlsAutoFilterValueKind.Blank, blankCondition.ValueKind);
 
             LegacyXlsAutoFilterCriteria nonBlankCriteria = legacySheet.AutoFilterCriteria[1];
             Assert.Equal(1U, nonBlankCriteria.ColumnId);
@@ -776,6 +779,7 @@ namespace OfficeIMO.Tests {
             LegacyXlsAutoFilterCondition nonBlankCondition = Assert.Single(nonBlankCriteria.Conditions);
             Assert.Equal(LegacyXlsAutoFilterOperator.NotEqual, nonBlankCondition.Operator);
             Assert.Equal(string.Empty, nonBlankCondition.Value);
+            Assert.Equal(LegacyXlsAutoFilterValueKind.NonBlank, nonBlankCondition.ValueKind);
             Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.AutoFilterCriteria);
 
             using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
@@ -789,6 +793,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, result.ImportReport.AutoFilterCriteriaByKind["NonBlanks"]);
             Assert.Equal(1, result.ImportReport.AutoFilterCriteriaByOperator["Equal"]);
             Assert.Equal(1, result.ImportReport.AutoFilterCriteriaByOperator["NotEqual"]);
+            Assert.Equal(1, result.ImportReport.AutoFilterCriteriaByValueKind["Blank"]);
+            Assert.Equal(1, result.ImportReport.AutoFilterCriteriaByValueKind["NonBlank"]);
             Assert.Empty(result.Document.ValidateOpenXml());
 
             using var output = new MemoryStream();

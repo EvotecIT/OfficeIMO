@@ -30,6 +30,10 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .SelectMany(sheet => sheet.AutoFilterCriteria)
                 .SelectMany(criteria => criteria.Conditions)
                 .Select(condition => condition.Operator.ToString()));
+            AutoFilterCriteriaByValueKind = CountByCode(workbook.Worksheets
+                .SelectMany(sheet => sheet.AutoFilterCriteria)
+                .SelectMany(criteria => criteria.Conditions)
+                .Select(condition => condition.ValueKind.ToString()));
             AutoFilterCriteriaByKind = CountByCode(workbook.Worksheets
                 .SelectMany(sheet => sheet.AutoFilterCriteria)
                 .Select(criteria => criteria.Kind.ToString()));
@@ -280,6 +284,9 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets imported AutoFilter conditions grouped by comparison operator.</summary>
         public IReadOnlyDictionary<string, int> AutoFilterCriteriaByOperator { get; }
+
+        /// <summary>Gets imported AutoFilter conditions grouped by BIFF operand kind.</summary>
+        public IReadOnlyDictionary<string, int> AutoFilterCriteriaByValueKind { get; }
 
         /// <summary>Gets imported AutoFilter criteria grouped by criteria kind.</summary>
         public IReadOnlyDictionary<string, int> AutoFilterCriteriaByKind { get; }
@@ -638,6 +645,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Conditional Formatting By Operator", ConditionalFormattingsByOperator);
             AppendDictionary(builder, "AutoFilter Criteria By Kind", AutoFilterCriteriaByKind);
             AppendDictionary(builder, "AutoFilter Criteria By Operator", AutoFilterCriteriaByOperator);
+            AppendDictionary(builder, "AutoFilter Criteria By Value Kind", AutoFilterCriteriaByValueKind);
             AppendDictionary(builder, "AutoFilter Top10 Kinds", AutoFilterTop10Kinds);
             AppendDictionary(builder, "AutoFilter Top10 Values", AutoFilterTop10Values);
             AppendDictionary(builder, "Unsupported Features By Code", UnsupportedFeaturesByCode);

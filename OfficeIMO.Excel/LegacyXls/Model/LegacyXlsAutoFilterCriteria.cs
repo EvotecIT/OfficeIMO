@@ -48,7 +48,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             return new LegacyXlsAutoFilterCriteria(
                 columnId,
                 matchAll: false,
-                conditions: new[] { new LegacyXlsAutoFilterCondition(LegacyXlsAutoFilterOperator.Equal, string.Empty) },
+                conditions: new[] { new LegacyXlsAutoFilterCondition(LegacyXlsAutoFilterOperator.Equal, string.Empty, LegacyXlsAutoFilterValueKind.Blank) },
                 kind: LegacyXlsAutoFilterKind.Blanks);
         }
 
@@ -59,7 +59,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             return new LegacyXlsAutoFilterCriteria(
                 columnId,
                 matchAll: false,
-                conditions: new[] { new LegacyXlsAutoFilterCondition(LegacyXlsAutoFilterOperator.NotEqual, string.Empty) },
+                conditions: new[] { new LegacyXlsAutoFilterCondition(LegacyXlsAutoFilterOperator.NotEqual, string.Empty, LegacyXlsAutoFilterValueKind.NonBlank) },
                 kind: LegacyXlsAutoFilterKind.NonBlanks);
         }
 
@@ -125,9 +125,13 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>
         /// Creates a parsed legacy AutoFilter condition.
         /// </summary>
-        public LegacyXlsAutoFilterCondition(LegacyXlsAutoFilterOperator @operator, string value) {
+        public LegacyXlsAutoFilterCondition(
+            LegacyXlsAutoFilterOperator @operator,
+            string value,
+            LegacyXlsAutoFilterValueKind valueKind = LegacyXlsAutoFilterValueKind.Unknown) {
             Operator = @operator;
             Value = value ?? throw new ArgumentNullException(nameof(value));
+            ValueKind = valueKind;
         }
 
         /// <summary>
@@ -139,6 +143,31 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// Gets the comparison value normalized for Open XML projection.
         /// </summary>
         public string Value { get; }
+
+        /// <summary>
+        /// Gets the BIFF operand kind used to store the comparison value.
+        /// </summary>
+        public LegacyXlsAutoFilterValueKind ValueKind { get; }
+    }
+
+    /// <summary>
+    /// Identifies the BIFF operand kind used by a legacy AutoFilter condition.
+    /// </summary>
+    public enum LegacyXlsAutoFilterValueKind {
+        /// <summary>The operand kind was not specified by the caller.</summary>
+        Unknown,
+        /// <summary>The operand was stored as an RK number.</summary>
+        RkNumber,
+        /// <summary>The operand was stored as an IEEE 754 number.</summary>
+        Number,
+        /// <summary>The operand was stored as text.</summary>
+        Text,
+        /// <summary>The operand was stored as a Boolean or error value.</summary>
+        BooleanOrError,
+        /// <summary>The operand was the blank-cell sentinel.</summary>
+        Blank,
+        /// <summary>The operand was the nonblank-cell sentinel.</summary>
+        NonBlank
     }
 
     /// <summary>
