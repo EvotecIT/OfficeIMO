@@ -294,6 +294,27 @@ Warnings: 0
 | Seconds | 1 |
 | Years | 5 |
 
+## Pivot Table Grouping Boundary States
+
+| Key | Count |
+| --- | --- |
+| AutoStart:False;AutoEnd:False | 13 |
+| AutoStart:False;AutoEnd:True | 8 |
+| AutoStart:True;AutoEnd:False | 2 |
+| AutoStart:True;AutoEnd:True | 2 |
+
+## Pivot Table Extended Field States
+
+| Key | Count |
+| --- | --- |
+| CanDragToColumn:False | 1 |
+| CanDragToHide:False | 1 |
+| CanDragToPage:True | 1 |
+| CanDragToRow:False | 1 |
+| PreventDragToData:False | 1 |
+| ServerBased:False | 1 |
+| ShowAllItems:False | 1 |
+
 ## Chart Records By Kind
 
 | Key | Count |

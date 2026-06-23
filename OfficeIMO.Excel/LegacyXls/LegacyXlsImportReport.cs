@@ -159,9 +159,19 @@ namespace OfficeIMO.Excel.LegacyXls {
             PivotTableDataItemDisplayCalculations = CountByCode(workbook.PivotTableRecords
                 .Where(record => !string.IsNullOrWhiteSpace(record.DisplayCalculationName))
                 .Select(record => record.DisplayCalculationName!));
+            PivotTableDataItemNumberFormats = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.NumberFormatId.HasValue)
+                .Select(record => $"NumberFormatId:{record.NumberFormatId!.Value}"));
+            PivotTableDataItemNames = CountByCode(workbook.PivotTableRecords
+                .Where(record => !string.IsNullOrWhiteSpace(record.Name))
+                .Select(record => record.Name!));
             PivotTableGroupingKinds = CountByCode(workbook.PivotTableRecords
                 .Where(record => record.GroupingKind.HasValue)
                 .Select(record => record.GroupingKind!.Value.ToString()));
+            PivotTableGroupingBoundaryStates = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.AutoStart.HasValue && record.AutoEnd.HasValue)
+                .Select(record => $"AutoStart:{record.AutoStart!.Value};AutoEnd:{record.AutoEnd!.Value}"));
+            PivotTableExtendedFieldStates = CountByCode(workbook.PivotTableRecords.SelectMany(GetPivotTableExtendedFieldStateKeys));
             ChartRecordsByKind = CountChartRecordsByKind(workbook.ChartRecords);
             ChartRecordsByName = CountByCode(workbook.ChartRecords.Select(record => record.RecordName));
             ChartRecordsByChartType = CountByCode(workbook.ChartRecords
@@ -543,8 +553,20 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets decoded SXDI PivotTable data item records grouped by display calculation name.</summary>
         public IReadOnlyDictionary<string, int> PivotTableDataItemDisplayCalculations { get; }
 
+        /// <summary>Gets decoded SXDI PivotTable data item records grouped by number format identifier.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableDataItemNumberFormats { get; }
+
+        /// <summary>Gets decoded SXDI PivotTable data item records grouped by custom data item name.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableDataItemNames { get; }
+
         /// <summary>Gets decoded SXRng PivotTable grouping records grouped by grouping kind.</summary>
         public IReadOnlyDictionary<string, int> PivotTableGroupingKinds { get; }
+
+        /// <summary>Gets decoded SXRng PivotTable grouping records grouped by automatic boundary state.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableGroupingBoundaryStates { get; }
+
+        /// <summary>Gets decoded SXVDEx PivotTable field flags grouped by flag state.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableExtendedFieldStates { get; }
 
         /// <summary>Gets preserve-only chart BIFF records grouped by shallow category.</summary>
         public IReadOnlyDictionary<LegacyXlsChartRecordKind, int> ChartRecordsByKind { get; }
@@ -816,7 +838,11 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Pivot Table Data Item Aggregations", PivotTableDataItemAggregations);
             AppendDictionary(builder, "Pivot Table Data Item Aggregation Kinds", PivotTableDataItemAggregationKinds);
             AppendDictionary(builder, "Pivot Table Data Item Display Calculations", PivotTableDataItemDisplayCalculations);
+            AppendDictionary(builder, "Pivot Table Data Item Number Formats", PivotTableDataItemNumberFormats);
+            AppendDictionary(builder, "Pivot Table Data Item Names", PivotTableDataItemNames);
             AppendDictionary(builder, "Pivot Table Grouping Kinds", PivotTableGroupingKinds);
+            AppendDictionary(builder, "Pivot Table Grouping Boundary States", PivotTableGroupingBoundaryStates);
+            AppendDictionary(builder, "Pivot Table Extended Field States", PivotTableExtendedFieldStates);
             AppendDictionary(builder, "Chart Records By Kind", ChartRecordsByKind.ToDictionary(
                 entry => entry.Key.ToString(),
                 entry => entry.Value,
@@ -1075,6 +1101,20 @@ namespace OfficeIMO.Excel.LegacyXls {
             }
 
             return validation.SuppressDropDown ? "Suppressed" : "Visible";
+        }
+
+        private static IEnumerable<string> GetPivotTableExtendedFieldStateKeys(LegacyXlsPivotTableRecord record) {
+            if (!record.ShowAllItems.HasValue) {
+                yield break;
+            }
+
+            yield return $"ShowAllItems:{record.ShowAllItems.Value}";
+            yield return $"CanDragToRow:{record.CanDragToRow!.Value}";
+            yield return $"CanDragToColumn:{record.CanDragToColumn!.Value}";
+            yield return $"CanDragToPage:{record.CanDragToPage!.Value}";
+            yield return $"CanDragToHide:{record.CanDragToHide!.Value}";
+            yield return $"PreventDragToData:{record.PreventDragToData!.Value}";
+            yield return $"ServerBased:{record.ServerBased!.Value}";
         }
 
         private static IEnumerable<string> GetConditionalFormattingDifferentialFillKeys(LegacyXlsConditionalFormatting formatting) {

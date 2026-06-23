@@ -298,7 +298,17 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.PivotTableDataItemAggregations["AggregationFunction:0"]);
             Assert.Equal(1, report.PivotTableDataItemAggregationKinds["Sum"]);
             Assert.Equal(1, report.PivotTableDataItemDisplayCalculations["PercentOfGrandTotal"]);
+            Assert.Equal(1, report.PivotTableDataItemNumberFormats["NumberFormatId:14"]);
+            Assert.Equal(1, report.PivotTableDataItemNames["Sales"]);
             Assert.Equal(1, report.PivotTableGroupingKinds["Months"]);
+            Assert.Equal(1, report.PivotTableGroupingBoundaryStates["AutoStart:True;AutoEnd:True"]);
+            Assert.Equal(1, report.PivotTableExtendedFieldStates["ShowAllItems:True"]);
+            Assert.Equal(1, report.PivotTableExtendedFieldStates["CanDragToRow:True"]);
+            Assert.Equal(1, report.PivotTableExtendedFieldStates["CanDragToColumn:True"]);
+            Assert.Equal(1, report.PivotTableExtendedFieldStates["CanDragToPage:True"]);
+            Assert.Equal(1, report.PivotTableExtendedFieldStates["CanDragToHide:True"]);
+            Assert.Equal(1, report.PivotTableExtendedFieldStates["PreventDragToData:False"]);
+            Assert.Equal(1, report.PivotTableExtendedFieldStates["ServerBased:True"]);
 
             Assert.Contains(workbook.PivotTableRecords, record => record.Kind == LegacyXlsPivotTableRecordKind.View && record.RecordName == "SxView" && record.SheetName == null);
             Assert.Contains(workbook.PivotTableRecords, record => record.Kind == LegacyXlsPivotTableRecordKind.Field && record.RecordName == "Sxvd" && record.SheetName == "PivotMeta");
@@ -349,7 +359,11 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Pivot Table Data Item Aggregations", markdown);
             Assert.Contains("Pivot Table Data Item Aggregation Kinds", markdown);
             Assert.Contains("PercentOfGrandTotal", markdown);
+            Assert.Contains("Pivot Table Data Item Number Formats", markdown);
+            Assert.Contains("Pivot Table Data Item Names", markdown);
             Assert.Contains("Pivot Table Grouping Kinds", markdown);
+            Assert.Contains("Pivot Table Grouping Boundary States", markdown);
+            Assert.Contains("Pivot Table Extended Field States", markdown);
             Assert.Contains("SxVdEx", markdown);
         }
 
