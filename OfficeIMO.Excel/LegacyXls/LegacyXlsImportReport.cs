@@ -107,6 +107,12 @@ namespace OfficeIMO.Excel.LegacyXls {
             UnsupportedSheetsByKind = CountUnsupportedSheetsByKind(workbook.UnsupportedSheets);
             UnsupportedSheetsByType = CountByCode(workbook.UnsupportedSheets.Select(sheet => $"0x{sheet.SheetType:X2}|{sheet.Kind}"));
             UnsupportedSheetsByName = CountByCode(workbook.UnsupportedSheets.Select(sheet => sheet.Name));
+            UnsupportedChartSheetPrintSizes = CountByCode(workbook.UnsupportedSheets
+                .Where(sheet => sheet.Kind == LegacyXlsUnsupportedSheetKind.ChartSheet && sheet.ChartPrintSize.HasValue)
+                .Select(sheet => $"PrintSize:{sheet.ChartPrintSize!.Value}"));
+            UnsupportedChartSheetTextObjectCounts = CountByCode(workbook.UnsupportedSheets
+                .Where(sheet => sheet.Kind == LegacyXlsUnsupportedSheetKind.ChartSheet && sheet.ChartTextObjectCount > 0)
+                .Select(sheet => $"TextObjects:{sheet.ChartTextObjectCount}"));
             ExternalReferencesByKind = CountExternalReferencesByKind(workbook.ExternalReferences);
             ExternalReferencesByTarget = CountByCode(workbook.ExternalReferences.Select(GetExternalReferenceTargetKey));
             ExternalSheetNamesByReferenceKind = CountExternalSheetNamesByReferenceKind(workbook.ExternalReferences);
@@ -419,6 +425,12 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets unsupported sheet entries grouped by sheet name.</summary>
         public IReadOnlyDictionary<string, int> UnsupportedSheetsByName { get; }
 
+        /// <summary>Gets unsupported chart sheets grouped by raw PrintSize value.</summary>
+        public IReadOnlyDictionary<string, int> UnsupportedChartSheetPrintSizes { get; }
+
+        /// <summary>Gets unsupported chart sheets grouped by chart text object count.</summary>
+        public IReadOnlyDictionary<string, int> UnsupportedChartSheetTextObjectCounts { get; }
+
         /// <summary>Gets preserved external references grouped by supporting-link kind.</summary>
         public IReadOnlyDictionary<LegacyXlsExternalReferenceKind, int> ExternalReferencesByKind { get; }
 
@@ -683,6 +695,8 @@ namespace OfficeIMO.Excel.LegacyXls {
                 StringComparer.OrdinalIgnoreCase));
             AppendDictionary(builder, "Unsupported Sheets By Type", UnsupportedSheetsByType);
             AppendDictionary(builder, "Unsupported Sheets By Name", UnsupportedSheetsByName);
+            AppendDictionary(builder, "Unsupported Chart Sheet Print Sizes", UnsupportedChartSheetPrintSizes);
+            AppendDictionary(builder, "Unsupported Chart Sheet Text Object Counts", UnsupportedChartSheetTextObjectCounts);
             AppendDictionary(builder, "External References By Kind", ExternalReferencesByKind.ToDictionary(
                 entry => entry.Key.ToString(),
                 entry => entry.Value,

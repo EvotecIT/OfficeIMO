@@ -367,7 +367,12 @@ namespace OfficeIMO.Tests {
             Assert.Equal(2, report.UnsupportedSheetMetadataRecordCount);
             Assert.Equal(1, report.UnsupportedSheetMetadataRecordsByKind[LegacyXlsUnsupportedSheetMetadataKind.ChartPrintSize]);
             Assert.Equal(1, report.UnsupportedSheetMetadataRecordsByKind[LegacyXlsUnsupportedSheetMetadataKind.ChartTextObject]);
-            Assert.Contains("Unsupported sheet metadata records: 2", report.ToMarkdown());
+            Assert.Equal(1, report.UnsupportedChartSheetPrintSizes["PrintSize:2"]);
+            Assert.Equal(1, report.UnsupportedChartSheetTextObjectCounts["TextObjects:1"]);
+            string markdown = report.ToMarkdown();
+            Assert.Contains("Unsupported sheet metadata records: 2", markdown);
+            Assert.Contains("Unsupported Chart Sheet Print Sizes", markdown);
+            Assert.Contains("Unsupported Chart Sheet Text Object Counts", markdown);
         }
 
         [Fact]

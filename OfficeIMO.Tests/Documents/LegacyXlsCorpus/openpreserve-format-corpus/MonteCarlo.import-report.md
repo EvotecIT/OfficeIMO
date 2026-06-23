@@ -217,6 +217,18 @@ Warnings: 0
 | ZPFCUM_CHART | 1 |
 | ZRAINCUM_CHART | 1 |
 
+## Unsupported Chart Sheet Print Sizes
+
+| Key | Count |
+| --- | --- |
+| PrintSize:3 | 4 |
+
+## Unsupported Chart Sheet Text Object Counts
+
+| Key | Count |
+| --- | --- |
+| TextObjects:1 | 4 |
+
 ## External References By Kind
 
 | Key | Count |
