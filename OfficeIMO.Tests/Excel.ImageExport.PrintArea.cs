@@ -297,6 +297,64 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelWorksheet_PageSlicedPngExportAppliesPageSetupCanvasForManualScale() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("Report");
+            FillPageBreakGrid(sheet);
+            sheet.SetOrientation(ExcelPageOrientation.Landscape);
+            sheet.SetMargins(0.5D, 0.5D, 0.5D, 0.5D);
+            sheet.SetPageSetup(scale: 50);
+            sheet.AddManualRowPageBreak(2, save: false);
+
+            OfficeImageExportResult result = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelWorksheetImageExportOptions {
+                Range = "A1:D4",
+                SplitByManualPageBreaks = true,
+                ShowGridlines = false
+            })[1];
+
+            OfficeImageInfo info = OfficeImageReader.Identify(result.Bytes);
+            Assert.Equal(1056, info.Width);
+            Assert.Equal(816, info.Height);
+            Assert.DoesNotContain(result.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.PageSetupUnsupported);
+            Assert.Contains(result.Diagnostics, item =>
+                item.Code == ExcelImageExportDiagnosticCodes.PageSetupPaperSizeDefaulted &&
+                item.Source == "Report!pageSetup");
+            Assert.True(OfficePngReader.TryDecode(result.Bytes, out OfficeRasterImage? image));
+            Assert.NotNull(image);
+            (int x, int y) = FindFirstNonWhitePixel(image!);
+            Assert.InRange(x, 48, 180);
+            Assert.InRange(y, 48, 140);
+        }
+
+        [Fact]
+        public void ExcelWorksheet_PageSlicedSvgExportAppliesPageSetupCanvasForManualScale() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("Report");
+            FillPageBreakGrid(sheet);
+            sheet.SetMargins(0.25D, 0.25D, 0.5D, 0.5D);
+            sheet.SetPageSetup(scale: 75);
+            sheet.AddManualRowPageBreak(2, save: false);
+
+            OfficeImageExportResult result = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelWorksheetImageExportOptions {
+                Range = "A1:D4",
+                SplitByManualPageBreaks = true,
+                ShowGridlines = false
+            })[1];
+
+            string svg = Encoding.UTF8.GetString(result.Bytes);
+            Assert.Equal(816, result.Width);
+            Assert.Equal(1056, result.Height);
+            Assert.DoesNotContain(result.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.PageSetupUnsupported);
+            Assert.Contains(result.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.PageSetupPaperSizeDefaulted);
+            Assert.Contains("width=\"816\"", svg);
+            Assert.Contains("height=\"1056\"", svg);
+            Assert.Contains("<svg x=\"24\" y=\"48\"", svg);
+            Assert.Contains(">A3<", svg);
+        }
+
+        [Fact]
         public void ExcelWorksheet_PageSlicedSvgExportRepeatsPrintTitleRows() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
@@ -325,6 +383,19 @@ namespace OfficeIMO.Tests {
                     sheet.CellValue(row, column, A1.CellReference(row, column));
                 }
             }
+        }
+
+        private static (int X, int Y) FindFirstNonWhitePixel(OfficeRasterImage image) {
+            for (int y = 0; y < image.Height; y++) {
+                for (int x = 0; x < image.Width; x++) {
+                    OfficeColor pixel = image.GetPixel(x, y);
+                    if (pixel.A > 0 && (pixel.R < 245 || pixel.G < 245 || pixel.B < 245)) {
+                        return (x, y);
+                    }
+                }
+            }
+
+            throw new InvalidOperationException("Expected at least one visible non-white pixel.");
         }
 
         private static void AddMultiAreaPrintArea(string filePath) {

@@ -34,7 +34,7 @@ public sealed class PackageDependencyGuardrailTests {
     public void Projects_DoNotReferenceExternalGraphicsPackages() {
         var offenders = EnumerateProjectFiles()
             .SelectMany(projectPath => ProjectReferencesPackages(projectPath, ForbiddenRenderingPackageIds)
-                .Select(packageId => NormalizeProjectPath(Path.GetRelativePath(GetRepositoryRoot(), projectPath)) + " -> " + packageId))
+                .Select(packageId => GetRepositoryRelativePath(projectPath) + " -> " + packageId))
             .ToArray();
 
         Assert.Empty(offenders);
@@ -315,7 +315,7 @@ public sealed class PackageDependencyGuardrailTests {
                 string source = File.ReadAllText(sourceFile);
                 Match match = forbiddenDeclaration.Match(source);
                 if (match.Success) {
-                    offenders.Add(NormalizeProjectPath(Path.GetRelativePath(GetRepositoryRoot(), sourceFile)) + " declares " + match.Groups[2].Value);
+                    offenders.Add(GetRepositoryRelativePath(sourceFile) + " declares " + match.Groups[2].Value);
                 }
             }
         }
@@ -439,6 +439,21 @@ public sealed class PackageDependencyGuardrailTests {
 
     private static string NormalizeProjectPath(string? path) =>
         (path ?? string.Empty).Replace('\\', '/');
+
+    private static string GetRepositoryRelativePath(string path) {
+        var repositoryRoot = Path.GetFullPath(GetRepositoryRoot());
+        if (!repositoryRoot.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal)) {
+            repositoryRoot += Path.DirectorySeparatorChar;
+        }
+
+        var rootUri = new Uri(repositoryRoot, UriKind.Absolute);
+        var pathUri = new Uri(Path.GetFullPath(path), UriKind.Absolute);
+        var relativePath = Uri.UnescapeDataString(rootUri.MakeRelativeUri(pathUri).ToString());
+        Assert.False(
+            relativePath == ".." || relativePath.StartsWith("../", StringComparison.Ordinal),
+            "Path must stay under repository root: " + path);
+        return NormalizeProjectPath(relativePath);
+    }
 
     private static string[] GetProjectReferences(string projectPath) {
         var document = XDocument.Load(projectPath);

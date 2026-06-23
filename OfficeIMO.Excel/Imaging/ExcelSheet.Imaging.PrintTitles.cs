@@ -17,9 +17,12 @@ namespace OfficeIMO.Excel {
                 result = ExcelRangeImageRenderer.Render(snapshot, format, options);
             }
 
-            return options.SplitByManualPageBreaks
-                ? ApplyHeaderFooterTextChrome(format, result, options, pageNumber, pageCount)
-                : result;
+            if (!options.SplitByManualPageBreaks) {
+                return result;
+            }
+
+            result = ApplyHeaderFooterTextChrome(format, result, options, pageNumber, pageCount);
+            return ApplyPageSetupCanvas(format, result, options);
         }
 
         private OfficeImageExportResult RenderPrintTitleLayout(

@@ -183,6 +183,9 @@ public static class ExcelImageExportDiagnosticCodes {
     /// <summary>Worksheet page setup settings are not applied to image page geometry yet.</summary>
     public const string PageSetupUnsupported = "ExcelPageSetupUnsupported";
 
+    /// <summary>Worksheet page setup image output used the default paper size because paper-size-specific geometry is not supported yet.</summary>
+    public const string PageSetupPaperSizeDefaulted = "ExcelPageSetupPaperSizeDefaulted";
+
     /// <summary>Worksheet headers or footers are not rendered in image page output yet.</summary>
     public const string HeaderFooterUnsupported = "ExcelHeaderFooterUnsupported";
 

@@ -224,11 +224,11 @@ namespace OfficeIMO.Excel {
             }
 
             ExcelSheetPageSetup pageSetup = GetPageSetup();
-            if (pageSetup.Orientation.HasValue || pageSetup.FitToWidth.HasValue || pageSetup.FitToHeight.HasValue || pageSetup.Scale.HasValue) {
+            if (pageSetup.FitToWidth.HasValue || pageSetup.FitToHeight.HasValue) {
                 diagnostics.Add(new OfficeImageExportDiagnostic(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.PageSetupUnsupported,
-                    "Worksheet page setup orientation or scaling is configured, but image page output still uses worksheet pixel ranges instead of physical page geometry.",
+                    "Worksheet fit-to-width or fit-to-height page setup is configured, but image page output does not calculate automatic fit pagination yet.",
                     Name + "!pageSetup"));
             }
 
