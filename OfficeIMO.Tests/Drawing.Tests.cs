@@ -653,6 +653,30 @@ public class DrawingTests {
         Assert.Throws<ArgumentException>(() => new OfficeLinearGradient(0, 0, 1, 1, new OfficeGradientStop(0, OfficeColor.Black), new OfficeGradientStop(0.75, OfficeColor.White)));
     }
 
+    [Theory]
+    [InlineData(0D, 0D, 0.5D, 1D, 0.5D)]
+    [InlineData(45D, 0D, 0D, 1D, 1D)]
+    [InlineData(90D, 0.5D, 0D, 0.5D, 1D)]
+    [InlineData(180D, 1D, 0.5D, 0D, 0.5D)]
+    [InlineData(450D, 0.5D, 0D, 0.5D, 1D)]
+    [InlineData(-90D, 0.5D, 1D, 0.5D, 0D)]
+    public void OfficeLinearGradientFromAngleProjectsNormalizedEndpoints(double degrees, double startX, double startY, double endX, double endY) {
+        OfficeLinearGradient gradient = OfficeLinearGradient.FromAngle(OfficeColor.Blue, OfficeColor.Green, degrees);
+
+        Assert.Equal(startX, gradient.StartX, precision: 10);
+        Assert.Equal(startY, gradient.StartY, precision: 10);
+        Assert.Equal(endX, gradient.EndX, precision: 10);
+        Assert.Equal(endY, gradient.EndY, precision: 10);
+        Assert.Equal(new OfficeGradientStop(0, OfficeColor.Blue), gradient.Stops[0]);
+        Assert.Equal(new OfficeGradientStop(1, OfficeColor.Green), gradient.Stops[1]);
+    }
+
+    [Fact]
+    public void OfficeLinearGradientFromAngleRejectsInvalidAngles() {
+        Assert.Throws<ArgumentOutOfRangeException>(() => OfficeLinearGradient.FromAngle(OfficeColor.Blue, OfficeColor.Green, double.NaN));
+        Assert.Throws<ArgumentOutOfRangeException>(() => OfficeLinearGradient.FromAngle(OfficeColor.Blue, OfficeColor.Green, double.PositiveInfinity));
+    }
+
     [Fact]
     public void OfficeShadowStoresReusableShapeEffectIntent() {
         var shadow = new OfficeShadow(OfficeColor.FromRgb(10, 20, 30), 0.35, 4, 6);

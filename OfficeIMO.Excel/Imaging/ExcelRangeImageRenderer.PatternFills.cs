@@ -109,35 +109,8 @@ namespace OfficeIMO.Excel {
                 return null;
             }
 
-            double degree = style.FillGradientDegree ?? 0D;
-            double radians = NormalizeDegrees(degree) * Math.PI / 180D;
-            double dx = Math.Cos(radians);
-            double dy = Math.Sin(radians);
-            double divisor = Math.Max(Math.Abs(dx), Math.Abs(dy));
-            if (divisor <= double.Epsilon) {
-                return OfficeLinearGradient.Horizontal(start.Value, end.Value);
-            }
-
-            double half = 0.5D / divisor;
-            double startX = 0.5D - (dx * half);
-            double startY = 0.5D - (dy * half);
-            double endX = 0.5D + (dx * half);
-            double endY = 0.5D + (dy * half);
-            return new OfficeLinearGradient(
-                ClampUnit(startX),
-                ClampUnit(startY),
-                ClampUnit(endX),
-                ClampUnit(endY),
-                new OfficeGradientStop(0D, start.Value),
-                new OfficeGradientStop(1D, end.Value));
+            return OfficeLinearGradient.FromAngle(start.Value, end.Value, style.FillGradientDegree ?? 0D);
         }
-
-        private static double NormalizeDegrees(double degree) {
-            double normalized = degree % 360D;
-            return normalized < 0D ? normalized + 360D : normalized;
-        }
-
-        private static double ClampUnit(double value) => value < 0D ? 0D : value > 1D ? 1D : value;
 
         private static string NormalizeFillPattern(string? pattern) {
             if (string.IsNullOrWhiteSpace(pattern)) {
