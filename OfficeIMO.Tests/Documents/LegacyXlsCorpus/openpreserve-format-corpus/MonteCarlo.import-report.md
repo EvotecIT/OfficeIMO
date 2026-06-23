@@ -21,6 +21,7 @@ Drawing records: 46
 Differential formats: 0
 Compound feature records: 0
 Compound feature entries: 0
+Compound VBA modules: 0
 Calculation setting records: 43
 Cell style records: 6
 Workbook metadata records: 17

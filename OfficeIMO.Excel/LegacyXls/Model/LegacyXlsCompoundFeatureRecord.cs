@@ -30,5 +30,22 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets matching compound directory entry roles keyed by entry path or name.</summary>
         public IReadOnlyDictionary<string, LegacyXlsCompoundFeatureEntryRole> EntryRoles { get; }
+
+        /// <summary>Gets VBA module stream names discovered in this compound feature.</summary>
+        public IReadOnlyList<string> VbaModuleNames => Entries
+            .Where(entry => EntryRoles.TryGetValue(entry, out LegacyXlsCompoundFeatureEntryRole role)
+                && role == LegacyXlsCompoundFeatureEntryRole.VbaModuleStream)
+            .Select(GetEntryLeafName)
+            .ToArray();
+
+        /// <summary>Gets the number of VBA module streams discovered in this compound feature.</summary>
+        public int VbaModuleCount => VbaModuleNames.Count;
+
+        private static string GetEntryLeafName(string entry) {
+            int slashIndex = entry.LastIndexOf('/');
+            int backslashIndex = entry.LastIndexOf('\\');
+            int separatorIndex = Math.Max(slashIndex, backslashIndex);
+            return separatorIndex >= 0 && separatorIndex + 1 < entry.Length ? entry.Substring(separatorIndex + 1) : entry;
+        }
     }
 }

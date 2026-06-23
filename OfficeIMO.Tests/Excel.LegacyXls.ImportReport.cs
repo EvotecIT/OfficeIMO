@@ -757,6 +757,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, result.ImportReport.CompoundFeatureEntriesByName["_VBA_PROJECT_CUR"]);
             Assert.Equal(1, result.ImportReport.CompoundFeatureEntriesByRole["VbaProjectStorage"]);
             Assert.Equal(1, result.ImportReport.CompoundFeatureEntriesByKindAndRole["VbaProject|VbaProjectStorage"]);
+            Assert.Empty(compoundRecord.VbaModuleNames);
+            Assert.Equal(0, result.ImportReport.CompoundVbaModuleCount);
+            Assert.Equal(1, result.ImportReport.CompoundVbaProjectsByModuleCount["Modules:0"]);
             Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.VbaProject]);
             Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED"]);
             Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByDetail["VbaProject|XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED|Compound:VbaProjectStorage"]);
@@ -764,6 +767,37 @@ namespace OfficeIMO.Tests {
             Assert.Contains("VbaProject", markdown);
             Assert.Contains("Compound Feature Entries By Name", markdown);
             Assert.Contains("Compound Feature Entries By Role", markdown);
+        }
+
+        [Fact]
+        public void LegacyXls_ImportReport_SummarizesCompoundVbaModuleNames() {
+            var workbook = new LegacyXlsWorkbook();
+            var entryRoles = new Dictionary<string, LegacyXlsCompoundFeatureEntryRole>(StringComparer.OrdinalIgnoreCase) {
+                ["_VBA_PROJECT_CUR"] = LegacyXlsCompoundFeatureEntryRole.VbaProjectStorage,
+                ["_VBA_PROJECT_CUR/VBA"] = LegacyXlsCompoundFeatureEntryRole.VbaStorage,
+                ["_VBA_PROJECT_CUR/VBA/dir"] = LegacyXlsCompoundFeatureEntryRole.VbaDirStream,
+                ["_VBA_PROJECT_CUR/VBA/Sheet1"] = LegacyXlsCompoundFeatureEntryRole.VbaModuleStream,
+                ["_VBA_PROJECT_CUR/VBA/ThisWorkbook"] = LegacyXlsCompoundFeatureEntryRole.VbaModuleStream,
+                ["_VBA_PROJECT_CUR/VBA/_VBA_PROJECT"] = LegacyXlsCompoundFeatureEntryRole.VbaProjectStream
+            };
+            var record = new LegacyXlsCompoundFeatureRecord(
+                LegacyXlsCompoundFeatureRecordKind.VbaProject,
+                entryRoles.Keys.ToArray(),
+                entryRoles);
+            workbook.MutableCompoundFeatureRecords.Add(record);
+
+            LegacyXlsImportReport report = workbook.CreateImportReport();
+
+            Assert.Equal(new[] { "Sheet1", "ThisWorkbook" }, record.VbaModuleNames);
+            Assert.Equal(2, record.VbaModuleCount);
+            Assert.Equal(2, report.CompoundVbaModuleCount);
+            Assert.Equal(1, report.CompoundVbaModulesByName["Sheet1"]);
+            Assert.Equal(1, report.CompoundVbaModulesByName["ThisWorkbook"]);
+            Assert.Equal(1, report.CompoundVbaProjectsByModuleCount["Modules:2"]);
+            string markdown = report.ToMarkdown();
+            Assert.Contains("Compound VBA modules: 2", markdown);
+            Assert.Contains("Compound VBA Modules By Name", markdown);
+            Assert.Contains("Compound VBA Projects By Module Count", markdown);
         }
 
         [Fact]

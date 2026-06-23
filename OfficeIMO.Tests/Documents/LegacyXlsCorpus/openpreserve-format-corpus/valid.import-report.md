@@ -21,6 +21,7 @@ Drawing records: 48
 Differential formats: 0
 Compound feature records: 1
 Compound feature entries: 13
+Compound VBA modules: 8
 Calculation setting records: 61
 Cell style records: 6
 Workbook metadata records: 20
@@ -791,6 +792,25 @@ Warnings: 2
 | VbaProject\|VbaProjectStorage | 1 |
 | VbaProject\|VbaProjectStream | 2 |
 | VbaProject\|VbaStorage | 1 |
+
+## Compound VBA Modules By Name
+
+| Key | Count |
+| --- | --- |
+| Sheet1 | 1 |
+| Sheet2 | 1 |
+| Sheet3 | 1 |
+| Sheet4 | 1 |
+| Sheet5 | 1 |
+| Sheet6 | 1 |
+| Sheet8 | 1 |
+| ThisWorkbook | 1 |
+
+## Compound VBA Projects By Module Count
+
+| Key | Count |
+| --- | --- |
+| Modules:8 | 1 |
 
 ## Calculation Settings By Kind
 

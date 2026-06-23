@@ -78,6 +78,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             DifferentialFormatCount = workbook.DifferentialFormats.Count;
             CompoundFeatureRecordCount = workbook.CompoundFeatureRecords.Count;
             CompoundFeatureEntryCount = workbook.CompoundFeatureRecords.Sum(record => record.Entries.Count);
+            CompoundVbaModuleCount = workbook.CompoundFeatureRecords.Sum(record => record.VbaModuleCount);
             CalculationSettingRecordCount = workbook.CalculationSettings.Records.Count;
             CellStyleRecordCount = workbook.CellStyles.Count;
             WorkbookMetadataRecordCount = workbook.MetadataRecords.Count;
@@ -325,6 +326,10 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .Select(role => role.ToString()));
             CompoundFeatureEntriesByKindAndRole = CountByCode(workbook.CompoundFeatureRecords
                 .SelectMany(record => record.EntryRoles.Values.Select(role => $"{record.Kind}|{role}")));
+            CompoundVbaModulesByName = CountByCode(workbook.CompoundFeatureRecords.SelectMany(record => record.VbaModuleNames));
+            CompoundVbaProjectsByModuleCount = CountByCode(workbook.CompoundFeatureRecords
+                .Where(record => record.Kind == LegacyXlsCompoundFeatureRecordKind.VbaProject)
+                .Select(record => $"Modules:{record.VbaModuleCount}"));
             CalculationSettingsByKind = CountCalculationSettingsByKind(workbook.CalculationSettings.Records);
             CellStylesByKind = CountByCode(workbook.CellStyles.Select(style => style.IsBuiltIn ? "BuiltIn" : "Custom"));
             WorkbookMetadataRecordsByKind = CountWorkbookMetadataRecordsByKind(workbook.MetadataRecords);
@@ -467,6 +472,9 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets the number of matching compound directory entries behind preserve-only compound features.</summary>
         public int CompoundFeatureEntryCount { get; }
+
+        /// <summary>Gets the number of VBA module streams discovered in preserve-only compound features.</summary>
+        public int CompoundVbaModuleCount { get; }
 
         /// <summary>Gets the number of calculation setting records parsed from BIFF records.</summary>
         public int CalculationSettingRecordCount { get; }
@@ -789,6 +797,12 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets matching compound feature entries grouped by feature kind and entry role.</summary>
         public IReadOnlyDictionary<string, int> CompoundFeatureEntriesByKindAndRole { get; }
 
+        /// <summary>Gets VBA module streams grouped by module name.</summary>
+        public IReadOnlyDictionary<string, int> CompoundVbaModulesByName { get; }
+
+        /// <summary>Gets VBA project compound features grouped by discovered module count.</summary>
+        public IReadOnlyDictionary<string, int> CompoundVbaProjectsByModuleCount { get; }
+
         /// <summary>Gets parsed calculation setting records grouped by setting kind.</summary>
         public IReadOnlyDictionary<LegacyXlsCalculationSettingKind, int> CalculationSettingsByKind { get; }
 
@@ -844,6 +858,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             builder.AppendLine($"Differential formats: {DifferentialFormatCount}");
             builder.AppendLine($"Compound feature records: {CompoundFeatureRecordCount}");
             builder.AppendLine($"Compound feature entries: {CompoundFeatureEntryCount}");
+            builder.AppendLine($"Compound VBA modules: {CompoundVbaModuleCount}");
             builder.AppendLine($"Calculation setting records: {CalculationSettingRecordCount}");
             builder.AppendLine($"Cell style records: {CellStyleRecordCount}");
             builder.AppendLine($"Workbook metadata records: {WorkbookMetadataRecordCount}");
@@ -1007,6 +1022,8 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Compound Feature Entries By Name", CompoundFeatureEntriesByName);
             AppendDictionary(builder, "Compound Feature Entries By Role", CompoundFeatureEntriesByRole);
             AppendDictionary(builder, "Compound Feature Entries By Kind And Role", CompoundFeatureEntriesByKindAndRole);
+            AppendDictionary(builder, "Compound VBA Modules By Name", CompoundVbaModulesByName);
+            AppendDictionary(builder, "Compound VBA Projects By Module Count", CompoundVbaProjectsByModuleCount);
             AppendDictionary(builder, "Calculation Settings By Kind", CalculationSettingsByKind.ToDictionary(
                 entry => entry.Key.ToString(),
                 entry => entry.Value,
