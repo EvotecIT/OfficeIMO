@@ -238,10 +238,13 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case 0x008C: return "Country";
                 case 0x008D: return "HideObj";
                 case 0x0090: return "Sort";
+                case 0x0099: return "DxGCol";
+                case 0x009A: return "FnGroupName";
                 case 0x009B: return "FilterMode";
-                case 0x009C: return "FnGroupName";
+                case 0x009C: return "BuiltInFnGroupCount";
                 case 0x009D: return "AutoFilterInfo";
                 case 0x009E: return "AutoFilter";
+                case 0x00A0: return "Scl";
                 case 0x00B0: return "SxView";
                 case 0x00B1: return "Sxvd";
                 case 0x00B2: return "Sxvi";
