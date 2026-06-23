@@ -171,6 +171,15 @@ public static class ExcelImageExportDiagnosticCodes {
     /// <summary>Manual worksheet page-break splitting was requested through a single-image export path.</summary>
     public const string ManualPageBreaksSingleImageUnsupported = "ExcelManualPageBreaksSingleImageUnsupported";
 
+    /// <summary>Worksheet print title rows or columns are not repeated in image page output yet.</summary>
+    public const string PrintTitlesUnsupported = "ExcelPrintTitlesUnsupported";
+
+    /// <summary>Worksheet page setup settings are not applied to image page geometry yet.</summary>
+    public const string PageSetupUnsupported = "ExcelPageSetupUnsupported";
+
+    /// <summary>Worksheet headers or footers are not rendered in image page output yet.</summary>
+    public const string HeaderFooterUnsupported = "ExcelHeaderFooterUnsupported";
+
     /// <summary>Sparkline kind is not rendered by the image exporter yet.</summary>
     public const string SparklineKindUnsupported = "ExcelSparklineKindUnsupported";
 

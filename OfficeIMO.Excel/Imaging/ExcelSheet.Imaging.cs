@@ -1,5 +1,6 @@
 using System.IO;
 using System.Text;
+using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Excel {
@@ -153,13 +154,16 @@ namespace OfficeIMO.Excel {
                 return ranges;
             }
 
+            IReadOnlyList<OfficeImageExportDiagnostic> pageDiagnostics = BuildPageLevelUnsupportedDiagnostics();
             if (!allowMultipleResults) {
                 return ranges
-                    .Select(range => range.WithDiagnostic(new OfficeImageExportDiagnostic(
-                        OfficeImageExportDiagnosticSeverity.Warning,
-                        ExcelImageExportDiagnosticCodes.ManualPageBreaksSingleImageUnsupported,
-                        "Manual worksheet page-break splitting was requested through a single-image export path; exporting one image for the resolved range instead.",
-                        Name + "!" + range.Range)))
+                    .Select(range => range
+                        .WithDiagnostics(pageDiagnostics)
+                        .WithDiagnostic(new OfficeImageExportDiagnostic(
+                            OfficeImageExportDiagnosticSeverity.Warning,
+                            ExcelImageExportDiagnosticCodes.ManualPageBreaksSingleImageUnsupported,
+                            "Manual worksheet page-break splitting was requested through a single-image export path; exporting one image for the resolved range instead.",
+                            Name + "!" + range.Range)))
                     .ToList()
                     .AsReadOnly();
             }
@@ -168,23 +172,72 @@ namespace OfficeIMO.Excel {
             foreach (WorksheetImageRangeResolution range in ranges) {
                 IReadOnlyList<string> pages = SplitRangeByManualPageBreaks(range.Range);
                 if (pages.Count <= 1) {
-                    splitRanges.Add(range);
+                    splitRanges.Add(range.WithDiagnostics(pageDiagnostics));
                     continue;
                 }
 
                 foreach (string pageRange in pages) {
-                    splitRanges.Add(range.WithRangeAndDiagnostic(
-                        pageRange,
-                        new OfficeImageExportDiagnostic(
-                            OfficeImageExportDiagnosticSeverity.Info,
-                            ExcelImageExportDiagnosticCodes.ManualPageBreaksSplit,
-                            "Manual worksheet page breaks were used to split the image export into separate results.",
-                            Name + "!" + range.Range)));
+                    splitRanges.Add(range
+                        .WithDiagnostics(pageDiagnostics)
+                        .WithRangeAndDiagnostic(
+                            pageRange,
+                            new OfficeImageExportDiagnostic(
+                                OfficeImageExportDiagnosticSeverity.Info,
+                                ExcelImageExportDiagnosticCodes.ManualPageBreaksSplit,
+                                "Manual worksheet page breaks were used to split the image export into separate results.",
+                                Name + "!" + range.Range)));
                 }
             }
 
             return splitRanges.AsReadOnly();
         }
+
+        private IReadOnlyList<OfficeImageExportDiagnostic> BuildPageLevelUnsupportedDiagnostics() {
+            var diagnostics = new List<OfficeImageExportDiagnostic>();
+            ExcelPrintTitles printTitles = GetPrintTitles();
+            if (printTitles.HasRows || printTitles.HasColumns) {
+                diagnostics.Add(new OfficeImageExportDiagnostic(
+                    OfficeImageExportDiagnosticSeverity.Warning,
+                    ExcelImageExportDiagnosticCodes.PrintTitlesUnsupported,
+                    "Worksheet print title rows or columns are configured, but image page output does not repeat them yet.",
+                    Name + "!_xlnm.Print_Titles"));
+            }
+
+            ExcelSheetPageSetup pageSetup = GetPageSetup();
+            if (pageSetup.Orientation.HasValue || pageSetup.FitToWidth.HasValue || pageSetup.FitToHeight.HasValue || pageSetup.Scale.HasValue) {
+                diagnostics.Add(new OfficeImageExportDiagnostic(
+                    OfficeImageExportDiagnosticSeverity.Warning,
+                    ExcelImageExportDiagnosticCodes.PageSetupUnsupported,
+                    "Worksheet page setup orientation or scaling is configured, but image page output still uses worksheet pixel ranges instead of physical page geometry.",
+                    Name + "!pageSetup"));
+            }
+
+            if (HasHeaderFooterContent()) {
+                diagnostics.Add(new OfficeImageExportDiagnostic(
+                    OfficeImageExportDiagnosticSeverity.Warning,
+                    ExcelImageExportDiagnosticCodes.HeaderFooterUnsupported,
+                    "Worksheet headers or footers are configured, but image page output does not render page header/footer chrome yet.",
+                    Name + "!headerFooter"));
+            }
+
+            return diagnostics.AsReadOnly();
+        }
+
+        private bool HasHeaderFooterContent() {
+            HeaderFooter? headerFooter = WorksheetRoot.GetFirstChild<HeaderFooter>();
+            if (headerFooter == null) {
+                return false;
+            }
+
+            return HasText(headerFooter.OddHeader?.Text) ||
+                HasText(headerFooter.OddFooter?.Text) ||
+                HasText(headerFooter.EvenHeader?.Text) ||
+                HasText(headerFooter.EvenFooter?.Text) ||
+                HasText(headerFooter.FirstHeader?.Text) ||
+                HasText(headerFooter.FirstFooter?.Text);
+        }
+
+        private static bool HasText(string? text) => !string.IsNullOrWhiteSpace(text);
 
         private IReadOnlyList<string> SplitRangeByManualPageBreaks(string range) {
             if (!A1.TryParseRange(range, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
@@ -391,6 +444,17 @@ namespace OfficeIMO.Excel {
 
             internal WorksheetImageRangeResolution WithDiagnostic(OfficeImageExportDiagnostic diagnostic) =>
                 WithRangeAndDiagnostic(Range, diagnostic);
+
+            internal WorksheetImageRangeResolution WithDiagnostics(IReadOnlyList<OfficeImageExportDiagnostic> diagnostics) {
+                if (diagnostics.Count == 0) {
+                    return this;
+                }
+
+                var combined = new List<OfficeImageExportDiagnostic>(Diagnostics.Count + diagnostics.Count);
+                combined.AddRange(Diagnostics);
+                combined.AddRange(diagnostics);
+                return new WorksheetImageRangeResolution(Range, combined.AsReadOnly());
+            }
 
             internal WorksheetImageRangeResolution WithRangeAndDiagnostic(string range, OfficeImageExportDiagnostic diagnostic) {
                 var diagnostics = new List<OfficeImageExportDiagnostic>(Diagnostics.Count + 1);

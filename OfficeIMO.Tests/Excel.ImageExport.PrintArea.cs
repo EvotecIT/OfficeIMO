@@ -260,6 +260,40 @@ namespace OfficeIMO.Tests {
             Assert.All(results, result => Assert.Contains(result.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ManualPageBreaksSplit));
         }
 
+        [Fact]
+        public void ExcelWorksheet_PageSlicedImageExportReportsUnsupportedPageChromeSemantics() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("Report");
+            FillPageBreakGrid(sheet);
+            document.SetPrintTitles(sheet, firstRow: 1, lastRow: 1, firstCol: null, lastCol: null, save: false);
+            sheet.SetOrientation(ExcelPageOrientation.Landscape);
+            sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 1);
+            sheet.SetHeaderFooter(headerCenter: "Confidential", footerRight: "Page &[Page]");
+            sheet.AddManualRowPageBreak(2, save: false);
+
+            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelWorksheetImageExportOptions {
+                Range = "A1:D4",
+                SplitByManualPageBreaks = true,
+                ShowGridlines = false
+            });
+
+            Assert.Equal(2, results.Count);
+            Assert.All(results, result => {
+                Assert.Contains(result.Diagnostics, item =>
+                    item.Code == ExcelImageExportDiagnosticCodes.PrintTitlesUnsupported &&
+                    item.Source == "Report!_xlnm.Print_Titles");
+                Assert.Contains(result.Diagnostics, item =>
+                    item.Code == ExcelImageExportDiagnosticCodes.PageSetupUnsupported &&
+                    item.Source == "Report!pageSetup");
+                Assert.Contains(result.Diagnostics, item =>
+                    item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterUnsupported &&
+                    item.Source == "Report!headerFooter");
+                Assert.Contains(result.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ManualPageBreaksSplit);
+                Assert.True(OfficeImageReader.Identify(result.Bytes).Width > 0);
+            });
+        }
+
         private static void FillPageBreakGrid(ExcelSheet sheet) {
             for (int row = 1; row <= 4; row++) {
                 for (int column = 1; column <= 4; column++) {
