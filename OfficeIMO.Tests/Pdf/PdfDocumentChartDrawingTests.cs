@@ -548,7 +548,7 @@ public class PdfDocumentChartDrawingTests {
             new OfficeChartData(
                 new[] { "A", "B", "C" },
                 new[] {
-                    new OfficeChartSeries("Actual", new[] { 10D, 12D, 11D }, null, seriesColor)
+                    new OfficeChartSeries("Actual", new[] { 10D, 12D, 11D }, null, seriesColor, null, showMarkers: true, strokeDashStyle: OfficeStrokeDashStyle.DashDot)
                 }),
             widthPoints: 320D,
             heightPoints: 190D,
@@ -560,7 +560,11 @@ public class PdfDocumentChartDrawingTests {
         Assert.Contains(drawing.Shapes, shape =>
             shape.Shape.Kind == OfficeShapeKind.Polygon &&
             shape.Shape.StrokeColor == seriesColor &&
+            shape.Shape.StrokeDashStyle == OfficeStrokeDashStyle.DashDot &&
             !shape.Shape.FillColor.HasValue);
+
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+        Assert.Contains("stroke-dasharray=\"", svg, System.StringComparison.Ordinal);
     }
 
     [Fact]

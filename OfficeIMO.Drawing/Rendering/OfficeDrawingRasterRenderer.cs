@@ -98,7 +98,7 @@ public static class OfficeDrawingRasterRenderer {
     private static void RenderPolygon(OfficeRasterCanvas canvas, OfficeShape shape, double x, double y, double scale, OfficeColor? fill, OfficeColor? stroke, double strokeWidth) {
         List<OfficePoint> points = OffsetPoints(shape.Points, x, y, scale);
         if (fill.HasValue) canvas.FillPolygon(points, fill.Value);
-        if (stroke.HasValue) canvas.DrawPolygon(points, stroke.Value, strokeWidth);
+        if (stroke.HasValue) canvas.DrawStyledPolygon(points, stroke.Value, strokeWidth, shape.StrokeDashStyle);
     }
 
     private static void RenderPath(OfficeRasterCanvas canvas, OfficeShape shape, double x, double y, double scale, OfficeColor? fill, OfficeColor? stroke, double strokeWidth, OfficeStrokeDashStyle dashStyle) {

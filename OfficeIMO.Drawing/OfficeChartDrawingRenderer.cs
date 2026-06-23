@@ -1367,11 +1367,14 @@ public static partial class OfficeChartDrawingRenderer {
             }
 
             if (allPointsPlotted && series[s].ConnectLine) {
-                if (layout.FillRadarSeries) {
-                    AddPolygonShape(drawing, points, color, null, 0D, 0.18D);
-                }
-
-                AddPointLine(drawing, ClosePolyline(points), color, strokeWidth, dashStyle);
+                AddPolygonShape(
+                    drawing,
+                    points,
+                    layout.FillRadarSeries ? color : null,
+                    color,
+                    strokeWidth,
+                    layout.FillRadarSeries ? 0.18D : null,
+                    dashStyle);
             } else if (series[s].ConnectLine) {
                 for (int i = 1; i < categories.Count; i++) {
                     if (!plotted[i - 1] || !plotted[i]) {
@@ -1716,7 +1719,7 @@ public static partial class OfficeChartDrawingRenderer {
         drawing.AddShape(shape, x, y);
     }
 
-    private static void AddPolygonShape(OfficeDrawing drawing, IReadOnlyList<OfficePoint> points, OfficeColor? fill, OfficeColor? stroke, double strokeWidth, double? fillOpacity = null) {
+    private static void AddPolygonShape(OfficeDrawing drawing, IReadOnlyList<OfficePoint> points, OfficeColor? fill, OfficeColor? stroke, double strokeWidth, double? fillOpacity = null, OfficeStrokeDashStyle dashStyle = OfficeStrokeDashStyle.Solid) {
         if (points.Count < 3) {
             return;
         }
@@ -1750,20 +1753,7 @@ public static partial class OfficeChartDrawingRenderer {
 
         OfficeShape shape = OfficeShape.Polygon(points);
         shape.FillOpacity = fillOpacity;
-        AddShape(drawing, shape, minX, minY, fill, stroke, strokeWidth);
-    }
-
-    private static IReadOnlyList<OfficePoint> ClosePolyline(IReadOnlyList<OfficePoint> points) {
-        var closed = new List<OfficePoint>(points.Count + 1);
-        for (int i = 0; i < points.Count; i++) {
-            closed.Add(points[i]);
-        }
-
-        if (points.Count > 0) {
-            closed.Add(points[0]);
-        }
-
-        return closed;
+        AddShape(drawing, shape, minX, minY, fill, stroke, strokeWidth, dashStyle);
     }
 
     private static void AddPointLine(OfficeDrawing drawing, IReadOnlyList<OfficePoint> points, OfficeColor color, double strokeWidth, OfficeStrokeDashStyle dashStyle = OfficeStrokeDashStyle.Solid) {
