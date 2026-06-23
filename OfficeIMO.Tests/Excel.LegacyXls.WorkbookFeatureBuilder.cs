@@ -481,6 +481,7 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x1002, BuildChartPayload(100, 200, 3000, 2200));
                 WriteRecord(stream, 0x1014, Array.Empty<byte>());
                 WriteRecord(stream, 0x101d, BuildAxisPayload(0x0001));
+                WriteRecord(stream, 0x101f, BuildValueRangePayload());
                 WriteRecord(stream, 0x101e, BuildTickPayload());
                 WriteRecord(stream, 0x1045, BuildUInt16Payload(1));
                 WriteRecord(stream, 0x1003, BuildSeriesPayload(0x0003, categoryCount: 4, valueCount: 4, bubbleSizeCount: 0));
@@ -1488,6 +1489,17 @@ namespace OfficeIMO.Tests {
                 return stream.ToArray();
             }
 
+            private static byte[] BuildValueRangePayload() {
+                using var stream = new MemoryStream();
+                WriteDouble(stream, 0);
+                WriteDouble(stream, 100);
+                WriteDouble(stream, 25);
+                WriteDouble(stream, 5);
+                WriteDouble(stream, 10);
+                WriteUInt16(stream, 0x0060);
+                return stream.ToArray();
+            }
+
             private static byte[] BuildChartPlotGrowthPayload() {
                 using var stream = new MemoryStream();
                 WriteFixedPoint(stream, 1, 0x4000);
@@ -1498,6 +1510,11 @@ namespace OfficeIMO.Tests {
             private static void WriteFixedPoint(Stream stream, short integral, ushort fractional) {
                 WriteUInt16(stream, unchecked((ushort)integral));
                 WriteUInt16(stream, fractional);
+            }
+
+            private static void WriteDouble(Stream stream, double value) {
+                byte[] bytes = BitConverter.GetBytes(value);
+                stream.Write(bytes, 0, bytes.Length);
             }
 
             private static byte[] BuildTickPayload() {

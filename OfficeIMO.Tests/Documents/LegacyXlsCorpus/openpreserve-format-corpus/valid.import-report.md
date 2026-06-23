@@ -699,6 +699,19 @@ Warnings: 2
 | --- | --- |
 | NextToAxis | 16 |
 
+## Chart ValueRange Scales
+
+| Key | Count |
+| --- | --- |
+| Min:0;Max:0.35;Major:0;Minor:0;Cross:0 | 16 |
+
+## Chart ValueRange States
+
+| Key | Count |
+| --- | --- |
+| AutoMin:False;AutoMax:False;AutoMajor:True;AutoMinor:True;AutoCross:False;Log:False;Reversed:False;MaxCross:False | 8 |
+| AutoMin:False;AutoMax:False;AutoMajor:True;AutoMinor:True;AutoCross:True;Log:False;Reversed:False;MaxCross:False | 8 |
+
 ## Chart Frame Types
 
 | Key | Count |

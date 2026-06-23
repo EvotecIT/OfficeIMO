@@ -283,6 +283,12 @@ namespace OfficeIMO.Excel.LegacyXls {
             ChartTickLabelLocations = CountByCode(workbook.ChartRecords
                 .Where(record => record.Tick != null)
                 .Select(record => record.Tick!.LabelLocationName));
+            ChartValueRangeScales = CountByCode(workbook.ChartRecords
+                .Where(record => record.ValueRange != null)
+                .Select(GetChartValueRangeScaleKey));
+            ChartValueRangeStates = CountByCode(workbook.ChartRecords
+                .Where(record => record.ValueRange != null)
+                .Select(GetChartValueRangeStateKey));
             ChartPositionModePairs = CountByCode(workbook.ChartRecords
                 .Where(record => record.Position != null)
                 .Select(record => $"{record.Position!.TopLeftModeName}/{record.Position.BottomRightModeName}"));
@@ -808,6 +814,12 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets Tick records grouped by decoded axis-label location.</summary>
         public IReadOnlyDictionary<string, int> ChartTickLabelLocations { get; }
 
+        /// <summary>Gets ValueRange records grouped by decoded value-axis scale fields.</summary>
+        public IReadOnlyDictionary<string, int> ChartValueRangeScales { get; }
+
+        /// <summary>Gets ValueRange records grouped by decoded automatic scale and axis-direction flags.</summary>
+        public IReadOnlyDictionary<string, int> ChartValueRangeStates { get; }
+
         /// <summary>Gets Pos records grouped by decoded upper-left and lower-right position modes.</summary>
         public IReadOnlyDictionary<string, int> ChartPositionModePairs { get; }
 
@@ -1111,6 +1123,8 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Chart Legend Layouts", ChartLegendLayouts);
             AppendDictionary(builder, "Chart Tick Major Locations", ChartTickMajorLocations);
             AppendDictionary(builder, "Chart Tick Label Locations", ChartTickLabelLocations);
+            AppendDictionary(builder, "Chart ValueRange Scales", ChartValueRangeScales);
+            AppendDictionary(builder, "Chart ValueRange States", ChartValueRangeStates);
             AppendDictionary(builder, "Chart Position Mode Pairs", ChartPositionModePairs);
             AppendDictionary(builder, "Chart Position Rectangles", ChartPositionRectangles);
             AppendDictionary(builder, "Chart Frame Types", ChartFrameTypes);
@@ -1350,6 +1364,16 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         private static string GetChartRecordLocationKey(LegacyXlsChartRecord record) {
             return string.IsNullOrWhiteSpace(record.SheetName) ? "(workbook)" : record.SheetName!;
+        }
+
+        private static string GetChartValueRangeScaleKey(LegacyXlsChartRecord record) {
+            LegacyXlsChartValueRange valueRange = record.ValueRange!;
+            return $"Min:{FormatDouble(valueRange.Minimum)};Max:{FormatDouble(valueRange.Maximum)};Major:{FormatDouble(valueRange.MajorUnit)};Minor:{FormatDouble(valueRange.MinorUnit)};Cross:{FormatDouble(valueRange.CrossingValue)}";
+        }
+
+        private static string GetChartValueRangeStateKey(LegacyXlsChartRecord record) {
+            LegacyXlsChartValueRange valueRange = record.ValueRange!;
+            return $"AutoMin:{valueRange.AutoMinimum};AutoMax:{valueRange.AutoMaximum};AutoMajor:{valueRange.AutoMajorUnit};AutoMinor:{valueRange.AutoMinorUnit};AutoCross:{valueRange.AutoCrossingValue};Log:{valueRange.LogarithmicScale};Reversed:{valueRange.Reversed};MaxCross:{valueRange.MaximumCrossing}";
         }
 
         private static string FormatDouble(double value) {
