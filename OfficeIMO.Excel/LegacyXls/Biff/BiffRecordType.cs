@@ -7,6 +7,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         BoundSheet8 = 0x0085,
         Backup = 0x0040,
         BookBool = 0x00DA,
+        BuiltInFnGroupCount = 0x009C,
         Cf = 0x01B1,
         Cf12 = 0x087A,
         CfEx = 0x087B,

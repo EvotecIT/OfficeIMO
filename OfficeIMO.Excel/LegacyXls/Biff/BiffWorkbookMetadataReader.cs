@@ -21,6 +21,14 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     workbook.AddMetadataRecord(LegacyXlsWorkbookMetadataKind.BookOptions, record.Offset, record.Type);
                     return true;
 
+                case BiffRecordType.BuiltInFnGroupCount:
+                    if (TryReadBuiltInFunctionGroupCount(record, diagnostics, out ushort builtInFunctionGroupCount)) {
+                        workbook.SetBuiltInFunctionGroupCount(builtInFunctionGroupCount);
+                    }
+
+                    workbook.AddMetadataRecord(LegacyXlsWorkbookMetadataKind.BuiltInFunctionGroupCount, record.Offset, record.Type);
+                    return true;
+
                 case BiffRecordType.CodePage:
                     if (TryReadUInt16(record, diagnostics, out ushort codePage)) {
                         workbook.SetCodePage(codePage);
@@ -175,6 +183,23 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             value = BiffRecordReader.ReadUInt16(record.Payload, 0);
+            return true;
+        }
+
+        private static bool TryReadBuiltInFunctionGroupCount(BiffRecord record, List<LegacyXlsImportDiagnostic> diagnostics, out ushort value) {
+            if (!TryReadUInt16(record, diagnostics, out value)) {
+                return false;
+            }
+
+            if (value != 0x000e && value != 0x0010) {
+                diagnostics.Add(new LegacyXlsImportDiagnostic(
+                    LegacyXlsDiagnosticSeverity.Warning,
+                    "XLS-BIFF-BUILTIN-FNGROUPCOUNT-UNEXPECTED",
+                    $"The BuiltInFnGroupCount workbook metadata record contains unexpected value {value}.",
+                    recordOffset: record.Offset,
+                    recordType: record.Type));
+            }
+
             return true;
         }
 

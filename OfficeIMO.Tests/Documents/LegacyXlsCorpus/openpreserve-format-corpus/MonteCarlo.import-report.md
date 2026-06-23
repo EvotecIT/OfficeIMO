@@ -15,10 +15,10 @@ External cell caches: 6
 External cached cells: 8
 Calculation setting records: 43
 Cell style records: 6
-Workbook metadata records: 13
+Workbook metadata records: 14
 Worksheet metadata records: 33
 Unsupported sheet metadata records: 4
-Unsupported features: 909
+Unsupported features: 908
 Preserved feature records: 898
 Errors: 0
 Warnings: 0
@@ -32,7 +32,7 @@ Warnings: 0
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 28 |
 | XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 2 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 27 |
-| XLS-BIFF-RECORD-UNSUPPORTED | 7 |
+| XLS-BIFF-RECORD-UNSUPPORTED | 6 |
 
 ## Unsupported Features By Code
 
@@ -43,7 +43,7 @@ Warnings: 0
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 28 |
 | XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 2 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 27 |
-| XLS-BIFF-RECORD-UNSUPPORTED | 7 |
+| XLS-BIFF-RECORD-UNSUPPORTED | 6 |
 
 ## Unsupported Features By Kind
 
@@ -54,7 +54,7 @@ Warnings: 0
 | DrawingObject | 28 |
 | ExternalReference | 2 |
 | PivotTable | 27 |
-| UnsupportedRecord | 7 |
+| UnsupportedRecord | 6 |
 
 ## Unsupported Feature Record Types
 
@@ -105,7 +105,6 @@ Warnings: 0
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00D7 | 25 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00FF | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x0033 | 2 |
-| UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x009C | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x013D | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x01B6 | 2 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x01BC | 1 |
@@ -158,7 +157,6 @@ Warnings: 0
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:Sxdi | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxRng | 25 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxVdEx | 1 |
-| UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:BuiltInFnGroupCount | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:PrintSize | 2 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:SxViewEx | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:TabIdConf | 1 |
@@ -193,7 +191,7 @@ Warnings: 0
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|RangeTable | 1 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|ZPFCUM | 9 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|ZRAINCUM | 9 |
-| XLS-BIFF-RECORD-UNSUPPORTED\|(workbook) | 3 |
+| XLS-BIFF-RECORD-UNSUPPORTED\|(workbook) | 2 |
 | XLS-BIFF-RECORD-UNSUPPORTED\|graphs1 | 2 |
 | XLS-BIFF-RECORD-UNSUPPORTED\|graphs2 | 2 |
 
@@ -221,6 +219,7 @@ Warnings: 0
 | --- | --- |
 | Backup | 1 |
 | BookOptions | 1 |
+| BuiltInFunctionGroupCount | 1 |
 | CodePage | 1 |
 | Country | 1 |
 | HiddenObjects | 1 |

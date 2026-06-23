@@ -9,6 +9,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>Workbook option flags from a BookBool record.</summary>
         BookOptions,
 
+        /// <summary>Built-in function category count from a BuiltInFnGroupCount record.</summary>
+        BuiltInFunctionGroupCount,
+
         /// <summary>Workbook text code page from a CodePage record.</summary>
         CodePage,
 

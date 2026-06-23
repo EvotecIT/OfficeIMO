@@ -163,6 +163,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         public bool? HideBordersForInactiveTables { get; private set; }
 
         /// <summary>
+        /// Gets the number of built-in function categories decoded from a BuiltInFnGroupCount record.
+        /// </summary>
+        public ushort? BuiltInFunctionGroupCount { get; private set; }
+
+        /// <summary>
         /// Gets the raw hidden-object display mode decoded from a HideObj record.
         /// </summary>
         public ushort? HiddenObjectsMode { get; private set; }
@@ -280,6 +285,10 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             EnvelopeInitialized = (flags & 0x0010) != 0;
             ExternalLinkUpdateMode = checked((byte)((flags >> 5) & 0x0003));
             HideBordersForInactiveTables = (flags & 0x0100) != 0;
+        }
+
+        internal void SetBuiltInFunctionGroupCount(ushort value) {
+            BuiltInFunctionGroupCount = value;
         }
 
         internal void SetHiddenObjectsMode(ushort value) {
