@@ -84,7 +84,7 @@ namespace OfficeIMO.Visio {
         private static double Distance((double X, double Y) a, (double X, double Y) b) =>
             OfficeIMO.Drawing.OfficeGeometry.Distance(a, b);
 
-        private static double RadiansToDegrees(double radians) => radians * 180D / Math.PI;
+        private static double RadiansToDegrees(double radians) => OfficeGeometry.RadiansToDegrees(radians);
 
         private static string Format(double value) => OfficeSvgFormatting.FormatNumber(value);
     }
