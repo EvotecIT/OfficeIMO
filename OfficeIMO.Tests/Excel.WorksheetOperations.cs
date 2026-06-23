@@ -1,6 +1,7 @@
 using System.IO;
 using System.Linq;
 using System.Data;
+using System.Globalization;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -753,6 +754,104 @@ namespace OfficeIMO.Tests {
                 WorksheetPart copiedPart = GetWorksheetPartByNameForOperations(spreadsheet, "Imported");
                 Cell formulaCell = copiedPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A2");
                 Assert.Equal("A1*2", formulaCell.CellFormula?.Text);
+            }
+
+            File.Delete(sourcePath);
+            File.Delete(targetPath);
+        }
+
+        [Fact]
+        public void Test_MergeWorkbookFrom_SameWorkbookRewritesCopiedTableReferences() {
+            string filePath = Path.Combine(_directoryWithFiles, "WorkbookMergeSameWorkbookTables.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet source = document.AddWorkSheet("Source");
+                source.CellValue(1, 1, "Name");
+                source.CellValue(1, 2, "Amount");
+                source.CellValue(2, 1, "Alpha");
+                source.CellValue(2, 2, 10);
+                source.AddTable("A1:B2", hasHeader: true, name: "People", OfficeIMO.Excel.TableStyle.TableStyleMedium9);
+
+                ExcelSheet summary = document.AddWorkSheet("Summary");
+                summary.CellFormula(1, 1, "SUM(People[Amount])");
+
+                document.MergeWorkbookFrom(document, new ExcelWorkbookMergeOptions {
+                    SheetNames = new[] { "Source", "Summary" },
+                    SheetNamePrefix = "Copy_"
+                });
+
+                document.Save();
+            }
+
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false);
+            WorksheetPart copiedSummary = GetWorksheetPartByNameForOperations(spreadsheet, "Copy_Summary");
+            Cell formulaCell = copiedSummary.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A1");
+            Assert.Equal("SUM(People2[Amount])", formulaCell.CellFormula?.Text);
+        }
+
+        [Fact]
+        public void Test_CopyWorkSheetFrom_PackageModeConvertsDateSerialsAcrossDateSystems() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageDateSystemSource.xlsx");
+            string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageDateSystemTarget.xlsx");
+            var date = new DateTime(2026, 6, 23);
+
+            using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
+                sourceDocument.DateSystem = ExcelDateSystem.NineteenFour;
+                ExcelSheet source = sourceDocument.AddWorkSheet("Dates");
+                source.CellValue(1, 1, "Created");
+                source.CellValue(2, 1, date);
+                sourceDocument.Save();
+            }
+
+            using (var sourceDocument = ExcelDocument.Load(sourcePath, readOnly: true))
+            using (var targetDocument = ExcelDocument.Create(targetPath)) {
+                targetDocument.CopyWorkSheetFrom(sourceDocument, "Dates", "Imported", SheetNameValidationMode.Sanitize, new ExcelWorksheetCopyOptions {
+                    CopyMode = ExcelWorksheetCopyMode.Package
+                });
+                targetDocument.Save();
+            }
+
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(targetPath, false);
+            WorksheetPart copiedPart = GetWorksheetPartByNameForOperations(spreadsheet, "Imported");
+            Cell dateCell = copiedPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A2");
+            Assert.Equal(date.ToOADate(), double.Parse(dateCell.CellValue!.Text, CultureInfo.InvariantCulture), 6);
+
+            File.Delete(sourcePath);
+            File.Delete(targetPath);
+        }
+
+        [Fact]
+        public void Test_CopyWorkSheetFrom_PackageModeStripsCellMetadataIndexes() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageMetadataSource.xlsx");
+            string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageMetadataTarget.xlsx");
+
+            using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
+                ExcelSheet source = sourceDocument.AddWorkSheet("Metadata");
+                source.CellValue(1, 1, "Name");
+                source.CellValue(2, 1, "Alpha");
+                sourceDocument.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(sourcePath, true)) {
+                WorksheetPart worksheetPart = GetWorksheetPartByNameForOperations(spreadsheet, "Metadata");
+                Cell cell = worksheetPart.Worksheet.Descendants<Cell>().Single(item => item.CellReference?.Value == "A2");
+                cell.SetAttribute(new OpenXmlAttribute(string.Empty, "cm", string.Empty, "1"));
+                cell.SetAttribute(new OpenXmlAttribute(string.Empty, "vm", string.Empty, "2"));
+                worksheetPart.Worksheet.Save();
+            }
+
+            using (var sourceDocument = ExcelDocument.Load(sourcePath, readOnly: true))
+            using (var targetDocument = ExcelDocument.Create(targetPath)) {
+                targetDocument.CopyWorkSheetFrom(sourceDocument, "Metadata", "Imported", SheetNameValidationMode.Sanitize, new ExcelWorksheetCopyOptions {
+                    CopyMode = ExcelWorksheetCopyMode.Package
+                });
+                targetDocument.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(targetPath, false)) {
+                WorksheetPart copiedPart = GetWorksheetPartByNameForOperations(spreadsheet, "Imported");
+                Cell copiedCell = copiedPart.Worksheet.Descendants<Cell>().Single(item => item.CellReference?.Value == "A2");
+                Assert.DoesNotContain(copiedCell.GetAttributes(), attribute => attribute.LocalName == "cm" || attribute.LocalName == "vm");
             }
 
             File.Delete(sourcePath);

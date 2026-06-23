@@ -54,6 +54,8 @@ namespace OfficeIMO.Excel {
                 RewriteSharedStringCellsToInlineStrings(copiedPart.Worksheet, sourceDocument.WorkbookPartRoot.SharedStringTablePart);
                 WorksheetStyleCopyMap styleMap = RemapCopiedWorksheetStyles(sourceDocument.WorkbookPartRoot, WorkbookPartRoot, copiedPart.Worksheet);
                 RemapCopiedWorksheetConditionalFormats(copiedPart.Worksheet, styleMap.DifferentialFormats);
+                ConvertCopiedWorksheetDateSerials(copiedPart.Worksheet, sourceDocument.DateSystem, DateSystem);
+                StripCopiedCellMetadataReferences(copiedPart.Worksheet);
                 RemoveRelationshipBackedWorksheetFeatures(copiedPart.Worksheet);
                 IReadOnlyDictionary<string, string> tableNameMap = CopyWorksheetTables(sourcePart, copiedPart);
                 bool copiedFormulas = copiedPart.Worksheet.Descendants<CellFormula>()
@@ -111,6 +113,41 @@ namespace OfficeIMO.Excel {
                 cell.CellValue = null;
                 cell.InlineString = inline;
                 cell.DataType = CellValues.InlineString;
+            }
+        }
+
+        private void ConvertCopiedWorksheetDateSerials(Worksheet worksheet, ExcelDateSystem sourceDateSystem, ExcelDateSystem targetDateSystem) {
+            if (sourceDateSystem == targetDateSystem || _spreadSheetDocument == null) {
+                return;
+            }
+
+            StylesCache styles = StylesCache.Build(_spreadSheetDocument);
+            if (!styles.HasDateStyles) {
+                return;
+            }
+
+            double offset = targetDateSystem == ExcelDateSystem.NineteenFour
+                ? -ExcelDateSystemConverter.Date1904OffsetDays
+                : ExcelDateSystemConverter.Date1904OffsetDays;
+
+            foreach (Cell cell in worksheet.Descendants<Cell>()) {
+                if (cell.CellFormula != null || !IsNumericDateCell(cell, styles)) {
+                    continue;
+                }
+
+                string? text = cell.CellValue?.Text;
+                if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double serial)) {
+                    continue;
+                }
+
+                cell.CellValue = new CellValue((serial + offset).ToString(CultureInfo.InvariantCulture));
+            }
+        }
+
+        private static void StripCopiedCellMetadataReferences(Worksheet worksheet) {
+            foreach (Cell cell in worksheet.Descendants<Cell>()) {
+                cell.RemoveAttribute("cm", string.Empty);
+                cell.RemoveAttribute("vm", string.Empty);
             }
         }
 

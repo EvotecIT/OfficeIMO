@@ -287,6 +287,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ExcelBestOfBar_ColumnFormatPlan_RejectsBlankExplicitHeaderRows() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelBestOfBar.ColumnFormatPlan.BlankExplicitHeader.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(3, 1, 42);
+
+                IReadOnlyList<ExcelColumnFormatResult> results = sheet.ApplyColumnFormatPlan(
+                    new ExcelColumnFormatPlan().Add("Column1", ExcelNumberPreset.Integer),
+                    headerRow: 2);
+
+                Assert.Single(results);
+                Assert.False(results[0].Applied);
+                Assert.Null(results[0].ColumnIndex);
+                document.Save();
+            }
+        }
+
+        [Fact]
         public void Test_ExcelBestOfBar_ColumnFormatPlan_NormalizesDefaultHeaderLookup() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelBestOfBar.ColumnFormatPlan.DefaultHeaderLookup.xlsx");
 

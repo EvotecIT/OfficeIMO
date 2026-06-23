@@ -34,6 +34,10 @@ namespace OfficeIMO.Excel {
         /// <param name="validationMode">How to validate or sanitize <paramref name="newSheetName"/>.</param>
         /// <returns>The copied worksheet.</returns>
         public ExcelSheet CopyWorkSheet(ExcelSheet sourceSheet, string newSheetName, SheetNameValidationMode validationMode = SheetNameValidationMode.Sanitize) {
+            return CopyWorkSheetWithinWorkbook(sourceSheet, newSheetName, validationMode).Sheet;
+        }
+
+        private WorksheetPackageCopyResult CopyWorkSheetWithinWorkbook(ExcelSheet sourceSheet, string newSheetName, SheetNameValidationMode validationMode) {
             if (sourceSheet == null) throw new ArgumentNullException(nameof(sourceSheet));
             if (!ReferenceEquals(sourceSheet.Document, this)) {
                 throw new ArgumentException("Source worksheet must belong to this workbook. Use CopyWorkSheetFrom to copy between workbooks.", nameof(sourceSheet));
@@ -45,13 +49,13 @@ namespace OfficeIMO.Excel {
                 WorksheetPart copiedPart = WorkbookPartRoot.AddNewPart<WorksheetPart>();
                 copiedPart.Worksheet = (Worksheet)sourcePart.Worksheet!.CloneNode(true);
                 RemoveRelationshipBackedWorksheetFeatures(copiedPart.Worksheet);
-                CopyWorksheetTables(sourcePart, copiedPart, rewriteCopiedTableReferences: true);
+                Dictionary<string, string> tableNameMap = CopyWorksheetTables(sourcePart, copiedPart, rewriteCopiedTableReferences: true);
                 copiedPart.Worksheet.Save();
 
                 Sheet sheet = AppendWorksheetElement(copiedPart, validatedName);
                 MarkSheetCacheDirty();
                 WorkbookRoot.Save();
-                return new ExcelSheet(this, _spreadSheetDocument, sheet);
+                return new WorksheetPackageCopyResult(new ExcelSheet(this, _spreadSheetDocument, sheet), tableNameMap);
             });
         }
 

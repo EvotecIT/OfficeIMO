@@ -33,7 +33,11 @@ namespace OfficeIMO.Excel {
                 if (options.CopyMode == ExcelWorksheetCopyMode.Values) {
                     targetSheet = CopyWorkSheetFromValues(sourceDocument, sourceSheet.Name, requestedName, options.SheetNameValidationMode);
                 } else if (ReferenceEquals(sourceDocument, this)) {
-                    targetSheet = CopyWorkSheet(sourceSheet, requestedName, options.SheetNameValidationMode);
+                    WorksheetPackageCopyResult copyResult = CopyWorkSheetWithinWorkbook(sourceSheet, requestedName, options.SheetNameValidationMode);
+                    targetSheet = copyResult.Sheet;
+                    foreach (var tableName in copyResult.TableNameMap) {
+                        tableNameMap[tableName.Key] = tableName.Value;
+                    }
                 } else {
                     WorksheetPackageCopyResult copyResult = CopyWorkSheetFromPackage(
                         sourceDocument,

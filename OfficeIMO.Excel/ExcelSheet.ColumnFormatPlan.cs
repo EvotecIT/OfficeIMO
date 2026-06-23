@@ -105,14 +105,26 @@ namespace OfficeIMO.Excel {
             }
 
             var headerValues = new string?[columnCount];
+            bool hasExplicitHeader = false;
             for (int offset = 0; offset < columnCount; offset++) {
                 headerValues[offset] = TryGetCellText(headerRow, firstColumn + offset, out string text) ? text : null;
+                if (!string.IsNullOrWhiteSpace(headerValues[offset])) {
+                    hasExplicitHeader = true;
+                }
+            }
+
+            if (!hasExplicitHeader) {
+                return false;
             }
 
             bool normalizeHeaders = options?.NormalizeHeaders ?? true;
             var headers = ExcelHeaderNameHelper.BuildUniqueHeaders(columnCount, c => headerValues[c], normalizeHeaders);
             string normalizedHeader = ExcelHeaderNameHelper.NormalizeHeader(header, normalizeHeaders);
             for (int offset = 0; offset < headers.Length; offset++) {
+                if (string.IsNullOrWhiteSpace(headerValues[offset])) {
+                    continue;
+                }
+
                 if (string.Equals(headers[offset], normalizedHeader, StringComparison.OrdinalIgnoreCase)) {
                     columnIndex = firstColumn + offset;
                     return true;
