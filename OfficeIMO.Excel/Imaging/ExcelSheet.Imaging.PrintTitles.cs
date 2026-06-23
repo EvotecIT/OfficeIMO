@@ -1,4 +1,3 @@
-using System.Text;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Excel {
@@ -34,30 +33,29 @@ namespace OfficeIMO.Excel {
             int outputHeight = Math.Max(1, (int)Math.Ceiling(height));
 
             if (format == OfficeImageExportFormat.Svg) {
-                string svg = RenderPrintTitleSvg(components, outputWidth, outputHeight, options);
                 return new OfficeImageExportResult(
                     format,
                     outputWidth,
                     outputHeight,
-                    Encoding.UTF8.GetBytes(svg),
+                    OfficeImageComposer.ComposeSvgBytes(
+                        outputWidth,
+                        outputHeight,
+                        options.BackgroundColor,
+                        components.Select(component => component.ToLayer())),
                     Name,
                     Name + "!" + range.Range,
                     diagnostics.AsReadOnly());
-            }
-
-            OfficeRasterImage image = new OfficeRasterImage(outputWidth, outputHeight, options.BackgroundColor);
-            var canvas = new OfficeRasterCanvas(image);
-            foreach (PrintTitleComponent component in components) {
-                if (component.Raster != null) {
-                    canvas.DrawImage(component.Raster, component.X, component.Y, component.Width, component.Height);
-                }
             }
 
             return new OfficeImageExportResult(
                 format,
                 outputWidth,
                 outputHeight,
-                OfficePngWriter.Encode(image),
+                OfficeImageComposer.ComposePng(
+                    outputWidth,
+                    outputHeight,
+                    options.BackgroundColor,
+                    components.Select(component => component.ToLayer())),
                 Name,
                 Name + "!" + range.Range,
                 diagnostics.AsReadOnly());
@@ -150,28 +148,6 @@ namespace OfficeIMO.Excel {
                 svgInner);
         }
 
-        private static string RenderPrintTitleSvg(
-            IReadOnlyList<PrintTitleComponent> components,
-            int width,
-            int height,
-            ExcelImageExportOptions options) {
-            var builder = new StringBuilder();
-            builder.Append("<svg xmlns=\"http://www.w3.org/2000/svg\"")
-                .AppendNumberAttribute("width", width)
-                .AppendNumberAttribute("height", height)
-                .AppendAttribute("viewBox", "0 0 " + OfficeSvgFormatting.FormatNumber(width) + " " + OfficeSvgFormatting.FormatNumber(height))
-                .Append('>');
-            var backgroundAttributes = new StringBuilder();
-            backgroundAttributes.AppendPaintAttribute("fill", options.BackgroundColor);
-            builder.AppendRectElement(0D, 0D, width, height, backgroundAttributes.ToString());
-            foreach (PrintTitleComponent component in components) {
-                builder.AppendNestedSvg(component.X, component.Y, component.Width, component.Height, component.SvgInner);
-            }
-
-            builder.Append("</svg>");
-            return builder.ToString();
-        }
-
         private bool TryCreatePrintTitleLayout(string bodyRange, out PrintTitleLayout layout) {
             layout = default;
             ExcelPrintTitles titles = GetPrintTitles();
@@ -244,6 +220,11 @@ namespace OfficeIMO.Excel {
             internal double Height { get; }
             internal OfficeRasterImage? Raster { get; }
             internal string SvgInner { get; }
+
+            internal OfficeImageLayer ToLayer() =>
+                Raster != null
+                    ? OfficeImageLayer.FromRaster(Raster, X, Y, Width, Height)
+                    : OfficeImageLayer.FromSvgInner(SvgInner, X, Y, Width, Height);
         }
     }
 }

@@ -23,12 +23,22 @@ namespace OfficeIMO.Excel {
             int height = Math.Max(1, content.Height + headerHeight + footerHeight);
 
             if (format == OfficeImageExportFormat.Svg) {
-                string svg = RenderHeaderFooterSvg(content, chrome, width, height, headerHeight, options);
+                OfficeImageLayer layer = OfficeImageLayer.FromSvgInner(
+                    OfficeSvgFormatting.ExtractSvgInner(Encoding.UTF8.GetString(content.Bytes)),
+                    0D,
+                    headerHeight,
+                    content.Width,
+                    content.Height);
                 return new OfficeImageExportResult(
                     format,
                     width,
                     height,
-                    Encoding.UTF8.GetBytes(svg),
+                    OfficeImageComposer.ComposeSvgBytes(
+                        width,
+                        height,
+                        options.BackgroundColor,
+                        new[] { layer },
+                        beforeLayers: builder => AppendHeaderFooterSvgText(builder, chrome, width, height, headerHeight, options.Scale)),
                     content.Name,
                     content.Source,
                     content.Diagnostics);
@@ -38,15 +48,17 @@ namespace OfficeIMO.Excel {
                 return content;
             }
 
-            OfficeRasterImage image = new OfficeRasterImage(width, height, options.BackgroundColor);
-            var canvas = new OfficeRasterCanvas(image);
-            canvas.DrawImage(contentImage, 0D, headerHeight, content.Width, content.Height);
-            DrawHeaderFooterRaster(canvas, chrome, width, height, headerHeight, footerHeight, scale);
+            OfficeImageLayer contentLayer = OfficeImageLayer.FromRaster(contentImage, 0D, headerHeight, content.Width, content.Height);
             return new OfficeImageExportResult(
                 format,
                 width,
                 height,
-                OfficePngWriter.Encode(image),
+                OfficeImageComposer.ComposePng(
+                    width,
+                    height,
+                    options.BackgroundColor,
+                    new[] { contentLayer },
+                    beforeLayers: canvas => DrawHeaderFooterRaster(canvas, chrome, width, height, headerHeight, footerHeight, scale)),
                 content.Name,
                 content.Source,
                 content.Diagnostics);
@@ -153,28 +165,6 @@ namespace OfficeIMO.Excel {
             }
 
             canvas.DrawTextLine(text, x, y, fontSize, HeaderFooterTextColor, alignment: alignment);
-        }
-
-        private static string RenderHeaderFooterSvg(
-            OfficeImageExportResult content,
-            HeaderFooterTextChrome chrome,
-            int width,
-            int height,
-            int headerHeight,
-            ExcelImageExportOptions options) {
-            var builder = new StringBuilder();
-            builder.Append("<svg xmlns=\"http://www.w3.org/2000/svg\"")
-                .AppendNumberAttribute("width", width)
-                .AppendNumberAttribute("height", height)
-                .AppendAttribute("viewBox", "0 0 " + OfficeSvgFormatting.FormatNumber(width) + " " + OfficeSvgFormatting.FormatNumber(height))
-                .Append('>');
-            var backgroundAttributes = new StringBuilder();
-            backgroundAttributes.AppendPaintAttribute("fill", options.BackgroundColor);
-            builder.AppendRectElement(0D, 0D, width, height, backgroundAttributes.ToString());
-            AppendHeaderFooterSvgText(builder, chrome, width, height, headerHeight, options.Scale);
-            builder.AppendNestedSvg(0D, headerHeight, content.Width, content.Height, OfficeSvgFormatting.ExtractSvgInner(Encoding.UTF8.GetString(content.Bytes)));
-            builder.Append("</svg>");
-            return builder.ToString();
         }
 
         private static void AppendHeaderFooterSvgText(
