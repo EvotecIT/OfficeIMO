@@ -182,12 +182,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void ExcelWorksheet_PageSlicedSvgExportKeepsUnsupportedHeaderFooterFontFamilyDiagnosed() {
+        public void ExcelWorksheet_PageSlicedSvgExportRendersFontFamilyHeaderFooterFormatting() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorkSheet("Report");
             FillPageBreakGrid(sheet);
-            sheet.SetHeaderFooter(headerCenter: "&\"Aptos\"Font Header");
+            sheet.SetHeaderFooter(headerCenter: "&\"Aptos,Bold Italic\"Font Header");
+            sheet.AddManualRowPageBreak(2, save: false);
+
+            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelWorksheetImageExportOptions {
+                Range = "A1:D4",
+                SplitByManualPageBreaks = true,
+                ShowGridlines = false
+            });
+
+            string svg = Encoding.UTF8.GetString(results[1].Bytes);
+            Assert.DoesNotContain(results[1].Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterUnsupported);
+            Assert.Contains(results[1].Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterFormattingApproximation);
+            Assert.Contains("font-family=\"Aptos\"", svg);
+            Assert.Contains("font-weight=\"700\"", svg);
+            Assert.Contains("font-style=\"italic\"", svg);
+            Assert.Contains(">Font Header<", svg);
+        }
+
+        [Fact]
+        public void ExcelWorksheet_PageSlicedSvgExportKeepsMalformedHeaderFooterFontFamilyDiagnosed() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("Report");
+            FillPageBreakGrid(sheet);
+            sheet.SetHeaderFooter(headerCenter: "&\"AptosFont Header");
             sheet.AddManualRowPageBreak(2, save: false);
 
             IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelWorksheetImageExportOptions {

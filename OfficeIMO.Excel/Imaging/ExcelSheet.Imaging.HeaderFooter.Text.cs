@@ -18,6 +18,7 @@ namespace OfficeIMO.Excel {
             bool strikethrough = false;
             OfficeColor? color = null;
             double? fontSize = null;
+            string? fontFamily = null;
             bool hasFormatting = false;
             for (int i = 0; i < text.Length; i++) {
                 char ch = text[i];
@@ -37,7 +38,7 @@ namespace OfficeIMO.Excel {
                             return false;
                         }
 
-                        FlushHeaderFooterTextRun(runs, builder, bold, italic, underline, strikethrough, color, fontSize);
+                        FlushHeaderFooterTextRun(runs, builder, bold, italic, underline, strikethrough, color, fontSize, fontFamily);
                         fontSize = parsedFontSize;
                         i = tokenEnd;
                         hasFormatting = true;
@@ -45,19 +46,19 @@ namespace OfficeIMO.Excel {
                         builder.Append('&');
                     }
                 } else if (token == 'B') {
-                    FlushHeaderFooterTextRun(runs, builder, bold, italic, underline, strikethrough, color, fontSize);
+                    FlushHeaderFooterTextRun(runs, builder, bold, italic, underline, strikethrough, color, fontSize, fontFamily);
                     bold = !bold;
                     hasFormatting = true;
                 } else if (token == 'I') {
-                    FlushHeaderFooterTextRun(runs, builder, bold, italic, underline, strikethrough, color, fontSize);
+                    FlushHeaderFooterTextRun(runs, builder, bold, italic, underline, strikethrough, color, fontSize, fontFamily);
                     italic = !italic;
                     hasFormatting = true;
                 } else if (token == 'U') {
-                    FlushHeaderFooterTextRun(runs, builder, bold, italic, underline, strikethrough, color, fontSize);
+                    FlushHeaderFooterTextRun(runs, builder, bold, italic, underline, strikethrough, color, fontSize, fontFamily);
                     underline = !underline;
                     hasFormatting = true;
                 } else if (token == 'S') {
-                    FlushHeaderFooterTextRun(runs, builder, bold, italic, underline, strikethrough, color, fontSize);
+                    FlushHeaderFooterTextRun(runs, builder, bold, italic, underline, strikethrough, color, fontSize, fontFamily);
                     strikethrough = !strikethrough;
                     hasFormatting = true;
                 } else if (token == 'K') {
@@ -65,7 +66,7 @@ namespace OfficeIMO.Excel {
                         return false;
                     }
 
-                    FlushHeaderFooterTextRun(runs, builder, bold, italic, underline, strikethrough, color, fontSize);
+                    FlushHeaderFooterTextRun(runs, builder, bold, italic, underline, strikethrough, color, fontSize, fontFamily);
                     color = parsedColor;
                     i += 6;
                     hasFormatting = true;
@@ -74,8 +75,25 @@ namespace OfficeIMO.Excel {
                         return false;
                     }
 
-                    FlushHeaderFooterTextRun(runs, builder, bold, italic, underline, strikethrough, color, fontSize);
+                    FlushHeaderFooterTextRun(runs, builder, bold, italic, underline, strikethrough, color, fontSize, fontFamily);
                     fontSize = parsedFontSize;
+                    i = tokenEnd;
+                    hasFormatting = true;
+                } else if (token == '"') {
+                    if (!TryReadHeaderFooterFontFamilyToken(text, i, out string parsedFontFamily, out bool? parsedBold, out bool? parsedItalic, out int tokenEnd)) {
+                        return false;
+                    }
+
+                    FlushHeaderFooterTextRun(runs, builder, bold, italic, underline, strikethrough, color, fontSize, fontFamily);
+                    fontFamily = parsedFontFamily;
+                    if (parsedBold.HasValue) {
+                        bold = parsedBold.Value;
+                    }
+
+                    if (parsedItalic.HasValue) {
+                        italic = parsedItalic.Value;
+                    }
+
                     i = tokenEnd;
                     hasFormatting = true;
                 } else if (token == 'P') {
@@ -117,17 +135,17 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            FlushHeaderFooterTextRun(runs, builder, bold, italic, underline, strikethrough, color, fontSize);
+            FlushHeaderFooterTextRun(runs, builder, bold, italic, underline, strikethrough, color, fontSize, fontFamily);
             normalized = HeaderFooterTextSection.Create(runs, hasFormatting);
             return true;
         }
 
-        private static void FlushHeaderFooterTextRun(List<HeaderFooterTextRun> runs, StringBuilder builder, bool bold, bool italic, bool underline, bool strikethrough, OfficeColor? color, double? fontSize) {
+        private static void FlushHeaderFooterTextRun(List<HeaderFooterTextRun> runs, StringBuilder builder, bool bold, bool italic, bool underline, bool strikethrough, OfficeColor? color, double? fontSize, string? fontFamily) {
             if (builder.Length == 0) {
                 return;
             }
 
-            runs.Add(new HeaderFooterTextRun(builder.ToString(), bold, italic, underline, strikethrough, color, fontSize));
+            runs.Add(new HeaderFooterTextRun(builder.ToString(), bold, italic, underline, strikethrough, color, fontSize, fontFamily));
             builder.Clear();
         }
 
@@ -150,6 +168,77 @@ namespace OfficeIMO.Excel {
 
             string value = text.Substring(start, tokenEnd - start + 1);
             return double.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out fontSize) && fontSize > 0D;
+        }
+
+        private static bool TryReadHeaderFooterFontFamilyToken(string text, int openingQuoteIndex, out string fontFamily, out bool? bold, out bool? italic, out int tokenEnd) {
+            fontFamily = string.Empty;
+            bold = null;
+            italic = null;
+            tokenEnd = openingQuoteIndex;
+
+            int end = text.IndexOf('"', openingQuoteIndex + 1);
+            if (end < 0) {
+                return false;
+            }
+
+            string token = text.Substring(openingQuoteIndex + 1, end - openingQuoteIndex - 1).Trim();
+            if (token.Length == 0) {
+                return false;
+            }
+
+            string style = string.Empty;
+            int comma = token.IndexOf(',');
+            if (comma >= 0) {
+                style = token.Substring(comma + 1).Trim();
+                token = token.Substring(0, comma).Trim();
+            }
+
+            if (token.Length == 0 || !TryResolveHeaderFooterFontStyle(style, out bold, out italic)) {
+                return false;
+            }
+
+            fontFamily = token;
+            tokenEnd = end;
+            return true;
+        }
+
+        private static bool TryResolveHeaderFooterFontStyle(string style, out bool? bold, out bool? italic) {
+            bold = null;
+            italic = null;
+            if (string.IsNullOrWhiteSpace(style)) {
+                return true;
+            }
+
+            string normalized = style.Trim().Replace("-", string.Empty).Replace(" ", string.Empty);
+            if (string.Equals(normalized, "Regular", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(normalized, "Normal", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(normalized, "Standard", StringComparison.OrdinalIgnoreCase)) {
+                bold = false;
+                italic = false;
+                return true;
+            }
+
+            if (string.Equals(normalized, "Bold", StringComparison.OrdinalIgnoreCase)) {
+                bold = true;
+                return true;
+            }
+
+            if (string.Equals(normalized, "Italic", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(normalized, "Oblique", StringComparison.OrdinalIgnoreCase)) {
+                italic = true;
+                return true;
+            }
+
+            if (string.Equals(normalized, "BoldItalic", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(normalized, "ItalicBold", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(normalized, "BoldOblique", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(normalized, "ObliqueBold", StringComparison.OrdinalIgnoreCase)) {
+                bold = true;
+                italic = true;
+                return true;
+            }
+
+            return false;
         }
 
         private bool TryAppendHeaderFooterField(StringBuilder builder, string fieldName, int pageNumber, int pageCount, DateTime headerFooterDateTime) {
@@ -272,7 +361,7 @@ namespace OfficeIMO.Excel {
                     }
 
                     if (runText.Length > 0) {
-                        normalizedRuns.Add(new HeaderFooterTextRun(runText, run.Bold, run.Italic, run.Underline, run.Strikethrough, run.Color, run.FontSize));
+                        normalizedRuns.Add(new HeaderFooterTextRun(runText, run.Bold, run.Italic, run.Underline, run.Strikethrough, run.Color, run.FontSize, run.FontFamily));
                     }
                 }
 
@@ -292,6 +381,7 @@ namespace OfficeIMO.Excel {
                         run.Bold,
                         run.Italic,
                         run.Underline,
+                        fontFamily: run.FontFamily,
                         strikethrough: run.Strikethrough));
                 }
 
@@ -318,7 +408,7 @@ namespace OfficeIMO.Excel {
         }
 
         private readonly struct HeaderFooterTextRun {
-            internal HeaderFooterTextRun(string text, bool bold, bool italic, bool underline, bool strikethrough, OfficeColor? color, double? fontSize) {
+            internal HeaderFooterTextRun(string text, bool bold, bool italic, bool underline, bool strikethrough, OfficeColor? color, double? fontSize, string? fontFamily) {
                 Text = text;
                 Bold = bold;
                 Italic = italic;
@@ -326,6 +416,7 @@ namespace OfficeIMO.Excel {
                 Strikethrough = strikethrough;
                 Color = color;
                 FontSize = fontSize;
+                FontFamily = fontFamily;
             }
 
             internal string Text { get; }
@@ -335,6 +426,7 @@ namespace OfficeIMO.Excel {
             internal bool Strikethrough { get; }
             internal OfficeColor? Color { get; }
             internal double? FontSize { get; }
+            internal string? FontFamily { get; }
         }
     }
 }
