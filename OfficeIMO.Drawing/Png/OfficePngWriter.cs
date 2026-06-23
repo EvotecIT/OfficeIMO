@@ -6,6 +6,21 @@ using System.Text;
 namespace OfficeIMO.Drawing;
 
 /// <summary>
+/// Defines the zlib compression strategy used when encoding already-filtered PNG scanlines.
+/// </summary>
+public enum OfficePngCompression {
+    /// <summary>
+    /// Compress scanlines with the platform deflate implementation.
+    /// </summary>
+    Optimal,
+
+    /// <summary>
+    /// Store scanlines in zlib blocks without deflate compression.
+    /// </summary>
+    Stored
+}
+
+/// <summary>
 /// Dependency-free PNG encoder for RGBA raster images.
 /// </summary>
 public static class OfficePngWriter {
@@ -52,17 +67,88 @@ public static class OfficePngWriter {
             target += width * 4;
         }
 
+        return EncodeScanlines(width, height, 8, 6, scanlines);
+    }
+
+    /// <summary>
+    /// Encodes already-filtered PNG scanlines into a PNG file.
+    /// </summary>
+    /// <remarks>
+    /// Each scanline must include its leading PNG filter byte. This entry point is intended for
+    /// document adapters that already own source pixel/filter semantics but should still share
+    /// OfficeIMO's PNG container, chunk, CRC, and zlib writing.
+    /// </remarks>
+    public static byte[] EncodeScanlines(
+        int width,
+        int height,
+        int bitDepth,
+        int colorType,
+        byte[] scanlines,
+        OfficePngCompression compression = OfficePngCompression.Optimal) {
+        ValidatePngHeader(width, height, bitDepth, colorType);
+        if (scanlines == null) {
+            throw new ArgumentNullException(nameof(scanlines));
+        }
+
+        byte[] compressed = compression switch {
+            OfficePngCompression.Optimal => DeflateZlib(scanlines),
+            OfficePngCompression.Stored => DeflateZlibStored(scanlines),
+            _ => throw new ArgumentOutOfRangeException(nameof(compression))
+        };
+        return CreateFromCompressedScanlines(width, height, bitDepth, colorType, compressed);
+    }
+
+    /// <summary>
+    /// Wraps zlib-compressed, already-filtered PNG scanlines in a PNG file.
+    /// </summary>
+    /// <remarks>
+    /// The compressed payload is written as the PNG IDAT chunk without decoding or recompressing it.
+    /// This is useful when a source document already stores PNG-compatible Flate data.
+    /// </remarks>
+    public static byte[] CreateFromCompressedScanlines(
+        int width,
+        int height,
+        int bitDepth,
+        int colorType,
+        byte[] compressedScanlines) {
+        ValidatePngHeader(width, height, bitDepth, colorType);
+        if (compressedScanlines == null) {
+            throw new ArgumentNullException(nameof(compressedScanlines));
+        }
+
         using MemoryStream stream = new MemoryStream();
         stream.Write(PngSignature, 0, PngSignature.Length);
+        WriteChunk(stream, "IHDR", BuildIhdr(width, height, bitDepth, colorType));
+        WriteChunk(stream, "IDAT", compressedScanlines);
+        WriteChunk(stream, "IEND", Array.Empty<byte>());
+        return stream.ToArray();
+    }
+
+    private static void ValidatePngHeader(int width, int height, int bitDepth, int colorType) {
+        if (width <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(width));
+        }
+
+        if (height <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(height));
+        }
+
+        if (bitDepth is not (1 or 2 or 4 or 8 or 16)) {
+            throw new ArgumentOutOfRangeException(nameof(bitDepth), "Bit depth must be a valid PNG bit depth.");
+        }
+
+        if (colorType is not (0 or 2 or 3 or 4 or 6)) {
+            throw new ArgumentOutOfRangeException(nameof(colorType), "Color type must be a valid PNG color type.");
+        }
+    }
+
+    private static byte[] BuildIhdr(int width, int height, int bitDepth, int colorType) {
         byte[] ihdr = new byte[13];
         WriteBigEndianInt32(ihdr, 0, width);
         WriteBigEndianInt32(ihdr, 4, height);
-        ihdr[8] = 8;
-        ihdr[9] = 6;
-        WriteChunk(stream, "IHDR", ihdr);
-        WriteChunk(stream, "IDAT", DeflateZlib(scanlines));
-        WriteChunk(stream, "IEND", Array.Empty<byte>());
-        return stream.ToArray();
+        ihdr[8] = (byte)bitDepth;
+        ihdr[9] = (byte)colorType;
+        return ihdr;
     }
 
     private static byte[] DeflateZlib(byte[] data) {
@@ -72,6 +158,33 @@ public static class OfficePngWriter {
         using (DeflateStream deflate = new DeflateStream(stream, CompressionLevel.Optimal, leaveOpen: true)) {
             deflate.Write(data, 0, data.Length);
         }
+
+        uint adler = Adler32(data);
+        stream.WriteByte((byte)((adler >> 24) & 0xFF));
+        stream.WriteByte((byte)((adler >> 16) & 0xFF));
+        stream.WriteByte((byte)((adler >> 8) & 0xFF));
+        stream.WriteByte((byte)(adler & 0xFF));
+        return stream.ToArray();
+    }
+
+    private static byte[] DeflateZlibStored(byte[] data) {
+        using MemoryStream stream = new MemoryStream();
+        stream.WriteByte(0x78);
+        stream.WriteByte(0x01);
+
+        int offset = 0;
+        do {
+            int blockLength = Math.Min(65535, data.Length - offset);
+            bool final = offset + blockLength >= data.Length;
+            stream.WriteByte(final ? (byte)1 : (byte)0);
+            stream.WriteByte((byte)(blockLength & 0xFF));
+            stream.WriteByte((byte)((blockLength >> 8) & 0xFF));
+            ushort nlen = (ushort)~blockLength;
+            stream.WriteByte((byte)(nlen & 0xFF));
+            stream.WriteByte((byte)((nlen >> 8) & 0xFF));
+            stream.Write(data, offset, blockLength);
+            offset += blockLength;
+        } while (offset < data.Length);
 
         uint adler = Adler32(data);
         stream.WriteByte((byte)((adler >> 24) & 0xFF));

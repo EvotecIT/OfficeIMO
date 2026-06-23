@@ -1,3 +1,5 @@
+using OfficeIMO.Drawing;
+
 namespace OfficeIMO.Pdf;
 
 internal static class ResourceResolver {
@@ -828,12 +830,7 @@ internal static class ResourceResolver {
             return false;
         }
 
-        using var ms = new MemoryStream();
-        WritePngSignature(ms);
-        WritePngChunk(ms, "IHDR", BuildIhdr(width, height, bitsPerComponent, colorType));
-        WritePngChunk(ms, "IDAT", stream.Data);
-        WritePngChunk(ms, "IEND", Array.Empty<byte>());
-        pngBytes = ms.ToArray();
+        pngBytes = OfficePngWriter.CreateFromCompressedScanlines(width, height, bitsPerComponent, colorType, stream.Data);
         return true;
     }
 
@@ -909,12 +906,13 @@ internal static class ResourceResolver {
             }
         }
 
-        using var ms = new MemoryStream();
-        WritePngSignature(ms);
-        WritePngChunk(ms, "IHDR", BuildIhdr(width, height, bitsPerComponent, alphaColorType));
-        WritePngChunk(ms, "IDAT", DeflateZlibStored(scanlines));
-        WritePngChunk(ms, "IEND", Array.Empty<byte>());
-        pngBytes = ms.ToArray();
+        pngBytes = OfficePngWriter.EncodeScanlines(
+            width,
+            height,
+            bitsPerComponent,
+            alphaColorType,
+            scanlines,
+            OfficePngCompression.Stored);
         return true;
     }
 
@@ -923,113 +921,4 @@ internal static class ResourceResolver {
         return resolved as PdfStream;
     }
 
-    private static byte[] BuildIhdr(int width, int height, int bitDepth, int colorType) {
-        var ihdr = new byte[13];
-        WriteInt32BigEndian(ihdr, 0, width);
-        WriteInt32BigEndian(ihdr, 4, height);
-        ihdr[8] = (byte)bitDepth;
-        ihdr[9] = (byte)colorType;
-        ihdr[10] = 0;
-        ihdr[11] = 0;
-        ihdr[12] = 0;
-        return ihdr;
-    }
-
-    private static void WritePngSignature(Stream stream) {
-        byte[] signature = { 137, 80, 78, 71, 13, 10, 26, 10 };
-        stream.Write(signature, 0, signature.Length);
-    }
-
-    private static void WritePngChunk(Stream stream, string type, byte[] data) {
-        byte[] typeBytes = Encoding.ASCII.GetBytes(type);
-        var length = new byte[4];
-        WriteInt32BigEndian(length, 0, data.Length);
-        stream.Write(length, 0, length.Length);
-        stream.Write(typeBytes, 0, typeBytes.Length);
-        stream.Write(data, 0, data.Length);
-
-        uint crc = ComputeCrc32(typeBytes, data);
-        var crcBytes = new byte[4];
-        WriteUInt32BigEndian(crcBytes, 0, crc);
-        stream.Write(crcBytes, 0, crcBytes.Length);
-    }
-
-    private static void WriteInt32BigEndian(byte[] buffer, int offset, int value) {
-        buffer[offset] = (byte)((value >> 24) & 0xFF);
-        buffer[offset + 1] = (byte)((value >> 16) & 0xFF);
-        buffer[offset + 2] = (byte)((value >> 8) & 0xFF);
-        buffer[offset + 3] = (byte)(value & 0xFF);
-    }
-
-    private static void WriteUInt32BigEndian(byte[] buffer, int offset, uint value) {
-        buffer[offset] = (byte)((value >> 24) & 0xFF);
-        buffer[offset + 1] = (byte)((value >> 16) & 0xFF);
-        buffer[offset + 2] = (byte)((value >> 8) & 0xFF);
-        buffer[offset + 3] = (byte)(value & 0xFF);
-    }
-
-    private static byte[] DeflateZlibStored(byte[] data) {
-        using var ms = new MemoryStream();
-        ms.WriteByte(0x78);
-        ms.WriteByte(0x01);
-
-        int offset = 0;
-        do {
-            int blockLength = Math.Min(65535, data.Length - offset);
-            bool final = offset + blockLength >= data.Length;
-            ms.WriteByte(final ? (byte)1 : (byte)0);
-            ms.WriteByte((byte)(blockLength & 0xFF));
-            ms.WriteByte((byte)((blockLength >> 8) & 0xFF));
-            ushort nlen = (ushort)~blockLength;
-            ms.WriteByte((byte)(nlen & 0xFF));
-            ms.WriteByte((byte)((nlen >> 8) & 0xFF));
-            ms.Write(data, offset, blockLength);
-            offset += blockLength;
-        } while (offset < data.Length);
-
-        uint adler = Adler32(data);
-        ms.WriteByte((byte)((adler >> 24) & 0xFF));
-        ms.WriteByte((byte)((adler >> 16) & 0xFF));
-        ms.WriteByte((byte)((adler >> 8) & 0xFF));
-        ms.WriteByte((byte)(adler & 0xFF));
-        return ms.ToArray();
-    }
-
-    private static uint Adler32(byte[] data) {
-        const uint mod = 65521;
-        uint a = 1;
-        uint b = 0;
-        for (int i = 0; i < data.Length; i++) {
-            a = (a + data[i]) % mod;
-            b = (b + a) % mod;
-        }
-
-        return (b << 16) | a;
-    }
-
-    private static uint ComputeCrc32(byte[] typeBytes, byte[] data) {
-        uint crc = 0xFFFFFFFF;
-        for (int i = 0; i < typeBytes.Length; i++) {
-            crc = UpdateCrc32(crc, typeBytes[i]);
-        }
-
-        for (int i = 0; i < data.Length; i++) {
-            crc = UpdateCrc32(crc, data[i]);
-        }
-
-        return crc ^ 0xFFFFFFFF;
-    }
-
-    private static uint UpdateCrc32(uint crc, byte value) {
-        crc ^= value;
-        for (int i = 0; i < 8; i++) {
-            if ((crc & 1) != 0) {
-                crc = (crc >> 1) ^ 0xEDB88320;
-            } else {
-                crc >>= 1;
-            }
-        }
-
-        return crc;
-    }
 }
