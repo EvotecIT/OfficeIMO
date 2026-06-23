@@ -45,7 +45,7 @@ namespace OfficeIMO.Excel {
                 WorksheetPart copiedPart = WorkbookPartRoot.AddNewPart<WorksheetPart>();
                 copiedPart.Worksheet = (Worksheet)sourcePart.Worksheet!.CloneNode(true);
                 RemoveRelationshipBackedWorksheetFeatures(copiedPart.Worksheet);
-                CopyWorksheetTables(sourcePart, copiedPart);
+                CopyWorksheetTables(sourcePart, copiedPart, rewriteCopiedTableReferences: true);
                 copiedPart.Worksheet.Save();
 
                 Sheet sheet = AppendWorksheetElement(copiedPart, validatedName);
