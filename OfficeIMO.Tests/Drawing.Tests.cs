@@ -360,6 +360,39 @@ public class DrawingTests {
         Assert.Equal(string.Empty, unsupportedContentType);
     }
 
+    [Theory]
+    [InlineData("image/png; charset=binary", null, null, "image/png")]
+    [InlineData("application/octet-stream", "png", ".bin", "image/png")]
+    [InlineData("application/octet-stream", "jpeg", ".bin", "image/jpeg")]
+    [InlineData("binary/octet-stream", "gif", ".bin", "image/gif")]
+    [InlineData("application/octet-stream", "svg-preamble", ".bin", "image/svg+xml")]
+    [InlineData(null, null, ".svg", "image/svg+xml")]
+    public void OfficeSvgImageRendererResolvesEmbeddableContentTypeFromMetadataBytesAndExtension(string? declaredContentType, string? bytesKind, string? fileName, string expectedContentType) {
+        byte[]? bytes = bytesKind switch {
+            "png" => new byte[] { 0x89, (byte)'P', (byte)'N', (byte)'G', 0x0D, 0x0A, 0x1A, 0x0A },
+            "jpeg" => new byte[] { 0xFF, 0xD8, 0xFF },
+            "gif" => Encoding.ASCII.GetBytes("GIF89a"),
+            "svg-preamble" => Encoding.UTF8.GetBytes(
+                "\uFEFF<?xml version=\"1.0\"?>" +
+                "<!-- OfficeIMO preview -->" +
+                "<!DOCTYPE svg>" +
+                "<?officeimo preview?>" +
+                "<svg xmlns=\"http://www.w3.org/2000/svg\"/>"),
+            _ => null
+        };
+
+        Assert.True(OfficeSvgImageRenderer.TryResolveEmbeddableContentType(declaredContentType, bytes, fileName, out string contentType));
+        Assert.Equal(expectedContentType, contentType);
+    }
+
+    [Fact]
+    public void OfficeSvgImageRendererRejectsUnsupportedEmbeddableContentTypeSources() {
+        Assert.False(OfficeSvgImageRenderer.TryResolveEmbeddableContentType("image/tiff", null, ".tif", out string unsupportedContentType));
+        Assert.Equal(string.Empty, unsupportedContentType);
+        Assert.False(OfficeSvgImageRenderer.TryResolveEmbeddableContentType("application/octet-stream", new byte[] { 1, 2, 3 }, ".bin", out string unknownContentType));
+        Assert.Equal(string.Empty, unknownContentType);
+    }
+
     [Fact]
     public void OfficeTransformProvidesReusableAffineDrawingIntent() {
         var rotated = OfficeTransform.RotateDegrees(90).TransformPoint(new OfficePoint(10, 0));

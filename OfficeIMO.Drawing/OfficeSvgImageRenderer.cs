@@ -317,6 +317,40 @@ public static class OfficeSvgImageRenderer {
         }
     }
 
+    /// <summary>
+    /// Resolves an SVG-embeddable image content type from declared package metadata, image bytes, or a file name.
+    /// </summary>
+    /// <param name="declaredContentType">Optional content type from the source package or caller.</param>
+    /// <param name="bytes">Optional image bytes used for dependency-free signature sniffing.</param>
+    /// <param name="fileName">Optional file name or extension used when metadata is absent or generic.</param>
+    /// <param name="contentType">Resolved MIME content type when supported.</param>
+    /// <returns><see langword="true" /> when the image can be embedded directly in an SVG image href.</returns>
+    public static bool TryResolveEmbeddableContentType(string? declaredContentType, byte[]? bytes, string? fileName, out string contentType) {
+        string normalized = NormalizeContentType(declaredContentType);
+        if (!string.IsNullOrEmpty(normalized) && !IsGenericContentType(normalized)) {
+            if (IsEmbeddableContentType(normalized)) {
+                contentType = normalized;
+                return true;
+            }
+
+            contentType = string.Empty;
+            return false;
+        }
+
+        if (TrySniffEmbeddableFormat(bytes, out OfficeImageFormat sniffedFormat) &&
+            TryGetEmbeddableContentType(sniffedFormat, out contentType)) {
+            return true;
+        }
+
+        OfficeImageFormat extensionFormat = OfficeImageReader.FromExtension(fileName);
+        if (TryGetEmbeddableContentType(extensionFormat, out contentType)) {
+            return true;
+        }
+
+        contentType = string.Empty;
+        return false;
+    }
+
     private static string? BuildTransform(
         double x,
         double y,
@@ -362,5 +396,186 @@ public static class OfficeSvgImageRenderer {
             .Append(OfficeSvgFormatting.FormatNumber(-centerY))
             .Append(')');
         return transform.ToString();
+    }
+
+    private static bool IsEmbeddableContentType(string contentType) =>
+        string.Equals(contentType, "image/png", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(contentType, "image/jpeg", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(contentType, "image/gif", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(contentType, "image/svg+xml", StringComparison.OrdinalIgnoreCase);
+
+    private static string NormalizeContentType(string? contentType) {
+        if (string.IsNullOrWhiteSpace(contentType)) {
+            return string.Empty;
+        }
+
+        int separator = contentType!.IndexOf(';');
+        string normalized = separator >= 0
+            ? contentType.Substring(0, separator)
+            : contentType;
+        return normalized.Trim().ToLowerInvariant();
+    }
+
+    private static bool IsGenericContentType(string contentType) =>
+        string.Equals(contentType, "application/octet-stream", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(contentType, "binary/octet-stream", StringComparison.OrdinalIgnoreCase);
+
+    private static bool TrySniffEmbeddableFormat(byte[]? data, out OfficeImageFormat format) {
+        format = OfficeImageFormat.Unknown;
+        if (data == null || data.Length == 0) {
+            return false;
+        }
+
+        if (data.Length >= 8 &&
+            data[0] == 0x89 &&
+            data[1] == (byte)'P' &&
+            data[2] == (byte)'N' &&
+            data[3] == (byte)'G' &&
+            data[4] == 0x0D &&
+            data[5] == 0x0A &&
+            data[6] == 0x1A &&
+            data[7] == 0x0A) {
+            format = OfficeImageFormat.Png;
+            return true;
+        }
+
+        if (data.Length >= 3 &&
+            data[0] == 0xFF &&
+            data[1] == 0xD8 &&
+            data[2] == 0xFF) {
+            format = OfficeImageFormat.Jpeg;
+            return true;
+        }
+
+        if (data.Length >= 6 &&
+            data[0] == (byte)'G' &&
+            data[1] == (byte)'I' &&
+            data[2] == (byte)'F' &&
+            data[3] == (byte)'8' &&
+            (data[4] == (byte)'7' || data[4] == (byte)'9') &&
+            data[5] == (byte)'a') {
+            format = OfficeImageFormat.Gif;
+            return true;
+        }
+
+        if (LooksLikeSvg(data)) {
+            format = OfficeImageFormat.Svg;
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool LooksLikeSvg(byte[] data) {
+        int index = SkipBomAndWhitespace(data, 0);
+        while (index < data.Length && data[index] == (byte)'<') {
+            int tagStart = SkipAsciiWhitespace(data, index + 1);
+            if (StartsWithAscii(data, tagStart, "svg")) {
+                return true;
+            }
+
+            if (StartsWithAscii(data, tagStart, "!--")) {
+                int commentEnd = IndexOfAscii(data, tagStart + 3, "-->");
+                if (commentEnd < 0) {
+                    return false;
+                }
+
+                index = SkipAsciiWhitespace(data, commentEnd + 3);
+                continue;
+            }
+
+            if (StartsWithAscii(data, tagStart, "!doctype")) {
+                int declarationEnd = IndexOfByte(data, tagStart + 8, (byte)'>');
+                if (declarationEnd < 0) {
+                    return false;
+                }
+
+                index = SkipAsciiWhitespace(data, declarationEnd + 1);
+                continue;
+            }
+
+            if (tagStart < data.Length && data[tagStart] == (byte)'?') {
+                int processingInstructionEnd = IndexOfAscii(data, tagStart + 1, "?>");
+                if (processingInstructionEnd < 0) {
+                    return false;
+                }
+
+                index = SkipAsciiWhitespace(data, processingInstructionEnd + 2);
+                continue;
+            }
+
+            return false;
+        }
+
+        return false;
+    }
+
+    private static int SkipBomAndWhitespace(byte[] data, int index) {
+        if (data.Length >= index + 3 &&
+            data[index] == 0xEF &&
+            data[index + 1] == 0xBB &&
+            data[index + 2] == 0xBF) {
+            index += 3;
+        }
+
+        return SkipAsciiWhitespace(data, index);
+    }
+
+    private static int SkipAsciiWhitespace(byte[] data, int index) {
+        while (index < data.Length && IsAsciiWhitespace(data[index])) {
+            index++;
+        }
+
+        return index;
+    }
+
+    private static int IndexOfByte(byte[] data, int startIndex, byte value) {
+        for (int i = startIndex; i < data.Length; i++) {
+            if (data[i] == value) {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    private static bool IsAsciiWhitespace(byte value) =>
+        value == (byte)' ' ||
+        value == (byte)'\t' ||
+        value == (byte)'\r' ||
+        value == (byte)'\n';
+
+    private static int IndexOfAscii(byte[] data, int startIndex, string value) {
+        for (int i = startIndex; i <= data.Length - value.Length; i++) {
+            if (StartsWithAscii(data, i, value)) {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    private static bool StartsWithAscii(byte[] data, int startIndex, string value) {
+        if (startIndex < 0 || startIndex + value.Length > data.Length) {
+            return false;
+        }
+
+        for (int i = 0; i < value.Length; i++) {
+            byte actual = data[startIndex + i];
+            byte expected = (byte)value[i];
+            if (actual >= (byte)'A' && actual <= (byte)'Z') {
+                actual = (byte)(actual + 32);
+            }
+
+            if (expected >= (byte)'A' && expected <= (byte)'Z') {
+                expected = (byte)(expected + 32);
+            }
+
+            if (actual != expected) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }
