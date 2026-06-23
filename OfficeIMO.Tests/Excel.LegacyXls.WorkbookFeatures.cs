@@ -365,6 +365,10 @@ namespace OfficeIMO.Tests {
             WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single();
             PageSetupProperties pageSetupProperties = worksheetPart.Worksheet.GetFirstChild<SheetProperties>()!.GetFirstChild<PageSetupProperties>()!;
             Assert.True(pageSetupProperties.FitToPage!.Value);
+            Selection projectedSelection = Assert.Single(worksheetPart.Worksheet.GetFirstChild<SheetViews>()!.GetFirstChild<SheetView>()!.Elements<Selection>());
+            Assert.Null(projectedSelection.Pane);
+            Assert.Equal("B3", projectedSelection.ActiveCell!.Value);
+            Assert.Equal("B3:C4", projectedSelection.SequenceOfReferences!.InnerText);
         }
 
         [Fact]

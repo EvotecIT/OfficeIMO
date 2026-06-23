@@ -214,6 +214,38 @@ namespace OfficeIMO.Excel {
             });
         }
 
+        internal void SetWorksheetSelection(string activeCell, IReadOnlyList<string> selectedRanges, PaneValues? pane = null, bool save = true) {
+            if (string.IsNullOrWhiteSpace(activeCell)) throw new ArgumentNullException(nameof(activeCell));
+            if (selectedRanges == null) throw new ArgumentNullException(nameof(selectedRanges));
+
+            string sequenceOfReferences = selectedRanges.Count == 0
+                ? activeCell
+                : string.Join(" ", selectedRanges.Where(range => !string.IsNullOrWhiteSpace(range)));
+            if (string.IsNullOrWhiteSpace(sequenceOfReferences)) {
+                sequenceOfReferences = activeCell;
+            }
+
+            WriteLock(() => {
+                SheetView view = GetOrCreateSheetView();
+                foreach (Selection existing in view.Elements<Selection>().Where(selection => SamePane(selection, pane)).ToList()) {
+                    existing.Remove();
+                }
+
+                var selection = new Selection {
+                    ActiveCell = activeCell,
+                    SequenceOfReferences = new ListValue<StringValue> { InnerText = sequenceOfReferences }
+                };
+                if (pane.HasValue) {
+                    selection.Pane = pane.Value;
+                }
+
+                view.Append(selection);
+                if (save) {
+                    WorksheetRoot.Save();
+                }
+            });
+        }
+
         private SheetView GetOrCreateSheetView() {
             Worksheet worksheet = WorksheetRoot;
             SheetViews? sheetViews = worksheet.GetFirstChild<SheetViews>();
@@ -229,6 +261,12 @@ namespace OfficeIMO.Excel {
             }
 
             return view;
+        }
+
+        private static bool SamePane(Selection selection, PaneValues? pane) {
+            return pane.HasValue
+                ? selection.Pane?.Value == pane.Value
+                : selection.Pane == null;
         }
 
         /// <summary>

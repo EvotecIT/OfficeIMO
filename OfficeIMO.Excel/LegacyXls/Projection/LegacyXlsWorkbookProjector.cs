@@ -146,6 +146,10 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                     currentSheet.SetRightToLeft(legacySheet.RightToLeft.Value);
                 }
 
+                foreach (LegacyXlsSelection selection in legacySheet.Selections) {
+                    ProjectSelection(currentSheet, selection, legacySheet.FreezePane != null);
+                }
+
                 foreach (LegacyXlsHyperlink hyperlink in legacySheet.Hyperlinks) {
                     string reference = ToA1Range(hyperlink);
                     if (hyperlink.IsExternal) {
@@ -186,6 +190,23 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             } else if (legacySheet.Visibility != 0) {
                 sheet.SetHidden(true);
             }
+        }
+
+        private static void ProjectSelection(ExcelSheet sheet, LegacyXlsSelection selection, bool hasFrozenPane) {
+            string activeCell = A1.CellReference(selection.ActiveRow, selection.ActiveColumn);
+            IReadOnlyList<string> selectedRanges = selection.SelectedRanges
+                .Select(range => range.Reference)
+                .ToArray();
+            sheet.SetWorksheetSelection(activeCell, selectedRanges, hasFrozenPane ? ToPane(selection.Pane) : null, save: false);
+        }
+
+        private static PaneValues? ToPane(byte pane) {
+            return pane switch {
+                0x00 => PaneValues.BottomRight,
+                0x01 => PaneValues.TopRight,
+                0x02 => PaneValues.BottomLeft,
+                _ => null
+            };
         }
 
         private static void ProjectDefinedNames(LegacyXlsWorkbook workbook, ExcelDocument document) {
