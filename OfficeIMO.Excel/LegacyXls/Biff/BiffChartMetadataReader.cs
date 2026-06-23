@@ -13,7 +13,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             TryReadChartRectangle(record, out int? chartX, out int? chartY, out int? chartWidth, out int? chartHeight);
             TryReadAxisType(record, out ushort? axisType, out string? axisTypeName);
             TryReadAxesUsedCount(record, out ushort? axesUsedCount);
-            TryReadSeries(record, out ushort? seriesCategoryDataType, out string? seriesCategoryDataTypeName, out ushort? seriesValueDataType, out ushort? seriesCategoryCount, out ushort? seriesValueCount, out ushort? seriesBubbleSizeDataType, out ushort? seriesBubbleSizeCount);
+            TryReadSeries(record, out ushort? seriesCategoryDataType, out string? seriesCategoryDataTypeName, out ushort? seriesValueDataType, out string? seriesValueDataTypeName, out ushort? seriesCategoryCount, out ushort? seriesValueCount, out ushort? seriesBubbleSizeDataType, out string? seriesBubbleSizeDataTypeName, out ushort? seriesBubbleSizeCount);
             TryReadDataFormat(record, out ushort? dataFormatPointIndex, out ushort? dataFormatSeriesIndex, out ushort? dataFormatOrder, out string? dataFormatTarget);
             TryReadLineFormat(record, out LegacyXlsChartLineFormat? lineFormat);
             TryReadAreaFormat(record, out LegacyXlsChartAreaFormat? areaFormat);
@@ -43,9 +43,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 seriesCategoryDataType,
                 seriesCategoryDataTypeName,
                 seriesValueDataType,
+                seriesValueDataTypeName,
                 seriesCategoryCount,
                 seriesValueCount,
                 seriesBubbleSizeDataType,
+                seriesBubbleSizeDataTypeName,
                 seriesBubbleSizeCount,
                 dataFormatPointIndex,
                 dataFormatSeriesIndex,
@@ -109,27 +111,33 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             out ushort? categoryDataType,
             out string? categoryDataTypeName,
             out ushort? valueDataType,
+            out string? valueDataTypeName,
             out ushort? categoryCount,
             out ushort? valueCount,
             out ushort? bubbleSizeDataType,
+            out string? bubbleSizeDataTypeName,
             out ushort? bubbleSizeCount) {
             categoryDataType = null;
             categoryDataTypeName = null;
             valueDataType = null;
+            valueDataTypeName = null;
             categoryCount = null;
             valueCount = null;
             bubbleSizeDataType = null;
+            bubbleSizeDataTypeName = null;
             bubbleSizeCount = null;
             if (record.Type != 0x1003 || record.Payload.Length < 12) {
                 return false;
             }
 
             categoryDataType = BiffRecordReader.ReadUInt16(record.Payload, 0);
-            categoryDataTypeName = GetSeriesCategoryDataTypeName(categoryDataType.Value);
+            categoryDataTypeName = GetSeriesDataTypeName(categoryDataType.Value);
             valueDataType = BiffRecordReader.ReadUInt16(record.Payload, 2);
+            valueDataTypeName = GetSeriesDataTypeName(valueDataType.Value);
             categoryCount = BiffRecordReader.ReadUInt16(record.Payload, 4);
             valueCount = BiffRecordReader.ReadUInt16(record.Payload, 6);
             bubbleSizeDataType = BiffRecordReader.ReadUInt16(record.Payload, 8);
+            bubbleSizeDataTypeName = GetSeriesDataTypeName(bubbleSizeDataType.Value);
             bubbleSizeCount = BiffRecordReader.ReadUInt16(record.Payload, 10);
             return true;
         }
@@ -275,7 +283,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
         }
 
-        private static string GetSeriesCategoryDataTypeName(ushort dataType) {
+        private static string GetSeriesDataTypeName(ushort dataType) {
             switch (dataType) {
                 case 0x0001:
                     return "Numeric";

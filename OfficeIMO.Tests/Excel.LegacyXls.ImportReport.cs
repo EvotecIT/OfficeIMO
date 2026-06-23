@@ -504,6 +504,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.ChartRecordsByAxisType["ValueOrVerticalValue"]);
             Assert.Equal(1, report.ChartRecordsByAxesUsedCount["AxesUsed:1"]);
             Assert.Equal(1, report.ChartSeriesCategoryDataTypes["Text"]);
+            Assert.Equal(1, report.ChartSeriesValueDataTypes["Numeric"]);
+            Assert.Equal(1, report.ChartSeriesBubbleSizeDataTypes["Numeric"]);
             Assert.Equal(1, report.ChartSeriesValueCounts["Categories:4;Values:4;BubbleSizes:0"]);
             Assert.Equal(1, report.ChartDataFormatTargets["Series"]);
             Assert.Equal(1, report.ChartDataFormatSeriesIndexes["SeriesIndex:2"]);
@@ -575,7 +577,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "Chart" && record.ChartX == 100 && record.ChartY == 200 && record.ChartWidth == 3000 && record.ChartHeight == 2200);
             Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "Axis" && record.AxisType == 0x0001 && record.AxisTypeName == "ValueOrVerticalValue");
             Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "AxesUsed" && record.AxesUsedCount == 1);
-            Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "Series" && record.SeriesCategoryDataType == 0x0003 && record.SeriesCategoryDataTypeName == "Text" && record.SeriesValueDataType == 0x0001 && record.SeriesCategoryCount == 4 && record.SeriesValueCount == 4 && record.SeriesBubbleSizeDataType == 0x0001 && record.SeriesBubbleSizeCount == 0);
+            Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "Series" && record.SeriesCategoryDataType == 0x0003 && record.SeriesCategoryDataTypeName == "Text" && record.SeriesValueDataType == 0x0001 && record.SeriesValueDataTypeName == "Numeric" && record.SeriesCategoryCount == 4 && record.SeriesValueCount == 4 && record.SeriesBubbleSizeDataType == 0x0001 && record.SeriesBubbleSizeDataTypeName == "Numeric" && record.SeriesBubbleSizeCount == 0);
             Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "DataFormat" && record.DataFormatPointIndex == 0xffff && record.DataFormatSeriesIndex == 2 && record.DataFormatOrder == 1 && record.DataFormatTarget == "Series");
             Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "LineFormat" && record.LineFormat != null && record.LineFormat.RgbHex == "#112233" && record.LineFormat.Style == 0x0001 && record.LineFormat.StyleName == "Dash" && record.LineFormat.Weight == 1 && record.LineFormat.WeightName == "Medium" && !record.LineFormat.Automatic && record.LineFormat.AxisVisible && !record.LineFormat.AutomaticColor && record.LineFormat.ColorIndex == 0x004d);
             Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "Frame" && record.Frame != null && record.Frame.FrameType == 0x0004 && record.Frame.FrameTypeName == "ShadowFrame" && record.Frame.Flags == 0x0003 && record.Frame.AutomaticSize && record.Frame.AutomaticPosition);
@@ -594,6 +596,8 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Chart Records By Axis Type", markdown);
             Assert.Contains("Chart Records By Axes Used Count", markdown);
             Assert.Contains("Chart Series Category Data Types", markdown);
+            Assert.Contains("Chart Series Value Data Types", markdown);
+            Assert.Contains("Chart Series Bubble Size Data Types", markdown);
             Assert.Contains("Chart Series Value Counts", markdown);
             Assert.Contains("Chart DataFormat Targets", markdown);
             Assert.Contains("Chart DataFormat Series Indexes", markdown);

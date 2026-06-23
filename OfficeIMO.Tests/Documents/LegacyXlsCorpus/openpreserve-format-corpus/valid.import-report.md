@@ -561,6 +561,18 @@ Warnings: 2
 | --- | --- |
 | Numeric | 40 |
 
+## Chart Series Value Data Types
+
+| Key | Count |
+| --- | --- |
+| Numeric | 40 |
+
+## Chart Series Bubble Size Data Types
+
+| Key | Count |
+| --- | --- |
+| Numeric | 40 |
+
 ## Chart Series Value Counts
 
 | Key | Count |

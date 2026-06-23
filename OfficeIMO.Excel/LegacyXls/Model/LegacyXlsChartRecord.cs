@@ -24,9 +24,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             ushort? seriesCategoryDataType = null,
             string? seriesCategoryDataTypeName = null,
             ushort? seriesValueDataType = null,
+            string? seriesValueDataTypeName = null,
             ushort? seriesCategoryCount = null,
             ushort? seriesValueCount = null,
             ushort? seriesBubbleSizeDataType = null,
+            string? seriesBubbleSizeDataTypeName = null,
             ushort? seriesBubbleSizeCount = null,
             ushort? dataFormatPointIndex = null,
             ushort? dataFormatSeriesIndex = null,
@@ -64,9 +66,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             SeriesCategoryDataType = seriesCategoryDataType;
             SeriesCategoryDataTypeName = string.IsNullOrWhiteSpace(seriesCategoryDataTypeName) ? null : seriesCategoryDataTypeName;
             SeriesValueDataType = seriesValueDataType;
+            SeriesValueDataTypeName = string.IsNullOrWhiteSpace(seriesValueDataTypeName) ? null : seriesValueDataTypeName;
             SeriesCategoryCount = seriesCategoryCount;
             SeriesValueCount = seriesValueCount;
             SeriesBubbleSizeDataType = seriesBubbleSizeDataType;
+            SeriesBubbleSizeDataTypeName = string.IsNullOrWhiteSpace(seriesBubbleSizeDataTypeName) ? null : seriesBubbleSizeDataTypeName;
             SeriesBubbleSizeCount = seriesBubbleSizeCount;
             DataFormatPointIndex = dataFormatPointIndex;
             DataFormatSeriesIndex = dataFormatSeriesIndex;
@@ -136,6 +140,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>Gets the raw value data type from Series records, when present.</summary>
         public ushort? SeriesValueDataType { get; }
 
+        /// <summary>Gets the decoded value data type name from Series records, when present.</summary>
+        public string? SeriesValueDataTypeName { get; }
+
         /// <summary>Gets the category or horizontal value count from Series records, when present.</summary>
         public ushort? SeriesCategoryCount { get; }
 
@@ -144,6 +151,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets the raw bubble-size data type from Series records, when present.</summary>
         public ushort? SeriesBubbleSizeDataType { get; }
+
+        /// <summary>Gets the decoded bubble-size data type name from Series records, when present.</summary>
+        public string? SeriesBubbleSizeDataTypeName { get; }
 
         /// <summary>Gets the bubble-size value count from Series records, when present.</summary>
         public ushort? SeriesBubbleSizeCount { get; }
