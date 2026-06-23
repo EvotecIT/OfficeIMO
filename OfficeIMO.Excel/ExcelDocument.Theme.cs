@@ -55,7 +55,7 @@ namespace OfficeIMO.Excel {
             themePart.FeedData(stream);
 
             EnsureWorkbookThemeAndStyles();
-            if (!string.IsNullOrEmpty(FilePath)) {
+            if (!string.IsNullOrEmpty(FilePath) && _spreadSheetDocument?.AutoSave == true) {
                 Save();
             }
             return this;

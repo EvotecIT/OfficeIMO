@@ -78,6 +78,41 @@ namespace OfficeIMO.Tests {
             Assert.Equal(Expected1904Serial(date), double.Parse(serialText, CultureInfo.InvariantCulture), 6);
         }
 
+        [Fact]
+        public void DateSystem_ChangingExistingWorkbook_ConvertsDateStyledSerials() {
+            string filePath = Path.Combine(_directoryWithFiles, "DateSystemChangeConvertsSerials.xlsx");
+            var date = new DateTime(2024, 3, 4);
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    ExcelSheet sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, date);
+                    document.Save();
+                }
+
+                using (var document = ExcelDocument.Load(filePath)) {
+                    document.DateSystem = ExcelDateSystem.NineteenFour;
+                    document.Save();
+                }
+
+                using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                    AssertWorkbookUses1904DateSystem(spreadsheet);
+                    WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                    string serialText = GetCellValueText(worksheetPart, "A1");
+                    Assert.Equal(Expected1904Serial(date), double.Parse(serialText, CultureInfo.InvariantCulture), 6);
+                }
+
+                using (var reader = ExcelDocumentReader.Open(filePath, new ExcelReadOptions { TreatDatesUsingNumberFormat = true })) {
+                    var cell = reader.GetSheet("Data").EnumerateCells().Single(item => item.Row == 1 && item.Column == 1);
+                    Assert.Equal(date, Assert.IsType<DateTime>(cell.Value));
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
         private static double Expected1904Serial(DateTime value)
             => value.ToOADate() - Excel1904DateOffsetDays;
 

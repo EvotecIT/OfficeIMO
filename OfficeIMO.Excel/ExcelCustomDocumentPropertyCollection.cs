@@ -23,9 +23,10 @@ namespace OfficeIMO.Excel {
                 DetachAll();
                 _properties.Clear();
                 foreach (var property in properties) {
+                    string key = NormalizeKey(property.Key);
                     ExcelCustomProperty value = property.Value ?? throw new ArgumentNullException(nameof(properties));
                     Attach(value);
-                    _properties[property.Key] = value;
+                    _properties[key] = value;
                 }
             } finally {
                 _suppressChangeTracking = false;
@@ -34,14 +35,15 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc />
         public ExcelCustomProperty this[string key] {
-            get => _properties[key];
+            get => _properties[NormalizeKey(key)];
             set {
-                if (_properties.TryGetValue(key, out ExcelCustomProperty? previous)) {
+                string normalizedKey = NormalizeKey(key);
+                if (_properties.TryGetValue(normalizedKey, out ExcelCustomProperty? previous)) {
                     Detach(previous);
                 }
 
                 Attach(value ?? throw new ArgumentNullException(nameof(value)));
-                _properties[key] = value;
+                _properties[normalizedKey] = value;
                 MarkChanged();
             }
         }
@@ -64,23 +66,25 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc />
         public void Add(string key, ExcelCustomProperty value) {
+            string normalizedKey = NormalizeKey(key);
             Attach(value ?? throw new ArgumentNullException(nameof(value)));
-            _properties.Add(key, value);
+            _properties.Add(normalizedKey, value);
             MarkChanged();
         }
 
         /// <inheritdoc />
         public bool ContainsKey(string key) {
-            return _properties.ContainsKey(key);
+            return _properties.ContainsKey(NormalizeKey(key));
         }
 
         /// <inheritdoc />
         public bool Remove(string key) {
-            if (!_properties.TryGetValue(key, out ExcelCustomProperty? property)) {
+            string normalizedKey = NormalizeKey(key);
+            if (!_properties.TryGetValue(normalizedKey, out ExcelCustomProperty? property)) {
                 return false;
             }
 
-            bool removed = _properties.Remove(key);
+            bool removed = _properties.Remove(normalizedKey);
             if (removed) {
                 Detach(property);
                 MarkChanged();
@@ -91,7 +95,7 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc />
         public bool TryGetValue(string key, out ExcelCustomProperty value) {
-            return _properties.TryGetValue(key, out value!);
+            return _properties.TryGetValue(NormalizeKey(key), out value!);
         }
 
         /// <inheritdoc />
@@ -112,7 +116,8 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc />
         public bool Contains(KeyValuePair<string, ExcelCustomProperty> item) {
-            return ((ICollection<KeyValuePair<string, ExcelCustomProperty>>)_properties).Contains(item);
+            return ((ICollection<KeyValuePair<string, ExcelCustomProperty>>)_properties)
+                .Contains(new KeyValuePair<string, ExcelCustomProperty>(NormalizeKey(item.Key), item.Value));
         }
 
         /// <inheritdoc />
@@ -122,7 +127,8 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc />
         public bool Remove(KeyValuePair<string, ExcelCustomProperty> item) {
-            bool removed = ((ICollection<KeyValuePair<string, ExcelCustomProperty>>)_properties).Remove(item);
+            bool removed = ((ICollection<KeyValuePair<string, ExcelCustomProperty>>)_properties)
+                .Remove(new KeyValuePair<string, ExcelCustomProperty>(NormalizeKey(item.Key), item.Value));
             if (removed) {
                 Detach(item.Value);
                 MarkChanged();
@@ -138,6 +144,14 @@ namespace OfficeIMO.Excel {
 
         IEnumerator IEnumerable.GetEnumerator() {
             return GetEnumerator();
+        }
+
+        private static string NormalizeKey(string key) {
+            if (string.IsNullOrWhiteSpace(key)) {
+                throw new ArgumentException("Custom property name is required.", nameof(key));
+            }
+
+            return key.Trim();
         }
 
         private void MarkChanged() {

@@ -201,12 +201,49 @@ namespace OfficeIMO.Excel {
                 throw new NotSupportedException("Only images anchored to worksheet cells can be moved. Absolute image anchors do not have a cell marker.");
             }
 
+            int previousColumn = ParseMarkerIndex(marker.ColumnId?.Text);
+            int previousRow = ParseMarkerIndex(marker.RowId?.Text);
+            long previousColumnOffset = ParseMarkerOffset(marker.ColumnOffset?.Text);
+            long previousRowOffset = ParseMarkerOffset(marker.RowOffset?.Text);
+            int targetColumn = column - 1;
+            int targetRow = row - 1;
+            long targetColumnOffset = PxToEmu(offsetXPixels);
+            long targetRowOffset = PxToEmu(offsetYPixels);
+
+            MoveTwoCellEndMarkerIfNeeded(
+                targetColumn - previousColumn,
+                targetRow - previousRow,
+                targetColumnOffset - previousColumnOffset,
+                targetRowOffset - previousRowOffset);
+
             marker.ColumnId = new Xdr.ColumnId((column - 1).ToString(CultureInfo.InvariantCulture));
-            marker.ColumnOffset = new Xdr.ColumnOffset(PxToEmu(offsetXPixels).ToString(CultureInfo.InvariantCulture));
+            marker.ColumnOffset = new Xdr.ColumnOffset(targetColumnOffset.ToString(CultureInfo.InvariantCulture));
             marker.RowId = new Xdr.RowId((row - 1).ToString(CultureInfo.InvariantCulture));
-            marker.RowOffset = new Xdr.RowOffset(PxToEmu(offsetYPixels).ToString(CultureInfo.InvariantCulture));
+            marker.RowOffset = new Xdr.RowOffset(targetRowOffset.ToString(CultureInfo.InvariantCulture));
             Save();
             return this;
+        }
+
+        private void MoveTwoCellEndMarkerIfNeeded(int columnDelta, int rowDelta, long columnOffsetDelta, long rowOffsetDelta) {
+            Xdr.ToMarker? toMarker = _anchor.GetFirstChild<Xdr.ToMarker>();
+            if (toMarker == null) {
+                return;
+            }
+
+            int targetColumn = ParseMarkerIndex(toMarker.ColumnId?.Text) + columnDelta;
+            int targetRow = ParseMarkerIndex(toMarker.RowId?.Text) + rowDelta;
+            if (targetColumn < 0 || targetColumn >= A1.MaxColumns) {
+                throw new ArgumentOutOfRangeException("column", "Moving this two-cell image would place its end marker outside the Excel column limit.");
+            }
+
+            if (targetRow < 0 || targetRow >= A1.MaxRows) {
+                throw new ArgumentOutOfRangeException("row", "Moving this two-cell image would place its end marker outside the Excel row limit.");
+            }
+
+            toMarker.ColumnId = new Xdr.ColumnId(targetColumn.ToString(CultureInfo.InvariantCulture));
+            toMarker.ColumnOffset = new Xdr.ColumnOffset((ParseMarkerOffset(toMarker.ColumnOffset?.Text) + columnOffsetDelta).ToString(CultureInfo.InvariantCulture));
+            toMarker.RowId = new Xdr.RowId(targetRow.ToString(CultureInfo.InvariantCulture));
+            toMarker.RowOffset = new Xdr.RowOffset((ParseMarkerOffset(toMarker.RowOffset?.Text) + rowOffsetDelta).ToString(CultureInfo.InvariantCulture));
         }
 
         private Xdr.NonVisualDrawingProperties? DrawingProperties
@@ -233,6 +270,14 @@ namespace OfficeIMO.Excel {
         }
 
         private static long PxToEmu(int px) => (long)Math.Round(px * 9525.0);
+
+        private static int ParseMarkerIndex(string? text) {
+            return int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) && value >= 0 ? value : 0;
+        }
+
+        private static long ParseMarkerOffset(string? text) {
+            return long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out long value) ? value : 0L;
+        }
 
         private static int EmuToPx(long emu) {
             if (emu <= 0) {

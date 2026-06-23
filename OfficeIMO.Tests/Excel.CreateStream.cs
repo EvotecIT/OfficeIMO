@@ -77,6 +77,34 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ThemeEdit_LoadedPathWithAutoSaveFalse_DoesNotWriteUntilSaved() {
+            string filePath = Path.Combine(_directoryWithFiles, "ThemeAutoSaveFalse.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                document.AddWorkSheet("Data");
+                document.SetWorkbookThemeName("Original Theme");
+                document.Save();
+            }
+
+            using (var document = ExcelDocument.Load(filePath, autoSave: false)) {
+                document.SetWorkbookThemeName("Unsaved Theme");
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Equal("Original Theme", document.GetWorkbookTheme().Name);
+            }
+
+            using (var document = ExcelDocument.Load(filePath, autoSave: false)) {
+                document.SetWorkbookThemeName("Saved Theme");
+                document.Save();
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Equal("Saved Theme", document.GetWorkbookTheme().Name);
+            }
+        }
+
+        [Fact]
         public void Create_ToMemoryStream_WithTableAutoFitAndDate_WritesReadablePackage() {
             var rows = new[] {
                 new StreamSalesRow(1, "North", new DateTime(2024, 1, 2), 123.45d),

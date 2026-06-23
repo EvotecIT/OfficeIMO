@@ -125,5 +125,19 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Reviewed", document.CustomDocumentProperties["Workflow"].Text);
             }
         }
+
+        [Fact]
+        public void Test_ExcelCustomDocumentProperties_DirectDictionaryAccessValidatesKeys() {
+            using var document = ExcelDocument.Create(new MemoryStream(), autoSave: false);
+
+            Assert.Throws<ArgumentException>(() => document.CustomDocumentProperties[" "] = new ExcelCustomProperty("Invalid"));
+            Assert.Throws<ArgumentException>(() => document.CustomDocumentProperties.Add("\t", new ExcelCustomProperty("Invalid")));
+
+            document.CustomDocumentProperties[" Workflow "] = new ExcelCustomProperty("Ready");
+
+            Assert.True(document.CustomDocumentProperties.ContainsKey("Workflow"));
+            Assert.True(document.CustomDocumentProperties.ContainsKey(" Workflow "));
+            Assert.Equal("Ready", document.CustomDocumentProperties["Workflow"].Text);
+        }
     }
 }

@@ -380,6 +380,60 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ImageMoveTo_PreservesTwoCellAnchorExtent() {
+            string filePath = Path.Combine(_directoryWithFiles, "ImageMove.TwoCellAnchor.xlsx");
+            byte[] image = File.ReadAllBytes(Path.Combine(_directoryWithImages, "EvotecLogo.png"));
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Images");
+                sheet.AddImage(1, 1, image, "image/png", widthPixels: 16, heightPixels: 16, name: "Resizable image");
+                document.Save();
+            }
+
+            using (SpreadsheetDocument package = SpreadsheetDocument.Open(filePath, true)) {
+                WorksheetPart worksheetPart = package.WorkbookPart!.WorksheetParts.Single();
+                Xdr.WorksheetDrawing drawing = worksheetPart.DrawingsPart!.WorksheetDrawing!;
+                Xdr.OneCellAnchor oneCell = Assert.Single(drawing.Elements<Xdr.OneCellAnchor>());
+                Xdr.Picture picture = (Xdr.Picture)oneCell.Descendants<Xdr.Picture>().Single().CloneNode(true);
+                var twoCell = new Xdr.TwoCellAnchor(
+                    new Xdr.FromMarker(
+                        new Xdr.ColumnId("0"),
+                        new Xdr.ColumnOffset("0"),
+                        new Xdr.RowId("0"),
+                        new Xdr.RowOffset("0")),
+                    new Xdr.ToMarker(
+                        new Xdr.ColumnId("2"),
+                        new Xdr.ColumnOffset(PixelsToEmuText(1)),
+                        new Xdr.RowId("4"),
+                        new Xdr.RowOffset(PixelsToEmuText(2))),
+                    picture,
+                    new Xdr.ClientData());
+                oneCell.Remove();
+                drawing.Append(twoCell);
+                drawing.Save();
+            }
+
+            using (var document = ExcelDocument.Load(filePath)) {
+                ExcelImage imageRecord = Assert.Single(document["Images"].Images);
+                imageRecord.MoveTo(3, 4, offsetXPixels: 5, offsetYPixels: 7);
+                document.Save();
+            }
+
+            using (SpreadsheetDocument package = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart worksheetPart = package.WorkbookPart!.WorksheetParts.Single();
+                Xdr.TwoCellAnchor twoCell = Assert.Single(worksheetPart.DrawingsPart!.WorksheetDrawing!.Elements<Xdr.TwoCellAnchor>());
+                Assert.Equal("3", twoCell.FromMarker!.ColumnId!.Text);
+                Assert.Equal(PixelsToEmuText(5), twoCell.FromMarker.ColumnOffset!.Text);
+                Assert.Equal("2", twoCell.FromMarker.RowId!.Text);
+                Assert.Equal(PixelsToEmuText(7), twoCell.FromMarker.RowOffset!.Text);
+                Assert.Equal("5", twoCell.ToMarker!.ColumnId!.Text);
+                Assert.Equal(PixelsToEmuText(6), twoCell.ToMarker.ColumnOffset!.Text);
+                Assert.Equal("6", twoCell.ToMarker.RowId!.Text);
+                Assert.Equal(PixelsToEmuText(9), twoCell.ToMarker.RowOffset!.Text);
+            }
+        }
+
+        [Fact]
         public void Test_DashboardChart_RejectsOutOfBoundsAnchorsAndDimensions() {
             using var document = ExcelDocument.Create(new MemoryStream(), autoSave: false);
             ExcelSheet sheet = document.AddWorkSheet("Dashboard");
@@ -393,6 +447,9 @@ namespace OfficeIMO.Tests {
             Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddDashboardChart(new ExcelDashboardChartOptions { Range = "A1:B2", WidthPixels = 0 }));
             Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddDashboardChart(new ExcelDashboardChartOptions { Range = "A1:B2", HeightPixels = -1 }));
         }
+
+        private static string PixelsToEmuText(int pixels)
+            => ((long)Math.Round(pixels * 9525.0)).ToString(System.Globalization.CultureInfo.InvariantCulture);
 
         [Fact]
         public void Test_PrintAreaAndTitles_MarkStreamWorkbookDirty() {
