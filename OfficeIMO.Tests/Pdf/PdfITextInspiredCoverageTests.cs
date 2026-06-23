@@ -358,6 +358,10 @@ public class PdfITextInspiredCoverageTests {
         Assert.Contains("/UserUnit 1", raw, StringComparison.Ordinal);
         Assert.Contains("/Rotate 0", raw, StringComparison.Ordinal);
         Assert.Contains("10 10 100 100 re\nW n", raw, StringComparison.Ordinal);
+        Assert.Contains("/QuadPoints [ 60 420 180 420 60 360 180 360 ]", raw, StringComparison.Ordinal);
+        Assert.Contains("/L [ 60 120 180 240 ]", raw, StringComparison.Ordinal);
+        Assert.Contains("/Vertices [ 60 120 180 240 ]", raw, StringComparison.Ordinal);
+        Assert.Contains("/InkList [ [ 60 120 180 240 ] ]", raw, StringComparison.Ordinal);
 
         Assert.NotNull(info.OpenAction);
         Assert.Equal(60, info.OpenAction!.DestinationLeft);
@@ -689,7 +693,7 @@ public class PdfITextInspiredCoverageTests {
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /CropBox [10 10 110 110] /BleedBox [5 5 295 295] /TrimBox [10 10 290 290] /ArtBox [20 20 280 280] /UserUnit 2 /Rotate 90 /Resources << /Font << /F1 4 0 R >> >> /Annots [6 0 R] /Contents 5 0 R >>",
             "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
             BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 20 20 Td (Resize source) Tj ET")),
-            "<< /Type /Annot /Subtype /Link /Rect [20 30 40 50] /Dest [3 0 R /XYZ 20 80 1] >>",
+            "<< /Type /Annot /Subtype /Link /Rect [20 30 40 50] /QuadPoints [20 80 40 80 20 70 40 70] /L [20 30 40 50] /Vertices [20 30 40 50] /InkList [[20 30 40 50]] /Dest [3 0 R /XYZ 20 80 1] >>",
             "<< /Type /Outlines /First 8 0 R /Last 8 0 R /Count 1 >>",
             "<< /Title (Target) /Parent 7 0 R /Dest [3 0 R /XYZ 20 80 1] >>"
         };

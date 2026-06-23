@@ -268,6 +268,7 @@ public static partial class PdfPageEditor {
             if (resolved is PdfDictionary annotationDictionary) {
                 var clonedAnnotation = (PdfDictionary)ClonePdfObject(annotationDictionary);
                 TransformAnnotationRectangle(clonedAnnotation, transform);
+                TransformAnnotationCoordinateArrays(clonedAnnotation, transform);
                 TransformDestinationsInObject(objects, clonedAnnotation, new Dictionary<int, PageResizeTransform> {
                     [transform.PageObjectNumber] = transform
                 }, new HashSet<int>(), new HashSet<PdfArray>());
@@ -301,6 +302,42 @@ public static partial class PdfPageEditor {
         transformedRect.Items.Add(new PdfNumber(Math.Max(transformedX1, transformedX2)));
         transformedRect.Items.Add(new PdfNumber(Math.Max(transformedY1, transformedY2)));
         annotation.Items["Rect"] = transformedRect;
+    }
+
+    private static void TransformAnnotationCoordinateArrays(PdfDictionary annotation, PageResizeTransform transform) {
+        TransformPairedNumberArray(annotation, "QuadPoints", transform);
+        TransformPairedNumberArray(annotation, "L", transform);
+        TransformPairedNumberArray(annotation, "Vertices", transform);
+
+        if (!annotation.Items.TryGetValue("InkList", out PdfObject? inkListObject) ||
+            inkListObject is not PdfArray inkList) {
+            return;
+        }
+
+        foreach (PdfObject strokeObject in inkList.Items) {
+            if (strokeObject is PdfArray stroke) {
+                TransformPairedNumberArray(stroke, transform);
+            }
+        }
+    }
+
+    private static void TransformPairedNumberArray(PdfDictionary dictionary, string key, PageResizeTransform transform) {
+        if (!dictionary.Items.TryGetValue(key, out PdfObject? value) ||
+            value is not PdfArray array) {
+            return;
+        }
+
+        TransformPairedNumberArray(array, transform);
+    }
+
+    private static void TransformPairedNumberArray(PdfArray array, PageResizeTransform transform) {
+        for (int i = 0; i + 1 < array.Items.Count; i += 2) {
+            if (array.Items[i] is PdfNumber x &&
+                array.Items[i + 1] is PdfNumber y) {
+                array.Items[i] = new PdfNumber(TransformX(x.Value, transform));
+                array.Items[i + 1] = new PdfNumber(TransformY(y.Value, transform));
+            }
+        }
     }
 
     private static double TransformX(double value, PageResizeTransform transform) =>
