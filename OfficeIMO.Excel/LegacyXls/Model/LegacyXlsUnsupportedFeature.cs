@@ -12,19 +12,22 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <param name="sheetName">Worksheet or sheet entry name associated with the feature, when known.</param>
         /// <param name="recordOffset">Byte offset of the related BIFF record, when known.</param>
         /// <param name="recordType">BIFF record type identifier, when known.</param>
+        /// <param name="detailCode">Stable feature subtype key for reports and future import planning.</param>
         public LegacyXlsUnsupportedFeature(
             LegacyXlsUnsupportedFeatureKind kind,
             string code,
             string description,
             string? sheetName = null,
             int? recordOffset = null,
-            ushort? recordType = null) {
+            ushort? recordType = null,
+            string? detailCode = null) {
             Kind = kind;
             Code = code ?? throw new ArgumentNullException(nameof(code));
             Description = description ?? throw new ArgumentNullException(nameof(description));
             SheetName = sheetName;
             RecordOffset = recordOffset;
             RecordType = recordType;
+            DetailCode = detailCode;
         }
 
         /// <summary>
@@ -56,5 +59,10 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// Gets the BIFF record type identifier, when known.
         /// </summary>
         public ushort? RecordType { get; }
+
+        /// <summary>
+        /// Gets a stable feature subtype key for reports and future import planning.
+        /// </summary>
+        public string? DetailCode { get; }
     }
 }

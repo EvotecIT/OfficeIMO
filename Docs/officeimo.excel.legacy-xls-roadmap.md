@@ -210,8 +210,11 @@ projection gap; supported formulas currently project as text formulas using the
 information available in the legacy model.
 Unsupported and preserve-only feature occurrences now also populate a structured
 `LegacyXlsWorkbook.UnsupportedFeatures` report with stable codes, feature kind,
-sheet name, record type, and record offset so corpus tooling can reason about
-unsupported content without parsing diagnostic text. `LegacyXlsImportReport`
+sheet name, record type, record offset, and stable feature-detail keys such as
+`Chart:Chart`, `Drawing:MsoDrawing`, `PivotTable:SxView`, and
+`Compound:VbaProjectStorage` so corpus tooling can reason about unsupported
+content without parsing diagnostic text or decoding raw BIFF ids by hand.
+`LegacyXlsImportReport`
 now exposes compact worksheet, cell, formula, comment, hyperlink, data-validation,
 conditional-formatting, AutoFilter criteria, defined-name, external-reference, diagnostic-code, and unsupported-feature counts
 for corpus baselines through both `LegacyXlsWorkbook.CreateImportReport()` and

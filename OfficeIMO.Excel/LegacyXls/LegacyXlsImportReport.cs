@@ -33,6 +33,9 @@ namespace OfficeIMO.Excel.LegacyXls {
             UnsupportedFeaturesByRecordType = CountByCode(workbook.UnsupportedFeatures
                 .Where(feature => feature.RecordType.HasValue)
                 .Select(feature => $"{feature.Kind}|{feature.Code}|0x{feature.RecordType!.Value:X4}"));
+            UnsupportedFeaturesByDetail = CountByCode(workbook.UnsupportedFeatures
+                .Where(feature => !string.IsNullOrWhiteSpace(feature.DetailCode))
+                .Select(feature => $"{feature.Kind}|{feature.Code}|{feature.DetailCode}"));
             UnsupportedFeaturesByLocation = CountByCode(workbook.UnsupportedFeatures
                 .Select(GetFeatureLocationKey));
         }
@@ -94,6 +97,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets unsupported/preserve-only feature counts grouped by kind, code, and BIFF record type.</summary>
         public IReadOnlyDictionary<string, int> UnsupportedFeaturesByRecordType { get; }
 
+        /// <summary>Gets unsupported/preserve-only feature counts grouped by kind, code, and stable feature subtype.</summary>
+        public IReadOnlyDictionary<string, int> UnsupportedFeaturesByDetail { get; }
+
         /// <summary>Gets unsupported/preserve-only feature counts grouped by code and workbook or sheet location.</summary>
         public IReadOnlyDictionary<string, int> UnsupportedFeaturesByLocation { get; }
 
@@ -132,6 +138,7 @@ namespace OfficeIMO.Excel.LegacyXls {
                 entry => entry.Value,
                 StringComparer.OrdinalIgnoreCase));
             AppendDictionary(builder, "Unsupported Feature Record Types", UnsupportedFeaturesByRecordType);
+            AppendDictionary(builder, "Unsupported Feature Details", UnsupportedFeaturesByDetail);
             AppendDictionary(builder, "Unsupported Feature Locations", UnsupportedFeaturesByLocation);
             return builder.ToString();
         }

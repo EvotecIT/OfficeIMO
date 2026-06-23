@@ -563,9 +563,13 @@ namespace OfficeIMO.Tests {
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.MacroSheet && feature.SheetName == "Macro1" && feature.RecordType == 0x0085);
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ChartSheet && feature.SheetName == "Chart1" && feature.RecordType == 0x0085);
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.VbaModuleSheet && feature.SheetName == "Module1" && feature.RecordType == 0x0085);
+            Assert.Contains(legacy.UnsupportedFeatures, feature => feature.DetailCode == "Sheet:MacroSheet");
+            Assert.Contains(legacy.UnsupportedFeatures, feature => feature.DetailCode == "Sheet:ChartSheet");
+            Assert.Contains(legacy.UnsupportedFeatures, feature => feature.DetailCode == "Sheet:VbaModuleSheet");
             Assert.Contains(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FEATURE-MACRO-SHEET-UNSUPPORTED" && d.SheetName == "Macro1" && d.RecordType == 0x0085);
             Assert.Contains(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FEATURE-CHART-SHEET-UNSUPPORTED" && d.SheetName == "Chart1" && d.RecordType == 0x0085);
             Assert.Contains(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FEATURE-VBA-MODULE-SHEET-UNSUPPORTED" && d.SheetName == "Module1" && d.RecordType == 0x0085);
+            Assert.Contains(legacy.Diagnostics, d => d.DetailCode == "Sheet:ChartSheet");
         }
 
         [Fact]
@@ -618,7 +622,9 @@ namespace OfficeIMO.Tests {
             LegacyXlsExternalName externalName = Assert.Single(reference.ExternalNames);
             Assert.Equal("TaxRate", externalName.Name);
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ExternalReference && feature.RecordType == 0x01ae && feature.Description.Contains("C:\\Data\\Budget.xls", StringComparison.Ordinal));
+            Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ExternalReference && feature.DetailCode == "ExternalReference:ExternalWorkbook");
             Assert.Contains(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED" && d.RecordType == 0x01ae);
+            Assert.Contains(legacy.Diagnostics, d => d.DetailCode == "ExternalReference:ExternalWorkbook");
             Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ExternalReference && feature.RecordType == 0x0023);
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED" && d.RecordType == 0x0023);
         }
@@ -1110,8 +1116,11 @@ namespace OfficeIMO.Tests {
             Assert.Equal(2, legacy.UnsupportedFeatures.Count(feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.DataValidation));
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Code == "XLS-BIFF-FEATURE-DATA-VALIDATION-UNSUPPORTED" && feature.SheetName == "Validation" && feature.RecordType == 0x01b2);
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Code == "XLS-BIFF-FEATURE-DATA-VALIDATION-UNSUPPORTED" && feature.SheetName == "Validation" && feature.RecordType == 0x01be);
+            Assert.Contains(legacy.UnsupportedFeatures, feature => feature.DetailCode == "DataValidation:DVal");
+            Assert.Contains(legacy.UnsupportedFeatures, feature => feature.DetailCode == "DataValidation:Dv");
             Assert.Contains(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FEATURE-DATA-VALIDATION-UNSUPPORTED" && d.SheetName == "Validation" && d.RecordType == 0x01b2);
             Assert.Contains(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FEATURE-DATA-VALIDATION-UNSUPPORTED" && d.SheetName == "Validation" && d.RecordType == 0x01be);
+            Assert.Contains(legacy.Diagnostics, d => d.DetailCode == "DataValidation:DVal");
 
             using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
                 ReportUnsupportedRecords = true
@@ -1121,6 +1130,7 @@ namespace OfficeIMO.Tests {
             Assert.True(result.HasUnsupportedFeatures);
             Assert.Equal(2, result.ImportReport.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.DataValidation]);
             Assert.Equal(2, result.ImportReport.UnsupportedFeaturesByCode["XLS-BIFF-FEATURE-DATA-VALIDATION-UNSUPPORTED"]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByDetail["DataValidation|XLS-BIFF-FEATURE-DATA-VALIDATION-UNSUPPORTED|DataValidation:DVal"]);
         }
 
         [Fact]
@@ -1217,8 +1227,12 @@ namespace OfficeIMO.Tests {
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Code == "XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED" && feature.SheetName == "Conditional" && feature.RecordType == 0x087a);
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Code == "XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED" && feature.SheetName == "Conditional" && feature.RecordType == 0x087b);
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Code == "XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED" && feature.SheetName == "Conditional" && feature.RecordType == 0x088d);
+            Assert.Contains(legacy.UnsupportedFeatures, feature => feature.DetailCode == "ConditionalFormatting:CondFmt");
+            Assert.Contains(legacy.UnsupportedFeatures, feature => feature.DetailCode == "ConditionalFormatting:Cf12");
+            Assert.Contains(legacy.UnsupportedFeatures, feature => feature.DetailCode == "ConditionalFormatting:Dxf");
             Assert.Contains(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED" && d.SheetName == "Conditional" && d.RecordType == 0x01b0);
             Assert.Contains(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED" && d.SheetName == "Conditional" && d.RecordType == 0x088d);
+            Assert.Contains(legacy.Diagnostics, d => d.DetailCode == "ConditionalFormatting:Dxf");
 
             using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
                 ReportUnsupportedRecords = true
@@ -1228,6 +1242,7 @@ namespace OfficeIMO.Tests {
             Assert.True(result.HasUnsupportedFeatures);
             Assert.Equal(5, result.ImportReport.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.ConditionalFormatting]);
             Assert.Equal(5, result.ImportReport.UnsupportedFeaturesByCode["XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED"]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByDetail["ConditionalFormatting|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED|ConditionalFormatting:CfEx"]);
         }
     }
 }

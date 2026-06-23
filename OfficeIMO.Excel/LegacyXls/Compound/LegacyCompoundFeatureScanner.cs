@@ -14,14 +14,16 @@ namespace OfficeIMO.Excel.LegacyXls.Compound {
                 AddFeature(workbook, options, new LegacyXlsUnsupportedFeature(
                     LegacyXlsUnsupportedFeatureKind.VbaProject,
                     VbaProjectCode,
-                    description));
+                    description,
+                    detailCode: "Compound:VbaProjectStorage"));
             }
 
             if (HasOleObjectStorage(compoundFile, out description)) {
                 AddFeature(workbook, options, new LegacyXlsUnsupportedFeature(
                     LegacyXlsUnsupportedFeatureKind.OleObject,
                     OleObjectCode,
-                    description));
+                    description,
+                    detailCode: "Compound:OleObjectStorage"));
             }
         }
 
@@ -34,7 +36,8 @@ namespace OfficeIMO.Excel.LegacyXls.Compound {
                 workbook.MutableDiagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Info,
                     feature.Code,
-                    feature.Description));
+                    feature.Description,
+                    detailCode: feature.DetailCode));
             }
         }
 
