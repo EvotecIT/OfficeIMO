@@ -1,5 +1,6 @@
 using System.IO;
 using System.Linq;
+using System.Data;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
@@ -250,6 +251,128 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("SourceSales", copiedTable.Name?.Value);
                 Assert.Equal("A1:B3", copiedTable.Reference?.Value);
                 Assert.Equal("TableStyleMedium9", copiedTable.TableStyleInfo?.Name?.Value);
+            }
+
+            File.Delete(sourcePath);
+            File.Delete(targetPath);
+        }
+
+        [Fact]
+        public void Test_CopyWorkSheetFrom_PackageModePreservesHeaderOnlyStyles() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageHeaderSource.xlsx");
+            string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageHeaderTarget.xlsx");
+
+            using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
+                ExcelSheet source = sourceDocument.AddWorkSheet("Headers");
+                source.CellValue(1, 1, "Region");
+                source.CellValue(1, 2, "Revenue");
+                source.CellBold(1, 1, true);
+                source.CellBold(1, 2, true);
+                source.CellBackground(1, 1, "#D9EAD3");
+                source.CellBackground(1, 2, "#D9EAD3");
+                sourceDocument.Save();
+            }
+
+            using (var sourceDocument = ExcelDocument.Load(sourcePath, readOnly: true))
+            using (var targetDocument = ExcelDocument.Create(targetPath)) {
+                targetDocument.AddWorkSheet("Summary").CellValue(1, 1, "Summary");
+                ExcelSheet copied = targetDocument.CopyWorkSheetFrom(sourceDocument, "Headers", "Imported", SheetNameValidationMode.Sanitize, new ExcelWorksheetCopyOptions {
+                    CopyMode = ExcelWorksheetCopyMode.Package
+                });
+
+                Assert.Equal("Imported", copied.Name);
+                Assert.Equal("A1:B1", copied.GetUsedRangeA1());
+                targetDocument.Save();
+            }
+
+            using (var targetDocument = ExcelDocument.Load(targetPath, readOnly: true)) {
+                Assert.True(targetDocument["Imported"].TryGetCellText(1, 1, out var header));
+                Assert.Equal("Region", header);
+                Assert.Equal("A1:B1", targetDocument["Imported"].GetUsedRangeA1());
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(targetPath, false)) {
+                WorksheetPart copiedPart = GetWorksheetPartByNameForOperations(spreadsheet, "Imported");
+                Cell headerCell = copiedPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A1");
+                Assert.Equal(CellValues.InlineString, headerCell.DataType?.Value);
+                Assert.NotNull(headerCell.StyleIndex);
+                Assert.NotEqual(0U, headerCell.StyleIndex!.Value);
+
+                Stylesheet stylesheet = spreadsheet.WorkbookPart!.WorkbookStylesPart!.Stylesheet!;
+                CellFormat headerFormat = stylesheet.CellFormats!.Elements<CellFormat>().ElementAt((int)headerCell.StyleIndex!.Value);
+                Assert.True(headerFormat.ApplyFont?.Value ?? false);
+                Assert.True(headerFormat.ApplyFill?.Value ?? false);
+            }
+
+            File.Delete(sourcePath);
+            File.Delete(targetPath);
+        }
+
+        [Fact]
+        public void Test_CopyWorkSheetFrom_PackageModeDataTableReadsInlineStrings() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageInlineSource.xlsx");
+            string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageInlineTarget.xlsx");
+
+            using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
+                ExcelSheet source = sourceDocument.AddWorkSheet("External");
+                source.CellValue(1, 1, "Name");
+                source.CellValue(2, 1, "Imported");
+                sourceDocument.Save();
+            }
+
+            using (var sourceDocument = ExcelDocument.Load(sourcePath, readOnly: true))
+            using (var targetDocument = ExcelDocument.Create(targetPath)) {
+                targetDocument.CopyWorkSheetFrom(sourceDocument, "External", "ExternalCopy", SheetNameValidationMode.Sanitize, new ExcelWorksheetCopyOptions {
+                    CopyMode = ExcelWorksheetCopyMode.Package
+                });
+                targetDocument.Save();
+            }
+
+            using (var reader = ExcelDocumentReader.Open(targetPath)) {
+                var table = reader.GetSheet("ExternalCopy").ReadRangeAsDataTable("A1:A2");
+                Assert.Single(table.Columns);
+                Assert.Equal("Name", table.Columns[0].ColumnName);
+                DataRow row = Assert.Single(table.Rows.Cast<DataRow>());
+                Assert.Equal("Imported", row["Name"]);
+            }
+
+            File.Delete(sourcePath);
+            File.Delete(targetPath);
+        }
+
+        [Fact]
+        public void Test_CopyWorkSheetFrom_ValuesModeKeepsReaderWriterFallback() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "WorksheetCopyValuesModeSource.xlsx");
+            string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyValuesModeTarget.xlsx");
+
+            using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
+                ExcelSheet source = sourceDocument.AddWorkSheet("Source");
+                source.CellValue(1, 1, "Name");
+                source.CellValue(2, 1, "Ada");
+                source.CellBold(1, 1, true);
+                sourceDocument.Save();
+            }
+
+            using (var sourceDocument = ExcelDocument.Load(sourcePath, readOnly: true))
+            using (var targetDocument = ExcelDocument.Create(targetPath)) {
+                ExcelSheet copied = targetDocument.CopyWorkSheetFrom(sourceDocument, "Source", "Imported", SheetNameValidationMode.Sanitize, new ExcelWorksheetCopyOptions {
+                    CopyMode = ExcelWorksheetCopyMode.Values
+                });
+
+                Assert.Equal("Imported", copied.Name);
+                Assert.Equal("A1:A2", copied.GetUsedRangeA1());
+                targetDocument.Save();
+            }
+
+            using (var targetDocument = ExcelDocument.Load(targetPath, readOnly: true)) {
+                Assert.True(targetDocument["Imported"].TryGetCellText(2, 1, out var value));
+                Assert.Equal("Ada", value);
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(targetPath, false)) {
+                WorksheetPart copiedPart = GetWorksheetPartByNameForOperations(spreadsheet, "Imported");
+                Cell headerCell = copiedPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A1");
+                Assert.True(headerCell.StyleIndex == null || headerCell.StyleIndex.Value == 0U);
             }
 
             File.Delete(sourcePath);

@@ -606,7 +606,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                string text = inlineReader.ReadElementContentAsString();
+                string text = ReadXmlTextElement(inlineReader);
                 if (builder != null) {
                     builder.Append(text);
                 } else if (first == null) {
@@ -619,6 +619,25 @@ namespace OfficeIMO.Excel {
             }
 
             return builder?.ToString() ?? first ?? string.Empty;
+        }
+
+        private static string ReadXmlTextElement(XmlReader textReader) {
+            if (textReader.IsEmptyElement) {
+                return string.Empty;
+            }
+
+            int depth = textReader.Depth;
+            if (!textReader.Read()) {
+                return string.Empty;
+            }
+
+            string text = textReader.NodeType == XmlNodeType.Text
+                || textReader.NodeType == XmlNodeType.SignificantWhitespace
+                || textReader.NodeType == XmlNodeType.Whitespace
+                    ? textReader.Value
+                    : string.Empty;
+            SkipXmlElementContent(textReader, depth, "t");
+            return text;
         }
 
         private static int ParsePositiveIntAttribute(string? value) {

@@ -62,8 +62,7 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Copies a worksheet from another workbook into this workbook. Values are copied through the reader/writer
-        /// surface so callers can combine workbooks without sharing package parts.
+        /// Copies a worksheet from another workbook into this workbook.
         /// </summary>
         /// <param name="sourceDocument">Workbook containing the source worksheet.</param>
         /// <param name="sourceSheetName">Name of the worksheet to copy.</param>
@@ -71,33 +70,29 @@ namespace OfficeIMO.Excel {
         /// <param name="validationMode">How to validate or sanitize <paramref name="newSheetName"/>.</param>
         /// <returns>The copied worksheet.</returns>
         public ExcelSheet CopyWorkSheetFrom(ExcelDocument sourceDocument, string sourceSheetName, string newSheetName, SheetNameValidationMode validationMode = SheetNameValidationMode.Sanitize) {
+            return CopyWorkSheetFrom(sourceDocument, sourceSheetName, newSheetName, validationMode, options: null);
+        }
+
+        /// <summary>
+        /// Copies a worksheet from another workbook into this workbook.
+        /// </summary>
+        /// <param name="sourceDocument">Workbook containing the source worksheet.</param>
+        /// <param name="sourceSheetName">Name of the worksheet to copy.</param>
+        /// <param name="newSheetName">Requested name for the copied worksheet.</param>
+        /// <param name="validationMode">How to validate or sanitize <paramref name="newSheetName"/>.</param>
+        /// <param name="options">Copy strategy options.</param>
+        /// <returns>The copied worksheet.</returns>
+        public ExcelSheet CopyWorkSheetFrom(ExcelDocument sourceDocument, string sourceSheetName, string newSheetName, SheetNameValidationMode validationMode, ExcelWorksheetCopyOptions? options) {
             if (sourceDocument == null) throw new ArgumentNullException(nameof(sourceDocument));
             if (string.IsNullOrWhiteSpace(sourceSheetName)) throw new ArgumentNullException(nameof(sourceSheetName));
             if (ReferenceEquals(sourceDocument, this)) {
                 return CopyWorkSheet(sourceSheetName, newSheetName, validationMode);
             }
 
-            ExcelSheet sourceSheet = sourceDocument.GetSheet(sourceSheetName);
-            string usedRange = sourceSheet.GetUsedRangeA1();
-            var (startRow, startColumn, _, _) = A1.ParseRange(usedRange);
-            object?[,] values;
-            using (var reader = sourceDocument.CreateReader()) {
-                values = reader.GetSheet(sourceSheet.Name).ReadRange(usedRange);
-            }
-
-            ExcelSheet targetSheet = AddWorkSheet(newSheetName, validationMode);
-            for (int rowOffset = 0; rowOffset < values.GetLength(0); rowOffset++) {
-                for (int columnOffset = 0; columnOffset < values.GetLength(1); columnOffset++) {
-                    object? value = values[rowOffset, columnOffset];
-                    if (value == null) continue;
-                    targetSheet.CellValue(startRow + rowOffset, startColumn + columnOffset, value);
-                }
-            }
-
-            CopyWorksheetTables(sourceSheet.WorksheetPart, targetSheet.WorksheetPart);
-            targetSheet.WorksheetPart.Worksheet!.Save();
-
-            return targetSheet;
+            options ??= new ExcelWorksheetCopyOptions();
+            return options.CopyMode == ExcelWorksheetCopyMode.Values
+                ? CopyWorkSheetFromValues(sourceDocument, sourceSheetName, newSheetName, validationMode)
+                : CopyWorkSheetFromPackage(sourceDocument, sourceSheetName, newSheetName, validationMode);
         }
 
         /// <summary>
@@ -105,6 +100,13 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelSheet CopyWorksheetFrom(ExcelDocument sourceDocument, string sourceSheetName, string newSheetName, SheetNameValidationMode validationMode = SheetNameValidationMode.Sanitize) {
             return CopyWorkSheetFrom(sourceDocument, sourceSheetName, newSheetName, validationMode);
+        }
+
+        /// <summary>
+        /// Copies a worksheet from another workbook into this workbook.
+        /// </summary>
+        public ExcelSheet CopyWorksheetFrom(ExcelDocument sourceDocument, string sourceSheetName, string newSheetName, SheetNameValidationMode validationMode, ExcelWorksheetCopyOptions? options) {
+            return CopyWorkSheetFrom(sourceDocument, sourceSheetName, newSheetName, validationMode, options);
         }
 
         /// <summary>

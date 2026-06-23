@@ -23,7 +23,9 @@ namespace OfficeIMO.Excel {
 
             foreach (ExcelSheet sourceSheet in sourceSheets) {
                 string requestedName = (options.SheetNamePrefix ?? string.Empty) + sourceSheet.Name;
-                ExcelSheet targetSheet = CopyWorkSheetFrom(sourceDocument, sourceSheet.Name, requestedName, options.SheetNameValidationMode);
+                ExcelSheet targetSheet = CopyWorkSheetFrom(sourceDocument, sourceSheet.Name, requestedName, options.SheetNameValidationMode, new ExcelWorksheetCopyOptions {
+                    CopyMode = options.CopyMode
+                });
                 importedSourceNames.Add(sourceSheet.Name);
                 createdTargetNames.Add(targetSheet.Name);
             }
