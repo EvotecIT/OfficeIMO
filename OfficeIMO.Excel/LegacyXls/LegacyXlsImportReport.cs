@@ -53,6 +53,9 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .Select(feature => $"{feature.Kind}|{feature.Code}|{feature.DetailCode}"));
             UnsupportedFeaturesByLocation = CountByCode(workbook.UnsupportedFeatures
                 .Select(GetFeatureLocationKey));
+            UnsupportedSheetsByKind = CountUnsupportedSheetsByKind(workbook.UnsupportedSheets);
+            UnsupportedSheetsByType = CountByCode(workbook.UnsupportedSheets.Select(sheet => $"0x{sheet.SheetType:X2}|{sheet.Kind}"));
+            UnsupportedSheetsByName = CountByCode(workbook.UnsupportedSheets.Select(sheet => sheet.Name));
             ExternalReferencesByKind = CountExternalReferencesByKind(workbook.ExternalReferences);
             ExternalReferencesByTarget = CountByCode(workbook.ExternalReferences.Select(GetExternalReferenceTargetKey));
             ExternalSheetNamesByReferenceKind = CountExternalSheetNamesByReferenceKind(workbook.ExternalReferences);
@@ -190,6 +193,15 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets unsupported/preserve-only feature counts grouped by code and workbook or sheet location.</summary>
         public IReadOnlyDictionary<string, int> UnsupportedFeaturesByLocation { get; }
 
+        /// <summary>Gets unsupported sheet entries grouped by decoded sheet kind.</summary>
+        public IReadOnlyDictionary<LegacyXlsUnsupportedSheetKind, int> UnsupportedSheetsByKind { get; }
+
+        /// <summary>Gets unsupported sheet entries grouped by raw BoundSheet type and decoded kind.</summary>
+        public IReadOnlyDictionary<string, int> UnsupportedSheetsByType { get; }
+
+        /// <summary>Gets unsupported sheet entries grouped by sheet name.</summary>
+        public IReadOnlyDictionary<string, int> UnsupportedSheetsByName { get; }
+
         /// <summary>Gets preserved external references grouped by supporting-link kind.</summary>
         public IReadOnlyDictionary<LegacyXlsExternalReferenceKind, int> ExternalReferencesByKind { get; }
 
@@ -317,6 +329,12 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Unsupported Feature Record Types", UnsupportedFeaturesByRecordType);
             AppendDictionary(builder, "Unsupported Feature Details", UnsupportedFeaturesByDetail);
             AppendDictionary(builder, "Unsupported Feature Locations", UnsupportedFeaturesByLocation);
+            AppendDictionary(builder, "Unsupported Sheets By Kind", UnsupportedSheetsByKind.ToDictionary(
+                entry => entry.Key.ToString(),
+                entry => entry.Value,
+                StringComparer.OrdinalIgnoreCase));
+            AppendDictionary(builder, "Unsupported Sheets By Type", UnsupportedSheetsByType);
+            AppendDictionary(builder, "Unsupported Sheets By Name", UnsupportedSheetsByName);
             AppendDictionary(builder, "External References By Kind", ExternalReferencesByKind.ToDictionary(
                 entry => entry.Key.ToString(),
                 entry => entry.Value,
@@ -405,6 +423,13 @@ namespace OfficeIMO.Excel.LegacyXls {
         private static IReadOnlyDictionary<LegacyXlsUnsupportedFeatureKind, int> CountPreservedRecordsByKind(IEnumerable<LegacyXlsPreservedFeatureRecord> records) {
             return records
                 .GroupBy(record => record.Kind)
+                .OrderBy(group => group.Key.ToString(), StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(group => group.Key, group => group.Count());
+        }
+
+        private static IReadOnlyDictionary<LegacyXlsUnsupportedSheetKind, int> CountUnsupportedSheetsByKind(IEnumerable<LegacyXlsUnsupportedSheet> sheets) {
+            return sheets
+                .GroupBy(sheet => sheet.Kind)
                 .OrderBy(group => group.Key.ToString(), StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(group => group.Key, group => group.Count());
         }

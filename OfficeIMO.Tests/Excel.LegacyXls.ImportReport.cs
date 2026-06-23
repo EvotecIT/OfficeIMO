@@ -28,6 +28,15 @@ namespace OfficeIMO.Tests {
             Assert.Equal(3, report.UnsupportedFeatureCount);
             Assert.False(report.HasImportErrors);
             Assert.True(report.HasUnsupportedFeatures);
+            Assert.Equal(1, report.UnsupportedSheetsByKind[LegacyXlsUnsupportedSheetKind.MacroSheet]);
+            Assert.Equal(1, report.UnsupportedSheetsByKind[LegacyXlsUnsupportedSheetKind.ChartSheet]);
+            Assert.Equal(1, report.UnsupportedSheetsByKind[LegacyXlsUnsupportedSheetKind.VbaModuleSheet]);
+            Assert.Equal(1, report.UnsupportedSheetsByType["0x01|MacroSheet"]);
+            Assert.Equal(1, report.UnsupportedSheetsByType["0x02|ChartSheet"]);
+            Assert.Equal(1, report.UnsupportedSheetsByType["0x06|VbaModuleSheet"]);
+            Assert.Equal(1, report.UnsupportedSheetsByName["Macro1"]);
+            Assert.Equal(1, report.UnsupportedSheetsByName["Chart1"]);
+            Assert.Equal(1, report.UnsupportedSheetsByName["Module1"]);
             Assert.Equal(1, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.MacroSheet]);
             Assert.Equal(1, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.ChartSheet]);
             Assert.Equal(1, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.VbaModuleSheet]);
@@ -43,6 +52,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("XLS-BIFF-FEATURE-MACRO-SHEET-UNSUPPORTED", markdown);
             Assert.Contains("Unsupported Feature Record Types", markdown);
             Assert.Contains("Unsupported Feature Details", markdown);
+            Assert.Contains("Unsupported Sheets By Kind", markdown);
             Assert.Contains("Sheet:ChartSheet", markdown);
         }
 
@@ -215,6 +225,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, unsupportedSheet.ChartTextObjectCount);
             Assert.Equal(4, report.UnsupportedFeatureCount);
             Assert.Equal(3, report.PreservedFeatureRecordCount);
+            Assert.Equal(1, report.UnsupportedSheetsByKind[LegacyXlsUnsupportedSheetKind.ChartSheet]);
+            Assert.Equal(1, report.UnsupportedSheetsByType["0x02|ChartSheet"]);
+            Assert.Equal(1, report.UnsupportedSheetsByName["ChartOnly"]);
             Assert.Equal(1, report.UnsupportedSheetMetadataRecordCount);
             Assert.Equal(1, report.UnsupportedSheetMetadataRecordsByKind[LegacyXlsUnsupportedSheetMetadataKind.ChartTextObject]);
             Assert.Equal(1, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.ChartSheet]);

@@ -201,6 +201,27 @@ Warnings: 2
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|wijn | 3 |
 | XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED\|(workbook) | 1 |
 
+## Unsupported Sheets By Kind
+
+| Key | Count |
+| --- | --- |
+| ChartSheet | 4 |
+
+## Unsupported Sheets By Type
+
+| Key | Count |
+| --- | --- |
+| 0x02\|ChartSheet | 4 |
+
+## Unsupported Sheets By Name
+
+| Key | Count |
+| --- | --- |
+| b_chart | 1 |
+| cl_chart | 1 |
+| c_chart | 1 |
+| lb_chart | 1 |
+
 ## External References By Kind
 
 | Key | Count |

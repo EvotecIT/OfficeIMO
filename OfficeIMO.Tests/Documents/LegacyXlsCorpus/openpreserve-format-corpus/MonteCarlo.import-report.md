@@ -188,6 +188,27 @@ Warnings: 0
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|ZPFCUM | 9 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|ZRAINCUM | 9 |
 
+## Unsupported Sheets By Kind
+
+| Key | Count |
+| --- | --- |
+| ChartSheet | 4 |
+
+## Unsupported Sheets By Type
+
+| Key | Count |
+| --- | --- |
+| 0x02\|ChartSheet | 4 |
+
+## Unsupported Sheets By Name
+
+| Key | Count |
+| --- | --- |
+| LBMAQ_PF_CHART | 1 |
+| LBMAQ_RAIN_CHART | 1 |
+| ZPFCUM_CHART | 1 |
+| ZRAINCUM_CHART | 1 |
+
 ## External References By Kind
 
 | Key | Count |
