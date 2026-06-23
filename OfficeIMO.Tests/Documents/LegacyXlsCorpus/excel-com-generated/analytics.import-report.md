@@ -16,7 +16,7 @@ External names: 0
 External cell caches: 0
 External cached cells: 0
 Pivot table records: 93
-Chart records: 109
+Chart records: 139
 Drawing records: 18
 Drawing OfficeArt records: 51
 Drawing shape properties: 31
@@ -30,8 +30,8 @@ Cell style extension records: 66
 Workbook metadata records: 18
 Worksheet metadata records: 10
 Unsupported sheet metadata records: 1
-Unsupported features: 355
-Preserved feature records: 289
+Unsupported features: 385
+Preserved feature records: 319
 Errors: 0
 Warnings: 0
 
@@ -40,7 +40,7 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | XLS-BIFF-FEATURE-CHART-SHEET-UNSUPPORTED | 1 |
-| XLS-BIFF-FEATURE-CHART-UNSUPPORTED | 109 |
+| XLS-BIFF-FEATURE-CHART-UNSUPPORTED | 139 |
 | XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED | 2 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 18 |
 | XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 1 |
@@ -161,7 +161,7 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | XLS-BIFF-FEATURE-CHART-SHEET-UNSUPPORTED | 1 |
-| XLS-BIFF-FEATURE-CHART-UNSUPPORTED | 109 |
+| XLS-BIFF-FEATURE-CHART-UNSUPPORTED | 139 |
 | XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED | 2 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 18 |
 | XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 1 |
@@ -173,7 +173,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| Chart | 109 |
+| Chart | 139 |
 | ChartSheet | 1 |
 | ConditionalFormatting | 2 |
 | DrawingObject | 18 |
@@ -187,6 +187,10 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | ChartSheet\|XLS-BIFF-FEATURE-CHART-SHEET-UNSUPPORTED\|0x0085 | 1 |
+| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x0850 | 1 |
+| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x0852 | 14 |
+| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x0853 | 14 |
+| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x0856 | 1 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x1001 | 1 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x1002 | 1 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x1003 | 1 |
@@ -274,15 +278,18 @@ Warnings: 0
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:AxisLineFormat | 3 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Bar | 1 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Begin | 16 |
+| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:CatLab | 1 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:CatSerRange | 1 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Chart | 1 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:ChartFormat | 1 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:ChartFormatLink | 1 |
+| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:ChartFrtInfo | 1 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:CrErr | 1 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Dat | 1 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:DataFormat | 1 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:DefaultText | 2 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:End | 16 |
+| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:EndBlock | 14 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:FontX | 6 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Frame | 4 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Ifmt | 6 |
@@ -300,6 +307,7 @@ Warnings: 0
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:SeriesFormat | 3 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:SerToCrt | 1 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:ShtProps | 1 |
+| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:StartBlock | 14 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Text | 4 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Tick | 2 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Units | 1 |
@@ -347,7 +355,7 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | XLS-BIFF-FEATURE-CHART-SHEET-UNSUPPORTED\|RevenueChart | 1 |
-| XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|RevenueChart | 109 |
+| XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|RevenueChart | 139 |
 | XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|(workbook) | 1 |
 | XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|SalesData | 1 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|(workbook) | 1 |
@@ -409,16 +417,17 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| ChartRecords:109 | 1 |
+| ChartRecords:139 | 1 |
 
 ## Unsupported Chart Sheet Chart Record Kinds
 
 | Key | Count |
 | --- | --- |
-| Axis | 10 |
+| Axis | 11 |
 | ChartType | 2 |
 | Container | 35 |
 | Formatting | 24 |
+| FutureMetadata | 29 |
 | Layout | 13 |
 | PreserveOnly | 2 |
 | Series | 8 |
@@ -551,10 +560,11 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| Axis | 10 |
+| Axis | 11 |
 | ChartType | 2 |
 | Container | 35 |
 | Formatting | 24 |
+| FutureMetadata | 29 |
 | Layout | 13 |
 | PreserveOnly | 2 |
 | Series | 8 |
@@ -571,15 +581,18 @@ Warnings: 0
 | AxisLineFormat | 3 |
 | Bar | 1 |
 | Begin | 16 |
+| CatLab | 1 |
 | CatSerRange | 1 |
 | Chart | 1 |
 | ChartFormat | 1 |
 | ChartFormatLink | 1 |
+| ChartFrtInfo | 1 |
 | CrErr | 1 |
 | Dat | 1 |
 | DataFormat | 1 |
 | DefaultText | 2 |
 | End | 16 |
+| EndBlock | 14 |
 | FontX | 6 |
 | Frame | 4 |
 | Ifmt | 6 |
@@ -597,6 +610,7 @@ Warnings: 0
 | SeriesFormat | 3 |
 | SerToCrt | 1 |
 | ShtProps | 1 |
+| StartBlock | 14 |
 | Text | 4 |
 | Tick | 2 |
 | Units | 1 |
@@ -804,7 +818,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| RevenueChart | 109 |
+| RevenueChart | 139 |
 
 ## Drawing Records By Kind
 
@@ -1190,7 +1204,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| Chart | 109 |
+| Chart | 139 |
 | ConditionalFormatting | 2 |
 | DrawingObject | 18 |
 | ExternalReference | 1 |
@@ -1208,15 +1222,18 @@ Warnings: 0
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:AxisLineFormat | 3 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Bar | 1 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Begin | 16 |
+| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:CatLab | 1 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:CatSerRange | 1 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Chart | 1 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:ChartFormat | 1 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:ChartFormatLink | 1 |
+| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:ChartFrtInfo | 1 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:CrErr | 1 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Dat | 1 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:DataFormat | 1 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:DefaultText | 2 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:End | 16 |
+| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:EndBlock | 14 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:FontX | 6 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Frame | 4 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Ifmt | 6 |
@@ -1234,6 +1251,7 @@ Warnings: 0
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:SeriesFormat | 3 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:SerToCrt | 1 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:ShtProps | 1 |
+| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:StartBlock | 14 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Text | 4 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Tick | 2 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Units | 1 |

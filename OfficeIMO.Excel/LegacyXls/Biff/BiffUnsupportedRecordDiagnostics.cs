@@ -320,6 +320,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case 0x0801: return "QsiSxTag";
                 case 0x0802: return "DbQueryExt";
                 case 0x0804: return "TxtQry";
+                case 0x0850: return "ChartFrtInfo";
+                case 0x0852: return "StartBlock";
+                case 0x0853: return "EndBlock";
+                case 0x0856: return "CatLab";
                 case 0x0857: return "SxViewLink";
                 case 0x0858: return "PivotChartBits";
                 case 0x0863: return "BookExt";
@@ -413,7 +417,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         }
 
         internal static bool IsChartRecord(ushort type) {
-            return type >= 0x1000 && type <= 0x1066;
+            return type >= 0x1000 && type <= 0x1066
+                || type == 0x0850
+                || type == 0x0852
+                || type == 0x0853
+                || type == 0x0856;
         }
 
         internal static bool IsDrawingRecord(ushort type) {

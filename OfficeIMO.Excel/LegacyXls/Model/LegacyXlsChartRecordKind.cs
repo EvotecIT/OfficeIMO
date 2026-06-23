@@ -28,6 +28,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         ChartType,
 
         /// <summary>Chart extension record.</summary>
-        Extension
+        Extension,
+
+        /// <summary>Chart future-record preservation metadata.</summary>
+        FutureMetadata
     }
 }

@@ -477,10 +477,14 @@ namespace OfficeIMO.Tests {
 
                 int chartSheetOffset = checked((int)stream.Position);
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x20, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0850, Array.Empty<byte>());
                 WriteRecord(stream, 0x1001, Array.Empty<byte>());
                 WriteRecord(stream, 0x1002, BuildChartPayload(100, 200, 3000, 2200));
                 WriteRecord(stream, 0x1014, Array.Empty<byte>());
                 WriteRecord(stream, 0x101d, BuildAxisPayload(0x0001));
+                WriteRecord(stream, 0x0852, Array.Empty<byte>());
+                WriteRecord(stream, 0x0856, Array.Empty<byte>());
+                WriteRecord(stream, 0x0853, Array.Empty<byte>());
                 WriteRecord(stream, 0x101f, BuildValueRangePayload());
                 WriteRecord(stream, 0x101e, BuildTickPayload());
                 WriteRecord(stream, 0x1045, BuildUInt16Payload(1));

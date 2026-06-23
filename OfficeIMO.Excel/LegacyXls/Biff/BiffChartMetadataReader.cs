@@ -525,6 +525,12 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
         private static LegacyXlsChartRecordKind GetKind(ushort type) {
             switch (type) {
+                case 0x0850: // ChartFrtInfo
+                case 0x0852: // StartBlock
+                case 0x0853: // EndBlock
+                    return LegacyXlsChartRecordKind.FutureMetadata;
+                case 0x0856: // CatLab
+                    return LegacyXlsChartRecordKind.Axis;
                 case 0x1001: // Units
                 case 0x1002: // Chart
                 case 0x1033: // Begin
