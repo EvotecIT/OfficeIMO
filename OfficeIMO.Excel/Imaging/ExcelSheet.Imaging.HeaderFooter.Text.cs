@@ -15,6 +15,8 @@ namespace OfficeIMO.Excel {
             bool bold = false;
             bool italic = false;
             bool underline = false;
+            OfficeColor? color = null;
+            double? fontSize = null;
             bool hasFormatting = false;
             for (int i = 0; i < text.Length; i++) {
                 char ch = text[i];
@@ -29,18 +31,47 @@ namespace OfficeIMO.Excel {
 
                 char token = text[++i];
                 if (token == '&') {
-                    builder.Append('&');
+                    if (i + 1 < text.Length && char.IsDigit(text[i + 1])) {
+                        if (!TryReadHeaderFooterFontSizeToken(text, i + 1, out double parsedFontSize, out int tokenEnd)) {
+                            return false;
+                        }
+
+                        FlushHeaderFooterTextRun(runs, builder, bold, italic, underline, color, fontSize);
+                        fontSize = parsedFontSize;
+                        i = tokenEnd;
+                        hasFormatting = true;
+                    } else {
+                        builder.Append('&');
+                    }
                 } else if (token == 'B') {
-                    FlushHeaderFooterTextRun(runs, builder, bold, italic, underline);
+                    FlushHeaderFooterTextRun(runs, builder, bold, italic, underline, color, fontSize);
                     bold = !bold;
                     hasFormatting = true;
                 } else if (token == 'I') {
-                    FlushHeaderFooterTextRun(runs, builder, bold, italic, underline);
+                    FlushHeaderFooterTextRun(runs, builder, bold, italic, underline, color, fontSize);
                     italic = !italic;
                     hasFormatting = true;
                 } else if (token == 'U') {
-                    FlushHeaderFooterTextRun(runs, builder, bold, italic, underline);
+                    FlushHeaderFooterTextRun(runs, builder, bold, italic, underline, color, fontSize);
                     underline = !underline;
+                    hasFormatting = true;
+                } else if (token == 'K') {
+                    if (!TryReadHeaderFooterColorToken(text, i + 1, out OfficeColor parsedColor)) {
+                        return false;
+                    }
+
+                    FlushHeaderFooterTextRun(runs, builder, bold, italic, underline, color, fontSize);
+                    color = parsedColor;
+                    i += 6;
+                    hasFormatting = true;
+                } else if (char.IsDigit(token)) {
+                    if (!TryReadHeaderFooterFontSizeToken(text, i, out double parsedFontSize, out int tokenEnd)) {
+                        return false;
+                    }
+
+                    FlushHeaderFooterTextRun(runs, builder, bold, italic, underline, color, fontSize);
+                    fontSize = parsedFontSize;
+                    i = tokenEnd;
                     hasFormatting = true;
                 } else if (token == 'P') {
                     builder.Append(pageNumber.ToString(CultureInfo.InvariantCulture));
@@ -81,18 +112,39 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            FlushHeaderFooterTextRun(runs, builder, bold, italic, underline);
+            FlushHeaderFooterTextRun(runs, builder, bold, italic, underline, color, fontSize);
             normalized = HeaderFooterTextSection.Create(runs, hasFormatting);
             return true;
         }
 
-        private static void FlushHeaderFooterTextRun(List<HeaderFooterTextRun> runs, StringBuilder builder, bool bold, bool italic, bool underline) {
+        private static void FlushHeaderFooterTextRun(List<HeaderFooterTextRun> runs, StringBuilder builder, bool bold, bool italic, bool underline, OfficeColor? color, double? fontSize) {
             if (builder.Length == 0) {
                 return;
             }
 
-            runs.Add(new HeaderFooterTextRun(builder.ToString(), bold, italic, underline));
+            runs.Add(new HeaderFooterTextRun(builder.ToString(), bold, italic, underline, color, fontSize));
             builder.Clear();
+        }
+
+        private static bool TryReadHeaderFooterColorToken(string text, int start, out OfficeColor color) {
+            color = default;
+            if (start + 6 > text.Length) {
+                return false;
+            }
+
+            string hex = text.Substring(start, 6);
+            return OfficeColor.TryParseHex(hex, out color);
+        }
+
+        private static bool TryReadHeaderFooterFontSizeToken(string text, int start, out double fontSize, out int tokenEnd) {
+            fontSize = 0D;
+            tokenEnd = start;
+            while (tokenEnd + 1 < text.Length && char.IsDigit(text[tokenEnd + 1])) {
+                tokenEnd++;
+            }
+
+            string value = text.Substring(start, tokenEnd - start + 1);
+            return double.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out fontSize) && fontSize > 0D;
         }
 
         private bool TryAppendHeaderFooterField(StringBuilder builder, string fieldName, int pageNumber, int pageCount, DateTime headerFooterDateTime) {
@@ -215,7 +267,7 @@ namespace OfficeIMO.Excel {
                     }
 
                     if (runText.Length > 0) {
-                        normalizedRuns.Add(new HeaderFooterTextRun(runText, run.Bold, run.Italic, run.Underline));
+                        normalizedRuns.Add(new HeaderFooterTextRun(runText, run.Bold, run.Italic, run.Underline, run.Color, run.FontSize));
                     }
                 }
 
@@ -228,25 +280,53 @@ namespace OfficeIMO.Excel {
                 var runs = new List<OfficeRichTextRun>(Runs.Count);
                 for (int index = 0; index < Runs.Count; index++) {
                     HeaderFooterTextRun run = Runs[index];
-                    runs.Add(new OfficeRichTextRun(run.Text, fontSize, color, run.Bold, run.Italic, run.Underline));
+                    runs.Add(new OfficeRichTextRun(
+                        run.Text,
+                        ResolveHeaderFooterRunFontSize(fontSize, run.FontSize),
+                        run.Color ?? color,
+                        run.Bold,
+                        run.Italic,
+                        run.Underline));
                 }
 
                 return runs.AsReadOnly();
             }
+
+            internal double GetMaxResolvedFontSize(double defaultFontSize) {
+                double max = defaultFontSize;
+                for (int index = 0; index < Runs.Count; index++) {
+                    max = Math.Max(max, ResolveHeaderFooterRunFontSize(defaultFontSize, Runs[index].FontSize));
+                }
+
+                return max;
+            }
+
+            private static double ResolveHeaderFooterRunFontSize(double defaultFontSize, double? requestedFontSize) {
+                if (!requestedFontSize.HasValue) {
+                    return defaultFontSize;
+                }
+
+                double scale = defaultFontSize / HeaderFooterFontSize;
+                return Math.Max(1D, requestedFontSize.Value * scale);
+            }
         }
 
         private readonly struct HeaderFooterTextRun {
-            internal HeaderFooterTextRun(string text, bool bold, bool italic, bool underline) {
+            internal HeaderFooterTextRun(string text, bool bold, bool italic, bool underline, OfficeColor? color, double? fontSize) {
                 Text = text;
                 Bold = bold;
                 Italic = italic;
                 Underline = underline;
+                Color = color;
+                FontSize = fontSize;
             }
 
             internal string Text { get; }
             internal bool Bold { get; }
             internal bool Italic { get; }
             internal bool Underline { get; }
+            internal OfficeColor? Color { get; }
+            internal double? FontSize { get; }
         }
     }
 }

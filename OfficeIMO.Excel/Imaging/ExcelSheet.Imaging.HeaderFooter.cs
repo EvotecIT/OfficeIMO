@@ -289,7 +289,7 @@ namespace OfficeIMO.Excel {
             OfficeRichTextBlockLayout layout = OfficeTextLayoutEngine.LayoutRichTextBlock(
                 section.ToOfficeRuns(fontSize, HeaderFooterTextColor),
                 zone.Width,
-                Math.Ceiling(fontSize * 1.2D),
+                Math.Ceiling(section.GetMaxResolvedFontSize(fontSize) * 1.2D),
                 1.2D,
                 canvas.MeasureText,
                 wrap: false);
@@ -395,7 +395,7 @@ namespace OfficeIMO.Excel {
             OfficeRichTextBlockLayout layout = OfficeTextLayoutEngine.LayoutRichTextBlock(
                 section.ToOfficeRuns(fontSize, HeaderFooterTextColor),
                 zone.Width,
-                lineHeight,
+                Math.Max(lineHeight, section.GetMaxResolvedFontSize(fontSize) * 1.2D),
                 1.2D,
                 measure,
                 wrap: false);

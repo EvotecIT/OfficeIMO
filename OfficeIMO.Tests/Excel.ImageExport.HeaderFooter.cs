@@ -137,12 +137,35 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void ExcelWorksheet_PageSlicedSvgExportKeepsRicherHeaderFooterFormattingUnsupported() {
+        public void ExcelWorksheet_PageSlicedSvgExportRendersColorAndSizeHeaderFooterFormatting() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorkSheet("Report");
             FillPageBreakGrid(sheet);
-            sheet.SetHeaderFooter(headerCenter: "&KFF0000Red Header");
+            sheet.SetHeaderFooter(headerCenter: "&KFF0000&14Red &A");
+            sheet.AddManualRowPageBreak(2, save: false);
+
+            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelWorksheetImageExportOptions {
+                Range = "A1:P4",
+                SplitByManualPageBreaks = true,
+                ShowGridlines = false
+            });
+
+            string svg = Encoding.UTF8.GetString(results[1].Bytes);
+            Assert.DoesNotContain(results[1].Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterUnsupported);
+            Assert.Contains(results[1].Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterFormattingApproximation);
+            Assert.Contains("font-size=\"14\"", svg);
+            Assert.Contains("fill=\"#FF0000\"", svg);
+            Assert.Contains(">Red Report<", svg);
+        }
+
+        [Fact]
+        public void ExcelWorksheet_PageSlicedSvgExportKeepsUnsupportedHeaderFooterFormattingDiagnosed() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("Report");
+            FillPageBreakGrid(sheet);
+            sheet.SetHeaderFooter(headerCenter: "&SStrike Header");
             sheet.AddManualRowPageBreak(2, save: false);
 
             IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelWorksheetImageExportOptions {
@@ -153,7 +176,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains(results[1].Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterUnsupported);
             Assert.DoesNotContain(results[1].Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterFormattingApproximation);
-            Assert.DoesNotContain("Red Header", Encoding.UTF8.GetString(results[1].Bytes));
+            Assert.DoesNotContain("Strike Header", Encoding.UTF8.GetString(results[1].Bytes));
         }
 
         [Fact]
