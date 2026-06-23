@@ -23,6 +23,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             BiffChartTextMetadataReader.TryReadObjectLink(record, out LegacyXlsChartObjectLink? objectLink);
             BiffChartTextMetadataReader.TryReadLegend(record, out LegacyXlsChartLegend? legend);
             BiffChartTextMetadataReader.TryReadTick(record, out LegacyXlsChartTick? tick);
+            TryReadPosition(record, out LegacyXlsChartPosition? position);
             records.Add(new LegacyXlsChartRecord(
                 GetKind(record.Type),
                 BiffUnsupportedRecordDiagnostics.GetBiffRecordName(record.Type),
@@ -57,7 +58,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 text,
                 objectLink,
                 legend,
-                tick));
+                tick,
+                position));
             return true;
         }
 
@@ -216,6 +218,26 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             return true;
         }
 
+        private static bool TryReadPosition(BiffRecord record, out LegacyXlsChartPosition? position) {
+            position = null;
+            if (record.Type != 0x1051 || record.Payload.Length < 20) {
+                return false;
+            }
+
+            ushort topLeftMode = BiffRecordReader.ReadUInt16(record.Payload, 0);
+            ushort bottomRightMode = BiffRecordReader.ReadUInt16(record.Payload, 2);
+            position = new LegacyXlsChartPosition(
+                topLeftMode,
+                GetPositionModeName(topLeftMode),
+                bottomRightMode,
+                GetPositionModeName(bottomRightMode),
+                BiffRecordReader.ReadInt16(record.Payload, 4),
+                BiffRecordReader.ReadInt16(record.Payload, 8),
+                BiffRecordReader.ReadInt16(record.Payload, 12),
+                BiffRecordReader.ReadInt16(record.Payload, 16));
+            return true;
+        }
+
         private static string ReadLongRgbHex(byte[] bytes, int offset) {
             if (offset < 0 || offset + 3 > bytes.Length) throw new InvalidDataException("Unexpected end of BIFF chart color.");
             return "#" + bytes[offset].ToString("X2") + bytes[offset + 1].ToString("X2") + bytes[offset + 2].ToString("X2");
@@ -354,6 +376,23 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     return "SquareWithPlus";
                 default:
                     return $"Unknown:0x{markerType:X4}";
+            }
+        }
+
+        private static string GetPositionModeName(ushort mode) {
+            switch (mode) {
+                case 0x0000:
+                    return "MDFX";
+                case 0x0001:
+                    return "MDABS";
+                case 0x0002:
+                    return "MDPARENT";
+                case 0x0003:
+                    return "MDKTH";
+                case 0x0005:
+                    return "MDCHART";
+                default:
+                    return $"Unknown:0x{mode:X4}";
             }
         }
 

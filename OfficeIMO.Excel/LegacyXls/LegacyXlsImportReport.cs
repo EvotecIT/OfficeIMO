@@ -240,6 +240,12 @@ namespace OfficeIMO.Excel.LegacyXls {
             ChartTickLabelLocations = CountByCode(workbook.ChartRecords
                 .Where(record => record.Tick != null)
                 .Select(record => record.Tick!.LabelLocationName));
+            ChartPositionModePairs = CountByCode(workbook.ChartRecords
+                .Where(record => record.Position != null)
+                .Select(record => $"{record.Position!.TopLeftModeName}/{record.Position.BottomRightModeName}"));
+            ChartPositionRectangles = CountByCode(workbook.ChartRecords
+                .Where(record => record.Position != null)
+                .Select(record => $"X1:{record.Position!.X1};Y1:{record.Position.Y1};X2:{record.Position.X2};Y2:{record.Position.Y2}"));
             ChartRecordsByLocation = CountByCode(workbook.ChartRecords.Select(GetChartRecordLocationKey));
             DrawingRecordsByKind = CountDrawingRecordsByKind(workbook.DrawingRecords);
             DrawingRecordsByName = CountByCode(workbook.DrawingRecords.Select(record => record.RecordName));
@@ -640,6 +646,12 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets Tick records grouped by decoded axis-label location.</summary>
         public IReadOnlyDictionary<string, int> ChartTickLabelLocations { get; }
 
+        /// <summary>Gets Pos records grouped by decoded upper-left and lower-right position modes.</summary>
+        public IReadOnlyDictionary<string, int> ChartPositionModePairs { get; }
+
+        /// <summary>Gets Pos records grouped by decoded coordinate and size fields.</summary>
+        public IReadOnlyDictionary<string, int> ChartPositionRectangles { get; }
+
         /// <summary>Gets preserve-only chart BIFF records grouped by workbook or sheet location.</summary>
         public IReadOnlyDictionary<string, int> ChartRecordsByLocation { get; }
 
@@ -870,6 +882,8 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Chart Legend Layouts", ChartLegendLayouts);
             AppendDictionary(builder, "Chart Tick Major Locations", ChartTickMajorLocations);
             AppendDictionary(builder, "Chart Tick Label Locations", ChartTickLabelLocations);
+            AppendDictionary(builder, "Chart Position Mode Pairs", ChartPositionModePairs);
+            AppendDictionary(builder, "Chart Position Rectangles", ChartPositionRectangles);
             AppendDictionary(builder, "Chart Records By Location", ChartRecordsByLocation);
             AppendDictionary(builder, "Drawing Records By Kind", DrawingRecordsByKind.ToDictionary(
                 entry => entry.Key.ToString(),

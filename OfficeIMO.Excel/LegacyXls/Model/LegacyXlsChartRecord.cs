@@ -40,7 +40,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             LegacyXlsChartText? text = null,
             LegacyXlsChartObjectLink? objectLink = null,
             LegacyXlsChartLegend? legend = null,
-            LegacyXlsChartTick? tick = null) {
+            LegacyXlsChartTick? tick = null,
+            LegacyXlsChartPosition? position = null) {
             if (payloadLength < 0) {
                 throw new ArgumentOutOfRangeException(nameof(payloadLength));
             }
@@ -79,6 +80,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             ObjectLink = objectLink;
             Legend = legend;
             Tick = tick;
+            Position = position;
         }
 
         /// <summary>Gets the shallow chart record category.</summary>
@@ -182,5 +184,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets decoded axis tick metadata from Tick records, when present.</summary>
         public LegacyXlsChartTick? Tick { get; }
+
+        /// <summary>Gets decoded position metadata from Pos records, when present.</summary>
+        public LegacyXlsChartPosition? Position { get; }
     }
 }

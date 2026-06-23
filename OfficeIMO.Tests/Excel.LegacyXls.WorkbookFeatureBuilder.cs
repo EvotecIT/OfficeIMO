@@ -492,6 +492,7 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x1025, BuildChartTextPayload());
                 WriteRecord(stream, 0x1027, BuildObjectLinkPayload());
                 WriteRecord(stream, 0x1015, BuildLegendPayload());
+                WriteRecord(stream, 0x1051, BuildChartPositionPayload());
                 WriteRecord(stream, 0x101b, Array.Empty<byte>());
                 WriteRecord(stream, 0x01b6, new byte[18]);
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
@@ -1432,6 +1433,21 @@ namespace OfficeIMO.Tests {
                 stream.WriteByte(0);
                 stream.WriteByte(1);
                 WriteUInt16(stream, 0x001d);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildChartPositionPayload() {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, 0x0005);
+                WriteUInt16(stream, 0x0001);
+                WriteUInt16(stream, 15);
+                WriteUInt16(stream, 0);
+                WriteUInt16(stream, 25);
+                WriteUInt16(stream, 0);
+                WriteUInt16(stream, 300);
+                WriteUInt16(stream, 0);
+                WriteUInt16(stream, 120);
+                WriteUInt16(stream, 0);
                 return stream.ToArray();
             }
 
