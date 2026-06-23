@@ -137,6 +137,18 @@ namespace OfficeIMO.Excel {
                     builder.Append(pageCount.ToString(CultureInfo.InvariantCulture));
                 } else if (token == 'A') {
                     builder.Append(Name);
+                } else if (token == 'F') {
+                    if (!TryGetWorkbookFileName(out string fileName)) {
+                        return false;
+                    }
+
+                    builder.Append(fileName);
+                } else if (token == 'Z') {
+                    if (!TryGetWorkbookPathPrefix(out string pathPrefix)) {
+                        return false;
+                    }
+
+                    builder.Append(pathPrefix);
                 } else if (token == '[') {
                     int end = text.IndexOf(']', i + 1);
                     if (end < 0) {
@@ -174,7 +186,55 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
+            if (string.Equals(fieldName, "File", StringComparison.OrdinalIgnoreCase)) {
+                if (!TryGetWorkbookFileName(out string fileName)) {
+                    return false;
+                }
+
+                builder.Append(fileName);
+                return true;
+            }
+
+            if (string.Equals(fieldName, "Path", StringComparison.OrdinalIgnoreCase)) {
+                if (!TryGetWorkbookPathPrefix(out string pathPrefix)) {
+                    return false;
+                }
+
+                builder.Append(pathPrefix);
+                return true;
+            }
+
             return false;
+        }
+
+        private bool TryGetWorkbookFileName(out string fileName) {
+            fileName = string.Empty;
+            string path = _excelDocument.FilePath;
+            if (string.IsNullOrWhiteSpace(path)) {
+                return false;
+            }
+
+            fileName = Path.GetFileName(path);
+            return !string.IsNullOrWhiteSpace(fileName);
+        }
+
+        private bool TryGetWorkbookPathPrefix(out string pathPrefix) {
+            pathPrefix = string.Empty;
+            string path = _excelDocument.FilePath;
+            if (string.IsNullOrWhiteSpace(path)) {
+                return false;
+            }
+
+            string? directory = Path.GetDirectoryName(Path.GetFullPath(path));
+            if (string.IsNullOrWhiteSpace(directory)) {
+                return true;
+            }
+
+            pathPrefix = directory!.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal) ||
+                directory.EndsWith(Path.AltDirectorySeparatorChar.ToString(), StringComparison.Ordinal)
+                ? directory
+                : directory + Path.DirectorySeparatorChar;
+            return true;
         }
 
         private static void DrawHeaderFooterRaster(

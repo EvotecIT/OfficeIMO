@@ -53,6 +53,37 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelWorksheet_PageSlicedSvgExportRendersSupportedWorkbookFileFields() {
+            string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO-HeaderFooterFields");
+            Directory.CreateDirectory(directory);
+            string filePath = Path.Combine(directory, "FieldWorkbook.xlsx");
+            if (File.Exists(filePath)) {
+                File.Delete(filePath);
+            }
+
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("Report");
+            FillPageBreakGrid(sheet);
+            sheet.SetHeaderFooter(headerLeft: "File &F", headerRight: "Path &[Path]", footerRight: "&[File]");
+            sheet.AddManualRowPageBreak(2, save: false);
+
+            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelWorksheetImageExportOptions {
+                Range = "A1:D4",
+                SplitByManualPageBreaks = true,
+                ShowGridlines = false
+            });
+
+            string svg = Encoding.UTF8.GetString(results[1].Bytes);
+            string expectedPathPrefix = directory.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal)
+                ? directory
+                : directory + Path.DirectorySeparatorChar;
+            Assert.DoesNotContain(results[1].Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterUnsupported);
+            Assert.Contains(">File FieldWorkbook.xlsx<", svg);
+            Assert.Contains(">FieldWorkbook.xlsx<", svg);
+            Assert.Contains(">Path " + expectedPathPrefix, svg);
+        }
+
+        [Fact]
         public void ExcelWorksheet_PageSlicedPngExportAddsHeaderFooterBands() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
