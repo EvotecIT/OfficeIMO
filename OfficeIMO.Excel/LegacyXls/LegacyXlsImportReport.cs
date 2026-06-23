@@ -19,6 +19,17 @@ namespace OfficeIMO.Excel.LegacyXls {
             DataValidationCount = workbook.Worksheets.Sum(sheet => sheet.DataValidations.Count);
             ConditionalFormattingCount = workbook.Worksheets.Sum(sheet => sheet.ConditionalFormattings.Count);
             AutoFilterCriteriaCount = workbook.Worksheets.Sum(sheet => sheet.AutoFilterCriteria.Count);
+            DataValidationsByType = CountByCode(workbook.Worksheets.SelectMany(sheet => sheet.DataValidations).Select(validation => validation.Type.ToString()));
+            DataValidationsByOperator = CountByCode(workbook.Worksheets.SelectMany(sheet => sheet.DataValidations).Select(validation => validation.Operator.ToString()));
+            ConditionalFormattingsByType = CountByCode(workbook.Worksheets.SelectMany(sheet => sheet.ConditionalFormattings).Select(formatting => formatting.Type.ToString()));
+            ConditionalFormattingsByOperator = CountByCode(workbook.Worksheets
+                .SelectMany(sheet => sheet.ConditionalFormattings)
+                .Where(formatting => formatting.Operator.HasValue)
+                .Select(formatting => formatting.Operator!.Value.ToString()));
+            AutoFilterCriteriaByOperator = CountByCode(workbook.Worksheets
+                .SelectMany(sheet => sheet.AutoFilterCriteria)
+                .SelectMany(criteria => criteria.Conditions)
+                .Select(condition => condition.Operator.ToString()));
             DefinedNameCount = workbook.DefinedNames.Count;
             ExternalReferenceCount = workbook.ExternalReferences.Count;
             ExternalSheetNameCount = workbook.ExternalReferences.Sum(reference => reference.SheetNames.Count);
@@ -123,6 +134,21 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets the number of imported AutoFilter criteria columns.</summary>
         public int AutoFilterCriteriaCount { get; }
+
+        /// <summary>Gets imported data validations grouped by validation type.</summary>
+        public IReadOnlyDictionary<string, int> DataValidationsByType { get; }
+
+        /// <summary>Gets imported data validations grouped by comparison operator.</summary>
+        public IReadOnlyDictionary<string, int> DataValidationsByOperator { get; }
+
+        /// <summary>Gets imported conditional formatting rules grouped by rule type.</summary>
+        public IReadOnlyDictionary<string, int> ConditionalFormattingsByType { get; }
+
+        /// <summary>Gets imported conditional formatting cell-is rules grouped by comparison operator.</summary>
+        public IReadOnlyDictionary<string, int> ConditionalFormattingsByOperator { get; }
+
+        /// <summary>Gets imported AutoFilter conditions grouped by comparison operator.</summary>
+        public IReadOnlyDictionary<string, int> AutoFilterCriteriaByOperator { get; }
 
         /// <summary>Gets the number of imported defined names.</summary>
         public int DefinedNameCount { get; }
@@ -345,6 +371,11 @@ namespace OfficeIMO.Excel.LegacyXls {
             builder.AppendLine($"Warnings: {WarningCount}");
             AppendDictionary(builder, "Diagnostics By Code", DiagnosticsByCode);
             AppendDictionary(builder, "Formula Token Blockers", FormulaTokenBlockers);
+            AppendDictionary(builder, "Data Validations By Type", DataValidationsByType);
+            AppendDictionary(builder, "Data Validations By Operator", DataValidationsByOperator);
+            AppendDictionary(builder, "Conditional Formatting By Type", ConditionalFormattingsByType);
+            AppendDictionary(builder, "Conditional Formatting By Operator", ConditionalFormattingsByOperator);
+            AppendDictionary(builder, "AutoFilter Criteria By Operator", AutoFilterCriteriaByOperator);
             AppendDictionary(builder, "Unsupported Features By Code", UnsupportedFeaturesByCode);
             AppendDictionary(builder, "Unsupported Features By Kind", UnsupportedFeaturesByKind.ToDictionary(
                 entry => entry.Key.ToString(),

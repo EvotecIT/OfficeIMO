@@ -306,7 +306,16 @@ namespace OfficeIMO.Tests {
             Assert.Equal(0, report.ConditionalFormattingCount);
             Assert.Equal(0, report.AutoFilterCriteriaCount);
             Assert.Equal(0, report.UnsupportedFeatureCount);
-            Assert.Contains("Data validations: 3", report.ToMarkdown());
+            Assert.Equal(1, report.DataValidationsByType["Date"]);
+            Assert.Equal(1, report.DataValidationsByType["Time"]);
+            Assert.Equal(1, report.DataValidationsByType["TextLength"]);
+            Assert.Equal(1, report.DataValidationsByOperator["Between"]);
+            Assert.Equal(1, report.DataValidationsByOperator["GreaterThanOrEqual"]);
+            Assert.Equal(1, report.DataValidationsByOperator["LessThanOrEqual"]);
+            string markdown = report.ToMarkdown();
+            Assert.Contains("Data validations: 3", markdown);
+            Assert.Contains("Data Validations By Type", markdown);
+            Assert.Contains("Data Validations By Operator", markdown);
         }
 
         [Fact]
@@ -324,7 +333,12 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.ConditionalFormattingCount);
             Assert.Equal(0, report.AutoFilterCriteriaCount);
             Assert.Equal(0, report.UnsupportedFeatureCount);
-            Assert.Contains("Conditional formatting rules: 1", report.ToMarkdown());
+            Assert.Equal(1, report.ConditionalFormattingsByType["CellIs"]);
+            Assert.Equal(1, report.ConditionalFormattingsByOperator["GreaterThan"]);
+            string markdown = report.ToMarkdown();
+            Assert.Contains("Conditional formatting rules: 1", markdown);
+            Assert.Contains("Conditional Formatting By Type", markdown);
+            Assert.Contains("Conditional Formatting By Operator", markdown);
         }
 
         [Fact]
@@ -341,7 +355,11 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.WorksheetCount);
             Assert.Equal(2, report.AutoFilterCriteriaCount);
             Assert.Equal(0, report.UnsupportedFeatureCount);
-            Assert.Contains("AutoFilter criteria columns: 2", report.ToMarkdown());
+            Assert.Equal(1, report.AutoFilterCriteriaByOperator["Equal"]);
+            Assert.Equal(1, report.AutoFilterCriteriaByOperator["GreaterThanOrEqual"]);
+            string markdown = report.ToMarkdown();
+            Assert.Contains("AutoFilter criteria columns: 2", markdown);
+            Assert.Contains("AutoFilter Criteria By Operator", markdown);
         }
 
         [Fact]
