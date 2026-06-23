@@ -228,6 +228,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                         stack.Push(new FormulaExpression(BiffRecordReader.ReadDouble(formulaPayload, offset).ToString("G15", CultureInfo.InvariantCulture), 4));
                         offset += 8;
                         break;
+                    case 0x26:
+                    case 0x46:
+                    case 0x66:
+                        if (!TrySkipMemAreaHeader(formulaPayload, ref offset, endOffset)) return false;
+                        break;
                     case 0x24:
                     case 0x44:
                     case 0x64:
@@ -465,6 +470,14 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
                         offset += 6;
                         break;
+                    case 0x26:
+                    case 0x46:
+                    case 0x66:
+                        if (!TrySkipMemAreaHeader(formulaPayload, ref offset, endOffset)) {
+                            return BiffFormulaReadFailure.InvalidPayload("Formula mem-area token ended early.", token, tokenOffset);
+                        }
+
+                        break;
                     case 0x24:
                     case 0x44:
                     case 0x64:
@@ -551,6 +564,20 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             return BiffFormulaReadFailure.Stack("Formula tokens are individually recognized but the expression stack could not be reduced.");
+        }
+
+        private static bool TrySkipMemAreaHeader(byte[] formulaPayload, ref int offset, int endOffset) {
+            if (offset + 6 > endOffset) {
+                return false;
+            }
+
+            ushort expressionBytes = BiffRecordReader.ReadUInt16(formulaPayload, offset + 4);
+            if (expressionBytes == 0 || offset + 6 + expressionBytes > endOffset) {
+                return false;
+            }
+
+            offset += 6;
+            return true;
         }
 
         private static bool TrySkipStringLiteral(byte[] formulaPayload, ref int offset, int endOffset) {

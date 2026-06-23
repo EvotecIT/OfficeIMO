@@ -566,6 +566,39 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_Load_ImportsFormulaMemAreaTokens() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateFormulaMemAreaWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED");
+            LegacyXlsWorksheet sheet = Assert.Single(legacy.Worksheets);
+            LegacyXlsCell formula = Assert.Single(sheet.Cells, cell => cell.Row == 3 && cell.Column == 1);
+            Assert.True(formula.IsFormula);
+            Assert.Equal(30d, formula.Value);
+            Assert.Equal("SUM(A1:A2)", formula.FormulaText);
+
+            using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.True(document.Sheets[0].TryGetCellText(3, 1, out string? cachedText));
+            Assert.Equal("30", cachedText);
+
+            using var output = new MemoryStream();
+            document.Save(output);
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
+            WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single();
+            Cell projectedFormula = worksheetPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference!.Value == "A3");
+            Assert.Equal("SUM(A1:A2)", projectedFormula.CellFormula!.Text);
+            Assert.Equal("30", projectedFormula.CellValue!.Text);
+        }
+
+        [Fact]
         public void LegacyXls_Load_ImportsFormulaDefinedNameTokens() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateFormulaDefinedNameWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
@@ -763,24 +796,24 @@ namespace OfficeIMO.Tests {
                 d.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED"
                 && d.SheetName == "FormulaDiag"
                 && d.RecordType == (ushort)BiffRecordType.Formula);
-            Assert.Equal("FormulaToken0x26", diagnostic.DetailCode);
+            Assert.Equal("FormulaToken0x01", diagnostic.DetailCode);
             Assert.True(diagnostic.FormulaToken.HasValue);
-            Assert.Equal((byte)0x26, diagnostic.FormulaToken.Value);
-            Assert.Equal("PtgMemArea", diagnostic.FormulaTokenName);
+            Assert.Equal((byte)0x01, diagnostic.FormulaToken.Value);
+            Assert.Equal("PtgExp", diagnostic.FormulaTokenName);
             Assert.True(diagnostic.FormulaTokenOffset.HasValue);
             Assert.Equal(0, diagnostic.FormulaTokenOffset.Value);
-            Assert.Contains("Unsupported formula token PtgMemArea (0x26)", diagnostic.Message);
-            Assert.Contains("Token PtgMemArea (0x26)", diagnostic.Message);
+            Assert.Contains("Unsupported formula token PtgExp (0x01)", diagnostic.Message);
+            Assert.Contains("Token PtgExp (0x01)", diagnostic.Message);
             Assert.Contains("parsed-expression offset 0", diagnostic.Message);
             LegacyXlsImportReport report = legacy.CreateImportReport();
-            Assert.Equal(1, report.FormulaTokenBlockers["FormulaToken0x26"]);
-            Assert.Equal(1, report.FormulaTokenBlockersByToken["Token:0x26"]);
-            Assert.Equal(1, report.FormulaTokenBlockersByTokenName["PtgMemArea"]);
+            Assert.Equal(1, report.FormulaTokenBlockers["FormulaToken0x01"]);
+            Assert.Equal(1, report.FormulaTokenBlockersByToken["Token:0x01"]);
+            Assert.Equal(1, report.FormulaTokenBlockersByTokenName["PtgExp"]);
             Assert.Equal(1, report.FormulaTokenBlockersByOffset["Offset:0"]);
             string markdown = report.ToMarkdown();
             Assert.Contains("Formula Token Blockers By Token", markdown);
             Assert.Contains("Formula Token Blockers By Token Name", markdown);
-            Assert.Contains("PtgMemArea", markdown);
+            Assert.Contains("PtgExp", markdown);
             Assert.Contains("Formula Token Blockers By Offset", markdown);
             LegacyXlsWorksheet sheet = Assert.Single(legacy.Worksheets);
             LegacyXlsCell formula = Assert.Single(sheet.Cells, cell => cell.Row == 1 && cell.Column == 2);
@@ -998,7 +1031,7 @@ namespace OfficeIMO.Tests {
                 int sheetOffset = checked((int)stream.Position);
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
                 WriteRecord(stream, 0x0203, BuildNumberPayload(0, 0, 99d));
-                WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(0, 1, 99d, formulaTokens: new byte[] { 0x26 }));
+                WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(0, 1, 99d, formulaTokens: new byte[] { 0x01 }));
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 byte[] bytes = stream.ToArray();
@@ -1095,6 +1128,25 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(0, 3, 30d, formulaTokens: BuildRangeOperatorSumFormulaTokens()));
                 WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(0, 4, 30d, formulaTokens: BuildUnionOperatorSumFormulaTokens()));
                 WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(0, 5, 20d, formulaTokens: BuildIntersectionOperatorSumFormulaTokens()));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)boundSheetPosition + 4), 4);
+                return bytes;
+            }
+
+            internal static byte[] CreateFormulaMemAreaWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long boundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "MemArea"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0203, BuildNumberPayload(0, 0, 10d));
+                WriteRecord(stream, 0x0203, BuildNumberPayload(1, 0, 20d));
+                WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(2, 0, 30d, formulaTokens: BuildMemAreaSumFormulaTokens()));
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 byte[] bytes = stream.ToArray();
@@ -1494,6 +1546,17 @@ namespace OfficeIMO.Tests {
                 stream.WriteByte(0x42);
                 stream.WriteByte(0x01);
                 WriteUInt16(stream, 0x0004);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildMemAreaSumFormulaTokens() {
+                using var stream = new MemoryStream();
+                byte[] area = BuildAreaReferenceFormulaToken(0, 0, 1, 0);
+                stream.WriteByte(0x26);
+                WriteUInt32(stream, 0);
+                WriteUInt16(stream, checked((ushort)area.Length));
+                stream.Write(area, 0, area.Length);
+                WriteSumFunctionCall(stream);
                 return stream.ToArray();
             }
 
