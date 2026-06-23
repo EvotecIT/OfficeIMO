@@ -871,6 +871,38 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeTextBlockRenderer_DrawsRasterRichTextBlockWithRunStyles() {
+            OfficeRasterImage image = new OfficeRasterImage(140, 72, OfficeColor.Transparent);
+            OfficeRasterCanvas canvas = new OfficeRasterCanvas(image);
+            var line = new OfficeRichTextLine(new[] {
+                new OfficeRichTextSegment("Red", canvas.MeasureText("Red", 14D), 14D, OfficeColor.Red, bold: true, italic: false, underline: true, fontFamily: "Aptos"),
+                new OfficeRichTextSegment(" Blue", canvas.MeasureText(" Blue", 14D), 14D, OfficeColor.Blue, bold: false, italic: true, underline: false, fontFamily: "Aptos", strikethrough: true)
+            });
+            var layout = new OfficeRichTextBlockLayout(new[] { line }, lineHeight: 18D, width: line.Width, height: 18D);
+
+            OfficeTextBlockRenderer.DrawRasterRichTextBlock(
+                canvas,
+                layout,
+                left: 8D,
+                top: 10D,
+                width: 120D,
+                height: 44D,
+                horizontalAlignment: OfficeTextAlignment.Center,
+                verticalAlignment: OfficeTextVerticalAlignment.Center);
+
+            var painted = Enumerable.Range(0, image.Width * image.Height)
+                .Where(index => image.GetPixel(index % image.Width, index / image.Width).A > 0)
+                .Select(index => (X: index % image.Width, Y: index / image.Width))
+                .ToList();
+
+            Assert.NotEmpty(painted);
+            Assert.True(CountPixelsNear(image, OfficeColor.Red) > 20, "Expected the first rich text run to render red ink.");
+            Assert.True(CountPixelsNear(image, OfficeColor.Blue) > 20, "Expected the second rich text run to render blue ink.");
+            Assert.True(painted.Min(pixel => pixel.X) > 20, "Expected centered rich text placement.");
+            Assert.True(painted.Max(pixel => pixel.X) < 128, "Expected centered rich text placement to remain inside the target box.");
+        }
+
+        [Fact]
         public void OfficeTextBlockRenderer_AppendsSvgTextBlockWithSharedStyleAttributes() {
             var builder = new System.Text.StringBuilder();
             var layout = new OfficeTextBlockLayout(

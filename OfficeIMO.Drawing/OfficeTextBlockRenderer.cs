@@ -73,6 +73,82 @@ public static class OfficeTextBlockRenderer {
     }
 
     /// <summary>
+    /// Draws a measured rich text block on a raster canvas.
+    /// </summary>
+    /// <param name="canvas">Raster canvas receiving the text.</param>
+    /// <param name="layout">Measured rich text block layout.</param>
+    /// <param name="left">Left edge of the available text rectangle.</param>
+    /// <param name="top">Top edge of the available text rectangle.</param>
+    /// <param name="width">Available text rectangle width.</param>
+    /// <param name="height">Available text rectangle height.</param>
+    /// <param name="horizontalAlignment">Horizontal alignment inside the rectangle.</param>
+    /// <param name="verticalAlignment">Vertical alignment inside the rectangle.</param>
+    /// <param name="rotationDegrees">Clockwise rotation in degrees.</param>
+    /// <param name="rotationCenterX">Rotation center X coordinate.</param>
+    /// <param name="rotationCenterY">Rotation center Y coordinate.</param>
+    /// <param name="centerLineInLineHeight">Whether each run glyph box should be vertically centered inside its measured line height.</param>
+    public static void DrawRasterRichTextBlock(
+        OfficeRasterCanvas canvas,
+        OfficeRichTextBlockLayout layout,
+        double left,
+        double top,
+        double width,
+        double height,
+        OfficeTextAlignment horizontalAlignment = OfficeTextAlignment.Left,
+        OfficeTextVerticalAlignment verticalAlignment = OfficeTextVerticalAlignment.Top,
+        double rotationDegrees = 0D,
+        double rotationCenterX = 0D,
+        double rotationCenterY = 0D,
+        bool centerLineInLineHeight = true) {
+        if (canvas == null) {
+            throw new ArgumentNullException(nameof(canvas));
+        }
+
+        if (layout == null) {
+            throw new ArgumentNullException(nameof(layout));
+        }
+
+        if (layout.Lines.Count == 0 || width <= 0D || height <= 0D) {
+            return;
+        }
+
+        double textTop = OfficeTextPlacement.ResolveTop(top, height, layout.Height, verticalAlignment);
+        for (int lineIndex = 0; lineIndex < layout.Lines.Count; lineIndex++) {
+            OfficeRichTextLine line = layout.Lines[lineIndex];
+            if (line.Segments.Count == 0) {
+                continue;
+            }
+
+            double lineTop = textTop + (lineIndex * layout.LineHeight);
+            double lineFontSize = Math.Max(1D, line.FontSize);
+            double runTop = centerLineInLineHeight
+                ? lineTop + Math.Max(0D, (layout.LineHeight - lineFontSize) / 2D)
+                : lineTop;
+            double baseline = runTop + (lineFontSize * 0.84D);
+            double cursor = OfficeTextPlacement.ResolveLineLeft(left, width, line.Width, horizontalAlignment);
+            for (int segmentIndex = 0; segmentIndex < line.Segments.Count; segmentIndex++) {
+                OfficeRichTextSegment segment = line.Segments[segmentIndex];
+                double segmentTop = baseline - (segment.FontSize * 0.84D);
+                canvas.DrawTextLine(
+                    segment.Text,
+                    cursor,
+                    segmentTop,
+                    segment.FontSize,
+                    segment.Color,
+                    segment.Bold,
+                    segment.Italic,
+                    OfficeTextAlignment.Left,
+                    rotationDegrees,
+                    rotationCenterX,
+                    rotationCenterY,
+                    segment.Underline,
+                    segment.Strikethrough);
+                cursor += segment.Width;
+            }
+        }
+    }
+
+    /// <summary>
     /// Appends SVG text elements for a measured text block.
     /// </summary>
     /// <param name="builder">SVG markup builder.</param>

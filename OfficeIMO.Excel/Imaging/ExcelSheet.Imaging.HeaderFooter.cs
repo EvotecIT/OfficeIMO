@@ -293,22 +293,14 @@ namespace OfficeIMO.Excel {
                 1.2D,
                 canvas.MeasureText,
                 wrap: false);
-            DrawHeaderFooterRasterRichLayout(canvas, layout, zone, y, alignment);
-        }
-
-        private static void DrawHeaderFooterRasterRichLayout(OfficeRasterCanvas canvas, OfficeRichTextBlockLayout layout, OfficeTextZone zone, double y, OfficeTextAlignment alignment) {
-            if (layout.Lines.Count == 0) {
-                return;
-            }
-
-            OfficeRichTextLine line = layout.Lines[0];
-            double cursor = OfficeTextPlacement.ResolveLineLeft(zone.X, zone.Width, line.Width, alignment);
-            for (int index = 0; index < line.Segments.Count; index++) {
-                OfficeRichTextSegment segment = line.Segments[index];
-                double runTop = y + Math.Max(0D, (layout.LineHeight - segment.FontSize) / 2D);
-                canvas.DrawTextLine(segment.Text, cursor, runTop, segment.FontSize, segment.Color, segment.Bold, segment.Italic, OfficeTextAlignment.Left, underline: segment.Underline, strikethrough: segment.Strikethrough);
-                cursor += segment.Width;
-            }
+            OfficeTextBlockRenderer.DrawRasterRichTextBlock(
+                canvas,
+                layout,
+                zone.X,
+                y,
+                zone.Width,
+                layout.Height,
+                alignment);
         }
 
         private static void AppendHeaderFooterSvgText(

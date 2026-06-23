@@ -224,27 +224,20 @@ namespace OfficeIMO.Excel {
             OfficeTextAlignment alignment = rotated ? OfficeTextAlignment.Center : ResolveTextAlignment(cell.Style.HorizontalAlignment);
             double layoutWidth = rotated ? Math.Max(availableWidth, availableHeight) : availableWidth;
             double left = rotated ? centerX - (layoutWidth / 2D) : x + paddingX;
-            double top = rotated
-                ? centerY - (layout.Height / 2D)
-                : OfficeTextPlacement.ResolveTop(y + paddingY, availableHeight, layout.Height, ResolveTextVerticalAlignment(cell.Style.VerticalAlignment));
-            for (int lineIndex = 0; lineIndex < layout.Lines.Count; lineIndex++) {
-                OfficeRichTextLine line = layout.Lines[lineIndex];
-                if (line.Segments.Count == 0) {
-                    continue;
-                }
-
-                double lineTop = top + (lineIndex * layout.LineHeight);
-                double lineFontSize = Math.Max(1D, line.FontSize);
-                double textTop = lineTop + Math.Max(0D, (layout.LineHeight - lineFontSize) / 2D);
-                double baseline = textTop + (lineFontSize * 0.84D);
-                double cursor = OfficeTextPlacement.ResolveLineLeft(left, layoutWidth, line.Width, alignment);
-                for (int segmentIndex = 0; segmentIndex < line.Segments.Count; segmentIndex++) {
-                    OfficeRichTextSegment segment = line.Segments[segmentIndex];
-                    double runTop = baseline - (segment.FontSize * 0.84D);
-                    canvas.DrawTextLine(segment.Text, cursor, runTop, segment.FontSize, segment.Color, segment.Bold, segment.Italic, OfficeTextAlignment.Left, rotationDegrees, centerX, centerY, segment.Underline, segment.Strikethrough);
-                    cursor += segment.Width;
-                }
-            }
+            double top = rotated ? centerY - (layout.Height / 2D) : y + paddingY;
+            double height = rotated ? layout.Height : availableHeight;
+            OfficeTextBlockRenderer.DrawRasterRichTextBlock(
+                canvas,
+                layout,
+                left,
+                top,
+                layoutWidth,
+                height,
+                alignment,
+                rotated ? OfficeTextVerticalAlignment.Top : ResolveTextVerticalAlignment(cell.Style.VerticalAlignment),
+                rotationDegrees,
+                centerX,
+                centerY);
 
             return true;
         }
