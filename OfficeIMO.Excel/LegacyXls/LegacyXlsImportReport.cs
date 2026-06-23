@@ -212,6 +212,12 @@ namespace OfficeIMO.Excel.LegacyXls {
             PivotTableGroupingBoundaryStates = CountByCode(workbook.PivotTableRecords
                 .Where(record => record.AutoStart.HasValue && record.AutoEnd.HasValue)
                 .Select(record => $"AutoStart:{record.AutoStart!.Value};AutoEnd:{record.AutoEnd!.Value}"));
+            PivotTableGroupingNumericRanges = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.GroupingNumericStart.HasValue && record.GroupingNumericEnd.HasValue && record.GroupingNumericInterval.HasValue)
+                .Select(GetPivotTableGroupingNumericRangeKey));
+            PivotTableGroupingDateRanges = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.GroupingDateStart != null && record.GroupingDateEnd != null && record.GroupingDateInterval.HasValue)
+                .Select(GetPivotTableGroupingDateRangeKey));
             PivotTableExtendedFieldStates = CountByCode(workbook.PivotTableRecords.SelectMany(GetPivotTableExtendedFieldStateKeys));
             ChartRecordsByKind = CountChartRecordsByKind(workbook.ChartRecords);
             ChartRecordsByName = CountByCode(workbook.ChartRecords.Select(record => record.RecordName));
@@ -798,6 +804,12 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets decoded SXRng PivotTable grouping records grouped by automatic boundary state.</summary>
         public IReadOnlyDictionary<string, int> PivotTableGroupingBoundaryStates { get; }
 
+        /// <summary>Gets decoded SXRng numeric grouping records grouped by start, end, and interval values.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableGroupingNumericRanges { get; }
+
+        /// <summary>Gets decoded SXRng date grouping records grouped by start, end, and interval values.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableGroupingDateRanges { get; }
+
         /// <summary>Gets decoded SXVDEx PivotTable field flags grouped by flag state.</summary>
         public IReadOnlyDictionary<string, int> PivotTableExtendedFieldStates { get; }
 
@@ -1207,6 +1219,8 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Pivot Table Data Item Names", PivotTableDataItemNames);
             AppendDictionary(builder, "Pivot Table Grouping Kinds", PivotTableGroupingKinds);
             AppendDictionary(builder, "Pivot Table Grouping Boundary States", PivotTableGroupingBoundaryStates);
+            AppendDictionary(builder, "Pivot Table Grouping Numeric Ranges", PivotTableGroupingNumericRanges);
+            AppendDictionary(builder, "Pivot Table Grouping Date Ranges", PivotTableGroupingDateRanges);
             AppendDictionary(builder, "Pivot Table Extended Field States", PivotTableExtendedFieldStates);
             AppendDictionary(builder, "Chart Records By Kind", ChartRecordsByKind.ToDictionary(
                 entry => entry.Key.ToString(),
@@ -1551,6 +1565,14 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         private static string GetExternalCellCacheRangeKey(LegacyXlsExternalCellCache cache) {
             return string.IsNullOrWhiteSpace(cache.CellRange) ? "(empty)" : cache.CellRange!;
+        }
+
+        private static string GetPivotTableGroupingNumericRangeKey(LegacyXlsPivotTableRecord record) {
+            return $"Start:{FormatDouble(record.GroupingNumericStart!.Value)};End:{FormatDouble(record.GroupingNumericEnd!.Value)};Interval:{FormatDouble(record.GroupingNumericInterval!.Value)}";
+        }
+
+        private static string GetPivotTableGroupingDateRangeKey(LegacyXlsPivotTableRecord record) {
+            return $"Start:{record.GroupingDateStart};End:{record.GroupingDateEnd};Interval:{record.GroupingDateInterval!.Value}";
         }
 
         private static string GetAutoFilterTop10KindKey(LegacyXlsAutoFilterCriteria criteria) {

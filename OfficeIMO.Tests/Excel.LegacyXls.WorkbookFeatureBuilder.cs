@@ -599,6 +599,9 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x00b1, Array.Empty<byte>());
                 WriteRecord(stream, 0x00b2, Array.Empty<byte>());
                 WriteRecord(stream, 0x00d7, BuildSxRngPayload());
+                WriteRecord(stream, 0x00cd, BuildSxDtrPayload(2024, 1, 1, 0, 0, 0));
+                WriteRecord(stream, 0x00cd, BuildSxDtrPayload(2024, 12, 31, 0, 0, 0));
+                WriteRecord(stream, 0x00cb, BuildSxIntPayload(1));
                 WriteRecord(stream, 0x00f9, Array.Empty<byte>());
                 WriteRecord(stream, 0x00ff, BuildSxVdExPayload());
                 WriteRecord(stream, 0x0858, Array.Empty<byte>());
@@ -2048,6 +2051,23 @@ namespace OfficeIMO.Tests {
             private static byte[] BuildSxRngPayload() {
                 using var stream = new MemoryStream();
                 WriteUInt16(stream, 0x0017);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildSxDtrPayload(ushort year, ushort month, byte day, byte hour, byte minute, byte second) {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, year);
+                WriteUInt16(stream, month);
+                stream.WriteByte(day);
+                stream.WriteByte(hour);
+                stream.WriteByte(minute);
+                stream.WriteByte(second);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildSxIntPayload(short value) {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, unchecked((ushort)value));
                 return stream.ToArray();
             }
 

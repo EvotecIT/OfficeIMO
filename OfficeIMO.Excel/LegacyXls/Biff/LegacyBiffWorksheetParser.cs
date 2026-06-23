@@ -37,6 +37,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             var commentState = new BiffCommentImportState(sheet);
             var conditionalFormattingState = new BiffConditionalFormattingImportState(sheet, externSheets, externalReferences, sheetNames, definedNames, differentialFormats);
             var sharedFormulaState = new BiffSharedFormulaImportState(sheet, externSheets, externalReferences, sheetNames, definedNames, diagnostics, options);
+            var pivotTableMetadataState = new BiffPivotTableMetadataReaderState();
             while (offset < workbookStream.Length) {
                 if (offset + 4 > workbookStream.Length) {
                     diagnostics.Add(new LegacyXlsImportDiagnostic(
@@ -97,7 +98,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     return;
                 }
 
-                ParseWorksheetRecord(sheet, sharedStrings, externSheets, externalReferences, sheetNames, definedNames, unsupportedFeatures, preservedFeatureRecords, pivotTableRecords, chartRecords, drawingRecords, calculationSettings, diagnostics, options, commentState, conditionalFormattingState, sharedFormulaState, type, offset, payload, ref frozenWindow, ref pendingFormulaString);
+                ParseWorksheetRecord(sheet, sharedStrings, externSheets, externalReferences, sheetNames, definedNames, unsupportedFeatures, preservedFeatureRecords, pivotTableRecords, chartRecords, drawingRecords, calculationSettings, diagnostics, options, commentState, conditionalFormattingState, sharedFormulaState, pivotTableMetadataState, type, offset, payload, ref frozenWindow, ref pendingFormulaString);
                 offset = payloadOffset + length;
             }
 
@@ -125,6 +126,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             BiffCommentImportState commentState,
             BiffConditionalFormattingImportState conditionalFormattingState,
             BiffSharedFormulaImportState sharedFormulaState,
+            BiffPivotTableMetadataReaderState pivotTableMetadataState,
             ushort type,
             int offset,
             byte[] payload,
@@ -447,7 +449,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                                 break;
                             }
 
-                            if (BiffPivotTableMetadataReader.TryRead(new BiffRecord(type, offset, payload), sheet.Name, pivotTableRecords, diagnostics)) {
+                            if (BiffPivotTableMetadataReader.TryRead(new BiffRecord(type, offset, payload), sheet.Name, pivotTableRecords, diagnostics, pivotTableMetadataState)) {
                                 AddUnsupportedFeature(unsupportedFeatures, preservedFeatureRecords, diagnostics, options, type, offset, sheet.Name, payload.Length);
                                 break;
                             }

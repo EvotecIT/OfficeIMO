@@ -85,6 +85,24 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>Gets the grouping criteria stored in an SXRng record, when decoded.</summary>
         public LegacyXlsPivotGroupingKind? GroupingKind { get; private set; }
 
+        /// <summary>Gets the numeric grouping start value attached to an SXRng record, when decoded from the following SXNum records.</summary>
+        public double? GroupingNumericStart { get; private set; }
+
+        /// <summary>Gets the numeric grouping end value attached to an SXRng record, when decoded from the following SXNum records.</summary>
+        public double? GroupingNumericEnd { get; private set; }
+
+        /// <summary>Gets the numeric grouping interval attached to an SXRng record, when decoded from the following SXNum records.</summary>
+        public double? GroupingNumericInterval { get; private set; }
+
+        /// <summary>Gets the date grouping start value attached to an SXRng record, when decoded from the following SXDtr records.</summary>
+        public LegacyXlsPivotDateTimeValue? GroupingDateStart { get; private set; }
+
+        /// <summary>Gets the date grouping end value attached to an SXRng record, when decoded from the following SXDtr records.</summary>
+        public LegacyXlsPivotDateTimeValue? GroupingDateEnd { get; private set; }
+
+        /// <summary>Gets the date grouping interval attached to an SXRng record, when decoded from the following SXInt record.</summary>
+        public short? GroupingDateInterval { get; private set; }
+
         /// <summary>Gets whether an SXVDEx record requests showing all items.</summary>
         public bool? ShowAllItems { get; private set; }
 
@@ -131,6 +149,32 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             AutoStart = autoStart;
             AutoEnd = autoEnd;
             GroupingKind = groupingKind;
+        }
+
+        internal void SetGroupingNumericValue(int valueIndex, double value) {
+            switch (valueIndex) {
+                case 0:
+                    GroupingNumericStart = value;
+                    break;
+                case 1:
+                    GroupingNumericEnd = value;
+                    break;
+                case 2:
+                    GroupingNumericInterval = value;
+                    break;
+            }
+        }
+
+        internal void SetGroupingDateValue(int valueIndex, LegacyXlsPivotDateTimeValue value) {
+            if (valueIndex == 0) {
+                GroupingDateStart = value;
+            } else if (valueIndex == 1) {
+                GroupingDateEnd = value;
+            }
+        }
+
+        internal void SetGroupingDateInterval(short interval) {
+            GroupingDateInterval = interval;
         }
 
         internal void SetExtendedPivotField(

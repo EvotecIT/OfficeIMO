@@ -52,6 +52,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             int offset = sheet.StreamOffset;
+            var pivotTableMetadataState = new BiffPivotTableMetadataReaderState();
             while (offset < workbookStream.Length) {
                 if (offset + 4 > workbookStream.Length) {
                     diagnostics.Add(new LegacyXlsImportDiagnostic(
@@ -94,7 +95,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     Buffer.BlockCopy(workbookStream, payloadOffset, payload, 0, length);
                     BiffDrawingMetadataReader.TryRead(new BiffRecord(type, offset, payload), sheet.Name, drawingRecords);
                     BiffChartMetadataReader.TryRead(new BiffRecord(type, offset, payload), sheet.Name, chartRecords);
-                    BiffPivotTableMetadataReader.TryRead(new BiffRecord(type, offset, payload), sheet.Name, pivotTableRecords, diagnostics);
+                    BiffPivotTableMetadataReader.TryRead(new BiffRecord(type, offset, payload), sheet.Name, pivotTableRecords, diagnostics, pivotTableMetadataState);
                     LegacyXlsUnsupportedFeature feature = BiffUnsupportedRecordDiagnostics.CreateUnsupportedRecordFeature(type, offset, sheet.Name);
                     unsupportedFeatures.Add(feature);
                     if (BiffUnsupportedRecordDiagnostics.TryCreatePreservedFeatureRecord(feature, length, out LegacyXlsPreservedFeatureRecord? preservedRecord)) {

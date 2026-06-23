@@ -7,7 +7,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             BiffRecord record,
             string? sheetName,
             List<LegacyXlsPivotTableRecord> records,
-            List<LegacyXlsImportDiagnostic> diagnostics) {
+            List<LegacyXlsImportDiagnostic> diagnostics,
+            BiffPivotTableMetadataReaderState? state = null) {
             if (!BiffUnsupportedRecordDiagnostics.IsPivotTableRecord(record.Type)) {
                 return false;
             }
@@ -15,12 +16,14 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             LegacyXlsPivotTableRecord pivotRecord = CreateRecord(record, sheetName);
             records.Add(pivotRecord);
             try {
+                state?.TryAttachGroupingRangeValue(record);
                 switch (record.Type) {
                     case 0x00C1:
                         ReadDataItem(record, pivotRecord);
                         break;
                     case 0x00D7:
                         ReadGroupingRange(record, pivotRecord);
+                        state?.TrackGroupingRange(record, pivotRecord);
                         break;
                     case 0x00FF:
                         ReadExtendedPivotField(record, pivotRecord);
@@ -204,6 +207,96 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 canDragToHide: (flags & 0x0010) != 0,
                 preventDragToData: (flags & 0x0020) != 0,
                 serverBased: (flags & 0x0080) != 0);
+        }
+    }
+
+    internal sealed class BiffPivotTableMetadataReaderState {
+        private LegacyXlsPivotTableRecord? _pendingGroupingRange;
+        private int _expectedOffset;
+        private int _valueIndex;
+
+        internal void TrackGroupingRange(BiffRecord record, LegacyXlsPivotTableRecord pivotRecord) {
+            _pendingGroupingRange = pivotRecord;
+            _expectedOffset = record.Offset + 4 + record.Payload.Length;
+            _valueIndex = 0;
+        }
+
+        internal void TryAttachGroupingRangeValue(BiffRecord record) {
+            if (_pendingGroupingRange == null || record.Offset != _expectedOffset) {
+                Reset();
+                return;
+            }
+
+            try {
+                if (_pendingGroupingRange.GroupingKind == LegacyXlsPivotGroupingKind.Numeric) {
+                    TryAttachNumericGroupingValue(record);
+                } else {
+                    TryAttachDateGroupingValue(record);
+                }
+            } catch (InvalidDataException) {
+                Reset();
+            }
+        }
+
+        private void TryAttachNumericGroupingValue(BiffRecord record) {
+            if (record.Type != 0x00C8 || _valueIndex >= 3) {
+                Reset();
+                return;
+            }
+
+            _pendingGroupingRange!.SetGroupingNumericValue(_valueIndex, BiffRecordReader.ReadDouble(record.Payload, 0));
+            Advance(record);
+        }
+
+        private void TryAttachDateGroupingValue(BiffRecord record) {
+            if (_valueIndex < 2) {
+                if (record.Type != 0x00CD) {
+                    Reset();
+                    return;
+                }
+
+                _pendingGroupingRange!.SetGroupingDateValue(_valueIndex, ReadDateTimeValue(record.Payload));
+                Advance(record);
+                return;
+            }
+
+            if (_valueIndex == 2 && record.Type == 0x00CB) {
+                _pendingGroupingRange!.SetGroupingDateInterval(BiffRecordReader.ReadInt16(record.Payload, 0));
+                Advance(record);
+                return;
+            }
+
+            Reset();
+        }
+
+        private void Advance(BiffRecord record) {
+            _valueIndex++;
+            if (_valueIndex >= 3) {
+                Reset();
+                return;
+            }
+
+            _expectedOffset = record.Offset + 4 + record.Payload.Length;
+        }
+
+        private void Reset() {
+            _pendingGroupingRange = null;
+            _expectedOffset = 0;
+            _valueIndex = 0;
+        }
+
+        private static LegacyXlsPivotDateTimeValue ReadDateTimeValue(byte[] payload) {
+            if (payload.Length < 8) {
+                throw new InvalidDataException("The SXDtr payload is shorter than the date/time value.");
+            }
+
+            return new LegacyXlsPivotDateTimeValue(
+                BiffRecordReader.ReadUInt16(payload, 0),
+                BiffRecordReader.ReadUInt16(payload, 2),
+                payload[4],
+                payload[5],
+                payload[6],
+                payload[7]);
         }
     }
 }
