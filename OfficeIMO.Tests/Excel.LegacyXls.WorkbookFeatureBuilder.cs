@@ -403,6 +403,7 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x101d, BuildAxisPayload(0x0001));
                 WriteRecord(stream, 0x1045, BuildUInt16Payload(1));
                 WriteRecord(stream, 0x1003, BuildSeriesPayload(0x0003, categoryCount: 4, valueCount: 4, bubbleSizeCount: 0));
+                WriteRecord(stream, 0x1006, BuildDataFormatPayload(pointIndex: 0xffff, seriesIndex: 2, order: 1));
                 WriteRecord(stream, 0x101b, Array.Empty<byte>());
                 WriteRecord(stream, 0x01b6, new byte[18]);
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
@@ -1060,6 +1061,15 @@ namespace OfficeIMO.Tests {
                 WriteUInt16(stream, valueCount);
                 WriteUInt16(stream, 0x0001);
                 WriteUInt16(stream, bubbleSizeCount);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildDataFormatPayload(ushort pointIndex, ushort seriesIndex, ushort order) {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, pointIndex);
+                WriteUInt16(stream, seriesIndex);
+                WriteUInt16(stream, order);
+                WriteUInt16(stream, 0);
                 return stream.ToArray();
             }
 

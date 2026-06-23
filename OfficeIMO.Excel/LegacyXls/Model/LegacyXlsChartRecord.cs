@@ -27,7 +27,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             ushort? seriesCategoryCount = null,
             ushort? seriesValueCount = null,
             ushort? seriesBubbleSizeDataType = null,
-            ushort? seriesBubbleSizeCount = null) {
+            ushort? seriesBubbleSizeCount = null,
+            ushort? dataFormatPointIndex = null,
+            ushort? dataFormatSeriesIndex = null,
+            ushort? dataFormatOrder = null,
+            string? dataFormatTarget = null) {
             if (payloadLength < 0) {
                 throw new ArgumentOutOfRangeException(nameof(payloadLength));
             }
@@ -53,6 +57,10 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             SeriesValueCount = seriesValueCount;
             SeriesBubbleSizeDataType = seriesBubbleSizeDataType;
             SeriesBubbleSizeCount = seriesBubbleSizeCount;
+            DataFormatPointIndex = dataFormatPointIndex;
+            DataFormatSeriesIndex = dataFormatSeriesIndex;
+            DataFormatOrder = dataFormatOrder;
+            DataFormatTarget = string.IsNullOrWhiteSpace(dataFormatTarget) ? null : dataFormatTarget;
         }
 
         /// <summary>Gets the shallow chart record category.</summary>
@@ -117,5 +125,17 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets the bubble-size value count from Series records, when present.</summary>
         public ushort? SeriesBubbleSizeCount { get; }
+
+        /// <summary>Gets the raw data-point index from DataFormat records, when present.</summary>
+        public ushort? DataFormatPointIndex { get; }
+
+        /// <summary>Gets the raw series index from DataFormat records, when present.</summary>
+        public ushort? DataFormatSeriesIndex { get; }
+
+        /// <summary>Gets the raw series order or format index from DataFormat records, when present.</summary>
+        public ushort? DataFormatOrder { get; }
+
+        /// <summary>Gets whether a DataFormat record targets a whole series or a point, when present.</summary>
+        public string? DataFormatTarget { get; }
     }
 }

@@ -375,6 +375,23 @@ Warnings: 0
 | Categories:256;Values:256;BubbleSizes:0 | 4 |
 | Categories:92;Values:92;BubbleSizes:0 | 20 |
 
+## Chart DataFormat Targets
+
+| Key | Count |
+| --- | --- |
+| Point | 14 |
+| Series | 26 |
+
+## Chart DataFormat Series Indexes
+
+| Key | Count |
+| --- | --- |
+| SeriesIndex:0 | 16 |
+| SeriesIndex:1 | 12 |
+| SeriesIndex:2 | 4 |
+| SeriesIndex:3 | 4 |
+| SeriesIndex:4 | 4 |
+
 ## Chart Records By Location
 
 | Key | Count |

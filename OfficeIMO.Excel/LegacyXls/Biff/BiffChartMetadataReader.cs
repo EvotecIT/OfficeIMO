@@ -14,6 +14,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             TryReadAxisType(record, out ushort? axisType, out string? axisTypeName);
             TryReadAxesUsedCount(record, out ushort? axesUsedCount);
             TryReadSeries(record, out ushort? seriesCategoryDataType, out string? seriesCategoryDataTypeName, out ushort? seriesValueDataType, out ushort? seriesCategoryCount, out ushort? seriesValueCount, out ushort? seriesBubbleSizeDataType, out ushort? seriesBubbleSizeCount);
+            TryReadDataFormat(record, out ushort? dataFormatPointIndex, out ushort? dataFormatSeriesIndex, out ushort? dataFormatOrder, out string? dataFormatTarget);
             records.Add(new LegacyXlsChartRecord(
                 GetKind(record.Type),
                 BiffUnsupportedRecordDiagnostics.GetBiffRecordName(record.Type),
@@ -35,7 +36,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 seriesCategoryCount,
                 seriesValueCount,
                 seriesBubbleSizeDataType,
-                seriesBubbleSizeCount));
+                seriesBubbleSizeCount,
+                dataFormatPointIndex,
+                dataFormatSeriesIndex,
+                dataFormatOrder,
+                dataFormatTarget));
             return true;
         }
 
@@ -105,6 +110,28 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             valueCount = BiffRecordReader.ReadUInt16(record.Payload, 6);
             bubbleSizeDataType = BiffRecordReader.ReadUInt16(record.Payload, 8);
             bubbleSizeCount = BiffRecordReader.ReadUInt16(record.Payload, 10);
+            return true;
+        }
+
+        private static bool TryReadDataFormat(
+            BiffRecord record,
+            out ushort? pointIndex,
+            out ushort? seriesIndex,
+            out ushort? order,
+            out string? target) {
+            pointIndex = null;
+            seriesIndex = null;
+            order = null;
+            target = null;
+            if (record.Type != 0x1006 || record.Payload.Length < 8) {
+                return false;
+            }
+
+            ushort xi = BiffRecordReader.ReadUInt16(record.Payload, 0);
+            pointIndex = xi;
+            seriesIndex = BiffRecordReader.ReadUInt16(record.Payload, 2);
+            order = BiffRecordReader.ReadUInt16(record.Payload, 4);
+            target = xi == 0xffff ? "Series" : "Point";
             return true;
         }
 
