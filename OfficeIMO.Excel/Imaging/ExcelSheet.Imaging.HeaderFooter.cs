@@ -22,17 +22,21 @@ namespace OfficeIMO.Excel {
                 return content;
             }
 
-            IReadOnlyList<OfficeImageExportDiagnostic> diagnostics = content.Diagnostics;
+            string headerFooterSource = Name + "!headerFooter";
+            var combinedDiagnostics = new List<OfficeImageExportDiagnostic>(content.Diagnostics.Count + 2);
+            combinedDiagnostics.AddRange(content.Diagnostics);
             if (chrome.HasFormatting) {
-                var combinedDiagnostics = new List<OfficeImageExportDiagnostic>(content.Diagnostics.Count + 1);
-                combinedDiagnostics.AddRange(content.Diagnostics);
                 combinedDiagnostics.Add(new OfficeImageExportDiagnostic(
                     OfficeImageExportDiagnosticSeverity.Info,
                     ExcelImageExportDiagnosticCodes.HeaderFooterFormattingApproximation,
                     "Worksheet header/footer text formatting was rendered through the dependency-free image approximation path.",
-                    Name + "!headerFooter"));
-                diagnostics = combinedDiagnostics.AsReadOnly();
+                    headerFooterSource));
             }
+
+            AddHeaderFooterFontFamilyFallbackDiagnostics(chrome, headerFooterSource, combinedDiagnostics);
+            IReadOnlyList<OfficeImageExportDiagnostic> diagnostics = combinedDiagnostics.Count == content.Diagnostics.Count
+                ? content.Diagnostics
+                : combinedDiagnostics.AsReadOnly();
 
             double scale = options.Scale;
             int headerHeight = chrome.HasHeader ? Math.Max(1, (int)Math.Ceiling(HeaderFooterBandHeight * scale)) : 0;
@@ -137,6 +141,35 @@ namespace OfficeIMO.Excel {
             }
 
             return true;
+        }
+
+        private static void AddHeaderFooterFontFamilyFallbackDiagnostics(HeaderFooterTextChrome chrome, string source, List<OfficeImageExportDiagnostic> diagnostics) {
+            var reported = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            AddHeaderFooterFontFamilyFallbackDiagnostics(chrome.HeaderLeft, source, diagnostics, reported);
+            AddHeaderFooterFontFamilyFallbackDiagnostics(chrome.HeaderCenter, source, diagnostics, reported);
+            AddHeaderFooterFontFamilyFallbackDiagnostics(chrome.HeaderRight, source, diagnostics, reported);
+            AddHeaderFooterFontFamilyFallbackDiagnostics(chrome.FooterLeft, source, diagnostics, reported);
+            AddHeaderFooterFontFamilyFallbackDiagnostics(chrome.FooterCenter, source, diagnostics, reported);
+            AddHeaderFooterFontFamilyFallbackDiagnostics(chrome.FooterRight, source, diagnostics, reported);
+        }
+
+        private static void AddHeaderFooterFontFamilyFallbackDiagnostics(
+            HeaderFooterTextSection section,
+            string source,
+            List<OfficeImageExportDiagnostic> diagnostics,
+            HashSet<string> reported) {
+            for (int index = 0; index < section.Runs.Count; index++) {
+                string? fontFamily = section.Runs[index].FontFamily;
+                if (string.IsNullOrWhiteSpace(fontFamily) || !reported.Add(fontFamily!) || OfficeTrueTypeFont.TryLoadFontFamily(fontFamily, out _) != null) {
+                    continue;
+                }
+
+                diagnostics.Add(new OfficeImageExportDiagnostic(
+                    OfficeImageExportDiagnosticSeverity.Warning,
+                    ExcelImageExportDiagnosticCodes.HeaderFooterFontFamilyFallback,
+                    "Worksheet header/footer font family '" + fontFamily + "' could not be loaded exactly by the dependency-free image exporter; raster text metrics and image output used the shared fallback font path.",
+                    source));
+            }
         }
 
         private bool TryCreateHeaderFooterTextChrome(int pageNumber, int pageCount, DateTime headerFooterDateTime, out HeaderFooterTextChrome chrome) {

@@ -35,6 +35,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportReportsUnresolvedRichTextRunFontFamilyFallback() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("RichFont");
+            sheet.SetColumnWidth(1, 22);
+            sheet.SetRowHeight(1, 28);
+            sheet.CellAt(1, 1).SetRichText(
+                new ExcelRichTextRun("Missing run font") {
+                    FontName = "OfficeIMO Missing Rich Font",
+                    FontColor = "0F766E"
+                });
+
+            OfficeImageExportResult png = sheet.Range("A1:A1").ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
+
+            OfficeImageExportDiagnostic diagnostic = Assert.Single(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.CellFontFamilyFallback);
+            Assert.Equal(OfficeImageExportDiagnosticSeverity.Warning, diagnostic.Severity);
+            Assert.Equal("RichFont!A1", diagnostic.Source);
+            Assert.Contains("OfficeIMO Missing Rich Font", diagnostic.Message);
+            Assert.DoesNotContain(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.CellRichTextLayoutApproximation);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportPreservesHardBreakRichTextRunsInPngAndSvg() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);

@@ -40,6 +40,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportReportsUnresolvedCellFontFamilyFallback() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("Fonts");
+            sheet.CellValue(1, 1, "Font fallback");
+            sheet.CellAt(1, 1).SetFontName("OfficeIMO Missing Cell Font");
+            sheet.SetColumnWidth(1, 18);
+
+            OfficeImageExportResult png = sheet.Range("A1:A1").ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
+
+            OfficeImageExportDiagnostic diagnostic = Assert.Single(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.CellFontFamilyFallback);
+            Assert.Equal(OfficeImageExportDiagnosticSeverity.Warning, diagnostic.Severity);
+            Assert.Equal("Fonts!A1", diagnostic.Source);
+            Assert.Contains("OfficeIMO Missing Cell Font", diagnostic.Message);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportUsesNumberFormatLiteralsAndSections() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);

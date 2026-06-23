@@ -54,6 +54,7 @@ namespace OfficeIMO.Excel {
             using (canvas.PushClipRectangle(x, y, w, h)) {
                 if (cell.RichTextRuns.Count > 0) {
                     if (richTextSupported && TryDrawRasterRichText(canvas, cell, options, scale, x, y, w, h, paddingX, paddingY, availableWidth, availableHeight, rotationDegrees, out OfficeRichTextBlockLayout richLayout)) {
+                        AddRichTextFontFamilyFallbackDiagnostics(snapshot, cell, diagnostics);
                         AddTextClippingDiagnosticIfNeeded(richLayout, snapshot, cell, diagnostics);
                         if (rotated) {
                             AddRotatedTextApproximationDiagnostic(snapshot, cell, diagnostics);
@@ -65,6 +66,7 @@ namespace OfficeIMO.Excel {
                     AddRichTextLayoutApproximationDiagnostic(snapshot, cell, diagnostics);
                 }
 
+                AddCellFontFamilyFallbackDiagnosticIfNeeded(snapshot, cell, cell.Style.FontName, diagnostics);
                 AddTextClippingDiagnosticIfNeeded(layout, snapshot, cell, diagnostics);
                 OfficeColor color = ResolveCellTextColor(cell, options);
                 OfficeTextAlignment alignment = ResolveTextAlignment(cell.Style.HorizontalAlignment);
@@ -141,6 +143,7 @@ namespace OfficeIMO.Excel {
 
             if (cell.RichTextRuns.Count > 0) {
                 if (richTextSupported && TryAppendSvgRichText(builder, cell, options, x, y, w, h, paddingX, paddingY, availableWidth, availableHeight, rotationDegrees, (text, size, family) => textMeasureCanvas.MeasureText(text, size, family), out OfficeRichTextBlockLayout richLayout)) {
+                    AddRichTextFontFamilyFallbackDiagnostics(snapshot, cell, diagnostics);
                     AddTextClippingDiagnosticIfNeeded(richLayout, snapshot, cell, diagnostics);
                     if (rotated) {
                         AddRotatedTextApproximationDiagnostic(snapshot, cell, diagnostics);
@@ -152,6 +155,7 @@ namespace OfficeIMO.Excel {
                 AddRichTextLayoutApproximationDiagnostic(snapshot, cell, diagnostics);
             }
 
+            AddCellFontFamilyFallbackDiagnosticIfNeeded(snapshot, cell, cell.Style.FontName, diagnostics);
             AddTextClippingDiagnosticIfNeeded(layout, snapshot, cell, diagnostics);
             OfficeColor color = ResolveCellTextColor(cell, options);
             OfficeTextAlignment alignment = ResolveTextAlignment(cell.Style.HorizontalAlignment);
@@ -415,6 +419,39 @@ namespace OfficeIMO.Excel {
 
         private static string ResolveCellFontFamily(ExcelCellStyleSnapshot style) =>
             string.IsNullOrWhiteSpace(style.FontName) ? "Arial, sans-serif" : style.FontName! + ", Arial, sans-serif";
+
+        private static void AddRichTextFontFamilyFallbackDiagnostics(ExcelRangeVisualSnapshot snapshot, ExcelVisualCell cell, List<OfficeImageExportDiagnostic>? diagnostics) {
+            if (diagnostics == null || cell.RichTextRuns.Count == 0) {
+                return;
+            }
+
+            var reported = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            for (int index = 0; index < cell.RichTextRuns.Count; index++) {
+                ExcelVisualTextRun run = cell.RichTextRuns[index];
+                string? fontName = string.IsNullOrWhiteSpace(run.FontName) ? cell.Style.FontName : run.FontName;
+                if (string.IsNullOrWhiteSpace(fontName) || !reported.Add(fontName!)) {
+                    continue;
+                }
+
+                AddCellFontFamilyFallbackDiagnosticIfNeeded(snapshot, cell, fontName, diagnostics);
+            }
+        }
+
+        private static void AddCellFontFamilyFallbackDiagnosticIfNeeded(
+            ExcelRangeVisualSnapshot snapshot,
+            ExcelVisualCell cell,
+            string? fontName,
+            List<OfficeImageExportDiagnostic>? diagnostics) {
+            if (diagnostics == null || string.IsNullOrWhiteSpace(fontName) || OfficeTrueTypeFont.TryLoadFontFamily(fontName, out _) != null) {
+                return;
+            }
+
+            diagnostics.Add(new OfficeImageExportDiagnostic(
+                OfficeImageExportDiagnosticSeverity.Warning,
+                ExcelImageExportDiagnosticCodes.CellFontFamilyFallback,
+                "Cell font family '" + fontName + "' could not be loaded exactly by the dependency-free image exporter; raster text metrics and image output used the shared fallback font path.",
+                GetCellDiagnosticSource(snapshot, cell)));
+        }
 
         private static OfficeColor ResolveCellTextColor(ExcelVisualCell cell, ExcelImageExportOptions options) {
             OfficeColor? explicitColor = ResolveArgb(cell.Style.FontColorArgb);
