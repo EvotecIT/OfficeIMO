@@ -1567,5 +1567,26 @@ namespace OfficeIMO.Tests {
             Assert.Equal(5, result.ImportReport.UnsupportedFeaturesByCode["XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED"]);
             Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByDetail["ConditionalFormatting|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED|ConditionalFormatting:CfEx"]);
         }
+
+        [Fact]
+        public void LegacyXls_Load_ModelsDifferentialFormatFillFromDxfRecord() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase5DifferentialFormatWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.False(result.HasImportErrors);
+            Assert.True(result.HasUnsupportedFeatures);
+            Assert.Equal(1, result.ImportReport.DifferentialFormatCount);
+            LegacyXlsDifferentialFormat format = Assert.Single(result.Workbook.DifferentialFormats);
+            Assert.Equal(0, format.Index);
+            Assert.Null(format.FillPattern);
+            Assert.Null(format.FillForegroundColor);
+            Assert.Equal("FFFFFF00", format.FillBackgroundColor);
+            Assert.Equal(0x088d, format.RecordType);
+            Assert.Contains(result.Workbook.UnsupportedFeatures, feature => feature.DetailCode == "ConditionalFormatting:Dxf");
+        }
     }
 }

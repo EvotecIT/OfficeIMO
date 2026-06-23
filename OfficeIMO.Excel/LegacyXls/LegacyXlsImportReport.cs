@@ -50,6 +50,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             PivotTableRecordCount = workbook.PivotTableRecords.Count;
             ChartRecordCount = workbook.ChartRecords.Count;
             DrawingRecordCount = workbook.DrawingRecords.Count;
+            DifferentialFormatCount = workbook.DifferentialFormats.Count;
             CompoundFeatureRecordCount = workbook.CompoundFeatureRecords.Count;
             CompoundFeatureEntryCount = workbook.CompoundFeatureRecords.Sum(record => record.Entries.Count);
             CalculationSettingRecordCount = workbook.CalculationSettings.Records.Count;
@@ -267,6 +268,9 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets the number of preserve-only drawing and object BIFF records discovered during import.</summary>
         public int DrawingRecordCount { get; }
+
+        /// <summary>Gets the number of parsed differential formats discovered during import.</summary>
+        public int DifferentialFormatCount { get; }
 
         /// <summary>Gets the number of preserve-only compound container features discovered during import.</summary>
         public int CompoundFeatureRecordCount { get; }
@@ -518,6 +522,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             builder.AppendLine($"Pivot table records: {PivotTableRecordCount}");
             builder.AppendLine($"Chart records: {ChartRecordCount}");
             builder.AppendLine($"Drawing records: {DrawingRecordCount}");
+            builder.AppendLine($"Differential formats: {DifferentialFormatCount}");
             builder.AppendLine($"Compound feature records: {CompoundFeatureRecordCount}");
             builder.AppendLine($"Compound feature entries: {CompoundFeatureEntryCount}");
             builder.AppendLine($"Calculation setting records: {CalculationSettingRecordCount}");

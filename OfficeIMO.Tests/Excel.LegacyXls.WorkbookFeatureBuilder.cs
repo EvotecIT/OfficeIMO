@@ -868,6 +868,35 @@ namespace OfficeIMO.Tests {
                 return bytes;
             }
 
+            internal static byte[] CreatePhase5DifferentialFormatWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long formattingBoundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "Differential"));
+                WriteRecord(stream, 0x088d, BuildDifferentialFormatBackgroundColorPayload());
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Formatted"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)formattingBoundSheetPosition + 4), 4);
+                return bytes;
+            }
+
+            private static byte[] BuildDifferentialFormatBackgroundColorPayload() {
+                return new byte[] {
+                    0x8d, 0x08, 0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x03, 0x00,
+                    0x00, 0x00, 0x01, 0x00,
+                    0x02, 0x00, 0x0c, 0x00,
+                    0x05, 0xff, 0x00, 0x00, 0xff, 0xff, 0x00, 0xff
+                };
+            }
+
             private static byte[] BuildConditionalFormattingRangePayload(
                 ushort firstRow,
                 ushort firstColumn,
