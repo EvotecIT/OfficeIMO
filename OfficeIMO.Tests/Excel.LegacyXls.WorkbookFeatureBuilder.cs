@@ -468,7 +468,7 @@ namespace OfficeIMO.Tests {
                 int sheetOffset = checked((int)stream.Position);
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
                 WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Imported"));
-                WriteRecord(stream, 0x005d, Array.Empty<byte>());
+                WriteRecord(stream, 0x005d, BuildObjectPayload(0x0008, 1));
                 WriteRecord(stream, 0x00ec, Array.Empty<byte>());
                 WriteRecord(stream, 0x1002, Array.Empty<byte>());
                 WriteRecord(stream, 0x00b0, Array.Empty<byte>());
@@ -1000,10 +1000,14 @@ namespace OfficeIMO.Tests {
             }
 
             private static byte[] BuildNoteObjectPayload(ushort objectId) {
+                return BuildObjectPayload(0x0019, objectId);
+            }
+
+            private static byte[] BuildObjectPayload(ushort objectType, ushort objectId) {
                 using var stream = new MemoryStream();
                 WriteUInt16(stream, 0x0015);
                 WriteUInt16(stream, 0x0012);
-                WriteUInt16(stream, 0x0019);
+                WriteUInt16(stream, objectType);
                 WriteUInt16(stream, objectId);
                 WriteUInt16(stream, 0x4011);
                 WriteUInt32(stream, 0);

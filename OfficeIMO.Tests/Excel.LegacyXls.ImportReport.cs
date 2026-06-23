@@ -90,6 +90,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.DrawingRecordsByName["MsoDrawingGroup"]);
             Assert.Equal(1, report.DrawingRecordsByName["MsoDrawing"]);
             Assert.Equal(1, report.DrawingRecordsByName["Obj"]);
+            Assert.Equal(1, report.DrawingRecordsByObjectType["ObjectType:0x0008"]);
             Assert.Equal(1, report.DrawingRecordsByLocation["(workbook)"]);
             Assert.Equal(2, report.DrawingRecordsByLocation["FeatureMap"]);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:MsoDrawingGroup"]);
@@ -104,6 +105,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.PreservedFeatureRecordsByDetail["PivotTable|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED|PivotTable:SxView"]);
             Assert.Contains(workbook.PreservedFeatureRecords, record => record.DetailCode == "Drawing:MsoDrawingGroup" && record.SheetName == null);
             Assert.Contains(workbook.PreservedFeatureRecords, record => record.DetailCode == "Drawing:Obj" && record.SheetName == "FeatureMap");
+            Assert.Contains(workbook.DrawingRecords, record => record.SheetName == "FeatureMap" && record.ObjectType == 0x0008 && record.ObjectId == 1);
             Assert.Contains(workbook.PreservedFeatureRecords, record => record.DetailCode == "Chart:Chart" && record.RecordType == 0x1002);
             Assert.Contains(workbook.Diagnostics, d => d.DetailCode == "Chart:Chart");
             Assert.Contains(workbook.Diagnostics, d => d.DetailCode == "PivotTable:SxView");
@@ -113,6 +115,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Pivot Table Records By Name", markdown);
             Assert.Contains("Chart Records By Name", markdown);
             Assert.Contains("Drawing Records By Name", markdown);
+            Assert.Contains("Drawing Records By Object Type", markdown);
         }
 
         [Fact]

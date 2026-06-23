@@ -12,7 +12,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             string? sheetName,
             int recordOffset,
             ushort recordType,
-            int payloadLength) {
+            int payloadLength,
+            ushort? objectType = null,
+            ushort? objectId = null) {
             if (payloadLength < 0) {
                 throw new ArgumentOutOfRangeException(nameof(payloadLength));
             }
@@ -23,6 +25,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             RecordOffset = recordOffset;
             RecordType = recordType;
             PayloadLength = payloadLength;
+            ObjectType = objectType;
+            ObjectId = objectId;
         }
 
         /// <summary>Gets the shallow drawing record category.</summary>
@@ -42,5 +46,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets the BIFF record payload length in bytes.</summary>
         public int PayloadLength { get; }
+
+        /// <summary>Gets the decoded OBJ common-object type identifier, when present.</summary>
+        public ushort? ObjectType { get; }
+
+        /// <summary>Gets the decoded OBJ object identifier, when present.</summary>
+        public ushort? ObjectId { get; }
     }
 }

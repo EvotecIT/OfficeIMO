@@ -392,6 +392,14 @@ Warnings: 2
 | Obj | 14 |
 | TxO | 8 |
 
+## Drawing Records By Object Type
+
+| Key | Count |
+| --- | --- |
+| ObjectType:0x0000 | 2 |
+| ObjectType:0x0005 | 4 |
+| ObjectType:0x0006 | 8 |
+
 ## Drawing Records By Location
 
 | Key | Count |
