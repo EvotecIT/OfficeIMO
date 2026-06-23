@@ -15,6 +15,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             TryReadAxesUsedCount(record, out ushort? axesUsedCount);
             TryReadSeries(record, out ushort? seriesCategoryDataType, out string? seriesCategoryDataTypeName, out ushort? seriesValueDataType, out ushort? seriesCategoryCount, out ushort? seriesValueCount, out ushort? seriesBubbleSizeDataType, out ushort? seriesBubbleSizeCount);
             TryReadDataFormat(record, out ushort? dataFormatPointIndex, out ushort? dataFormatSeriesIndex, out ushort? dataFormatOrder, out string? dataFormatTarget);
+            TryReadLineFormat(record, out LegacyXlsChartLineFormat? lineFormat);
+            TryReadAreaFormat(record, out LegacyXlsChartAreaFormat? areaFormat);
+            TryReadMarkerFormat(record, out LegacyXlsChartMarkerFormat? markerFormat);
             records.Add(new LegacyXlsChartRecord(
                 GetKind(record.Type),
                 BiffUnsupportedRecordDiagnostics.GetBiffRecordName(record.Type),
@@ -40,7 +43,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 dataFormatPointIndex,
                 dataFormatSeriesIndex,
                 dataFormatOrder,
-                dataFormatTarget));
+                dataFormatTarget,
+                lineFormat,
+                areaFormat,
+                markerFormat));
             return true;
         }
 
@@ -135,6 +141,75 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             return true;
         }
 
+        private static bool TryReadLineFormat(BiffRecord record, out LegacyXlsChartLineFormat? lineFormat) {
+            lineFormat = null;
+            if (record.Type != 0x1007 || record.Payload.Length < 12) {
+                return false;
+            }
+
+            ushort style = BiffRecordReader.ReadUInt16(record.Payload, 4);
+            short weight = BiffRecordReader.ReadInt16(record.Payload, 6);
+            ushort flags = BiffRecordReader.ReadUInt16(record.Payload, 8);
+            lineFormat = new LegacyXlsChartLineFormat(
+                ReadLongRgbHex(record.Payload, 0),
+                style,
+                GetLineStyleName(style),
+                weight,
+                GetLineWeightName(weight),
+                (flags & 0x0001) != 0,
+                (flags & 0x0004) != 0,
+                (flags & 0x0008) != 0,
+                BiffRecordReader.ReadUInt16(record.Payload, 10));
+            return true;
+        }
+
+        private static bool TryReadAreaFormat(BiffRecord record, out LegacyXlsChartAreaFormat? areaFormat) {
+            areaFormat = null;
+            if (record.Type != 0x100a || record.Payload.Length < 16) {
+                return false;
+            }
+
+            ushort pattern = BiffRecordReader.ReadUInt16(record.Payload, 8);
+            ushort flags = BiffRecordReader.ReadUInt16(record.Payload, 10);
+            areaFormat = new LegacyXlsChartAreaFormat(
+                ReadLongRgbHex(record.Payload, 0),
+                ReadLongRgbHex(record.Payload, 4),
+                pattern,
+                GetAreaPatternName(pattern),
+                (flags & 0x0001) != 0,
+                (flags & 0x0002) != 0,
+                BiffRecordReader.ReadUInt16(record.Payload, 12),
+                BiffRecordReader.ReadUInt16(record.Payload, 14));
+            return true;
+        }
+
+        private static bool TryReadMarkerFormat(BiffRecord record, out LegacyXlsChartMarkerFormat? markerFormat) {
+            markerFormat = null;
+            if (record.Type != 0x1009 || record.Payload.Length < 20) {
+                return false;
+            }
+
+            ushort markerType = BiffRecordReader.ReadUInt16(record.Payload, 8);
+            ushort flags = BiffRecordReader.ReadUInt16(record.Payload, 10);
+            markerFormat = new LegacyXlsChartMarkerFormat(
+                ReadLongRgbHex(record.Payload, 0),
+                ReadLongRgbHex(record.Payload, 4),
+                markerType,
+                GetMarkerTypeName(markerType),
+                (flags & 0x0001) != 0,
+                (flags & 0x0010) != 0,
+                (flags & 0x0020) != 0,
+                BiffRecordReader.ReadUInt16(record.Payload, 12),
+                BiffRecordReader.ReadUInt16(record.Payload, 14),
+                BiffRecordReader.ReadUInt32(record.Payload, 16));
+            return true;
+        }
+
+        private static string ReadLongRgbHex(byte[] bytes, int offset) {
+            if (offset < 0 || offset + 3 > bytes.Length) throw new InvalidDataException("Unexpected end of BIFF chart color.");
+            return "#" + bytes[offset].ToString("X2") + bytes[offset + 1].ToString("X2") + bytes[offset + 2].ToString("X2");
+        }
+
         private static string GetAxisTypeName(ushort axisType) {
             switch (axisType) {
                 case 0x0000:
@@ -156,6 +231,118 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     return "Text";
                 default:
                     return $"Unknown:0x{dataType:X4}";
+            }
+        }
+
+        private static string GetLineStyleName(ushort style) {
+            switch (style) {
+                case 0x0000:
+                    return "Solid";
+                case 0x0001:
+                    return "Dash";
+                case 0x0002:
+                    return "Dot";
+                case 0x0003:
+                    return "DashDot";
+                case 0x0004:
+                    return "DashDotDot";
+                case 0x0005:
+                    return "None";
+                case 0x0006:
+                    return "DarkGrayPattern";
+                case 0x0007:
+                    return "MediumGrayPattern";
+                case 0x0008:
+                    return "LightGrayPattern";
+                default:
+                    return $"Unknown:0x{style:X4}";
+            }
+        }
+
+        private static string GetLineWeightName(short weight) {
+            switch (weight) {
+                case -1:
+                    return "Hairline";
+                case 0:
+                    return "Narrow";
+                case 1:
+                    return "Medium";
+                case 2:
+                    return "Wide";
+                default:
+                    return $"Unknown:0x{unchecked((ushort)weight):X4}";
+            }
+        }
+
+        private static string GetAreaPatternName(ushort pattern) {
+            switch (pattern) {
+                case 0x0000:
+                    return "None";
+                case 0x0001:
+                    return "Solid";
+                case 0x0002:
+                    return "MediumGray";
+                case 0x0003:
+                    return "DarkGray";
+                case 0x0004:
+                    return "LightGray";
+                case 0x0005:
+                    return "HorizontalStripes";
+                case 0x0006:
+                    return "VerticalStripes";
+                case 0x0007:
+                    return "DownwardDiagonalStripes";
+                case 0x0008:
+                    return "UpwardDiagonalStripes";
+                case 0x0009:
+                    return "Grid";
+                case 0x000a:
+                    return "Trellis";
+                case 0x000b:
+                    return "LightHorizontalStripes";
+                case 0x000c:
+                    return "LightVerticalStripes";
+                case 0x000d:
+                    return "LightDown";
+                case 0x000e:
+                    return "LightUp";
+                case 0x000f:
+                    return "LightGrid";
+                case 0x0010:
+                    return "LightTrellis";
+                case 0x0011:
+                    return "Gray125";
+                case 0x0012:
+                    return "Gray0625";
+                default:
+                    return $"Unknown:0x{pattern:X4}";
+            }
+        }
+
+        private static string GetMarkerTypeName(ushort markerType) {
+            switch (markerType) {
+                case 0x0000:
+                    return "None";
+                case 0x0001:
+                    return "Square";
+                case 0x0002:
+                    return "Diamond";
+                case 0x0003:
+                    return "Triangle";
+                case 0x0004:
+                    return "SquareWithX";
+                case 0x0005:
+                    return "SquareWithAsterisk";
+                case 0x0006:
+                    return "ShortBar";
+                case 0x0007:
+                    return "LongBar";
+                case 0x0008:
+                    return "Circle";
+                case 0x0009:
+                    return "SquareWithPlus";
+                default:
+                    return $"Unknown:0x{markerType:X4}";
             }
         }
 

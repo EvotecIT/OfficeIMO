@@ -31,7 +31,10 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             ushort? dataFormatPointIndex = null,
             ushort? dataFormatSeriesIndex = null,
             ushort? dataFormatOrder = null,
-            string? dataFormatTarget = null) {
+            string? dataFormatTarget = null,
+            LegacyXlsChartLineFormat? lineFormat = null,
+            LegacyXlsChartAreaFormat? areaFormat = null,
+            LegacyXlsChartMarkerFormat? markerFormat = null) {
             if (payloadLength < 0) {
                 throw new ArgumentOutOfRangeException(nameof(payloadLength));
             }
@@ -61,6 +64,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             DataFormatSeriesIndex = dataFormatSeriesIndex;
             DataFormatOrder = dataFormatOrder;
             DataFormatTarget = string.IsNullOrWhiteSpace(dataFormatTarget) ? null : dataFormatTarget;
+            LineFormat = lineFormat;
+            AreaFormat = areaFormat;
+            MarkerFormat = markerFormat;
         }
 
         /// <summary>Gets the shallow chart record category.</summary>
@@ -137,5 +143,14 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets whether a DataFormat record targets a whole series or a point, when present.</summary>
         public string? DataFormatTarget { get; }
+
+        /// <summary>Gets decoded line-format metadata from LineFormat records, when present.</summary>
+        public LegacyXlsChartLineFormat? LineFormat { get; }
+
+        /// <summary>Gets decoded fill-format metadata from AreaFormat records, when present.</summary>
+        public LegacyXlsChartAreaFormat? AreaFormat { get; }
+
+        /// <summary>Gets decoded marker-format metadata from MarkerFormat records, when present.</summary>
+        public LegacyXlsChartMarkerFormat? MarkerFormat { get; }
     }
 }

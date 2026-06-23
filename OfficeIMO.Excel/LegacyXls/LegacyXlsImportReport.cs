@@ -108,6 +108,21 @@ namespace OfficeIMO.Excel.LegacyXls {
             ChartDataFormatSeriesIndexes = CountByCode(workbook.ChartRecords
                 .Where(record => record.DataFormatSeriesIndex.HasValue)
                 .Select(record => $"SeriesIndex:{record.DataFormatSeriesIndex!.Value}"));
+            ChartLineFormatStyles = CountByCode(workbook.ChartRecords
+                .Where(record => record.LineFormat != null)
+                .Select(record => record.LineFormat!.StyleName));
+            ChartLineFormatWeights = CountByCode(workbook.ChartRecords
+                .Where(record => record.LineFormat != null)
+                .Select(record => record.LineFormat!.WeightName));
+            ChartAreaFormatPatterns = CountByCode(workbook.ChartRecords
+                .Where(record => record.AreaFormat != null)
+                .Select(record => record.AreaFormat!.PatternName));
+            ChartMarkerFormatTypes = CountByCode(workbook.ChartRecords
+                .Where(record => record.MarkerFormat != null)
+                .Select(record => record.MarkerFormat!.MarkerTypeName));
+            ChartMarkerFormatSizes = CountByCode(workbook.ChartRecords
+                .Where(record => record.MarkerFormat != null)
+                .Select(record => $"SizeTwips:{record.MarkerFormat!.SizeTwips}"));
             ChartRecordsByLocation = CountByCode(workbook.ChartRecords.Select(GetChartRecordLocationKey));
             DrawingRecordsByKind = CountDrawingRecordsByKind(workbook.DrawingRecords);
             DrawingRecordsByName = CountByCode(workbook.DrawingRecords.Select(record => record.RecordName));
@@ -327,6 +342,21 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets DataFormat records grouped by raw series index.</summary>
         public IReadOnlyDictionary<string, int> ChartDataFormatSeriesIndexes { get; }
 
+        /// <summary>Gets LineFormat records grouped by decoded line style.</summary>
+        public IReadOnlyDictionary<string, int> ChartLineFormatStyles { get; }
+
+        /// <summary>Gets LineFormat records grouped by decoded line weight.</summary>
+        public IReadOnlyDictionary<string, int> ChartLineFormatWeights { get; }
+
+        /// <summary>Gets AreaFormat records grouped by decoded fill pattern.</summary>
+        public IReadOnlyDictionary<string, int> ChartAreaFormatPatterns { get; }
+
+        /// <summary>Gets MarkerFormat records grouped by decoded marker type.</summary>
+        public IReadOnlyDictionary<string, int> ChartMarkerFormatTypes { get; }
+
+        /// <summary>Gets MarkerFormat records grouped by marker size in twips.</summary>
+        public IReadOnlyDictionary<string, int> ChartMarkerFormatSizes { get; }
+
         /// <summary>Gets preserve-only chart BIFF records grouped by workbook or sheet location.</summary>
         public IReadOnlyDictionary<string, int> ChartRecordsByLocation { get; }
 
@@ -477,6 +507,11 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Chart Series Value Counts", ChartSeriesValueCounts);
             AppendDictionary(builder, "Chart DataFormat Targets", ChartDataFormatTargets);
             AppendDictionary(builder, "Chart DataFormat Series Indexes", ChartDataFormatSeriesIndexes);
+            AppendDictionary(builder, "Chart LineFormat Styles", ChartLineFormatStyles);
+            AppendDictionary(builder, "Chart LineFormat Weights", ChartLineFormatWeights);
+            AppendDictionary(builder, "Chart AreaFormat Patterns", ChartAreaFormatPatterns);
+            AppendDictionary(builder, "Chart MarkerFormat Types", ChartMarkerFormatTypes);
+            AppendDictionary(builder, "Chart MarkerFormat Sizes", ChartMarkerFormatSizes);
             AppendDictionary(builder, "Chart Records By Location", ChartRecordsByLocation);
             AppendDictionary(builder, "Drawing Records By Kind", DrawingRecordsByKind.ToDictionary(
                 entry => entry.Key.ToString(),

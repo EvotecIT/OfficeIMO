@@ -404,6 +404,9 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x1045, BuildUInt16Payload(1));
                 WriteRecord(stream, 0x1003, BuildSeriesPayload(0x0003, categoryCount: 4, valueCount: 4, bubbleSizeCount: 0));
                 WriteRecord(stream, 0x1006, BuildDataFormatPayload(pointIndex: 0xffff, seriesIndex: 2, order: 1));
+                WriteRecord(stream, 0x1007, BuildLineFormatPayload(style: 0x0001, weight: 1, flags: 0x0004, colorIndex: 0x004d));
+                WriteRecord(stream, 0x100a, BuildAreaFormatPayload(pattern: 0x0001, flags: 0x0003, foregroundColorIndex: 0x004e, backgroundColorIndex: 0x004d));
+                WriteRecord(stream, 0x1009, BuildMarkerFormatPayload(markerType: 0x0008, flags: 0x0021, foregroundColorIndex: 0x004e, backgroundColorIndex: 0x004d, sizeTwips: 240));
                 WriteRecord(stream, 0x101b, Array.Empty<byte>());
                 WriteRecord(stream, 0x01b6, new byte[18]);
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
@@ -1071,6 +1074,46 @@ namespace OfficeIMO.Tests {
                 WriteUInt16(stream, order);
                 WriteUInt16(stream, 0);
                 return stream.ToArray();
+            }
+
+            private static byte[] BuildLineFormatPayload(ushort style, short weight, ushort flags, ushort colorIndex) {
+                using var stream = new MemoryStream();
+                WriteLongRgb(stream, 0x11, 0x22, 0x33);
+                WriteUInt16(stream, style);
+                WriteUInt16(stream, unchecked((ushort)weight));
+                WriteUInt16(stream, flags);
+                WriteUInt16(stream, colorIndex);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildAreaFormatPayload(ushort pattern, ushort flags, ushort foregroundColorIndex, ushort backgroundColorIndex) {
+                using var stream = new MemoryStream();
+                WriteLongRgb(stream, 0xaa, 0xbb, 0xcc);
+                WriteLongRgb(stream, 0x10, 0x20, 0x30);
+                WriteUInt16(stream, pattern);
+                WriteUInt16(stream, flags);
+                WriteUInt16(stream, foregroundColorIndex);
+                WriteUInt16(stream, backgroundColorIndex);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildMarkerFormatPayload(ushort markerType, ushort flags, ushort foregroundColorIndex, ushort backgroundColorIndex, uint sizeTwips) {
+                using var stream = new MemoryStream();
+                WriteLongRgb(stream, 0xde, 0xad, 0xbe);
+                WriteLongRgb(stream, 0x44, 0x55, 0x66);
+                WriteUInt16(stream, markerType);
+                WriteUInt16(stream, flags);
+                WriteUInt16(stream, foregroundColorIndex);
+                WriteUInt16(stream, backgroundColorIndex);
+                WriteUInt32(stream, sizeTwips);
+                return stream.ToArray();
+            }
+
+            private static void WriteLongRgb(Stream stream, byte red, byte green, byte blue) {
+                stream.WriteByte(red);
+                stream.WriteByte(green);
+                stream.WriteByte(blue);
+                stream.WriteByte(0);
             }
 
             private static byte[] BuildTxoPayload(string text) {

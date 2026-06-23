@@ -415,6 +415,45 @@ Warnings: 2
 | SeriesIndex:4 | 8 |
 | SeriesIndex:5 | 8 |
 
+## Chart LineFormat Styles
+
+| Key | Count |
+| --- | --- |
+| None | 46 |
+| Solid | 20 |
+
+## Chart LineFormat Weights
+
+| Key | Count |
+| --- | --- |
+| Hairline | 48 |
+| Narrow | 18 |
+
+## Chart AreaFormat Patterns
+
+| Key | Count |
+| --- | --- |
+| None | 8 |
+| Solid | 58 |
+
+## Chart MarkerFormat Types
+
+| Key | Count |
+| --- | --- |
+| Circle | 16 |
+| Diamond | 8 |
+| None | 10 |
+| Square | 6 |
+| SquareWithX | 8 |
+| Triangle | 8 |
+
+## Chart MarkerFormat Sizes
+
+| Key | Count |
+| --- | --- |
+| SizeTwips:100 | 48 |
+| SizeTwips:60 | 8 |
+
 ## Chart Records By Location
 
 | Key | Count |
