@@ -7,6 +7,7 @@ namespace OfficeIMO.Excel {
         private const double HeaderFooterBandHeight = 28D;
         private const double HeaderFooterFontSize = 12D;
         private const double HeaderFooterHorizontalPadding = 8D;
+        private const double HeaderFooterZoneGap = 4D;
         private static readonly OfficeColor HeaderFooterTextColor = OfficeColor.FromRgb(31, 41, 55);
 
         private OfficeImageExportResult ApplyHeaderFooterTextChrome(
@@ -374,25 +375,26 @@ namespace OfficeIMO.Excel {
             double scale) {
             double fontSize = HeaderFooterFontSize * scale;
             double padding = HeaderFooterHorizontalPadding * scale;
+            HeaderFooterTextZones zones = HeaderFooterTextZones.Create(width, padding, HeaderFooterZoneGap * scale);
             if (chrome.HasHeader) {
                 double y = Math.Max(0D, (headerHeight - fontSize) / 2D);
-                DrawHeaderFooterRasterLine(canvas, chrome.HeaderLeft, padding, y, fontSize, OfficeTextAlignment.Left);
-                DrawHeaderFooterRasterLine(canvas, chrome.HeaderCenter, width / 2D, y, fontSize, OfficeTextAlignment.Center);
-                DrawHeaderFooterRasterLine(canvas, chrome.HeaderRight, width - padding, y, fontSize, OfficeTextAlignment.Right);
+                DrawHeaderFooterRasterLine(canvas, chrome.HeaderLeft, zones.Left, y, fontSize, OfficeTextAlignment.Left);
+                DrawHeaderFooterRasterLine(canvas, chrome.HeaderCenter, zones.Center, y, fontSize, OfficeTextAlignment.Center);
+                DrawHeaderFooterRasterLine(canvas, chrome.HeaderRight, zones.Right, y, fontSize, OfficeTextAlignment.Right);
             }
 
             if (chrome.HasFooter) {
                 double y = height - footerHeight + Math.Max(0D, (footerHeight - fontSize) / 2D);
-                DrawHeaderFooterRasterLine(canvas, chrome.FooterLeft, padding, y, fontSize, OfficeTextAlignment.Left);
-                DrawHeaderFooterRasterLine(canvas, chrome.FooterCenter, width / 2D, y, fontSize, OfficeTextAlignment.Center);
-                DrawHeaderFooterRasterLine(canvas, chrome.FooterRight, width - padding, y, fontSize, OfficeTextAlignment.Right);
+                DrawHeaderFooterRasterLine(canvas, chrome.FooterLeft, zones.Left, y, fontSize, OfficeTextAlignment.Left);
+                DrawHeaderFooterRasterLine(canvas, chrome.FooterCenter, zones.Center, y, fontSize, OfficeTextAlignment.Center);
+                DrawHeaderFooterRasterLine(canvas, chrome.FooterRight, zones.Right, y, fontSize, OfficeTextAlignment.Right);
             }
         }
 
         private static void DrawHeaderFooterRasterLine(
             OfficeRasterCanvas canvas,
             string text,
-            double x,
+            HeaderFooterTextZone zone,
             double y,
             double fontSize,
             OfficeTextAlignment alignment) {
@@ -400,7 +402,14 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            canvas.DrawTextLine(text, x, y, fontSize, HeaderFooterTextColor, alignment: alignment);
+            string displayText = ResolveHeaderFooterZoneText(text, fontSize, zone.Width, canvas.MeasureText, alignment);
+            if (string.IsNullOrWhiteSpace(displayText)) {
+                return;
+            }
+
+            using (canvas.PushClipRectangle(zone.X, 0D, zone.Width, canvas.Height)) {
+                canvas.DrawTextLine(displayText, zone.AnchorX, y, fontSize, HeaderFooterTextColor, alignment: alignment);
+            }
         }
 
         private static void AppendHeaderFooterSvgText(
@@ -413,43 +422,90 @@ namespace OfficeIMO.Excel {
             double fontSize = HeaderFooterFontSize * scale;
             double padding = HeaderFooterHorizontalPadding * scale;
             double lineHeight = fontSize * 1.2D;
+            HeaderFooterTextZones zones = HeaderFooterTextZones.Create(width, padding, HeaderFooterZoneGap * scale);
+            var textMeasureCanvas = new OfficeRasterCanvas(new OfficeRasterImage(1, 1, OfficeColor.Transparent));
             if (chrome.HasHeader) {
                 double baseline = Math.Max(fontSize, (headerHeight + fontSize) / 2D);
-                AppendHeaderFooterSvgLine(builder, chrome.HeaderLeft, padding, baseline, lineHeight, fontSize, OfficeTextAlignment.Left);
-                AppendHeaderFooterSvgLine(builder, chrome.HeaderCenter, width / 2D, baseline, lineHeight, fontSize, OfficeTextAlignment.Center);
-                AppendHeaderFooterSvgLine(builder, chrome.HeaderRight, width - padding, baseline, lineHeight, fontSize, OfficeTextAlignment.Right);
+                AppendHeaderFooterSvgLine(builder, chrome.HeaderLeft, zones.Left, 0D, headerHeight, baseline, lineHeight, fontSize, OfficeTextAlignment.Left, "header-left", textMeasureCanvas.MeasureText);
+                AppendHeaderFooterSvgLine(builder, chrome.HeaderCenter, zones.Center, 0D, headerHeight, baseline, lineHeight, fontSize, OfficeTextAlignment.Center, "header-center", textMeasureCanvas.MeasureText);
+                AppendHeaderFooterSvgLine(builder, chrome.HeaderRight, zones.Right, 0D, headerHeight, baseline, lineHeight, fontSize, OfficeTextAlignment.Right, "header-right", textMeasureCanvas.MeasureText);
             }
 
             if (chrome.HasFooter) {
                 double footerTop = height - (chrome.HasFooter ? Math.Max(1, (int)Math.Ceiling(HeaderFooterBandHeight * scale)) : 0);
                 double baseline = footerTop + Math.Max(fontSize, ((HeaderFooterBandHeight * scale) + fontSize) / 2D);
-                AppendHeaderFooterSvgLine(builder, chrome.FooterLeft, padding, baseline, lineHeight, fontSize, OfficeTextAlignment.Left);
-                AppendHeaderFooterSvgLine(builder, chrome.FooterCenter, width / 2D, baseline, lineHeight, fontSize, OfficeTextAlignment.Center);
-                AppendHeaderFooterSvgLine(builder, chrome.FooterRight, width - padding, baseline, lineHeight, fontSize, OfficeTextAlignment.Right);
+                AppendHeaderFooterSvgLine(builder, chrome.FooterLeft, zones.Left, footerTop, height - footerTop, baseline, lineHeight, fontSize, OfficeTextAlignment.Left, "footer-left", textMeasureCanvas.MeasureText);
+                AppendHeaderFooterSvgLine(builder, chrome.FooterCenter, zones.Center, footerTop, height - footerTop, baseline, lineHeight, fontSize, OfficeTextAlignment.Center, "footer-center", textMeasureCanvas.MeasureText);
+                AppendHeaderFooterSvgLine(builder, chrome.FooterRight, zones.Right, footerTop, height - footerTop, baseline, lineHeight, fontSize, OfficeTextAlignment.Right, "footer-right", textMeasureCanvas.MeasureText);
             }
         }
 
         private static void AppendHeaderFooterSvgLine(
             StringBuilder builder,
             string text,
-            double x,
+            HeaderFooterTextZone zone,
+            double bandTop,
+            double bandHeight,
             double baseline,
             double lineHeight,
             double fontSize,
-            OfficeTextAlignment alignment) {
+            OfficeTextAlignment alignment,
+            string clipSuffix,
+            Func<string?, double, double> measure) {
             if (string.IsNullOrWhiteSpace(text)) {
                 return;
             }
 
+            string displayText = ResolveHeaderFooterZoneText(text, fontSize, zone.Width, measure, alignment);
+            if (string.IsNullOrWhiteSpace(displayText)) {
+                return;
+            }
+
+            string clipId = "xl-header-footer-" + clipSuffix;
+            builder.AppendRectClipPathDefinition(clipId, zone.X, bandTop, zone.Width, bandHeight, wrapInDefs: true);
+            builder.Append("<g").AppendClipPathReference(clipId).Append(">");
             builder.AppendSvgTextElement(
-                text,
-                x,
+                displayText,
+                zone.AnchorX,
                 baseline,
                 lineHeight,
                 HeaderFooterTextColor,
                 "Arial, sans-serif",
                 fontSize,
                 alignment);
+            builder.Append("</g>");
+        }
+
+        private static string ResolveHeaderFooterZoneText(
+            string text,
+            double fontSize,
+            double maxWidth,
+            Func<string?, double, double> measure,
+            OfficeTextAlignment alignment) {
+            if (alignment == OfficeTextAlignment.Right) {
+                return TrimLineStartToWidth(text, fontSize, maxWidth, measure);
+            }
+
+            return OfficeTextLayoutEngine.TrimLineToWidth(text, fontSize, maxWidth, measure, out _).Text;
+        }
+
+        private static string TrimLineStartToWidth(string text, double fontSize, double maxWidth, Func<string?, double, double> measure) {
+            if (string.IsNullOrEmpty(text)) {
+                return string.Empty;
+            }
+
+            double width = Math.Max(0D, maxWidth);
+            if (measure(text, fontSize) <= width) {
+                return text;
+            }
+
+            const string ellipsis = "...";
+            string value = text;
+            while (value.Length > 0 && measure(ellipsis + value, fontSize) > width) {
+                value = value.Substring(1);
+            }
+
+            return value.Length == 0 && measure(ellipsis, fontSize) > width ? string.Empty : ellipsis + value;
         }
 
         private readonly struct HeaderFooterTextChrome {
@@ -502,6 +558,46 @@ namespace OfficeIMO.Excel {
             internal string FooterLeft { get; }
             internal string FooterCenter { get; }
             internal string FooterRight { get; }
+        }
+
+        private readonly struct HeaderFooterTextZones {
+            private HeaderFooterTextZones(HeaderFooterTextZone left, HeaderFooterTextZone center, HeaderFooterTextZone right) {
+                Left = left;
+                Center = center;
+                Right = right;
+            }
+
+            internal HeaderFooterTextZone Left { get; }
+            internal HeaderFooterTextZone Center { get; }
+            internal HeaderFooterTextZone Right { get; }
+
+            internal static HeaderFooterTextZones Create(double width, double padding, double gap) {
+                double boundedPadding = Math.Max(0D, Math.Min(padding, width / 6D));
+                double boundedGap = Math.Max(0D, Math.Min(gap, width / 24D));
+                double contentLeft = boundedPadding;
+                double contentRight = Math.Max(contentLeft, width - boundedPadding);
+                double contentWidth = Math.Max(1D, contentRight - contentLeft);
+                double zoneWidth = Math.Max(1D, (contentWidth - (boundedGap * 2D)) / 3D);
+                double leftX = contentLeft;
+                double centerX = leftX + zoneWidth + boundedGap;
+                double rightX = centerX + zoneWidth + boundedGap;
+                return new HeaderFooterTextZones(
+                    new HeaderFooterTextZone(leftX, zoneWidth, leftX),
+                    new HeaderFooterTextZone(centerX, zoneWidth, centerX + (zoneWidth / 2D)),
+                    new HeaderFooterTextZone(rightX, zoneWidth, rightX + zoneWidth));
+            }
+        }
+
+        private readonly struct HeaderFooterTextZone {
+            internal HeaderFooterTextZone(double x, double width, double anchorX) {
+                X = x;
+                Width = width;
+                AnchorX = anchorX;
+            }
+
+            internal double X { get; }
+            internal double Width { get; }
+            internal double AnchorX { get; }
         }
     }
 }
