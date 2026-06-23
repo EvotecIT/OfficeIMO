@@ -356,7 +356,11 @@ namespace OfficeIMO.Excel {
             }
 
             long? shapeExtent = _picture.ShapeProperties?.GetFirstChild<A.Transform2D>()?.GetFirstChild<A.Extents>()?.Cx?.Value;
-            return shapeExtent.GetValueOrDefault();
+            if (shapeExtent.HasValue && shapeExtent.Value > 0) {
+                return shapeExtent.Value;
+            }
+
+            return TryGetTwoCellAnchorSizeEmu(horizontal: true, out long emu) ? emu : 0L;
         }
 
         private long GetExtentCy() {
@@ -366,7 +370,38 @@ namespace OfficeIMO.Excel {
             }
 
             long? shapeExtent = _picture.ShapeProperties?.GetFirstChild<A.Transform2D>()?.GetFirstChild<A.Extents>()?.Cy?.Value;
-            return shapeExtent.GetValueOrDefault();
+            if (shapeExtent.HasValue && shapeExtent.Value > 0) {
+                return shapeExtent.Value;
+            }
+
+            return TryGetTwoCellAnchorSizeEmu(horizontal: false, out long emu) ? emu : 0L;
+        }
+
+        private bool TryGetTwoCellAnchorSizeEmu(bool horizontal, out long emu) {
+            emu = 0;
+            Xdr.TwoCellAnchor? twoCellAnchor = _anchor as Xdr.TwoCellAnchor;
+            if (twoCellAnchor?.FromMarker == null || twoCellAnchor.ToMarker == null) {
+                return false;
+            }
+
+            int from = horizontal
+                ? ParseMarkerIndex(twoCellAnchor.FromMarker.ColumnId?.Text)
+                : ParseMarkerIndex(twoCellAnchor.FromMarker.RowId?.Text);
+            int to = horizontal
+                ? ParseMarkerIndex(twoCellAnchor.ToMarker.ColumnId?.Text)
+                : ParseMarkerIndex(twoCellAnchor.ToMarker.RowId?.Text);
+            long fromOffset = ParseMarkerOffset(horizontal
+                ? twoCellAnchor.FromMarker.ColumnOffset?.Text
+                : twoCellAnchor.FromMarker.RowOffset?.Text);
+            long toOffset = ParseMarkerOffset(horizontal
+                ? twoCellAnchor.ToMarker.ColumnOffset?.Text
+                : twoCellAnchor.ToMarker.RowOffset?.Text);
+
+            int basePixels = Math.Max(0, to - from) * (horizontal ? 64 : 20);
+            int offsetPixels = (int)Math.Round((toOffset - fromOffset) / 9525D);
+            int pixels = Math.Max(1, basePixels + offsetPixels);
+            emu = PxToEmu(pixels);
+            return true;
         }
     }
 }

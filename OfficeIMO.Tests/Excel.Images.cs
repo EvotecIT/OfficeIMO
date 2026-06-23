@@ -51,8 +51,10 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorkSheet("Images");
-                sheet.AddImageFromFileToRange("A1:C15", imagePath, name: "RangeLogo", altText: "Logo pinned to report header",
+                ExcelImage image = sheet.AddImageFromFileToRange("A1:C15", imagePath, name: "RangeLogo", altText: "Logo pinned to report header",
                     title: "Pinned logo", placement: ExcelImagePlacement.MoveAndSize);
+                Assert.Equal(192, image.WidthPixels);
+                Assert.Equal(300, image.HeightPixels);
                 document.Save();
             }
 
@@ -70,6 +72,26 @@ namespace OfficeIMO.Tests {
             Assert.Equal("RangeLogo", picture.NonVisualPictureProperties!.NonVisualDrawingProperties!.Name!.Value);
             Assert.Equal("Logo pinned to report header", picture.NonVisualPictureProperties.NonVisualDrawingProperties.Description!.Value);
             Assert.Equal("Pinned logo", picture.NonVisualPictureProperties.NonVisualDrawingProperties.Title!.Value);
+            Assert.True(picture.ShapeProperties!.Transform2D!.Extents!.Cx!.Value > 0);
+            Assert.True(picture.ShapeProperties.Transform2D.Extents.Cy!.Value > 0);
+        }
+
+        [Fact]
+        public void Test_ExcelImage_FromFile_MapsTiffContentType() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelImage.FromFile.Tiff.xlsx");
+            string imagePath = Path.Combine(_directoryWithImages, "saturn.tif");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Images");
+                ExcelImage image = sheet.AddImageFromFile(2, 2, imagePath, widthPixels: 32, heightPixels: 32);
+
+                Assert.Equal("image/tiff", image.ContentType);
+                document.Save();
+            }
+
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false);
+            var imagePart = spreadsheet.WorkbookPart!.WorksheetParts.First().DrawingsPart!.ImageParts.Single();
+            Assert.Equal("image/tiff", imagePart.ContentType);
         }
     }
 }

@@ -123,6 +123,15 @@ namespace OfficeIMO.Excel {
 
                 var drawingId = NextDrawingId(drawingPart);
                 string resolvedName = string.IsNullOrWhiteSpace(name) ? $"Picture {drawingId}" : name!.Trim();
+                var (widthPixels, heightPixels) = EstimateRangeAnchorSizePixels(
+                    startRow,
+                    startColumn,
+                    endRow,
+                    endColumn,
+                    offsetXPixels,
+                    offsetYPixels,
+                    endOffsetXPixels,
+                    endOffsetYPixels);
                 var anchor = new Xdr.TwoCellAnchor(
                     new Xdr.FromMarker(
                         new Xdr.ColumnId((startColumn - 1).ToString(System.Globalization.CultureInfo.InvariantCulture)),
@@ -136,7 +145,8 @@ namespace OfficeIMO.Excel {
                         new Xdr.RowId(endRow.ToString(System.Globalization.CultureInfo.InvariantCulture)),
                         new Xdr.RowOffset(PxToEmu(endOffsetYPixels).ToString(System.Globalization.CultureInfo.InvariantCulture))
                     ),
-                    CreatePicture(drawingId, resolvedName, imageRelationshipId, altText, title, lockAspectRatio, 0, 0, rotationDegrees),
+                    CreatePicture(drawingId, resolvedName, imageRelationshipId, altText, title, lockAspectRatio,
+                        PxToEmu(widthPixels), PxToEmu(heightPixels), rotationDegrees),
                     new Xdr.ClientData()) {
                     EditAs = ToEditAsValue(placement)
                 };
@@ -283,6 +293,20 @@ namespace OfficeIMO.Excel {
             }
 
             return (startRow, startColumn, endRow, endColumn);
+        }
+
+        private static (int WidthPixels, int HeightPixels) EstimateRangeAnchorSizePixels(
+            int startRow,
+            int startColumn,
+            int endRow,
+            int endColumn,
+            int offsetXPixels,
+            int offsetYPixels,
+            int endOffsetXPixels,
+            int endOffsetYPixels) {
+            int width = Math.Max(1, (endColumn - startColumn + 1) * 64 + endOffsetXPixels - offsetXPixels);
+            int height = Math.Max(1, (endRow - startRow + 1) * 20 + endOffsetYPixels - offsetYPixels);
+            return (width, height);
         }
 
         private static void ApplyImageMetadata(ExcelImage image, string? title, double rotationDegrees) {

@@ -93,6 +93,7 @@ namespace OfficeIMO.Excel {
                     "image/jpeg" or "image/jpg" => ImagePartType.Jpeg,
                     "image/gif" => ImagePartType.Gif,
                     "image/bmp" => ImagePartType.Bmp,
+                    "image/tiff" or "image/tif" => ImagePartType.Tiff,
                     _ => ImagePartType.Png
                 };
                 var imagePart = drawingPart.AddImagePart(type);
