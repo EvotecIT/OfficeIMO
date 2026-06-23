@@ -189,6 +189,27 @@ namespace OfficeIMO.Excel {
             }
 
             builder.AppendLine();
+            builder.AppendLine("## Repair Hints");
+            builder.AppendLine();
+            builder.AppendLine("| Capability | Feature | Action | Command | Details |");
+            builder.AppendLine("| --- | --- | --- | --- | --- |");
+            foreach (ExcelPreflightCapability capability in Enum.GetValues(typeof(ExcelPreflightCapability))) {
+                foreach (ExcelPreflightRepairHint hint in GetRepairHints(capability)) {
+                    builder.Append("| ");
+                    builder.Append(EscapeMarkdownCell(capability.ToString()));
+                    builder.Append(" | ");
+                    builder.Append(EscapeMarkdownCell(hint.FeatureName));
+                    builder.Append(" | ");
+                    builder.Append(EscapeMarkdownCell(hint.Action));
+                    builder.Append(" | ");
+                    builder.Append(EscapeMarkdownCell(hint.Command ?? string.Empty));
+                    builder.Append(" | ");
+                    builder.Append(EscapeMarkdownCell(hint.Details ?? string.Empty));
+                    builder.AppendLine(" |");
+                }
+            }
+
+            builder.AppendLine();
             builder.AppendLine("| Category | Feature | Count | Support | Scope | Note | Details |");
             builder.AppendLine("| --- | --- | --- | --- | --- | --- | --- |");
 
@@ -403,7 +424,7 @@ namespace OfficeIMO.Excel {
                     }
                 }
                 legacyCommentCount += worksheetPart.WorksheetCommentsPart?.Comments?.CommentList?.Elements<DocumentFormat.OpenXml.Spreadsheet.Comment>().Count() ?? 0;
-                var threadedComments = ExcelWorksheetCommentResolver.BuildThreadedCommentMap(worksheetPart, threadedCommentPeople)
+                var threadedComments = ExcelWorksheetCommentResolver.BuildThreadedCommentMap(worksheetPart, threadedCommentPeople, sheetName)
                     .Values
                     .SelectMany(comments => comments)
                     .ToList();
@@ -601,10 +622,10 @@ namespace OfficeIMO.Excel {
 
             Add(features, "Compatibility", "VBA macros", ExcelFeatureSupportLevel.Preserved, vbaDetails.Count, null,
                 "Macro projects are preserve-only; OfficeIMO.Excel does not author or edit VBA modules.", vbaDetails);
-            Add(features, "Compatibility", "Slicers", ExcelFeatureSupportLevel.Preserved, slicerDetails.Count, null,
-                "Slicer metadata is preserve-only; authoring slicers remains a roadmap item.", slicerDetails);
-            Add(features, "Compatibility", "Timelines", ExcelFeatureSupportLevel.Preserved, timelineDetails.Count, null,
-                "Timeline metadata is preserve-only; authoring timelines remains a roadmap item.", timelineDetails);
+            Add(features, "Compatibility", "Slicers", ExcelFeatureSupportLevel.PartiallyEditable, slicerDetails.Count, null,
+                "Slicer cache metadata can be authored and preserved; full Excel UI slicer shape/materialization remains partial.", slicerDetails);
+            Add(features, "Compatibility", "Timelines", ExcelFeatureSupportLevel.PartiallyEditable, timelineDetails.Count, null,
+                "Timeline cache metadata can be authored and preserved; full Excel UI timeline shape/materialization remains partial.", timelineDetails);
             Add(features, "Compatibility", "External workbook links", ExcelFeatureSupportLevel.Preserved, externalLinkDetails.Count + externalRelationshipDetails.Count, null,
                 "External relationships and workbook-link parts should be treated carefully during round trips.",
                 externalLinkDetails.Concat(externalRelationshipDetails).ToArray());

@@ -9,7 +9,8 @@ public static partial class PdfPageExtractor {
         int[] pageObjectNumbers,
         Dictionary<int, Dictionary<string, PdfObject>>? pageOverrides = null,
         IEnumerable<AdditionalObject>? additionalObjects = null,
-        CatalogRewriteState? catalogState = null) {
+        CatalogRewriteState? catalogState = null,
+        PdfFileVersion fileVersion = PdfFileVersion.Pdf14) {
         catalogState ??= CatalogRewriteState.Empty;
         var copiedPageObjectIds = new HashSet<int>(pageObjectNumbers);
         catalogState = PruneCatalogStateForPages(sourceObjects, catalogState, copiedPageObjectIds, pageObjectNumbers);
@@ -123,7 +124,7 @@ public static partial class PdfPageExtractor {
         objects.Add(WrapObject(catalogId, PdfEncoding.Latin1GetBytes(BuildCatalogDictionary(pagesId, catalogState, context))));
         objects.Add(WrapObject(infoId, PdfEncoding.Latin1GetBytes(BuildInfoDictionary(metadata))));
     
-        return Assemble(objects, catalogId, infoId);
+        return Assemble(objects, catalogId, infoId, fileVersion);
     }
     
     private static ClonedAnnotationState BuildClonedAnnotationState(

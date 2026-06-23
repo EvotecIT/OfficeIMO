@@ -116,7 +116,7 @@ namespace OfficeIMO.Excel {
 
                     ExcelCellStyleSnapshot style = sheet.GetCellStyle(row.Index, column.Index);
                     string text = sheet.TryGetCellText(row.Index, column.Index, out string cellText)
-                        ? FormatCellDisplayText(cellText, style)
+                        ? FormatCellDisplayText(cellText, style, sheet.Document.DateSystem)
                         : string.Empty;
                     IReadOnlyList<ExcelVisualTextRun> richTextRuns = covered
                         ? Array.Empty<ExcelVisualTextRun>()
@@ -1237,13 +1237,13 @@ namespace OfficeIMO.Excel {
             return Math.Max(1D, Math.Round(definition.Height.Value * 96D / 72D, 2));
         }
 
-        private static string FormatCellDisplayText(string text, ExcelCellStyleSnapshot style) {
+        private static string FormatCellDisplayText(string text, ExcelCellStyleSnapshot style, ExcelDateSystem dateSystem) {
             if (string.IsNullOrEmpty(text) || style.NumberFormatId == 0U) {
                 return text;
             }
 
             return double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)
-                ? ExcelNumberFormatDisplay.FormatNumericText(value, style.NumberFormatId, style.NumberFormatCode, text)
+                ? ExcelNumberFormatDisplay.FormatNumericText(value, style.NumberFormatId, style.NumberFormatCode, text, dateSystem)
                 : text;
         }
 

@@ -478,6 +478,7 @@ namespace OfficeIMO.Excel {
         private void Save() {
             ChartPart chartPart = GetChartPart();
             chartPart.ChartSpace?.Save();
+            _document.MarkPackageDirty();
         }
     }
 }

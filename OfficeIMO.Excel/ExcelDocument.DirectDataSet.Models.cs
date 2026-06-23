@@ -13,10 +13,12 @@ namespace OfficeIMO.Excel {
             private DirectDataSetWorkbookModel(
                 IReadOnlyList<DirectDataSetSheetModel> sheets,
                 IReadOnlyList<ExcelDataSetImportResult> results,
-                Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy) {
+                Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy,
+                ExcelDateSystem dateSystem = ExcelDateSystem.NineteenHundred) {
                 Sheets = sheets;
                 Results = results;
                 DateTimeOffsetWriteStrategy = dateTimeOffsetWriteStrategy;
+                DateSystem = dateSystem;
             }
 
             internal IReadOnlyList<DirectDataSetSheetModel> Sheets { get; }
@@ -24,6 +26,14 @@ namespace OfficeIMO.Excel {
             internal IReadOnlyList<ExcelDataSetImportResult> Results { get; }
 
             internal Func<DateTimeOffset, DateTime> DateTimeOffsetWriteStrategy { get; }
+
+            internal ExcelDateSystem DateSystem { get; }
+
+            internal DirectDataSetWorkbookModel WithDateSystem(ExcelDateSystem dateSystem) {
+                return dateSystem == DateSystem
+                    ? this
+                    : new DirectDataSetWorkbookModel(Sheets, Results, DateTimeOffsetWriteStrategy, dateSystem);
+            }
 
             internal DirectDataSetWorkbookModel WithWorksheetMetadata(IReadOnlyList<DirectWorksheetMetadata?> metadata) {
                 if (metadata == null) throw new ArgumentNullException(nameof(metadata));
@@ -36,7 +46,7 @@ namespace OfficeIMO.Excel {
                     sheets[i] = Sheets[i].WithMetadata(metadata[i]);
                 }
 
-                return new DirectDataSetWorkbookModel(sheets, Results, DateTimeOffsetWriteStrategy);
+                return new DirectDataSetWorkbookModel(sheets, Results, DateTimeOffsetWriteStrategy, DateSystem);
             }
 
             internal DirectDataSetWorkbookModel WithAutoFitColumns(
@@ -72,10 +82,14 @@ namespace OfficeIMO.Excel {
                         columnWidths,
                         sheet.UseCellValueNumberFormats,
                         sheet.Metadata,
-                        sheet.ColumnNumberFormats);
+                        sheet.ColumnNumberFormats,
+                        sheet.ShowFirstColumn,
+                        sheet.ShowLastColumn,
+                        sheet.ShowRowStripes,
+                        sheet.ShowColumnStripes);
                 }
 
-                return new DirectDataSetWorkbookModel(sheets, Results, dateTimeOffsetWriteStrategy ?? DateTimeOffsetWriteStrategy);
+                return new DirectDataSetWorkbookModel(sheets, Results, dateTimeOffsetWriteStrategy ?? DateTimeOffsetWriteStrategy, DateSystem);
             }
 
             internal DirectDataSetWorkbookModel WithTableAutoFilter(string sheetName, bool includeAutoFilter) {
@@ -102,10 +116,43 @@ namespace OfficeIMO.Excel {
                         sheet.ColumnWidths,
                         sheet.UseCellValueNumberFormats,
                         sheet.Metadata,
-                        sheet.ColumnNumberFormats);
+                        sheet.ColumnNumberFormats,
+                        sheet.ShowFirstColumn,
+                        sheet.ShowLastColumn,
+                        sheet.ShowRowStripes,
+                        sheet.ShowColumnStripes);
                 }
 
-                return new DirectDataSetWorkbookModel(sheets, Results, DateTimeOffsetWriteStrategy);
+                return new DirectDataSetWorkbookModel(sheets, Results, DateTimeOffsetWriteStrategy, DateSystem);
+            }
+
+            internal bool TryWithTableStyle(
+                string sheetName,
+                string tableOrRange,
+                TableStyle tableStyle,
+                bool? showFirstColumn,
+                bool? showLastColumn,
+                bool? showRowStripes,
+                bool? showColumnStripes,
+                out DirectDataSetWorkbookModel model) {
+                var sheets = new DirectDataSetSheetModel[Sheets.Count];
+                bool matched = false;
+                for (int i = 0; i < Sheets.Count; i++) {
+                    var sheet = Sheets[i];
+                    if (!matched
+                        && sheet.HasTable
+                        && string.Equals(sheet.SheetName, sheetName, StringComparison.Ordinal)
+                        && (string.Equals(sheet.Range, tableOrRange, StringComparison.OrdinalIgnoreCase)
+                            || string.Equals(sheet.TableName, tableOrRange, StringComparison.OrdinalIgnoreCase))) {
+                        sheets[i] = sheet.WithTableStyle(tableStyle, showFirstColumn, showLastColumn, showRowStripes, showColumnStripes);
+                        matched = true;
+                    } else {
+                        sheets[i] = sheet;
+                    }
+                }
+
+                model = matched ? new DirectDataSetWorkbookModel(sheets, Results, DateTimeOffsetWriteStrategy, DateSystem) : this;
+                return matched;
             }
 
             internal DirectDataSetWorkbookModel WithAutoFitColumns(
@@ -155,10 +202,14 @@ namespace OfficeIMO.Excel {
                         columnWidths,
                         sheet.UseCellValueNumberFormats,
                         sheet.Metadata,
-                        sheet.ColumnNumberFormats);
+                        sheet.ColumnNumberFormats,
+                        sheet.ShowFirstColumn,
+                        sheet.ShowLastColumn,
+                        sheet.ShowRowStripes,
+                        sheet.ShowColumnStripes);
                 }
 
-                return new DirectDataSetWorkbookModel(sheets, Results, dateTimeOffsetWriteStrategy ?? DateTimeOffsetWriteStrategy);
+                return new DirectDataSetWorkbookModel(sheets, Results, dateTimeOffsetWriteStrategy ?? DateTimeOffsetWriteStrategy, DateSystem);
             }
 
             internal DirectDataSetWorkbookModel WithTable(
@@ -205,11 +256,15 @@ namespace OfficeIMO.Excel {
                         columnWidths,
                         sheet.UseCellValueNumberFormats,
                         sheet.Metadata,
-                        sheet.ColumnNumberFormats);
+                        sheet.ColumnNumberFormats,
+                        sheet.ShowFirstColumn,
+                        sheet.ShowLastColumn,
+                        sheet.ShowRowStripes,
+                        sheet.ShowColumnStripes);
                     results[i] = new ExcelDataSetImportResult(sheet.SheetName, tableName, sheet.Range, table.RowCount, table.ColumnCount);
                 }
 
-                return new DirectDataSetWorkbookModel(sheets, results, dateTimeOffsetWriteStrategy ?? DateTimeOffsetWriteStrategy);
+                return new DirectDataSetWorkbookModel(sheets, results, dateTimeOffsetWriteStrategy ?? DateTimeOffsetWriteStrategy, DateSystem);
             }
 
             internal DirectDataSetWorkbookModel WithColumnNumberFormat(string sheetName, int columnIndex, string numberFormat) {
@@ -221,7 +276,7 @@ namespace OfficeIMO.Excel {
                         : sheet;
                 }
 
-                return new DirectDataSetWorkbookModel(sheets, Results, DateTimeOffsetWriteStrategy);
+                return new DirectDataSetWorkbookModel(sheets, Results, DateTimeOffsetWriteStrategy, DateSystem);
             }
 
 
@@ -236,7 +291,8 @@ namespace OfficeIMO.Excel {
                 CancellationToken ct,
                 IReadOnlyList<ExcelDataSetImportResult>? importResults = null,
                 bool snapshotTables = false,
-                bool omitBlankCells = false) {
+                bool omitBlankCells = false,
+                ExcelDateSystem dateSystem = ExcelDateSystem.NineteenHundred) {
                 var sheets = new List<DirectDataSetSheetModel>();
                 var results = new List<ExcelDataSetImportResult>();
                 var usedSheetNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -277,7 +333,7 @@ namespace OfficeIMO.Excel {
                     index++;
                 }
 
-                return new DirectDataSetWorkbookModel(sheets, results, dateTimeOffsetWriteStrategy ?? DefaultDateTimeOffsetWriteStrategy);
+                return new DirectDataSetWorkbookModel(sheets, results, dateTimeOffsetWriteStrategy ?? DefaultDateTimeOffsetWriteStrategy, dateSystem);
             }
 
             internal static DirectDataSetWorkbookModel CreateSingle(
@@ -293,7 +349,8 @@ namespace OfficeIMO.Excel {
                 bool autoFit,
                 Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy,
                 CancellationToken ct,
-                bool useCellValueNumberFormats = false) {
+                bool useCellValueNumberFormats = false,
+                ExcelDateSystem dateSystem = ExcelDateSystem.NineteenHundred) {
                 int rowCount = tableModel.RowCount + (includeHeaders ? 1 : 0);
                 ValidateWorksheetBounds(tableModel, rowCount, requestedName);
                 bool hasTable = createTable && range.Length > 0;
@@ -305,7 +362,7 @@ namespace OfficeIMO.Excel {
                     : null;
                 var sheet = new DirectDataSetSheetModel(1, sheetName, resolvedTableName, range, tableModel, tableStyle, includeHeaders, includeAutoFilter, hasTable, autoFit, omitBlankCells: false, columnWidths: columnWidths, useCellValueNumberFormats: useCellValueNumberFormats);
                 var result = new ExcelDataSetImportResult(sheetName, resolvedTableName, range, tableModel.RowCount, tableModel.ColumnCount);
-                return new DirectDataSetWorkbookModel([sheet], [result], dateTimeOffsetWriteStrategy ?? DefaultDateTimeOffsetWriteStrategy);
+                return new DirectDataSetWorkbookModel([sheet], [result], dateTimeOffsetWriteStrategy ?? DefaultDateTimeOffsetWriteStrategy, dateSystem);
             }
 
             private static string GetUniqueSheetName(string baseName, HashSet<string> used) {
@@ -426,7 +483,11 @@ namespace OfficeIMO.Excel {
                 double[]? columnWidths,
                 bool useCellValueNumberFormats = false,
                 DirectWorksheetMetadata? metadata = null,
-                IReadOnlyList<string?>? columnNumberFormats = null) {
+                IReadOnlyList<string?>? columnNumberFormats = null,
+                bool showFirstColumn = false,
+                bool showLastColumn = false,
+                bool showRowStripes = true,
+                bool showColumnStripes = false) {
                 Index = index;
                 SheetName = sheetName;
                 TableName = tableName;
@@ -442,6 +503,10 @@ namespace OfficeIMO.Excel {
                 UseCellValueNumberFormats = useCellValueNumberFormats;
                 Metadata = metadata;
                 ColumnNumberFormats = columnNumberFormats;
+                ShowFirstColumn = showFirstColumn;
+                ShowLastColumn = showLastColumn;
+                ShowRowStripes = showRowStripes;
+                ShowColumnStripes = showColumnStripes;
             }
 
             internal DirectDataSetSheetModel WithMetadata(DirectWorksheetMetadata? metadata) {
@@ -464,7 +529,39 @@ namespace OfficeIMO.Excel {
                     ColumnWidths,
                     UseCellValueNumberFormats,
                     metadata,
-                    ColumnNumberFormats);
+                    ColumnNumberFormats,
+                    ShowFirstColumn,
+                    ShowLastColumn,
+                    ShowRowStripes,
+                    ShowColumnStripes);
+            }
+
+            internal DirectDataSetSheetModel WithTableStyle(
+                TableStyle tableStyle,
+                bool? showFirstColumn,
+                bool? showLastColumn,
+                bool? showRowStripes,
+                bool? showColumnStripes) {
+                return new DirectDataSetSheetModel(
+                    Index,
+                    SheetName,
+                    TableName,
+                    Range,
+                    Table,
+                    tableStyle,
+                    IncludeHeaders,
+                    IncludeAutoFilter,
+                    HasTable,
+                    AutoFitColumns,
+                    OmitBlankCells,
+                    ColumnWidths,
+                    UseCellValueNumberFormats,
+                    Metadata,
+                    ColumnNumberFormats,
+                    showFirstColumn ?? ShowFirstColumn,
+                    showLastColumn ?? ShowLastColumn,
+                    showRowStripes ?? ShowRowStripes,
+                    showColumnStripes ?? ShowColumnStripes);
             }
 
             internal DirectDataSetSheetModel WithColumnNumberFormat(int columnIndex, string numberFormat) {
@@ -498,7 +595,11 @@ namespace OfficeIMO.Excel {
                     ColumnWidths,
                     UseCellValueNumberFormats,
                     Metadata,
-                    formats);
+                    formats,
+                    ShowFirstColumn,
+                    ShowLastColumn,
+                    ShowRowStripes,
+                    ShowColumnStripes);
             }
 
             internal int Index { get; }
@@ -530,10 +631,19 @@ namespace OfficeIMO.Excel {
             internal DirectWorksheetMetadata? Metadata { get; }
 
             internal IReadOnlyList<string?>? ColumnNumberFormats { get; }
+
+            internal bool ShowFirstColumn { get; }
+
+            internal bool ShowLastColumn { get; }
+
+            internal bool ShowRowStripes { get; }
+
+            internal bool ShowColumnStripes { get; }
         }
 
         private sealed class DirectWorksheetMetadata {
             internal static readonly DirectWorksheetMetadata Empty = new(
+                null,
                 null,
                 null,
                 null,
@@ -548,6 +658,7 @@ namespace OfficeIMO.Excel {
                 string? sheetPropertiesXml,
                 string? sheetViewsXml,
                 string? sheetFormatPropertiesXml,
+                string? sheetProtectionXml,
                 string? autoFilterXml,
                 IReadOnlyList<string> conditionalFormattingXml,
                 string? dataValidationsXml,
@@ -557,6 +668,7 @@ namespace OfficeIMO.Excel {
                 SheetPropertiesXml = sheetPropertiesXml;
                 SheetViewsXml = sheetViewsXml;
                 SheetFormatPropertiesXml = sheetFormatPropertiesXml;
+                SheetProtectionXml = sheetProtectionXml;
                 AutoFilterXml = autoFilterXml;
                 ConditionalFormattingXml = conditionalFormattingXml ?? Array.Empty<string>();
                 DataValidationsXml = dataValidationsXml;
@@ -574,6 +686,7 @@ namespace OfficeIMO.Excel {
                     SheetPropertiesXml,
                     sheetViewsXml,
                     SheetFormatPropertiesXml,
+                    SheetProtectionXml,
                     AutoFilterXml,
                     ConditionalFormattingXml,
                     DataValidationsXml,
@@ -591,6 +704,7 @@ namespace OfficeIMO.Excel {
                     SheetPropertiesXml,
                     SheetViewsXml,
                     SheetFormatPropertiesXml,
+                    SheetProtectionXml,
                     autoFilterXml,
                     ConditionalFormattingXml,
                     DataValidationsXml,
@@ -604,6 +718,8 @@ namespace OfficeIMO.Excel {
             internal string? SheetViewsXml { get; }
 
             internal string? SheetFormatPropertiesXml { get; }
+
+            internal string? SheetProtectionXml { get; }
 
             internal string? AutoFilterXml { get; }
 
@@ -621,6 +737,7 @@ namespace OfficeIMO.Excel {
                 => SheetPropertiesXml == null
                    && SheetViewsXml == null
                    && SheetFormatPropertiesXml == null
+                   && SheetProtectionXml == null
                 && AutoFilterXml == null
                 && ConditionalFormattingXml.Count == 0
                 && DataValidationsXml == null

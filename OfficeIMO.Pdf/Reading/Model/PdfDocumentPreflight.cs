@@ -46,10 +46,10 @@ public sealed partial class PdfDocumentPreflight {
     public bool CanManipulatePages => CanRewrite;
 
     /// <summary>True when OfficeIMO.Pdf can attempt simple AcroForm value updates for named text, choice, or button fields.</summary>
-    public bool CanFillSimpleFormFields => CanRead && !HasFormMutationBlocker() && HasSimpleFillableFormFields();
+    public bool CanFillSimpleFormFields => CanRead && !HasFormMutationBlocker() && !HasRewriteBlocker(PdfRewriteBlockerKind.Encryption) && HasSimpleFillableFormFields();
 
     /// <summary>True when OfficeIMO.Pdf can attempt simple AcroForm flattening for text, choice, or button widgets with page-backed rectangles.</summary>
-    public bool CanFlattenSimpleFormFields => CanRead && !HasFormMutationBlocker() && HasSimpleFlattenableFormFields();
+    public bool CanFlattenSimpleFormFields => CanRead && !HasFormMutationBlocker() && !HasRewriteBlocker(PdfRewriteBlockerKind.Encryption) && HasSimpleFlattenableFormFields();
 
     /// <summary>True when OfficeIMO.Pdf can attempt simple AcroForm value updates followed by simple widget flattening.</summary>
     public bool CanFillAndFlattenSimpleFormFields => CanFillSimpleFormFields && CanFlattenSimpleFormFields;
@@ -134,7 +134,8 @@ public sealed partial class PdfDocumentPreflight {
     }
 
     private bool HasFormMutationBlocker() {
-        return Probe.HasSignatures ||
+        return Probe.HasEncryption ||
+            Probe.HasSignatures ||
             Probe.HasActiveContent ||
             DocumentInfo?.AcroFormSignaturesExist == true ||
             DocumentInfo?.HasActiveContent == true;
@@ -263,6 +264,11 @@ public sealed partial class PdfDocumentPreflight {
             return messages.AsReadOnly();
         }
 
+        if (Probe.HasEncryption) {
+            AddDistinct(messages, "Encrypted PDF files are not supported for form filling or flattening by OfficeIMO.Pdf yet.");
+            AddRange(messages, SecurityDiagnostics);
+        }
+
         if (Probe.HasSignatures || DocumentInfo?.AcroFormSignaturesExist == true) {
             AddDistinct(messages, "Signed PDF files are not supported for form filling or flattening by OfficeIMO.Pdf yet.");
             AddRange(messages, SignatureMutationDiagnostics);
@@ -270,6 +276,10 @@ public sealed partial class PdfDocumentPreflight {
 
         if (Probe.HasActiveContent || DocumentInfo?.HasActiveContent == true) {
             AddDistinct(messages, "PDF active content is not supported for form filling or flattening by OfficeIMO.Pdf yet.");
+        }
+
+        if (HasRewriteBlocker(PdfRewriteBlockerKind.Encryption)) {
+            AddRange(messages, GetPageManipulationDiagnostics());
         }
 
         if (requireFillableField && !HasSimpleFillableFormFields()) {

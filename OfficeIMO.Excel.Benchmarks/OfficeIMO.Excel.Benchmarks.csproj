@@ -12,8 +12,8 @@
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
     <PackageReference Include="ClosedXML" Version="0.105.0" />
-    <PackageReference Include="ExcelDataReader" Version="3.8.0" />
-    <PackageReference Include="EPPlus" Version="8.6.0" />
+    <PackageReference Include="ExcelDataReader" Version="3.9.0" />
+    <PackageReference Include="EPPlus" Version="8.6.1" />
     <PackageReference Include="LargeXlsx" Version="2.0.1" />
     <PackageReference Include="MiniExcel" Version="1.44.1" />
     <PackageReference Include="Sylvan.Data.Excel" Version="0.5.6" />

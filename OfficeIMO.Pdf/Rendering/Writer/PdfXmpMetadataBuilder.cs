@@ -104,9 +104,11 @@ internal static class PdfXmpMetadataBuilder {
         sb.Append("<pdfaid:part>")
             .Append(identification.Part.ToString(System.Globalization.CultureInfo.InvariantCulture))
             .Append("</pdfaid:part>\n");
-        sb.Append("<pdfaid:conformance>")
-            .Append(identification.Conformance)
-            .Append("</pdfaid:conformance>\n");
+        if (!string.IsNullOrEmpty(identification.Conformance)) {
+            sb.Append("<pdfaid:conformance>")
+                .Append(identification.Conformance)
+                .Append("</pdfaid:conformance>\n");
+        }
     }
 
     private static void AppendPdfUaIdentification(StringBuilder sb, PdfUaIdentification? identification) {

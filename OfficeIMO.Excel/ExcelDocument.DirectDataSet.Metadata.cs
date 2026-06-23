@@ -61,6 +61,51 @@ namespace OfficeIMO.Excel {
             return _directDataSetSaveCandidate != null && _directDataSetSaveCandidate.IsValid;
         }
 
+        internal bool TrySetDirectTableStyleMetadata(
+            ExcelSheet sheet,
+            string tableOrRange,
+            TableStyle tableStyle,
+            bool? showFirstColumn,
+            bool? showLastColumn,
+            bool? showRowStripes,
+            bool? showColumnStripes) {
+            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            if (string.IsNullOrEmpty(tableOrRange)) throw new ArgumentNullException(nameof(tableOrRange));
+            if (!ReferenceEquals(sheet.Document, this)) {
+                return false;
+            }
+
+            var candidate = _directDataSetSaveCandidate;
+            if (candidate == null || !candidate.IsValid) {
+                return false;
+            }
+
+            if (!candidate.Model.TryWithTableStyle(
+                sheet.Name,
+                tableOrRange,
+                tableStyle,
+                showFirstColumn,
+                showLastColumn,
+                showRowStripes,
+                showColumnStripes,
+                out var model)) {
+                return false;
+            }
+
+            _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(
+                candidate.Owner,
+                model,
+                candidate.InvalidateCallback,
+                candidate.IsDeferred,
+                candidate.SubscribesToSourceChanges);
+            _directDataSetMetadataSourceSheet = sheet;
+            candidate.Dispose();
+            _packageDirty = true;
+            _unchangedPackageBytes = null;
+            _requiresSavePreflight = false;
+            return _directDataSetSaveCandidate != null && _directDataSetSaveCandidate.IsValid;
+        }
+
         internal bool TryApplyDirectWorksheetFreezeMetadata(ExcelSheet sheet, int topRows, int leftCols) {
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
             if (topRows < 0) throw new ArgumentOutOfRangeException(nameof(topRows));
@@ -373,7 +418,8 @@ namespace OfficeIMO.Excel {
                     includeAutoFilter,
                     autoFit,
                     _dateTimeOffsetWriteStrategy,
-                    CancellationToken.None);
+                    CancellationToken.None,
+                    dateSystem: DateSystem);
                 _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(DirectTabularSnapshotOwner, model, MaterializeDeferredDataSetImport, isDeferred: true, subscribeToSourceChanges: false);
                 _directDataSetMetadataSourceSheet = sheet;
                 _packageDirty = true;
@@ -426,7 +472,8 @@ namespace OfficeIMO.Excel {
                     includeAutoFilter,
                     autoFit,
                     _dateTimeOffsetWriteStrategy,
-                    CancellationToken.None);
+                    CancellationToken.None,
+                    dateSystem: DateSystem);
                 _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(DirectTabularSnapshotOwner, model, MaterializeDeferredDataSetImport, isDeferred: true, subscribeToSourceChanges: false);
                 _directDataSetMetadataSourceSheet = sheet;
                 _packageDirty = true;
@@ -479,7 +526,8 @@ namespace OfficeIMO.Excel {
                     includeAutoFilter,
                     autoFit,
                     _dateTimeOffsetWriteStrategy,
-                    CancellationToken.None);
+                    CancellationToken.None,
+                    dateSystem: DateSystem);
                 _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(DirectTabularSnapshotOwner, model, MaterializeDeferredDataSetImport, isDeferred: true, subscribeToSourceChanges: false);
                 _directDataSetMetadataSourceSheet = sheet;
                 _packageDirty = true;

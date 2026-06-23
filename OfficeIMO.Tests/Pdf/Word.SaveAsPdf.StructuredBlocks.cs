@@ -2058,6 +2058,50 @@ public partial class Word {
             text);
     }
 
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Preserves_System_Font_Map_In_Structured_Blocks() {
+        string? fontFamily = PdfEmbeddedFontFamily.TryFromSystem("Segoe UI Symbol", out _)
+            ? "Segoe UI Symbol"
+            : PdfEmbeddedFontFamily.TryFromSystem("DejaVu Sans", out _)
+                ? "DejaVu Sans"
+                : null;
+        if (fontFamily == null) {
+            return;
+        }
+
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeStructuredBlockSystemFontMap.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeStructuredBlockSystemFontMap.pdf");
+        const string expectedText = "Structured block system font map";
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.Settings.FontFamily = "Calibri";
+            WordParagraph paragraph = document.AddParagraph(expectedText);
+            paragraph.SetFontFamily(fontFamily);
+            Paragraph paragraphNode = (Paragraph)paragraph._paragraph.CloneNode(true);
+            paragraph._paragraph.Remove();
+
+            document._document.Body!.Append(new SdtBlock(
+                new SdtProperties(new SdtAlias { Val = "Structured font block" }),
+                new SdtContentBlock(paragraphNode)));
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                AllowSystemFontEmbedding = true,
+                IncludePageNumbers = false
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        string normalizedExpectedFont = NormalizePdfFontNameForAssert(fontFamily);
+        Assert.Contains(pdf.GetPage(1).Letters, letter =>
+            expectedText.IndexOf(letter.Value, StringComparison.Ordinal) >= 0 &&
+            letter.FontName != null &&
+            NormalizePdfFontNameForAssert(letter.FontName).IndexOf(normalizedExpectedFont, StringComparison.OrdinalIgnoreCase) >= 0);
+    }
+
+    private static string NormalizePdfFontNameForAssert(string fontName) =>
+        new string(fontName.Where(char.IsLetterOrDigit).ToArray());
+
     private static SdtBlock CreateNativeCoverPageBlock(params string[] lines) {
         var block = new SdtBlock(
             new SdtProperties(

@@ -212,7 +212,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void CellDateTimeValueCore(int row, int column, DateTime value) {
-            double serial = value.ToOADate();
+            double serial = ExcelDateSystemConverter.ToSerial(value, _excelDocument.DateSystem);
             var cell = GetCell(row, column);
             uint baseStyleIndex = cell.StyleIndex?.Value ?? 0U;
             cell.CellValue = new CellValue(serial.ToString(CultureInfo.InvariantCulture));
@@ -236,7 +236,7 @@ namespace OfficeIMO.Excel {
 
             if (value.UtcDateTime >= CellValueExcelMinimumSupportedDate) {
                 try {
-                    double serial = converted.ToOADate();
+                    double serial = ExcelDateSystemConverter.ToSerial(converted, _excelDocument.DateSystem);
                     cell.CellValue = new CellValue(serial.ToString(CultureInfo.InvariantCulture));
                     cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
 
@@ -264,7 +264,7 @@ namespace OfficeIMO.Excel {
         private void CellDateOnlyValueCore(int row, int column, DateOnly value) {
             var cell = GetCell(row, column);
             uint baseStyleIndex = cell.StyleIndex?.Value ?? 0U;
-            cell.CellValue = new CellValue(value.ToDateTime(TimeOnly.MinValue).ToOADate().ToString(CultureInfo.InvariantCulture));
+            cell.CellValue = new CellValue(ExcelDateSystemConverter.ToSerial(value.ToDateTime(TimeOnly.MinValue), _excelDocument.DateSystem).ToString(CultureInfo.InvariantCulture));
             cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
             cell.StyleIndex = baseStyleIndex == 0U
                 ? (_cellValueDefaultDateStyleIndex ??= GetOrCreateBuiltInNumberFormatStyleIndex(0U, 14))
@@ -313,7 +313,8 @@ namespace OfficeIMO.Excel {
                     int idx = _excelDocument.GetSharedStringIndex(s);
                     return new CellValue(SharedStringIndexText.Get(idx));
                 },
-                dateTimeOffsetStrategy);
+                dateTimeOffsetStrategy,
+                _excelDocument.DateSystem);
             return (cellValue, new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(cellType));
         }
     }

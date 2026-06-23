@@ -143,7 +143,12 @@ namespace OfficeIMO.Excel {
         /// <param name="fitToWidth">Number of pages to fit horizontally (1 = fit to one page).</param>
         /// <param name="fitToHeight">Number of pages to fit vertically (0 = unlimited).</param>
         /// <param name="scale">Manual scale (10-400). Ignored if FitToWidth/Height are specified.</param>
-        public void SetPageSetup(uint? fitToWidth = null, uint? fitToHeight = null, uint? scale = null) {
+        /// <param name="pageOrder">Optional multi-page print order.</param>
+        public void SetPageSetup(uint? fitToWidth = null, uint? fitToHeight = null, uint? scale = null, ExcelPageOrder? pageOrder = null) {
+            if (scale is < 10U or > 400U) {
+                throw new ArgumentOutOfRangeException(nameof(scale), "Manual print scale must be between 10 and 400 percent.");
+            }
+
             WriteLock(() => {
                 var ws = WorksheetRoot;
                 var pageSetup = ws.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.PageSetup>();
@@ -157,6 +162,88 @@ namespace OfficeIMO.Excel {
                 if (fitToWidth != null) pageSetup.FitToWidth = fitToWidth.Value;
                 if (fitToHeight != null) pageSetup.FitToHeight = fitToHeight.Value;
                 if (scale != null) pageSetup.Scale = scale.Value;
+                if (pageOrder != null) {
+                    pageSetup.PageOrder = pageOrder == ExcelPageOrder.OverThenDown
+                        ? DocumentFormat.OpenXml.Spreadsheet.PageOrderValues.OverThenDown
+                        : DocumentFormat.OpenXml.Spreadsheet.PageOrderValues.DownThenOver;
+                }
+
+                if (fitToWidth != null || fitToHeight != null) {
+                    var sheetProperties = ws.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.SheetProperties>();
+                    if (sheetProperties == null) {
+                        sheetProperties = new DocumentFormat.OpenXml.Spreadsheet.SheetProperties();
+                        ws.InsertAt(sheetProperties, 0);
+                    }
+
+                    var pageSetupProperties = sheetProperties.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.PageSetupProperties>();
+                    if (pageSetupProperties == null) {
+                        pageSetupProperties = new DocumentFormat.OpenXml.Spreadsheet.PageSetupProperties();
+                        sheetProperties.Append(pageSetupProperties);
+                    }
+
+                    pageSetupProperties.FitToPage = true;
+                }
+
+                ws.Save();
+            });
+        }
+
+        internal void SetPageSetupAndClearStaleFit(uint? fitToWidth = null, uint? fitToHeight = null, uint? scale = null, ExcelPageOrder? pageOrder = null) {
+            if (scale is < 10U or > 400U) {
+                throw new ArgumentOutOfRangeException(nameof(scale), "Manual print scale must be between 10 and 400 percent.");
+            }
+
+            WriteLock(() => {
+                var ws = WorksheetRoot;
+                var pageSetup = ws.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.PageSetup>();
+                if (pageSetup == null) {
+                    pageSetup = new DocumentFormat.OpenXml.Spreadsheet.PageSetup();
+                    var margins = ws.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.PageMargins>();
+                    if (margins != null) ws.InsertAfter(pageSetup, margins); else ws.Append(pageSetup);
+                }
+
+                if (fitToWidth != null) pageSetup.FitToWidth = fitToWidth.Value;
+                else {
+                    pageSetup.FitToWidth = null;
+                    pageSetup.RemoveAttribute("fitToWidth", string.Empty);
+                }
+
+                if (fitToHeight != null) pageSetup.FitToHeight = fitToHeight.Value;
+                else {
+                    pageSetup.FitToHeight = null;
+                    pageSetup.RemoveAttribute("fitToHeight", string.Empty);
+                }
+
+                if (scale != null) pageSetup.Scale = scale.Value;
+                else {
+                    pageSetup.Scale = null;
+                    pageSetup.RemoveAttribute("scale", string.Empty);
+                }
+
+                if (pageOrder != null) {
+                    pageSetup.PageOrder = pageOrder == ExcelPageOrder.OverThenDown
+                        ? DocumentFormat.OpenXml.Spreadsheet.PageOrderValues.OverThenDown
+                        : DocumentFormat.OpenXml.Spreadsheet.PageOrderValues.DownThenOver;
+                }
+
+                var sheetProperties = ws.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.SheetProperties>();
+                var pageSetupProperties = sheetProperties?.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.PageSetupProperties>();
+                if (fitToWidth != null || fitToHeight != null) {
+                    if (sheetProperties == null) {
+                        sheetProperties = new DocumentFormat.OpenXml.Spreadsheet.SheetProperties();
+                        ws.InsertAt(sheetProperties, 0);
+                    }
+
+                    if (pageSetupProperties == null) {
+                        pageSetupProperties = new DocumentFormat.OpenXml.Spreadsheet.PageSetupProperties();
+                        sheetProperties.Append(pageSetupProperties);
+                    }
+
+                    pageSetupProperties.FitToPage = true;
+                } else if (pageSetupProperties != null) {
+                    pageSetupProperties.FitToPage = null;
+                    pageSetupProperties.RemoveAttribute("fitToPage", string.Empty);
+                }
 
                 ws.Save();
             });

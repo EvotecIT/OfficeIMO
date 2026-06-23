@@ -522,7 +522,7 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private static bool TryFormatTextFunctionValue(FormulaArgumentValue value, string format, out string formatted) {
+        private bool TryFormatTextFunctionValue(FormulaArgumentValue value, string format, out string formatted) {
             formatted = string.Empty;
             if (string.IsNullOrWhiteSpace(format)) {
                 return false;

@@ -69,6 +69,26 @@ public sealed class PdfExternalValidationResult {
     public static PdfExternalValidationResult Error(PdfExternalValidatorKind validatorKind, string validatorName, string diagnostic, string? profile = null, int? exitCode = null) =>
         new(validatorKind, PdfExternalValidationStatus.Error, validatorName, diagnostic, profile, exitCode: exitCode);
 
+    /// <summary>Creates a validator result from a process exit code, treating the configured success code as Passed and all other codes as Failed.</summary>
+    public static PdfExternalValidationResult FromExitCode(
+        PdfExternalValidatorKind validatorKind,
+        int exitCode,
+        string validatorName,
+        string diagnostic,
+        string? profile = null,
+        string? executablePath = null,
+        string? arguments = null,
+        int successExitCode = 0) =>
+        new(
+            validatorKind,
+            exitCode == successExitCode ? PdfExternalValidationStatus.Passed : PdfExternalValidationStatus.Failed,
+            validatorName,
+            diagnostic,
+            profile,
+            executablePath,
+            arguments,
+            exitCode);
+
     private static void ValidateValidatorKind(PdfExternalValidatorKind value, string paramName) {
         if (value != PdfExternalValidatorKind.VeraPdf &&
             value != PdfExternalValidatorKind.PdfUaValidator &&

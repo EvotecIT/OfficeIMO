@@ -318,7 +318,7 @@ public partial class PdfInspectorTests {
         Assert.False(probe.HasEmbeddedFiles);
         Assert.False(probe.HasOptionalContent);
         Assert.False(probe.HasActiveContent);
-        Assert.Throws<NotSupportedException>(() => PdfInspector.Inspect(bytes));
+        Assert.Throws<PdfUnsupportedEncryptionException>(() => PdfInspector.Inspect(bytes));
     }
 
     [Fact]

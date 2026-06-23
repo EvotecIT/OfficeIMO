@@ -47,6 +47,7 @@ public sealed partial class PdfOptions {
             OpenAction = _openAction?.Clone(),
             ViewerPreferences = _viewerPreferences?.Clone(),
             CatalogUriBase = CatalogUriBase,
+            Encryption = _encryption?.Clone(),
             AcroFormDefaultTextAlignment = AcroFormDefaultTextAlignment,
             EmbeddedFontFallbacks = _embeddedFontFallbacks?.Clone(),
             TextHyphenationCallback = _textHyphenationCallback,

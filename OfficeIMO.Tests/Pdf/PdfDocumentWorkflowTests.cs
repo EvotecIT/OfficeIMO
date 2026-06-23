@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using OfficeIMO.Pdf;
 using Xunit;
@@ -54,6 +55,34 @@ public class PdfDocumentWorkflowTests {
         Assert.Contains("Customer", text, StringComparison.Ordinal);
         Assert.Contains("Evotec", text, StringComparison.Ordinal);
         Assert.Contains("/BaseFont /Helvetica-Bold", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PageSizes_ResolveExpandedStandardNames() {
+        Assert.True(PageSizes.TryGet("a0", out PageSize a0));
+        Assert.Equal(2384, a0.Width);
+        Assert.Equal(3370, a0.Height);
+
+        Assert.True(PageSizes.TryGet("B10", out PageSize b10));
+        Assert.Equal(88, b10.Width);
+        Assert.Equal(124, b10.Height);
+
+        Assert.Equal(PageSizes.Executive, PageSizes.Get("Executive"));
+        Assert.Equal(PageSizes.Ledger, PageSizes.Get("LedgerOrTabloid"));
+        Assert.Contains("Tabloid", PageSizes.Names);
+        Assert.False(PageSizes.TryGet("Unknown", out _));
+    }
+
+    [Fact]
+    public void FileVersion_CanEmitPdf20Header() {
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                FileVersion = PdfFileVersion.Pdf20
+            })
+            .Paragraph(paragraph => paragraph.Text("PDF 2.0"))
+            .ToBytes();
+
+        Assert.StartsWith("%PDF-2.0", Encoding.ASCII.GetString(bytes), StringComparison.Ordinal);
+        Assert.Equal("2.0", PdfDocument.Open(bytes).Inspect().HeaderVersion);
     }
 
     [Fact]
@@ -185,6 +214,54 @@ public class PdfDocumentWorkflowTests {
     }
 
     [Fact]
+    public void DiagnosticsOptimizationTextBlocksFlatteningAndRedactionPlanning_AreAvailableFromDocumentFacade() {
+        byte[] source = PdfDocument.Create(new PdfOptions {
+                IncludePageLabels = true,
+                OpenAction = new PdfOpenActionOptions(1, destinationMode: PdfOpenActionDestinationMode.Fit),
+                ViewerPreferences = new PdfViewerPreferencesOptions {
+                    DisplayDocTitle = true,
+                    FitWindow = true
+                }
+            })
+            .Meta(title: "Diagnostic Report")
+            .H1("Diagnostic Report")
+            .Paragraph(paragraph => paragraph.Text("This paragraph should appear in structured text and redaction planning."))
+            .ToBytes();
+
+        using PdfDocument document = PdfDocument.Open(source);
+        PdfDocumentInfo info = document.Inspect();
+        Assert.True(info.HasReadablePageLabels);
+        Assert.True(info.HasReadableOpenAction);
+        Assert.True(info.HasReadableViewerPreferences);
+
+        PdfDiagnosticReport diagnostics = document.Diagnostics();
+        Assert.True(diagnostics.CanRead);
+        Assert.True(diagnostics.ObjectGraphParsed);
+        Assert.True(diagnostics.ObjectCount > 0);
+        Assert.True(diagnostics.StreamCount > 0);
+        Assert.True(diagnostics.StreamTypeCounts.ContainsKey("Stream"));
+
+        PdfOptimizationReport optimization = document.AnalyzeOptimization();
+        Assert.Equal(diagnostics.StreamCount, optimization.StreamCount);
+        Assert.NotEmpty(optimization.LargestStreams);
+
+        IReadOnlyList<PdfLogicalTextBlock> blocks = document.Read.TextBlocks();
+        Assert.NotEmpty(blocks);
+        Assert.Contains(blocks, block => block.Text.Contains("Diagnostic Report", StringComparison.Ordinal));
+        Assert.True(document.Read.TryTextBlocks().Succeeded);
+
+        PdfRedactionPlan plan = document.PlanRedactions(new[] {
+            new PdfRedactionArea(1, 0, 0, 1000, 1000, "full-page")
+        });
+        Assert.True(plan.HasMatches);
+        Assert.Contains(plan.Matches, match => match.Text != null && match.Text.Contains("structured text", StringComparison.Ordinal));
+
+        PdfDocument flattened = document.FlattenVisualAnnotations();
+        Assert.True(flattened.Preflight().CanRead);
+        Assert.True(document.TryFlattenVisualAnnotations().Succeeded);
+    }
+
+    [Fact]
     public void Forms_TryFillNullOptionsCallsRemainSourceCompatible() {
         byte[] formPdf = BuildSimpleFormPdf();
         var textValues = new Dictionary<string, string> {
@@ -229,6 +306,53 @@ public class PdfDocumentWorkflowTests {
         Assert.Contains("Page A", split[0].Read.Text(), StringComparison.Ordinal);
         Assert.Contains("Page B", split[1].Read.Text(), StringComparison.Ordinal);
         Assert.Contains("Page C", split[2].Read.Text(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PageOperations_SplitByPageCountSelectionsAndBookmarks() {
+        byte[] source = BuildThreePagePdf();
+
+        IReadOnlyList<PdfDocument> pageGroups = PdfDocument.Open(source).Pages.Split(2);
+        Assert.Equal(2, pageGroups.Count);
+        Assert.Equal(2, pageGroups[0].Inspect().PageCount);
+        Assert.Equal(1, pageGroups[1].Inspect().PageCount);
+        Assert.Contains("Page A", pageGroups[0].Read.Text(), StringComparison.Ordinal);
+        Assert.Contains("Page C", pageGroups[1].Read.Text(), StringComparison.Ordinal);
+
+        IReadOnlyList<PdfDocument> selections = PdfDocument.Open(source).Pages.Split(
+            PdfPageSelection.Parse("1-2"),
+            PdfPageSelection.Parse("3"));
+        Assert.Equal(2, selections.Count);
+        Assert.Contains("Second page body", selections[0].Read.Text(), StringComparison.Ordinal);
+        Assert.Contains("Third page body", selections[1].Read.Text(), StringComparison.Ordinal);
+
+        byte[] bookmarked = BuildThreeBookmarkPdf();
+        PdfDocument bookmarkDocument = PdfDocument.Open(bookmarked);
+        IReadOnlyList<PdfBookmarkPageRange> ranges = bookmarkDocument.Pages.BookmarkPageRanges();
+        Assert.Equal(3, ranges.Count);
+        Assert.Equal("Chapter One", ranges[0].Title);
+        Assert.Equal(PdfPageRange.From(1, 1), ranges[0].PageRange);
+        Assert.Equal(PdfPageRange.From(3, 3), ranges[2].PageRange);
+
+        IReadOnlyList<PdfBookmarkPageRange> selectedRange = bookmarkDocument.Pages.BookmarkPageRanges("Chapter Two");
+        Assert.Equal(PdfPageRange.From(2, 2), Assert.Single(selectedRange).PageRange);
+
+        IReadOnlyList<PdfDocument> bookmarkSplit = bookmarkDocument.Pages.SplitByBookmarks("Chapter Two");
+        PdfDocument chapterTwo = Assert.Single(bookmarkSplit);
+        Assert.Contains("Chapter Two", chapterTwo.Read.Text(), StringComparison.Ordinal);
+        Assert.DoesNotContain("Chapter Three", chapterTwo.Read.Text(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PageOperations_BookmarkPageRangesUsePageOrderWhenOutlineOrderDiffers() {
+        PdfDocument document = PdfDocument.Open(BuildOutOfOrderBookmarkPdf());
+
+        IReadOnlyList<PdfBookmarkPageRange> ranges = document.Pages.BookmarkPageRanges();
+
+        Assert.Equal(new[] { "Chapter One", "Chapter Two", "Chapter Three" }, ranges.Select(range => range.Title).ToArray());
+        Assert.Equal(PdfPageRange.From(1, 1), ranges[0].PageRange);
+        Assert.Equal(PdfPageRange.From(2, 2), ranges[1].PageRange);
+        Assert.Equal(PdfPageRange.From(3, 3), ranges[2].PageRange);
     }
 
     [Fact]
@@ -623,6 +747,83 @@ public class PdfDocumentWorkflowTests {
             .H1("Page C")
             .Paragraph(p => p.Text("Third page body"))
             .ToBytes();
+    }
+
+    private static byte[] BuildThreeBookmarkPdf() {
+        return PdfDocument.Create(new PdfOptions {
+                CreateOutlineFromHeadings = true
+            })
+            .H1("Chapter One")
+            .Paragraph(p => p.Text("First chapter body"))
+            .PageBreak()
+            .H1("Chapter Two")
+            .Paragraph(p => p.Text("Second chapter body"))
+            .PageBreak()
+            .H1("Chapter Three")
+            .Paragraph(p => p.Text("Third chapter body"))
+            .ToBytes();
+    }
+
+    private static byte[] BuildOutOfOrderBookmarkPdf() {
+        string pageOneContent = BuildStreamObject("BT /F1 12 Tf 72 720 Td (Chapter One) Tj ET");
+        string pageTwoContent = BuildStreamObject("BT /F1 12 Tf 72 720 Td (Chapter Two) Tj ET");
+        string pageThreeContent = BuildStreamObject("BT /F1 12 Tf 72 720 Td (Chapter Three) Tj ET");
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /Outlines 9 0 R /PageMode /UseOutlines >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 3 /Kids [3 0 R 4 0 R 5 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 6 0 R >> >> /Contents 7 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 6 0 R >> >> /Contents 8 0 R >>",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 6 0 R >> >> /Contents 10 0 R >>",
+            "endobj",
+            "6 0 obj",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            "endobj",
+            "7 0 obj",
+            pageOneContent,
+            "endobj",
+            "8 0 obj",
+            pageTwoContent,
+            "endobj",
+            "9 0 obj",
+            "<< /Type /Outlines /First 11 0 R /Last 13 0 R /Count 3 >>",
+            "endobj",
+            "10 0 obj",
+            pageThreeContent,
+            "endobj",
+            "11 0 obj",
+            "<< /Title (Chapter Three) /Parent 9 0 R /Dest [5 0 R /Fit] /Next 12 0 R >>",
+            "endobj",
+            "12 0 obj",
+            "<< /Title (Chapter One) /Parent 9 0 R /Dest [3 0 R /Fit] /Prev 11 0 R /Next 13 0 R >>",
+            "endobj",
+            "13 0 obj",
+            "<< /Title (Chapter Two) /Parent 9 0 R /Dest [4 0 R /Fit] /Prev 12 0 R >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 14 >>",
+            "startxref",
+            "123",
+            "%%EOF"
+        });
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static string BuildStreamObject(string content) {
+        byte[] bytes = Encoding.ASCII.GetBytes(content);
+        return "<< /Length " + bytes.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>\nstream\n" +
+            content +
+            "\nendstream";
     }
 
     private static byte[] BuildPdf(string title, string text) {

@@ -3,7 +3,12 @@ using System.Text;
 
 namespace OfficeIMO.Excel {
     internal static class ExcelNumberFormatDisplay {
-        internal static string FormatNumericText(double value, uint numberFormatId, string? formatCode, string fallback) {
+        internal static string FormatNumericText(
+            double value,
+            uint numberFormatId,
+            string? formatCode,
+            string fallback,
+            ExcelDateSystem dateSystem = ExcelDateSystem.NineteenHundred) {
             if (numberFormatId == 0U) {
                 return fallback;
             }
@@ -13,7 +18,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (IsDateNumberFormat(numberFormatId, formatCode)) {
-                return FormatDateValue(value, numberFormatId, formatCode!);
+                return FormatDateValue(value, numberFormatId, formatCode!, dateSystem);
             }
 
             return FormatNumberValue(value, numberFormatId, formatCode!) ?? fallback;
@@ -73,7 +78,7 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private static string FormatDateValue(double value, uint numberFormatId, string formatCode) {
+        private static string FormatDateValue(double value, uint numberFormatId, string formatCode, ExcelDateSystem dateSystem) {
             if (numberFormatId == 46U || formatCode.IndexOf("[h]", StringComparison.OrdinalIgnoreCase) >= 0) {
                 TimeSpan duration = TimeSpan.FromDays(value);
                 int totalHours = (int)Math.Floor(duration.TotalHours);
@@ -82,7 +87,7 @@ namespace OfficeIMO.Excel {
 
             DateTime date;
             try {
-                date = DateTime.FromOADate(value);
+                date = ExcelDateSystemConverter.FromSerial(value, dateSystem);
             } catch {
                 return value.ToString(CultureInfo.InvariantCulture);
             }

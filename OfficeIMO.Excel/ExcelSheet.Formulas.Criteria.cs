@@ -438,20 +438,24 @@ namespace OfficeIMO.Excel {
                 && TryGetWholeNumber(value, out number);
         }
 
-        private static bool TryGetDateFromSerial(double value, out DateTime date) {
+        private double ToExcelDateSerial(DateTime value) {
+            return ExcelDateSystemConverter.ToSerial(value, _excelDocument.DateSystem);
+        }
+
+        private bool TryGetDateFromSerial(double value, out DateTime date) {
             date = default;
             try {
-                date = DateTime.FromOADate(value).Date;
+                date = ExcelDateSystemConverter.FromSerial(value, _excelDocument.DateSystem).Date;
                 return true;
             } catch (ArgumentException) {
                 return false;
             }
         }
 
-        private static bool TryGetDateTimeFromSerial(double value, out DateTime date) {
+        private bool TryGetDateTimeFromSerial(double value, out DateTime date) {
             date = default;
             try {
-                date = DateTime.FromOADate(value);
+                date = ExcelDateSystemConverter.FromSerial(value, _excelDocument.DateSystem);
                 return true;
             } catch (ArgumentException) {
                 return false;

@@ -1,0 +1,7 @@
+interface:
+  display_name: OfficeIMO Conversion Operator
+  short_description: Work on OfficeIMO conversion APIs while keeping hosts thin.
+  default_prompt: >-
+    Use OfficeIMO core conversion APIs first, prefer byte and stream entrypoints,
+    validate real artifacts, and keep website, PowerShell, MCP, and demo hosts
+    as thin adapters.

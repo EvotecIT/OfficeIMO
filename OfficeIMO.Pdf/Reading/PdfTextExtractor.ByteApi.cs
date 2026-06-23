@@ -5,16 +5,28 @@ namespace OfficeIMO.Pdf;
 public static partial class PdfTextExtractor {
     /// <summary>Extracts plain text from all pages, concatenated with blank lines between pages.</summary>
     public static string ExtractAllText(byte[] pdf) {
+        return ExtractAllText(pdf, (PdfTextLayoutOptions?)null, (PdfReadOptions?)null);
+    }
+
+    /// <summary>Extracts plain text from all pages, concatenated with blank lines between pages.</summary>
+    public static string ExtractAllText(byte[] pdf, PdfTextLayoutOptions? options, PdfReadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
+        if (options is not null) {
+            return PdfReadDocument.Load(pdf, readOptions).ExtractTextWithColumns(options);
+        }
     
         string? readModelText = null;
         try {
-            readModelText = PdfReadDocument.Load(pdf).ExtractText();
-        } catch (Exception ex) when (ex is not NotSupportedException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
+            readModelText = PdfReadDocument.Load(pdf, readOptions).ExtractText();
+        } catch (Exception ex) when (ex is not PdfEncryptionException && ex is not NotSupportedException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
             // Keep the legacy stream scan as a fallback for malformed-but-readable PDFs.
         }
+
+        if (PdfInspector.Probe(pdf).HasEncryption) {
+            return readModelText ?? string.Empty;
+        }
     
-        var (parsedObjects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
+        var (parsedObjects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
         var map = BuildObjectMap(pdf, out _);
         var pages = CollectPages(parsedObjects, trailerRaw);
         var sb = new StringBuilder();
@@ -86,12 +98,7 @@ public static partial class PdfTextExtractor {
     
     /// <summary>Extracts plain text from all pages using layout options such as column detection and header/footer trimming.</summary>
     public static string ExtractAllText(byte[] pdf, PdfTextLayoutOptions? options) {
-        Guard.NotNull(pdf, nameof(pdf));
-        if (options is null) {
-            return ExtractAllText(pdf);
-        }
-    
-        return PdfReadDocument.Load(pdf).ExtractTextWithColumns(options);
+        return ExtractAllText(pdf, options, null);
     }
     
     /// <summary>Extracts plain text from all pages and writes UTF-8 text to <paramref name="outputStream"/>.</summary>
@@ -104,7 +111,7 @@ public static partial class PdfTextExtractor {
         Guard.NotNull(pdf, nameof(pdf));
         ValidateWritableOutputStream(outputStream);
     
-        WriteTextOutput(outputStream, ExtractAllText(pdf, options));
+        WriteTextOutput(outputStream, ExtractAllText(pdf, options, null));
     }
     
     /// <summary>Extracts plain text from all pages and writes UTF-8 text to <paramref name="outputPath"/>.</summary>
@@ -117,7 +124,7 @@ public static partial class PdfTextExtractor {
         Guard.NotNull(pdf, nameof(pdf));
         string fullOutputPath = ValidateOutputPath(outputPath);
     
-        WriteTextOutput(fullOutputPath, ExtractAllText(pdf, options));
+        WriteTextOutput(fullOutputPath, ExtractAllText(pdf, options, null));
     }
     
     /// <summary>Extracts plain text from each page in document order.</summary>
@@ -125,11 +132,27 @@ public static partial class PdfTextExtractor {
         Guard.NotNull(pdf, nameof(pdf));
         return ExtractTextByPage(PdfReadDocument.Load(pdf));
     }
+
+    /// <summary>Extracts plain text from each page in document order.</summary>
+    public static IReadOnlyList<string> ExtractTextByPage(byte[] pdf, PdfTextLayoutOptions? options, PdfReadOptions? readOptions) {
+        Guard.NotNull(pdf, nameof(pdf));
+        if (options is null) {
+            return ExtractTextByPage(PdfReadDocument.Load(pdf, readOptions));
+        }
+
+        return ExtractTextByPage(PdfReadDocument.Load(pdf, readOptions), options);
+    }
     
     /// <summary>Extracts plain text from the supplied inclusive one-based page ranges in caller order.</summary>
     public static IReadOnlyList<string> ExtractTextByPageRanges(byte[] pdf, params PdfPageRange[] pageRanges) {
         Guard.NotNull(pdf, nameof(pdf));
         return ExtractTextByPageRanges(PdfReadDocument.Load(pdf), pageRanges);
+    }
+
+    /// <summary>Extracts plain text from the supplied inclusive one-based page ranges in caller order.</summary>
+    public static IReadOnlyList<string> ExtractTextByPageRanges(byte[] pdf, PdfPageRange[] pageRanges, PdfReadOptions? readOptions) {
+        Guard.NotNull(pdf, nameof(pdf));
+        return ExtractTextByPageRanges(PdfReadDocument.Load(pdf, readOptions), pageRanges);
     }
     
     /// <summary>Extracts plain text from the supplied inclusive one-based page ranges and concatenates selected pages with blank lines.</summary>
@@ -142,6 +165,12 @@ public static partial class PdfTextExtractor {
     public static string ExtractAllTextByPageRanges(byte[] pdf, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
         Guard.NotNull(pdf, nameof(pdf));
         return ExtractAllTextByPageRanges(PdfReadDocument.Load(pdf), options, pageRanges);
+    }
+
+    /// <summary>Extracts plain text from the supplied inclusive one-based page ranges with layout options and concatenates selected pages with blank lines.</summary>
+    public static string ExtractAllTextByPageRanges(byte[] pdf, PdfTextLayoutOptions? options, PdfReadOptions? readOptions, params PdfPageRange[] pageRanges) {
+        Guard.NotNull(pdf, nameof(pdf));
+        return ExtractAllTextByPageRanges(PdfReadDocument.Load(pdf, readOptions), options, pageRanges);
     }
     
     /// <summary>Extracts plain text from the supplied inclusive one-based page ranges and writes one UTF-8 text result to <paramref name="outputStream"/>.</summary>
@@ -174,6 +203,12 @@ public static partial class PdfTextExtractor {
     public static string ExtractMarkdown(byte[] pdf, PdfTextLayoutOptions? options = null, PdfLogicalMarkdownOptions? markdownOptions = null) {
         Guard.NotNull(pdf, nameof(pdf));
         return PdfLogicalDocument.Load(pdf, options).ToMarkdown(markdownOptions);
+    }
+
+    /// <summary>Extracts logical Markdown from all pages.</summary>
+    public static string ExtractMarkdown(byte[] pdf, PdfTextLayoutOptions? options, PdfLogicalMarkdownOptions? markdownOptions, PdfReadOptions? readOptions) {
+        Guard.NotNull(pdf, nameof(pdf));
+        return PdfLogicalDocument.From(PdfReadDocument.Load(pdf, readOptions), options).ToMarkdown(markdownOptions);
     }
     
     /// <summary>Extracts logical Markdown from all pages and writes UTF-8 Markdown to <paramref name="outputStream"/>.</summary>
@@ -216,6 +251,12 @@ public static partial class PdfTextExtractor {
     public static string ExtractMarkdownByPageRangesAsDocument(byte[] pdf, PdfTextLayoutOptions? options, PdfLogicalMarkdownOptions? markdownOptions, params PdfPageRange[] pageRanges) {
         Guard.NotNull(pdf, nameof(pdf));
         return PdfLogicalDocument.LoadPageRanges(pdf, options, pageRanges).ToMarkdown(markdownOptions);
+    }
+
+    /// <summary>Extracts logical Markdown from the supplied inclusive one-based page ranges and concatenates selected pages with Markdown page separators.</summary>
+    public static string ExtractMarkdownByPageRangesAsDocument(byte[] pdf, PdfTextLayoutOptions? options, PdfLogicalMarkdownOptions? markdownOptions, PdfReadOptions? readOptions, params PdfPageRange[] pageRanges) {
+        Guard.NotNull(pdf, nameof(pdf));
+        return PdfLogicalDocument.FromPageRanges(PdfReadDocument.Load(pdf, readOptions), options, pageRanges).ToMarkdown(markdownOptions);
     }
     
     /// <summary>Extracts logical Markdown from each page from bytes and writes one UTF-8 Markdown file per page.</summary>
@@ -330,11 +371,6 @@ public static partial class PdfTextExtractor {
     
     /// <summary>Extracts plain text from each page using layout options such as column detection and header/footer trimming.</summary>
     public static IReadOnlyList<string> ExtractTextByPage(byte[] pdf, PdfTextLayoutOptions? options) {
-        Guard.NotNull(pdf, nameof(pdf));
-        if (options is null) {
-            return ExtractTextByPage(pdf);
-        }
-
-        return ExtractTextByPage(PdfReadDocument.Load(pdf), options);
+        return ExtractTextByPage(pdf, options, null);
     }
 }

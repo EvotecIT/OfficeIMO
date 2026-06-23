@@ -25,6 +25,27 @@ internal static class PdfTextString {
         return PdfWinAnsiEncoding.Decode(bytes);
     }
 
+    public static byte[] Encode(string value) {
+        if (string.IsNullOrEmpty(value)) {
+            return Array.Empty<byte>();
+        }
+
+        if (PdfWinAnsiEncoding.CanEncode(value, out _)) {
+            return PdfWinAnsiEncoding.Encode(value);
+        }
+
+        var result = new byte[2 + (value.Length * 2)];
+        result[0] = 0xFE;
+        result[1] = 0xFF;
+        for (int i = 0; i < value.Length; i++) {
+            char ch = value[i];
+            result[2 + (i * 2)] = (byte)(ch >> 8);
+            result[3 + (i * 2)] = (byte)(ch & 0xFF);
+        }
+
+        return result;
+    }
+
     public static string DecodeHex(string raw) {
         if (string.IsNullOrWhiteSpace(raw)) {
             return string.Empty;
@@ -59,7 +80,7 @@ internal static class PdfTextString {
         return builder.ToString();
     }
 
-    private static byte[] DecodeHexBytes(string raw) {
+    internal static byte[] DecodeHexBytes(string raw) {
         var hex = new StringBuilder(raw.Length);
         for (int i = 0; i < raw.Length; i++) {
             char ch = raw[i];

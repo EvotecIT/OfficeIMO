@@ -159,6 +159,22 @@ public partial class PdfComplianceAnalyzerTests {
     }
 
     [Fact]
+    public void PdfA3BReadinessRejectsStandardEncryption() {
+        var options = new PdfOptions()
+            .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B)
+            .SetEncryption("open", "owner");
+
+        PdfComplianceReadinessReport report = PdfComplianceAnalyzer.Assess(
+            PdfComplianceProfile.PdfA3B,
+            options,
+            Array.Empty<PdfStandardFont>());
+
+        PdfComplianceRequirement requirement = AssertRequirement(report, "pdfa-no-encryption", PdfComplianceRequirementStatus.Missing);
+        Assert.False(report.IsReady);
+        Assert.Contains("cannot be claimed", requirement.Diagnostic, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PdfA3UReadinessReportsWrongIdentificationAndMissingUnicodeMaps() {
         var options = new PdfOptions()
             .SetPdfAIdentification(3, "B")

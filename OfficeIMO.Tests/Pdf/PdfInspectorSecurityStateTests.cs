@@ -14,8 +14,8 @@ public partial class PdfInspectorTests {
         Assert.True(report.Probe.HasEncryption);
         Assert.Null(report.DocumentInfo);
         Assert.True(report.HasSecurityDiagnostics);
-        AssertReadBlocker(report, PdfReadBlockerKind.Encryption, "Encrypted PDF files are not supported by OfficeIMO.Pdf yet.");
-        AssertRewriteBlocker(report, PdfRewriteBlockerKind.Encryption, "Encrypted PDF files are not supported by OfficeIMO.Pdf yet.");
+        AssertReadBlocker(report, PdfReadBlockerKind.Encryption, "PDF encryption dictionary is missing /O.");
+        AssertRewriteBlocker(report, PdfRewriteBlockerKind.Encryption, "Encrypted PDF files can be read when the password is valid, but rewriting encrypted PDFs is not supported yet.");
 
         PdfDocumentSecurityInfo security = report.Probe.Security;
         Assert.True(security.HasEncryption);
@@ -182,10 +182,7 @@ public partial class PdfInspectorTests {
         Assert.Contains("Catalog /Perms contains usage-rights entries; rewrite may invalidate viewer-extended rights.", report.SecurityDiagnostics);
         Assert.Contains("Document Security Store (/DSS) was detected with 1 VRI entry; signature validation evidence must be preserved during mutation.", report.SecurityDiagnostics);
         Assert.Contains("Incremental update markers were detected (2 startxref sections); safe mutation requires append-only revision preservation.", report.SecurityDiagnostics);
-        Assert.Contains("Append-only signature preservation is not implemented by OfficeIMO.Pdf yet.", report.AppendOnlyMutationDiagnostics);
-        Assert.Contains("DocMDP certification permissions must be evaluated before append-only mutation.", report.AppendOnlyMutationDiagnostics);
         Assert.Contains("Usage-rights entries must be preserved before append-only mutation.", report.AppendOnlyMutationDiagnostics);
-        Assert.Contains("Append-only PDF writing is not implemented by OfficeIMO.Pdf yet.", report.AppendOnlyMutationDiagnostics);
 
         IReadOnlyList<string> pageDiagnostics = report.GetCapabilityDiagnostics(PdfPreflightCapability.ManipulatePages);
         Assert.Contains("Signed PDF files are not supported for rewriting by OfficeIMO.Pdf yet.", pageDiagnostics);

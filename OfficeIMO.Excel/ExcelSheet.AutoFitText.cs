@@ -85,7 +85,7 @@ namespace OfficeIMO.Excel {
 
             string? formatCode = GetNumberFormatCode(numberFormatId, context);
 
-            return ExcelNumberFormatDisplay.FormatNumericText(value, numberFormatId, formatCode, raw);
+            return ExcelNumberFormatDisplay.FormatNumericText(value, numberFormatId, formatCode, raw, _excelDocument.DateSystem);
         }
 
         private uint GetCellNumberFormatId(Cell cell, AutoFitTextContext? context) {

@@ -74,7 +74,8 @@ namespace OfficeIMO.Excel.Utilities {
 
         internal static Dictionary<string, List<ExcelThreadedCommentSnapshot>> BuildThreadedCommentMap(
             WorksheetPart worksheetPart,
-            IReadOnlyDictionary<string, string> people) {
+            IReadOnlyDictionary<string, string> people,
+            string? sheetName = null) {
             if (worksheetPart == null) {
                 throw new ArgumentNullException(nameof(worksheetPart));
             }
@@ -103,6 +104,7 @@ namespace OfficeIMO.Excel.Utilities {
                     }
 
                     var snapshot = new ExcelThreadedCommentSnapshot {
+                        SheetName = sheetName ?? string.Empty,
                         CellReference = reference!,
                         Id = NullIfWhiteSpace(comment.Id?.Value),
                         ParentId = NullIfWhiteSpace(comment.ParentId?.Value),

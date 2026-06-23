@@ -13,7 +13,7 @@ namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
         private const int NativeOfficeImoScaffoldCellWidthTwips = 2400;
 
-        private static void RenderNativeTable(INativePdfFlow pdf, WordTable table, Func<WordParagraph, (int Level, string Marker)?> getMarker, Dictionary<long, int> footnoteNumbersById, PdfSaveOptions? options, double? contentWidth, NativeDocumentDefaults nativeDefaults) {
+        private static void RenderNativeTable(INativePdfFlow pdf, WordTable table, Func<WordParagraph, (int Level, string Marker)?> getMarker, Dictionary<long, int> footnoteNumbersById, PdfSaveOptions? options, double? contentWidth, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) {
             RecordNativeBodyTableDiagnostics(table, options, "body table");
 
             TableLayout layout = TableLayoutCache.GetLayout(table);
@@ -62,7 +62,7 @@ namespace OfficeIMO.Word.Pdf {
                         tableColumnCount,
                         visualHeaderRowCount,
                         footerStartRowIndex);
-                    NativeCellText cellText = CreateNativeCellText(cell, footnoteNumbersById, nativeDefaults, cellStyleDefaults);
+                    NativeCellText cellText = CreateNativeCellText(cell, footnoteNumbersById, nativeDefaults, cellStyleDefaults, nativeFontMap);
                     IReadOnlyList<PdfCore.PdfTableCellCheckBox> checkBoxes = CreateNativeTableCellCheckBoxes(cell);
                     IReadOnlyList<PdfCore.PdfTableCellFormField> formFields = CreateNativeTableCellFormFields(cell);
                     IReadOnlyList<PdfCore.PdfTableCellImage> images = CreateNativeTableCellImages(cell);

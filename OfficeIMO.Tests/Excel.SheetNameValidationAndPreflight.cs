@@ -1555,6 +1555,84 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ManualPageBreaks_CanBeRemovedAndCleared() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (var doc = ExcelDocument.Create(path)) {
+                var sheet = doc.AddWorkSheet("Print");
+                sheet.CellValue(1, 1, "Value");
+
+                Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddManualRowPageBreak(A1.MaxRows + 1, save: false));
+                Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddManualColumnPageBreak(A1.MaxColumns + 1, save: false));
+
+                sheet.AddManualRowPageBreak(3, save: false);
+                sheet.AddManualRowPageBreak(6, save: false);
+                sheet.AddManualColumnPageBreak(2, save: false);
+                sheet.AddManualColumnPageBreak(4, save: false);
+
+                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
+                Assert.NotNull(wsPartField);
+                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                RowBreaks rowBreaks = wsPart.Worksheet.GetFirstChild<RowBreaks>()!;
+                rowBreaks.Append(new Break { Id = 9U, Min = 0U, Max = 16383U, ManualPageBreak = false });
+                rowBreaks.Count = 3U;
+                rowBreaks.ManualBreakCount = 2U;
+
+                Assert.Equal(new[] { 3, 6 }, sheet.GetManualRowPageBreaks());
+                Assert.Equal(new[] { 2, 4 }, sheet.GetManualColumnPageBreaks());
+                Assert.False(sheet.RemoveManualRowPageBreak(9, save: false));
+                Assert.Contains(rowBreaks.Elements<Break>(), pageBreak => pageBreak.Id?.Value == 9U && pageBreak.ManualPageBreak?.Value != true);
+
+                Assert.True(sheet.RemoveManualRowPageBreak(3, save: false));
+                Assert.False(sheet.RemoveManualRowPageBreak(99, save: false));
+                Assert.Equal(new[] { 6 }, sheet.GetManualRowPageBreaks());
+
+                Assert.True(sheet.ClearManualColumnPageBreaks(save: false));
+                Assert.False(sheet.ClearManualColumnPageBreaks(save: false));
+                Assert.Empty(sheet.GetManualColumnPageBreaks());
+
+                Assert.True(sheet.ClearManualPageBreaks(save: false));
+                Assert.False(sheet.ClearManualPageBreaks(save: false));
+                Assert.Empty(sheet.GetManualRowPageBreaks());
+                Assert.Contains(rowBreaks.Elements<Break>(), pageBreak => pageBreak.Id?.Value == 9U && pageBreak.ManualPageBreak?.Value != true);
+            }
+
+            File.Delete(path);
+        }
+
+        [Fact]
+        public void ManualPageBreaks_ClearOnlyManualBreaks() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (var doc = ExcelDocument.Create(path)) {
+                var sheet = doc.AddWorkSheet("Print");
+                sheet.CellValue(1, 1, "Value");
+                sheet.AddManualRowPageBreak(3, save: false);
+
+                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
+                Assert.NotNull(wsPartField);
+                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                RowBreaks rowBreaks = wsPart.Worksheet.GetFirstChild<RowBreaks>()!;
+                rowBreaks.Append(new Break {
+                    Id = 10U,
+                    Min = 0U,
+                    Max = 16383U,
+                    ManualPageBreak = false
+                });
+                rowBreaks.Count = 2U;
+                rowBreaks.ManualBreakCount = 1U;
+
+                Assert.True(sheet.ClearManualRowPageBreaks(save: false));
+                RowBreaks remaining = wsPart.Worksheet.GetFirstChild<RowBreaks>()!;
+                Break automatic = Assert.Single(remaining.Elements<Break>());
+                Assert.Equal(10U, automatic.Id!.Value);
+                Assert.False(automatic.ManualPageBreak!.Value);
+                Assert.Equal(1U, remaining.Count!.Value);
+                Assert.Equal(0U, remaining.ManualBreakCount!.Value);
+            }
+
+            File.Delete(path);
+        }
+
+        [Fact]
         public void Preflight_NormalizesPrintMarginsAndScaleBeforeSave() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");

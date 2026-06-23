@@ -1,0 +1,7 @@
+interface:
+  display_name: OfficeIMO Website WASM
+  short_description: Build OfficeIMO.com static browser conversion features.
+  default_prompt: >-
+    Keep OfficeIMO.com browser conversion static and GitHub Pages-safe. Publish
+    Blazor WebAssembly under Website/static/apps/officeimo-converter and call
+    OfficeIMO byte and stream APIs directly.

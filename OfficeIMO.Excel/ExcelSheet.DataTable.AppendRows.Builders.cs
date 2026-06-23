@@ -321,13 +321,13 @@ namespace OfficeIMO.Excel {
                     if (value is bool boolValue) return CoerceValueHelper.HandleBoolean(boolValue);
                     break;
                 case TabularAppendColumnKind.DateTime:
-                    if (value is DateTime dateTimeValue) return CoerceValueHelper.HandleNumber(dateTimeValue.ToOADate());
+                    if (value is DateTime dateTimeValue) return CoerceValueHelper.HandleNumber(ExcelDateSystemConverter.ToSerial(dateTimeValue, _excelDocument.DateSystem));
                     break;
                 case TabularAppendColumnKind.DateTimeOffset:
                     break;
 #if NET6_0_OR_GREATER
                 case TabularAppendColumnKind.DateOnly:
-                    if (value is DateOnly dateOnlyValue) return CoerceValueHelper.HandleNumber(dateOnlyValue.ToDateTime(TimeOnly.MinValue).ToOADate());
+                    if (value is DateOnly dateOnlyValue) return CoerceValueHelper.HandleNumber(ExcelDateSystemConverter.ToSerial(dateOnlyValue.ToDateTime(TimeOnly.MinValue), _excelDocument.DateSystem));
                     break;
                 case TabularAppendColumnKind.TimeOnly:
                     if (value is TimeOnly timeOnlyValue) return CoerceValueHelper.HandleNumber(timeOnlyValue.ToTimeSpan().TotalDays);
@@ -364,7 +364,8 @@ namespace OfficeIMO.Excel {
             var (cellValue, cellType) = CoerceValueHelper.Coerce(
                 value,
                 HandleString,
-                _excelDocument.DateTimeOffsetWriteStrategy);
+                _excelDocument.DateTimeOffsetWriteStrategy,
+                _excelDocument.DateSystem);
             sharedStringIndexes = indexes;
 
             if (useDirectStringCells && cellType == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString) {

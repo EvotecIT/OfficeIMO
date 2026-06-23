@@ -139,6 +139,89 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ClosedXmlGap_GradientFills_AreReusableCellAndRangeStyles() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.GradientFills.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Data");
+                sheet.CellAt(1, 1).SetValue("Single").SetGradientFill("#FF0000", "#00FF00", 45);
+                sheet.Range("B1:C1").SetGradientFill("112233", "445566", 90);
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorkbookStylesPart stylesPart = spreadsheet.WorkbookPart!.WorkbookStylesPart!;
+                Stylesheet stylesheet = stylesPart.Stylesheet!;
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart.WorksheetParts.First();
+                Dictionary<string, Cell> cells = worksheetPart.Worksheet.Descendants<Cell>()
+                    .Where(cell => cell.CellReference?.Value != null)
+                    .ToDictionary(cell => cell.CellReference!.Value!);
+
+                Fill singleFill = GetCellFill(stylesheet, cells["A1"]);
+                AssertGradientFill(singleFill, "FFFF0000", "FF00FF00", 45D);
+
+                uint rangeStyleIndex = cells["B1"].StyleIndex!.Value;
+                Assert.Equal(rangeStyleIndex, cells["C1"].StyleIndex!.Value);
+                Fill rangeFill = GetCellFill(stylesheet, cells["B1"]);
+                AssertGradientFill(rangeFill, "FF112233", "FF445566", 90D);
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+
+            static Fill GetCellFill(Stylesheet stylesheet, Cell cell) {
+                CellFormat format = stylesheet.CellFormats!.Elements<CellFormat>().ElementAt((int)cell.StyleIndex!.Value);
+                Assert.True(format.ApplyFill?.Value);
+                return stylesheet.Fills!.Elements<Fill>().ElementAt((int)format.FillId!.Value);
+            }
+
+            static void AssertGradientFill(Fill fill, string expectedStart, string expectedEnd, double expectedDegree) {
+                GradientFill gradient = fill.GradientFill!;
+                Assert.NotNull(gradient);
+                Assert.Equal(GradientValues.Linear, gradient.Type!.Value);
+                Assert.Equal(expectedDegree, gradient.Degree!.Value);
+
+                List<GradientStop> stops = gradient.Elements<GradientStop>().ToList();
+                Assert.Equal(2, stops.Count);
+                Assert.Equal(0D, stops[0].Position!.Value);
+                Assert.Equal(expectedStart, stops[0].Color!.Rgb!.Value);
+                Assert.Equal(1D, stops[1].Position!.Value);
+                Assert.Equal(expectedEnd, stops[1].Color!.Rgb!.Value);
+            }
+        }
+
+        [Fact]
+        public void Test_ClosedXmlGap_HeaderColumnRanges_TargetWorksheetAndTableDataColumns() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.HeaderColumnRanges.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "Region");
+                sheet.CellValue(1, 2, "Sales Amount");
+                sheet.CellValue(2, 1, "NA");
+                sheet.CellValue(2, 2, 100);
+                sheet.CellValue(3, 1, "EMEA");
+                sheet.CellValue(3, 2, 200);
+                sheet.AddTable("A1:B3", hasHeader: true, name: "SalesTable", style: ExcelTableStyle.TableStyleMedium2);
+
+                Assert.Equal("B2:B3", sheet.GetColumnRangeByHeader("Sales Amount"));
+                Assert.Equal("B1:B3", sheet.GetColumnRangeByHeader("Sales Amount", includeHeader: true));
+                Assert.Equal("B2:B3", sheet.GetColumnRangeByHeader("Sales   Amount", tableName: "SalesTable"));
+
+                ExcelRange tableColumn = sheet.Table("SalesTable").Column("sales amount");
+                Assert.Equal("B2:B3", tableColumn.Address);
+
+                document.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+                Assert.Equal("B2:B3", document["Data"].GetColumnRangeByHeader("Sales Amount", tableName: "SalesTable"));
+            }
+        }
+
+        [Fact]
         public void Test_ClosedXmlGap_CalculationPolicy_EvaluatesSupportedFormulasBeforeSave() {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.Calculation.xlsx");
 
@@ -984,18 +1067,17 @@ namespace OfficeIMO.Tests {
                 ExcelFeatureReport report = document.InspectFeatures();
 
                 ExcelFeatureFinding slicers = Assert.Single(report.FindFeatures("Slicers"));
-                Assert.Equal(ExcelFeatureSupportLevel.Preserved, slicers.SupportLevel);
+                Assert.Equal(ExcelFeatureSupportLevel.PartiallyEditable, slicers.SupportLevel);
                 Assert.Equal(1, slicers.Count);
                 Assert.Contains(slicers.Details, detail => detail.Contains("slicerCache", StringComparison.OrdinalIgnoreCase));
 
                 ExcelFeatureFinding timelines = Assert.Single(report.FindFeatures("Timelines"));
-                Assert.Equal(ExcelFeatureSupportLevel.Preserved, timelines.SupportLevel);
+                Assert.Equal(ExcelFeatureSupportLevel.PartiallyEditable, timelines.SupportLevel);
                 Assert.Equal(1, timelines.Count);
                 Assert.Contains(timelines.Details, detail => detail.Contains("timelineCache", StringComparison.OrdinalIgnoreCase));
 
-                InvalidOperationException advancedException = Assert.Throws<InvalidOperationException>(() => report.EnsureNoAdvancedFeatures());
-                Assert.Contains("Slicers", advancedException.Message);
-                Assert.Contains("Timelines", advancedException.Message);
+                Assert.Same(report, report.EnsureNoAdvancedFeatures());
+                Assert.Same(report, report.EnsureCan(ExcelPreflightCapability.EditWorkbookStructure));
             }
         }
 
@@ -1105,9 +1187,9 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
                 ExcelFeatureReport report = document.InspectFeatures();
-                Assert.Contains(report.PreservedFeatures, feature => feature.Name == "Slicers"
+                Assert.Contains(report.PartiallyEditableFeatures, feature => feature.Name == "Slicers"
                     && feature.Details.Any(detail => detail.Contains("slicerCache", StringComparison.OrdinalIgnoreCase)));
-                Assert.Contains(report.PreservedFeatures, feature => feature.Name == "Timelines"
+                Assert.Contains(report.PartiallyEditableFeatures, feature => feature.Name == "Timelines"
                     && feature.Details.Any(detail => detail.Contains("timelineCache", StringComparison.OrdinalIgnoreCase)));
             }
         }

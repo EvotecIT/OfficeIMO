@@ -48,6 +48,28 @@ public partial class PdfComplianceAnalyzerTests {
     }
 
     [Fact]
+    public void ProofReportCountsUnprofiledValidatorResultForRequestedProof() {
+        var options = new PdfOptions()
+            .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B);
+        PdfExternalValidationResult veraPdf = PdfExternalValidationResult.Passed(
+            PdfExternalValidatorKind.VeraPdf,
+            "veraPDF",
+            "PDF/A profile accepted.");
+
+        PdfComplianceProofReport proof = PdfComplianceAnalyzer.AssessProof(
+            PdfComplianceProfile.PdfA3B,
+            options,
+            new[] { veraPdf },
+            generatedStandardFonts: Array.Empty<PdfStandardFont>());
+
+        Assert.True(proof.IsInternallyReady);
+        Assert.True(proof.HasRequiredExternalValidation);
+        Assert.True(proof.CanClaimConformance);
+        Assert.Equal(1, proof.PassedExternalValidationCount);
+        Assert.Empty(proof.MissingExternalValidators);
+    }
+
+    [Fact]
     public void ReadinessAcceptsOpenTypeCffEmbeddedFontsForPdfAFontCoverage() {
         string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
         Assert.NotNull(fontPath);
@@ -178,11 +200,15 @@ public partial class PdfComplianceAnalyzerTests {
     [Fact]
     public void ProofReportRequiresPdfUaValidatorForPdfUaProfiles() {
         PdfComplianceReadinessReport readiness = PdfComplianceAnalyzer.Assess(PdfComplianceProfile.PdfUa1, new PdfOptions());
+        PdfComplianceReadinessReport ua2Readiness = PdfComplianceAnalyzer.Assess(PdfComplianceProfile.PdfUa2, new PdfOptions());
 
         PdfComplianceProofReport proof = PdfComplianceAnalyzer.AssessProof(readiness);
+        PdfComplianceProofReport ua2Proof = PdfComplianceAnalyzer.AssessProof(ua2Readiness);
 
         Assert.Contains(PdfExternalValidatorKind.PdfUaValidator, proof.RequiredExternalValidators);
         Assert.Contains(PdfExternalValidatorKind.PdfUaValidator, proof.MissingExternalValidators);
+        Assert.Contains(PdfExternalValidatorKind.PdfUaValidator, ua2Proof.RequiredExternalValidators);
+        Assert.Contains(PdfExternalValidatorKind.PdfUaValidator, ua2Proof.MissingExternalValidators);
         AssertRequirement(readiness, "pdfua-validation", PdfComplianceRequirementStatus.Unsupported);
     }
 

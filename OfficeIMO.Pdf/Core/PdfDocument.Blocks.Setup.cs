@@ -255,6 +255,20 @@ public sealed partial class PdfDocument {
         return this;
     }
 
+    /// <summary>Sets or clears Standard password security for generated PDF output.</summary>
+    public PdfDocument Encryption(PdfStandardEncryptionOptions? encryption) {
+        EnsureGeneratedDocument();
+        _options.SetEncryption(encryption);
+        return this;
+    }
+
+    /// <summary>Sets Standard password security for generated PDF output.</summary>
+    public PdfDocument Encryption(string userPassword, string? ownerPassword = null, int permissions = PdfStandardEncryptionOptions.AllowAllPermissions) {
+        EnsureGeneratedDocument();
+        _options.SetEncryption(userPassword, ownerPassword, permissions);
+        return this;
+    }
+
     /// <summary>Sets PDF/A XMP identification metadata. This does not by itself certify PDF/A conformance.</summary>
     public PdfDocument PdfAIdentification(PdfAIdentification? identification) {
         _options.SetPdfAIdentification(identification);
@@ -429,7 +443,13 @@ public sealed partial class PdfDocument {
         return this;
     }
 
-    /// <summary>Configures common PDF/A-2 or PDF/A-3 groundwork without enabling formal compliance profile generation.</summary>
+    /// <summary>Configures common PDF/UA-1 or PDF/UA-2 groundwork without enabling formal compliance profile generation.</summary>
+    public PdfDocument ConfigurePdfUaGroundwork(PdfComplianceProfile profile, string language = "en-US") {
+        _options.ConfigurePdfUaGroundwork(profile, language);
+        return this;
+    }
+
+    /// <summary>Configures common PDF/A-2, PDF/A-3, or PDF/A-4 groundwork without enabling formal compliance profile generation.</summary>
     public PdfDocument ConfigurePdfAGroundwork(PdfComplianceProfile profile, string language = "en-US") {
         _options.ConfigurePdfAGroundwork(profile, language);
         return this;
@@ -463,6 +483,17 @@ public sealed partial class PdfDocument {
         return this;
     }
 
+    /// <summary>Adds the canonical Factur-X/ZUGFeRD CrossIndustryInvoice XML file and matching XMP extension metadata.</summary>
+    public PdfDocument AttachFacturXInvoiceXmlFile(
+        string ciiXmlPath,
+        string conformanceLevel = "EN 16931",
+        string version = "1.0",
+        PdfAssociatedFileRelationship relationship = PdfAssociatedFileRelationship.Data,
+        string? description = "Factur-X/ZUGFeRD invoice XML") {
+        _options.AddFacturXInvoiceXmlFile(ciiXmlPath, conformanceLevel, version, relationship, description);
+        return this;
+    }
+
     /// <summary>Configures common PDF/A-3 Factur-X/ZUGFeRD groundwork without enabling formal compliance profile generation.</summary>
     public PdfDocument ConfigureFacturXGroundwork(
         byte[] ciiXml,
@@ -471,6 +502,41 @@ public sealed partial class PdfDocument {
         PdfAssociatedFileRelationship relationship = PdfAssociatedFileRelationship.Data,
         string? description = "Factur-X/ZUGFeRD invoice XML") {
         _options.ConfigureFacturXGroundwork(ciiXml, conformanceLevel, version, relationship, description);
+        return this;
+    }
+
+    /// <summary>Configures common PDF/A-3 Factur-X/ZUGFeRD groundwork from a CrossIndustryInvoice XML file.</summary>
+    public PdfDocument ConfigureFacturXGroundworkFile(
+        string ciiXmlPath,
+        string conformanceLevel = "EN 16931",
+        string version = "1.0",
+        PdfAssociatedFileRelationship relationship = PdfAssociatedFileRelationship.Data,
+        string? description = "Factur-X/ZUGFeRD invoice XML") {
+        _options.ConfigureFacturXGroundworkFile(ciiXmlPath, conformanceLevel, version, relationship, description);
+        return this;
+    }
+
+    /// <summary>Configures common PDF/A-3 e-invoice groundwork for Factur-X or ZUGFeRD without enabling formal compliance profile generation.</summary>
+    public PdfDocument ConfigureElectronicInvoiceGroundwork(
+        PdfComplianceProfile profile,
+        byte[] ciiXml,
+        string conformanceLevel = "EN 16931",
+        string version = "1.0",
+        PdfAssociatedFileRelationship relationship = PdfAssociatedFileRelationship.Data,
+        string? description = "Factur-X/ZUGFeRD invoice XML") {
+        _options.ConfigureElectronicInvoiceGroundwork(profile, ciiXml, conformanceLevel, version, relationship, description);
+        return this;
+    }
+
+    /// <summary>Configures common PDF/A-3 e-invoice groundwork for Factur-X or ZUGFeRD from a CrossIndustryInvoice XML file.</summary>
+    public PdfDocument ConfigureElectronicInvoiceGroundworkFile(
+        PdfComplianceProfile profile,
+        string ciiXmlPath,
+        string conformanceLevel = "EN 16931",
+        string version = "1.0",
+        PdfAssociatedFileRelationship relationship = PdfAssociatedFileRelationship.Data,
+        string? description = "Factur-X/ZUGFeRD invoice XML") {
+        _options.ConfigureElectronicInvoiceGroundworkFile(profile, ciiXmlPath, conformanceLevel, version, relationship, description);
         return this;
     }
 

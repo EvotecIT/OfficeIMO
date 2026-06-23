@@ -26,6 +26,7 @@ internal static class CoerceValueHelper {
     /// calculating the Excel serial number. When omitted, <see cref="DateTimeOffset.LocalDateTime"/> is used. The provided
     /// strategy only influences the numeric serial value that is written; cell formatting must still be applied separately.
     /// </param>
+    /// <param name="dateSystem">Workbook date system used when serializing <see cref="DateTime"/> and <see cref="DateTimeOffset"/> values.</param>
     /// <returns>The OpenXML representation of the supplied value.</returns>
     /// <remarks>
     /// Integer values with an absolute magnitude above ±9,007,199,254,740,992 are written using their string form to prevent
@@ -35,7 +36,8 @@ internal static class CoerceValueHelper {
     internal static (CellValue cellValue, CellValues type) Coerce(
         object? value,
         Func<string, CellValue> sharedStringHandler,
-        Func<DateTimeOffset, DateTime>? dateTimeOffsetStrategy = null) {
+        Func<DateTimeOffset, DateTime>? dateTimeOffsetStrategy = null,
+        ExcelDateSystem dateSystem = ExcelDateSystem.NineteenHundred) {
         if (sharedStringHandler is null) {
             throw new ArgumentNullException(nameof(sharedStringHandler));
         }
@@ -51,10 +53,10 @@ internal static class CoerceValueHelper {
             decimal dec => HandleDecimal(dec),
             int i => HandleSignedInteger(i),
             long l => HandleSignedInteger(l),
-            DateTime dt => HandleNumber(dt.ToOADate()),
-            DateTimeOffset dto => HandleDateTimeOffset(dto, sharedStringHandler, dateTimeOffsetStrategy, nameof(value)),
+            DateTime dt => HandleNumber(ExcelDateSystemConverter.ToSerial(dt, dateSystem)),
+            DateTimeOffset dto => HandleDateTimeOffset(dto, sharedStringHandler, dateTimeOffsetStrategy, dateSystem, nameof(value)),
 #if NET6_0_OR_GREATER
-            DateOnly dateOnly => HandleNumber(dateOnly.ToDateTime(TimeOnly.MinValue).ToOADate()),
+            DateOnly dateOnly => HandleNumber(ExcelDateSystemConverter.ToSerial(dateOnly.ToDateTime(TimeOnly.MinValue), dateSystem)),
             TimeOnly timeOnly => HandleNumber(timeOnly.ToTimeSpan().TotalDays),
 #endif
             TimeSpan ts => HandleNumber(ts.TotalDays),
@@ -89,6 +91,7 @@ internal static class CoerceValueHelper {
         DateTimeOffset value,
         Func<string, CellValue> sharedStringHandler,
         Func<DateTimeOffset, DateTime> dateTimeOffsetStrategy,
+        ExcelDateSystem dateSystem,
         string? paramName) {
         if (sharedStringHandler is null) {
             throw new ArgumentNullException(nameof(sharedStringHandler));
@@ -113,7 +116,7 @@ internal static class CoerceValueHelper {
                 return HandleDateTimeOffsetFallback(value, sharedStringHandler, paramName);
             }
 
-            double serial = converted.ToOADate();
+            double serial = ExcelDateSystemConverter.ToSerial(converted, dateSystem);
             return HandleNumber(serial);
         } catch (ArgumentException) {
             return HandleDateTimeOffsetFallback(value, sharedStringHandler, paramName);

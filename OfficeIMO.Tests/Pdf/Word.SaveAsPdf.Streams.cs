@@ -112,4 +112,19 @@ public partial class Word {
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         Assert.Contains("Hello native async bytes", pdf.GetPage(1).Text);
     }
+
+    [Fact]
+    public void Test_WordDocument_SaveAsPdf_LoadedFixtureWithoutSettingsPart_ToBytes_UsesNativeEngine() {
+        string docPath = GetFixtureDoc("BasicDocument.docx");
+
+        using WordDocument document = WordDocument.Load(docPath, readOnly: true);
+
+        byte[] bytes = document.SaveAsPdf();
+
+        Assert.True(bytes.Length > 4);
+        Assert.Equal((byte)'%', bytes[0]);
+        Assert.Equal((byte)'P', bytes[1]);
+        Assert.Equal((byte)'D', bytes[2]);
+        Assert.Equal((byte)'F', bytes[3]);
+    }
 }

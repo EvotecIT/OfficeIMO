@@ -822,7 +822,7 @@ namespace OfficeIMO.Word {
                 var headerReference = WordHeadersAndFooters.GetHeaderReference(this._document, this, HeaderFooterValues.Even);
                 var footerReference = WordHeadersAndFooters.GetFooterReference(this._document, this, HeaderFooterValues.Even);
 
-                var settings = _wordprocessingDocument.MainDocumentPart!.DocumentSettingsPart!.Settings!.ChildElements.OfType<EvenAndOddHeaders>().FirstOrDefault();
+                var settings = _wordprocessingDocument.MainDocumentPart?.DocumentSettingsPart?.Settings?.ChildElements.OfType<EvenAndOddHeaders>().FirstOrDefault();
                 if (headerReference == true && footerReference == true && settings != null) {
                     return true;
                 }

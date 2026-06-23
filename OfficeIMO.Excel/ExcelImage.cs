@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
+using System.Globalization;
 using A = DocumentFormat.OpenXml.Drawing;
 using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 
@@ -11,11 +12,13 @@ namespace OfficeIMO.Excel {
         private readonly Xdr.Picture _picture;
         private readonly OpenXmlElement _anchor;
         private readonly DrawingsPart _drawingsPart;
+        private readonly ExcelDocument _document;
 
-        internal ExcelImage(Xdr.Picture picture, OpenXmlElement anchor, DrawingsPart drawingsPart) {
+        internal ExcelImage(Xdr.Picture picture, OpenXmlElement anchor, DrawingsPart drawingsPart, ExcelDocument document) {
             _picture = picture ?? throw new ArgumentNullException(nameof(picture));
             _anchor = anchor ?? throw new ArgumentNullException(nameof(anchor));
             _drawingsPart = drawingsPart ?? throw new ArgumentNullException(nameof(drawingsPart));
+            _document = document ?? throw new ArgumentNullException(nameof(document));
         }
 
         /// <summary>
@@ -257,6 +260,67 @@ namespace OfficeIMO.Excel {
             return this;
         }
 
+        /// <summary>
+        /// Moves the image to a one-cell anchor position and optionally applies pixel offsets.
+        /// </summary>
+        /// <param name="row">1-based target row.</param>
+        /// <param name="column">1-based target column.</param>
+        /// <param name="offsetXPixels">Horizontal offset from the cell edge, in pixels.</param>
+        /// <param name="offsetYPixels">Vertical offset from the cell edge, in pixels.</param>
+        public ExcelImage MoveTo(int row, int column, int offsetXPixels = 0, int offsetYPixels = 0) {
+            if (row <= 0 || row > A1.MaxRows) throw new ArgumentOutOfRangeException(nameof(row), "Row must be between 1 and the Excel row limit.");
+            if (column <= 0 || column > A1.MaxColumns) throw new ArgumentOutOfRangeException(nameof(column), "Column must be between 1 and the Excel column limit.");
+
+            var marker = _anchor.GetFirstChild<Xdr.FromMarker>();
+            if (marker == null) {
+                throw new NotSupportedException("Only images anchored to worksheet cells can be moved. Absolute image anchors do not have a cell marker.");
+            }
+
+            int previousColumn = ParseMarkerIndex(marker.ColumnId?.Text);
+            int previousRow = ParseMarkerIndex(marker.RowId?.Text);
+            long previousColumnOffset = ParseMarkerOffset(marker.ColumnOffset?.Text);
+            long previousRowOffset = ParseMarkerOffset(marker.RowOffset?.Text);
+            int targetColumn = column - 1;
+            int targetRow = row - 1;
+            long targetColumnOffset = PxToEmu(offsetXPixels);
+            long targetRowOffset = PxToEmu(offsetYPixels);
+
+            MoveTwoCellEndMarkerIfNeeded(
+                targetColumn - previousColumn,
+                targetRow - previousRow,
+                targetColumnOffset - previousColumnOffset,
+                targetRowOffset - previousRowOffset);
+
+            marker.ColumnId = new Xdr.ColumnId((column - 1).ToString(CultureInfo.InvariantCulture));
+            marker.ColumnOffset = new Xdr.ColumnOffset(targetColumnOffset.ToString(CultureInfo.InvariantCulture));
+            marker.RowId = new Xdr.RowId((row - 1).ToString(CultureInfo.InvariantCulture));
+            marker.RowOffset = new Xdr.RowOffset(targetRowOffset.ToString(CultureInfo.InvariantCulture));
+            Save();
+            return this;
+        }
+
+        private void MoveTwoCellEndMarkerIfNeeded(int columnDelta, int rowDelta, long columnOffsetDelta, long rowOffsetDelta) {
+            Xdr.ToMarker? toMarker = _anchor.GetFirstChild<Xdr.ToMarker>();
+            if (toMarker == null) {
+                return;
+            }
+
+            int targetColumn = ParseMarkerIndex(toMarker.ColumnId?.Text) + columnDelta;
+            int targetRow = ParseMarkerIndex(toMarker.RowId?.Text) + rowDelta;
+            if (targetColumn < 0 || targetColumn >= A1.MaxColumns) {
+                throw new ArgumentOutOfRangeException("column", "Moving this two-cell image would place its end marker outside the Excel column limit.");
+            }
+
+            if (targetRow < 0 || targetRow >= A1.MaxRows) {
+                throw new ArgumentOutOfRangeException("row", "Moving this two-cell image would place its end marker outside the Excel row limit.");
+            }
+
+            toMarker.ColumnId = new Xdr.ColumnId(targetColumn.ToString(CultureInfo.InvariantCulture));
+            toMarker.ColumnOffset = new Xdr.ColumnOffset((ParseMarkerOffset(toMarker.ColumnOffset?.Text) + columnOffsetDelta).ToString(CultureInfo.InvariantCulture));
+            toMarker.RowId = new Xdr.RowId(targetRow.ToString(CultureInfo.InvariantCulture));
+            toMarker.RowOffset = new Xdr.RowOffset((ParseMarkerOffset(toMarker.RowOffset?.Text) + rowOffsetDelta).ToString(CultureInfo.InvariantCulture));
+        }
+
         private Xdr.NonVisualDrawingProperties? DrawingProperties
             => _picture.NonVisualPictureProperties?.NonVisualDrawingProperties;
 
@@ -283,6 +347,7 @@ namespace OfficeIMO.Excel {
 
         private void Save() {
             _drawingsPart.WorksheetDrawing?.Save();
+            _document.MarkPackageDirty();
         }
 
         private static int GetDrawingOrder(OpenXmlElement anchor, DrawingsPart drawingsPart) {
@@ -302,6 +367,14 @@ namespace OfficeIMO.Excel {
         }
 
         private static long PxToEmu(int px) => (long)Math.Round(px * 9525.0);
+
+        private static int ParseMarkerIndex(string? text) {
+            return int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) && value >= 0 ? value : 0;
+        }
+
+        private static long ParseMarkerOffset(string? text) {
+            return long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out long value) ? value : 0L;
+        }
 
         private static int EmuToPx(long emu) {
             if (emu <= 0) {

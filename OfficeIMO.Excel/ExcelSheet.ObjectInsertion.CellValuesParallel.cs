@@ -46,7 +46,8 @@ namespace OfficeIMO.Excel {
             var (cellValue, dataType) = CoerceValueHelper.Coerce(
                 value,
                 s => new CellValue(s),
-                dateTimeOffsetStrategy);
+                dateTimeOffsetStrategy,
+                _excelDocument.DateSystem);
 
             bool isSharedString = dataType == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString;
             return new CellUpdate(row, column, cellValue.Text ?? string.Empty, dataType, isSharedString);

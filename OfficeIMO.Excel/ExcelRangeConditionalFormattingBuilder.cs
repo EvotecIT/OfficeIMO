@@ -249,6 +249,78 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Applies an above-average rule.
+        /// </summary>
+        public ExcelRange AboveAverage(bool equalAverage = false, uint? standardDeviation = null) {
+            _range.Sheet.AddConditionalAboveAverageRule(_range.Address, aboveAverage: true, equalAverage: equalAverage, standardDeviation: standardDeviation);
+            return _range;
+        }
+
+        /// <summary>
+        /// Applies a below-average rule.
+        /// </summary>
+        public ExcelRange BelowAverage(bool equalAverage = false, uint? standardDeviation = null) {
+            _range.Sheet.AddConditionalAboveAverageRule(_range.Address, aboveAverage: false, equalAverage: equalAverage, standardDeviation: standardDeviation);
+            return _range;
+        }
+
+        /// <summary>
+        /// Applies a begins-with text rule.
+        /// </summary>
+        public ExcelRange BeginsWith(string text) {
+            _range.Sheet.AddConditionalTextRule(_range.Address, ConditionalFormatValues.BeginsWith, text);
+            return _range;
+        }
+
+        /// <summary>
+        /// Applies an ends-with text rule.
+        /// </summary>
+        public ExcelRange EndsWith(string text) {
+            _range.Sheet.AddConditionalTextRule(_range.Address, ConditionalFormatValues.EndsWith, text);
+            return _range;
+        }
+
+        /// <summary>
+        /// Applies a blanks rule.
+        /// </summary>
+        public ExcelRange Blanks() {
+            _range.Sheet.AddConditionalBlanksRule(_range.Address, containsBlanks: true);
+            return _range;
+        }
+
+        /// <summary>
+        /// Applies a non-blanks rule.
+        /// </summary>
+        public ExcelRange NonBlanks() {
+            _range.Sheet.AddConditionalBlanksRule(_range.Address, containsBlanks: false);
+            return _range;
+        }
+
+        /// <summary>
+        /// Applies an errors rule.
+        /// </summary>
+        public ExcelRange Errors() {
+            _range.Sheet.AddConditionalErrorsRule(_range.Address, containsErrors: true);
+            return _range;
+        }
+
+        /// <summary>
+        /// Applies a non-errors rule.
+        /// </summary>
+        public ExcelRange NonErrors() {
+            _range.Sheet.AddConditionalErrorsRule(_range.Address, containsErrors: false);
+            return _range;
+        }
+
+        /// <summary>
+        /// Applies a time-period rule.
+        /// </summary>
+        public ExcelRange TimePeriod(TimePeriodValues timePeriod) {
+            _range.Sheet.AddConditionalTimePeriodRule(_range.Address, timePeriod);
+            return _range;
+        }
+
+        /// <summary>
         /// Applies a two-color scale.
         /// </summary>
         public ExcelRange ColorScale(OfficeColor startColor, OfficeColor endColor) {

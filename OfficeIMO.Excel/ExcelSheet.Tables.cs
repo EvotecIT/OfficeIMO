@@ -76,8 +76,21 @@ namespace OfficeIMO.Excel {
             if (string.IsNullOrWhiteSpace(tableOrRange)) throw new System.ArgumentNullException(nameof(tableOrRange));
 
             WriteLock(() => {
+                bool updatedDirectMetadata = _excelDocument.TrySetDirectTableStyleMetadata(
+                    this,
+                    tableOrRange,
+                    style,
+                    showFirstColumn,
+                    showLastColumn,
+                    showRowStripes,
+                    showColumnStripes);
+
                 var table = FindTableByRangeNameOrDisplayName(tableOrRange);
                 if (table == null) {
+                    if (updatedDirectMetadata) {
+                        return;
+                    }
+
                     throw new InvalidOperationException($"Table '{tableOrRange}' was not found on worksheet '{Name}'.");
                 }
 

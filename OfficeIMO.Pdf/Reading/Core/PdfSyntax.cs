@@ -14,6 +14,10 @@ internal static partial class PdfSyntax {
     private static readonly Regex TrailerRootRegex = new Regex(@"/Root\s+(\d+)\s+(\d+)\s+R", RegexOptions.Compiled, RegexTimeout);
 
     internal static (Dictionary<int, PdfIndirectObject> Map, string TrailerRaw) ParseObjects(byte[] pdf) {
+        return ParseObjects(pdf, null);
+    }
+
+    internal static (Dictionary<int, PdfIndirectObject> Map, string TrailerRaw) ParseObjects(byte[] pdf, PdfReadOptions? options) {
         string text = PdfEncoding.Latin1GetString(pdf);
         var map = new Dictionary<int, PdfIndirectObject>();
         var parsedOffsets = new Dictionary<int, int>();
@@ -26,6 +30,21 @@ internal static partial class PdfSyntax {
             int bodyStart = matches[i].Index + matches[i].Length;
             int end = FindObjectEnd(text, start);
             if (end < 0) end = (i + 1 < matches.Count) ? matches[i + 1].Index : text.Length;
+
+            int preliminaryBodyEnd = end;
+            if (preliminaryBodyEnd - 6 >= bodyStart && string.Equals(text.Substring(preliminaryBodyEnd - 6, 6), "endobj", StringComparison.Ordinal)) {
+                preliminaryBodyEnd -= 6;
+            }
+
+            string preliminaryBody = SafeSlice(text, bodyStart, preliminaryBodyEnd - bodyStart, 1_000_000).Trim();
+            if (preliminaryBody.Length > 0 && preliminaryBody[0] == '[') {
+                var parsedArray = ParseTopLevelObject(preliminaryBody);
+                if (parsedArray is not null) {
+                    map[id] = new PdfIndirectObject(id, gen, parsedArray);
+                    parsedOffsets[id] = start;
+                    continue;
+                }
+            }
 
             // Extract dictionary (balanced << >>) within object bounds
             int dictStart = text.IndexOf("<<", start, end - start, System.StringComparison.Ordinal);
@@ -70,32 +89,39 @@ internal static partial class PdfSyntax {
             }
 
             if (!map.ContainsKey(id)) {
-                int bodyEnd = end;
-                if (bodyEnd - 6 >= bodyStart && string.Equals(text.Substring(bodyEnd - 6, 6), "endobj", StringComparison.Ordinal)) {
-                    bodyEnd -= 6;
-                }
-
-                string body = SafeSlice(text, bodyStart, bodyEnd - bodyStart, 1_000_000).Trim();
-                var parsed = ParseTopLevelObject(body);
+                var parsed = ParseTopLevelObject(preliminaryBody);
                 if (parsed is not null) {
                     map[id] = new PdfIndirectObject(id, gen, parsed);
                     parsedOffsets[id] = start;
                 }
             }
         }
-        string trailerRaw = GetActiveTrailerRaw(text, map, parsedOffsets);
-        ThrowIfEncrypted(trailerRaw);
-
         ResolveIndirectStreamLengths(map, pdf, streamLocations);
         var activeClassicObjectNumbers = new HashSet<int>();
         bool appliedXrefStreamEntries = ApplyClassicXrefEntries(map, pdf, parsedOffsets, activeClassicObjectNumbers, out bool appliedClassicEntries);
         appliedXrefStreamEntries = ApplyXrefStreamEntries(map, pdf, parsedOffsets) || appliedXrefStreamEntries;
+        string trailerRaw = GetActiveTrailerRaw(text, map, parsedOffsets);
+        PdfStandardSecurityHandler? decryptor = null;
+        int? encryptObjectNumber = TryReadLastReferenceObjectNumber(trailerRaw, "Encrypt");
+        if (encryptObjectNumber.HasValue) {
+            TryCreateDecryptor(map, trailerRaw, options, out decryptor);
+            if (decryptor is not null) {
+                DecryptObjects(map, decryptor, encryptObjectNumber.Value);
+                if (appliedXrefStreamEntries) {
+                    ApplyCompressedXrefStreamEntries(map, pdf, parsedOffsets);
+                }
+            }
+        }
+
         if (!appliedXrefStreamEntries) {
             // Compatibility fallback for simple parser-supported files whose compressed objects are only discoverable by scanning.
             ExpandObjectStreams(map, pdf, parsedOffsets, appliedClassicEntries ? activeClassicObjectNumbers : null);
         }
 
-        ThrowIfEncryptedXrefStream(map);
+        if (decryptor is null) {
+            ThrowIfEncryptedXrefStream(map);
+        }
+
         return (map, trailerRaw);
     }
 }

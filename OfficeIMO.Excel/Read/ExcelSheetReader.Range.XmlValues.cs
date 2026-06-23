@@ -145,7 +145,7 @@ namespace OfficeIMO.Excel {
             if (useDateStyle
                 && (TryParseInvariantDoubleFast(rawText, out double oa)
                     || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa))) {
-                return DateTime.FromOADate(oa);
+                return FromExcelSerialDate(oa);
             }
 
             if (numericAsDecimal
@@ -192,7 +192,7 @@ namespace OfficeIMO.Excel {
                             if (useDateStyle
                                 && (TryParseInvariantDoubleFast(rawText, out double oa)
                                     || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa))) {
-                                return DateTime.FromOADate(oa);
+                                return FromExcelSerialDate(oa);
                             }
 
                             if (rawText == null) {
@@ -250,7 +250,7 @@ namespace OfficeIMO.Excel {
             if (useDateStyle
                 && (TryParseInvariantDoubleFast(rawText, out double oaValue)
                     || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oaValue))) {
-                return DateTime.FromOADate(oaValue);
+                return FromExcelSerialDate(oaValue);
             }
 
             if (numericAsDecimal
@@ -298,7 +298,7 @@ namespace OfficeIMO.Excel {
             if (useDateStyle
                 && (TryParseInvariantDoubleFast(rawText, out double oa)
                     || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa))) {
-                value = DateTime.FromOADate(oa);
+                value = FromExcelSerialDate(oa);
                 return true;
             }
 

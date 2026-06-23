@@ -33,6 +33,10 @@ public static partial class PdfFormFiller {
             throw new NotSupportedException("Signed PDF files are not supported for form filling by OfficeIMO.Pdf yet.");
         }
 
+        if (PdfSyntax.HasEncryptionMarkers(pdf)) {
+            throw new NotSupportedException("Encrypted PDF files are not supported for form filling by OfficeIMO.Pdf yet.");
+        }
+
         if (PdfSyntax.HasActiveContentMarkers(pdf)) {
             throw new NotSupportedException("PDF active content is not supported for form filling by OfficeIMO.Pdf yet.");
         }
@@ -60,7 +64,7 @@ public static partial class PdfFormFiller {
             throw new ArgumentException("PDF form field was not found: " + string.Join(", ", remaining), nameof(fieldValues));
         }
 
-        acroForm.Items["NeedAppearances"] = new PdfBoolean(true);
+        acroForm.Items["NeedAppearances"] = new PdfBoolean(options?.KeepNeedAppearances == true);
         return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Load(pdf).Metadata, pdf);
     }
 
