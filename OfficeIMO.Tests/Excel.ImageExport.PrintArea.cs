@@ -102,6 +102,38 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelWorksheet_ExportImagesSplitsMultiAreaPrintAreaIntoImageResults() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Report");
+                sheet.CellValue(1, 1, "Used");
+                sheet.CellValue(2, 2, "First");
+                sheet.CellValue(2, 4, "Second");
+                document.Save(false);
+            }
+
+            AddMultiAreaPrintArea(filePath);
+
+            using ExcelDocument loaded = ExcelDocument.Load(filePath);
+            ExcelSheet loadedSheet = loaded.Sheets[0];
+            IReadOnlyList<OfficeImageExportResult> results = loadedSheet.ExportImages(OfficeImageExportFormat.Png, new ExcelWorksheetImageExportOptions {
+                UsePrintArea = true,
+                ShowGridlines = false
+            });
+
+            Assert.Equal(2, results.Count);
+            Assert.Equal("Report!B2:B2", results[0].Source);
+            Assert.Equal("Report!D2:D2", results[1].Source);
+            Assert.All(results, result => {
+                OfficeImageExportDiagnostic diagnostic = Assert.Single(result.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.PrintAreaMultipleAreasSplit);
+                Assert.Equal(OfficeImageExportDiagnosticSeverity.Info, diagnostic.Severity);
+                Assert.Equal("Report!_xlnm.Print_Area", diagnostic.Source);
+                Assert.DoesNotContain(result.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.PrintAreaMultipleAreasUnsupported);
+                Assert.True(OfficeImageReader.Identify(result.Bytes).Width > 0);
+            });
+        }
+
+        [Fact]
         public void ExcelWorkbook_ImageExportCanUseWorksheetPrintAreas() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
@@ -127,6 +159,31 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Details!A1:A1", results[1].Source);
             OfficeImageExportDiagnostic diagnostic = Assert.Single(results[1].Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.PrintAreaMissing);
             Assert.Equal("Details!_xlnm.Print_Area", diagnostic.Source);
+        }
+
+        [Fact]
+        public void ExcelWorkbook_SaveAsImagesKeepsMultiAreaPrintAreaOutputsDistinct() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Report");
+                sheet.CellValue(2, 2, "First");
+                sheet.CellValue(2, 4, "Second");
+                document.Save(false);
+            }
+
+            AddMultiAreaPrintArea(filePath);
+
+            string folderPath = Path.Combine(Path.GetTempPath(), "OfficeIMO.Excel.Images." + Guid.NewGuid().ToString("N"));
+            using ExcelDocument loaded = ExcelDocument.Load(filePath);
+            IReadOnlyList<OfficeImageExportResult> results = loaded.SaveAsImages(folderPath, OfficeImageExportFormat.Png, new ExcelWorkbookImageExportOptions {
+                UseWorksheetPrintAreas = true,
+                ShowGridlines = false
+            });
+
+            Assert.Equal(2, results.Count);
+            Assert.Equal(new[] { "Report!B2:B2", "Report!D2:D2" }, results.Select(result => result.Source).ToArray());
+            Assert.True(File.Exists(Path.Combine(folderPath, "Report.png")));
+            Assert.True(File.Exists(Path.Combine(folderPath, "Report-2.png")));
         }
 
         private static void AddMultiAreaPrintArea(string filePath) {

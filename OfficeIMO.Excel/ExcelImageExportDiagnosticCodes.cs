@@ -159,6 +159,9 @@ public static class ExcelImageExportDiagnosticCodes {
     /// <summary>Multi-area print ranges are not supported by image export yet.</summary>
     public const string PrintAreaMultipleAreasUnsupported = "ExcelPrintAreaMultipleAreasUnsupported";
 
+    /// <summary>Multi-area print ranges were exported as separate worksheet images.</summary>
+    public const string PrintAreaMultipleAreasSplit = "ExcelPrintAreaMultipleAreasSplit";
+
     /// <summary>Configured print area could not be used by image export.</summary>
     public const string PrintAreaUnsupported = "ExcelPrintAreaUnsupported";
 

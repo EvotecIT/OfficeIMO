@@ -25,11 +25,15 @@ namespace OfficeIMO.Excel {
                     IncludeHidden = resolved.IncludeHidden,
                     IncludeImages = resolved.IncludeImages,
                     IncludeCharts = resolved.IncludeCharts,
+                    IncludeDrawingObjects = resolved.IncludeDrawingObjects,
+                    IncludeConditionalFormatting = resolved.IncludeConditionalFormatting,
+                    ShowHyperlinkHints = resolved.ShowHyperlinkHints,
+                    ShowCommentBodies = resolved.ShowCommentBodies,
                     DefaultColumnWidthPixels = resolved.DefaultColumnWidthPixels,
                     DefaultRowHeightPixels = resolved.DefaultRowHeightPixels,
                     UsePrintArea = resolved.UseWorksheetPrintAreas
                 };
-                results.Add(sheet.ExportImage(format, sheetOptions));
+                results.AddRange(sheet.ExportImages(format, sheetOptions));
             }
 
             return results.AsReadOnly();
@@ -53,10 +57,11 @@ namespace OfficeIMO.Excel {
             Directory.CreateDirectory(fullFolder);
             IReadOnlyList<OfficeImageExportResult> results = ExportImages(format, options);
             string extension = format == OfficeImageExportFormat.Svg ? ".svg" : ".png";
+            var usedNames = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
             for (int i = 0; i < results.Count; i++) {
                 OfficeImageExportResult result = results[i];
                 string name = string.IsNullOrWhiteSpace(result.Name) ? "sheet-" + (i + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) : result.Name!;
-                string path = Path.Combine(fullFolder, SanitizeFileName(name) + extension);
+                string path = Path.Combine(fullFolder, GetUniqueFileName(SanitizeFileName(name), extension, usedNames));
                 File.WriteAllBytes(path, result.Bytes);
             }
 
@@ -82,6 +87,21 @@ namespace OfficeIMO.Excel {
             }
 
             return new string(chars).Trim();
+        }
+
+        private static string GetUniqueFileName(string baseName, string extension, Dictionary<string, int> usedNames) {
+            if (string.IsNullOrWhiteSpace(baseName)) {
+                baseName = "sheet";
+            }
+
+            if (!usedNames.TryGetValue(baseName, out int count)) {
+                usedNames[baseName] = 1;
+                return baseName + extension;
+            }
+
+            count++;
+            usedNames[baseName] = count;
+            return baseName + "-" + count.ToString(System.Globalization.CultureInfo.InvariantCulture) + extension;
         }
     }
 }

@@ -9,7 +9,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelRangeVisualSnapshot CreateVisualSnapshot(ExcelWorksheetImageExportOptions? options = null) {
             ExcelWorksheetImageExportOptions resolved = NormalizeWorksheetOptions(options);
-            WorksheetImageRangeResolution range = ResolveWorksheetImageRange(resolved);
+            WorksheetImageRangeResolution range = ResolveWorksheetImageRanges(resolved, allowMultiplePrintAreas: false)[0];
             return ExcelRangeVisualSnapshotBuilder.Build(this, range.Range, resolved, range.Diagnostics);
         }
 
@@ -18,9 +18,24 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public OfficeImageExportResult ExportImage(OfficeImageExportFormat format, ExcelWorksheetImageExportOptions? options = null) {
             ExcelWorksheetImageExportOptions resolved = NormalizeWorksheetOptions(options);
-            WorksheetImageRangeResolution range = ResolveWorksheetImageRange(resolved);
+            WorksheetImageRangeResolution range = ResolveWorksheetImageRanges(resolved, allowMultiplePrintAreas: false)[0];
             ExcelRangeVisualSnapshot snapshot = ExcelRangeVisualSnapshotBuilder.Build(this, range.Range, resolved, range.Diagnostics);
             return ExcelRangeImageRenderer.Render(snapshot, format, resolved);
+        }
+
+        /// <summary>
+        /// Exports one or more worksheet image results. Multi-area print areas are returned as separate images when <see cref="ExcelWorksheetImageExportOptions.UsePrintArea"/> is enabled.
+        /// </summary>
+        public IReadOnlyList<OfficeImageExportResult> ExportImages(OfficeImageExportFormat format, ExcelWorksheetImageExportOptions? options = null) {
+            ExcelWorksheetImageExportOptions resolved = NormalizeWorksheetOptions(options);
+            IReadOnlyList<WorksheetImageRangeResolution> ranges = ResolveWorksheetImageRanges(resolved, allowMultiplePrintAreas: true);
+            var results = new List<OfficeImageExportResult>(ranges.Count);
+            foreach (WorksheetImageRangeResolution range in ranges) {
+                ExcelRangeVisualSnapshot snapshot = ExcelRangeVisualSnapshotBuilder.Build(this, range.Range, resolved, range.Diagnostics);
+                results.Add(ExcelRangeImageRenderer.Render(snapshot, format, resolved));
+            }
+
+            return results.AsReadOnly();
         }
 
         /// <summary>
@@ -68,9 +83,9 @@ namespace OfficeIMO.Excel {
             return resolved;
         }
 
-        private WorksheetImageRangeResolution ResolveWorksheetImageRange(ExcelWorksheetImageExportOptions options) {
+        private IReadOnlyList<WorksheetImageRangeResolution> ResolveWorksheetImageRanges(ExcelWorksheetImageExportOptions options, bool allowMultiplePrintAreas) {
             if (!string.IsNullOrWhiteSpace(options.Range)) {
-                return new WorksheetImageRangeResolution(options.Range!, Array.Empty<OfficeImageExportDiagnostic>());
+                return SingleImageRange(options.Range!, Array.Empty<OfficeImageExportDiagnostic>());
             }
 
             var diagnostics = new List<OfficeImageExportDiagnostic>();
@@ -83,24 +98,60 @@ namespace OfficeIMO.Excel {
                         ExcelImageExportDiagnosticCodes.PrintAreaMissing,
                         "Worksheet image export requested the print area, but no worksheet print area is configured; exporting the worksheet used range instead.",
                         source));
-                } else if (SplitDefinedNameParts(printArea!).Skip(1).Any()) {
-                    diagnostics.Add(new OfficeImageExportDiagnostic(
-                        OfficeImageExportDiagnosticSeverity.Warning,
-                        ExcelImageExportDiagnosticCodes.PrintAreaMultipleAreasUnsupported,
-                        "Multi-area worksheet print areas are not supported by the image exporter; exporting the worksheet used range instead.",
-                        source));
-                } else if (TryNormalizeWorksheetImageRange(printArea!, out string? normalizedPrintArea)) {
-                    return new WorksheetImageRangeResolution(normalizedPrintArea!, diagnostics);
                 } else {
-                    diagnostics.Add(new OfficeImageExportDiagnostic(
-                        OfficeImageExportDiagnosticSeverity.Warning,
-                        ExcelImageExportDiagnosticCodes.PrintAreaUnsupported,
-                        "Worksheet print area could not be parsed as a supported A1 range; exporting the worksheet used range instead.",
-                        source));
+                    List<string> printAreaParts = SplitDefinedNameParts(printArea!).ToList();
+                    if (printAreaParts.Count > 1) {
+                        if (allowMultiplePrintAreas && TryNormalizeWorksheetImageRanges(printAreaParts, out IReadOnlyList<string>? normalizedRanges)) {
+                            return normalizedRanges!
+                                .Select(range => new WorksheetImageRangeResolution(
+                                    range,
+                                    new[] {
+                                        new OfficeImageExportDiagnostic(
+                                            OfficeImageExportDiagnosticSeverity.Info,
+                                            ExcelImageExportDiagnosticCodes.PrintAreaMultipleAreasSplit,
+                                            "Multi-area worksheet print area was exported as separate image results.",
+                                            source)
+                                    }))
+                                .ToList()
+                                .AsReadOnly();
+                        }
+
+                        diagnostics.Add(new OfficeImageExportDiagnostic(
+                            OfficeImageExportDiagnosticSeverity.Warning,
+                            ExcelImageExportDiagnosticCodes.PrintAreaMultipleAreasUnsupported,
+                            "Multi-area worksheet print areas are not supported by single-image export; exporting the worksheet used range instead.",
+                            source));
+                    } else if (TryNormalizeWorksheetImageRange(printArea!, out string? normalizedPrintArea)) {
+                        return SingleImageRange(normalizedPrintArea!, diagnostics);
+                    } else {
+                        diagnostics.Add(new OfficeImageExportDiagnostic(
+                            OfficeImageExportDiagnosticSeverity.Warning,
+                            ExcelImageExportDiagnosticCodes.PrintAreaUnsupported,
+                            "Worksheet print area could not be parsed as a supported A1 range; exporting the worksheet used range instead.",
+                            source));
+                    }
                 }
             }
 
-            return new WorksheetImageRangeResolution(ResolveWorksheetUsedImageRange(options), diagnostics);
+            return SingleImageRange(ResolveWorksheetUsedImageRange(options), diagnostics);
+        }
+
+        private static IReadOnlyList<WorksheetImageRangeResolution> SingleImageRange(string range, IReadOnlyList<OfficeImageExportDiagnostic> diagnostics) =>
+            new[] { new WorksheetImageRangeResolution(range, diagnostics) };
+
+        private static bool TryNormalizeWorksheetImageRanges(IEnumerable<string> ranges, out IReadOnlyList<string>? normalizedRanges) {
+            var normalized = new List<string>();
+            foreach (string range in ranges) {
+                if (!TryNormalizeWorksheetImageRange(range, out string? normalizedRange)) {
+                    normalizedRanges = null;
+                    return false;
+                }
+
+                normalized.Add(normalizedRange!);
+            }
+
+            normalizedRanges = normalized.AsReadOnly();
+            return normalized.Count > 0;
         }
 
         private string ResolveWorksheetUsedImageRange(ExcelWorksheetImageExportOptions options) {
