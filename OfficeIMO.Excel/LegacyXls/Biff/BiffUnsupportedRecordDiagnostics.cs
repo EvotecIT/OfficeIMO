@@ -9,7 +9,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 "XLS-BIFF-FILEPASS-UNSUPPORTED",
                 "The workbook contains a FilePass record, which means password-to-open encryption is present. Encrypted legacy XLS import is not supported.",
                 recordOffset: record.Offset,
-                recordType: record.Type);
+                recordType: record.Type,
+                detailCode: "Encryption:FilePass");
         }
 
         internal static void AddFilePassDiagnostic(BiffRecord record, List<LegacyXlsImportDiagnostic> diagnostics) {
@@ -19,7 +20,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 feature.Code,
                 feature.Description,
                 recordOffset: feature.RecordOffset,
-                recordType: feature.RecordType));
+                recordType: feature.RecordType,
+                detailCode: feature.DetailCode));
         }
 
         internal static LegacyXlsUnsupportedFeature CreateUnsupportedBiffVersionFeature(

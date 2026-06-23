@@ -263,8 +263,15 @@ namespace OfficeIMO.Tests {
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
 
             LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound);
+            LegacyXlsImportReport report = legacy.CreateImportReport();
 
-            Assert.Contains(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FILEPASS-UNSUPPORTED" && d.Severity == LegacyXlsDiagnosticSeverity.Error);
+            Assert.Contains(legacy.Diagnostics, d =>
+                d.Code == "XLS-BIFF-FILEPASS-UNSUPPORTED"
+                && d.Severity == LegacyXlsDiagnosticSeverity.Error
+                && d.DetailCode == "Encryption:FilePass");
+            Assert.Equal(1, report.ErrorCount);
+            Assert.Equal(1, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.EncryptedWorkbook]);
+            Assert.Equal(1, report.UnsupportedFeaturesByDetail["EncryptedWorkbook|XLS-BIFF-FILEPASS-UNSUPPORTED|Encryption:FilePass"]);
             Assert.Empty(legacy.Worksheets);
         }
 
