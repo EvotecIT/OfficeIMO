@@ -4,6 +4,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// </summary>
     public sealed class LegacyXlsUnsupportedSheet {
         private readonly List<LegacyXlsUnsupportedSheetMetadataRecord> _metadataRecords = new();
+        private readonly Dictionary<LegacyXlsChartRecordKind, int> _chartRecordsByKind = new();
+        private readonly Dictionary<string, int> _chartRecordsByChartType = new(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
         /// Creates unsupported legacy sheet metadata.
@@ -105,8 +107,33 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// </summary>
         public int ChartTextObjectCount { get; private set; }
 
+        /// <summary>
+        /// Gets the number of preserve-only chart records seen in this unsupported chart sheet substream.
+        /// </summary>
+        public int ChartRecordCount { get; private set; }
+
+        /// <summary>
+        /// Gets preserve-only chart records from this unsupported chart sheet grouped by shallow category.
+        /// </summary>
+        public IReadOnlyDictionary<LegacyXlsChartRecordKind, int> ChartRecordsByKind => _chartRecordsByKind;
+
+        /// <summary>
+        /// Gets preserve-only chart type records from this unsupported chart sheet grouped by decoded chart family.
+        /// </summary>
+        public IReadOnlyDictionary<string, int> ChartRecordsByChartType => _chartRecordsByChartType;
+
         internal void AddMetadataRecord(LegacyXlsUnsupportedSheetMetadataKind kind, int recordOffset, ushort recordType) {
             _metadataRecords.Add(new LegacyXlsUnsupportedSheetMetadataRecord(kind, recordOffset, recordType));
+        }
+
+        internal void AddChartRecord(LegacyXlsChartRecord record) {
+            if (record == null) throw new ArgumentNullException(nameof(record));
+
+            ChartRecordCount++;
+            Increment(_chartRecordsByKind, record.Kind);
+            if (!string.IsNullOrWhiteSpace(record.ChartTypeName)) {
+                Increment(_chartRecordsByChartType, record.ChartTypeName!);
+            }
         }
 
         internal void SetChartPrintSize(ushort value) {
@@ -115,6 +142,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         internal void IncrementChartTextObjectCount() {
             ChartTextObjectCount++;
+        }
+
+        private static void Increment<TKey>(Dictionary<TKey, int> counts, TKey key) where TKey : notnull {
+            counts.TryGetValue(key, out int count);
+            counts[key] = count + 1;
         }
     }
 }

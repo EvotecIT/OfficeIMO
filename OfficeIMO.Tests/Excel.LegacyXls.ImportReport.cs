@@ -558,6 +558,15 @@ namespace OfficeIMO.Tests {
             Assert.Equal("ChartOnly", unsupportedSheet.Name);
             Assert.Equal(LegacyXlsUnsupportedSheetKind.ChartSheet, unsupportedSheet.Kind);
             Assert.Equal(1, unsupportedSheet.ChartTextObjectCount);
+            Assert.Equal(23, unsupportedSheet.ChartRecordCount);
+            Assert.Equal(2, unsupportedSheet.ChartRecordsByKind[LegacyXlsChartRecordKind.Container]);
+            Assert.Equal(4, unsupportedSheet.ChartRecordsByKind[LegacyXlsChartRecordKind.Axis]);
+            Assert.Equal(1, unsupportedSheet.ChartRecordsByKind[LegacyXlsChartRecordKind.Series]);
+            Assert.Equal(7, unsupportedSheet.ChartRecordsByKind[LegacyXlsChartRecordKind.Formatting]);
+            Assert.Equal(3, unsupportedSheet.ChartRecordsByKind[LegacyXlsChartRecordKind.Layout]);
+            Assert.Equal(2, unsupportedSheet.ChartRecordsByKind[LegacyXlsChartRecordKind.ChartType]);
+            Assert.Equal(4, unsupportedSheet.ChartRecordsByKind[LegacyXlsChartRecordKind.Text]);
+            Assert.Equal(1, unsupportedSheet.ChartRecordsByChartType["Scatter"]);
             Assert.Equal(24, report.UnsupportedFeatureCount);
             Assert.Equal(23, report.PreservedFeatureRecordCount);
             Assert.Equal(1, report.UnsupportedSheetsByKind[LegacyXlsUnsupportedSheetKind.ChartSheet]);
@@ -566,6 +575,15 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.UnsupportedSheetMetadataRecordCount);
             Assert.Equal(1, report.UnsupportedSheetMetadataRecordsByKind[LegacyXlsUnsupportedSheetMetadataKind.ChartTextObject]);
             Assert.Equal(1, report.UnsupportedChartSheetTextObjectCounts["TextObjects:1"]);
+            Assert.Equal(1, report.UnsupportedChartSheetChartRecordCounts["ChartRecords:23"]);
+            Assert.Equal(2, report.UnsupportedChartSheetChartRecordKinds["Container"]);
+            Assert.Equal(4, report.UnsupportedChartSheetChartRecordKinds["Axis"]);
+            Assert.Equal(1, report.UnsupportedChartSheetChartRecordKinds["Series"]);
+            Assert.Equal(7, report.UnsupportedChartSheetChartRecordKinds["Formatting"]);
+            Assert.Equal(3, report.UnsupportedChartSheetChartRecordKinds["Layout"]);
+            Assert.Equal(2, report.UnsupportedChartSheetChartRecordKinds["ChartType"]);
+            Assert.Equal(4, report.UnsupportedChartSheetChartRecordKinds["Text"]);
+            Assert.Equal(1, report.UnsupportedChartSheetChartTypes["Scatter"]);
             Assert.Empty(report.UnsupportedChartSheetPrintSizes);
             Assert.Empty(report.UnsupportedChartSheetPrintSizeKinds);
             Assert.Equal(1, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.ChartSheet]);
@@ -744,6 +762,9 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Chart Frame Types", markdown);
             Assert.Contains("Chart Frame Auto States", markdown);
             Assert.Contains("Chart PlotGrowth Factors", markdown);
+            Assert.Contains("Unsupported Chart Sheet Chart Record Counts", markdown);
+            Assert.Contains("Unsupported Chart Sheet Chart Record Kinds", markdown);
+            Assert.Contains("Unsupported Chart Sheet Chart Types", markdown);
         }
 
         [Fact]

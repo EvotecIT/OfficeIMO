@@ -268,6 +268,34 @@ Warnings: 0
 | --- | --- |
 | TextObjects:1 | 4 |
 
+## Unsupported Chart Sheet Chart Record Counts
+
+| Key | Count |
+| --- | --- |
+| ChartRecords:115 | 1 |
+| ChartRecords:177 | 1 |
+| ChartRecords:178 | 1 |
+| ChartRecords:97 | 1 |
+
+## Unsupported Chart Sheet Chart Record Kinds
+
+| Key | Count |
+| --- | --- |
+| Axis | 36 |
+| ChartType | 6 |
+| Container | 168 |
+| Extension | 6 |
+| Formatting | 158 |
+| Layout | 87 |
+| Series | 40 |
+| Text | 66 |
+
+## Unsupported Chart Sheet Chart Types
+
+| Key | Count |
+| --- | --- |
+| Scatter | 4 |
+
 ## External References By Kind
 
 | Key | Count |

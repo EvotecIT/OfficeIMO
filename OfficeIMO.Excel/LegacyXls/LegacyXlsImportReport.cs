@@ -155,6 +155,11 @@ namespace OfficeIMO.Excel.LegacyXls {
             UnsupportedChartSheetTextObjectCounts = CountByCode(workbook.UnsupportedSheets
                 .Where(sheet => sheet.Kind == LegacyXlsUnsupportedSheetKind.ChartSheet && sheet.ChartTextObjectCount > 0)
                 .Select(sheet => $"TextObjects:{sheet.ChartTextObjectCount}"));
+            UnsupportedChartSheetChartRecordCounts = CountByCode(workbook.UnsupportedSheets
+                .Where(sheet => sheet.Kind == LegacyXlsUnsupportedSheetKind.ChartSheet && sheet.ChartRecordCount > 0)
+                .Select(sheet => $"ChartRecords:{sheet.ChartRecordCount}"));
+            UnsupportedChartSheetChartRecordKinds = CountUnsupportedChartSheetChartRecordKinds(workbook.UnsupportedSheets);
+            UnsupportedChartSheetChartTypes = CountUnsupportedChartSheetChartTypes(workbook.UnsupportedSheets);
             ExternalReferencesByKind = CountExternalReferencesByKind(workbook.ExternalReferences);
             ExternalReferencesByTarget = CountByCode(workbook.ExternalReferences.Select(GetExternalReferenceTargetKey));
             ExternalReferencesByShape = CountByCode(workbook.ExternalReferences.Select(GetExternalReferenceShapeKey));
@@ -711,6 +716,15 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets unsupported chart sheets grouped by chart text object count.</summary>
         public IReadOnlyDictionary<string, int> UnsupportedChartSheetTextObjectCounts { get; }
 
+        /// <summary>Gets unsupported chart sheets grouped by preserve-only chart record count.</summary>
+        public IReadOnlyDictionary<string, int> UnsupportedChartSheetChartRecordCounts { get; }
+
+        /// <summary>Gets unsupported chart sheet preserve-only chart records grouped by shallow category.</summary>
+        public IReadOnlyDictionary<string, int> UnsupportedChartSheetChartRecordKinds { get; }
+
+        /// <summary>Gets unsupported chart sheet preserve-only chart type records grouped by decoded chart family.</summary>
+        public IReadOnlyDictionary<string, int> UnsupportedChartSheetChartTypes { get; }
+
         /// <summary>Gets preserved external references grouped by supporting-link kind.</summary>
         public IReadOnlyDictionary<LegacyXlsExternalReferenceKind, int> ExternalReferencesByKind { get; }
 
@@ -1183,6 +1197,9 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Unsupported Chart Sheet Print Sizes", UnsupportedChartSheetPrintSizes);
             AppendDictionary(builder, "Unsupported Chart Sheet Print Size Kinds", UnsupportedChartSheetPrintSizeKinds);
             AppendDictionary(builder, "Unsupported Chart Sheet Text Object Counts", UnsupportedChartSheetTextObjectCounts);
+            AppendDictionary(builder, "Unsupported Chart Sheet Chart Record Counts", UnsupportedChartSheetChartRecordCounts);
+            AppendDictionary(builder, "Unsupported Chart Sheet Chart Record Kinds", UnsupportedChartSheetChartRecordKinds);
+            AppendDictionary(builder, "Unsupported Chart Sheet Chart Types", UnsupportedChartSheetChartTypes);
             AppendDictionary(builder, "External References By Kind", ExternalReferencesByKind.ToDictionary(
                 entry => entry.Key.ToString(),
                 entry => entry.Value,
@@ -1377,6 +1394,24 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .GroupBy(sheet => sheet.Kind)
                 .OrderBy(group => group.Key.ToString(), StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(group => group.Key, group => group.Count());
+        }
+
+        private static IReadOnlyDictionary<string, int> CountUnsupportedChartSheetChartRecordKinds(IEnumerable<LegacyXlsUnsupportedSheet> sheets) {
+            return sheets
+                .Where(sheet => sheet.Kind == LegacyXlsUnsupportedSheetKind.ChartSheet)
+                .SelectMany(sheet => sheet.ChartRecordsByKind)
+                .GroupBy(entry => entry.Key.ToString(), StringComparer.OrdinalIgnoreCase)
+                .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(group => group.Key, group => group.Sum(entry => entry.Value), StringComparer.OrdinalIgnoreCase);
+        }
+
+        private static IReadOnlyDictionary<string, int> CountUnsupportedChartSheetChartTypes(IEnumerable<LegacyXlsUnsupportedSheet> sheets) {
+            return sheets
+                .Where(sheet => sheet.Kind == LegacyXlsUnsupportedSheetKind.ChartSheet)
+                .SelectMany(sheet => sheet.ChartRecordsByChartType)
+                .GroupBy(entry => entry.Key, StringComparer.OrdinalIgnoreCase)
+                .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(group => group.Key, group => group.Sum(entry => entry.Value), StringComparer.OrdinalIgnoreCase);
         }
 
         private static IReadOnlyDictionary<LegacyXlsExternalReferenceKind, int> CountExternalReferencesByKind(IEnumerable<LegacyXlsExternalReference> references) {

@@ -94,7 +94,13 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     byte[] payload = new byte[length];
                     Buffer.BlockCopy(workbookStream, payloadOffset, payload, 0, length);
                     BiffDrawingMetadataReader.TryRead(new BiffRecord(type, offset, payload), sheet.Name, drawingRecords);
-                    BiffChartMetadataReader.TryRead(new BiffRecord(type, offset, payload), sheet.Name, chartRecords);
+                    int chartRecordCountBefore = chartRecords.Count;
+                    if (BiffChartMetadataReader.TryRead(new BiffRecord(type, offset, payload), sheet.Name, chartRecords)
+                        && sheet.Kind == LegacyXlsUnsupportedSheetKind.ChartSheet
+                        && chartRecords.Count > chartRecordCountBefore) {
+                        sheet.AddChartRecord(chartRecords[chartRecords.Count - 1]);
+                    }
+
                     BiffPivotTableMetadataReader.TryRead(new BiffRecord(type, offset, payload), sheet.Name, pivotTableRecords, diagnostics, pivotTableMetadataState);
                     LegacyXlsUnsupportedFeature feature = BiffUnsupportedRecordDiagnostics.CreateUnsupportedRecordFeature(type, offset, sheet.Name);
                     unsupportedFeatures.Add(feature);
