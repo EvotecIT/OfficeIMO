@@ -144,6 +144,11 @@ namespace OfficeIMO.Excel.LegacyXls {
             DrawingRecordsByObjectTypeName = CountByCode(workbook.DrawingRecords
                 .Where(record => !string.IsNullOrWhiteSpace(record.ObjectTypeName))
                 .Select(record => record.ObjectTypeName!));
+            DrawingRecordsByObjectFlags = CountByCode(workbook.DrawingRecords
+                .Where(record => record.ObjectFlags.HasValue)
+                .Select(record => $"ObjectFlags:0x{record.ObjectFlags!.Value:X4}"));
+            DrawingRecordsByObjectFlagName = CountByCode(workbook.DrawingRecords
+                .SelectMany(record => record.ObjectFlagNames));
             DrawingRecordsByEscherRecordType = CountByCode(workbook.DrawingRecords
                 .Where(record => record.EscherRecordType.HasValue)
                 .Select(record => $"EscherRecordType:0x{record.EscherRecordType!.Value:X4}"));
@@ -404,6 +409,12 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets OBJ records grouped by decoded common-object type name.</summary>
         public IReadOnlyDictionary<string, int> DrawingRecordsByObjectTypeName { get; }
 
+        /// <summary>Gets OBJ records grouped by decoded common-object flag bitfield.</summary>
+        public IReadOnlyDictionary<string, int> DrawingRecordsByObjectFlags { get; }
+
+        /// <summary>Gets OBJ records grouped by decoded common-object flag name.</summary>
+        public IReadOnlyDictionary<string, int> DrawingRecordsByObjectFlagName { get; }
+
         /// <summary>Gets MsoDrawing records grouped by decoded top-level Escher record type.</summary>
         public IReadOnlyDictionary<string, int> DrawingRecordsByEscherRecordType { get; }
 
@@ -567,6 +578,8 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Drawing Records By Name", DrawingRecordsByName);
             AppendDictionary(builder, "Drawing Records By Object Type", DrawingRecordsByObjectType);
             AppendDictionary(builder, "Drawing Records By Object Type Name", DrawingRecordsByObjectTypeName);
+            AppendDictionary(builder, "Drawing Records By Object Flags", DrawingRecordsByObjectFlags);
+            AppendDictionary(builder, "Drawing Records By Object Flag Name", DrawingRecordsByObjectFlagName);
             AppendDictionary(builder, "Drawing Records By Escher Record Type", DrawingRecordsByEscherRecordType);
             AppendDictionary(builder, "Drawing Records By Escher Record Type Name", DrawingRecordsByEscherRecordTypeName);
             AppendDictionary(builder, "Drawing Records By Location", DrawingRecordsByLocation);

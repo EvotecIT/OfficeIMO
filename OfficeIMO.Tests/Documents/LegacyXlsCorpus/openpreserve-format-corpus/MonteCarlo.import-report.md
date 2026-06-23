@@ -477,6 +477,20 @@ Warnings: 0
 | Group | 2 |
 | Text | 8 |
 
+## Drawing Records By Object Flags
+
+| Key | Count |
+| --- | --- |
+| ObjectFlags:0x0011 | 12 |
+| ObjectFlags:0x6011 | 2 |
+
+## Drawing Records By Object Flag Name
+
+| Key | Count |
+| --- | --- |
+| Locked | 14 |
+| Printable | 14 |
+
 ## Drawing Records By Escher Record Type
 
 | Key | Count |

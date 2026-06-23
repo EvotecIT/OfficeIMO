@@ -92,6 +92,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.DrawingRecordsByName["Obj"]);
             Assert.Equal(1, report.DrawingRecordsByObjectType["ObjectType:0x0008"]);
             Assert.Equal(1, report.DrawingRecordsByObjectTypeName["Picture"]);
+            Assert.Equal(1, report.DrawingRecordsByObjectFlags["ObjectFlags:0x4011"]);
+            Assert.Equal(1, report.DrawingRecordsByObjectFlagName["Locked"]);
+            Assert.Equal(1, report.DrawingRecordsByObjectFlagName["Printable"]);
             Assert.Equal(1, report.DrawingRecordsByEscherRecordType["EscherRecordType:0xF000"]);
             Assert.Equal(1, report.DrawingRecordsByEscherRecordType["EscherRecordType:0xF002"]);
             Assert.Equal(1, report.DrawingRecordsByEscherRecordTypeName["OfficeArtDggContainer"]);
@@ -110,7 +113,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.PreservedFeatureRecordsByDetail["PivotTable|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED|PivotTable:SxView"]);
             Assert.Contains(workbook.PreservedFeatureRecords, record => record.DetailCode == "Drawing:MsoDrawingGroup" && record.SheetName == null);
             Assert.Contains(workbook.PreservedFeatureRecords, record => record.DetailCode == "Drawing:Obj" && record.SheetName == "FeatureMap");
-            Assert.Contains(workbook.DrawingRecords, record => record.SheetName == "FeatureMap" && record.ObjectType == 0x0008 && record.ObjectTypeKind == LegacyXlsDrawingObjectType.Picture && record.ObjectTypeName == "Picture" && record.ObjectId == 1);
+            Assert.Contains(workbook.DrawingRecords, record => record.SheetName == "FeatureMap" && record.ObjectType == 0x0008 && record.ObjectTypeKind == LegacyXlsDrawingObjectType.Picture && record.ObjectTypeName == "Picture" && record.ObjectId == 1 && record.ObjectFlags == 0x4011 && record.IsObjectLocked && record.IsObjectPrintable);
             Assert.Contains(workbook.DrawingRecords, record => record.RecordName == "MsoDrawingGroup" && record.EscherRecordType == 0xf000 && record.EscherRecordTypeKind == LegacyXlsDrawingEscherRecordType.OfficeArtDggContainer && record.EscherRecordTypeName == "OfficeArtDggContainer" && record.EscherRecordInstance == 2 && record.EscherRecordVersion == 0x0f && record.EscherPayloadLength == 8);
             Assert.Contains(workbook.DrawingRecords, record => record.RecordName == "MsoDrawing" && record.EscherRecordType == 0xf002 && record.EscherRecordTypeKind == LegacyXlsDrawingEscherRecordType.OfficeArtDgContainer && record.EscherRecordTypeName == "OfficeArtDgContainer" && record.EscherRecordInstance == 1 && record.EscherRecordVersion == 0x0f && record.EscherPayloadLength == 0);
             Assert.Contains(workbook.PreservedFeatureRecords, record => record.DetailCode == "Chart:Chart" && record.RecordType == 0x1002);
@@ -125,6 +128,8 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Drawing Records By Object Type", markdown);
             Assert.Contains("Drawing Records By Object Type Name", markdown);
             Assert.Contains("Picture", markdown);
+            Assert.Contains("Drawing Records By Object Flags", markdown);
+            Assert.Contains("Drawing Records By Object Flag Name", markdown);
             Assert.Contains("Drawing Records By Escher Record Type", markdown);
             Assert.Contains("Drawing Records By Escher Record Type Name", markdown);
             Assert.Contains("OfficeArtDggContainer", markdown);
@@ -164,6 +169,29 @@ namespace OfficeIMO.Tests {
 
             Assert.Null(record.ObjectTypeKind);
             Assert.Equal("ObjectType:0x0FFF", record.ObjectTypeName);
+        }
+
+        [Fact]
+        public void LegacyXlsDrawingRecord_DecodesObjectFlagNames() {
+            var record = new LegacyXlsDrawingRecord(
+                LegacyXlsDrawingRecordKind.Object,
+                "Obj",
+                "Sheet1",
+                0,
+                0x005d,
+                22,
+                0x0008,
+                1,
+                objectFlags: 0x1395);
+
+            Assert.True(record.IsObjectLocked);
+            Assert.True(record.UsesDefaultObjectSize);
+            Assert.True(record.IsObjectPrintable);
+            Assert.True(record.IsObjectDisabled);
+            Assert.True(record.IsUiObject);
+            Assert.True(record.RecalculatesObjectOnLoad);
+            Assert.True(record.AlwaysRecalculatesObject);
+            Assert.Equal(new[] { "Locked", "DefaultSize", "Printable", "Disabled", "UiObject", "RecalculateOnLoad", "AlwaysRecalculate" }, record.ObjectFlagNames);
         }
 
         [Theory]

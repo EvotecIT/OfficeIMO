@@ -20,7 +20,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             byte? escherRecordVersion = null,
             uint? escherPayloadLength = null,
             LegacyXlsDrawingObjectType? objectTypeKind = null,
-            LegacyXlsDrawingEscherRecordType? escherRecordTypeKind = null) {
+            LegacyXlsDrawingEscherRecordType? escherRecordTypeKind = null,
+            ushort? objectFlags = null) {
             if (payloadLength < 0) {
                 throw new ArgumentOutOfRangeException(nameof(payloadLength));
             }
@@ -35,6 +36,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             ObjectId = objectId;
             ObjectTypeKind = objectTypeKind ?? TryGetObjectTypeKind(objectType);
             ObjectTypeName = ObjectTypeKind?.ToString() ?? (objectType.HasValue ? $"ObjectType:0x{objectType.Value:X4}" : null);
+            ObjectFlags = objectFlags;
+            ObjectFlagNames = objectFlags.HasValue ? GetObjectFlagNames(objectFlags.Value) : Array.Empty<string>();
             EscherRecordType = escherRecordType;
             EscherRecordTypeKind = escherRecordTypeKind ?? TryGetEscherRecordTypeKind(escherRecordType);
             EscherRecordTypeName = EscherRecordTypeKind?.ToString() ?? (escherRecordType.HasValue ? $"EscherRecordType:0x{escherRecordType.Value:X4}" : null);
@@ -72,6 +75,36 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets the decoded OBJ object identifier, when present.</summary>
         public ushort? ObjectId { get; }
+
+        /// <summary>Gets the decoded OBJ common-object flag bitfield, when present.</summary>
+        public ushort? ObjectFlags { get; }
+
+        /// <summary>Gets stable names for the defined common-object flags set on this OBJ record.</summary>
+        public IReadOnlyList<string> ObjectFlagNames { get; }
+
+        /// <summary>Gets whether the object is locked.</summary>
+        public bool IsObjectLocked => HasObjectFlag(0x0001);
+
+        /// <summary>Gets whether the application is expected to choose the object size.</summary>
+        public bool UsesDefaultObjectSize => HasObjectFlag(0x0004);
+
+        /// <summary>Gets whether this chart object is expected to be published with the sheet.</summary>
+        public bool IsObjectPublished => HasObjectFlag(0x0008);
+
+        /// <summary>Gets whether the object is intended to be printed.</summary>
+        public bool IsObjectPrintable => HasObjectFlag(0x0010);
+
+        /// <summary>Gets whether the object is disabled.</summary>
+        public bool IsObjectDisabled => HasObjectFlag(0x0080);
+
+        /// <summary>Gets whether this is an application-inserted UI object.</summary>
+        public bool IsUiObject => HasObjectFlag(0x0100);
+
+        /// <summary>Gets whether the object is expected to recalculate from its linked range on load.</summary>
+        public bool RecalculatesObjectOnLoad => HasObjectFlag(0x0200);
+
+        /// <summary>Gets whether the object is expected to recalculate whenever its linked range changes.</summary>
+        public bool AlwaysRecalculatesObject => HasObjectFlag(0x1000);
 
         /// <summary>Gets the top-level Escher record type from MsoDrawing payloads, when present.</summary>
         public ushort? EscherRecordType { get; }
@@ -121,6 +154,23 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
                 0x001E => LegacyXlsDrawingObjectType.OfficeArtObject,
                 _ => null
             };
+        }
+
+        private bool HasObjectFlag(ushort mask) {
+            return ObjectFlags.HasValue && (ObjectFlags.Value & mask) != 0;
+        }
+
+        private static IReadOnlyList<string> GetObjectFlagNames(ushort flags) {
+            var names = new List<string>();
+            if ((flags & 0x0001) != 0) names.Add("Locked");
+            if ((flags & 0x0004) != 0) names.Add("DefaultSize");
+            if ((flags & 0x0008) != 0) names.Add("Published");
+            if ((flags & 0x0010) != 0) names.Add("Printable");
+            if ((flags & 0x0080) != 0) names.Add("Disabled");
+            if ((flags & 0x0100) != 0) names.Add("UiObject");
+            if ((flags & 0x0200) != 0) names.Add("RecalculateOnLoad");
+            if ((flags & 0x1000) != 0) names.Add("AlwaysRecalculate");
+            return names;
         }
 
         private static LegacyXlsDrawingEscherRecordType? TryGetEscherRecordTypeKind(ushort? recordType) {
