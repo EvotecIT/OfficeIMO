@@ -422,6 +422,29 @@ public sealed partial class OfficeRasterCanvas {
     }
 
     /// <summary>
+    /// Draws an image using a shared projection that carries placement, source crop, rotation, and flips.
+    /// </summary>
+    /// <param name="image">Image to draw.</param>
+    /// <param name="projection">Shared image projection.</param>
+    public void DrawImage(OfficeRasterImage image, OfficeImageProjection projection) {
+        DrawImage(
+            image,
+            projection.X,
+            projection.Y,
+            projection.Width,
+            projection.Height,
+            projection.SourceLeft,
+            projection.SourceTop,
+            projection.SourceWidth,
+            projection.SourceHeight,
+            projection.RotationDegrees,
+            projection.RotationCenterX,
+            projection.RotationCenterY,
+            projection.FlipHorizontal,
+            projection.FlipVertical);
+    }
+
+    /// <summary>
     /// Draws a source rectangle from an image scaled into the supplied destination rectangle.
     /// Source coordinates are normalized, where 0 is the left/top edge and 1 is the right/bottom edge.
     /// </summary>

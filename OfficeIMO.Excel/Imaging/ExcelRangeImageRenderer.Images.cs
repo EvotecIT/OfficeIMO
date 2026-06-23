@@ -36,25 +36,7 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            double x = image.X * scale;
-            double y = image.Y * scale;
-            double width = image.Width * scale;
-            double height = image.Height * scale;
-            canvas.DrawImage(
-                raster,
-                x,
-                y,
-                width,
-                height,
-                image.CropLeftRatio,
-                image.CropTopRatio,
-                image.SourceCrop.VisibleWidth,
-                image.SourceCrop.VisibleHeight,
-                image.RotationDegrees,
-                x + (width / 2D),
-                y + (height / 2D),
-                image.FlipHorizontal,
-                image.FlipVertical);
+            canvas.DrawImage(raster, CreateImageProjection(image, scale));
         }
 
         private static void AppendSvgImage(StringBuilder builder, ExcelRangeVisualSnapshot snapshot, ExcelVisualImage image, ExcelImageExportOptions options, List<OfficeImageExportDiagnostic>? diagnostics, ref int index) {
@@ -69,31 +51,26 @@ namespace OfficeIMO.Excel {
             }
 
             string clipId = "xl-image-clip-" + (++index).ToString(System.Globalization.CultureInfo.InvariantCulture);
-            double x = image.X * scale;
-            double y = image.Y * scale;
-            double width = image.Width * scale;
-            double height = image.Height * scale;
+            OfficeImageProjection projection = CreateImageProjection(image, scale);
+            OfficeImagePlacement clipRectangle = image.HasCrop
+                ? projection.Placement
+                : new OfficeImagePlacement(0D, 0D, snapshot.Width * scale, snapshot.Height * scale);
 
             OfficeSvgImageRenderer.AppendImage(
                 builder,
                 OfficeSvgImageRenderer.CreateDataUri(contentType, image.Bytes),
-                x,
-                y,
-                width,
-                height,
+                projection,
                 clipId,
-                image.HasCrop ? x : 0D,
-                image.HasCrop ? y : 0D,
-                image.HasCrop ? width : snapshot.Width * scale,
-                image.HasCrop ? height : snapshot.Height * scale,
-                image.CropLeftRatio,
-                image.CropTopRatio,
-                image.SourceCrop.VisibleWidth,
-                image.SourceCrop.VisibleHeight,
-                image.RotationDegrees,
-                image.FlipHorizontal,
-                image.FlipVertical);
+                clipRectangle);
         }
+
+        private static OfficeImageProjection CreateImageProjection(ExcelVisualImage image, double scale) =>
+            new OfficeImageProjection(
+                new OfficeImagePlacement(image.X, image.Y, image.Width, image.Height),
+                image.SourceCrop,
+                image.RotationDegrees,
+                flipHorizontal: image.FlipHorizontal,
+                flipVertical: image.FlipVertical).Scale(scale);
 
         private static bool TryResolveSvgImageContentType(ExcelVisualImage image, out string contentType) {
             switch (image.DetectedFormat) {

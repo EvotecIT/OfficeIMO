@@ -105,6 +105,27 @@ public class DrawingTests {
     }
 
     [Fact]
+    public void OfficeImageProjectionScalesPlacementCropAndTransform() {
+        var projection = new OfficeImageProjection(
+            new OfficeImagePlacement(10D, 20D, 80D, 40D),
+            new OfficeImageSourceCrop(0.25D, 0.1D, 0.25D, 0.1D),
+            rotationDegrees: 30D,
+            flipHorizontal: true);
+
+        OfficeImageProjection scaled = projection.Scale(2D);
+
+        Assert.Equal((20D, 40D, 160D, 80D), scaled.Placement.ToTuple());
+        Assert.Equal(0.25D, scaled.SourceLeft);
+        Assert.Equal(0.5D, scaled.SourceWidth);
+        Assert.Equal(30D, scaled.RotationDegrees);
+        Assert.Equal(100D, scaled.RotationCenterX);
+        Assert.Equal(80D, scaled.RotationCenterY);
+        Assert.True(scaled.HasCrop);
+        Assert.True(scaled.HasTransform);
+        Assert.True(scaled.FlipHorizontal);
+    }
+
+    [Fact]
     public void OfficeColorParsesNamedAndHexValues() {
         Assert.Equal(OfficeColor.Red, OfficeColor.Parse("red"));
         Assert.Equal(OfficeColor.FromRgb(0x66, 0x33, 0x99), OfficeColor.Parse("RebeccaPurple"));
@@ -1034,19 +1055,11 @@ public class DrawingTests {
         OfficeSvgImageRenderer.AppendImage(
             builder,
             "data:image/png;base64,AA==",
-            10,
-            20,
-            80,
-            40,
+            new OfficeImageProjection(
+                new OfficeImagePlacement(10, 20, 80, 40),
+                new OfficeImageSourceCrop(0.25D, 0.1D, 0.25D, 0.1D)),
             "imgClip",
-            10,
-            20,
-            80,
-            40,
-            sourceLeft: 0.25D,
-            sourceTop: 0.1D,
-            sourceWidth: 0.5D,
-            sourceHeight: 0.8D);
+            new OfficeImagePlacement(10, 20, 80, 40));
 
         string svg = builder.ToString();
         Assert.Contains("<clipPath id=\"imgClip\"><rect x=\"10\" y=\"20\" width=\"80\" height=\"40\"/></clipPath>", svg, StringComparison.Ordinal);
