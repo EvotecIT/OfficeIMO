@@ -215,6 +215,22 @@ namespace OfficeIMO.Excel {
                     rule.FormatId = newDxfId;
                 }
             }
+
+            foreach (OpenXmlElement element in worksheet.Descendants<OpenXmlElement>()) {
+                foreach (OpenXmlAttribute attribute in element.GetAttributes()) {
+                    if (!string.Equals(attribute.LocalName, "dxfId", StringComparison.Ordinal)
+                        || !uint.TryParse(attribute.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out uint oldDxfId)
+                        || !differentialFormatMap.TryGetValue(oldDxfId, out uint newDxfId)) {
+                        continue;
+                    }
+
+                    element.SetAttribute(new OpenXmlAttribute(
+                        attribute.Prefix,
+                        attribute.LocalName,
+                        attribute.NamespaceUri,
+                        newDxfId.ToString(CultureInfo.InvariantCulture)));
+                }
+            }
         }
 
         private static Dictionary<uint, uint> AppendNumberingFormats(Stylesheet sourceStylesheet, Stylesheet targetStylesheet) {

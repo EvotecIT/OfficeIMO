@@ -503,6 +503,12 @@ namespace OfficeIMO.Tests {
                 Assert.DoesNotContain(worksheet.Descendants<OpenXmlElement>(), element => element.LocalName == "queryTableParts");
                 Assert.DoesNotContain(worksheet.Descendants<OpenXmlElement>(), element => element.LocalName == "pivotTableDefinition");
                 Assert.DoesNotContain(worksheet.Descendants<OpenXmlElement>(), element => element.LocalName == "customProperties");
+                Assert.DoesNotContain(worksheet.Descendants<OpenXmlElement>(), element => element.LocalName == "slicerList");
+                Assert.DoesNotContain(worksheet.Descendants<OpenXmlElement>(), element => element.LocalName == "timelineRefs");
+
+                OpenXmlElement extensionRule = Assert.Single(worksheet.Descendants<OpenXmlElement>(),
+                    element => element.LocalName == "cfRule" && element.NamespaceUri.IndexOf("spreadsheetml/2009", StringComparison.OrdinalIgnoreCase) >= 0);
+                Assert.Equal("1", extensionRule.GetAttribute("dxfId", string.Empty).Value);
             }
 
             File.Delete(sourcePath);
@@ -587,6 +593,8 @@ namespace OfficeIMO.Tests {
                 source.CellValue(2, 1, "Ada");
                 source.AddTable("A1:A2", hasHeader: true, name: "People", OfficeIMO.Excel.TableStyle.TableStyleMedium9);
                 source.ValidationCustomFormula("B2", "COUNTIF(People[Name],B2)>0");
+                source.CellFormula(3, 1, "ROWS(People)");
+                source.CellFormula(4, 1, "'People'!A1+ROWS(People)");
                 sourceDocument.Save();
             }
 
@@ -611,7 +619,11 @@ namespace OfficeIMO.Tests {
                 string copiedTableName = Assert.Single(copiedPart.TableDefinitionParts).Table.Name!.Value!;
                 Assert.NotEqual("People", copiedTableName);
                 Formula1 formula = Assert.Single(copiedPart.Worksheet.Descendants<Formula1>());
+                Cell bareTableFormula = copiedPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A3");
+                Cell sheetQualifiedFormula = copiedPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A4");
                 Assert.Equal($"COUNTIF({copiedTableName}[Name],B2)>0", formula.Text);
+                Assert.Equal($"ROWS({copiedTableName})", bareTableFormula.CellFormula?.Text);
+                Assert.Equal($"'People'!A1+ROWS({copiedTableName})", sheetQualifiedFormula.CellFormula?.Text);
             }
 
             File.Delete(sourcePath);
@@ -839,6 +851,34 @@ namespace OfficeIMO.Tests {
             var pivotTableDefinition = new OpenXmlUnknownElement(string.Empty, "pivotTableDefinition", "http://schemas.openxmlformats.org/spreadsheetml/2006/main");
             pivotTableDefinition.SetAttribute(new OpenXmlAttribute("r", "id", "http://schemas.openxmlformats.org/officeDocument/2006/relationships", "rId995"));
             worksheet.Append(pivotTableDefinition);
+
+            var extensionList = worksheet.GetFirstChild<WorksheetExtensionList>() ?? worksheet.AppendChild(new WorksheetExtensionList());
+            var slicerExtension = new WorksheetExtension { Uri = "{A8765BA9-456A-4DAB-B4F3-ACF838C121DE}" };
+            var slicerList = new OpenXmlUnknownElement("x14", "slicerList", "http://schemas.microsoft.com/office/spreadsheetml/2009/9/main");
+            var slicer = new OpenXmlUnknownElement("x14", "slicer", "http://schemas.microsoft.com/office/spreadsheetml/2009/9/main");
+            slicer.SetAttribute(new OpenXmlAttribute("r", "id", "http://schemas.openxmlformats.org/officeDocument/2006/relationships", "rId993"));
+            slicerList.Append(slicer);
+            slicerExtension.Append(slicerList);
+            extensionList.Append(slicerExtension);
+
+            var timelineExtension = new WorksheetExtension { Uri = "{7E03D99C-DC04-49d9-9315-930204A7B6E9}" };
+            var timelineRefs = new OpenXmlUnknownElement("x15", "timelineRefs", "http://schemas.microsoft.com/office/spreadsheetml/2010/11/main");
+            var timelineRef = new OpenXmlUnknownElement("x15", "timelineRef", "http://schemas.microsoft.com/office/spreadsheetml/2010/11/main");
+            timelineRef.SetAttribute(new OpenXmlAttribute("r", "id", "http://schemas.openxmlformats.org/officeDocument/2006/relationships", "rId992"));
+            timelineRefs.Append(timelineRef);
+            timelineExtension.Append(timelineRefs);
+            extensionList.Append(timelineExtension);
+
+            var conditionalExtension = new WorksheetExtension { Uri = "{78C0D931-6437-407d-A8EE-F0AAD7539E65}" };
+            var conditionalFormattings = new OpenXmlUnknownElement("x14", "conditionalFormattings", "http://schemas.microsoft.com/office/spreadsheetml/2009/9/main");
+            var conditionalFormatting = new OpenXmlUnknownElement("x14", "conditionalFormatting", "http://schemas.microsoft.com/office/spreadsheetml/2009/9/main");
+            var extensionRule = new OpenXmlUnknownElement("x14", "cfRule", "http://schemas.microsoft.com/office/spreadsheetml/2009/9/main");
+            extensionRule.SetAttribute(new OpenXmlAttribute(string.Empty, "type", string.Empty, "expression"));
+            extensionRule.SetAttribute(new OpenXmlAttribute(string.Empty, "dxfId", string.Empty, "0"));
+            conditionalFormatting.Append(extensionRule);
+            conditionalFormattings.Append(conditionalFormatting);
+            conditionalExtension.Append(conditionalFormattings);
+            extensionList.Append(conditionalExtension);
             worksheet.Save();
         }
 

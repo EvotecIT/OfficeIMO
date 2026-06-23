@@ -365,6 +365,7 @@ namespace OfficeIMO.Excel {
             RemoveElementsByLocalName(worksheet, "pivotTableDefinitions");
             RemoveElementsByLocalName(worksheet, "queryTableParts");
             RemoveElementsByLocalName(worksheet, "customProperties");
+            RemoveWorksheetExtensionsContainingLocalNames(worksheet, "slicerList", "slicerRef", "timelineRefs", "timelineRef");
 
             foreach (Hyperlinks hyperlinks in worksheet.Elements<Hyperlinks>().ToList()) {
                 foreach (Hyperlink hyperlink in hyperlinks.Elements<Hyperlink>().Where(h => h.Id != null).ToList()) {
@@ -374,6 +375,26 @@ namespace OfficeIMO.Excel {
                 if (!hyperlinks.Elements<Hyperlink>().Any()) {
                     hyperlinks.Remove();
                 }
+            }
+        }
+
+        private static void RemoveWorksheetExtensionsContainingLocalNames(Worksheet worksheet, params string[] localNames) {
+            WorksheetExtensionList? extensionList = worksheet.GetFirstChild<WorksheetExtensionList>();
+            if (extensionList == null) {
+                return;
+            }
+
+            var names = new HashSet<string>(localNames, StringComparer.Ordinal);
+            foreach (OpenXmlElement extension in extensionList.Elements<OpenXmlElement>().ToList()) {
+                bool remove = extension.Descendants<OpenXmlElement>()
+                    .Any(element => names.Contains(element.LocalName));
+                if (remove) {
+                    extension.Remove();
+                }
+            }
+
+            if (!extensionList.Elements<OpenXmlElement>().Any()) {
+                extensionList.Remove();
             }
         }
 
@@ -598,12 +619,15 @@ namespace OfficeIMO.Excel {
                 string tableName = mapping.Key;
                 if (index > 0) {
                     char previous = formula[index - 1];
-                    if (char.IsLetterOrDigit(previous) || previous == '_' || previous == '\\') {
+                    if (char.IsLetterOrDigit(previous) || previous == '_' || previous == '\\' || previous == '\'' || previous == '!') {
                         continue;
                     }
                 }
 
-                if (index + tableName.Length >= formula.Length || formula[index + tableName.Length] != '[') {
+                int nextIndex = index + tableName.Length;
+                bool hasStructuredSpecifier = nextIndex < formula.Length && formula[nextIndex] == '[';
+                bool hasBareReferenceBoundary = nextIndex >= formula.Length || IsFormulaTokenBoundary(formula[nextIndex]);
+                if (!hasStructuredSpecifier && !hasBareReferenceBoundary) {
                     continue;
                 }
 
@@ -617,6 +641,10 @@ namespace OfficeIMO.Excel {
             }
 
             return false;
+        }
+
+        private static bool IsFormulaTokenBoundary(char value) {
+            return !(char.IsLetterOrDigit(value) || value == '_' || value == '\\' || value == '\'' || value == '!' || value == ':');
         }
 
         private static string MakeUnusedRelationshipId(WorksheetPart worksheetPart) {
