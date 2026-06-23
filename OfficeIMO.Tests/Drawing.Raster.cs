@@ -653,6 +653,55 @@ namespace OfficeIMO.Tests {
             Assert.Equal(0, ellipse.GetPixel(24, 24).A);
         }
 
+        [Fact]
+        public void OfficeRasterCanvas_RendersTuplePolygonsThroughSharedRasterPrimitives() {
+            OfficeRasterImage filled = new OfficeRasterImage(22, 22, OfficeColor.Transparent);
+            OfficeRasterCanvas fillCanvas = new OfficeRasterCanvas(filled);
+            fillCanvas.FillPolygon(new[] {
+                (2D, 2D),
+                (19D, 2D),
+                (11D, 18D)
+            }, OfficeColor.Black);
+
+            OfficeRasterImage evenOdd = new OfficeRasterImage(24, 24, OfficeColor.Transparent);
+            OfficeRasterCanvas evenOddCanvas = new OfficeRasterCanvas(evenOdd);
+            IReadOnlyList<(double X, double Y)>[] contours = {
+                new[] {
+                    (2D, 2D),
+                    (21D, 2D),
+                    (21D, 21D),
+                    (2D, 21D)
+                },
+                new[] {
+                    (8D, 8D),
+                    (15D, 8D),
+                    (15D, 15D),
+                    (8D, 15D)
+                }
+            };
+            evenOddCanvas.FillPolygonsEvenOdd(contours, OfficeColor.Black);
+
+            OfficeRasterImage outline = new OfficeRasterImage(28, 24, OfficeColor.Transparent);
+            new OfficeRasterCanvas(outline).DrawStyledPolygon(
+                new[] {
+                    (4D, 4D),
+                    (23D, 4D),
+                    (23D, 19D),
+                    (4D, 19D)
+                },
+                OfficeColor.Black,
+                2D,
+                OfficeStrokeDashStyle.Dot,
+                resetDashPatternForEachSegment: true);
+
+            Assert.True(filled.GetPixel(11, 8).A > 0);
+            Assert.True(evenOdd.GetPixel(4, 4).A > 0);
+            Assert.Equal(0, evenOdd.GetPixel(11, 11).A);
+            Assert.True(AnyAlpha(outline, 4, 3, 23, 5));
+            Assert.True(AnyAlpha(outline, 3, 4, 5, 19));
+            Assert.True(CountTransparentColumnsOnRow(outline, 4, 4, 23) >= 4);
+        }
+
         private static bool AnyAlpha(OfficeRasterImage image, int left, int top, int right, int bottom) {
             for (int y = top; y <= bottom; y++) {
                 for (int x = left; x <= right; x++) {

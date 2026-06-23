@@ -26,22 +26,19 @@ namespace OfficeIMO.Visio {
             internal int Supersampling { get; }
 
             internal void FillPolygon(IReadOnlyList<(double X, double Y)> points, Color color) {
-                _canvas.FillPolygon(ToOfficePoints(points), color);
+                _canvas.FillPolygon(points, color);
             }
 
             internal void FillPolygonsEvenOdd(IReadOnlyList<List<(double X, double Y)>> contours, Color color) {
-                _canvas.FillPolygonsEvenOdd(ToOfficeContours(contours), color);
+                _canvas.FillPolygonsEvenOdd(contours, color);
             }
 
             internal void StrokePolygon(IReadOnlyList<(double X, double Y)> points, Color color, double width, OfficeStrokeDashStyle dashStyle) {
-                if (points.Count == 0) return;
-                List<(double X, double Y)> closed = new(points) { points[0] };
-                StrokePolyline(closed, color, width, dashStyle);
+                _canvas.DrawStyledPolygon(points, color, width, dashStyle, resetDashPatternForEachSegment: true);
             }
 
             internal void StrokePolyline(IReadOnlyList<(double X, double Y)> points, Color color, double width, OfficeStrokeDashStyle dashStyle) {
-                if (color.A == 0 || points.Count < 2 || width <= 0D) return;
-                _canvas.DrawStyledPolyline(ToOfficePoints(points), color, width, dashStyle, resetDashPatternForEachSegment: true);
+                _canvas.DrawStyledPolyline(points, color, width, dashStyle, resetDashPatternForEachSegment: true);
             }
 
             internal void DrawEllipse(double cx, double cy, double rx, double ry, Color fill, Color stroke, double width, OfficeStrokeDashStyle dashStyle = OfficeStrokeDashStyle.Solid, double rotationRadians = 0D, double rotationCenterX = 0D, double rotationCenterY = 0D) =>
@@ -109,24 +106,6 @@ namespace OfficeIMO.Visio {
             }
 
             private static double RadiansToCanvasDegrees(double radians) => -OfficeGeometry.RadiansToDegrees(radians);
-
-            private static List<OfficePoint> ToOfficePoints(IReadOnlyList<(double X, double Y)> points) {
-                List<OfficePoint> converted = new(points.Count);
-                for (int i = 0; i < points.Count; i++) {
-                    converted.Add(new OfficePoint(points[i].X, points[i].Y));
-                }
-
-                return converted;
-            }
-
-            private static List<IReadOnlyList<OfficePoint>> ToOfficeContours(IReadOnlyList<List<(double X, double Y)>> contours) {
-                List<IReadOnlyList<OfficePoint>> converted = new(contours.Count);
-                for (int i = 0; i < contours.Count; i++) {
-                    converted.Add(ToOfficePoints(contours[i]));
-                }
-
-                return converted;
-            }
 
         }
     }
