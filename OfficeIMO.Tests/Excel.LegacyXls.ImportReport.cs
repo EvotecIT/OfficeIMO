@@ -334,10 +334,20 @@ namespace OfficeIMO.Tests {
             Assert.Contains("_VBA_PROJECT_CUR", feature.Description);
             Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED");
             Assert.True(result.ImportReport.HasUnsupportedFeatures);
+            LegacyXlsCompoundFeatureRecord compoundRecord = Assert.Single(result.Workbook.CompoundFeatureRecords);
+            Assert.Equal(LegacyXlsCompoundFeatureRecordKind.VbaProject, compoundRecord.Kind);
+            Assert.Contains("_VBA_PROJECT_CUR", compoundRecord.Entries);
+            Assert.Equal(1, result.ImportReport.CompoundFeatureRecordCount);
+            Assert.Equal(1, result.ImportReport.CompoundFeatureEntryCount);
+            Assert.Equal(1, result.ImportReport.CompoundFeatureRecordsByKind[LegacyXlsCompoundFeatureRecordKind.VbaProject]);
+            Assert.Equal(1, result.ImportReport.CompoundFeatureEntriesByKind[LegacyXlsCompoundFeatureRecordKind.VbaProject]);
+            Assert.Equal(1, result.ImportReport.CompoundFeatureEntriesByName["_VBA_PROJECT_CUR"]);
             Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.VbaProject]);
             Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED"]);
             Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByDetail["VbaProject|XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED|Compound:VbaProjectStorage"]);
-            Assert.Contains("VbaProject", result.ImportReport.ToMarkdown());
+            string markdown = result.ImportReport.ToMarkdown();
+            Assert.Contains("VbaProject", markdown);
+            Assert.Contains("Compound Feature Entries By Name", markdown);
         }
 
         [Fact]
@@ -356,10 +366,20 @@ namespace OfficeIMO.Tests {
             Assert.Contains("ObjectPool", feature.Description);
             Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "XLS-COMPOUND-FEATURE-OLE-OBJECT-PRESERVED");
             Assert.True(result.ImportReport.HasUnsupportedFeatures);
+            LegacyXlsCompoundFeatureRecord compoundRecord = Assert.Single(result.Workbook.CompoundFeatureRecords);
+            Assert.Equal(LegacyXlsCompoundFeatureRecordKind.OleObject, compoundRecord.Kind);
+            Assert.Contains("ObjectPool", compoundRecord.Entries);
+            Assert.Equal(1, result.ImportReport.CompoundFeatureRecordCount);
+            Assert.Equal(1, result.ImportReport.CompoundFeatureEntryCount);
+            Assert.Equal(1, result.ImportReport.CompoundFeatureRecordsByKind[LegacyXlsCompoundFeatureRecordKind.OleObject]);
+            Assert.Equal(1, result.ImportReport.CompoundFeatureEntriesByKind[LegacyXlsCompoundFeatureRecordKind.OleObject]);
+            Assert.Equal(1, result.ImportReport.CompoundFeatureEntriesByName["ObjectPool"]);
             Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.OleObject]);
             Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["XLS-COMPOUND-FEATURE-OLE-OBJECT-PRESERVED"]);
             Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByDetail["OleObject|XLS-COMPOUND-FEATURE-OLE-OBJECT-PRESERVED|Compound:OleObjectStorage"]);
-            Assert.Contains("OleObject", result.ImportReport.ToMarkdown());
+            string markdown = result.ImportReport.ToMarkdown();
+            Assert.Contains("OleObject", markdown);
+            Assert.Contains("Compound Feature Entries By Name", markdown);
         }
     }
 }

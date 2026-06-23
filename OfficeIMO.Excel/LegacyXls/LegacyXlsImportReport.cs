@@ -26,6 +26,8 @@ namespace OfficeIMO.Excel.LegacyXls {
             PivotTableRecordCount = workbook.PivotTableRecords.Count;
             ChartRecordCount = workbook.ChartRecords.Count;
             DrawingRecordCount = workbook.DrawingRecords.Count;
+            CompoundFeatureRecordCount = workbook.CompoundFeatureRecords.Count;
+            CompoundFeatureEntryCount = workbook.CompoundFeatureRecords.Sum(record => record.Entries.Count);
             CalculationSettingRecordCount = workbook.CalculationSettings.Records.Count;
             CellStyleRecordCount = workbook.CellStyles.Count;
             WorkbookMetadataRecordCount = workbook.MetadataRecords.Count;
@@ -57,6 +59,9 @@ namespace OfficeIMO.Excel.LegacyXls {
             DrawingRecordsByKind = CountDrawingRecordsByKind(workbook.DrawingRecords);
             DrawingRecordsByName = CountByCode(workbook.DrawingRecords.Select(record => record.RecordName));
             DrawingRecordsByLocation = CountByCode(workbook.DrawingRecords.Select(GetDrawingRecordLocationKey));
+            CompoundFeatureRecordsByKind = CountCompoundFeatureRecordsByKind(workbook.CompoundFeatureRecords);
+            CompoundFeatureEntriesByKind = CountCompoundFeatureEntriesByKind(workbook.CompoundFeatureRecords);
+            CompoundFeatureEntriesByName = CountByCode(workbook.CompoundFeatureRecords.SelectMany(record => record.Entries));
             CalculationSettingsByKind = CountCalculationSettingsByKind(workbook.CalculationSettings.Records);
             CellStylesByKind = CountByCode(workbook.CellStyles.Select(style => style.IsBuiltIn ? "BuiltIn" : "Custom"));
             WorkbookMetadataRecordsByKind = CountWorkbookMetadataRecordsByKind(workbook.MetadataRecords);
@@ -115,6 +120,12 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets the number of preserve-only drawing and object BIFF records discovered during import.</summary>
         public int DrawingRecordCount { get; }
+
+        /// <summary>Gets the number of preserve-only compound container features discovered during import.</summary>
+        public int CompoundFeatureRecordCount { get; }
+
+        /// <summary>Gets the number of matching compound directory entries behind preserve-only compound features.</summary>
+        public int CompoundFeatureEntryCount { get; }
 
         /// <summary>Gets the number of calculation setting records parsed from BIFF records.</summary>
         public int CalculationSettingRecordCount { get; }
@@ -188,6 +199,15 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets preserve-only drawing and object BIFF records grouped by workbook or sheet location.</summary>
         public IReadOnlyDictionary<string, int> DrawingRecordsByLocation { get; }
 
+        /// <summary>Gets preserve-only compound feature records grouped by kind.</summary>
+        public IReadOnlyDictionary<LegacyXlsCompoundFeatureRecordKind, int> CompoundFeatureRecordsByKind { get; }
+
+        /// <summary>Gets matching compound feature entries grouped by feature kind.</summary>
+        public IReadOnlyDictionary<LegacyXlsCompoundFeatureRecordKind, int> CompoundFeatureEntriesByKind { get; }
+
+        /// <summary>Gets matching compound feature entries grouped by compound entry path or name.</summary>
+        public IReadOnlyDictionary<string, int> CompoundFeatureEntriesByName { get; }
+
         /// <summary>Gets parsed calculation setting records grouped by setting kind.</summary>
         public IReadOnlyDictionary<LegacyXlsCalculationSettingKind, int> CalculationSettingsByKind { get; }
 
@@ -238,6 +258,8 @@ namespace OfficeIMO.Excel.LegacyXls {
             builder.AppendLine($"Pivot table records: {PivotTableRecordCount}");
             builder.AppendLine($"Chart records: {ChartRecordCount}");
             builder.AppendLine($"Drawing records: {DrawingRecordCount}");
+            builder.AppendLine($"Compound feature records: {CompoundFeatureRecordCount}");
+            builder.AppendLine($"Compound feature entries: {CompoundFeatureEntryCount}");
             builder.AppendLine($"Calculation setting records: {CalculationSettingRecordCount}");
             builder.AppendLine($"Cell style records: {CellStyleRecordCount}");
             builder.AppendLine($"Workbook metadata records: {WorkbookMetadataRecordCount}");
@@ -274,6 +296,15 @@ namespace OfficeIMO.Excel.LegacyXls {
                 StringComparer.OrdinalIgnoreCase));
             AppendDictionary(builder, "Drawing Records By Name", DrawingRecordsByName);
             AppendDictionary(builder, "Drawing Records By Location", DrawingRecordsByLocation);
+            AppendDictionary(builder, "Compound Feature Records By Kind", CompoundFeatureRecordsByKind.ToDictionary(
+                entry => entry.Key.ToString(),
+                entry => entry.Value,
+                StringComparer.OrdinalIgnoreCase));
+            AppendDictionary(builder, "Compound Feature Entries By Kind", CompoundFeatureEntriesByKind.ToDictionary(
+                entry => entry.Key.ToString(),
+                entry => entry.Value,
+                StringComparer.OrdinalIgnoreCase));
+            AppendDictionary(builder, "Compound Feature Entries By Name", CompoundFeatureEntriesByName);
             AppendDictionary(builder, "Calculation Settings By Kind", CalculationSettingsByKind.ToDictionary(
                 entry => entry.Key.ToString(),
                 entry => entry.Value,
@@ -347,6 +378,20 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .GroupBy(record => record.Kind)
                 .OrderBy(group => group.Key.ToString(), StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(group => group.Key, group => group.Count());
+        }
+
+        private static IReadOnlyDictionary<LegacyXlsCompoundFeatureRecordKind, int> CountCompoundFeatureRecordsByKind(IEnumerable<LegacyXlsCompoundFeatureRecord> records) {
+            return records
+                .GroupBy(record => record.Kind)
+                .OrderBy(group => group.Key.ToString(), StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(group => group.Key, group => group.Count());
+        }
+
+        private static IReadOnlyDictionary<LegacyXlsCompoundFeatureRecordKind, int> CountCompoundFeatureEntriesByKind(IEnumerable<LegacyXlsCompoundFeatureRecord> records) {
+            return records
+                .GroupBy(record => record.Kind)
+                .OrderBy(group => group.Key.ToString(), StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(group => group.Key, group => group.Sum(record => record.Entries.Count));
         }
 
         private static IReadOnlyDictionary<LegacyXlsWorkbookMetadataKind, int> CountWorkbookMetadataRecordsByKind(IEnumerable<LegacyXlsWorkbookMetadataRecord> records) {

@@ -10,7 +10,10 @@ namespace OfficeIMO.Excel.LegacyXls.Compound {
             LegacyCompoundFile compoundFile,
             LegacyXlsWorkbook workbook,
             LegacyXlsImportOptions options) {
-            if (HasVbaProjectStorage(compoundFile, out string description)) {
+            if (TryGetVbaProjectEntries(compoundFile, out IReadOnlyList<string> entries, out string description)) {
+                workbook.MutableCompoundFeatureRecords.Add(new LegacyXlsCompoundFeatureRecord(
+                    LegacyXlsCompoundFeatureRecordKind.VbaProject,
+                    entries));
                 AddFeature(workbook, options, new LegacyXlsUnsupportedFeature(
                     LegacyXlsUnsupportedFeatureKind.VbaProject,
                     VbaProjectCode,
@@ -18,7 +21,10 @@ namespace OfficeIMO.Excel.LegacyXls.Compound {
                     detailCode: "Compound:VbaProjectStorage"));
             }
 
-            if (HasOleObjectStorage(compoundFile, out description)) {
+            if (TryGetOleObjectEntries(compoundFile, out entries, out description)) {
+                workbook.MutableCompoundFeatureRecords.Add(new LegacyXlsCompoundFeatureRecord(
+                    LegacyXlsCompoundFeatureRecordKind.OleObject,
+                    entries));
                 AddFeature(workbook, options, new LegacyXlsUnsupportedFeature(
                     LegacyXlsUnsupportedFeatureKind.OleObject,
                     OleObjectCode,
@@ -41,39 +47,43 @@ namespace OfficeIMO.Excel.LegacyXls.Compound {
             }
         }
 
-        private static bool HasVbaProjectStorage(LegacyCompoundFile compoundFile, out string description) {
-            List<string> entries = compoundFile.Entries
+        private static bool TryGetVbaProjectEntries(LegacyCompoundFile compoundFile, out IReadOnlyList<string> entries, out string description) {
+            List<string> matchingEntries = compoundFile.Entries
                 .Where(IsVbaProjectEntry)
                 .Select(entry => string.IsNullOrWhiteSpace(entry.Path) ? entry.Name : entry.Path)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(entry => entry, StringComparer.OrdinalIgnoreCase)
                 .ToList();
-            if (entries.Count == 0) {
+            if (matchingEntries.Count == 0) {
+                entries = Array.Empty<string>();
                 description = string.Empty;
                 return false;
             }
 
             description = "The compound XLS container contains VBA project storage. Macro projects are preserve-only; OfficeIMO.Excel does not import, edit, or execute VBA code. Entries: "
-                + string.Join("; ", entries.Take(8))
-                + (entries.Count > 8 ? $"; +{entries.Count - 8} more" : string.Empty);
+                + string.Join("; ", matchingEntries.Take(8))
+                + (matchingEntries.Count > 8 ? $"; +{matchingEntries.Count - 8} more" : string.Empty);
+            entries = matchingEntries;
             return true;
         }
 
-        private static bool HasOleObjectStorage(LegacyCompoundFile compoundFile, out string description) {
-            List<string> entries = compoundFile.Entries
+        private static bool TryGetOleObjectEntries(LegacyCompoundFile compoundFile, out IReadOnlyList<string> entries, out string description) {
+            List<string> matchingEntries = compoundFile.Entries
                 .Where(IsOleObjectEntry)
                 .Select(entry => string.IsNullOrWhiteSpace(entry.Path) ? entry.Name : entry.Path)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(entry => entry, StringComparer.OrdinalIgnoreCase)
                 .ToList();
-            if (entries.Count == 0) {
+            if (matchingEntries.Count == 0) {
+                entries = Array.Empty<string>();
                 description = string.Empty;
                 return false;
             }
 
             description = "The compound XLS container contains embedded OLE object storage. Embedded objects are preserve-only; OfficeIMO.Excel does not import, edit, or execute embedded OLE content. Entries: "
-                + string.Join("; ", entries.Take(8))
-                + (entries.Count > 8 ? $"; +{entries.Count - 8} more" : string.Empty);
+                + string.Join("; ", matchingEntries.Take(8))
+                + (matchingEntries.Count > 8 ? $"; +{matchingEntries.Count - 8} more" : string.Empty);
+            entries = matchingEntries;
             return true;
         }
 

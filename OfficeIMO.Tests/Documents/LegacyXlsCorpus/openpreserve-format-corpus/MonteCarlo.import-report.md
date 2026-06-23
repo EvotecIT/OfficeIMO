@@ -16,6 +16,8 @@ External cached cells: 8
 Pivot table records: 27
 Chart records: 841
 Drawing records: 34
+Compound feature records: 0
+Compound feature entries: 0
 Calculation setting records: 43
 Cell style records: 6
 Workbook metadata records: 17

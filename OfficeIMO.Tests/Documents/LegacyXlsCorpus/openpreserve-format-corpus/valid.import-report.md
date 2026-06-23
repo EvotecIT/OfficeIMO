@@ -16,6 +16,8 @@ External cached cells: 914
 Pivot table records: 16
 Chart records: 1079
 Drawing records: 36
+Compound feature records: 1
+Compound feature entries: 13
 Calculation setting records: 61
 Cell style records: 6
 Workbook metadata records: 20
@@ -310,6 +312,36 @@ Warnings: 2
 | graphs1 | 8 |
 | graphs2 | 8 |
 | lb_chart | 4 |
+
+## Compound Feature Records By Kind
+
+| Key | Count |
+| --- | --- |
+| VbaProject | 1 |
+
+## Compound Feature Entries By Kind
+
+| Key | Count |
+| --- | --- |
+| VbaProject | 13 |
+
+## Compound Feature Entries By Name
+
+| Key | Count |
+| --- | --- |
+| _VBA_PROJECT | 1 |
+| _VBA_PROJECT_CUR | 1 |
+| _VBA_PROJECT_CUR/VBA | 1 |
+| _VBA_PROJECT_CUR/VBA/dir | 1 |
+| _VBA_PROJECT_CUR/VBA/Sheet1 | 1 |
+| _VBA_PROJECT_CUR/VBA/Sheet2 | 1 |
+| _VBA_PROJECT_CUR/VBA/Sheet3 | 1 |
+| _VBA_PROJECT_CUR/VBA/Sheet4 | 1 |
+| _VBA_PROJECT_CUR/VBA/Sheet5 | 1 |
+| _VBA_PROJECT_CUR/VBA/Sheet6 | 1 |
+| _VBA_PROJECT_CUR/VBA/Sheet8 | 1 |
+| _VBA_PROJECT_CUR/VBA/ThisWorkbook | 1 |
+| _VBA_PROJECT_CUR/VBA/_VBA_PROJECT | 1 |
 
 ## Calculation Settings By Kind
 

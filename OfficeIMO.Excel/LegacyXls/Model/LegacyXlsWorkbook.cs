@@ -19,6 +19,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         private readonly List<LegacyXlsPivotTableRecord> _pivotTableRecords = new();
         private readonly List<LegacyXlsChartRecord> _chartRecords = new();
         private readonly List<LegacyXlsDrawingRecord> _drawingRecords = new();
+        private readonly List<LegacyXlsCompoundFeatureRecord> _compoundFeatureRecords = new();
         private readonly List<LegacyXlsUnsupportedSheet> _unsupportedSheets = new();
         private readonly List<LegacyXlsUnsupportedFeature> _unsupportedFeatures = new();
         private readonly List<LegacyXlsPreservedFeatureRecord> _preservedFeatureRecords = new();
@@ -84,6 +85,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// Gets preserve-only drawing and object BIFF records discovered during import.
         /// </summary>
         public IReadOnlyList<LegacyXlsDrawingRecord> DrawingRecords => _drawingRecords;
+
+        /// <summary>
+        /// Gets preserve-only compound container features discovered during import.
+        /// </summary>
+        public IReadOnlyList<LegacyXlsCompoundFeatureRecord> CompoundFeatureRecords => _compoundFeatureRecords;
 
         /// <summary>
         /// Gets calculation settings parsed from BIFF calculation records.
@@ -264,6 +270,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         internal List<LegacyXlsChartRecord> MutableChartRecords => _chartRecords;
 
         internal List<LegacyXlsDrawingRecord> MutableDrawingRecords => _drawingRecords;
+
+        internal List<LegacyXlsCompoundFeatureRecord> MutableCompoundFeatureRecords => _compoundFeatureRecords;
 
         internal LegacyXlsCalculationSettings MutableCalculationSettings => _calculationSettings;
 
