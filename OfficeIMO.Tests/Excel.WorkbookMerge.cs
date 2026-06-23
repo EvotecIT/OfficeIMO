@@ -78,8 +78,18 @@ namespace OfficeIMO.Tests {
                 ExcelSheet data = source.AddWorkSheet("Data");
                 data.CellValue(1, 1, 42);
 
+                ExcelSheet importedData = source.AddWorkSheet("Imported Data");
+                importedData.CellValue(1, 1, 84);
+
+                ExcelSheet jan = source.AddWorkSheet("Jan");
+                jan.CellValue(1, 1, 1);
+
+                ExcelSheet mar = source.AddWorkSheet("Mar");
+                mar.CellValue(1, 1, 3);
+
                 ExcelSheet summary = source.AddWorkSheet("Summary");
-                summary.CellFormula(1, 1, "Data!A1");
+                summary.CellFormula(1, 1, "Data!A1+'Imported Data'!A1+SUM(Jan:Mar!A1)");
+                summary.SetInternalLink(2, 1, "Data!A1", "Go");
                 summary.ValidationCustomFormula("B2", "COUNTIF(Data!$A$1:$A$1,\">0\")>0");
                 source.Save();
             }
@@ -97,9 +107,11 @@ namespace OfficeIMO.Tests {
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(targetPath, false)) {
                 WorksheetPart summaryPart = GetWorksheetPartByNameForOperations(spreadsheet, "Imported Summary");
                 Cell formulaCell = summaryPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A1");
+                Hyperlink hyperlink = Assert.Single(summaryPart.Worksheet.Descendants<Hyperlink>());
                 Formula1 validationFormula = Assert.Single(summaryPart.Worksheet.Descendants<Formula1>());
 
-                Assert.Equal("'Imported Data'!A1", formulaCell.CellFormula?.Text);
+                Assert.Equal("'Imported Data'!A1+'Imported Imported Data'!A1+SUM('Imported Jan':'Imported Mar'!A1)", formulaCell.CellFormula?.Text);
+                Assert.Equal("'Imported Data'!A1", hyperlink.Location?.Value);
                 Assert.Equal("COUNTIF('Imported Data'!$A$1:$A$1,\">0\")>0", validationFormula.Text);
             }
 

@@ -421,6 +421,44 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(worksheet.Elements<Controls>());
                 Assert.Empty(worksheet.Elements<Picture>());
                 Assert.Empty(worksheet.Elements<LegacyDrawing>());
+                Assert.Null(worksheet.GetFirstChild<PageSetup>()?.Id?.Value);
+                Assert.Empty(worksheet.Descendants<OpenXmlElement>().Where(element => element.LocalName == "queryTableParts"));
+                Assert.Empty(worksheet.Descendants<OpenXmlElement>().Where(element => element.LocalName == "pivotTableDefinition"));
+            }
+
+            File.Delete(sourcePath);
+            File.Delete(targetPath);
+        }
+
+        [Fact]
+        public void Test_CopyWorkSheetFrom_PackageModeRewritesSelfReferencesAndNamedRanges() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageFormulaSource.xlsx");
+            string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageFormulaTarget.xlsx");
+
+            using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
+                ExcelSheet source = sourceDocument.AddWorkSheet("Source");
+                source.CellValue(1, 1, 10);
+                source.CellFormula(2, 1, "Source!A1*TaxRate");
+                sourceDocument.SetNamedRange("TaxRate", "A1", source);
+                sourceDocument.Save();
+            }
+
+            using (var sourceDocument = ExcelDocument.Load(sourcePath, readOnly: true))
+            using (var targetDocument = ExcelDocument.Create(targetPath)) {
+                targetDocument.CopyWorkSheetFrom(sourceDocument, "Source", "Imported", SheetNameValidationMode.Sanitize, new ExcelWorksheetCopyOptions {
+                    CopyMode = ExcelWorksheetCopyMode.Package
+                });
+                targetDocument.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(targetPath, false)) {
+                WorksheetPart copiedPart = GetWorksheetPartByNameForOperations(spreadsheet, "Imported");
+                Cell formulaCell = copiedPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A2");
+                DefinedName definedName = Assert.Single(spreadsheet.WorkbookPart!.Workbook.DefinedNames!.Elements<DefinedName>(), name => name.Name == "TaxRate");
+
+                Assert.Equal("'Imported'!A1*TaxRate", formulaCell.CellFormula?.Text);
+                Assert.Equal("'Imported'!$A$1", definedName.Text);
+                Assert.NotNull(definedName.LocalSheetId);
             }
 
             File.Delete(sourcePath);
@@ -547,6 +585,15 @@ namespace OfficeIMO.Tests {
             worksheet.Append(new Controls());
             worksheet.Append(new Picture { Id = "rId999" });
             worksheet.Append(new LegacyDrawing { Id = "rId998" });
+            worksheet.Append(new PageSetup { Id = "rId997" });
+            var queryTableParts = new OpenXmlUnknownElement(string.Empty, "queryTableParts", "http://schemas.openxmlformats.org/spreadsheetml/2006/main");
+            var queryTablePart = new OpenXmlUnknownElement(string.Empty, "queryTablePart", "http://schemas.openxmlformats.org/spreadsheetml/2006/main");
+            queryTablePart.SetAttribute(new OpenXmlAttribute("r", "id", "http://schemas.openxmlformats.org/officeDocument/2006/relationships", "rId996"));
+            queryTableParts.Append(queryTablePart);
+            worksheet.Append(queryTableParts);
+            var pivotTableDefinition = new OpenXmlUnknownElement(string.Empty, "pivotTableDefinition", "http://schemas.openxmlformats.org/spreadsheetml/2006/main");
+            pivotTableDefinition.SetAttribute(new OpenXmlAttribute("r", "id", "http://schemas.openxmlformats.org/officeDocument/2006/relationships", "rId995"));
+            worksheet.Append(pivotTableDefinition);
             worksheet.Save();
         }
 

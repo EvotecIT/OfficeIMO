@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using System.Collections.Generic;
 using System.Globalization;
 
 namespace OfficeIMO.Excel {
@@ -41,13 +42,19 @@ namespace OfficeIMO.Excel {
                 RemapCopiedWorksheetConditionalFormats(copiedPart.Worksheet, styleMap.DifferentialFormats);
                 RemoveRelationshipBackedWorksheetFeatures(copiedPart.Worksheet);
                 CopyWorksheetTables(sourcePart, copiedPart);
-                copiedPart.Worksheet.Save();
 
                 Sheet sheet = AppendWorksheetElement(copiedPart, validatedName);
+                var targetSheet = new ExcelSheet(this, _spreadSheetDocument, sheet);
+                var sheetNameMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
+                    [sourceSheet.Name] = targetSheet.Name
+                };
+                RewriteCopiedWorksheetReferences(copiedPart, sheetNameMap);
+                CopyReferencedDefinedNamesFromSource(sourceDocument, sourceSheet.Name, targetSheet.Name, sheetNameMap);
+                copiedPart.Worksheet.Save();
                 MarkSheetCacheDirty();
                 MarkPackageDirty();
                 WorkbookRoot.Save();
-                return new ExcelSheet(this, _spreadSheetDocument, sheet);
+                return targetSheet;
             });
         }
 

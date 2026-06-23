@@ -355,6 +355,15 @@ namespace OfficeIMO.Excel {
             worksheet.RemoveAllChildren<Controls>();
             worksheet.RemoveAllChildren<Picture>();
 
+            PageSetup? pageSetup = worksheet.GetFirstChild<PageSetup>();
+            if (pageSetup != null) {
+                pageSetup.Id = null;
+            }
+
+            RemoveElementsByLocalName(worksheet, "pivotTableDefinition");
+            RemoveElementsByLocalName(worksheet, "pivotTableDefinitions");
+            RemoveElementsByLocalName(worksheet, "queryTableParts");
+
             foreach (Hyperlinks hyperlinks in worksheet.Elements<Hyperlinks>().ToList()) {
                 foreach (Hyperlink hyperlink in hyperlinks.Elements<Hyperlink>().Where(h => h.Id != null).ToList()) {
                     hyperlink.Remove();
@@ -363,6 +372,14 @@ namespace OfficeIMO.Excel {
                 if (!hyperlinks.Elements<Hyperlink>().Any()) {
                     hyperlinks.Remove();
                 }
+            }
+        }
+
+        private static void RemoveElementsByLocalName(OpenXmlElement root, string localName) {
+            foreach (OpenXmlElement element in root.Descendants<OpenXmlElement>()
+                .Where(element => string.Equals(element.LocalName, localName, StringComparison.Ordinal))
+                .ToList()) {
+                element.Remove();
             }
         }
 

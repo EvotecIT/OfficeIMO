@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
@@ -272,8 +273,17 @@ namespace OfficeIMO.Excel {
                 return text;
             }
 
+            return ReplaceSheetNameReferences(text, new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
+                [oldSheetName] = newSheetName
+            });
+        }
+
+        internal static string ReplaceSheetNameReferences(string text, IReadOnlyDictionary<string, string> sheetNameMap) {
+            if (string.IsNullOrEmpty(text) || sheetNameMap.Count == 0) {
+                return text;
+            }
+
             var builder = new StringBuilder(text.Length + 16);
-            string replacement = $"'{EscapeSheetName(newSheetName)}'!";
             bool changed = false;
             bool inStringLiteral = false;
 
@@ -293,22 +303,9 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                if (!inStringLiteral && ch == '\'') {
-                    int closingQuote = FindQuotedTokenEnd(text, i);
-                    if (closingQuote > i && closingQuote + 1 < text.Length && text[closingQuote + 1] == '!') {
-                        string quotedName = text.Substring(i + 1, closingQuote - i - 1).Replace("''", "'");
-                        if (!IsExternalSheetToken(quotedName) && string.Equals(quotedName, oldSheetName, StringComparison.OrdinalIgnoreCase)) {
-                            builder.Append(replacement);
-                            i = closingQuote + 2;
-                            changed = true;
-                            continue;
-                        }
-                    }
-                }
-
-                if (!inStringLiteral && IsBareSheetReferenceStart(text, i, oldSheetName)) {
+                if (!inStringLiteral && TryRewriteSheetReferenceAt(text, i, sheetNameMap, out string? replacement, out int consumed)) {
                     builder.Append(replacement);
-                    i += oldSheetName.Length + 1;
+                    i += consumed;
                     changed = true;
                     continue;
                 }
@@ -318,6 +315,110 @@ namespace OfficeIMO.Excel {
             }
 
             return changed ? builder.ToString() : text;
+        }
+
+        private static bool TryRewriteSheetReferenceAt(
+            string text,
+            int startIndex,
+            IReadOnlyDictionary<string, string> sheetNameMap,
+            out string? replacement,
+            out int consumed) {
+            replacement = null;
+            consumed = 0;
+
+            if (!TryReadSheetToken(text, startIndex, out string? firstSheetName, out int afterFirstToken, out bool firstExternal)) {
+                return false;
+            }
+
+            if (afterFirstToken < text.Length && text[afterFirstToken] == ':'
+                && TryReadSheetToken(text, afterFirstToken + 1, out string? secondSheetName, out int afterSecondToken, out bool secondExternal)
+                && afterSecondToken < text.Length
+                && text[afterSecondToken] == '!'
+                && !firstExternal
+                && !secondExternal) {
+                string rewrittenFirst = ResolveMappedSheetName(firstSheetName!, sheetNameMap, out bool firstChanged);
+                string rewrittenSecond = ResolveMappedSheetName(secondSheetName!, sheetNameMap, out bool secondChanged);
+                if (!firstChanged && !secondChanged) {
+                    return false;
+                }
+
+                replacement = QuoteSheetNameReference(rewrittenFirst) + ":" + QuoteSheetNameReference(rewrittenSecond) + "!";
+                consumed = afterSecondToken - startIndex + 1;
+                return true;
+            }
+
+            if (afterFirstToken >= text.Length || text[afterFirstToken] != '!' || firstExternal) {
+                return false;
+            }
+
+            string rewritten = ResolveMappedSheetName(firstSheetName!, sheetNameMap, out bool changed);
+            if (!changed) {
+                return false;
+            }
+
+            replacement = QuoteSheetNameReference(rewritten) + "!";
+            consumed = afterFirstToken - startIndex + 1;
+            return true;
+        }
+
+        private static bool TryReadSheetToken(
+            string text,
+            int startIndex,
+            out string? sheetName,
+            out int afterToken,
+            out bool isExternal) {
+            sheetName = null;
+            afterToken = startIndex;
+            isExternal = false;
+
+            if (startIndex < 0 || startIndex >= text.Length) {
+                return false;
+            }
+
+            if (text[startIndex] == '\'') {
+                int closingQuote = FindQuotedTokenEnd(text, startIndex);
+                if (closingQuote <= startIndex) {
+                    return false;
+                }
+
+                string quotedName = text.Substring(startIndex + 1, closingQuote - startIndex - 1).Replace("''", "'");
+                sheetName = quotedName;
+                afterToken = closingQuote + 1;
+                isExternal = IsExternalSheetToken(quotedName);
+                return true;
+            }
+
+            if (!IsBareSheetReferenceBoundary(text, startIndex)) {
+                return false;
+            }
+
+            int index = startIndex;
+            while (index < text.Length && IsBareSheetNameCharacter(text[index])) {
+                index++;
+            }
+
+            if (index == startIndex) {
+                return false;
+            }
+
+            sheetName = text.Substring(startIndex, index - startIndex);
+            afterToken = index;
+            isExternal = IsExternalSheetToken(sheetName);
+            return true;
+        }
+
+        private static string ResolveMappedSheetName(string sheetName, IReadOnlyDictionary<string, string> sheetNameMap, out bool changed) {
+            if (sheetNameMap.TryGetValue(sheetName, out string? mapped) && !string.IsNullOrEmpty(mapped)) {
+                changed = !string.Equals(sheetName, mapped, StringComparison.Ordinal);
+                return mapped!;
+            }
+
+            changed = false;
+            return sheetName;
+        }
+
+        private static string QuoteSheetNameReference(string sheetName) {
+            return $"'{EscapeSheetName(sheetName)}'";
         }
 
         private static bool IsExternalSheetToken(string sheetToken) {
@@ -392,24 +493,7 @@ namespace OfficeIMO.Excel {
             return -1;
         }
 
-        private static bool IsBareSheetReferenceStart(string text, int startIndex, string oldSheetName) {
-            if (string.IsNullOrEmpty(oldSheetName)) {
-                return false;
-            }
-
-            int endIndex = startIndex + oldSheetName.Length;
-            if (endIndex >= text.Length) {
-                return false;
-            }
-
-            if (!string.Equals(text.Substring(startIndex, oldSheetName.Length), oldSheetName, StringComparison.OrdinalIgnoreCase)) {
-                return false;
-            }
-
-            if (text[endIndex] != '!') {
-                return false;
-            }
-
+        private static bool IsBareSheetReferenceBoundary(string text, int startIndex) {
             if (startIndex == 0) {
                 return true;
             }
@@ -420,6 +504,10 @@ namespace OfficeIMO.Excel {
             }
 
             return true;
+        }
+
+        private static bool IsBareSheetNameCharacter(char value) {
+            return char.IsLetterOrDigit(value) || value == '_' || value == '.';
         }
     }
 }
