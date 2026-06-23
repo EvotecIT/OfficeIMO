@@ -517,14 +517,23 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
                 long dataBoundSheetPosition = stream.Position;
                 WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "PivotMeta"));
+                WriteRecord(stream, 0x00b0, Array.Empty<byte>());
                 WriteRecord(stream, 0x00c1, BuildSxdiPayload());
+                WriteRecord(stream, 0x00c5, Array.Empty<byte>());
+                WriteRecord(stream, 0x00c8, Array.Empty<byte>());
+                WriteRecord(stream, 0x00cf, Array.Empty<byte>());
+                WriteRecord(stream, 0x00f1, Array.Empty<byte>());
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 int sheetOffset = checked((int)stream.Position);
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
                 WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Pivot data"));
+                WriteRecord(stream, 0x00b1, Array.Empty<byte>());
+                WriteRecord(stream, 0x00b2, Array.Empty<byte>());
                 WriteRecord(stream, 0x00d7, BuildSxRngPayload());
+                WriteRecord(stream, 0x00f9, Array.Empty<byte>());
                 WriteRecord(stream, 0x00ff, BuildSxVdExPayload());
+                WriteRecord(stream, 0x0858, Array.Empty<byte>());
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 byte[] bytes = stream.ToArray();

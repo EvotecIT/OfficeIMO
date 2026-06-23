@@ -37,14 +37,101 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         private static LegacyXlsPivotTableRecord CreateRecord(BiffRecord record, string? sheetName) {
             LegacyXlsPivotTableRecordKind kind;
             switch (record.Type) {
+                case 0x00B0:
+                    kind = LegacyXlsPivotTableRecordKind.View;
+                    break;
+                case 0x00B1:
+                    kind = LegacyXlsPivotTableRecordKind.Field;
+                    break;
+                case 0x00B2:
+                    kind = LegacyXlsPivotTableRecordKind.Item;
+                    break;
+                case 0x00B4:
+                    kind = LegacyXlsPivotTableRecordKind.FieldIndexList;
+                    break;
+                case 0x00B5:
+                    kind = LegacyXlsPivotTableRecordKind.LineItem;
+                    break;
+                case 0x00B6:
+                    kind = LegacyXlsPivotTableRecordKind.PageItem;
+                    break;
                 case 0x00C1:
                     kind = LegacyXlsPivotTableRecordKind.DataItem;
+                    break;
+                case 0x00C5:
+                case 0x00C6:
+                case 0x00C7:
+                    kind = LegacyXlsPivotTableRecordKind.Cache;
+                    break;
+                case 0x00C8:
+                case 0x00C9:
+                case 0x00CA:
+                case 0x00CB:
+                case 0x00CC:
+                case 0x00CD:
+                case 0x00CE:
+                    kind = LegacyXlsPivotTableRecordKind.CacheItem;
+                    break;
+                case 0x00CF:
+                case 0x00D0:
+                case 0x00D1:
+                    kind = LegacyXlsPivotTableRecordKind.Table;
+                    break;
+                case 0x00D5:
+                    kind = LegacyXlsPivotTableRecordKind.CacheStream;
                     break;
                 case 0x00D7:
                     kind = LegacyXlsPivotTableRecordKind.GroupingRange;
                     break;
+                case 0x00D8:
+                    kind = LegacyXlsPivotTableRecordKind.Formula;
+                    break;
+                case 0x00EF:
+                    kind = LegacyXlsPivotTableRecordKind.Rule;
+                    break;
+                case 0x00F0:
+                    kind = LegacyXlsPivotTableRecordKind.CacheExtension;
+                    break;
+                case 0x00F1:
+                    kind = LegacyXlsPivotTableRecordKind.Filter;
+                    break;
+                case 0x00F2:
+                case 0x00F9:
+                    kind = LegacyXlsPivotTableRecordKind.Format;
+                    break;
+                case 0x00F4:
+                    kind = LegacyXlsPivotTableRecordKind.Item;
+                    break;
+                case 0x00F5:
+                    kind = LegacyXlsPivotTableRecordKind.Field;
+                    break;
+                case 0x00F6:
+                    kind = LegacyXlsPivotTableRecordKind.Selection;
+                    break;
+                case 0x00F7:
+                    kind = LegacyXlsPivotTableRecordKind.PageItem;
+                    break;
+                case 0x00F8:
+                case 0x0100:
+                    kind = LegacyXlsPivotTableRecordKind.Formula;
+                    break;
                 case 0x00FF:
                     kind = LegacyXlsPivotTableRecordKind.ExtendedPivotField;
+                    break;
+                case 0x0122:
+                    kind = LegacyXlsPivotTableRecordKind.CacheExtension;
+                    break;
+                case 0x0801:
+                    kind = LegacyXlsPivotTableRecordKind.QueryTableTag;
+                    break;
+                case 0x0857:
+                    kind = LegacyXlsPivotTableRecordKind.ViewLink;
+                    break;
+                case 0x0858:
+                    kind = LegacyXlsPivotTableRecordKind.PivotChart;
+                    break;
+                case 0x0863:
+                    kind = LegacyXlsPivotTableRecordKind.Additional;
                     break;
                 default:
                     kind = LegacyXlsPivotTableRecordKind.PreserveOnly;
