@@ -289,12 +289,26 @@ Warnings: 0
 | ExternalWorkbook\|Sheets:6\|Names:0\|Caches:6\|CachedCells:8 | 1 |
 | Self\|Sheets:0\|Names:0\|Caches:0\|CachedCells:0 | 1 |
 
+## External References By Declared Sheet Count
+
+| Key | Count |
+| --- | --- |
+| DeclaredSheets:11 | 1 |
+| DeclaredSheets:6 | 1 |
+
 ## External References By Sheet Name Count
 
 | Key | Count |
 | --- | --- |
 | Sheets:0 | 1 |
 | Sheets:6 | 1 |
+
+## External References By Sheet Table State
+
+| Key | Count |
+| --- | --- |
+| Declared:11;Parsed:0 | 1 |
+| Matched:6 | 1 |
 
 ## External References By External Name Count
 

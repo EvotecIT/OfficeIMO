@@ -323,6 +323,14 @@ Warnings: 2
 | ExternalWorkbook\|Sheets:2\|Names:1\|Caches:1\|CachedCells:0 | 1 |
 | Self\|Sheets:0\|Names:0\|Caches:0\|CachedCells:0 | 1 |
 
+## External References By Declared Sheet Count
+
+| Key | Count |
+| --- | --- |
+| DeclaredSheets:1 | 1 |
+| DeclaredSheets:14 | 1 |
+| DeclaredSheets:2 | 1 |
+
 ## External References By Sheet Name Count
 
 | Key | Count |
@@ -330,6 +338,14 @@ Warnings: 2
 | Sheets:0 | 1 |
 | Sheets:1 | 1 |
 | Sheets:2 | 1 |
+
+## External References By Sheet Table State
+
+| Key | Count |
+| --- | --- |
+| Declared:14;Parsed:0 | 1 |
+| Matched:1 | 1 |
+| Matched:2 | 1 |
 
 ## External References By External Name Count
 

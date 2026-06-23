@@ -158,7 +158,9 @@ namespace OfficeIMO.Excel.LegacyXls {
             ExternalReferencesByKind = CountExternalReferencesByKind(workbook.ExternalReferences);
             ExternalReferencesByTarget = CountByCode(workbook.ExternalReferences.Select(GetExternalReferenceTargetKey));
             ExternalReferencesByShape = CountByCode(workbook.ExternalReferences.Select(GetExternalReferenceShapeKey));
+            ExternalReferencesByDeclaredSheetCount = CountByCode(workbook.ExternalReferences.Select(reference => $"DeclaredSheets:{reference.SheetCount}"));
             ExternalReferencesBySheetNameCount = CountByCode(workbook.ExternalReferences.Select(reference => $"Sheets:{reference.SheetNameCount}"));
+            ExternalReferencesBySheetTableState = CountByCode(workbook.ExternalReferences.Select(GetExternalReferenceSheetTableStateKey));
             ExternalReferencesByExternalNameCount = CountByCode(workbook.ExternalReferences.Select(reference => $"Names:{reference.ExternalNameCount}"));
             ExternalReferencesByCacheCount = CountByCode(workbook.ExternalReferences.Select(reference => $"Caches:{reference.CachedCellCacheCount}"));
             ExternalReferencesByCachedCellCount = CountByCode(workbook.ExternalReferences.Select(reference => $"CachedCells:{reference.CachedCellCount}"));
@@ -706,8 +708,14 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets preserved external references grouped by their sheet/name/cache/cached-cell shape.</summary>
         public IReadOnlyDictionary<string, int> ExternalReferencesByShape { get; }
 
+        /// <summary>Gets preserved external references grouped by declared SupBook sheet count.</summary>
+        public IReadOnlyDictionary<string, int> ExternalReferencesByDeclaredSheetCount { get; }
+
         /// <summary>Gets preserved external references grouped by sheet-name count.</summary>
         public IReadOnlyDictionary<string, int> ExternalReferencesBySheetNameCount { get; }
+
+        /// <summary>Gets preserved external references grouped by parsed sheet-name table completeness.</summary>
+        public IReadOnlyDictionary<string, int> ExternalReferencesBySheetTableState { get; }
 
         /// <summary>Gets preserved external references grouped by external-name count.</summary>
         public IReadOnlyDictionary<string, int> ExternalReferencesByExternalNameCount { get; }
@@ -1157,7 +1165,9 @@ namespace OfficeIMO.Excel.LegacyXls {
                 StringComparer.OrdinalIgnoreCase));
             AppendDictionary(builder, "External References By Target", ExternalReferencesByTarget);
             AppendDictionary(builder, "External References By Shape", ExternalReferencesByShape);
+            AppendDictionary(builder, "External References By Declared Sheet Count", ExternalReferencesByDeclaredSheetCount);
             AppendDictionary(builder, "External References By Sheet Name Count", ExternalReferencesBySheetNameCount);
+            AppendDictionary(builder, "External References By Sheet Table State", ExternalReferencesBySheetTableState);
             AppendDictionary(builder, "External References By External Name Count", ExternalReferencesByExternalNameCount);
             AppendDictionary(builder, "External References By Cache Count", ExternalReferencesByCacheCount);
             AppendDictionary(builder, "External References By Cached Cell Count", ExternalReferencesByCachedCellCount);
@@ -1521,6 +1531,14 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         private static string GetExternalReferenceShapeKey(LegacyXlsExternalReference reference) {
             return $"{reference.Kind}|Sheets:{reference.SheetNameCount}|Names:{reference.ExternalNameCount}|Caches:{reference.CachedCellCacheCount}|CachedCells:{reference.CachedCellCount}";
+        }
+
+        private static string GetExternalReferenceSheetTableStateKey(LegacyXlsExternalReference reference) {
+            if (reference.SheetCount == reference.SheetNameCount) {
+                return $"Matched:{reference.SheetCount}";
+            }
+
+            return $"Declared:{reference.SheetCount};Parsed:{reference.SheetNameCount}";
         }
 
         private static string GetExternalCellCacheSheetKey(LegacyXlsExternalCellCache cache) {
