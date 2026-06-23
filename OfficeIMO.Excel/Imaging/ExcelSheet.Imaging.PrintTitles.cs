@@ -1,0 +1,244 @@
+using System.Text;
+using OfficeIMO.Drawing;
+
+namespace OfficeIMO.Excel {
+    public partial class ExcelSheet {
+        private OfficeImageExportResult RenderWorksheetImageResult(
+            OfficeImageExportFormat format,
+            WorksheetImageRangeResolution range,
+            ExcelWorksheetImageExportOptions options) {
+            if (options.SplitByManualPageBreaks &&
+                TryCreatePrintTitleLayout(range.Range, out PrintTitleLayout layout)) {
+                return RenderPrintTitleLayout(format, range, options, layout);
+            }
+
+            ExcelRangeVisualSnapshot snapshot = ExcelRangeVisualSnapshotBuilder.Build(this, range.Range, options, range.Diagnostics);
+            return ExcelRangeImageRenderer.Render(snapshot, format, options);
+        }
+
+        private OfficeImageExportResult RenderPrintTitleLayout(
+            OfficeImageExportFormat format,
+            WorksheetImageRangeResolution range,
+            ExcelWorksheetImageExportOptions options,
+            PrintTitleLayout layout) {
+            var diagnostics = new List<OfficeImageExportDiagnostic>(range.Diagnostics);
+            List<PrintTitleComponent> components = CreatePrintTitleComponents(layout, format, options, diagnostics);
+            double width = components.Count == 0 ? 0D : components.Max(component => component.X + component.Width);
+            double height = components.Count == 0 ? 0D : components.Max(component => component.Y + component.Height);
+            int outputWidth = Math.Max(1, (int)Math.Ceiling(width));
+            int outputHeight = Math.Max(1, (int)Math.Ceiling(height));
+
+            if (format == OfficeImageExportFormat.Svg) {
+                string svg = RenderPrintTitleSvg(components, outputWidth, outputHeight, options);
+                return new OfficeImageExportResult(
+                    format,
+                    outputWidth,
+                    outputHeight,
+                    Encoding.UTF8.GetBytes(svg),
+                    Name,
+                    Name + "!" + range.Range,
+                    diagnostics.AsReadOnly());
+            }
+
+            OfficeRasterImage image = new OfficeRasterImage(outputWidth, outputHeight, options.BackgroundColor);
+            var canvas = new OfficeRasterCanvas(image);
+            foreach (PrintTitleComponent component in components) {
+                if (component.Raster != null) {
+                    canvas.DrawImage(component.Raster, component.X, component.Y, component.Width, component.Height);
+                }
+            }
+
+            return new OfficeImageExportResult(
+                format,
+                outputWidth,
+                outputHeight,
+                OfficePngWriter.Encode(image),
+                Name,
+                Name + "!" + range.Range,
+                diagnostics.AsReadOnly());
+        }
+
+        private List<PrintTitleComponent> CreatePrintTitleComponents(
+            PrintTitleLayout layout,
+            OfficeImageExportFormat format,
+            ExcelWorksheetImageExportOptions options,
+            List<OfficeImageExportDiagnostic> diagnostics) {
+            var components = new List<PrintTitleComponent>();
+            PrintTitleComponent? corner = layout.CornerRange == null
+                ? null
+                : RenderPrintTitleComponent(layout.CornerRange, 0D, 0D, format, options, diagnostics);
+            PrintTitleComponent? rowTitles = layout.RowTitleRange == null
+                ? null
+                : RenderPrintTitleComponent(layout.RowTitleRange, corner?.Width ?? 0D, 0D, format, options, diagnostics);
+            PrintTitleComponent? columnTitles = layout.ColumnTitleRange == null
+                ? null
+                : RenderPrintTitleComponent(layout.ColumnTitleRange, 0D, rowTitles?.Height ?? 0D, format, options, diagnostics);
+            PrintTitleComponent body = RenderPrintTitleComponent(
+                layout.BodyRange,
+                columnTitles?.Width ?? 0D,
+                rowTitles?.Height ?? 0D,
+                format,
+                options,
+                diagnostics);
+
+            if (corner != null) {
+                components.Add(corner);
+            }
+
+            if (rowTitles != null) {
+                components.Add(rowTitles);
+            }
+
+            if (columnTitles != null) {
+                components.Add(columnTitles);
+            }
+
+            components.Add(body);
+            return components;
+        }
+
+        private PrintTitleComponent RenderPrintTitleComponent(
+            string range,
+            double x,
+            double y,
+            OfficeImageExportFormat format,
+            ExcelWorksheetImageExportOptions options,
+            List<OfficeImageExportDiagnostic> diagnostics) {
+            if (options == null) {
+                throw new ArgumentNullException(nameof(options));
+            }
+
+            if (options.Scale <= 0D || double.IsNaN(options.Scale) || double.IsInfinity(options.Scale)) {
+                throw new ArgumentOutOfRangeException(nameof(options), "Scale must be a finite positive number.");
+            }
+
+            ExcelRangeVisualSnapshot snapshot = ExcelRangeVisualSnapshotBuilder.Build(this, range, options);
+            if (snapshot.Diagnostics.Count > 0) {
+                diagnostics.AddRange(snapshot.Diagnostics);
+            }
+
+            var componentDiagnostics = new List<OfficeImageExportDiagnostic>();
+            OfficeRasterImage? raster = null;
+            string svgInner = string.Empty;
+            int width = Math.Max(1, (int)Math.Ceiling(snapshot.Width * options.Scale));
+            int height = Math.Max(1, (int)Math.Ceiling(snapshot.Height * options.Scale));
+            if (format == OfficeImageExportFormat.Svg) {
+                string svg = ExcelRangeImageRenderer.RenderSvg(snapshot, options, componentDiagnostics);
+                svgInner = OfficeSvgFormatting.ExtractSvgInner(svg);
+            } else {
+                raster = ExcelRangeImageRenderer.RenderRaster(snapshot, options, componentDiagnostics);
+                width = raster.Width;
+                height = raster.Height;
+            }
+
+            if (componentDiagnostics.Count > 0) {
+                diagnostics.AddRange(componentDiagnostics);
+            }
+
+            return new PrintTitleComponent(
+                range,
+                x,
+                y,
+                width,
+                height,
+                raster,
+                svgInner);
+        }
+
+        private static string RenderPrintTitleSvg(
+            IReadOnlyList<PrintTitleComponent> components,
+            int width,
+            int height,
+            ExcelImageExportOptions options) {
+            var builder = new StringBuilder();
+            builder.Append("<svg xmlns=\"http://www.w3.org/2000/svg\"")
+                .AppendNumberAttribute("width", width)
+                .AppendNumberAttribute("height", height)
+                .AppendAttribute("viewBox", "0 0 " + OfficeSvgFormatting.FormatNumber(width) + " " + OfficeSvgFormatting.FormatNumber(height))
+                .Append('>');
+            var backgroundAttributes = new StringBuilder();
+            backgroundAttributes.AppendPaintAttribute("fill", options.BackgroundColor);
+            builder.AppendRectElement(0D, 0D, width, height, backgroundAttributes.ToString());
+            foreach (PrintTitleComponent component in components) {
+                builder.AppendNestedSvg(component.X, component.Y, component.Width, component.Height, component.SvgInner);
+            }
+
+            builder.Append("</svg>");
+            return builder.ToString();
+        }
+
+        private bool TryCreatePrintTitleLayout(string bodyRange, out PrintTitleLayout layout) {
+            layout = default;
+            ExcelPrintTitles titles = GetPrintTitles();
+            if ((!titles.HasRows && !titles.HasColumns) ||
+                !A1.TryParseRange(bodyRange, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
+                return false;
+            }
+
+            bool repeatRows = titles.HasRows &&
+                titles.FirstRow.GetValueOrDefault() > 0 &&
+                titles.LastRow.GetValueOrDefault() >= titles.FirstRow.GetValueOrDefault() &&
+                firstRow > titles.LastRow.GetValueOrDefault();
+            bool repeatColumns = titles.HasColumns &&
+                titles.FirstColumn.GetValueOrDefault() > 0 &&
+                titles.LastColumn.GetValueOrDefault() >= titles.FirstColumn.GetValueOrDefault() &&
+                firstColumn > titles.LastColumn.GetValueOrDefault();
+            if (!repeatRows && !repeatColumns) {
+                return false;
+            }
+
+            string? rowTitleRange = repeatRows
+                ? ToRange(titles.FirstRow.GetValueOrDefault(), firstColumn, titles.LastRow.GetValueOrDefault(), lastColumn)
+                : null;
+            string? columnTitleRange = repeatColumns
+                ? ToRange(firstRow, titles.FirstColumn.GetValueOrDefault(), lastRow, titles.LastColumn.GetValueOrDefault())
+                : null;
+            string? cornerRange = repeatRows && repeatColumns
+                ? ToRange(titles.FirstRow.GetValueOrDefault(), titles.FirstColumn.GetValueOrDefault(), titles.LastRow.GetValueOrDefault(), titles.LastColumn.GetValueOrDefault())
+                : null;
+            layout = new PrintTitleLayout(bodyRange, rowTitleRange, columnTitleRange, cornerRange);
+            return true;
+        }
+
+        private readonly struct PrintTitleLayout {
+            internal PrintTitleLayout(string bodyRange, string? rowTitleRange, string? columnTitleRange, string? cornerRange) {
+                BodyRange = bodyRange;
+                RowTitleRange = rowTitleRange;
+                ColumnTitleRange = columnTitleRange;
+                CornerRange = cornerRange;
+            }
+
+            internal string BodyRange { get; }
+            internal string? RowTitleRange { get; }
+            internal string? ColumnTitleRange { get; }
+            internal string? CornerRange { get; }
+        }
+
+        private sealed class PrintTitleComponent {
+            internal PrintTitleComponent(
+                string range,
+                double x,
+                double y,
+                double width,
+                double height,
+                OfficeRasterImage? raster,
+                string svgInner) {
+                Range = range;
+                X = x;
+                Y = y;
+                Width = width;
+                Height = height;
+                Raster = raster;
+                SvgInner = svgInner;
+            }
+
+            internal string Range { get; }
+            internal double X { get; }
+            internal double Y { get; }
+            internal double Width { get; }
+            internal double Height { get; }
+            internal OfficeRasterImage? Raster { get; }
+            internal string SvgInner { get; }
+        }
+    }
+}

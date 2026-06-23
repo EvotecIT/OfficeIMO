@@ -32,8 +32,7 @@ namespace OfficeIMO.Excel {
             IReadOnlyList<WorksheetImageRangeResolution> ranges = ResolveWorksheetImageRanges(resolved, allowMultipleResults: true);
             var results = new List<OfficeImageExportResult>(ranges.Count);
             foreach (WorksheetImageRangeResolution range in ranges) {
-                ExcelRangeVisualSnapshot snapshot = ExcelRangeVisualSnapshotBuilder.Build(this, range.Range, resolved, range.Diagnostics);
-                results.Add(ExcelRangeImageRenderer.Render(snapshot, format, resolved));
+                results.Add(RenderWorksheetImageResult(format, range, resolved));
             }
 
             return results.AsReadOnly();
@@ -154,7 +153,7 @@ namespace OfficeIMO.Excel {
                 return ranges;
             }
 
-            IReadOnlyList<OfficeImageExportDiagnostic> pageDiagnostics = BuildPageLevelUnsupportedDiagnostics();
+            IReadOnlyList<OfficeImageExportDiagnostic> pageDiagnostics = BuildPageLevelUnsupportedDiagnostics(includePrintTitlesUnsupported: !allowMultipleResults);
             if (!allowMultipleResults) {
                 return ranges
                     .Select(range => range
@@ -192,10 +191,10 @@ namespace OfficeIMO.Excel {
             return splitRanges.AsReadOnly();
         }
 
-        private IReadOnlyList<OfficeImageExportDiagnostic> BuildPageLevelUnsupportedDiagnostics() {
+        private IReadOnlyList<OfficeImageExportDiagnostic> BuildPageLevelUnsupportedDiagnostics(bool includePrintTitlesUnsupported) {
             var diagnostics = new List<OfficeImageExportDiagnostic>();
             ExcelPrintTitles printTitles = GetPrintTitles();
-            if (printTitles.HasRows || printTitles.HasColumns) {
+            if (includePrintTitlesUnsupported && (printTitles.HasRows || printTitles.HasColumns)) {
                 diagnostics.Add(new OfficeImageExportDiagnostic(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.PrintTitlesUnsupported,

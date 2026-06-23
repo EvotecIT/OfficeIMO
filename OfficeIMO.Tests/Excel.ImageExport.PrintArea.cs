@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
+using System.Text;
 using Xunit;
 using X = DocumentFormat.OpenXml.Spreadsheet;
 
@@ -280,9 +281,8 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(2, results.Count);
             Assert.All(results, result => {
-                Assert.Contains(result.Diagnostics, item =>
-                    item.Code == ExcelImageExportDiagnosticCodes.PrintTitlesUnsupported &&
-                    item.Source == "Report!_xlnm.Print_Titles");
+                Assert.DoesNotContain(result.Diagnostics, item =>
+                    item.Code == ExcelImageExportDiagnosticCodes.PrintTitlesUnsupported);
                 Assert.Contains(result.Diagnostics, item =>
                     item.Code == ExcelImageExportDiagnosticCodes.PageSetupUnsupported &&
                     item.Source == "Report!pageSetup");
@@ -292,6 +292,29 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(result.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ManualPageBreaksSplit);
                 Assert.True(OfficeImageReader.Identify(result.Bytes).Width > 0);
             });
+        }
+
+        [Fact]
+        public void ExcelWorksheet_PageSlicedSvgExportRepeatsPrintTitleRows() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("Report");
+            FillPageBreakGrid(sheet);
+            document.SetPrintTitles(sheet, firstRow: 1, lastRow: 1, firstCol: null, lastCol: null, save: false);
+            sheet.AddManualRowPageBreak(2, save: false);
+
+            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelWorksheetImageExportOptions {
+                Range = "A1:D4",
+                SplitByManualPageBreaks = true,
+                ShowGridlines = false
+            });
+
+            Assert.Equal(2, results.Count);
+            Assert.Equal("Report!A3:D4", results[1].Source);
+            Assert.DoesNotContain(results[1].Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.PrintTitlesUnsupported);
+            string svg = Encoding.UTF8.GetString(results[1].Bytes);
+            Assert.Contains(">A1<", svg);
+            Assert.Contains(">A3<", svg);
         }
 
         private static void FillPageBreakGrid(ExcelSheet sheet) {
