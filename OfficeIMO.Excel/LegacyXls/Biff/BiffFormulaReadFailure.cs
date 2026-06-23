@@ -45,6 +45,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         internal static BiffFormulaReadFailure Stack(string reason) =>
             new("FormulaStackShape", reason);
 
+        internal static BiffFormulaReadFailure Stack(string reason, byte token, int tokenOffset) =>
+            new("FormulaStackShape", reason, token, tokenOffset);
+
         internal static BiffFormulaReadFailure UnsupportedToken(byte token, int tokenOffset) =>
             new($"FormulaToken0x{token:X2}", $"Unsupported formula token {BiffFormulaTokenInfo.GetTokenName(token)} (0x{token:X2}).", token, tokenOffset);
 
@@ -61,6 +64,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
         internal static BiffFormulaReadFailure UnsupportedFunctionArguments(ushort functionId, int parameterCount, byte token, int tokenOffset) =>
             new($"FormulaFunction0x{functionId:X4}Args{parameterCount}", $"Unsupported argument count {parameterCount} for formula function id 0x{functionId:X4}.", token, tokenOffset);
+
+        internal static BiffFormulaReadFailure FunctionStackUnderflow(ushort functionId, string functionName, int parameterCount, int availableCount, byte token, int tokenOffset) =>
+            new($"FormulaFunction0x{functionId:X4}StackUnderflow", $"Formula function {functionName} (0x{functionId:X4}) expected {parameterCount} stack operands but only {availableCount} were available.", token, tokenOffset);
 
         internal static BiffFormulaReadFailure DefinedName(uint oneBasedNameIndex, byte token, int tokenOffset) =>
             new($"FormulaDefinedName{oneBasedNameIndex}", $"Formula defined-name operand {oneBasedNameIndex} could not be resolved.", token, tokenOffset);

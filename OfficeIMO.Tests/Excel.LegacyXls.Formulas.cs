@@ -1004,6 +1004,41 @@ namespace OfficeIMO.Tests {
             Assert.Null(formula.FormulaText);
         }
 
+        [Fact]
+        public void LegacyXls_Load_ReportsFormulaFunctionStackUnderflowWithTokenLocation() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateFormulaFunctionStackUnderflowWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
+            LegacyXlsImportDiagnostic diagnostic = Assert.Single(legacy.Diagnostics, d =>
+                d.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED"
+                && d.SheetName == "FormulaStack"
+                && d.RecordType == (ushort)BiffRecordType.Formula);
+            Assert.Equal("FormulaFunction0x0004StackUnderflow", diagnostic.DetailCode);
+            Assert.Equal((byte)0x42, diagnostic.FormulaToken);
+            Assert.Equal("PtgFuncVar", diagnostic.FormulaTokenName);
+            Assert.Equal(0, diagnostic.FormulaTokenOffset);
+            Assert.Contains("Formula function SUM (0x0004) expected 1 stack operands but only 0 were available", diagnostic.Message);
+            Assert.Contains("Token PtgFuncVar (0x42)", diagnostic.Message);
+            Assert.Contains("parsed-expression offset 0", diagnostic.Message);
+
+            LegacyXlsImportReport report = legacy.CreateImportReport();
+            Assert.Equal(1, report.FormulaTokenBlockers["FormulaFunction0x0004StackUnderflow"]);
+            Assert.Equal(1, report.FormulaTokenBlockersByToken["Token:0x42"]);
+            Assert.Equal(1, report.FormulaTokenBlockersByTokenName["PtgFuncVar"]);
+            Assert.Equal(1, report.FormulaTokenBlockersByOffset["Offset:0"]);
+
+            LegacyXlsWorksheet sheet = Assert.Single(legacy.Worksheets);
+            LegacyXlsCell formula = Assert.Single(sheet.Cells, cell => cell.Row == 1 && cell.Column == 2);
+            Assert.True(formula.IsFormula);
+            Assert.Equal(0d, formula.Value);
+            Assert.Null(formula.FormulaText);
+        }
+
         private static void AssertFormula(LegacyXlsWorksheet sheet, int row, int column, string expectedFormula, object expectedValue) {
             LegacyXlsCell formula = Assert.Single(sheet.Cells, cell => cell.Row == row && cell.Column == column);
             Assert.True(formula.IsFormula);
@@ -1304,6 +1339,23 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x0203, BuildNumberPayload(0, 0, 99d));
                 WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(0, 1, 99d, formulaTokens: BuildSharedFormulaReferenceTokens(0, 1)));
                 WriteRecord(stream, 0x04bc, BuildSharedFormulaPayload(0, 1, 0, 1, new byte[] { 0x01 }));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)boundSheetPosition + 4), 4);
+                return bytes;
+            }
+
+            internal static byte[] CreateFormulaFunctionStackUnderflowWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long boundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "FormulaStack"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(0, 1, 0d, formulaTokens: BuildFunctionStackUnderflowFormulaTokens()));
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 byte[] bytes = stream.ToArray();
@@ -2152,6 +2204,12 @@ namespace OfficeIMO.Tests {
                 stream.WriteByte(0x42);
                 stream.WriteByte(0x02);
                 WriteUInt16(stream, 0x00ff);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildFunctionStackUnderflowFormulaTokens() {
+                using var stream = new MemoryStream();
+                WriteVariableFunctionCall(stream, 1, 0x0004);
                 return stream.ToArray();
             }
 

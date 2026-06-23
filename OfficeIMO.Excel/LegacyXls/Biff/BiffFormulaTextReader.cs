@@ -358,6 +358,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             int offset = expressionOffset;
             int endOffset = expressionOffset + expressionLength;
             int extraOffset = endOffset;
+            int stackDepth = 0;
             while (offset < endOffset) {
                 int tokenOffset = offset - expressionOffset;
                 byte token = formulaPayload[offset++];
@@ -377,17 +378,29 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     case 0x0f:
                     case 0x10:
                     case 0x11:
+                        if (!TryApplyStackOperator(ref stackDepth, 2, 1)) {
+                            return BiffFormulaReadFailure.Stack("Formula operator did not have enough operands on the expression stack.", token, tokenOffset);
+                        }
+
+                        break;
                     case 0x12:
                     case 0x13:
                     case 0x14:
                     case 0x15:
+                        if (!TryApplyStackOperator(ref stackDepth, 1, 1)) {
+                            return BiffFormulaReadFailure.Stack("Formula unary operator did not have an operand on the expression stack.", token, tokenOffset);
+                        }
+
+                        break;
                     case 0x16:
+                        stackDepth++;
                         break;
                     case 0x17:
                         if (!TrySkipStringLiteral(formulaPayload, ref offset, endOffset)) {
                             return BiffFormulaReadFailure.InvalidPayload("Formula string literal token could not be read.", token, tokenOffset);
                         }
 
+                        stackDepth++;
                         break;
                     case 0x19:
                         if (!TrySkipAttributeToken(formulaPayload, ref offset, endOffset, out byte unsupportedAttribute)) {
@@ -401,18 +414,21 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                             return BiffFormulaReadFailure.InvalidPayload("Formula error or Boolean token ended early.", token, tokenOffset);
                         }
 
+                        stackDepth++;
                         break;
                     case 0x1e:
                         if (!TrySkipBytes(ref offset, endOffset, 2)) {
                             return BiffFormulaReadFailure.InvalidPayload("Formula integer token ended early.", token, tokenOffset);
                         }
 
+                        stackDepth++;
                         break;
                     case 0x1f:
                         if (!TrySkipBytes(ref offset, endOffset, 8)) {
                             return BiffFormulaReadFailure.InvalidPayload("Formula number token ended early.", token, tokenOffset);
                         }
 
+                        stackDepth++;
                         break;
                     case 0x20:
                     case 0x40:
@@ -425,6 +441,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                             return BiffFormulaReadFailure.InvalidPayload("Formula array constant payload could not be read.", token, tokenOffset);
                         }
 
+                        stackDepth++;
                         break;
                     case 0x21:
                     case 0x41:
@@ -435,8 +452,12 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
                         ushort fixedFunctionId = BiffRecordReader.ReadUInt16(formulaPayload, offset);
                         offset += 2;
-                        if (!BiffFormulaFunctionMetadata.TryGetFixedFunctionMetadata(fixedFunctionId, out _, out _)) {
+                        if (!BiffFormulaFunctionMetadata.TryGetFixedFunctionMetadata(fixedFunctionId, out string? fixedFunctionName, out int fixedParameterCount)) {
                             return BiffFormulaReadFailure.UnsupportedFixedFunction(fixedFunctionId, token, tokenOffset);
+                        }
+
+                        if (!TryApplyFunction(ref stackDepth, fixedParameterCount)) {
+                            return BiffFormulaReadFailure.FunctionStackUnderflow(fixedFunctionId, fixedFunctionName!, fixedParameterCount, stackDepth, token, tokenOffset);
                         }
 
                         break;
@@ -452,8 +473,12 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                         offset += 2;
                         bool isCetabFunction = (functionBits & 0x8000) != 0;
                         ushort functionId = (ushort)(functionBits & 0x7fff);
-                        if (isCetabFunction || !BiffFormulaFunctionMetadata.TryGetFunctionName(functionId, out _)) {
+                        if (isCetabFunction || !BiffFormulaFunctionMetadata.TryGetFunctionName(functionId, out string? functionName)) {
                             if (!isCetabFunction && functionId == 0x00ff && parameterCount > 0) {
+                                if (!TryApplyFunction(ref stackDepth, parameterCount)) {
+                                    return BiffFormulaReadFailure.FunctionStackUnderflow(functionId, "UserDefined", parameterCount, stackDepth, token, tokenOffset);
+                                }
+
                                 break;
                             }
 
@@ -462,6 +487,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
                         if (!BiffFormulaFunctionMetadata.IsSupportedVariableFunctionArgumentCount(functionId, parameterCount)) {
                             return BiffFormulaReadFailure.UnsupportedFunctionArguments(functionId, parameterCount, token, tokenOffset);
+                        }
+
+                        if (!TryApplyFunction(ref stackDepth, parameterCount)) {
+                            return BiffFormulaReadFailure.FunctionStackUnderflow(functionId, functionName!, parameterCount, stackDepth, token, tokenOffset);
                         }
 
                         break;
@@ -481,6 +510,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                             return BiffFormulaReadFailure.DefinedName(oneBasedNameIndex, token, tokenOffset);
                         }
 
+                        stackDepth++;
                         break;
                     case 0x39:
                     case 0x59:
@@ -495,6 +525,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                             return BiffFormulaReadFailure.ExternalName(externSheetIndex, oneBasedExternalNameIndex, token, tokenOffset);
                         }
 
+                        stackDepth++;
                         offset += 6;
                         break;
                     case 0x26:
@@ -526,6 +557,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                             return BiffFormulaReadFailure.InvalidPayload("Formula cell-reference token ended early.", token, tokenOffset);
                         }
 
+                        stackDepth++;
                         break;
                     case 0x25:
                     case 0x45:
@@ -540,6 +572,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                             return BiffFormulaReadFailure.InvalidPayload("Formula area-reference token ended early.", token, tokenOffset);
                         }
 
+                        stackDepth++;
                         break;
                     case 0x3a:
                     case 0x5a:
@@ -552,6 +585,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                             return BiffFormulaReadFailure.Reference("Formula3dReference", "Formula 3D reference could not be resolved.", token, tokenOffset);
                         }
 
+                        stackDepth++;
                         offset += 6;
                         break;
                     case 0x3b:
@@ -565,6 +599,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                             return BiffFormulaReadFailure.Reference("Formula3dArea", "Formula 3D area could not be resolved.", token, tokenOffset);
                         }
 
+                        stackDepth++;
                         offset += 10;
                         break;
                     case 0x3c:
@@ -578,6 +613,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                             return BiffFormulaReadFailure.Reference("FormulaInvalid3dReference", "Formula invalid 3D reference could not be resolved.", token, tokenOffset);
                         }
 
+                        stackDepth++;
                         offset += 6;
                         break;
                     case 0x3d:
@@ -591,6 +627,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                             return BiffFormulaReadFailure.Reference("FormulaInvalid3dArea", "Formula invalid 3D area could not be resolved.", token, tokenOffset);
                         }
 
+                        stackDepth++;
                         offset += 10;
                         break;
                     default:
@@ -599,6 +636,19 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             return BiffFormulaReadFailure.Stack("Formula tokens are individually recognized but the expression stack could not be reduced.");
+        }
+
+        private static bool TryApplyStackOperator(ref int stackDepth, int requiredOperands, int producedOperands) {
+            if (stackDepth < requiredOperands) {
+                return false;
+            }
+
+            stackDepth = stackDepth - requiredOperands + producedOperands;
+            return true;
+        }
+
+        private static bool TryApplyFunction(ref int stackDepth, int parameterCount) {
+            return TryApplyStackOperator(ref stackDepth, parameterCount, 1);
         }
 
         private static bool TrySkipMemAreaHeader(byte[] formulaPayload, ref int offset, int endOffset) {
