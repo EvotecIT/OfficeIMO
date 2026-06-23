@@ -4,10 +4,6 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         private const double ImageExportDpi = 96D;
-        private const double DefaultMarginLeftInches = 0.7D;
-        private const double DefaultMarginRightInches = 0.7D;
-        private const double DefaultMarginTopInches = 0.75D;
-        private const double DefaultMarginBottomInches = 0.75D;
 
         private OfficeImageExportResult ApplyPageSetupCanvas(
             OfficeImageExportFormat format,
@@ -54,118 +50,34 @@ namespace OfficeIMO.Excel {
             pageSetup.Orientation.HasValue ||
             pageSetup.Margins != null ||
             pageSetup.PaperSizeCode.HasValue ||
-            HasFitToPageScale(pageSetup) ||
-            (pageSetup.Scale.HasValue && !HasFitToPageScale(pageSetup));
-
-        private static bool HasFitToPageScale(ExcelSheetPageSetup pageSetup) =>
-            pageSetup.FitToWidth.HasValue || pageSetup.FitToHeight.HasValue;
-
-        private static bool HasUnsupportedFitToPageScale(ExcelSheetPageSetup pageSetup) =>
-            IsUnsupportedFitDimension(pageSetup.FitToWidth) ||
-            IsUnsupportedFitDimension(pageSetup.FitToHeight);
-
-        private static bool IsUnsupportedFitDimension(uint? value) =>
-            value.HasValue && value.Value > 1U;
+            ExcelPageSetupGeometry.HasFitToPageScale(pageSetup) ||
+            (pageSetup.Scale.HasValue && !ExcelPageSetupGeometry.HasFitToPageScale(pageSetup));
 
         private static PageSetupCanvasGeometry ResolvePageSetupCanvasGeometry(
             ExcelSheetPageSetup pageSetup,
             double outputScale,
             int contentWidth,
             int contentHeight) {
-            OfficePageSize pageSize = ResolvePageSize(pageSetup);
-            pageSize = pageSetup.Orientation == ExcelPageOrientation.Landscape
-                ? pageSize.Landscape()
-                : pageSize.Portrait();
+            OfficePageSize pageSize = ExcelPageSetupGeometry.ResolvePageSize(pageSetup, OfficePageSizes.Letter);
             ExcelSheetPageMargins? margins = pageSetup.Margins;
 
             int width = pageSize.ToPixelWidth(ImageExportDpi, outputScale);
             int height = pageSize.ToPixelHeight(ImageExportDpi, outputScale);
-            double x = ClampMargin((margins?.Left ?? DefaultMarginLeftInches) * ImageExportDpi * outputScale, width);
-            double y = ClampMargin((margins?.Top ?? DefaultMarginTopInches) * ImageExportDpi * outputScale, height);
-            double right = ClampMargin((margins?.Right ?? DefaultMarginRightInches) * ImageExportDpi * outputScale, width);
-            double bottom = ClampMargin((margins?.Bottom ?? DefaultMarginBottomInches) * ImageExportDpi * outputScale, height);
+            double x = ExcelPageSetupGeometry.ClampMargin((margins?.Left ?? ExcelPageSetupGeometry.DefaultMarginLeftInches) * ImageExportDpi * outputScale, width);
+            double y = ExcelPageSetupGeometry.ClampMargin((margins?.Top ?? ExcelPageSetupGeometry.DefaultMarginTopInches) * ImageExportDpi * outputScale, height);
+            double right = ExcelPageSetupGeometry.ClampMargin((margins?.Right ?? ExcelPageSetupGeometry.DefaultMarginRightInches) * ImageExportDpi * outputScale, width);
+            double bottom = ExcelPageSetupGeometry.ClampMargin((margins?.Bottom ?? ExcelPageSetupGeometry.DefaultMarginBottomInches) * ImageExportDpi * outputScale, height);
             double printableWidth = Math.Max(1D, width - x - right);
             double printableHeight = Math.Max(1D, height - y - bottom);
-            double contentScale = ResolvePageSetupContentScale(
+            double contentScale = ExcelPageSetupGeometry.ResolveContentScale(
                 pageSetup,
                 Math.Max(1, contentWidth),
                 Math.Max(1, contentHeight),
                 printableWidth,
-                printableHeight);
+                printableHeight,
+                0.1D,
+                4D);
             return new PageSetupCanvasGeometry(width, height, x, y, contentScale);
-        }
-
-        private static double ResolvePageSetupContentScale(
-            ExcelSheetPageSetup pageSetup,
-            int contentWidth,
-            int contentHeight,
-            double printableWidth,
-            double printableHeight) {
-            if (!HasFitToPageScale(pageSetup)) {
-                return Math.Max(0.1D, Math.Min(4D, (pageSetup.Scale ?? 100U) / 100D));
-            }
-
-            double scale = 1D;
-            if (IsSupportedFitDimension(pageSetup.FitToWidth)) {
-                scale = Math.Min(scale, printableWidth / contentWidth);
-            }
-
-            if (IsSupportedFitDimension(pageSetup.FitToHeight)) {
-                scale = Math.Min(scale, printableHeight / contentHeight);
-            }
-
-            return Math.Max(0.1D, Math.Min(4D, scale));
-        }
-
-        private static bool IsSupportedFitDimension(uint? value) =>
-            value.HasValue && value.Value == 1U;
-
-        private static OfficePageSize ResolvePageSize(ExcelSheetPageSetup pageSetup) =>
-            TryResolvePageSize(pageSetup.PaperSize, out OfficePageSize pageSize)
-                ? pageSize
-                : OfficePageSizes.Letter;
-
-        private static bool TryResolvePageSize(ExcelPaperSize? paperSize, out OfficePageSize pageSize) {
-            switch (paperSize) {
-                case ExcelPaperSize.Letter:
-                case ExcelPaperSize.LetterSmall:
-                    pageSize = OfficePageSizes.Letter;
-                    return true;
-                case ExcelPaperSize.Tabloid:
-                    pageSize = OfficePageSizes.Tabloid;
-                    return true;
-                case ExcelPaperSize.Ledger:
-                    pageSize = OfficePageSizes.Ledger;
-                    return true;
-                case ExcelPaperSize.Legal:
-                    pageSize = OfficePageSizes.Legal;
-                    return true;
-                case ExcelPaperSize.Statement:
-                    pageSize = OfficePageSizes.Statement;
-                    return true;
-                case ExcelPaperSize.Executive:
-                    pageSize = OfficePageSizes.Executive;
-                    return true;
-                case ExcelPaperSize.A3:
-                    pageSize = OfficePageSizes.A3;
-                    return true;
-                case ExcelPaperSize.A4:
-                case ExcelPaperSize.A4Small:
-                    pageSize = OfficePageSizes.A4;
-                    return true;
-                case ExcelPaperSize.A5:
-                    pageSize = OfficePageSizes.A5;
-                    return true;
-                case ExcelPaperSize.B4Jis:
-                    pageSize = OfficePageSizes.B4Jis;
-                    return true;
-                case ExcelPaperSize.B5Jis:
-                    pageSize = OfficePageSizes.B5Jis;
-                    return true;
-                default:
-                    pageSize = default;
-                    return false;
-            }
         }
 
         private void AddPageSetupPaperSizeDiagnostic(
@@ -180,21 +92,13 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            if (!TryResolvePageSize(pageSetup.PaperSize, out _)) {
+            if (!ExcelPageSetupGeometry.TryResolvePageSize(pageSetup.PaperSize, out _)) {
                 diagnostics.Add(new OfficeImageExportDiagnostic(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.PageSetupPaperSizeUnsupported,
                     "Worksheet image page output used default Letter paper size because paper size code " + pageSetup.PaperSizeCode.Value + " is not supported yet.",
                     Name + "!pageSetup"));
             }
-        }
-
-        private static double ClampMargin(double margin, int pageSize) {
-            if (double.IsNaN(margin) || double.IsInfinity(margin) || margin <= 0D) {
-                return 0D;
-            }
-
-            return Math.Min(margin, Math.Max(0D, pageSize - 1D));
         }
 
         private static OfficeImageLayer? CreatePageSetupContentLayer(

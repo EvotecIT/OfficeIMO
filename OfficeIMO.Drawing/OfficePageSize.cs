@@ -55,6 +55,18 @@ public readonly struct OfficePageSize {
     public int ToPixelHeight(double dpi, double scale = 1D) =>
         ToPixels(HeightInches, dpi, scale, nameof(dpi));
 
+    /// <summary>
+    /// Converts the page width to points.
+    /// </summary>
+    public double ToPointWidth() => ToPoints(WidthInches);
+
+    /// <summary>
+    /// Converts the page height to points.
+    /// </summary>
+    public double ToPointHeight() => ToPoints(HeightInches);
+
+    private static double ToPoints(double inches) => inches * 72D;
+
     private static int ToPixels(double inches, double dpi, double scale, string dpiParameterName) {
         ValidatePositive(dpi, dpiParameterName);
         ValidatePositive(scale, nameof(scale));

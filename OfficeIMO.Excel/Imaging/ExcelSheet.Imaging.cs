@@ -224,7 +224,7 @@ namespace OfficeIMO.Excel {
             }
 
             ExcelSheetPageSetup pageSetup = GetPageSetup();
-            if (HasUnsupportedFitToPageScale(pageSetup)) {
+            if (ExcelPageSetupGeometry.HasUnsupportedFitToPageScale(pageSetup)) {
                 diagnostics.Add(new OfficeImageExportDiagnostic(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.PageSetupUnsupported,

@@ -197,6 +197,29 @@ public partial class Excel {
     }
 
     [Fact]
+    public void SaveAsPdf_ExcelWorkbook_Uses_Worksheet_Paper_Size_When_PageSize_Not_Explicit() {
+        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfWorksheetPaperSize.xlsx");
+
+        byte[] bytes;
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "PaperSize")) {
+            ExcelSheet sheet = document.Sheets[0];
+            sheet.Cell(1, 1, "Name");
+            sheet.Cell(2, 1, "WorksheetPaperSize");
+            sheet.SetPageSetup(paperSize: ExcelPaperSize.A4);
+            document.Save(false);
+
+            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+                IncludeSheetHeadings = false
+            });
+        }
+
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(bytes);
+        PdfCore.PdfPageInfo page = Assert.Single(info.Pages);
+        Assert.Equal(595D, page.Width, 1D);
+        Assert.Equal(842D, page.Height, 1D);
+    }
+
+    [Fact]
     public void ToPdfDocument_ExcelWorkbook_Maps_Worksheet_FitToHeight_To_Table_Scaling() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfWorksheetFitToHeight.xlsx");
 

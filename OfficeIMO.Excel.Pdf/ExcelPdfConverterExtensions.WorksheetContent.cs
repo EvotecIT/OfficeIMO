@@ -4,16 +4,7 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Excel.Pdf {
     public static partial class ExcelPdfConverterExtensions {
         private static void ApplyWorksheetPageSetup(PdfCore.PdfPageCompose page, ExcelSheetPageSetup? pageSetup, ExcelPdfSaveOptions options) {
-            PdfCore.PageSize? pageSize = options.PageSize;
-            if (!options.PageSize.HasValue && pageSetup?.Orientation == ExcelPageOrientation.Landscape) {
-                pageSize = (pageSize ?? PdfCore.PageSizes.Letter).Landscape();
-            } else if (!options.PageSize.HasValue && pageSetup?.Orientation == ExcelPageOrientation.Portrait) {
-                pageSize = (pageSize ?? PdfCore.PageSizes.Letter).Portrait();
-            }
-
-            if (pageSize.HasValue) {
-                page.Size(pageSize.Value);
-            }
+            page.Size(GetEffectivePageSize(options, pageSetup));
 
             if (options.Margins.HasValue) {
                 page.Margin(options.Margins.Value);
