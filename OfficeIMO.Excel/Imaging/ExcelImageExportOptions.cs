@@ -97,6 +97,12 @@ namespace OfficeIMO.Excel {
         public string? Range { get; set; }
 
         /// <summary>
+        /// Timestamp used for dynamic Excel header/footer date and time fields such as <c>&amp;D</c>, <c>&amp;T</c>, <c>&amp;[Date]</c>, and <c>&amp;[Time]</c>.
+        /// When omitted, image export uses the current local time captured at the start of the worksheet export.
+        /// </summary>
+        public DateTime? HeaderFooterDateTime { get; set; }
+
+        /// <summary>
         /// When true and <see cref="Range"/> is omitted, uses the worksheet print area when configured.
         /// </summary>
         public bool UsePrintArea { get; set; }
@@ -116,6 +122,12 @@ namespace OfficeIMO.Excel {
         /// Optional list of worksheet names to export. When omitted, all worksheets are exported.
         /// </summary>
         public IReadOnlyList<string>? SheetNames { get; set; }
+
+        /// <summary>
+        /// Timestamp used for dynamic Excel header/footer date and time fields in worksheet image exports.
+        /// When omitted, workbook image export uses the current local time captured at the start of the workbook export.
+        /// </summary>
+        public DateTime? HeaderFooterDateTime { get; set; }
 
         /// <summary>
         /// When true, each worksheet image export uses that worksheet's print area when configured.

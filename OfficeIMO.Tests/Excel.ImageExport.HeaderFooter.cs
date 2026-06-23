@@ -1,5 +1,6 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
+using System.Globalization;
 using System.Text;
 using Xunit;
 
@@ -81,6 +82,32 @@ namespace OfficeIMO.Tests {
             Assert.Contains(">File FieldWorkbook.xlsx<", svg);
             Assert.Contains(">FieldWorkbook.xlsx<", svg);
             Assert.Contains(">Path " + expectedPathPrefix, svg);
+        }
+
+        [Fact]
+        public void ExcelWorksheet_PageSlicedSvgExportRendersSupportedDateTimeHeaderFooterFields() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            DateTime headerFooterDateTime = new DateTime(2026, 6, 23, 14, 35, 0);
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("Report");
+            FillPageBreakGrid(sheet);
+            sheet.SetHeaderFooter(headerLeft: "Date &D", headerCenter: "Time &[Time]", footerRight: "Printed &[Date] &T");
+            sheet.AddManualRowPageBreak(2, save: false);
+
+            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelWorksheetImageExportOptions {
+                Range = "A1:D4",
+                SplitByManualPageBreaks = true,
+                ShowGridlines = false,
+                HeaderFooterDateTime = headerFooterDateTime
+            });
+
+            string expectedDate = headerFooterDateTime.ToString("d", CultureInfo.CurrentCulture);
+            string expectedTime = headerFooterDateTime.ToString("t", CultureInfo.CurrentCulture);
+            string svg = Encoding.UTF8.GetString(results[1].Bytes);
+            Assert.DoesNotContain(results[1].Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterUnsupported);
+            Assert.Contains(">Date " + expectedDate + "<", svg);
+            Assert.Contains(">Time " + expectedTime + "<", svg);
+            Assert.Contains(">Printed " + expectedDate + " " + expectedTime + "<", svg);
         }
 
         [Fact]

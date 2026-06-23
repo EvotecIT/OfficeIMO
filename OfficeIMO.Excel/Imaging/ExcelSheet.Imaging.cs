@@ -75,7 +75,26 @@ namespace OfficeIMO.Excel {
             WriteImageStream(stream, Encoding.UTF8.GetBytes(ToSvg(options)));
 
         private static ExcelWorksheetImageExportOptions NormalizeWorksheetOptions(ExcelWorksheetImageExportOptions? options) {
-            ExcelWorksheetImageExportOptions resolved = options ?? new ExcelWorksheetImageExportOptions();
+            ExcelWorksheetImageExportOptions source = options ?? new ExcelWorksheetImageExportOptions();
+            ExcelWorksheetImageExportOptions resolved = new ExcelWorksheetImageExportOptions {
+                Scale = source.Scale,
+                BackgroundColor = source.BackgroundColor,
+                GridlineColor = source.GridlineColor,
+                ShowGridlines = source.ShowGridlines,
+                IncludeHidden = source.IncludeHidden,
+                IncludeImages = source.IncludeImages,
+                IncludeCharts = source.IncludeCharts,
+                IncludeDrawingObjects = source.IncludeDrawingObjects,
+                IncludeConditionalFormatting = source.IncludeConditionalFormatting,
+                ShowHyperlinkHints = source.ShowHyperlinkHints,
+                ShowCommentBodies = source.ShowCommentBodies,
+                DefaultColumnWidthPixels = source.DefaultColumnWidthPixels,
+                DefaultRowHeightPixels = source.DefaultRowHeightPixels,
+                Range = source.Range,
+                HeaderFooterDateTime = source.HeaderFooterDateTime ?? DateTime.Now,
+                UsePrintArea = source.UsePrintArea,
+                SplitByManualPageBreaks = source.SplitByManualPageBreaks
+            };
             if (resolved.Scale <= 0D || double.IsNaN(resolved.Scale) || double.IsInfinity(resolved.Scale)) {
                 throw new ArgumentOutOfRangeException(nameof(options), "Scale must be a finite positive number.");
             }
@@ -155,7 +174,7 @@ namespace OfficeIMO.Excel {
 
             IReadOnlyList<OfficeImageExportDiagnostic> pageDiagnostics = BuildPageLevelUnsupportedDiagnostics(
                 includePrintTitlesUnsupported: !allowMultipleResults,
-                includeHeaderFooterUnsupported: !allowMultipleResults || !CanRenderHeaderFooterTextChrome());
+                includeHeaderFooterUnsupported: !allowMultipleResults || !CanRenderHeaderFooterTextChrome(options.HeaderFooterDateTime ?? DateTime.Now));
             if (!allowMultipleResults) {
                 return ranges
                     .Select(range => range

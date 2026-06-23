@@ -31,6 +31,7 @@ namespace OfficeIMO.Excel {
                     ShowCommentBodies = resolved.ShowCommentBodies,
                     DefaultColumnWidthPixels = resolved.DefaultColumnWidthPixels,
                     DefaultRowHeightPixels = resolved.DefaultRowHeightPixels,
+                    HeaderFooterDateTime = resolved.HeaderFooterDateTime,
                     UsePrintArea = resolved.UseWorksheetPrintAreas,
                     SplitByManualPageBreaks = resolved.SplitWorksheetsByManualPageBreaks
                 };
@@ -70,7 +71,26 @@ namespace OfficeIMO.Excel {
         }
 
         private static ExcelWorkbookImageExportOptions NormalizeWorkbookOptions(ExcelWorkbookImageExportOptions? options) {
-            ExcelWorkbookImageExportOptions resolved = options ?? new ExcelWorkbookImageExportOptions();
+            ExcelWorkbookImageExportOptions source = options ?? new ExcelWorkbookImageExportOptions();
+            ExcelWorkbookImageExportOptions resolved = new ExcelWorkbookImageExportOptions {
+                Scale = source.Scale,
+                BackgroundColor = source.BackgroundColor,
+                GridlineColor = source.GridlineColor,
+                ShowGridlines = source.ShowGridlines,
+                IncludeHidden = source.IncludeHidden,
+                IncludeImages = source.IncludeImages,
+                IncludeCharts = source.IncludeCharts,
+                IncludeDrawingObjects = source.IncludeDrawingObjects,
+                IncludeConditionalFormatting = source.IncludeConditionalFormatting,
+                ShowHyperlinkHints = source.ShowHyperlinkHints,
+                ShowCommentBodies = source.ShowCommentBodies,
+                DefaultColumnWidthPixels = source.DefaultColumnWidthPixels,
+                DefaultRowHeightPixels = source.DefaultRowHeightPixels,
+                SheetNames = source.SheetNames,
+                HeaderFooterDateTime = source.HeaderFooterDateTime ?? DateTime.Now,
+                UseWorksheetPrintAreas = source.UseWorksheetPrintAreas,
+                SplitWorksheetsByManualPageBreaks = source.SplitWorksheetsByManualPageBreaks
+            };
             if (resolved.Scale <= 0D || double.IsNaN(resolved.Scale) || double.IsInfinity(resolved.Scale)) {
                 throw new ArgumentOutOfRangeException(nameof(options), "Scale must be a finite positive number.");
             }

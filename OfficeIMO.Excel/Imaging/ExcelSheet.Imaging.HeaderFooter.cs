@@ -15,7 +15,8 @@ namespace OfficeIMO.Excel {
             ExcelWorksheetImageExportOptions options,
             int pageNumber,
             int pageCount) {
-            if (!TryCreateHeaderFooterTextChrome(pageNumber, pageCount, out HeaderFooterTextChrome chrome)) {
+            DateTime headerFooterDateTime = options.HeaderFooterDateTime ?? DateTime.Now;
+            if (!TryCreateHeaderFooterTextChrome(pageNumber, pageCount, headerFooterDateTime, out HeaderFooterTextChrome chrome)) {
                 return content;
             }
 
@@ -67,7 +68,7 @@ namespace OfficeIMO.Excel {
                 content.Diagnostics);
         }
 
-        private bool CanRenderHeaderFooterTextChrome() {
+        private bool CanRenderHeaderFooterTextChrome(DateTime headerFooterDateTime) {
             if (!HasHeaderFooterContent()) {
                 return true;
             }
@@ -86,6 +87,7 @@ namespace OfficeIMO.Excel {
                 snapshot.FooterRight,
                 3,
                 3,
+                headerFooterDateTime,
                 out _)) {
                 return false;
             }
@@ -100,6 +102,7 @@ namespace OfficeIMO.Excel {
                     snapshot.FirstFooterRight,
                     1,
                     3,
+                    headerFooterDateTime,
                     out _)) {
                 return false;
             }
@@ -114,6 +117,7 @@ namespace OfficeIMO.Excel {
                     snapshot.EvenFooterRight,
                     2,
                     3,
+                    headerFooterDateTime,
                     out _)) {
                 return false;
             }
@@ -121,7 +125,7 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private bool TryCreateHeaderFooterTextChrome(int pageNumber, int pageCount, out HeaderFooterTextChrome chrome) {
+        private bool TryCreateHeaderFooterTextChrome(int pageNumber, int pageCount, DateTime headerFooterDateTime, out HeaderFooterTextChrome chrome) {
             chrome = default;
             HeaderFooterSnapshot snapshot = GetHeaderFooter();
             if (HasUnsupportedHeaderFooterImages(snapshot)) {
@@ -138,6 +142,7 @@ namespace OfficeIMO.Excel {
                 selected.FooterRight,
                 pageNumber,
                 pageCount,
+                headerFooterDateTime,
                 out chrome) && chrome.HasAnyText;
         }
 
@@ -150,14 +155,15 @@ namespace OfficeIMO.Excel {
             string? footerRightSource,
             int pageNumber,
             int pageCount,
+            DateTime headerFooterDateTime,
             out HeaderFooterTextChrome chrome) {
             chrome = default;
-            if (!TryResolveHeaderFooterText(headerLeftSource, pageNumber, pageCount, out string headerLeft) ||
-                !TryResolveHeaderFooterText(headerCenterSource, pageNumber, pageCount, out string headerCenter) ||
-                !TryResolveHeaderFooterText(headerRightSource, pageNumber, pageCount, out string headerRight) ||
-                !TryResolveHeaderFooterText(footerLeftSource, pageNumber, pageCount, out string footerLeft) ||
-                !TryResolveHeaderFooterText(footerCenterSource, pageNumber, pageCount, out string footerCenter) ||
-                !TryResolveHeaderFooterText(footerRightSource, pageNumber, pageCount, out string footerRight)) {
+            if (!TryResolveHeaderFooterText(headerLeftSource, pageNumber, pageCount, headerFooterDateTime, out string headerLeft) ||
+                !TryResolveHeaderFooterText(headerCenterSource, pageNumber, pageCount, headerFooterDateTime, out string headerCenter) ||
+                !TryResolveHeaderFooterText(headerRightSource, pageNumber, pageCount, headerFooterDateTime, out string headerRight) ||
+                !TryResolveHeaderFooterText(footerLeftSource, pageNumber, pageCount, headerFooterDateTime, out string footerLeft) ||
+                !TryResolveHeaderFooterText(footerCenterSource, pageNumber, pageCount, headerFooterDateTime, out string footerCenter) ||
+                !TryResolveHeaderFooterText(footerRightSource, pageNumber, pageCount, headerFooterDateTime, out string footerRight)) {
                 return false;
             }
 
@@ -211,7 +217,7 @@ namespace OfficeIMO.Excel {
                 snapshot.FooterRight);
         }
 
-        private bool TryResolveHeaderFooterText(string? text, int pageNumber, int pageCount, out string normalized) {
+        private bool TryResolveHeaderFooterText(string? text, int pageNumber, int pageCount, DateTime headerFooterDateTime, out string normalized) {
             normalized = string.Empty;
             if (string.IsNullOrWhiteSpace(text)) {
                 return true;
@@ -236,6 +242,10 @@ namespace OfficeIMO.Excel {
                     builder.Append(pageNumber.ToString(CultureInfo.InvariantCulture));
                 } else if (token == 'N') {
                     builder.Append(pageCount.ToString(CultureInfo.InvariantCulture));
+                } else if (token == 'D') {
+                    builder.Append(FormatHeaderFooterDate(headerFooterDateTime));
+                } else if (token == 'T') {
+                    builder.Append(FormatHeaderFooterTime(headerFooterDateTime));
                 } else if (token == 'A') {
                     builder.Append(Name);
                 } else if (token == 'F') {
@@ -257,7 +267,7 @@ namespace OfficeIMO.Excel {
                     }
 
                     string fieldName = text.Substring(i + 1, end - i - 1);
-                    if (!TryAppendHeaderFooterField(builder, fieldName, pageNumber, pageCount)) {
+                    if (!TryAppendHeaderFooterField(builder, fieldName, pageNumber, pageCount, headerFooterDateTime)) {
                         return false;
                     }
 
@@ -271,7 +281,7 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private bool TryAppendHeaderFooterField(StringBuilder builder, string fieldName, int pageNumber, int pageCount) {
+        private bool TryAppendHeaderFooterField(StringBuilder builder, string fieldName, int pageNumber, int pageCount, DateTime headerFooterDateTime) {
             if (string.Equals(fieldName, "Page", StringComparison.OrdinalIgnoreCase)) {
                 builder.Append(pageNumber.ToString(CultureInfo.InvariantCulture));
                 return true;
@@ -284,6 +294,16 @@ namespace OfficeIMO.Excel {
 
             if (string.Equals(fieldName, "Tab", StringComparison.OrdinalIgnoreCase)) {
                 builder.Append(Name);
+                return true;
+            }
+
+            if (string.Equals(fieldName, "Date", StringComparison.OrdinalIgnoreCase)) {
+                builder.Append(FormatHeaderFooterDate(headerFooterDateTime));
+                return true;
+            }
+
+            if (string.Equals(fieldName, "Time", StringComparison.OrdinalIgnoreCase)) {
+                builder.Append(FormatHeaderFooterTime(headerFooterDateTime));
                 return true;
             }
 
@@ -307,6 +327,12 @@ namespace OfficeIMO.Excel {
 
             return false;
         }
+
+        private static string FormatHeaderFooterDate(DateTime headerFooterDateTime) =>
+            headerFooterDateTime.ToString("d", CultureInfo.CurrentCulture);
+
+        private static string FormatHeaderFooterTime(DateTime headerFooterDateTime) =>
+            headerFooterDateTime.ToString("t", CultureInfo.CurrentCulture);
 
         private bool TryGetWorkbookFileName(out string fileName) {
             fileName = string.Empty;
