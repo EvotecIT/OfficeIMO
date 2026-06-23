@@ -22,7 +22,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             LegacyXlsDrawingObjectType? objectTypeKind = null,
             LegacyXlsDrawingEscherRecordType? escherRecordTypeKind = null,
             ushort? objectFlags = null,
-            IReadOnlyList<LegacyXlsDrawingBlipStoreEntry>? blipStoreEntries = null) {
+            IReadOnlyList<LegacyXlsDrawingBlipStoreEntry>? blipStoreEntries = null,
+            IReadOnlyList<LegacyXlsDrawingShape>? shapeEntries = null) {
             if (payloadLength < 0) {
                 throw new ArgumentOutOfRangeException(nameof(payloadLength));
             }
@@ -46,6 +47,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             EscherRecordVersion = escherRecordVersion;
             EscherPayloadLength = escherPayloadLength;
             BlipStoreEntries = blipStoreEntries?.ToArray() ?? Array.Empty<LegacyXlsDrawingBlipStoreEntry>();
+            ShapeEntries = shapeEntries?.ToArray() ?? Array.Empty<LegacyXlsDrawingShape>();
         }
 
         /// <summary>Gets the shallow drawing record category.</summary>
@@ -131,6 +133,12 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets whether this drawing record contains any discovered image-store entries.</summary>
         public bool HasBlipStoreEntries => BlipStoreEntries.Count > 0;
+
+        /// <summary>Gets preserve-only OfficeArt shape entries discovered under this drawing record.</summary>
+        public IReadOnlyList<LegacyXlsDrawingShape> ShapeEntries { get; }
+
+        /// <summary>Gets whether this drawing record contains any discovered shape entries.</summary>
+        public bool HasShapeEntries => ShapeEntries.Count > 0;
 
         private static LegacyXlsDrawingObjectType? TryGetObjectTypeKind(ushort? objectType) {
             if (!objectType.HasValue) {

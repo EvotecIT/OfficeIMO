@@ -565,7 +565,7 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
                 WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Imported"));
                 WriteRecord(stream, 0x005d, BuildObjectPayload(0x0008, 1));
-                WriteRecord(stream, 0x00ec, BuildEscherHeaderPayload(0xf002, instance: 1, version: 0x0f, length: 0));
+                WriteRecord(stream, 0x00ec, BuildDrawingWithPictureShapePayload());
                 WriteRecord(stream, 0x1002, Array.Empty<byte>());
                 WriteRecord(stream, 0x00b0, Array.Empty<byte>());
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
@@ -1300,6 +1300,19 @@ namespace OfficeIMO.Tests {
                 byte[] bstore = BuildOfficeArtRecord(0xf001, instance: 1, version: 0x0f, fbse);
                 byte[] drawingGroupPayload = drawingGroupData.Concat(bstore).ToArray();
                 return BuildOfficeArtRecord(0xf000, instance: 2, version: 0x0f, drawingGroupPayload);
+            }
+
+            private static byte[] BuildDrawingWithPictureShapePayload() {
+                byte[] shape = BuildOfficeArtRecord(0xf00a, instance: 0x004b, version: 0x02, BuildShapePayload(0x00000400, 0x00000a02));
+                byte[] shapeContainer = BuildOfficeArtRecord(0xf004, instance: 0, version: 0x0f, shape);
+                return BuildOfficeArtRecord(0xf002, instance: 1, version: 0x0f, shapeContainer);
+            }
+
+            private static byte[] BuildShapePayload(uint shapeId, uint flags) {
+                using var stream = new MemoryStream();
+                WriteUInt32(stream, shapeId);
+                WriteUInt32(stream, flags);
+                return stream.ToArray();
             }
 
             private static byte[] BuildFbsePayload(byte win32BlipType, byte macOsBlipType, uint sizeBytes, uint referenceCount, byte[] embeddedBlip) {

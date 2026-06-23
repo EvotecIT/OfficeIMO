@@ -287,6 +287,18 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .SelectMany(record => record.BlipStoreEntries)
                 .Where(entry => entry.ReferenceCount.HasValue)
                 .Select(entry => $"References:{entry.ReferenceCount!.Value}"));
+            DrawingShapeEntriesByType = CountByCode(workbook.DrawingRecords
+                .SelectMany(record => record.ShapeEntries)
+                .Select(shape => shape.ShapeTypeName));
+            DrawingShapeEntriesById = CountByCode(workbook.DrawingRecords
+                .SelectMany(record => record.ShapeEntries)
+                .Select(shape => $"ShapeId:{shape.ShapeId}"));
+            DrawingShapeEntriesByFlags = CountByCode(workbook.DrawingRecords
+                .SelectMany(record => record.ShapeEntries)
+                .Select(shape => $"Flags:0x{shape.Flags:X8}"));
+            DrawingShapeEntriesByFlagName = CountByCode(workbook.DrawingRecords
+                .SelectMany(record => record.ShapeEntries)
+                .SelectMany(shape => shape.FlagNames));
             DrawingRecordsByLocation = CountByCode(workbook.DrawingRecords.Select(GetDrawingRecordLocationKey));
             CompoundFeatureRecordsByKind = CountCompoundFeatureRecordsByKind(workbook.CompoundFeatureRecords);
             CompoundFeatureEntriesByKind = CountCompoundFeatureEntriesByKind(workbook.CompoundFeatureRecords);
@@ -703,6 +715,18 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets OfficeArt FBSE image-store entries grouped by reference count.</summary>
         public IReadOnlyDictionary<string, int> DrawingBlipStoreEntriesByReferenceCount { get; }
 
+        /// <summary>Gets OfficeArt shape entries grouped by decoded shape type.</summary>
+        public IReadOnlyDictionary<string, int> DrawingShapeEntriesByType { get; }
+
+        /// <summary>Gets OfficeArt shape entries grouped by shape identifier.</summary>
+        public IReadOnlyDictionary<string, int> DrawingShapeEntriesById { get; }
+
+        /// <summary>Gets OfficeArt shape entries grouped by raw flag bitfield.</summary>
+        public IReadOnlyDictionary<string, int> DrawingShapeEntriesByFlags { get; }
+
+        /// <summary>Gets OfficeArt shape entries grouped by decoded flag name.</summary>
+        public IReadOnlyDictionary<string, int> DrawingShapeEntriesByFlagName { get; }
+
         /// <summary>Gets preserve-only drawing and object BIFF records grouped by workbook or sheet location.</summary>
         public IReadOnlyDictionary<string, int> DrawingRecordsByLocation { get; }
 
@@ -914,6 +938,10 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Drawing BLIP Store Entries By Embedded Record Type", DrawingBlipStoreEntriesByEmbeddedRecordType);
             AppendDictionary(builder, "Drawing BLIP Store Entries By Size", DrawingBlipStoreEntriesBySize);
             AppendDictionary(builder, "Drawing BLIP Store Entries By Reference Count", DrawingBlipStoreEntriesByReferenceCount);
+            AppendDictionary(builder, "Drawing Shape Entries By Type", DrawingShapeEntriesByType);
+            AppendDictionary(builder, "Drawing Shape Entries By Id", DrawingShapeEntriesById);
+            AppendDictionary(builder, "Drawing Shape Entries By Flags", DrawingShapeEntriesByFlags);
+            AppendDictionary(builder, "Drawing Shape Entries By Flag Name", DrawingShapeEntriesByFlagName);
             AppendDictionary(builder, "Drawing Records By Location", DrawingRecordsByLocation);
             AppendDictionary(builder, "Compound Feature Records By Kind", CompoundFeatureRecordsByKind.ToDictionary(
                 entry => entry.Key.ToString(),

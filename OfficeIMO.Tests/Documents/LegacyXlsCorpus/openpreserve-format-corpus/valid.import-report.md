@@ -651,6 +651,42 @@ Warnings: 2
 | OfficeArtFClientTextbox | 8 |
 | OfficeArtSpContainer | 4 |
 
+## Drawing Shape Entries By Type
+
+| Key | Count |
+| --- | --- |
+| HostControl | 4 |
+| NotPrimitive | 3 |
+
+## Drawing Shape Entries By Id
+
+| Key | Count |
+| --- | --- |
+| ShapeId:10241 | 1 |
+| ShapeId:10242 | 1 |
+| ShapeId:13313 | 1 |
+| ShapeId:13314 | 1 |
+| ShapeId:2048 | 1 |
+| ShapeId:3072 | 1 |
+| ShapeId:4096 | 1 |
+
+## Drawing Shape Entries By Flags
+
+| Key | Count |
+| --- | --- |
+| Flags:0x00000005 | 3 |
+| Flags:0x00000A02 | 4 |
+
+## Drawing Shape Entries By Flag Name
+
+| Key | Count |
+| --- | --- |
+| Child | 4 |
+| Group | 3 |
+| HaveAnchor | 4 |
+| HaveShapeType | 4 |
+| Patriarch | 3 |
+
 ## Drawing Records By Location
 
 | Key | Count |
