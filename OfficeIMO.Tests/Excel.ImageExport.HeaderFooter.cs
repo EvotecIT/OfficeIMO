@@ -24,6 +24,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(2, results.Count);
             Assert.All(results, result => Assert.DoesNotContain(result.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterUnsupported));
             string svg = Encoding.UTF8.GetString(results[1].Bytes);
+            Assert.Contains("font-family=\"Calibri, Arial, sans-serif\"", svg);
             Assert.Contains(">Confidential<", svg);
             Assert.Contains(">Draft<", svg);
             Assert.Contains(">A3<", svg);
@@ -128,6 +129,7 @@ namespace OfficeIMO.Tests {
             string svg = Encoding.UTF8.GetString(results[1].Bytes);
             Assert.DoesNotContain(results[1].Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterUnsupported);
             Assert.Contains(results[1].Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterFormattingApproximation);
+            Assert.Contains("font-family=\"Calibri, Arial, sans-serif\"", svg);
             Assert.Contains("font-weight=\"700\"", svg);
             Assert.Contains("font-style=\"italic\"", svg);
             Assert.Contains("text-decoration=\"underline\"", svg);

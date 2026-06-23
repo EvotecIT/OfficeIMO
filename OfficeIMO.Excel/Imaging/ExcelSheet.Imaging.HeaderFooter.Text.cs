@@ -370,7 +370,7 @@ namespace OfficeIMO.Excel {
                     : new HeaderFooterTextSection(normalizedRuns.AsReadOnly(), text, hasFormatting);
             }
 
-            internal IReadOnlyList<OfficeRichTextRun> ToOfficeRuns(double fontSize, OfficeColor color) {
+            internal IReadOnlyList<OfficeRichTextRun> ToOfficeRuns(double fontSize, OfficeColor color, string defaultFontFamily) {
                 var runs = new List<OfficeRichTextRun>(Runs.Count);
                 for (int index = 0; index < Runs.Count; index++) {
                     HeaderFooterTextRun run = Runs[index];
@@ -381,7 +381,7 @@ namespace OfficeIMO.Excel {
                         run.Bold,
                         run.Italic,
                         run.Underline,
-                        fontFamily: run.FontFamily,
+                        fontFamily: string.IsNullOrWhiteSpace(run.FontFamily) ? defaultFontFamily : run.FontFamily,
                         strikethrough: run.Strikethrough));
                 }
 
