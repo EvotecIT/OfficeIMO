@@ -14,9 +14,9 @@ External references: 3
 External cell caches: 2
 External cached cells: 914
 Calculation setting records: 61
-Workbook metadata records: 12
-Worksheet metadata records: 48
-Unsupported features: 1161
+Workbook metadata records: 13
+Worksheet metadata records: 55
+Unsupported features: 1153
 Preserved feature records: 1128
 Errors: 0
 Warnings: 2
@@ -31,7 +31,7 @@ Warnings: 2
 | XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 3 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 16 |
 | XLS-BIFF-LBL-SCOPE-INVALID | 2 |
-| XLS-BIFF-RECORD-UNSUPPORTED | 28 |
+| XLS-BIFF-RECORD-UNSUPPORTED | 20 |
 | XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED | 1 |
 
 ## Unsupported Features By Code
@@ -43,7 +43,7 @@ Warnings: 2
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 30 |
 | XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 3 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 16 |
-| XLS-BIFF-RECORD-UNSUPPORTED | 28 |
+| XLS-BIFF-RECORD-UNSUPPORTED | 20 |
 | XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED | 1 |
 
 ## Unsupported Features By Kind
@@ -55,7 +55,7 @@ Warnings: 2
 | DrawingObject | 30 |
 | ExternalReference | 3 |
 | PivotTable | 16 |
-| UnsupportedRecord | 28 |
+| UnsupportedRecord | 20 |
 | VbaProject | 1 |
 
 ## Unsupported Feature Record Types
@@ -114,7 +114,6 @@ Warnings: 2
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x013D | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x0161 | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x01B6 | 2 |
-| UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x01BA | 8 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x01BC | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x01BD | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x0293 | 6 |
@@ -167,7 +166,6 @@ Warnings: 2
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:Sxdi | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxRng | 14 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxVdEx | 1 |
-| UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:CodeName | 8 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:DsF | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:FnGroupName | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:ObProj | 1 |
@@ -216,17 +214,12 @@ Warnings: 2
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|lb | 1 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|maquis | 1 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|wijn | 3 |
-| XLS-BIFF-RECORD-UNSUPPORTED\|(workbook) | 13 |
-| XLS-BIFF-RECORD-UNSUPPORTED\|All | 2 |
-| XLS-BIFF-RECORD-UNSUPPORTED\|b | 1 |
-| XLS-BIFF-RECORD-UNSUPPORTED\|c | 1 |
-| XLS-BIFF-RECORD-UNSUPPORTED\|cl | 3 |
+| XLS-BIFF-RECORD-UNSUPPORTED\|(workbook) | 12 |
+| XLS-BIFF-RECORD-UNSUPPORTED\|All | 1 |
+| XLS-BIFF-RECORD-UNSUPPORTED\|cl | 2 |
 | XLS-BIFF-RECORD-UNSUPPORTED\|graphs1 | 2 |
 | XLS-BIFF-RECORD-UNSUPPORTED\|graphs2 | 2 |
 | XLS-BIFF-RECORD-UNSUPPORTED\|Info | 1 |
-| XLS-BIFF-RECORD-UNSUPPORTED\|lb | 1 |
-| XLS-BIFF-RECORD-UNSUPPORTED\|maquis | 1 |
-| XLS-BIFF-RECORD-UNSUPPORTED\|wijn | 1 |
 | XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED\|(workbook) | 1 |
 
 ## Calculation Settings By Kind
@@ -247,6 +240,7 @@ Warnings: 2
 | --- | --- |
 | Backup | 1 |
 | BookOptions | 1 |
+| CodeName | 1 |
 | CodePage | 1 |
 | Country | 1 |
 | HiddenObjects | 1 |
@@ -262,6 +256,7 @@ Warnings: 2
 
 | Key | Count |
 | --- | --- |
+| CodeName | 7 |
 | GridSet | 10 |
 | OutlineLevels | 10 |
 | RowBlockIndex | 10 |

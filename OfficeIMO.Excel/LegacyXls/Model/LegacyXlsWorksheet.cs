@@ -52,6 +52,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         public byte SheetType { get; }
 
         /// <summary>
+        /// Gets the sheet object name used by the VBA project, when specified.
+        /// </summary>
+        public string? CodeName { get; private set; }
+
+        /// <summary>
         /// Gets the parsed cells for this worksheet.
         /// </summary>
         public IReadOnlyList<LegacyXlsCell> Cells => _cells;
@@ -302,6 +307,10 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         internal void AddMetadataRecord(LegacyXlsWorksheetMetadataKind kind, int recordOffset, ushort recordType) {
             _metadataRecords.Add(new LegacyXlsWorksheetMetadataRecord(kind, recordOffset, recordType));
+        }
+
+        internal void SetCodeName(string? value) {
+            CodeName = value;
         }
 
         internal void AddRowPageBreak(LegacyXlsPageBreak pageBreak) {

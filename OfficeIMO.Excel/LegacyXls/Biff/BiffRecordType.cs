@@ -20,6 +20,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         ColInfo = 0x007D,
         CondFmt = 0x01B0,
         Continue = 0x003C,
+        CodeName = 0x01BA,
         CodePage = 0x0042,
         Country = 0x008C,
         Date1904 = 0x0022,

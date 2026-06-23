@@ -29,6 +29,14 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     workbook.AddMetadataRecord(LegacyXlsWorkbookMetadataKind.CodePage, record.Offset, record.Type);
                     return true;
 
+                case BiffRecordType.CodeName:
+                    if (BiffCodeNameReader.TryRead(record, sheetName: null, diagnostics, out string? workbookCodeName)) {
+                        workbook.SetCodeName(workbookCodeName);
+                    }
+
+                    workbook.AddMetadataRecord(LegacyXlsWorkbookMetadataKind.CodeName, record.Offset, record.Type);
+                    return true;
+
                 case BiffRecordType.Country:
                     if (TryReadCountry(record, diagnostics, out LegacyXlsCountryInfo? country)) {
                         workbook.SetCountry(country!.DefaultCountryCode, country.SystemCountryCode);

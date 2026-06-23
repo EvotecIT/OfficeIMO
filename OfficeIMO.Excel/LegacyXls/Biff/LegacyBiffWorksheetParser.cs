@@ -137,6 +137,13 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     case BiffRecordType.ColInfo:
                         ParseColInfo(sheet, payload);
                         break;
+                    case BiffRecordType.CodeName:
+                        if (BiffCodeNameReader.TryRead(new BiffRecord(type, offset, payload), sheet.Name, diagnostics, out string? sheetCodeName)) {
+                            sheet.SetCodeName(sheetCodeName);
+                        }
+
+                        sheet.AddMetadataRecord(LegacyXlsWorksheetMetadataKind.CodeName, offset, type);
+                        break;
                     case BiffRecordType.CondFmt:
                         if (!conditionalFormattingState.TryReadHeader(payload, offset)) {
                             AddUnsupportedFeature(unsupportedFeatures, preservedFeatureRecords, diagnostics, options, type, offset, sheet.Name, payload.Length);

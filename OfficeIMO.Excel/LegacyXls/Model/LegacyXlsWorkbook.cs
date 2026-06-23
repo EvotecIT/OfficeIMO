@@ -107,6 +107,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         public ushort? CodePage { get; private set; }
 
         /// <summary>
+        /// Gets the workbook object name used by the VBA project, when specified.
+        /// </summary>
+        public string? CodeName { get; private set; }
+
+        /// <summary>
         /// Gets the user interface code page decoded from an InterfaceHdr record.
         /// </summary>
         public ushort? UserInterfaceCodePage { get; private set; }
@@ -235,6 +240,10 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         internal void SetCodePage(ushort value) {
             CodePage = value;
+        }
+
+        internal void SetCodeName(string? value) {
+            CodeName = value;
         }
 
         internal void SetUserInterfaceCodePage(ushort value) {

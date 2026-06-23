@@ -12,6 +12,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>Workbook text code page from a CodePage record.</summary>
         CodePage,
 
+        /// <summary>VBA workbook object name from a CodeName record.</summary>
+        CodeName,
+
         /// <summary>Workbook locale identifiers from a Country record.</summary>
         Country,
 

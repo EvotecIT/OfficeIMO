@@ -361,8 +361,9 @@ namespace OfficeIMO.Tests {
             Assert.False(result.HasImportErrors);
             Assert.False(result.HasUnsupportedFeatures);
             LegacyXlsWorkbook workbook = result.Workbook;
-            Assert.Equal(13, workbook.MetadataRecords.Count);
+            Assert.Equal(14, workbook.MetadataRecords.Count);
             Assert.Equal((ushort)1200, workbook.CodePage.GetValueOrDefault());
+            Assert.Equal("ThisWorkbook", workbook.CodeName);
             Assert.Equal((ushort)1200, workbook.UserInterfaceCodePage.GetValueOrDefault());
             Assert.Equal("OfficeIMO", workbook.LastWriteUserName);
             Assert.True(workbook.WindowsLocked.GetValueOrDefault());
@@ -396,10 +397,15 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(workbook.Country);
             Assert.Equal((ushort)48, workbook.Country!.DefaultCountryCode);
             Assert.Equal((ushort)1, workbook.Country.SystemCountryCode);
-            Assert.Equal(13, result.ImportReport.WorkbookMetadataRecordCount);
+            LegacyXlsWorksheet sheet = Assert.Single(workbook.Worksheets);
+            Assert.Equal("MetadataSheet", sheet.CodeName);
+            Assert.Equal(1, sheet.MetadataRecords.Count(record => record.Kind == LegacyXlsWorksheetMetadataKind.CodeName));
+            Assert.Equal(14, result.ImportReport.WorkbookMetadataRecordCount);
+            Assert.Equal(1, result.ImportReport.WorksheetMetadataRecordsByKind[LegacyXlsWorksheetMetadataKind.CodeName]);
             Assert.Equal(1, result.ImportReport.WorkbookMetadataRecordsByKind[LegacyXlsWorkbookMetadataKind.Backup]);
             Assert.Equal(1, result.ImportReport.WorkbookMetadataRecordsByKind[LegacyXlsWorkbookMetadataKind.BookOptions]);
             Assert.Equal(1, result.ImportReport.WorkbookMetadataRecordsByKind[LegacyXlsWorkbookMetadataKind.CodePage]);
+            Assert.Equal(1, result.ImportReport.WorkbookMetadataRecordsByKind[LegacyXlsWorkbookMetadataKind.CodeName]);
             Assert.Equal(1, result.ImportReport.WorkbookMetadataRecordsByKind[LegacyXlsWorkbookMetadataKind.Country]);
             Assert.Equal(1, result.ImportReport.WorkbookMetadataRecordsByKind[LegacyXlsWorkbookMetadataKind.HiddenObjects]);
             Assert.Equal(1, result.ImportReport.WorkbookMetadataRecordsByKind[LegacyXlsWorkbookMetadataKind.InterfaceCodePage]);
@@ -410,8 +416,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, result.ImportReport.WorkbookMetadataRecordsByKind[LegacyXlsWorkbookMetadataKind.Window]);
             Assert.Equal(1, result.ImportReport.WorkbookMetadataRecordsByKind[LegacyXlsWorkbookMetadataKind.WindowProtection]);
             Assert.Equal(1, result.ImportReport.WorkbookMetadataRecordsByKind[LegacyXlsWorkbookMetadataKind.WriteAccess]);
-            Assert.DoesNotContain(workbook.UnsupportedFeatures, feature => feature.RecordType is 0x0040 or 0x00da or 0x0042 or 0x008c or 0x008d or 0x00e1 or 0x00e2 or 0x0033 or 0x01af or 0x0160 or 0x003d or 0x0019 or 0x005c);
-            Assert.Contains("Workbook metadata records: 13", result.ImportReport.ToMarkdown());
+            Assert.DoesNotContain(workbook.UnsupportedFeatures, feature => feature.RecordType is 0x0040 or 0x00da or 0x0042 or 0x01ba or 0x008c or 0x008d or 0x00e1 or 0x00e2 or 0x0033 or 0x01af or 0x0160 or 0x003d or 0x0019 or 0x005c);
+            Assert.Contains("Workbook metadata records: 14", result.ImportReport.ToMarkdown());
             Assert.Contains("Workbook Metadata Records By Kind", result.ImportReport.ToMarkdown());
         }
 

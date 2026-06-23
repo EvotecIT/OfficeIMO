@@ -9,6 +9,7 @@ namespace OfficeIMO.Tests {
                 long boundSheetPosition = stream.Position;
                 WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "Metadata"));
                 WriteRecord(stream, 0x0042, BuildUInt16Payload(1200));
+                WriteRecord(stream, 0x01ba, BuildUnicodeStringPayload("ThisWorkbook"));
                 WriteRecord(stream, 0x00e1, BuildUInt16Payload(1200));
                 WriteRecord(stream, 0x00e2, Array.Empty<byte>());
                 WriteRecord(stream, 0x005c, BuildWriteAccessPayload("OfficeIMO"));
@@ -26,6 +27,7 @@ namespace OfficeIMO.Tests {
                 int sheetOffset = checked((int)stream.Position);
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
                 WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Workbook metadata"));
+                WriteRecord(stream, 0x01ba, BuildUnicodeStringPayload("MetadataSheet"));
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 byte[] bytes = stream.ToArray();

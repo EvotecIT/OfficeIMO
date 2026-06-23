@@ -16,6 +16,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         RowBlockIndex,
 
         /// <summary>Selection metadata from a Selection record.</summary>
-        Selection
+        Selection,
+
+        /// <summary>VBA sheet object name from a CodeName record.</summary>
+        CodeName
     }
 }
