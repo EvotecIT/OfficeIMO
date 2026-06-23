@@ -1636,6 +1636,10 @@ namespace OfficeIMO.Tests {
             LegacyXlsConditionalFormatting conditionalFormatting = Assert.Single(Assert.Single(result.Workbook.Worksheets).ConditionalFormattings);
             Assert.Equal(7, conditionalFormatting.Priority);
             Assert.True(conditionalFormatting.StopIfTrue);
+            Assert.Equal(1, result.ImportReport.ConditionalFormattingsByPriorityState["Present"]);
+            Assert.Equal(1, result.ImportReport.ConditionalFormattingsByPriority["Priority:7"]);
+            Assert.Equal(1, result.ImportReport.ConditionalFormattingsByStopIfTrueState["StopIfTrue"]);
+            Assert.Equal(1, result.ImportReport.ConditionalFormattingsByDifferentialFormatState["Missing"]);
 
             ExcelConditionalFormattingInfo info = Assert.Single(result.Document.Sheets[0].GetConditionalFormattingRules("A1:A3"));
             Assert.Equal(7, info.Priority);
@@ -1724,6 +1728,11 @@ namespace OfficeIMO.Tests {
             LegacyXlsConditionalFormatting conditionalFormatting = Assert.Single(Assert.Single(result.Workbook.Worksheets).ConditionalFormattings);
             Assert.NotNull(conditionalFormatting.DifferentialFormat);
             Assert.Equal("FFFFFF00", conditionalFormatting.DifferentialFormat!.FillBackgroundColor);
+            Assert.Equal(1, result.ImportReport.ConditionalFormattingsByPriorityState["Present"]);
+            Assert.Equal(1, result.ImportReport.ConditionalFormattingsByPriority["Priority:1"]);
+            Assert.Equal(1, result.ImportReport.ConditionalFormattingsByStopIfTrueState["StopIfTrue"]);
+            Assert.Equal(1, result.ImportReport.ConditionalFormattingsByDifferentialFormatState["Present"]);
+            Assert.Equal(1, result.ImportReport.ConditionalFormattingsByDifferentialFill["Background:FFFFFF00"]);
 
             using var packageStream = new MemoryStream();
             result.Document.Save(packageStream);

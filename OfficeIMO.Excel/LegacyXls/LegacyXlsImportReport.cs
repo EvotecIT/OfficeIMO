@@ -10,6 +10,7 @@ namespace OfficeIMO.Excel.LegacyXls {
         internal LegacyXlsImportReport(LegacyXlsWorkbook workbook) {
             if (workbook == null) throw new ArgumentNullException(nameof(workbook));
 
+            LegacyXlsConditionalFormatting[] conditionalFormattings = workbook.Worksheets.SelectMany(sheet => sheet.ConditionalFormattings).ToArray();
             WorksheetCount = workbook.Worksheets.Count;
             UnsupportedSheetCount = workbook.UnsupportedSheets.Count;
             CellCount = workbook.Worksheets.Sum(sheet => sheet.Cells.Count);
@@ -17,7 +18,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             CommentCount = workbook.Worksheets.Sum(sheet => sheet.Comments.Count);
             HyperlinkCount = workbook.Worksheets.Sum(sheet => sheet.Hyperlinks.Count);
             DataValidationCount = workbook.Worksheets.Sum(sheet => sheet.DataValidations.Count);
-            ConditionalFormattingCount = workbook.Worksheets.Sum(sheet => sheet.ConditionalFormattings.Count);
+            ConditionalFormattingCount = conditionalFormattings.Length;
             AutoFilterCriteriaCount = workbook.Worksheets.Sum(sheet => sheet.AutoFilterCriteria.Count);
             DataValidationsByType = CountByCode(workbook.Worksheets.SelectMany(sheet => sheet.DataValidations).Select(validation => validation.Type.ToString()));
             DataValidationsByOperator = CountByCode(workbook.Worksheets.SelectMany(sheet => sheet.DataValidations).Select(validation => validation.Operator.ToString()));
@@ -26,11 +27,17 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .SelectMany(sheet => sheet.DataValidations)
                 .Where(validation => validation.Type == LegacyXlsDataValidationType.List)
                 .Select(validation => validation.ListSourceKind.ToString()));
-            ConditionalFormattingsByType = CountByCode(workbook.Worksheets.SelectMany(sheet => sheet.ConditionalFormattings).Select(formatting => formatting.Type.ToString()));
-            ConditionalFormattingsByOperator = CountByCode(workbook.Worksheets
-                .SelectMany(sheet => sheet.ConditionalFormattings)
+            ConditionalFormattingsByType = CountByCode(conditionalFormattings.Select(formatting => formatting.Type.ToString()));
+            ConditionalFormattingsByOperator = CountByCode(conditionalFormattings
                 .Where(formatting => formatting.Operator.HasValue)
                 .Select(formatting => formatting.Operator!.Value.ToString()));
+            ConditionalFormattingsByPriorityState = CountByCode(conditionalFormattings.Select(formatting => formatting.Priority.HasValue ? "Present" : "Missing"));
+            ConditionalFormattingsByPriority = CountByCode(conditionalFormattings
+                .Where(formatting => formatting.Priority.HasValue)
+                .Select(formatting => $"Priority:{formatting.Priority!.Value}"));
+            ConditionalFormattingsByStopIfTrueState = CountByCode(conditionalFormattings.Select(formatting => formatting.StopIfTrue ? "StopIfTrue" : "Continue"));
+            ConditionalFormattingsByDifferentialFormatState = CountByCode(conditionalFormattings.Select(formatting => formatting.DifferentialFormat == null ? "Missing" : "Present"));
+            ConditionalFormattingsByDifferentialFill = CountByCode(conditionalFormattings.SelectMany(GetConditionalFormattingDifferentialFillKeys));
             AutoFilterCriteriaByOperator = CountByCode(workbook.Worksheets
                 .SelectMany(sheet => sheet.AutoFilterCriteria)
                 .SelectMany(criteria => criteria.Conditions)
@@ -316,6 +323,21 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets imported conditional formatting cell-is rules grouped by comparison operator.</summary>
         public IReadOnlyDictionary<string, int> ConditionalFormattingsByOperator { get; }
+
+        /// <summary>Gets imported conditional formatting rules grouped by whether an extension priority was decoded.</summary>
+        public IReadOnlyDictionary<string, int> ConditionalFormattingsByPriorityState { get; }
+
+        /// <summary>Gets imported conditional formatting extension priorities grouped by priority value.</summary>
+        public IReadOnlyDictionary<string, int> ConditionalFormattingsByPriority { get; }
+
+        /// <summary>Gets imported conditional formatting rules grouped by stop-if-true behavior.</summary>
+        public IReadOnlyDictionary<string, int> ConditionalFormattingsByStopIfTrueState { get; }
+
+        /// <summary>Gets imported conditional formatting rules grouped by whether a differential format was attached.</summary>
+        public IReadOnlyDictionary<string, int> ConditionalFormattingsByDifferentialFormatState { get; }
+
+        /// <summary>Gets imported conditional formatting differential formats grouped by decoded fill shape.</summary>
+        public IReadOnlyDictionary<string, int> ConditionalFormattingsByDifferentialFill { get; }
 
         /// <summary>Gets imported AutoFilter conditions grouped by comparison operator.</summary>
         public IReadOnlyDictionary<string, int> AutoFilterCriteriaByOperator { get; }
@@ -704,6 +726,11 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Data Validation List Sources By Kind", DataValidationListSourcesByKind);
             AppendDictionary(builder, "Conditional Formatting By Type", ConditionalFormattingsByType);
             AppendDictionary(builder, "Conditional Formatting By Operator", ConditionalFormattingsByOperator);
+            AppendDictionary(builder, "Conditional Formatting By Priority State", ConditionalFormattingsByPriorityState);
+            AppendDictionary(builder, "Conditional Formatting By Priority", ConditionalFormattingsByPriority);
+            AppendDictionary(builder, "Conditional Formatting By Stop If True State", ConditionalFormattingsByStopIfTrueState);
+            AppendDictionary(builder, "Conditional Formatting By Differential Format State", ConditionalFormattingsByDifferentialFormatState);
+            AppendDictionary(builder, "Conditional Formatting By Differential Fill", ConditionalFormattingsByDifferentialFill);
             AppendDictionary(builder, "AutoFilter Criteria By Kind", AutoFilterCriteriaByKind);
             AppendDictionary(builder, "AutoFilter Criteria By Operator", AutoFilterCriteriaByOperator);
             AppendDictionary(builder, "AutoFilter Criteria By Value Kind", AutoFilterCriteriaByValueKind);
@@ -1010,6 +1037,25 @@ namespace OfficeIMO.Excel.LegacyXls {
             string rank = criteria.Top10IsTop ? "Top" : "Bottom";
             string unit = criteria.Top10IsPercent ? "Percent" : "Items";
             return rank + unit;
+        }
+
+        private static IEnumerable<string> GetConditionalFormattingDifferentialFillKeys(LegacyXlsConditionalFormatting formatting) {
+            LegacyXlsDifferentialFormat? format = formatting.DifferentialFormat;
+            if (format == null) {
+                yield break;
+            }
+
+            if (format.FillPattern.HasValue) {
+                yield return $"Pattern:{format.FillPattern.Value}";
+            }
+
+            if (!string.IsNullOrWhiteSpace(format.FillForegroundColor)) {
+                yield return $"Foreground:{format.FillForegroundColor}";
+            }
+
+            if (!string.IsNullOrWhiteSpace(format.FillBackgroundColor)) {
+                yield return $"Background:{format.FillBackgroundColor}";
+            }
         }
 
         private static void AppendDictionary(StringBuilder builder, string title, IReadOnlyDictionary<string, int> values) {

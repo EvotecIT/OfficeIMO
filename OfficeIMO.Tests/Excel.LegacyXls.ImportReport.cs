@@ -609,10 +609,18 @@ namespace OfficeIMO.Tests {
             Assert.Equal(0, report.UnsupportedFeatureCount);
             Assert.Equal(1, report.ConditionalFormattingsByType["CellIs"]);
             Assert.Equal(1, report.ConditionalFormattingsByOperator["GreaterThan"]);
+            Assert.Equal(1, report.ConditionalFormattingsByPriorityState["Missing"]);
+            Assert.Empty(report.ConditionalFormattingsByPriority);
+            Assert.Equal(1, report.ConditionalFormattingsByStopIfTrueState["Continue"]);
+            Assert.Equal(1, report.ConditionalFormattingsByDifferentialFormatState["Missing"]);
+            Assert.Empty(report.ConditionalFormattingsByDifferentialFill);
             string markdown = report.ToMarkdown();
             Assert.Contains("Conditional formatting rules: 1", markdown);
             Assert.Contains("Conditional Formatting By Type", markdown);
             Assert.Contains("Conditional Formatting By Operator", markdown);
+            Assert.Contains("Conditional Formatting By Priority State", markdown);
+            Assert.Contains("Conditional Formatting By Stop If True State", markdown);
+            Assert.Contains("Conditional Formatting By Differential Format State", markdown);
         }
 
         [Fact]
