@@ -57,6 +57,23 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
                 byte[] payload = new byte[length];
                 Buffer.BlockCopy(workbookStream, payloadOffset, payload, 0, length);
+                if (offset == sheet.StreamOffset) {
+                    if (type != (ushort)BiffRecordType.Bof) {
+                        diagnostics.Add(new LegacyXlsImportDiagnostic(
+                            LegacyXlsDiagnosticSeverity.Error,
+                            "XLS-BIFF-SHEET-BOF-MISSING",
+                            "The worksheet substream does not start with a BOF record.",
+                            sheetName: sheet.Name,
+                            recordOffset: offset,
+                            recordType: type));
+                        return;
+                    }
+
+                    if (!LegacyBiffVersionValidator.ValidateWorksheetBof(payload, offset, sheet.Name, unsupportedFeatures, diagnostics)) {
+                        return;
+                    }
+                }
+
                 if (type == (ushort)BiffRecordType.Eof) {
                     FlushPendingFormulaString(sheet, sharedFormulaState, ref pendingFormulaString);
                     commentState.AddUnresolvedFeatures(unsupportedFeatures, diagnostics, options.ReportUnsupportedRecords);

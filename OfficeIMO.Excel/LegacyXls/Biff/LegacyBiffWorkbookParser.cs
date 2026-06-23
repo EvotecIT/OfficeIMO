@@ -14,6 +14,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             LegacyXlsExternalReference? currentExternalReference = null;
             bool encrypted = false;
 
+            if (!LegacyBiffVersionValidator.ValidateWorkbookGlobals(records, workbook)) {
+                return workbook;
+            }
+
             for (int i = 0; i < records.Count; i++) {
                 BiffRecord record = records[i];
                 if (record.Type == (ushort)BiffRecordType.BoundSheet8) {

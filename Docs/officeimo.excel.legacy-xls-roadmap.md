@@ -177,6 +177,9 @@ and projects through the normal OfficeIMO AutoFilter APIs.
 
 Current implementation has the first diagnostics contract: `FilePass` encrypted
 workbooks stop import with an explicit unsupported-encryption error, while unsupported
+BIFF versions older than BIFF8 are reported as explicit unsupported-version
+errors from workbook-global and worksheet BOF records before BIFF8-specific
+record layouts are interpreted. Unsupported
 hyperlink, worksheet drawing/object, PivotTable, and chart records are reported with
 feature-specific diagnostic codes when unsupported-record reporting is enabled.
 Legacy AutoFilter control and criteria records outside the supported simple

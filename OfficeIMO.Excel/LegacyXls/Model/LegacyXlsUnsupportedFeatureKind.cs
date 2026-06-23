@@ -14,6 +14,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         EncryptedWorkbook,
 
         /// <summary>
+        /// The workbook uses an older or otherwise unsupported BIFF version.
+        /// </summary>
+        UnsupportedBiffVersion,
+
+        /// <summary>
         /// A macro sheet entry was discovered.
         /// </summary>
         MacroSheet,

@@ -22,6 +22,41 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 recordType: feature.RecordType));
         }
 
+        internal static LegacyXlsUnsupportedFeature CreateUnsupportedBiffVersionFeature(
+            int offset,
+            ushort version,
+            ushort substreamType,
+            string? sheetName) {
+            string versionName = GetBiffVersionName(version);
+            string substreamName = GetBofSubstreamName(substreamType);
+            string substreamDetailName = GetBofSubstreamDetailName(substreamType);
+            return new LegacyXlsUnsupportedFeature(
+                LegacyXlsUnsupportedFeatureKind.UnsupportedBiffVersion,
+                "XLS-BIFF-VERSION-UNSUPPORTED",
+                $"The workbook contains a {versionName} {substreamName} substream. This legacy XLS import phase supports BIFF8 only.",
+                sheetName: sheetName,
+                recordOffset: offset,
+                recordType: (ushort)BiffRecordType.Bof,
+                detailCode: $"BiffVersion:{versionName}:{substreamDetailName}");
+        }
+
+        internal static void AddUnsupportedBiffVersionDiagnostic(
+            List<LegacyXlsImportDiagnostic> diagnostics,
+            int offset,
+            ushort version,
+            ushort substreamType,
+            string? sheetName) {
+            LegacyXlsUnsupportedFeature feature = CreateUnsupportedBiffVersionFeature(offset, version, substreamType, sheetName);
+            diagnostics.Add(new LegacyXlsImportDiagnostic(
+                LegacyXlsDiagnosticSeverity.Error,
+                feature.Code,
+                feature.Description,
+                sheetName: feature.SheetName,
+                recordOffset: feature.RecordOffset,
+                recordType: feature.RecordType,
+                detailCode: feature.DetailCode));
+        }
+
         internal static LegacyXlsUnsupportedFeature CreateUnsupportedRecordFeature(
             ushort type,
             int offset,
@@ -464,6 +499,39 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     code = "XLS-BIFF-FEATURE-SHEET-TYPE-UNSUPPORTED";
                     description = $"sheet type 0x{unsupportedSheet.SheetType:X2}";
                     break;
+            }
+        }
+
+        private static string GetBiffVersionName(ushort version) {
+            switch (version) {
+                case 0x0200: return "BIFF2";
+                case 0x0300: return "BIFF3";
+                case 0x0400: return "BIFF4";
+                case 0x0500: return "BIFF5";
+                case 0x0600: return "BIFF8";
+                default: return $"BIFF version 0x{version:X4}";
+            }
+        }
+
+        private static string GetBofSubstreamName(ushort substreamType) {
+            switch (substreamType) {
+                case 0x0005: return "workbook globals";
+                case 0x0010: return "worksheet";
+                case 0x0020: return "chart sheet";
+                case 0x0040: return "macro sheet";
+                case 0x0100: return "workspace";
+                default: return $"substream 0x{substreamType:X4}";
+            }
+        }
+
+        private static string GetBofSubstreamDetailName(ushort substreamType) {
+            switch (substreamType) {
+                case 0x0005: return "WorkbookGlobals";
+                case 0x0010: return "Worksheet";
+                case 0x0020: return "ChartSheet";
+                case 0x0040: return "MacroSheet";
+                case 0x0100: return "Workspace";
+                default: return $"Substream0x{substreamType:X4}";
             }
         }
     }
