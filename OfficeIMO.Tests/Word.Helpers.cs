@@ -35,8 +35,14 @@ public partial class Word {
     }
 
     [Theory]
+    [InlineData(CustomImagePartType.Bmp, "image/bmp")]
+    [InlineData(CustomImagePartType.Gif, "image/gif")]
+    [InlineData(CustomImagePartType.Jpeg, "image/jpeg")]
+    [InlineData(CustomImagePartType.Png, "image/png")]
+    [InlineData(CustomImagePartType.Tiff, "image/tiff")]
     [InlineData(CustomImagePartType.Emf, "image/x-emf")]
     [InlineData(CustomImagePartType.Wmf, "image/x-wmf")]
+    [InlineData(CustomImagePartType.Svg, "image/svg+xml")]
     public void Test_CustomImagePartType_ToOpenXmlImagePartType(CustomImagePartType imagePartType, string expectedContentType) {
         Assert.Equal(expectedContentType, imagePartType.ToOpenXmlImagePartType());
     }
