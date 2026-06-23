@@ -104,6 +104,15 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .Where(feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.EncryptedWorkbook
                     || feature.Kind == LegacyXlsUnsupportedFeatureKind.UnsupportedBiffVersion)
                 .Select(feature => $"{feature.Kind}|{feature.DetailCode ?? feature.Code}"));
+            EncryptedWorkbooksByMethod = CountByCode(workbook.UnsupportedFeatures
+                .Where(feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.EncryptedWorkbook)
+                .Select(GetEncryptionMethodKey));
+            UnsupportedBiffVersionsByVersion = CountByCode(workbook.UnsupportedFeatures
+                .Where(feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.UnsupportedBiffVersion)
+                .Select(GetBiffVersionKey));
+            UnsupportedBiffVersionsBySubstream = CountByCode(workbook.UnsupportedFeatures
+                .Where(feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.UnsupportedBiffVersion)
+                .Select(GetBiffSubstreamKey));
             UnsupportedSheetsByKind = CountUnsupportedSheetsByKind(workbook.UnsupportedSheets);
             UnsupportedSheetsByType = CountByCode(workbook.UnsupportedSheets.Select(sheet => $"0x{sheet.SheetType:X2}|{sheet.Kind}"));
             UnsupportedSheetsByName = CountByCode(workbook.UnsupportedSheets.Select(sheet => sheet.Name));
@@ -422,6 +431,15 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets hard file-format blockers grouped by kind and detail.</summary>
         public IReadOnlyDictionary<string, int> FileFormatBlockers { get; }
 
+        /// <summary>Gets encrypted workbook blockers grouped by FilePass encryption method.</summary>
+        public IReadOnlyDictionary<string, int> EncryptedWorkbooksByMethod { get; }
+
+        /// <summary>Gets unsupported BIFF blockers grouped by BIFF version.</summary>
+        public IReadOnlyDictionary<string, int> UnsupportedBiffVersionsByVersion { get; }
+
+        /// <summary>Gets unsupported BIFF blockers grouped by BOF substream.</summary>
+        public IReadOnlyDictionary<string, int> UnsupportedBiffVersionsBySubstream { get; }
+
         /// <summary>Gets unsupported sheet entries grouped by decoded sheet kind.</summary>
         public IReadOnlyDictionary<LegacyXlsUnsupportedSheetKind, int> UnsupportedSheetsByKind { get; }
 
@@ -701,6 +719,9 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Unsupported Feature Details", UnsupportedFeaturesByDetail);
             AppendDictionary(builder, "Unsupported Feature Locations", UnsupportedFeaturesByLocation);
             AppendDictionary(builder, "File Format Blockers", FileFormatBlockers);
+            AppendDictionary(builder, "Encrypted Workbooks By Method", EncryptedWorkbooksByMethod);
+            AppendDictionary(builder, "Unsupported BIFF Versions By Version", UnsupportedBiffVersionsByVersion);
+            AppendDictionary(builder, "Unsupported BIFF Versions By Substream", UnsupportedBiffVersionsBySubstream);
             AppendDictionary(builder, "Unsupported Sheets By Kind", UnsupportedSheetsByKind.ToDictionary(
                 entry => entry.Key.ToString(),
                 entry => entry.Value,
@@ -946,6 +967,23 @@ namespace OfficeIMO.Excel.LegacyXls {
         private static string GetFeatureLocationKey(LegacyXlsUnsupportedFeature feature) {
             string location = string.IsNullOrWhiteSpace(feature.SheetName) ? "(workbook)" : feature.SheetName!;
             return feature.Code + "|" + location;
+        }
+
+        private static string GetEncryptionMethodKey(LegacyXlsUnsupportedFeature feature) {
+            const string prefix = "Encryption:FilePass:";
+            return feature.DetailCode != null && feature.DetailCode.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
+                ? feature.DetailCode.Substring(prefix.Length)
+                : feature.DetailCode ?? feature.Code;
+        }
+
+        private static string GetBiffVersionKey(LegacyXlsUnsupportedFeature feature) {
+            string[] parts = (feature.DetailCode ?? string.Empty).Split(':');
+            return parts.Length >= 2 && !string.IsNullOrWhiteSpace(parts[1]) ? parts[1] : feature.DetailCode ?? feature.Code;
+        }
+
+        private static string GetBiffSubstreamKey(LegacyXlsUnsupportedFeature feature) {
+            string[] parts = (feature.DetailCode ?? string.Empty).Split(':');
+            return parts.Length >= 3 && !string.IsNullOrWhiteSpace(parts[2]) ? parts[2] : feature.DetailCode ?? feature.Code;
         }
 
         private static string GetChartRecordLocationKey(LegacyXlsChartRecord record) {

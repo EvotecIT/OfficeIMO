@@ -274,7 +274,28 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.EncryptedWorkbook]);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["EncryptedWorkbook|XLS-BIFF-FILEPASS-UNSUPPORTED|Encryption:FilePass:XorObfuscation"]);
             Assert.Equal(1, report.FileFormatBlockers["EncryptedWorkbook|Encryption:FilePass:XorObfuscation"]);
-            Assert.Contains("File Format Blockers", report.ToMarkdown());
+            Assert.Equal(1, report.EncryptedWorkbooksByMethod["XorObfuscation"]);
+            string markdown = report.ToMarkdown();
+            Assert.Contains("File Format Blockers", markdown);
+            Assert.Contains("Encrypted Workbooks By Method", markdown);
+            Assert.Empty(legacy.Worksheets);
+        }
+
+        [Fact]
+        public void LegacyXls_Load_ReportsRc4EncryptedWorkbookMethod() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateRc4EncryptedWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound);
+            LegacyXlsImportReport report = legacy.CreateImportReport();
+
+            Assert.Contains(legacy.Diagnostics, d =>
+                d.Code == "XLS-BIFF-FILEPASS-UNSUPPORTED"
+                && d.Severity == LegacyXlsDiagnosticSeverity.Error
+                && d.DetailCode == "Encryption:FilePass:Rc4"
+                && d.Message.Contains("Rc4"));
+            Assert.Equal(1, report.FileFormatBlockers["EncryptedWorkbook|Encryption:FilePass:Rc4"]);
+            Assert.Equal(1, report.EncryptedWorkbooksByMethod["Rc4"]);
             Assert.Empty(legacy.Worksheets);
         }
 
@@ -294,6 +315,7 @@ namespace OfficeIMO.Tests {
             Assert.Single(legacy.Diagnostics);
             Assert.Equal(1, report.ErrorCount);
             Assert.Equal(1, report.FileFormatBlockers["EncryptedWorkbook|Encryption:FilePass:XorObfuscation"]);
+            Assert.Equal(1, report.EncryptedWorkbooksByMethod["XorObfuscation"]);
             Assert.Empty(legacy.Worksheets);
         }
 
@@ -906,6 +928,14 @@ namespace OfficeIMO.Tests {
                 using var stream = new MemoryStream();
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
                 WriteRecord(stream, 0x002f, new byte[] { 0x00, 0x00 });
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+                return stream.ToArray();
+            }
+
+            internal static byte[] CreateRc4EncryptedWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x002f, new byte[] { 0x01, 0x00 });
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
                 return stream.ToArray();
             }

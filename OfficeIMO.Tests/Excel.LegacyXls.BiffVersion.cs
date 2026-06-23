@@ -29,7 +29,12 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.UnsupportedBiffVersion]);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["UnsupportedBiffVersion|XLS-BIFF-VERSION-UNSUPPORTED|BiffVersion:BIFF5:WorkbookGlobals"]);
             Assert.Equal(1, report.FileFormatBlockers["UnsupportedBiffVersion|BiffVersion:BIFF5:WorkbookGlobals"]);
-            Assert.Contains("File Format Blockers", report.ToMarkdown());
+            Assert.Equal(1, report.UnsupportedBiffVersionsByVersion["BIFF5"]);
+            Assert.Equal(1, report.UnsupportedBiffVersionsBySubstream["WorkbookGlobals"]);
+            string markdown = report.ToMarkdown();
+            Assert.Contains("File Format Blockers", markdown);
+            Assert.Contains("Unsupported BIFF Versions By Version", markdown);
+            Assert.Contains("Unsupported BIFF Versions By Substream", markdown);
         }
 
         [Fact]
@@ -55,6 +60,8 @@ namespace OfficeIMO.Tests {
                 && diagnostic.DetailCode == "BiffVersion:BIFF5:Worksheet");
             LegacyXlsImportReport report = workbook.CreateImportReport();
             Assert.Equal(1, report.FileFormatBlockers["UnsupportedBiffVersion|BiffVersion:BIFF5:Worksheet"]);
+            Assert.Equal(1, report.UnsupportedBiffVersionsByVersion["BIFF5"]);
+            Assert.Equal(1, report.UnsupportedBiffVersionsBySubstream["Worksheet"]);
         }
 
         private static partial class LegacyXlsTestWorkbookBuilder {
