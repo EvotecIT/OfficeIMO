@@ -186,6 +186,88 @@ namespace OfficeIMO.Tests {
             Assert.True(File.Exists(Path.Combine(folderPath, "Report-2.png")));
         }
 
+        [Fact]
+        public void ExcelWorksheet_ExportImagesSplitsRangeByManualPageBreaks() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("Report");
+            FillPageBreakGrid(sheet);
+            sheet.AddManualRowPageBreak(2, save: false);
+            sheet.AddManualColumnPageBreak(2, save: false);
+
+            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelWorksheetImageExportOptions {
+                Range = "A1:D4",
+                SplitByManualPageBreaks = true,
+                ShowGridlines = false
+            });
+
+            Assert.Equal(new[] {
+                "Report!A1:B2",
+                "Report!A3:B4",
+                "Report!C1:D2",
+                "Report!C3:D4"
+            }, results.Select(result => result.Source).ToArray());
+            Assert.All(results, result => {
+                OfficeImageExportDiagnostic diagnostic = Assert.Single(result.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ManualPageBreaksSplit);
+                Assert.Equal(OfficeImageExportDiagnosticSeverity.Info, diagnostic.Severity);
+                Assert.Equal("Report!A1:D4", diagnostic.Source);
+                Assert.True(OfficeImageReader.Identify(result.Bytes).Width > 0);
+            });
+        }
+
+        [Fact]
+        public void ExcelWorksheet_ExportImageReportsManualPageBreaksNeedMultiOutputPath() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("Report");
+            FillPageBreakGrid(sheet);
+            sheet.AddManualRowPageBreak(2, save: false);
+
+            OfficeImageExportResult result = sheet.ExportImage(OfficeImageExportFormat.Png, new ExcelWorksheetImageExportOptions {
+                Range = "A1:D4",
+                SplitByManualPageBreaks = true,
+                ShowGridlines = false
+            });
+
+            Assert.Equal("Report!A1:D4", result.Source);
+            OfficeImageExportDiagnostic diagnostic = Assert.Single(result.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ManualPageBreaksSingleImageUnsupported);
+            Assert.Equal(OfficeImageExportDiagnosticSeverity.Warning, diagnostic.Severity);
+            Assert.Equal("Report!A1:D4", diagnostic.Source);
+        }
+
+        [Fact]
+        public void ExcelWorkbook_ExportImagesForwardsManualPageBreakSplittingAndPageOrder() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("Report");
+            FillPageBreakGrid(sheet);
+            sheet.AddManualRowPageBreak(2, save: false);
+            sheet.AddManualColumnPageBreak(2, save: false);
+            sheet.SetPageSetup(pageOrder: ExcelPageOrder.OverThenDown);
+
+            IReadOnlyList<OfficeImageExportResult> results = document.ExportImages(OfficeImageExportFormat.Png, new ExcelWorkbookImageExportOptions {
+                SheetNames = new[] { "Report" },
+                SplitWorksheetsByManualPageBreaks = true,
+                ShowGridlines = false
+            });
+
+            Assert.Equal(new[] {
+                "Report!A1:B2",
+                "Report!C1:D2",
+                "Report!A3:B4",
+                "Report!C3:D4"
+            }, results.Select(result => result.Source).ToArray());
+            Assert.All(results, result => Assert.Contains(result.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ManualPageBreaksSplit));
+        }
+
+        private static void FillPageBreakGrid(ExcelSheet sheet) {
+            for (int row = 1; row <= 4; row++) {
+                for (int column = 1; column <= 4; column++) {
+                    sheet.CellValue(row, column, A1.CellReference(row, column));
+                }
+            }
+        }
+
         private static void AddMultiAreaPrintArea(string filePath) {
             using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true);
             WorkbookPart? workbookPart = spreadsheet.WorkbookPart;

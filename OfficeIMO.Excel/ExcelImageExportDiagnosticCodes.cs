@@ -165,6 +165,12 @@ public static class ExcelImageExportDiagnosticCodes {
     /// <summary>Configured print area could not be used by image export.</summary>
     public const string PrintAreaUnsupported = "ExcelPrintAreaUnsupported";
 
+    /// <summary>Manual worksheet page breaks were used to split image export into separate results.</summary>
+    public const string ManualPageBreaksSplit = "ExcelManualPageBreaksSplit";
+
+    /// <summary>Manual worksheet page-break splitting was requested through a single-image export path.</summary>
+    public const string ManualPageBreaksSingleImageUnsupported = "ExcelManualPageBreaksSingleImageUnsupported";
+
     /// <summary>Sparkline kind is not rendered by the image exporter yet.</summary>
     public const string SparklineKindUnsupported = "ExcelSparklineKindUnsupported";
 

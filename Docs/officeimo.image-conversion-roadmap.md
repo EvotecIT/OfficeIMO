@@ -479,11 +479,12 @@ Current progress:
 - Missing print areas emit `ExcelPrintAreaMissing` and fall back to the used range.
 - Single-image worksheet export keeps the legacy one-image contract: multi-area print areas emit `ExcelPrintAreaMultipleAreasUnsupported` and fall back to the used range.
 - Multi-output worksheet export uses `ExcelSheet.ExportImages(...)` to split multi-area print areas into separate image results with `ExcelPrintAreaMultipleAreasSplit` diagnostics and `Sheet!Range` sources.
+- `ExcelWorksheetImageExportOptions.SplitByManualPageBreaks` lets multi-output worksheet export split resolved ranges at manual row and column page breaks, honoring worksheet page order; single-image export emits `ExcelManualPageBreaksSingleImageUnsupported` instead of silently ignoring the request.
 
 Acceptance:
 
 - The worksheet path reuses range snapshot/rendering rather than duplicating it.
-- Large sheets can be exported with bounded memory through tiling or page slicing where needed.
+- Large sheets can be exported with bounded memory through tiling or page slicing where needed. The first page-slicing contract now covers manual row and column page breaks over explicit, used-range, and print-area selections.
 - Multi-page output returns a manifest/result collection, not only one byte array.
 
 ### Phase 5: Workbook To Images
@@ -501,6 +502,7 @@ Current progress:
 - Workbook image export is orchestration over worksheet export.
 - `ExcelWorkbookImageExportOptions.SheetNames` selects sheets.
 - `ExcelWorkbookImageExportOptions.UseWorksheetPrintAreas` forwards print-area intent to each worksheet, preserves per-sheet/per-area diagnostics, and now flattens multi-area worksheet output into the workbook result collection.
+- `ExcelWorkbookImageExportOptions.SplitWorksheetsByManualPageBreaks` forwards manual page-break slicing to each worksheet and preserves page-order result ordering.
 - Workbook options forward the shared worksheet visual switches instead of silently dropping drawing objects, conditional formatting, hyperlink hints, or comment bodies.
 - Folder and in-memory output paths exist for the current sheet/result collection shape, with duplicate sheet filenames disambiguated when one sheet yields multiple images.
 
@@ -648,6 +650,7 @@ Initial implementation path:
 99. Done shared SVG stroke cap/join consolidation slice: add reusable `OfficeSvgFormatting.FormatStrokeLineCap`, `FormatStrokeLineJoin`, `AppendStrokeLineCapAttribute`, `AppendStrokeLineJoinAttribute`, `WriteStrokeLineCapAttribute`, and `WriteStrokeLineJoinAttribute`; route `OfficeDrawingSvgExporter`, Excel dotted-border SVG output, Visio connector SVG output, and Visio stencil primitive SVG output through shared Drawing SVG stroke helpers instead of private enum mapping or repeated literal `round` attributes; and prove Drawing, Excel image-export, and Visio SVG contracts.
 100. Done shared SVG stroke dash-array consolidation slice: add reusable `OfficeSvgFormatting.AppendStrokeDashArrayAttribute`, `AppendStrokeDashStyleAttribute`, `WriteStrokeDashArrayAttribute`, and `WriteStrokeDashStyleAttribute`; route `OfficeDrawingSvgExporter`, Excel styled border SVG output, Visio connector SVG output, and Visio shape SVG output through shared Drawing SVG dash helpers instead of repeated `stroke-dasharray` attribute emission; and prove Drawing, Excel image-export, and Visio SVG contracts.
 101. Done worksheet/workbook page-output slice: add worksheet `ExportImages(...)` for multi-output image export, split multi-area print areas into separate PNG/SVG-capable results with stable diagnostics, route workbook export through worksheet multi-output orchestration, and keep saved multi-area outputs distinct on disk.
+102. Done manual page-break image-output slice: add worksheet and workbook options for manual row/column page-break splitting, preserve the single-image warning contract, honor worksheet page order, and prove explicit-range plus workbook multi-result output through decoded PNG-backed tests.
 101. Done shared SVG writer numeric-attribute consolidation slice: add reusable `OfficeSvgFormatting.WriteNumberAttribute` and `WriteViewBoxAttribute`; route Visio SVG root dimensions/viewBox, background rectangles, stencil primitive coordinates, connector stroke widths, shape ellipse/image geometry, shape stroke widths, and text/tspan numeric placement through shared Drawing SVG writer formatting instead of per-call `Format(...)` attributes; and prove Drawing plus Visio SVG contracts.
 102. Done shared SVG move-line path-data consolidation slice: add reusable `OfficeSvgFormatting.FormatMoveLinePathData` and `AppendMoveLinePathData` for invariant `M`/`L`/`Z` SVG path serialization; route Visio SVG open connector paths and closed shape/preserved-geometry paths through the shared Drawing formatter while keeping Visio page-coordinate conversion in the Visio adapter; and prove Drawing plus Visio SVG contracts.
 103. Done shared Drawing SVG primitive-geometry consolidation slice: route `OfficeDrawingSvgExporter` rectangle, rounded-rectangle, ellipse, and line numeric geometry attributes through `OfficeSvgFormatting.AppendNumberAttribute`, route polygon point-list output through `AppendPointsAttribute`, and keep the exporter as the central shared Drawing SVG surface instead of preserving raw per-primitive number/point formatting; prove the shared Drawing SVG exporter contracts.

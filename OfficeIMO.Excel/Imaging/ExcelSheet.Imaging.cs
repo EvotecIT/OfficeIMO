@@ -9,7 +9,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelRangeVisualSnapshot CreateVisualSnapshot(ExcelWorksheetImageExportOptions? options = null) {
             ExcelWorksheetImageExportOptions resolved = NormalizeWorksheetOptions(options);
-            WorksheetImageRangeResolution range = ResolveWorksheetImageRanges(resolved, allowMultiplePrintAreas: false)[0];
+            WorksheetImageRangeResolution range = ResolveWorksheetImageRanges(resolved, allowMultipleResults: false)[0];
             return ExcelRangeVisualSnapshotBuilder.Build(this, range.Range, resolved, range.Diagnostics);
         }
 
@@ -18,17 +18,17 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public OfficeImageExportResult ExportImage(OfficeImageExportFormat format, ExcelWorksheetImageExportOptions? options = null) {
             ExcelWorksheetImageExportOptions resolved = NormalizeWorksheetOptions(options);
-            WorksheetImageRangeResolution range = ResolveWorksheetImageRanges(resolved, allowMultiplePrintAreas: false)[0];
+            WorksheetImageRangeResolution range = ResolveWorksheetImageRanges(resolved, allowMultipleResults: false)[0];
             ExcelRangeVisualSnapshot snapshot = ExcelRangeVisualSnapshotBuilder.Build(this, range.Range, resolved, range.Diagnostics);
             return ExcelRangeImageRenderer.Render(snapshot, format, resolved);
         }
 
         /// <summary>
-        /// Exports one or more worksheet image results. Multi-area print areas are returned as separate images when <see cref="ExcelWorksheetImageExportOptions.UsePrintArea"/> is enabled.
+        /// Exports one or more worksheet image results. Multi-area print areas and manual page-break splits are returned as separate images when requested.
         /// </summary>
         public IReadOnlyList<OfficeImageExportResult> ExportImages(OfficeImageExportFormat format, ExcelWorksheetImageExportOptions? options = null) {
             ExcelWorksheetImageExportOptions resolved = NormalizeWorksheetOptions(options);
-            IReadOnlyList<WorksheetImageRangeResolution> ranges = ResolveWorksheetImageRanges(resolved, allowMultiplePrintAreas: true);
+            IReadOnlyList<WorksheetImageRangeResolution> ranges = ResolveWorksheetImageRanges(resolved, allowMultipleResults: true);
             var results = new List<OfficeImageExportResult>(ranges.Count);
             foreach (WorksheetImageRangeResolution range in ranges) {
                 ExcelRangeVisualSnapshot snapshot = ExcelRangeVisualSnapshotBuilder.Build(this, range.Range, resolved, range.Diagnostics);
@@ -83,9 +83,12 @@ namespace OfficeIMO.Excel {
             return resolved;
         }
 
-        private IReadOnlyList<WorksheetImageRangeResolution> ResolveWorksheetImageRanges(ExcelWorksheetImageExportOptions options, bool allowMultiplePrintAreas) {
+        private IReadOnlyList<WorksheetImageRangeResolution> ResolveWorksheetImageRanges(ExcelWorksheetImageExportOptions options, bool allowMultipleResults) {
             if (!string.IsNullOrWhiteSpace(options.Range)) {
-                return SingleImageRange(options.Range!, Array.Empty<OfficeImageExportDiagnostic>());
+                return ApplyManualPageBreakSplits(
+                    SingleImageRange(options.Range!, Array.Empty<OfficeImageExportDiagnostic>()),
+                    options,
+                    allowMultipleResults);
             }
 
             var diagnostics = new List<OfficeImageExportDiagnostic>();
@@ -101,8 +104,9 @@ namespace OfficeIMO.Excel {
                 } else {
                     List<string> printAreaParts = SplitDefinedNameParts(printArea!).ToList();
                     if (printAreaParts.Count > 1) {
-                        if (allowMultiplePrintAreas && TryNormalizeWorksheetImageRanges(printAreaParts, out IReadOnlyList<string>? normalizedRanges)) {
-                            return normalizedRanges!
+                        if (allowMultipleResults && TryNormalizeWorksheetImageRanges(printAreaParts, out IReadOnlyList<string>? normalizedRanges)) {
+                            return ApplyManualPageBreakSplits(
+                                normalizedRanges!
                                 .Select(range => new WorksheetImageRangeResolution(
                                     range,
                                     new[] {
@@ -113,7 +117,9 @@ namespace OfficeIMO.Excel {
                                             source)
                                     }))
                                 .ToList()
-                                .AsReadOnly();
+                                .AsReadOnly(),
+                                options,
+                                allowMultipleResults);
                         }
 
                         diagnostics.Add(new OfficeImageExportDiagnostic(
@@ -122,7 +128,7 @@ namespace OfficeIMO.Excel {
                             "Multi-area worksheet print areas are not supported by single-image export; exporting the worksheet used range instead.",
                             source));
                     } else if (TryNormalizeWorksheetImageRange(printArea!, out string? normalizedPrintArea)) {
-                        return SingleImageRange(normalizedPrintArea!, diagnostics);
+                        return ApplyManualPageBreakSplits(SingleImageRange(normalizedPrintArea!, diagnostics), options, allowMultipleResults);
                     } else {
                         diagnostics.Add(new OfficeImageExportDiagnostic(
                             OfficeImageExportDiagnosticSeverity.Warning,
@@ -133,11 +139,97 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            return SingleImageRange(ResolveWorksheetUsedImageRange(options), diagnostics);
+            return ApplyManualPageBreakSplits(SingleImageRange(ResolveWorksheetUsedImageRange(options), diagnostics), options, allowMultipleResults);
         }
 
         private static IReadOnlyList<WorksheetImageRangeResolution> SingleImageRange(string range, IReadOnlyList<OfficeImageExportDiagnostic> diagnostics) =>
             new[] { new WorksheetImageRangeResolution(range, diagnostics) };
+
+        private IReadOnlyList<WorksheetImageRangeResolution> ApplyManualPageBreakSplits(
+            IReadOnlyList<WorksheetImageRangeResolution> ranges,
+            ExcelWorksheetImageExportOptions options,
+            bool allowMultipleResults) {
+            if (!options.SplitByManualPageBreaks) {
+                return ranges;
+            }
+
+            if (!allowMultipleResults) {
+                return ranges
+                    .Select(range => range.WithDiagnostic(new OfficeImageExportDiagnostic(
+                        OfficeImageExportDiagnosticSeverity.Warning,
+                        ExcelImageExportDiagnosticCodes.ManualPageBreaksSingleImageUnsupported,
+                        "Manual worksheet page-break splitting was requested through a single-image export path; exporting one image for the resolved range instead.",
+                        Name + "!" + range.Range)))
+                    .ToList()
+                    .AsReadOnly();
+            }
+
+            var splitRanges = new List<WorksheetImageRangeResolution>();
+            foreach (WorksheetImageRangeResolution range in ranges) {
+                IReadOnlyList<string> pages = SplitRangeByManualPageBreaks(range.Range);
+                if (pages.Count <= 1) {
+                    splitRanges.Add(range);
+                    continue;
+                }
+
+                foreach (string pageRange in pages) {
+                    splitRanges.Add(range.WithRangeAndDiagnostic(
+                        pageRange,
+                        new OfficeImageExportDiagnostic(
+                            OfficeImageExportDiagnosticSeverity.Info,
+                            ExcelImageExportDiagnosticCodes.ManualPageBreaksSplit,
+                            "Manual worksheet page breaks were used to split the image export into separate results.",
+                            Name + "!" + range.Range)));
+                }
+            }
+
+            return splitRanges.AsReadOnly();
+        }
+
+        private IReadOnlyList<string> SplitRangeByManualPageBreaks(string range) {
+            if (!A1.TryParseRange(range, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
+                return new[] { range };
+            }
+
+            IReadOnlyList<PageBreakSegment> rowSegments = BuildPageBreakSegments(firstRow, lastRow, GetManualRowPageBreaks());
+            IReadOnlyList<PageBreakSegment> columnSegments = BuildPageBreakSegments(firstColumn, lastColumn, GetManualColumnPageBreaks());
+            if (rowSegments.Count == 1 && columnSegments.Count == 1) {
+                return new[] { range };
+            }
+
+            var ranges = new List<string>(rowSegments.Count * columnSegments.Count);
+            ExcelPageOrder pageOrder = GetPageSetup().PageOrder ?? ExcelPageOrder.DownThenOver;
+            if (pageOrder == ExcelPageOrder.OverThenDown) {
+                foreach (PageBreakSegment row in rowSegments) {
+                    foreach (PageBreakSegment column in columnSegments) {
+                        ranges.Add(ToRange(row.Start, column.Start, row.End, column.End));
+                    }
+                }
+            } else {
+                foreach (PageBreakSegment column in columnSegments) {
+                    foreach (PageBreakSegment row in rowSegments) {
+                        ranges.Add(ToRange(row.Start, column.Start, row.End, column.End));
+                    }
+                }
+            }
+
+            return ranges.AsReadOnly();
+        }
+
+        private static IReadOnlyList<PageBreakSegment> BuildPageBreakSegments(int first, int last, IReadOnlyList<int> breakAfterIndexes) {
+            var segments = new List<PageBreakSegment>();
+            int start = first;
+            foreach (int breakAfter in breakAfterIndexes.Where(value => value >= first && value < last).Distinct().OrderBy(value => value)) {
+                segments.Add(new PageBreakSegment(start, breakAfter));
+                start = breakAfter + 1;
+            }
+
+            segments.Add(new PageBreakSegment(start, last));
+            return segments.AsReadOnly();
+        }
+
+        private static string ToRange(int firstRow, int firstColumn, int lastRow, int lastColumn) =>
+            A1.CellReference(firstRow, firstColumn) + ":" + A1.CellReference(lastRow, lastColumn);
 
         private static bool TryNormalizeWorksheetImageRanges(IEnumerable<string> ranges, out IReadOnlyList<string>? normalizedRanges) {
             var normalized = new List<string>();
@@ -296,6 +388,26 @@ namespace OfficeIMO.Excel {
 
             internal string Range { get; }
             internal IReadOnlyList<OfficeImageExportDiagnostic> Diagnostics { get; }
+
+            internal WorksheetImageRangeResolution WithDiagnostic(OfficeImageExportDiagnostic diagnostic) =>
+                WithRangeAndDiagnostic(Range, diagnostic);
+
+            internal WorksheetImageRangeResolution WithRangeAndDiagnostic(string range, OfficeImageExportDiagnostic diagnostic) {
+                var diagnostics = new List<OfficeImageExportDiagnostic>(Diagnostics.Count + 1);
+                diagnostics.AddRange(Diagnostics);
+                diagnostics.Add(diagnostic);
+                return new WorksheetImageRangeResolution(range, diagnostics.AsReadOnly());
+            }
+        }
+
+        private readonly struct PageBreakSegment {
+            internal PageBreakSegment(int start, int end) {
+                Start = start;
+                End = end;
+            }
+
+            internal int Start { get; }
+            internal int End { get; }
         }
     }
 }

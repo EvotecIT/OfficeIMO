@@ -31,7 +31,8 @@ namespace OfficeIMO.Excel {
                     ShowCommentBodies = resolved.ShowCommentBodies,
                     DefaultColumnWidthPixels = resolved.DefaultColumnWidthPixels,
                     DefaultRowHeightPixels = resolved.DefaultRowHeightPixels,
-                    UsePrintArea = resolved.UseWorksheetPrintAreas
+                    UsePrintArea = resolved.UseWorksheetPrintAreas,
+                    SplitByManualPageBreaks = resolved.SplitWorksheetsByManualPageBreaks
                 };
                 results.AddRange(sheet.ExportImages(format, sheetOptions));
             }

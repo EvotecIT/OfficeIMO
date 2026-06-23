@@ -100,6 +100,12 @@ namespace OfficeIMO.Excel {
         /// When true and <see cref="Range"/> is omitted, uses the worksheet print area when configured.
         /// </summary>
         public bool UsePrintArea { get; set; }
+
+        /// <summary>
+        /// When true, <see cref="ExcelSheet.ExportImages(OfficeImageExportFormat, ExcelWorksheetImageExportOptions?)"/> splits output at manual row and column page breaks.
+        /// Single-image worksheet export keeps one result and emits a diagnostic instead of splitting.
+        /// </summary>
+        public bool SplitByManualPageBreaks { get; set; }
     }
 
     /// <summary>
@@ -115,5 +121,10 @@ namespace OfficeIMO.Excel {
         /// When true, each worksheet image export uses that worksheet's print area when configured.
         /// </summary>
         public bool UseWorksheetPrintAreas { get; set; }
+
+        /// <summary>
+        /// When true, workbook image export asks each worksheet to split output at manual row and column page breaks.
+        /// </summary>
+        public bool SplitWorksheetsByManualPageBreaks { get; set; }
     }
 }
