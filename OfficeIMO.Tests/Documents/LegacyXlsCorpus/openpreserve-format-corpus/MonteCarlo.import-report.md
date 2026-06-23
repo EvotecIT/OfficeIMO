@@ -17,6 +17,7 @@ Calculation setting records: 43
 Cell style records: 6
 Workbook metadata records: 12
 Worksheet metadata records: 33
+Unsupported sheet metadata records: 4
 Unsupported features: 910
 Preserved feature records: 898
 Errors: 0
@@ -242,6 +243,12 @@ Warnings: 0
 | RowBlockIndex | 7 |
 | Selection | 5 |
 | SheetOptions | 7 |
+
+## Unsupported Sheet Metadata Records By Kind
+
+| Key | Count |
+| --- | --- |
+| ChartPrintSize | 4 |
 
 ## Preserved Feature Records By Kind
 

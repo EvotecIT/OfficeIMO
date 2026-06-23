@@ -27,6 +27,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             CellStyleRecordCount = workbook.CellStyles.Count;
             WorkbookMetadataRecordCount = workbook.MetadataRecords.Count;
             WorksheetMetadataRecordCount = workbook.Worksheets.Sum(sheet => sheet.MetadataRecords.Count);
+            UnsupportedSheetMetadataRecordCount = workbook.UnsupportedSheets.Sum(sheet => sheet.MetadataRecords.Count);
             UnsupportedFeatureCount = workbook.UnsupportedFeatures.Count;
             PreservedFeatureRecordCount = workbook.PreservedFeatureRecords.Count;
             ErrorCount = workbook.Diagnostics.Count(diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
@@ -49,6 +50,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             CellStylesByKind = CountByCode(workbook.CellStyles.Select(style => style.IsBuiltIn ? "BuiltIn" : "Custom"));
             WorkbookMetadataRecordsByKind = CountWorkbookMetadataRecordsByKind(workbook.MetadataRecords);
             WorksheetMetadataRecordsByKind = CountWorksheetMetadataRecordsByKind(workbook.Worksheets.SelectMany(sheet => sheet.MetadataRecords));
+            UnsupportedSheetMetadataRecordsByKind = CountUnsupportedSheetMetadataRecordsByKind(workbook.UnsupportedSheets.SelectMany(sheet => sheet.MetadataRecords));
             PreservedFeatureRecordsByKind = CountPreservedRecordsByKind(workbook.PreservedFeatureRecords);
             PreservedFeatureRecordsByDetail = CountByCode(workbook.PreservedFeatureRecords
                 .Where(record => !string.IsNullOrWhiteSpace(record.DetailCode))
@@ -106,6 +108,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets the number of worksheet metadata records parsed from BIFF records.</summary>
         public int WorksheetMetadataRecordCount { get; }
 
+        /// <summary>Gets the number of metadata records parsed from unsupported sheet substreams.</summary>
+        public int UnsupportedSheetMetadataRecordCount { get; }
+
         /// <summary>Gets the number of unsupported or preserve-only feature findings.</summary>
         public int UnsupportedFeatureCount { get; }
 
@@ -151,6 +156,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets parsed worksheet metadata records grouped by metadata kind.</summary>
         public IReadOnlyDictionary<LegacyXlsWorksheetMetadataKind, int> WorksheetMetadataRecordsByKind { get; }
 
+        /// <summary>Gets parsed unsupported-sheet metadata records grouped by metadata kind.</summary>
+        public IReadOnlyDictionary<LegacyXlsUnsupportedSheetMetadataKind, int> UnsupportedSheetMetadataRecordsByKind { get; }
+
         /// <summary>Gets preserved feature record counts grouped by feature kind.</summary>
         public IReadOnlyDictionary<LegacyXlsUnsupportedFeatureKind, int> PreservedFeatureRecordsByKind { get; }
 
@@ -187,6 +195,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             builder.AppendLine($"Cell style records: {CellStyleRecordCount}");
             builder.AppendLine($"Workbook metadata records: {WorkbookMetadataRecordCount}");
             builder.AppendLine($"Worksheet metadata records: {WorksheetMetadataRecordCount}");
+            builder.AppendLine($"Unsupported sheet metadata records: {UnsupportedSheetMetadataRecordCount}");
             builder.AppendLine($"Unsupported features: {UnsupportedFeatureCount}");
             builder.AppendLine($"Preserved feature records: {PreservedFeatureRecordCount}");
             builder.AppendLine($"Errors: {ErrorCount}");
@@ -211,6 +220,10 @@ namespace OfficeIMO.Excel.LegacyXls {
                 entry => entry.Value,
                 StringComparer.OrdinalIgnoreCase));
             AppendDictionary(builder, "Worksheet Metadata Records By Kind", WorksheetMetadataRecordsByKind.ToDictionary(
+                entry => entry.Key.ToString(),
+                entry => entry.Value,
+                StringComparer.OrdinalIgnoreCase));
+            AppendDictionary(builder, "Unsupported Sheet Metadata Records By Kind", UnsupportedSheetMetadataRecordsByKind.ToDictionary(
                 entry => entry.Key.ToString(),
                 entry => entry.Value,
                 StringComparer.OrdinalIgnoreCase));
@@ -259,6 +272,13 @@ namespace OfficeIMO.Excel.LegacyXls {
         }
 
         private static IReadOnlyDictionary<LegacyXlsWorksheetMetadataKind, int> CountWorksheetMetadataRecordsByKind(IEnumerable<LegacyXlsWorksheetMetadataRecord> records) {
+            return records
+                .GroupBy(record => record.Kind)
+                .OrderBy(group => group.Key.ToString(), StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(group => group.Key, group => group.Count());
+        }
+
+        private static IReadOnlyDictionary<LegacyXlsUnsupportedSheetMetadataKind, int> CountUnsupportedSheetMetadataRecordsByKind(IEnumerable<LegacyXlsUnsupportedSheetMetadataRecord> records) {
             return records
                 .GroupBy(record => record.Kind)
                 .OrderBy(group => group.Key.ToString(), StringComparer.OrdinalIgnoreCase)

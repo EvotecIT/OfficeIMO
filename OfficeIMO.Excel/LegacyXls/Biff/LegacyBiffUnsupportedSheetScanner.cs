@@ -77,6 +77,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     return;
                 }
 
+                if (TryReadUnsupportedSheetMetadata(workbookStream, sheet, diagnostics, type, offset, payloadOffset, length)) {
+                    offset = payloadOffset + length;
+                    continue;
+                }
+
                 if (type != (ushort)BiffRecordType.Bof
                     && BiffUnsupportedRecordDiagnostics.IsPreserveOnlyFeatureRecord(type)) {
                     LegacyXlsUnsupportedFeature feature = BiffUnsupportedRecordDiagnostics.CreateUnsupportedRecordFeature(type, offset, sheet.Name);
@@ -92,6 +97,45 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
                 offset = payloadOffset + length;
             }
+        }
+
+        private static bool TryReadUnsupportedSheetMetadata(
+            byte[] workbookStream,
+            LegacyXlsUnsupportedSheet sheet,
+            List<LegacyXlsImportDiagnostic> diagnostics,
+            ushort type,
+            int recordOffset,
+            int payloadOffset,
+            ushort payloadLength) {
+            if (sheet.Kind != LegacyXlsUnsupportedSheetKind.ChartSheet || type != (ushort)BiffRecordType.PrintSize) {
+                return false;
+            }
+
+            if (payloadLength < 2) {
+                diagnostics.Add(new LegacyXlsImportDiagnostic(
+                    LegacyXlsDiagnosticSeverity.Warning,
+                    "XLS-BIFF-CHART-METADATA-SHORT",
+                    "The chart sheet PrintSize record is shorter than expected.",
+                    sheetName: sheet.Name,
+                    recordOffset: recordOffset,
+                    recordType: type));
+            } else {
+                ushort printSize = BiffRecordReader.ReadUInt16(workbookStream, payloadOffset);
+                if (printSize > 3) {
+                    diagnostics.Add(new LegacyXlsImportDiagnostic(
+                        LegacyXlsDiagnosticSeverity.Warning,
+                        "XLS-BIFF-CHART-PRINTSIZE-UNEXPECTED",
+                        $"The chart sheet PrintSize record contains unexpected value {printSize}.",
+                        sheetName: sheet.Name,
+                        recordOffset: recordOffset,
+                        recordType: type));
+                }
+
+                sheet.SetChartPrintSize(printSize);
+            }
+
+            sheet.AddMetadataRecord(LegacyXlsUnsupportedSheetMetadataKind.ChartPrintSize, recordOffset, type);
+            return true;
         }
     }
 }

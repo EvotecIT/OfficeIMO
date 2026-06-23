@@ -313,6 +313,30 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_Load_PreservesChartSheetPrintSizeMetadata() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateUnsupportedChartSheetWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            LegacyXlsUnsupportedSheet chartSheet = Assert.Single(legacy.UnsupportedSheets);
+            Assert.Equal(LegacyXlsUnsupportedSheetKind.ChartSheet, chartSheet.Kind);
+            Assert.Equal("Chart1", chartSheet.Name);
+            Assert.Equal((ushort)2, chartSheet.ChartPrintSize);
+            LegacyXlsUnsupportedSheetMetadataRecord metadata = Assert.Single(chartSheet.MetadataRecords);
+            Assert.Equal(LegacyXlsUnsupportedSheetMetadataKind.ChartPrintSize, metadata.Kind);
+            Assert.Equal((ushort)BiffRecordType.PrintSize, metadata.RecordType);
+            Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.RecordType == (ushort)BiffRecordType.PrintSize);
+
+            LegacyXlsImportReport report = new LegacyXlsImportReport(legacy);
+            Assert.Equal(1, report.UnsupportedSheetMetadataRecordCount);
+            Assert.Equal(1, report.UnsupportedSheetMetadataRecordsByKind[LegacyXlsUnsupportedSheetMetadataKind.ChartPrintSize]);
+            Assert.Contains("Unsupported sheet metadata records: 1", report.ToMarkdown());
+        }
+
+        [Fact]
         public void LegacyXls_LoadLegacyXls_ProjectsToNormalExcelDocument() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateMinimalWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
@@ -753,6 +777,23 @@ namespace OfficeIMO.Tests {
 
                 byte[] bytes = stream.ToArray();
                 Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)boundSheetPosition + 4), 4);
+                return bytes;
+            }
+
+            internal static byte[] CreateUnsupportedChartSheetWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long chartBoundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "Chart1", sheetType: 2));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int chartSheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x20, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0033, new byte[] { 0x02, 0x00 });
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(chartSheetOffset), 0, bytes, checked((int)chartBoundSheetPosition + 4), 4);
                 return bytes;
             }
 

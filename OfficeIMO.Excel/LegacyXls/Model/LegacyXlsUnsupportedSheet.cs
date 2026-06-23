@@ -3,6 +3,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// Describes a legacy XLS sheet entry that is preserved as import metadata but not projected as a worksheet.
     /// </summary>
     public sealed class LegacyXlsUnsupportedSheet {
+        private readonly List<LegacyXlsUnsupportedSheetMetadataRecord> _metadataRecords = new();
+
         /// <summary>
         /// Creates unsupported legacy sheet metadata.
         /// </summary>
@@ -48,5 +50,23 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// Gets the unsupported sheet category.
         /// </summary>
         public LegacyXlsUnsupportedSheetKind Kind { get; }
+
+        /// <summary>
+        /// Gets decoded metadata records from this unsupported sheet substream.
+        /// </summary>
+        public IReadOnlyList<LegacyXlsUnsupportedSheetMetadataRecord> MetadataRecords => _metadataRecords;
+
+        /// <summary>
+        /// Gets the chart printed-size mode from a PrintSize record, when this unsupported sheet is a chart sheet.
+        /// </summary>
+        public ushort? ChartPrintSize { get; private set; }
+
+        internal void AddMetadataRecord(LegacyXlsUnsupportedSheetMetadataKind kind, int recordOffset, ushort recordType) {
+            _metadataRecords.Add(new LegacyXlsUnsupportedSheetMetadataRecord(kind, recordOffset, recordType));
+        }
+
+        internal void SetChartPrintSize(ushort value) {
+            ChartPrintSize = value;
+        }
     }
 }
