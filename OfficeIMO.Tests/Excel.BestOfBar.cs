@@ -245,5 +245,45 @@ namespace OfficeIMO.Tests {
             Assert.Equal("0.0%", GetCellNumberFormatCode(spreadsheet, cells["C2"]));
             Assert.Equal("yyyy-mm-dd", GetCellNumberFormatCode(spreadsheet, cells["D2"]));
         }
+
+        [Fact]
+        public void Test_ExcelBestOfBar_ColumnFormatPlan_HonorsExactAndExplicitHeaderRows() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelBestOfBar.ColumnFormatPlan.HeaderRows.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "Report");
+                sheet.CellValue(2, 1, "Value");
+                sheet.CellValue(2, 2, "  Value  ");
+                sheet.CellValue(3, 1, 10);
+                sheet.CellValue(3, 2, 20);
+
+                var exactPlan = new ExcelColumnFormatPlan().Add("  Value  ", ExcelNumberPreset.Integer);
+                IReadOnlyList<ExcelColumnFormatResult> exactResults = sheet.ApplyColumnFormatPlan(
+                    exactPlan,
+                    headerRow: 2,
+                    options: new ExcelReadOptions { NormalizeHeaders = false });
+
+                var titlePlan = new ExcelColumnFormatPlan().Currency(System.Globalization.CultureInfo.GetCultureInfo("en-US"), "Value");
+                IReadOnlyList<ExcelColumnFormatResult> titleResults = sheet.ApplyColumnFormatPlan(
+                    titlePlan,
+                    headerRow: 2);
+
+                Assert.Single(exactResults);
+                Assert.True(exactResults[0].Applied);
+                Assert.Equal(2, exactResults[0].ColumnIndex);
+                Assert.Single(titleResults);
+                Assert.True(titleResults[0].Applied);
+                Assert.Equal(1, titleResults[0].ColumnIndex);
+                document.Save();
+            }
+
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false);
+            var cells = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>()
+                .ToDictionary(cell => cell.CellReference!.Value!);
+
+            Assert.Contains("$", GetCellNumberFormatCode(spreadsheet, cells["A3"]) ?? string.Empty);
+            Assert.Equal("#,##0", GetCellNumberFormatCode(spreadsheet, cells["B3"]));
+        }
     }
 }

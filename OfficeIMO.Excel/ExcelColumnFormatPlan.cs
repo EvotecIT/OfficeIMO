@@ -118,7 +118,7 @@ namespace OfficeIMO.Excel {
 
             foreach (string? header in headers) {
                 if (!string.IsNullOrWhiteSpace(header)) {
-                    yield return header.Trim();
+                    yield return header;
                 }
             }
         }
@@ -148,7 +148,7 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentOutOfRangeException(nameof(decimals), "Decimals must be zero or greater.");
             }
 
-            Header = header.Trim();
+            Header = header;
             Preset = preset;
             NumberFormat = string.IsNullOrWhiteSpace(numberFormat) ? null : numberFormat;
             Decimals = decimals;
