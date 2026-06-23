@@ -31,7 +31,7 @@ public static partial class OfficeTextLayoutEngine {
                 continue;
             }
 
-            string[] words = line.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            string[] words = line.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
             string current = string.Empty;
             for (int i = 0; i < words.Length; i++) {
                 string word = words[i];

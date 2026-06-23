@@ -288,6 +288,24 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ConnectorLabelResizeBreaksLongWordsWithinMaximumWidth() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("LongLabel");
+            VisioShape source = page.AddRectangle(1, 4, 1.4, 0.7, "Source");
+            VisioShape target = page.AddRectangle(5, 4, 1.4, 0.7, "Target");
+            VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Dynamic, VisioSide.Right, VisioSide.Left);
+            connector.Label = "Supercalifragilisticexpialidocious";
+
+            connector
+                .PlaceLabel(0.5, width: 0.2, height: 0.1)
+                .ResizeLabelToText(new OfficeFontInfo("Calibri", 12), maximumWidth: 0.8);
+
+            Assert.NotNull(connector.LabelPlacement);
+            Assert.True(connector.LabelPlacement!.Width <= 0.8);
+            Assert.True(connector.LabelPlacement.Height > 0.7);
+        }
+
+        [Fact]
         public void ConnectorSelectionCanResizeLabelsToTextUsingConnectorTextStyle() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage page = document.AddPage("SelectionLabels");

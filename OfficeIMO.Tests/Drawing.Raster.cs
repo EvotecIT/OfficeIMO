@@ -137,7 +137,7 @@ namespace OfficeIMO.Tests {
             OfficeRasterCanvas canvas = new OfficeRasterCanvas(new OfficeRasterImage(120, 40, OfficeColor.Transparent));
 
             IReadOnlyList<OfficeTextLine> lines = OfficeTextLayoutEngine.WrapLines(
-                "Alpha Beta\nGamma",
+                "Alpha\tBeta\nGamma",
                 12D,
                 canvas.MeasureText("Alpha Beta", 12D) - 1D,
                 canvas.MeasureText);

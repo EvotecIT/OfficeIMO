@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Visio {
@@ -121,15 +120,6 @@ namespace OfficeIMO.Visio {
         }
 
 
-        private static string[] SplitLines(string? text) {
-            if (string.IsNullOrEmpty(text)) {
-                return new[] { string.Empty };
-            }
-
-            return text!.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
-        }
-
-
         private static void ValidateTextResizeArguments(double horizontalPadding, double verticalPadding, double minimumWidth, double minimumHeight) {
             if (horizontalPadding < 0) {
                 throw new ArgumentOutOfRangeException(nameof(horizontalPadding), "Padding cannot be negative.");
@@ -169,15 +159,15 @@ namespace OfficeIMO.Visio {
                 maximumContentWidthPixels = contentWidth * style.Dpi;
             }
 
-            string[] lines = WrapLines(SplitLines(text), measurer, style, maximumContentWidthPixels);
-            double maxWidthPixels = 0;
-            foreach (string line in lines) {
-                maxWidthPixels = Math.Max(maxWidthPixels, measurer.MeasureWidth(line, style));
-            }
-
+            IReadOnlyList<OfficeTextLine> lines = OfficeTextLayoutEngine.WrapLines(
+                text,
+                style.FontSizePixels,
+                maximumContentWidthPixels ?? double.PositiveInfinity,
+                (value, _) => measurer.MeasureWidth(value, style));
+            double maxWidthPixels = OfficeTextLayoutEngine.MeasureMaxLineWidth(lines);
             double lineHeightPixels = measurer.MeasureLineHeight(style);
             double measuredWidth = maxWidthPixels / style.Dpi + fixedWidth;
-            double measuredHeight = (lineHeightPixels * Math.Max(1, lines.Length)) / style.Dpi + fixedHeight;
+            double measuredHeight = (lineHeightPixels * Math.Max(1, lines.Count)) / style.Dpi + fixedHeight;
             double width = Math.Max(minimumWidth, measuredWidth);
             if (maximumWidth.HasValue) {
                 width = Math.Min(Math.Max(minimumWidth, maximumWidth.Value), width);
@@ -210,38 +200,5 @@ namespace OfficeIMO.Visio {
                 style);
         }
 
-        private static string[] WrapLines(string[] sourceLines, OfficeTextMeasurer measurer, OfficeTextMeasurementStyle style, double? maximumContentWidthPixels) {
-            if (!maximumContentWidthPixels.HasValue) {
-                return sourceLines;
-            }
-
-            List<string> wrapped = new();
-            foreach (string sourceLine in sourceLines) {
-                WrapLine(sourceLine, measurer, style, maximumContentWidthPixels.Value, wrapped);
-            }
-
-            return wrapped.Count == 0 ? new[] { string.Empty } : wrapped.ToArray();
-        }
-
-        private static void WrapLine(string sourceLine, OfficeTextMeasurer measurer, OfficeTextMeasurementStyle style, double maximumContentWidthPixels, IList<string> destination) {
-            string[] words = sourceLine.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
-            if (words.Length == 0) {
-                destination.Add(string.Empty);
-                return;
-            }
-
-            string current = string.Empty;
-            foreach (string word in words) {
-                string candidate = current.Length == 0 ? word : current + " " + word;
-                if (current.Length > 0 && measurer.MeasureWidth(candidate, style) > maximumContentWidthPixels) {
-                    destination.Add(current);
-                    current = word;
-                } else {
-                    current = candidate;
-                }
-            }
-
-            destination.Add(current);
-        }
     }
 }
