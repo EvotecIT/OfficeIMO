@@ -161,11 +161,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             ushort numberFormatId = BiffRecordReader.ReadUInt16(payload, 10);
             ushort nameLength = BiffRecordReader.ReadUInt16(payload, 12);
             string? name = null;
-            if (nameLength != 0xFFFF) {
-                if (nameLength == 0) {
-                    throw new InvalidDataException("The SXDI custom name length is zero.");
-                }
-
+            if (nameLength != 0xFFFF && nameLength != 0) {
                 int offset = 14;
                 name = BiffStringReader.ReadUnicodeStringNoCch(payload, ref offset, nameLength);
             }

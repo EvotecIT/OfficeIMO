@@ -179,9 +179,18 @@ namespace OfficeIMO.Excel.LegacyXls {
             PivotTableDataItemAggregationKinds = CountByCode(workbook.PivotTableRecords
                 .Where(record => !string.IsNullOrWhiteSpace(record.AggregationFunctionName))
                 .Select(record => record.AggregationFunctionName!));
+            PivotTableDataItemFieldIndexes = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.DataItemFieldIndex.HasValue)
+                .Select(record => $"FieldIndex:{record.DataItemFieldIndex!.Value}"));
             PivotTableDataItemDisplayCalculations = CountByCode(workbook.PivotTableRecords
                 .Where(record => !string.IsNullOrWhiteSpace(record.DisplayCalculationName))
                 .Select(record => record.DisplayCalculationName!));
+            PivotTableDataItemDisplayCalculationFieldIndexes = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.DisplayCalculationFieldIndex.HasValue)
+                .Select(record => $"FieldIndex:{record.DisplayCalculationFieldIndex!.Value}"));
+            PivotTableDataItemDisplayCalculationItemIndexes = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.DisplayCalculationItemIndex.HasValue)
+                .Select(record => $"ItemIndex:{record.DisplayCalculationItemIndex!.Value}"));
             PivotTableDataItemNumberFormats = CountByCode(workbook.PivotTableRecords
                 .Where(record => record.NumberFormatId.HasValue)
                 .Select(record => $"NumberFormatId:{record.NumberFormatId!.Value}"));
@@ -674,8 +683,17 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets decoded SXDI PivotTable data item records grouped by aggregation function name.</summary>
         public IReadOnlyDictionary<string, int> PivotTableDataItemAggregationKinds { get; }
 
+        /// <summary>Gets decoded SXDI PivotTable data item records grouped by pivot field index.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableDataItemFieldIndexes { get; }
+
         /// <summary>Gets decoded SXDI PivotTable data item records grouped by display calculation name.</summary>
         public IReadOnlyDictionary<string, int> PivotTableDataItemDisplayCalculations { get; }
+
+        /// <summary>Gets decoded SXDI PivotTable data item records grouped by display-calculation field index.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableDataItemDisplayCalculationFieldIndexes { get; }
+
+        /// <summary>Gets decoded SXDI PivotTable data item records grouped by display-calculation item index.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableDataItemDisplayCalculationItemIndexes { get; }
 
         /// <summary>Gets decoded SXDI PivotTable data item records grouped by number format identifier.</summary>
         public IReadOnlyDictionary<string, int> PivotTableDataItemNumberFormats { get; }
@@ -1028,7 +1046,10 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Pivot Table Records By Name", PivotTableRecordsByName);
             AppendDictionary(builder, "Pivot Table Data Item Aggregations", PivotTableDataItemAggregations);
             AppendDictionary(builder, "Pivot Table Data Item Aggregation Kinds", PivotTableDataItemAggregationKinds);
+            AppendDictionary(builder, "Pivot Table Data Item Field Indexes", PivotTableDataItemFieldIndexes);
             AppendDictionary(builder, "Pivot Table Data Item Display Calculations", PivotTableDataItemDisplayCalculations);
+            AppendDictionary(builder, "Pivot Table Data Item Display Calculation Field Indexes", PivotTableDataItemDisplayCalculationFieldIndexes);
+            AppendDictionary(builder, "Pivot Table Data Item Display Calculation Item Indexes", PivotTableDataItemDisplayCalculationItemIndexes);
             AppendDictionary(builder, "Pivot Table Data Item Number Formats", PivotTableDataItemNumberFormats);
             AppendDictionary(builder, "Pivot Table Data Item Names", PivotTableDataItemNames);
             AppendDictionary(builder, "Pivot Table Grouping Kinds", PivotTableGroupingKinds);

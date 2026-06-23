@@ -337,7 +337,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.PivotTableRecordsByName["PivotChartBits"]);
             Assert.Equal(1, report.PivotTableDataItemAggregations["AggregationFunction:0"]);
             Assert.Equal(1, report.PivotTableDataItemAggregationKinds["Sum"]);
+            Assert.Equal(1, report.PivotTableDataItemFieldIndexes["FieldIndex:2"]);
             Assert.Equal(1, report.PivotTableDataItemDisplayCalculations["PercentOfGrandTotal"]);
+            Assert.Equal(1, report.PivotTableDataItemDisplayCalculationFieldIndexes["FieldIndex:-1"]);
+            Assert.Equal(1, report.PivotTableDataItemDisplayCalculationItemIndexes["ItemIndex:-1"]);
             Assert.Equal(1, report.PivotTableDataItemNumberFormats["NumberFormatId:14"]);
             Assert.Equal(1, report.PivotTableDataItemNames["Sales"]);
             Assert.Equal(1, report.PivotTableGroupingKinds["Months"]);
@@ -370,6 +373,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal((short)7, dataItem.DisplayCalculation);
             Assert.Equal(LegacyXlsPivotDisplayCalculation.PercentOfGrandTotal, dataItem.DisplayCalculationKind);
             Assert.Equal("PercentOfGrandTotal", dataItem.DisplayCalculationName);
+            Assert.Equal((short)-1, dataItem.DisplayCalculationFieldIndex);
+            Assert.Equal((short)-1, dataItem.DisplayCalculationItemIndex);
             Assert.Equal((ushort)14, dataItem.NumberFormatId);
             Assert.Equal("Sales", dataItem.Name);
 
@@ -398,7 +403,10 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Pivot Table Records By Kind", markdown);
             Assert.Contains("Pivot Table Data Item Aggregations", markdown);
             Assert.Contains("Pivot Table Data Item Aggregation Kinds", markdown);
+            Assert.Contains("Pivot Table Data Item Field Indexes", markdown);
             Assert.Contains("PercentOfGrandTotal", markdown);
+            Assert.Contains("Pivot Table Data Item Display Calculation Field Indexes", markdown);
+            Assert.Contains("Pivot Table Data Item Display Calculation Item Indexes", markdown);
             Assert.Contains("Pivot Table Data Item Number Formats", markdown);
             Assert.Contains("Pivot Table Data Item Names", markdown);
             Assert.Contains("Pivot Table Grouping Kinds", markdown);
