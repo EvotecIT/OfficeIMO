@@ -99,6 +99,31 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         StyleExtension,
 
         /// <summary>
+        /// Extended table style records were present but not projected.
+        /// </summary>
+        TableStyle,
+
+        /// <summary>
+        /// Extended theme records were present but not projected.
+        /// </summary>
+        Theme,
+
+        /// <summary>
+        /// Extended workbook metadata records were present but not projected.
+        /// </summary>
+        WorkbookMetadata,
+
+        /// <summary>
+        /// Future feature extension records were present but not projected.
+        /// </summary>
+        FeatureExtension,
+
+        /// <summary>
+        /// Phonetic guide records were present but not projected.
+        /// </summary>
+        PhoneticGuide,
+
+        /// <summary>
         /// An unsupported worksheet-like sheet type was discovered.
         /// </summary>
         UnsupportedSheet

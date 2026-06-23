@@ -1738,12 +1738,12 @@ namespace OfficeIMO.Tests {
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Code == "XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED" && feature.SheetName == "Conditional" && feature.RecordType == 0x01b1);
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Code == "XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED" && feature.SheetName == "Conditional" && feature.RecordType == 0x087a);
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Code == "XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED" && feature.SheetName == "Conditional" && feature.RecordType == 0x087b);
-            Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Code == "XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED" && feature.SheetName == "Conditional" && feature.RecordType == 0x088d);
+            Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Code == "XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED" && feature.SheetName == "Conditional" && feature.RecordType == 0x088c);
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.DetailCode == "ConditionalFormatting:CondFmt");
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.DetailCode == "ConditionalFormatting:Cf12");
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.DetailCode == "ConditionalFormatting:Dxf");
             Assert.Contains(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED" && d.SheetName == "Conditional" && d.RecordType == 0x01b0);
-            Assert.Contains(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED" && d.SheetName == "Conditional" && d.RecordType == 0x088d);
+            Assert.Contains(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED" && d.SheetName == "Conditional" && d.RecordType == 0x088c);
             Assert.Contains(legacy.Diagnostics, d => d.DetailCode == "ConditionalFormatting:Dxf");
 
             using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
@@ -1801,7 +1801,7 @@ namespace OfficeIMO.Tests {
             Assert.Null(format.FillPattern);
             Assert.Null(format.FillForegroundColor);
             Assert.Equal("FFFFFF00", format.FillBackgroundColor);
-            Assert.Equal(0x088d, format.RecordType);
+            Assert.Equal(0x088c, format.RecordType);
             Assert.Contains(result.Workbook.UnsupportedFeatures, feature => feature.DetailCode == "ConditionalFormatting:Dxf");
         }
 

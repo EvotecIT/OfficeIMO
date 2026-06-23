@@ -31,7 +31,7 @@ Workbook metadata records: 17
 Worksheet metadata records: 39
 Unsupported sheet metadata records: 8
 Unsupported features: 1210
-Preserved feature records: 1204
+Preserved feature records: 1206
 Errors: 0
 Warnings: 0
 
@@ -43,8 +43,8 @@ Warnings: 0
 | XLS-BIFF-FEATURE-CHART-UNSUPPORTED | 1134 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 42 |
 | XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 1 |
+| XLS-BIFF-FEATURE-PHONETIC-GUIDE-UNSUPPORTED | 2 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 27 |
-| XLS-BIFF-RECORD-UNSUPPORTED | 2 |
 
 ## Worksheets By Visibility
 
@@ -90,8 +90,8 @@ Warnings: 0
 | XLS-BIFF-FEATURE-CHART-UNSUPPORTED | 1134 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 42 |
 | XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 1 |
+| XLS-BIFF-FEATURE-PHONETIC-GUIDE-UNSUPPORTED | 2 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 27 |
-| XLS-BIFF-RECORD-UNSUPPORTED | 2 |
 
 ## Unsupported Features By Kind
 
@@ -101,8 +101,8 @@ Warnings: 0
 | ChartSheet | 4 |
 | DrawingObject | 42 |
 | ExternalReference | 1 |
+| PhoneticGuide | 2 |
 | PivotTable | 27 |
-| UnsupportedRecord | 2 |
 
 ## Unsupported Feature Record Types
 
@@ -149,10 +149,10 @@ Warnings: 0
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x00EC | 23 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x01B6 | 4 |
 | ExternalReference\|XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|0x01AE | 1 |
+| PhoneticGuide\|XLS-BIFF-FEATURE-PHONETIC-GUIDE-UNSUPPORTED\|0x00ED | 2 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00C1 | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00D7 | 25 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00FF | 1 |
-| UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x00ED | 2 |
 
 ## Unsupported Feature Details
 
@@ -199,10 +199,10 @@ Warnings: 0
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:Obj | 14 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:TxO | 4 |
 | ExternalReference\|XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|ExternalReference:ExternalWorkbook | 1 |
+| PhoneticGuide\|XLS-BIFF-FEATURE-PHONETIC-GUIDE-UNSUPPORTED\|PhoneticGuide:PhoneticInfo | 2 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:Sxdi | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxRng | 25 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxVdEx | 1 |
-| UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:Record0x00ED | 2 |
 
 ## Unsupported Feature Locations
 
@@ -227,14 +227,14 @@ Warnings: 0
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|ZPFCUM_CHART | 3 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|ZRAINCUM_CHART | 3 |
 | XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|(workbook) | 1 |
+| XLS-BIFF-FEATURE-PHONETIC-GUIDE-UNSUPPORTED\|graphs1 | 1 |
+| XLS-BIFF-FEATURE-PHONETIC-GUIDE-UNSUPPORTED\|graphs2 | 1 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|(workbook) | 2 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|LB_MAQU_PF | 3 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|LB_MAQU_RAIN | 3 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|RangeTable | 1 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|ZPFCUM | 9 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|ZRAINCUM | 9 |
-| XLS-BIFF-RECORD-UNSUPPORTED\|graphs1 | 1 |
-| XLS-BIFF-RECORD-UNSUPPORTED\|graphs2 | 1 |
 
 ## Unsupported Sheets By Kind
 
@@ -1123,6 +1123,7 @@ Warnings: 0
 | Chart | 1134 |
 | DrawingObject | 42 |
 | ExternalReference | 1 |
+| PhoneticGuide | 2 |
 | PivotTable | 27 |
 
 ## Preserved Feature Record Details
@@ -1169,6 +1170,7 @@ Warnings: 0
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:Obj | 14 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:TxO | 4 |
 | ExternalReference\|XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|ExternalReference:ExternalWorkbook | 1 |
+| PhoneticGuide\|XLS-BIFF-FEATURE-PHONETIC-GUIDE-UNSUPPORTED\|PhoneticGuide:PhoneticInfo | 2 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:Sxdi | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxRng | 25 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxVdEx | 1 |

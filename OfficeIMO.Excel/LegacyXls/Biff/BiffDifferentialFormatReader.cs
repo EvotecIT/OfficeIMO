@@ -6,7 +6,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         private const int DxfFlagsSize = 2;
         private const int XfPropsHeaderSize = 4;
         private const int XfPropHeaderSize = 4;
-        private const ushort DxfRecordType = 0x088D;
+        private const ushort DxfRecordType = (ushort)BiffRecordType.Dxf;
 
         internal static bool TryRead(
             BiffRecord record,

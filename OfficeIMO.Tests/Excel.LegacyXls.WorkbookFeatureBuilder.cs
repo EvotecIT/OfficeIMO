@@ -929,7 +929,7 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
                 long formattingBoundSheetPosition = stream.Position;
                 WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "ConditionalDxf"));
-                WriteRecord(stream, 0x088d, BuildDifferentialFormatBackgroundColorPayload());
+                WriteRecord(stream, 0x088c, BuildDifferentialFormatBackgroundColorPayload());
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 int sheetOffset = checked((int)stream.Position);
@@ -992,7 +992,7 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x01b1, Array.Empty<byte>());
                 WriteRecord(stream, 0x087a, Array.Empty<byte>());
                 WriteRecord(stream, 0x087b, Array.Empty<byte>());
-                WriteRecord(stream, 0x088d, Array.Empty<byte>());
+                WriteRecord(stream, 0x088c, Array.Empty<byte>());
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 byte[] bytes = stream.ToArray();
@@ -1005,7 +1005,7 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
                 long formattingBoundSheetPosition = stream.Position;
                 WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "Differential"));
-                WriteRecord(stream, 0x088d, BuildDifferentialFormatBackgroundColorPayload());
+                WriteRecord(stream, 0x088c, BuildDifferentialFormatBackgroundColorPayload());
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 int sheetOffset = checked((int)stream.Position);
@@ -1020,7 +1020,7 @@ namespace OfficeIMO.Tests {
 
             private static byte[] BuildDifferentialFormatBackgroundColorPayload() {
                 return new byte[] {
-                    0x8d, 0x08, 0x00, 0x00, 0x00, 0x00,
+                    0x8c, 0x08, 0x00, 0x00, 0x00, 0x00,
                     0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                     0x03, 0x00,
                     0x00, 0x00, 0x01, 0x00,

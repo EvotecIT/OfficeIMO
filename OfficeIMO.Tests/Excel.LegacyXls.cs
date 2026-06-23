@@ -342,6 +342,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_Load_ClassifiesKnownPreserveOnlyExtensionRecords() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateKnownPreserveOnlyExtensionWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
+            Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.UnsupportedRecord);
+            Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.WorkbookMetadata && feature.DetailCode == "WorkbookMetadata:RecalcId");
+            Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ExternalReference && feature.DetailCode == "ExternalReference:DConRef");
+            Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.PivotTable && feature.DetailCode == "PivotTable:Sxvs");
+            Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.FeatureExtension && feature.DetailCode == "FeatureExtension:Feat");
+            Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ConditionalFormatting && feature.DetailCode == "ConditionalFormatting:Dxf");
+            Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.TableStyle && feature.DetailCode == "TableStyle:TableStyles");
+            Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.Theme && feature.DetailCode == "Theme:Theme");
+            Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.DrawingObject && feature.DetailCode == "Drawing:ShapePropsStream");
+            Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.Chart && feature.DetailCode == "Chart:CrtLayout12");
+            Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.PhoneticGuide && feature.DetailCode == "PhoneticGuide:PhoneticInfo");
+            Assert.Equal(legacy.UnsupportedFeatures.Count, legacy.PreservedFeatureRecords.Count);
+
+            LegacyXlsImportReport report = legacy.CreateImportReport();
+            Assert.Equal(1, report.UnsupportedFeaturesByDetail["ConditionalFormatting|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED|ConditionalFormatting:Dxf"]);
+            Assert.Equal(1, report.UnsupportedFeaturesByDetail["TableStyle|XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED|TableStyle:TableStyles"]);
+            Assert.Equal(1, report.UnsupportedFeaturesByDetail["WorkbookMetadata|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED|WorkbookMetadata:Compat12"]);
+            Assert.Contains("Preserved Feature Records By Kind", report.ToMarkdown(), StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void LegacyXls_Load_PreservesUnsupportedFeatureMetadataWhenDiagnosticsAreDisabled() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateUnsupportedFeatureWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
@@ -1052,6 +1082,46 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x00ec, Array.Empty<byte>());
                 WriteRecord(stream, 0x00b0, Array.Empty<byte>());
                 WriteRecord(stream, 0x009e, Array.Empty<byte>());
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)boundSheetPosition + 4), 4);
+                return bytes;
+            }
+
+            internal static byte[] CreateKnownPreserveOnlyExtensionWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long boundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "Extensions"));
+                WriteRecord(stream, 0x0051, new byte[12]);
+                WriteRecord(stream, 0x00e3, new byte[8]);
+                WriteRecord(stream, 0x01c0, new byte[4]);
+                WriteRecord(stream, 0x01c1, new byte[4]);
+                WriteRecord(stream, 0x0810, new byte[12]);
+                WriteRecord(stream, 0x0867, new byte[16]);
+                WriteRecord(stream, 0x088b, new byte[12]);
+                WriteRecord(stream, 0x088c, new byte[16]);
+                WriteRecord(stream, 0x088d, new byte[8]);
+                WriteRecord(stream, 0x088e, new byte[8]);
+                WriteRecord(stream, 0x088f, new byte[8]);
+                WriteRecord(stream, 0x0896, new byte[16]);
+                WriteRecord(stream, 0x0899, new byte[12]);
+                WriteRecord(stream, 0x089a, new byte[4]);
+                WriteRecord(stream, 0x089b, new byte[12]);
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Extension"));
+                WriteRecord(stream, 0x00ed, new byte[8]);
+                WriteRecord(stream, 0x089c, new byte[12]);
+                WriteRecord(stream, 0x089d, new byte[12]);
+                WriteRecord(stream, 0x089e, new byte[12]);
+                WriteRecord(stream, 0x08a3, new byte[12]);
+                WriteRecord(stream, 0x08a4, new byte[12]);
+                WriteRecord(stream, 0x08a5, new byte[12]);
+                WriteRecord(stream, 0x08a7, new byte[12]);
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 byte[] bytes = stream.ToArray();

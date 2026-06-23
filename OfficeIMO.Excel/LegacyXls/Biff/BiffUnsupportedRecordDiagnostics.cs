@@ -179,6 +179,31 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 code = "XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED";
                 message = "Style extension records are present but extended style property projection is not implemented in this phase.";
                 detailCode = "StyleExtension:" + GetBiffRecordName(type);
+            } else if (IsTableStyleRecord(type)) {
+                kind = LegacyXlsUnsupportedFeatureKind.TableStyle;
+                code = "XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED";
+                message = "Table style records are present but extended table style projection is not implemented in this phase.";
+                detailCode = "TableStyle:" + GetBiffRecordName(type);
+            } else if (IsThemeRecord(type)) {
+                kind = LegacyXlsUnsupportedFeatureKind.Theme;
+                code = "XLS-BIFF-FEATURE-THEME-UNSUPPORTED";
+                message = "Theme records are present but theme projection is not implemented in this phase.";
+                detailCode = "Theme:" + GetBiffRecordName(type);
+            } else if (IsWorkbookMetadataRecord(type)) {
+                kind = LegacyXlsUnsupportedFeatureKind.WorkbookMetadata;
+                code = "XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED";
+                message = "Extended workbook metadata records are present but full projection is not implemented in this phase.";
+                detailCode = "WorkbookMetadata:" + GetBiffRecordName(type);
+            } else if (IsFeatureExtensionRecord(type)) {
+                kind = LegacyXlsUnsupportedFeatureKind.FeatureExtension;
+                code = "XLS-BIFF-FEATURE-EXTENSION-UNSUPPORTED";
+                message = "Future feature extension records are present but feature extension projection is not implemented in this phase.";
+                detailCode = "FeatureExtension:" + GetBiffRecordName(type);
+            } else if (IsPhoneticGuideRecord(type)) {
+                kind = LegacyXlsUnsupportedFeatureKind.PhoneticGuide;
+                code = "XLS-BIFF-FEATURE-PHONETIC-GUIDE-UNSUPPORTED";
+                message = "Phonetic guide records are present but phonetic text projection is not implemented in this phase.";
+                detailCode = "PhoneticGuide:" + GetBiffRecordName(type);
             } else if (IsChartRecord(type)) {
                 kind = LegacyXlsUnsupportedFeatureKind.Chart;
                 code = "XLS-BIFF-FEATURE-CHART-UNSUPPORTED";
@@ -236,6 +261,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case 0x0040: return "Backup";
                 case 0x0042: return "CodePage";
                 case 0x004D: return "Pls";
+                case 0x0051: return "DConRef";
                 case 0x0059: return "Xct";
                 case 0x005A: return "Crn";
                 case 0x005C: return "WriteAccess";
@@ -281,6 +307,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case 0x00DA: return "BookBool";
                 case 0x00E1: return "InterfaceHdr";
                 case 0x00E2: return "InterfaceEnd";
+                case 0x00E3: return "Sxvs";
+                case 0x00ED: return "PhoneticInfo";
                 case 0x00EB: return "MsoDrawingGroup";
                 case 0x00EC: return "MsoDrawing";
                 case 0x00EF: return "SxRule";
@@ -311,8 +339,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case 0x01BC: return "Prot4RevPass";
                 case 0x01BD: return "ObNoMacros";
                 case 0x01BE: return "Dv";
+                case 0x01C0: return "RecalcId";
+                case 0x01C1: return "EntExU2";
                 case 0x080B: return "SxViewEx";
                 case 0x080C: return "Sxth";
+                case 0x0810: return "ContinueFrt";
                 case 0x020B: return "Index";
                 case 0x0293: return "Style";
                 case 0x0892: return "StyleExt";
@@ -328,12 +359,28 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case 0x0858: return "PivotChartBits";
                 case 0x0863: return "BookExt";
                 case 0x0864: return "SxAddl";
+                case 0x0867: return "Feat";
                 case 0x0875: return "DConn";
                 case 0x087A: return "Cf12";
                 case 0x087B: return "CfEx";
                 case 0x087C: return "XFCRC";
                 case 0x087D: return "XfExt";
-                case 0x088D: return "Dxf";
+                case 0x088B: return "Compat12";
+                case 0x088C: return "Dxf";
+                case 0x088D: return "TableStyles";
+                case 0x088E: return "TableStyle";
+                case 0x088F: return "TableStyleElement";
+                case 0x0896: return "GUIDTypeLib";
+                case 0x0899: return "Theme";
+                case 0x089A: return "CompressPictures";
+                case 0x089B: return "HeaderFooter";
+                case 0x089C: return "CrtLayout12";
+                case 0x089D: return "CrtMlFrt";
+                case 0x089E: return "CrtMlFrtContinue";
+                case 0x08A3: return "ShapePropsStream";
+                case 0x08A4: return "TextPropsStream";
+                case 0x08A5: return "RichTextStream";
+                case 0x08A7: return "Units";
                 case 0x1001: return "Units";
                 case 0x1002: return "Chart";
                 case 0x1003: return "Series";
@@ -386,6 +433,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
         private static bool IsExternalReferenceRecord(ushort type) {
             return type == (ushort)BiffRecordType.ExternName
+                || type == (ushort)BiffRecordType.DConRef
                 || type == 0x0059 // XCT
                 || type == 0x005A // CRN
                 || type == 0x0800 // WebPub
@@ -419,19 +467,54 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 || type == (ushort)BiffRecordType.StyleExt;
         }
 
+        private static bool IsTableStyleRecord(ushort type) {
+            return type == (ushort)BiffRecordType.TableStyles
+                || type == (ushort)BiffRecordType.TableStyle
+                || type == (ushort)BiffRecordType.TableStyleElement;
+        }
+
+        private static bool IsThemeRecord(ushort type) {
+            return type == (ushort)BiffRecordType.Theme;
+        }
+
+        private static bool IsWorkbookMetadataRecord(ushort type) {
+            return type == (ushort)BiffRecordType.RecalcId
+                || type == (ushort)BiffRecordType.EntExU2
+                || type == (ushort)BiffRecordType.ContinueFrt
+                || type == (ushort)BiffRecordType.Compat12
+                || type == (ushort)BiffRecordType.GuidTypeLib
+                || type == (ushort)BiffRecordType.CompressPictures
+                || type == (ushort)BiffRecordType.HeaderFooter;
+        }
+
+        private static bool IsFeatureExtensionRecord(ushort type) {
+            return type == (ushort)BiffRecordType.Feat;
+        }
+
+        private static bool IsPhoneticGuideRecord(ushort type) {
+            return type == (ushort)BiffRecordType.PhoneticInfo;
+        }
+
         internal static bool IsChartRecord(ushort type) {
             return type >= 0x1000 && type <= 0x1066
                 || type == 0x0850
                 || type == 0x0852
                 || type == 0x0853
-                || type == 0x0856;
+                || type == 0x0856
+                || type == (ushort)BiffRecordType.CrtLayout12
+                || type == (ushort)BiffRecordType.CrtMlFrt
+                || type == (ushort)BiffRecordType.CrtMlFrtContinue
+                || type == (ushort)BiffRecordType.Units12;
         }
 
         internal static bool IsDrawingRecord(ushort type) {
             return type == (ushort)BiffRecordType.Obj
                 || type == (ushort)BiffRecordType.DrawingGroup
                 || type == (ushort)BiffRecordType.Drawing
-                || type == (ushort)BiffRecordType.Txo;
+                || type == (ushort)BiffRecordType.Txo
+                || type == (ushort)BiffRecordType.ShapePropsStream
+                || type == (ushort)BiffRecordType.TextPropsStream
+                || type == (ushort)BiffRecordType.RichTextStream;
         }
 
         internal static bool IsPivotTableRecord(ushort type) {
@@ -459,6 +542,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case 0x00D5: // SXStreamID
                 case 0x00D7: // SXRng
                 case 0x00D8: // SxIsxoper
+                case 0x00E3: // SXVS
                 case 0x00EF: // SxRule
                 case 0x00F0: // SXEx
                 case 0x00F1: // SxFilt
