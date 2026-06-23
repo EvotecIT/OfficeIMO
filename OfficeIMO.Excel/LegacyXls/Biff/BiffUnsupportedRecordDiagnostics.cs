@@ -331,6 +331,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case 0x0875: return "DConn";
                 case 0x087A: return "Cf12";
                 case 0x087B: return "CfEx";
+                case 0x087C: return "XFCRC";
                 case 0x087D: return "XfExt";
                 case 0x088D: return "Dxf";
                 case 0x1001: return "Units";
@@ -413,7 +414,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         }
 
         private static bool IsStyleExtensionRecord(ushort type) {
-            return type == (ushort)BiffRecordType.XfExt
+            return type == (ushort)BiffRecordType.XfCrc
+                || type == (ushort)BiffRecordType.XfExt
                 || type == (ushort)BiffRecordType.StyleExt;
         }
 

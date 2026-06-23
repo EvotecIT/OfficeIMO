@@ -671,7 +671,11 @@ namespace OfficeIMO.Tests {
             Assert.Equal("yyyy-mm-dd", numberFormat.FormatCode);
             Assert.Equal(11, legacy.CellFormats.Count);
             Assert.Equal(2, legacy.CellStyles.Count);
-            Assert.Equal(2, legacy.CellStyleExtensions.Count);
+            Assert.Equal(3, legacy.CellStyleExtensions.Count);
+            LegacyXlsCellStyleExtension xfCrcExtension = Assert.Single(legacy.CellStyleExtensions, extension => extension.RecordType == 0x087c);
+            Assert.Equal("XFCRC", xfCrcExtension.RecordName);
+            Assert.Equal((ushort)11, xfCrcExtension.XfRecordCount.GetValueOrDefault());
+            Assert.Equal(0x12345678U, xfCrcExtension.Checksum.GetValueOrDefault());
             LegacyXlsCellStyleExtension xfExtension = Assert.Single(legacy.CellStyleExtensions, extension => extension.RecordType == 0x087d);
             Assert.Equal("XfExt", xfExtension.RecordName);
             Assert.True(xfExtension.HasFormatIndex);
@@ -757,9 +761,10 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.Equal(2, reportResult.ImportReport.CellStyleRecordCount);
-            Assert.Equal(2, reportResult.ImportReport.CellStyleExtensionRecordCount);
+            Assert.Equal(3, reportResult.ImportReport.CellStyleExtensionRecordCount);
             Assert.Equal(1, reportResult.ImportReport.CellStylesByKind["BuiltIn"]);
             Assert.Equal(1, reportResult.ImportReport.CellStylesByKind["Custom"]);
+            Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionsByRecordName["XFCRC"]);
             Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionsByRecordName["XfExt"]);
             Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionsByRecordName["StyleExt"]);
             Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionsByFormatIndex["FormatIndex:4"]);
@@ -767,18 +772,24 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionsByStyleCategory["Custom"]);
             Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionsByStyleFlags["BuiltIn:False;Hidden:False;Custom:False"]);
             Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionsByStyleName["OfficeIMO Accent"]);
+            Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionsByXfRecordCount["XFs:11"]);
+            Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionsByChecksum["Checksum:0x12345678"]);
             Assert.DoesNotContain(reportResult.Workbook.UnsupportedFeatures, feature => feature.RecordType == 0x0293);
+            Assert.Contains(reportResult.Workbook.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.StyleExtension && feature.RecordType == 0x087c);
             Assert.Contains(reportResult.Workbook.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.StyleExtension && feature.RecordType == 0x087d);
             Assert.Contains(reportResult.Workbook.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.StyleExtension && feature.RecordType == 0x0892);
+            Assert.Contains(reportResult.Workbook.PreservedFeatureRecords, record => record.Kind == LegacyXlsUnsupportedFeatureKind.StyleExtension && record.RecordType == 0x087c);
             Assert.Contains(reportResult.Workbook.PreservedFeatureRecords, record => record.Kind == LegacyXlsUnsupportedFeatureKind.StyleExtension && record.RecordType == 0x087d);
             Assert.Contains(reportResult.Workbook.PreservedFeatureRecords, record => record.Kind == LegacyXlsUnsupportedFeatureKind.StyleExtension && record.RecordType == 0x0892);
+            Assert.Contains(reportResult.Workbook.Diagnostics, diagnostic => diagnostic.Code == "XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED" && diagnostic.DetailCode == "StyleExtension:XFCRC");
             Assert.Contains(reportResult.Workbook.Diagnostics, diagnostic => diagnostic.Code == "XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED" && diagnostic.DetailCode == "StyleExtension:XfExt");
             Assert.Contains(reportResult.Workbook.Diagnostics, diagnostic => diagnostic.Code == "XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED" && diagnostic.DetailCode == "StyleExtension:StyleExt");
             Assert.Contains("Cell style records: 2", reportResult.ImportReport.ToMarkdown());
-            Assert.Contains("Cell style extension records: 2", reportResult.ImportReport.ToMarkdown());
+            Assert.Contains("Cell style extension records: 3", reportResult.ImportReport.ToMarkdown());
             Assert.Contains("Cell Style Extensions By Record Name", reportResult.ImportReport.ToMarkdown());
             Assert.Contains("Cell Style Extensions By Format Index", reportResult.ImportReport.ToMarkdown());
             Assert.Contains("Cell Style Extensions By Style Category", reportResult.ImportReport.ToMarkdown());
+            Assert.Contains("Cell Style Extensions By XF Record Count", reportResult.ImportReport.ToMarkdown());
 
             using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound), new LegacyXlsImportOptions {
                 ReportUnsupportedRecords = false
@@ -1180,6 +1191,7 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x00e0, BuildXfPayload(0, fontIndex: 6));
                 WriteRecord(stream, 0x0293, BuildStylePayload(0, builtInStyleId: 0));
                 WriteRecord(stream, 0x0293, BuildStylePayload(4, name: "OfficeIMO Accent"));
+                WriteRecord(stream, 0x087c, BuildXfCrcPayload(xfRecordCount: 11, checksum: 0x12345678U));
                 WriteRecord(stream, 0x087d, BuildXfExtPayload(formatIndex: 4, extensionCount: 0));
                 WriteRecord(stream, 0x0892, BuildStyleExtPayload("OfficeIMO Accent"));
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
@@ -1469,6 +1481,18 @@ namespace OfficeIMO.Tests {
                 WriteUInt16(stream, checked((ushort)styleName.Length));
                 stream.WriteByte(0);
                 stream.Write(nameBytes, 0, nameBytes.Length);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildXfCrcPayload(ushort xfRecordCount, uint checksum) {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, 0x087c);
+                WriteUInt16(stream, 0);
+                WriteUInt32(stream, 0);
+                WriteUInt32(stream, 0);
+                WriteUInt16(stream, 0);
+                WriteUInt16(stream, xfRecordCount);
+                WriteUInt32(stream, checksum);
                 return stream.ToArray();
             }
 

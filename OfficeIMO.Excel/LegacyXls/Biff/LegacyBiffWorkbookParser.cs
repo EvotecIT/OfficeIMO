@@ -77,7 +77,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 } else if (BiffWorkbookMetadataReader.TryRead(record, workbook, workbook.MutableDiagnostics)) {
                     continue;
                 } else if (BiffStyleReader.TryRead(record, workbook, workbook.MutableDiagnostics)) {
-                    if (record.Type == (ushort)BiffRecordType.XfExt
+                    if (record.Type == (ushort)BiffRecordType.XfCrc
+                        || record.Type == (ushort)BiffRecordType.XfExt
                         || record.Type == (ushort)BiffRecordType.StyleExt) {
                         AddUnsupportedRecordFeature(workbook, record, sheetName: null);
                         if (options.ReportUnsupportedRecords) {

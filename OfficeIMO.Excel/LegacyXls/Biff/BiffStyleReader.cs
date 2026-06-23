@@ -12,6 +12,13 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
                     return true;
 
+                case BiffRecordType.XfCrc:
+                    if (TryReadXfCrc(record, diagnostics, out LegacyXlsCellStyleExtension? xfCrcExtension)) {
+                        workbook.AddCellStyleExtension(xfCrcExtension!);
+                    }
+
+                    return true;
+
                 case BiffRecordType.XfExt:
                     if (TryReadXfExt(record, diagnostics, out LegacyXlsCellStyleExtension? extension)) {
                         workbook.AddCellStyleExtension(extension!);
@@ -102,6 +109,48 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 style = null;
                 return false;
             }
+        }
+
+        private static bool TryReadXfCrc(BiffRecord record, List<LegacyXlsImportDiagnostic> diagnostics, out LegacyXlsCellStyleExtension? extension) {
+            if (record.Payload.Length < 20) {
+                diagnostics.Add(new LegacyXlsImportDiagnostic(
+                    LegacyXlsDiagnosticSeverity.Warning,
+                    "XLS-BIFF-XFCRC-SHORT",
+                    "The XFCRC record is shorter than expected.",
+                    recordOffset: record.Offset,
+                    recordType: record.Type));
+                extension = null;
+                return false;
+            }
+
+            ushort headerRecordType = BiffRecordReader.ReadUInt16(record.Payload, 0);
+            if (headerRecordType != (ushort)BiffRecordType.XfCrc) {
+                diagnostics.Add(new LegacyXlsImportDiagnostic(
+                    LegacyXlsDiagnosticSeverity.Warning,
+                    "XLS-BIFF-XFCRC-HEADER-UNEXPECTED",
+                    $"The XFCRC future record header declares record type 0x{headerRecordType:X4}.",
+                    recordOffset: record.Offset,
+                    recordType: record.Type));
+            }
+
+            ushort reserved = BiffRecordReader.ReadUInt16(record.Payload, 12);
+            if (reserved != 0) {
+                diagnostics.Add(new LegacyXlsImportDiagnostic(
+                    LegacyXlsDiagnosticSeverity.Warning,
+                    "XLS-BIFF-XFCRC-RESERVED-VALUE-UNEXPECTED",
+                    "The XFCRC record contains a non-zero reserved field.",
+                    recordOffset: record.Offset,
+                    recordType: record.Type));
+            }
+
+            extension = new LegacyXlsCellStyleExtension(
+                "XFCRC",
+                BiffRecordReader.ReadUInt16(record.Payload, 14),
+                BiffRecordReader.ReadUInt32(record.Payload, 16),
+                record.Offset,
+                record.Type,
+                record.Payload.Length);
+            return true;
         }
 
         private static bool TryReadXfExt(BiffRecord record, List<LegacyXlsImportDiagnostic> diagnostics, out LegacyXlsCellStyleExtension? extension) {

@@ -22,6 +22,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
                 styleCategoryName: null,
                 builtInData: null,
                 styleName: null,
+                xfRecordCount: null,
+                checksum: null,
                 recordOffset: recordOffset,
                 recordType: recordType,
                 payloadLength: payloadLength) {
@@ -52,6 +54,35 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
                 styleCategoryName,
                 builtInData,
                 styleName,
+                xfRecordCount: null,
+                checksum: null,
+                recordOffset,
+                recordType,
+                payloadLength) {
+        }
+
+        internal LegacyXlsCellStyleExtension(
+            string recordName,
+            ushort xfRecordCount,
+            uint checksum,
+            int recordOffset,
+            ushort recordType,
+            int payloadLength)
+            : this(
+                recordName,
+                formatIndex: 0,
+                hasFormatIndex: false,
+                extensionCount: 0,
+                hasExtensionCount: false,
+                isBuiltInStyle: null,
+                isHidden: null,
+                isCustom: null,
+                styleCategory: null,
+                styleCategoryName: null,
+                builtInData: null,
+                styleName: null,
+                xfRecordCount,
+                checksum,
                 recordOffset,
                 recordType,
                 payloadLength) {
@@ -70,6 +101,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             string? styleCategoryName,
             ushort? builtInData,
             string? styleName,
+            ushort? xfRecordCount,
+            uint? checksum,
             int recordOffset,
             ushort recordType,
             int payloadLength) {
@@ -93,6 +126,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             StyleCategoryName = styleCategoryName;
             BuiltInData = builtInData;
             StyleName = styleName;
+            XfRecordCount = xfRecordCount;
+            Checksum = checksum;
             RecordOffset = recordOffset;
             RecordType = recordType;
             PayloadLength = payloadLength;
@@ -133,6 +168,12 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets the extended style name when declared by the record.</summary>
         public string? StyleName { get; }
+
+        /// <summary>Gets the XFCRC-declared number of XF records when declared by the record.</summary>
+        public ushort? XfRecordCount { get; }
+
+        /// <summary>Gets the XFCRC checksum when declared by the record.</summary>
+        public uint? Checksum { get; }
 
         /// <summary>Gets the byte offset of the source BIFF record.</summary>
         public int RecordOffset { get; }

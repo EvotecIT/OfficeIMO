@@ -467,6 +467,12 @@ namespace OfficeIMO.Excel.LegacyXls {
             CellStyleExtensionsByStyleName = CountByCode(workbook.CellStyleExtensions
                 .Where(extension => !string.IsNullOrWhiteSpace(extension.StyleName))
                 .Select(extension => extension.StyleName!));
+            CellStyleExtensionsByXfRecordCount = CountByCode(workbook.CellStyleExtensions
+                .Where(extension => extension.XfRecordCount.HasValue)
+                .Select(extension => $"XFs:{extension.XfRecordCount!.Value}"));
+            CellStyleExtensionsByChecksum = CountByCode(workbook.CellStyleExtensions
+                .Where(extension => extension.Checksum.HasValue)
+                .Select(extension => $"Checksum:0x{extension.Checksum!.Value:X8}"));
             WorkbookMetadataRecordsByKind = CountWorkbookMetadataRecordsByKind(workbook.MetadataRecords);
             WorksheetMetadataRecordsByKind = CountWorksheetMetadataRecordsByKind(workbook.Worksheets.SelectMany(sheet => sheet.MetadataRecords));
             UnsupportedSheetMetadataRecordsByKind = CountUnsupportedSheetMetadataRecordsByKind(workbook.UnsupportedSheets.SelectMany(sheet => sheet.MetadataRecords));
@@ -1124,6 +1130,12 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets StyleExt records grouped by style name.</summary>
         public IReadOnlyDictionary<string, int> CellStyleExtensionsByStyleName { get; }
 
+        /// <summary>Gets XFCRC records grouped by declared XF record count.</summary>
+        public IReadOnlyDictionary<string, int> CellStyleExtensionsByXfRecordCount { get; }
+
+        /// <summary>Gets XFCRC records grouped by declared checksum.</summary>
+        public IReadOnlyDictionary<string, int> CellStyleExtensionsByChecksum { get; }
+
         /// <summary>Gets parsed workbook metadata records grouped by metadata kind.</summary>
         public IReadOnlyDictionary<LegacyXlsWorkbookMetadataKind, int> WorkbookMetadataRecordsByKind { get; }
 
@@ -1404,6 +1416,8 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Cell Style Extensions By Style Category", CellStyleExtensionsByStyleCategory);
             AppendDictionary(builder, "Cell Style Extensions By Style Flags", CellStyleExtensionsByStyleFlags);
             AppendDictionary(builder, "Cell Style Extensions By Style Name", CellStyleExtensionsByStyleName);
+            AppendDictionary(builder, "Cell Style Extensions By XF Record Count", CellStyleExtensionsByXfRecordCount);
+            AppendDictionary(builder, "Cell Style Extensions By Checksum", CellStyleExtensionsByChecksum);
             AppendDictionary(builder, "Workbook Metadata Records By Kind", WorkbookMetadataRecordsByKind.ToDictionary(
                 entry => entry.Key.ToString(),
                 entry => entry.Value,
