@@ -96,6 +96,12 @@ namespace OfficeIMO.Excel.LegacyXls {
             ChartRecordsByAxesUsedCount = CountByCode(workbook.ChartRecords
                 .Where(record => record.AxesUsedCount.HasValue)
                 .Select(record => $"AxesUsed:{record.AxesUsedCount!.Value}"));
+            ChartSeriesCategoryDataTypes = CountByCode(workbook.ChartRecords
+                .Where(record => !string.IsNullOrWhiteSpace(record.SeriesCategoryDataTypeName))
+                .Select(record => record.SeriesCategoryDataTypeName!));
+            ChartSeriesValueCounts = CountByCode(workbook.ChartRecords
+                .Where(record => record.SeriesCategoryCount.HasValue && record.SeriesValueCount.HasValue && record.SeriesBubbleSizeCount.HasValue)
+                .Select(record => $"Categories:{record.SeriesCategoryCount!.Value};Values:{record.SeriesValueCount!.Value};BubbleSizes:{record.SeriesBubbleSizeCount!.Value}"));
             ChartRecordsByLocation = CountByCode(workbook.ChartRecords.Select(GetChartRecordLocationKey));
             DrawingRecordsByKind = CountDrawingRecordsByKind(workbook.DrawingRecords);
             DrawingRecordsByName = CountByCode(workbook.DrawingRecords.Select(record => record.RecordName));
@@ -303,6 +309,12 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets AxesUsed records grouped by decoded axis group count.</summary>
         public IReadOnlyDictionary<string, int> ChartRecordsByAxesUsedCount { get; }
 
+        /// <summary>Gets Series records grouped by decoded category data type.</summary>
+        public IReadOnlyDictionary<string, int> ChartSeriesCategoryDataTypes { get; }
+
+        /// <summary>Gets Series records grouped by category, value, and bubble-size counts.</summary>
+        public IReadOnlyDictionary<string, int> ChartSeriesValueCounts { get; }
+
         /// <summary>Gets preserve-only chart BIFF records grouped by workbook or sheet location.</summary>
         public IReadOnlyDictionary<string, int> ChartRecordsByLocation { get; }
 
@@ -449,6 +461,8 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Chart Records By Rectangle", ChartRecordsByRectangle);
             AppendDictionary(builder, "Chart Records By Axis Type", ChartRecordsByAxisType);
             AppendDictionary(builder, "Chart Records By Axes Used Count", ChartRecordsByAxesUsedCount);
+            AppendDictionary(builder, "Chart Series Category Data Types", ChartSeriesCategoryDataTypes);
+            AppendDictionary(builder, "Chart Series Value Counts", ChartSeriesValueCounts);
             AppendDictionary(builder, "Chart Records By Location", ChartRecordsByLocation);
             AppendDictionary(builder, "Drawing Records By Kind", DrawingRecordsByKind.ToDictionary(
                 entry => entry.Key.ToString(),

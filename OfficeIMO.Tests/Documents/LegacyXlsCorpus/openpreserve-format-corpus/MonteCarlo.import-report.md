@@ -362,6 +362,19 @@ Warnings: 0
 | --- | --- |
 | AxesUsed:0 | 24 |
 
+## Chart Series Category Data Types
+
+| Key | Count |
+| --- | --- |
+| Numeric | 24 |
+
+## Chart Series Value Counts
+
+| Key | Count |
+| --- | --- |
+| Categories:256;Values:256;BubbleSizes:0 | 4 |
+| Categories:92;Values:92;BubbleSizes:0 | 20 |
+
 ## Chart Records By Location
 
 | Key | Count |

@@ -20,7 +20,14 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             int? chartHeight = null,
             ushort? axisType = null,
             string? axisTypeName = null,
-            ushort? axesUsedCount = null) {
+            ushort? axesUsedCount = null,
+            ushort? seriesCategoryDataType = null,
+            string? seriesCategoryDataTypeName = null,
+            ushort? seriesValueDataType = null,
+            ushort? seriesCategoryCount = null,
+            ushort? seriesValueCount = null,
+            ushort? seriesBubbleSizeDataType = null,
+            ushort? seriesBubbleSizeCount = null) {
             if (payloadLength < 0) {
                 throw new ArgumentOutOfRangeException(nameof(payloadLength));
             }
@@ -39,6 +46,13 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             AxisType = axisType;
             AxisTypeName = string.IsNullOrWhiteSpace(axisTypeName) ? null : axisTypeName;
             AxesUsedCount = axesUsedCount;
+            SeriesCategoryDataType = seriesCategoryDataType;
+            SeriesCategoryDataTypeName = string.IsNullOrWhiteSpace(seriesCategoryDataTypeName) ? null : seriesCategoryDataTypeName;
+            SeriesValueDataType = seriesValueDataType;
+            SeriesCategoryCount = seriesCategoryCount;
+            SeriesValueCount = seriesValueCount;
+            SeriesBubbleSizeDataType = seriesBubbleSizeDataType;
+            SeriesBubbleSizeCount = seriesBubbleSizeCount;
         }
 
         /// <summary>Gets the shallow chart record category.</summary>
@@ -82,5 +96,26 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets the decoded axis group count from AxesUsed records, when present.</summary>
         public ushort? AxesUsedCount { get; }
+
+        /// <summary>Gets the raw category data type from Series records, when present.</summary>
+        public ushort? SeriesCategoryDataType { get; }
+
+        /// <summary>Gets the decoded category data type name from Series records, when present.</summary>
+        public string? SeriesCategoryDataTypeName { get; }
+
+        /// <summary>Gets the raw value data type from Series records, when present.</summary>
+        public ushort? SeriesValueDataType { get; }
+
+        /// <summary>Gets the category or horizontal value count from Series records, when present.</summary>
+        public ushort? SeriesCategoryCount { get; }
+
+        /// <summary>Gets the value or vertical value count from Series records, when present.</summary>
+        public ushort? SeriesValueCount { get; }
+
+        /// <summary>Gets the raw bubble-size data type from Series records, when present.</summary>
+        public ushort? SeriesBubbleSizeDataType { get; }
+
+        /// <summary>Gets the bubble-size value count from Series records, when present.</summary>
+        public ushort? SeriesBubbleSizeCount { get; }
     }
 }
