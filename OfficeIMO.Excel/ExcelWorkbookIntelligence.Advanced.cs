@@ -292,7 +292,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (options.Calculation) {
-                CleanupCalculationArtifacts(save: false);
+                CleanupCalculationArtifacts(save: false, ExcelCalculationCleanupPolicy.RequestFullCalculationOnOpen);
                 actions.Add(new ExcelWorkbookRepairAction("Calculation", "Removed stale calculation chains and requested recalculation on open."));
             }
             if (options.WorkbookArtifacts) {

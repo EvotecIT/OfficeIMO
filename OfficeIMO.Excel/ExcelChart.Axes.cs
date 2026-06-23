@@ -425,6 +425,43 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Sets category axis scale parameters for line, bar, column, and area charts.
+        /// </summary>
+        /// <param name="minimum">Optional minimum category-axis value.</param>
+        /// <param name="maximum">Optional maximum category-axis value.</param>
+        /// <param name="majorUnit">Optional major unit spacing.</param>
+        /// <param name="minorUnit">Optional minor unit spacing.</param>
+        /// <param name="reverseOrder">Optional category order direction.</param>
+        /// <param name="axisGroup">Primary or secondary category axis.</param>
+        public ExcelChart SetCategoryAxisScale(double? minimum = null, double? maximum = null,
+            double? majorUnit = null, double? minorUnit = null, bool? reverseOrder = null,
+            ExcelChartAxisGroup axisGroup = ExcelChartAxisGroup.Primary) {
+            ValidateAxisScale(minimum, maximum, majorUnit, minorUnit, logScale: null, logBase: null);
+
+            C.Chart chart = GetChart();
+            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
+            if (plotArea == null) {
+                return this;
+            }
+
+            OpenXmlCompositeElement? axis = ResolveDateAxis(plotArea, axisGroup);
+            if (axis == null) {
+                C.CategoryAxis? categoryAxis = ResolveCategoryAxis(plotArea, axisGroup);
+                if (categoryAxis == null) {
+                    return this;
+                }
+
+                axis = minimum != null || maximum != null || majorUnit != null || minorUnit != null
+                    ? PromoteCategoryAxisToDateAxis(plotArea, categoryAxis)
+                    : categoryAxis;
+            }
+
+            ApplyAxisScale(axis, minimum, maximum, majorUnit, minorUnit, reverseOrder, logScale: null, logBase: null);
+            Save();
+            return this;
+        }
+
+        /// <summary>
         /// Sets scatter chart X-axis scale (value axis on the bottom).
         /// </summary>
         public ExcelChart SetScatterXAxisScale(double? minimum = null, double? maximum = null,
@@ -799,6 +836,63 @@ namespace OfficeIMO.Excel {
             return axisGroup == ExcelChartAxisGroup.Primary
                 ? axes.FirstOrDefault()
                 : axes.Skip(1).FirstOrDefault() ?? axes.LastOrDefault();
+        }
+
+        private static C.DateAxis? ResolveDateAxis(C.PlotArea plotArea, ExcelChartAxisGroup axisGroup) {
+            var axes = plotArea.Elements<C.DateAxis>().ToList();
+            if (axes.Count == 0) {
+                return null;
+            }
+
+            bool isBar = HasHorizontalBarChart(plotArea);
+            C.AxisPositionValues primaryPosition = isBar ? C.AxisPositionValues.Left : C.AxisPositionValues.Bottom;
+            C.AxisPositionValues secondaryPosition = isBar ? C.AxisPositionValues.Right : C.AxisPositionValues.Top;
+            C.AxisPositionValues desired = axisGroup == ExcelChartAxisGroup.Primary ? primaryPosition : secondaryPosition;
+
+            C.DateAxis? axis = axes.FirstOrDefault(ax => ax.AxisPosition?.Val?.Value == desired);
+            if (axis != null) {
+                return axis;
+            }
+
+            return axisGroup == ExcelChartAxisGroup.Primary
+                ? axes.FirstOrDefault()
+                : axes.Skip(1).FirstOrDefault() ?? axes.LastOrDefault();
+        }
+
+        private static C.DateAxis PromoteCategoryAxisToDateAxis(C.PlotArea plotArea, C.CategoryAxis categoryAxis) {
+            var dateAxis = new C.DateAxis();
+            AppendClone<C.AxisId>(dateAxis, categoryAxis);
+            AppendClone<C.Scaling>(dateAxis, categoryAxis);
+            AppendClone<C.Delete>(dateAxis, categoryAxis);
+            AppendClone<C.AxisPosition>(dateAxis, categoryAxis);
+            AppendClone<C.MajorGridlines>(dateAxis, categoryAxis);
+            AppendClone<C.MinorGridlines>(dateAxis, categoryAxis);
+            AppendClone<C.Title>(dateAxis, categoryAxis);
+            AppendClone<C.NumberingFormat>(dateAxis, categoryAxis);
+            AppendClone<C.MajorTickMark>(dateAxis, categoryAxis);
+            AppendClone<C.MinorTickMark>(dateAxis, categoryAxis);
+            AppendClone<C.TickLabelPosition>(dateAxis, categoryAxis);
+            AppendClone<C.ChartShapeProperties>(dateAxis, categoryAxis);
+            AppendClone<C.TextProperties>(dateAxis, categoryAxis);
+            AppendClone<C.CrossingAxis>(dateAxis, categoryAxis);
+            AppendClone<C.Crosses>(dateAxis, categoryAxis);
+            AppendClone<C.CrossesAt>(dateAxis, categoryAxis);
+            AppendClone<C.LabelOffset>(dateAxis, categoryAxis);
+
+            if (categoryAxis.Parent != null) {
+                plotArea.ReplaceChild(dateAxis, categoryAxis);
+            } else {
+                plotArea.Append(dateAxis);
+            }
+
+            return dateAxis;
+        }
+
+        private static void AppendClone<T>(OpenXmlCompositeElement destination, OpenXmlCompositeElement source) where T : OpenXmlElement {
+            T? child = source.GetFirstChild<T>();
+            if (child != null) {
+                destination.Append(child.CloneNode(true));
+            }
         }
 
         private static C.ValueAxis? ResolveValueAxis(C.PlotArea plotArea, ExcelChartAxisGroup axisGroup) {

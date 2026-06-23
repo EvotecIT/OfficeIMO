@@ -4,7 +4,7 @@ using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
-        internal void CleanupCalculationArtifacts(bool save = true) {
+        internal void CleanupCalculationArtifacts(bool save = true, ExcelCalculationCleanupPolicy policy = ExcelCalculationCleanupPolicy.PreserveExistingCalculationProperties) {
             var workbookPart = WorkbookPartRoot;
 
             foreach (var calculationChainPart in workbookPart.GetPartsOfType<CalculationChainPart>().ToList()) {
@@ -25,21 +25,19 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            if (calculationProperties == null) {
-                calculationProperties = new CalculationProperties();
-                var extensionList = workbook.Elements<ExtensionList>().FirstOrDefault();
-                if (extensionList != null) {
-                    workbook.InsertBefore(calculationProperties, extensionList);
-                } else if (workbook.Elements<PivotCaches>().FirstOrDefault() is { } pivotCaches) {
-                    workbook.InsertBefore(calculationProperties, pivotCaches);
-                } else {
-                    workbook.Append(calculationProperties);
+            if (policy == ExcelCalculationCleanupPolicy.RequestFullCalculationOnOpen) {
+                if (calculationProperties == null) {
+                    calculationProperties = new CalculationProperties();
+                    InsertCalculationPropertiesInSchemaOrder(workbook, calculationProperties);
                 }
-            }
 
-            calculationProperties.SetAttribute(new OpenXmlAttribute("calcId", string.Empty, "191029"));
-            calculationProperties.SetAttribute(new OpenXmlAttribute("fullCalcOnLoad", string.Empty, "1"));
-            calculationProperties.SetAttribute(new OpenXmlAttribute("forceFullCalc", string.Empty, "1"));
+                calculationProperties.SetAttribute(new OpenXmlAttribute("calcId", string.Empty, "191029"));
+                calculationProperties.SetAttribute(new OpenXmlAttribute("fullCalcOnLoad", string.Empty, "1"));
+                calculationProperties.SetAttribute(new OpenXmlAttribute("forceFullCalc", string.Empty, "1"));
+            } else if (policy == ExcelCalculationCleanupPolicy.ClearAutomaticFullCalculationOnOpen && calculationProperties != null) {
+                calculationProperties.RemoveAttribute("fullCalcOnLoad", string.Empty);
+                calculationProperties.RemoveAttribute("forceFullCalc", string.Empty);
+            }
 
             if (save) {
                 workbook.Save();
