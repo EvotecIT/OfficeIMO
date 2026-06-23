@@ -99,6 +99,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             CompoundVbaModuleCount = workbook.CompoundFeatureRecords.Sum(record => record.VbaModuleCount);
             CalculationSettingRecordCount = workbook.CalculationSettings.Records.Count;
             CellStyleRecordCount = workbook.CellStyles.Count;
+            CellStyleExtensionRecordCount = workbook.CellStyleExtensions.Count;
             WorkbookMetadataRecordCount = workbook.MetadataRecords.Count;
             WorksheetMetadataRecordCount = workbook.Worksheets.Sum(sheet => sheet.MetadataRecords.Count);
             UnsupportedSheetMetadataRecordCount = workbook.UnsupportedSheets.Sum(sheet => sheet.MetadataRecords.Count);
@@ -450,6 +451,8 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .Select(record => $"Modules:{record.VbaModuleCount}"));
             CalculationSettingsByKind = CountCalculationSettingsByKind(workbook.CalculationSettings.Records);
             CellStylesByKind = CountByCode(workbook.CellStyles.Select(style => style.IsBuiltIn ? "BuiltIn" : "Custom"));
+            CellStyleExtensionsByFormatIndex = CountByCode(workbook.CellStyleExtensions.Select(extension => $"FormatIndex:{extension.FormatIndex}"));
+            CellStyleExtensionsByExtensionCount = CountByCode(workbook.CellStyleExtensions.Select(extension => $"Extensions:{extension.ExtensionCount}"));
             WorkbookMetadataRecordsByKind = CountWorkbookMetadataRecordsByKind(workbook.MetadataRecords);
             WorksheetMetadataRecordsByKind = CountWorksheetMetadataRecordsByKind(workbook.Worksheets.SelectMany(sheet => sheet.MetadataRecords));
             UnsupportedSheetMetadataRecordsByKind = CountUnsupportedSheetMetadataRecordsByKind(workbook.UnsupportedSheets.SelectMany(sheet => sheet.MetadataRecords));
@@ -638,6 +641,9 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets the number of workbook cell style records parsed from Style records.</summary>
         public int CellStyleRecordCount { get; }
+
+        /// <summary>Gets the number of preserve-only style extension records parsed from XFExt records.</summary>
+        public int CellStyleExtensionRecordCount { get; }
 
         /// <summary>Gets the number of workbook metadata records parsed from BIFF records.</summary>
         public int WorkbookMetadataRecordCount { get; }
@@ -1086,6 +1092,12 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets parsed workbook cell styles grouped by built-in/custom kind.</summary>
         public IReadOnlyDictionary<string, int> CellStylesByKind { get; }
 
+        /// <summary>Gets preserve-only style extension records grouped by extended XF index.</summary>
+        public IReadOnlyDictionary<string, int> CellStyleExtensionsByFormatIndex { get; }
+
+        /// <summary>Gets preserve-only style extension records grouped by declared extension-property count.</summary>
+        public IReadOnlyDictionary<string, int> CellStyleExtensionsByExtensionCount { get; }
+
         /// <summary>Gets parsed workbook metadata records grouped by metadata kind.</summary>
         public IReadOnlyDictionary<LegacyXlsWorkbookMetadataKind, int> WorkbookMetadataRecordsByKind { get; }
 
@@ -1140,6 +1152,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             builder.AppendLine($"Compound VBA modules: {CompoundVbaModuleCount}");
             builder.AppendLine($"Calculation setting records: {CalculationSettingRecordCount}");
             builder.AppendLine($"Cell style records: {CellStyleRecordCount}");
+            builder.AppendLine($"Cell style extension records: {CellStyleExtensionRecordCount}");
             builder.AppendLine($"Workbook metadata records: {WorkbookMetadataRecordCount}");
             builder.AppendLine($"Worksheet metadata records: {WorksheetMetadataRecordCount}");
             builder.AppendLine($"Unsupported sheet metadata records: {UnsupportedSheetMetadataRecordCount}");
@@ -1359,6 +1372,8 @@ namespace OfficeIMO.Excel.LegacyXls {
                 entry => entry.Value,
                 StringComparer.OrdinalIgnoreCase));
             AppendDictionary(builder, "Cell Styles By Kind", CellStylesByKind);
+            AppendDictionary(builder, "Cell Style Extensions By Format Index", CellStyleExtensionsByFormatIndex);
+            AppendDictionary(builder, "Cell Style Extensions By Extension Count", CellStyleExtensionsByExtensionCount);
             AppendDictionary(builder, "Workbook Metadata Records By Kind", WorkbookMetadataRecordsByKind.ToDictionary(
                 entry => entry.Key.ToString(),
                 entry => entry.Value,

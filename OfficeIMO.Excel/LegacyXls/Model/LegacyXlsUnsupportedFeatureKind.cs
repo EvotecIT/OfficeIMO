@@ -94,6 +94,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         Chart,
 
         /// <summary>
+        /// Extended style formatting records were present but not projected.
+        /// </summary>
+        StyleExtension,
+
+        /// <summary>
         /// An unsupported worksheet-like sheet type was discovered.
         /// </summary>
         UnsupportedSheet

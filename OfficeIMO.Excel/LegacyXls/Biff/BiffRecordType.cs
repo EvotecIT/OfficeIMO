@@ -106,6 +106,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         WsBool = 0x0081,
         Xct = 0x0059,
         Crn = 0x005A,
+        XfExt = 0x087D,
         Xf = 0x00E0
     }
 }

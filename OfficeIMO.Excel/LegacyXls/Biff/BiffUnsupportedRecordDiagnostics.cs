@@ -174,6 +174,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 code = "XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED";
                 message = "Conditional formatting records are present but conditional formatting import is not implemented in this phase.";
                 detailCode = "ConditionalFormatting:" + GetBiffRecordName(type);
+            } else if (IsStyleExtensionRecord(type)) {
+                kind = LegacyXlsUnsupportedFeatureKind.StyleExtension;
+                code = "XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED";
+                message = "Style extension records are present but extended style property projection is not implemented in this phase.";
+                detailCode = "StyleExtension:" + GetBiffRecordName(type);
             } else if (IsChartRecord(type)) {
                 kind = LegacyXlsUnsupportedFeatureKind.Chart;
                 code = "XLS-BIFF-FEATURE-CHART-UNSUPPORTED";
@@ -322,6 +327,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case 0x0875: return "DConn";
                 case 0x087A: return "Cf12";
                 case 0x087B: return "CfEx";
+                case 0x087D: return "XfExt";
                 case 0x088D: return "Dxf";
                 case 0x1001: return "Units";
                 case 0x1002: return "Chart";
@@ -400,6 +406,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 || type == (ushort)BiffRecordType.Cf12
                 || type == (ushort)BiffRecordType.CfEx
                 || type == (ushort)BiffRecordType.Dxf;
+        }
+
+        private static bool IsStyleExtensionRecord(ushort type) {
+            return type == (ushort)BiffRecordType.XfExt;
         }
 
         internal static bool IsChartRecord(ushort type) {

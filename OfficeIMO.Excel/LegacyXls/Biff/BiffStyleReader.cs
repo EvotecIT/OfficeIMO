@@ -4,15 +4,24 @@ using OfficeIMO.Excel.LegacyXls.Model;
 namespace OfficeIMO.Excel.LegacyXls.Biff {
     internal static class BiffStyleReader {
         internal static bool TryRead(BiffRecord record, LegacyXlsWorkbook workbook, List<LegacyXlsImportDiagnostic> diagnostics) {
-            if (record.Type != (ushort)BiffRecordType.Style) {
-                return false;
-            }
+            switch ((BiffRecordType)record.Type) {
+                case BiffRecordType.Style:
+                    if (TryReadStyle(record, diagnostics, out LegacyXlsCellStyle? style)) {
+                        workbook.AddCellStyle(style!);
+                    }
 
-            if (TryReadStyle(record, diagnostics, out LegacyXlsCellStyle? style)) {
-                workbook.AddCellStyle(style!);
-            }
+                    return true;
 
-            return true;
+                case BiffRecordType.XfExt:
+                    if (TryReadStyleExtension(record, diagnostics, out LegacyXlsCellStyleExtension? extension)) {
+                        workbook.AddCellStyleExtension(extension!);
+                    }
+
+                    return true;
+
+                default:
+                    return false;
+            }
         }
 
         private static bool TryReadStyle(BiffRecord record, List<LegacyXlsImportDiagnostic> diagnostics, out LegacyXlsCellStyle? style) {
@@ -86,6 +95,48 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 style = null;
                 return false;
             }
+        }
+
+        private static bool TryReadStyleExtension(BiffRecord record, List<LegacyXlsImportDiagnostic> diagnostics, out LegacyXlsCellStyleExtension? extension) {
+            if (record.Payload.Length < 20) {
+                diagnostics.Add(new LegacyXlsImportDiagnostic(
+                    LegacyXlsDiagnosticSeverity.Warning,
+                    "XLS-BIFF-XFEXT-SHORT",
+                    "The XFExt record is shorter than expected.",
+                    recordOffset: record.Offset,
+                    recordType: record.Type));
+                extension = null;
+                return false;
+            }
+
+            ushort headerRecordType = BiffRecordReader.ReadUInt16(record.Payload, 0);
+            if (headerRecordType != (ushort)BiffRecordType.XfExt) {
+                diagnostics.Add(new LegacyXlsImportDiagnostic(
+                    LegacyXlsDiagnosticSeverity.Warning,
+                    "XLS-BIFF-XFEXT-HEADER-UNEXPECTED",
+                    $"The XFExt future record header declares record type 0x{headerRecordType:X4}.",
+                    recordOffset: record.Offset,
+                    recordType: record.Type));
+            }
+
+            ushort reserved1 = BiffRecordReader.ReadUInt16(record.Payload, 12);
+            ushort reserved2 = BiffRecordReader.ReadUInt16(record.Payload, 16);
+            if (reserved1 != 0 || reserved2 != 0) {
+                diagnostics.Add(new LegacyXlsImportDiagnostic(
+                    LegacyXlsDiagnosticSeverity.Warning,
+                    "XLS-BIFF-XFEXT-RESERVED-VALUE-UNEXPECTED",
+                    "The XFExt record contains non-zero reserved fields.",
+                    recordOffset: record.Offset,
+                    recordType: record.Type));
+            }
+
+            extension = new LegacyXlsCellStyleExtension(
+                BiffRecordReader.ReadUInt16(record.Payload, 14),
+                BiffRecordReader.ReadUInt16(record.Payload, 18),
+                record.Offset,
+                record.Type,
+                record.Payload.Length);
+            return true;
         }
     }
 }

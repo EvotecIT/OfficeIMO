@@ -14,6 +14,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         private readonly List<string> _paletteColors = new();
         private readonly List<LegacyXlsCellFormat> _cellFormats = new();
         private readonly List<LegacyXlsCellStyle> _cellStyles = new();
+        private readonly List<LegacyXlsCellStyleExtension> _cellStyleExtensions = new();
         private readonly List<LegacyXlsDefinedName> _definedNames = new();
         private readonly List<LegacyXlsExternalReference> _externalReferences = new();
         private readonly List<LegacyXlsPivotTableRecord> _pivotTableRecords = new();
@@ -61,6 +62,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// Gets workbook cell styles parsed from Style records.
         /// </summary>
         public IReadOnlyList<LegacyXlsCellStyle> CellStyles => _cellStyles;
+
+        /// <summary>
+        /// Gets preserve-only cell style extension records parsed from XFExt records.
+        /// </summary>
+        public IReadOnlyList<LegacyXlsCellStyleExtension> CellStyleExtensions => _cellStyleExtensions;
 
         /// <summary>
         /// Gets defined names parsed from Lbl records.
@@ -293,6 +299,10 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         internal void AddCellStyle(LegacyXlsCellStyle style) {
             _cellStyles.Add(style);
+        }
+
+        internal void AddCellStyleExtension(LegacyXlsCellStyleExtension extension) {
+            _cellStyleExtensions.Add(extension);
         }
 
         internal LegacyXlsCellFormat? GetCellFormat(ushort styleIndex) {

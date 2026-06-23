@@ -26,6 +26,7 @@ Compound feature entries: 0
 Compound VBA modules: 0
 Calculation setting records: 43
 Cell style records: 6
+Cell style extension records: 0
 Workbook metadata records: 17
 Worksheet metadata records: 39
 Unsupported sheet metadata records: 8
