@@ -16,6 +16,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         private readonly List<LegacyXlsCellStyle> _cellStyles = new();
         private readonly List<LegacyXlsDefinedName> _definedNames = new();
         private readonly List<LegacyXlsExternalReference> _externalReferences = new();
+        private readonly List<LegacyXlsPivotTableRecord> _pivotTableRecords = new();
         private readonly List<LegacyXlsUnsupportedSheet> _unsupportedSheets = new();
         private readonly List<LegacyXlsUnsupportedFeature> _unsupportedFeatures = new();
         private readonly List<LegacyXlsPreservedFeatureRecord> _preservedFeatureRecords = new();
@@ -66,6 +67,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// Gets supporting links discovered from SupBook records.
         /// </summary>
         public IReadOnlyList<LegacyXlsExternalReference> ExternalReferences => _externalReferences;
+
+        /// <summary>
+        /// Gets preserve-only PivotTable BIFF records discovered during import.
+        /// </summary>
+        public IReadOnlyList<LegacyXlsPivotTableRecord> PivotTableRecords => _pivotTableRecords;
 
         /// <summary>
         /// Gets calculation settings parsed from BIFF calculation records.
@@ -240,6 +246,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         internal List<LegacyXlsDefinedName> MutableDefinedNames => _definedNames;
 
         internal List<LegacyXlsExternalReference> MutableExternalReferences => _externalReferences;
+
+        internal List<LegacyXlsPivotTableRecord> MutablePivotTableRecords => _pivotTableRecords;
 
         internal LegacyXlsCalculationSettings MutableCalculationSettings => _calculationSettings;
 

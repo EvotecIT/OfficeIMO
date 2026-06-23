@@ -23,6 +23,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             ExternalReferenceCount = workbook.ExternalReferences.Count;
             ExternalCellCacheCount = workbook.ExternalReferences.Sum(reference => reference.CachedCellCaches.Count);
             ExternalCachedCellCount = workbook.ExternalReferences.Sum(reference => reference.CachedCellCaches.Sum(cache => cache.Cells.Count));
+            PivotTableRecordCount = workbook.PivotTableRecords.Count;
             CalculationSettingRecordCount = workbook.CalculationSettings.Records.Count;
             CellStyleRecordCount = workbook.CellStyles.Count;
             WorkbookMetadataRecordCount = workbook.MetadataRecords.Count;
@@ -46,6 +47,8 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .Select(feature => $"{feature.Kind}|{feature.Code}|{feature.DetailCode}"));
             UnsupportedFeaturesByLocation = CountByCode(workbook.UnsupportedFeatures
                 .Select(GetFeatureLocationKey));
+            PivotTableRecordsByKind = CountPivotTableRecordsByKind(workbook.PivotTableRecords);
+            PivotTableRecordsByName = CountByCode(workbook.PivotTableRecords.Select(record => record.RecordName));
             CalculationSettingsByKind = CountCalculationSettingsByKind(workbook.CalculationSettings.Records);
             CellStylesByKind = CountByCode(workbook.CellStyles.Select(style => style.IsBuiltIn ? "BuiltIn" : "Custom"));
             WorkbookMetadataRecordsByKind = CountWorkbookMetadataRecordsByKind(workbook.MetadataRecords);
@@ -96,6 +99,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets the number of preserved cached external cell values.</summary>
         public int ExternalCachedCellCount { get; }
 
+        /// <summary>Gets the number of preserve-only PivotTable BIFF records discovered during import.</summary>
+        public int PivotTableRecordCount { get; }
+
         /// <summary>Gets the number of calculation setting records parsed from BIFF records.</summary>
         public int CalculationSettingRecordCount { get; }
 
@@ -144,6 +150,12 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets unsupported/preserve-only feature counts grouped by code and workbook or sheet location.</summary>
         public IReadOnlyDictionary<string, int> UnsupportedFeaturesByLocation { get; }
 
+        /// <summary>Gets preserve-only PivotTable BIFF records grouped by decoded metadata kind.</summary>
+        public IReadOnlyDictionary<LegacyXlsPivotTableRecordKind, int> PivotTableRecordsByKind { get; }
+
+        /// <summary>Gets preserve-only PivotTable BIFF records grouped by record name.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableRecordsByName { get; }
+
         /// <summary>Gets parsed calculation setting records grouped by setting kind.</summary>
         public IReadOnlyDictionary<LegacyXlsCalculationSettingKind, int> CalculationSettingsByKind { get; }
 
@@ -191,6 +203,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             builder.AppendLine($"External references: {ExternalReferenceCount}");
             builder.AppendLine($"External cell caches: {ExternalCellCacheCount}");
             builder.AppendLine($"External cached cells: {ExternalCachedCellCount}");
+            builder.AppendLine($"Pivot table records: {PivotTableRecordCount}");
             builder.AppendLine($"Calculation setting records: {CalculationSettingRecordCount}");
             builder.AppendLine($"Cell style records: {CellStyleRecordCount}");
             builder.AppendLine($"Workbook metadata records: {WorkbookMetadataRecordCount}");
@@ -210,6 +223,11 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Unsupported Feature Record Types", UnsupportedFeaturesByRecordType);
             AppendDictionary(builder, "Unsupported Feature Details", UnsupportedFeaturesByDetail);
             AppendDictionary(builder, "Unsupported Feature Locations", UnsupportedFeaturesByLocation);
+            AppendDictionary(builder, "Pivot Table Records By Kind", PivotTableRecordsByKind.ToDictionary(
+                entry => entry.Key.ToString(),
+                entry => entry.Value,
+                StringComparer.OrdinalIgnoreCase));
+            AppendDictionary(builder, "Pivot Table Records By Name", PivotTableRecordsByName);
             AppendDictionary(builder, "Calculation Settings By Kind", CalculationSettingsByKind.ToDictionary(
                 entry => entry.Key.ToString(),
                 entry => entry.Value,
@@ -258,6 +276,13 @@ namespace OfficeIMO.Excel.LegacyXls {
         }
 
         private static IReadOnlyDictionary<LegacyXlsCalculationSettingKind, int> CountCalculationSettingsByKind(IEnumerable<LegacyXlsCalculationSettingRecord> records) {
+            return records
+                .GroupBy(record => record.Kind)
+                .OrderBy(group => group.Key.ToString(), StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(group => group.Key, group => group.Count());
+        }
+
+        private static IReadOnlyDictionary<LegacyXlsPivotTableRecordKind, int> CountPivotTableRecordsByKind(IEnumerable<LegacyXlsPivotTableRecord> records) {
             return records
                 .GroupBy(record => record.Kind)
                 .OrderBy(group => group.Key.ToString(), StringComparer.OrdinalIgnoreCase)

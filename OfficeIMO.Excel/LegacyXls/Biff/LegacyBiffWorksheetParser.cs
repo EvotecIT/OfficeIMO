@@ -13,6 +13,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             IReadOnlyList<string?> definedNames,
             List<LegacyXlsUnsupportedFeature> unsupportedFeatures,
             List<LegacyXlsPreservedFeatureRecord> preservedFeatureRecords,
+            List<LegacyXlsPivotTableRecord> pivotTableRecords,
             LegacyXlsCalculationSettings calculationSettings,
             List<LegacyXlsImportDiagnostic> diagnostics,
             LegacyXlsImportOptions options) {
@@ -84,7 +85,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     return;
                 }
 
-                ParseWorksheetRecord(sheet, sharedStrings, externSheets, externalReferences, sheetNames, definedNames, unsupportedFeatures, preservedFeatureRecords, calculationSettings, diagnostics, options, commentState, conditionalFormattingState, sharedFormulaState, type, offset, payload, ref frozenWindow, ref pendingFormulaString);
+                ParseWorksheetRecord(sheet, sharedStrings, externSheets, externalReferences, sheetNames, definedNames, unsupportedFeatures, preservedFeatureRecords, pivotTableRecords, calculationSettings, diagnostics, options, commentState, conditionalFormattingState, sharedFormulaState, type, offset, payload, ref frozenWindow, ref pendingFormulaString);
                 offset = payloadOffset + length;
             }
 
@@ -103,6 +104,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             IReadOnlyList<string?> definedNames,
             List<LegacyXlsUnsupportedFeature> unsupportedFeatures,
             List<LegacyXlsPreservedFeatureRecord> preservedFeatureRecords,
+            List<LegacyXlsPivotTableRecord> pivotTableRecords,
             LegacyXlsCalculationSettings calculationSettings,
             List<LegacyXlsImportDiagnostic> diagnostics,
             LegacyXlsImportOptions options,
@@ -413,6 +415,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                         break;
                     default:
                         if (type != (ushort)BiffRecordType.Bof) {
+                            if (BiffPivotTableMetadataReader.TryRead(new BiffRecord(type, offset, payload), sheet.Name, pivotTableRecords, diagnostics)) {
+                                AddUnsupportedFeature(unsupportedFeatures, preservedFeatureRecords, diagnostics, options, type, offset, sheet.Name, payload.Length);
+                                break;
+                            }
+
                             AddUnsupportedFeature(unsupportedFeatures, preservedFeatureRecords, diagnostics, options, type, offset, sheet.Name, payload.Length);
                         }
 

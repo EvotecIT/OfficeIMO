@@ -13,6 +13,7 @@ Defined names: 1
 External references: 3
 External cell caches: 2
 External cached cells: 914
+Pivot table records: 16
 Calculation setting records: 61
 Cell style records: 6
 Workbook metadata records: 20
@@ -193,6 +194,22 @@ Warnings: 2
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|maquis | 1 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|wijn | 3 |
 | XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED\|(workbook) | 1 |
+
+## Pivot Table Records By Kind
+
+| Key | Count |
+| --- | --- |
+| DataItem | 1 |
+| ExtendedPivotField | 1 |
+| GroupingRange | 14 |
+
+## Pivot Table Records By Name
+
+| Key | Count |
+| --- | --- |
+| Sxdi | 1 |
+| SxRng | 14 |
+| SxVdEx | 1 |
 
 ## Calculation Settings By Kind
 

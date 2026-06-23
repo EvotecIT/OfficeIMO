@@ -13,6 +13,7 @@ Defined names: 0
 External references: 2
 External cell caches: 6
 External cached cells: 8
+Pivot table records: 27
 Calculation setting records: 43
 Cell style records: 6
 Workbook metadata records: 17
@@ -180,6 +181,22 @@ Warnings: 0
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|RangeTable | 1 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|ZPFCUM | 9 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|ZRAINCUM | 9 |
+
+## Pivot Table Records By Kind
+
+| Key | Count |
+| --- | --- |
+| DataItem | 1 |
+| ExtendedPivotField | 1 |
+| GroupingRange | 25 |
+
+## Pivot Table Records By Name
+
+| Key | Count |
+| --- | --- |
+| Sxdi | 1 |
+| SxRng | 25 |
+| SxVdEx | 1 |
 
 ## Calculation Settings By Kind
 

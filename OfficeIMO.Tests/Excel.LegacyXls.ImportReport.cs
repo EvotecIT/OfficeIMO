@@ -66,6 +66,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal(3, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.DrawingObject]);
             Assert.Equal(1, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.Chart]);
             Assert.Equal(1, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.PivotTable]);
+            Assert.Equal(1, report.PivotTableRecordCount);
+            Assert.Equal(1, report.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.PreserveOnly]);
+            Assert.Equal(1, report.PivotTableRecordsByName["SxView"]);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:MsoDrawingGroup"]);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:Obj"]);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:MsoDrawing"]);
@@ -84,6 +87,62 @@ namespace OfficeIMO.Tests {
             string markdown = report.ToMarkdown();
             Assert.Contains("Preserved feature records: 5", markdown);
             Assert.Contains("Drawing:MsoDrawingGroup", markdown);
+            Assert.Contains("Pivot Table Records By Name", markdown);
+        }
+
+        [Fact]
+        public void LegacyXls_ImportReport_DecodesPivotTableMetadataRecords() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase5PivotTableMetadataWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+            LegacyXlsImportReport report = workbook.CreateImportReport();
+
+            Assert.DoesNotContain(workbook.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
+            Assert.Equal(3, workbook.PivotTableRecords.Count);
+            Assert.Equal(3, report.PivotTableRecordCount);
+            Assert.Equal(1, report.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.DataItem]);
+            Assert.Equal(1, report.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.GroupingRange]);
+            Assert.Equal(1, report.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.ExtendedPivotField]);
+            Assert.Equal(1, report.PivotTableRecordsByName["Sxdi"]);
+            Assert.Equal(1, report.PivotTableRecordsByName["SxRng"]);
+            Assert.Equal(1, report.PivotTableRecordsByName["SxVdEx"]);
+
+            LegacyXlsPivotTableRecord dataItem = Assert.Single(workbook.PivotTableRecords, record => record.Kind == LegacyXlsPivotTableRecordKind.DataItem);
+            Assert.Null(dataItem.SheetName);
+            Assert.Equal("Sxdi", dataItem.RecordName);
+            Assert.Equal((short)2, dataItem.DataItemFieldIndex);
+            Assert.Equal((short)0, dataItem.AggregationFunction);
+            Assert.Equal((short)7, dataItem.DisplayCalculation);
+            Assert.Equal((ushort)14, dataItem.NumberFormatId);
+            Assert.Equal("Sales", dataItem.Name);
+
+            LegacyXlsPivotTableRecord grouping = Assert.Single(workbook.PivotTableRecords, record => record.Kind == LegacyXlsPivotTableRecordKind.GroupingRange);
+            Assert.Equal("PivotMeta", grouping.SheetName);
+            Assert.Equal("SxRng", grouping.RecordName);
+            Assert.True(grouping.AutoStart);
+            Assert.True(grouping.AutoEnd);
+            Assert.Equal(LegacyXlsPivotGroupingKind.Months, grouping.GroupingKind);
+
+            LegacyXlsPivotTableRecord extended = Assert.Single(workbook.PivotTableRecords, record => record.Kind == LegacyXlsPivotTableRecordKind.ExtendedPivotField);
+            Assert.Equal("PivotMeta", extended.SheetName);
+            Assert.Equal("SxVdEx", extended.RecordName);
+            Assert.True(extended.ShowAllItems);
+            Assert.True(extended.CanDragToRow);
+            Assert.True(extended.CanDragToColumn);
+            Assert.True(extended.CanDragToPage);
+            Assert.True(extended.CanDragToHide);
+            Assert.False(extended.PreventDragToData);
+            Assert.True(extended.ServerBased);
+            Assert.Equal(3, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.PivotTable]);
+            Assert.Equal(3, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.PivotTable]);
+
+            string markdown = report.ToMarkdown();
+            Assert.Contains("Pivot table records: 3", markdown);
+            Assert.Contains("Pivot Table Records By Kind", markdown);
+            Assert.Contains("SxVdEx", markdown);
         }
 
         [Fact]

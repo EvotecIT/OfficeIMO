@@ -11,6 +11,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             IReadOnlyList<LegacyXlsUnsupportedSheet> unsupportedSheets,
             List<LegacyXlsUnsupportedFeature> unsupportedFeatures,
             List<LegacyXlsPreservedFeatureRecord> preservedFeatureRecords,
+            List<LegacyXlsPivotTableRecord> pivotTableRecords,
             List<LegacyXlsImportDiagnostic> diagnostics,
             LegacyXlsImportOptions options) {
             foreach (LegacyXlsUnsupportedSheet sheet in unsupportedSheets) {
@@ -18,7 +19,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     continue;
                 }
 
-                ScanSheet(workbookStream, sheet, unsupportedFeatures, preservedFeatureRecords, diagnostics, options);
+                ScanSheet(workbookStream, sheet, unsupportedFeatures, preservedFeatureRecords, pivotTableRecords, diagnostics, options);
             }
         }
 
@@ -32,6 +33,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             LegacyXlsUnsupportedSheet sheet,
             List<LegacyXlsUnsupportedFeature> unsupportedFeatures,
             List<LegacyXlsPreservedFeatureRecord> preservedFeatureRecords,
+            List<LegacyXlsPivotTableRecord> pivotTableRecords,
             List<LegacyXlsImportDiagnostic> diagnostics,
             LegacyXlsImportOptions options) {
             if (sheet.StreamOffset >= workbookStream.Length) {
@@ -84,6 +86,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
                 if (type != (ushort)BiffRecordType.Bof
                     && BiffUnsupportedRecordDiagnostics.IsPreserveOnlyFeatureRecord(type)) {
+                    byte[] payload = new byte[length];
+                    Buffer.BlockCopy(workbookStream, payloadOffset, payload, 0, length);
+                    BiffPivotTableMetadataReader.TryRead(new BiffRecord(type, offset, payload), sheet.Name, pivotTableRecords, diagnostics);
                     LegacyXlsUnsupportedFeature feature = BiffUnsupportedRecordDiagnostics.CreateUnsupportedRecordFeature(type, offset, sheet.Name);
                     unsupportedFeatures.Add(feature);
                     if (BiffUnsupportedRecordDiagnostics.TryCreatePreservedFeatureRecord(feature, length, out LegacyXlsPreservedFeatureRecord? preservedRecord)) {

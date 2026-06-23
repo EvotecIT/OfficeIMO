@@ -213,7 +213,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     : "external workbook reference";
         }
 
-        private static string GetBiffRecordName(ushort type) {
+        internal static string GetBiffRecordName(ushort type) {
             switch (type) {
                 case 0x000C: return "CalcCount";
                 case 0x000D: return "CalcMode";
@@ -398,7 +398,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 || type == (ushort)BiffRecordType.Dxf;
         }
 
-        private static bool IsPivotTableRecord(ushort type) {
+        internal static bool IsPivotTableRecord(ushort type) {
             switch (type) {
                 case 0x00B0: // SxView
                 case 0x00B1: // Sxvd

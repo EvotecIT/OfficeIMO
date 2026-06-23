@@ -478,6 +478,26 @@ namespace OfficeIMO.Tests {
                 return bytes;
             }
 
+            internal static byte[] CreatePhase5PivotTableMetadataWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long dataBoundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "PivotMeta"));
+                WriteRecord(stream, 0x00c1, BuildSxdiPayload());
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Pivot data"));
+                WriteRecord(stream, 0x00d7, BuildSxRngPayload());
+                WriteRecord(stream, 0x00ff, BuildSxVdExPayload());
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)dataBoundSheetPosition + 4), 4);
+                return bytes;
+            }
+
             internal static byte[] CreatePhase5DataValidationWorkbookStream() {
                 using var stream = new MemoryStream();
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
@@ -1411,6 +1431,35 @@ namespace OfficeIMO.Tests {
                 WriteCompressedUnicodeStringNoCch(stream, key2);
                 WriteCompressedUnicodeStringNoCch(stream, key3);
                 stream.WriteByte(0);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildSxdiPayload() {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, 2);
+                WriteUInt16(stream, 0);
+                WriteUInt16(stream, 7);
+                WriteUInt16(stream, 0xffff);
+                WriteUInt16(stream, 0xffff);
+                WriteUInt16(stream, 14);
+                WriteUInt16(stream, 5);
+                WriteCompressedUnicodeStringNoCch(stream, "Sales");
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildSxRngPayload() {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, 0x0017);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildSxVdExPayload() {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, 0x009f);
+                WriteUInt16(stream, 10);
+                WriteUInt16(stream, 0);
+                WriteUInt16(stream, 0);
+                WriteUInt16(stream, 14);
                 return stream.ToArray();
             }
 
