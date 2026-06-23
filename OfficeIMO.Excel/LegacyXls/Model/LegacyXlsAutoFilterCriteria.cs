@@ -25,6 +25,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             Top10Value = top10Value;
             Top10IsTop = top10IsTop;
             Top10IsPercent = top10IsPercent;
+            JoinOperator = ResolveJoinOperator(Conditions, MatchAll);
         }
 
         /// <summary>
@@ -74,6 +75,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         public bool MatchAll { get; }
 
         /// <summary>
+        /// Gets the logical join used when this criteria has comparison conditions.
+        /// </summary>
+        public LegacyXlsAutoFilterJoinOperator JoinOperator { get; }
+
+        /// <summary>
         /// Gets the parsed filter conditions.
         /// </summary>
         public IReadOnlyList<LegacyXlsAutoFilterCondition> Conditions { get; }
@@ -102,6 +108,32 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// Gets whether the Top/Bottom criteria value is a percentage rather than an item count.
         /// </summary>
         public bool Top10IsPercent { get; }
+
+        private static LegacyXlsAutoFilterJoinOperator ResolveJoinOperator(IReadOnlyList<LegacyXlsAutoFilterCondition> conditions, bool matchAll) {
+            if (conditions.Count == 0) {
+                return LegacyXlsAutoFilterJoinOperator.None;
+            }
+
+            if (conditions.Count == 1) {
+                return LegacyXlsAutoFilterJoinOperator.Single;
+            }
+
+            return matchAll ? LegacyXlsAutoFilterJoinOperator.And : LegacyXlsAutoFilterJoinOperator.Or;
+        }
+    }
+
+    /// <summary>
+    /// Identifies how multiple AutoFilter comparison conditions are joined.
+    /// </summary>
+    public enum LegacyXlsAutoFilterJoinOperator {
+        /// <summary>The criteria shape does not use comparison conditions.</summary>
+        None,
+        /// <summary>The criteria has one comparison condition.</summary>
+        Single,
+        /// <summary>All comparison conditions must match.</summary>
+        And,
+        /// <summary>Any comparison condition may match.</summary>
+        Or
     }
 
     /// <summary>

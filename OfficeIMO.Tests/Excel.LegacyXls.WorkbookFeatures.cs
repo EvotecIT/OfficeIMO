@@ -704,6 +704,56 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_Load_ImportsPhase4AutoFilterAndCriteria() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase4AutoFilterAndCriteriaWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
+            LegacyXlsWorksheet legacySheet = Assert.Single(legacy.Worksheets);
+            LegacyXlsAutoFilterCriteria criteria = Assert.Single(legacySheet.AutoFilterCriteria);
+            Assert.Equal(0U, criteria.ColumnId);
+            Assert.Equal(LegacyXlsAutoFilterKind.Custom, criteria.Kind);
+            Assert.True(criteria.MatchAll);
+            Assert.Equal(LegacyXlsAutoFilterJoinOperator.And, criteria.JoinOperator);
+            Assert.Equal(2, criteria.Conditions.Count);
+            Assert.Equal(LegacyXlsAutoFilterOperator.GreaterThanOrEqual, criteria.Conditions[0].Operator);
+            Assert.Equal("10", criteria.Conditions[0].Value);
+            Assert.Equal(LegacyXlsAutoFilterOperator.LessThanOrEqual, criteria.Conditions[1].Operator);
+            Assert.Equal("20", criteria.Conditions[1].Value);
+            Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.AutoFilterCriteria);
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.False(result.HasImportErrors);
+            Assert.False(result.HasUnsupportedFeatures);
+            Assert.Equal(1, result.ImportReport.AutoFilterCriteriaCount);
+            Assert.Equal(1, result.ImportReport.AutoFilterCriteriaByJoinOperator["And"]);
+            Assert.Empty(result.Document.ValidateOpenXml());
+
+            using var output = new MemoryStream();
+            result.Document.Save(output);
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
+            WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single();
+            AutoFilter autoFilter = Assert.Single(worksheetPart.Worksheet.Elements<AutoFilter>());
+            Assert.Equal("A1:A5", autoFilter.Reference!.Value);
+            FilterColumn filterColumn = Assert.Single(autoFilter.Elements<FilterColumn>());
+            CustomFilters filters = filterColumn.GetFirstChild<CustomFilters>()!;
+            Assert.True(filters.And!.Value);
+            List<CustomFilter> customFilters = filters.Elements<CustomFilter>().ToList();
+            Assert.Equal(2, customFilters.Count);
+            Assert.Equal(FilterOperatorValues.GreaterThanOrEqual, customFilters[0].Operator!.Value);
+            Assert.Equal("10", customFilters[0].Val!.Value);
+            Assert.Equal(FilterOperatorValues.LessThanOrEqual, customFilters[1].Operator!.Value);
+            Assert.Equal("20", customFilters[1].Val!.Value);
+        }
+
+        [Fact]
         public void LegacyXls_Load_ImportsPhase4AutoFilterTop10Criteria() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase4AutoFilterTop10WorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
