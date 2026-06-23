@@ -80,6 +80,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         Sst = 0x00FC,
         String = 0x0207,
         ShrFmla = 0x04BC,
+        Style = 0x0293,
+        StyleExt = 0x0892,
         SupBook = 0x01AE,
         TopMargin = 0x0028,
         Txo = 0x01B6,

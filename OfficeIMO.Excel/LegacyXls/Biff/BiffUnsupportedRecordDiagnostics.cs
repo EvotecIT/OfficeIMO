@@ -300,7 +300,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case 0x01BD: return "Sxth";
                 case 0x01BE: return "Dv";
                 case 0x020B: return "Index";
-                case 0x0293: return "StyleExt";
+                case 0x0293: return "Style";
+                case 0x0892: return "StyleExt";
                 case 0x0800: return "WebPub";
                 case 0x0801: return "QsiSxTag";
                 case 0x0802: return "DbQueryExt";

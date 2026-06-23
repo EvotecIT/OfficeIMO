@@ -13,6 +13,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         private readonly List<LegacyXlsFont> _fonts = new();
         private readonly List<string> _paletteColors = new();
         private readonly List<LegacyXlsCellFormat> _cellFormats = new();
+        private readonly List<LegacyXlsCellStyle> _cellStyles = new();
         private readonly List<LegacyXlsDefinedName> _definedNames = new();
         private readonly List<LegacyXlsExternalReference> _externalReferences = new();
         private readonly List<LegacyXlsUnsupportedSheet> _unsupportedSheets = new();
@@ -50,6 +51,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// Gets cell formats parsed from XF records.
         /// </summary>
         public IReadOnlyList<LegacyXlsCellFormat> CellFormats => _cellFormats;
+
+        /// <summary>
+        /// Gets workbook cell styles parsed from Style records.
+        /// </summary>
+        public IReadOnlyList<LegacyXlsCellStyle> CellStyles => _cellStyles;
 
         /// <summary>
         /// Gets defined names parsed from Lbl records.
@@ -214,6 +220,10 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         internal List<LegacyXlsPreservedFeatureRecord> MutablePreservedFeatureRecords => _preservedFeatureRecords;
 
         internal List<LegacyXlsImportDiagnostic> MutableDiagnostics => _diagnostics;
+
+        internal void AddCellStyle(LegacyXlsCellStyle style) {
+            _cellStyles.Add(style);
+        }
 
         internal LegacyXlsCellFormat? GetCellFormat(ushort styleIndex) {
             return styleIndex < _cellFormats.Count ? _cellFormats[styleIndex] : null;

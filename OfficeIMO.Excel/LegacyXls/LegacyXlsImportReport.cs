@@ -24,6 +24,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             ExternalCellCacheCount = workbook.ExternalReferences.Sum(reference => reference.CachedCellCaches.Count);
             ExternalCachedCellCount = workbook.ExternalReferences.Sum(reference => reference.CachedCellCaches.Sum(cache => cache.Cells.Count));
             CalculationSettingRecordCount = workbook.CalculationSettings.Records.Count;
+            CellStyleRecordCount = workbook.CellStyles.Count;
             WorkbookMetadataRecordCount = workbook.MetadataRecords.Count;
             WorksheetMetadataRecordCount = workbook.Worksheets.Sum(sheet => sheet.MetadataRecords.Count);
             UnsupportedFeatureCount = workbook.UnsupportedFeatures.Count;
@@ -45,6 +46,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             UnsupportedFeaturesByLocation = CountByCode(workbook.UnsupportedFeatures
                 .Select(GetFeatureLocationKey));
             CalculationSettingsByKind = CountCalculationSettingsByKind(workbook.CalculationSettings.Records);
+            CellStylesByKind = CountByCode(workbook.CellStyles.Select(style => style.IsBuiltIn ? "BuiltIn" : "Custom"));
             WorkbookMetadataRecordsByKind = CountWorkbookMetadataRecordsByKind(workbook.MetadataRecords);
             WorksheetMetadataRecordsByKind = CountWorksheetMetadataRecordsByKind(workbook.Worksheets.SelectMany(sheet => sheet.MetadataRecords));
             PreservedFeatureRecordsByKind = CountPreservedRecordsByKind(workbook.PreservedFeatureRecords);
@@ -95,6 +97,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets the number of calculation setting records parsed from BIFF records.</summary>
         public int CalculationSettingRecordCount { get; }
 
+        /// <summary>Gets the number of workbook cell style records parsed from Style records.</summary>
+        public int CellStyleRecordCount { get; }
+
         /// <summary>Gets the number of workbook metadata records parsed from BIFF records.</summary>
         public int WorkbookMetadataRecordCount { get; }
 
@@ -137,6 +142,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets parsed calculation setting records grouped by setting kind.</summary>
         public IReadOnlyDictionary<LegacyXlsCalculationSettingKind, int> CalculationSettingsByKind { get; }
 
+        /// <summary>Gets parsed workbook cell styles grouped by built-in/custom kind.</summary>
+        public IReadOnlyDictionary<string, int> CellStylesByKind { get; }
+
         /// <summary>Gets parsed workbook metadata records grouped by metadata kind.</summary>
         public IReadOnlyDictionary<LegacyXlsWorkbookMetadataKind, int> WorkbookMetadataRecordsByKind { get; }
 
@@ -176,6 +184,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             builder.AppendLine($"External cell caches: {ExternalCellCacheCount}");
             builder.AppendLine($"External cached cells: {ExternalCachedCellCount}");
             builder.AppendLine($"Calculation setting records: {CalculationSettingRecordCount}");
+            builder.AppendLine($"Cell style records: {CellStyleRecordCount}");
             builder.AppendLine($"Workbook metadata records: {WorkbookMetadataRecordCount}");
             builder.AppendLine($"Worksheet metadata records: {WorksheetMetadataRecordCount}");
             builder.AppendLine($"Unsupported features: {UnsupportedFeatureCount}");
@@ -196,6 +205,7 @@ namespace OfficeIMO.Excel.LegacyXls {
                 entry => entry.Key.ToString(),
                 entry => entry.Value,
                 StringComparer.OrdinalIgnoreCase));
+            AppendDictionary(builder, "Cell Styles By Kind", CellStylesByKind);
             AppendDictionary(builder, "Workbook Metadata Records By Kind", WorkbookMetadataRecordsByKind.ToDictionary(
                 entry => entry.Key.ToString(),
                 entry => entry.Value,

@@ -487,6 +487,18 @@ namespace OfficeIMO.Tests {
             Assert.Equal(164, numberFormat.FormatId);
             Assert.Equal("yyyy-mm-dd", numberFormat.FormatCode);
             Assert.Equal(11, legacy.CellFormats.Count);
+            Assert.Equal(2, legacy.CellStyles.Count);
+            LegacyXlsCellStyle builtInStyle = legacy.CellStyles[0];
+            Assert.True(builtInStyle.IsBuiltIn);
+            Assert.Equal(0, builtInStyle.StyleFormatIndex);
+            Assert.Equal((byte)0, builtInStyle.BuiltInStyleId.GetValueOrDefault());
+            Assert.Equal((byte)0, builtInStyle.OutlineLevel.GetValueOrDefault());
+            Assert.Null(builtInStyle.Name);
+            LegacyXlsCellStyle customStyle = legacy.CellStyles[1];
+            Assert.False(customStyle.IsBuiltIn);
+            Assert.Equal(4, customStyle.StyleFormatIndex);
+            Assert.Equal("OfficeIMO Accent", customStyle.Name);
+            Assert.Null(customStyle.BuiltInStyleId);
             Assert.Equal("0.00", legacy.CellFormats[1].NumberFormatCode);
             Assert.True(legacy.CellFormats[1].IsBuiltInNumberFormat);
             Assert.Equal("yyyy-mm-dd", legacy.CellFormats[2].NumberFormatCode);
@@ -539,6 +551,15 @@ namespace OfficeIMO.Tests {
             LegacyXlsRowLayout defaultStyledRow = Assert.Single(legacy.Worksheets[0].Rows);
             Assert.Equal(3, defaultStyledRow.Row);
             Assert.Equal((ushort?)5, defaultStyledRow.StyleIndex);
+            using LegacyXlsLoadResult reportResult = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.Equal(2, reportResult.ImportReport.CellStyleRecordCount);
+            Assert.Equal(1, reportResult.ImportReport.CellStylesByKind["BuiltIn"]);
+            Assert.Equal(1, reportResult.ImportReport.CellStylesByKind["Custom"]);
+            Assert.DoesNotContain(reportResult.Workbook.UnsupportedFeatures, feature => feature.RecordType == 0x0293);
+            Assert.Contains("Cell style records: 2", reportResult.ImportReport.ToMarkdown());
 
             using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound), new LegacyXlsImportOptions {
                 ReportUnsupportedRecords = false
@@ -847,6 +868,8 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x00e0, BuildXfPayload(0, locked: false, formulaHidden: true, applyProtection: true));
                 WriteRecord(stream, 0x00e0, BuildXfPayload(0, quotePrefix: true));
                 WriteRecord(stream, 0x00e0, BuildXfPayload(0, fontIndex: 6));
+                WriteRecord(stream, 0x0293, BuildStylePayload(0, builtInStyleId: 0));
+                WriteRecord(stream, 0x0293, BuildStylePayload(4, name: "OfficeIMO Accent"));
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 int sheetOffset = checked((int)stream.Position);
@@ -1113,6 +1136,28 @@ namespace OfficeIMO.Tests {
                 WriteUInt32(payload, 14, topBottomBorderBits);
                 WriteUInt16(payload, 18, fillColors);
                 return payload;
+            }
+
+            private static byte[] BuildStylePayload(ushort styleFormatIndex, byte? builtInStyleId = null, byte outlineLevel = 0, string? name = null) {
+                using var stream = new MemoryStream();
+                ushort flags = (ushort)(styleFormatIndex & 0x0fff);
+                if (builtInStyleId.HasValue) {
+                    flags |= 0x8000;
+                }
+
+                WriteUInt16(stream, flags);
+                if (builtInStyleId.HasValue) {
+                    stream.WriteByte(builtInStyleId.Value);
+                    stream.WriteByte(outlineLevel);
+                    return stream.ToArray();
+                }
+
+                string styleName = name ?? string.Empty;
+                byte[] nameBytes = Encoding.ASCII.GetBytes(styleName);
+                WriteUInt16(stream, checked((ushort)styleName.Length));
+                stream.WriteByte(0);
+                stream.Write(nameBytes, 0, nameBytes.Length);
+                return stream.ToArray();
             }
 
             private static byte[] BuildFormulaNumberPayload(ushort row, ushort column, double value, ushort styleIndex = 0, byte[]? formulaTokens = null) {

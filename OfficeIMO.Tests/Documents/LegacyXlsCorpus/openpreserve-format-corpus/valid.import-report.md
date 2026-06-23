@@ -14,9 +14,10 @@ External references: 3
 External cell caches: 2
 External cached cells: 914
 Calculation setting records: 61
+Cell style records: 6
 Workbook metadata records: 13
 Worksheet metadata records: 55
-Unsupported features: 1153
+Unsupported features: 1147
 Preserved feature records: 1128
 Errors: 0
 Warnings: 2
@@ -31,7 +32,7 @@ Warnings: 2
 | XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 3 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 16 |
 | XLS-BIFF-LBL-SCOPE-INVALID | 2 |
-| XLS-BIFF-RECORD-UNSUPPORTED | 20 |
+| XLS-BIFF-RECORD-UNSUPPORTED | 14 |
 | XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED | 1 |
 
 ## Unsupported Features By Code
@@ -43,7 +44,7 @@ Warnings: 2
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 30 |
 | XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 3 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 16 |
-| XLS-BIFF-RECORD-UNSUPPORTED | 20 |
+| XLS-BIFF-RECORD-UNSUPPORTED | 14 |
 | XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED | 1 |
 
 ## Unsupported Features By Kind
@@ -55,7 +56,7 @@ Warnings: 2
 | DrawingObject | 30 |
 | ExternalReference | 3 |
 | PivotTable | 16 |
-| UnsupportedRecord | 20 |
+| UnsupportedRecord | 14 |
 | VbaProject | 1 |
 
 ## Unsupported Feature Record Types
@@ -116,7 +117,6 @@ Warnings: 2
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x01B6 | 2 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x01BC | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x01BD | 1 |
-| UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x0293 | 6 |
 
 ## Unsupported Feature Details
 
@@ -172,7 +172,6 @@ Warnings: 2
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:Pls | 3 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:PrintSize | 2 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:Sort | 1 |
-| UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:StyleExt | 6 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:Sxth | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:SxViewEx | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:TabIdConf | 1 |
@@ -214,7 +213,7 @@ Warnings: 2
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|lb | 1 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|maquis | 1 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|wijn | 3 |
-| XLS-BIFF-RECORD-UNSUPPORTED\|(workbook) | 12 |
+| XLS-BIFF-RECORD-UNSUPPORTED\|(workbook) | 6 |
 | XLS-BIFF-RECORD-UNSUPPORTED\|All | 1 |
 | XLS-BIFF-RECORD-UNSUPPORTED\|cl | 2 |
 | XLS-BIFF-RECORD-UNSUPPORTED\|graphs1 | 2 |
@@ -233,6 +232,12 @@ Warnings: 2
 | IterationEnabled | 10 |
 | Mode | 10 |
 | RecalculateBeforeSave | 10 |
+
+## Cell Styles By Kind
+
+| Key | Count |
+| --- | --- |
+| BuiltIn | 6 |
 
 ## Workbook Metadata Records By Kind
 
