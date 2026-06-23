@@ -181,6 +181,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     functionName = "RSQ";
                     parameterCount = 2;
                     return true;
+                case 0x0145:
+                    functionName = "LARGE";
+                    parameterCount = 2;
+                    return true;
                 case 0x015a:
                     functionName = "COUNTIF";
                     parameterCount = 2;

@@ -313,6 +313,7 @@ namespace OfficeIMO.Tests {
             AssertFormula(sheet, 25, 1, "RAND()", 0.42d);
             AssertFormula(sheet, 26, 1, "ROWS(E1:E3)", 3d);
             AssertFormula(sheet, 27, 1, "COLUMNS(D1:E1)", 2d);
+            AssertFormula(sheet, 28, 1, "LARGE(E1:E3,2)", 20d);
 
             using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound), new LegacyXlsImportOptions {
                 ReportUnsupportedRecords = true
@@ -348,6 +349,7 @@ namespace OfficeIMO.Tests {
             AssertProjectedFormula(worksheetPart, "A25", "RAND()", "0.42");
             AssertProjectedFormula(worksheetPart, "A26", "ROWS(E1:E3)", "3");
             AssertProjectedFormula(worksheetPart, "A27", "COLUMNS(D1:E1)", "2");
+            AssertProjectedFormula(worksheetPart, "A28", "LARGE(E1:E3,2)", "20");
         }
 
         [Fact]
@@ -1280,6 +1282,7 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(24, 0, 0.42d, formulaTokens: BuildVolatileFixedNoArgumentFunctionFormulaTokens(0x003f)));
                 WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(25, 0, 3d, formulaTokens: BuildSingleAreaFixedFunctionFormulaTokens(0x004c, 0, 4, 2, 4)));
                 WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(26, 0, 2d, formulaTokens: BuildSingleAreaFixedFunctionFormulaTokens(0x004d, 0, 3, 0, 4)));
+                WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(27, 0, 20d, formulaTokens: BuildLargeFormulaTokens()));
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 byte[] bytes = stream.ToArray();
@@ -1842,6 +1845,16 @@ namespace OfficeIMO.Tests {
                 stream.Write(area, 0, area.Length);
                 stream.WriteByte(0x41);
                 WriteUInt16(stream, functionId);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildLargeFormulaTokens() {
+                using var stream = new MemoryStream();
+                byte[] area = BuildAreaReferenceFormulaToken(0, 4, 2, 4);
+                stream.Write(area, 0, area.Length);
+                WriteIntegerFormulaToken(stream, 2);
+                stream.WriteByte(0x41);
+                WriteUInt16(stream, 0x0145);
                 return stream.ToArray();
             }
 
