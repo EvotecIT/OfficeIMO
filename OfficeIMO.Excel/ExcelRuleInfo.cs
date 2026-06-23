@@ -9,10 +9,16 @@ namespace OfficeIMO.Excel {
         public string Type { get; set; } = string.Empty;
         /// <summary>Gets or sets the OpenXML conditional formatting operator.</summary>
         public string? Operator { get; set; }
+        /// <summary>Gets or sets the text payload attached to a text conditional-formatting rule.</summary>
+        public string? Text { get; set; }
         /// <summary>Gets or sets the rule priority.</summary>
         public int Priority { get; set; }
         /// <summary>Gets or sets whether evaluation stops when the rule is true.</summary>
         public bool StopIfTrue { get; set; }
+        /// <summary>Gets or sets the differential format id attached to the rule, when present.</summary>
+        public uint? DifferentialFormatId { get; set; }
+        /// <summary>Gets or sets the resolved ARGB fill color from the rule's differential format, when present.</summary>
+        public string? DifferentialFillColorArgb { get; set; }
         /// <summary>Gets or sets formulas attached to the rule.</summary>
         public IReadOnlyList<string> Formulas { get; set; } = Array.Empty<string>();
         /// <summary>Gets or sets ARGB colors attached to a color-scale rule, in rule order.</summary>
@@ -25,6 +31,18 @@ namespace OfficeIMO.Excel {
         public bool IconSetShowValue { get; set; } = true;
         /// <summary>Gets or sets whether the icon-set rule reverses icon order.</summary>
         public bool IconSetReverse { get; set; }
+        /// <summary>Gets or sets the top/bottom rule rank, when present.</summary>
+        public uint? TopBottomRank { get; set; }
+        /// <summary>Gets or sets whether the top/bottom rule selects bottom values.</summary>
+        public bool TopBottomBottom { get; set; }
+        /// <summary>Gets or sets whether the top/bottom rule rank is a percentage.</summary>
+        public bool TopBottomPercent { get; set; }
+        /// <summary>Gets or sets whether the above-average rule selects values above the average.</summary>
+        public bool AboveAverageAbove { get; set; } = true;
+        /// <summary>Gets or sets whether the above-average rule includes values equal to the average.</summary>
+        public bool AboveAverageEqual { get; set; }
+        /// <summary>Gets or sets the standard-deviation threshold for above-average rules, when present.</summary>
+        public int? AboveAverageStdDev { get; set; }
     }
 
     /// <summary>

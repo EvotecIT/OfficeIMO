@@ -1,0 +1,833 @@
+using System.Globalization;
+using OfficeIMO.Drawing;
+
+namespace OfficeIMO.Excel {
+    internal static partial class ExcelConditionalVisualEvaluator {
+        internal static ExcelConditionalVisualState Evaluate(
+            ExcelSheet sheet,
+            IReadOnlyList<ExcelVisualCell> cells,
+            string range,
+            List<OfficeImageExportDiagnostic> diagnostics) {
+            IReadOnlyList<ExcelConditionalFormattingInfo> rules = sheet.GetConditionalFormattingRules(range);
+            if (rules.Count == 0 || cells.Count == 0) {
+                return ExcelConditionalVisualState.Empty;
+            }
+
+            ReportUnsupportedConditionalRules(sheet, cells, rules, diagnostics);
+
+            var fills = BuildConditionalFills(sheet, cells, rules);
+            var dataBars = new List<ExcelVisualConditionalDataBar>();
+
+            foreach (ExcelConditionalFormattingInfo rule in rules
+                .Where(rule => string.Equals(rule.Type, "DataBar", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(rule.DataBarColor))
+                .OrderBy(rule => NormalizePriority(rule.Priority))) {
+                if (!TryNormalizeArgb(rule.DataBarColor, out string? colorArgb) || colorArgb == null) {
+                    continue;
+                }
+
+                List<ConditionalNumericCell> candidates = GetNumericCandidates(cells, rule.Range);
+                if (candidates.Count == 0) {
+                    continue;
+                }
+
+                double min = candidates.Min(candidate => candidate.Value);
+                double max = candidates.Max(candidate => candidate.Value);
+                foreach (ConditionalNumericCell candidate in candidates) {
+                    (double startRatio, double ratio) = GetDataBarGeometry(candidate.Value, min, max);
+                    dataBars.Add(new ExcelVisualConditionalDataBar(
+                        candidate.Cell.Row,
+                        candidate.Cell.Column,
+                        candidate.Cell.X,
+                        candidate.Cell.Y,
+                        candidate.Cell.Width,
+                        candidate.Cell.Height,
+                        colorArgb,
+                        startRatio,
+                        ratio));
+                }
+            }
+
+            return fills.Count == 0 && dataBars.Count == 0
+                ? ExcelConditionalVisualState.Empty
+                : new ExcelConditionalVisualState(fills, dataBars);
+        }
+
+        private static void ReportUnsupportedConditionalRules(
+            ExcelSheet sheet,
+            IReadOnlyList<ExcelVisualCell> cells,
+            IReadOnlyList<ExcelConditionalFormattingInfo> rules,
+            List<OfficeImageExportDiagnostic> diagnostics) {
+            foreach (ExcelConditionalFormattingInfo rule in rules) {
+                string source = sheet.Name + "!" + rule.Range;
+                if (string.Equals(rule.Type, "IconSet", StringComparison.OrdinalIgnoreCase)) {
+                    diagnostics.Add(new OfficeImageExportDiagnostic(
+                        OfficeImageExportDiagnosticSeverity.Warning,
+                        ExcelImageExportDiagnosticCodes.ConditionalIconSetUnsupported,
+                        "Conditional formatting icon sets are not rendered by Excel image export yet.",
+                        source));
+                    continue;
+                }
+
+                if (string.Equals(rule.Type, "ColorScale", StringComparison.OrdinalIgnoreCase)) {
+                    if (rule.ColorScaleColors.Count < 2 ||
+                        !TryNormalizeArgb(rule.ColorScaleColors[0], out _) ||
+                        !TryNormalizeArgb(rule.ColorScaleColors[rule.ColorScaleColors.Count - 1], out _)) {
+                        diagnostics.Add(new OfficeImageExportDiagnostic(
+                            OfficeImageExportDiagnosticSeverity.Warning,
+                            ExcelImageExportDiagnosticCodes.ConditionalColorScaleUnsupported,
+                            "Conditional formatting color scale could not be rendered because its color stops are missing or unsupported.",
+                            source));
+                    }
+
+                    continue;
+                }
+
+                if (string.Equals(rule.Type, "DataBar", StringComparison.OrdinalIgnoreCase)) {
+                    if (!TryNormalizeArgb(rule.DataBarColor, out _)) {
+                        diagnostics.Add(new OfficeImageExportDiagnostic(
+                            OfficeImageExportDiagnosticSeverity.Warning,
+                            ExcelImageExportDiagnosticCodes.ConditionalDataBarUnsupported,
+                            "Conditional formatting data bar could not be rendered because its fill color is missing or unsupported.",
+                            source));
+                    }
+
+                    continue;
+                }
+
+                if (string.Equals(rule.Type, "CellIs", StringComparison.OrdinalIgnoreCase)) {
+                    if (ReportUnsupportedDifferentialFormat(rule, diagnostics, source)) {
+                        continue;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(rule.DifferentialFillColorArgb) &&
+                        !CanEvaluateAnyCellIsRule(sheet, cells, rule)) {
+                        diagnostics.Add(new OfficeImageExportDiagnostic(
+                            OfficeImageExportDiagnosticSeverity.Warning,
+                            ExcelImageExportDiagnosticCodes.ConditionalCellIsUnsupported,
+                            "Conditional formatting cell-is rule was not rendered because only bounded numeric comparisons are supported.",
+                            source));
+                    }
+
+                    continue;
+                }
+
+                if (string.Equals(rule.Type, "Expression", StringComparison.OrdinalIgnoreCase)) {
+                    if (ReportUnsupportedDifferentialFormat(rule, diagnostics, source)) {
+                        continue;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(rule.DifferentialFillColorArgb) &&
+                        !CanEvaluateAnyExpressionRule(sheet, cells, rule)) {
+                        diagnostics.Add(new OfficeImageExportDiagnostic(
+                            OfficeImageExportDiagnosticSeverity.Warning,
+                            ExcelImageExportDiagnosticCodes.ConditionalFormulaUnsupported,
+                            "Conditional formatting formula rule was not rendered because only simple numeric comparison expressions are supported.",
+                            source));
+                    }
+
+                    continue;
+                }
+
+                if (string.Equals(rule.Type, "Top10", StringComparison.OrdinalIgnoreCase)) {
+                    if (ReportUnsupportedDifferentialFormat(rule, diagnostics, source)) {
+                        continue;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(rule.DifferentialFillColorArgb) &&
+                        !CanEvaluateTopBottomRule(cells, rule)) {
+                        diagnostics.Add(new OfficeImageExportDiagnostic(
+                            OfficeImageExportDiagnosticSeverity.Warning,
+                            ExcelImageExportDiagnosticCodes.ConditionalTopBottomUnsupported,
+                            "Conditional formatting top/bottom rule was not rendered because it has no valid numeric candidates or rank.",
+                            source));
+                    }
+
+                    continue;
+                }
+
+                if (string.Equals(rule.Type, "DuplicateValues", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(rule.Type, "UniqueValues", StringComparison.OrdinalIgnoreCase)) {
+                    if (ReportUnsupportedDifferentialFormat(rule, diagnostics, source)) {
+                        continue;
+                    }
+
+                    continue;
+                }
+
+                if (string.Equals(rule.Type, "AboveAverage", StringComparison.OrdinalIgnoreCase)) {
+                    if (ReportUnsupportedDifferentialFormat(rule, diagnostics, source)) {
+                        continue;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(rule.DifferentialFillColorArgb) &&
+                        !CanEvaluateAboveAverageRule(cells, rule)) {
+                        diagnostics.Add(new OfficeImageExportDiagnostic(
+                            OfficeImageExportDiagnosticSeverity.Warning,
+                            ExcelImageExportDiagnosticCodes.ConditionalAboveAverageUnsupported,
+                            "Conditional formatting above/below-average rule was not rendered because only numeric average rules without standard-deviation thresholds are supported.",
+                            source));
+                    }
+
+                    continue;
+                }
+
+                if (IsTextRule(rule)) {
+                    if (ReportUnsupportedDifferentialFormat(rule, diagnostics, source)) {
+                        continue;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(rule.DifferentialFillColorArgb) &&
+                        !CanEvaluateTextRule(rule)) {
+                        diagnostics.Add(new OfficeImageExportDiagnostic(
+                            OfficeImageExportDiagnosticSeverity.Warning,
+                            ExcelImageExportDiagnosticCodes.ConditionalTextRuleUnsupported,
+                            "Conditional formatting text rule was not rendered because its comparison text is missing.",
+                            source));
+                    }
+
+                    continue;
+                }
+
+                diagnostics.Add(new OfficeImageExportDiagnostic(
+                    OfficeImageExportDiagnosticSeverity.Warning,
+                    ExcelImageExportDiagnosticCodes.ConditionalRuleUnsupported,
+                    "Conditional formatting rule type is not rendered by Excel image export yet.",
+                    source));
+            }
+        }
+
+        private static bool ReportUnsupportedDifferentialFormat(
+            ExcelConditionalFormattingInfo rule,
+            List<OfficeImageExportDiagnostic> diagnostics,
+            string source) {
+            if (!rule.DifferentialFormatId.HasValue || !string.IsNullOrWhiteSpace(rule.DifferentialFillColorArgb)) {
+                return false;
+            }
+
+            diagnostics.Add(new OfficeImageExportDiagnostic(
+                OfficeImageExportDiagnosticSeverity.Warning,
+                ExcelImageExportDiagnosticCodes.ConditionalDifferentialFormatUnsupported,
+                "Conditional formatting differential format does not contain a supported solid fill; font, border, and other differential effects are not rendered yet.",
+                source));
+            return true;
+        }
+
+        private static Dictionary<string, string> BuildConditionalFills(
+            ExcelSheet sheet,
+            IReadOnlyList<ExcelVisualCell> cells,
+            IReadOnlyList<ExcelConditionalFormattingInfo> rules) {
+            var fills = new Dictionary<string, string>(StringComparer.Ordinal);
+            var stoppedCells = new HashSet<string>(StringComparer.Ordinal);
+            foreach (ExcelConditionalFormattingInfo rule in rules.OrderBy(rule => NormalizePriority(rule.Priority))) {
+                if (string.Equals(rule.Type, "ColorScale", StringComparison.OrdinalIgnoreCase)) {
+                    ApplyColorScaleFill(cells, rule, fills, stoppedCells);
+                    continue;
+                }
+
+                if (string.IsNullOrWhiteSpace(rule.DifferentialFillColorArgb)) {
+                    continue;
+                }
+
+                if (!string.Equals(rule.Type, "CellIs", StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(rule.Type, "Expression", StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(rule.Type, "Top10", StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(rule.Type, "DuplicateValues", StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(rule.Type, "UniqueValues", StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(rule.Type, "AboveAverage", StringComparison.OrdinalIgnoreCase) &&
+                    !IsTextRule(rule)) {
+                    continue;
+                }
+
+                if (string.Equals(rule.Type, "Top10", StringComparison.OrdinalIgnoreCase)) {
+                    ApplyTopBottomFill(cells, rule, fills, stoppedCells);
+                    continue;
+                }
+
+                if (string.Equals(rule.Type, "DuplicateValues", StringComparison.OrdinalIgnoreCase)) {
+                    ApplyDistinctValueFill(cells, rule, fills, stoppedCells, selectDuplicates: true);
+                    continue;
+                }
+
+                if (string.Equals(rule.Type, "UniqueValues", StringComparison.OrdinalIgnoreCase)) {
+                    ApplyDistinctValueFill(cells, rule, fills, stoppedCells, selectDuplicates: false);
+                    continue;
+                }
+
+                if (string.Equals(rule.Type, "AboveAverage", StringComparison.OrdinalIgnoreCase)) {
+                    ApplyAboveAverageFill(cells, rule, fills, stoppedCells);
+                    continue;
+                }
+
+                if (IsTextRule(rule)) {
+                    ApplyTextRuleFill(cells, rule, fills, stoppedCells);
+                    continue;
+                }
+
+                foreach (ExcelVisualCell cell in cells) {
+                    string key = Key(cell.Row, cell.Column);
+                    if (cell.CoveredByMerge || stoppedCells.Contains(key) || !IsCellInReferenceList(cell.Row, cell.Column, rule.Range)) {
+                        continue;
+                    }
+
+                    if (RuleMatchesCell(sheet, cell, rule)) {
+                        if (!fills.ContainsKey(key)) {
+                            fills[key] = rule.DifferentialFillColorArgb!;
+                        }
+
+                        if (rule.StopIfTrue) {
+                            stoppedCells.Add(key);
+                        }
+                    }
+                }
+            }
+
+            return fills;
+        }
+
+        private static void ApplyColorScaleFill(
+            IReadOnlyList<ExcelVisualCell> cells,
+            ExcelConditionalFormattingInfo rule,
+            Dictionary<string, string> fills,
+            HashSet<string> stoppedCells) {
+            if (rule.ColorScaleColors.Count < 2 ||
+                !TryGetRgb(rule.ColorScaleColors[0], out byte startR, out byte startG, out byte startB) ||
+                !TryGetRgb(rule.ColorScaleColors[rule.ColorScaleColors.Count - 1], out byte endR, out byte endG, out byte endB)) {
+                return;
+            }
+
+            List<ConditionalNumericCell> candidates = GetNumericCandidates(cells, rule.Range)
+                .Where(candidate => !stoppedCells.Contains(Key(candidate.Cell.Row, candidate.Cell.Column)))
+                .ToList();
+            if (candidates.Count == 0) {
+                return;
+            }
+
+            double min = candidates.Min(candidate => candidate.Value);
+            double max = candidates.Max(candidate => candidate.Value);
+            foreach (ConditionalNumericCell candidate in candidates) {
+                string key = Key(candidate.Cell.Row, candidate.Cell.Column);
+                if (fills.ContainsKey(key)) {
+                    continue;
+                }
+
+                double ratio = max <= min ? 0.5D : Math.Max(0D, Math.Min(1D, (candidate.Value - min) / (max - min)));
+                fills[key] = "FF" + InterpolateRgbHex(startR, startG, startB, endR, endG, endB, ratio);
+            }
+        }
+
+        private static bool RuleMatchesCell(ExcelSheet sheet, ExcelVisualCell cell, ExcelConditionalFormattingInfo rule) {
+            if (string.Equals(rule.Type, "CellIs", StringComparison.OrdinalIgnoreCase)) {
+                return MatchesCellIsRule(sheet, cell, rule);
+            }
+
+            return string.Equals(rule.Type, "Expression", StringComparison.OrdinalIgnoreCase) &&
+                rule.Formulas.Count > 0 &&
+                TryEvaluateComparisonExpression(sheet, cell, rule.Range, rule.Formulas[0], out bool result) &&
+                result;
+        }
+
+        private static bool CanEvaluateTopBottomRule(IReadOnlyList<ExcelVisualCell> cells, ExcelConditionalFormattingInfo rule) =>
+            rule.TopBottomRank.HasValue &&
+            rule.TopBottomRank.Value > 0U &&
+            CalculateTopBottomSelectionCount(rule, GetNumericCandidates(cells, rule.Range).Count) > 0;
+
+        private static void ApplyTopBottomFill(
+            IReadOnlyList<ExcelVisualCell> cells,
+            ExcelConditionalFormattingInfo rule,
+            Dictionary<string, string> fills,
+            HashSet<string> stoppedCells) {
+            if (string.IsNullOrWhiteSpace(rule.DifferentialFillColorArgb) ||
+                !rule.TopBottomRank.HasValue ||
+                rule.TopBottomRank.Value == 0U) {
+                return;
+            }
+
+            List<ConditionalNumericCell> candidates = GetNumericCandidates(cells, rule.Range)
+                .Where(candidate => !stoppedCells.Contains(Key(candidate.Cell.Row, candidate.Cell.Column)))
+                .ToList();
+            if (candidates.Count == 0) {
+                return;
+            }
+
+            int rank = CalculateTopBottomSelectionCount(rule, candidates.Count);
+            if (rank == 0) {
+                return;
+            }
+
+            List<double> orderedValues = candidates
+                .Select(candidate => candidate.Value)
+                .OrderBy(value => rule.TopBottomBottom ? value : -value)
+                .ToList();
+            double cutoff = orderedValues[rank - 1];
+            foreach (ConditionalNumericCell candidate in candidates) {
+                bool selected = rule.TopBottomBottom
+                    ? candidate.Value <= cutoff
+                    : candidate.Value >= cutoff;
+                if (!selected) {
+                    continue;
+                }
+
+                string key = Key(candidate.Cell.Row, candidate.Cell.Column);
+                if (!fills.ContainsKey(key)) {
+                    fills[key] = rule.DifferentialFillColorArgb!;
+                }
+
+                if (rule.StopIfTrue) {
+                    stoppedCells.Add(key);
+                }
+            }
+        }
+
+        private static int CalculateTopBottomSelectionCount(ExcelConditionalFormattingInfo rule, int candidateCount) {
+            if (candidateCount <= 0 || !rule.TopBottomRank.HasValue || rule.TopBottomRank.Value == 0U) {
+                return 0;
+            }
+
+            if (!rule.TopBottomPercent) {
+                return (int)Math.Min(rule.TopBottomRank.Value, (uint)candidateCount);
+            }
+
+            double percent = Math.Min(100D, rule.TopBottomRank.Value);
+            int count = (int)Math.Ceiling(candidateCount * (percent / 100D));
+            return Math.Max(1, Math.Min(candidateCount, count));
+        }
+
+        private static bool CanEvaluateAboveAverageRule(IReadOnlyList<ExcelVisualCell> cells, ExcelConditionalFormattingInfo rule) =>
+            !rule.AboveAverageStdDev.HasValue &&
+            GetNumericCandidates(cells, rule.Range).Count > 0;
+
+        private static void ApplyAboveAverageFill(
+            IReadOnlyList<ExcelVisualCell> cells,
+            ExcelConditionalFormattingInfo rule,
+            Dictionary<string, string> fills,
+            HashSet<string> stoppedCells) {
+            if (string.IsNullOrWhiteSpace(rule.DifferentialFillColorArgb) ||
+                rule.AboveAverageStdDev.HasValue) {
+                return;
+            }
+
+            List<ConditionalNumericCell> candidates = GetNumericCandidates(cells, rule.Range)
+                .Where(candidate => !stoppedCells.Contains(Key(candidate.Cell.Row, candidate.Cell.Column)))
+                .ToList();
+            if (candidates.Count == 0) {
+                return;
+            }
+
+            double average = candidates.Average(candidate => candidate.Value);
+            foreach (ConditionalNumericCell candidate in candidates) {
+                bool selected = rule.AboveAverageAbove
+                    ? rule.AboveAverageEqual ? candidate.Value >= average : candidate.Value > average
+                    : rule.AboveAverageEqual ? candidate.Value <= average : candidate.Value < average;
+                if (!selected) {
+                    continue;
+                }
+
+                string key = Key(candidate.Cell.Row, candidate.Cell.Column);
+                if (!fills.ContainsKey(key)) {
+                    fills[key] = rule.DifferentialFillColorArgb!;
+                }
+
+                if (rule.StopIfTrue) {
+                    stoppedCells.Add(key);
+                }
+            }
+        }
+
+        private static void ApplyDistinctValueFill(
+            IReadOnlyList<ExcelVisualCell> cells,
+            ExcelConditionalFormattingInfo rule,
+            Dictionary<string, string> fills,
+            HashSet<string> stoppedCells,
+            bool selectDuplicates) {
+            if (string.IsNullOrWhiteSpace(rule.DifferentialFillColorArgb)) {
+                return;
+            }
+
+            var candidates = new List<(ExcelVisualCell Cell, string Value)>();
+            foreach (ExcelVisualCell cell in GetRuleCells(cells, rule.Range)) {
+                string key = Key(cell.Row, cell.Column);
+                if (stoppedCells.Contains(key) || string.IsNullOrWhiteSpace(cell.Text)) {
+                    continue;
+                }
+
+                candidates.Add((cell, cell.Text.Trim()));
+            }
+
+            if (candidates.Count == 0) {
+                return;
+            }
+
+            var selectedValues = new HashSet<string>(
+                candidates
+                    .GroupBy(candidate => candidate.Value, StringComparer.OrdinalIgnoreCase)
+                    .Where(group => selectDuplicates ? group.Count() > 1 : group.Count() == 1)
+                    .Select(group => group.Key),
+                StringComparer.OrdinalIgnoreCase);
+            if (selectedValues.Count == 0) {
+                return;
+            }
+
+            foreach ((ExcelVisualCell cell, string value) in candidates) {
+                if (!selectedValues.Contains(value)) {
+                    continue;
+                }
+
+                string key = Key(cell.Row, cell.Column);
+                if (!fills.ContainsKey(key)) {
+                    fills[key] = rule.DifferentialFillColorArgb!;
+                }
+
+                if (rule.StopIfTrue) {
+                    stoppedCells.Add(key);
+                }
+            }
+        }
+
+        private static bool MatchesCellIsRule(ExcelSheet sheet, ExcelVisualCell cell, ExcelConditionalFormattingInfo rule) {
+            if (rule.Formulas.Count == 0 || string.IsNullOrWhiteSpace(rule.Operator)) {
+                return false;
+            }
+
+            if (!TryGetCellNumericValue(sheet, cell, out double cellValue) ||
+                !TryResolveNumericOperand(sheet, cell, rule.Range, rule.Formulas[0], out double firstValue)) {
+                return false;
+            }
+
+            if (string.Equals(rule.Operator, "Between", StringComparison.OrdinalIgnoreCase)) {
+                return rule.Formulas.Count > 1 &&
+                    TryResolveNumericOperand(sheet, cell, rule.Range, rule.Formulas[1], out double secondValue) &&
+                    cellValue >= Math.Min(firstValue, secondValue) &&
+                    cellValue <= Math.Max(firstValue, secondValue);
+            }
+
+            if (string.Equals(rule.Operator, "NotBetween", StringComparison.OrdinalIgnoreCase)) {
+                return rule.Formulas.Count > 1 &&
+                    TryResolveNumericOperand(sheet, cell, rule.Range, rule.Formulas[1], out double secondValue) &&
+                    (cellValue < Math.Min(firstValue, secondValue) || cellValue > Math.Max(firstValue, secondValue));
+            }
+
+            return Compare(cellValue, firstValue, rule.Operator!);
+        }
+
+        private static bool CanEvaluateAnyCellIsRule(ExcelSheet sheet, IReadOnlyList<ExcelVisualCell> cells, ExcelConditionalFormattingInfo rule) {
+            if (rule.Formulas.Count == 0 || string.IsNullOrWhiteSpace(rule.Operator) || !IsSupportedCellIsOperator(rule.Operator!)) {
+                return false;
+            }
+
+            foreach (ExcelVisualCell cell in GetRuleCells(cells, rule.Range)) {
+                if (!TryGetCellNumericValue(sheet, cell, out _) ||
+                    !TryResolveNumericOperand(sheet, cell, rule.Range, rule.Formulas[0], out _)) {
+                    continue;
+                }
+
+                if (string.Equals(rule.Operator, "Between", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(rule.Operator, "NotBetween", StringComparison.OrdinalIgnoreCase)) {
+                    if (rule.Formulas.Count > 1 &&
+                        TryResolveNumericOperand(sheet, cell, rule.Range, rule.Formulas[1], out _)) {
+                        return true;
+                    }
+
+                    continue;
+                }
+
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool CanEvaluateAnyExpressionRule(ExcelSheet sheet, IReadOnlyList<ExcelVisualCell> cells, ExcelConditionalFormattingInfo rule) {
+            if (rule.Formulas.Count == 0) {
+                return false;
+            }
+
+            foreach (ExcelVisualCell cell in GetRuleCells(cells, rule.Range)) {
+                if (TryEvaluateComparisonExpression(sheet, cell, rule.Range, rule.Formulas[0], out _)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static IEnumerable<ExcelVisualCell> GetRuleCells(IReadOnlyList<ExcelVisualCell> cells, string referenceList) {
+            foreach (ExcelVisualCell cell in cells) {
+                if (!cell.CoveredByMerge && IsCellInReferenceList(cell.Row, cell.Column, referenceList)) {
+                    yield return cell;
+                }
+            }
+        }
+
+        private static bool IsSupportedCellIsOperator(string op) {
+            return string.Equals(op, "Between", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(op, "NotBetween", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(op, "GreaterThan", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(op, "LessThan", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(op, "GreaterThanOrEqual", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(op, "LessThanOrEqual", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(op, "Equal", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(op, "NotEqual", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool TryEvaluateComparisonExpression(ExcelSheet sheet, ExcelVisualCell cell, string ruleRange, string formula, out bool result) {
+            result = false;
+            string expression = NormalizeFormula(formula);
+            string[] operators = { ">=", "<=", "<>", "=", ">", "<" };
+            foreach (string op in operators) {
+                int index = expression.IndexOf(op, StringComparison.Ordinal);
+                if (index <= 0 || index + op.Length >= expression.Length) {
+                    continue;
+                }
+
+                string left = expression.Substring(0, index).Trim();
+                string right = expression.Substring(index + op.Length).Trim();
+                if (TryResolveNumericOperand(sheet, cell, ruleRange, left, out double leftValue) &&
+                    TryResolveNumericOperand(sheet, cell, ruleRange, right, out double rightValue)) {
+                    result = Compare(leftValue, rightValue, op);
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool Compare(double left, double right, string op) {
+            return op switch {
+                "GreaterThan" or ">" => left > right,
+                "LessThan" or "<" => left < right,
+                "GreaterThanOrEqual" or ">=" => left >= right,
+                "LessThanOrEqual" or "<=" => left <= right,
+                "Equal" or "=" => Math.Abs(left - right) < 0.0000001D,
+                "NotEqual" or "<>" => Math.Abs(left - right) >= 0.0000001D,
+                _ => false
+            };
+        }
+
+        private static bool TryResolveNumericOperand(ExcelSheet sheet, ExcelVisualCell cell, string ruleRange, string operand, out double value) {
+            value = 0D;
+            string normalized = NormalizeFormula(operand);
+            if (double.TryParse(normalized, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out value)) {
+                return true;
+            }
+
+            return TryResolveCellReference(sheet, cell, ruleRange, normalized, out int row, out int column) &&
+                TryGetCellNumericValue(sheet, row, column, out value);
+        }
+
+        private static bool TryResolveCellReference(ExcelSheet sheet, ExcelVisualCell cell, string ruleRange, string reference, out int row, out int column) {
+            row = column = 0;
+            string normalized = StripSheetPrefix(reference).Replace("$", string.Empty);
+            if (!A1.TryParseCellReferenceFast(normalized, out int referenceRow, out int referenceColumn)) {
+                return false;
+            }
+
+            (int topRow, int leftColumn) = GetReferenceListOrigin(ruleRange);
+            row = referenceRow + (cell.Row - topRow);
+            column = referenceColumn + (cell.Column - leftColumn);
+            return row >= 1 && column >= 1;
+        }
+
+        private static (int Row, int Column) GetReferenceListOrigin(string referenceList) {
+            foreach (string rawToken in referenceList.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)) {
+                string token = StripSheetPrefix(rawToken).Replace("$", string.Empty);
+                if (A1.TryParseRange(token, out int firstRow, out int firstColumn, out _, out _)) {
+                    return (firstRow, firstColumn);
+                }
+
+                if (A1.TryParseCellReferenceFast(token, out int row, out int column)) {
+                    return (row, column);
+                }
+            }
+
+            return (1, 1);
+        }
+
+        private static string NormalizeFormula(string formula) {
+            string normalized = formula.Trim();
+            return normalized.StartsWith("=", StringComparison.Ordinal) ? normalized.Substring(1).Trim() : normalized;
+        }
+
+        private static int NormalizePriority(int priority) => priority <= 0 ? int.MaxValue : priority;
+
+        private static bool TryGetCellNumericValue(ExcelSheet sheet, ExcelVisualCell cell, out double value) {
+            return TryGetCellNumericValue(sheet, cell.Row, cell.Column, out value) ||
+                TryGetConditionalNumericValue(cell.Text, out value);
+        }
+
+        private static bool TryGetCellNumericValue(ExcelSheet sheet, int row, int column, out double value) {
+            ExcelCellData data = sheet.GetCellValueSnapshot(row, column);
+            if (data.Value is double doubleValue) {
+                value = doubleValue;
+                return true;
+            }
+
+            if (data.Value is IConvertible convertible &&
+                double.TryParse(Convert.ToString(convertible, CultureInfo.InvariantCulture), NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out value)) {
+                return true;
+            }
+
+            return TryGetConditionalNumericValue(data.CachedText, out value);
+        }
+
+        private static List<ConditionalNumericCell> GetNumericCandidates(IReadOnlyList<ExcelVisualCell> cells, string referenceList) {
+            var candidates = new List<ConditionalNumericCell>();
+            foreach (ExcelVisualCell cell in cells) {
+                if (cell.CoveredByMerge || !IsCellInReferenceList(cell.Row, cell.Column, referenceList)) {
+                    continue;
+                }
+
+                if (TryGetConditionalNumericValue(cell.Text, out double value)) {
+                    candidates.Add(new ConditionalNumericCell(cell, value));
+                }
+            }
+
+            return candidates;
+        }
+
+        private static bool IsCellInReferenceList(int row, int column, string referenceList) {
+            if (string.IsNullOrWhiteSpace(referenceList)) {
+                return false;
+            }
+
+            foreach (string rawToken in referenceList.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)) {
+                string token = StripSheetPrefix(rawToken).Replace("$", string.Empty);
+                if (A1.TryParseRange(token, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
+                    if (row >= firstRow && row <= lastRow && column >= firstColumn && column <= lastColumn) {
+                        return true;
+                    }
+                } else if (A1.TryParseCellReferenceFast(token, out int singleRow, out int singleColumn)) {
+                    (int Row, int Col) singleCell = (singleRow, singleColumn);
+                    if (singleCell.Row == row && singleCell.Col == column) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        private static string StripSheetPrefix(string reference) {
+            int bang = reference.LastIndexOf('!');
+            return bang >= 0 && bang + 1 < reference.Length ? reference.Substring(bang + 1) : reference;
+        }
+
+        private static string Key(int row, int column) => row.ToString(CultureInfo.InvariantCulture) + ":" + column.ToString(CultureInfo.InvariantCulture);
+
+        private static bool TryGetConditionalNumericValue(string? text, out double numericValue) {
+            if (!string.IsNullOrWhiteSpace(text) &&
+                double.TryParse(text!.Trim(), NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out numericValue) &&
+                !double.IsNaN(numericValue) &&
+                !double.IsInfinity(numericValue)) {
+                return true;
+            }
+
+            numericValue = 0D;
+            return false;
+        }
+
+        private static bool TryGetRgb(string value, out byte red, out byte green, out byte blue) {
+            red = green = blue = 0;
+            if (!TryNormalizeArgb(value, out string? argb) || argb == null) {
+                return false;
+            }
+
+            return byte.TryParse(argb.Substring(2, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out red) &&
+                byte.TryParse(argb.Substring(4, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out green) &&
+                byte.TryParse(argb.Substring(6, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out blue);
+        }
+
+        private static bool TryNormalizeArgb(string? value, out string? argb) {
+            argb = null;
+            if (string.IsNullOrWhiteSpace(value)) {
+                return false;
+            }
+
+            string hex = value!.Trim().TrimStart('#');
+            if (hex.Length == 6) {
+                hex = "FF" + hex;
+            } else if (hex.Length != 8) {
+                return false;
+            }
+
+            for (int i = 0; i < hex.Length; i++) {
+                char ch = hex[i];
+                bool isHex = (ch >= '0' && ch <= '9') ||
+                    (ch >= 'a' && ch <= 'f') ||
+                    (ch >= 'A' && ch <= 'F');
+                if (!isHex) {
+                    return false;
+                }
+            }
+
+            argb = hex.ToUpperInvariant();
+            return true;
+        }
+
+        private static string InterpolateRgbHex(byte startR, byte startG, byte startB, byte endR, byte endG, byte endB, double ratio) {
+            byte red = InterpolateByte(startR, endR, ratio);
+            byte green = InterpolateByte(startG, endG, ratio);
+            byte blue = InterpolateByte(startB, endB, ratio);
+            return red.ToString("X2", CultureInfo.InvariantCulture) +
+                green.ToString("X2", CultureInfo.InvariantCulture) +
+                blue.ToString("X2", CultureInfo.InvariantCulture);
+        }
+
+        private static byte InterpolateByte(byte start, byte end, double ratio) {
+            return (byte)Math.Max(0, Math.Min(255, (int)Math.Round(start + ((end - start) * ratio), MidpointRounding.AwayFromZero)));
+        }
+
+        private static (double StartRatio, double Ratio) GetDataBarGeometry(double value, double min, double max) {
+            if (max <= min) {
+                return (0D, 1D);
+            }
+
+            if (min < 0D && max > 0D) {
+                double range = max - min;
+                double zeroRatio = Math.Max(0D, Math.Min(1D, -min / range));
+                if (value >= 0D) {
+                    return (zeroRatio, Math.Max(0D, Math.Min(1D - zeroRatio, value / range)));
+                }
+
+                double ratio = Math.Max(0D, Math.Min(zeroRatio, -value / range));
+                return (zeroRatio - ratio, ratio);
+            }
+
+            if (max <= 0D) {
+                double maxMagnitude = Math.Max(Math.Abs(min), Math.Abs(max));
+                double ratio = maxMagnitude <= 0D ? 0D : Math.Max(0D, Math.Min(1D, Math.Abs(value) / maxMagnitude));
+                return (1D - ratio, ratio);
+            }
+
+            double positiveRatio = Math.Max(0D, Math.Min(1D, (value - min) / (max - min)));
+            return (0D, positiveRatio);
+        }
+
+        private readonly struct ConditionalNumericCell {
+            internal ConditionalNumericCell(ExcelVisualCell cell, double value) {
+                Cell = cell;
+                Value = value;
+            }
+
+            internal ExcelVisualCell Cell { get; }
+
+            internal double Value { get; }
+        }
+    }
+
+    internal sealed class ExcelConditionalVisualState {
+        internal static readonly ExcelConditionalVisualState Empty = new ExcelConditionalVisualState(
+            new Dictionary<string, string>(StringComparer.Ordinal),
+            Array.Empty<ExcelVisualConditionalDataBar>());
+
+        internal ExcelConditionalVisualState(
+            IReadOnlyDictionary<string, string> fillColors,
+            IReadOnlyList<ExcelVisualConditionalDataBar> dataBars) {
+            FillColors = fillColors;
+            DataBars = dataBars;
+        }
+
+        internal IReadOnlyDictionary<string, string> FillColors { get; }
+
+        internal IReadOnlyList<ExcelVisualConditionalDataBar> DataBars { get; }
+    }
+}

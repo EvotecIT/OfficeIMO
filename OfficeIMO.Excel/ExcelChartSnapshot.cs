@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Excel {
     /// <summary>
@@ -13,7 +15,10 @@ namespace OfficeIMO.Excel {
             int rowIndex,
             int columnIndex,
             int widthPixels,
-            int heightPixels) {
+            int heightPixels,
+            OfficeChartStyle? style = null,
+            OfficeChartLayout? layout = null,
+            IReadOnlyList<OfficeImageExportDiagnostic>? diagnostics = null) {
             Name = name ?? string.Empty;
             Title = title;
             ChartType = chartType;
@@ -22,6 +27,9 @@ namespace OfficeIMO.Excel {
             ColumnIndex = columnIndex;
             WidthPixels = widthPixels;
             HeightPixels = heightPixels;
+            Style = style;
+            Layout = layout;
+            Diagnostics = diagnostics ?? Array.Empty<OfficeImageExportDiagnostic>();
         }
 
         /// <summary>Chart drawing name.</summary>
@@ -47,5 +55,14 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Chart height in pixels when known.</summary>
         public int HeightPixels { get; }
+
+        /// <summary>Shared rendering style metadata extracted from the chart, when available.</summary>
+        public OfficeChartStyle? Style { get; }
+
+        /// <summary>Shared rendering layout metadata extracted from the chart, when available.</summary>
+        public OfficeChartLayout? Layout { get; }
+
+        /// <summary>Diagnostics for authored chart features that the shared image renderer approximates or cannot render yet.</summary>
+        public IReadOnlyList<OfficeImageExportDiagnostic> Diagnostics { get; }
     }
 }

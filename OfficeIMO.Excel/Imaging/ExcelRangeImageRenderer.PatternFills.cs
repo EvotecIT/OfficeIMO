@@ -1,0 +1,227 @@
+using System.Text;
+using OfficeIMO.Drawing;
+
+namespace OfficeIMO.Excel {
+    internal static partial class ExcelRangeImageRenderer {
+        private static void DrawRasterCellFill(
+            OfficeRasterCanvas canvas,
+            ExcelVisualCell cell,
+            ExcelRangeVisualSnapshot snapshot,
+            ExcelImageExportOptions options,
+            double scale,
+            List<OfficeImageExportDiagnostic>? diagnostics) {
+            string pattern = NormalizeFillPattern(cell.Style.FillPatternType);
+            OfficeColor background = ResolveFillBackground(cell.Style, options);
+            double x = cell.X * scale;
+            double y = cell.Y * scale;
+            double w = cell.Width * scale;
+            double h = cell.Height * scale;
+            OfficeLinearGradient? gradient = CreateLinearGradient(cell.Style);
+
+            if (gradient != null) {
+                canvas.FillLinearGradientRectangle(x, y, w, h, gradient);
+            } else {
+                canvas.FillRectangle(x, y, w, h, background);
+                AddGradientDiagnosticIfNeeded(snapshot, cell, diagnostics);
+            }
+
+            if (!IsPatternFill(pattern)) {
+                return;
+            }
+
+            AddPatternApproximationDiagnostic(snapshot, cell, pattern, diagnostics);
+            OfficeColor foreground = ResolveFillForeground(cell.Style, background);
+            using (canvas.PushClipRectangle(x, y, w, h)) {
+                DrawRasterPattern(canvas, x, y, w, h, pattern, foreground, scale);
+            }
+        }
+
+        private static void AppendSvgCellFill(
+            StringBuilder builder,
+            ExcelVisualCell cell,
+            ExcelRangeVisualSnapshot snapshot,
+            ExcelImageExportOptions options,
+            double scale,
+            List<OfficeImageExportDiagnostic>? diagnostics) {
+            string pattern = NormalizeFillPattern(cell.Style.FillPatternType);
+            OfficeColor background = ResolveFillBackground(cell.Style, options);
+            double x = cell.X * scale;
+            double y = cell.Y * scale;
+            double w = cell.Width * scale;
+            double h = cell.Height * scale;
+            OfficeLinearGradient? gradient = CreateLinearGradient(cell.Style);
+
+            string? gradientId = null;
+            if (gradient != null) {
+                gradientId = "xl-gradient-" + cell.Row.ToString(System.Globalization.CultureInfo.InvariantCulture) + "-" + cell.Column.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                builder.AppendLinearGradientDefinition(gradientId, gradient);
+            }
+
+            var fillAttributes = new StringBuilder();
+            if (gradientId != null) {
+                fillAttributes.AppendAttribute("fill", "url(#" + gradientId + ")");
+            } else {
+                fillAttributes.AppendPaintAttribute("fill", background);
+                AddGradientDiagnosticIfNeeded(snapshot, cell, diagnostics);
+            }
+
+            builder.AppendRectElement(x, y, w, h, fillAttributes.ToString());
+            if (!IsPatternFill(pattern)) {
+                return;
+            }
+
+            AddPatternApproximationDiagnostic(snapshot, cell, pattern, diagnostics);
+            OfficeColor foreground = ResolveFillForeground(cell.Style, background);
+            string clipId = "xl-fill-" + cell.Row.ToString(System.Globalization.CultureInfo.InvariantCulture) + "-" + cell.Column.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            builder.AppendRectClipPathDefinition(clipId, x, y, w, h);
+            builder.Append("<g").AppendClipPathReference(clipId).Append(">");
+            AppendSvgPattern(builder, x, y, w, h, pattern, foreground, scale);
+            builder.Append("</g>");
+        }
+
+        private static OfficeColor ResolveFillBackground(ExcelCellStyleSnapshot style, ExcelImageExportOptions options) {
+            string pattern = NormalizeFillPattern(style.FillPatternType);
+            if (pattern == "solid") {
+                return ResolveArgb(style.FillColorArgb)
+                    ?? ResolveArgb(style.FillPatternForegroundColorArgb)
+                    ?? ResolveArgb(style.FillPatternBackgroundColorArgb)
+                    ?? options.BackgroundColor;
+            }
+
+            return ResolveArgb(style.FillPatternBackgroundColorArgb)
+                ?? ResolveArgb(style.FillColorArgb)
+                ?? options.BackgroundColor;
+        }
+
+        private static OfficeColor ResolveFillForeground(ExcelCellStyleSnapshot style, OfficeColor background) =>
+            ResolveArgb(style.FillPatternForegroundColorArgb)
+            ?? ResolveArgb(style.FillColorArgb)
+            ?? OfficeColor.FromRgba(background.R, background.G, background.B, 180);
+
+        private static OfficeLinearGradient? CreateLinearGradient(ExcelCellStyleSnapshot style) {
+            if (style.FillGradientStartColorArgb == null || style.FillGradientEndColorArgb == null) {
+                return null;
+            }
+
+            OfficeColor? start = ResolveArgb(style.FillGradientStartColorArgb);
+            OfficeColor? end = ResolveArgb(style.FillGradientEndColorArgb);
+            if (!start.HasValue || !end.HasValue) {
+                return null;
+            }
+
+            double degree = style.FillGradientDegree ?? 0D;
+            double radians = NormalizeDegrees(degree) * Math.PI / 180D;
+            double dx = Math.Cos(radians);
+            double dy = Math.Sin(radians);
+            double divisor = Math.Max(Math.Abs(dx), Math.Abs(dy));
+            if (divisor <= double.Epsilon) {
+                return OfficeLinearGradient.Horizontal(start.Value, end.Value);
+            }
+
+            double half = 0.5D / divisor;
+            double startX = 0.5D - (dx * half);
+            double startY = 0.5D - (dy * half);
+            double endX = 0.5D + (dx * half);
+            double endY = 0.5D + (dy * half);
+            return new OfficeLinearGradient(
+                ClampUnit(startX),
+                ClampUnit(startY),
+                ClampUnit(endX),
+                ClampUnit(endY),
+                new OfficeGradientStop(0D, start.Value),
+                new OfficeGradientStop(1D, end.Value));
+        }
+
+        private static double NormalizeDegrees(double degree) {
+            double normalized = degree % 360D;
+            return normalized < 0D ? normalized + 360D : normalized;
+        }
+
+        private static double ClampUnit(double value) => value < 0D ? 0D : value > 1D ? 1D : value;
+
+        private static string NormalizeFillPattern(string? pattern) {
+            if (string.IsNullOrWhiteSpace(pattern)) {
+                return string.Empty;
+            }
+
+            return pattern!.Trim().Replace("_", string.Empty).Replace("-", string.Empty).ToLowerInvariant();
+        }
+
+        private static bool IsPatternFill(string pattern) =>
+            pattern.Length > 0 && pattern != "none" && pattern != "solid" && pattern != "gradient";
+
+        private static void DrawRasterPattern(OfficeRasterCanvas canvas, double x, double y, double w, double h, string pattern, OfficeColor foreground, double scale) {
+            PatternMetrics metrics = GetPatternMetrics(pattern, scale);
+            canvas.DrawHatchPatternRectangle(x, y, w, h, foreground, metrics.Step, metrics.Width, MapExcelPatternToHatchPattern(pattern));
+        }
+
+        private static void AppendSvgPattern(StringBuilder builder, double x, double y, double w, double h, string pattern, OfficeColor foreground, double scale) {
+            PatternMetrics metrics = GetPatternMetrics(pattern, scale);
+            builder.AppendHatchPatternRectangle(x, y, w, h, foreground, metrics.Step, metrics.Width, MapExcelPatternToHatchPattern(pattern));
+        }
+
+        private static OfficeHatchPatternKind MapExcelPatternToHatchPattern(string pattern) {
+            switch (pattern) {
+                case "lighthorizontal":
+                case "darkhorizontal":
+                    return OfficeHatchPatternKind.Horizontal;
+                case "lightvertical":
+                case "darkvertical":
+                    return OfficeHatchPatternKind.Vertical;
+                case "lightdown":
+                case "darkdown":
+                    return OfficeHatchPatternKind.DiagonalDown;
+                case "lightup":
+                case "darkup":
+                    return OfficeHatchPatternKind.DiagonalUp;
+                case "lightgrid":
+                case "darkgrid":
+                    return OfficeHatchPatternKind.Grid;
+                case "lighttrellis":
+                case "darktrellis":
+                    return OfficeHatchPatternKind.Trellis;
+                default:
+                    return OfficeHatchPatternKind.Dotted;
+            }
+        }
+
+        private static PatternMetrics GetPatternMetrics(string pattern, double scale) {
+            bool dark = pattern.StartsWith("dark", StringComparison.Ordinal) || pattern == "darkgray";
+            bool medium = pattern == "mediumgray" || pattern == "gray125";
+            double step = Math.Max(3D, (dark ? 5D : medium ? 6D : 8D) * scale);
+            double width = Math.Max(1D, (dark ? 1.5D : 1D) * scale);
+            return new PatternMetrics(step, width);
+        }
+
+        private static void AddGradientDiagnosticIfNeeded(ExcelRangeVisualSnapshot snapshot, ExcelVisualCell cell, List<OfficeImageExportDiagnostic>? diagnostics) {
+            if (!cell.Style.FillGradientUnsupported) {
+                return;
+            }
+
+            diagnostics?.Add(new OfficeImageExportDiagnostic(
+                OfficeImageExportDiagnosticSeverity.Warning,
+                ExcelImageExportDiagnosticCodes.FillGradientUnsupported,
+                "Excel gradient cell fill is not rendered by the dependency-free image exporter yet.",
+                GetCellDiagnosticSource(snapshot, cell)));
+        }
+
+        private static void AddPatternApproximationDiagnostic(ExcelRangeVisualSnapshot snapshot, ExcelVisualCell cell, string pattern, List<OfficeImageExportDiagnostic>? diagnostics) {
+            diagnostics?.Add(new OfficeImageExportDiagnostic(
+                OfficeImageExportDiagnosticSeverity.Info,
+                ExcelImageExportDiagnosticCodes.FillPatternApproximation,
+                "Excel pattern cell fill '" + pattern + "' is rendered as a deterministic hatch approximation.",
+                GetCellDiagnosticSource(snapshot, cell)));
+        }
+
+        private readonly struct PatternMetrics {
+            internal PatternMetrics(double step, double width) {
+                Step = step;
+                Width = width;
+            }
+
+            internal double Step { get; }
+
+            internal double Width { get; }
+        }
+    }
+}

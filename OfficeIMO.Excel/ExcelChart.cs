@@ -16,6 +16,7 @@ namespace OfficeIMO.Excel {
         private readonly Xdr.GraphicFrame _frame;
         private readonly DrawingsPart _drawingsPart;
         private readonly ExcelDocument _document;
+        private readonly string _sheetName;
         private ExcelChartDataRange? _dataRange;
 
         internal ExcelChart(Xdr.GraphicFrame frame, DrawingsPart drawingsPart, ExcelSheet sheet, ExcelChartDataRange? dataRange = null) {
@@ -23,6 +24,7 @@ namespace OfficeIMO.Excel {
             _drawingsPart = drawingsPart ?? throw new ArgumentNullException(nameof(drawingsPart));
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
             _document = sheet.Document;
+            _sheetName = sheet.Name;
             _dataRange = dataRange;
         }
 
@@ -43,6 +45,11 @@ namespace OfficeIMO.Excel {
         /// Gets the chart data range when it is known.
         /// </summary>
         public ExcelChartDataRange? DataRange => _dataRange;
+
+        /// <summary>
+        /// Gets this chart anchor's zero-based order in the worksheet drawing layer.
+        /// </summary>
+        public int DrawingOrder => GetDrawingOrder();
 
         /// <summary>
         /// Gets the detected chart type.
@@ -79,6 +86,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 chartData = ExcelChartUtils.ApplyChartSeriesTypes(chartPart, chartData, ChartType);
+                chartData = ApplyImageExportSeriesStyles(chartPart, chartData);
                 _dataRange = range;
                 data = chartData;
                 return true;
@@ -105,7 +113,10 @@ namespace OfficeIMO.Excel {
                 GetAnchorRow(),
                 GetAnchorColumn(),
                 GetAnchorWidthPixels(),
-                GetAnchorHeightPixels());
+                GetAnchorHeightPixels(),
+                CreateImageExportStyle(),
+                CreateImageExportLayout(),
+                CreateImageExportDiagnostics());
             return true;
         }
 
@@ -393,6 +404,24 @@ namespace OfficeIMO.Excel {
 
             long? emu = _frame.Ancestors<Xdr.OneCellAnchor>().FirstOrDefault()?.Extent?.Cy?.Value;
             return EmuToPixels(emu, 320);
+        }
+
+        private int GetDrawingOrder() {
+            OpenXmlElement? anchor = _frame.Ancestors<Xdr.OneCellAnchor>().FirstOrDefault()
+                ?? (OpenXmlElement?)_frame.Ancestors<Xdr.TwoCellAnchor>().FirstOrDefault();
+            Xdr.WorksheetDrawing? worksheetDrawing = _drawingsPart.WorksheetDrawing;
+            if (anchor == null || worksheetDrawing == null) {
+                return 0;
+            }
+
+            OpenXmlElementList children = worksheetDrawing.ChildElements;
+            for (int i = 0; i < children.Count; i++) {
+                if (ReferenceEquals(children[i], anchor)) {
+                    return i;
+                }
+            }
+
+            return 0;
         }
 
         private static bool TryGetTwoCellAnchorSizePixels(Xdr.TwoCellAnchor? anchor, bool horizontal, out int pixels) {

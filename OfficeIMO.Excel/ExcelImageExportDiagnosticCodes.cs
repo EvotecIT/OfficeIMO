@@ -1,0 +1,179 @@
+namespace OfficeIMO.Excel;
+
+/// <summary>
+/// Stable diagnostic codes emitted by Excel image export.
+/// </summary>
+/// <remarks>
+/// These values are part of the image-export contract so callers can filter or
+/// assert known unsupported and approximate rendering cases without copying
+/// string literals.
+/// </remarks>
+public static class ExcelImageExportDiagnosticCodes {
+    /// <summary>Cell text was clipped or ellipsized to fit rendered bounds.</summary>
+    public const string CellTextClipped = "ExcelCellTextClipped";
+
+    /// <summary>Cell text rotation was rendered through an approximate path.</summary>
+    public const string CellTextRotationApproximation = "ExcelCellTextRotationApproximation";
+
+    /// <summary>Stacked vertical cell text is not rendered exactly yet.</summary>
+    public const string CellStackedTextRotationUnsupported = "ExcelCellStackedTextRotationUnsupported";
+
+    /// <summary>The cell requested a text rotation value outside the supported range.</summary>
+    public const string CellTextRotationUnsupported = "ExcelCellTextRotationUnsupported";
+
+    /// <summary>Rich text fell back to an approximate or plain-text layout path.</summary>
+    public const string CellRichTextLayoutApproximation = "ExcelCellRichTextLayoutApproximation";
+
+    /// <summary>Excel gradient fills are not rendered by the dependency-free exporter yet.</summary>
+    public const string FillGradientUnsupported = "ExcelFillGradientUnsupported";
+
+    /// <summary>Excel pattern fills are rendered as deterministic hatch approximations.</summary>
+    public const string FillPatternApproximation = "ExcelFillPatternApproximation";
+
+    /// <summary>Unsupported conditional formatting rule type.</summary>
+    public const string ConditionalRuleUnsupported = "ExcelConditionalRuleUnsupported";
+
+    /// <summary>Unsupported conditional formatting icon set.</summary>
+    public const string ConditionalIconSetUnsupported = "ExcelConditionalIconSetUnsupported";
+
+    /// <summary>Unsupported conditional formatting color scale variant.</summary>
+    public const string ConditionalColorScaleUnsupported = "ExcelConditionalColorScaleUnsupported";
+
+    /// <summary>Unsupported conditional formatting data bar variant.</summary>
+    public const string ConditionalDataBarUnsupported = "ExcelConditionalDataBarUnsupported";
+
+    /// <summary>Unsupported conditional formatting cell-is expression.</summary>
+    public const string ConditionalCellIsUnsupported = "ExcelConditionalCellIsUnsupported";
+
+    /// <summary>Unsupported conditional formatting formula expression.</summary>
+    public const string ConditionalFormulaUnsupported = "ExcelConditionalFormulaUnsupported";
+
+    /// <summary>Unsupported conditional formatting top/bottom variant.</summary>
+    public const string ConditionalTopBottomUnsupported = "ExcelConditionalTopBottomUnsupported";
+
+    /// <summary>Unsupported conditional formatting above/below-average variant.</summary>
+    public const string ConditionalAboveAverageUnsupported = "ExcelConditionalAboveAverageUnsupported";
+
+    /// <summary>Unsupported conditional formatting text-rule variant.</summary>
+    public const string ConditionalTextRuleUnsupported = "ExcelConditionalTextRuleUnsupported";
+
+    /// <summary>Unsupported conditional formatting differential-format feature.</summary>
+    public const string ConditionalDifferentialFormatUnsupported = "ExcelConditionalDifferentialFormatUnsupported";
+
+    /// <summary>Unsupported raster image format for PNG export.</summary>
+    public const string ImageRasterFormatUnsupported = "ExcelImageRasterFormatUnsupported";
+
+    /// <summary>Unsupported image format for SVG embedding.</summary>
+    public const string ImageSvgFormatUnsupported = "ExcelImageSvgFormatUnsupported";
+
+    /// <summary>PNG image bytes could not be decoded by the dependency-free exporter.</summary>
+    public const string ImagePngDecodeUnavailable = "ExcelImagePngDecodeUnavailable";
+
+    /// <summary>Worksheet image bytes could not be read.</summary>
+    public const string ImageBytesMissing = "ExcelImageBytesMissing";
+
+    /// <summary>Worksheet image was omitted because its anchor row or column is hidden.</summary>
+    public const string ImageAnchorHidden = "ExcelImageAnchorHidden";
+
+    /// <summary>Worksheet chart was omitted because its anchor row or column is hidden.</summary>
+    public const string ChartAnchorHidden = "ExcelChartAnchorHidden";
+
+    /// <summary>Worksheet drawing shape was omitted because its anchor row or column is hidden.</summary>
+    public const string DrawingShapeAnchorHidden = "ExcelDrawingShapeAnchorHidden";
+
+    /// <summary>Hidden rows were omitted from the exported visual range.</summary>
+    public const string HiddenRowsOmitted = "ExcelHiddenRowsOmitted";
+
+    /// <summary>Hidden columns were omitted from the exported visual range.</summary>
+    public const string HiddenColumnsOmitted = "ExcelHiddenColumnsOmitted";
+
+    /// <summary>Classic comment or note bodies are not rendered yet.</summary>
+    public const string CellCommentUnsupported = "ExcelCellCommentUnsupported";
+
+    /// <summary>Classic comment or note bodies are rendered as dependency-free callout approximations.</summary>
+    public const string CellCommentBodyApproximation = "ExcelCellCommentBodyApproximation";
+
+    /// <summary>Threaded comment bodies are not rendered yet.</summary>
+    public const string ThreadedCommentUnsupported = "ExcelThreadedCommentUnsupported";
+
+    /// <summary>Threaded comment bodies are rendered as dependency-free callout approximations.</summary>
+    public const string ThreadedCommentBodyApproximation = "ExcelThreadedCommentBodyApproximation";
+
+    /// <summary>Worksheet drawing shape is not renderable by the current image exporter.</summary>
+    public const string DrawingShapeUnsupported = "ExcelDrawingShapeUnsupported";
+
+    /// <summary>Worksheet chart could not be converted to a renderable snapshot.</summary>
+    public const string ChartSnapshotUnavailable = "ExcelChartSnapshotUnavailable";
+
+    /// <summary>Chart kind is rendered through an approximate chart snapshot.</summary>
+    public const string ChartKindApproximated = "ExcelChartKindApproximated";
+
+    /// <summary>Chart kind is not rendered by the dependency-free image exporter yet.</summary>
+    public const string ChartKindUnsupported = "ExcelChartKindUnsupported";
+
+    /// <summary>Chart trendline rendering is not supported yet.</summary>
+    public const string ChartTrendlineUnsupported = "ExcelChartTrendlineUnsupported";
+
+    /// <summary>Point-level data-label overrides are approximated.</summary>
+    public const string ChartDataLabelPointOverridesApproximated = "ExcelChartDataLabelPointOverridesApproximated";
+
+    /// <summary>Data-label leader lines are not rendered yet.</summary>
+    public const string ChartDataLabelLeaderLinesUnsupported = "ExcelChartDataLabelLeaderLinesUnsupported";
+
+    /// <summary>Chart or plot area styling is approximate.</summary>
+    public const string ChartAreaStyleApproximation = "ExcelChartAreaStyleApproximation";
+
+    /// <summary>Chart gridline styling is approximate.</summary>
+    public const string ChartGridlineStyleApproximation = "ExcelChartGridlineStyleApproximation";
+
+    /// <summary>Chart axis styling is approximate.</summary>
+    public const string ChartAxisStyleApproximation = "ExcelChartAxisStyleApproximation";
+
+    /// <summary>Chart axis tick-label placement is approximate.</summary>
+    public const string ChartAxisTickLabelPositionApproximation = "ExcelChartAxisTickLabelPositionApproximation";
+
+    /// <summary>Chart axis minor tick-mark placement is approximate.</summary>
+    public const string ChartAxisMinorTickMarkPlacementApproximation = "ExcelChartAxisMinorTickMarkPlacementApproximation";
+
+    /// <summary>Chart axis crossing behavior is approximate.</summary>
+    public const string ChartAxisCrossingApproximation = "ExcelChartAxisCrossingApproximation";
+
+    /// <summary>Chart axis scaling behavior is approximate.</summary>
+    public const string ChartAxisScaleApproximation = "ExcelChartAxisScaleApproximation";
+
+    /// <summary>Chart axis number formatting is approximate.</summary>
+    public const string ChartAxisNumberFormatApproximation = "ExcelChartAxisNumberFormatApproximation";
+
+    /// <summary>Category/date-axis number formatting is not supported yet.</summary>
+    public const string ChartCategoryAxisNumberFormatUnsupported = "ExcelChartCategoryAxisNumberFormatUnsupported";
+
+    /// <summary>Chart text styling is approximate.</summary>
+    public const string ChartTextStyleApproximation = "ExcelChartTextStyleApproximation";
+
+    /// <summary>Chart series styling is approximate.</summary>
+    public const string ChartSeriesStyleApproximation = "ExcelChartSeriesStyleApproximation";
+
+    /// <summary>Print-area export was requested but the worksheet has no print area.</summary>
+    public const string PrintAreaMissing = "ExcelPrintAreaMissing";
+
+    /// <summary>Multi-area print ranges are not supported by image export yet.</summary>
+    public const string PrintAreaMultipleAreasUnsupported = "ExcelPrintAreaMultipleAreasUnsupported";
+
+    /// <summary>Configured print area could not be used by image export.</summary>
+    public const string PrintAreaUnsupported = "ExcelPrintAreaUnsupported";
+
+    /// <summary>Sparkline kind is not rendered by the image exporter yet.</summary>
+    public const string SparklineKindUnsupported = "ExcelSparklineKindUnsupported";
+
+    /// <summary>Sparkline data range could not be resolved.</summary>
+    public const string SparklineRangeUnsupported = "ExcelSparklineRangeUnsupported";
+
+    /// <summary>External sparkline data ranges are not rendered yet.</summary>
+    public const string SparklineExternalRangeUnsupported = "ExcelSparklineExternalRangeUnsupported";
+
+    /// <summary>Sparkline data is missing.</summary>
+    public const string SparklineDataMissing = "ExcelSparklineDataMissing";
+
+    /// <summary>Sparklines are rendered as deterministic approximations.</summary>
+    public const string SparklineRenderingApproximation = "ExcelSparklineRenderingApproximation";
+}

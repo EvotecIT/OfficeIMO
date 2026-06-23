@@ -60,6 +60,23 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Applies a font size to a single cell.
+        /// </summary>
+        /// <param name="row">The 1-based row index of the cell to modify.</param>
+        /// <param name="column">The 1-based column index of the cell to modify.</param>
+        /// <param name="fontSize">The font size in points.</param>
+        public void CellFontSize(int row, int column, double fontSize) {
+            if (fontSize <= 0D || double.IsNaN(fontSize) || double.IsInfinity(fontSize)) {
+                throw new ArgumentOutOfRangeException(nameof(fontSize), "Font size must be a positive finite value.");
+            }
+
+            WriteLockConditional(() => {
+                var cell = GetCell(row, column);
+                ApplyFontSize(cell, fontSize);
+            });
+        }
+
+        /// <summary>
         /// Applies solid background to a single cell. Accepts #RRGGBB or #AARRGGBB.
         /// </summary>
         /// <param name="row">The 1-based row index of the cell to fill.</param>
@@ -395,6 +412,64 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Sets or clears shrink-to-fit text alignment on a single cell.
+        /// </summary>
+        /// <param name="row">The 1-based row index of the cell to align.</param>
+        /// <param name="column">The 1-based column index of the cell to align.</param>
+        /// <param name="shrinkToFit">Whether cell text should shrink horizontally to fit.</param>
+        public void CellShrinkToFit(int row, int column, bool shrinkToFit = true) {
+            WriteLockConditional(() => {
+                var cell = GetCell(row, column);
+                var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
+                var stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
+                var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
+                EnsureDefaultStylePrimitives(stylesheet);
+
+                ApplyCellFormatOverride(stylesheet, cell, format => {
+                    var existingAlignment = format.Alignment != null
+                        ? (Alignment)format.Alignment.CloneNode(true)
+                        : new Alignment();
+                    existingAlignment.ShrinkToFit = shrinkToFit;
+                    format.Alignment = existingAlignment;
+                    format.ApplyAlignment = true;
+                });
+
+                stylesPart.Stylesheet.Save();
+            });
+        }
+
+        /// <summary>
+        /// Applies Excel text rotation to a single cell.
+        /// </summary>
+        /// <param name="row">The 1-based row index of the cell to align.</param>
+        /// <param name="column">The 1-based column index of the cell to align.</param>
+        /// <param name="rotation">Open XML text rotation value. Use 0-90 for upward rotation, 91-180 for downward rotation, or 255 for stacked vertical text.</param>
+        public void CellTextRotation(int row, int column, int rotation) {
+            if ((rotation < 0 || rotation > 180) && rotation != 255) {
+                throw new ArgumentOutOfRangeException(nameof(rotation), "Text rotation must be between 0 and 180, or 255 for stacked vertical text.");
+            }
+
+            WriteLockConditional(() => {
+                var cell = GetCell(row, column);
+                var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
+                var stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
+                var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
+                EnsureDefaultStylePrimitives(stylesheet);
+
+                ApplyCellFormatOverride(stylesheet, cell, format => {
+                    var existingAlignment = format.Alignment != null
+                        ? (Alignment)format.Alignment.CloneNode(true)
+                        : new Alignment();
+                    existingAlignment.TextRotation = (UInt32Value)(uint)rotation;
+                    format.Alignment = existingAlignment;
+                    format.ApplyAlignment = true;
+                });
+
+                stylesPart.Stylesheet.Save();
+            });
+        }
+
+        /// <summary>
         /// Applies a vertical alignment to a single cell.
         /// </summary>
         /// <param name="row">The 1-based row index of the cell to align.</param>
@@ -575,6 +650,25 @@ namespace OfficeIMO.Excel {
             var namedFontId = GetOrCreateFontVariant(stylesheet, GetOptionalValue(baseFormat.FontId), font => SetFontName(font, fontName));
             ApplyCellFormatOverride(stylesheet, cell, format => {
                 format.FontId = namedFontId;
+                format.ApplyFont = true;
+            });
+            stylesPart.Stylesheet.Save();
+        }
+
+        private void ApplyFontSize(Cell cell, double fontSize) {
+            var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
+            var stylesPart = workbookPart.WorkbookStylesPart;
+            if (stylesPart == null)
+                stylesPart = workbookPart.AddNewPart<WorkbookStylesPart>();
+
+            var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
+            EnsureDefaultStylePrimitives(stylesheet);
+
+            uint baseIndex = cell.StyleIndex?.Value ?? 0U;
+            var baseFormat = GetBaseCellFormat(stylesheet, baseIndex);
+            var fontId = GetOrCreateFontVariant(stylesheet, GetOptionalValue(baseFormat.FontId), font => SetFontSize(font, fontSize));
+            ApplyCellFormatOverride(stylesheet, cell, format => {
+                format.FontId = fontId;
                 format.ApplyFont = true;
             });
             stylesPart.Stylesheet.Save();

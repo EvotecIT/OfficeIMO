@@ -10,14 +10,37 @@ namespace OfficeIMO.Excel {
         /// <param name="range">A1-style range to apply the rule to.</param>
         /// <param name="operator">Comparison operator for the rule.</param>
         /// <param name="formula1">Primary formula or value.</param>
+        public void AddConditionalRule(string range, ConditionalFormattingOperatorValues @operator, string formula1) {
+            AddConditionalRule(range, @operator, formula1, null, null);
+        }
+
+        /// <summary>
+        /// Adds a conditional formatting rule to the specified range.
+        /// </summary>
+        /// <param name="range">A1-style range to apply the rule to.</param>
+        /// <param name="operator">Comparison operator for the rule.</param>
+        /// <param name="formula1">Primary formula or value.</param>
         /// <param name="formula2">Optional secondary formula or value.</param>
-        public void AddConditionalRule(string range, ConditionalFormattingOperatorValues @operator, string formula1, string? formula2 = null) {
+        public void AddConditionalRule(string range, ConditionalFormattingOperatorValues @operator, string formula1, string? formula2) {
+            AddConditionalRule(range, @operator, formula1, formula2, null);
+        }
+
+        /// <summary>
+        /// Adds a conditional formatting rule to the specified range.
+        /// </summary>
+        /// <param name="range">A1-style range to apply the rule to.</param>
+        /// <param name="operator">Comparison operator for the rule.</param>
+        /// <param name="formula1">Primary formula or value.</param>
+        /// <param name="formula2">Optional secondary formula or value.</param>
+        /// <param name="fillColor">Optional fill color applied when the condition is true.</param>
+        public void AddConditionalRule(string range, ConditionalFormattingOperatorValues @operator, string formula1, string? formula2 = null, string? fillColor = null) {
             if (string.IsNullOrEmpty(range)) {
                 throw new ArgumentNullException(nameof(range));
             }
 
             using var preserveDirectDataSet = _excelDocument.PreserveDirectDataSetSaveCandidateDuringDirtyMarks();
             WriteLockWorksheetPreparationOnly(() => {
+                _excelDocument.EnsureWorkbookThemeAndStyles();
                 Worksheet worksheet = WorksheetRoot;
 
                 ConditionalFormatting conditionalFormatting = new ConditionalFormatting {
@@ -33,6 +56,10 @@ namespace OfficeIMO.Excel {
                 rule.Append(new Formula(formula1));
                 if (formula2 != null) {
                     rule.Append(new Formula(formula2));
+                }
+
+                if (!string.IsNullOrWhiteSpace(fillColor)) {
+                    rule.FormatId = GetOrCreateDifferentialFillFormatId(fillColor!);
                 }
 
                 conditionalFormatting.Append(rule);

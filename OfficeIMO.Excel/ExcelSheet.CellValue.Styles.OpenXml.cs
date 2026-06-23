@@ -161,6 +161,12 @@ namespace OfficeIMO.Excel {
             };
         }
 
+        private static void SetFontSize(DocumentFormat.OpenXml.Spreadsheet.Font font, double fontSize) {
+            font.FontSize = new FontSize {
+                Val = fontSize
+            };
+        }
+
         private static void SetUniformBorder(Border border, BorderStyleValues style, string? hexColor) {
             var argb = string.IsNullOrWhiteSpace(hexColor) ? null : NormalizeHexColor(hexColor!);
             border.LeftBorder = CreateBorderSide<LeftBorder>(style, argb);

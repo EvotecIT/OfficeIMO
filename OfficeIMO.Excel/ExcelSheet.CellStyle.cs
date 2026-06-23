@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Excel.Utilities;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelCell {
@@ -33,6 +34,7 @@ namespace OfficeIMO.Excel {
             Border? border = stylesheet.Borders?.Elements<Border>().ElementAtOrDefault((int)(format.BorderId?.Value ?? 0U));
             uint numberFormatId = format.NumberFormatId?.Value ?? 0U;
             string? numberFormatCode = GetNumberFormatCode(stylesheet, numberFormatId);
+            bool hasSimpleGradient = ExcelGradientFillResolver.TryResolveSimpleLinearGradient(fill, workbookPart, out ExcelGradientFillInfo gradient);
 
             return new ExcelCellStyleSnapshot {
                 StyleIndex = cell.StyleIndex?.Value ?? 0U,
@@ -43,35 +45,85 @@ namespace OfficeIMO.Excel {
                 Italic = font?.Italic != null,
                 Underline = font?.Underline != null,
                 FontName = font?.FontName?.Val?.Value,
-                FontColorArgb = NormalizeReadArgb(font?.Color?.Rgb?.Value),
-                FillColorArgb = GetFillArgb(fill),
-                Border = BuildBorderSnapshot(border),
+                FontSize = font?.FontSize?.Val?.Value,
+                FontColorArgb = ExcelThemeColorResolver.Resolve(font?.Color, workbookPart),
+                FillColorArgb = GetFillArgb(fill, workbookPart),
+                FillPatternType = GetFillPatternType(fill),
+                FillPatternForegroundColorArgb = GetFillPatternForegroundArgb(fill, workbookPart),
+                FillPatternBackgroundColorArgb = GetFillPatternBackgroundArgb(fill, workbookPart),
+                FillGradientUnsupported = fill?.GradientFill != null && !hasSimpleGradient,
+                FillGradientStartColorArgb = hasSimpleGradient ? gradient.StartColorArgb : null,
+                FillGradientEndColorArgb = hasSimpleGradient ? gradient.EndColorArgb : null,
+                FillGradientDegree = hasSimpleGradient ? gradient.Degree : null,
+                Border = BuildBorderSnapshot(border, workbookPart),
                 HorizontalAlignment = format.Alignment?.Horizontal?.InnerText,
                 VerticalAlignment = format.Alignment?.Vertical?.InnerText,
-                WrapText = format.Alignment?.WrapText?.Value == true
+                TextRotation = ToTextRotation(format.Alignment?.TextRotation?.Value),
+                WrapText = format.Alignment?.WrapText?.Value == true,
+                ShrinkToFit = format.Alignment?.ShrinkToFit?.Value == true
             };
         }
 
-        private static string? GetFillArgb(Fill? fill) {
-            PatternFill? pattern = fill?.PatternFill;
-            if (pattern == null || pattern.PatternType?.Value != PatternValues.Solid) {
+        private static int? ToTextRotation(uint? value) {
+            if (!value.HasValue) {
                 return null;
             }
 
-            return NormalizeReadArgb(pattern.ForegroundColor?.Rgb?.Value)
-                ?? NormalizeReadArgb(pattern.BackgroundColor?.Rgb?.Value);
+            return value.Value <= int.MaxValue ? (int)value.Value : (int?)null;
         }
 
-        private static ExcelCellBorderSnapshot? BuildBorderSnapshot(Border? border) {
+        private static string? GetFillArgb(Fill? fill, WorkbookPart? workbookPart) {
+            PatternFill? pattern = fill?.PatternFill;
+            if (pattern == null) {
+                return null;
+            }
+
+            if (pattern.PatternType?.Value == PatternValues.Solid) {
+                return ExcelThemeColorResolver.Resolve(pattern.ForegroundColor, workbookPart)
+                    ?? ExcelThemeColorResolver.Resolve(pattern.BackgroundColor, workbookPart);
+            }
+
+            return ExcelThemeColorResolver.Resolve(pattern.BackgroundColor, workbookPart);
+        }
+
+        private static string? GetFillPatternType(Fill? fill) {
+            PatternFill? pattern = fill?.PatternFill;
+            if (pattern?.PatternType?.Value == null) {
+                return fill?.GradientFill != null ? "gradient" : null;
+            }
+
+            if (pattern.PatternType.Value == PatternValues.None) {
+                return null;
+            }
+
+            return NormalizePatternType(pattern.PatternType.InnerText);
+        }
+
+        private static string? GetFillPatternForegroundArgb(Fill? fill, WorkbookPart? workbookPart) {
+            PatternFill? pattern = fill?.PatternFill;
+            return pattern == null ? null : ExcelThemeColorResolver.Resolve(pattern.ForegroundColor, workbookPart);
+        }
+
+        private static string? GetFillPatternBackgroundArgb(Fill? fill, WorkbookPart? workbookPart) {
+            PatternFill? pattern = fill?.PatternFill;
+            return pattern == null ? null : ExcelThemeColorResolver.Resolve(pattern.BackgroundColor, workbookPart);
+        }
+
+        private static string NormalizePatternType(string? value) {
+            string text = value ?? string.Empty;
+            return string.IsNullOrEmpty(text) ? string.Empty : char.ToLowerInvariant(text[0]) + text.Substring(1);
+        }
+
+        private static ExcelCellBorderSnapshot? BuildBorderSnapshot(Border? border, WorkbookPart? workbookPart) {
             if (border == null) {
                 return null;
             }
 
-            ExcelBorderSideSnapshot? left = BuildBorderSideSnapshot(border.LeftBorder);
-            ExcelBorderSideSnapshot? right = BuildBorderSideSnapshot(border.RightBorder);
-            ExcelBorderSideSnapshot? top = BuildBorderSideSnapshot(border.TopBorder);
-            ExcelBorderSideSnapshot? bottom = BuildBorderSideSnapshot(border.BottomBorder);
-            ExcelBorderSideSnapshot? diagonal = BuildBorderSideSnapshot(border.DiagonalBorder);
+            ExcelBorderSideSnapshot? left = BuildBorderSideSnapshot(border.LeftBorder, workbookPart);
+            ExcelBorderSideSnapshot? right = BuildBorderSideSnapshot(border.RightBorder, workbookPart);
+            ExcelBorderSideSnapshot? top = BuildBorderSideSnapshot(border.TopBorder, workbookPart);
+            ExcelBorderSideSnapshot? bottom = BuildBorderSideSnapshot(border.BottomBorder, workbookPart);
+            ExcelBorderSideSnapshot? diagonal = BuildBorderSideSnapshot(border.DiagonalBorder, workbookPart);
             bool diagonalUp = border.DiagonalUp?.Value == true;
             bool diagonalDown = border.DiagonalDown?.Value == true;
             if (left == null && right == null && top == null && bottom == null && (!diagonalUp && !diagonalDown || diagonal == null)) {
@@ -89,13 +141,13 @@ namespace OfficeIMO.Excel {
             };
         }
 
-        private static ExcelBorderSideSnapshot? BuildBorderSideSnapshot(BorderPropertiesType? borderSide) {
+        private static ExcelBorderSideSnapshot? BuildBorderSideSnapshot(BorderPropertiesType? borderSide, WorkbookPart? workbookPart) {
             if (borderSide == null) {
                 return null;
             }
 
             string? style = ExtractBorderStyle(borderSide);
-            string? colorArgb = NormalizeReadArgb(borderSide.GetFirstChild<Color>()?.Rgb?.Value);
+            string? colorArgb = ExcelThemeColorResolver.Resolve(borderSide.GetFirstChild<Color>(), workbookPart);
             if (string.IsNullOrWhiteSpace(style) && string.IsNullOrWhiteSpace(colorArgb)) {
                 return null;
             }
@@ -144,33 +196,5 @@ namespace OfficeIMO.Excel {
             numberFormatId is 14 or 15 or 16 or 17 or 18 or 19 or 20 or 21 or 22
                 or 27 or 30 or 36 or 45 or 46 or 47;
 
-        private static string? NormalizeReadArgb(string? value) {
-            if (string.IsNullOrWhiteSpace(value)) {
-                return null;
-            }
-
-            string hex = value!.Trim();
-            if (hex.StartsWith("#", StringComparison.Ordinal)) {
-                hex = hex.Substring(1);
-            }
-
-            if (hex.Length == 6) {
-                hex = "FF" + hex;
-            } else if (hex.Length != 8) {
-                return null;
-            }
-
-            for (int i = 0; i < hex.Length; i++) {
-                char ch = hex[i];
-                bool isHex = (ch >= '0' && ch <= '9') ||
-                    (ch >= 'a' && ch <= 'f') ||
-                    (ch >= 'A' && ch <= 'F');
-                if (!isHex) {
-                    return null;
-                }
-            }
-
-            return hex.ToUpperInvariant();
-        }
     }
 }

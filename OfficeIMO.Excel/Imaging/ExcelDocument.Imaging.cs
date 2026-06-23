@@ -1,0 +1,87 @@
+using System.IO;
+using OfficeIMO.Drawing;
+
+namespace OfficeIMO.Excel {
+    public partial class ExcelDocument {
+        /// <summary>
+        /// Exports workbook sheets as PNG or SVG images.
+        /// </summary>
+        public IReadOnlyList<OfficeImageExportResult> ExportImages(OfficeImageExportFormat format, ExcelWorkbookImageExportOptions? options = null) {
+            ExcelWorkbookImageExportOptions resolved = NormalizeWorkbookOptions(options);
+            HashSet<string>? selected = resolved.SheetNames == null
+                ? null
+                : new HashSet<string>(resolved.SheetNames, StringComparer.OrdinalIgnoreCase);
+            var results = new List<OfficeImageExportResult>();
+            foreach (ExcelSheet sheet in Sheets) {
+                if (selected != null && !selected.Contains(sheet.Name)) {
+                    continue;
+                }
+
+                var sheetOptions = new ExcelWorksheetImageExportOptions {
+                    Scale = resolved.Scale,
+                    BackgroundColor = resolved.BackgroundColor,
+                    GridlineColor = resolved.GridlineColor,
+                    ShowGridlines = resolved.ShowGridlines,
+                    IncludeHidden = resolved.IncludeHidden,
+                    IncludeImages = resolved.IncludeImages,
+                    IncludeCharts = resolved.IncludeCharts,
+                    DefaultColumnWidthPixels = resolved.DefaultColumnWidthPixels,
+                    DefaultRowHeightPixels = resolved.DefaultRowHeightPixels,
+                    UsePrintArea = resolved.UseWorksheetPrintAreas
+                };
+                results.Add(sheet.ExportImage(format, sheetOptions));
+            }
+
+            return results.AsReadOnly();
+        }
+
+        /// <summary>
+        /// Saves workbook sheets as PNG files in a folder.
+        /// </summary>
+        public IReadOnlyList<OfficeImageExportResult> SaveAsImages(string folderPath, ExcelWorkbookImageExportOptions? options = null) =>
+            SaveAsImages(folderPath, OfficeImageExportFormat.Png, options);
+
+        /// <summary>
+        /// Saves workbook sheets as image files in a folder.
+        /// </summary>
+        public IReadOnlyList<OfficeImageExportResult> SaveAsImages(string folderPath, OfficeImageExportFormat format, ExcelWorkbookImageExportOptions? options = null) {
+            if (string.IsNullOrWhiteSpace(folderPath)) {
+                throw new ArgumentException("Output folder cannot be null or whitespace.", nameof(folderPath));
+            }
+
+            string fullFolder = Path.GetFullPath(folderPath);
+            Directory.CreateDirectory(fullFolder);
+            IReadOnlyList<OfficeImageExportResult> results = ExportImages(format, options);
+            string extension = format == OfficeImageExportFormat.Svg ? ".svg" : ".png";
+            for (int i = 0; i < results.Count; i++) {
+                OfficeImageExportResult result = results[i];
+                string name = string.IsNullOrWhiteSpace(result.Name) ? "sheet-" + (i + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) : result.Name!;
+                string path = Path.Combine(fullFolder, SanitizeFileName(name) + extension);
+                File.WriteAllBytes(path, result.Bytes);
+            }
+
+            return results;
+        }
+
+        private static ExcelWorkbookImageExportOptions NormalizeWorkbookOptions(ExcelWorkbookImageExportOptions? options) {
+            ExcelWorkbookImageExportOptions resolved = options ?? new ExcelWorkbookImageExportOptions();
+            if (resolved.Scale <= 0D || double.IsNaN(resolved.Scale) || double.IsInfinity(resolved.Scale)) {
+                throw new ArgumentOutOfRangeException(nameof(options), "Scale must be a finite positive number.");
+            }
+
+            return resolved;
+        }
+
+        private static string SanitizeFileName(string name) {
+            char[] invalid = Path.GetInvalidFileNameChars();
+            var chars = name.ToCharArray();
+            for (int i = 0; i < chars.Length; i++) {
+                if (Array.IndexOf(invalid, chars[i]) >= 0) {
+                    chars[i] = '_';
+                }
+            }
+
+            return new string(chars).Trim();
+        }
+    }
+}
