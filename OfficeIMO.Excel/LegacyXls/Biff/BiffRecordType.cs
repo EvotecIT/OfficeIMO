@@ -77,6 +77,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         ObNoMacros = 0x01BD,
         RightMargin = 0x0027,
         Row = 0x0208,
+        RefreshAll = 0x01B7,
         TabId = 0x013D,
         Scl = 0x00A0,
         Selection = 0x001D,

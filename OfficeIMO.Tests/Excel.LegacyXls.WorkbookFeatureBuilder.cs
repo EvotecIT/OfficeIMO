@@ -443,6 +443,7 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "Data"));
                 WriteRecord(stream, 0x01ae, BuildSupBookExternalWorkbookPayload("C:\\Data\\Budget.xls", "Jan", "Feb"));
                 WriteRecord(stream, 0x0023, BuildExternalNamePayload("TaxRate"));
+                WriteRecord(stream, 0x01b7, Array.Empty<byte>());
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 int sheetOffset = checked((int)stream.Position);

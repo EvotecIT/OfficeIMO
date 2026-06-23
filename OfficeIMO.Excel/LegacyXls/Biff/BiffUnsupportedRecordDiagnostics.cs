@@ -373,7 +373,6 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             return type == (ushort)BiffRecordType.ExternName
                 || type == 0x0059 // XCT
                 || type == 0x005A // CRN
-                || type == 0x01B7 // RefreshAll
                 || type == 0x0800 // WebPub
                 || type == 0x0802 // DBQueryExt
                 || type == 0x0804 // TxtQry

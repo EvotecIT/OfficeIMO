@@ -15,11 +15,11 @@ External cell caches: 2
 External cached cells: 914
 Calculation setting records: 61
 Cell style records: 6
-Workbook metadata records: 19
+Workbook metadata records: 20
 Worksheet metadata records: 61
 Unsupported sheet metadata records: 8
-Unsupported features: 1135
-Preserved feature records: 1130
+Unsupported features: 1134
+Preserved feature records: 1129
 Errors: 0
 Warnings: 2
 
@@ -30,7 +30,7 @@ Warnings: 2
 | XLS-BIFF-FEATURE-CHART-SHEET-UNSUPPORTED | 4 |
 | XLS-BIFF-FEATURE-CHART-UNSUPPORTED | 1079 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 32 |
-| XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 3 |
+| XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 2 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 16 |
 | XLS-BIFF-LBL-SCOPE-INVALID | 2 |
 | XLS-BIFF-SORT-RESERVED-BYTES | 1 |
@@ -43,7 +43,7 @@ Warnings: 2
 | XLS-BIFF-FEATURE-CHART-SHEET-UNSUPPORTED | 4 |
 | XLS-BIFF-FEATURE-CHART-UNSUPPORTED | 1079 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 32 |
-| XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 3 |
+| XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 2 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 16 |
 | XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED | 1 |
 
@@ -54,7 +54,7 @@ Warnings: 2
 | Chart | 1079 |
 | ChartSheet | 4 |
 | DrawingObject | 32 |
-| ExternalReference | 3 |
+| ExternalReference | 2 |
 | PivotTable | 16 |
 | VbaProject | 1 |
 
@@ -103,7 +103,6 @@ Warnings: 2
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x00EC | 19 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x01B6 | 2 |
 | ExternalReference\|XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|0x01AE | 2 |
-| ExternalReference\|XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|0x01B7 | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00C1 | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00D7 | 14 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00FF | 1 |
@@ -153,7 +152,6 @@ Warnings: 2
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:Obj | 10 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:TxO | 2 |
 | ExternalReference\|XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|ExternalReference:ExternalWorkbook | 2 |
-| ExternalReference\|XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|ExternalReference:RefreshAll | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:Sxdi | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxRng | 14 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxVdEx | 1 |
@@ -184,7 +182,7 @@ Warnings: 2
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|graphs1 | 8 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|graphs2 | 8 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|lb_chart | 3 |
-| XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|(workbook) | 3 |
+| XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|(workbook) | 2 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|(workbook) | 2 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|All | 4 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|b | 1 |
@@ -228,6 +226,7 @@ Warnings: 2
 | InterfaceCodePage | 1 |
 | InterfaceEnd | 1 |
 | NaturalLanguageFormulas | 1 |
+| RefreshAll | 1 |
 | ReservedDsf | 1 |
 | RevisionProtection | 1 |
 | RevisionProtectionPassword | 1 |
@@ -265,7 +264,7 @@ Warnings: 2
 | --- | --- |
 | Chart | 1079 |
 | DrawingObject | 32 |
-| ExternalReference | 3 |
+| ExternalReference | 2 |
 | PivotTable | 16 |
 
 ## Preserved Feature Record Details
@@ -312,7 +311,6 @@ Warnings: 2
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:Obj | 10 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:TxO | 2 |
 | ExternalReference\|XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|ExternalReference:ExternalWorkbook | 2 |
-| ExternalReference\|XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|ExternalReference:RefreshAll | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:Sxdi | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxRng | 14 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxVdEx | 1 |

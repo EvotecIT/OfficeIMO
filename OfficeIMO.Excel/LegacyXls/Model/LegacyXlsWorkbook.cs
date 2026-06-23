@@ -183,6 +183,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         public bool? UsesNaturalLanguageFormulas { get; private set; }
 
         /// <summary>
+        /// Gets whether the workbook stream contains a RefreshAll marker.
+        /// </summary>
+        public bool HasRefreshAllMarker { get; private set; }
+
+        /// <summary>
         /// Gets whether the workbook stream contains an ObProj marker for a VBA project.
         /// </summary>
         public bool HasVbaProjectMarker { get; private set; }
@@ -312,6 +317,10 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         internal void SetUsesNaturalLanguageFormulas(bool value) {
             UsesNaturalLanguageFormulas = value;
+        }
+
+        internal void SetHasRefreshAllMarker() {
+            HasRefreshAllMarker = true;
         }
 
         internal void SetHasVbaProjectMarker() {

@@ -91,6 +91,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     workbook.AddMetadataRecord(LegacyXlsWorkbookMetadataKind.PrintSize, record.Offset, record.Type);
                     return true;
 
+                case BiffRecordType.RefreshAll:
+                    workbook.SetHasRefreshAllMarker();
+                    workbook.AddMetadataRecord(LegacyXlsWorkbookMetadataKind.RefreshAll, record.Offset, record.Type);
+                    return true;
+
                 case BiffRecordType.Prot4Rev:
                     if (TryReadBoolean(record, diagnostics, out bool revisionTrackingLocked)) {
                         workbook.SetRevisionTrackingLocked(revisionTrackingLocked);
