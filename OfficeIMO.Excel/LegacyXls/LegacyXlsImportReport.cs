@@ -362,6 +362,12 @@ namespace OfficeIMO.Excel.LegacyXls {
             DrawingShapePropertiesById = CountByCode(workbook.DrawingRecords
                 .SelectMany(record => record.ShapeProperties)
                 .Select(property => property.PropertyIdKey));
+            DrawingShapePropertiesByName = CountByCode(workbook.DrawingRecords
+                .SelectMany(record => record.ShapeProperties)
+                .Select(property => property.PropertyName));
+            DrawingShapePropertiesByGroup = CountByCode(workbook.DrawingRecords
+                .SelectMany(record => record.ShapeProperties)
+                .Select(property => property.PropertyGroupName));
             DrawingShapePropertiesByFlagState = CountByCode(workbook.DrawingRecords
                 .SelectMany(record => record.ShapeProperties)
                 .Select(GetShapePropertyFlagState));
@@ -966,6 +972,12 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets OfficeArtFOPT shape properties grouped by property identifier.</summary>
         public IReadOnlyDictionary<string, int> DrawingShapePropertiesById { get; }
 
+        /// <summary>Gets OfficeArtFOPT shape properties grouped by decoded property name.</summary>
+        public IReadOnlyDictionary<string, int> DrawingShapePropertiesByName { get; }
+
+        /// <summary>Gets OfficeArtFOPT shape properties grouped by decoded property family.</summary>
+        public IReadOnlyDictionary<string, int> DrawingShapePropertiesByGroup { get; }
+
         /// <summary>Gets OfficeArtFOPT shape properties grouped by complex and BLIP flag state.</summary>
         public IReadOnlyDictionary<string, int> DrawingShapePropertiesByFlagState { get; }
 
@@ -1279,6 +1291,8 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Drawing OfficeArt Records By Container State", DrawingOfficeArtRecordsByContainerState);
             AppendDictionary(builder, "Drawing OfficeArt Records By Payload Length", DrawingOfficeArtRecordsByPayloadLength);
             AppendDictionary(builder, "Drawing Shape Properties By Id", DrawingShapePropertiesById);
+            AppendDictionary(builder, "Drawing Shape Properties By Name", DrawingShapePropertiesByName);
+            AppendDictionary(builder, "Drawing Shape Properties By Group", DrawingShapePropertiesByGroup);
             AppendDictionary(builder, "Drawing Shape Properties By Flag State", DrawingShapePropertiesByFlagState);
             AppendDictionary(builder, "Drawing Shape Properties By Value", DrawingShapePropertiesByValue);
             AppendDictionary(builder, "Drawing Shape Complex Properties By Declared Length", DrawingShapeComplexPropertiesByDeclaredLength);

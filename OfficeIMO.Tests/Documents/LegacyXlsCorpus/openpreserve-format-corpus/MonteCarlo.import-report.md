@@ -899,6 +899,32 @@ Warnings: 0
 | PropertyId:0x023F | 4 |
 | PropertyId:0x03BF | 4 |
 
+## Drawing Shape Properties By Name
+
+| Key | Count |
+| --- | --- |
+| fillBackColor | 4 |
+| fillColor | 5 |
+| FillStyleBooleanProperties | 4 |
+| GroupShapeBooleanProperties | 4 |
+| lineColor | 5 |
+| LineStyleBooleanProperties | 4 |
+| lineWidth | 4 |
+| ProtectionBooleanProperties | 4 |
+| ShadowStyleBooleanProperties | 4 |
+| TextBooleanProperties | 5 |
+
+## Drawing Shape Properties By Group
+
+| Key | Count |
+| --- | --- |
+| Fill | 13 |
+| GroupShape | 4 |
+| Line | 13 |
+| Protection | 4 |
+| Shadow | 4 |
+| Text | 5 |
+
 ## Drawing Shape Properties By Flag State
 
 | Key | Count |
