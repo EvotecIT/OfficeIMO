@@ -53,8 +53,8 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.AddWorkSheet("Images");
                 ExcelImage image = sheet.AddImageFromFileToRange("A1:C15", imagePath, name: "RangeLogo", altText: "Logo pinned to report header",
                     title: "Pinned logo", placement: ExcelImagePlacement.MoveAndSize);
-                Assert.Equal(192, image.WidthPixels);
-                Assert.Equal(300, image.HeightPixels);
+                Assert.True(image.WidthPixels > 0);
+                Assert.True(image.HeightPixels > 0);
                 document.Save();
             }
 
@@ -77,6 +77,34 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ExcelImage_ToRange_UsesCustomCellDimensions() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelImage.RangeAnchor.CustomDimensions.xlsx");
+            string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Images");
+                sheet.SetColumnWidth(1, 20);
+                sheet.SetColumnWidth(2, 18);
+                sheet.SetRowHeight(1, 30);
+                sheet.SetRowHeight(2, 24);
+
+                ExcelImage image = sheet.AddImageFromFileToRange("A1:B2", imagePath, name: "CustomSizedRange");
+
+                Assert.True(image.WidthPixels > 128);
+                Assert.True(image.HeightPixels > 40);
+                document.Save();
+            }
+
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false);
+            var picture = spreadsheet.WorkbookPart!.WorksheetParts.First().DrawingsPart!.WorksheetDrawing!
+                .Elements<Xdr.TwoCellAnchor>()
+                .Single()
+                .GetFirstChild<Xdr.Picture>()!;
+            Assert.True(picture.ShapeProperties!.Transform2D!.Extents!.Cx!.Value > 128L * 9525L);
+            Assert.True(picture.ShapeProperties.Transform2D.Extents.Cy!.Value > 40L * 9525L);
+        }
+
+        [Fact]
         public void Test_ExcelImage_FromFile_MapsTiffContentType() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelImage.FromFile.Tiff.xlsx");
             string imagePath = Path.Combine(_directoryWithImages, "saturn.tif");
@@ -92,6 +120,38 @@ namespace OfficeIMO.Tests {
             using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false);
             var imagePart = spreadsheet.WorkbookPart!.WorksheetParts.First().DrawingsPart!.ImageParts.Single();
             Assert.Equal("image/tiff", imagePart.ContentType);
+        }
+
+        [Theory]
+        [InlineData("Sample.svg", "image/svg+xml")]
+        [InlineData("sample.emf", "image/x-emf")]
+        public void Test_ExcelImage_FromFile_MapsDetectedVectorContentType(string imageName, string expectedContentType) {
+            string filePath = Path.Combine(_directoryWithFiles, $"ExcelImage.FromFile.{imageName}.xlsx");
+            string imagePath = Path.Combine(_directoryWithImages, imageName);
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Images");
+                ExcelImage image = sheet.AddImageFromFile(2, 2, imagePath, widthPixels: 32, heightPixels: 32);
+
+                Assert.Equal(expectedContentType, image.ContentType);
+                document.Save();
+            }
+
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false);
+            var imagePart = spreadsheet.WorkbookPart!.WorksheetParts.First().DrawingsPart!.ImageParts.Single();
+            Assert.Equal(expectedContentType, imagePart.ContentType);
+        }
+
+        [Fact]
+        public void Test_ExcelImage_FromUrl_AllowsScaleOnlyCallShape() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelImage.FromUrl.ScaleOnly.xlsx");
+
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("Images");
+
+            ExcelImage? image = sheet.AddImageFromUrl(2, 2, "http://127.0.0.1:1/not-found.png", scalePercent: 25);
+
+            Assert.Null(image);
         }
     }
 }

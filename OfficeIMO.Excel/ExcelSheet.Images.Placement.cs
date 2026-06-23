@@ -74,11 +74,31 @@ namespace OfficeIMO.Excel {
 
             OfficeImageReader.TryIdentify(bytes, null, out OfficeImageInfo info);
             var (resolvedWidth, resolvedHeight) = ResolveImageSize(info, widthPixels, heightPixels, scalePercent);
-            ExcelImage image = AddImage(row, column, bytes, string.IsNullOrEmpty(contentType) ? info.MimeType : contentType!,
+            ExcelImage image = AddImage(row, column, bytes, ResolveImageContentType(contentType, info),
                 resolvedWidth, resolvedHeight, offsetXPixels, offsetYPixels, name, altText, lockAspectRatio);
             ApplyImageMetadata(image, title, rotationDegrees);
             return image;
         }
+
+        /// <summary>
+        /// Downloads an image from URL, scales it from its detected dimensions, and anchors it to a worksheet cell.
+        /// Returns null when the image cannot be fetched.
+        /// </summary>
+        /// <param name="row">1-based row index where the top edge of the image will be anchored.</param>
+        /// <param name="column">1-based column index where the left edge of the image will be anchored.</param>
+        /// <param name="url">Remote image URL to download. Requests timeout after 5 seconds and must be smaller than 2 MB.</param>
+        /// <param name="scalePercent">Percentage of the original image dimensions, for example 20 for 20%.</param>
+        /// <param name="offsetXPixels">Optional horizontal offset in pixels from the cell's left boundary.</param>
+        /// <param name="offsetYPixels">Optional vertical offset in pixels from the cell's top boundary.</param>
+        /// <param name="name">Optional drawing name used by Excel's selection pane.</param>
+        /// <param name="altText">Optional alternative text description for accessibility.</param>
+        /// <param name="title">Optional alternative text title.</param>
+        /// <param name="lockAspectRatio">Whether Excel should keep the picture aspect ratio locked.</param>
+        /// <param name="rotationDegrees">Clockwise image rotation in degrees.</param>
+        public ExcelImage? AddImageFromUrl(int row, int column, string url, double scalePercent,
+            int offsetXPixels = 0, int offsetYPixels = 0, string? name = null, string? altText = null,
+            string? title = null, bool lockAspectRatio = true, double rotationDegrees = 0)
+            => AddImageFromUrl(row, column, url, null, null, scalePercent, offsetXPixels, offsetYPixels, name, altText, title, lockAspectRatio, rotationDegrees);
 
         /// <summary>
         /// Adds an image anchored to an A1 range using a two-cell anchor. The image moves and sizes with the
@@ -123,7 +143,7 @@ namespace OfficeIMO.Excel {
 
                 var drawingId = NextDrawingId(drawingPart);
                 string resolvedName = string.IsNullOrWhiteSpace(name) ? $"Picture {drawingId}" : name!.Trim();
-                var (widthPixels, heightPixels) = EstimateRangeAnchorSizePixels(
+                var (widthPixels, heightPixels) = CalculateRangeAnchorSizePixels(
                     startRow,
                     startColumn,
                     endRow,
@@ -295,7 +315,7 @@ namespace OfficeIMO.Excel {
             return (startRow, startColumn, endRow, endColumn);
         }
 
-        private static (int WidthPixels, int HeightPixels) EstimateRangeAnchorSizePixels(
+        private (int WidthPixels, int HeightPixels) CalculateRangeAnchorSizePixels(
             int startRow,
             int startColumn,
             int endRow,
@@ -304,9 +324,58 @@ namespace OfficeIMO.Excel {
             int offsetYPixels,
             int endOffsetXPixels,
             int endOffsetYPixels) {
-            int width = Math.Max(1, (endColumn - startColumn + 1) * 64 + endOffsetXPixels - offsetXPixels);
-            int height = Math.Max(1, (endRow - startRow + 1) * 20 + endOffsetYPixels - offsetYPixels);
+            int width = Math.Max(1, CalculateColumnSpanPixels(startColumn, endColumn) + endOffsetXPixels - offsetXPixels);
+            int height = Math.Max(1, CalculateRowSpanPixels(startRow, endRow) + endOffsetYPixels - offsetYPixels);
             return (width, height);
+        }
+
+        private int CalculateColumnSpanPixels(int startColumn, int endColumn) {
+            ExcelTextMeasurer textMeasurer = ExcelTextMeasurer.Create(GetWorkbookDefaultFontInfo());
+            float mdw = textMeasurer.DefaultStyle.MaximumDigitWidth;
+            if (mdw <= 0.0001f) {
+                mdw = 7f;
+            }
+
+            double total = 0;
+            for (int column = startColumn; column <= endColumn; column++) {
+                if (IsColumnHidden(column)) {
+                    continue;
+                }
+
+                total += GetColumnWidthPixels(column, mdw);
+            }
+
+            return Math.Max(1, (int)Math.Round(total));
+        }
+
+        private int CalculateRowSpanPixels(int startRow, int endRow) {
+            double total = 0;
+            for (int rowIndex = startRow; rowIndex <= endRow; rowIndex++) {
+                total += GetRowHeightPixels(rowIndex);
+            }
+
+            return Math.Max(1, (int)Math.Round(total));
+        }
+
+        private bool IsColumnHidden(int columnIndex) {
+            var columns = WorksheetRoot.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Columns>();
+            var column = columns?.Elements<DocumentFormat.OpenXml.Spreadsheet.Column>()
+                .FirstOrDefault(c => c.Min != null && c.Max != null && c.Min.Value <= (uint)columnIndex && c.Max.Value >= (uint)columnIndex);
+            return column?.Hidden?.Value == true;
+        }
+
+        private double GetRowHeightPixels(int rowIndex) {
+            var sheetData = WorksheetRoot.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.SheetData>();
+            var row = sheetData?.Elements<DocumentFormat.OpenXml.Spreadsheet.Row>()
+                .FirstOrDefault(r => r.RowIndex != null && r.RowIndex.Value == (uint)rowIndex);
+            if (row?.Hidden?.Value == true) {
+                return 0;
+            }
+
+            double heightPoints = row?.Height?.Value > 0 && row.CustomHeight?.Value == true
+                ? row.Height.Value
+                : GetDefaultRowHeightPoints();
+            return heightPoints * 96D / 72D;
         }
 
         private static void ApplyImageMetadata(ExcelImage image, string? title, double rotationDegrees) {
@@ -326,18 +395,37 @@ namespace OfficeIMO.Excel {
                 "image/gif" => ImagePartType.Gif,
                 "image/bmp" => ImagePartType.Bmp,
                 "image/tiff" or "image/tif" => ImagePartType.Tiff,
-                _ => ImagePartType.Png
+                "image/svg+xml" or "image/svg" => ImagePartType.Svg,
+                "image/x-emf" or "image/emf" => ImagePartType.Emf,
+                "image/x-wmf" or "image/wmf" => ImagePartType.Wmf,
+                "image/x-icon" or "image/vnd.microsoft.icon" or "image/ico" => ImagePartType.Icon,
+                "image/x-pcx" or "image/pcx" => ImagePartType.Pcx,
+                _ => throw new NotSupportedException($"Image content type '{contentType}' is not supported by Excel image parts.")
             };
         }
 
         private static string ContentTypeFromExtension(string path) {
             return OfficeImageReader.FromExtension(path) switch {
+                OfficeImageFormat.Png => "image/png",
                 OfficeImageFormat.Jpeg => "image/jpeg",
                 OfficeImageFormat.Gif => "image/gif",
                 OfficeImageFormat.Bmp => "image/bmp",
                 OfficeImageFormat.Tiff => "image/tiff",
-                _ => "image/png"
+                OfficeImageFormat.Svg => "image/svg+xml",
+                OfficeImageFormat.Emf => "image/x-emf",
+                OfficeImageFormat.Wmf => "image/x-wmf",
+                OfficeImageFormat.Icon => "image/x-icon",
+                OfficeImageFormat.Pcx => "image/x-pcx",
+                _ => "application/octet-stream"
             };
+        }
+
+        private static string ResolveImageContentType(string? declaredContentType, OfficeImageInfo detectedInfo) {
+            if (detectedInfo.Format != OfficeImageFormat.Unknown) {
+                return detectedInfo.MimeType;
+            }
+
+            return string.IsNullOrWhiteSpace(declaredContentType) ? "application/octet-stream" : declaredContentType!;
         }
 
         private static EnumValue<Xdr.EditAsValues> ToEditAsValue(ExcelImagePlacement placement) {
