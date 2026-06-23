@@ -212,34 +212,65 @@ public static class OfficeSvgImageRenderer {
         bool flipVertical = false,
         string? preserveAspectRatio = null,
         Action<XmlWriter>? writeAdditionalAttributes = null) {
+        WriteImage(
+            writer,
+            svgNamespace,
+            href,
+            new OfficeImageProjection(
+                new OfficeImagePlacement(x, y, width, height),
+                rotationDegrees: rotationDegrees,
+                rotationCenterX: rotationCenterX,
+                rotationCenterY: rotationCenterY,
+                flipHorizontal: flipHorizontal,
+                flipVertical: flipVertical),
+            preserveAspectRatio,
+            writeAdditionalAttributes);
+    }
+
+    /// <summary>
+    /// Writes an SVG image element using a shared projection that carries placement, rotation, and flips.
+    /// </summary>
+    /// <param name="writer">SVG writer.</param>
+    /// <param name="svgNamespace">SVG namespace URI.</param>
+    /// <param name="href">Resolved SVG image reference, such as a data URI.</param>
+    /// <param name="projection">Shared image projection.</param>
+    /// <param name="preserveAspectRatio">Optional SVG preserveAspectRatio value.</param>
+    /// <param name="writeAdditionalAttributes">Optional callback for adapter-specific attributes.</param>
+    public static void WriteImage(
+        XmlWriter writer,
+        string svgNamespace,
+        string href,
+        OfficeImageProjection projection,
+        string? preserveAspectRatio = null,
+        Action<XmlWriter>? writeAdditionalAttributes = null) {
         if (writer == null) {
             throw new ArgumentNullException(nameof(writer));
         }
 
-        if (string.IsNullOrEmpty(href) || width <= 0D || height <= 0D) {
+        if (string.IsNullOrEmpty(href) || projection.Width <= 0D || projection.Height <= 0D) {
             return;
         }
 
         writer.WriteStartElement("image", svgNamespace);
         writeAdditionalAttributes?.Invoke(writer);
-        writer.WriteNumberAttribute("x", x);
-        writer.WriteNumberAttribute("y", y);
-        writer.WriteNumberAttribute("width", width);
-        writer.WriteNumberAttribute("height", height);
+        writer.WriteNumberAttribute("x", projection.X);
+        writer.WriteNumberAttribute("y", projection.Y);
+        writer.WriteNumberAttribute("width", projection.Width);
+        writer.WriteNumberAttribute("height", projection.Height);
         if (!string.IsNullOrWhiteSpace(preserveAspectRatio)) {
             writer.WriteAttributeString("preserveAspectRatio", preserveAspectRatio);
         }
 
         string? transform = BuildTransform(
-            x,
-            y,
-            width,
-            height,
-            rotationDegrees,
-            flipHorizontal,
-            flipVertical,
-            rotationCenterX,
-            rotationCenterY);
+            projection.X,
+            projection.Y,
+            projection.Width,
+            projection.Height,
+            projection.RotationDegrees,
+            projection.FlipHorizontal,
+            projection.FlipVertical,
+            projection.RotationCenterX,
+            projection.RotationCenterY);
         if (transform != null) {
             writer.WriteAttributeString("transform", transform);
         }

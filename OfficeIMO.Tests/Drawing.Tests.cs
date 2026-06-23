@@ -1144,6 +1144,35 @@ public class DrawingTests {
     }
 
     [Fact]
+    public void OfficeSvgImageRendererWritesXmlImageElementFromProjection() {
+        var builder = new StringBuilder();
+        using (var writer = System.Xml.XmlWriter.Create(
+            new System.IO.StringWriter(builder, System.Globalization.CultureInfo.InvariantCulture),
+            new System.Xml.XmlWriterSettings { OmitXmlDeclaration = true, ConformanceLevel = System.Xml.ConformanceLevel.Fragment })) {
+            OfficeSvgImageRenderer.WriteImage(
+                writer,
+                "http://www.w3.org/2000/svg",
+                "data:image/png;base64,AA==",
+                new OfficeImageProjection(
+                    new OfficeImagePlacement(10, 20, 80, 40),
+                    rotationDegrees: 45D,
+                    rotationCenterX: 50D,
+                    rotationCenterY: 40D,
+                    flipHorizontal: true),
+                preserveAspectRatio: "xMidYMid meet",
+                writeAdditionalAttributes: static imageWriter => imageWriter.WriteAttributeString("data-test-image", "true"));
+        }
+
+        string svg = builder.ToString();
+        Assert.Contains("<image", svg, StringComparison.Ordinal);
+        Assert.Contains("data-test-image=\"true\"", svg, StringComparison.Ordinal);
+        Assert.Contains("x=\"10\"", svg, StringComparison.Ordinal);
+        Assert.Contains("preserveAspectRatio=\"xMidYMid meet\"", svg, StringComparison.Ordinal);
+        Assert.Contains("transform=\"translate(50 40) rotate(45) scale(-1 1) translate(-50 -40)\"", svg, StringComparison.Ordinal);
+        Assert.Contains("href=\"data:image/png;base64,AA==\"", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void OfficeSvgPrimitiveWriterWritesSharedVectorPrimitives() {
         var builder = new StringBuilder();
         using (var writer = System.Xml.XmlWriter.Create(

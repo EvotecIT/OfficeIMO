@@ -133,13 +133,11 @@ namespace OfficeIMO.Visio {
 
             canvas.DrawImage(
                 raster,
-                placement.X,
-                placement.Y,
-                placement.Width,
-                placement.Height,
-                ToRasterRotation(shape.Angle),
-                centerX,
-                centerY);
+                new OfficeImageProjection(
+                    placement,
+                    rotationDegrees: OfficeGeometry.RadiansToDegrees(ToRasterRotation(shape.Angle)),
+                    rotationCenterX: centerX,
+                    rotationCenterY: centerY));
             return true;
         }
 

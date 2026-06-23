@@ -224,13 +224,11 @@ namespace OfficeIMO.Visio {
                 writer,
                 SvgNamespace,
                 OfficeSvgImageRenderer.CreateDataUri(image.ContentType, image.Data),
-                x,
-                y,
-                width,
-                height,
-                rotationDegrees: RadiansToDegrees(-shape.Angle),
-                rotationCenterX: centerX,
-                rotationCenterY: centerY,
+                new OfficeImageProjection(
+                    new OfficeImagePlacement(x, y, width, height),
+                    rotationDegrees: RadiansToDegrees(-shape.Angle),
+                    rotationCenterX: centerX,
+                    rotationCenterY: centerY),
                 preserveAspectRatio: "xMidYMid meet",
                 writeAdditionalAttributes: static imageWriter => imageWriter.WriteAttributeString("data-officeimo-package-preview-artwork", "true"));
             return true;

@@ -55,6 +55,10 @@ namespace OfficeIMO.Visio {
                 _canvas.DrawImage(image, x, y, width, height, RadiansToCanvasDegrees(rotationRadians), rotationCenterX, rotationCenterY);
             }
 
+            internal void DrawImage(OfficeRasterImage image, OfficeImageProjection projection) {
+                _canvas.DrawImage(image, projection);
+            }
+
             internal double MeasureText(string? text, double height) =>
                 _canvas.MeasureText(text, height);
 
