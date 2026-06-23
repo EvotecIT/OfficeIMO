@@ -247,6 +247,10 @@ namespace OfficeIMO.Excel.LegacyXls {
             ChartFontIndexes = CountByCode(workbook.ChartRecords
                 .Where(record => record.FontIndex.HasValue)
                 .Select(record => $"FontIndex:{record.FontIndex!.Value}"));
+            ChartDataTableOptions = CountByCode(workbook.ChartRecords
+                .Where(record => record.DataTableOptions != null)
+                .Select(record => record.DataTableOptions!)
+                .Select(options => $"HorizontalBorders:{options.HasHorizontalBorders};VerticalBorders:{options.HasVerticalBorders};Outline:{options.HasOutlineBorder};SeriesKeys:{options.ShowSeriesKeys}"));
             ChartLineFormatStyles = CountByCode(workbook.ChartRecords
                 .Where(record => record.LineFormat != null)
                 .Select(record => record.LineFormat!.StyleName));
@@ -784,6 +788,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets FontX records grouped by raw font index.</summary>
         public IReadOnlyDictionary<string, int> ChartFontIndexes { get; }
 
+        /// <summary>Gets Dat records grouped by decoded data-table display options.</summary>
+        public IReadOnlyDictionary<string, int> ChartDataTableOptions { get; }
+
         /// <summary>Gets LineFormat records grouped by decoded line style.</summary>
         public IReadOnlyDictionary<string, int> ChartLineFormatStyles { get; }
 
@@ -1123,6 +1130,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Chart DataFormat Series Indexes", ChartDataFormatSeriesIndexes);
             AppendDictionary(builder, "Chart Number Format Ids", ChartNumberFormatIds);
             AppendDictionary(builder, "Chart Font Indexes", ChartFontIndexes);
+            AppendDictionary(builder, "Chart DataTable Options", ChartDataTableOptions);
             AppendDictionary(builder, "Chart LineFormat Styles", ChartLineFormatStyles);
             AppendDictionary(builder, "Chart LineFormat Weights", ChartLineFormatWeights);
             AppendDictionary(builder, "Chart AreaFormat Patterns", ChartAreaFormatPatterns);

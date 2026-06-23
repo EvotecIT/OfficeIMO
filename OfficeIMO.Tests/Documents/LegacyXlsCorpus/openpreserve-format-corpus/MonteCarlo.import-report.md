@@ -574,6 +574,12 @@ Warnings: 0
 | FontIndex:8 | 1 |
 | FontIndex:9 | 1 |
 
+## Chart DataTable Options
+
+| Key | Count |
+| --- | --- |
+| HorizontalBorders:False;VerticalBorders:False;Outline:False;SeriesKeys:False | 40 |
+
 ## Chart LineFormat Styles
 
 | Key | Count |

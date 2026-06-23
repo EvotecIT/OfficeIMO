@@ -496,6 +496,7 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x1026, BuildUInt16Payload(3));
                 WriteRecord(stream, 0x1027, BuildObjectLinkPayload());
                 WriteRecord(stream, 0x1015, BuildLegendPayload());
+                WriteRecord(stream, 0x105f, BuildUInt16Payload(0x000d));
                 WriteRecord(stream, 0x1051, BuildChartPositionPayload());
                 WriteRecord(stream, 0x1060, BuildChartPlotGrowthPayload());
                 WriteRecord(stream, 0x101b, Array.Empty<byte>());

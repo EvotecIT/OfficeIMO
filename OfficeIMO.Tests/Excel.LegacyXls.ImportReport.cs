@@ -468,8 +468,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal("ChartOnly", unsupportedSheet.Name);
             Assert.Equal(LegacyXlsUnsupportedSheetKind.ChartSheet, unsupportedSheet.Kind);
             Assert.Equal(1, unsupportedSheet.ChartTextObjectCount);
-            Assert.Equal(23, report.UnsupportedFeatureCount);
-            Assert.Equal(22, report.PreservedFeatureRecordCount);
+            Assert.Equal(24, report.UnsupportedFeatureCount);
+            Assert.Equal(23, report.PreservedFeatureRecordCount);
             Assert.Equal(1, report.UnsupportedSheetsByKind[LegacyXlsUnsupportedSheetKind.ChartSheet]);
             Assert.Equal(1, report.UnsupportedSheetsByType["0x02|ChartSheet"]);
             Assert.Equal(1, report.UnsupportedSheetsByName["ChartOnly"]);
@@ -479,13 +479,13 @@ namespace OfficeIMO.Tests {
             Assert.Empty(report.UnsupportedChartSheetPrintSizes);
             Assert.Empty(report.UnsupportedChartSheetPrintSizeKinds);
             Assert.Equal(1, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.ChartSheet]);
-            Assert.Equal(22, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.Chart]);
-            Assert.Equal(22, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.Chart]);
-            Assert.Equal(22, report.ChartRecordCount);
+            Assert.Equal(23, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.Chart]);
+            Assert.Equal(23, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.Chart]);
+            Assert.Equal(23, report.ChartRecordCount);
             Assert.Equal(2, report.ChartRecordsByKind[LegacyXlsChartRecordKind.Container]);
             Assert.Equal(4, report.ChartRecordsByKind[LegacyXlsChartRecordKind.Axis]);
             Assert.Equal(1, report.ChartRecordsByKind[LegacyXlsChartRecordKind.Series]);
-            Assert.Equal(6, report.ChartRecordsByKind[LegacyXlsChartRecordKind.Formatting]);
+            Assert.Equal(7, report.ChartRecordsByKind[LegacyXlsChartRecordKind.Formatting]);
             Assert.Equal(3, report.ChartRecordsByKind[LegacyXlsChartRecordKind.Layout]);
             Assert.Equal(2, report.ChartRecordsByKind[LegacyXlsChartRecordKind.ChartType]);
             Assert.Equal(4, report.ChartRecordsByKind[LegacyXlsChartRecordKind.Text]);
@@ -509,6 +509,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.ChartRecordsByName["FontX"]);
             Assert.Equal(1, report.ChartRecordsByName["ObjectLink"]);
             Assert.Equal(1, report.ChartRecordsByName["Legend"]);
+            Assert.Equal(1, report.ChartRecordsByName["Dat"]);
             Assert.Equal(1, report.ChartRecordsByName["Pos"]);
             Assert.Equal(1, report.ChartRecordsByName["PlotGrowth"]);
             Assert.Equal(1, report.ChartRecordsByChartType["Scatter"]);
@@ -523,6 +524,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.ChartDataFormatSeriesIndexes["SeriesIndex:2"]);
             Assert.Equal(1, report.ChartNumberFormatIds["NumberFormatId:14"]);
             Assert.Equal(1, report.ChartFontIndexes["FontIndex:3"]);
+            Assert.Equal(1, report.ChartDataTableOptions["HorizontalBorders:True;VerticalBorders:False;Outline:True;SeriesKeys:True"]);
             Assert.Equal(1, report.ChartLineFormatStyles["Dash"]);
             Assert.Equal(1, report.ChartLineFormatWeights["Medium"]);
             Assert.Equal(1, report.ChartAreaFormatPatterns["Solid"]);
@@ -548,12 +550,12 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.ChartFrameTypes["ShadowFrame"]);
             Assert.Equal(1, report.ChartFrameAutoStates["AutoSize:True;AutoPosition:True"]);
             Assert.Equal(1, report.ChartPlotGrowthFactors["Horizontal:1.25;Vertical:2.5"]);
-            Assert.Equal(22, report.ChartRecordsByLocation["ChartOnly"]);
+            Assert.Equal(23, report.ChartRecordsByLocation["ChartOnly"]);
             Assert.Equal(1, report.DrawingRecordCount);
             Assert.Equal(1, report.DrawingRecordsByKind[LegacyXlsDrawingRecordKind.TextObject]);
             Assert.Equal(1, report.DrawingRecordsByName["TxO"]);
             Assert.Equal(1, report.DrawingRecordsByLocation["ChartOnly"]);
-            Assert.Equal(22, report.UnsupportedFeaturesByLocation["XLS-BIFF-FEATURE-CHART-UNSUPPORTED|ChartOnly"]);
+            Assert.Equal(23, report.UnsupportedFeaturesByLocation["XLS-BIFF-FEATURE-CHART-UNSUPPORTED|ChartOnly"]);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Units"]);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Chart"]);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:DataFormat"]);
@@ -574,6 +576,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:FontX"]);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:ObjectLink"]);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Legend"]);
+            Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Dat"]);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Pos"]);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:PlotGrowth"]);
             Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Units"]);
@@ -596,6 +599,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:FontX"]);
             Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:ObjectLink"]);
             Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Legend"]);
+            Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Dat"]);
             Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Pos"]);
             Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:PlotGrowth"]);
             Assert.Contains(workbook.PreservedFeatureRecords, record => record.SheetName == "ChartOnly" && record.DetailCode == "Chart:Chart");
@@ -615,6 +619,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "FontX" && record.FontIndex == 3);
             Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "ObjectLink" && record.ObjectLink != null && record.ObjectLink.LinkedObject == 0x0004 && record.ObjectLink.LinkedObjectName == "SeriesOrDataPoint" && record.ObjectLink.SeriesIndex == 2 && record.ObjectLink.DataPointIndex == 0xffff);
             Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "Legend" && record.Legend != null && record.Legend.X == 10 && record.Legend.Y == 20 && record.Legend.Width == 300 && record.Legend.Height == 400 && record.Legend.Spacing == 1 && record.Legend.Flags == 0x001d && record.Legend.AutoPosition && record.Legend.AutoPositionX && record.Legend.AutoPositionY && record.Legend.Vertical && !record.Legend.WasDataTable);
+            Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "Dat" && record.DataTableOptions != null && record.DataTableOptions.Flags == 0x000d && record.DataTableOptions.HasHorizontalBorders && !record.DataTableOptions.HasVerticalBorders && record.DataTableOptions.HasOutlineBorder && record.DataTableOptions.ShowSeriesKeys);
             Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "Tick" && record.Tick != null && record.Tick.MajorTickLocationName == "Outside" && record.Tick.MinorTickLocationName == "Inside" && record.Tick.LabelLocationName == "NextToAxis" && record.Tick.BackgroundModeName == "Transparent" && record.Tick.RgbHex == "#998877" && record.Tick.Flags == 0x402d && record.Tick.RotationModeName == "RotatedClockwise" && record.Tick.AutoColor && !record.Tick.AutoBackground && record.Tick.AutoRotation && record.Tick.ReadingOrderName == "LeftToRight" && record.Tick.ColorIndex == 0x004d && record.Tick.Rotation == 30);
             Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "Pos" && record.Position != null && record.Position.TopLeftMode == 0x0005 && record.Position.TopLeftModeName == "MDCHART" && record.Position.BottomRightMode == 0x0001 && record.Position.BottomRightModeName == "MDABS" && record.Position.X1 == 15 && record.Position.Y1 == 25 && record.Position.X2 == 300 && record.Position.Y2 == 120);
             Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "PlotGrowth" && record.PlotGrowth != null && record.PlotGrowth.HorizontalIntegral == 1 && record.PlotGrowth.HorizontalFractional == 0x4000 && record.PlotGrowth.HorizontalGrowthPoints == 1.25 && record.PlotGrowth.VerticalIntegral == 2 && record.PlotGrowth.VerticalFractional == 0x8000 && record.PlotGrowth.VerticalGrowthPoints == 2.5);
@@ -632,6 +637,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Chart DataFormat Series Indexes", markdown);
             Assert.Contains("Chart Number Format Ids", markdown);
             Assert.Contains("Chart Font Indexes", markdown);
+            Assert.Contains("Chart DataTable Options", markdown);
             Assert.Contains("Chart LineFormat Styles", markdown);
             Assert.Contains("Chart LineFormat Weights", markdown);
             Assert.Contains("Chart AreaFormat Patterns", markdown);

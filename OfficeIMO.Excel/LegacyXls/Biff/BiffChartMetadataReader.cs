@@ -29,6 +29,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             TryReadPosition(record, out LegacyXlsChartPosition? position);
             TryReadFrame(record, out LegacyXlsChartFrame? frame);
             TryReadPlotGrowth(record, out LegacyXlsChartPlotGrowth? plotGrowth);
+            TryReadDataTableOptions(record, out LegacyXlsChartDataTableOptions? dataTableOptions);
             records.Add(new LegacyXlsChartRecord(
                 GetKind(record.Type),
                 BiffUnsupportedRecordDiagnostics.GetBiffRecordName(record.Type),
@@ -71,6 +72,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 position,
                 frame,
                 plotGrowth,
+                dataTableOptions,
                 valueRange));
             return true;
         }
@@ -320,6 +322,16 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 BiffRecordReader.ReadUInt16(record.Payload, 2),
                 BiffRecordReader.ReadInt16(record.Payload, 4),
                 BiffRecordReader.ReadUInt16(record.Payload, 6));
+            return true;
+        }
+
+        private static bool TryReadDataTableOptions(BiffRecord record, out LegacyXlsChartDataTableOptions? dataTableOptions) {
+            dataTableOptions = null;
+            if (record.Type != 0x105f || record.Payload.Length < 2) {
+                return false;
+            }
+
+            dataTableOptions = new LegacyXlsChartDataTableOptions(BiffRecordReader.ReadUInt16(record.Payload, 0));
             return true;
         }
 
