@@ -35,7 +35,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 }
 
                 string rawName = BiffStringReader.ReadShortUnicodeString(record.Payload, ref offset);
-                string? name = builtIn ? GetBuiltInName(rawName) : rawName;
+                string name = builtIn ? GetBuiltInName(rawName) ?? string.Empty : rawName;
                 if (string.IsNullOrWhiteSpace(name)) {
                     return false;
                 }

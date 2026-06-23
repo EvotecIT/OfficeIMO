@@ -350,6 +350,72 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_Load_ImportsWorkbookMetadataRecords() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateWorkbookMetadataWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.False(result.HasImportErrors);
+            Assert.False(result.HasUnsupportedFeatures);
+            LegacyXlsWorkbook workbook = result.Workbook;
+            Assert.Equal(13, workbook.MetadataRecords.Count);
+            Assert.Equal((ushort)1200, workbook.CodePage.GetValueOrDefault());
+            Assert.Equal((ushort)1200, workbook.UserInterfaceCodePage.GetValueOrDefault());
+            Assert.Equal("OfficeIMO", workbook.LastWriteUserName);
+            Assert.True(workbook.WindowsLocked.GetValueOrDefault());
+            LegacyXlsWorkbookWindow window = Assert.Single(workbook.Windows);
+            Assert.Equal((short)10, window.HorizontalPositionTwips);
+            Assert.Equal((short)20, window.VerticalPositionTwips);
+            Assert.Equal((short)5000, window.WidthTwips);
+            Assert.Equal((short)4000, window.HeightTwips);
+            Assert.False(window.Hidden);
+            Assert.False(window.Minimized);
+            Assert.False(window.VeryHidden);
+            Assert.True(window.HorizontalScrollBarVisible);
+            Assert.True(window.VerticalScrollBarVisible);
+            Assert.True(window.SheetTabsVisible);
+            Assert.True(window.AutoFilterDatesGroupedChronologically);
+            Assert.Equal((ushort)0, window.ActiveSheetIndex);
+            Assert.Equal((ushort)0, window.FirstVisibleSheetTabIndex);
+            Assert.Equal((ushort)1, window.SelectedSheetTabCount);
+            Assert.Equal((ushort)600, window.SheetTabRatio);
+            Assert.True(workbook.SaveBackup.GetValueOrDefault());
+            Assert.Equal((ushort)2, workbook.HiddenObjectsMode.GetValueOrDefault());
+            Assert.True(workbook.DoNotSaveExternalLinkValues.GetValueOrDefault());
+            Assert.True(workbook.HasEnvelope.GetValueOrDefault());
+            Assert.True(workbook.EnvelopeVisible.GetValueOrDefault());
+            Assert.True(workbook.EnvelopeInitialized.GetValueOrDefault());
+            Assert.Equal((byte)2, workbook.ExternalLinkUpdateMode.GetValueOrDefault());
+            Assert.True(workbook.HideBordersForInactiveTables.GetValueOrDefault());
+            Assert.Equal((ushort)2, workbook.PrintSize.GetValueOrDefault());
+            Assert.True(workbook.RevisionTrackingLocked.GetValueOrDefault());
+            Assert.True(workbook.UsesNaturalLanguageFormulas.GetValueOrDefault());
+            Assert.NotNull(workbook.Country);
+            Assert.Equal((ushort)48, workbook.Country!.DefaultCountryCode);
+            Assert.Equal((ushort)1, workbook.Country.SystemCountryCode);
+            Assert.Equal(13, result.ImportReport.WorkbookMetadataRecordCount);
+            Assert.Equal(1, result.ImportReport.WorkbookMetadataRecordsByKind[LegacyXlsWorkbookMetadataKind.Backup]);
+            Assert.Equal(1, result.ImportReport.WorkbookMetadataRecordsByKind[LegacyXlsWorkbookMetadataKind.BookOptions]);
+            Assert.Equal(1, result.ImportReport.WorkbookMetadataRecordsByKind[LegacyXlsWorkbookMetadataKind.CodePage]);
+            Assert.Equal(1, result.ImportReport.WorkbookMetadataRecordsByKind[LegacyXlsWorkbookMetadataKind.Country]);
+            Assert.Equal(1, result.ImportReport.WorkbookMetadataRecordsByKind[LegacyXlsWorkbookMetadataKind.HiddenObjects]);
+            Assert.Equal(1, result.ImportReport.WorkbookMetadataRecordsByKind[LegacyXlsWorkbookMetadataKind.InterfaceCodePage]);
+            Assert.Equal(1, result.ImportReport.WorkbookMetadataRecordsByKind[LegacyXlsWorkbookMetadataKind.InterfaceEnd]);
+            Assert.Equal(1, result.ImportReport.WorkbookMetadataRecordsByKind[LegacyXlsWorkbookMetadataKind.NaturalLanguageFormulas]);
+            Assert.Equal(1, result.ImportReport.WorkbookMetadataRecordsByKind[LegacyXlsWorkbookMetadataKind.PrintSize]);
+            Assert.Equal(1, result.ImportReport.WorkbookMetadataRecordsByKind[LegacyXlsWorkbookMetadataKind.RevisionProtection]);
+            Assert.Equal(1, result.ImportReport.WorkbookMetadataRecordsByKind[LegacyXlsWorkbookMetadataKind.Window]);
+            Assert.Equal(1, result.ImportReport.WorkbookMetadataRecordsByKind[LegacyXlsWorkbookMetadataKind.WindowProtection]);
+            Assert.Equal(1, result.ImportReport.WorkbookMetadataRecordsByKind[LegacyXlsWorkbookMetadataKind.WriteAccess]);
+            Assert.DoesNotContain(workbook.UnsupportedFeatures, feature => feature.RecordType is 0x0040 or 0x00da or 0x0042 or 0x008c or 0x008d or 0x00e1 or 0x00e2 or 0x0033 or 0x01af or 0x0160 or 0x003d or 0x0019 or 0x005c);
+            Assert.Contains("Workbook metadata records: 13", result.ImportReport.ToMarkdown());
+            Assert.Contains("Workbook Metadata Records By Kind", result.ImportReport.ToMarkdown());
+        }
+
+        [Fact]
         public void LegacyXls_Load_ImportsPhase4PrintOptions() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase4PrintOptionsWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);

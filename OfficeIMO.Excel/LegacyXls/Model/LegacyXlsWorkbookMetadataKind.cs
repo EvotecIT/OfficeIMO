@@ -1,0 +1,45 @@
+namespace OfficeIMO.Excel.LegacyXls.Model {
+    /// <summary>
+    /// Identifies workbook-level BIFF metadata that has been decoded into the legacy import model.
+    /// </summary>
+    public enum LegacyXlsWorkbookMetadataKind {
+        /// <summary>Backup-save preference from a Backup record.</summary>
+        Backup,
+
+        /// <summary>Workbook option flags from a BookBool record.</summary>
+        BookOptions,
+
+        /// <summary>Workbook text code page from a CodePage record.</summary>
+        CodePage,
+
+        /// <summary>Workbook locale identifiers from a Country record.</summary>
+        Country,
+
+        /// <summary>Hidden-object display mode from a HideObj record.</summary>
+        HiddenObjects,
+
+        /// <summary>User interface code page from an InterfaceHdr record.</summary>
+        InterfaceCodePage,
+
+        /// <summary>End marker for the user interface record collection.</summary>
+        InterfaceEnd,
+
+        /// <summary>Natural language formula support flag from a UsesELFs record.</summary>
+        NaturalLanguageFormulas,
+
+        /// <summary>Printed workbook sizing mode from a PrintSize record.</summary>
+        PrintSize,
+
+        /// <summary>Revision-tracking lock state from a Prot4Rev record.</summary>
+        RevisionProtection,
+
+        /// <summary>Workbook window lock state from a WinProtect record.</summary>
+        WindowProtection,
+
+        /// <summary>Workbook window geometry and display flags from a Window1 record.</summary>
+        Window,
+
+        /// <summary>Last write user name from a WriteAccess record.</summary>
+        WriteAccess
+    }
+}

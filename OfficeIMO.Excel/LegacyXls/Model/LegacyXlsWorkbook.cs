@@ -18,6 +18,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         private readonly List<LegacyXlsUnsupportedSheet> _unsupportedSheets = new();
         private readonly List<LegacyXlsUnsupportedFeature> _unsupportedFeatures = new();
         private readonly List<LegacyXlsPreservedFeatureRecord> _preservedFeatureRecords = new();
+        private readonly List<LegacyXlsWorkbookMetadataRecord> _metadataRecords = new();
+        private readonly List<LegacyXlsWorkbookWindow> _windows = new();
         private readonly List<LegacyXlsImportDiagnostic> _diagnostics = new();
         private readonly LegacyXlsCalculationSettings _calculationSettings = new();
 
@@ -80,6 +82,16 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         public IReadOnlyList<LegacyXlsPreservedFeatureRecord> PreservedFeatureRecords => _preservedFeatureRecords;
 
         /// <summary>
+        /// Gets workbook-level BIFF metadata records decoded during import.
+        /// </summary>
+        public IReadOnlyList<LegacyXlsWorkbookMetadataRecord> MetadataRecords => _metadataRecords;
+
+        /// <summary>
+        /// Gets workbook windows decoded from Window1 records.
+        /// </summary>
+        public IReadOnlyList<LegacyXlsWorkbookWindow> Windows => _windows;
+
+        /// <summary>
         /// Gets diagnostics produced while reading the legacy workbook.
         /// </summary>
         public IReadOnlyList<LegacyXlsImportDiagnostic> Diagnostics => _diagnostics;
@@ -88,6 +100,86 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// Gets whether the workbook uses the Excel 1904 date system.
         /// </summary>
         public bool Uses1904DateSystem { get; private set; }
+
+        /// <summary>
+        /// Gets the workbook text code page decoded from a CodePage record.
+        /// </summary>
+        public ushort? CodePage { get; private set; }
+
+        /// <summary>
+        /// Gets the user interface code page decoded from an InterfaceHdr record.
+        /// </summary>
+        public ushort? UserInterfaceCodePage { get; private set; }
+
+        /// <summary>
+        /// Gets country and region metadata decoded from a Country record.
+        /// </summary>
+        public LegacyXlsCountryInfo? Country { get; private set; }
+
+        /// <summary>
+        /// Gets whether the workbook requested saving a backup copy.
+        /// </summary>
+        public bool? SaveBackup { get; private set; }
+
+        /// <summary>
+        /// Gets whether external-link values should not be saved with the workbook.
+        /// </summary>
+        public bool? DoNotSaveExternalLinkValues { get; private set; }
+
+        /// <summary>
+        /// Gets whether the workbook has an envelope.
+        /// </summary>
+        public bool? HasEnvelope { get; private set; }
+
+        /// <summary>
+        /// Gets whether the workbook envelope is visible.
+        /// </summary>
+        public bool? EnvelopeVisible { get; private set; }
+
+        /// <summary>
+        /// Gets whether the workbook envelope was initialized.
+        /// </summary>
+        public bool? EnvelopeInitialized { get; private set; }
+
+        /// <summary>
+        /// Gets the raw external-link update mode decoded from BookBool flags.
+        /// </summary>
+        public byte? ExternalLinkUpdateMode { get; private set; }
+
+        /// <summary>
+        /// Gets whether borders are hidden for inactive tables.
+        /// </summary>
+        public bool? HideBordersForInactiveTables { get; private set; }
+
+        /// <summary>
+        /// Gets the raw hidden-object display mode decoded from a HideObj record.
+        /// </summary>
+        public ushort? HiddenObjectsMode { get; private set; }
+
+        /// <summary>
+        /// Gets whether the workbook supports natural language formulas.
+        /// </summary>
+        public bool? UsesNaturalLanguageFormulas { get; private set; }
+
+        /// <summary>
+        /// Gets whether workbook windows are locked from moving or resizing.
+        /// </summary>
+        public bool? WindowsLocked { get; private set; }
+
+        /// <summary>
+        /// Gets whether workbook revision tracking is locked.
+        /// </summary>
+        public bool? RevisionTrackingLocked { get; private set; }
+
+        /// <summary>
+        /// Gets the raw print size mode decoded from a PrintSize record.
+        /// </summary>
+        public ushort? PrintSize { get; private set; }
+
+        /// <summary>
+        /// Gets the user name stored by the WriteAccess record, if present.
+        /// </summary>
+        public string? LastWriteUserName { get; private set; }
 
         /// <summary>
         /// Gets parsed workbook protection metadata.
@@ -139,6 +231,63 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         internal void SetUses1904DateSystem(bool value) {
             Uses1904DateSystem = value;
+        }
+
+        internal void SetCodePage(ushort value) {
+            CodePage = value;
+        }
+
+        internal void SetUserInterfaceCodePage(ushort value) {
+            UserInterfaceCodePage = value;
+        }
+
+        internal void SetCountry(ushort defaultCountryCode, ushort systemCountryCode) {
+            Country = new LegacyXlsCountryInfo(defaultCountryCode, systemCountryCode);
+        }
+
+        internal void SetSaveBackup(bool value) {
+            SaveBackup = value;
+        }
+
+        internal void SetBookOptions(ushort flags) {
+            DoNotSaveExternalLinkValues = (flags & 0x0001) != 0;
+            HasEnvelope = (flags & 0x0004) != 0;
+            EnvelopeVisible = (flags & 0x0008) != 0;
+            EnvelopeInitialized = (flags & 0x0010) != 0;
+            ExternalLinkUpdateMode = checked((byte)((flags >> 5) & 0x0003));
+            HideBordersForInactiveTables = (flags & 0x0100) != 0;
+        }
+
+        internal void SetHiddenObjectsMode(ushort value) {
+            HiddenObjectsMode = value;
+        }
+
+        internal void SetUsesNaturalLanguageFormulas(bool value) {
+            UsesNaturalLanguageFormulas = value;
+        }
+
+        internal void SetWindowsLocked(bool value) {
+            WindowsLocked = value;
+        }
+
+        internal void SetRevisionTrackingLocked(bool value) {
+            RevisionTrackingLocked = value;
+        }
+
+        internal void SetPrintSize(ushort value) {
+            PrintSize = value;
+        }
+
+        internal void SetLastWriteUserName(string? value) {
+            LastWriteUserName = value;
+        }
+
+        internal void AddWindow(LegacyXlsWorkbookWindow window) {
+            _windows.Add(window);
+        }
+
+        internal void AddMetadataRecord(LegacyXlsWorkbookMetadataKind kind, int recordOffset, ushort recordType) {
+            _metadataRecords.Add(new LegacyXlsWorkbookMetadataRecord(kind, recordOffset, recordType));
         }
 
         internal void SetProtection(bool isProtected) {

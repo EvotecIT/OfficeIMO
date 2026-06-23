@@ -24,6 +24,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             ExternalCellCacheCount = workbook.ExternalReferences.Sum(reference => reference.CachedCellCaches.Count);
             ExternalCachedCellCount = workbook.ExternalReferences.Sum(reference => reference.CachedCellCaches.Sum(cache => cache.Cells.Count));
             CalculationSettingRecordCount = workbook.CalculationSettings.Records.Count;
+            WorkbookMetadataRecordCount = workbook.MetadataRecords.Count;
             WorksheetMetadataRecordCount = workbook.Worksheets.Sum(sheet => sheet.MetadataRecords.Count);
             UnsupportedFeatureCount = workbook.UnsupportedFeatures.Count;
             PreservedFeatureRecordCount = workbook.PreservedFeatureRecords.Count;
@@ -44,6 +45,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             UnsupportedFeaturesByLocation = CountByCode(workbook.UnsupportedFeatures
                 .Select(GetFeatureLocationKey));
             CalculationSettingsByKind = CountCalculationSettingsByKind(workbook.CalculationSettings.Records);
+            WorkbookMetadataRecordsByKind = CountWorkbookMetadataRecordsByKind(workbook.MetadataRecords);
             WorksheetMetadataRecordsByKind = CountWorksheetMetadataRecordsByKind(workbook.Worksheets.SelectMany(sheet => sheet.MetadataRecords));
             PreservedFeatureRecordsByKind = CountPreservedRecordsByKind(workbook.PreservedFeatureRecords);
             PreservedFeatureRecordsByDetail = CountByCode(workbook.PreservedFeatureRecords
@@ -93,6 +95,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets the number of calculation setting records parsed from BIFF records.</summary>
         public int CalculationSettingRecordCount { get; }
 
+        /// <summary>Gets the number of workbook metadata records parsed from BIFF records.</summary>
+        public int WorkbookMetadataRecordCount { get; }
+
         /// <summary>Gets the number of worksheet metadata records parsed from BIFF records.</summary>
         public int WorksheetMetadataRecordCount { get; }
 
@@ -132,6 +137,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets parsed calculation setting records grouped by setting kind.</summary>
         public IReadOnlyDictionary<LegacyXlsCalculationSettingKind, int> CalculationSettingsByKind { get; }
 
+        /// <summary>Gets parsed workbook metadata records grouped by metadata kind.</summary>
+        public IReadOnlyDictionary<LegacyXlsWorkbookMetadataKind, int> WorkbookMetadataRecordsByKind { get; }
+
         /// <summary>Gets parsed worksheet metadata records grouped by metadata kind.</summary>
         public IReadOnlyDictionary<LegacyXlsWorksheetMetadataKind, int> WorksheetMetadataRecordsByKind { get; }
 
@@ -168,6 +176,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             builder.AppendLine($"External cell caches: {ExternalCellCacheCount}");
             builder.AppendLine($"External cached cells: {ExternalCachedCellCount}");
             builder.AppendLine($"Calculation setting records: {CalculationSettingRecordCount}");
+            builder.AppendLine($"Workbook metadata records: {WorkbookMetadataRecordCount}");
             builder.AppendLine($"Worksheet metadata records: {WorksheetMetadataRecordCount}");
             builder.AppendLine($"Unsupported features: {UnsupportedFeatureCount}");
             builder.AppendLine($"Preserved feature records: {PreservedFeatureRecordCount}");
@@ -184,6 +193,10 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Unsupported Feature Details", UnsupportedFeaturesByDetail);
             AppendDictionary(builder, "Unsupported Feature Locations", UnsupportedFeaturesByLocation);
             AppendDictionary(builder, "Calculation Settings By Kind", CalculationSettingsByKind.ToDictionary(
+                entry => entry.Key.ToString(),
+                entry => entry.Value,
+                StringComparer.OrdinalIgnoreCase));
+            AppendDictionary(builder, "Workbook Metadata Records By Kind", WorkbookMetadataRecordsByKind.ToDictionary(
                 entry => entry.Key.ToString(),
                 entry => entry.Value,
                 StringComparer.OrdinalIgnoreCase));
@@ -222,6 +235,13 @@ namespace OfficeIMO.Excel.LegacyXls {
         }
 
         private static IReadOnlyDictionary<LegacyXlsCalculationSettingKind, int> CountCalculationSettingsByKind(IEnumerable<LegacyXlsCalculationSettingRecord> records) {
+            return records
+                .GroupBy(record => record.Kind)
+                .OrderBy(group => group.Key.ToString(), StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(group => group.Key, group => group.Count());
+        }
+
+        private static IReadOnlyDictionary<LegacyXlsWorkbookMetadataKind, int> CountWorkbookMetadataRecordsByKind(IEnumerable<LegacyXlsWorkbookMetadataRecord> records) {
             return records
                 .GroupBy(record => record.Kind)
                 .OrderBy(group => group.Key.ToString(), StringComparer.OrdinalIgnoreCase)

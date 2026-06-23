@@ -71,6 +71,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     BiffExternalCellCacheReader.ReadCrn(record, currentExternalCellCache, workbook.MutableDiagnostics);
                 } else if (BiffCalculationSettingsReader.TryRead(record, sheetName: null, workbook.MutableCalculationSettings, workbook.MutableDiagnostics)) {
                     continue;
+                } else if (BiffWorkbookMetadataReader.TryRead(record, workbook, workbook.MutableDiagnostics)) {
+                    continue;
                 } else if (record.Type == (ushort)BiffRecordType.Xf) {
                     ReadCellFormat(record, workbook, numberFormatsById, workbook.MutableDiagnostics);
                 } else if (record.Type != (ushort)BiffRecordType.Bof && record.Type != (ushort)BiffRecordType.Eof) {
