@@ -19,7 +19,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             int? chartWidth = null,
             int? chartHeight = null,
             ushort? axisType = null,
-            string? axisTypeName = null) {
+            string? axisTypeName = null,
+            ushort? axesUsedCount = null) {
             if (payloadLength < 0) {
                 throw new ArgumentOutOfRangeException(nameof(payloadLength));
             }
@@ -37,6 +38,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             ChartHeight = chartHeight;
             AxisType = axisType;
             AxisTypeName = string.IsNullOrWhiteSpace(axisTypeName) ? null : axisTypeName;
+            AxesUsedCount = axesUsedCount;
         }
 
         /// <summary>Gets the shallow chart record category.</summary>
@@ -77,5 +79,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets the decoded axis type name from Axis records, when present.</summary>
         public string? AxisTypeName { get; }
+
+        /// <summary>Gets the decoded axis group count from AxesUsed records, when present.</summary>
+        public ushort? AxesUsedCount { get; }
     }
 }

@@ -376,6 +376,12 @@ Warnings: 2
 | CategoryOrHorizontalValue | 8 |
 | ValueOrVerticalValue | 8 |
 
+## Chart Records By Axes Used Count
+
+| Key | Count |
+| --- | --- |
+| AxesUsed:0 | 40 |
+
 ## Chart Records By Location
 
 | Key | Count |

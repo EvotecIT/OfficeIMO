@@ -93,6 +93,9 @@ namespace OfficeIMO.Excel.LegacyXls {
             ChartRecordsByAxisType = CountByCode(workbook.ChartRecords
                 .Where(record => !string.IsNullOrWhiteSpace(record.AxisTypeName))
                 .Select(record => record.AxisTypeName!));
+            ChartRecordsByAxesUsedCount = CountByCode(workbook.ChartRecords
+                .Where(record => record.AxesUsedCount.HasValue)
+                .Select(record => $"AxesUsed:{record.AxesUsedCount!.Value}"));
             ChartRecordsByLocation = CountByCode(workbook.ChartRecords.Select(GetChartRecordLocationKey));
             DrawingRecordsByKind = CountDrawingRecordsByKind(workbook.DrawingRecords);
             DrawingRecordsByName = CountByCode(workbook.DrawingRecords.Select(record => record.RecordName));
@@ -297,6 +300,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets Axis records grouped by decoded axis type.</summary>
         public IReadOnlyDictionary<string, int> ChartRecordsByAxisType { get; }
 
+        /// <summary>Gets AxesUsed records grouped by decoded axis group count.</summary>
+        public IReadOnlyDictionary<string, int> ChartRecordsByAxesUsedCount { get; }
+
         /// <summary>Gets preserve-only chart BIFF records grouped by workbook or sheet location.</summary>
         public IReadOnlyDictionary<string, int> ChartRecordsByLocation { get; }
 
@@ -442,6 +448,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Chart Records By Chart Type", ChartRecordsByChartType);
             AppendDictionary(builder, "Chart Records By Rectangle", ChartRecordsByRectangle);
             AppendDictionary(builder, "Chart Records By Axis Type", ChartRecordsByAxisType);
+            AppendDictionary(builder, "Chart Records By Axes Used Count", ChartRecordsByAxesUsedCount);
             AppendDictionary(builder, "Chart Records By Location", ChartRecordsByLocation);
             AppendDictionary(builder, "Drawing Records By Kind", DrawingRecordsByKind.ToDictionary(
                 entry => entry.Key.ToString(),

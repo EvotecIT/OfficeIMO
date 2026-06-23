@@ -401,6 +401,7 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x1002, BuildChartPayload(100, 200, 3000, 2200));
                 WriteRecord(stream, 0x1014, Array.Empty<byte>());
                 WriteRecord(stream, 0x101d, BuildAxisPayload(0x0001));
+                WriteRecord(stream, 0x1045, BuildUInt16Payload(1));
                 WriteRecord(stream, 0x101b, Array.Empty<byte>());
                 WriteRecord(stream, 0x01b6, new byte[18]);
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());

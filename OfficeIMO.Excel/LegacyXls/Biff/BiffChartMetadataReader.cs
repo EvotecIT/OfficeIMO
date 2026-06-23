@@ -12,6 +12,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
             TryReadChartRectangle(record, out int? chartX, out int? chartY, out int? chartWidth, out int? chartHeight);
             TryReadAxisType(record, out ushort? axisType, out string? axisTypeName);
+            TryReadAxesUsedCount(record, out ushort? axesUsedCount);
             records.Add(new LegacyXlsChartRecord(
                 GetKind(record.Type),
                 BiffUnsupportedRecordDiagnostics.GetBiffRecordName(record.Type),
@@ -25,7 +26,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 chartWidth,
                 chartHeight,
                 axisType,
-                axisTypeName));
+                axisTypeName,
+                axesUsedCount));
             return true;
         }
 
@@ -55,6 +57,16 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             ushort value = BiffRecordReader.ReadUInt16(record.Payload, 0);
             axisType = value;
             axisTypeName = GetAxisTypeName(value);
+            return true;
+        }
+
+        private static bool TryReadAxesUsedCount(BiffRecord record, out ushort? axesUsedCount) {
+            axesUsedCount = null;
+            if (record.Type != 0x1045 || record.Payload.Length < 2) {
+                return false;
+            }
+
+            axesUsedCount = BiffRecordReader.ReadUInt16(record.Payload, 0);
             return true;
         }
 
