@@ -98,6 +98,8 @@ Latest shared chart typography checkpoint: `OfficeIMO.Drawing` now owns less-squ
 
 Latest PDF extracted-image MIME checkpoint: PDF image extraction now uses `OfficeImageInfo.GetMimeType` from `OfficeIMO.Drawing` for reconstructed JPEG/PNG file identities instead of hardcoded MIME strings in the PDF reader. PDF still owns PDF stream/filter interpretation, soft-mask reconstruction, and PNG file construction, while Drawing remains the central image-format vocabulary shared by Excel, Word, Visio, SVG embedding, and PDF extraction.
 
+Latest WebP image-format checkpoint: `OfficeIMO.Drawing` now recognizes WebP as a shared image format for MIME, extension, and SVG data-URI embedding policy. Visio stencil preview gallery image fallback now delegates extension-to-MIME resolution to Drawing instead of keeping a private switch, so package-backed preview artwork and future image export paths share the same image vocabulary.
+
 ## Goal
 
 Build a dependency-free OfficeIMO image conversion stack that can render selected Office content to PNG and SVG in a deterministic, server-safe way.

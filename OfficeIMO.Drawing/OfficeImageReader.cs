@@ -114,6 +114,7 @@ public static class OfficeImageReader {
             ".wmf" => OfficeImageFormat.Wmf,
             ".ico" => OfficeImageFormat.Icon,
             ".pcx" => OfficeImageFormat.Pcx,
+            ".webp" => OfficeImageFormat.Webp,
             _ => OfficeImageFormat.Unknown
         };
     }

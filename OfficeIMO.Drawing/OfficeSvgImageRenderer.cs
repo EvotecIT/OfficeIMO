@@ -309,6 +309,7 @@ public static class OfficeSvgImageRenderer {
             case OfficeImageFormat.Jpeg:
             case OfficeImageFormat.Gif:
             case OfficeImageFormat.Svg:
+            case OfficeImageFormat.Webp:
                 contentType = OfficeImageInfo.GetMimeType(format);
                 return true;
             default:
@@ -404,7 +405,8 @@ public static class OfficeSvgImageRenderer {
         string.Equals(contentType, "image/png", StringComparison.OrdinalIgnoreCase) ||
         string.Equals(contentType, "image/jpeg", StringComparison.OrdinalIgnoreCase) ||
         string.Equals(contentType, "image/gif", StringComparison.OrdinalIgnoreCase) ||
-        string.Equals(contentType, "image/svg+xml", StringComparison.OrdinalIgnoreCase);
+        string.Equals(contentType, "image/svg+xml", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(contentType, "image/webp", StringComparison.OrdinalIgnoreCase);
 
     private static string NormalizeContentType(string? contentType) {
         if (string.IsNullOrWhiteSpace(contentType)) {

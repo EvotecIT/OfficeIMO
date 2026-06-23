@@ -49,6 +49,7 @@ public sealed class OfficeImageInfo {
         OfficeImageFormat.Wmf => "image/x-wmf",
         OfficeImageFormat.Icon => "image/x-icon",
         OfficeImageFormat.Pcx => "image/x-pcx",
+        OfficeImageFormat.Webp => "image/webp",
         _ => "application/octet-stream"
     };
 
@@ -78,6 +79,7 @@ public sealed class OfficeImageInfo {
             "image/x-wmf" or "image/wmf" => OfficeImageFormat.Wmf,
             "image/x-icon" or "image/vnd.microsoft.icon" => OfficeImageFormat.Icon,
             "image/x-pcx" => OfficeImageFormat.Pcx,
+            "image/webp" => OfficeImageFormat.Webp,
             _ => OfficeImageFormat.Unknown
         };
     }

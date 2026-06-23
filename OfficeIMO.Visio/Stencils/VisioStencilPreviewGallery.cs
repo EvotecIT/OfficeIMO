@@ -355,16 +355,8 @@ namespace OfficeIMO.Visio.Stencils {
                 return "application/octet-stream";
             }
 
-            string normalized = extension!.TrimStart('.').ToLowerInvariant();
-            return normalized switch {
-                "png" => "image/png",
-                "jpg" or "jpeg" => "image/jpeg",
-                "gif" => "image/gif",
-                "svg" => "image/svg+xml",
-                "bmp" => "image/bmp",
-                "webp" => "image/webp",
-                _ => "application/octet-stream"
-            };
+            OfficeImageFormat format = OfficeImageReader.FromExtension(extension);
+            return OfficeImageInfo.GetMimeType(format);
         }
     }
 }

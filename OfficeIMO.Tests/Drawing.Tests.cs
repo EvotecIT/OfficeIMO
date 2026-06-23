@@ -350,6 +350,7 @@ public class DrawingTests {
     [InlineData("image/pjpeg", OfficeImageFormat.Jpeg)]
     [InlineData("image/svg+xml; charset=utf-8", OfficeImageFormat.Svg)]
     [InlineData("image/x-emf", OfficeImageFormat.Emf)]
+    [InlineData("image/webp", OfficeImageFormat.Webp)]
     [InlineData("application/octet-stream", OfficeImageFormat.Unknown)]
     public void OfficeImageInfoMapsMimeTypesToSharedFormats(string contentType, OfficeImageFormat expected) {
         Assert.Equal(expected, OfficeImageInfo.FromMimeType(contentType));
@@ -360,6 +361,7 @@ public class DrawingTests {
     [InlineData(OfficeImageFormat.Jpeg, "image/jpeg")]
     [InlineData(OfficeImageFormat.Gif, "image/gif")]
     [InlineData(OfficeImageFormat.Svg, "image/svg+xml")]
+    [InlineData(OfficeImageFormat.Webp, "image/webp")]
     public void OfficeSvgImageRendererResolvesEmbeddableContentTypes(OfficeImageFormat format, string expectedContentType) {
         Assert.True(OfficeSvgImageRenderer.TryGetEmbeddableContentType(format, out string contentType));
         Assert.Equal(expectedContentType, contentType);
@@ -379,6 +381,7 @@ public class DrawingTests {
     [InlineData("binary/octet-stream", "gif", ".bin", "image/gif")]
     [InlineData("application/octet-stream", "svg-preamble", ".bin", "image/svg+xml")]
     [InlineData(null, null, ".svg", "image/svg+xml")]
+    [InlineData(null, null, ".webp", "image/webp")]
     public void OfficeSvgImageRendererResolvesEmbeddableContentTypeFromMetadataBytesAndExtension(string? declaredContentType, string? bytesKind, string? fileName, string expectedContentType) {
         byte[]? bytes = bytesKind switch {
             "png" => new byte[] { 0x89, (byte)'P', (byte)'N', (byte)'G', 0x0D, 0x0A, 0x1A, 0x0A },
@@ -1701,6 +1704,7 @@ public class DrawingTests {
     [InlineData("photo.JPG", OfficeImageFormat.Jpeg)]
     [InlineData("diagram.svg", OfficeImageFormat.Svg)]
     [InlineData("legacy.emf", OfficeImageFormat.Emf)]
+    [InlineData("preview.webp", OfficeImageFormat.Webp)]
     public void OfficeImageReaderMapsFileNamesAndBareExtensions(string fileName, OfficeImageFormat expected) {
         Assert.Equal(expected, OfficeImageReader.FromExtension(fileName));
     }
