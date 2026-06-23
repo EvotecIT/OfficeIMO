@@ -86,6 +86,18 @@ public class PdfEncryptedReadTests {
     }
 
     [Fact]
+    public void StandardPasswordEncryptedPdf_ExtractsWithSupportedPageLabelsWhenPasswordProvided() {
+        byte[] pdf = EncryptedPdfFixture.CreateRevision2WithPageLabels("open", "owner", "Secret PDF Text");
+        var options = new PdfReadOptions { Password = "open" };
+
+        byte[] page = PdfPageExtractor.ExtractPages(pdf, options, 1);
+
+        Assert.False(PdfInspector.Probe(page).HasEncryption);
+        Assert.Contains("Secret PDF Text", PdfTextExtractor.ExtractAllText(page), StringComparison.Ordinal);
+    }
+
+
+    [Fact]
     public void StandardPasswordEncryptedFormPdf_BlocksFormFillEvenWithValidPassword() {
         byte[] pdf = EncryptedPdfFixture.CreateRevision2WithTextField("open", "owner", "Secret PDF Text");
 
@@ -117,7 +129,11 @@ public class PdfEncryptedReadTests {
             return CreateRevision2Core(userPassword, ownerPassword, visibleText, includeSignature: true, encryptGeneration: 0);
         }
 
-        private static byte[] CreateRevision2Core(string userPassword, string ownerPassword, string visibleText, bool includeSignature, int encryptGeneration) {
+        public static byte[] CreateRevision2WithPageLabels(string userPassword, string ownerPassword, string visibleText) {
+            return CreateRevision2Core(userPassword, ownerPassword, visibleText, includeSignature: false, encryptGeneration: 0, includePageLabels: true);
+        }
+
+        private static byte[] CreateRevision2Core(string userPassword, string ownerPassword, string visibleText, bool includeSignature, int encryptGeneration, bool includePageLabels = false) {
             byte[] fileId = new byte[] {
                 0x10, 0x45, 0xA8, 0x7C, 0x22, 0x18, 0x4E, 0xC1,
                 0x91, 0x4A, 0xCF, 0x66, 0x31, 0xD2, 0x74, 0x03
@@ -131,9 +147,16 @@ public class PdfEncryptedReadTests {
             byte[] encryptedContent = Rc4(ComputeObjectKey(fileKey, 5, 0), Encoding.ASCII.GetBytes(content));
 
             var objects = new List<byte[]>();
-            objects.Add(Ascii(includeSignature
-                ? "<< /Type /Catalog /Pages 2 0 R /AcroForm 7 0 R >>"
-                : "<< /Type /Catalog /Pages 2 0 R >>"));
+            string catalog = "<< /Type /Catalog /Pages 2 0 R";
+            if (includeSignature) {
+                catalog += " /AcroForm 7 0 R";
+            }
+
+            if (includePageLabels) {
+                catalog += " /PageLabels << /Nums [0 << /S /D >>] >>";
+            }
+
+            objects.Add(Ascii(catalog + " >>"));
             objects.Add(Ascii("<< /Type /Pages /Kids [3 0 R] /Count 1 >>"));
             objects.Add(Ascii(includeSignature
                 ? "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 200] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R /Annots [8 0 R] >>"

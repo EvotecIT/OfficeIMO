@@ -215,9 +215,10 @@ internal static partial class PdfWriter {
                     var rowSizes = new double[tb2.Rows.Count];
                     var rowBold = new bool[tb2.Rows.Count];
                     for (int ri = 0; ri < tb2.Rows.Count; ri++) {
-                        double rowSize = GetTableRowFontSize(style, ri, headerRowCount, footerStartRowIndex, currentOpts.DefaultFontSize);
-                        double rowLeading = GetTableLeading(style, rowSize);
                         bool rowUsesBold = GetTableRowBold(style, ri, headerRowCount, footerStartRowIndex);
+                        double rowSize = GetTableRowFontSize(style, ri, headerRowCount, footerStartRowIndex, currentOpts.DefaultFontSize);
+                        rowSize = ResolveTableRowShrinkFontSize(tb2, style, ri, cols, colPixel, columnGap, rowSize, rowUsesBold, currentOpts);
+                        double rowLeading = GetTableLeading(style, rowSize);
                         rowSizes[ri] = rowSize;
                         rowLeadings[ri] = rowLeading;
                         rowBold[ri] = rowUsesBold;

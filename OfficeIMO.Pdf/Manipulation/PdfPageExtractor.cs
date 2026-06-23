@@ -40,7 +40,7 @@ public static partial class PdfPageExtractor {
     public static byte[] ExtractPages(byte[] pdf, IEnumerable<int> pageNumbers, PdfReadOptions? options) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(pageNumbers, nameof(pageNumbers));
-        PdfSyntax.ThrowIfUnsafeForRewrite(pdf, allowEncryption: options?.Password is not null);
+        PdfSyntax.ThrowIfUnsafeForRewrite(pdf, options);
 
         var selected = pageNumbers.ToArray();
         if (selected.Length == 0) {
@@ -226,7 +226,7 @@ public static partial class PdfPageExtractor {
     public static byte[] ExtractPageRanges(byte[] pdf, IEnumerable<PdfPageRange> pageRanges, PdfReadOptions? options) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(pageRanges, nameof(pageRanges));
-        PdfSyntax.ThrowIfUnsafeForRewrite(pdf, allowEncryption: options?.Password is not null);
+        PdfSyntax.ThrowIfUnsafeForRewrite(pdf, options);
 
         var ranges = pageRanges.ToArray();
         if (ranges.Length == 0) {
@@ -319,7 +319,7 @@ public static partial class PdfPageExtractor {
     /// </summary>
     public static IReadOnlyList<byte[]> SplitPages(byte[] pdf, PdfReadOptions? options) {
         Guard.NotNull(pdf, nameof(pdf));
-        PdfSyntax.ThrowIfUnsafeForRewrite(pdf, allowEncryption: options?.Password is not null);
+        PdfSyntax.ThrowIfUnsafeForRewrite(pdf, options);
 
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, options);
         var document = PdfReadDocument.Load(pdf, options);
@@ -367,7 +367,7 @@ public static partial class PdfPageExtractor {
     public static IReadOnlyList<byte[]> SplitPageRanges(byte[] pdf, IEnumerable<PdfPageRange> pageRanges, PdfReadOptions? options) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(pageRanges, nameof(pageRanges));
-        PdfSyntax.ThrowIfUnsafeForRewrite(pdf, allowEncryption: options?.Password is not null);
+        PdfSyntax.ThrowIfUnsafeForRewrite(pdf, options);
 
         var ranges = pageRanges.ToArray();
         if (ranges.Length == 0) {

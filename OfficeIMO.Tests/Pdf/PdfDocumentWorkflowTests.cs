@@ -82,6 +82,69 @@ public class PdfDocumentWorkflowTests {
     }
 
     [Fact]
+    public void TableStyle_CanShrinkTextToFitInsideRowColumnLayout() {
+        const string longValue = "ThisIdentifierShouldShrinkToFit";
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 240,
+                PageHeight = 180
+            })
+            .Compose(document =>
+                document.Page(page =>
+                    page.Content(content =>
+                        content.Row(row =>
+                            row.Column(100, column =>
+                                column.Table(new[] {
+                                    new[] { "Name", "Value" },
+                                    new[] { "Alpha", longValue }
+                                }, style: new PdfTableStyle {
+                                    FontSize = 18,
+                                    HeaderFontSize = 18,
+                                    MinimumShrinkFontSize = 7,
+                                    ShrinkTextToFit = true,
+                                    ColumnWidthPoints = new List<double?> { 54, 108 },
+                                    HeaderRowCount = 1
+                                }))))))
+            .ToBytes();
+
+        PdfDocument document = PdfDocument.Open(bytes);
+        IReadOnlyList<PdfLogicalTextBlock> blocks = document.Read.TextBlocks();
+        string compactText = document.Read.Text()
+            .Replace("\r", string.Empty)
+            .Replace("\n", string.Empty)
+            .Replace(" ", string.Empty);
+
+        Assert.Contains(longValue, compactText, StringComparison.Ordinal);
+        Assert.Contains(blocks, block => block.FontSize < 18D && block.FontSize >= 7D);
+    }
+
+    [Fact]
+    public void TableStyle_CanShrinkTextToFitInsideCanvasTable() {
+        const string longValue = "ThisIdentifierShouldShrinkToFit";
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 240,
+                PageHeight = 180
+            })
+            .Canvas(canvas => canvas.Table(new[] {
+                new[] { "Name", "Value" },
+                new[] { "Alpha", longValue }
+            }, 20, 20, 162, 80, new PdfTableStyle {
+                FontSize = 18,
+                HeaderFontSize = 18,
+                MinimumShrinkFontSize = 7,
+                ShrinkTextToFit = true,
+                ColumnWidthPoints = new List<double?> { 54, 108 },
+                HeaderRowCount = 1
+            }))
+            .ToBytes();
+
+        IReadOnlyList<PdfLogicalTextBlock> blocks = PdfDocument.Open(bytes).Read.TextBlocks();
+        PdfLogicalTextBlock valueBlock = Assert.Single(blocks, block => block.Text.Contains(longValue, StringComparison.Ordinal));
+
+        Assert.True(valueBlock.FontSize < 18D);
+        Assert.True(valueBlock.FontSize >= 7D);
+    }
+
+    [Fact]
     public void PageSizes_ResolveExpandedStandardNames() {
         Assert.True(PageSizes.TryGet("a0", out PageSize a0));
         Assert.Equal(2384, a0.Width);

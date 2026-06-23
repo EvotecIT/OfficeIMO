@@ -63,7 +63,7 @@ public static partial class PdfPageEditor {
             additionalObjects.Add(new PdfPageExtractor.AdditionalObject(prefixPseudoObjectNumber, BuildResizeContentStream(transform)));
             additionalObjects.Add(new PdfPageExtractor.AdditionalObject(suffixPseudoObjectNumber, new PdfStream(new PdfDictionary(), PdfEncoding.Latin1GetBytes("\nQ\n"))));
 
-            overrides[pageObjectNumber] = new Dictionary<string, PdfObject>(StringComparer.Ordinal) {
+            var pageOverrides = new Dictionary<string, PdfObject>(StringComparer.Ordinal) {
                 ["MediaBox"] = CreatePageBoxArray(0D, 0D, options.PageSize.Width, options.PageSize.Height),
                 ["CropBox"] = CreatePageBoxArray(0D, 0D, options.PageSize.Width, options.PageSize.Height),
                 ["Contents"] = BuildResizedContentsArray(
@@ -72,6 +72,13 @@ public static partial class PdfPageEditor {
                     prefixPseudoObjectNumber,
                     suffixPseudoObjectNumber)
             };
+
+            AddNormalizedProductionBoxes(pageOverrides, geometry, options.PageSize);
+            if (TryBuildTransformedAnnotations(objects, pageDictionary, transform, out PdfArray? transformedAnnotations)) {
+                pageOverrides["Annots"] = transformedAnnotations!;
+            }
+
+            overrides[pageObjectNumber] = pageOverrides;
         }
 
         PdfFileVersion fileVersion = PdfFileAssembler.ParseHeaderVersionOrDefault(PdfSyntax.GetHeaderVersion(pdf));
@@ -207,6 +214,120 @@ public static partial class PdfPageEditor {
             FormatResizeNumber(transform.TranslateX) + " " +
             FormatResizeNumber(transform.TranslateY) + " cm\n";
         return new PdfStream(new PdfDictionary(), PdfEncoding.Latin1GetBytes(content));
+    }
+
+    private static void AddNormalizedProductionBoxes(Dictionary<string, PdfObject> pageOverrides, PdfPageGeometry geometry, PageSize pageSize) {
+        PdfArray targetBox = CreatePageBoxArray(0D, 0D, pageSize.Width, pageSize.Height);
+        if (geometry.BleedBox is not null) {
+            pageOverrides["BleedBox"] = ClonePageBoxArray(targetBox);
+        }
+
+        if (geometry.TrimBox is not null) {
+            pageOverrides["TrimBox"] = ClonePageBoxArray(targetBox);
+        }
+
+        if (geometry.ArtBox is not null) {
+            pageOverrides["ArtBox"] = ClonePageBoxArray(targetBox);
+        }
+    }
+
+    private static PdfArray ClonePageBoxArray(PdfArray source) {
+        var clone = new PdfArray();
+        foreach (PdfObject item in source.Items) {
+            clone.Items.Add(ClonePdfObject(item));
+        }
+
+        return clone;
+    }
+
+    private static bool TryBuildTransformedAnnotations(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary pageDictionary,
+        PageResizeTransform transform,
+        out PdfArray? transformedAnnotations) {
+        transformedAnnotations = null;
+        if (!pageDictionary.Items.TryGetValue("Annots", out PdfObject? annotationsObject) ||
+            PdfObjectLookup.Resolve(objects, annotationsObject) is not PdfArray annotations) {
+            return false;
+        }
+
+        transformedAnnotations = new PdfArray();
+        foreach (PdfObject annotationObject in annotations.Items) {
+            PdfObject? resolved = PdfObjectLookup.Resolve(objects, annotationObject);
+            if (resolved is PdfDictionary annotationDictionary) {
+                var clonedAnnotation = (PdfDictionary)ClonePdfObject(annotationDictionary);
+                TransformAnnotationRectangle(clonedAnnotation, transform);
+                transformedAnnotations.Items.Add(clonedAnnotation);
+            } else {
+                transformedAnnotations.Items.Add(ClonePdfObject(annotationObject));
+            }
+        }
+
+        return true;
+    }
+
+    private static void TransformAnnotationRectangle(PdfDictionary annotation, PageResizeTransform transform) {
+        if (!annotation.Items.TryGetValue("Rect", out PdfObject? rectObject) ||
+            rectObject is not PdfArray rect ||
+            rect.Items.Count < 4 ||
+            rect.Items[0] is not PdfNumber x1 ||
+            rect.Items[1] is not PdfNumber y1 ||
+            rect.Items[2] is not PdfNumber x2 ||
+            rect.Items[3] is not PdfNumber y2) {
+            return;
+        }
+
+        double transformedX1 = TransformX(x1.Value, transform);
+        double transformedY1 = TransformY(y1.Value, transform);
+        double transformedX2 = TransformX(x2.Value, transform);
+        double transformedY2 = TransformY(y2.Value, transform);
+        var transformedRect = new PdfArray();
+        transformedRect.Items.Add(new PdfNumber(Math.Min(transformedX1, transformedX2)));
+        transformedRect.Items.Add(new PdfNumber(Math.Min(transformedY1, transformedY2)));
+        transformedRect.Items.Add(new PdfNumber(Math.Max(transformedX1, transformedX2)));
+        transformedRect.Items.Add(new PdfNumber(Math.Max(transformedY1, transformedY2)));
+        annotation.Items["Rect"] = transformedRect;
+    }
+
+    private static double TransformX(double value, PageResizeTransform transform) =>
+        value * transform.ScaleX + transform.TranslateX;
+
+    private static double TransformY(double value, PageResizeTransform transform) =>
+        value * transform.ScaleY + transform.TranslateY;
+
+    private static PdfObject ClonePdfObject(PdfObject value) {
+        switch (value) {
+            case PdfNumber number:
+                return new PdfNumber(number.Value);
+            case PdfBoolean boolean:
+                return new PdfBoolean(boolean.Value);
+            case PdfName name:
+                return new PdfName(name.Name);
+            case PdfStringObj text:
+                return new PdfStringObj(text.RawBytes, text.UseTextStringEncoding);
+            case PdfArray array:
+                var clonedArray = new PdfArray();
+                foreach (PdfObject item in array.Items) {
+                    clonedArray.Items.Add(ClonePdfObject(item));
+                }
+
+                return clonedArray;
+            case PdfDictionary dictionary:
+                var clonedDictionary = new PdfDictionary();
+                foreach (var item in dictionary.Items) {
+                    clonedDictionary.Items[item.Key] = ClonePdfObject(item.Value);
+                }
+
+                return clonedDictionary;
+            case PdfReference reference:
+                return new PdfReference(reference.ObjectNumber, reference.Generation);
+            case PdfStream stream:
+                return new PdfStream((PdfDictionary)ClonePdfObject(stream.Dictionary), (byte[])stream.Data.Clone(), stream.DecodingFailed, stream.DecodingError);
+            case PdfNull:
+                return PdfNull.Instance;
+            default:
+                return value;
+        }
     }
 
     private static PageResizeTransform CalculateResizeTransform(double sourceLeft, double sourceBottom, double sourceWidth, double sourceHeight, PdfPageResizeOptions options) {

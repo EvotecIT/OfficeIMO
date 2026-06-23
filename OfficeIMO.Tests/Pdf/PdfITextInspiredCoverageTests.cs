@@ -334,6 +334,29 @@ public class PdfITextInspiredCoverageTests {
     }
 
     [Fact]
+    public void PageEditor_ResizePagesTransformsAnnotationsAndNormalizesProductionBoxes() {
+        byte[] pdf = BuildResizableAnnotatedPagePdf();
+
+        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PageSize(600, 600)) {
+            Mode = PdfPageResizeMode.Stretch
+        });
+
+        PdfDocumentInfo info = PdfInspector.Inspect(resized);
+        PdfPageGeometry geometry = info.Pages[0].Geometry!;
+        PdfAnnotation annotation = Assert.Single(info.GetAnnotationsBySubtype("Link"));
+
+        Assert.Equal(600, geometry.MediaBox.Width);
+        Assert.Equal(600, geometry.CropBox!.Width);
+        Assert.Equal(600, geometry.TrimBox!.Width);
+        Assert.Equal(600, geometry.BleedBox!.Width);
+        Assert.Equal(600, geometry.ArtBox!.Width);
+        Assert.Equal(40, annotation.X1);
+        Assert.Equal(60, annotation.Y1);
+        Assert.Equal(80, annotation.X2);
+        Assert.Equal(100, annotation.Y2);
+    }
+
+    [Fact]
     public void SecurityInfo_ReportsObjectStreamRewriteReadiness() {
         byte[] pdf = Encoding.ASCII.GetBytes(string.Join("\n", new[] {
             "%PDF-1.7",
@@ -643,6 +666,19 @@ public class PdfITextInspiredCoverageTests {
         };
 
         return Encoding.ASCII.GetBytes(BuildPdf(objects).Replace("%PDF-1.7", "%PDF-" + version));
+    }
+
+    private static byte[] BuildResizableAnnotatedPagePdf() {
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /CropBox [0 0 300 300] /BleedBox [5 5 295 295] /TrimBox [10 10 290 290] /ArtBox [20 20 280 280] /Resources << /Font << /F1 4 0 R >> >> /Annots [6 0 R] /Contents 5 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 20 20 Td (Resize source) Tj ET")),
+            "<< /Type /Annot /Subtype /Link /Rect [20 30 40 50] /A << /S /URI /URI (https://example.com) >> >>"
+        };
+
+        return Encoding.ASCII.GetBytes(BuildPdf(objects));
     }
 
     private static string BuildStream(byte[] data) =>

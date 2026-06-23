@@ -19,16 +19,25 @@ internal static partial class PdfWriter {
             double cellSpacing = GetTableCellSpacing(style);
             double columnGap = cellSpacing;
             double rowGap = cellSpacing;
+            int headerRowCount = style.HeaderRowCount;
+            int footerStart = rows - style.FooterRowCount;
             double[] columnWidths = ResolveCanvasTableColumnWidths(style, columns, item.Width, columnGap);
             double[] rowHeights = ResolveCanvasTableRowHeights(style, rows, item.Height, rowGap);
+            var rowFontSizes = new double[rows];
+            var rowLeadings = new double[rows];
+            for (int rowIndex = 0; rowIndex < rows; rowIndex++) {
+                bool rowUsesBold = GetTableRowBold(style, rowIndex, headerRowCount, footerStart);
+                double rowFontSize = GetTableRowFontSize(style, rowIndex, headerRowCount, footerStart, currentOpts.DefaultFontSize);
+                rowFontSize = ResolveTableRowShrinkFontSize(table, style, rowIndex, columns, columnWidths, columnGap, rowFontSize, rowUsesBold, currentOpts);
+                rowFontSizes[rowIndex] = rowFontSize;
+                rowLeadings[rowIndex] = GetTableLeading(style, rowFontSize);
+            }
+
             double tableWidth = GetTableCellWidth(columnWidths, 0, columns, columnGap);
             double tableHeight = GetTableRowsHeight(rowHeights, 0, rows, rowGap);
             double xOrigin = item.X;
             double topY = currentOpts.PageHeight - item.Y;
             double bottomY = topY - item.Height;
-            double footerStartRowIndex = rows - style.FooterRowCount;
-            int headerRowCount = style.HeaderRowCount;
-            int footerStart = rows - style.FooterRowCount;
             int annotationStart = currentPage!.Annotations.Count;
             int imageStart = currentPage.Images.Count;
             int formFieldStart = currentPage.FormFields.Count;
@@ -53,9 +62,10 @@ internal static partial class PdfWriter {
                     double cellWidth = GetTableCellWidth(columnWidths, cell.Column, cell.ColumnSpan, columnGap);
                     double cellHeight = GetTableCellHeight(rowHeights, rowIndex, cell.RowSpan, rowGap);
                     double cellBottom = rowTop - cellHeight;
+                    bool rowUsesBold = GetTableRowBold(style, rowIndex, headerRowCount, footerStart);
 
                     DrawCanvasTableCellBackground(style, rowIndex, cell.Column, rowIsHeader, rowIsFooter, cellX, cellBottom, cellWidth, cellHeight);
-                    RenderCanvasTableCellText(item, style, cell, rowIndex, cell.Column, rowIsHeader, rowIsFooter, cellX, rowTop, cellBottom, cellWidth, cellHeight, headerRowCount, footerStart, item.Y + GetTableRowsHeight(rowHeights, 0, rowIndex, rowGap));
+                    RenderCanvasTableCellText(item, style, cell, rowIndex, cell.Column, rowIsHeader, rowIsFooter, rowUsesBold, cellX, rowTop, cellBottom, cellWidth, cellHeight, rowFontSizes[rowIndex], rowLeadings[rowIndex], item.Y + GetTableRowsHeight(rowHeights, 0, rowIndex, rowGap));
                     DrawCanvasTableCellBorder(style, rowIndex, cell.Column, cellX, cellBottom, cellWidth, cellHeight);
                 }
             }
@@ -202,10 +212,7 @@ internal static partial class PdfWriter {
             }
         }
 
-        private void RenderCanvasTableCellText(PdfCanvasTableItem item, PdfTableStyle style, TableCellLayout cell, int rowIndex, int columnIndex, bool rowIsHeader, bool rowIsFooter, double cellX, double cellTop, double cellBottom, double cellWidth, double cellHeight, int headerRowCount, int footerStart, double cellYFromTop) {
-            double fontSize = GetTableRowFontSize(style, rowIndex, headerRowCount, footerStart, currentOpts.DefaultFontSize);
-            double leading = GetTableLeading(style, fontSize);
-            bool rowUsesBold = GetTableRowBold(style, rowIndex, headerRowCount, footerStart);
+        private void RenderCanvasTableCellText(PdfCanvasTableItem item, PdfTableStyle style, TableCellLayout cell, int rowIndex, int columnIndex, bool rowIsHeader, bool rowIsFooter, bool rowUsesBold, double cellX, double cellTop, double cellBottom, double cellWidth, double cellHeight, double fontSize, double leading, double cellYFromTop) {
             PdfStandardFont cellFont = GetTableRowFont(currentOpts, rowUsesBold);
             double padLeft = GetTableCellPaddingLeft(style, rowIndex, columnIndex);
             double padRight = GetTableCellPaddingRight(style, rowIndex, columnIndex);
