@@ -89,7 +89,7 @@ public sealed partial class OfficeRasterCanvas {
             return;
         }
 
-        double rotationRadians = DegreesToRadians(rotationDegrees);
+        double rotationRadians = OfficeGeometry.DegreesToRadians(rotationDegrees);
         double patternPosition = 0D;
         OfficePoint previous = ArcPoint(centerX, centerY, radiusX, radiusY, 0D, rotationRadians, rotationCenterX, rotationCenterY);
         for (int i = 1; i <= segments; i++) {
@@ -141,7 +141,7 @@ public sealed partial class OfficeRasterCanvas {
             return;
         }
 
-        double rotationRadians = DegreesToRadians(rotationDegrees);
+        double rotationRadians = OfficeGeometry.DegreesToRadians(rotationDegrees);
         double patternPosition = 0D;
         OfficePoint previous = ArcPoint(centerX, centerY, radiusX, radiusY, 0D, rotationRadians, rotationCenterX, rotationCenterY);
         for (int i = 1; i <= segments; i++) {

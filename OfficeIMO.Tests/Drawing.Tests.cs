@@ -1082,6 +1082,20 @@ public class DrawingTests {
     }
 
     [Fact]
+    public void OfficeGeometryRotatesPointsAndConvertsAngles() {
+        double radians = OfficeGeometry.DegreesToRadians(90D);
+        Assert.Equal(90D, OfficeGeometry.RadiansToDegrees(radians), precision: 10);
+
+        OfficePoint rotated = OfficeGeometry.RotatePoint(new OfficePoint(1D, 0D), 0D, 0D, radians);
+        Assert.Equal(0D, rotated.X, precision: 10);
+        Assert.Equal(1D, rotated.Y, precision: 10);
+
+        (double x, double y) = OfficeGeometry.RotatePoint((1D, 0D), 0D, 0D, -radians);
+        Assert.Equal(0D, x, precision: 10);
+        Assert.Equal(-1D, y, precision: 10);
+    }
+
+    [Fact]
     public void OfficeShapeRejectsEmptyLineDrawingIntent() {
         Assert.Throws<ArgumentException>(() => OfficeShape.Line(10, 20, 10, 20));
     }

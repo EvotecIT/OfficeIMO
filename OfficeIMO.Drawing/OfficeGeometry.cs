@@ -29,6 +29,55 @@ public static class OfficeGeometry {
         Distance(from.X, from.Y, to.X, to.Y);
 
     /// <summary>
+    /// Converts degrees to radians.
+    /// </summary>
+    /// <param name="degrees">Angle in degrees.</param>
+    /// <returns>The same angle in radians.</returns>
+    public static double DegreesToRadians(double degrees) => degrees * Math.PI / 180D;
+
+    /// <summary>
+    /// Converts radians to degrees.
+    /// </summary>
+    /// <param name="radians">Angle in radians.</param>
+    /// <returns>The same angle in degrees.</returns>
+    public static double RadiansToDegrees(double radians) => radians * 180D / Math.PI;
+
+    /// <summary>
+    /// Rotates a point around the supplied center using radians in raster coordinate space.
+    /// </summary>
+    /// <param name="point">Point to rotate.</param>
+    /// <param name="centerX">Rotation center X coordinate.</param>
+    /// <param name="centerY">Rotation center Y coordinate.</param>
+    /// <param name="rotationRadians">Rotation angle in radians.</param>
+    /// <returns>The rotated point.</returns>
+    public static OfficePoint RotatePoint(OfficePoint point, double centerX, double centerY, double rotationRadians) {
+        if (Math.Abs(rotationRadians) < 0.000001D) {
+            return point;
+        }
+
+        double cos = Math.Cos(rotationRadians);
+        double sin = Math.Sin(rotationRadians);
+        double dx = point.X - centerX;
+        double dy = point.Y - centerY;
+        return new OfficePoint(
+            centerX + (dx * cos) - (dy * sin),
+            centerY + (dx * sin) + (dy * cos));
+    }
+
+    /// <summary>
+    /// Rotates a tuple point around the supplied center using radians in raster coordinate space.
+    /// </summary>
+    /// <param name="point">Point to rotate.</param>
+    /// <param name="centerX">Rotation center X coordinate.</param>
+    /// <param name="centerY">Rotation center Y coordinate.</param>
+    /// <param name="rotationRadians">Rotation angle in radians.</param>
+    /// <returns>The rotated tuple point.</returns>
+    public static (double X, double Y) RotatePoint((double X, double Y) point, double centerX, double centerY, double rotationRadians) {
+        OfficePoint rotated = RotatePoint(new OfficePoint(point.X, point.Y), centerX, centerY, rotationRadians);
+        return (rotated.X, rotated.Y);
+    }
+
+    /// <summary>
     /// Returns the point at the supplied normalized position along a polyline.
     /// </summary>
     /// <param name="points">Polyline points in drawing coordinates.</param>

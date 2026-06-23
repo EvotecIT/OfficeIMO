@@ -283,8 +283,8 @@ namespace OfficeIMO.Tests {
                 .Single(path => (string?)path.Attribute("data-officeimo-database-geometry") == "true");
             XElement seam = shapeGroup.Elements(ns + "path")
                 .Single(path => (string?)path.Attribute("data-officeimo-database-seam") == "true");
-            Assert.Contains(" C ", body.Attribute("d")!.Value);
-            Assert.Contains(" C ", seam.Attribute("d")!.Value);
+            Assert.Contains('C', body.Attribute("d")!.Value);
+            Assert.Contains('C', seam.Attribute("d")!.Value);
         }
 
         [Fact]

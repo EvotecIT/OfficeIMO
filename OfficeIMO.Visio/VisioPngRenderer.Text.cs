@@ -45,10 +45,10 @@ namespace OfficeIMO.Visio {
                     canvas.FillRectangle(backgroundLeft, backgroundTop, backgroundWidth, backgroundHeight, backgroundColor.Value);
                 } else {
                     canvas.FillPolygon(new[] {
-                        RotateTextPoint((backgroundLeft, backgroundTop), centerX, centerY, rotateRadians),
-                        RotateTextPoint((backgroundLeft + backgroundWidth, backgroundTop), centerX, centerY, rotateRadians),
-                        RotateTextPoint((backgroundLeft + backgroundWidth, backgroundTop + backgroundHeight), centerX, centerY, rotateRadians),
-                        RotateTextPoint((backgroundLeft, backgroundTop + backgroundHeight), centerX, centerY, rotateRadians)
+                        OfficeGeometry.RotatePoint((backgroundLeft, backgroundTop), centerX, centerY, -rotateRadians),
+                        OfficeGeometry.RotatePoint((backgroundLeft + backgroundWidth, backgroundTop), centerX, centerY, -rotateRadians),
+                        OfficeGeometry.RotatePoint((backgroundLeft + backgroundWidth, backgroundTop + backgroundHeight), centerX, centerY, -rotateRadians),
+                        OfficeGeometry.RotatePoint((backgroundLeft, backgroundTop + backgroundHeight), centerX, centerY, -rotateRadians)
                     }, backgroundColor.Value);
                 }
             }
@@ -71,15 +71,6 @@ namespace OfficeIMO.Visio {
         }
 
         private const double TextRotationEpsilon = 1e-9;
-
-        private static (double X, double Y) RotateTextPoint((double X, double Y) point, double centerX, double centerY, double radians) {
-            if (Math.Abs(radians) < TextRotationEpsilon) return point;
-            double cos = Math.Cos(-radians);
-            double sin = Math.Sin(-radians);
-            double dx = point.X - centerX;
-            double dy = point.Y - centerY;
-            return (centerX + (dx * cos) - (dy * sin), centerY + (dx * sin) + (dy * cos));
-        }
 
         private static Color? ResolveTextBackground(VisioTextStyle? style, bool drawLabelBackground) {
             if (style?.BackgroundColor.HasValue == true) {

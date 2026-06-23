@@ -108,7 +108,7 @@ namespace OfficeIMO.Visio {
                 _canvas.FillRectangle(x, y, width, height, color);
             }
 
-            private static double RadiansToCanvasDegrees(double radians) => -radians * 180D / Math.PI;
+            private static double RadiansToCanvasDegrees(double radians) => -OfficeGeometry.RadiansToDegrees(radians);
 
             private static List<OfficePoint> ToOfficePoints(IReadOnlyList<(double X, double Y)> points) {
                 List<OfficePoint> converted = new(points.Count);

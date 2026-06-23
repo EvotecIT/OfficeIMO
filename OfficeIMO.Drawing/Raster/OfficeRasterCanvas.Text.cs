@@ -129,7 +129,7 @@ public sealed partial class OfficeRasterCanvas {
         double fontHeight = Math.Max(1D, height);
         double width = MeasureText(value, fontHeight);
         double x = ResolveAnchoredTextX(anchorX, width, alignment);
-        double rotationRadians = DegreesToRadians(rotationDegrees);
+        double rotationRadians = OfficeGeometry.DegreesToRadians(rotationDegrees);
         if (_font != null) {
             double bottom = top + fontHeight;
             IReadOnlyList<List<OfficePoint>> contours = TransformTextContours(
@@ -393,7 +393,7 @@ public sealed partial class OfficeRasterCanvas {
         OfficePoint skewed = italic ? new OfficePoint(point.X + ((bottom - point.Y) * ItalicShear), point.Y) : point;
         return Math.Abs(rotationRadians) < TextRotationEpsilon
             ? skewed
-            : RotatePoint(skewed, rotationCenterX, rotationCenterY, rotationRadians);
+            : OfficeGeometry.RotatePoint(skewed, rotationCenterX, rotationCenterY, rotationRadians);
     }
 
     private static OfficePoint GlyphPoint(double x, double y, double cell, int col, int row) {

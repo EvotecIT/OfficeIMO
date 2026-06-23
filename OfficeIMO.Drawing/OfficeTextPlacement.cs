@@ -147,18 +147,7 @@ public static class OfficeTextPlacement {
     /// <param name="rotationDegrees">Clockwise rotation angle in degrees.</param>
     /// <returns>The rotated point.</returns>
     public static OfficePoint RotatePoint(OfficePoint point, double centerX, double centerY, double rotationDegrees) {
-        if (Math.Abs(rotationDegrees) < 0.000001D) {
-            return point;
-        }
-
-        double radians = rotationDegrees * Math.PI / 180D;
-        double cos = Math.Cos(radians);
-        double sin = Math.Sin(radians);
-        double dx = point.X - centerX;
-        double dy = point.Y - centerY;
-        return new OfficePoint(
-            centerX + (dx * cos) - (dy * sin),
-            centerY + (dx * sin) + (dy * cos));
+        return OfficeGeometry.RotatePoint(point, centerX, centerY, OfficeGeometry.DegreesToRadians(rotationDegrees));
     }
 
     private static bool IsFinitePositive(double value) =>

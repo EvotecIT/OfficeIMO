@@ -162,11 +162,11 @@ public sealed partial class OfficeRasterCanvas {
         double strokeHalf = Math.Max(0D, thickness / 2D);
         double outerRadiusX = Math.Max(radiusX + strokeHalf, 0.0001D);
         double outerRadiusY = Math.Max(radiusY + strokeHalf, 0.0001D);
-        double rotationRadians = DegreesToRadians(rotationDegrees);
-        OfficePoint topLeft = RotatePoint(new OfficePoint(centerX - outerRadiusX, centerY - outerRadiusY), rotationCenterX, rotationCenterY, rotationRadians);
-        OfficePoint topRight = RotatePoint(new OfficePoint(centerX + outerRadiusX, centerY - outerRadiusY), rotationCenterX, rotationCenterY, rotationRadians);
-        OfficePoint bottomRight = RotatePoint(new OfficePoint(centerX + outerRadiusX, centerY + outerRadiusY), rotationCenterX, rotationCenterY, rotationRadians);
-        OfficePoint bottomLeft = RotatePoint(new OfficePoint(centerX - outerRadiusX, centerY + outerRadiusY), rotationCenterX, rotationCenterY, rotationRadians);
+        double rotationRadians = OfficeGeometry.DegreesToRadians(rotationDegrees);
+        OfficePoint topLeft = OfficeGeometry.RotatePoint(new OfficePoint(centerX - outerRadiusX, centerY - outerRadiusY), rotationCenterX, rotationCenterY, rotationRadians);
+        OfficePoint topRight = OfficeGeometry.RotatePoint(new OfficePoint(centerX + outerRadiusX, centerY - outerRadiusY), rotationCenterX, rotationCenterY, rotationRadians);
+        OfficePoint bottomRight = OfficeGeometry.RotatePoint(new OfficePoint(centerX + outerRadiusX, centerY + outerRadiusY), rotationCenterX, rotationCenterY, rotationRadians);
+        OfficePoint bottomLeft = OfficeGeometry.RotatePoint(new OfficePoint(centerX - outerRadiusX, centerY + outerRadiusY), rotationCenterX, rotationCenterY, rotationRadians);
         double minX = Math.Min(Math.Min(topLeft.X, topRight.X), Math.Min(bottomRight.X, bottomLeft.X));
         double maxX = Math.Max(Math.Max(topLeft.X, topRight.X), Math.Max(bottomRight.X, bottomLeft.X));
         double minY = Math.Min(Math.Min(topLeft.Y, topRight.Y), Math.Min(bottomRight.Y, bottomLeft.Y));
@@ -321,7 +321,7 @@ public sealed partial class OfficeRasterCanvas {
         }
 
         int segments = Math.Max(4, (int)Math.Ceiling(Math.Abs(sweep) / 10D));
-        double rotationRadians = DegreesToRadians(rotationDegrees);
+        double rotationRadians = OfficeGeometry.DegreesToRadians(rotationDegrees);
         OfficePoint previous = ArcPoint(centerX, centerY, radiusX, radiusY, startDegrees, rotationRadians, rotationCenterX, rotationCenterY);
         for (int i = 1; i <= segments; i++) {
             double degrees = startDegrees + (sweep * i / segments);
@@ -473,12 +473,12 @@ public sealed partial class OfficeRasterCanvas {
             return;
         }
 
-        double radians = DegreesToRadians(rotationDegrees);
+        double radians = OfficeGeometry.DegreesToRadians(rotationDegrees);
         bool rotated = Math.Abs(rotationDegrees) >= 0.0001D;
-        OfficePoint topLeft = rotated ? RotatePoint(new OfficePoint(x, y), rotationCenterX, rotationCenterY, radians) : new OfficePoint(x, y);
-        OfficePoint topRight = rotated ? RotatePoint(new OfficePoint(x + width, y), rotationCenterX, rotationCenterY, radians) : new OfficePoint(x + width, y);
-        OfficePoint bottomRight = rotated ? RotatePoint(new OfficePoint(x + width, y + height), rotationCenterX, rotationCenterY, radians) : new OfficePoint(x + width, y + height);
-        OfficePoint bottomLeft = rotated ? RotatePoint(new OfficePoint(x, y + height), rotationCenterX, rotationCenterY, radians) : new OfficePoint(x, y + height);
+        OfficePoint topLeft = rotated ? OfficeGeometry.RotatePoint(new OfficePoint(x, y), rotationCenterX, rotationCenterY, radians) : new OfficePoint(x, y);
+        OfficePoint topRight = rotated ? OfficeGeometry.RotatePoint(new OfficePoint(x + width, y), rotationCenterX, rotationCenterY, radians) : new OfficePoint(x + width, y);
+        OfficePoint bottomRight = rotated ? OfficeGeometry.RotatePoint(new OfficePoint(x + width, y + height), rotationCenterX, rotationCenterY, radians) : new OfficePoint(x + width, y + height);
+        OfficePoint bottomLeft = rotated ? OfficeGeometry.RotatePoint(new OfficePoint(x, y + height), rotationCenterX, rotationCenterY, radians) : new OfficePoint(x, y + height);
         double minX = Math.Min(Math.Min(topLeft.X, topRight.X), Math.Min(bottomRight.X, bottomLeft.X));
         double maxX = Math.Max(Math.Max(topLeft.X, topRight.X), Math.Max(bottomRight.X, bottomLeft.X));
         double minY = Math.Min(Math.Min(topLeft.Y, topRight.Y), Math.Min(bottomRight.Y, bottomLeft.Y));
@@ -491,7 +491,7 @@ public sealed partial class OfficeRasterCanvas {
         for (int py = top; py <= bottom; py++) {
             for (int px = left; px <= right; px++) {
                 OfficePoint local = rotated
-                    ? RotatePoint(new OfficePoint(px + 0.5D, py + 0.5D), rotationCenterX, rotationCenterY, -radians)
+                    ? OfficeGeometry.RotatePoint(new OfficePoint(px + 0.5D, py + 0.5D), rotationCenterX, rotationCenterY, -radians)
                     : new OfficePoint(px + 0.5D, py + 0.5D);
                 double u = (local.X - x) / width;
                 double v = (local.Y - y) / height;
@@ -735,7 +735,7 @@ public sealed partial class OfficeRasterCanvas {
             for (int sx = 0; sx < samples; sx++) {
                 double sampleX = x + (sx + 0.5D) / samples;
                 OfficePoint local = Math.Abs(rotationRadians) > 0.0001D
-                    ? RotatePoint(new OfficePoint(sampleX, sampleY), rotationCenterX, rotationCenterY, -rotationRadians)
+                    ? OfficeGeometry.RotatePoint(new OfficePoint(sampleX, sampleY), rotationCenterX, rotationCenterY, -rotationRadians)
                     : new OfficePoint(sampleX, sampleY);
                 double dx = local.X - centerX;
                 double dy = local.Y - centerY;
@@ -807,22 +807,12 @@ public sealed partial class OfficeRasterCanvas {
     }
 
     private static OfficePoint ArcPoint(double centerX, double centerY, double radiusX, double radiusY, double degrees, double rotationRadians, double rotationCenterX, double rotationCenterY) {
-        double radians = DegreesToRadians(degrees);
+        double radians = OfficeGeometry.DegreesToRadians(degrees);
         OfficePoint point = new OfficePoint(centerX + (Math.Cos(radians) * radiusX), centerY + (Math.Sin(radians) * radiusY));
         return Math.Abs(rotationRadians) > 0.0001D
-            ? RotatePoint(point, rotationCenterX, rotationCenterY, rotationRadians)
+            ? OfficeGeometry.RotatePoint(point, rotationCenterX, rotationCenterY, rotationRadians)
             : point;
     }
-
-    private static OfficePoint RotatePoint(OfficePoint point, double centerX, double centerY, double radians) {
-        double cos = Math.Cos(radians);
-        double sin = Math.Sin(radians);
-        double dx = point.X - centerX;
-        double dy = point.Y - centerY;
-        return new OfficePoint(centerX + (dx * cos) - (dy * sin), centerY + (dx * sin) + (dy * cos));
-    }
-
-    private static double DegreesToRadians(double degrees) => degrees * Math.PI / 180D;
 
     private static OfficeColor ApplyCoverage(OfficeColor color, double coverage) {
         if (coverage >= 0.999D) {

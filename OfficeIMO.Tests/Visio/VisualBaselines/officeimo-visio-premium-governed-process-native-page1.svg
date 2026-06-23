@@ -88,8 +88,8 @@
     <g data-visio-shape-id="evidence" data-visio-nameu="Data">
       <path d="M 1037.92 604.32 L 1179.36 604.32 L 1155.68 533.28 L 1014.24 533.28 Z" data-officeimo-preserved-geometry="true" fill="#7E57C2" stroke="#573D8E" stroke-width="1.728" />
       <g data-officeimo-stencil-artwork="true" data-officeimo-stencil-key="data" opacity="0.42">
-        <path d="M 1089.312 546.188 C 1089.312 543.386 1104.288 543.386 1104.288 546.188 L 1104.288 555.154 C 1104.288 557.955 1089.312 557.955 1089.312 555.154 Z" fill="none" stroke="#FFFFFF" stroke-opacity="0.824" stroke-width="1.087" stroke-linecap="round" stroke-linejoin="round" />
-        <path d="M 1089.312 546.188 C 1089.312 548.99 1104.288 548.99 1104.288 546.188" fill="none" stroke="#FFFFFF" stroke-opacity="0.824" stroke-width="1.087" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1089.312 546.188C1089.312 543.386 1104.288 543.386 1104.288 546.188L1104.288 555.154C1104.288 557.955 1089.312 557.955 1089.312 555.154Z" fill="none" stroke="#FFFFFF" stroke-opacity="0.824" stroke-width="1.087" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1089.312 546.188C1089.312 548.99 1104.288 548.99 1104.288 546.188" fill="none" stroke="#FFFFFF" stroke-opacity="0.824" stroke-width="1.087" stroke-linecap="round" stroke-linejoin="round" />
       </g>
       <text x="1096.8" y="568.8" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#FFFFFF" font-weight="700">
         <tspan x="1096.8" dy="0">Record evidence</tspan>
@@ -126,7 +126,7 @@
       <path data-officeimo-connector-arrow="end" d="M 588 669.648 L 584.529 662.44 L 591.471 662.44 Z" fill="#267E74" stroke="none" />
     </g>
     <g data-visio-connector-id="3">
-      <path d="M 588 669.648 L 588 554.904 L 588 554.904 L 588 455.52" fill="none" stroke="#7E57C2" stroke-width="1.728" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 4" />
+      <path d="M 588 669.648 L 588 554.904 L 588 554.904 L 588 455.52" fill="none" stroke="#7E57C2" stroke-width="1.728" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6.912 3.456" />
       <path data-officeimo-connector-arrow="end" d="M 588 455.52 L 591.471 462.728 L 584.529 462.728 Z" fill="#7E57C2" stroke="none" />
     </g>
     <g data-visio-connector-id="4">
@@ -142,7 +142,7 @@
       <path data-officeimo-connector-arrow="end" d="M 1096.8 306.72 L 1100.271 313.928 L 1093.329 313.928 Z" fill="#267E74" stroke="none" />
     </g>
     <g data-visio-connector-id="7">
-      <path d="M 1096.8 637.92 L 1096.8 613.44 L 1096.8 613.44 L 1096.8 604.32" fill="none" stroke="#267E74" stroke-width="1.728" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 4" />
+      <path d="M 1096.8 637.92 L 1096.8 613.44 L 1096.8 613.44 L 1096.8 604.32" fill="none" stroke="#267E74" stroke-width="1.728" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6.912 3.456" />
     </g>
   </g>
 </svg>
