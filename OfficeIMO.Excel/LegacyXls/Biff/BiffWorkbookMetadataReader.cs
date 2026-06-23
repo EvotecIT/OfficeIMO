@@ -94,6 +94,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     workbook.AddMetadataRecord(LegacyXlsWorkbookMetadataKind.NaturalLanguageFormulas, record.Offset, record.Type);
                     return true;
 
+                case BiffRecordType.ObProj:
+                    workbook.SetHasVbaProjectMarker();
+                    workbook.AddMetadataRecord(LegacyXlsWorkbookMetadataKind.VbaProjectMarker, record.Offset, record.Type);
+                    return true;
+
                 case BiffRecordType.Window1:
                     if (TryReadWindow(record, diagnostics, out LegacyXlsWorkbookWindow? window)) {
                         workbook.AddWindow(window!);

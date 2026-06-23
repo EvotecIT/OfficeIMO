@@ -30,6 +30,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>Natural language formula support flag from a UsesELFs record.</summary>
         NaturalLanguageFormulas,
 
+        /// <summary>VBA project marker from an ObProj record.</summary>
+        VbaProjectMarker,
+
         /// <summary>Reserved DSF record that must be ignored by importers.</summary>
         ReservedDsf,
 

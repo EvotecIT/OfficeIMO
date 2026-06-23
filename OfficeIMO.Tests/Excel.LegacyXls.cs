@@ -354,6 +354,27 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_Load_PreservesVbaProjectMarkerWorkbookMetadata() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateVbaProjectMarkerWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.True(legacy.HasVbaProjectMarker);
+            LegacyXlsWorkbookMetadataRecord metadata = Assert.Single(
+                legacy.MetadataRecords,
+                record => record.Kind == LegacyXlsWorkbookMetadataKind.VbaProjectMarker);
+            Assert.Equal((ushort)BiffRecordType.ObProj, metadata.RecordType);
+            Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.RecordType == (ushort)BiffRecordType.ObProj);
+            Assert.DoesNotContain(legacy.Diagnostics, diagnostic => diagnostic.RecordType == (ushort)BiffRecordType.ObProj);
+
+            LegacyXlsImportReport report = new LegacyXlsImportReport(legacy);
+            Assert.Equal(1, report.WorkbookMetadataRecordsByKind[LegacyXlsWorkbookMetadataKind.VbaProjectMarker]);
+        }
+
+        [Fact]
         public void LegacyXls_LoadLegacyXls_ProjectsToNormalExcelDocument() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateMinimalWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
@@ -778,6 +799,24 @@ namespace OfficeIMO.Tests {
                 int sheetOffset = checked((int)stream.Position);
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
                 WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "DSF"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)boundSheetPosition + 4), 4);
+                return bytes;
+            }
+
+            internal static byte[] CreateVbaProjectMarkerWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long boundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "Sheet1"));
+                WriteRecord(stream, 0x00d3, Array.Empty<byte>());
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "VBA marker"));
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 byte[] bytes = stream.ToArray();

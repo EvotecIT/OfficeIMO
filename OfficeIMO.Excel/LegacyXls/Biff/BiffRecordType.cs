@@ -62,6 +62,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         Note = 0x001C,
         Number = 0x0203,
         Obj = 0x005D,
+        ObProj = 0x00D3,
         Palette = 0x0092,
         Pane = 0x0041,
         Password = 0x0013,
