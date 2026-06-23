@@ -75,6 +75,9 @@ namespace OfficeIMO.Excel.LegacyXls {
             WorkbookCodeNameStates = CountByCode(new[] { string.IsNullOrWhiteSpace(workbook.CodeName) ? "Missing" : "Present" });
             WorkbookCodeNames = CountByCode(string.IsNullOrWhiteSpace(workbook.CodeName) ? Array.Empty<string>() : new[] { workbook.CodeName! });
             WorkbookOptionStates = CountByCode(GetWorkbookOptionStateKeys(workbook));
+            WorkbookBuiltInFunctionGroupCounts = CountByCode(workbook.BuiltInFunctionGroupCount.HasValue
+                ? new[] { $"Count:{workbook.BuiltInFunctionGroupCount.Value}" }
+                : Array.Empty<string>());
             WorksheetCodeNameStates = CountByCode(workbook.Worksheets.Select(sheet => string.IsNullOrWhiteSpace(sheet.CodeName) ? "Missing" : "Present"));
             WorksheetCodeNames = CountByCode(workbook.Worksheets
                 .Where(sheet => !string.IsNullOrWhiteSpace(sheet.CodeName))
@@ -575,6 +578,9 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets decoded workbook option states from Backup and BookBool records.</summary>
         public IReadOnlyDictionary<string, int> WorkbookOptionStates { get; }
+
+        /// <summary>Gets decoded BuiltInFnGroupCount values grouped by observed function category count.</summary>
+        public IReadOnlyDictionary<string, int> WorkbookBuiltInFunctionGroupCounts { get; }
 
         /// <summary>Gets imported worksheets grouped by CodeName record presence.</summary>
         public IReadOnlyDictionary<string, int> WorksheetCodeNameStates { get; }
@@ -1177,6 +1183,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Workbook CodeName States", WorkbookCodeNameStates);
             AppendDictionary(builder, "Workbook CodeNames", WorkbookCodeNames);
             AppendDictionary(builder, "Workbook Option States", WorkbookOptionStates);
+            AppendDictionary(builder, "Workbook Built-In Function Group Counts", WorkbookBuiltInFunctionGroupCounts);
             AppendDictionary(builder, "Worksheet CodeName States", WorksheetCodeNameStates);
             AppendDictionary(builder, "Worksheet CodeNames", WorksheetCodeNames);
             AppendDictionary(builder, "Unsupported Features By Code", UnsupportedFeaturesByCode);

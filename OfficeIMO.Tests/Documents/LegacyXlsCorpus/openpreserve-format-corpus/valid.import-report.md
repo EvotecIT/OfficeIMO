@@ -78,6 +78,12 @@ Warnings: 2
 | HideBordersForInactiveTables:False | 1 |
 | SaveBackup:False | 1 |
 
+## Workbook Built-In Function Group Counts
+
+| Key | Count |
+| --- | --- |
+| Count:14 | 1 |
+
 ## Worksheet CodeName States
 
 | Key | Count |

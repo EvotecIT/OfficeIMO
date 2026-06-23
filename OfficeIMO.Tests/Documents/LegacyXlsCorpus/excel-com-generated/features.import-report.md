@@ -32,13 +32,12 @@ Unsupported sheet metadata records: 0
 Unsupported features: 312
 Preserved feature records: 134
 Errors: 0
-Warnings: 1
+Warnings: 0
 
 ## Diagnostics By Code
 
 | Key | Count |
 | --- | --- |
-| XLS-BIFF-BUILTIN-FNGROUPCOUNT-UNEXPECTED | 1 |
 | XLS-BIFF-FEATURE-CHART-UNSUPPORTED | 108 |
 | XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED | 2 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 20 |
@@ -218,6 +217,12 @@ Warnings: 1
 | HasEnvelope:False | 1 |
 | HideBordersForInactiveTables:False | 1 |
 | SaveBackup:False | 1 |
+
+## Workbook Built-In Function Group Counts
+
+| Key | Count |
+| --- | --- |
+| Count:17 | 1 |
 
 ## Worksheet CodeName States
 

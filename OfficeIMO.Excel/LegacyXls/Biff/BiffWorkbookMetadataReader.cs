@@ -246,7 +246,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 return false;
             }
 
-            if (value != 0x000e && value != 0x0010) {
+            if (value != 0x000e && value != 0x0010 && value != 0x0011) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
                     "XLS-BIFF-BUILTIN-FNGROUPCOUNT-UNEXPECTED",

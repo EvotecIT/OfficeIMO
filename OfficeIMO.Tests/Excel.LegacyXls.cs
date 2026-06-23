@@ -447,7 +447,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void LegacyXls_Load_ImportsBuiltInFunctionGroupCountWorkbookMetadata() {
-            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateBuiltInFunctionGroupCountWorkbookStream();
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateBuiltInFunctionGroupCountWorkbookStream(0x0010);
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
 
             LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
@@ -464,6 +464,25 @@ namespace OfficeIMO.Tests {
 
             LegacyXlsImportReport report = new LegacyXlsImportReport(legacy);
             Assert.Equal(1, report.WorkbookMetadataRecordsByKind[LegacyXlsWorkbookMetadataKind.BuiltInFunctionGroupCount]);
+            Assert.Equal(1, report.WorkbookBuiltInFunctionGroupCounts["Count:16"]);
+        }
+
+        [Fact]
+        public void LegacyXls_Load_AcceptsExcelBuiltInFunctionGroupCountSeventeenWorkbookMetadata() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateBuiltInFunctionGroupCountWorkbookStream(0x0011);
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.Equal((ushort)0x0011, legacy.BuiltInFunctionGroupCount.GetValueOrDefault());
+            Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.RecordType == (ushort)BiffRecordType.BuiltInFnGroupCount);
+            Assert.DoesNotContain(legacy.Diagnostics, diagnostic => diagnostic.RecordType == (ushort)BiffRecordType.BuiltInFnGroupCount);
+
+            LegacyXlsImportReport report = new LegacyXlsImportReport(legacy);
+            Assert.Equal(1, report.WorkbookBuiltInFunctionGroupCounts["Count:17"]);
+            Assert.Contains("Workbook Built-In Function Group Counts", report.ToMarkdown());
         }
 
         [Fact]
@@ -926,12 +945,12 @@ namespace OfficeIMO.Tests {
                 return bytes;
             }
 
-            internal static byte[] CreateBuiltInFunctionGroupCountWorkbookStream() {
+            internal static byte[] CreateBuiltInFunctionGroupCountWorkbookStream(ushort functionGroupCount) {
                 using var stream = new MemoryStream();
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
                 long boundSheetPosition = stream.Position;
                 WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "Sheet1"));
-                WriteRecord(stream, 0x009c, BuildUInt16Payload(0x0010));
+                WriteRecord(stream, 0x009c, BuildUInt16Payload(functionGroupCount));
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 int sheetOffset = checked((int)stream.Position);
