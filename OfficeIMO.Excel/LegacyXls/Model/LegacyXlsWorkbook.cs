@@ -19,6 +19,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         private readonly List<LegacyXlsUnsupportedFeature> _unsupportedFeatures = new();
         private readonly List<LegacyXlsPreservedFeatureRecord> _preservedFeatureRecords = new();
         private readonly List<LegacyXlsImportDiagnostic> _diagnostics = new();
+        private readonly LegacyXlsCalculationSettings _calculationSettings = new();
 
         internal LegacyXlsWorkbook() {
         }
@@ -57,6 +58,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// Gets supporting links discovered from SupBook records.
         /// </summary>
         public IReadOnlyList<LegacyXlsExternalReference> ExternalReferences => _externalReferences;
+
+        /// <summary>
+        /// Gets calculation settings parsed from BIFF calculation records.
+        /// </summary>
+        public LegacyXlsCalculationSettings CalculationSettings => _calculationSettings;
 
         /// <summary>
         /// Gets legacy sheet entries discovered but not imported as worksheets.
@@ -101,6 +107,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         internal List<LegacyXlsDefinedName> MutableDefinedNames => _definedNames;
 
         internal List<LegacyXlsExternalReference> MutableExternalReferences => _externalReferences;
+
+        internal LegacyXlsCalculationSettings MutableCalculationSettings => _calculationSettings;
 
         internal List<LegacyXlsUnsupportedSheet> MutableUnsupportedSheets => _unsupportedSheets;
 

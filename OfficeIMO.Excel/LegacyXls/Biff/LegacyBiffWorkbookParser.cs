@@ -69,6 +69,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     currentExternalCellCache = BiffExternalCellCacheReader.ReadXct(record, currentExternalReference, workbook.MutableDiagnostics);
                 } else if (record.Type == (ushort)BiffRecordType.Crn) {
                     BiffExternalCellCacheReader.ReadCrn(record, currentExternalCellCache, workbook.MutableDiagnostics);
+                } else if (BiffCalculationSettingsReader.TryRead(record, sheetName: null, workbook.MutableCalculationSettings, workbook.MutableDiagnostics)) {
+                    continue;
                 } else if (record.Type == (ushort)BiffRecordType.Xf) {
                     ReadCellFormat(record, workbook, numberFormatsById, workbook.MutableDiagnostics);
                 } else if (record.Type != (ushort)BiffRecordType.Bof && record.Type != (ushort)BiffRecordType.Eof) {
@@ -96,7 +98,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 ? workbook.Worksheets.Select(sheet => sheet.Name).ToArray()
                 : boundSheetNames.ToArray();
             foreach (LegacyXlsWorksheet sheet in workbook.Worksheets) {
-                LegacyBiffWorksheetParser.Parse(workbookStream, sheet, sharedStrings, externSheets, workbook.ExternalReferences, sheetNames, definedNameTable, workbook.MutableUnsupportedFeatures, workbook.MutablePreservedFeatureRecords, workbook.MutableDiagnostics, options);
+                LegacyBiffWorksheetParser.Parse(workbookStream, sheet, sharedStrings, externSheets, workbook.ExternalReferences, sheetNames, definedNameTable, workbook.MutableUnsupportedFeatures, workbook.MutablePreservedFeatureRecords, workbook.MutableCalculationSettings, workbook.MutableDiagnostics, options);
             }
 
             return workbook;

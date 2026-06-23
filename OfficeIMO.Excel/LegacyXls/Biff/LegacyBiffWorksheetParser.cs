@@ -13,6 +13,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             IReadOnlyList<string?> definedNames,
             List<LegacyXlsUnsupportedFeature> unsupportedFeatures,
             List<LegacyXlsPreservedFeatureRecord> preservedFeatureRecords,
+            LegacyXlsCalculationSettings calculationSettings,
             List<LegacyXlsImportDiagnostic> diagnostics,
             LegacyXlsImportOptions options) {
             if (sheet.StreamOffset < 0 || sheet.StreamOffset >= workbookStream.Length) {
@@ -83,7 +84,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     return;
                 }
 
-                ParseWorksheetRecord(sheet, sharedStrings, externSheets, externalReferences, sheetNames, definedNames, unsupportedFeatures, preservedFeatureRecords, diagnostics, options, commentState, conditionalFormattingState, sharedFormulaState, type, offset, payload, ref frozenWindow, ref pendingFormulaString);
+                ParseWorksheetRecord(sheet, sharedStrings, externSheets, externalReferences, sheetNames, definedNames, unsupportedFeatures, preservedFeatureRecords, calculationSettings, diagnostics, options, commentState, conditionalFormattingState, sharedFormulaState, type, offset, payload, ref frozenWindow, ref pendingFormulaString);
                 offset = payloadOffset + length;
             }
 
@@ -102,6 +103,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             IReadOnlyList<string?> definedNames,
             List<LegacyXlsUnsupportedFeature> unsupportedFeatures,
             List<LegacyXlsPreservedFeatureRecord> preservedFeatureRecords,
+            LegacyXlsCalculationSettings calculationSettings,
             List<LegacyXlsImportDiagnostic> diagnostics,
             LegacyXlsImportOptions options,
             BiffCommentImportState commentState,
@@ -202,6 +204,15 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                                 BiffRecordReader.ReadUInt16(payload, 4)));
                         }
 
+                        break;
+                    case BiffRecordType.CalcCount:
+                    case BiffRecordType.CalcMode:
+                    case BiffRecordType.CalcPrecision:
+                    case BiffRecordType.CalcRefMode:
+                    case BiffRecordType.CalcDelta:
+                    case BiffRecordType.CalcIter:
+                    case BiffRecordType.CalcSaveRecalc:
+                        BiffCalculationSettingsReader.TryRead(new BiffRecord(type, offset, payload), sheet.Name, calculationSettings, diagnostics);
                         break;
                     case BiffRecordType.Formula:
                         ParseFormula(sheet, payload, externSheets, externalReferences, sheetNames, definedNames, diagnostics, options, sharedFormulaState, offset, ref pendingFormulaString);

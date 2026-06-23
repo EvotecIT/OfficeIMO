@@ -13,7 +13,8 @@ Defined names: 0
 External references: 2
 External cell caches: 6
 External cached cells: 8
-Unsupported features: 1004
+Calculation setting records: 43
+Unsupported features: 961
 Preserved feature records: 898
 Errors: 0
 Warnings: 0
@@ -27,7 +28,7 @@ Warnings: 0
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 28 |
 | XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 2 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 27 |
-| XLS-BIFF-RECORD-UNSUPPORTED | 102 |
+| XLS-BIFF-RECORD-UNSUPPORTED | 59 |
 
 ## Unsupported Features By Code
 
@@ -38,7 +39,7 @@ Warnings: 0
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 28 |
 | XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 2 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 27 |
-| XLS-BIFF-RECORD-UNSUPPORTED | 102 |
+| XLS-BIFF-RECORD-UNSUPPORTED | 59 |
 
 ## Unsupported Features By Kind
 
@@ -49,7 +50,7 @@ Warnings: 0
 | DrawingObject | 28 |
 | ExternalReference | 2 |
 | PivotTable | 27 |
-| UnsupportedRecord | 102 |
+| UnsupportedRecord | 59 |
 
 ## Unsupported Feature Record Types
 
@@ -99,12 +100,6 @@ Warnings: 0
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00C1 | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00D7 | 25 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00FF | 1 |
-| UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x000C | 7 |
-| UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x000D | 7 |
-| UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x000E | 1 |
-| UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x000F | 7 |
-| UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x0010 | 7 |
-| UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x0011 | 7 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x0019 | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x001D | 5 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x0033 | 2 |
@@ -112,7 +107,6 @@ Warnings: 0
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x0040 | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x0042 | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x005C | 1 |
-| UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x005F | 7 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x0080 | 7 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x0081 | 7 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x0082 | 7 |
@@ -181,11 +175,8 @@ Warnings: 0
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxVdEx | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:Backup | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:BookBool | 1 |
-| UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:CalcCount | 7 |
-| UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:CalcMode | 7 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:CodePage | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:Country | 1 |
-| UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:Delta | 7 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:DsF | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:FnGroupName | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:GridSet | 7 |
@@ -194,12 +185,8 @@ Warnings: 0
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:Index | 7 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:InterfaceEnd | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:InterfaceHdr | 1 |
-| UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:Iteration | 7 |
-| UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:Precision | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:PrintSize | 2 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:Prot4Rev | 1 |
-| UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:RefMode | 7 |
-| UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:SaveRecalc | 7 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:Selection | 5 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:StyleExt | 6 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:SxViewEx | 1 |
@@ -240,14 +227,26 @@ Warnings: 0
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|RangeTable | 1 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|ZPFCUM | 9 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|ZRAINCUM | 9 |
-| XLS-BIFF-RECORD-UNSUPPORTED\|(workbook) | 23 |
-| XLS-BIFF-RECORD-UNSUPPORTED\|graphs1 | 12 |
-| XLS-BIFF-RECORD-UNSUPPORTED\|graphs2 | 12 |
-| XLS-BIFF-RECORD-UNSUPPORTED\|LB_MAQU_PF | 11 |
-| XLS-BIFF-RECORD-UNSUPPORTED\|LB_MAQU_RAIN | 11 |
-| XLS-BIFF-RECORD-UNSUPPORTED\|RangeTable | 11 |
-| XLS-BIFF-RECORD-UNSUPPORTED\|ZPFCUM | 11 |
-| XLS-BIFF-RECORD-UNSUPPORTED\|ZRAINCUM | 11 |
+| XLS-BIFF-RECORD-UNSUPPORTED\|(workbook) | 22 |
+| XLS-BIFF-RECORD-UNSUPPORTED\|graphs1 | 6 |
+| XLS-BIFF-RECORD-UNSUPPORTED\|graphs2 | 6 |
+| XLS-BIFF-RECORD-UNSUPPORTED\|LB_MAQU_PF | 5 |
+| XLS-BIFF-RECORD-UNSUPPORTED\|LB_MAQU_RAIN | 5 |
+| XLS-BIFF-RECORD-UNSUPPORTED\|RangeTable | 5 |
+| XLS-BIFF-RECORD-UNSUPPORTED\|ZPFCUM | 5 |
+| XLS-BIFF-RECORD-UNSUPPORTED\|ZRAINCUM | 5 |
+
+## Calculation Settings By Kind
+
+| Key | Count |
+| --- | --- |
+| A1ReferenceMode | 7 |
+| Delta | 7 |
+| FullPrecision | 1 |
+| IterationCount | 7 |
+| IterationEnabled | 7 |
+| Mode | 7 |
+| RecalculateBeforeSave | 7 |
 
 ## Preserved Feature Records By Kind
 

@@ -154,6 +154,30 @@ namespace OfficeIMO.Tests {
                 return bytes;
             }
 
+            internal static byte[] CreateCalculationSettingsWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long boundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "Calc"));
+                WriteRecord(stream, 0x000d, BuildUInt16Payload(0x0001));
+                WriteRecord(stream, 0x000c, BuildUInt16Payload(42));
+                WriteRecord(stream, 0x000e, BuildUInt16Payload(0x0001));
+                WriteRecord(stream, 0x000f, BuildUInt16Payload(0x0001));
+                WriteRecord(stream, 0x0010, BuildDoublePayload(0.001d));
+                WriteRecord(stream, 0x0011, BuildUInt16Payload(0x0001));
+                WriteRecord(stream, 0x005f, BuildUInt16Payload(0x0001));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Calculated"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)boundSheetPosition + 4), 4);
+                return bytes;
+            }
+
             internal static byte[] CreatePhase4PrintPageSetupWorkbookStream() {
                 using var stream = new MemoryStream();
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });

@@ -87,6 +87,42 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_ImportReport_CountsCalculationSettings() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateCalculationSettingsWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+            LegacyXlsImportReport report = workbook.CreateImportReport();
+
+            Assert.DoesNotContain(workbook.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
+            Assert.Equal(7, workbook.CalculationSettings.Records.Count);
+            Assert.Equal(LegacyXlsCalculationMode.Automatic, workbook.CalculationSettings.Mode);
+            Assert.Equal((short)42, workbook.CalculationSettings.IterationCount);
+            Assert.True(workbook.CalculationSettings.FullPrecision);
+            Assert.True(workbook.CalculationSettings.A1ReferenceMode);
+            Assert.Equal(0.001d, workbook.CalculationSettings.Delta!.Value);
+            Assert.True(workbook.CalculationSettings.IterationEnabled);
+            Assert.True(workbook.CalculationSettings.RecalculateBeforeSave);
+            Assert.DoesNotContain(workbook.CalculationSettings.Records, record => record.SheetName != null);
+            Assert.DoesNotContain(workbook.UnsupportedFeatures, feature => feature.DetailCode == "BiffRecord:CalcMode");
+            Assert.DoesNotContain(workbook.UnsupportedFeatures, feature => feature.DetailCode == "BiffRecord:CalcCount");
+            Assert.Equal(7, report.CalculationSettingRecordCount);
+            Assert.Equal(1, report.CalculationSettingsByKind[LegacyXlsCalculationSettingKind.Mode]);
+            Assert.Equal(1, report.CalculationSettingsByKind[LegacyXlsCalculationSettingKind.IterationCount]);
+            Assert.Equal(1, report.CalculationSettingsByKind[LegacyXlsCalculationSettingKind.FullPrecision]);
+            Assert.Equal(1, report.CalculationSettingsByKind[LegacyXlsCalculationSettingKind.A1ReferenceMode]);
+            Assert.Equal(1, report.CalculationSettingsByKind[LegacyXlsCalculationSettingKind.Delta]);
+            Assert.Equal(1, report.CalculationSettingsByKind[LegacyXlsCalculationSettingKind.IterationEnabled]);
+            Assert.Equal(1, report.CalculationSettingsByKind[LegacyXlsCalculationSettingKind.RecalculateBeforeSave]);
+
+            string markdown = report.ToMarkdown();
+            Assert.Contains("Calculation setting records: 7", markdown);
+            Assert.Contains("Calculation Settings By Kind", markdown);
+        }
+
+        [Fact]
         public void LegacyXls_ImportReport_ScansUnsupportedChartSheetSubstreams() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase5ChartSheetSubstreamWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
