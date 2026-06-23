@@ -123,17 +123,8 @@ namespace OfficeIMO.Visio.Stencils {
         /// <summary>Whether the generated gallery can safely render the payload inline.</summary>
         public bool IsBrowserRenderable => IsBrowserRenderableExtension(Image.PreviewImage.Extension);
 
-        internal static bool IsBrowserRenderableExtension(string? extension) {
-            if (string.IsNullOrWhiteSpace(extension)) {
-                return false;
-            }
-
-            string normalized = extension!.TrimStart('.').ToLowerInvariant();
-            return normalized switch {
-                "png" or "jpg" or "jpeg" or "gif" or "bmp" or "webp" => true,
-                _ => false
-            };
-        }
+        internal static bool IsBrowserRenderableExtension(string? extension) =>
+            OfficeImageInfo.IsBrowserPreviewSafeExtension(extension);
     }
 
     internal static class VisioStencilPreviewGalleryWriter {
@@ -308,7 +299,7 @@ namespace OfficeIMO.Visio.Stencils {
             string path = Path.Combine(thumbnailDirectory, fileName);
             string displayName = string.IsNullOrWhiteSpace(image.MasterName) ? image.MasterNameU : image.MasterName!;
             string contentType = string.IsNullOrWhiteSpace(image.PreviewImage.ContentType)
-                ? GetContentTypeFromExtension(image.PreviewImage.Extension)
+                ? OfficeImageInfo.GetMimeTypeFromExtension(image.PreviewImage.Extension)
                 : image.PreviewImage.ContentType!;
             string dataUri = OfficeSvgImageRenderer.CreateDataUri(contentType, image.Data);
             string width = options.ThumbnailWidth.ToString(CultureInfo.InvariantCulture);
@@ -350,13 +341,5 @@ namespace OfficeIMO.Visio.Stencils {
 
         private static string Escape(string? value) => OfficeSvgFormatting.Escape(value);
 
-        private static string GetContentTypeFromExtension(string? extension) {
-            if (string.IsNullOrWhiteSpace(extension)) {
-                return "application/octet-stream";
-            }
-
-            OfficeImageFormat format = OfficeImageReader.FromExtension(extension);
-            return OfficeImageInfo.GetMimeType(format);
-        }
     }
 }

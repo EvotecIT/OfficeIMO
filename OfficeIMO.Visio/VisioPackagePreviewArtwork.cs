@@ -80,7 +80,7 @@ namespace OfficeIMO.Visio {
                        relationship.Data,
                        GetRelationshipImageName(relationship),
                        out _) ||
-                   IsBrowserRenderableExtension(Path.GetExtension(relationship.Target));
+                   OfficeImageInfo.IsBrowserPreviewSafeExtension(Path.GetExtension(relationship.Target));
         }
 
         private static string ResolveContentType(VisioAssets.MasterRelationshipContent relationship) {
@@ -98,16 +98,13 @@ namespace OfficeIMO.Visio {
                 return true;
             }
 
-            return IsBrowserRenderableExtension(extension);
+            return OfficeImageInfo.IsBrowserPreviewSafeExtension(extension);
         }
 
         private static string GetRelationshipImageName(VisioAssets.MasterRelationshipContent relationship) =>
             string.IsNullOrWhiteSpace(relationship.Extension)
                 ? Path.GetExtension(relationship.Target)
                 : relationship.Extension;
-
-        private static bool IsBrowserRenderableExtension(string? extension) =>
-            OfficeSvgImageRenderer.TryGetEmbeddableContentType(OfficeImageReader.FromExtension(extension), out _);
 
         private static string NormalizePath(string value) =>
             value.Replace('\\', '/').TrimStart('/');

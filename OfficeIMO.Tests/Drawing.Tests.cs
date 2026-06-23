@@ -380,6 +380,28 @@ public class DrawingTests {
     }
 
     [Theory]
+    [InlineData(".png", true, "image/png")]
+    [InlineData("photo.jpeg", true, "image/jpeg")]
+    [InlineData("diagram.svg", false, "image/svg+xml")]
+    [InlineData("preview.bmp", true, "image/bmp")]
+    [InlineData("legacy.emf", false, "image/x-emf")]
+    [InlineData("payload.bin", false, "application/octet-stream")]
+    public void OfficeImageInfoOwnsSafeBrowserPreviewImageExtensionPolicy(string fileName, bool expectedRenderable, string expectedContentType) {
+        Assert.Equal(expectedContentType, OfficeImageInfo.GetMimeTypeFromExtension(fileName));
+        Assert.Equal(expectedRenderable, OfficeImageInfo.IsBrowserPreviewSafeExtension(fileName));
+    }
+
+    [Theory]
+    [InlineData("image/png; charset=binary", true)]
+    [InlineData("image/svg+xml", false)]
+    [InlineData("image/bmp", true)]
+    [InlineData("image/x-emf", false)]
+    [InlineData("application/octet-stream", false)]
+    public void OfficeImageInfoOwnsSafeBrowserPreviewImageContentTypePolicy(string contentType, bool expectedRenderable) {
+        Assert.Equal(expectedRenderable, OfficeImageInfo.IsBrowserPreviewSafeContentType(contentType));
+    }
+
+    [Theory]
     [InlineData(OfficeImageFormat.Png, "image/png")]
     [InlineData(OfficeImageFormat.Jpeg, "image/jpeg")]
     [InlineData(OfficeImageFormat.Gif, "image/gif")]

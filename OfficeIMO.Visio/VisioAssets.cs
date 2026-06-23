@@ -326,8 +326,7 @@ namespace OfficeIMO.Visio {
         }
 
         private static string ResolveImageContentTypeFromExtension(string extension) {
-            OfficeImageFormat format = OfficeImageReader.FromExtension(extension);
-            return OfficeImageInfo.GetMimeType(format);
+            return OfficeImageInfo.GetMimeTypeFromExtension(extension);
         }
     }
 }

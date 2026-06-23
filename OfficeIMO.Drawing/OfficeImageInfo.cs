@@ -76,6 +76,42 @@ public sealed class OfficeImageInfo {
     };
 
     /// <summary>
+    /// Returns the default MIME type for an image file name or extension.
+    /// </summary>
+    /// <param name="fileName">File name, path, or bare extension.</param>
+    /// <returns>The default MIME content type, or application/octet-stream for unknown formats.</returns>
+    public static string GetMimeTypeFromExtension(string? fileName) =>
+        GetMimeType(OfficeImageReader.FromExtension(fileName));
+
+    /// <summary>
+    /// Returns whether the image format is safe for inline HTML preview galleries.
+    /// </summary>
+    /// <param name="format">Image format.</param>
+    /// <returns><c>true</c> when the format can be previewed inline without embedding active SVG markup.</returns>
+    public static bool IsBrowserPreviewSafeFormat(OfficeImageFormat format) =>
+        format == OfficeImageFormat.Png ||
+        format == OfficeImageFormat.Jpeg ||
+        format == OfficeImageFormat.Gif ||
+        format == OfficeImageFormat.Bmp ||
+        format == OfficeImageFormat.Webp;
+
+    /// <summary>
+    /// Returns whether the image MIME content type is safe for inline HTML preview galleries.
+    /// </summary>
+    /// <param name="contentType">MIME content type, optionally with parameters.</param>
+    /// <returns><c>true</c> when the content type maps to an inline-preview-safe image format.</returns>
+    public static bool IsBrowserPreviewSafeContentType(string? contentType) =>
+        IsBrowserPreviewSafeFormat(FromMimeType(contentType));
+
+    /// <summary>
+    /// Returns whether the image file name or extension is safe for inline HTML preview galleries.
+    /// </summary>
+    /// <param name="fileName">File name, path, or bare extension.</param>
+    /// <returns><c>true</c> when the extension maps to an inline-preview-safe image format.</returns>
+    public static bool IsBrowserPreviewSafeExtension(string? fileName) =>
+        IsBrowserPreviewSafeFormat(OfficeImageReader.FromExtension(fileName));
+
+    /// <summary>
     /// Maps a MIME content type to a known image format.
     /// </summary>
     /// <param name="contentType">MIME content type, optionally with parameters.</param>
