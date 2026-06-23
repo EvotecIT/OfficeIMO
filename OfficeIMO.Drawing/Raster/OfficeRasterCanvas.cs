@@ -246,6 +246,26 @@ public sealed partial class OfficeRasterCanvas {
         DrawPatternedLine(x1, y1, x2, y2, color, thickness, dashStyle.GetDashPattern(thickness));
     }
 
+    /// <summary>
+    /// Draws two parallel line segments using a shared Office stroke dash style.
+    /// </summary>
+    /// <param name="x1">Source line start X coordinate.</param>
+    /// <param name="y1">Source line start Y coordinate.</param>
+    /// <param name="x2">Source line end X coordinate.</param>
+    /// <param name="y2">Source line end Y coordinate.</param>
+    /// <param name="color">Stroke color.</param>
+    /// <param name="thickness">Stroke thickness.</param>
+    /// <param name="separation">Distance between the two parallel line centers.</param>
+    /// <param name="dashStyle">Stroke dash style.</param>
+    public void DrawParallelStyledLine(double x1, double y1, double x2, double y2, OfficeColor color, double thickness, double separation, OfficeStrokeDashStyle dashStyle = OfficeStrokeDashStyle.Solid) {
+        if (!OfficeGeometry.TryGetParallelLineOffsets(x1, y1, x2, y2, separation, out double offsetX, out double offsetY)) {
+            return;
+        }
+
+        DrawStyledLine(x1 - offsetX, y1 - offsetY, x2 - offsetX, y2 - offsetY, color, thickness, dashStyle);
+        DrawStyledLine(x1 + offsetX, y1 + offsetY, x2 + offsetX, y2 + offsetY, color, thickness, dashStyle);
+    }
+
     /// <summary>Draws a line segment using an alternating dash and gap pattern.</summary>
     public void DrawPatternedLine(double x1, double y1, double x2, double y2, OfficeColor color, double thickness, IReadOnlyList<double>? dashPattern) {
         if (color.A == 0 || thickness <= 0D) {

@@ -29,6 +29,40 @@ public static class OfficeGeometry {
         Distance(from.X, from.Y, to.X, to.Y);
 
     /// <summary>
+    /// Calculates the perpendicular half-offset for two parallel lines separated by the supplied distance.
+    /// </summary>
+    /// <param name="x1">Source line start X coordinate.</param>
+    /// <param name="y1">Source line start Y coordinate.</param>
+    /// <param name="x2">Source line end X coordinate.</param>
+    /// <param name="y2">Source line end Y coordinate.</param>
+    /// <param name="separation">Distance between the two parallel line centers.</param>
+    /// <param name="offsetX">Perpendicular X offset from the source line center to either parallel line.</param>
+    /// <param name="offsetY">Perpendicular Y offset from the source line center to either parallel line.</param>
+    /// <returns><see langword="true" /> when the source line has usable length and finite coordinates.</returns>
+    public static bool TryGetParallelLineOffsets(
+        double x1,
+        double y1,
+        double x2,
+        double y2,
+        double separation,
+        out double offsetX,
+        out double offsetY) {
+        double dx = x2 - x1;
+        double dy = y2 - y1;
+        double length = Math.Sqrt((dx * dx) + (dy * dy));
+        if (!IsFinite(length) || length <= 0D || !IsFinite(separation)) {
+            offsetX = 0D;
+            offsetY = 0D;
+            return false;
+        }
+
+        double half = separation / 2D;
+        offsetX = -dy / length * half;
+        offsetY = dx / length * half;
+        return true;
+    }
+
+    /// <summary>
     /// Converts degrees to radians.
     /// </summary>
     /// <param name="degrees">Angle in degrees.</param>
@@ -188,4 +222,7 @@ public static class OfficeGeometry {
 
         return position > 1D ? 1D : position;
     }
+
+    private static bool IsFinite(double value) =>
+        !double.IsNaN(value) && !double.IsInfinity(value);
 }

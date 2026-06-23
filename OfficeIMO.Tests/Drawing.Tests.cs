@@ -595,6 +595,17 @@ public class DrawingTests {
     }
 
     [Fact]
+    public void OfficeGeometryCalculatesReusableParallelLineOffsets() {
+        Assert.True(OfficeGeometry.TryGetParallelLineOffsets(10D, 2D, 10D, 12D, 4D, out double offsetX, out double offsetY));
+        Assert.Equal(-2D, offsetX, precision: 6);
+        Assert.Equal(0D, offsetY, precision: 6);
+
+        Assert.False(OfficeGeometry.TryGetParallelLineOffsets(10D, 2D, 10D, 2D, 4D, out offsetX, out offsetY));
+        Assert.Equal(0D, offsetX);
+        Assert.Equal(0D, offsetY);
+    }
+
+    [Fact]
     public void OfficeSvgFormattingFormatsReusableSvgValues() {
         Assert.Equal("12.346", OfficeSvgFormatting.FormatNumber(12.34567D));
         Assert.Equal("0", OfficeSvgFormatting.FormatNumber(0.00000001D));
@@ -624,6 +635,10 @@ public class DrawingTests {
         var lineBuilder = new StringBuilder();
         lineBuilder.AppendLineElement(1.25D, 2.5D, 30.125D, 40.75D, OfficeColor.FromRgba(17, 34, 51, 128), 1.5D, OfficeStrokeDashStyle.Dot, OfficeStrokeLineCap.Round);
         Assert.Equal("<line x1=\"1.25\" y1=\"2.5\" x2=\"30.125\" y2=\"40.75\" stroke=\"#112233\" stroke-opacity=\"0.502\" stroke-width=\"1.5\" stroke-dasharray=\"1.5 3\" stroke-linecap=\"round\"/>", lineBuilder.ToString());
+
+        var parallelLineBuilder = new StringBuilder();
+        parallelLineBuilder.AppendParallelLineElements(10D, 2D, 10D, 12D, OfficeColor.Black, 1D, 4D, OfficeStrokeDashStyle.Dash);
+        Assert.Equal("<line x1=\"12\" y1=\"2\" x2=\"12\" y2=\"12\" stroke=\"#000000\" stroke-width=\"1\" stroke-dasharray=\"4 2\"/><line x1=\"8\" y1=\"2\" x2=\"8\" y2=\"12\" stroke=\"#000000\" stroke-width=\"1\" stroke-dasharray=\"4 2\"/>", parallelLineBuilder.ToString());
 
         var rawLineBuilder = new StringBuilder();
         rawLineBuilder.AppendLineElement(0D, 1D, 2D, 3D, " stroke=\"none\" transform=\"rotate(45)\"");

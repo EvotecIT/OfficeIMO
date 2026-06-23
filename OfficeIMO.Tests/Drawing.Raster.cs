@@ -534,6 +534,18 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeRasterCanvas_DrawsParallelStyledLinesThroughSharedGeometry() {
+            OfficeRasterImage image = new OfficeRasterImage(24, 18, OfficeColor.Transparent);
+            OfficeRasterCanvas canvas = new OfficeRasterCanvas(image);
+
+            canvas.DrawParallelStyledLine(12, 3, 12, 15, OfficeColor.Black, 1, 6);
+
+            Assert.True(image.GetPixel(9, 9).A > 0);
+            Assert.True(image.GetPixel(15, 9).A > 0);
+            Assert.Equal(0, image.GetPixel(12, 9).A);
+        }
+
+        [Fact]
         public void OfficeDrawingRasterRenderer_HonorsLineDashStyle() {
             OfficeDrawing solidDrawing = new OfficeDrawing(72, 16);
             OfficeShape solidLine = OfficeShape.Line(0, 0, 64, 0);

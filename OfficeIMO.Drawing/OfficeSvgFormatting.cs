@@ -604,6 +604,40 @@ public static partial class OfficeSvgFormatting {
     }
 
     /// <summary>
+    /// Appends two complete parallel SVG line elements using shared paint, dash, and cap formatting.
+    /// </summary>
+    /// <param name="builder">Markup builder.</param>
+    /// <param name="x1">Source line start X coordinate.</param>
+    /// <param name="y1">Source line start Y coordinate.</param>
+    /// <param name="x2">Source line end X coordinate.</param>
+    /// <param name="y2">Source line end Y coordinate.</param>
+    /// <param name="stroke">Stroke color.</param>
+    /// <param name="strokeWidth">Stroke width.</param>
+    /// <param name="separation">Distance between the two parallel line centers.</param>
+    /// <param name="dashStyle">Stroke dash style.</param>
+    /// <param name="lineCap">Optional stroke line cap.</param>
+    /// <returns>The supplied builder for call chaining.</returns>
+    public static StringBuilder AppendParallelLineElements(
+        this StringBuilder builder,
+        double x1,
+        double y1,
+        double x2,
+        double y2,
+        OfficeColor stroke,
+        double strokeWidth,
+        double separation,
+        OfficeStrokeDashStyle dashStyle = OfficeStrokeDashStyle.Solid,
+        OfficeStrokeLineCap? lineCap = null) {
+        if (!OfficeGeometry.TryGetParallelLineOffsets(x1, y1, x2, y2, separation, out double offsetX, out double offsetY)) {
+            return builder;
+        }
+
+        builder.AppendLineElement(x1 - offsetX, y1 - offsetY, x2 - offsetX, y2 - offsetY, stroke, strokeWidth, dashStyle, lineCap);
+        builder.AppendLineElement(x1 + offsetX, y1 + offsetY, x2 + offsetX, y2 + offsetY, stroke, strokeWidth, dashStyle, lineCap);
+        return builder;
+    }
+
+    /// <summary>
     /// Appends a complete SVG polygon element using shared point-list formatting.
     /// </summary>
     /// <param name="builder">Markup builder.</param>

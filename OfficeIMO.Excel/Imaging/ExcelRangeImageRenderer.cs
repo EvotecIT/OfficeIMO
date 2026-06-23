@@ -339,7 +339,7 @@ namespace OfficeIMO.Excel {
 
             OfficeColor color = ResolveArgb(border.ColorArgb) ?? OfficeColor.Black;
             if (stroke.DoubleLine) {
-                DrawDoubleBorder(canvas, x1, y1, x2, y2, color, stroke.Width, stroke.DoubleLineOffset);
+                canvas.DrawParallelStyledLine(x1, y1, x2, y2, color, stroke.Width, stroke.DoubleLineOffset);
                 return;
             }
 
@@ -376,45 +376,11 @@ namespace OfficeIMO.Excel {
 
             OfficeColor color = ResolveArgb(border.ColorArgb) ?? OfficeColor.Black;
             if (stroke.DoubleLine) {
-                AppendSvgDoubleBorder(builder, x1, y1, x2, y2, color, stroke.Width, stroke.DoubleLineOffset);
+                builder.AppendParallelLineElements(x1, y1, x2, y2, color, stroke.Width, stroke.DoubleLineOffset);
                 return;
             }
 
             AppendSvgStyledLine(builder, x1, y1, x2, y2, color, stroke.Width, stroke.DashStyle);
-        }
-
-        private static void DrawDoubleBorder(OfficeRasterCanvas canvas, double x1, double y1, double x2, double y2, OfficeColor color, double width, double offset) {
-            if (!TryGetParallelOffsets(x1, y1, x2, y2, offset, out double offsetX, out double offsetY)) {
-                return;
-            }
-
-            canvas.DrawStyledLine(x1 - offsetX, y1 - offsetY, x2 - offsetX, y2 - offsetY, color, width);
-            canvas.DrawStyledLine(x1 + offsetX, y1 + offsetY, x2 + offsetX, y2 + offsetY, color, width);
-        }
-
-        private static void AppendSvgDoubleBorder(StringBuilder builder, double x1, double y1, double x2, double y2, OfficeColor color, double width, double offset) {
-            if (!TryGetParallelOffsets(x1, y1, x2, y2, offset, out double offsetX, out double offsetY)) {
-                return;
-            }
-
-            AppendSvgStyledLine(builder, x1 - offsetX, y1 - offsetY, x2 - offsetX, y2 - offsetY, color, width, OfficeStrokeDashStyle.Solid);
-            AppendSvgStyledLine(builder, x1 + offsetX, y1 + offsetY, x2 + offsetX, y2 + offsetY, color, width, OfficeStrokeDashStyle.Solid);
-        }
-
-        private static bool TryGetParallelOffsets(double x1, double y1, double x2, double y2, double offset, out double offsetX, out double offsetY) {
-            double dx = x2 - x1;
-            double dy = y2 - y1;
-            double length = Math.Sqrt((dx * dx) + (dy * dy));
-            if (length <= 0D) {
-                offsetX = 0D;
-                offsetY = 0D;
-                return false;
-            }
-
-            double half = offset / 2D;
-            offsetX = -dy / length * half;
-            offsetY = dx / length * half;
-            return true;
         }
 
         private static void AppendSvgStyledLine(StringBuilder builder, double x1, double y1, double x2, double y2, OfficeColor color, double width, OfficeStrokeDashStyle dashStyle) {
