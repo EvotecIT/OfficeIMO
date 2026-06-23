@@ -1,0 +1,127 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+
+namespace OfficeIMO.Drawing;
+
+public static partial class OfficeTextLayoutEngine {
+    /// <summary>
+    /// Lays out text as upright stacked text elements for vertical cell and shape renderers.
+    /// </summary>
+    /// <param name="text">Text to stack. CR/LF breaks are ignored because each text element becomes its own line.</param>
+    /// <param name="fontSize">Initial font size passed to <paramref name="measure"/>.</param>
+    /// <param name="maxWidth">Maximum stacked block width.</param>
+    /// <param name="maxHeight">Maximum stacked block height.</param>
+    /// <param name="lineHeightFactor">Multiplier used to derive line height from font size.</param>
+    /// <param name="minimumFontSize">Minimum font size when scaling down to fit.</param>
+    /// <param name="measure">Measurement delegate matching <see cref="OfficeRasterCanvas.MeasureText(string?, double)"/>.</param>
+    /// <param name="shrinkToFit">Whether the stacked block should reduce font size to fit both width and height.</param>
+    /// <returns>A measured text block with one Unicode text element per line.</returns>
+    public static OfficeTextBlockLayout LayoutStackedTextBlock(
+        string? text,
+        double fontSize,
+        double maxWidth,
+        double maxHeight,
+        double lineHeightFactor,
+        double minimumFontSize,
+        Func<string?, double, double> measure,
+        bool shrinkToFit = true) {
+        if (measure == null) {
+            throw new ArgumentNullException(nameof(measure));
+        }
+
+        string value = NormalizeStackedText(text);
+        double resolvedFontSize = NormalizePositive(fontSize, 1D);
+        double minFontSize = Math.Min(resolvedFontSize, Math.Max(1D, NormalizePositive(minimumFontSize, 1D)));
+        double lineFactor = NormalizePositive(lineHeightFactor, 1.2D);
+        double width = NormalizeNonNegative(maxWidth);
+        double height = NormalizeNonNegative(maxHeight);
+        if (value.Length == 0) {
+            return new OfficeTextBlockLayout(new[] { new OfficeTextLine(string.Empty, 0D) }, resolvedFontSize, Math.Max(1D, Math.Ceiling(resolvedFontSize * lineFactor)), 0D, Math.Max(1D, Math.Ceiling(resolvedFontSize * lineFactor)));
+        }
+
+        IReadOnlyList<string> elements = SplitTextElements(value);
+        if (shrinkToFit) {
+            resolvedFontSize = FitStackedFontSize(elements, resolvedFontSize, minFontSize, width, height, lineFactor, measure);
+        }
+
+        double lineHeight = Math.Max(1D, Math.Ceiling(resolvedFontSize * lineFactor));
+        List<OfficeTextLine> lines = CreateStackedLines(elements, resolvedFontSize, measure);
+        return ClipTextBlockToHeight(lines, resolvedFontSize, lineHeight, width, height, measure);
+    }
+
+    private static double FitStackedFontSize(
+        IReadOnlyList<string> elements,
+        double fontSize,
+        double minimumFontSize,
+        double maxWidth,
+        double maxHeight,
+        double lineHeightFactor,
+        Func<string?, double, double> measure) {
+        if (StackedFits(elements, fontSize, maxWidth, maxHeight, lineHeightFactor, measure)) {
+            return fontSize;
+        }
+
+        if (!StackedFits(elements, minimumFontSize, maxWidth, maxHeight, lineHeightFactor, measure)) {
+            return minimumFontSize;
+        }
+
+        double low = minimumFontSize;
+        double high = fontSize;
+        for (int i = 0; i < 10; i++) {
+            double candidate = (low + high) / 2D;
+            if (StackedFits(elements, candidate, maxWidth, maxHeight, lineHeightFactor, measure)) {
+                low = candidate;
+            } else {
+                high = candidate;
+            }
+        }
+
+        return low;
+    }
+
+    private static bool StackedFits(
+        IReadOnlyList<string> elements,
+        double fontSize,
+        double maxWidth,
+        double maxHeight,
+        double lineHeightFactor,
+        Func<string?, double, double> measure) {
+        double lineHeight = Math.Max(1D, Math.Ceiling(fontSize * lineHeightFactor));
+        double height = elements.Count * lineHeight;
+        if (height > maxHeight) {
+            return false;
+        }
+
+        for (int i = 0; i < elements.Count; i++) {
+            if (Measure(elements[i], fontSize, measure) > maxWidth) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static List<OfficeTextLine> CreateStackedLines(IReadOnlyList<string> elements, double fontSize, Func<string?, double, double> measure) {
+        var lines = new List<OfficeTextLine>(elements.Count);
+        for (int i = 0; i < elements.Count; i++) {
+            string element = elements[i];
+            lines.Add(new OfficeTextLine(element, Measure(element, fontSize, measure)));
+        }
+
+        return lines;
+    }
+
+    private static IReadOnlyList<string> SplitTextElements(string text) {
+        var elements = new List<string>();
+        TextElementEnumerator enumerator = StringInfo.GetTextElementEnumerator(text);
+        while (enumerator.MoveNext()) {
+            elements.Add(enumerator.GetTextElement());
+        }
+
+        return elements.Count == 0 ? new[] { string.Empty } : elements;
+    }
+
+    private static string NormalizeStackedText(string? text) =>
+        (text ?? string.Empty).Replace("\r\n", string.Empty).Replace("\r", string.Empty).Replace("\n", string.Empty);
+}

@@ -32,21 +32,32 @@ namespace OfficeIMO.Excel {
             double availableHeight = Math.Max(1D, h - (paddingY * 2D));
             double fontSize = ResolveCellFontSize(cell.Style, scale);
             double minimumFontSize = Math.Max(1D, scale);
-            double rotationDegrees = ResolveExcelTextRotationDegrees(cell.Style.TextRotation, snapshot, cell, diagnostics);
+            bool stacked = IsStackedTextRotation(cell.Style.TextRotation);
+            double rotationDegrees = stacked ? 0D : ResolveExcelTextRotationDegrees(cell.Style.TextRotation, snapshot, cell, diagnostics);
             bool rotated = Math.Abs(rotationDegrees) > 0.0001D;
-            bool richTextSupported = IsRichTextRenderingSupported(cell, rotated);
+            bool richTextSupported = !stacked && IsRichTextRenderingSupported(cell, rotated);
             string fontFamily = ResolveCellFontFamily(cell.Style);
-            OfficeTextBlockLayout layout = OfficeTextLayoutEngine.LayoutTextBlock(
-                cell.Text,
-                fontSize,
-                rotated ? Math.Max(availableWidth, availableHeight) : availableWidth,
-                rotated ? Math.Max(availableWidth, availableHeight) : availableHeight,
-                CellTextLineHeightFactor,
-                minimumFontSize,
-                (text, size) => canvas.MeasureText(text, size, fontFamily),
-                wrap: cell.Style.WrapText,
-                forceSingleLine: rotated,
-                shrinkToFit: cell.Style.ShrinkToFit);
+            OfficeTextBlockLayout layout = stacked
+                ? OfficeTextLayoutEngine.LayoutStackedTextBlock(
+                    cell.Text,
+                    fontSize,
+                    availableWidth,
+                    availableHeight,
+                    CellTextLineHeightFactor,
+                    minimumFontSize,
+                    (text, size) => canvas.MeasureText(text, size, fontFamily),
+                    shrinkToFit: cell.Style.ShrinkToFit)
+                : OfficeTextLayoutEngine.LayoutTextBlock(
+                    cell.Text,
+                    fontSize,
+                    rotated ? Math.Max(availableWidth, availableHeight) : availableWidth,
+                    rotated ? Math.Max(availableWidth, availableHeight) : availableHeight,
+                    CellTextLineHeightFactor,
+                    minimumFontSize,
+                    (text, size) => canvas.MeasureText(text, size, fontFamily),
+                    wrap: cell.Style.WrapText,
+                    forceSingleLine: rotated,
+                    shrinkToFit: cell.Style.ShrinkToFit);
             if (layout.Lines.Count == 0) {
                 return;
             }
@@ -68,6 +79,25 @@ namespace OfficeIMO.Excel {
 
                 AddCellFontFamilyFallbackDiagnosticIfNeeded(snapshot, cell, cell.Style.FontName, diagnostics);
                 AddTextClippingDiagnosticIfNeeded(layout, snapshot, cell, diagnostics);
+                if (stacked) {
+                    AddRotatedTextApproximationDiagnostic(snapshot, cell, diagnostics);
+                    OfficeTextBlockRenderer.DrawRasterTextBlock(
+                        canvas,
+                        layout,
+                        x + paddingX,
+                        y + paddingY,
+                        availableWidth,
+                        availableHeight,
+                        ResolveCellTextColor(cell, options),
+                        OfficeTextAlignment.Center,
+                        ResolveTextVerticalAlignment(cell.Style.VerticalAlignment),
+                        cell.Style.Bold,
+                        cell.Style.Italic,
+                        ShouldUnderlineText(cell, options),
+                        fontFamily: fontFamily);
+                    return;
+                }
+
                 OfficeColor color = ResolveCellTextColor(cell, options);
                 OfficeTextAlignment alignment = ResolveTextAlignment(cell.Style.HorizontalAlignment);
                 bool bold = cell.Style.Bold;
@@ -122,21 +152,32 @@ namespace OfficeIMO.Excel {
             double availableHeight = Math.Max(1D, h - (paddingY * 2D));
             double fontSize = ResolveCellFontSize(cell.Style, scale);
             double minimumFontSize = Math.Max(1D, scale);
-            double rotationDegrees = ResolveExcelTextRotationDegrees(cell.Style.TextRotation, snapshot, cell, diagnostics);
+            bool stacked = IsStackedTextRotation(cell.Style.TextRotation);
+            double rotationDegrees = stacked ? 0D : ResolveExcelTextRotationDegrees(cell.Style.TextRotation, snapshot, cell, diagnostics);
             bool rotated = Math.Abs(rotationDegrees) > 0.0001D;
-            bool richTextSupported = IsRichTextRenderingSupported(cell, rotated);
+            bool richTextSupported = !stacked && IsRichTextRenderingSupported(cell, rotated);
             string fontFamily = ResolveCellFontFamily(cell.Style);
-            OfficeTextBlockLayout layout = OfficeTextLayoutEngine.LayoutTextBlock(
-                cell.Text,
-                fontSize,
-                rotated ? Math.Max(availableWidth, availableHeight) : availableWidth,
-                rotated ? Math.Max(availableWidth, availableHeight) : availableHeight,
-                CellTextLineHeightFactor,
-                minimumFontSize,
-                (text, size) => textMeasureCanvas.MeasureText(text, size, fontFamily),
-                wrap: cell.Style.WrapText,
-                forceSingleLine: rotated,
-                shrinkToFit: cell.Style.ShrinkToFit);
+            OfficeTextBlockLayout layout = stacked
+                ? OfficeTextLayoutEngine.LayoutStackedTextBlock(
+                    cell.Text,
+                    fontSize,
+                    availableWidth,
+                    availableHeight,
+                    CellTextLineHeightFactor,
+                    minimumFontSize,
+                    (text, size) => textMeasureCanvas.MeasureText(text, size, fontFamily),
+                    shrinkToFit: cell.Style.ShrinkToFit)
+                : OfficeTextLayoutEngine.LayoutTextBlock(
+                    cell.Text,
+                    fontSize,
+                    rotated ? Math.Max(availableWidth, availableHeight) : availableWidth,
+                    rotated ? Math.Max(availableWidth, availableHeight) : availableHeight,
+                    CellTextLineHeightFactor,
+                    minimumFontSize,
+                    (text, size) => textMeasureCanvas.MeasureText(text, size, fontFamily),
+                    wrap: cell.Style.WrapText,
+                    forceSingleLine: rotated,
+                    shrinkToFit: cell.Style.ShrinkToFit);
             if (layout.Lines.Count == 0) {
                 return;
             }
@@ -163,6 +204,26 @@ namespace OfficeIMO.Excel {
 
             builder.AppendRectClipPathDefinition(clipId, x, y, w, h);
             builder.Append("<g").AppendClipPathReference(clipId).Append(">");
+            if (stacked) {
+                AddRotatedTextApproximationDiagnostic(snapshot, cell, diagnostics);
+                builder.AppendSvgTextBlock(
+                    layout,
+                    x + paddingX,
+                    y + paddingY,
+                    availableWidth,
+                    availableHeight,
+                    color,
+                    fontFamily,
+                    OfficeTextAlignment.Center,
+                    ResolveTextVerticalAlignment(cell.Style.VerticalAlignment),
+                    cell.Style.Bold,
+                    cell.Style.Italic,
+                    ShouldUnderlineText(cell, options));
+
+                builder.Append("</g>");
+                return;
+            }
+
             if (rotated) {
                 AddRotatedTextApproximationDiagnostic(snapshot, cell, diagnostics);
                 OfficeTextLine line = layout.Lines[0];
@@ -479,11 +540,6 @@ namespace OfficeIMO.Excel {
 
             int value = textRotation.Value;
             if (value == 255) {
-                diagnostics?.Add(new OfficeImageExportDiagnostic(
-                    OfficeImageExportDiagnosticSeverity.Warning,
-                    ExcelImageExportDiagnosticCodes.CellStackedTextRotationUnsupported,
-                    "Stacked vertical text rotation is not yet rendered exactly during image export; the cell is rendered without stacked text.",
-                    GetCellDiagnosticSource(snapshot, cell)));
                 return 0D;
             }
 
@@ -503,9 +559,11 @@ namespace OfficeIMO.Excel {
             diagnostics?.Add(new OfficeImageExportDiagnostic(
                 OfficeImageExportDiagnosticSeverity.Warning,
                 ExcelImageExportDiagnosticCodes.CellTextRotationApproximation,
-                "Rotated text was rendered using the shared drawing engine, but Excel baseline, anchoring, and stacked text behavior are still approximate.",
+                "Cell text rotation was rendered using the shared drawing engine, but Excel baseline, anchoring, and stacked text behavior are still approximate.",
                 GetCellDiagnosticSource(snapshot, cell)));
         }
+
+        private static bool IsStackedTextRotation(int? textRotation) => textRotation == 255;
 
         private static void AddTextClippingDiagnosticIfNeeded(OfficeTextBlockLayout layout, ExcelRangeVisualSnapshot snapshot, ExcelVisualCell cell, List<OfficeImageExportDiagnostic>? diagnostics) {
             if (!layout.Clipped) {

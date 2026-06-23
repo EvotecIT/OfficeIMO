@@ -379,6 +379,43 @@ public class DrawingTests {
         Assert.Equal(expectedExtension, OfficeImageInfo.GetDefaultExtension(format));
     }
 
+    [Fact]
+    public void OfficeTextLayoutEngineBuildsStackedTextBlocksFromTextElements() {
+        OfficeTextBlockLayout layout = OfficeTextLayoutEngine.LayoutStackedTextBlock(
+            "AB",
+            10D,
+            12D,
+            30D,
+            1.2D,
+            4D,
+            (text, size) => string.IsNullOrEmpty(text) ? 0D : text!.Length * size * 0.5D);
+
+        Assert.Equal(2, layout.Lines.Count);
+        Assert.Equal("A", layout.Lines[0].Text);
+        Assert.Equal("B", layout.Lines[1].Text);
+        Assert.Equal(10D, layout.FontSize);
+        Assert.Equal(12D, layout.LineHeight);
+        Assert.Equal(24D, layout.Height);
+        Assert.False(layout.Clipped);
+    }
+
+    [Fact]
+    public void OfficeTextLayoutEngineShrinksStackedTextBlocksToFitBounds() {
+        OfficeTextBlockLayout layout = OfficeTextLayoutEngine.LayoutStackedTextBlock(
+            "ABCD",
+            12D,
+            20D,
+            30D,
+            1.2D,
+            4D,
+            (text, size) => string.IsNullOrEmpty(text) ? 0D : size * 0.6D);
+
+        Assert.Equal(4, layout.Lines.Count);
+        Assert.True(layout.FontSize < 12D);
+        Assert.True(layout.FontSize >= 4D);
+        Assert.True(layout.Height <= 30D);
+    }
+
     [Theory]
     [InlineData(".png", true, "image/png")]
     [InlineData("photo.jpeg", true, "image/jpeg")]
