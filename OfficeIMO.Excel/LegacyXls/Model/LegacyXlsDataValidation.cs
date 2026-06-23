@@ -117,6 +117,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         public IReadOnlyList<string> Ranges { get; }
 
         /// <summary>
+        /// Gets the number of A1 ranges covered by this validation rule.
+        /// </summary>
+        public int RangeCount => Ranges.Count;
+
+        /// <summary>
         /// Gets inline list items for list validation rules.
         /// </summary>
         public IReadOnlyList<string> ListItems { get; }

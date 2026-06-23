@@ -677,6 +677,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal(2, report.DataValidationsByPromptTextState["Missing"]);
             Assert.Equal(3, report.DataValidationsByErrorTextState["Present"]);
             Assert.Equal(3, report.DataValidationsByDropDownState["NotList"]);
+            Assert.Equal(3, report.DataValidationsByRangeCount["Ranges:1"]);
+            Assert.Equal(1, report.DataValidationsByRange["E2:E5"]);
+            Assert.Equal(1, report.DataValidationsByRange["F2:F5"]);
+            Assert.Equal(1, report.DataValidationsByRange["G2:G5"]);
             Assert.Empty(report.DataValidationListSourcesByKind);
             string markdown = report.ToMarkdown();
             Assert.Contains("Data validations: 3", markdown);
@@ -689,6 +693,8 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Data Validations By Prompt Text State", markdown);
             Assert.Contains("Data Validations By Error Text State", markdown);
             Assert.Contains("Data Validations By Drop Down State", markdown);
+            Assert.Contains("Data Validations By Range Count", markdown);
+            Assert.Contains("Data Validations By Range", markdown);
         }
 
         [Fact]
@@ -710,6 +716,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.ConditionalFormattingsByOperator["GreaterThan"]);
             Assert.Equal(1, report.ConditionalFormattingsByPriorityState["Missing"]);
             Assert.Empty(report.ConditionalFormattingsByPriority);
+            Assert.Equal(1, report.ConditionalFormattingsByRangeCount["Ranges:1"]);
+            Assert.Equal(1, report.ConditionalFormattingsByRange["A1:A3"]);
             Assert.Equal(1, report.ConditionalFormattingsByStopIfTrueState["Continue"]);
             Assert.Equal(1, report.ConditionalFormattingsByDifferentialFormatState["Missing"]);
             Assert.Empty(report.ConditionalFormattingsByDifferentialFill);
@@ -717,6 +725,8 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Conditional formatting rules: 1", markdown);
             Assert.Contains("Conditional Formatting By Type", markdown);
             Assert.Contains("Conditional Formatting By Operator", markdown);
+            Assert.Contains("Conditional Formatting By Range Count", markdown);
+            Assert.Contains("Conditional Formatting By Range", markdown);
             Assert.Contains("Conditional Formatting By Priority State", markdown);
             Assert.Contains("Conditional Formatting By Stop If True State", markdown);
             Assert.Contains("Conditional Formatting By Differential Format State", markdown);

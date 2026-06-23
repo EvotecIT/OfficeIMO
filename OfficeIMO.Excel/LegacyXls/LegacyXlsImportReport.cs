@@ -30,6 +30,8 @@ namespace OfficeIMO.Excel.LegacyXls {
             DataValidationsByPromptTextState = CountByCode(dataValidations.Select(validation => validation.PromptTitle != null || validation.Prompt != null ? "Present" : "Missing"));
             DataValidationsByErrorTextState = CountByCode(dataValidations.Select(validation => validation.ErrorTitle != null || validation.Error != null ? "Present" : "Missing"));
             DataValidationsByDropDownState = CountByCode(dataValidations.Select(GetDataValidationDropDownState));
+            DataValidationsByRangeCount = CountByCode(dataValidations.Select(validation => $"Ranges:{validation.RangeCount}"));
+            DataValidationsByRange = CountByCode(dataValidations.SelectMany(validation => validation.Ranges));
             DataValidationListSourcesByKind = CountByCode(dataValidations
                 .Where(validation => validation.Type == LegacyXlsDataValidationType.List)
                 .Select(validation => validation.ListSourceKind.ToString()));
@@ -37,6 +39,8 @@ namespace OfficeIMO.Excel.LegacyXls {
             ConditionalFormattingsByOperator = CountByCode(conditionalFormattings
                 .Where(formatting => formatting.Operator.HasValue)
                 .Select(formatting => formatting.Operator!.Value.ToString()));
+            ConditionalFormattingsByRangeCount = CountByCode(conditionalFormattings.Select(formatting => $"Ranges:{formatting.RangeCount}"));
+            ConditionalFormattingsByRange = CountByCode(conditionalFormattings.SelectMany(formatting => formatting.Ranges));
             ConditionalFormattingsByPriorityState = CountByCode(conditionalFormattings.Select(formatting => formatting.Priority.HasValue ? "Present" : "Missing"));
             ConditionalFormattingsByPriority = CountByCode(conditionalFormattings
                 .Where(formatting => formatting.Priority.HasValue)
@@ -425,6 +429,12 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets imported list data validations grouped by in-cell dropdown behavior.</summary>
         public IReadOnlyDictionary<string, int> DataValidationsByDropDownState { get; }
 
+        /// <summary>Gets imported data validations grouped by number of covered ranges.</summary>
+        public IReadOnlyDictionary<string, int> DataValidationsByRangeCount { get; }
+
+        /// <summary>Gets imported data validations grouped by covered A1 range.</summary>
+        public IReadOnlyDictionary<string, int> DataValidationsByRange { get; }
+
         /// <summary>Gets imported list data validations grouped by source shape.</summary>
         public IReadOnlyDictionary<string, int> DataValidationListSourcesByKind { get; }
 
@@ -433,6 +443,12 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets imported conditional formatting cell-is rules grouped by comparison operator.</summary>
         public IReadOnlyDictionary<string, int> ConditionalFormattingsByOperator { get; }
+
+        /// <summary>Gets imported conditional formatting rules grouped by number of covered ranges.</summary>
+        public IReadOnlyDictionary<string, int> ConditionalFormattingsByRangeCount { get; }
+
+        /// <summary>Gets imported conditional formatting rules grouped by covered A1 range.</summary>
+        public IReadOnlyDictionary<string, int> ConditionalFormattingsByRange { get; }
 
         /// <summary>Gets imported conditional formatting rules grouped by whether an extension priority was decoded.</summary>
         public IReadOnlyDictionary<string, int> ConditionalFormattingsByPriorityState { get; }
@@ -966,9 +982,13 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Data Validations By Prompt Text State", DataValidationsByPromptTextState);
             AppendDictionary(builder, "Data Validations By Error Text State", DataValidationsByErrorTextState);
             AppendDictionary(builder, "Data Validations By Drop Down State", DataValidationsByDropDownState);
+            AppendDictionary(builder, "Data Validations By Range Count", DataValidationsByRangeCount);
+            AppendDictionary(builder, "Data Validations By Range", DataValidationsByRange);
             AppendDictionary(builder, "Data Validation List Sources By Kind", DataValidationListSourcesByKind);
             AppendDictionary(builder, "Conditional Formatting By Type", ConditionalFormattingsByType);
             AppendDictionary(builder, "Conditional Formatting By Operator", ConditionalFormattingsByOperator);
+            AppendDictionary(builder, "Conditional Formatting By Range Count", ConditionalFormattingsByRangeCount);
+            AppendDictionary(builder, "Conditional Formatting By Range", ConditionalFormattingsByRange);
             AppendDictionary(builder, "Conditional Formatting By Priority State", ConditionalFormattingsByPriorityState);
             AppendDictionary(builder, "Conditional Formatting By Priority", ConditionalFormattingsByPriority);
             AppendDictionary(builder, "Conditional Formatting By Stop If True State", ConditionalFormattingsByStopIfTrueState);

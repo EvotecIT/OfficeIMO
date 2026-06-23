@@ -1114,6 +1114,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(LegacyXlsDataValidationErrorStyle.Warning, validation.ErrorStyle);
             Assert.True(validation.SuppressDropDown);
             Assert.Equal("D2:D5", Assert.Single(validation.Ranges));
+            Assert.Equal(1, validation.RangeCount);
             Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.DataValidation);
             LegacyXlsImportReport report = legacy.CreateImportReport();
             Assert.Equal(1, report.DataValidationsByAllowBlankState["AllowBlank"]);
@@ -1122,6 +1123,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.DataValidationsByPromptTextState["Present"]);
             Assert.Equal(1, report.DataValidationsByErrorTextState["Present"]);
             Assert.Equal(1, report.DataValidationsByDropDownState["Suppressed"]);
+            Assert.Equal(1, report.DataValidationsByRangeCount["Ranges:1"]);
+            Assert.Equal(1, report.DataValidationsByRange["D2:D5"]);
 
             using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound), new LegacyXlsImportOptions {
                 ReportUnsupportedRecords = true
@@ -1635,6 +1638,9 @@ namespace OfficeIMO.Tests {
             Assert.Null(conditionalFormatting.Operator);
             Assert.Equal("A1>10", conditionalFormatting.Formula1);
             Assert.Equal(new[] { "A1:A3" }, conditionalFormatting.Ranges);
+            Assert.Equal(1, conditionalFormatting.RangeCount);
+            Assert.Equal(1, result.ImportReport.ConditionalFormattingsByRangeCount["Ranges:1"]);
+            Assert.Equal(1, result.ImportReport.ConditionalFormattingsByRange["A1:A3"]);
 
             ExcelSheet projectedSheet = result.Document.Sheets[0];
             ExcelConditionalFormattingInfo info = Assert.Single(projectedSheet.GetConditionalFormattingRules("A1:A3"));

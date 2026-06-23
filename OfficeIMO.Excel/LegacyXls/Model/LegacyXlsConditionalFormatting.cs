@@ -49,6 +49,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         public IReadOnlyList<string> Ranges { get; }
 
         /// <summary>
+        /// Gets the number of A1 ranges covered by this conditional formatting rule.
+        /// </summary>
+        public int RangeCount => Ranges.Count;
+
+        /// <summary>
         /// Gets the evaluation priority supplied by a conditional-formatting extension record, when present.
         /// </summary>
         public int? Priority { get; private set; }
