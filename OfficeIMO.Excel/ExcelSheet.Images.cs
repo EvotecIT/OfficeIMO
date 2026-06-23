@@ -162,10 +162,8 @@ namespace OfficeIMO.Excel {
             if (string.IsNullOrWhiteSpace(url)) return null;
             if (ImageDownloader.TryFetch(url, timeoutSeconds: 5, maxBytes: 2_000_000, out var bytes, out var ct) && bytes != null) {
                 OfficeImageReader.TryIdentify(bytes, null, out OfficeImageInfo info);
-                int resolvedWidth = widthPixels == 96 && info.Width > 0 ? info.Width : widthPixels;
-                int resolvedHeight = heightPixels == 32 && info.Height > 0 ? info.Height : heightPixels;
-                return AddImage(row, column, bytes, contentType: ResolveImageContentType(ct, info), widthPixels: resolvedWidth,
-                    heightPixels: resolvedHeight, offsetXPixels: offsetXPixels, offsetYPixels: offsetYPixels, name: name, altText: altText,
+                return AddImage(row, column, bytes, contentType: ResolveImageContentType(ct, info), widthPixels: widthPixels,
+                    heightPixels: heightPixels, offsetXPixels: offsetXPixels, offsetYPixels: offsetYPixels, name: name, altText: altText,
                     lockAspectRatio: lockAspectRatio);
             }
 

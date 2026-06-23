@@ -105,6 +105,34 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ExcelImage_ToRange_ScalesTwoCellEndMarker() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelImage.RangeAnchor.ScaleMarker.xlsx");
+            string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Images");
+                ExcelImage image = sheet.AddImageFromFileToRange("A1:C15", imagePath, name: "ScaledRange");
+                int originalWidth = image.WidthPixels;
+                int originalHeight = image.HeightPixels;
+
+                image.SetSizePercent(50);
+
+                Assert.True(image.WidthPixels < originalWidth);
+                Assert.True(image.HeightPixels < originalHeight);
+                document.Save();
+            }
+
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false);
+            Xdr.TwoCellAnchor anchor = spreadsheet.WorkbookPart!.WorksheetParts.First().DrawingsPart!.WorksheetDrawing!
+                .Elements<Xdr.TwoCellAnchor>()
+                .Single();
+            Assert.Equal("0", anchor.FromMarker!.ColumnId!.Text);
+            Assert.Equal("0", anchor.FromMarker.RowId!.Text);
+            Assert.NotEqual("3", anchor.ToMarker!.ColumnId!.Text);
+            Assert.NotEqual("15", anchor.ToMarker.RowId!.Text);
+        }
+
+        [Fact]
         public void Test_ExcelImage_FromFile_MapsTiffContentType() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelImage.FromFile.Tiff.xlsx");
             string imagePath = Path.Combine(_directoryWithImages, "saturn.tif");

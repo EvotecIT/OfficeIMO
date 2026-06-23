@@ -221,7 +221,8 @@ namespace OfficeIMO.Excel {
                 return null;
             }
 
-            return AddImageToRange(range, bytes, string.IsNullOrEmpty(contentType) ? "image/png" : contentType!, offsetXPixels,
+            OfficeImageReader.TryIdentify(bytes, null, out OfficeImageInfo info);
+            return AddImageToRange(range, bytes, ResolveImageContentType(contentType, info), offsetXPixels,
                 offsetYPixels, endOffsetXPixels, endOffsetYPixels, name, altText, title, lockAspectRatio, placement, rotationDegrees);
         }
 

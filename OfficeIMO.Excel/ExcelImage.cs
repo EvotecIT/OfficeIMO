@@ -210,6 +210,8 @@ namespace OfficeIMO.Excel {
             if (extent != null) {
                 extent.Cx = cx;
                 extent.Cy = cy;
+            } else if (_anchor is Xdr.TwoCellAnchor twoCellAnchor) {
+                ResizeTwoCellAnchor(twoCellAnchor, widthPixels, heightPixels);
             }
 
             var transform = _picture.ShapeProperties?.GetFirstChild<A.Transform2D>();
@@ -221,6 +223,35 @@ namespace OfficeIMO.Excel {
 
             Save();
             return this;
+        }
+
+        private void ResizeTwoCellAnchor(Xdr.TwoCellAnchor anchor, int widthPixels, int heightPixels) {
+            Xdr.FromMarker? fromMarker = anchor.FromMarker;
+            Xdr.ToMarker? toMarker = anchor.ToMarker;
+            if (fromMarker == null || toMarker == null) {
+                return;
+            }
+
+            WorksheetPart? worksheetPart = _drawingsPart.GetParentParts().OfType<WorksheetPart>().FirstOrDefault();
+            int startColumn = ParseMarkerIndex(fromMarker.ColumnId?.Text);
+            int startRow = ParseMarkerIndex(fromMarker.RowId?.Text);
+            var columnMarker = ResolveEndMarker(
+                startColumn,
+                ParseMarkerOffset(fromMarker.ColumnOffset?.Text),
+                widthPixels,
+                A1.MaxColumns,
+                index => GetColumnWidthPixels(worksheetPart, index + 1));
+            var rowMarker = ResolveEndMarker(
+                startRow,
+                ParseMarkerOffset(fromMarker.RowOffset?.Text),
+                heightPixels,
+                A1.MaxRows,
+                index => GetRowHeightPixels(worksheetPart, index + 1));
+
+            toMarker.ColumnId = new Xdr.ColumnId(columnMarker.Index.ToString(CultureInfo.InvariantCulture));
+            toMarker.ColumnOffset = new Xdr.ColumnOffset(columnMarker.OffsetEmu.ToString(CultureInfo.InvariantCulture));
+            toMarker.RowId = new Xdr.RowId(rowMarker.Index.ToString(CultureInfo.InvariantCulture));
+            toMarker.RowOffset = new Xdr.RowOffset(rowMarker.OffsetEmu.ToString(CultureInfo.InvariantCulture));
         }
 
         /// <summary>
@@ -337,6 +368,65 @@ namespace OfficeIMO.Excel {
             }
 
             return (int)Math.Max(1, Math.Round(emu / 9525.0));
+        }
+
+        private static (int Index, long OffsetEmu) ResolveEndMarker(
+            int startIndex,
+            long startOffsetEmu,
+            int sizePixels,
+            int limit,
+            Func<int, int> segmentSizePixels) {
+            int index = Math.Max(0, startIndex);
+            int remainingPixels = Math.Max(1, sizePixels) + EmuToPx(startOffsetEmu);
+            while (index < limit - 1) {
+                int segmentPixels = Math.Max(1, segmentSizePixels(index));
+                if (remainingPixels < segmentPixels) {
+                    break;
+                }
+
+                remainingPixels -= segmentPixels;
+                index++;
+            }
+
+            return (index, PxToEmu(Math.Max(0, remainingPixels)));
+        }
+
+        private static int GetColumnWidthPixels(WorksheetPart? worksheetPart, int columnIndex) {
+            const double defaultMaximumDigitWidth = 7D;
+            DocumentFormat.OpenXml.Spreadsheet.Worksheet? worksheet = worksheetPart?.Worksheet;
+            DocumentFormat.OpenXml.Spreadsheet.Column? column = worksheet?
+                .GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Columns>()?
+                .Elements<DocumentFormat.OpenXml.Spreadsheet.Column>()
+                .FirstOrDefault(item => item.Min != null && item.Max != null && item.Min.Value <= (uint)columnIndex && item.Max.Value >= (uint)columnIndex);
+            if (column?.Hidden?.Value == true) {
+                return 1;
+            }
+
+            double width = column?.Width?.Value > 0 && column.CustomWidth?.Value == true
+                ? column.Width.Value
+                : worksheet?.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.SheetFormatProperties>()?.DefaultColumnWidth?.Value > 0
+                    ? worksheet.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.SheetFormatProperties>()!.DefaultColumnWidth!.Value
+                    : 8.43D;
+            double pixels = Math.Truncate((256D * width + Math.Truncate(128D / defaultMaximumDigitWidth)) / 256D * defaultMaximumDigitWidth);
+            return Math.Max(1, (int)Math.Round(pixels));
+        }
+
+        private static int GetRowHeightPixels(WorksheetPart? worksheetPart, int rowIndex) {
+            DocumentFormat.OpenXml.Spreadsheet.Worksheet? worksheet = worksheetPart?.Worksheet;
+            DocumentFormat.OpenXml.Spreadsheet.Row? row = worksheet?
+                .GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.SheetData>()?
+                .Elements<DocumentFormat.OpenXml.Spreadsheet.Row>()
+                .FirstOrDefault(item => item.RowIndex != null && item.RowIndex.Value == (uint)rowIndex);
+            if (row?.Hidden?.Value == true) {
+                return 1;
+            }
+
+            double heightPoints = row?.Height?.Value > 0 && row.CustomHeight?.Value == true
+                ? row.Height.Value
+                : worksheet?.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.SheetFormatProperties>()?.DefaultRowHeight?.Value > 0
+                    ? worksheet.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.SheetFormatProperties>()!.DefaultRowHeight!.Value
+                    : 15D;
+            return Math.Max(1, (int)Math.Round(heightPoints * 96D / 72D));
         }
 
         private int GetMarkerRow() {
