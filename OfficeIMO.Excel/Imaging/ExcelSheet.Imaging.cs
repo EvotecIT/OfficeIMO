@@ -224,11 +224,11 @@ namespace OfficeIMO.Excel {
             }
 
             ExcelSheetPageSetup pageSetup = GetPageSetup();
-            if (pageSetup.FitToWidth.HasValue || pageSetup.FitToHeight.HasValue) {
+            if (HasUnsupportedFitToPageScale(pageSetup)) {
                 diagnostics.Add(new OfficeImageExportDiagnostic(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.PageSetupUnsupported,
-                    "Worksheet fit-to-width or fit-to-height page setup is configured, but image page output does not calculate automatic fit pagination yet.",
+                    "Worksheet fit-to-width or fit-to-height page setup requests more than one page in a dimension, but image page output does not calculate automatic multi-page fit pagination yet.",
                     Name + "!pageSetup"));
             }
 

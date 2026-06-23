@@ -18,7 +18,7 @@ namespace OfficeIMO.Excel {
                 return content;
             }
 
-            PageSetupCanvasGeometry geometry = ResolvePageSetupCanvasGeometry(pageSetup, options.Scale);
+            PageSetupCanvasGeometry geometry = ResolvePageSetupCanvasGeometry(pageSetup, options.Scale, content.Width, content.Height);
             OfficeImageLayer? contentLayer = CreatePageSetupContentLayer(format, content, geometry);
             if (contentLayer == null) {
                 return content;
@@ -54,20 +54,29 @@ namespace OfficeIMO.Excel {
             pageSetup.Orientation.HasValue ||
             pageSetup.Margins != null ||
             pageSetup.PaperSizeCode.HasValue ||
+            HasFitToPageScale(pageSetup) ||
             (pageSetup.Scale.HasValue && !HasFitToPageScale(pageSetup));
 
         private static bool HasFitToPageScale(ExcelSheetPageSetup pageSetup) =>
             pageSetup.FitToWidth.HasValue || pageSetup.FitToHeight.HasValue;
 
-        private static PageSetupCanvasGeometry ResolvePageSetupCanvasGeometry(ExcelSheetPageSetup pageSetup, double outputScale) {
+        private static bool HasUnsupportedFitToPageScale(ExcelSheetPageSetup pageSetup) =>
+            IsUnsupportedFitDimension(pageSetup.FitToWidth) ||
+            IsUnsupportedFitDimension(pageSetup.FitToHeight);
+
+        private static bool IsUnsupportedFitDimension(uint? value) =>
+            value.HasValue && value.Value > 1U;
+
+        private static PageSetupCanvasGeometry ResolvePageSetupCanvasGeometry(
+            ExcelSheetPageSetup pageSetup,
+            double outputScale,
+            int contentWidth,
+            int contentHeight) {
             OfficePageSize pageSize = ResolvePageSize(pageSetup);
             pageSize = pageSetup.Orientation == ExcelPageOrientation.Landscape
                 ? pageSize.Landscape()
                 : pageSize.Portrait();
             ExcelSheetPageMargins? margins = pageSetup.Margins;
-            double contentScale = HasFitToPageScale(pageSetup)
-                ? 1D
-                : Math.Max(0.1D, Math.Min(4D, (pageSetup.Scale ?? 100U) / 100D));
 
             int width = pageSize.ToPixelWidth(ImageExportDpi, outputScale);
             int height = pageSize.ToPixelHeight(ImageExportDpi, outputScale);
@@ -75,8 +84,41 @@ namespace OfficeIMO.Excel {
             double y = ClampMargin((margins?.Top ?? DefaultMarginTopInches) * ImageExportDpi * outputScale, height);
             double right = ClampMargin((margins?.Right ?? DefaultMarginRightInches) * ImageExportDpi * outputScale, width);
             double bottom = ClampMargin((margins?.Bottom ?? DefaultMarginBottomInches) * ImageExportDpi * outputScale, height);
+            double printableWidth = Math.Max(1D, width - x - right);
+            double printableHeight = Math.Max(1D, height - y - bottom);
+            double contentScale = ResolvePageSetupContentScale(
+                pageSetup,
+                Math.Max(1, contentWidth),
+                Math.Max(1, contentHeight),
+                printableWidth,
+                printableHeight);
             return new PageSetupCanvasGeometry(width, height, x, y, contentScale);
         }
+
+        private static double ResolvePageSetupContentScale(
+            ExcelSheetPageSetup pageSetup,
+            int contentWidth,
+            int contentHeight,
+            double printableWidth,
+            double printableHeight) {
+            if (!HasFitToPageScale(pageSetup)) {
+                return Math.Max(0.1D, Math.Min(4D, (pageSetup.Scale ?? 100U) / 100D));
+            }
+
+            double scale = 1D;
+            if (IsSupportedFitDimension(pageSetup.FitToWidth)) {
+                scale = Math.Min(scale, printableWidth / contentWidth);
+            }
+
+            if (IsSupportedFitDimension(pageSetup.FitToHeight)) {
+                scale = Math.Min(scale, printableHeight / contentHeight);
+            }
+
+            return Math.Max(0.1D, Math.Min(4D, scale));
+        }
+
+        private static bool IsSupportedFitDimension(uint? value) =>
+            value.HasValue && value.Value == 1U;
 
         private static OfficePageSize ResolvePageSize(ExcelSheetPageSetup pageSetup) =>
             TryResolvePageSize(pageSetup.PaperSize, out OfficePageSize pageSize)
