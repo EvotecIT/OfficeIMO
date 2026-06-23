@@ -211,6 +211,13 @@ public sealed class PdfDocumentPages {
     /// </summary>
     public PdfOperationResult<IReadOnlyList<PdfDocument>> TrySplit(IReadOnlyList<PdfPageSelection> selections, PdfReadOptions? options = null) {
         Guard.NotNull(selections, nameof(selections));
+        if (selections.Count == 0) {
+            return TryPageExtractionOperation<IReadOnlyList<PdfDocument>>(
+                "Split page selections",
+                _ => throw new ArgumentException("At least one page selection must be specified.", nameof(selections)),
+                options);
+        }
+
         return TryPageExtractionOperation<IReadOnlyList<PdfDocument>>("Split page selections", effectiveOptions => Split(selections.ToArray(), effectiveOptions), options);
     }
 

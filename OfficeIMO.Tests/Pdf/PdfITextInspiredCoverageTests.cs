@@ -443,6 +443,26 @@ public class PdfITextInspiredCoverageTests {
     }
 
     [Fact]
+    public void PageEditor_ResizePagesFillClipsAnnotationRectanglesToMarginBox() {
+        byte[] pdf = BuildResizableTallPageWithCroppedAnnotationsPdf();
+
+        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PageSize(600, 600)) {
+            Mode = PdfPageResizeMode.Fill,
+            Margin = 50
+        });
+        PdfDocumentInfo info = PdfInspector.Inspect(resized);
+        string raw = PdfEncoding.Latin1GetString(resized);
+
+        PdfAnnotation annotation = Assert.Single(info.GetAnnotationsBySubtype("Link"));
+        Assert.Equal(100, annotation.X1);
+        Assert.Equal(50, annotation.Y1);
+        Assert.Equal(200, annotation.X2);
+        Assert.Equal(100, annotation.Y2);
+        Assert.Contains("/Rect [ 100 50 200 100 ]", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("https://example.com/clipped-away", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PageEditor_ResizePagesTransformsSharedIndirectDestinationsOnce() {
         byte[] pdf = BuildResizableSharedDestinationPdf();
 
@@ -489,7 +509,7 @@ public class PdfITextInspiredCoverageTests {
         string raw = PdfEncoding.Latin1GetString(resized);
 
         Assert.DoesNotContain("/Rect [ 50 50 150 120 ]", raw, StringComparison.Ordinal);
-        Assert.Contains("/Rect [ 240 240 840 660 ]", raw, StringComparison.Ordinal);
+        Assert.Contains("/Rect [ 240 240 600 600 ]", raw, StringComparison.Ordinal);
         Assert.Contains("/Popup", raw, StringComparison.Ordinal);
         Assert.Contains("/Parent", raw, StringComparison.Ordinal);
     }
@@ -880,6 +900,20 @@ public class PdfITextInspiredCoverageTests {
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 300] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
             "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
             BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 10 280 Td (Fill should crop to margins) Tj ET"))
+        };
+
+        return Encoding.ASCII.GetBytes(BuildPdf(objects));
+    }
+
+    private static byte[] BuildResizableTallPageWithCroppedAnnotationsPdf() {
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 300] /Resources << /Font << /F1 4 0 R >> >> /Annots [6 0 R 7 0 R] /Contents 5 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 10 280 Td (Fill annotations should crop to margins) Tj ET")),
+            "<< /Type /Annot /Subtype /Link /Rect [10 90 30 110] /A << /S /URI /URI (https://example.com/kept) >> >>",
+            "<< /Type /Annot /Subtype /Link /Rect [10 10 30 20] /A << /S /URI /URI (https://example.com/clipped-away) >> >>"
         };
 
         return Encoding.ASCII.GetBytes(BuildPdf(objects));

@@ -316,47 +316,60 @@ public static partial class PdfPageEditor {
             return false;
         }
 
-        var annotationReferenceMap = new Dictionary<int, int>();
-        foreach (PdfObject annotationObject in annotations.Items) {
-            if (annotationObject is PdfReference reference &&
-                PdfObjectLookup.Resolve(objects, reference) is PdfDictionary) {
-                annotationReferenceMap[reference.ObjectNumber] = AllocateResizePseudoObjectNumber(ref nextPseudoObjectNumber);
-            }
-        }
-
-        transformedAnnotations = new PdfArray();
+        var transformedCandidates = new List<TransformedAnnotationCandidate>();
         foreach (PdfObject annotationObject in annotations.Items) {
             PdfObject? resolved = PdfObjectLookup.Resolve(objects, annotationObject);
             if (resolved is PdfDictionary annotationDictionary) {
                 var clonedAnnotation = (PdfDictionary)ClonePdfObject(annotationDictionary);
                 if (annotationGeometryTransform.HasValue) {
-                    TransformAnnotationRectangle(objects, clonedAnnotation, annotationGeometryTransform.Value);
+                    if (!TransformAnnotationRectangle(objects, clonedAnnotation, annotationGeometryTransform.Value)) {
+                        continue;
+                    }
+
                     TransformAnnotationCoordinateArrays(objects, clonedAnnotation, annotationGeometryTransform.Value);
                 }
 
+                int? originalObjectNumber = annotationObject is PdfReference reference ? reference.ObjectNumber : null;
+                transformedCandidates.Add(new TransformedAnnotationCandidate(clonedAnnotation, originalObjectNumber));
+            } else {
+                transformedCandidates.Add(new TransformedAnnotationCandidate(ClonePdfObject(annotationObject), null));
+            }
+        }
+
+        var annotationReferenceMap = new Dictionary<int, int>();
+        foreach (TransformedAnnotationCandidate candidate in transformedCandidates) {
+            if (candidate.OriginalObjectNumber.HasValue &&
+                candidate.Value is PdfDictionary) {
+                annotationReferenceMap[candidate.OriginalObjectNumber.Value] = AllocateResizePseudoObjectNumber(ref nextPseudoObjectNumber);
+            }
+        }
+
+        transformedAnnotations = new PdfArray();
+        foreach (TransformedAnnotationCandidate candidate in transformedCandidates) {
+            if (candidate.Value is PdfDictionary clonedAnnotation) {
                 RemapAnnotationReferences(clonedAnnotation, annotationReferenceMap);
                 InlineDestinationArrayReferences(objects, clonedAnnotation, transformsByPageObjectNumber, transformedArrays);
                 TransformDestinationsInObject(objects, clonedAnnotation, transformsByPageObjectNumber, visitedReferences, transformedArrays);
-                if (annotationObject is PdfReference annotationReference &&
-                    annotationReferenceMap.TryGetValue(annotationReference.ObjectNumber, out int clonedObjectNumber)) {
+                if (candidate.OriginalObjectNumber.HasValue &&
+                    annotationReferenceMap.TryGetValue(candidate.OriginalObjectNumber.Value, out int clonedObjectNumber)) {
                     additionalObjects.Add(new PdfPageExtractor.AdditionalObject(clonedObjectNumber, clonedAnnotation));
                     transformedAnnotations.Items.Add(new PdfReference(clonedObjectNumber, 0));
                 } else {
                     transformedAnnotations.Items.Add(clonedAnnotation);
                 }
             } else {
-                transformedAnnotations.Items.Add(ClonePdfObject(annotationObject));
+                transformedAnnotations.Items.Add(candidate.Value);
             }
         }
 
         return true;
     }
 
-    private static void TransformAnnotationRectangle(Dictionary<int, PdfIndirectObject> objects, PdfDictionary annotation, PageResizeTransform transform) {
+    private static bool TransformAnnotationRectangle(Dictionary<int, PdfIndirectObject> objects, PdfDictionary annotation, PageResizeTransform transform) {
         if (!annotation.Items.TryGetValue("Rect", out PdfObject? rectObject) ||
             !TryGetMutableArray(objects, rectObject, out PdfArray? rect) ||
             rect is null) {
-            return;
+            return true;
         }
 
         PdfArray mutableRect = rect;
@@ -365,19 +378,28 @@ public static partial class PdfPageEditor {
             mutableRect.Items[1] is not PdfNumber y1 ||
             mutableRect.Items[2] is not PdfNumber x2 ||
             mutableRect.Items[3] is not PdfNumber y2) {
-            return;
+            return true;
         }
 
         (double transformedX1, double transformedY1) = TransformPoint(x1.Value, y1.Value, transform);
         (double transformedX2, double transformedY2) = TransformPoint(x2.Value, y1.Value, transform);
         (double transformedX3, double transformedY3) = TransformPoint(x1.Value, y2.Value, transform);
         (double transformedX4, double transformedY4) = TransformPoint(x2.Value, y2.Value, transform);
+        double left = Math.Max(Min(transformedX1, transformedX2, transformedX3, transformedX4), transform.TargetClipLeft);
+        double bottom = Math.Max(Min(transformedY1, transformedY2, transformedY3, transformedY4), transform.TargetClipBottom);
+        double right = Math.Min(Max(transformedX1, transformedX2, transformedX3, transformedX4), transform.TargetClipLeft + transform.TargetClipWidth);
+        double top = Math.Min(Max(transformedY1, transformedY2, transformedY3, transformedY4), transform.TargetClipBottom + transform.TargetClipHeight);
+        if (right <= left + 0.001D || top <= bottom + 0.001D) {
+            return false;
+        }
+
         var transformedRect = new PdfArray();
-        transformedRect.Items.Add(new PdfNumber(Min(transformedX1, transformedX2, transformedX3, transformedX4)));
-        transformedRect.Items.Add(new PdfNumber(Min(transformedY1, transformedY2, transformedY3, transformedY4)));
-        transformedRect.Items.Add(new PdfNumber(Max(transformedX1, transformedX2, transformedX3, transformedX4)));
-        transformedRect.Items.Add(new PdfNumber(Max(transformedY1, transformedY2, transformedY3, transformedY4)));
+        transformedRect.Items.Add(new PdfNumber(left));
+        transformedRect.Items.Add(new PdfNumber(bottom));
+        transformedRect.Items.Add(new PdfNumber(right));
+        transformedRect.Items.Add(new PdfNumber(top));
         annotation.Items["Rect"] = transformedRect;
+        return true;
     }
 
     private static void TransformAnnotationCoordinateArrays(Dictionary<int, PdfIndirectObject> objects, PdfDictionary annotation, PageResizeTransform transform) {
@@ -921,6 +943,17 @@ public static partial class PdfPageEditor {
         }
 
         return value.ToString("0.######", CultureInfo.InvariantCulture);
+    }
+
+    private readonly struct TransformedAnnotationCandidate {
+        public TransformedAnnotationCandidate(PdfObject value, int? originalObjectNumber) {
+            Value = value;
+            OriginalObjectNumber = originalObjectNumber;
+        }
+
+        public PdfObject Value { get; }
+
+        public int? OriginalObjectNumber { get; }
     }
 
     private readonly struct PageResizeTransform {

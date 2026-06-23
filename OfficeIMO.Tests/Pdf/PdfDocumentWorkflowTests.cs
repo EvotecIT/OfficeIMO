@@ -434,6 +434,11 @@ public class PdfDocumentWorkflowTests {
         Assert.True(split.Succeeded);
         Assert.Equal(3, split.RequireValue().Count);
 
+        PdfOperationResult<IReadOnlyList<PdfDocument>> emptySelectionSplit = PdfDocument.Open(source).Pages.TrySplit(Array.Empty<PdfPageSelection>());
+        Assert.False(emptySelectionSplit.Succeeded);
+        Assert.Null(emptySelectionSplit.Value);
+        Assert.Contains("At least one page selection", string.Join(" ", emptySelectionSplit.Diagnostics), StringComparison.Ordinal);
+
         PdfDocument invalid = PdfDocument.Open(Encoding.ASCII.GetBytes("not a pdf"));
         PdfOperationResult<PdfDocument> blocked = invalid.Pages.TryExtract(PdfPageSelection.From(1));
 
