@@ -19,6 +19,12 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         Selection,
 
         /// <summary>VBA sheet object name from a CodeName record.</summary>
-        CodeName
+        CodeName,
+
+        /// <summary>Opaque worksheet printer settings from a Pls record.</summary>
+        PrinterSettings,
+
+        /// <summary>Worksheet printed-size mode from a PrintSize record.</summary>
+        PrintSize
     }
 }

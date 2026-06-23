@@ -39,6 +39,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>Reserved DSF record that must be ignored by importers.</summary>
         ReservedDsf,
 
+        /// <summary>Opaque printer settings from a Pls record.</summary>
+        PrinterSettings,
+
         /// <summary>Printed workbook sizing mode from a PrintSize record.</summary>
         PrintSize,
 

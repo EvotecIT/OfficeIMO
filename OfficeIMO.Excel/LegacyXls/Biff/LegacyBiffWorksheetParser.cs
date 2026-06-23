@@ -329,6 +329,14 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     case BiffRecordType.Password:
                         ParsePassword(sheet, payload);
                         break;
+                    case BiffRecordType.Pls:
+                        BiffPrinterSettingsReader.Validate(new BiffRecord(type, offset, payload), sheet.Name, diagnostics);
+                        sheet.AddMetadataRecord(LegacyXlsWorksheetMetadataKind.PrinterSettings, offset, type);
+                        break;
+                    case BiffRecordType.PrintSize:
+                        ParsePrintSize(sheet, payload, diagnostics, offset);
+                        sheet.AddMetadataRecord(LegacyXlsWorksheetMetadataKind.PrintSize, offset, type);
+                        break;
                     case BiffRecordType.Protect:
                         ParseProtect(sheet, payload);
                         break;
@@ -463,6 +471,36 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             sheet.SetZoomScale((uint)Math.Round(scale, MidpointRounding.AwayFromZero));
+        }
+
+        private static void ParsePrintSize(
+            LegacyXlsWorksheet sheet,
+            byte[] payload,
+            List<LegacyXlsImportDiagnostic> diagnostics,
+            int offset) {
+            if (payload.Length < 2) {
+                diagnostics.Add(new LegacyXlsImportDiagnostic(
+                    LegacyXlsDiagnosticSeverity.Warning,
+                    "XLS-BIFF-WORKSHEET-PRINTSIZE-SHORT",
+                    "The worksheet PrintSize record is shorter than expected.",
+                    sheetName: sheet.Name,
+                    recordOffset: offset,
+                    recordType: (ushort)BiffRecordType.PrintSize));
+                return;
+            }
+
+            ushort printSize = BiffRecordReader.ReadUInt16(payload, 0);
+            if (printSize > 3) {
+                diagnostics.Add(new LegacyXlsImportDiagnostic(
+                    LegacyXlsDiagnosticSeverity.Warning,
+                    "XLS-BIFF-WORKSHEET-PRINTSIZE-UNEXPECTED",
+                    $"The worksheet PrintSize record contains unexpected value {printSize}.",
+                    sheetName: sheet.Name,
+                    recordOffset: offset,
+                    recordType: (ushort)BiffRecordType.PrintSize));
+            }
+
+            sheet.GetOrCreatePageSetup().PrintedSize = printSize;
         }
 
         private static void ParseDimensions(LegacyXlsWorksheet sheet, byte[] payload) {

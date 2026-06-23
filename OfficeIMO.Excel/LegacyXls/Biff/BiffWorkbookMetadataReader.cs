@@ -78,6 +78,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     workbook.AddMetadataRecord(LegacyXlsWorkbookMetadataKind.InterfaceEnd, record.Offset, record.Type);
                     return true;
 
+                case BiffRecordType.Pls:
+                    BiffPrinterSettingsReader.Validate(record, sheetName: null, diagnostics);
+                    workbook.AddMetadataRecord(LegacyXlsWorkbookMetadataKind.PrinterSettings, record.Offset, record.Type);
+                    return true;
+
                 case BiffRecordType.PrintSize:
                     if (TryReadUInt16(record, diagnostics, out ushort printSize)) {
                         workbook.SetPrintSize(printSize);

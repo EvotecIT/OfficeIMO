@@ -67,6 +67,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         Palette = 0x0092,
         Pane = 0x0041,
         Password = 0x0013,
+        Pls = 0x004D,
         PrintSize = 0x0033,
         PrintGrid = 0x002B,
         PrintRowCol = 0x002A,

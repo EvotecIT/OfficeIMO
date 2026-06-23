@@ -276,6 +276,11 @@ namespace OfficeIMO.Tests {
             Assert.Equal((ushort)125, legacySheet.PageSetup.Scale);
             Assert.Equal((ushort)1, legacySheet.PageSetup.FitToWidth);
             Assert.Equal((ushort)2, legacySheet.PageSetup.FitToHeight);
+            Assert.Equal((ushort)2, legacySheet.PageSetup.PrintedSize);
+            Assert.Contains(legacySheet.MetadataRecords, record => record.Kind == LegacyXlsWorksheetMetadataKind.PrinterSettings);
+            Assert.Contains(legacySheet.MetadataRecords, record => record.Kind == LegacyXlsWorksheetMetadataKind.PrintSize);
+            Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.RecordType == 0x0033);
+            Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.RecordType == 0x004d);
 
             using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound), new LegacyXlsImportOptions {
                 ReportUnsupportedRecords = true
@@ -361,7 +366,7 @@ namespace OfficeIMO.Tests {
             Assert.False(result.HasImportErrors);
             Assert.False(result.HasUnsupportedFeatures);
             LegacyXlsWorkbook workbook = result.Workbook;
-            Assert.Equal(14, workbook.MetadataRecords.Count);
+            Assert.Equal(15, workbook.MetadataRecords.Count);
             Assert.Equal((ushort)1200, workbook.CodePage.GetValueOrDefault());
             Assert.Equal("ThisWorkbook", workbook.CodeName);
             Assert.Equal((ushort)1200, workbook.UserInterfaceCodePage.GetValueOrDefault());
@@ -400,7 +405,7 @@ namespace OfficeIMO.Tests {
             LegacyXlsWorksheet sheet = Assert.Single(workbook.Worksheets);
             Assert.Equal("MetadataSheet", sheet.CodeName);
             Assert.Equal(1, sheet.MetadataRecords.Count(record => record.Kind == LegacyXlsWorksheetMetadataKind.CodeName));
-            Assert.Equal(14, result.ImportReport.WorkbookMetadataRecordCount);
+            Assert.Equal(15, result.ImportReport.WorkbookMetadataRecordCount);
             Assert.Equal(1, result.ImportReport.WorksheetMetadataRecordsByKind[LegacyXlsWorksheetMetadataKind.CodeName]);
             Assert.Equal(1, result.ImportReport.WorkbookMetadataRecordsByKind[LegacyXlsWorkbookMetadataKind.Backup]);
             Assert.Equal(1, result.ImportReport.WorkbookMetadataRecordsByKind[LegacyXlsWorkbookMetadataKind.BookOptions]);
@@ -411,13 +416,14 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, result.ImportReport.WorkbookMetadataRecordsByKind[LegacyXlsWorkbookMetadataKind.InterfaceCodePage]);
             Assert.Equal(1, result.ImportReport.WorkbookMetadataRecordsByKind[LegacyXlsWorkbookMetadataKind.InterfaceEnd]);
             Assert.Equal(1, result.ImportReport.WorkbookMetadataRecordsByKind[LegacyXlsWorkbookMetadataKind.NaturalLanguageFormulas]);
+            Assert.Equal(1, result.ImportReport.WorkbookMetadataRecordsByKind[LegacyXlsWorkbookMetadataKind.PrinterSettings]);
             Assert.Equal(1, result.ImportReport.WorkbookMetadataRecordsByKind[LegacyXlsWorkbookMetadataKind.PrintSize]);
             Assert.Equal(1, result.ImportReport.WorkbookMetadataRecordsByKind[LegacyXlsWorkbookMetadataKind.RevisionProtection]);
             Assert.Equal(1, result.ImportReport.WorkbookMetadataRecordsByKind[LegacyXlsWorkbookMetadataKind.Window]);
             Assert.Equal(1, result.ImportReport.WorkbookMetadataRecordsByKind[LegacyXlsWorkbookMetadataKind.WindowProtection]);
             Assert.Equal(1, result.ImportReport.WorkbookMetadataRecordsByKind[LegacyXlsWorkbookMetadataKind.WriteAccess]);
             Assert.DoesNotContain(workbook.UnsupportedFeatures, feature => feature.RecordType is 0x0040 or 0x00da or 0x0042 or 0x01ba or 0x008c or 0x008d or 0x00e1 or 0x00e2 or 0x0033 or 0x01af or 0x0160 or 0x003d or 0x0019 or 0x005c);
-            Assert.Contains("Workbook metadata records: 14", result.ImportReport.ToMarkdown());
+            Assert.Contains("Workbook metadata records: 15", result.ImportReport.ToMarkdown());
             Assert.Contains("Workbook Metadata Records By Kind", result.ImportReport.ToMarkdown());
         }
 

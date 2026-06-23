@@ -53,5 +53,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets the number of pages to fit vertically, when present.</summary>
         public ushort? FitToHeight { get; internal set; }
+
+        /// <summary>Gets the worksheet printed-size mode, when specified by a PrintSize record.</summary>
+        public ushort? PrintedSize { get; internal set; }
     }
 }

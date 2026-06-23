@@ -215,6 +215,8 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x0028, BuildDoublePayload(0.5d));
                 WriteRecord(stream, 0x0029, BuildDoublePayload(0.6d));
                 WriteRecord(stream, 0x00a1, BuildSetupPayload(scale: 125, fitToWidth: 1, fitToHeight: 2, landscape: true, header: 0.4d, footer: 0.45d));
+                WriteRecord(stream, 0x004d, BuildPrinterSettingsPayload());
+                WriteRecord(stream, 0x0033, BuildUInt16Payload(2));
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 byte[] bytes = stream.ToArray();
