@@ -546,6 +546,26 @@ Warnings: 2
 | _VBA_PROJECT_CUR/VBA/ThisWorkbook | 1 |
 | _VBA_PROJECT_CUR/VBA/_VBA_PROJECT | 1 |
 
+## Compound Feature Entries By Role
+
+| Key | Count |
+| --- | --- |
+| VbaDirStream | 1 |
+| VbaModuleStream | 8 |
+| VbaProjectStorage | 1 |
+| VbaProjectStream | 2 |
+| VbaStorage | 1 |
+
+## Compound Feature Entries By Kind And Role
+
+| Key | Count |
+| --- | --- |
+| VbaProject\|VbaDirStream | 1 |
+| VbaProject\|VbaModuleStream | 8 |
+| VbaProject\|VbaProjectStorage | 1 |
+| VbaProject\|VbaProjectStream | 2 |
+| VbaProject\|VbaStorage | 1 |
+
 ## Calculation Settings By Kind
 
 | Key | Count |

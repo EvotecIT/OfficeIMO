@@ -148,6 +148,11 @@ namespace OfficeIMO.Excel.LegacyXls {
             CompoundFeatureRecordsByKind = CountCompoundFeatureRecordsByKind(workbook.CompoundFeatureRecords);
             CompoundFeatureEntriesByKind = CountCompoundFeatureEntriesByKind(workbook.CompoundFeatureRecords);
             CompoundFeatureEntriesByName = CountByCode(workbook.CompoundFeatureRecords.SelectMany(record => record.Entries));
+            CompoundFeatureEntriesByRole = CountByCode(workbook.CompoundFeatureRecords
+                .SelectMany(record => record.EntryRoles.Values)
+                .Select(role => role.ToString()));
+            CompoundFeatureEntriesByKindAndRole = CountByCode(workbook.CompoundFeatureRecords
+                .SelectMany(record => record.EntryRoles.Values.Select(role => $"{record.Kind}|{role}")));
             CalculationSettingsByKind = CountCalculationSettingsByKind(workbook.CalculationSettings.Records);
             CellStylesByKind = CountByCode(workbook.CellStyles.Select(style => style.IsBuiltIn ? "BuiltIn" : "Custom"));
             WorkbookMetadataRecordsByKind = CountWorkbookMetadataRecordsByKind(workbook.MetadataRecords);
@@ -405,6 +410,12 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets matching compound feature entries grouped by compound entry path or name.</summary>
         public IReadOnlyDictionary<string, int> CompoundFeatureEntriesByName { get; }
 
+        /// <summary>Gets matching compound feature entries grouped by preserve-only entry role.</summary>
+        public IReadOnlyDictionary<string, int> CompoundFeatureEntriesByRole { get; }
+
+        /// <summary>Gets matching compound feature entries grouped by feature kind and entry role.</summary>
+        public IReadOnlyDictionary<string, int> CompoundFeatureEntriesByKindAndRole { get; }
+
         /// <summary>Gets parsed calculation setting records grouped by setting kind.</summary>
         public IReadOnlyDictionary<LegacyXlsCalculationSettingKind, int> CalculationSettingsByKind { get; }
 
@@ -554,6 +565,8 @@ namespace OfficeIMO.Excel.LegacyXls {
                 entry => entry.Value,
                 StringComparer.OrdinalIgnoreCase));
             AppendDictionary(builder, "Compound Feature Entries By Name", CompoundFeatureEntriesByName);
+            AppendDictionary(builder, "Compound Feature Entries By Role", CompoundFeatureEntriesByRole);
+            AppendDictionary(builder, "Compound Feature Entries By Kind And Role", CompoundFeatureEntriesByKindAndRole);
             AppendDictionary(builder, "Calculation Settings By Kind", CalculationSettingsByKind.ToDictionary(
                 entry => entry.Key.ToString(),
                 entry => entry.Value,
