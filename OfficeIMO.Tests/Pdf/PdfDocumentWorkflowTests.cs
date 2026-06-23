@@ -182,6 +182,71 @@ public class PdfDocumentWorkflowTests {
     }
 
     [Fact]
+    public void TableStyle_DoesNotEnlargeExplicitRichRunsBelowShrinkMinimum() {
+        const string tinyValue = "Tiny";
+        const string longValue = "ThisIdentifierShouldShrinkToFit";
+        byte[] bytes = PdfDocument.Create()
+            .Table(new[] {
+                new[] { new PdfTableCell("Name"), new PdfTableCell("Value") },
+                new[] {
+                    new PdfTableCell("Alpha"),
+                    PdfTableCell.RichTextCell(new[] {
+                        TextRun.Normal(tinyValue, fontSize: 4, font: PdfStandardFont.Courier),
+                        TextRun.Normal(longValue)
+                    })
+                }
+            }, style: new PdfTableStyle {
+                FontSize = 18,
+                HeaderFontSize = 18,
+                MinimumShrinkFontSize = 7,
+                ShrinkTextToFit = true,
+                ColumnWidthPoints = new List<double?> { 54, 108 },
+                HeaderRowCount = 1
+            })
+            .ToBytes();
+
+        string raw = PdfEncoding.Latin1GetString(bytes);
+
+        Assert.Matches(@"(?s)/F\d+\s+4\s+Tf.*<54696E79>\s+Tj", raw);
+    }
+
+    [Fact]
+    public void TableStyle_ScalesExplicitRichRunsAgainstRemainingCellWidth() {
+        const string prefix = "PrefixConsumesWidth";
+        const string largeValue = "WideValue";
+        byte[] bytes = PdfDocument.Create()
+            .Table(new[] {
+                new[] { new PdfTableCell("Name"), new PdfTableCell("Value") },
+                new[] {
+                    new PdfTableCell("Alpha"),
+                    PdfTableCell.RichTextCell(new[] {
+                        TextRun.Normal(prefix),
+                        TextRun.Normal(largeValue, fontSize: 30, font: PdfStandardFont.Courier)
+                    })
+                }
+            }, style: new PdfTableStyle {
+                FontSize = 8,
+                HeaderFontSize = 8,
+                MinimumShrinkFontSize = 8,
+                ShrinkTextToFit = true,
+                ColumnWidthPoints = new List<double?> { 54, 108 },
+                HeaderRowCount = 1
+            })
+            .ToBytes();
+
+        PdfDocument document = PdfDocument.Open(bytes);
+        IReadOnlyList<PdfLogicalTextBlock> blocks = document.Read.TextBlocks();
+        string compactText = document.Read.Text()
+            .Replace("\r", string.Empty)
+            .Replace("\n", string.Empty)
+            .Replace(" ", string.Empty);
+
+        Assert.Contains(prefix + largeValue, compactText, StringComparison.Ordinal);
+        Assert.Contains(blocks, block => block.Text.Contains(largeValue, StringComparison.Ordinal) && Math.Abs(block.FontSize - 8D) < 0.001D);
+        Assert.DoesNotContain(blocks, block => block.Text.Contains(largeValue, StringComparison.Ordinal) && block.FontSize > 8.001D);
+    }
+
+    [Fact]
     public void TableStyle_CanShrinkTextToFitInsideRowColumnLayout() {
         const string longValue = "ThisIdentifierShouldShrinkToFit";
         byte[] bytes = PdfDocument.Create(new PdfOptions {

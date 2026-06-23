@@ -224,17 +224,51 @@ internal static partial class PdfWriter {
 
             double cellWidth = GetTableCellWidth(columnWidths, cell.Column, cell.ColumnSpan, columnGap);
             double innerWidth = Math.Max(1D, cellWidth - GetTableCellPaddingLeft(style, rowIndex, cell.Column) - GetTableCellPaddingRight(style, rowIndex, cell.Column));
-            double textWidth = MeasureTableCellTextWidth(cell, rowFont, resolvedFontSize, options);
+            double textWidth = MeasureTableCellTextWidth(cell, rowFont, resolvedFontSize, options, scale, minimumFontSize);
             if (textWidth <= innerWidth + 0.001D || textWidth <= 0.001D) {
                 continue;
             }
 
-            double minimumScale = minimumFontSize > 0D ? minimumFontSize / maxExplicitFontSize : 0.001D;
-            double fitScale = innerWidth / textWidth;
-            scale = Math.Min(scale, Math.Max(minimumScale, fitScale));
+            double minimumScale = 0.001D;
+            double minimumWidth = MeasureTableCellTextWidth(cell, rowFont, resolvedFontSize, options, minimumScale, minimumFontSize);
+            if (minimumWidth > innerWidth + 0.001D) {
+                scale = Math.Min(scale, minimumScale);
+                continue;
+            }
+
+            double low = minimumScale;
+            double high = scale;
+            for (int iteration = 0; iteration < 20; iteration++) {
+                double candidate = (low + high) / 2D;
+                double candidateWidth = MeasureTableCellTextWidth(cell, rowFont, resolvedFontSize, options, candidate, minimumFontSize);
+                if (candidateWidth <= innerWidth + 0.001D) {
+                    high = candidate;
+                } else {
+                    low = candidate;
+                }
+            }
+
+            scale = Math.Min(scale, high);
         }
 
         return scale;
+    }
+
+    private static double MeasureTableCellTextWidth(TableCellLayout cell, PdfStandardFont baseFont, double fontSize, PdfOptions? options, double runFontSizeScale, double minimumShrinkFontSize) {
+        if (runFontSizeScale >= 0.999D) {
+            return MeasureTableCellTextWidth(cell, baseFont, fontSize, options);
+        }
+
+        double width = 0D;
+        if (cell.Paragraphs.Count > 0) {
+            foreach (PdfTableCellParagraph paragraph in cell.Paragraphs) {
+                width = Math.Max(width, MeasureTableRunsTextWidth(ScaleTableRunsForShrink(paragraph.Runs, runFontSizeScale, minimumShrinkFontSize), baseFont, fontSize, options));
+            }
+        } else {
+            width = MeasureTableRunsTextWidth(ScaleTableRunsForShrink(cell.Runs, runFontSizeScale, minimumShrinkFontSize), baseFont, fontSize, options);
+        }
+
+        return width;
     }
 
     private static double GetMaxExplicitTableRunFontSize(TableCellLayout cell) {
@@ -648,9 +682,13 @@ internal static partial class PdfWriter {
         double minimumExplicitFontSize = minimumShrinkFontSize > 0D ? minimumShrinkFontSize : 0.001D;
         var scaledRuns = new System.Collections.Generic.List<TextRun>(runs.Count);
         foreach (TextRun run in runs) {
-            double? scaledFontSize = run.FontSize.HasValue
-                ? System.Math.Max(minimumExplicitFontSize, run.FontSize.Value * runFontSizeScale)
-                : null;
+            double? scaledFontSize = null;
+            if (run.FontSize.HasValue) {
+                scaledFontSize = run.FontSize.Value <= minimumExplicitFontSize
+                    ? run.FontSize.Value
+                    : System.Math.Max(minimumExplicitFontSize, run.FontSize.Value * runFontSizeScale);
+            }
+
             scaledRuns.Add(new TextRun(
                 run.Text,
                 run.Bold,

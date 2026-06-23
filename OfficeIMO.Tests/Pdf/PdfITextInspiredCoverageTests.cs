@@ -493,6 +493,19 @@ public class PdfITextInspiredCoverageTests {
     }
 
     [Fact]
+    public void PageEditor_ResizePagesCollectsClonedAnnotationActionDependencies() {
+        byte[] pdf = BuildResizableAnnotationActionPdf();
+
+        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PageSize(600, 600)) {
+            Mode = PdfPageResizeMode.Stretch
+        });
+        string raw = PdfEncoding.Latin1GetString(resized);
+
+        Assert.Contains("/A ", raw, StringComparison.Ordinal);
+        Assert.Contains("/URI (https://example.com/review)", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SecurityInfo_ReportsObjectStreamRewriteReadiness() {
         byte[] pdf = Encoding.ASCII.GetBytes(string.Join("\n", new[] {
             "%PDF-1.7",
@@ -909,6 +922,20 @@ public class PdfITextInspiredCoverageTests {
             BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 20 20 Td (Popup geometry) Tj ET")),
             "<< /Type /Annot /Subtype /Text /Rect [20 30 40 50] /Popup 7 0 R /Contents (Note) >>",
             "<< /Type /Annot /Subtype /Popup /Rect [50 50 150 120] /Parent 6 0 R >>"
+        };
+
+        return Encoding.ASCII.GetBytes(BuildPdf(objects));
+    }
+
+    private static byte[] BuildResizableAnnotationActionPdf() {
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /CropBox [10 10 110 110] /Resources << /Font << /F1 4 0 R >> >> /Annots [6 0 R] /Contents 5 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 20 20 Td (Action dependency) Tj ET")),
+            "<< /Type /Annot /Subtype /Link /Rect [20 30 40 50] /A 7 0 R >>",
+            "<< /S /URI /URI (https://example.com/review) >>"
         };
 
         return Encoding.ASCII.GetBytes(BuildPdf(objects));
