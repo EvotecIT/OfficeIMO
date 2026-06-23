@@ -625,10 +625,6 @@ namespace OfficeIMO.Excel {
                     And = matchAll,
                 };
                 foreach ((FilterOperatorValues filterOperator, string value) in conditions) {
-                    if (string.IsNullOrWhiteSpace(value)) {
-                        continue;
-                    }
-
                     customFilters.Append(new CustomFilter {
                         Operator = filterOperator,
                         Val = value,
@@ -640,6 +636,38 @@ namespace OfficeIMO.Excel {
                     autoFilter.Append(filterColumn);
                     worksheet.Save();
                 }
+            });
+        }
+
+        internal void ApplyAutoFilterBlankCriteria(string range, uint columnId) {
+            if (string.IsNullOrWhiteSpace(range)) throw new ArgumentNullException(nameof(range));
+
+            WriteLock(() => {
+                Worksheet worksheet = WorksheetRoot;
+                AutoFilter? autoFilter = worksheet.GetFirstChild<AutoFilter>();
+                if (autoFilter == null || !string.Equals(autoFilter.Reference?.Value, range, StringComparison.OrdinalIgnoreCase)) {
+                    autoFilter?.Remove();
+                    autoFilter = new AutoFilter { Reference = range };
+                    var sheetData = worksheet.GetFirstChild<SheetData>();
+                    if (sheetData != null) {
+                        var conditionalFormatting = worksheet.GetFirstChild<ConditionalFormatting>();
+                        if (conditionalFormatting != null) {
+                            worksheet.InsertBefore(autoFilter, conditionalFormatting);
+                        } else {
+                            worksheet.InsertAfter(autoFilter, sheetData);
+                        }
+                    } else {
+                        worksheet.Append(autoFilter);
+                    }
+                }
+
+                FilterColumn? existingColumn = autoFilter.Elements<FilterColumn>().FirstOrDefault(fc => fc.ColumnId?.Value == columnId);
+                existingColumn?.Remove();
+
+                var filterColumn = new FilterColumn { ColumnId = columnId };
+                filterColumn.Append(new Filters { Blank = true });
+                autoFilter.Append(filterColumn);
+                worksheet.Save();
             });
         }
 

@@ -9,11 +9,16 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             }
 
             var equalityFilters = new Dictionary<uint, IEnumerable<string>>();
+            var blankFilters = new List<LegacyXlsAutoFilterCriteria>();
             var customFilters = new List<LegacyXlsAutoFilterCriteria>();
             var top10Filters = new List<LegacyXlsAutoFilterCriteria>();
             foreach (LegacyXlsAutoFilterCriteria columnCriteria in criteria) {
                 if (CanProjectAsEqualityList(columnCriteria)) {
                     equalityFilters[columnCriteria.ColumnId] = columnCriteria.Conditions.Select(condition => condition.Value).ToArray();
+                } else if (columnCriteria.Kind == LegacyXlsAutoFilterKind.Blanks) {
+                    blankFilters.Add(columnCriteria);
+                } else if (columnCriteria.Kind == LegacyXlsAutoFilterKind.NonBlanks) {
+                    customFilters.Add(columnCriteria);
                 } else if (columnCriteria.IsTop10) {
                     top10Filters.Add(columnCriteria);
                 } else {
@@ -23,12 +28,16 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
 
             sheet.AddAutoFilter(range, equalityFilters.Count == 0 ? null : equalityFilters);
 
+            foreach (LegacyXlsAutoFilterCriteria columnCriteria in blankFilters) {
+                sheet.ApplyAutoFilterBlankCriteria(range, columnCriteria.ColumnId);
+            }
+
             foreach (LegacyXlsAutoFilterCriteria columnCriteria in customFilters) {
                 sheet.ApplyAutoFilterCustomCriteria(
                     range,
                     columnCriteria.ColumnId,
                     columnCriteria.MatchAll,
-                    columnCriteria.Conditions.Select(condition => (ToOperator(condition.Operator), condition.Value)).ToArray());
+                    columnCriteria.Conditions.Select(condition => (ToOperator(condition.Operator), ToValue(columnCriteria, condition))).ToArray());
             }
 
             foreach (LegacyXlsAutoFilterCriteria columnCriteria in top10Filters) {
@@ -57,6 +66,10 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                 LegacyXlsAutoFilterOperator.NotEqual => FilterOperatorValues.NotEqual,
                 _ => FilterOperatorValues.GreaterThanOrEqual
             };
+        }
+
+        private static string ToValue(LegacyXlsAutoFilterCriteria criteria, LegacyXlsAutoFilterCondition condition) {
+            return criteria.Kind == LegacyXlsAutoFilterKind.NonBlanks ? " " : condition.Value;
         }
     }
 }

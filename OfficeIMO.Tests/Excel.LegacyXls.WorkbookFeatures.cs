@@ -746,6 +746,70 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_Load_ImportsPhase4AutoFilterBlankNonBlankCriteria() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase4AutoFilterBlankNonBlankWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
+            LegacyXlsWorksheet legacySheet = Assert.Single(legacy.Worksheets);
+            Assert.Equal((ushort)2, legacySheet.AutoFilterDropDownCount);
+            Assert.Equal(2, legacySheet.AutoFilterCriteria.Count);
+
+            LegacyXlsAutoFilterCriteria blankCriteria = legacySheet.AutoFilterCriteria[0];
+            Assert.Equal(0U, blankCriteria.ColumnId);
+            Assert.Equal(LegacyXlsAutoFilterKind.Blanks, blankCriteria.Kind);
+            LegacyXlsAutoFilterCondition blankCondition = Assert.Single(blankCriteria.Conditions);
+            Assert.Equal(LegacyXlsAutoFilterOperator.Equal, blankCondition.Operator);
+            Assert.Equal(string.Empty, blankCondition.Value);
+
+            LegacyXlsAutoFilterCriteria nonBlankCriteria = legacySheet.AutoFilterCriteria[1];
+            Assert.Equal(1U, nonBlankCriteria.ColumnId);
+            Assert.Equal(LegacyXlsAutoFilterKind.NonBlanks, nonBlankCriteria.Kind);
+            LegacyXlsAutoFilterCondition nonBlankCondition = Assert.Single(nonBlankCriteria.Conditions);
+            Assert.Equal(LegacyXlsAutoFilterOperator.NotEqual, nonBlankCondition.Operator);
+            Assert.Equal(string.Empty, nonBlankCondition.Value);
+            Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.AutoFilterCriteria);
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.False(result.HasImportErrors);
+            Assert.False(result.HasUnsupportedFeatures);
+            Assert.Equal(2, result.ImportReport.AutoFilterCriteriaCount);
+            Assert.Equal(1, result.ImportReport.AutoFilterCriteriaByKind["Blanks"]);
+            Assert.Equal(1, result.ImportReport.AutoFilterCriteriaByKind["NonBlanks"]);
+            Assert.Equal(1, result.ImportReport.AutoFilterCriteriaByOperator["Equal"]);
+            Assert.Equal(1, result.ImportReport.AutoFilterCriteriaByOperator["NotEqual"]);
+            Assert.Empty(result.Document.ValidateOpenXml());
+
+            using var output = new MemoryStream();
+            result.Document.Save(output);
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
+            WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single();
+            AutoFilter autoFilter = Assert.Single(worksheetPart.Worksheet.Elements<AutoFilter>());
+            Assert.Equal("A1:B5", autoFilter.Reference!.Value);
+            List<FilterColumn> filterColumns = autoFilter.Elements<FilterColumn>().OrderBy(column => column.ColumnId?.Value ?? 0U).ToList();
+            Assert.Equal(2, filterColumns.Count);
+
+            FilterColumn blankColumn = filterColumns[0];
+            Assert.Equal(0U, blankColumn.ColumnId!.Value);
+            Filters blankFilters = Assert.Single(blankColumn.Elements<Filters>());
+            Assert.True(blankFilters.Blank!.Value);
+            Assert.Empty(blankFilters.Elements<Filter>());
+
+            FilterColumn nonBlankColumn = filterColumns[1];
+            Assert.Equal(1U, nonBlankColumn.ColumnId!.Value);
+            CustomFilter customFilter = Assert.Single(nonBlankColumn.GetFirstChild<CustomFilters>()!.Elements<CustomFilter>());
+            Assert.Equal(FilterOperatorValues.NotEqual, customFilter.Operator!.Value);
+            Assert.Equal(" ", customFilter.Val!.Value);
+        }
+
+        [Fact]
         public void LegacyXls_Load_ReportsUnsupportedBoundSheetTypes() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase5UnsupportedSheetTypesWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);

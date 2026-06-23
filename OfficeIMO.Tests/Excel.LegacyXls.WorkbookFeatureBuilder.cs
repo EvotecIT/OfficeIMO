@@ -387,6 +387,34 @@ namespace OfficeIMO.Tests {
                 return bytes;
             }
 
+            internal static byte[] CreatePhase4AutoFilterBlankNonBlankWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long boundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "BlankFilters"));
+                WriteRecord(stream, 0x0017, BuildExternSheetPayload((0, 0, 0)));
+                WriteRecord(stream, 0x0018, BuildDefinedNamePayload(((char)0x0d).ToString(), BuildNameArea3dFormula(0, 0, 0, 4, 1), localSheetIndex: 1, hidden: true, builtIn: true));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "MaybeBlank"));
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 1, "MaybeValue"));
+                WriteRecord(stream, 0x0204, BuildLabelPayload(1, 0, "Open"));
+                WriteRecord(stream, 0x0204, BuildLabelPayload(2, 1, "North"));
+                WriteRecord(stream, 0x0204, BuildLabelPayload(3, 0, "Closed"));
+                WriteRecord(stream, 0x0204, BuildLabelPayload(4, 1, "South"));
+                WriteRecord(stream, 0x009d, BuildAutoFilterInfoPayload(2));
+                WriteRecord(stream, 0x009b, Array.Empty<byte>());
+                WriteRecord(stream, 0x009e, BuildAutoFilterBlanksPayload(0));
+                WriteRecord(stream, 0x009e, BuildAutoFilterNonBlanksPayload(1));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)boundSheetPosition + 4), 4);
+                return bytes;
+            }
+
             internal static byte[] CreatePhase5UnsupportedSheetTypesWorkbookStream() {
                 using var stream = new MemoryStream();
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
@@ -1035,7 +1063,26 @@ namespace OfficeIMO.Tests {
                 return stream.ToArray();
             }
 
+            private static byte[] BuildAutoFilterBlanksPayload(ushort columnId) {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, columnId);
+                WriteUInt16(stream, 0x0004);
+                WriteBlankDoper(stream, LegacyAutoFilterComparisonEqual);
+                WriteUnusedDoper(stream);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildAutoFilterNonBlanksPayload(ushort columnId) {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, columnId);
+                WriteUInt16(stream, 0x0004);
+                WriteNonBlankDoper(stream, LegacyAutoFilterComparisonNotEqual);
+                WriteUnusedDoper(stream);
+                return stream.ToArray();
+            }
+
             private const byte LegacyAutoFilterComparisonEqual = 0x02;
+            private const byte LegacyAutoFilterComparisonNotEqual = 0x05;
             private const byte LegacyAutoFilterComparisonGreaterThanOrEqual = 0x06;
 
             private static void WriteUnusedDoper(Stream stream) {
@@ -1057,6 +1104,18 @@ namespace OfficeIMO.Tests {
                 stream.WriteByte(comparison);
                 byte[] valueBytes = BitConverter.GetBytes(value);
                 stream.Write(valueBytes, 0, valueBytes.Length);
+            }
+
+            private static void WriteBlankDoper(Stream stream, byte comparison) {
+                stream.WriteByte(0x0c);
+                stream.WriteByte(comparison);
+                stream.Write(new byte[8], 0, 8);
+            }
+
+            private static void WriteNonBlankDoper(Stream stream, byte comparison) {
+                stream.WriteByte(0x0e);
+                stream.WriteByte(comparison);
+                stream.Write(new byte[8], 0, 8);
             }
 
             private static byte[] BuildNoteObjectPayload(ushort objectId) {

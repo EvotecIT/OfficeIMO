@@ -39,8 +39,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
             int stringOffset = 24;
             var conditions = new List<LegacyXlsAutoFilterCondition>(2);
-            if (!TryReadDoper(payload, 4, ref stringOffset, out LegacyXlsAutoFilterCondition? firstCondition)
-                || !TryReadDoper(payload, 14, ref stringOffset, out LegacyXlsAutoFilterCondition? secondCondition)) {
+            LegacyXlsAutoFilterKind? firstKind;
+            LegacyXlsAutoFilterKind? secondKind;
+            if (!TryReadDoper(payload, 4, ref stringOffset, out LegacyXlsAutoFilterCondition? firstCondition, out firstKind)
+                || !TryReadDoper(payload, 14, ref stringOffset, out LegacyXlsAutoFilterCondition? secondCondition, out secondKind)) {
                 return false;
             }
 
@@ -57,7 +59,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             bool matchAll = (flags & 0x0003) == 0x0001;
-            criteria = new LegacyXlsAutoFilterCriteria(columnId, matchAll, conditions);
+            LegacyXlsAutoFilterKind kind = ResolveCriteriaKind(conditions, firstKind, secondKind);
+            criteria = new LegacyXlsAutoFilterCriteria(columnId, matchAll, conditions, kind);
             return true;
         }
 
@@ -65,8 +68,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             byte[] payload,
             int offset,
             ref int stringOffset,
-            out LegacyXlsAutoFilterCondition? condition) {
+            out LegacyXlsAutoFilterCondition? condition,
+            out LegacyXlsAutoFilterKind? specialKind) {
             condition = null;
+            specialKind = null;
             if (offset + 10 > payload.Length) {
                 return false;
             }
@@ -100,12 +105,39 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     }
 
                     break;
+                case 0x0c:
+                    if (@operator != LegacyXlsAutoFilterOperator.Equal) {
+                        return false;
+                    }
+
+                    value = string.Empty;
+                    specialKind = LegacyXlsAutoFilterKind.Blanks;
+                    break;
+                case 0x0e:
+                    if (@operator != LegacyXlsAutoFilterOperator.NotEqual) {
+                        return false;
+                    }
+
+                    value = string.Empty;
+                    specialKind = LegacyXlsAutoFilterKind.NonBlanks;
+                    break;
                 default:
                     return false;
             }
 
             condition = new LegacyXlsAutoFilterCondition(@operator, value);
             return true;
+        }
+
+        private static LegacyXlsAutoFilterKind ResolveCriteriaKind(
+            IReadOnlyList<LegacyXlsAutoFilterCondition> conditions,
+            LegacyXlsAutoFilterKind? firstKind,
+            LegacyXlsAutoFilterKind? secondKind) {
+            if (conditions.Count == 1) {
+                return firstKind ?? secondKind ?? LegacyXlsAutoFilterKind.Custom;
+            }
+
+            return LegacyXlsAutoFilterKind.Custom;
         }
 
         private static bool TryMapOperator(byte value, out LegacyXlsAutoFilterOperator @operator) {

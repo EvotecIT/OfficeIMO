@@ -42,6 +42,28 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         }
 
         /// <summary>
+        /// Creates parsed legacy blank AutoFilter criteria.
+        /// </summary>
+        public static LegacyXlsAutoFilterCriteria CreateBlanks(uint columnId) {
+            return new LegacyXlsAutoFilterCriteria(
+                columnId,
+                matchAll: false,
+                conditions: new[] { new LegacyXlsAutoFilterCondition(LegacyXlsAutoFilterOperator.Equal, string.Empty) },
+                kind: LegacyXlsAutoFilterKind.Blanks);
+        }
+
+        /// <summary>
+        /// Creates parsed legacy nonblank AutoFilter criteria.
+        /// </summary>
+        public static LegacyXlsAutoFilterCriteria CreateNonBlanks(uint columnId) {
+            return new LegacyXlsAutoFilterCriteria(
+                columnId,
+                matchAll: false,
+                conditions: new[] { new LegacyXlsAutoFilterCondition(LegacyXlsAutoFilterOperator.NotEqual, string.Empty) },
+                kind: LegacyXlsAutoFilterKind.NonBlanks);
+        }
+
+        /// <summary>
         /// Gets the zero-based column index within the AutoFilter range.
         /// </summary>
         public uint ColumnId { get; }
@@ -89,7 +111,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>Comparison or equality-list criteria.</summary>
         Custom,
         /// <summary>Top or bottom item/percentage criteria.</summary>
-        Top10
+        Top10,
+        /// <summary>Blank-cell criteria.</summary>
+        Blanks,
+        /// <summary>Nonblank-cell criteria.</summary>
+        NonBlanks
     }
 
     /// <summary>
