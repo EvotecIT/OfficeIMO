@@ -462,15 +462,19 @@ internal static partial class PdfSyntax {
     }
 
     private static bool ContainsAnyParsedPdfName(byte[] pdf, params string[] names) {
+        return ContainsAnyParsedPdfName(pdf, null, names);
+    }
+
+    private static bool ContainsAnyParsedPdfName(byte[] pdf, PdfReadOptions? options, params string[] names) {
         try {
-            var (map, _) = ParseObjects(pdf);
+            var (map, _) = ParseObjects(pdf, options);
             var nameSet = new HashSet<string>(names, StringComparer.Ordinal);
             foreach (PdfIndirectObject indirectObject in map.Values) {
                 if (ContainsAnyParsedPdfName(indirectObject.Value, nameSet)) {
                     return true;
                 }
             }
-        } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
+        } catch (Exception ex) when (ex is not PdfEncryptionException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
             return false;
         }
 

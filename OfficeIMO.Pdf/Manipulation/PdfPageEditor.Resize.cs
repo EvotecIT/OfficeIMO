@@ -58,7 +58,8 @@ public static partial class PdfPageEditor {
             double sourceHeight = sourceBox?.Height ?? document.Pages[i].GetPageSize().Height;
             ValidateSourcePageSize(sourceWidth, sourceHeight, pageNumber);
 
-            var transform = CalculateResizeTransform(pageObjectNumber, sourceLeft, sourceBottom, sourceWidth, sourceHeight, options);
+            int rotationDegrees = NormalizeResizeRotation(document.Pages[i].GetRotationDegrees());
+            var transform = CalculateResizeTransform(pageObjectNumber, sourceLeft, sourceBottom, sourceWidth, sourceHeight, rotationDegrees, options);
             transformsByPageObjectNumber[pageObjectNumber] = transform;
             int prefixPseudoObjectNumber = ResizeContentPrefixBasePseudoObjectNumber - i;
             int suffixPseudoObjectNumber = ResizeContentSuffixBasePseudoObjectNumber - i;
@@ -78,16 +79,13 @@ public static partial class PdfPageEditor {
             };
 
             AddNormalizedProductionBoxes(pageOverrides, geometry, options.PageSize);
-            if (TryBuildTransformedAnnotations(objects, pageDictionary, transform, out PdfArray? transformedAnnotations)) {
-                pageOverrides["Annots"] = transformedAnnotations!;
-            }
-
             overrides[pageObjectNumber] = pageOverrides;
         }
 
         PdfFileVersion fileVersion = PdfFileAssembler.ParseHeaderVersionOrDefault(PdfSyntax.GetHeaderVersion(pdf));
         PdfPageExtractor.CatalogRewriteState catalogState = PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw);
         TransformCatalogDestinationsForResize(objects, catalogState, transformsByPageObjectNumber);
+        TransformPageAnnotationsForResize(objects, document, selected, transformsByPageObjectNumber, overrides);
         return PdfPageExtractor.ExtractPages(
             objects,
             document.Metadata,
@@ -215,10 +213,12 @@ public static partial class PdfPageEditor {
     private static PdfStream BuildResizeContentStream(PageResizeTransform transform, double sourceLeft, double sourceBottom, double sourceWidth, double sourceHeight) {
         string content =
             "q\n" +
-            FormatResizeNumber(transform.ScaleX) + " 0 0 " +
-            FormatResizeNumber(transform.ScaleY) + " " +
-            FormatResizeNumber(transform.TranslateX) + " " +
-            FormatResizeNumber(transform.TranslateY) + " cm\n" +
+            FormatResizeNumber(transform.A) + " " +
+            FormatResizeNumber(transform.B) + " " +
+            FormatResizeNumber(transform.C) + " " +
+            FormatResizeNumber(transform.D) + " " +
+            FormatResizeNumber(transform.E) + " " +
+            FormatResizeNumber(transform.F) + " cm\n" +
             FormatResizeNumber(sourceLeft) + " " +
             FormatResizeNumber(sourceBottom) + " " +
             FormatResizeNumber(sourceWidth) + " " +
@@ -251,10 +251,43 @@ public static partial class PdfPageEditor {
         return clone;
     }
 
+    private static void TransformPageAnnotationsForResize(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfReadDocument document,
+        HashSet<int> selectedPages,
+        IReadOnlyDictionary<int, PageResizeTransform> transformsByPageObjectNumber,
+        Dictionary<int, Dictionary<string, PdfObject>> overrides) {
+        if (transformsByPageObjectNumber.Count == 0) {
+            return;
+        }
+
+        for (int i = 0; i < document.Pages.Count; i++) {
+            int pageNumber = i + 1;
+            int pageObjectNumber = document.Pages[i].ObjectNumber;
+            if (!objects.TryGetValue(pageObjectNumber, out PdfIndirectObject? indirect) ||
+                indirect.Value is not PdfDictionary pageDictionary) {
+                continue;
+            }
+
+            PageResizeTransform? annotationGeometryTransform = selectedPages.Contains(pageNumber)
+                ? transformsByPageObjectNumber[pageObjectNumber]
+                : null;
+            if (TryBuildTransformedAnnotations(objects, pageDictionary, annotationGeometryTransform, transformsByPageObjectNumber, out PdfArray? transformedAnnotations)) {
+                if (!overrides.TryGetValue(pageObjectNumber, out Dictionary<string, PdfObject>? pageOverrides)) {
+                    pageOverrides = new Dictionary<string, PdfObject>(StringComparer.Ordinal);
+                    overrides[pageObjectNumber] = pageOverrides;
+                }
+
+                pageOverrides["Annots"] = transformedAnnotations!;
+            }
+        }
+    }
+
     private static bool TryBuildTransformedAnnotations(
         Dictionary<int, PdfIndirectObject> objects,
         PdfDictionary pageDictionary,
-        PageResizeTransform transform,
+        PageResizeTransform? annotationGeometryTransform,
+        IReadOnlyDictionary<int, PageResizeTransform> transformsByPageObjectNumber,
         out PdfArray? transformedAnnotations) {
         transformedAnnotations = null;
         if (!pageDictionary.Items.TryGetValue("Annots", out PdfObject? annotationsObject) ||
@@ -267,11 +300,12 @@ public static partial class PdfPageEditor {
             PdfObject? resolved = PdfObjectLookup.Resolve(objects, annotationObject);
             if (resolved is PdfDictionary annotationDictionary) {
                 var clonedAnnotation = (PdfDictionary)ClonePdfObject(annotationDictionary);
-                TransformAnnotationRectangle(clonedAnnotation, transform);
-                TransformAnnotationCoordinateArrays(clonedAnnotation, transform);
-                TransformDestinationsInObject(objects, clonedAnnotation, new Dictionary<int, PageResizeTransform> {
-                    [transform.PageObjectNumber] = transform
-                }, new HashSet<int>(), new HashSet<PdfArray>());
+                if (annotationGeometryTransform.HasValue) {
+                    TransformAnnotationRectangle(clonedAnnotation, annotationGeometryTransform.Value);
+                    TransformAnnotationCoordinateArrays(clonedAnnotation, annotationGeometryTransform.Value);
+                }
+
+                TransformDestinationsInObject(objects, clonedAnnotation, transformsByPageObjectNumber, new HashSet<int>(), new HashSet<PdfArray>());
                 transformedAnnotations.Items.Add(clonedAnnotation);
             } else {
                 transformedAnnotations.Items.Add(ClonePdfObject(annotationObject));
@@ -292,15 +326,15 @@ public static partial class PdfPageEditor {
             return;
         }
 
-        double transformedX1 = TransformX(x1.Value, transform);
-        double transformedY1 = TransformY(y1.Value, transform);
-        double transformedX2 = TransformX(x2.Value, transform);
-        double transformedY2 = TransformY(y2.Value, transform);
+        (double transformedX1, double transformedY1) = TransformPoint(x1.Value, y1.Value, transform);
+        (double transformedX2, double transformedY2) = TransformPoint(x2.Value, y1.Value, transform);
+        (double transformedX3, double transformedY3) = TransformPoint(x1.Value, y2.Value, transform);
+        (double transformedX4, double transformedY4) = TransformPoint(x2.Value, y2.Value, transform);
         var transformedRect = new PdfArray();
-        transformedRect.Items.Add(new PdfNumber(Math.Min(transformedX1, transformedX2)));
-        transformedRect.Items.Add(new PdfNumber(Math.Min(transformedY1, transformedY2)));
-        transformedRect.Items.Add(new PdfNumber(Math.Max(transformedX1, transformedX2)));
-        transformedRect.Items.Add(new PdfNumber(Math.Max(transformedY1, transformedY2)));
+        transformedRect.Items.Add(new PdfNumber(Min(transformedX1, transformedX2, transformedX3, transformedX4)));
+        transformedRect.Items.Add(new PdfNumber(Min(transformedY1, transformedY2, transformedY3, transformedY4)));
+        transformedRect.Items.Add(new PdfNumber(Max(transformedX1, transformedX2, transformedX3, transformedX4)));
+        transformedRect.Items.Add(new PdfNumber(Max(transformedY1, transformedY2, transformedY3, transformedY4)));
         annotation.Items["Rect"] = transformedRect;
     }
 
@@ -334,17 +368,27 @@ public static partial class PdfPageEditor {
         for (int i = 0; i + 1 < array.Items.Count; i += 2) {
             if (array.Items[i] is PdfNumber x &&
                 array.Items[i + 1] is PdfNumber y) {
-                array.Items[i] = new PdfNumber(TransformX(x.Value, transform));
-                array.Items[i + 1] = new PdfNumber(TransformY(y.Value, transform));
+                (double transformedX, double transformedY) = TransformPoint(x.Value, y.Value, transform);
+                array.Items[i] = new PdfNumber(transformedX);
+                array.Items[i + 1] = new PdfNumber(transformedY);
             }
         }
     }
 
     private static double TransformX(double value, PageResizeTransform transform) =>
-        value * transform.ScaleX + transform.TranslateX;
+        value * transform.A + transform.E;
 
     private static double TransformY(double value, PageResizeTransform transform) =>
-        value * transform.ScaleY + transform.TranslateY;
+        value * transform.D + transform.F;
+
+    private static (double X, double Y) TransformPoint(double x, double y, PageResizeTransform transform) =>
+        (transform.A * x + transform.C * y + transform.E, transform.B * x + transform.D * y + transform.F);
+
+    private static double Min(double a, double b, double c, double d) =>
+        Math.Min(Math.Min(a, b), Math.Min(c, d));
+
+    private static double Max(double a, double b, double c, double d) =>
+        Math.Max(Math.Max(a, b), Math.Max(c, d));
 
     private static void TransformCatalogDestinationsForResize(
         Dictionary<int, PdfIndirectObject> objects,
@@ -415,8 +459,7 @@ public static partial class PdfPageEditor {
 
         switch (destinationMode.Name) {
             case "XYZ":
-                TransformDestinationCoordinate(array, 2, transform, isX: true);
-                TransformDestinationCoordinate(array, 3, transform, isX: false);
+                TransformDestinationPoint(array, 2, 3, transform);
                 break;
             case "FitH":
             case "FitBH":
@@ -427,12 +470,50 @@ public static partial class PdfPageEditor {
                 TransformDestinationCoordinate(array, 2, transform, isX: true);
                 break;
             case "FitR":
-                TransformDestinationCoordinate(array, 2, transform, isX: true);
-                TransformDestinationCoordinate(array, 3, transform, isX: false);
-                TransformDestinationCoordinate(array, 4, transform, isX: true);
-                TransformDestinationCoordinate(array, 5, transform, isX: false);
+                TransformDestinationRectangle(array, 2, 3, 4, 5, transform);
                 break;
         }
+    }
+
+    private static void TransformDestinationPoint(PdfArray array, int xIndex, int yIndex, PageResizeTransform transform) {
+        if (xIndex < array.Items.Count &&
+            yIndex < array.Items.Count &&
+            array.Items[xIndex] is PdfNumber x &&
+            array.Items[yIndex] is PdfNumber y) {
+            (double transformedX, double transformedY) = TransformPoint(x.Value, y.Value, transform);
+            array.Items[xIndex] = new PdfNumber(transformedX);
+            array.Items[yIndex] = new PdfNumber(transformedY);
+            return;
+        }
+
+        TransformDestinationCoordinate(array, xIndex, transform, isX: true);
+        TransformDestinationCoordinate(array, yIndex, transform, isX: false);
+    }
+
+    private static void TransformDestinationRectangle(PdfArray array, int leftIndex, int bottomIndex, int rightIndex, int topIndex, PageResizeTransform transform) {
+        if (leftIndex >= array.Items.Count ||
+            bottomIndex >= array.Items.Count ||
+            rightIndex >= array.Items.Count ||
+            topIndex >= array.Items.Count ||
+            array.Items[leftIndex] is not PdfNumber left ||
+            array.Items[bottomIndex] is not PdfNumber bottom ||
+            array.Items[rightIndex] is not PdfNumber right ||
+            array.Items[topIndex] is not PdfNumber top) {
+            TransformDestinationCoordinate(array, leftIndex, transform, isX: true);
+            TransformDestinationCoordinate(array, bottomIndex, transform, isX: false);
+            TransformDestinationCoordinate(array, rightIndex, transform, isX: true);
+            TransformDestinationCoordinate(array, topIndex, transform, isX: false);
+            return;
+        }
+
+        (double x1, double y1) = TransformPoint(left.Value, bottom.Value, transform);
+        (double x2, double y2) = TransformPoint(left.Value, top.Value, transform);
+        (double x3, double y3) = TransformPoint(right.Value, bottom.Value, transform);
+        (double x4, double y4) = TransformPoint(right.Value, top.Value, transform);
+        array.Items[leftIndex] = new PdfNumber(Min(x1, x2, x3, x4));
+        array.Items[bottomIndex] = new PdfNumber(Min(y1, y2, y3, y4));
+        array.Items[rightIndex] = new PdfNumber(Max(x1, x2, x3, x4));
+        array.Items[topIndex] = new PdfNumber(Max(y1, y2, y3, y4));
     }
 
     private static void TransformDestinationCoordinate(PdfArray array, int index, PageResizeTransform transform, bool isX) {
@@ -481,12 +562,14 @@ public static partial class PdfPageEditor {
         }
     }
 
-    private static PageResizeTransform CalculateResizeTransform(int pageObjectNumber, double sourceLeft, double sourceBottom, double sourceWidth, double sourceHeight, PdfPageResizeOptions options) {
+    private static PageResizeTransform CalculateResizeTransform(int pageObjectNumber, double sourceLeft, double sourceBottom, double sourceWidth, double sourceHeight, int rotationDegrees, PdfPageResizeOptions options) {
         double margin = options.Margin;
         double availableWidth = options.PageSize.Width - margin * 2D;
         double availableHeight = options.PageSize.Height - margin * 2D;
-        double scaleX = availableWidth / sourceWidth;
-        double scaleY = availableHeight / sourceHeight;
+        double visualSourceWidth = rotationDegrees == 90 || rotationDegrees == 270 ? sourceHeight : sourceWidth;
+        double visualSourceHeight = rotationDegrees == 90 || rotationDegrees == 270 ? sourceWidth : sourceHeight;
+        double scaleX = availableWidth / visualSourceWidth;
+        double scaleY = availableHeight / visualSourceHeight;
 
         switch (options.Mode) {
             case PdfPageResizeMode.Fit:
@@ -501,11 +584,54 @@ public static partial class PdfPageEditor {
                 throw new ArgumentOutOfRangeException(nameof(options), "Unsupported page resize mode.");
         }
 
-        double scaledWidth = sourceWidth * scaleX;
-        double scaledHeight = sourceHeight * scaleY;
-        double translateX = margin + (availableWidth - scaledWidth) / 2D - sourceLeft * scaleX;
-        double translateY = margin + (availableHeight - scaledHeight) / 2D - sourceBottom * scaleY;
-        return new PageResizeTransform(scaleX, scaleY, translateX, translateY, pageObjectNumber);
+        double scaledWidth = visualSourceWidth * scaleX;
+        double scaledHeight = visualSourceHeight * scaleY;
+        double visualTranslateX = margin + (availableWidth - scaledWidth) / 2D;
+        double visualTranslateY = margin + (availableHeight - scaledHeight) / 2D;
+
+        return rotationDegrees switch {
+            90 => new PageResizeTransform(
+                0D,
+                -scaleY,
+                scaleX,
+                0D,
+                visualTranslateX - sourceBottom * scaleX,
+                visualTranslateY + (sourceWidth + sourceLeft) * scaleY,
+                pageObjectNumber),
+            180 => new PageResizeTransform(
+                -scaleX,
+                0D,
+                0D,
+                -scaleY,
+                visualTranslateX + (sourceWidth + sourceLeft) * scaleX,
+                visualTranslateY + (sourceHeight + sourceBottom) * scaleY,
+                pageObjectNumber),
+            270 => new PageResizeTransform(
+                0D,
+                scaleY,
+                -scaleX,
+                0D,
+                visualTranslateX + (sourceHeight + sourceBottom) * scaleX,
+                visualTranslateY - sourceLeft * scaleY,
+                pageObjectNumber),
+            _ => new PageResizeTransform(
+                scaleX,
+                0D,
+                0D,
+                scaleY,
+                visualTranslateX - sourceLeft * scaleX,
+                visualTranslateY - sourceBottom * scaleY,
+                pageObjectNumber)
+        };
+    }
+
+    private static int NormalizeResizeRotation(int rotationDegrees) {
+        int normalized = rotationDegrees % 360;
+        if (normalized < 0) {
+            normalized += 360;
+        }
+
+        return normalized == 90 || normalized == 180 || normalized == 270 ? normalized : 0;
     }
 
     private static void ValidateResizeOptions(PdfPageResizeOptions options) {
@@ -535,21 +661,27 @@ public static partial class PdfPageEditor {
     }
 
     private readonly struct PageResizeTransform {
-        public PageResizeTransform(double scaleX, double scaleY, double translateX, double translateY, int pageObjectNumber) {
-            ScaleX = scaleX;
-            ScaleY = scaleY;
-            TranslateX = translateX;
-            TranslateY = translateY;
+        public PageResizeTransform(double a, double b, double c, double d, double e, double f, int pageObjectNumber) {
+            A = a;
+            B = b;
+            C = c;
+            D = d;
+            E = e;
+            F = f;
             PageObjectNumber = pageObjectNumber;
         }
 
-        public double ScaleX { get; }
+        public double A { get; }
 
-        public double ScaleY { get; }
+        public double B { get; }
 
-        public double TranslateX { get; }
+        public double C { get; }
 
-        public double TranslateY { get; }
+        public double D { get; }
+
+        public double E { get; }
+
+        public double F { get; }
 
         public int PageObjectNumber { get; }
     }

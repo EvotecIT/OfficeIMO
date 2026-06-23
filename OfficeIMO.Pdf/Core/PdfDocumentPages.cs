@@ -37,7 +37,7 @@ public sealed class PdfDocumentPages {
     /// </summary>
     public PdfOperationResult<PdfDocument> TryExtract(PdfPageSelection selection, PdfReadOptions? options = null) {
         Guard.NotNull(selection, nameof(selection));
-        return _document.TryOperation("Extract pages", PdfPreflightCapability.ManipulatePages, () => Extract(selection), options);
+        return TryPageExtractionOperation("Extract pages", () => Extract(selection), options);
     }
 
     /// <summary>
@@ -152,14 +152,14 @@ public sealed class PdfDocumentPages {
     /// Attempts to create one PDF per page, returning diagnostics when blocked or failed.
     /// </summary>
     public PdfOperationResult<IReadOnlyList<PdfDocument>> TrySplit(PdfReadOptions? options = null) {
-        return _document.TryOperation("Split pages", PdfPreflightCapability.ManipulatePages, Split, options);
+        return TryPageExtractionOperation("Split pages", Split, options);
     }
 
     /// <summary>
     /// Attempts to create PDFs containing consecutive groups of the requested page count.
     /// </summary>
     public PdfOperationResult<IReadOnlyList<PdfDocument>> TrySplit(int pagesPerDocument, PdfReadOptions? options = null) {
-        return _document.TryOperation("Split page groups", PdfPreflightCapability.ManipulatePages, () => Split(pagesPerDocument), options);
+        return TryPageExtractionOperation("Split page groups", () => Split(pagesPerDocument), options);
     }
 
     /// <summary>
@@ -167,16 +167,15 @@ public sealed class PdfDocumentPages {
     /// </summary>
     public PdfOperationResult<IReadOnlyList<PdfDocument>> TrySplit(IReadOnlyList<PdfPageSelection> selections, PdfReadOptions? options = null) {
         Guard.NotNull(selections, nameof(selections));
-        return _document.TryOperation("Split page selections", PdfPreflightCapability.ManipulatePages, () => Split(selections.ToArray()), options);
+        return TryPageExtractionOperation("Split page selections", () => Split(selections.ToArray()), options);
     }
 
     /// <summary>
     /// Attempts to create one PDF for each outline/bookmark-derived page range.
     /// </summary>
     public PdfOperationResult<IReadOnlyList<PdfDocument>> TrySplitByBookmarks(IReadOnlyList<string>? bookmarkTitles = null, PdfReadOptions? options = null) {
-        return _document.TryOperation(
+        return TryPageExtractionOperation(
             "Split bookmarks",
-            PdfPreflightCapability.ManipulatePages,
             () => SplitByBookmarks(bookmarkTitles is null ? Array.Empty<string>() : bookmarkTitles.ToArray()),
             options);
     }
@@ -416,5 +415,39 @@ public sealed class PdfDocumentPages {
                 FlattenOutlines(outline.Children, destination);
             }
         }
+    }
+
+    private PdfOperationResult<T> TryPageExtractionOperation<T>(
+        string operationName,
+        Func<T> operation,
+        PdfReadOptions? options) where T : class {
+        PdfReadOptions? effectiveOptions = options ?? _document.ReadOptions;
+        PdfDocumentPreflight preflight = _document.Preflight(effectiveOptions);
+        if (!preflight.Can(PdfPreflightCapability.ManipulatePages) &&
+            !CanAttemptEncryptedPageExtraction(preflight, effectiveOptions)) {
+            return PdfOperationResult<T>.Blocked(operationName, PdfPreflightCapability.ManipulatePages, preflight);
+        }
+
+        try {
+            return PdfOperationResult<T>.Success(operationName, PdfPreflightCapability.ManipulatePages, preflight, operation());
+        } catch (Exception ex) {
+            return PdfOperationResult<T>.Failed(operationName, PdfPreflightCapability.ManipulatePages, preflight, ex);
+        }
+    }
+
+    private static bool CanAttemptEncryptedPageExtraction(PdfDocumentPreflight preflight, PdfReadOptions? options) {
+        if (!preflight.CanRead ||
+            options?.Password is null ||
+            !preflight.Probe.HasEncryption) {
+            return false;
+        }
+
+        foreach (PdfRewriteBlocker blocker in preflight.RewriteBlockers) {
+            if (blocker.Kind != PdfRewriteBlockerKind.Encryption) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

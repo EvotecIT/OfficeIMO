@@ -28,7 +28,7 @@ internal static partial class PdfSyntax {
             throw new NotSupportedException("Signed PDF files are not supported for rewriting by OfficeIMO.Pdf yet.");
         }
 
-        if (HasFormMarkers(pdf)) {
+        if (HasFormMarkers(pdf, options)) {
             throw new NotSupportedException("PDF form fields are not supported for rewriting by OfficeIMO.Pdf yet.");
         }
 
@@ -56,7 +56,7 @@ internal static partial class PdfSyntax {
             throw new NotSupportedException("PDF viewer preferences are not supported for rewriting by OfficeIMO.Pdf yet.");
         }
 
-        if (HasTaggedContentMarkers(pdf)) {
+        if (HasTaggedContentMarkers(pdf, options)) {
             throw new NotSupportedException("PDF tagged content structure is not supported for rewriting by OfficeIMO.Pdf yet.");
         }
 
@@ -80,7 +80,7 @@ internal static partial class PdfSyntax {
             throw new NotSupportedException("PDF optional content layers are not supported for rewriting by OfficeIMO.Pdf yet.");
         }
 
-        if (HasActiveContentMarkers(pdf)) {
+        if (HasActiveContentMarkers(pdf, options)) {
             throw new NotSupportedException("PDF active content is not supported for rewriting by OfficeIMO.Pdf yet.");
         }
     }
@@ -100,7 +100,15 @@ internal static partial class PdfSyntax {
     }
 
     internal static bool HasFormMarkers(byte[] pdf) {
+        return HasFormMarkers(pdf, null);
+    }
+
+    private static bool HasFormMarkers(byte[] pdf, PdfReadOptions? options) {
         Guard.NotNull(pdf, nameof(pdf));
+
+        if (options is not null) {
+            return ContainsAnyParsedPdfName(pdf, options, "AcroForm", "Fields", "FT");
+        }
 
         string text = PdfEncoding.Latin1GetString(pdf);
         return ContainsAnyPdfName(text, "AcroForm", "Fields", "FT") ||
@@ -137,7 +145,7 @@ internal static partial class PdfSyntax {
             }
 
             return !IsSupportedOutlineGraph(objects, outlines, new HashSet<int>());
-        } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
+        } catch (Exception ex) when (ex is not PdfEncryptionException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
             return true;
         }
     }
@@ -172,7 +180,7 @@ internal static partial class PdfSyntax {
             }
 
             return !IsSupportedPageLabelTree(objects, pageLabels);
-        } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
+        } catch (Exception ex) when (ex is not PdfEncryptionException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
             return true;
         }
     }
@@ -222,7 +230,7 @@ internal static partial class PdfSyntax {
             }
 
             return false;
-        } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
+        } catch (Exception ex) when (ex is not PdfEncryptionException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
             return true;
         }
     }
@@ -256,7 +264,7 @@ internal static partial class PdfSyntax {
             }
 
             return false;
-        } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
+        } catch (Exception ex) when (ex is not PdfEncryptionException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
             return true;
         }
     }
@@ -294,7 +302,7 @@ internal static partial class PdfSyntax {
             }
 
             return true;
-        } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
+        } catch (Exception ex) when (ex is not PdfEncryptionException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
             return true;
         }
     }
@@ -327,13 +335,21 @@ internal static partial class PdfSyntax {
             }
 
             return true;
-        } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
+        } catch (Exception ex) when (ex is not PdfEncryptionException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
             return true;
         }
     }
 
     internal static bool HasTaggedContentMarkers(byte[] pdf) {
+        return HasTaggedContentMarkers(pdf, null);
+    }
+
+    private static bool HasTaggedContentMarkers(byte[] pdf, PdfReadOptions? options) {
         Guard.NotNull(pdf, nameof(pdf));
+
+        if (options is not null) {
+            return ContainsAnyParsedPdfName(pdf, options, "MarkInfo", "StructTreeRoot", "ParentTree", "StructElem");
+        }
 
         string text = PdfEncoding.Latin1GetString(pdf);
         return ContainsAnyPdfName(text, "MarkInfo", "StructTreeRoot", "ParentTree", "StructElem") ||
@@ -366,7 +382,7 @@ internal static partial class PdfSyntax {
             }
 
             return true;
-        } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
+        } catch (Exception ex) when (ex is not PdfEncryptionException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
             return true;
         }
     }
@@ -383,7 +399,7 @@ internal static partial class PdfSyntax {
             var (objects, trailerRaw) = ParseObjects(pdf);
             PdfDictionary? catalog = FindCatalog(objects, trailerRaw);
             return catalog?.Items.ContainsKey("URI") == true;
-        } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
+        } catch (Exception ex) when (ex is not PdfEncryptionException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
             return true;
         }
     }
@@ -408,7 +424,7 @@ internal static partial class PdfSyntax {
             }
 
             return true;
-        } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
+        } catch (Exception ex) when (ex is not PdfEncryptionException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
             return true;
         }
     }
@@ -439,7 +455,7 @@ internal static partial class PdfSyntax {
             }
 
             return true;
-        } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
+        } catch (Exception ex) when (ex is not PdfEncryptionException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
             return true;
         }
     }
@@ -485,7 +501,7 @@ internal static partial class PdfSyntax {
             }
 
             return false;
-        } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
+        } catch (Exception ex) when (ex is not PdfEncryptionException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
             return true;
         }
     }
@@ -516,13 +532,21 @@ internal static partial class PdfSyntax {
             }
 
             return true;
-        } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
+        } catch (Exception ex) when (ex is not PdfEncryptionException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
             return true;
         }
     }
 
     internal static bool HasActiveContentMarkers(byte[] pdf) {
+        return HasActiveContentMarkers(pdf, null);
+    }
+
+    private static bool HasActiveContentMarkers(byte[] pdf, PdfReadOptions? options) {
         Guard.NotNull(pdf, nameof(pdf));
+
+        if (options is not null) {
+            return ContainsAnyParsedPdfName(pdf, options, "JavaScript", "JS", "AA", "Launch", "SubmitForm", "RichMedia");
+        }
 
         string text = PdfEncoding.Latin1GetString(pdf);
         return ContainsAnyPdfName(text, "JavaScript", "JS", "AA", "Launch", "SubmitForm", "RichMedia") ||

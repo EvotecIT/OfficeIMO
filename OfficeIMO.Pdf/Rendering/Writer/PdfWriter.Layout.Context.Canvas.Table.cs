@@ -222,7 +222,7 @@ internal static partial class PdfWriter {
             double padBottom = GetTableCellPaddingBottom(style, rowIndex, columnIndex);
             double innerWidth = Math.Max(1D, cellWidth - padLeft - padRight);
             double availableHeight = Math.Max(0D, cellHeight - padTop - padBottom);
-            var lines = CreateTableCellTextLayout(cell, innerWidth, cellFont, fontSize, leading, currentOpts, runFontSizeScale);
+            var lines = CreateTableCellTextLayout(cell, innerWidth, cellFont, fontSize, leading, currentOpts, runFontSizeScale, style.MinimumShrinkFontSize ?? 6D);
             int lineCount = Math.Max(1, lines.LineCount);
             double contentHeight = MeasureTableCellContentHeight(cell, lines, 0, lineCount, leading, innerWidth);
             if (contentHeight > availableHeight + 0.01D) {

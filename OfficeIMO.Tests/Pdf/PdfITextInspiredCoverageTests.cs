@@ -351,27 +351,45 @@ public class PdfITextInspiredCoverageTests {
         Assert.Equal(600, geometry.TrimBox!.Width);
         Assert.Equal(600, geometry.BleedBox!.Width);
         Assert.Equal(600, geometry.ArtBox!.Width);
-        Assert.Equal(60, annotation.X1);
-        Assert.Equal(120, annotation.Y1);
-        Assert.Equal(180, annotation.X2);
-        Assert.Equal(240, annotation.Y2);
+        Assert.Equal(120, annotation.X1);
+        Assert.Equal(420, annotation.Y1);
+        Assert.Equal(240, annotation.X2);
+        Assert.Equal(540, annotation.Y2);
         Assert.Contains("/UserUnit 1", raw, StringComparison.Ordinal);
         Assert.Contains("/Rotate 0", raw, StringComparison.Ordinal);
+        Assert.Contains("0 -6 6 0 -60 660 cm", raw, StringComparison.Ordinal);
         Assert.Contains("10 10 100 100 re\nW n", raw, StringComparison.Ordinal);
-        Assert.Contains("/QuadPoints [ 60 420 180 420 60 360 180 360 ]", raw, StringComparison.Ordinal);
-        Assert.Contains("/L [ 60 120 180 240 ]", raw, StringComparison.Ordinal);
-        Assert.Contains("/Vertices [ 60 120 180 240 ]", raw, StringComparison.Ordinal);
-        Assert.Contains("/InkList [ [ 60 120 180 240 ] ]", raw, StringComparison.Ordinal);
+        Assert.Contains("/QuadPoints [ 420 540 420 420 360 540 360 420 ]", raw, StringComparison.Ordinal);
+        Assert.Contains("/L [ 120 540 240 420 ]", raw, StringComparison.Ordinal);
+        Assert.Contains("/Vertices [ 120 540 240 420 ]", raw, StringComparison.Ordinal);
+        Assert.Contains("/InkList [ [ 120 540 240 420 ] ]", raw, StringComparison.Ordinal);
 
         Assert.NotNull(info.OpenAction);
-        Assert.Equal(60, info.OpenAction!.DestinationLeft);
-        Assert.Equal(420, info.OpenAction.DestinationTop);
+        Assert.Equal(420, info.OpenAction!.DestinationLeft);
+        Assert.Equal(540, info.OpenAction.DestinationTop);
         PdfNamedDestination namedDestination = Assert.Single(info.NamedDestinations, destination => destination.Name == "Target");
-        Assert.Equal(60, namedDestination.DestinationLeft);
-        Assert.Equal(420, namedDestination.DestinationTop);
+        Assert.Equal(420, namedDestination.DestinationLeft);
+        Assert.Equal(540, namedDestination.DestinationTop);
         PdfOutlineItem outline = Assert.Single(info.Outlines);
-        Assert.Equal(60, outline.DestinationLeft);
-        Assert.Equal(420, outline.DestinationTop);
+        Assert.Equal(420, outline.DestinationLeft);
+        Assert.Equal(540, outline.DestinationTop);
+    }
+
+    [Fact]
+    public void PageEditor_ResizePagesTransformsDestinationsFromUnresizedPages() {
+        byte[] pdf = BuildResizableTwoPageLinkPdf();
+
+        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PageSize(600, 600)) {
+            Mode = PdfPageResizeMode.Stretch
+        }, 1);
+
+        PdfDocumentInfo info = PdfInspector.Inspect(resized);
+        PdfLinkAnnotation link = Assert.Single(info.Pages[1].LinkAnnotations);
+
+        Assert.Equal(60, link.DestinationLeft);
+        Assert.Equal(420, link.DestinationTop);
+        Assert.Equal(600, info.Pages[0].Geometry!.MediaBox.Width);
+        Assert.Equal(300, info.Pages[1].Geometry!.MediaBox.Width);
     }
 
     [Fact]
@@ -696,6 +714,21 @@ public class PdfITextInspiredCoverageTests {
             "<< /Type /Annot /Subtype /Link /Rect [20 30 40 50] /QuadPoints [20 80 40 80 20 70 40 70] /L [20 30 40 50] /Vertices [20 30 40 50] /InkList [[20 30 40 50]] /Dest [3 0 R /XYZ 20 80 1] >>",
             "<< /Type /Outlines /First 8 0 R /Last 8 0 R /Count 1 >>",
             "<< /Title (Target) /Parent 7 0 R /Dest [3 0 R /XYZ 20 80 1] >>"
+        };
+
+        return Encoding.ASCII.GetBytes(BuildPdf(objects));
+    }
+
+    private static byte[] BuildResizableTwoPageLinkPdf() {
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 2 /Kids [3 0 R 7 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /CropBox [10 10 110 110] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 20 20 Td (Resize target) Tj ET")),
+            BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 20 20 Td (Link source) Tj ET")),
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R >> >> /Annots [8 0 R] /Contents 6 0 R >>",
+            "<< /Type /Annot /Subtype /Link /Rect [20 30 40 50] /Dest [3 0 R /XYZ 20 80 1] >>"
         };
 
         return Encoding.ASCII.GetBytes(BuildPdf(objects));

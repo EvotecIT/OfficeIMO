@@ -86,6 +86,24 @@ public class PdfEncryptedReadTests {
     }
 
     [Fact]
+    public void StandardPasswordEncryptedPdf_TrySplitSucceedsWhenOpenedWithPassword() {
+        byte[] pdf = EncryptedPdfFixture.CreateRevision2("open", "owner", "Secret PDF Text");
+
+        PdfOperationResult<IReadOnlyList<PdfDocument>> result = PdfDocument.Open(pdf, new PdfReadOptions { Password = "open" }).Pages.TrySplit();
+
+        Assert.True(result.Succeeded);
+        PdfDocument page = Assert.Single(result.RequireValue());
+        Assert.Contains("Secret PDF Text", page.Read.Text(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void StandardPasswordEncryptedPdf_ExtractWithWrongPasswordReportsPasswordError() {
+        byte[] pdf = EncryptedPdfFixture.CreateRevision2WithPageLabels("open", "owner", "Secret PDF Text");
+
+        Assert.Throws<PdfInvalidPasswordException>(() => PdfPageExtractor.ExtractPages(pdf, new PdfReadOptions { Password = "wrong" }, 1));
+    }
+
+    [Fact]
     public void StandardPasswordEncryptedPdf_ExtractsWithSupportedPageLabelsWhenPasswordProvided() {
         byte[] pdf = EncryptedPdfFixture.CreateRevision2WithPageLabels("open", "owner", "Secret PDF Text");
         var options = new PdfReadOptions { Password = "open" };
@@ -94,6 +112,15 @@ public class PdfEncryptedReadTests {
 
         Assert.False(PdfInspector.Probe(page).HasEncryption);
         Assert.Contains("Secret PDF Text", PdfTextExtractor.ExtractAllText(page), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void StandardPasswordEncryptedFormPdf_ExtractBlocksDecryptedFormMarkers() {
+        byte[] pdf = EncryptedPdfFixture.CreateRevision2WithTextField("open", "owner", "Secret PDF Text");
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() => PdfPageExtractor.ExtractPages(pdf, new PdfReadOptions { Password = "open" }, 1));
+
+        Assert.Contains("PDF form fields are not supported", exception.Message, StringComparison.Ordinal);
     }
 
 

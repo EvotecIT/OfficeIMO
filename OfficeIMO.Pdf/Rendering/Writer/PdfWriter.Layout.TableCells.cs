@@ -571,13 +571,13 @@ internal static partial class PdfWriter {
         return height;
     }
 
-    private static TableCellTextLayout CreateTableCellTextLayout(TableCellLayout cell, double innerWidth, PdfStandardFont baseFont, double fontSize, double leading, PdfOptions? options, double runFontSizeScale = 1D) {
+    private static TableCellTextLayout CreateTableCellTextLayout(TableCellLayout cell, double innerWidth, PdfStandardFont baseFont, double fontSize, double leading, PdfOptions? options, double runFontSizeScale = 1D, double minimumShrinkFontSize = 0D) {
         double wrapWidth = GetTableCellWrapWidth(innerWidth, cell.NoWrap);
         if (cell.Paragraphs.Count > 0) {
-            return CreateTableCellParagraphTextLayout(ScaleTableCellParagraphsForShrink(cell.Paragraphs, runFontSizeScale), wrapWidth, baseFont, fontSize, leading, options);
+            return CreateTableCellParagraphTextLayout(ScaleTableCellParagraphsForShrink(cell.Paragraphs, runFontSizeScale, minimumShrinkFontSize), wrapWidth, baseFont, fontSize, leading, options);
         }
 
-        var wrap = WrapRichRunsCore(ScaleTableRunsForShrink(cell.Runs, runFontSizeScale), wrapWidth, fontSize, baseFont, leading, null, DefaultParagraphTabStopWidth, options);
+        var wrap = WrapRichRunsCore(ScaleTableRunsForShrink(cell.Runs, runFontSizeScale, minimumShrinkFontSize), wrapWidth, fontSize, baseFont, leading, null, DefaultParagraphTabStopWidth, options);
         if (wrap.Lines.Count == 0) {
             wrap.Lines.Add(new System.Collections.Generic.List<RichSeg>());
         }
@@ -589,15 +589,16 @@ internal static partial class PdfWriter {
         return new TableCellTextLayout(wrap.Lines, wrap.LineHeights);
     }
 
-    private static System.Collections.Generic.IReadOnlyList<TextRun> ScaleTableRunsForShrink(System.Collections.Generic.IReadOnlyList<TextRun> runs, double runFontSizeScale) {
+    private static System.Collections.Generic.IReadOnlyList<TextRun> ScaleTableRunsForShrink(System.Collections.Generic.IReadOnlyList<TextRun> runs, double runFontSizeScale, double minimumShrinkFontSize) {
         if (runFontSizeScale >= 0.999D) {
             return runs;
         }
 
+        double minimumExplicitFontSize = minimumShrinkFontSize > 0D ? minimumShrinkFontSize : 0.001D;
         var scaledRuns = new System.Collections.Generic.List<TextRun>(runs.Count);
         foreach (TextRun run in runs) {
             double? scaledFontSize = run.FontSize.HasValue
-                ? System.Math.Max(0.001D, run.FontSize.Value * runFontSizeScale)
+                ? System.Math.Max(minimumExplicitFontSize, run.FontSize.Value * runFontSizeScale)
                 : null;
             scaledRuns.Add(new TextRun(
                 run.Text,
@@ -620,7 +621,7 @@ internal static partial class PdfWriter {
         return scaledRuns.AsReadOnly();
     }
 
-    private static System.Collections.Generic.IReadOnlyList<PdfTableCellParagraph> ScaleTableCellParagraphsForShrink(System.Collections.Generic.IReadOnlyList<PdfTableCellParagraph> paragraphs, double runFontSizeScale) {
+    private static System.Collections.Generic.IReadOnlyList<PdfTableCellParagraph> ScaleTableCellParagraphsForShrink(System.Collections.Generic.IReadOnlyList<PdfTableCellParagraph> paragraphs, double runFontSizeScale, double minimumShrinkFontSize) {
         if (runFontSizeScale >= 0.999D) {
             return paragraphs;
         }
@@ -628,7 +629,7 @@ internal static partial class PdfWriter {
         var scaledParagraphs = new System.Collections.Generic.List<PdfTableCellParagraph>(paragraphs.Count);
         foreach (PdfTableCellParagraph paragraph in paragraphs) {
             scaledParagraphs.Add(new PdfTableCellParagraph(
-                ScaleTableRunsForShrink(paragraph.Runs, runFontSizeScale),
+                ScaleTableRunsForShrink(paragraph.Runs, runFontSizeScale, minimumShrinkFontSize),
                 paragraph.SpacingAfter,
                 paragraph.Align,
                 paragraph.SpacingBefore,
