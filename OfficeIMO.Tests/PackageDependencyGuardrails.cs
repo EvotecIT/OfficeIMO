@@ -187,6 +187,8 @@ public sealed class PackageDependencyGuardrailTests {
     [InlineData("OfficeIMO.Word/OfficeIMO.Word.csproj")]
     [InlineData("OfficeIMO.Excel/OfficeIMO.Excel.csproj")]
     [InlineData("OfficeIMO.Visio/OfficeIMO.Visio.csproj")]
+    [InlineData("OfficeIMO.Pdf/OfficeIMO.Pdf.csproj")]
+    [InlineData("OfficeIMO.PowerPoint.Pdf/OfficeIMO.PowerPoint.Pdf.csproj")]
     [InlineData("OfficeIMO.Word.Html/OfficeIMO.Word.Html.csproj")]
     [InlineData("OfficeIMO.Word.Markdown/OfficeIMO.Word.Markdown.csproj")]
     public void ImageAndColorConsumers_ReferenceOfficeImoDrawing(string relativeProjectPath) {
@@ -203,6 +205,55 @@ public sealed class PackageDependencyGuardrailTests {
             .ToArray();
 
         Assert.Single(references);
+    }
+
+    public static IEnumerable<object[]> PdfConversionAdapters() {
+        yield return new object[] {
+            "OfficeIMO.Excel.Pdf/OfficeIMO.Excel.Pdf.csproj",
+            new[] {
+                "OfficeIMO.Excel/OfficeIMO.Excel.csproj",
+                "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj"
+            }
+        };
+        yield return new object[] {
+            "OfficeIMO.Word.Pdf/OfficeIMO.Word.Pdf.csproj",
+            new[] {
+                "OfficeIMO.Word/OfficeIMO.Word.csproj",
+                "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj"
+            }
+        };
+        yield return new object[] {
+            "OfficeIMO.PowerPoint.Pdf/OfficeIMO.PowerPoint.Pdf.csproj",
+            new[] {
+                "OfficeIMO.PowerPoint/OfficeIMO.PowerPoint.csproj",
+                "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
+                "OfficeIMO.Drawing/OfficeIMO.Drawing.csproj"
+            }
+        };
+    }
+
+    [Theory]
+    [MemberData(nameof(PdfConversionAdapters))]
+    public void PdfConversionAdapters_StayThinOverDocumentAndPdfEngines(string relativeProjectPath, string[] expectedProjectReferences) {
+        var projectPath = GetRepositoryPath(relativeProjectPath);
+        Assert.True(File.Exists(projectPath), "Project file is missing: " + projectPath);
+
+        string[] projectReferences = GetProjectReferences(projectPath);
+        foreach (var expectedReference in expectedProjectReferences) {
+            Assert.Contains(
+                projectReferences,
+                reference => reference.EndsWith(NormalizeProjectPath(expectedReference), StringComparison.OrdinalIgnoreCase));
+        }
+
+        Assert.DoesNotContain(projectReferences, reference => reference.Contains("iText", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(projectReferences, reference => reference.Contains("PdfSharp", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Theory]
+    [InlineData("OfficeIMO.Visio/VisioPngRenderer.PngRaster.cs")]
+    [InlineData("OfficeIMO.Visio/VisioPngRenderer.Encoding.cs")]
+    public void RetiredPrivateRenderingBrains_AreNotRestored(string relativePath) {
+        Assert.False(File.Exists(GetRepositoryPath(relativePath)), "Retired private renderer file should stay in OfficeIMO.Drawing instead: " + relativePath);
     }
 
     [Theory]
@@ -321,6 +372,17 @@ public sealed class PackageDependencyGuardrailTests {
 
     private static string NormalizeProjectPath(string? path) =>
         (path ?? string.Empty).Replace('\\', '/');
+
+    private static string[] GetProjectReferences(string projectPath) {
+        var document = XDocument.Load(projectPath);
+        var ns = document.Root?.Name.Namespace ?? XNamespace.None;
+
+        return document
+            .Descendants(ns + "ProjectReference")
+            .Select(static e => NormalizeProjectPath((string?)e.Attribute("Include")))
+            .Where(static include => !string.IsNullOrWhiteSpace(include))
+            .ToArray();
+    }
 
     private static bool ProjectReferencesImageSharp(string projectPath) {
         var document = XDocument.Load(projectPath);
