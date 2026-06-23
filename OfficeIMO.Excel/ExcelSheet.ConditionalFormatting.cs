@@ -11,7 +11,9 @@ namespace OfficeIMO.Excel {
         /// <param name="operator">Comparison operator for the rule.</param>
         /// <param name="formula1">Primary formula or value.</param>
         /// <param name="formula2">Optional secondary formula or value.</param>
-        public void AddConditionalRule(string range, ConditionalFormattingOperatorValues @operator, string formula1, string? formula2 = null) {
+        /// <param name="stopIfTrue">Whether lower-priority rules should stop when this rule evaluates to true.</param>
+        /// <param name="priority">Optional explicit rule priority.</param>
+        public void AddConditionalRule(string range, ConditionalFormattingOperatorValues @operator, string formula1, string? formula2 = null, bool stopIfTrue = false, int? priority = null) {
             if (string.IsNullOrEmpty(range)) {
                 throw new ArgumentNullException(nameof(range));
             }
@@ -27,7 +29,8 @@ namespace OfficeIMO.Excel {
                 ConditionalFormattingRule rule = new ConditionalFormattingRule {
                     Type = ConditionalFormatValues.CellIs,
                     Operator = @operator,
-                    Priority = GetNextConditionalFormattingPriority()
+                    Priority = priority ?? GetNextConditionalFormattingPriority(),
+                    StopIfTrue = stopIfTrue
                 };
 
                 rule.Append(new Formula(formula1));

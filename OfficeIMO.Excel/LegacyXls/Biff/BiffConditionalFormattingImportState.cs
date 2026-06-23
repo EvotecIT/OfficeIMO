@@ -8,7 +8,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         private readonly IReadOnlyList<LegacyXlsExternalReference> _externalReferences;
         private readonly IReadOnlyList<string> _sheetNames;
         private readonly IReadOnlyList<string?> _definedNames;
+        private readonly Dictionary<ushort, List<LegacyXlsConditionalFormatting>> _rulesByHeaderId = new();
         private IReadOnlyList<string> _ranges = Array.Empty<string>();
+        private ushort _headerId;
         private ushort _expectedRuleCount;
         private ushort _readRuleCount;
         private int _headerOffset;
@@ -30,11 +32,12 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         internal bool HasPendingHeader => _expectedRuleCount > _readRuleCount;
 
         internal bool TryReadHeader(byte[] payload, int recordOffset) {
-            if (!BiffConditionalFormattingReader.TryReadHeader(payload, out ushort ruleCount, out IReadOnlyList<string> ranges)) {
+            if (!BiffConditionalFormattingReader.TryReadHeader(payload, out ushort ruleCount, out ushort headerId, out IReadOnlyList<string> ranges)) {
                 Clear();
                 return false;
             }
 
+            _headerId = headerId;
             _expectedRuleCount = ruleCount;
             _readRuleCount = 0;
             _ranges = ranges;
@@ -58,7 +61,14 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 out LegacyXlsConditionalFormatting? conditionalFormatting);
 
             if (parsed) {
-                _sheet.AddConditionalFormatting(conditionalFormatting!);
+                LegacyXlsConditionalFormatting rule = conditionalFormatting!;
+                _sheet.AddConditionalFormatting(rule);
+                if (!_rulesByHeaderId.TryGetValue(_headerId, out List<LegacyXlsConditionalFormatting>? rules)) {
+                    rules = new List<LegacyXlsConditionalFormatting>();
+                    _rulesByHeaderId[_headerId] = rules;
+                }
+
+                rules.Add(rule);
             }
 
             _readRuleCount++;
@@ -67,6 +77,37 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             return parsed;
+        }
+
+        internal bool TryReadExtension(byte[] payload, out bool hasUnprojectedFormatting) {
+            hasUnprojectedFormatting = false;
+            if (!BiffConditionalFormattingReader.TryReadExtension(
+                payload,
+                out ushort headerId,
+                out ushort ruleIndex,
+                out int? priority,
+                out bool stopIfTrue,
+                out hasUnprojectedFormatting)) {
+                return false;
+            }
+
+            if (!_rulesByHeaderId.TryGetValue(headerId, out List<LegacyXlsConditionalFormatting>? rules)) {
+                if (_rulesByHeaderId.Count != 1) {
+                    return false;
+                }
+
+                foreach (List<LegacyXlsConditionalFormatting> onlyRules in _rulesByHeaderId.Values) {
+                    rules = onlyRules;
+                    break;
+                }
+            }
+
+            if (rules == null || ruleIndex >= rules.Count) {
+                return false;
+            }
+
+            rules[ruleIndex].ApplyExtension(priority, stopIfTrue);
+            return true;
         }
 
         internal void AddUnresolvedFeatures(
@@ -99,6 +140,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         }
 
         internal void Clear() {
+            _headerId = 0;
             _expectedRuleCount = 0;
             _readRuleCount = 0;
             _headerOffset = 0;

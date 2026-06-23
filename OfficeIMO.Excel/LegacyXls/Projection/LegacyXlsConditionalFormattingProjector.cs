@@ -19,10 +19,12 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                         range,
                         ToOperator(conditionalFormatting.Operator.Value),
                         conditionalFormatting.Formula1,
-                        conditionalFormatting.Formula2);
+                        conditionalFormatting.Formula2,
+                        conditionalFormatting.StopIfTrue,
+                        conditionalFormatting.Priority);
                     break;
                 case LegacyXlsConditionalFormattingType.Formula:
-                    sheet.AddConditionalFormulaRule(range, conditionalFormatting.Formula1);
+                    sheet.AddConditionalFormulaRule(range, conditionalFormatting.Formula1, conditionalFormatting.StopIfTrue, conditionalFormatting.Priority);
                     break;
             }
         }

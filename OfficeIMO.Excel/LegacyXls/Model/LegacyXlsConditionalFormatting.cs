@@ -11,12 +11,16 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             LegacyXlsConditionalFormattingOperator? @operator,
             string formula1,
             string? formula2,
-            IReadOnlyList<string> ranges) {
+            IReadOnlyList<string> ranges,
+            int? priority = null,
+            bool stopIfTrue = false) {
             Type = type;
             Operator = @operator;
             Formula1 = formula1 ?? throw new ArgumentNullException(nameof(formula1));
             Formula2 = formula2;
             Ranges = ranges ?? throw new ArgumentNullException(nameof(ranges));
+            Priority = priority;
+            StopIfTrue = stopIfTrue;
         }
 
         /// <summary>
@@ -43,6 +47,21 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// Gets the A1 ranges covered by this conditional formatting rule.
         /// </summary>
         public IReadOnlyList<string> Ranges { get; }
+
+        /// <summary>
+        /// Gets the evaluation priority supplied by a conditional-formatting extension record, when present.
+        /// </summary>
+        public int? Priority { get; private set; }
+
+        /// <summary>
+        /// Gets whether lower-priority rules should stop when this rule evaluates to true.
+        /// </summary>
+        public bool StopIfTrue { get; private set; }
+
+        internal void ApplyExtension(int? priority, bool stopIfTrue) {
+            Priority = priority;
+            StopIfTrue = stopIfTrue;
+        }
     }
 
     /// <summary>

@@ -1532,6 +1532,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_Load_ImportsConditionalFormattingExtensionPriorityAndStopIfTrue() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase5ConditionalFormattingExtensionWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.False(result.HasImportErrors);
+            Assert.False(result.HasUnsupportedFeatures);
+            LegacyXlsConditionalFormatting conditionalFormatting = Assert.Single(Assert.Single(result.Workbook.Worksheets).ConditionalFormattings);
+            Assert.Equal(7, conditionalFormatting.Priority);
+            Assert.True(conditionalFormatting.StopIfTrue);
+
+            ExcelConditionalFormattingInfo info = Assert.Single(result.Document.Sheets[0].GetConditionalFormattingRules("A1:A3"));
+            Assert.Equal(7, info.Priority);
+            Assert.True(info.StopIfTrue);
+            Assert.Empty(result.Document.ValidateOpenXml());
+
+            using var packageStream = new MemoryStream();
+            result.Document.Save(packageStream);
+            packageStream.Position = 0;
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(packageStream, false);
+            WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            ConditionalFormattingRule rule = Assert.Single(Assert.Single(worksheetPart.Worksheet.Elements<ConditionalFormatting>()).Elements<ConditionalFormattingRule>());
+            Assert.Equal(1, (int)rule.Priority!.Value);
+            Assert.True(rule.StopIfTrue!.Value);
+        }
+
+        [Fact]
         public void LegacyXls_Load_ReportsConditionalFormattingRecordsAsPreserveOnly() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase5ConditionalFormattingWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);

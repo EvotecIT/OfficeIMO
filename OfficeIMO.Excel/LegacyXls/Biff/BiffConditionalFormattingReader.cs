@@ -2,14 +2,16 @@ using OfficeIMO.Excel.LegacyXls.Model;
 
 namespace OfficeIMO.Excel.LegacyXls.Biff {
     internal static class BiffConditionalFormattingReader {
-        internal static bool TryReadHeader(byte[] payload, out ushort ruleCount, out IReadOnlyList<string> ranges) {
+        internal static bool TryReadHeader(byte[] payload, out ushort ruleCount, out ushort headerId, out IReadOnlyList<string> ranges) {
             ruleCount = 0;
+            headerId = 0;
             ranges = Array.Empty<string>();
             if (payload.Length < 14) {
                 return false;
             }
 
             ushort ccf = BiffRecordReader.ReadUInt16(payload, 0);
+            headerId = BiffRecordReader.ReadUInt16(payload, 2);
             if (ccf == 0 || ccf > 1024) {
                 return false;
             }
@@ -24,6 +26,37 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             ruleCount = ccf;
+            return true;
+        }
+
+        internal static bool TryReadExtension(
+            byte[] payload,
+            out ushort headerId,
+            out ushort ruleIndex,
+            out int? priority,
+            out bool stopIfTrue,
+            out bool hasUnprojectedFormatting) {
+            headerId = 0;
+            ruleIndex = 0;
+            priority = null;
+            stopIfTrue = false;
+            hasUnprojectedFormatting = false;
+            if (payload.Length < 43 || BiffRecordReader.ReadUInt16(payload, 0) != (ushort)BiffRecordType.CfEx) {
+                return false;
+            }
+
+            uint isCf12 = BiffRecordReader.ReadUInt32(payload, 12);
+            if (isCf12 != 0) {
+                return false;
+            }
+
+            headerId = BiffRecordReader.ReadUInt16(payload, 16);
+            int contentOffset = 18;
+            ruleIndex = BiffRecordReader.ReadUInt16(payload, contentOffset);
+            priority = BiffRecordReader.ReadUInt16(payload, contentOffset + 4);
+            byte flags = payload[contentOffset + 6];
+            stopIfTrue = (flags & 0x02) != 0;
+            hasUnprojectedFormatting = payload[contentOffset + 7] != 0;
             return true;
         }
 

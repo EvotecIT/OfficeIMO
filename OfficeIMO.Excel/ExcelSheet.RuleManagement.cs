@@ -142,15 +142,15 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Adds a formula-based conditional formatting rule.
         /// </summary>
-        public void AddConditionalFormulaRule(string range, string formula, bool stopIfTrue = false) {
-            AddConditionalRuleCore(range, ConditionalFormatValues.Expression, null, new[] { formula }, stopIfTrue);
+        public void AddConditionalFormulaRule(string range, string formula, bool stopIfTrue = false, int? priority = null) {
+            AddConditionalRuleCore(range, ConditionalFormatValues.Expression, null, new[] { formula }, stopIfTrue, priority);
         }
 
         /// <summary>
         /// Adds a duplicate-values conditional formatting rule.
         /// </summary>
         public void AddConditionalDuplicateValuesRule(string range) {
-            AddConditionalRuleCore(range, ConditionalFormatValues.DuplicateValues, null, Array.Empty<string>(), stopIfTrue: false);
+            AddConditionalRuleCore(range, ConditionalFormatValues.DuplicateValues, null, Array.Empty<string>(), stopIfTrue: false, priority: null);
         }
 
         /// <summary>
@@ -162,7 +162,7 @@ namespace OfficeIMO.Excel {
                 rule.Rank = rank;
                 rule.Bottom = bottom;
                 rule.Percent = percent;
-            }, Array.Empty<string>(), stopIfTrue: false);
+            }, Array.Empty<string>(), stopIfTrue: false, priority: null);
         }
 
         /// <summary>
@@ -245,7 +245,7 @@ namespace OfficeIMO.Excel {
             });
         }
 
-        private void AddConditionalRuleCore(string range, ConditionalFormatValues type, Action<ConditionalFormattingRule>? configure, IReadOnlyList<string> formulas, bool stopIfTrue) {
+        private void AddConditionalRuleCore(string range, ConditionalFormatValues type, Action<ConditionalFormattingRule>? configure, IReadOnlyList<string> formulas, bool stopIfTrue, int? priority) {
             if (string.IsNullOrWhiteSpace(range)) throw new ArgumentNullException(nameof(range));
             using var preserveDirectDataSet = _excelDocument.PreserveDirectDataSetSaveCandidateDuringDirtyMarks();
             WriteLockWorksheetPreparationOnly(() => {
@@ -255,7 +255,7 @@ namespace OfficeIMO.Excel {
                 };
                 var rule = new ConditionalFormattingRule {
                     Type = type,
-                    Priority = GetNextConditionalFormattingPriority(),
+                    Priority = priority ?? GetNextConditionalFormattingPriority(),
                     StopIfTrue = stopIfTrue
                 };
                 configure?.Invoke(rule);

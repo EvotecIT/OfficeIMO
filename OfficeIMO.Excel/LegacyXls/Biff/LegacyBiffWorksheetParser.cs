@@ -171,6 +171,12 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                         }
 
                         break;
+                    case BiffRecordType.CfEx:
+                        if (!conditionalFormattingState.TryReadExtension(payload, out bool hasUnprojectedFormatting) || hasUnprojectedFormatting) {
+                            AddUnsupportedFeature(unsupportedFeatures, preservedFeatureRecords, diagnostics, options, type, offset, sheet.Name, payload.Length);
+                        }
+
+                        break;
                     case BiffRecordType.Continue:
                         commentState.TryReadContinue(payload);
                         break;
