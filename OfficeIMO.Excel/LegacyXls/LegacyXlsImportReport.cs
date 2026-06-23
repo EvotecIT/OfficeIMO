@@ -24,6 +24,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             ExternalCellCacheCount = workbook.ExternalReferences.Sum(reference => reference.CachedCellCaches.Count);
             ExternalCachedCellCount = workbook.ExternalReferences.Sum(reference => reference.CachedCellCaches.Sum(cache => cache.Cells.Count));
             UnsupportedFeatureCount = workbook.UnsupportedFeatures.Count;
+            PreservedFeatureRecordCount = workbook.PreservedFeatureRecords.Count;
             ErrorCount = workbook.Diagnostics.Count(diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
             WarningCount = workbook.Diagnostics.Count(diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Warning);
             DiagnosticsByCode = CountByCode(workbook.Diagnostics.Select(diagnostic => diagnostic.Code));
@@ -40,6 +41,10 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .Select(feature => $"{feature.Kind}|{feature.Code}|{feature.DetailCode}"));
             UnsupportedFeaturesByLocation = CountByCode(workbook.UnsupportedFeatures
                 .Select(GetFeatureLocationKey));
+            PreservedFeatureRecordsByKind = CountPreservedRecordsByKind(workbook.PreservedFeatureRecords);
+            PreservedFeatureRecordsByDetail = CountByCode(workbook.PreservedFeatureRecords
+                .Where(record => !string.IsNullOrWhiteSpace(record.DetailCode))
+                .Select(record => $"{record.Kind}|{record.Code}|{record.DetailCode}"));
         }
 
         /// <summary>Gets the number of imported worksheet sheets.</summary>
@@ -84,6 +89,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets the number of unsupported or preserve-only feature findings.</summary>
         public int UnsupportedFeatureCount { get; }
 
+        /// <summary>Gets the number of preserve-only BIFF feature records with typed metadata.</summary>
+        public int PreservedFeatureRecordCount { get; }
+
         /// <summary>Gets the number of error diagnostics produced during import.</summary>
         public int ErrorCount { get; }
 
@@ -110,6 +118,12 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets unsupported/preserve-only feature counts grouped by code and workbook or sheet location.</summary>
         public IReadOnlyDictionary<string, int> UnsupportedFeaturesByLocation { get; }
+
+        /// <summary>Gets preserved feature record counts grouped by feature kind.</summary>
+        public IReadOnlyDictionary<LegacyXlsUnsupportedFeatureKind, int> PreservedFeatureRecordsByKind { get; }
+
+        /// <summary>Gets preserved feature record counts grouped by kind, code, and stable feature subtype.</summary>
+        public IReadOnlyDictionary<string, int> PreservedFeatureRecordsByDetail { get; }
 
         /// <summary>Gets whether the import produced error diagnostics.</summary>
         public bool HasImportErrors => ErrorCount > 0;
@@ -138,6 +152,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             builder.AppendLine($"External cell caches: {ExternalCellCacheCount}");
             builder.AppendLine($"External cached cells: {ExternalCachedCellCount}");
             builder.AppendLine($"Unsupported features: {UnsupportedFeatureCount}");
+            builder.AppendLine($"Preserved feature records: {PreservedFeatureRecordCount}");
             builder.AppendLine($"Errors: {ErrorCount}");
             builder.AppendLine($"Warnings: {WarningCount}");
             AppendDictionary(builder, "Diagnostics By Code", DiagnosticsByCode);
@@ -150,6 +165,11 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Unsupported Feature Record Types", UnsupportedFeaturesByRecordType);
             AppendDictionary(builder, "Unsupported Feature Details", UnsupportedFeaturesByDetail);
             AppendDictionary(builder, "Unsupported Feature Locations", UnsupportedFeaturesByLocation);
+            AppendDictionary(builder, "Preserved Feature Records By Kind", PreservedFeatureRecordsByKind.ToDictionary(
+                entry => entry.Key.ToString(),
+                entry => entry.Value,
+                StringComparer.OrdinalIgnoreCase));
+            AppendDictionary(builder, "Preserved Feature Record Details", PreservedFeatureRecordsByDetail);
             return builder.ToString();
         }
 
@@ -164,6 +184,13 @@ namespace OfficeIMO.Excel.LegacyXls {
         private static IReadOnlyDictionary<LegacyXlsUnsupportedFeatureKind, int> CountByKind(IEnumerable<LegacyXlsUnsupportedFeature> features) {
             return features
                 .GroupBy(feature => feature.Kind)
+                .OrderBy(group => group.Key.ToString(), StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(group => group.Key, group => group.Count());
+        }
+
+        private static IReadOnlyDictionary<LegacyXlsUnsupportedFeatureKind, int> CountPreservedRecordsByKind(IEnumerable<LegacyXlsPreservedFeatureRecord> records) {
+            return records
+                .GroupBy(record => record.Kind)
                 .OrderBy(group => group.Key.ToString(), StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(group => group.Key, group => group.Count());
         }

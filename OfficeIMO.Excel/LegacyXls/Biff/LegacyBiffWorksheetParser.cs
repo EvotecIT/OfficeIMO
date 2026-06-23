@@ -12,6 +12,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             IReadOnlyList<string> sheetNames,
             IReadOnlyList<string?> definedNames,
             List<LegacyXlsUnsupportedFeature> unsupportedFeatures,
+            List<LegacyXlsPreservedFeatureRecord> preservedFeatureRecords,
             List<LegacyXlsImportDiagnostic> diagnostics,
             LegacyXlsImportOptions options) {
             if (sheet.StreamOffset < 0 || sheet.StreamOffset >= workbookStream.Length) {
@@ -76,19 +77,19 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
                 if (type == (ushort)BiffRecordType.Eof) {
                     FlushPendingFormulaString(sheet, sharedFormulaState, ref pendingFormulaString);
-                    commentState.AddUnresolvedFeatures(unsupportedFeatures, diagnostics, options.ReportUnsupportedRecords);
-                    conditionalFormattingState.AddUnresolvedFeatures(unsupportedFeatures, diagnostics, options.ReportUnsupportedRecords);
+                    commentState.AddUnresolvedFeatures(unsupportedFeatures, preservedFeatureRecords, diagnostics, options.ReportUnsupportedRecords);
+                    conditionalFormattingState.AddUnresolvedFeatures(unsupportedFeatures, preservedFeatureRecords, diagnostics, options.ReportUnsupportedRecords);
                     sharedFormulaState.AddUnresolvedDiagnostics();
                     return;
                 }
 
-                ParseWorksheetRecord(sheet, sharedStrings, externSheets, externalReferences, sheetNames, definedNames, unsupportedFeatures, diagnostics, options, commentState, conditionalFormattingState, sharedFormulaState, type, offset, payload, ref frozenWindow, ref pendingFormulaString);
+                ParseWorksheetRecord(sheet, sharedStrings, externSheets, externalReferences, sheetNames, definedNames, unsupportedFeatures, preservedFeatureRecords, diagnostics, options, commentState, conditionalFormattingState, sharedFormulaState, type, offset, payload, ref frozenWindow, ref pendingFormulaString);
                 offset = payloadOffset + length;
             }
 
             FlushPendingFormulaString(sheet, sharedFormulaState, ref pendingFormulaString);
-            commentState.AddUnresolvedFeatures(unsupportedFeatures, diagnostics, options.ReportUnsupportedRecords);
-            conditionalFormattingState.AddUnresolvedFeatures(unsupportedFeatures, diagnostics, options.ReportUnsupportedRecords);
+            commentState.AddUnresolvedFeatures(unsupportedFeatures, preservedFeatureRecords, diagnostics, options.ReportUnsupportedRecords);
+            conditionalFormattingState.AddUnresolvedFeatures(unsupportedFeatures, preservedFeatureRecords, diagnostics, options.ReportUnsupportedRecords);
             sharedFormulaState.AddUnresolvedDiagnostics();
         }
 
@@ -100,6 +101,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             IReadOnlyList<string> sheetNames,
             IReadOnlyList<string?> definedNames,
             List<LegacyXlsUnsupportedFeature> unsupportedFeatures,
+            List<LegacyXlsPreservedFeatureRecord> preservedFeatureRecords,
             List<LegacyXlsImportDiagnostic> diagnostics,
             LegacyXlsImportOptions options,
             BiffCommentImportState commentState,
@@ -135,13 +137,13 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                         break;
                     case BiffRecordType.CondFmt:
                         if (!conditionalFormattingState.TryReadHeader(payload, offset)) {
-                            AddUnsupportedFeature(unsupportedFeatures, diagnostics, options, type, offset, sheet.Name);
+                            AddUnsupportedFeature(unsupportedFeatures, preservedFeatureRecords, diagnostics, options, type, offset, sheet.Name, payload.Length);
                         }
 
                         break;
                     case BiffRecordType.Cf:
                         if (!conditionalFormattingState.TryReadRule(payload)) {
-                            AddUnsupportedFeature(unsupportedFeatures, diagnostics, options, type, offset, sheet.Name);
+                            AddUnsupportedFeature(unsupportedFeatures, preservedFeatureRecords, diagnostics, options, type, offset, sheet.Name, payload.Length);
                         }
 
                         break;
@@ -155,7 +157,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                         if (BiffAutoFilterReader.TryReadInfo(payload, out ushort dropDownCount)) {
                             sheet.SetAutoFilterDropDownCount(dropDownCount);
                         } else {
-                            AddUnsupportedFeature(unsupportedFeatures, diagnostics, options, type, offset, sheet.Name);
+                            AddUnsupportedFeature(unsupportedFeatures, preservedFeatureRecords, diagnostics, options, type, offset, sheet.Name, payload.Length);
                         }
 
                         break;
@@ -163,7 +165,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                         if (BiffAutoFilterReader.TryReadCriteria(payload, out LegacyXlsAutoFilterCriteria? criteria)) {
                             sheet.AddAutoFilterCriteria(criteria!);
                         } else {
-                            AddUnsupportedFeature(unsupportedFeatures, diagnostics, options, type, offset, sheet.Name);
+                            AddUnsupportedFeature(unsupportedFeatures, preservedFeatureRecords, diagnostics, options, type, offset, sheet.Name, payload.Length);
                         }
 
                         break;
@@ -177,7 +179,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                         break;
                     case BiffRecordType.DVal:
                         if (!IsValidDataValidationCollectionHeader(payload)) {
-                            AddUnsupportedFeature(unsupportedFeatures, diagnostics, options, type, offset, sheet.Name);
+                            AddUnsupportedFeature(unsupportedFeatures, preservedFeatureRecords, diagnostics, options, type, offset, sheet.Name, payload.Length);
                         }
 
                         break;
@@ -185,7 +187,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                         if (BiffDataValidationReader.TryRead(payload, externSheets, externalReferences, sheetNames, definedNames, out LegacyXlsDataValidation? validation)) {
                             sheet.AddDataValidation(validation!);
                         } else {
-                            AddUnsupportedFeature(unsupportedFeatures, diagnostics, options, type, offset, sheet.Name);
+                            AddUnsupportedFeature(unsupportedFeatures, preservedFeatureRecords, diagnostics, options, type, offset, sheet.Name, payload.Length);
                         }
 
                         break;
@@ -223,7 +225,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                         if (BiffHyperlinkReader.TryRead(payload, out LegacyXlsHyperlink? hyperlink)) {
                             sheet.AddHyperlink(hyperlink!);
                         } else {
-                            AddUnsupportedFeature(unsupportedFeatures, diagnostics, options, type, offset, sheet.Name);
+                            AddUnsupportedFeature(unsupportedFeatures, preservedFeatureRecords, diagnostics, options, type, offset, sheet.Name, payload.Length);
                         }
 
                         break;
@@ -277,13 +279,13 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                         break;
                     case BiffRecordType.Note:
                         if (!commentState.TryReadNote(payload, offset)) {
-                            AddUnsupportedFeature(unsupportedFeatures, diagnostics, options, type, offset, sheet.Name);
+                            AddUnsupportedFeature(unsupportedFeatures, preservedFeatureRecords, diagnostics, options, type, offset, sheet.Name, payload.Length);
                         }
 
                         break;
                     case BiffRecordType.Obj:
                         if (!commentState.TryReadObject(payload)) {
-                            AddUnsupportedFeature(unsupportedFeatures, diagnostics, options, type, offset, sheet.Name);
+                            AddUnsupportedFeature(unsupportedFeatures, preservedFeatureRecords, diagnostics, options, type, offset, sheet.Name, payload.Length);
                         }
 
                         break;
@@ -339,7 +341,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                         break;
                     case BiffRecordType.ShrFmla:
                         if (!sharedFormulaState.TryReadDefinition(payload, offset)) {
-                            AddUnsupportedFeature(unsupportedFeatures, diagnostics, options, type, offset, sheet.Name);
+                            AddUnsupportedFeature(unsupportedFeatures, preservedFeatureRecords, diagnostics, options, type, offset, sheet.Name, payload.Length);
                         }
 
                         break;
@@ -348,7 +350,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                         break;
                     case BiffRecordType.Txo:
                         if (!commentState.TryReadTextObject(payload)) {
-                            AddUnsupportedFeature(unsupportedFeatures, diagnostics, options, type, offset, sheet.Name);
+                            AddUnsupportedFeature(unsupportedFeatures, preservedFeatureRecords, diagnostics, options, type, offset, sheet.Name, payload.Length);
                         }
 
                         break;
@@ -360,7 +362,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                         break;
                     default:
                         if (type != (ushort)BiffRecordType.Bof) {
-                            AddUnsupportedFeature(unsupportedFeatures, diagnostics, options, type, offset, sheet.Name);
+                            AddUnsupportedFeature(unsupportedFeatures, preservedFeatureRecords, diagnostics, options, type, offset, sheet.Name, payload.Length);
                         }
 
                         break;
@@ -387,12 +389,19 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
         private static void AddUnsupportedFeature(
             List<LegacyXlsUnsupportedFeature> unsupportedFeatures,
+            List<LegacyXlsPreservedFeatureRecord> preservedFeatureRecords,
             List<LegacyXlsImportDiagnostic> diagnostics,
             LegacyXlsImportOptions options,
             ushort type,
             int offset,
-            string? sheetName) {
-            unsupportedFeatures.Add(BiffUnsupportedRecordDiagnostics.CreateUnsupportedRecordFeature(type, offset, sheetName));
+            string? sheetName,
+            int payloadLength) {
+            LegacyXlsUnsupportedFeature feature = BiffUnsupportedRecordDiagnostics.CreateUnsupportedRecordFeature(type, offset, sheetName);
+            unsupportedFeatures.Add(feature);
+            if (BiffUnsupportedRecordDiagnostics.TryCreatePreservedFeatureRecord(feature, payloadLength, out LegacyXlsPreservedFeatureRecord? preservedRecord)) {
+                preservedFeatureRecords.Add(preservedRecord!);
+            }
+
             if (options.ReportUnsupportedRecords) {
                 BiffUnsupportedRecordDiagnostics.AddUnsupportedRecordDiagnostic(diagnostics, type, offset, sheetName);
             }

@@ -305,6 +305,11 @@ namespace OfficeIMO.Tests {
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.DrawingObject && feature.Code == "XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED");
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.PivotTable && feature.Code == "XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED");
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.AutoFilterCriteria && feature.Code == "XLS-BIFF-FEATURE-AUTOFILTER-CRITERIA-UNSUPPORTED");
+            Assert.Contains(legacy.PreservedFeatureRecords, record => record.Kind == LegacyXlsUnsupportedFeatureKind.Hyperlink && record.Code == "XLS-BIFF-FEATURE-HYPERLINK-UNSUPPORTED");
+            Assert.Contains(legacy.PreservedFeatureRecords, record => record.Kind == LegacyXlsUnsupportedFeatureKind.Comment && record.Code == "XLS-BIFF-FEATURE-COMMENT-UNSUPPORTED");
+            Assert.Contains(legacy.PreservedFeatureRecords, record => record.Kind == LegacyXlsUnsupportedFeatureKind.DrawingObject && record.Code == "XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED");
+            Assert.Contains(legacy.PreservedFeatureRecords, record => record.Kind == LegacyXlsUnsupportedFeatureKind.PivotTable && record.Code == "XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED");
+            Assert.Contains(legacy.PreservedFeatureRecords, record => record.Kind == LegacyXlsUnsupportedFeatureKind.AutoFilterCriteria && record.Code == "XLS-BIFF-FEATURE-AUTOFILTER-CRITERIA-UNSUPPORTED");
         }
 
         [Fact]

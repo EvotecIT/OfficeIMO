@@ -94,6 +94,29 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             return kind != LegacyXlsUnsupportedFeatureKind.UnsupportedRecord;
         }
 
+        internal static bool TryCreatePreservedFeatureRecord(
+            LegacyXlsUnsupportedFeature feature,
+            int payloadLength,
+            out LegacyXlsPreservedFeatureRecord? preservedRecord) {
+            preservedRecord = null;
+            if (feature.Kind == LegacyXlsUnsupportedFeatureKind.UnsupportedRecord
+                || !feature.RecordOffset.HasValue
+                || !feature.RecordType.HasValue) {
+                return false;
+            }
+
+            preservedRecord = new LegacyXlsPreservedFeatureRecord(
+                feature.Kind,
+                feature.Code,
+                feature.Description,
+                feature.SheetName,
+                feature.RecordOffset.Value,
+                feature.RecordType.Value,
+                payloadLength,
+                feature.DetailCode);
+            return true;
+        }
+
         private static void GetUnsupportedRecordInfo(
             ushort type,
             out LegacyXlsUnsupportedFeatureKind kind,

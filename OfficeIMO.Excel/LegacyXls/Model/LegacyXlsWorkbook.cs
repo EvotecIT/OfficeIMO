@@ -17,6 +17,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         private readonly List<LegacyXlsExternalReference> _externalReferences = new();
         private readonly List<LegacyXlsUnsupportedSheet> _unsupportedSheets = new();
         private readonly List<LegacyXlsUnsupportedFeature> _unsupportedFeatures = new();
+        private readonly List<LegacyXlsPreservedFeatureRecord> _preservedFeatureRecords = new();
         private readonly List<LegacyXlsImportDiagnostic> _diagnostics = new();
 
         internal LegacyXlsWorkbook() {
@@ -68,6 +69,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         public IReadOnlyList<LegacyXlsUnsupportedFeature> UnsupportedFeatures => _unsupportedFeatures;
 
         /// <summary>
+        /// Gets preserve-only BIFF feature records discovered during import.
+        /// </summary>
+        public IReadOnlyList<LegacyXlsPreservedFeatureRecord> PreservedFeatureRecords => _preservedFeatureRecords;
+
+        /// <summary>
         /// Gets diagnostics produced while reading the legacy workbook.
         /// </summary>
         public IReadOnlyList<LegacyXlsImportDiagnostic> Diagnostics => _diagnostics;
@@ -99,6 +105,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         internal List<LegacyXlsUnsupportedSheet> MutableUnsupportedSheets => _unsupportedSheets;
 
         internal List<LegacyXlsUnsupportedFeature> MutableUnsupportedFeatures => _unsupportedFeatures;
+
+        internal List<LegacyXlsPreservedFeatureRecord> MutablePreservedFeatureRecords => _preservedFeatureRecords;
 
         internal List<LegacyXlsImportDiagnostic> MutableDiagnostics => _diagnostics;
 

@@ -12,6 +12,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         private ushort _expectedRuleCount;
         private ushort _readRuleCount;
         private int _headerOffset;
+        private int _headerPayloadLength;
 
         internal BiffConditionalFormattingImportState(
             LegacyXlsWorksheet sheet,
@@ -38,6 +39,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             _readRuleCount = 0;
             _ranges = ranges;
             _headerOffset = recordOffset;
+            _headerPayloadLength = payload.Length;
             return true;
         }
 
@@ -69,16 +71,22 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
         internal void AddUnresolvedFeatures(
             List<LegacyXlsUnsupportedFeature> unsupportedFeatures,
+            List<LegacyXlsPreservedFeatureRecord> preservedFeatureRecords,
             List<LegacyXlsImportDiagnostic> diagnostics,
             bool reportUnsupportedRecords) {
             if (!HasPendingHeader) {
                 return;
             }
 
-            unsupportedFeatures.Add(BiffUnsupportedRecordDiagnostics.CreateUnsupportedRecordFeature(
+            LegacyXlsUnsupportedFeature feature = BiffUnsupportedRecordDiagnostics.CreateUnsupportedRecordFeature(
                 (ushort)BiffRecordType.CondFmt,
                 _headerOffset,
-                _sheet.Name));
+                _sheet.Name);
+            unsupportedFeatures.Add(feature);
+            if (BiffUnsupportedRecordDiagnostics.TryCreatePreservedFeatureRecord(feature, _headerPayloadLength, out LegacyXlsPreservedFeatureRecord? preservedRecord)) {
+                preservedFeatureRecords.Add(preservedRecord!);
+            }
+
             if (reportUnsupportedRecords) {
                 BiffUnsupportedRecordDiagnostics.AddUnsupportedRecordDiagnostic(
                     diagnostics,
@@ -94,6 +102,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             _expectedRuleCount = 0;
             _readRuleCount = 0;
             _headerOffset = 0;
+            _headerPayloadLength = 0;
             _ranges = Array.Empty<string>();
         }
     }

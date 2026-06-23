@@ -72,7 +72,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 } else if (record.Type == (ushort)BiffRecordType.Xf) {
                     ReadCellFormat(record, workbook, numberFormatsById, workbook.MutableDiagnostics);
                 } else if (record.Type != (ushort)BiffRecordType.Bof && record.Type != (ushort)BiffRecordType.Eof) {
-                    workbook.MutableUnsupportedFeatures.Add(BiffUnsupportedRecordDiagnostics.CreateUnsupportedRecordFeature(record.Type, record.Offset, sheetName: null));
+                    AddUnsupportedRecordFeature(workbook, record, sheetName: null);
                     if (options.ReportUnsupportedRecords) {
                         BiffUnsupportedRecordDiagnostics.AddUnsupportedRecordDiagnostic(workbook.MutableDiagnostics, record.Type, record.Offset, sheetName: null);
                     }
@@ -88,6 +88,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 workbookStream,
                 workbook.UnsupportedSheets,
                 workbook.MutableUnsupportedFeatures,
+                workbook.MutablePreservedFeatureRecords,
                 workbook.MutableDiagnostics,
                 options);
 
@@ -95,10 +96,21 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 ? workbook.Worksheets.Select(sheet => sheet.Name).ToArray()
                 : boundSheetNames.ToArray();
             foreach (LegacyXlsWorksheet sheet in workbook.Worksheets) {
-                LegacyBiffWorksheetParser.Parse(workbookStream, sheet, sharedStrings, externSheets, workbook.ExternalReferences, sheetNames, definedNameTable, workbook.MutableUnsupportedFeatures, workbook.MutableDiagnostics, options);
+                LegacyBiffWorksheetParser.Parse(workbookStream, sheet, sharedStrings, externSheets, workbook.ExternalReferences, sheetNames, definedNameTable, workbook.MutableUnsupportedFeatures, workbook.MutablePreservedFeatureRecords, workbook.MutableDiagnostics, options);
             }
 
             return workbook;
+        }
+
+        private static void AddUnsupportedRecordFeature(
+            LegacyXlsWorkbook workbook,
+            BiffRecord record,
+            string? sheetName) {
+            LegacyXlsUnsupportedFeature feature = BiffUnsupportedRecordDiagnostics.CreateUnsupportedRecordFeature(record.Type, record.Offset, sheetName);
+            workbook.MutableUnsupportedFeatures.Add(feature);
+            if (BiffUnsupportedRecordDiagnostics.TryCreatePreservedFeatureRecord(feature, record.Payload.Length, out LegacyXlsPreservedFeatureRecord? preservedRecord)) {
+                workbook.MutablePreservedFeatureRecords.Add(preservedRecord!);
+            }
         }
 
         private static IReadOnlyList<byte[]> CollectContinuedPayloads(IReadOnlyList<BiffRecord> records, ref int index) {
@@ -206,7 +218,12 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 || reference.Kind == LegacyXlsExternalReferenceKind.AddIn
                 || reference.Kind == LegacyXlsExternalReferenceKind.DdeOrOle;
             if (unsupportedExternalReference) {
-                workbook.MutableUnsupportedFeatures.Add(BiffUnsupportedRecordDiagnostics.CreateExternalReferenceFeature(record, reference));
+                LegacyXlsUnsupportedFeature feature = BiffUnsupportedRecordDiagnostics.CreateExternalReferenceFeature(record, reference);
+                workbook.MutableUnsupportedFeatures.Add(feature);
+                if (BiffUnsupportedRecordDiagnostics.TryCreatePreservedFeatureRecord(feature, record.Payload.Length, out LegacyXlsPreservedFeatureRecord? preservedRecord)) {
+                    workbook.MutablePreservedFeatureRecords.Add(preservedRecord!);
+                }
+
                 if (options.ReportUnsupportedRecords) {
                     BiffUnsupportedRecordDiagnostics.AddExternalReferenceDiagnostic(diagnostics, record, reference);
                 }

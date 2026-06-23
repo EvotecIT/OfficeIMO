@@ -92,21 +92,27 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 author = "OfficeIMO";
             }
 
-            _notes[objectId] = new PendingNote(row + 1, column + 1, author, (flags & 0x0002) != 0, recordOffset);
+            _notes[objectId] = new PendingNote(row + 1, column + 1, author, (flags & 0x0002) != 0, recordOffset, payload.Length);
             TryAddComment(objectId);
             return true;
         }
 
         internal void AddUnresolvedFeatures(
             List<LegacyXlsUnsupportedFeature> unsupportedFeatures,
+            List<LegacyXlsPreservedFeatureRecord> preservedFeatureRecords,
             List<LegacyXlsImportDiagnostic> diagnostics,
             bool reportDiagnostics) {
             foreach (KeyValuePair<ushort, PendingNote> entry in _notes) {
                 if (!_imported.Contains(entry.Key)) {
-                    unsupportedFeatures.Add(BiffUnsupportedRecordDiagnostics.CreateUnsupportedRecordFeature(
+                    LegacyXlsUnsupportedFeature feature = BiffUnsupportedRecordDiagnostics.CreateUnsupportedRecordFeature(
                         (ushort)BiffRecordType.Note,
                         entry.Value.RecordOffset,
-                        _sheet.Name));
+                        _sheet.Name);
+                    unsupportedFeatures.Add(feature);
+                    if (BiffUnsupportedRecordDiagnostics.TryCreatePreservedFeatureRecord(feature, entry.Value.RecordPayloadLength, out LegacyXlsPreservedFeatureRecord? preservedRecord)) {
+                        preservedFeatureRecords.Add(preservedRecord!);
+                    }
+
                     if (reportDiagnostics) {
                         BiffUnsupportedRecordDiagnostics.AddUnsupportedRecordDiagnostic(
                             diagnostics,
@@ -132,12 +138,13 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         }
 
         private readonly struct PendingNote {
-            internal PendingNote(int row, int column, string author, bool visible, int recordOffset) {
+            internal PendingNote(int row, int column, string author, bool visible, int recordOffset, int recordPayloadLength) {
                 Row = row;
                 Column = column;
                 Author = author;
                 Visible = visible;
                 RecordOffset = recordOffset;
+                RecordPayloadLength = recordPayloadLength;
             }
 
             internal int Row { get; }
@@ -149,6 +156,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             internal bool Visible { get; }
 
             internal int RecordOffset { get; }
+
+            internal int RecordPayloadLength { get; }
         }
 
         private sealed class PendingTextObject {
