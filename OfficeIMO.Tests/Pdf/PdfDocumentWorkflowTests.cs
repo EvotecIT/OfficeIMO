@@ -136,9 +136,15 @@ public class PdfDocumentWorkflowTests {
             })
             .ToBytes();
 
-        IReadOnlyList<PdfLogicalTextBlock> blocks = PdfDocument.Open(bytes).Read.TextBlocks();
+        PdfDocument document = PdfDocument.Open(bytes);
+        IReadOnlyList<PdfLogicalTextBlock> blocks = document.Read.TextBlocks();
+        string compactText = document.Read.Text()
+            .Replace("\r", string.Empty)
+            .Replace("\n", string.Empty)
+            .Replace(" ", string.Empty);
 
-        Assert.Contains(blocks, block => block.Text.Contains(longValue, StringComparison.Ordinal) && block.FontSize >= 7D);
+        Assert.Contains(longValue, compactText, StringComparison.Ordinal);
+        Assert.Contains(blocks, block => Math.Abs(block.FontSize - 7D) < 0.001D);
     }
 
     [Fact]

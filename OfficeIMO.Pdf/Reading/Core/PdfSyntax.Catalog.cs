@@ -474,11 +474,19 @@ internal static partial class PdfSyntax {
                     return true;
                 }
             }
-        } catch (Exception ex) when (ex is not PdfEncryptionException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
+        } catch (Exception ex) when (ShouldSuppressParsedPdfNameException(ex, options)) {
             return false;
         }
 
         return false;
+    }
+
+    private static bool ShouldSuppressParsedPdfNameException(Exception exception, PdfReadOptions? options) {
+        if (exception is OutOfMemoryException || exception is StackOverflowException) {
+            return false;
+        }
+
+        return options is null || exception is not PdfEncryptionException;
     }
 
     private static bool ContainsAnyParsedPdfName(PdfObject value, HashSet<string> names) {

@@ -261,6 +261,8 @@ public static partial class PdfPageEditor {
             return;
         }
 
+        var visitedReferences = new HashSet<int>();
+        var transformedArrays = new HashSet<PdfArray>();
         for (int i = 0; i < document.Pages.Count; i++) {
             int pageNumber = i + 1;
             int pageObjectNumber = document.Pages[i].ObjectNumber;
@@ -272,7 +274,7 @@ public static partial class PdfPageEditor {
             PageResizeTransform? annotationGeometryTransform = selectedPages.Contains(pageNumber)
                 ? transformsByPageObjectNumber[pageObjectNumber]
                 : null;
-            if (TryBuildTransformedAnnotations(objects, pageDictionary, annotationGeometryTransform, transformsByPageObjectNumber, out PdfArray? transformedAnnotations)) {
+            if (TryBuildTransformedAnnotations(objects, pageDictionary, annotationGeometryTransform, transformsByPageObjectNumber, visitedReferences, transformedArrays, out PdfArray? transformedAnnotations)) {
                 if (!overrides.TryGetValue(pageObjectNumber, out Dictionary<string, PdfObject>? pageOverrides)) {
                     pageOverrides = new Dictionary<string, PdfObject>(StringComparer.Ordinal);
                     overrides[pageObjectNumber] = pageOverrides;
@@ -288,6 +290,8 @@ public static partial class PdfPageEditor {
         PdfDictionary pageDictionary,
         PageResizeTransform? annotationGeometryTransform,
         IReadOnlyDictionary<int, PageResizeTransform> transformsByPageObjectNumber,
+        HashSet<int> visitedReferences,
+        HashSet<PdfArray> transformedArrays,
         out PdfArray? transformedAnnotations) {
         transformedAnnotations = null;
         if (!pageDictionary.Items.TryGetValue("Annots", out PdfObject? annotationsObject) ||
@@ -305,7 +309,7 @@ public static partial class PdfPageEditor {
                     TransformAnnotationCoordinateArrays(clonedAnnotation, annotationGeometryTransform.Value);
                 }
 
-                TransformDestinationsInObject(objects, clonedAnnotation, transformsByPageObjectNumber, new HashSet<int>(), new HashSet<PdfArray>());
+                TransformDestinationsInObject(objects, clonedAnnotation, transformsByPageObjectNumber, visitedReferences, transformedArrays);
                 transformedAnnotations.Items.Add(clonedAnnotation);
             } else {
                 transformedAnnotations.Items.Add(ClonePdfObject(annotationObject));
@@ -463,16 +467,61 @@ public static partial class PdfPageEditor {
                 break;
             case "FitH":
             case "FitBH":
+                if (TransformRotatedFitHorizontalDestination(array, transform)) {
+                    break;
+                }
+
                 TransformDestinationCoordinate(array, 2, transform, isX: false);
                 break;
             case "FitV":
             case "FitBV":
+                if (TransformRotatedFitVerticalDestination(array, transform)) {
+                    break;
+                }
+
                 TransformDestinationCoordinate(array, 2, transform, isX: true);
                 break;
             case "FitR":
                 TransformDestinationRectangle(array, 2, 3, 4, 5, transform);
                 break;
         }
+    }
+
+    private static bool TransformRotatedFitHorizontalDestination(PdfArray array, PageResizeTransform transform) {
+        if (!transform.HasAxisSwap ||
+            array.Items.Count <= 2 ||
+            array.Items[2] is not PdfNumber top) {
+            return false;
+        }
+
+        double anchorX = transform.SourceLeft;
+        (double transformedX, double transformedY) = TransformPoint(anchorX, top.Value, transform);
+        ReplaceDestinationWithXyz(array, transformedX, transformedY);
+        return true;
+    }
+
+    private static bool TransformRotatedFitVerticalDestination(PdfArray array, PageResizeTransform transform) {
+        if (!transform.HasAxisSwap ||
+            array.Items.Count <= 2 ||
+            array.Items[2] is not PdfNumber left) {
+            return false;
+        }
+
+        double anchorY = transform.SourceBottom + transform.SourceHeight;
+        (double transformedX, double transformedY) = TransformPoint(left.Value, anchorY, transform);
+        ReplaceDestinationWithXyz(array, transformedX, transformedY);
+        return true;
+    }
+
+    private static void ReplaceDestinationWithXyz(PdfArray array, double left, double top) {
+        while (array.Items.Count > 2) {
+            array.Items.RemoveAt(array.Items.Count - 1);
+        }
+
+        array.Items[1] = new PdfName("XYZ");
+        array.Items.Add(new PdfNumber(left));
+        array.Items.Add(new PdfNumber(top));
+        array.Items.Add(PdfNull.Instance);
     }
 
     private static void TransformDestinationPoint(PdfArray array, int xIndex, int yIndex, PageResizeTransform transform) {
@@ -597,7 +646,12 @@ public static partial class PdfPageEditor {
                 0D,
                 visualTranslateX - sourceBottom * scaleX,
                 visualTranslateY + (sourceWidth + sourceLeft) * scaleY,
-                pageObjectNumber),
+                pageObjectNumber,
+                sourceLeft,
+                sourceBottom,
+                sourceWidth,
+                sourceHeight,
+                rotationDegrees),
             180 => new PageResizeTransform(
                 -scaleX,
                 0D,
@@ -605,7 +659,12 @@ public static partial class PdfPageEditor {
                 -scaleY,
                 visualTranslateX + (sourceWidth + sourceLeft) * scaleX,
                 visualTranslateY + (sourceHeight + sourceBottom) * scaleY,
-                pageObjectNumber),
+                pageObjectNumber,
+                sourceLeft,
+                sourceBottom,
+                sourceWidth,
+                sourceHeight,
+                rotationDegrees),
             270 => new PageResizeTransform(
                 0D,
                 scaleY,
@@ -613,7 +672,12 @@ public static partial class PdfPageEditor {
                 0D,
                 visualTranslateX + (sourceHeight + sourceBottom) * scaleX,
                 visualTranslateY - sourceLeft * scaleY,
-                pageObjectNumber),
+                pageObjectNumber,
+                sourceLeft,
+                sourceBottom,
+                sourceWidth,
+                sourceHeight,
+                rotationDegrees),
             _ => new PageResizeTransform(
                 scaleX,
                 0D,
@@ -621,7 +685,12 @@ public static partial class PdfPageEditor {
                 scaleY,
                 visualTranslateX - sourceLeft * scaleX,
                 visualTranslateY - sourceBottom * scaleY,
-                pageObjectNumber)
+                pageObjectNumber,
+                sourceLeft,
+                sourceBottom,
+                sourceWidth,
+                sourceHeight,
+                rotationDegrees)
         };
     }
 
@@ -661,7 +730,7 @@ public static partial class PdfPageEditor {
     }
 
     private readonly struct PageResizeTransform {
-        public PageResizeTransform(double a, double b, double c, double d, double e, double f, int pageObjectNumber) {
+        public PageResizeTransform(double a, double b, double c, double d, double e, double f, int pageObjectNumber, double sourceLeft, double sourceBottom, double sourceWidth, double sourceHeight, int rotationDegrees) {
             A = a;
             B = b;
             C = c;
@@ -669,6 +738,11 @@ public static partial class PdfPageEditor {
             E = e;
             F = f;
             PageObjectNumber = pageObjectNumber;
+            SourceLeft = sourceLeft;
+            SourceBottom = sourceBottom;
+            SourceWidth = sourceWidth;
+            SourceHeight = sourceHeight;
+            RotationDegrees = rotationDegrees;
         }
 
         public double A { get; }
@@ -684,5 +758,17 @@ public static partial class PdfPageEditor {
         public double F { get; }
 
         public int PageObjectNumber { get; }
+
+        public double SourceLeft { get; }
+
+        public double SourceBottom { get; }
+
+        public double SourceWidth { get; }
+
+        public double SourceHeight { get; }
+
+        public int RotationDegrees { get; }
+
+        public bool HasAxisSwap => RotationDegrees == 90 || RotationDegrees == 270;
     }
 }
