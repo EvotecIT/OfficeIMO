@@ -1,0 +1,752 @@
+# OfficeIMO Image Conversion Roadmap
+
+Date: 2026-06-22
+
+Implementation status: phases 1-5 have an initial vertical implementation for the Excel goal. Excel ranges, worksheets, and workbooks export to PNG/SVG through a shared dependency-free `OfficeIMO.Drawing` raster/PNG foundation and Excel visual snapshots. The renderer paints cells, fills, styled borders, diagonal borders, gridlines, display text, single-line, hard-break, shrink-to-fit, and basic rotated rich text runs, merged-cell coverage, hyperlink visual hints, Excel-style comment indicators and opt-in comment body callouts, supported simple worksheet drawing shapes/text boxes, embedded PNG worksheet images, range-clipped worksheet images that visually overlap the selected range even when anchored just outside it, SVG-embeddable worksheet image formats, first-pass conditional color scales/data bars, bounded numeric cell-is/formula differential fills, and supported chart snapshots. A first visual-fidelity pass added proper source-over alpha blending, antialiased text/shape edges, interpolated image scaling, raster text alignment/style mapping, shared styled-line rendering for solid, dashed, dotted, dash-dot, dash-dot-dot, and double-line Excel border output, shared Office/Visio dash vocabulary normalization, and normalized worksheet hyperlink resolution shared by inspection and image snapshots. The current Excel fidelity work adds wrapped cell text, explicit vertical text alignment plus Excel-like bottom alignment when the source style is unset, styled font sizes, basic shrink-to-fit, basic numeric text rotation, per-cell SVG clipping, PNG text clipping through shared Drawing raster clip scopes, shared plain text-block raster/SVG rendering for non-rotated Excel cell text plus Visio PNG/SVG text, shared rich text block layout for hard-break, wrapped, shrink-to-fit, and basic rotated runs, direct/theme/indexed cell color resolution with tint/shade support for fills, fonts, borders, and sheet tabs, dependency-free hatch approximations for Excel pattern fills, simple two-stop linear gradient fills through shared Drawing raster/SVG primitives, explicit hidden row/column omission behavior with `IncludeHidden`, rendered source-referenced comment/note and threaded-comment cell indicators plus opt-in approximation callouts backed by a shared worksheet comment resolver, shared worksheet drawing-object classification for PDF preflight and image rendering/diagnostics, and a source-order drawing layer that renders supported shapes, images, charts, and opt-in comment bodies through one mixed overlay stream instead of separate renderer brains. Stable `ExcelCellTextClipped`, `ExcelCellTextRotationApproximation`, `ExcelCellStackedTextRotationUnsupported`, `ExcelCellRichTextLayoutApproximation`, `ExcelFillPatternApproximation`, `ExcelFillGradientUnsupported`, `ExcelConditionalIconSetUnsupported`, `ExcelConditionalRuleUnsupported`, `ExcelConditionalCellIsUnsupported`, `ExcelConditionalFormulaUnsupported`, `ExcelHiddenRowsOmitted`, `ExcelHiddenColumnsOmitted`, `ExcelImageAnchorHidden`, `ExcelChartAnchorHidden`, `ExcelCellCommentUnsupported`, `ExcelCellCommentBodyApproximation`, `ExcelThreadedCommentUnsupported`, `ExcelThreadedCommentBodyApproximation`, and `ExcelDrawingShapeUnsupported` diagnostics now exist, along with shared number-format display text for the Excel image and autofit paths, including custom literal affixes, escaped literal characters, and positive/negative/zero section selection. The approved Excel image PNG/SVG visual baselines now cover merged title text, styled cells, percent display text, wrapping, clipping, vertical alignment, single-line rich text, an Excel-style comment indicator, a supported drawing-object shape, an embedded PNG image, a range-clipped overlapping image, a chart snapshot, conditional heat-map fills, positive/negative data bars, bounded cell-is differential fills, and unsupported icon-set diagnostics; focused contract tests cover default bottom vertical alignment, custom number-format literal/section display text, shared plain text-block raster/SVG rendering, shared SVG `text`/`tspan` writer output, hyperlink hint SVG output, range hyperlink expansion, rotated PNG text clipping, single-line, hard-break, shrink-to-fit, and basic rotated rich text SVG/PNG styling, OpenXML pattern fill SVG/PNG rendering with diagnostics, simple linear gradient SVG/PNG rendering plus unsupported-gradient diagnostics for unresolved cases, source-filtered rendered comment/threaded-comment indicators with unsupported body diagnostics, opt-in comment body callouts with approximation diagnostics, drawing-layer placement, anchored SVG pointers, and decoded PNG pixels, supported rounded-rectangle drawing-object output through shared Drawing, mixed shape/image z-order in both directions with decoded PNG pixels and SVG order assertions, range-clipped overlapping worksheet images, and source-filtered worksheet drawing-shape diagnostics. The shared raster stack now also has first migrated primitives from the Visio renderer needs: solid and styled polyline strokes, solid elliptical arcs, polygon strokes, even-odd multi-contour fills, rotated/scaled image drawing, rotated ellipse fill/stroke, anchored text-line rendering, shared plain text-block rendering, fallback glyph rendering, cached text measurement, rectangular clipping scopes, linear-gradient rectangle fills, supersampled render-target storage, alpha blending, adaptive coverage sampling for supersampled render targets, downsample resolve, and shared Visio line-pattern plus Office preset-dash mapping. Excel, Visio, and PDF raster visual-baseline tests now share one Drawing-backed PNG decode/encode/diff helper. Unsupported image rasterization formats, SVG image embedding limits, hidden rows/columns omitted from the selected visual range, hidden-anchored worksheet images/charts, stacked text rotation, numeric/rich text-rotation approximation, approximated pattern fills, unsupported complex/path/multi-stop gradient fills, unsupported conditional icon sets, unsupported conditional rule types, unsupported conditional cell-is/formula shapes, default-disabled comment/note/threaded-comment bodies, opt-in comment body approximations, unsupported or richer worksheet drawing shapes/text boxes/connectors, and approximated chart kinds are surfaced through diagnostics instead of being hidden.
+
+Consolidation status: the current branch proves the shared `OfficeIMO.Drawing` direction, but OfficeIMO still has more than one rendering engine. `OfficeIMO.Visio` has a mature private PNG renderer whose PNG decoder, PNG encoder, supersampled pixel storage, source-over alpha blending, downsample resolve, polygon fills, even-odd contour fills, polyline/dashed stroke drawing, dashed ellipse stroke approximation, solid elliptical arcs, rotated ellipse fill/stroke, rotated/scaled image projection, anchored text-line rendering, fallback glyph rendering, text measuring, word wrapping/line measurement, single-line font fitting, bounded text-block fit math, bounded visible-line clipping, and reusable text placement math have been moved onto shared Drawing primitives. Its remaining private `RasterCanvas` is now a Visio-specific geometry adapter over shared raster storage and shared canvas operations, not the final shared engine shape. Visio SVG text export now also uses the shared Drawing text layout primitive for line construction, max-line measurement, bounded font fit, and text placement, so Visio no longer has separate PNG and SVG text wrapping, block-fit, or placement implementations. Excel plain cell text layout now consumes the same shared Drawing text layout primitive for wrapped/multiline line construction, trim-to-width, shrink-to-fit font sizing, bounded text-block orchestration, visible-height clipping, and clipped-state reporting, and Excel rich cell text now consumes shared Drawing rich-run block layout for hard-break, wrapped, and shrink-to-fit runs while keeping Excel-specific policy, vertical-alignment mapping, rotation fallback, and diagnostics in the Excel adapter. PDF has separate image/compression code because PDF streams have different writer contracts, but PDF/Visio/Excel visual-baseline PNG comparison now uses shared test support. Excel comment/threaded-comment metadata resolution is now shared by inspection, feature reporting, and image diagnostics instead of living as an inspection-only helper. Excel worksheet drawing-object classification is now shared by PDF preflight and image export, with supported simple shapes routed through shared Drawing and unsupported object variants diagnosed from the same resolver. Before premium Excel work grows much further, remaining reusable Visio raster behavior must move into `OfficeIMO.Drawing`, and Visio must be migrated to consume the shared engine without losing its existing premium visual baselines. The native Visio premium PNG baselines were refreshed after visual review for the shared renderer output, and the native premium baseline gate now runs as per-scenario theories over the shared Drawing-backed comparison helper so failures point at one approved visual at a time.
+
+Latest consolidation checkpoint: `OfficeIMO.Drawing` now owns `OfficeTextLayoutEngine`, measured `OfficeTextLine` output, `OfficeTextBlockLayout`, `OfficeTextVerticalAlignment`, `OfficeTextPlacement`, `OfficeRichTextRun`, `OfficeRichTextSegment`, `OfficeRichTextLine`, `OfficeRichTextBlockLayout`, and `OfficeGeometry` for shared dependency-free word wrapping, rich-run tokenization, long-word breaking, hard-break normalization, max-line measurement, single-line trim-to-width, shrink-to-fit font sizing for measured single-line and rich-run text, bounded wrapped text fit, bounded plain/rich text-block layout orchestration, visible-height text-block clipping with ellipsis, clipped-state reporting, reusable top/anchor/line-left placement, shared point rotation for rotated text placement, reusable point distance, and polyline-by-length interpolation. `OfficeIMO.Visio` consumes those helpers for both native PNG and SVG text blocks instead of keeping private wrap/break/measure/fit/placement implementations per output format, and PNG/SVG connector label placement plus label-collision layout now use shared Drawing geometry instead of private interpolation copies, while Visio-specific enum mapping, rotation, styling, label-background behavior, underline drawing, SVG text emission, and page-coordinate mapping remain in the Visio adapter. `OfficeIMO.Excel` now uses the same shared line model and `LayoutTextBlock` coordinator for plain wrapped, hard-break, shrink-to-fit, clipped, and forced-single-line cell text in both PNG and SVG export; Excel rich text now uses `LayoutRichTextBlock` for hard-break, wrapped, shrink-to-fit, and basic rotated run-preserving PNG/SVG output while still emitting rotation approximation diagnostics. Drawing-level tests cover the shared wrapping/trim/fit/placement/clipping/shrink/orchestration/rich-run/rotation-placement/polyline-interpolation contracts, the Excel image export tests prove the public Excel surface renders through the current renderer, `VisioSvgExport` proves hard-break and bounded SVG text output, `VisioPngExport` proves native PNG text scenarios still pass, and the native premium Visio baseline suite proves the gallery visuals remain approved.
+
+Latest sparkline checkpoint: Excel authored sparklines are now discovered through a shared worksheet sparkline resolver used by feature reporting, PDF preflight, and image export. Same-sheet numeric line, column, and win/loss sparklines render in PNG/SVG through the Excel visual snapshot and shared Drawing primitives, including basic series colors, negative colors, markers, and zero-axis output. Rendered sparklines emit `ExcelSparklineRenderingApproximation`, and cross-sheet or unresolved sparkline data still emits stable source diagnostics instead of being hidden. A dedicated approved PNG/SVG sparkline visual baseline now gates line, column, and win/loss output through the shared Drawing-backed baseline comparison helper.
+
+Latest object checkpoint: Excel comments/notes and threaded comments now produce visible top-right cell indicators in PNG/SVG when their target cell is inside the exported range. When `ShowCommentBodies` is enabled, visible classic and threaded comment bodies also enter the neutral Excel snapshot and render as dependency-free callouts with anchored pointers through shared Drawing shapes, shared text layout, and shared Drawing text-block emission for callout body text; enabled bodies emit `ExcelCellCommentBodyApproximation` or `ExcelThreadedCommentBodyApproximation` instead of unsupported-body diagnostics. With the option disabled, `ExcelCellCommentUnsupported` and `ExcelThreadedCommentUnsupported` remain stable source diagnostics so compact indicator-only exports stay explicit. Simple worksheet rectangle/rounded-rectangle drawing shapes with solid RGB fill/outline and plain text now enter the neutral Excel snapshot and render in PNG/SVG through `OfficeIMO.Drawing`; supported shapes, images, opt-in comment bodies, and charts now share explicit visual layers instead of growing separate renderer brains. Unsupported geometry, theme/system/transformed fills, rotated shapes, connectors, group shapes, non-chart graphic frames, and Excel-exact comment popover geometry/state remain diagnosed follow-up work. The premium Excel baseline now includes the legacy red comment indicator, a dedicated drawing-object approved PNG/SVG baseline gates the first shape/text-box slice, focused object tests prove shape-over-image and image-over-shape output using source order, SVG order, and decoded PNG pixels, and comment-body tests prove drawing-layer placement, decoded callout pixels, and SVG text/color/pointer output.
+
+Latest image checkpoint: Excel range export now includes worksheet images whose visual rectangle intersects the selected range even when the image anchor cell is outside that range. Raster output relies on the shared Drawing canvas bounds for clipping; SVG output emits explicit range clip paths for embedded images. Two-cell anchored worksheet pictures now derive visual width and height from their OpenXML from/to marker geometry instead of falling back to the embedded image's natural pixel size. Authored picture crop rectangles (`a:srcRect`), basic picture rotation, and horizontal/vertical flips now flow from Excel image metadata into the neutral visual snapshot and render in PNG/SVG through one shared Drawing image projection path. Focused contract tests prove decoded PNG pixels, SVG clip/transform structure, two-cell marker sizing, cropped picture output, visible rotated image output, and combined crop-plus-flip-plus-rotation output, and dedicated approved clipped-image, two-cell image, cropped-image, rotated-image, and transformed-image PNG/SVG baselines make the behavior visually reviewable.
+
+Latest chart checkpoint: Excel chart snapshots now carry a first slice of authored chart layout/style into the shared `OfficeIMO.Drawing` chart renderer instead of flattening everything to defaults. Chart area solid fill/outline/width/preset dash, plot area solid fill/outline/width/preset dash, simple authored series fill/line colors, line widths, and preset dashes, simple point fills, simple marker fill colors, marker visibility, simple marker size, simple marker solid outline color/width, simple circle/square/diamond/triangle/dash/dot/plus/X/star marker shapes, simple category/value major-gridline color/visibility/width/preset dash, simple category/value minor-gridline color/visibility/width/preset dash, simple category/value axis-line color/visibility/width/preset dash, simple category/value major tick marks, simple category/value minor tick marks, category/value axis label visibility when Excel tick-label position is `none`, simple high/low/next-to category/value tick-label placement, simple maximum-crossing horizontal category-axis and vertical value-axis placement, simple category/date-axis reverse-order rendering, simple value-axis number formats for vertical and horizontal bar orientations, simple value-axis display-unit scaling and labels, simple linear value-axis min/max/major/minor-unit scaling, simple title text color/font-family/font-size/bold/italic, simple legend text color, simple data-label text color, simple axis-label text color, simple axis-title text-color override, simple legend/data-label/axis-label font sizes, simple axis-title font size, simple legend/data-label/axis-label font families, simple legend/data-label/axis-label bold/italic buckets, simple axis-title font-family/bold/italic overrides, legend presence/position/overlay, title overlay, category/value axis titles, and chart-level data-label flags/position/number format now flow into shared `OfficeChartStyle`, `OfficeChartSeries`, and `OfficeChartLayout`. Unsupported or approximate chart details still emit stable source diagnostics, including `ExcelChartTrendlineUnsupported`, `ExcelChartDataLabelPointOverridesApproximated`, `ExcelChartDataLabelLeaderLinesUnsupported`, `ExcelChartAreaStyleApproximation`, `ExcelChartGridlineStyleApproximation` for complex gridline effects, `ExcelChartAxisStyleApproximation`, `ExcelChartAxisTickLabelPositionApproximation`, `ExcelChartAxisMinorTickMarkPlacementApproximation` for remaining approximate minor tick-mark placement, `ExcelChartAxisCrossingApproximation`, `ExcelChartAxisScaleApproximation`, `ExcelChartAxisNumberFormatApproximation`, `ExcelChartCategoryAxisNumberFormatUnsupported`, `ExcelChartTextStyleApproximation`, and `ExcelChartSeriesStyleApproximation` when chart styling goes beyond the supported simple area/series/point/marker/gridline/axis/chart-text color/font-family/font-size/font-style/line-width/preset-dash/axis-number-format/display-unit/label-visibility/major/minor-tick-mark slice or when Excel asks for conflicting text colors, font families, font sizes, or font styles inside one supported text bucket. Focused contract tests prove the snapshot bridge, SVG style/text output, high-scale PNG visual pixels, authored chart/plot area border width and preset dash output, authored series-color, series-line-width, and series-line-dash SVG/PNG output, authored point-color SVG/PNG output, simple marker-fill/size/shape/outline including line-based dash/dot/X/star markers, simple category/value major-gridline color/width/dash SVG/PNG output, simple value-axis minor-gridline color/width SVG/PNG output, suppressed gridline output, simple category/value axis-line color/width/dash SVG/PNG output, suppressed axis-line output, suppressed category/value axis labels, simple title/legend/data-label/axis-label/axis-title text-color SVG/PNG output, simple title font-family/font-size/italic SVG output, simple legend/data-label/axis-label/axis-title font-size SVG output, simple legend/data-label/axis-label font-family/style and axis-title font-family/style SVG output, vertical and horizontal value-axis number-format SVG output, simple display-unit label SVG output, simple linear value-axis min/max/major/minor-unit SVG output, simple major and minor axis tick-mark rendering, and trendline/chart-area/gridline/axis-placement/axis-scale/axis-number-format/category-axis-number-format/text-style diagnostics. Premium chart export is still not done: picture markers and richer marker outline effects, custom/richer series dash and effect styling, richer point-level overrides, trendlines, leader lines, point-level label overrides, remaining Excel-exact minor-gridline/tick placement edge cases, custom dash/effect parity beyond preset gridline and axis lines, chart/plot area effects beyond simple solid RGB fill/outline/width/preset dash, remaining tick-label placement edge cases beyond simple high/low/next-to/none, axis-crossing geometry beyond simple horizontal category-axis and vertical value-axis maximum crossing, log/value-axis-reverse-order/non-value-axis-unit/non-default cross-between axis geometry, Excel-exact display-unit placement/typography, richer chart title typography/effects beyond simple font-family/font-size/bold/italic, per-element chart rich text runs beyond the supported shared buckets, full custom/date/scientific/conditional tick formatting including category/date-axis tick formats, and Excel-exact chart geometry remain explicit follow-up work.
+
+Latest SVG primitive checkpoint: `OfficeIMO.Drawing` now owns `OfficeSvgPrimitiveWriter` for dependency-free `XmlWriter` circle, rectangle, line, and path emission with shared number formatting, fill/stroke color output, rounded caps, and rounded joins. Visio built-in stencil metadata artwork now supplies only stencil geometry, placement, opacity, and shape-coordinate policy while consuming the shared Drawing writer for generic primitive output; Visio shape/background/text/connector paths also use shared `OfficeSvgFormatting.WriteColorAttribute` for writer color attributes. Focused Drawing writer tests and existing Visio stencil SVG tests prove the shared primitive output and rotated stencil artwork still work.
+
+Latest nested SVG consolidation checkpoint: `OfficeSvgFormatting` now owns SVG-root inner-content extraction and nested SVG viewport emission for dependency-free `StringBuilder` adapters. Excel chart SVG overlays, supported drawing-object SVG overlays, and opt-in comment body SVG callouts now use the shared helper instead of hand-assembling child `<svg>` wrappers and `viewBox` attributes in separate renderer partials. Focused Drawing formatter tests plus Excel chart, drawing-object, comment-body, drawing-object baseline, and premium range baseline tests prove the migration is behavior-preserving.
+
+Latest SVG polygon consolidation checkpoint: `OfficeSvgFormatting` now owns complete SVG polygon element emission for `StringBuilder` renderers, including shared point-list formatting and optional fill/stroke attributes. `OfficeDrawingSvgExporter` polygon shapes and Excel comment indicator/comment-body pointer SVG output now use that shared helper while keeping Drawing shape placement and Excel comment geometry/color policy in their adapters. Focused Drawing formatter/exporter tests plus Excel comment indicator, comment body, threaded-comment indicator, and premium range baseline tests prove the migration is behavior-preserving.
+
+Latest SVG line consolidation checkpoint: `OfficeSvgFormatting` now owns complete SVG line element emission for `StringBuilder` renderers, including shared coordinate formatting, stroke paint, opacity, width, dash array, and line-cap attributes. `OfficeDrawingSvgExporter` line shapes and Excel range border SVG lines now use that shared helper while keeping Drawing transform policy and Excel border-style policy in their adapters. Focused Drawing formatter/exporter tests plus Excel border-style and premium range baseline tests prove the migration is behavior-preserving.
+
+Latest SVG rectangle consolidation checkpoint: `OfficeSvgFormatting` now owns complete SVG rectangle and rounded-rectangle element emission for `StringBuilder` renderers, including shared coordinate, size, and corner-radius formatting with adapter-supplied paint/transform attributes. `OfficeDrawingSvgExporter` rectangle shapes, Excel range gridline and cell-fill SVG rectangles, shared data-bar SVG rectangles, and shared sparkline column/win-loss SVG rectangles now use the shared helper while keeping Drawing transform policy and Excel style/conditional-formatting policy in their adapters. Focused Drawing formatter/exporter/data-bar/sparkline tests plus Excel border-style, pattern-fill, conditional-formatting, sparkline, and premium range baseline tests prove the migration is behavior-preserving.
+
+Latest SVG sparkline primitive consolidation checkpoint: `OfficeSvgFormatting` now owns complete SVG polyline and circle element emission for `StringBuilder` renderers, including shared point-list, center/radius, and fill formatting. `OfficeSparklineRenderer` line-series SVG paths and marker SVG circles now use the shared helpers while preserving the approved sparkline SVG attribute order, sparkline scaling, marker color, and series policy in the shared sparkline renderer. Focused Drawing formatter/sparkline tests plus Excel sparkline and premium range baseline tests prove the migration is behavior-preserving.
+
+Latest SVG ellipse consolidation checkpoint: `OfficeSvgFormatting` now owns complete SVG ellipse element emission for `StringBuilder` renderers, including shared center/radius and fill opacity formatting. `OfficeDrawingSvgExporter` ellipse shapes now use the shared helper while keeping Drawing-owned placement, paint, and transform policy in the exporter. Focused Drawing formatter/exporter tests prove the migration is behavior-preserving.
+
+Latest SVG path-element consolidation checkpoint: `OfficeSvgFormatting` now owns complete SVG path element emission for `StringBuilder` renderers, including shared path data serialization, `d` attribute escaping, and adapter-supplied paint/transform attributes. `OfficeDrawingSvgExporter` freeform path shapes and path clip definitions now use the shared helper while keeping Drawing-owned placement, clip, paint, and transform policy in the exporter. Focused Drawing formatter/exporter tests prove the migration is behavior-preserving.
+
+Latest SVG clip-rectangle consolidation checkpoint: `OfficeDrawingSvgExporter` clip-path rectangle and rounded-rectangle definitions now use `OfficeSvgFormatting.AppendRectElement` instead of local element assembly, keeping clip ownership in Drawing while sharing coordinate, size, and corner-radius serialization with every other `StringBuilder` SVG rectangle consumer. Focused Drawing clip-path/exporter tests prove the migration is behavior-preserving.
+
+Latest SVG positioned-text consolidation checkpoint: `OfficeTextBlockRenderer` now owns positioned SVG text/tspan element emission for callers that already resolved anchor coordinates, first baseline, line height, font, and style. `OfficeDrawingSvgExporter` text boxes now use the shared helper while keeping Drawing-owned text-box placement and font/style policy in the exporter, and text fill opacity now uses the same shared SVG paint formatting as other Drawing primitives. Focused Drawing renderer/exporter tests prove the migration is behavior-preserving apart from the intentional alpha-opacity improvement.
+
+Latest Excel rotated SVG text consolidation checkpoint: `OfficeTextBlockRenderer.AppendSvgTextElement` now supports positioned underline and rotation attributes, so Excel's plain rotated cell-text SVG path uses the shared Drawing text helper instead of private `<text>` assembly. Excel still owns rotation interpretation, clipping, alignment, font/style/color resolution, and approximation diagnostics; Drawing owns the text element, text-anchor, fill opacity, style attributes, escaping, and rotate-transform emission. Focused Drawing helper tests plus the public Excel rotated PNG/SVG text test prove the migration is behavior-preserving.
+
+Latest Excel rich-text SVG segment consolidation checkpoint: `OfficeTextBlockRenderer` now owns SVG text element emission for measured rich text segments through `AppendSvgRichTextSegment`. Excel rich cell text still owns run extraction, style fallback, line layout, cursor placement, clipping, rotation grouping, and diagnostics, but each rendered SVG segment now uses the shared Drawing helper for element assembly, escaping, text-anchor, fill opacity, font, and bold/italic/underline attributes. Focused Drawing helper tests plus the public Excel rich-text SVG test prove the migration is behavior-preserving.
+
+Latest Excel comment-title SVG consolidation checkpoint: Excel comment-body title text now uses `OfficeTextBlockRenderer.AppendSvgTextElement` instead of private `<text>` assembly. Excel still owns comment-body placement, callout geometry, clipping, colors, source references, and approximation diagnostics, while Drawing owns title text element assembly, escaping, text-anchor, fill, font, and bold style emission. The public comment-body SVG/PNG object-export contract now proves the title remains visible and styled through the shared helper.
+
+Latest Visio stencil-thumbnail SVG text consolidation checkpoint: Visio stencil preview thumbnails now use `OfficeTextBlockRenderer.AppendSvgTextElement` for their caption text instead of private SVG text assembly. Visio still owns gallery discovery, thumbnail sizing, data URI embedding, and review HTML output, while Drawing owns caption element assembly, escaping, text-anchor, fill, and font attributes. The existing browser-renderable thumbnail artifact test now proves the generated caption shape.
+
+Latest Excel SVG root-background consolidation checkpoint: Excel range SVG export now uses `OfficeSvgFormatting.AppendRectElement` for the document background rectangle instead of private root `<rect>` assembly. Excel still owns canvas dimensions, viewBox policy, and selected background color; Drawing owns rectangle geometry, number formatting, and fill/opacity emission. The basic public Excel PNG/SVG export contract now asserts the root background artifact shape.
+
+Latest Visio stencil-thumbnail wrapper SVG consolidation checkpoint: Visio stencil preview thumbnails now use shared Drawing helpers for their wrapper rectangles and preview image element as well as caption text. `OfficeSvgImageRenderer.AppendImage` now supports adapter-supplied `preserveAspectRatio`, so Visio keeps thumbnail layout and package/gallery policy while Drawing owns rectangle geometry, image geometry, data URI construction, preserve-aspect attribute emission, and text element formatting. The browser-renderable thumbnail artifact test now proves the full wrapper shape.
+
+Latest Excel top/bottom conditional-formatting checkpoint: Excel image export now renders bounded numeric top/bottom count and percent rules with solid differential fills, including tied values at the cutoff, through the existing conditional fill pipeline. Rule snapshots expose top/bottom rank, bottom, and percent metadata; public top/bottom builder overloads can attach a fill color. Invalid or nonnumeric top/bottom rules remain source-diagnosed with `ExcelConditionalTopBottomUnsupported` instead of being silently ignored.
+
+Latest Excel average conditional-formatting checkpoint: Excel image export now renders above-average and below-average rules with solid differential fills through the same conditional fill pipeline, including equal-to-average inclusion when requested. Rule snapshots carry above/below/equal/std-dev metadata, and the public sheet and fluent range APIs can attach average-rule fill colors. Standard-deviation average rules and unsupported conditional-formatting families such as date/time still remain source-diagnosed instead of being silently ignored.
+
+Latest Excel text conditional-formatting checkpoint: Excel image export now renders contains-text, not-contains-text, begins-with, and ends-with conditional-formatting rules with solid differential fills through the same conditional fill pipeline. Rule snapshots carry the rule text payload, public sheet/fluent APIs can author the text rules with fills, and malformed text rules emit `ExcelConditionalTextRuleUnsupported` instead of silently disappearing.
+
+## Goal
+
+Build a dependency-free OfficeIMO image conversion stack that can render selected Office content to PNG and SVG in a deterministic, server-safe way.
+
+The first delivered slice should be small: Excel range to PNG/SVG. The architecture must be large enough to grow into worksheet, workbook, drawing, chart, PowerPoint slide, Word page, and other Office visual exports without rewriting the foundation.
+
+## North Star
+
+OfficeIMO should be able to answer this family of requests:
+
+```csharp
+sheet.Range("A1:D12").SaveAsPng("range.png");
+sheet.Range("A1:D12").SaveAsSvg("range.svg");
+
+sheet.SaveAsPng("worksheet.png");
+workbook.SaveAsImages("output-folder");
+
+drawing.SaveAsPng("drawing.png");
+presentation.Slides[0].SaveAsPng("slide.png");
+```
+
+The API can grow by document family, but the rendering foundation should stay shared:
+
+1. Document package readers create a neutral visual snapshot.
+2. Shared drawing/rendering code paints that snapshot.
+3. Encoders write PNG or SVG.
+4. Diagnostics explain every unsupported or approximated feature.
+
+## Guardrails
+
+- No runtime dependency on Excel, LibreOffice, browsers, Playwright, Poppler, ImageSharp, SkiaSharp, System.Drawing.Common, or platform graphics APIs.
+- No product path that renders to PDF and then rasterizes the PDF with an external executable.
+- No Excel-only one-off renderer hidden in `OfficeIMO.Excel`.
+- No document-specific private raster canvas, PNG encoder, or PNG decoder when equivalent shared `OfficeIMO.Drawing` capability exists or can reasonably be promoted there.
+- No new premium rendering work that deepens a second renderer brain before the shared Drawing migration path is explicit.
+- No promise of byte-identical screenshots from desktop Office. The contract is deterministic OfficeIMO rendering with clear diagnostics and professional visual fidelity.
+- No feature silently disappears. Unsupported visuals must be reported through diagnostics.
+- No public API shape that blocks multi-page, multi-sheet, or multi-format exports later.
+
+## Renderer Consolidation Findings
+
+Current product rendering ownership should be treated as:
+
+- `OfficeIMO.Drawing`
+  - Target shared engine for dependency-free raster buffers, raster canvas operations, shared styled strokes, PNG read/write, shared chart/drawing rendering, and image export diagnostics.
+  - Current branch has the new Excel-facing raster stack and first Visio-needed primitives.
+- `OfficeIMO.Excel`
+  - Thin document adapter over Excel visual snapshots and `OfficeIMO.Drawing`.
+  - Should not gain a private pixel engine, and should keep moving reusable text/object/layout primitives into Drawing or shared Excel utilities instead of growing image-only helper brains.
+- `OfficeIMO.Visio`
+  - Has the strongest current native PNG renderer and visual-baseline discipline.
+  - Still owns a private `RasterCanvas` for Visio-specific geometry, connector, stencil, and label-layout glue. Its private `PngRaster`, PNG encoding code, supersampled pixel buffer, alpha blending, downsample resolve, polygon/contour fill loops, line/dashed/polyline stroke loops, dashed ellipse stroke approximation, solid elliptical arcs, rotated ellipse fill/stroke, rotated/scaled image projection loop, anchored text-line drawing, fallback glyph drawing, text measurement, and PNG/SVG text wrapping helpers have been moved to shared Drawing.
+- `OfficeIMO.Pdf`
+  - Has PDF-specific image parsing and stream compression; this is not automatically a duplicate PNG renderer because PDF output has different stream/filter contracts.
+  - Test-only PNG generation/comparison helpers now reuse shared Drawing test support.
+
+Consolidation rule:
+
+```text
+Document package renderer = layout and source semantics only
+OfficeIMO.Drawing = pixels, paths, fills, text rasterization, image decode/encode, shared diagnostics
+Tests = visual comparison helpers, preferably shared once stable
+```
+
+The first migration target is Visio PNG internals because Visio already solved several problems Excel needs for premium output: dashed strokes, rotated images, rotated/anchored text, even-odd contour fills, stencil artwork projection, and visual baseline gates. The first consolidation slices moved PNG read/write edges, supersampled pixel storage/blending/resolve, polygon fills, contour fills, line/polyline/styled stroke drawing, dashed ellipse stroke approximation, solid elliptical arcs, rotated ellipse fill/stroke, rotated/scaled image drawing, anchored text-line drawing, fallback glyph drawing, text measurement, shared PNG/SVG text wrapping/trim helpers, and rectangular raster clipping to `OfficeIMO.Drawing`; the shared visual-baseline helper now covers Excel, Visio, and PDF raster comparisons. The next slice should migrate richer path helpers while leaving document-specific Visio layout semantics in `OfficeIMO.Visio`.
+
+## Architecture
+
+### 1. Shared Rendering Foundation
+
+Owner: `OfficeIMO.Drawing`
+
+Add the missing raster side beside the existing SVG side:
+
+- `OfficeRasterImage` or equivalent RGBA buffer.
+- `OfficeRasterCanvas` for lines, rectangles, fills, clipping, and text.
+- `OfficePngWriter` for dependency-free PNG encoding.
+- `OfficeDrawingRasterRenderer` that renders existing `OfficeDrawing` primitives to PNG.
+- Shared image export result and diagnostics types where they are not document-specific.
+
+This is where ChartForgeX is most useful as reference material. Borrow ideas and carefully adapted code patterns from its raster image, canvas, and PNG writer. Do not depend on the ChartForgeX package.
+
+### 2. Neutral Visual Snapshots
+
+Owner: source document package, reusable across adapters.
+
+Each Office domain should translate package content into a format-independent visual snapshot before writing PNG or SVG:
+
+- Excel range snapshot.
+- Excel worksheet snapshot.
+- Drawing/chart snapshot.
+- PowerPoint slide snapshot.
+- Word page snapshot.
+
+Snapshots should contain visual facts, not encoder decisions: bounds, cells, text runs, styles, fills, borders, images, charts, layout measurements, merges, hidden rows/columns, and source feature diagnostics.
+
+### 3. Thin Document Adapters
+
+Owner: document-specific packages such as `OfficeIMO.Excel`.
+
+Document adapters should expose friendly APIs and call the shared snapshot/rendering pipeline:
+
+- Select content.
+- Build visual snapshot.
+- Choose PNG or SVG renderer.
+- Return bytes, stream output, or file output.
+- Return diagnostics.
+
+Adapters should not own a separate raster engine.
+
+### 4. Diagnostics As Contract
+
+Every export should be able to return structured diagnostics:
+
+- Unsupported source features.
+- Approximate rendering decisions.
+- Missing fonts or fallback text measurement.
+- Cropped content.
+- Hidden rows/columns skipped.
+- Images or chart snapshots that could not be rendered.
+
+This lets the first slices be useful without pretending to be complete.
+
+### 5. Visual Fidelity As A Product Contract
+
+The image export goal is not merely "valid PNG/SVG bytes." Output should look like a credible Office-rendered artifact, not like a hand-built debug canvas.
+
+Every visually exposed phase should have an explicit fidelity bar:
+
+- Text is antialiased or otherwise rendered cleanly enough for report screenshots.
+- Font size, weight, color, and baseline placement look intentional.
+- Cell alignment, padding, wrapping, clipping, and merged-cell layout are visually coherent.
+- Borders, gridlines, fills, and backgrounds match Office-like proportions.
+- Charts look like polished chart exports, with legible titles, axes, labels, legends, and series geometry.
+- Images preserve aspect, transparency, placement, and clipping where supported.
+- SVG and PNG are visually comparable for the same source.
+- Unsupported effects are diagnosed, but supported output must not look rough by default.
+
+Use automated tests for contracts and dimensions, but require human visual review or approved visual baselines for renderer changes.
+
+## Naming, Namespaces, And Packages
+
+### Package Plan
+
+Do not create a new NuGet package for the first Excel range-to-image work.
+
+Use the packages that already express the correct ownership:
+
+- `OfficeIMO.Drawing`
+  - Owns shared visual primitives, SVG export, raster buffers, raster canvas, PNG encoding, and document-agnostic image diagnostics.
+  - Remains dependency-free.
+- `OfficeIMO.Excel`
+  - Owns Excel range, worksheet, and workbook visual snapshots.
+  - Owns the friendly Excel APIs for range, worksheet, and workbook image export.
+  - Uses `OfficeIMO.Drawing` for rendering and encoding, which it already references.
+- `OfficeIMO.Excel.Pdf`
+  - Keeps PDF-specific export behavior.
+  - Reuses the neutral Excel visual snapshot once it is extracted, but should not own the snapshot model.
+- `OfficeIMO.PowerPoint`, `OfficeIMO.Word`, and other document packages
+  - Later own their document-specific visual snapshots and thin image export APIs.
+  - Reuse `OfficeIMO.Drawing` instead of creating their own raster stack.
+
+Reserve a new shared package only if the feature family later outgrows `OfficeIMO.Drawing`. If that happens, prefer `OfficeIMO.Imaging` for cross-document orchestration and image export services. Do not start with `OfficeIMO.Imaging`, because the first missing engine is drawing/raster functionality and the repo already has `OfficeIMO.Drawing` for that role.
+
+Avoid `OfficeIMO.Excel.Image` for the first implementation. It would add package friction without removing dependencies, because Excel already depends on Drawing. A separate `OfficeIMO.Excel.Image` package should only be reconsidered if image export becomes large enough to justify optional install size or release cadence separation.
+
+### Namespace Plan
+
+Follow existing OfficeIMO style: public document types mostly live in the document namespace, with folders used for organization.
+
+Recommended public namespaces:
+
+- `OfficeIMO.Drawing`
+  - Public shared image primitives and diagnostics.
+  - Public raster types only when users reasonably need them.
+- `OfficeIMO.Excel`
+  - Public Excel image export options, results, and extension methods.
+  - Excel visual snapshots if and when they become public contracts.
+- `OfficeIMO.PowerPoint`
+  - Later PowerPoint slide image options and APIs.
+- `OfficeIMO.Word`
+  - Later Word page image options and APIs.
+
+Recommended internal organization:
+
+- `OfficeIMO.Drawing/Raster/`
+  - `OfficeRasterImage`
+  - `OfficeRasterCanvas`
+  - `OfficeRasterColor`
+  - `OfficeAlphaBlend`
+- `OfficeIMO.Drawing/Png/`
+  - `OfficePngWriter`
+  - PNG filtering, CRC, and chunk helpers.
+- `OfficeIMO.Drawing/Rendering/`
+  - `OfficeDrawingRasterRenderer`
+  - shared text and shape rendering helpers.
+- `OfficeIMO.Excel/Imaging/`
+  - `ExcelRangeVisualSnapshot`
+  - `ExcelWorksheetVisualSnapshot`
+  - `ExcelImageExportOptions`
+  - `ExcelRangeImageRenderer`
+  - `ExcelSheet.Imaging.cs`
+  - `ExcelRange.Imaging.cs` if a first-class range type exists.
+
+The folder names may be specific, but namespaces should stay simple unless a public surface becomes large enough to deserve a subnamespace. For example, prefer `namespace OfficeIMO.Excel` for `ExcelImageExportOptions` over `namespace OfficeIMO.Excel.Imaging` unless the API set becomes broad enough that a separate using is helpful.
+
+### Type Naming
+
+Use `Image` for user-facing concepts and `Raster` only for pixel-buffer implementation details.
+
+Preferred shared names:
+
+- `OfficeImageExportFormat`
+  - Values: `Png`, `Svg`.
+- `OfficeImageExportResult`
+  - Format, dimensions, bytes or output metadata, diagnostics.
+- `OfficeImageExportDiagnostic`
+  - Severity, code, message, source reference where available.
+- `OfficeImageExportDiagnosticSeverity`
+  - `Info`, `Warning`, `Error`.
+- `OfficeRasterImage`
+  - Internal or advanced public RGBA buffer.
+- `OfficeRasterCanvas`
+  - Internal or advanced public pixel drawing canvas.
+- `OfficePngWriter`
+  - Low-level PNG encoder.
+
+Preferred Excel names:
+
+- `ExcelImageExportOptions`
+  - Shared Excel image options such as scale, gridlines, include images, include charts, and diagnostics behavior.
+- `ExcelRangeImageExportOptions`
+  - Add only if range export needs options that do not belong to worksheet/workbook export.
+- `ExcelWorksheetImageExportOptions`
+  - Used when worksheet export needs print area, used range, page slicing, or page setup behavior.
+- `ExcelWorkbookImageExportOptions`
+  - Used when workbook export needs sheet selection and output naming.
+- `ExcelRangeVisualSnapshot`
+  - Format-neutral visual model for a selected range.
+- `ExcelWorksheetVisualSnapshot`
+  - Format-neutral visual model for a worksheet or page slice.
+- `ExcelImageExportResult`
+  - Excel-specific result if generic `OfficeImageExportResult` is not enough.
+
+Avoid these names:
+
+- `AllToImage`, `OfficeToImage`, or `DocumentToImage`
+  - Too broad before Word, PowerPoint, PDF, and Excel share proven contracts.
+- `Screenshot`
+  - Implies desktop Office/browser fidelity and behavior.
+- `Bitmap`
+  - Too narrow and platform-loaded; prefer `Raster`.
+- `Convert`
+  - Too vague for APIs. Prefer `ToPng`, `ToSvg`, `SaveAsPng`, `SaveAsSvg`, and `ExportImages`.
+- `Renderer` in public user-facing APIs
+  - Keep renderers internal until custom renderer injection is a proven need.
+
+### API Naming
+
+Use format-specific convenience methods for the simple cases and result-returning export methods for advanced cases:
+
+```csharp
+byte[] png = sheet.Range("A1:D12").ToPng();
+string svg = sheet.Range("A1:D12").ToSvg();
+
+sheet.Range("A1:D12").SaveAsPng("range.png");
+sheet.Range("A1:D12").SaveAsSvg("range.svg");
+
+OfficeImageExportResult result = sheet.Range("A1:D12").ExportImage(
+    OfficeImageExportFormat.Png,
+    new ExcelImageExportOptions { Scale = 2 });
+```
+
+For multi-output operations, avoid pretending there is one image:
+
+```csharp
+IReadOnlyList<OfficeImageExportResult> pages = sheet.ExportImages(options);
+IReadOnlyList<OfficeImageExportResult> images = workbook.ExportImages(options);
+```
+
+This gives the small first feature friendly names while keeping room for worksheet pages, workbook sheet collections, and later document families.
+
+## Phase Plan
+
+### Phase C0: Renderer Brain Consolidation
+
+Purpose: make sure OfficeIMO has one reusable image rendering engine before premium Excel work deepens a parallel implementation.
+
+Deliverables:
+
+- Inventory every product PNG/SVG/raster/image-export path and classify it as shared engine, document adapter, PDF-specific writer behavior, test-only helper, or duplicate private renderer.
+- Promote reusable Visio PNG renderer capabilities into `OfficeIMO.Drawing`: dashed strokes, solid elliptical arcs, rotated image drawing, rotated ellipse fill/stroke, even-odd contour/path fills, text measurement/layout helpers, clipping, supersampling/downsampling, PNG decode/encode reuse, and reusable visual diagnostics where appropriate. PNG decode/encode, supersampled pixel storage/blending/resolve, polygon/contour fills, line/polyline/dashed strokes, solid elliptical arcs, rotated ellipse fill/stroke, rotated/scaled image projection, anchored text-line drawing, fallback glyph drawing, text measurement, shared text wrapping/trim helpers, and rectangular raster clipping are already in shared Drawing on this branch.
+- Migrate `OfficeIMO.Visio` native PNG export to consume shared Drawing raster/PNG primitives while keeping Visio-specific page, shape, connector, stencil, and label-layout semantics in `OfficeIMO.Visio`.
+- Move or wrap PDF/Visio visual-baseline PNG comparison helpers into shared test support. This branch now has shared support for Excel, Visio, and PDF raster baseline comparisons.
+- Update docs to forbid future document-specific private pixel engines unless there is a documented, narrow source-format reason.
+
+Acceptance:
+
+- `OfficeIMO.Drawing` owns the reusable raster/PNG/text/path primitives used by Excel and Visio, including measured line layout primitives for plain multiline text.
+- `OfficeIMO.Visio` no longer has a private PNG encoder/decoder or private supersampled pixel buffer/resolve loop, and its remaining general-purpose private raster canvas is either removed or demonstrably only document-specific layout glue over shared Drawing primitives.
+- Excel, Visio, and PDF visual-baseline raster comparisons use shared test support instead of private PNG decoder/encoder copies.
+- Existing Visio PNG/SVG tests and premium native visual baselines pass or have intentional, reviewed baseline updates.
+- Excel range/worksheet/workbook image tests still pass through the same shared Drawing engine.
+- No dependency is added.
+
+### Phase 0: Contracts And Extraction Seams
+
+Purpose: make the small first feature fit the big goal.
+
+Deliverables:
+
+- Decide the public naming pattern for image export APIs, options, results, and diagnostics.
+- Add internal contracts for visual snapshots and image export results.
+- Extract reusable Excel visual planning from `OfficeIMO.Excel.Pdf` into neutral Excel-owned types without changing PDF behavior.
+- Keep `OfficeIMO.Excel.Pdf` consuming the same data it consumes today, but through the neutral layer.
+- Document the expected PNG/SVG contract and non-goals.
+
+Acceptance:
+
+- Existing Excel-to-PDF tests still pass.
+- No runtime dependencies are added.
+- The extracted model is format-neutral and does not mention PDF, PNG, or SVG in core names.
+
+### Phase 1: Drawing PNG Foundation
+
+Purpose: create the dependency-free pixel engine once.
+
+Deliverables:
+
+- Add a small RGBA image buffer.
+- Add a canvas capable of fills, lines, rectangles, clipping, alpha blending, and basic text.
+- Add a PNG encoder.
+- Add `OfficeDrawing` to PNG export.
+- Keep existing `OfficeDrawing` to SVG behavior intact.
+
+Acceptance:
+
+- PNG output has valid signature and dimensions.
+- Basic drawing primitives produce nonblank images.
+- SVG and PNG render the same simple drawing scenarios at the contract level.
+- No product code uses external graphics libraries.
+
+### Phase 2: Excel Range Visual Snapshot
+
+Purpose: describe an Excel range visually without choosing an output format.
+
+Deliverables:
+
+- Add `ExcelRangeVisualSnapshot` or equivalent.
+- Add snapshot options for scale, gridlines, hidden rows/columns, merged cells, images, charts, and style inclusion.
+- Reuse existing worksheet reading, style snapshots, row/column metadata, merged ranges, images, and chart snapshots.
+- Carry diagnostics for unsupported or approximated features.
+
+Acceptance:
+
+- Snapshot tests cover values, styles, borders, fills, dimensions, merges, hidden rows/columns, images, and charts where currently supported.
+- Existing Excel PDF export remains behaviorally unchanged.
+
+### Phase 3: Excel Range To SVG/PNG
+
+Purpose: deliver the first user-visible feature.
+
+Deliverables:
+
+- Add range image APIs such as:
+
+```csharp
+byte[] png = sheet.Range("A1:D12").ToPng(options);
+string svg = sheet.Range("A1:D12").ToSvg(options);
+sheet.Range("A1:D12").SaveAsPng("range.png", options);
+sheet.Range("A1:D12").SaveAsSvg("range.svg", options);
+```
+
+- Render cell backgrounds, text, gridlines, borders, merged cells, row heights, column widths, and simple alignments.
+- Include worksheet images and chart snapshots when they intersect the range and can be represented.
+- Return diagnostics for unsupported visuals.
+
+Acceptance:
+
+- Generated PNG/SVG artifacts exist, are nonblank, and have stable dimensions.
+- Contract tests cover simple, styled, merged, hidden-row/column, image, and chart scenarios.
+- API examples are small and match real entrypoints.
+
+### Phase 4: Worksheet To Image
+
+Purpose: expand from selected ranges to a complete sheet surface.
+
+Deliverables:
+
+- Add worksheet export options for used range, print area, explicit range, or page setup.
+- Support one long worksheet image and page-sliced output.
+- Respect sheet-level options such as gridlines, page orientation where relevant, print area, and scaling.
+- Preserve the same renderer and diagnostics pipeline from range export.
+
+Current progress:
+
+- Worksheet export already reuses the range snapshot and shared renderer.
+- `ExcelWorksheetImageExportOptions.Range` provides explicit range export.
+- `ExcelWorksheetImageExportOptions.UsePrintArea` now uses the worksheet `_xlnm.Print_Area` defined name when configured.
+- Explicit ranges override print areas.
+- Missing print areas emit `ExcelPrintAreaMissing` and fall back to the used range.
+- Multi-area print areas emit `ExcelPrintAreaMultipleAreasUnsupported` and fall back to the used range, matching the existing PDF export contract direction.
+
+Acceptance:
+
+- The worksheet path reuses range snapshot/rendering rather than duplicating it.
+- Large sheets can be exported with bounded memory through tiling or page slicing where needed.
+- Multi-page output returns a manifest/result collection, not only one byte array.
+
+### Phase 5: Workbook To Images
+
+Purpose: orchestrate all visible sheets.
+
+Deliverables:
+
+- Add workbook-level export options for selected sheets, visible sheets, print areas, and output naming.
+- Return per-sheet and per-page results with diagnostics.
+- Allow folder, stream factory, and in-memory outputs.
+
+Current progress:
+
+- Workbook image export is orchestration over worksheet export.
+- `ExcelWorkbookImageExportOptions.SheetNames` selects sheets.
+- `ExcelWorkbookImageExportOptions.UseWorksheetPrintAreas` forwards print-area intent to each worksheet and preserves per-sheet diagnostics.
+- Folder and in-memory output paths exist for the current one-image-per-sheet shape.
+
+Acceptance:
+
+- Workbook export is orchestration only.
+- Sheet failures are isolated and reported.
+- Results can be consumed by downstream tools without guessing filenames or page order.
+
+### Phase 6: Shared Document Expansion
+
+Purpose: reuse the same image stack outside Excel.
+
+Likely order:
+
+1. `OfficeDrawing` and chart PNG/SVG exports, because the drawing model already exists.
+2. PowerPoint slide PNG/SVG, because slides are naturally bounded visual surfaces.
+3. Word page PNG/SVG, after page layout contracts are explicit.
+4. PDF page PNG/SVG, only when OfficeIMO has an internal PDF content rasterizer and does not depend on Poppler.
+
+Acceptance:
+
+- New document families produce visual snapshots first.
+- PNG/SVG encoding remains shared.
+- Document-specific packages stay thin.
+
+### Phase 7: Unified Image Export Surface
+
+Purpose: make the feature family feel consistent after several domains exist.
+
+Deliverables:
+
+- Align naming, options, result types, and diagnostics across Excel, Drawing, Word, PowerPoint, and PDF.
+- Add shared helper abstractions only where repeated behavior has proven itself.
+- Consider thin PowerShell/CLI wrappers after the .NET surface is stable.
+
+Acceptance:
+
+- Users can learn one export result/diagnostics model.
+- Document-specific APIs remain discoverable and friendly.
+- Shared abstractions reflect real reuse rather than speculative generality.
+
+## Step-One Implementation Path
+
+Initial implementation path:
+
+1. Done initial slice: add dependency-free `OfficeRasterImage`, `OfficeRasterCanvas`, shared image export result/diagnostics, and `OfficePngWriter` in `OfficeIMO.Drawing`.
+2. Done initial slice: add `ExcelRangeVisualSnapshot` and range snapshot building from values, styles, row/column metadata, merged ranges, and diagnostics.
+3. Done initial slice: render Excel ranges to PNG and SVG with values, fills, gridlines, borders, row heights, column widths, and merged-cell coverage.
+4. Done initial slice: add worksheet used-range/range export APIs over the same snapshot/renderer.
+5. Done initial slice: add workbook `ExportImages` and `SaveAsImages` orchestration over worksheet exports.
+6. Done initial slice: add embedded PNG worksheet image rendering and supported chart snapshot rendering through shared drawing primitives.
+7. Done initial slice: add focused tests for shared PNG output plus Excel range, worksheet, workbook, embedded-image, and chart image export contracts.
+8. Done first fidelity pass: add source-over alpha blending, antialiased raster primitives, bilinear image scaling, and PNG text alignment/style mapping.
+9. Done consolidation slice: migrate shared Visio PNG internals for PNG read/write, supersampled storage/resolve, polygon and even-odd contour fills, line/dashed strokes, solid elliptical arcs, rotated ellipse fill/stroke, rotated/scaled image drawing, anchored text-line drawing, fallback glyph drawing, and text measurement into `OfficeIMO.Drawing`.
+10. Done text fidelity slice: add wrapped Excel cell text, explicit/default vertical text alignment, SVG text clipping, and stable `ExcelCellTextClipped` diagnostics through a dedicated Excel image text-layout helper over shared Drawing measurement/rendering.
+11. Done first baseline gate: add an approved Excel image PNG/SVG visual baseline with raster diff artifacts on mismatch, nonblank validation through shared PNG decode, and structural SVG assertions for text clipping, embedded images, charts, and percent display text.
+12. Done visual QA consolidation slice: add shared Drawing-backed visual-baseline test support and migrate Excel image, Visio premium, and PDF raster baseline comparison paths to it.
+13. Done text fidelity slice: capture styled cell font sizes and shrink-to-fit in Excel visual snapshots, expose thin cell/range APIs for them, and render them consistently through PNG/SVG with focused visual tests.
+14. Done renderer consolidation slice: promote dashed ellipse stroke approximation into `OfficeIMO.Drawing`, keep Visio on the shared primitive, and add a Drawing raster contract test for dashed ellipse gaps.
+15. Done text fidelity slice: capture Excel text rotation in visual snapshots, expose thin cell/range APIs, render basic numeric rotation through the shared Drawing text renderer for PNG/SVG, and report approximation/unsupported stacked rotation with stable diagnostics.
+16. Done renderer consolidation slice: promote solid and dashed polyline stroking into `OfficeIMO.Drawing`, keep Visio connector/shape strokes on the shared primitive while preserving Visio's per-segment dash reset behavior, and prove it with focused Drawing tests plus the native Visio premium baseline gate.
+17. Done image fidelity/diagnostics slice: detect worksheet image byte formats in Excel visual snapshots, embed known SVG-compatible formats such as JPEG in SVG output, and report unsupported PNG rasterization or SVG embedding with stable image-source diagnostics.
+18. Done style fidelity slice: add a reusable Excel theme/indexed/direct color resolver with tint/shade support, wire it through `ExcelCell.GetStyle()`, inspection snapshots, and image visual snapshots, and prove PNG/SVG rendering with a theme-backed style contract test.
+19. Done style fidelity slice: evaluate first-pass conditional formatting visuals in the neutral Excel image snapshot, render color scales and data bars to PNG/SVG, and report unsupported icon sets with stable source diagnostics.
+20. Done visual QA slice: add an approved Excel conditional-formatting PNG/SVG baseline covering heat-map fills, positive and negative data bars, and unsupported icon-set diagnostics through the same Drawing-backed baseline comparison helper.
+21. Done conditional-rule fidelity slice: expose differential fill colors in conditional rule snapshots, add optional fill colors to cell-is/formula rule authoring, render bounded numeric cell-is and simple comparison formula fills with priority and stop-if-true behavior, and extend the conditional-formatting baseline with a rule-driven fill column.
+22. Done conditional diagnostics slice: emit stable source-referenced warnings for unsupported conditional rule types, unsupported data-bar/color-scale shapes, unsupported differential formats, text/non-numeric cell-is rules, and formula rules outside the simple numeric comparison subset.
+23. Done hidden-layout contract slice: omit hidden rows/columns by default, honor `IncludeHidden`, and report hidden row/column omission plus hidden-anchored image/chart omission with stable source diagnostics.
+24. Done rich-text fidelity slice: capture Excel rich text runs in the visual snapshot, render supported single-line runs to PNG/SVG with per-run bold/italic/underline/color/font-size mapping through shared Drawing text operations, include that path in the approved premium Excel visual baseline, and emit `ExcelCellRichTextLayoutApproximation` when rich text falls back to plain text because rotation would not preserve runs.
+25. Done shared text measurement slice: add a bounded per-canvas cache to `OfficeRasterCanvas.MeasureText` so repeated Excel/Visio raster layout operations reuse deterministic Drawing-level measurements without global state.
+26. Done shared raster clipping slice: add rectangular clip scopes to `OfficeRasterCanvas`, use them for Excel PNG cell text rendering so rotated/overflowing text cannot paint outside the cell bounds, and prove the primitive with focused Drawing tests plus an Excel rotated-text clipping contract.
+27. Done visual QA performance slice: split Visio premium native visual baselines into per-scenario tests, expose `VisioPremiumGallery.CreateScenario(...)` for targeted scenario generation, and make Drawing raster coverage sampling adaptive for supersampled render targets so downsample antialiasing remains while redundant subpixel work is avoided.
+28. Done style fidelity/diagnostics slice: carry Excel pattern fill metadata through `ExcelCell.GetStyle()`, inspection snapshots, and image visual snapshots; render pattern fills as deterministic hatch approximations in PNG/SVG through the shared Drawing primitives; and report `ExcelFillPatternApproximation` plus `ExcelFillGradientUnsupported` instead of silently flattening unsupported fill effects.
+29. Done object diagnostics/consolidation slice: move worksheet comment and threaded-comment metadata resolution into a shared Excel utility used by inspection, feature reporting, and image export; report visible exported comments/notes and threaded comments with `ExcelCellCommentUnsupported` and `ExcelThreadedCommentUnsupported` source diagnostics instead of silently dropping them.
+30. Done drawing-object diagnostics/consolidation slice: move worksheet drawing-object detection into a shared Excel utility used by PDF preflight and image export; report visible exported shapes, text boxes, connectors, group shapes, and non-chart graphic frames with `ExcelDrawingShapeUnsupported` instead of silently dropping them from image exports.
+31. Done sparkline diagnostics/consolidation slice: move authored worksheet sparkline target-cell discovery into a shared Excel utility used by feature reporting, PDF preflight, and image export; report visible exported sparkline targets with `ExcelSparklineUnsupported` instead of silently dropping them from image exports.
+32. Done sparkline rendering slice: carry visible same-sheet numeric sparklines into `ExcelRangeVisualSnapshot`, render line/column/win-loss sparklines to PNG/SVG through shared Drawing primitives, preserve basic authored colors/markers/axis/negative styling, and replace the blanket unsupported warning with `ExcelSparklineRenderingApproximation` plus specific `ExcelSparklineExternalRangeUnsupported`, `ExcelSparklineRangeUnsupported`, `ExcelSparklineKindUnsupported`, and `ExcelSparklineDataMissing` diagnostics for the cases still outside the renderer.
+33. Done sparkline visual QA slice: add approved PNG/SVG sparkline visual baselines covering line, column, and win/loss sparklines, assert SVG structure/colors/clipping, validate approved PNG nonblank dimensions, and run them through the shared Drawing-backed visual-baseline comparison helper.
+34. Done comment-indicator visual slice: carry visible comments/notes and threaded comments into `ExcelRangeVisualSnapshot`, render top-right cell indicators to PNG/SVG through shared Drawing primitives, keep unsupported-body diagnostics source-referenced, add decoded PNG/SVG object tests, and include the legacy comment marker in the approved premium Excel visual baseline.
+35. Done image clipping visual slice: include worksheet images whose visual rectangle overlaps the selected range even if their anchor cell is outside it; preserve hidden-anchor omissions; render negative-position/clipped images to PNG/SVG; add focused decoded-pixel/SVG tests and a dedicated clipped-image approved visual baseline.
+36. Done image transform visual slice: carry authored worksheet picture rotation into `ExcelRangeVisualSnapshot`, render basic rotated PNG images through shared Drawing rotated image sampling, emit SVG image rotation transforms, and add focused decoded-pixel/SVG tests plus a dedicated rotated-image approved visual baseline that was visually reviewed for readable layout.
+37. Done image transform consolidation slice: replace separate scaled/cropped/rotated raster image loops with one shared Drawing projector that combines source rectangles, rotation, and horizontal/vertical flips; wire Excel crop-plus-flip-plus-rotation through it for PNG/SVG; remove stale flip and crop-plus-rotation unsupported diagnostics; add focused shared Drawing and Excel workbook tests plus a visually reviewed transformed-image baseline.
+38. Done drawing-object rendering slice: classify worksheet drawing objects once, route simple rectangle/rounded-rectangle solid RGB shapes with plain text through the neutral Excel snapshot and shared `OfficeIMO.Drawing` PNG/SVG renderers, keep unsupported variants diagnosed, and add focused object tests plus a reviewed approved drawing-object baseline.
+39. Done layered drawing-order slice: add source drawing order to Excel images, charts, and supported drawing objects; introduce an ordered `ExcelVisualDrawingLayer` overlay stream; render supported shapes/images/charts through one PNG/SVG dispatcher; and prove mixed shape/image order in both directions with snapshot order, SVG order, and decoded PNG pixel assertions.
+40. Done text-layout consolidation slice: promote trim-to-width into `OfficeIMO.Drawing.OfficeTextLayoutEngine`, replace Excel's private wrapped-line and line type helpers with shared `OfficeTextLine` output, keep Excel-specific shrink/vertical/clipping/rich-text decisions in the adapter, and prove the shared contract plus public Excel multiline PNG/SVG output with focused tests.
+41. Done Visio SVG text-layout consolidation slice: replace Visio SVG's private wrap/break/max-line measurement helpers with `OfficeTextLayoutEngine`, keep SVG-specific emission/alignment/background behavior in the Visio adapter, and prove hard-break SVG text, full `VisioSvgExport`, `VisioPngExport`, and native premium Visio baselines still pass.
+42. Done text-block fit consolidation slice: promote wrapped text-block fit-down into `OfficeIMO.Drawing.OfficeTextLayoutEngine.FitWrappedText` and `OfficeTextBlockLayout`, replace Visio PNG/SVG private fit math with the shared helper, keep adapter-specific placement/emission/background/underline behavior in Visio, and prove the shared fit contract plus Visio PNG/SVG/premium baseline behavior.
+43. Done text-placement consolidation slice: promote reusable horizontal anchor, measured-line-left, and vertical top placement into `OfficeIMO.Drawing.OfficeTextPlacement` plus `OfficeTextVerticalAlignment`; migrate Excel PNG/SVG text and rich-text placement plus Visio PNG/SVG text/background/underline placement onto the shared helper; keep document-specific alignment mapping in adapters; and prove Drawing placement, Excel image export, Visio SVG/PNG, and native premium Visio baselines.
+44. Done text clipping consolidation slice: promote visible-height text-block clipping, last-visible-line ellipsis, and clipped-state reporting into `OfficeIMO.Drawing.OfficeTextLayoutEngine.ClipTextBlockToHeight` / `OfficeTextBlockLayout.Clipped`; replace Excel's private `ExcelTextLayout` result and max-line clipping helper with the shared block layout while keeping Excel-specific shrink-to-fit, rotation, rich-text fallback, and diagnostics in the adapter; and prove the shared clipping contract plus Excel image export.
+45. Done shrink-to-fit consolidation slice: promote measured single-line font-size fitting into `OfficeIMO.Drawing.OfficeTextLayoutEngine.FitSingleLineFontSize`; replace Excel's private shrink-to-fit binary search with a thin policy wrapper that calls the shared helper; and prove already-fit, fitted, and minimum-floor behavior plus Excel image export.
+46. Done bounded text-layout orchestration slice: promote generic bounded text block layout orchestration into `OfficeIMO.Drawing.OfficeTextLayoutEngine.LayoutTextBlock`; replace Excel's private cell text layout coordinator with the shared helper; keep Excel-specific wrap/shrink/rotation policy, rich-text fallback, vertical alignment, and diagnostics in the adapter; and prove shared shrink/wrap/clip/single-line behavior plus Excel image export.
+47. Done rich text block layout slice: add shared `OfficeRichTextRun` / segment / line / block layout contracts and `OfficeTextLayoutEngine.LayoutRichTextBlock`; render Excel hard-break and wrapped rich text through the shared layout in PNG/SVG with per-run bold/italic/underline/color/font-size preservation; keep rotation fallback diagnosed; and prove the Drawing contract plus Excel PNG/SVG rich-text behavior.
+48. Done rich text shrink-to-fit slice: add proportional run font-size scaling to shared `OfficeTextLayoutEngine.LayoutRichTextBlock`; render Excel shrink-to-fit rich text through the shared rich layout in PNG/SVG without rich-text approximation diagnostics; prove width fitting plus run style preservation through Drawing and Excel image export tests; and add a dedicated approved PNG/SVG rich-text baseline covering single-line, hard-break, wrapped, shrink-to-fit, and clipped rich text.
+49. Done basic rotated rich text slice: preserve rich text runs for basic rotated Excel cell text in PNG/SVG instead of falling back to plain text; add shared Drawing point-rotation placement support; keep `ExcelCellTextRotationApproximation` diagnostics for the non-Excel-exact rotation path; and extend the rich-text approved baseline with a visually reviewed rotated styled run.
+50. Done chart series-color slice: carry simple authored Excel chart series fill/line colors through `ExcelChartSnapshot` into shared `OfficeChartSeries.Color`, render those colors in PNG/SVG through the existing Drawing chart renderer, suppress the generic series-style approximation diagnostic for that supported simple color case, and prove SVG plus decoded PNG output with a focused Excel image-export test.
+51. Done chart point/marker color slice: add authored Excel chart point-fill APIs, carry simple `c:dPt` solid fills plus simple marker fill/visibility through `ExcelChartSnapshot` into shared `OfficeChartSeries.PointColors` and marker flags, render those colors in PNG/SVG through the existing Drawing chart renderer, keep diagnostics for marker shape/size/outline and richer point styling, and prove snapshot state plus SVG and decoded PNG pixels with focused Excel image-export tests.
+52. Done chart gridline style slice: carry simple authored Excel major-gridline color and gridline visibility through `ExcelChartSnapshot` into shared `OfficeChartStyle.GridLineColor` / `ShowGridLines`, render those settings in PNG/SVG through the existing Drawing chart renderer, keep `ExcelChartGridlineStyleApproximation` diagnostics for complex styling that the shared renderer does not honor yet, and prove snapshot state plus SVG and decoded PNG output with focused Excel image-export tests.
+53. Done chart axis-line style slice: add authored Excel category/value axis-line APIs, carry simple solid axis-line color and no-line visibility through `ExcelChartSnapshot` into shared `OfficeChartStyle.AxisColor` and `OfficeChartLayout.ShowCategoryAxisLine` / `ShowValueAxisLine`, render those settings in PNG/SVG through the existing Drawing chart renderer, keep `ExcelChartAxisStyleApproximation` diagnostics for width/complex styling that the shared renderer does not honor yet, and prove snapshot state plus SVG and decoded PNG output with focused Excel image-export tests.
+54. Done chart title-color slice: carry simple authored Excel chart title RGB text color into shared `OfficeChartStyle.TitleColor`, render it through the existing Drawing chart renderer, keep `ExcelChartTextStyleApproximation` diagnostics for title typography that the shared renderer does not honor yet, and prove snapshot state plus SVG and decoded PNG output with focused Excel image-export tests.
+55. Done chart body/axis text-color slice: split chart text-style export helpers into a focused partial; carry simple shared legend/data-label text color into `OfficeChartStyle.TextColor`; carry simple shared axis label/title text color into `OfficeChartStyle.MutedTextColor`; keep `ExcelChartTextStyleApproximation` diagnostics for conflicting per-element colors, font size, bold, italic, and non-solid text fills that the shared chart renderer does not honor yet; and prove snapshot state plus SVG and decoded PNG output with focused Excel image-export tests.
+56. Done chart axis number-format slice: carry simple authored Excel value-axis number formats into shared `OfficeChartLayout.VerticalAxisNumberFormat` for vertical value axes and `OfficeChartLayout.HorizontalAxisNumberFormat` for horizontal bar value axes; keep `ExcelChartAxisNumberFormatApproximation` diagnostics for date/time/text/conditional/scientific-style format shapes that the shared chart number formatter does not honor yet; and prove snapshot state plus SVG output with focused Excel image-export tests.
+57. Done chart axis label-visibility slice: carry Excel `TickLabelPositionValues.None` for primary category/value axes into shared `OfficeChartLayout.ShowCategoryAxisLabels` and `ShowValueAxisLabels`, letting the shared chart renderer suppress labels instead of Excel keeping that behavior private; and prove chart-only SVG output plus snapshot flags with focused Excel image-export tests.
+58. Done chart marker-size slice: carry authored Excel marker size through `ExcelChartSeries`, the neutral Excel chart snapshot, and shared `OfficeChartSeries.MarkerSize`; render sized line/scatter/radar markers through the shared Drawing chart renderer; stop treating simple marker size as a series-style approximation; and prove snapshot state plus SVG radius and decoded PNG pixels with focused Excel image-export tests.
+59. Done chart marker-shape slice: add shared `OfficeChartMarkerShape`, carry authored Excel circle/square/diamond/triangle markers through the neutral and shared chart snapshots, render non-circle markers through Drawing rectangles/polygons in PNG/SVG, keep unsupported marker symbols diagnosed, and prove diamond marker shape with SVG polygon output plus decoded PNG pixels.
+60. Done chart marker-outline slice: carry simple authored Excel marker solid outline color and width through `ExcelChartSeries`, the neutral Excel chart snapshot, and shared `OfficeChartSeries.MarkerOutlineColor` / `MarkerOutlineWidth`; render marker outlines in PNG/SVG through the shared Drawing chart renderer; stop treating simple marker outlines as a series-style approximation; and prove snapshot state plus SVG stroke and decoded PNG outline pixels with focused Excel image-export tests.
+61. Done chart axis/gridline width slice: carry simple authored Excel axis-line and major-gridline widths through shared `OfficeChartStyle.AxisLineWidth` / `GridLineWidth`, render those widths in shared Drawing PNG/SVG output, stop treating simple width-only solid axis/gridline outlines as style approximations, and prove snapshot state plus SVG stroke widths and decoded PNG pixels with focused Excel image-export tests.
+62. Done chart axis/gridline dash slice: carry simple Excel preset dashes for axis lines and major gridlines through shared `OfficeChartStyle.AxisLineDashStyle` / `GridLineDashStyle`, render those dashes through Drawing SVG and raster line rendering, stop treating simple preset dash axis/gridline outlines as style approximations, and prove snapshot state plus SVG dash arrays and decoded PNG pixels with focused Excel image-export tests.
+63. Done chart series-line-width slice: carry simple authored Excel chart series line widths through `ExcelChartSeries`, the neutral Excel chart snapshot, and shared `OfficeChartSeries.StrokeWidth`; render stroked line/scatter/radar/area series with that width in shared Drawing output; stop treating simple series outline width as a series-style approximation; and prove the shared renderer plus Excel SVG/PNG output with focused contract tests.
+64. Done chart series-line-dash slice: carry simple Excel preset dashes for chart series outlines through `ExcelChartSeries`, the neutral Excel chart snapshot, and shared `OfficeChartSeries.StrokeDashStyle`; render dashed line/scatter/area/radar series strokes through shared Drawing line primitives; stop treating simple preset series dashes as a series-style approximation; and prove the shared renderer plus Excel SVG/PNG output with focused contract tests.
+65. Done chart marker-symbol slice: add shared plus and X marker shapes, render them as Drawing line primitives, carry authored Excel plus/X marker symbols through the neutral chart snapshot, stop treating those symbols as unsupported series-style approximations, and prove shared renderer plus Excel SVG/PNG output with focused tests.
+66. Done chart marker-symbol completion slice: add shared dash, dot, and star marker shapes, render dash as a Drawing line primitive, dot as a centered Drawing ellipse, and star as the shared five-point DrawingML preset polygon, carry authored Excel dash/dot/star symbols through the neutral chart snapshot, keep picture markers diagnosed, and prove shared renderer plus Excel SVG/PNG output with focused tests.
+67. Done Drawing geometry consolidation slice: add shared `OfficeGeometry` distance and polyline-by-length interpolation helpers, migrate Visio native PNG connector label placement, SVG connector label placement, and collision-aware label layout away from private interpolation copies, keep Visio-specific page-coordinate policy in Visio, and prove the shared geometry plus existing connector-label PNG/SVG contracts.
+68. Done chart/plot area outline depth slice: carry simple authored Excel chart-area and plot-area outline widths plus preset dashes into shared `OfficeChartStyle`, render them in Drawing PNG/SVG output, keep richer area styling diagnosed with `ExcelChartAreaStyleApproximation`, and prove the shared renderer plus Excel SVG/PNG output with focused contract tests.
+69. Done chart text font-size slice: carry simple authored Excel legend, data-label, and axis-label font sizes into shared `OfficeChartLayout`, render those sizes through the existing Drawing text renderer, keep chart title and font-family variants outside that slice diagnosed with `ExcelChartTextStyleApproximation`, and prove snapshot state plus SVG output with focused Excel image-export tests.
+70. Done chart title typography slice: add shared `OfficeChartStyle.TitleFontSize` / `TitleFontStyle`, render simple authored Excel chart title font size plus bold/italic through the shared Drawing title renderer, keep richer text effects diagnosed with `ExcelChartTextStyleApproximation`, and prove both shared Drawing and Excel SVG output with focused contract tests.
+71. Done chart title font-family slice: add shared `OfficeChartStyle.TitleFontFamily`, render simple authored Excel chart title font-family through the shared Drawing title renderer and SVG exporter, keep conflicting title font families and richer text effects diagnosed with `ExcelChartTextStyleApproximation`, and prove both shared Drawing and Excel SVG output with focused contract tests.
+72. Done chart non-title font-family buckets: add shared `OfficeChartLayout.LegendFontFamily`, `DataLabelFontFamily`, and `AxisTextFontFamily`; render simple authored Excel legend, data-label, and axis-label font families through the shared Drawing text renderer and SVG exporter; keep conflicts inside each supported shared text bucket and richer text effects diagnosed with `ExcelChartTextStyleApproximation`; and prove shared Drawing plus Excel SVG output with focused contract tests.
+73. Done chart non-title font-style buckets: add shared `OfficeChartLayout.LegendFontStyle`, `DataLabelFontStyle`, and `AxisTextFontStyle`; render simple authored Excel legend, data-label, and axis-label bold/italic through the shared Drawing text renderer and SVG exporter; keep conflicts inside each supported shared text bucket and richer text effects diagnosed with `ExcelChartTextStyleApproximation`; and prove shared Drawing plus Excel SVG output with focused contract tests.
+74. Done chart axis-title font-size bucket: add shared `OfficeChartLayout.AxisTitleFontSize`; render simple authored Excel category/value axis-title font size through shared Drawing, including axis-title band sizing; keep conflicts inside the axis-title size bucket diagnosed with `ExcelChartTextStyleApproximation`; and prove shared Drawing plus Excel SVG output with focused contract tests.
+75. Done chart axis-title font-family/style buckets: add shared `OfficeChartLayout.AxisTitleFontFamily` and `AxisTitleFontStyle`; render simple authored Excel category/value axis-title font family and bold/italic overrides separately from axis labels; keep conflicts inside the axis-label and axis-title buckets diagnosed with `ExcelChartTextStyleApproximation`; and prove shared Drawing plus Excel SVG output with focused contract tests.
+76. Done chart axis-title text-color bucket: add shared `OfficeChartStyle.AxisTitleColor`; render simple authored Excel category/value axis-title text color separately from axis-label text color; keep conflicts inside the axis-label and axis-title color buckets diagnosed with `ExcelChartTextStyleApproximation`; and prove shared Drawing plus Excel SVG/PNG output with focused contract tests.
+77. Done chart legend/data-label text-color buckets: add shared `OfficeChartStyle.LegendTextColor` and `DataLabelTextColor`; render simple authored Excel legend and data-label text colors separately instead of forcing them through one body text bucket; keep conflicts inside each supported body text bucket diagnosed with `ExcelChartTextStyleApproximation`; and prove shared Drawing plus Excel SVG/PNG output with focused contract tests.
+78. Done chart category/value axis-line style buckets: add shared `OfficeChartStyle.CategoryAxisColor` / `ValueAxisColor`, `CategoryAxisLineWidth` / `ValueAxisLineWidth`, and `CategoryAxisLineDashStyle` / `ValueAxisLineDashStyle`; render simple authored Excel category and value axis-line colors, widths, and preset dashes separately for normal and horizontal bar chart orientation; keep the older `AxisColor` / `AxisLineWidth` / `AxisLineDashStyle` as shared fallbacks; and prove shared Drawing plus Excel SVG/PNG output with focused contract tests.
+79. Done chart category/value major-gridline style buckets: add shared `OfficeChartStyle.CategoryGridLineColor` / `ValueGridLineColor`, `CategoryGridLineWidth` / `ValueGridLineWidth`, `CategoryGridLineDashStyle` / `ValueGridLineDashStyle`, and category/value major-gridline visibility overrides; render simple authored Excel category and value major-gridline colors, widths, and preset dashes separately for normal and horizontal bar chart orientation; keep the older `GridLineColor` / `GridLineWidth` / `GridLineDashStyle` / `ShowGridLines` as value-gridline fallbacks; and prove shared Drawing plus Excel SVG/PNG output with focused contract tests.
+80. Done chart axis-placement diagnostics: initially report `ExcelChartAxisTickLabelPositionApproximation` for authored high/low tick-label placement, `ExcelChartAxisMinorTickMarkPlacementApproximation` for authored minor tick marks while placement remains approximate, and `ExcelChartAxisCrossingApproximation` for custom axis crossing, while keeping supported `none` tick-label suppression diagnostic-free; prove all three source-referenced warning codes with focused Excel image-export tests.
+81. Done chart category/date axis number-format diagnostics: report `ExcelChartCategoryAxisNumberFormatUnsupported` for authored category or date axis number formats, because the shared chart renderer does not yet format category/date tick labels; keep simple rendered value-axis numeric formats diagnostic-free and keep complex rendered value-axis formats on `ExcelChartAxisNumberFormatApproximation`; prove the source-referenced warning with focused Excel image-export tests.
+82. Done chart axis-scale diagnostics: report `ExcelChartAxisScaleApproximation` for authored log scale, unsupported value-axis or horizontal-bar reverse-order orientation, non-value-axis scale/unit settings, invalid value-axis min/max/unit values, and non-default cross-between settings; keep supported linear value-axis min/max/major/minor-unit scale diagnostic-free; prove source-referenced warnings for unsupported reverse-order scale with focused Excel image-export tests.
+83. Done chart axis display-unit rendering slice: add shared `OfficeChartLayout` display-unit divisor/label buckets, carry authored Excel built-in and custom value-axis display units into the neutral chart snapshot, scale shared Drawing value-axis labels, render display-unit captions in PNG/SVG through the shared chart text path, and prove diagnostic-free SVG output with focused Excel image-export tests.
+84. Done chart major tick-mark rendering slice: add shared `OfficeChartAxisTickMark`, carry authored Excel category/value major tick marks into `OfficeChartLayout`, render simple inside/outside/cross major axis ticks through shared Drawing, remove the major-tick unsupported diagnostic path, and leave exact minor tick-mark placement for a later chart-axis slice.
+85. Done chart minor-gridline rendering slice: add shared `OfficeChartStyle` category/value minor-gridline color, width, dash, and visibility buckets; carry simple authored Excel minor gridlines into the neutral chart snapshot; render midpoint minor gridlines through shared Drawing behind major gridlines; and keep complex gridline effects diagnosed with `ExcelChartGridlineStyleApproximation`.
+86. Done chart minor tick-mark rendering slice: carry authored Excel category/value minor tick marks into `OfficeChartLayout`, render simple inside/outside/cross minor ticks through shared Drawing with a stable `ExcelChartAxisMinorTickMarkPlacementApproximation` diagnostic, and prove both the shared renderer output and diagnostic contract with focused Excel image-export tests.
+87. Done chart value-axis scale rendering slice: carry authored Excel linear value-axis minimum, maximum, major unit, and minor unit into `OfficeChartLayout`; apply the shared scale to plotted values, value-axis labels, major/minor gridlines, and major/minor tick marks for vertical and horizontal value axes; keep unsupported log/value-axis-reverse-order/non-value-axis-unit/cross-between variants diagnosed with `ExcelChartAxisScaleApproximation`; and prove the diagnostic-free SVG label and minor-gridline output with focused Excel image-export tests.
+88. Done chart high/low tick-label placement slice: add shared `OfficeChartAxisTickLabelPosition`, carry authored Excel high/low/next-to/none tick-label positions into physical horizontal/vertical `OfficeChartLayout` axes, reserve plot space for high-side labels, render simple high-side vertical and horizontal axis labels through shared Drawing, and remove the high/low `ExcelChartAxisTickLabelPositionApproximation` warning with focused renderer and image-export tests.
+89. Done chart maximum value-axis crossing slice: add shared `OfficeChartAxisCrossingPosition`, carry authored Excel value-axis `crosses=max` into physical vertical `OfficeChartLayout` axes for non-bar charts, render the vertical value axis and next-to labels on the right side through shared Drawing, and remove the `ExcelChartAxisCrossingApproximation` warning for that supported case with focused renderer and image-export tests.
+90. Done chart maximum category-axis crossing slice: carry authored Excel category/date-axis `crosses=max` into physical horizontal `OfficeChartLayout` axes for non-bar charts, render the horizontal category axis and next-to labels above the plot through shared Drawing, reverse horizontal tick outside direction for top axes, and keep that supported case diagnostic-free with focused renderer and image-export tests.
+91. Done chart category-axis reverse-order slice: add shared `OfficeChartLayout.ReverseCategoryAxis`, map authored Excel category/date-axis max-min orientation into the neutral layout for non-bar charts, render reversed category labels plus non-bar column/line/area category positions through shared Drawing, and remove `ExcelChartAxisScaleApproximation` for that supported case with focused renderer and image-export tests.
+92. Done Visio PNG stroke-dash consolidation slice: add shared `OfficeRasterCanvas.DrawStyledPolyline`, `DrawPatternedPolyline`, `DrawStyledEllipse`, and `DrawPatternedEllipse`; map Visio line patterns into shared `OfficeStrokeDashStyle`; route Visio PNG polygon, polyline, connector, underline, database-shape, and ellipse strokes through shared Drawing instead of a private boolean-dashed adapter; and prove shared Drawing plus Visio PNG output with focused raster/export tests.
+93. Done shared SVG stroke-dash consolidation slice: add shared `OfficeStrokeDashStyleExtensions.GetSvgDashArray`; route `OfficeDrawingSvgExporter`, Excel range SVG border rendering, and Visio SVG shape/connector stroke output through the shared formatter; move Visio line-pattern mapping into one internal mapper reused by PNG and SVG; and prove Drawing, Visio SVG/PNG, and Excel image-export contracts with focused and broad tests.
+94. Done shared SVG formatting consolidation slice: add `OfficeSvgFormatting` for invariant SVG number formatting, XML escaping, CSS RGB color formatting, alpha-to-opacity conversion, and writer color attributes; route `OfficeDrawingSvgExporter`, Excel range SVG number/text escaping, Visio SVG numeric formatting, and Visio SVG color/opacity writing through the shared Drawing helper; and prove Drawing, Visio SVG, and Excel image-export contracts.
+95. Done shared SVG `StringBuilder` attribute-emission slice: add reusable `OfficeSvgFormatting.AppendAttribute`, `AppendNumberAttribute`, and `AppendPaintAttribute`; route Excel range SVG root/background/grid/data-bar, border/pattern line, pattern-fill rectangle, and plain/rich text-start emission through the shared Drawing helper so number formatting, XML escaping, CSS RGB colors, and alpha opacity are no longer Excel-private in those central paths; and prove Drawing plus Excel image-export contracts.
+96. Done shared SVG clip/point-list consolidation slice: add reusable `OfficeSvgFormatting.AppendClipPathReference`, `AppendRectClipPathDefinition`, and `AppendPointsAttribute`; route Excel SVG image clip paths, cropped/transformed image references, sparkline clip groups, sparkline polyline/axis/bar/marker output, drawing-object SVG shells, and comment-indicator polygons through shared Drawing formatting helpers; and prove Drawing plus Excel image-export contracts.
+97. Done shared SVG clip/rotation completion slice: add reusable `OfficeSvgFormatting.FormatRotateTransform`, `AppendRotateTransformAttribute`, and `WriteRotateTransformAttribute`; route Excel SVG text, rich-text, pattern-fill clip groups, simple rotated worksheet images, and Visio SVG shape/text rotation through shared Drawing formatting helpers so clip-path and rotate-transform assembly no longer lives in multiple renderer brains; and prove Drawing, Excel image-export, and Visio SVG contracts.
+98. Done shared SVG matrix-transform consolidation slice: add reusable `OfficeSvgFormatting.FormatMatrixTransform` and `AppendMatrixTransformAttribute`; route `OfficeDrawingSvgExporter` shape placement/local-coordinate matrix transforms and clip-path group references through shared SVG formatting helpers instead of private transform/clip string assembly; and prove Drawing exporter, Excel image-export, and Visio SVG contracts.
+99. Done shared SVG stroke cap/join consolidation slice: add reusable `OfficeSvgFormatting.FormatStrokeLineCap`, `FormatStrokeLineJoin`, `AppendStrokeLineCapAttribute`, `AppendStrokeLineJoinAttribute`, `WriteStrokeLineCapAttribute`, and `WriteStrokeLineJoinAttribute`; route `OfficeDrawingSvgExporter`, Excel dotted-border SVG output, Visio connector SVG output, and Visio stencil primitive SVG output through shared Drawing SVG stroke helpers instead of private enum mapping or repeated literal `round` attributes; and prove Drawing, Excel image-export, and Visio SVG contracts.
+100. Done shared SVG stroke dash-array consolidation slice: add reusable `OfficeSvgFormatting.AppendStrokeDashArrayAttribute`, `AppendStrokeDashStyleAttribute`, `WriteStrokeDashArrayAttribute`, and `WriteStrokeDashStyleAttribute`; route `OfficeDrawingSvgExporter`, Excel styled border SVG output, Visio connector SVG output, and Visio shape SVG output through shared Drawing SVG dash helpers instead of repeated `stroke-dasharray` attribute emission; and prove Drawing, Excel image-export, and Visio SVG contracts.
+101. Done shared SVG writer numeric-attribute consolidation slice: add reusable `OfficeSvgFormatting.WriteNumberAttribute` and `WriteViewBoxAttribute`; route Visio SVG root dimensions/viewBox, background rectangles, stencil primitive coordinates, connector stroke widths, shape ellipse/image geometry, shape stroke widths, and text/tspan numeric placement through shared Drawing SVG writer formatting instead of per-call `Format(...)` attributes; and prove Drawing plus Visio SVG contracts.
+102. Done shared SVG move-line path-data consolidation slice: add reusable `OfficeSvgFormatting.FormatMoveLinePathData` and `AppendMoveLinePathData` for invariant `M`/`L`/`Z` SVG path serialization; route Visio SVG open connector paths and closed shape/preserved-geometry paths through the shared Drawing formatter while keeping Visio page-coordinate conversion in the Visio adapter; and prove Drawing plus Visio SVG contracts.
+103. Done shared Drawing SVG primitive-geometry consolidation slice: route `OfficeDrawingSvgExporter` rectangle, rounded-rectangle, ellipse, and line numeric geometry attributes through `OfficeSvgFormatting.AppendNumberAttribute`, route polygon point-list output through `AppendPointsAttribute`, and keep the exporter as the central shared Drawing SVG surface instead of preserving raw per-primitive number/point formatting; prove the shared Drawing SVG exporter contracts.
+104. Done shared SVG path-command data consolidation slice: add reusable `OfficeSvgFormatting.FormatPathData` and `AppendPathData` for shared `OfficePathCommand` SVG `d` serialization with optional offsets; route `OfficeDrawingSvgExporter` shape path output and clip-path path output through the shared formatter instead of duplicate path-command switch blocks; and prove the shared Drawing SVG formatter/exporter contracts.
+105. Done shared Visio arrowhead path-data consolidation slice: route connector arrowhead SVG triangle paths through `OfficeSvgFormatting.FormatMoveLinePathData` instead of preserving a manual Visio-only `M/L/Z` string builder, keeping arrowhead geometry local while sharing the SVG path serialization brain.
+106. Done Excel image diagnostic-code contract slice: add public `ExcelImageExportDiagnosticCodes` constants for current stable Excel image export diagnostics so callers can filter unsupported/approximate rendering without copying magic strings; route text and fill diagnostics (`ExcelCellTextClipped`, text rotation/stacked/rich-text approximation codes, and pattern/gradient fill codes) through the constants; and update focused Excel image tests to consume the same contract.
+107. Done Excel image diagnostic-code source-of-truth routing slice: route all current Excel image export product diagnostic emissions through `ExcelImageExportDiagnosticCodes`, including chart approximation/unsupported codes, conditional-formatting unsupported codes, image format/anchor/decode codes, print-area fallback codes, hidden row/column omission codes, comment/threaded-comment unsupported codes, sparkline unsupported/approximation codes, and drawing-object unsupported/hidden-anchor codes; raw Excel image diagnostic-code strings now live in the constants surface instead of scattered renderer branches.
+108. Done opt-in comment body rendering slice: add `ExcelImageExportOptions.ShowCommentBodies`, carry visible classic/threaded comment body payloads and cell-side anchor points through `ExcelRangeVisualSnapshot`, render first-pass dependency-free callout bodies with anchored pointers in PNG/SVG using shared Drawing shapes and `OfficeTextLayoutEngine`, route enabled bodies through the ordered `ExcelVisualDrawingLayer` stream instead of a separate post-pass renderer, change enabled-body diagnostics from unsupported to stable `ExcelCellCommentBodyApproximation` / `ExcelThreadedCommentBodyApproximation` codes, and prove the behavior with focused decoded-PNG/SVG tests plus a manually reviewed QA artifact.
+109. Done shared dash vocabulary slice: add `OfficeStrokeDashStyleMapper` to dependency-free `OfficeIMO.Drawing`, move Visio `LinePattern` rendering away from the private `VisioLinePatternMapper`, route Excel chart preset-dash mapping through the same shared mapper without adding OpenXML dependencies to Drawing, and prove Visio integer patterns plus Office preset dash names with Drawing-layer contract tests.
+110. Done Visio SVG path-command consolidation slice: add shared `OfficePathCommand.QuadraticBezierTo` and `OfficeSvgFormatting` `Q` path serialization; route supported built-in Visio SVG cylinder, shield, hexagon, cloud, person, monitoring, and database geometry paths through `OfficeSvgFormatting.FormatPathData` / `FormatMoveLinePathData` and shared `OfficePathCommand` instead of preserving local `M`/`L`/`Q`/`C`/`Z` string assembly; and prove Drawing plus Visio SVG still build/tests through the focused export contracts.
+111. Done raster path-command fidelity slice: add shared Drawing path flattening for line, quadratic, cubic, and closed contours; route `OfficeDrawingRasterRenderer` path output through the flattener so PNG rendering follows Bezier geometry instead of drawing endpoint-only chords; fill closed contours through the shared even-odd raster fill path; stroke open and closed contours through shared styled polylines; and prove curved raster output with focused Drawing tests.
+112. Done custom number-format display slice: extend the shared Excel image/autofit number-format helper so custom literal affixes, escaped literal characters, and positive/negative/zero format sections show in image snapshots and SVG output instead of falling back to raw values or stripped numbers.
+113. Done simple gradient fill slice: add shared Drawing raster linear-gradient rectangle fills and shared SVG gradient-definition emission; resolve Excel two-stop linear gradient cell fills through one utility shared by `GetStyle()` and inspection snapshots; render them in Excel PNG/SVG output; keep unresolved/path/multi-stop gradients source-diagnosed.
+114. Done shared text-block renderer slice: add `OfficeTextBlockRenderer` in dependency-free Drawing for measured plain text-block PNG/SVG emission with alignment, vertical placement, underline, rotation, and shared SVG style attributes; route non-rotated Excel plain cell text PNG/SVG output and Visio native PNG text output through that helper while keeping Excel diagnostics/rich text policy and Visio label-background/page-coordinate policy in their thin adapters; prove the shared renderer with Drawing contract tests plus focused Excel/Visio export tests.
+115. Done shared SVG text-block writer slice: extend `OfficeTextBlockRenderer` with an `XmlWriter` text/tspan writer for measured text blocks, including shared font, fill/opacity, text-anchor, dominant-baseline, underline, bold/italic, rotation, and adapter-supplied attributes; route Visio SVG shape text and connector labels through that helper while keeping Visio-owned background rectangles, label-adjusted markers, coordinate mapping, and style resolution in the Visio adapter; prove the helper and migrated consumer with Drawing SVG-writer tests plus Visio SVG text/label contracts.
+116. Done comment-body text renderer consolidation slice: route opt-in Excel comment/threaded-comment callout body text through `OfficeTextBlockRenderer.DrawRasterTextBlock` and `AppendSvgTextBlock` instead of local per-line PNG/SVG loops; keep Excel-owned title placement, callout geometry, pointers, drawing-layer routing, and source diagnostics in the Excel adapter; prove existing comment-body PNG/SVG output and diagnostics still pass through focused object tests.
+117. Done shared hatch-pattern primitive slice: add neutral `OfficeHatchPatternKind`, shared raster `OfficeRasterCanvas.DrawHatchPatternRectangle`, and shared SVG `OfficeSvgFormatting.AppendHatchPatternRectangle`; route Excel pattern-fill PNG/SVG hatch output through those Drawing primitives while keeping OpenXML pattern-name mapping, density policy, and `FillPatternApproximation` diagnostics in the Excel adapter; prove Drawing contracts plus a dedicated approved Excel pattern-fill PNG/SVG baseline that was visually reviewed.
+118. Done shared sparkline renderer slice: add neutral `OfficeSparklineKind`, `OfficeSparklineStyle`, `OfficeSparklinePointStyle`, and `OfficeSparklineRenderer` for dependency-free line, column, and win/loss sparkline PNG/SVG geometry and emission; route Excel sparkline image output through that shared renderer while keeping OpenXML extraction, kind mapping, per-point color and marker policy, approximation diagnostics, clipping, and source references in the Excel adapter; prove Drawing contracts and the existing approved Excel sparkline baseline without regenerating it.
+119. Done shared data-bar renderer slice: add `OfficeDataBarRenderer` for dependency-free resolved proportional data-bar PNG/SVG output; route Excel conditional-formatting data-bar painting through the shared primitive while keeping rule evaluation, start/width ratios, colors, unsupported icon-set diagnostics, and source references in the Excel adapter; prove Drawing contracts plus the existing approved conditional-formatting baseline without regenerating it.
+120. Done shared SVG image projector slice: add `OfficeSvgImageRenderer` for dependency-free SVG image projection with normalized source crop, clip rectangles, rotation, horizontal/vertical flips, and data URI construction; route Excel worksheet image SVG output through that shared primitive while keeping OpenXML anchor/crop/transform extraction, content-type allow-listing, and source diagnostics in the Excel adapter; prove Drawing contracts plus approved clipped-image, two-cell image, cropped-image, rotated-image, and transformed-image Excel baselines, then manually review representative image artifacts.
+121. Done shared SVG image writer reuse slice: extend `OfficeSvgImageRenderer` with an `XmlWriter` image emitter for dependency-free SVG image output with shared number formatting, data URI reuse, preserve-aspect support, rotation, and flips; route Visio package-preview SVG artwork through that writer while keeping Visio-owned preview discovery, package metadata sniffing, placement, and shape-coordinate policy in the Visio adapter; prove Drawing writer output plus existing Visio package-preview SVG contracts for PNG projection, generic metadata sniffing, content-type parameter normalization, unsafe SVG fallback, and rotation.
+122. Done shared SVG primitive writer slice: add `OfficeSvgPrimitiveWriter` for dependency-free `XmlWriter` circle, rectangle, line, and path emission with shared number/color/stroke-cap/stroke-join handling; route Visio built-in stencil SVG artwork through it while keeping stencil semantics and placement in Visio; and prove Drawing primitive output plus Visio stencil metadata/rotation contracts.
+123. Done shared nested SVG wrapper slice: add `OfficeSvgFormatting.ExtractSvgInner`, `AppendNestedSvgStart`, `AppendNestedSvgEnd`, and `AppendNestedSvg`; route Excel chart, drawing-object, and comment-body SVG wrapper emission through the shared helper while keeping Excel-owned visual policy in the adapter; and prove Drawing formatting plus Excel chart/object/comment and approved baseline contracts.
+124. Done shared SVG polygon element slice: add `OfficeSvgFormatting.AppendPolygonElement` overloads for complete dependency-free SVG polygon emission; route `OfficeDrawingSvgExporter` polygon shapes and Excel comment indicator/body-pointer SVG polygons through the shared helper while keeping geometry and source policy in the adapters; and prove Drawing formatter/exporter plus Excel comment/baseline contracts.
+125. Done shared SVG line element slice: add `OfficeSvgFormatting.AppendLineElement` overloads for complete dependency-free SVG line emission; route `OfficeDrawingSvgExporter` line shapes and Excel border SVG lines through the shared helper while keeping Drawing transform policy and Excel border-style policy in the adapters; and prove Drawing formatter/exporter plus Excel border/baseline contracts.
+126. Done shared SVG rectangle element slice: add `OfficeSvgFormatting.AppendRectElement` overloads for complete dependency-free SVG rectangle and rounded-rectangle emission; route `OfficeDrawingSvgExporter` rectangle shapes, Excel gridline/cell-fill SVG rectangles, shared data-bar rectangles, and shared sparkline column/win-loss rectangles through the shared helper while keeping source style and transform policy in the adapters; and prove Drawing formatter/exporter/data-bar/sparkline plus Excel pattern-fill/conditional-formatting/sparkline/border/premium baseline contracts.
+127. Done shared SVG sparkline polyline/circle slice: add `OfficeSvgFormatting.AppendPolylineElement` and `AppendCircleElement` overloads for complete dependency-free SVG polyline and circle emission; route `OfficeSparklineRenderer` line-series SVG polylines and marker circles through the shared helpers while preserving approved sparkline SVG attribute order and renderer-owned scaling/color policy; and prove Drawing formatter/sparkline plus Excel sparkline/premium baseline contracts.
+128. Done shared SVG ellipse element slice: add `OfficeSvgFormatting.AppendEllipseElement` overloads for complete dependency-free SVG ellipse emission; route `OfficeDrawingSvgExporter` ellipse shapes through the shared helper while keeping Drawing placement, paint, and transform policy in the exporter; and prove Drawing formatter/exporter contracts.
+129. Done shared SVG path element slice: add `OfficeSvgFormatting.AppendPathElement` overloads for complete dependency-free SVG path emission; route `OfficeDrawingSvgExporter` path shapes and path clip definitions through the shared helper while keeping Drawing placement, clip, paint, and transform policy in the exporter; and prove Drawing formatter/exporter contracts.
+130. Done shared SVG clip-rectangle slice: route `OfficeDrawingSvgExporter` rectangle and rounded-rectangle clip-path definitions through `OfficeSvgFormatting.AppendRectElement` while keeping Drawing clip semantics in the exporter; and prove Drawing clip-path/exporter contracts.
+131. Done shared SVG positioned-text slice: add `OfficeTextBlockRenderer.AppendSvgTextElement` for complete positioned SVG text/tspan emission; route `OfficeDrawingSvgExporter` drawing text boxes through the shared helper while keeping Drawing text-box placement and font/style policy in the exporter; and prove Drawing text renderer/exporter contracts, including shared fill opacity.
+132. Done shared Excel rotated SVG text slice: extend `OfficeTextBlockRenderer.AppendSvgTextElement` with underline and rotation support; route Excel's plain rotated cell-text SVG output through the shared Drawing helper while keeping Excel rotation, clipping, alignment, style/color resolution, and diagnostics in the adapter; and prove Drawing helper plus public Excel rotated PNG/SVG text contracts.
+133. Done shared Excel rich-text SVG segment slice: add `OfficeTextBlockRenderer.AppendSvgRichTextSegment`; route Excel rich cell text SVG segment emission through the shared Drawing helper while keeping run extraction, style fallback, line layout, cursor placement, clipping, rotation grouping, and diagnostics in Excel; and prove Drawing helper plus public Excel rich-text SVG contracts.
+134. Done shared Excel comment-title SVG text slice: route comment-body title text through `OfficeTextBlockRenderer.AppendSvgTextElement` while keeping Excel comment-body geometry, clipping, colors, source references, and approximation diagnostics in the adapter; and prove the public comment-body SVG/PNG object-export contract still emits the title, bold style, start anchor, callout fill, and pointer.
+135. Done shared Visio stencil-thumbnail SVG text slice: route generated stencil preview thumbnail captions through `OfficeTextBlockRenderer.AppendSvgTextElement` while keeping Visio gallery/package/thumbnail policy in the adapter; and prove the browser-renderable thumbnail artifact still emits the expected caption shape.
+136. Done shared Excel SVG root-background rectangle slice: route the range SVG document background through `OfficeSvgFormatting.AppendRectElement` while keeping Excel canvas/viewBox/background policy in the adapter; and prove the public PNG/SVG export contract emits the expected root background rectangle.
+137. Done shared Visio stencil-thumbnail wrapper SVG slice: extend `OfficeSvgImageRenderer.AppendImage` with optional `preserveAspectRatio`; route generated stencil preview thumbnail background/border rectangles, embedded preview image, and caption through Drawing helpers while keeping Visio thumbnail layout and package/gallery policy in the adapter; and prove the browser-renderable thumbnail artifact emits the expected wrapper shape.
+138. Done Excel top/bottom conditional-formatting slice: expose top/bottom rank/bottom/percent metadata on rule snapshots, add fill-aware top/bottom builder overloads, render numeric top/bottom count and percent differential fills including ties, and emit `ExcelConditionalTopBottomUnsupported` only when the rule has no valid numeric candidates or rank; prove with snapshot, SVG, decoded PNG, and diagnostic assertions.
+139. Done Excel duplicate-values conditional-formatting slice: add fill-aware sheet and fluent range duplicate-values APIs, render duplicate-values solid differential fills using nonblank visible cell values in the existing conditional fill pipeline, keep remaining unsupported unique-values/date/time/above-average rule families diagnosed, and prove with Open XML readback, snapshot, SVG, decoded PNG, and diagnostic assertions.
+140. Done Excel unique-values conditional-formatting slice: add fill-aware sheet and fluent range unique-values APIs, render unique-values solid differential fills using the same distinctness helper as duplicate-values, keep remaining unsupported date/time/above-average rule families diagnosed, and prove with Open XML readback, snapshot, SVG, decoded PNG, and diagnostic assertions.
+141. Done Excel above/below-average conditional-formatting slice: expose above/below/equal/std-dev metadata on rule snapshots, add fill-aware sheet and fluent range average APIs, render numeric above-average and below-average solid differential fills including equal-average variants, emit `ExcelConditionalAboveAverageUnsupported` for standard-deviation variants, and prove with Open XML readback, snapshot, SVG, decoded PNG, and diagnostic assertions.
+142. Done Excel text conditional-formatting slice: expose text payload metadata on rule snapshots, add fill-aware sheet and fluent range contains/not-contains/begins-with/ends-with APIs, render case-insensitive text-rule solid differential fills, emit `ExcelConditionalTextRuleUnsupported` for malformed text rules, and prove with Open XML readback, snapshot, SVG, decoded PNG, and diagnostic assertions.
+143. Remaining depth: make visual fidelity production-grade: Excel-exact clipped, rotated, and stacked rich text; Excel-exact rotated/stacked text semantics; full conditional-formatting parity beyond bounded numeric comparisons including icon sets, date/time, and standard-deviation average rules; richer differential formats; exact complex/path/multi-stop gradient fills, more exact pattern fill density/parity, richer custom/scientific/conditional number-format display parity, richer image decoding/effects; exact image two-cell anchor clipping, transformations/effects beyond basic crop/flip/rotation, and hidden-row/column behavior as rendered parity beyond the current explicit diagnostics; more exact chart fidelity including picture markers and richer marker outline effects, custom/richer series dash and effect styling, richer point-level overrides, axis/tick formatting beyond simple value-axis numeric formats and simple high/low/next-to/none tick-label placement, Excel-exact display-unit placement/typography, remaining Excel-exact minor-gridline/tick placement edge cases, custom dash/effect parity beyond preset gridline and axis lines, chart/plot area effects beyond simple solid RGB fill/outline/width/preset dash, richer chart title typography/effects beyond simple font-family/font-size/bold/italic, per-element chart text runs beyond the supported shared buckets, and Excel-exact geometry; page slicing; Excel-exact comment/note/threaded-comment popover geometry, threading, author metadata, visibility state, connectors, and stacking beyond the current opt-in callout approximation; Excel-exact sparkline parity for hidden/empty data and date-axis/group scaling behavior beyond the current shared renderer; richer shapes/text boxes/connectors; deeper grouped-object/layer clipping/baseline metrics; broader visual-baseline matrices beyond the current rich-text and pattern-fill fixtures; and consider reusing the Excel visual snapshot from `OfficeIMO.Excel.Pdf` internals where it reduces duplication.
+
+## Consolidation Goal: One Rendering Brain
+
+The larger goal is to move, replace, or delete duplicate rendering code until OfficeIMO has one dependency-free shared rendering brain:
+
+```text
+Office document package
+  -> document-specific visual snapshot and source semantics
+  -> OfficeIMO.Drawing primitives, raster canvas, SVG/PNG exporters, diagnostics
+  -> document-specific API convenience wrappers
+```
+
+This means:
+
+- `OfficeIMO.Drawing` owns pixels, paths, fills, strokes, clipping, text layout primitives, image decode/encode where dependency-free support exists, chart/drawing primitives, reusable diagnostics, and visual-quality helpers.
+- `OfficeIMO.Excel` owns workbook/worksheet/range semantics, Open XML extraction, Excel-specific layout policy, Excel number/date/style interpretation, and friendly Excel image APIs.
+- `OfficeIMO.Visio` owns VSDX page, shape, connector, stencil, routing, and coordinate semantics, but not reusable PNG encoding, raster buffers, generic stroke/path/text/image projection loops, or duplicate text-layout math.
+- `OfficeIMO.Pdf`, `OfficeIMO.Word`, and `OfficeIMO.PowerPoint` may have format-specific writers and layout semantics, but should reuse Drawing primitives whenever they need image-like rendering.
+
+The anti-pattern is a second product renderer that quietly grows a private answer for clipping, dashed strokes, image transforms, text wrapping, or diagnostics. When Excel needs something Visio already solved, move the reusable part to `OfficeIMO.Drawing`, keep the source-format policy in the document adapter, and prove at least one non-Excel consumer still works.
+
+### Migration Order
+
+1. Inventory current renderers and classify each piece as shared engine, document adapter, PDF-specific writer behavior, test helper, or duplicate private renderer.
+2. Finish retiring Visio private raster primitives into `OfficeIMO.Drawing`, including any remaining reusable path, clipping, text, image, or stroke behavior that is not inherently Visio-specific.
+3. Keep Visio premium baselines passing while migration happens, because Visio is the strongest current proof that shared Drawing can render polished visuals.
+4. Keep Excel range/worksheet/workbook export using the same Drawing engine and shared diagnostics; do not add Excel-only pixel/path/text engines.
+5. Consolidate test helpers so Excel, Visio, PDF, and later PowerPoint/Word visual baselines compare through one approved-image workflow.
+6. Add new Excel premium features only after deciding whether their generic part belongs in Drawing and their source-policy part belongs in Excel.
+7. When a feature cannot be rendered with parity, add a stable diagnostic code with source reference before improving visual output.
+8. Delete or shrink the old private implementation after its shared replacement is proven by contract tests and visual baselines.
+
+## Premium Excel Export Goal
+
+Premium Excel export means PNG/SVG output that looks intentionally rendered, not hand-drawn, while still being honest about the places where Office-exact parity is not implemented. The goal is not byte-identical desktop Excel screenshots. The goal is deterministic, dependency-free OfficeIMO rendering with strong fidelity, stable diagnostics, and visual QA gates.
+
+### Premium Workstreams
+
+- Text/layout: Excel-like wrapping, clipping, vertical alignment, shrink-to-fit, rotated and stacked text, rich text runs, baseline metrics, font fallback, and measured-text caching belong in shared Drawing where possible; Excel keeps style and layout policy.
+- Styles: theme colors, tints/shades, number/date/currency/percent display text including custom literal/section formats, conditional formatting, border styles, gradients, and pattern fills should be source-resolved by Excel and painted by Drawing.
+- Images: embedded image metadata, formats, aspect behavior, anchors, clipping, crop, transparency, transforms, z-order, and SVG embedding/raster decoding should flow through one Drawing image path with Excel source diagnostics.
+- Charts: Excel chart extraction maps authored style/layout into shared chart snapshots; Drawing renders the chart primitives; diagnostics explain trendlines, leader lines, rich chart text, exact axis behavior, and effects that are not yet parity-grade.
+- Worksheet/page behavior: ranges, used ranges, print areas, page setup, orientation, scaling, page slicing, large-sheet tiling, headers/footers where in scope, and hidden rows/columns are Excel semantics over the same renderer.
+- Objects: shapes, text boxes, connectors, comments/notes, threaded comments, hyperlinks, sparklines, and drawing layers enter one ordered visual snapshot and one renderer path.
+- Diagnostics: every unsupported or approximated feature needs a stable code, severity, human-readable message, and source reference where the workbook provides one.
+- Visual QA: premium work needs approved baselines, focused decoded-pixel/SVG assertions, and manual review of saved artifacts when the output changes meaningfully.
+
+### Premium Done Criteria
+
+- Supported output is visually credible at normal report/screenshot scale and does not look like debug rendering.
+- PNG and SVG are visually comparable for the same source within the limits of each format.
+- Source ordering, clipping, and z-order are explicit contracts for cells, shapes, images, and charts.
+- Unsupported features never silently disappear.
+- Each premium slice either improves shared Drawing or proves why the feature is truly Excel-specific.
+- Baseline failures produce reviewable diff artifacts, not just red tests.
+- Large ranges and worksheets have a documented memory/page/tiling story before workbook-wide export is called production-grade.
+
+The first visible milestone can be:
+
+```csharp
+sheet.Range("A1:D12").SaveAsPng("range.png");
+sheet.Range("A1:D12").SaveAsSvg("range.svg");
+```
+
+That is intentionally small, but the internal path should already be:
+
+```text
+Excel package -> Excel visual snapshot -> shared renderer -> PNG/SVG encoder
+```
+
+## Definition Of Done For Each Phase
+
+- No runtime dependencies added.
+- Existing package behavior remains intact.
+- Public APIs are documented with realistic examples.
+- Diagnostics describe unsupported or approximate rendering.
+- Tests prove valid PNG/SVG output, stable dimensions, and nonblank visual content.
+- Visual review proves exported artifacts look professionally rendered and not hand-drawn/debug-like.
+- Renderer changes include either approved visual baselines or saved QA artifacts that exercise cells, text, borders, fills, images, and charts.
+- When a phase touches shared rendering, at least one non-Excel consumer or fixture proves the code is not Excel-specific.
+
+## Current Supporting Assessment
+
+The detailed current-state assessment is in `Docs/reviews/officeimo.excel-image-conversion-assessment-2026-06-22.md`.
