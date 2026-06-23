@@ -160,7 +160,7 @@ namespace OfficeIMO.Excel {
             int offsetXPixels = 0, int offsetYPixels = 0, string? name = null, string? altText = null, bool lockAspectRatio = true) {
             if (string.IsNullOrWhiteSpace(url)) return null;
             if (ImageDownloader.TryFetch(url, timeoutSeconds: 5, maxBytes: 2_000_000, out var bytes, out var ct) && bytes != null) {
-                return AddImage(row, column, bytes, contentType: string.IsNullOrEmpty(ct) ? "image/png" : ct!, widthPixels: widthPixels,
+                return AddImage(row, column, bytes, contentType: string.IsNullOrEmpty(ct) ? OfficeImageInfo.GetMimeType(OfficeImageFormat.Png) : ct!, widthPixels: widthPixels,
                     heightPixels: heightPixels, offsetXPixels: offsetXPixels, offsetYPixels: offsetYPixels, name: name, altText: altText,
                     lockAspectRatio: lockAspectRatio);
             }

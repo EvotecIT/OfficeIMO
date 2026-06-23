@@ -106,6 +106,8 @@ Latest PowerPoint image-extension checkpoint: PowerPoint path-based picture, bac
 
 Latest shared SVG-embeddable MIME checkpoint: `OfficeSvgImageRenderer` now normalizes declared MIME content types through the same SVG-embeddable image policy it already applies to detected image formats. Visio package-preview artwork uses that shared policy for browser-renderable preview decisions instead of carrying a private PNG/JPEG/GIF gate, so sniffed SVG previews with XML preambles render through the shared SVG image path. PowerPoint's default package thumbnail MIME value also comes from `OfficeImageInfo`, keeping built-in JPEG identity on the shared Drawing vocabulary while PowerPoint remains responsible for OpenXML thumbnail part creation.
 
+Latest Excel default image-MIME checkpoint: Excel's public image APIs keep their friendly compile-time `"image/png"` optional defaults, but internal template, URL-image, and header/footer fallback defaults now call `OfficeImageInfo.GetMimeType(OfficeImageFormat.Png)`. Excel remains responsible for workbook insertion and OpenXML part wiring while Drawing owns the canonical PNG MIME value used across document families.
+
 ## Goal
 
 Build a dependency-free OfficeIMO image conversion stack that can render selected Office content to PNG and SVG in a deterministic, server-safe way.
