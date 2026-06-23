@@ -237,6 +237,8 @@ namespace OfficeIMO.Tests {
             string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
 
             Assert.Equal(3, png.Diagnostics.Count(item => item.Code == ExcelImageExportDiagnosticCodes.CellTextRotationApproximation));
+            Assert.DoesNotContain(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.CellRichTextLayoutApproximation);
+            Assert.DoesNotContain(svg.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.CellRichTextLayoutApproximation);
             Assert.DoesNotContain(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.CellStackedTextRotationUnsupported);
             Assert.DoesNotContain(svg.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.CellStackedTextRotationUnsupported);
             Assert.DoesNotContain(png.Diagnostics, item => item.Severity == OfficeImageExportDiagnosticSeverity.Error);
@@ -244,6 +246,9 @@ namespace OfficeIMO.Tests {
             Assert.Contains(">S</text>", svgText, StringComparison.Ordinal);
             Assert.Contains(">K</text>", svgText, StringComparison.Ordinal);
             Assert.Contains(">R</text>", svgText, StringComparison.Ordinal);
+            Assert.Contains("font-weight=\"700\"", svgText, StringComparison.Ordinal);
+            Assert.Contains("font-style=\"italic\"", svgText, StringComparison.Ordinal);
+            Assert.Contains("text-decoration=\"underline\"", svgText, StringComparison.Ordinal);
             Assert.DoesNotContain("rotate(", svgText, StringComparison.Ordinal);
             AssertRasterBaseline(StackedTextBaselineName + ".png", png.Bytes);
             AssertTextBaseline(StackedTextBaselineName + ".svg", svgText);
@@ -384,6 +389,10 @@ namespace OfficeIMO.Tests {
             Assert.Contains("#0F766E", svg, StringComparison.Ordinal);
             Assert.Contains("#7C3AED", svg, StringComparison.Ordinal);
             Assert.Contains("#DC2626", svg, StringComparison.Ordinal);
+            Assert.Contains("#2563EB", svg, StringComparison.Ordinal);
+            Assert.Contains("font-weight=\"700\"", svg, StringComparison.Ordinal);
+            Assert.Contains("font-style=\"italic\"", svg, StringComparison.Ordinal);
+            Assert.Contains("text-decoration=\"underline\"", svg, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -845,8 +854,12 @@ namespace OfficeIMO.Tests {
             sheet.CellAlign(3, 3, HorizontalAlignmentValues.Center);
             sheet.CellVerticalAlign(3, 3, VerticalAlignmentValues.Center);
 
-            sheet.CellValue(3, 4, "READY");
-            sheet.CellAt(3, 4).SetTextRotation(255).SetFontColor("DC2626").SetBold().SetFontSize(12);
+            sheet.CellAt(3, 4).SetTextRotation(255).SetRichText(
+                new ExcelRichTextRun("R") { Bold = true, FontColor = "DC2626", FontSize = 12D },
+                new ExcelRichTextRun("E") { Italic = true, FontColor = "EA580C", FontSize = 12D },
+                new ExcelRichTextRun("A") { Underline = true, FontColor = "2563EB", FontSize = 12D },
+                new ExcelRichTextRun("D") { Bold = true, FontColor = "16A34A", FontSize = 12D },
+                new ExcelRichTextRun("Y") { FontColor = "7C3AED", FontSize = 12D });
             sheet.CellAlign(3, 4, HorizontalAlignmentValues.Center);
             sheet.CellVerticalAlign(3, 4, VerticalAlignmentValues.Center);
 

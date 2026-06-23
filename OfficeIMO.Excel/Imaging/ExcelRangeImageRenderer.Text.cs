@@ -35,7 +35,7 @@ namespace OfficeIMO.Excel {
             bool stacked = IsStackedTextRotation(cell.Style.TextRotation);
             double rotationDegrees = stacked ? 0D : ResolveExcelTextRotationDegrees(cell.Style.TextRotation, snapshot, cell, diagnostics);
             bool rotated = Math.Abs(rotationDegrees) > 0.0001D;
-            bool richTextSupported = !stacked && IsRichTextRenderingSupported(cell, rotated);
+            bool richTextSupported = IsRichTextRenderingSupported(cell, rotated);
             string fontFamily = ResolveCellFontFamily(cell.Style);
             OfficeTextBlockLayout layout = stacked
                 ? OfficeTextLayoutEngine.LayoutStackedTextBlock(
@@ -64,10 +64,10 @@ namespace OfficeIMO.Excel {
 
             using (canvas.PushClipRectangle(x, y, w, h)) {
                 if (cell.RichTextRuns.Count > 0) {
-                    if (richTextSupported && TryDrawRasterRichText(canvas, cell, options, scale, x, y, w, h, paddingX, paddingY, availableWidth, availableHeight, rotationDegrees, out OfficeRichTextBlockLayout richLayout)) {
+                    if (richTextSupported && TryDrawRasterRichText(canvas, cell, options, scale, x, y, w, h, paddingX, paddingY, availableWidth, availableHeight, rotationDegrees, stacked, out OfficeRichTextBlockLayout richLayout)) {
                         AddRichTextFontFamilyFallbackDiagnostics(snapshot, cell, diagnostics);
                         AddTextClippingDiagnosticIfNeeded(richLayout, snapshot, cell, diagnostics);
-                        if (rotated) {
+                        if (rotated || stacked) {
                             AddRotatedTextApproximationDiagnostic(snapshot, cell, diagnostics);
                         }
 
@@ -155,7 +155,7 @@ namespace OfficeIMO.Excel {
             bool stacked = IsStackedTextRotation(cell.Style.TextRotation);
             double rotationDegrees = stacked ? 0D : ResolveExcelTextRotationDegrees(cell.Style.TextRotation, snapshot, cell, diagnostics);
             bool rotated = Math.Abs(rotationDegrees) > 0.0001D;
-            bool richTextSupported = !stacked && IsRichTextRenderingSupported(cell, rotated);
+            bool richTextSupported = IsRichTextRenderingSupported(cell, rotated);
             string fontFamily = ResolveCellFontFamily(cell.Style);
             OfficeTextBlockLayout layout = stacked
                 ? OfficeTextLayoutEngine.LayoutStackedTextBlock(
@@ -183,10 +183,10 @@ namespace OfficeIMO.Excel {
             }
 
             if (cell.RichTextRuns.Count > 0) {
-                if (richTextSupported && TryAppendSvgRichText(builder, cell, options, x, y, w, h, paddingX, paddingY, availableWidth, availableHeight, rotationDegrees, (text, size, family) => textMeasureCanvas.MeasureText(text, size, family), out OfficeRichTextBlockLayout richLayout)) {
+                if (richTextSupported && TryAppendSvgRichText(builder, cell, options, x, y, w, h, paddingX, paddingY, availableWidth, availableHeight, rotationDegrees, stacked, (text, size, family) => textMeasureCanvas.MeasureText(text, size, family), out OfficeRichTextBlockLayout richLayout)) {
                     AddRichTextFontFamilyFallbackDiagnostics(snapshot, cell, diagnostics);
                     AddTextClippingDiagnosticIfNeeded(richLayout, snapshot, cell, diagnostics);
-                    if (rotated) {
+                    if (rotated || stacked) {
                         AddRotatedTextApproximationDiagnostic(snapshot, cell, diagnostics);
                     }
 
@@ -281,15 +281,16 @@ namespace OfficeIMO.Excel {
             double availableWidth,
             double availableHeight,
             double rotationDegrees,
+            bool stacked,
             out OfficeRichTextBlockLayout layout) {
             bool rotated = Math.Abs(rotationDegrees) > 0.0001D;
-            if (!TryBuildRichTextLayout(cell, options, scale, availableWidth, availableHeight, rotationDegrees, (text, size, family) => canvas.MeasureText(text, size, family), out layout)) {
+            if (!TryBuildRichTextLayout(cell, options, scale, availableWidth, availableHeight, rotationDegrees, stacked, (text, size, family) => canvas.MeasureText(text, size, family), out layout)) {
                 return false;
             }
 
             double centerX = x + (w / 2D);
             double centerY = y + (h / 2D);
-            OfficeTextAlignment alignment = rotated ? OfficeTextAlignment.Center : ResolveTextAlignment(cell.Style.HorizontalAlignment);
+            OfficeTextAlignment alignment = (rotated || stacked) ? OfficeTextAlignment.Center : ResolveTextAlignment(cell.Style.HorizontalAlignment);
             double layoutWidth = rotated ? Math.Max(availableWidth, availableHeight) : availableWidth;
             double left = rotated ? centerX - (layoutWidth / 2D) : x + paddingX;
             double top = rotated ? centerY - (layout.Height / 2D) : y + paddingY;
@@ -323,16 +324,17 @@ namespace OfficeIMO.Excel {
             double availableWidth,
             double availableHeight,
             double rotationDegrees,
+            bool stacked,
             Func<string?, double, string?, double> measure,
             out OfficeRichTextBlockLayout layout) {
             bool rotated = Math.Abs(rotationDegrees) > 0.0001D;
-            if (!TryBuildRichTextLayout(cell, options, options.Scale, availableWidth, availableHeight, rotationDegrees, measure, out layout)) {
+            if (!TryBuildRichTextLayout(cell, options, options.Scale, availableWidth, availableHeight, rotationDegrees, stacked, measure, out layout)) {
                 return false;
             }
 
             double centerX = x + (w / 2D);
             double centerY = y + (h / 2D);
-            OfficeTextAlignment alignment = rotated ? OfficeTextAlignment.Center : ResolveTextAlignment(cell.Style.HorizontalAlignment);
+            OfficeTextAlignment alignment = (rotated || stacked) ? OfficeTextAlignment.Center : ResolveTextAlignment(cell.Style.HorizontalAlignment);
             double layoutWidth = rotated ? Math.Max(availableWidth, availableHeight) : availableWidth;
             double left = rotated ? centerX - (layoutWidth / 2D) : x + paddingX;
             double top = rotated
@@ -376,6 +378,7 @@ namespace OfficeIMO.Excel {
             double availableWidth,
             double availableHeight,
             double rotationDegrees,
+            bool stacked,
             Func<string?, double, string?, double> measure,
             out OfficeRichTextBlockLayout layout) {
             var runs = new List<OfficeRichTextRun>(cell.RichTextRuns.Count);
@@ -401,6 +404,18 @@ namespace OfficeIMO.Excel {
             }
 
             bool rotated = Math.Abs(rotationDegrees) > 0.0001D;
+            if (stacked) {
+                layout = OfficeTextLayoutEngine.LayoutStackedRichTextBlock(
+                    runs,
+                    availableWidth,
+                    availableHeight,
+                    CellTextLineHeightFactor,
+                    measure,
+                    shrinkToFit: cell.Style.ShrinkToFit,
+                    minimumFontSize: Math.Max(1D, scale));
+                return layout.Lines.Count > 0;
+            }
+
             double estimatedLineHeight = Math.Ceiling(ResolveMaxRichTextRunFontSize(runs) * CellTextLineHeightFactor);
             double layoutWidth = rotated
                 ? ResolveRotatedTextWidthLimit(availableWidth, availableHeight, estimatedLineHeight, rotationDegrees)

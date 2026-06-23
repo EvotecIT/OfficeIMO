@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using OfficeIMO.Drawing;
 using Xunit;
@@ -414,6 +415,54 @@ public class DrawingTests {
         Assert.True(layout.FontSize < 12D);
         Assert.True(layout.FontSize >= 4D);
         Assert.True(layout.Height <= 30D);
+    }
+
+    [Fact]
+    public void OfficeTextLayoutEngineBuildsStackedRichTextBlocksFromTextElements() {
+        OfficeRichTextBlockLayout layout = OfficeTextLayoutEngine.LayoutStackedRichTextBlock(
+            new[] {
+                new OfficeRichTextRun("A", 10D, OfficeColor.Red, bold: true),
+                new OfficeRichTextRun("B", 12D, OfficeColor.Blue, italic: true)
+            },
+            20D,
+            40D,
+            1.2D,
+            (text, size, _) => string.IsNullOrEmpty(text) ? 0D : size * 0.5D,
+            shrinkToFit: true,
+            minimumFontSize: 4D);
+
+        Assert.Equal(2, layout.Lines.Count);
+        Assert.Equal(15D, layout.LineHeight);
+        Assert.Equal(30D, layout.Height);
+        Assert.False(layout.Clipped);
+        Assert.Single(layout.Lines[0].Segments);
+        Assert.Single(layout.Lines[1].Segments);
+        Assert.Equal("A", layout.Lines[0].Segments[0].Text);
+        Assert.Equal("B", layout.Lines[1].Segments[0].Text);
+        Assert.Equal(OfficeColor.Red, layout.Lines[0].Segments[0].Color);
+        Assert.Equal(OfficeColor.Blue, layout.Lines[1].Segments[0].Color);
+        Assert.True(layout.Lines[0].Segments[0].Bold);
+        Assert.True(layout.Lines[1].Segments[0].Italic);
+    }
+
+    [Fact]
+    public void OfficeTextLayoutEngineShrinksStackedRichTextBlocksToFitBounds() {
+        OfficeRichTextBlockLayout layout = OfficeTextLayoutEngine.LayoutStackedRichTextBlock(
+            new[] {
+                new OfficeRichTextRun("ABCD", 12D, OfficeColor.Purple, bold: true)
+            },
+            20D,
+            30D,
+            1.2D,
+            (text, size, _) => string.IsNullOrEmpty(text) ? 0D : size * 0.6D,
+            shrinkToFit: true,
+            minimumFontSize: 4D);
+
+        Assert.Equal(4, layout.Lines.Count);
+        Assert.True(layout.Lines[0].Segments[0].FontSize < 12D);
+        Assert.True(layout.Lines[0].Segments[0].FontSize >= 4D);
+        Assert.True(layout.Height <= 30D);
+        Assert.True(layout.Lines.All(line => line.Segments.Count == 1 && line.Segments[0].Bold));
     }
 
     [Theory]
