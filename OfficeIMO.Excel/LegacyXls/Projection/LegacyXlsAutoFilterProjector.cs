@@ -10,9 +10,12 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
 
             var equalityFilters = new Dictionary<uint, IEnumerable<string>>();
             var customFilters = new List<LegacyXlsAutoFilterCriteria>();
+            var top10Filters = new List<LegacyXlsAutoFilterCriteria>();
             foreach (LegacyXlsAutoFilterCriteria columnCriteria in criteria) {
                 if (CanProjectAsEqualityList(columnCriteria)) {
                     equalityFilters[columnCriteria.ColumnId] = columnCriteria.Conditions.Select(condition => condition.Value).ToArray();
+                } else if (columnCriteria.IsTop10) {
+                    top10Filters.Add(columnCriteria);
                 } else {
                     customFilters.Add(columnCriteria);
                 }
@@ -27,10 +30,20 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                     columnCriteria.MatchAll,
                     columnCriteria.Conditions.Select(condition => (ToOperator(condition.Operator), condition.Value)).ToArray());
             }
+
+            foreach (LegacyXlsAutoFilterCriteria columnCriteria in top10Filters) {
+                sheet.ApplyAutoFilterTop10Criteria(
+                    range,
+                    columnCriteria.ColumnId,
+                    columnCriteria.Top10Value!.Value,
+                    columnCriteria.Top10IsTop,
+                    columnCriteria.Top10IsPercent);
+            }
         }
 
         private static bool CanProjectAsEqualityList(LegacyXlsAutoFilterCriteria criteria) {
-            return criteria.Conditions.Count > 0
+            return criteria.Kind == LegacyXlsAutoFilterKind.Custom
+                && criteria.Conditions.Count > 0
                 && !criteria.MatchAll
                 && criteria.Conditions.All(condition => condition.Operator == LegacyXlsAutoFilterOperator.Equal);
         }

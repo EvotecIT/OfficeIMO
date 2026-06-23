@@ -698,6 +698,54 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_Load_ImportsPhase4AutoFilterTop10Criteria() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase4AutoFilterTop10WorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
+            LegacyXlsWorksheet legacySheet = Assert.Single(legacy.Worksheets);
+            Assert.Equal((ushort)1, legacySheet.AutoFilterDropDownCount);
+            LegacyXlsAutoFilterCriteria criteria = Assert.Single(legacySheet.AutoFilterCriteria);
+            Assert.Equal(0U, criteria.ColumnId);
+            Assert.Equal(LegacyXlsAutoFilterKind.Top10, criteria.Kind);
+            Assert.True(criteria.IsTop10);
+            Assert.Equal((ushort)10, criteria.Top10Value);
+            Assert.True(criteria.Top10IsTop);
+            Assert.False(criteria.Top10IsPercent);
+            Assert.Empty(criteria.Conditions);
+            Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.AutoFilterCriteria);
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.False(result.HasImportErrors);
+            Assert.False(result.HasUnsupportedFeatures);
+            Assert.Equal(1, result.ImportReport.AutoFilterCriteriaCount);
+            Assert.Equal(1, result.ImportReport.AutoFilterCriteriaByKind["Top10"]);
+            Assert.Equal(1, result.ImportReport.AutoFilterTop10Kinds["TopItems"]);
+            Assert.Equal(1, result.ImportReport.AutoFilterTop10Values["TopItems:10"]);
+            Assert.Empty(result.Document.ValidateOpenXml());
+
+            using var output = new MemoryStream();
+            result.Document.Save(output);
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
+            WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single();
+            AutoFilter autoFilter = Assert.Single(worksheetPart.Worksheet.Elements<AutoFilter>());
+            Assert.Equal("A1:A5", autoFilter.Reference!.Value);
+            FilterColumn filterColumn = Assert.Single(autoFilter.Elements<FilterColumn>());
+            Assert.Equal(0U, filterColumn.ColumnId!.Value);
+            Top10 top10 = Assert.Single(filterColumn.Elements<Top10>());
+            Assert.True(top10.Top!.Value);
+            Assert.False(top10.Percent!.Value);
+            Assert.Equal(10d, top10.Val!.Value);
+        }
+
+        [Fact]
         public void LegacyXls_Load_ReportsUnsupportedBoundSheetTypes() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase5UnsupportedSheetTypesWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);

@@ -643,5 +643,47 @@ namespace OfficeIMO.Excel {
             });
         }
 
+        internal void ApplyAutoFilterTop10Criteria(
+            string range,
+            uint columnId,
+            ushort value,
+            bool isTop,
+            bool isPercent) {
+            if (string.IsNullOrWhiteSpace(range)) throw new ArgumentNullException(nameof(range));
+            if (value < 1 || value > 500) throw new ArgumentOutOfRangeException(nameof(value), "Top10 AutoFilter values must be between 1 and 500.");
+
+            WriteLock(() => {
+                Worksheet worksheet = WorksheetRoot;
+                AutoFilter? autoFilter = worksheet.GetFirstChild<AutoFilter>();
+                if (autoFilter == null || !string.Equals(autoFilter.Reference?.Value, range, StringComparison.OrdinalIgnoreCase)) {
+                    autoFilter?.Remove();
+                    autoFilter = new AutoFilter { Reference = range };
+                    var sheetData = worksheet.GetFirstChild<SheetData>();
+                    if (sheetData != null) {
+                        var conditionalFormatting = worksheet.GetFirstChild<ConditionalFormatting>();
+                        if (conditionalFormatting != null) {
+                            worksheet.InsertBefore(autoFilter, conditionalFormatting);
+                        } else {
+                            worksheet.InsertAfter(autoFilter, sheetData);
+                        }
+                    } else {
+                        worksheet.Append(autoFilter);
+                    }
+                }
+
+                FilterColumn? existingColumn = autoFilter.Elements<FilterColumn>().FirstOrDefault(fc => fc.ColumnId?.Value == columnId);
+                existingColumn?.Remove();
+
+                var filterColumn = new FilterColumn { ColumnId = columnId };
+                filterColumn.Append(new Top10 {
+                    Top = isTop,
+                    Percent = isPercent,
+                    Val = (double)value,
+                });
+                autoFilter.Append(filterColumn);
+                worksheet.Save();
+            });
+        }
+
     }
 }

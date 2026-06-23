@@ -26,7 +26,15 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
             ushort flags = BiffRecordReader.ReadUInt16(payload, 2);
             if ((flags & 0x0010) != 0) {
-                return false;
+                ushort top10Value = (ushort)((flags >> 7) & 0x01ff);
+                if (top10Value == 0 || top10Value > 500) {
+                    return false;
+                }
+
+                bool isTop = (flags & 0x0020) != 0;
+                bool isPercent = (flags & 0x0040) != 0;
+                criteria = LegacyXlsAutoFilterCriteria.CreateTop10(columnId, top10Value, isTop, isPercent);
+                return true;
             }
 
             int stringOffset = 24;

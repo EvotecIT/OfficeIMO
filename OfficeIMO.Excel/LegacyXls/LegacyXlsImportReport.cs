@@ -30,6 +30,17 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .SelectMany(sheet => sheet.AutoFilterCriteria)
                 .SelectMany(criteria => criteria.Conditions)
                 .Select(condition => condition.Operator.ToString()));
+            AutoFilterCriteriaByKind = CountByCode(workbook.Worksheets
+                .SelectMany(sheet => sheet.AutoFilterCriteria)
+                .Select(criteria => criteria.Kind.ToString()));
+            AutoFilterTop10Kinds = CountByCode(workbook.Worksheets
+                .SelectMany(sheet => sheet.AutoFilterCriteria)
+                .Where(criteria => criteria.IsTop10)
+                .Select(GetAutoFilterTop10KindKey));
+            AutoFilterTop10Values = CountByCode(workbook.Worksheets
+                .SelectMany(sheet => sheet.AutoFilterCriteria)
+                .Where(criteria => criteria.IsTop10 && criteria.Top10Value.HasValue)
+                .Select(criteria => $"{GetAutoFilterTop10KindKey(criteria)}:{criteria.Top10Value!.Value}"));
             DefinedNameCount = workbook.DefinedNames.Count;
             ExternalReferenceCount = workbook.ExternalReferences.Count;
             ExternalSheetNameCount = workbook.ExternalReferences.Sum(reference => reference.SheetNames.Count);
@@ -220,6 +231,15 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets imported AutoFilter conditions grouped by comparison operator.</summary>
         public IReadOnlyDictionary<string, int> AutoFilterCriteriaByOperator { get; }
+
+        /// <summary>Gets imported AutoFilter criteria grouped by criteria kind.</summary>
+        public IReadOnlyDictionary<string, int> AutoFilterCriteriaByKind { get; }
+
+        /// <summary>Gets imported Top/Bottom AutoFilter criteria grouped by top/bottom and items/percent shape.</summary>
+        public IReadOnlyDictionary<string, int> AutoFilterTop10Kinds { get; }
+
+        /// <summary>Gets imported Top/Bottom AutoFilter criteria grouped by shape and value.</summary>
+        public IReadOnlyDictionary<string, int> AutoFilterTop10Values { get; }
 
         /// <summary>Gets the number of imported defined names.</summary>
         public int DefinedNameCount { get; }
@@ -518,7 +538,10 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Data Validations By Operator", DataValidationsByOperator);
             AppendDictionary(builder, "Conditional Formatting By Type", ConditionalFormattingsByType);
             AppendDictionary(builder, "Conditional Formatting By Operator", ConditionalFormattingsByOperator);
+            AppendDictionary(builder, "AutoFilter Criteria By Kind", AutoFilterCriteriaByKind);
             AppendDictionary(builder, "AutoFilter Criteria By Operator", AutoFilterCriteriaByOperator);
+            AppendDictionary(builder, "AutoFilter Top10 Kinds", AutoFilterTop10Kinds);
+            AppendDictionary(builder, "AutoFilter Top10 Values", AutoFilterTop10Values);
             AppendDictionary(builder, "Unsupported Features By Code", UnsupportedFeaturesByCode);
             AppendDictionary(builder, "Unsupported Features By Kind", UnsupportedFeaturesByKind.ToDictionary(
                 entry => entry.Key.ToString(),
@@ -774,6 +797,12 @@ namespace OfficeIMO.Excel.LegacyXls {
             }
 
             return cache.SheetIndex.HasValue ? $"SheetIndex:{cache.SheetIndex.Value}" : "(unknown)";
+        }
+
+        private static string GetAutoFilterTop10KindKey(LegacyXlsAutoFilterCriteria criteria) {
+            string rank = criteria.Top10IsTop ? "Top" : "Bottom";
+            string unit = criteria.Top10IsPercent ? "Percent" : "Items";
+            return rank + unit;
         }
 
         private static void AppendDictionary(StringBuilder builder, string title, IReadOnlyDictionary<string, int> values) {
