@@ -116,7 +116,7 @@
     <g data-visio-connector-id="1">
       <path d="M 412.032 271.2 L 458.736 271.2 L 458.736 420 L 505.44 420" fill="none" stroke="#4169E1" stroke-width="1.728" stroke-linecap="round" stroke-linejoin="round" />
       <path data-officeimo-connector-arrow="end" d="M 505.44 420 L 498.232 423.471 L 498.232 416.529 Z" fill="#4169E1" stroke="none" />
-      <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="433.056" y="322.24" width="51.36" height="16" fill="#FFFFFF" fill-opacity="0.902" />
+      <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="435.876" y="322.24" width="45.72" height="16" fill="#FFFFFF" fill-opacity="0.902" />
       <text x="458.736" y="330.24" font-family="Aptos" font-size="12" text-anchor="middle" dominant-baseline="middle" fill="#2A4BB1">
         <tspan x="458.736" dy="0">handoff</tspan>
       </text>

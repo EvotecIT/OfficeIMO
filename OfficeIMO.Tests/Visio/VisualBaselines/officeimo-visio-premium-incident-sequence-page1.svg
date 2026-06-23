@@ -19,8 +19,8 @@
 		.st9 {fill:#6d28d9;stroke:#c4b5fd;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.44}
 		.st10 {fill:none;stroke:#d8b4fe;stroke-dasharray:10.08,7.2;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.44}
 		.st11 {fill:#111827;stroke:none;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
-		.st12 {fill:#111827;stroke:none;stroke-linecap:butt}
-		.st13 {fill:#111827;stroke:none;stroke-linecap:butt;stroke-width:7.2}
+		.st12 {fill:#111827;stroke:none;stroke-linecap:butt;stroke-width:7.2}
+		.st13 {fill:#111827;stroke:none;stroke-linecap:butt}
 		.st14 {fill:#f1f5f9;font-family:Calibri;font-size:0.666664em}
 		.st15 {fill:none}
 		.st16 {stroke:#93c5fd;stroke-dasharray:7.56,5.4;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.08}
@@ -313,7 +313,7 @@
 			<v:textBlock v:margins="rect(1.44,2.88,1.44,4.32)" v:tabSpace="42.5197"/>
 			<v:textRect cx="58.68" cy="678.24" width="117.36" height="17.28"/>
 			<rect x="0" y="669.6" width="117.36" height="17.28" class="st11"/>
-			<rect v:rectContext="textBkgnd" x="4.3201" y="673.44" width="75.698" height="9.59985" class="st13"/>
+			<rect v:rectContext="textBkgnd" x="4.3201" y="673.44" width="75.698" height="9.59985" class="st12"/>
 			<text x="4.32" y="680.64" class="st14" v:langID="1033"><v:paragraph/><v:tabList/>[settlement confirmed]</text>		</g>
 		<g id="shape37-85" v:mID="37" v:groupContext="shape" v:layerMember="4" transform="translate(163.44,-247.68)">
 			<title>Sheet.37</title>
@@ -323,7 +323,7 @@
 			<rect x="0" y="635.04" width="133.2" height="51.84" class="st7"/>
 			<text x="34.42" y="663.96" class="st8" v:langID="1033"><v:paragraph v:horizAlign="1"/><v:tabList/>Runbook active</text>		</g>
 		<g id="shape38-88" v:mID="38" v:groupContext="shape" v:layerMember="0">
-			<title>Sheet.38</title>
+			<title>Connector</title>
 			<path d="M102.6 156.24 L102.6 630 L102.6 156.24 Z" class="st15"/>
 			<path d="M102.6 156.24 L102.6 630" class="st16"/>
 		</g>
@@ -412,7 +412,7 @@
 			<path d="M104.04 578.16 L156.6 578.16 L156.6 604.08 L104.04 604.08" class="st17"/>
 			<text x="170.92" y="597.42" class="st19" v:langID="1033"><v:paragraph v:horizAlign="1"/><v:tabList/>Update incident record</text>		</g>
 		<g id="shape51-146" v:mID="51" v:groupContext="shape" v:layerMember="3">
-			<title>Connector</title>
+			<title>Sheet.51</title>
 			<path d="M61.92 447.09 L992.88 447.09 L61.92 447.09 Z" class="st15"/>
 			<path d="M61.92 447.09 L992.88 447.09" class="st24"/>
 		</g>

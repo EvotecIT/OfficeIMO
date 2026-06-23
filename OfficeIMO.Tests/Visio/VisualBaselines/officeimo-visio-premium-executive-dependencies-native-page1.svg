@@ -10,7 +10,7 @@
     </g>
     <g data-visio-shape-id="sales-label" data-visio-nameu="Text Box">
       <path d="M 93.6 350.88 L 232.8 350.88 L 232.8 318.24 L 93.6 318.24 Z" data-officeimo-preserved-geometry="true" fill="none" stroke="none" />
-      <rect data-officeimo-text-background="true" x="144.873" y="326.2" width="36.653" height="16.72" fill="#FFFFFF" />
+      <rect data-officeimo-text-background="true" x="143.67" y="326.2" width="39.06" height="16.72" fill="#FFFFFF" />
       <text x="163.2" y="334.56" font-family="Aptos" font-size="12.667" text-anchor="middle" dominant-baseline="middle" fill="#19232D">
         <tspan x="163.2" dy="0">Sales</tspan>
       </text>
@@ -25,7 +25,7 @@
     </g>
     <g data-visio-shape-id="portal-label" data-visio-nameu="Text Box">
       <path d="M 292.32 355.68 L 517.92 355.68 L 517.92 323.04 L 292.32 323.04 Z" data-officeimo-preserved-geometry="true" fill="none" stroke="none" />
-      <rect data-officeimo-text-background="true" x="383.373" y="331" width="43.493" height="16.72" fill="#FFFFFF" />
+      <rect data-officeimo-text-background="true" x="385.527" y="331" width="39.187" height="16.72" fill="#FFFFFF" />
       <text x="405.12" y="339.36" font-family="Aptos" font-size="12.667" text-anchor="middle" dominant-baseline="middle" fill="#19232D">
         <tspan x="405.12" dy="0">Portal</tspan>
       </text>
@@ -40,7 +40,7 @@
     </g>
     <g data-visio-shape-id="checkout-label" data-visio-nameu="Text Box">
       <path d="M 534.24 355.68 L 759.84 355.68 L 759.84 323.04 L 534.24 323.04 Z" data-officeimo-preserved-geometry="true" fill="none" stroke="none" />
-      <rect data-officeimo-text-background="true" x="616.68" y="331" width="60.72" height="16.72" fill="#FFFFFF" />
+      <rect data-officeimo-text-background="true" x="617.06" y="331" width="59.96" height="16.72" fill="#FFFFFF" />
       <text x="647.04" y="339.36" font-family="Aptos" font-size="12.667" text-anchor="middle" dominant-baseline="middle" fill="#19232D">
         <tspan x="647.04" dy="0">Checkout</tspan>
       </text>
@@ -53,7 +53,7 @@
     </g>
     <g data-visio-shape-id="risk-label" data-visio-nameu="Text Box">
       <path d="M 780.96 360.48 L 996.96 360.48 L 996.96 327.84 L 780.96 327.84 Z" data-officeimo-preserved-geometry="true" fill="none" stroke="none" />
-      <rect data-officeimo-text-background="true" x="874.053" y="335.8" width="29.813" height="16.72" fill="#FFFFFF" />
+      <rect data-officeimo-text-background="true" x="872.913" y="335.8" width="32.093" height="16.72" fill="#FFFFFF" />
       <text x="888.96" y="344.16" font-family="Aptos" font-size="12.667" text-anchor="middle" dominant-baseline="middle" fill="#19232D">
         <tspan x="888.96" dy="0">Risk</tspan>
       </text>
@@ -68,7 +68,7 @@
     </g>
     <g data-visio-shape-id="payments-label" data-visio-nameu="Text Box">
       <path d="M 1018.08 355.68 L 1243.68 355.68 L 1243.68 323.04 L 1018.08 323.04 Z" data-officeimo-preserved-geometry="true" fill="none" stroke="none" />
-      <rect data-officeimo-text-background="true" x="1100.52" y="331" width="60.72" height="16.72" fill="#FFFFFF" />
+      <rect data-officeimo-text-background="true" x="1099.19" y="331" width="63.38" height="16.72" fill="#FFFFFF" />
       <text x="1130.88" y="339.36" font-family="Aptos" font-size="12.667" text-anchor="middle" dominant-baseline="middle" fill="#19232D">
         <tspan x="1130.88" dy="0">Payments</tspan>
       </text>
@@ -82,7 +82,7 @@
     </g>
     <g data-visio-shape-id="ledger-label" data-visio-nameu="Text Box">
       <path d="M 1260 355.68 L 1485.6 355.68 L 1485.6 323.04 L 1260 323.04 Z" data-officeimo-preserved-geometry="true" fill="none" stroke="none" />
-      <rect data-officeimo-text-background="true" x="1349.28" y="331" width="47.04" height="16.72" fill="#FFFFFF" />
+      <rect data-officeimo-text-background="true" x="1349.787" y="331" width="46.027" height="16.72" fill="#FFFFFF" />
       <text x="1372.8" y="339.36" font-family="Aptos" font-size="12.667" text-anchor="middle" dominant-baseline="middle" fill="#19232D">
         <tspan x="1372.8" dy="0">Ledger</tspan>
       </text>
@@ -96,7 +96,7 @@
     </g>
     <g data-visio-shape-id="warehouse-label" data-visio-nameu="Text Box">
       <path d="M 776.16 547.68 L 1001.76 547.68 L 1001.76 515.04 L 776.16 515.04 Z" data-officeimo-preserved-geometry="true" fill="none" stroke="none" />
-      <rect data-officeimo-text-background="true" x="853.153" y="523" width="71.613" height="16.72" fill="#FFFFFF" />
+      <rect data-officeimo-text-background="true" x="855.497" y="523" width="66.927" height="16.72" fill="#FFFFFF" />
       <text x="888.96" y="531.36" font-family="Aptos" font-size="12.667" text-anchor="middle" dominant-baseline="middle" fill="#19232D">
         <tspan x="888.96" dy="0">Warehouse</tspan>
       </text>
@@ -128,7 +128,7 @@
     <g data-visio-connector-id="sales-portal">
       <path d="M 206.4 266.4 L 262.56 266.4 L 262.56 266.4 L 318.72 266.4" fill="none" stroke="#515D71" stroke-width="1.92" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="7.68 3.84" />
       <path data-officeimo-connector-arrow="end" d="M 318.72 266.4 L 311.512 269.871 L 311.512 262.929 Z" fill="#515D71" stroke="none" />
-      <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="222.24" y="233.44" width="80.64" height="16" fill="#FFFFFF" />
+      <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="222.72" y="233.44" width="79.68" height="16" fill="#FFFFFF" />
       <text x="262.56" y="241.44" font-family="Aptos" font-size="12" text-anchor="middle" dominant-baseline="middle" fill="#344054">
         <tspan x="262.56" dy="0">qualified lead</tspan>
       </text>
@@ -136,7 +136,7 @@
     <g data-visio-connector-id="portal-checkout">
       <path d="M 491.52 266.4 L 530.88 266.4 L 530.88 266.4 L 560.64 266.4" fill="none" stroke="#515D71" stroke-width="1.92" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="7.68 3.84" />
       <path data-officeimo-connector-arrow="end" d="M 560.64 266.4 L 553.432 269.871 L 553.432 262.929 Z" fill="#515D71" stroke="none" />
-      <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="506.88" y="233.44" width="38.4" height="16" fill="#FFFFFF" />
+      <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="509.82" y="233.44" width="32.52" height="16" fill="#FFFFFF" />
       <text x="526.08" y="241.44" font-family="Aptos" font-size="12" text-anchor="middle" dominant-baseline="middle" fill="#344054">
         <tspan x="526.08" dy="0">order</tspan>
       </text>
@@ -144,7 +144,7 @@
     <g data-visio-connector-id="checkout-risk">
       <path d="M 733.44 266.4 L 780 266.4 L 780 266.4 L 807.36 266.4" fill="none" stroke="#515D71" stroke-width="1.92" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="7.68 3.84" />
       <path data-officeimo-connector-arrow="end" d="M 807.36 266.4 L 800.152 269.871 L 800.152 262.929 Z" fill="#515D71" stroke="none" />
-      <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="751.2" y="233.44" width="38.4" height="16" fill="#FFFFFF" />
+      <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="752.52" y="233.44" width="35.76" height="16" fill="#FFFFFF" />
       <text x="770.4" y="241.44" font-family="Aptos" font-size="12" text-anchor="middle" dominant-baseline="middle" fill="#344054">
         <tspan x="770.4" dy="0">score</tspan>
       </text>
@@ -152,7 +152,7 @@
     <g data-visio-connector-id="risk-payments">
       <path d="M 970.56 266.4 L 1021.92 266.4 L 1021.92 266.4 L 1044.48 266.4" fill="none" stroke="#515D71" stroke-width="1.92" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="7.68 3.84" />
       <path data-officeimo-connector-arrow="end" d="M 1044.48 266.4 L 1037.272 269.871 L 1037.272 262.929 Z" fill="#515D71" stroke="none" />
-      <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="978.6" y="233.44" width="57.84" height="16" fill="#FFFFFF" />
+      <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="979.74" y="233.44" width="55.56" height="16" fill="#FFFFFF" />
       <text x="1007.52" y="241.44" font-family="Aptos" font-size="12" text-anchor="middle" dominant-baseline="middle" fill="#344054">
         <tspan x="1007.52" dy="0">approved</tspan>
       </text>
@@ -160,7 +160,7 @@
     <g data-visio-connector-id="payments-ledger">
       <path d="M 1217.28 266.4 L 1271.04 266.4 L 1271.04 266.4 L 1286.4 266.4" fill="none" stroke="#007EA7" stroke-width="1.92" stroke-linecap="round" stroke-linejoin="round" />
       <path data-officeimo-connector-arrow="end" d="M 1286.4 266.4 L 1279.192 269.871 L 1279.192 262.929 Z" fill="#007EA7" stroke="none" />
-      <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="1231.08" y="233.44" width="41.52" height="16" fill="#FFFFFF" />
+      <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="1233.9" y="233.44" width="35.88" height="16" fill="#FFFFFF" />
       <text x="1251.84" y="241.44" font-family="Aptos" font-size="12" text-anchor="middle" dominant-baseline="middle" fill="#005677">
         <tspan x="1251.84" dy="0">settle</tspan>
       </text>
@@ -168,7 +168,7 @@
     <g data-visio-connector-id="checkout-warehouse">
       <path d="M 733.44 266.4 L 733.44 338.4 L 802.56 338.4 L 802.56 458.4" fill="none" stroke="#007EA7" stroke-width="1.92" stroke-linecap="round" stroke-linejoin="round" />
       <path data-officeimo-connector-arrow="end" d="M 802.56 458.4 L 799.089 451.192 L 806.031 451.192 Z" fill="#007EA7" stroke="none" />
-      <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="745.43" y="305.44" width="51.36" height="16" fill="#FFFFFF" />
+      <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="748.25" y="305.44" width="45.72" height="16" fill="#FFFFFF" />
       <text x="771.11" y="313.44" font-family="Aptos" font-size="12" text-anchor="middle" dominant-baseline="middle" fill="#005677">
         <tspan x="771.11" dy="0">reserve</tspan>
       </text>
