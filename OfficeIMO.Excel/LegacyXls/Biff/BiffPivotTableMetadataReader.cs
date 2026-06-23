@@ -133,7 +133,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case 0x0858:
                     kind = LegacyXlsPivotTableRecordKind.PivotChart;
                     break;
-                case 0x0863:
+                case 0x0864:
                     kind = LegacyXlsPivotTableRecordKind.Additional;
                     break;
                 default:

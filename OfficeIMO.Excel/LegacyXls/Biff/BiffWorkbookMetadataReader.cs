@@ -21,6 +21,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     workbook.AddMetadataRecord(LegacyXlsWorkbookMetadataKind.BookOptions, record.Offset, record.Type);
                     return true;
 
+                case BiffRecordType.BookExt:
+                    workbook.AddMetadataRecord(LegacyXlsWorkbookMetadataKind.BookExtension, record.Offset, record.Type);
+                    return true;
+
                 case BiffRecordType.BuiltInFnGroupCount:
                     if (TryReadBuiltInFunctionGroupCount(record, diagnostics, out ushort builtInFunctionGroupCount)) {
                         workbook.SetBuiltInFunctionGroupCount(builtInFunctionGroupCount);

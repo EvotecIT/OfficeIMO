@@ -391,8 +391,8 @@ namespace OfficeIMO.Tests {
             LegacyXlsImportReport report = workbook.CreateImportReport();
 
             Assert.DoesNotContain(workbook.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
-            Assert.Equal(15, workbook.PivotTableRecords.Count);
-            Assert.Equal(15, report.PivotTableRecordCount);
+            Assert.Equal(16, workbook.PivotTableRecords.Count);
+            Assert.Equal(16, report.PivotTableRecordCount);
             Assert.Equal(1, report.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.View]);
             Assert.Equal(1, report.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.Field]);
             Assert.Equal(1, report.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.Item]);
@@ -405,6 +405,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.Format]);
             Assert.Equal(1, report.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.ExtendedPivotField]);
             Assert.Equal(1, report.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.PivotChart]);
+            Assert.Equal(1, report.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.Additional]);
             Assert.DoesNotContain(report.PivotTableRecordsByKind, entry => entry.Key == LegacyXlsPivotTableRecordKind.PreserveOnly);
             Assert.Equal(1, report.PivotTableRecordsByName["SxView"]);
             Assert.Equal(1, report.PivotTableRecordsByName["Sxvd"]);
@@ -420,6 +421,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.PivotTableRecordsByName["SxFormat"]);
             Assert.Equal(1, report.PivotTableRecordsByName["SxVdEx"]);
             Assert.Equal(1, report.PivotTableRecordsByName["PivotChartBits"]);
+            Assert.Equal(1, report.PivotTableRecordsByName["SxAddl"]);
             Assert.Equal(1, report.PivotTableDataItemAggregations["AggregationFunction:0"]);
             Assert.Equal(1, report.PivotTableDataItemAggregationKinds["Sum"]);
             Assert.Equal(1, report.PivotTableDataItemFieldIndexes["FieldIndex:2"]);
@@ -448,6 +450,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains(workbook.PivotTableRecords, record => record.Kind == LegacyXlsPivotTableRecordKind.Filter && record.RecordName == "SxFilt" && record.SheetName == null);
             Assert.Contains(workbook.PivotTableRecords, record => record.Kind == LegacyXlsPivotTableRecordKind.Format && record.RecordName == "SxFormat" && record.SheetName == "PivotMeta");
             Assert.Contains(workbook.PivotTableRecords, record => record.Kind == LegacyXlsPivotTableRecordKind.PivotChart && record.RecordName == "PivotChartBits" && record.SheetName == "PivotMeta");
+            Assert.Contains(workbook.PivotTableRecords, record => record.Kind == LegacyXlsPivotTableRecordKind.Additional && record.RecordName == "SxAddl" && record.SheetName == "PivotMeta");
 
             LegacyXlsPivotTableRecord dataItem = Assert.Single(workbook.PivotTableRecords, record => record.Kind == LegacyXlsPivotTableRecordKind.DataItem);
             Assert.Null(dataItem.SheetName);
@@ -484,11 +487,11 @@ namespace OfficeIMO.Tests {
             Assert.True(extended.CanDragToHide);
             Assert.False(extended.PreventDragToData);
             Assert.True(extended.ServerBased);
-            Assert.Equal(15, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.PivotTable]);
-            Assert.Equal(15, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.PivotTable]);
+            Assert.Equal(16, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.PivotTable]);
+            Assert.Equal(16, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.PivotTable]);
 
             string markdown = report.ToMarkdown();
-            Assert.Contains("Pivot table records: 15", markdown);
+            Assert.Contains("Pivot table records: 16", markdown);
             Assert.Contains("Pivot Table Records By Kind", markdown);
             Assert.Contains("Pivot Table Data Item Aggregations", markdown);
             Assert.Contains("Pivot Table Data Item Aggregation Kinds", markdown);
@@ -503,6 +506,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Pivot Table Grouping Date Ranges", markdown);
             Assert.Contains("Pivot Table Extended Field States", markdown);
             Assert.Contains("SxVdEx", markdown);
+            Assert.Contains("SxAddl", markdown);
         }
 
         [Fact]

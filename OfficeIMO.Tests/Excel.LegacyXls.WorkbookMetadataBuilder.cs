@@ -16,6 +16,7 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x0019, BuildUInt16Payload(1));
                 WriteRecord(stream, 0x003d, BuildWindow1Payload());
                 WriteRecord(stream, 0x0040, BuildUInt16Payload(1));
+                WriteRecord(stream, 0x0863, BuildBookExtPayload());
                 WriteRecord(stream, 0x008d, BuildUInt16Payload(2));
                 WriteRecord(stream, 0x00da, BuildUInt16Payload(0x015d));
                 WriteRecord(stream, 0x004d, BuildPrinterSettingsPayload());
@@ -60,6 +61,19 @@ namespace OfficeIMO.Tests {
                 stream.WriteByte(0x02);
                 stream.WriteByte(0x03);
                 stream.WriteByte(0x04);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildBookExtPayload() {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, 0x0863);
+                WriteUInt16(stream, 0);
+                WriteUInt32(stream, 20);
+                WriteUInt32(stream, 0);
+                WriteUInt32(stream, 0);
+                WriteUInt32(stream, 0);
+                WriteUInt32(stream, 0);
+                WriteUInt32(stream, 0);
                 return stream.ToArray();
             }
 

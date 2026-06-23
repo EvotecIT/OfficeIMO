@@ -317,7 +317,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case 0x0804: return "TxtQry";
                 case 0x0857: return "SxViewLink";
                 case 0x0858: return "PivotChartBits";
-                case 0x0863: return "SxAddl";
+                case 0x0863: return "BookExt";
+                case 0x0864: return "SxAddl";
                 case 0x0875: return "DConn";
                 case 0x087A: return "Cf12";
                 case 0x087B: return "CfEx";
@@ -453,7 +454,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case 0x0801: // QsiSXTag
                 case 0x0857: // SXViewLink
                 case 0x0858: // PivotChartBits
-                case 0x0863: // SXAddl
+                case 0x0864: // SXAddl
                     return true;
                 default:
                     return false;

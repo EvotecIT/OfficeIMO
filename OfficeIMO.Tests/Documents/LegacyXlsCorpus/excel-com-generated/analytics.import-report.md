@@ -15,7 +15,7 @@ External sheet names: 0
 External names: 0
 External cell caches: 0
 External cached cells: 0
-Pivot table records: 44
+Pivot table records: 93
 Chart records: 109
 Drawing records: 18
 Drawing OfficeArt records: 51
@@ -26,11 +26,11 @@ Compound feature entries: 0
 Compound VBA modules: 0
 Calculation setting records: 13
 Cell style records: 47
-Workbook metadata records: 17
+Workbook metadata records: 18
 Worksheet metadata records: 10
 Unsupported sheet metadata records: 1
-Unsupported features: 356
-Preserved feature records: 174
+Unsupported features: 355
+Preserved feature records: 223
 Errors: 0
 Warnings: 0
 
@@ -43,8 +43,8 @@ Warnings: 0
 | XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED | 2 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 18 |
 | XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 1 |
-| XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 44 |
-| XLS-BIFF-RECORD-UNSUPPORTED | 181 |
+| XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 93 |
+| XLS-BIFF-RECORD-UNSUPPORTED | 131 |
 
 ## Conditional Formatting By Type
 
@@ -163,8 +163,8 @@ Warnings: 0
 | XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED | 2 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 18 |
 | XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 1 |
-| XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 44 |
-| XLS-BIFF-RECORD-UNSUPPORTED | 181 |
+| XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 93 |
+| XLS-BIFF-RECORD-UNSUPPORTED | 131 |
 
 ## Unsupported Features By Kind
 
@@ -175,8 +175,8 @@ Warnings: 0
 | ConditionalFormatting | 2 |
 | DrawingObject | 18 |
 | ExternalReference | 1 |
-| PivotTable | 44 |
-| UnsupportedRecord | 181 |
+| PivotTable | 93 |
+| UnsupportedRecord | 131 |
 
 ## Unsupported Feature Record Types
 
@@ -239,13 +239,12 @@ Warnings: 0
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00F1 | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00FF | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x0100 | 7 |
-| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x0863 | 1 |
+| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x0864 | 50 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x0051 | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x00E3 | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x01C0 | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x01C1 | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x0810 | 1 |
-| UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x0864 | 50 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x0867 | 2 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x087C | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x087D | 66 |
@@ -307,7 +306,7 @@ Warnings: 0
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:MsoDrawingGroup | 1 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:Obj | 8 |
 | ExternalReference\|XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|ExternalReference:DbQueryExt | 1 |
-| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxAddl | 1 |
+| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxAddl | 50 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:Sxdb | 2 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:Sxdi | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxFilt | 1 |
@@ -326,7 +325,6 @@ Warnings: 0
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:Record0x01C0 | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:Record0x01C1 | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:Record0x0810 | 1 |
-| UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:Record0x0864 | 50 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:Record0x0867 | 2 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:Record0x087C | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:Record0x087D | 66 |
@@ -353,11 +351,11 @@ Warnings: 0
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|RevenueChart | 1 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|SalesData | 14 |
 | XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|PivotSummary | 1 |
-| XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|(workbook) | 4 |
-| XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotSummary | 39 |
+| XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|(workbook) | 11 |
+| XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotSummary | 81 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|SalesData | 1 |
-| XLS-BIFF-RECORD-UNSUPPORTED\|(workbook) | 132 |
-| XLS-BIFF-RECORD-UNSUPPORTED\|PivotSummary | 46 |
+| XLS-BIFF-RECORD-UNSUPPORTED\|(workbook) | 124 |
+| XLS-BIFF-RECORD-UNSUPPORTED\|PivotSummary | 4 |
 | XLS-BIFF-RECORD-UNSUPPORTED\|SalesData | 3 |
 
 ## Unsupported Sheets By Kind
@@ -485,7 +483,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| Additional | 1 |
+| Additional | 50 |
 | Cache | 2 |
 | CacheStream | 1 |
 | DataItem | 1 |
@@ -504,7 +502,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| SxAddl | 1 |
+| SxAddl | 50 |
 | Sxdb | 2 |
 | Sxdi | 1 |
 | SxFilt | 1 |
@@ -1069,6 +1067,7 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | Backup | 1 |
+| BookExtension | 1 |
 | BookOptions | 1 |
 | BuiltInFunctionGroupCount | 1 |
 | CodePage | 1 |
@@ -1110,7 +1109,7 @@ Warnings: 0
 | ConditionalFormatting | 2 |
 | DrawingObject | 18 |
 | ExternalReference | 1 |
-| PivotTable | 44 |
+| PivotTable | 93 |
 
 ## Preserved Feature Record Details
 
@@ -1159,7 +1158,7 @@ Warnings: 0
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:MsoDrawingGroup | 1 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:Obj | 8 |
 | ExternalReference\|XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|ExternalReference:DbQueryExt | 1 |
-| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxAddl | 1 |
+| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxAddl | 50 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:Sxdb | 2 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:Sxdi | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxFilt | 1 |
