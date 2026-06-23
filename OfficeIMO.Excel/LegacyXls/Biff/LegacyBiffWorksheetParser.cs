@@ -169,8 +169,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
                         break;
                     case BiffRecordType.Cf:
-                        if (!conditionalFormattingState.TryReadRule(payload)) {
+                        if (!conditionalFormattingState.TryReadRule(payload, out BiffFormulaReadFailure? conditionalFormattingFormulaFailure)) {
                             AddUnsupportedFeature(unsupportedFeatures, preservedFeatureRecords, diagnostics, options, type, offset, sheet.Name, payload.Length);
+                            AddFormulaTokenDiagnostic(diagnostics, options, conditionalFormattingFormulaFailure, type, offset, sheet.Name, "Conditional-formatting formula");
                         }
 
                         break;
@@ -217,10 +218,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
                         break;
                     case BiffRecordType.Dv:
-                        if (BiffDataValidationReader.TryRead(payload, externSheets, externalReferences, sheetNames, definedNames, out LegacyXlsDataValidation? validation)) {
+                        if (BiffDataValidationReader.TryRead(payload, externSheets, externalReferences, sheetNames, definedNames, out LegacyXlsDataValidation? validation, out BiffFormulaReadFailure? dataValidationFormulaFailure)) {
                             sheet.AddDataValidation(validation!);
                         } else {
                             AddUnsupportedFeature(unsupportedFeatures, preservedFeatureRecords, diagnostics, options, type, offset, sheet.Name, payload.Length);
+                            AddFormulaTokenDiagnostic(diagnostics, options, dataValidationFormulaFailure, type, offset, sheet.Name, "Data-validation formula");
                         }
 
                         break;
@@ -497,6 +499,31 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (options.ReportUnsupportedRecords) {
                 BiffUnsupportedRecordDiagnostics.AddUnsupportedRecordDiagnostic(diagnostics, type, offset, sheetName);
             }
+        }
+
+        private static void AddFormulaTokenDiagnostic(
+            List<LegacyXlsImportDiagnostic> diagnostics,
+            LegacyXlsImportOptions options,
+            BiffFormulaReadFailure? failure,
+            ushort type,
+            int offset,
+            string? sheetName,
+            string formulaContext) {
+            if (!options.ReportUnsupportedRecords || failure == null) {
+                return;
+            }
+
+            diagnostics.Add(new LegacyXlsImportDiagnostic(
+                LegacyXlsDiagnosticSeverity.Info,
+                "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED",
+                $"{failure.Description} {formulaContext} was preserved without projection.",
+                sheetName: sheetName,
+                recordOffset: offset,
+                recordType: type,
+                detailCode: failure.DetailCode,
+                formulaToken: failure.Token,
+                formulaTokenName: failure.TokenName,
+                formulaTokenOffset: failure.TokenOffset));
         }
 
         private static void ParseZoomScale(LegacyXlsWorksheet sheet, byte[] payload) {

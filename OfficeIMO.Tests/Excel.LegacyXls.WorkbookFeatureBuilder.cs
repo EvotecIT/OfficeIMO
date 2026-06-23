@@ -816,6 +816,25 @@ namespace OfficeIMO.Tests {
                 return bytes;
             }
 
+            internal static byte[] CreateUnsupportedFormulaDataValidationWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long validationBoundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "UnsupportedDvFormula"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Value"));
+                WriteRecord(stream, 0x01b2, BuildDataValidationCollectionPayload(1));
+                WriteRecord(stream, 0x01be, BuildUnsupportedFormulaDataValidationPayload());
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)validationBoundSheetPosition + 4), 4);
+                return bytes;
+            }
+
             internal static byte[] CreatePhase4ConditionalFormattingWorkbookStream() {
                 using var stream = new MemoryStream();
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
@@ -830,6 +849,26 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x027e, BuildRkPayload(2, 0, 0, EncodeRkInteger(15)));
                 WriteRecord(stream, 0x01b0, BuildConditionalFormattingRangePayload(0, 0, 2, 0, 1));
                 WriteRecord(stream, 0x01b1, BuildCellIsGreaterThanConditionalFormattingRulePayload(10));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)formattingBoundSheetPosition + 4), 4);
+                return bytes;
+            }
+
+            internal static byte[] CreateUnsupportedFormulaConditionalFormattingWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long formattingBoundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "UnsupportedCfFormula"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Score"));
+                WriteRecord(stream, 0x027e, BuildRkPayload(1, 0, 0, EncodeRkInteger(5)));
+                WriteRecord(stream, 0x01b0, BuildConditionalFormattingRangePayload(0, 0, 1, 0, 1));
+                WriteRecord(stream, 0x01b1, BuildUnsupportedFormulaConditionalFormattingRulePayload());
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 byte[] bytes = stream.ToArray();
@@ -1014,6 +1053,17 @@ namespace OfficeIMO.Tests {
 
             private static byte[] BuildFormulaConditionalFormattingRulePayload() {
                 byte[] formula = BuildPtgRefGreaterThanIntFormula(0, 0, 10);
+                using var stream = new MemoryStream();
+                stream.WriteByte(0x02);
+                stream.WriteByte(0);
+                WriteUInt16(stream, checked((ushort)formula.Length));
+                WriteUInt16(stream, 0);
+                stream.Write(formula, 0, formula.Length);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildUnsupportedFormulaConditionalFormattingRulePayload() {
+                byte[] formula = new byte[] { 0x01 };
                 using var stream = new MemoryStream();
                 stream.WriteByte(0x02);
                 stream.WriteByte(0);
@@ -1907,6 +1957,27 @@ namespace OfficeIMO.Tests {
                 stream.WriteByte(0x1e);
                 WriteUInt16(stream, 10);
                 stream.WriteByte(0x0d);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildUnsupportedFormulaDataValidationPayload() {
+                using var stream = new MemoryStream();
+                uint flags = 0x07U
+                    | 0x00000100U
+                    | 0x00040000U
+                    | 0x00080000U;
+                WriteUInt32(stream, flags);
+                WriteUnicodeString(stream, "Custom");
+                WriteUnicodeString(stream, "Invalid value");
+                WriteUnicodeString(stream, "Enter a value allowed by the custom formula.");
+                WriteUnicodeString(stream, "The custom formula could not be imported.");
+                WriteDvFormula(stream, new byte[] { 0x01 });
+                WriteDvFormula(stream, Array.Empty<byte>());
+                WriteUInt16(stream, 1);
+                WriteUInt16(stream, 1);
+                WriteUInt16(stream, 4);
+                WriteUInt16(stream, 0);
+                WriteUInt16(stream, 0);
                 return stream.ToArray();
             }
 

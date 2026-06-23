@@ -44,7 +44,32 @@ Warnings: 0
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 18 |
 | XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 44 |
+| XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED | 1 |
 | XLS-BIFF-RECORD-UNSUPPORTED | 181 |
+
+## Formula Token Blockers
+
+| Key | Count |
+| --- | --- |
+| FormulaFixedFunction0x0145 | 1 |
+
+## Formula Token Blockers By Token
+
+| Key | Count |
+| --- | --- |
+| Token:0x41 | 1 |
+
+## Formula Token Blockers By Token Name
+
+| Key | Count |
+| --- | --- |
+| PtgFunc | 1 |
+
+## Formula Token Blockers By Offset
+
+| Key | Count |
+| --- | --- |
+| Offset:34 | 1 |
 
 ## AutoFilter Criteria By Kind
 

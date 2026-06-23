@@ -1534,6 +1534,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_Load_ReportsDataValidationFormulaTokenBlocker() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateUnsupportedFormulaDataValidationWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.Empty(Assert.Single(result.Workbook.Worksheets).DataValidations);
+            Assert.Contains(result.Workbook.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.DataValidation && feature.DetailCode == "DataValidation:Dv");
+            LegacyXlsImportDiagnostic diagnostic = Assert.Single(result.Workbook.Diagnostics, d =>
+                d.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED"
+                && d.RecordType == (ushort)BiffRecordType.Dv);
+            Assert.Equal("FormulaToken0x01", diagnostic.DetailCode);
+            Assert.Equal((byte)0x01, diagnostic.FormulaToken);
+            Assert.Equal("PtgExp", diagnostic.FormulaTokenName);
+            Assert.Equal(0, diagnostic.FormulaTokenOffset);
+            Assert.Contains("Data-validation formula", diagnostic.Message);
+            Assert.Contains("PtgExp", diagnostic.Message);
+
+            Assert.Equal(1, result.ImportReport.FormulaTokenBlockers["FormulaToken0x01"]);
+            Assert.Equal(1, result.ImportReport.FormulaTokenBlockersByToken["Token:0x01"]);
+            Assert.Equal(1, result.ImportReport.FormulaTokenBlockersByTokenName["PtgExp"]);
+            Assert.Equal(1, result.ImportReport.FormulaTokenBlockersByOffset["Offset:0"]);
+        }
+
+        [Fact]
         public void LegacyXls_Load_ImportsConditionalFormattingCellIsRule() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase4ConditionalFormattingWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
@@ -1727,6 +1754,33 @@ namespace OfficeIMO.Tests {
             Assert.Equal(5, result.ImportReport.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.ConditionalFormatting]);
             Assert.Equal(5, result.ImportReport.UnsupportedFeaturesByCode["XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED"]);
             Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByDetail["ConditionalFormatting|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED|ConditionalFormatting:CfEx"]);
+        }
+
+        [Fact]
+        public void LegacyXls_Load_ReportsConditionalFormattingFormulaTokenBlocker() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateUnsupportedFormulaConditionalFormattingWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.Empty(Assert.Single(result.Workbook.Worksheets).ConditionalFormattings);
+            Assert.Contains(result.Workbook.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ConditionalFormatting && feature.DetailCode == "ConditionalFormatting:Cf");
+            LegacyXlsImportDiagnostic diagnostic = Assert.Single(result.Workbook.Diagnostics, d =>
+                d.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED"
+                && d.RecordType == (ushort)BiffRecordType.Cf);
+            Assert.Equal("FormulaToken0x01", diagnostic.DetailCode);
+            Assert.Equal((byte)0x01, diagnostic.FormulaToken);
+            Assert.Equal("PtgExp", diagnostic.FormulaTokenName);
+            Assert.Equal(0, diagnostic.FormulaTokenOffset);
+            Assert.Contains("Conditional-formatting formula", diagnostic.Message);
+            Assert.Contains("PtgExp", diagnostic.Message);
+
+            Assert.Equal(1, result.ImportReport.FormulaTokenBlockers["FormulaToken0x01"]);
+            Assert.Equal(1, result.ImportReport.FormulaTokenBlockersByToken["Token:0x01"]);
+            Assert.Equal(1, result.ImportReport.FormulaTokenBlockersByTokenName["PtgExp"]);
+            Assert.Equal(1, result.ImportReport.FormulaTokenBlockersByOffset["Offset:0"]);
         }
 
         [Fact]

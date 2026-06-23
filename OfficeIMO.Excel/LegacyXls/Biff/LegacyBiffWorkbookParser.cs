@@ -392,16 +392,31 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 byte[] formulaBytes = new byte[formulaLength];
                 Buffer.BlockCopy(record.Payload, offset, formulaBytes, 0, formulaLength);
                 string? reference;
+                BiffFormulaReadFailure? formulaFailure;
                 bool formulaRead = string.Equals(name, "_xlnm.Print_Titles", StringComparison.OrdinalIgnoreCase)
-                    ? BiffNameFormulaReader.TryReadPrintTitles(formulaBytes, externSheets, externalReferences, sheetNames, out reference)
-                    : BiffNameFormulaReader.TryReadReference(formulaBytes, externSheets, externalReferences, sheetNames, out reference);
+                    ? BiffNameFormulaReader.TryReadPrintTitles(formulaBytes, externSheets, externalReferences, sheetNames, out reference, out formulaFailure)
+                    : BiffNameFormulaReader.TryReadReference(formulaBytes, externSheets, externalReferences, sheetNames, out reference, out formulaFailure);
                 if (!formulaRead) {
-                    diagnostics.Add(new LegacyXlsImportDiagnostic(
-                        LegacyXlsDiagnosticSeverity.Info,
-                        "XLS-BIFF-LBL-FORMULA-UNSUPPORTED",
-                        $"Defined name '{name}' uses a formula shape that is not imported yet.",
-                        recordOffset: record.Offset,
-                        recordType: record.Type));
+                    if (formulaFailure == null) {
+                        diagnostics.Add(new LegacyXlsImportDiagnostic(
+                            LegacyXlsDiagnosticSeverity.Info,
+                            "XLS-BIFF-LBL-FORMULA-UNSUPPORTED",
+                            $"Defined name '{name}' uses a formula shape that is not imported yet.",
+                            recordOffset: record.Offset,
+                            recordType: record.Type));
+                    } else {
+                        diagnostics.Add(new LegacyXlsImportDiagnostic(
+                            LegacyXlsDiagnosticSeverity.Info,
+                            "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED",
+                            $"{formulaFailure.Description} Defined name '{name}' uses a formula shape that is not imported yet.",
+                            recordOffset: record.Offset,
+                            recordType: record.Type,
+                            detailCode: formulaFailure.DetailCode,
+                            formulaToken: formulaFailure.Token,
+                            formulaTokenName: formulaFailure.TokenName,
+                            formulaTokenOffset: formulaFailure.TokenOffset));
+                    }
+
                     return;
                 }
 

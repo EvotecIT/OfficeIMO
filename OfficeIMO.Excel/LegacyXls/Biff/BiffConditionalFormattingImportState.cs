@@ -50,6 +50,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         }
 
         internal bool TryReadRule(byte[] payload) {
+            return TryReadRule(payload, out _);
+        }
+
+        internal bool TryReadRule(byte[] payload, out BiffFormulaReadFailure? formulaFailure) {
+            formulaFailure = null;
             if (!HasPendingHeader) {
                 return false;
             }
@@ -61,7 +66,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 _sheetNames,
                 _definedNames,
                 _ranges,
-                out LegacyXlsConditionalFormatting? conditionalFormatting);
+                out LegacyXlsConditionalFormatting? conditionalFormatting,
+                out formulaFailure);
 
             if (parsed) {
                 LegacyXlsConditionalFormatting rule = conditionalFormatting!;

@@ -68,7 +68,20 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             IReadOnlyList<string?> definedNames,
             IReadOnlyList<string> ranges,
             out LegacyXlsConditionalFormatting? conditionalFormatting) {
+            return TryReadRule(payload, externSheets, externalReferences, sheetNames, definedNames, ranges, out conditionalFormatting, out _);
+        }
+
+        internal static bool TryReadRule(
+            byte[] payload,
+            IReadOnlyList<BiffExternSheetReference> externSheets,
+            IReadOnlyList<LegacyXlsExternalReference> externalReferences,
+            IReadOnlyList<string> sheetNames,
+            IReadOnlyList<string?> definedNames,
+            IReadOnlyList<string> ranges,
+            out LegacyXlsConditionalFormatting? conditionalFormatting,
+            out BiffFormulaReadFailure? formulaFailure) {
             conditionalFormatting = null;
+            formulaFailure = null;
             if (payload.Length < 6 || ranges.Count == 0) {
                 return false;
             }
@@ -82,11 +95,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 return false;
             }
 
-            if (!TryReadFormula(payload, formulaStart, formula1Length, externSheets, externalReferences, sheetNames, definedNames, out string? formula1)) {
+            if (!TryReadFormula(payload, formulaStart, formula1Length, externSheets, externalReferences, sheetNames, definedNames, out string? formula1, out formulaFailure)) {
                 return false;
             }
 
-            if (!TryReadFormula(payload, formulaStart + formula1Length, formula2Length, externSheets, externalReferences, sheetNames, definedNames, out string? formula2)) {
+            if (!TryReadFormula(payload, formulaStart + formula1Length, formula2Length, externSheets, externalReferences, sheetNames, definedNames, out string? formula2, out formulaFailure)) {
                 return false;
             }
 
@@ -136,13 +149,16 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             IReadOnlyList<LegacyXlsExternalReference> externalReferences,
             IReadOnlyList<string> sheetNames,
             IReadOnlyList<string?> definedNames,
-            out string? formula) {
+            out string? formula,
+            out BiffFormulaReadFailure? formulaFailure) {
             formula = null;
+            formulaFailure = null;
             if (expressionLength == 0) {
                 return true;
             }
 
             if (offset < 0 || offset + expressionLength > payload.Length) {
+                formulaFailure = BiffFormulaReadFailure.InvalidPayload("Conditional-formatting formula token stream is outside the record payload.");
                 return false;
             }
 
@@ -159,7 +175,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 externalReferences,
                 sheetNames,
                 definedNames,
-                out formula);
+                out formula,
+                out formulaFailure);
         }
 
         private static bool TryReadRanges(byte[] payload, ref int offset, out IReadOnlyList<string> ranges) {
