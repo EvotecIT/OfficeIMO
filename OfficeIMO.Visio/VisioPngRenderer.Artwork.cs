@@ -122,22 +122,21 @@ namespace OfficeIMO.Visio {
             (double centerX, double centerY) = ToRaster(page, cx, cy, canvas.Scale);
             double targetWidth = imageWidth * canvas.Scale;
             double targetHeight = imageHeight * canvas.Scale;
-            double imageAspect = (double)raster.Width / raster.Height;
-            double targetAspect = targetWidth / targetHeight;
-            double drawWidth = targetWidth;
-            double drawHeight = targetHeight;
-            if (imageAspect > targetAspect) {
-                drawHeight = targetWidth / imageAspect;
-            } else if (imageAspect < targetAspect) {
-                drawWidth = targetHeight * imageAspect;
-            }
+            OfficeImagePlacement placement = OfficeImagePlacement.Fit(
+                raster.Width,
+                raster.Height,
+                centerX - (targetWidth / 2D),
+                centerY - (targetHeight / 2D),
+                targetWidth,
+                targetHeight,
+                OfficeImageFit.Contain);
 
             canvas.DrawImage(
                 raster,
-                centerX - (drawWidth / 2D),
-                centerY - (drawHeight / 2D),
-                drawWidth,
-                drawHeight,
+                placement.X,
+                placement.Y,
+                placement.Width,
+                placement.Height,
                 ToRasterRotation(shape.Angle),
                 centerX,
                 centerY);

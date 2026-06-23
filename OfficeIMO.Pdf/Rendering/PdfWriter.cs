@@ -1,4 +1,5 @@
 using System.Globalization;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
 
@@ -952,7 +953,14 @@ internal static partial class PdfWriter {
     }
 
     private static void AddPageBackgroundImage(LayoutResult.Page page, PdfOptions options, PdfPageBackgroundImage image) {
-        (double x, double y, double width, double height) = FitImageToBox(image.ImageInfo, image.Fit, 0D, 0D, options.PageWidth, options.PageHeight);
+        OfficeImagePlacement placement = OfficeImagePlacement.Fit(
+            image.ImageInfo.Width,
+            image.ImageInfo.Height,
+            0D,
+            0D,
+            options.PageWidth,
+            options.PageHeight,
+            image.Fit);
         string? stateName = image.Opacity < 1D
             ? EnsureHeaderFooterGraphicsState(page, image.Opacity, image.Opacity)
             : null;
@@ -960,31 +968,14 @@ internal static partial class PdfWriter {
         page.Images.Add(new PageImage {
             Data = image.DataSnapshot,
             Info = image.ImageInfo,
-            X = x,
-            Y = y,
-            W = width,
-            H = height,
+            X = placement.X,
+            Y = placement.Y,
+            W = placement.Width,
+            H = placement.Height,
             IsBackgroundDecoration = true,
             Opacity = image.Opacity,
             GraphicsStateName = stateName
         });
-    }
-
-    private static (double X, double Y, double Width, double Height) FitImageToBox(OfficeIMO.Drawing.OfficeImageInfo imageInfo, OfficeIMO.Drawing.OfficeImageFit fit, double boxX, double boxY, double boxWidth, double boxHeight) {
-        if (fit == OfficeIMO.Drawing.OfficeImageFit.Stretch) {
-            return (boxX, boxY, boxWidth, boxHeight);
-        }
-
-        double imageWidth = imageInfo.Width > 0 ? imageInfo.Width : boxWidth;
-        double imageHeight = imageInfo.Height > 0 ? imageInfo.Height : boxHeight;
-        double scaleX = boxWidth / imageWidth;
-        double scaleY = boxHeight / imageHeight;
-        double scale = fit == OfficeIMO.Drawing.OfficeImageFit.Contain ? System.Math.Min(scaleX, scaleY) : System.Math.Max(scaleX, scaleY);
-        double width = imageWidth * scale;
-        double height = imageHeight * scale;
-        double x = boxX + (boxWidth - width) / 2D;
-        double y = boxY + (boxHeight - height) / 2D;
-        return (x, y, width, height);
     }
 
     private static void AddImageWatermark(LayoutResult.Page page, PdfOptions options, PdfImageWatermark watermark) {

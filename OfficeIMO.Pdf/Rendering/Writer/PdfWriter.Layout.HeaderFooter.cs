@@ -18,35 +18,25 @@ internal static partial class PdfWriter {
         if (sourceCrop?.HasCrop == true) {
             double visibleWidth = 1D - sourceCrop.Left - sourceCrop.Right;
             double visibleHeight = 1D - sourceCrop.Top - sourceCrop.Bottom;
-            double croppedAspect = (block.Info.Width * visibleWidth) / (double)(block.Info.Height * visibleHeight);
             double fittedX = targetX;
             double fittedY = targetBottomY;
             double fittedWidth = targetWidth;
             double fittedHeight = targetHeight;
 
             if (style.Fit != OfficeImageFit.Stretch) {
-                double targetAspect = targetWidth / targetHeight;
-                if (style.Fit == OfficeImageFit.Contain) {
-                    if (targetAspect > croppedAspect) {
-                        fittedHeight = targetHeight;
-                        fittedWidth = fittedHeight * croppedAspect;
-                        fittedX = targetX + (targetWidth - fittedWidth) / 2D;
-                    } else {
-                        fittedWidth = targetWidth;
-                        fittedHeight = fittedWidth / croppedAspect;
-                        fittedY = targetBottomY + (targetHeight - fittedHeight) / 2D;
-                    }
-                } else {
-                    if (targetAspect > croppedAspect) {
-                        fittedWidth = targetWidth;
-                        fittedHeight = fittedWidth / croppedAspect;
-                        fittedY = targetBottomY + (targetHeight - fittedHeight) / 2D;
-                    } else {
-                        fittedHeight = targetHeight;
-                        fittedWidth = fittedHeight * croppedAspect;
-                        fittedX = targetX + (targetWidth - fittedWidth) / 2D;
-                    }
-
+                OfficeImagePlacement fitted = OfficeImagePlacement.Fit(
+                    block.Info.Width * visibleWidth,
+                    block.Info.Height * visibleHeight,
+                    targetX,
+                    targetBottomY,
+                    targetWidth,
+                    targetHeight,
+                    style.Fit);
+                fittedX = fitted.X;
+                fittedY = fitted.Y;
+                fittedWidth = fitted.Width;
+                fittedHeight = fitted.Height;
+                if (style.Fit == OfficeImageFit.Cover) {
                     clipPath ??= OfficeClipPath.Rectangle(targetWidth, targetHeight);
                 }
             }
@@ -56,30 +46,19 @@ internal static partial class PdfWriter {
             drawX = fittedX - sourceCrop.Left * drawWidth;
             drawY = fittedY - sourceCrop.Bottom * drawHeight;
         } else if (style.Fit != OfficeImageFit.Stretch) {
-            double imageAspect = block.Info.Width / (double)block.Info.Height;
-            double targetAspect = targetWidth / targetHeight;
-
-            if (style.Fit == OfficeImageFit.Contain) {
-                if (targetAspect > imageAspect) {
-                    drawHeight = targetHeight;
-                    drawWidth = drawHeight * imageAspect;
-                    drawX = targetX + (targetWidth - drawWidth) / 2D;
-                } else {
-                    drawWidth = targetWidth;
-                    drawHeight = drawWidth / imageAspect;
-                    drawY = targetBottomY + (targetHeight - drawHeight) / 2D;
-                }
-            } else {
-                if (targetAspect > imageAspect) {
-                    drawWidth = targetWidth;
-                    drawHeight = drawWidth / imageAspect;
-                    drawY = targetBottomY + (targetHeight - drawHeight) / 2D;
-                } else {
-                    drawHeight = targetHeight;
-                    drawWidth = drawHeight * imageAspect;
-                    drawX = targetX + (targetWidth - drawWidth) / 2D;
-                }
-
+            OfficeImagePlacement placement = OfficeImagePlacement.Fit(
+                block.Info.Width,
+                block.Info.Height,
+                targetX,
+                targetBottomY,
+                targetWidth,
+                targetHeight,
+                style.Fit);
+            drawX = placement.X;
+            drawY = placement.Y;
+            drawWidth = placement.Width;
+            drawHeight = placement.Height;
+            if (style.Fit == OfficeImageFit.Cover) {
                 if (clipPath == null) {
                     clipPath = OfficeClipPath.Rectangle(targetWidth, targetHeight);
                 }

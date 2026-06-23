@@ -20,6 +20,57 @@ public class DrawingTests {
     };
 
     [Fact]
+    public void OfficeImagePlacementFitsImagesIntoTargetRectangles() {
+        OfficeImagePlacement stretch = OfficeImagePlacement.Fit(
+            sourceWidth: 200D,
+            sourceHeight: 100D,
+            targetX: 10D,
+            targetY: 20D,
+            targetWidth: 80D,
+            targetHeight: 40D,
+            fit: OfficeImageFit.Stretch);
+        Assert.Equal((10D, 20D, 80D, 40D), stretch.ToTuple());
+
+        OfficeImagePlacement containedWide = OfficeImagePlacement.Fit(
+            sourceWidth: 400D,
+            sourceHeight: 100D,
+            targetX: 10D,
+            targetY: 20D,
+            targetWidth: 80D,
+            targetHeight: 40D,
+            fit: OfficeImageFit.Contain);
+        Assert.Equal((10D, 30D, 80D, 20D), containedWide.ToTuple());
+
+        OfficeImagePlacement containedTall = OfficeImagePlacement.Fit(
+            sourceWidth: 100D,
+            sourceHeight: 400D,
+            targetX: 10D,
+            targetY: 20D,
+            targetWidth: 80D,
+            targetHeight: 40D,
+            fit: OfficeImageFit.Contain);
+        Assert.Equal((45D, 20D, 10D, 40D), containedTall.ToTuple());
+
+        OfficeImagePlacement coveredWide = OfficeImagePlacement.Fit(
+            sourceWidth: 400D,
+            sourceHeight: 100D,
+            targetX: 10D,
+            targetY: 20D,
+            targetWidth: 80D,
+            targetHeight: 40D,
+            fit: OfficeImageFit.Cover);
+        Assert.Equal((-30D, 20D, 160D, 40D), coveredWide.ToTuple());
+    }
+
+    [Fact]
+    public void OfficeImagePlacementRejectsInvalidPlacementInputs() {
+        Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeImagePlacement(0D, 0D, 0D, 10D));
+        Assert.Throws<ArgumentOutOfRangeException>(() => OfficeImagePlacement.Fit(0D, 1D, 0D, 0D, 10D, 10D, OfficeImageFit.Contain));
+        Assert.Throws<ArgumentOutOfRangeException>(() => OfficeImagePlacement.Fit(1D, 1D, 0D, 0D, double.NaN, 10D, OfficeImageFit.Stretch));
+        Assert.Throws<ArgumentOutOfRangeException>(() => OfficeImagePlacement.Fit(1D, 1D, 0D, 0D, 10D, 10D, (OfficeImageFit)99));
+    }
+
+    [Fact]
     public void OfficeColorParsesNamedAndHexValues() {
         Assert.Equal(OfficeColor.Red, OfficeColor.Parse("red"));
         Assert.Equal(OfficeColor.FromRgb(0x66, 0x33, 0x99), OfficeColor.Parse("RebeccaPurple"));
