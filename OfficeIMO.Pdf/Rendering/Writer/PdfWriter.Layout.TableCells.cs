@@ -242,13 +242,13 @@ internal static partial class PdfWriter {
                 double candidate = (low + high) / 2D;
                 double candidateWidth = MeasureTableCellTextWidth(cell, rowFont, resolvedFontSize, options, candidate, minimumFontSize);
                 if (candidateWidth <= innerWidth + 0.001D) {
-                    high = candidate;
-                } else {
                     low = candidate;
+                } else {
+                    high = candidate;
                 }
             }
 
-            scale = Math.Min(scale, high);
+            scale = Math.Min(scale, low);
         }
 
         return scale;
