@@ -211,6 +211,36 @@ public class PdfSignatureValidatorTests {
         Assert.DoesNotContain(report.Findings, finding => finding.Code == "SignatureEmptyContents");
     }
 
+    [Fact]
+    public void ApplyExternalSignature_IgnoresEarlierNonSignatureContentsPlaceholders() {
+        const int reservedSignatureContentsBytes = 256;
+        string zeros = new string('0', reservedSignatureContentsBytes * 2);
+        byte[] pdf = BuildPdfWithEarlierContentsPlaceholder(reservedSignatureContentsBytes);
+        PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
+            pdf,
+            new PdfExternalSignatureOptions {
+                FieldName = "Approval",
+                ReservedSignatureContentsBytes = reservedSignatureContentsBytes
+            });
+        string preparedText = Encoding.ASCII.GetString(preparation.PreparedPdf);
+        int earlierContentsOffset = preparedText.IndexOf("/Contents <" + zeros + ">", StringComparison.Ordinal);
+
+        byte[] signature = { 0x30, 0x82, 0x01, 0x0A, 0xAA, 0x55 };
+        byte[] signed = PdfIncrementalUpdater.ApplyExternalSignature(preparation.PreparedPdf, signature);
+        string signedText = Encoding.ASCII.GetString(signed);
+
+        Assert.True(earlierContentsOffset >= 0);
+        Assert.True(earlierContentsOffset < preparation.ContentsHexOffset);
+        Assert.Equal(zeros, signedText.Substring(earlierContentsOffset + "/Contents <".Length, zeros.Length));
+        Assert.StartsWith("3082010AAA55", signedText.Substring(preparation.ContentsHexOffset, signature.Length * 2), StringComparison.Ordinal);
+
+        PdfSignatureValidationReport report = PdfSignatureValidator.Validate(signed);
+        PdfSignatureValidationResult result = Assert.Single(report.Signatures);
+        Assert.True(report.IsStructurallyValid);
+        Assert.True(result.Signature.ContentsSizeBytes >= signature.Length);
+        Assert.DoesNotContain(report.Findings, finding => finding.Code == "SignatureEmptyContents");
+    }
+
     private static byte[] BuildSignedIncrementalPdf() {
         string pdf = string.Join("\n", new[] {
             "%PDF-1.7",

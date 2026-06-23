@@ -379,7 +379,8 @@ public static partial class PdfIncrementalUpdater {
             if (end < pdf.Length &&
                 pdf[end] == (byte)'>' &&
                 end > start &&
-                IsZeroFilled(pdf, start, end - start)) {
+                IsZeroFilled(pdf, start, end - start) &&
+                IsSignatureContentsPlaceholder(pdf, markerOffset, end + 1)) {
                 contentsHexOffset = start;
                 contentsHexLength = end - start;
                 return true;
@@ -387,6 +388,47 @@ public static partial class PdfIncrementalUpdater {
 
             searchOffset = markerOffset + marker.Length;
         }
+    }
+
+    private static bool IsSignatureContentsPlaceholder(byte[] pdf, int contentsMarkerOffset, int contentsLiteralEndExclusive) {
+        int objectStart = FindContainingObjectStart(pdf, contentsMarkerOffset);
+        if (objectStart < 0) {
+            return false;
+        }
+
+        int objectEnd = IndexOf(pdf, PdfEncoding.Latin1GetBytes("endobj"), contentsMarkerOffset);
+        if (objectEnd < 0 || objectEnd < contentsLiteralEndExclusive) {
+            return false;
+        }
+
+        bool hasSignatureType =
+            IndexOf(pdf, PdfEncoding.Latin1GetBytes("/Type /Sig"), objectStart, objectEnd) >= 0 ||
+            IndexOf(pdf, PdfEncoding.Latin1GetBytes("/Type /DocTimeStamp"), objectStart, objectEnd) >= 0;
+        return hasSignatureType &&
+            IndexOf(pdf, PdfEncoding.Latin1GetBytes("/ByteRange ["), objectStart, objectEnd) >= 0;
+    }
+
+    private static int FindContainingObjectStart(byte[] pdf, int offset) {
+        int searchOffset = 0;
+        int objectStart = -1;
+        while (true) {
+            int candidate = IndexOf(pdf, PdfEncoding.Latin1GetBytes(" obj"), searchOffset, offset);
+            if (candidate < 0) {
+                return objectStart;
+            }
+
+            objectStart = FindLineStart(pdf, candidate);
+            searchOffset = candidate + 4;
+        }
+    }
+
+    private static int FindLineStart(byte[] bytes, int offset) {
+        int index = offset;
+        while (index > 0 && bytes[index - 1] != (byte)'\n' && bytes[index - 1] != (byte)'\r') {
+            index--;
+        }
+
+        return index;
     }
 
     private static bool IsZeroFilled(byte[] bytes, int offset, int length) {
