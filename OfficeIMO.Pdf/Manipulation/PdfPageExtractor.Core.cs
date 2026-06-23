@@ -24,15 +24,19 @@ public static partial class PdfPageExtractor {
         collector.CollectObjectGraph(catalogState.Outlines);
         collector.CollectObjectGraph(catalogState.PageLabels);
         collector.CollectObjectGraph(catalogState.NamedDestinationNameTree);
+        collector.CollectObjectGraph(catalogState.OpenAction);
         collector.CollectObjectGraph(catalogState.XmpMetadata);
         collector.CollectObjectGraph(catalogState.CatalogUri);
         collector.CollectObjectGraph(catalogState.OutputIntents);
         collector.CollectObjectGraph(catalogState.EmbeddedFiles);
         collector.CollectObjectGraph(catalogState.AssociatedFiles);
         collector.CollectObjectGraph(catalogState.OptionalContent);
-    
-        var sourceIds = collector.ObjectIds;
         var extraObjects = additionalObjects?.ToArray() ?? Array.Empty<AdditionalObject>();
+        foreach (var extraObject in extraObjects) {
+            collector.CollectObjectGraph(extraObject.Value);
+        }
+
+        var sourceIds = collector.ObjectIds;
         var numberMap = new Dictionary<int, int>();
         for (int i = 0; i < sourceIds.Count; i++) {
             numberMap[sourceIds[i]] = i + 1;

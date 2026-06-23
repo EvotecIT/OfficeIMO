@@ -58,6 +58,287 @@ public class PdfDocumentWorkflowTests {
     }
 
     [Fact]
+    public void TableStyle_CanShrinkTextToFitResolvedCellWidth() {
+        const string longValue = "ThisIdentifierShouldShrinkToFit";
+        byte[] bytes = PdfDocument.Create()
+            .Table(new[] {
+                new[] { "Name", "Value" },
+                new[] { "Alpha", longValue }
+            }, style: new PdfTableStyle {
+                FontSize = 18,
+                HeaderFontSize = 18,
+                MinimumShrinkFontSize = 7,
+                ShrinkTextToFit = true,
+                ColumnWidthPoints = new List<double?> { 54, 108 },
+                HeaderRowCount = 1
+            })
+            .ToBytes();
+
+        IReadOnlyList<PdfLogicalTextBlock> blocks = PdfDocument.Open(bytes).Read.TextBlocks();
+        PdfLogicalTextBlock valueBlock = Assert.Single(blocks, block => block.Text.Contains(longValue, StringComparison.Ordinal));
+
+        Assert.True(valueBlock.FontSize < 18D);
+        Assert.True(valueBlock.FontSize >= 7D);
+    }
+
+    [Fact]
+    public void TableStyle_ShrinksExplicitRichRunFontSizesToFitResolvedCellWidth() {
+        const string longValue = "ThisIdentifierShouldShrinkToFit";
+        byte[] bytes = PdfDocument.Create()
+            .Table(new[] {
+                new[] { new PdfTableCell("Name"), new PdfTableCell("Value") },
+                new[] {
+                    new PdfTableCell("Alpha"),
+                    PdfTableCell.RichTextCell(new[] {
+                        TextRun.Normal(longValue, fontSize: 30, font: PdfStandardFont.Courier)
+                    })
+                }
+            }, style: new PdfTableStyle {
+                FontSize = 18,
+                HeaderFontSize = 18,
+                MinimumShrinkFontSize = 7,
+                ShrinkTextToFit = true,
+                ColumnWidthPoints = new List<double?> { 54, 108 },
+                HeaderRowCount = 1
+            })
+            .ToBytes();
+
+        PdfDocument document = PdfDocument.Open(bytes);
+        IReadOnlyList<PdfLogicalTextBlock> blocks = document.Read.TextBlocks();
+        string compactText = document.Read.Text()
+            .Replace("\r", string.Empty)
+            .Replace("\n", string.Empty)
+            .Replace(" ", string.Empty);
+
+        Assert.Contains(longValue, compactText, StringComparison.Ordinal);
+        Assert.Contains(blocks, block => block.FontSize < 30D && block.FontSize >= 7D);
+    }
+
+    [Fact]
+    public void TableStyle_ClampsShrunkExplicitRichRunFontSizesToMinimum() {
+        const string longValue = "ThisIdentifierShouldShrinkToFit";
+        byte[] bytes = PdfDocument.Create()
+            .Table(new[] {
+                new[] { new PdfTableCell("Name"), new PdfTableCell("Value") },
+                new[] {
+                    new PdfTableCell("Alpha"),
+                    PdfTableCell.RichTextCell(new[] {
+                        TextRun.Normal(longValue, fontSize: 8, font: PdfStandardFont.Courier)
+                    })
+                }
+            }, style: new PdfTableStyle {
+                FontSize = 18,
+                HeaderFontSize = 18,
+                MinimumShrinkFontSize = 7,
+                ShrinkTextToFit = true,
+                ColumnWidthPoints = new List<double?> { 54, 108 },
+                HeaderRowCount = 1
+            })
+            .ToBytes();
+
+        PdfDocument document = PdfDocument.Open(bytes);
+        IReadOnlyList<PdfLogicalTextBlock> blocks = document.Read.TextBlocks();
+        string compactText = document.Read.Text()
+            .Replace("\r", string.Empty)
+            .Replace("\n", string.Empty)
+            .Replace(" ", string.Empty);
+
+        Assert.Contains(longValue, compactText, StringComparison.Ordinal);
+        Assert.Contains(blocks, block => Math.Abs(block.FontSize - 7D) < 0.001D);
+    }
+
+    [Fact]
+    public void TableStyle_ShrinksExplicitRichRunsWhenRowFontIsAtMinimum() {
+        const string longValue = "ThisIdentifierShouldShrinkToFit";
+        byte[] bytes = PdfDocument.Create()
+            .Table(new[] {
+                new[] { new PdfTableCell("Name"), new PdfTableCell("Value") },
+                new[] {
+                    new PdfTableCell("Alpha"),
+                    PdfTableCell.RichTextCell(new[] {
+                        TextRun.Normal(longValue, fontSize: 30, font: PdfStandardFont.Courier)
+                    })
+                }
+            }, style: new PdfTableStyle {
+                FontSize = 8,
+                HeaderFontSize = 8,
+                MinimumShrinkFontSize = 8,
+                ShrinkTextToFit = true,
+                ColumnWidthPoints = new List<double?> { 54, 108 },
+                HeaderRowCount = 1
+            })
+            .ToBytes();
+
+        PdfDocument document = PdfDocument.Open(bytes);
+        IReadOnlyList<PdfLogicalTextBlock> blocks = document.Read.TextBlocks();
+        string compactText = document.Read.Text()
+            .Replace("\r", string.Empty)
+            .Replace("\n", string.Empty)
+            .Replace(" ", string.Empty);
+
+        Assert.Contains(longValue, compactText, StringComparison.Ordinal);
+        Assert.Contains(blocks, block => Math.Abs(block.FontSize - 8D) < 0.001D);
+        Assert.DoesNotContain(blocks, block => block.FontSize > 8.001D && block.Text.Contains(longValue, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void TableStyle_DoesNotEnlargeExplicitRichRunsBelowShrinkMinimum() {
+        const string tinyValue = "Tiny";
+        const string longValue = "ThisIdentifierShouldShrinkToFit";
+        byte[] bytes = PdfDocument.Create()
+            .Table(new[] {
+                new[] { new PdfTableCell("Name"), new PdfTableCell("Value") },
+                new[] {
+                    new PdfTableCell("Alpha"),
+                    PdfTableCell.RichTextCell(new[] {
+                        TextRun.Normal(tinyValue, fontSize: 4, font: PdfStandardFont.Courier),
+                        TextRun.Normal(longValue)
+                    })
+                }
+            }, style: new PdfTableStyle {
+                FontSize = 18,
+                HeaderFontSize = 18,
+                MinimumShrinkFontSize = 7,
+                ShrinkTextToFit = true,
+                ColumnWidthPoints = new List<double?> { 54, 108 },
+                HeaderRowCount = 1
+            })
+            .ToBytes();
+
+        string raw = PdfEncoding.Latin1GetString(bytes);
+
+        Assert.Matches(@"(?s)/F\d+\s+4\s+Tf.*<54696E79>\s+Tj", raw);
+    }
+
+    [Fact]
+    public void TableStyle_ScalesExplicitRichRunsAgainstRemainingCellWidth() {
+        const string prefix = "PrefixConsumesWidth";
+        const string largeValue = "WideValue";
+        byte[] bytes = PdfDocument.Create()
+            .Table(new[] {
+                new[] { new PdfTableCell("Name"), new PdfTableCell("Value") },
+                new[] {
+                    new PdfTableCell("Alpha"),
+                    PdfTableCell.RichTextCell(new[] {
+                        TextRun.Normal(prefix),
+                        TextRun.Normal(largeValue, fontSize: 30, font: PdfStandardFont.Courier)
+                    })
+                }
+            }, style: new PdfTableStyle {
+                FontSize = 8,
+                HeaderFontSize = 8,
+                MinimumShrinkFontSize = 8,
+                ShrinkTextToFit = true,
+                ColumnWidthPoints = new List<double?> { 54, 108 },
+                HeaderRowCount = 1
+            })
+            .ToBytes();
+
+        PdfDocument document = PdfDocument.Open(bytes);
+        IReadOnlyList<PdfLogicalTextBlock> blocks = document.Read.TextBlocks();
+        string compactText = document.Read.Text()
+            .Replace("\r", string.Empty)
+            .Replace("\n", string.Empty)
+            .Replace(" ", string.Empty);
+
+        Assert.Contains(prefix + largeValue, compactText, StringComparison.Ordinal);
+        Assert.Contains(blocks, block => block.Text.Contains(largeValue, StringComparison.Ordinal) && Math.Abs(block.FontSize - 8D) < 0.001D);
+        Assert.DoesNotContain(blocks, block => block.Text.Contains(largeValue, StringComparison.Ordinal) && block.FontSize > 8.001D);
+    }
+
+    [Fact]
+    public void TableStyle_ChoosesLargestFittingExplicitRichRunScale() {
+        const string prefix = "Short";
+        const string largeValue = "WideValue";
+        byte[] bytes = PdfDocument.Create()
+            .Table(new[] {
+                new[] { new PdfTableCell("Name"), new PdfTableCell("Value") },
+                new[] {
+                    new PdfTableCell("Alpha"),
+                    PdfTableCell.RichTextCell(new[] {
+                        TextRun.Normal(prefix),
+                        TextRun.Normal(largeValue, fontSize: 20, font: PdfStandardFont.Courier)
+                    })
+                }
+            }, style: new PdfTableStyle {
+                FontSize = 10,
+                HeaderFontSize = 10,
+                MinimumShrinkFontSize = 6,
+                ShrinkTextToFit = true,
+                ColumnWidthPoints = new List<double?> { 54, 108 },
+                HeaderRowCount = 1
+            })
+            .ToBytes();
+
+        IReadOnlyList<PdfLogicalTextBlock> blocks = PdfDocument.Open(bytes).Read.TextBlocks();
+
+        Assert.Contains(blocks, block => block.Text.Contains(largeValue, StringComparison.Ordinal) && block.FontSize > 6.001D && block.FontSize < 20D);
+    }
+
+    [Fact]
+    public void TableStyle_CanShrinkTextToFitInsideRowColumnLayout() {
+        const string longValue = "ThisIdentifierShouldShrinkToFit";
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 240,
+                PageHeight = 180
+            })
+            .Compose(document =>
+                document.Page(page =>
+                    page.Content(content =>
+                        content.Row(row =>
+                            row.Column(100, column =>
+                                column.Table(new[] {
+                                    new[] { "Name", "Value" },
+                                    new[] { "Alpha", longValue }
+                                }, style: new PdfTableStyle {
+                                    FontSize = 18,
+                                    HeaderFontSize = 18,
+                                    MinimumShrinkFontSize = 7,
+                                    ShrinkTextToFit = true,
+                                    ColumnWidthPoints = new List<double?> { 54, 108 },
+                                    HeaderRowCount = 1
+                                }))))))
+            .ToBytes();
+
+        PdfDocument document = PdfDocument.Open(bytes);
+        IReadOnlyList<PdfLogicalTextBlock> blocks = document.Read.TextBlocks();
+        string compactText = document.Read.Text()
+            .Replace("\r", string.Empty)
+            .Replace("\n", string.Empty)
+            .Replace(" ", string.Empty);
+
+        Assert.Contains(longValue, compactText, StringComparison.Ordinal);
+        Assert.Contains(blocks, block => block.FontSize < 18D && block.FontSize >= 7D);
+    }
+
+    [Fact]
+    public void TableStyle_CanShrinkTextToFitInsideCanvasTable() {
+        const string longValue = "ThisIdentifierShouldShrinkToFit";
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 240,
+                PageHeight = 180
+            })
+            .Canvas(canvas => canvas.Table(new[] {
+                new[] { "Name", "Value" },
+                new[] { "Alpha", longValue }
+            }, 20, 20, 162, 80, new PdfTableStyle {
+                FontSize = 18,
+                HeaderFontSize = 18,
+                MinimumShrinkFontSize = 7,
+                ShrinkTextToFit = true,
+                ColumnWidthPoints = new List<double?> { 54, 108 },
+                HeaderRowCount = 1
+            }))
+            .ToBytes();
+
+        IReadOnlyList<PdfLogicalTextBlock> blocks = PdfDocument.Open(bytes).Read.TextBlocks();
+        PdfLogicalTextBlock valueBlock = Assert.Single(blocks, block => block.Text.Contains(longValue, StringComparison.Ordinal));
+
+        Assert.True(valueBlock.FontSize < 18D);
+        Assert.True(valueBlock.FontSize >= 7D);
+    }
+
+    [Fact]
     public void PageSizes_ResolveExpandedStandardNames() {
         Assert.True(PageSizes.TryGet("a0", out PageSize a0));
         Assert.Equal(2384, a0.Width);
@@ -152,6 +433,11 @@ public class PdfDocumentWorkflowTests {
         PdfOperationResult<IReadOnlyList<PdfDocument>> split = PdfDocument.Open(source).Pages.TrySplit();
         Assert.True(split.Succeeded);
         Assert.Equal(3, split.RequireValue().Count);
+
+        PdfOperationResult<IReadOnlyList<PdfDocument>> emptySelectionSplit = PdfDocument.Open(source).Pages.TrySplit(Array.Empty<PdfPageSelection>());
+        Assert.False(emptySelectionSplit.Succeeded);
+        Assert.Null(emptySelectionSplit.Value);
+        Assert.Contains("At least one page selection", string.Join(" ", emptySelectionSplit.Diagnostics), StringComparison.Ordinal);
 
         PdfDocument invalid = PdfDocument.Open(Encoding.ASCII.GetBytes("not a pdf"));
         PdfOperationResult<PdfDocument> blocked = invalid.Pages.TryExtract(PdfPageSelection.From(1));

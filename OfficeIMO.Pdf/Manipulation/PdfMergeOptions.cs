@@ -9,4 +9,10 @@ public sealed class PdfMergeOptions {
     /// Link annotations, form fields, and unsupported annotation shapes remain unchanged unless another OfficeIMO.Pdf operation handles them.
     /// </summary>
     public bool FlattenVisualAnnotations { get; set; }
+
+    /// <summary>
+    /// Gets or sets page resize options applied to each input PDF before pages are merged.
+    /// Use this to normalize mixed source page sizes into a fixed output paper size.
+    /// </summary>
+    public PdfPageResizeOptions? ResizePages { get; set; }
 }
