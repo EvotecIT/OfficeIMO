@@ -19,7 +19,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             ushort? escherRecordInstance = null,
             byte? escherRecordVersion = null,
             uint? escherPayloadLength = null,
-            LegacyXlsDrawingObjectType? objectTypeKind = null) {
+            LegacyXlsDrawingObjectType? objectTypeKind = null,
+            LegacyXlsDrawingEscherRecordType? escherRecordTypeKind = null) {
             if (payloadLength < 0) {
                 throw new ArgumentOutOfRangeException(nameof(payloadLength));
             }
@@ -35,6 +36,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             ObjectTypeKind = objectTypeKind ?? TryGetObjectTypeKind(objectType);
             ObjectTypeName = ObjectTypeKind?.ToString() ?? (objectType.HasValue ? $"ObjectType:0x{objectType.Value:X4}" : null);
             EscherRecordType = escherRecordType;
+            EscherRecordTypeKind = escherRecordTypeKind ?? TryGetEscherRecordTypeKind(escherRecordType);
+            EscherRecordTypeName = EscherRecordTypeKind?.ToString() ?? (escherRecordType.HasValue ? $"EscherRecordType:0x{escherRecordType.Value:X4}" : null);
             EscherRecordInstance = escherRecordInstance;
             EscherRecordVersion = escherRecordVersion;
             EscherPayloadLength = escherPayloadLength;
@@ -73,6 +76,12 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>Gets the top-level Escher record type from MsoDrawing payloads, when present.</summary>
         public ushort? EscherRecordType { get; }
 
+        /// <summary>Gets the top-level Escher OfficeArt record type, when the identifier is known.</summary>
+        public LegacyXlsDrawingEscherRecordType? EscherRecordTypeKind { get; }
+
+        /// <summary>Gets a stable display name for the top-level Escher record type, or a hexadecimal fallback for unknown types.</summary>
+        public string? EscherRecordTypeName { get; }
+
         /// <summary>Gets the top-level Escher record instance from MsoDrawing payloads, when present.</summary>
         public ushort? EscherRecordInstance { get; }
 
@@ -110,6 +119,32 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
                 0x0014 => LegacyXlsDrawingObjectType.DropdownList,
                 0x0019 => LegacyXlsDrawingObjectType.Note,
                 0x001E => LegacyXlsDrawingObjectType.OfficeArtObject,
+                _ => null
+            };
+        }
+
+        private static LegacyXlsDrawingEscherRecordType? TryGetEscherRecordTypeKind(ushort? recordType) {
+            if (!recordType.HasValue) {
+                return null;
+            }
+
+            return recordType.Value switch {
+                0xF000 => LegacyXlsDrawingEscherRecordType.OfficeArtDggContainer,
+                0xF001 => LegacyXlsDrawingEscherRecordType.OfficeArtBStoreContainer,
+                0xF002 => LegacyXlsDrawingEscherRecordType.OfficeArtDgContainer,
+                0xF003 => LegacyXlsDrawingEscherRecordType.OfficeArtSpgrContainer,
+                0xF004 => LegacyXlsDrawingEscherRecordType.OfficeArtSpContainer,
+                0xF005 => LegacyXlsDrawingEscherRecordType.OfficeArtSolverContainer,
+                0xF006 => LegacyXlsDrawingEscherRecordType.OfficeArtFDGGBlock,
+                0xF007 => LegacyXlsDrawingEscherRecordType.OfficeArtFBSE,
+                0xF008 => LegacyXlsDrawingEscherRecordType.OfficeArtFDG,
+                0xF009 => LegacyXlsDrawingEscherRecordType.OfficeArtFSPGR,
+                0xF00A => LegacyXlsDrawingEscherRecordType.OfficeArtFSP,
+                0xF00B => LegacyXlsDrawingEscherRecordType.OfficeArtFOPT,
+                0xF00D => LegacyXlsDrawingEscherRecordType.OfficeArtFClientTextbox,
+                0xF00F => LegacyXlsDrawingEscherRecordType.OfficeArtChildAnchor,
+                0xF010 => LegacyXlsDrawingEscherRecordType.OfficeArtFClientAnchor,
+                0xF011 => LegacyXlsDrawingEscherRecordType.OfficeArtFClientData,
                 _ => null
             };
         }

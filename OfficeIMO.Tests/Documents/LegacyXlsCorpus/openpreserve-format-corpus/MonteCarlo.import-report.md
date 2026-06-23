@@ -486,6 +486,15 @@ Warnings: 0
 | EscherRecordType:0xF004 | 4 |
 | EscherRecordType:0xF00D | 8 |
 
+## Drawing Records By Escher Record Type Name
+
+| Key | Count |
+| --- | --- |
+| OfficeArtDgContainer | 11 |
+| OfficeArtDggContainer | 1 |
+| OfficeArtFClientTextbox | 8 |
+| OfficeArtSpContainer | 4 |
+
 ## Drawing Records By Location
 
 | Key | Count |

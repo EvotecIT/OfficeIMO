@@ -147,6 +147,9 @@ namespace OfficeIMO.Excel.LegacyXls {
             DrawingRecordsByEscherRecordType = CountByCode(workbook.DrawingRecords
                 .Where(record => record.EscherRecordType.HasValue)
                 .Select(record => $"EscherRecordType:0x{record.EscherRecordType!.Value:X4}"));
+            DrawingRecordsByEscherRecordTypeName = CountByCode(workbook.DrawingRecords
+                .Where(record => !string.IsNullOrWhiteSpace(record.EscherRecordTypeName))
+                .Select(record => record.EscherRecordTypeName!));
             DrawingRecordsByLocation = CountByCode(workbook.DrawingRecords.Select(GetDrawingRecordLocationKey));
             CompoundFeatureRecordsByKind = CountCompoundFeatureRecordsByKind(workbook.CompoundFeatureRecords);
             CompoundFeatureEntriesByKind = CountCompoundFeatureEntriesByKind(workbook.CompoundFeatureRecords);
@@ -404,6 +407,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets MsoDrawing records grouped by decoded top-level Escher record type.</summary>
         public IReadOnlyDictionary<string, int> DrawingRecordsByEscherRecordType { get; }
 
+        /// <summary>Gets MsoDrawing records grouped by decoded top-level Escher record type name.</summary>
+        public IReadOnlyDictionary<string, int> DrawingRecordsByEscherRecordTypeName { get; }
+
         /// <summary>Gets preserve-only drawing and object BIFF records grouped by workbook or sheet location.</summary>
         public IReadOnlyDictionary<string, int> DrawingRecordsByLocation { get; }
 
@@ -562,6 +568,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Drawing Records By Object Type", DrawingRecordsByObjectType);
             AppendDictionary(builder, "Drawing Records By Object Type Name", DrawingRecordsByObjectTypeName);
             AppendDictionary(builder, "Drawing Records By Escher Record Type", DrawingRecordsByEscherRecordType);
+            AppendDictionary(builder, "Drawing Records By Escher Record Type Name", DrawingRecordsByEscherRecordTypeName);
             AppendDictionary(builder, "Drawing Records By Location", DrawingRecordsByLocation);
             AppendDictionary(builder, "Compound Feature Records By Kind", CompoundFeatureRecordsByKind.ToDictionary(
                 entry => entry.Key.ToString(),
