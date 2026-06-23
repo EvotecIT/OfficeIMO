@@ -238,6 +238,20 @@ public static class PdfMerger {
     }
 
     /// <summary>
+    /// Merges PDFs from file paths and writes the result to the output path, applying optional source preparation first.
+    /// </summary>
+    public static void MergeFiles(PdfMergeOptions options, IEnumerable<string> inputPaths, string outputPath) {
+        Guard.NotNull(options, nameof(options));
+        Guard.NotNull(outputPath, nameof(outputPath));
+
+        string fullOutputPath = ValidateOutputPath(outputPath);
+        var merged = MergeFilesToBytes(options, inputPaths);
+        var directory = Path.GetDirectoryName(fullOutputPath);
+        if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
+        File.WriteAllBytes(fullOutputPath, merged);
+    }
+
+    /// <summary>
     /// Merges PDFs from file paths and writes the result to <paramref name="outputStream"/>.
     /// </summary>
     public static void MergeFiles(IEnumerable<string> inputPaths, Stream outputStream) {
@@ -315,9 +329,19 @@ public static class PdfMerger {
     }
 
     private static byte[] PrepareMergeSource(byte[] source, PdfMergeOptions? options) {
-        return options?.FlattenVisualAnnotations == true
-            ? PdfAnnotationFlattener.FlattenVisualAnnotations(source)
-            : source;
+        if (options is null) {
+            return source;
+        }
+
+        if (options.FlattenVisualAnnotations) {
+            source = PdfAnnotationFlattener.FlattenVisualAnnotations(source);
+        }
+
+        if (options.ResizePages is not null) {
+            source = PdfPageEditor.ResizePages(source, options.ResizePages);
+        }
+
+        return source;
     }
 
     private static void WriteOutput(Stream outputStream, byte[] bytes) {
@@ -388,6 +412,7 @@ public static class PdfMerger {
         collector.CollectObjectGraph(catalogState.Outlines);
         collector.CollectObjectGraph(catalogState.PageLabels);
         collector.CollectObjectGraph(catalogState.NamedDestinationNameTree);
+        collector.CollectObjectGraph(catalogState.OpenAction);
         collector.CollectObjectGraph(catalogState.XmpMetadata);
         collector.CollectObjectGraph(catalogState.CatalogUri);
         collector.CollectObjectGraph(catalogState.OutputIntents);

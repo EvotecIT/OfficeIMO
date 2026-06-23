@@ -334,6 +334,200 @@ public class PdfITextInspiredCoverageTests {
     }
 
     [Fact]
+    public void PageEditor_ResizePagesTransformsAnnotationsAndNormalizesProductionBoxes() {
+        byte[] pdf = BuildResizableAnnotatedPagePdf();
+
+        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PageSize(600, 600)) {
+            Mode = PdfPageResizeMode.Stretch
+        });
+
+        PdfDocumentInfo info = PdfInspector.Inspect(resized);
+        PdfPageGeometry geometry = info.Pages[0].Geometry!;
+        PdfAnnotation annotation = Assert.Single(info.GetAnnotationsBySubtype("Link"));
+        string raw = Encoding.ASCII.GetString(resized);
+
+        Assert.Equal(600, geometry.MediaBox.Width);
+        Assert.Equal(600, geometry.CropBox!.Width);
+        Assert.Equal(600, geometry.TrimBox!.Width);
+        Assert.Equal(600, geometry.BleedBox!.Width);
+        Assert.Equal(600, geometry.ArtBox!.Width);
+        Assert.Equal(120, annotation.X1);
+        Assert.Equal(420, annotation.Y1);
+        Assert.Equal(240, annotation.X2);
+        Assert.Equal(540, annotation.Y2);
+        Assert.Contains("/UserUnit 1", raw, StringComparison.Ordinal);
+        Assert.Contains("/Rotate 0", raw, StringComparison.Ordinal);
+        Assert.Contains("0 -6 6 0 -60 660 cm", raw, StringComparison.Ordinal);
+        Assert.Contains("10 10 100 100 re\nW n", raw, StringComparison.Ordinal);
+        Assert.Contains("/QuadPoints [ 420 540 420 420 360 540 360 420 ]", raw, StringComparison.Ordinal);
+        Assert.Contains("/L [ 120 540 240 420 ]", raw, StringComparison.Ordinal);
+        Assert.Contains("/Vertices [ 120 540 240 420 ]", raw, StringComparison.Ordinal);
+        Assert.Contains("/InkList [ [ 120 540 240 420 ] ]", raw, StringComparison.Ordinal);
+
+        Assert.NotNull(info.OpenAction);
+        Assert.Equal(420, info.OpenAction!.DestinationLeft);
+        Assert.Equal(540, info.OpenAction.DestinationTop);
+        PdfNamedDestination namedDestination = Assert.Single(info.NamedDestinations, destination => destination.Name == "Target");
+        Assert.Equal(420, namedDestination.DestinationLeft);
+        Assert.Equal(540, namedDestination.DestinationTop);
+        PdfOutlineItem outline = Assert.Single(info.Outlines);
+        Assert.Equal(420, outline.DestinationLeft);
+        Assert.Equal(540, outline.DestinationTop);
+    }
+
+    [Fact]
+    public void PageEditor_ResizePagesTransformsDestinationsFromUnresizedPages() {
+        byte[] pdf = BuildResizableTwoPageLinkPdf();
+
+        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PageSize(600, 600)) {
+            Mode = PdfPageResizeMode.Stretch
+        }, 1);
+
+        PdfDocumentInfo info = PdfInspector.Inspect(resized);
+        PdfLinkAnnotation link = Assert.Single(info.Pages[1].LinkAnnotations);
+
+        Assert.Equal(60, link.DestinationLeft);
+        Assert.Equal(420, link.DestinationTop);
+        Assert.Equal(600, info.Pages[0].Geometry!.MediaBox.Width);
+        Assert.Equal(300, info.Pages[1].Geometry!.MediaBox.Width);
+    }
+
+    [Fact]
+    public void PageEditor_ResizePagesConvertsRotatedFitDestinationsToConcretePoints() {
+        byte[] pdf = BuildResizableRotatedFitDestinationPdf();
+
+        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PageSize(600, 600)) {
+            Mode = PdfPageResizeMode.Stretch
+        });
+
+        PdfDocumentInfo info = PdfInspector.Inspect(resized);
+
+        Assert.NotNull(info.OpenAction);
+        Assert.Equal(PdfOpenActionDestinationMode.Xyz, info.OpenAction!.DestinationMode);
+        Assert.Equal(420, info.OpenAction.DestinationLeft);
+        Assert.Equal(600, info.OpenAction.DestinationTop);
+    }
+
+    [Fact]
+    public void PageEditor_ResizePagesConvertsRotatedPartialXyzDestinationsToConcretePoints() {
+        byte[] pdf = BuildResizableRotatedPartialXyzDestinationPdf();
+
+        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PageSize(600, 600)) {
+            Mode = PdfPageResizeMode.Stretch
+        });
+
+        PdfDocumentInfo info = PdfInspector.Inspect(resized);
+
+        Assert.NotNull(info.OpenAction);
+        Assert.Equal(PdfOpenActionDestinationMode.Xyz, info.OpenAction!.DestinationMode);
+        Assert.Equal(420, info.OpenAction.DestinationLeft);
+        Assert.Equal(600, info.OpenAction.DestinationTop);
+    }
+
+    [Fact]
+    public void PageEditor_ResizePagesFillClipsToMarginBoxBeforeScaling() {
+        byte[] pdf = BuildResizableTallPagePdf();
+
+        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PageSize(600, 600)) {
+            Mode = PdfPageResizeMode.Fill,
+            Margin = 50
+        });
+        string raw = PdfEncoding.Latin1GetString(resized);
+
+        int targetClip = raw.IndexOf("50 50 500 500 re\nW n\n", StringComparison.Ordinal);
+        int transform = raw.IndexOf("5 0 0 5 50 -450 cm\n", StringComparison.Ordinal);
+        int sourceClip = raw.IndexOf("0 0 100 300 re\nW n\n", StringComparison.Ordinal);
+        Assert.True(targetClip >= 0, "Expected resized content stream to clip to the target margin box.");
+        Assert.True(transform > targetClip, "Expected target-space margin clipping before the resize transform.");
+        Assert.True(sourceClip > transform, "Expected source-space clipping after the resize transform.");
+    }
+
+    [Fact]
+    public void PageEditor_ResizePagesFillClipsAnnotationRectanglesToMarginBox() {
+        byte[] pdf = BuildResizableTallPageWithCroppedAnnotationsPdf();
+
+        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PageSize(600, 600)) {
+            Mode = PdfPageResizeMode.Fill,
+            Margin = 50
+        });
+        PdfDocumentInfo info = PdfInspector.Inspect(resized);
+        string raw = PdfEncoding.Latin1GetString(resized);
+
+        PdfAnnotation annotation = Assert.Single(info.GetAnnotationsBySubtype("Link"));
+        Assert.Equal(100, annotation.X1);
+        Assert.Equal(50, annotation.Y1);
+        Assert.Equal(200, annotation.X2);
+        Assert.Equal(100, annotation.Y2);
+        Assert.Contains("/Rect [ 100 50 200 100 ]", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("https://example.com/clipped-away", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PageEditor_ResizePagesTransformsSharedIndirectDestinationsOnce() {
+        byte[] pdf = BuildResizableSharedDestinationPdf();
+
+        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PageSize(600, 600)) {
+            Mode = PdfPageResizeMode.Stretch
+        });
+
+        PdfDocumentInfo info = PdfInspector.Inspect(resized);
+
+        Assert.Equal(2, info.Pages[0].LinkAnnotations.Count);
+        Assert.All(info.Pages[0].LinkAnnotations, link => {
+            Assert.Equal(60, link.DestinationLeft);
+            Assert.Equal(420, link.DestinationTop);
+        });
+        Assert.NotNull(info.OpenAction);
+        Assert.Equal(60, info.OpenAction!.DestinationLeft);
+        Assert.Equal(420, info.OpenAction.DestinationTop);
+    }
+
+    [Fact]
+    public void PageEditor_ResizePagesTransformsIndirectAnnotationGeometryArrays() {
+        byte[] pdf = BuildResizableIndirectAnnotationGeometryPdf();
+
+        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PageSize(600, 600)) {
+            Mode = PdfPageResizeMode.Stretch
+        });
+        string raw = PdfEncoding.Latin1GetString(resized);
+
+        Assert.Contains("/Rect [ 60 120 180 240 ]", raw, StringComparison.Ordinal);
+        Assert.Contains("/QuadPoints [ 60 420 180 420 60 360 180 360 ]", raw, StringComparison.Ordinal);
+        Assert.Contains("/InkList [ [ 60 420 180 360 ] ]", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Rect 7 0 R", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("/QuadPoints 8 0 R", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("/InkList 9 0 R", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PageEditor_ResizePagesRemapsPopupAnnotationReferencesToTransformedClones() {
+        byte[] pdf = BuildResizablePopupAnnotationPdf();
+
+        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PageSize(600, 600)) {
+            Mode = PdfPageResizeMode.Stretch
+        });
+        string raw = PdfEncoding.Latin1GetString(resized);
+
+        Assert.DoesNotContain("/Rect [ 50 50 150 120 ]", raw, StringComparison.Ordinal);
+        Assert.Contains("/Rect [ 240 240 600 600 ]", raw, StringComparison.Ordinal);
+        Assert.Contains("/Popup", raw, StringComparison.Ordinal);
+        Assert.Contains("/Parent", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PageEditor_ResizePagesCollectsClonedAnnotationActionDependencies() {
+        byte[] pdf = BuildResizableAnnotationActionPdf();
+
+        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PageSize(600, 600)) {
+            Mode = PdfPageResizeMode.Stretch
+        });
+        string raw = PdfEncoding.Latin1GetString(resized);
+
+        Assert.Contains("/A ", raw, StringComparison.Ordinal);
+        Assert.Contains("/URI (https://example.com/review)", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SecurityInfo_ReportsObjectStreamRewriteReadiness() {
         byte[] pdf = Encoding.ASCII.GetBytes(string.Join("\n", new[] {
             "%PDF-1.7",
@@ -643,6 +837,145 @@ public class PdfITextInspiredCoverageTests {
         };
 
         return Encoding.ASCII.GetBytes(BuildPdf(objects).Replace("%PDF-1.7", "%PDF-" + version));
+    }
+
+    private static byte[] BuildResizableAnnotatedPagePdf() {
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R /OpenAction [3 0 R /XYZ 20 80 1] /Dests << /Target [3 0 R /XYZ 20 80 1] >> /Outlines 7 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /CropBox [10 10 110 110] /BleedBox [5 5 295 295] /TrimBox [10 10 290 290] /ArtBox [20 20 280 280] /UserUnit 2 /Rotate 90 /Resources << /Font << /F1 4 0 R >> >> /Annots [6 0 R] /Contents 5 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 20 20 Td (Resize source) Tj ET")),
+            "<< /Type /Annot /Subtype /Link /Rect [20 30 40 50] /QuadPoints [20 80 40 80 20 70 40 70] /L [20 30 40 50] /Vertices [20 30 40 50] /InkList [[20 30 40 50]] /Dest [3 0 R /XYZ 20 80 1] >>",
+            "<< /Type /Outlines /First 8 0 R /Last 8 0 R /Count 1 >>",
+            "<< /Title (Target) /Parent 7 0 R /Dest [3 0 R /XYZ 20 80 1] >>"
+        };
+
+        return Encoding.ASCII.GetBytes(BuildPdf(objects));
+    }
+
+    private static byte[] BuildResizableTwoPageLinkPdf() {
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 2 /Kids [3 0 R 7 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /CropBox [10 10 110 110] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 20 20 Td (Resize target) Tj ET")),
+            BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 20 20 Td (Link source) Tj ET")),
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R >> >> /Annots [8 0 R] /Contents 6 0 R >>",
+            "<< /Type /Annot /Subtype /Link /Rect [20 30 40 50] /Dest [3 0 R /XYZ 20 80 1] >>"
+        };
+
+        return Encoding.ASCII.GetBytes(BuildPdf(objects));
+    }
+
+    private static byte[] BuildResizableRotatedFitDestinationPdf() {
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R /OpenAction [3 0 R /FitH 80] >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /CropBox [10 10 110 110] /Rotate 90 /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 20 20 Td (Fit target) Tj ET"))
+        };
+
+        return Encoding.ASCII.GetBytes(BuildPdf(objects));
+    }
+
+    private static byte[] BuildResizableRotatedPartialXyzDestinationPdf() {
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R /OpenAction [3 0 R /XYZ null 80 1] >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /CropBox [10 10 110 110] /Rotate 90 /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 20 20 Td (Partial XYZ target) Tj ET"))
+        };
+
+        return Encoding.ASCII.GetBytes(BuildPdf(objects));
+    }
+
+    private static byte[] BuildResizableTallPagePdf() {
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 300] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 10 280 Td (Fill should crop to margins) Tj ET"))
+        };
+
+        return Encoding.ASCII.GetBytes(BuildPdf(objects));
+    }
+
+    private static byte[] BuildResizableTallPageWithCroppedAnnotationsPdf() {
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 300] /Resources << /Font << /F1 4 0 R >> >> /Annots [6 0 R 7 0 R] /Contents 5 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 10 280 Td (Fill annotations should crop to margins) Tj ET")),
+            "<< /Type /Annot /Subtype /Link /Rect [10 90 30 110] /A << /S /URI /URI (https://example.com/kept) >> >>",
+            "<< /Type /Annot /Subtype /Link /Rect [10 10 30 20] /A << /S /URI /URI (https://example.com/clipped-away) >> >>"
+        };
+
+        return Encoding.ASCII.GetBytes(BuildPdf(objects));
+    }
+
+    private static byte[] BuildResizableSharedDestinationPdf() {
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R /OpenAction 8 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /CropBox [10 10 110 110] /Resources << /Font << /F1 4 0 R >> >> /Annots [6 0 R 7 0 R] /Contents 5 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 20 20 Td (Shared target) Tj ET")),
+            "<< /Type /Annot /Subtype /Link /Rect [20 30 40 50] /Dest 8 0 R >>",
+            "<< /Type /Annot /Subtype /Link /Rect [60 30 80 50] /Dest 8 0 R >>",
+            "[3 0 R /XYZ 20 80 1]"
+        };
+
+        return Encoding.ASCII.GetBytes(BuildPdf(objects));
+    }
+
+    private static byte[] BuildResizableIndirectAnnotationGeometryPdf() {
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /CropBox [10 10 110 110] /Resources << /Font << /F1 4 0 R >> >> /Annots [6 0 R] /Contents 5 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 20 20 Td (Indirect geometry) Tj ET")),
+            "<< /Type /Annot /Subtype /Link /Rect 7 0 R /QuadPoints 8 0 R /InkList 9 0 R /Dest [3 0 R /XYZ 20 80 1] >>",
+            "[20 30 40 50]",
+            "[20 80 40 80 20 70 40 70]",
+            "[[20 80 40 70]]"
+        };
+
+        return Encoding.ASCII.GetBytes(BuildPdf(objects));
+    }
+
+    private static byte[] BuildResizablePopupAnnotationPdf() {
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /CropBox [10 10 110 110] /Resources << /Font << /F1 4 0 R >> >> /Annots [6 0 R 7 0 R] /Contents 5 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 20 20 Td (Popup geometry) Tj ET")),
+            "<< /Type /Annot /Subtype /Text /Rect [20 30 40 50] /Popup 7 0 R /Contents (Note) >>",
+            "<< /Type /Annot /Subtype /Popup /Rect [50 50 150 120] /Parent 6 0 R >>"
+        };
+
+        return Encoding.ASCII.GetBytes(BuildPdf(objects));
+    }
+
+    private static byte[] BuildResizableAnnotationActionPdf() {
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /CropBox [10 10 110 110] /Resources << /Font << /F1 4 0 R >> >> /Annots [6 0 R] /Contents 5 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 20 20 Td (Action dependency) Tj ET")),
+            "<< /Type /Annot /Subtype /Link /Rect [20 30 40 50] /A 7 0 R >>",
+            "<< /S /URI /URI (https://example.com/review) >>"
+        };
+
+        return Encoding.ASCII.GetBytes(BuildPdf(objects));
     }
 
     private static string BuildStream(byte[] data) =>

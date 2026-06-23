@@ -50,6 +50,7 @@ public class PdfTableStyle {
     private double? _lineHeight;
     private double? _headerFontSize;
     private double? _footerFontSize;
+    private double? _minimumShrinkFontSize;
 
     /// <summary>Color of the table borders and cell grid lines. Set to null to hide borders.</summary>
     public PdfColor? BorderColor { get; set; } = new PdfColor(0.8, 0.8, 0.8);
@@ -495,6 +496,16 @@ public class PdfTableStyle {
     }
     /// <summary>When true, the resolved table frame width is preserved even if measured columns would otherwise shrink to their content.</summary>
     public bool PreserveWidth { get; set; }
+    /// <summary>When true, table rows can reduce their font size to keep cell text within the resolved cell width.</summary>
+    public bool ShrinkTextToFit { get; set; }
+    /// <summary>Smallest font size, in points, used by <see cref="ShrinkTextToFit"/>. When null the writer uses 6 points.</summary>
+    public double? MinimumShrinkFontSize {
+        get => _minimumShrinkFontSize;
+        set {
+            ValidateOptionalPositiveFiniteValue(value, nameof(MinimumShrinkFontSize), "Table minimum shrink font size must be a positive finite value.");
+            _minimumShrinkFontSize = value;
+        }
+    }
     /// <summary>Optional left indentation before table placement, in points.</summary>
     public double LeftIndent {
         get => _leftIndent;
@@ -625,6 +636,8 @@ public class PdfTableStyle {
             RowBaselineOffset = RowBaselineOffset,
             MaxWidth = MaxWidth,
             PreserveWidth = PreserveWidth,
+            ShrinkTextToFit = ShrinkTextToFit,
+            MinimumShrinkFontSize = MinimumShrinkFontSize,
             LeftIndent = LeftIndent,
             AutoFitColumns = AutoFitColumns,
             RightAlignNumeric = RightAlignNumeric,

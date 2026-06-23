@@ -63,13 +63,86 @@ public class PdfEncryptedReadTests {
     }
 
     [Fact]
-    public void StandardEmptyUserPasswordEncryptedPdf_RemainsBlockedForRewrite() {
+    public void StandardEmptyUserPasswordEncryptedPdf_SplitsAndExtractsWithoutExplicitPassword() {
         byte[] pdf = EncryptedPdfFixture.CreateRevision2(string.Empty, "owner", "Empty user password text");
 
-        NotSupportedException exception = Assert.Throws<NotSupportedException>(() => PdfPageExtractor.ExtractPages(pdf, 1));
+        byte[] extracted = PdfPageExtractor.ExtractPages(pdf, 1);
+        IReadOnlyList<PdfDocument> splitPages = PdfDocument.Open(pdf).Pages.Split();
+        PdfOperationResult<IReadOnlyList<PdfDocument>> trySplit = PdfDocument.Open(pdf).Pages.TrySplit();
 
-        Assert.Contains("Encrypted PDF files are not supported for rewriting by OfficeIMO.Pdf yet.", exception.Message, StringComparison.Ordinal);
+        Assert.False(PdfInspector.Probe(extracted).HasEncryption);
+        Assert.Contains("Empty user password text", PdfTextExtractor.ExtractAllText(extracted), StringComparison.Ordinal);
+        PdfDocument splitPage = Assert.Single(splitPages);
+        Assert.Contains("Empty user password text", splitPage.Read.Text(), StringComparison.Ordinal);
+        Assert.True(trySplit.CanAttempt);
+        Assert.True(trySplit.Succeeded);
     }
+
+    [Fact]
+    public void StandardPasswordEncryptedPdf_SplitsWithPasswordAsUnencryptedOutputs() {
+        byte[] pdf = EncryptedPdfFixture.CreateRevision2("open", "owner", "Secret PDF Text");
+        var options = new PdfReadOptions { Password = "open" };
+
+        IReadOnlyList<byte[]> pages = PdfDocument.Open(pdf, options).Pages.Split()
+            .Select(page => page.ToBytes())
+            .ToArray();
+
+        Assert.Single(pages);
+        Assert.False(PdfInspector.Probe(pages[0]).HasEncryption);
+        Assert.Contains("Secret PDF Text", PdfTextExtractor.ExtractAllText(pages[0]), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void StandardPasswordEncryptedPdf_TrySplitSucceedsWhenOpenedWithPassword() {
+        byte[] pdf = EncryptedPdfFixture.CreateRevision2("open", "owner", "Secret PDF Text");
+
+        PdfOperationResult<IReadOnlyList<PdfDocument>> result = PdfDocument.Open(pdf, new PdfReadOptions { Password = "open" }).Pages.TrySplit();
+
+        Assert.True(result.CanAttempt);
+        Assert.True(result.Succeeded);
+        PdfDocument page = Assert.Single(result.RequireValue());
+        Assert.Contains("Secret PDF Text", page.Read.Text(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void StandardPasswordEncryptedPdf_TrySplitUsesSuppliedPassword() {
+        byte[] pdf = EncryptedPdfFixture.CreateRevision2("open", "owner", "Secret PDF Text");
+
+        PdfOperationResult<IReadOnlyList<PdfDocument>> result = PdfDocument.Open(pdf).Pages.TrySplit(new PdfReadOptions { Password = "open" });
+
+        Assert.True(result.CanAttempt);
+        Assert.True(result.Succeeded);
+        PdfDocument page = Assert.Single(result.RequireValue());
+        Assert.Contains("Secret PDF Text", page.Read.Text(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void StandardPasswordEncryptedPdf_ExtractWithWrongPasswordReportsPasswordError() {
+        byte[] pdf = EncryptedPdfFixture.CreateRevision2WithPageLabels("open", "owner", "Secret PDF Text");
+
+        Assert.Throws<PdfInvalidPasswordException>(() => PdfPageExtractor.ExtractPages(pdf, new PdfReadOptions { Password = "wrong" }, 1));
+    }
+
+    [Fact]
+    public void StandardPasswordEncryptedPdf_ExtractsWithSupportedPageLabelsWhenPasswordProvided() {
+        byte[] pdf = EncryptedPdfFixture.CreateRevision2WithPageLabels("open", "owner", "Secret PDF Text");
+        var options = new PdfReadOptions { Password = "open" };
+
+        byte[] page = PdfPageExtractor.ExtractPages(pdf, options, 1);
+
+        Assert.False(PdfInspector.Probe(page).HasEncryption);
+        Assert.Contains("Secret PDF Text", PdfTextExtractor.ExtractAllText(page), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void StandardPasswordEncryptedFormPdf_ExtractBlocksDecryptedFormMarkers() {
+        byte[] pdf = EncryptedPdfFixture.CreateRevision2WithTextField("open", "owner", "Secret PDF Text");
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() => PdfPageExtractor.ExtractPages(pdf, new PdfReadOptions { Password = "open" }, 1));
+
+        Assert.Contains("PDF form fields are not supported", exception.Message, StringComparison.Ordinal);
+    }
+
 
     [Fact]
     public void StandardPasswordEncryptedFormPdf_BlocksFormFillEvenWithValidPassword() {
@@ -103,7 +176,11 @@ public class PdfEncryptedReadTests {
             return CreateRevision2Core(userPassword, ownerPassword, visibleText, includeSignature: true, encryptGeneration: 0);
         }
 
-        private static byte[] CreateRevision2Core(string userPassword, string ownerPassword, string visibleText, bool includeSignature, int encryptGeneration) {
+        public static byte[] CreateRevision2WithPageLabels(string userPassword, string ownerPassword, string visibleText) {
+            return CreateRevision2Core(userPassword, ownerPassword, visibleText, includeSignature: false, encryptGeneration: 0, includePageLabels: true);
+        }
+
+        private static byte[] CreateRevision2Core(string userPassword, string ownerPassword, string visibleText, bool includeSignature, int encryptGeneration, bool includePageLabels = false) {
             byte[] fileId = new byte[] {
                 0x10, 0x45, 0xA8, 0x7C, 0x22, 0x18, 0x4E, 0xC1,
                 0x91, 0x4A, 0xCF, 0x66, 0x31, 0xD2, 0x74, 0x03
@@ -117,9 +194,16 @@ public class PdfEncryptedReadTests {
             byte[] encryptedContent = Rc4(ComputeObjectKey(fileKey, 5, 0), Encoding.ASCII.GetBytes(content));
 
             var objects = new List<byte[]>();
-            objects.Add(Ascii(includeSignature
-                ? "<< /Type /Catalog /Pages 2 0 R /AcroForm 7 0 R >>"
-                : "<< /Type /Catalog /Pages 2 0 R >>"));
+            string catalog = "<< /Type /Catalog /Pages 2 0 R";
+            if (includeSignature) {
+                catalog += " /AcroForm 7 0 R";
+            }
+
+            if (includePageLabels) {
+                catalog += " /PageLabels << /Nums [0 << /S /D >>] >>";
+            }
+
+            objects.Add(Ascii(catalog + " >>"));
             objects.Add(Ascii("<< /Type /Pages /Kids [3 0 R] /Count 1 >>"));
             objects.Add(Ascii(includeSignature
                 ? "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 200] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R /Annots [8 0 R] >>"
