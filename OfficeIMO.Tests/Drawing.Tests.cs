@@ -1250,6 +1250,17 @@ public class DrawingTests {
         Assert.Contains(contours, contour => contour.Count >= 3);
     }
 
+    [Fact]
+    public void OfficeTrueTypeFontResolvesCssFontFamilyFallbackWhenAvailable() {
+        OfficeTrueTypeFont? font = OfficeTrueTypeFont.TryLoadFontFamily("\"Definitely Missing\", sans-serif", out string? path);
+        if (font == null) {
+            return;
+        }
+
+        Assert.False(string.IsNullOrWhiteSpace(path));
+        Assert.True(font.Measure("OfficeIMO", 18) > 0);
+    }
+
     private static byte[] CreateTruncatedFormat12Cmap() {
         var data = new byte[28];
         WriteUInt16(data, 2, 1);

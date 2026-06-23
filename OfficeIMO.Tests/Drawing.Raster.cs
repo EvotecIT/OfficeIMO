@@ -353,6 +353,30 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeTextLayoutEngine_LayoutsRichTextRunsWithFontFamilyAwareMeasurement() {
+            double Measure(string? value, double size, string? family) {
+                double factor = string.Equals(family, "Wide", StringComparison.Ordinal) ? 10D : 1D;
+                return (value?.Length ?? 0) * size * factor;
+            }
+
+            OfficeRichTextBlockLayout layout = OfficeTextLayoutEngine.LayoutRichTextBlock(
+                new[] {
+                    new OfficeRichTextRun("AA", 2D, OfficeColor.Black, fontFamily: "Wide"),
+                    new OfficeRichTextRun("BB", 2D, OfficeColor.Black, fontFamily: "Narrow")
+                },
+                100D,
+                30D,
+                lineHeightFactor: 1.2D,
+                Measure,
+                wrap: false);
+
+            Assert.Single(layout.Lines);
+            Assert.Equal(40D, layout.Lines[0].Segments[0].Width);
+            Assert.Equal(4D, layout.Lines[0].Segments[1].Width);
+            Assert.Equal(44D, layout.Width);
+        }
+
+        [Fact]
         public void OfficeTextPlacement_ResolvesSharedHorizontalAndVerticalCoordinates() {
             Assert.Equal(10D, OfficeTextPlacement.ResolveAnchorX(10D, 100D, OfficeTextAlignment.Left));
             Assert.Equal(60D, OfficeTextPlacement.ResolveAnchorX(10D, 100D, OfficeTextAlignment.Center));

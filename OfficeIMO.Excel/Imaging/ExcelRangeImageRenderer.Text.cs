@@ -35,6 +35,7 @@ namespace OfficeIMO.Excel {
             double rotationDegrees = ResolveExcelTextRotationDegrees(cell.Style.TextRotation, snapshot, cell, diagnostics);
             bool rotated = Math.Abs(rotationDegrees) > 0.0001D;
             bool richTextSupported = IsRichTextRenderingSupported(cell, rotated);
+            string fontFamily = ResolveCellFontFamily(cell.Style);
             OfficeTextBlockLayout layout = OfficeTextLayoutEngine.LayoutTextBlock(
                 cell.Text,
                 fontSize,
@@ -42,7 +43,7 @@ namespace OfficeIMO.Excel {
                 rotated ? Math.Max(availableWidth, availableHeight) : availableHeight,
                 CellTextLineHeightFactor,
                 minimumFontSize,
-                canvas.MeasureText,
+                (text, size) => canvas.MeasureText(text, size, fontFamily),
                 wrap: cell.Style.WrapText,
                 forceSingleLine: rotated,
                 shrinkToFit: cell.Style.ShrinkToFit);
@@ -76,7 +77,7 @@ namespace OfficeIMO.Excel {
                     double centerX = x + (w / 2D);
                     double centerY = y + (h / 2D);
                     double textTop = centerY - (layout.FontSize / 2D);
-                    canvas.DrawTextLine(line.Text, centerX, textTop, layout.FontSize, color, bold, italic, OfficeTextAlignment.Center, rotationDegrees, centerX, centerY);
+                    canvas.DrawTextLine(line.Text, centerX, textTop, layout.FontSize, color, bold, italic, OfficeTextAlignment.Center, rotationDegrees, centerX, centerY, fontFamily: fontFamily);
                     return;
                 }
 
@@ -92,7 +93,8 @@ namespace OfficeIMO.Excel {
                     ResolveTextVerticalAlignment(cell.Style.VerticalAlignment),
                     bold,
                     italic,
-                    underline);
+                    underline,
+                    fontFamily: fontFamily);
             }
         }
 
@@ -121,6 +123,7 @@ namespace OfficeIMO.Excel {
             double rotationDegrees = ResolveExcelTextRotationDegrees(cell.Style.TextRotation, snapshot, cell, diagnostics);
             bool rotated = Math.Abs(rotationDegrees) > 0.0001D;
             bool richTextSupported = IsRichTextRenderingSupported(cell, rotated);
+            string fontFamily = ResolveCellFontFamily(cell.Style);
             OfficeTextBlockLayout layout = OfficeTextLayoutEngine.LayoutTextBlock(
                 cell.Text,
                 fontSize,
@@ -128,7 +131,7 @@ namespace OfficeIMO.Excel {
                 rotated ? Math.Max(availableWidth, availableHeight) : availableHeight,
                 CellTextLineHeightFactor,
                 minimumFontSize,
-                textMeasureCanvas.MeasureText,
+                (text, size) => textMeasureCanvas.MeasureText(text, size, fontFamily),
                 wrap: cell.Style.WrapText,
                 forceSingleLine: rotated,
                 shrinkToFit: cell.Style.ShrinkToFit);
@@ -137,7 +140,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (cell.RichTextRuns.Count > 0) {
-                if (richTextSupported && TryAppendSvgRichText(builder, cell, options, x, y, w, h, paddingX, paddingY, availableWidth, availableHeight, rotationDegrees, textMeasureCanvas.MeasureText, out OfficeRichTextBlockLayout richLayout)) {
+                if (richTextSupported && TryAppendSvgRichText(builder, cell, options, x, y, w, h, paddingX, paddingY, availableWidth, availableHeight, rotationDegrees, (text, size, family) => textMeasureCanvas.MeasureText(text, size, family), out OfficeRichTextBlockLayout richLayout)) {
                     AddTextClippingDiagnosticIfNeeded(richLayout, snapshot, cell, diagnostics);
                     if (rotated) {
                         AddRotatedTextApproximationDiagnostic(snapshot, cell, diagnostics);
@@ -169,7 +172,7 @@ namespace OfficeIMO.Excel {
                     baseline,
                     layout.LineHeight,
                     color,
-                    ResolveSvgFontFamily(cell.Style),
+                    fontFamily,
                     layout.FontSize,
                     OfficeTextAlignment.Center,
                     cell.Style.Bold,
@@ -189,7 +192,7 @@ namespace OfficeIMO.Excel {
                 availableWidth,
                 availableHeight,
                 color,
-                ResolveSvgFontFamily(cell.Style),
+                fontFamily,
                 alignment,
                 ResolveTextVerticalAlignment(cell.Style.VerticalAlignment),
                 cell.Style.Bold,
@@ -215,7 +218,7 @@ namespace OfficeIMO.Excel {
             double rotationDegrees,
             out OfficeRichTextBlockLayout layout) {
             bool rotated = Math.Abs(rotationDegrees) > 0.0001D;
-            if (!TryBuildRichTextLayout(cell, options, scale, availableWidth, availableHeight, rotationDegrees, canvas.MeasureText, out layout)) {
+            if (!TryBuildRichTextLayout(cell, options, scale, availableWidth, availableHeight, rotationDegrees, (text, size, family) => canvas.MeasureText(text, size, family), out layout)) {
                 return false;
             }
 
@@ -255,7 +258,7 @@ namespace OfficeIMO.Excel {
             double availableWidth,
             double availableHeight,
             double rotationDegrees,
-            Func<string?, double, double> measure,
+            Func<string?, double, string?, double> measure,
             out OfficeRichTextBlockLayout layout) {
             bool rotated = Math.Abs(rotationDegrees) > 0.0001D;
             if (!TryBuildRichTextLayout(cell, options, options.Scale, availableWidth, availableHeight, rotationDegrees, measure, out layout)) {
@@ -308,7 +311,7 @@ namespace OfficeIMO.Excel {
             double availableWidth,
             double availableHeight,
             double rotationDegrees,
-            Func<string?, double, double> measure,
+            Func<string?, double, string?, double> measure,
             out OfficeRichTextBlockLayout layout) {
             var runs = new List<OfficeRichTextRun>(cell.RichTextRuns.Count);
             OfficeColor fallbackColor = ResolveCellTextColor(cell, options);
@@ -401,9 +404,6 @@ namespace OfficeIMO.Excel {
             return string.IsNullOrWhiteSpace(fontName) ? "Arial, sans-serif" : fontName! + ", Arial, sans-serif";
         }
 
-        private static double Measure(string? text, double fontSize, Func<string?, double, double> measure) =>
-            string.IsNullOrEmpty(text) ? 0D : measure(text, fontSize);
-
         private static double ResolveCellFontSize(ExcelCellStyleSnapshot style, double scale) {
             double fontSize = style.FontSize.GetValueOrDefault(CellTextFontSize);
             if (fontSize <= 0D || double.IsNaN(fontSize) || double.IsInfinity(fontSize)) {
@@ -413,7 +413,7 @@ namespace OfficeIMO.Excel {
             return fontSize * scale;
         }
 
-        private static string ResolveSvgFontFamily(ExcelCellStyleSnapshot style) =>
+        private static string ResolveCellFontFamily(ExcelCellStyleSnapshot style) =>
             string.IsNullOrWhiteSpace(style.FontName) ? "Arial, sans-serif" : style.FontName! + ", Arial, sans-serif";
 
         private static OfficeColor ResolveCellTextColor(ExcelVisualCell cell, ExcelImageExportOptions options) {

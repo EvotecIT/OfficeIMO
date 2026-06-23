@@ -36,7 +36,8 @@ public static class OfficeDrawingRasterRenderer {
                     text.Color ?? OfficeColor.Black,
                     text.Font.Size * scale,
                     text.Alignment,
-                    text.Font.Style);
+                    text.Font.Style,
+                    text.Font.FamilyName);
             }
         }
 

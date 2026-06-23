@@ -26,6 +26,42 @@ public static partial class OfficeTextLayoutEngine {
         bool wrap,
         bool shrinkToFit = false,
         double minimumFontSize = 1D) {
+        if (measure == null) {
+            throw new ArgumentNullException(nameof(measure));
+        }
+
+        return LayoutRichTextBlock(
+            runs,
+            maxWidth,
+            maxHeight,
+            lineHeightFactor,
+            (text, fontSize, _) => measure(text, fontSize),
+            wrap,
+            shrinkToFit,
+            minimumFontSize);
+    }
+
+    /// <summary>
+    /// Lays out styled rich text runs into a bounded text block with optional wrapping and height clipping.
+    /// </summary>
+    /// <param name="runs">Styled text runs.</param>
+    /// <param name="maxWidth">Maximum block width.</param>
+    /// <param name="maxHeight">Maximum block height.</param>
+    /// <param name="lineHeightFactor">Multiplier used with the largest run font size to derive line height.</param>
+    /// <param name="measure">Measurement delegate matching <see cref="OfficeRasterCanvas.MeasureText(string?, double, string?)"/>.</param>
+    /// <param name="wrap">Whether soft wrapping is enabled. Hard line breaks are always honored.</param>
+    /// <param name="shrinkToFit">Whether non-wrapped rich text should proportionally shrink run font sizes to fit the requested width.</param>
+    /// <param name="minimumFontSize">Minimum font size for any run when <paramref name="shrinkToFit"/> is enabled.</param>
+    /// <returns>Measured rich text block with visible lines and clipping state.</returns>
+    public static OfficeRichTextBlockLayout LayoutRichTextBlock(
+        IReadOnlyList<OfficeRichTextRun> runs,
+        double maxWidth,
+        double maxHeight,
+        double lineHeightFactor,
+        Func<string?, double, string?, double> measure,
+        bool wrap,
+        bool shrinkToFit = false,
+        double minimumFontSize = 1D) {
         if (runs == null) {
             throw new ArgumentNullException(nameof(runs));
         }
@@ -54,7 +90,7 @@ public static partial class OfficeTextLayoutEngine {
         double maxWidth,
         double maxHeight,
         double lineHeightFactor,
-        Func<string?, double, double> measure,
+        Func<string?, double, string?, double> measure,
         bool wrap) {
         double width = NormalizeNonNegative(maxWidth);
         double height = NormalizeNonNegative(maxHeight);
@@ -75,7 +111,7 @@ public static partial class OfficeTextLayoutEngine {
                 continue;
             }
 
-            double tokenWidth = Measure(token.Text, token.Run.FontSize, measure);
+            double tokenWidth = Measure(token.Text, token.Run.FontSize, token.Run.FontFamily, measure);
             if (wrap && builder.Width + tokenWidth > width && !builder.IsEmpty) {
                 AddRichTextLine(lines, builder);
                 if (token.IsWhitespace) {
@@ -151,7 +187,7 @@ public static partial class OfficeTextLayoutEngine {
         return scaled;
     }
 
-    private static double MeasureMaxUnwrappedRichTextWidth(IReadOnlyList<OfficeRichTextRun> runs, Func<string?, double, double> measure) {
+    private static double MeasureMaxUnwrappedRichTextWidth(IReadOnlyList<OfficeRichTextRun> runs, Func<string?, double, string?, double> measure) {
         double current = 0D;
         double max = 0D;
         foreach (RichTextToken token in CreateRichTextTokens(runs)) {
@@ -161,7 +197,7 @@ public static partial class OfficeTextLayoutEngine {
                 continue;
             }
 
-            current += Measure(token.Text, token.Run.FontSize, measure);
+            current += Measure(token.Text, token.Run.FontSize, token.Run.FontFamily, measure);
         }
 
         return Math.Max(max, current);
@@ -224,10 +260,10 @@ public static partial class OfficeTextLayoutEngine {
         RichTextLineBuilder builder,
         RichTextToken token,
         double maxWidth,
-        Func<string?, double, double> measure) {
+        Func<string?, double, string?, double> measure) {
         for (int i = 0; i < token.Text.Length; i++) {
             string character = token.Text[i].ToString();
-            double width = Measure(character, token.Run.FontSize, measure);
+            double width = Measure(character, token.Run.FontSize, token.Run.FontFamily, measure);
             if (builder.Width + width > maxWidth && !builder.IsEmpty) {
                 AddRichTextLine(lines, builder);
             }
@@ -246,7 +282,7 @@ public static partial class OfficeTextLayoutEngine {
         builder.Clear();
     }
 
-    private static OfficeRichTextLine TrimRichTextLineToWidthWithEllipsis(OfficeRichTextLine line, double maxWidth, Func<string?, double, double> measure) {
+    private static OfficeRichTextLine TrimRichTextLineToWidthWithEllipsis(OfficeRichTextLine line, double maxWidth, Func<string?, double, string?, double> measure) {
         if (line.Segments.Count == 0) {
             return line;
         }
@@ -270,22 +306,22 @@ public static partial class OfficeTextLayoutEngine {
                 segments.RemoveAt(last);
             } else {
                 string text = segment.Text.Substring(0, segment.Text.Length - 1);
-                segments[last] = new OfficeRichTextSegment(text, Measure(text, segment.FontSize, measure), segment.FontSize, segment.Color, segment.Bold, segment.Italic, segment.Underline, segment.FontFamily, segment.Strikethrough);
+                segments[last] = new OfficeRichTextSegment(text, Measure(text, segment.FontSize, segment.FontFamily, measure), segment.FontSize, segment.Color, segment.Bold, segment.Italic, segment.Underline, segment.FontFamily, segment.Strikethrough);
             }
         }
 
         const string ellipsis = "...";
-        return Measure(ellipsis, ellipsisStyle.FontSize, measure) <= width
+        return Measure(ellipsis, ellipsisStyle.FontSize, ellipsisStyle.FontFamily, measure) <= width
             ? new OfficeRichTextLine(new[] { CreateRichTextSegment(ellipsis, ellipsisStyle, measure) })
             : new OfficeRichTextLine(Array.Empty<OfficeRichTextSegment>());
     }
 
-    private static OfficeRichTextLine CreateRichTextLineWithEllipsis(List<OfficeRichTextSegment> segments, OfficeRichTextSegment ellipsisStyle, Func<string?, double, double> measure) {
+    private static OfficeRichTextLine CreateRichTextLineWithEllipsis(List<OfficeRichTextSegment> segments, OfficeRichTextSegment ellipsisStyle, Func<string?, double, string?, double> measure) {
         var measured = new List<OfficeRichTextSegment>(segments.Count);
         for (int i = 0; i < segments.Count; i++) {
             OfficeRichTextSegment segment = segments[i];
             string text = i == segments.Count - 1 ? segment.Text + "..." : segment.Text;
-            measured.Add(new OfficeRichTextSegment(text, Measure(text, segment.FontSize, measure), segment.FontSize, segment.Color, segment.Bold, segment.Italic, segment.Underline, segment.FontFamily, segment.Strikethrough));
+            measured.Add(new OfficeRichTextSegment(text, Measure(text, segment.FontSize, segment.FontFamily, measure), segment.FontSize, segment.Color, segment.Bold, segment.Italic, segment.Underline, segment.FontFamily, segment.Strikethrough));
         }
 
         if (measured.Count == 0) {
@@ -296,18 +332,21 @@ public static partial class OfficeTextLayoutEngine {
         return new OfficeRichTextLine(measured);
     }
 
-    private static OfficeRichTextLine CreateRichTextLine(List<OfficeRichTextSegment> segments, Func<string?, double, double> measure) {
+    private static OfficeRichTextLine CreateRichTextLine(List<OfficeRichTextSegment> segments, Func<string?, double, string?, double> measure) {
         var measured = new List<OfficeRichTextSegment>(segments.Count);
         for (int i = 0; i < segments.Count; i++) {
             OfficeRichTextSegment segment = segments[i];
-            measured.Add(new OfficeRichTextSegment(segment.Text, Measure(segment.Text, segment.FontSize, measure), segment.FontSize, segment.Color, segment.Bold, segment.Italic, segment.Underline, segment.FontFamily, segment.Strikethrough));
+            measured.Add(new OfficeRichTextSegment(segment.Text, Measure(segment.Text, segment.FontSize, segment.FontFamily, measure), segment.FontSize, segment.Color, segment.Bold, segment.Italic, segment.Underline, segment.FontFamily, segment.Strikethrough));
         }
 
         return new OfficeRichTextLine(measured);
     }
 
-    private static OfficeRichTextSegment CreateRichTextSegment(string text, OfficeRichTextSegment style, Func<string?, double, double> measure) =>
-        new OfficeRichTextSegment(text, Measure(text, style.FontSize, measure), style.FontSize, style.Color, style.Bold, style.Italic, style.Underline, style.FontFamily, style.Strikethrough);
+    private static OfficeRichTextSegment CreateRichTextSegment(string text, OfficeRichTextSegment style, Func<string?, double, string?, double> measure) =>
+        new OfficeRichTextSegment(text, Measure(text, style.FontSize, style.FontFamily, measure), style.FontSize, style.Color, style.Bold, style.Italic, style.Underline, style.FontFamily, style.Strikethrough);
+
+    private static double Measure(string? text, double fontSize, string? fontFamily, Func<string?, double, string?, double> measure) =>
+        string.IsNullOrEmpty(text) ? 0D : Math.Max(0D, measure(text, NormalizePositive(fontSize, 1D), fontFamily));
 
     private static double MeasureMaxRichTextLineWidth(IReadOnlyList<OfficeRichTextLine> lines) {
         double max = 0D;
@@ -342,10 +381,10 @@ public static partial class OfficeTextLayoutEngine {
     }
 
     private sealed class RichTextLineBuilder {
-        private readonly Func<string?, double, double> _measure;
+        private readonly Func<string?, double, string?, double> _measure;
         private readonly List<OfficeRichTextSegment> _segments = new List<OfficeRichTextSegment>();
 
-        internal RichTextLineBuilder(Func<string?, double, double> measure) {
+        internal RichTextLineBuilder(Func<string?, double, string?, double> measure) {
             _measure = measure;
         }
 
@@ -358,11 +397,11 @@ public static partial class OfficeTextLayoutEngine {
                 return;
             }
 
-            double measured = Measure(text, run.FontSize, _measure);
+            double measured = Measure(text, run.FontSize, run.FontFamily, _measure);
             if (_segments.Count > 0 && CanMerge(_segments[_segments.Count - 1], run)) {
                 OfficeRichTextSegment previous = _segments[_segments.Count - 1];
                 string mergedText = previous.Text + text;
-                _segments[_segments.Count - 1] = new OfficeRichTextSegment(mergedText, Measure(mergedText, run.FontSize, _measure), run.FontSize, run.Color, run.Bold, run.Italic, run.Underline, run.FontFamily, run.Strikethrough);
+                _segments[_segments.Count - 1] = new OfficeRichTextSegment(mergedText, Measure(mergedText, run.FontSize, run.FontFamily, _measure), run.FontSize, run.Color, run.Bold, run.Italic, run.Underline, run.FontFamily, run.Strikethrough);
             } else {
                 _segments.Add(new OfficeRichTextSegment(text, measured, run.FontSize, run.Color, run.Bold, run.Italic, run.Underline, run.FontFamily, run.Strikethrough));
             }

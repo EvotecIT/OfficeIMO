@@ -29,6 +29,7 @@ public static class OfficeTextBlockRenderer {
     /// <param name="centerLineInLineHeight">Whether the text glyph box should be vertically centered inside each measured line height.</param>
     /// <param name="underlineOffsetFactor">Underline baseline offset as a factor of the resolved font size.</param>
     /// <param name="strikethrough">Whether to render a strikethrough for each visible line.</param>
+    /// <param name="fontFamily">Requested font family fallback list.</param>
     public static void DrawRasterTextBlock(
         OfficeRasterCanvas canvas,
         OfficeTextBlockLayout layout,
@@ -47,7 +48,8 @@ public static class OfficeTextBlockRenderer {
         double rotationCenterY = 0D,
         bool centerLineInLineHeight = true,
         double underlineOffsetFactor = 0.86D,
-        bool strikethrough = false) {
+        bool strikethrough = false,
+        string? fontFamily = null) {
         if (canvas == null) {
             throw new ArgumentNullException(nameof(canvas));
         }
@@ -68,7 +70,7 @@ public static class OfficeTextBlockRenderer {
             double runTop = centerLineInLineHeight
                 ? lineTop + Math.Max(0D, (layout.LineHeight - layout.FontSize) / 2D)
                 : lineTop;
-            canvas.DrawTextLine(line.Text, anchorX, runTop, layout.FontSize, color, bold, italic, horizontalAlignment, rotationDegrees, rotationCenterX, rotationCenterY, underline, strikethrough);
+            canvas.DrawTextLine(line.Text, anchorX, runTop, layout.FontSize, color, bold, italic, horizontalAlignment, rotationDegrees, rotationCenterX, rotationCenterY, underline, strikethrough, fontFamily);
         }
     }
 
@@ -142,7 +144,8 @@ public static class OfficeTextBlockRenderer {
                     rotationCenterX,
                     rotationCenterY,
                     segment.Underline,
-                    segment.Strikethrough);
+                    segment.Strikethrough,
+                    segment.FontFamily);
                 cursor += segment.Width;
             }
         }
