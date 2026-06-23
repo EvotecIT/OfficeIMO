@@ -727,13 +727,13 @@ internal static class ResourceResolver {
 
         if (string.Equals(filter, "DCTDecode", System.StringComparison.Ordinal)) {
             extension = "jpg";
-            mimeType = "image/jpeg";
+            mimeType = OfficeImageInfo.GetMimeType(OfficeImageFormat.Jpeg);
             isImageFile = true;
         } else if (string.Equals(filter, "FlateDecode", System.StringComparison.Ordinal) &&
                    TryBuildPngFile(stream, width, height, bitsPerComponent, colorSpace, objects, out var pngBytes)) {
             bytes = pngBytes;
             extension = "png";
-            mimeType = "image/png";
+            mimeType = OfficeImageInfo.GetMimeType(OfficeImageFormat.Png);
             isImageFile = true;
         }
 

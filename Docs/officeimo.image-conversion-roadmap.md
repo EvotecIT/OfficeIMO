@@ -96,6 +96,8 @@ Latest Excel text conditional-formatting checkpoint: Excel image export now rend
 
 Latest shared chart typography checkpoint: `OfficeIMO.Drawing` now owns less-squinty default chart legend, axis, and data-label font sizes plus label boxes sized from the active font instead of fixed 10/11-pixel bands. Excel chart export remains a thin adapter that maps workbook-authored chart text styles into the shared chart snapshot, while default chart text readability improves for Excel PNG/SVG visual output and future Drawing consumers without adding an Excel-only chart rendering branch. The Excel image visual baselines were regenerated through `OFFICEIMO_UPDATE_EXCEL_IMAGE_BASELINES=1` after visual inspection, and the focused baseline-producing tests now pass against the refreshed approved PNG/SVG artifacts.
 
+Latest PDF extracted-image MIME checkpoint: PDF image extraction now uses `OfficeImageInfo.GetMimeType` from `OfficeIMO.Drawing` for reconstructed JPEG/PNG file identities instead of hardcoded MIME strings in the PDF reader. PDF still owns PDF stream/filter interpretation, soft-mask reconstruction, and PNG file construction, while Drawing remains the central image-format vocabulary shared by Excel, Word, Visio, SVG embedding, and PDF extraction.
+
 ## Goal
 
 Build a dependency-free OfficeIMO image conversion stack that can render selected Office content to PNG and SVG in a deterministic, server-safe way.
