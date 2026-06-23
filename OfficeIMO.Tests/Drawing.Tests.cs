@@ -1734,6 +1734,17 @@ public class DrawingTests {
     }
 
     [Theory]
+    [InlineData("photo.jpeg", true)]
+    [InlineData(".webp", true)]
+    [InlineData("legacy.emf", true)]
+    [InlineData("diagram.txt", false)]
+    [InlineData("", false)]
+    [InlineData(null, false)]
+    public void OfficeImageReaderIdentifiesKnownImageExtensions(string? fileName, bool expected) {
+        Assert.Equal(expected, OfficeImageReader.IsKnownImageExtension(fileName));
+    }
+
+    [Theory]
     [InlineData("image/png", OfficeImageFormat.Png, true)]
     [InlineData("image/jpg", OfficeImageFormat.Jpeg, true)]
     [InlineData("image/jpeg; charset=binary", OfficeImageFormat.Jpeg, true)]

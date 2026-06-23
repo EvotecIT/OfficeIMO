@@ -908,6 +908,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PackageStencilCatalogRecognizesExternalPreviewImageBySharedTargetExtension() {
+            string packagePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vssx");
+            CreatePackageWithRawGroupMaster(
+                packagePath,
+                "FancyWeb",
+                "Fancy Web",
+                "webp",
+                relationshipType: "https://schemas.example.org/not-an-image",
+                externalImageRelationship: true);
+
+            VisioStencilCatalog catalog = VisioStencilPackageCatalog.Load(packagePath, new VisioStencilPackageLoadOptions {
+                IncludeUnsupportedMasters = true,
+                Category = "External"
+            });
+
+            VisioStencilPreviewImage? previewImage = catalog.Get("fancy-web").PreviewImage;
+
+            Assert.NotNull(previewImage);
+            Assert.Equal("rIdImage", previewImage!.RelationshipId);
+            Assert.Equal("../media/image1.webp", previewImage.Target);
+            Assert.Null(previewImage.ContentType);
+            Assert.Null(previewImage.Extension);
+            Assert.Null(previewImage.ByteLength);
+        }
+
+        [Fact]
         public void PackageStencilPreviewGalleryWritesReviewableHtmlIndex() {
             string packagePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vssx");
             CreatePackageWithRawGroupMaster(packagePath, "FancyCloud", "Fancy Cloud");
@@ -1215,7 +1241,14 @@ namespace OfficeIMO.Tests {
             writer.Write(document.Declaration + Environment.NewLine + document.ToString(SaveOptions.DisableFormatting));
         }
 
-        private static void CreatePackageWithRawGroupMaster(string path, string nameU, string name, string imageExtension = "emf", byte[]? imageData = null) {
+        private static void CreatePackageWithRawGroupMaster(
+            string path,
+            string nameU,
+            string name,
+            string imageExtension = "emf",
+            byte[]? imageData = null,
+            string relationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+            bool externalImageRelationship = false) {
             const string visioNamespace = "http://schemas.microsoft.com/office/visio/2012/main";
             const string officeRelationshipNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
             const string packageRelationshipNamespace = "http://schemas.openxmlformats.org/package/2006/relationships";
@@ -1315,13 +1348,16 @@ namespace OfficeIMO.Tests {
             XElement masterRelRoot = new(packageRel + "Relationships",
                 new XElement(packageRel + "Relationship",
                     new XAttribute("Id", "rIdImage"),
-                    new XAttribute("Type", "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image"),
-                    new XAttribute("Target", "../media/image1." + normalizedExtension)));
+                    new XAttribute("Type", relationshipType),
+                    new XAttribute("Target", "../media/image1." + normalizedExtension),
+                    externalImageRelationship ? new XAttribute("TargetMode", "External") : null));
             WriteZipXml(zip, "visio/masters/_rels/master42.xml.rels", new XDocument(masterRelRoot));
 
-            ZipArchiveEntry mediaEntry = zip.CreateEntry("visio/media/image1." + normalizedExtension);
-            using Stream mediaStream = mediaEntry.Open();
-            mediaStream.Write(media, 0, media.Length);
+            if (!externalImageRelationship) {
+                ZipArchiveEntry mediaEntry = zip.CreateEntry("visio/media/image1." + normalizedExtension);
+                using Stream mediaStream = mediaEntry.Open();
+                mediaStream.Write(media, 0, media.Length);
+            }
         }
 
         private static void CreatePackageWithMasterDimensions(string path, params (string NameU, string? Name, double Width, double Height, string? Unit)[] masters) {

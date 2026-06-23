@@ -119,6 +119,13 @@ public static class OfficeImageReader {
         };
     }
 
+    /// <summary>
+    /// Returns whether the file name or extension maps to an image format known by the shared drawing layer.
+    /// </summary>
+    /// <param name="fileName">File name, path, or bare extension.</param>
+    /// <returns><c>true</c> when the extension maps to a known image format.</returns>
+    public static bool IsKnownImageExtension(string? fileName) => FromExtension(fileName) != OfficeImageFormat.Unknown;
+
     private static bool TryReadPng(byte[] data, out OfficeImageInfo info) {
         info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
         byte[] signature = { 137, 80, 78, 71, 13, 10, 26, 10 };

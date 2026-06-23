@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Xml.Linq;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Visio.Stencils {
     /// <summary>
@@ -352,20 +353,8 @@ namespace OfficeIMO.Visio.Stencils {
         private static bool IsImageRelationship(VisioAssets.MasterRelationshipContent relationship) {
             return relationship.Type.EndsWith("/image", StringComparison.OrdinalIgnoreCase) ||
                    relationship.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase) ||
-                   IsImageExtension(relationship.Extension) ||
-                   IsImageExtension(Path.GetExtension(relationship.Target));
-        }
-
-        private static bool IsImageExtension(string? extension) {
-            if (string.IsNullOrWhiteSpace(extension)) {
-                return false;
-            }
-
-            string normalized = extension!.TrimStart('.').ToLowerInvariant();
-            return normalized switch {
-                "emf" or "wmf" or "png" or "jpg" or "jpeg" or "gif" or "svg" or "tif" or "tiff" or "bmp" => true,
-                _ => false
-            };
+                   OfficeImageReader.IsKnownImageExtension(relationship.Extension) ||
+                   OfficeImageReader.IsKnownImageExtension(Path.GetExtension(relationship.Target));
         }
 
         private static VisioStencilPackageLoadOptions CloneOptionsForPackage(VisioStencilPackageLoadOptions options, string packagePath) {
