@@ -7,13 +7,18 @@ namespace OfficeIMO.Excel {
             OfficeImageExportFormat format,
             WorksheetImageRangeResolution range,
             ExcelWorksheetImageExportOptions options) {
+            OfficeImageExportResult result;
             if (options.SplitByManualPageBreaks &&
                 TryCreatePrintTitleLayout(range.Range, out PrintTitleLayout layout)) {
-                return RenderPrintTitleLayout(format, range, options, layout);
+                result = RenderPrintTitleLayout(format, range, options, layout);
+            } else {
+                ExcelRangeVisualSnapshot snapshot = ExcelRangeVisualSnapshotBuilder.Build(this, range.Range, options, range.Diagnostics);
+                result = ExcelRangeImageRenderer.Render(snapshot, format, options);
             }
 
-            ExcelRangeVisualSnapshot snapshot = ExcelRangeVisualSnapshotBuilder.Build(this, range.Range, options, range.Diagnostics);
-            return ExcelRangeImageRenderer.Render(snapshot, format, options);
+            return options.SplitByManualPageBreaks
+                ? ApplyHeaderFooterTextChrome(format, result, options)
+                : result;
         }
 
         private OfficeImageExportResult RenderPrintTitleLayout(

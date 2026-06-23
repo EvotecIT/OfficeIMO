@@ -153,7 +153,9 @@ namespace OfficeIMO.Excel {
                 return ranges;
             }
 
-            IReadOnlyList<OfficeImageExportDiagnostic> pageDiagnostics = BuildPageLevelUnsupportedDiagnostics(includePrintTitlesUnsupported: !allowMultipleResults);
+            IReadOnlyList<OfficeImageExportDiagnostic> pageDiagnostics = BuildPageLevelUnsupportedDiagnostics(
+                includePrintTitlesUnsupported: !allowMultipleResults,
+                includeHeaderFooterUnsupported: !allowMultipleResults || !CanRenderHeaderFooterTextChrome());
             if (!allowMultipleResults) {
                 return ranges
                     .Select(range => range
@@ -191,7 +193,7 @@ namespace OfficeIMO.Excel {
             return splitRanges.AsReadOnly();
         }
 
-        private IReadOnlyList<OfficeImageExportDiagnostic> BuildPageLevelUnsupportedDiagnostics(bool includePrintTitlesUnsupported) {
+        private IReadOnlyList<OfficeImageExportDiagnostic> BuildPageLevelUnsupportedDiagnostics(bool includePrintTitlesUnsupported, bool includeHeaderFooterUnsupported) {
             var diagnostics = new List<OfficeImageExportDiagnostic>();
             ExcelPrintTitles printTitles = GetPrintTitles();
             if (includePrintTitlesUnsupported && (printTitles.HasRows || printTitles.HasColumns)) {
@@ -211,7 +213,7 @@ namespace OfficeIMO.Excel {
                     Name + "!pageSetup"));
             }
 
-            if (HasHeaderFooterContent()) {
+            if (includeHeaderFooterUnsupported && HasHeaderFooterContent()) {
                 diagnostics.Add(new OfficeImageExportDiagnostic(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.HeaderFooterUnsupported,
