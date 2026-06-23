@@ -67,6 +67,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ObjectDataTableBuilder_JoinsCollectionValuesForCellDisplay() {
+            var items = new object?[] {
+                new Dictionary<string, object?> {
+                    ["Name"] = "A",
+                    ["Tags"] = new[] { "one", "two" }
+                },
+                new Dictionary<string, object?> {
+                    ["Name"] = "B",
+                    ["Tags"] = new List<int> { 1, 2, 3 }
+                }
+            };
+
+            var table = ObjectDataTableBuilder.FromObjects(items, "Data");
+
+            Assert.Equal("one, two", table.Rows[0]["Tags"]);
+            Assert.Equal("1, 2, 3", table.Rows[1]["Tags"]);
+        }
+
+        [Fact]
         public void Test_ObjectDataTableBuilder_FromSparseOrdinalDictionaries_PreservesBlanks() {
             var first = new Dictionary<string, object?>();
             for (int i = 0; i < 32; i++) {
