@@ -400,6 +400,7 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x1001, Array.Empty<byte>());
                 WriteRecord(stream, 0x1002, Array.Empty<byte>());
                 WriteRecord(stream, 0x1014, Array.Empty<byte>());
+                WriteRecord(stream, 0x01b6, new byte[18]);
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 byte[] bytes = stream.ToArray();

@@ -61,12 +61,21 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// </summary>
         public ushort? ChartPrintSize { get; private set; }
 
+        /// <summary>
+        /// Gets the number of chart text object records seen in this unsupported chart sheet substream.
+        /// </summary>
+        public int ChartTextObjectCount { get; private set; }
+
         internal void AddMetadataRecord(LegacyXlsUnsupportedSheetMetadataKind kind, int recordOffset, ushort recordType) {
             _metadataRecords.Add(new LegacyXlsUnsupportedSheetMetadataRecord(kind, recordOffset, recordType));
         }
 
         internal void SetChartPrintSize(ushort value) {
             ChartPrintSize = value;
+        }
+
+        internal void IncrementChartTextObjectCount() {
+            ChartTextObjectCount++;
         }
     }
 }

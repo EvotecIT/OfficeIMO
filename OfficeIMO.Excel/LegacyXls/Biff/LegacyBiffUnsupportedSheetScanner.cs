@@ -107,7 +107,17 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             int recordOffset,
             int payloadOffset,
             ushort payloadLength) {
-            if (sheet.Kind != LegacyXlsUnsupportedSheetKind.ChartSheet || type != (ushort)BiffRecordType.PrintSize) {
+            if (sheet.Kind != LegacyXlsUnsupportedSheetKind.ChartSheet) {
+                return false;
+            }
+
+            if (type == (ushort)BiffRecordType.Txo) {
+                sheet.IncrementChartTextObjectCount();
+                sheet.AddMetadataRecord(LegacyXlsUnsupportedSheetMetadataKind.ChartTextObject, recordOffset, type);
+                return true;
+            }
+
+            if (type != (ushort)BiffRecordType.PrintSize) {
                 return false;
             }
 

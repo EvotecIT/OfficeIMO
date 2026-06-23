@@ -4,6 +4,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// </summary>
     public enum LegacyXlsUnsupportedSheetMetadataKind {
         /// <summary>Chart printed-size mode from a PrintSize record.</summary>
-        ChartPrintSize
+        ChartPrintSize,
+
+        /// <summary>Chart text object marker from a TxO record.</summary>
+        ChartTextObject
     }
 }

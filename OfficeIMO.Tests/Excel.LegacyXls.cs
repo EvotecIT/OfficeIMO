@@ -325,15 +325,20 @@ namespace OfficeIMO.Tests {
             Assert.Equal(LegacyXlsUnsupportedSheetKind.ChartSheet, chartSheet.Kind);
             Assert.Equal("Chart1", chartSheet.Name);
             Assert.Equal((ushort)2, chartSheet.ChartPrintSize);
-            LegacyXlsUnsupportedSheetMetadataRecord metadata = Assert.Single(chartSheet.MetadataRecords);
-            Assert.Equal(LegacyXlsUnsupportedSheetMetadataKind.ChartPrintSize, metadata.Kind);
-            Assert.Equal((ushort)BiffRecordType.PrintSize, metadata.RecordType);
+            Assert.Equal(1, chartSheet.ChartTextObjectCount);
+            Assert.Equal(2, chartSheet.MetadataRecords.Count);
+            LegacyXlsUnsupportedSheetMetadataRecord printSizeMetadata = Assert.Single(chartSheet.MetadataRecords, metadata => metadata.Kind == LegacyXlsUnsupportedSheetMetadataKind.ChartPrintSize);
+            Assert.Equal((ushort)BiffRecordType.PrintSize, printSizeMetadata.RecordType);
+            LegacyXlsUnsupportedSheetMetadataRecord textObjectMetadata = Assert.Single(chartSheet.MetadataRecords, metadata => metadata.Kind == LegacyXlsUnsupportedSheetMetadataKind.ChartTextObject);
+            Assert.Equal((ushort)BiffRecordType.Txo, textObjectMetadata.RecordType);
             Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.RecordType == (ushort)BiffRecordType.PrintSize);
+            Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.RecordType == (ushort)BiffRecordType.Txo);
 
             LegacyXlsImportReport report = new LegacyXlsImportReport(legacy);
-            Assert.Equal(1, report.UnsupportedSheetMetadataRecordCount);
+            Assert.Equal(2, report.UnsupportedSheetMetadataRecordCount);
             Assert.Equal(1, report.UnsupportedSheetMetadataRecordsByKind[LegacyXlsUnsupportedSheetMetadataKind.ChartPrintSize]);
-            Assert.Contains("Unsupported sheet metadata records: 1", report.ToMarkdown());
+            Assert.Equal(1, report.UnsupportedSheetMetadataRecordsByKind[LegacyXlsUnsupportedSheetMetadataKind.ChartTextObject]);
+            Assert.Contains("Unsupported sheet metadata records: 2", report.ToMarkdown());
         }
 
         [Fact]
@@ -903,6 +908,7 @@ namespace OfficeIMO.Tests {
                 int chartSheetOffset = checked((int)stream.Position);
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x20, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
                 WriteRecord(stream, 0x0033, new byte[] { 0x02, 0x00 });
+                WriteRecord(stream, 0x01b6, new byte[18]);
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 byte[] bytes = stream.ToArray();

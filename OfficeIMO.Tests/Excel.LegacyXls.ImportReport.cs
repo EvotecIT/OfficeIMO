@@ -138,8 +138,11 @@ namespace OfficeIMO.Tests {
             LegacyXlsUnsupportedSheet unsupportedSheet = Assert.Single(workbook.UnsupportedSheets);
             Assert.Equal("ChartOnly", unsupportedSheet.Name);
             Assert.Equal(LegacyXlsUnsupportedSheetKind.ChartSheet, unsupportedSheet.Kind);
+            Assert.Equal(1, unsupportedSheet.ChartTextObjectCount);
             Assert.Equal(4, report.UnsupportedFeatureCount);
             Assert.Equal(3, report.PreservedFeatureRecordCount);
+            Assert.Equal(1, report.UnsupportedSheetMetadataRecordCount);
+            Assert.Equal(1, report.UnsupportedSheetMetadataRecordsByKind[LegacyXlsUnsupportedSheetMetadataKind.ChartTextObject]);
             Assert.Equal(1, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.ChartSheet]);
             Assert.Equal(3, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.Chart]);
             Assert.Equal(3, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.Chart]);

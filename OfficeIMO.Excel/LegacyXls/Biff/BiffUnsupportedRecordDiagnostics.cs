@@ -140,7 +140,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 detailCode = "Comment:" + GetBiffRecordName(type);
             } else if (type == (ushort)BiffRecordType.Obj
                 || type == (ushort)BiffRecordType.DrawingGroup
-                || type == (ushort)BiffRecordType.Drawing) {
+                || type == (ushort)BiffRecordType.Drawing
+                || type == (ushort)BiffRecordType.Txo) {
                 kind = LegacyXlsUnsupportedFeatureKind.DrawingObject;
                 code = "XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED";
                 message = "Drawing or object records are present but drawing import is not implemented in this phase.";

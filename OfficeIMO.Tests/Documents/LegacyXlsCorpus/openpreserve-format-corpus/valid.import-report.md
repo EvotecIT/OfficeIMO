@@ -17,9 +17,9 @@ Calculation setting records: 61
 Cell style records: 6
 Workbook metadata records: 19
 Worksheet metadata records: 61
-Unsupported sheet metadata records: 4
+Unsupported sheet metadata records: 8
 Unsupported features: 1135
-Preserved feature records: 1128
+Preserved feature records: 1130
 Errors: 0
 Warnings: 2
 
@@ -29,11 +29,10 @@ Warnings: 2
 | --- | --- |
 | XLS-BIFF-FEATURE-CHART-SHEET-UNSUPPORTED | 4 |
 | XLS-BIFF-FEATURE-CHART-UNSUPPORTED | 1079 |
-| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 30 |
+| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 32 |
 | XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 3 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 16 |
 | XLS-BIFF-LBL-SCOPE-INVALID | 2 |
-| XLS-BIFF-RECORD-UNSUPPORTED | 2 |
 | XLS-BIFF-SORT-RESERVED-BYTES | 1 |
 | XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED | 1 |
 
@@ -43,10 +42,9 @@ Warnings: 2
 | --- | --- |
 | XLS-BIFF-FEATURE-CHART-SHEET-UNSUPPORTED | 4 |
 | XLS-BIFF-FEATURE-CHART-UNSUPPORTED | 1079 |
-| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 30 |
+| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 32 |
 | XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 3 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 16 |
-| XLS-BIFF-RECORD-UNSUPPORTED | 2 |
 | XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED | 1 |
 
 ## Unsupported Features By Kind
@@ -55,10 +53,9 @@ Warnings: 2
 | --- | --- |
 | Chart | 1079 |
 | ChartSheet | 4 |
-| DrawingObject | 30 |
+| DrawingObject | 32 |
 | ExternalReference | 3 |
 | PivotTable | 16 |
-| UnsupportedRecord | 2 |
 | VbaProject | 1 |
 
 ## Unsupported Feature Record Types
@@ -104,12 +101,12 @@ Warnings: 2
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x005D | 10 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x00EB | 1 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x00EC | 19 |
+| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x01B6 | 2 |
 | ExternalReference\|XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|0x01AE | 2 |
 | ExternalReference\|XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|0x01B7 | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00C1 | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00D7 | 14 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00FF | 1 |
-| UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x01B6 | 2 |
 
 ## Unsupported Feature Details
 
@@ -154,12 +151,12 @@ Warnings: 2
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:MsoDrawing | 19 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:MsoDrawingGroup | 1 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:Obj | 10 |
+| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:TxO | 2 |
 | ExternalReference\|XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|ExternalReference:ExternalWorkbook | 2 |
 | ExternalReference\|XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|ExternalReference:RefreshAll | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:Sxdi | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxRng | 14 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxVdEx | 1 |
-| UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:TxO | 2 |
 | VbaProject\|XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED\|Compound:VbaProjectStorage | 1 |
 
 ## Unsupported Feature Locations
@@ -184,8 +181,8 @@ Warnings: 2
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|cl | 1 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|cl_chart | 3 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|c_chart | 3 |
-| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|graphs1 | 7 |
-| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|graphs2 | 7 |
+| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|graphs1 | 8 |
+| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|graphs2 | 8 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|lb_chart | 3 |
 | XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|(workbook) | 3 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|(workbook) | 2 |
@@ -197,8 +194,6 @@ Warnings: 2
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|lb | 1 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|maquis | 1 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|wijn | 3 |
-| XLS-BIFF-RECORD-UNSUPPORTED\|graphs1 | 1 |
-| XLS-BIFF-RECORD-UNSUPPORTED\|graphs2 | 1 |
 | XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED\|(workbook) | 1 |
 
 ## Calculation Settings By Kind
@@ -262,13 +257,14 @@ Warnings: 2
 | Key | Count |
 | --- | --- |
 | ChartPrintSize | 4 |
+| ChartTextObject | 4 |
 
 ## Preserved Feature Records By Kind
 
 | Key | Count |
 | --- | --- |
 | Chart | 1079 |
-| DrawingObject | 30 |
+| DrawingObject | 32 |
 | ExternalReference | 3 |
 | PivotTable | 16 |
 
@@ -314,6 +310,7 @@ Warnings: 2
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:MsoDrawing | 19 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:MsoDrawingGroup | 1 |
 | DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:Obj | 10 |
+| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:TxO | 2 |
 | ExternalReference\|XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|ExternalReference:ExternalWorkbook | 2 |
 | ExternalReference\|XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|ExternalReference:RefreshAll | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:Sxdi | 1 |
