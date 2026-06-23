@@ -16,7 +16,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 record,
                 out IReadOnlyList<LegacyXlsDrawingBlipStoreEntry> blipStoreEntries,
                 out IReadOnlyList<LegacyXlsDrawingShape> shapeEntries,
-                out IReadOnlyList<LegacyXlsDrawingAnchor> anchorEntries);
+                out IReadOnlyList<LegacyXlsDrawingAnchor> anchorEntries,
+                out IReadOnlyList<LegacyXlsDrawingChildAnchor> childAnchorEntries);
             records.Add(new LegacyXlsDrawingRecord(
                 GetKind(record.Type),
                 BiffUnsupportedRecordDiagnostics.GetBiffRecordName(record.Type),
@@ -33,7 +34,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 objectFlags: objectFlags,
                 blipStoreEntries: blipStoreEntries,
                 shapeEntries: shapeEntries,
-                anchorEntries: anchorEntries));
+                anchorEntries: anchorEntries,
+                childAnchorEntries: childAnchorEntries));
             return true;
         }
 
@@ -41,21 +43,25 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             BiffRecord record,
             out IReadOnlyList<LegacyXlsDrawingBlipStoreEntry> blipStoreEntries,
             out IReadOnlyList<LegacyXlsDrawingShape> shapeEntries,
-            out IReadOnlyList<LegacyXlsDrawingAnchor> anchorEntries) {
+            out IReadOnlyList<LegacyXlsDrawingAnchor> anchorEntries,
+            out IReadOnlyList<LegacyXlsDrawingChildAnchor> childAnchorEntries) {
             if (record.Type != (ushort)BiffRecordType.DrawingGroup && record.Type != (ushort)BiffRecordType.Drawing) {
                 blipStoreEntries = Array.Empty<LegacyXlsDrawingBlipStoreEntry>();
                 shapeEntries = Array.Empty<LegacyXlsDrawingShape>();
                 anchorEntries = Array.Empty<LegacyXlsDrawingAnchor>();
+                childAnchorEntries = Array.Empty<LegacyXlsDrawingChildAnchor>();
                 return;
             }
 
             var blips = new List<LegacyXlsDrawingBlipStoreEntry>();
             var shapes = new List<LegacyXlsDrawingShape>();
             var anchors = new List<LegacyXlsDrawingAnchor>();
-            TryReadOfficeArtRecords(record.Payload, 0, record.Payload.Length, blips, shapes, anchors, depth: 0);
+            var childAnchors = new List<LegacyXlsDrawingChildAnchor>();
+            TryReadOfficeArtRecords(record.Payload, 0, record.Payload.Length, blips, shapes, anchors, childAnchors, depth: 0);
             blipStoreEntries = blips;
             shapeEntries = shapes;
             anchorEntries = anchors;
+            childAnchorEntries = childAnchors;
         }
 
         private static void TryReadOfficeArtRecords(
@@ -65,6 +71,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             List<LegacyXlsDrawingBlipStoreEntry> blipStoreEntries,
             List<LegacyXlsDrawingShape> shapeEntries,
             List<LegacyXlsDrawingAnchor> anchorEntries,
+            List<LegacyXlsDrawingChildAnchor> childAnchorEntries,
             int depth) {
             if (depth > 8) {
                 return;
@@ -90,10 +97,12 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     shapeEntries.Add(shapeEntry!);
                 } else if (recordType == 0xF010 && TryReadClientAnchor(payload, contentStart, contentEnd, out LegacyXlsDrawingAnchor? anchorEntry)) {
                     anchorEntries.Add(anchorEntry!);
+                } else if (recordType == 0xF00F && TryReadChildAnchor(payload, contentStart, contentEnd, out LegacyXlsDrawingChildAnchor? childAnchorEntry)) {
+                    childAnchorEntries.Add(childAnchorEntry!);
                 }
 
                 if (version == 0x0f) {
-                    TryReadOfficeArtRecords(payload, contentStart, contentEnd, blipStoreEntries, shapeEntries, anchorEntries, depth + 1);
+                    TryReadOfficeArtRecords(payload, contentStart, contentEnd, blipStoreEntries, shapeEntries, anchorEntries, childAnchorEntries, depth + 1);
                 }
 
                 offset = contentEnd;
@@ -173,6 +182,24 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 BiffRecordReader.ReadUInt16(payload, contentStart + 12),
                 BiffRecordReader.ReadUInt16(payload, contentStart + 14),
                 BiffRecordReader.ReadUInt16(payload, contentStart + 16));
+            return true;
+        }
+
+        private static bool TryReadChildAnchor(
+            byte[] payload,
+            int contentStart,
+            int contentEnd,
+            out LegacyXlsDrawingChildAnchor? anchor) {
+            anchor = null;
+            if (contentStart < 0 || contentStart + 16 > contentEnd) {
+                return false;
+            }
+
+            anchor = new LegacyXlsDrawingChildAnchor(
+                BiffRecordReader.ReadInt32(payload, contentStart),
+                BiffRecordReader.ReadInt32(payload, contentStart + 4),
+                BiffRecordReader.ReadInt32(payload, contentStart + 8),
+                BiffRecordReader.ReadInt32(payload, contentStart + 12));
             return true;
         }
 

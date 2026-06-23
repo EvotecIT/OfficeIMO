@@ -834,6 +834,22 @@ Warnings: 0
 | HaveShapeType | 4 |
 | Patriarch | 1 |
 
+## Drawing Child Anchor Entries By Rectangle
+
+| Key | Count |
+| --- | --- |
+| Left:0;Top:0;Right:585;Bottom:365 | 1 |
+| Left:0;Top:0;Right:664;Bottom:426 | 1 |
+| Left:0;Top:425;Right:664;Bottom:851 | 1 |
+| Left:2;Top:303;Right:587;Bottom:668 | 1 |
+
+## Drawing Child Anchor Entries By Size
+
+| Key | Count |
+| --- | --- |
+| Width:585;Height:365 | 2 |
+| Width:664;Height:426 | 2 |
+
 ## Drawing Records By Location
 
 | Key | Count |
