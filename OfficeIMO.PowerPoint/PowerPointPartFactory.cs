@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.PowerPoint {
     internal static class PowerPointPartFactory {
@@ -157,18 +158,8 @@ namespace OfficeIMO.PowerPoint {
                 }
             }
 
-            return type switch {
-                ImagePartType.Jpeg => ".jpeg",
-                ImagePartType.Gif => ".gif",
-                ImagePartType.Bmp => ".bmp",
-                ImagePartType.Tiff => ".tiff",
-                ImagePartType.Svg => ".svg",
-                ImagePartType.Emf => ".emf",
-                ImagePartType.Wmf => ".wmf",
-                ImagePartType.Icon => ".ico",
-                ImagePartType.Pcx => ".pcx",
-                _ => ".png"
-            };
+            OfficeImageFormat format = OfficeImageInfo.FromMimeType(type.ToPartTypeInfo().ContentType);
+            return OfficeImageInfo.GetDefaultExtension(format == OfficeImageFormat.Unknown ? OfficeImageFormat.Png : format);
         }
 
         private static string NormalizePartUri(string partUri) {

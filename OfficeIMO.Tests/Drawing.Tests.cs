@@ -357,6 +357,18 @@ public class DrawingTests {
     }
 
     [Theory]
+    [InlineData(OfficeImageFormat.Png, ".png")]
+    [InlineData(OfficeImageFormat.Jpeg, ".jpeg")]
+    [InlineData(OfficeImageFormat.Svg, ".svg")]
+    [InlineData(OfficeImageFormat.Emf, ".emf")]
+    [InlineData(OfficeImageFormat.Icon, ".ico")]
+    [InlineData(OfficeImageFormat.Webp, ".webp")]
+    [InlineData(OfficeImageFormat.Unknown, ".bin")]
+    public void OfficeImageInfoProvidesCanonicalImageExtensions(OfficeImageFormat format, string expectedExtension) {
+        Assert.Equal(expectedExtension, OfficeImageInfo.GetDefaultExtension(format));
+    }
+
+    [Theory]
     [InlineData(OfficeImageFormat.Png, "image/png")]
     [InlineData(OfficeImageFormat.Jpeg, "image/jpeg")]
     [InlineData(OfficeImageFormat.Gif, "image/gif")]

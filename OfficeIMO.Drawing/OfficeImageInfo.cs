@@ -54,6 +54,26 @@ public sealed class OfficeImageInfo {
     };
 
     /// <summary>
+    /// Returns the canonical file extension for a known image format.
+    /// </summary>
+    /// <param name="format">Image format.</param>
+    /// <returns>The default file extension including the leading dot, or .bin for unknown formats.</returns>
+    public static string GetDefaultExtension(OfficeImageFormat format) => format switch {
+        OfficeImageFormat.Png => ".png",
+        OfficeImageFormat.Jpeg => ".jpeg",
+        OfficeImageFormat.Gif => ".gif",
+        OfficeImageFormat.Bmp => ".bmp",
+        OfficeImageFormat.Tiff => ".tiff",
+        OfficeImageFormat.Svg => ".svg",
+        OfficeImageFormat.Emf => ".emf",
+        OfficeImageFormat.Wmf => ".wmf",
+        OfficeImageFormat.Icon => ".ico",
+        OfficeImageFormat.Pcx => ".pcx",
+        OfficeImageFormat.Webp => ".webp",
+        _ => ".bin"
+    };
+
+    /// <summary>
     /// Maps a MIME content type to a known image format.
     /// </summary>
     /// <param name="contentType">MIME content type, optionally with parameters.</param>
