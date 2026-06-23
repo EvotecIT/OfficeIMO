@@ -100,6 +100,8 @@ Latest PDF extracted-image MIME checkpoint: PDF image extraction now uses `Offic
 
 Latest WebP image-format checkpoint: `OfficeIMO.Drawing` now recognizes WebP as a shared image format for MIME, extension, and SVG data-URI embedding policy. Visio stencil preview gallery image fallback now delegates extension-to-MIME resolution to Drawing instead of keeping a private switch, so package-backed preview artwork and future image export paths share the same image vocabulary.
 
+Latest PDF image content-type checkpoint: `OfficeImagePdfCompatibility` now owns the first-party PDF image MIME support contract for PNG/JPEG declarations. Excel PDF export and Excel PDF preflight both consume that shared Drawing policy instead of carrying parallel `image/png`/`image/jpeg` checks, while Excel keeps its own warning wording and source-specific diagnostics.
+
 ## Goal
 
 Build a dependency-free OfficeIMO image conversion stack that can render selected Office content to PNG and SVG in a deterministic, server-safe way.

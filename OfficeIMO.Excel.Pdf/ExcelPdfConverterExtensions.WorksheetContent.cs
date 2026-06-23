@@ -164,9 +164,7 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         private static bool IsPdfSupportedImageContentType(string contentType) {
-            return string.Equals(contentType, "image/png", StringComparison.OrdinalIgnoreCase)
-                   || string.Equals(contentType, "image/jpeg", StringComparison.OrdinalIgnoreCase)
-                   || string.Equals(contentType, "image/jpg", StringComparison.OrdinalIgnoreCase);
+            return OfficeImagePdfCompatibility.IsSupportedContentType(contentType);
         }
 
         private static bool TryValidatePdfImageBytes(byte[] bytes, string contentType, out string? unsupportedReason) {
@@ -176,13 +174,9 @@ namespace OfficeIMO.Excel.Pdf {
                 return false;
             }
 
-            if (IsPngContentType(contentType) && imageInfo.Format != OfficeImageFormat.Png) {
-                unsupportedReason = $"Image bytes were declared as PNG but were detected as {imageInfo.Format}.";
-                return false;
-            }
-
-            if (IsJpegContentType(contentType) && imageInfo.Format != OfficeImageFormat.Jpeg) {
-                unsupportedReason = $"Image bytes were declared as JPEG but were detected as {imageInfo.Format}.";
+            if (OfficeImagePdfCompatibility.TryGetSupportedContentTypeFormat(contentType, out OfficeImageFormat declaredFormat) &&
+                imageInfo.Format != declaredFormat) {
+                unsupportedReason = $"Image bytes were declared as {GetPdfImageFormatDisplayName(declaredFormat)} but were detected as {imageInfo.Format}.";
                 return false;
             }
 
@@ -201,12 +195,8 @@ namespace OfficeIMO.Excel.Pdf {
             }
         }
 
-        private static bool IsPngContentType(string contentType) =>
-            string.Equals(contentType, "image/png", StringComparison.OrdinalIgnoreCase);
-
-        private static bool IsJpegContentType(string contentType) =>
-            string.Equals(contentType, "image/jpeg", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(contentType, "image/jpg", StringComparison.OrdinalIgnoreCase);
+        private static string GetPdfImageFormatDisplayName(OfficeImageFormat format) =>
+            format == OfficeImageFormat.Jpeg ? "JPEG" : format.ToString().ToUpperInvariant();
 
         private static double PixelsToPoints(int pixels) {
             return pixels * 72D / 96D;

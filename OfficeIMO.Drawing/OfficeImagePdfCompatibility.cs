@@ -33,6 +33,26 @@ namespace OfficeIMO.Drawing {
             }
         }
 
+        /// <summary>
+        /// Returns true when the MIME content type is accepted by first-party PDF image export.
+        /// </summary>
+        public static bool IsSupportedContentType(string? contentType) =>
+            TryGetSupportedContentTypeFormat(contentType, out _);
+
+        /// <summary>
+        /// Resolves a MIME content type accepted by first-party PDF image export to its shared image format.
+        /// </summary>
+        public static bool TryGetSupportedContentTypeFormat(string? contentType, out OfficeImageFormat format) {
+            format = OfficeImageInfo.FromMimeType(contentType);
+            return IsSupportedFormat(format);
+        }
+
+        /// <summary>
+        /// Returns true when the shared image format is accepted by first-party PDF image export.
+        /// </summary>
+        public static bool IsSupportedFormat(OfficeImageFormat format) =>
+            format == OfficeImageFormat.Png || format == OfficeImageFormat.Jpeg;
+
         private static bool TryValidatePngContainer(byte[] bytes, out string? unsupportedReason) {
             unsupportedReason = null;
             if (bytes.Length < 33 || !StartsWith(bytes, PngSignature)) {

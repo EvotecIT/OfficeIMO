@@ -1709,6 +1709,20 @@ public class DrawingTests {
         Assert.Equal(expected, OfficeImageReader.FromExtension(fileName));
     }
 
+    [Theory]
+    [InlineData("image/png", OfficeImageFormat.Png, true)]
+    [InlineData("image/jpg", OfficeImageFormat.Jpeg, true)]
+    [InlineData("image/jpeg; charset=binary", OfficeImageFormat.Jpeg, true)]
+    [InlineData("image/webp", OfficeImageFormat.Webp, false)]
+    [InlineData("application/octet-stream", OfficeImageFormat.Unknown, false)]
+    public void OfficeImagePdfCompatibilityMapsSupportedContentTypes(string contentType, OfficeImageFormat expectedFormat, bool expectedSupported) {
+        bool supported = OfficeImagePdfCompatibility.TryGetSupportedContentTypeFormat(contentType, out OfficeImageFormat format);
+
+        Assert.Equal(expectedSupported, supported);
+        Assert.Equal(expectedFormat, format);
+        Assert.Equal(expectedSupported, OfficeImagePdfCompatibility.IsSupportedContentType(contentType));
+    }
+
     [Fact]
     public void OfficeImageReaderIdentifiesPngWithoutDecodingPixels() {
         var image = OfficeImageReader.Identify(OnePixelPng);

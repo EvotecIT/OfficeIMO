@@ -351,13 +351,9 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            if (IsPngContentType(image.ContentType) && imageInfo!.Format != OfficeImageFormat.Png) {
-                reason = $"image bytes were declared as PNG but detected as {imageInfo.Format}.";
-                return false;
-            }
-
-            if (IsJpegContentType(image.ContentType) && imageInfo!.Format != OfficeImageFormat.Jpeg) {
-                reason = $"image bytes were declared as JPEG but detected as {imageInfo.Format}.";
+            if (OfficeImagePdfCompatibility.TryGetSupportedContentTypeFormat(image.ContentType, out OfficeImageFormat declaredFormat) &&
+                imageInfo!.Format != declaredFormat) {
+                reason = $"image bytes were declared as {GetPdfImageFormatDisplayName(declaredFormat)} but detected as {imageInfo.Format}.";
                 return false;
             }
 
@@ -386,13 +382,9 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            if (IsPngContentType(image.ContentType) && imageInfo!.Format != OfficeImageFormat.Png) {
-                reason = $"image bytes were declared as PNG but detected as {imageInfo.Format}.";
-                return false;
-            }
-
-            if (IsJpegContentType(image.ContentType) && imageInfo!.Format != OfficeImageFormat.Jpeg) {
-                reason = $"image bytes were declared as JPEG but detected as {imageInfo.Format}.";
+            if (OfficeImagePdfCompatibility.TryGetSupportedContentTypeFormat(image.ContentType, out OfficeImageFormat declaredFormat) &&
+                imageInfo!.Format != declaredFormat) {
+                reason = $"image bytes were declared as {GetPdfImageFormatDisplayName(declaredFormat)} but detected as {imageInfo.Format}.";
                 return false;
             }
 
@@ -405,17 +397,11 @@ namespace OfficeIMO.Excel {
         }
 
         private static bool IsPdfSupportedImageContentType(string contentType) {
-            return IsPngContentType(contentType) || IsJpegContentType(contentType);
+            return OfficeImagePdfCompatibility.IsSupportedContentType(contentType);
         }
 
-        private static bool IsPngContentType(string contentType) {
-            return string.Equals(contentType, "image/png", StringComparison.OrdinalIgnoreCase);
-        }
-
-        private static bool IsJpegContentType(string contentType) {
-            return string.Equals(contentType, "image/jpeg", StringComparison.OrdinalIgnoreCase)
-                   || string.Equals(contentType, "image/jpg", StringComparison.OrdinalIgnoreCase);
-        }
+        private static string GetPdfImageFormatDisplayName(OfficeImageFormat format) =>
+            format == OfficeImageFormat.Jpeg ? "JPEG" : format.ToString().ToUpperInvariant();
 
         private static bool IsHyperlinkRelationship(ExternalRelationship relationship) {
             return relationship.RelationshipType.EndsWith("/hyperlink", StringComparison.OrdinalIgnoreCase);
