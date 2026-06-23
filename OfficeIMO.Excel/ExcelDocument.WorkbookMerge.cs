@@ -28,9 +28,15 @@ namespace OfficeIMO.Excel {
 
             foreach (ExcelSheet sourceSheet in sourceSheets) {
                 string requestedName = (options.SheetNamePrefix ?? string.Empty) + sourceSheet.Name;
-                ExcelSheet targetSheet = CopyWorkSheetFrom(sourceDocument, sourceSheet.Name, requestedName, options.SheetNameValidationMode, new ExcelWorksheetCopyOptions {
-                    CopyMode = options.CopyMode
-                });
+                ExcelSheet targetSheet = options.CopyMode == ExcelWorksheetCopyMode.Values
+                    ? CopyWorkSheetFromValues(sourceDocument, sourceSheet.Name, requestedName, options.SheetNameValidationMode)
+                    : CopyWorkSheetFromPackage(
+                        sourceDocument,
+                        sourceSheet.Name,
+                        requestedName,
+                        options.SheetNameValidationMode,
+                        rewriteCopiedReferences: false,
+                        copyReferencedDefinedNames: false);
                 importedSourceNames.Add(sourceSheet.Name);
                 createdTargetNames.Add(targetSheet.Name);
                 sheetNameMap[sourceSheet.Name] = targetSheet.Name;
@@ -38,7 +44,7 @@ namespace OfficeIMO.Excel {
 
             RewriteMergedWorksheetReferences(createdTargetNames, sheetNameMap);
             for (int index = 0; index < importedSourceNames.Count; index++) {
-                CopyReferencedDefinedNamesFromSource(sourceDocument, importedSourceNames[index], createdTargetNames[index], sheetNameMap);
+                CopyReferencedDefinedNamesFromSource(sourceDocument, GetSheet(createdTargetNames[index]), sheetNameMap);
             }
 
             MarkPackageDirty();

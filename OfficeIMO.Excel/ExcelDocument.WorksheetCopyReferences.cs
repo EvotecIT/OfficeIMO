@@ -39,17 +39,13 @@ namespace OfficeIMO.Excel {
 
         private void CopyReferencedDefinedNamesFromSource(
             ExcelDocument sourceDocument,
-            string sourceSheetName,
-            string targetSheetName,
+            ExcelSheet targetSheet,
             IReadOnlyDictionary<string, string> sheetNameMap) {
             DefinedNames? sourceDefinedNames = sourceDocument.WorkbookRoot.DefinedNames;
             if (sourceDefinedNames == null) {
                 return;
             }
 
-            ExcelSheet sourceSheet = sourceDocument.GetSheet(sourceSheetName);
-            ExcelSheet targetSheet = GetSheet(targetSheetName);
-            ushort sourceSheetPosition = sourceDocument.GetSheetPositionIndex(sourceSheet);
             ushort targetSheetPosition = GetSheetPositionIndex(targetSheet);
             WorksheetPart targetWorksheetPart = targetSheet.WorksheetPart;
             List<string> formulaTexts = CollectFormulaTexts(targetWorksheetPart).ToList();
@@ -57,26 +53,35 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
+            var sourceSheetNamesByPosition = sourceDocument.GetSheetNamesByPosition();
             DefinedNames targetDefinedNames = WorkbookRoot.DefinedNames ??= new DefinedNames();
             foreach (DefinedName sourceName in sourceDefinedNames.Elements<DefinedName>().ToList()) {
                 string? name = sourceName.Name?.Value;
                 if (string.IsNullOrWhiteSpace(name)
                     || name!.StartsWith("_xlnm.", StringComparison.OrdinalIgnoreCase)
-                    || (sourceName.LocalSheetId != null && sourceName.LocalSheetId.Value != sourceSheetPosition)
                     || !formulaTexts.Any(text => ContainsDefinedNameToken(text, name))) {
                     continue;
                 }
 
+                ushort destinationSheetPosition = targetSheetPosition;
+                if (sourceName.LocalSheetId != null) {
+                    if (!sourceSheetNamesByPosition.TryGetValue((ushort)sourceName.LocalSheetId.Value, out string? sourceNameOwner)
+                        || !sheetNameMap.TryGetValue(sourceNameOwner, out string? targetNameOwner)
+                        || !TryGetSheetPositionIndexByName(targetNameOwner, out destinationSheetPosition)) {
+                        continue;
+                    }
+                }
+
                 foreach (DefinedName existing in targetDefinedNames.Elements<DefinedName>()
                     .Where(item => item.LocalSheetId != null
-                        && item.LocalSheetId.Value == targetSheetPosition
+                        && item.LocalSheetId.Value == destinationSheetPosition
                         && string.Equals(item.Name?.Value, name, StringComparison.OrdinalIgnoreCase))
                     .ToList()) {
                     existing.Remove();
                 }
 
                 var clone = (DefinedName)sourceName.CloneNode(true);
-                clone.LocalSheetId = targetSheetPosition;
+                clone.LocalSheetId = destinationSheetPosition;
                 clone.Name = name;
                 if (!string.IsNullOrEmpty(clone.Text)) {
                     clone.Text = ReplaceSheetNameReferences(clone.Text!, sheetNameMap);
@@ -86,6 +91,34 @@ namespace OfficeIMO.Excel {
             }
 
             WorkbookRoot.Save();
+        }
+
+        private Dictionary<ushort, string> GetSheetNamesByPosition() {
+            var names = new Dictionary<ushort, string>();
+            ushort position = 0;
+            foreach (Sheet sheet in WorkbookRoot.Sheets?.Elements<Sheet>() ?? Enumerable.Empty<Sheet>()) {
+                string? name = sheet.Name?.Value;
+                if (!string.IsNullOrEmpty(name)) {
+                    names[position] = name!;
+                }
+
+                position++;
+            }
+
+            return names;
+        }
+
+        private bool TryGetSheetPositionIndexByName(string sheetName, out ushort position) {
+            position = 0;
+            foreach (Sheet sheet in WorkbookRoot.Sheets?.Elements<Sheet>() ?? Enumerable.Empty<Sheet>()) {
+                if (string.Equals(sheet.Name?.Value, sheetName, StringComparison.OrdinalIgnoreCase)) {
+                    return true;
+                }
+
+                position++;
+            }
+
+            return false;
         }
 
         private static IEnumerable<string> CollectFormulaTexts(WorksheetPart worksheetPart) {

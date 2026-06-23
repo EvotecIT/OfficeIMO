@@ -30,6 +30,17 @@ namespace OfficeIMO.Excel {
         }
 
         private ExcelSheet CopyWorkSheetFromPackage(ExcelDocument sourceDocument, string sourceSheetName, string newSheetName, SheetNameValidationMode validationMode) {
+            return CopyWorkSheetFromPackage(sourceDocument, sourceSheetName, newSheetName, validationMode, rewriteCopiedReferences: true, copyReferencedDefinedNames: true);
+        }
+
+        private ExcelSheet CopyWorkSheetFromPackage(
+            ExcelDocument sourceDocument,
+            string sourceSheetName,
+            string newSheetName,
+            SheetNameValidationMode validationMode,
+            bool rewriteCopiedReferences,
+            bool copyReferencedDefinedNames) {
+            sourceDocument.MaterializeDeferredDataSetImport();
             ExcelSheet sourceSheet = sourceDocument.GetSheet(sourceSheetName);
 
             return Locking.ExecuteWrite(EnsureLock(), () => {
@@ -45,13 +56,19 @@ namespace OfficeIMO.Excel {
 
                 Sheet sheet = AppendWorksheetElement(copiedPart, validatedName);
                 var targetSheet = new ExcelSheet(this, _spreadSheetDocument, sheet);
+                MarkSheetCacheDirty();
                 var sheetNameMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
                     [sourceSheet.Name] = targetSheet.Name
                 };
-                RewriteCopiedWorksheetReferences(copiedPart, sheetNameMap);
-                CopyReferencedDefinedNamesFromSource(sourceDocument, sourceSheet.Name, targetSheet.Name, sheetNameMap);
+                if (rewriteCopiedReferences) {
+                    RewriteCopiedWorksheetReferences(copiedPart, sheetNameMap);
+                }
+
+                if (copyReferencedDefinedNames) {
+                    CopyReferencedDefinedNamesFromSource(sourceDocument, targetSheet, sheetNameMap);
+                }
+
                 copiedPart.Worksheet.Save();
-                MarkSheetCacheDirty();
                 MarkPackageDirty();
                 WorkbookRoot.Save();
                 return targetSheet;

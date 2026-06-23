@@ -351,6 +351,18 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
+            if (TrySplitQuotedThreeDimensionalSheetRange(firstSheetName!, out string? firstRangeSheet, out string? secondRangeSheet)) {
+                string rewrittenFirst = ResolveMappedSheetName(firstRangeSheet!, sheetNameMap, out bool firstChanged);
+                string rewrittenSecond = ResolveMappedSheetName(secondRangeSheet!, sheetNameMap, out bool secondChanged);
+                if (!firstChanged && !secondChanged) {
+                    return false;
+                }
+
+                replacement = QuoteSheetNameReference(rewrittenFirst) + ":" + QuoteSheetNameReference(rewrittenSecond) + "!";
+                consumed = afterFirstToken - startIndex + 1;
+                return true;
+            }
+
             string rewritten = ResolveMappedSheetName(firstSheetName!, sheetNameMap, out bool changed);
             if (!changed) {
                 return false;
@@ -359,6 +371,19 @@ namespace OfficeIMO.Excel {
             replacement = QuoteSheetNameReference(rewritten) + "!";
             consumed = afterFirstToken - startIndex + 1;
             return true;
+        }
+
+        private static bool TrySplitQuotedThreeDimensionalSheetRange(string sheetToken, out string? firstSheetName, out string? secondSheetName) {
+            firstSheetName = null;
+            secondSheetName = null;
+            int separator = sheetToken.IndexOf(':');
+            if (separator <= 0 || separator >= sheetToken.Length - 1) {
+                return false;
+            }
+
+            firstSheetName = sheetToken.Substring(0, separator);
+            secondSheetName = sheetToken.Substring(separator + 1);
+            return !IsExternalSheetToken(firstSheetName) && !IsExternalSheetToken(secondSheetName);
         }
 
         private static bool TryReadSheetToken(

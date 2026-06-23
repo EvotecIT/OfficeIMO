@@ -466,6 +466,38 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_CopyWorkSheetFrom_PackageModeMaterializesDeferredDirectExports() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageDeferredSource.xlsx");
+            string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageDeferredTarget.xlsx");
+
+            using (var sourceDocument = ExcelDocument.Create(sourcePath))
+            using (var targetDocument = ExcelDocument.Create(targetPath)) {
+                ExcelSheet source = sourceDocument.AddWorkSheet("Source");
+                var table = new DataTable();
+                table.Columns.Add("Name", typeof(string));
+                table.Columns.Add("Count", typeof(int));
+                table.Rows.Add("Alpha", 1);
+                table.Rows.Add("Beta", 2);
+                source.InsertDataTableAsTable(table, tableName: "Items");
+
+                targetDocument.CopyWorkSheetFrom(sourceDocument, "Source", "Imported", SheetNameValidationMode.Sanitize, new ExcelWorksheetCopyOptions {
+                    CopyMode = ExcelWorksheetCopyMode.Package
+                });
+                targetDocument.Save();
+            }
+
+            using (var targetDocument = ExcelDocument.Load(targetPath, readOnly: true)) {
+                Assert.True(targetDocument["Imported"].TryGetCellText(1, 1, out var header));
+                Assert.True(targetDocument["Imported"].TryGetCellText(3, 1, out var value));
+                Assert.Equal("Name", header);
+                Assert.Equal("Beta", value);
+            }
+
+            File.Delete(sourcePath);
+            File.Delete(targetPath);
+        }
+
+        [Fact]
         public void Test_CopyWorkSheetFrom_PackageModeRewritesStructuredReferencesInWorksheetFormulas() {
             string sourcePath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageStructuredSource.xlsx");
             string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageStructuredTarget.xlsx");
