@@ -21,6 +21,8 @@ namespace OfficeIMO.Excel.LegacyXls {
             AutoFilterCriteriaCount = workbook.Worksheets.Sum(sheet => sheet.AutoFilterCriteria.Count);
             DefinedNameCount = workbook.DefinedNames.Count;
             ExternalReferenceCount = workbook.ExternalReferences.Count;
+            ExternalCellCacheCount = workbook.ExternalReferences.Sum(reference => reference.CachedCellCaches.Count);
+            ExternalCachedCellCount = workbook.ExternalReferences.Sum(reference => reference.CachedCellCaches.Sum(cache => cache.Cells.Count));
             UnsupportedFeatureCount = workbook.UnsupportedFeatures.Count;
             ErrorCount = workbook.Diagnostics.Count(diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
             WarningCount = workbook.Diagnostics.Count(diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Warning);
@@ -72,6 +74,12 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets the number of preserved external-reference records.</summary>
         public int ExternalReferenceCount { get; }
+
+        /// <summary>Gets the number of preserved external cell cache sections.</summary>
+        public int ExternalCellCacheCount { get; }
+
+        /// <summary>Gets the number of preserved cached external cell values.</summary>
+        public int ExternalCachedCellCount { get; }
 
         /// <summary>Gets the number of unsupported or preserve-only feature findings.</summary>
         public int UnsupportedFeatureCount { get; }
@@ -127,6 +135,8 @@ namespace OfficeIMO.Excel.LegacyXls {
             builder.AppendLine($"AutoFilter criteria columns: {AutoFilterCriteriaCount}");
             builder.AppendLine($"Defined names: {DefinedNameCount}");
             builder.AppendLine($"External references: {ExternalReferenceCount}");
+            builder.AppendLine($"External cell caches: {ExternalCellCacheCount}");
+            builder.AppendLine($"External cached cells: {ExternalCachedCellCount}");
             builder.AppendLine($"Unsupported features: {UnsupportedFeatureCount}");
             builder.AppendLine($"Errors: {ErrorCount}");
             builder.AppendLine($"Warnings: {WarningCount}");

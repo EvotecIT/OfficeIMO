@@ -12,6 +12,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             var boundSheetNames = new List<string>();
             var definedNameTable = new List<string?>();
             LegacyXlsExternalReference? currentExternalReference = null;
+            LegacyXlsExternalCellCache? currentExternalCellCache = null;
             bool encrypted = false;
 
             if (!LegacyBiffVersionValidator.ValidateWorkbookGlobals(records, workbook)) {
@@ -61,8 +62,13 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     sharedStrings = BiffStringReader.ReadSharedStrings(payloads, workbook.MutableDiagnostics, record.Offset);
                 } else if (record.Type == (ushort)BiffRecordType.SupBook) {
                     currentExternalReference = ReadSupBook(record, workbook, workbook.MutableDiagnostics, options);
+                    currentExternalCellCache = null;
                 } else if (record.Type == (ushort)BiffRecordType.ExternName) {
                     ReadExternName(record, currentExternalReference, workbook.MutableDiagnostics);
+                } else if (record.Type == (ushort)BiffRecordType.Xct) {
+                    currentExternalCellCache = BiffExternalCellCacheReader.ReadXct(record, currentExternalReference, workbook.MutableDiagnostics);
+                } else if (record.Type == (ushort)BiffRecordType.Crn) {
+                    BiffExternalCellCacheReader.ReadCrn(record, currentExternalCellCache, workbook.MutableDiagnostics);
                 } else if (record.Type == (ushort)BiffRecordType.Xf) {
                     ReadCellFormat(record, workbook, numberFormatsById, workbook.MutableDiagnostics);
                 } else if (record.Type != (ushort)BiffRecordType.Bof && record.Type != (ushort)BiffRecordType.Eof) {

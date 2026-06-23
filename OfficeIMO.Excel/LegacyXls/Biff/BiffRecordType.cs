@@ -66,6 +66,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         VerticalPageBreaks = 0x001A,
         Window2 = 0x023E,
         WsBool = 0x0081,
+        Xct = 0x0059,
+        Crn = 0x005A,
         Xf = 0x00E0
     }
 }

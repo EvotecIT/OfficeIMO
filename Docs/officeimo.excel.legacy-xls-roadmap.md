@@ -211,9 +211,10 @@ storage are likewise reported as preserve-only embedded OLE object content.
 metadata for external workbook, add-in, DDE/OLE, same-sheet, self, and unused links,
 including parsed external/add-in name tables from supported `ExternName` records,
 with external-link diagnostics for unsupported external-reference records. External
-references that require full Open XML external-link package parts still remain a
-projection gap; supported formulas currently project as text formulas using the
-information available in the legacy model.
+cell cache sections from `XCT` and typed cached values from `CRN` records are now
+preserved under the supporting-link model and counted in import reports, while full
+Open XML external-link package part projection remains a gap; supported formulas
+currently project as text formulas using the information available in the legacy model.
 Unsupported and preserve-only feature occurrences now also populate a structured
 `LegacyXlsWorkbook.UnsupportedFeatures` report with stable codes, feature kind,
 sheet name, record type, record offset, and stable feature-detail keys such as
@@ -222,7 +223,8 @@ sheet name, record type, record offset, and stable feature-detail keys such as
 content without parsing diagnostic text or decoding raw BIFF ids by hand.
 `LegacyXlsImportReport`
 now exposes compact worksheet, cell, formula, comment, hyperlink, data-validation,
-conditional-formatting, AutoFilter criteria, defined-name, external-reference, diagnostic-code, and unsupported-feature counts
+conditional-formatting, AutoFilter criteria, defined-name, external-reference,
+external cached-cell, diagnostic-code, and unsupported-feature counts
 for corpus baselines through both `LegacyXlsWorkbook.CreateImportReport()` and
 `ExcelDocument.LoadLegacyXlsWithReport(...).ImportReport`.
 `OfficeIMO.Tests/Documents/LegacyXlsCorpus` now defines the optional real-world

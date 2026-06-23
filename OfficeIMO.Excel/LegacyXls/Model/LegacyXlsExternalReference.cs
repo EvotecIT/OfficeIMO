@@ -5,6 +5,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     public sealed class LegacyXlsExternalReference {
         private readonly List<string> _sheetNames;
         private readonly List<LegacyXlsExternalName> _externalNames;
+        private readonly List<LegacyXlsExternalCellCache> _cachedCellCaches;
 
         /// <summary>
         /// Creates supporting-link metadata.
@@ -24,6 +25,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             Target = target;
             _sheetNames = sheetNames == null ? new List<string>() : new List<string>(sheetNames);
             _externalNames = externalNames == null ? new List<LegacyXlsExternalName>() : new List<LegacyXlsExternalName>(externalNames);
+            _cachedCellCaches = new List<LegacyXlsExternalCellCache>();
             SheetCount = sheetCount;
         }
 
@@ -48,10 +50,17 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         public IReadOnlyList<LegacyXlsExternalName> ExternalNames => _externalNames;
 
         /// <summary>
+        /// Gets cached external cell values preserved from XCT/CRN record groups.
+        /// </summary>
+        public IReadOnlyList<LegacyXlsExternalCellCache> CachedCellCaches => _cachedCellCaches;
+
+        /// <summary>
         /// Gets the sheet count declared by the SupBook record.
         /// </summary>
         public ushort SheetCount { get; }
 
         internal List<LegacyXlsExternalName> MutableExternalNames => _externalNames;
+
+        internal List<LegacyXlsExternalCellCache> MutableCachedCellCaches => _cachedCellCaches;
     }
 }
