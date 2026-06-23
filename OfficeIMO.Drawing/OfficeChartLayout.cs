@@ -381,10 +381,10 @@ public sealed class OfficeChartLayout {
         LegendRowHeight = ValidatePositiveFinite(legendRowHeight ?? 12D, nameof(legendRowHeight));
         LegendSwatchSize = ValidatePositiveFinite(legendSwatchSize ?? 6D, nameof(legendSwatchSize));
         LegendTextGap = ValidatePositiveFinite(legendTextGap ?? 4D, nameof(legendTextGap));
-        LegendFontSize = ValidatePositiveFinite(legendFontSize ?? 7.2D, nameof(legendFontSize));
+        LegendFontSize = ValidatePositiveFinite(legendFontSize ?? 8.4D, nameof(legendFontSize));
         LegendFontFamily = string.IsNullOrWhiteSpace(legendFontFamily) ? null : legendFontFamily;
         LegendFontStyle = legendFontStyle;
-        AxisLabelFontSize = ValidatePositiveFinite(axisLabelFontSize ?? 6.8D, nameof(axisLabelFontSize));
+        AxisLabelFontSize = ValidatePositiveFinite(axisLabelFontSize ?? 8.2D, nameof(axisLabelFontSize));
         AxisTextFontFamily = string.IsNullOrWhiteSpace(axisTextFontFamily) ? null : axisTextFontFamily;
         AxisTextFontStyle = axisTextFontStyle;
         AxisTitleFontSize = axisTitleFontSize.HasValue ? ValidatePositiveFinite(axisTitleFontSize.Value, nameof(axisTitleFontSize)) : null;
@@ -405,7 +405,7 @@ public sealed class OfficeChartLayout {
         ShowDataLabelCategoryNames = showDataLabelCategoryNames;
         ShowDataLabelSeriesNames = showDataLabelSeriesNames;
         DataLabelSeparator = string.IsNullOrEmpty(dataLabelSeparator) ? "; " : dataLabelSeparator!;
-        DataLabelFontSize = ValidatePositiveFinite(dataLabelFontSize ?? 7D, nameof(dataLabelFontSize));
+        DataLabelFontSize = ValidatePositiveFinite(dataLabelFontSize ?? 8.2D, nameof(dataLabelFontSize));
         DataLabelFontFamily = string.IsNullOrWhiteSpace(dataLabelFontFamily) ? null : dataLabelFontFamily;
         DataLabelFontStyle = dataLabelFontStyle;
         DataLabelPosition = dataLabelPosition;

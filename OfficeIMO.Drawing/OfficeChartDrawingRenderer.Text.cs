@@ -331,7 +331,7 @@ public static partial class OfficeChartDrawingRenderer {
 
             double labelWidth = Math.Min(layout.CategoryAxisLabelWidth, Math.Max(18D, slot * stride));
             double centerX = GetCategorySlotCenterX(plotLeft, slot, i, categories.Count, layout);
-            AddChartText(drawing, label, centerX - labelWidth / 2D, labelY, labelWidth, 11D, layout.AxisLabelFontSize, style.MutedTextColor, OfficeTextAlignment.Center, style, layout.AxisTextFontFamily, layout.AxisTextFontStyle);
+            AddChartText(drawing, label, centerX - labelWidth / 2D, labelY, labelWidth, GetAxisLabelBoxHeight(layout), layout.AxisLabelFontSize, style.MutedTextColor, OfficeTextAlignment.Center, style, layout.AxisTextFontFamily, layout.AxisTextFontStyle);
         }
     }
 
@@ -354,7 +354,8 @@ public static partial class OfficeChartDrawingRenderer {
 
             int categorySlot = categories.Count - 1 - i;
             double centerY = plotTop + slot * categorySlot + slot / 2D;
-            AddChartText(drawing, label, labelLeft, centerY - 5D, labelWidth, 10D, layout.AxisLabelFontSize, style.MutedTextColor, alignment, style, layout.AxisTextFontFamily, layout.AxisTextFontStyle);
+            double labelHeight = GetAxisLabelBoxHeight(layout);
+            AddChartText(drawing, label, labelLeft, centerY - labelHeight / 2D, labelWidth, labelHeight, layout.AxisLabelFontSize, style.MutedTextColor, alignment, style, layout.AxisTextFontFamily, layout.AxisTextFontStyle);
         }
     }
 
@@ -362,8 +363,9 @@ public static partial class OfficeChartDrawingRenderer {
         IReadOnlyList<double> ticks = GetValueAxisLabelTicks(range, layout.VerticalAxisMajorUnit);
         for (int i = ticks.Count - 1; i >= 0; i--) {
             double tick = ticks[i];
-            double y = ToPlotY(tick, range.Min, range.Max, plotTop, plotHeight) - 5D;
-            AddChartText(drawing, FormatAxisValue(tick, layout, percentDefault, layout.VerticalAxisNumberFormat, layout.VerticalAxisDisplayUnitDivisor), labelLeft, y, labelWidth, 10D, layout.AxisLabelFontSize, style.MutedTextColor, alignment, style, layout.AxisTextFontFamily, layout.AxisTextFontStyle);
+            double labelHeight = GetAxisLabelBoxHeight(layout);
+            double y = ToPlotY(tick, range.Min, range.Max, plotTop, plotHeight) - labelHeight / 2D;
+            AddChartText(drawing, FormatAxisValue(tick, layout, percentDefault, layout.VerticalAxisNumberFormat, layout.VerticalAxisDisplayUnitDivisor), labelLeft, y, labelWidth, labelHeight, layout.AxisLabelFontSize, style.MutedTextColor, alignment, style, layout.AxisTextFontFamily, layout.AxisTextFontStyle);
         }
 
         AddAxisDisplayUnitLabel(drawing, layout.VerticalAxisDisplayUnitLabel, labelLeft, Math.Max(0D, plotTop - 17D), labelWidth + 34D, style, layout, alignment);
@@ -377,7 +379,7 @@ public static partial class OfficeChartDrawingRenderer {
                 : tick >= range.Max
                     ? OfficeTextAlignment.Right
                     : OfficeTextAlignment.Center;
-            AddChartText(drawing, FormatAxisValue(tick, layout, percentDefault, layout.HorizontalAxisNumberFormat, layout.HorizontalAxisDisplayUnitDivisor), x - 17D, labelY, 34D, 10D, layout.AxisLabelFontSize, style.MutedTextColor, alignment, style, layout.AxisTextFontFamily, layout.AxisTextFontStyle);
+            AddChartText(drawing, FormatAxisValue(tick, layout, percentDefault, layout.HorizontalAxisNumberFormat, layout.HorizontalAxisDisplayUnitDivisor), x - 17D, labelY, 34D, GetAxisLabelBoxHeight(layout), layout.AxisLabelFontSize, style.MutedTextColor, alignment, style, layout.AxisTextFontFamily, layout.AxisTextFontStyle);
         }
 
         AddAxisDisplayUnitLabel(drawing, layout.HorizontalAxisDisplayUnitLabel, plotLeft + plotWidth - 58D, labelsAbovePlot ? labelY - 11D : labelY + 11D, 58D, style, layout, OfficeTextAlignment.Right);
@@ -388,7 +390,8 @@ public static partial class OfficeChartDrawingRenderer {
             return;
         }
 
-        AddChartText(drawing, label!, x, y, Math.Max(1D, width), 10D, Math.Max(5D, layout.AxisLabelFontSize - 0.2D), style.MutedTextColor, alignment, style, layout.AxisTextFontFamily, layout.AxisTextFontStyle);
+        double fontSize = Math.Max(5D, layout.AxisLabelFontSize - 0.2D);
+        AddChartText(drawing, label!, x, y, Math.Max(1D, width), Math.Max(9D, fontSize + 3D), fontSize, style.MutedTextColor, alignment, style, layout.AxisTextFontFamily, layout.AxisTextFontStyle);
     }
 
     private static bool HasHorizontalAxisTitle(OfficeChartKind chartKind, OfficeChartLayout layout) =>
@@ -406,6 +409,9 @@ public static partial class OfficeChartDrawingRenderer {
 
     private static double GetAxisTitleBandHeight(OfficeChartLayout layout) =>
         Math.Max(12D, GetAxisTitleFontSize(layout) + 4D);
+
+    private static double GetAxisLabelBoxHeight(OfficeChartLayout layout) =>
+        Math.Max(10D, layout.AxisLabelFontSize + 3D);
 
     private static void AddAxisTitles(
         OfficeDrawing drawing,
@@ -457,7 +463,7 @@ public static partial class OfficeChartDrawingRenderer {
 
             double angle = -Math.PI / 2D + Math.PI * 2D * i / categories.Count;
             double labelWidth = layout.RadarCategoryLabelWidth;
-            double labelHeight = 10D;
+            double labelHeight = GetAxisLabelBoxHeight(layout);
             double x = centerX + Math.Cos(angle) * (radius + 13D) - labelWidth / 2D;
             double y = centerY + Math.Sin(angle) * (radius + 13D) - labelHeight / 2D;
             OfficeTextAlignment alignment = Math.Cos(angle) < -0.25D
