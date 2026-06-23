@@ -572,6 +572,56 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_Load_ImportsSharedFormulaRecords() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateFormulaSharedFormulaWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED");
+            Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.RecordType == (ushort)BiffRecordType.ShrFmla);
+            LegacyXlsWorksheet sheet = Assert.Single(legacy.Worksheets);
+            LegacyXlsCell firstFormula = Assert.Single(sheet.Cells, cell => cell.Row == 1 && cell.Column == 2);
+            Assert.True(firstFormula.IsFormula);
+            Assert.Equal(15d, firstFormula.Value);
+            Assert.Equal("A1+5", firstFormula.FormulaText);
+            LegacyXlsCell secondFormula = Assert.Single(sheet.Cells, cell => cell.Row == 2 && cell.Column == 2);
+            Assert.True(secondFormula.IsFormula);
+            Assert.Equal(25d, secondFormula.Value);
+            Assert.Equal("A2+5", secondFormula.FormulaText);
+            LegacyXlsCell thirdFormula = Assert.Single(sheet.Cells, cell => cell.Row == 3 && cell.Column == 2);
+            Assert.True(thirdFormula.IsFormula);
+            Assert.Equal(35d, thirdFormula.Value);
+            Assert.Equal("A3+5", thirdFormula.FormulaText);
+
+            using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.True(document.Sheets[0].TryGetCellText(1, 2, out string? firstCachedText));
+            Assert.Equal("15", firstCachedText);
+            Assert.True(document.Sheets[0].TryGetCellText(2, 2, out string? secondCachedText));
+            Assert.Equal("25", secondCachedText);
+            Assert.True(document.Sheets[0].TryGetCellText(3, 2, out string? thirdCachedText));
+            Assert.Equal("35", thirdCachedText);
+
+            using var output = new MemoryStream();
+            document.Save(output);
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
+            WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single();
+            Dictionary<string, Cell> cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("A1+5", cells["B1"].CellFormula!.Text);
+            Assert.Equal("15", cells["B1"].CellValue!.Text);
+            Assert.Equal("A2+5", cells["B2"].CellFormula!.Text);
+            Assert.Equal("25", cells["B2"].CellValue!.Text);
+            Assert.Equal("A3+5", cells["B3"].CellFormula!.Text);
+            Assert.Equal("35", cells["B3"].CellValue!.Text);
+        }
+
+        [Fact]
         public void LegacyXls_Load_ReportsUnsupportedFormulaTokensAndImportsCachedValue() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateUnsupportedFormulaTokenWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
@@ -828,6 +878,29 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x0203, BuildNumberPayload(1, 1, 40d));
                 WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(1, 2, 15d, formulaTokens: BuildRelativeReferenceAdditionFormulaTokens(-1, -2, 5)));
                 WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(1, 3, 100d, formulaTokens: BuildRelativeAreaSumFormulaTokens(-1, -3, 0, -2)));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)boundSheetPosition + 4), 4);
+                return bytes;
+            }
+
+            internal static byte[] CreateFormulaSharedFormulaWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long boundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "SharedFormula"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0203, BuildNumberPayload(0, 0, 10d));
+                WriteRecord(stream, 0x0203, BuildNumberPayload(1, 0, 20d));
+                WriteRecord(stream, 0x0203, BuildNumberPayload(2, 0, 30d));
+                WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(0, 1, 15d, formulaTokens: BuildSharedFormulaReferenceTokens(0, 1)));
+                WriteRecord(stream, 0x04bc, BuildSharedFormulaPayload(0, 1, 2, 1, BuildRelativeReferenceAdditionFormulaTokens(0, -1, 5)));
+                WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(1, 1, 25d, formulaTokens: BuildSharedFormulaReferenceTokens(0, 1)));
+                WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(2, 1, 35d, formulaTokens: BuildSharedFormulaReferenceTokens(0, 1)));
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 byte[] bytes = stream.ToArray();
@@ -1192,6 +1265,27 @@ namespace OfficeIMO.Tests {
                 stream.WriteByte(0x1e);
                 WriteUInt16(stream, value);
                 stream.WriteByte(0x03);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildSharedFormulaReferenceTokens(ushort anchorRow, ushort anchorColumn) {
+                byte[] token = new byte[5];
+                token[0] = 0x01;
+                WriteUInt16(token, 1, anchorRow);
+                WriteUInt16(token, 3, anchorColumn);
+                return token;
+            }
+
+            private static byte[] BuildSharedFormulaPayload(ushort firstRow, ushort firstColumn, ushort lastRow, ushort lastColumn, byte[] formulaTokens) {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, firstRow);
+                WriteUInt16(stream, lastRow);
+                stream.WriteByte(checked((byte)firstColumn));
+                stream.WriteByte(checked((byte)lastColumn));
+                stream.WriteByte(0);
+                stream.WriteByte(checked((byte)(lastRow - firstRow + 1)));
+                WriteUInt16(stream, checked((ushort)formulaTokens.Length));
+                stream.Write(formulaTokens, 0, formulaTokens.Length);
                 return stream.ToArray();
             }
 

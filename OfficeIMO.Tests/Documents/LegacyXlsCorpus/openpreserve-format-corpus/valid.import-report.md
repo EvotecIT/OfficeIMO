@@ -11,7 +11,7 @@ Conditional formatting rules: 0
 AutoFilter criteria columns: 0
 Defined names: 1
 External references: 3
-Unsupported features: 823
+Unsupported features: 800
 Errors: 0
 Warnings: 0
 
@@ -24,9 +24,9 @@ Warnings: 0
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 18 |
 | XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 242 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 16 |
-| XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED | 1802 |
+| XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED | 1185 |
 | XLS-BIFF-LBL-FORMULA-UNSUPPORTED | 2 |
-| XLS-BIFF-RECORD-UNSUPPORTED | 172 |
+| XLS-BIFF-RECORD-UNSUPPORTED | 149 |
 | XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED | 1 |
 
 ## Formula Token Blockers
@@ -34,7 +34,6 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | FormulaReference | 1178 |
-| FormulaToken0x01 | 617 |
 | FormulaToken0x39 | 7 |
 
 ## Unsupported Features By Code
@@ -46,7 +45,7 @@ Warnings: 0
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 18 |
 | XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 242 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 16 |
-| XLS-BIFF-RECORD-UNSUPPORTED | 172 |
+| XLS-BIFF-RECORD-UNSUPPORTED | 149 |
 | XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED | 1 |
 
 ## Unsupported Features By Kind
@@ -58,7 +57,7 @@ Warnings: 0
 | DrawingObject | 18 |
 | ExternalReference | 242 |
 | PivotTable | 16 |
-| UnsupportedRecord | 172 |
+| UnsupportedRecord | 149 |
 | VbaProject | 1 |
 
 ## Unsupported Feature Record Types
@@ -148,7 +147,6 @@ Warnings: 0
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x01BD | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x020B | 10 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x0293 | 6 |
-| UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x04BC | 23 |
 
 ## Unsupported Feature Locations
 
@@ -179,13 +177,13 @@ Warnings: 0
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|wijn | 3 |
 | XLS-BIFF-RECORD-UNSUPPORTED\|(workbook) | 26 |
 | XLS-BIFF-RECORD-UNSUPPORTED\|All | 13 |
-| XLS-BIFF-RECORD-UNSUPPORTED\|b | 18 |
-| XLS-BIFF-RECORD-UNSUPPORTED\|c | 14 |
-| XLS-BIFF-RECORD-UNSUPPORTED\|cl | 20 |
+| XLS-BIFF-RECORD-UNSUPPORTED\|b | 12 |
+| XLS-BIFF-RECORD-UNSUPPORTED\|c | 12 |
+| XLS-BIFF-RECORD-UNSUPPORTED\|cl | 14 |
 | XLS-BIFF-RECORD-UNSUPPORTED\|graphs1 | 12 |
 | XLS-BIFF-RECORD-UNSUPPORTED\|graphs2 | 12 |
 | XLS-BIFF-RECORD-UNSUPPORTED\|Info | 12 |
-| XLS-BIFF-RECORD-UNSUPPORTED\|lb | 18 |
-| XLS-BIFF-RECORD-UNSUPPORTED\|maquis | 13 |
-| XLS-BIFF-RECORD-UNSUPPORTED\|wijn | 14 |
+| XLS-BIFF-RECORD-UNSUPPORTED\|lb | 12 |
+| XLS-BIFF-RECORD-UNSUPPORTED\|maquis | 12 |
+| XLS-BIFF-RECORD-UNSUPPORTED\|wijn | 12 |
 | XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED\|(workbook) | 1 |

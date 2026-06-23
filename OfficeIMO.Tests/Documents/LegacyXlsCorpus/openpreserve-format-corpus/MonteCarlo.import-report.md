@@ -11,7 +11,7 @@ Conditional formatting rules: 0
 AutoFilter criteria columns: 0
 Defined names: 0
 External references: 2
-Unsupported features: 463
+Unsupported features: 435
 Errors: 0
 Warnings: 0
 
@@ -24,14 +24,7 @@ Warnings: 0
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 16 |
 | XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 12 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 27 |
-| XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED | 1240 |
-| XLS-BIFF-RECORD-UNSUPPORTED | 130 |
-
-## Formula Token Blockers
-
-| Key | Count |
-| --- | --- |
-| FormulaToken0x01 | 1240 |
+| XLS-BIFF-RECORD-UNSUPPORTED | 102 |
 
 ## Unsupported Features By Code
 
@@ -42,7 +35,7 @@ Warnings: 0
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 16 |
 | XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 12 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 27 |
-| XLS-BIFF-RECORD-UNSUPPORTED | 130 |
+| XLS-BIFF-RECORD-UNSUPPORTED | 102 |
 
 ## Unsupported Features By Kind
 
@@ -53,7 +46,7 @@ Warnings: 0
 | DrawingObject | 16 |
 | ExternalReference | 12 |
 | PivotTable | 27 |
-| UnsupportedRecord | 130 |
+| UnsupportedRecord | 102 |
 
 ## Unsupported Feature Record Types
 
@@ -136,7 +129,6 @@ Warnings: 0
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x01BC | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x020B | 7 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x0293 | 6 |
-| UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x04BC | 28 |
 
 ## Unsupported Feature Locations
 
@@ -162,8 +154,8 @@ Warnings: 0
 | XLS-BIFF-RECORD-UNSUPPORTED\|(workbook) | 23 |
 | XLS-BIFF-RECORD-UNSUPPORTED\|graphs1 | 12 |
 | XLS-BIFF-RECORD-UNSUPPORTED\|graphs2 | 12 |
-| XLS-BIFF-RECORD-UNSUPPORTED\|LB_MAQU_PF | 19 |
-| XLS-BIFF-RECORD-UNSUPPORTED\|LB_MAQU_RAIN | 23 |
+| XLS-BIFF-RECORD-UNSUPPORTED\|LB_MAQU_PF | 11 |
+| XLS-BIFF-RECORD-UNSUPPORTED\|LB_MAQU_RAIN | 11 |
 | XLS-BIFF-RECORD-UNSUPPORTED\|RangeTable | 11 |
-| XLS-BIFF-RECORD-UNSUPPORTED\|ZPFCUM | 15 |
-| XLS-BIFF-RECORD-UNSUPPORTED\|ZRAINCUM | 15 |
+| XLS-BIFF-RECORD-UNSUPPORTED\|ZPFCUM | 11 |
+| XLS-BIFF-RECORD-UNSUPPORTED\|ZRAINCUM | 11 |

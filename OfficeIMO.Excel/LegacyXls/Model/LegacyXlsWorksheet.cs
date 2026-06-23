@@ -173,6 +173,25 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             _cells.Add(cell);
         }
 
+        internal bool TryReplaceFormulaText(int row, int column, string formulaText) {
+            for (int i = _cells.Count - 1; i >= 0; i--) {
+                LegacyXlsCell cell = _cells[i];
+                if (cell.Row == row && cell.Column == column && cell.IsFormula) {
+                    _cells[i] = new LegacyXlsCell(
+                        cell.Row,
+                        cell.Column,
+                        cell.Kind,
+                        cell.Value,
+                        cell.StyleIndex,
+                        isFormula: true,
+                        formulaText: formulaText);
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         internal void AddColumn(LegacyXlsColumnLayout column) {
             _columns.Add(column);
         }

@@ -58,6 +58,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         Rk = 0x027E,
         Sst = 0x00FC,
         String = 0x0207,
+        ShrFmla = 0x04BC,
         SupBook = 0x01AE,
         TopMargin = 0x0028,
         Txo = 0x01B6,
