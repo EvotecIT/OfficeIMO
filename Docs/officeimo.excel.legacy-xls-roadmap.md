@@ -96,20 +96,25 @@ blank-string, and following-`String` text results. It also decodes a first scope
 set of BIFF formula tokens into live Open XML formulas for same-sheet references,
 areas, relative `PtgRefN`/`PtgAreaN` references resolved from the formula cell,
 workbook-internal 3D `PtgRef3d`/`PtgArea3d` references resolved through
-`ExternSheet`, invalid references through `PtgRefErr`, `PtgAreaErr`,
+`ExternSheet`, external-workbook 3D cell/range references when the supporting
+`SupBook` sheet table is present, invalid references through `PtgRefErr`, `PtgAreaErr`,
 `PtgRefErr3d`, and `PtgAreaErr3d`, numeric and Boolean constants, arithmetic/comparison operators,
 percent, explicit parentheses, reference operators (`PtgIsect`, `PtgUnion`, and
 `PtgRange`), string literal `PtgStr` operands for concatenation formulas, error
 constants through `PtgErr`, missing function arguments through `PtgMissArg`,
-same-workbook defined-name operands through `PtgName`,
+same-workbook defined-name operands through `PtgName`, external defined-name and
+add-in function-name operands through `PtgNameX`,
 fixed-arity `PtgFunc` calls such as `ROUND`, `AND`, and `OR`, and scoped aggregate `PtgFuncVar`
-calls such as `SUM`. Conditional `IF` formulas using `PtgAttrIf`, `PtgAttrGoto`,
+calls such as `SUM`. Add-in user-defined functions encoded as `PtgFuncVar` with
+the legacy `0x00FF` function id now decode when the leading argument resolves to
+a supported external name. Conditional `IF` formulas using `PtgAttrIf`, `PtgAttrGoto`,
 and `PtgFuncVar`, plus `CHOOSE` formulas using `PtgAttrChoose`, now decode to
 normal Open XML formulas. Optimized `PtgAttrSum` formula attributes now decode to
 normal `SUM(...)` formulas during Open XML projection, while `PtgAttrSpace` and
 `PtgAttrSpaceSemi` display tokens are consumed and normalized away.
-Unsupported token streams still import as cached values and now report a
-formula-token diagnostic when unsupported-record reporting is enabled. It also imports external
+Unsupported token streams still import as cached values and now report
+detail-coded formula-token diagnostics when unsupported-record reporting is enabled.
+It also imports external
 URL `HLink` records that use Office shared URL monikers and projects them through
 normal OfficeIMO hyperlink relationships without rewriting the linked cell value.
 Location-only same-workbook `HLink` records now project as normal Open XML internal
@@ -198,7 +203,11 @@ stream itself imports cleanly. OLE compound containers with embedded object pool
 storage are likewise reported as preserve-only embedded OLE object content.
 `SupBook` supporting links are preserved as external-reference
 metadata for external workbook, add-in, DDE/OLE, same-sheet, self, and unused links,
-with external-link diagnostics for unsupported external-reference records.
+including parsed external/add-in name tables from supported `ExternName` records,
+with external-link diagnostics for unsupported external-reference records. External
+references that require full Open XML external-link package parts still remain a
+projection gap; supported formulas currently project as text formulas using the
+information available in the legacy model.
 Unsupported and preserve-only feature occurrences now also populate a structured
 `LegacyXlsWorkbook.UnsupportedFeatures` report with stable codes, feature kind,
 sheet name, record type, and record offset so corpus tooling can reason about
@@ -211,8 +220,11 @@ for corpus baselines through both `LegacyXlsWorkbook.CreateImportReport()` and
 `.xls` corpus contract: every collected workbook can carry an approved
 `*.import-report.md` baseline, and the corpus test compares current import reports
 against those baselines with an explicit refresh environment variable for
-intentional changes. Collecting approved non-sensitive real-world fixtures and
-broader preserve-only feature modeling remain future Phase 5 work.
+intentional changes. The current approved `openpreserve-format-corpus` baseline
+has no remaining generic formula-token blockers, which keeps future formula work
+anchored to named gaps instead of a single opaque bucket. Collecting approved
+non-sensitive real-world fixtures and broader preserve-only feature modeling remain
+future Phase 5 work.
 
 ## Non-Goals For The Initial Work
 

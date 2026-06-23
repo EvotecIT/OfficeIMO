@@ -4,6 +4,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// </summary>
     public sealed class LegacyXlsExternalReference {
         private readonly List<string> _sheetNames;
+        private readonly List<LegacyXlsExternalName> _externalNames;
 
         /// <summary>
         /// Creates supporting-link metadata.
@@ -12,14 +13,17 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <param name="target">External target path or source name, when present.</param>
         /// <param name="sheetNames">External workbook sheet names, when present.</param>
         /// <param name="sheetCount">Sheet count declared by the SupBook record.</param>
+        /// <param name="externalNames">External names declared after the supporting link, when present.</param>
         public LegacyXlsExternalReference(
             LegacyXlsExternalReferenceKind kind,
             string? target,
             IEnumerable<string>? sheetNames,
-            ushort sheetCount) {
+            ushort sheetCount,
+            IEnumerable<LegacyXlsExternalName>? externalNames = null) {
             Kind = kind;
             Target = target;
             _sheetNames = sheetNames == null ? new List<string>() : new List<string>(sheetNames);
+            _externalNames = externalNames == null ? new List<LegacyXlsExternalName>() : new List<LegacyXlsExternalName>(externalNames);
             SheetCount = sheetCount;
         }
 
@@ -39,8 +43,15 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         public IReadOnlyList<string> SheetNames => _sheetNames;
 
         /// <summary>
+        /// Gets names declared by ExternName records following this supporting link.
+        /// </summary>
+        public IReadOnlyList<LegacyXlsExternalName> ExternalNames => _externalNames;
+
+        /// <summary>
         /// Gets the sheet count declared by the SupBook record.
         /// </summary>
         public ushort SheetCount { get; }
+
+        internal List<LegacyXlsExternalName> MutableExternalNames => _externalNames;
     }
 }

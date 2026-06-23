@@ -9,13 +9,19 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             var sharedStrings = new List<string>();
             var numberFormatsById = new Dictionary<ushort, string>();
             var externSheets = new List<BiffExternSheetReference>();
+            var boundSheetNames = new List<string>();
             var definedNameTable = new List<string?>();
+            LegacyXlsExternalReference? currentExternalReference = null;
             bool encrypted = false;
 
             for (int i = 0; i < records.Count; i++) {
                 BiffRecord record = records[i];
                 if (record.Type == (ushort)BiffRecordType.BoundSheet8) {
                     LegacyXlsWorksheet? sheet = TryReadBoundSheet(record, workbook.MutableDiagnostics);
+                    if (sheet != null) {
+                        boundSheetNames.Add(sheet.Name);
+                    }
+
                     if (sheet != null && sheet.SheetType == 0) {
                         workbook.MutableWorksheets.Add(sheet);
                     } else if (sheet != null) {
@@ -39,7 +45,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 } else if (record.Type == (ushort)BiffRecordType.Format) {
                     ReadFormat(record, workbook, numberFormatsById, workbook.MutableDiagnostics);
                 } else if (record.Type == (ushort)BiffRecordType.Lbl) {
-                    ReadDefinedName(record, workbook, externSheets, definedNameTable, workbook.MutableDiagnostics);
+                    ReadDefinedName(record, workbook, externSheets, workbook.ExternalReferences, boundSheetNames, definedNameTable, workbook.MutableDiagnostics);
                 } else if (record.Type == (ushort)BiffRecordType.Palette) {
                     ReadPalette(record, workbook, workbook.MutableDiagnostics);
                 } else if (record.Type == (ushort)BiffRecordType.Password) {
@@ -50,7 +56,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     IReadOnlyList<byte[]> payloads = CollectContinuedPayloads(records, ref i);
                     sharedStrings = BiffStringReader.ReadSharedStrings(payloads, workbook.MutableDiagnostics, record.Offset);
                 } else if (record.Type == (ushort)BiffRecordType.SupBook) {
-                    ReadSupBook(record, workbook, workbook.MutableDiagnostics, options);
+                    currentExternalReference = ReadSupBook(record, workbook, workbook.MutableDiagnostics, options);
+                } else if (record.Type == (ushort)BiffRecordType.ExternName) {
+                    ReadExternName(record, currentExternalReference, workbook.MutableDiagnostics);
                 } else if (record.Type == (ushort)BiffRecordType.Xf) {
                     ReadCellFormat(record, workbook, numberFormatsById, workbook.MutableDiagnostics);
                 } else if (record.Type != (ushort)BiffRecordType.Bof && record.Type != (ushort)BiffRecordType.Eof) {
@@ -67,9 +75,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
             MoveDialogSheetsToUnsupported(workbookStream, workbook, options);
 
-            IReadOnlyList<string> sheetNames = workbook.Worksheets.Select(sheet => sheet.Name).ToArray();
+            IReadOnlyList<string> sheetNames = boundSheetNames.Count == 0
+                ? workbook.Worksheets.Select(sheet => sheet.Name).ToArray()
+                : boundSheetNames.ToArray();
             foreach (LegacyXlsWorksheet sheet in workbook.Worksheets) {
-                LegacyBiffWorksheetParser.Parse(workbookStream, sheet, sharedStrings, externSheets, sheetNames, definedNameTable, workbook.MutableUnsupportedFeatures, workbook.MutableDiagnostics, options);
+                LegacyBiffWorksheetParser.Parse(workbookStream, sheet, sharedStrings, externSheets, workbook.ExternalReferences, sheetNames, definedNameTable, workbook.MutableUnsupportedFeatures, workbook.MutableDiagnostics, options);
             }
 
             return workbook;
@@ -166,13 +176,13 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             workbook.SetProtection(BiffRecordReader.ReadUInt16(record.Payload, 0) != 0);
         }
 
-        private static void ReadSupBook(
+        private static LegacyXlsExternalReference? ReadSupBook(
             BiffRecord record,
             LegacyXlsWorkbook workbook,
             List<LegacyXlsImportDiagnostic> diagnostics,
             LegacyXlsImportOptions options) {
             if (!BiffSupBookReader.TryRead(record, diagnostics, out LegacyXlsExternalReference? reference)) {
-                return;
+                return null;
             }
 
             workbook.MutableExternalReferences.Add(reference!);
@@ -184,6 +194,27 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 if (options.ReportUnsupportedRecords) {
                     BiffUnsupportedRecordDiagnostics.AddExternalReferenceDiagnostic(diagnostics, record, reference);
                 }
+            }
+
+            return reference;
+        }
+
+        private static void ReadExternName(
+            BiffRecord record,
+            LegacyXlsExternalReference? currentExternalReference,
+            List<LegacyXlsImportDiagnostic> diagnostics) {
+            if (currentExternalReference == null) {
+                diagnostics.Add(new LegacyXlsImportDiagnostic(
+                    LegacyXlsDiagnosticSeverity.Warning,
+                    "XLS-BIFF-EXTERNNAME-ORPHANED",
+                    "An ExternName record appeared before a SupBook supporting link.",
+                    recordOffset: record.Offset,
+                    recordType: record.Type));
+                return;
+            }
+
+            if (BiffExternNameReader.TryRead(record, currentExternalReference.Kind, diagnostics, out LegacyXlsExternalName? externalName)) {
+                currentExternalReference.MutableExternalNames.Add(externalName!);
             }
         }
 
@@ -258,6 +289,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             BiffRecord record,
             LegacyXlsWorkbook workbook,
             IReadOnlyList<BiffExternSheetReference> externSheets,
+            IReadOnlyList<LegacyXlsExternalReference> externalReferences,
+            IReadOnlyList<string> sheetNames,
             List<string?> definedNameTable,
             List<LegacyXlsImportDiagnostic> diagnostics) {
             string? formulaName = null;
@@ -292,11 +325,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
                 byte[] formulaBytes = new byte[formulaLength];
                 Buffer.BlockCopy(record.Payload, offset, formulaBytes, 0, formulaLength);
-                IReadOnlyList<string> sheetNames = workbook.Worksheets.Select(sheet => sheet.Name).ToArray();
                 string? reference;
                 bool formulaRead = string.Equals(name, "_xlnm.Print_Titles", StringComparison.OrdinalIgnoreCase)
-                    ? BiffNameFormulaReader.TryReadPrintTitles(formulaBytes, externSheets, sheetNames, out reference)
-                    : BiffNameFormulaReader.TryReadReference(formulaBytes, externSheets, sheetNames, out reference);
+                    ? BiffNameFormulaReader.TryReadPrintTitles(formulaBytes, externSheets, externalReferences, sheetNames, out reference)
+                    : BiffNameFormulaReader.TryReadReference(formulaBytes, externSheets, externalReferences, sheetNames, out reference);
                 if (!formulaRead) {
                     diagnostics.Add(new LegacyXlsImportDiagnostic(
                         LegacyXlsDiagnosticSeverity.Info,

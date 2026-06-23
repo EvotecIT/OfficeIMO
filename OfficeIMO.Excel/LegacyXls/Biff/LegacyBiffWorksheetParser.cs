@@ -8,6 +8,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             LegacyXlsWorksheet sheet,
             IReadOnlyList<string> sharedStrings,
             IReadOnlyList<BiffExternSheetReference> externSheets,
+            IReadOnlyList<LegacyXlsExternalReference> externalReferences,
             IReadOnlyList<string> sheetNames,
             IReadOnlyList<string?> definedNames,
             List<LegacyXlsUnsupportedFeature> unsupportedFeatures,
@@ -27,8 +28,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             bool frozenWindow = false;
             PendingFormulaString? pendingFormulaString = null;
             var commentState = new BiffCommentImportState(sheet);
-            var conditionalFormattingState = new BiffConditionalFormattingImportState(sheet, externSheets, sheetNames, definedNames);
-            var sharedFormulaState = new BiffSharedFormulaImportState(sheet, externSheets, sheetNames, definedNames, diagnostics, options);
+            var conditionalFormattingState = new BiffConditionalFormattingImportState(sheet, externSheets, externalReferences, sheetNames, definedNames);
+            var sharedFormulaState = new BiffSharedFormulaImportState(sheet, externSheets, externalReferences, sheetNames, definedNames, diagnostics, options);
             while (offset < workbookStream.Length) {
                 if (offset + 4 > workbookStream.Length) {
                     diagnostics.Add(new LegacyXlsImportDiagnostic(
@@ -64,7 +65,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     return;
                 }
 
-                ParseWorksheetRecord(sheet, sharedStrings, externSheets, sheetNames, definedNames, unsupportedFeatures, diagnostics, options, commentState, conditionalFormattingState, sharedFormulaState, type, offset, payload, ref frozenWindow, ref pendingFormulaString);
+                ParseWorksheetRecord(sheet, sharedStrings, externSheets, externalReferences, sheetNames, definedNames, unsupportedFeatures, diagnostics, options, commentState, conditionalFormattingState, sharedFormulaState, type, offset, payload, ref frozenWindow, ref pendingFormulaString);
                 offset = payloadOffset + length;
             }
 
@@ -78,6 +79,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             LegacyXlsWorksheet sheet,
             IReadOnlyList<string> sharedStrings,
             IReadOnlyList<BiffExternSheetReference> externSheets,
+            IReadOnlyList<LegacyXlsExternalReference> externalReferences,
             IReadOnlyList<string> sheetNames,
             IReadOnlyList<string?> definedNames,
             List<LegacyXlsUnsupportedFeature> unsupportedFeatures,
@@ -163,7 +165,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
                         break;
                     case BiffRecordType.Dv:
-                        if (BiffDataValidationReader.TryRead(payload, externSheets, sheetNames, definedNames, out LegacyXlsDataValidation? validation)) {
+                        if (BiffDataValidationReader.TryRead(payload, externSheets, externalReferences, sheetNames, definedNames, out LegacyXlsDataValidation? validation)) {
                             sheet.AddDataValidation(validation!);
                         } else {
                             AddUnsupportedFeature(unsupportedFeatures, diagnostics, options, type, offset, sheet.Name);
@@ -183,7 +185,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
                         break;
                     case BiffRecordType.Formula:
-                        ParseFormula(sheet, payload, externSheets, sheetNames, definedNames, diagnostics, options, sharedFormulaState, offset, ref pendingFormulaString);
+                        ParseFormula(sheet, payload, externSheets, externalReferences, sheetNames, definedNames, diagnostics, options, sharedFormulaState, offset, ref pendingFormulaString);
                         break;
                     case BiffRecordType.Footer:
                         ParseHeaderFooter(sheet, payload, isHeader: false);
@@ -538,6 +540,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             LegacyXlsWorksheet sheet,
             byte[] payload,
             IReadOnlyList<BiffExternSheetReference> externSheets,
+            IReadOnlyList<LegacyXlsExternalReference> externalReferences,
             IReadOnlyList<string> sheetNames,
             IReadOnlyList<string?> definedNames,
             List<LegacyXlsImportDiagnostic> diagnostics,
@@ -562,7 +565,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             string? formulaText = null;
             BiffFormulaReadFailure? formulaFailure = null;
             bool formulaTextRead = !isSharedFormulaReference
-                && BiffFormulaTextReader.TryRead(payload, 20, row - 1, column - 1, externSheets, sheetNames, definedNames, out formulaText, out formulaFailure);
+                && BiffFormulaTextReader.TryRead(payload, 20, row - 1, column - 1, externSheets, externalReferences, sheetNames, definedNames, out formulaText, out formulaFailure);
             if (!isSharedFormulaReference && !formulaTextRead && options.ReportUnsupportedRecords && HasFormulaTokenPayload(payload)) {
                 string failureDescription = formulaFailure == null ? "Unsupported formula tokens" : formulaFailure.Description;
                 diagnostics.Add(new LegacyXlsImportDiagnostic(

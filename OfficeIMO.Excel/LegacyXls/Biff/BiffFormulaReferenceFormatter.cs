@@ -1,4 +1,6 @@
 using System.Globalization;
+using System.Text;
+using OfficeIMO.Excel.LegacyXls.Model;
 
 namespace OfficeIMO.Excel.LegacyXls.Biff {
     internal static class BiffFormulaReferenceFormatter {
@@ -8,13 +10,23 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             IReadOnlyList<BiffExternSheetReference> externSheets,
             IReadOnlyList<string> sheetNames,
             out string? reference) {
+            return TryRead3dReference(formulaBytes, offset, externSheets, Array.Empty<LegacyXlsExternalReference>(), sheetNames, out reference);
+        }
+
+        internal static bool TryRead3dReference(
+            byte[] formulaBytes,
+            int offset,
+            IReadOnlyList<BiffExternSheetReference> externSheets,
+            IReadOnlyList<LegacyXlsExternalReference> externalReferences,
+            IReadOnlyList<string> sheetNames,
+            out string? reference) {
             reference = null;
             if (offset + 6 > formulaBytes.Length) {
                 return false;
             }
 
             ushort externSheetIndex = BiffRecordReader.ReadUInt16(formulaBytes, offset);
-            if (!TryResolveSheetQualifier(externSheets, sheetNames, externSheetIndex, out string? sheetQualifier)) {
+            if (!TryResolveSheetQualifier(externSheets, externalReferences, sheetNames, externSheetIndex, out string? sheetQualifier)) {
                 return false;
             }
 
@@ -30,8 +42,18 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             IReadOnlyList<BiffExternSheetReference> externSheets,
             IReadOnlyList<string> sheetNames,
             out string? reference) {
+            return TryRead3dArea(formulaBytes, offset, externSheets, Array.Empty<LegacyXlsExternalReference>(), sheetNames, out reference);
+        }
+
+        internal static bool TryRead3dArea(
+            byte[] formulaBytes,
+            int offset,
+            IReadOnlyList<BiffExternSheetReference> externSheets,
+            IReadOnlyList<LegacyXlsExternalReference> externalReferences,
+            IReadOnlyList<string> sheetNames,
+            out string? reference) {
             reference = null;
-            if (!TryRead3dAreaInfo(formulaBytes, offset, externSheets, sheetNames, out BiffFormulaAreaReference area)) {
+            if (!TryRead3dAreaInfo(formulaBytes, offset, externSheets, externalReferences, sheetNames, out BiffFormulaAreaReference area)) {
                 return false;
             }
 
@@ -47,17 +69,64 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             IReadOnlyList<BiffExternSheetReference> externSheets,
             IReadOnlyList<string> sheetNames,
             out string? reference) {
+            return TryRead3dInvalidReference(formulaBytes, offset, externSheets, Array.Empty<LegacyXlsExternalReference>(), sheetNames, out reference);
+        }
+
+        internal static bool TryRead3dInvalidReference(
+            byte[] formulaBytes,
+            int offset,
+            IReadOnlyList<BiffExternSheetReference> externSheets,
+            IReadOnlyList<LegacyXlsExternalReference> externalReferences,
+            IReadOnlyList<string> sheetNames,
+            out string? reference) {
             reference = null;
             if (offset + 2 > formulaBytes.Length) {
                 return false;
             }
 
             ushort externSheetIndex = BiffRecordReader.ReadUInt16(formulaBytes, offset);
-            if (!TryResolveSheetQualifier(externSheets, sheetNames, externSheetIndex, out string? sheetQualifier)) {
+            if (!TryResolveSheetQualifier(externSheets, externalReferences, sheetNames, externSheetIndex, out string? sheetQualifier)) {
                 return false;
             }
 
             reference = sheetQualifier + "!#REF!";
+            return true;
+        }
+
+        internal static bool TryReadExternalName(
+            byte[] formulaBytes,
+            int offset,
+            IReadOnlyList<BiffExternSheetReference> externSheets,
+            IReadOnlyList<LegacyXlsExternalReference> externalReferences,
+            out string? reference) {
+            reference = null;
+            if (offset + 6 > formulaBytes.Length) {
+                return false;
+            }
+
+            ushort externSheetIndex = BiffRecordReader.ReadUInt16(formulaBytes, offset);
+            uint oneBasedNameIndex = BiffRecordReader.ReadUInt32(formulaBytes, offset + 2);
+            if (externSheetIndex >= externSheets.Count || oneBasedNameIndex == 0 || oneBasedNameIndex > int.MaxValue) {
+                return false;
+            }
+
+            ushort supBookIndex = externSheets[externSheetIndex].SupBookIndex;
+            if (supBookIndex >= externalReferences.Count) {
+                return false;
+            }
+
+            LegacyXlsExternalReference externalReference = externalReferences[supBookIndex];
+            int nameIndex = checked((int)oneBasedNameIndex) - 1;
+            if (nameIndex >= externalReference.ExternalNames.Count) {
+                return false;
+            }
+
+            string name = externalReference.ExternalNames[nameIndex].Name;
+            if (string.IsNullOrWhiteSpace(name)) {
+                return false;
+            }
+
+            reference = FormatExternalNameReference(externalReference, name);
             return true;
         }
 
@@ -67,13 +136,23 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             IReadOnlyList<BiffExternSheetReference> externSheets,
             IReadOnlyList<string> sheetNames,
             out BiffFormulaAreaReference area) {
+            return TryRead3dAreaInfo(formulaBytes, offset, externSheets, Array.Empty<LegacyXlsExternalReference>(), sheetNames, out area);
+        }
+
+        internal static bool TryRead3dAreaInfo(
+            byte[] formulaBytes,
+            int offset,
+            IReadOnlyList<BiffExternSheetReference> externSheets,
+            IReadOnlyList<LegacyXlsExternalReference> externalReferences,
+            IReadOnlyList<string> sheetNames,
+            out BiffFormulaAreaReference area) {
             area = default;
             if (offset + 10 > formulaBytes.Length) {
                 return false;
             }
 
             ushort externSheetIndex = BiffRecordReader.ReadUInt16(formulaBytes, offset);
-            if (!TryResolveSheetQualifier(externSheets, sheetNames, externSheetIndex, out string? sheetQualifier)) {
+            if (!TryResolveSheetQualifier(externSheets, externalReferences, sheetNames, externSheetIndex, out string? sheetQualifier)) {
                 return false;
             }
 
@@ -98,6 +177,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
         private static bool TryResolveSheetQualifier(
             IReadOnlyList<BiffExternSheetReference> externSheets,
+            IReadOnlyList<LegacyXlsExternalReference> externalReferences,
             IReadOnlyList<string> sheetNames,
             ushort externSheetIndex,
             out string? sheetQualifier) {
@@ -106,8 +186,13 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 return false;
             }
 
-            short firstSheetIndex = externSheets[externSheetIndex].FirstSheetIndex;
-            short lastSheetIndex = externSheets[externSheetIndex].LastSheetIndex;
+            BiffExternSheetReference externSheet = externSheets[externSheetIndex];
+            short firstSheetIndex = externSheet.FirstSheetIndex;
+            short lastSheetIndex = externSheet.LastSheetIndex;
+            if (TryResolveExternalWorkbookSheetQualifier(externSheet, externalReferences, firstSheetIndex, lastSheetIndex, out sheetQualifier)) {
+                return true;
+            }
+
             if (firstSheetIndex < 0
                 || lastSheetIndex < firstSheetIndex
                 || lastSheetIndex >= sheetNames.Count) {
@@ -119,6 +204,71 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 : sheetNames[firstSheetIndex] + ":" + sheetNames[lastSheetIndex];
             sheetQualifier = QuoteSheetReference(sheetReference);
             return true;
+        }
+
+        private static string FormatExternalNameReference(LegacyXlsExternalReference externalReference, string name) {
+            if (externalReference.Kind == LegacyXlsExternalReferenceKind.ExternalWorkbook
+                && !string.IsNullOrWhiteSpace(externalReference.Target)) {
+                return QuoteSheetReference(NormalizeExternalWorkbookTarget(externalReference.Target)) + "!" + name;
+            }
+
+            return name;
+        }
+
+        private static bool TryResolveExternalWorkbookSheetQualifier(
+            BiffExternSheetReference externSheet,
+            IReadOnlyList<LegacyXlsExternalReference> externalReferences,
+            short firstSheetIndex,
+            short lastSheetIndex,
+            out string? sheetQualifier) {
+            sheetQualifier = null;
+            if (externSheet.SupBookIndex >= externalReferences.Count) {
+                return false;
+            }
+
+            LegacyXlsExternalReference externalReference = externalReferences[externSheet.SupBookIndex];
+            bool workbookLikeReference = externalReference.Kind == LegacyXlsExternalReferenceKind.ExternalWorkbook
+                || externalReference.Kind == LegacyXlsExternalReferenceKind.Unused;
+            if (!workbookLikeReference
+                || firstSheetIndex < 0
+                || lastSheetIndex < firstSheetIndex
+                || lastSheetIndex >= externalReference.SheetNames.Count) {
+                return false;
+            }
+
+            string sheetReference = firstSheetIndex == lastSheetIndex
+                ? externalReference.SheetNames[firstSheetIndex]
+                : externalReference.SheetNames[firstSheetIndex] + ":" + externalReference.SheetNames[lastSheetIndex];
+            sheetQualifier = QuoteSheetReference("[" + NormalizeExternalWorkbookTarget(externalReference.Target) + "]" + sheetReference);
+            return true;
+        }
+
+        private static string NormalizeExternalWorkbookTarget(string? target) {
+            if (string.IsNullOrWhiteSpace(target)) {
+                return "ExternalWorkbook";
+            }
+
+            string sanitized = RemoveControlCharacters(target!);
+            int separatorIndex = Math.Max(sanitized.LastIndexOf('\\'), sanitized.LastIndexOf('/'));
+            if (separatorIndex >= 0 && separatorIndex + 1 < sanitized.Length) {
+                sanitized = sanitized.Substring(separatorIndex + 1);
+            }
+
+            return string.IsNullOrWhiteSpace(sanitized) ? "ExternalWorkbook" : sanitized;
+        }
+
+        private static string RemoveControlCharacters(string value) {
+            StringBuilder? sanitized = null;
+            for (int i = 0; i < value.Length; i++) {
+                if (!char.IsControl(value[i])) {
+                    sanitized?.Append(value[i]);
+                    continue;
+                }
+
+                sanitized ??= new StringBuilder(value.Length).Append(value, 0, i);
+            }
+
+            return sanitized == null ? value : sanitized.ToString();
         }
 
         private static string QuoteSheetReference(string sheetReference) {

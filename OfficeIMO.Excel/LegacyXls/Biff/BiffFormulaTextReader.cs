@@ -1,4 +1,5 @@
 using System.Globalization;
+using OfficeIMO.Excel.LegacyXls.Model;
 
 namespace OfficeIMO.Excel.LegacyXls.Biff {
     /// <summary>
@@ -13,6 +14,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 formulaRow: 0,
                 formulaColumn: 0,
                 Array.Empty<BiffExternSheetReference>(),
+                Array.Empty<LegacyXlsExternalReference>(),
                 Array.Empty<string>(),
                 Array.Empty<string?>(),
                 out formulaText);
@@ -28,12 +30,36 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             IReadOnlyList<string?> definedNames,
             out string? formulaText,
             out BiffFormulaReadFailure? failure) {
-            if (TryRead(formulaPayload, parsedFormulaOffset, formulaRow, formulaColumn, externSheets, sheetNames, definedNames, out formulaText)) {
+            return TryRead(
+                formulaPayload,
+                parsedFormulaOffset,
+                formulaRow,
+                formulaColumn,
+                externSheets,
+                Array.Empty<LegacyXlsExternalReference>(),
+                sheetNames,
+                definedNames,
+                out formulaText,
+                out failure);
+        }
+
+        internal static bool TryRead(
+            byte[] formulaPayload,
+            int parsedFormulaOffset,
+            int formulaRow,
+            int formulaColumn,
+            IReadOnlyList<BiffExternSheetReference> externSheets,
+            IReadOnlyList<LegacyXlsExternalReference> externalReferences,
+            IReadOnlyList<string> sheetNames,
+            IReadOnlyList<string?> definedNames,
+            out string? formulaText,
+            out BiffFormulaReadFailure? failure) {
+            if (TryRead(formulaPayload, parsedFormulaOffset, formulaRow, formulaColumn, externSheets, externalReferences, sheetNames, definedNames, out formulaText)) {
                 failure = null;
                 return true;
             }
 
-            failure = DescribeFailure(formulaPayload, parsedFormulaOffset, externSheets, sheetNames, definedNames);
+            failure = DescribeFailure(formulaPayload, parsedFormulaOffset, externSheets, externalReferences, sheetNames, definedNames);
             return false;
         }
 
@@ -43,6 +69,28 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             int formulaRow,
             int formulaColumn,
             IReadOnlyList<BiffExternSheetReference> externSheets,
+            IReadOnlyList<string> sheetNames,
+            IReadOnlyList<string?> definedNames,
+            out string? formulaText) {
+            return TryRead(
+                formulaPayload,
+                parsedFormulaOffset,
+                formulaRow,
+                formulaColumn,
+                externSheets,
+                Array.Empty<LegacyXlsExternalReference>(),
+                sheetNames,
+                definedNames,
+                out formulaText);
+        }
+
+        internal static bool TryRead(
+            byte[] formulaPayload,
+            int parsedFormulaOffset,
+            int formulaRow,
+            int formulaColumn,
+            IReadOnlyList<BiffExternSheetReference> externSheets,
+            IReadOnlyList<LegacyXlsExternalReference> externalReferences,
             IReadOnlyList<string> sheetNames,
             IReadOnlyList<string?> definedNames,
             out string? formulaText) {
@@ -137,6 +185,14 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                         stack.Push(new FormulaExpression(definedName!, 4));
                         offset += 4;
                         break;
+                    case 0x39:
+                    case 0x59:
+                    case 0x79:
+                        if (offset + 6 > endOffset) return false;
+                        if (!BiffFormulaReferenceFormatter.TryReadExternalName(formulaPayload, offset, externSheets, externalReferences, out string? externalName)) return false;
+                        stack.Push(new FormulaExpression(externalName!, 4));
+                        offset += 6;
+                        break;
                     case 0x21:
                     case 0x41:
                     case 0x61:
@@ -218,7 +274,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     case 0x5a:
                     case 0x7a:
                         if (offset + 6 > endOffset) return false;
-                        if (!BiffFormulaReferenceFormatter.TryRead3dReference(formulaPayload, offset, externSheets, sheetNames, out string? reference3d)) return false;
+                        if (!BiffFormulaReferenceFormatter.TryRead3dReference(formulaPayload, offset, externSheets, externalReferences, sheetNames, out string? reference3d)) return false;
                         stack.Push(new FormulaExpression(reference3d!, 4));
                         offset += 6;
                         break;
@@ -226,7 +282,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     case 0x5b:
                     case 0x7b:
                         if (offset + 10 > endOffset) return false;
-                        if (!BiffFormulaReferenceFormatter.TryRead3dArea(formulaPayload, offset, externSheets, sheetNames, out string? area3d)) return false;
+                        if (!BiffFormulaReferenceFormatter.TryRead3dArea(formulaPayload, offset, externSheets, externalReferences, sheetNames, out string? area3d)) return false;
                         stack.Push(new FormulaExpression(area3d!, 4));
                         offset += 10;
                         break;
@@ -234,7 +290,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     case 0x5c:
                     case 0x7c:
                         if (offset + 6 > endOffset) return false;
-                        if (!BiffFormulaReferenceFormatter.TryRead3dInvalidReference(formulaPayload, offset, externSheets, sheetNames, out string? invalidReference3d)) return false;
+                        if (!BiffFormulaReferenceFormatter.TryRead3dInvalidReference(formulaPayload, offset, externSheets, externalReferences, sheetNames, out string? invalidReference3d)) return false;
                         stack.Push(new FormulaExpression(invalidReference3d!, 4));
                         offset += 6;
                         break;
@@ -242,7 +298,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     case 0x5d:
                     case 0x7d:
                         if (offset + 10 > endOffset) return false;
-                        if (!BiffFormulaReferenceFormatter.TryRead3dInvalidReference(formulaPayload, offset, externSheets, sheetNames, out string? invalidArea3d)) return false;
+                        if (!BiffFormulaReferenceFormatter.TryRead3dInvalidReference(formulaPayload, offset, externSheets, externalReferences, sheetNames, out string? invalidArea3d)) return false;
                         stack.Push(new FormulaExpression(invalidArea3d!, 4));
                         offset += 10;
                         break;
@@ -263,6 +319,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             byte[] formulaPayload,
             int parsedFormulaOffset,
             IReadOnlyList<BiffExternSheetReference> externSheets,
+            IReadOnlyList<LegacyXlsExternalReference> externalReferences,
             IReadOnlyList<string> sheetNames,
             IReadOnlyList<string?> definedNames) {
             if (parsedFormulaOffset + 2 > formulaPayload.Length) {
@@ -363,6 +420,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                         bool isCetabFunction = (functionBits & 0x8000) != 0;
                         ushort functionId = (ushort)(functionBits & 0x7fff);
                         if (isCetabFunction || !TryGetFunctionName(functionId, out _)) {
+                            if (!isCetabFunction && functionId == 0x00ff && parameterCount > 0) {
+                                break;
+                            }
+
                             return BiffFormulaReadFailure.UnsupportedVariableFunction(functionId, isCetabFunction);
                         }
 
@@ -387,6 +448,21 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                             return BiffFormulaReadFailure.DefinedName(oneBasedNameIndex);
                         }
 
+                        break;
+                    case 0x39:
+                    case 0x59:
+                    case 0x79:
+                        if (offset + 6 > endOffset) {
+                            return BiffFormulaReadFailure.InvalidPayload("Formula external defined-name token ended early.");
+                        }
+
+                        if (!BiffFormulaReferenceFormatter.TryReadExternalName(formulaPayload, offset, externSheets, externalReferences, out _)) {
+                            ushort externSheetIndex = BiffRecordReader.ReadUInt16(formulaPayload, offset);
+                            uint oneBasedExternalNameIndex = BiffRecordReader.ReadUInt32(formulaPayload, offset + 2);
+                            return BiffFormulaReadFailure.ExternalName(externSheetIndex, oneBasedExternalNameIndex);
+                        }
+
+                        offset += 6;
                         break;
                     case 0x24:
                     case 0x44:
@@ -423,8 +499,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                             return BiffFormulaReadFailure.InvalidPayload("Formula 3D reference token ended early.");
                         }
 
-                        if (!BiffFormulaReferenceFormatter.TryRead3dReference(formulaPayload, offset, externSheets, sheetNames, out _)) {
-                            return BiffFormulaReadFailure.Reference("Formula 3D reference could not be resolved.");
+                        if (!BiffFormulaReferenceFormatter.TryRead3dReference(formulaPayload, offset, externSheets, externalReferences, sheetNames, out _)) {
+                            return BiffFormulaReadFailure.Reference("Formula3dReference", "Formula 3D reference could not be resolved.");
                         }
 
                         offset += 6;
@@ -436,8 +512,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                             return BiffFormulaReadFailure.InvalidPayload("Formula 3D area token ended early.");
                         }
 
-                        if (!BiffFormulaReferenceFormatter.TryRead3dArea(formulaPayload, offset, externSheets, sheetNames, out _)) {
-                            return BiffFormulaReadFailure.Reference("Formula 3D area could not be resolved.");
+                        if (!BiffFormulaReferenceFormatter.TryRead3dArea(formulaPayload, offset, externSheets, externalReferences, sheetNames, out _)) {
+                            return BiffFormulaReadFailure.Reference("Formula3dArea", "Formula 3D area could not be resolved.");
                         }
 
                         offset += 10;
@@ -449,8 +525,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                             return BiffFormulaReadFailure.InvalidPayload("Formula invalid 3D reference token ended early.");
                         }
 
-                        if (!BiffFormulaReferenceFormatter.TryRead3dInvalidReference(formulaPayload, offset, externSheets, sheetNames, out _)) {
-                            return BiffFormulaReadFailure.Reference("Formula invalid 3D reference could not be resolved.");
+                        if (!BiffFormulaReferenceFormatter.TryRead3dInvalidReference(formulaPayload, offset, externSheets, externalReferences, sheetNames, out _)) {
+                            return BiffFormulaReadFailure.Reference("FormulaInvalid3dReference", "Formula invalid 3D reference could not be resolved.");
                         }
 
                         offset += 6;
@@ -462,8 +538,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                             return BiffFormulaReadFailure.InvalidPayload("Formula invalid 3D area token ended early.");
                         }
 
-                        if (!BiffFormulaReferenceFormatter.TryRead3dInvalidReference(formulaPayload, offset, externSheets, sheetNames, out _)) {
-                            return BiffFormulaReadFailure.Reference("Formula invalid 3D area could not be resolved.");
+                        if (!BiffFormulaReferenceFormatter.TryRead3dInvalidReference(formulaPayload, offset, externSheets, externalReferences, sheetNames, out _)) {
+                            return BiffFormulaReadFailure.Reference("FormulaInvalid3dArea", "Formula invalid 3D area could not be resolved.");
                         }
 
                         offset += 10;
@@ -701,6 +777,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         private static bool ApplyVariableFunction(Stack<FormulaExpression> stack, byte parameterCount, ushort functionBits) {
             bool isCetabFunction = (functionBits & 0x8000) != 0;
             ushort functionId = (ushort)(functionBits & 0x7fff);
+            if (!isCetabFunction && functionId == 0x00ff) {
+                return ApplyUserDefinedFunction(stack, parameterCount);
+            }
+
             if (isCetabFunction
                 || !TryGetFunctionName(functionId, out string? functionName)
                 || !IsSupportedVariableFunctionArgumentCount(functionId, parameterCount)
@@ -714,6 +794,25 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             stack.Push(new FormulaExpression(functionName + "(" + string.Join(",", arguments) + ")", 4));
+            return true;
+        }
+
+        private static bool ApplyUserDefinedFunction(Stack<FormulaExpression> stack, byte parameterCount) {
+            if (parameterCount == 0 || stack.Count < parameterCount) {
+                return false;
+            }
+
+            var arguments = new string[parameterCount];
+            for (int i = parameterCount - 1; i >= 0; i--) {
+                arguments[i] = stack.Pop().Text;
+            }
+
+            string functionName = arguments[0];
+            if (string.IsNullOrWhiteSpace(functionName)) {
+                return false;
+            }
+
+            stack.Push(new FormulaExpression(functionName + "(" + string.Join(",", arguments.Skip(1)) + ")", 4));
             return true;
         }
 

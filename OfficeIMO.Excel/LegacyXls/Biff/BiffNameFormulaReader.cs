@@ -1,4 +1,5 @@
 using System.Globalization;
+using OfficeIMO.Excel.LegacyXls.Model;
 
 namespace OfficeIMO.Excel.LegacyXls.Biff {
     /// <summary>
@@ -8,6 +9,15 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         internal static bool TryReadReference(
             byte[] formulaBytes,
             IReadOnlyList<BiffExternSheetReference> externSheets,
+            IReadOnlyList<string> sheetNames,
+            out string? reference) {
+            return TryReadReference(formulaBytes, externSheets, Array.Empty<LegacyXlsExternalReference>(), sheetNames, out reference);
+        }
+
+        internal static bool TryReadReference(
+            byte[] formulaBytes,
+            IReadOnlyList<BiffExternSheetReference> externSheets,
+            IReadOnlyList<LegacyXlsExternalReference> externalReferences,
             IReadOnlyList<string> sheetNames,
             out string? reference) {
             reference = null;
@@ -22,12 +32,12 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case 0x5a:
                 case 0x7a:
                     if (offset + 6 != formulaBytes.Length) return false;
-                    return BiffFormulaReferenceFormatter.TryRead3dReference(formulaBytes, offset, externSheets, sheetNames, out reference);
+                    return BiffFormulaReferenceFormatter.TryRead3dReference(formulaBytes, offset, externSheets, externalReferences, sheetNames, out reference);
                 case 0x3b:
                 case 0x5b:
                 case 0x7b:
                     if (offset + 10 != formulaBytes.Length) return false;
-                    return BiffFormulaReferenceFormatter.TryRead3dArea(formulaBytes, offset, externSheets, sheetNames, out reference);
+                    return BiffFormulaReferenceFormatter.TryRead3dArea(formulaBytes, offset, externSheets, externalReferences, sheetNames, out reference);
                 default:
                     return false;
             }
@@ -36,6 +46,15 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         internal static bool TryReadPrintTitles(
             byte[] formulaBytes,
             IReadOnlyList<BiffExternSheetReference> externSheets,
+            IReadOnlyList<string> sheetNames,
+            out string? reference) {
+            return TryReadPrintTitles(formulaBytes, externSheets, Array.Empty<LegacyXlsExternalReference>(), sheetNames, out reference);
+        }
+
+        internal static bool TryReadPrintTitles(
+            byte[] formulaBytes,
+            IReadOnlyList<BiffExternSheetReference> externSheets,
+            IReadOnlyList<LegacyXlsExternalReference> externalReferences,
             IReadOnlyList<string> sheetNames,
             out string? reference) {
             reference = null;
@@ -49,7 +68,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             while (offset < formulaBytes.Length) {
                 byte token = formulaBytes[offset++];
                 if (Is3dAreaToken(token)) {
-                    if (!BiffFormulaReferenceFormatter.TryRead3dAreaInfo(formulaBytes, offset, externSheets, sheetNames, out BiffFormulaAreaReference area)) {
+                    if (!BiffFormulaReferenceFormatter.TryRead3dAreaInfo(formulaBytes, offset, externSheets, externalReferences, sheetNames, out BiffFormulaAreaReference area)) {
                         return false;
                     }
 

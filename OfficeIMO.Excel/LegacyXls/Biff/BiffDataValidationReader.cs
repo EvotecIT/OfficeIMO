@@ -9,16 +9,26 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         private const uint ShowErrorMessageFlag = 0x00080000;
 
         internal static bool TryRead(byte[] payload, out LegacyXlsDataValidation? validation) {
-            return TryRead(payload, Array.Empty<BiffExternSheetReference>(), Array.Empty<string>(), Array.Empty<string?>(), out validation);
+            return TryRead(payload, Array.Empty<BiffExternSheetReference>(), Array.Empty<LegacyXlsExternalReference>(), Array.Empty<string>(), Array.Empty<string?>(), out validation);
         }
 
         internal static bool TryRead(byte[] payload, IReadOnlyList<string?> definedNames, out LegacyXlsDataValidation? validation) {
-            return TryRead(payload, Array.Empty<BiffExternSheetReference>(), Array.Empty<string>(), definedNames, out validation);
+            return TryRead(payload, Array.Empty<BiffExternSheetReference>(), Array.Empty<LegacyXlsExternalReference>(), Array.Empty<string>(), definedNames, out validation);
         }
 
         internal static bool TryRead(
             byte[] payload,
             IReadOnlyList<BiffExternSheetReference> externSheets,
+            IReadOnlyList<string> sheetNames,
+            IReadOnlyList<string?> definedNames,
+            out LegacyXlsDataValidation? validation) {
+            return TryRead(payload, externSheets, Array.Empty<LegacyXlsExternalReference>(), sheetNames, definedNames, out validation);
+        }
+
+        internal static bool TryRead(
+            byte[] payload,
+            IReadOnlyList<BiffExternSheetReference> externSheets,
+            IReadOnlyList<LegacyXlsExternalReference> externalReferences,
             IReadOnlyList<string> sheetNames,
             IReadOnlyList<string?> definedNames,
             out LegacyXlsDataValidation? validation) {
@@ -45,11 +55,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 string prompt = BiffStringReader.ReadUnicodeString(payload, ref offset);
                 string error = BiffStringReader.ReadUnicodeString(payload, ref offset);
 
-                if (!TryReadFormula(payload, ref offset, externSheets, sheetNames, definedNames, out string? formula1) || string.IsNullOrWhiteSpace(formula1)) {
+                if (!TryReadFormula(payload, ref offset, externSheets, externalReferences, sheetNames, definedNames, out string? formula1) || string.IsNullOrWhiteSpace(formula1)) {
                     return false;
                 }
 
-                if (!TryReadFormula(payload, ref offset, externSheets, sheetNames, definedNames, out string? formula2)) {
+                if (!TryReadFormula(payload, ref offset, externSheets, externalReferences, sheetNames, definedNames, out string? formula2)) {
                     return false;
                 }
 
@@ -132,6 +142,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             byte[] payload,
             ref int offset,
             IReadOnlyList<BiffExternSheetReference> externSheets,
+            IReadOnlyList<LegacyXlsExternalReference> externalReferences,
             IReadOnlyList<string> sheetNames,
             IReadOnlyList<string?> definedNames,
             out string? formula) {
@@ -162,6 +173,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 formulaRow: 0,
                 formulaColumn: 0,
                 externSheets,
+                externalReferences,
                 sheetNames,
                 definedNames,
                 out formula);

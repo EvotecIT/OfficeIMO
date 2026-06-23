@@ -30,6 +30,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         internal static bool TryReadRule(
             byte[] payload,
             IReadOnlyList<BiffExternSheetReference> externSheets,
+            IReadOnlyList<LegacyXlsExternalReference> externalReferences,
             IReadOnlyList<string> sheetNames,
             IReadOnlyList<string?> definedNames,
             IReadOnlyList<string> ranges,
@@ -48,11 +49,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 return false;
             }
 
-            if (!TryReadFormula(payload, formulaStart, formula1Length, externSheets, sheetNames, definedNames, out string? formula1)) {
+            if (!TryReadFormula(payload, formulaStart, formula1Length, externSheets, externalReferences, sheetNames, definedNames, out string? formula1)) {
                 return false;
             }
 
-            if (!TryReadFormula(payload, formulaStart + formula1Length, formula2Length, externSheets, sheetNames, definedNames, out string? formula2)) {
+            if (!TryReadFormula(payload, formulaStart + formula1Length, formula2Length, externSheets, externalReferences, sheetNames, definedNames, out string? formula2)) {
                 return false;
             }
 
@@ -99,6 +100,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             int offset,
             ushort expressionLength,
             IReadOnlyList<BiffExternSheetReference> externSheets,
+            IReadOnlyList<LegacyXlsExternalReference> externalReferences,
             IReadOnlyList<string> sheetNames,
             IReadOnlyList<string?> definedNames,
             out string? formula) {
@@ -121,6 +123,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 formulaRow: 0,
                 formulaColumn: 0,
                 externSheets,
+                externalReferences,
                 sheetNames,
                 definedNames,
                 out formula);

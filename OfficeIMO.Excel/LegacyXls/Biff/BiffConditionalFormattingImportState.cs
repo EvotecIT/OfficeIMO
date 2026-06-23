@@ -5,6 +5,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
     internal sealed class BiffConditionalFormattingImportState {
         private readonly LegacyXlsWorksheet _sheet;
         private readonly IReadOnlyList<BiffExternSheetReference> _externSheets;
+        private readonly IReadOnlyList<LegacyXlsExternalReference> _externalReferences;
         private readonly IReadOnlyList<string> _sheetNames;
         private readonly IReadOnlyList<string?> _definedNames;
         private IReadOnlyList<string> _ranges = Array.Empty<string>();
@@ -15,10 +16,12 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         internal BiffConditionalFormattingImportState(
             LegacyXlsWorksheet sheet,
             IReadOnlyList<BiffExternSheetReference> externSheets,
+            IReadOnlyList<LegacyXlsExternalReference> externalReferences,
             IReadOnlyList<string> sheetNames,
             IReadOnlyList<string?> definedNames) {
             _sheet = sheet;
             _externSheets = externSheets;
+            _externalReferences = externalReferences;
             _sheetNames = sheetNames;
             _definedNames = definedNames;
         }
@@ -46,6 +49,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             bool parsed = BiffConditionalFormattingReader.TryReadRule(
                 payload,
                 _externSheets,
+                _externalReferences,
                 _sheetNames,
                 _definedNames,
                 _ranges,

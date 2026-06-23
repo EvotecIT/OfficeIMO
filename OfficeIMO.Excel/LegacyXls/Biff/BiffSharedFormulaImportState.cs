@@ -5,6 +5,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
     internal sealed class BiffSharedFormulaImportState {
         private readonly LegacyXlsWorksheet _sheet;
         private readonly IReadOnlyList<BiffExternSheetReference> _externSheets;
+        private readonly IReadOnlyList<LegacyXlsExternalReference> _externalReferences;
         private readonly IReadOnlyList<string> _sheetNames;
         private readonly IReadOnlyList<string?> _definedNames;
         private readonly List<LegacyXlsImportDiagnostic> _diagnostics;
@@ -16,12 +17,14 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         internal BiffSharedFormulaImportState(
             LegacyXlsWorksheet sheet,
             IReadOnlyList<BiffExternSheetReference> externSheets,
+            IReadOnlyList<LegacyXlsExternalReference> externalReferences,
             IReadOnlyList<string> sheetNames,
             IReadOnlyList<string?> definedNames,
             List<LegacyXlsImportDiagnostic> diagnostics,
             LegacyXlsImportOptions options) {
             _sheet = sheet;
             _externSheets = externSheets;
+            _externalReferences = externalReferences;
             _sheetNames = sheetNames;
             _definedNames = definedNames;
             _diagnostics = diagnostics;
@@ -142,6 +145,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 cell.Row - 1,
                 cell.Column - 1,
                 _externSheets,
+                _externalReferences,
                 _sheetNames,
                 _definedNames,
                 out string? formulaText,

@@ -84,6 +84,134 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_Load_ImportsFormulaExternalWorkbookReferences() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateFormulaExternalWorkbookReferenceWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED");
+            LegacyXlsExternalReference externalReference = Assert.Single(legacy.ExternalReferences);
+            Assert.Equal(LegacyXlsExternalReferenceKind.ExternalWorkbook, externalReference.Kind);
+            Assert.Equal("C:\\Data\\Budget.xls", externalReference.Target);
+            Assert.Equal(new[] { "Jan", "Feb" }, externalReference.SheetNames);
+
+            LegacyXlsWorksheet sheet = Assert.Single(legacy.Worksheets);
+            LegacyXlsCell referenceFormula = Assert.Single(sheet.Cells, cell => cell.Row == 1 && cell.Column == 1);
+            Assert.True(referenceFormula.IsFormula);
+            Assert.Equal(15d, referenceFormula.Value);
+            Assert.Equal("'[Budget.xls]Jan'!A1+5", referenceFormula.FormulaText);
+            LegacyXlsCell areaFormula = Assert.Single(sheet.Cells, cell => cell.Row == 2 && cell.Column == 1);
+            Assert.True(areaFormula.IsFormula);
+            Assert.Equal(42d, areaFormula.Value);
+            Assert.Equal("SUM('[Budget.xls]Jan'!A1:A2)", areaFormula.FormulaText);
+
+            using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            using var output = new MemoryStream();
+            document.Save(output);
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
+            WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single();
+            Cell projectedReferenceFormula = worksheetPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference!.Value == "A1");
+            Assert.Equal("'[Budget.xls]Jan'!A1+5", projectedReferenceFormula.CellFormula!.Text);
+            Cell projectedAreaFormula = worksheetPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference!.Value == "A2");
+            Assert.Equal("SUM('[Budget.xls]Jan'!A1:A2)", projectedAreaFormula.CellFormula!.Text);
+        }
+
+        [Fact]
+        public void LegacyXls_Load_ImportsFormulaExternalDefinedNames() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateFormulaExternalDefinedNameWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED");
+            LegacyXlsExternalReference externalReference = Assert.Single(legacy.ExternalReferences);
+            LegacyXlsExternalName externalName = Assert.Single(externalReference.ExternalNames);
+            Assert.Equal(LegacyXlsExternalReferenceKind.ExternalWorkbook, externalReference.Kind);
+            Assert.Equal("TaxRate", externalName.Name);
+
+            LegacyXlsWorksheet sheet = Assert.Single(legacy.Worksheets);
+            LegacyXlsCell formula = Assert.Single(sheet.Cells, cell => cell.Row == 1 && cell.Column == 1);
+            Assert.True(formula.IsFormula);
+            Assert.Equal(0.25d, formula.Value);
+            Assert.Equal("'Budget.xls'!TaxRate", formula.FormulaText);
+
+            using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            using var output = new MemoryStream();
+            document.Save(output);
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
+            WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single();
+            Cell projectedFormula = worksheetPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference!.Value == "A1");
+            Assert.Equal("'Budget.xls'!TaxRate", projectedFormula.CellFormula!.Text);
+        }
+
+        [Fact]
+        public void LegacyXls_Load_ImportsFormulaAddInUserDefinedFunctions() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateFormulaAddInUserDefinedFunctionWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED");
+            LegacyXlsExternalReference addInReference = Assert.Single(legacy.ExternalReferences);
+            Assert.Equal(LegacyXlsExternalReferenceKind.AddIn, addInReference.Kind);
+            Assert.Equal("MYUDF", Assert.Single(addInReference.ExternalNames).Name);
+
+            LegacyXlsCell formula = Assert.Single(Assert.Single(legacy.Worksheets).Cells);
+            Assert.True(formula.IsFormula);
+            Assert.Equal(20d, formula.Value);
+            Assert.Equal("MYUDF(10)", formula.FormulaText);
+        }
+
+        [Fact]
+        public void LegacyXls_Load_ImportsFormula3dReferencesAfterUnsupportedBoundSheets() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateFormula3dReferenceAfterChartSheetWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED");
+            Assert.Equal(2, legacy.Worksheets.Count);
+            LegacyXlsUnsupportedSheet unsupportedSheet = Assert.Single(legacy.UnsupportedSheets);
+            Assert.Equal(LegacyXlsUnsupportedSheetKind.ChartSheet, unsupportedSheet.Kind);
+
+            LegacyXlsCell formula = Assert.Single(legacy.Worksheets[0].Cells, cell => cell.Row == 1 && cell.Column == 1);
+            Assert.True(formula.IsFormula);
+            Assert.Equal(15d, formula.Value);
+            Assert.Equal("'Totals'!A1+5", formula.FormulaText);
+
+            using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            using var output = new MemoryStream();
+            document.Save(output);
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
+            Sheet dataSheet = spreadsheet.WorkbookPart!.Workbook.Sheets!.Elements<Sheet>().Single(sheet => sheet.Name == "Data");
+            WorksheetPart worksheetPart = (WorksheetPart)spreadsheet.WorkbookPart.GetPartById(dataSheet.Id!);
+            Cell projectedFormula = worksheetPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference!.Value == "A1");
+            Assert.Equal("'Totals'!A1+5", projectedFormula.CellFormula!.Text);
+        }
+
+        [Fact]
         public void LegacyXls_Load_ImportsFormulaFixedFunctionTokens() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateFormulaFixedFunctionWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
@@ -698,6 +826,99 @@ namespace OfficeIMO.Tests {
                 byte[] bytes = stream.ToArray();
                 Buffer.BlockCopy(BitConverter.GetBytes(inputSheetOffset), 0, bytes, checked((int)inputSheetBoundPosition + 4), 4);
                 Buffer.BlockCopy(BitConverter.GetBytes(totalsSheetOffset), 0, bytes, checked((int)totalsSheetBoundPosition + 4), 4);
+                return bytes;
+            }
+
+            internal static byte[] CreateFormulaExternalWorkbookReferenceWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long boundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "ExternalFormula"));
+                WriteRecord(stream, 0x01ae, BuildSupBookExternalWorkbookPayload("C:\\Data\\Budget.xls", "Jan", "Feb"));
+                WriteRecord(stream, 0x0017, BuildExternSheetPayload((0, 0, 0)));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(0, 0, 15d, formulaTokens: Build3dReferenceAdditionFormulaTokens(0, 0, 0, 5)));
+                WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(1, 0, 42d, formulaTokens: BuildSum3dAreaFormulaTokens(0, 0, 0, 1, 0)));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)boundSheetPosition + 4), 4);
+                return bytes;
+            }
+
+            internal static byte[] CreateFormulaExternalDefinedNameWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long boundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "ExternalName"));
+                WriteRecord(stream, 0x01ae, BuildSupBookExternalWorkbookPayload("C:\\Data\\Budget.xls", "Data"));
+                WriteRecord(stream, 0x0023, BuildExternalNamePayload("TaxRate"));
+                WriteRecord(stream, 0x0017, BuildExternSheetPayload((0, 0, 0)));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(0, 0, 0.25d, formulaTokens: BuildExternalDefinedNameFormulaTokens(0, 1)));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)boundSheetPosition + 4), 4);
+                return bytes;
+            }
+
+            internal static byte[] CreateFormulaAddInUserDefinedFunctionWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long boundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "AddInUdf"));
+                WriteRecord(stream, 0x01ae, BuildSupBookAddInPayload());
+                WriteRecord(stream, 0x0023, BuildAddInExternalNamePayload("MYUDF"));
+                WriteRecord(stream, 0x0017, BuildExternSheetPayload((0, -2, -2)));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(0, 0, 20d, formulaTokens: BuildAddInUserDefinedFunctionFormulaTokens(0, 1, 10)));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)boundSheetPosition + 4), 4);
+                return bytes;
+            }
+
+            internal static byte[] CreateFormula3dReferenceAfterChartSheetWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long dataBoundPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "Data"));
+                long chartBoundPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "Chart1", sheetType: 0x02));
+                long totalsBoundPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "Totals"));
+                WriteRecord(stream, 0x0017, BuildExternSheetPayload((0, 2, 2)));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int dataSheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(0, 0, 15d, formulaTokens: Build3dReferenceAdditionFormulaTokens(0, 0, 0, 5)));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int chartSheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x20, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int totalsSheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0203, BuildNumberPayload(0, 0, 10d));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(dataSheetOffset), 0, bytes, checked((int)dataBoundPosition + 4), 4);
+                Buffer.BlockCopy(BitConverter.GetBytes(chartSheetOffset), 0, bytes, checked((int)chartBoundPosition + 4), 4);
+                Buffer.BlockCopy(BitConverter.GetBytes(totalsSheetOffset), 0, bytes, checked((int)totalsBoundPosition + 4), 4);
                 return bytes;
             }
 
@@ -1326,6 +1547,55 @@ namespace OfficeIMO.Tests {
                 stream.WriteByte(0x43);
                 WriteUInt32(stream, oneBasedNameIndex);
                 stream.WriteByte(0x05);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildExternalDefinedNameFormulaTokens(ushort externSheetIndex, uint oneBasedNameIndex) {
+                using var stream = new MemoryStream();
+                stream.WriteByte(0x39);
+                WriteUInt16(stream, externSheetIndex);
+                WriteUInt32(stream, oneBasedNameIndex);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildAddInUserDefinedFunctionFormulaTokens(ushort externSheetIndex, uint oneBasedNameIndex, ushort argument) {
+                using var stream = new MemoryStream();
+                stream.WriteByte(0x39);
+                WriteUInt16(stream, externSheetIndex);
+                WriteUInt32(stream, oneBasedNameIndex);
+                stream.WriteByte(0x1e);
+                WriteUInt16(stream, argument);
+                stream.WriteByte(0x42);
+                stream.WriteByte(0x02);
+                WriteUInt16(stream, 0x00ff);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildExternalNamePayload(string name) {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, 0);
+                WriteUInt16(stream, 0);
+                WriteUInt16(stream, 0);
+                stream.WriteByte(checked((byte)name.Length));
+                WriteCompressedUnicodeStringNoCch(stream, name);
+                WriteUInt16(stream, 0);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildAddInExternalNamePayload(string name) {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, 0);
+                WriteUInt32(stream, 0);
+                stream.WriteByte(checked((byte)name.Length));
+                WriteCompressedUnicodeStringNoCch(stream, name);
+                WriteUInt16(stream, 0);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildSupBookAddInPayload() {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, 1);
+                WriteUInt16(stream, 0x3a01);
                 return stream.ToArray();
             }
 

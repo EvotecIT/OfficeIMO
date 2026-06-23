@@ -44,7 +44,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         internal static BiffFormulaReadFailure DefinedName(uint oneBasedNameIndex) =>
             new($"FormulaDefinedName{oneBasedNameIndex}", $"Formula defined-name operand {oneBasedNameIndex} could not be resolved.");
 
-        internal static BiffFormulaReadFailure Reference(string reason) =>
-            new("FormulaReference", reason);
+        internal static BiffFormulaReadFailure ExternalName(ushort externSheetIndex, uint oneBasedNameIndex) =>
+            new("FormulaExternalName", $"Formula external defined-name operand {oneBasedNameIndex} through ExternSheet index {externSheetIndex} could not be resolved.");
+
+        internal static BiffFormulaReadFailure Reference(string detailCode, string reason) =>
+            new(detailCode, reason);
     }
 }
