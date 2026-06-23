@@ -107,6 +107,12 @@ namespace OfficeIMO.Excel.LegacyXls {
             PivotTableDataItemAggregations = CountByCode(workbook.PivotTableRecords
                 .Where(record => record.AggregationFunction.HasValue)
                 .Select(record => $"AggregationFunction:{record.AggregationFunction!.Value}"));
+            PivotTableDataItemAggregationKinds = CountByCode(workbook.PivotTableRecords
+                .Where(record => !string.IsNullOrWhiteSpace(record.AggregationFunctionName))
+                .Select(record => record.AggregationFunctionName!));
+            PivotTableDataItemDisplayCalculations = CountByCode(workbook.PivotTableRecords
+                .Where(record => !string.IsNullOrWhiteSpace(record.DisplayCalculationName))
+                .Select(record => record.DisplayCalculationName!));
             PivotTableGroupingKinds = CountByCode(workbook.PivotTableRecords
                 .Where(record => record.GroupingKind.HasValue)
                 .Select(record => record.GroupingKind!.Value.ToString()));
@@ -392,6 +398,12 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets decoded SXDI PivotTable data item records grouped by raw aggregation function identifier.</summary>
         public IReadOnlyDictionary<string, int> PivotTableDataItemAggregations { get; }
 
+        /// <summary>Gets decoded SXDI PivotTable data item records grouped by aggregation function name.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableDataItemAggregationKinds { get; }
+
+        /// <summary>Gets decoded SXDI PivotTable data item records grouped by display calculation name.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableDataItemDisplayCalculations { get; }
+
         /// <summary>Gets decoded SXRng PivotTable grouping records grouped by grouping kind.</summary>
         public IReadOnlyDictionary<string, int> PivotTableGroupingKinds { get; }
 
@@ -614,6 +626,8 @@ namespace OfficeIMO.Excel.LegacyXls {
                 StringComparer.OrdinalIgnoreCase));
             AppendDictionary(builder, "Pivot Table Records By Name", PivotTableRecordsByName);
             AppendDictionary(builder, "Pivot Table Data Item Aggregations", PivotTableDataItemAggregations);
+            AppendDictionary(builder, "Pivot Table Data Item Aggregation Kinds", PivotTableDataItemAggregationKinds);
+            AppendDictionary(builder, "Pivot Table Data Item Display Calculations", PivotTableDataItemDisplayCalculations);
             AppendDictionary(builder, "Pivot Table Grouping Kinds", PivotTableGroupingKinds);
             AppendDictionary(builder, "Chart Records By Kind", ChartRecordsByKind.ToDictionary(
                 entry => entry.Key.ToString(),

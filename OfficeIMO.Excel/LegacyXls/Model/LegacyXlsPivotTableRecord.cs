@@ -49,8 +49,20 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>Gets the aggregation function identifier for an SXDI data item, when decoded.</summary>
         public short? AggregationFunction { get; private set; }
 
+        /// <summary>Gets the decoded aggregation function for an SXDI data item, when the identifier is known.</summary>
+        public LegacyXlsPivotAggregationFunction? AggregationFunctionKind { get; private set; }
+
+        /// <summary>Gets the aggregation function name for an SXDI data item, or a stable raw identifier for unknown values.</summary>
+        public string? AggregationFunctionName { get; private set; }
+
         /// <summary>Gets the display calculation identifier for an SXDI data item, when decoded.</summary>
         public short? DisplayCalculation { get; private set; }
+
+        /// <summary>Gets the decoded display calculation for an SXDI data item, when the identifier is known.</summary>
+        public LegacyXlsPivotDisplayCalculation? DisplayCalculationKind { get; private set; }
+
+        /// <summary>Gets the display calculation name for an SXDI data item, or a stable raw identifier for unknown values.</summary>
+        public string? DisplayCalculationName { get; private set; }
 
         /// <summary>Gets the pivot field index used by an SXDI display calculation, when decoded.</summary>
         public short? DisplayCalculationFieldIndex { get; private set; }
@@ -104,7 +116,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             string? name) {
             DataItemFieldIndex = dataItemFieldIndex;
             AggregationFunction = aggregationFunction;
+            AggregationFunctionKind = TryGetAggregationFunctionKind(aggregationFunction);
+            AggregationFunctionName = AggregationFunctionKind?.ToString() ?? $"AggregationFunction:{aggregationFunction}";
             DisplayCalculation = displayCalculation;
+            DisplayCalculationKind = TryGetDisplayCalculationKind(displayCalculation);
+            DisplayCalculationName = DisplayCalculationKind?.ToString() ?? $"DisplayCalculation:{displayCalculation}";
             DisplayCalculationFieldIndex = displayCalculationFieldIndex;
             DisplayCalculationItemIndex = displayCalculationItemIndex;
             NumberFormatId = numberFormatId;
@@ -132,6 +148,14 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             CanDragToHide = canDragToHide;
             PreventDragToData = preventDragToData;
             ServerBased = serverBased;
+        }
+
+        private static LegacyXlsPivotAggregationFunction? TryGetAggregationFunctionKind(short value) {
+            return value >= 0 && value <= 10 ? (LegacyXlsPivotAggregationFunction)value : null;
+        }
+
+        private static LegacyXlsPivotDisplayCalculation? TryGetDisplayCalculationKind(short value) {
+            return value >= 0 && value <= 8 ? (LegacyXlsPivotDisplayCalculation)value : null;
         }
     }
 }

@@ -296,6 +296,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.PivotTableRecordsByName["SxVdEx"]);
             Assert.Equal(1, report.PivotTableRecordsByName["PivotChartBits"]);
             Assert.Equal(1, report.PivotTableDataItemAggregations["AggregationFunction:0"]);
+            Assert.Equal(1, report.PivotTableDataItemAggregationKinds["Sum"]);
+            Assert.Equal(1, report.PivotTableDataItemDisplayCalculations["PercentOfGrandTotal"]);
             Assert.Equal(1, report.PivotTableGroupingKinds["Months"]);
 
             Assert.Contains(workbook.PivotTableRecords, record => record.Kind == LegacyXlsPivotTableRecordKind.View && record.RecordName == "SxView" && record.SheetName == null);
@@ -313,7 +315,11 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Sxdi", dataItem.RecordName);
             Assert.Equal((short)2, dataItem.DataItemFieldIndex);
             Assert.Equal((short)0, dataItem.AggregationFunction);
+            Assert.Equal(LegacyXlsPivotAggregationFunction.Sum, dataItem.AggregationFunctionKind);
+            Assert.Equal("Sum", dataItem.AggregationFunctionName);
             Assert.Equal((short)7, dataItem.DisplayCalculation);
+            Assert.Equal(LegacyXlsPivotDisplayCalculation.PercentOfGrandTotal, dataItem.DisplayCalculationKind);
+            Assert.Equal("PercentOfGrandTotal", dataItem.DisplayCalculationName);
             Assert.Equal((ushort)14, dataItem.NumberFormatId);
             Assert.Equal("Sales", dataItem.Name);
 
@@ -341,6 +347,8 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Pivot table records: 12", markdown);
             Assert.Contains("Pivot Table Records By Kind", markdown);
             Assert.Contains("Pivot Table Data Item Aggregations", markdown);
+            Assert.Contains("Pivot Table Data Item Aggregation Kinds", markdown);
+            Assert.Contains("PercentOfGrandTotal", markdown);
             Assert.Contains("Pivot Table Grouping Kinds", markdown);
             Assert.Contains("SxVdEx", markdown);
         }
