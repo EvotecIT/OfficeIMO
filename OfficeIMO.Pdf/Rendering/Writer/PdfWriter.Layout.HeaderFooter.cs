@@ -40,6 +40,22 @@ internal static partial class PdfWriter {
         };
     }
 
+    private static void GetImageAnnotationBounds(PdfImageStyle style, PageImage pageImage, double targetX, double targetBottomY, double targetWidth, double targetHeight, out double x1, out double y1, out double x2, out double y2) {
+        x1 = pageImage.X;
+        y1 = pageImage.Y;
+        x2 = pageImage.X + pageImage.W;
+        y2 = pageImage.Y + pageImage.H;
+
+        if (style.Fit != OfficeImageFit.Cover && style.ClipPath == null && style.SourceCrop?.HasCrop != true) {
+            return;
+        }
+
+        x1 = targetX;
+        y1 = targetBottomY;
+        x2 = targetX + targetWidth;
+        y2 = targetBottomY + targetHeight;
+    }
+
     private static OfficeClipPath? ScaleClipPath(OfficeClipPath? clipPath, double scaleX, double scaleY) {
         if (clipPath == null || (Math.Abs(scaleX - 1D) <= 0.0001D && Math.Abs(scaleY - 1D) <= 0.0001D)) {
             return clipPath?.Clone();

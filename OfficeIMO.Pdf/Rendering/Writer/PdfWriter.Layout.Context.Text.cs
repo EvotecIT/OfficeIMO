@@ -95,16 +95,7 @@ internal static partial class PdfWriter {
                 return;
             }
 
-            double x1 = pageImage.X;
-            double y1 = pageImage.Y;
-            double x2 = pageImage.X + pageImage.W;
-            double y2 = pageImage.Y + pageImage.H;
-            if (style.Fit == OfficeImageFit.Cover || style.ClipPath != null || style.SourceCrop?.HasCrop == true) {
-                x1 = targetX;
-                y1 = targetBottomY;
-                x2 = targetX + targetWidth;
-                y2 = targetBottomY + targetHeight;
-            }
+            GetImageAnnotationBounds(style, pageImage, targetX, targetBottomY, targetWidth, targetHeight, out double x1, out double y1, out double x2, out double y2);
 
             currentPage!.Annotations.Add(new LinkAnnotation { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Uri = image.LinkUri!, Contents = image.LinkContents, LinkedImage = pageImage });
         }
