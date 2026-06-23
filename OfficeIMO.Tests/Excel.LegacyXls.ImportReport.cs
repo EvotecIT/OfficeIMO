@@ -91,6 +91,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.DrawingRecordsByName["MsoDrawing"]);
             Assert.Equal(1, report.DrawingRecordsByName["Obj"]);
             Assert.Equal(1, report.DrawingRecordsByObjectType["ObjectType:0x0008"]);
+            Assert.Equal(1, report.DrawingRecordsByObjectTypeName["Picture"]);
             Assert.Equal(1, report.DrawingRecordsByEscherRecordType["EscherRecordType:0xF000"]);
             Assert.Equal(1, report.DrawingRecordsByEscherRecordType["EscherRecordType:0xF002"]);
             Assert.Equal(1, report.DrawingRecordsByLocation["(workbook)"]);
@@ -107,7 +108,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.PreservedFeatureRecordsByDetail["PivotTable|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED|PivotTable:SxView"]);
             Assert.Contains(workbook.PreservedFeatureRecords, record => record.DetailCode == "Drawing:MsoDrawingGroup" && record.SheetName == null);
             Assert.Contains(workbook.PreservedFeatureRecords, record => record.DetailCode == "Drawing:Obj" && record.SheetName == "FeatureMap");
-            Assert.Contains(workbook.DrawingRecords, record => record.SheetName == "FeatureMap" && record.ObjectType == 0x0008 && record.ObjectId == 1);
+            Assert.Contains(workbook.DrawingRecords, record => record.SheetName == "FeatureMap" && record.ObjectType == 0x0008 && record.ObjectTypeKind == LegacyXlsDrawingObjectType.Picture && record.ObjectTypeName == "Picture" && record.ObjectId == 1);
             Assert.Contains(workbook.DrawingRecords, record => record.RecordName == "MsoDrawingGroup" && record.EscherRecordType == 0xf000 && record.EscherRecordInstance == 2 && record.EscherRecordVersion == 0x0f && record.EscherPayloadLength == 8);
             Assert.Contains(workbook.DrawingRecords, record => record.RecordName == "MsoDrawing" && record.EscherRecordType == 0xf002 && record.EscherRecordInstance == 1 && record.EscherRecordVersion == 0x0f && record.EscherPayloadLength == 0);
             Assert.Contains(workbook.PreservedFeatureRecords, record => record.DetailCode == "Chart:Chart" && record.RecordType == 0x1002);
@@ -120,7 +121,45 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Chart Records By Name", markdown);
             Assert.Contains("Drawing Records By Name", markdown);
             Assert.Contains("Drawing Records By Object Type", markdown);
+            Assert.Contains("Drawing Records By Object Type Name", markdown);
+            Assert.Contains("Picture", markdown);
             Assert.Contains("Drawing Records By Escher Record Type", markdown);
+        }
+
+        [Theory]
+        [InlineData(0x0005, LegacyXlsDrawingObjectType.Chart, "Chart")]
+        [InlineData(0x0008, LegacyXlsDrawingObjectType.Picture, "Picture")]
+        [InlineData(0x0019, LegacyXlsDrawingObjectType.Note, "Note")]
+        [InlineData(0x001E, LegacyXlsDrawingObjectType.OfficeArtObject, "OfficeArtObject")]
+        public void LegacyXlsDrawingRecord_DecodesKnownObjectTypeNames(int objectType, LegacyXlsDrawingObjectType expectedKind, string expectedName) {
+            var record = new LegacyXlsDrawingRecord(
+                LegacyXlsDrawingRecordKind.Object,
+                "Obj",
+                "Sheet1",
+                0,
+                0x005d,
+                22,
+                checked((ushort)objectType),
+                1);
+
+            Assert.Equal(expectedKind, record.ObjectTypeKind);
+            Assert.Equal(expectedName, record.ObjectTypeName);
+        }
+
+        [Fact]
+        public void LegacyXlsDrawingRecord_UsesHexObjectTypeNameForUnknownObjectTypes() {
+            var record = new LegacyXlsDrawingRecord(
+                LegacyXlsDrawingRecordKind.Object,
+                "Obj",
+                "Sheet1",
+                0,
+                0x005d,
+                22,
+                0x0fff,
+                1);
+
+            Assert.Null(record.ObjectTypeKind);
+            Assert.Equal("ObjectType:0x0FFF", record.ObjectTypeName);
         }
 
         [Fact]

@@ -469,6 +469,14 @@ Warnings: 0
 | ObjectType:0x0005 | 4 |
 | ObjectType:0x0006 | 8 |
 
+## Drawing Records By Object Type Name
+
+| Key | Count |
+| --- | --- |
+| Chart | 4 |
+| Group | 2 |
+| Text | 8 |
+
 ## Drawing Records By Escher Record Type
 
 | Key | Count |

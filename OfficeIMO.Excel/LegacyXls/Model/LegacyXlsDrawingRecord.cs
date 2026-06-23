@@ -18,7 +18,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             ushort? escherRecordType = null,
             ushort? escherRecordInstance = null,
             byte? escherRecordVersion = null,
-            uint? escherPayloadLength = null) {
+            uint? escherPayloadLength = null,
+            LegacyXlsDrawingObjectType? objectTypeKind = null) {
             if (payloadLength < 0) {
                 throw new ArgumentOutOfRangeException(nameof(payloadLength));
             }
@@ -31,6 +32,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             PayloadLength = payloadLength;
             ObjectType = objectType;
             ObjectId = objectId;
+            ObjectTypeKind = objectTypeKind ?? TryGetObjectTypeKind(objectType);
+            ObjectTypeName = ObjectTypeKind?.ToString() ?? (objectType.HasValue ? $"ObjectType:0x{objectType.Value:X4}" : null);
             EscherRecordType = escherRecordType;
             EscherRecordInstance = escherRecordInstance;
             EscherRecordVersion = escherRecordVersion;
@@ -58,6 +61,12 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>Gets the decoded OBJ common-object type identifier, when present.</summary>
         public ushort? ObjectType { get; }
 
+        /// <summary>Gets the decoded OBJ common-object type, when the identifier is known.</summary>
+        public LegacyXlsDrawingObjectType? ObjectTypeKind { get; }
+
+        /// <summary>Gets a stable display name for the decoded OBJ common-object type, or a hexadecimal fallback for unknown types.</summary>
+        public string? ObjectTypeName { get; }
+
         /// <summary>Gets the decoded OBJ object identifier, when present.</summary>
         public ushort? ObjectId { get; }
 
@@ -72,5 +81,37 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets the declared top-level Escher payload length from MsoDrawing payloads, when present.</summary>
         public uint? EscherPayloadLength { get; }
+
+        private static LegacyXlsDrawingObjectType? TryGetObjectTypeKind(ushort? objectType) {
+            if (!objectType.HasValue) {
+                return null;
+            }
+
+            return objectType.Value switch {
+                0x0000 => LegacyXlsDrawingObjectType.Group,
+                0x0001 => LegacyXlsDrawingObjectType.Line,
+                0x0002 => LegacyXlsDrawingObjectType.Rectangle,
+                0x0003 => LegacyXlsDrawingObjectType.Oval,
+                0x0004 => LegacyXlsDrawingObjectType.Arc,
+                0x0005 => LegacyXlsDrawingObjectType.Chart,
+                0x0006 => LegacyXlsDrawingObjectType.Text,
+                0x0007 => LegacyXlsDrawingObjectType.Button,
+                0x0008 => LegacyXlsDrawingObjectType.Picture,
+                0x0009 => LegacyXlsDrawingObjectType.Polygon,
+                0x000B => LegacyXlsDrawingObjectType.Checkbox,
+                0x000C => LegacyXlsDrawingObjectType.RadioButton,
+                0x000D => LegacyXlsDrawingObjectType.EditBox,
+                0x000E => LegacyXlsDrawingObjectType.Label,
+                0x000F => LegacyXlsDrawingObjectType.DialogBox,
+                0x0010 => LegacyXlsDrawingObjectType.SpinControl,
+                0x0011 => LegacyXlsDrawingObjectType.Scrollbar,
+                0x0012 => LegacyXlsDrawingObjectType.List,
+                0x0013 => LegacyXlsDrawingObjectType.GroupBox,
+                0x0014 => LegacyXlsDrawingObjectType.DropdownList,
+                0x0019 => LegacyXlsDrawingObjectType.Note,
+                0x001E => LegacyXlsDrawingObjectType.OfficeArtObject,
+                _ => null
+            };
+        }
     }
 }
