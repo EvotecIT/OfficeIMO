@@ -84,6 +84,41 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelWorksheet_PageSlicedSvgExportRendersFirstEvenAndOddHeaderFooterVariants() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("Report");
+            FillPageBreakGrid(sheet, rows: 6);
+            sheet.SetHeaderFooter(headerCenter: "Odd &P", footerRight: "Odd Footer");
+            sheet.SetFirstPageHeaderFooter(headerCenter: "First &P", footerRight: "First Footer");
+            sheet.SetEvenPageHeaderFooter(headerCenter: "Even &P", footerRight: "Even Footer");
+            sheet.AddManualRowPageBreak(2, save: false);
+            sheet.AddManualRowPageBreak(4, save: false);
+
+            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelWorksheetImageExportOptions {
+                Range = "A1:D6",
+                SplitByManualPageBreaks = true,
+                ShowGridlines = false
+            });
+
+            Assert.Equal(3, results.Count);
+            Assert.All(results, result => Assert.DoesNotContain(result.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterUnsupported));
+            string firstSvg = Encoding.UTF8.GetString(results[0].Bytes);
+            string secondSvg = Encoding.UTF8.GetString(results[1].Bytes);
+            string thirdSvg = Encoding.UTF8.GetString(results[2].Bytes);
+            Assert.Contains(">First 1<", firstSvg);
+            Assert.Contains(">First Footer<", firstSvg);
+            Assert.DoesNotContain(">Odd 1<", firstSvg);
+            Assert.DoesNotContain(">Even 1<", firstSvg);
+            Assert.Contains(">Even 2<", secondSvg);
+            Assert.Contains(">Even Footer<", secondSvg);
+            Assert.DoesNotContain(">Odd 2<", secondSvg);
+            Assert.Contains(">Odd 3<", thirdSvg);
+            Assert.Contains(">Odd Footer<", thirdSvg);
+            Assert.DoesNotContain(">Even 3<", thirdSvg);
+        }
+
+        [Fact]
         public void ExcelWorksheet_PageSlicedPngExportAddsHeaderFooterBands() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
@@ -109,8 +144,8 @@ namespace OfficeIMO.Tests {
             Assert.True(composedInfo.Height > bodyInfo.Height);
         }
 
-        private static void FillPageBreakGrid(ExcelSheet sheet) {
-            for (int row = 1; row <= 4; row++) {
+        private static void FillPageBreakGrid(ExcelSheet sheet, int rows = 4) {
+            for (int row = 1; row <= rows; row++) {
                 for (int column = 1; column <= 4; column++) {
                     sheet.CellValue(row, column, A1.CellReference(row, column));
                 }

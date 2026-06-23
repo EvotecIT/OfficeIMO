@@ -72,31 +72,92 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            return TryCreateHeaderFooterTextChrome(1, 1, out _);
+            HeaderFooterSnapshot snapshot = GetHeaderFooter();
+            if (HasUnsupportedHeaderFooterImages(snapshot)) {
+                return false;
+            }
+
+            if (!TryCreateResolvedHeaderFooterTextChrome(
+                snapshot.HeaderLeft,
+                snapshot.HeaderCenter,
+                snapshot.HeaderRight,
+                snapshot.FooterLeft,
+                snapshot.FooterCenter,
+                snapshot.FooterRight,
+                3,
+                3,
+                out _)) {
+                return false;
+            }
+
+            if (snapshot.DifferentFirstPage &&
+                !TryCreateResolvedHeaderFooterTextChrome(
+                    snapshot.FirstHeaderLeft,
+                    snapshot.FirstHeaderCenter,
+                    snapshot.FirstHeaderRight,
+                    snapshot.FirstFooterLeft,
+                    snapshot.FirstFooterCenter,
+                    snapshot.FirstFooterRight,
+                    1,
+                    3,
+                    out _)) {
+                return false;
+            }
+
+            if (snapshot.DifferentOddEven &&
+                !TryCreateResolvedHeaderFooterTextChrome(
+                    snapshot.EvenHeaderLeft,
+                    snapshot.EvenHeaderCenter,
+                    snapshot.EvenHeaderRight,
+                    snapshot.EvenFooterLeft,
+                    snapshot.EvenFooterCenter,
+                    snapshot.EvenFooterRight,
+                    2,
+                    3,
+                    out _)) {
+                return false;
+            }
+
+            return true;
         }
 
         private bool TryCreateHeaderFooterTextChrome(int pageNumber, int pageCount, out HeaderFooterTextChrome chrome) {
             chrome = default;
             HeaderFooterSnapshot snapshot = GetHeaderFooter();
-            if (snapshot.DifferentFirstPage ||
-                snapshot.DifferentOddEven ||
-                snapshot.HeaderHasPicturePlaceholder ||
-                snapshot.FooterHasPicturePlaceholder ||
-                snapshot.HeaderLeftImage != null ||
-                snapshot.HeaderCenterImage != null ||
-                snapshot.HeaderRightImage != null ||
-                snapshot.FooterLeftImage != null ||
-                snapshot.FooterCenterImage != null ||
-                snapshot.FooterRightImage != null) {
+            if (HasUnsupportedHeaderFooterImages(snapshot)) {
                 return false;
             }
 
-            if (!TryResolveHeaderFooterText(snapshot.HeaderLeft, pageNumber, pageCount, out string headerLeft) ||
-                !TryResolveHeaderFooterText(snapshot.HeaderCenter, pageNumber, pageCount, out string headerCenter) ||
-                !TryResolveHeaderFooterText(snapshot.HeaderRight, pageNumber, pageCount, out string headerRight) ||
-                !TryResolveHeaderFooterText(snapshot.FooterLeft, pageNumber, pageCount, out string footerLeft) ||
-                !TryResolveHeaderFooterText(snapshot.FooterCenter, pageNumber, pageCount, out string footerCenter) ||
-                !TryResolveHeaderFooterText(snapshot.FooterRight, pageNumber, pageCount, out string footerRight)) {
+            HeaderFooterVariantText selected = SelectHeaderFooterVariantText(snapshot, pageNumber);
+            return TryCreateResolvedHeaderFooterTextChrome(
+                selected.HeaderLeft,
+                selected.HeaderCenter,
+                selected.HeaderRight,
+                selected.FooterLeft,
+                selected.FooterCenter,
+                selected.FooterRight,
+                pageNumber,
+                pageCount,
+                out chrome) && chrome.HasAnyText;
+        }
+
+        private bool TryCreateResolvedHeaderFooterTextChrome(
+            string? headerLeftSource,
+            string? headerCenterSource,
+            string? headerRightSource,
+            string? footerLeftSource,
+            string? footerCenterSource,
+            string? footerRightSource,
+            int pageNumber,
+            int pageCount,
+            out HeaderFooterTextChrome chrome) {
+            chrome = default;
+            if (!TryResolveHeaderFooterText(headerLeftSource, pageNumber, pageCount, out string headerLeft) ||
+                !TryResolveHeaderFooterText(headerCenterSource, pageNumber, pageCount, out string headerCenter) ||
+                !TryResolveHeaderFooterText(headerRightSource, pageNumber, pageCount, out string headerRight) ||
+                !TryResolveHeaderFooterText(footerLeftSource, pageNumber, pageCount, out string footerLeft) ||
+                !TryResolveHeaderFooterText(footerCenterSource, pageNumber, pageCount, out string footerCenter) ||
+                !TryResolveHeaderFooterText(footerRightSource, pageNumber, pageCount, out string footerRight)) {
                 return false;
             }
 
@@ -107,7 +168,47 @@ namespace OfficeIMO.Excel {
                 footerLeft,
                 footerCenter,
                 footerRight);
-            return chrome.HasAnyText;
+            return true;
+        }
+
+        private static bool HasUnsupportedHeaderFooterImages(HeaderFooterSnapshot snapshot) =>
+            snapshot.HeaderHasPicturePlaceholder ||
+            snapshot.FooterHasPicturePlaceholder ||
+            snapshot.HeaderLeftImage != null ||
+            snapshot.HeaderCenterImage != null ||
+            snapshot.HeaderRightImage != null ||
+            snapshot.FooterLeftImage != null ||
+            snapshot.FooterCenterImage != null ||
+            snapshot.FooterRightImage != null;
+
+        private static HeaderFooterVariantText SelectHeaderFooterVariantText(HeaderFooterSnapshot snapshot, int pageNumber) {
+            if (pageNumber == 1 && snapshot.DifferentFirstPage) {
+                return new HeaderFooterVariantText(
+                    snapshot.FirstHeaderLeft,
+                    snapshot.FirstHeaderCenter,
+                    snapshot.FirstHeaderRight,
+                    snapshot.FirstFooterLeft,
+                    snapshot.FirstFooterCenter,
+                    snapshot.FirstFooterRight);
+            }
+
+            if (pageNumber % 2 == 0 && snapshot.DifferentOddEven) {
+                return new HeaderFooterVariantText(
+                    snapshot.EvenHeaderLeft,
+                    snapshot.EvenHeaderCenter,
+                    snapshot.EvenHeaderRight,
+                    snapshot.EvenFooterLeft,
+                    snapshot.EvenFooterCenter,
+                    snapshot.EvenFooterRight);
+            }
+
+            return new HeaderFooterVariantText(
+                snapshot.HeaderLeft,
+                snapshot.HeaderCenter,
+                snapshot.HeaderRight,
+                snapshot.FooterLeft,
+                snapshot.FooterCenter,
+                snapshot.FooterRight);
         }
 
         private bool TryResolveHeaderFooterText(string? text, int pageNumber, int pageCount, out string normalized) {
@@ -351,6 +452,30 @@ namespace OfficeIMO.Excel {
             internal bool HasFooter => HasText(FooterLeft) || HasText(FooterCenter) || HasText(FooterRight);
             internal bool HasAnyText => HasHeader || HasFooter;
             private static bool HasText(string text) => !string.IsNullOrWhiteSpace(text);
+        }
+
+        private readonly struct HeaderFooterVariantText {
+            internal HeaderFooterVariantText(
+                string headerLeft,
+                string headerCenter,
+                string headerRight,
+                string footerLeft,
+                string footerCenter,
+                string footerRight) {
+                HeaderLeft = headerLeft;
+                HeaderCenter = headerCenter;
+                HeaderRight = headerRight;
+                FooterLeft = footerLeft;
+                FooterCenter = footerCenter;
+                FooterRight = footerRight;
+            }
+
+            internal string HeaderLeft { get; }
+            internal string HeaderCenter { get; }
+            internal string HeaderRight { get; }
+            internal string FooterLeft { get; }
+            internal string FooterCenter { get; }
+            internal string FooterRight { get; }
         }
     }
 }
