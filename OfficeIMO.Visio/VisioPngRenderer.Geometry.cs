@@ -40,17 +40,18 @@ namespace OfficeIMO.Visio {
 
         private static List<(double X, double Y)> GetConnectorPoints(VisioConnector connector) {
             ComputeConnectorEndpoints(connector, out double startX, out double startY, out double endX, out double endY);
-            List<(double X, double Y)> points = new() { (startX, startY) };
+            List<(double X, double Y)> waypoints = new(connector.Waypoints.Count);
             if (connector.Waypoints.Count > 0) {
                 foreach (VisioConnectorWaypoint waypoint in connector.Waypoints) {
-                    points.Add((waypoint.X, waypoint.Y));
+                    waypoints.Add((waypoint.X, waypoint.Y));
                 }
-            } else if (connector.Kind == ConnectorKind.RightAngle) {
-                points.Add((startX, endY));
             }
 
-            points.Add((endX, endY));
-            return points;
+            return OfficeGeometry.BuildConnectorPolyline(
+                (startX, startY),
+                (endX, endY),
+                waypoints,
+                connector.Kind == ConnectorKind.RightAngle);
         }
 
         private static void ComputeConnectorEndpoints(VisioConnector connector, out double startX, out double startY, out double endX, out double endY) {

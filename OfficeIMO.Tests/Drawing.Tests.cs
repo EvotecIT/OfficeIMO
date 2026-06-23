@@ -1173,6 +1173,41 @@ public class DrawingTests {
     }
 
     [Fact]
+    public void OfficeGeometryBuildsReusableConnectorPolylines() {
+        List<(double X, double Y)> explicitRoute = OfficeGeometry.BuildConnectorPolyline(
+            (0D, 0D),
+            (10D, 10D),
+            new[] { (2D, 3D), (4D, 5D) },
+            useRightAngleFallback: true);
+
+        Assert.Equal(new[] { (0D, 0D), (2D, 3D), (4D, 5D), (10D, 10D) }, explicitRoute);
+
+        List<(double X, double Y)> rightAngle = OfficeGeometry.BuildConnectorPolyline(
+            (1D, 2D),
+            (7D, 9D),
+            Array.Empty<(double X, double Y)>(),
+            useRightAngleFallback: true);
+
+        Assert.Equal(new[] { (1D, 2D), (1D, 9D), (7D, 9D) }, rightAngle);
+
+        List<(double X, double Y)> straight = OfficeGeometry.BuildConnectorPolyline(
+            (1D, 2D),
+            (7D, 9D),
+            null,
+            useRightAngleFallback: false);
+
+        Assert.Equal(new[] { (1D, 2D), (7D, 9D) }, straight);
+
+        List<OfficePoint> officePoints = OfficeGeometry.BuildConnectorPolyline(
+            new OfficePoint(0D, 0D),
+            new OfficePoint(4D, 4D),
+            new[] { new OfficePoint(0D, 4D) },
+            useRightAngleFallback: true);
+
+        Assert.Equal(new OfficePoint(0D, 4D), officePoints[1]);
+    }
+
+    [Fact]
     public void OfficeGeometryRotatesPointsAndConvertsAngles() {
         double radians = OfficeGeometry.DegreesToRadians(90D);
         Assert.Equal(90D, OfficeGeometry.RadiansToDegrees(radians), precision: 10);

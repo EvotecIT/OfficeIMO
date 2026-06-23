@@ -291,6 +291,58 @@ public static class OfficeGeometry {
     }
 
     /// <summary>
+    /// Builds a connector polyline from endpoints, optional waypoints, and optional right-angle fallback routing.
+    /// </summary>
+    /// <param name="start">Connector start point.</param>
+    /// <param name="end">Connector end point.</param>
+    /// <param name="waypoints">Explicit intermediate points. When present, these take precedence over right-angle fallback routing.</param>
+    /// <param name="useRightAngleFallback">When true and no explicit waypoints exist, inserts one orthogonal elbow at start X and end Y.</param>
+    /// <returns>A connector polyline containing start, any intermediate points, and end.</returns>
+    public static List<OfficePoint> BuildConnectorPolyline(
+        OfficePoint start,
+        OfficePoint end,
+        IReadOnlyList<OfficePoint>? waypoints,
+        bool useRightAngleFallback) {
+        List<OfficePoint> points = new() { start };
+        if (waypoints != null && waypoints.Count > 0) {
+            for (int i = 0; i < waypoints.Count; i++) {
+                points.Add(waypoints[i]);
+            }
+        } else if (useRightAngleFallback) {
+            points.Add(new OfficePoint(start.X, end.Y));
+        }
+
+        points.Add(end);
+        return points;
+    }
+
+    /// <summary>
+    /// Builds a tuple connector polyline from endpoints, optional waypoints, and optional right-angle fallback routing.
+    /// </summary>
+    /// <param name="start">Connector start point.</param>
+    /// <param name="end">Connector end point.</param>
+    /// <param name="waypoints">Explicit intermediate points. When present, these take precedence over right-angle fallback routing.</param>
+    /// <param name="useRightAngleFallback">When true and no explicit waypoints exist, inserts one orthogonal elbow at start X and end Y.</param>
+    /// <returns>A connector polyline containing start, any intermediate points, and end.</returns>
+    public static List<(double X, double Y)> BuildConnectorPolyline(
+        (double X, double Y) start,
+        (double X, double Y) end,
+        IReadOnlyList<(double X, double Y)>? waypoints,
+        bool useRightAngleFallback) {
+        List<(double X, double Y)> points = new() { start };
+        if (waypoints != null && waypoints.Count > 0) {
+            for (int i = 0; i < waypoints.Count; i++) {
+                points.Add(waypoints[i]);
+            }
+        } else if (useRightAngleFallback) {
+            points.Add((start.X, end.Y));
+        }
+
+        points.Add(end);
+        return points;
+    }
+
+    /// <summary>
     /// Converts degrees to radians.
     /// </summary>
     /// <param name="degrees">Angle in degrees.</param>
