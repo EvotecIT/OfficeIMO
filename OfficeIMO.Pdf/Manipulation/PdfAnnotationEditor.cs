@@ -2,6 +2,35 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Edits or removes PDF annotations without third-party dependencies.</summary>
 public static class PdfAnnotationEditor {
+    private static readonly HashSet<string> KnownAnnotationSubtypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
+        "Text",
+        "Link",
+        "FreeText",
+        "Line",
+        "Square",
+        "Circle",
+        "Polygon",
+        "PolyLine",
+        "Highlight",
+        "Underline",
+        "Squiggly",
+        "StrikeOut",
+        "Caret",
+        "Stamp",
+        "Ink",
+        "Popup",
+        "FileAttachment",
+        "Sound",
+        "Movie",
+        "Widget",
+        "Screen",
+        "PrinterMark",
+        "TrapNet",
+        "Watermark",
+        "3D",
+        "Redact"
+    };
+
     /// <summary>Removes annotations matching the supplied filters and returns rewritten PDF bytes.</summary>
     public static PdfAnnotationEditResult RemoveAnnotations(byte[] pdf, PdfAnnotationRemovalOptions? options = null) {
         Guard.NotNull(pdf, nameof(pdf));
@@ -17,7 +46,7 @@ public static class PdfAnnotationEditor {
 
         List<int> pageObjectNumbers = GetPageObjectNumbersInDocumentOrder(objects);
         var removed = new HashSet<int>();
-        int removedArrayEntries = 0;
+        bool changed = false;
         for (int pageIndex = 0; pageIndex < pageObjectNumbers.Count; pageIndex++) {
             if (effectiveOptions.PageNumber.HasValue && effectiveOptions.PageNumber.Value != pageIndex + 1) {
                 continue;
@@ -53,15 +82,16 @@ public static class PdfAnnotationEditor {
                 }
 
                 annotations.Items.RemoveAt(i);
-                removedArrayEntries++;
+                changed = true;
             }
 
-            if (removed.Count > 0) {
-                removedArrayEntries += RemovePageAnnotationReferences(annotations, removed);
+            if (effectiveOptions.RemoveMatchingPopups) {
+                RemovePopupReferences(objects, annotations, removed, ref changed);
             }
 
             if (annotations.Items.Count == 0) {
                 page.Items.Remove("Annots");
+                changed = true;
             }
         }
 
@@ -73,12 +103,13 @@ public static class PdfAnnotationEditor {
             objects.Remove(objectNumber);
         }
 
-        if (removed.Count == 0 && removedArrayEntries == 0) {
+        if (!changed && removed.Count == 0) {
             return new PdfAnnotationEditResult((byte[])pdf.Clone(), 0);
         }
 
+        PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalogObjectNumber);
         byte[] rewritten = RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Load(pdf).Metadata, pdf);
-        return new PdfAnnotationEditResult(rewritten, removedArrayEntries);
+        return new PdfAnnotationEditResult(rewritten, Math.Max(removed.Count, 1));
     }
 
     /// <summary>Updates a single indirect annotation and returns rewritten PDF bytes.</summary>
@@ -105,6 +136,7 @@ public static class PdfAnnotationEditor {
         }
 
         ApplyUpdates(annotation, options);
+        PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalogObjectNumber);
         byte[] rewritten = RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Load(pdf).Metadata, pdf);
         return new PdfAnnotationEditResult(rewritten, 1);
     }
@@ -191,8 +223,10 @@ public static class PdfAnnotationEditor {
     }
 
     private static void ApplyUpdates(PdfDictionary annotation, PdfAnnotationUpdateOptions options) {
+        bool invalidateAppearance = false;
         if (options.Contents is not null) {
             annotation.Items["Contents"] = new PdfStringObj(options.Contents, useTextStringEncoding: true);
+            invalidateAppearance = true;
         }
 
         if (options.Title is not null) {
@@ -209,11 +243,16 @@ public static class PdfAnnotationEditor {
 
         if (options.Color is not null) {
             annotation.Items["C"] = CreateColorArray(options.Color);
+            invalidateAppearance = true;
         }
 
         if (options.RemoveActions) {
             annotation.Items.Remove("A");
             annotation.Items.Remove("AA");
+        }
+
+        if (invalidateAppearance) {
+            annotation.Items.Remove("AP");
         }
     }
 
@@ -269,7 +308,17 @@ public static class PdfAnnotationEditor {
     }
 
     private static bool IsAnnotation(PdfDictionary dictionary) {
-        return dictionary.Get<PdfName>("Type")?.Name == "Annot";
+        string? type = dictionary.Get<PdfName>("Type")?.Name;
+        if (string.Equals(type, "Annot", StringComparison.Ordinal)) {
+            return true;
+        }
+
+        if (!string.IsNullOrEmpty(type)) {
+            return false;
+        }
+
+        return dictionary.Get<PdfName>("Subtype") is PdfName subtype &&
+            KnownAnnotationSubtypes.Contains(subtype.Name);
     }
 
     private static bool HasAnnotationSubtype(PdfDictionary dictionary) {
@@ -298,6 +347,33 @@ public static class PdfAnnotationEditor {
         }
 
         return false;
+    }
+
+    private static void RemovePopupReferences(Dictionary<int, PdfIndirectObject> objects, PdfArray annotations, HashSet<int> removed, ref bool changed) {
+        if (removed.Count == 0) {
+            return;
+        }
+
+        for (int i = annotations.Items.Count - 1; i >= 0; i--) {
+            if (annotations.Items[i] is not PdfReference reference) {
+                continue;
+            }
+
+            if (removed.Contains(reference.ObjectNumber)) {
+                annotations.Items.RemoveAt(i);
+                changed = true;
+                continue;
+            }
+
+            if (PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) &&
+                indirect.Value is PdfDictionary annotation &&
+                annotation.Items.TryGetValue("Popup", out PdfObject? popupObject) &&
+                popupObject is PdfReference popupReference &&
+                removed.Contains(popupReference.ObjectNumber)) {
+                annotation.Items.Remove("Popup");
+                changed = true;
+            }
+        }
     }
 
     private static string? TryReadName(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, string key) {

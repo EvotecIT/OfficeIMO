@@ -40,6 +40,9 @@ public sealed partial class PdfOptions {
         Guard.PageNumberStyle(PageNumberStyle, nameof(PageNumberStyle));
         Guard.ComplianceProfile(ComplianceProfile, nameof(ComplianceProfile));
         PdfPageLabelDictionaryBuilder.ValidatePrefix(PageLabelPrefix, nameof(PageLabelPrefix));
+        if (_encryption != null && HasPdfABackedGroundwork()) {
+            throw new System.ArgumentException("PDF Standard encryption cannot be combined with PDF/A, Factur-X, or ZUGFeRD groundwork.");
+        }
 
         if (DefaultFontSize <= 0 || double.IsNaN(DefaultFontSize) || double.IsInfinity(DefaultFontSize)) {
             throw new System.ArgumentException("PDF default font size must be a positive finite value.");
@@ -143,6 +146,21 @@ public sealed partial class PdfOptions {
             Guard.FormFieldTextAlignment(AcroFormDefaultTextAlignment.Value, nameof(AcroFormDefaultTextAlignment));
         }
     }
+
+    private bool HasPdfABackedGroundwork() =>
+        _pdfAIdentification != null ||
+        _electronicInvoiceMetadata != null ||
+        ComplianceProfile == PdfComplianceProfile.PdfA2B ||
+        ComplianceProfile == PdfComplianceProfile.PdfA2U ||
+        ComplianceProfile == PdfComplianceProfile.PdfA2A ||
+        ComplianceProfile == PdfComplianceProfile.PdfA3B ||
+        ComplianceProfile == PdfComplianceProfile.PdfA3U ||
+        ComplianceProfile == PdfComplianceProfile.PdfA3A ||
+        ComplianceProfile == PdfComplianceProfile.PdfA4 ||
+        ComplianceProfile == PdfComplianceProfile.PdfA4E ||
+        ComplianceProfile == PdfComplianceProfile.PdfA4F ||
+        ComplianceProfile == PdfComplianceProfile.FacturX ||
+        ComplianceProfile == PdfComplianceProfile.Zugferd;
 
     private static void ValidateZones(string? left, string? center, string? right, string paramName) {
         if (left == null && center == null && right == null) {

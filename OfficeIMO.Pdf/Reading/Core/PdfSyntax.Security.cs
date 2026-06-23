@@ -667,7 +667,7 @@ internal static partial class PdfSyntax {
     private static int? TryReadContentsSizeBytes(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary) {
         return dictionary.Items.TryGetValue("Contents", out PdfObject? contentsObject) &&
             ResolveObject(objects, contentsObject) is PdfStringObj contents
-            ? contents.Value.Length
+            ? contents.RawBytes.Length
             : null;
     }
 

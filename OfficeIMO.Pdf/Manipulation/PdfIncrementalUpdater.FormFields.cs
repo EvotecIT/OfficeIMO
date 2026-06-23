@@ -6,6 +6,7 @@ public static partial class PdfIncrementalUpdater {
     private const int IncrementalRadioButtonFlag = 1 << 15;
     private const int IncrementalMultilineFlag = 1 << 12;
     private const int IncrementalPasswordFlag = 1 << 13;
+    private const int IncrementalEditableChoiceFlag = 1 << 18;
     private const int IncrementalCombFlag = 1 << 24;
 
     /// <summary>
@@ -45,17 +46,12 @@ public static partial class PdfIncrementalUpdater {
         int inheritedFlags = 0;
         int nextObjectNumber = objects.Keys.Count == 0 ? 1 : objects.Keys.Max() + 1;
         int helveticaFontObjectNumber = 0;
-        int? acroFormContainerObjectNumber = acroFormObject is PdfReference acroFormReference
-            ? acroFormReference.ObjectNumber
-            : security.RootObjectNumber.Value;
-        int? fieldContainerObjectNumber = fieldsObject is PdfReference fieldsReference
-            ? fieldsReference.ObjectNumber
-            : acroFormContainerObjectNumber;
+        int? fieldsContainerObjectNumber = fieldsObject is PdfReference fieldsReference ? fieldsReference.ObjectNumber : null;
         for (int i = 0; i < fields.Items.Count; i++) {
             UpdateFormField(
                 objects,
                 fields.Items[i],
-                fieldContainerObjectNumber,
+                fieldsContainerObjectNumber,
                 null,
                 null,
                 inheritedFlags,
@@ -125,6 +121,11 @@ public static partial class PdfIncrementalUpdater {
     }
 
     private static void ValidateAppendOnlyFormInput(PdfDocumentSecurityInfo security, IEnumerable<string> fieldNames) {
+        string? lockedFieldName = GetFirstLockedFormFieldName(security, fieldNames);
+        if (lockedFieldName is not null) {
+            throw new NotSupportedException("Incremental form field updates are not supported for field " + lockedFieldName + " because it is locked by a signature field lock.");
+        }
+
         PdfAppendOnlyMutationReport report = BuildAppendOnlyMutationReport(security, fieldNames);
         if (!report.SupportedActions.Contains("FormFill", StringComparer.Ordinal)) {
             throw new NotSupportedException("Incremental form field updates are not supported for this PDF: " + string.Join(", ", report.Blockers));
@@ -183,20 +184,20 @@ public static partial class PdfIncrementalUpdater {
 
         if (fullName is not null && remaining.Contains(fullName) && fieldValues.TryGetValue(fullName, out string? value)) {
             string actualValue = value ?? string.Empty;
-            SetIncrementalFieldValue(field, fieldType, actualValue);
-            int? changedOwnerObjectNumber = objectNumber ?? containingObjectNumber;
-            if (changedOwnerObjectNumber.HasValue) {
-                changedObjectNumbers.Add(changedOwnerObjectNumber.Value);
+            string appearanceValue = PrepareIncrementalFieldValue(objects, field, fieldType, fieldFlags, ref actualValue);
+            SetIncrementalFieldValue(objects, field, fieldType, fieldFlags, actualValue);
+            if (objectNumber.HasValue) {
+                changedObjectNumbers.Add(objectNumber.Value);
+            } else if (containingObjectNumber.HasValue) {
+                changedObjectNumbers.Add(containingObjectNumber.Value);
             }
 
-            if (options.GenerateAppearanceStreams) {
-                if (string.Equals(fieldType, "Btn", StringComparison.Ordinal)) {
-                    bool isRadioButtonGroup = (fieldFlags & IncrementalRadioButtonFlag) != 0;
-                    string name = IsOffButtonValue(actualValue) ? "Off" : actualValue;
-                    SetIncrementalWidgetAppearanceStates(objects, field, name, isRadioButtonGroup, changedObjectNumbers, new HashSet<int>(), ref nextObjectNumber);
-                } else {
-                    SetIncrementalTextWidgetAppearances(objects, field, actualValue, fieldFlags, fieldQuadding, fieldMaxLength, defaultResources, changedObjectNumbers, new HashSet<int>(), ref nextObjectNumber, ref helveticaFontObjectNumber);
-                }
+            if (string.Equals(fieldType, "Btn", StringComparison.Ordinal)) {
+                bool isRadioButtonGroup = (fieldFlags & IncrementalRadioButtonFlag) != 0;
+                string name = IsOffButtonValue(actualValue) ? "Off" : actualValue;
+                SetIncrementalWidgetAppearanceStates(objects, field, name, isRadioButtonGroup, options.GenerateAppearanceStreams, changedObjectNumbers, new HashSet<int>(), ref nextObjectNumber);
+            } else if (options.GenerateAppearanceStreams) {
+                SetIncrementalTextWidgetAppearances(objects, field, appearanceValue, fieldFlags, fieldQuadding, fieldMaxLength, defaultResources, changedObjectNumbers, new HashSet<int>(), ref nextObjectNumber, ref helveticaFontObjectNumber);
             }
 
             remaining.Remove(fullName);
@@ -215,9 +216,17 @@ public static partial class PdfIncrementalUpdater {
         }
     }
 
-    private static void SetIncrementalFieldValue(PdfDictionary field, string? fieldType, string value) {
+    private static void SetIncrementalFieldValue(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, string? fieldType, int fieldFlags, string value) {
         if (string.Equals(fieldType, "Btn", StringComparison.Ordinal)) {
             string name = IsOffButtonValue(value) ? "Off" : value;
+            bool isRadioButtonGroup = (fieldFlags & IncrementalRadioButtonFlag) != 0;
+            if (isRadioButtonGroup && !string.Equals(name, "Off", StringComparison.Ordinal)) {
+                HashSet<string> availableStates = CollectIncrementalButtonNormalAppearanceStates(objects, field, new HashSet<int>());
+                if (!availableStates.Contains(name)) {
+                    throw new ArgumentException($"PDF radio button field cannot be filled with value '{name}' because it is not one of the available appearance states.", nameof(value));
+                }
+            }
+
             field.Items["V"] = new PdfName(name);
             field.Items["AS"] = new PdfName(name);
             return;
@@ -226,11 +235,98 @@ public static partial class PdfIncrementalUpdater {
         field.Items["V"] = new PdfStringObj(value, useTextStringEncoding: true);
     }
 
+    private static string PrepareIncrementalFieldValue(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, string? fieldType, int fieldFlags, ref string value) {
+        if (string.Equals(fieldType, "Btn", StringComparison.Ordinal)) {
+            value = PrepareIncrementalButtonFieldValue(objects, field, fieldFlags, value);
+            return value;
+        }
+
+        if (!string.Equals(fieldType, "Ch", StringComparison.Ordinal) ||
+            (fieldFlags & IncrementalEditableChoiceFlag) != 0) {
+            return value;
+        }
+
+        if (!field.Items.TryGetValue("Opt", out PdfObject? optionsObject) ||
+            ResolveObject(objects, optionsObject) is not PdfArray options ||
+            options.Items.Count == 0) {
+            return value;
+        }
+
+        for (int i = 0; i < options.Items.Count; i++) {
+            PdfObject? optionObject = ResolveObject(objects, options.Items[i]);
+            if (optionObject is PdfArray pair &&
+                pair.Items.Count >= 2 &&
+                TryReadOptionText(objects, pair.Items[0], out string? exportValue) &&
+                exportValue is not null &&
+                TryReadOptionText(objects, pair.Items[1], out string? displayValue) &&
+                displayValue is not null) {
+                if (string.Equals(value, exportValue, StringComparison.Ordinal) ||
+                    string.Equals(value, displayValue, StringComparison.Ordinal)) {
+                    value = exportValue;
+                    return displayValue;
+                }
+
+                continue;
+            }
+
+            if (optionObject is not null &&
+                TryReadOptionText(objects, optionObject, out string? optionValue) &&
+                optionValue is not null &&
+                string.Equals(value, optionValue, StringComparison.Ordinal)) {
+                value = optionValue;
+                return optionValue;
+            }
+        }
+
+        throw new ArgumentException($"PDF choice field cannot be filled with value '{value}' because it is not one of the allowed options.", nameof(value));
+    }
+
+    private static string PrepareIncrementalButtonFieldValue(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, int fieldFlags, string value) {
+        if (IsOffButtonValue(value)) {
+            return "Off";
+        }
+
+        HashSet<string> availableStates = CollectIncrementalButtonNormalAppearanceStates(objects, field, new HashSet<int>());
+        bool isRadioButtonGroup = (fieldFlags & IncrementalRadioButtonFlag) != 0;
+        if (availableStates.Contains(value)) {
+            return value;
+        }
+
+        if (!isRadioButtonGroup &&
+            IsTruthyButtonValue(value) &&
+            availableStates.Count == 1) {
+            return availableStates.Single();
+        }
+
+        string fieldKind = isRadioButtonGroup ? "radio button" : "checkbox";
+        throw new ArgumentException($"PDF {fieldKind} field cannot be filled with value '{value}' because it is not one of the available appearance states.", nameof(value));
+    }
+
+    private static bool TryReadOptionText(Dictionary<int, PdfIndirectObject> objects, PdfObject value, out string? text) {
+        text = null;
+        switch (ResolveObject(objects, value)) {
+            case PdfStringObj stringObj:
+                text = stringObj.Value;
+                return true;
+            case PdfName name:
+                text = name.Name;
+                return true;
+            default:
+                return false;
+        }
+    }
+
     private static bool IsOffButtonValue(string value) =>
         string.IsNullOrWhiteSpace(value) ||
         string.Equals(value, "false", StringComparison.OrdinalIgnoreCase) ||
         string.Equals(value, "off", StringComparison.OrdinalIgnoreCase) ||
         string.Equals(value, "0", StringComparison.Ordinal);
+
+    private static bool IsTruthyButtonValue(string value) =>
+        string.Equals(value, "true", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(value, "yes", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(value, "on", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(value, "1", StringComparison.Ordinal);
 
     private static void SetIncrementalTextWidgetAppearances(
         Dictionary<int, PdfIndirectObject> objects,
@@ -291,13 +387,18 @@ public static partial class PdfIncrementalUpdater {
         PdfDictionary field,
         string name,
         bool isRadioButtonGroup,
+        bool generateAppearanceStreams,
         HashSet<int> changedObjectNumbers,
         HashSet<int> visited,
         ref int nextObjectNumber) {
         if (IsWidget(field)) {
-            string appearanceState = isRadioButtonGroup && !HasIncrementalButtonNormalAppearanceState(objects, field, name) ? "Off" : name;
+            string? widgetOnState = ReadIncrementalWidgetOnAppearanceState(objects, field);
+            string appearanceState = isRadioButtonGroup && !string.Equals(widgetOnState, name, StringComparison.Ordinal) ? "Off" : name;
             field.Items["AS"] = new PdfName(appearanceState);
-            SetIncrementalButtonWidgetAppearances(objects, field, appearanceState, changedObjectNumbers, ref nextObjectNumber);
+            if (generateAppearanceStreams) {
+                string? preservedOnState = widgetOnState ?? (!string.Equals(name, "Off", StringComparison.Ordinal) ? name : null);
+                SetIncrementalButtonWidgetAppearances(objects, field, appearanceState, preservedOnState, changedObjectNumbers, ref nextObjectNumber);
+            }
         }
 
         if (!field.Items.TryGetValue("Kids", out PdfObject? kidsObject) ||
@@ -313,7 +414,7 @@ public static partial class PdfIncrementalUpdater {
             }
 
             if (ResolveObject(objects, kidObject) is PdfDictionary kid) {
-                SetIncrementalWidgetAppearanceStates(objects, kid, name, isRadioButtonGroup, changedObjectNumbers, visited, ref nextObjectNumber);
+                SetIncrementalWidgetAppearanceStates(objects, kid, name, isRadioButtonGroup, generateAppearanceStreams, changedObjectNumbers, visited, ref nextObjectNumber);
                 if (kidObjectNumber.HasValue) {
                     changedObjectNumbers.Add(kidObjectNumber.Value);
                 }
@@ -325,6 +426,7 @@ public static partial class PdfIncrementalUpdater {
         Dictionary<int, PdfIndirectObject> objects,
         PdfDictionary widget,
         string selectedName,
+        string? preservedOnState,
         HashSet<int> changedObjectNumbers,
         ref int nextObjectNumber) {
         if (!TryReadRect(widget, out double width, out double height)) {
@@ -337,11 +439,12 @@ public static partial class PdfIncrementalUpdater {
         normalAppearances.Items["Off"] = new PdfReference(offAppearanceObjectNumber, 0);
         changedObjectNumbers.Add(offAppearanceObjectNumber);
 
-        if (!string.Equals(selectedName, "Off", StringComparison.Ordinal)) {
-            int selectedAppearanceObjectNumber = nextObjectNumber++;
-            objects[selectedAppearanceObjectNumber] = new PdfIndirectObject(selectedAppearanceObjectNumber, 0, CreateIncrementalButtonAppearanceStream(width, height, selected: true, ReadIncrementalWidgetAppearanceStyle(objects, widget)));
-            normalAppearances.Items[selectedName] = new PdfReference(selectedAppearanceObjectNumber, 0);
-            changedObjectNumbers.Add(selectedAppearanceObjectNumber);
+        string? onState = string.Equals(selectedName, "Off", StringComparison.Ordinal) ? preservedOnState : selectedName;
+        if (!string.IsNullOrEmpty(onState)) {
+            int onAppearanceObjectNumber = nextObjectNumber++;
+            objects[onAppearanceObjectNumber] = new PdfIndirectObject(onAppearanceObjectNumber, 0, CreateIncrementalButtonAppearanceStream(width, height, selected: true, ReadIncrementalWidgetAppearanceStyle(objects, widget)));
+            normalAppearances.Items[onState!] = new PdfReference(onAppearanceObjectNumber, 0);
+            changedObjectNumbers.Add(onAppearanceObjectNumber);
         }
 
         var appearance = new PdfDictionary();
@@ -450,14 +553,53 @@ public static partial class PdfIncrementalUpdater {
         return style;
     }
 
-    private static bool HasIncrementalButtonNormalAppearanceState(Dictionary<int, PdfIndirectObject> objects, PdfDictionary widget, string stateName) {
-        if (string.IsNullOrEmpty(stateName)) {
-            return false;
+    private static HashSet<string> CollectIncrementalButtonNormalAppearanceStates(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, HashSet<int> visited) {
+        var states = new HashSet<string>(StringComparer.Ordinal);
+        CollectIncrementalButtonNormalAppearanceStates(objects, field, states, visited);
+        states.Remove("Off");
+        return states;
+    }
+
+    private static void CollectIncrementalButtonNormalAppearanceStates(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, HashSet<string> states, HashSet<int> visited) {
+        if (IsWidget(field) &&
+            TryGetIncrementalNormalAppearanceObject(objects, field, out PdfObject? normalAppearance) &&
+            normalAppearance is PdfDictionary appearanceStates) {
+            foreach (string stateName in appearanceStates.Items.Keys) {
+                states.Add(stateName);
+            }
         }
 
-        return TryGetIncrementalNormalAppearanceObject(objects, widget, out PdfObject? normalAppearance) &&
-            normalAppearance is PdfDictionary appearanceStates &&
-            appearanceStates.Items.ContainsKey(stateName);
+        if (!field.Items.TryGetValue("Kids", out PdfObject? kidsObject) ||
+            ResolveObject(objects, kidsObject) is not PdfArray kids) {
+            return;
+        }
+
+        for (int i = 0; i < kids.Items.Count; i++) {
+            PdfObject kidObject = kids.Items[i];
+            int? kidObjectNumber = kidObject is PdfReference reference ? reference.ObjectNumber : null;
+            if (kidObjectNumber.HasValue && !visited.Add(kidObjectNumber.Value)) {
+                continue;
+            }
+
+            if (ResolveObject(objects, kidObject) is PdfDictionary kid) {
+                CollectIncrementalButtonNormalAppearanceStates(objects, kid, states, visited);
+            }
+        }
+    }
+
+    private static string? ReadIncrementalWidgetOnAppearanceState(Dictionary<int, PdfIndirectObject> objects, PdfDictionary widget) {
+        if (!TryGetIncrementalNormalAppearanceObject(objects, widget, out PdfObject? normalAppearance) ||
+            normalAppearance is not PdfDictionary appearanceStates) {
+            return null;
+        }
+
+        foreach (string stateName in appearanceStates.Items.Keys) {
+            if (!string.Equals(stateName, "Off", StringComparison.Ordinal)) {
+                return stateName;
+            }
+        }
+
+        return null;
     }
 
     private static bool TryGetIncrementalNormalAppearanceObject(Dictionary<int, PdfIndirectObject> objects, PdfDictionary widget, out PdfObject? normalAppearance) {
@@ -626,12 +768,7 @@ public static partial class PdfIncrementalUpdater {
         }
 
         var identityMap = objects.Keys.ToDictionary(static objectNumber => objectNumber, static objectNumber => objectNumber);
-        var context = new PdfPageExtractor.SerializationContext(
-            identityMap,
-            pagesObjectId: 0,
-            new Dictionary<int, Dictionary<string, PdfObject>>(),
-            objects,
-            preserveReferenceGenerations: true);
+        var context = new PdfPageExtractor.SerializationContext(identityMap, pagesObjectId: 0, new Dictionary<int, Dictionary<string, PdfObject>>(), objects, preserveReferenceGenerations: true);
         int[] objectNumbers = changedObjectNumbers.OrderBy(static objectNumber => objectNumber).ToArray();
         var serialized = new List<(int ObjectNumber, int Generation, byte[] Bytes)>(objectNumbers.Length);
         foreach (int objectNumber in objectNumbers) {
@@ -660,15 +797,15 @@ public static partial class PdfIncrementalUpdater {
         using var writer = new StreamWriter(output, Encoding.ASCII, 1024, leaveOpen: true) { NewLine = "\n" };
         writer.WriteLine("xref");
         foreach (int objectNumber in objectNumbers) {
-            int generation = objects[objectNumber].Generation;
+            int generation = serialized.First(item => item.ObjectNumber == objectNumber).Generation;
             writer.WriteLine(objectNumber.ToString(CultureInfo.InvariantCulture) + " 1");
             writer.WriteLine(offsets[objectNumber].ToString("0000000000", CultureInfo.InvariantCulture) + " " + generation.ToString("00000", CultureInfo.InvariantCulture) + " n ");
         }
 
         writer.WriteLine("trailer");
         writer.WriteLine("<< /Size " + size.ToString(CultureInfo.InvariantCulture) +
-            " /Root " + PdfSyntaxEscaper.IndirectReference(security.RootObjectNumber.Value, security.RootObjectGeneration ?? 0) +
-            (security.InfoObjectNumber.HasValue ? " /Info " + PdfSyntaxEscaper.IndirectReference(security.InfoObjectNumber.Value, security.InfoObjectGeneration ?? 0) : string.Empty) +
+            " /Root " + BuildExistingTrailerReference(objects, security.RootObjectNumber.Value) +
+            (security.InfoObjectNumber.HasValue ? " /Info " + BuildExistingTrailerReference(objects, security.InfoObjectNumber.Value) : string.Empty) +
             " /Prev " + security.LastStartXrefOffset.Value.ToString(CultureInfo.InvariantCulture) +
             ReadTrailerIdEntry(trailerRaw) +
             " >>");

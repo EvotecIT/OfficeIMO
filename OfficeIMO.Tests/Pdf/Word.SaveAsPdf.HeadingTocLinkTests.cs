@@ -3,6 +3,7 @@ using OfficeIMO.Word.Pdf;
 using OfficeIMO.Pdf;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -389,6 +390,41 @@ namespace OfficeIMO.Tests {
             }));
 
             Assert.False(string.IsNullOrWhiteSpace(familyName));
+        }
+
+        [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Maps_Missing_Heading_Font_To_Mapped_Standard_Fallback() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeMissingHeadingFontFallback.docx");
+
+            using WordDocument document = WordDocument.Create(docPath);
+            document.AddParagraph("Native mapped heading font fallback").SetStyle(WordParagraphStyles.Heading1);
+
+            Style headingStyle = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
+                .Elements<Style>()
+                .First(style => style.StyleId == "Heading1");
+            StyleRunProperties runProperties = headingStyle.GetFirstChild<StyleRunProperties>() ?? headingStyle.AppendChild(new StyleRunProperties());
+            runProperties.RemoveAllChildren<RunFonts>();
+            runProperties.AppendChild(new RunFonts { Ascii = "sans-serif", HighAnsi = "sans-serif" });
+
+            Type nativeFontMapType = typeof(WordPdfConverterExtensions).GetNestedType("NativeFontMap", BindingFlags.NonPublic)!;
+            object nativeFontMap = Activator.CreateInstance(nativeFontMapType, nonPublic: true)!;
+            MethodInfo registerMethod = typeof(WordPdfConverterExtensions).GetMethod(
+                "RegisterNativeThemeStyleFonts",
+                BindingFlags.NonPublic | BindingFlags.Static)!;
+            var registeredFontSlots = new HashSet<PdfStandardFont> { PdfStandardFont.Helvetica };
+            registerMethod.Invoke(null, new object[] {
+                document,
+                new PdfOptions(),
+                registeredFontSlots,
+                true,
+                nativeFontMap
+            });
+
+            object[] args = { "sans-serif", PdfStandardFont.Courier };
+            bool mapped = (bool)nativeFontMapType.GetMethod("TryGetFontSlot", BindingFlags.Public | BindingFlags.Instance)!.Invoke(nativeFontMap, args)!;
+
+            Assert.True(mapped);
+            Assert.Equal(PdfStandardFont.Helvetica, Assert.IsType<PdfStandardFont>(args[1]));
         }
 
         [Fact]

@@ -127,6 +127,12 @@ public static class PdfSignatureValidator {
             AddSignatureFinding(findings, signature, PdfDiagnosticSeverity.Warning, "SignatureEmptyContents", "Signature /Contents is present but empty.");
         }
 
+        if (gapLength.HasValue &&
+            signature.ContentsEncodedSizeBytes.HasValue &&
+            gapLength.Value != signature.ContentsEncodedSizeBytes.Value) {
+            AddSignatureFinding(findings, signature, PdfDiagnosticSeverity.Error, "SignatureByteRangeContentsGapMismatch", "Signature /ByteRange gap does not match the full /Contents token span.");
+        }
+
         if (string.IsNullOrEmpty(signature.Filter)) {
             AddSignatureFinding(findings, signature, PdfDiagnosticSeverity.Warning, "SignatureMissingFilter", "Signature value does not identify a signature /Filter handler.");
         }

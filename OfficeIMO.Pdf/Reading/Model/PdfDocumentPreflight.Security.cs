@@ -142,7 +142,6 @@ public sealed partial class PdfDocumentPreflight {
                     security.DocMDPPermissionLevel.HasValue &&
                     security.DocMDPPermissionLevel.Value >= 2 &&
                     security.DocMDPPermissionLevel.Value <= 3) {
-                    AddDistinct(messages, "Append-only form filling is available for DocMDP-certified PDFs when certification permission level /P permits form changes.");
                 } else {
                     AddDistinct(messages, "Append-only signature preservation is not implemented by OfficeIMO.Pdf yet.");
                 }
@@ -152,7 +151,6 @@ public sealed partial class PdfDocumentPreflight {
                 if (security.DocMDPPermissionLevel.HasValue &&
                     security.DocMDPPermissionLevel.Value >= 2 &&
                     security.DocMDPPermissionLevel.Value <= 3) {
-                    AddDistinct(messages, "DocMDP certification permission level permits append-only form filling but still blocks unrelated mutations.");
                 } else {
                     AddDistinct(messages, "DocMDP certification permissions do not allow append-only form filling.");
                 }
@@ -166,9 +164,6 @@ public sealed partial class PdfDocumentPreflight {
                 AddDistinct(messages, "Append-only mutation for xref-stream PDFs is not implemented by OfficeIMO.Pdf yet.");
             }
 
-            if (messages.Count == 0) {
-                AddDistinct(messages, "Append-only mutation is required; only supported OfficeIMO.Pdf append-only actions should be used.");
-            }
             _appendOnlyMutationDiagnostics = messages.AsReadOnly();
             return _appendOnlyMutationDiagnostics;
         }

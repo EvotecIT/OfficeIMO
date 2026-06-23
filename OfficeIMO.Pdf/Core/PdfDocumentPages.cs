@@ -382,10 +382,7 @@ public sealed class PdfDocumentPages {
         }
 
         anchors = anchors
-            .Select((anchor, index) => new { Anchor = anchor, Index = index })
-            .OrderBy(item => item.Anchor.PageNumber!.Value)
-            .ThenBy(item => item.Index)
-            .Select(item => item.Anchor)
+            .OrderBy(anchor => anchor.PageNumber!.Value)
             .ToList();
 
         var ranges = new List<PdfBookmarkPageRange>(anchors.Count);

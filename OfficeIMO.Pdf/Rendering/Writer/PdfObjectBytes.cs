@@ -18,6 +18,10 @@ internal static class PdfObjectBytes {
             throw new ArgumentOutOfRangeException(nameof(objectNumber), "PDF object number must be positive.");
         }
 
+        if (generation < 0) {
+            throw new ArgumentOutOfRangeException(nameof(generation), "PDF object generation cannot be negative.");
+        }
+
         return Concat(
             PdfEncoding.Latin1GetBytes(objectNumber.ToString(CultureInfo.InvariantCulture) + " " + generation.ToString(CultureInfo.InvariantCulture) + " obj\n"),
             body,

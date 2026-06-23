@@ -46,7 +46,7 @@ public static class PdfOptimizer {
             RemoveUnreferencedObjects(optimizedObjects, catalogObjectNumber, actions);
         }
 
-        byte[] candidate = RewriteAllObjects(optimizedObjects, catalogObjectNumber, metadata, pdf);
+        byte[] candidate = RewriteAllObjects(optimizedObjects, catalogObjectNumber, PdfReadDocument.Load(pdf).Metadata, pdf);
         PdfOptimizationReport reportAfter = PdfDiagnostics.AnalyzeOptimization(candidate);
         if (effectiveOptions.KeepOriginalWhenNotSmaller && candidate.Length >= pdf.Length) {
             return new PdfOptimizationActionResult(
@@ -195,12 +195,12 @@ public static class PdfOptimizer {
     }
 
     private static uint Adler32(byte[] data) {
-        const uint ModAdler = 65521;
+        const uint mod = 65521;
         uint a = 1;
         uint b = 0;
         for (int i = 0; i < data.Length; i++) {
-            a = (a + data[i]) % ModAdler;
-            b = (b + a) % ModAdler;
+            a = (a + data[i]) % mod;
+            b = (b + a) % mod;
         }
 
         return (b << 16) | a;
@@ -227,15 +227,16 @@ public static class PdfOptimizer {
             group.Add(entry.Key);
         }
 
-        var replacements = new Dictionary<int, int>();
+        var replacements = new Dictionary<int, PdfReference>();
         foreach (List<int> group in streamGroups.Values) {
             if (group.Count < 2) {
                 continue;
             }
 
             int keeper = group[0];
+            int keeperGeneration = objects.TryGetValue(keeper, out PdfIndirectObject? keeperObject) ? keeperObject.Generation : 0;
             for (int i = 1; i < group.Count; i++) {
-                replacements[group[i]] = keeper;
+                replacements[group[i]] = new PdfReference(keeper, keeperGeneration);
             }
         }
 
@@ -243,19 +244,15 @@ public static class PdfOptimizer {
             return;
         }
 
-        var replacementReferences = replacements.ToDictionary(
-            static item => item.Key,
-            item => new PdfReference(item.Value, objects[item.Value].Generation));
-
         foreach (int objectNumber in objects.Keys.OrderBy(static key => key).ToArray()) {
             PdfIndirectObject indirect = objects[objectNumber];
-            PdfObject rewritten = ReplaceReferences(indirect.Value, replacementReferences);
+            PdfObject rewritten = ReplaceReferences(indirect.Value, replacements);
             if (!ReferenceEquals(rewritten, indirect.Value)) {
                 objects[objectNumber] = new PdfIndirectObject(indirect.ObjectNumber, indirect.Generation, rewritten);
             }
         }
 
-        foreach (KeyValuePair<int, int> replacement in replacements.OrderBy(static item => item.Key)) {
+        foreach (KeyValuePair<int, PdfReference> replacement in replacements.OrderBy(static item => item.Key)) {
             if (!objects.TryGetValue(replacement.Key, out PdfIndirectObject? duplicate)) {
                 continue;
             }
@@ -267,13 +264,14 @@ public static class PdfOptimizer {
                 replacement.Key,
                 originalLength,
                 0,
-                "Rewrote references to duplicate stream object " + replacement.Key.ToString(System.Globalization.CultureInfo.InvariantCulture) + " to use object " + replacement.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) + "."));
+                "Rewrote references to duplicate stream object " + replacement.Key.ToString(System.Globalization.CultureInfo.InvariantCulture) + " to use object " + replacement.Value.ObjectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + "."));
         }
     }
 
     private static PdfObject ReplaceReferences(PdfObject value, IReadOnlyDictionary<int, PdfReference> replacements) {
         if (value is PdfReference reference &&
-            replacements.TryGetValue(reference.ObjectNumber, out PdfReference? replacementReference)) {
+            replacements.TryGetValue(reference.ObjectNumber, out PdfReference? replacementReference) &&
+            replacementReference is not null) {
             return replacementReference;
         }
 

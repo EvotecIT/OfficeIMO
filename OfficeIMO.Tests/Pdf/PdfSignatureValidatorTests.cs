@@ -39,16 +39,16 @@ public class PdfSignatureValidatorTests {
 
         PdfSignatureValidationResult result = Assert.Single(report.Signatures);
         Assert.Equal("Approval", result.Signature.FieldName);
-        Assert.Equal(new long[] { 0, 10, 20, 30 }, result.Signature.ByteRangeValues);
+        Assert.Equal(new long[] { 0, 8, 16, 30 }, result.Signature.ByteRangeValues);
         Assert.True(result.Signature.HasRecognizedSubFilter);
         Assert.True(result.Signature.UsesDetachedCmsSubFilter);
         Assert.True(result.HasCompleteByteRangeShape);
         Assert.True(result.ByteRangeSegmentsAreOrdered);
         Assert.False(result.ByteRangeCoversEndOfFile);
-        Assert.Equal(40, result.ByteRangeCoveredBytes);
-        Assert.Equal(10, result.ByteRangeGapStart);
-        Assert.Equal(10, result.ByteRangeGapLength);
-        Assert.False(result.ByteRangeGapMatchesContents);
+        Assert.Equal(38, result.ByteRangeCoveredBytes);
+        Assert.Equal(8, result.ByteRangeGapStart);
+        Assert.Equal(8, result.ByteRangeGapLength);
+        Assert.True(result.ByteRangeGapMatchesContents);
         Assert.True(result.UnsignedByteCount > 0);
         Assert.True(result.ByteRangeCoverageRatio > 0);
         Assert.Contains(report.Findings, finding => finding.Code == "SignatureByteRangeDoesNotCoverEof");
@@ -71,6 +71,18 @@ public class PdfSignatureValidatorTests {
     }
 
     [Fact]
+    public void Validate_ComparesByteRangeGapWithActualContentsTokenSpan() {
+        PdfSignatureValidationReport report = PdfSignatureValidator.Validate(BuildSignedPdfWithWhitespaceContentsGap());
+
+        PdfSignatureValidationResult result = Assert.Single(report.Signatures);
+        Assert.Equal(10, result.ByteRangeGapLength);
+        Assert.Equal(3, result.Signature.ContentsSizeBytes);
+        Assert.Equal(10, result.Signature.ContentsEncodedSizeBytes);
+        Assert.True(result.ByteRangeGapMatchesContents);
+        Assert.DoesNotContain(report.Findings, finding => finding.Code == "SignatureByteRangeContentsGapMismatch");
+    }
+
+    [Fact]
     public void Validate_FlagsMalformedSignatureByteRange() {
         PdfSignatureValidationReport report = PdfSignatureValidator.Validate(BuildMalformedSignaturePdf());
 
@@ -79,6 +91,154 @@ public class PdfSignatureValidatorTests {
         Assert.Equal("StructuralIssues", report.ProofStatus);
         Assert.Contains(report.Findings, finding => finding.Code == "SignatureUnsupportedByteRangeShape");
         Assert.Contains(report.Findings, finding => finding.Code == "SignatureMissingContents");
+    }
+
+    [Fact]
+    public void Validate_FlagsByteRangeGapThatDoesNotMatchContentsHexLiteral() {
+        PdfSignatureValidationReport report = PdfSignatureValidator.Validate(BuildMismatchedSignatureGapPdf());
+
+        Assert.True(report.HasSignatures);
+        Assert.False(report.IsStructurallyValid);
+        PdfSignatureValidationResult result = Assert.Single(report.Signatures);
+        Assert.False(result.ByteRangeGapMatchesContents);
+        Assert.Contains(report.Findings, finding => finding.Code == "SignatureByteRangeContentsGapMismatch");
+    }
+
+    [Fact]
+    public void PrepareExternalSignature_AppendsSignablePlaceholderAndDigest() {
+        byte[] pdf = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("External signing draft"))
+            .ToBytes();
+
+        PdfAppendOnlyMutationReport appendOnly = PdfIncrementalUpdater.AnalyzeAppendOnlyMutation(pdf);
+        Assert.True(appendOnly.CanPrepareExternalSignature);
+        Assert.Contains("SignaturePrepare", appendOnly.SupportedActions);
+
+        PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
+            pdf,
+            new PdfExternalSignatureOptions {
+                FieldName = "Approval",
+                Name = "Alice",
+                Reason = "Approval",
+                ReservedSignatureContentsBytes = 512,
+                SigningTime = new DateTimeOffset(2026, 6, 22, 12, 0, 0, TimeSpan.Zero)
+            });
+
+        Assert.True(preparation.PreparedPdf.Length > pdf.Length);
+        Assert.Equal("Approval", preparation.FieldName);
+        Assert.Equal("adbe.pkcs7.detached", preparation.SubFilter);
+        Assert.Equal(4, preparation.ByteRangeValues.Count);
+        Assert.Equal(0, preparation.ByteRangeValues[0]);
+        Assert.Equal(preparation.ContentsHexOffset - 1, preparation.ByteRangeValues[1]);
+        Assert.Equal(preparation.ContentsHexOffset + preparation.ContentsHexLength + 1, preparation.ByteRangeValues[2]);
+        Assert.Equal(preparation.PreparedPdf.LongLength, preparation.ByteRangeValues[2] + preparation.ByteRangeValues[3]);
+        Assert.Equal(32, preparation.ComputeSha256Digest().Length);
+
+        PdfSignatureValidationReport report = PdfSignatureValidator.Validate(preparation.PreparedPdf);
+
+        Assert.True(report.HasSignatures);
+        Assert.True(report.IsStructurallyValid);
+        PdfSignatureValidationResult result = Assert.Single(report.Signatures);
+        Assert.Equal("Approval", result.Signature.FieldName);
+        Assert.True(result.ByteRangeCoversEndOfFile);
+        Assert.True(result.ByteRangeGapMatchesContents);
+        Assert.True(result.Signature.HasContents);
+        Assert.True(result.Signature.ContentsSizeBytes >= 512);
+        Assert.Contains(report.Findings, finding => finding.Code == "SignatureDetachedCmsSubFilter");
+        Assert.Contains(report.Findings, finding => finding.Code == "AcroFormAppendOnly");
+    }
+
+    [Fact]
+    public void PrepareExternalSignature_IgnoresEarlierMatchingContentsPlaceholders() {
+        byte[] pdf = BuildPdfWithEarlierContentsPlaceholder(reservedSignatureContentsBytes: 256);
+
+        PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
+            pdf,
+            new PdfExternalSignatureOptions {
+                FieldName = "Approval",
+                ReservedSignatureContentsBytes = 256
+            });
+
+        Assert.True(preparation.ContentsHexOffset > pdf.Length);
+        Assert.Equal(preparation.ContentsHexOffset - 1, preparation.ByteRangeValues[1]);
+        Assert.True(PdfSignatureValidator.Validate(preparation.PreparedPdf).IsStructurallyValid);
+    }
+
+    [Fact]
+    public void PrepareExternalSignature_EmitsDocTimeStampTypeForDocumentTimestamps() {
+        byte[] pdf = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Timestamp signing draft"))
+            .ToBytes();
+
+        PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
+            pdf,
+            new PdfExternalSignatureOptions {
+                FieldName = "Timestamp",
+                SubFilter = PdfExternalSignatureSubFilter.DocumentTimestamp,
+                ReservedSignatureContentsBytes = 256
+            });
+
+        string preparedText = Encoding.ASCII.GetString(preparation.PreparedPdf);
+        PdfSignatureValidationResult signature = Assert.Single(PdfSignatureValidator.Validate(preparation.PreparedPdf).Signatures);
+
+        Assert.Equal("ETSI.RFC3161", preparation.SubFilter);
+        Assert.Contains("/Type /DocTimeStamp", preparedText, StringComparison.Ordinal);
+        Assert.Contains("/SubFilter /ETSI.RFC3161", preparedText, StringComparison.Ordinal);
+        Assert.True(signature.Signature.IsDocumentTimestamp);
+    }
+
+    [Fact]
+    public void ApplyExternalSignature_PatchesReservedContentsWithoutChangingByteRange() {
+        byte[] pdf = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("External signature injection"))
+            .ToBytes();
+        PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
+            pdf,
+            new PdfExternalSignatureOptions {
+                FieldName = "Approval",
+                ReservedSignatureContentsBytes = 256
+            });
+
+        byte[] signature = { 0x30, 0x82, 0x01, 0x0A, 0xAA, 0x55 };
+        byte[] signed = PdfIncrementalUpdater.ApplyExternalSignature(preparation, signature);
+
+        Assert.Equal(preparation.PreparedPdf.Length, signed.Length);
+        Assert.Contains("3082010AAA55", Encoding.ASCII.GetString(signed));
+        PdfSignatureValidationReport report = PdfSignatureValidator.Validate(signed);
+        PdfSignatureValidationResult result = Assert.Single(report.Signatures);
+        Assert.Equal(preparation.ByteRangeValues, result.Signature.ByteRangeValues);
+        Assert.True(result.Signature.ContentsSizeBytes >= signature.Length);
+        Assert.DoesNotContain(report.Findings, finding => finding.Code == "SignatureEmptyContents");
+    }
+
+    [Fact]
+    public void ApplyExternalSignature_IgnoresEarlierNonSignatureContentsPlaceholders() {
+        const int reservedSignatureContentsBytes = 256;
+        string zeros = new string('0', reservedSignatureContentsBytes * 2);
+        byte[] pdf = BuildPdfWithEarlierContentsPlaceholder(reservedSignatureContentsBytes);
+        PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
+            pdf,
+            new PdfExternalSignatureOptions {
+                FieldName = "Approval",
+                ReservedSignatureContentsBytes = reservedSignatureContentsBytes
+            });
+        string preparedText = Encoding.ASCII.GetString(preparation.PreparedPdf);
+        int earlierContentsOffset = preparedText.IndexOf("/Contents <" + zeros + ">", StringComparison.Ordinal);
+
+        byte[] signature = { 0x30, 0x82, 0x01, 0x0A, 0xAA, 0x55 };
+        byte[] signed = PdfIncrementalUpdater.ApplyExternalSignature(preparation.PreparedPdf, signature);
+        string signedText = Encoding.ASCII.GetString(signed);
+
+        Assert.True(earlierContentsOffset >= 0);
+        Assert.True(earlierContentsOffset < preparation.ContentsHexOffset);
+        Assert.Equal(zeros, signedText.Substring(earlierContentsOffset + "/Contents <".Length, zeros.Length));
+        Assert.StartsWith("3082010AAA55", signedText.Substring(preparation.ContentsHexOffset, signature.Length * 2), StringComparison.Ordinal);
+
+        PdfSignatureValidationReport report = PdfSignatureValidator.Validate(signed);
+        PdfSignatureValidationResult result = Assert.Single(report.Signatures);
+        Assert.True(report.IsStructurallyValid);
+        Assert.True(result.Signature.ContentsSizeBytes >= signature.Length);
+        Assert.DoesNotContain(report.Findings, finding => finding.Code == "SignatureEmptyContents");
     }
 
     private static byte[] BuildSignedIncrementalPdf() {
@@ -103,7 +263,7 @@ public class PdfSignatureValidatorTests {
             "<< /FT /Sig /T (Approval) /V 6 0 R /Subtype /Widget /Rect [10 10 120 40] >>",
             "endobj",
             "6 0 obj",
-            "<< /Type /Sig /Filter /Adobe.PPKLite /SubFilter /adbe.pkcs7.detached /Name (Alice) /ByteRange [0 10 20 30] /Contents <001122> /Reference [<< /TransformMethod /DocMDP /TransformParams << /Type /TransformParams /V /1.2 /P 2 >> >>] >>",
+            "<< /Type /Sig /Filter /Adobe.PPKLite /SubFilter /adbe.pkcs7.detached /Name (Alice) /ByteRange [0 8 16 30] /Contents <001122> /Reference [<< /TransformMethod /DocMDP /TransformParams << /Type /TransformParams /V /1.2 /P 2 >> >>] >>",
             "endobj",
             "7 0 obj",
             "<< /Fields [5 0 R] /SigFlags 3 >>",
@@ -133,6 +293,69 @@ public class PdfSignatureValidatorTests {
             "%%EOF",
             "startxref",
             "200",
+            "%%EOF"
+        });
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildPdfWithEarlierContentsPlaceholder(int reservedSignatureContentsBytes) {
+        string zeros = new string('0', reservedSignatureContentsBytes * 2);
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Annots [4 0 R] /Contents 5 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Type /Annot /Subtype /Text /Rect [10 10 30 30] /Contents <" + zeros + "> >>",
+            "endobj",
+            "5 0 obj",
+            "<< /Length 34 >>",
+            "stream",
+            "BT /F1 12 Tf 72 720 Td (Text) Tj ET",
+            "endstream",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 6 >>",
+            "startxref",
+            "123",
+            "%%EOF"
+        });
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildMismatchedSignatureGapPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] >>",
+            "endobj",
+            "4 0 obj",
+            "<< /FT /Sig /T (Mismatch) /V 6 0 R >>",
+            "endobj",
+            "5 0 obj",
+            "<< /Fields [4 0 R] /SigFlags 1 >>",
+            "endobj",
+            "6 0 obj",
+            "<< /Type /Sig /Filter /Adobe.PPKLite /SubFilter /adbe.pkcs7.detached /ByteRange [0 10 20 30] /Contents <001122> >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 7 >>",
+            "startxref",
+            "123",
             "%%EOF"
         });
 
@@ -190,6 +413,37 @@ public class PdfSignatureValidatorTests {
             "endobj",
             "6 0 obj",
             "<< /Type /Sig /Filter /Adobe.PPKLite /SubFilter /adbe.pkcs7.detached /ByteRange [0 10 18 30] /Contents <001122> >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 7 >>",
+            "startxref",
+            "123",
+            "%%EOF"
+        });
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildSignedPdfWithWhitespaceContentsGap() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] >>",
+            "endobj",
+            "4 0 obj",
+            "<< /FT /Sig /T (Approval) /V 6 0 R >>",
+            "endobj",
+            "5 0 obj",
+            "<< /Fields [4 0 R] /SigFlags 1 >>",
+            "endobj",
+            "6 0 obj",
+            "<< /Type /Sig /Filter /Adobe.PPKLite /SubFilter /adbe.pkcs7.detached /ByteRange [0 10 20 30] /Contents <00 11\n22> >>",
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 7 >>",

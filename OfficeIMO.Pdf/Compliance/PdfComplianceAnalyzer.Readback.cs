@@ -5,8 +5,10 @@ public static partial class PdfComplianceAnalyzer {
     public static PdfComplianceReadinessReport AssessReadback(PdfComplianceProfile profile, byte[] pdf, PdfReadOptions? options = null) {
         Guard.ComplianceProfile(profile, nameof(profile));
         Guard.NotNull(pdf, nameof(pdf));
-        PdfDocumentInfo info = PdfInspector.Inspect(pdf, options);
-        return AssessReadback(profile, info);
+        PdfDocumentProbe probe = PdfInspector.Probe(pdf);
+        PdfReadDocument document = PdfReadDocument.Load(pdf, options);
+        PdfDocumentInfo info = PdfInspector.FromReadDocument(document, probe);
+        return AssessReadback(profile, info, document.ExtractAttachments());
     }
 
     /// <summary>Analyzes an existing PDF file for profile-specific readback evidence.</summary>
@@ -29,6 +31,10 @@ public static partial class PdfComplianceAnalyzer {
 
     /// <summary>Analyzes already-inspected PDF metadata for profile-specific readback evidence.</summary>
     public static PdfComplianceReadinessReport AssessReadback(PdfComplianceProfile profile, PdfDocumentInfo info) {
+        return AssessReadback(profile, info, extractedAttachments: null);
+    }
+
+    private static PdfComplianceReadinessReport AssessReadback(PdfComplianceProfile profile, PdfDocumentInfo info, IReadOnlyList<PdfExtractedAttachment>? extractedAttachments) {
         Guard.ComplianceProfile(profile, nameof(profile));
         Guard.NotNull(info, nameof(info));
 
@@ -38,17 +44,17 @@ public static partial class PdfComplianceAnalyzer {
         }
 
         if (RequiresPdf17FileVersion(profile)) {
-            Add(requirements, "readback-pdf-file-version", "Readback PDF 1.7 file header",
-                string.Equals(info.HeaderVersion, "1.7", StringComparison.Ordinal),
-                "The saved PDF header is PDF 1.7.",
-                "Generate the saved PDF with a PDF 1.7 file header before checking PDF/A-2, PDF/A-3, PDF/UA-1, or e-invoice profile evidence.");
+            Add(requirements, "readback-pdf-file-version", "Readback effective PDF 1.7 version",
+                ComparePdfVersion(info.EffectiveVersion, "1.7") == 0,
+                "The saved PDF effective version is PDF 1.7.",
+                "Generate the saved PDF with a PDF 1.7 header or catalog /Version before checking PDF/A-2, PDF/A-3, PDF/UA-1, or e-invoice profile evidence.");
         }
 
         if (RequiresPdf20FileVersion(profile)) {
-            Add(requirements, "readback-pdf-file-version", "Readback PDF 2.0 effective version",
-                string.Equals(info.EffectiveVersion, "2.0", StringComparison.Ordinal),
-                "The saved PDF effective version is PDF 2.0.",
-                "Generate the saved PDF with a PDF 2.0 file header before checking PDF/A-4 or PDF/UA-2 profile evidence.");
+            Add(requirements, "readback-pdf-file-version", "Readback effective PDF 2.0 version",
+                ComparePdfVersion(info.EffectiveVersion, "2.0") >= 0,
+                "The saved PDF effective version is PDF 2.0 or newer.",
+                "Generate the saved PDF with a PDF 2.0 header or catalog /Version before checking PDF/A-4 or PDF/UA-2 profile evidence.");
         }
 
         if (IsPdfA(profile) || IsElectronicInvoice(profile)) {
@@ -60,7 +66,7 @@ public static partial class PdfComplianceAnalyzer {
         }
 
         if (IsElectronicInvoice(profile)) {
-            AddElectronicInvoiceReadbackRequirements(requirements, info);
+            AddElectronicInvoiceReadbackRequirements(requirements, info, extractedAttachments);
         }
 
         return new PdfComplianceReadinessReport(profile, GetDisplayName(profile), requirements.AsReadOnly());
@@ -129,6 +135,32 @@ public static partial class PdfComplianceAnalyzer {
             "Readback sRGB output-intent policy",
             PdfComplianceRequirementStatus.Satisfied,
             "The saved PDF contains an sRGB IEC61966-2.1 /GTS_PDFA1 output intent with RGB ICC profile evidence.");
+    }
+
+    private static int ComparePdfVersion(string? left, string? right) {
+        if (!TryParsePdfVersion(left, out int leftMajor, out int leftMinor)) {
+            return TryParsePdfVersion(right, out _, out _) ? -1 : 0;
+        }
+
+        if (!TryParsePdfVersion(right, out int rightMajor, out int rightMinor)) {
+            return 1;
+        }
+
+        int majorComparison = leftMajor.CompareTo(rightMajor);
+        return majorComparison != 0 ? majorComparison : leftMinor.CompareTo(rightMinor);
+    }
+
+    private static bool TryParsePdfVersion(string? version, out int major, out int minor) {
+        major = 0;
+        minor = 0;
+        if (string.IsNullOrWhiteSpace(version)) {
+            return false;
+        }
+
+        string[] parts = version!.Split('.');
+        return parts.Length == 2 &&
+            int.TryParse(parts[0], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out major) &&
+            int.TryParse(parts[1], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out minor);
     }
 
     private static void AddAccessibilityReadbackRequirements(List<PdfComplianceRequirement> requirements, PdfComplianceProfile profile, PdfDocumentInfo info) {
@@ -202,23 +234,76 @@ public static partial class PdfComplianceAnalyzer {
             "OfficeIMO.Pdf readback can verify tagged groundwork markers, but full external PDF/UA/PDF/A-a structure validation is still required before claiming conformance."));
     }
 
-    private static void AddElectronicInvoiceReadbackRequirements(List<PdfComplianceRequirement> requirements, PdfDocumentInfo info) {
+    private static void AddElectronicInvoiceReadbackRequirements(List<PdfComplianceRequirement> requirements, PdfDocumentInfo info, IReadOnlyList<PdfExtractedAttachment>? extractedAttachments) {
         PdfXmpMetadataInfo? xmp = info.XmpMetadata;
         Add(requirements, "readback-einvoice-xmp", "Readback e-invoice XMP metadata",
             xmp?.HasElectronicInvoiceMetadata == true,
             "The saved PDF contains Factur-X/ZUGFeRD XMP extension metadata.",
             "The saved PDF XMP metadata must contain Factur-X/ZUGFeRD extension properties.");
 
-        bool hasDataAttachment = info.Attachments.Any(static attachment => attachment.Relationship == PdfAssociatedFileRelationship.Data);
-        Add(requirements, "readback-associated-invoice-file", "Readback associated invoice file",
-            hasDataAttachment,
-            "The saved PDF contains at least one associated file with AFRelationship Data.",
-            "The saved PDF must contain the invoice XML as an associated file with AFRelationship Data.");
+        requirements.Add(BuildReadbackInvoiceAttachmentRequirement(extractedAttachments));
 
         requirements.Add(new PdfComplianceRequirement(
             "mustang-validation",
             "Mustang validation evidence",
             PdfComplianceRequirementStatus.Unsupported,
             "Run Mustang against the saved PDF before claiming Factur-X or ZUGFeRD conformance."));
+    }
+
+    private static PdfComplianceRequirement BuildReadbackInvoiceAttachmentRequirement(IReadOnlyList<PdfExtractedAttachment>? attachments) {
+        if (attachments == null) {
+            return new PdfComplianceRequirement(
+                "readback-associated-invoice-file",
+                "Readback associated invoice file",
+                PdfComplianceRequirementStatus.Missing,
+                "Analyze PDF bytes, a file path, or a stream so OfficeIMO.Pdf can validate the factur-x.xml CrossIndustryInvoice payload during readback.");
+        }
+
+        var diagnostics = new List<string>();
+        for (int i = 0; i < attachments.Count; i++) {
+            PdfExtractedAttachment attachment = attachments[i];
+            if (!TryCreateReadbackEmbeddedFile(attachment, diagnostics, out PdfEmbeddedFile? embeddedFile)) {
+                continue;
+            }
+
+            if (IsFacturXCiiAttachment(embeddedFile!, diagnostics)) {
+                return new PdfComplianceRequirement(
+                    "readback-associated-invoice-file",
+                    "Readback associated invoice file",
+                    PdfComplianceRequirementStatus.Satisfied,
+                    "The saved PDF contains canonical factur-x.xml associated-file evidence with parseable UN/CEFACT CrossIndustryInvoice XML.");
+            }
+        }
+
+        string diagnostic = diagnostics.Count == 0
+            ? "The saved PDF must contain factur-x.xml with an associated-file relationship, XML MIME type, and parseable UN/CEFACT CrossIndustryInvoice XML."
+            : string.Join(" ", diagnostics.Distinct(StringComparer.Ordinal).ToArray());
+        return new PdfComplianceRequirement(
+            "readback-associated-invoice-file",
+            "Readback associated invoice file",
+            PdfComplianceRequirementStatus.Missing,
+            diagnostic);
+    }
+
+    private static bool TryCreateReadbackEmbeddedFile(PdfExtractedAttachment attachment, List<string> diagnostics, out PdfEmbeddedFile? embeddedFile) {
+        embeddedFile = null;
+        byte[] bytes = attachment.Bytes;
+        if (bytes.Length == 0) {
+            diagnostics.Add("Attach non-empty UN/CEFACT CrossIndustryInvoice XML in factur-x.xml.");
+            return false;
+        }
+
+        try {
+            embeddedFile = new PdfEmbeddedFile(
+                attachment.UnicodeFileName ?? attachment.FileName,
+                bytes,
+                attachment.MimeType,
+                attachment.Relationship,
+                attachment.Description);
+            return true;
+        } catch (ArgumentException ex) {
+            diagnostics.Add(ex.Message);
+            return false;
+        }
     }
 }
