@@ -13,7 +13,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             int recordOffset,
             ushort recordType,
             int payloadLength,
-            string? chartTypeName = null) {
+            string? chartTypeName = null,
+            int? chartX = null,
+            int? chartY = null,
+            int? chartWidth = null,
+            int? chartHeight = null) {
             if (payloadLength < 0) {
                 throw new ArgumentOutOfRangeException(nameof(payloadLength));
             }
@@ -25,6 +29,10 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             RecordType = recordType;
             PayloadLength = payloadLength;
             ChartTypeName = string.IsNullOrWhiteSpace(chartTypeName) ? null : chartTypeName;
+            ChartX = chartX;
+            ChartY = chartY;
+            ChartWidth = chartWidth;
+            ChartHeight = chartHeight;
         }
 
         /// <summary>Gets the shallow chart record category.</summary>
@@ -47,5 +55,17 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets the decoded chart family name for BIFF chart-type records, when available.</summary>
         public string? ChartTypeName { get; }
+
+        /// <summary>Gets the decoded chart rectangle X coordinate from Chart records, when present.</summary>
+        public int? ChartX { get; }
+
+        /// <summary>Gets the decoded chart rectangle Y coordinate from Chart records, when present.</summary>
+        public int? ChartY { get; }
+
+        /// <summary>Gets the decoded chart rectangle width from Chart records, when present.</summary>
+        public int? ChartWidth { get; }
+
+        /// <summary>Gets the decoded chart rectangle height from Chart records, when present.</summary>
+        public int? ChartHeight { get; }
     }
 }

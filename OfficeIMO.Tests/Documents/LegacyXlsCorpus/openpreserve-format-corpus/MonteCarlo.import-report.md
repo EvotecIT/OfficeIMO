@@ -340,6 +340,15 @@ Warnings: 0
 | --- | --- |
 | Scatter | 8 |
 
+## Chart Records By Rectangle
+
+| Key | Count |
+| --- | --- |
+| X:0;Y:0;Width:28751904;Height:17962056 | 2 |
+| X:0;Y:0;Width:28803024;Height:17989632 | 2 |
+| X:0;Y:0;Width:32652648;Height:20934792 | 2 |
+| X:0;Y:0;Width:32686056;Height:20987856 | 2 |
+
 ## Chart Records By Location
 
 | Key | Count |

@@ -1695,6 +1695,10 @@ namespace OfficeIMO.Tests {
             stream.WriteByte((byte)((value >> 24) & 0xff));
         }
 
+        private static void WriteInt32(Stream stream, int value) {
+            WriteUInt32(stream, unchecked((uint)value));
+        }
+
         private static void WriteUInt16(byte[] buffer, int offset, ushort value) {
             buffer[offset] = (byte)(value & 0xff);
             buffer[offset + 1] = (byte)((value >> 8) & 0xff);

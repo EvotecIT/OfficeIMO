@@ -10,6 +10,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 return false;
             }
 
+            TryReadChartRectangle(record, out int? chartX, out int? chartY, out int? chartWidth, out int? chartHeight);
             records.Add(new LegacyXlsChartRecord(
                 GetKind(record.Type),
                 BiffUnsupportedRecordDiagnostics.GetBiffRecordName(record.Type),
@@ -17,7 +18,27 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 record.Offset,
                 record.Type,
                 record.Payload.Length,
-                GetChartTypeName(record.Type)));
+                GetChartTypeName(record.Type),
+                chartX,
+                chartY,
+                chartWidth,
+                chartHeight));
+            return true;
+        }
+
+        private static bool TryReadChartRectangle(BiffRecord record, out int? x, out int? y, out int? width, out int? height) {
+            x = null;
+            y = null;
+            width = null;
+            height = null;
+            if (record.Type != 0x1002 || record.Payload.Length < 16) {
+                return false;
+            }
+
+            x = BiffRecordReader.ReadInt32(record.Payload, 0);
+            y = BiffRecordReader.ReadInt32(record.Payload, 4);
+            width = BiffRecordReader.ReadInt32(record.Payload, 8);
+            height = BiffRecordReader.ReadInt32(record.Payload, 12);
             return true;
         }
 

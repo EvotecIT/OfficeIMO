@@ -54,6 +54,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 | (bytes[offset + 3] << 24));
         }
 
+        internal static int ReadInt32(byte[] bytes, int offset) {
+            return unchecked((int)ReadUInt32(bytes, offset));
+        }
+
         internal static double ReadDouble(byte[] bytes, int offset) {
             if (offset < 0 || offset + 8 > bytes.Length) throw new InvalidDataException("Unexpected end of BIFF record.");
             byte[] valueBytes = new byte[8];

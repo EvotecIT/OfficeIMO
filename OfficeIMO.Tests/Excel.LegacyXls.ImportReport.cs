@@ -254,6 +254,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.ChartRecordsByName["ChartFormat"]);
             Assert.Equal(1, report.ChartRecordsByName["Scatter"]);
             Assert.Equal(1, report.ChartRecordsByChartType["Scatter"]);
+            Assert.Equal(1, report.ChartRecordsByRectangle["X:100;Y:200;Width:3000;Height:2200"]);
             Assert.Equal(4, report.ChartRecordsByLocation["ChartOnly"]);
             Assert.Equal(1, report.DrawingRecordCount);
             Assert.Equal(1, report.DrawingRecordsByKind[LegacyXlsDrawingRecordKind.TextObject]);
@@ -269,9 +270,11 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:ChartFormat"]);
             Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Scatter"]);
             Assert.Contains(workbook.PreservedFeatureRecords, record => record.SheetName == "ChartOnly" && record.DetailCode == "Chart:Chart");
-            Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "Chart");
+            Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "Chart" && record.ChartX == 100 && record.ChartY == 200 && record.ChartWidth == 3000 && record.ChartHeight == 2200);
             Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.ChartTypeName == "Scatter");
             Assert.Contains(workbook.Diagnostics, d => d.SheetName == "ChartOnly" && d.DetailCode == "Chart:Chart");
+            string markdown = report.ToMarkdown();
+            Assert.Contains("Chart Records By Rectangle", markdown);
         }
 
         [Fact]

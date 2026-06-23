@@ -362,6 +362,13 @@ Warnings: 2
 | --- | --- |
 | Scatter | 8 |
 
+## Chart Records By Rectangle
+
+| Key | Count |
+| --- | --- |
+| X:0;Y:0;Width:31913352;Height:18890064 | 4 |
+| X:0;Y:0;Width:31948776;Height:18923472 | 4 |
+
 ## Chart Records By Location
 
 | Key | Count |
