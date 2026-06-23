@@ -463,6 +463,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.UnsupportedSheetMetadataRecordsByKind[LegacyXlsUnsupportedSheetMetadataKind.ChartTextObject]);
             Assert.Equal(1, report.UnsupportedChartSheetTextObjectCounts["TextObjects:1"]);
             Assert.Empty(report.UnsupportedChartSheetPrintSizes);
+            Assert.Empty(report.UnsupportedChartSheetPrintSizeKinds);
             Assert.Equal(1, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.ChartSheet]);
             Assert.Equal(18, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.Chart]);
             Assert.Equal(18, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.Chart]);

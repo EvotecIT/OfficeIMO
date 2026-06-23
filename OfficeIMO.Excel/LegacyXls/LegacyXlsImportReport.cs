@@ -132,6 +132,9 @@ namespace OfficeIMO.Excel.LegacyXls {
             UnsupportedChartSheetPrintSizes = CountByCode(workbook.UnsupportedSheets
                 .Where(sheet => sheet.Kind == LegacyXlsUnsupportedSheetKind.ChartSheet && sheet.ChartPrintSize.HasValue)
                 .Select(sheet => $"PrintSize:{sheet.ChartPrintSize!.Value}"));
+            UnsupportedChartSheetPrintSizeKinds = CountByCode(workbook.UnsupportedSheets
+                .Where(sheet => sheet.Kind == LegacyXlsUnsupportedSheetKind.ChartSheet && !string.IsNullOrWhiteSpace(sheet.ChartPrintSizeName))
+                .Select(sheet => sheet.ChartPrintSizeName!));
             UnsupportedChartSheetTextObjectCounts = CountByCode(workbook.UnsupportedSheets
                 .Where(sheet => sheet.Kind == LegacyXlsUnsupportedSheetKind.ChartSheet && sheet.ChartTextObjectCount > 0)
                 .Select(sheet => $"TextObjects:{sheet.ChartTextObjectCount}"));
@@ -546,6 +549,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets unsupported chart sheets grouped by raw PrintSize value.</summary>
         public IReadOnlyDictionary<string, int> UnsupportedChartSheetPrintSizes { get; }
 
+        /// <summary>Gets unsupported chart sheets grouped by decoded PrintSize mode name.</summary>
+        public IReadOnlyDictionary<string, int> UnsupportedChartSheetPrintSizeKinds { get; }
+
         /// <summary>Gets unsupported chart sheets grouped by chart text object count.</summary>
         public IReadOnlyDictionary<string, int> UnsupportedChartSheetTextObjectCounts { get; }
 
@@ -894,6 +900,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Unsupported Sheets By Type", UnsupportedSheetsByType);
             AppendDictionary(builder, "Unsupported Sheets By Name", UnsupportedSheetsByName);
             AppendDictionary(builder, "Unsupported Chart Sheet Print Sizes", UnsupportedChartSheetPrintSizes);
+            AppendDictionary(builder, "Unsupported Chart Sheet Print Size Kinds", UnsupportedChartSheetPrintSizeKinds);
             AppendDictionary(builder, "Unsupported Chart Sheet Text Object Counts", UnsupportedChartSheetTextObjectCounts);
             AppendDictionary(builder, "External References By Kind", ExternalReferencesByKind.ToDictionary(
                 entry => entry.Key.ToString(),

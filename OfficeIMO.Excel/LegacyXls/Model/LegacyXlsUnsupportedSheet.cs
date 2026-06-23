@@ -62,6 +62,35 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         public ushort? ChartPrintSize { get; private set; }
 
         /// <summary>
+        /// Gets the decoded chart printed-size mode, when the PrintSize value is recognized.
+        /// </summary>
+        public LegacyXlsChartPrintSize? ChartPrintSizeKind {
+            get {
+                switch (ChartPrintSize) {
+                    case 0x0000: return LegacyXlsChartPrintSize.DefaultsUnchanged;
+                    case 0x0001: return LegacyXlsChartPrintSize.FillPage;
+                    case 0x0002: return LegacyXlsChartPrintSize.FitPage;
+                    case 0x0003: return LegacyXlsChartPrintSize.DefinedInChartRecord;
+                    default: return null;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets the decoded chart printed-size mode name, or a hexadecimal fallback for unknown values.
+        /// </summary>
+        public string? ChartPrintSizeName {
+            get {
+                if (!ChartPrintSize.HasValue) {
+                    return null;
+                }
+
+                LegacyXlsChartPrintSize? kind = ChartPrintSizeKind;
+                return kind.HasValue ? kind.Value.ToString() : $"PrintSize:0x{ChartPrintSize.Value:X4}";
+            }
+        }
+
+        /// <summary>
         /// Gets the number of chart text object records seen in this unsupported chart sheet substream.
         /// </summary>
         public int ChartTextObjectCount { get; private set; }

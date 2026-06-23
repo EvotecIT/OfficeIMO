@@ -376,6 +376,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(LegacyXlsUnsupportedSheetKind.ChartSheet, chartSheet.Kind);
             Assert.Equal("Chart1", chartSheet.Name);
             Assert.Equal((ushort)2, chartSheet.ChartPrintSize);
+            Assert.Equal(LegacyXlsChartPrintSize.FitPage, chartSheet.ChartPrintSizeKind);
+            Assert.Equal("FitPage", chartSheet.ChartPrintSizeName);
             Assert.Equal(1, chartSheet.ChartTextObjectCount);
             Assert.Equal(2, chartSheet.MetadataRecords.Count);
             LegacyXlsUnsupportedSheetMetadataRecord printSizeMetadata = Assert.Single(chartSheet.MetadataRecords, metadata => metadata.Kind == LegacyXlsUnsupportedSheetMetadataKind.ChartPrintSize);
@@ -390,10 +392,12 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.UnsupportedSheetMetadataRecordsByKind[LegacyXlsUnsupportedSheetMetadataKind.ChartPrintSize]);
             Assert.Equal(1, report.UnsupportedSheetMetadataRecordsByKind[LegacyXlsUnsupportedSheetMetadataKind.ChartTextObject]);
             Assert.Equal(1, report.UnsupportedChartSheetPrintSizes["PrintSize:2"]);
+            Assert.Equal(1, report.UnsupportedChartSheetPrintSizeKinds["FitPage"]);
             Assert.Equal(1, report.UnsupportedChartSheetTextObjectCounts["TextObjects:1"]);
             string markdown = report.ToMarkdown();
             Assert.Contains("Unsupported sheet metadata records: 2", markdown);
             Assert.Contains("Unsupported Chart Sheet Print Sizes", markdown);
+            Assert.Contains("Unsupported Chart Sheet Print Size Kinds", markdown);
             Assert.Contains("Unsupported Chart Sheet Text Object Counts", markdown);
         }
 

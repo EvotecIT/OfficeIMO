@@ -236,6 +236,12 @@ Warnings: 2
 | --- | --- |
 | PrintSize:3 | 4 |
 
+## Unsupported Chart Sheet Print Size Kinds
+
+| Key | Count |
+| --- | --- |
+| DefinedInChartRecord | 4 |
+
 ## Unsupported Chart Sheet Text Object Counts
 
 | Key | Count |
