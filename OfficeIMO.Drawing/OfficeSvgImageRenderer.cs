@@ -319,6 +319,17 @@ public static class OfficeSvgImageRenderer {
     }
 
     /// <summary>
+    /// Resolves and normalizes a MIME content type when it can be embedded directly in an SVG image element.
+    /// </summary>
+    /// <param name="contentType">MIME content type, optionally with parameters.</param>
+    /// <param name="normalizedContentType">Canonical MIME content type when supported.</param>
+    /// <returns><see langword="true" /> when the content type can be embedded as an SVG image href.</returns>
+    public static bool TryGetEmbeddableContentType(string? contentType, out string normalizedContentType) {
+        OfficeImageFormat format = OfficeImageInfo.FromMimeType(contentType);
+        return TryGetEmbeddableContentType(format, out normalizedContentType);
+    }
+
+    /// <summary>
     /// Resolves an SVG-embeddable image content type from declared package metadata, image bytes, or a file name.
     /// </summary>
     /// <param name="declaredContentType">Optional content type from the source package or caller.</param>
@@ -329,9 +340,7 @@ public static class OfficeSvgImageRenderer {
     public static bool TryResolveEmbeddableContentType(string? declaredContentType, byte[]? bytes, string? fileName, out string contentType) {
         string normalized = NormalizeContentType(declaredContentType);
         if (!string.IsNullOrEmpty(normalized) && !IsGenericContentType(normalized)) {
-            OfficeImageFormat declaredFormat = OfficeImageInfo.FromMimeType(normalized);
-            string declaredFormatContentType = OfficeImageInfo.GetMimeType(declaredFormat);
-            if (IsEmbeddableContentType(declaredFormatContentType)) {
+            if (TryGetEmbeddableContentType(normalized, out string declaredFormatContentType)) {
                 contentType = declaredFormatContentType;
                 return true;
             }
@@ -400,13 +409,6 @@ public static class OfficeSvgImageRenderer {
             .Append(')');
         return transform.ToString();
     }
-
-    private static bool IsEmbeddableContentType(string contentType) =>
-        string.Equals(contentType, "image/png", StringComparison.OrdinalIgnoreCase) ||
-        string.Equals(contentType, "image/jpeg", StringComparison.OrdinalIgnoreCase) ||
-        string.Equals(contentType, "image/gif", StringComparison.OrdinalIgnoreCase) ||
-        string.Equals(contentType, "image/svg+xml", StringComparison.OrdinalIgnoreCase) ||
-        string.Equals(contentType, "image/webp", StringComparison.OrdinalIgnoreCase);
 
     private static string NormalizeContentType(string? contentType) {
         if (string.IsNullOrWhiteSpace(contentType)) {

@@ -27,12 +27,12 @@ namespace OfficeIMO.Visio {
             }
 
             string contentType = ResolveContentType(relationship);
-            if (!string.Equals(contentType, "image/png", StringComparison.OrdinalIgnoreCase) &&
-                !string.Equals(relationship.Extension, ".png", StringComparison.OrdinalIgnoreCase)) {
+            if (OfficeImageInfo.FromMimeType(contentType) != OfficeImageFormat.Png &&
+                OfficeImageReader.FromExtension(relationship.Extension) != OfficeImageFormat.Png) {
                 return false;
             }
 
-            image = new VisioPreviewImage("image/png", relationship.Data!);
+            image = new VisioPreviewImage(OfficeImageInfo.GetMimeType(OfficeImageFormat.Png), relationship.Data!);
             return true;
         }
 
@@ -90,13 +90,11 @@ namespace OfficeIMO.Visio {
                 GetRelationshipImageName(relationship),
                 out string contentType)
                 ? contentType
-                : "application/octet-stream";
+                : OfficeImageInfo.GetMimeType(OfficeImageFormat.Unknown);
         }
 
         private static bool IsBrowserRenderable(string contentType, string? extension) {
-            if (string.Equals(contentType, "image/png", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(contentType, "image/jpeg", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(contentType, "image/gif", StringComparison.OrdinalIgnoreCase)) {
+            if (OfficeSvgImageRenderer.TryGetEmbeddableContentType(contentType, out _)) {
                 return true;
             }
 

@@ -104,6 +104,8 @@ Latest PDF image content-type checkpoint: `OfficeImagePdfCompatibility` now owns
 
 Latest PowerPoint image-extension checkpoint: PowerPoint path-based picture, background, and poster-image entrypoints now resolve image file extensions through `OfficeImageReader.FromExtension` and a small PowerPoint-owned adapter to `ImagePartType`. PowerPoint still owns OpenXML image part creation, relationship wiring, and media placement, while Drawing owns the shared extension-to-image-format vocabulary.
 
+Latest shared SVG-embeddable MIME checkpoint: `OfficeSvgImageRenderer` now normalizes declared MIME content types through the same SVG-embeddable image policy it already applies to detected image formats. Visio package-preview artwork uses that shared policy for browser-renderable preview decisions instead of carrying a private PNG/JPEG/GIF gate, so sniffed SVG previews with XML preambles render through the shared SVG image path. PowerPoint's default package thumbnail MIME value also comes from `OfficeImageInfo`, keeping built-in JPEG identity on the shared Drawing vocabulary while PowerPoint remains responsible for OpenXML thumbnail part creation.
+
 ## Goal
 
 Build a dependency-free OfficeIMO image conversion stack that can render selected Office content to PNG and SVG in a deterministic, server-safe way.

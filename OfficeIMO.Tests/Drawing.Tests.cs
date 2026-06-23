@@ -367,10 +367,22 @@ public class DrawingTests {
         Assert.Equal(expectedContentType, contentType);
     }
 
+    [Theory]
+    [InlineData("image/png; charset=binary", "image/png")]
+    [InlineData("image/jpg", "image/jpeg")]
+    [InlineData("image/svg+xml; charset=utf-8", "image/svg+xml")]
+    [InlineData("image/webp", "image/webp")]
+    public void OfficeSvgImageRendererNormalizesEmbeddableMimeContentTypes(string contentType, string expectedContentType) {
+        Assert.True(OfficeSvgImageRenderer.TryGetEmbeddableContentType(contentType, out string normalizedContentType));
+        Assert.Equal(expectedContentType, normalizedContentType);
+    }
+
     [Fact]
     public void OfficeSvgImageRendererRejectsUnsupportedEmbeddableContentTypes() {
         Assert.False(OfficeSvgImageRenderer.TryGetEmbeddableContentType(OfficeImageFormat.Emf, out string unsupportedContentType));
         Assert.Equal(string.Empty, unsupportedContentType);
+        Assert.False(OfficeSvgImageRenderer.TryGetEmbeddableContentType("application/octet-stream", out string unsupportedMimeContentType));
+        Assert.Equal(string.Empty, unsupportedMimeContentType);
     }
 
     [Theory]
