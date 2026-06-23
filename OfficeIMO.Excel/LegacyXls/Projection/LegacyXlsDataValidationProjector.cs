@@ -222,14 +222,18 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                 || validation.PromptTitle != null
                 || validation.Prompt != null
                 || validation.ErrorTitle != null
-                || validation.Error != null) {
+                || validation.Error != null
+                || validation.ErrorStyle != LegacyXlsDataValidationErrorStyle.Stop
+                || validation.SuppressDropDown) {
                 sheet.SetDataValidationMessages(range, new ExcelDataValidationMessageOptions {
                     PromptTitle = validation.PromptTitle,
                     Prompt = validation.Prompt,
                     ErrorTitle = validation.ErrorTitle,
                     Error = validation.Error,
                     ShowInputMessage = validation.ShowInputMessage,
-                    ShowErrorMessage = validation.ShowErrorMessage
+                    ShowErrorMessage = validation.ShowErrorMessage,
+                    ErrorStyle = ToDataValidationErrorStyle(validation.ErrorStyle),
+                    SuppressDropDown = validation.SuppressDropDown ? true : null
                 });
             }
         }
@@ -248,6 +252,14 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                 LegacyXlsDataValidationOperator.LessThan => DataValidationOperatorValues.LessThan,
                 LegacyXlsDataValidationOperator.GreaterThanOrEqual => DataValidationOperatorValues.GreaterThanOrEqual,
                 _ => DataValidationOperatorValues.LessThanOrEqual
+            };
+        }
+
+        private static DataValidationErrorStyleValues ToDataValidationErrorStyle(LegacyXlsDataValidationErrorStyle errorStyle) {
+            return errorStyle switch {
+                LegacyXlsDataValidationErrorStyle.Warning => DataValidationErrorStyleValues.Warning,
+                LegacyXlsDataValidationErrorStyle.Information => DataValidationErrorStyleValues.Information,
+                _ => DataValidationErrorStyleValues.Stop
             };
         }
     }

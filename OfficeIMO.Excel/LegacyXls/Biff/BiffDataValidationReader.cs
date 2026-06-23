@@ -5,6 +5,7 @@ using System.Text;
 namespace OfficeIMO.Excel.LegacyXls.Biff {
     internal static class BiffDataValidationReader {
         private const uint AllowBlankFlag = 0x00000100;
+        private const uint SuppressDropDownFlag = 0x00000200;
         private const uint ShowInputMessageFlag = 0x00040000;
         private const uint ShowErrorMessageFlag = 0x00080000;
 
@@ -42,12 +43,16 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             offset += 4;
 
             uint validationType = flags & 0x0000000f;
+            uint errorStyle = (flags >> 4) & 0x00000007;
             uint operatorType = (flags >> 20) & 0x0000000f;
-            if (!IsSupportedValidationType(validationType) || (validationType != 0x03 && validationType != 0x07 && operatorType > 0x07)) {
+            if (!IsSupportedValidationType(validationType)
+                || errorStyle > 0x02
+                || (validationType != 0x03 && validationType != 0x07 && operatorType > 0x07)) {
                 return false;
             }
 
             LegacyXlsDataValidationType modelValidationType = ToValidationType(validationType);
+            LegacyXlsDataValidationErrorStyle modelErrorStyle = ToErrorStyle(errorStyle);
             LegacyXlsDataValidationOperator comparisonOperator = ToOperator(operatorType);
             try {
                 string promptTitle = BiffStringReader.ReadUnicodeString(payload, ref offset);
@@ -108,7 +113,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     listItems,
                     listSourceRange,
                     listSourceName,
-                    listSourceSheetName);
+                    listSourceSheetName,
+                    modelErrorStyle,
+                    modelValidationType == LegacyXlsDataValidationType.List && (flags & SuppressDropDownFlag) != 0);
                 return true;
             } catch (InvalidDataException) {
                 return false;
@@ -143,6 +150,14 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 0x05 => LegacyXlsDataValidationOperator.LessThan,
                 0x06 => LegacyXlsDataValidationOperator.GreaterThanOrEqual,
                 _ => LegacyXlsDataValidationOperator.LessThanOrEqual
+            };
+        }
+
+        private static LegacyXlsDataValidationErrorStyle ToErrorStyle(uint errorStyle) {
+            return errorStyle switch {
+                0x01 => LegacyXlsDataValidationErrorStyle.Warning,
+                0x02 => LegacyXlsDataValidationErrorStyle.Information,
+                _ => LegacyXlsDataValidationErrorStyle.Stop
             };
         }
 

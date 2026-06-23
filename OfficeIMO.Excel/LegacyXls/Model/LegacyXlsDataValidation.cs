@@ -22,7 +22,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             IReadOnlyList<string>? listItems = null,
             string? listSourceRange = null,
             string? listSourceName = null,
-            string? listSourceSheetName = null) {
+            string? listSourceSheetName = null,
+            LegacyXlsDataValidationErrorStyle errorStyle = LegacyXlsDataValidationErrorStyle.Stop,
+            bool suppressDropDown = false) {
             Type = type;
             Operator = @operator;
             Formula1 = formula1 ?? throw new ArgumentNullException(nameof(formula1));
@@ -30,6 +32,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             AllowBlank = allowBlank;
             ShowInputMessage = showInputMessage;
             ShowErrorMessage = showErrorMessage;
+            ErrorStyle = errorStyle;
+            SuppressDropDown = suppressDropDown;
             PromptTitle = promptTitle;
             Prompt = prompt;
             ErrorTitle = errorTitle;
@@ -75,6 +79,16 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// Gets whether Excel should show an error prompt for invalid entries.
         /// </summary>
         public bool ShowErrorMessage { get; }
+
+        /// <summary>
+        /// Gets the error alert style shown when invalid entries are rejected.
+        /// </summary>
+        public LegacyXlsDataValidationErrorStyle ErrorStyle { get; }
+
+        /// <summary>
+        /// Gets whether list validations suppress Excel's in-cell dropdown.
+        /// </summary>
+        public bool SuppressDropDown { get; }
 
         /// <summary>
         /// Gets the input prompt title.
@@ -182,5 +196,17 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         GreaterThanOrEqual,
         /// <summary>Less than or equal to a value.</summary>
         LessThanOrEqual
+    }
+
+    /// <summary>
+    /// Identifies the legacy data validation error alert style.
+    /// </summary>
+    public enum LegacyXlsDataValidationErrorStyle {
+        /// <summary>Stop alert.</summary>
+        Stop,
+        /// <summary>Warning alert.</summary>
+        Warning,
+        /// <summary>Information alert.</summary>
+        Information
     }
 }

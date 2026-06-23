@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests {
         private const int XlCellValueCondition = 1;
         private const int XlGreaterCondition = 5;
         private const int XlValidateList = 3;
-        private const int XlValidAlertStop = 1;
+        private const int XlValidAlertWarning = 2;
         private const int XlBetween = 1;
         private const int XlColumnClusteredChart = 51;
         private const int MsoShapeRectangle = 1;
@@ -62,7 +62,9 @@ namespace OfficeIMO.Tests {
                 && validation.Ranges.Contains("A2:A5")
                 && validation.ListItems.Contains("Open")
                 && validation.ListItems.Contains("Closed")
-                && validation.ListItems.Contains("Pending"));
+                && validation.ListItems.Contains("Pending")
+                && validation.ErrorStyle == LegacyXlsDataValidationErrorStyle.Warning
+                && validation.SuppressDropDown);
             Assert.Contains(importedSheet.ConditionalFormattings, conditionalFormatting =>
                 conditionalFormatting.Type == LegacyXlsConditionalFormattingType.CellIs
                 && conditionalFormatting.Operator == LegacyXlsConditionalFormattingOperator.GreaterThan
@@ -258,7 +260,8 @@ namespace OfficeIMO.Tests {
 
                 object statusValidation = GetComProperty(GetComProperty(worksheet!, "Range", "A2:A5")!, "Validation")!;
                 InvokeCom(statusValidation, "Delete");
-                InvokeCom(statusValidation, "Add", XlValidateList, XlValidAlertStop, XlBetween, "Open,Closed,Pending");
+                InvokeCom(statusValidation, "Add", XlValidateList, XlValidAlertWarning, XlBetween, "Open,Closed,Pending");
+                SetComProperty(statusValidation, "InCellDropdown", false);
 
                 object formatConditions = GetComProperty(GetComProperty(worksheet!, "Range", "B2:B5")!, "FormatConditions")!;
                 object condition = InvokeCom(formatConditions, "Add", XlCellValueCondition, XlGreaterCondition, "100")!;

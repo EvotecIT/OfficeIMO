@@ -186,6 +186,10 @@ namespace OfficeIMO.Excel {
                     Type = validation.Type?.InnerText ?? string.Empty,
                     Operator = validation.Operator?.InnerText,
                     AllowBlank = validation.AllowBlank?.Value ?? false,
+                    SuppressDropDown = validation.ShowDropDown?.Value ?? false,
+                    ErrorStyle = validation.ErrorStyle?.InnerText,
+                    ShowInputMessage = validation.ShowInputMessage?.Value ?? false,
+                    ShowErrorMessage = validation.ShowErrorMessage?.Value ?? false,
                     Formula1 = validation.GetFirstChild<Formula1>()?.Text,
                     Formula2 = validation.GetFirstChild<Formula2>()?.Text,
                     PromptTitle = validation.PromptTitle?.Value,
@@ -227,7 +231,9 @@ namespace OfficeIMO.Excel {
                         || !string.Equals(validation.ErrorTitle?.Value, options.ErrorTitle, StringComparison.Ordinal)
                         || !string.Equals(validation.Error?.Value, options.Error, StringComparison.Ordinal)
                         || validation.ShowInputMessage?.Value != showInputMessage
-                        || validation.ShowErrorMessage?.Value != showErrorMessage;
+                        || validation.ShowErrorMessage?.Value != showErrorMessage
+                        || (options.ErrorStyle.HasValue && validation.ErrorStyle?.Value != options.ErrorStyle.Value)
+                        || (options.SuppressDropDown.HasValue && validation.ShowDropDown?.Value != options.SuppressDropDown.Value);
 
                     if (!validationChanged) continue;
 
@@ -237,6 +243,14 @@ namespace OfficeIMO.Excel {
                     validation.Error = options.Error;
                     validation.ShowInputMessage = showInputMessage;
                     validation.ShowErrorMessage = showErrorMessage;
+                    if (options.ErrorStyle.HasValue) {
+                        validation.ErrorStyle = options.ErrorStyle.Value;
+                    }
+
+                    if (options.SuppressDropDown.HasValue) {
+                        validation.ShowDropDown = options.SuppressDropDown.Value;
+                    }
+
                     changed = true;
                 }
 

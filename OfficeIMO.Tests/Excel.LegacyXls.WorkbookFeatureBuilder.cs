@@ -1472,8 +1472,10 @@ namespace OfficeIMO.Tests {
             private static byte[] BuildListDataValidationPayload() {
                 using var stream = new MemoryStream();
                 uint flags = 0x03U
+                    | (0x01U << 4)
                     | 0x00000080U
                     | 0x00000100U
+                    | 0x00000200U
                     | 0x00040000U
                     | 0x00080000U;
                 WriteUInt32(stream, flags);

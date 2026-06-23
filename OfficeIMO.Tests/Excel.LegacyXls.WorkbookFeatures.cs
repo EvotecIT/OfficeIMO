@@ -1021,6 +1021,8 @@ namespace OfficeIMO.Tests {
             Assert.True(validation.AllowBlank);
             Assert.True(validation.ShowInputMessage);
             Assert.True(validation.ShowErrorMessage);
+            Assert.Equal(LegacyXlsDataValidationErrorStyle.Warning, validation.ErrorStyle);
+            Assert.True(validation.SuppressDropDown);
             Assert.Equal("D2:D5", Assert.Single(validation.Ranges));
             Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.DataValidation);
 
@@ -1033,6 +1035,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal("\"Open,Closed,Pending\"", projectedValidation.Formula1);
             Assert.Equal("Status", projectedValidation.PromptTitle);
             Assert.Equal("Invalid status", projectedValidation.ErrorTitle);
+            Assert.Equal("warning", projectedValidation.ErrorStyle);
+            Assert.True(projectedValidation.ShowInputMessage);
+            Assert.True(projectedValidation.ShowErrorMessage);
+            Assert.True(projectedValidation.SuppressDropDown);
 
             using var output = new MemoryStream();
             document.Save(output);
@@ -1045,6 +1051,10 @@ namespace OfficeIMO.Tests {
             Assert.Null(openXmlValidation.GetFirstChild<Formula2>());
             Assert.Equal("Status", openXmlValidation.PromptTitle!.Value);
             Assert.Equal("Invalid status", openXmlValidation.ErrorTitle!.Value);
+            Assert.Equal(DataValidationErrorStyleValues.Warning, openXmlValidation.ErrorStyle!.Value);
+            Assert.True(openXmlValidation.ShowInputMessage!.Value);
+            Assert.True(openXmlValidation.ShowErrorMessage!.Value);
+            Assert.True(openXmlValidation.ShowDropDown!.Value);
         }
 
         [Fact]
