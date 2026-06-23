@@ -349,6 +349,13 @@ Warnings: 0
 | X:0;Y:0;Width:32652648;Height:20934792 | 2 |
 | X:0;Y:0;Width:32686056;Height:20987856 | 2 |
 
+## Chart Records By Axis Type
+
+| Key | Count |
+| --- | --- |
+| CategoryOrHorizontalValue | 8 |
+| ValueOrVerticalValue | 8 |
+
 ## Chart Records By Location
 
 | Key | Count |

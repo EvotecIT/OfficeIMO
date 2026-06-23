@@ -11,6 +11,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             TryReadChartRectangle(record, out int? chartX, out int? chartY, out int? chartWidth, out int? chartHeight);
+            TryReadAxisType(record, out ushort? axisType, out string? axisTypeName);
             records.Add(new LegacyXlsChartRecord(
                 GetKind(record.Type),
                 BiffUnsupportedRecordDiagnostics.GetBiffRecordName(record.Type),
@@ -22,7 +23,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 chartX,
                 chartY,
                 chartWidth,
-                chartHeight));
+                chartHeight,
+                axisType,
+                axisTypeName));
             return true;
         }
 
@@ -40,6 +43,32 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             width = BiffRecordReader.ReadInt32(record.Payload, 8);
             height = BiffRecordReader.ReadInt32(record.Payload, 12);
             return true;
+        }
+
+        private static bool TryReadAxisType(BiffRecord record, out ushort? axisType, out string? axisTypeName) {
+            axisType = null;
+            axisTypeName = null;
+            if (record.Type != 0x101d || record.Payload.Length < 2) {
+                return false;
+            }
+
+            ushort value = BiffRecordReader.ReadUInt16(record.Payload, 0);
+            axisType = value;
+            axisTypeName = GetAxisTypeName(value);
+            return true;
+        }
+
+        private static string GetAxisTypeName(ushort axisType) {
+            switch (axisType) {
+                case 0x0000:
+                    return "CategoryOrHorizontalValue";
+                case 0x0001:
+                    return "ValueOrVerticalValue";
+                case 0x0002:
+                    return "Series";
+                default:
+                    return $"Unknown:0x{axisType:X4}";
+            }
         }
 
         private static string? GetChartTypeName(ushort type) {

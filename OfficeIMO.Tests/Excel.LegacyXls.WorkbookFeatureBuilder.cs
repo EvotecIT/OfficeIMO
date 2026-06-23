@@ -400,6 +400,7 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x1001, Array.Empty<byte>());
                 WriteRecord(stream, 0x1002, BuildChartPayload(100, 200, 3000, 2200));
                 WriteRecord(stream, 0x1014, Array.Empty<byte>());
+                WriteRecord(stream, 0x101d, BuildAxisPayload(0x0001));
                 WriteRecord(stream, 0x101b, Array.Empty<byte>());
                 WriteRecord(stream, 0x01b6, new byte[18]);
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
@@ -1036,6 +1037,16 @@ namespace OfficeIMO.Tests {
                 WriteInt32(stream, y);
                 WriteInt32(stream, width);
                 WriteInt32(stream, height);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildAxisPayload(ushort axisType) {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, axisType);
+                WriteUInt32(stream, 0);
+                WriteUInt32(stream, 0);
+                WriteUInt32(stream, 0);
+                WriteUInt32(stream, 0);
                 return stream.ToArray();
             }
 

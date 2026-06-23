@@ -90,6 +90,9 @@ namespace OfficeIMO.Excel.LegacyXls {
             ChartRecordsByRectangle = CountByCode(workbook.ChartRecords
                 .Where(record => record.ChartX.HasValue && record.ChartY.HasValue && record.ChartWidth.HasValue && record.ChartHeight.HasValue)
                 .Select(record => $"X:{record.ChartX!.Value};Y:{record.ChartY!.Value};Width:{record.ChartWidth!.Value};Height:{record.ChartHeight!.Value}"));
+            ChartRecordsByAxisType = CountByCode(workbook.ChartRecords
+                .Where(record => !string.IsNullOrWhiteSpace(record.AxisTypeName))
+                .Select(record => record.AxisTypeName!));
             ChartRecordsByLocation = CountByCode(workbook.ChartRecords.Select(GetChartRecordLocationKey));
             DrawingRecordsByKind = CountDrawingRecordsByKind(workbook.DrawingRecords);
             DrawingRecordsByName = CountByCode(workbook.DrawingRecords.Select(record => record.RecordName));
@@ -291,6 +294,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets Chart records grouped by decoded chart rectangle.</summary>
         public IReadOnlyDictionary<string, int> ChartRecordsByRectangle { get; }
 
+        /// <summary>Gets Axis records grouped by decoded axis type.</summary>
+        public IReadOnlyDictionary<string, int> ChartRecordsByAxisType { get; }
+
         /// <summary>Gets preserve-only chart BIFF records grouped by workbook or sheet location.</summary>
         public IReadOnlyDictionary<string, int> ChartRecordsByLocation { get; }
 
@@ -435,6 +441,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Chart Records By Name", ChartRecordsByName);
             AppendDictionary(builder, "Chart Records By Chart Type", ChartRecordsByChartType);
             AppendDictionary(builder, "Chart Records By Rectangle", ChartRecordsByRectangle);
+            AppendDictionary(builder, "Chart Records By Axis Type", ChartRecordsByAxisType);
             AppendDictionary(builder, "Chart Records By Location", ChartRecordsByLocation);
             AppendDictionary(builder, "Drawing Records By Kind", DrawingRecordsByKind.ToDictionary(
                 entry => entry.Key.ToString(),
