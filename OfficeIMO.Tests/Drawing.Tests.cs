@@ -637,6 +637,51 @@ public class DrawingTests {
     }
 
     [Fact]
+    public void OfficeGeometryResolvesReusableRectangleBoundaryEndpoints() {
+        OfficePoint right = OfficeGeometry.ResolveRectangleBoundaryEndpoint(
+            sourceLeft: 0D,
+            sourceBottom: 0D,
+            sourceRight: 10D,
+            sourceTop: 6D,
+            targetLeft: 20D,
+            targetBottom: 1D,
+            targetRight: 30D,
+            targetTop: 5D);
+        Assert.Equal(10D, right.X);
+        Assert.Equal(3D, right.Y);
+
+        OfficePoint top = OfficeGeometry.ResolveRectangleBoundaryEndpoint(
+            sourceLeft: 0D,
+            sourceBottom: 0D,
+            sourceRight: 10D,
+            sourceTop: 6D,
+            targetLeft: 2D,
+            targetBottom: 20D,
+            targetRight: 8D,
+            targetTop: 30D);
+        Assert.Equal(5D, top.X);
+        Assert.Equal(6D, top.Y);
+
+        OfficeGeometry.ResolveRectangleBoundaryEndpoint(
+            sourceLeft: 10D,
+            sourceBottom: 6D,
+            sourceRight: 0D,
+            sourceTop: 0D,
+            targetLeft: -30D,
+            targetBottom: 1D,
+            targetRight: -20D,
+            targetTop: 5D,
+            out double leftX,
+            out double leftY);
+        (double X, double Y) left = (leftX, leftY);
+        Assert.Equal((0D, 3D), left);
+
+        OfficePoint aligned = OfficeGeometry.ResolveRectangleBoundaryEndpoint(0D, 0D, 10D, 6D, 0D, 0D, 10D, 6D);
+        Assert.Equal(10D, aligned.X);
+        Assert.Equal(3D, aligned.Y);
+    }
+
+    [Fact]
     public void OfficeSvgFormattingFormatsReusableSvgValues() {
         Assert.Equal("12.346", OfficeSvgFormatting.FormatNumber(12.34567D));
         Assert.Equal("0", OfficeSvgFormatting.FormatNumber(0.00000001D));

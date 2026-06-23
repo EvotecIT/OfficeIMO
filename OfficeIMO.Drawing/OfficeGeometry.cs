@@ -212,6 +212,85 @@ public static class OfficeGeometry {
     }
 
     /// <summary>
+    /// Resolves the point on a source rectangle boundary that faces a target rectangle.
+    /// </summary>
+    /// <param name="sourceLeft">Source rectangle left X coordinate.</param>
+    /// <param name="sourceBottom">Source rectangle minimum Y coordinate.</param>
+    /// <param name="sourceRight">Source rectangle right X coordinate.</param>
+    /// <param name="sourceTop">Source rectangle maximum Y coordinate.</param>
+    /// <param name="targetLeft">Target rectangle left X coordinate.</param>
+    /// <param name="targetBottom">Target rectangle minimum Y coordinate.</param>
+    /// <param name="targetRight">Target rectangle right X coordinate.</param>
+    /// <param name="targetTop">Target rectangle maximum Y coordinate.</param>
+    /// <returns>The source boundary point nearest the target rectangle by dominant center direction.</returns>
+    public static OfficePoint ResolveRectangleBoundaryEndpoint(
+        double sourceLeft,
+        double sourceBottom,
+        double sourceRight,
+        double sourceTop,
+        double targetLeft,
+        double targetBottom,
+        double targetRight,
+        double targetTop) {
+        double sourceMinX = Math.Min(sourceLeft, sourceRight);
+        double sourceMaxX = Math.Max(sourceLeft, sourceRight);
+        double sourceMinY = Math.Min(sourceBottom, sourceTop);
+        double sourceMaxY = Math.Max(sourceBottom, sourceTop);
+        double targetMinX = Math.Min(targetLeft, targetRight);
+        double targetMaxX = Math.Max(targetLeft, targetRight);
+        double targetMinY = Math.Min(targetBottom, targetTop);
+        double targetMaxY = Math.Max(targetBottom, targetTop);
+
+        double sourceCenterX = (sourceMinX + sourceMaxX) / 2D;
+        double sourceCenterY = (sourceMinY + sourceMaxY) / 2D;
+        double targetCenterX = (targetMinX + targetMaxX) / 2D;
+        double targetCenterY = (targetMinY + targetMaxY) / 2D;
+        double dx = targetCenterX - sourceCenterX;
+        double dy = targetCenterY - sourceCenterY;
+
+        return Math.Abs(dy) > Math.Abs(dx)
+            ? new OfficePoint(sourceCenterX, dy >= 0D ? sourceMaxY : sourceMinY)
+            : new OfficePoint(dx >= 0D ? sourceMaxX : sourceMinX, sourceCenterY);
+    }
+
+    /// <summary>
+    /// Resolves coordinates on a source rectangle boundary that faces a target rectangle.
+    /// </summary>
+    /// <param name="sourceLeft">Source rectangle left X coordinate.</param>
+    /// <param name="sourceBottom">Source rectangle minimum Y coordinate.</param>
+    /// <param name="sourceRight">Source rectangle right X coordinate.</param>
+    /// <param name="sourceTop">Source rectangle maximum Y coordinate.</param>
+    /// <param name="targetLeft">Target rectangle left X coordinate.</param>
+    /// <param name="targetBottom">Target rectangle minimum Y coordinate.</param>
+    /// <param name="targetRight">Target rectangle right X coordinate.</param>
+    /// <param name="targetTop">Target rectangle maximum Y coordinate.</param>
+    /// <param name="x">Resolved source boundary X coordinate.</param>
+    /// <param name="y">Resolved source boundary Y coordinate.</param>
+    public static void ResolveRectangleBoundaryEndpoint(
+        double sourceLeft,
+        double sourceBottom,
+        double sourceRight,
+        double sourceTop,
+        double targetLeft,
+        double targetBottom,
+        double targetRight,
+        double targetTop,
+        out double x,
+        out double y) {
+        OfficePoint point = ResolveRectangleBoundaryEndpoint(
+            sourceLeft,
+            sourceBottom,
+            sourceRight,
+            sourceTop,
+            targetLeft,
+            targetBottom,
+            targetRight,
+            targetTop);
+        x = point.X;
+        y = point.Y;
+    }
+
+    /// <summary>
     /// Converts degrees to radians.
     /// </summary>
     /// <param name="degrees">Angle in degrees.</param>

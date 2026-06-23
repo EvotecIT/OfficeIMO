@@ -120,21 +120,17 @@ namespace OfficeIMO.Visio {
             double targetTop,
             out double x,
             out double y) {
-            double sourceCenterX = (sourceLeft + sourceRight) / 2D;
-            double sourceCenterY = (sourceBottom + sourceTop) / 2D;
-            double targetCenterX = (targetLeft + targetRight) / 2D;
-            double targetCenterY = (targetBottom + targetTop) / 2D;
-            double dx = targetCenterX - sourceCenterX;
-            double dy = targetCenterY - sourceCenterY;
-
-            if (Math.Abs(dy) > Math.Abs(dx)) {
-                x = sourceCenterX;
-                y = dy >= 0D ? sourceTop : sourceBottom;
-                return;
-            }
-
-            x = dx >= 0D ? sourceRight : sourceLeft;
-            y = sourceCenterY;
+            OfficeGeometry.ResolveRectangleBoundaryEndpoint(
+                sourceLeft,
+                sourceBottom,
+                sourceRight,
+                sourceTop,
+                targetLeft,
+                targetBottom,
+                targetRight,
+                targetTop,
+                out x,
+                out y);
         }
 
         private static (double X, double Y) ToRaster(VisioPage page, double x, double y, double scale) =>
