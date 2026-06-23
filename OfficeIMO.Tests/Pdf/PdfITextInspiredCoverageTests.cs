@@ -425,6 +425,24 @@ public class PdfITextInspiredCoverageTests {
     }
 
     [Fact]
+    public void PageEditor_ResizePagesFillClipsToMarginBoxBeforeScaling() {
+        byte[] pdf = BuildResizableTallPagePdf();
+
+        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PageSize(600, 600)) {
+            Mode = PdfPageResizeMode.Fill,
+            Margin = 50
+        });
+        string raw = PdfEncoding.Latin1GetString(resized);
+
+        int targetClip = raw.IndexOf("50 50 500 500 re\nW n\n", StringComparison.Ordinal);
+        int transform = raw.IndexOf("5 0 0 5 50 -450 cm\n", StringComparison.Ordinal);
+        int sourceClip = raw.IndexOf("0 0 100 300 re\nW n\n", StringComparison.Ordinal);
+        Assert.True(targetClip >= 0, "Expected resized content stream to clip to the target margin box.");
+        Assert.True(transform > targetClip, "Expected target-space margin clipping before the resize transform.");
+        Assert.True(sourceClip > transform, "Expected source-space clipping after the resize transform.");
+    }
+
+    [Fact]
     public void PageEditor_ResizePagesTransformsSharedIndirectDestinationsOnce() {
         byte[] pdf = BuildResizableSharedDestinationPdf();
 
@@ -835,6 +853,18 @@ public class PdfITextInspiredCoverageTests {
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /CropBox [10 10 110 110] /Rotate 90 /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
             "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
             BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 20 20 Td (Partial XYZ target) Tj ET"))
+        };
+
+        return Encoding.ASCII.GetBytes(BuildPdf(objects));
+    }
+
+    private static byte[] BuildResizableTallPagePdf() {
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 300] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 10 280 Td (Fill should crop to margins) Tj ET"))
         };
 
         return Encoding.ASCII.GetBytes(BuildPdf(objects));

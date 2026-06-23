@@ -221,6 +221,11 @@ public static partial class PdfPageEditor {
     private static PdfStream BuildResizeContentStream(PageResizeTransform transform, double sourceLeft, double sourceBottom, double sourceWidth, double sourceHeight) {
         string content =
             "q\n" +
+            FormatResizeNumber(transform.TargetClipLeft) + " " +
+            FormatResizeNumber(transform.TargetClipBottom) + " " +
+            FormatResizeNumber(transform.TargetClipWidth) + " " +
+            FormatResizeNumber(transform.TargetClipHeight) + " re\n" +
+            "W n\n" +
             FormatResizeNumber(transform.A) + " " +
             FormatResizeNumber(transform.B) + " " +
             FormatResizeNumber(transform.C) + " " +
@@ -819,7 +824,11 @@ public static partial class PdfPageEditor {
                 sourceBottom,
                 sourceWidth,
                 sourceHeight,
-                rotationDegrees),
+                rotationDegrees,
+                margin,
+                margin,
+                availableWidth,
+                availableHeight),
             180 => new PageResizeTransform(
                 -scaleX,
                 0D,
@@ -832,7 +841,11 @@ public static partial class PdfPageEditor {
                 sourceBottom,
                 sourceWidth,
                 sourceHeight,
-                rotationDegrees),
+                rotationDegrees,
+                margin,
+                margin,
+                availableWidth,
+                availableHeight),
             270 => new PageResizeTransform(
                 0D,
                 scaleY,
@@ -845,7 +858,11 @@ public static partial class PdfPageEditor {
                 sourceBottom,
                 sourceWidth,
                 sourceHeight,
-                rotationDegrees),
+                rotationDegrees,
+                margin,
+                margin,
+                availableWidth,
+                availableHeight),
             _ => new PageResizeTransform(
                 scaleX,
                 0D,
@@ -858,7 +875,11 @@ public static partial class PdfPageEditor {
                 sourceBottom,
                 sourceWidth,
                 sourceHeight,
-                rotationDegrees)
+                rotationDegrees,
+                margin,
+                margin,
+                availableWidth,
+                availableHeight)
         };
     }
 
@@ -898,7 +919,7 @@ public static partial class PdfPageEditor {
     }
 
     private readonly struct PageResizeTransform {
-        public PageResizeTransform(double a, double b, double c, double d, double e, double f, int pageObjectNumber, double sourceLeft, double sourceBottom, double sourceWidth, double sourceHeight, int rotationDegrees) {
+        public PageResizeTransform(double a, double b, double c, double d, double e, double f, int pageObjectNumber, double sourceLeft, double sourceBottom, double sourceWidth, double sourceHeight, int rotationDegrees, double targetClipLeft, double targetClipBottom, double targetClipWidth, double targetClipHeight) {
             A = a;
             B = b;
             C = c;
@@ -911,6 +932,10 @@ public static partial class PdfPageEditor {
             SourceWidth = sourceWidth;
             SourceHeight = sourceHeight;
             RotationDegrees = rotationDegrees;
+            TargetClipLeft = targetClipLeft;
+            TargetClipBottom = targetClipBottom;
+            TargetClipWidth = targetClipWidth;
+            TargetClipHeight = targetClipHeight;
         }
 
         public double A { get; }
@@ -936,6 +961,14 @@ public static partial class PdfPageEditor {
         public double SourceHeight { get; }
 
         public int RotationDegrees { get; }
+
+        public double TargetClipLeft { get; }
+
+        public double TargetClipBottom { get; }
+
+        public double TargetClipWidth { get; }
+
+        public double TargetClipHeight { get; }
 
         public bool HasAxisSwap => RotationDegrees == 90 || RotationDegrees == 270;
     }
