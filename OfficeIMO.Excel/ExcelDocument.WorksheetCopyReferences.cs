@@ -8,9 +8,16 @@ using OfficeFormula = DocumentFormat.OpenXml.Office.Excel.Formula;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
-        private void RewriteCopiedWorksheetReferences(WorksheetPart worksheetPart, IReadOnlyDictionary<string, string> sheetNameMap) {
+        private void RewriteCopiedWorksheetReferences(
+            WorksheetPart worksheetPart,
+            IReadOnlyDictionary<string, string> sheetNameMap,
+            IReadOnlyDictionary<string, string>? tableNameMap = null) {
             Worksheet worksheet = worksheetPart.Worksheet ?? throw new InvalidOperationException("Worksheet is missing.");
             bool worksheetChanged = RewriteWorksheetSheetReferences(worksheet, sheetNameMap);
+            if (tableNameMap?.Count > 0) {
+                RewriteStructuredTableReferences(worksheet, tableNameMap);
+                worksheetChanged = true;
+            }
 
             foreach (TableDefinitionPart tablePart in worksheetPart.TableDefinitionParts) {
                 Table? table = tablePart.Table;
@@ -27,6 +34,11 @@ namespace OfficeIMO.Excel {
                     tableChanged |= RewriteFormulaSheetReference(formula, sheetNameMap);
                 }
 
+                if (tableNameMap?.Count > 0) {
+                    RewriteStructuredTableReferences(table, tableNameMap);
+                    tableChanged = true;
+                }
+
                 if (tableChanged) {
                     table.Save();
                 }
@@ -40,7 +52,8 @@ namespace OfficeIMO.Excel {
         private void CopyReferencedDefinedNamesFromSource(
             ExcelDocument sourceDocument,
             ExcelSheet targetSheet,
-            IReadOnlyDictionary<string, string> sheetNameMap) {
+            IReadOnlyDictionary<string, string> sheetNameMap,
+            IReadOnlyDictionary<string, string>? tableNameMap = null) {
             DefinedNames? sourceDefinedNames = sourceDocument.WorkbookRoot.DefinedNames;
             if (sourceDefinedNames == null) {
                 return;
@@ -55,40 +68,57 @@ namespace OfficeIMO.Excel {
 
             var sourceSheetNamesByPosition = sourceDocument.GetSheetNamesByPosition();
             DefinedNames targetDefinedNames = WorkbookRoot.DefinedNames ??= new DefinedNames();
-            foreach (DefinedName sourceName in sourceDefinedNames.Elements<DefinedName>().ToList()) {
-                string? name = sourceName.Name?.Value;
-                if (string.IsNullOrWhiteSpace(name)
-                    || name!.StartsWith("_xlnm.", StringComparison.OrdinalIgnoreCase)
-                    || !formulaTexts.Any(text => ContainsDefinedNameToken(text, name))) {
-                    continue;
-                }
-
-                ushort destinationSheetPosition = targetSheetPosition;
-                if (sourceName.LocalSheetId != null) {
-                    if (!sourceSheetNamesByPosition.TryGetValue((ushort)sourceName.LocalSheetId.Value, out string? sourceNameOwner)
-                        || !sheetNameMap.TryGetValue(sourceNameOwner, out string? targetNameOwner)
-                        || !TryGetSheetPositionIndexByName(targetNameOwner, out destinationSheetPosition)) {
+            var copiedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            List<DefinedName> sourceNames = sourceDefinedNames.Elements<DefinedName>()
+                .Where(name => !string.IsNullOrWhiteSpace(name.Name?.Value)
+                    && !name.Name!.Value!.StartsWith("_xlnm.", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            bool copied;
+            do {
+                copied = false;
+                foreach (DefinedName sourceName in sourceNames) {
+                    string? name = sourceName.Name?.Value;
+                    string copyKey = name + "|" + (sourceName.LocalSheetId?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty);
+                    if (copiedNames.Contains(copyKey)
+                        || !formulaTexts.Any(text => ContainsDefinedNameToken(text, name!))) {
                         continue;
                     }
-                }
 
-                foreach (DefinedName existing in targetDefinedNames.Elements<DefinedName>()
-                    .Where(item => item.LocalSheetId != null
-                        && item.LocalSheetId.Value == destinationSheetPosition
-                        && string.Equals(item.Name?.Value, name, StringComparison.OrdinalIgnoreCase))
-                    .ToList()) {
-                    existing.Remove();
-                }
+                    ushort destinationSheetPosition = targetSheetPosition;
+                    if (sourceName.LocalSheetId != null) {
+                        if (!sourceSheetNamesByPosition.TryGetValue((ushort)sourceName.LocalSheetId.Value, out string? sourceNameOwner)
+                            || !sheetNameMap.TryGetValue(sourceNameOwner, out string? targetNameOwner)
+                            || !TryGetSheetPositionIndexByName(targetNameOwner, out destinationSheetPosition)) {
+                            continue;
+                        }
+                    }
 
-                var clone = (DefinedName)sourceName.CloneNode(true);
-                clone.LocalSheetId = destinationSheetPosition;
-                clone.Name = name;
-                if (!string.IsNullOrEmpty(clone.Text)) {
-                    clone.Text = ReplaceSheetNameReferences(clone.Text!, sheetNameMap);
-                }
+                    foreach (DefinedName existing in targetDefinedNames.Elements<DefinedName>()
+                        .Where(item => item.LocalSheetId != null
+                            && item.LocalSheetId.Value == destinationSheetPosition
+                            && string.Equals(item.Name?.Value, name, StringComparison.OrdinalIgnoreCase))
+                        .ToList()) {
+                        existing.Remove();
+                    }
 
-                targetDefinedNames.Append(clone);
+                    var clone = (DefinedName)sourceName.CloneNode(true);
+                    clone.LocalSheetId = destinationSheetPosition;
+                    clone.Name = name;
+                    if (!string.IsNullOrEmpty(clone.Text)) {
+                        clone.Text = ReplaceSheetNameReferences(clone.Text!, sheetNameMap);
+                        if (tableNameMap?.Count > 0) {
+                            clone.Text = RewriteStructuredTableReferences(clone.Text!, tableNameMap);
+                        }
+
+                        formulaTexts.Add(clone.Text!);
+                    }
+
+                    targetDefinedNames.Append(clone);
+                    copiedNames.Add(copyKey);
+                    copied = true;
+                }
             }
+            while (copied);
 
             WorkbookRoot.Save();
         }

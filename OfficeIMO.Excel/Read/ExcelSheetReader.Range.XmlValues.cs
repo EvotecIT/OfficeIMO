@@ -627,17 +627,37 @@ namespace OfficeIMO.Excel {
             }
 
             int depth = textReader.Depth;
-            if (!textReader.Read()) {
-                return string.Empty;
+            string? first = null;
+            System.Text.StringBuilder? builder = null;
+            while (textReader.Read()) {
+                if (textReader.NodeType == XmlNodeType.EndElement && textReader.Depth == depth && textReader.LocalName == "t") {
+                    break;
+                }
+
+                if (!IsXmlTextNode(textReader.NodeType)) {
+                    continue;
+                }
+
+                string text = textReader.Value;
+                if (builder != null) {
+                    builder.Append(text);
+                } else if (first == null) {
+                    first = text;
+                } else {
+                    builder = new System.Text.StringBuilder(first.Length + text.Length);
+                    builder.Append(first);
+                    builder.Append(text);
+                }
             }
 
-            string text = textReader.NodeType == XmlNodeType.Text
-                || textReader.NodeType == XmlNodeType.SignificantWhitespace
-                || textReader.NodeType == XmlNodeType.Whitespace
-                    ? textReader.Value
-                    : string.Empty;
-            SkipXmlElementContent(textReader, depth, "t");
-            return text;
+            return builder?.ToString() ?? first ?? string.Empty;
+        }
+
+        private static bool IsXmlTextNode(XmlNodeType nodeType) {
+            return nodeType == XmlNodeType.Text
+                || nodeType == XmlNodeType.CDATA
+                || nodeType == XmlNodeType.SignificantWhitespace
+                || nodeType == XmlNodeType.Whitespace;
         }
 
         private static int ParsePositiveIntAttribute(string? value) {

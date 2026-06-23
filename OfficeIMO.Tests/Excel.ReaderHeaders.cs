@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Data;
 using System.Globalization;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.Serialization;
@@ -493,6 +494,53 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal("Shared Rich", values[0, 0]);
                 Assert.Equal("Inline Rich", values[0, 1]);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_ReadRange_PreservesAdjacentTextNodesInsideInlineStringText() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderInlineStringSplitTextNode.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "placeholder");
+                    document.Save();
+                }
+
+                using (var spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                    var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                    Cell cell = worksheetPart.Worksheet.Descendants<Cell>().First(c => c.CellReference?.Value == "A1");
+                    cell.CellValue = null;
+                    cell.DataType = CellValues.InlineString;
+                    cell.InlineString = new InlineString(new Text("placeholder"));
+                    worksheetPart.Worksheet.Save();
+                }
+
+                using (var archive = ZipFile.Open(filePath, ZipArchiveMode.Update)) {
+                    ZipArchiveEntry sheetEntry = archive.Entries.Single(entry => entry.FullName.StartsWith("xl/worksheets/sheet", StringComparison.Ordinal) && entry.FullName.EndsWith(".xml", StringComparison.Ordinal));
+                    string sheetEntryName = sheetEntry.FullName;
+                    string xml;
+                    using (var reader = new StreamReader(sheetEntry.Open())) {
+                        xml = reader.ReadToEnd();
+                    }
+
+                    xml = xml.Replace("placeholder", "Alpha<![CDATA[Beta]]>Gamma", StringComparison.Ordinal);
+
+                    sheetEntry.Delete();
+                    ZipArchiveEntry replacement = archive.CreateEntry(sheetEntryName);
+                    using var writer = new StreamWriter(replacement.Open());
+                    writer.Write(xml);
+                }
+
+                using var excelReader = ExcelDocumentReader.Open(filePath);
+                object?[,] values = excelReader.GetSheet("Data").ReadRange("A1:A1");
+
+                Assert.Equal("AlphaBetaGamma", values[0, 0]);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);

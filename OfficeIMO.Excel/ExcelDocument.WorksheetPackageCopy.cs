@@ -30,10 +30,10 @@ namespace OfficeIMO.Excel {
         }
 
         private ExcelSheet CopyWorkSheetFromPackage(ExcelDocument sourceDocument, string sourceSheetName, string newSheetName, SheetNameValidationMode validationMode) {
-            return CopyWorkSheetFromPackage(sourceDocument, sourceSheetName, newSheetName, validationMode, rewriteCopiedReferences: true, copyReferencedDefinedNames: true);
+            return CopyWorkSheetFromPackage(sourceDocument, sourceSheetName, newSheetName, validationMode, rewriteCopiedReferences: true, copyReferencedDefinedNames: true).Sheet;
         }
 
-        private ExcelSheet CopyWorkSheetFromPackage(
+        private WorksheetPackageCopyResult CopyWorkSheetFromPackage(
             ExcelDocument sourceDocument,
             string sourceSheetName,
             string newSheetName,
@@ -52,7 +52,7 @@ namespace OfficeIMO.Excel {
                 WorksheetStyleCopyMap styleMap = RemapCopiedWorksheetStyles(sourceDocument.WorkbookPartRoot.WorkbookStylesPart?.Stylesheet, WorkbookPartRoot, copiedPart.Worksheet);
                 RemapCopiedWorksheetConditionalFormats(copiedPart.Worksheet, styleMap.DifferentialFormats);
                 RemoveRelationshipBackedWorksheetFeatures(copiedPart.Worksheet);
-                CopyWorksheetTables(sourcePart, copiedPart);
+                IReadOnlyDictionary<string, string> tableNameMap = CopyWorksheetTables(sourcePart, copiedPart);
 
                 Sheet sheet = AppendWorksheetElement(copiedPart, validatedName);
                 var targetSheet = new ExcelSheet(this, _spreadSheetDocument, sheet);
@@ -61,17 +61,17 @@ namespace OfficeIMO.Excel {
                     [sourceSheet.Name] = targetSheet.Name
                 };
                 if (rewriteCopiedReferences) {
-                    RewriteCopiedWorksheetReferences(copiedPart, sheetNameMap);
+                    RewriteCopiedWorksheetReferences(copiedPart, sheetNameMap, tableNameMap);
                 }
 
                 if (copyReferencedDefinedNames) {
-                    CopyReferencedDefinedNamesFromSource(sourceDocument, targetSheet, sheetNameMap);
+                    CopyReferencedDefinedNamesFromSource(sourceDocument, targetSheet, sheetNameMap, tableNameMap);
                 }
 
                 copiedPart.Worksheet.Save();
                 MarkPackageDirty();
                 WorkbookRoot.Save();
-                return targetSheet;
+                return new WorksheetPackageCopyResult(targetSheet, tableNameMap);
             });
         }
 
@@ -126,6 +126,8 @@ namespace OfficeIMO.Excel {
                 uint? oldStyleIndex = cell.StyleIndex?.Value;
                 if (oldStyleIndex.HasValue && cellFormatMap.TryGetValue(oldStyleIndex.Value, out uint newStyleIndex)) {
                     cell.StyleIndex = newStyleIndex;
+                } else if (!oldStyleIndex.HasValue && cellFormatMap.TryGetValue(0U, out uint newDefaultStyleIndex)) {
+                    cell.StyleIndex = newDefaultStyleIndex;
                 }
             }
 
@@ -337,6 +339,17 @@ namespace OfficeIMO.Excel {
 
             internal IReadOnlyDictionary<uint, uint> CellFormats { get; }
             internal IReadOnlyDictionary<uint, uint> DifferentialFormats { get; }
+        }
+
+        private sealed class WorksheetPackageCopyResult {
+            internal WorksheetPackageCopyResult(ExcelSheet sheet, IReadOnlyDictionary<string, string> tableNameMap) {
+                Sheet = sheet;
+                TableNameMap = tableNameMap;
+            }
+
+            internal ExcelSheet Sheet { get; }
+
+            internal IReadOnlyDictionary<string, string> TableNameMap { get; }
         }
     }
 }

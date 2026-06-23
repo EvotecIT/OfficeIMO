@@ -363,6 +363,7 @@ namespace OfficeIMO.Excel {
             RemoveElementsByLocalName(worksheet, "pivotTableDefinition");
             RemoveElementsByLocalName(worksheet, "pivotTableDefinitions");
             RemoveElementsByLocalName(worksheet, "queryTableParts");
+            RemoveElementsByLocalName(worksheet, "customProperties");
 
             foreach (Hyperlinks hyperlinks in worksheet.Elements<Hyperlinks>().ToList()) {
                 foreach (Hyperlink hyperlink in hyperlinks.Elements<Hyperlink>().Where(h => h.Id != null).ToList()) {

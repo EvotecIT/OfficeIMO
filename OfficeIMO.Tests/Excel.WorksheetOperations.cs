@@ -342,6 +342,43 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_CopyWorkSheetFrom_PackageModeMapsSourceDefaultStyleToUnstyledCells() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageDefaultStyleSource.xlsx");
+            string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageDefaultStyleTarget.xlsx");
+
+            using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
+                ExcelSheet source = sourceDocument.AddWorkSheet("StyledDefault");
+                source.CellValue(1, 1, "Default styled");
+                sourceDocument.Save();
+            }
+
+            AddDefaultBoldFontStyle(sourcePath);
+
+            using (var sourceDocument = ExcelDocument.Load(sourcePath, readOnly: true))
+            using (var targetDocument = ExcelDocument.Create(targetPath)) {
+                targetDocument.AddWorkSheet("Existing").CellValue(1, 1, "Existing");
+                targetDocument.CopyWorkSheetFrom(sourceDocument, "StyledDefault", "Imported", SheetNameValidationMode.Sanitize, new ExcelWorksheetCopyOptions {
+                    CopyMode = ExcelWorksheetCopyMode.Package
+                });
+                targetDocument.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(targetPath, false)) {
+                WorksheetPart copiedPart = GetWorksheetPartByNameForOperations(spreadsheet, "Imported");
+                Cell copiedCell = copiedPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A1");
+                Assert.NotNull(copiedCell.StyleIndex);
+
+                Stylesheet stylesheet = spreadsheet.WorkbookPart!.WorkbookStylesPart!.Stylesheet!;
+                CellFormat copiedFormat = stylesheet.CellFormats!.Elements<CellFormat>().ElementAt((int)copiedCell.StyleIndex!.Value);
+                Font copiedFont = stylesheet.Fonts!.Elements<Font>().ElementAt((int)copiedFormat.FontId!.Value);
+                Assert.NotNull(copiedFont.Bold);
+            }
+
+            File.Delete(sourcePath);
+            File.Delete(targetPath);
+        }
+
+        [Fact]
         public void Test_CopyWorkSheetFrom_PackageModeStreamSavePersistsCopiedSheet() {
             using var sourceStream = new MemoryStream();
             using var targetSeedStream = new MemoryStream();
@@ -422,8 +459,9 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(worksheet.Elements<Picture>());
                 Assert.Empty(worksheet.Elements<LegacyDrawing>());
                 Assert.Null(worksheet.GetFirstChild<PageSetup>()?.Id?.Value);
-                Assert.Empty(worksheet.Descendants<OpenXmlElement>().Where(element => element.LocalName == "queryTableParts"));
-                Assert.Empty(worksheet.Descendants<OpenXmlElement>().Where(element => element.LocalName == "pivotTableDefinition"));
+                Assert.DoesNotContain(worksheet.Descendants<OpenXmlElement>(), element => element.LocalName == "queryTableParts");
+                Assert.DoesNotContain(worksheet.Descendants<OpenXmlElement>(), element => element.LocalName == "pivotTableDefinition");
+                Assert.DoesNotContain(worksheet.Descendants<OpenXmlElement>(), element => element.LocalName == "customProperties");
             }
 
             File.Delete(sourcePath);
@@ -618,6 +656,11 @@ namespace OfficeIMO.Tests {
             worksheet.Append(new Picture { Id = "rId999" });
             worksheet.Append(new LegacyDrawing { Id = "rId998" });
             worksheet.Append(new PageSetup { Id = "rId997" });
+            var customProperties = new OpenXmlUnknownElement(string.Empty, "customProperties", "http://schemas.openxmlformats.org/spreadsheetml/2006/main");
+            var customProperty = new OpenXmlUnknownElement(string.Empty, "customPr", "http://schemas.openxmlformats.org/spreadsheetml/2006/main");
+            customProperty.SetAttribute(new OpenXmlAttribute("r", "id", "http://schemas.openxmlformats.org/officeDocument/2006/relationships", "rId994"));
+            customProperties.Append(customProperty);
+            worksheet.Append(customProperties);
             var queryTableParts = new OpenXmlUnknownElement(string.Empty, "queryTableParts", "http://schemas.openxmlformats.org/spreadsheetml/2006/main");
             var queryTablePart = new OpenXmlUnknownElement(string.Empty, "queryTablePart", "http://schemas.openxmlformats.org/spreadsheetml/2006/main");
             queryTablePart.SetAttribute(new OpenXmlAttribute("r", "id", "http://schemas.openxmlformats.org/officeDocument/2006/relationships", "rId996"));
@@ -627,6 +670,19 @@ namespace OfficeIMO.Tests {
             pivotTableDefinition.SetAttribute(new OpenXmlAttribute("r", "id", "http://schemas.openxmlformats.org/officeDocument/2006/relationships", "rId995"));
             worksheet.Append(pivotTableDefinition);
             worksheet.Save();
+        }
+
+        private static void AddDefaultBoldFontStyle(string path) {
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(path, true);
+            Stylesheet stylesheet = spreadsheet.WorkbookPart!.WorkbookStylesPart!.Stylesheet!;
+            stylesheet.Fonts ??= new Fonts();
+            stylesheet.Fonts.Append(new Font(new Bold()));
+            stylesheet.Fonts.Count = (uint)stylesheet.Fonts.Elements<Font>().Count();
+
+            CellFormat defaultFormat = stylesheet.CellFormats!.Elements<CellFormat>().First();
+            defaultFormat.FontId = stylesheet.Fonts.Count!.Value - 1U;
+            defaultFormat.ApplyFont = true;
+            stylesheet.Save();
         }
 
         private static void AddDummyDifferentialFormat(string path) {

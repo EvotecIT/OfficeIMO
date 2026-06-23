@@ -76,9 +76,14 @@ namespace OfficeIMO.Tests {
 
             using (var source = ExcelDocument.Create(sourcePath)) {
                 ExcelSheet data = source.AddWorkSheet("Data");
-                data.CellValue(1, 1, 42);
-                data.CellFormula(2, 1, "Data!A1");
-                source.SetNamedRange("TaxRate", "A1", data, save: false);
+                data.CellValue(1, 1, "Name");
+                data.CellValue(1, 2, "Amount");
+                data.CellValue(2, 1, "Ada");
+                data.CellValue(2, 2, 42);
+                data.CellValue(2, 3, 0.2);
+                data.CellFormula(3, 2, "Data!B2");
+                data.AddTable("A1:B2", hasHeader: true, name: "People", OfficeIMO.Excel.TableStyle.TableStyleMedium9);
+                source.SetNamedRange("TaxRate", "C2", data, save: false);
 
                 ExcelSheet importedData = source.AddWorkSheet("Imported Data");
                 importedData.CellValue(1, 1, 84);
@@ -96,15 +101,21 @@ namespace OfficeIMO.Tests {
                 mar2026.CellValue(1, 1, 3);
 
                 ExcelSheet summary = source.AddWorkSheet("Summary");
-                summary.CellFormula(1, 1, "Data!A1+'Imported Data'!A1+Data!TaxRate+SUM(Jan:Mar!A1)+SUM('Jan 2026:Mar 2026'!A1)");
+                summary.CellFormula(1, 1, "Data!B2+'Imported Data'!A1+Data!TaxRate+SUM(People[Amount])+TotalWithTax+SUM(Jan:Mar!A1)+SUM('Jan 2026:Mar 2026'!A1)");
                 summary.SetInternalLink(2, 1, "Data!A1", "Go");
                 summary.ValidationCustomFormula("B2", "COUNTIF(Data!$A$1:$A$1,\">0\")>0");
                 source.Save();
             }
 
+            AddWorkbookDefinedName(sourcePath, "PeopleTotal", "SUM(People[Amount])");
+            AddWorkbookDefinedName(sourcePath, "TotalWithTax", "PeopleTotal*TaxRate");
+
             using (var target = ExcelDocument.Create(targetPath))
             using (var source = ExcelDocument.Load(sourcePath, readOnly: true)) {
-                target.AddWorkSheet("Existing").CellValue(1, 1, "Existing");
+                ExcelSheet existing = target.AddWorkSheet("Existing");
+                existing.CellValue(1, 1, "Name");
+                existing.CellValue(2, 1, "Grace");
+                existing.AddTable("A1:A2", hasHeader: true, name: "People", OfficeIMO.Excel.TableStyle.TableStyleMedium9);
                 target.MergeWorkbookFrom(source, new ExcelWorkbookMergeOptions {
                     SheetNamePrefix = "Imported ",
                     CopyMode = ExcelWorksheetCopyMode.Package
@@ -114,23 +125,39 @@ namespace OfficeIMO.Tests {
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(targetPath, false)) {
                 WorksheetPart dataPart = GetWorksheetPartByNameForOperations(spreadsheet, "Imported Data");
-                Cell selfFormulaCell = dataPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A2");
+                Cell selfFormulaCell = dataPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "B3");
+                string copiedPeopleTableName = Assert.Single(dataPart.TableDefinitionParts).Table.Name!.Value!;
                 WorksheetPart summaryPart = GetWorksheetPartByNameForOperations(spreadsheet, "Imported Summary");
                 Cell formulaCell = summaryPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A1");
                 Hyperlink hyperlink = Assert.Single(summaryPart.Worksheet.Descendants<Hyperlink>());
                 Formula1 validationFormula = Assert.Single(summaryPart.Worksheet.Descendants<Formula1>());
                 DefinedName taxRate = Assert.Single(spreadsheet.WorkbookPart!.Workbook.DefinedNames!.Elements<DefinedName>(), name => name.Name == "TaxRate");
+                DefinedName peopleTotal = Assert.Single(spreadsheet.WorkbookPart!.Workbook.DefinedNames!.Elements<DefinedName>(), name => name.Name == "PeopleTotal");
+                DefinedName totalWithTax = Assert.Single(spreadsheet.WorkbookPart!.Workbook.DefinedNames!.Elements<DefinedName>(), name => name.Name == "TotalWithTax");
 
-                Assert.Equal("'Imported Data'!A1", selfFormulaCell.CellFormula?.Text);
-                Assert.Equal("'Imported Data'!A1+'Imported Imported Data'!A1+'Imported Data'!TaxRate+SUM('Imported Jan':'Imported Mar'!A1)+SUM('Imported Jan 2026':'Imported Mar 2026'!A1)", formulaCell.CellFormula?.Text);
+                Assert.NotEqual("People", copiedPeopleTableName);
+                Assert.Equal("'Imported Data'!B2", selfFormulaCell.CellFormula?.Text);
+                Assert.Equal($"'Imported Data'!B2+'Imported Imported Data'!A1+'Imported Data'!TaxRate+SUM({copiedPeopleTableName}[Amount])+TotalWithTax+SUM('Imported Jan':'Imported Mar'!A1)+SUM('Imported Jan 2026':'Imported Mar 2026'!A1)", formulaCell.CellFormula?.Text);
                 Assert.Equal("'Imported Data'!A1", hyperlink.Location?.Value);
                 Assert.Equal("COUNTIF('Imported Data'!$A$1:$A$1,\">0\")>0", validationFormula.Text);
-                Assert.Equal("'Imported Data'!$A$1", taxRate.Text);
+                Assert.Equal("'Imported Data'!$C$2", taxRate.Text);
+                Assert.Equal($"SUM({copiedPeopleTableName}[Amount])", peopleTotal.Text);
+                Assert.Equal("PeopleTotal*TaxRate", totalWithTax.Text);
                 Assert.NotNull(taxRate.LocalSheetId);
             }
 
             File.Delete(sourcePath);
             File.Delete(targetPath);
+        }
+
+        private static void AddWorkbookDefinedName(string path, string name, string reference) {
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(path, true);
+            Workbook workbook = spreadsheet.WorkbookPart!.Workbook;
+            workbook.DefinedNames ??= new DefinedNames();
+            workbook.DefinedNames.Append(new DefinedName(reference) {
+                Name = name
+            });
+            workbook.Save();
         }
     }
 }

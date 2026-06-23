@@ -25,26 +25,35 @@ namespace OfficeIMO.Excel {
             var importedSourceNames = new List<string>(sourceSheets.Count);
             var createdTargetNames = new List<string>(sourceSheets.Count);
             var sheetNameMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var tableNameMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
             foreach (ExcelSheet sourceSheet in sourceSheets) {
                 string requestedName = (options.SheetNamePrefix ?? string.Empty) + sourceSheet.Name;
-                ExcelSheet targetSheet = options.CopyMode == ExcelWorksheetCopyMode.Values
-                    ? CopyWorkSheetFromValues(sourceDocument, sourceSheet.Name, requestedName, options.SheetNameValidationMode)
-                    : CopyWorkSheetFromPackage(
+                ExcelSheet targetSheet;
+                if (options.CopyMode == ExcelWorksheetCopyMode.Values) {
+                    targetSheet = CopyWorkSheetFromValues(sourceDocument, sourceSheet.Name, requestedName, options.SheetNameValidationMode);
+                } else {
+                    WorksheetPackageCopyResult copyResult = CopyWorkSheetFromPackage(
                         sourceDocument,
                         sourceSheet.Name,
                         requestedName,
                         options.SheetNameValidationMode,
                         rewriteCopiedReferences: false,
                         copyReferencedDefinedNames: false);
+                    targetSheet = copyResult.Sheet;
+                    foreach (var tableName in copyResult.TableNameMap) {
+                        tableNameMap[tableName.Key] = tableName.Value;
+                    }
+                }
+
                 importedSourceNames.Add(sourceSheet.Name);
                 createdTargetNames.Add(targetSheet.Name);
                 sheetNameMap[sourceSheet.Name] = targetSheet.Name;
             }
 
-            RewriteMergedWorksheetReferences(createdTargetNames, sheetNameMap);
+            RewriteMergedWorksheetReferences(createdTargetNames, sheetNameMap, tableNameMap);
             for (int index = 0; index < importedSourceNames.Count; index++) {
-                CopyReferencedDefinedNamesFromSource(sourceDocument, GetSheet(createdTargetNames[index]), sheetNameMap);
+                CopyReferencedDefinedNamesFromSource(sourceDocument, GetSheet(createdTargetNames[index]), sheetNameMap, tableNameMap);
             }
 
             MarkPackageDirty();
@@ -65,15 +74,18 @@ namespace OfficeIMO.Excel {
             return options.SheetNames.Select(sourceDocument.GetSheet);
         }
 
-        private void RewriteMergedWorksheetReferences(IEnumerable<string> copiedSheetNames, IReadOnlyDictionary<string, string> sheetNameMap) {
-            if (sheetNameMap.Count == 0) {
+        private void RewriteMergedWorksheetReferences(
+            IEnumerable<string> copiedSheetNames,
+            IReadOnlyDictionary<string, string> sheetNameMap,
+            IReadOnlyDictionary<string, string> tableNameMap) {
+            if (sheetNameMap.Count == 0 && tableNameMap.Count == 0) {
                 return;
             }
 
             foreach (string copiedSheetName in copiedSheetNames) {
                 ExcelSheet copiedSheet = GetSheet(copiedSheetName);
                 WorksheetPart worksheetPart = copiedSheet.WorksheetPart;
-                RewriteCopiedWorksheetReferences(worksheetPart, sheetNameMap);
+                RewriteCopiedWorksheetReferences(worksheetPart, sheetNameMap, tableNameMap);
             }
         }
 
