@@ -559,19 +559,13 @@ namespace OfficeIMO.Tests {
         }
 
         private static bool SegmentIntersectsBounds(RoutePoint a, RoutePoint b, VisioBounds bounds) {
-            if (PointInside(a, bounds) || PointInside(b, bounds)) {
-                return true;
-            }
-
-            RoutePoint bottomLeft = new(bounds.Left, bounds.Bottom);
-            RoutePoint bottomRight = new(bounds.Right, bounds.Bottom);
-            RoutePoint topLeft = new(bounds.Left, bounds.Top);
-            RoutePoint topRight = new(bounds.Right, bounds.Top);
-
-            return SegmentsIntersect(a, b, bottomLeft, bottomRight) ||
-                   SegmentsIntersect(a, b, bottomRight, topRight) ||
-                   SegmentsIntersect(a, b, topRight, topLeft) ||
-                   SegmentsIntersect(a, b, topLeft, bottomLeft);
+            return OfficeGeometry.SegmentIntersectsRectangle(
+                (a.X, a.Y),
+                (b.X, b.Y),
+                bounds.Left,
+                bounds.Bottom,
+                bounds.Right,
+                bounds.Top);
         }
 
         private static int CountRouteCrossings(VisioConnector connector, params VisioConnector[] references) {
@@ -603,52 +597,20 @@ namespace OfficeIMO.Tests {
         }
 
         private static bool SegmentsIntersectAwayFromSharedEndpoints(RouteSegment segment, RouteSegment referenceSegment) {
-            return SegmentsIntersect(segment.Start, segment.End, referenceSegment.Start, referenceSegment.End) &&
+            return OfficeGeometry.SegmentsIntersect(
+                       (segment.Start.X, segment.Start.Y),
+                       (segment.End.X, segment.End.Y),
+                       (referenceSegment.Start.X, referenceSegment.Start.Y),
+                       (referenceSegment.End.X, referenceSegment.End.Y)) &&
                    !PointsEqual(segment.Start, referenceSegment.Start) &&
                    !PointsEqual(segment.Start, referenceSegment.End) &&
                    !PointsEqual(segment.End, referenceSegment.Start) &&
                    !PointsEqual(segment.End, referenceSegment.End);
         }
 
-        private static bool SegmentsIntersect(RoutePoint p1, RoutePoint p2, RoutePoint q1, RoutePoint q2) {
-            double o1 = Orientation(p1, p2, q1);
-            double o2 = Orientation(p1, p2, q2);
-            double o3 = Orientation(q1, q2, p1);
-            double o4 = Orientation(q1, q2, p2);
-
-            if (o1 * o2 < 0D && o3 * o4 < 0D) {
-                return true;
-            }
-
-            return IsZero(o1) && OnSegment(p1, q1, p2) ||
-                   IsZero(o2) && OnSegment(p1, q2, p2) ||
-                   IsZero(o3) && OnSegment(q1, p1, q2) ||
-                   IsZero(o4) && OnSegment(q1, p2, q2);
-        }
-
-        private static double Orientation(RoutePoint a, RoutePoint b, RoutePoint c) {
-            return ((b.X - a.X) * (c.Y - a.Y)) - ((b.Y - a.Y) * (c.X - a.X));
-        }
-
-        private static bool OnSegment(RoutePoint a, RoutePoint b, RoutePoint c) {
-            return b.X >= Math.Min(a.X, c.X) - 1e-9 &&
-                   b.X <= Math.Max(a.X, c.X) + 1e-9 &&
-                   b.Y >= Math.Min(a.Y, c.Y) - 1e-9 &&
-                   b.Y <= Math.Max(a.Y, c.Y) + 1e-9;
-        }
-
         private static bool PointsEqual(RoutePoint a, RoutePoint b) {
             return Math.Abs(a.X - b.X) < 1e-9 &&
                    Math.Abs(a.Y - b.Y) < 1e-9;
-        }
-
-        private static bool PointInside(RoutePoint point, VisioBounds bounds) {
-            return point.X > bounds.Left && point.X < bounds.Right &&
-                   point.Y > bounds.Bottom && point.Y < bounds.Top;
-        }
-
-        private static bool IsZero(double value) {
-            return Math.Abs(value) < 1e-9;
         }
 
         private static VisioBounds Inflate(VisioBounds bounds, double padding) {

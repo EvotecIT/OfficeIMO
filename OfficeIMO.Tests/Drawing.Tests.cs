@@ -606,6 +606,23 @@ public class DrawingTests {
     }
 
     [Fact]
+    public void OfficeGeometryDetectsReusableSegmentIntersections() {
+        Assert.True(OfficeGeometry.SegmentsIntersect((0D, 0D), (4D, 4D), (0D, 4D), (4D, 0D)));
+        Assert.True(OfficeGeometry.SegmentsIntersect((0D, 0D), (4D, 0D), (2D, 0D), (5D, 0D)));
+        Assert.True(OfficeGeometry.SegmentsIntersect(new OfficePoint(0D, 0D), new OfficePoint(0D, 2D), new OfficePoint(-1D, 1D), new OfficePoint(1D, 1D)));
+        Assert.False(OfficeGeometry.SegmentsIntersect((0D, 0D), (1D, 0D), (0D, 1D), (1D, 1D)));
+    }
+
+    [Fact]
+    public void OfficeGeometryDetectsReusableSegmentRectangleIntersections() {
+        Assert.True(OfficeGeometry.SegmentIntersectsRectangle((0D, 0D), (4D, 4D), 1D, 1D, 3D, 3D));
+        Assert.True(OfficeGeometry.SegmentIntersectsRectangle((2D, 2D), (2.5D, 2.5D), 1D, 1D, 3D, 3D));
+        Assert.True(OfficeGeometry.SegmentIntersectsRectangle((0D, 1D), (1D, 1D), 1D, 1D, 3D, 3D));
+        Assert.True(OfficeGeometry.SegmentIntersectsRectangle(new OfficePoint(4D, 2D), new OfficePoint(2D, 2D), 3D, 1D, 1D, 3D));
+        Assert.False(OfficeGeometry.SegmentIntersectsRectangle((0D, 0D), (0.5D, 0.5D), 1D, 1D, 3D, 3D));
+    }
+
+    [Fact]
     public void OfficeGeometryCalculatesReusableArrowheadGeometry() {
         Assert.True(OfficeGeometry.TryCreateArrowheadPoints(new OfficePoint(10D, 10D), new OfficePoint(0D, 10D), 2D, out OfficePoint[] arrow));
         Assert.Equal(3, arrow.Length);

@@ -8,6 +8,7 @@ namespace OfficeIMO.Drawing;
 /// </summary>
 public static class OfficeGeometry {
     private const double DefaultArrowheadWingAngleRadians = Math.PI / 7D;
+    private const double GeometryTolerance = 1e-9D;
 
     /// <summary>
     /// Calculates the Euclidean distance between two points.
@@ -29,6 +30,110 @@ public static class OfficeGeometry {
     /// </summary>
     public static double Distance((double X, double Y) from, (double X, double Y) to) =>
         Distance(from.X, from.Y, to.X, to.Y);
+
+    /// <summary>
+    /// Determines whether two line segments intersect, including boundary touches and collinear overlap.
+    /// </summary>
+    public static bool SegmentsIntersect(
+        (double X, double Y) firstStart,
+        (double X, double Y) firstEnd,
+        (double X, double Y) secondStart,
+        (double X, double Y) secondEnd) {
+        double o1 = Orientation(firstStart, firstEnd, secondStart);
+        double o2 = Orientation(firstStart, firstEnd, secondEnd);
+        double o3 = Orientation(secondStart, secondEnd, firstStart);
+        double o4 = Orientation(secondStart, secondEnd, firstEnd);
+
+        if (o1 * o2 < 0D && o3 * o4 < 0D) {
+            return true;
+        }
+
+        return IsZero(o1) && OnSegment(firstStart, secondStart, firstEnd) ||
+               IsZero(o2) && OnSegment(firstStart, secondEnd, firstEnd) ||
+               IsZero(o3) && OnSegment(secondStart, firstStart, secondEnd) ||
+               IsZero(o4) && OnSegment(secondStart, firstEnd, secondEnd);
+    }
+
+    /// <summary>
+    /// Determines whether two line segments intersect, including boundary touches and collinear overlap.
+    /// </summary>
+    public static bool SegmentsIntersect(
+        OfficePoint firstStart,
+        OfficePoint firstEnd,
+        OfficePoint secondStart,
+        OfficePoint secondEnd) =>
+        SegmentsIntersect(
+            (firstStart.X, firstStart.Y),
+            (firstEnd.X, firstEnd.Y),
+            (secondStart.X, secondStart.Y),
+            (secondEnd.X, secondEnd.Y));
+
+    /// <summary>
+    /// Determines whether a line segment intersects a rectangle, including boundary touches.
+    /// </summary>
+    /// <param name="start">Segment start point.</param>
+    /// <param name="end">Segment end point.</param>
+    /// <param name="left">Rectangle left X coordinate.</param>
+    /// <param name="bottom">Rectangle lower Y coordinate.</param>
+    /// <param name="right">Rectangle right X coordinate.</param>
+    /// <param name="top">Rectangle upper Y coordinate.</param>
+    public static bool SegmentIntersectsRectangle(
+        (double X, double Y) start,
+        (double X, double Y) end,
+        double left,
+        double bottom,
+        double right,
+        double top) {
+        double minX = Math.Min(left, right);
+        double maxX = Math.Max(left, right);
+        double minY = Math.Min(bottom, top);
+        double maxY = Math.Max(bottom, top);
+
+        if (Math.Max(start.X, end.X) < minX - GeometryTolerance ||
+            Math.Min(start.X, end.X) > maxX + GeometryTolerance ||
+            Math.Max(start.Y, end.Y) < minY - GeometryTolerance ||
+            Math.Min(start.Y, end.Y) > maxY + GeometryTolerance) {
+            return false;
+        }
+
+        if (PointInsideRectangle(start, minX, minY, maxX, maxY) ||
+            PointInsideRectangle(end, minX, minY, maxX, maxY)) {
+            return true;
+        }
+
+        (double X, double Y) bottomLeft = (minX, minY);
+        (double X, double Y) bottomRight = (maxX, minY);
+        (double X, double Y) topRight = (maxX, maxY);
+        (double X, double Y) topLeft = (minX, maxY);
+        return SegmentsIntersect(start, end, bottomLeft, bottomRight) ||
+               SegmentsIntersect(start, end, bottomRight, topRight) ||
+               SegmentsIntersect(start, end, topRight, topLeft) ||
+               SegmentsIntersect(start, end, topLeft, bottomLeft);
+    }
+
+    /// <summary>
+    /// Determines whether a line segment intersects a rectangle, including boundary touches.
+    /// </summary>
+    /// <param name="start">Segment start point.</param>
+    /// <param name="end">Segment end point.</param>
+    /// <param name="left">Rectangle left X coordinate.</param>
+    /// <param name="bottom">Rectangle lower Y coordinate.</param>
+    /// <param name="right">Rectangle right X coordinate.</param>
+    /// <param name="top">Rectangle upper Y coordinate.</param>
+    public static bool SegmentIntersectsRectangle(
+        OfficePoint start,
+        OfficePoint end,
+        double left,
+        double bottom,
+        double right,
+        double top) =>
+        SegmentIntersectsRectangle(
+            (start.X, start.Y),
+            (end.X, end.Y),
+            left,
+            bottom,
+            right,
+            top);
 
     /// <summary>
     /// Calculates the perpendicular half-offset for two parallel lines separated by the supplied distance.
@@ -508,4 +613,22 @@ public static class OfficeGeometry {
 
     private static bool IsFinite(double value) =>
         !double.IsNaN(value) && !double.IsInfinity(value);
+
+    private static double Orientation((double X, double Y) a, (double X, double Y) b, (double X, double Y) c) =>
+        ((b.X - a.X) * (c.Y - a.Y)) - ((b.Y - a.Y) * (c.X - a.X));
+
+    private static bool OnSegment((double X, double Y) a, (double X, double Y) b, (double X, double Y) c) =>
+        b.X >= Math.Min(a.X, c.X) - GeometryTolerance &&
+        b.X <= Math.Max(a.X, c.X) + GeometryTolerance &&
+        b.Y >= Math.Min(a.Y, c.Y) - GeometryTolerance &&
+        b.Y <= Math.Max(a.Y, c.Y) + GeometryTolerance;
+
+    private static bool PointInsideRectangle((double X, double Y) point, double minX, double minY, double maxX, double maxY) =>
+        point.X >= minX - GeometryTolerance &&
+        point.X <= maxX + GeometryTolerance &&
+        point.Y >= minY - GeometryTolerance &&
+        point.Y <= maxY + GeometryTolerance;
+
+    private static bool IsZero(double value) =>
+        Math.Abs(value) < GeometryTolerance;
 }

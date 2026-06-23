@@ -853,21 +853,13 @@ namespace OfficeIMO.Tests {
         }
 
         private static bool SegmentIntersectsBounds(double startX, double startY, double endX, double endY, OfficeIMO.Visio.VisioShapeBounds bounds) {
-            if (Math.Abs(startX - endX) < 1e-9) {
-                return startX > bounds.Left &&
-                       startX < bounds.Right &&
-                       Math.Max(startY, endY) > bounds.Bottom &&
-                       Math.Min(startY, endY) < bounds.Top;
-            }
-
-            if (Math.Abs(startY - endY) < 1e-9) {
-                return startY > bounds.Bottom &&
-                       startY < bounds.Top &&
-                       Math.Max(startX, endX) > bounds.Left &&
-                       Math.Min(startX, endX) < bounds.Right;
-            }
-
-            return false;
+            return OfficeGeometry.SegmentIntersectsRectangle(
+                (startX, startY),
+                (endX, endY),
+                bounds.Left,
+                bounds.Bottom,
+                bounds.Right,
+                bounds.Top);
         }
 
         private static bool Contains(OfficeIMO.Visio.VisioShapeBounds outer, OfficeIMO.Visio.VisioShapeBounds inner) {
