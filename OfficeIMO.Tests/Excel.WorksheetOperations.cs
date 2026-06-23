@@ -379,6 +379,47 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_CopyWorkSheetFrom_PackageModePreservesRowAndColumnStyleInheritance() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageInheritedStyleSource.xlsx");
+            string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageInheritedStyleTarget.xlsx");
+
+            using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
+                ExcelSheet source = sourceDocument.AddWorkSheet("Inherited");
+                source.CellValue(1, 1, "Row inherited");
+                source.CellValue(2, 2, "Column inherited");
+                sourceDocument.Save();
+            }
+
+            AddDefaultBoldFontStyle(sourcePath);
+            AddSourceRowAndColumnStyles(sourcePath, "Inherited");
+
+            using (var sourceDocument = ExcelDocument.Load(sourcePath, readOnly: true))
+            using (var targetDocument = ExcelDocument.Create(targetPath)) {
+                targetDocument.AddWorkSheet("Existing").CellValue(1, 1, "Existing");
+                targetDocument.CopyWorkSheetFrom(sourceDocument, "Inherited", "Imported", SheetNameValidationMode.Sanitize, new ExcelWorksheetCopyOptions {
+                    CopyMode = ExcelWorksheetCopyMode.Package
+                });
+                targetDocument.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(targetPath, false)) {
+                WorksheetPart copiedPart = GetWorksheetPartByNameForOperations(spreadsheet, "Imported");
+                Cell rowInheritedCell = copiedPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A1");
+                Cell columnInheritedCell = copiedPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "B2");
+                Row styledRow = copiedPart.Worksheet.Descendants<Row>().Single(row => row.RowIndex?.Value == 1U);
+                Column styledColumn = copiedPart.Worksheet.Elements<Columns>().Single().Elements<Column>().Single(column => column.Min?.Value == 2U);
+
+                Assert.Null(rowInheritedCell.StyleIndex);
+                Assert.Null(columnInheritedCell.StyleIndex);
+                Assert.NotNull(styledRow.StyleIndex);
+                Assert.NotNull(styledColumn.Style);
+            }
+
+            File.Delete(sourcePath);
+            File.Delete(targetPath);
+        }
+
+        [Fact]
         public void Test_CopyWorkSheetFrom_PackageModeStreamSavePersistsCopiedSheet() {
             using var sourceStream = new MemoryStream();
             using var targetSeedStream = new MemoryStream();
@@ -578,6 +619,55 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_CopyWorkSheetFrom_PackageModeRewritesStructuredReferencesOnce() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageStructuredOnceSource.xlsx");
+            string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageStructuredOnceTarget.xlsx");
+
+            using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
+                ExcelSheet source = sourceDocument.AddWorkSheet("Source");
+                source.CellValue(1, 1, "Amount");
+                source.CellValue(2, 1, 10);
+                source.AddTable("A1:A2", hasHeader: true, name: "Sales", OfficeIMO.Excel.TableStyle.TableStyleMedium9);
+                source.CellValue(4, 1, "Amount");
+                source.CellValue(5, 1, 20);
+                source.AddTable("A4:A5", hasHeader: true, name: "Sales2", OfficeIMO.Excel.TableStyle.TableStyleMedium9);
+                source.CellFormula(7, 1, "SUM(Sales[Amount])");
+                sourceDocument.Save();
+            }
+
+            using (var targetDocument = ExcelDocument.Create(targetPath)) {
+                ExcelSheet existing = targetDocument.AddWorkSheet("Existing");
+                existing.CellValue(1, 1, "Amount");
+                existing.CellValue(2, 1, 1);
+                existing.AddTable("A1:A2", hasHeader: true, name: "Sales", OfficeIMO.Excel.TableStyle.TableStyleMedium9);
+                targetDocument.Save();
+            }
+
+            using (var sourceDocument = ExcelDocument.Load(sourcePath, readOnly: true))
+            using (var targetDocument = ExcelDocument.Load(targetPath)) {
+                targetDocument.CopyWorkSheetFrom(sourceDocument, "Source", "Imported", SheetNameValidationMode.Sanitize, new ExcelWorksheetCopyOptions {
+                    CopyMode = ExcelWorksheetCopyMode.Package
+                });
+                targetDocument.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(targetPath, false)) {
+                WorksheetPart copiedPart = GetWorksheetPartByNameForOperations(spreadsheet, "Imported");
+                string[] copiedTableNames = copiedPart.TableDefinitionParts
+                    .Select(part => part.Table.Name!.Value!)
+                    .OrderBy(name => name)
+                    .ToArray();
+                Cell formulaCell = copiedPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A7");
+
+                Assert.Equal(new[] { "Sales2", "Sales22" }, copiedTableNames);
+                Assert.Equal("SUM(Sales2[Amount])", formulaCell.CellFormula?.Text);
+            }
+
+            File.Delete(sourcePath);
+            File.Delete(targetPath);
+        }
+
+        [Fact]
         public void Test_CopyWorkSheetFrom_ValuesModeKeepsReaderWriterFallback() {
             string sourcePath = Path.Combine(_directoryWithFiles, "WorksheetCopyValuesModeSource.xlsx");
             string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyValuesModeTarget.xlsx");
@@ -683,6 +773,44 @@ namespace OfficeIMO.Tests {
             defaultFormat.FontId = stylesheet.Fonts.Count!.Value - 1U;
             defaultFormat.ApplyFont = true;
             stylesheet.Save();
+        }
+
+        private static void AddSourceRowAndColumnStyles(string path, string sheetName) {
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(path, true);
+            WorksheetPart worksheetPart = GetWorksheetPartByNameForOperations(spreadsheet, sheetName);
+            Worksheet worksheet = worksheetPart.Worksheet;
+            SheetData sheetData = worksheet.GetFirstChild<SheetData>()!;
+            Stylesheet stylesheet = spreadsheet.WorkbookPart!.WorkbookStylesPart!.Stylesheet!;
+
+            stylesheet.Fonts ??= new Fonts();
+            stylesheet.Fonts.Append(new Font(new Italic()));
+            stylesheet.Fonts.Count = (uint)stylesheet.Fonts.Elements<Font>().Count();
+            uint fontId = stylesheet.Fonts.Count!.Value - 1U;
+
+            stylesheet.CellFormats ??= new CellFormats();
+            stylesheet.CellFormats.Append(new CellFormat {
+                FontId = fontId,
+                FillId = 0U,
+                BorderId = 0U,
+                FormatId = 0U,
+                ApplyFont = true
+            });
+            stylesheet.CellFormats.Count = (uint)stylesheet.CellFormats.Elements<CellFormat>().Count();
+            uint styleIndex = stylesheet.CellFormats.Count!.Value - 1U;
+
+            Row row = sheetData.Elements<Row>().Single(item => item.RowIndex?.Value == 1U);
+            row.StyleIndex = styleIndex;
+            row.CustomFormat = true;
+            worksheet.InsertBefore(new Columns(new Column {
+                Min = 2U,
+                Max = 2U,
+                Style = styleIndex,
+                Width = 14D,
+                CustomWidth = true
+            }), sheetData);
+
+            stylesheet.Save();
+            worksheet.Save();
         }
 
         private static void AddDummyDifferentialFormat(string path) {

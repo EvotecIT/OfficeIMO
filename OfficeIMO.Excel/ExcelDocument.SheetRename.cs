@@ -342,7 +342,7 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 
-                replacement = QuoteSheetNameReference(rewrittenFirst) + ":" + QuoteSheetNameReference(rewrittenSecond) + "!";
+                replacement = QuoteSheetRangeReference(rewrittenFirst, rewrittenSecond) + "!";
                 consumed = afterSecondToken - startIndex + 1;
                 return true;
             }
@@ -358,7 +358,7 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 
-                replacement = QuoteSheetNameReference(rewrittenFirst) + ":" + QuoteSheetNameReference(rewrittenSecond) + "!";
+                replacement = QuoteSheetRangeReference(rewrittenFirst, rewrittenSecond) + "!";
                 consumed = afterFirstToken - startIndex + 1;
                 return true;
             }
@@ -444,6 +444,10 @@ namespace OfficeIMO.Excel {
 
         private static string QuoteSheetNameReference(string sheetName) {
             return $"'{EscapeSheetName(sheetName)}'";
+        }
+
+        private static string QuoteSheetRangeReference(string firstSheetName, string secondSheetName) {
+            return $"'{EscapeSheetName(firstSheetName)}:{EscapeSheetName(secondSheetName)}'";
         }
 
         private static bool IsExternalSheetToken(string sheetToken) {

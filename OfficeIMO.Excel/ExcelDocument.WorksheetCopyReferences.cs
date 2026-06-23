@@ -67,17 +67,31 @@ namespace OfficeIMO.Excel {
             }
 
             var sourceSheetNamesByPosition = sourceDocument.GetSheetNamesByPosition();
+            string? currentSourceSheetName = sheetNameMap
+                .FirstOrDefault(mapping => string.Equals(mapping.Value, targetSheet.Name, StringComparison.OrdinalIgnoreCase))
+                .Key;
             DefinedNames targetDefinedNames = WorkbookRoot.DefinedNames ??= new DefinedNames();
             var copiedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             List<DefinedName> sourceNames = sourceDefinedNames.Elements<DefinedName>()
                 .Where(name => !string.IsNullOrWhiteSpace(name.Name?.Value)
                     && !name.Name!.Value!.StartsWith("_xlnm.", StringComparison.OrdinalIgnoreCase))
                 .ToList();
+            var localNamesForCurrentSourceSheet = new HashSet<string>(sourceNames
+                .Where(name => name.LocalSheetId != null
+                    && !string.IsNullOrEmpty(currentSourceSheetName)
+                    && sourceSheetNamesByPosition.TryGetValue((ushort)name.LocalSheetId.Value, out string? owner)
+                    && string.Equals(owner, currentSourceSheetName, StringComparison.OrdinalIgnoreCase)
+                    && !string.IsNullOrWhiteSpace(name.Name?.Value))
+                .Select(name => name.Name!.Value!), StringComparer.OrdinalIgnoreCase);
             bool copied;
             do {
                 copied = false;
                 foreach (DefinedName sourceName in sourceNames) {
                     string? name = sourceName.Name?.Value;
+                    if (sourceName.LocalSheetId == null && localNamesForCurrentSourceSheet.Contains(name!)) {
+                        continue;
+                    }
+
                     string copyKey = name + "|" + (sourceName.LocalSheetId?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty);
                     if (copiedNames.Contains(copyKey)
                         || !formulaTexts.Any(text => ContainsDefinedNameToken(text, name!))) {

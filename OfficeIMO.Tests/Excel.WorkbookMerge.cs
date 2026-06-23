@@ -107,6 +107,7 @@ namespace OfficeIMO.Tests {
                 source.Save();
             }
 
+            AddWorkbookDefinedName(sourcePath, "TaxRate", "0.99");
             AddWorkbookDefinedName(sourcePath, "PeopleTotal", "SUM(People[Amount])");
             AddWorkbookDefinedName(sourcePath, "TotalWithTax", "PeopleTotal*TaxRate");
 
@@ -131,13 +132,16 @@ namespace OfficeIMO.Tests {
                 Cell formulaCell = summaryPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A1");
                 Hyperlink hyperlink = Assert.Single(summaryPart.Worksheet.Descendants<Hyperlink>());
                 Formula1 validationFormula = Assert.Single(summaryPart.Worksheet.Descendants<Formula1>());
-                DefinedName taxRate = Assert.Single(spreadsheet.WorkbookPart!.Workbook.DefinedNames!.Elements<DefinedName>(), name => name.Name == "TaxRate");
+                DefinedName taxRate = spreadsheet.WorkbookPart!.Workbook.DefinedNames!.Elements<DefinedName>()
+                    .Single(name => name.Name == "TaxRate"
+                        && name.LocalSheetId != null
+                        && name.Text == "'Imported Data'!$C$2");
                 DefinedName peopleTotal = Assert.Single(spreadsheet.WorkbookPart!.Workbook.DefinedNames!.Elements<DefinedName>(), name => name.Name == "PeopleTotal");
                 DefinedName totalWithTax = Assert.Single(spreadsheet.WorkbookPart!.Workbook.DefinedNames!.Elements<DefinedName>(), name => name.Name == "TotalWithTax");
 
                 Assert.NotEqual("People", copiedPeopleTableName);
                 Assert.Equal("'Imported Data'!B2", selfFormulaCell.CellFormula?.Text);
-                Assert.Equal($"'Imported Data'!B2+'Imported Imported Data'!A1+'Imported Data'!TaxRate+SUM({copiedPeopleTableName}[Amount])+TotalWithTax+SUM('Imported Jan':'Imported Mar'!A1)+SUM('Imported Jan 2026':'Imported Mar 2026'!A1)", formulaCell.CellFormula?.Text);
+                Assert.Equal($"'Imported Data'!B2+'Imported Imported Data'!A1+'Imported Data'!TaxRate+SUM({copiedPeopleTableName}[Amount])+TotalWithTax+SUM('Imported Jan:Imported Mar'!A1)+SUM('Imported Jan 2026:Imported Mar 2026'!A1)", formulaCell.CellFormula?.Text);
                 Assert.Equal("'Imported Data'!A1", hyperlink.Location?.Value);
                 Assert.Equal("COUNTIF('Imported Data'!$A$1:$A$1,\">0\")>0", validationFormula.Text);
                 Assert.Equal("'Imported Data'!$C$2", taxRate.Text);

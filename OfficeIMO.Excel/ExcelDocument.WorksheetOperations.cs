@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using System.Globalization;
+using OfficeFormula = DocumentFormat.OpenXml.Office.Excel.Formula;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
@@ -384,7 +385,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private Dictionary<string, string> CopyWorksheetTables(WorksheetPart sourcePart, WorksheetPart copiedPart) {
+        private Dictionary<string, string> CopyWorksheetTables(WorksheetPart sourcePart, WorksheetPart copiedPart, bool rewriteCopiedTableReferences = false) {
             TableParts? copiedTableParts = null;
             var tableNameMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             var copiedTables = new List<Table>();
@@ -414,12 +415,12 @@ namespace OfficeIMO.Excel {
                 copiedTableParts.Append(new TablePart { Id = copiedPart.GetIdOfPart(copiedTablePart) });
             }
 
-            if (tableNameMap.Count > 0) {
+            if (rewriteCopiedTableReferences && tableNameMap.Count > 0) {
                 RewriteStructuredTableReferences(copiedPart.Worksheet!, tableNameMap);
             }
 
             foreach (Table copiedTable in copiedTables) {
-                if (tableNameMap.Count > 0) {
+                if (rewriteCopiedTableReferences && tableNameMap.Count > 0) {
                     RewriteStructuredTableReferences(copiedTable, tableNameMap);
                 }
 
@@ -524,6 +525,10 @@ namespace OfficeIMO.Excel {
             }
 
             foreach (Formula2 formula in worksheet.Descendants<Formula2>()) {
+                formula.Text = RewriteStructuredTableReferences(formula.Text, tableNameMap);
+            }
+
+            foreach (OfficeFormula formula in worksheet.Descendants<OfficeFormula>()) {
                 formula.Text = RewriteStructuredTableReferences(formula.Text, tableNameMap);
             }
         }
