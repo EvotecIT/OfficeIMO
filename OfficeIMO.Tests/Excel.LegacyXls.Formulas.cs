@@ -599,6 +599,39 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_Load_ImportsFormulaMemFuncTokens() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateFormulaMemFuncWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED");
+            LegacyXlsWorksheet sheet = Assert.Single(legacy.Worksheets);
+            LegacyXlsCell formula = Assert.Single(sheet.Cells, cell => cell.Row == 1 && cell.Column == 3);
+            Assert.True(formula.IsFormula);
+            Assert.Equal(30d, formula.Value);
+            Assert.Equal("SUM((A1,B1))", formula.FormulaText);
+
+            using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.True(document.Sheets[0].TryGetCellText(1, 3, out string? cachedText));
+            Assert.Equal("30", cachedText);
+
+            using var output = new MemoryStream();
+            document.Save(output);
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
+            WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single();
+            Cell projectedFormula = worksheetPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference!.Value == "C1");
+            Assert.Equal("SUM((A1,B1))", projectedFormula.CellFormula!.Text);
+            Assert.Equal("30", projectedFormula.CellValue!.Text);
+        }
+
+        [Fact]
         public void LegacyXls_Load_ImportsFormulaDefinedNameTokens() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateFormulaDefinedNameWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
@@ -1154,6 +1187,25 @@ namespace OfficeIMO.Tests {
                 return bytes;
             }
 
+            internal static byte[] CreateFormulaMemFuncWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long boundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "MemFunc"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0203, BuildNumberPayload(0, 0, 10d));
+                WriteRecord(stream, 0x0203, BuildNumberPayload(0, 1, 20d));
+                WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(0, 2, 30d, formulaTokens: BuildMemFuncSumFormulaTokens()));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)boundSheetPosition + 4), 4);
+                return bytes;
+            }
+
             internal static byte[] CreateFormulaRelativeReferenceWorkbookStream() {
                 using var stream = new MemoryStream();
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
@@ -1556,6 +1608,20 @@ namespace OfficeIMO.Tests {
                 WriteUInt32(stream, 0);
                 WriteUInt16(stream, checked((ushort)area.Length));
                 stream.Write(area, 0, area.Length);
+                WriteSumFunctionCall(stream);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildMemFuncSumFormulaTokens() {
+                using var stream = new MemoryStream();
+                byte[] left = BuildCellReferenceFormulaToken(0, 0);
+                byte[] right = BuildCellReferenceFormulaToken(0, 1);
+                ushort expressionLength = checked((ushort)(left.Length + right.Length + 1));
+                stream.WriteByte(0x29);
+                WriteUInt16(stream, expressionLength);
+                stream.Write(left, 0, left.Length);
+                stream.Write(right, 0, right.Length);
+                stream.WriteByte(0x10);
                 WriteSumFunctionCall(stream);
                 return stream.ToArray();
             }

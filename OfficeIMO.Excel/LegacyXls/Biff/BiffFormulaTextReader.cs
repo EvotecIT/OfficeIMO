@@ -233,6 +233,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     case 0x66:
                         if (!TrySkipMemAreaHeader(formulaPayload, ref offset, endOffset)) return false;
                         break;
+                    case 0x29:
+                    case 0x49:
+                    case 0x69:
+                        if (!TrySkipMemFuncHeader(formulaPayload, ref offset, endOffset)) return false;
+                        break;
                     case 0x24:
                     case 0x44:
                     case 0x64:
@@ -478,6 +483,14 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                         }
 
                         break;
+                    case 0x29:
+                    case 0x49:
+                    case 0x69:
+                        if (!TrySkipMemFuncHeader(formulaPayload, ref offset, endOffset)) {
+                            return BiffFormulaReadFailure.InvalidPayload("Formula mem-function token ended early.", token, tokenOffset);
+                        }
+
+                        break;
                     case 0x24:
                     case 0x44:
                     case 0x64:
@@ -577,6 +590,20 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             offset += 6;
+            return true;
+        }
+
+        private static bool TrySkipMemFuncHeader(byte[] formulaPayload, ref int offset, int endOffset) {
+            if (offset + 2 > endOffset) {
+                return false;
+            }
+
+            ushort expressionBytes = BiffRecordReader.ReadUInt16(formulaPayload, offset);
+            if (expressionBytes == 0 || offset + 2 + expressionBytes > endOffset) {
+                return false;
+            }
+
+            offset += 2;
             return true;
         }
 
