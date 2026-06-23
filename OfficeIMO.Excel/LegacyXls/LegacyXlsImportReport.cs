@@ -147,6 +147,11 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .SelectMany(reference => reference.ExternalNames)
                 .Select(name => name.BuiltIn ? "BuiltIn" : "Custom"));
             ExternalCellCachesBySheetName = CountByCode(workbook.ExternalReferences.SelectMany(reference => reference.CachedCellCaches.Select(GetExternalCellCacheSheetKey)));
+            ExternalCellCachesByCellRange = CountByCode(workbook.ExternalReferences.SelectMany(reference => reference.CachedCellCaches.Select(GetExternalCellCacheRangeKey)));
+            ExternalCellCachesByCellCount = CountByCode(workbook.ExternalReferences.SelectMany(reference => reference.CachedCellCaches.Select(cache => $"Cells:{cache.Cells.Count}")));
+            ExternalCellCachesByRowSpan = CountByCode(workbook.ExternalReferences.SelectMany(reference => reference.CachedCellCaches.Select(cache => cache.RowSpan.HasValue ? $"Rows:{cache.RowSpan.Value}" : "(empty)")));
+            ExternalCellCachesByColumnSpan = CountByCode(workbook.ExternalReferences.SelectMany(reference => reference.CachedCellCaches.Select(cache => cache.ColumnSpan.HasValue ? $"Columns:{cache.ColumnSpan.Value}" : "(empty)")));
+            ExternalCellCachesByLinkState = CountByCode(workbook.ExternalReferences.SelectMany(reference => reference.CachedCellCaches.Select(cache => cache.LinkValid ? "ValidLink" : "InvalidLink")));
             ExternalCachedCellsByValueKind = CountExternalCachedCellsByValueKind(workbook.ExternalReferences);
             PivotTableRecordsByKind = CountPivotTableRecordsByKind(workbook.PivotTableRecords);
             PivotTableRecordsByName = CountByCode(workbook.PivotTableRecords.Select(record => record.RecordName));
@@ -568,6 +573,21 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets external cell cache sections grouped by resolved external sheet name.</summary>
         public IReadOnlyDictionary<string, int> ExternalCellCachesBySheetName { get; }
 
+        /// <summary>Gets external cell cache sections grouped by occupied zero-based row/column range.</summary>
+        public IReadOnlyDictionary<string, int> ExternalCellCachesByCellRange { get; }
+
+        /// <summary>Gets external cell cache sections grouped by cached value count.</summary>
+        public IReadOnlyDictionary<string, int> ExternalCellCachesByCellCount { get; }
+
+        /// <summary>Gets external cell cache sections grouped by occupied row span.</summary>
+        public IReadOnlyDictionary<string, int> ExternalCellCachesByRowSpan { get; }
+
+        /// <summary>Gets external cell cache sections grouped by occupied column span.</summary>
+        public IReadOnlyDictionary<string, int> ExternalCellCachesByColumnSpan { get; }
+
+        /// <summary>Gets external cell cache sections grouped by XCT link-valid state.</summary>
+        public IReadOnlyDictionary<string, int> ExternalCellCachesByLinkState { get; }
+
         /// <summary>Gets cached external cell values grouped by value kind.</summary>
         public IReadOnlyDictionary<LegacyXlsCellValueKind, int> ExternalCachedCellsByValueKind { get; }
 
@@ -892,6 +912,11 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "External Names By Scope", ExternalNamesByScope);
             AppendDictionary(builder, "External Names By Built-In State", ExternalNamesByBuiltInState);
             AppendDictionary(builder, "External Cell Caches By Sheet Name", ExternalCellCachesBySheetName);
+            AppendDictionary(builder, "External Cell Caches By Cell Range", ExternalCellCachesByCellRange);
+            AppendDictionary(builder, "External Cell Caches By Cell Count", ExternalCellCachesByCellCount);
+            AppendDictionary(builder, "External Cell Caches By Row Span", ExternalCellCachesByRowSpan);
+            AppendDictionary(builder, "External Cell Caches By Column Span", ExternalCellCachesByColumnSpan);
+            AppendDictionary(builder, "External Cell Caches By Link State", ExternalCellCachesByLinkState);
             AppendDictionary(builder, "External Cached Cells By Value Kind", ExternalCachedCellsByValueKind.ToDictionary(
                 entry => entry.Key.ToString(),
                 entry => entry.Value,
@@ -1164,6 +1189,10 @@ namespace OfficeIMO.Excel.LegacyXls {
             }
 
             return cache.SheetIndex.HasValue ? $"SheetIndex:{cache.SheetIndex.Value}" : "(unknown)";
+        }
+
+        private static string GetExternalCellCacheRangeKey(LegacyXlsExternalCellCache cache) {
+            return string.IsNullOrWhiteSpace(cache.CellRange) ? "(empty)" : cache.CellRange!;
         }
 
         private static string GetAutoFilterTop10KindKey(LegacyXlsAutoFilterCriteria criteria) {

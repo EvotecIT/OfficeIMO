@@ -260,6 +260,43 @@ Warnings: 0
 | Info | 1 |
 | lb | 1 |
 
+## External Cell Caches By Cell Range
+
+| Key | Count |
+| --- | --- |
+| (empty) | 2 |
+| R23C7:R23C8 | 1 |
+| R25C7:R25C8 | 1 |
+| R26C7:R26C8 | 1 |
+| R39C7:R39C8 | 1 |
+
+## External Cell Caches By Cell Count
+
+| Key | Count |
+| --- | --- |
+| Cells:0 | 2 |
+| Cells:2 | 4 |
+
+## External Cell Caches By Row Span
+
+| Key | Count |
+| --- | --- |
+| (empty) | 2 |
+| Rows:1 | 4 |
+
+## External Cell Caches By Column Span
+
+| Key | Count |
+| --- | --- |
+| (empty) | 2 |
+| Columns:2 | 4 |
+
+## External Cell Caches By Link State
+
+| Key | Count |
+| --- | --- |
+| ValidLink | 6 |
+
 ## External Cached Cells By Value Kind
 
 | Key | Count |

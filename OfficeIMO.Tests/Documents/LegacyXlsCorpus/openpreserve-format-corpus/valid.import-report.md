@@ -294,6 +294,40 @@ Warnings: 2
 | IDTBL | 1 |
 | Sheet1 | 1 |
 
+## External Cell Caches By Cell Range
+
+| Key | Count |
+| --- | --- |
+| (empty) | 1 |
+| R1C0:R230C3 | 1 |
+
+## External Cell Caches By Cell Count
+
+| Key | Count |
+| --- | --- |
+| Cells:0 | 1 |
+| Cells:914 | 1 |
+
+## External Cell Caches By Row Span
+
+| Key | Count |
+| --- | --- |
+| (empty) | 1 |
+| Rows:230 | 1 |
+
+## External Cell Caches By Column Span
+
+| Key | Count |
+| --- | --- |
+| (empty) | 1 |
+| Columns:4 | 1 |
+
+## External Cell Caches By Link State
+
+| Key | Count |
+| --- | --- |
+| ValidLink | 2 |
+
 ## External Cached Cells By Value Kind
 
 | Key | Count |

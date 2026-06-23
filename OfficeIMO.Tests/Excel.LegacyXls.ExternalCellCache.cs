@@ -29,6 +29,13 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, cache.DeclaredCrnCount);
             Assert.Equal(1, cache.SheetIndex);
             Assert.Equal("Feb", cache.SheetName);
+            Assert.Equal(4, cache.FirstRow);
+            Assert.Equal(4, cache.LastRow);
+            Assert.Equal(0, cache.FirstColumn);
+            Assert.Equal(4, cache.LastColumn);
+            Assert.Equal(1, cache.RowSpan);
+            Assert.Equal(5, cache.ColumnSpan);
+            Assert.Equal("R4C0:R4C4", cache.CellRange);
 
             Assert.Collection(cache.Cells,
                 cell => {
@@ -71,6 +78,11 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.ExternalReferencesByTarget["C:\\Data\\Budget.xls"]);
             Assert.Equal(2, report.ExternalSheetNamesByReferenceKind[LegacyXlsExternalReferenceKind.ExternalWorkbook]);
             Assert.Equal(1, report.ExternalCellCachesBySheetName["Feb"]);
+            Assert.Equal(1, report.ExternalCellCachesByCellRange["R4C0:R4C4"]);
+            Assert.Equal(1, report.ExternalCellCachesByCellCount["Cells:5"]);
+            Assert.Equal(1, report.ExternalCellCachesByRowSpan["Rows:1"]);
+            Assert.Equal(1, report.ExternalCellCachesByColumnSpan["Columns:5"]);
+            Assert.Equal(1, report.ExternalCellCachesByLinkState["ValidLink"]);
             Assert.Equal(1, report.ExternalCachedCellsByValueKind[LegacyXlsCellValueKind.Blank]);
             Assert.Equal(1, report.ExternalCachedCellsByValueKind[LegacyXlsCellValueKind.Boolean]);
             Assert.Equal(1, report.ExternalCachedCellsByValueKind[LegacyXlsCellValueKind.Error]);
@@ -78,6 +90,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.ExternalCachedCellsByValueKind[LegacyXlsCellValueKind.Text]);
             string markdown = report.ToMarkdown();
             Assert.Contains("External References By Kind", markdown);
+            Assert.Contains("External Cell Caches By Cell Range", markdown);
             Assert.Contains("External Cached Cells By Value Kind", markdown);
             Assert.Contains(workbook.UnsupportedFeatures, feature =>
                 feature.Kind == LegacyXlsUnsupportedFeatureKind.ExternalReference
