@@ -536,6 +536,8 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "Data"));
                 WriteRecord(stream, 0x01ae, BuildSupBookExternalWorkbookPayload("C:\\Data\\Budget.xls", "Jan", "Feb"));
                 WriteRecord(stream, 0x0023, BuildExternalNamePayload("TaxRate"));
+                WriteRecord(stream, 0x0023, BuildExternalNamePayload("FebTaxRate", oneBasedSheetIndex: 2));
+                WriteRecord(stream, 0x0023, BuildExternalNamePayload(((char)0x06).ToString(), builtIn: true));
                 WriteRecord(stream, 0x01b7, Array.Empty<byte>());
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 

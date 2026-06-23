@@ -118,6 +118,12 @@ namespace OfficeIMO.Excel.LegacyXls {
             ExternalSheetNamesByReferenceKind = CountExternalSheetNamesByReferenceKind(workbook.ExternalReferences);
             ExternalNamesByReferenceKind = CountExternalNamesByReferenceKind(workbook.ExternalReferences);
             ExternalNamesByName = CountByCode(workbook.ExternalReferences.SelectMany(reference => reference.ExternalNames.Select(name => name.Name)));
+            ExternalNamesByScope = CountByCode(workbook.ExternalReferences
+                .SelectMany(reference => reference.ExternalNames)
+                .Select(name => name.LocalSheetIndex.HasValue ? "SheetLocal" : "Workbook"));
+            ExternalNamesByBuiltInState = CountByCode(workbook.ExternalReferences
+                .SelectMany(reference => reference.ExternalNames)
+                .Select(name => name.BuiltIn ? "BuiltIn" : "Custom"));
             ExternalCellCachesBySheetName = CountByCode(workbook.ExternalReferences.SelectMany(reference => reference.CachedCellCaches.Select(GetExternalCellCacheSheetKey)));
             ExternalCachedCellsByValueKind = CountExternalCachedCellsByValueKind(workbook.ExternalReferences);
             PivotTableRecordsByKind = CountPivotTableRecordsByKind(workbook.PivotTableRecords);
@@ -446,6 +452,12 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets external defined names grouped by name text.</summary>
         public IReadOnlyDictionary<string, int> ExternalNamesByName { get; }
 
+        /// <summary>Gets external defined names grouped by workbook or sheet-local scope.</summary>
+        public IReadOnlyDictionary<string, int> ExternalNamesByScope { get; }
+
+        /// <summary>Gets external defined names grouped by built-in or custom state.</summary>
+        public IReadOnlyDictionary<string, int> ExternalNamesByBuiltInState { get; }
+
         /// <summary>Gets external cell cache sections grouped by resolved external sheet name.</summary>
         public IReadOnlyDictionary<string, int> ExternalCellCachesBySheetName { get; }
 
@@ -711,6 +723,8 @@ namespace OfficeIMO.Excel.LegacyXls {
                 entry => entry.Value,
                 StringComparer.OrdinalIgnoreCase));
             AppendDictionary(builder, "External Names By Name", ExternalNamesByName);
+            AppendDictionary(builder, "External Names By Scope", ExternalNamesByScope);
+            AppendDictionary(builder, "External Names By Built-In State", ExternalNamesByBuiltInState);
             AppendDictionary(builder, "External Cell Caches By Sheet Name", ExternalCellCachesBySheetName);
             AppendDictionary(builder, "External Cached Cells By Value Kind", ExternalCachedCellsByValueKind.ToDictionary(
                 entry => entry.Key.ToString(),

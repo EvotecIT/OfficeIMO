@@ -2094,10 +2094,10 @@ namespace OfficeIMO.Tests {
                 return stream.ToArray();
             }
 
-            private static byte[] BuildExternalNamePayload(string name) {
+            private static byte[] BuildExternalNamePayload(string name, ushort oneBasedSheetIndex = 0, bool builtIn = false) {
                 using var stream = new MemoryStream();
-                WriteUInt16(stream, 0);
-                WriteUInt16(stream, 0);
+                WriteUInt16(stream, builtIn ? (ushort)0x0001 : (ushort)0);
+                WriteUInt16(stream, oneBasedSheetIndex);
                 WriteUInt16(stream, 0);
                 stream.WriteByte(checked((byte)name.Length));
                 WriteCompressedUnicodeStringNoCch(stream, name);

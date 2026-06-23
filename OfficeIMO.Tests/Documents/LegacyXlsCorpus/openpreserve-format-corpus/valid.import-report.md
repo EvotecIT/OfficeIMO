@@ -275,6 +275,18 @@ Warnings: 2
 | --- | --- |
 | ENash | 1 |
 
+## External Names By Scope
+
+| Key | Count |
+| --- | --- |
+| Workbook | 1 |
+
+## External Names By Built-In State
+
+| Key | Count |
+| --- | --- |
+| Custom | 1 |
+
 ## External Cell Caches By Sheet Name
 
 | Key | Count |
