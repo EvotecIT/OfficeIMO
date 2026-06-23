@@ -411,15 +411,7 @@ public static class OfficeSvgImageRenderer {
     }
 
     private static string NormalizeContentType(string? contentType) {
-        if (string.IsNullOrWhiteSpace(contentType)) {
-            return string.Empty;
-        }
-
-        int separator = contentType!.IndexOf(';');
-        string normalized = separator >= 0
-            ? contentType.Substring(0, separator)
-            : contentType;
-        return normalized.Trim().ToLowerInvariant();
+        return OfficeImageInfo.NormalizeMimeType(contentType);
     }
 
     private static bool IsGenericContentType(string contentType) =>

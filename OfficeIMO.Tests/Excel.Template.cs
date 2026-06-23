@@ -1205,6 +1205,13 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ExcelTemplate_ImageFromBytesNormalizesKnownContentTypeAlias() {
+            var image = ExcelTemplateImage.FromBytes(new byte[] { 0xFF, 0xD8, 0xFF, 0xD9 }, " image/jpg; charset=binary ");
+
+            Assert.Equal(OfficeImageInfo.GetMimeType(OfficeImageFormat.Jpeg), image.ContentType);
+        }
+
+        [Fact]
         public void Test_ExcelTemplate_BindsObjectModelAndFormatAliases() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.ObjectModel.xlsx");
 

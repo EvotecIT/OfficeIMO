@@ -150,7 +150,13 @@ namespace OfficeIMO.Excel {
         }
 
         private static string NormalizeContentType(string? contentType) {
-            return string.IsNullOrWhiteSpace(contentType) ? OfficeImageInfo.GetMimeType(OfficeImageFormat.Png) : contentType!.Trim();
+            if (string.IsNullOrWhiteSpace(contentType)) {
+                return OfficeImageInfo.GetMimeType(OfficeImageFormat.Png);
+            }
+
+            return OfficeImageInfo.TryNormalizeImageContentType(contentType, out string normalizedContentType)
+                ? normalizedContentType
+                : contentType!.Trim();
         }
     }
 }

@@ -96,12 +96,11 @@ namespace OfficeIMO.Excel {
         internal static string NormalizeImageContentType(string? contentType, string parameterName) {
             if (string.IsNullOrWhiteSpace(contentType)) return OfficeImageInfo.GetMimeType(OfficeImageFormat.Png);
 
-            var trimmed = contentType!.Trim();
-            if (!trimmed.StartsWith("image/", StringComparison.OrdinalIgnoreCase)) {
+            if (!OfficeImageInfo.TryNormalizeImageContentType(contentType, out var normalizedContentType)) {
                 throw new ArgumentException("Content type must start with 'image/'", parameterName);
             }
 
-            return trimmed;
+            return normalizedContentType;
         }
 
         /// <summary>

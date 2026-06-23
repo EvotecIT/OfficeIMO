@@ -1,3 +1,5 @@
+using System;
+
 namespace OfficeIMO.Drawing;
 
 /// <summary>
@@ -79,15 +81,11 @@ public sealed class OfficeImageInfo {
     /// <param name="contentType">MIME content type, optionally with parameters.</param>
     /// <returns>The matching image format, or <see cref="OfficeImageFormat.Unknown" /> when unsupported.</returns>
     public static OfficeImageFormat FromMimeType(string? contentType) {
-        if (string.IsNullOrWhiteSpace(contentType)) {
+        string normalized = NormalizeMimeType(contentType);
+        if (string.IsNullOrEmpty(normalized)) {
             return OfficeImageFormat.Unknown;
         }
 
-        int separator = contentType!.IndexOf(';');
-        string normalized = separator >= 0
-            ? contentType.Substring(0, separator)
-            : contentType;
-        normalized = normalized.Trim().ToLowerInvariant();
         return normalized switch {
             "image/png" => OfficeImageFormat.Png,
             "image/jpeg" or "image/jpg" or "image/pjpeg" => OfficeImageFormat.Jpeg,
@@ -102,5 +100,42 @@ public sealed class OfficeImageInfo {
             "image/webp" => OfficeImageFormat.Webp,
             _ => OfficeImageFormat.Unknown
         };
+    }
+
+    /// <summary>
+    /// Tries to normalize an image MIME content type by trimming parameters and canonicalizing known aliases.
+    /// </summary>
+    /// <param name="contentType">MIME content type, optionally with parameters.</param>
+    /// <param name="normalizedContentType">Canonical image MIME type for known formats, or the normalized image MIME type for unknown image formats.</param>
+    /// <returns><see langword="true" /> when the value is an image MIME type.</returns>
+    public static bool TryNormalizeImageContentType(string? contentType, out string normalizedContentType) {
+        string normalized = NormalizeMimeType(contentType);
+        if (!normalized.StartsWith("image/", StringComparison.OrdinalIgnoreCase)) {
+            normalizedContentType = string.Empty;
+            return false;
+        }
+
+        OfficeImageFormat format = FromMimeType(normalized);
+        normalizedContentType = format == OfficeImageFormat.Unknown
+            ? normalized
+            : GetMimeType(format);
+        return true;
+    }
+
+    /// <summary>
+    /// Normalizes a MIME content type by removing parameters and applying case-insensitive comparison casing.
+    /// </summary>
+    /// <param name="contentType">MIME content type, optionally with parameters.</param>
+    /// <returns>The normalized MIME content type, or an empty string for missing values.</returns>
+    public static string NormalizeMimeType(string? contentType) {
+        if (string.IsNullOrWhiteSpace(contentType)) {
+            return string.Empty;
+        }
+
+        int separator = contentType!.IndexOf(';');
+        string normalized = separator >= 0
+            ? contentType.Substring(0, separator)
+            : contentType;
+        return normalized.Trim().ToLowerInvariant();
     }
 }

@@ -357,6 +357,17 @@ public class DrawingTests {
     }
 
     [Theory]
+    [InlineData(" image/jpg; charset=binary ", true, "image/jpeg")]
+    [InlineData("image/svg", true, "image/svg+xml")]
+    [InlineData("image/x-custom; version=1", true, "image/x-custom")]
+    [InlineData("application/octet-stream", false, "")]
+    [InlineData("", false, "")]
+    public void OfficeImageInfoNormalizesImageContentTypes(string contentType, bool expectedResult, string expectedContentType) {
+        Assert.Equal(expectedResult, OfficeImageInfo.TryNormalizeImageContentType(contentType, out string normalizedContentType));
+        Assert.Equal(expectedContentType, normalizedContentType);
+    }
+
+    [Theory]
     [InlineData(OfficeImageFormat.Png, ".png")]
     [InlineData(OfficeImageFormat.Jpeg, ".jpeg")]
     [InlineData(OfficeImageFormat.Svg, ".svg")]
