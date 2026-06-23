@@ -48,6 +48,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>Revision-tracking lock state from a Prot4Rev record.</summary>
         RevisionProtection,
 
+        /// <summary>Sheet tab identifier array from a TabId record.</summary>
+        SheetTabIds,
+
         /// <summary>Workbook window lock state from a WinProtect record.</summary>
         WindowProtection,
 

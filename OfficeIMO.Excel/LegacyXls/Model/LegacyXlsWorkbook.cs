@@ -93,6 +93,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         public IReadOnlyList<LegacyXlsWorkbookMetadataRecord> MetadataRecords => _metadataRecords;
 
         /// <summary>
+        /// Gets workbook sheet tab identifiers decoded from a TabId record.
+        /// </summary>
+        public LegacyXlsSheetTabIdCollection? SheetTabIds { get; private set; }
+
+        /// <summary>
         /// Gets workbook windows decoded from Window1 records.
         /// </summary>
         public IReadOnlyList<LegacyXlsWorkbookWindow> Windows => _windows;
@@ -325,6 +330,10 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         internal void AddMetadataRecord(LegacyXlsWorkbookMetadataKind kind, int recordOffset, ushort recordType) {
             _metadataRecords.Add(new LegacyXlsWorkbookMetadataRecord(kind, recordOffset, recordType));
+        }
+
+        internal void SetSheetTabIds(LegacyXlsSheetTabIdCollection sheetTabIds) {
+            SheetTabIds = sheetTabIds;
         }
 
         internal void SetProtection(bool isProtected) {

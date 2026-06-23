@@ -15,10 +15,10 @@ External cell caches: 6
 External cached cells: 8
 Calculation setting records: 43
 Cell style records: 6
-Workbook metadata records: 14
+Workbook metadata records: 15
 Worksheet metadata records: 35
 Unsupported sheet metadata records: 4
-Unsupported features: 906
+Unsupported features: 905
 Preserved feature records: 898
 Errors: 0
 Warnings: 0
@@ -32,7 +32,7 @@ Warnings: 0
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 28 |
 | XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 2 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 27 |
-| XLS-BIFF-RECORD-UNSUPPORTED | 4 |
+| XLS-BIFF-RECORD-UNSUPPORTED | 3 |
 
 ## Unsupported Features By Code
 
@@ -43,7 +43,7 @@ Warnings: 0
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 28 |
 | XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 2 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 27 |
-| XLS-BIFF-RECORD-UNSUPPORTED | 4 |
+| XLS-BIFF-RECORD-UNSUPPORTED | 3 |
 
 ## Unsupported Features By Kind
 
@@ -54,7 +54,7 @@ Warnings: 0
 | DrawingObject | 28 |
 | ExternalReference | 2 |
 | PivotTable | 27 |
-| UnsupportedRecord | 4 |
+| UnsupportedRecord | 3 |
 
 ## Unsupported Feature Record Types
 
@@ -104,7 +104,6 @@ Warnings: 0
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00C1 | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00D7 | 25 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00FF | 1 |
-| UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x013D | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x01B6 | 2 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x01BC | 1 |
 
@@ -157,7 +156,6 @@ Warnings: 0
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxRng | 25 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxVdEx | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:SxViewEx | 1 |
-| UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:TabIdConf | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:TxO | 2 |
 
 ## Unsupported Feature Locations
@@ -189,7 +187,7 @@ Warnings: 0
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|RangeTable | 1 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|ZPFCUM | 9 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|ZRAINCUM | 9 |
-| XLS-BIFF-RECORD-UNSUPPORTED\|(workbook) | 2 |
+| XLS-BIFF-RECORD-UNSUPPORTED\|(workbook) | 1 |
 | XLS-BIFF-RECORD-UNSUPPORTED\|graphs1 | 1 |
 | XLS-BIFF-RECORD-UNSUPPORTED\|graphs2 | 1 |
 
@@ -226,6 +224,7 @@ Warnings: 0
 | NaturalLanguageFormulas | 1 |
 | ReservedDsf | 1 |
 | RevisionProtection | 1 |
+| SheetTabIds | 1 |
 | Window | 1 |
 | WindowProtection | 1 |
 | WriteAccess | 1 |

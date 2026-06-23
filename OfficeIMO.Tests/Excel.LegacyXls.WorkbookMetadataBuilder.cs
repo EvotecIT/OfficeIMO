@@ -21,6 +21,7 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x004d, BuildPrinterSettingsPayload());
                 WriteRecord(stream, 0x0033, BuildUInt16Payload(2));
                 WriteRecord(stream, 0x01af, BuildUInt16Payload(1));
+                WriteRecord(stream, 0x013d, BuildSheetTabIdsPayload(1, 2));
                 WriteRecord(stream, 0x0160, BuildUInt16Payload(1));
                 WriteRecord(stream, 0x008c, BuildCountryPayload(defaultCountryCode: 48, systemCountryCode: 1));
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
@@ -64,6 +65,15 @@ namespace OfficeIMO.Tests {
                 using var stream = new MemoryStream();
                 WriteUInt16(stream, defaultCountryCode);
                 WriteUInt16(stream, systemCountryCode);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildSheetTabIdsPayload(params ushort[] tabIds) {
+                using var stream = new MemoryStream();
+                foreach (ushort tabId in tabIds) {
+                    WriteUInt16(stream, tabId);
+                }
+
                 return stream.ToArray();
             }
 

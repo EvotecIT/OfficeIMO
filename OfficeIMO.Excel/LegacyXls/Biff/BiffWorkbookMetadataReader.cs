@@ -99,6 +99,14 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     workbook.AddMetadataRecord(LegacyXlsWorkbookMetadataKind.RevisionProtection, record.Offset, record.Type);
                     return true;
 
+                case BiffRecordType.TabId:
+                    if (TryReadSheetTabIds(record, diagnostics, out LegacyXlsSheetTabIdCollection? sheetTabIds)) {
+                        workbook.SetSheetTabIds(sheetTabIds!);
+                    }
+
+                    workbook.AddMetadataRecord(LegacyXlsWorkbookMetadataKind.SheetTabIds, record.Offset, record.Type);
+                    return true;
+
                 case BiffRecordType.UsesElfs:
                     if (TryReadBoolean(record, diagnostics, out bool usesNaturalLanguageFormulas)) {
                         workbook.SetUsesNaturalLanguageFormulas(usesNaturalLanguageFormulas);
@@ -188,6 +196,30 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             value = BiffRecordReader.ReadUInt16(record.Payload, 0);
+            return true;
+        }
+
+        private static bool TryReadSheetTabIds(
+            BiffRecord record,
+            List<LegacyXlsImportDiagnostic> diagnostics,
+            out LegacyXlsSheetTabIdCollection? sheetTabIds) {
+            sheetTabIds = null;
+            if ((record.Payload.Length % 2) != 0) {
+                diagnostics.Add(new LegacyXlsImportDiagnostic(
+                    LegacyXlsDiagnosticSeverity.Warning,
+                    "XLS-BIFF-TABID-LENGTH-INVALID",
+                    "The TabId record contains a partial sheet tab identifier.",
+                    recordOffset: record.Offset,
+                    recordType: record.Type));
+                return false;
+            }
+
+            var ids = new List<ushort>(record.Payload.Length / 2);
+            for (int offset = 0; offset < record.Payload.Length; offset += 2) {
+                ids.Add(BiffRecordReader.ReadUInt16(record.Payload, offset));
+            }
+
+            sheetTabIds = new LegacyXlsSheetTabIdCollection(ids);
             return true;
         }
 

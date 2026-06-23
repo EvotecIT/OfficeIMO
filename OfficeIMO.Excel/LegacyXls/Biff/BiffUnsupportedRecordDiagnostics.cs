@@ -287,7 +287,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case 0x00FF: return "SxVdEx";
                 case 0x0100: return "SxFormula";
                 case 0x0122: return "SxdbEx";
-                case 0x013D: return "TabIdConf";
+                case 0x013D: return "TabId";
                 case 0x0160: return "UsesElfs";
                 case 0x0161: return "DsF";
                 case 0x01AE: return "SupBook";

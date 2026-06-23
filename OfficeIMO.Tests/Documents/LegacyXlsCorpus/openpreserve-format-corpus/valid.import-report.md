@@ -15,10 +15,10 @@ External cell caches: 2
 External cached cells: 914
 Calculation setting records: 61
 Cell style records: 6
-Workbook metadata records: 16
+Workbook metadata records: 17
 Worksheet metadata records: 61
 Unsupported sheet metadata records: 4
-Unsupported features: 1138
+Unsupported features: 1137
 Preserved feature records: 1128
 Errors: 0
 Warnings: 2
@@ -33,7 +33,7 @@ Warnings: 2
 | XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 3 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 16 |
 | XLS-BIFF-LBL-SCOPE-INVALID | 2 |
-| XLS-BIFF-RECORD-UNSUPPORTED | 5 |
+| XLS-BIFF-RECORD-UNSUPPORTED | 4 |
 | XLS-BIFF-SORT-RESERVED-BYTES | 1 |
 | XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED | 1 |
 
@@ -46,7 +46,7 @@ Warnings: 2
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 30 |
 | XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 3 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 16 |
-| XLS-BIFF-RECORD-UNSUPPORTED | 5 |
+| XLS-BIFF-RECORD-UNSUPPORTED | 4 |
 | XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED | 1 |
 
 ## Unsupported Features By Kind
@@ -58,7 +58,7 @@ Warnings: 2
 | DrawingObject | 30 |
 | ExternalReference | 3 |
 | PivotTable | 16 |
-| UnsupportedRecord | 5 |
+| UnsupportedRecord | 4 |
 | VbaProject | 1 |
 
 ## Unsupported Feature Record Types
@@ -109,7 +109,6 @@ Warnings: 2
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00C1 | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00D7 | 14 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00FF | 1 |
-| UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x013D | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x01B6 | 2 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x01BC | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x01BD | 1 |
@@ -164,7 +163,6 @@ Warnings: 2
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxVdEx | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:Sxth | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:SxViewEx | 1 |
-| UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:TabIdConf | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:TxO | 2 |
 | VbaProject\|XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED\|Compound:VbaProjectStorage | 1 |
 
@@ -203,7 +201,7 @@ Warnings: 2
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|lb | 1 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|maquis | 1 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|wijn | 3 |
-| XLS-BIFF-RECORD-UNSUPPORTED\|(workbook) | 3 |
+| XLS-BIFF-RECORD-UNSUPPORTED\|(workbook) | 2 |
 | XLS-BIFF-RECORD-UNSUPPORTED\|graphs1 | 1 |
 | XLS-BIFF-RECORD-UNSUPPORTED\|graphs2 | 1 |
 | XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED\|(workbook) | 1 |
@@ -242,6 +240,7 @@ Warnings: 2
 | NaturalLanguageFormulas | 1 |
 | ReservedDsf | 1 |
 | RevisionProtection | 1 |
+| SheetTabIds | 1 |
 | VbaProjectMarker | 1 |
 | Window | 1 |
 | WindowProtection | 1 |
