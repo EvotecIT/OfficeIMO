@@ -150,6 +150,11 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .Select(sheet => $"TextObjects:{sheet.ChartTextObjectCount}"));
             ExternalReferencesByKind = CountExternalReferencesByKind(workbook.ExternalReferences);
             ExternalReferencesByTarget = CountByCode(workbook.ExternalReferences.Select(GetExternalReferenceTargetKey));
+            ExternalReferencesByShape = CountByCode(workbook.ExternalReferences.Select(GetExternalReferenceShapeKey));
+            ExternalReferencesBySheetNameCount = CountByCode(workbook.ExternalReferences.Select(reference => $"Sheets:{reference.SheetNameCount}"));
+            ExternalReferencesByExternalNameCount = CountByCode(workbook.ExternalReferences.Select(reference => $"Names:{reference.ExternalNameCount}"));
+            ExternalReferencesByCacheCount = CountByCode(workbook.ExternalReferences.Select(reference => $"Caches:{reference.CachedCellCacheCount}"));
+            ExternalReferencesByCachedCellCount = CountByCode(workbook.ExternalReferences.Select(reference => $"CachedCells:{reference.CachedCellCount}"));
             ExternalSheetNamesByReferenceKind = CountExternalSheetNamesByReferenceKind(workbook.ExternalReferences);
             ExternalNamesByReferenceKind = CountExternalNamesByReferenceKind(workbook.ExternalReferences);
             ExternalNamesByName = CountByCode(workbook.ExternalReferences.SelectMany(reference => reference.ExternalNames.Select(name => name.Name)));
@@ -600,6 +605,21 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets preserved external references grouped by target path or source.</summary>
         public IReadOnlyDictionary<string, int> ExternalReferencesByTarget { get; }
 
+        /// <summary>Gets preserved external references grouped by their sheet/name/cache/cached-cell shape.</summary>
+        public IReadOnlyDictionary<string, int> ExternalReferencesByShape { get; }
+
+        /// <summary>Gets preserved external references grouped by sheet-name count.</summary>
+        public IReadOnlyDictionary<string, int> ExternalReferencesBySheetNameCount { get; }
+
+        /// <summary>Gets preserved external references grouped by external-name count.</summary>
+        public IReadOnlyDictionary<string, int> ExternalReferencesByExternalNameCount { get; }
+
+        /// <summary>Gets preserved external references grouped by cached cell section count.</summary>
+        public IReadOnlyDictionary<string, int> ExternalReferencesByCacheCount { get; }
+
+        /// <summary>Gets preserved external references grouped by cached cell value count.</summary>
+        public IReadOnlyDictionary<string, int> ExternalReferencesByCachedCellCount { get; }
+
         /// <summary>Gets external workbook sheet-name counts grouped by supporting-link kind.</summary>
         public IReadOnlyDictionary<LegacyXlsExternalReferenceKind, int> ExternalSheetNamesByReferenceKind { get; }
 
@@ -963,6 +983,11 @@ namespace OfficeIMO.Excel.LegacyXls {
                 entry => entry.Value,
                 StringComparer.OrdinalIgnoreCase));
             AppendDictionary(builder, "External References By Target", ExternalReferencesByTarget);
+            AppendDictionary(builder, "External References By Shape", ExternalReferencesByShape);
+            AppendDictionary(builder, "External References By Sheet Name Count", ExternalReferencesBySheetNameCount);
+            AppendDictionary(builder, "External References By External Name Count", ExternalReferencesByExternalNameCount);
+            AppendDictionary(builder, "External References By Cache Count", ExternalReferencesByCacheCount);
+            AppendDictionary(builder, "External References By Cached Cell Count", ExternalReferencesByCachedCellCount);
             AppendDictionary(builder, "External Sheet Names By Reference Kind", ExternalSheetNamesByReferenceKind.ToDictionary(
                 entry => entry.Key.ToString(),
                 entry => entry.Value,
@@ -1270,6 +1295,10 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         private static string GetExternalReferenceTargetKey(LegacyXlsExternalReference reference) {
             return string.IsNullOrWhiteSpace(reference.Target) ? $"({reference.Kind})" : EscapeControlCharacters(reference.Target!);
+        }
+
+        private static string GetExternalReferenceShapeKey(LegacyXlsExternalReference reference) {
+            return $"{reference.Kind}|Sheets:{reference.SheetNameCount}|Names:{reference.ExternalNameCount}|Caches:{reference.CachedCellCacheCount}|CachedCells:{reference.CachedCellCount}";
         }
 
         private static string GetExternalCellCacheSheetKey(LegacyXlsExternalCellCache cache) {

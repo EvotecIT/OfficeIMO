@@ -23,6 +23,10 @@ namespace OfficeIMO.Tests {
             LegacyXlsExternalReference externalReference = Assert.Single(workbook.ExternalReferences);
             Assert.Equal(LegacyXlsExternalReferenceKind.ExternalWorkbook, externalReference.Kind);
             Assert.Equal("C:\\Data\\Budget.xls", externalReference.Target);
+            Assert.Equal(2, externalReference.SheetNameCount);
+            Assert.Equal(0, externalReference.ExternalNameCount);
+            Assert.Equal(1, externalReference.CachedCellCacheCount);
+            Assert.Equal(5, externalReference.CachedCellCount);
 
             LegacyXlsExternalCellCache cache = Assert.Single(externalReference.CachedCellCaches);
             Assert.True(cache.LinkValid);
@@ -76,6 +80,11 @@ namespace OfficeIMO.Tests {
             Assert.Equal(5, report.ExternalCachedCellCount);
             Assert.Equal(1, report.ExternalReferencesByKind[LegacyXlsExternalReferenceKind.ExternalWorkbook]);
             Assert.Equal(1, report.ExternalReferencesByTarget["C:\\Data\\Budget.xls"]);
+            Assert.Equal(1, report.ExternalReferencesByShape["ExternalWorkbook|Sheets:2|Names:0|Caches:1|CachedCells:5"]);
+            Assert.Equal(1, report.ExternalReferencesBySheetNameCount["Sheets:2"]);
+            Assert.Equal(1, report.ExternalReferencesByExternalNameCount["Names:0"]);
+            Assert.Equal(1, report.ExternalReferencesByCacheCount["Caches:1"]);
+            Assert.Equal(1, report.ExternalReferencesByCachedCellCount["CachedCells:5"]);
             Assert.Equal(2, report.ExternalSheetNamesByReferenceKind[LegacyXlsExternalReferenceKind.ExternalWorkbook]);
             Assert.Equal(1, report.ExternalCellCachesBySheetName["Feb"]);
             Assert.Equal(1, report.ExternalCellCachesByCellRange["R4C0:R4C4"]);
@@ -90,6 +99,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.ExternalCachedCellsByValueKind[LegacyXlsCellValueKind.Text]);
             string markdown = report.ToMarkdown();
             Assert.Contains("External References By Kind", markdown);
+            Assert.Contains("External References By Shape", markdown);
             Assert.Contains("External Cell Caches By Cell Range", markdown);
             Assert.Contains("External Cached Cells By Value Kind", markdown);
             Assert.Contains(workbook.UnsupportedFeatures, feature =>

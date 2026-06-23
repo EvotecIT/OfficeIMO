@@ -45,14 +45,34 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         public IReadOnlyList<string> SheetNames => _sheetNames;
 
         /// <summary>
+        /// Gets the number of external workbook sheet names attached to this supporting link.
+        /// </summary>
+        public int SheetNameCount => _sheetNames.Count;
+
+        /// <summary>
         /// Gets names declared by ExternName records following this supporting link.
         /// </summary>
         public IReadOnlyList<LegacyXlsExternalName> ExternalNames => _externalNames;
 
         /// <summary>
+        /// Gets the number of external names attached to this supporting link.
+        /// </summary>
+        public int ExternalNameCount => _externalNames.Count;
+
+        /// <summary>
         /// Gets cached external cell values preserved from XCT/CRN record groups.
         /// </summary>
         public IReadOnlyList<LegacyXlsExternalCellCache> CachedCellCaches => _cachedCellCaches;
+
+        /// <summary>
+        /// Gets the number of cached external cell sections attached to this supporting link.
+        /// </summary>
+        public int CachedCellCacheCount => _cachedCellCaches.Count;
+
+        /// <summary>
+        /// Gets the total cached external cell values attached to this supporting link.
+        /// </summary>
+        public int CachedCellCount => _cachedCellCaches.Sum(cache => cache.Cells.Count);
 
         /// <summary>
         /// Gets the sheet count declared by the SupBook record.

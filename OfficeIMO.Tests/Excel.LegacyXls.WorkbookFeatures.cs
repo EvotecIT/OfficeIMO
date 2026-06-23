@@ -950,6 +950,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal("C:\\Data\\Budget.xls", reference.Target);
             Assert.Equal(2, reference.SheetCount);
             Assert.Equal(new[] { "Jan", "Feb" }, reference.SheetNames);
+            Assert.Equal(2, reference.SheetNameCount);
+            Assert.Equal(3, reference.ExternalNameCount);
+            Assert.Equal(0, reference.CachedCellCacheCount);
+            Assert.Equal(0, reference.CachedCellCount);
             Assert.True(legacy.HasRefreshAllMarker);
             Assert.Equal(1, legacy.MetadataRecords.Count(record => record.Kind == LegacyXlsWorkbookMetadataKind.RefreshAll));
             Assert.Equal(3, reference.ExternalNames.Count);
@@ -968,6 +972,11 @@ namespace OfficeIMO.Tests {
             Assert.Equal(3, report.ExternalNameCount);
             Assert.Equal(1, report.ExternalReferencesByKind[LegacyXlsExternalReferenceKind.ExternalWorkbook]);
             Assert.Equal(1, report.ExternalReferencesByTarget["C:\\Data\\Budget.xls"]);
+            Assert.Equal(1, report.ExternalReferencesByShape["ExternalWorkbook|Sheets:2|Names:3|Caches:0|CachedCells:0"]);
+            Assert.Equal(1, report.ExternalReferencesBySheetNameCount["Sheets:2"]);
+            Assert.Equal(1, report.ExternalReferencesByExternalNameCount["Names:3"]);
+            Assert.Equal(1, report.ExternalReferencesByCacheCount["Caches:0"]);
+            Assert.Equal(1, report.ExternalReferencesByCachedCellCount["CachedCells:0"]);
             Assert.Equal(2, report.ExternalSheetNamesByReferenceKind[LegacyXlsExternalReferenceKind.ExternalWorkbook]);
             Assert.Equal(3, report.ExternalNamesByReferenceKind[LegacyXlsExternalReferenceKind.ExternalWorkbook]);
             Assert.Equal(1, report.ExternalNamesByName["TaxRate"]);

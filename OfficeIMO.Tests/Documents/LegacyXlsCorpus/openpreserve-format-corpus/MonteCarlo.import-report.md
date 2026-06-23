@@ -280,6 +280,40 @@ Warnings: 0
 | (Self) | 1 |
 | \\x01MCPF\\x03VMCPF.XLS | 1 |
 
+## External References By Shape
+
+| Key | Count |
+| --- | --- |
+| ExternalWorkbook\|Sheets:6\|Names:0\|Caches:6\|CachedCells:8 | 1 |
+| Self\|Sheets:0\|Names:0\|Caches:0\|CachedCells:0 | 1 |
+
+## External References By Sheet Name Count
+
+| Key | Count |
+| --- | --- |
+| Sheets:0 | 1 |
+| Sheets:6 | 1 |
+
+## External References By External Name Count
+
+| Key | Count |
+| --- | --- |
+| Names:0 | 2 |
+
+## External References By Cache Count
+
+| Key | Count |
+| --- | --- |
+| Caches:0 | 1 |
+| Caches:6 | 1 |
+
+## External References By Cached Cell Count
+
+| Key | Count |
+| --- | --- |
+| CachedCells:0 | 1 |
+| CachedCells:8 | 1 |
+
 ## External Sheet Names By Reference Kind
 
 | Key | Count |

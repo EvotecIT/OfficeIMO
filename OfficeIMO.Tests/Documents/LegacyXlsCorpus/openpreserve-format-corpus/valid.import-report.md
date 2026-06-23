@@ -313,6 +313,43 @@ Warnings: 2
 | \\x01IDTBL.XLS | 1 |
 | \\x01\\x06MACROS.XLS | 1 |
 
+## External References By Shape
+
+| Key | Count |
+| --- | --- |
+| ExternalWorkbook\|Sheets:1\|Names:0\|Caches:1\|CachedCells:914 | 1 |
+| ExternalWorkbook\|Sheets:2\|Names:1\|Caches:1\|CachedCells:0 | 1 |
+| Self\|Sheets:0\|Names:0\|Caches:0\|CachedCells:0 | 1 |
+
+## External References By Sheet Name Count
+
+| Key | Count |
+| --- | --- |
+| Sheets:0 | 1 |
+| Sheets:1 | 1 |
+| Sheets:2 | 1 |
+
+## External References By External Name Count
+
+| Key | Count |
+| --- | --- |
+| Names:0 | 2 |
+| Names:1 | 1 |
+
+## External References By Cache Count
+
+| Key | Count |
+| --- | --- |
+| Caches:0 | 1 |
+| Caches:1 | 2 |
+
+## External References By Cached Cell Count
+
+| Key | Count |
+| --- | --- |
+| CachedCells:0 | 2 |
+| CachedCells:914 | 1 |
+
 ## External Sheet Names By Reference Kind
 
 | Key | Count |
