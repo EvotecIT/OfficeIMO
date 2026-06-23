@@ -16,8 +16,9 @@ internal static partial class PdfWriter {
         PdfImageSourceCrop? sourceCrop = style.SourceCrop;
 
         if (sourceCrop?.HasCrop == true) {
-            double visibleWidth = 1D - sourceCrop.Left - sourceCrop.Right;
-            double visibleHeight = 1D - sourceCrop.Top - sourceCrop.Bottom;
+            OfficeImageSourceCrop crop = sourceCrop.ToOfficeImageSourceCrop();
+            double visibleWidth = crop.VisibleWidth;
+            double visibleHeight = crop.VisibleHeight;
             double fittedX = targetX;
             double fittedY = targetBottomY;
             double fittedWidth = targetWidth;
@@ -43,8 +44,8 @@ internal static partial class PdfWriter {
 
             drawWidth = fittedWidth / visibleWidth;
             drawHeight = fittedHeight / visibleHeight;
-            drawX = fittedX - sourceCrop.Left * drawWidth;
-            drawY = fittedY - sourceCrop.Bottom * drawHeight;
+            drawX = fittedX - crop.Left * drawWidth;
+            drawY = fittedY - crop.Bottom * drawHeight;
         } else if (style.Fit != OfficeImageFit.Stretch) {
             OfficeImagePlacement placement = OfficeImagePlacement.Fit(
                 block.Info.Width,

@@ -48,8 +48,8 @@ namespace OfficeIMO.Excel {
                 height,
                 image.CropLeftRatio,
                 image.CropTopRatio,
-                GetVisibleCropWidth(image),
-                GetVisibleCropHeight(image),
+                image.SourceCrop.VisibleWidth,
+                image.SourceCrop.VisibleHeight,
                 image.RotationDegrees,
                 x + (width / 2D),
                 y + (height / 2D),
@@ -73,8 +73,6 @@ namespace OfficeIMO.Excel {
             double y = image.Y * scale;
             double width = image.Width * scale;
             double height = image.Height * scale;
-            double visibleWidth = GetVisibleCropWidth(image);
-            double visibleHeight = GetVisibleCropHeight(image);
 
             OfficeSvgImageRenderer.AppendImage(
                 builder,
@@ -90,8 +88,8 @@ namespace OfficeIMO.Excel {
                 image.HasCrop ? height : snapshot.Height * scale,
                 image.CropLeftRatio,
                 image.CropTopRatio,
-                visibleWidth,
-                visibleHeight,
+                image.SourceCrop.VisibleWidth,
+                image.SourceCrop.VisibleHeight,
                 image.RotationDegrees,
                 image.FlipHorizontal,
                 image.FlipVertical);
@@ -116,11 +114,5 @@ namespace OfficeIMO.Excel {
                     return false;
             }
         }
-
-        private static double GetVisibleCropWidth(ExcelVisualImage image) =>
-            Math.Max(0.001D, 1D - image.CropLeftRatio - image.CropRightRatio);
-
-        private static double GetVisibleCropHeight(ExcelVisualImage image) =>
-            Math.Max(0.001D, 1D - image.CropTopRatio - image.CropBottomRatio);
     }
 }

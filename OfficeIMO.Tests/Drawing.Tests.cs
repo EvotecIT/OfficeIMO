@@ -71,6 +71,40 @@ public class DrawingTests {
     }
 
     [Fact]
+    public void OfficeImageSourceCropExposesVisibleSourceRatios() {
+        var crop = new OfficeImageSourceCrop(0.25D, 0.1D, 0.5D, 0.2D);
+
+        Assert.True(crop.HasCrop);
+        Assert.Equal((0.25D, 0.1D, 0.5D, 0.2D), crop.ToTuple());
+        Assert.Equal(0.25D, crop.VisibleWidth);
+        Assert.Equal(0.7D, crop.VisibleHeight, precision: 10);
+    }
+
+    [Fact]
+    public void OfficeImageSourceCropClampsCollapsedAuthoredFractions() {
+        OfficeImageSourceCrop crop = OfficeImageSourceCrop.FromClampedFractions(
+            left: 0.999D,
+            top: double.NaN,
+            right: double.PositiveInfinity,
+            bottom: -1D);
+
+        Assert.True(crop.HasCrop);
+        Assert.Equal(0.999D, crop.Left);
+        Assert.Equal(0D, crop.Top);
+        Assert.Equal(0.999D, crop.Right);
+        Assert.Equal(0D, crop.Bottom);
+        Assert.Equal(OfficeImageSourceCrop.MinimumVisibleRatio, crop.VisibleWidth);
+        Assert.Equal(1D, crop.VisibleHeight);
+    }
+
+    [Fact]
+    public void OfficeImageSourceCropRejectsInvalidFractions() {
+        Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeImageSourceCrop(-0.01D, 0D, 0D, 0D));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeImageSourceCrop(0D, 1D, 0D, 0D));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeImageSourceCrop(0D, 0D, double.NaN, 0D));
+    }
+
+    [Fact]
     public void OfficeColorParsesNamedAndHexValues() {
         Assert.Equal(OfficeColor.Red, OfficeColor.Parse("red"));
         Assert.Equal(OfficeColor.FromRgb(0x66, 0x33, 0x99), OfficeColor.Parse("RebeccaPurple"));

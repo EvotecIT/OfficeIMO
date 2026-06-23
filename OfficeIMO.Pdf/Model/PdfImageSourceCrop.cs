@@ -1,3 +1,5 @@
+using OfficeIMO.Drawing;
+
 namespace OfficeIMO.Pdf;
 
 /// <summary>
@@ -45,6 +47,8 @@ public sealed class PdfImageSourceCrop {
     internal bool HasCrop => Left > 0D || Top > 0D || Right > 0D || Bottom > 0D;
 
     internal PdfImageSourceCrop Clone() => new(Left, Top, Right, Bottom);
+
+    internal OfficeImageSourceCrop ToOfficeImageSourceCrop() => new(Left, Top, Right, Bottom);
 
     private void Set(double left, double top, double right, double bottom) {
         ValidateCropFraction(left, nameof(Left));
