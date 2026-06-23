@@ -80,8 +80,16 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     return false;
                 }
 
+                if (modelValidationType == LegacyXlsDataValidationType.List && listItems?.Count > 0) {
+                    formula1 = "\"" + string.Join(",", listItems) + "\"";
+                }
+
+                int rangesOffset = offset;
                 if (!TryReadRanges(payload, ref offset, out IReadOnlyList<string>? ranges) || ranges.Count == 0) {
-                    return false;
+                    offset = rangesOffset + 2;
+                    if (!TryReadRanges(payload, ref offset, out ranges) || ranges.Count == 0) {
+                        return false;
+                    }
                 }
 
                 validation = new LegacyXlsDataValidation(
@@ -153,20 +161,85 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
             ushort expressionLength = BiffRecordReader.ReadUInt16(payload, offset);
             offset += 2;
-            offset += 2;
-            if (offset + expressionLength > payload.Length) {
-                return false;
-            }
-
             if (expressionLength == 0) {
                 return true;
             }
 
-            byte[] normalizedFormula = new byte[checked(expressionLength + 2)];
-            normalizedFormula[0] = (byte)(expressionLength & 0x00ff);
-            normalizedFormula[1] = (byte)(expressionLength >> 8);
-            Buffer.BlockCopy(payload, offset, normalizedFormula, 2, expressionLength);
-            offset += expressionLength;
+            int formulaFieldOffset = offset;
+            if (TryReadFormulaLayout(
+                payload,
+                formulaFieldOffset + 2,
+                expressionLength,
+                formulaFieldOffset + 2 + expressionLength,
+                externSheets,
+                externalReferences,
+                sheetNames,
+                definedNames,
+                out formula,
+                out int parsedOffset)) {
+                offset = parsedOffset;
+                return true;
+            }
+
+            if (expressionLength >= 2
+                && TryReadFormulaLayout(
+                    payload,
+                    formulaFieldOffset + 2,
+                    expressionLength - 2,
+                    formulaFieldOffset + expressionLength,
+                    externSheets,
+                    externalReferences,
+                    sheetNames,
+                    definedNames,
+                    out formula,
+                    out parsedOffset)) {
+                offset = parsedOffset;
+                return true;
+            }
+
+            if (TryReadFormulaLayout(
+                payload,
+                formulaFieldOffset,
+                expressionLength,
+                formulaFieldOffset + expressionLength,
+                externSheets,
+                externalReferences,
+                sheetNames,
+                definedNames,
+                out formula,
+                out parsedOffset)) {
+                offset = parsedOffset;
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool TryReadFormulaLayout(
+            byte[] payload,
+            int tokenOffset,
+            int tokenLength,
+            int nextOffset,
+            IReadOnlyList<BiffExternSheetReference> externSheets,
+            IReadOnlyList<LegacyXlsExternalReference> externalReferences,
+            IReadOnlyList<string> sheetNames,
+            IReadOnlyList<string?> definedNames,
+            out string? formula,
+            out int parsedOffset) {
+            formula = null;
+            parsedOffset = nextOffset;
+            if (tokenLength <= 0
+                || tokenOffset < 0
+                || nextOffset < tokenOffset
+                || tokenOffset + tokenLength > payload.Length
+                || nextOffset > payload.Length) {
+                return false;
+            }
+
+            byte[] normalizedFormula = new byte[checked(tokenLength + 2)];
+            normalizedFormula[0] = (byte)(tokenLength & 0x00ff);
+            normalizedFormula[1] = (byte)(tokenLength >> 8);
+            Buffer.BlockCopy(payload, tokenOffset, normalizedFormula, 2, tokenLength);
             return BiffFormulaTextReader.TryRead(
                 normalizedFormula,
                 0,
@@ -277,7 +350,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 return false;
             }
 
-            items = inner.Split(',')
+            items = inner.Split(new[] { ',', '\0' }, StringSplitOptions.RemoveEmptyEntries)
                 .Select(item => RemoveInvalidXmlCharacters(item.Trim()))
                 .Where(item => item.Length > 0)
                 .ToArray();

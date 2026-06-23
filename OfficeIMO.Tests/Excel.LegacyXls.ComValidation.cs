@@ -31,10 +31,11 @@ namespace OfficeIMO.Tests {
             Assert.True(IsWindowsPlatform(), "Legacy XLS COM validation requires Windows.");
             Assert.True(IsExcelComAvailable(), "Legacy XLS COM validation requires Microsoft Excel COM automation.");
 
-            string directory = Path.Combine(_directoryWithFiles, "LegacyXlsComValidation");
+            string targetFrameworkLabel = GetCurrentTargetFrameworkLabel();
+            string directory = Path.Combine(_directoryWithFiles, "XlsCom", targetFrameworkLabel);
             Directory.CreateDirectory(directory);
-            string sourceXlsPath = Path.Combine(directory, "ExcelGenerated.LegacyFeatures.xls");
-            string importedXlsxPath = Path.Combine(directory, "ExcelGenerated.LegacyFeatures.imported.xlsx");
+            string sourceXlsPath = Path.Combine(directory, "features.xls");
+            string importedXlsxPath = Path.Combine(directory, "features.xlsx");
 
             CreateLegacyXlsWorkbookViaExcelCom(sourceXlsPath);
             AssertWorkbooksOpenViaExcelComWhenAvailable(new[] { sourceXlsPath }, "The generated legacy XLS workbook did not open through desktop Excel.");
@@ -42,16 +43,37 @@ namespace OfficeIMO.Tests {
             using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(sourceXlsPath, new LegacyXlsImportOptions {
                 ReportUnsupportedRecords = true
             });
+            string importEvidence = GetLegacyXlsImportEvidence(result);
             Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
-            Assert.True(result.ImportReport.CellCount >= 16);
-            Assert.True(result.ImportReport.FormulaCellCount >= 1);
+            Assert.True(result.ImportReport.CellCount >= 16, importEvidence);
+            Assert.True(result.ImportReport.FormulaCellCount >= 1, importEvidence);
+            Assert.True(result.ImportReport.DataValidationCount >= 1, importEvidence);
+            Assert.True(result.ImportReport.ConditionalFormattingCount >= 1, importEvidence);
+            Assert.True(result.ImportReport.AutoFilterCriteriaCount >= 1, importEvidence);
             Assert.Contains(result.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.DrawingObject);
             Assert.Contains(result.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.Chart);
             Assert.Contains(result.Workbook.PreservedFeatureRecords, record => record.Kind == LegacyXlsUnsupportedFeatureKind.DrawingObject);
             Assert.Contains(result.Workbook.PreservedFeatureRecords, record => record.Kind == LegacyXlsUnsupportedFeatureKind.Chart);
             Assert.Contains(result.Workbook.ChartRecords, record => record.Kind != LegacyXlsChartRecordKind.PreserveOnly);
             Assert.Contains(result.Workbook.DrawingRecords, record => record.Kind != LegacyXlsDrawingRecordKind.PreserveOnly);
+            LegacyXlsWorksheet importedSheet = Assert.Single(result.Workbook.Worksheets);
+            Assert.Contains(importedSheet.DataValidations, validation =>
+                validation.Type == LegacyXlsDataValidationType.List
+                && validation.Ranges.Contains("A2:A5")
+                && validation.ListItems.Contains("Open")
+                && validation.ListItems.Contains("Closed")
+                && validation.ListItems.Contains("Pending"));
+            Assert.Contains(importedSheet.ConditionalFormattings, conditionalFormatting =>
+                conditionalFormatting.Type == LegacyXlsConditionalFormattingType.CellIs
+                && conditionalFormatting.Operator == LegacyXlsConditionalFormattingOperator.GreaterThan
+                && conditionalFormatting.Ranges.Contains("B2:B5"));
+            Assert.Contains(importedSheet.AutoFilterCriteria, criteria =>
+                criteria.ColumnId == 0
+                && criteria.Conditions.Any(condition =>
+                    condition.Operator == LegacyXlsAutoFilterOperator.Equal
+                    && string.Equals(condition.Value, "Open", StringComparison.OrdinalIgnoreCase)));
 
+            Directory.CreateDirectory(Path.GetDirectoryName(importedXlsxPath)!);
             result.Document.Save(importedXlsxPath, openExcel: false);
             AssertWorkbooksOpenViaExcelComWhenAvailable(new[] { importedXlsxPath }, "The imported XLSX workbook did not open through desktop Excel.");
         }
@@ -80,7 +102,7 @@ namespace OfficeIMO.Tests {
 
             AssertWorkbooksOpenViaExcelComWhenAvailable(workbookPaths, "One or more legacy XLS corpus source workbooks failed to open in desktop Excel.");
 
-            string outputDirectory = Path.Combine(_directoryWithFiles, "LegacyXlsCorpusComValidation");
+            string outputDirectory = Path.Combine(_directoryWithFiles, "XlsCorpusCom", GetCurrentTargetFrameworkLabel());
             Directory.CreateDirectory(outputDirectory);
             var importedPaths = new List<string>(workbookPaths.Length);
             foreach (string workbookPath in workbookPaths) {
@@ -104,6 +126,58 @@ namespace OfficeIMO.Tests {
             string? value = Environment.GetEnvironmentVariable(LegacyXlsComValidationEnv);
             return string.Equals(value, "1", StringComparison.Ordinal)
                 || string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string GetLegacyXlsImportEvidence(LegacyXlsLoadResult result) {
+            LegacyXlsImportReport report = result.ImportReport;
+            LegacyXlsWorksheet? sheet = result.Workbook.Worksheets.FirstOrDefault();
+            string dataValidationTypes = sheet == null
+                ? "(no sheet)"
+                : string.Join(",", sheet.DataValidations.Select(validation => validation.Type.ToString()));
+            string conditionalFormattingTypes = sheet == null
+                ? "(no sheet)"
+                : string.Join(",", sheet.ConditionalFormattings.Select(formatting => formatting.Type.ToString()));
+            string autoFilterCriteria = sheet == null
+                ? "(no sheet)"
+                : string.Join(",", sheet.AutoFilterCriteria.Select(criteria => $"{criteria.ColumnId}:{criteria.Conditions.Count}"));
+            string dataValidationUnsupportedDetails = string.Join(",", result.UnsupportedFeatures
+                .Where(feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.DataValidation)
+                .Select(feature => feature.DetailCode ?? feature.Code)
+                .Take(6));
+            string conditionalFormattingUnsupportedDetails = string.Join(",", result.UnsupportedFeatures
+                .Where(feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ConditionalFormatting)
+                .Select(feature => feature.DetailCode ?? feature.Code)
+                .Take(6));
+            string unsupportedDetails = string.Join(",", result.UnsupportedFeatures.Select(feature => feature.DetailCode ?? feature.Code).Take(12));
+
+            return "Legacy XLS COM import evidence: "
+                + $"Cells={report.CellCount}, Formulas={report.FormulaCellCount}, "
+                + $"DataValidations={report.DataValidationCount} [{dataValidationTypes}] UnsupportedDV=[{dataValidationUnsupportedDetails}], "
+                + $"ConditionalFormatting={report.ConditionalFormattingCount} [{conditionalFormattingTypes}] UnsupportedCF=[{conditionalFormattingUnsupportedDetails}], "
+                + $"AutoFilter={report.AutoFilterCriteriaCount} [{autoFilterCriteria}], "
+                + $"DefinedNames={report.DefinedNameCount}, "
+                + $"Unsupported={report.UnsupportedFeatureCount} [{unsupportedDetails}].";
+        }
+
+        private static string GetCurrentTargetFrameworkLabel() {
+#if NET472
+            return "net472";
+#elif NET10_0_OR_GREATER
+            return "net10";
+#elif NET8_0_OR_GREATER
+            return "net8";
+#else
+            string frameworkName = typeof(Excel).Assembly
+                .GetCustomAttribute<System.Runtime.Versioning.TargetFrameworkAttribute>()?
+                .FrameworkName ?? "unknown";
+
+            var builder = new System.Text.StringBuilder(frameworkName.Length);
+            foreach (char character in frameworkName) {
+                builder.Append(char.IsLetterOrDigit(character) ? character : '_');
+            }
+
+            return builder.ToString().Trim('_');
+#endif
         }
 
 #if NET5_0_OR_GREATER

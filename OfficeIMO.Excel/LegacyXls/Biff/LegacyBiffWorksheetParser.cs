@@ -31,6 +31,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
             int offset = sheet.StreamOffset;
             bool frozenWindow = false;
+            int nestedSubstreamDepth = 0;
             PendingFormulaString? pendingFormulaString = null;
             var commentState = new BiffCommentImportState(sheet);
             var conditionalFormattingState = new BiffConditionalFormattingImportState(sheet, externSheets, externalReferences, sheetNames, definedNames);
@@ -77,9 +78,17 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     if (!LegacyBiffVersionValidator.ValidateWorksheetBof(payload, offset, sheet.Name, unsupportedFeatures, diagnostics)) {
                         return;
                     }
+                } else if (type == (ushort)BiffRecordType.Bof) {
+                    nestedSubstreamDepth++;
                 }
 
                 if (type == (ushort)BiffRecordType.Eof) {
+                    if (nestedSubstreamDepth > 0) {
+                        nestedSubstreamDepth--;
+                        offset = payloadOffset + length;
+                        continue;
+                    }
+
                     FlushPendingFormulaString(sheet, sharedFormulaState, ref pendingFormulaString);
                     commentState.AddUnresolvedFeatures(unsupportedFeatures, preservedFeatureRecords, diagnostics, options.ReportUnsupportedRecords);
                     conditionalFormattingState.AddUnresolvedFeatures(unsupportedFeatures, preservedFeatureRecords, diagnostics, options.ReportUnsupportedRecords);

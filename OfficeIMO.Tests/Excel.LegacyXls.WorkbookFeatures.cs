@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.LegacyXls;
+using OfficeIMO.Excel.LegacyXls.Biff;
 using OfficeIMO.Excel.LegacyXls.Diagnostics;
 using OfficeIMO.Excel.LegacyXls.Model;
 using System.Globalization;
@@ -1343,6 +1344,51 @@ namespace OfficeIMO.Tests {
             Assert.Equal(ConditionalFormatValues.CellIs, openXmlRule.Type!.Value);
             Assert.Equal(ConditionalFormattingOperatorValues.GreaterThan, openXmlRule.Operator!.Value);
             Assert.Equal("10", Assert.Single(openXmlRule.Elements<Formula>()).Text);
+        }
+
+        [Fact]
+        public void LegacyXls_Load_ImportsWorksheetFeaturesAfterEmbeddedChartSubstream() {
+            Assert.True(
+                BiffDataValidationReader.TryRead(
+                    LegacyXlsTestWorkbookBuilder.CreateExcelInlineListDataValidationPayloadForTest(),
+                    out LegacyXlsDataValidation? directValidation),
+                "The Excel-style inline-list DV payload should parse directly.");
+            Assert.Equal(new[] { "Open", "Closed", "Pending" }, directValidation!.ListItems);
+
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase5EmbeddedChartBeforeWorksheetFeaturesWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
+            LegacyXlsWorksheet sheet = Assert.Single(legacy.Worksheets);
+            LegacyXlsConditionalFormatting conditionalFormatting = Assert.Single(sheet.ConditionalFormattings);
+            Assert.Equal(LegacyXlsConditionalFormattingType.CellIs, conditionalFormatting.Type);
+            Assert.Equal(LegacyXlsConditionalFormattingOperator.GreaterThan, conditionalFormatting.Operator);
+            Assert.Equal("100", conditionalFormatting.Formula1);
+            Assert.Equal(new[] { "B2:B5" }, conditionalFormatting.Ranges);
+            string unsupportedDetails = string.Join(",", legacy.UnsupportedFeatures.Select(feature => feature.DetailCode ?? feature.Code));
+            Assert.True(sheet.DataValidations.Count == 1, unsupportedDetails);
+            LegacyXlsDataValidation validation = Assert.Single(sheet.DataValidations);
+            Assert.Equal(LegacyXlsDataValidationType.List, validation.Type);
+            Assert.Equal("\"Open,Closed,Pending\"", validation.Formula1);
+            Assert.Equal(new[] { "Open", "Closed", "Pending" }, validation.ListItems);
+            Assert.Equal(new[] { "A2:A5" }, validation.Ranges);
+            Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.DataValidation);
+            Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ConditionalFormatting);
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.False(result.HasImportErrors);
+            Assert.Equal(1, result.ImportReport.DataValidationCount);
+            Assert.Equal(1, result.ImportReport.ConditionalFormattingCount);
+            ExcelSheet projectedSheet = result.Document.Sheets[0];
+            Assert.Single(projectedSheet.GetDataValidations("A2:A5"));
+            Assert.Single(projectedSheet.GetConditionalFormattingRules("B2:B5"));
         }
 
         [Fact]

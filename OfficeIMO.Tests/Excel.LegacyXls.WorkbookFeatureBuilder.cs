@@ -744,6 +744,37 @@ namespace OfficeIMO.Tests {
                 return bytes;
             }
 
+            internal static byte[] CreatePhase5EmbeddedChartBeforeWorksheetFeaturesWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long dataBoundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "NestedFeatures"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Status"));
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 1, "Amount"));
+                WriteRecord(stream, 0x0204, BuildLabelPayload(1, 0, "Open"));
+                WriteRecord(stream, 0x027e, BuildRkPayload(1, 1, 0, EncodeRkInteger(125)));
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x20, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x1002, Array.Empty<byte>());
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+                WriteRecord(stream, 0x01b0, BuildConditionalFormattingRangePayload(1, 1, 4, 1, 1));
+                WriteRecord(stream, 0x01b1, BuildCellIsGreaterThanConditionalFormattingRulePayload(100));
+                WriteRecord(stream, 0x01b2, BuildDataValidationCollectionPayload(1));
+                WriteRecord(stream, 0x01be, BuildExcelInlineListDataValidationPayload());
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)dataBoundSheetPosition + 4), 4);
+                return bytes;
+            }
+
+            internal static byte[] CreateExcelInlineListDataValidationPayloadForTest() {
+                return BuildExcelInlineListDataValidationPayload();
+            }
+
             internal static byte[] CreatePhase5ConditionalFormattingWorkbookStream() {
                 using var stream = new MemoryStream();
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
@@ -1148,6 +1179,23 @@ namespace OfficeIMO.Tests {
                 WriteUInt16(stream, 3);
                 WriteUInt16(stream, 3);
                 return stream.ToArray();
+            }
+
+            private static byte[] BuildExcelInlineListDataValidationPayload() {
+                return new byte[] {
+                    0x83, 0x01, 0x0c, 0x00,
+                    0x01, 0x00, 0x00, 0x00,
+                    0x01, 0x00, 0x00, 0x00,
+                    0x01, 0x00, 0x00, 0x00,
+                    0x01, 0x00, 0x00, 0x00,
+                    0x16, 0x00, 0x49, 0x00,
+                    0x17, 0x13, 0x00, 0x4f, 0x70, 0x65, 0x6e, 0x00,
+                    0x43, 0x6c, 0x6f, 0x73, 0x65, 0x64, 0x00,
+                    0x50, 0x65, 0x6e, 0x64, 0x69, 0x6e, 0x67,
+                    0x00, 0x00,
+                    0x00, 0x00,
+                    0x01, 0x00, 0x01, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00
+                };
             }
 
             private static byte[] BuildRangeListDataValidationPayload() {
