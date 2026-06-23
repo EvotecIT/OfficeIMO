@@ -47,6 +47,9 @@ namespace OfficeIMO.Excel {
         private int ApplyTemplateRowsCore(int templateRow, IReadOnlyList<IReadOnlyDictionary<string, object?>> rowBindings, ExcelTemplateOptions options) {
             if (templateRow <= 0) throw new ArgumentOutOfRangeException(nameof(templateRow));
             if (rowBindings.Count == 0) return 0;
+            if ((long)templateRow + rowBindings.Count - 1L > A1.MaxRows) {
+                throw new ArgumentOutOfRangeException(nameof(rowBindings), "Template row expansion must fit inside Excel's worksheet row limit.");
+            }
 
             int replacements = 0;
             WriteLockConditional(() => {
@@ -78,6 +81,7 @@ namespace OfficeIMO.Excel {
         private int ApplyTemplateOptionalRowsCore(int firstRow, int rowCount, bool include, IReadOnlyDictionary<string, object?>? bindings, ExcelTemplateOptions options) {
             if (firstRow <= 0) throw new ArgumentOutOfRangeException(nameof(firstRow));
             if (rowCount <= 0) throw new ArgumentOutOfRangeException(nameof(rowCount));
+            if ((long)firstRow + rowCount - 1L > A1.MaxRows) throw new ArgumentOutOfRangeException(nameof(rowCount), "Template optional row block must fit inside Excel's worksheet row limit.");
 
             int replacements = 0;
             WriteLockConditional(() => {
@@ -220,6 +224,15 @@ namespace OfficeIMO.Excel {
             var sheetData = WorksheetRoot.GetFirstChild<SheetData>();
             if (sheetData == null) {
                 return;
+            }
+
+            uint maxShiftedRow = sheetData.Elements<Row>()
+                .Where(item => item.RowIndex?.Value >= (uint)firstRow)
+                .Select(item => item.RowIndex?.Value ?? 0U)
+                .DefaultIfEmpty(0U)
+                .Max();
+            if (maxShiftedRow > 0U && (long)maxShiftedRow + count > A1.MaxRows) {
+                throw new InvalidOperationException("Template row expansion would move worksheet rows beyond Excel's row limit.");
             }
 
             foreach (var row in sheetData.Elements<Row>()

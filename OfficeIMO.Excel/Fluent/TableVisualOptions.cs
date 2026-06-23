@@ -24,6 +24,18 @@ namespace OfficeIMO.Excel.Fluent {
         /// <summary>Freeze through the header row for easier scrolling.</summary>
         public bool FreezeHeaderRow { get; set; } = true;
 
+        /// <summary>Emphasize the first table column when the selected table style supports it.</summary>
+        public bool ShowFirstColumn { get; set; }
+
+        /// <summary>Emphasize the last table column when the selected table style supports it.</summary>
+        public bool ShowLastColumn { get; set; }
+
+        /// <summary>Show alternating row stripes for the table.</summary>
+        public bool ShowRowStripes { get; set; } = true;
+
+        /// <summary>Show alternating column stripes for the table.</summary>
+        public bool ShowColumnStripes { get; set; }
+
         /// <summary>
         /// Apply a numeric format with fixed decimals by header name.
         /// </summary>

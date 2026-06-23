@@ -17,11 +17,12 @@ namespace OfficeIMO.Excel {
                 DirectCellValueKind cellValueKind,
                 bool useCellValueNumberFormats,
                 Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy,
+                ExcelDateSystem dateSystem,
                 DirectSharedStringTable? sharedStrings) {
                 if (valueStyleColumn) {
-                    WriteCell(writer, rowReference, cellReferencePrefix, value, styleAttribute, valueStyleColumn, cellValueKind, useCellValueNumberFormats, dateTimeOffsetWriteStrategy, sharedStrings);
+                    WriteCell(writer, rowReference, cellReferencePrefix, value, styleAttribute, valueStyleColumn, cellValueKind, useCellValueNumberFormats, dateTimeOffsetWriteStrategy, dateSystem, sharedStrings);
                 } else {
-                    WriteCell(writer, rowReference, cellReferencePrefix, value, styleAttribute, cellValueKind, dateTimeOffsetWriteStrategy, sharedStrings);
+                    WriteCell(writer, rowReference, cellReferencePrefix, value, styleAttribute, cellValueKind, dateTimeOffsetWriteStrategy, dateSystem, sharedStrings);
                 }
             }
 
@@ -43,7 +44,7 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            private static void WriteCell(TextWriter writer, string rowReference, string cellReferencePrefix, object? value, string? styleAttribute, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy, DirectSharedStringTable? sharedStrings) {
+            private static void WriteCell(TextWriter writer, string rowReference, string cellReferencePrefix, object? value, string? styleAttribute, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy, ExcelDateSystem dateSystem, DirectSharedStringTable? sharedStrings) {
                 writer.Write(cellReferencePrefix);
                 writer.Write(rowReference);
                 writer.Write('"');
@@ -51,10 +52,10 @@ namespace OfficeIMO.Excel {
                     writer.Write(styleAttribute);
                 }
 
-                WriteCellValue(writer, value, dateTimeOffsetWriteStrategy, sharedStrings);
+                WriteCellValue(writer, value, dateTimeOffsetWriteStrategy, dateSystem, sharedStrings);
             }
 
-            private static void WriteCell(TextWriter writer, string rowReference, string cellReferencePrefix, object? value, string? styleAttribute, DirectCellValueKind cellValueKind, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy, DirectSharedStringTable? sharedStrings) {
+            private static void WriteCell(TextWriter writer, string rowReference, string cellReferencePrefix, object? value, string? styleAttribute, DirectCellValueKind cellValueKind, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy, ExcelDateSystem dateSystem, DirectSharedStringTable? sharedStrings) {
                 writer.Write(cellReferencePrefix);
                 writer.Write(rowReference);
                 writer.Write('"');
@@ -62,10 +63,10 @@ namespace OfficeIMO.Excel {
                     writer.Write(styleAttribute);
                 }
 
-                WriteCellValue(writer, value, cellValueKind, dateTimeOffsetWriteStrategy, sharedStrings);
+                WriteCellValue(writer, value, cellValueKind, dateTimeOffsetWriteStrategy, dateSystem, sharedStrings);
             }
 
-            private static void WriteCell(TextWriter writer, string rowReference, string cellReferencePrefix, object? value, string? styleAttribute, bool useValueStyle, DirectCellValueKind cellValueKind, bool useCellValueNumberFormats, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy, DirectSharedStringTable? sharedStrings) {
+            private static void WriteCell(TextWriter writer, string rowReference, string cellReferencePrefix, object? value, string? styleAttribute, bool useValueStyle, DirectCellValueKind cellValueKind, bool useCellValueNumberFormats, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy, ExcelDateSystem dateSystem, DirectSharedStringTable? sharedStrings) {
                 writer.Write(cellReferencePrefix);
                 writer.Write(rowReference);
                 writer.Write('"');
@@ -75,13 +76,13 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (useValueStyle) {
-                    WriteCellValue(writer, value, dateTimeOffsetWriteStrategy, sharedStrings);
+                    WriteCellValue(writer, value, dateTimeOffsetWriteStrategy, dateSystem, sharedStrings);
                 } else {
-                    WriteCellValue(writer, value, cellValueKind, dateTimeOffsetWriteStrategy, sharedStrings);
+                    WriteCellValue(writer, value, cellValueKind, dateTimeOffsetWriteStrategy, dateSystem, sharedStrings);
                 }
             }
 
-            private static void WriteCellValue(TextWriter writer, object? value, DirectCellValueKind cellValueKind, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy, DirectSharedStringTable? sharedStrings) {
+            private static void WriteCellValue(TextWriter writer, object? value, DirectCellValueKind cellValueKind, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy, ExcelDateSystem dateSystem, DirectSharedStringTable? sharedStrings) {
                 if (value == null || value == DBNull.Value) {
                     writer.Write(" t=\"str\"><v/></c>");
                     return;
@@ -118,14 +119,14 @@ namespace OfficeIMO.Excel {
                         break;
                     case DirectCellValueKind.DateTime:
                         if (value is DateTime dateTime) {
-                            WriteRawValueCell(writer, dateTime.ToOADate());
+                            WriteRawValueCell(writer, ExcelDateSystemConverter.ToSerial(dateTime, dateSystem));
                             return;
                         }
 
                         break;
                     case DirectCellValueKind.DateTimeOffset:
                         if (value is DateTimeOffset dateTimeOffset) {
-                            WriteDateTimeOffsetCellValue(writer, dateTimeOffset, dateTimeOffsetWriteStrategy);
+                            WriteDateTimeOffsetCellValue(writer, dateTimeOffset, dateTimeOffsetWriteStrategy, dateSystem);
                             return;
                         }
 
@@ -217,7 +218,7 @@ namespace OfficeIMO.Excel {
 #if NET6_0_OR_GREATER
                     case DirectCellValueKind.DateOnly:
                         if (value is DateOnly dateOnly) {
-                            WriteRawValueCell(writer, dateOnly.ToDateTime(TimeOnly.MinValue).ToOADate());
+                            WriteRawValueCell(writer, ExcelDateSystemConverter.ToSerial(dateOnly.ToDateTime(TimeOnly.MinValue), dateSystem));
                             return;
                         }
 
@@ -232,10 +233,10 @@ namespace OfficeIMO.Excel {
 #endif
                 }
 
-                WriteCellValue(writer, value, dateTimeOffsetWriteStrategy, sharedStrings);
+                WriteCellValue(writer, value, dateTimeOffsetWriteStrategy, dateSystem, sharedStrings);
             }
 
-            private static void WriteCellValue(TextWriter writer, object? value, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy, DirectSharedStringTable? sharedStrings) {
+            private static void WriteCellValue(TextWriter writer, object? value, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy, ExcelDateSystem dateSystem, DirectSharedStringTable? sharedStrings) {
                 switch (value) {
                     case null:
                     case DBNull:
@@ -254,10 +255,10 @@ namespace OfficeIMO.Excel {
                         writer.Write(boolValue ? " t=\"b\"><v>1</v></c>" : " t=\"b\"><v>0</v></c>");
                         return;
                     case DateTime dateTime:
-                        WriteRawValueCell(writer, dateTime.ToOADate());
+                        WriteRawValueCell(writer, ExcelDateSystemConverter.ToSerial(dateTime, dateSystem));
                         return;
                     case DateTimeOffset dateTimeOffset:
-                        WriteDateTimeOffsetCellValue(writer, dateTimeOffset, dateTimeOffsetWriteStrategy);
+                        WriteDateTimeOffsetCellValue(writer, dateTimeOffset, dateTimeOffsetWriteStrategy, dateSystem);
                         return;
                     case TimeSpan timeSpan:
                         WriteRawValueCell(writer, timeSpan.TotalDays);
@@ -297,7 +298,7 @@ namespace OfficeIMO.Excel {
                         return;
 #if NET6_0_OR_GREATER
                     case DateOnly dateOnly:
-                        WriteRawValueCell(writer, dateOnly.ToDateTime(TimeOnly.MinValue).ToOADate());
+                        WriteRawValueCell(writer, ExcelDateSystemConverter.ToSerial(dateOnly.ToDateTime(TimeOnly.MinValue), dateSystem));
                         return;
                     case TimeOnly timeOnly:
                         WriteRawValueCell(writer, timeOnly.ToTimeSpan().TotalDays);
@@ -357,8 +358,8 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            private static void WriteDateTimeOffsetCellValue(TextWriter writer, DateTimeOffset value, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy) {
-                if (!TryGetDateTimeOffsetSerial(value, dateTimeOffsetWriteStrategy, out double dateTimeOffsetSerial)) {
+            private static void WriteDateTimeOffsetCellValue(TextWriter writer, DateTimeOffset value, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy, ExcelDateSystem dateSystem) {
+                if (!TryGetDateTimeOffsetSerial(value, dateTimeOffsetWriteStrategy, dateSystem, out double dateTimeOffsetSerial)) {
                     WriteStringCell(writer, value.ToString("o", CultureInfo.InvariantCulture), validateLength: true);
                     return;
                 }
@@ -366,14 +367,14 @@ namespace OfficeIMO.Excel {
                 WriteRawValueCell(writer, dateTimeOffsetSerial);
             }
 
-            private static bool TryGetDateTimeOffsetSerial(DateTimeOffset value, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy, out double serial) {
+            private static bool TryGetDateTimeOffsetSerial(DateTimeOffset value, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy, ExcelDateSystem dateSystem, out double serial) {
                 try {
                     if (value.UtcDateTime < ExcelMinimumSupportedDateTimeOffset) {
                         serial = 0D;
                         return false;
                     }
 
-                    serial = dateTimeOffsetWriteStrategy(value).ToOADate();
+                    serial = ExcelDateSystemConverter.ToSerial(dateTimeOffsetWriteStrategy(value), dateSystem);
                     return true;
                 } catch (ArgumentException) {
                     serial = 0D;

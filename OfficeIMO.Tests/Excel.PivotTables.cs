@@ -74,6 +74,47 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_PivotConditionalFormatting_TargetsPivotDataBody() {
+            var filePath = Path.Combine(_directoryWithFiles, "ExcelPivotTableConditionalFormatting.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+
+                sheet.CellValue(1, 1, "Region");
+                sheet.CellValue(1, 2, "Product");
+                sheet.CellValue(1, 3, "Sales");
+                sheet.CellValue(2, 1, "East");
+                sheet.CellValue(2, 2, "A");
+                sheet.CellValue(2, 3, 10);
+                sheet.CellValue(3, 1, "West");
+                sheet.CellValue(3, 2, "A");
+                sheet.CellValue(3, 3, 12);
+                sheet.CellValue(4, 1, "East");
+                sheet.CellValue(4, 2, "B");
+                sheet.CellValue(4, 3, 7);
+
+                sheet.AddPivotTable(
+                    sourceRange: "A1:C4",
+                    destinationCell: "E2",
+                    name: "SalesPivot",
+                    rowFields: new[] { "Region" },
+                    columnFields: new[] { "Product" },
+                    dataFields: new[] { new ExcelPivotDataField("Sales", DataConsolidateFunctionValues.Sum, "Total Sales") });
+
+                Assert.Equal("F3:G3", sheet.GetPivotTableRange("SalesPivot", ExcelPivotRangeTarget.DataBody));
+                sheet.AddPivotConditionalRule("SalesPivot", ConditionalFormattingOperatorValues.GreaterThan, "0");
+                document.Save(false);
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart worksheetPart = GetWorksheetPartByName(spreadsheet, "Data");
+                ConditionalFormatting formatting = worksheetPart.Worksheet.Descendants<ConditionalFormatting>().Single();
+                Assert.Equal("F3:G3", formatting.SequenceOfReferences!.InnerText);
+                Assert.Equal(ConditionalFormatValues.CellIs, formatting.GetFirstChild<ConditionalFormattingRule>()!.Type!.Value);
+            }
+        }
+
+        [Fact]
         public void Test_FluentPivotBuilder_CreatesPivotTable() {
             var filePath = Path.Combine(_directoryWithFiles, "ExcelPivotTableFluent.xlsx");
 
@@ -133,6 +174,52 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
                 Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        public void Test_PivotTableInteractionOptions_AreWrittenAndReadBack() {
+            var filePath = Path.Combine(_directoryWithFiles, "ExcelPivotTableInteractionOptions.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+
+                sheet.CellValue(1, 1, "Region");
+                sheet.CellValue(1, 2, "Sales");
+                sheet.CellValue(2, 1, "East");
+                sheet.CellValue(2, 2, 10);
+                sheet.CellValue(3, 1, "West");
+                sheet.CellValue(3, 2, 12);
+
+                sheet.Pivot("A1:B3")
+                    .Rows("Region")
+                    .Sum("Sales", "Total Sales")
+                    .Interaction(
+                        refreshOnOpen: true,
+                        saveSourceData: false,
+                        preserveFormatting: false,
+                        enableDrill: false)
+                    .At("E2", "SalesPivot");
+
+                document.Save(false);
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                var pivotPart = spreadsheet.WorkbookPart!.WorksheetParts.SelectMany(part => part.PivotTableParts).Single();
+                var cachePart = spreadsheet.WorkbookPart!.PivotTableCacheDefinitionParts.Single();
+
+                Assert.True(cachePart.PivotCacheDefinition!.RefreshOnLoad!.Value);
+                Assert.False(cachePart.PivotCacheDefinition!.SaveData!.Value);
+                Assert.False(pivotPart.PivotTableDefinition!.PreserveFormatting!.Value);
+                Assert.False(pivotPart.PivotTableDefinition!.EnableDrill!.Value);
+            }
+
+            using (var document = ExcelDocument.Load(filePath)) {
+                var pivot = document.GetPivotTables().Single();
+                Assert.True(pivot.RefreshOnOpen);
+                Assert.False(pivot.SaveSourceData);
+                Assert.False(pivot.PreserveFormatting);
+                Assert.False(pivot.EnableDrill);
             }
         }
 

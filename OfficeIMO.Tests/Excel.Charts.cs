@@ -116,6 +116,36 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void Test_ExcelCharts_DataPointStyling_WritesPointOverride() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.DataPointStyle.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Summary");
+                var data = new ExcelChartData(
+                    new[] { "Q1", "Q2", "Q3" },
+                    new[] {
+                        new ExcelChartSeries("Sales", new[] { 10d, 20d, 15d })
+                    });
+
+                ExcelChart chart = sheet.AddChart(data, row: 1, column: 6, widthPixels: 480, heightPixels: 320,
+                    type: ExcelChartType.ColumnClustered, title: "Quarterly");
+
+                chart.SetDataPointColor("Sales", pointIndex: 1, fillColor: "#C00000", lineColor: "#7030A0", lineWidthPoints: 1.25);
+                document.Save();
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
+                ChartPart chartPart = wsPart.DrawingsPart!.ChartParts.Single();
+                C.DataPoint point = chartPart.ChartSpace!.Descendants<C.DataPoint>().Single();
+                Assert.Equal(1U, point.GetFirstChild<C.Index>()!.Val!.Value);
+                Assert.Contains(point.Descendants<A.RgbColorModelHex>(), color => color.Val!.Value == "C00000");
+                Assert.Contains(point.Descendants<A.RgbColorModelHex>(), color => color.Val!.Value == "7030A0");
+                Assert.Equal(15875, point.Descendants<A.Outline>().Single().Width!.Value);
+            }
+        }
+
         private sealed class ChartProjectionRow {
             public ChartProjectionRow(string category, double value) {
                 Category = category;

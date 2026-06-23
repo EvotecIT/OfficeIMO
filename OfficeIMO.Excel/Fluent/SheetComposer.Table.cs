@@ -88,6 +88,7 @@ namespace OfficeIMO.Excel.Fluent {
 
             var viz = new TableVisualOptions();
             viz.FreezeHeaderRow = freezeHeaderRow; visuals?.Invoke(viz);
+            Sheet.SetTableStyle(range, style, viz.ShowFirstColumn, viz.ShowLastColumn, viz.ShowRowStripes, viz.ShowColumnStripes);
             if (viz.FreezeHeaderRow) { try { Sheet.Freeze(topRows: headerRow, leftCols: 0); } catch { } }
 
             try {

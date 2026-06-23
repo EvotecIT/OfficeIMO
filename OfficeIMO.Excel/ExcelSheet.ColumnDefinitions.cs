@@ -24,7 +24,9 @@ namespace OfficeIMO.Excel {
                     EndIndex = end,
                     Width = column.Width?.Value,
                     Hidden = column.Hidden?.Value == true,
-                    CustomWidth = column.CustomWidth?.Value == true
+                    CustomWidth = column.CustomWidth?.Value == true,
+                    OutlineLevel = column.OutlineLevel?.Value,
+                    Collapsed = column.Collapsed?.Value == true
                 });
             }
 

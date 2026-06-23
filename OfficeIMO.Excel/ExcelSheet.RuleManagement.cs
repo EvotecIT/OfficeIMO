@@ -154,6 +154,13 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Adds a unique-values conditional formatting rule.
+        /// </summary>
+        public void AddConditionalUniqueValuesRule(string range) {
+            AddConditionalRuleCore(range, ConditionalFormatValues.UniqueValues, null, Array.Empty<string>(), stopIfTrue: false);
+        }
+
+        /// <summary>
         /// Adds a top/bottom conditional formatting rule.
         /// </summary>
         public void AddConditionalTopBottomRule(string range, uint rank, bool bottom = false, bool percent = false) {
@@ -163,6 +170,80 @@ namespace OfficeIMO.Excel {
                 rule.Bottom = bottom;
                 rule.Percent = percent;
             }, Array.Empty<string>(), stopIfTrue: false);
+        }
+
+        /// <summary>
+        /// Adds an above/below-average conditional formatting rule.
+        /// </summary>
+        public void AddConditionalAboveAverageRule(string range, bool aboveAverage = true, bool equalAverage = false, uint? standardDeviation = null, bool stopIfTrue = false) {
+            AddConditionalRuleCore(range, ConditionalFormatValues.AboveAverage, rule => {
+                rule.AboveAverage = aboveAverage;
+                rule.EqualAverage = equalAverage;
+                if (standardDeviation.HasValue) {
+                    rule.StdDev = checked((int)standardDeviation.Value);
+                }
+            }, Array.Empty<string>(), stopIfTrue);
+        }
+
+        /// <summary>
+        /// Adds a text-matching conditional formatting rule.
+        /// </summary>
+        public void AddConditionalTextRule(string range, ConditionalFormatValues type, string text, bool stopIfTrue = false) {
+            if (string.IsNullOrEmpty(text)) throw new ArgumentNullException(nameof(text));
+            string firstCell = GetFirstCellReference(range);
+            string literal = EscapeFormulaString(text);
+            string formula;
+            ConditionalFormattingOperatorValues op;
+            if (type == ConditionalFormatValues.ContainsText) {
+                formula = $"NOT(ISERROR(SEARCH(\"{literal}\",{firstCell})))";
+                op = ConditionalFormattingOperatorValues.ContainsText;
+            } else if (type == ConditionalFormatValues.NotContainsText) {
+                formula = $"ISERROR(SEARCH(\"{literal}\",{firstCell}))";
+                op = ConditionalFormattingOperatorValues.NotContains;
+            } else if (type == ConditionalFormatValues.BeginsWith) {
+                formula = $"LEFT({firstCell},LEN(\"{literal}\"))=\"{literal}\"";
+                op = ConditionalFormattingOperatorValues.BeginsWith;
+            } else if (type == ConditionalFormatValues.EndsWith) {
+                formula = $"RIGHT({firstCell},LEN(\"{literal}\"))=\"{literal}\"";
+                op = ConditionalFormattingOperatorValues.EndsWith;
+            } else {
+                throw new ArgumentOutOfRangeException(nameof(type), "Text conditional formatting requires ContainsText, NotContainsText, BeginsWith, or EndsWith.");
+            }
+
+            AddConditionalRuleCore(range, type, rule => {
+                rule.Text = text;
+                rule.Operator = op;
+            }, new[] { formula }, stopIfTrue);
+        }
+
+        /// <summary>
+        /// Adds a blanks/non-blanks conditional formatting rule.
+        /// </summary>
+        public void AddConditionalBlanksRule(string range, bool containsBlanks = true, bool stopIfTrue = false) {
+            string firstCell = GetFirstCellReference(range);
+            ConditionalFormatValues type = containsBlanks ? ConditionalFormatValues.ContainsBlanks : ConditionalFormatValues.NotContainsBlanks;
+            string formula = containsBlanks ? $"LEN(TRIM({firstCell}))=0" : $"LEN(TRIM({firstCell}))>0";
+            AddConditionalRuleCore(range, type, null, new[] { formula }, stopIfTrue);
+        }
+
+        /// <summary>
+        /// Adds an errors/non-errors conditional formatting rule.
+        /// </summary>
+        public void AddConditionalErrorsRule(string range, bool containsErrors = true, bool stopIfTrue = false) {
+            string firstCell = GetFirstCellReference(range);
+            ConditionalFormatValues type = containsErrors ? ConditionalFormatValues.ContainsErrors : ConditionalFormatValues.NotContainsErrors;
+            string formula = containsErrors ? $"ISERROR({firstCell})" : $"NOT(ISERROR({firstCell}))";
+            AddConditionalRuleCore(range, type, null, new[] { formula }, stopIfTrue);
+        }
+
+        /// <summary>
+        /// Adds a time-period conditional formatting rule.
+        /// </summary>
+        public void AddConditionalTimePeriodRule(string range, TimePeriodValues timePeriod, bool stopIfTrue = false) {
+            string firstCell = GetFirstCellReference(range);
+            AddConditionalRuleCore(range, ConditionalFormatValues.TimePeriod, rule => {
+                rule.TimePeriod = timePeriod;
+            }, new[] { BuildTimePeriodFormula(firstCell, timePeriod) }, stopIfTrue);
         }
 
         /// <summary>
@@ -265,6 +346,42 @@ namespace OfficeIMO.Excel {
                 conditional.Append(rule);
                 InsertConditionalFormatting(conditional);
             });
+        }
+
+        private static string GetFirstCellReference(string range) {
+            if (string.IsNullOrWhiteSpace(range)) throw new ArgumentNullException(nameof(range));
+            string firstReference = range.Split(new[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries)[0];
+            int sheetSeparatorIndex = firstReference.LastIndexOf('!');
+            if (sheetSeparatorIndex >= 0 && sheetSeparatorIndex < firstReference.Length - 1) {
+                firstReference = firstReference.Substring(sheetSeparatorIndex + 1);
+            }
+
+            int rangeSeparatorIndex = firstReference.IndexOf(':');
+            if (rangeSeparatorIndex >= 0) {
+                firstReference = firstReference.Substring(0, rangeSeparatorIndex);
+            }
+
+            return firstReference.Replace("$", string.Empty);
+        }
+
+        private static string EscapeFormulaString(string value) {
+            return value.Replace("\"", "\"\"");
+        }
+
+        private static string BuildTimePeriodFormula(string firstCell, TimePeriodValues timePeriod) {
+            string day = $"FLOOR({firstCell},1)";
+            if (timePeriod == TimePeriodValues.Yesterday) return $"{day}=TODAY()-1";
+            if (timePeriod == TimePeriodValues.Today) return $"{day}=TODAY()";
+            if (timePeriod == TimePeriodValues.Tomorrow) return $"{day}=TODAY()+1";
+            if (timePeriod == TimePeriodValues.Last7Days) return $"AND(TODAY()-FLOOR({firstCell},1)<=6,FLOOR({firstCell},1)<=TODAY())";
+            if (timePeriod == TimePeriodValues.LastWeek) return $"AND({day}>=TODAY()-WEEKDAY(TODAY(),2)-6,{day}<=TODAY()-WEEKDAY(TODAY(),2))";
+            if (timePeriod == TimePeriodValues.ThisWeek) return $"AND({day}>=TODAY()-WEEKDAY(TODAY(),2)+1,{day}<=TODAY()-WEEKDAY(TODAY(),2)+7)";
+            if (timePeriod == TimePeriodValues.NextWeek) return $"AND({day}>=TODAY()-WEEKDAY(TODAY(),2)+8,{day}<=TODAY()-WEEKDAY(TODAY(),2)+14)";
+            if (timePeriod == TimePeriodValues.LastMonth) return $"AND({day}>=DATE(YEAR(TODAY()),MONTH(TODAY())-1,1),{day}<DATE(YEAR(TODAY()),MONTH(TODAY()),1))";
+            if (timePeriod == TimePeriodValues.ThisMonth) return $"AND({day}>=DATE(YEAR(TODAY()),MONTH(TODAY()),1),{day}<DATE(YEAR(TODAY()),MONTH(TODAY())+1,1))";
+            if (timePeriod == TimePeriodValues.NextMonth) return $"AND({day}>=DATE(YEAR(TODAY()),MONTH(TODAY())+1,1),{day}<DATE(YEAR(TODAY()),MONTH(TODAY())+2,1))";
+
+            return $"{day}=TODAY()";
         }
 
         private void ClearConditionalFormattingCore(string? a1Range) {

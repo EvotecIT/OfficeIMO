@@ -35,6 +35,10 @@ namespace OfficeIMO.Excel.Fluent {
         private bool? _showMemberPropertyTips;
         private bool? _fieldListSortAscending;
         private bool? _customListSort;
+        private bool? _refreshOnOpen;
+        private bool? _saveSourceData;
+        private bool? _preserveFormatting;
+        private bool? _enableDrill;
 
         internal PivotTableBuilder(ExcelSheet sheet, string sourceRange) {
             _sheet = sheet ?? throw new ArgumentNullException(nameof(sheet));
@@ -154,6 +158,19 @@ namespace OfficeIMO.Excel.Fluent {
             _showMemberPropertyTips = showMemberPropertyTips;
             _fieldListSortAscending = fieldListSortAscending;
             _customListSort = customListSort;
+            return this;
+        }
+
+        /// <summary>Controls pivot cache refresh and interactive workbook behavior.</summary>
+        public PivotTableBuilder Interaction(
+            bool? refreshOnOpen = null,
+            bool? saveSourceData = null,
+            bool? preserveFormatting = null,
+            bool? enableDrill = null) {
+            _refreshOnOpen = refreshOnOpen;
+            _saveSourceData = saveSourceData;
+            _preserveFormatting = preserveFormatting;
+            _enableDrill = enableDrill;
             return this;
         }
 
@@ -355,9 +372,26 @@ namespace OfficeIMO.Excel.Fluent {
                 customListSort: _customListSort,
                 pivotFilters: _pivotFilters.Count == 0 ? null : _pivotFilters,
                 calculatedFields: _calculatedFields.Count == 0 ? null : _calculatedFields,
-                groupings: _groupings.Count == 0 ? null : _groupings);
+                groupings: _groupings.Count == 0 ? null : _groupings,
+                options: CreateOptions());
 
             return _sheet;
+        }
+
+        private ExcelPivotTableOptions? CreateOptions() {
+            if (!_refreshOnOpen.HasValue
+                && !_saveSourceData.HasValue
+                && !_preserveFormatting.HasValue
+                && !_enableDrill.HasValue) {
+                return null;
+            }
+
+            return new ExcelPivotTableOptions {
+                RefreshOnOpen = _refreshOnOpen,
+                SaveSourceData = _saveSourceData,
+                PreserveFormatting = _preserveFormatting,
+                EnableDrill = _enableDrill
+            };
         }
 
         private static void AddFieldNames(List<string> target, string[] fieldNames, string parameterName) {

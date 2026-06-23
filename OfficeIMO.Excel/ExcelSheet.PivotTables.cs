@@ -117,7 +117,11 @@ namespace OfficeIMO.Excel {
                         fields: fieldInfos,
                         filters: filterInfos,
                         calculatedFields: calculatedFieldInfos,
-                        groupings: groupingInfos));
+                        groupings: groupingInfos,
+                        refreshOnOpen: cacheDef?.RefreshOnLoad?.Value,
+                        saveSourceData: cacheDef?.SaveData?.Value,
+                        preserveFormatting: def.PreserveFormatting?.Value,
+                        enableDrill: def.EnableDrill?.Value));
                 }
 
                 return list;
@@ -191,7 +195,8 @@ namespace OfficeIMO.Excel {
                 customListSort: null,
                 pivotFilters: null,
                 calculatedFields: null,
-                groupings: null);
+                groupings: null,
+                options: null);
         }
 
         /// <summary>
@@ -228,6 +233,7 @@ namespace OfficeIMO.Excel {
         /// <param name="pivotFilters">Optional label and value filters.</param>
         /// <param name="calculatedFields">Optional formula-backed pivot cache fields.</param>
         /// <param name="groupings">Optional date or numeric grouping metadata.</param>
+        /// <param name="options">Optional pivot cache and workbook-interaction settings.</param>
         public void AddPivotTable(
             string sourceRange,
             string destinationCell,
@@ -259,7 +265,8 @@ namespace OfficeIMO.Excel {
             bool? customListSort = null,
             IEnumerable<ExcelPivotFilter>? pivotFilters = null,
             IEnumerable<ExcelPivotCalculatedField>? calculatedFields = null,
-            IEnumerable<ExcelPivotGrouping>? groupings = null) {
+            IEnumerable<ExcelPivotGrouping>? groupings = null,
+            ExcelPivotTableOptions? options = null) {
             if (string.IsNullOrWhiteSpace(sourceRange)) throw new ArgumentNullException(nameof(sourceRange));
             if (string.IsNullOrWhiteSpace(destinationCell)) throw new ArgumentNullException(nameof(destinationCell));
             if (!A1.TryParseRange(sourceRange, out int r1, out int c1, out int r2, out int c2)) {
@@ -400,6 +407,7 @@ namespace OfficeIMO.Excel {
                     calculatedFieldList,
                     pivotFilterList,
                     fieldOptionMap);
+                bool effectiveSavePivotCacheRecords = options?.SaveSourceData ?? savePivotCacheRecords;
                 var cacheDefPart = workbookPart.AddNewPart<PivotTableCacheDefinitionPart>();
                 var cacheDef = new PivotCacheDefinition {
                     CacheSource = new CacheSource {
@@ -411,8 +419,8 @@ namespace OfficeIMO.Excel {
                     },
                     CacheFields = new CacheFields { Count = (uint)allFields.Count },
                     RecordCount = (uint)sourceRecordCount,
-                    SaveData = savePivotCacheRecords,
-                    RefreshOnLoad = !savePivotCacheRecords
+                    SaveData = effectiveSavePivotCacheRecords,
+                    RefreshOnLoad = options?.RefreshOnOpen ?? !effectiveSavePivotCacheRecords
                 };
 
                 for (int i = 0; i < headers.Count; i++) {
@@ -457,7 +465,7 @@ namespace OfficeIMO.Excel {
                 cacheDefPart.PivotCacheDefinition = cacheDef;
                 ReportPivotTiming("AddPivotTable.SaveCacheDefinition");
                 var cacheRecordsPart = cacheDefPart.AddNewPart<PivotTableCacheRecordsPart>();
-                if (!savePivotCacheRecords) {
+                if (!effectiveSavePivotCacheRecords) {
                     cacheRecordsPart.PivotCacheRecords = new PivotCacheRecords { Count = 0U };
                 } else if (canUseDeferredPivotValues) {
                     WritePivotCacheRecords(
@@ -557,7 +565,7 @@ namespace OfficeIMO.Excel {
                     dataFieldsElement.Append(dataField);
                 }
 
-                PivotFilters? pivotFiltersElement = CreatePivotFilters(pivotFilterList, headerIndex, dataFieldList);
+                PivotFilters? pivotFiltersElement = CreatePivotFilters(pivotFilterList, headerIndex, dataFieldList, _excelDocument.DateSystem);
 
                 string pivotRef = BuildPivotLocationReference(destRow, destCol, rowFieldIndices.Count + columnFieldIndices.Count + dataFieldList.Count);
 
@@ -570,7 +578,7 @@ namespace OfficeIMO.Excel {
                     ApplyWidthHeightFormats = true,
                     ApplyPatternFormats = true,
                     UseAutoFormatting = true,
-                    PreserveFormatting = true,
+                    PreserveFormatting = options?.PreserveFormatting ?? true,
                     RowGrandTotals = showRowGrandTotals,
                     ColumnGrandTotals = showColumnGrandTotals,
                     MultipleFieldFilters = true,
@@ -622,6 +630,7 @@ namespace OfficeIMO.Excel {
                 if (showMemberPropertyTips.HasValue) pivotDefinition.ShowMemberPropertyTips = showMemberPropertyTips.Value;
                 if (fieldListSortAscending.HasValue) pivotDefinition.FieldListSortAscending = fieldListSortAscending.Value;
                 if (customListSort.HasValue) pivotDefinition.CustomListSort = customListSort.Value;
+                if (options?.EnableDrill.HasValue == true) pivotDefinition.EnableDrill = options.EnableDrill.Value;
 
                 pivotPart.PivotTableDefinition = pivotDefinition;
                 ReportPivotTiming("AddPivotTable.BuildAndSavePivotDefinition");
