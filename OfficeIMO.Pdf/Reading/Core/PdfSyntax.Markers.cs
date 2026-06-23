@@ -12,7 +12,7 @@ internal static partial class PdfSyntax {
     }
 
     internal static void ThrowIfUnsafeForRewrite(byte[] pdf, PdfReadOptions? options) {
-        ThrowIfUnsafeForRewrite(pdf, allowEncryption: options?.Password is not null, options);
+        ThrowIfUnsafeForRewrite(pdf, allowEncryption: options?.Password is not null || CanOpenEncryptedPdfWithEmptyPassword(pdf), options);
     }
 
     internal static void ThrowIfUnsafeForRewrite(byte[] pdf, bool allowEncryption) {
@@ -82,6 +82,21 @@ internal static partial class PdfSyntax {
 
         if (HasActiveContentMarkers(pdf, options)) {
             throw new NotSupportedException("PDF active content is not supported for rewriting by OfficeIMO.Pdf yet.");
+        }
+    }
+
+    private static bool CanOpenEncryptedPdfWithEmptyPassword(byte[] pdf) {
+        if (!HasEncryptionMarkers(pdf)) {
+            return false;
+        }
+
+        try {
+            PdfReadDocument.Load(pdf, new PdfReadOptions { Password = string.Empty });
+            return true;
+        } catch (PdfEncryptionException) {
+            return false;
+        } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
+            return false;
         }
     }
 

@@ -474,21 +474,31 @@ public sealed class PdfDocumentPages {
         PdfReadOptions? options) where T : class {
         PdfReadOptions? effectiveOptions = options ?? _document.ReadOptions;
         PdfDocumentPreflight preflight = _document.Preflight(effectiveOptions);
-        if (!preflight.Can(PdfPreflightCapability.ManipulatePages) &&
-            !CanAttemptEncryptedPageExtraction(preflight, effectiveOptions)) {
+        bool canAttempt = preflight.Can(PdfPreflightCapability.ManipulatePages);
+        bool canAttemptEncryptedExtraction = !canAttempt && CanAttemptEncryptedPageExtraction(preflight);
+        if (!canAttempt && !canAttemptEncryptedExtraction) {
             return PdfOperationResult<T>.Blocked(operationName, PdfPreflightCapability.ManipulatePages, preflight);
         }
 
         try {
-            return PdfOperationResult<T>.Success(operationName, PdfPreflightCapability.ManipulatePages, preflight, operation(effectiveOptions));
+            return PdfOperationResult<T>.Success(
+                operationName,
+                PdfPreflightCapability.ManipulatePages,
+                preflight,
+                operation(effectiveOptions),
+                canAttemptEncryptedExtraction ? true : null);
         } catch (Exception ex) {
-            return PdfOperationResult<T>.Failed(operationName, PdfPreflightCapability.ManipulatePages, preflight, ex);
+            return PdfOperationResult<T>.Failed(
+                operationName,
+                PdfPreflightCapability.ManipulatePages,
+                preflight,
+                ex,
+                canAttemptEncryptedExtraction ? true : null);
         }
     }
 
-    private static bool CanAttemptEncryptedPageExtraction(PdfDocumentPreflight preflight, PdfReadOptions? options) {
+    private static bool CanAttemptEncryptedPageExtraction(PdfDocumentPreflight preflight) {
         if (!preflight.CanRead ||
-            options?.Password is null ||
             !preflight.Probe.HasEncryption) {
             return false;
         }

@@ -63,12 +63,19 @@ public class PdfEncryptedReadTests {
     }
 
     [Fact]
-    public void StandardEmptyUserPasswordEncryptedPdf_RemainsBlockedForRewrite() {
+    public void StandardEmptyUserPasswordEncryptedPdf_SplitsAndExtractsWithoutExplicitPassword() {
         byte[] pdf = EncryptedPdfFixture.CreateRevision2(string.Empty, "owner", "Empty user password text");
 
-        NotSupportedException exception = Assert.Throws<NotSupportedException>(() => PdfPageExtractor.ExtractPages(pdf, 1));
+        byte[] extracted = PdfPageExtractor.ExtractPages(pdf, 1);
+        IReadOnlyList<PdfDocument> splitPages = PdfDocument.Open(pdf).Pages.Split();
+        PdfOperationResult<IReadOnlyList<PdfDocument>> trySplit = PdfDocument.Open(pdf).Pages.TrySplit();
 
-        Assert.Contains("Encrypted PDF files are not supported for rewriting by OfficeIMO.Pdf yet.", exception.Message, StringComparison.Ordinal);
+        Assert.False(PdfInspector.Probe(extracted).HasEncryption);
+        Assert.Contains("Empty user password text", PdfTextExtractor.ExtractAllText(extracted), StringComparison.Ordinal);
+        PdfDocument splitPage = Assert.Single(splitPages);
+        Assert.Contains("Empty user password text", splitPage.Read.Text(), StringComparison.Ordinal);
+        Assert.True(trySplit.CanAttempt);
+        Assert.True(trySplit.Succeeded);
     }
 
     [Fact]
@@ -91,6 +98,7 @@ public class PdfEncryptedReadTests {
 
         PdfOperationResult<IReadOnlyList<PdfDocument>> result = PdfDocument.Open(pdf, new PdfReadOptions { Password = "open" }).Pages.TrySplit();
 
+        Assert.True(result.CanAttempt);
         Assert.True(result.Succeeded);
         PdfDocument page = Assert.Single(result.RequireValue());
         Assert.Contains("Secret PDF Text", page.Read.Text(), StringComparison.Ordinal);
@@ -102,6 +110,7 @@ public class PdfEncryptedReadTests {
 
         PdfOperationResult<IReadOnlyList<PdfDocument>> result = PdfDocument.Open(pdf).Pages.TrySplit(new PdfReadOptions { Password = "open" });
 
+        Assert.True(result.CanAttempt);
         Assert.True(result.Succeeded);
         PdfDocument page = Assert.Single(result.RequireValue());
         Assert.Contains("Secret PDF Text", page.Read.Text(), StringComparison.Ordinal);
