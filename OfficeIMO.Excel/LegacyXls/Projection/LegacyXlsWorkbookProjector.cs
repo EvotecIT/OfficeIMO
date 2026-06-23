@@ -452,6 +452,10 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                 sheet.SetPageSetup(fitToWidth, fitToHeight, scale);
             }
 
+            if (pageSetup.FitToPage.HasValue) {
+                sheet.SetFitToPage(pageSetup.FitToPage.Value);
+            }
+
             if (!string.IsNullOrEmpty(pageSetup.HeaderText) || !string.IsNullOrEmpty(pageSetup.FooterText)) {
                 var header = SplitHeaderFooterText(pageSetup.HeaderText);
                 var footer = SplitHeaderFooterText(pageSetup.FooterText);

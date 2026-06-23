@@ -220,6 +220,15 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     case BiffRecordType.Footer:
                         ParseHeaderFooter(sheet, payload, isHeader: false);
                         break;
+                    case BiffRecordType.GridSet:
+                        sheet.SetGridSet(BiffWorksheetMetadataReader.ReadGridSet(new BiffRecord(type, offset, payload), sheet.Name, diagnostics));
+                        sheet.AddMetadataRecord(LegacyXlsWorksheetMetadataKind.GridSet, offset, type);
+                        break;
+                    case BiffRecordType.Guts:
+                        (byte rowLevel, byte columnLevel) = BiffWorksheetMetadataReader.ReadGuts(payload);
+                        sheet.SetOutlineLevels(rowLevel, columnLevel);
+                        sheet.AddMetadataRecord(LegacyXlsWorksheetMetadataKind.OutlineLevels, offset, type);
+                        break;
                     case BiffRecordType.Header:
                         ParseHeaderFooter(sheet, payload, isHeader: true);
                         break;
@@ -239,6 +248,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                             AddUnsupportedFeature(unsupportedFeatures, preservedFeatureRecords, diagnostics, options, type, offset, sheet.Name, payload.Length);
                         }
 
+                        break;
+                    case BiffRecordType.Index:
+                        sheet.SetRowBlockIndex(BiffWorksheetMetadataReader.ReadIndex(payload));
+                        sheet.AddMetadataRecord(LegacyXlsWorksheetMetadataKind.RowBlockIndex, offset, type);
                         break;
                     case BiffRecordType.Label:
                         if (payload.Length >= 8) {
@@ -321,6 +334,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     case BiffRecordType.Scl:
                         ParseZoomScale(sheet, payload);
                         break;
+                    case BiffRecordType.Selection:
+                        sheet.AddSelection(BiffWorksheetMetadataReader.ReadSelection(payload));
+                        sheet.AddMetadataRecord(LegacyXlsWorksheetMetadataKind.Selection, offset, type);
+                        break;
                     case BiffRecordType.Setup:
                         ParseSetup(sheet, payload);
                         break;
@@ -370,6 +387,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                         break;
                     case BiffRecordType.Window2:
                         ParseWindow2(sheet, payload, out frozenWindow);
+                        break;
+                    case BiffRecordType.WsBool:
+                        sheet.SetSheetOptions(BiffWorksheetMetadataReader.ReadWsBool(payload));
+                        sheet.AddMetadataRecord(LegacyXlsWorksheetMetadataKind.SheetOptions, offset, type);
                         break;
                     default:
                         if (type != (ushort)BiffRecordType.Bof) {

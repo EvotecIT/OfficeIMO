@@ -296,6 +296,60 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_Load_ImportsWorksheetMetadataRecords() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateWorksheetMetadataWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.False(result.HasImportErrors);
+            Assert.False(result.HasUnsupportedFeatures);
+            LegacyXlsWorksheet legacySheet = Assert.Single(result.Workbook.Worksheets);
+            Assert.Equal(5, legacySheet.MetadataRecords.Count);
+            Assert.True(legacySheet.AutomaticPageBreaksVisible);
+            Assert.True(legacySheet.ApplyOutlineStyles);
+            Assert.True(legacySheet.SummaryRowsBelow);
+            Assert.True(legacySheet.SummaryColumnsRightWhenLeftToRight);
+            Assert.NotNull(legacySheet.PageSetup);
+            Assert.True(legacySheet.PageSetup!.FitToPage);
+            Assert.True(legacySheet.SynchronizedHorizontalScrolling);
+            Assert.True(legacySheet.SynchronizedVerticalScrolling);
+            Assert.True(legacySheet.TransitionFormulaEvaluation);
+            Assert.True(legacySheet.TransitionFormulaEntry);
+            Assert.Equal((byte)2, legacySheet.RowOutlineLevel);
+            Assert.Equal((byte)3, legacySheet.ColumnOutlineLevel);
+            Assert.True(legacySheet.GridSet);
+            Assert.NotNull(legacySheet.RowBlockIndex);
+            Assert.Equal(1, legacySheet.RowBlockIndex!.FirstRowIndex);
+            Assert.Equal(5, legacySheet.RowBlockIndex.RowAfterLastIndex);
+            Assert.Equal(1234U, legacySheet.RowBlockIndex.ReservedRecordOffset);
+            Assert.Equal(2, legacySheet.RowBlockIndex.DbCellBlockCount);
+            LegacyXlsSelection selection = Assert.Single(legacySheet.Selections);
+            Assert.Equal(0, selection.Pane);
+            Assert.Equal(3, selection.ActiveRow);
+            Assert.Equal(2, selection.ActiveColumn);
+            Assert.Equal((ushort)0, selection.ActiveRangeIndex);
+            LegacyXlsSelectedRange selectedRange = Assert.Single(selection.SelectedRanges);
+            Assert.Equal("B3:C4", selectedRange.Reference);
+            Assert.Equal(5, result.ImportReport.WorksheetMetadataRecordCount);
+            Assert.Equal(1, result.ImportReport.WorksheetMetadataRecordsByKind[LegacyXlsWorksheetMetadataKind.SheetOptions]);
+            Assert.Equal(1, result.ImportReport.WorksheetMetadataRecordsByKind[LegacyXlsWorksheetMetadataKind.OutlineLevels]);
+            Assert.Equal(1, result.ImportReport.WorksheetMetadataRecordsByKind[LegacyXlsWorksheetMetadataKind.GridSet]);
+            Assert.Equal(1, result.ImportReport.WorksheetMetadataRecordsByKind[LegacyXlsWorksheetMetadataKind.RowBlockIndex]);
+            Assert.Equal(1, result.ImportReport.WorksheetMetadataRecordsByKind[LegacyXlsWorksheetMetadataKind.Selection]);
+            Assert.DoesNotContain(result.Workbook.UnsupportedFeatures, feature => feature.RecordType is 0x0081 or 0x0080 or 0x0082 or 0x020b or 0x001d);
+
+            using var output = new MemoryStream();
+            result.Document.Save(output);
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
+            WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single();
+            PageSetupProperties pageSetupProperties = worksheetPart.Worksheet.GetFirstChild<SheetProperties>()!.GetFirstChild<PageSetupProperties>()!;
+            Assert.True(pageSetupProperties.FitToPage!.Value);
+        }
+
+        [Fact]
         public void LegacyXls_Load_ImportsPhase4PrintOptions() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase4PrintOptionsWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);

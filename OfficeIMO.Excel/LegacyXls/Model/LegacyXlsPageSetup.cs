@@ -39,6 +39,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>Gets whether the sheet should be centered vertically when printed, when present.</summary>
         public bool? VerticalCentered { get; internal set; }
 
+        /// <summary>Gets whether fit-to-page scaling should be enabled, when present.</summary>
+        public bool? FitToPage { get; internal set; }
+
         /// <summary>Gets whether the sheet should be printed in landscape orientation, when present.</summary>
         public bool? Landscape { get; internal set; }
 

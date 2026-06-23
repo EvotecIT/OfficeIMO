@@ -12,8 +12,10 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         private readonly List<LegacyXlsPageBreak> _columnPageBreaks = new();
         private readonly List<LegacyXlsHyperlink> _hyperlinks = new();
         private readonly List<LegacyXlsMergedRange> _mergedRanges = new();
+        private readonly List<LegacyXlsWorksheetMetadataRecord> _metadataRecords = new();
         private readonly List<LegacyXlsPageBreak> _rowPageBreaks = new();
         private readonly List<LegacyXlsRowLayout> _rows = new();
+        private readonly List<LegacyXlsSelection> _selections = new();
 
         /// <summary>
         /// Creates a parsed legacy XLS worksheet.
@@ -100,6 +102,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         public IReadOnlyList<LegacyXlsMergedRange> MergedRanges => _mergedRanges;
 
         /// <summary>
+        /// Gets decoded worksheet metadata source records.
+        /// </summary>
+        public IReadOnlyList<LegacyXlsWorksheetMetadataRecord> MetadataRecords => _metadataRecords;
+
+        /// <summary>
         /// Gets explicit manual row page breaks parsed for this worksheet.
         /// </summary>
         public IReadOnlyList<LegacyXlsPageBreak> RowPageBreaks => _rowPageBreaks;
@@ -108,6 +115,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// Gets parsed row layout metadata for this worksheet.
         /// </summary>
         public IReadOnlyList<LegacyXlsRowLayout> Rows => _rows;
+
+        /// <summary>
+        /// Gets parsed worksheet selections.
+        /// </summary>
+        public IReadOnlyList<LegacyXlsSelection> Selections => _selections;
 
         /// <summary>
         /// Gets parsed frozen pane metadata for this worksheet.
@@ -128,6 +140,66 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// Gets parsed worksheet page setup metadata.
         /// </summary>
         public LegacyXlsPageSetup? PageSetup { get; private set; }
+
+        /// <summary>
+        /// Gets parsed row-block lookup metadata from the BIFF Index record, when present.
+        /// </summary>
+        public LegacyXlsWorksheetIndex? RowBlockIndex { get; private set; }
+
+        /// <summary>
+        /// Gets whether automatic page breaks should be visible, when present.
+        /// </summary>
+        public bool? AutomaticPageBreaksVisible { get; private set; }
+
+        /// <summary>
+        /// Gets whether outline styles should be applied automatically, when present.
+        /// </summary>
+        public bool? ApplyOutlineStyles { get; private set; }
+
+        /// <summary>
+        /// Gets whether row summaries should appear below detail rows, when present.
+        /// </summary>
+        public bool? SummaryRowsBelow { get; private set; }
+
+        /// <summary>
+        /// Gets whether column summaries should appear to the right in left-to-right sheets, when present.
+        /// </summary>
+        public bool? SummaryColumnsRightWhenLeftToRight { get; private set; }
+
+        /// <summary>
+        /// Gets whether horizontal scrolling should be synchronized with another sheet, when present.
+        /// </summary>
+        public bool? SynchronizedHorizontalScrolling { get; private set; }
+
+        /// <summary>
+        /// Gets whether vertical scrolling should be synchronized with another sheet, when present.
+        /// </summary>
+        public bool? SynchronizedVerticalScrolling { get; private set; }
+
+        /// <summary>
+        /// Gets whether transition formula evaluation is enabled, when present.
+        /// </summary>
+        public bool? TransitionFormulaEvaluation { get; private set; }
+
+        /// <summary>
+        /// Gets whether transition formula entry is enabled, when present.
+        /// </summary>
+        public bool? TransitionFormulaEntry { get; private set; }
+
+        /// <summary>
+        /// Gets the maximum row outline level, when present.
+        /// </summary>
+        public byte? RowOutlineLevel { get; private set; }
+
+        /// <summary>
+        /// Gets the maximum column outline level, when present.
+        /// </summary>
+        public byte? ColumnOutlineLevel { get; private set; }
+
+        /// <summary>
+        /// Gets the legacy GridSet flag, when present.
+        /// </summary>
+        public bool? GridSet { get; private set; }
 
         /// <summary>
         /// Gets the worksheet view zoom scale percentage, when present.
@@ -228,12 +300,20 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             _mergedRanges.Add(mergedRange);
         }
 
+        internal void AddMetadataRecord(LegacyXlsWorksheetMetadataKind kind, int recordOffset, ushort recordType) {
+            _metadataRecords.Add(new LegacyXlsWorksheetMetadataRecord(kind, recordOffset, recordType));
+        }
+
         internal void AddRowPageBreak(LegacyXlsPageBreak pageBreak) {
             _rowPageBreaks.Add(pageBreak);
         }
 
         internal void AddRow(LegacyXlsRowLayout row) {
             _rows.Add(row);
+        }
+
+        internal void AddSelection(LegacyXlsSelection selection) {
+            _selections.Add(selection);
         }
 
         internal void SetFreezePane(LegacyXlsFreezePane freezePane) {
@@ -275,6 +355,31 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         internal LegacyXlsPageSetup GetOrCreatePageSetup() {
             return PageSetup ??= new LegacyXlsPageSetup();
+        }
+
+        internal void SetGridSet(bool gridSet) {
+            GridSet = gridSet;
+        }
+
+        internal void SetOutlineLevels(byte rowLevel, byte columnLevel) {
+            RowOutlineLevel = rowLevel;
+            ColumnOutlineLevel = columnLevel;
+        }
+
+        internal void SetRowBlockIndex(LegacyXlsWorksheetIndex rowBlockIndex) {
+            RowBlockIndex = rowBlockIndex;
+        }
+
+        internal void SetSheetOptions(ushort options) {
+            AutomaticPageBreaksVisible = (options & 0x0001) != 0;
+            ApplyOutlineStyles = (options & 0x0020) != 0;
+            SummaryRowsBelow = (options & 0x0040) != 0;
+            SummaryColumnsRightWhenLeftToRight = (options & 0x0080) != 0;
+            GetOrCreatePageSetup().FitToPage = (options & 0x0100) != 0;
+            SynchronizedHorizontalScrolling = (options & 0x1000) != 0;
+            SynchronizedVerticalScrolling = (options & 0x2000) != 0;
+            TransitionFormulaEvaluation = (options & 0x4000) != 0;
+            TransitionFormulaEntry = (options & 0x8000) != 0;
         }
 
         internal void SetProtection(bool isProtected) {

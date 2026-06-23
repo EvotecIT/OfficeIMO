@@ -60,6 +60,28 @@ namespace OfficeIMO.Excel {
                     break;
             }
         }
+
+        internal void SetFitToPage(bool fitToPage, bool save = false) {
+            WriteLock(() => {
+                Worksheet worksheet = WorksheetRoot;
+                SheetProperties? sheetProperties = worksheet.GetFirstChild<SheetProperties>();
+                if (sheetProperties == null) {
+                    sheetProperties = new SheetProperties();
+                    worksheet.PrependChild(sheetProperties);
+                }
+
+                PageSetupProperties? pageSetupProperties = sheetProperties.GetFirstChild<PageSetupProperties>();
+                if (pageSetupProperties == null) {
+                    pageSetupProperties = new PageSetupProperties();
+                    sheetProperties.AppendChild(pageSetupProperties);
+                }
+
+                pageSetupProperties.FitToPage = fitToPage;
+                if (save) {
+                    worksheet.Save();
+                }
+            });
+        }
     }
 
     /// <summary>Common presets for page margins.</summary>

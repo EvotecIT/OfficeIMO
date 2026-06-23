@@ -178,6 +178,28 @@ namespace OfficeIMO.Tests {
                 return bytes;
             }
 
+            internal static byte[] CreateWorksheetMetadataWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long boundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "Metadata"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0204, BuildLabelPayload(2, 1, "Active"));
+                WriteRecord(stream, 0x0081, BuildUInt16Payload(0xf1e1));
+                WriteRecord(stream, 0x0080, BuildGutsPayload(rowOutlineLevelRaw: 3, columnOutlineLevelRaw: 4));
+                WriteRecord(stream, 0x0082, BuildUInt16Payload(1));
+                WriteRecord(stream, 0x020b, BuildIndexPayload(firstRow: 0, rowAfterLast: 4, reservedRecordOffset: 1234, dbCellOffsets: new uint[] { 200, 240 }));
+                WriteRecord(stream, 0x001d, BuildSelectionPayload());
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)boundSheetPosition + 4), 4);
+                return bytes;
+            }
+
             internal static byte[] CreatePhase4PrintPageSetupWorkbookStream() {
                 using var stream = new MemoryStream();
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
@@ -1336,6 +1358,42 @@ namespace OfficeIMO.Tests {
 
             private static byte[] BuildDoublePayload(double value) {
                 return BitConverter.GetBytes(value);
+            }
+
+            private static byte[] BuildGutsPayload(ushort rowOutlineLevelRaw, ushort columnOutlineLevelRaw) {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, 0);
+                WriteUInt16(stream, 0);
+                WriteUInt16(stream, rowOutlineLevelRaw);
+                WriteUInt16(stream, columnOutlineLevelRaw);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildIndexPayload(uint firstRow, uint rowAfterLast, uint reservedRecordOffset, uint[] dbCellOffsets) {
+                using var stream = new MemoryStream();
+                WriteUInt32(stream, 0);
+                WriteUInt32(stream, firstRow);
+                WriteUInt32(stream, rowAfterLast);
+                WriteUInt32(stream, reservedRecordOffset);
+                foreach (uint offset in dbCellOffsets) {
+                    WriteUInt32(stream, offset);
+                }
+
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildSelectionPayload() {
+                using var stream = new MemoryStream();
+                stream.WriteByte(0);
+                WriteUInt16(stream, 2);
+                WriteUInt16(stream, 1);
+                WriteUInt16(stream, 0);
+                WriteUInt16(stream, 1);
+                WriteUInt16(stream, 2);
+                WriteUInt16(stream, 3);
+                stream.WriteByte(1);
+                stream.WriteByte(2);
+                return stream.ToArray();
             }
 
             private static byte[] BuildSetupPayload(
