@@ -194,6 +194,9 @@ features. Extended `CF12`, `CFEx`, and `DXF` records remain diagnostics-only unt
 their richer rule and differential-formatting models are implemented.
 `BoundSheet8` entries for macro sheets, chart sheets, and VBA module sheets are also
 reported as explicit feature diagnostics while worksheet sheets continue to import.
+Unsupported sheet substreams are scanned for preserve-only feature records, so
+chart-sheet-local chart and drawing records now appear with their sheet location
+without projecting chart sheets as worksheets or importing chart definitions.
 Unsupported sheet entries are preserved in the legacy workbook model, and `WsBool`
 dialog sheets are classified as unsupported dialog sheets instead of being projected
 as normal worksheets. OLE compound containers with VBA project storage are now

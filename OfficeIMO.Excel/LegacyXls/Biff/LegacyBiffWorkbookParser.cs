@@ -74,6 +74,12 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             MoveDialogSheetsToUnsupported(workbookStream, workbook, options);
+            LegacyBiffUnsupportedSheetScanner.Scan(
+                workbookStream,
+                workbook.UnsupportedSheets,
+                workbook.MutableUnsupportedFeatures,
+                workbook.MutableDiagnostics,
+                options);
 
             IReadOnlyList<string> sheetNames = boundSheetNames.Count == 0
                 ? workbook.Worksheets.Select(sheet => sheet.Name).ToArray()

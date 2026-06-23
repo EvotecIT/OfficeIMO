@@ -54,6 +54,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 detailCode: feature.DetailCode));
         }
 
+        internal static bool IsPreserveOnlyFeatureRecord(ushort type) {
+            GetUnsupportedRecordInfo(type, out LegacyXlsUnsupportedFeatureKind kind, out _, out _, out _);
+            return kind != LegacyXlsUnsupportedFeatureKind.UnsupportedRecord;
+        }
+
         private static void GetUnsupportedRecordInfo(
             ushort type,
             out LegacyXlsUnsupportedFeatureKind kind,
