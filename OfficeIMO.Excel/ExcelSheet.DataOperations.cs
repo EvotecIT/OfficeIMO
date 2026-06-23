@@ -590,5 +590,58 @@ namespace OfficeIMO.Excel {
             });
         }
 
+        internal void ApplyAutoFilterCustomCriteria(
+            string range,
+            uint columnId,
+            bool matchAll,
+            IReadOnlyList<(FilterOperatorValues Operator, string Value)> conditions) {
+            if (string.IsNullOrWhiteSpace(range)) throw new ArgumentNullException(nameof(range));
+            if (conditions == null || conditions.Count == 0) throw new ArgumentException("At least one condition is required.", nameof(conditions));
+
+            WriteLock(() => {
+                Worksheet worksheet = WorksheetRoot;
+                AutoFilter? autoFilter = worksheet.GetFirstChild<AutoFilter>();
+                if (autoFilter == null || !string.Equals(autoFilter.Reference?.Value, range, StringComparison.OrdinalIgnoreCase)) {
+                    autoFilter?.Remove();
+                    autoFilter = new AutoFilter { Reference = range };
+                    var sheetData = worksheet.GetFirstChild<SheetData>();
+                    if (sheetData != null) {
+                        var conditionalFormatting = worksheet.GetFirstChild<ConditionalFormatting>();
+                        if (conditionalFormatting != null) {
+                            worksheet.InsertBefore(autoFilter, conditionalFormatting);
+                        } else {
+                            worksheet.InsertAfter(autoFilter, sheetData);
+                        }
+                    } else {
+                        worksheet.Append(autoFilter);
+                    }
+                }
+
+                FilterColumn? existingColumn = autoFilter.Elements<FilterColumn>().FirstOrDefault(fc => fc.ColumnId?.Value == columnId);
+                existingColumn?.Remove();
+
+                var filterColumn = new FilterColumn { ColumnId = columnId };
+                var customFilters = new CustomFilters {
+                    And = matchAll,
+                };
+                foreach ((FilterOperatorValues filterOperator, string value) in conditions) {
+                    if (string.IsNullOrWhiteSpace(value)) {
+                        continue;
+                    }
+
+                    customFilters.Append(new CustomFilter {
+                        Operator = filterOperator,
+                        Val = value,
+                    });
+                }
+
+                if (customFilters.Elements<CustomFilter>().Any()) {
+                    filterColumn.Append(customFilters);
+                    autoFilter.Append(filterColumn);
+                    worksheet.Save();
+                }
+            });
+        }
+
     }
 }

@@ -453,6 +453,21 @@ namespace OfficeIMO.Excel {
         /// Whether the width was explicitly customized.
         /// </summary>
         public bool CustomWidth { get; internal set; }
+
+        /// <summary>
+        /// Open XML style index assigned to the column definition, when present.
+        /// </summary>
+        public uint? StyleIndex { get; internal set; }
+
+        /// <summary>
+        /// Outline level used by Excel grouping, when present.
+        /// </summary>
+        public byte? OutlineLevel { get; internal set; }
+
+        /// <summary>
+        /// Whether the column range is shown as collapsed.
+        /// </summary>
+        public bool Collapsed { get; internal set; }
     }
 
     /// <summary>
@@ -478,6 +493,26 @@ namespace OfficeIMO.Excel {
         /// Whether the height was explicitly customized.
         /// </summary>
         public bool CustomHeight { get; internal set; }
+
+        /// <summary>
+        /// Whether the row has an explicit row style.
+        /// </summary>
+        public bool CustomFormat { get; internal set; }
+
+        /// <summary>
+        /// Open XML style index assigned to the row definition, when present.
+        /// </summary>
+        public uint? StyleIndex { get; internal set; }
+
+        /// <summary>
+        /// Outline level used by Excel grouping, when present.
+        /// </summary>
+        public byte? OutlineLevel { get; internal set; }
+
+        /// <summary>
+        /// Whether the row is shown as collapsed.
+        /// </summary>
+        public bool Collapsed { get; internal set; }
     }
 
     /// <summary>

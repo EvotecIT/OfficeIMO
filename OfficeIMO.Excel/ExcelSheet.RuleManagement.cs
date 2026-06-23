@@ -182,8 +182,8 @@ namespace OfficeIMO.Excel {
 
                 result.Add(new ExcelDataValidationInfo {
                     Range = range,
-                    Type = validation.Type?.Value.ToString() ?? string.Empty,
-                    Operator = validation.Operator?.Value.ToString(),
+                    Type = validation.Type?.InnerText ?? string.Empty,
+                    Operator = validation.Operator?.InnerText,
                     AllowBlank = validation.AllowBlank?.Value ?? false,
                     Formula1 = validation.GetFirstChild<Formula1>()?.Text,
                     Formula2 = validation.GetFirstChild<Formula2>()?.Text,

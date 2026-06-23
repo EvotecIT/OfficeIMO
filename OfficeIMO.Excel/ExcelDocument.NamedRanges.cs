@@ -381,6 +381,7 @@ namespace OfficeIMO.Excel {
                 sheetPrefix = NormalizeSheetPrefix(range.Substring(0, idx), validationMode);
                 a1 = range.Substring(idx + 1);
             }
+            a1 = a1.Replace("$", string.Empty);
 
             int r1, c1, r2, c2;
             if (!A1.TryParseRange(a1, out r1, out c1, out r2, out c2)) {

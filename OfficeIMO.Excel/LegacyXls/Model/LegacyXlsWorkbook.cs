@@ -1,0 +1,289 @@
+using OfficeIMO.Excel.LegacyXls.Compound;
+using OfficeIMO.Excel.LegacyXls.Diagnostics;
+using OfficeIMO.Excel.LegacyXls.Biff;
+using OfficeIMO.Excel.LegacyXls.Projection;
+
+namespace OfficeIMO.Excel.LegacyXls.Model {
+    /// <summary>
+    /// Neutral workbook model produced from a legacy BIFF `.xls` stream.
+    /// </summary>
+    public sealed class LegacyXlsWorkbook {
+        private readonly List<LegacyXlsWorksheet> _worksheets = new();
+        private readonly List<LegacyXlsNumberFormat> _numberFormats = new();
+        private readonly List<LegacyXlsFont> _fonts = new();
+        private readonly List<string> _paletteColors = new();
+        private readonly List<LegacyXlsCellFormat> _cellFormats = new();
+        private readonly List<LegacyXlsDefinedName> _definedNames = new();
+        private readonly List<LegacyXlsExternalReference> _externalReferences = new();
+        private readonly List<LegacyXlsUnsupportedSheet> _unsupportedSheets = new();
+        private readonly List<LegacyXlsUnsupportedFeature> _unsupportedFeatures = new();
+        private readonly List<LegacyXlsImportDiagnostic> _diagnostics = new();
+
+        internal LegacyXlsWorkbook() {
+        }
+
+        /// <summary>
+        /// Gets worksheets parsed from the legacy workbook stream.
+        /// </summary>
+        public IReadOnlyList<LegacyXlsWorksheet> Worksheets => _worksheets;
+
+        /// <summary>
+        /// Gets custom number formats parsed from FORMAT records.
+        /// </summary>
+        public IReadOnlyList<LegacyXlsNumberFormat> NumberFormats => _numberFormats;
+
+        /// <summary>
+        /// Gets fonts parsed from Font records.
+        /// </summary>
+        public IReadOnlyList<LegacyXlsFont> Fonts => _fonts;
+
+        /// <summary>
+        /// Gets custom palette colors parsed from the Palette record as ARGB hex values.
+        /// </summary>
+        public IReadOnlyList<string> PaletteColors => _paletteColors;
+
+        /// <summary>
+        /// Gets cell formats parsed from XF records.
+        /// </summary>
+        public IReadOnlyList<LegacyXlsCellFormat> CellFormats => _cellFormats;
+
+        /// <summary>
+        /// Gets defined names parsed from Lbl records.
+        /// </summary>
+        public IReadOnlyList<LegacyXlsDefinedName> DefinedNames => _definedNames;
+
+        /// <summary>
+        /// Gets supporting links discovered from SupBook records.
+        /// </summary>
+        public IReadOnlyList<LegacyXlsExternalReference> ExternalReferences => _externalReferences;
+
+        /// <summary>
+        /// Gets legacy sheet entries discovered but not imported as worksheets.
+        /// </summary>
+        public IReadOnlyList<LegacyXlsUnsupportedSheet> UnsupportedSheets => _unsupportedSheets;
+
+        /// <summary>
+        /// Gets unsupported or preserve-only features discovered during import.
+        /// </summary>
+        public IReadOnlyList<LegacyXlsUnsupportedFeature> UnsupportedFeatures => _unsupportedFeatures;
+
+        /// <summary>
+        /// Gets diagnostics produced while reading the legacy workbook.
+        /// </summary>
+        public IReadOnlyList<LegacyXlsImportDiagnostic> Diagnostics => _diagnostics;
+
+        /// <summary>
+        /// Gets whether the workbook uses the Excel 1904 date system.
+        /// </summary>
+        public bool Uses1904DateSystem { get; private set; }
+
+        /// <summary>
+        /// Gets parsed workbook protection metadata.
+        /// </summary>
+        public LegacyXlsWorkbookProtection? Protection { get; private set; }
+
+        internal List<LegacyXlsWorksheet> MutableWorksheets => _worksheets;
+
+        internal List<LegacyXlsNumberFormat> MutableNumberFormats => _numberFormats;
+
+        internal List<LegacyXlsFont> MutableFonts => _fonts;
+
+        internal List<string> MutablePaletteColors => _paletteColors;
+
+        internal List<LegacyXlsCellFormat> MutableCellFormats => _cellFormats;
+
+        internal List<LegacyXlsDefinedName> MutableDefinedNames => _definedNames;
+
+        internal List<LegacyXlsExternalReference> MutableExternalReferences => _externalReferences;
+
+        internal List<LegacyXlsUnsupportedSheet> MutableUnsupportedSheets => _unsupportedSheets;
+
+        internal List<LegacyXlsUnsupportedFeature> MutableUnsupportedFeatures => _unsupportedFeatures;
+
+        internal List<LegacyXlsImportDiagnostic> MutableDiagnostics => _diagnostics;
+
+        internal LegacyXlsCellFormat? GetCellFormat(ushort styleIndex) {
+            return styleIndex < _cellFormats.Count ? _cellFormats[styleIndex] : null;
+        }
+
+        internal LegacyXlsCellFormat? GetEffectiveCellFormat(ushort styleIndex) {
+            return styleIndex < _cellFormats.Count
+                ? ResolveEffectiveCellFormat(_cellFormats[styleIndex], new HashSet<ushort>())
+                : null;
+        }
+
+        internal LegacyXlsFont? GetFont(ushort fontIndex) {
+            int index = fontIndex < 4 ? fontIndex : fontIndex > 4 ? fontIndex - 1 : -1;
+            return index >= 0 && index < _fonts.Count ? _fonts[index] : null;
+        }
+
+        internal bool TryResolveColor(ushort colorIndex, out string? argb) {
+            return BiffColorPalette.TryResolve(colorIndex, _paletteColors, out argb);
+        }
+
+        internal void SetUses1904DateSystem(bool value) {
+            Uses1904DateSystem = value;
+        }
+
+        internal void SetProtection(bool isProtected) {
+            Protection = new LegacyXlsWorkbookProtection(isProtected, Protection?.LegacyPasswordHash);
+        }
+
+        internal void SetProtectionPasswordHash(ushort passwordHash) {
+            Protection = (Protection ?? new LegacyXlsWorkbookProtection(isProtected: false)).WithLegacyPasswordHash(passwordHash);
+        }
+
+        private LegacyXlsCellFormat ResolveEffectiveCellFormat(LegacyXlsCellFormat format, HashSet<ushort> seen) {
+            if (format.IsStyle || format.ParentStyleIndex >= _cellFormats.Count || !seen.Add(format.StyleIndex)) {
+                return format;
+            }
+
+            LegacyXlsCellFormat parent = _cellFormats[format.ParentStyleIndex];
+            if (!parent.IsStyle) {
+                return format;
+            }
+
+            LegacyXlsCellFormat effectiveParent = ResolveEffectiveCellFormat(parent, seen);
+            return MergeInheritedCellFormat(format, effectiveParent);
+        }
+
+        private static LegacyXlsCellFormat MergeInheritedCellFormat(LegacyXlsCellFormat format, LegacyXlsCellFormat parent) {
+            bool inheritNumberFormat = !format.ApplyNumberFormat;
+            bool inheritFont = !format.ApplyFont;
+            bool inheritAlignment = !format.ApplyAlignment && HasNonDefaultAlignment(parent);
+            bool inheritBorder = format.Border == null && parent.Border != null;
+            bool inheritFill = format.FillPattern == 0 && parent.FillPattern != 0;
+            bool inheritProtection = !format.ApplyProtection && HasNonDefaultProtection(parent);
+
+            return new LegacyXlsCellFormat(
+                format.StyleIndex,
+                inheritFont ? parent.FontIndex : format.FontIndex,
+                inheritNumberFormat ? parent.NumberFormatId : format.NumberFormatId,
+                format.IsStyle,
+                format.ParentStyleIndex,
+                format.ApplyNumberFormat || inheritNumberFormat,
+                format.ApplyFont || inheritFont,
+                inheritFill ? parent.FillPattern : format.FillPattern,
+                inheritFill ? parent.FillForegroundColorIndex : format.FillForegroundColorIndex,
+                inheritFill ? parent.FillBackgroundColorIndex : format.FillBackgroundColorIndex,
+                format.ApplyAlignment || inheritAlignment,
+                inheritAlignment ? parent.HorizontalAlignment : format.HorizontalAlignment,
+                inheritAlignment ? parent.VerticalAlignment : format.VerticalAlignment,
+                inheritAlignment ? parent.WrapText : format.WrapText,
+                inheritAlignment ? parent.TextRotation : format.TextRotation,
+                inheritAlignment ? parent.Indent : format.Indent,
+                inheritAlignment ? parent.ShrinkToFit : format.ShrinkToFit,
+                inheritAlignment ? parent.ReadingOrder : format.ReadingOrder,
+                format.ApplyProtection || inheritProtection,
+                inheritProtection ? parent.Locked : format.Locked,
+                inheritProtection ? parent.FormulaHidden : format.FormulaHidden,
+                format.QuotePrefix,
+                inheritBorder ? parent.Border : format.Border,
+                inheritNumberFormat ? parent.NumberFormatCode : format.NumberFormatCode,
+                inheritNumberFormat ? parent.IsBuiltInNumberFormat : format.IsBuiltInNumberFormat,
+                inheritNumberFormat ? parent.IsDateLike : format.IsDateLike);
+        }
+
+        private static bool HasNonDefaultAlignment(LegacyXlsCellFormat format) {
+            return format.ApplyAlignment
+                || format.HorizontalAlignment != 0
+                || format.VerticalAlignment != 2
+                || format.WrapText
+                || format.TextRotation != 0
+                || format.Indent != 0
+                || format.ShrinkToFit
+                || format.ReadingOrder != 0;
+        }
+
+        private static bool HasNonDefaultProtection(LegacyXlsCellFormat format) {
+            return format.ApplyProtection
+                || !format.Locked
+                || format.FormulaHidden;
+        }
+
+        /// <summary>
+        /// Loads a legacy `.xls` workbook from a file path.
+        /// </summary>
+        public static LegacyXlsWorkbook Load(string path, LegacyXlsImportOptions? options = null) {
+            if (path == null) {
+                throw new ArgumentNullException(nameof(path));
+            }
+
+            if (!File.Exists(path)) {
+                throw new FileNotFoundException($"File '{path}' doesn't exist.", path);
+            }
+
+            return Load(File.ReadAllBytes(path), options);
+        }
+
+        /// <summary>
+        /// Loads a legacy `.xls` workbook from a stream.
+        /// </summary>
+        public static LegacyXlsWorkbook Load(Stream stream, LegacyXlsImportOptions? options = null) {
+            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
+
+            using var buffer = new MemoryStream();
+            stream.CopyTo(buffer);
+            return Load(buffer.ToArray(), options);
+        }
+
+        /// <summary>
+        /// Loads a legacy `.xls` workbook from a byte array.
+        /// </summary>
+        public static LegacyXlsWorkbook Load(byte[] bytes, LegacyXlsImportOptions? options = null) {
+            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+
+            options ??= new LegacyXlsImportOptions();
+            if (!LegacyCompoundFileReader.TryRead(bytes, out LegacyCompoundFile? compoundFile, out var compoundDiagnostics)) {
+                var workbook = new LegacyXlsWorkbook();
+                workbook.MutableDiagnostics.AddRange(compoundDiagnostics);
+                if (workbook.MutableDiagnostics.Count == 0) {
+                    workbook.MutableDiagnostics.Add(new LegacyXlsImportDiagnostic(
+                        LegacyXlsDiagnosticSeverity.Error,
+                        "XLS-COMPOUND-INVALID",
+                        "The input is not a supported OLE compound XLS file."));
+                }
+
+                return workbook;
+            }
+
+            byte[]? workbookStream = LegacyWorkbookStreamLocator.FindWorkbookStream(compoundFile!.Streams);
+            if (workbookStream == null) {
+                var workbook = new LegacyXlsWorkbook();
+                workbook.MutableDiagnostics.Add(new LegacyXlsImportDiagnostic(
+                    LegacyXlsDiagnosticSeverity.Error,
+                    "XLS-WORKBOOK-STREAM-MISSING",
+                    "The OLE compound file does not contain a Workbook or Book stream."));
+                return workbook;
+            }
+
+            if (workbookStream.Length > options.MaxWorkbookStreamBytes) {
+                var workbook = new LegacyXlsWorkbook();
+                workbook.MutableDiagnostics.Add(new LegacyXlsImportDiagnostic(
+                    LegacyXlsDiagnosticSeverity.Error,
+                    "XLS-WORKBOOK-STREAM-TOO-LARGE",
+                    $"The BIFF workbook stream is {workbookStream.Length} bytes, which exceeds the configured limit of {options.MaxWorkbookStreamBytes} bytes."));
+                return workbook;
+            }
+
+            LegacyXlsWorkbook parsedWorkbook = LegacyBiffWorkbookParser.Parse(workbookStream, options);
+            LegacyCompoundFeatureScanner.AddPreserveOnlyFeatures(compoundFile, parsedWorkbook, options);
+            return parsedWorkbook;
+        }
+
+        /// <summary>
+        /// Projects this legacy workbook into a normal OfficeIMO Excel document.
+        /// </summary>
+        public ExcelDocument ToExcelDocument() {
+            return LegacyXlsWorkbookProjector.ToExcelDocument(this);
+        }
+
+        /// <summary>
+        /// Creates a compact import report for corpus baselines and preflight checks.
+        /// </summary>
+        public LegacyXlsImportReport CreateImportReport() {
+            return new LegacyXlsImportReport(this);
+        }
+    }
+}

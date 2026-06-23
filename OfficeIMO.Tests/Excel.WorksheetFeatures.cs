@@ -512,5 +512,183 @@ namespace OfficeIMO.Tests {
                 Assert.True(view!.ShowGridLines?.Value ?? true);
             }
         }
+
+        [Fact]
+        public void Test_WorksheetRightToLeftPersistence() {
+            var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetRightToLeft.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("RTL");
+                sheet.CellValue(1, 1, "RTL");
+                sheet.SetRightToLeft(true);
+                Assert.True(sheet.RightToLeft);
+                document.Save(false);
+            }
+
+            using (var package = SpreadsheetDocument.Open(filePath, false)) {
+                WorkbookPart workbookPart = package.WorkbookPart!;
+                Workbook workbook = workbookPart.Workbook!;
+                Sheet sheet = workbook.Sheets!.OfType<Sheet>().First(s => s.Name == "RTL");
+                WorksheetPart wsPart = (WorksheetPart)workbookPart.GetPartById(sheet.Id!);
+                Worksheet worksheet = wsPart.Worksheet!;
+                SheetView view = worksheet.GetFirstChild<SheetViews>()!.GetFirstChild<SheetView>()!;
+                Assert.True(view.RightToLeft!.Value);
+            }
+
+            using (var document = ExcelDocument.Load(filePath)) {
+                var sheet = document.Sheets.First();
+                Assert.True(sheet.RightToLeft);
+                sheet.SetRightToLeft(false);
+                Assert.False(sheet.RightToLeft);
+                document.Save(false);
+            }
+
+            using (var package = SpreadsheetDocument.Open(filePath, false)) {
+                WorkbookPart workbookPart = package.WorkbookPart!;
+                Workbook workbook = workbookPart.Workbook!;
+                Sheet sheet = workbook.Sheets!.OfType<Sheet>().First(s => s.Name == "RTL");
+                WorksheetPart wsPart = (WorksheetPart)workbookPart.GetPartById(sheet.Id!);
+                Worksheet worksheet = wsPart.Worksheet!;
+                SheetView view = worksheet.GetFirstChild<SheetViews>()!.GetFirstChild<SheetView>()!;
+                Assert.False(view.RightToLeft?.Value ?? false);
+            }
+        }
+
+        [Fact]
+        public void Test_WorksheetDefaultRowAndColumnSettingsPersistence() {
+            var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetDefaultRowsAndColumns.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Rows");
+                sheet.CellValue(1, 1, "Default height");
+                sheet.SetDefaultRowHeight(18.5d);
+                sheet.SetDefaultColumnWidth(12.25d);
+                Assert.Equal(18.5d, sheet.DefaultRowHeight);
+                Assert.False(sheet.DefaultRowsHidden);
+                Assert.Equal(12.25d, sheet.DefaultColumnWidth);
+                document.Save(false);
+            }
+
+            using (var package = SpreadsheetDocument.Open(filePath, false)) {
+                WorkbookPart workbookPart = package.WorkbookPart!;
+                Workbook workbook = workbookPart.Workbook!;
+                Sheet sheet = workbook.Sheets!.OfType<Sheet>().First(s => s.Name == "Rows");
+                WorksheetPart wsPart = (WorksheetPart)workbookPart.GetPartById(sheet.Id!);
+                Worksheet worksheet = wsPart.Worksheet!;
+                SheetFormatProperties sheetFormat = worksheet.GetFirstChild<SheetFormatProperties>()!;
+                Assert.Equal(18.5d, sheetFormat.DefaultRowHeight!.Value);
+                Assert.Equal(12.25d, sheetFormat.DefaultColumnWidth!.Value);
+                Assert.True(sheetFormat.CustomHeight!.Value);
+                Assert.False(sheetFormat.ZeroHeight?.Value ?? false);
+            }
+
+            using (var document = ExcelDocument.Load(filePath)) {
+                var sheet = document.Sheets.First();
+                Assert.Equal(18.5d, sheet.DefaultRowHeight);
+                Assert.Equal(12.25d, sheet.DefaultColumnWidth);
+                sheet.SetDefaultRowHeight(21d, hidden: true);
+                sheet.SetDefaultColumnWidth(14d);
+                Assert.Equal(21d, sheet.DefaultRowHeight);
+                Assert.True(sheet.DefaultRowsHidden);
+                Assert.Equal(14d, sheet.DefaultColumnWidth);
+                document.Save(false);
+            }
+
+            using (var package = SpreadsheetDocument.Open(filePath, false)) {
+                WorkbookPart workbookPart = package.WorkbookPart!;
+                Workbook workbook = workbookPart.Workbook!;
+                Sheet sheet = workbook.Sheets!.OfType<Sheet>().First(s => s.Name == "Rows");
+                WorksheetPart wsPart = (WorksheetPart)workbookPart.GetPartById(sheet.Id!);
+                Worksheet worksheet = wsPart.Worksheet!;
+                SheetFormatProperties sheetFormat = worksheet.GetFirstChild<SheetFormatProperties>()!;
+                Assert.Equal(21d, sheetFormat.DefaultRowHeight!.Value);
+                Assert.Equal(14d, sheetFormat.DefaultColumnWidth!.Value);
+                Assert.True(sheetFormat.CustomHeight!.Value);
+                Assert.True(sheetFormat.ZeroHeight!.Value);
+            }
+        }
+
+        [Fact]
+        public void Test_WorksheetRowAndColumnOutlinePersistence() {
+            var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetOutlines.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Outlines");
+                sheet.CellValue(1, 1, "Grouped");
+                sheet.SetRowOutline(3, 2, collapsed: true);
+                sheet.SetColumnOutline(2, 1, collapsed: true);
+                document.Save(false);
+            }
+
+            using (var package = SpreadsheetDocument.Open(filePath, false)) {
+                WorkbookPart workbookPart = package.WorkbookPart!;
+                Workbook workbook = workbookPart.Workbook!;
+                Sheet sheet = workbook.Sheets!.OfType<Sheet>().First(s => s.Name == "Outlines");
+                WorksheetPart wsPart = (WorksheetPart)workbookPart.GetPartById(sheet.Id!);
+                Worksheet worksheet = wsPart.Worksheet!;
+                Column column = worksheet.GetFirstChild<Columns>()!.Elements<Column>().Single(c => c.Min!.Value == 2U && c.Max!.Value == 2U);
+                Row row = worksheet.GetFirstChild<SheetData>()!.Elements<Row>().Single(r => r.RowIndex!.Value == 3U);
+
+                Assert.Equal(1, column.OutlineLevel!.Value);
+                Assert.True(column.Collapsed!.Value);
+                Assert.Equal(2, row.OutlineLevel!.Value);
+                Assert.True(row.Collapsed!.Value);
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelSheet sheet = document.Sheets.First();
+                ExcelColumnSnapshot column = Assert.Single(sheet.GetColumnDefinitions());
+                ExcelRowSnapshot row = Assert.Single(sheet.GetRowDefinitions());
+                ExcelWorksheetSnapshot worksheet = Assert.Single(document.CreateInspectionSnapshot().Worksheets);
+
+                Assert.Equal((byte?)1, column.OutlineLevel);
+                Assert.True(column.Collapsed);
+                Assert.Equal((byte?)2, row.OutlineLevel);
+                Assert.True(row.Collapsed);
+                Assert.Equal((byte?)1, Assert.Single(worksheet.Columns).OutlineLevel);
+                Assert.True(Assert.Single(worksheet.Columns).Collapsed);
+                Assert.Equal((byte?)2, Assert.Single(worksheet.Rows).OutlineLevel);
+                Assert.True(Assert.Single(worksheet.Rows).Collapsed);
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        public void Test_WorksheetVeryHiddenPersistence() {
+            var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetVeryHidden.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Internal");
+                sheet.CellValue(1, 1, "Hidden");
+                sheet.SetVeryHidden(true);
+                Assert.True(sheet.Hidden);
+                Assert.True(sheet.VeryHidden);
+                document.Save(false);
+            }
+
+            using (var package = SpreadsheetDocument.Open(filePath, false)) {
+                Workbook workbook = package.WorkbookPart!.Workbook!;
+                Sheets sheets = workbook.Sheets!;
+                var workbookSheet = sheets.OfType<Sheet>().First(s => s.Name == "Internal");
+                Assert.Equal(SheetStateValues.VeryHidden, workbookSheet.State!.Value);
+            }
+
+            using (var document = ExcelDocument.Load(filePath)) {
+                var sheet = document.Sheets.First();
+                Assert.True(sheet.Hidden);
+                Assert.True(sheet.VeryHidden);
+                sheet.SetVeryHidden(false);
+                Assert.False(sheet.Hidden);
+                Assert.False(sheet.VeryHidden);
+                document.Save(false);
+            }
+
+            using (var package = SpreadsheetDocument.Open(filePath, false)) {
+                Workbook workbook = package.WorkbookPart!.Workbook!;
+                Sheets sheets = workbook.Sheets!;
+                var workbookSheet = sheets.OfType<Sheet>().First(s => s.Name == "Internal");
+                Assert.Null(workbookSheet.State);
+            }
+        }
     }
 }
