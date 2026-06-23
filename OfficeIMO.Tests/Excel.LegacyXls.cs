@@ -337,6 +337,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_Load_PreservesReservedDsfWorkbookMetadata() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateReservedDsfWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            LegacyXlsWorkbookMetadataRecord metadata = Assert.Single(
+                legacy.MetadataRecords,
+                record => record.Kind == LegacyXlsWorkbookMetadataKind.ReservedDsf);
+            Assert.Equal((ushort)BiffRecordType.Dsf, metadata.RecordType);
+            Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.RecordType == (ushort)BiffRecordType.Dsf);
+            Assert.DoesNotContain(legacy.Diagnostics, diagnostic => diagnostic.RecordType == (ushort)BiffRecordType.Dsf);
+        }
+
+        [Fact]
         public void LegacyXls_LoadLegacyXls_ProjectsToNormalExcelDocument() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateMinimalWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
@@ -747,6 +764,24 @@ namespace OfficeIMO.Tests {
                 byte[] bytes = stream.ToArray();
                 byte[] offsetBytes = BitConverter.GetBytes(sheetOffset);
                 Buffer.BlockCopy(offsetBytes, 0, bytes, checked((int)boundSheetPosition + 4), offsetBytes.Length);
+                return bytes;
+            }
+
+            internal static byte[] CreateReservedDsfWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long boundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "Sheet1"));
+                WriteRecord(stream, 0x0161, new byte[] { 0x00, 0x00 });
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "DSF"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)boundSheetPosition + 4), 4);
                 return bytes;
             }
 

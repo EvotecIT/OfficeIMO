@@ -30,6 +30,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>Natural language formula support flag from a UsesELFs record.</summary>
         NaturalLanguageFormulas,
 
+        /// <summary>Reserved DSF record that must be ignored by importers.</summary>
+        ReservedDsf,
+
         /// <summary>Printed workbook sizing mode from a PrintSize record.</summary>
         PrintSize,
 

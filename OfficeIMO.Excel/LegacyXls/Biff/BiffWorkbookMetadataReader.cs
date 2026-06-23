@@ -45,6 +45,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     workbook.AddMetadataRecord(LegacyXlsWorkbookMetadataKind.Country, record.Offset, record.Type);
                     return true;
 
+                case BiffRecordType.Dsf:
+                    ValidateReservedZero(record, diagnostics);
+                    workbook.AddMetadataRecord(LegacyXlsWorkbookMetadataKind.ReservedDsf, record.Offset, record.Type);
+                    return true;
+
                 case BiffRecordType.HideObj:
                     if (TryReadUInt16(record, diagnostics, out ushort hiddenObjectsMode)) {
                         workbook.SetHiddenObjectsMode(hiddenObjectsMode);
@@ -135,6 +140,21 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
             value = rawValue != 0;
             return true;
+        }
+
+        private static void ValidateReservedZero(BiffRecord record, List<LegacyXlsImportDiagnostic> diagnostics) {
+            if (!TryReadUInt16(record, diagnostics, out ushort rawValue)) {
+                return;
+            }
+
+            if (rawValue != 0) {
+                diagnostics.Add(new LegacyXlsImportDiagnostic(
+                    LegacyXlsDiagnosticSeverity.Warning,
+                    "XLS-BIFF-WORKBOOK-METADATA-RESERVED-VALUE-UNEXPECTED",
+                    $"Reserved workbook metadata record 0x{record.Type:X4} contains unexpected value {rawValue}.",
+                    recordOffset: record.Offset,
+                    recordType: record.Type));
+            }
         }
 
         private static bool TryReadUInt16(BiffRecord record, List<LegacyXlsImportDiagnostic> diagnostics, out ushort value) {

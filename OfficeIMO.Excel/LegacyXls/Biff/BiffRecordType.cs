@@ -32,6 +32,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         Dxf = 0x088D,
         DrawingGroup = 0x00EB,
         Drawing = 0x00EC,
+        Dsf = 0x0161,
         Eof = 0x000A,
         ExternName = 0x0023,
         ExternSheet = 0x0017,

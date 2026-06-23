@@ -15,10 +15,10 @@ External cell caches: 2
 External cached cells: 914
 Calculation setting records: 61
 Cell style records: 6
-Workbook metadata records: 13
+Workbook metadata records: 14
 Worksheet metadata records: 55
 Unsupported sheet metadata records: 4
-Unsupported features: 1147
+Unsupported features: 1146
 Preserved feature records: 1128
 Errors: 0
 Warnings: 2
@@ -33,7 +33,7 @@ Warnings: 2
 | XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 3 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 16 |
 | XLS-BIFF-LBL-SCOPE-INVALID | 2 |
-| XLS-BIFF-RECORD-UNSUPPORTED | 14 |
+| XLS-BIFF-RECORD-UNSUPPORTED | 13 |
 | XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED | 1 |
 
 ## Unsupported Features By Code
@@ -45,7 +45,7 @@ Warnings: 2
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 30 |
 | XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 3 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 16 |
-| XLS-BIFF-RECORD-UNSUPPORTED | 14 |
+| XLS-BIFF-RECORD-UNSUPPORTED | 13 |
 | XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED | 1 |
 
 ## Unsupported Features By Kind
@@ -57,7 +57,7 @@ Warnings: 2
 | DrawingObject | 30 |
 | ExternalReference | 3 |
 | PivotTable | 16 |
-| UnsupportedRecord | 14 |
+| UnsupportedRecord | 13 |
 | VbaProject | 1 |
 
 ## Unsupported Feature Record Types
@@ -114,7 +114,6 @@ Warnings: 2
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x009C | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x00D3 | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x013D | 1 |
-| UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x0161 | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x01B6 | 2 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x01BC | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x01BD | 1 |
@@ -167,7 +166,6 @@ Warnings: 2
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:Sxdi | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxRng | 14 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxVdEx | 1 |
-| UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:DsF | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:FnGroupName | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:ObProj | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:Pls | 3 |
@@ -214,7 +212,7 @@ Warnings: 2
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|lb | 1 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|maquis | 1 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|wijn | 3 |
-| XLS-BIFF-RECORD-UNSUPPORTED\|(workbook) | 6 |
+| XLS-BIFF-RECORD-UNSUPPORTED\|(workbook) | 5 |
 | XLS-BIFF-RECORD-UNSUPPORTED\|All | 1 |
 | XLS-BIFF-RECORD-UNSUPPORTED\|cl | 2 |
 | XLS-BIFF-RECORD-UNSUPPORTED\|graphs1 | 2 |
@@ -253,6 +251,7 @@ Warnings: 2
 | InterfaceCodePage | 1 |
 | InterfaceEnd | 1 |
 | NaturalLanguageFormulas | 1 |
+| ReservedDsf | 1 |
 | RevisionProtection | 1 |
 | Window | 1 |
 | WindowProtection | 1 |
