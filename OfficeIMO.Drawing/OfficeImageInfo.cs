@@ -31,7 +31,14 @@ public sealed class OfficeImageInfo {
     public double DpiY { get; }
 
     /// <summary>Default MIME type for the detected format.</summary>
-    public string MimeType => Format switch {
+    public string MimeType => GetMimeType(Format);
+
+    /// <summary>
+    /// Returns the default MIME type for a known image format.
+    /// </summary>
+    /// <param name="format">Image format.</param>
+    /// <returns>The default MIME content type, or application/octet-stream for unknown formats.</returns>
+    public static string GetMimeType(OfficeImageFormat format) => format switch {
         OfficeImageFormat.Png => "image/png",
         OfficeImageFormat.Jpeg => "image/jpeg",
         OfficeImageFormat.Gif => "image/gif",

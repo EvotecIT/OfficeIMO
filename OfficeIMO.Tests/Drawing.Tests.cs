@@ -344,6 +344,22 @@ public class DrawingTests {
         Assert.NotEqual(OfficeFontInfo.Default, font);
     }
 
+    [Theory]
+    [InlineData(OfficeImageFormat.Png, "image/png")]
+    [InlineData(OfficeImageFormat.Jpeg, "image/jpeg")]
+    [InlineData(OfficeImageFormat.Gif, "image/gif")]
+    [InlineData(OfficeImageFormat.Svg, "image/svg+xml")]
+    public void OfficeSvgImageRendererResolvesEmbeddableContentTypes(OfficeImageFormat format, string expectedContentType) {
+        Assert.True(OfficeSvgImageRenderer.TryGetEmbeddableContentType(format, out string contentType));
+        Assert.Equal(expectedContentType, contentType);
+    }
+
+    [Fact]
+    public void OfficeSvgImageRendererRejectsUnsupportedEmbeddableContentTypes() {
+        Assert.False(OfficeSvgImageRenderer.TryGetEmbeddableContentType(OfficeImageFormat.Emf, out string unsupportedContentType));
+        Assert.Equal(string.Empty, unsupportedContentType);
+    }
+
     [Fact]
     public void OfficeTransformProvidesReusableAffineDrawingIntent() {
         var rotated = OfficeTransform.RotateDegrees(90).TransformPoint(new OfficePoint(10, 0));

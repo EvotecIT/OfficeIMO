@@ -41,7 +41,7 @@ namespace OfficeIMO.Excel {
 
         private static void AppendSvgImage(StringBuilder builder, ExcelRangeVisualSnapshot snapshot, ExcelVisualImage image, ExcelImageExportOptions options, List<OfficeImageExportDiagnostic>? diagnostics, ref int index) {
             double scale = options.Scale;
-            if (!TryResolveSvgImageContentType(image, out string contentType)) {
+            if (!OfficeSvgImageRenderer.TryGetEmbeddableContentType(image.DetectedFormat, out string contentType)) {
                 diagnostics?.Add(new OfficeImageExportDiagnostic(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.ImageSvgFormatUnsupported,
@@ -71,25 +71,5 @@ namespace OfficeIMO.Excel {
                 image.RotationDegrees,
                 flipHorizontal: image.FlipHorizontal,
                 flipVertical: image.FlipVertical).Scale(scale);
-
-        private static bool TryResolveSvgImageContentType(ExcelVisualImage image, out string contentType) {
-            switch (image.DetectedFormat) {
-                case OfficeImageFormat.Png:
-                    contentType = "image/png";
-                    return true;
-                case OfficeImageFormat.Jpeg:
-                    contentType = "image/jpeg";
-                    return true;
-                case OfficeImageFormat.Gif:
-                    contentType = "image/gif";
-                    return true;
-                case OfficeImageFormat.Svg:
-                    contentType = "image/svg+xml";
-                    return true;
-                default:
-                    contentType = string.Empty;
-                    return false;
-            }
-        }
     }
 }

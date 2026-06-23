@@ -297,6 +297,26 @@ public static class OfficeSvgImageRenderer {
         return "data:" + contentType + ";base64," + Convert.ToBase64String(bytes);
     }
 
+    /// <summary>
+    /// Resolves the MIME content type for image formats that can be embedded directly in SVG image elements.
+    /// </summary>
+    /// <param name="format">Detected image format.</param>
+    /// <param name="contentType">Resolved MIME content type when supported.</param>
+    /// <returns><see langword="true" /> when the format can be embedded as an SVG image href.</returns>
+    public static bool TryGetEmbeddableContentType(OfficeImageFormat format, out string contentType) {
+        switch (format) {
+            case OfficeImageFormat.Png:
+            case OfficeImageFormat.Jpeg:
+            case OfficeImageFormat.Gif:
+            case OfficeImageFormat.Svg:
+                contentType = OfficeImageInfo.GetMimeType(format);
+                return true;
+            default:
+                contentType = string.Empty;
+                return false;
+        }
+    }
+
     private static string? BuildTransform(
         double x,
         double y,
