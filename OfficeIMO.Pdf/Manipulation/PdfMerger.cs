@@ -412,6 +412,7 @@ public static class PdfMerger {
         collector.CollectObjectGraph(catalogState.Outlines);
         collector.CollectObjectGraph(catalogState.PageLabels);
         collector.CollectObjectGraph(catalogState.NamedDestinationNameTree);
+        collector.CollectObjectGraph(catalogState.OpenAction);
         collector.CollectObjectGraph(catalogState.XmpMetadata);
         collector.CollectObjectGraph(catalogState.CatalogUri);
         collector.CollectObjectGraph(catalogState.OutputIntents);

@@ -31,7 +31,7 @@ internal static partial class PdfWriter {
                 double originalRowFontSize = GetTableRowFontSize(style, rowIndex, headerRowCount, footerStart, currentOpts.DefaultFontSize);
                 double rowFontSize = ResolveTableRowShrinkFontSize(table, style, rowIndex, columns, columnWidths, columnGap, originalRowFontSize, rowUsesBold, currentOpts);
                 rowFontSizes[rowIndex] = rowFontSize;
-                rowFontSizeScales[rowIndex] = GetTableRunFontSizeScale(originalRowFontSize, rowFontSize);
+                rowFontSizeScales[rowIndex] = GetTableRunFontSizeScale(table, style, rowIndex, columns, columnWidths, columnGap, originalRowFontSize, rowFontSize, rowUsesBold, currentOpts);
                 rowLeadings[rowIndex] = GetTableLeading(style, rowFontSize);
             }
 
