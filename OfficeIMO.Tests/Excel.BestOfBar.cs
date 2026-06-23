@@ -202,5 +202,48 @@ namespace OfficeIMO.Tests {
             Assert.Contains(nameof(ExcelNumberPreset.Currency), ExcelNumberFormats.GetPresetNames());
             Assert.Equal("0.00%", ExcelNumberFormats.Get(ExcelNumberPreset.Percent, decimals: 2));
         }
+
+        [Fact]
+        public void Test_ExcelBestOfBar_ColumnFormatPlan_AppliesHeaderFormats() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelBestOfBar.ColumnFormatPlan.xlsx");
+
+            var table = new DataTable("Sales");
+            table.Columns.Add("Id", typeof(string));
+            table.Columns.Add("Revenue", typeof(decimal));
+            table.Columns.Add("Rate", typeof(decimal));
+            table.Columns.Add("Created", typeof(DateTime));
+            table.Rows.Add("00042", 1234.5M, 0.125M, new DateTime(2026, 6, 23));
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Data");
+                sheet.InsertDataTableAsTable(table, 1, 1, includeHeaders: true, tableName: "Sales", style: ExcelTableStyle.TableStyleMedium2);
+
+                var plan = new ExcelColumnFormatPlan()
+                    .Text("Id")
+                    .Currency(0, System.Globalization.CultureInfo.GetCultureInfo("en-US"), "Revenue")
+                    .Add("Rate", ExcelNumberPreset.Percent, decimals: 1)
+                    .Add("Created", ExcelNumberPreset.DateShort);
+
+                IReadOnlyList<ExcelColumnFormatResult> results = sheet.ApplyColumnFormatPlan(plan, autoFit: true);
+                IReadOnlyList<ExcelColumnFormatResult> missing = sheet.ApplyColumnFormatPlan(
+                    new ExcelColumnFormatPlan().Add("Missing", ExcelNumberPreset.Integer));
+
+                Assert.All(results, result => Assert.True(result.Applied));
+                Assert.Equal(new[] { 1, 2, 3, 4 }, results.Select(result => result.ColumnIndex!.Value).ToArray());
+                Assert.Single(missing);
+                Assert.False(missing[0].Applied);
+                Assert.Contains("Missing", missing[0].Warning);
+                document.Save();
+            }
+
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false);
+            var cells = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>()
+                .ToDictionary(cell => cell.CellReference!.Value!);
+
+            Assert.Equal("@", GetCellNumberFormatCode(spreadsheet, cells["A2"]));
+            Assert.Contains("$", GetCellNumberFormatCode(spreadsheet, cells["B2"]) ?? string.Empty);
+            Assert.Equal("0.0%", GetCellNumberFormatCode(spreadsheet, cells["C2"]));
+            Assert.Equal("yyyy-mm-dd", GetCellNumberFormatCode(spreadsheet, cells["D2"]));
+        }
     }
 }
