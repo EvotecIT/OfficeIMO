@@ -285,5 +285,58 @@ namespace OfficeIMO.Tests {
             Assert.Contains("$", GetCellNumberFormatCode(spreadsheet, cells["A3"]) ?? string.Empty);
             Assert.Equal("#,##0", GetCellNumberFormatCode(spreadsheet, cells["B3"]));
         }
+
+        [Fact]
+        public void Test_ExcelBestOfBar_ColumnFormatPlan_NormalizesDefaultHeaderLookup() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelBestOfBar.ColumnFormatPlan.DefaultHeaderLookup.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "  Value  ");
+                sheet.CellValue(2, 1, 42);
+
+                IReadOnlyList<ExcelColumnFormatResult> results = sheet.ApplyColumnFormatPlan(
+                    new ExcelColumnFormatPlan().Add("  Value  ", ExcelNumberPreset.Integer));
+
+                Assert.Single(results);
+                Assert.True(results[0].Applied);
+                Assert.Equal(1, results[0].ColumnIndex);
+                document.Save();
+            }
+
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false);
+            var cells = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>()
+                .ToDictionary(cell => cell.CellReference!.Value!);
+
+            Assert.Equal("#,##0", GetCellNumberFormatCode(spreadsheet, cells["A2"]));
+        }
+
+        [Fact]
+        public void Test_ExcelBestOfBar_ColumnFormatPlan_AllowsHeaderOnlyDirectExports() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelBestOfBar.ColumnFormatPlan.HeaderOnlyDirect.xlsx");
+
+            var table = new DataTable("Counts");
+            table.Columns.Add("Count", typeof(int));
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Data");
+                sheet.InsertDataTableAsTable(table, 1, 1, includeHeaders: true, tableName: "Counts", style: ExcelTableStyle.TableStyleMedium2);
+
+                IReadOnlyList<ExcelColumnFormatResult> results = sheet.ApplyColumnFormatPlan(
+                    new ExcelColumnFormatPlan().Add("Count", ExcelNumberPreset.Integer));
+
+                Assert.Single(results);
+                Assert.True(results[0].Applied);
+                Assert.Equal(1, results[0].ColumnIndex);
+                document.Save();
+            }
+
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false);
+            var cells = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>()
+                .ToDictionary(cell => cell.CellReference!.Value!);
+
+            Assert.Contains("A1", cells.Keys);
+            Assert.DoesNotContain("A2", cells.Keys);
+        }
     }
 }

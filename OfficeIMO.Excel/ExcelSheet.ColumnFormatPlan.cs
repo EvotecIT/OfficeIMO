@@ -69,12 +69,18 @@ namespace OfficeIMO.Excel {
             out int columnIndex,
             out bool directCandidateMatched,
             out bool directCandidateAvailable) {
+            columnIndex = 0;
             directCandidateMatched = false;
             directCandidateAvailable = false;
 
             bool allowDirectCandidateLookup = !headerRow.HasValue || headerRow.Value == 1;
             if (allowDirectCandidateLookup
                 && Document.TryGetDirectTabularSaveCandidateColumnByHeader(this, rule.Header, includeHeader, options, out columnIndex, out _, out _, out directCandidateAvailable)) {
+                directCandidateMatched = true;
+                return true;
+            }
+
+            if (allowDirectCandidateLookup && directCandidateAvailable && columnIndex > 0) {
                 directCandidateMatched = true;
                 return true;
             }

@@ -460,7 +460,8 @@ namespace OfficeIMO.Excel {
 
             var opt = options ?? DefaultHeaderReadOptions;
             var map = GetHeaderMapCached(opt);
-            return map.TryGetValue(header, out columnIndex);
+            string normalizedHeader = ExcelHeaderNameHelper.NormalizeHeader(header, opt.NormalizeHeaders);
+            return map.TryGetValue(normalizedHeader, out columnIndex);
         }
 
         /// <summary>
