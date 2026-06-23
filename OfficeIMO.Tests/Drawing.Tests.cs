@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 using OfficeIMO.Drawing;
 using Xunit;
 
@@ -360,6 +361,39 @@ public class DrawingTests {
     }
 
     [Fact]
+    public void OfficeDrawingSvgExporter_EmitsRoundedClipPathThroughSharedFormatter() {
+        var drawing = new OfficeDrawing(120, 80);
+        var shape = OfficeShape.Rectangle(80, 40);
+        shape.FillColor = OfficeColor.SteelBlue;
+        shape.ClipPath = OfficeClipPath.RoundedRectangle(40, 20, 4);
+        drawing.AddShape(shape, 10, 12);
+
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+
+        Assert.Contains("<clipPath id=\"officeimo-clip-1\"><rect x=\"0\" y=\"0\" width=\"40\" height=\"20\" rx=\"4\" ry=\"4\"/></clipPath>", svg, StringComparison.Ordinal);
+        Assert.Contains("<g clip-path=\"url(#officeimo-clip-1)\" transform=\"matrix(1 0 0 1 10 12)\">", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OfficeDrawingSvgExporter_EmitsTextThroughSharedRenderer() {
+        var drawing = new OfficeDrawing(120, 80);
+        drawing.AddText(
+            "A&B\r\nBeta",
+            10,
+            12,
+            80,
+            30,
+            new OfficeFontInfo("Aptos", 10D, OfficeFontStyle.Bold | OfficeFontStyle.Italic),
+            OfficeColor.FromRgba(1, 2, 3, 128),
+            OfficeTextAlignment.Center,
+            14D);
+
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+
+        Assert.Contains("<text x=\"50\" y=\"22\" font-family=\"Aptos\" font-size=\"10\" text-anchor=\"middle\" fill=\"#010203\" fill-opacity=\"0.502\" font-weight=\"700\" font-style=\"italic\">A&amp;B<tspan x=\"50\" dy=\"14\">Beta</tspan></text>", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void OfficeDrawingSvgExporter_EmitsShapeShadowBehindForegroundShape() {
         var drawing = new OfficeDrawing(120, 80);
         var shape = OfficeShape.Rectangle(80, 30);
@@ -376,11 +410,108 @@ public class DrawingTests {
     }
 
     [Fact]
+    public void OfficeDrawingSvgExporter_EmitsPolygonThroughSharedFormatter() {
+        var drawing = new OfficeDrawing(120, 80);
+        var shape = OfficeShape.Polygon(
+            new OfficePoint(0, 20),
+            new OfficePoint(30, 0),
+            new OfficePoint(60, 20));
+        shape.FillColor = OfficeColor.FromRgba(17, 34, 51, 128);
+        shape.StrokeColor = OfficeColor.Red;
+        shape.StrokeWidth = 2;
+        shape.Transform = OfficeTransform.RotateDegrees(45, 30, 10);
+        drawing.AddShape(shape, 10, 12);
+
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+
+        Assert.Contains("<polygon points=\"0,20 30,0 60,20\"", svg, StringComparison.Ordinal);
+        Assert.Contains("fill=\"#112233\" fill-opacity=\"0.502\"", svg, StringComparison.Ordinal);
+        Assert.Contains("stroke=\"#FF0000\" stroke-width=\"2\"", svg, StringComparison.Ordinal);
+        Assert.Contains("transform=\"matrix(0.707 0.707 -0.707 0.707", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OfficeDrawingSvgExporter_EmitsRectangleThroughSharedFormatter() {
+        var drawing = new OfficeDrawing(120, 80);
+        var shape = OfficeShape.RoundedRectangle(60, 24, 4);
+        shape.FillColor = OfficeColor.FromRgba(17, 34, 51, 128);
+        shape.StrokeColor = OfficeColor.Red;
+        shape.StrokeWidth = 2;
+        drawing.AddShape(shape, 10, 12);
+
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+
+        Assert.Contains("<rect x=\"10\" y=\"12\" width=\"60\" height=\"24\" rx=\"4\" ry=\"4\"", svg, StringComparison.Ordinal);
+        Assert.Contains("fill=\"#112233\" fill-opacity=\"0.502\"", svg, StringComparison.Ordinal);
+        Assert.Contains("stroke=\"#FF0000\" stroke-width=\"2\"", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OfficeDrawingSvgExporter_EmitsEllipseThroughSharedFormatter() {
+        var drawing = new OfficeDrawing(120, 80);
+        var shape = OfficeShape.Ellipse(60, 24);
+        shape.FillColor = OfficeColor.FromRgba(17, 34, 51, 128);
+        shape.StrokeColor = OfficeColor.Red;
+        shape.StrokeWidth = 2;
+        drawing.AddShape(shape, 10, 12);
+
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+
+        Assert.Contains("<ellipse cx=\"40\" cy=\"24\" rx=\"30\" ry=\"12\"", svg, StringComparison.Ordinal);
+        Assert.Contains("fill=\"#112233\" fill-opacity=\"0.502\"", svg, StringComparison.Ordinal);
+        Assert.Contains("stroke=\"#FF0000\" stroke-width=\"2\"", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OfficeDrawingSvgExporter_EmitsLineThroughSharedFormatter() {
+        var drawing = new OfficeDrawing(120, 80);
+        var shape = OfficeShape.Line(0, 0, 60, 20);
+        shape.StrokeColor = OfficeColor.FromRgba(17, 34, 51, 128);
+        shape.StrokeWidth = 2;
+        shape.StrokeDashStyle = OfficeStrokeDashStyle.Dash;
+        shape.StrokeLineCap = OfficeStrokeLineCap.Round;
+        shape.Transform = OfficeTransform.RotateDegrees(45, 30, 10);
+        drawing.AddShape(shape, 10, 12);
+
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+
+        Assert.Contains("<line x1=\"0\" y1=\"0\" x2=\"60\" y2=\"20\"", svg, StringComparison.Ordinal);
+        Assert.Contains("fill=\"none\"", svg, StringComparison.Ordinal);
+        Assert.Contains("stroke=\"#112233\"", svg, StringComparison.Ordinal);
+        Assert.Contains("stroke-width=\"2\"", svg, StringComparison.Ordinal);
+        Assert.Contains("stroke-opacity=\"0.502\"", svg, StringComparison.Ordinal);
+        Assert.Contains("stroke-dasharray=\"8 4\"", svg, StringComparison.Ordinal);
+        Assert.Contains("stroke-linecap=\"round\"", svg, StringComparison.Ordinal);
+        Assert.Contains("transform=\"matrix(0.707 0.707 -0.707 0.707", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OfficeDrawingSvgExporter_EmitsPathThroughSharedFormatter() {
+        var drawing = new OfficeDrawing(120, 80);
+        var shape = OfficeShape.Path(
+            OfficePathCommand.MoveTo(0, 0),
+            OfficePathCommand.QuadraticBezierTo(30, 0, 60, 20),
+            OfficePathCommand.LineTo(0, 20),
+            OfficePathCommand.Close());
+        shape.FillColor = OfficeColor.FromRgba(17, 34, 51, 128);
+        shape.StrokeColor = OfficeColor.Red;
+        shape.StrokeWidth = 2;
+        shape.Transform = OfficeTransform.RotateDegrees(45, 30, 10);
+        drawing.AddShape(shape, 10, 12);
+
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+
+        Assert.Contains("<path d=\"M0 0Q30 0 60 20L0 20Z\"", svg, StringComparison.Ordinal);
+        Assert.Contains("fill=\"#112233\" fill-opacity=\"0.502\"", svg, StringComparison.Ordinal);
+        Assert.Contains("stroke=\"#FF0000\" stroke-width=\"2\"", svg, StringComparison.Ordinal);
+        Assert.Contains("transform=\"matrix(0.707 0.707 -0.707 0.707", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void OfficeClipPathStoresReusablePathIntent() {
         var clipPath = OfficeClipPath.Path(
             OfficePathCommand.MoveTo(10, 30),
-            OfficePathCommand.LineTo(50, 0),
-            OfficePathCommand.LineTo(90, 30),
+            OfficePathCommand.QuadraticBezierTo(50, 0, 90, 30),
             OfficePathCommand.Close());
 
         var clone = clipPath.Clone();
@@ -388,11 +519,10 @@ public class DrawingTests {
         Assert.Equal(OfficeClipPathKind.Path, clone.Kind);
         Assert.Equal(80, clone.Width);
         Assert.Equal(30, clone.Height);
-        Assert.Equal(4, clone.Commands.Count);
+        Assert.Equal(3, clone.Commands.Count);
         Assert.Equal(OfficePathCommand.MoveTo(0, 30), clone.Commands[0]);
-        Assert.Equal(OfficePathCommand.LineTo(40, 0), clone.Commands[1]);
-        Assert.Equal(OfficePathCommand.LineTo(80, 30), clone.Commands[2]);
-        Assert.Equal(OfficePathCommand.Close(), clone.Commands[3]);
+        Assert.Equal(OfficePathCommand.QuadraticBezierTo(40, 0, 80, 30), clone.Commands[1]);
+        Assert.Equal(OfficePathCommand.Close(), clone.Commands[2]);
         Assert.Throws<ArgumentException>(() => OfficeClipPath.Path(OfficePathCommand.LineTo(10, 10)));
         Assert.Throws<ArgumentOutOfRangeException>(() => OfficeClipPath.Rectangle(double.NaN, 10));
     }
@@ -430,6 +560,405 @@ public class DrawingTests {
         Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeShadow(OfficeColor.Black, 1.1, 0, 0));
         Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeShadow(OfficeColor.Black, 0.5, double.NaN, 0));
         Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeShadow(OfficeColor.Black, 0.5, 0, double.PositiveInfinity));
+    }
+
+    [Fact]
+    public void OfficeStrokeDashStyleFormatsReusableSvgDashArrays() {
+        Assert.Equal("10 5 2.5 5", OfficeStrokeDashStyle.DashDot.GetSvgDashArray(2.5D));
+        Assert.Equal("1 2", OfficeStrokeDashStyle.Dot.GetSvgDashArray(1D));
+        Assert.Null(OfficeStrokeDashStyle.Solid.GetSvgDashArray(4D));
+    }
+
+    [Fact]
+    public void OfficeStrokeDashStyleMapperNormalizesOfficeLinePatternSources() {
+        Assert.Equal(OfficeStrokeDashStyle.Solid, OfficeStrokeDashStyleMapper.FromVisioLinePattern(0));
+        Assert.Equal(OfficeStrokeDashStyle.Solid, OfficeStrokeDashStyleMapper.FromVisioLinePattern(1));
+        Assert.Equal(OfficeStrokeDashStyle.Dash, OfficeStrokeDashStyleMapper.FromVisioLinePattern(2));
+        Assert.Equal(OfficeStrokeDashStyle.Dot, OfficeStrokeDashStyleMapper.FromVisioLinePattern(3));
+        Assert.Equal(OfficeStrokeDashStyle.DashDot, OfficeStrokeDashStyleMapper.FromVisioLinePattern(4));
+        Assert.Equal(OfficeStrokeDashStyle.DashDotDot, OfficeStrokeDashStyleMapper.FromVisioLinePattern(5));
+        Assert.Equal(OfficeStrokeDashStyle.Dash, OfficeStrokeDashStyleMapper.FromVisioLinePattern(99));
+
+        Assert.True(OfficeStrokeDashStyleMapper.TryMapOfficePresetDash("Dash", out OfficeStrokeDashStyle dash));
+        Assert.Equal(OfficeStrokeDashStyle.Dash, dash);
+        Assert.True(OfficeStrokeDashStyleMapper.TryMapOfficePresetDash("lgDashDot", out OfficeStrokeDashStyle dashDot));
+        Assert.Equal(OfficeStrokeDashStyle.DashDot, dashDot);
+        Assert.True(OfficeStrokeDashStyleMapper.TryMapOfficePresetDash("SystemDashDotDot", out OfficeStrokeDashStyle dashDotDot));
+        Assert.Equal(OfficeStrokeDashStyle.DashDotDot, dashDotDot);
+        Assert.True(OfficeStrokeDashStyleMapper.TryMapOfficePresetDash("sysDot", out OfficeStrokeDashStyle dot));
+        Assert.Equal(OfficeStrokeDashStyle.Dot, dot);
+        Assert.False(OfficeStrokeDashStyleMapper.TryMapOfficePresetDash("Solid", out OfficeStrokeDashStyle solid));
+        Assert.Equal(OfficeStrokeDashStyle.Solid, solid);
+        Assert.False(OfficeStrokeDashStyleMapper.TryMapOfficePresetDash("unknown", out OfficeStrokeDashStyle unknown));
+        Assert.Equal(OfficeStrokeDashStyle.Solid, unknown);
+    }
+
+    [Fact]
+    public void OfficeSvgFormattingFormatsReusableSvgValues() {
+        Assert.Equal("12.346", OfficeSvgFormatting.FormatNumber(12.34567D));
+        Assert.Equal("0", OfficeSvgFormatting.FormatNumber(0.00000001D));
+        Assert.Equal("&lt;A&amp;B&quot;&gt;", OfficeSvgFormatting.Escape("<A&B\">"));
+        Assert.Equal("#112233", OfficeSvgFormatting.ToCssColor(OfficeColor.FromRgba(17, 34, 51, 128)));
+        Assert.Equal(0.502D, Math.Round(OfficeSvgFormatting.ToOpacity(OfficeColor.FromRgba(17, 34, 51, 128)), 3));
+
+        var builder = new StringBuilder("<text");
+        builder.AppendNumberAttribute("x", 0.00000001D)
+            .AppendAttribute("font-family", "A&B")
+            .AppendPaintAttribute("fill", OfficeColor.FromRgba(17, 34, 51, 128))
+            .AppendStrokeLineCapAttribute(OfficeStrokeLineCap.Round)
+            .AppendStrokeLineJoinAttribute(OfficeStrokeLineJoin.Bevel)
+            .AppendStrokeDashStyleAttribute(OfficeStrokeDashStyle.DashDot, 2.5D)
+            .Append(">");
+        Assert.Equal("<text x=\"0\" font-family=\"A&amp;B\" fill=\"#112233\" fill-opacity=\"0.502\" stroke-linecap=\"round\" stroke-linejoin=\"bevel\" stroke-dasharray=\"10 5 2.5 5\">", builder.ToString());
+
+        Assert.Equal("butt", OfficeSvgFormatting.FormatStrokeLineCap(OfficeStrokeLineCap.Butt));
+        Assert.Equal("square", OfficeSvgFormatting.FormatStrokeLineCap(OfficeStrokeLineCap.Square));
+        Assert.Equal("miter", OfficeSvgFormatting.FormatStrokeLineJoin(OfficeStrokeLineJoin.Miter));
+        Assert.Equal("round", OfficeSvgFormatting.FormatStrokeLineJoin(OfficeStrokeLineJoin.Round));
+
+        var solidDashBuilder = new StringBuilder("<line");
+        solidDashBuilder.AppendStrokeDashStyleAttribute(OfficeStrokeDashStyle.Solid, 4D).Append("/>");
+        Assert.Equal("<line/>", solidDashBuilder.ToString());
+
+        var lineBuilder = new StringBuilder();
+        lineBuilder.AppendLineElement(1.25D, 2.5D, 30.125D, 40.75D, OfficeColor.FromRgba(17, 34, 51, 128), 1.5D, OfficeStrokeDashStyle.Dot, OfficeStrokeLineCap.Round);
+        Assert.Equal("<line x1=\"1.25\" y1=\"2.5\" x2=\"30.125\" y2=\"40.75\" stroke=\"#112233\" stroke-opacity=\"0.502\" stroke-width=\"1.5\" stroke-dasharray=\"1.5 3\" stroke-linecap=\"round\"/>", lineBuilder.ToString());
+
+        var rawLineBuilder = new StringBuilder();
+        rawLineBuilder.AppendLineElement(0D, 1D, 2D, 3D, " stroke=\"none\" transform=\"rotate(45)\"");
+        Assert.Equal("<line x1=\"0\" y1=\"1\" x2=\"2\" y2=\"3\" stroke=\"none\" transform=\"rotate(45)\"/>", rawLineBuilder.ToString());
+
+        var rectBuilder = new StringBuilder();
+        rectBuilder.AppendRectElement(1.25D, 2.5D, 30.125D, 40.75D, " fill=\"none\" transform=\"rotate(45)\"");
+        Assert.Equal("<rect x=\"1.25\" y=\"2.5\" width=\"30.125\" height=\"40.75\" fill=\"none\" transform=\"rotate(45)\"/>", rectBuilder.ToString());
+
+        var roundedRectBuilder = new StringBuilder();
+        roundedRectBuilder.AppendRectElement(0D, 1D, 2D, 3D, 4.5D, 6.75D, " fill=\"#FFFFFF\"");
+        Assert.Equal("<rect x=\"0\" y=\"1\" width=\"2\" height=\"3\" rx=\"4.5\" ry=\"6.75\" fill=\"#FFFFFF\"/>", roundedRectBuilder.ToString());
+
+        var clipBuilder = new StringBuilder();
+        clipBuilder.AppendRectClipPathDefinition("clip&1", 1.25D, 2D, 3D, 4D, wrapInDefs: true)
+            .Append("<g")
+            .AppendClipPathReference("clip&1")
+            .Append(">");
+        Assert.Equal("<defs><clipPath id=\"clip&amp;1\"><rect x=\"1.25\" y=\"2\" width=\"3\" height=\"4\"/></clipPath></defs><g clip-path=\"url(#clip&amp;1)\">", clipBuilder.ToString());
+
+        string inner = OfficeSvgFormatting.ExtractSvgInner("<svg xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"10\"/></svg>");
+        var nestedBuilder = new StringBuilder();
+        nestedBuilder.AppendNestedSvg(1.25D, 2.5D, 30.125D, 40.75D, inner);
+        Assert.Equal("<rect width=\"10\"/>", inner);
+        Assert.Equal("<svg x=\"1.25\" y=\"2.5\" width=\"30.125\" height=\"40.75\" viewBox=\"0 0 30.125 40.75\"><rect width=\"10\"/></svg>", nestedBuilder.ToString());
+        Assert.Equal("<g/>", OfficeSvgFormatting.ExtractSvgInner("<g/>"));
+
+        Assert.Equal("rotate(12.346)", OfficeSvgFormatting.FormatRotateTransform(12.34567D));
+        Assert.Equal("rotate(12.346 5 6.789)", OfficeSvgFormatting.FormatRotateTransform(12.34567D, 5D, 6.789D));
+
+        var rotateBuilder = new StringBuilder("<text");
+        rotateBuilder.AppendRotateTransformAttribute(12.34567D, 5D, 6.789D).Append(">");
+        Assert.Equal("<text transform=\"rotate(12.346 5 6.789)\">", rotateBuilder.ToString());
+
+        OfficeTransform matrixTransform = OfficeTransform.RotateDegrees(90, 5D, 10D);
+        Assert.Equal("matrix(0 1 -1 0 55 55)", OfficeSvgFormatting.FormatMatrixTransform(matrixTransform, 40D, 50D));
+
+        var matrixBuilder = new StringBuilder("<g");
+        matrixBuilder.AppendMatrixTransformAttribute(matrixTransform, 40D, 50D).Append(">");
+        Assert.Equal("<g transform=\"matrix(0 1 -1 0 55 55)\">", matrixBuilder.ToString());
+
+        var writerBuilder = new StringBuilder();
+        using (var writer = System.Xml.XmlWriter.Create(
+            new System.IO.StringWriter(writerBuilder, System.Globalization.CultureInfo.InvariantCulture),
+            new System.Xml.XmlWriterSettings { OmitXmlDeclaration = true, ConformanceLevel = System.Xml.ConformanceLevel.Fragment })) {
+            writer.WriteStartElement("g");
+            writer.WriteNumberAttribute("x", 0.00000001D);
+            writer.WriteViewBoxAttribute(0D, 0D, 12.34567D, 6.789D);
+            OfficeSvgFormatting.WriteRotateTransformAttribute(writer, 12.34567D, 5D, 6.789D);
+            writer.WriteStrokeLineCapAttribute(OfficeStrokeLineCap.Round);
+            writer.WriteStrokeLineJoinAttribute(OfficeStrokeLineJoin.Round);
+            writer.WriteStrokeDashStyleAttribute(OfficeStrokeDashStyle.Dot, 1D);
+            writer.WriteStrokeDashArrayAttribute(null);
+            writer.WriteEndElement();
+        }
+
+        Assert.Contains("x=\"0\"", writerBuilder.ToString(), StringComparison.Ordinal);
+        Assert.Contains("viewBox=\"0 0 12.346 6.789\"", writerBuilder.ToString(), StringComparison.Ordinal);
+        Assert.Contains("transform=\"rotate(12.346 5 6.789)\"", writerBuilder.ToString(), StringComparison.Ordinal);
+        Assert.Contains("stroke-linecap=\"round\"", writerBuilder.ToString(), StringComparison.Ordinal);
+        Assert.Contains("stroke-linejoin=\"round\"", writerBuilder.ToString(), StringComparison.Ordinal);
+        Assert.Contains("stroke-dasharray=\"1 2\"", writerBuilder.ToString(), StringComparison.Ordinal);
+
+        var pointsBuilder = new StringBuilder("<polygon");
+        pointsBuilder.AppendPointsAttribute(new[] { new OfficePoint(1.2D, 3.4D), new OfficePoint(5D, 0.00000001D) }).Append("/>");
+        Assert.Equal("<polygon points=\"1.2,3.4 5,0\"/>", pointsBuilder.ToString());
+
+        var polygonBuilder = new StringBuilder();
+        polygonBuilder.AppendPolygonElement(
+            new[] { new OfficePoint(1.2D, 3.4D), new OfficePoint(5D, 0.00000001D) },
+            OfficeColor.FromRgba(17, 34, 51, 128),
+            OfficeColor.Red,
+            1.5D);
+        Assert.Equal("<polygon points=\"1.2,3.4 5,0\" fill=\"#112233\" fill-opacity=\"0.502\" stroke=\"#FF0000\" stroke-width=\"1.5\"/>", polygonBuilder.ToString());
+
+        var rawPolygonBuilder = new StringBuilder();
+        rawPolygonBuilder.AppendPolygonElement(new[] { new OfficePoint(0D, 0D), new OfficePoint(2D, 3D), new OfficePoint(4D, 0D) }, " fill=\"none\" transform=\"rotate(45)\"");
+        Assert.Equal("<polygon points=\"0,0 2,3 4,0\" fill=\"none\" transform=\"rotate(45)\"/>", rawPolygonBuilder.ToString());
+
+        var polylineBuilder = new StringBuilder();
+        polylineBuilder.AppendPolylineElement(new[] { new OfficePoint(0D, 0D), new OfficePoint(2.5D, 3D), new OfficePoint(4D, 0D) }, " fill=\"none\" stroke=\"#112233\"");
+        Assert.Equal("<polyline fill=\"none\" stroke=\"#112233\" points=\"0,0 2.5,3 4,0\"/>", polylineBuilder.ToString());
+
+        var circleBuilder = new StringBuilder();
+        circleBuilder.AppendCircleElement(1.25D, 2.5D, 3.75D, OfficeColor.FromRgba(17, 34, 51, 128));
+        Assert.Equal("<circle cx=\"1.25\" cy=\"2.5\" r=\"3.75\" fill=\"#112233\" fill-opacity=\"0.502\"/>", circleBuilder.ToString());
+
+        var rawCircleBuilder = new StringBuilder();
+        rawCircleBuilder.AppendCircleElement(0D, 1D, 2D, " fill=\"none\" stroke=\"#FF0000\"");
+        Assert.Equal("<circle cx=\"0\" cy=\"1\" r=\"2\" fill=\"none\" stroke=\"#FF0000\"/>", rawCircleBuilder.ToString());
+
+        var ellipseBuilder = new StringBuilder();
+        ellipseBuilder.AppendEllipseElement(1.25D, 2.5D, 3.75D, 4.5D, OfficeColor.FromRgba(17, 34, 51, 128));
+        Assert.Equal("<ellipse cx=\"1.25\" cy=\"2.5\" rx=\"3.75\" ry=\"4.5\" fill=\"#112233\" fill-opacity=\"0.502\"/>", ellipseBuilder.ToString());
+
+        var rawEllipseBuilder = new StringBuilder();
+        rawEllipseBuilder.AppendEllipseElement(1D, 2D, 3D, 4D, " fill=\"none\" stroke=\"#112233\"");
+        Assert.Equal("<ellipse cx=\"1\" cy=\"2\" rx=\"3\" ry=\"4\" fill=\"none\" stroke=\"#112233\"/>", rawEllipseBuilder.ToString());
+
+        OfficePoint[] pathPoints = {
+            new OfficePoint(0.00000001D, 2D),
+            new OfficePoint(3.4567D, 4.5D),
+            new OfficePoint(6D, 0D)
+        };
+        Assert.Equal("M 0 2 L 3.457 4.5 L 6 0 Z", OfficeSvgFormatting.FormatMoveLinePathData(pathPoints, closePath: true));
+        Assert.Equal(string.Empty, OfficeSvgFormatting.FormatMoveLinePathData(Array.Empty<OfficePoint>(), closePath: true));
+
+        var pathBuilder = new StringBuilder();
+        pathBuilder.AppendPathElement(OfficeSvgFormatting.FormatMoveLinePathData(pathPoints), " fill=\"none\" stroke=\"#112233\"");
+        Assert.Equal("<path d=\"M 0 2 L 3.457 4.5 L 6 0\" fill=\"none\" stroke=\"#112233\"/>", pathBuilder.ToString());
+
+        OfficePathCommand[] commands = {
+            OfficePathCommand.MoveTo(0.00000001D, 2D),
+            OfficePathCommand.QuadraticBezierTo(2.2222D, 3.3333D, 4.4444D, 5.5555D),
+            OfficePathCommand.CubicBezierTo(1.2345D, 2.3456D, 3.4567D, 4.5678D, 5.6789D, 6.789D),
+            OfficePathCommand.LineTo(7D, 8D),
+            OfficePathCommand.Close()
+        };
+        Assert.Equal("M10 22Q12.222 23.333 14.444 25.556C11.235 22.346 13.457 24.568 15.679 26.789L17 28Z", OfficeSvgFormatting.FormatPathData(commands, 10D, 20D));
+
+        var commandBuilder = new StringBuilder();
+        commandBuilder.AppendPathData(commands);
+        Assert.Equal("M0 2Q2.222 3.333 4.444 5.556C1.235 2.346 3.457 4.568 5.679 6.789L7 8Z", commandBuilder.ToString());
+
+        var commandPathBuilder = new StringBuilder();
+        commandPathBuilder.AppendPathElement(commands, 10D, 20D, " fill=\"#FFFFFF\"");
+        Assert.Equal("<path d=\"M10 22Q12.222 23.333 14.444 25.556C11.235 22.346 13.457 24.568 15.679 26.789L17 28Z\" fill=\"#FFFFFF\"/>", commandPathBuilder.ToString());
+    }
+
+    [Fact]
+    public void OfficeSvgFormattingAppendsSharedHatchPatternRectangle() {
+        var builder = new StringBuilder();
+
+        builder.AppendHatchPatternRectangle(1, 2, 16, 12, OfficeColor.FromRgba(10, 20, 30, 128), 4, 1.5D, OfficeHatchPatternKind.Trellis);
+
+        string svg = builder.ToString();
+        Assert.Contains("<line", svg, StringComparison.Ordinal);
+        Assert.Contains("stroke=\"#0A141E\"", svg, StringComparison.Ordinal);
+        Assert.Contains("stroke-opacity=\"0.502\"", svg, StringComparison.Ordinal);
+        Assert.Contains("stroke-width=\"1.5\"", svg, StringComparison.Ordinal);
+        Assert.Contains("x1=\"-11\"", svg, StringComparison.Ordinal);
+        Assert.Contains("x2=\"1\"", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OfficeSparklineRendererAppendsReusableSvgSparklines() {
+        var builder = new StringBuilder();
+
+        OfficeSparklineRenderer.AppendSvg(
+            builder,
+            0,
+            0,
+            80,
+            28,
+            new[] { 4D, -2D, 8D },
+            OfficeSparklineKind.WinLoss,
+            new OfficeSparklineStyle {
+                DisplayAxis = true,
+                AxisColor = OfficeColor.Gray,
+                PointStyles = new[] {
+                    new OfficeSparklinePointStyle(OfficeColor.Blue),
+                    new OfficeSparklinePointStyle(OfficeColor.Red),
+                    new OfficeSparklinePointStyle(OfficeColor.Lime)
+                }
+            });
+
+        string svg = builder.ToString();
+        Assert.Contains("<line", svg, StringComparison.Ordinal);
+        Assert.Contains("<rect", svg, StringComparison.Ordinal);
+        Assert.Contains("stroke=\"#808080\"", svg, StringComparison.Ordinal);
+        Assert.Contains("fill=\"#0000FF\"", svg, StringComparison.Ordinal);
+        Assert.Contains("fill=\"#FF0000\"", svg, StringComparison.Ordinal);
+        Assert.Contains("fill=\"#00FF00\"", svg, StringComparison.Ordinal);
+
+        var lineBuilder = new StringBuilder();
+        OfficeSparklineRenderer.AppendSvg(
+            lineBuilder,
+            0,
+            0,
+            80,
+            28,
+            new[] { 4D, -2D, 8D },
+            OfficeSparklineKind.Line,
+            new OfficeSparklineStyle {
+                DisplayAxis = true,
+                SeriesColor = OfficeColor.FromRgb(37, 99, 235),
+                AxisColor = OfficeColor.Gray,
+                PointStyles = new[] {
+                    new OfficeSparklinePointStyle(OfficeColor.Blue, showMarker: true),
+                    new OfficeSparklinePointStyle(OfficeColor.Red, showMarker: true),
+                    new OfficeSparklinePointStyle(OfficeColor.Lime, showMarker: true)
+                }
+            });
+
+        string lineSvg = lineBuilder.ToString();
+        Assert.Contains("<polyline", lineSvg, StringComparison.Ordinal);
+        Assert.Contains("<circle", lineSvg, StringComparison.Ordinal);
+        Assert.Contains("stroke=\"#2563EB\"", lineSvg, StringComparison.Ordinal);
+        Assert.Contains("fill=\"#0000FF\"", lineSvg, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OfficeDataBarRendererAppendsReusableSvgDataBar() {
+        var builder = new StringBuilder();
+
+        OfficeDataBarRenderer.AppendSvg(builder, 2, 3, 30, 10, 0.25D, 0.5D, OfficeColor.FromRgba(10, 20, 30, 128), verticalInset: 2D);
+
+        Assert.Equal("<rect x=\"9.5\" y=\"5\" width=\"15\" height=\"6\" fill=\"#0A141E\" fill-opacity=\"0.502\"/>", builder.ToString());
+    }
+
+    [Fact]
+    public void OfficeSvgImageRendererAppendsCroppedImageProjection() {
+        var builder = new StringBuilder();
+
+        OfficeSvgImageRenderer.AppendImage(
+            builder,
+            "data:image/png;base64,AA==",
+            10,
+            20,
+            80,
+            40,
+            "imgClip",
+            10,
+            20,
+            80,
+            40,
+            sourceLeft: 0.25D,
+            sourceTop: 0.1D,
+            sourceWidth: 0.5D,
+            sourceHeight: 0.8D);
+
+        string svg = builder.ToString();
+        Assert.Contains("<clipPath id=\"imgClip\"><rect x=\"10\" y=\"20\" width=\"80\" height=\"40\"/></clipPath>", svg, StringComparison.Ordinal);
+        Assert.Contains("<image x=\"-30\" y=\"15\" width=\"160\" height=\"50\" clip-path=\"url(#imgClip)\" href=\"data:image/png;base64,AA==\"/>", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OfficeSvgImageRendererAppendsFlipAndRotationTransform() {
+        var builder = new StringBuilder();
+
+        OfficeSvgImageRenderer.AppendImage(
+            builder,
+            "data:image/png;base64,AA==",
+            10,
+            20,
+            80,
+            40,
+            "imgClip",
+            0,
+            0,
+            120,
+            80,
+            rotationDegrees: 45D,
+            flipHorizontal: true);
+
+        string svg = builder.ToString();
+        Assert.Contains("clip-path=\"url(#imgClip)\"", svg, StringComparison.Ordinal);
+        Assert.Contains("transform=\"translate(50 40) rotate(45) scale(-1 1) translate(-50 -40)\"", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OfficeSvgImageRendererAppendsPreserveAspectRatio() {
+        var builder = new StringBuilder();
+
+        OfficeSvgImageRenderer.AppendImage(
+            builder,
+            "data:image/png;base64,AA==",
+            10,
+            20,
+            80,
+            40,
+            preserveAspectRatio: "xMidYMid meet");
+
+        Assert.Equal("<image x=\"10\" y=\"20\" width=\"80\" height=\"40\" preserveAspectRatio=\"xMidYMid meet\" href=\"data:image/png;base64,AA==\"/>", builder.ToString());
+    }
+
+    [Fact]
+    public void OfficeSvgImageRendererCreatesDataUri() {
+        string href = OfficeSvgImageRenderer.CreateDataUri("image/png", new byte[] { 0, 1, 2 });
+
+        Assert.Equal("data:image/png;base64,AAEC", href);
+    }
+
+    [Fact]
+    public void OfficeSvgImageRendererWritesXmlImageElement() {
+        var builder = new StringBuilder();
+        using (var writer = System.Xml.XmlWriter.Create(
+            new System.IO.StringWriter(builder, System.Globalization.CultureInfo.InvariantCulture),
+            new System.Xml.XmlWriterSettings { OmitXmlDeclaration = true, ConformanceLevel = System.Xml.ConformanceLevel.Fragment })) {
+            OfficeSvgImageRenderer.WriteImage(
+                writer,
+                "http://www.w3.org/2000/svg",
+                "data:image/png;base64,AA==",
+                10,
+                20,
+                80,
+                40,
+                rotationDegrees: 45D,
+                rotationCenterX: 50D,
+                rotationCenterY: 40D,
+                preserveAspectRatio: "xMidYMid meet",
+                writeAdditionalAttributes: static imageWriter => imageWriter.WriteAttributeString("data-test-image", "true"));
+        }
+
+        string svg = builder.ToString();
+        Assert.Contains("<image", svg, StringComparison.Ordinal);
+        Assert.Contains("data-test-image=\"true\"", svg, StringComparison.Ordinal);
+        Assert.Contains("x=\"10\"", svg, StringComparison.Ordinal);
+        Assert.Contains("preserveAspectRatio=\"xMidYMid meet\"", svg, StringComparison.Ordinal);
+        Assert.Contains("transform=\"rotate(45 50 40)\"", svg, StringComparison.Ordinal);
+        Assert.Contains("href=\"data:image/png;base64,AA==\"", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OfficeSvgPrimitiveWriterWritesSharedVectorPrimitives() {
+        var builder = new StringBuilder();
+        using (var writer = System.Xml.XmlWriter.Create(
+            new System.IO.StringWriter(builder, System.Globalization.CultureInfo.InvariantCulture),
+            new System.Xml.XmlWriterSettings { OmitXmlDeclaration = true, ConformanceLevel = System.Xml.ConformanceLevel.Fragment })) {
+            OfficeSvgPrimitiveWriter.WriteCircle(writer, "http://www.w3.org/2000/svg", 10, 20, 5, OfficeColor.SteelBlue, fill: false, strokeWidth: 2);
+            OfficeSvgPrimitiveWriter.WriteRectangle(writer, "http://www.w3.org/2000/svg", 30, 40, 50, 60, OfficeColor.Red, fill: true, strokeWidth: 0, cornerRadius: 4);
+            OfficeSvgPrimitiveWriter.WriteLine(writer, "http://www.w3.org/2000/svg", 1, 2, 3, 4, OfficeColor.Black, 1.5);
+            OfficeSvgPrimitiveWriter.WritePath(writer, "http://www.w3.org/2000/svg", "M 0 0 L 10 10", OfficeColor.Green, fill: false, strokeWidth: 3);
+        }
+
+        string svg = builder.ToString();
+        Assert.Contains("<circle", svg, StringComparison.Ordinal);
+        Assert.Contains("fill=\"none\"", svg, StringComparison.Ordinal);
+        Assert.Contains("stroke=\"#4682B4\"", svg, StringComparison.Ordinal);
+        Assert.Contains("stroke-linecap=\"round\"", svg, StringComparison.Ordinal);
+        Assert.Contains("stroke-linejoin=\"round\"", svg, StringComparison.Ordinal);
+        Assert.Contains("<rect", svg, StringComparison.Ordinal);
+        Assert.Contains("rx=\"4\"", svg, StringComparison.Ordinal);
+        Assert.Contains("fill=\"#FF0000\"", svg, StringComparison.Ordinal);
+        Assert.Contains("<line", svg, StringComparison.Ordinal);
+        Assert.Contains("<path d=\"M 0 0 L 10 10\"", svg, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -524,6 +1053,34 @@ public class DrawingTests {
     }
 
     [Fact]
+    public void OfficeGeometryInterpolatesPolylineByLength() {
+        var points = new[] {
+            new OfficePoint(0, 0),
+            new OfficePoint(10, 0),
+            new OfficePoint(10, 10)
+        };
+
+        Assert.Equal(new OfficePoint(0, 0), OfficeGeometry.InterpolatePolyline(points, -1D));
+        Assert.Equal(new OfficePoint(10, 0), OfficeGeometry.InterpolatePolyline(points, 0.5D));
+        Assert.Equal(new OfficePoint(10, 10), OfficeGeometry.InterpolatePolyline(points, 2D));
+    }
+
+    [Fact]
+    public void OfficeGeometryInterpolatesTuplePolylineAndSkipsZeroLengthSegments() {
+        var points = new[] {
+            (X: 0D, Y: 0D),
+            (X: 0D, Y: 0D),
+            (X: 0D, Y: 10D),
+            (X: 10D, Y: 10D)
+        };
+
+        (double x, double y) = OfficeGeometry.InterpolatePolyline(points, 0.25D);
+        Assert.Equal(0D, x);
+        Assert.Equal(5D, y);
+        Assert.Equal(5D, OfficeGeometry.Distance((0D, 0D), (3D, 4D)));
+    }
+
+    [Fact]
     public void OfficeShapeRejectsEmptyLineDrawingIntent() {
         Assert.Throws<ArgumentException>(() => OfficeShape.Line(10, 20, 10, 20));
     }
@@ -580,6 +1137,7 @@ public class DrawingTests {
     public void OfficeShapeStoresReusablePathDrawingIntent() {
         var shape = OfficeShape.Path(
             OfficePathCommand.MoveTo(10, 50),
+            OfficePathCommand.QuadraticBezierTo(40, 0, 90, 50),
             OfficePathCommand.CubicBezierTo(30, 10, 70, 10, 90, 50),
             OfficePathCommand.LineTo(10, 50),
             OfficePathCommand.Close());
@@ -595,11 +1153,12 @@ public class DrawingTests {
 
         Assert.Equal(OfficeShapeKind.Path, clone.Kind);
         Assert.Equal(80, clone.Width);
-        Assert.Equal(40, clone.Height);
-        Assert.Equal(OfficePathCommand.MoveTo(0, 40), clone.PathCommands[0]);
-        Assert.Equal(OfficePathCommand.CubicBezierTo(20, 0, 60, 0, 80, 40), clone.PathCommands[1]);
-        Assert.Equal(OfficePathCommand.LineTo(0, 40), clone.PathCommands[2]);
-        Assert.Equal(OfficePathCommand.Close(), clone.PathCommands[3]);
+        Assert.Equal(50, clone.Height);
+        Assert.Equal(OfficePathCommand.MoveTo(0, 50), clone.PathCommands[0]);
+        Assert.Equal(OfficePathCommand.QuadraticBezierTo(30, 0, 80, 50), clone.PathCommands[1]);
+        Assert.Equal(OfficePathCommand.CubicBezierTo(20, 10, 60, 10, 80, 50), clone.PathCommands[2]);
+        Assert.Equal(OfficePathCommand.LineTo(0, 50), clone.PathCommands[3]);
+        Assert.Equal(OfficePathCommand.Close(), clone.PathCommands[4]);
         Assert.Equal(OfficeColor.WhiteSmoke, clone.FillColor);
         Assert.Equal(OfficeColor.SteelBlue, clone.StrokeColor);
         Assert.Equal(1.75, clone.StrokeWidth);

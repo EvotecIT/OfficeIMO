@@ -258,6 +258,123 @@ public static partial class OfficeChartDrawingRenderer {
         return any ? ExpandFlatRange(min, max) : new ValueRange(0D, 1D);
     }
 
+    private static ValueRange ApplyValueAxisScale(ValueRange range, OfficeChartLayout layout, bool horizontal) {
+        double min = horizontal
+            ? layout.HorizontalAxisMinimum ?? range.Min
+            : layout.VerticalAxisMinimum ?? range.Min;
+        double max = horizontal
+            ? layout.HorizontalAxisMaximum ?? range.Max
+            : layout.VerticalAxisMaximum ?? range.Max;
+        if (max <= min) {
+            return range;
+        }
+
+        return new ValueRange(min, max);
+    }
+
+    private static bool HasValueAxisScale(OfficeChartLayout layout, bool horizontal) =>
+        horizontal
+            ? layout.HorizontalAxisMinimum.HasValue || layout.HorizontalAxisMaximum.HasValue || layout.HorizontalAxisMajorUnit.HasValue || layout.HorizontalAxisMinorUnit.HasValue
+            : layout.VerticalAxisMinimum.HasValue || layout.VerticalAxisMaximum.HasValue || layout.VerticalAxisMajorUnit.HasValue || layout.VerticalAxisMinorUnit.HasValue;
+
+    private static double? GetValueAxisMajorUnit(OfficeChartLayout layout, bool horizontal) =>
+        horizontal ? layout.HorizontalAxisMajorUnit : layout.VerticalAxisMajorUnit;
+
+    private static double? GetValueAxisMinorUnit(OfficeChartLayout layout, bool horizontal) =>
+        horizontal ? layout.HorizontalAxisMinorUnit : layout.VerticalAxisMinorUnit;
+
+    private static IReadOnlyList<double> GetValueAxisMajorTicks(ValueRange range, double? majorUnit) {
+        if (!majorUnit.HasValue || majorUnit.Value <= 0D) {
+            return new[] {
+                range.Min,
+                range.Min + (range.Max - range.Min) * 0.25D,
+                range.Min + (range.Max - range.Min) * 0.5D,
+                range.Min + (range.Max - range.Min) * 0.75D,
+                range.Max
+            };
+        }
+
+        double span = range.Max - range.Min;
+        if (span <= 0D) {
+            return new[] { range.Min, range.Max };
+        }
+
+        int tickCount = (int)Math.Floor(span / majorUnit.Value) + 1;
+        if (tickCount < 2 || tickCount > 32) {
+            return new[] { range.Min, range.Max };
+        }
+
+        var ticks = new List<double>(tickCount + 1);
+        for (int i = 0; i < tickCount; i++) {
+            double value = range.Min + majorUnit.Value * i;
+            if (value > range.Max) {
+                break;
+            }
+
+            ticks.Add(value);
+        }
+
+        if (ticks.Count == 0 || Math.Abs(ticks[ticks.Count - 1] - range.Max) > Math.Max(0.000001D, Math.Abs(range.Max) * 0.0000001D)) {
+            ticks.Add(range.Max);
+        }
+
+        return ticks;
+    }
+
+    private static IReadOnlyList<double> GetValueAxisLabelTicks(ValueRange range, double? majorUnit) =>
+        majorUnit.HasValue ? GetValueAxisMajorTicks(range, majorUnit) : new[] { range.Min, range.Max };
+
+    private static IReadOnlyList<double> GetValueAxisMinorTicks(ValueRange range, double? minorUnit, IReadOnlyList<double> majorTicks) {
+        if (!minorUnit.HasValue || minorUnit.Value <= 0D) {
+            return Array.Empty<double>();
+        }
+
+        double span = range.Max - range.Min;
+        if (span <= 0D) {
+            return Array.Empty<double>();
+        }
+
+        int tickCount = (int)Math.Floor(span / minorUnit.Value) + 1;
+        if (tickCount < 2 || tickCount > 96) {
+            return Array.Empty<double>();
+        }
+
+        var ticks = new List<double>(tickCount);
+        for (int i = 0; i < tickCount; i++) {
+            double value = range.Min + minorUnit.Value * i;
+            if (value <= range.Min || value >= range.Max) {
+                continue;
+            }
+
+            if (IsMajorTick(value, majorTicks)) {
+                continue;
+            }
+
+            ticks.Add(value);
+        }
+
+        return ticks;
+    }
+
+    private static bool IsMajorTick(double value, IReadOnlyList<double> majorTicks) {
+        for (int i = 0; i < majorTicks.Count; i++) {
+            if (Math.Abs(value - majorTicks[i]) <= Math.Max(0.000001D, Math.Abs(majorTicks[i]) * 0.0000001D)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static int GetCategorySlotIndex(int categoryIndex, int categoryCount, OfficeChartLayout layout) =>
+        layout.ReverseCategoryAxis ? categoryCount - 1 - categoryIndex : categoryIndex;
+
+    private static double GetCategorySlotCenterX(double plotLeft, double slotWidth, int categoryIndex, int categoryCount, OfficeChartLayout layout) =>
+        plotLeft + slotWidth * GetCategorySlotIndex(categoryIndex, categoryCount, layout) + slotWidth / 2D;
+
+    private static double GetCategoryPointX(double plotLeft, double step, int categoryIndex, int categoryCount, OfficeChartLayout layout) =>
+        plotLeft + step * GetCategorySlotIndex(categoryIndex, categoryCount, layout);
+
     private static ValueRange GetFiniteRange(IReadOnlyList<double> values) {
         bool any = false;
         double min = 0D;

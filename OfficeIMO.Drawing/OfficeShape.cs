@@ -210,6 +210,11 @@ public sealed class OfficeShape {
                     IncludePoint(command.Point, ref minX, ref minY, ref maxX, ref maxY, ref hasPoint, nameof(commands));
                     hasDraw = true;
                     break;
+                case OfficePathCommandKind.QuadraticBezierTo:
+                    IncludePoint(command.ControlPoint1, ref minX, ref minY, ref maxX, ref maxY, ref hasPoint, nameof(commands));
+                    IncludePoint(command.Point, ref minX, ref minY, ref maxX, ref maxY, ref hasPoint, nameof(commands));
+                    hasDraw = true;
+                    break;
                 case OfficePathCommandKind.CubicBezierTo:
                     IncludePoint(command.ControlPoint1, ref minX, ref minY, ref maxX, ref maxY, ref hasPoint, nameof(commands));
                     IncludePoint(command.ControlPoint2, ref minX, ref minY, ref maxX, ref maxY, ref hasPoint, nameof(commands));

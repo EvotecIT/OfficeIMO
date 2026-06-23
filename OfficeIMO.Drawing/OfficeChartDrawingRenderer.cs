@@ -27,18 +27,29 @@ public static partial class OfficeChartDrawingRenderer {
         OfficeChartLayout layout = snapshot.Layout;
         var drawing = new OfficeDrawing(width, height);
 
-        AddShape(drawing, OfficeShape.Rectangle(width, height), 0D, 0D, style.ShowBackground ? style.BackgroundColor : null, style.ShowBorder ? style.BorderColor : null, style.ShowBorder ? 0.75D : 0D);
+        AddShape(
+            drawing,
+            OfficeShape.Rectangle(width, height),
+            0D,
+            0D,
+            style.ShowBackground ? style.BackgroundColor : null,
+            style.ShowBorder ? style.BorderColor : null,
+            style.ShowBorder ? style.ChartBorderWidth ?? 0.75D : 0D,
+            style.ChartBorderDashStyle ?? OfficeStrokeDashStyle.Solid);
         double contentTop = 0D;
         if (!string.IsNullOrWhiteSpace(snapshot.Title)) {
             double titleHeight = Math.Min(22D, Math.Max(16D, height * 0.12D));
             double titleTop = Math.Min(layout.TitleTopPadding, Math.Max(0D, height - titleHeight));
+            string titleFontFamily = style.TitleFontFamily ?? style.FontFamily;
+            double titleFontSize = style.TitleFontSize ?? Math.Min(12D, Math.Max(8D, titleHeight - 7D));
+            OfficeFontStyle titleFontStyle = style.TitleFontStyle ?? OfficeFontStyle.Bold;
             drawing.AddText(
                 snapshot.Title!,
                 8D,
                 titleTop,
                 Math.Max(1D, width - 16D),
                 Math.Max(1D, titleHeight - 4D),
-                new OfficeFontInfo(style.FontFamily, Math.Min(12D, Math.Max(8D, titleHeight - 7D)), OfficeFontStyle.Bold),
+                new OfficeFontInfo(titleFontFamily, titleFontSize, titleFontStyle),
                 style.TitleColor,
                 OfficeTextAlignment.Center);
             if (!layout.OverlayTitle) {
@@ -69,20 +80,38 @@ public static partial class OfficeChartDrawingRenderer {
         bool barChart = IsBarChart(snapshot.ChartKind);
         bool showHorizontalAxis = barChart ? layout.ShowValueAxisLine : layout.ShowCategoryAxisLine;
         bool showVerticalAxis = barChart ? layout.ShowCategoryAxisLine : layout.ShowValueAxisLine;
-        double verticalAxisTitleHeight = HasVerticalAxisTitle(snapshot.ChartKind, layout) ? 12D : 0D;
-        double plotTop = 18D + contentTop + topLegendHeight + verticalAxisTitleHeight;
+        bool showHorizontalAxisLabels = barChart ? layout.ShowValueAxisLabels : layout.ShowCategoryAxisLabels;
+        bool showVerticalAxisLabels = barChart ? layout.ShowCategoryAxisLabels : layout.ShowValueAxisLabels;
+        bool horizontalAxisCrossesAtMaximum = !barChart && layout.HorizontalAxisCrossingPosition == OfficeChartAxisCrossingPosition.Maximum;
+        bool verticalAxisCrossesAtMaximum = !barChart && layout.VerticalAxisCrossingPosition == OfficeChartAxisCrossingPosition.Maximum;
+        bool horizontalAxisLabelsHigh = layout.HorizontalAxisTickLabelPosition == OfficeChartAxisTickLabelPosition.High ||
+            (layout.HorizontalAxisTickLabelPosition == OfficeChartAxisTickLabelPosition.NextTo && horizontalAxisCrossesAtMaximum);
+        bool verticalAxisLabelsHigh = layout.VerticalAxisTickLabelPosition == OfficeChartAxisTickLabelPosition.High ||
+            (layout.VerticalAxisTickLabelPosition == OfficeChartAxisTickLabelPosition.NextTo && verticalAxisCrossesAtMaximum);
+        double horizontalAxisTopLabelHeight = showHorizontalAxisLabels && horizontalAxisLabelsHigh ? 15D : 0D;
+        double verticalAxisRightLabelWidth = showVerticalAxisLabels && verticalAxisLabelsHigh ? 42D : 0D;
+        double verticalAxisTitleHeight = HasVerticalAxisTitle(snapshot.ChartKind, layout) ? GetAxisTitleBandHeight(layout) : 0D;
+        double plotTop = 18D + contentTop + topLegendHeight + verticalAxisTitleHeight + horizontalAxisTopLabelHeight;
         double legendWidth = GetSeriesLegendWidth(snapshot.Data.Series, width, layout);
         bool leftLegend = layout.LegendPosition == OfficeChartLegendPosition.Left;
         double plotLeft = 36D + (leftLegend ? legendWidth : 0D);
-        double plotRight = 12D + (leftLegend ? 0D : legendWidth);
-        double horizontalAxisTitleHeight = HasHorizontalAxisTitle(snapshot.ChartKind, layout) ? 12D : 0D;
+        double plotRight = 12D + verticalAxisRightLabelWidth + (leftLegend ? 0D : legendWidth);
+        double horizontalAxisTitleHeight = HasHorizontalAxisTitle(snapshot.ChartKind, layout) ? GetAxisTitleBandHeight(layout) : 0D;
         double plotBottom = 40D + horizontalAxisTitleHeight + bottomLegendHeight;
         double plotWidth = Math.Max(20D, width - plotLeft - plotRight);
         double plotHeight = Math.Max(20D, height - plotTop - plotBottom);
         double plotBottomY = plotTop + plotHeight;
+        double horizontalAxisY = horizontalAxisCrossesAtMaximum ? plotTop : plotBottomY;
         double axisLabelLeft = leftLegend ? legendWidth + 2D : 2D;
         double axisLabelWidth = Math.Max(12D, plotLeft - axisLabelLeft - 6D);
-        ValueRange axisRange = GetCartesianValueRange(snapshot);
+        double axisLabelRight = plotLeft + plotWidth + 4D;
+        double axisLabelRightWidth = Math.Max(12D, verticalAxisRightLabelWidth - 8D);
+        double verticalAxisX = verticalAxisCrossesAtMaximum ? plotLeft + plotWidth : plotLeft;
+        ValueRange axisRange = GetCartesianValueRange(snapshot, layout, horizontalValueAxis: barChart);
+        double? valueAxisMajorUnit = GetValueAxisMajorUnit(layout, horizontal: barChart);
+        IReadOnlyList<double> valueAxisMajorTicks = GetValueAxisMajorTicks(axisRange, valueAxisMajorUnit);
+        double? valueAxisMinorUnit = GetValueAxisMinorUnit(layout, horizontal: barChart);
+        IReadOnlyList<double> valueAxisMinorTicks = GetValueAxisMinorTicks(axisRange, valueAxisMinorUnit, valueAxisMajorTicks);
         bool valueAxisUsesPercentDefaults =
             IsPercentStackedBarOrColumnChart(snapshot.ChartKind) ||
             IsPercentStackedLineChart(snapshot.ChartKind) ||
@@ -96,28 +125,257 @@ public static partial class OfficeChartDrawingRenderer {
                 plotTop,
                 style.PlotAreaBackgroundColor,
                 style.PlotAreaBorderColor,
-                style.PlotAreaBorderColor.HasValue ? 0.75D : 0D);
+                style.PlotAreaBorderColor.HasValue ? style.PlotAreaBorderWidth ?? 0.75D : 0D,
+                style.PlotAreaBorderDashStyle ?? OfficeStrokeDashStyle.Solid);
         }
 
+        OfficeColor horizontalAxisColor = barChart ? GetValueAxisColor(style) : GetCategoryAxisColor(style);
+        OfficeColor verticalAxisColor = barChart ? GetCategoryAxisColor(style) : GetValueAxisColor(style);
+        double horizontalAxisLineWidth = barChart ? GetValueAxisLineWidth(style) : GetCategoryAxisLineWidth(style);
+        double verticalAxisLineWidth = barChart ? GetCategoryAxisLineWidth(style) : GetValueAxisLineWidth(style);
+        OfficeStrokeDashStyle horizontalAxisLineDashStyle = barChart ? GetValueAxisLineDashStyle(style) : GetCategoryAxisLineDashStyle(style);
+        OfficeStrokeDashStyle verticalAxisLineDashStyle = barChart ? GetCategoryAxisLineDashStyle(style) : GetValueAxisLineDashStyle(style);
         if (showHorizontalAxis) {
-            AddShape(drawing, OfficeShape.Line(0D, 0D, plotWidth, 0D), plotLeft, plotBottomY, null, style.AxisColor, 0.75D);
+            AddShape(drawing, OfficeShape.Line(0D, 0D, plotWidth, 0D), plotLeft, horizontalAxisY, null, horizontalAxisColor, horizontalAxisLineWidth, horizontalAxisLineDashStyle);
+            if (barChart) {
+                AddHorizontalValueAxisMajorTickMarks(
+                    drawing,
+                    plotLeft,
+                    horizontalAxisY,
+                    plotWidth,
+                    axisRange,
+                    valueAxisMajorTicks,
+                    layout.HorizontalAxisMajorTickMark,
+                    horizontalAxisColor,
+                    horizontalAxisLineWidth,
+                    positiveOutside: !horizontalAxisCrossesAtMaximum);
+            } else {
+                AddHorizontalAxisMajorTickMarks(
+                    drawing,
+                    plotLeft,
+                    horizontalAxisY,
+                    plotWidth,
+                    layout.HorizontalAxisMajorTickMark,
+                    horizontalAxisColor,
+                    horizontalAxisLineWidth,
+                    positiveOutside: !horizontalAxisCrossesAtMaximum);
+            }
+
+            if (barChart && valueAxisMinorTicks.Count > 0) {
+                AddHorizontalValueAxisMinorTickMarks(
+                    drawing,
+                    plotLeft,
+                    horizontalAxisY,
+                    plotWidth,
+                    axisRange,
+                    valueAxisMinorTicks,
+                    layout.HorizontalAxisMinorTickMark,
+                    horizontalAxisColor,
+                    horizontalAxisLineWidth,
+                    positiveOutside: !horizontalAxisCrossesAtMaximum);
+            } else {
+                AddHorizontalAxisMinorTickMarks(
+                    drawing,
+                    plotLeft,
+                    horizontalAxisY,
+                    plotWidth,
+                    layout.HorizontalAxisMinorTickMark,
+                    horizontalAxisColor,
+                    horizontalAxisLineWidth,
+                    positiveOutside: !horizontalAxisCrossesAtMaximum);
+            }
         }
 
         if (showVerticalAxis) {
-            AddShape(drawing, OfficeShape.Line(0D, 0D, 0D, plotHeight), plotLeft, plotTop, null, style.AxisColor, 0.75D);
+            AddShape(drawing, OfficeShape.Line(0D, 0D, 0D, plotHeight), verticalAxisX, plotTop, null, verticalAxisColor, verticalAxisLineWidth, verticalAxisLineDashStyle);
+            if (barChart) {
+                AddVerticalAxisMajorTickMarks(
+                    drawing,
+                    verticalAxisX,
+                    plotTop,
+                    plotHeight,
+                    layout.VerticalAxisMajorTickMark,
+                    verticalAxisColor,
+                    verticalAxisLineWidth);
+            } else {
+                AddVerticalValueAxisMajorTickMarks(
+                    drawing,
+                    verticalAxisX,
+                    plotTop,
+                    plotHeight,
+                    axisRange,
+                    valueAxisMajorTicks,
+                    layout.VerticalAxisMajorTickMark,
+                    verticalAxisColor,
+                    verticalAxisLineWidth);
+            }
+
+            if (!barChart && valueAxisMinorTicks.Count > 0) {
+                AddVerticalValueAxisMinorTickMarks(
+                    drawing,
+                    verticalAxisX,
+                    plotTop,
+                    plotHeight,
+                    axisRange,
+                    valueAxisMinorTicks,
+                    layout.VerticalAxisMinorTickMark,
+                    verticalAxisColor,
+                    verticalAxisLineWidth);
+            } else {
+                AddVerticalAxisMinorTickMarks(
+                    drawing,
+                    verticalAxisX,
+                    plotTop,
+                    plotHeight,
+                    layout.VerticalAxisMinorTickMark,
+                    verticalAxisColor,
+                    verticalAxisLineWidth);
+            }
         }
 
-        if (style.ShowGridLines) {
+        if (GetShowCategoryMinorGridLines(style)) {
             if (barChart) {
-                for (int i = 1; i <= 3; i++) {
-                    double x = plotLeft + plotWidth * i / 4D;
-                    AddShape(drawing, OfficeShape.Line(0D, 0D, 0D, plotHeight), x, plotTop, null, style.GridLineColor, 0.5D);
+                AddHorizontalGridLines(
+                    drawing,
+                    plotLeft,
+                    plotTop,
+                    plotWidth,
+                    plotHeight,
+                    divisions: 8,
+                    startIndex: 1,
+                    step: 2,
+                    GetCategoryMinorGridLineColor(style),
+                    GetCategoryMinorGridLineWidth(style),
+                    GetCategoryMinorGridLineDashStyle(style));
+            } else {
+                AddVerticalGridLines(
+                    drawing,
+                    plotLeft,
+                    plotTop,
+                    plotWidth,
+                    plotHeight,
+                    divisions: 8,
+                    startIndex: 1,
+                    step: 2,
+                    GetCategoryMinorGridLineColor(style),
+                    GetCategoryMinorGridLineWidth(style),
+                    GetCategoryMinorGridLineDashStyle(style));
+            }
+        }
+
+        if (GetShowValueMinorGridLines(style)) {
+            if (barChart) {
+                if (valueAxisMinorTicks.Count > 0) {
+                    AddVerticalValueGridLines(
+                        drawing,
+                        plotLeft,
+                        plotTop,
+                        plotWidth,
+                        plotHeight,
+                        axisRange,
+                        valueAxisMinorTicks,
+                        GetValueMinorGridLineColor(style),
+                        GetValueMinorGridLineWidth(style),
+                        GetValueMinorGridLineDashStyle(style));
+                } else {
+                    AddVerticalGridLines(
+                        drawing,
+                        plotLeft,
+                        plotTop,
+                        plotWidth,
+                        plotHeight,
+                        divisions: 8,
+                        startIndex: 1,
+                        step: 2,
+                        GetValueMinorGridLineColor(style),
+                        GetValueMinorGridLineWidth(style),
+                        GetValueMinorGridLineDashStyle(style));
                 }
             } else {
-                for (int i = 1; i <= 3; i++) {
-                    double y = plotTop + plotHeight * i / 4D;
-                    AddShape(drawing, OfficeShape.Line(0D, 0D, plotWidth, 0D), plotLeft, y, null, style.GridLineColor, 0.5D);
+                if (valueAxisMinorTicks.Count > 0) {
+                    AddHorizontalValueGridLines(
+                        drawing,
+                        plotLeft,
+                        plotTop,
+                        plotWidth,
+                        plotHeight,
+                        axisRange,
+                        valueAxisMinorTicks,
+                        GetValueMinorGridLineColor(style),
+                        GetValueMinorGridLineWidth(style),
+                        GetValueMinorGridLineDashStyle(style));
+                } else {
+                    AddHorizontalGridLines(
+                        drawing,
+                        plotLeft,
+                        plotTop,
+                        plotWidth,
+                        plotHeight,
+                        divisions: 8,
+                        startIndex: 1,
+                        step: 2,
+                        GetValueMinorGridLineColor(style),
+                        GetValueMinorGridLineWidth(style),
+                        GetValueMinorGridLineDashStyle(style));
                 }
+            }
+        }
+
+        if (GetShowCategoryGridLines(style)) {
+            if (barChart) {
+                AddHorizontalGridLines(
+                    drawing,
+                    plotLeft,
+                    plotTop,
+                    plotWidth,
+                    plotHeight,
+                    divisions: 4,
+                    startIndex: 1,
+                    step: 1,
+                    GetCategoryGridLineColor(style),
+                    GetCategoryGridLineWidth(style),
+                    GetCategoryGridLineDashStyle(style));
+            } else {
+                AddVerticalGridLines(
+                    drawing,
+                    plotLeft,
+                    plotTop,
+                    plotWidth,
+                    plotHeight,
+                    divisions: 4,
+                    startIndex: 1,
+                    step: 1,
+                    GetCategoryGridLineColor(style),
+                    GetCategoryGridLineWidth(style),
+                    GetCategoryGridLineDashStyle(style));
+            }
+        }
+
+        if (GetShowValueGridLines(style)) {
+            if (barChart) {
+                AddVerticalValueGridLines(
+                    drawing,
+                    plotLeft,
+                    plotTop,
+                    plotWidth,
+                    plotHeight,
+                    axisRange,
+                    valueAxisMajorTicks,
+                    GetValueGridLineColor(style),
+                    GetValueGridLineWidth(style),
+                    GetValueGridLineDashStyle(style));
+            } else {
+                AddHorizontalValueGridLines(
+                    drawing,
+                    plotLeft,
+                    plotTop,
+                    plotWidth,
+                    plotHeight,
+                    axisRange,
+                    valueAxisMajorTicks,
+                    GetValueGridLineColor(style),
+                    GetValueGridLineWidth(style),
+                    GetValueGridLineDashStyle(style));
             }
         }
 
@@ -133,25 +391,70 @@ public static partial class OfficeChartDrawingRenderer {
 
         if (barChart) {
             if (layout.ShowCategoryAxis && layout.ShowCategoryAxisLabels) {
-                AddHorizontalCategoryAxisLabels(drawing, snapshot.Data.Categories, plotTop, plotHeight, axisLabelLeft, axisLabelWidth, style, layout);
+                AddHorizontalCategoryAxisLabels(
+                    drawing,
+                    snapshot.Data.Categories,
+                    plotTop,
+                    plotHeight,
+                    verticalAxisLabelsHigh ? axisLabelRight : axisLabelLeft,
+                    verticalAxisLabelsHigh ? axisLabelRightWidth : axisLabelWidth,
+                    verticalAxisLabelsHigh ? OfficeTextAlignment.Left : OfficeTextAlignment.Right,
+                    style,
+                    layout);
             }
 
             if (layout.ShowValueAxis && layout.ShowValueAxisLabels) {
-                AddHorizontalValueAxisLabels(drawing, axisRange, plotLeft, plotBottomY, plotWidth, style, layout, valueAxisUsesPercentDefaults);
+                AddHorizontalValueAxisLabels(
+                    drawing,
+                    axisRange,
+                    plotLeft,
+                    horizontalAxisLabelsHigh ? plotTop - 13D : plotBottomY + 4D,
+                    plotWidth,
+                    horizontalAxisLabelsHigh,
+                    style,
+                    layout,
+                    valueAxisUsesPercentDefaults);
             }
 
             AddAxisTitles(drawing, layout.ShowCategoryAxis ? layout.CategoryAxisTitle : null, layout.ShowValueAxis ? layout.ValueAxisTitle : null, plotLeft, plotTop, plotBottomY, plotWidth, plotHeight, style, layout);
         } else {
             if (layout.ShowValueAxis && layout.ShowValueAxisLabels) {
-                AddValueAxisLabels(drawing, axisRange, plotTop, plotHeight, axisLabelLeft, axisLabelWidth, style, layout, valueAxisUsesPercentDefaults);
+                AddValueAxisLabels(
+                    drawing,
+                    axisRange,
+                    plotTop,
+                    plotHeight,
+                    verticalAxisLabelsHigh ? axisLabelRight : axisLabelLeft,
+                    verticalAxisLabelsHigh ? axisLabelRightWidth : axisLabelWidth,
+                    verticalAxisLabelsHigh ? OfficeTextAlignment.Left : OfficeTextAlignment.Right,
+                    style,
+                    layout,
+                    valueAxisUsesPercentDefaults);
             }
 
             if (layout.ShowCategoryAxis && layout.ShowCategoryAxisLabels) {
                 if (IsScatterChart(snapshot.ChartKind)) {
                     IReadOnlyList<double> sharedXValues = GetScatterXValues(snapshot.Data.Categories);
-                    AddHorizontalValueAxisLabels(drawing, GetScatterXRange(snapshot.Data.Series, sharedXValues), plotLeft, plotBottomY, plotWidth, style, layout, percentDefault: false);
+                    ValueRange scatterXRange = ApplyValueAxisScale(GetScatterXRange(snapshot.Data.Series, sharedXValues), layout, horizontal: true);
+                    AddHorizontalValueAxisLabels(
+                        drawing,
+                        scatterXRange,
+                        plotLeft,
+                        horizontalAxisLabelsHigh ? plotTop - 13D : plotBottomY + 4D,
+                        plotWidth,
+                        horizontalAxisLabelsHigh,
+                        style,
+                        layout,
+                        percentDefault: false);
                 } else {
-                    AddCategoryAxisLabels(drawing, snapshot.Data.Categories, plotLeft, plotBottomY, plotWidth, style, layout);
+                    AddCategoryAxisLabels(
+                        drawing,
+                        snapshot.Data.Categories,
+                        plotLeft,
+                        horizontalAxisLabelsHigh ? plotTop - 13D : plotBottomY + 7D,
+                        plotWidth,
+                        style,
+                        layout);
                 }
             }
 
@@ -200,6 +503,281 @@ public static partial class OfficeChartDrawingRenderer {
 
     private static OfficeColor GetSeriesColor(OfficeChartStyle style, int index) => style.GetSeriesColor(index);
 
+    private static void AddVerticalGridLines(
+        OfficeDrawing drawing,
+        double plotLeft,
+        double plotTop,
+        double plotWidth,
+        double plotHeight,
+        int divisions,
+        int startIndex,
+        int step,
+        OfficeColor color,
+        double lineWidth,
+        OfficeStrokeDashStyle dashStyle) {
+        for (int i = startIndex; i < divisions; i += step) {
+            double x = plotLeft + plotWidth * i / divisions;
+            AddShape(drawing, OfficeShape.Line(0D, 0D, 0D, plotHeight), x, plotTop, null, color, lineWidth, dashStyle);
+        }
+    }
+
+    private static void AddHorizontalGridLines(
+        OfficeDrawing drawing,
+        double plotLeft,
+        double plotTop,
+        double plotWidth,
+        double plotHeight,
+        int divisions,
+        int startIndex,
+        int step,
+        OfficeColor color,
+        double lineWidth,
+        OfficeStrokeDashStyle dashStyle) {
+        for (int i = startIndex; i < divisions; i += step) {
+            double y = plotTop + plotHeight * i / divisions;
+            AddShape(drawing, OfficeShape.Line(0D, 0D, plotWidth, 0D), plotLeft, y, null, color, lineWidth, dashStyle);
+        }
+    }
+
+    private static void AddVerticalValueGridLines(
+        OfficeDrawing drawing,
+        double plotLeft,
+        double plotTop,
+        double plotWidth,
+        double plotHeight,
+        ValueRange range,
+        IReadOnlyList<double> ticks,
+        OfficeColor color,
+        double lineWidth,
+        OfficeStrokeDashStyle dashStyle) {
+        foreach (double tick in ticks) {
+            if (tick <= range.Min || tick >= range.Max) {
+                continue;
+            }
+
+            double x = ToPlotX(tick, range.Min, range.Max, plotLeft, plotWidth);
+            AddShape(drawing, OfficeShape.Line(0D, 0D, 0D, plotHeight), x, plotTop, null, color, lineWidth, dashStyle);
+        }
+    }
+
+    private static void AddHorizontalValueGridLines(
+        OfficeDrawing drawing,
+        double plotLeft,
+        double plotTop,
+        double plotWidth,
+        double plotHeight,
+        ValueRange range,
+        IReadOnlyList<double> ticks,
+        OfficeColor color,
+        double lineWidth,
+        OfficeStrokeDashStyle dashStyle) {
+        for (int i = ticks.Count - 1; i >= 0; i--) {
+            double tick = ticks[i];
+            if (tick <= range.Min || tick >= range.Max) {
+                continue;
+            }
+
+            double y = ToPlotY(tick, range.Min, range.Max, plotTop, plotHeight);
+            AddShape(drawing, OfficeShape.Line(0D, 0D, plotWidth, 0D), plotLeft, y, null, color, lineWidth, dashStyle);
+        }
+    }
+
+    private static void AddHorizontalAxisMajorTickMarks(
+        OfficeDrawing drawing,
+        double plotLeft,
+        double axisY,
+        double plotWidth,
+        OfficeChartAxisTickMark tickMark,
+        OfficeColor color,
+        double lineWidth,
+        bool positiveOutside = true) {
+        if (tickMark == OfficeChartAxisTickMark.None) {
+            return;
+        }
+
+        (double start, double end) = GetAxisTickMarkOffsets(tickMark, positiveOutside);
+        for (int i = 0; i <= 4; i++) {
+            double x = plotLeft + plotWidth * i / 4D;
+            AddShape(drawing, OfficeShape.Line(0D, start, 0D, end), x, axisY, null, color, lineWidth, OfficeStrokeDashStyle.Solid);
+        }
+    }
+
+    private static void AddHorizontalValueAxisMajorTickMarks(
+        OfficeDrawing drawing,
+        double plotLeft,
+        double axisY,
+        double plotWidth,
+        ValueRange range,
+        IReadOnlyList<double> ticks,
+        OfficeChartAxisTickMark tickMark,
+        OfficeColor color,
+        double lineWidth,
+        bool positiveOutside = true) {
+        if (tickMark == OfficeChartAxisTickMark.None) {
+            return;
+        }
+
+        (double start, double end) = GetAxisTickMarkOffsets(tickMark, positiveOutside);
+        foreach (double tick in ticks) {
+            double x = ToPlotX(tick, range.Min, range.Max, plotLeft, plotWidth);
+            AddShape(drawing, OfficeShape.Line(0D, start, 0D, end), x, axisY, null, color, lineWidth, OfficeStrokeDashStyle.Solid);
+        }
+    }
+
+    private static void AddHorizontalAxisMinorTickMarks(
+        OfficeDrawing drawing,
+        double plotLeft,
+        double axisY,
+        double plotWidth,
+        OfficeChartAxisTickMark tickMark,
+        OfficeColor color,
+        double lineWidth,
+        bool positiveOutside = true) {
+        if (tickMark == OfficeChartAxisTickMark.None) {
+            return;
+        }
+
+        (double start, double end) = GetAxisTickMarkOffsets(tickMark, positiveOutside);
+        for (int i = 1; i < 8; i += 2) {
+            double x = plotLeft + plotWidth * i / 8D;
+            AddShape(
+                drawing,
+                OfficeShape.Line(0D, start, 0D, end),
+                x,
+                axisY,
+                null,
+                color,
+                Math.Max(0.5D, lineWidth * 0.8D),
+                OfficeStrokeDashStyle.Solid);
+        }
+    }
+
+    private static void AddHorizontalValueAxisMinorTickMarks(
+        OfficeDrawing drawing,
+        double plotLeft,
+        double axisY,
+        double plotWidth,
+        ValueRange range,
+        IReadOnlyList<double> ticks,
+        OfficeChartAxisTickMark tickMark,
+        OfficeColor color,
+        double lineWidth,
+        bool positiveOutside = true) {
+        if (tickMark == OfficeChartAxisTickMark.None) {
+            return;
+        }
+
+        (double start, double end) = GetAxisTickMarkOffsets(tickMark, positiveOutside);
+        double minorLineWidth = Math.Max(0.5D, lineWidth * 0.8D);
+        foreach (double tick in ticks) {
+            double x = ToPlotX(tick, range.Min, range.Max, plotLeft, plotWidth);
+            AddShape(drawing, OfficeShape.Line(0D, start, 0D, end), x, axisY, null, color, minorLineWidth, OfficeStrokeDashStyle.Solid);
+        }
+    }
+
+    private static void AddVerticalAxisMajorTickMarks(
+        OfficeDrawing drawing,
+        double axisX,
+        double plotTop,
+        double plotHeight,
+        OfficeChartAxisTickMark tickMark,
+        OfficeColor color,
+        double lineWidth) {
+        if (tickMark == OfficeChartAxisTickMark.None) {
+            return;
+        }
+
+        (double start, double end) = GetAxisTickMarkOffsets(tickMark, positiveOutside: false);
+        for (int i = 0; i <= 4; i++) {
+            double y = plotTop + plotHeight * i / 4D;
+            AddShape(drawing, OfficeShape.Line(start, 0D, end, 0D), axisX, y, null, color, lineWidth, OfficeStrokeDashStyle.Solid);
+        }
+    }
+
+    private static void AddVerticalValueAxisMajorTickMarks(
+        OfficeDrawing drawing,
+        double axisX,
+        double plotTop,
+        double plotHeight,
+        ValueRange range,
+        IReadOnlyList<double> ticks,
+        OfficeChartAxisTickMark tickMark,
+        OfficeColor color,
+        double lineWidth) {
+        if (tickMark == OfficeChartAxisTickMark.None) {
+            return;
+        }
+
+        (double start, double end) = GetAxisTickMarkOffsets(tickMark, positiveOutside: false);
+        for (int i = ticks.Count - 1; i >= 0; i--) {
+            double tick = ticks[i];
+            double y = ToPlotY(tick, range.Min, range.Max, plotTop, plotHeight);
+            AddShape(drawing, OfficeShape.Line(start, 0D, end, 0D), axisX, y, null, color, lineWidth, OfficeStrokeDashStyle.Solid);
+        }
+    }
+
+    private static void AddVerticalValueAxisMinorTickMarks(
+        OfficeDrawing drawing,
+        double axisX,
+        double plotTop,
+        double plotHeight,
+        ValueRange range,
+        IReadOnlyList<double> ticks,
+        OfficeChartAxisTickMark tickMark,
+        OfficeColor color,
+        double lineWidth) {
+        if (tickMark == OfficeChartAxisTickMark.None) {
+            return;
+        }
+
+        (double start, double end) = GetAxisTickMarkOffsets(tickMark, positiveOutside: false);
+        double minorLineWidth = Math.Max(0.5D, lineWidth * 0.8D);
+        for (int i = ticks.Count - 1; i >= 0; i--) {
+            double tick = ticks[i];
+            double y = ToPlotY(tick, range.Min, range.Max, plotTop, plotHeight);
+            AddShape(drawing, OfficeShape.Line(start, 0D, end, 0D), axisX, y, null, color, minorLineWidth, OfficeStrokeDashStyle.Solid);
+        }
+    }
+
+    private static void AddVerticalAxisMinorTickMarks(
+        OfficeDrawing drawing,
+        double axisX,
+        double plotTop,
+        double plotHeight,
+        OfficeChartAxisTickMark tickMark,
+        OfficeColor color,
+        double lineWidth) {
+        if (tickMark == OfficeChartAxisTickMark.None) {
+            return;
+        }
+
+        (double start, double end) = GetAxisTickMarkOffsets(tickMark, positiveOutside: false);
+        for (int i = 1; i < 8; i += 2) {
+            double y = plotTop + plotHeight * i / 8D;
+            AddShape(
+                drawing,
+                OfficeShape.Line(start, 0D, end, 0D),
+                axisX,
+                y,
+                null,
+                color,
+                Math.Max(0.5D, lineWidth * 0.8D),
+                OfficeStrokeDashStyle.Solid);
+        }
+    }
+
+    private static (double Start, double End) GetAxisTickMarkOffsets(OfficeChartAxisTickMark tickMark, bool positiveOutside) {
+        const double tickLength = 4D;
+        double outside = positiveOutside ? tickLength : -tickLength;
+        double inside = -outside;
+        return tickMark switch {
+            OfficeChartAxisTickMark.Inside => (0D, inside),
+            OfficeChartAxisTickMark.Outside => (0D, outside),
+            OfficeChartAxisTickMark.Cross => (-tickLength / 2D, tickLength / 2D),
+            _ => (0D, 0D)
+        };
+    }
+
     private static OfficeColor GetSeriesColor(OfficeChartStyle style, IReadOnlyList<OfficeChartSeries> series, int index) {
         if (index >= 0 && index < series.Count && series[index].Color.HasValue) {
             return series[index].Color!.Value;
@@ -227,6 +805,87 @@ public static partial class OfficeChartDrawingRenderer {
     private static OfficeColor GetPointColor(OfficeChartStyle style, OfficeChartSeries series, int index) {
         OfficeColor fallbackColor = series.Color ?? GetPointColor(style, (IReadOnlyList<OfficeColor?>?)null, index);
         return GetPointColor(series.PointColors, index, fallbackColor);
+    }
+
+    private static double GetSeriesStrokeWidth(OfficeChartSeries series, double fallbackWidth) =>
+        series.StrokeWidth.HasValue ? Math.Max(0.1D, series.StrokeWidth.Value) : fallbackWidth;
+
+    private static OfficeStrokeDashStyle GetSeriesStrokeDashStyle(OfficeChartSeries series) =>
+        series.StrokeDashStyle ?? OfficeStrokeDashStyle.Solid;
+
+    private static double GetMarkerDiameter(OfficeChartSeries series, double fallbackDiameter) =>
+        series.MarkerSize.HasValue ? Math.Max(1D, series.MarkerSize.Value) : fallbackDiameter;
+
+    private static void AddMarker(OfficeDrawing drawing, OfficeChartSeries series, OfficePoint point, double fallbackDiameter, OfficeColor color, double strokeWidth) {
+        double diameter = GetMarkerDiameter(series, fallbackDiameter);
+        double left = point.X - diameter / 2D;
+        double top = point.Y - diameter / 2D;
+        OfficeColor markerStroke = series.MarkerOutlineColor ?? color;
+        double markerStrokeWidth = series.MarkerOutlineWidth ?? strokeWidth;
+        if (series.MarkerShape == OfficeChartMarkerShape.Dash) {
+            AddShape(drawing, OfficeShape.Line(0D, 0D, diameter, 0D), left, point.Y, null, markerStroke, markerStrokeWidth);
+            return;
+        }
+
+        if (series.MarkerShape == OfficeChartMarkerShape.Dot) {
+            double dotDiameter = Math.Max(1D, diameter * 0.45D);
+            double dotLeft = point.X - dotDiameter / 2D;
+            double dotTop = point.Y - dotDiameter / 2D;
+            AddShape(drawing, OfficeShape.Ellipse(dotDiameter, dotDiameter), dotLeft, dotTop, color, markerStroke, markerStrokeWidth);
+            return;
+        }
+
+        if (series.MarkerShape == OfficeChartMarkerShape.Plus) {
+            AddShape(drawing, OfficeShape.Line(0D, 0D, diameter, 0D), left, point.Y, null, markerStroke, markerStrokeWidth);
+            AddShape(drawing, OfficeShape.Line(0D, 0D, 0D, diameter), point.X, top, null, markerStroke, markerStrokeWidth);
+            return;
+        }
+
+        if (series.MarkerShape == OfficeChartMarkerShape.X) {
+            AddShape(drawing, OfficeShape.Line(0D, 0D, diameter, diameter), left, top, null, markerStroke, markerStrokeWidth);
+            AddShape(drawing, OfficeShape.Line(0D, diameter, diameter, 0D), left, top, null, markerStroke, markerStrokeWidth);
+            return;
+        }
+
+        OfficeShape shape;
+        switch (series.MarkerShape.GetValueOrDefault(OfficeChartMarkerShape.Circle)) {
+            case OfficeChartMarkerShape.Square:
+                shape = OfficeShape.Rectangle(diameter, diameter);
+                break;
+            case OfficeChartMarkerShape.Diamond:
+                shape = OfficeShape.Polygon(
+                    new OfficePoint(diameter / 2D, 0D),
+                    new OfficePoint(diameter, diameter / 2D),
+                    new OfficePoint(diameter / 2D, diameter),
+                    new OfficePoint(0D, diameter / 2D));
+                break;
+            case OfficeChartMarkerShape.Triangle:
+                shape = OfficeShape.Polygon(
+                    new OfficePoint(diameter / 2D, 0D),
+                    new OfficePoint(diameter, diameter),
+                    new OfficePoint(0D, diameter));
+                break;
+            case OfficeChartMarkerShape.Star:
+                if (!OfficeShapePresets.TryCreate("star5", diameter, diameter, out OfficeShape? star) || star == null) {
+                    shape = OfficeShape.Ellipse(diameter, diameter);
+                    break;
+                }
+
+                shape = star;
+                break;
+            default:
+                shape = OfficeShape.Ellipse(diameter, diameter);
+                break;
+        }
+
+        AddShape(
+            drawing,
+            shape,
+            left,
+            top,
+            color,
+            markerStroke,
+            markerStrokeWidth);
     }
 
     private static IReadOnlyList<OfficeColor?> GetCategoryPointColors(OfficeChartStyle style, OfficeChartSeries series, int categoryCount) {
@@ -272,8 +931,10 @@ public static partial class OfficeChartDrawingRenderer {
             : stacked
                 ? GetStackedSeriesRange(series, categories.Count)
                 : GetCartesianValueRange(snapshot);
-        double min = Math.Min(0D, range.Min);
-        double max = Math.Max(0D, range.Max);
+        range = ApplyValueAxisScale(range, layout, horizontal);
+        bool hasValueAxisScale = HasValueAxisScale(layout, horizontal);
+        double min = hasValueAxisScale ? range.Min : Math.Min(0D, range.Min);
+        double max = hasValueAxisScale ? range.Max : Math.Max(0D, range.Max);
         if (max <= min) {
             max = min + 1D;
         }
@@ -339,7 +1000,8 @@ public static partial class OfficeChartDrawingRenderer {
                         s,
                         category);
                 } else {
-                    double x = plotLeft + slot * category + (slot - groupWidth) / 2D + (stacked ? 0D : barWidth * s);
+                    int categorySlotIndex = GetCategorySlotIndex(category, categories.Count, layout);
+                    double x = plotLeft + slot * categorySlotIndex + (slot - groupWidth) / 2D + (stacked ? 0D : barWidth * s);
                     double y1 = ToPlotY(baseline, min, max, plotTop, plotHeight);
                     double y2 = ToPlotY(stacked ? baseline + plottedValue : plottedValue, min, max, plotTop, plotHeight);
                     double y = Math.Min(y1, y2);
@@ -379,20 +1041,23 @@ public static partial class OfficeChartDrawingRenderer {
             ? GetPercentStackedSeriesRange(series, categories.Count)
             : stacked
                 ? GetStackedSeriesRange(series, categories.Count)
-                : GetCartesianValueRange(snapshot);
+                : GetCartesianValueRange(snapshot, layout, horizontalValueAxis: false);
+        range = ApplyValueAxisScale(range, layout, horizontal: false);
         double step = plotWidth / (categories.Count - 1);
         var positiveCumulative = new double[categories.Count];
         var negativeCumulative = new double[categories.Count];
 
         for (int s = 0; s < series.Count; s++) {
             OfficeColor color = GetSeriesColor(style, series, s);
+            double strokeWidth = GetSeriesStrokeWidth(series[s], 1.4D);
+            OfficeStrokeDashStyle dashStyle = GetSeriesStrokeDashStyle(series[s]);
             var topPoints = new List<OfficePoint>(categories.Count);
             var bottomPoints = new List<OfficePoint>(categories.Count);
             var runCategoryIndices = new List<int>(categories.Count);
 
             for (int i = 0; i < categories.Count; i++) {
                 if (!TryGetSeriesValue(series[s], i, out double value)) {
-                    AddAreaRun(drawing, topPoints, bottomPoints, color);
+                    AddAreaRun(drawing, topPoints, bottomPoints, color, strokeWidth, dashStyle);
                     AddAreaRunDataLabels(drawing, layout, style, categories, series, s, runCategoryIndices, topPoints);
                     topPoints.Clear();
                     bottomPoints.Clear();
@@ -406,7 +1071,7 @@ public static partial class OfficeChartDrawingRenderer {
                     : 0D;
                 double topValue = baseline + rawValue;
 
-                double x = plotLeft + step * i;
+                double x = GetCategoryPointX(plotLeft, step, i, categories.Count, layout);
                 topPoints.Add(new OfficePoint(x, ToPlotY(topValue, range.Min, range.Max, plotTop, plotHeight)));
                 bottomPoints.Add(new OfficePoint(x, ToPlotY(baseline, range.Min, range.Max, plotTop, plotHeight)));
                 runCategoryIndices.Add(i);
@@ -421,12 +1086,12 @@ public static partial class OfficeChartDrawingRenderer {
                 }
             }
 
-            AddAreaRun(drawing, topPoints, bottomPoints, color);
+            AddAreaRun(drawing, topPoints, bottomPoints, color, strokeWidth, dashStyle);
             AddAreaRunDataLabels(drawing, layout, style, categories, series, s, runCategoryIndices, topPoints);
         }
     }
 
-    private static void AddAreaRun(OfficeDrawing drawing, IReadOnlyList<OfficePoint> topPoints, IReadOnlyList<OfficePoint> bottomPoints, OfficeColor color) {
+    private static void AddAreaRun(OfficeDrawing drawing, IReadOnlyList<OfficePoint> topPoints, IReadOnlyList<OfficePoint> bottomPoints, OfficeColor color, double strokeWidth, OfficeStrokeDashStyle dashStyle) {
         if (topPoints.Count < 2 || bottomPoints.Count != topPoints.Count) {
             return;
         }
@@ -438,7 +1103,7 @@ public static partial class OfficeChartDrawingRenderer {
         }
 
         AddPolygonShape(drawing, areaPoints, color, color, 0.5D, 0.32D);
-        AddPointLine(drawing, topPoints, color, 1.4D);
+        AddPointLine(drawing, topPoints, color, strokeWidth, dashStyle);
     }
 
     private static void AddAreaRunDataLabels(
@@ -485,12 +1150,15 @@ public static partial class OfficeChartDrawingRenderer {
             ? GetPercentStackedSeriesRange(series, categories.Count)
             : stacked
                 ? GetStackedSeriesRange(series, categories.Count)
-                : GetCartesianValueRange(snapshot);
+                : GetCartesianValueRange(snapshot, layout, horizontalValueAxis: false);
+        range = ApplyValueAxisScale(range, layout, horizontal: false);
         double step = categories.Count > 1 ? plotWidth / (categories.Count - 1) : 0D;
         var positiveCumulative = new double[categories.Count];
         var negativeCumulative = new double[categories.Count];
         for (int s = 0; s < series.Count; s++) {
             OfficeColor color = GetSeriesColor(style, series, s);
+            double strokeWidth = GetSeriesStrokeWidth(series[s], 1.75D);
+            OfficeStrokeDashStyle dashStyle = GetSeriesStrokeDashStyle(series[s]);
             var points = new OfficePoint[categories.Count];
             var plotted = new bool[categories.Count];
             for (int i = 0; i < categories.Count; i++) {
@@ -504,7 +1172,7 @@ public static partial class OfficeChartDrawingRenderer {
                     : 0D;
                 double plottedValue = stacked ? baseline + rawValue : value;
 
-                points[i] = new OfficePoint(plotLeft + step * i, ToPlotY(plottedValue, range.Min, range.Max, plotTop, plotHeight));
+                points[i] = new OfficePoint(GetCategoryPointX(plotLeft, step, i, categories.Count, layout), ToPlotY(plottedValue, range.Min, range.Max, plotTop, plotHeight));
                 plotted[i] = true;
             }
 
@@ -520,7 +1188,7 @@ public static partial class OfficeChartDrawingRenderer {
                     double y2 = points[i].Y;
                     double minX = Math.Min(x1, x2);
                     double minY = Math.Min(y1, y2);
-                    AddShape(drawing, OfficeShape.Line(x1 - minX, y1 - minY, x2 - minX, y2 - minY), minX, minY, null, color, 1.75D);
+                    AddShape(drawing, OfficeShape.Line(x1 - minX, y1 - minY, x2 - minX, y2 - minY), minX, minY, null, color, strokeWidth, dashStyle);
                 }
             }
 
@@ -530,10 +1198,8 @@ public static partial class OfficeChartDrawingRenderer {
                 }
 
                 if (layout.ShowMarkers && series[s].ShowMarkers) {
-                    double x = points[i].X - 2D;
-                    double y = points[i].Y - 2D;
                     OfficeColor pointColor = GetPointColor(series[s].PointColors, i, color);
-                    AddShape(drawing, OfficeShape.Ellipse(4D, 4D), x, y, pointColor, pointColor, 1D);
+                    AddMarker(drawing, series[s], points[i], 4D, pointColor, 1D);
                 }
 
                 double value = GetSeriesValue(series[s], i);
@@ -576,10 +1242,12 @@ public static partial class OfficeChartDrawingRenderer {
         }
 
         IReadOnlyList<double> sharedXValues = GetScatterXValues(categories);
-        ValueRange xRange = GetScatterXRange(series, sharedXValues);
-        ValueRange yRange = GetFiniteSeriesRange(series);
+        ValueRange xRange = ApplyValueAxisScale(GetScatterXRange(series, sharedXValues), layout, horizontal: true);
+        ValueRange yRange = ApplyValueAxisScale(GetFiniteSeriesRange(series), layout, horizontal: false);
         for (int s = 0; s < series.Count; s++) {
             OfficeColor color = GetSeriesColor(style, series, s);
+            double strokeWidth = GetSeriesStrokeWidth(series[s], 1.25D);
+            OfficeStrokeDashStyle dashStyle = GetSeriesStrokeDashStyle(series[s]);
             IReadOnlyList<double> xValues = series[s].XValues ?? sharedXValues;
             int pointCount = Math.Min(xValues.Count, series[s].Values.Count);
             var points = new List<(OfficePoint Point, int SourceIndex)>(pointCount);
@@ -587,7 +1255,7 @@ public static partial class OfficeChartDrawingRenderer {
             for (int i = 0; i < pointCount; i++) {
                 if (!TryGetSeriesValue(series[s], i, out double yValue)) {
                     if (layout.ConnectScatterPoints && series[s].ConnectLine) {
-                        AddPointLine(drawing, lineSegment, color, 1.25D);
+                        AddPointLine(drawing, lineSegment, color, strokeWidth, dashStyle);
                     }
 
                     lineSegment.Clear();
@@ -597,7 +1265,7 @@ public static partial class OfficeChartDrawingRenderer {
                 double xValue = xValues[i];
                 if (!IsFiniteChartValue(xValue)) {
                     if (layout.ConnectScatterPoints && series[s].ConnectLine) {
-                        AddPointLine(drawing, lineSegment, color, 1.25D);
+                        AddPointLine(drawing, lineSegment, color, strokeWidth, dashStyle);
                     }
 
                     lineSegment.Clear();
@@ -614,13 +1282,13 @@ public static partial class OfficeChartDrawingRenderer {
             }
 
             if (layout.ConnectScatterPoints && series[s].ConnectLine) {
-                AddPointLine(drawing, lineSegment, color, 1.25D);
+                AddPointLine(drawing, lineSegment, color, strokeWidth, dashStyle);
             }
             for (int i = 0; i < points.Count; i++) {
                 OfficePoint point = points[i].Point;
                 if (layout.ShowMarkers && series[s].ShowMarkers) {
                     OfficeColor pointColor = GetPointColor(series[s].PointColors, points[i].SourceIndex, color);
-                    AddShape(drawing, OfficeShape.Ellipse(5D, 5D), point.X - 2.5D, point.Y - 2.5D, pointColor, pointColor, 1.25D);
+                    AddMarker(drawing, series[s], point, 5D, pointColor, 1.25D);
                 }
 
                 int pointIndex = points[i].SourceIndex;
@@ -682,6 +1350,8 @@ public static partial class OfficeChartDrawingRenderer {
 
         for (int s = 0; s < series.Count; s++) {
             OfficeColor color = GetSeriesColor(style, series, s);
+            double strokeWidth = GetSeriesStrokeWidth(series[s], 1D);
+            OfficeStrokeDashStyle dashStyle = GetSeriesStrokeDashStyle(series[s]);
             var points = new OfficePoint[categories.Count];
             var plotted = new bool[categories.Count];
             bool allPointsPlotted = true;
@@ -697,14 +1367,18 @@ public static partial class OfficeChartDrawingRenderer {
             }
 
             if (allPointsPlotted && series[s].ConnectLine) {
-                AddPolygonShape(drawing, points, layout.FillRadarSeries ? color : null, color, 1D, layout.FillRadarSeries ? 0.18D : 1D);
+                if (layout.FillRadarSeries) {
+                    AddPolygonShape(drawing, points, color, null, 0D, 0.18D);
+                }
+
+                AddPointLine(drawing, ClosePolyline(points), color, strokeWidth, dashStyle);
             } else if (series[s].ConnectLine) {
                 for (int i = 1; i < categories.Count; i++) {
                     if (!plotted[i - 1] || !plotted[i]) {
                         continue;
                     }
 
-                    AddPointLine(drawing, new[] { points[i - 1], points[i] }, color, 1D);
+                    AddPointLine(drawing, new[] { points[i - 1], points[i] }, color, strokeWidth, dashStyle);
                 }
             }
 
@@ -716,7 +1390,7 @@ public static partial class OfficeChartDrawingRenderer {
 
                     OfficePoint point = points[i];
                     OfficeColor pointColor = GetPointColor(series[s].PointColors, i, color);
-                    AddShape(drawing, OfficeShape.Ellipse(4D, 4D), point.X - 2D, point.Y - 2D, pointColor, pointColor, 1D);
+                    AddMarker(drawing, series[s], point, 4D, pointColor, 1D);
                 }
             }
 
@@ -972,7 +1646,7 @@ public static partial class OfficeChartDrawingRenderer {
             y += zeroLabelIndex.Value * (labelHeight + 1D);
         }
 
-        AddChartText(drawing, label, x, y, labelWidth, labelHeight, layout.DataLabelFontSize, labelColor, OfficeTextAlignment.Center, style);
+        AddChartText(drawing, label, x, y, labelWidth, labelHeight, layout.DataLabelFontSize, GetDataLabelTextColor(style, labelColor), OfficeTextAlignment.Center, style, layout.DataLabelFontFamily, layout.DataLabelFontStyle);
     }
 
     private static OfficeColor GetReadableDataLabelColor(OfficeColor fillColor) {
@@ -1034,10 +1708,11 @@ public static partial class OfficeChartDrawingRenderer {
         AddPolygonShape(drawing, points, color, OfficeColor.White, 0.5D);
     }
 
-    private static void AddShape(OfficeDrawing drawing, OfficeShape shape, double x, double y, OfficeColor? fill, OfficeColor? stroke, double strokeWidth) {
+    private static void AddShape(OfficeDrawing drawing, OfficeShape shape, double x, double y, OfficeColor? fill, OfficeColor? stroke, double strokeWidth, OfficeStrokeDashStyle dashStyle = OfficeStrokeDashStyle.Solid) {
         shape.FillColor = fill;
         shape.StrokeColor = stroke;
         shape.StrokeWidth = strokeWidth;
+        shape.StrokeDashStyle = dashStyle;
         drawing.AddShape(shape, x, y);
     }
 
@@ -1078,7 +1753,20 @@ public static partial class OfficeChartDrawingRenderer {
         AddShape(drawing, shape, minX, minY, fill, stroke, strokeWidth);
     }
 
-    private static void AddPointLine(OfficeDrawing drawing, IReadOnlyList<OfficePoint> points, OfficeColor color, double strokeWidth) {
+    private static IReadOnlyList<OfficePoint> ClosePolyline(IReadOnlyList<OfficePoint> points) {
+        var closed = new List<OfficePoint>(points.Count + 1);
+        for (int i = 0; i < points.Count; i++) {
+            closed.Add(points[i]);
+        }
+
+        if (points.Count > 0) {
+            closed.Add(points[0]);
+        }
+
+        return closed;
+    }
+
+    private static void AddPointLine(OfficeDrawing drawing, IReadOnlyList<OfficePoint> points, OfficeColor color, double strokeWidth, OfficeStrokeDashStyle dashStyle = OfficeStrokeDashStyle.Solid) {
         for (int i = 1; i < points.Count; i++) {
             OfficePoint previous = points[i - 1];
             OfficePoint current = points[i];
@@ -1095,8 +1783,75 @@ public static partial class OfficeChartDrawingRenderer {
                 minY,
                 null,
                 color,
-                strokeWidth);
+                strokeWidth,
+                dashStyle);
         }
     }
+
+    private static OfficeColor GetCategoryAxisColor(OfficeChartStyle style) =>
+        style.CategoryAxisColor ?? style.AxisColor;
+
+    private static OfficeColor GetValueAxisColor(OfficeChartStyle style) =>
+        style.ValueAxisColor ?? style.AxisColor;
+
+    private static double GetCategoryAxisLineWidth(OfficeChartStyle style) =>
+        style.CategoryAxisLineWidth ?? style.AxisLineWidth ?? 0.75D;
+
+    private static double GetValueAxisLineWidth(OfficeChartStyle style) =>
+        style.ValueAxisLineWidth ?? style.AxisLineWidth ?? 0.75D;
+
+    private static OfficeStrokeDashStyle GetCategoryAxisLineDashStyle(OfficeChartStyle style) =>
+        style.CategoryAxisLineDashStyle ?? style.AxisLineDashStyle ?? OfficeStrokeDashStyle.Solid;
+
+    private static OfficeStrokeDashStyle GetValueAxisLineDashStyle(OfficeChartStyle style) =>
+        style.ValueAxisLineDashStyle ?? style.AxisLineDashStyle ?? OfficeStrokeDashStyle.Solid;
+
+    private static bool GetShowCategoryGridLines(OfficeChartStyle style) =>
+        style.ShowCategoryGridLines.GetValueOrDefault(false);
+
+    private static bool GetShowValueGridLines(OfficeChartStyle style) =>
+        style.ShowValueGridLines ?? style.ShowGridLines;
+
+    private static bool GetShowCategoryMinorGridLines(OfficeChartStyle style) =>
+        style.ShowCategoryMinorGridLines.GetValueOrDefault(false);
+
+    private static bool GetShowValueMinorGridLines(OfficeChartStyle style) =>
+        style.ShowValueMinorGridLines.GetValueOrDefault(false);
+
+    private static OfficeColor GetCategoryGridLineColor(OfficeChartStyle style) =>
+        style.CategoryGridLineColor ?? style.GridLineColor;
+
+    private static OfficeColor GetValueGridLineColor(OfficeChartStyle style) =>
+        style.ValueGridLineColor ?? style.GridLineColor;
+
+    private static OfficeColor GetCategoryMinorGridLineColor(OfficeChartStyle style) =>
+        style.CategoryMinorGridLineColor ?? GetCategoryGridLineColor(style);
+
+    private static OfficeColor GetValueMinorGridLineColor(OfficeChartStyle style) =>
+        style.ValueMinorGridLineColor ?? GetValueGridLineColor(style);
+
+    private static double GetCategoryGridLineWidth(OfficeChartStyle style) =>
+        style.CategoryGridLineWidth ?? style.GridLineWidth ?? 0.5D;
+
+    private static double GetValueGridLineWidth(OfficeChartStyle style) =>
+        style.ValueGridLineWidth ?? style.GridLineWidth ?? 0.5D;
+
+    private static double GetCategoryMinorGridLineWidth(OfficeChartStyle style) =>
+        style.CategoryMinorGridLineWidth ?? GetCategoryGridLineWidth(style);
+
+    private static double GetValueMinorGridLineWidth(OfficeChartStyle style) =>
+        style.ValueMinorGridLineWidth ?? GetValueGridLineWidth(style);
+
+    private static OfficeStrokeDashStyle GetCategoryGridLineDashStyle(OfficeChartStyle style) =>
+        style.CategoryGridLineDashStyle ?? style.GridLineDashStyle ?? OfficeStrokeDashStyle.Solid;
+
+    private static OfficeStrokeDashStyle GetValueGridLineDashStyle(OfficeChartStyle style) =>
+        style.ValueGridLineDashStyle ?? style.GridLineDashStyle ?? OfficeStrokeDashStyle.Solid;
+
+    private static OfficeStrokeDashStyle GetCategoryMinorGridLineDashStyle(OfficeChartStyle style) =>
+        style.CategoryMinorGridLineDashStyle ?? GetCategoryGridLineDashStyle(style);
+
+    private static OfficeStrokeDashStyle GetValueMinorGridLineDashStyle(OfficeChartStyle style) =>
+        style.ValueMinorGridLineDashStyle ?? GetValueGridLineDashStyle(style);
 
 }

@@ -21,7 +21,9 @@ public sealed class OfficeChartLayout {
     /// <param name="legendSwatchSize">Legend color swatch size.</param>
     /// <param name="legendTextGap">Gap between a legend swatch and its label.</param>
     /// <param name="legendFontSize">Legend label font size.</param>
+    /// <param name="legendFontFamily">Optional legend label font family.</param>
     /// <param name="axisLabelFontSize">Axis label font size.</param>
+    /// <param name="axisTextFontFamily">Optional axis label/title font family.</param>
     /// <param name="categoryAxisLabelWidth">Maximum category-axis label width.</param>
     /// <param name="radarCategoryLabelWidth">Maximum radar category label width.</param>
     /// <param name="maximumCategoryAxisLabels">Maximum number of category-axis labels to render on cartesian charts.</param>
@@ -37,6 +39,7 @@ public sealed class OfficeChartLayout {
     /// <param name="showDataLabelSeriesNames">Whether point data labels should include series names.</param>
     /// <param name="dataLabelSeparator">Separator used between enabled data label parts.</param>
     /// <param name="dataLabelFontSize">Data label font size.</param>
+    /// <param name="dataLabelFontFamily">Optional data label font family.</param>
     /// <param name="dataLabelPosition">Preferred data label position when labels are rendered.</param>
     /// <param name="dataLabelNumberFormat">Optional numeric format for data-label values.</param>
     /// <param name="showMarkers">Whether point markers should be rendered for marker-capable chart families.</param>
@@ -53,8 +56,35 @@ public sealed class OfficeChartLayout {
     /// <param name="showValueAxisLine">Whether the value or vertical axis line should be rendered.</param>
     /// <param name="showCategoryAxisLabels">Whether category or horizontal tick labels should be rendered.</param>
     /// <param name="showValueAxisLabels">Whether value or vertical tick labels should be rendered.</param>
+    /// <param name="horizontalAxisTickLabelPosition">Preferred tick-label side for the physical horizontal axis.</param>
+    /// <param name="verticalAxisTickLabelPosition">Preferred tick-label side for the physical vertical axis.</param>
+    /// <param name="horizontalAxisCrossingPosition">Physical crossing side for the horizontal axis.</param>
+    /// <param name="verticalAxisCrossingPosition">Physical crossing side for the vertical axis.</param>
+    /// <param name="reverseCategoryAxis">Whether category-axis slots should be rendered in reverse order.</param>
     /// <param name="overlayTitle">Whether the title should overlay the plot instead of reserving layout space.</param>
     /// <param name="titleTopPadding">Top padding before the chart title inside the chart canvas.</param>
+    /// <param name="legendFontStyle">Optional legend label font style.</param>
+    /// <param name="axisTextFontStyle">Optional axis label font style and axis title fallback style.</param>
+    /// <param name="dataLabelFontStyle">Optional data label font style.</param>
+    /// <param name="axisTitleFontSize">Optional axis title font size.</param>
+    /// <param name="axisTitleFontFamily">Optional axis title font family.</param>
+    /// <param name="axisTitleFontStyle">Optional axis title font style.</param>
+    /// <param name="horizontalAxisDisplayUnitDivisor">Optional divisor applied to horizontal value-axis labels.</param>
+    /// <param name="horizontalAxisDisplayUnitLabel">Optional display-unit label shown for horizontal value axes.</param>
+    /// <param name="verticalAxisDisplayUnitDivisor">Optional divisor applied to vertical value-axis labels.</param>
+    /// <param name="verticalAxisDisplayUnitLabel">Optional display-unit label shown for vertical value axes.</param>
+    /// <param name="horizontalAxisMinimum">Optional minimum for horizontal value axes.</param>
+    /// <param name="horizontalAxisMaximum">Optional maximum for horizontal value axes.</param>
+    /// <param name="horizontalAxisMajorUnit">Optional major tick/grid unit for horizontal value axes.</param>
+    /// <param name="horizontalAxisMinorUnit">Optional minor tick/grid unit for horizontal value axes.</param>
+    /// <param name="verticalAxisMinimum">Optional minimum for vertical value axes.</param>
+    /// <param name="verticalAxisMaximum">Optional maximum for vertical value axes.</param>
+    /// <param name="verticalAxisMajorUnit">Optional major tick/grid unit for vertical value axes.</param>
+    /// <param name="verticalAxisMinorUnit">Optional minor tick/grid unit for vertical value axes.</param>
+    /// <param name="horizontalAxisMajorTickMark">Optional major tick mark placement for the horizontal axis.</param>
+    /// <param name="verticalAxisMajorTickMark">Optional major tick mark placement for the vertical axis.</param>
+    /// <param name="horizontalAxisMinorTickMark">Optional minor tick mark placement for the horizontal axis.</param>
+    /// <param name="verticalAxisMinorTickMark">Optional minor tick mark placement for the vertical axis.</param>
     public OfficeChartLayout(
         double? seriesLegendWidthRatio = null,
         double? categoryLegendWidthRatio = null,
@@ -62,7 +92,9 @@ public sealed class OfficeChartLayout {
         double? legendSwatchSize = null,
         double? legendTextGap = null,
         double? legendFontSize = null,
+        string? legendFontFamily = null,
         double? axisLabelFontSize = null,
+        string? axisTextFontFamily = null,
         double? categoryAxisLabelWidth = null,
         double? radarCategoryLabelWidth = null,
         int? maximumCategoryAxisLabels = null,
@@ -78,6 +110,7 @@ public sealed class OfficeChartLayout {
         bool showDataLabelSeriesNames = false,
         string? dataLabelSeparator = null,
         double? dataLabelFontSize = null,
+        string? dataLabelFontFamily = null,
         OfficeChartDataLabelPosition dataLabelPosition = OfficeChartDataLabelPosition.Auto,
         string? dataLabelNumberFormat = null,
         bool showMarkers = true,
@@ -94,8 +127,35 @@ public sealed class OfficeChartLayout {
         bool showValueAxisLine = true,
         bool showCategoryAxisLabels = true,
         bool showValueAxisLabels = true,
+        OfficeChartAxisTickLabelPosition horizontalAxisTickLabelPosition = OfficeChartAxisTickLabelPosition.NextTo,
+        OfficeChartAxisTickLabelPosition verticalAxisTickLabelPosition = OfficeChartAxisTickLabelPosition.NextTo,
+        OfficeChartAxisCrossingPosition horizontalAxisCrossingPosition = OfficeChartAxisCrossingPosition.AutoZero,
+        OfficeChartAxisCrossingPosition verticalAxisCrossingPosition = OfficeChartAxisCrossingPosition.AutoZero,
+        bool reverseCategoryAxis = false,
         bool overlayTitle = false,
-        double? titleTopPadding = null)
+        double? titleTopPadding = null,
+        OfficeFontStyle? legendFontStyle = null,
+        OfficeFontStyle? axisTextFontStyle = null,
+        OfficeFontStyle? dataLabelFontStyle = null,
+        double? axisTitleFontSize = null,
+        string? axisTitleFontFamily = null,
+        OfficeFontStyle? axisTitleFontStyle = null,
+        double? horizontalAxisDisplayUnitDivisor = null,
+        string? horizontalAxisDisplayUnitLabel = null,
+        double? verticalAxisDisplayUnitDivisor = null,
+        string? verticalAxisDisplayUnitLabel = null,
+        double? horizontalAxisMinimum = null,
+        double? horizontalAxisMaximum = null,
+        double? horizontalAxisMajorUnit = null,
+        double? horizontalAxisMinorUnit = null,
+        double? verticalAxisMinimum = null,
+        double? verticalAxisMaximum = null,
+        double? verticalAxisMajorUnit = null,
+        double? verticalAxisMinorUnit = null,
+        OfficeChartAxisTickMark horizontalAxisMajorTickMark = OfficeChartAxisTickMark.None,
+        OfficeChartAxisTickMark verticalAxisMajorTickMark = OfficeChartAxisTickMark.None,
+        OfficeChartAxisTickMark horizontalAxisMinorTickMark = OfficeChartAxisTickMark.None,
+        OfficeChartAxisTickMark verticalAxisMinorTickMark = OfficeChartAxisTickMark.None)
         : this(
             overlayLegend: false,
             seriesLegendWidthRatio: seriesLegendWidthRatio,
@@ -104,7 +164,9 @@ public sealed class OfficeChartLayout {
             legendSwatchSize: legendSwatchSize,
             legendTextGap: legendTextGap,
             legendFontSize: legendFontSize,
+            legendFontFamily: legendFontFamily,
             axisLabelFontSize: axisLabelFontSize,
+            axisTextFontFamily: axisTextFontFamily,
             categoryAxisLabelWidth: categoryAxisLabelWidth,
             radarCategoryLabelWidth: radarCategoryLabelWidth,
             maximumCategoryAxisLabels: maximumCategoryAxisLabels,
@@ -120,6 +182,7 @@ public sealed class OfficeChartLayout {
             showDataLabelSeriesNames: showDataLabelSeriesNames,
             dataLabelSeparator: dataLabelSeparator,
             dataLabelFontSize: dataLabelFontSize,
+            dataLabelFontFamily: dataLabelFontFamily,
             dataLabelPosition: dataLabelPosition,
             dataLabelNumberFormat: dataLabelNumberFormat,
             showMarkers: showMarkers,
@@ -136,8 +199,35 @@ public sealed class OfficeChartLayout {
             showValueAxisLine: showValueAxisLine,
             showCategoryAxisLabels: showCategoryAxisLabels,
             showValueAxisLabels: showValueAxisLabels,
+            horizontalAxisTickLabelPosition: horizontalAxisTickLabelPosition,
+            verticalAxisTickLabelPosition: verticalAxisTickLabelPosition,
+            horizontalAxisCrossingPosition: horizontalAxisCrossingPosition,
+            verticalAxisCrossingPosition: verticalAxisCrossingPosition,
+            reverseCategoryAxis: reverseCategoryAxis,
             overlayTitle: overlayTitle,
-            titleTopPadding: titleTopPadding) {
+            titleTopPadding: titleTopPadding,
+            legendFontStyle: legendFontStyle,
+            axisTextFontStyle: axisTextFontStyle,
+            dataLabelFontStyle: dataLabelFontStyle,
+            axisTitleFontSize: axisTitleFontSize,
+            axisTitleFontFamily: axisTitleFontFamily,
+            axisTitleFontStyle: axisTitleFontStyle,
+            horizontalAxisDisplayUnitDivisor: horizontalAxisDisplayUnitDivisor,
+            horizontalAxisDisplayUnitLabel: horizontalAxisDisplayUnitLabel,
+            verticalAxisDisplayUnitDivisor: verticalAxisDisplayUnitDivisor,
+            verticalAxisDisplayUnitLabel: verticalAxisDisplayUnitLabel,
+            horizontalAxisMinimum: horizontalAxisMinimum,
+            horizontalAxisMaximum: horizontalAxisMaximum,
+            horizontalAxisMajorUnit: horizontalAxisMajorUnit,
+            horizontalAxisMinorUnit: horizontalAxisMinorUnit,
+            verticalAxisMinimum: verticalAxisMinimum,
+            verticalAxisMaximum: verticalAxisMaximum,
+            verticalAxisMajorUnit: verticalAxisMajorUnit,
+            verticalAxisMinorUnit: verticalAxisMinorUnit,
+            horizontalAxisMajorTickMark: horizontalAxisMajorTickMark,
+            verticalAxisMajorTickMark: verticalAxisMajorTickMark,
+            horizontalAxisMinorTickMark: horizontalAxisMinorTickMark,
+            verticalAxisMinorTickMark: verticalAxisMinorTickMark) {
     }
 
     /// <summary>
@@ -150,7 +240,9 @@ public sealed class OfficeChartLayout {
     /// <param name="legendSwatchSize">Legend color swatch size.</param>
     /// <param name="legendTextGap">Gap between a legend swatch and its label.</param>
     /// <param name="legendFontSize">Legend label font size.</param>
+    /// <param name="legendFontFamily">Optional legend label font family.</param>
     /// <param name="axisLabelFontSize">Axis label font size.</param>
+    /// <param name="axisTextFontFamily">Optional axis label font family and axis title fallback family.</param>
     /// <param name="categoryAxisLabelWidth">Maximum category-axis label width.</param>
     /// <param name="radarCategoryLabelWidth">Maximum radar category label width.</param>
     /// <param name="maximumCategoryAxisLabels">Maximum number of category-axis labels to render on cartesian charts.</param>
@@ -166,6 +258,7 @@ public sealed class OfficeChartLayout {
     /// <param name="showDataLabelSeriesNames">Whether point data labels should include series names.</param>
     /// <param name="dataLabelSeparator">Separator used between enabled data label parts.</param>
     /// <param name="dataLabelFontSize">Data label font size.</param>
+    /// <param name="dataLabelFontFamily">Optional data label font family.</param>
     /// <param name="dataLabelPosition">Preferred data label position when labels are rendered.</param>
     /// <param name="dataLabelNumberFormat">Optional numeric format for data-label values.</param>
     /// <param name="showMarkers">Whether point markers should be rendered for marker-capable chart families.</param>
@@ -182,8 +275,35 @@ public sealed class OfficeChartLayout {
     /// <param name="showValueAxisLine">Whether the value or vertical axis line should be rendered.</param>
     /// <param name="showCategoryAxisLabels">Whether category or horizontal tick labels should be rendered.</param>
     /// <param name="showValueAxisLabels">Whether value or vertical tick labels should be rendered.</param>
+    /// <param name="horizontalAxisTickLabelPosition">Preferred tick-label side for the physical horizontal axis.</param>
+    /// <param name="verticalAxisTickLabelPosition">Preferred tick-label side for the physical vertical axis.</param>
+    /// <param name="horizontalAxisCrossingPosition">Physical crossing side for the horizontal axis.</param>
+    /// <param name="verticalAxisCrossingPosition">Physical crossing side for the vertical axis.</param>
+    /// <param name="reverseCategoryAxis">Whether category-axis slots should be rendered in reverse order.</param>
     /// <param name="overlayTitle">Whether the title should overlay the plot instead of reserving layout space.</param>
     /// <param name="titleTopPadding">Top padding before the chart title inside the chart canvas.</param>
+    /// <param name="legendFontStyle">Optional legend label font style.</param>
+    /// <param name="axisTextFontStyle">Optional axis label font style and axis title fallback style.</param>
+    /// <param name="dataLabelFontStyle">Optional data label font style.</param>
+    /// <param name="axisTitleFontSize">Optional axis title font size.</param>
+    /// <param name="axisTitleFontFamily">Optional axis title font family.</param>
+    /// <param name="axisTitleFontStyle">Optional axis title font style.</param>
+    /// <param name="horizontalAxisDisplayUnitDivisor">Optional divisor applied to horizontal value-axis labels.</param>
+    /// <param name="horizontalAxisDisplayUnitLabel">Optional display-unit label shown for horizontal value axes.</param>
+    /// <param name="verticalAxisDisplayUnitDivisor">Optional divisor applied to vertical value-axis labels.</param>
+    /// <param name="verticalAxisDisplayUnitLabel">Optional display-unit label shown for vertical value axes.</param>
+    /// <param name="horizontalAxisMinimum">Optional minimum for horizontal value axes.</param>
+    /// <param name="horizontalAxisMaximum">Optional maximum for horizontal value axes.</param>
+    /// <param name="horizontalAxisMajorUnit">Optional major tick/grid unit for horizontal value axes.</param>
+    /// <param name="horizontalAxisMinorUnit">Optional minor tick/grid unit for horizontal value axes.</param>
+    /// <param name="verticalAxisMinimum">Optional minimum for vertical value axes.</param>
+    /// <param name="verticalAxisMaximum">Optional maximum for vertical value axes.</param>
+    /// <param name="verticalAxisMajorUnit">Optional major tick/grid unit for vertical value axes.</param>
+    /// <param name="verticalAxisMinorUnit">Optional minor tick/grid unit for vertical value axes.</param>
+    /// <param name="horizontalAxisMajorTickMark">Optional major tick mark placement for the horizontal axis.</param>
+    /// <param name="verticalAxisMajorTickMark">Optional major tick mark placement for the vertical axis.</param>
+    /// <param name="horizontalAxisMinorTickMark">Optional minor tick mark placement for the horizontal axis.</param>
+    /// <param name="verticalAxisMinorTickMark">Optional minor tick mark placement for the vertical axis.</param>
     public OfficeChartLayout(
         bool overlayLegend,
         double? seriesLegendWidthRatio = null,
@@ -192,7 +312,9 @@ public sealed class OfficeChartLayout {
         double? legendSwatchSize = null,
         double? legendTextGap = null,
         double? legendFontSize = null,
+        string? legendFontFamily = null,
         double? axisLabelFontSize = null,
+        string? axisTextFontFamily = null,
         double? categoryAxisLabelWidth = null,
         double? radarCategoryLabelWidth = null,
         int? maximumCategoryAxisLabels = null,
@@ -208,6 +330,7 @@ public sealed class OfficeChartLayout {
         bool showDataLabelSeriesNames = false,
         string? dataLabelSeparator = null,
         double? dataLabelFontSize = null,
+        string? dataLabelFontFamily = null,
         OfficeChartDataLabelPosition dataLabelPosition = OfficeChartDataLabelPosition.Auto,
         string? dataLabelNumberFormat = null,
         bool showMarkers = true,
@@ -224,15 +347,49 @@ public sealed class OfficeChartLayout {
         bool showValueAxisLine = true,
         bool showCategoryAxisLabels = true,
         bool showValueAxisLabels = true,
+        OfficeChartAxisTickLabelPosition horizontalAxisTickLabelPosition = OfficeChartAxisTickLabelPosition.NextTo,
+        OfficeChartAxisTickLabelPosition verticalAxisTickLabelPosition = OfficeChartAxisTickLabelPosition.NextTo,
+        OfficeChartAxisCrossingPosition horizontalAxisCrossingPosition = OfficeChartAxisCrossingPosition.AutoZero,
+        OfficeChartAxisCrossingPosition verticalAxisCrossingPosition = OfficeChartAxisCrossingPosition.AutoZero,
+        bool reverseCategoryAxis = false,
         bool overlayTitle = false,
-        double? titleTopPadding = null) {
+        double? titleTopPadding = null,
+        OfficeFontStyle? legendFontStyle = null,
+        OfficeFontStyle? axisTextFontStyle = null,
+        OfficeFontStyle? dataLabelFontStyle = null,
+        double? axisTitleFontSize = null,
+        string? axisTitleFontFamily = null,
+        OfficeFontStyle? axisTitleFontStyle = null,
+        double? horizontalAxisDisplayUnitDivisor = null,
+        string? horizontalAxisDisplayUnitLabel = null,
+        double? verticalAxisDisplayUnitDivisor = null,
+        string? verticalAxisDisplayUnitLabel = null,
+        double? horizontalAxisMinimum = null,
+        double? horizontalAxisMaximum = null,
+        double? horizontalAxisMajorUnit = null,
+        double? horizontalAxisMinorUnit = null,
+        double? verticalAxisMinimum = null,
+        double? verticalAxisMaximum = null,
+        double? verticalAxisMajorUnit = null,
+        double? verticalAxisMinorUnit = null,
+        OfficeChartAxisTickMark horizontalAxisMajorTickMark = OfficeChartAxisTickMark.None,
+        OfficeChartAxisTickMark verticalAxisMajorTickMark = OfficeChartAxisTickMark.None,
+        OfficeChartAxisTickMark horizontalAxisMinorTickMark = OfficeChartAxisTickMark.None,
+        OfficeChartAxisTickMark verticalAxisMinorTickMark = OfficeChartAxisTickMark.None) {
         SeriesLegendWidthRatio = ValidateRatio(seriesLegendWidthRatio ?? 0.34D, nameof(seriesLegendWidthRatio));
         CategoryLegendWidthRatio = ValidateRatio(categoryLegendWidthRatio ?? 0.38D, nameof(categoryLegendWidthRatio));
         LegendRowHeight = ValidatePositiveFinite(legendRowHeight ?? 12D, nameof(legendRowHeight));
         LegendSwatchSize = ValidatePositiveFinite(legendSwatchSize ?? 6D, nameof(legendSwatchSize));
         LegendTextGap = ValidatePositiveFinite(legendTextGap ?? 4D, nameof(legendTextGap));
         LegendFontSize = ValidatePositiveFinite(legendFontSize ?? 7.2D, nameof(legendFontSize));
+        LegendFontFamily = string.IsNullOrWhiteSpace(legendFontFamily) ? null : legendFontFamily;
+        LegendFontStyle = legendFontStyle;
         AxisLabelFontSize = ValidatePositiveFinite(axisLabelFontSize ?? 6.8D, nameof(axisLabelFontSize));
+        AxisTextFontFamily = string.IsNullOrWhiteSpace(axisTextFontFamily) ? null : axisTextFontFamily;
+        AxisTextFontStyle = axisTextFontStyle;
+        AxisTitleFontSize = axisTitleFontSize.HasValue ? ValidatePositiveFinite(axisTitleFontSize.Value, nameof(axisTitleFontSize)) : null;
+        AxisTitleFontFamily = string.IsNullOrWhiteSpace(axisTitleFontFamily) ? null : axisTitleFontFamily;
+        AxisTitleFontStyle = axisTitleFontStyle;
         CategoryAxisLabelWidth = ValidatePositiveFinite(categoryAxisLabelWidth ?? 54D, nameof(categoryAxisLabelWidth));
         RadarCategoryLabelWidth = ValidatePositiveFinite(radarCategoryLabelWidth ?? 42D, nameof(radarCategoryLabelWidth));
         MaximumCategoryAxisLabels = ValidatePositive(maximumCategoryAxisLabels ?? 6, nameof(maximumCategoryAxisLabels));
@@ -249,12 +406,30 @@ public sealed class OfficeChartLayout {
         ShowDataLabelSeriesNames = showDataLabelSeriesNames;
         DataLabelSeparator = string.IsNullOrEmpty(dataLabelSeparator) ? "; " : dataLabelSeparator!;
         DataLabelFontSize = ValidatePositiveFinite(dataLabelFontSize ?? 7D, nameof(dataLabelFontSize));
+        DataLabelFontFamily = string.IsNullOrWhiteSpace(dataLabelFontFamily) ? null : dataLabelFontFamily;
+        DataLabelFontStyle = dataLabelFontStyle;
         DataLabelPosition = dataLabelPosition;
         DataLabelNumberFormat = NormalizeNumberFormat(dataLabelNumberFormat);
         ShowMarkers = showMarkers;
         AxisNumberFormat = NormalizeNumberFormat(axisNumberFormat);
         HorizontalAxisNumberFormat = string.IsNullOrWhiteSpace(horizontalAxisNumberFormat) ? AxisNumberFormat : NormalizeNumberFormat(horizontalAxisNumberFormat);
         VerticalAxisNumberFormat = string.IsNullOrWhiteSpace(verticalAxisNumberFormat) ? AxisNumberFormat : NormalizeNumberFormat(verticalAxisNumberFormat);
+        HorizontalAxisDisplayUnitDivisor = horizontalAxisDisplayUnitDivisor.HasValue ? ValidatePositiveFinite(horizontalAxisDisplayUnitDivisor.Value, nameof(horizontalAxisDisplayUnitDivisor)) : null;
+        HorizontalAxisDisplayUnitLabel = string.IsNullOrWhiteSpace(horizontalAxisDisplayUnitLabel) ? null : horizontalAxisDisplayUnitLabel;
+        VerticalAxisDisplayUnitDivisor = verticalAxisDisplayUnitDivisor.HasValue ? ValidatePositiveFinite(verticalAxisDisplayUnitDivisor.Value, nameof(verticalAxisDisplayUnitDivisor)) : null;
+        VerticalAxisDisplayUnitLabel = string.IsNullOrWhiteSpace(verticalAxisDisplayUnitLabel) ? null : verticalAxisDisplayUnitLabel;
+        HorizontalAxisMinimum = horizontalAxisMinimum.HasValue ? ValidateFinite(horizontalAxisMinimum.Value, nameof(horizontalAxisMinimum)) : null;
+        HorizontalAxisMaximum = horizontalAxisMaximum.HasValue ? ValidateFinite(horizontalAxisMaximum.Value, nameof(horizontalAxisMaximum)) : null;
+        HorizontalAxisMajorUnit = horizontalAxisMajorUnit.HasValue ? ValidatePositiveFinite(horizontalAxisMajorUnit.Value, nameof(horizontalAxisMajorUnit)) : null;
+        HorizontalAxisMinorUnit = horizontalAxisMinorUnit.HasValue ? ValidatePositiveFinite(horizontalAxisMinorUnit.Value, nameof(horizontalAxisMinorUnit)) : null;
+        VerticalAxisMinimum = verticalAxisMinimum.HasValue ? ValidateFinite(verticalAxisMinimum.Value, nameof(verticalAxisMinimum)) : null;
+        VerticalAxisMaximum = verticalAxisMaximum.HasValue ? ValidateFinite(verticalAxisMaximum.Value, nameof(verticalAxisMaximum)) : null;
+        VerticalAxisMajorUnit = verticalAxisMajorUnit.HasValue ? ValidatePositiveFinite(verticalAxisMajorUnit.Value, nameof(verticalAxisMajorUnit)) : null;
+        VerticalAxisMinorUnit = verticalAxisMinorUnit.HasValue ? ValidatePositiveFinite(verticalAxisMinorUnit.Value, nameof(verticalAxisMinorUnit)) : null;
+        HorizontalAxisMajorTickMark = horizontalAxisMajorTickMark;
+        VerticalAxisMajorTickMark = verticalAxisMajorTickMark;
+        HorizontalAxisMinorTickMark = horizontalAxisMinorTickMark;
+        VerticalAxisMinorTickMark = verticalAxisMinorTickMark;
         CategoryAxisTitle = string.IsNullOrWhiteSpace(categoryAxisTitle) ? null : categoryAxisTitle;
         ValueAxisTitle = string.IsNullOrWhiteSpace(valueAxisTitle) ? null : valueAxisTitle;
         ConnectScatterPoints = connectScatterPoints;
@@ -263,6 +438,11 @@ public sealed class OfficeChartLayout {
         ShowValueAxis = showValueAxis;
         ShowCategoryAxisLine = showCategoryAxis && showCategoryAxisLine;
         ShowValueAxisLine = showValueAxis && showValueAxisLine;
+        HorizontalAxisTickLabelPosition = horizontalAxisTickLabelPosition;
+        VerticalAxisTickLabelPosition = verticalAxisTickLabelPosition;
+        HorizontalAxisCrossingPosition = horizontalAxisCrossingPosition;
+        VerticalAxisCrossingPosition = verticalAxisCrossingPosition;
+        ReverseCategoryAxis = reverseCategoryAxis;
         ShowCategoryAxisLabels = showCategoryAxis && showCategoryAxisLabels;
         ShowValueAxisLabels = showValueAxis && showValueAxisLabels;
         OverlayTitle = overlayTitle;
@@ -290,8 +470,29 @@ public sealed class OfficeChartLayout {
     /// <summary>Legend label font size.</summary>
     public double LegendFontSize { get; }
 
+    /// <summary>Optional legend label font family.</summary>
+    public string? LegendFontFamily { get; }
+
+    /// <summary>Optional legend label font style.</summary>
+    public OfficeFontStyle? LegendFontStyle { get; }
+
     /// <summary>Axis label font size.</summary>
     public double AxisLabelFontSize { get; }
+
+    /// <summary>Optional axis label font family and axis title fallback family.</summary>
+    public string? AxisTextFontFamily { get; }
+
+    /// <summary>Optional axis label font style and axis title fallback style.</summary>
+    public OfficeFontStyle? AxisTextFontStyle { get; }
+
+    /// <summary>Optional axis title font size.</summary>
+    public double? AxisTitleFontSize { get; }
+
+    /// <summary>Optional axis title font family.</summary>
+    public string? AxisTitleFontFamily { get; }
+
+    /// <summary>Optional axis title font style.</summary>
+    public OfficeFontStyle? AxisTitleFontStyle { get; }
 
     /// <summary>Maximum category-axis label width.</summary>
     public double CategoryAxisLabelWidth { get; }
@@ -341,6 +542,12 @@ public sealed class OfficeChartLayout {
     /// <summary>Data label font size.</summary>
     public double DataLabelFontSize { get; }
 
+    /// <summary>Optional data label font family.</summary>
+    public string? DataLabelFontFamily { get; }
+
+    /// <summary>Optional data label font style.</summary>
+    public OfficeFontStyle? DataLabelFontStyle { get; }
+
     /// <summary>Preferred data label position when labels are rendered.</summary>
     public OfficeChartDataLabelPosition DataLabelPosition { get; }
 
@@ -370,6 +577,54 @@ public sealed class OfficeChartLayout {
 
     /// <summary>Optional numeric format for vertical value-axis labels.</summary>
     public string? VerticalAxisNumberFormat { get; }
+
+    /// <summary>Optional divisor applied to horizontal value-axis labels.</summary>
+    public double? HorizontalAxisDisplayUnitDivisor { get; }
+
+    /// <summary>Optional display-unit label shown for horizontal value axes.</summary>
+    public string? HorizontalAxisDisplayUnitLabel { get; }
+
+    /// <summary>Optional divisor applied to vertical value-axis labels.</summary>
+    public double? VerticalAxisDisplayUnitDivisor { get; }
+
+    /// <summary>Optional display-unit label shown for vertical value axes.</summary>
+    public string? VerticalAxisDisplayUnitLabel { get; }
+
+    /// <summary>Optional minimum for horizontal value axes.</summary>
+    public double? HorizontalAxisMinimum { get; }
+
+    /// <summary>Optional maximum for horizontal value axes.</summary>
+    public double? HorizontalAxisMaximum { get; }
+
+    /// <summary>Optional major tick/grid unit for horizontal value axes.</summary>
+    public double? HorizontalAxisMajorUnit { get; }
+
+    /// <summary>Optional minor tick/grid unit for horizontal value axes.</summary>
+    public double? HorizontalAxisMinorUnit { get; }
+
+    /// <summary>Optional minimum for vertical value axes.</summary>
+    public double? VerticalAxisMinimum { get; }
+
+    /// <summary>Optional maximum for vertical value axes.</summary>
+    public double? VerticalAxisMaximum { get; }
+
+    /// <summary>Optional major tick/grid unit for vertical value axes.</summary>
+    public double? VerticalAxisMajorUnit { get; }
+
+    /// <summary>Optional minor tick/grid unit for vertical value axes.</summary>
+    public double? VerticalAxisMinorUnit { get; }
+
+    /// <summary>Major tick mark placement for the horizontal axis.</summary>
+    public OfficeChartAxisTickMark HorizontalAxisMajorTickMark { get; }
+
+    /// <summary>Major tick mark placement for the vertical axis.</summary>
+    public OfficeChartAxisTickMark VerticalAxisMajorTickMark { get; }
+
+    /// <summary>Minor tick mark placement for the horizontal axis.</summary>
+    public OfficeChartAxisTickMark HorizontalAxisMinorTickMark { get; }
+
+    /// <summary>Minor tick mark placement for the vertical axis.</summary>
+    public OfficeChartAxisTickMark VerticalAxisMinorTickMark { get; }
 
     /// <summary>Optional category or horizontal axis title.</summary>
     public string? CategoryAxisTitle { get; }
@@ -401,6 +656,21 @@ public sealed class OfficeChartLayout {
     /// <summary>Whether value or vertical tick labels should be rendered.</summary>
     public bool ShowValueAxisLabels { get; }
 
+    /// <summary>Preferred tick-label side for the physical horizontal axis.</summary>
+    public OfficeChartAxisTickLabelPosition HorizontalAxisTickLabelPosition { get; }
+
+    /// <summary>Preferred tick-label side for the physical vertical axis.</summary>
+    public OfficeChartAxisTickLabelPosition VerticalAxisTickLabelPosition { get; }
+
+    /// <summary>Physical crossing side for the horizontal axis.</summary>
+    public OfficeChartAxisCrossingPosition HorizontalAxisCrossingPosition { get; }
+
+    /// <summary>Physical crossing side for the vertical axis.</summary>
+    public OfficeChartAxisCrossingPosition VerticalAxisCrossingPosition { get; }
+
+    /// <summary>Whether category-axis slots should be rendered in reverse order.</summary>
+    public bool ReverseCategoryAxis { get; }
+
     /// <summary>Whether the chart title should overlay the plot area instead of reserving a title band.</summary>
     public bool OverlayTitle { get; }
 
@@ -419,6 +689,14 @@ public sealed class OfficeChartLayout {
     private static double ValidatePositiveFinite(double value, string paramName) {
         if (double.IsNaN(value) || double.IsInfinity(value) || value <= 0D) {
             throw new ArgumentOutOfRangeException(paramName, "Chart layout values must be finite positive numbers.");
+        }
+
+        return value;
+    }
+
+    private static double ValidateFinite(double value, string paramName) {
+        if (double.IsNaN(value) || double.IsInfinity(value)) {
+            throw new ArgumentOutOfRangeException(paramName, "Chart layout values must be finite numbers.");
         }
 
         return value;

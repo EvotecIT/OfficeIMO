@@ -14,5 +14,8 @@ public enum OfficeStrokeDashStyle {
     Dot,
 
     /// <summary>Alternating dash and dot stroke.</summary>
-    DashDot
+    DashDot,
+
+    /// <summary>Alternating dash and two dot stroke.</summary>
+    DashDotDot
 }

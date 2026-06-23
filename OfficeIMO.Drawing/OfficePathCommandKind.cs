@@ -10,6 +10,9 @@ public enum OfficePathCommandKind {
     /// <summary>Draws a straight line to a point.</summary>
     LineTo,
 
+    /// <summary>Draws a quadratic Bezier curve using one control point and an end point.</summary>
+    QuadraticBezierTo,
+
     /// <summary>Draws a cubic Bezier curve using two control points and an end point.</summary>
     CubicBezierTo,
 
