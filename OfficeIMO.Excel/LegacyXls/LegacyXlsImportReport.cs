@@ -74,6 +74,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             WorksheetsByVisibility = CountByCode(workbook.Worksheets.Select(sheet => sheet.VisibilityName));
             WorkbookCodeNameStates = CountByCode(new[] { string.IsNullOrWhiteSpace(workbook.CodeName) ? "Missing" : "Present" });
             WorkbookCodeNames = CountByCode(string.IsNullOrWhiteSpace(workbook.CodeName) ? Array.Empty<string>() : new[] { workbook.CodeName! });
+            WorkbookOptionStates = CountByCode(GetWorkbookOptionStateKeys(workbook));
             WorksheetCodeNameStates = CountByCode(workbook.Worksheets.Select(sheet => string.IsNullOrWhiteSpace(sheet.CodeName) ? "Missing" : "Present"));
             WorksheetCodeNames = CountByCode(workbook.Worksheets
                 .Where(sheet => !string.IsNullOrWhiteSpace(sheet.CodeName))
@@ -571,6 +572,9 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets workbook CodeName values grouped by name.</summary>
         public IReadOnlyDictionary<string, int> WorkbookCodeNames { get; }
+
+        /// <summary>Gets decoded workbook option states from Backup and BookBool records.</summary>
+        public IReadOnlyDictionary<string, int> WorkbookOptionStates { get; }
 
         /// <summary>Gets imported worksheets grouped by CodeName record presence.</summary>
         public IReadOnlyDictionary<string, int> WorksheetCodeNameStates { get; }
@@ -1172,6 +1176,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Worksheets By Visibility", WorksheetsByVisibility);
             AppendDictionary(builder, "Workbook CodeName States", WorkbookCodeNameStates);
             AppendDictionary(builder, "Workbook CodeNames", WorkbookCodeNames);
+            AppendDictionary(builder, "Workbook Option States", WorkbookOptionStates);
             AppendDictionary(builder, "Worksheet CodeName States", WorksheetCodeNameStates);
             AppendDictionary(builder, "Worksheet CodeNames", WorksheetCodeNames);
             AppendDictionary(builder, "Unsupported Features By Code", UnsupportedFeaturesByCode);
@@ -1373,6 +1378,36 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .GroupBy(code => code, StringComparer.OrdinalIgnoreCase)
                 .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(group => group.Key, group => group.Count(), StringComparer.OrdinalIgnoreCase);
+        }
+
+        private static IEnumerable<string> GetWorkbookOptionStateKeys(LegacyXlsWorkbook workbook) {
+            if (workbook.SaveBackup.HasValue) {
+                yield return $"SaveBackup:{workbook.SaveBackup.Value}";
+            }
+
+            if (workbook.DoNotSaveExternalLinkValues.HasValue) {
+                yield return $"DoNotSaveExternalLinkValues:{workbook.DoNotSaveExternalLinkValues.Value}";
+            }
+
+            if (workbook.HasEnvelope.HasValue) {
+                yield return $"HasEnvelope:{workbook.HasEnvelope.Value}";
+            }
+
+            if (workbook.EnvelopeVisible.HasValue) {
+                yield return $"EnvelopeVisible:{workbook.EnvelopeVisible.Value}";
+            }
+
+            if (workbook.EnvelopeInitialized.HasValue) {
+                yield return $"EnvelopeInitialized:{workbook.EnvelopeInitialized.Value}";
+            }
+
+            if (workbook.ExternalLinkUpdateMode.HasValue) {
+                yield return $"ExternalLinkUpdateMode:{workbook.ExternalLinkUpdateMode.Value}";
+            }
+
+            if (workbook.HideBordersForInactiveTables.HasValue) {
+                yield return $"HideBordersForInactiveTables:{workbook.HideBordersForInactiveTables.Value}";
+            }
         }
 
         private static IReadOnlyDictionary<LegacyXlsUnsupportedFeatureKind, int> CountByKind(IEnumerable<LegacyXlsUnsupportedFeature> features) {

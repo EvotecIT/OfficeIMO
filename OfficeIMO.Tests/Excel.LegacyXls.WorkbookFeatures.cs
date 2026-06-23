@@ -431,6 +431,13 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, result.ImportReport.WorksheetMetadataRecordsByKind[LegacyXlsWorksheetMetadataKind.CodeName]);
             Assert.Equal(1, result.ImportReport.WorkbookCodeNameStates["Present"]);
             Assert.Equal(1, result.ImportReport.WorkbookCodeNames["ThisWorkbook"]);
+            Assert.Equal(1, result.ImportReport.WorkbookOptionStates["SaveBackup:True"]);
+            Assert.Equal(1, result.ImportReport.WorkbookOptionStates["DoNotSaveExternalLinkValues:True"]);
+            Assert.Equal(1, result.ImportReport.WorkbookOptionStates["HasEnvelope:True"]);
+            Assert.Equal(1, result.ImportReport.WorkbookOptionStates["EnvelopeVisible:True"]);
+            Assert.Equal(1, result.ImportReport.WorkbookOptionStates["EnvelopeInitialized:True"]);
+            Assert.Equal(1, result.ImportReport.WorkbookOptionStates["ExternalLinkUpdateMode:2"]);
+            Assert.Equal(1, result.ImportReport.WorkbookOptionStates["HideBordersForInactiveTables:True"]);
             Assert.Equal(1, result.ImportReport.WorksheetCodeNameStates["Present"]);
             Assert.Equal(1, result.ImportReport.WorksheetCodeNames["MetadataSheet"]);
             Assert.Equal(1, result.ImportReport.WorkbookMetadataRecordsByKind[LegacyXlsWorkbookMetadataKind.Backup]);
@@ -455,6 +462,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Workbook metadata records: 18", result.ImportReport.ToMarkdown());
             Assert.Contains("Workbook Metadata Records By Kind", result.ImportReport.ToMarkdown());
             Assert.Contains("Workbook CodeNames", result.ImportReport.ToMarkdown());
+            Assert.Contains("Workbook Option States", result.ImportReport.ToMarkdown());
             Assert.Contains("Worksheet CodeNames", result.ImportReport.ToMarkdown());
         }
 

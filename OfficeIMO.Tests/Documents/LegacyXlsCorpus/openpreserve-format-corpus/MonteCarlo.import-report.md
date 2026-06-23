@@ -57,6 +57,18 @@ Warnings: 0
 | --- | --- |
 | Missing | 1 |
 
+## Workbook Option States
+
+| Key | Count |
+| --- | --- |
+| DoNotSaveExternalLinkValues:False | 1 |
+| EnvelopeInitialized:False | 1 |
+| EnvelopeVisible:False | 1 |
+| ExternalLinkUpdateMode:0 | 1 |
+| HasEnvelope:False | 1 |
+| HideBordersForInactiveTables:False | 1 |
+| SaveBackup:False | 1 |
+
 ## Worksheet CodeName States
 
 | Key | Count |
