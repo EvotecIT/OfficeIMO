@@ -5,6 +5,14 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
     internal static class BiffFormulaFunctionMetadata {
         internal static bool TryGetFixedFunctionMetadata(ushort functionId, out string? functionName, out int parameterCount) {
             switch (functionId) {
+                case 0x0008:
+                    functionName = "ROW";
+                    parameterCount = 1;
+                    return true;
+                case 0x0009:
+                    functionName = "COLUMN";
+                    parameterCount = 1;
+                    return true;
                 case 0x000a:
                     functionName = "NA";
                     parameterCount = 0;
@@ -105,8 +113,16 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     functionName = "TEXT";
                     parameterCount = 2;
                     return true;
+                case 0x003f:
+                    functionName = "RAND";
+                    parameterCount = 0;
+                    return true;
                 case 0x0041:
                     functionName = "DATE";
+                    parameterCount = 3;
+                    return true;
+                case 0x0042:
+                    functionName = "TIME";
                     parameterCount = 3;
                     return true;
                 case 0x0043:
@@ -121,9 +137,29 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     functionName = "YEAR";
                     parameterCount = 1;
                     return true;
+                case 0x0047:
+                    functionName = "HOUR";
+                    parameterCount = 1;
+                    return true;
+                case 0x0048:
+                    functionName = "MINUTE";
+                    parameterCount = 1;
+                    return true;
+                case 0x0049:
+                    functionName = "SECOND";
+                    parameterCount = 1;
+                    return true;
                 case 0x004a:
                     functionName = "NOW";
                     parameterCount = 0;
+                    return true;
+                case 0x004c:
+                    functionName = "ROWS";
+                    parameterCount = 1;
+                    return true;
+                case 0x004d:
+                    functionName = "COLUMNS";
+                    parameterCount = 1;
                     return true;
                 case 0x0070:
                     functionName = "LOWER";

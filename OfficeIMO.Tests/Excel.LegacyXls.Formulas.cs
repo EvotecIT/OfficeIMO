@@ -304,6 +304,15 @@ namespace OfficeIMO.Tests {
             AssertFormula(sheet, 16, 1, "OFFSET(E1,1,0)", 20d);
             AssertFormula(sheet, 17, 1, "TODAY()", 46196d);
             AssertFormula(sheet, 18, 1, "NOW()", 46196.5d);
+            AssertFormula(sheet, 19, 1, "ROW(A1)", 1d);
+            AssertFormula(sheet, 20, 1, "COLUMN(B1)", 2d);
+            AssertFormula(sheet, 21, 1, "TIME(9,30,0)", 0.395833333333333d);
+            AssertFormula(sheet, 22, 1, "HOUR(0.5)", 12d);
+            AssertFormula(sheet, 23, 1, "MINUTE(0.5)", 0d);
+            AssertFormula(sheet, 24, 1, "SECOND(0.5)", 0d);
+            AssertFormula(sheet, 25, 1, "RAND()", 0.42d);
+            AssertFormula(sheet, 26, 1, "ROWS(E1:E3)", 3d);
+            AssertFormula(sheet, 27, 1, "COLUMNS(D1:E1)", 2d);
 
             using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound), new LegacyXlsImportOptions {
                 ReportUnsupportedRecords = true
@@ -330,6 +339,15 @@ namespace OfficeIMO.Tests {
             AssertProjectedFormula(worksheetPart, "A16", "OFFSET(E1,1,0)", "20");
             AssertProjectedFormula(worksheetPart, "A17", "TODAY()", "46196");
             AssertProjectedFormula(worksheetPart, "A18", "NOW()", "46196.5");
+            AssertProjectedFormula(worksheetPart, "A19", "ROW(A1)", "1");
+            AssertProjectedFormula(worksheetPart, "A20", "COLUMN(B1)", "2");
+            AssertProjectedFormula(worksheetPart, "A21", "TIME(9,30,0)", "0.395833333333333");
+            AssertProjectedFormula(worksheetPart, "A22", "HOUR(0.5)", "12");
+            AssertProjectedFormula(worksheetPart, "A23", "MINUTE(0.5)", "0");
+            AssertProjectedFormula(worksheetPart, "A24", "SECOND(0.5)", "0");
+            AssertProjectedFormula(worksheetPart, "A25", "RAND()", "0.42");
+            AssertProjectedFormula(worksheetPart, "A26", "ROWS(E1:E3)", "3");
+            AssertProjectedFormula(worksheetPart, "A27", "COLUMNS(D1:E1)", "2");
         }
 
         [Fact]
@@ -1218,6 +1236,15 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(15, 0, 20d, formulaTokens: BuildOffsetFormulaTokens()));
                 WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(16, 0, 46196d, formulaTokens: BuildVolatileFixedNoArgumentFunctionFormulaTokens(0x00dd)));
                 WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(17, 0, 46196.5d, formulaTokens: BuildVolatileFixedNoArgumentFunctionFormulaTokens(0x004a)));
+                WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(18, 0, 1d, formulaTokens: BuildSingleReferenceFixedFunctionFormulaTokens(0x0008, 0, 0)));
+                WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(19, 0, 2d, formulaTokens: BuildSingleReferenceFixedFunctionFormulaTokens(0x0009, 0, 1)));
+                WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(20, 0, 0.395833333333333d, formulaTokens: BuildThreeIntegerFixedFunctionFormulaTokens(0x0042, 9, 30, 0)));
+                WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(21, 0, 12d, formulaTokens: BuildSingleNumberFixedFunctionFormulaTokens(0x0047, 0.5d)));
+                WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(22, 0, 0d, formulaTokens: BuildSingleNumberFixedFunctionFormulaTokens(0x0048, 0.5d)));
+                WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(23, 0, 0d, formulaTokens: BuildSingleNumberFixedFunctionFormulaTokens(0x0049, 0.5d)));
+                WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(24, 0, 0.42d, formulaTokens: BuildVolatileFixedNoArgumentFunctionFormulaTokens(0x003f)));
+                WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(25, 0, 3d, formulaTokens: BuildSingleAreaFixedFunctionFormulaTokens(0x004c, 0, 4, 2, 4)));
+                WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(26, 0, 2d, formulaTokens: BuildSingleAreaFixedFunctionFormulaTokens(0x004d, 0, 3, 0, 4)));
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 byte[] bytes = stream.ToArray();
@@ -1738,6 +1765,16 @@ namespace OfficeIMO.Tests {
                 return stream.ToArray();
             }
 
+            private static byte[] BuildThreeIntegerFixedFunctionFormulaTokens(ushort functionId, ushort first, ushort second, ushort third) {
+                using var stream = new MemoryStream();
+                WriteIntegerFormulaToken(stream, first);
+                WriteIntegerFormulaToken(stream, second);
+                WriteIntegerFormulaToken(stream, third);
+                stream.WriteByte(0x41);
+                WriteUInt16(stream, functionId);
+                return stream.ToArray();
+            }
+
             private static byte[] BuildSingleReferenceFixedFunctionFormulaTokens(ushort functionId, ushort row, ushort column) {
                 using var stream = new MemoryStream();
                 byte[] reference = BuildCellReferenceFormulaToken(row, column);
@@ -1745,6 +1782,30 @@ namespace OfficeIMO.Tests {
                 stream.WriteByte(0x41);
                 WriteUInt16(stream, functionId);
                 return stream.ToArray();
+            }
+
+            private static byte[] BuildSingleAreaFixedFunctionFormulaTokens(ushort functionId, ushort firstRow, ushort firstColumn, ushort lastRow, ushort lastColumn) {
+                using var stream = new MemoryStream();
+                byte[] area = BuildAreaReferenceFormulaToken(firstRow, firstColumn, lastRow, lastColumn);
+                stream.Write(area, 0, area.Length);
+                stream.WriteByte(0x41);
+                WriteUInt16(stream, functionId);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildSingleNumberFixedFunctionFormulaTokens(ushort functionId, double value) {
+                using var stream = new MemoryStream();
+                stream.WriteByte(0x1f);
+                byte[] numberBytes = BitConverter.GetBytes(value);
+                stream.Write(numberBytes, 0, numberBytes.Length);
+                stream.WriteByte(0x41);
+                WriteUInt16(stream, functionId);
+                return stream.ToArray();
+            }
+
+            private static void WriteIntegerFormulaToken(Stream stream, ushort value) {
+                stream.WriteByte(0x1e);
+                WriteUInt16(stream, value);
             }
 
             private static byte[] BuildCountIfFormulaTokens() {
