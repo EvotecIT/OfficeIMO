@@ -682,7 +682,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             offset += 2;
-            if (attribute == 0x02 || attribute == 0x08 || attribute == 0x10 || attribute == 0x40 || attribute == 0x41) {
+            if (attribute == 0x01 || attribute == 0x02 || attribute == 0x08 || attribute == 0x10 || attribute == 0x40 || attribute == 0x41) {
                 return true;
             }
 
@@ -763,7 +763,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             offset += 2;
-            if (attribute == 0x02 || attribute == 0x08 || attribute == 0x40 || attribute == 0x41) {
+            if (attribute == 0x01 || attribute == 0x02 || attribute == 0x08 || attribute == 0x40 || attribute == 0x41) {
                 return true;
             }
 

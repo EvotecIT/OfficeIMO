@@ -171,6 +171,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 recordType: (ushort)BiffRecordType.ShrFmla,
                 detailCode: failure?.DetailCode,
                 formulaToken: failure?.Token,
+                formulaTokenName: failure?.TokenName,
                 formulaTokenOffset: failure?.TokenOffset));
         }
 

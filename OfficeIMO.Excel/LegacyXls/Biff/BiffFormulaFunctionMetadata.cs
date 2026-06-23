@@ -121,6 +121,26 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     functionName = "YEAR";
                     parameterCount = 1;
                     return true;
+                case 0x004a:
+                    functionName = "NOW";
+                    parameterCount = 0;
+                    return true;
+                case 0x0070:
+                    functionName = "LOWER";
+                    parameterCount = 1;
+                    return true;
+                case 0x0071:
+                    functionName = "UPPER";
+                    parameterCount = 1;
+                    return true;
+                case 0x0072:
+                    functionName = "PROPER";
+                    parameterCount = 1;
+                    return true;
+                case 0x00dd:
+                    functionName = "TODAY";
+                    parameterCount = 0;
+                    return true;
                 case 0x0139:
                     functionName = "RSQ";
                     parameterCount = 2;
@@ -156,6 +176,15 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case 0x0007:
                     functionName = "MAX";
                     return true;
+                case 0x001d:
+                    functionName = "INDEX";
+                    return true;
+                case 0x0040:
+                    functionName = "MATCH";
+                    return true;
+                case 0x004e:
+                    functionName = "OFFSET";
+                    return true;
                 case 0x0064:
                     functionName = "CHOOSE";
                     return true;
@@ -180,6 +209,12 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case 0x00e3:
                     functionName = "MEDIAN";
                     return true;
+                case 0x0158:
+                    functionName = "SUBTOTAL";
+                    return true;
+                case 0x0159:
+                    functionName = "SUMIF";
+                    return true;
                 default:
                     functionName = null;
                     return false;
@@ -195,6 +230,16 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     return parameterCount == 3 || parameterCount == 4;
                 case 0x0064:
                     return parameterCount >= 2 && parameterCount <= 30;
+                case 0x001d:
+                    return parameterCount == 2 || parameterCount == 3 || parameterCount == 4;
+                case 0x0040:
+                    return parameterCount == 2 || parameterCount == 3;
+                case 0x004e:
+                    return parameterCount >= 3 && parameterCount <= 5;
+                case 0x0158:
+                    return parameterCount >= 2 && parameterCount <= 254;
+                case 0x0159:
+                    return parameterCount == 2 || parameterCount == 3;
                 case 0x0073:
                 case 0x0074:
                     return parameterCount == 1 || parameterCount == 2;
