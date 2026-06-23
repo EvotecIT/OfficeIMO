@@ -26,16 +26,16 @@ public partial class PdfInspectorTests {
         Assert.False(report.Can(PdfPreflightCapability.ReadLogicalObjects));
         Assert.False(report.Can(PdfPreflightCapability.ManipulatePages));
         Assert.False(report.Can(PdfPreflightCapability.FillSimpleFormFields));
-        Assert.Contains("Encrypted PDF files are not supported by OfficeIMO.Pdf yet.", report.GetCapabilityDiagnostics(PdfPreflightCapability.ExtractText));
-        Assert.Contains("Encrypted PDF files are not supported by OfficeIMO.Pdf yet.", report.GetCapabilityDiagnostics(PdfPreflightCapability.ExtractImages));
-        Assert.Contains("Encrypted PDF files are not supported by OfficeIMO.Pdf yet.", report.GetCapabilityDiagnostics(PdfPreflightCapability.ReadLogicalObjects));
-        Assert.Contains("Encrypted PDF files are not supported by OfficeIMO.Pdf yet.", report.GetCapabilityDiagnostics(PdfPreflightCapability.ManipulatePages));
-        Assert.Contains("Encrypted PDF files are not supported by OfficeIMO.Pdf yet.", report.GetCapabilityDiagnostics(PdfPreflightCapability.FillSimpleFormFields));
+        Assert.Contains("PDF encryption dictionary could not be read.", report.GetCapabilityDiagnostics(PdfPreflightCapability.ExtractText));
+        Assert.Contains("PDF encryption dictionary could not be read.", report.GetCapabilityDiagnostics(PdfPreflightCapability.ExtractImages));
+        Assert.Contains("PDF encryption dictionary could not be read.", report.GetCapabilityDiagnostics(PdfPreflightCapability.ReadLogicalObjects));
+        Assert.Contains("PDF encryption dictionary could not be read.", report.GetCapabilityDiagnostics(PdfPreflightCapability.ManipulatePages));
+        Assert.Contains("PDF encryption dictionary could not be read.", report.GetCapabilityDiagnostics(PdfPreflightCapability.FillSimpleFormFields));
         Assert.Null(report.DocumentInfo);
         Assert.True(report.Probe.HasEncryption);
-        Assert.Contains("Encrypted PDF files are not supported by OfficeIMO.Pdf yet.", report.Diagnostics);
-        AssertReadBlocker(report, PdfReadBlockerKind.Encryption, "Encrypted PDF files are not supported by OfficeIMO.Pdf yet.");
-        AssertRewriteBlocker(report, PdfRewriteBlockerKind.Encryption, "Encrypted PDF files are not supported by OfficeIMO.Pdf yet.");
+        Assert.Contains("PDF encryption dictionary could not be read.", report.Diagnostics);
+        AssertReadBlocker(report, PdfReadBlockerKind.Encryption, "PDF encryption dictionary could not be read.");
+        AssertRewriteBlocker(report, PdfRewriteBlockerKind.Encryption, "Encrypted PDF files can be read when the password is valid, but rewriting encrypted PDFs is not supported yet.");
     }
 
     [Fact]

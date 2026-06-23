@@ -73,6 +73,7 @@ public sealed partial class PdfOptions {
     private PdfOpenActionOptions? _openAction;
     private PdfViewerPreferencesOptions? _viewerPreferences;
     private string? _catalogUriBase;
+    private PdfStandardEncryptionOptions? _encryption;
     private int _outlineExpansionLevel = int.MaxValue;
     private PdfFormFieldTextAlignment? _acroFormDefaultTextAlignment;
     private PdfTextWatermark? _textWatermark;

@@ -60,7 +60,7 @@ public static partial class PdfFormFiller {
             throw new ArgumentException("PDF form field was not found: " + string.Join(", ", remaining), nameof(fieldValues));
         }
 
-        acroForm.Items["NeedAppearances"] = new PdfBoolean(true);
+        acroForm.Items["NeedAppearances"] = new PdfBoolean(options?.KeepNeedAppearances == true);
         return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Load(pdf).Metadata, pdf);
     }
 

@@ -68,7 +68,7 @@ jobs:
         if: matrix.build-mode == 'manual'
         shell: pwsh
         run: |
-          $excludedProjects = '[\\\\/](OfficeIMO\.Examples|OfficeIMO\.Tests|OfficeIMO\.CSV\.Tests|OfficeIMO\.VerifyTests|OfficeIMO\.Markdown\.Benchmarks|OfficeIMO\.Excel\.Benchmarks|OfficeIMO\.MarkdownRenderer\.Wpf\.Tests)[\\\\/]'
+          $excludedProjects = '[\\\\/](OfficeIMO\.Examples|OfficeIMO\.Tests|OfficeIMO\.CSV\.Tests|OfficeIMO\.VerifyTests|OfficeIMO\.Markdown\.Benchmarks|OfficeIMO\.Excel\.Benchmarks|OfficeIMO\.MarkdownRenderer\.Wpf\.Tests|Website[\\\\/]Apps[\\\\/]OfficeIMO\.Web\.Converter)[\\\\/]'
           $projects = Get-ChildItem -Recurse -Filter *.csproj | Where-Object {
             $_.FullName -notmatch $excludedProjects
           } | Sort-Object FullName

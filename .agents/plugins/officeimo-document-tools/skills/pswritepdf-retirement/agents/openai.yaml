@@ -1,0 +1,6 @@
+interface:
+  display_name: PSWritePDF Retirement
+  short_description: Move PSWritePDF-era behavior into OfficeIMO and thin PSWriteOffice surfaces.
+  default_prompt: >-
+    Use the PSWritePDF retirement roadmap first, keep reusable PDF capability in
+    OfficeIMO, and keep PSWriteOffice cmdlets friendly and thin.

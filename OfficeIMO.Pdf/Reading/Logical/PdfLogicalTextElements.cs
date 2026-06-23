@@ -4,13 +4,14 @@ namespace OfficeIMO.Pdf;
 /// Line-level text block extracted from a PDF page.
 /// </summary>
 public sealed class PdfLogicalTextBlock : IPdfLogicalElement {
-    internal PdfLogicalTextBlock(int pageNumber, PdfLogicalElementKind kind, string text, double xStart, double xEnd, double baselineY, int spanCount) {
+    internal PdfLogicalTextBlock(int pageNumber, PdfLogicalElementKind kind, string text, double xStart, double xEnd, double baselineY, double fontSize, int spanCount) {
         PageNumber = pageNumber;
         Kind = kind;
         Text = text;
         XStart = xStart;
         XEnd = xEnd;
         BaselineY = baselineY;
+        FontSize = fontSize;
         SpanCount = spanCount;
     }
 
@@ -31,6 +32,9 @@ public sealed class PdfLogicalTextBlock : IPdfLogicalElement {
 
     /// <summary>Baseline Y coordinate in PDF points from the bottom of the page.</summary>
     public double BaselineY { get; }
+
+    /// <summary>Largest font size represented by this line-level block.</summary>
+    public double FontSize { get; }
 
     /// <summary>Number of text spans merged into this block.</summary>
     public int SpanCount { get; }

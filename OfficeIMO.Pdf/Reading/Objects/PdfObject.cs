@@ -27,8 +27,18 @@ internal sealed class PdfName : PdfObject {
 internal sealed class PdfStringObj : PdfObject {
     public string Value { get; }
     public bool UseTextStringEncoding { get; }
+    public byte[] RawBytes { get; }
     public PdfStringObj(string value, bool useTextStringEncoding = false) {
         Value = value;
+        UseTextStringEncoding = useTextStringEncoding;
+        RawBytes = useTextStringEncoding
+            ? PdfTextString.Encode(value)
+            : PdfEncoding.Latin1GetBytes(value);
+    }
+
+    public PdfStringObj(byte[] rawBytes, bool useTextStringEncoding = false) {
+        RawBytes = (byte[])rawBytes.Clone();
+        Value = PdfTextString.Decode(rawBytes);
         UseTextStringEncoding = useTextStringEncoding;
     }
 

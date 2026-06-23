@@ -1,0 +1,24 @@
+{
+  "name": "officeimo-document-tools",
+  "version": "0.1.0",
+  "description": "Codex skills for OfficeIMO document conversion, PDF retirement work, and the OfficeIMO.com browser conversion path.",
+  "author": {
+    "name": "EvotecIT"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "OfficeIMO Document Tools",
+    "shortDescription": "Work on OfficeIMO conversion, PDF, WASM, and PSWriteOffice retirement tasks.",
+    "longDescription": "OfficeIMO Document Tools gives Codex a repo-owned operating surface for document conversion work. It keeps reusable behavior in OfficeIMO core, keeps website and PowerShell surfaces thin, and separates static browser conversion from local MCP automation.",
+    "developerName": "EvotecIT",
+    "category": "DocumentAutomation",
+    "capabilities": [
+      "document-conversion",
+      "pdf",
+      "blazor-wasm",
+      "pswriteoffice-retirement",
+      "skills"
+    ],
+    "defaultPrompt": "Use the OfficeIMO document tools skills for conversion, PDF, website/WASM, and PSWriteOffice retirement work."
+  }
+}

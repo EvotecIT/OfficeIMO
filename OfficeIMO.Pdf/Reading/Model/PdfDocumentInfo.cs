@@ -865,6 +865,12 @@ public sealed partial class PdfDocumentInfo {
     /// <summary>Catalog PDF version override, for example 1.7, when present.</summary>
     public string? CatalogVersion { get; }
 
+    /// <summary>Effective PDF version inferred from the highest catalog override or file header version.</summary>
+    public string? EffectiveVersion => ComparePdfVersion(CatalogVersion, HeaderVersion) >= 0 ? CatalogVersion : HeaderVersion;
+
+    /// <summary>True when the effective PDF version is PDF 2.0 or later.</summary>
+    public bool IsPdf20OrLater => ComparePdfVersion(EffectiveVersion, "2.0") >= 0;
+
     /// <summary>Catalog language tag, for example en-US or pl-PL, when present.</summary>
     public string? CatalogLanguage { get; }
 
@@ -921,6 +927,32 @@ public sealed partial class PdfDocumentInfo {
 
     private bool HasAcroFormSignatureFlag(int flag) {
         return AcroFormSignatureFlags.HasValue && (AcroFormSignatureFlags.Value & flag) != 0;
+    }
+
+    private static int ComparePdfVersion(string? left, string? right) {
+        if (!TryParsePdfVersion(left, out int leftMajor, out int leftMinor)) {
+            return TryParsePdfVersion(right, out _, out _) ? -1 : 0;
+        }
+
+        if (!TryParsePdfVersion(right, out int rightMajor, out int rightMinor)) {
+            return 1;
+        }
+
+        int majorComparison = leftMajor.CompareTo(rightMajor);
+        return majorComparison != 0 ? majorComparison : leftMinor.CompareTo(rightMinor);
+    }
+
+    private static bool TryParsePdfVersion(string? version, out int major, out int minor) {
+        major = 0;
+        minor = 0;
+        if (string.IsNullOrWhiteSpace(version)) {
+            return false;
+        }
+
+        string[] parts = version!.Split('.');
+        return parts.Length == 2 &&
+            int.TryParse(parts[0], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out major) &&
+            int.TryParse(parts[1], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out minor);
     }
 
     private static PdfFormFieldTextAlignment ToTextAlignment(int? quadding) {

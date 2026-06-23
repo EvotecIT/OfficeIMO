@@ -133,7 +133,7 @@
     "Robots": true,
     "SecurityHeaders": {
       "Enabled": true,
-      "ContentSecurityPolicyValue": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+      "ContentSecurityPolicyValue": "default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self'; frame-src 'self' blob:; frame-ancestors 'self'; base-uri 'self'; form-action 'self'"
     },
     "ContentSignals": {
       "Enabled": true,
@@ -244,7 +244,11 @@
     "Hashing": {
       "Enabled": true,
       "Extensions": [".css", ".js"],
-      "Exclude": ["**/assets/prism/components/**", "**/css/prism-theme.css"]
+      "Exclude": [
+        "**/apps/officeimo-converter/**",
+        "**/assets/prism/components/**",
+        "**/css/prism-theme.css"
+      ]
     },
     "CacheHeaders": {
       "Enabled": true,
@@ -373,6 +377,7 @@
             ]
           },
           { "Title": "Docs", "Url": "/docs/" },
+          { "Title": "Playground", "Url": "/playground/" },
           { "Title": "Blog", "Url": "/blog/" },
           {
             "Title": "API",
@@ -442,6 +447,7 @@
           { "Title": "Changelog", "Url": "/changelog/" },
           { "Title": "Benchmarks", "Url": "/benchmarks/" },
           { "Title": "Comparison", "Url": "/comparison/" },
+          { "Title": "Playground", "Url": "/playground/" },
           { "Title": "Pricing", "Url": "/pricing/" },
           { "Title": "Showcase", "Url": "/showcase/" },
           { "Title": "Blog", "Url": "/blog/" }
