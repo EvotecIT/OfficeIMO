@@ -647,6 +647,17 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        internal bool HasMaterializedDirectTabularFastSaveWorksheet(ExcelSheet sheet) {
+            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            if (!ReferenceEquals(sheet.Document, this) || !_materializedDirectDataSetFastSaveModelHasMaterializedWorksheet) {
+                return false;
+            }
+
+            var model = _materializedDirectDataSetFastSaveModel;
+            return model != null
+                && model.Sheets.Any(item => string.Equals(item.SheetName, sheet.Name, StringComparison.Ordinal));
+        }
+
         internal bool TryGetDirectTabularSaveCandidateColumnByHeader(
             ExcelSheet sheet,
             string header,

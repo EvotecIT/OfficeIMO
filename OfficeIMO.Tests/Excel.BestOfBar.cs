@@ -338,5 +338,97 @@ namespace OfficeIMO.Tests {
             Assert.Contains("A1", cells.Keys);
             Assert.DoesNotContain("A2", cells.Keys);
         }
+
+        [Fact]
+        public void Test_ExcelBestOfBar_ColumnFormatPlan_FormatsPreservedOverlayHeaders() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelBestOfBar.ColumnFormatPlan.OverlayHeader.xlsx");
+
+            var table = new DataTable("Rows");
+            table.Columns.Add("Name", typeof(string));
+            table.Rows.Add("Alpha");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Data");
+                sheet.InsertDataTableAsTable(table, 1, 1, includeHeaders: true, tableName: "Rows", style: ExcelTableStyle.TableStyleMedium2);
+                sheet.CellValue(1, 2, "Score");
+                sheet.CellValue(2, 2, 42);
+
+                IReadOnlyList<ExcelColumnFormatResult> results = sheet.ApplyColumnFormatPlan(
+                    new ExcelColumnFormatPlan().Add("Score", ExcelNumberPreset.Integer));
+
+                Assert.Single(results);
+                Assert.True(results[0].Applied);
+                Assert.Equal(2, results[0].ColumnIndex);
+                document.Save(filePath, openExcel: false, options: new ExcelSaveOptions { DisableFastPackageWriter = true });
+            }
+
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false);
+            var cells = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>()
+                .ToDictionary(cell => cell.CellReference!.Value!);
+
+            Assert.Equal("#,##0", GetCellNumberFormatCode(spreadsheet, cells["B2"]));
+        }
+
+        [Fact]
+        public void Test_ExcelBestOfBar_ColumnFormatPlan_UpdatesMaterializedDomForStandardSaveFallback() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelBestOfBar.ColumnFormatPlan.MaterializedFallback.xlsx");
+
+            var table = new DataTable("Rows");
+            table.Columns.Add("Name", typeof(string));
+            table.Columns.Add("Amount", typeof(decimal));
+            table.Rows.Add("Alpha", 12.5M);
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Data");
+                sheet.InsertDataTableAsTable(table, 1, 1, includeHeaders: true, tableName: "Rows", style: ExcelTableStyle.TableStyleMedium2);
+                Assert.True(sheet.TryGetCellText(2, 1, out _));
+
+                IReadOnlyList<ExcelColumnFormatResult> results = sheet.ApplyColumnFormatPlan(
+                    new ExcelColumnFormatPlan().Currency(System.Globalization.CultureInfo.GetCultureInfo("en-US"), "Amount"));
+
+                Assert.Single(results);
+                Assert.True(results[0].Applied);
+                Assert.Equal(2, results[0].ColumnIndex);
+                document.Save(filePath, openExcel: false, options: new ExcelSaveOptions { DisableFastPackageWriter = true });
+            }
+
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false);
+            var cells = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>()
+                .ToDictionary(cell => cell.CellReference!.Value!);
+
+            Assert.Contains("$", GetCellNumberFormatCode(spreadsheet, cells["B2"]) ?? string.Empty);
+        }
+
+        [Fact]
+        public void Test_ExcelBestOfBar_ColumnFormatPlan_AutoFitKeepsDirectPackageWriter() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelBestOfBar.ColumnFormatPlan.DirectAutoFit.xlsx");
+
+            var table = new DataTable("Rows");
+            table.Columns.Add("Name", typeof(string));
+            table.Columns.Add("Amount", typeof(decimal));
+            table.Rows.Add("Long descriptive customer name", 1234.5M);
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Data");
+                sheet.InsertDataTableAsTable(table, 1, 1, includeHeaders: true, tableName: "Rows", style: ExcelTableStyle.TableStyleMedium2);
+
+                IReadOnlyList<ExcelColumnFormatResult> results = sheet.ApplyColumnFormatPlan(
+                    new ExcelColumnFormatPlan()
+                        .Text("Name")
+                        .Currency(System.Globalization.CultureInfo.GetCultureInfo("en-US"), "Amount"),
+                    autoFit: true);
+
+                Assert.All(results, result => Assert.True(result.Applied));
+                document.Save();
+                Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+            }
+
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false);
+            var cells = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>()
+                .ToDictionary(cell => cell.CellReference!.Value!);
+
+            Assert.Equal("@", GetCellNumberFormatCode(spreadsheet, cells["A2"]));
+            Assert.Contains("$", GetCellNumberFormatCode(spreadsheet, cells["B2"]) ?? string.Empty);
+        }
     }
 }

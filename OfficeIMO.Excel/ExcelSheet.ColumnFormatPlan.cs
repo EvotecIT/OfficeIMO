@@ -33,7 +33,12 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (directCandidateMatched && !ruleIncludeHeader) {
-                    if (!Document.TrySetDirectTabularSaveCandidateColumnNumberFormat(this, columnIndex, numberFormat)) {
+                    bool updateMaterializedWorksheet = Document.HasMaterializedDirectTabularFastSaveWorksheet(this);
+                    if (Document.TrySetDirectTabularSaveCandidateColumnNumberFormat(this, columnIndex, numberFormat)) {
+                        if (updateMaterializedWorksheet) {
+                            ApplyColumnNumberFormat(columnIndex, headerRow, ruleIncludeHeader, numberFormat);
+                        }
+                    } else {
                         ApplyColumnNumberFormat(columnIndex, headerRow, ruleIncludeHeader, numberFormat);
                     }
                 } else if (directCandidateMatched) {
@@ -43,10 +48,6 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (autoFit || rule.AutoFit) {
-                    if (directCandidateAvailable) {
-                        MaterializeDeferredDataSetImportIfNeeded();
-                    }
-
                     AutoFitColumn(columnIndex);
                 }
 
@@ -83,11 +84,6 @@ namespace OfficeIMO.Excel {
             if (allowDirectCandidateLookup && directCandidateAvailable && columnIndex > 0) {
                 directCandidateMatched = true;
                 return true;
-            }
-
-            if (allowDirectCandidateLookup && directCandidateAvailable) {
-                columnIndex = 0;
-                return false;
             }
 
             return headerRow.HasValue
