@@ -344,16 +344,30 @@ public class PdfITextInspiredCoverageTests {
         PdfDocumentInfo info = PdfInspector.Inspect(resized);
         PdfPageGeometry geometry = info.Pages[0].Geometry!;
         PdfAnnotation annotation = Assert.Single(info.GetAnnotationsBySubtype("Link"));
+        string raw = Encoding.ASCII.GetString(resized);
 
         Assert.Equal(600, geometry.MediaBox.Width);
         Assert.Equal(600, geometry.CropBox!.Width);
         Assert.Equal(600, geometry.TrimBox!.Width);
         Assert.Equal(600, geometry.BleedBox!.Width);
         Assert.Equal(600, geometry.ArtBox!.Width);
-        Assert.Equal(40, annotation.X1);
-        Assert.Equal(60, annotation.Y1);
-        Assert.Equal(80, annotation.X2);
-        Assert.Equal(100, annotation.Y2);
+        Assert.Equal(60, annotation.X1);
+        Assert.Equal(120, annotation.Y1);
+        Assert.Equal(180, annotation.X2);
+        Assert.Equal(240, annotation.Y2);
+        Assert.Contains("/UserUnit 1", raw, StringComparison.Ordinal);
+        Assert.Contains("/Rotate 0", raw, StringComparison.Ordinal);
+        Assert.Contains("10 10 100 100 re\nW n", raw, StringComparison.Ordinal);
+
+        Assert.NotNull(info.OpenAction);
+        Assert.Equal(60, info.OpenAction!.DestinationLeft);
+        Assert.Equal(420, info.OpenAction.DestinationTop);
+        PdfNamedDestination namedDestination = Assert.Single(info.NamedDestinations, destination => destination.Name == "Target");
+        Assert.Equal(60, namedDestination.DestinationLeft);
+        Assert.Equal(420, namedDestination.DestinationTop);
+        PdfOutlineItem outline = Assert.Single(info.Outlines);
+        Assert.Equal(60, outline.DestinationLeft);
+        Assert.Equal(420, outline.DestinationTop);
     }
 
     [Fact]
@@ -670,12 +684,14 @@ public class PdfITextInspiredCoverageTests {
 
     private static byte[] BuildResizableAnnotatedPagePdf() {
         var objects = new List<string> {
-            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Catalog /Pages 2 0 R /OpenAction [3 0 R /XYZ 20 80 1] /Dests << /Target [3 0 R /XYZ 20 80 1] >> /Outlines 7 0 R >>",
             "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
-            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /CropBox [0 0 300 300] /BleedBox [5 5 295 295] /TrimBox [10 10 290 290] /ArtBox [20 20 280 280] /Resources << /Font << /F1 4 0 R >> >> /Annots [6 0 R] /Contents 5 0 R >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /CropBox [10 10 110 110] /BleedBox [5 5 295 295] /TrimBox [10 10 290 290] /ArtBox [20 20 280 280] /UserUnit 2 /Rotate 90 /Resources << /Font << /F1 4 0 R >> >> /Annots [6 0 R] /Contents 5 0 R >>",
             "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
             BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 20 20 Td (Resize source) Tj ET")),
-            "<< /Type /Annot /Subtype /Link /Rect [20 30 40 50] /A << /S /URI /URI (https://example.com) >> >>"
+            "<< /Type /Annot /Subtype /Link /Rect [20 30 40 50] /Dest [3 0 R /XYZ 20 80 1] >>",
+            "<< /Type /Outlines /First 8 0 R /Last 8 0 R /Count 1 >>",
+            "<< /Title (Target) /Parent 7 0 R /Dest [3 0 R /XYZ 20 80 1] >>"
         };
 
         return Encoding.ASCII.GetBytes(BuildPdf(objects));

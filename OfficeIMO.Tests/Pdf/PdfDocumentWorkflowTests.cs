@@ -82,6 +82,39 @@ public class PdfDocumentWorkflowTests {
     }
 
     [Fact]
+    public void TableStyle_ShrinksExplicitRichRunFontSizesToFitResolvedCellWidth() {
+        const string longValue = "ThisIdentifierShouldShrinkToFit";
+        byte[] bytes = PdfDocument.Create()
+            .Table(new[] {
+                new[] { new PdfTableCell("Name"), new PdfTableCell("Value") },
+                new[] {
+                    new PdfTableCell("Alpha"),
+                    PdfTableCell.RichTextCell(new[] {
+                        TextRun.Normal(longValue, fontSize: 30, font: PdfStandardFont.Courier)
+                    })
+                }
+            }, style: new PdfTableStyle {
+                FontSize = 18,
+                HeaderFontSize = 18,
+                MinimumShrinkFontSize = 7,
+                ShrinkTextToFit = true,
+                ColumnWidthPoints = new List<double?> { 54, 108 },
+                HeaderRowCount = 1
+            })
+            .ToBytes();
+
+        PdfDocument document = PdfDocument.Open(bytes);
+        IReadOnlyList<PdfLogicalTextBlock> blocks = document.Read.TextBlocks();
+        string compactText = document.Read.Text()
+            .Replace("\r", string.Empty)
+            .Replace("\n", string.Empty)
+            .Replace(" ", string.Empty);
+
+        Assert.Contains(longValue, compactText, StringComparison.Ordinal);
+        Assert.Contains(blocks, block => block.FontSize < 30D && block.FontSize >= 7D);
+    }
+
+    [Fact]
     public void TableStyle_CanShrinkTextToFitInsideRowColumnLayout() {
         const string longValue = "ThisIdentifierShouldShrinkToFit";
         byte[] bytes = PdfDocument.Create(new PdfOptions {

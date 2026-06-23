@@ -36,6 +36,7 @@ public static partial class PdfPageEditor {
         var pageObjectNumbers = document.Pages.Select(static page => page.ObjectNumber).ToArray();
         var overrides = new Dictionary<int, Dictionary<string, PdfObject>>();
         var additionalObjects = new List<PdfPageExtractor.AdditionalObject>();
+        var transformsByPageObjectNumber = new Dictionary<int, PageResizeTransform>();
 
         for (int i = 0; i < document.Pages.Count; i++) {
             int pageNumber = i + 1;
@@ -57,15 +58,18 @@ public static partial class PdfPageEditor {
             double sourceHeight = sourceBox?.Height ?? document.Pages[i].GetPageSize().Height;
             ValidateSourcePageSize(sourceWidth, sourceHeight, pageNumber);
 
-            var transform = CalculateResizeTransform(sourceLeft, sourceBottom, sourceWidth, sourceHeight, options);
+            var transform = CalculateResizeTransform(pageObjectNumber, sourceLeft, sourceBottom, sourceWidth, sourceHeight, options);
+            transformsByPageObjectNumber[pageObjectNumber] = transform;
             int prefixPseudoObjectNumber = ResizeContentPrefixBasePseudoObjectNumber - i;
             int suffixPseudoObjectNumber = ResizeContentSuffixBasePseudoObjectNumber - i;
-            additionalObjects.Add(new PdfPageExtractor.AdditionalObject(prefixPseudoObjectNumber, BuildResizeContentStream(transform)));
+            additionalObjects.Add(new PdfPageExtractor.AdditionalObject(prefixPseudoObjectNumber, BuildResizeContentStream(transform, sourceLeft, sourceBottom, sourceWidth, sourceHeight)));
             additionalObjects.Add(new PdfPageExtractor.AdditionalObject(suffixPseudoObjectNumber, new PdfStream(new PdfDictionary(), PdfEncoding.Latin1GetBytes("\nQ\n"))));
 
             var pageOverrides = new Dictionary<string, PdfObject>(StringComparer.Ordinal) {
                 ["MediaBox"] = CreatePageBoxArray(0D, 0D, options.PageSize.Width, options.PageSize.Height),
                 ["CropBox"] = CreatePageBoxArray(0D, 0D, options.PageSize.Width, options.PageSize.Height),
+                ["UserUnit"] = new PdfNumber(1D),
+                ["Rotate"] = new PdfNumber(0D),
                 ["Contents"] = BuildResizedContentsArray(
                     objects,
                     pageDictionary.Items.TryGetValue("Contents", out var contents) ? contents : null,
@@ -82,13 +86,15 @@ public static partial class PdfPageEditor {
         }
 
         PdfFileVersion fileVersion = PdfFileAssembler.ParseHeaderVersionOrDefault(PdfSyntax.GetHeaderVersion(pdf));
+        PdfPageExtractor.CatalogRewriteState catalogState = PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw);
+        TransformCatalogDestinationsForResize(objects, catalogState, transformsByPageObjectNumber);
         return PdfPageExtractor.ExtractPages(
             objects,
             document.Metadata,
             pageObjectNumbers,
             overrides,
             additionalObjects,
-            PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw),
+            catalogState,
             fileVersion);
     }
 
@@ -206,13 +212,18 @@ public static partial class PdfPageEditor {
         target.Items.Add(contents);
     }
 
-    private static PdfStream BuildResizeContentStream(PageResizeTransform transform) {
+    private static PdfStream BuildResizeContentStream(PageResizeTransform transform, double sourceLeft, double sourceBottom, double sourceWidth, double sourceHeight) {
         string content =
             "q\n" +
             FormatResizeNumber(transform.ScaleX) + " 0 0 " +
             FormatResizeNumber(transform.ScaleY) + " " +
             FormatResizeNumber(transform.TranslateX) + " " +
-            FormatResizeNumber(transform.TranslateY) + " cm\n";
+            FormatResizeNumber(transform.TranslateY) + " cm\n" +
+            FormatResizeNumber(sourceLeft) + " " +
+            FormatResizeNumber(sourceBottom) + " " +
+            FormatResizeNumber(sourceWidth) + " " +
+            FormatResizeNumber(sourceHeight) + " re\n" +
+            "W n\n";
         return new PdfStream(new PdfDictionary(), PdfEncoding.Latin1GetBytes(content));
     }
 
@@ -257,6 +268,9 @@ public static partial class PdfPageEditor {
             if (resolved is PdfDictionary annotationDictionary) {
                 var clonedAnnotation = (PdfDictionary)ClonePdfObject(annotationDictionary);
                 TransformAnnotationRectangle(clonedAnnotation, transform);
+                TransformDestinationsInObject(objects, clonedAnnotation, new Dictionary<int, PageResizeTransform> {
+                    [transform.PageObjectNumber] = transform
+                }, new HashSet<int>(), new HashSet<PdfArray>());
                 transformedAnnotations.Items.Add(clonedAnnotation);
             } else {
                 transformedAnnotations.Items.Add(ClonePdfObject(annotationObject));
@@ -295,6 +309,106 @@ public static partial class PdfPageEditor {
     private static double TransformY(double value, PageResizeTransform transform) =>
         value * transform.ScaleY + transform.TranslateY;
 
+    private static void TransformCatalogDestinationsForResize(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfPageExtractor.CatalogRewriteState catalogState,
+        IReadOnlyDictionary<int, PageResizeTransform> transformsByPageObjectNumber) {
+        if (transformsByPageObjectNumber.Count == 0) {
+            return;
+        }
+
+        var visitedReferences = new HashSet<int>();
+        var transformedArrays = new HashSet<PdfArray>();
+        TransformDestinationsInObject(objects, catalogState.Outlines, transformsByPageObjectNumber, visitedReferences, transformedArrays);
+        TransformDestinationsInObject(objects, catalogState.NamedDestinations, transformsByPageObjectNumber, visitedReferences, transformedArrays);
+        TransformDestinationsInObject(objects, catalogState.NamedDestinationNameTree, transformsByPageObjectNumber, visitedReferences, transformedArrays);
+        TransformDestinationsInObject(objects, catalogState.OpenAction, transformsByPageObjectNumber, visitedReferences, transformedArrays);
+    }
+
+    private static void TransformDestinationsInObject(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfObject? value,
+        IReadOnlyDictionary<int, PageResizeTransform> transformsByPageObjectNumber,
+        HashSet<int> visitedReferences,
+        HashSet<PdfArray> transformedArrays) {
+        switch (value) {
+            case PdfReference reference:
+                if (!visitedReferences.Add(reference.ObjectNumber) ||
+                    !PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) ||
+                    IsPageDictionary(indirect.Value)) {
+                    return;
+                }
+
+                TransformDestinationsInObject(objects, indirect.Value, transformsByPageObjectNumber, visitedReferences, transformedArrays);
+                return;
+            case PdfArray array:
+                TransformDestinationArray(array, transformsByPageObjectNumber, transformedArrays);
+                foreach (PdfObject item in array.Items) {
+                    TransformDestinationsInObject(objects, item, transformsByPageObjectNumber, visitedReferences, transformedArrays);
+                }
+
+                return;
+            case PdfDictionary dictionary:
+                foreach (PdfObject item in dictionary.Items.Values) {
+                    TransformDestinationsInObject(objects, item, transformsByPageObjectNumber, visitedReferences, transformedArrays);
+                }
+
+                return;
+            case PdfStream stream:
+                TransformDestinationsInObject(objects, stream.Dictionary, transformsByPageObjectNumber, visitedReferences, transformedArrays);
+                return;
+        }
+    }
+
+    private static bool IsPageDictionary(PdfObject value) =>
+        value is PdfDictionary dictionary &&
+        dictionary.Get<PdfName>("Type")?.Name == "Page";
+
+    private static void TransformDestinationArray(
+        PdfArray array,
+        IReadOnlyDictionary<int, PageResizeTransform> transformsByPageObjectNumber,
+        HashSet<PdfArray> transformedArrays) {
+        if (!transformedArrays.Add(array) ||
+            array.Items.Count < 2 ||
+            array.Items[0] is not PdfReference pageReference ||
+            !transformsByPageObjectNumber.TryGetValue(pageReference.ObjectNumber, out PageResizeTransform transform) ||
+            array.Items[1] is not PdfName destinationMode) {
+            return;
+        }
+
+        switch (destinationMode.Name) {
+            case "XYZ":
+                TransformDestinationCoordinate(array, 2, transform, isX: true);
+                TransformDestinationCoordinate(array, 3, transform, isX: false);
+                break;
+            case "FitH":
+            case "FitBH":
+                TransformDestinationCoordinate(array, 2, transform, isX: false);
+                break;
+            case "FitV":
+            case "FitBV":
+                TransformDestinationCoordinate(array, 2, transform, isX: true);
+                break;
+            case "FitR":
+                TransformDestinationCoordinate(array, 2, transform, isX: true);
+                TransformDestinationCoordinate(array, 3, transform, isX: false);
+                TransformDestinationCoordinate(array, 4, transform, isX: true);
+                TransformDestinationCoordinate(array, 5, transform, isX: false);
+                break;
+        }
+    }
+
+    private static void TransformDestinationCoordinate(PdfArray array, int index, PageResizeTransform transform, bool isX) {
+        if (index >= array.Items.Count ||
+            array.Items[index] is not PdfNumber coordinate) {
+            return;
+        }
+
+        array.Items[index] = new PdfNumber(isX
+            ? TransformX(coordinate.Value, transform)
+            : TransformY(coordinate.Value, transform));
+    }
+
     private static PdfObject ClonePdfObject(PdfObject value) {
         switch (value) {
             case PdfNumber number:
@@ -330,7 +444,7 @@ public static partial class PdfPageEditor {
         }
     }
 
-    private static PageResizeTransform CalculateResizeTransform(double sourceLeft, double sourceBottom, double sourceWidth, double sourceHeight, PdfPageResizeOptions options) {
+    private static PageResizeTransform CalculateResizeTransform(int pageObjectNumber, double sourceLeft, double sourceBottom, double sourceWidth, double sourceHeight, PdfPageResizeOptions options) {
         double margin = options.Margin;
         double availableWidth = options.PageSize.Width - margin * 2D;
         double availableHeight = options.PageSize.Height - margin * 2D;
@@ -354,7 +468,7 @@ public static partial class PdfPageEditor {
         double scaledHeight = sourceHeight * scaleY;
         double translateX = margin + (availableWidth - scaledWidth) / 2D - sourceLeft * scaleX;
         double translateY = margin + (availableHeight - scaledHeight) / 2D - sourceBottom * scaleY;
-        return new PageResizeTransform(scaleX, scaleY, translateX, translateY);
+        return new PageResizeTransform(scaleX, scaleY, translateX, translateY, pageObjectNumber);
     }
 
     private static void ValidateResizeOptions(PdfPageResizeOptions options) {
@@ -384,11 +498,12 @@ public static partial class PdfPageEditor {
     }
 
     private readonly struct PageResizeTransform {
-        public PageResizeTransform(double scaleX, double scaleY, double translateX, double translateY) {
+        public PageResizeTransform(double scaleX, double scaleY, double translateX, double translateY, int pageObjectNumber) {
             ScaleX = scaleX;
             ScaleY = scaleY;
             TranslateX = translateX;
             TranslateY = translateY;
+            PageObjectNumber = pageObjectNumber;
         }
 
         public double ScaleX { get; }
@@ -398,5 +513,7 @@ public static partial class PdfPageEditor {
         public double TranslateX { get; }
 
         public double TranslateY { get; }
+
+        public int PageObjectNumber { get; }
     }
 }

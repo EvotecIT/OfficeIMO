@@ -161,7 +161,7 @@ internal static partial class PdfWriter {
 
             double cellWidth = GetTableCellWidth(columnWidths, cell.Column, cell.ColumnSpan, columnGap);
             double innerWidth = Math.Max(1D, cellWidth - GetTableCellPaddingLeft(style, rowIndex, cell.Column) - GetTableCellPaddingRight(style, rowIndex, cell.Column));
-            double textWidth = EstimateSimpleTextWidthForOptions(cell.Text, rowFont, rowFontSize, options);
+            double textWidth = MeasureTableCellTextWidth(cell, rowFont, rowFontSize, options);
             if (textWidth <= innerWidth + 0.001D || textWidth <= 0.001D) {
                 continue;
             }
@@ -171,6 +171,39 @@ internal static partial class PdfWriter {
         }
 
         return resolvedFontSize;
+    }
+
+    private static double MeasureTableCellTextWidth(TableCellLayout cell, PdfStandardFont baseFont, double fontSize, PdfOptions? options) {
+        double width = 0D;
+        if (cell.Paragraphs.Count > 0) {
+            foreach (PdfTableCellParagraph paragraph in cell.Paragraphs) {
+                width = Math.Max(width, MeasureTableRunsTextWidth(paragraph.Runs, baseFont, fontSize, options));
+            }
+        } else {
+            width = MeasureTableRunsTextWidth(cell.Runs, baseFont, fontSize, options);
+        }
+
+        return width;
+    }
+
+    private static double MeasureTableRunsTextWidth(System.Collections.Generic.IReadOnlyList<TextRun> runs, PdfStandardFont baseFont, double fontSize, PdfOptions? options) {
+        PdfOptions effectiveOptions = options ?? new PdfOptions();
+        System.Collections.Generic.IReadOnlyList<TextRun> normalizedRuns = NormalizeFallbackRuns(runs, baseFont, effectiveOptions);
+        double width = 0D;
+        foreach (System.Collections.Generic.IReadOnlyList<TextRun> line in BuildPageTextLineRuns(normalizedRuns)) {
+            width = Math.Max(width, MeasurePageTextLineRuns(line, baseFont, fontSize, effectiveOptions));
+        }
+
+        return width;
+    }
+
+    private static double GetTableRunFontSizeScale(double originalFontSize, double resolvedFontSize) {
+        if (originalFontSize <= 0D ||
+            resolvedFontSize >= originalFontSize - 0.001D) {
+            return 1D;
+        }
+
+        return resolvedFontSize / originalFontSize;
     }
 
     private static double ResolveTableRowHeight(PdfTableStyle style, int rowIndex, double requiredHeight) {
@@ -538,13 +571,13 @@ internal static partial class PdfWriter {
         return height;
     }
 
-    private static TableCellTextLayout CreateTableCellTextLayout(TableCellLayout cell, double innerWidth, PdfStandardFont baseFont, double fontSize, double leading, PdfOptions? options) {
+    private static TableCellTextLayout CreateTableCellTextLayout(TableCellLayout cell, double innerWidth, PdfStandardFont baseFont, double fontSize, double leading, PdfOptions? options, double runFontSizeScale = 1D) {
         double wrapWidth = GetTableCellWrapWidth(innerWidth, cell.NoWrap);
         if (cell.Paragraphs.Count > 0) {
-            return CreateTableCellParagraphTextLayout(cell.Paragraphs, wrapWidth, baseFont, fontSize, leading, options);
+            return CreateTableCellParagraphTextLayout(ScaleTableCellParagraphsForShrink(cell.Paragraphs, runFontSizeScale), wrapWidth, baseFont, fontSize, leading, options);
         }
 
-        var wrap = WrapRichRunsCore(cell.Runs, wrapWidth, fontSize, baseFont, leading, null, DefaultParagraphTabStopWidth, options);
+        var wrap = WrapRichRunsCore(ScaleTableRunsForShrink(cell.Runs, runFontSizeScale), wrapWidth, fontSize, baseFont, leading, null, DefaultParagraphTabStopWidth, options);
         if (wrap.Lines.Count == 0) {
             wrap.Lines.Add(new System.Collections.Generic.List<RichSeg>());
         }
@@ -554,6 +587,60 @@ internal static partial class PdfWriter {
         }
 
         return new TableCellTextLayout(wrap.Lines, wrap.LineHeights);
+    }
+
+    private static System.Collections.Generic.IReadOnlyList<TextRun> ScaleTableRunsForShrink(System.Collections.Generic.IReadOnlyList<TextRun> runs, double runFontSizeScale) {
+        if (runFontSizeScale >= 0.999D) {
+            return runs;
+        }
+
+        var scaledRuns = new System.Collections.Generic.List<TextRun>(runs.Count);
+        foreach (TextRun run in runs) {
+            double? scaledFontSize = run.FontSize.HasValue
+                ? System.Math.Max(0.001D, run.FontSize.Value * runFontSizeScale)
+                : null;
+            scaledRuns.Add(new TextRun(
+                run.Text,
+                run.Bold,
+                run.Underline,
+                run.Color,
+                run.Italic,
+                run.Strike,
+                scaledFontSize,
+                run.Font,
+                run.LinkUri,
+                run.LinkContents,
+                run.Baseline,
+                run.LinkDestinationName,
+                run.TabLeader,
+                run.TabAlignment,
+                run.BackgroundColor));
+        }
+
+        return scaledRuns.AsReadOnly();
+    }
+
+    private static System.Collections.Generic.IReadOnlyList<PdfTableCellParagraph> ScaleTableCellParagraphsForShrink(System.Collections.Generic.IReadOnlyList<PdfTableCellParagraph> paragraphs, double runFontSizeScale) {
+        if (runFontSizeScale >= 0.999D) {
+            return paragraphs;
+        }
+
+        var scaledParagraphs = new System.Collections.Generic.List<PdfTableCellParagraph>(paragraphs.Count);
+        foreach (PdfTableCellParagraph paragraph in paragraphs) {
+            scaledParagraphs.Add(new PdfTableCellParagraph(
+                ScaleTableRunsForShrink(paragraph.Runs, runFontSizeScale),
+                paragraph.SpacingAfter,
+                paragraph.Align,
+                paragraph.SpacingBefore,
+                paragraph.LeftIndent,
+                paragraph.RightIndent,
+                paragraph.FirstLineIndent,
+                paragraph.LineHeight,
+                paragraph.DefaultTabStopWidth,
+                paragraph.TabStops));
+        }
+
+        return scaledParagraphs.AsReadOnly();
     }
 
     private static double GetTableCellWrapWidth(double innerWidth, bool noWrap) =>

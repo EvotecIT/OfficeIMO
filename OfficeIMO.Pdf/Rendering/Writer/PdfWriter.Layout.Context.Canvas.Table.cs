@@ -24,12 +24,14 @@ internal static partial class PdfWriter {
             double[] columnWidths = ResolveCanvasTableColumnWidths(style, columns, item.Width, columnGap);
             double[] rowHeights = ResolveCanvasTableRowHeights(style, rows, item.Height, rowGap);
             var rowFontSizes = new double[rows];
+            var rowFontSizeScales = new double[rows];
             var rowLeadings = new double[rows];
             for (int rowIndex = 0; rowIndex < rows; rowIndex++) {
                 bool rowUsesBold = GetTableRowBold(style, rowIndex, headerRowCount, footerStart);
-                double rowFontSize = GetTableRowFontSize(style, rowIndex, headerRowCount, footerStart, currentOpts.DefaultFontSize);
-                rowFontSize = ResolveTableRowShrinkFontSize(table, style, rowIndex, columns, columnWidths, columnGap, rowFontSize, rowUsesBold, currentOpts);
+                double originalRowFontSize = GetTableRowFontSize(style, rowIndex, headerRowCount, footerStart, currentOpts.DefaultFontSize);
+                double rowFontSize = ResolveTableRowShrinkFontSize(table, style, rowIndex, columns, columnWidths, columnGap, originalRowFontSize, rowUsesBold, currentOpts);
                 rowFontSizes[rowIndex] = rowFontSize;
+                rowFontSizeScales[rowIndex] = GetTableRunFontSizeScale(originalRowFontSize, rowFontSize);
                 rowLeadings[rowIndex] = GetTableLeading(style, rowFontSize);
             }
 
@@ -65,7 +67,7 @@ internal static partial class PdfWriter {
                     bool rowUsesBold = GetTableRowBold(style, rowIndex, headerRowCount, footerStart);
 
                     DrawCanvasTableCellBackground(style, rowIndex, cell.Column, rowIsHeader, rowIsFooter, cellX, cellBottom, cellWidth, cellHeight);
-                    RenderCanvasTableCellText(item, style, cell, rowIndex, cell.Column, rowIsHeader, rowIsFooter, rowUsesBold, cellX, rowTop, cellBottom, cellWidth, cellHeight, rowFontSizes[rowIndex], rowLeadings[rowIndex], item.Y + GetTableRowsHeight(rowHeights, 0, rowIndex, rowGap));
+                    RenderCanvasTableCellText(item, style, cell, rowIndex, cell.Column, rowIsHeader, rowIsFooter, rowUsesBold, cellX, rowTop, cellBottom, cellWidth, cellHeight, rowFontSizes[rowIndex], rowLeadings[rowIndex], rowFontSizeScales[rowIndex], item.Y + GetTableRowsHeight(rowHeights, 0, rowIndex, rowGap));
                     DrawCanvasTableCellBorder(style, rowIndex, cell.Column, cellX, cellBottom, cellWidth, cellHeight);
                 }
             }
@@ -212,7 +214,7 @@ internal static partial class PdfWriter {
             }
         }
 
-        private void RenderCanvasTableCellText(PdfCanvasTableItem item, PdfTableStyle style, TableCellLayout cell, int rowIndex, int columnIndex, bool rowIsHeader, bool rowIsFooter, bool rowUsesBold, double cellX, double cellTop, double cellBottom, double cellWidth, double cellHeight, double fontSize, double leading, double cellYFromTop) {
+        private void RenderCanvasTableCellText(PdfCanvasTableItem item, PdfTableStyle style, TableCellLayout cell, int rowIndex, int columnIndex, bool rowIsHeader, bool rowIsFooter, bool rowUsesBold, double cellX, double cellTop, double cellBottom, double cellWidth, double cellHeight, double fontSize, double leading, double runFontSizeScale, double cellYFromTop) {
             PdfStandardFont cellFont = GetTableRowFont(currentOpts, rowUsesBold);
             double padLeft = GetTableCellPaddingLeft(style, rowIndex, columnIndex);
             double padRight = GetTableCellPaddingRight(style, rowIndex, columnIndex);
@@ -220,7 +222,7 @@ internal static partial class PdfWriter {
             double padBottom = GetTableCellPaddingBottom(style, rowIndex, columnIndex);
             double innerWidth = Math.Max(1D, cellWidth - padLeft - padRight);
             double availableHeight = Math.Max(0D, cellHeight - padTop - padBottom);
-            var lines = CreateTableCellTextLayout(cell, innerWidth, cellFont, fontSize, leading, currentOpts);
+            var lines = CreateTableCellTextLayout(cell, innerWidth, cellFont, fontSize, leading, currentOpts, runFontSizeScale);
             int lineCount = Math.Max(1, lines.LineCount);
             double contentHeight = MeasureTableCellContentHeight(cell, lines, 0, lineCount, leading, innerWidth);
             if (contentHeight > availableHeight + 0.01D) {

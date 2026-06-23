@@ -216,8 +216,9 @@ internal static partial class PdfWriter {
                     var rowBold = new bool[tb2.Rows.Count];
                     for (int ri = 0; ri < tb2.Rows.Count; ri++) {
                         bool rowUsesBold = GetTableRowBold(style, ri, headerRowCount, footerStartRowIndex);
-                        double rowSize = GetTableRowFontSize(style, ri, headerRowCount, footerStartRowIndex, currentOpts.DefaultFontSize);
-                        rowSize = ResolveTableRowShrinkFontSize(tb2, style, ri, cols, colPixel, columnGap, rowSize, rowUsesBold, currentOpts);
+                        double originalRowSize = GetTableRowFontSize(style, ri, headerRowCount, footerStartRowIndex, currentOpts.DefaultFontSize);
+                        double rowSize = ResolveTableRowShrinkFontSize(tb2, style, ri, cols, colPixel, columnGap, originalRowSize, rowUsesBold, currentOpts);
+                        double runFontSizeScale = GetTableRunFontSizeScale(originalRowSize, rowSize);
                         double rowLeading = GetTableLeading(style, rowSize);
                         rowSizes[ri] = rowSize;
                         rowLeadings[ri] = rowLeading;
@@ -235,7 +236,7 @@ internal static partial class PdfWriter {
                             var cellFont = GetTableRowFont(currentOpts, rowUsesBold);
                             double cellWidth = GetTableCellWidth(colPixel, cell.Column, cell.ColumnSpan, columnGap);
                             double innerWidth = Math.Max(1, cellWidth - GetTableCellPaddingLeft(style, ri, cell.Column) - GetTableCellPaddingRight(style, ri, cell.Column));
-                            TableCellTextLayout lines = CreateTableCellTextLayout(cell, innerWidth, cellFont, rowSize, rowLeading, currentOpts);
+                            TableCellTextLayout lines = CreateTableCellTextLayout(cell, innerWidth, cellFont, rowSize, rowLeading, currentOpts, runFontSizeScale);
                             rowLines[ri][cell.Column] = lines;
                             if (cell.RowSpan <= 1) {
                                 maxLines = Math.Max(maxLines, lines.LineCount);

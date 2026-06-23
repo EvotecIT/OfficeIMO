@@ -135,9 +135,10 @@ internal static partial class PdfWriter {
             var rowSizes = new double[tb.Rows.Count];
             var rowBold = new bool[tb.Rows.Count];
             for (int ri = 0; ri < tb.Rows.Count; ri++) {
-                double rowSize = GetTableRowFontSize(style, ri, headerRowCount, footerStartRowIndex, currentOpts.DefaultFontSize);
+                double originalRowSize = GetTableRowFontSize(style, ri, headerRowCount, footerStartRowIndex, currentOpts.DefaultFontSize);
                 bool rowUsesBold = GetTableRowBold(style, ri, headerRowCount, footerStartRowIndex);
-                rowSize = ResolveTableRowShrinkFontSize(tb, style, ri, cols, colPixel, colGapPx, rowSize, rowUsesBold, currentOpts);
+                double rowSize = ResolveTableRowShrinkFontSize(tb, style, ri, cols, colPixel, colGapPx, originalRowSize, rowUsesBold, currentOpts);
+                double runFontSizeScale = GetTableRunFontSizeScale(originalRowSize, rowSize);
                 double rowLeading = GetTableLeading(style, rowSize);
                 rowSizes[ri] = rowSize;
                 rowLeadings[ri] = rowLeading;
@@ -155,7 +156,7 @@ internal static partial class PdfWriter {
                     var cellFont = GetTableRowFont(currentOpts, rowUsesBold);
                     double cellWidth = GetTableCellWidth(colPixel, cell.Column, cell.ColumnSpan, colGapPx);
                     double innerWidth = Math.Max(1, cellWidth - GetTableCellPaddingLeft(style, ri, cell.Column) - GetTableCellPaddingRight(style, ri, cell.Column));
-                    TableCellTextLayout lines = CreateTableCellTextLayout(cell, innerWidth, cellFont, rowSize, rowLeading, currentOpts);
+                    TableCellTextLayout lines = CreateTableCellTextLayout(cell, innerWidth, cellFont, rowSize, rowLeading, currentOpts, runFontSizeScale);
                     rowLines[ri][cell.Column] = lines;
                     if (cell.RowSpan <= 1) {
                         maxLines = Math.Max(maxLines, lines.LineCount);
