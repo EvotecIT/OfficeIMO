@@ -8,71 +8,29 @@ internal static partial class PdfWriter {
         CreatePageImage(block, style, targetX, targetBottomY, block.Width, block.Height);
 
     private static PageImage CreatePageImage(ImageBlock block, PdfImageStyle style, double targetX, double targetBottomY, double targetWidth, double targetHeight) {
-        double drawX = targetX;
-        double drawY = targetBottomY;
-        double drawWidth = targetWidth;
-        double drawHeight = targetHeight;
         OfficeClipPath? clipPath = ScaleClipPath(style.ClipPath, targetWidth / block.Width, targetHeight / block.Height);
         PdfImageSourceCrop? sourceCrop = style.SourceCrop;
-
-        if (sourceCrop?.HasCrop == true) {
-            OfficeImageSourceCrop crop = sourceCrop.ToOfficeImageSourceCrop();
-            double visibleWidth = crop.VisibleWidth;
-            double visibleHeight = crop.VisibleHeight;
-            double fittedX = targetX;
-            double fittedY = targetBottomY;
-            double fittedWidth = targetWidth;
-            double fittedHeight = targetHeight;
-
-            if (style.Fit != OfficeImageFit.Stretch) {
-                OfficeImagePlacement fitted = OfficeImagePlacement.Fit(
-                    block.Info.Width * visibleWidth,
-                    block.Info.Height * visibleHeight,
-                    targetX,
-                    targetBottomY,
-                    targetWidth,
-                    targetHeight,
-                    style.Fit);
-                fittedX = fitted.X;
-                fittedY = fitted.Y;
-                fittedWidth = fitted.Width;
-                fittedHeight = fitted.Height;
-                if (style.Fit == OfficeImageFit.Cover) {
-                    clipPath ??= OfficeClipPath.Rectangle(targetWidth, targetHeight);
-                }
-            }
-
-            drawWidth = fittedWidth / visibleWidth;
-            drawHeight = fittedHeight / visibleHeight;
-            drawX = fittedX - crop.Left * drawWidth;
-            drawY = fittedY - crop.Bottom * drawHeight;
-        } else if (style.Fit != OfficeImageFit.Stretch) {
-            OfficeImagePlacement placement = OfficeImagePlacement.Fit(
-                block.Info.Width,
-                block.Info.Height,
-                targetX,
-                targetBottomY,
-                targetWidth,
-                targetHeight,
-                style.Fit);
-            drawX = placement.X;
-            drawY = placement.Y;
-            drawWidth = placement.Width;
-            drawHeight = placement.Height;
-            if (style.Fit == OfficeImageFit.Cover) {
-                if (clipPath == null) {
-                    clipPath = OfficeClipPath.Rectangle(targetWidth, targetHeight);
-                }
-            }
+        OfficeImageSourceCrop crop = sourceCrop?.ToOfficeImageSourceCrop() ?? default;
+        OfficeImageRenderPlan renderPlan = OfficeImageRenderPlan.CreateBottomLeft(
+            block.Info.Width,
+            block.Info.Height,
+            targetX,
+            targetBottomY,
+            targetWidth,
+            targetHeight,
+            style.Fit,
+            crop);
+        if (renderPlan.RequiresTargetClip && clipPath == null) {
+            clipPath = OfficeClipPath.Rectangle(targetWidth, targetHeight);
         }
 
         return new PageImage {
             Data = block.Data,
             Info = block.Info,
-            X = drawX,
-            Y = drawY,
-            W = drawWidth,
-            H = drawHeight,
+            X = renderPlan.ImagePlacement.X,
+            Y = renderPlan.ImagePlacement.Y,
+            W = renderPlan.ImagePlacement.Width,
+            H = renderPlan.ImagePlacement.Height,
             ClipPath = clipPath,
             ClipX = targetX,
             ClipY = targetBottomY,

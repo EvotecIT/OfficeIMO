@@ -127,6 +127,71 @@ public class DrawingTests {
     }
 
     [Fact]
+    public void OfficeImageRenderPlan_ResolvesTopLeftAndBottomLeftCropPlacement() {
+        var crop = new OfficeImageSourceCrop(0.25D, 0.1D, 0.25D, 0.2D);
+
+        OfficeImageRenderPlan topLeft = OfficeImageRenderPlan.CreateTopLeft(
+            sourceWidth: 200D,
+            sourceHeight: 100D,
+            targetX: 10D,
+            targetY: 20D,
+            targetWidth: 80D,
+            targetHeight: 40D,
+            sourceCrop: crop);
+
+        OfficeImageRenderPlan bottomLeft = OfficeImageRenderPlan.CreateBottomLeft(
+            sourceWidth: 200D,
+            sourceHeight: 100D,
+            targetX: 10D,
+            targetBottomY: 20D,
+            targetWidth: 80D,
+            targetHeight: 40D,
+            sourceCrop: crop);
+
+        Assert.Equal((10D, 20D, 80D, 40D), topLeft.TargetPlacement.ToTuple());
+        Assert.Equal((10D, 20D, 80D, 40D), topLeft.VisiblePlacement.ToTuple());
+        Assert.Equal(-30D, topLeft.ImagePlacement.X);
+        Assert.Equal(14.285714285714285D, topLeft.ImagePlacement.Y, precision: 10);
+        Assert.Equal(160D, topLeft.ImagePlacement.Width);
+        Assert.Equal(57.142857142857146D, topLeft.ImagePlacement.Height, precision: 10);
+        Assert.Equal(8.571428571428571D, bottomLeft.ImagePlacement.Y, precision: 10);
+        Assert.False(topLeft.RequiresTargetClip);
+        Assert.False(bottomLeft.RequiresTargetClip);
+    }
+
+    [Fact]
+    public void OfficeImageRenderPlan_FitsVisibleCropAndReportsCoverClip() {
+        var crop = new OfficeImageSourceCrop(0.25D, 0D, 0.25D, 0D);
+
+        OfficeImageRenderPlan contained = OfficeImageRenderPlan.CreateTopLeft(
+            sourceWidth: 400D,
+            sourceHeight: 200D,
+            targetX: 0D,
+            targetY: 0D,
+            targetWidth: 100D,
+            targetHeight: 50D,
+            fit: OfficeImageFit.Contain,
+            sourceCrop: crop);
+
+        Assert.Equal((25D, 0D, 50D, 50D), contained.VisiblePlacement.ToTuple());
+        Assert.Equal((0D, 0D, 100D, 50D), contained.ImagePlacement.ToTuple());
+        Assert.False(contained.RequiresTargetClip);
+
+        OfficeImageRenderPlan covered = OfficeImageRenderPlan.CreateTopLeft(
+            sourceWidth: 400D,
+            sourceHeight: 100D,
+            targetX: 10D,
+            targetY: 20D,
+            targetWidth: 80D,
+            targetHeight: 40D,
+            fit: OfficeImageFit.Cover);
+
+        Assert.Equal((-30D, 20D, 160D, 40D), covered.VisiblePlacement.ToTuple());
+        Assert.Equal(covered.VisiblePlacement.ToTuple(), covered.ImagePlacement.ToTuple());
+        Assert.True(covered.RequiresTargetClip);
+    }
+
+    [Fact]
     public void OfficeColorParsesNamedAndHexValues() {
         Assert.Equal(OfficeColor.Red, OfficeColor.Parse("red"));
         Assert.Equal(OfficeColor.FromRgb(0x66, 0x33, 0x99), OfficeColor.Parse("RebeccaPurple"));
