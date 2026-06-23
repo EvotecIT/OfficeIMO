@@ -13,7 +13,6 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             var definedNameTable = new List<string?>();
             LegacyXlsExternalReference? currentExternalReference = null;
             LegacyXlsExternalCellCache? currentExternalCellCache = null;
-            bool encrypted = false;
 
             if (!LegacyBiffVersionValidator.ValidateWorkbookGlobals(records, workbook)) {
                 return workbook;
@@ -42,9 +41,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 } else if (record.Type == (ushort)BiffRecordType.ExternSheet) {
                     ReadExternSheet(record, externSheets, workbook.MutableDiagnostics);
                 } else if (record.Type == (ushort)BiffRecordType.FilePass) {
-                    encrypted = true;
                     workbook.MutableUnsupportedFeatures.Add(BiffUnsupportedRecordDiagnostics.CreateFilePassFeature(record));
                     BiffUnsupportedRecordDiagnostics.AddFilePassDiagnostic(record, workbook.MutableDiagnostics);
+                    return workbook;
                 } else if (record.Type == (ushort)BiffRecordType.Font) {
                     ReadFont(record, workbook, workbook.MutableDiagnostics);
                 } else if (record.Type == (ushort)BiffRecordType.Format) {
@@ -98,10 +97,6 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                         BiffUnsupportedRecordDiagnostics.AddUnsupportedRecordDiagnostic(workbook.MutableDiagnostics, record.Type, record.Offset, sheetName: null);
                     }
                 }
-            }
-
-            if (encrypted) {
-                return workbook;
             }
 
             MoveDialogSheetsToUnsupported(workbookStream, workbook, options);

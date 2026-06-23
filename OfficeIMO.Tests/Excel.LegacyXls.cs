@@ -279,6 +279,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_Load_StopsParsingAfterEncryptedWorkbookMarker() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateEncryptedWorkbookWithUnreadablePayloadStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+            LegacyXlsImportReport report = legacy.CreateImportReport();
+
+            LegacyXlsUnsupportedFeature feature = Assert.Single(legacy.UnsupportedFeatures);
+            Assert.Equal(LegacyXlsUnsupportedFeatureKind.EncryptedWorkbook, feature.Kind);
+            Assert.Equal("XLS-BIFF-FILEPASS-UNSUPPORTED", feature.Code);
+            Assert.Single(legacy.Diagnostics);
+            Assert.Equal(1, report.ErrorCount);
+            Assert.Equal(1, report.FileFormatBlockers["EncryptedWorkbook|Encryption:FilePass:XorObfuscation"]);
+            Assert.Empty(legacy.Worksheets);
+        }
+
+        [Fact]
         public void LegacyXls_Load_ReportsFeatureSpecificUnsupportedRecords() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateUnsupportedFeatureWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
@@ -882,6 +901,17 @@ namespace OfficeIMO.Tests {
                 using var stream = new MemoryStream();
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
                 WriteRecord(stream, 0x002f, new byte[] { 0x00, 0x00 });
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+                return stream.ToArray();
+            }
+
+            internal static byte[] CreateEncryptedWorkbookWithUnreadablePayloadStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x002f, new byte[] { 0x00, 0x00 });
+                WriteRecord(stream, 0x00c1, new byte[8]);
+                WriteRecord(stream, 0x01c0, new byte[4]);
+                WriteRecord(stream, 0x087d, new byte[12]);
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
                 return stream.ToArray();
             }
