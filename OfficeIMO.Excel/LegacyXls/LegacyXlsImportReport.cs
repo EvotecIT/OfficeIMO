@@ -65,6 +65,12 @@ namespace OfficeIMO.Excel.LegacyXls {
             ExternalCachedCellsByValueKind = CountExternalCachedCellsByValueKind(workbook.ExternalReferences);
             PivotTableRecordsByKind = CountPivotTableRecordsByKind(workbook.PivotTableRecords);
             PivotTableRecordsByName = CountByCode(workbook.PivotTableRecords.Select(record => record.RecordName));
+            PivotTableDataItemAggregations = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.AggregationFunction.HasValue)
+                .Select(record => $"AggregationFunction:{record.AggregationFunction!.Value}"));
+            PivotTableGroupingKinds = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.GroupingKind.HasValue)
+                .Select(record => record.GroupingKind!.Value.ToString()));
             ChartRecordsByKind = CountChartRecordsByKind(workbook.ChartRecords);
             ChartRecordsByName = CountByCode(workbook.ChartRecords.Select(record => record.RecordName));
             ChartRecordsByChartType = CountByCode(workbook.ChartRecords
@@ -232,6 +238,12 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets preserve-only PivotTable BIFF records grouped by record name.</summary>
         public IReadOnlyDictionary<string, int> PivotTableRecordsByName { get; }
 
+        /// <summary>Gets decoded SXDI PivotTable data item records grouped by raw aggregation function identifier.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableDataItemAggregations { get; }
+
+        /// <summary>Gets decoded SXRng PivotTable grouping records grouped by grouping kind.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableGroupingKinds { get; }
+
         /// <summary>Gets preserve-only chart BIFF records grouped by shallow category.</summary>
         public IReadOnlyDictionary<LegacyXlsChartRecordKind, int> ChartRecordsByKind { get; }
 
@@ -365,6 +377,8 @@ namespace OfficeIMO.Excel.LegacyXls {
                 entry => entry.Value,
                 StringComparer.OrdinalIgnoreCase));
             AppendDictionary(builder, "Pivot Table Records By Name", PivotTableRecordsByName);
+            AppendDictionary(builder, "Pivot Table Data Item Aggregations", PivotTableDataItemAggregations);
+            AppendDictionary(builder, "Pivot Table Grouping Kinds", PivotTableGroupingKinds);
             AppendDictionary(builder, "Chart Records By Kind", ChartRecordsByKind.ToDictionary(
                 entry => entry.Key.ToString(),
                 entry => entry.Value,

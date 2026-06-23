@@ -134,6 +134,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.PivotTableRecordsByName["Sxdi"]);
             Assert.Equal(1, report.PivotTableRecordsByName["SxRng"]);
             Assert.Equal(1, report.PivotTableRecordsByName["SxVdEx"]);
+            Assert.Equal(1, report.PivotTableDataItemAggregations["AggregationFunction:0"]);
+            Assert.Equal(1, report.PivotTableGroupingKinds["Months"]);
 
             LegacyXlsPivotTableRecord dataItem = Assert.Single(workbook.PivotTableRecords, record => record.Kind == LegacyXlsPivotTableRecordKind.DataItem);
             Assert.Null(dataItem.SheetName);
@@ -167,6 +169,8 @@ namespace OfficeIMO.Tests {
             string markdown = report.ToMarkdown();
             Assert.Contains("Pivot table records: 3", markdown);
             Assert.Contains("Pivot Table Records By Kind", markdown);
+            Assert.Contains("Pivot Table Data Item Aggregations", markdown);
+            Assert.Contains("Pivot Table Grouping Kinds", markdown);
             Assert.Contains("SxVdEx", markdown);
         }
 

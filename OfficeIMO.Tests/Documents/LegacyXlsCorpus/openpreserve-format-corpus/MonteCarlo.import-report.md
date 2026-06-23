@@ -269,6 +269,18 @@ Warnings: 0
 | SxRng | 25 |
 | SxVdEx | 1 |
 
+## Pivot Table Grouping Kinds
+
+| Key | Count |
+| --- | --- |
+| Days | 4 |
+| Hours | 1 |
+| Minutes | 3 |
+| Months | 5 |
+| Numeric | 6 |
+| Seconds | 1 |
+| Years | 5 |
+
 ## Chart Records By Kind
 
 | Key | Count |
