@@ -154,6 +154,38 @@ namespace OfficeIMO.Tests {
             File.Delete(targetPath);
         }
 
+        [Fact]
+        public void Test_ExcelWorkbookMerge_SameWorkbookPackageModeUsesWorksheetCopyPath() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelWorkbookMerge.SameWorkbookPackageMode.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                ExcelSheet source = document.AddWorkSheet("Source");
+                source.CellValue(1, 1, "Amount");
+                source.CellValue(2, 1, 10);
+                source.AddTable("A1:A2", hasHeader: true, name: "Sales", OfficeIMO.Excel.TableStyle.TableStyleMedium9);
+                source.CellFormula(3, 1, "SUM(Sales[Amount])");
+
+                ExcelWorkbookMergeResult result = document.MergeWorkbookFrom(document, new ExcelWorkbookMergeOptions {
+                    SheetNames = new[] { "Source" },
+                    SheetNamePrefix = "Copy ",
+                    CopyMode = ExcelWorksheetCopyMode.Package
+                });
+
+                Assert.Equal(new[] { "Source" }, result.SourceSheets);
+                Assert.Equal(new[] { "Copy Source" }, result.TargetSheets);
+                Assert.Equal("A1:A2", document.GetSheet("Copy Source").GetTableRange("Sales2"));
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart copiedPart = GetWorksheetPartByNameForOperations(spreadsheet, "Copy Source");
+                Cell formulaCell = copiedPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A3");
+                Assert.Equal("SUM(Sales2[Amount])", formulaCell.CellFormula?.Text);
+            }
+
+            File.Delete(filePath);
+        }
+
         private static void AddWorkbookDefinedName(string path, string name, string reference) {
             using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(path, true);
             Workbook workbook = spreadsheet.WorkbookPart!.Workbook;

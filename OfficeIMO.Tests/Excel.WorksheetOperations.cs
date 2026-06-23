@@ -668,6 +668,86 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_CopyWorkSheetFrom_PackageModeResolvesThemeAndIndexedStyleColors() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageThemeColorSource.xlsx");
+            string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageThemeColorTarget.xlsx");
+
+            using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
+                ExcelSheet source = sourceDocument.AddWorkSheet("ThemeStyled");
+                source.CellValue(1, 1, "Theme styled");
+                sourceDocument.Save();
+            }
+
+            AddThemeAndIndexedStyle(sourcePath, "ThemeStyled");
+
+            using (var sourceDocument = ExcelDocument.Load(sourcePath, readOnly: true))
+            using (var targetDocument = ExcelDocument.Create(targetPath)) {
+                targetDocument.AddWorkSheet("Existing").CellValue(1, 1, "Existing");
+                targetDocument.CopyWorkSheetFrom(sourceDocument, "ThemeStyled", "Imported", SheetNameValidationMode.Sanitize, new ExcelWorksheetCopyOptions {
+                    CopyMode = ExcelWorksheetCopyMode.Package
+                });
+                targetDocument.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(targetPath, false)) {
+                WorksheetPart copiedPart = GetWorksheetPartByNameForOperations(spreadsheet, "Imported");
+                Cell copiedCell = copiedPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A1");
+                Stylesheet stylesheet = spreadsheet.WorkbookPart!.WorkbookStylesPart!.Stylesheet!;
+                CellFormat copiedFormat = stylesheet.CellFormats!.Elements<CellFormat>().ElementAt((int)copiedCell.StyleIndex!.Value);
+                Font copiedFont = stylesheet.Fonts!.Elements<Font>().ElementAt((int)copiedFormat.FontId!.Value);
+                Fill copiedFill = stylesheet.Fills!.Elements<Fill>().ElementAt((int)copiedFormat.FillId!.Value);
+                Color fontColor = copiedFont.Color!;
+                ForegroundColor fillColor = copiedFill.PatternFill!.ForegroundColor!;
+
+                Assert.NotNull(fontColor.Rgb);
+                Assert.Null(fontColor.Theme);
+                Assert.NotNull(fillColor.Rgb);
+                Assert.Null(fillColor.Indexed);
+            }
+
+            File.Delete(sourcePath);
+            File.Delete(targetPath);
+        }
+
+        [Fact]
+        public void Test_CopyWorkSheetFrom_PackageModeRemovesStaleCalculationChainForCopiedFormulas() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageCalcChainSource.xlsx");
+            string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageCalcChainTarget.xlsx");
+
+            using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
+                ExcelSheet source = sourceDocument.AddWorkSheet("FormulaSource");
+                source.CellValue(1, 1, 10);
+                source.CellFormula(2, 1, "A1*2");
+                sourceDocument.Save();
+            }
+
+            using (var targetDocument = ExcelDocument.Create(targetPath)) {
+                targetDocument.AddWorkSheet("Existing").CellValue(1, 1, "Existing");
+                targetDocument.Save();
+            }
+
+            AddDummyCalculationChain(targetPath);
+
+            using (var sourceDocument = ExcelDocument.Load(sourcePath, readOnly: true))
+            using (var targetDocument = ExcelDocument.Load(targetPath)) {
+                targetDocument.CopyWorkSheetFrom(sourceDocument, "FormulaSource", "Imported", SheetNameValidationMode.Sanitize, new ExcelWorksheetCopyOptions {
+                    CopyMode = ExcelWorksheetCopyMode.Package
+                });
+                targetDocument.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(targetPath, false)) {
+                Assert.Null(spreadsheet.WorkbookPart!.CalculationChainPart);
+                WorksheetPart copiedPart = GetWorksheetPartByNameForOperations(spreadsheet, "Imported");
+                Cell formulaCell = copiedPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A2");
+                Assert.Equal("A1*2", formulaCell.CellFormula?.Text);
+            }
+
+            File.Delete(sourcePath);
+            File.Delete(targetPath);
+        }
+
+        [Fact]
         public void Test_CopyWorkSheetFrom_ValuesModeKeepsReaderWriterFallback() {
             string sourcePath = Path.Combine(_directoryWithFiles, "WorksheetCopyValuesModeSource.xlsx");
             string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyValuesModeTarget.xlsx");
@@ -820,6 +900,57 @@ namespace OfficeIMO.Tests {
             stylesheet.DifferentialFormats.Append(new DifferentialFormat(new Font(new Bold())));
             stylesheet.DifferentialFormats.Count = (uint)stylesheet.DifferentialFormats.Elements<DifferentialFormat>().Count();
             stylesheet.Save();
+        }
+
+        private static void AddThemeAndIndexedStyle(string path, string sheetName) {
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(path, true);
+            WorksheetPart worksheetPart = GetWorksheetPartByNameForOperations(spreadsheet, sheetName);
+            Worksheet worksheet = worksheetPart.Worksheet;
+            Cell cell = worksheet.Descendants<Cell>().Single(item => item.CellReference?.Value == "A1");
+            Stylesheet stylesheet = spreadsheet.WorkbookPart!.WorkbookStylesPart!.Stylesheet!;
+
+            stylesheet.Fonts ??= new Fonts();
+            stylesheet.Fonts.Append(new Font(new Color { Theme = 4U }));
+            stylesheet.Fonts.Count = (uint)stylesheet.Fonts.Elements<Font>().Count();
+            uint fontId = stylesheet.Fonts.Count!.Value - 1U;
+
+            stylesheet.Fills ??= new Fills();
+            stylesheet.Fills.Append(new Fill(new PatternFill(new ForegroundColor { Indexed = 10U }) {
+                PatternType = PatternValues.Solid
+            }));
+            stylesheet.Fills.Count = (uint)stylesheet.Fills.Elements<Fill>().Count();
+            uint fillId = stylesheet.Fills.Count!.Value - 1U;
+
+            stylesheet.CellFormats ??= new CellFormats();
+            stylesheet.CellFormats.Append(new CellFormat {
+                FontId = fontId,
+                FillId = fillId,
+                BorderId = 0U,
+                FormatId = 0U,
+                ApplyFont = true,
+                ApplyFill = true
+            });
+            stylesheet.CellFormats.Count = (uint)stylesheet.CellFormats.Elements<CellFormat>().Count();
+
+            cell.StyleIndex = stylesheet.CellFormats.Count!.Value - 1U;
+            stylesheet.Save();
+            worksheet.Save();
+        }
+
+        private static void AddDummyCalculationChain(string path) {
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(path, true);
+            WorkbookPart workbookPart = spreadsheet.WorkbookPart!;
+            if (workbookPart.CalculationChainPart != null) {
+                workbookPart.DeletePart(workbookPart.CalculationChainPart);
+            }
+
+            CalculationChainPart calculationChainPart = workbookPart.AddNewPart<CalculationChainPart>();
+            calculationChainPart.CalculationChain = new CalculationChain(
+                new CalculationCell {
+                    CellReference = "A1",
+                    SheetId = 1
+                });
+            calculationChainPart.CalculationChain.Save();
         }
 
         [Fact]

@@ -32,6 +32,8 @@ namespace OfficeIMO.Excel {
                 ExcelSheet targetSheet;
                 if (options.CopyMode == ExcelWorksheetCopyMode.Values) {
                     targetSheet = CopyWorkSheetFromValues(sourceDocument, sourceSheet.Name, requestedName, options.SheetNameValidationMode);
+                } else if (ReferenceEquals(sourceDocument, this)) {
+                    targetSheet = CopyWorkSheet(sourceSheet, requestedName, options.SheetNameValidationMode);
                 } else {
                     WorksheetPackageCopyResult copyResult = CopyWorkSheetFromPackage(
                         sourceDocument,

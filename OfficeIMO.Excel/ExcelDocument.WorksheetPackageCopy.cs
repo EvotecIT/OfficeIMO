@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml;
+using A = DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using System;
@@ -51,10 +52,12 @@ namespace OfficeIMO.Excel {
                 WorksheetPart copiedPart = WorkbookPartRoot.AddNewPart<WorksheetPart>();
                 copiedPart.Worksheet = (Worksheet)sourcePart.Worksheet!.CloneNode(true);
                 RewriteSharedStringCellsToInlineStrings(copiedPart.Worksheet, sourceDocument.WorkbookPartRoot.SharedStringTablePart);
-                WorksheetStyleCopyMap styleMap = RemapCopiedWorksheetStyles(sourceDocument.WorkbookPartRoot.WorkbookStylesPart?.Stylesheet, WorkbookPartRoot, copiedPart.Worksheet);
+                WorksheetStyleCopyMap styleMap = RemapCopiedWorksheetStyles(sourceDocument.WorkbookPartRoot, WorkbookPartRoot, copiedPart.Worksheet);
                 RemapCopiedWorksheetConditionalFormats(copiedPart.Worksheet, styleMap.DifferentialFormats);
                 RemoveRelationshipBackedWorksheetFeatures(copiedPart.Worksheet);
                 IReadOnlyDictionary<string, string> tableNameMap = CopyWorksheetTables(sourcePart, copiedPart);
+                bool copiedFormulas = copiedPart.Worksheet.Descendants<CellFormula>()
+                    .Any(formula => !string.IsNullOrWhiteSpace(formula.Text));
 
                 Sheet sheet = AppendWorksheetElement(copiedPart, validatedName);
                 var targetSheet = new ExcelSheet(this, _spreadSheetDocument, sheet);
@@ -71,7 +74,11 @@ namespace OfficeIMO.Excel {
                 }
 
                 copiedPart.Worksheet.Save();
-                MarkPackageDirty();
+                if (copiedFormulas) {
+                    MarkRequiresSavePreflight();
+                } else {
+                    MarkPackageDirty();
+                }
                 WorkbookRoot.Save();
                 return new WorksheetPackageCopyResult(targetSheet, tableNameMap);
             });
@@ -107,7 +114,8 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static WorksheetStyleCopyMap RemapCopiedWorksheetStyles(Stylesheet? sourceStylesheet, WorkbookPart targetWorkbookPart, Worksheet worksheet) {
+        private static WorksheetStyleCopyMap RemapCopiedWorksheetStyles(WorkbookPart sourceWorkbookPart, WorkbookPart targetWorkbookPart, Worksheet worksheet) {
+            Stylesheet? sourceStylesheet = sourceWorkbookPart.WorkbookStylesPart?.Stylesheet;
             if (sourceStylesheet?.CellFormats == null) {
                 return WorksheetStyleCopyMap.Empty;
             }
@@ -116,13 +124,14 @@ namespace OfficeIMO.Excel {
             Stylesheet targetStylesheet = targetStylesPart.Stylesheet ??= CreateDefaultStylesheet();
             EnsureStylesheetPrimitives(targetStylesheet);
 
+            var colorResolver = WorkbookStyleColorResolver.Create(sourceWorkbookPart, sourceStylesheet);
             Dictionary<uint, uint> numberingMap = AppendNumberingFormats(sourceStylesheet, targetStylesheet);
-            Dictionary<uint, uint> fontMap = AppendStyleElements<Fonts, Font>(sourceStylesheet.Fonts, targetStylesheet.Fonts!, (container, count) => container.Count = count);
-            Dictionary<uint, uint> fillMap = AppendStyleElements<Fills, Fill>(sourceStylesheet.Fills, targetStylesheet.Fills!, (container, count) => container.Count = count);
-            Dictionary<uint, uint> borderMap = AppendStyleElements<Borders, Border>(sourceStylesheet.Borders, targetStylesheet.Borders!, (container, count) => container.Count = count);
+            Dictionary<uint, uint> fontMap = AppendStyleElements<Fonts, Font>(sourceStylesheet.Fonts, targetStylesheet.Fonts!, (container, count) => container.Count = count, colorResolver);
+            Dictionary<uint, uint> fillMap = AppendStyleElements<Fills, Fill>(sourceStylesheet.Fills, targetStylesheet.Fills!, (container, count) => container.Count = count, colorResolver);
+            Dictionary<uint, uint> borderMap = AppendStyleElements<Borders, Border>(sourceStylesheet.Borders, targetStylesheet.Borders!, (container, count) => container.Count = count, colorResolver);
             Dictionary<uint, uint> styleFormatMap = AppendCellStyleFormats(sourceStylesheet.CellStyleFormats, targetStylesheet.CellStyleFormats!, numberingMap, fontMap, fillMap, borderMap);
             Dictionary<uint, uint> cellFormatMap = AppendCellFormats(sourceStylesheet.CellFormats, targetStylesheet.CellFormats!, numberingMap, fontMap, fillMap, borderMap, styleFormatMap);
-            Dictionary<uint, uint> differentialFormatMap = AppendDifferentialFormats(sourceStylesheet.DifferentialFormats, targetStylesheet.DifferentialFormats!);
+            Dictionary<uint, uint> differentialFormatMap = AppendDifferentialFormats(sourceStylesheet.DifferentialFormats, targetStylesheet.DifferentialFormats!, colorResolver);
             var inheritedStyleCells = BuildInheritedStyleCellSet(worksheet);
 
             foreach (Cell cell in worksheet.Descendants<Cell>()) {
@@ -256,7 +265,11 @@ namespace OfficeIMO.Excel {
             return formats;
         }
 
-        private static Dictionary<uint, uint> AppendStyleElements<TContainer, TElement>(TContainer? source, TContainer target, Action<TContainer, uint> setCount)
+        private static Dictionary<uint, uint> AppendStyleElements<TContainer, TElement>(
+            TContainer? source,
+            TContainer target,
+            Action<TContainer, uint> setCount,
+            WorkbookStyleColorResolver colorResolver)
             where TContainer : OpenXmlCompositeElement
             where TElement : OpenXmlElement {
             var map = new Dictionary<uint, uint>();
@@ -268,7 +281,9 @@ namespace OfficeIMO.Excel {
             uint index = 0;
             foreach (TElement element in source.Elements<TElement>()) {
                 uint newIndex = offset + index;
-                target.Append(element.CloneNode(true));
+                var copied = element.CloneNode(true);
+                colorResolver.NormalizeThemeAndIndexedColors(copied);
+                target.Append(copied);
                 map[index] = newIndex;
                 index++;
             }
@@ -343,7 +358,7 @@ namespace OfficeIMO.Excel {
             return map;
         }
 
-        private static Dictionary<uint, uint> AppendDifferentialFormats(DifferentialFormats? source, DifferentialFormats target) {
+        private static Dictionary<uint, uint> AppendDifferentialFormats(DifferentialFormats? source, DifferentialFormats target, WorkbookStyleColorResolver colorResolver) {
             var map = new Dictionary<uint, uint>();
             if (source == null) {
                 return map;
@@ -353,7 +368,9 @@ namespace OfficeIMO.Excel {
             uint index = 0;
             foreach (DifferentialFormat sourceFormat in source.Elements<DifferentialFormat>()) {
                 uint newIndex = offset + index;
-                target.Append(sourceFormat.CloneNode(true));
+                var copied = sourceFormat.CloneNode(true);
+                colorResolver.NormalizeThemeAndIndexedColors(copied);
+                target.Append(copied);
                 map[index] = newIndex;
                 index++;
             }
@@ -395,6 +412,177 @@ namespace OfficeIMO.Excel {
             internal ExcelSheet Sheet { get; }
 
             internal IReadOnlyDictionary<string, string> TableNameMap { get; }
+        }
+
+        private sealed class WorkbookStyleColorResolver {
+            private static readonly string[] DefaultIndexedColors = {
+                "FF000000", "FFFFFFFF", "FFFF0000", "FF00FF00", "FF0000FF", "FFFFFF00", "FFFF00FF", "FF00FFFF",
+                "FF000000", "FFFFFFFF", "FFFF0000", "FF00FF00", "FF0000FF", "FFFFFF00", "FFFF00FF", "FF00FFFF",
+                "FF800000", "FF008000", "FF000080", "FF808000", "FF800080", "FF008080", "FFC0C0C0", "FF808080",
+                "FF9999FF", "FF993366", "FFFFFFCC", "FFCCFFFF", "FF660066", "FFFF8080", "FF0066CC", "FFCCCCFF",
+                "FF000080", "FFFF00FF", "FFFFFF00", "FF00FFFF", "FF800080", "FF800000", "FF008080", "FF0000FF",
+                "FF00CCFF", "FFCCFFFF", "FFCCFFCC", "FFFFFF99", "FF99CCFF", "FFFF99CC", "FFCC99FF", "FFFFCC99",
+                "FF3366FF", "FF33CCCC", "FF99CC00", "FFFFCC00", "FFFF9900", "FFFF6600", "FF666699", "FF969696",
+                "FF003366", "FF339966", "FF003300", "FF333300", "FF993300", "FF993366", "FF333399", "FF333333"
+            };
+
+            private readonly Dictionary<uint, string> _themeColors;
+            private readonly Dictionary<uint, string> _indexedColors;
+
+            private WorkbookStyleColorResolver(Dictionary<uint, string> themeColors, Dictionary<uint, string> indexedColors) {
+                _themeColors = themeColors;
+                _indexedColors = indexedColors;
+            }
+
+            internal static WorkbookStyleColorResolver Create(WorkbookPart workbookPart, Stylesheet sourceStylesheet) {
+                return new WorkbookStyleColorResolver(ReadThemeColors(workbookPart), ReadIndexedColors(sourceStylesheet));
+            }
+
+            internal void NormalizeThemeAndIndexedColors(OpenXmlElement element) {
+                foreach (ColorType color in EnumerateColorTypes(element)) {
+                    NormalizeColor(color);
+                }
+            }
+
+            private void NormalizeColor(ColorType color) {
+                string? argb = null;
+                if (color.Theme?.Value is uint themeIndex && _themeColors.TryGetValue(themeIndex, out string? themeColor)) {
+                    argb = themeColor;
+                } else if (color.Indexed?.Value is uint indexed && _indexedColors.TryGetValue(indexed, out string? indexedColor)) {
+                    argb = indexedColor;
+                }
+
+                if (argb == null) {
+                    return;
+                }
+
+                if (color.Tint?.Value is double tint && Math.Abs(tint) > 0.0000001D) {
+                    argb = ApplyTint(argb, tint);
+                }
+
+                color.Rgb = argb;
+                color.Theme = null;
+                color.Indexed = null;
+                color.Tint = null;
+            }
+
+            private static IEnumerable<ColorType> EnumerateColorTypes(OpenXmlElement element) {
+                if (element is ColorType color) {
+                    yield return color;
+                }
+
+                foreach (ColorType child in element.Descendants<ColorType>()) {
+                    yield return child;
+                }
+            }
+
+            private static Dictionary<uint, string> ReadThemeColors(WorkbookPart workbookPart) {
+                var colors = new Dictionary<uint, string>();
+                A.ColorScheme? scheme = workbookPart.GetPartsOfType<ThemePart>()
+                    .FirstOrDefault()
+                    ?.Theme
+                    ?.ThemeElements
+                    ?.ColorScheme;
+                if (scheme == null) {
+                    AddDefaultThemeColors(colors);
+                    return colors;
+                }
+
+                AddThemeColor(colors, 0U, scheme.GetFirstChild<A.Light1Color>());
+                AddThemeColor(colors, 1U, scheme.GetFirstChild<A.Dark1Color>());
+                AddThemeColor(colors, 2U, scheme.GetFirstChild<A.Light2Color>());
+                AddThemeColor(colors, 3U, scheme.GetFirstChild<A.Dark2Color>());
+                AddThemeColor(colors, 4U, scheme.GetFirstChild<A.Accent1Color>());
+                AddThemeColor(colors, 5U, scheme.GetFirstChild<A.Accent2Color>());
+                AddThemeColor(colors, 6U, scheme.GetFirstChild<A.Accent3Color>());
+                AddThemeColor(colors, 7U, scheme.GetFirstChild<A.Accent4Color>());
+                AddThemeColor(colors, 8U, scheme.GetFirstChild<A.Accent5Color>());
+                AddThemeColor(colors, 9U, scheme.GetFirstChild<A.Accent6Color>());
+                AddThemeColor(colors, 10U, scheme.GetFirstChild<A.Hyperlink>());
+                AddThemeColor(colors, 11U, scheme.GetFirstChild<A.FollowedHyperlinkColor>());
+                if (colors.Count == 0) {
+                    AddDefaultThemeColors(colors);
+                }
+
+                return colors;
+            }
+
+            private static void AddDefaultThemeColors(Dictionary<uint, string> colors) {
+                colors[0U] = "FFFFFFFF";
+                colors[1U] = "FF000000";
+                colors[2U] = "FFEEECE1";
+                colors[3U] = "FF1F497D";
+                colors[4U] = "FF4F81BD";
+                colors[5U] = "FFC0504D";
+                colors[6U] = "FF9BBB59";
+                colors[7U] = "FF8064A2";
+                colors[8U] = "FF4BACC6";
+                colors[9U] = "FFF79646";
+                colors[10U] = "FF0000FF";
+                colors[11U] = "FF800080";
+            }
+
+            private static void AddThemeColor(Dictionary<uint, string> colors, uint index, OpenXmlCompositeElement? colorElement) {
+                string? rgb = colorElement?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value
+                    ?? colorElement?.GetFirstChild<A.SystemColor>()?.LastColor?.Value;
+                if (string.IsNullOrWhiteSpace(rgb)) {
+                    return;
+                }
+
+                colors[index] = ToArgb(rgb!);
+            }
+
+            private static Dictionary<uint, string> ReadIndexedColors(Stylesheet sourceStylesheet) {
+                var colors = new Dictionary<uint, string>();
+                for (uint index = 0; index < DefaultIndexedColors.Length; index++) {
+                    colors[index] = DefaultIndexedColors[index];
+                }
+
+                IndexedColors? indexedColors = sourceStylesheet.Colors?.IndexedColors;
+                if (indexedColors == null) {
+                    return colors;
+                }
+
+                uint customIndex = 0;
+                foreach (RgbColor color in indexedColors.Elements<RgbColor>()) {
+                    string? rgb = color.Rgb?.Value;
+                    if (!string.IsNullOrWhiteSpace(rgb)) {
+                        colors[customIndex] = ToArgb(rgb!);
+                    }
+
+                    customIndex++;
+                }
+
+                return colors;
+            }
+
+            private static string ToArgb(string rgb) {
+                string value = rgb.Trim().TrimStart('#');
+                if (value.Length == 6) {
+                    return "FF" + value.ToUpperInvariant();
+                }
+
+                return value.ToUpperInvariant();
+            }
+
+            private static string ApplyTint(string argb, double tint) {
+                string normalized = ToArgb(argb);
+                byte alpha = Convert.ToByte(normalized.Substring(0, 2), 16);
+                byte red = Convert.ToByte(normalized.Substring(2, 2), 16);
+                byte green = Convert.ToByte(normalized.Substring(4, 2), 16);
+                byte blue = Convert.ToByte(normalized.Substring(6, 2), 16);
+                return alpha.ToString("X2", CultureInfo.InvariantCulture)
+                    + ApplyTintChannel(red, tint).ToString("X2", CultureInfo.InvariantCulture)
+                    + ApplyTintChannel(green, tint).ToString("X2", CultureInfo.InvariantCulture)
+                    + ApplyTintChannel(blue, tint).ToString("X2", CultureInfo.InvariantCulture);
+            }
+
+            private static byte ApplyTintChannel(byte channel, double tint) {
+                double value = tint < 0
+                    ? channel * (1D + tint)
+                    : channel * (1D - tint) + (255D * tint);
+                return (byte)Math.Max(0D, Math.Min(255D, Math.Round(value)));
+            }
         }
     }
 }
