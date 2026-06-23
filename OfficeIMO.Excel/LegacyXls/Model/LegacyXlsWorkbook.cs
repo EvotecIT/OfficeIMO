@@ -20,6 +20,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         private readonly List<LegacyXlsPivotTableRecord> _pivotTableRecords = new();
         private readonly List<LegacyXlsChartRecord> _chartRecords = new();
         private readonly List<LegacyXlsDrawingRecord> _drawingRecords = new();
+        private readonly List<LegacyXlsThemeRecord> _themeRecords = new();
         private readonly List<LegacyXlsDifferentialFormat> _differentialFormats = new();
         private readonly List<LegacyXlsCompoundFeatureRecord> _compoundFeatureRecords = new();
         private readonly List<LegacyXlsUnsupportedSheet> _unsupportedSheets = new();
@@ -92,6 +93,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// Gets preserve-only drawing and object BIFF records discovered during import.
         /// </summary>
         public IReadOnlyList<LegacyXlsDrawingRecord> DrawingRecords => _drawingRecords;
+
+        /// <summary>
+        /// Gets preserve-only workbook Theme records discovered during import.
+        /// </summary>
+        public IReadOnlyList<LegacyXlsThemeRecord> ThemeRecords => _themeRecords;
 
         /// <summary>
         /// Gets parsed differential formats used by conditional formatting extensions.
@@ -282,6 +288,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         internal List<LegacyXlsChartRecord> MutableChartRecords => _chartRecords;
 
         internal List<LegacyXlsDrawingRecord> MutableDrawingRecords => _drawingRecords;
+
+        internal List<LegacyXlsThemeRecord> MutableThemeRecords => _themeRecords;
 
         internal List<LegacyXlsDifferentialFormat> MutableDifferentialFormats => _differentialFormats;
 

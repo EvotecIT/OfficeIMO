@@ -358,7 +358,12 @@ namespace OfficeIMO.Tests {
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.FeatureExtension && feature.DetailCode == "FeatureExtension:Feat");
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ConditionalFormatting && feature.DetailCode == "ConditionalFormatting:Dxf");
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.TableStyle && feature.DetailCode == "TableStyle:TableStyles");
-            Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.Theme && feature.DetailCode == "Theme:Theme");
+            LegacyXlsThemeRecord themeRecord = Assert.Single(legacy.ThemeRecords);
+            Assert.Equal(0x0896, themeRecord.RecordType);
+            Assert.Equal(124226U, themeRecord.ThemeVersion);
+            Assert.Equal("Default", themeRecord.ThemeVersionName);
+            Assert.False(themeRecord.HasThemeBytes);
+            Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.Theme && feature.DetailCode == "Theme:Theme" && feature.RecordType == 0x0896);
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.DrawingObject && feature.DetailCode == "Drawing:ShapePropsStream");
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.Chart && feature.DetailCode == "Chart:CrtLayout12");
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.PhoneticGuide && feature.DetailCode == "PhoneticGuide:PhoneticInfo");
@@ -368,6 +373,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["ConditionalFormatting|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED|ConditionalFormatting:Dxf"]);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["TableStyle|XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED|TableStyle:TableStyles"]);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["WorkbookMetadata|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED|WorkbookMetadata:Compat12"]);
+            Assert.Equal(1, report.ThemeRecordsByVersion["Default"]);
+            Assert.Equal(1, report.ThemeRecordsByRawVersion["Version:124226"]);
+            Assert.Equal(1, report.ThemeRecordsByContentState["NoEmbeddedThemeBytes"]);
             Assert.Contains("Preserved Feature Records By Kind", report.ToMarkdown(), StringComparison.Ordinal);
         }
 
@@ -1105,19 +1113,21 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x088d, new byte[8]);
                 WriteRecord(stream, 0x088e, new byte[8]);
                 WriteRecord(stream, 0x088f, new byte[8]);
-                WriteRecord(stream, 0x0896, new byte[16]);
-                WriteRecord(stream, 0x0899, new byte[12]);
+                WriteRecord(stream, 0x0896, BuildThemePayload(124226));
+                WriteRecord(stream, 0x0897, BuildFutureRecordPayload(0x0897, 16));
+                WriteRecord(stream, 0x0899, BuildFutureRecordPayload(0x0899, 12));
                 WriteRecord(stream, 0x089a, new byte[4]);
                 WriteRecord(stream, 0x089b, new byte[12]);
+                WriteRecord(stream, 0x089c, BuildFutureRecordPayload(0x089c, 12));
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 int sheetOffset = checked((int)stream.Position);
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
                 WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Extension"));
                 WriteRecord(stream, 0x00ed, new byte[8]);
-                WriteRecord(stream, 0x089c, new byte[12]);
-                WriteRecord(stream, 0x089d, new byte[12]);
-                WriteRecord(stream, 0x089e, new byte[12]);
+                WriteRecord(stream, 0x089d, BuildFutureRecordPayload(0x089d, 12));
+                WriteRecord(stream, 0x089e, BuildFutureRecordPayload(0x089e, 12));
+                WriteRecord(stream, 0x089f, BuildFutureRecordPayload(0x089f, 12));
                 WriteRecord(stream, 0x08a3, new byte[12]);
                 WriteRecord(stream, 0x08a4, new byte[12]);
                 WriteRecord(stream, 0x08a5, new byte[12]);
@@ -1592,6 +1602,27 @@ namespace OfficeIMO.Tests {
                 WriteUInt16(stream, checked((ushort)name.Length));
                 stream.Write(nameBytes, 0, nameBytes.Length);
                 return stream.ToArray();
+            }
+
+            private static byte[] BuildThemePayload(uint themeVersion, byte[]? themeBytes = null) {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, 0x0896);
+                WriteUInt16(stream, 0);
+                WriteUInt32(stream, 0);
+                WriteUInt32(stream, 0);
+                WriteUInt32(stream, themeVersion);
+                byte[] payload = themeBytes ?? Array.Empty<byte>();
+                stream.Write(payload, 0, payload.Length);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildFutureRecordPayload(ushort recordType, int payloadLength) {
+                byte[] payload = new byte[payloadLength];
+                if (payloadLength >= 2) {
+                    WriteUInt16(payload, 0, recordType);
+                }
+
+                return payload;
             }
 
             private static byte[] BuildFormulaNumberPayload(ushort row, ushort column, double value, ushort styleIndex = 0, byte[]? formulaTokens = null) {

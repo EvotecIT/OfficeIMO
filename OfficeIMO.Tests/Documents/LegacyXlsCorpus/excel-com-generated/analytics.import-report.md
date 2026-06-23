@@ -16,8 +16,9 @@ External names: 0
 External cell caches: 0
 External cached cells: 0
 Pivot table records: 94
-Chart records: 152
+Chart records: 149
 Drawing records: 32
+Theme records: 1
 Drawing OfficeArt records: 51
 Drawing shape properties: 31
 Differential formats: 0
@@ -40,7 +41,7 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | XLS-BIFF-FEATURE-CHART-SHEET-UNSUPPORTED | 1 |
-| XLS-BIFF-FEATURE-CHART-UNSUPPORTED | 152 |
+| XLS-BIFF-FEATURE-CHART-UNSUPPORTED | 149 |
 | XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED | 2 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 32 |
 | XLS-BIFF-FEATURE-EXTENSION-UNSUPPORTED | 2 |
@@ -48,7 +49,8 @@ Warnings: 0
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 94 |
 | XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED | 114 |
 | XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED | 2 |
-| XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED | 8 |
+| XLS-BIFF-FEATURE-THEME-UNSUPPORTED | 1 |
+| XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED | 10 |
 
 ## Conditional Formatting By Type
 
@@ -157,7 +159,7 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | XLS-BIFF-FEATURE-CHART-SHEET-UNSUPPORTED | 1 |
-| XLS-BIFF-FEATURE-CHART-UNSUPPORTED | 152 |
+| XLS-BIFF-FEATURE-CHART-UNSUPPORTED | 149 |
 | XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED | 2 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 32 |
 | XLS-BIFF-FEATURE-EXTENSION-UNSUPPORTED | 2 |
@@ -165,13 +167,14 @@ Warnings: 0
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 94 |
 | XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED | 114 |
 | XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED | 2 |
-| XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED | 8 |
+| XLS-BIFF-FEATURE-THEME-UNSUPPORTED | 1 |
+| XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED | 10 |
 
 ## Unsupported Features By Kind
 
 | Key | Count |
 | --- | --- |
-| Chart | 152 |
+| Chart | 149 |
 | ChartSheet | 1 |
 | ConditionalFormatting | 2 |
 | DrawingObject | 32 |
@@ -180,7 +183,8 @@ Warnings: 0
 | PivotTable | 94 |
 | StyleExtension | 114 |
 | TableStyle | 2 |
-| WorkbookMetadata | 8 |
+| Theme | 1 |
+| WorkbookMetadata | 10 |
 
 ## Unsupported Feature Record Types
 
@@ -191,7 +195,6 @@ Warnings: 0
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x0852 | 14 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x0853 | 14 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x0856 | 1 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x089C | 3 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x089D | 2 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x089E | 7 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x08A7 | 1 |
@@ -263,13 +266,14 @@ Warnings: 0
 | StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|0x0892 | 47 |
 | TableStyle\|XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED\|0x088D | 1 |
 | TableStyle\|XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED\|0x088E | 1 |
+| Theme\|XLS-BIFF-FEATURE-THEME-UNSUPPORTED\|0x0896 | 1 |
 | WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|0x01C0 | 1 |
 | WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|0x01C1 | 1 |
 | WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|0x0810 | 1 |
 | WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|0x088B | 2 |
-| WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|0x0896 | 1 |
 | WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|0x089A | 1 |
 | WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|0x089B | 1 |
+| WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|0x089C | 3 |
 
 ## Unsupported Feature Details
 
@@ -290,9 +294,8 @@ Warnings: 0
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:ChartFormatLink | 1 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:ChartFrtInfo | 1 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:CrErr | 1 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:CrtLayout12 | 3 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:CrtMlFrt | 2 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:CrtMlFrtContinue | 7 |
+| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:CrtLayout12 | 2 |
+| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:CrtMlFrt | 7 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Dat | 1 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:DataFormat | 1 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:DefaultText | 2 |
@@ -351,12 +354,13 @@ Warnings: 0
 | StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|StyleExtension:XfExt | 66 |
 | TableStyle\|XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED\|TableStyle:TableStyle | 1 |
 | TableStyle\|XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED\|TableStyle:TableStyles | 1 |
+| Theme\|XLS-BIFF-FEATURE-THEME-UNSUPPORTED\|Theme:Theme | 1 |
 | WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|WorkbookMetadata:Compat12 | 2 |
 | WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|WorkbookMetadata:CompressPictures | 1 |
 | WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|WorkbookMetadata:ContinueFrt | 1 |
 | WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|WorkbookMetadata:EntExU2 | 1 |
-| WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|WorkbookMetadata:GUIDTypeLib | 1 |
-| WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|WorkbookMetadata:HeaderFooter | 1 |
+| WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|WorkbookMetadata:HeaderFooter | 3 |
+| WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|WorkbookMetadata:MTRSettings | 1 |
 | WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|WorkbookMetadata:RecalcId | 1 |
 
 ## Unsupported Feature Locations
@@ -364,9 +368,7 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | XLS-BIFF-FEATURE-CHART-SHEET-UNSUPPORTED\|RevenueChart | 1 |
-| XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|PivotSummary | 1 |
-| XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|RevenueChart | 150 |
-| XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|SalesData | 1 |
+| XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|RevenueChart | 149 |
 | XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|(workbook) | 1 |
 | XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED\|SalesData | 1 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|(workbook) | 2 |
@@ -382,9 +384,11 @@ Warnings: 0
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|SalesData | 1 |
 | XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|(workbook) | 114 |
 | XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED\|(workbook) | 2 |
-| XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|(workbook) | 5 |
-| XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|PivotSummary | 2 |
-| XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|SalesData | 1 |
+| XLS-BIFF-FEATURE-THEME-UNSUPPORTED\|(workbook) | 1 |
+| XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|(workbook) | 4 |
+| XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|PivotSummary | 3 |
+| XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|RevenueChart | 1 |
+| XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|SalesData | 2 |
 
 ## Unsupported Sheets By Kind
 
@@ -432,7 +436,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| ChartRecords:150 | 1 |
+| ChartRecords:149 | 1 |
 
 ## Unsupported Chart Sheet Chart Record Kinds
 
@@ -444,7 +448,7 @@ Warnings: 0
 | Formatting | 24 |
 | FutureMetadata | 29 |
 | Layout | 13 |
-| PreserveOnly | 13 |
+| PreserveOnly | 12 |
 | Series | 8 |
 | Text | 15 |
 
@@ -507,6 +511,30 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | CachedCells:0 | 1 |
+
+## Theme Records By Version
+
+| Key | Count |
+| --- | --- |
+| Version:202300 | 1 |
+
+## Theme Records By Raw Version
+
+| Key | Count |
+| --- | --- |
+| Version:202300 | 1 |
+
+## Theme Records By Content State
+
+| Key | Count |
+| --- | --- |
+| EmbeddedThemeBytes | 1 |
+
+## Theme Records By Content Length
+
+| Key | Count |
+| --- | --- |
+| Bytes:3250 | 1 |
 
 ## Pivot Table Records By Kind
 
@@ -583,7 +611,7 @@ Warnings: 0
 | Formatting | 24 |
 | FutureMetadata | 29 |
 | Layout | 13 |
-| PreserveOnly | 15 |
+| PreserveOnly | 12 |
 | Series | 8 |
 | Text | 15 |
 
@@ -605,9 +633,8 @@ Warnings: 0
 | ChartFormatLink | 1 |
 | ChartFrtInfo | 1 |
 | CrErr | 1 |
-| CrtLayout12 | 3 |
-| CrtMlFrt | 2 |
-| CrtMlFrtContinue | 7 |
+| CrtLayout12 | 2 |
+| CrtMlFrt | 7 |
 | Dat | 1 |
 | DataFormat | 1 |
 | DefaultText | 2 |
@@ -838,9 +865,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| PivotSummary | 1 |
-| RevenueChart | 150 |
-| SalesData | 1 |
+| RevenueChart | 149 |
 
 ## Drawing Records By Kind
 
@@ -1318,7 +1343,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| Chart | 152 |
+| Chart | 149 |
 | ConditionalFormatting | 2 |
 | DrawingObject | 32 |
 | ExternalReference | 2 |
@@ -1326,7 +1351,8 @@ Warnings: 0
 | PivotTable | 94 |
 | StyleExtension | 114 |
 | TableStyle | 2 |
-| WorkbookMetadata | 8 |
+| Theme | 1 |
+| WorkbookMetadata | 10 |
 
 ## Preserved Feature Record Details
 
@@ -1346,9 +1372,8 @@ Warnings: 0
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:ChartFormatLink | 1 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:ChartFrtInfo | 1 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:CrErr | 1 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:CrtLayout12 | 3 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:CrtMlFrt | 2 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:CrtMlFrtContinue | 7 |
+| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:CrtLayout12 | 2 |
+| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:CrtMlFrt | 7 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Dat | 1 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:DataFormat | 1 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:DefaultText | 2 |
@@ -1407,10 +1432,11 @@ Warnings: 0
 | StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|StyleExtension:XfExt | 66 |
 | TableStyle\|XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED\|TableStyle:TableStyle | 1 |
 | TableStyle\|XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED\|TableStyle:TableStyles | 1 |
+| Theme\|XLS-BIFF-FEATURE-THEME-UNSUPPORTED\|Theme:Theme | 1 |
 | WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|WorkbookMetadata:Compat12 | 2 |
 | WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|WorkbookMetadata:CompressPictures | 1 |
 | WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|WorkbookMetadata:ContinueFrt | 1 |
 | WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|WorkbookMetadata:EntExU2 | 1 |
-| WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|WorkbookMetadata:GUIDTypeLib | 1 |
-| WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|WorkbookMetadata:HeaderFooter | 1 |
+| WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|WorkbookMetadata:HeaderFooter | 3 |
+| WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|WorkbookMetadata:MTRSettings | 1 |
 | WorkbookMetadata\|XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|WorkbookMetadata:RecalcId | 1 |

@@ -18,6 +18,7 @@ External cached cells: 8
 Pivot table records: 27
 Chart records: 1134
 Drawing records: 46
+Theme records: 0
 Drawing OfficeArt records: 38
 Drawing shape properties: 43
 Differential formats: 0

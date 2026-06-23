@@ -91,6 +91,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             PivotTableRecordCount = workbook.PivotTableRecords.Count;
             ChartRecordCount = workbook.ChartRecords.Count;
             DrawingRecordCount = workbook.DrawingRecords.Count;
+            ThemeRecordCount = workbook.ThemeRecords.Count;
             DrawingOfficeArtRecordCount = workbook.DrawingRecords.Sum(record => record.OfficeArtRecords.Count);
             DrawingShapePropertyCount = workbook.DrawingRecords.Sum(record => record.ShapeProperties.Count);
             DifferentialFormatCount = workbook.DifferentialFormats.Count;
@@ -190,6 +191,10 @@ namespace OfficeIMO.Excel.LegacyXls {
             ExternalCellCachesByColumnSpan = CountByCode(workbook.ExternalReferences.SelectMany(reference => reference.CachedCellCaches.Select(cache => cache.ColumnSpan.HasValue ? $"Columns:{cache.ColumnSpan.Value}" : "(empty)")));
             ExternalCellCachesByLinkState = CountByCode(workbook.ExternalReferences.SelectMany(reference => reference.CachedCellCaches.Select(cache => cache.LinkValid ? "ValidLink" : "InvalidLink")));
             ExternalCachedCellsByValueKind = CountExternalCachedCellsByValueKind(workbook.ExternalReferences);
+            ThemeRecordsByVersion = CountByCode(workbook.ThemeRecords.Select(record => record.ThemeVersionName));
+            ThemeRecordsByRawVersion = CountByCode(workbook.ThemeRecords.Select(record => $"Version:{record.ThemeVersion}"));
+            ThemeRecordsByContentState = CountByCode(workbook.ThemeRecords.Select(record => record.HasThemeBytes ? "EmbeddedThemeBytes" : "NoEmbeddedThemeBytes"));
+            ThemeRecordsByContentLength = CountByCode(workbook.ThemeRecords.Select(record => $"Bytes:{record.ThemeByteCount}"));
             PivotTableRecordsByKind = CountPivotTableRecordsByKind(workbook.PivotTableRecords);
             PivotTableRecordsByName = CountByCode(workbook.PivotTableRecords.Select(record => record.RecordName));
             PivotTableDataItemAggregations = CountByCode(workbook.PivotTableRecords
@@ -638,6 +643,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets the number of preserve-only drawing and object BIFF records discovered during import.</summary>
         public int DrawingRecordCount { get; }
 
+        /// <summary>Gets the number of preserve-only workbook Theme records discovered during import.</summary>
+        public int ThemeRecordCount { get; }
+
         /// <summary>Gets the number of OfficeArt record headers discovered under preserve-only drawing records.</summary>
         public int DrawingOfficeArtRecordCount { get; }
 
@@ -823,6 +831,18 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets cached external cell values grouped by value kind.</summary>
         public IReadOnlyDictionary<LegacyXlsCellValueKind, int> ExternalCachedCellsByValueKind { get; }
+
+        /// <summary>Gets Theme records grouped by decoded theme version.</summary>
+        public IReadOnlyDictionary<string, int> ThemeRecordsByVersion { get; }
+
+        /// <summary>Gets Theme records grouped by raw theme version value.</summary>
+        public IReadOnlyDictionary<string, int> ThemeRecordsByRawVersion { get; }
+
+        /// <summary>Gets Theme records grouped by whether embedded theme content bytes were present.</summary>
+        public IReadOnlyDictionary<string, int> ThemeRecordsByContentState { get; }
+
+        /// <summary>Gets Theme records grouped by embedded theme content byte length.</summary>
+        public IReadOnlyDictionary<string, int> ThemeRecordsByContentLength { get; }
 
         /// <summary>Gets preserve-only PivotTable BIFF records grouped by decoded metadata kind.</summary>
         public IReadOnlyDictionary<LegacyXlsPivotTableRecordKind, int> PivotTableRecordsByKind { get; }
@@ -1182,6 +1202,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             builder.AppendLine($"Pivot table records: {PivotTableRecordCount}");
             builder.AppendLine($"Chart records: {ChartRecordCount}");
             builder.AppendLine($"Drawing records: {DrawingRecordCount}");
+            builder.AppendLine($"Theme records: {ThemeRecordCount}");
             builder.AppendLine($"Drawing OfficeArt records: {DrawingOfficeArtRecordCount}");
             builder.AppendLine($"Drawing shape properties: {DrawingShapePropertyCount}");
             builder.AppendLine($"Differential formats: {DifferentialFormatCount}");
@@ -1296,6 +1317,10 @@ namespace OfficeIMO.Excel.LegacyXls {
                 entry => entry.Key.ToString(),
                 entry => entry.Value,
                 StringComparer.OrdinalIgnoreCase));
+            AppendDictionary(builder, "Theme Records By Version", ThemeRecordsByVersion);
+            AppendDictionary(builder, "Theme Records By Raw Version", ThemeRecordsByRawVersion);
+            AppendDictionary(builder, "Theme Records By Content State", ThemeRecordsByContentState);
+            AppendDictionary(builder, "Theme Records By Content Length", ThemeRecordsByContentLength);
             AppendDictionary(builder, "Pivot Table Records By Kind", PivotTableRecordsByKind.ToDictionary(
                 entry => entry.Key.ToString(),
                 entry => entry.Value,

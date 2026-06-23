@@ -370,13 +370,19 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case 0x088D: return "TableStyles";
                 case 0x088E: return "TableStyle";
                 case 0x088F: return "TableStyleElement";
-                case 0x0896: return "GUIDTypeLib";
-                case 0x0899: return "Theme";
-                case 0x089A: return "CompressPictures";
-                case 0x089B: return "HeaderFooter";
-                case 0x089C: return "CrtLayout12";
-                case 0x089D: return "CrtMlFrt";
-                case 0x089E: return "CrtMlFrtContinue";
+                case 0x0893: return "NamePublish";
+                case 0x0894: return "NameCmt";
+                case 0x0895: return "SortData";
+                case 0x0896: return "Theme";
+                case 0x0897: return "GUIDTypeLib";
+                case 0x0898: return "FnGrp12";
+                case 0x0899: return "NameFnGrp12";
+                case 0x089A: return "MTRSettings";
+                case 0x089B: return "CompressPictures";
+                case 0x089C: return "HeaderFooter";
+                case 0x089D: return "CrtLayout12";
+                case 0x089E: return "CrtMlFrt";
+                case 0x089F: return "CrtMlFrtContinue";
                 case 0x08A3: return "ShapePropsStream";
                 case 0x08A4: return "TextPropsStream";
                 case 0x08A5: return "RichTextStream";
@@ -482,7 +488,13 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 || type == (ushort)BiffRecordType.EntExU2
                 || type == (ushort)BiffRecordType.ContinueFrt
                 || type == (ushort)BiffRecordType.Compat12
+                || type == (ushort)BiffRecordType.NamePublish
+                || type == (ushort)BiffRecordType.NameCmt
+                || type == (ushort)BiffRecordType.SortData
                 || type == (ushort)BiffRecordType.GuidTypeLib
+                || type == (ushort)BiffRecordType.FnGrp12
+                || type == (ushort)BiffRecordType.NameFnGrp12
+                || type == (ushort)BiffRecordType.MtrSettings
                 || type == (ushort)BiffRecordType.CompressPictures
                 || type == (ushort)BiffRecordType.HeaderFooter;
         }
