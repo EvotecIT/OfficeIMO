@@ -402,26 +402,6 @@ public sealed partial class OfficeRasterCanvas {
         }
     }
 
-    /// <summary>Strokes a polygon outline using a shared Office stroke dash style.</summary>
-    public void DrawStyledPolygon(IReadOnlyList<OfficePoint> points, OfficeColor color, double thickness = 1D, OfficeStrokeDashStyle dashStyle = OfficeStrokeDashStyle.Solid) {
-        if (dashStyle == OfficeStrokeDashStyle.Solid) {
-            DrawPolygon(points, color, thickness);
-            return;
-        }
-
-        if (color.A == 0 || points == null || points.Count < 2) {
-            return;
-        }
-
-        for (int i = 1; i < points.Count; i++) {
-            DrawStyledLine(points[i - 1].X, points[i - 1].Y, points[i].X, points[i].Y, color, thickness, dashStyle);
-        }
-
-        if (points.Count > 2) {
-            DrawStyledLine(points[points.Count - 1].X, points[points.Count - 1].Y, points[0].X, points[0].Y, color, thickness, dashStyle);
-        }
-    }
-
     /// <summary>Draws an image scaled into the supplied rectangle.</summary>
     public void DrawImage(OfficeRasterImage image, double x, double y, double width, double height) {
         DrawImage(

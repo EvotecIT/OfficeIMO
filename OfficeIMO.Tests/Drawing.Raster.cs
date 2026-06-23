@@ -569,6 +569,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeDrawingRasterRenderer_HonorsPolygonDashStyleThroughSharedRasterPrimitive() {
+            OfficeDrawing solidDrawing = new OfficeDrawing(72, 32);
+            OfficeShape solidPolygon = OfficeShape.Polygon(
+                new OfficePoint(0, 0),
+                new OfficePoint(64, 0),
+                new OfficePoint(64, 20),
+                new OfficePoint(0, 20));
+            solidPolygon.StrokeColor = OfficeColor.Black;
+            solidPolygon.StrokeWidth = 2;
+            solidDrawing.AddShape(solidPolygon, 4, 6);
+
+            OfficeDrawing dashedDrawing = new OfficeDrawing(72, 32);
+            OfficeShape dashedPolygon = solidPolygon.Clone();
+            dashedPolygon.StrokeDashStyle = OfficeStrokeDashStyle.Dash;
+            dashedDrawing.AddShape(dashedPolygon, 4, 6);
+
+            OfficeRasterImage solid = OfficeDrawingRasterRenderer.Render(solidDrawing);
+            OfficeRasterImage dashed = OfficeDrawingRasterRenderer.Render(dashedDrawing);
+
+            Assert.True(CountPaintedPixels(solid) > CountPaintedPixels(dashed));
+            Assert.True(AnyAlpha(dashed, 4, 5, 12, 7));
+            Assert.True(AnyAlpha(dashed, 63, 6, 69, 16));
+            Assert.True(CountTransparentColumnsOnRow(dashed, 6, 4, 68) >= 6);
+        }
+
+        [Fact]
         public void OfficeDrawingRasterRenderer_FlattensBezierPathCommands() {
             OfficeDrawing drawing = new OfficeDrawing(64, 48);
             OfficeShape quadratic = OfficeShape.Path(
