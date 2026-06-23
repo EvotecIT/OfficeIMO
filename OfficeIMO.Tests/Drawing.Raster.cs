@@ -172,6 +172,7 @@ namespace OfficeIMO.Tests {
 
             OfficeTextLine clipped = OfficeTextLayoutEngine.TrimLineToWidth("ABCDEFG", 1D, 6D, Measure, out bool wasClipped);
             OfficeTextLine unchanged = OfficeTextLayoutEngine.TrimLineToWidth("ABC", 1D, 6D, Measure, out bool unchangedClipped);
+            OfficeTextLine startClipped = OfficeTextLayoutEngine.TrimLineStartToWidth("ABCDEFG", 1D, 5D, Measure, out bool wasStartClipped);
 
             Assert.True(wasClipped);
             Assert.Equal("ABC...", clipped.Text);
@@ -179,6 +180,24 @@ namespace OfficeIMO.Tests {
             Assert.False(unchangedClipped);
             Assert.Equal("ABC", unchanged.Text);
             Assert.Equal(3D, unchanged.Width);
+            Assert.True(wasStartClipped);
+            Assert.Equal("...FG", startClipped.Text);
+            Assert.Equal(5D, startClipped.Width);
+        }
+
+        [Fact]
+        public void OfficeTextZoneLayout_CreatesNonOverlappingThreeColumnZones() {
+            OfficeTextZoneLayout zones = OfficeTextZoneLayout.CreateThreeColumn(144D, 12D, 6D);
+
+            Assert.Equal(12D, zones.Left.X);
+            Assert.Equal(36D, zones.Left.Width);
+            Assert.Equal(12D, zones.Left.AnchorX);
+            Assert.Equal(54D, zones.Center.X);
+            Assert.Equal(72D, zones.Center.AnchorX);
+            Assert.Equal(96D, zones.Right.X);
+            Assert.Equal(132D, zones.Right.AnchorX);
+            Assert.True(zones.Left.X + zones.Left.Width < zones.Center.X);
+            Assert.True(zones.Center.X + zones.Center.Width < zones.Right.X);
         }
 
         [Fact]

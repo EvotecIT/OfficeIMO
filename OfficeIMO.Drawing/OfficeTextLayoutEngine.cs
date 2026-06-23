@@ -118,6 +118,38 @@ public static partial class OfficeTextLayoutEngine {
     }
 
     /// <summary>
+    /// Measures a single line and trims the beginning with an ellipsis when it exceeds the requested width.
+    /// </summary>
+    /// <param name="text">Text to measure and trim.</param>
+    /// <param name="fontSize">Font size passed to <paramref name="measure"/>.</param>
+    /// <param name="maxWidth">Maximum accepted line width.</param>
+    /// <param name="measure">Measurement delegate matching <see cref="OfficeRasterCanvas.MeasureText(string?, double)"/>.</param>
+    /// <param name="clipped">Set to <c>true</c> when the returned line had to be shortened.</param>
+    /// <returns>The measured line, possibly shortened with a leading ellipsis.</returns>
+    public static OfficeTextLine TrimLineStartToWidth(string? text, double fontSize, double maxWidth, Func<string?, double, double> measure, out bool clipped) {
+        if (measure == null) {
+            throw new ArgumentNullException(nameof(measure));
+        }
+
+        string value = text ?? string.Empty;
+        double width = Math.Max(0D, maxWidth);
+        double measured = Measure(value, fontSize, measure);
+        if (measured <= width) {
+            clipped = false;
+            return new OfficeTextLine(value, measured);
+        }
+
+        clipped = true;
+        const string ellipsis = "...";
+        while (value.Length > 0 && Measure(ellipsis + value, fontSize, measure) > width) {
+            value = value.Substring(1);
+        }
+
+        value = value.Length == 0 && Measure(ellipsis, fontSize, measure) > width ? string.Empty : ellipsis + value;
+        return new OfficeTextLine(value, Measure(value, fontSize, measure));
+    }
+
+    /// <summary>
     /// Finds the largest single-line font size that fits within the requested width.
     /// </summary>
     /// <param name="text">Text to measure.</param>
