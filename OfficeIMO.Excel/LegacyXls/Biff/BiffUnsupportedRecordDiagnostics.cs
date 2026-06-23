@@ -4,13 +4,17 @@ using OfficeIMO.Excel.LegacyXls.Model;
 namespace OfficeIMO.Excel.LegacyXls.Biff {
     internal static class BiffUnsupportedRecordDiagnostics {
         internal static LegacyXlsUnsupportedFeature CreateFilePassFeature(BiffRecord record) {
+            string encryptionTypeName = GetFilePassEncryptionTypeName(record);
+            string encryptionDescription = encryptionTypeName == "Unknown"
+                ? string.Empty
+                : $" The FilePass record declares {encryptionTypeName} password-to-open protection.";
             return new LegacyXlsUnsupportedFeature(
                 LegacyXlsUnsupportedFeatureKind.EncryptedWorkbook,
                 "XLS-BIFF-FILEPASS-UNSUPPORTED",
-                "The workbook contains a FilePass record, which means password-to-open encryption is present. Encrypted legacy XLS import is not supported.",
+                "The workbook contains a FilePass record, which means password-to-open encryption is present. Encrypted legacy XLS import is not supported." + encryptionDescription,
                 recordOffset: record.Offset,
                 recordType: record.Type,
-                detailCode: "Encryption:FilePass");
+                detailCode: $"Encryption:FilePass:{encryptionTypeName}");
         }
 
         internal static void AddFilePassDiagnostic(BiffRecord record, List<LegacyXlsImportDiagnostic> diagnostics) {
@@ -549,6 +553,22 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case 0x0500: return "BIFF5";
                 case 0x0600: return "BIFF8";
                 default: return $"BIFF version 0x{version:X4}";
+            }
+        }
+
+        private static string GetFilePassEncryptionTypeName(BiffRecord record) {
+            if (record.Payload.Length < 2) {
+                return "Unknown";
+            }
+
+            ushort encryptionType = BiffRecordReader.ReadUInt16(record.Payload, 0);
+            switch (encryptionType) {
+                case 0x0000:
+                    return "XorObfuscation";
+                case 0x0001:
+                    return "Rc4";
+                default:
+                    return $"Unknown0x{encryptionType:X4}";
             }
         }
 

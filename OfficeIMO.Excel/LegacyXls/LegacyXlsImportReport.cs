@@ -72,6 +72,10 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .Select(feature => $"{feature.Kind}|{feature.Code}|{feature.DetailCode}"));
             UnsupportedFeaturesByLocation = CountByCode(workbook.UnsupportedFeatures
                 .Select(GetFeatureLocationKey));
+            FileFormatBlockers = CountByCode(workbook.UnsupportedFeatures
+                .Where(feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.EncryptedWorkbook
+                    || feature.Kind == LegacyXlsUnsupportedFeatureKind.UnsupportedBiffVersion)
+                .Select(feature => $"{feature.Kind}|{feature.DetailCode ?? feature.Code}"));
             UnsupportedSheetsByKind = CountUnsupportedSheetsByKind(workbook.UnsupportedSheets);
             UnsupportedSheetsByType = CountByCode(workbook.UnsupportedSheets.Select(sheet => $"0x{sheet.SheetType:X2}|{sheet.Kind}"));
             UnsupportedSheetsByName = CountByCode(workbook.UnsupportedSheets.Select(sheet => sheet.Name));
@@ -284,6 +288,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets unsupported/preserve-only feature counts grouped by code and workbook or sheet location.</summary>
         public IReadOnlyDictionary<string, int> UnsupportedFeaturesByLocation { get; }
 
+        /// <summary>Gets hard file-format blockers grouped by kind and detail.</summary>
+        public IReadOnlyDictionary<string, int> FileFormatBlockers { get; }
+
         /// <summary>Gets unsupported sheet entries grouped by decoded sheet kind.</summary>
         public IReadOnlyDictionary<LegacyXlsUnsupportedSheetKind, int> UnsupportedSheetsByKind { get; }
 
@@ -478,6 +485,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Unsupported Feature Record Types", UnsupportedFeaturesByRecordType);
             AppendDictionary(builder, "Unsupported Feature Details", UnsupportedFeaturesByDetail);
             AppendDictionary(builder, "Unsupported Feature Locations", UnsupportedFeaturesByLocation);
+            AppendDictionary(builder, "File Format Blockers", FileFormatBlockers);
             AppendDictionary(builder, "Unsupported Sheets By Kind", UnsupportedSheetsByKind.ToDictionary(
                 entry => entry.Key.ToString(),
                 entry => entry.Value,
