@@ -13,6 +13,8 @@ namespace OfficeIMO.Excel.LegacyXls.Diagnostics {
         /// <param name="recordOffset">Optional byte offset of the related BIFF record.</param>
         /// <param name="recordType">Optional BIFF record type identifier.</param>
         /// <param name="detailCode">Optional stable detail key for grouped import reports.</param>
+        /// <param name="formulaToken">Optional BIFF formula token byte associated with formula-token diagnostics.</param>
+        /// <param name="formulaTokenOffset">Optional zero-based parsed-expression token offset associated with formula-token diagnostics.</param>
         public LegacyXlsImportDiagnostic(
             LegacyXlsDiagnosticSeverity severity,
             string code,
@@ -20,7 +22,9 @@ namespace OfficeIMO.Excel.LegacyXls.Diagnostics {
             string? sheetName = null,
             int? recordOffset = null,
             ushort? recordType = null,
-            string? detailCode = null) {
+            string? detailCode = null,
+            byte? formulaToken = null,
+            int? formulaTokenOffset = null) {
             Severity = severity;
             Code = code;
             Message = message;
@@ -28,6 +32,8 @@ namespace OfficeIMO.Excel.LegacyXls.Diagnostics {
             RecordOffset = recordOffset;
             RecordType = recordType;
             DetailCode = detailCode;
+            FormulaToken = formulaToken;
+            FormulaTokenOffset = formulaTokenOffset;
         }
 
         /// <summary>
@@ -64,6 +70,16 @@ namespace OfficeIMO.Excel.LegacyXls.Diagnostics {
         /// Gets a stable detail key for report grouping, when available.
         /// </summary>
         public string? DetailCode { get; }
+
+        /// <summary>
+        /// Gets the BIFF formula token byte associated with a formula-token diagnostic, when available.
+        /// </summary>
+        public byte? FormulaToken { get; }
+
+        /// <summary>
+        /// Gets the zero-based offset of <see cref="FormulaToken"/> within the parsed-expression token stream, when available.
+        /// </summary>
+        public int? FormulaTokenOffset { get; }
 
         /// <summary>
         /// Returns a compact diagnostic string for logs and test output.

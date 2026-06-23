@@ -54,6 +54,14 @@ namespace OfficeIMO.Excel.LegacyXls {
             FormulaTokenBlockers = CountByCode(workbook.Diagnostics
                 .Where(diagnostic => string.Equals(diagnostic.Code, "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED", StringComparison.OrdinalIgnoreCase))
                 .Select(diagnostic => diagnostic.DetailCode ?? "FormulaUnknown"));
+            FormulaTokenBlockersByToken = CountByCode(workbook.Diagnostics
+                .Where(diagnostic => string.Equals(diagnostic.Code, "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED", StringComparison.OrdinalIgnoreCase))
+                .Where(diagnostic => diagnostic.FormulaToken.HasValue)
+                .Select(diagnostic => $"Token:0x{diagnostic.FormulaToken!.Value:X2}"));
+            FormulaTokenBlockersByOffset = CountByCode(workbook.Diagnostics
+                .Where(diagnostic => string.Equals(diagnostic.Code, "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED", StringComparison.OrdinalIgnoreCase))
+                .Where(diagnostic => diagnostic.FormulaTokenOffset.HasValue)
+                .Select(diagnostic => $"Offset:{diagnostic.FormulaTokenOffset!.Value}"));
             UnsupportedFeaturesByCode = CountByCode(workbook.UnsupportedFeatures.Select(feature => feature.Code));
             UnsupportedFeaturesByKind = CountByKind(workbook.UnsupportedFeatures);
             UnsupportedFeaturesByRecordType = CountByCode(workbook.UnsupportedFeatures
@@ -255,6 +263,12 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets unsupported formula token blockers grouped by stable detail key.</summary>
         public IReadOnlyDictionary<string, int> FormulaTokenBlockers { get; }
 
+        /// <summary>Gets unsupported formula token blockers grouped by raw formula token byte.</summary>
+        public IReadOnlyDictionary<string, int> FormulaTokenBlockersByToken { get; }
+
+        /// <summary>Gets unsupported formula token blockers grouped by zero-based parsed-expression token offset.</summary>
+        public IReadOnlyDictionary<string, int> FormulaTokenBlockersByOffset { get; }
+
         /// <summary>Gets unsupported/preserve-only feature counts grouped by stable feature code.</summary>
         public IReadOnlyDictionary<string, int> UnsupportedFeaturesByCode { get; }
 
@@ -449,6 +463,8 @@ namespace OfficeIMO.Excel.LegacyXls {
             builder.AppendLine($"Warnings: {WarningCount}");
             AppendDictionary(builder, "Diagnostics By Code", DiagnosticsByCode);
             AppendDictionary(builder, "Formula Token Blockers", FormulaTokenBlockers);
+            AppendDictionary(builder, "Formula Token Blockers By Token", FormulaTokenBlockersByToken);
+            AppendDictionary(builder, "Formula Token Blockers By Offset", FormulaTokenBlockersByOffset);
             AppendDictionary(builder, "Data Validations By Type", DataValidationsByType);
             AppendDictionary(builder, "Data Validations By Operator", DataValidationsByOperator);
             AppendDictionary(builder, "Conditional Formatting By Type", ConditionalFormattingsByType);

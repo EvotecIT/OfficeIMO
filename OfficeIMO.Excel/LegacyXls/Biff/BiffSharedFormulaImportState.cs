@@ -169,7 +169,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 sheetName: _sheet.Name,
                 recordOffset: definition.RecordOffset,
                 recordType: (ushort)BiffRecordType.ShrFmla,
-                detailCode: failure?.DetailCode));
+                detailCode: failure?.DetailCode,
+                formulaToken: failure?.Token,
+                formulaTokenOffset: failure?.TokenOffset));
         }
 
         private static bool ContainsCell(ushort firstRow, ushort lastRow, ushort firstColumn, ushort lastColumn, int row, int column) {

@@ -764,8 +764,19 @@ namespace OfficeIMO.Tests {
                 && d.SheetName == "FormulaDiag"
                 && d.RecordType == (ushort)BiffRecordType.Formula);
             Assert.Equal("FormulaToken0x26", diagnostic.DetailCode);
+            Assert.True(diagnostic.FormulaToken.HasValue);
+            Assert.Equal((byte)0x26, diagnostic.FormulaToken.Value);
+            Assert.True(diagnostic.FormulaTokenOffset.HasValue);
+            Assert.Equal(0, diagnostic.FormulaTokenOffset.Value);
             Assert.Contains("Token 0x26", diagnostic.Message);
             Assert.Contains("parsed-expression offset 0", diagnostic.Message);
+            LegacyXlsImportReport report = legacy.CreateImportReport();
+            Assert.Equal(1, report.FormulaTokenBlockers["FormulaToken0x26"]);
+            Assert.Equal(1, report.FormulaTokenBlockersByToken["Token:0x26"]);
+            Assert.Equal(1, report.FormulaTokenBlockersByOffset["Offset:0"]);
+            string markdown = report.ToMarkdown();
+            Assert.Contains("Formula Token Blockers By Token", markdown);
+            Assert.Contains("Formula Token Blockers By Offset", markdown);
             LegacyXlsWorksheet sheet = Assert.Single(legacy.Worksheets);
             LegacyXlsCell formula = Assert.Single(sheet.Cells, cell => cell.Row == 1 && cell.Column == 2);
             Assert.True(formula.IsFormula);
