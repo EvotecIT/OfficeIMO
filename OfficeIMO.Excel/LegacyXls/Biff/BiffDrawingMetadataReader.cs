@@ -12,6 +12,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
             TryReadObjectCommonData(record, out ushort? objectType, out ushort? objectId, out ushort? objectFlags);
             TryReadEscherHeader(record, out ushort? escherRecordType, out ushort? escherRecordInstance, out byte? escherRecordVersion, out uint? escherPayloadLength);
+            IReadOnlyList<LegacyXlsDrawingBlipStoreEntry> blipStoreEntries = ReadBlipStoreEntries(record);
             records.Add(new LegacyXlsDrawingRecord(
                 GetKind(record.Type),
                 BiffUnsupportedRecordDiagnostics.GetBiffRecordName(record.Type),
@@ -25,7 +26,89 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 escherRecordInstance,
                 escherRecordVersion,
                 escherPayloadLength,
-                objectFlags: objectFlags));
+                objectFlags: objectFlags,
+                blipStoreEntries: blipStoreEntries));
+            return true;
+        }
+
+        private static IReadOnlyList<LegacyXlsDrawingBlipStoreEntry> ReadBlipStoreEntries(BiffRecord record) {
+            if (record.Type != (ushort)BiffRecordType.DrawingGroup && record.Type != (ushort)BiffRecordType.Drawing) {
+                return Array.Empty<LegacyXlsDrawingBlipStoreEntry>();
+            }
+
+            var entries = new List<LegacyXlsDrawingBlipStoreEntry>();
+            TryReadOfficeArtRecords(record.Payload, 0, record.Payload.Length, entries, depth: 0);
+            return entries;
+        }
+
+        private static void TryReadOfficeArtRecords(
+            byte[] payload,
+            int startOffset,
+            int endOffset,
+            List<LegacyXlsDrawingBlipStoreEntry> entries,
+            int depth) {
+            if (depth > 8) {
+                return;
+            }
+
+            int offset = startOffset;
+            while (offset + 8 <= endOffset) {
+                ushort options = BiffRecordReader.ReadUInt16(payload, offset);
+                ushort recordType = BiffRecordReader.ReadUInt16(payload, offset + 2);
+                uint recordLength = BiffRecordReader.ReadUInt32(payload, offset + 4);
+                if (recordLength > int.MaxValue || offset + 8 + (int)recordLength > endOffset) {
+                    return;
+                }
+
+                int contentStart = offset + 8;
+                int contentEnd = contentStart + (int)recordLength;
+                byte version = checked((byte)(options & 0x000f));
+                ushort instance = checked((ushort)(options >> 4));
+
+                if (recordType == 0xF007 && TryReadBlipStoreEntry(payload, contentStart, contentEnd, instance, out LegacyXlsDrawingBlipStoreEntry? entry)) {
+                    entries.Add(entry!);
+                }
+
+                if (version == 0x0f) {
+                    TryReadOfficeArtRecords(payload, contentStart, contentEnd, entries, depth + 1);
+                }
+
+                offset = contentEnd;
+            }
+        }
+
+        private static bool TryReadBlipStoreEntry(
+            byte[] payload,
+            int contentStart,
+            int contentEnd,
+            ushort recordInstance,
+            out LegacyXlsDrawingBlipStoreEntry? entry) {
+            entry = null;
+            if (contentStart < 0 || contentStart + 36 > contentEnd) {
+                return false;
+            }
+
+            byte win32BlipType = payload[contentStart];
+            byte macOsBlipType = payload[contentStart + 1];
+            uint sizeBytes = BiffRecordReader.ReadUInt32(payload, contentStart + 20);
+            uint referenceCount = BiffRecordReader.ReadUInt32(payload, contentStart + 24);
+            byte nameByteCount = payload[contentStart + 33];
+            int embeddedOffset = contentStart + 36 + nameByteCount;
+            ushort? embeddedRecordType = null;
+            uint? embeddedPayloadLength = null;
+            if (embeddedOffset + 8 <= contentEnd) {
+                embeddedRecordType = BiffRecordReader.ReadUInt16(payload, embeddedOffset + 2);
+                embeddedPayloadLength = BiffRecordReader.ReadUInt32(payload, embeddedOffset + 4);
+            }
+
+            entry = new LegacyXlsDrawingBlipStoreEntry(
+                recordInstance,
+                win32BlipType,
+                macOsBlipType,
+                sizeBytes,
+                referenceCount,
+                embeddedRecordType,
+                embeddedPayloadLength);
             return true;
         }
 

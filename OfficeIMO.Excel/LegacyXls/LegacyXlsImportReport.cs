@@ -171,6 +171,21 @@ namespace OfficeIMO.Excel.LegacyXls {
             DrawingRecordsByEscherRecordTypeName = CountByCode(workbook.DrawingRecords
                 .Where(record => !string.IsNullOrWhiteSpace(record.EscherRecordTypeName))
                 .Select(record => record.EscherRecordTypeName!));
+            DrawingBlipStoreEntriesByType = CountByCode(workbook.DrawingRecords
+                .SelectMany(record => record.BlipStoreEntries)
+                .Select(entry => entry.RecordInstanceBlipTypeName));
+            DrawingBlipStoreEntriesByEmbeddedRecordType = CountByCode(workbook.DrawingRecords
+                .SelectMany(record => record.BlipStoreEntries)
+                .Where(entry => !string.IsNullOrWhiteSpace(entry.EmbeddedBlipRecordTypeName))
+                .Select(entry => entry.EmbeddedBlipRecordTypeName!));
+            DrawingBlipStoreEntriesBySize = CountByCode(workbook.DrawingRecords
+                .SelectMany(record => record.BlipStoreEntries)
+                .Where(entry => entry.SizeBytes.HasValue)
+                .Select(entry => $"SizeBytes:{entry.SizeBytes!.Value}"));
+            DrawingBlipStoreEntriesByReferenceCount = CountByCode(workbook.DrawingRecords
+                .SelectMany(record => record.BlipStoreEntries)
+                .Where(entry => entry.ReferenceCount.HasValue)
+                .Select(entry => $"References:{entry.ReferenceCount!.Value}"));
             DrawingRecordsByLocation = CountByCode(workbook.DrawingRecords.Select(GetDrawingRecordLocationKey));
             CompoundFeatureRecordsByKind = CountCompoundFeatureRecordsByKind(workbook.CompoundFeatureRecords);
             CompoundFeatureEntriesByKind = CountCompoundFeatureEntriesByKind(workbook.CompoundFeatureRecords);
@@ -452,6 +467,18 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets MsoDrawing records grouped by decoded top-level Escher record type name.</summary>
         public IReadOnlyDictionary<string, int> DrawingRecordsByEscherRecordTypeName { get; }
 
+        /// <summary>Gets OfficeArt FBSE image-store entries grouped by decoded BLIP type.</summary>
+        public IReadOnlyDictionary<string, int> DrawingBlipStoreEntriesByType { get; }
+
+        /// <summary>Gets OfficeArt FBSE image-store entries grouped by embedded BLIP record type.</summary>
+        public IReadOnlyDictionary<string, int> DrawingBlipStoreEntriesByEmbeddedRecordType { get; }
+
+        /// <summary>Gets OfficeArt FBSE image-store entries grouped by stored byte size.</summary>
+        public IReadOnlyDictionary<string, int> DrawingBlipStoreEntriesBySize { get; }
+
+        /// <summary>Gets OfficeArt FBSE image-store entries grouped by reference count.</summary>
+        public IReadOnlyDictionary<string, int> DrawingBlipStoreEntriesByReferenceCount { get; }
+
         /// <summary>Gets preserve-only drawing and object BIFF records grouped by workbook or sheet location.</summary>
         public IReadOnlyDictionary<string, int> DrawingRecordsByLocation { get; }
 
@@ -618,6 +645,10 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Drawing Records By Object Flag Name", DrawingRecordsByObjectFlagName);
             AppendDictionary(builder, "Drawing Records By Escher Record Type", DrawingRecordsByEscherRecordType);
             AppendDictionary(builder, "Drawing Records By Escher Record Type Name", DrawingRecordsByEscherRecordTypeName);
+            AppendDictionary(builder, "Drawing BLIP Store Entries By Type", DrawingBlipStoreEntriesByType);
+            AppendDictionary(builder, "Drawing BLIP Store Entries By Embedded Record Type", DrawingBlipStoreEntriesByEmbeddedRecordType);
+            AppendDictionary(builder, "Drawing BLIP Store Entries By Size", DrawingBlipStoreEntriesBySize);
+            AppendDictionary(builder, "Drawing BLIP Store Entries By Reference Count", DrawingBlipStoreEntriesByReferenceCount);
             AppendDictionary(builder, "Drawing Records By Location", DrawingRecordsByLocation);
             AppendDictionary(builder, "Compound Feature Records By Kind", CompoundFeatureRecordsByKind.ToDictionary(
                 entry => entry.Key.ToString(),

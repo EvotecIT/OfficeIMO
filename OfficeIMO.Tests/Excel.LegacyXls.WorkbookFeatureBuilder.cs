@@ -523,7 +523,7 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
                 long dataBoundSheetPosition = stream.Position;
                 WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "FeatureMap"));
-                WriteRecord(stream, 0x00eb, BuildEscherHeaderPayload(0xf000, instance: 2, version: 0x0f, length: 8));
+                WriteRecord(stream, 0x00eb, BuildDrawingGroupWithPngBlipStorePayload());
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 int sheetOffset = checked((int)stream.Position);
@@ -1245,6 +1245,41 @@ namespace OfficeIMO.Tests {
                 WriteUInt16(stream, checked((ushort)((instance << 4) | (version & 0x0f))));
                 WriteUInt16(stream, recordType);
                 WriteUInt32(stream, length);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildDrawingGroupWithPngBlipStorePayload() {
+                byte[] drawingGroupData = BuildOfficeArtRecord(0xf006, instance: 0, version: 0x00, new byte[8]);
+                byte[] embeddedPng = BuildOfficeArtRecord(0xf01e, instance: 0x06, version: 0x00, new byte[] { 0x89, 0x50, 0x4e, 0x47 });
+                byte[] fbse = BuildOfficeArtRecord(0xf007, instance: 0x06, version: 0x02, BuildFbsePayload(0x06, 0x06, sizeBytes: 12, referenceCount: 1, embeddedPng));
+                byte[] bstore = BuildOfficeArtRecord(0xf001, instance: 1, version: 0x0f, fbse);
+                byte[] drawingGroupPayload = drawingGroupData.Concat(bstore).ToArray();
+                return BuildOfficeArtRecord(0xf000, instance: 2, version: 0x0f, drawingGroupPayload);
+            }
+
+            private static byte[] BuildFbsePayload(byte win32BlipType, byte macOsBlipType, uint sizeBytes, uint referenceCount, byte[] embeddedBlip) {
+                using var stream = new MemoryStream();
+                stream.WriteByte(win32BlipType);
+                stream.WriteByte(macOsBlipType);
+                stream.Write(new byte[16], 0, 16);
+                WriteUInt16(stream, 0xffff);
+                WriteUInt32(stream, sizeBytes);
+                WriteUInt32(stream, referenceCount);
+                WriteUInt32(stream, 0);
+                stream.WriteByte(0);
+                stream.WriteByte(0);
+                stream.WriteByte(0);
+                stream.WriteByte(0);
+                stream.Write(embeddedBlip, 0, embeddedBlip.Length);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildOfficeArtRecord(ushort recordType, ushort instance, byte version, byte[] payload) {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, checked((ushort)((instance << 4) | (version & 0x0f))));
+                WriteUInt16(stream, recordType);
+                WriteUInt32(stream, checked((uint)payload.Length));
+                stream.Write(payload, 0, payload.Length);
                 return stream.ToArray();
             }
 

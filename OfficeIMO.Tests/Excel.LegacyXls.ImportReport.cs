@@ -101,6 +101,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.DrawingRecordsByEscherRecordType["EscherRecordType:0xF002"]);
             Assert.Equal(1, report.DrawingRecordsByEscherRecordTypeName["OfficeArtDggContainer"]);
             Assert.Equal(1, report.DrawingRecordsByEscherRecordTypeName["OfficeArtDgContainer"]);
+            Assert.Equal(1, report.DrawingBlipStoreEntriesByType["Png"]);
+            Assert.Equal(1, report.DrawingBlipStoreEntriesByEmbeddedRecordType["OfficeArtBlipPNG"]);
+            Assert.Equal(1, report.DrawingBlipStoreEntriesBySize["SizeBytes:12"]);
+            Assert.Equal(1, report.DrawingBlipStoreEntriesByReferenceCount["References:1"]);
             Assert.Equal(1, report.DrawingRecordsByLocation["(workbook)"]);
             Assert.Equal(2, report.DrawingRecordsByLocation["FeatureMap"]);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:MsoDrawingGroup"]);
@@ -116,7 +120,28 @@ namespace OfficeIMO.Tests {
             Assert.Contains(workbook.PreservedFeatureRecords, record => record.DetailCode == "Drawing:MsoDrawingGroup" && record.SheetName == null);
             Assert.Contains(workbook.PreservedFeatureRecords, record => record.DetailCode == "Drawing:Obj" && record.SheetName == "FeatureMap");
             Assert.Contains(workbook.DrawingRecords, record => record.SheetName == "FeatureMap" && record.ObjectType == 0x0008 && record.ObjectTypeKind == LegacyXlsDrawingObjectType.Picture && record.ObjectTypeName == "Picture" && record.ObjectId == 1 && record.ObjectFlags == 0x4011 && record.IsObjectLocked && record.IsObjectPrintable);
-            Assert.Contains(workbook.DrawingRecords, record => record.RecordName == "MsoDrawingGroup" && record.EscherRecordType == 0xf000 && record.EscherRecordTypeKind == LegacyXlsDrawingEscherRecordType.OfficeArtDggContainer && record.EscherRecordTypeName == "OfficeArtDggContainer" && record.EscherRecordInstance == 2 && record.EscherRecordVersion == 0x0f && record.EscherPayloadLength == 8);
+            LegacyXlsDrawingRecord drawingGroup = Assert.Single(workbook.DrawingRecords, record => record.RecordName == "MsoDrawingGroup");
+            Assert.Equal((ushort)0xf000, drawingGroup.EscherRecordType);
+            Assert.Equal(LegacyXlsDrawingEscherRecordType.OfficeArtDggContainer, drawingGroup.EscherRecordTypeKind);
+            Assert.Equal("OfficeArtDggContainer", drawingGroup.EscherRecordTypeName);
+            Assert.Equal((ushort)2, drawingGroup.EscherRecordInstance);
+            Assert.Equal((byte)0x0f, drawingGroup.EscherRecordVersion);
+            Assert.Equal((uint)80, drawingGroup.EscherPayloadLength);
+            LegacyXlsDrawingBlipStoreEntry blipEntry = Assert.Single(drawingGroup.BlipStoreEntries);
+            Assert.Equal((ushort)0x0006, blipEntry.RecordInstance);
+            Assert.Equal(LegacyXlsDrawingBlipType.Png, blipEntry.RecordInstanceBlipTypeKind);
+            Assert.Equal("Png", blipEntry.RecordInstanceBlipTypeName);
+            Assert.Equal((byte)0x06, blipEntry.Win32BlipType);
+            Assert.Equal(LegacyXlsDrawingBlipType.Png, blipEntry.Win32BlipTypeKind);
+            Assert.Equal("Png", blipEntry.Win32BlipTypeName);
+            Assert.Equal((byte)0x06, blipEntry.MacOsBlipType);
+            Assert.Equal(LegacyXlsDrawingBlipType.Png, blipEntry.MacOsBlipTypeKind);
+            Assert.Equal("Png", blipEntry.MacOsBlipTypeName);
+            Assert.Equal((uint)12, blipEntry.SizeBytes);
+            Assert.Equal((uint)1, blipEntry.ReferenceCount);
+            Assert.Equal((ushort)0xf01e, blipEntry.EmbeddedBlipRecordType);
+            Assert.Equal("OfficeArtBlipPNG", blipEntry.EmbeddedBlipRecordTypeName);
+            Assert.Equal((uint)4, blipEntry.EmbeddedBlipPayloadLength);
             Assert.Contains(workbook.DrawingRecords, record => record.RecordName == "MsoDrawing" && record.EscherRecordType == 0xf002 && record.EscherRecordTypeKind == LegacyXlsDrawingEscherRecordType.OfficeArtDgContainer && record.EscherRecordTypeName == "OfficeArtDgContainer" && record.EscherRecordInstance == 1 && record.EscherRecordVersion == 0x0f && record.EscherPayloadLength == 0);
             Assert.Contains(workbook.PreservedFeatureRecords, record => record.DetailCode == "Chart:Chart" && record.RecordType == 0x1002);
             Assert.Contains(workbook.Diagnostics, d => d.DetailCode == "Chart:Chart");
@@ -134,6 +159,8 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Drawing Records By Object Flag Name", markdown);
             Assert.Contains("Drawing Records By Escher Record Type", markdown);
             Assert.Contains("Drawing Records By Escher Record Type Name", markdown);
+            Assert.Contains("Drawing BLIP Store Entries By Type", markdown);
+            Assert.Contains("OfficeArtBlipPNG", markdown);
             Assert.Contains("OfficeArtDggContainer", markdown);
         }
 

@@ -21,7 +21,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             uint? escherPayloadLength = null,
             LegacyXlsDrawingObjectType? objectTypeKind = null,
             LegacyXlsDrawingEscherRecordType? escherRecordTypeKind = null,
-            ushort? objectFlags = null) {
+            ushort? objectFlags = null,
+            IReadOnlyList<LegacyXlsDrawingBlipStoreEntry>? blipStoreEntries = null) {
             if (payloadLength < 0) {
                 throw new ArgumentOutOfRangeException(nameof(payloadLength));
             }
@@ -44,6 +45,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             EscherRecordInstance = escherRecordInstance;
             EscherRecordVersion = escherRecordVersion;
             EscherPayloadLength = escherPayloadLength;
+            BlipStoreEntries = blipStoreEntries?.ToArray() ?? Array.Empty<LegacyXlsDrawingBlipStoreEntry>();
         }
 
         /// <summary>Gets the shallow drawing record category.</summary>
@@ -123,6 +125,12 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets the declared top-level Escher payload length from MsoDrawing payloads, when present.</summary>
         public uint? EscherPayloadLength { get; }
+
+        /// <summary>Gets preserve-only OfficeArt FBSE image-store entries discovered under this drawing record.</summary>
+        public IReadOnlyList<LegacyXlsDrawingBlipStoreEntry> BlipStoreEntries { get; }
+
+        /// <summary>Gets whether this drawing record contains any discovered image-store entries.</summary>
+        public bool HasBlipStoreEntries => BlipStoreEntries.Count > 0;
 
         private static LegacyXlsDrawingObjectType? TryGetObjectTypeKind(ushort? objectType) {
             if (!objectType.HasValue) {
