@@ -581,10 +581,13 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.DataValidationsByOperator["Between"]);
             Assert.Equal(1, report.DataValidationsByOperator["GreaterThanOrEqual"]);
             Assert.Equal(1, report.DataValidationsByOperator["LessThanOrEqual"]);
+            Assert.Equal(3, report.DataValidationsByErrorStyle["Stop"]);
+            Assert.Empty(report.DataValidationListSourcesByKind);
             string markdown = report.ToMarkdown();
             Assert.Contains("Data validations: 3", markdown);
             Assert.Contains("Data Validations By Type", markdown);
             Assert.Contains("Data Validations By Operator", markdown);
+            Assert.Contains("Data Validations By Error Style", markdown);
         }
 
         [Fact]

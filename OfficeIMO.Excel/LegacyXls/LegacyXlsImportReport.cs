@@ -21,6 +21,11 @@ namespace OfficeIMO.Excel.LegacyXls {
             AutoFilterCriteriaCount = workbook.Worksheets.Sum(sheet => sheet.AutoFilterCriteria.Count);
             DataValidationsByType = CountByCode(workbook.Worksheets.SelectMany(sheet => sheet.DataValidations).Select(validation => validation.Type.ToString()));
             DataValidationsByOperator = CountByCode(workbook.Worksheets.SelectMany(sheet => sheet.DataValidations).Select(validation => validation.Operator.ToString()));
+            DataValidationsByErrorStyle = CountByCode(workbook.Worksheets.SelectMany(sheet => sheet.DataValidations).Select(validation => validation.ErrorStyle.ToString()));
+            DataValidationListSourcesByKind = CountByCode(workbook.Worksheets
+                .SelectMany(sheet => sheet.DataValidations)
+                .Where(validation => validation.Type == LegacyXlsDataValidationType.List)
+                .Select(validation => validation.ListSourceKind.ToString()));
             ConditionalFormattingsByType = CountByCode(workbook.Worksheets.SelectMany(sheet => sheet.ConditionalFormattings).Select(formatting => formatting.Type.ToString()));
             ConditionalFormattingsByOperator = CountByCode(workbook.Worksheets
                 .SelectMany(sheet => sheet.ConditionalFormattings)
@@ -275,6 +280,12 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets imported data validations grouped by comparison operator.</summary>
         public IReadOnlyDictionary<string, int> DataValidationsByOperator { get; }
+
+        /// <summary>Gets imported data validations grouped by error alert style.</summary>
+        public IReadOnlyDictionary<string, int> DataValidationsByErrorStyle { get; }
+
+        /// <summary>Gets imported list data validations grouped by source shape.</summary>
+        public IReadOnlyDictionary<string, int> DataValidationListSourcesByKind { get; }
 
         /// <summary>Gets imported conditional formatting rules grouped by rule type.</summary>
         public IReadOnlyDictionary<string, int> ConditionalFormattingsByType { get; }
@@ -641,6 +652,8 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Formula Token Blockers By Offset", FormulaTokenBlockersByOffset);
             AppendDictionary(builder, "Data Validations By Type", DataValidationsByType);
             AppendDictionary(builder, "Data Validations By Operator", DataValidationsByOperator);
+            AppendDictionary(builder, "Data Validations By Error Style", DataValidationsByErrorStyle);
+            AppendDictionary(builder, "Data Validation List Sources By Kind", DataValidationListSourcesByKind);
             AppendDictionary(builder, "Conditional Formatting By Type", ConditionalFormattingsByType);
             AppendDictionary(builder, "Conditional Formatting By Operator", ConditionalFormattingsByOperator);
             AppendDictionary(builder, "AutoFilter Criteria By Kind", AutoFilterCriteriaByKind);

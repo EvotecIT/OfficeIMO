@@ -43,6 +43,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             ListSourceRange = listSourceRange;
             ListSourceName = listSourceName;
             ListSourceSheetName = listSourceSheetName;
+            ListSourceKind = ResolveListSourceKind(type, ListItems, ListSourceRange, ListSourceName, ListSourceSheetName);
         }
 
         /// <summary>
@@ -134,6 +135,38 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// Gets the defined name source for named-range-backed list validation rules.
         /// </summary>
         public string? ListSourceName { get; }
+
+        /// <summary>
+        /// Gets the source shape used by list validation rules.
+        /// </summary>
+        public LegacyXlsDataValidationListSourceKind ListSourceKind { get; }
+
+        private static LegacyXlsDataValidationListSourceKind ResolveListSourceKind(
+            LegacyXlsDataValidationType type,
+            IReadOnlyList<string> listItems,
+            string? listSourceRange,
+            string? listSourceName,
+            string? listSourceSheetName) {
+            if (type != LegacyXlsDataValidationType.List) {
+                return LegacyXlsDataValidationListSourceKind.None;
+            }
+
+            if (listItems.Count > 0) {
+                return LegacyXlsDataValidationListSourceKind.InlineList;
+            }
+
+            if (!string.IsNullOrWhiteSpace(listSourceName)) {
+                return LegacyXlsDataValidationListSourceKind.DefinedName;
+            }
+
+            if (!string.IsNullOrWhiteSpace(listSourceRange)) {
+                return string.IsNullOrWhiteSpace(listSourceSheetName)
+                    ? LegacyXlsDataValidationListSourceKind.Range
+                    : LegacyXlsDataValidationListSourceKind.SheetQualifiedRange;
+            }
+
+            return LegacyXlsDataValidationListSourceKind.None;
+        }
     }
 
     /// <summary>
@@ -208,5 +241,21 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         Warning,
         /// <summary>Information alert.</summary>
         Information
+    }
+
+    /// <summary>
+    /// Identifies the source shape for a legacy list validation rule.
+    /// </summary>
+    public enum LegacyXlsDataValidationListSourceKind {
+        /// <summary>No list source was identified, or the validation is not a list rule.</summary>
+        None,
+        /// <summary>The rule stores its allowed values inline.</summary>
+        InlineList,
+        /// <summary>The rule references a same-sheet range.</summary>
+        Range,
+        /// <summary>The rule references a range on another sheet.</summary>
+        SheetQualifiedRange,
+        /// <summary>The rule references a defined name.</summary>
+        DefinedName
     }
 }

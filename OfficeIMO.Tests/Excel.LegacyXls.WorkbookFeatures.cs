@@ -1025,6 +1025,7 @@ namespace OfficeIMO.Tests {
             LegacyXlsWorksheet sheet = Assert.Single(legacy.Worksheets);
             LegacyXlsDataValidation validation = Assert.Single(sheet.DataValidations);
             Assert.Equal(LegacyXlsDataValidationType.List, validation.Type);
+            Assert.Equal(LegacyXlsDataValidationListSourceKind.InlineList, validation.ListSourceKind);
             Assert.Equal(new[] { "Open", "Closed", "Pending" }, validation.ListItems);
             Assert.Equal("\"Open,Closed,Pending\"", validation.Formula1);
             Assert.Null(validation.Formula2);
@@ -1083,6 +1084,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains(sheet.Cells, cell => cell.Row == 3 && cell.Column == 1 && Equals(cell.Value, "Pending"));
             LegacyXlsDataValidation validation = Assert.Single(sheet.DataValidations);
             Assert.Equal(LegacyXlsDataValidationType.List, validation.Type);
+            Assert.Equal(LegacyXlsDataValidationListSourceKind.Range, validation.ListSourceKind);
             Assert.Empty(validation.ListItems);
             Assert.Equal("$A$1:$A$3", validation.Formula1);
             Assert.Equal("A1:A3", validation.ListSourceRange);
@@ -1136,6 +1138,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("CrossSheetValidation", validationSheet.Name);
             LegacyXlsDataValidation validation = Assert.Single(validationSheet.DataValidations);
             Assert.Equal(LegacyXlsDataValidationType.List, validation.Type);
+            Assert.Equal(LegacyXlsDataValidationListSourceKind.SheetQualifiedRange, validation.ListSourceKind);
             Assert.Empty(validation.ListItems);
             Assert.Equal("'Options'!$A$1:$A$3", validation.Formula1);
             Assert.Equal("A1:A3", validation.ListSourceRange);
@@ -1185,6 +1188,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains(sheet.Cells, cell => cell.Row == 3 && cell.Column == 1 && Equals(cell.Value, "Pending"));
             LegacyXlsDataValidation validation = Assert.Single(sheet.DataValidations);
             Assert.Equal(LegacyXlsDataValidationType.List, validation.Type);
+            Assert.Equal(LegacyXlsDataValidationListSourceKind.DefinedName, validation.ListSourceKind);
             Assert.Empty(validation.ListItems);
             Assert.Equal("StatusOptions", validation.Formula1);
             Assert.Null(validation.ListSourceRange);
@@ -1236,6 +1240,7 @@ namespace OfficeIMO.Tests {
             LegacyXlsWorksheet sheet = Assert.Single(legacy.Worksheets);
             LegacyXlsDataValidation validation = Assert.Single(sheet.DataValidations);
             Assert.Equal(LegacyXlsDataValidationType.List, validation.Type);
+            Assert.Equal(LegacyXlsDataValidationListSourceKind.DefinedName, validation.ListSourceKind);
             Assert.Empty(validation.ListItems);
             Assert.Equal("StatusOptions", validation.Formula1);
             Assert.Null(validation.ListSourceRange);
@@ -1505,6 +1510,7 @@ namespace OfficeIMO.Tests {
             Assert.True(sheet.DataValidations.Count == 1, unsupportedDetails);
             LegacyXlsDataValidation validation = Assert.Single(sheet.DataValidations);
             Assert.Equal(LegacyXlsDataValidationType.List, validation.Type);
+            Assert.Equal(LegacyXlsDataValidationListSourceKind.InlineList, validation.ListSourceKind);
             Assert.Equal("\"Open,Closed,Pending\"", validation.Formula1);
             Assert.Equal(new[] { "Open", "Closed", "Pending" }, validation.ListItems);
             Assert.Equal(new[] { "A2:A5" }, validation.Ranges);
@@ -1517,6 +1523,7 @@ namespace OfficeIMO.Tests {
 
             Assert.False(result.HasImportErrors);
             Assert.Equal(1, result.ImportReport.DataValidationCount);
+            Assert.Equal(1, result.ImportReport.DataValidationListSourcesByKind["InlineList"]);
             Assert.Equal(1, result.ImportReport.ConditionalFormattingCount);
             ExcelSheet projectedSheet = result.Document.Sheets[0];
             Assert.Single(projectedSheet.GetDataValidations("A2:A5"));
