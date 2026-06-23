@@ -1618,5 +1618,35 @@ namespace OfficeIMO.Tests {
             Assert.Equal(0x088d, format.RecordType);
             Assert.Contains(result.Workbook.UnsupportedFeatures, feature => feature.DetailCode == "ConditionalFormatting:Dxf");
         }
+
+        [Fact]
+        public void LegacyXls_Load_ProjectsConditionalFormattingDxfFillWhenSingleStyleIsAvailable() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase5ConditionalFormattingExtensionWithDxfWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.False(result.HasImportErrors);
+            Assert.True(result.HasUnsupportedFeatures);
+            LegacyXlsConditionalFormatting conditionalFormatting = Assert.Single(Assert.Single(result.Workbook.Worksheets).ConditionalFormattings);
+            Assert.NotNull(conditionalFormatting.DifferentialFormat);
+            Assert.Equal("FFFFFF00", conditionalFormatting.DifferentialFormat!.FillBackgroundColor);
+
+            using var packageStream = new MemoryStream();
+            result.Document.Save(packageStream);
+            packageStream.Position = 0;
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(packageStream, false);
+            WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            ConditionalFormattingRule rule = Assert.Single(Assert.Single(worksheetPart.Worksheet.Elements<ConditionalFormatting>()).Elements<ConditionalFormattingRule>());
+            Assert.Equal(0U, rule.FormatId!.Value);
+            DifferentialFormat dxf = Assert.Single(spreadsheet.WorkbookPart.WorkbookStylesPart!.Stylesheet!.DifferentialFormats!.Elements<DifferentialFormat>());
+            Fill fill = Assert.Single(dxf.Elements<Fill>());
+            PatternFill patternFill = fill.PatternFill!;
+            Assert.Equal(PatternValues.Solid, patternFill.PatternType!.Value);
+            Assert.Equal("FFFFFF00", patternFill.ForegroundColor!.Rgb!.Value);
+            Assert.Equal("FFFFFF00", patternFill.BackgroundColor!.Rgb!.Value);
+        }
     }
 }

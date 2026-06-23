@@ -16,6 +16,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             List<LegacyXlsPivotTableRecord> pivotTableRecords,
             List<LegacyXlsChartRecord> chartRecords,
             List<LegacyXlsDrawingRecord> drawingRecords,
+            IReadOnlyList<LegacyXlsDifferentialFormat> differentialFormats,
             LegacyXlsCalculationSettings calculationSettings,
             List<LegacyXlsImportDiagnostic> diagnostics,
             LegacyXlsImportOptions options) {
@@ -34,7 +35,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             int nestedSubstreamDepth = 0;
             PendingFormulaString? pendingFormulaString = null;
             var commentState = new BiffCommentImportState(sheet);
-            var conditionalFormattingState = new BiffConditionalFormattingImportState(sheet, externSheets, externalReferences, sheetNames, definedNames);
+            var conditionalFormattingState = new BiffConditionalFormattingImportState(sheet, externSheets, externalReferences, sheetNames, definedNames, differentialFormats);
             var sharedFormulaState = new BiffSharedFormulaImportState(sheet, externSheets, externalReferences, sheetNames, definedNames, diagnostics, options);
             while (offset < workbookStream.Length) {
                 if (offset + 4 > workbookStream.Length) {

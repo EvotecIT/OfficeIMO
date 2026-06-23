@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
@@ -265,6 +266,31 @@ namespace OfficeIMO.Excel {
                 conditional.Append(rule);
                 InsertConditionalFormatting(conditional);
             });
+        }
+
+        internal uint AppendConditionalDifferentialFormat(DifferentialFormat differentialFormat) {
+            if (differentialFormat == null) throw new ArgumentNullException(nameof(differentialFormat));
+            WorkbookPart workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
+            WorkbookStylesPart stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
+            Stylesheet stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
+            stylesheet.DifferentialFormats ??= new DifferentialFormats();
+            uint id = (uint)stylesheet.DifferentialFormats.Elements<DifferentialFormat>().Count();
+            stylesheet.DifferentialFormats.Append(differentialFormat);
+            stylesheet.DifferentialFormats.Count = (uint)stylesheet.DifferentialFormats.Elements<DifferentialFormat>().Count();
+            stylesPart.Stylesheet.Save();
+            return id;
+        }
+
+        internal void SetLastConditionalFormattingRuleDifferentialFormatId(uint differentialFormatId) {
+            ConditionalFormattingRule? rule = WorksheetRoot.Elements<ConditionalFormatting>()
+                .LastOrDefault()?
+                .Elements<ConditionalFormattingRule>()
+                .LastOrDefault();
+            if (rule == null) {
+                return;
+            }
+
+            rule.FormatId = differentialFormatId;
         }
 
         private void ClearConditionalFormattingCore(string? a1Range) {

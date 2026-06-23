@@ -58,9 +58,15 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// </summary>
         public bool StopIfTrue { get; private set; }
 
-        internal void ApplyExtension(int? priority, bool stopIfTrue) {
+        /// <summary>
+        /// Gets the differential format associated with this rule, when a supported style extension was decoded.
+        /// </summary>
+        public LegacyXlsDifferentialFormat? DifferentialFormat { get; private set; }
+
+        internal void ApplyExtension(int? priority, bool stopIfTrue, LegacyXlsDifferentialFormat? differentialFormat) {
             Priority = priority;
             StopIfTrue = stopIfTrue;
+            DifferentialFormat = differentialFormat;
         }
     }
 

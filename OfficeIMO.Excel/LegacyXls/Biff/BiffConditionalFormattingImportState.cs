@@ -8,6 +8,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         private readonly IReadOnlyList<LegacyXlsExternalReference> _externalReferences;
         private readonly IReadOnlyList<string> _sheetNames;
         private readonly IReadOnlyList<string?> _definedNames;
+        private readonly IReadOnlyList<LegacyXlsDifferentialFormat> _differentialFormats;
         private readonly Dictionary<ushort, List<LegacyXlsConditionalFormatting>> _rulesByHeaderId = new();
         private IReadOnlyList<string> _ranges = Array.Empty<string>();
         private ushort _headerId;
@@ -21,12 +22,14 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             IReadOnlyList<BiffExternSheetReference> externSheets,
             IReadOnlyList<LegacyXlsExternalReference> externalReferences,
             IReadOnlyList<string> sheetNames,
-            IReadOnlyList<string?> definedNames) {
+            IReadOnlyList<string?> definedNames,
+            IReadOnlyList<LegacyXlsDifferentialFormat> differentialFormats) {
             _sheet = sheet;
             _externSheets = externSheets;
             _externalReferences = externalReferences;
             _sheetNames = sheetNames;
             _definedNames = definedNames;
+            _differentialFormats = differentialFormats;
         }
 
         internal bool HasPendingHeader => _expectedRuleCount > _readRuleCount;
@@ -106,7 +109,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 return false;
             }
 
-            rules[ruleIndex].ApplyExtension(priority, stopIfTrue);
+            LegacyXlsDifferentialFormat? differentialFormat = hasUnprojectedFormatting && _differentialFormats.Count == 1
+                ? _differentialFormats[0]
+                : null;
+            rules[ruleIndex].ApplyExtension(priority, stopIfTrue, differentialFormat);
             return true;
         }
 

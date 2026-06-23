@@ -837,6 +837,29 @@ namespace OfficeIMO.Tests {
                 return bytes;
             }
 
+            internal static byte[] CreatePhase5ConditionalFormattingExtensionWithDxfWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long formattingBoundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "ConditionalDxf"));
+                WriteRecord(stream, 0x088d, BuildDifferentialFormatBackgroundColorPayload());
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Score"));
+                WriteRecord(stream, 0x027e, BuildRkPayload(1, 0, 0, EncodeRkInteger(5)));
+                WriteRecord(stream, 0x027e, BuildRkPayload(2, 0, 0, EncodeRkInteger(15)));
+                WriteRecord(stream, 0x01b0, BuildConditionalFormattingRangePayload(0, 0, 2, 0, 1, headerId: 2));
+                WriteRecord(stream, 0x01b1, BuildCellIsGreaterThanConditionalFormattingRulePayload(10));
+                WriteRecord(stream, 0x087b, BuildConditionalFormattingExtensionPayload(headerId: 1, priority: 1, stopIfTrue: true, hasDxf: true));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)formattingBoundSheetPosition + 4), 4);
+                return bytes;
+            }
+
             internal static byte[] CreatePhase5EmbeddedChartBeforeWorksheetFeaturesWorkbookStream() {
                 using var stream = new MemoryStream();
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
@@ -957,22 +980,22 @@ namespace OfficeIMO.Tests {
                 return stream.ToArray();
             }
 
-            private static byte[] BuildConditionalFormattingExtensionPayload(ushort headerId, ushort priority, bool stopIfTrue) {
+            private static byte[] BuildConditionalFormattingExtensionPayload(ushort headerId, ushort priority, bool stopIfTrue, bool hasDxf = false) {
                 using var stream = new MemoryStream();
                 WriteUInt16(stream, 0x087b);
-                WriteUInt16(stream, headerId);
+                WriteUInt16(stream, 0);
                 WriteUInt16(stream, 0);
                 WriteUInt16(stream, 0);
                 WriteUInt16(stream, 0);
                 WriteUInt16(stream, 0);
                 WriteUInt32(stream, 0);
-                WriteUInt16(stream, 0);
+                WriteUInt16(stream, headerId);
                 WriteUInt16(stream, 0);
                 stream.WriteByte(0x05);
                 stream.WriteByte(0);
                 WriteUInt16(stream, priority);
                 stream.WriteByte((byte)(stopIfTrue ? 0x03 : 0x01));
-                stream.WriteByte(0);
+                stream.WriteByte((byte)(hasDxf ? 1 : 0));
                 stream.WriteByte(16);
                 for (int i = 0; i < 16; i++) {
                     stream.WriteByte(0);
