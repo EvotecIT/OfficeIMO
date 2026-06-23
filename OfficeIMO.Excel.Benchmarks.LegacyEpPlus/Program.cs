@@ -84,6 +84,7 @@ AddScenario(scenarios, scenarioFilter, "write-cellformula", LibraryName, "EPPlus
 AddScenario(scenarios, scenarioFilter, "write-insertobjects-direct", LibraryName, "EPPlus 4.x import equivalent typed object data and save.", () => WriteDataTable(salesDataTable), warmupIterations, measuredIterations);
 AddScenario(scenarios, scenarioFilter, "write-fluent-rowsfrom-direct", LibraryName, "EPPlus 4.x import equivalent typed row data and save.", () => WriteDataTable(salesDataTable), warmupIterations, measuredIterations);
 AddScenario(scenarios, scenarioFilter, "append-plain-rows", LibraryName, "EPPlus 4.x append equivalent row/cell values.", () => AppendPlainRows(rows), warmupIterations, measuredIterations);
+AddScenario(scenarios, scenarioFilter, "copy-worksheet-package", LibraryName, "EPPlus 4.x copy one worksheet between workbooks with the library worksheet-copy API.", () => CopyWorksheet(workbookBytes), warmupIterations, measuredIterations);
 AddScenario(scenarios, scenarioFilter, "read-range", LibraryName, "EPPlus 4.x iterate used data cells from workbook.", () => ReadRange(workbookBytes), warmupIterations, measuredIterations);
 AddScenario(scenarios, scenarioFilter, "read-top-range", LibraryName, "EPPlus 4.x read the first 100 data rows from a larger sheet.", () => ReadRange(workbookBytes, topDataRows), warmupIterations, measuredIterations);
 AddScenario(scenarios, scenarioFilter, "read-datatable", LibraryName, "EPPlus 4.x manual DataTable materialization from worksheet rows.", () => ReadDataTable(workbookBytes), warmupIterations, measuredIterations);
@@ -284,6 +285,21 @@ static int AppendPlainRows(IReadOnlyList<SalesRecord> rows) {
     }
 
     return checked((int)stream.Length);
+}
+
+static int CopyWorksheet(byte[] workbookBytes) {
+    using var input = new MemoryStream(workbookBytes, writable: false);
+    using var sourcePackage = new ExcelPackage(input);
+    var sourceWorksheet = sourcePackage.Workbook.Worksheets["Data"]
+        ?? throw new InvalidOperationException("Source worksheet 'Data' was not found.");
+
+    using var output = new MemoryStream();
+    using (var targetPackage = new ExcelPackage(output)) {
+        targetPackage.Workbook.Worksheets.Add("CopiedData", sourceWorksheet);
+        targetPackage.Save();
+    }
+
+    return checked((int)output.Length);
 }
 
 static int ReadRange(byte[] workbookBytes, int maxDataRows = int.MaxValue) {
