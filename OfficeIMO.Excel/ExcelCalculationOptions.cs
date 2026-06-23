@@ -1,5 +1,25 @@
 namespace OfficeIMO.Excel {
     /// <summary>
+    /// Controls how workbook calculation metadata is handled when stale calculation chains are removed.
+    /// </summary>
+    public enum ExcelCalculationCleanupPolicy {
+        /// <summary>
+        /// Removes stale calculation-chain parts while preserving existing workbook calculation properties.
+        /// </summary>
+        PreserveExistingCalculationProperties,
+
+        /// <summary>
+        /// Removes stale calculation-chain parts and clears automatic full-recalculation flags from existing workbook calculation properties.
+        /// </summary>
+        ClearAutomaticFullCalculationOnOpen,
+
+        /// <summary>
+        /// Removes stale calculation-chain parts and explicitly requests full recalculation when the workbook is opened.
+        /// </summary>
+        RequestFullCalculationOnOpen
+    }
+
+    /// <summary>
     /// Controls how formula cells are treated before a workbook is saved.
     /// </summary>
     public sealed class ExcelCalculationOptions {

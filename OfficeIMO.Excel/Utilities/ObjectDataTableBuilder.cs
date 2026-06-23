@@ -14,13 +14,15 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="items">Sequence of objects to convert into table rows.</param>
         /// <param name="tableName">Optional DataTable name.</param>
+        /// <param name="options">Optional value-normalization settings for projected cell values.</param>
         /// <returns>Populated DataTable.</returns>
         [RequiresUnreferencedCode("Uses reflection over arbitrary object graphs. For AOT-safe usage, map values explicitly or pre-flatten items.")]
-        public static DataTable FromObjects(IEnumerable<object?> items, string tableName = "Data") {
+        public static DataTable FromObjects(IEnumerable<object?> items, string tableName = "Data", ObjectDataTableBuilderOptions? options = null) {
             if (items == null) {
                 throw new ArgumentNullException(nameof(items));
             }
 
+            options ??= new ObjectDataTableBuilderOptions();
             IReadOnlyList<object?> rows = items as IReadOnlyList<object?> ?? items.ToList();
             if (rows.Count == 0) {
                 throw new ArgumentException("Provide at least one data row.", nameof(items));
@@ -41,7 +43,7 @@ namespace OfficeIMO.Excel {
                 table.Columns.Add(name, typeof(object));
             }
 
-            var projector = ObjectRowProjector.Create(first, columnNames);
+            var projector = ObjectRowProjector.Create(first, columnNames, options);
             table.MinimumCapacity = Math.Max(table.MinimumCapacity, rows.Count);
             var values = projector.CreateValuesBuffer();
             table.BeginLoadData();
@@ -71,36 +73,38 @@ namespace OfficeIMO.Excel {
             private readonly Dictionary<string, int>? _ignoreCaseColumnIndexes;
             private readonly ObjectValueGetter[]? _getters;
             private readonly Type? _sourceType;
+            private readonly ObjectDataTableBuilderOptions _options;
             private int[]? _sparseTouchedColumns;
             private byte[]? _sparseColumnStates;
             private int _sparseTouchedCount;
             private bool _valuesReadyForSparseProjection;
 
-            private ObjectRowProjector(string[] columns, ObjectValueGetter[]? getters, Type? sourceType, bool createOrdinalColumnIndexes) {
+            private ObjectRowProjector(string[] columns, ObjectValueGetter[]? getters, Type? sourceType, bool createOrdinalColumnIndexes, ObjectDataTableBuilderOptions options) {
                 _columns = columns;
                 _ordinalColumnIndexes = createOrdinalColumnIndexes ? CreateOrdinalColumnIndexes(columns) : null;
                 _ignoreCaseColumnIndexes = createOrdinalColumnIndexes ? CreateIgnoreCaseColumnIndexes(columns) : null;
                 _getters = getters;
                 _sourceType = sourceType;
+                _options = options;
             }
 
-            internal static ObjectRowProjector Create(object first, IReadOnlyList<string> columns) {
+            internal static ObjectRowProjector Create(object first, IReadOnlyList<string> columns, ObjectDataTableBuilderOptions options) {
                 var firstType = first.GetType();
                 if (IsDictionaryLike(first)) {
-                    return new ObjectRowProjector(columns.ToArray(), getters: null, sourceType: null, createOrdinalColumnIndexes: true);
+                    return new ObjectRowProjector(columns.ToArray(), getters: null, sourceType: null, createOrdinalColumnIndexes: true, options);
                 }
 
                 var cachedProjection = TypedProjectionCache.GetOrAdd(firstType, type => CreateCachedProjection(type, columns));
                 if (ColumnsMatch(cachedProjection.Columns, columns)) {
-                    return new ObjectRowProjector(cachedProjection.Columns, cachedProjection.Getters, firstType, createOrdinalColumnIndexes: false);
+                    return new ObjectRowProjector(cachedProjection.Columns, cachedProjection.Getters, firstType, createOrdinalColumnIndexes: false, options);
                 }
 
                 var getters = CreateGetters(firstType, columns);
                 if (getters == null) {
-                    return new ObjectRowProjector(columns.ToArray(), getters: null, sourceType: null, createOrdinalColumnIndexes: false);
+                    return new ObjectRowProjector(columns.ToArray(), getters: null, sourceType: null, createOrdinalColumnIndexes: false, options);
                 }
 
-                return new ObjectRowProjector(columns.ToArray(), getters, firstType, createOrdinalColumnIndexes: false);
+                return new ObjectRowProjector(columns.ToArray(), getters, firstType, createOrdinalColumnIndexes: false, options);
             }
 
             private static CachedObjectRowProjection CreateCachedProjection(Type firstType, IReadOnlyList<string> columns) {
@@ -146,7 +150,7 @@ namespace OfficeIMO.Excel {
 
                 if (_getters != null && item.GetType() == _sourceType) {
                     for (int i = 0; i < _getters.Length; i++) {
-                        values[i] = _getters[i](item) ?? DBNull.Value;
+                        values[i] = NormalizeCellValue(_getters[i](item), _options) ?? DBNull.Value;
                     }
 
                     _valuesReadyForSparseProjection = false;
@@ -154,7 +158,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 for (int i = 0; i < _columns.Length; i++) {
-                    values[i] = ObjectDataHelpers.GetValue(item, _columns[i]) ?? DBNull.Value;
+                    values[i] = NormalizeCellValue(ObjectDataHelpers.GetValue(item, _columns[i]), _options) ?? DBNull.Value;
                 }
 
                 _valuesReadyForSparseProjection = false;
@@ -184,7 +188,7 @@ namespace OfficeIMO.Excel {
                     }
 
                     for (int i = 0; i < _columns.Length; i++) {
-                        values[i] = exactDictionary.TryGetValue(_columns[i], out var value) ? value ?? DBNull.Value : DBNull.Value;
+                        values[i] = exactDictionary.TryGetValue(_columns[i], out var value) ? NormalizeCellValue(value, _options) ?? DBNull.Value : DBNull.Value;
                     }
 
                     _valuesReadyForSparseProjection = false;
@@ -193,7 +197,7 @@ namespace OfficeIMO.Excel {
 
                 if (item is IReadOnlyDictionary<string, object?> readOnlyDictionary) {
                     for (int i = 0; i < _columns.Length; i++) {
-                        values[i] = readOnlyDictionary.TryGetValue(_columns[i], out var value) ? value ?? DBNull.Value : DBNull.Value;
+                        values[i] = readOnlyDictionary.TryGetValue(_columns[i], out var value) ? NormalizeCellValue(value, _options) ?? DBNull.Value : DBNull.Value;
                     }
 
                     _valuesReadyForSparseProjection = false;
@@ -202,7 +206,7 @@ namespace OfficeIMO.Excel {
 
                 if (item is IDictionary<string, object?> dictionary) {
                     for (int i = 0; i < _columns.Length; i++) {
-                        values[i] = dictionary.TryGetValue(_columns[i], out var value) ? value ?? DBNull.Value : DBNull.Value;
+                        values[i] = dictionary.TryGetValue(_columns[i], out var value) ? NormalizeCellValue(value, _options) ?? DBNull.Value : DBNull.Value;
                     }
 
                     _valuesReadyForSparseProjection = false;
@@ -215,7 +219,7 @@ namespace OfficeIMO.Excel {
                     }
 
                     for (int i = 0; i < _columns.Length; i++) {
-                        values[i] = GetLegacyDictionaryValue(legacyDictionary, _columns[i]) ?? DBNull.Value;
+                        values[i] = NormalizeCellValue(GetLegacyDictionaryValue(legacyDictionary, _columns[i]), _options) ?? DBNull.Value;
                     }
 
                     _valuesReadyForSparseProjection = false;
@@ -237,7 +241,7 @@ namespace OfficeIMO.Excel {
 
                 foreach (var entry in dictionary) {
                     if (_ordinalColumnIndexes.TryGetValue(entry.Key, out int columnIndex)) {
-                        values[columnIndex] = entry.Value ?? DBNull.Value;
+                        values[columnIndex] = NormalizeCellValue(entry.Value, _options) ?? DBNull.Value;
                         TrackSparseTouchedColumn(columnIndex);
                     }
                 }
@@ -262,7 +266,7 @@ namespace OfficeIMO.Excel {
                     string key = entry.Key?.ToString() ?? string.Empty;
                     if (_ordinalColumnIndexes.TryGetValue(key, out int exactColumnIndex)) {
                         TrackSparseLegacyColumn(exactColumnIndex);
-                        values[exactColumnIndex] = entry.Value ?? DBNull.Value;
+                        values[exactColumnIndex] = NormalizeCellValue(entry.Value, _options) ?? DBNull.Value;
                         _sparseColumnStates[exactColumnIndex] = 2;
                         continue;
                     }
@@ -270,7 +274,7 @@ namespace OfficeIMO.Excel {
                     if (_ignoreCaseColumnIndexes.TryGetValue(key, out int ignoreCaseColumnIndex)
                         && _sparseColumnStates[ignoreCaseColumnIndex] == 0) {
                         TrackSparseLegacyColumn(ignoreCaseColumnIndex);
-                        values[ignoreCaseColumnIndex] = entry.Value ?? DBNull.Value;
+                        values[ignoreCaseColumnIndex] = NormalizeCellValue(entry.Value, _options) ?? DBNull.Value;
                         _sparseColumnStates[ignoreCaseColumnIndex] = 1;
                     }
                 }
@@ -342,6 +346,31 @@ namespace OfficeIMO.Excel {
                     || item is IReadOnlyDictionary<string, object?>
                     || item is IDictionary<string, object?>
                     || item is System.Collections.IDictionary;
+            }
+
+            private static object? NormalizeCellValue(object? value, ObjectDataTableBuilderOptions options) {
+                if (value == null || value == DBNull.Value || !options.NormalizeCollectionValues) {
+                    return value;
+                }
+
+                if (value is string || value is System.Collections.IDictionary) {
+                    return value;
+                }
+
+                if (value is IEnumerable enumerable) {
+                    return JoinCollection(enumerable, options.CollectionSeparator);
+                }
+
+                return value;
+            }
+
+            private static string JoinCollection(IEnumerable values, string separator) {
+                var parts = new List<string>();
+                foreach (var value in values) {
+                    parts.Add(value?.ToString() ?? string.Empty);
+                }
+
+                return string.Join(separator ?? string.Empty, parts);
             }
 
             private static ObjectValueGetter CreateObjectValueGetter(PropertyInfo property) {

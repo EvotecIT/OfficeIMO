@@ -6,6 +6,13 @@ namespace OfficeIMO.Excel {
     /// </summary>
     public static class ExcelNumberFormats {
         /// <summary>
+        /// Returns the names of supported number format presets.
+        /// </summary>
+        public static IReadOnlyList<string> GetPresetNames() {
+            return Enum.GetNames(typeof(ExcelNumberPreset));
+        }
+
+        /// <summary>
         /// Returns an Excel number format code for the given <paramref name="preset"/>,
         /// optionally controlling decimal places and currency culture.
         /// </summary>

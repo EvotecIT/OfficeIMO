@@ -222,7 +222,7 @@ namespace OfficeIMO.Tests {
                 ws.Append(new LegacyDrawing { Id = wsPart.GetIdOfPart(vmlPart) });
                 ws.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath, openExcel: false, new ExcelSaveOptions { ForceFullCalculationOnOpen = true });
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -1092,7 +1092,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Preflight_RemovesCalculationChainAndMarksWorkbookForRecalcBeforeSave() {
+        public void Preflight_RemovesCalculationChainAndPreservesWorkbookCalculationPropertiesBeforeSave() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
@@ -1121,9 +1121,9 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(workbookPart.GetPartsOfType<CalculationChainPart>());
                 var calcProps = workbookPart.Workbook.Elements<CalculationProperties>().FirstOrDefault();
                 Assert.NotNull(calcProps);
-                Assert.Equal(191029U, calcProps!.CalculationId!.Value);
-                Assert.True(calcProps.ForceFullCalculation?.Value ?? false);
-                Assert.True(calcProps.FullCalculationOnLoad?.Value ?? false);
+                Assert.Equal(1U, calcProps!.CalculationId!.Value);
+                Assert.False(calcProps.ForceFullCalculation?.Value ?? false);
+                Assert.False(calcProps.FullCalculationOnLoad?.Value ?? false);
             }
 
             using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
