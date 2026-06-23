@@ -49,6 +49,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         OfficeArtFClientAnchor = 0xF010,
 
         /// <summary>Client-data record.</summary>
-        OfficeArtFClientData = 0xF011
+        OfficeArtFClientData = 0xF011,
+
+        /// <summary>Container for split-menu color MRU entries.</summary>
+        OfficeArtSplitMenuColorContainer = 0xF11E
     }
 }

@@ -87,6 +87,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             PivotTableRecordCount = workbook.PivotTableRecords.Count;
             ChartRecordCount = workbook.ChartRecords.Count;
             DrawingRecordCount = workbook.DrawingRecords.Count;
+            DrawingOfficeArtRecordCount = workbook.DrawingRecords.Sum(record => record.OfficeArtRecords.Count);
             DifferentialFormatCount = workbook.DifferentialFormats.Count;
             CompoundFeatureRecordCount = workbook.CompoundFeatureRecords.Count;
             CompoundFeatureEntryCount = workbook.CompoundFeatureRecords.Sum(record => record.Entries.Count);
@@ -334,6 +335,21 @@ namespace OfficeIMO.Excel.LegacyXls {
             DrawingRecordsByEscherRecordTypeName = CountByCode(workbook.DrawingRecords
                 .Where(record => !string.IsNullOrWhiteSpace(record.EscherRecordTypeName))
                 .Select(record => record.EscherRecordTypeName!));
+            DrawingOfficeArtRecordsByType = CountByCode(workbook.DrawingRecords
+                .SelectMany(record => record.OfficeArtRecords)
+                .Select(record => $"EscherRecordType:0x{record.RecordType:X4}"));
+            DrawingOfficeArtRecordsByTypeName = CountByCode(workbook.DrawingRecords
+                .SelectMany(record => record.OfficeArtRecords)
+                .Select(record => record.RecordTypeName));
+            DrawingOfficeArtRecordsByDepth = CountByCode(workbook.DrawingRecords
+                .SelectMany(record => record.OfficeArtRecords)
+                .Select(record => $"Depth:{record.Depth}"));
+            DrawingOfficeArtRecordsByContainerState = CountByCode(workbook.DrawingRecords
+                .SelectMany(record => record.OfficeArtRecords)
+                .Select(record => record.IsContainer ? "Container" : "Leaf"));
+            DrawingOfficeArtRecordsByPayloadLength = CountByCode(workbook.DrawingRecords
+                .SelectMany(record => record.OfficeArtRecords)
+                .Select(record => $"PayloadLength:{record.PayloadLength}"));
             DrawingBlipStoreEntriesByType = CountByCode(workbook.DrawingRecords
                 .SelectMany(record => record.BlipStoreEntries)
                 .Select(entry => entry.RecordInstanceBlipTypeName));
@@ -550,6 +566,9 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets the number of preserve-only drawing and object BIFF records discovered during import.</summary>
         public int DrawingRecordCount { get; }
+
+        /// <summary>Gets the number of OfficeArt record headers discovered under preserve-only drawing records.</summary>
+        public int DrawingOfficeArtRecordCount { get; }
 
         /// <summary>Gets the number of parsed differential formats discovered during import.</summary>
         public int DifferentialFormatCount { get; }
@@ -887,6 +906,21 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets MsoDrawing records grouped by decoded top-level Escher record type name.</summary>
         public IReadOnlyDictionary<string, int> DrawingRecordsByEscherRecordTypeName { get; }
 
+        /// <summary>Gets nested OfficeArt records grouped by raw record type.</summary>
+        public IReadOnlyDictionary<string, int> DrawingOfficeArtRecordsByType { get; }
+
+        /// <summary>Gets nested OfficeArt records grouped by decoded record type name.</summary>
+        public IReadOnlyDictionary<string, int> DrawingOfficeArtRecordsByTypeName { get; }
+
+        /// <summary>Gets nested OfficeArt records grouped by traversal depth.</summary>
+        public IReadOnlyDictionary<string, int> DrawingOfficeArtRecordsByDepth { get; }
+
+        /// <summary>Gets nested OfficeArt records grouped by container or leaf state.</summary>
+        public IReadOnlyDictionary<string, int> DrawingOfficeArtRecordsByContainerState { get; }
+
+        /// <summary>Gets nested OfficeArt records grouped by declared payload length.</summary>
+        public IReadOnlyDictionary<string, int> DrawingOfficeArtRecordsByPayloadLength { get; }
+
         /// <summary>Gets OfficeArt FBSE image-store entries grouped by decoded BLIP type.</summary>
         public IReadOnlyDictionary<string, int> DrawingBlipStoreEntriesByType { get; }
 
@@ -1005,6 +1039,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             builder.AppendLine($"Pivot table records: {PivotTableRecordCount}");
             builder.AppendLine($"Chart records: {ChartRecordCount}");
             builder.AppendLine($"Drawing records: {DrawingRecordCount}");
+            builder.AppendLine($"Drawing OfficeArt records: {DrawingOfficeArtRecordCount}");
             builder.AppendLine($"Differential formats: {DifferentialFormatCount}");
             builder.AppendLine($"Compound feature records: {CompoundFeatureRecordCount}");
             builder.AppendLine($"Compound feature entries: {CompoundFeatureEntryCount}");
@@ -1176,6 +1211,11 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Drawing Records By Object Flag Name", DrawingRecordsByObjectFlagName);
             AppendDictionary(builder, "Drawing Records By Escher Record Type", DrawingRecordsByEscherRecordType);
             AppendDictionary(builder, "Drawing Records By Escher Record Type Name", DrawingRecordsByEscherRecordTypeName);
+            AppendDictionary(builder, "Drawing OfficeArt Records By Type", DrawingOfficeArtRecordsByType);
+            AppendDictionary(builder, "Drawing OfficeArt Records By Type Name", DrawingOfficeArtRecordsByTypeName);
+            AppendDictionary(builder, "Drawing OfficeArt Records By Depth", DrawingOfficeArtRecordsByDepth);
+            AppendDictionary(builder, "Drawing OfficeArt Records By Container State", DrawingOfficeArtRecordsByContainerState);
+            AppendDictionary(builder, "Drawing OfficeArt Records By Payload Length", DrawingOfficeArtRecordsByPayloadLength);
             AppendDictionary(builder, "Drawing BLIP Store Entries By Type", DrawingBlipStoreEntriesByType);
             AppendDictionary(builder, "Drawing BLIP Store Entries By Embedded Record Type", DrawingBlipStoreEntriesByEmbeddedRecordType);
             AppendDictionary(builder, "Drawing BLIP Store Entries By Size", DrawingBlipStoreEntriesBySize);

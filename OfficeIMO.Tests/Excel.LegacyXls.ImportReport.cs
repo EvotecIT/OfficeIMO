@@ -107,6 +107,17 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.DrawingRecordsByEscherRecordType["EscherRecordType:0xF002"]);
             Assert.Equal(1, report.DrawingRecordsByEscherRecordTypeName["OfficeArtDggContainer"]);
             Assert.Equal(1, report.DrawingRecordsByEscherRecordTypeName["OfficeArtDgContainer"]);
+            Assert.Equal(9, report.DrawingOfficeArtRecordCount);
+            Assert.Equal(1, report.DrawingOfficeArtRecordsByType["EscherRecordType:0xF000"]);
+            Assert.Equal(1, report.DrawingOfficeArtRecordsByType["EscherRecordType:0xF00F"]);
+            Assert.Equal(1, report.DrawingOfficeArtRecordsByTypeName["OfficeArtDggContainer"]);
+            Assert.Equal(1, report.DrawingOfficeArtRecordsByTypeName["OfficeArtChildAnchor"]);
+            Assert.Equal(2, report.DrawingOfficeArtRecordsByDepth["Depth:0"]);
+            Assert.Equal(3, report.DrawingOfficeArtRecordsByDepth["Depth:1"]);
+            Assert.Equal(4, report.DrawingOfficeArtRecordsByDepth["Depth:2"]);
+            Assert.Equal(4, report.DrawingOfficeArtRecordsByContainerState["Container"]);
+            Assert.Equal(5, report.DrawingOfficeArtRecordsByContainerState["Leaf"]);
+            Assert.Equal(2, report.DrawingOfficeArtRecordsByPayloadLength["PayloadLength:8"]);
             Assert.Equal(1, report.DrawingBlipStoreEntriesByType["Png"]);
             Assert.Equal(1, report.DrawingBlipStoreEntriesByEmbeddedRecordType["OfficeArtBlipPNG"]);
             Assert.Equal(1, report.DrawingBlipStoreEntriesBySize["SizeBytes:12"]);
@@ -144,6 +155,12 @@ namespace OfficeIMO.Tests {
             Assert.Equal((ushort)2, drawingGroup.EscherRecordInstance);
             Assert.Equal((byte)0x0f, drawingGroup.EscherRecordVersion);
             Assert.Equal((uint)80, drawingGroup.EscherPayloadLength);
+            Assert.Equal(new[] {
+                "OfficeArtDggContainer",
+                "OfficeArtFDGGBlock",
+                "OfficeArtBStoreContainer",
+                "OfficeArtFBSE"
+            }, drawingGroup.OfficeArtRecords.Select(record => record.RecordTypeName).ToArray());
             LegacyXlsDrawingBlipStoreEntry blipEntry = Assert.Single(drawingGroup.BlipStoreEntries);
             Assert.Equal((ushort)0x0006, blipEntry.RecordInstance);
             Assert.Equal(LegacyXlsDrawingBlipType.Png, blipEntry.RecordInstanceBlipTypeKind);
@@ -166,6 +183,17 @@ namespace OfficeIMO.Tests {
             Assert.Equal((ushort)1, drawing.EscherRecordInstance);
             Assert.Equal((byte)0x0f, drawing.EscherRecordVersion);
             Assert.Equal((uint)74, drawing.EscherPayloadLength);
+            Assert.Equal(new[] {
+                "OfficeArtDgContainer",
+                "OfficeArtSpContainer",
+                "OfficeArtFSP",
+                "OfficeArtFClientAnchor",
+                "OfficeArtChildAnchor"
+            }, drawing.OfficeArtRecords.Select(record => record.RecordTypeName).ToArray());
+            LegacyXlsDrawingOfficeArtRecord childAnchorRecord = Assert.Single(drawing.OfficeArtRecords, record => record.RecordTypeKind == LegacyXlsDrawingEscherRecordType.OfficeArtChildAnchor);
+            Assert.False(childAnchorRecord.IsContainer);
+            Assert.Equal(2, childAnchorRecord.Depth);
+            Assert.Equal((uint)16, childAnchorRecord.PayloadLength);
             LegacyXlsDrawingShape shape = Assert.Single(drawing.ShapeEntries);
             Assert.Equal((ushort)0x004b, shape.ShapeType);
             Assert.Equal("PictureFrame", shape.ShapeTypeName);
@@ -205,6 +233,8 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Drawing Records By Object Flag Name", markdown);
             Assert.Contains("Drawing Records By Escher Record Type", markdown);
             Assert.Contains("Drawing Records By Escher Record Type Name", markdown);
+            Assert.Contains("Drawing OfficeArt records: 9", markdown);
+            Assert.Contains("Drawing OfficeArt Records By Type Name", markdown);
             Assert.Contains("Drawing BLIP Store Entries By Type", markdown);
             Assert.Contains("Drawing Shape Entries By Type", markdown);
             Assert.Contains("PictureFrame", markdown);
@@ -278,6 +308,7 @@ namespace OfficeIMO.Tests {
         [InlineData(0xF002, LegacyXlsDrawingEscherRecordType.OfficeArtDgContainer, "OfficeArtDgContainer")]
         [InlineData(0xF004, LegacyXlsDrawingEscherRecordType.OfficeArtSpContainer, "OfficeArtSpContainer")]
         [InlineData(0xF011, LegacyXlsDrawingEscherRecordType.OfficeArtFClientData, "OfficeArtFClientData")]
+        [InlineData(0xF11E, LegacyXlsDrawingEscherRecordType.OfficeArtSplitMenuColorContainer, "OfficeArtSplitMenuColorContainer")]
         public void LegacyXlsDrawingRecord_DecodesKnownEscherRecordTypeNames(int recordType, LegacyXlsDrawingEscherRecordType expectedKind, string expectedName) {
             var record = new LegacyXlsDrawingRecord(
                 LegacyXlsDrawingRecordKind.Drawing,

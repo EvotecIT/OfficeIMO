@@ -25,7 +25,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             IReadOnlyList<LegacyXlsDrawingBlipStoreEntry>? blipStoreEntries = null,
             IReadOnlyList<LegacyXlsDrawingShape>? shapeEntries = null,
             IReadOnlyList<LegacyXlsDrawingAnchor>? anchorEntries = null,
-            IReadOnlyList<LegacyXlsDrawingChildAnchor>? childAnchorEntries = null) {
+            IReadOnlyList<LegacyXlsDrawingChildAnchor>? childAnchorEntries = null,
+            IReadOnlyList<LegacyXlsDrawingOfficeArtRecord>? officeArtRecords = null) {
             if (payloadLength < 0) {
                 throw new ArgumentOutOfRangeException(nameof(payloadLength));
             }
@@ -43,8 +44,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             ObjectFlags = objectFlags;
             ObjectFlagNames = objectFlags.HasValue ? GetObjectFlagNames(objectFlags.Value) : Array.Empty<string>();
             EscherRecordType = escherRecordType;
-            EscherRecordTypeKind = escherRecordTypeKind ?? TryGetEscherRecordTypeKind(escherRecordType);
-            EscherRecordTypeName = EscherRecordTypeKind?.ToString() ?? (escherRecordType.HasValue ? $"EscherRecordType:0x{escherRecordType.Value:X4}" : null);
+            EscherRecordTypeKind = escherRecordTypeKind ?? LegacyXlsDrawingEscherRecordTypeDecoder.TryGetKind(escherRecordType);
+            EscherRecordTypeName = escherRecordType.HasValue ? LegacyXlsDrawingEscherRecordTypeDecoder.GetName(escherRecordType.Value) : null;
             EscherRecordInstance = escherRecordInstance;
             EscherRecordVersion = escherRecordVersion;
             EscherPayloadLength = escherPayloadLength;
@@ -52,6 +53,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             ShapeEntries = shapeEntries?.ToArray() ?? Array.Empty<LegacyXlsDrawingShape>();
             AnchorEntries = anchorEntries?.ToArray() ?? Array.Empty<LegacyXlsDrawingAnchor>();
             ChildAnchorEntries = childAnchorEntries?.ToArray() ?? Array.Empty<LegacyXlsDrawingChildAnchor>();
+            OfficeArtRecords = officeArtRecords?.ToArray() ?? Array.Empty<LegacyXlsDrawingOfficeArtRecord>();
         }
 
         /// <summary>Gets the shallow drawing record category.</summary>
@@ -156,6 +158,12 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>Gets whether this drawing record contains any discovered child anchors.</summary>
         public bool HasChildAnchorEntries => ChildAnchorEntries.Count > 0;
 
+        /// <summary>Gets preserve-only OfficeArt record headers discovered while traversing this drawing record.</summary>
+        public IReadOnlyList<LegacyXlsDrawingOfficeArtRecord> OfficeArtRecords { get; }
+
+        /// <summary>Gets whether this drawing record contains discovered OfficeArt record headers.</summary>
+        public bool HasOfficeArtRecords => OfficeArtRecords.Count > 0;
+
         private static LegacyXlsDrawingObjectType? TryGetObjectTypeKind(ushort? objectType) {
             if (!objectType.HasValue) {
                 return null;
@@ -205,30 +213,5 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             return names;
         }
 
-        private static LegacyXlsDrawingEscherRecordType? TryGetEscherRecordTypeKind(ushort? recordType) {
-            if (!recordType.HasValue) {
-                return null;
-            }
-
-            return recordType.Value switch {
-                0xF000 => LegacyXlsDrawingEscherRecordType.OfficeArtDggContainer,
-                0xF001 => LegacyXlsDrawingEscherRecordType.OfficeArtBStoreContainer,
-                0xF002 => LegacyXlsDrawingEscherRecordType.OfficeArtDgContainer,
-                0xF003 => LegacyXlsDrawingEscherRecordType.OfficeArtSpgrContainer,
-                0xF004 => LegacyXlsDrawingEscherRecordType.OfficeArtSpContainer,
-                0xF005 => LegacyXlsDrawingEscherRecordType.OfficeArtSolverContainer,
-                0xF006 => LegacyXlsDrawingEscherRecordType.OfficeArtFDGGBlock,
-                0xF007 => LegacyXlsDrawingEscherRecordType.OfficeArtFBSE,
-                0xF008 => LegacyXlsDrawingEscherRecordType.OfficeArtFDG,
-                0xF009 => LegacyXlsDrawingEscherRecordType.OfficeArtFSPGR,
-                0xF00A => LegacyXlsDrawingEscherRecordType.OfficeArtFSP,
-                0xF00B => LegacyXlsDrawingEscherRecordType.OfficeArtFOPT,
-                0xF00D => LegacyXlsDrawingEscherRecordType.OfficeArtFClientTextbox,
-                0xF00F => LegacyXlsDrawingEscherRecordType.OfficeArtChildAnchor,
-                0xF010 => LegacyXlsDrawingEscherRecordType.OfficeArtFClientAnchor,
-                0xF011 => LegacyXlsDrawingEscherRecordType.OfficeArtFClientData,
-                _ => null
-            };
-        }
     }
 }

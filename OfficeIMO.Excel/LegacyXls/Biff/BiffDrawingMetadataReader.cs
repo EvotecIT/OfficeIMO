@@ -17,7 +17,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 out IReadOnlyList<LegacyXlsDrawingBlipStoreEntry> blipStoreEntries,
                 out IReadOnlyList<LegacyXlsDrawingShape> shapeEntries,
                 out IReadOnlyList<LegacyXlsDrawingAnchor> anchorEntries,
-                out IReadOnlyList<LegacyXlsDrawingChildAnchor> childAnchorEntries);
+                out IReadOnlyList<LegacyXlsDrawingChildAnchor> childAnchorEntries,
+                out IReadOnlyList<LegacyXlsDrawingOfficeArtRecord> officeArtRecords);
             records.Add(new LegacyXlsDrawingRecord(
                 GetKind(record.Type),
                 BiffUnsupportedRecordDiagnostics.GetBiffRecordName(record.Type),
@@ -35,7 +36,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 blipStoreEntries: blipStoreEntries,
                 shapeEntries: shapeEntries,
                 anchorEntries: anchorEntries,
-                childAnchorEntries: childAnchorEntries));
+                childAnchorEntries: childAnchorEntries,
+                officeArtRecords: officeArtRecords));
             return true;
         }
 
@@ -44,12 +46,14 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             out IReadOnlyList<LegacyXlsDrawingBlipStoreEntry> blipStoreEntries,
             out IReadOnlyList<LegacyXlsDrawingShape> shapeEntries,
             out IReadOnlyList<LegacyXlsDrawingAnchor> anchorEntries,
-            out IReadOnlyList<LegacyXlsDrawingChildAnchor> childAnchorEntries) {
+            out IReadOnlyList<LegacyXlsDrawingChildAnchor> childAnchorEntries,
+            out IReadOnlyList<LegacyXlsDrawingOfficeArtRecord> officeArtRecords) {
             if (record.Type != (ushort)BiffRecordType.DrawingGroup && record.Type != (ushort)BiffRecordType.Drawing) {
                 blipStoreEntries = Array.Empty<LegacyXlsDrawingBlipStoreEntry>();
                 shapeEntries = Array.Empty<LegacyXlsDrawingShape>();
                 anchorEntries = Array.Empty<LegacyXlsDrawingAnchor>();
                 childAnchorEntries = Array.Empty<LegacyXlsDrawingChildAnchor>();
+                officeArtRecords = Array.Empty<LegacyXlsDrawingOfficeArtRecord>();
                 return;
             }
 
@@ -57,17 +61,20 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             var shapes = new List<LegacyXlsDrawingShape>();
             var anchors = new List<LegacyXlsDrawingAnchor>();
             var childAnchors = new List<LegacyXlsDrawingChildAnchor>();
-            TryReadOfficeArtRecords(record.Payload, 0, record.Payload.Length, blips, shapes, anchors, childAnchors, depth: 0);
+            var records = new List<LegacyXlsDrawingOfficeArtRecord>();
+            TryReadOfficeArtRecords(record.Payload, 0, record.Payload.Length, records, blips, shapes, anchors, childAnchors, depth: 0);
             blipStoreEntries = blips;
             shapeEntries = shapes;
             anchorEntries = anchors;
             childAnchorEntries = childAnchors;
+            officeArtRecords = records;
         }
 
         private static void TryReadOfficeArtRecords(
             byte[] payload,
             int startOffset,
             int endOffset,
+            List<LegacyXlsDrawingOfficeArtRecord> officeArtRecords,
             List<LegacyXlsDrawingBlipStoreEntry> blipStoreEntries,
             List<LegacyXlsDrawingShape> shapeEntries,
             List<LegacyXlsDrawingAnchor> anchorEntries,
@@ -90,6 +97,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 int contentEnd = contentStart + (int)recordLength;
                 byte version = checked((byte)(options & 0x000f));
                 ushort instance = checked((ushort)(options >> 4));
+                officeArtRecords.Add(new LegacyXlsDrawingOfficeArtRecord(recordType, instance, version, recordLength, depth));
 
                 if (recordType == 0xF007 && TryReadBlipStoreEntry(payload, contentStart, contentEnd, instance, out LegacyXlsDrawingBlipStoreEntry? blipEntry)) {
                     blipStoreEntries.Add(blipEntry!);
@@ -102,7 +110,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 }
 
                 if (version == 0x0f) {
-                    TryReadOfficeArtRecords(payload, contentStart, contentEnd, blipStoreEntries, shapeEntries, anchorEntries, childAnchorEntries, depth + 1);
+                    TryReadOfficeArtRecords(payload, contentStart, contentEnd, officeArtRecords, blipStoreEntries, shapeEntries, anchorEntries, childAnchorEntries, depth + 1);
                 }
 
                 offset = contentEnd;

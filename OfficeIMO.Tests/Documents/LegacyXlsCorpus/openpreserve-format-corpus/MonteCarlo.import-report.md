@@ -18,6 +18,7 @@ External cached cells: 8
 Pivot table records: 27
 Chart records: 1134
 Drawing records: 46
+Drawing OfficeArt records: 38
 Differential formats: 0
 Compound feature records: 0
 Compound feature entries: 0
@@ -799,6 +800,74 @@ Warnings: 0
 | OfficeArtDggContainer | 1 |
 | OfficeArtFClientTextbox | 8 |
 | OfficeArtSpContainer | 4 |
+
+## Drawing OfficeArt Records By Type
+
+| Key | Count |
+| --- | --- |
+| EscherRecordType:0xF000 | 1 |
+| EscherRecordType:0xF002 | 1 |
+| EscherRecordType:0xF003 | 1 |
+| EscherRecordType:0xF004 | 5 |
+| EscherRecordType:0xF006 | 1 |
+| EscherRecordType:0xF008 | 1 |
+| EscherRecordType:0xF009 | 1 |
+| EscherRecordType:0xF00A | 5 |
+| EscherRecordType:0xF00B | 5 |
+| EscherRecordType:0xF00D | 8 |
+| EscherRecordType:0xF00F | 4 |
+| EscherRecordType:0xF011 | 4 |
+| EscherRecordType:0xF11E | 1 |
+
+## Drawing OfficeArt Records By Type Name
+
+| Key | Count |
+| --- | --- |
+| OfficeArtChildAnchor | 4 |
+| OfficeArtDgContainer | 1 |
+| OfficeArtDggContainer | 1 |
+| OfficeArtFClientData | 4 |
+| OfficeArtFClientTextbox | 8 |
+| OfficeArtFDG | 1 |
+| OfficeArtFDGGBlock | 1 |
+| OfficeArtFOPT | 5 |
+| OfficeArtFSP | 5 |
+| OfficeArtFSPGR | 1 |
+| OfficeArtSpContainer | 5 |
+| OfficeArtSpgrContainer | 1 |
+| OfficeArtSplitMenuColorContainer | 1 |
+
+## Drawing OfficeArt Records By Depth
+
+| Key | Count |
+| --- | --- |
+| Depth:0 | 14 |
+| Depth:1 | 21 |
+| Depth:2 | 1 |
+| Depth:3 | 2 |
+
+## Drawing OfficeArt Records By Container State
+
+| Key | Count |
+| --- | --- |
+| Container | 8 |
+| Leaf | 30 |
+
+## Drawing OfficeArt Records By Payload Length
+
+| Key | Count |
+| --- | --- |
+| PayloadLength:0 | 12 |
+| PayloadLength:116 | 4 |
+| PayloadLength:16 | 6 |
+| PayloadLength:18 | 1 |
+| PayloadLength:216 | 1 |
+| PayloadLength:274 | 1 |
+| PayloadLength:40 | 1 |
+| PayloadLength:48 | 1 |
+| PayloadLength:60 | 4 |
+| PayloadLength:72 | 1 |
+| PayloadLength:8 | 6 |
 
 ## Drawing Shape Entries By Type
 
