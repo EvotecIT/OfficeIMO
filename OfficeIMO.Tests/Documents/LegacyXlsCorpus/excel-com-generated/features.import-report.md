@@ -26,12 +26,12 @@ Compound feature entries: 0
 Compound VBA modules: 0
 Calculation setting records: 7
 Cell style records: 47
-Cell style extension records: 64
+Cell style extension records: 111
 Workbook metadata records: 18
 Worksheet metadata records: 7
 Unsupported sheet metadata records: 0
 Unsupported features: 311
-Preserved feature records: 227
+Preserved feature records: 274
 Errors: 0
 Warnings: 0
 
@@ -43,8 +43,8 @@ Warnings: 0
 | XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED | 2 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 20 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 3 |
-| XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED | 64 |
-| XLS-BIFF-RECORD-UNSUPPORTED | 84 |
+| XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED | 111 |
+| XLS-BIFF-RECORD-UNSUPPORTED | 37 |
 
 ## Data Validations By Type
 
@@ -240,8 +240,8 @@ Warnings: 0
 | XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED | 2 |
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 20 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 3 |
-| XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED | 64 |
-| XLS-BIFF-RECORD-UNSUPPORTED | 84 |
+| XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED | 111 |
+| XLS-BIFF-RECORD-UNSUPPORTED | 37 |
 
 ## Unsupported Features By Kind
 
@@ -251,8 +251,8 @@ Warnings: 0
 | ConditionalFormatting | 2 |
 | DrawingObject | 20 |
 | PivotTable | 3 |
-| StyleExtension | 64 |
-| UnsupportedRecord | 84 |
+| StyleExtension | 111 |
+| UnsupportedRecord | 37 |
 
 ## Unsupported Feature Record Types
 
@@ -309,6 +309,7 @@ Warnings: 0
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00D7 | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00FF | 1 |
 | StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|0x087D | 64 |
+| StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|0x0892 | 47 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x01C0 | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x01C1 | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x0867 | 1 |
@@ -316,7 +317,6 @@ Warnings: 0
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x088B | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x088C | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x088E | 1 |
-| UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x0892 | 47 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x0896 | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x089A | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|0x089B | 1 |
@@ -382,6 +382,7 @@ Warnings: 0
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:Sxdi | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxRng | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxVdEx | 1 |
+| StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|StyleExtension:StyleExt | 47 |
 | StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|StyleExtension:XfExt | 64 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:Record0x01C0 | 1 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:Record0x01C1 | 1 |
@@ -400,7 +401,6 @@ Warnings: 0
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:Record0x08A4 | 8 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:Record0x08A5 | 6 |
 | UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:Record0x08A7 | 1 |
-| UnsupportedRecord\|XLS-BIFF-RECORD-UNSUPPORTED\|BiffRecord:StyleExt | 47 |
 
 ## Unsupported Feature Locations
 
@@ -413,8 +413,8 @@ Warnings: 0
 | XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Data | 19 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|(workbook) | 2 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|Data | 1 |
-| XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|(workbook) | 64 |
-| XLS-BIFF-RECORD-UNSUPPORTED\|(workbook) | 56 |
+| XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|(workbook) | 111 |
+| XLS-BIFF-RECORD-UNSUPPORTED\|(workbook) | 9 |
 | XLS-BIFF-RECORD-UNSUPPORTED\|Data | 28 |
 
 ## External References By Kind
@@ -1067,6 +1067,13 @@ Warnings: 0
 | BuiltIn | 6 |
 | Custom | 41 |
 
+## Cell Style Extensions By Record Name
+
+| Key | Count |
+| --- | --- |
+| StyleExt | 47 |
+| XfExt | 64 |
+
 ## Cell Style Extensions By Format Index
 
 | Key | Count |
@@ -1145,6 +1152,74 @@ Warnings: 0
 | Extensions:4 | 1 |
 | Extensions:7 | 5 |
 
+## Cell Style Extensions By Style Category
+
+| Key | Count |
+| --- | --- |
+| DataModel | 8 |
+| GoodBadNeutral | 4 |
+| NumberFormat | 5 |
+| ThemedCell | 24 |
+| TitleAndHeading | 6 |
+
+## Cell Style Extensions By Style Flags
+
+| Key | Count |
+| --- | --- |
+| BuiltIn:True;Hidden:False;Custom:False | 47 |
+
+## Cell Style Extensions By Style Name
+
+| Key | Count |
+| --- | --- |
+| 20% - Accent1 | 1 |
+| 20% - Accent2 | 1 |
+| 20% - Accent3 | 1 |
+| 20% - Accent4 | 1 |
+| 20% - Accent5 | 1 |
+| 20% - Accent6 | 1 |
+| 40% - Accent1 | 1 |
+| 40% - Accent2 | 1 |
+| 40% - Accent3 | 1 |
+| 40% - Accent4 | 1 |
+| 40% - Accent5 | 1 |
+| 40% - Accent6 | 1 |
+| 60% - Accent1 | 1 |
+| 60% - Accent2 | 1 |
+| 60% - Accent3 | 1 |
+| 60% - Accent4 | 1 |
+| 60% - Accent5 | 1 |
+| 60% - Accent6 | 1 |
+| Accent1 | 1 |
+| Accent2 | 1 |
+| Accent3 | 1 |
+| Accent4 | 1 |
+| Accent5 | 1 |
+| Accent6 | 1 |
+| Bad | 1 |
+| Calculation | 1 |
+| Check Cell | 1 |
+| Comma | 1 |
+| Comma [0] | 1 |
+| Currency | 1 |
+| Currency [0] | 1 |
+| Explanatory Text | 1 |
+| Good | 1 |
+| Heading 1 | 1 |
+| Heading 2 | 1 |
+| Heading 3 | 1 |
+| Heading 4 | 1 |
+| Input | 1 |
+| Linked Cell | 1 |
+| Neutral | 1 |
+| Normal | 1 |
+| Note | 1 |
+| Output | 1 |
+| Percent | 1 |
+| Title | 1 |
+| Total | 1 |
+| Warning Text | 1 |
+
 ## Workbook Metadata Records By Kind
 
 | Key | Count |
@@ -1188,7 +1263,7 @@ Warnings: 0
 | ConditionalFormatting | 2 |
 | DrawingObject | 20 |
 | PivotTable | 3 |
-| StyleExtension | 64 |
+| StyleExtension | 111 |
 
 ## Preserved Feature Record Details
 
@@ -1244,4 +1319,5 @@ Warnings: 0
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:Sxdi | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxRng | 1 |
 | PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxVdEx | 1 |
+| StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|StyleExtension:StyleExt | 47 |
 | StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|StyleExtension:XfExt | 64 |

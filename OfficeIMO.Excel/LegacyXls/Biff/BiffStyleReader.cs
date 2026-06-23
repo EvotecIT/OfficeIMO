@@ -13,8 +13,15 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     return true;
 
                 case BiffRecordType.XfExt:
-                    if (TryReadStyleExtension(record, diagnostics, out LegacyXlsCellStyleExtension? extension)) {
+                    if (TryReadXfExt(record, diagnostics, out LegacyXlsCellStyleExtension? extension)) {
                         workbook.AddCellStyleExtension(extension!);
+                    }
+
+                    return true;
+
+                case BiffRecordType.StyleExt:
+                    if (TryReadStyleExt(record, diagnostics, out LegacyXlsCellStyleExtension? styleExtExtension)) {
+                        workbook.AddCellStyleExtension(styleExtExtension!);
                     }
 
                     return true;
@@ -97,7 +104,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
         }
 
-        private static bool TryReadStyleExtension(BiffRecord record, List<LegacyXlsImportDiagnostic> diagnostics, out LegacyXlsCellStyleExtension? extension) {
+        private static bool TryReadXfExt(BiffRecord record, List<LegacyXlsImportDiagnostic> diagnostics, out LegacyXlsCellStyleExtension? extension) {
             if (record.Payload.Length < 20) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
@@ -137,6 +144,76 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 record.Type,
                 record.Payload.Length);
             return true;
+        }
+
+        private static bool TryReadStyleExt(BiffRecord record, List<LegacyXlsImportDiagnostic> diagnostics, out LegacyXlsCellStyleExtension? extension) {
+            if (record.Payload.Length < 16) {
+                diagnostics.Add(new LegacyXlsImportDiagnostic(
+                    LegacyXlsDiagnosticSeverity.Warning,
+                    "XLS-BIFF-STYLEEXT-SHORT",
+                    "The StyleExt record is shorter than expected.",
+                    recordOffset: record.Offset,
+                    recordType: record.Type));
+                extension = null;
+                return false;
+            }
+
+            ushort headerRecordType = BiffRecordReader.ReadUInt16(record.Payload, 0);
+            if (headerRecordType != (ushort)BiffRecordType.StyleExt) {
+                diagnostics.Add(new LegacyXlsImportDiagnostic(
+                    LegacyXlsDiagnosticSeverity.Warning,
+                    "XLS-BIFF-STYLEEXT-HEADER-UNEXPECTED",
+                    $"The StyleExt future record header declares record type 0x{headerRecordType:X4}.",
+                    recordOffset: record.Offset,
+                    recordType: record.Type));
+            }
+
+            byte flags = record.Payload[12];
+            bool isBuiltIn = (flags & 0x01) != 0;
+            bool isHidden = (flags & 0x02) != 0;
+            bool isCustom = (flags & 0x04) != 0;
+            byte category = record.Payload[13];
+            ushort builtInData = BiffRecordReader.ReadUInt16(record.Payload, 14);
+            string? styleName = null;
+            int offset = 16;
+            if (offset < record.Payload.Length) {
+                try {
+                    styleName = BiffStringReader.ReadWideString(record.Payload, ref offset);
+                } catch (InvalidDataException ex) {
+                    diagnostics.Add(new LegacyXlsImportDiagnostic(
+                        LegacyXlsDiagnosticSeverity.Warning,
+                        "XLS-BIFF-STYLEEXT-NAME-INVALID",
+                        $"The StyleExt record name could not be read. {ex.Message}",
+                        recordOffset: record.Offset,
+                        recordType: record.Type));
+                }
+            }
+
+            extension = new LegacyXlsCellStyleExtension(
+                "StyleExt",
+                isBuiltIn,
+                isHidden,
+                isCustom,
+                category,
+                GetStyleExtCategoryName(category),
+                builtInData,
+                styleName,
+                record.Offset,
+                record.Type,
+                record.Payload.Length);
+            return true;
+        }
+
+        private static string GetStyleExtCategoryName(byte category) {
+            return category switch {
+                0x00 => "Custom",
+                0x01 => "GoodBadNeutral",
+                0x02 => "DataModel",
+                0x03 => "TitleAndHeading",
+                0x04 => "ThemedCell",
+                0x05 => "NumberFormat",
+                _ => $"Unknown:0x{category:X2}"
+            };
         }
     }
 }

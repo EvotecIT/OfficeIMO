@@ -451,8 +451,22 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .Select(record => $"Modules:{record.VbaModuleCount}"));
             CalculationSettingsByKind = CountCalculationSettingsByKind(workbook.CalculationSettings.Records);
             CellStylesByKind = CountByCode(workbook.CellStyles.Select(style => style.IsBuiltIn ? "BuiltIn" : "Custom"));
-            CellStyleExtensionsByFormatIndex = CountByCode(workbook.CellStyleExtensions.Select(extension => $"FormatIndex:{extension.FormatIndex}"));
-            CellStyleExtensionsByExtensionCount = CountByCode(workbook.CellStyleExtensions.Select(extension => $"Extensions:{extension.ExtensionCount}"));
+            CellStyleExtensionsByRecordName = CountByCode(workbook.CellStyleExtensions.Select(extension => extension.RecordName));
+            CellStyleExtensionsByFormatIndex = CountByCode(workbook.CellStyleExtensions
+                .Where(extension => extension.HasFormatIndex)
+                .Select(extension => $"FormatIndex:{extension.FormatIndex}"));
+            CellStyleExtensionsByExtensionCount = CountByCode(workbook.CellStyleExtensions
+                .Where(extension => extension.HasExtensionCount)
+                .Select(extension => $"Extensions:{extension.ExtensionCount}"));
+            CellStyleExtensionsByStyleCategory = CountByCode(workbook.CellStyleExtensions
+                .Where(extension => extension.StyleCategoryName is not null)
+                .Select(extension => extension.StyleCategoryName!));
+            CellStyleExtensionsByStyleFlags = CountByCode(workbook.CellStyleExtensions
+                .Where(extension => extension.IsBuiltInStyle.HasValue && extension.IsHidden.HasValue && extension.IsCustom.HasValue)
+                .Select(extension => $"BuiltIn:{extension.IsBuiltInStyle!.Value};Hidden:{extension.IsHidden!.Value};Custom:{extension.IsCustom!.Value}"));
+            CellStyleExtensionsByStyleName = CountByCode(workbook.CellStyleExtensions
+                .Where(extension => !string.IsNullOrWhiteSpace(extension.StyleName))
+                .Select(extension => extension.StyleName!));
             WorkbookMetadataRecordsByKind = CountWorkbookMetadataRecordsByKind(workbook.MetadataRecords);
             WorksheetMetadataRecordsByKind = CountWorksheetMetadataRecordsByKind(workbook.Worksheets.SelectMany(sheet => sheet.MetadataRecords));
             UnsupportedSheetMetadataRecordsByKind = CountUnsupportedSheetMetadataRecordsByKind(workbook.UnsupportedSheets.SelectMany(sheet => sheet.MetadataRecords));
@@ -1092,11 +1106,23 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets parsed workbook cell styles grouped by built-in/custom kind.</summary>
         public IReadOnlyDictionary<string, int> CellStylesByKind { get; }
 
+        /// <summary>Gets preserve-only style extension records grouped by BIFF record name.</summary>
+        public IReadOnlyDictionary<string, int> CellStyleExtensionsByRecordName { get; }
+
         /// <summary>Gets preserve-only style extension records grouped by extended XF index.</summary>
         public IReadOnlyDictionary<string, int> CellStyleExtensionsByFormatIndex { get; }
 
         /// <summary>Gets preserve-only style extension records grouped by declared extension-property count.</summary>
         public IReadOnlyDictionary<string, int> CellStyleExtensionsByExtensionCount { get; }
+
+        /// <summary>Gets StyleExt records grouped by style category.</summary>
+        public IReadOnlyDictionary<string, int> CellStyleExtensionsByStyleCategory { get; }
+
+        /// <summary>Gets StyleExt records grouped by declared flag state.</summary>
+        public IReadOnlyDictionary<string, int> CellStyleExtensionsByStyleFlags { get; }
+
+        /// <summary>Gets StyleExt records grouped by style name.</summary>
+        public IReadOnlyDictionary<string, int> CellStyleExtensionsByStyleName { get; }
 
         /// <summary>Gets parsed workbook metadata records grouped by metadata kind.</summary>
         public IReadOnlyDictionary<LegacyXlsWorkbookMetadataKind, int> WorkbookMetadataRecordsByKind { get; }
@@ -1372,8 +1398,12 @@ namespace OfficeIMO.Excel.LegacyXls {
                 entry => entry.Value,
                 StringComparer.OrdinalIgnoreCase));
             AppendDictionary(builder, "Cell Styles By Kind", CellStylesByKind);
+            AppendDictionary(builder, "Cell Style Extensions By Record Name", CellStyleExtensionsByRecordName);
             AppendDictionary(builder, "Cell Style Extensions By Format Index", CellStyleExtensionsByFormatIndex);
             AppendDictionary(builder, "Cell Style Extensions By Extension Count", CellStyleExtensionsByExtensionCount);
+            AppendDictionary(builder, "Cell Style Extensions By Style Category", CellStyleExtensionsByStyleCategory);
+            AppendDictionary(builder, "Cell Style Extensions By Style Flags", CellStyleExtensionsByStyleFlags);
+            AppendDictionary(builder, "Cell Style Extensions By Style Name", CellStyleExtensionsByStyleName);
             AppendDictionary(builder, "Workbook Metadata Records By Kind", WorkbookMetadataRecordsByKind.ToDictionary(
                 entry => entry.Key.ToString(),
                 entry => entry.Value,

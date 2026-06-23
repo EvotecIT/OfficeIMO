@@ -18,6 +18,23 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             return ReadUnicodeStringBody(bytes, ref offset, charCount);
         }
 
+        internal static string ReadWideString(byte[] bytes, ref int offset) {
+            if (offset + 2 > bytes.Length) {
+                throw new InvalidDataException("Unexpected end of BIFF wide string length.");
+            }
+
+            int charCount = BiffRecordReader.ReadUInt16(bytes, offset);
+            offset += 2;
+            int byteCount = checked(charCount * 2);
+            if (offset + byteCount > bytes.Length) {
+                throw new InvalidDataException("Unexpected end of BIFF wide string characters.");
+            }
+
+            string value = Encoding.Unicode.GetString(bytes, offset, byteCount);
+            offset += byteCount;
+            return value;
+        }
+
         internal static List<string> ReadSharedStrings(byte[] payload, List<LegacyXlsImportDiagnostic> diagnostics, int recordOffset) {
             return ReadSharedStrings(new[] { payload }, diagnostics, recordOffset);
         }

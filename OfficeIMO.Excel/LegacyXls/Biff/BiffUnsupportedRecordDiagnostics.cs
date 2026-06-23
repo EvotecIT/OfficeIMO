@@ -413,7 +413,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         }
 
         private static bool IsStyleExtensionRecord(ushort type) {
-            return type == (ushort)BiffRecordType.XfExt;
+            return type == (ushort)BiffRecordType.XfExt
+                || type == (ushort)BiffRecordType.StyleExt;
         }
 
         internal static bool IsChartRecord(ushort type) {
