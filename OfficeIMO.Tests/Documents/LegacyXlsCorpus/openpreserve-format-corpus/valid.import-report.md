@@ -560,6 +560,19 @@ Warnings: 2
 | --- | --- |
 | NextToAxis | 16 |
 
+## Chart Frame Types
+
+| Key | Count |
+| --- | --- |
+| Frame | 10 |
+
+## Chart Frame Auto States
+
+| Key | Count |
+| --- | --- |
+| AutoSize:False;AutoPosition:True | 2 |
+| AutoSize:True;AutoPosition:True | 8 |
+
 ## Chart Records By Location
 
 | Key | Count |

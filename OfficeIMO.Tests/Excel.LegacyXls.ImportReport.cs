@@ -420,8 +420,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal("ChartOnly", unsupportedSheet.Name);
             Assert.Equal(LegacyXlsUnsupportedSheetKind.ChartSheet, unsupportedSheet.Kind);
             Assert.Equal(1, unsupportedSheet.ChartTextObjectCount);
-            Assert.Equal(18, report.UnsupportedFeatureCount);
-            Assert.Equal(17, report.PreservedFeatureRecordCount);
+            Assert.Equal(19, report.UnsupportedFeatureCount);
+            Assert.Equal(18, report.PreservedFeatureRecordCount);
             Assert.Equal(1, report.UnsupportedSheetsByKind[LegacyXlsUnsupportedSheetKind.ChartSheet]);
             Assert.Equal(1, report.UnsupportedSheetsByType["0x02|ChartSheet"]);
             Assert.Equal(1, report.UnsupportedSheetsByName["ChartOnly"]);
@@ -430,14 +430,14 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.UnsupportedChartSheetTextObjectCounts["TextObjects:1"]);
             Assert.Empty(report.UnsupportedChartSheetPrintSizes);
             Assert.Equal(1, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.ChartSheet]);
-            Assert.Equal(17, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.Chart]);
-            Assert.Equal(17, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.Chart]);
-            Assert.Equal(17, report.ChartRecordCount);
+            Assert.Equal(18, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.Chart]);
+            Assert.Equal(18, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.Chart]);
+            Assert.Equal(18, report.ChartRecordCount);
             Assert.Equal(2, report.ChartRecordsByKind[LegacyXlsChartRecordKind.Container]);
             Assert.Equal(3, report.ChartRecordsByKind[LegacyXlsChartRecordKind.Axis]);
             Assert.Equal(1, report.ChartRecordsByKind[LegacyXlsChartRecordKind.Series]);
             Assert.Equal(5, report.ChartRecordsByKind[LegacyXlsChartRecordKind.Formatting]);
-            Assert.Equal(1, report.ChartRecordsByKind[LegacyXlsChartRecordKind.Layout]);
+            Assert.Equal(2, report.ChartRecordsByKind[LegacyXlsChartRecordKind.Layout]);
             Assert.Equal(2, report.ChartRecordsByKind[LegacyXlsChartRecordKind.ChartType]);
             Assert.Equal(3, report.ChartRecordsByKind[LegacyXlsChartRecordKind.Text]);
             Assert.Equal(1, report.ChartRecordsByName["Units"]);
@@ -450,6 +450,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.ChartRecordsByName["Series"]);
             Assert.Equal(1, report.ChartRecordsByName["Scatter"]);
             Assert.Equal(1, report.ChartRecordsByName["LineFormat"]);
+            Assert.Equal(1, report.ChartRecordsByName["Frame"]);
             Assert.Equal(1, report.ChartRecordsByName["AreaFormat"]);
             Assert.Equal(1, report.ChartRecordsByName["MarkerFormat"]);
             Assert.Equal(1, report.ChartRecordsByName["DefaultText"]);
@@ -485,16 +486,19 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.ChartTickLabelLocations["NextToAxis"]);
             Assert.Equal(1, report.ChartPositionModePairs["MDCHART/MDABS"]);
             Assert.Equal(1, report.ChartPositionRectangles["X1:15;Y1:25;X2:300;Y2:120"]);
-            Assert.Equal(17, report.ChartRecordsByLocation["ChartOnly"]);
+            Assert.Equal(1, report.ChartFrameTypes["ShadowFrame"]);
+            Assert.Equal(1, report.ChartFrameAutoStates["AutoSize:True;AutoPosition:True"]);
+            Assert.Equal(18, report.ChartRecordsByLocation["ChartOnly"]);
             Assert.Equal(1, report.DrawingRecordCount);
             Assert.Equal(1, report.DrawingRecordsByKind[LegacyXlsDrawingRecordKind.TextObject]);
             Assert.Equal(1, report.DrawingRecordsByName["TxO"]);
             Assert.Equal(1, report.DrawingRecordsByLocation["ChartOnly"]);
-            Assert.Equal(17, report.UnsupportedFeaturesByLocation["XLS-BIFF-FEATURE-CHART-UNSUPPORTED|ChartOnly"]);
+            Assert.Equal(18, report.UnsupportedFeaturesByLocation["XLS-BIFF-FEATURE-CHART-UNSUPPORTED|ChartOnly"]);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Units"]);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Chart"]);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:DataFormat"]);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:LineFormat"]);
+            Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Frame"]);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:AreaFormat"]);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:MarkerFormat"]);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:ChartFormat"]);
@@ -512,6 +516,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Chart"]);
             Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:DataFormat"]);
             Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:LineFormat"]);
+            Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Frame"]);
             Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:AreaFormat"]);
             Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:MarkerFormat"]);
             Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:ChartFormat"]);
@@ -532,6 +537,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "Series" && record.SeriesCategoryDataType == 0x0003 && record.SeriesCategoryDataTypeName == "Text" && record.SeriesValueDataType == 0x0001 && record.SeriesCategoryCount == 4 && record.SeriesValueCount == 4 && record.SeriesBubbleSizeDataType == 0x0001 && record.SeriesBubbleSizeCount == 0);
             Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "DataFormat" && record.DataFormatPointIndex == 0xffff && record.DataFormatSeriesIndex == 2 && record.DataFormatOrder == 1 && record.DataFormatTarget == "Series");
             Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "LineFormat" && record.LineFormat != null && record.LineFormat.RgbHex == "#112233" && record.LineFormat.Style == 0x0001 && record.LineFormat.StyleName == "Dash" && record.LineFormat.Weight == 1 && record.LineFormat.WeightName == "Medium" && !record.LineFormat.Automatic && record.LineFormat.AxisVisible && !record.LineFormat.AutomaticColor && record.LineFormat.ColorIndex == 0x004d);
+            Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "Frame" && record.Frame != null && record.Frame.FrameType == 0x0004 && record.Frame.FrameTypeName == "ShadowFrame" && record.Frame.Flags == 0x0003 && record.Frame.AutomaticSize && record.Frame.AutomaticPosition);
             Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "AreaFormat" && record.AreaFormat != null && record.AreaFormat.ForegroundRgbHex == "#AABBCC" && record.AreaFormat.BackgroundRgbHex == "#102030" && record.AreaFormat.Pattern == 0x0001 && record.AreaFormat.PatternName == "Solid" && record.AreaFormat.Automatic && record.AreaFormat.InvertNegative && record.AreaFormat.ForegroundColorIndex == 0x004e && record.AreaFormat.BackgroundColorIndex == 0x004d);
             Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "MarkerFormat" && record.MarkerFormat != null && record.MarkerFormat.ForegroundRgbHex == "#DEADBE" && record.MarkerFormat.BackgroundRgbHex == "#445566" && record.MarkerFormat.MarkerType == 0x0008 && record.MarkerFormat.MarkerTypeName == "Circle" && record.MarkerFormat.Automatic && !record.MarkerFormat.InteriorHidden && record.MarkerFormat.BorderHidden && record.MarkerFormat.ForegroundColorIndex == 0x004e && record.MarkerFormat.BackgroundColorIndex == 0x004d && record.MarkerFormat.SizeTwips == 240);
             Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "DefaultText" && record.DefaultTextId == 0x0002 && record.DefaultTextTargetName == "ChartUnscaledText");
@@ -561,6 +567,8 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Chart Tick Label Locations", markdown);
             Assert.Contains("Chart Position Mode Pairs", markdown);
             Assert.Contains("Chart Position Rectangles", markdown);
+            Assert.Contains("Chart Frame Types", markdown);
+            Assert.Contains("Chart Frame Auto States", markdown);
         }
 
         [Fact]

@@ -486,6 +486,7 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x1003, BuildSeriesPayload(0x0003, categoryCount: 4, valueCount: 4, bubbleSizeCount: 0));
                 WriteRecord(stream, 0x1006, BuildDataFormatPayload(pointIndex: 0xffff, seriesIndex: 2, order: 1));
                 WriteRecord(stream, 0x1007, BuildLineFormatPayload(style: 0x0001, weight: 1, flags: 0x0004, colorIndex: 0x004d));
+                WriteRecord(stream, 0x1032, BuildChartFramePayload());
                 WriteRecord(stream, 0x100a, BuildAreaFormatPayload(pattern: 0x0001, flags: 0x0003, foregroundColorIndex: 0x004e, backgroundColorIndex: 0x004d));
                 WriteRecord(stream, 0x1009, BuildMarkerFormatPayload(markerType: 0x0008, flags: 0x0021, foregroundColorIndex: 0x004e, backgroundColorIndex: 0x004d, sizeTwips: 240));
                 WriteRecord(stream, 0x1024, BuildUInt16Payload(0x0002));
@@ -1384,6 +1385,13 @@ namespace OfficeIMO.Tests {
                 WriteUInt16(stream, flags);
                 WriteUInt16(stream, foregroundColorIndex);
                 WriteUInt16(stream, backgroundColorIndex);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildChartFramePayload() {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, 0x0004);
+                WriteUInt16(stream, 0x0003);
                 return stream.ToArray();
             }
 

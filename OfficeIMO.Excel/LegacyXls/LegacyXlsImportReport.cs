@@ -246,6 +246,12 @@ namespace OfficeIMO.Excel.LegacyXls {
             ChartPositionRectangles = CountByCode(workbook.ChartRecords
                 .Where(record => record.Position != null)
                 .Select(record => $"X1:{record.Position!.X1};Y1:{record.Position.Y1};X2:{record.Position.X2};Y2:{record.Position.Y2}"));
+            ChartFrameTypes = CountByCode(workbook.ChartRecords
+                .Where(record => record.Frame != null)
+                .Select(record => record.Frame!.FrameTypeName));
+            ChartFrameAutoStates = CountByCode(workbook.ChartRecords
+                .Where(record => record.Frame != null)
+                .Select(record => $"AutoSize:{record.Frame!.AutomaticSize};AutoPosition:{record.Frame.AutomaticPosition}"));
             ChartRecordsByLocation = CountByCode(workbook.ChartRecords.Select(GetChartRecordLocationKey));
             DrawingRecordsByKind = CountDrawingRecordsByKind(workbook.DrawingRecords);
             DrawingRecordsByName = CountByCode(workbook.DrawingRecords.Select(record => record.RecordName));
@@ -652,6 +658,12 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets Pos records grouped by decoded coordinate and size fields.</summary>
         public IReadOnlyDictionary<string, int> ChartPositionRectangles { get; }
 
+        /// <summary>Gets Frame records grouped by decoded frame type.</summary>
+        public IReadOnlyDictionary<string, int> ChartFrameTypes { get; }
+
+        /// <summary>Gets Frame records grouped by automatic size and position flags.</summary>
+        public IReadOnlyDictionary<string, int> ChartFrameAutoStates { get; }
+
         /// <summary>Gets preserve-only chart BIFF records grouped by workbook or sheet location.</summary>
         public IReadOnlyDictionary<string, int> ChartRecordsByLocation { get; }
 
@@ -884,6 +896,8 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Chart Tick Label Locations", ChartTickLabelLocations);
             AppendDictionary(builder, "Chart Position Mode Pairs", ChartPositionModePairs);
             AppendDictionary(builder, "Chart Position Rectangles", ChartPositionRectangles);
+            AppendDictionary(builder, "Chart Frame Types", ChartFrameTypes);
+            AppendDictionary(builder, "Chart Frame Auto States", ChartFrameAutoStates);
             AppendDictionary(builder, "Chart Records By Location", ChartRecordsByLocation);
             AppendDictionary(builder, "Drawing Records By Kind", DrawingRecordsByKind.ToDictionary(
                 entry => entry.Key.ToString(),

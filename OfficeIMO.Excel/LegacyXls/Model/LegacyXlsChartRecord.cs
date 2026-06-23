@@ -41,7 +41,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             LegacyXlsChartObjectLink? objectLink = null,
             LegacyXlsChartLegend? legend = null,
             LegacyXlsChartTick? tick = null,
-            LegacyXlsChartPosition? position = null) {
+            LegacyXlsChartPosition? position = null,
+            LegacyXlsChartFrame? frame = null) {
             if (payloadLength < 0) {
                 throw new ArgumentOutOfRangeException(nameof(payloadLength));
             }
@@ -81,6 +82,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             Legend = legend;
             Tick = tick;
             Position = position;
+            Frame = frame;
         }
 
         /// <summary>Gets the shallow chart record category.</summary>
@@ -187,5 +189,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets decoded position metadata from Pos records, when present.</summary>
         public LegacyXlsChartPosition? Position { get; }
+
+        /// <summary>Gets decoded frame metadata from Frame records, when present.</summary>
+        public LegacyXlsChartFrame? Frame { get; }
     }
 }

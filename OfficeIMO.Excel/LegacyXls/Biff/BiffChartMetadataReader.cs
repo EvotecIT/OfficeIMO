@@ -24,6 +24,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             BiffChartTextMetadataReader.TryReadLegend(record, out LegacyXlsChartLegend? legend);
             BiffChartTextMetadataReader.TryReadTick(record, out LegacyXlsChartTick? tick);
             TryReadPosition(record, out LegacyXlsChartPosition? position);
+            TryReadFrame(record, out LegacyXlsChartFrame? frame);
             records.Add(new LegacyXlsChartRecord(
                 GetKind(record.Type),
                 BiffUnsupportedRecordDiagnostics.GetBiffRecordName(record.Type),
@@ -59,7 +60,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 objectLink,
                 legend,
                 tick,
-                position));
+                position,
+                frame));
             return true;
         }
 
@@ -238,6 +240,23 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             return true;
         }
 
+        private static bool TryReadFrame(BiffRecord record, out LegacyXlsChartFrame? frame) {
+            frame = null;
+            if (record.Type != 0x1032 || record.Payload.Length < 4) {
+                return false;
+            }
+
+            ushort frameType = BiffRecordReader.ReadUInt16(record.Payload, 0);
+            ushort flags = BiffRecordReader.ReadUInt16(record.Payload, 2);
+            frame = new LegacyXlsChartFrame(
+                frameType,
+                GetFrameTypeName(frameType),
+                flags,
+                (flags & 0x0001) != 0,
+                (flags & 0x0002) != 0);
+            return true;
+        }
+
         private static string ReadLongRgbHex(byte[] bytes, int offset) {
             if (offset < 0 || offset + 3 > bytes.Length) throw new InvalidDataException("Unexpected end of BIFF chart color.");
             return "#" + bytes[offset].ToString("X2") + bytes[offset + 1].ToString("X2") + bytes[offset + 2].ToString("X2");
@@ -393,6 +412,17 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     return "MDCHART";
                 default:
                     return $"Unknown:0x{mode:X4}";
+            }
+        }
+
+        private static string GetFrameTypeName(ushort frameType) {
+            switch (frameType) {
+                case 0x0000:
+                    return "Frame";
+                case 0x0004:
+                    return "ShadowFrame";
+                default:
+                    return $"Unknown:0x{frameType:X4}";
             }
         }
 
