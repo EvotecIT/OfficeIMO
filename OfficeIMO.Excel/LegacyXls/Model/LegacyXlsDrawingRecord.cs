@@ -23,7 +23,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             LegacyXlsDrawingEscherRecordType? escherRecordTypeKind = null,
             ushort? objectFlags = null,
             IReadOnlyList<LegacyXlsDrawingBlipStoreEntry>? blipStoreEntries = null,
-            IReadOnlyList<LegacyXlsDrawingShape>? shapeEntries = null) {
+            IReadOnlyList<LegacyXlsDrawingShape>? shapeEntries = null,
+            IReadOnlyList<LegacyXlsDrawingAnchor>? anchorEntries = null) {
             if (payloadLength < 0) {
                 throw new ArgumentOutOfRangeException(nameof(payloadLength));
             }
@@ -48,6 +49,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             EscherPayloadLength = escherPayloadLength;
             BlipStoreEntries = blipStoreEntries?.ToArray() ?? Array.Empty<LegacyXlsDrawingBlipStoreEntry>();
             ShapeEntries = shapeEntries?.ToArray() ?? Array.Empty<LegacyXlsDrawingShape>();
+            AnchorEntries = anchorEntries?.ToArray() ?? Array.Empty<LegacyXlsDrawingAnchor>();
         }
 
         /// <summary>Gets the shallow drawing record category.</summary>
@@ -139,6 +141,12 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets whether this drawing record contains any discovered shape entries.</summary>
         public bool HasShapeEntries => ShapeEntries.Count > 0;
+
+        /// <summary>Gets preserve-only OfficeArt client anchors discovered under this drawing record.</summary>
+        public IReadOnlyList<LegacyXlsDrawingAnchor> AnchorEntries { get; }
+
+        /// <summary>Gets whether this drawing record contains any discovered client anchors.</summary>
+        public bool HasAnchorEntries => AnchorEntries.Count > 0;
 
         private static LegacyXlsDrawingObjectType? TryGetObjectTypeKind(ushort? objectType) {
             if (!objectType.HasValue) {

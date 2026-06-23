@@ -111,6 +111,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.DrawingShapeEntriesByFlagName["Child"]);
             Assert.Equal(1, report.DrawingShapeEntriesByFlagName["HaveAnchor"]);
             Assert.Equal(1, report.DrawingShapeEntriesByFlagName["HaveShapeType"]);
+            Assert.Equal(1, report.DrawingAnchorEntriesByRange["R2C1:R4C3"]);
+            Assert.Equal(1, report.DrawingAnchorEntriesByOffset["StartDx:10;StartDy:20;EndDx:30;EndDy:40"]);
+            Assert.Equal(1, report.DrawingAnchorEntriesByFlags["Flags:0x0000"]);
             Assert.Equal(1, report.DrawingRecordsByLocation["(workbook)"]);
             Assert.Equal(2, report.DrawingRecordsByLocation["FeatureMap"]);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:MsoDrawingGroup"]);
@@ -154,13 +157,23 @@ namespace OfficeIMO.Tests {
             Assert.Equal("OfficeArtDgContainer", drawing.EscherRecordTypeName);
             Assert.Equal((ushort)1, drawing.EscherRecordInstance);
             Assert.Equal((byte)0x0f, drawing.EscherRecordVersion);
-            Assert.Equal((uint)24, drawing.EscherPayloadLength);
+            Assert.Equal((uint)50, drawing.EscherPayloadLength);
             LegacyXlsDrawingShape shape = Assert.Single(drawing.ShapeEntries);
             Assert.Equal((ushort)0x004b, shape.ShapeType);
             Assert.Equal("PictureFrame", shape.ShapeTypeName);
             Assert.Equal((uint)1024, shape.ShapeId);
             Assert.Equal((uint)0x00000a02, shape.Flags);
             Assert.Equal(new[] { "Child", "HaveAnchor", "HaveShapeType" }, shape.FlagNames);
+            LegacyXlsDrawingAnchor anchor = Assert.Single(drawing.AnchorEntries);
+            Assert.Equal((ushort)0x0000, anchor.Flags);
+            Assert.Equal((ushort)1, anchor.StartColumn);
+            Assert.Equal((ushort)10, anchor.StartDx);
+            Assert.Equal((ushort)2, anchor.StartRow);
+            Assert.Equal((ushort)20, anchor.StartDy);
+            Assert.Equal((ushort)3, anchor.EndColumn);
+            Assert.Equal((ushort)30, anchor.EndDx);
+            Assert.Equal((ushort)4, anchor.EndRow);
+            Assert.Equal((ushort)40, anchor.EndDy);
             Assert.Contains(workbook.PreservedFeatureRecords, record => record.DetailCode == "Chart:Chart" && record.RecordType == 0x1002);
             Assert.Contains(workbook.Diagnostics, d => d.DetailCode == "Chart:Chart");
             Assert.Contains(workbook.Diagnostics, d => d.DetailCode == "PivotTable:SxView");
@@ -180,6 +193,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Drawing BLIP Store Entries By Type", markdown);
             Assert.Contains("Drawing Shape Entries By Type", markdown);
             Assert.Contains("PictureFrame", markdown);
+            Assert.Contains("Drawing Anchor Entries By Range", markdown);
             Assert.Contains("OfficeArtBlipPNG", markdown);
             Assert.Contains("OfficeArtDggContainer", markdown);
         }

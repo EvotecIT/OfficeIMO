@@ -299,6 +299,15 @@ namespace OfficeIMO.Excel.LegacyXls {
             DrawingShapeEntriesByFlagName = CountByCode(workbook.DrawingRecords
                 .SelectMany(record => record.ShapeEntries)
                 .SelectMany(shape => shape.FlagNames));
+            DrawingAnchorEntriesByRange = CountByCode(workbook.DrawingRecords
+                .SelectMany(record => record.AnchorEntries)
+                .Select(anchor => $"R{anchor.StartRow}C{anchor.StartColumn}:R{anchor.EndRow}C{anchor.EndColumn}"));
+            DrawingAnchorEntriesByOffset = CountByCode(workbook.DrawingRecords
+                .SelectMany(record => record.AnchorEntries)
+                .Select(anchor => $"StartDx:{anchor.StartDx};StartDy:{anchor.StartDy};EndDx:{anchor.EndDx};EndDy:{anchor.EndDy}"));
+            DrawingAnchorEntriesByFlags = CountByCode(workbook.DrawingRecords
+                .SelectMany(record => record.AnchorEntries)
+                .Select(anchor => $"Flags:0x{anchor.Flags:X4}"));
             DrawingRecordsByLocation = CountByCode(workbook.DrawingRecords.Select(GetDrawingRecordLocationKey));
             CompoundFeatureRecordsByKind = CountCompoundFeatureRecordsByKind(workbook.CompoundFeatureRecords);
             CompoundFeatureEntriesByKind = CountCompoundFeatureEntriesByKind(workbook.CompoundFeatureRecords);
@@ -727,6 +736,15 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets OfficeArt shape entries grouped by decoded flag name.</summary>
         public IReadOnlyDictionary<string, int> DrawingShapeEntriesByFlagName { get; }
 
+        /// <summary>Gets OfficeArt client anchors grouped by start and end cell.</summary>
+        public IReadOnlyDictionary<string, int> DrawingAnchorEntriesByRange { get; }
+
+        /// <summary>Gets OfficeArt client anchors grouped by start and end offsets.</summary>
+        public IReadOnlyDictionary<string, int> DrawingAnchorEntriesByOffset { get; }
+
+        /// <summary>Gets OfficeArt client anchors grouped by raw flag bitfield.</summary>
+        public IReadOnlyDictionary<string, int> DrawingAnchorEntriesByFlags { get; }
+
         /// <summary>Gets preserve-only drawing and object BIFF records grouped by workbook or sheet location.</summary>
         public IReadOnlyDictionary<string, int> DrawingRecordsByLocation { get; }
 
@@ -942,6 +960,9 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Drawing Shape Entries By Id", DrawingShapeEntriesById);
             AppendDictionary(builder, "Drawing Shape Entries By Flags", DrawingShapeEntriesByFlags);
             AppendDictionary(builder, "Drawing Shape Entries By Flag Name", DrawingShapeEntriesByFlagName);
+            AppendDictionary(builder, "Drawing Anchor Entries By Range", DrawingAnchorEntriesByRange);
+            AppendDictionary(builder, "Drawing Anchor Entries By Offset", DrawingAnchorEntriesByOffset);
+            AppendDictionary(builder, "Drawing Anchor Entries By Flags", DrawingAnchorEntriesByFlags);
             AppendDictionary(builder, "Drawing Records By Location", DrawingRecordsByLocation);
             AppendDictionary(builder, "Compound Feature Records By Kind", CompoundFeatureRecordsByKind.ToDictionary(
                 entry => entry.Key.ToString(),

@@ -1304,7 +1304,8 @@ namespace OfficeIMO.Tests {
 
             private static byte[] BuildDrawingWithPictureShapePayload() {
                 byte[] shape = BuildOfficeArtRecord(0xf00a, instance: 0x004b, version: 0x02, BuildShapePayload(0x00000400, 0x00000a02));
-                byte[] shapeContainer = BuildOfficeArtRecord(0xf004, instance: 0, version: 0x0f, shape);
+                byte[] anchor = BuildOfficeArtRecord(0xf010, instance: 0, version: 0x00, BuildClientAnchorPayload());
+                byte[] shapeContainer = BuildOfficeArtRecord(0xf004, instance: 0, version: 0x0f, shape.Concat(anchor).ToArray());
                 return BuildOfficeArtRecord(0xf002, instance: 1, version: 0x0f, shapeContainer);
             }
 
@@ -1312,6 +1313,20 @@ namespace OfficeIMO.Tests {
                 using var stream = new MemoryStream();
                 WriteUInt32(stream, shapeId);
                 WriteUInt32(stream, flags);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildClientAnchorPayload() {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, 0x0000);
+                WriteUInt16(stream, 1);
+                WriteUInt16(stream, 10);
+                WriteUInt16(stream, 2);
+                WriteUInt16(stream, 20);
+                WriteUInt16(stream, 3);
+                WriteUInt16(stream, 30);
+                WriteUInt16(stream, 4);
+                WriteUInt16(stream, 40);
                 return stream.ToArray();
             }
 
