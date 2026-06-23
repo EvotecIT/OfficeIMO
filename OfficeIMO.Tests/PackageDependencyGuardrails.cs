@@ -1,10 +1,19 @@
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using Xunit;
 
 namespace OfficeIMO.Tests;
 
 public sealed class PackageDependencyGuardrailTests {
+    private static readonly string[] ForbiddenRenderingPackageIds = [
+        "SixLabors.ImageSharp",
+        "SixLabors.Fonts",
+        "SkiaSharp",
+        "SkiaSharp.Views",
+        "System.Drawing.Common"
+    ];
+
     [Fact]
     public void Projects_DoNotReferenceImageSharpPackage() {
         var projectFiles = Directory.EnumerateFiles(GetRepositoryRoot(), "*.csproj", SearchOption.AllDirectories)
@@ -16,6 +25,16 @@ public sealed class PackageDependencyGuardrailTests {
 
         var offenders = projectFiles
             .Where(ProjectReferencesImageSharp)
+            .ToArray();
+
+        Assert.Empty(offenders);
+    }
+
+    [Fact]
+    public void Projects_DoNotReferenceExternalGraphicsPackages() {
+        var offenders = EnumerateProjectFiles()
+            .SelectMany(projectPath => ProjectReferencesPackages(projectPath, ForbiddenRenderingPackageIds)
+                .Select(packageId => NormalizeProjectPath(Path.GetRelativePath(GetRepositoryRoot(), projectPath)) + " -> " + packageId))
             .ToArray();
 
         Assert.Empty(offenders);
@@ -256,6 +275,54 @@ public sealed class PackageDependencyGuardrailTests {
         Assert.False(File.Exists(GetRepositoryPath(relativePath)), "Retired private renderer file should stay in OfficeIMO.Drawing instead: " + relativePath);
     }
 
+    [Fact]
+    public void RenderingAdapters_DoNotDeclarePrivateRasterInfrastructure() {
+        string[] renderingAdapterRoots = [
+            "OfficeIMO.Excel",
+            "OfficeIMO.Visio",
+            "OfficeIMO.PowerPoint",
+            "OfficeIMO.Excel.Pdf",
+            "OfficeIMO.Word.Pdf",
+            "OfficeIMO.PowerPoint.Pdf"
+        ];
+        string[] forbiddenTypeNames = [
+            "PngRaster",
+            "PngEncoder",
+            "PngWriter",
+            "PngDecoder",
+            "RgbaImage",
+            "RgbaCanvas",
+            "RasterImage",
+            "RasterRenderTarget"
+        ];
+        Regex forbiddenDeclaration = new(
+            @"\b(class|struct)\s+(" + string.Join("|", forbiddenTypeNames.Select(Regex.Escape)) + @")\b",
+            RegexOptions.CultureInvariant);
+
+        var offenders = new List<string>();
+        foreach (string root in renderingAdapterRoots) {
+            string rootPath = GetRepositoryPath(root);
+            if (!Directory.Exists(rootPath)) {
+                continue;
+            }
+
+            foreach (string sourceFile in Directory.EnumerateFiles(rootPath, "*.cs", SearchOption.AllDirectories)) {
+                if (sourceFile.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase) ||
+                    sourceFile.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase)) {
+                    continue;
+                }
+
+                string source = File.ReadAllText(sourceFile);
+                Match match = forbiddenDeclaration.Match(source);
+                if (match.Success) {
+                    offenders.Add(NormalizeProjectPath(Path.GetRelativePath(GetRepositoryRoot(), sourceFile)) + " declares " + match.Groups[2].Value);
+                }
+            }
+        }
+
+        Assert.Empty(offenders);
+    }
+
     [Theory]
     [InlineData("OfficeIMO.Reader/OfficeIMO.Reader.csproj")]
     [InlineData("OfficeIMO.Reader.Json/OfficeIMO.Reader.Json.csproj")]
@@ -385,20 +452,20 @@ public sealed class PackageDependencyGuardrailTests {
     }
 
     private static bool ProjectReferencesImageSharp(string projectPath) {
-        var document = XDocument.Load(projectPath);
-        var ns = document.Root?.Name.Namespace ?? XNamespace.None;
-
-        return document
-            .Descendants(ns + "PackageReference")
-            .Any(static e => string.Equals((string?)e.Attribute("Include"), "SixLabors.ImageSharp", StringComparison.Ordinal));
+        return ProjectReferencesPackages(projectPath, ["SixLabors.ImageSharp"]).Any();
     }
 
     private static bool ProjectReferencesSixLaborsFonts(string projectPath) {
+        return ProjectReferencesPackages(projectPath, ["SixLabors.Fonts"]).Any();
+    }
+
+    private static IEnumerable<string> ProjectReferencesPackages(string projectPath, IReadOnlyCollection<string> packageIds) {
         var document = XDocument.Load(projectPath);
         var ns = document.Root?.Name.Namespace ?? XNamespace.None;
 
         return document
             .Descendants(ns + "PackageReference")
-            .Any(static e => string.Equals((string?)e.Attribute("Include"), "SixLabors.Fonts", StringComparison.Ordinal));
+            .Select(static e => (string?)e.Attribute("Include") ?? string.Empty)
+            .Where(include => packageIds.Contains(include, StringComparer.Ordinal));
     }
 }

@@ -193,6 +193,7 @@ Central ownership is now enforceable in tests:
 - Rendering-capable adapters must route through `OfficeIMO.Drawing` directly or through the first-party `OfficeIMO.Pdf` engine.
 - Retired Visio private PNG raster/encoding files must not be restored.
 - Dependency-free rendering projects must not add ImageSharp, SixLabors.Fonts, SkiaSharp, System.Drawing.Common, browser, Office automation, or PDF-rasterization dependencies to product rendering paths.
+- Excel, Visio, PowerPoint, and PDF conversion adapters must not declare product-local raster/PNG infrastructure types such as private PNG writers, PNG encoders, RGBA images, RGBA canvases, or raster render targets. Those names belong in `OfficeIMO.Drawing`; adapters can keep narrow coordinate/layout glue only when it encodes document semantics.
 
 The current exception is intentional: `OfficeIMO.Pdf` owns PDF stream/page/writer behavior because PDF is not an image canvas. That exception does not allow PDF, Word, Excel, PowerPoint, or Visio adapters to grow private raster, SVG primitive, text layout, or PNG brains when the behavior is generic.
 
