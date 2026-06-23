@@ -816,6 +816,39 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_Load_ImportsFormulaArrayConstantTokens() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateFormulaArrayConstantWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED");
+            LegacyXlsWorksheet sheet = Assert.Single(legacy.Worksheets);
+            LegacyXlsCell formula = Assert.Single(sheet.Cells, cell => cell.Row == 1 && cell.Column == 1);
+            Assert.True(formula.IsFormula);
+            Assert.Equal(10d, formula.Value);
+            Assert.Equal("SUM({1,2;3,4})", formula.FormulaText);
+
+            using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.True(document.Sheets[0].TryGetCellText(1, 1, out string? cachedText));
+            Assert.Equal("10", cachedText);
+
+            using var output = new MemoryStream();
+            document.Save(output);
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
+            WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single();
+            Cell projectedFormula = worksheetPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference!.Value == "A1");
+            Assert.Equal("SUM({1,2;3,4})", projectedFormula.CellFormula!.Text);
+            Assert.Equal("10", projectedFormula.CellValue!.Text);
+        }
+
+        [Fact]
         public void LegacyXls_Load_ReportsUnsupportedFormulaTokensAndImportsCachedValue() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateUnsupportedFormulaTokenWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
@@ -1251,6 +1284,23 @@ namespace OfficeIMO.Tests {
                 return bytes;
             }
 
+            internal static byte[] CreateFormulaArrayConstantWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long boundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "ArrayConst"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0006, BuildFormulaNumberPayloadWithExtra(0, 0, 10d, BuildArrayConstantSumFormulaTokens(), BuildNumericArrayConstantExtra(2, 2, 1d, 2d, 3d, 4d)));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)boundSheetPosition + 4), 4);
+                return bytes;
+            }
+
             internal static byte[] CreateFormulaDefinedNameWorkbookStream() {
                 using var stream = new MemoryStream();
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
@@ -1356,6 +1406,18 @@ namespace OfficeIMO.Tests {
                 payload[6] = 0x01;
                 payload[8] = value ? (byte)1 : (byte)0;
                 WriteUInt16(payload, 12, 0xffff);
+                return payload;
+            }
+
+            private static byte[] BuildFormulaNumberPayloadWithExtra(ushort row, ushort column, double value, byte[] formulaTokens, byte[] formulaExtra) {
+                byte[] payload = new byte[checked(22 + formulaTokens.Length + formulaExtra.Length)];
+                WriteUInt16(payload, 0, row);
+                WriteUInt16(payload, 2, column);
+                byte[] numberBytes = BitConverter.GetBytes(value);
+                Buffer.BlockCopy(numberBytes, 0, payload, 6, numberBytes.Length);
+                WriteUInt16(payload, 20, checked((ushort)formulaTokens.Length));
+                Buffer.BlockCopy(formulaTokens, 0, payload, 22, formulaTokens.Length);
+                Buffer.BlockCopy(formulaExtra, 0, payload, checked(22 + formulaTokens.Length), formulaExtra.Length);
                 return payload;
             }
 
@@ -1654,6 +1716,34 @@ namespace OfficeIMO.Tests {
                 stream.WriteByte(checked((byte)(lastRow - firstRow + 1)));
                 WriteUInt16(stream, checked((ushort)formulaTokens.Length));
                 stream.Write(formulaTokens, 0, formulaTokens.Length);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildArrayConstantSumFormulaTokens() {
+                using var stream = new MemoryStream();
+                stream.WriteByte(0x60);
+                for (int i = 0; i < 7; i++) {
+                    stream.WriteByte(0);
+                }
+
+                WriteSumFunctionCall(stream);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildNumericArrayConstantExtra(byte columnCount, ushort rowCount, params double[] values) {
+                if (values.Length != columnCount * rowCount) {
+                    throw new ArgumentException("Array constant value count must match its dimensions.", nameof(values));
+                }
+
+                using var stream = new MemoryStream();
+                stream.WriteByte(checked((byte)(columnCount - 1)));
+                WriteUInt16(stream, checked((ushort)(rowCount - 1)));
+                foreach (double value in values) {
+                    stream.WriteByte(0x01);
+                    byte[] numberBytes = BitConverter.GetBytes(value);
+                    stream.Write(numberBytes, 0, numberBytes.Length);
+                }
+
                 return stream.ToArray();
             }
 

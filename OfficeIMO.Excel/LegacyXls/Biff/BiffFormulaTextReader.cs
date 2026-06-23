@@ -108,6 +108,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             var stack = new Stack<FormulaExpression>();
             int offset = expressionOffset;
             int endOffset = expressionOffset + expressionLength;
+            int extraOffset = endOffset;
             while (offset < endOffset) {
                 byte token = formulaPayload[offset++];
                 switch (token) {
@@ -227,6 +228,14 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                         if (offset + 8 > endOffset) return false;
                         stack.Push(new FormulaExpression(BiffRecordReader.ReadDouble(formulaPayload, offset).ToString("G15", CultureInfo.InvariantCulture), 4));
                         offset += 8;
+                        break;
+                    case 0x20:
+                    case 0x40:
+                    case 0x60:
+                        if (offset + 7 > endOffset) return false;
+                        offset += 7;
+                        if (!BiffFormulaArrayConstantReader.TryRead(formulaPayload, ref extraOffset, out string? arrayText)) return false;
+                        stack.Push(new FormulaExpression(arrayText!, 4));
                         break;
                     case 0x26:
                     case 0x46:
@@ -348,6 +357,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
             int offset = expressionOffset;
             int endOffset = expressionOffset + expressionLength;
+            int extraOffset = endOffset;
             while (offset < endOffset) {
                 int tokenOffset = offset - expressionOffset;
                 byte token = formulaPayload[offset++];
@@ -401,6 +411,18 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     case 0x1f:
                         if (!TrySkipBytes(ref offset, endOffset, 8)) {
                             return BiffFormulaReadFailure.InvalidPayload("Formula number token ended early.", token, tokenOffset);
+                        }
+
+                        break;
+                    case 0x20:
+                    case 0x40:
+                    case 0x60:
+                        if (!TrySkipBytes(ref offset, endOffset, 7)) {
+                            return BiffFormulaReadFailure.InvalidPayload("Formula array token ended early.", token, tokenOffset);
+                        }
+
+                        if (!BiffFormulaArrayConstantReader.TryRead(formulaPayload, ref extraOffset, out _)) {
+                            return BiffFormulaReadFailure.InvalidPayload("Formula array constant payload could not be read.", token, tokenOffset);
                         }
 
                         break;
