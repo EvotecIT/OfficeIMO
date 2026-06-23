@@ -529,7 +529,7 @@ namespace OfficeIMO.Tests {
                         xml = reader.ReadToEnd();
                     }
 
-                    xml = xml.Replace("placeholder", "Alpha<![CDATA[Beta]]>Gamma", StringComparison.Ordinal);
+                    xml = xml.Replace("placeholder", "Alpha<![CDATA[Beta]]>Gamma");
 
                     sheetEntry.Delete();
                     ZipArchiveEntry replacement = archive.CreateEntry(sheetEntryName);
