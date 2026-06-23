@@ -330,7 +330,7 @@ public static partial class PdfPageEditor {
             if (resolved is PdfDictionary annotationDictionary) {
                 var clonedAnnotation = (PdfDictionary)ClonePdfObject(annotationDictionary);
                 if (annotationGeometryTransform.HasValue) {
-                    TransformAnnotationRectangle(clonedAnnotation, annotationGeometryTransform.Value);
+                    TransformAnnotationRectangle(objects, clonedAnnotation, annotationGeometryTransform.Value);
                     TransformAnnotationCoordinateArrays(objects, clonedAnnotation, annotationGeometryTransform.Value);
                 }
 
@@ -352,14 +352,19 @@ public static partial class PdfPageEditor {
         return true;
     }
 
-    private static void TransformAnnotationRectangle(PdfDictionary annotation, PageResizeTransform transform) {
+    private static void TransformAnnotationRectangle(Dictionary<int, PdfIndirectObject> objects, PdfDictionary annotation, PageResizeTransform transform) {
         if (!annotation.Items.TryGetValue("Rect", out PdfObject? rectObject) ||
-            rectObject is not PdfArray rect ||
-            rect.Items.Count < 4 ||
-            rect.Items[0] is not PdfNumber x1 ||
-            rect.Items[1] is not PdfNumber y1 ||
-            rect.Items[2] is not PdfNumber x2 ||
-            rect.Items[3] is not PdfNumber y2) {
+            !TryGetMutableArray(objects, rectObject, out PdfArray? rect) ||
+            rect is null) {
+            return;
+        }
+
+        PdfArray mutableRect = rect;
+        if (mutableRect.Items.Count < 4 ||
+            mutableRect.Items[0] is not PdfNumber x1 ||
+            mutableRect.Items[1] is not PdfNumber y1 ||
+            mutableRect.Items[2] is not PdfNumber x2 ||
+            mutableRect.Items[3] is not PdfNumber y2) {
             return;
         }
 

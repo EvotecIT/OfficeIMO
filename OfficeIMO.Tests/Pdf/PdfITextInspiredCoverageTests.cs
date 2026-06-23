@@ -471,10 +471,12 @@ public class PdfITextInspiredCoverageTests {
         });
         string raw = PdfEncoding.Latin1GetString(resized);
 
+        Assert.Contains("/Rect [ 60 120 180 240 ]", raw, StringComparison.Ordinal);
         Assert.Contains("/QuadPoints [ 60 420 180 420 60 360 180 360 ]", raw, StringComparison.Ordinal);
         Assert.Contains("/InkList [ [ 60 420 180 360 ] ]", raw, StringComparison.Ordinal);
-        Assert.DoesNotContain("/QuadPoints 7 0 R", raw, StringComparison.Ordinal);
-        Assert.DoesNotContain("/InkList 8 0 R", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Rect 7 0 R", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("/QuadPoints 8 0 R", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("/InkList 9 0 R", raw, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -905,7 +907,8 @@ public class PdfITextInspiredCoverageTests {
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /CropBox [10 10 110 110] /Resources << /Font << /F1 4 0 R >> >> /Annots [6 0 R] /Contents 5 0 R >>",
             "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
             BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 20 20 Td (Indirect geometry) Tj ET")),
-            "<< /Type /Annot /Subtype /Link /Rect [20 30 40 50] /QuadPoints 7 0 R /InkList 8 0 R /Dest [3 0 R /XYZ 20 80 1] >>",
+            "<< /Type /Annot /Subtype /Link /Rect 7 0 R /QuadPoints 8 0 R /InkList 9 0 R /Dest [3 0 R /XYZ 20 80 1] >>",
+            "[20 30 40 50]",
             "[20 80 40 80 20 70 40 70]",
             "[[20 80 40 70]]"
         };
