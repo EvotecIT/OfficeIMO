@@ -133,6 +133,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ExcelImage_TwoCellSizeReflectsCurrentCellDimensions() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelImage.RangeAnchor.DynamicDimensions.xlsx");
+            string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
+
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("Images");
+            ExcelImage image = sheet.AddImageFromFileToRange("A1:B2", imagePath, name: "DynamicRange");
+            int originalWidth = image.WidthPixels;
+            int originalHeight = image.HeightPixels;
+
+            sheet.SetColumnWidth(1, 30);
+            sheet.SetColumnWidth(2, 30);
+            sheet.SetRowHeight(1, 45);
+            sheet.SetRowHeight(2, 45);
+
+            Assert.True(image.WidthPixels > originalWidth);
+            Assert.True(image.HeightPixels > originalHeight);
+        }
+
+        [Fact]
         public void Test_ExcelImage_FromFile_MapsTiffContentType() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelImage.FromFile.Tiff.xlsx");
             string imagePath = Path.Combine(_directoryWithImages, "saturn.tif");

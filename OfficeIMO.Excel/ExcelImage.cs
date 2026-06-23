@@ -440,6 +440,10 @@ namespace OfficeIMO.Excel {
         }
 
         private long GetExtentCx() {
+            if (TryGetTwoCellAnchorSizeEmu(horizontal: true, out long twoCellEmu)) {
+                return twoCellEmu;
+            }
+
             long? anchorExtent = _anchor.GetFirstChild<Xdr.Extent>()?.Cx?.Value;
             if (anchorExtent.HasValue && anchorExtent.Value > 0) {
                 return anchorExtent.Value;
@@ -450,10 +454,14 @@ namespace OfficeIMO.Excel {
                 return shapeExtent.Value;
             }
 
-            return TryGetTwoCellAnchorSizeEmu(horizontal: true, out long emu) ? emu : 0L;
+            return 0L;
         }
 
         private long GetExtentCy() {
+            if (TryGetTwoCellAnchorSizeEmu(horizontal: false, out long twoCellEmu)) {
+                return twoCellEmu;
+            }
+
             long? anchorExtent = _anchor.GetFirstChild<Xdr.Extent>()?.Cy?.Value;
             if (anchorExtent.HasValue && anchorExtent.Value > 0) {
                 return anchorExtent.Value;
@@ -464,7 +472,7 @@ namespace OfficeIMO.Excel {
                 return shapeExtent.Value;
             }
 
-            return TryGetTwoCellAnchorSizeEmu(horizontal: false, out long emu) ? emu : 0L;
+            return 0L;
         }
 
         private bool TryGetTwoCellAnchorSizeEmu(bool horizontal, out long emu) {
@@ -487,7 +495,18 @@ namespace OfficeIMO.Excel {
                 ? twoCellAnchor.ToMarker.ColumnOffset?.Text
                 : twoCellAnchor.ToMarker.RowOffset?.Text);
 
-            int basePixels = Math.Max(0, to - from) * (horizontal ? 64 : 20);
+            if (to < from) {
+                return false;
+            }
+
+            WorksheetPart? worksheetPart = _drawingsPart.GetParentParts().OfType<WorksheetPart>().FirstOrDefault();
+            int basePixels = 0;
+            for (int index = from; index < to; index++) {
+                basePixels += horizontal
+                    ? GetColumnWidthPixels(worksheetPart, index + 1)
+                    : GetRowHeightPixels(worksheetPart, index + 1);
+            }
+
             int offsetPixels = (int)Math.Round((toOffset - fromOffset) / 9525D);
             int pixels = Math.Max(1, basePixels + offsetPixels);
             emu = PxToEmu(pixels);
