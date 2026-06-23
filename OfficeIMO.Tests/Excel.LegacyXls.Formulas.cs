@@ -764,6 +764,8 @@ namespace OfficeIMO.Tests {
                 && d.SheetName == "FormulaDiag"
                 && d.RecordType == (ushort)BiffRecordType.Formula);
             Assert.Equal("FormulaToken0x26", diagnostic.DetailCode);
+            Assert.Contains("Token 0x26", diagnostic.Message);
+            Assert.Contains("parsed-expression offset 0", diagnostic.Message);
             LegacyXlsWorksheet sheet = Assert.Single(legacy.Worksheets);
             LegacyXlsCell formula = Assert.Single(sheet.Cells, cell => cell.Row == 1 && cell.Column == 2);
             Assert.True(formula.IsFormula);
