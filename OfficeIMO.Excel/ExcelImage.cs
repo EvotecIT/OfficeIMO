@@ -96,6 +96,17 @@ namespace OfficeIMO.Excel {
         public string ContentType => ImagePart?.ContentType ?? string.Empty;
 
         /// <summary>
+        /// Gets or sets clockwise image rotation in degrees.
+        /// </summary>
+        public double RotationDegrees {
+            get {
+                var transform = _picture.ShapeProperties?.GetFirstChild<A.Transform2D>();
+                return (transform?.Rotation?.Value ?? 0) / 60000.0;
+            }
+            set => SetRotation(value);
+        }
+
+        /// <summary>
         /// Returns a copy of the image bytes from the worksheet drawing relationship.
         /// </summary>
         public byte[] GetBytes() {
@@ -159,6 +170,33 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Sets clockwise image rotation in degrees.
+        /// </summary>
+        /// <param name="degrees">Clockwise rotation in degrees. Fractional values are supported by DrawingML.</param>
+        public ExcelImage SetRotation(double degrees) {
+            if (double.IsNaN(degrees) || double.IsInfinity(degrees)) {
+                throw new ArgumentOutOfRangeException(nameof(degrees), "Rotation must be a finite number of degrees.");
+            }
+
+            var shapeProperties = _picture.ShapeProperties;
+            if (shapeProperties == null) {
+                return this;
+            }
+
+            var transform = shapeProperties.GetFirstChild<A.Transform2D>();
+            if (transform == null) {
+                transform = new A.Transform2D(
+                    new A.Offset { X = 0, Y = 0 },
+                    new A.Extents { Cx = GetExtentCx(), Cy = GetExtentCy() });
+                shapeProperties.PrependChild(transform);
+            }
+
+            transform.Rotation = (int)Math.Round(degrees * 60000.0);
+            Save();
+            return this;
+        }
+
+        /// <summary>
         /// Sets the image size in pixels.
         /// </summary>
         public ExcelImage SetSize(int widthPixels, int heightPixels) {
@@ -183,6 +221,20 @@ namespace OfficeIMO.Excel {
 
             Save();
             return this;
+        }
+
+        /// <summary>
+        /// Scales the image from its current size by the specified percentage.
+        /// </summary>
+        /// <param name="percent">Percentage of the current image size. For example, 20 means 20%.</param>
+        public ExcelImage SetSizePercent(double percent) {
+            if (double.IsNaN(percent) || double.IsInfinity(percent) || percent <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(percent), "Scale percentage must be a positive finite number.");
+            }
+
+            int width = Math.Max(1, (int)Math.Round(WidthPixels * percent / 100.0));
+            int height = Math.Max(1, (int)Math.Round(HeightPixels * percent / 100.0));
+            return SetSize(width, height);
         }
 
         /// <summary>
