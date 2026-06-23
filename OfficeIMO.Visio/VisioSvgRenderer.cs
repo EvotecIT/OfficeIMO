@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Xml;
+using OfficeIMO.Drawing;
 using Color = OfficeIMO.Drawing.OfficeColor;
 
 
@@ -29,19 +30,19 @@ namespace OfficeIMO.Visio {
             using (XmlWriter writer = XmlWriter.Create(new StringWriter(builder, CultureInfo.InvariantCulture), settings)) {
                 writer.WriteStartDocument();
                 writer.WriteStartElement("svg", SvgNamespace);
-                writer.WriteAttributeString("width", Format(width));
-                writer.WriteAttributeString("height", Format(height));
-                writer.WriteAttributeString("viewBox", "0 0 " + Format(width) + " " + Format(height));
+                writer.WriteNumberAttribute("width", width);
+                writer.WriteNumberAttribute("height", height);
+                writer.WriteViewBoxAttribute(0D, 0D, width, height);
                 writer.WriteAttributeString("role", "img");
                 writer.WriteAttributeString("aria-label", string.IsNullOrWhiteSpace(page.Name) ? "OfficeIMO Visio page" : page.Name);
 
                 if (options.BackgroundColor.HasValue && options.BackgroundColor.Value.A > 0) {
                     writer.WriteStartElement("rect", SvgNamespace);
-                    writer.WriteAttributeString("x", "0");
-                    writer.WriteAttributeString("y", "0");
-                    writer.WriteAttributeString("width", Format(width));
-                    writer.WriteAttributeString("height", Format(height));
-                    WriteColor(writer, "fill", options.BackgroundColor.Value);
+                    writer.WriteNumberAttribute("x", 0D);
+                    writer.WriteNumberAttribute("y", 0D);
+                    writer.WriteNumberAttribute("width", width);
+                    writer.WriteNumberAttribute("height", height);
+                    OfficeSvgFormatting.WriteColorAttribute(writer, "fill", options.BackgroundColor.Value);
                     writer.WriteEndElement();
                 }
 

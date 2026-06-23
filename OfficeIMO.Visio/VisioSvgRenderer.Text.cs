@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using System.Text;
 using System.Xml;
+using OfficeIMO.Drawing;
 using Color = OfficeIMO.Drawing.OfficeColor;
 
 
@@ -58,16 +58,27 @@ namespace OfficeIMO.Visio {
             double fontSize = PointsToSvgPixels(style?.Size ?? defaultSize, scale);
             double availableWidth = IsFinitePositive(maxWidth) ? maxWidth : double.PositiveInfinity;
             double availableHeight = IsFinitePositive(maxHeight) ? maxHeight : double.PositiveInfinity;
-            TextLayout layout = CreateTextLayout(text, fontSize, availableWidth, availableHeight);
+            OfficeTextBlockLayout layout = OfficeTextLayoutEngine.FitWrappedText(
+                text,
+                fontSize,
+                availableWidth,
+                availableHeight,
+                lineHeightFactor: 1.2D,
+                minimumFontSize: 5D,
+                EstimateTextWidth);
             fontSize = layout.FontSize;
-            double anchorX = ResolveTextAnchorX(x, availableWidth, style?.HorizontalAlignment);
-            double top = ResolveTextTop(y, layout.Height, availableHeight, style?.VerticalAlignment);
+            OfficeTextAlignment alignment = VisioDrawingTextAlignment.ToOfficeTextAlignment(style?.HorizontalAlignment);
+            OfficeTextVerticalAlignment verticalAlignment = VisioDrawingTextAlignment.ToOfficeTextVerticalAlignment(style?.VerticalAlignment);
+            double anchorX = OfficeTextPlacement.ResolveAnchorXFromCenter(x, availableWidth, alignment);
+            double top = OfficeTextPlacement.ResolveTopFromCenter(y, availableHeight, layout.Height, verticalAlignment);
+            double left = x - (availableWidth / 2D);
+            double blockTop = y - (availableHeight / 2D);
 
             Color? backgroundColor = ResolveTextBackground(style, drawLabelBackground);
             if (backgroundColor.HasValue) {
                 double padX = Math.Max(3D, fontSize * 0.22D);
                 double padY = Math.Max(2D, fontSize * 0.16D);
-                double backgroundLeft = GetAlignedTextLeft(anchorX, layout.Width, style?.HorizontalAlignment) - padX;
+                double backgroundLeft = OfficeTextPlacement.ResolveLeftFromAnchor(anchorX, layout.Width, alignment) - padX;
                 writer.WriteStartElement("rect", SvgNamespace);
                 writer.WriteAttributeString("data-officeimo-text-background", "true");
                 if (drawLabelBackground) {
@@ -78,46 +89,37 @@ namespace OfficeIMO.Visio {
                     writer.WriteAttributeString("data-officeimo-label-adjusted", "true");
                 }
 
-                writer.WriteAttributeString("x", Format(backgroundLeft));
-                writer.WriteAttributeString("y", Format(top - padY));
-                writer.WriteAttributeString("width", Format(layout.Width + (padX * 2D)));
-                writer.WriteAttributeString("height", Format(layout.Height + (padY * 2D)));
+                writer.WriteNumberAttribute("x", backgroundLeft);
+                writer.WriteNumberAttribute("y", top - padY);
+                writer.WriteNumberAttribute("width", layout.Width + (padX * 2D));
+                writer.WriteNumberAttribute("height", layout.Height + (padY * 2D));
                 if (Math.Abs(rotateRadians) > 1e-9) {
                     writer.WriteAttributeString("transform", FormatTextRotation(rotateRadians, x, y));
                 }
 
-                WriteColor(writer, "fill", backgroundColor.Value);
+                OfficeSvgFormatting.WriteColorAttribute(writer, "fill", backgroundColor.Value);
                 writer.WriteEndElement();
             }
 
-            writer.WriteStartElement("text", SvgNamespace);
-            if (labelAdjusted) {
-                writer.WriteAttributeString("data-officeimo-label-adjusted", "true");
-            }
-
-            writer.WriteAttributeString("x", Format(anchorX));
-            writer.WriteAttributeString("y", Format(top + (fontSize / 2D)));
-            writer.WriteAttributeString("font-family", string.IsNullOrWhiteSpace(style?.FontFamily) ? "Aptos, Calibri, Arial, sans-serif" : style!.FontFamily);
-            writer.WriteAttributeString("font-size", Format(fontSize));
-            writer.WriteAttributeString("text-anchor", GetTextAnchor(style));
-            writer.WriteAttributeString("dominant-baseline", "middle");
-            WriteColor(writer, "fill", style?.Color ?? Color.FromRgb(17, 24, 39));
-            if (style?.Bold == true) writer.WriteAttributeString("font-weight", "700");
-            if (style?.Italic == true) writer.WriteAttributeString("font-style", "italic");
-            if (style?.Underline == true) writer.WriteAttributeString("text-decoration", "underline");
-            if (Math.Abs(rotateRadians) > 1e-9) {
-                writer.WriteAttributeString("transform", FormatTextRotation(rotateRadians, x, y));
-            }
-
-            for (int i = 0; i < layout.Lines.Length; i++) {
-                writer.WriteStartElement("tspan", SvgNamespace);
-                writer.WriteAttributeString("x", Format(anchorX));
-                writer.WriteAttributeString("dy", i == 0 ? "0" : Format(layout.LineHeight));
-                writer.WriteString(layout.Lines[i]);
-                writer.WriteEndElement();
-            }
-
-            writer.WriteEndElement();
+            OfficeTextBlockRenderer.WriteSvgTextBlock(
+                writer,
+                layout,
+                left,
+                blockTop,
+                availableWidth,
+                availableHeight,
+                style?.Color ?? Color.FromRgb(17, 24, 39),
+                string.IsNullOrWhiteSpace(style?.FontFamily) ? "Aptos, Calibri, Arial, sans-serif" : style!.FontFamily,
+                alignment,
+                verticalAlignment,
+                style?.Bold == true,
+                style?.Italic == true,
+                style?.Underline == true,
+                RadiansToDegrees(-rotateRadians),
+                x,
+                y,
+                SvgNamespace,
+                labelAdjusted ? static textWriter => textWriter.WriteAttributeString("data-officeimo-label-adjusted", "true") : null);
         }
 
         private static void WriteArrow(
@@ -141,10 +143,12 @@ namespace OfficeIMO.Visio {
 
             writer.WriteStartElement("path", SvgNamespace);
             writer.WriteAttributeString("data-officeimo-connector-arrow", position);
-            writer.WriteAttributeString("d", "M " + Format(tipX) + " " + Format(tipY) +
-                                             " L " + Format(x1) + " " + Format(y1) +
-                                             " L " + Format(x2) + " " + Format(y2) + " Z");
-            WriteColor(writer, "fill", color);
+            writer.WriteAttributeString("d", OfficeSvgFormatting.FormatMoveLinePathData(new[] {
+                new OfficePoint(tipX, tipY),
+                new OfficePoint(x1, y1),
+                new OfficePoint(x2, y2)
+            }, closePath: true));
+            OfficeSvgFormatting.WriteColorAttribute(writer, "fill", color);
             writer.WriteAttributeString("stroke", "none");
             writer.WriteEndElement();
         }
@@ -182,96 +186,13 @@ namespace OfficeIMO.Visio {
             return false;
         }
 
-        private static TextLayout CreateTextLayout(string text, double fontSize, double maxWidth, double maxHeight) {
-            string[] lines = WrapText(text, fontSize, maxWidth);
-            double lineHeight = fontSize * 1.2D;
-            double measuredWidth = MeasureMaxLineWidth(lines, fontSize);
-            double measuredHeight = Math.Max(fontSize, ((lines.Length - 1) * lineHeight) + fontSize);
-            double scaleDown = Math.Min(1D, Math.Min(maxWidth / Math.Max(measuredWidth, 1D), maxHeight / Math.Max(measuredHeight, 1D)));
-            if (scaleDown < 0.98D) {
-                fontSize = Math.Max(5D, fontSize * scaleDown);
-                lines = WrapText(text, fontSize, maxWidth);
-                lineHeight = fontSize * 1.2D;
-                measuredWidth = MeasureMaxLineWidth(lines, fontSize);
-                measuredHeight = Math.Max(fontSize, ((lines.Length - 1) * lineHeight) + fontSize);
+        private static double EstimateTextWidth(string? text, double fontSize) {
+            if (string.IsNullOrEmpty(text)) {
+                return 0D;
             }
 
-            return new TextLayout(lines, fontSize, lineHeight, measuredWidth, measuredHeight);
-        }
-
-        private static string[] WrapText(string text, double fontSize, double maxWidth) {
-            string[] sourceLines = text.Replace("\r\n", "\n").Replace("\r", "\n").Split('\n');
-            List<string> output = new();
-            foreach (string sourceLine in sourceLines) {
-                string line = sourceLine.Trim();
-                if (line.Length == 0) {
-                    output.Add(string.Empty);
-                    continue;
-                }
-
-                string[] words = line.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                string current = string.Empty;
-                for (int i = 0; i < words.Length; i++) {
-                    string word = words[i];
-                    if (EstimateTextWidth(word, fontSize) > maxWidth) {
-                        if (current.Length > 0) {
-                            output.Add(current);
-                            current = string.Empty;
-                        }
-
-                        foreach (string part in BreakWord(word, fontSize, maxWidth)) {
-                            output.Add(part);
-                        }
-
-                        continue;
-                    }
-
-                    string candidate = current.Length == 0 ? word : current + " " + word;
-                    if (current.Length > 0 && EstimateTextWidth(candidate, fontSize) > maxWidth) {
-                        output.Add(current);
-                        current = word;
-                    } else {
-                        current = candidate;
-                    }
-                }
-
-                if (current.Length > 0) {
-                    output.Add(current);
-                }
-            }
-
-            return output.Count == 0 ? new[] { string.Empty } : output.ToArray();
-        }
-
-        private static IEnumerable<string> BreakWord(string word, double fontSize, double maxWidth) {
-            StringBuilder part = new();
-            foreach (char c in word) {
-                string candidate = part.ToString() + c;
-                if (part.Length > 0 && EstimateTextWidth(candidate, fontSize) > maxWidth) {
-                    yield return part.ToString();
-                    part.Clear();
-                }
-
-                part.Append(c);
-            }
-
-            if (part.Length > 0) {
-                yield return part.ToString();
-            }
-        }
-
-        private static double MeasureMaxLineWidth(IReadOnlyList<string> lines, double fontSize) {
-            double max = 0D;
-            for (int i = 0; i < lines.Count; i++) {
-                max = Math.Max(max, EstimateTextWidth(lines[i], fontSize));
-            }
-
-            return max;
-        }
-
-        private static double EstimateTextWidth(string text, double fontSize) {
             double width = 0D;
-            foreach (char c in text) {
+            foreach (char c in text!) {
                 if (char.IsWhiteSpace(c)) {
                     width += fontSize * 0.32D;
                 } else if ("ilI.,'!:;|".IndexOf(c) >= 0) {
@@ -286,47 +207,6 @@ namespace OfficeIMO.Visio {
             }
 
             return width;
-        }
-
-        private static double ResolveTextAnchorX(double centerX, double maxWidth, VisioTextHorizontalAlignment? alignment) {
-            if (!IsFinitePositive(maxWidth)) {
-                return centerX;
-            }
-
-            switch (alignment) {
-                case VisioTextHorizontalAlignment.Left:
-                    return centerX - (maxWidth / 2D);
-                case VisioTextHorizontalAlignment.Right:
-                    return centerX + (maxWidth / 2D);
-                default:
-                    return centerX;
-            }
-        }
-
-        private static double ResolveTextTop(double centerY, double measuredHeight, double maxHeight, VisioTextVerticalAlignment? alignment) {
-            if (!IsFinitePositive(maxHeight)) {
-                return centerY - (measuredHeight / 2D);
-            }
-
-            switch (alignment) {
-                case VisioTextVerticalAlignment.Top:
-                    return centerY - (maxHeight / 2D);
-                case VisioTextVerticalAlignment.Bottom:
-                    return centerY + (maxHeight / 2D) - measuredHeight;
-                default:
-                    return centerY - (measuredHeight / 2D);
-            }
-        }
-
-        private static double GetAlignedTextLeft(double anchorX, double width, VisioTextHorizontalAlignment? alignment) {
-            switch (alignment) {
-                case VisioTextHorizontalAlignment.Left:
-                    return anchorX;
-                case VisioTextHorizontalAlignment.Right:
-                    return anchorX - width;
-                default:
-                    return anchorX - (width / 2D);
-            }
         }
 
         private static bool IsFinitePositive(double value) =>
@@ -351,37 +231,7 @@ namespace OfficeIMO.Visio {
         }
 
         private static string FormatTextRotation(double radians, double centerX, double centerY) =>
-            "rotate(" + Format(RadiansToDegrees(-radians)) + " " + Format(centerX) + " " + Format(centerY) + ")";
+            OfficeSvgFormatting.FormatRotateTransform(RadiansToDegrees(-radians), centerX, centerY);
 
-        private static string GetTextAnchor(VisioTextStyle? style) {
-            switch (style?.HorizontalAlignment) {
-                case VisioTextHorizontalAlignment.Left:
-                    return "start";
-                case VisioTextHorizontalAlignment.Right:
-                    return "end";
-                default:
-                    return "middle";
-            }
-        }
-
-        private sealed class TextLayout {
-            internal TextLayout(string[] lines, double fontSize, double lineHeight, double width, double height) {
-                Lines = lines;
-                FontSize = fontSize;
-                LineHeight = lineHeight;
-                Width = width;
-                Height = height;
-            }
-
-            internal string[] Lines { get; }
-
-            internal double FontSize { get; }
-
-            internal double LineHeight { get; }
-
-            internal double Width { get; }
-
-            internal double Height { get; }
-        }
     }
 }

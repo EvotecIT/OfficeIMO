@@ -106,7 +106,7 @@ namespace OfficeIMO.Visio {
 
         private static bool DrawPackagePreviewArtwork(RasterCanvas canvas, VisioPage page, VisioShape shape) {
             if (!VisioPackagePreviewArtwork.TryGetPng(shape, out VisioPreviewImage image) ||
-                !PngRaster.TryDecode(image.Data, out PngRaster? raster) ||
+                !OfficePngReader.TryDecode(image.Data, out OfficeRasterImage? raster) ||
                 raster == null) {
                 return false;
             }

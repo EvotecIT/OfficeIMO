@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Visio.Stencils {
     /// <summary>
@@ -310,19 +311,35 @@ namespace OfficeIMO.Visio.Stencils {
             string contentType = string.IsNullOrWhiteSpace(image.PreviewImage.ContentType)
                 ? GetContentTypeFromExtension(image.PreviewImage.Extension)
                 : image.PreviewImage.ContentType!;
-            string dataUri = "data:" + contentType + ";base64," + Convert.ToBase64String(image.Data);
+            string dataUri = OfficeSvgImageRenderer.CreateDataUri(contentType, image.Data);
             string width = options.ThumbnailWidth.ToString(CultureInfo.InvariantCulture);
             string height = options.ThumbnailHeight.ToString(CultureInfo.InvariantCulture);
-            string imageWidth = Math.Max(1, options.ThumbnailWidth - 28).ToString(CultureInfo.InvariantCulture);
-            string imageHeight = Math.Max(1, options.ThumbnailHeight - 42).ToString(CultureInfo.InvariantCulture);
+            double imageWidth = Math.Max(1, options.ThumbnailWidth - 28);
+            double imageHeight = Math.Max(1, options.ThumbnailHeight - 42);
 
             StringBuilder builder = new();
             builder.AppendLine("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
             builder.AppendLine("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"" + width + "\" height=\"" + height + "\" viewBox=\"0 0 " + width + " " + height + "\" role=\"img\" aria-label=\"" + EscapeXml(displayName) + "\">");
-            builder.AppendLine("  <rect width=\"100%\" height=\"100%\" rx=\"8\" fill=\"#ffffff\"/>");
-            builder.AppendLine("  <rect x=\"0.5\" y=\"0.5\" width=\"" + (options.ThumbnailWidth - 1).ToString(CultureInfo.InvariantCulture) + "\" height=\"" + (options.ThumbnailHeight - 1).ToString(CultureInfo.InvariantCulture) + "\" rx=\"7.5\" fill=\"none\" stroke=\"#d3e0ec\"/>");
-            builder.AppendLine("  <image x=\"14\" y=\"12\" width=\"" + imageWidth + "\" height=\"" + imageHeight + "\" preserveAspectRatio=\"xMidYMid meet\" href=\"" + dataUri + "\"/>");
-            builder.AppendLine("  <text x=\"14\" y=\"" + (options.ThumbnailHeight - 14).ToString(CultureInfo.InvariantCulture) + "\" font-family=\"Aptos, Segoe UI, Arial, sans-serif\" font-size=\"12\" fill=\"#657586\">" + EscapeXml(displayName) + "</text>");
+            builder.Append("  ").AppendRectElement(0D, 0D, options.ThumbnailWidth, options.ThumbnailHeight, 8D, 8D, " fill=\"#FFFFFF\"").AppendLine();
+            builder.Append("  ").AppendRectElement(0.5D, 0.5D, options.ThumbnailWidth - 1D, options.ThumbnailHeight - 1D, 7.5D, 7.5D, " fill=\"none\" stroke=\"#D3E0EC\"").AppendLine();
+            builder.Append("  ");
+            OfficeSvgImageRenderer.AppendImage(
+                builder,
+                dataUri,
+                14D,
+                12D,
+                imageWidth,
+                imageHeight,
+                preserveAspectRatio: "xMidYMid meet").AppendLine();
+            builder.Append("  ").AppendSvgTextElement(
+                displayName,
+                14D,
+                options.ThumbnailHeight - 14D,
+                12D,
+                OfficeColor.FromRgb(101, 117, 134),
+                "Aptos, Segoe UI, Arial, sans-serif",
+                12D,
+                OfficeTextAlignment.Left).AppendLine();
             builder.AppendLine("</svg>");
             File.WriteAllText(path, builder.ToString(), new UTF8Encoding(false));
             return path;

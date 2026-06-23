@@ -9,7 +9,6 @@ using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Visio {
     internal static partial class VisioPngRenderer {
-        private static readonly byte[] PngSignature = { 137, 80, 78, 71, 13, 10, 26, 10 };
 
         public static byte[] Render(VisioPage page, VisioPngSaveOptions options) {
             if (options.PixelsPerInch <= 0D || double.IsNaN(options.PixelsPerInch) || double.IsInfinity(options.PixelsPerInch)) {
@@ -36,7 +35,7 @@ namespace OfficeIMO.Visio {
                 DrawConnector(canvas, page, connector, options, labelLayout);
             }
 
-            return EncodePngRgba(width, height, canvas.Resolve());
+            return OfficePngWriter.EncodeRgba(width, height, canvas.Resolve());
         }
 
         private static OfficeTrueTypeFont? ResolveTextFont(VisioPngSaveOptions options) {
@@ -70,7 +69,7 @@ namespace OfficeIMO.Visio {
                 for (int i = 0; i < renderedPaths.Count;) {
                     RenderedPreservedPath renderedPath = renderedPaths[i];
                     if (!renderedPath.Path.IsClosed || renderedPath.Path.NoFill || fill.A == 0) {
-                        StrokeRenderedPreservedPath(canvas, renderedPath, stroke, strokeWidth, shape.LinePattern != 1);
+                        StrokeRenderedPreservedPath(canvas, renderedPath, stroke, strokeWidth, OfficeStrokeDashStyleMapper.FromVisioLinePattern(shape.LinePattern));
                         i++;
                         continue;
                     }
@@ -88,7 +87,7 @@ namespace OfficeIMO.Visio {
 
                     canvas.FillPolygonsEvenOdd(contours, fill);
                     for (int pathIndex = i; pathIndex < end; pathIndex++) {
-                        StrokeRenderedPreservedPath(canvas, renderedPaths[pathIndex], stroke, strokeWidth, shape.LinePattern != 1);
+                        StrokeRenderedPreservedPath(canvas, renderedPaths[pathIndex], stroke, strokeWidth, OfficeStrokeDashStyleMapper.FromVisioLinePattern(shape.LinePattern));
                     }
 
                     i = end;
@@ -104,7 +103,7 @@ namespace OfficeIMO.Visio {
                     shape.FillPattern == 0 ? Color.Transparent : shape.FillColor,
                     HasVisibleLine(shape) ? shape.LineColor : Color.Transparent,
                     Math.Max(shape.LineWeight * canvas.Scale, canvas.Supersampling),
-                    shape.LinePattern != 1,
+                    OfficeStrokeDashStyleMapper.FromVisioLinePattern(shape.LinePattern),
                     ToRasterRotation(shape.Angle),
                     cx,
                     cy);
@@ -119,11 +118,12 @@ namespace OfficeIMO.Visio {
                 }
 
                 canvas.FillPolygon(points, shape.FillPattern == 0 ? Color.Transparent : shape.FillColor);
-                canvas.StrokePolygon(points, HasVisibleLine(shape) ? shape.LineColor : Color.Transparent, Math.Max(shape.LineWeight * canvas.Scale, canvas.Supersampling), shape.LinePattern != 1);
+                canvas.StrokePolygon(points, HasVisibleLine(shape) ? shape.LineColor : Color.Transparent, Math.Max(shape.LineWeight * canvas.Scale, canvas.Supersampling), OfficeStrokeDashStyleMapper.FromVisioLinePattern(shape.LinePattern));
             }
 
             if (options.RenderStencilArtwork) {
-                if (!DrawPackagePreviewArtwork(canvas, page, shape)) {
+                if (!DrawPackagePreviewArtwork(canvas, page, shape) &&
+                    !VisioPackagePreviewArtwork.HasPreviewMetadata(shape)) {
                     DrawStencilArtwork(canvas, page, shape);
                 }
             }
@@ -165,12 +165,12 @@ namespace OfficeIMO.Visio {
             RenderedPreservedPath renderedPath,
             Color stroke,
             double strokeWidth,
-            bool dashed) {
+            OfficeStrokeDashStyle dashStyle) {
             Color pathStroke = renderedPath.Path.NoLine ? Color.Transparent : stroke;
             if (renderedPath.Path.IsClosed) {
-                canvas.StrokePolygon(renderedPath.Points, pathStroke, strokeWidth, dashed);
+                canvas.StrokePolygon(renderedPath.Points, pathStroke, strokeWidth, dashStyle);
             } else {
-                canvas.StrokePolyline(renderedPath.Points, pathStroke, strokeWidth, dashed);
+                canvas.StrokePolyline(renderedPath.Points, pathStroke, strokeWidth, dashStyle);
             }
         }
 
@@ -204,7 +204,7 @@ namespace OfficeIMO.Visio {
             Color fill = shape.FillPattern == 0 ? Color.Transparent : shape.FillColor;
             Color stroke = HasVisibleLine(shape) ? shape.LineColor : Color.Transparent;
             double strokeWidth = Math.Max(shape.LineWeight * canvas.Scale, canvas.Supersampling);
-            bool dashed = shape.LinePattern != 1;
+            OfficeStrokeDashStyle dashStyle = OfficeStrokeDashStyleMapper.FromVisioLinePattern(shape.LinePattern);
 
             List<(double X, double Y)> body = new() {
                 ToRasterPoint(page, shape, 0D, capHeight, canvas.Scale),
@@ -215,8 +215,8 @@ namespace OfficeIMO.Visio {
 
             canvas.FillPolygon(body, fill);
             double rasterRotation = ToRasterRotation(shape.Angle);
-            canvas.DrawEllipse(bottomX, bottomY, radiusX, radiusY, fill, Color.Transparent, strokeWidth, dashed, rasterRotation, bottomX, bottomY);
-            canvas.DrawEllipse(topX, topY, radiusX, radiusY, fill, Color.Transparent, strokeWidth, dashed, rasterRotation, topX, topY);
+            canvas.DrawEllipse(bottomX, bottomY, radiusX, radiusY, fill, Color.Transparent, strokeWidth, dashStyle, rasterRotation, bottomX, bottomY);
+            canvas.DrawEllipse(topX, topY, radiusX, radiusY, fill, Color.Transparent, strokeWidth, dashStyle, rasterRotation, topX, topY);
             if (stroke.A == 0) {
                 return;
             }
@@ -228,7 +228,7 @@ namespace OfficeIMO.Visio {
                 },
                 stroke,
                 strokeWidth,
-                dashed);
+                dashStyle);
             canvas.StrokePolyline(
                 new[] {
                     ToRasterPoint(page, shape, shape.Width, capHeight, canvas.Scale),
@@ -236,9 +236,9 @@ namespace OfficeIMO.Visio {
                 },
                 stroke,
                 strokeWidth,
-                dashed);
-            canvas.DrawEllipse(bottomX, bottomY, radiusX, radiusY, Color.Transparent, stroke, strokeWidth, dashed, rasterRotation, bottomX, bottomY);
-            canvas.DrawEllipse(topX, topY, radiusX, radiusY, Color.Transparent, stroke, strokeWidth, dashed, rasterRotation, topX, topY);
+                dashStyle);
+            canvas.DrawEllipse(bottomX, bottomY, radiusX, radiusY, Color.Transparent, stroke, strokeWidth, dashStyle, rasterRotation, bottomX, bottomY);
+            canvas.DrawEllipse(topX, topY, radiusX, radiusY, Color.Transparent, stroke, strokeWidth, dashStyle, rasterRotation, topX, topY);
         }
 
         private static void DrawConnector(RasterCanvas canvas, VisioPage page, VisioConnector connector, VisioPngSaveOptions options, VisioRenderLabelLayout? labelLayout) {
@@ -250,7 +250,7 @@ namespace OfficeIMO.Visio {
 
             bool visibleLine = connector.LinePattern != 0 && connector.LineWeight > 0D && connector.LineColor.A > 0;
             double weight = Math.Max(connector.LineWeight * canvas.Scale, canvas.Supersampling);
-            canvas.StrokePolyline(points, visibleLine ? connector.LineColor : Color.Transparent, weight, connector.LinePattern != 1);
+            canvas.StrokePolyline(points, visibleLine ? connector.LineColor : Color.Transparent, weight, OfficeStrokeDashStyleMapper.FromVisioLinePattern(connector.LinePattern));
 
             if (visibleLine && connector.BeginArrow.HasValue && connector.BeginArrow.Value != EndArrow.None && TryGetArrowSegment(points, fromStart: true, out (double X, double Y) beginTip, out (double X, double Y) beginFrom)) {
                 DrawArrow(canvas, beginTip, beginFrom, connector.LineColor, weight);

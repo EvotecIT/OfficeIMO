@@ -10,6 +10,22 @@ namespace OfficeIMO.Visio {
     /// Generates premium OfficeIMO.Visio reference diagrams used for showcase and visual baseline proof.
     /// </summary>
     public static class VisioPremiumGallery {
+        private static readonly IReadOnlyList<VisioPremiumGalleryScenario> Scenarios = new[] {
+            new VisioPremiumGalleryScenario("Premium Cloud Architecture", "Premium - Cloud Architecture.vsdx", CreateCloudArchitecture),
+            new VisioPremiumGalleryScenario("Premium Network Segmentation", "Premium - Network Segmentation.vsdx", CreateNetworkSegmentation),
+            new VisioPremiumGalleryScenario("Premium Executive Dependencies", "Premium - Executive Dependencies.vsdx", CreateExecutiveDependencyGraph),
+            new VisioPremiumGalleryScenario("Premium Technical Topology", "Premium - Technical Topology.vsdx", CreateTechnicalTopology),
+            new VisioPremiumGalleryScenario("Premium Print Audit Trail", "Premium - Print Audit Trail.vsdx", CreatePrintAuditTrail),
+            new VisioPremiumGalleryScenario("Premium Incident Sequence", "Premium - Incident Sequence.vsdx", CreateIncidentSequence),
+            new VisioPremiumGalleryScenario("Premium Release Timeline", "Premium - Release Timeline.vsdx", CreateReleaseTimeline),
+            new VisioPremiumGalleryScenario("Premium Governed Process", "Premium - Governed Process.vsdx", CreateGovernedSwimlane)
+        };
+
+        /// <summary>
+        /// Gets the premium gallery scenario names in gallery generation order.
+        /// </summary>
+        public static IReadOnlyList<string> ScenarioNames { get; } = CreateScenarioNames();
+
         /// <summary>
         /// Generates premium gallery documents into a folder and optionally validates them.
         /// </summary>
@@ -22,22 +38,37 @@ namespace OfficeIMO.Visio {
 
             Directory.CreateDirectory(folderPath);
             VisioGalleryOptions resolvedOptions = options ?? new VisioGalleryOptions();
-            List<VisioGalleryResult> results = new() {
-                CreateResult("Premium Cloud Architecture", Path.Combine(folderPath, "Premium - Cloud Architecture.vsdx"), CreateCloudArchitecture, resolvedOptions),
-                CreateResult("Premium Network Segmentation", Path.Combine(folderPath, "Premium - Network Segmentation.vsdx"), CreateNetworkSegmentation, resolvedOptions),
-                CreateResult("Premium Executive Dependencies", Path.Combine(folderPath, "Premium - Executive Dependencies.vsdx"), CreateExecutiveDependencyGraph, resolvedOptions),
-                CreateResult("Premium Technical Topology", Path.Combine(folderPath, "Premium - Technical Topology.vsdx"), CreateTechnicalTopology, resolvedOptions),
-                CreateResult("Premium Print Audit Trail", Path.Combine(folderPath, "Premium - Print Audit Trail.vsdx"), CreatePrintAuditTrail, resolvedOptions),
-                CreateResult("Premium Incident Sequence", Path.Combine(folderPath, "Premium - Incident Sequence.vsdx"), CreateIncidentSequence, resolvedOptions),
-                CreateResult("Premium Release Timeline", Path.Combine(folderPath, "Premium - Release Timeline.vsdx"), CreateReleaseTimeline, resolvedOptions),
-                CreateResult("Premium Governed Process", Path.Combine(folderPath, "Premium - Governed Process.vsdx"), CreateGovernedSwimlane, resolvedOptions)
-            };
+            List<VisioGalleryResult> results = new(Scenarios.Count);
+            for (int i = 0; i < Scenarios.Count; i++) {
+                results.Add(CreateResult(Scenarios[i], folderPath, resolvedOptions));
+            }
 
             return results;
         }
 
-        private static VisioGalleryResult CreateResult(string name, string filePath, Func<string, VisioDocument> createDocument, VisioGalleryOptions options) {
-            VisioDocument document = createDocument(filePath);
+        /// <summary>
+        /// Generates one premium gallery document into a folder and optionally validates it.
+        /// </summary>
+        /// <param name="folderPath">Target folder.</param>
+        /// <param name="scenarioName">Scenario name from <see cref="ScenarioNames"/>.</param>
+        /// <param name="options">Gallery generation options.</param>
+        public static VisioGalleryResult CreateScenario(string folderPath, string scenarioName, VisioGalleryOptions? options = null) {
+            if (string.IsNullOrWhiteSpace(folderPath)) {
+                throw new ArgumentException("Folder path cannot be null or whitespace.", nameof(folderPath));
+            }
+
+            if (string.IsNullOrWhiteSpace(scenarioName)) {
+                throw new ArgumentException("Scenario name cannot be null or whitespace.", nameof(scenarioName));
+            }
+
+            Directory.CreateDirectory(folderPath);
+            VisioPremiumGalleryScenario scenario = FindScenario(scenarioName);
+            return CreateResult(scenario, folderPath, options ?? new VisioGalleryOptions());
+        }
+
+        private static VisioGalleryResult CreateResult(VisioPremiumGalleryScenario scenario, string folderPath, VisioGalleryOptions options) {
+            string filePath = Path.Combine(folderPath, scenario.FileName);
+            VisioDocument document = scenario.CreateDocument(filePath);
             document.Save();
 
             IReadOnlyList<string> packageIssues = options.ValidatePackage
@@ -50,7 +81,26 @@ namespace OfficeIMO.Visio {
                 ? VisioDesktopValidator.Validate(filePath, options.DesktopValidationOptions)
                 : null;
 
-            return new VisioGalleryResult(name, filePath, packageIssues, qualityIssues, desktopValidation, options.RequireVisioDesktop);
+            return new VisioGalleryResult(scenario.Name, filePath, packageIssues, qualityIssues, desktopValidation, options.RequireVisioDesktop);
+        }
+
+        private static VisioPremiumGalleryScenario FindScenario(string scenarioName) {
+            for (int i = 0; i < Scenarios.Count; i++) {
+                if (string.Equals(Scenarios[i].Name, scenarioName, StringComparison.Ordinal)) {
+                    return Scenarios[i];
+                }
+            }
+
+            throw new ArgumentException("Unknown premium Visio gallery scenario: " + scenarioName, nameof(scenarioName));
+        }
+
+        private static IReadOnlyList<string> CreateScenarioNames() {
+            string[] names = new string[Scenarios.Count];
+            for (int i = 0; i < Scenarios.Count; i++) {
+                names[i] = Scenarios[i].Name;
+            }
+
+            return names;
         }
 
         private static VisioDocument CreateCloudArchitecture(string filePath) {
@@ -301,6 +351,18 @@ namespace OfficeIMO.Visio {
                     .Flow("provision", "evidence")
                     .Flow("evidence", "notify")
                     .Callout("evidence", "Retention: 1 year", VisioSide.Bottom));
+        }
+
+        private sealed class VisioPremiumGalleryScenario {
+            internal VisioPremiumGalleryScenario(string name, string fileName, Func<string, VisioDocument> createDocument) {
+                Name = name;
+                FileName = fileName;
+                CreateDocument = createDocument;
+            }
+
+            internal string Name { get; }
+            internal string FileName { get; }
+            internal Func<string, VisioDocument> CreateDocument { get; }
         }
     }
 }

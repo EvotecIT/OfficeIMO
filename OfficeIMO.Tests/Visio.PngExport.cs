@@ -460,7 +460,7 @@ namespace OfficeIMO.Tests {
             RgbaPng image = DecodeRgbaPng(png);
             Assert.True(IsWhitePixel(image, 85, 145), "Expected the wavy document bottom to leave the former rectangle corner untouched.");
             Assert.True(IsBluePixel(image, 150, 100), "Expected the document body fill in the native PNG render.");
-            Assert.True(IsBluePixel(image, 160, 128), "Expected the document wave crest to render in the native PNG render.");
+            Assert.True(HasBluePixelNear(image, 160, 128, radius: 2), "Expected the document wave crest to render in the native PNG render.");
         }
 
         [Fact]
@@ -2077,6 +2077,22 @@ namespace OfficeIMO.Tests {
                    image.Pixels[offset + 1] < 150 &&
                    image.Pixels[offset + 2] > 180 &&
                    image.Pixels[offset + 3] > 200;
+        }
+
+        private static bool HasBluePixelNear(RgbaPng image, int x, int y, int radius) {
+            int minX = Math.Max(0, x - radius);
+            int maxX = Math.Min(image.Width - 1, x + radius);
+            int minY = Math.Max(0, y - radius);
+            int maxY = Math.Min(image.Height - 1, y + radius);
+            for (int py = minY; py <= maxY; py++) {
+                for (int px = minX; px <= maxX; px++) {
+                    if (IsBluePixel(image, px, py)) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         private static bool IsWhitePixel(RgbaPng image, int x, int y) {

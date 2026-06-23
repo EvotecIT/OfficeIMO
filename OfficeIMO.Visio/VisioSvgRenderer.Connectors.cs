@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Xml;
+using OfficeIMO.Drawing;
 using Color = OfficeIMO.Drawing.OfficeColor;
 
 
@@ -22,13 +23,11 @@ namespace OfficeIMO.Visio {
             if (!visibleLine) {
                 writer.WriteAttributeString("stroke", "none");
             } else {
-                WriteColor(writer, "stroke", connector.LineColor);
-                writer.WriteAttributeString("stroke-width", Format(strokeWidth));
-                writer.WriteAttributeString("stroke-linecap", "round");
-                writer.WriteAttributeString("stroke-linejoin", "round");
-                if (connector.LinePattern != 1) {
-                    writer.WriteAttributeString("stroke-dasharray", Format(6D) + " " + Format(4D));
-                }
+                OfficeSvgFormatting.WriteColorAttribute(writer, "stroke", connector.LineColor);
+                writer.WriteNumberAttribute("stroke-width", strokeWidth);
+                writer.WriteStrokeLineCapAttribute(OfficeStrokeLineCap.Round);
+                writer.WriteStrokeLineJoinAttribute(OfficeStrokeLineJoin.Round);
+                writer.WriteStrokeDashStyleAttribute(OfficeStrokeDashStyleMapper.FromVisioLinePattern(connector.LinePattern), strokeWidth);
             }
 
             writer.WriteEndElement();
@@ -107,7 +106,7 @@ namespace OfficeIMO.Visio {
             }
 
             double position = VisioConnectorLabelPlacement.ClampPosition(placement?.Position ?? 0.5D);
-            (double x, double y) = InterpolatePath(points, position);
+            (double x, double y) = OfficeGeometry.InterpolatePolyline(points, position);
             return (x + (placement?.OffsetX ?? 0D), y + (placement?.OffsetY ?? 0D));
         }
 
@@ -119,31 +118,5 @@ namespace OfficeIMO.Visio {
             return new VisioRenderConnectorLabelPlacement(x, y, width, height, adjusted: false);
         }
 
-        private static (double X, double Y) InterpolatePath(IReadOnlyList<(double X, double Y)> points, double position) {
-            if (points.Count == 0) return (0D, 0D);
-            if (points.Count == 1) return points[0];
-
-            double total = 0D;
-            for (int i = 1; i < points.Count; i++) {
-                total += Distance(points[i - 1], points[i]);
-            }
-
-            if (total <= 0D) return points[0];
-            double target = total * position;
-            double traversed = 0D;
-            for (int i = 1; i < points.Count; i++) {
-                double segment = Distance(points[i - 1], points[i]);
-                if (traversed + segment >= target) {
-                    double t = segment <= 0D ? 0D : (target - traversed) / segment;
-                    return (
-                        points[i - 1].X + ((points[i].X - points[i - 1].X) * t),
-                        points[i - 1].Y + ((points[i].Y - points[i - 1].Y) * t));
-                }
-
-                traversed += segment;
-            }
-
-            return points[points.Count - 1];
-        }
     }
 }

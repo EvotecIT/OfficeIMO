@@ -1,28 +1,23 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Xml;
+using OfficeIMO.Drawing;
 using Color = OfficeIMO.Drawing.OfficeColor;
 
 
 namespace OfficeIMO.Visio {
     internal static partial class VisioSvgRenderer {
         private static string BuildPath(VisioPage page, VisioShape shape, IReadOnlyList<(double X, double Y)> localPoints, double scale, bool isClosed) {
-            StringBuilder builder = new();
+            List<OfficePoint> points = new(localPoints.Count);
             for (int i = 0; i < localPoints.Count; i++) {
                 (double absX, double absY) = GetPagePoint(shape, localPoints[i].X, localPoints[i].Y);
                 (double x, double y) = ToSvg(page, absX, absY, scale);
-                builder.Append(i == 0 ? "M " : " L ");
-                builder.Append(Format(x)).Append(' ').Append(Format(y));
+                points.Add(new OfficePoint(x, y));
             }
 
-            if (isClosed) {
-                builder.Append(" Z");
-            }
-
-            return builder.ToString();
+            return OfficeSvgFormatting.FormatMoveLinePathData(points, isClosed);
         }
 
         private static (double X, double Y) GetPagePoint(VisioShape shape, double x, double y) {
@@ -77,31 +72,24 @@ namespace OfficeIMO.Visio {
         }
 
         private static string BuildOpenPath(VisioPage page, IReadOnlyList<(double X, double Y)> points, double scale) {
-            StringBuilder builder = new();
+            List<OfficePoint> svgPoints = new(points.Count);
             for (int i = 0; i < points.Count; i++) {
                 (double x, double y) = ToSvg(page, points[i].X, points[i].Y, scale);
-                builder.Append(i == 0 ? "M " : " L ");
-                builder.Append(Format(x)).Append(' ').Append(Format(y));
+                svgPoints.Add(new OfficePoint(x, y));
             }
 
-            return builder.ToString();
+            return OfficeSvgFormatting.FormatMoveLinePathData(svgPoints);
         }
 
         private static (double X, double Y) ToSvg(VisioPage page, double x, double y, double scale) {
             return (x * scale, (page.Height - y) * scale);
         }
 
-        private static double Distance((double X, double Y) a, (double X, double Y) b) {
-            double dx = b.X - a.X;
-            double dy = b.Y - a.Y;
-            return Math.Sqrt((dx * dx) + (dy * dy));
-        }
+        private static double Distance((double X, double Y) a, (double X, double Y) b) =>
+            OfficeIMO.Drawing.OfficeGeometry.Distance(a, b);
 
         private static double RadiansToDegrees(double radians) => radians * 180D / Math.PI;
 
-        private static string Format(double value) {
-            if (Math.Abs(value) < 0.0000001D) value = 0D;
-            return value.ToString("0.###", CultureInfo.InvariantCulture);
-        }
+        private static string Format(double value) => OfficeSvgFormatting.FormatNumber(value);
     }
 }

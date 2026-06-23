@@ -35,6 +35,19 @@ namespace OfficeIMO.Visio {
             return true;
         }
 
+        internal static bool HasPreviewMetadata(VisioShape shape) {
+            if (shape == null) {
+                throw new ArgumentNullException(nameof(shape));
+            }
+
+            string? relationshipId = shape.GetUserCellValue(VisioSemanticUserCells.StencilPreviewImageRelationshipId) ??
+                                     shape.Master?.StencilPreviewImageRelationshipId;
+            string? target = shape.GetUserCellValue(VisioSemanticUserCells.StencilPreviewImageTarget) ??
+                             shape.Master?.StencilPreviewImageTarget;
+            return !string.IsNullOrWhiteSpace(relationshipId) ||
+                   !string.IsNullOrWhiteSpace(target);
+        }
+
         private static bool TryGetPreviewRelationship(VisioShape shape, out VisioAssets.MasterRelationshipContent? relationship) {
             relationship = null;
             if (shape.Master?.RawMasterRelationships.Count > 0 != true) {

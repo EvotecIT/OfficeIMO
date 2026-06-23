@@ -986,6 +986,10 @@ namespace OfficeIMO.Tests {
             Assert.Contains("data:image/png;base64,", thumbnail);
             Assert.Contains(Convert.ToBase64String(png), thumbnail);
             Assert.Contains("Fancy Cloud", thumbnail);
+            Assert.Contains("<rect x=\"0\" y=\"0\" width=\"180\" height=\"120\" rx=\"8\" ry=\"8\" fill=\"#FFFFFF\"/>", thumbnail);
+            Assert.Contains("<rect x=\"0.5\" y=\"0.5\" width=\"179\" height=\"119\" rx=\"7.5\" ry=\"7.5\" fill=\"none\" stroke=\"#D3E0EC\"/>", thumbnail);
+            Assert.Contains("<image x=\"14\" y=\"12\" width=\"152\" height=\"78\" preserveAspectRatio=\"xMidYMid meet\" href=\"data:image/png;base64,", thumbnail);
+            Assert.Contains("<text x=\"14\" y=\"106\" font-family=\"Aptos, Segoe UI, Arial, sans-serif\" font-size=\"12\" text-anchor=\"start\" fill=\"#657586\">Fancy Cloud</text>", thumbnail);
 
             string html = File.ReadAllText(gallery.IndexPath!);
             Assert.Contains("<strong>1</strong> thumbnails", html);

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using OfficeIMO.Drawing;
 using System.Linq;
 
 namespace OfficeIMO.Visio {
@@ -92,7 +93,7 @@ namespace OfficeIMO.Visio {
             }
 
             double position = VisioConnectorLabelPlacement.ClampPosition(placement?.Position ?? 0.5D);
-            (double x, double y) = InterpolatePath(path, position);
+            (double x, double y) = OfficeGeometry.InterpolatePolyline(path, position);
             double offsetX = placement?.OffsetX ?? 0D;
             double offsetY = placement?.OffsetY ?? 0D;
             return new LabelPlacementSeed(x + offsetX, y + offsetY, position, width, height, locPinX, locPinY, offsetX, offsetY);
@@ -106,13 +107,13 @@ namespace OfficeIMO.Visio {
                 foreach (int direction in new[] { 1, -1 }) {
                     double positionDelta = delta * direction;
                     double position = VisioConnectorLabelPlacement.ClampPosition(seed.Position + positionDelta);
-                    (double x, double y) = InterpolatePath(path, position);
+                    (double x, double y) = OfficeGeometry.InterpolatePolyline(path, position);
                     double candidateX = x + seed.OffsetX;
                     double candidateY = y + seed.OffsetY;
                     yield return new LabelCandidate(
                         candidateX,
                         candidateY,
-                        Distance(candidateX, candidateY, seed.X, seed.Y),
+                        OfficeGeometry.Distance(candidateX, candidateY, seed.X, seed.Y),
                         positionDelta);
                 }
             }
@@ -345,45 +346,6 @@ namespace OfficeIMO.Visio {
             y = sourceCenterY;
         }
 
-        private static (double X, double Y) InterpolatePath(IReadOnlyList<(double X, double Y)> points, double position) {
-            if (points.Count == 0) {
-                return (0D, 0D);
-            }
-
-            if (points.Count == 1) {
-                return points[0];
-            }
-
-            double total = 0D;
-            for (int i = 1; i < points.Count; i++) {
-                total += Distance(points[i - 1].X, points[i - 1].Y, points[i].X, points[i].Y);
-            }
-
-            if (total <= 0D) {
-                return points[0];
-            }
-
-            double target = total * VisioConnectorLabelPlacement.ClampPosition(position);
-            double traversed = 0D;
-            for (int i = 1; i < points.Count; i++) {
-                double segment = Distance(points[i - 1].X, points[i - 1].Y, points[i].X, points[i].Y);
-                if (segment <= 0D) {
-                    continue;
-                }
-
-                if (traversed + segment >= target) {
-                    double t = (target - traversed) / segment;
-                    return (
-                        points[i - 1].X + ((points[i].X - points[i - 1].X) * t),
-                        points[i - 1].Y + ((points[i].Y - points[i - 1].Y) * t));
-                }
-
-                traversed += segment;
-            }
-
-            return points[points.Count - 1];
-        }
-
         private static bool Contains(VisioShapeBounds outer, VisioShapeBounds inner) {
             const double tolerance = 1e-6;
             return outer.Left <= inner.Left + tolerance &&
@@ -400,12 +362,6 @@ namespace OfficeIMO.Visio {
             double width = Math.Max(0D, Math.Min(first.Right, second.Right) - Math.Max(first.Left, second.Left));
             double height = Math.Max(0D, Math.Min(first.Top, second.Top) - Math.Max(first.Bottom, second.Bottom));
             return width * height;
-        }
-
-        private static double Distance(double x1, double y1, double x2, double y2) {
-            double dx = x2 - x1;
-            double dy = y2 - y1;
-            return Math.Sqrt((dx * dx) + (dy * dy));
         }
 
         private readonly struct LabelPlacementSeed {

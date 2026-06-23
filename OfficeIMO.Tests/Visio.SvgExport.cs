@@ -145,6 +145,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SvgRendererUsesSharedDashStyleForConnectorLines() {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Connector Dash").Size(4, 2);
+            VisioShape source = page.AddRectangle(0.8, 1, 0.4, 0.4, string.Empty);
+            VisioShape target = page.AddRectangle(3.2, 1, 0.4, 0.4, string.Empty);
+            VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left);
+            connector.LineColor = OfficeColor.FromRgb(37, 99, 235);
+            connector.LinePattern = 4;
+            connector.LineWeight = 0.03D;
+
+            string svg = page.ToSvg(new VisioSvgSaveOptions {
+                BackgroundColor = null,
+                PixelsPerInch = 100
+            });
+
+            XDocument parsed = XDocument.Parse(svg);
+            XNamespace ns = "http://www.w3.org/2000/svg";
+            XElement connectorGroup = parsed.Root!.Descendants(ns + "g")
+                .Single(g => (string?)g.Attribute("data-visio-connector-id") == connector.Id);
+            XElement connectorPath = connectorGroup.Elements(ns + "path")
+                .Single(path => path.Attribute("data-officeimo-connector-arrow") == null);
+            Assert.Equal("12 6 3 6", connectorPath.Attribute("stroke-dasharray")!.Value);
+            Assert.Equal("round", connectorPath.Attribute("stroke-linecap")!.Value);
+        }
+
+        [Fact]
         public void SvgFallbackConnectorsUseVerticalEndpoints() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
@@ -172,6 +199,7 @@ namespace OfficeIMO.Tests {
             shape.FillPattern = 0;
             shape.LineColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LinePattern = 2;
+            shape.LineWeight = 0.04D;
 
             string svg = page.ToSvg(new VisioSvgSaveOptions {
                 BackgroundColor = null,
@@ -183,7 +211,7 @@ namespace OfficeIMO.Tests {
             XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
                 .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
             XElement path = shapeGroup.Elements(ns + "path").Single();
-            Assert.Equal("6 4", path.Attribute("stroke-dasharray")!.Value);
+            Assert.Equal("16 8", path.Attribute("stroke-dasharray")!.Value);
             Assert.NotEqual("none", path.Attribute("stroke")!.Value);
         }
 
@@ -414,6 +442,38 @@ namespace OfficeIMO.Tests {
 
             XElement labelText = connectorGroup.Elements(ns + "text").Single();
             Assert.True(labelText.Elements(ns + "tspan").Count() > 1);
+        }
+
+        [Fact]
+        public void SvgRendererPreservesHardBreaksThroughSharedTextLayout() {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Shared Text Layout").Size(4, 3);
+            VisioShape shape = page.AddRectangle(2, 1.5, 1.8, 1.2, "Alpha\nBeta\nGamma");
+            shape.TextStyle = new VisioTextStyle {
+                Size = 11,
+                TextWidth = 1.4,
+                TextHeight = 0.8,
+                HorizontalAlignment = VisioTextHorizontalAlignment.Center,
+                VerticalAlignment = VisioTextVerticalAlignment.Middle
+            };
+
+            string svg = page.ToSvg(new VisioSvgSaveOptions {
+                BackgroundColor = null,
+                PixelsPerInch = 100
+            });
+
+            XDocument parsed = XDocument.Parse(svg);
+            XNamespace ns = "http://www.w3.org/2000/svg";
+            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
+                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
+            string[] lines = shapeGroup.Descendants(ns + "text")
+                .Single()
+                .Elements(ns + "tspan")
+                .Select(tspan => tspan.Value)
+                .ToArray();
+
+            Assert.Equal(new[] { "Alpha", "Beta", "Gamma" }, lines);
         }
 
         [Fact]
