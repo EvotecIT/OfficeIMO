@@ -546,6 +546,34 @@ Warnings: 0
 | SeriesIndex:3 | 4 |
 | SeriesIndex:4 | 4 |
 
+## Chart Number Format Ids
+
+| Key | Count |
+| --- | --- |
+| NumberFormatId:2 | 48 |
+| NumberFormatId:5 | 4 |
+
+## Chart Font Indexes
+
+| Key | Count |
+| --- | --- |
+| FontIndex:11 | 1 |
+| FontIndex:12 | 1 |
+| FontIndex:14 | 1 |
+| FontIndex:15 | 1 |
+| FontIndex:17 | 1 |
+| FontIndex:18 | 1 |
+| FontIndex:20 | 1 |
+| FontIndex:21 | 1 |
+| FontIndex:22 | 1 |
+| FontIndex:23 | 1 |
+| FontIndex:25 | 1 |
+| FontIndex:26 | 1 |
+| FontIndex:6 | 1 |
+| FontIndex:7 | 1 |
+| FontIndex:8 | 1 |
+| FontIndex:9 | 1 |
+
 ## Chart LineFormat Styles
 
 | Key | Count |

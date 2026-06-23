@@ -241,6 +241,12 @@ namespace OfficeIMO.Excel.LegacyXls {
             ChartDataFormatSeriesIndexes = CountByCode(workbook.ChartRecords
                 .Where(record => record.DataFormatSeriesIndex.HasValue)
                 .Select(record => $"SeriesIndex:{record.DataFormatSeriesIndex!.Value}"));
+            ChartNumberFormatIds = CountByCode(workbook.ChartRecords
+                .Where(record => record.NumberFormatId.HasValue)
+                .Select(record => $"NumberFormatId:{record.NumberFormatId!.Value}"));
+            ChartFontIndexes = CountByCode(workbook.ChartRecords
+                .Where(record => record.FontIndex.HasValue)
+                .Select(record => $"FontIndex:{record.FontIndex!.Value}"));
             ChartLineFormatStyles = CountByCode(workbook.ChartRecords
                 .Where(record => record.LineFormat != null)
                 .Select(record => record.LineFormat!.StyleName));
@@ -772,6 +778,12 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets DataFormat records grouped by raw series index.</summary>
         public IReadOnlyDictionary<string, int> ChartDataFormatSeriesIndexes { get; }
 
+        /// <summary>Gets IFmtRecord records grouped by raw number format identifier.</summary>
+        public IReadOnlyDictionary<string, int> ChartNumberFormatIds { get; }
+
+        /// <summary>Gets FontX records grouped by raw font index.</summary>
+        public IReadOnlyDictionary<string, int> ChartFontIndexes { get; }
+
         /// <summary>Gets LineFormat records grouped by decoded line style.</summary>
         public IReadOnlyDictionary<string, int> ChartLineFormatStyles { get; }
 
@@ -1109,6 +1121,8 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Chart Series Value Counts", ChartSeriesValueCounts);
             AppendDictionary(builder, "Chart DataFormat Targets", ChartDataFormatTargets);
             AppendDictionary(builder, "Chart DataFormat Series Indexes", ChartDataFormatSeriesIndexes);
+            AppendDictionary(builder, "Chart Number Format Ids", ChartNumberFormatIds);
+            AppendDictionary(builder, "Chart Font Indexes", ChartFontIndexes);
             AppendDictionary(builder, "Chart LineFormat Styles", ChartLineFormatStyles);
             AppendDictionary(builder, "Chart LineFormat Weights", ChartLineFormatWeights);
             AppendDictionary(builder, "Chart AreaFormat Patterns", ChartAreaFormatPatterns);

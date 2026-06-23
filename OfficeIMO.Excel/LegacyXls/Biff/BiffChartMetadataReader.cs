@@ -15,6 +15,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             TryReadAxesUsedCount(record, out ushort? axesUsedCount);
             TryReadSeries(record, out ushort? seriesCategoryDataType, out string? seriesCategoryDataTypeName, out ushort? seriesValueDataType, out string? seriesValueDataTypeName, out ushort? seriesCategoryCount, out ushort? seriesValueCount, out ushort? seriesBubbleSizeDataType, out string? seriesBubbleSizeDataTypeName, out ushort? seriesBubbleSizeCount);
             TryReadDataFormat(record, out ushort? dataFormatPointIndex, out ushort? dataFormatSeriesIndex, out ushort? dataFormatOrder, out string? dataFormatTarget);
+            TryReadNumberFormat(record, out ushort? numberFormatId);
+            TryReadFontIndex(record, out ushort? fontIndex);
             TryReadLineFormat(record, out LegacyXlsChartLineFormat? lineFormat);
             TryReadAreaFormat(record, out LegacyXlsChartAreaFormat? areaFormat);
             TryReadMarkerFormat(record, out LegacyXlsChartMarkerFormat? markerFormat);
@@ -55,6 +57,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 dataFormatSeriesIndex,
                 dataFormatOrder,
                 dataFormatTarget,
+                numberFormatId,
+                fontIndex,
                 lineFormat,
                 areaFormat,
                 markerFormat,
@@ -165,6 +169,26 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             seriesIndex = BiffRecordReader.ReadUInt16(record.Payload, 2);
             order = BiffRecordReader.ReadUInt16(record.Payload, 4);
             target = xi == 0xffff ? "Series" : "Point";
+            return true;
+        }
+
+        private static bool TryReadNumberFormat(BiffRecord record, out ushort? numberFormatId) {
+            numberFormatId = null;
+            if (record.Type != 0x104f || record.Payload.Length < 2) {
+                return false;
+            }
+
+            numberFormatId = BiffRecordReader.ReadUInt16(record.Payload, 0);
+            return true;
+        }
+
+        private static bool TryReadFontIndex(BiffRecord record, out ushort? fontIndex) {
+            fontIndex = null;
+            if (record.Type != 0x1026 || record.Payload.Length < 2) {
+                return false;
+            }
+
+            fontIndex = BiffRecordReader.ReadUInt16(record.Payload, 0);
             return true;
         }
 

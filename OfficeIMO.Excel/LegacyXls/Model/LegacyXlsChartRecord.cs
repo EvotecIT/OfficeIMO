@@ -34,6 +34,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             ushort? dataFormatSeriesIndex = null,
             ushort? dataFormatOrder = null,
             string? dataFormatTarget = null,
+            ushort? numberFormatId = null,
+            ushort? fontIndex = null,
             LegacyXlsChartLineFormat? lineFormat = null,
             LegacyXlsChartAreaFormat? areaFormat = null,
             LegacyXlsChartMarkerFormat? markerFormat = null,
@@ -78,6 +80,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             DataFormatSeriesIndex = dataFormatSeriesIndex;
             DataFormatOrder = dataFormatOrder;
             DataFormatTarget = string.IsNullOrWhiteSpace(dataFormatTarget) ? null : dataFormatTarget;
+            NumberFormatId = numberFormatId;
+            FontIndex = fontIndex;
             LineFormat = lineFormat;
             AreaFormat = areaFormat;
             MarkerFormat = markerFormat;
@@ -173,6 +177,12 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets whether a DataFormat record targets a whole series or a point, when present.</summary>
         public string? DataFormatTarget { get; }
+
+        /// <summary>Gets the raw axis number format identifier from IFmtRecord records, when present.</summary>
+        public ushort? NumberFormatId { get; }
+
+        /// <summary>Gets the raw font index from FontX records, when present.</summary>
+        public ushort? FontIndex { get; }
 
         /// <summary>Gets decoded line-format metadata from LineFormat records, when present.</summary>
         public LegacyXlsChartLineFormat? LineFormat { get; }
