@@ -153,6 +153,9 @@ public static class ExcelImageExportDiagnosticCodes {
     /// <summary>Chart text styling is approximate.</summary>
     public const string ChartTextStyleApproximation = "ExcelChartTextStyleApproximation";
 
+    /// <summary>Requested chart text font family could not be loaded exactly by the dependency-free exporter.</summary>
+    public const string ChartFontFamilyFallback = "ExcelChartFontFamilyFallback";
+
     /// <summary>Chart series styling is approximate.</summary>
     public const string ChartSeriesStyleApproximation = "ExcelChartSeriesStyleApproximation";
 
