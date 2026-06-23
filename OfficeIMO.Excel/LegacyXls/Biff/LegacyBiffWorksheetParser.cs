@@ -716,6 +716,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     recordType: (ushort)BiffRecordType.Formula,
                     detailCode: formulaFailure?.DetailCode,
                     formulaToken: formulaFailure?.Token,
+                    formulaTokenName: formulaFailure?.TokenName,
                     formulaTokenOffset: formulaFailure?.TokenOffset));
             }
 

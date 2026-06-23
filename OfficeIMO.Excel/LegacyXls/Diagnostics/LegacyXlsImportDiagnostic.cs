@@ -15,6 +15,7 @@ namespace OfficeIMO.Excel.LegacyXls.Diagnostics {
         /// <param name="detailCode">Optional stable detail key for grouped import reports.</param>
         /// <param name="formulaToken">Optional BIFF formula token byte associated with formula-token diagnostics.</param>
         /// <param name="formulaTokenOffset">Optional zero-based parsed-expression token offset associated with formula-token diagnostics.</param>
+        /// <param name="formulaTokenName">Optional BIFF formula token name associated with formula-token diagnostics.</param>
         public LegacyXlsImportDiagnostic(
             LegacyXlsDiagnosticSeverity severity,
             string code,
@@ -24,7 +25,8 @@ namespace OfficeIMO.Excel.LegacyXls.Diagnostics {
             ushort? recordType = null,
             string? detailCode = null,
             byte? formulaToken = null,
-            int? formulaTokenOffset = null) {
+            int? formulaTokenOffset = null,
+            string? formulaTokenName = null) {
             Severity = severity;
             Code = code;
             Message = message;
@@ -33,6 +35,7 @@ namespace OfficeIMO.Excel.LegacyXls.Diagnostics {
             RecordType = recordType;
             DetailCode = detailCode;
             FormulaToken = formulaToken;
+            FormulaTokenName = formulaTokenName;
             FormulaTokenOffset = formulaTokenOffset;
         }
 
@@ -75,6 +78,11 @@ namespace OfficeIMO.Excel.LegacyXls.Diagnostics {
         /// Gets the BIFF formula token byte associated with a formula-token diagnostic, when available.
         /// </summary>
         public byte? FormulaToken { get; }
+
+        /// <summary>
+        /// Gets the BIFF formula token name associated with a formula-token diagnostic, when available.
+        /// </summary>
+        public string? FormulaTokenName { get; }
 
         /// <summary>
         /// Gets the zero-based offset of <see cref="FormulaToken"/> within the parsed-expression token stream, when available.

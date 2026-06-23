@@ -5,7 +5,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
     internal sealed class BiffFormulaReadFailure {
         private BiffFormulaReadFailure(string detailCode, string description, byte? token = null, int? tokenOffset = null) {
             DetailCode = detailCode;
-            Description = AppendTokenLocation(description, token, tokenOffset);
+            TokenName = token.HasValue ? BiffFormulaTokenInfo.GetTokenName(token.Value) : null;
+            Description = AppendTokenLocation(description, token, TokenName, tokenOffset);
             Token = token;
             TokenOffset = tokenOffset;
         }
@@ -26,6 +27,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         internal byte? Token { get; }
 
         /// <summary>
+        /// Gets the stable BIFF parsed-formula token name, when a token byte is available.
+        /// </summary>
+        internal string? TokenName { get; }
+
+        /// <summary>
         /// Gets the zero-based offset of the token within the parsed-expression token stream, when available.
         /// </summary>
         internal int? TokenOffset { get; }
@@ -40,7 +46,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             new("FormulaStackShape", reason);
 
         internal static BiffFormulaReadFailure UnsupportedToken(byte token, int tokenOffset) =>
-            new($"FormulaToken0x{token:X2}", $"Unsupported formula token 0x{token:X2}.", token, tokenOffset);
+            new($"FormulaToken0x{token:X2}", $"Unsupported formula token {BiffFormulaTokenInfo.GetTokenName(token)} (0x{token:X2}).", token, tokenOffset);
 
         internal static BiffFormulaReadFailure UnsupportedAttribute(byte attribute, byte token, int tokenOffset) =>
             new($"FormulaAttribute0x{attribute:X2}", $"Unsupported formula attribute 0x{attribute:X2}.", token, tokenOffset);
@@ -65,12 +71,15 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         internal static BiffFormulaReadFailure Reference(string detailCode, string reason, byte token, int tokenOffset) =>
             new(detailCode, reason, token, tokenOffset);
 
-        private static string AppendTokenLocation(string description, byte? token, int? tokenOffset) {
+        private static string AppendTokenLocation(string description, byte? token, string? tokenName, int? tokenOffset) {
             if (!token.HasValue || !tokenOffset.HasValue) {
                 return description;
             }
 
-            return $"{description.TrimEnd()} Token 0x{token.Value:X2} at parsed-expression offset {tokenOffset.Value}.";
+            string tokenDisplay = string.IsNullOrWhiteSpace(tokenName)
+                ? $"Token 0x{token.Value:X2}"
+                : $"Token {tokenName} (0x{token.Value:X2})";
+            return $"{description.TrimEnd()} {tokenDisplay} at parsed-expression offset {tokenOffset.Value}.";
         }
     }
 }

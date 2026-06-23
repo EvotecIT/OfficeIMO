@@ -58,6 +58,10 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .Where(diagnostic => string.Equals(diagnostic.Code, "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED", StringComparison.OrdinalIgnoreCase))
                 .Where(diagnostic => diagnostic.FormulaToken.HasValue)
                 .Select(diagnostic => $"Token:0x{diagnostic.FormulaToken!.Value:X2}"));
+            FormulaTokenBlockersByTokenName = CountByCode(workbook.Diagnostics
+                .Where(diagnostic => string.Equals(diagnostic.Code, "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED", StringComparison.OrdinalIgnoreCase))
+                .Where(diagnostic => !string.IsNullOrWhiteSpace(diagnostic.FormulaTokenName))
+                .Select(diagnostic => diagnostic.FormulaTokenName!));
             FormulaTokenBlockersByOffset = CountByCode(workbook.Diagnostics
                 .Where(diagnostic => string.Equals(diagnostic.Code, "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED", StringComparison.OrdinalIgnoreCase))
                 .Where(diagnostic => diagnostic.FormulaTokenOffset.HasValue)
@@ -286,6 +290,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets unsupported formula token blockers grouped by raw formula token byte.</summary>
         public IReadOnlyDictionary<string, int> FormulaTokenBlockersByToken { get; }
 
+        /// <summary>Gets unsupported formula token blockers grouped by BIFF parsed-formula token name.</summary>
+        public IReadOnlyDictionary<string, int> FormulaTokenBlockersByTokenName { get; }
+
         /// <summary>Gets unsupported formula token blockers grouped by zero-based parsed-expression token offset.</summary>
         public IReadOnlyDictionary<string, int> FormulaTokenBlockersByOffset { get; }
 
@@ -505,6 +512,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Diagnostics By Code", DiagnosticsByCode);
             AppendDictionary(builder, "Formula Token Blockers", FormulaTokenBlockers);
             AppendDictionary(builder, "Formula Token Blockers By Token", FormulaTokenBlockersByToken);
+            AppendDictionary(builder, "Formula Token Blockers By Token Name", FormulaTokenBlockersByTokenName);
             AppendDictionary(builder, "Formula Token Blockers By Offset", FormulaTokenBlockersByOffset);
             AppendDictionary(builder, "Data Validations By Type", DataValidationsByType);
             AppendDictionary(builder, "Data Validations By Operator", DataValidationsByOperator);
