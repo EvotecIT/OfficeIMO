@@ -169,14 +169,7 @@ namespace OfficeIMO.Excel.Pdf {
 
         private static bool TryValidatePdfImageBytes(byte[] bytes, string contentType, out string? unsupportedReason) {
             unsupportedReason = null;
-            if (!OfficeImageReader.TryIdentify(bytes, null, out OfficeImageInfo imageInfo)) {
-                unsupportedReason = "Image bytes do not contain a supported image header.";
-                return false;
-            }
-
-            if (OfficeImagePdfCompatibility.TryGetSupportedContentTypeFormat(contentType, out OfficeImageFormat declaredFormat) &&
-                imageInfo.Format != declaredFormat) {
-                unsupportedReason = $"Image bytes were declared as {GetPdfImageFormatDisplayName(declaredFormat)} but were detected as {imageInfo.Format}.";
+            if (!OfficeImagePdfCompatibility.TryValidateDeclaredContentType(bytes, contentType, out _, out unsupportedReason)) {
                 return false;
             }
 
@@ -194,9 +187,6 @@ namespace OfficeIMO.Excel.Pdf {
                 return false;
             }
         }
-
-        private static string GetPdfImageFormatDisplayName(OfficeImageFormat format) =>
-            format == OfficeImageFormat.Jpeg ? "JPEG" : format.ToString().ToUpperInvariant();
 
         private static double PixelsToPoints(int pixels) {
             return pixels * 72D / 96D;

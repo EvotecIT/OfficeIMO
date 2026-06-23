@@ -1759,6 +1759,33 @@ public class DrawingTests {
     }
 
     [Fact]
+    public void OfficeImagePdfCompatibilityRejectsDeclaredContentTypeMismatch() {
+        bool valid = OfficeImagePdfCompatibility.TryValidateDeclaredContentType(
+            OnePixelPng,
+            "image/jpeg",
+            out OfficeImageInfo? imageInfo,
+            out string? unsupportedReason);
+
+        Assert.False(valid);
+        Assert.NotNull(imageInfo);
+        Assert.Equal(OfficeImageFormat.Png, imageInfo!.Format);
+        Assert.Equal("Image bytes were declared as JPEG but were detected as Png.", unsupportedReason);
+    }
+
+    [Fact]
+    public void OfficeImagePdfCompatibilityRejectsEmptyDeclaredContentTypeBytes() {
+        bool valid = OfficeImagePdfCompatibility.TryValidateDeclaredContentType(
+            Array.Empty<byte>(),
+            "image/png",
+            out OfficeImageInfo? imageInfo,
+            out string? unsupportedReason);
+
+        Assert.False(valid);
+        Assert.Null(imageInfo);
+        Assert.Equal("Image bytes are empty.", unsupportedReason);
+    }
+
+    [Fact]
     public void OfficeImageReaderIdentifiesPngWithoutDecodingPixels() {
         var image = OfficeImageReader.Identify(OnePixelPng);
 
