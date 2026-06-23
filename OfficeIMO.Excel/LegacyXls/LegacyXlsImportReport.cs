@@ -67,6 +67,9 @@ namespace OfficeIMO.Excel.LegacyXls {
             PivotTableRecordsByName = CountByCode(workbook.PivotTableRecords.Select(record => record.RecordName));
             ChartRecordsByKind = CountChartRecordsByKind(workbook.ChartRecords);
             ChartRecordsByName = CountByCode(workbook.ChartRecords.Select(record => record.RecordName));
+            ChartRecordsByChartType = CountByCode(workbook.ChartRecords
+                .Where(record => !string.IsNullOrWhiteSpace(record.ChartTypeName))
+                .Select(record => record.ChartTypeName!));
             ChartRecordsByLocation = CountByCode(workbook.ChartRecords.Select(GetChartRecordLocationKey));
             DrawingRecordsByKind = CountDrawingRecordsByKind(workbook.DrawingRecords);
             DrawingRecordsByName = CountByCode(workbook.DrawingRecords.Select(record => record.RecordName));
@@ -235,6 +238,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets preserve-only chart BIFF records grouped by record name.</summary>
         public IReadOnlyDictionary<string, int> ChartRecordsByName { get; }
 
+        /// <summary>Gets preserve-only chart BIFF chart-type records grouped by decoded chart family.</summary>
+        public IReadOnlyDictionary<string, int> ChartRecordsByChartType { get; }
+
         /// <summary>Gets preserve-only chart BIFF records grouped by workbook or sheet location.</summary>
         public IReadOnlyDictionary<string, int> ChartRecordsByLocation { get; }
 
@@ -364,6 +370,7 @@ namespace OfficeIMO.Excel.LegacyXls {
                 entry => entry.Value,
                 StringComparer.OrdinalIgnoreCase));
             AppendDictionary(builder, "Chart Records By Name", ChartRecordsByName);
+            AppendDictionary(builder, "Chart Records By Chart Type", ChartRecordsByChartType);
             AppendDictionary(builder, "Chart Records By Location", ChartRecordsByLocation);
             AppendDictionary(builder, "Drawing Records By Kind", DrawingRecordsByKind.ToDictionary(
                 entry => entry.Key.ToString(),

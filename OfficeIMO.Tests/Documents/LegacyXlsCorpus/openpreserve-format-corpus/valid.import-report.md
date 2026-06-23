@@ -345,6 +345,12 @@ Warnings: 2
 | Units | 8 |
 | ValueRange | 16 |
 
+## Chart Records By Chart Type
+
+| Key | Count |
+| --- | --- |
+| Scatter | 8 |
+
 ## Chart Records By Location
 
 | Key | Count |

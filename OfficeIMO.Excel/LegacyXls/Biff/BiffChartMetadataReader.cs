@@ -16,8 +16,28 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 sheetName,
                 record.Offset,
                 record.Type,
-                record.Payload.Length));
+                record.Payload.Length,
+                GetChartTypeName(record.Type)));
             return true;
+        }
+
+        private static string? GetChartTypeName(ushort type) {
+            switch (type) {
+                case 0x1017:
+                    return "Bar";
+                case 0x1018:
+                    return "Line";
+                case 0x1019:
+                    return "Pie";
+                case 0x101A:
+                    return "Area";
+                case 0x101B:
+                    return "Scatter";
+                case 0x103A:
+                    return "ThreeDimensional";
+                default:
+                    return null;
+            }
         }
 
         private static LegacyXlsChartRecordKind GetKind(ushort type) {
