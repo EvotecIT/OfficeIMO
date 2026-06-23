@@ -4,8 +4,6 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         private const double ImageExportDpi = 96D;
-        private const double DefaultPageWidthInches = 8.5D;
-        private const double DefaultPageHeightInches = 11D;
         private const double DefaultMarginLeftInches = 0.7D;
         private const double DefaultMarginRightInches = 0.7D;
         private const double DefaultMarginTopInches = 0.75D;
@@ -28,11 +26,7 @@ namespace OfficeIMO.Excel {
 
             var diagnostics = new List<OfficeImageExportDiagnostic>(content.Diagnostics.Count + 1);
             diagnostics.AddRange(content.Diagnostics);
-            diagnostics.Add(new OfficeImageExportDiagnostic(
-                OfficeImageExportDiagnosticSeverity.Info,
-                ExcelImageExportDiagnosticCodes.PageSetupPaperSizeDefaulted,
-                "Worksheet image page output used default Letter paper size because paper-size-specific image page geometry is not implemented yet.",
-                Name + "!pageSetup"));
+            AddPageSetupPaperSizeDiagnostic(pageSetup, diagnostics);
 
             byte[] bytes = format == OfficeImageExportFormat.Svg
                 ? OfficeImageComposer.ComposeSvgBytes(
@@ -59,27 +53,98 @@ namespace OfficeIMO.Excel {
         private static bool ShouldApplyPageSetupCanvas(ExcelSheetPageSetup pageSetup) =>
             pageSetup.Orientation.HasValue ||
             pageSetup.Margins != null ||
+            pageSetup.PaperSizeCode.HasValue ||
             (pageSetup.Scale.HasValue && !HasFitToPageScale(pageSetup));
 
         private static bool HasFitToPageScale(ExcelSheetPageSetup pageSetup) =>
             pageSetup.FitToWidth.HasValue || pageSetup.FitToHeight.HasValue;
 
         private static PageSetupCanvasGeometry ResolvePageSetupCanvasGeometry(ExcelSheetPageSetup pageSetup, double outputScale) {
-            bool landscape = pageSetup.Orientation == ExcelPageOrientation.Landscape;
-            double pageWidthInches = landscape ? DefaultPageHeightInches : DefaultPageWidthInches;
-            double pageHeightInches = landscape ? DefaultPageWidthInches : DefaultPageHeightInches;
+            OfficePageSize pageSize = ResolvePageSize(pageSetup);
+            pageSize = pageSetup.Orientation == ExcelPageOrientation.Landscape
+                ? pageSize.Landscape()
+                : pageSize.Portrait();
             ExcelSheetPageMargins? margins = pageSetup.Margins;
             double contentScale = HasFitToPageScale(pageSetup)
                 ? 1D
                 : Math.Max(0.1D, Math.Min(4D, (pageSetup.Scale ?? 100U) / 100D));
 
-            int width = Math.Max(1, (int)Math.Ceiling(pageWidthInches * ImageExportDpi * outputScale));
-            int height = Math.Max(1, (int)Math.Ceiling(pageHeightInches * ImageExportDpi * outputScale));
+            int width = pageSize.ToPixelWidth(ImageExportDpi, outputScale);
+            int height = pageSize.ToPixelHeight(ImageExportDpi, outputScale);
             double x = ClampMargin((margins?.Left ?? DefaultMarginLeftInches) * ImageExportDpi * outputScale, width);
             double y = ClampMargin((margins?.Top ?? DefaultMarginTopInches) * ImageExportDpi * outputScale, height);
             double right = ClampMargin((margins?.Right ?? DefaultMarginRightInches) * ImageExportDpi * outputScale, width);
             double bottom = ClampMargin((margins?.Bottom ?? DefaultMarginBottomInches) * ImageExportDpi * outputScale, height);
             return new PageSetupCanvasGeometry(width, height, x, y, contentScale);
+        }
+
+        private static OfficePageSize ResolvePageSize(ExcelSheetPageSetup pageSetup) =>
+            TryResolvePageSize(pageSetup.PaperSize, out OfficePageSize pageSize)
+                ? pageSize
+                : OfficePageSizes.Letter;
+
+        private static bool TryResolvePageSize(ExcelPaperSize? paperSize, out OfficePageSize pageSize) {
+            switch (paperSize) {
+                case ExcelPaperSize.Letter:
+                case ExcelPaperSize.LetterSmall:
+                    pageSize = OfficePageSizes.Letter;
+                    return true;
+                case ExcelPaperSize.Tabloid:
+                    pageSize = OfficePageSizes.Tabloid;
+                    return true;
+                case ExcelPaperSize.Ledger:
+                    pageSize = OfficePageSizes.Ledger;
+                    return true;
+                case ExcelPaperSize.Legal:
+                    pageSize = OfficePageSizes.Legal;
+                    return true;
+                case ExcelPaperSize.Statement:
+                    pageSize = OfficePageSizes.Statement;
+                    return true;
+                case ExcelPaperSize.Executive:
+                    pageSize = OfficePageSizes.Executive;
+                    return true;
+                case ExcelPaperSize.A3:
+                    pageSize = OfficePageSizes.A3;
+                    return true;
+                case ExcelPaperSize.A4:
+                case ExcelPaperSize.A4Small:
+                    pageSize = OfficePageSizes.A4;
+                    return true;
+                case ExcelPaperSize.A5:
+                    pageSize = OfficePageSizes.A5;
+                    return true;
+                case ExcelPaperSize.B4Jis:
+                    pageSize = OfficePageSizes.B4Jis;
+                    return true;
+                case ExcelPaperSize.B5Jis:
+                    pageSize = OfficePageSizes.B5Jis;
+                    return true;
+                default:
+                    pageSize = default;
+                    return false;
+            }
+        }
+
+        private void AddPageSetupPaperSizeDiagnostic(
+            ExcelSheetPageSetup pageSetup,
+            List<OfficeImageExportDiagnostic> diagnostics) {
+            if (!pageSetup.PaperSizeCode.HasValue) {
+                diagnostics.Add(new OfficeImageExportDiagnostic(
+                    OfficeImageExportDiagnosticSeverity.Info,
+                    ExcelImageExportDiagnosticCodes.PageSetupPaperSizeDefaulted,
+                    "Worksheet image page output used default Letter paper size because no worksheet paper size is configured.",
+                    Name + "!pageSetup"));
+                return;
+            }
+
+            if (!TryResolvePageSize(pageSetup.PaperSize, out _)) {
+                diagnostics.Add(new OfficeImageExportDiagnostic(
+                    OfficeImageExportDiagnosticSeverity.Warning,
+                    ExcelImageExportDiagnosticCodes.PageSetupPaperSizeUnsupported,
+                    "Worksheet image page output used default Letter paper size because paper size code " + pageSetup.PaperSizeCode.Value + " is not supported yet.",
+                    Name + "!pageSetup"));
+            }
         }
 
         private static double ClampMargin(double margin, int pageSize) {

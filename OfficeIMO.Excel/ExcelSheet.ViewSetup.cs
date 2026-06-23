@@ -144,24 +144,24 @@ namespace OfficeIMO.Excel {
         /// <param name="fitToHeight">Number of pages to fit vertically (0 = unlimited).</param>
         /// <param name="scale">Manual scale (10-400). Ignored if FitToWidth/Height are specified.</param>
         /// <param name="pageOrder">Optional multi-page print order.</param>
-        public void SetPageSetup(uint? fitToWidth = null, uint? fitToHeight = null, uint? scale = null, ExcelPageOrder? pageOrder = null) {
+        /// <param name="paperSize">Optional known paper size.</param>
+        public void SetPageSetup(uint? fitToWidth = null, uint? fitToHeight = null, uint? scale = null, ExcelPageOrder? pageOrder = null, ExcelPaperSize? paperSize = null) {
             if (scale is < 10U or > 400U) {
                 throw new ArgumentOutOfRangeException(nameof(scale), "Manual print scale must be between 10 and 400 percent.");
             }
 
+            if (paperSize.HasValue) {
+                ValidatePaperSize(paperSize.Value);
+            }
+
             WriteLock(() => {
                 var ws = WorksheetRoot;
-                var pageSetup = ws.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.PageSetup>();
-                if (pageSetup == null) {
-                    pageSetup = new DocumentFormat.OpenXml.Spreadsheet.PageSetup();
-                    // Insert after PageMargins when present, else at end
-                    var margins = ws.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.PageMargins>();
-                    if (margins != null) ws.InsertAfter(pageSetup, margins); else ws.Append(pageSetup);
-                }
+                var pageSetup = GetOrCreatePageSetup(ws);
 
                 if (fitToWidth != null) pageSetup.FitToWidth = fitToWidth.Value;
                 if (fitToHeight != null) pageSetup.FitToHeight = fitToHeight.Value;
                 if (scale != null) pageSetup.Scale = scale.Value;
+                if (paperSize != null) pageSetup.PaperSize = (uint)paperSize.Value;
                 if (pageOrder != null) {
                     pageSetup.PageOrder = pageOrder == ExcelPageOrder.OverThenDown
                         ? DocumentFormat.OpenXml.Spreadsheet.PageOrderValues.OverThenDown
@@ -188,19 +188,18 @@ namespace OfficeIMO.Excel {
             });
         }
 
-        internal void SetPageSetupAndClearStaleFit(uint? fitToWidth = null, uint? fitToHeight = null, uint? scale = null, ExcelPageOrder? pageOrder = null) {
+        internal void SetPageSetupAndClearStaleFit(uint? fitToWidth = null, uint? fitToHeight = null, uint? scale = null, ExcelPageOrder? pageOrder = null, ExcelPaperSize? paperSize = null) {
             if (scale is < 10U or > 400U) {
                 throw new ArgumentOutOfRangeException(nameof(scale), "Manual print scale must be between 10 and 400 percent.");
             }
 
+            if (paperSize.HasValue) {
+                ValidatePaperSize(paperSize.Value);
+            }
+
             WriteLock(() => {
                 var ws = WorksheetRoot;
-                var pageSetup = ws.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.PageSetup>();
-                if (pageSetup == null) {
-                    pageSetup = new DocumentFormat.OpenXml.Spreadsheet.PageSetup();
-                    var margins = ws.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.PageMargins>();
-                    if (margins != null) ws.InsertAfter(pageSetup, margins); else ws.Append(pageSetup);
-                }
+                var pageSetup = GetOrCreatePageSetup(ws);
 
                 if (fitToWidth != null) pageSetup.FitToWidth = fitToWidth.Value;
                 else {
@@ -219,6 +218,8 @@ namespace OfficeIMO.Excel {
                     pageSetup.Scale = null;
                     pageSetup.RemoveAttribute("scale", string.Empty);
                 }
+
+                if (paperSize != null) pageSetup.PaperSize = (uint)paperSize.Value;
 
                 if (pageOrder != null) {
                     pageSetup.PageOrder = pageOrder == ExcelPageOrder.OverThenDown
