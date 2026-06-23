@@ -24,17 +24,31 @@ public static partial class PdfPageExtractor {
     /// Creates a new PDF containing the selected one-based page numbers in the requested order.
     /// </summary>
     public static byte[] ExtractPages(byte[] pdf, IEnumerable<int> pageNumbers) {
+        return ExtractPages(pdf, pageNumbers, options: null);
+    }
+
+    /// <summary>
+    /// Creates a new PDF containing the selected one-based page numbers in the requested order, using read options for password-protected sources.
+    /// </summary>
+    public static byte[] ExtractPages(byte[] pdf, PdfReadOptions? options, params int[] pageNumbers) {
+        return ExtractPages(pdf, pageNumbers, options);
+    }
+
+    /// <summary>
+    /// Creates a new PDF containing the selected one-based page numbers in the requested order, using read options for password-protected sources.
+    /// </summary>
+    public static byte[] ExtractPages(byte[] pdf, IEnumerable<int> pageNumbers, PdfReadOptions? options) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(pageNumbers, nameof(pageNumbers));
-        PdfSyntax.ThrowIfUnsafeForRewrite(pdf);
+        PdfSyntax.ThrowIfUnsafeForRewrite(pdf, allowEncryption: options?.Password is not null);
 
         var selected = pageNumbers.ToArray();
         if (selected.Length == 0) {
             throw new ArgumentException("At least one page number must be specified.", nameof(pageNumbers));
         }
 
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
-        var document = PdfReadDocument.Load(pdf);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, options);
+        var document = PdfReadDocument.Load(pdf, options);
         ValidatePageNumbers(selected, document.Pages.Count, nameof(pageNumbers));
 
         var pageObjectNumbers = selected.Select(pageNumber => document.Pages[pageNumber - 1].ObjectNumber).ToArray();
@@ -196,17 +210,31 @@ public static partial class PdfPageExtractor {
     /// Creates a new PDF containing the supplied inclusive one-based page ranges in caller order.
     /// </summary>
     public static byte[] ExtractPageRanges(byte[] pdf, IEnumerable<PdfPageRange> pageRanges) {
+        return ExtractPageRanges(pdf, pageRanges, options: null);
+    }
+
+    /// <summary>
+    /// Creates a new PDF containing the supplied inclusive one-based page ranges in caller order, using read options for password-protected sources.
+    /// </summary>
+    public static byte[] ExtractPageRanges(byte[] pdf, PdfReadOptions? options, params PdfPageRange[] pageRanges) {
+        return ExtractPageRanges(pdf, (IEnumerable<PdfPageRange>)pageRanges, options);
+    }
+
+    /// <summary>
+    /// Creates a new PDF containing the supplied inclusive one-based page ranges in caller order, using read options for password-protected sources.
+    /// </summary>
+    public static byte[] ExtractPageRanges(byte[] pdf, IEnumerable<PdfPageRange> pageRanges, PdfReadOptions? options) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(pageRanges, nameof(pageRanges));
-        PdfSyntax.ThrowIfUnsafeForRewrite(pdf);
+        PdfSyntax.ThrowIfUnsafeForRewrite(pdf, allowEncryption: options?.Password is not null);
 
         var ranges = pageRanges.ToArray();
         if (ranges.Length == 0) {
             throw new ArgumentException("At least one page range must be specified.", nameof(pageRanges));
         }
 
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
-        var document = PdfReadDocument.Load(pdf);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, options);
+        var document = PdfReadDocument.Load(pdf, options);
         ValidatePageRanges(ranges, document.Pages.Count, nameof(pageRanges));
 
         var pageObjectNumbers = new List<int>(ranges.Sum(range => range.PageCount));
@@ -283,11 +311,18 @@ public static partial class PdfPageExtractor {
     /// Splits a PDF into one single-page PDF per source page.
     /// </summary>
     public static IReadOnlyList<byte[]> SplitPages(byte[] pdf) {
-        Guard.NotNull(pdf, nameof(pdf));
-        PdfSyntax.ThrowIfUnsafeForRewrite(pdf);
+        return SplitPages(pdf, options: null);
+    }
 
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
-        var document = PdfReadDocument.Load(pdf);
+    /// <summary>
+    /// Splits a PDF into one single-page PDF per source page, using read options for password-protected sources.
+    /// </summary>
+    public static IReadOnlyList<byte[]> SplitPages(byte[] pdf, PdfReadOptions? options) {
+        Guard.NotNull(pdf, nameof(pdf));
+        PdfSyntax.ThrowIfUnsafeForRewrite(pdf, allowEncryption: options?.Password is not null);
+
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, options);
+        var document = PdfReadDocument.Load(pdf, options);
         var catalogState = ExtractCatalogRewriteState(objects, trailerRaw);
         var result = new List<byte[]>(document.Pages.Count);
 
@@ -316,17 +351,31 @@ public static partial class PdfPageExtractor {
     /// Splits a PDF into one output PDF per inclusive one-based page range.
     /// </summary>
     public static IReadOnlyList<byte[]> SplitPageRanges(byte[] pdf, IEnumerable<PdfPageRange> pageRanges) {
+        return SplitPageRanges(pdf, pageRanges, options: null);
+    }
+
+    /// <summary>
+    /// Splits a PDF into one output PDF per inclusive one-based page range, using read options for password-protected sources.
+    /// </summary>
+    public static IReadOnlyList<byte[]> SplitPageRanges(byte[] pdf, PdfReadOptions? options, params PdfPageRange[] pageRanges) {
+        return SplitPageRanges(pdf, (IEnumerable<PdfPageRange>)pageRanges, options);
+    }
+
+    /// <summary>
+    /// Splits a PDF into one output PDF per inclusive one-based page range, using read options for password-protected sources.
+    /// </summary>
+    public static IReadOnlyList<byte[]> SplitPageRanges(byte[] pdf, IEnumerable<PdfPageRange> pageRanges, PdfReadOptions? options) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(pageRanges, nameof(pageRanges));
-        PdfSyntax.ThrowIfUnsafeForRewrite(pdf);
+        PdfSyntax.ThrowIfUnsafeForRewrite(pdf, allowEncryption: options?.Password is not null);
 
         var ranges = pageRanges.ToArray();
         if (ranges.Length == 0) {
             throw new ArgumentException("At least one page range must be specified.", nameof(pageRanges));
         }
 
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
-        var document = PdfReadDocument.Load(pdf);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, options);
+        var document = PdfReadDocument.Load(pdf, options);
         ValidatePageRanges(ranges, document.Pages.Count, nameof(pageRanges));
         var catalogState = ExtractCatalogRewriteState(objects, trailerRaw);
         var result = new List<byte[]>(ranges.Length);

@@ -72,6 +72,20 @@ public class PdfEncryptedReadTests {
     }
 
     [Fact]
+    public void StandardPasswordEncryptedPdf_SplitsWithPasswordAsUnencryptedOutputs() {
+        byte[] pdf = EncryptedPdfFixture.CreateRevision2("open", "owner", "Secret PDF Text");
+        var options = new PdfReadOptions { Password = "open" };
+
+        IReadOnlyList<byte[]> pages = PdfDocument.Open(pdf, options).Pages.Split()
+            .Select(page => page.ToBytes())
+            .ToArray();
+
+        Assert.Single(pages);
+        Assert.False(PdfInspector.Probe(pages[0]).HasEncryption);
+        Assert.Contains("Secret PDF Text", PdfTextExtractor.ExtractAllText(pages[0]), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void StandardPasswordEncryptedFormPdf_BlocksFormFillEvenWithValidPassword() {
         byte[] pdf = EncryptedPdfFixture.CreateRevision2WithTextField("open", "owner", "Secret PDF Text");
 

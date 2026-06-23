@@ -8,7 +8,11 @@ internal static partial class PdfSyntax {
     }
 
     internal static void ThrowIfUnsafeForRewrite(byte[] pdf) {
-        if (HasEncryptionMarkers(pdf)) {
+        ThrowIfUnsafeForRewrite(pdf, allowEncryption: false);
+    }
+
+    internal static void ThrowIfUnsafeForRewrite(byte[] pdf, bool allowEncryption) {
+        if (!allowEncryption && HasEncryptionMarkers(pdf)) {
             throw new NotSupportedException("Encrypted PDF files are not supported for rewriting by OfficeIMO.Pdf yet.");
         }
 

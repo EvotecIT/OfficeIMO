@@ -58,6 +58,30 @@ public class PdfDocumentWorkflowTests {
     }
 
     [Fact]
+    public void TableStyle_CanShrinkTextToFitResolvedCellWidth() {
+        const string longValue = "ThisIdentifierShouldShrinkToFit";
+        byte[] bytes = PdfDocument.Create()
+            .Table(new[] {
+                new[] { "Name", "Value" },
+                new[] { "Alpha", longValue }
+            }, style: new PdfTableStyle {
+                FontSize = 18,
+                HeaderFontSize = 18,
+                MinimumShrinkFontSize = 7,
+                ShrinkTextToFit = true,
+                ColumnWidthPoints = new List<double?> { 54, 108 },
+                HeaderRowCount = 1
+            })
+            .ToBytes();
+
+        IReadOnlyList<PdfLogicalTextBlock> blocks = PdfDocument.Open(bytes).Read.TextBlocks();
+        PdfLogicalTextBlock valueBlock = Assert.Single(blocks, block => block.Text.Contains(longValue, StringComparison.Ordinal));
+
+        Assert.True(valueBlock.FontSize < 18D);
+        Assert.True(valueBlock.FontSize >= 7D);
+    }
+
+    [Fact]
     public void PageSizes_ResolveExpandedStandardNames() {
         Assert.True(PageSizes.TryGet("a0", out PageSize a0));
         Assert.Equal(2384, a0.Width);

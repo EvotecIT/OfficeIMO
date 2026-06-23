@@ -74,6 +74,9 @@ internal static partial class PdfWriter {
             if (style.CaptionFontSize.HasValue && (style.CaptionFontSize.Value <= 0 || double.IsNaN(style.CaptionFontSize.Value) || double.IsInfinity(style.CaptionFontSize.Value))) {
                 throw new ArgumentException("Table caption font size must be a positive finite value.");
             }
+            if (style.MinimumShrinkFontSize.HasValue && (style.MinimumShrinkFontSize.Value <= 0 || double.IsNaN(style.MinimumShrinkFontSize.Value) || double.IsInfinity(style.MinimumShrinkFontSize.Value))) {
+                throw new ArgumentException("Table minimum shrink font size must be a positive finite value.");
+            }
             if (style.CaptionSpacingAfter < 0 || double.IsNaN(style.CaptionSpacingAfter) || double.IsInfinity(style.CaptionSpacingAfter)) {
                 throw new ArgumentException("Table caption spacing after must be a non-negative finite value.");
             }
@@ -133,8 +136,9 @@ internal static partial class PdfWriter {
             var rowBold = new bool[tb.Rows.Count];
             for (int ri = 0; ri < tb.Rows.Count; ri++) {
                 double rowSize = GetTableRowFontSize(style, ri, headerRowCount, footerStartRowIndex, currentOpts.DefaultFontSize);
-                double rowLeading = GetTableLeading(style, rowSize);
                 bool rowUsesBold = GetTableRowBold(style, ri, headerRowCount, footerStartRowIndex);
+                rowSize = ResolveTableRowShrinkFontSize(tb, style, ri, cols, colPixel, colGapPx, rowSize, rowUsesBold, currentOpts);
+                double rowLeading = GetTableLeading(style, rowSize);
                 rowSizes[ri] = rowSize;
                 rowLeadings[ri] = rowLeading;
                 rowBold[ri] = rowUsesBold;

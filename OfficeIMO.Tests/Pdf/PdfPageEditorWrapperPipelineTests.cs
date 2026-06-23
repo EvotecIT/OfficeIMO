@@ -122,6 +122,15 @@ public partial class PdfPageEditorTests {
             Assert.Equal(270, rotatedRangesInfo.Pages[0].RotationDegrees);
             Assert.Equal(0, rotatedRangesInfo.Pages[1].RotationDegrees);
             Assert.Equal(270, rotatedRangesInfo.Pages[2].RotationDegrees);
+
+            byte[] resized = PdfPageEditor.ResizePages(inputPath, PageSizes.Letter, 3);
+            PdfDocumentInfo resizedInfo = PdfInspector.Inspect(resized);
+            Assert.Equal(3, resizedInfo.PageCount);
+            Assert.Equal(595, Math.Round(resizedInfo.Pages[0].Width));
+            Assert.Equal(842, Math.Round(resizedInfo.Pages[0].Height));
+            Assert.Equal(612, Math.Round(resizedInfo.Pages[2].Width));
+            Assert.Equal(792, Math.Round(resizedInfo.Pages[2].Height));
+            Assert.Contains("Thirdpagemarker", NormalizeExtractedText(PdfReadDocument.Load(resized).ExtractText()));
         } finally {
             if (Directory.Exists(directory)) {
                 Directory.Delete(directory, recursive: true);

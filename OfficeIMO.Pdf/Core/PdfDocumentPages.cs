@@ -14,14 +14,14 @@ public sealed class PdfDocumentPages {
     /// Creates a new PDF containing selected pages in caller order.
     /// </summary>
     public PdfDocument Extract(params int[] pageNumbers) {
-        return PdfDocument.FromBytes(PdfPageExtractor.ExtractPages(_document.Snapshot(), pageNumbers));
+        return PdfDocument.FromBytes(PdfPageExtractor.ExtractPages(_document.Snapshot(), _document.ReadOptions, pageNumbers));
     }
 
     /// <summary>
     /// Creates a new PDF containing one inclusive one-based page range.
     /// </summary>
     public PdfDocument Extract(PdfPageRange pageRange) {
-        return PdfDocument.FromBytes(PdfPageExtractor.ExtractPageRange(_document.Snapshot(), pageRange));
+        return PdfDocument.FromBytes(PdfPageExtractor.ExtractPages(_document.Snapshot(), pageRange.ToPageNumbers(), _document.ReadOptions));
     }
 
     /// <summary>
@@ -29,7 +29,7 @@ public sealed class PdfDocumentPages {
     /// </summary>
     public PdfDocument Extract(PdfPageSelection selection) {
         Guard.NotNull(selection, nameof(selection));
-        return PdfDocument.FromBytes(PdfPageExtractor.ExtractPageRanges(_document.Snapshot(), selection.ToRanges()));
+        return PdfDocument.FromBytes(PdfPageExtractor.ExtractPageRanges(_document.Snapshot(), selection.ToRanges(), _document.ReadOptions));
     }
 
     /// <summary>
@@ -51,7 +51,7 @@ public sealed class PdfDocumentPages {
     /// Creates one PDF per page.
     /// </summary>
     public IReadOnlyList<PdfDocument> Split() {
-        return PdfPageExtractor.SplitPages(_document.Snapshot())
+        return PdfPageExtractor.SplitPages(_document.Snapshot(), _document.ReadOptions)
             .Select(PdfDocument.FromBytes)
             .ToArray();
     }
@@ -106,7 +106,7 @@ public sealed class PdfDocumentPages {
             throw new ArgumentException("At least one page range must be specified.", nameof(pageRanges));
         }
 
-        return PdfPageExtractor.SplitPageRanges(_document.Snapshot(), ranges)
+        return PdfPageExtractor.SplitPageRanges(_document.Snapshot(), ranges, _document.ReadOptions)
             .Select(PdfDocument.FromBytes)
             .ToArray();
     }

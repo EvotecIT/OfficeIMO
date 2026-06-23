@@ -140,6 +140,39 @@ internal static partial class PdfWriter {
         return null;
     }
 
+    private static double ResolveTableRowShrinkFontSize(TableBlock table, PdfTableStyle style, int rowIndex, int columnCount, double[] columnWidths, double columnGap, double rowFontSize, bool rowUsesBold, PdfOptions? options) {
+        if (!style.ShrinkTextToFit || rowFontSize <= 0D) {
+            return rowFontSize;
+        }
+
+        double minimumFontSize = style.MinimumShrinkFontSize ?? 6D;
+        if (minimumFontSize >= rowFontSize) {
+            return rowFontSize;
+        }
+
+        PdfStandardFont rowFont = GetTableRowFont(options ?? new PdfOptions(), rowUsesBold);
+        double resolvedFontSize = rowFontSize;
+        var cells = GetTableCellLayouts(table, rowIndex, columnCount);
+        for (int cellIndex = 0; cellIndex < cells.Count; cellIndex++) {
+            TableCellLayout cell = cells[cellIndex];
+            if (string.IsNullOrEmpty(cell.Text)) {
+                continue;
+            }
+
+            double cellWidth = GetTableCellWidth(columnWidths, cell.Column, cell.ColumnSpan, columnGap);
+            double innerWidth = Math.Max(1D, cellWidth - GetTableCellPaddingLeft(style, rowIndex, cell.Column) - GetTableCellPaddingRight(style, rowIndex, cell.Column));
+            double textWidth = EstimateSimpleTextWidthForOptions(cell.Text, rowFont, rowFontSize, options);
+            if (textWidth <= innerWidth + 0.001D || textWidth <= 0.001D) {
+                continue;
+            }
+
+            double candidate = Math.Max(minimumFontSize, rowFontSize * innerWidth / textWidth);
+            resolvedFontSize = Math.Min(resolvedFontSize, candidate);
+        }
+
+        return resolvedFontSize;
+    }
+
     private static double ResolveTableRowHeight(PdfTableStyle style, int rowIndex, double requiredHeight) {
         double? fixedHeight = GetTableRowFixedHeight(style, rowIndex);
         return fixedHeight ?? System.Math.Max(requiredHeight, GetTableRowMinHeight(style, rowIndex));
