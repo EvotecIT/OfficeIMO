@@ -328,8 +328,10 @@ public static class OfficeSvgImageRenderer {
     public static bool TryResolveEmbeddableContentType(string? declaredContentType, byte[]? bytes, string? fileName, out string contentType) {
         string normalized = NormalizeContentType(declaredContentType);
         if (!string.IsNullOrEmpty(normalized) && !IsGenericContentType(normalized)) {
-            if (IsEmbeddableContentType(normalized)) {
-                contentType = normalized;
+            OfficeImageFormat declaredFormat = OfficeImageInfo.FromMimeType(normalized);
+            string declaredFormatContentType = OfficeImageInfo.GetMimeType(declaredFormat);
+            if (IsEmbeddableContentType(declaredFormatContentType)) {
+                contentType = declaredFormatContentType;
                 return true;
             }
 

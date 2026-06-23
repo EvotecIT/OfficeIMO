@@ -7,6 +7,7 @@ using System.IO.Packaging;
 using System.Text;
 using System.Xml;
 using System.Xml.Linq;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Visio {
     /// <summary>
@@ -53,14 +54,14 @@ namespace OfficeIMO.Visio {
             XElement root = new(ct + "Types",
                 new XElement(ct + "Default", new XAttribute("Extension", "rels"), new XAttribute("ContentType", "application/vnd.openxmlformats-package.relationships+xml")),
                 new XElement(ct + "Default", new XAttribute("Extension", "xml"), new XAttribute("ContentType", "application/xml")),
-                new XElement(ct + "Default", new XAttribute("Extension", "emf"), new XAttribute("ContentType", "image/x-emf")),
-                new XElement(ct + "Default", new XAttribute("Extension", "png"), new XAttribute("ContentType", "image/png")),
-                new XElement(ct + "Default", new XAttribute("Extension", "jpg"), new XAttribute("ContentType", "image/jpeg")),
-                new XElement(ct + "Default", new XAttribute("Extension", "jpeg"), new XAttribute("ContentType", "image/jpeg")),
-                new XElement(ct + "Default", new XAttribute("Extension", "gif"), new XAttribute("ContentType", "image/gif")),
-                new XElement(ct + "Default", new XAttribute("Extension", "svg"), new XAttribute("ContentType", "image/svg+xml")),
-                new XElement(ct + "Default", new XAttribute("Extension", "tif"), new XAttribute("ContentType", "image/tiff")),
-                new XElement(ct + "Default", new XAttribute("Extension", "tiff"), new XAttribute("ContentType", "image/tiff")));
+                CreateImageDefault(ct, "emf", OfficeImageFormat.Emf),
+                CreateImageDefault(ct, "png", OfficeImageFormat.Png),
+                CreateImageDefault(ct, "jpg", OfficeImageFormat.Jpeg),
+                CreateImageDefault(ct, "jpeg", OfficeImageFormat.Jpeg),
+                CreateImageDefault(ct, "gif", OfficeImageFormat.Gif),
+                CreateImageDefault(ct, "svg", OfficeImageFormat.Svg),
+                CreateImageDefault(ct, "tif", OfficeImageFormat.Tiff),
+                CreateImageDefault(ct, "tiff", OfficeImageFormat.Tiff));
 
             HashSet<string> overridePartNames = new(StringComparer.OrdinalIgnoreCase);
             void AddOverride(string partName, string contentType) {
@@ -82,7 +83,7 @@ namespace OfficeIMO.Visio {
             AddOverride("/docProps/core.xml", "application/vnd.openxmlformats-package.core-properties+xml");
             AddOverride("/docProps/app.xml", "application/vnd.openxmlformats-officedocument.extended-properties+xml");
             AddOverride("/docProps/custom.xml", "application/vnd.openxmlformats-officedocument.custom-properties+xml");
-            AddOverride("/docProps/thumbnail.emf", "image/x-emf");
+            AddOverride("/docProps/thumbnail.emf", OfficeImageInfo.GetMimeType(OfficeImageFormat.Emf));
             AddOverride("/visio/windows.xml", WindowsContentType);
 
             foreach (string partName in pagePartNames) {
@@ -104,6 +105,11 @@ namespace OfficeIMO.Visio {
             using StreamWriter writer = new(newEntry.Open());
             writer.Write(doc.Declaration + Environment.NewLine + doc.ToString(SaveOptions.DisableFormatting));
         }
+
+        private static XElement CreateImageDefault(XNamespace ct, string extension, OfficeImageFormat format) =>
+            new(ct + "Default",
+                new XAttribute("Extension", extension),
+                new XAttribute("ContentType", OfficeImageInfo.GetMimeType(format)));
 
         private static string NormalizePartName(string partName) {
             if (partName is null) {

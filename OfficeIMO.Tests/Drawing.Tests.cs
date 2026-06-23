@@ -345,6 +345,17 @@ public class DrawingTests {
     }
 
     [Theory]
+    [InlineData("image/png; charset=binary", OfficeImageFormat.Png)]
+    [InlineData("image/jpg", OfficeImageFormat.Jpeg)]
+    [InlineData("image/pjpeg", OfficeImageFormat.Jpeg)]
+    [InlineData("image/svg+xml; charset=utf-8", OfficeImageFormat.Svg)]
+    [InlineData("image/x-emf", OfficeImageFormat.Emf)]
+    [InlineData("application/octet-stream", OfficeImageFormat.Unknown)]
+    public void OfficeImageInfoMapsMimeTypesToSharedFormats(string contentType, OfficeImageFormat expected) {
+        Assert.Equal(expected, OfficeImageInfo.FromMimeType(contentType));
+    }
+
+    [Theory]
     [InlineData(OfficeImageFormat.Png, "image/png")]
     [InlineData(OfficeImageFormat.Jpeg, "image/jpeg")]
     [InlineData(OfficeImageFormat.Gif, "image/gif")]
@@ -362,6 +373,7 @@ public class DrawingTests {
 
     [Theory]
     [InlineData("image/png; charset=binary", null, null, "image/png")]
+    [InlineData("image/jpg", null, null, "image/jpeg")]
     [InlineData("application/octet-stream", "png", ".bin", "image/png")]
     [InlineData("application/octet-stream", "jpeg", ".bin", "image/jpeg")]
     [InlineData("binary/octet-stream", "gif", ".bin", "image/gif")]

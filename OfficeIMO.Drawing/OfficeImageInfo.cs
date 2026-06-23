@@ -51,4 +51,34 @@ public sealed class OfficeImageInfo {
         OfficeImageFormat.Pcx => "image/x-pcx",
         _ => "application/octet-stream"
     };
+
+    /// <summary>
+    /// Maps a MIME content type to a known image format.
+    /// </summary>
+    /// <param name="contentType">MIME content type, optionally with parameters.</param>
+    /// <returns>The matching image format, or <see cref="OfficeImageFormat.Unknown" /> when unsupported.</returns>
+    public static OfficeImageFormat FromMimeType(string? contentType) {
+        if (string.IsNullOrWhiteSpace(contentType)) {
+            return OfficeImageFormat.Unknown;
+        }
+
+        int separator = contentType!.IndexOf(';');
+        string normalized = separator >= 0
+            ? contentType.Substring(0, separator)
+            : contentType;
+        normalized = normalized.Trim().ToLowerInvariant();
+        return normalized switch {
+            "image/png" => OfficeImageFormat.Png,
+            "image/jpeg" or "image/jpg" or "image/pjpeg" => OfficeImageFormat.Jpeg,
+            "image/gif" => OfficeImageFormat.Gif,
+            "image/bmp" or "image/x-bmp" => OfficeImageFormat.Bmp,
+            "image/tiff" or "image/tif" => OfficeImageFormat.Tiff,
+            "image/svg+xml" or "image/svg" => OfficeImageFormat.Svg,
+            "image/x-emf" or "image/emf" => OfficeImageFormat.Emf,
+            "image/x-wmf" or "image/wmf" => OfficeImageFormat.Wmf,
+            "image/x-icon" or "image/vnd.microsoft.icon" => OfficeImageFormat.Icon,
+            "image/x-pcx" => OfficeImageFormat.Pcx,
+            _ => OfficeImageFormat.Unknown
+        };
+    }
 }

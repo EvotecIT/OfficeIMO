@@ -3,6 +3,7 @@ using DocumentFormat.OpenXml.Packaging;
 using System.Collections.Generic;
 using System.Linq;
 using A = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.Drawing;
 using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 
 namespace OfficeIMO.Excel {
@@ -88,14 +89,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 // Add the image part
-                PartTypeInfo type = contentType.ToLowerInvariant() switch {
-                    "image/png" => ImagePartType.Png,
-                    "image/jpeg" or "image/jpg" => ImagePartType.Jpeg,
-                    "image/gif" => ImagePartType.Gif,
-                    "image/bmp" => ImagePartType.Bmp,
-                    _ => ImagePartType.Png
-                };
-                var imagePart = drawingPart.AddImagePart(type);
+                var imagePart = drawingPart.AddImagePart(ResolveOpenXmlImagePartType(contentType));
                 using (var s = new MemoryStream(imageBytes)) imagePart.FeedData(s);
                 string imgRelId = drawingPart.GetIdOfPart(imagePart);
 
@@ -179,6 +173,16 @@ namespace OfficeIMO.Excel {
         private static bool IsSupportedImageAnchor(OpenXmlElement anchor)
             => (anchor is Xdr.OneCellAnchor || anchor is Xdr.TwoCellAnchor || anchor is Xdr.AbsoluteAnchor)
                 && anchor.Descendants<Xdr.Picture>().Any();
+
+        private static PartTypeInfo ResolveOpenXmlImagePartType(string? contentType) {
+            OfficeImageFormat format = OfficeImageInfo.FromMimeType(contentType);
+            return format switch {
+                OfficeImageFormat.Jpeg => ImagePartType.Jpeg,
+                OfficeImageFormat.Gif => ImagePartType.Gif,
+                OfficeImageFormat.Bmp => ImagePartType.Bmp,
+                _ => ImagePartType.Png
+            };
+        }
 
         private static UInt32Value NextDrawingId(DrawingsPart dp) {
             uint max = 0;
