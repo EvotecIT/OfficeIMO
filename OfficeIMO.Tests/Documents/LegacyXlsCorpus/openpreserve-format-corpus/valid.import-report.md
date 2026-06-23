@@ -11,6 +11,8 @@ Conditional formatting rules: 0
 AutoFilter criteria columns: 0
 Defined names: 1
 External references: 3
+External sheet names: 3
+External names: 1
 External cell caches: 2
 External cached cells: 914
 Pivot table records: 16
@@ -198,6 +200,53 @@ Warnings: 2
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|maquis | 1 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|wijn | 3 |
 | XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED\|(workbook) | 1 |
+
+## External References By Kind
+
+| Key | Count |
+| --- | --- |
+| ExternalWorkbook | 2 |
+| Self | 1 |
+
+## External References By Target
+
+| Key | Count |
+| --- | --- |
+| (Self) | 1 |
+| \\x01IDTBL.XLS | 1 |
+| \\x01\\x06MACROS.XLS | 1 |
+
+## External Sheet Names By Reference Kind
+
+| Key | Count |
+| --- | --- |
+| ExternalWorkbook | 3 |
+
+## External Names By Reference Kind
+
+| Key | Count |
+| --- | --- |
+| ExternalWorkbook | 1 |
+
+## External Names By Name
+
+| Key | Count |
+| --- | --- |
+| ENash | 1 |
+
+## External Cell Caches By Sheet Name
+
+| Key | Count |
+| --- | --- |
+| IDTBL | 1 |
+| Sheet1 | 1 |
+
+## External Cached Cells By Value Kind
+
+| Key | Count |
+| --- | --- |
+| Number | 230 |
+| Text | 684 |
 
 ## Pivot Table Records By Kind
 

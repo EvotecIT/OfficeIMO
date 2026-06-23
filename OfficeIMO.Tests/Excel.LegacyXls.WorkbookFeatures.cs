@@ -775,6 +775,15 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, legacy.MetadataRecords.Count(record => record.Kind == LegacyXlsWorkbookMetadataKind.RefreshAll));
             LegacyXlsExternalName externalName = Assert.Single(reference.ExternalNames);
             Assert.Equal("TaxRate", externalName.Name);
+            LegacyXlsImportReport report = legacy.CreateImportReport();
+            Assert.Equal(1, report.ExternalReferenceCount);
+            Assert.Equal(2, report.ExternalSheetNameCount);
+            Assert.Equal(1, report.ExternalNameCount);
+            Assert.Equal(1, report.ExternalReferencesByKind[LegacyXlsExternalReferenceKind.ExternalWorkbook]);
+            Assert.Equal(1, report.ExternalReferencesByTarget["C:\\Data\\Budget.xls"]);
+            Assert.Equal(2, report.ExternalSheetNamesByReferenceKind[LegacyXlsExternalReferenceKind.ExternalWorkbook]);
+            Assert.Equal(1, report.ExternalNamesByReferenceKind[LegacyXlsExternalReferenceKind.ExternalWorkbook]);
+            Assert.Equal(1, report.ExternalNamesByName["TaxRate"]);
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ExternalReference && feature.RecordType == 0x01ae && feature.Description.Contains("C:\\Data\\Budget.xls", StringComparison.Ordinal));
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ExternalReference && feature.DetailCode == "ExternalReference:ExternalWorkbook");
             Assert.Contains(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED" && d.RecordType == 0x01ae);

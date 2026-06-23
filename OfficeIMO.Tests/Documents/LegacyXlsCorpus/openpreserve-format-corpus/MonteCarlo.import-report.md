@@ -11,6 +11,8 @@ Conditional formatting rules: 0
 AutoFilter criteria columns: 0
 Defined names: 0
 External references: 2
+External sheet names: 6
+External names: 0
 External cell caches: 6
 External cached cells: 8
 Pivot table records: 27
@@ -185,6 +187,43 @@ Warnings: 0
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|RangeTable | 1 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|ZPFCUM | 9 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|ZRAINCUM | 9 |
+
+## External References By Kind
+
+| Key | Count |
+| --- | --- |
+| ExternalWorkbook | 1 |
+| Self | 1 |
+
+## External References By Target
+
+| Key | Count |
+| --- | --- |
+| (Self) | 1 |
+| \\x01MCPF\\x03VMCPF.XLS | 1 |
+
+## External Sheet Names By Reference Kind
+
+| Key | Count |
+| --- | --- |
+| ExternalWorkbook | 6 |
+
+## External Cell Caches By Sheet Name
+
+| Key | Count |
+| --- | --- |
+| All | 1 |
+| b | 1 |
+| c | 1 |
+| cl | 1 |
+| Info | 1 |
+| lb | 1 |
+
+## External Cached Cells By Value Kind
+
+| Key | Count |
+| --- | --- |
+| Number | 8 |
 
 ## Pivot Table Records By Kind
 

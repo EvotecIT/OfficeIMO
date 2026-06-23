@@ -63,8 +63,22 @@ namespace OfficeIMO.Tests {
                 });
 
             Assert.Equal(1, report.ExternalReferenceCount);
+            Assert.Equal(2, report.ExternalSheetNameCount);
+            Assert.Equal(0, report.ExternalNameCount);
             Assert.Equal(1, report.ExternalCellCacheCount);
             Assert.Equal(5, report.ExternalCachedCellCount);
+            Assert.Equal(1, report.ExternalReferencesByKind[LegacyXlsExternalReferenceKind.ExternalWorkbook]);
+            Assert.Equal(1, report.ExternalReferencesByTarget["C:\\Data\\Budget.xls"]);
+            Assert.Equal(2, report.ExternalSheetNamesByReferenceKind[LegacyXlsExternalReferenceKind.ExternalWorkbook]);
+            Assert.Equal(1, report.ExternalCellCachesBySheetName["Feb"]);
+            Assert.Equal(1, report.ExternalCachedCellsByValueKind[LegacyXlsCellValueKind.Blank]);
+            Assert.Equal(1, report.ExternalCachedCellsByValueKind[LegacyXlsCellValueKind.Boolean]);
+            Assert.Equal(1, report.ExternalCachedCellsByValueKind[LegacyXlsCellValueKind.Error]);
+            Assert.Equal(1, report.ExternalCachedCellsByValueKind[LegacyXlsCellValueKind.Number]);
+            Assert.Equal(1, report.ExternalCachedCellsByValueKind[LegacyXlsCellValueKind.Text]);
+            string markdown = report.ToMarkdown();
+            Assert.Contains("External References By Kind", markdown);
+            Assert.Contains("External Cached Cells By Value Kind", markdown);
             Assert.Contains(workbook.UnsupportedFeatures, feature =>
                 feature.Kind == LegacyXlsUnsupportedFeatureKind.ExternalReference
                 && feature.DetailCode == "ExternalReference:ExternalWorkbook"

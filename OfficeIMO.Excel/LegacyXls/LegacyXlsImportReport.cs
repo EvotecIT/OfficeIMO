@@ -21,6 +21,8 @@ namespace OfficeIMO.Excel.LegacyXls {
             AutoFilterCriteriaCount = workbook.Worksheets.Sum(sheet => sheet.AutoFilterCriteria.Count);
             DefinedNameCount = workbook.DefinedNames.Count;
             ExternalReferenceCount = workbook.ExternalReferences.Count;
+            ExternalSheetNameCount = workbook.ExternalReferences.Sum(reference => reference.SheetNames.Count);
+            ExternalNameCount = workbook.ExternalReferences.Sum(reference => reference.ExternalNames.Count);
             ExternalCellCacheCount = workbook.ExternalReferences.Sum(reference => reference.CachedCellCaches.Count);
             ExternalCachedCellCount = workbook.ExternalReferences.Sum(reference => reference.CachedCellCaches.Sum(cache => cache.Cells.Count));
             PivotTableRecordCount = workbook.PivotTableRecords.Count;
@@ -51,6 +53,13 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .Select(feature => $"{feature.Kind}|{feature.Code}|{feature.DetailCode}"));
             UnsupportedFeaturesByLocation = CountByCode(workbook.UnsupportedFeatures
                 .Select(GetFeatureLocationKey));
+            ExternalReferencesByKind = CountExternalReferencesByKind(workbook.ExternalReferences);
+            ExternalReferencesByTarget = CountByCode(workbook.ExternalReferences.Select(GetExternalReferenceTargetKey));
+            ExternalSheetNamesByReferenceKind = CountExternalSheetNamesByReferenceKind(workbook.ExternalReferences);
+            ExternalNamesByReferenceKind = CountExternalNamesByReferenceKind(workbook.ExternalReferences);
+            ExternalNamesByName = CountByCode(workbook.ExternalReferences.SelectMany(reference => reference.ExternalNames.Select(name => name.Name)));
+            ExternalCellCachesBySheetName = CountByCode(workbook.ExternalReferences.SelectMany(reference => reference.CachedCellCaches.Select(GetExternalCellCacheSheetKey)));
+            ExternalCachedCellsByValueKind = CountExternalCachedCellsByValueKind(workbook.ExternalReferences);
             PivotTableRecordsByKind = CountPivotTableRecordsByKind(workbook.PivotTableRecords);
             PivotTableRecordsByName = CountByCode(workbook.PivotTableRecords.Select(record => record.RecordName));
             ChartRecordsByKind = CountChartRecordsByKind(workbook.ChartRecords);
@@ -105,6 +114,12 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets the number of preserved external-reference records.</summary>
         public int ExternalReferenceCount { get; }
+
+        /// <summary>Gets the number of external workbook sheet names declared by supporting links.</summary>
+        public int ExternalSheetNameCount { get; }
+
+        /// <summary>Gets the number of external names declared by supporting links.</summary>
+        public int ExternalNameCount { get; }
 
         /// <summary>Gets the number of preserved external cell cache sections.</summary>
         public int ExternalCellCacheCount { get; }
@@ -174,6 +189,27 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets unsupported/preserve-only feature counts grouped by code and workbook or sheet location.</summary>
         public IReadOnlyDictionary<string, int> UnsupportedFeaturesByLocation { get; }
+
+        /// <summary>Gets preserved external references grouped by supporting-link kind.</summary>
+        public IReadOnlyDictionary<LegacyXlsExternalReferenceKind, int> ExternalReferencesByKind { get; }
+
+        /// <summary>Gets preserved external references grouped by target path or source.</summary>
+        public IReadOnlyDictionary<string, int> ExternalReferencesByTarget { get; }
+
+        /// <summary>Gets external workbook sheet-name counts grouped by supporting-link kind.</summary>
+        public IReadOnlyDictionary<LegacyXlsExternalReferenceKind, int> ExternalSheetNamesByReferenceKind { get; }
+
+        /// <summary>Gets external defined-name counts grouped by supporting-link kind.</summary>
+        public IReadOnlyDictionary<LegacyXlsExternalReferenceKind, int> ExternalNamesByReferenceKind { get; }
+
+        /// <summary>Gets external defined names grouped by name text.</summary>
+        public IReadOnlyDictionary<string, int> ExternalNamesByName { get; }
+
+        /// <summary>Gets external cell cache sections grouped by resolved external sheet name.</summary>
+        public IReadOnlyDictionary<string, int> ExternalCellCachesBySheetName { get; }
+
+        /// <summary>Gets cached external cell values grouped by value kind.</summary>
+        public IReadOnlyDictionary<LegacyXlsCellValueKind, int> ExternalCachedCellsByValueKind { get; }
 
         /// <summary>Gets preserve-only PivotTable BIFF records grouped by decoded metadata kind.</summary>
         public IReadOnlyDictionary<LegacyXlsPivotTableRecordKind, int> PivotTableRecordsByKind { get; }
@@ -253,6 +289,8 @@ namespace OfficeIMO.Excel.LegacyXls {
             builder.AppendLine($"AutoFilter criteria columns: {AutoFilterCriteriaCount}");
             builder.AppendLine($"Defined names: {DefinedNameCount}");
             builder.AppendLine($"External references: {ExternalReferenceCount}");
+            builder.AppendLine($"External sheet names: {ExternalSheetNameCount}");
+            builder.AppendLine($"External names: {ExternalNameCount}");
             builder.AppendLine($"External cell caches: {ExternalCellCacheCount}");
             builder.AppendLine($"External cached cells: {ExternalCachedCellCount}");
             builder.AppendLine($"Pivot table records: {PivotTableRecordCount}");
@@ -279,6 +317,25 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Unsupported Feature Record Types", UnsupportedFeaturesByRecordType);
             AppendDictionary(builder, "Unsupported Feature Details", UnsupportedFeaturesByDetail);
             AppendDictionary(builder, "Unsupported Feature Locations", UnsupportedFeaturesByLocation);
+            AppendDictionary(builder, "External References By Kind", ExternalReferencesByKind.ToDictionary(
+                entry => entry.Key.ToString(),
+                entry => entry.Value,
+                StringComparer.OrdinalIgnoreCase));
+            AppendDictionary(builder, "External References By Target", ExternalReferencesByTarget);
+            AppendDictionary(builder, "External Sheet Names By Reference Kind", ExternalSheetNamesByReferenceKind.ToDictionary(
+                entry => entry.Key.ToString(),
+                entry => entry.Value,
+                StringComparer.OrdinalIgnoreCase));
+            AppendDictionary(builder, "External Names By Reference Kind", ExternalNamesByReferenceKind.ToDictionary(
+                entry => entry.Key.ToString(),
+                entry => entry.Value,
+                StringComparer.OrdinalIgnoreCase));
+            AppendDictionary(builder, "External Names By Name", ExternalNamesByName);
+            AppendDictionary(builder, "External Cell Caches By Sheet Name", ExternalCellCachesBySheetName);
+            AppendDictionary(builder, "External Cached Cells By Value Kind", ExternalCachedCellsByValueKind.ToDictionary(
+                entry => entry.Key.ToString(),
+                entry => entry.Value,
+                StringComparer.OrdinalIgnoreCase));
             AppendDictionary(builder, "Pivot Table Records By Kind", PivotTableRecordsByKind.ToDictionary(
                 entry => entry.Key.ToString(),
                 entry => entry.Value,
@@ -348,6 +405,38 @@ namespace OfficeIMO.Excel.LegacyXls {
         private static IReadOnlyDictionary<LegacyXlsUnsupportedFeatureKind, int> CountPreservedRecordsByKind(IEnumerable<LegacyXlsPreservedFeatureRecord> records) {
             return records
                 .GroupBy(record => record.Kind)
+                .OrderBy(group => group.Key.ToString(), StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(group => group.Key, group => group.Count());
+        }
+
+        private static IReadOnlyDictionary<LegacyXlsExternalReferenceKind, int> CountExternalReferencesByKind(IEnumerable<LegacyXlsExternalReference> references) {
+            return references
+                .GroupBy(reference => reference.Kind)
+                .OrderBy(group => group.Key.ToString(), StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(group => group.Key, group => group.Count());
+        }
+
+        private static IReadOnlyDictionary<LegacyXlsExternalReferenceKind, int> CountExternalSheetNamesByReferenceKind(IEnumerable<LegacyXlsExternalReference> references) {
+            return references
+                .Where(reference => reference.SheetNames.Count > 0)
+                .GroupBy(reference => reference.Kind)
+                .OrderBy(group => group.Key.ToString(), StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(group => group.Key, group => group.Sum(reference => reference.SheetNames.Count));
+        }
+
+        private static IReadOnlyDictionary<LegacyXlsExternalReferenceKind, int> CountExternalNamesByReferenceKind(IEnumerable<LegacyXlsExternalReference> references) {
+            return references
+                .Where(reference => reference.ExternalNames.Count > 0)
+                .GroupBy(reference => reference.Kind)
+                .OrderBy(group => group.Key.ToString(), StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(group => group.Key, group => group.Sum(reference => reference.ExternalNames.Count));
+        }
+
+        private static IReadOnlyDictionary<LegacyXlsCellValueKind, int> CountExternalCachedCellsByValueKind(IEnumerable<LegacyXlsExternalReference> references) {
+            return references
+                .SelectMany(reference => reference.CachedCellCaches)
+                .SelectMany(cache => cache.Cells)
+                .GroupBy(cell => cell.Kind)
                 .OrderBy(group => group.Key.ToString(), StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(group => group.Key, group => group.Count());
         }
@@ -428,6 +517,18 @@ namespace OfficeIMO.Excel.LegacyXls {
             return string.IsNullOrWhiteSpace(record.SheetName) ? "(workbook)" : record.SheetName!;
         }
 
+        private static string GetExternalReferenceTargetKey(LegacyXlsExternalReference reference) {
+            return string.IsNullOrWhiteSpace(reference.Target) ? $"({reference.Kind})" : EscapeControlCharacters(reference.Target!);
+        }
+
+        private static string GetExternalCellCacheSheetKey(LegacyXlsExternalCellCache cache) {
+            if (!string.IsNullOrWhiteSpace(cache.SheetName)) {
+                return cache.SheetName!;
+            }
+
+            return cache.SheetIndex.HasValue ? $"SheetIndex:{cache.SheetIndex.Value}" : "(unknown)";
+        }
+
         private static void AppendDictionary(StringBuilder builder, string title, IReadOnlyDictionary<string, int> values) {
             if (values.Count == 0) {
                 return;
@@ -449,6 +550,23 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         private static string EscapeMarkdownCell(string value) {
             return value.Replace("\\", "\\\\").Replace("|", "\\|").Replace("\r", " ").Replace("\n", " ");
+        }
+
+        private static string EscapeControlCharacters(string value) {
+            var builder = new StringBuilder(value.Length);
+            foreach (char character in value) {
+                if (!char.IsControl(character)) {
+                    builder.Append(character);
+                } else if (character <= 0xFF) {
+                    builder.Append("\\x");
+                    builder.Append(((int)character).ToString("X2"));
+                } else {
+                    builder.Append("\\u");
+                    builder.Append(((int)character).ToString("X4"));
+                }
+            }
+
+            return builder.ToString();
         }
     }
 }
