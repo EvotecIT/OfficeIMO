@@ -15,6 +15,7 @@ namespace OfficeIMO.Excel {
             bool bold = false;
             bool italic = false;
             bool underline = false;
+            bool strikethrough = false;
             OfficeColor? color = null;
             double? fontSize = null;
             bool hasFormatting = false;
@@ -36,7 +37,7 @@ namespace OfficeIMO.Excel {
                             return false;
                         }
 
-                        FlushHeaderFooterTextRun(runs, builder, bold, italic, underline, color, fontSize);
+                        FlushHeaderFooterTextRun(runs, builder, bold, italic, underline, strikethrough, color, fontSize);
                         fontSize = parsedFontSize;
                         i = tokenEnd;
                         hasFormatting = true;
@@ -44,23 +45,27 @@ namespace OfficeIMO.Excel {
                         builder.Append('&');
                     }
                 } else if (token == 'B') {
-                    FlushHeaderFooterTextRun(runs, builder, bold, italic, underline, color, fontSize);
+                    FlushHeaderFooterTextRun(runs, builder, bold, italic, underline, strikethrough, color, fontSize);
                     bold = !bold;
                     hasFormatting = true;
                 } else if (token == 'I') {
-                    FlushHeaderFooterTextRun(runs, builder, bold, italic, underline, color, fontSize);
+                    FlushHeaderFooterTextRun(runs, builder, bold, italic, underline, strikethrough, color, fontSize);
                     italic = !italic;
                     hasFormatting = true;
                 } else if (token == 'U') {
-                    FlushHeaderFooterTextRun(runs, builder, bold, italic, underline, color, fontSize);
+                    FlushHeaderFooterTextRun(runs, builder, bold, italic, underline, strikethrough, color, fontSize);
                     underline = !underline;
+                    hasFormatting = true;
+                } else if (token == 'S') {
+                    FlushHeaderFooterTextRun(runs, builder, bold, italic, underline, strikethrough, color, fontSize);
+                    strikethrough = !strikethrough;
                     hasFormatting = true;
                 } else if (token == 'K') {
                     if (!TryReadHeaderFooterColorToken(text, i + 1, out OfficeColor parsedColor)) {
                         return false;
                     }
 
-                    FlushHeaderFooterTextRun(runs, builder, bold, italic, underline, color, fontSize);
+                    FlushHeaderFooterTextRun(runs, builder, bold, italic, underline, strikethrough, color, fontSize);
                     color = parsedColor;
                     i += 6;
                     hasFormatting = true;
@@ -69,7 +74,7 @@ namespace OfficeIMO.Excel {
                         return false;
                     }
 
-                    FlushHeaderFooterTextRun(runs, builder, bold, italic, underline, color, fontSize);
+                    FlushHeaderFooterTextRun(runs, builder, bold, italic, underline, strikethrough, color, fontSize);
                     fontSize = parsedFontSize;
                     i = tokenEnd;
                     hasFormatting = true;
@@ -112,17 +117,17 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            FlushHeaderFooterTextRun(runs, builder, bold, italic, underline, color, fontSize);
+            FlushHeaderFooterTextRun(runs, builder, bold, italic, underline, strikethrough, color, fontSize);
             normalized = HeaderFooterTextSection.Create(runs, hasFormatting);
             return true;
         }
 
-        private static void FlushHeaderFooterTextRun(List<HeaderFooterTextRun> runs, StringBuilder builder, bool bold, bool italic, bool underline, OfficeColor? color, double? fontSize) {
+        private static void FlushHeaderFooterTextRun(List<HeaderFooterTextRun> runs, StringBuilder builder, bool bold, bool italic, bool underline, bool strikethrough, OfficeColor? color, double? fontSize) {
             if (builder.Length == 0) {
                 return;
             }
 
-            runs.Add(new HeaderFooterTextRun(builder.ToString(), bold, italic, underline, color, fontSize));
+            runs.Add(new HeaderFooterTextRun(builder.ToString(), bold, italic, underline, strikethrough, color, fontSize));
             builder.Clear();
         }
 
@@ -267,7 +272,7 @@ namespace OfficeIMO.Excel {
                     }
 
                     if (runText.Length > 0) {
-                        normalizedRuns.Add(new HeaderFooterTextRun(runText, run.Bold, run.Italic, run.Underline, run.Color, run.FontSize));
+                        normalizedRuns.Add(new HeaderFooterTextRun(runText, run.Bold, run.Italic, run.Underline, run.Strikethrough, run.Color, run.FontSize));
                     }
                 }
 
@@ -286,7 +291,8 @@ namespace OfficeIMO.Excel {
                         run.Color ?? color,
                         run.Bold,
                         run.Italic,
-                        run.Underline));
+                        run.Underline,
+                        strikethrough: run.Strikethrough));
                 }
 
                 return runs.AsReadOnly();
@@ -312,11 +318,12 @@ namespace OfficeIMO.Excel {
         }
 
         private readonly struct HeaderFooterTextRun {
-            internal HeaderFooterTextRun(string text, bool bold, bool italic, bool underline, OfficeColor? color, double? fontSize) {
+            internal HeaderFooterTextRun(string text, bool bold, bool italic, bool underline, bool strikethrough, OfficeColor? color, double? fontSize) {
                 Text = text;
                 Bold = bold;
                 Italic = italic;
                 Underline = underline;
+                Strikethrough = strikethrough;
                 Color = color;
                 FontSize = fontSize;
             }
@@ -325,6 +332,7 @@ namespace OfficeIMO.Excel {
             internal bool Bold { get; }
             internal bool Italic { get; }
             internal bool Underline { get; }
+            internal bool Strikethrough { get; }
             internal OfficeColor? Color { get; }
             internal double? FontSize { get; }
         }

@@ -306,12 +306,7 @@ namespace OfficeIMO.Excel {
             for (int index = 0; index < line.Segments.Count; index++) {
                 OfficeRichTextSegment segment = line.Segments[index];
                 double runTop = y + Math.Max(0D, (layout.LineHeight - segment.FontSize) / 2D);
-                canvas.DrawTextLine(segment.Text, cursor, runTop, segment.FontSize, segment.Color, segment.Bold, segment.Italic, OfficeTextAlignment.Left);
-                if (segment.Underline && segment.Width > 0D) {
-                    double underlineY = runTop + (segment.FontSize * 0.86D);
-                    canvas.DrawLine(cursor, underlineY, cursor + segment.Width, underlineY, segment.Color, Math.Max(1D, segment.FontSize / 16D));
-                }
-
+                canvas.DrawTextLine(segment.Text, cursor, runTop, segment.FontSize, segment.Color, segment.Bold, segment.Italic, OfficeTextAlignment.Left, underline: segment.Underline, strikethrough: segment.Strikethrough);
                 cursor += segment.Width;
             }
         }

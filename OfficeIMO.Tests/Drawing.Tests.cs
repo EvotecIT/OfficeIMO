@@ -218,12 +218,13 @@ public class DrawingTests {
 
     [Fact]
     public void OfficeFontInfoStoresUnderlineStyle() {
-        var font = new OfficeFontInfo("Calibri", 11, OfficeFontStyle.Underline);
+        var font = new OfficeFontInfo("Calibri", 11, OfficeFontStyle.Underline | OfficeFontStyle.Strikethrough);
 
         Assert.False(font.IsBold);
         Assert.False(font.IsItalic);
         Assert.True(font.IsUnderline);
-        Assert.Equal("Calibri, 11pt, Underline", font.ToString());
+        Assert.True(font.IsStrikethrough);
+        Assert.Equal("Calibri, 11pt, Underline, Strikethrough", font.ToString());
     }
 
     [Fact]

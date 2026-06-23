@@ -13,14 +13,16 @@ public sealed class OfficeRichTextRun {
     /// <param name="bold">Whether the run should render as bold.</param>
     /// <param name="italic">Whether the run should render as italic.</param>
     /// <param name="underline">Whether the run should render with underline.</param>
+    /// <param name="strikethrough">Whether the run should render with strikethrough.</param>
     /// <param name="fontFamily">Preferred font family for SVG or future font-aware renderers.</param>
-    public OfficeRichTextRun(string? text, double fontSize, OfficeColor color, bool bold = false, bool italic = false, bool underline = false, string? fontFamily = null) {
+    public OfficeRichTextRun(string? text, double fontSize, OfficeColor color, bool bold = false, bool italic = false, bool underline = false, string? fontFamily = null, bool strikethrough = false) {
         Text = text ?? string.Empty;
         FontSize = fontSize;
         Color = color;
         Bold = bold;
         Italic = italic;
         Underline = underline;
+        Strikethrough = strikethrough;
         FontFamily = string.IsNullOrWhiteSpace(fontFamily) ? "Arial, sans-serif" : fontFamily!;
     }
 
@@ -53,6 +55,11 @@ public sealed class OfficeRichTextRun {
     /// Gets whether the run should render with underline.
     /// </summary>
     public bool Underline { get; }
+
+    /// <summary>
+    /// Gets whether the run should render with strikethrough.
+    /// </summary>
+    public bool Strikethrough { get; }
 
     /// <summary>
     /// Gets the preferred font family for SVG or future font-aware renderers.

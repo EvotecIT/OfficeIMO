@@ -80,6 +80,11 @@ public sealed partial class OfficeRasterCanvas {
                 double underlineY = top + (_font.LineHeight(size) * 0.86D);
                 DrawLine(textX, underlineY, textX + measured, underlineY, color, Math.Max(1D, size / 16D));
             }
+
+            if ((style & OfficeFontStyle.Strikethrough) == OfficeFontStyle.Strikethrough) {
+                double strikeY = top + (_font.LineHeight(size) * 0.52D);
+                DrawLine(textX, strikeY, textX + measured, strikeY, color, Math.Max(1D, size / 16D));
+            }
             return;
         }
 
@@ -100,6 +105,8 @@ public sealed partial class OfficeRasterCanvas {
     /// <param name="rotationDegrees">Clockwise rotation in degrees.</param>
     /// <param name="rotationCenterX">Rotation center X coordinate.</param>
     /// <param name="rotationCenterY">Rotation center Y coordinate.</param>
+    /// <param name="underline">Whether to draw an underline using the measured text width.</param>
+    /// <param name="strikethrough">Whether to draw a strikethrough using the measured text width.</param>
     public void DrawTextLine(
         string? text,
         double anchorX,
@@ -111,7 +118,9 @@ public sealed partial class OfficeRasterCanvas {
         OfficeTextAlignment alignment = OfficeTextAlignment.Center,
         double rotationDegrees = 0D,
         double rotationCenterX = 0D,
-        double rotationCenterY = 0D) {
+        double rotationCenterY = 0D,
+        bool underline = false,
+        bool strikethrough = false) {
         if (string.IsNullOrEmpty(text) || color.A == 0 || height <= 0D) {
             return;
         }
@@ -142,10 +151,50 @@ public sealed partial class OfficeRasterCanvas {
                 FillContours(contours, color);
             }
 
+            DrawTextLineDecorations(x, width, top, fontHeight, color, rotationDegrees, rotationCenterX, rotationCenterY, underline, strikethrough);
             return;
         }
 
         DrawStrokeText(value, anchorX, top + (fontHeight / 2D), fontHeight, color, bold, italic, alignment, rotationRadians, rotationCenterX, rotationCenterY);
+        DrawTextLineDecorations(x, width, top, fontHeight, color, rotationDegrees, rotationCenterX, rotationCenterY, underline, strikethrough);
+    }
+
+    private void DrawTextLineDecorations(
+        double x,
+        double width,
+        double top,
+        double fontHeight,
+        OfficeColor color,
+        double rotationDegrees,
+        double rotationCenterX,
+        double rotationCenterY,
+        bool underline,
+        bool strikethrough) {
+        if (width <= 0D || color.A == 0) {
+            return;
+        }
+
+        if (underline) {
+            DrawRotatedTextDecorationLine(x, width, top + (fontHeight * 0.86D), color, fontHeight, rotationDegrees, rotationCenterX, rotationCenterY);
+        }
+
+        if (strikethrough) {
+            DrawRotatedTextDecorationLine(x, width, top + (fontHeight * 0.52D), color, fontHeight, rotationDegrees, rotationCenterX, rotationCenterY);
+        }
+    }
+
+    private void DrawRotatedTextDecorationLine(
+        double x,
+        double width,
+        double y,
+        OfficeColor color,
+        double fontHeight,
+        double rotationDegrees,
+        double rotationCenterX,
+        double rotationCenterY) {
+        OfficePoint start = OfficeTextPlacement.RotatePoint(new OfficePoint(x, y), rotationCenterX, rotationCenterY, rotationDegrees);
+        OfficePoint end = OfficeTextPlacement.RotatePoint(new OfficePoint(x + width, y), rotationCenterX, rotationCenterY, rotationDegrees);
+        DrawLine(start.X, start.Y, end.X, end.Y, color, Math.Max(1D, fontHeight / 16D));
     }
 
     private void DrawFallbackText(string text, double x, double y, double width, double height, OfficeColor color) {

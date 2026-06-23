@@ -241,14 +241,7 @@ namespace OfficeIMO.Excel {
                 for (int segmentIndex = 0; segmentIndex < line.Segments.Count; segmentIndex++) {
                     OfficeRichTextSegment segment = line.Segments[segmentIndex];
                     double runTop = baseline - (segment.FontSize * 0.84D);
-                    canvas.DrawTextLine(segment.Text, cursor, runTop, segment.FontSize, segment.Color, segment.Bold, segment.Italic, OfficeTextAlignment.Left, rotationDegrees, centerX, centerY);
-                    if (segment.Underline && segment.Width > 0D) {
-                        double underlineY = runTop + (segment.FontSize * 0.86D);
-                        OfficePoint underlineStart = OfficeTextPlacement.RotatePoint(new OfficePoint(cursor, underlineY), centerX, centerY, rotationDegrees);
-                        OfficePoint underlineEnd = OfficeTextPlacement.RotatePoint(new OfficePoint(cursor + segment.Width, underlineY), centerX, centerY, rotationDegrees);
-                        canvas.DrawLine(underlineStart.X, underlineStart.Y, underlineEnd.X, underlineEnd.Y, segment.Color, Math.Max(1D, segment.FontSize / 16D));
-                    }
-
+                    canvas.DrawTextLine(segment.Text, cursor, runTop, segment.FontSize, segment.Color, segment.Bold, segment.Italic, OfficeTextAlignment.Left, rotationDegrees, centerX, centerY, segment.Underline, segment.Strikethrough);
                     cursor += segment.Width;
                 }
             }

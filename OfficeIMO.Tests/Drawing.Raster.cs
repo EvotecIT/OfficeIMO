@@ -896,6 +896,7 @@ namespace OfficeIMO.Tests {
                 bold: true,
                 italic: true,
                 underline: true,
+                strikethrough: true,
                 rotationDegrees: 15D,
                 rotationCenterX: 50D,
                 rotationCenterY: 20D);
@@ -905,7 +906,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("font-family=\"Aptos, Arial, sans-serif\"", svg);
             Assert.Contains("font-weight=\"700\"", svg);
             Assert.Contains("font-style=\"italic\"", svg);
-            Assert.Contains("text-decoration=\"underline\"", svg);
+            Assert.Contains("text-decoration=\"underline line-through\"", svg);
             Assert.Contains("fill=\"#010203\"", svg);
             Assert.Contains("fill-opacity=\"0.502\"", svg);
             Assert.Contains("transform=\"rotate(15 50 20)\"", svg);
@@ -929,12 +930,13 @@ namespace OfficeIMO.Tests {
                 bold: true,
                 italic: true,
                 underline: true,
+                strikethrough: true,
                 rotationDegrees: 15D,
                 rotationCenterX: 50D,
                 rotationCenterY: 20D);
 
             string svg = builder.ToString();
-            Assert.Equal("<text x=\"50\" y=\"12\" font-family=\"Aptos\" font-size=\"10\" text-anchor=\"middle\" fill=\"#010203\" fill-opacity=\"0.502\" font-weight=\"700\" font-style=\"italic\" text-decoration=\"underline\" transform=\"rotate(15 50 20)\">A&amp;B<tspan x=\"50\" dy=\"14\">Beta</tspan></text>", svg);
+            Assert.Equal("<text x=\"50\" y=\"12\" font-family=\"Aptos\" font-size=\"10\" text-anchor=\"middle\" fill=\"#010203\" fill-opacity=\"0.502\" font-weight=\"700\" font-style=\"italic\" text-decoration=\"underline line-through\" transform=\"rotate(15 50 20)\">A&amp;B<tspan x=\"50\" dy=\"14\">Beta</tspan></text>", svg);
         }
 
         [Fact]
@@ -948,11 +950,12 @@ namespace OfficeIMO.Tests {
                 bold: true,
                 italic: true,
                 underline: true,
-                fontFamily: "Aptos");
+                fontFamily: "Aptos",
+                strikethrough: true);
 
             builder.AppendSvgRichTextSegment(segment, 5D, 12D);
 
-            Assert.Equal("<text x=\"5\" y=\"12\" font-family=\"Aptos\" font-size=\"10\" text-anchor=\"start\" fill=\"#010203\" fill-opacity=\"0.502\" font-weight=\"700\" font-style=\"italic\" text-decoration=\"underline\">A&amp;B</text>", builder.ToString());
+            Assert.Equal("<text x=\"5\" y=\"12\" font-family=\"Aptos\" font-size=\"10\" text-anchor=\"start\" fill=\"#010203\" fill-opacity=\"0.502\" font-weight=\"700\" font-style=\"italic\" text-decoration=\"underline line-through\">A&amp;B</text>", builder.ToString());
         }
 
         [Fact]
@@ -991,7 +994,8 @@ namespace OfficeIMO.Tests {
                     rotationCenterX: 50D,
                     rotationCenterY: 20D,
                     svgNamespace: "http://www.w3.org/2000/svg",
-                    configureTextAttributes: textWriter => textWriter.WriteAttributeString("data-officeimo-test", "true"));
+                    configureTextAttributes: textWriter => textWriter.WriteAttributeString("data-officeimo-test", "true"),
+                    strikethrough: true);
             }
 
             string svg = builder.ToString();
@@ -1002,7 +1006,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("font-family=\"Aptos, Arial, sans-serif\"", svg);
             Assert.Contains("font-weight=\"700\"", svg);
             Assert.Contains("font-style=\"italic\"", svg);
-            Assert.Contains("text-decoration=\"underline\"", svg);
+            Assert.Contains("text-decoration=\"underline line-through\"", svg);
             Assert.Contains("fill=\"#010203\"", svg);
             Assert.Contains("fill-opacity=\"0.502\"", svg);
             Assert.Contains("transform=\"rotate(15 50 20)\"", svg);

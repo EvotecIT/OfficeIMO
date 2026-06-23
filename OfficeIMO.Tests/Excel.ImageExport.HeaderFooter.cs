@@ -160,7 +160,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void ExcelWorksheet_PageSlicedSvgExportKeepsUnsupportedHeaderFooterFormattingDiagnosed() {
+        public void ExcelWorksheet_PageSlicedSvgExportRendersStrikethroughHeaderFooterFormatting() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorkSheet("Report");
@@ -174,9 +174,31 @@ namespace OfficeIMO.Tests {
                 ShowGridlines = false
             });
 
+            string svg = Encoding.UTF8.GetString(results[1].Bytes);
+            Assert.DoesNotContain(results[1].Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterUnsupported);
+            Assert.Contains(results[1].Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterFormattingApproximation);
+            Assert.Contains("text-decoration=\"line-through\"", svg);
+            Assert.Contains(">Strike Header<", svg);
+        }
+
+        [Fact]
+        public void ExcelWorksheet_PageSlicedSvgExportKeepsUnsupportedHeaderFooterFontFamilyDiagnosed() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("Report");
+            FillPageBreakGrid(sheet);
+            sheet.SetHeaderFooter(headerCenter: "&\"Aptos\"Font Header");
+            sheet.AddManualRowPageBreak(2, save: false);
+
+            IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelWorksheetImageExportOptions {
+                Range = "A1:D4",
+                SplitByManualPageBreaks = true,
+                ShowGridlines = false
+            });
+
             Assert.Contains(results[1].Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterUnsupported);
             Assert.DoesNotContain(results[1].Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.HeaderFooterFormattingApproximation);
-            Assert.DoesNotContain("Strike Header", Encoding.UTF8.GetString(results[1].Bytes));
+            Assert.DoesNotContain("Font Header", Encoding.UTF8.GetString(results[1].Bytes));
         }
 
         [Fact]
