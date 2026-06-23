@@ -14,6 +14,7 @@ External references: 2
 External cell caches: 6
 External cached cells: 8
 Pivot table records: 27
+Chart records: 841
 Calculation setting records: 43
 Cell style records: 6
 Workbook metadata records: 17
@@ -197,6 +198,70 @@ Warnings: 0
 | Sxdi | 1 |
 | SxRng | 25 |
 | SxVdEx | 1 |
+
+## Chart Records By Kind
+
+| Key | Count |
+| --- | --- |
+| Axis | 54 |
+| ChartType | 9 |
+| Container | 250 |
+| Extension | 8 |
+| Formatting | 231 |
+| Layout | 130 |
+| Series | 60 |
+| Text | 99 |
+
+## Chart Records By Name
+
+| Key | Count |
+| --- | --- |
+| AreaFormat | 35 |
+| AttachedLabel | 30 |
+| AxesUsed | 18 |
+| Axis | 12 |
+| Begin | 116 |
+| BookExt | 8 |
+| Chart | 6 |
+| ChartFormat | 6 |
+| ChartFormatLink | 6 |
+| CrErr | 6 |
+| Dat | 29 |
+| DataFormat | 29 |
+| DefaultText | 12 |
+| End | 116 |
+| FontX | 12 |
+| Frame | 6 |
+| Ifmt | 39 |
+| Legend | 3 |
+| LineFormat | 35 |
+| MarkerFormat | 29 |
+| ObjectLink | 15 |
+| PieFormat | 29 |
+| PlotArea | 6 |
+| PlotGrowth | 16 |
+| Pos | 102 |
+| SBaseRef | 6 |
+| Scatter | 6 |
+| Series | 18 |
+| SeriesFormat | 18 |
+| SerToCrt | 6 |
+| ShtProps | 6 |
+| Text | 30 |
+| Tick | 12 |
+| Units | 6 |
+| ValueRange | 12 |
+
+## Chart Records By Location
+
+| Key | Count |
+| --- | --- |
+| graphs1 | 177 |
+| graphs2 | 97 |
+| LBMAQ_PF_CHART | 178 |
+| LBMAQ_RAIN_CHART | 177 |
+| ZPFCUM_CHART | 115 |
+| ZRAINCUM_CHART | 97 |
 
 ## Calculation Settings By Kind
 

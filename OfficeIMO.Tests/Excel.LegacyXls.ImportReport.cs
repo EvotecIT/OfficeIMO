@@ -69,6 +69,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.PivotTableRecordCount);
             Assert.Equal(1, report.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.PreserveOnly]);
             Assert.Equal(1, report.PivotTableRecordsByName["SxView"]);
+            Assert.Equal(1, report.ChartRecordCount);
+            Assert.Equal(1, report.ChartRecordsByKind[LegacyXlsChartRecordKind.Container]);
+            Assert.Equal(1, report.ChartRecordsByName["Chart"]);
+            Assert.Equal(1, report.ChartRecordsByLocation["FeatureMap"]);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:MsoDrawingGroup"]);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:Obj"]);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:MsoDrawing"]);
@@ -88,6 +92,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Preserved feature records: 5", markdown);
             Assert.Contains("Drawing:MsoDrawingGroup", markdown);
             Assert.Contains("Pivot Table Records By Name", markdown);
+            Assert.Contains("Chart Records By Name", markdown);
         }
 
         [Fact]
@@ -205,6 +210,13 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.ChartSheet]);
             Assert.Equal(3, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.Chart]);
             Assert.Equal(3, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.Chart]);
+            Assert.Equal(3, report.ChartRecordCount);
+            Assert.Equal(2, report.ChartRecordsByKind[LegacyXlsChartRecordKind.Container]);
+            Assert.Equal(1, report.ChartRecordsByKind[LegacyXlsChartRecordKind.Formatting]);
+            Assert.Equal(1, report.ChartRecordsByName["Units"]);
+            Assert.Equal(1, report.ChartRecordsByName["Chart"]);
+            Assert.Equal(1, report.ChartRecordsByName["ChartFormat"]);
+            Assert.Equal(3, report.ChartRecordsByLocation["ChartOnly"]);
             Assert.Equal(3, report.UnsupportedFeaturesByLocation["XLS-BIFF-FEATURE-CHART-UNSUPPORTED|ChartOnly"]);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Units"]);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Chart"]);
@@ -213,6 +225,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Chart"]);
             Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:ChartFormat"]);
             Assert.Contains(workbook.PreservedFeatureRecords, record => record.SheetName == "ChartOnly" && record.DetailCode == "Chart:Chart");
+            Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "Chart");
             Assert.Contains(workbook.Diagnostics, d => d.SheetName == "ChartOnly" && d.DetailCode == "Chart:Chart");
         }
 

@@ -12,6 +12,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             List<LegacyXlsUnsupportedFeature> unsupportedFeatures,
             List<LegacyXlsPreservedFeatureRecord> preservedFeatureRecords,
             List<LegacyXlsPivotTableRecord> pivotTableRecords,
+            List<LegacyXlsChartRecord> chartRecords,
             List<LegacyXlsImportDiagnostic> diagnostics,
             LegacyXlsImportOptions options) {
             foreach (LegacyXlsUnsupportedSheet sheet in unsupportedSheets) {
@@ -19,7 +20,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     continue;
                 }
 
-                ScanSheet(workbookStream, sheet, unsupportedFeatures, preservedFeatureRecords, pivotTableRecords, diagnostics, options);
+                ScanSheet(workbookStream, sheet, unsupportedFeatures, preservedFeatureRecords, pivotTableRecords, chartRecords, diagnostics, options);
             }
         }
 
@@ -34,6 +35,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             List<LegacyXlsUnsupportedFeature> unsupportedFeatures,
             List<LegacyXlsPreservedFeatureRecord> preservedFeatureRecords,
             List<LegacyXlsPivotTableRecord> pivotTableRecords,
+            List<LegacyXlsChartRecord> chartRecords,
             List<LegacyXlsImportDiagnostic> diagnostics,
             LegacyXlsImportOptions options) {
             if (sheet.StreamOffset >= workbookStream.Length) {
@@ -88,6 +90,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     && BiffUnsupportedRecordDiagnostics.IsPreserveOnlyFeatureRecord(type)) {
                     byte[] payload = new byte[length];
                     Buffer.BlockCopy(workbookStream, payloadOffset, payload, 0, length);
+                    BiffChartMetadataReader.TryRead(new BiffRecord(type, offset, payload), sheet.Name, chartRecords);
                     BiffPivotTableMetadataReader.TryRead(new BiffRecord(type, offset, payload), sheet.Name, pivotTableRecords, diagnostics);
                     LegacyXlsUnsupportedFeature feature = BiffUnsupportedRecordDiagnostics.CreateUnsupportedRecordFeature(type, offset, sheet.Name);
                     unsupportedFeatures.Add(feature);

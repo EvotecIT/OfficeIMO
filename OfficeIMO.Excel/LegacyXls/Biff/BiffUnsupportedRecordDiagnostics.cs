@@ -171,7 +171,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 code = "XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED";
                 message = "Conditional formatting records are present but conditional formatting import is not implemented in this phase.";
                 detailCode = "ConditionalFormatting:" + GetBiffRecordName(type);
-            } else if (type >= 0x1000 && type <= 0x1066) {
+            } else if (IsChartRecord(type)) {
                 kind = LegacyXlsUnsupportedFeatureKind.Chart;
                 code = "XLS-BIFF-FEATURE-CHART-UNSUPPORTED";
                 message = "Chart records are present but chart import is not implemented in this phase.";
@@ -396,6 +396,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 || type == (ushort)BiffRecordType.Cf12
                 || type == (ushort)BiffRecordType.CfEx
                 || type == (ushort)BiffRecordType.Dxf;
+        }
+
+        internal static bool IsChartRecord(ushort type) {
+            return type >= 0x1000 && type <= 0x1066;
         }
 
         internal static bool IsPivotTableRecord(ushort type) {

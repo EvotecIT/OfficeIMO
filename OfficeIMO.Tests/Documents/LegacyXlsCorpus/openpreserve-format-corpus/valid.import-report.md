@@ -14,6 +14,7 @@ External references: 3
 External cell caches: 2
 External cached cells: 914
 Pivot table records: 16
+Chart records: 1079
 Calculation setting records: 61
 Cell style records: 6
 Workbook metadata records: 20
@@ -210,6 +211,71 @@ Warnings: 2
 | Sxdi | 1 |
 | SxRng | 14 |
 | SxVdEx | 1 |
+
+## Chart Records By Kind
+
+| Key | Count |
+| --- | --- |
+| Axis | 68 |
+| ChartType | 12 |
+| Container | 312 |
+| Extension | 1 |
+| Formatting | 314 |
+| Layout | 187 |
+| Series | 74 |
+| Text | 111 |
+
+## Chart Records By Name
+
+| Key | Count |
+| --- | --- |
+| AreaFormat | 49 |
+| AttachedLabel | 44 |
+| AxesUsed | 32 |
+| Axis | 12 |
+| Begin | 147 |
+| Chart | 6 |
+| ChartFormat | 6 |
+| ChartFormatLink | 6 |
+| CrErr | 6 |
+| Dat | 42 |
+| DataFormat | 42 |
+| DefaultText | 12 |
+| End | 147 |
+| FontX | 13 |
+| Frame | 7 |
+| Ifmt | 42 |
+| Legend | 6 |
+| LineFormat | 49 |
+| MarkerFormat | 42 |
+| ObjectLink | 12 |
+| PieFormat | 42 |
+| PlotArea | 6 |
+| PlotGrowth | 16 |
+| Pos | 158 |
+| SBaseRef | 6 |
+| Scatter | 6 |
+| Series | 32 |
+| SeriesFormat | 18 |
+| SerToCrt | 6 |
+| SheetExt | 1 |
+| ShtProps | 6 |
+| Text | 30 |
+| Tick | 12 |
+| Units | 6 |
+| ValueRange | 12 |
+
+## Chart Records By Location
+
+| Key | Count |
+| --- | --- |
+| (workbook) | 1 |
+| b_chart | 185 |
+| cl_chart | 184 |
+| c_chart | 155 |
+| graphs1 | 184 |
+| graphs2 | 185 |
+| lb_chart | 185 |
 
 ## Calculation Settings By Kind
 

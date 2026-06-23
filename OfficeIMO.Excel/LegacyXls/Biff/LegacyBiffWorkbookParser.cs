@@ -75,6 +75,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     continue;
                 } else if (BiffStyleReader.TryRead(record, workbook, workbook.MutableDiagnostics)) {
                     continue;
+                } else if (BiffChartMetadataReader.TryRead(record, sheetName: null, workbook.MutableChartRecords)) {
+                    AddUnsupportedRecordFeature(workbook, record, sheetName: null);
+                    if (options.ReportUnsupportedRecords) {
+                        BiffUnsupportedRecordDiagnostics.AddUnsupportedRecordDiagnostic(workbook.MutableDiagnostics, record.Type, record.Offset, sheetName: null);
+                    }
                 } else if (BiffPivotTableMetadataReader.TryRead(record, sheetName: null, workbook.MutablePivotTableRecords, workbook.MutableDiagnostics)) {
                     AddUnsupportedRecordFeature(workbook, record, sheetName: null);
                     if (options.ReportUnsupportedRecords) {
@@ -101,6 +106,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 workbook.MutableUnsupportedFeatures,
                 workbook.MutablePreservedFeatureRecords,
                 workbook.MutablePivotTableRecords,
+                workbook.MutableChartRecords,
                 workbook.MutableDiagnostics,
                 options);
 
@@ -108,7 +114,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 ? workbook.Worksheets.Select(sheet => sheet.Name).ToArray()
                 : boundSheetNames.ToArray();
             foreach (LegacyXlsWorksheet sheet in workbook.Worksheets) {
-                LegacyBiffWorksheetParser.Parse(workbookStream, sheet, sharedStrings, externSheets, workbook.ExternalReferences, sheetNames, definedNameTable, workbook.MutableUnsupportedFeatures, workbook.MutablePreservedFeatureRecords, workbook.MutablePivotTableRecords, workbook.MutableCalculationSettings, workbook.MutableDiagnostics, options);
+                LegacyBiffWorksheetParser.Parse(workbookStream, sheet, sharedStrings, externSheets, workbook.ExternalReferences, sheetNames, definedNameTable, workbook.MutableUnsupportedFeatures, workbook.MutablePreservedFeatureRecords, workbook.MutablePivotTableRecords, workbook.MutableChartRecords, workbook.MutableCalculationSettings, workbook.MutableDiagnostics, options);
             }
 
             return workbook;
