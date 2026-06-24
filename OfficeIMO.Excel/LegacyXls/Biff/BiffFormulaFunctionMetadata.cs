@@ -5,6 +5,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
     internal static class BiffFormulaFunctionMetadata {
         internal static bool TryGetFixedFunctionMetadata(ushort functionId, out string? functionName, out int parameterCount) {
             switch (functionId) {
+                case 0x0003:
+                    functionName = "ISERROR";
+                    parameterCount = 1;
+                    return true;
                 case 0x0008:
                     functionName = "ROW";
                     parameterCount = 1;
@@ -185,12 +189,28 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     functionName = "REPLACE";
                     parameterCount = 4;
                     return true;
+                case 0x008c:
+                    functionName = "DATEVALUE";
+                    parameterCount = 1;
+                    return true;
+                case 0x00d4:
+                    functionName = "ROUNDUP";
+                    parameterCount = 2;
+                    return true;
+                case 0x00d5:
+                    functionName = "ROUNDDOWN";
+                    parameterCount = 2;
+                    return true;
                 case 0x00dd:
                     functionName = "TODAY";
                     parameterCount = 0;
                     return true;
                 case 0x0139:
                     functionName = "RSQ";
+                    parameterCount = 2;
+                    return true;
+                case 0x0151:
+                    functionName = "POWER";
                     parameterCount = 2;
                     return true;
                 case 0x0145:
@@ -282,6 +302,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     return true;
                 case 0x00e3:
                     functionName = "MEDIAN";
+                    return true;
+                case 0x00e4:
+                    functionName = "SUMPRODUCT";
                     return true;
                 case 0x0158:
                     functionName = "SUBTOTAL";

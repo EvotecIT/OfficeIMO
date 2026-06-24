@@ -517,6 +517,57 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_Corpus_FormulaAdvanced_ProjectsAdditionalBuiltInFunctions() {
+            string workbookPath = Path.Combine(
+                GetTestsProjectRoot(),
+                "Documents",
+                "LegacyXlsCorpus",
+                "excel-com-generated",
+                "formula-advanced.xls");
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(workbookPath, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
+            Assert.DoesNotContain(result.Diagnostics, diagnostic =>
+                diagnostic.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED"
+                && diagnostic.FormulaContext == "CellFormula");
+
+            foreach (string functionName in new[] {
+                "DATEVALUE",
+                "HLOOKUP",
+                "INDEX",
+                "ISERROR",
+                "LEFT",
+                "MATCH",
+                "OFFSET",
+                "POWER",
+                "RIGHT",
+                "ROUNDDOWN",
+                "ROUNDUP",
+                "SUMPRODUCT",
+                "VLOOKUP"
+            }) {
+                Assert.Equal(1, result.ImportReport.FormulaFunctionsByName[functionName]);
+            }
+
+            LegacyXlsWorksheet sheet = Assert.Single(result.Workbook.Worksheets);
+            AssertCorpusFormula(sheet, 1, 4, 3d, "ROUNDUP(A1/3,2)");
+            AssertCorpusFormula(sheet, 2, 4, 3d, "ROUNDDOWN(A1/3,2)");
+            AssertCorpusFormula(sheet, 3, 4, 81d, "POWER(A1,2)");
+            AssertCorpusFormula(sheet, 4, 4, 61d, "SUMPRODUCT(A1:A3,B1:B3)");
+            AssertCorpusFormula(sheet, 5, 4, true, "ISERROR(A1/0)");
+            AssertCorpusFormula(sheet, 6, 4, 46197d, "DATEVALUE(\"2026-06-24\")");
+            AssertCorpusFormula(sheet, 9, 4, "nost", "LEFT(\"north\",2)&RIGHT(\"east\",2)");
+            AssertCorpusFormula(sheet, 10, 4, "#N/A", "HLOOKUP(4,A1:B3,2,FALSE)");
+            AssertCorpusFormula(sheet, 11, 4, 5d, "VLOOKUP(4,A1:B3,2,FALSE)");
+            AssertCorpusFormula(sheet, 12, 4, 2d, "MATCH(4,A1:A3,0)");
+            AssertCorpusFormula(sheet, 13, 4, 5d, "INDEX(B1:B3,2)");
+            AssertCorpusFormula(sheet, 14, 4, 5d, "OFFSET(A1,1,1)");
+        }
+
+        [Fact]
         public void LegacyXls_Corpus_Protection_PreservesSheetProtectionAndCellProtection() {
             string workbookPath = Path.Combine(
                 GetTestsProjectRoot(),
