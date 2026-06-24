@@ -23,6 +23,9 @@ Chart records: 1134
 Drawing records: 46
 Theme records: 0
 Drawing OfficeArt records: 38
+Drawing group blocks: 1
+Drawing group infos: 1
+Drawing identifier clusters: 25
 Drawing shape properties: 43
 Differential formats: 0
 Compound feature records: 0
@@ -1223,6 +1226,79 @@ Warnings: 0
 | PayloadLength:60 | 4 |
 | PayloadLength:72 | 1 |
 | PayloadLength:8 | 6 |
+
+## Drawing Group Blocks By Max Shape Id
+
+| Key | Count |
+| --- | --- |
+| MaxShapeId:25602 | 1 |
+
+## Drawing Group Blocks By Declared Identifier Cluster Count
+
+| Key | Count |
+| --- | --- |
+| DeclaredIdentifierClusters:26 | 1 |
+
+## Drawing Group Blocks By Decoded Identifier Cluster Count
+
+| Key | Count |
+| --- | --- |
+| DecodedIdentifierClusters:25 | 1 |
+
+## Drawing Group Blocks By Saved Shape Count
+
+| Key | Count |
+| --- | --- |
+| SavedShapes:25 | 1 |
+
+## Drawing Group Blocks By Saved Drawing Count
+
+| Key | Count |
+| --- | --- |
+| SavedDrawings:11 | 1 |
+
+## Drawing Identifier Clusters By Drawing Id
+
+| Key | Count |
+| --- | --- |
+| DrawingId:0 | 14 |
+| DrawingId:1 | 1 |
+| DrawingId:10 | 1 |
+| DrawingId:13 | 1 |
+| DrawingId:14 | 1 |
+| DrawingId:15 | 1 |
+| DrawingId:2 | 1 |
+| DrawingId:3 | 1 |
+| DrawingId:4 | 1 |
+| DrawingId:5 | 1 |
+| DrawingId:6 | 1 |
+| DrawingId:9 | 1 |
+
+## Drawing Identifier Clusters By Current Shape Id
+
+| Key | Count |
+| --- | --- |
+| CurrentShapeId:2 | 23 |
+| CurrentShapeId:5 | 1 |
+| CurrentShapeId:6 | 1 |
+
+## Drawing Group Infos By Drawing Id
+
+| Key | Count |
+| --- | --- |
+| DrawingId:5 | 1 |
+
+## Drawing Group Infos By Shape Count
+
+| Key | Count |
+| --- | --- |
+| Shapes:1 | 1 |
+
+## Drawing Group Infos By Last Shape Id
+
+| Key | Count |
+| --- | --- |
+| LastShapeId:6145 | 1 |
 
 ## Drawing Shape Properties By Id
 

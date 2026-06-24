@@ -136,20 +136,38 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.DrawingRecordsByEscherRecordType["EscherRecordType:0xF002"]);
             Assert.Equal(1, report.DrawingRecordsByEscherRecordTypeName["OfficeArtDggContainer"]);
             Assert.Equal(1, report.DrawingRecordsByEscherRecordTypeName["OfficeArtDgContainer"]);
-            Assert.Equal(10, report.DrawingOfficeArtRecordCount);
+            Assert.Equal(11, report.DrawingOfficeArtRecordCount);
+            Assert.Equal(1, report.DrawingGroupBlockCount);
+            Assert.Equal(1, report.DrawingGroupInfoCount);
+            Assert.Equal(1, report.DrawingIdentifierClusterCount);
             Assert.Equal(1, report.DrawingOfficeArtRecordsByType["EscherRecordType:0xF000"]);
+            Assert.Equal(1, report.DrawingOfficeArtRecordsByType["EscherRecordType:0xF006"]);
+            Assert.Equal(1, report.DrawingOfficeArtRecordsByType["EscherRecordType:0xF008"]);
             Assert.Equal(1, report.DrawingOfficeArtRecordsByType["EscherRecordType:0xF00B"]);
             Assert.Equal(1, report.DrawingOfficeArtRecordsByType["EscherRecordType:0xF00F"]);
             Assert.Equal(1, report.DrawingOfficeArtRecordsByTypeName["OfficeArtDggContainer"]);
+            Assert.Equal(1, report.DrawingOfficeArtRecordsByTypeName["OfficeArtFDGGBlock"]);
+            Assert.Equal(1, report.DrawingOfficeArtRecordsByTypeName["OfficeArtFDG"]);
             Assert.Equal(1, report.DrawingOfficeArtRecordsByTypeName["OfficeArtFOPT"]);
             Assert.Equal(1, report.DrawingOfficeArtRecordsByTypeName["OfficeArtChildAnchor"]);
             Assert.Equal(2, report.DrawingOfficeArtRecordsByDepth["Depth:0"]);
-            Assert.Equal(3, report.DrawingOfficeArtRecordsByDepth["Depth:1"]);
+            Assert.Equal(4, report.DrawingOfficeArtRecordsByDepth["Depth:1"]);
             Assert.Equal(5, report.DrawingOfficeArtRecordsByDepth["Depth:2"]);
             Assert.Equal(4, report.DrawingOfficeArtRecordsByContainerState["Container"]);
-            Assert.Equal(6, report.DrawingOfficeArtRecordsByContainerState["Leaf"]);
+            Assert.Equal(7, report.DrawingOfficeArtRecordsByContainerState["Leaf"]);
             Assert.Equal(2, report.DrawingOfficeArtRecordsByPayloadLength["PayloadLength:8"]);
             Assert.Equal(2, report.DrawingOfficeArtRecordsByPayloadLength["PayloadLength:16"]);
+            Assert.Equal(1, report.DrawingOfficeArtRecordsByPayloadLength["PayloadLength:24"]);
+            Assert.Equal(1, report.DrawingGroupBlocksByMaxShapeId["MaxShapeId:2048"]);
+            Assert.Equal(1, report.DrawingGroupBlocksByDeclaredIdentifierClusterCount["DeclaredIdentifierClusters:2"]);
+            Assert.Equal(1, report.DrawingGroupBlocksByDecodedIdentifierClusterCount["DecodedIdentifierClusters:1"]);
+            Assert.Equal(1, report.DrawingGroupBlocksBySavedShapeCount["SavedShapes:2"]);
+            Assert.Equal(1, report.DrawingGroupBlocksBySavedDrawingCount["SavedDrawings:1"]);
+            Assert.Equal(1, report.DrawingIdentifierClustersByDrawingId["DrawingId:1"]);
+            Assert.Equal(1, report.DrawingIdentifierClustersByCurrentShapeId["CurrentShapeId:1024"]);
+            Assert.Equal(1, report.DrawingGroupInfosByDrawingId["DrawingId:1"]);
+            Assert.Equal(1, report.DrawingGroupInfosByShapeCount["Shapes:1"]);
+            Assert.Equal(1, report.DrawingGroupInfosByLastShapeId["LastShapeId:1024"]);
             Assert.Equal(2, report.DrawingShapePropertyCount);
             Assert.Equal(1, report.DrawingShapePropertiesById["PropertyId:0x00BF"]);
             Assert.Equal(1, report.DrawingShapePropertiesById["PropertyId:0x0005"]);
@@ -215,13 +233,21 @@ namespace OfficeIMO.Tests {
             Assert.Equal("OfficeArtDggContainer", drawingGroup.EscherRecordTypeName);
             Assert.Equal((ushort)2, drawingGroup.EscherRecordInstance);
             Assert.Equal((byte)0x0f, drawingGroup.EscherRecordVersion);
-            Assert.Equal((uint)80, drawingGroup.EscherPayloadLength);
+            Assert.Equal((uint)96, drawingGroup.EscherPayloadLength);
             Assert.Equal(new[] {
                 "OfficeArtDggContainer",
                 "OfficeArtFDGGBlock",
                 "OfficeArtBStoreContainer",
                 "OfficeArtFBSE"
             }, drawingGroup.OfficeArtRecords.Select(record => record.RecordTypeName).ToArray());
+            LegacyXlsDrawingGroupBlock drawingGroupBlock = Assert.Single(drawingGroup.DrawingGroupBlocks);
+            Assert.Equal((uint)2048, drawingGroupBlock.MaxShapeId);
+            Assert.Equal((uint)2, drawingGroupBlock.DeclaredIdentifierClusterCount);
+            Assert.Equal((uint)2, drawingGroupBlock.SavedShapeCount);
+            Assert.Equal((uint)1, drawingGroupBlock.SavedDrawingCount);
+            LegacyXlsDrawingIdentifierCluster identifierCluster = Assert.Single(drawingGroupBlock.IdentifierClusters);
+            Assert.Equal((uint)1, identifierCluster.DrawingId);
+            Assert.Equal((uint)1024, identifierCluster.CurrentShapeId);
             LegacyXlsDrawingBlipStoreEntry blipEntry = Assert.Single(drawingGroup.BlipStoreEntries);
             Assert.Equal((ushort)0x0006, blipEntry.RecordInstance);
             Assert.Equal(LegacyXlsDrawingBlipType.Png, blipEntry.RecordInstanceBlipTypeKind);
@@ -243,15 +269,20 @@ namespace OfficeIMO.Tests {
             Assert.Equal("OfficeArtDgContainer", drawing.EscherRecordTypeName);
             Assert.Equal((ushort)1, drawing.EscherRecordInstance);
             Assert.Equal((byte)0x0f, drawing.EscherRecordVersion);
-            Assert.Equal((uint)98, drawing.EscherPayloadLength);
+            Assert.Equal((uint)114, drawing.EscherPayloadLength);
             Assert.Equal(new[] {
                 "OfficeArtDgContainer",
+                "OfficeArtFDG",
                 "OfficeArtSpContainer",
                 "OfficeArtFSP",
                 "OfficeArtFOPT",
                 "OfficeArtFClientAnchor",
                 "OfficeArtChildAnchor"
             }, drawing.OfficeArtRecords.Select(record => record.RecordTypeName).ToArray());
+            LegacyXlsDrawingGroupInfo drawingInfo = Assert.Single(drawing.DrawingGroupInfos);
+            Assert.Equal((ushort)1, drawingInfo.DrawingId);
+            Assert.Equal((uint)1, drawingInfo.ShapeCount);
+            Assert.Equal((uint)1024, drawingInfo.LastShapeId);
             Assert.Equal(2, drawing.ShapeProperties.Count);
             LegacyXlsDrawingShapeProperty simpleProperty = drawing.ShapeProperties[0];
             Assert.Equal(0, simpleProperty.Index);
@@ -349,9 +380,15 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Drawing Future Record Stream Byte Counts", markdown);
             Assert.Contains("Drawing Records By Escher Record Type", markdown);
             Assert.Contains("Drawing Records By Escher Record Type Name", markdown);
-            Assert.Contains("Drawing OfficeArt records: 10", markdown);
+            Assert.Contains("Drawing OfficeArt records: 11", markdown);
+            Assert.Contains("Drawing group blocks: 1", markdown);
+            Assert.Contains("Drawing group infos: 1", markdown);
+            Assert.Contains("Drawing identifier clusters: 1", markdown);
             Assert.Contains("Drawing shape properties: 2", markdown);
             Assert.Contains("Drawing OfficeArt Records By Type Name", markdown);
+            Assert.Contains("Drawing Group Blocks By Max Shape Id", markdown);
+            Assert.Contains("Drawing Group Infos By Shape Count", markdown);
+            Assert.Contains("Drawing Identifier Clusters By Current Shape Id", markdown);
             Assert.Contains("Drawing Shape Properties By Id", markdown);
             Assert.Contains("Drawing BLIP Store Entries By Type", markdown);
             Assert.Contains("Drawing Shape Entries By Type", markdown);

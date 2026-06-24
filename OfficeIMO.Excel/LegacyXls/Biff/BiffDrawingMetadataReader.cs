@@ -22,6 +22,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 out IReadOnlyList<LegacyXlsDrawingAnchor> anchorEntries,
                 out IReadOnlyList<LegacyXlsDrawingChildAnchor> childAnchorEntries,
                 out IReadOnlyList<LegacyXlsDrawingOfficeArtRecord> officeArtRecords,
+                out IReadOnlyList<LegacyXlsDrawingGroupBlock> drawingGroupBlocks,
+                out IReadOnlyList<LegacyXlsDrawingGroupInfo> drawingGroupInfos,
                 out IReadOnlyList<LegacyXlsDrawingShapeProperty> shapeProperties);
             records.Add(new LegacyXlsDrawingRecord(
                 GetKind(record.Type),
@@ -42,6 +44,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 anchorEntries: anchorEntries,
                 childAnchorEntries: childAnchorEntries,
                 officeArtRecords: officeArtRecords,
+                drawingGroupBlocks: drawingGroupBlocks,
+                drawingGroupInfos: drawingGroupInfos,
                 shapeProperties: shapeProperties,
                 objectSubRecords: objectSubRecords,
                 futureRecordHeader: futureRecordHeader));
@@ -63,6 +67,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 out anchors,
                 out _,
                 out _,
+                out _,
+                out _,
                 out _);
             return anchors.Count > 0;
         }
@@ -74,6 +80,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             out IReadOnlyList<LegacyXlsDrawingAnchor> anchorEntries,
             out IReadOnlyList<LegacyXlsDrawingChildAnchor> childAnchorEntries,
             out IReadOnlyList<LegacyXlsDrawingOfficeArtRecord> officeArtRecords,
+            out IReadOnlyList<LegacyXlsDrawingGroupBlock> drawingGroupBlocks,
+            out IReadOnlyList<LegacyXlsDrawingGroupInfo> drawingGroupInfos,
             out IReadOnlyList<LegacyXlsDrawingShapeProperty> shapeProperties) {
             if (record.Type != (ushort)BiffRecordType.DrawingGroup && record.Type != (ushort)BiffRecordType.Drawing) {
                 blipStoreEntries = Array.Empty<LegacyXlsDrawingBlipStoreEntry>();
@@ -81,6 +89,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 anchorEntries = Array.Empty<LegacyXlsDrawingAnchor>();
                 childAnchorEntries = Array.Empty<LegacyXlsDrawingChildAnchor>();
                 officeArtRecords = Array.Empty<LegacyXlsDrawingOfficeArtRecord>();
+                drawingGroupBlocks = Array.Empty<LegacyXlsDrawingGroupBlock>();
+                drawingGroupInfos = Array.Empty<LegacyXlsDrawingGroupInfo>();
                 shapeProperties = Array.Empty<LegacyXlsDrawingShapeProperty>();
                 return;
             }
@@ -90,13 +100,17 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             var anchors = new List<LegacyXlsDrawingAnchor>();
             var childAnchors = new List<LegacyXlsDrawingChildAnchor>();
             var records = new List<LegacyXlsDrawingOfficeArtRecord>();
+            var groupBlocks = new List<LegacyXlsDrawingGroupBlock>();
+            var groupInfos = new List<LegacyXlsDrawingGroupInfo>();
             var properties = new List<LegacyXlsDrawingShapeProperty>();
-            TryReadOfficeArtRecords(record.Payload, 0, record.Payload.Length, records, blips, shapes, anchors, childAnchors, properties, depth: 0);
+            TryReadOfficeArtRecords(record.Payload, 0, record.Payload.Length, records, blips, shapes, anchors, childAnchors, groupBlocks, groupInfos, properties, depth: 0);
             blipStoreEntries = blips;
             shapeEntries = shapes;
             anchorEntries = anchors;
             childAnchorEntries = childAnchors;
             officeArtRecords = records;
+            drawingGroupBlocks = groupBlocks;
+            drawingGroupInfos = groupInfos;
             shapeProperties = properties;
         }
 
@@ -109,6 +123,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             List<LegacyXlsDrawingShape> shapeEntries,
             List<LegacyXlsDrawingAnchor> anchorEntries,
             List<LegacyXlsDrawingChildAnchor> childAnchorEntries,
+            List<LegacyXlsDrawingGroupBlock> drawingGroupBlocks,
+            List<LegacyXlsDrawingGroupInfo> drawingGroupInfos,
             List<LegacyXlsDrawingShapeProperty> shapeProperties,
             int depth) {
             if (depth > 8) {
@@ -132,6 +148,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
                 if (recordType == 0xF007 && TryReadBlipStoreEntry(payload, contentStart, contentEnd, instance, out LegacyXlsDrawingBlipStoreEntry? blipEntry)) {
                     blipStoreEntries.Add(blipEntry!);
+                } else if (recordType == 0xF006 && TryReadDrawingGroupBlock(payload, contentStart, contentEnd, out LegacyXlsDrawingGroupBlock? drawingGroupBlock)) {
+                    drawingGroupBlocks.Add(drawingGroupBlock!);
+                } else if (recordType == 0xF008 && TryReadDrawingGroupInfo(payload, contentStart, contentEnd, instance, out LegacyXlsDrawingGroupInfo? drawingGroupInfo)) {
+                    drawingGroupInfos.Add(drawingGroupInfo!);
                 } else if (recordType == 0xF00A && TryReadShape(payload, contentStart, contentEnd, instance, out LegacyXlsDrawingShape? shapeEntry)) {
                     shapeEntries.Add(shapeEntry!);
                 } else if (recordType == 0xF010 && TryReadClientAnchor(payload, contentStart, contentEnd, out LegacyXlsDrawingAnchor? anchorEntry)) {
@@ -143,11 +163,63 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 }
 
                 if (version == 0x0f) {
-                    TryReadOfficeArtRecords(payload, contentStart, contentEnd, officeArtRecords, blipStoreEntries, shapeEntries, anchorEntries, childAnchorEntries, shapeProperties, depth + 1);
+                    TryReadOfficeArtRecords(payload, contentStart, contentEnd, officeArtRecords, blipStoreEntries, shapeEntries, anchorEntries, childAnchorEntries, drawingGroupBlocks, drawingGroupInfos, shapeProperties, depth + 1);
                 }
 
                 offset = contentEnd;
             }
+        }
+
+        private static bool TryReadDrawingGroupBlock(
+            byte[] payload,
+            int contentStart,
+            int contentEnd,
+            out LegacyXlsDrawingGroupBlock? block) {
+            block = null;
+            if (contentStart < 0 || contentStart + 16 > contentEnd) {
+                return false;
+            }
+
+            uint identifierClusterCount = BiffRecordReader.ReadUInt32(payload, contentStart + 4);
+            int declaredClusterCount = identifierClusterCount > 0 && identifierClusterCount <= int.MaxValue
+                ? checked((int)identifierClusterCount - 1)
+                : 0;
+            int availableClusterCount = Math.Max(0, (contentEnd - (contentStart + 16)) / 8);
+            int clusterCount = Math.Min(declaredClusterCount, availableClusterCount);
+            var clusters = new List<LegacyXlsDrawingIdentifierCluster>(clusterCount);
+            int clusterOffset = contentStart + 16;
+            for (int i = 0; i < clusterCount; i++) {
+                clusters.Add(new LegacyXlsDrawingIdentifierCluster(
+                    BiffRecordReader.ReadUInt32(payload, clusterOffset),
+                    BiffRecordReader.ReadUInt32(payload, clusterOffset + 4)));
+                clusterOffset += 8;
+            }
+
+            block = new LegacyXlsDrawingGroupBlock(
+                BiffRecordReader.ReadUInt32(payload, contentStart),
+                identifierClusterCount,
+                BiffRecordReader.ReadUInt32(payload, contentStart + 8),
+                BiffRecordReader.ReadUInt32(payload, contentStart + 12),
+                clusters);
+            return true;
+        }
+
+        private static bool TryReadDrawingGroupInfo(
+            byte[] payload,
+            int contentStart,
+            int contentEnd,
+            ushort drawingId,
+            out LegacyXlsDrawingGroupInfo? info) {
+            info = null;
+            if (contentStart < 0 || contentStart + 8 > contentEnd) {
+                return false;
+            }
+
+            info = new LegacyXlsDrawingGroupInfo(
+                drawingId,
+                BiffRecordReader.ReadUInt32(payload, contentStart),
+                BiffRecordReader.ReadUInt32(payload, contentStart + 4));
+            return true;
         }
 
         private static bool TryReadBlipStoreEntry(

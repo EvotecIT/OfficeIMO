@@ -23,6 +23,9 @@ Chart records: 0
 Drawing records: 0
 Theme records: 0
 Drawing OfficeArt records: 0
+Drawing group blocks: 0
+Drawing group infos: 0
+Drawing identifier clusters: 0
 Drawing shape properties: 0
 Differential formats: 0
 Compound feature records: 0

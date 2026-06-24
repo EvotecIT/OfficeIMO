@@ -27,6 +27,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             IReadOnlyList<LegacyXlsDrawingAnchor>? anchorEntries = null,
             IReadOnlyList<LegacyXlsDrawingChildAnchor>? childAnchorEntries = null,
             IReadOnlyList<LegacyXlsDrawingOfficeArtRecord>? officeArtRecords = null,
+            IReadOnlyList<LegacyXlsDrawingGroupBlock>? drawingGroupBlocks = null,
+            IReadOnlyList<LegacyXlsDrawingGroupInfo>? drawingGroupInfos = null,
             IReadOnlyList<LegacyXlsDrawingShapeProperty>? shapeProperties = null,
             IReadOnlyList<LegacyXlsDrawingObjectSubRecord>? objectSubRecords = null,
             LegacyXlsDrawingFutureRecordHeader? futureRecordHeader = null) {
@@ -57,6 +59,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             AnchorEntries = anchorEntries?.ToArray() ?? Array.Empty<LegacyXlsDrawingAnchor>();
             ChildAnchorEntries = childAnchorEntries?.ToArray() ?? Array.Empty<LegacyXlsDrawingChildAnchor>();
             OfficeArtRecords = officeArtRecords?.ToArray() ?? Array.Empty<LegacyXlsDrawingOfficeArtRecord>();
+            DrawingGroupBlocks = drawingGroupBlocks?.ToArray() ?? Array.Empty<LegacyXlsDrawingGroupBlock>();
+            DrawingGroupInfos = drawingGroupInfos?.ToArray() ?? Array.Empty<LegacyXlsDrawingGroupInfo>();
             ShapeProperties = shapeProperties?.ToArray() ?? Array.Empty<LegacyXlsDrawingShapeProperty>();
             ObjectSubRecords = objectSubRecords?.ToArray() ?? Array.Empty<LegacyXlsDrawingObjectSubRecord>();
             FutureRecordHeader = futureRecordHeader;
@@ -181,6 +185,18 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets whether this drawing record contains discovered OfficeArt record headers.</summary>
         public bool HasOfficeArtRecords => OfficeArtRecords.Count > 0;
+
+        /// <summary>Gets preserve-only document-wide OfficeArtFDGGBlock drawing metadata discovered under this record.</summary>
+        public IReadOnlyList<LegacyXlsDrawingGroupBlock> DrawingGroupBlocks { get; }
+
+        /// <summary>Gets whether this drawing record contains document-wide OfficeArtFDGGBlock metadata.</summary>
+        public bool HasDrawingGroupBlocks => DrawingGroupBlocks.Count > 0;
+
+        /// <summary>Gets preserve-only per-drawing OfficeArtFDG metadata discovered under this record.</summary>
+        public IReadOnlyList<LegacyXlsDrawingGroupInfo> DrawingGroupInfos { get; }
+
+        /// <summary>Gets whether this drawing record contains per-drawing OfficeArtFDG metadata.</summary>
+        public bool HasDrawingGroupInfos => DrawingGroupInfos.Count > 0;
 
         /// <summary>Gets preserve-only OfficeArtFOPT shape properties discovered under this drawing record.</summary>
         public IReadOnlyList<LegacyXlsDrawingShapeProperty> ShapeProperties { get; }

@@ -1429,7 +1429,7 @@ namespace OfficeIMO.Tests {
             }
 
             private static byte[] BuildDrawingGroupWithPngBlipStorePayload() {
-                byte[] drawingGroupData = BuildOfficeArtRecord(0xf006, instance: 0, version: 0x00, new byte[8]);
+                byte[] drawingGroupData = BuildOfficeArtRecord(0xf006, instance: 0, version: 0x00, BuildDrawingGroupBlockPayload());
                 byte[] embeddedPng = BuildOfficeArtRecord(0xf01e, instance: 0x06, version: 0x00, new byte[] { 0x89, 0x50, 0x4e, 0x47 });
                 byte[] fbse = BuildOfficeArtRecord(0xf007, instance: 0x06, version: 0x02, BuildFbsePayload(0x06, 0x06, sizeBytes: 12, referenceCount: 1, embeddedPng));
                 byte[] bstore = BuildOfficeArtRecord(0xf001, instance: 1, version: 0x0f, fbse);
@@ -1438,12 +1438,31 @@ namespace OfficeIMO.Tests {
             }
 
             private static byte[] BuildDrawingWithPictureShapePayload() {
+                byte[] drawingInfo = BuildOfficeArtRecord(0xf008, instance: 1, version: 0x00, BuildDrawingInfoPayload());
                 byte[] shape = BuildOfficeArtRecord(0xf00a, instance: 0x004b, version: 0x02, BuildShapePayload(0x00000400, 0x00000a02));
                 byte[] shapeProperties = BuildOfficeArtRecord(0xf00b, instance: 2, version: 0x03, BuildShapePropertiesPayload());
                 byte[] anchor = BuildOfficeArtRecord(0xf010, instance: 0, version: 0x00, BuildClientAnchorPayload());
                 byte[] childAnchor = BuildOfficeArtRecord(0xf00f, instance: 0, version: 0x00, BuildChildAnchorPayload());
                 byte[] shapeContainer = BuildOfficeArtRecord(0xf004, instance: 0, version: 0x0f, shape.Concat(shapeProperties).Concat(anchor).Concat(childAnchor).ToArray());
-                return BuildOfficeArtRecord(0xf002, instance: 1, version: 0x0f, shapeContainer);
+                return BuildOfficeArtRecord(0xf002, instance: 1, version: 0x0f, drawingInfo.Concat(shapeContainer).ToArray());
+            }
+
+            private static byte[] BuildDrawingGroupBlockPayload() {
+                using var stream = new MemoryStream();
+                WriteUInt32(stream, 2048);
+                WriteUInt32(stream, 2);
+                WriteUInt32(stream, 2);
+                WriteUInt32(stream, 1);
+                WriteUInt32(stream, 1);
+                WriteUInt32(stream, 1024);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildDrawingInfoPayload() {
+                using var stream = new MemoryStream();
+                WriteUInt32(stream, 1);
+                WriteUInt32(stream, 1024);
+                return stream.ToArray();
             }
 
             private static byte[] BuildDrawingFutureStreamPayload(

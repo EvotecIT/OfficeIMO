@@ -177,6 +177,9 @@ namespace OfficeIMO.Excel.LegacyXls {
             DrawingRecordCount = workbook.DrawingRecords.Count;
             ThemeRecordCount = workbook.ThemeRecords.Count;
             DrawingOfficeArtRecordCount = workbook.DrawingRecords.Sum(record => record.OfficeArtRecords.Count);
+            DrawingGroupBlockCount = workbook.DrawingRecords.Sum(record => record.DrawingGroupBlocks.Count);
+            DrawingGroupInfoCount = workbook.DrawingRecords.Sum(record => record.DrawingGroupInfos.Count);
+            DrawingIdentifierClusterCount = workbook.DrawingRecords.Sum(record => record.DrawingGroupBlocks.Sum(block => block.IdentifierClusters.Count));
             DrawingShapePropertyCount = workbook.DrawingRecords.Sum(record => record.ShapeProperties.Count);
             DifferentialFormatCount = workbook.DifferentialFormats.Count;
             DifferentialFormatsByRecordType = CountByCode(workbook.DifferentialFormats
@@ -645,6 +648,38 @@ namespace OfficeIMO.Excel.LegacyXls {
             DrawingOfficeArtRecordsByPayloadLength = CountByCode(workbook.DrawingRecords
                 .SelectMany(record => record.OfficeArtRecords)
                 .Select(record => $"PayloadLength:{record.PayloadLength}"));
+            DrawingGroupBlocksByMaxShapeId = CountByCode(workbook.DrawingRecords
+                .SelectMany(record => record.DrawingGroupBlocks)
+                .Select(block => $"MaxShapeId:{block.MaxShapeId}"));
+            DrawingGroupBlocksByDeclaredIdentifierClusterCount = CountByCode(workbook.DrawingRecords
+                .SelectMany(record => record.DrawingGroupBlocks)
+                .Select(block => $"DeclaredIdentifierClusters:{block.DeclaredIdentifierClusterCount}"));
+            DrawingGroupBlocksByDecodedIdentifierClusterCount = CountByCode(workbook.DrawingRecords
+                .SelectMany(record => record.DrawingGroupBlocks)
+                .Select(block => $"DecodedIdentifierClusters:{block.IdentifierClusters.Count}"));
+            DrawingGroupBlocksBySavedShapeCount = CountByCode(workbook.DrawingRecords
+                .SelectMany(record => record.DrawingGroupBlocks)
+                .Select(block => $"SavedShapes:{block.SavedShapeCount}"));
+            DrawingGroupBlocksBySavedDrawingCount = CountByCode(workbook.DrawingRecords
+                .SelectMany(record => record.DrawingGroupBlocks)
+                .Select(block => $"SavedDrawings:{block.SavedDrawingCount}"));
+            DrawingIdentifierClustersByDrawingId = CountByCode(workbook.DrawingRecords
+                .SelectMany(record => record.DrawingGroupBlocks)
+                .SelectMany(block => block.IdentifierClusters)
+                .Select(cluster => $"DrawingId:{cluster.DrawingId}"));
+            DrawingIdentifierClustersByCurrentShapeId = CountByCode(workbook.DrawingRecords
+                .SelectMany(record => record.DrawingGroupBlocks)
+                .SelectMany(block => block.IdentifierClusters)
+                .Select(cluster => $"CurrentShapeId:{cluster.CurrentShapeId}"));
+            DrawingGroupInfosByDrawingId = CountByCode(workbook.DrawingRecords
+                .SelectMany(record => record.DrawingGroupInfos)
+                .Select(info => $"DrawingId:{info.DrawingId}"));
+            DrawingGroupInfosByShapeCount = CountByCode(workbook.DrawingRecords
+                .SelectMany(record => record.DrawingGroupInfos)
+                .Select(info => $"Shapes:{info.ShapeCount}"));
+            DrawingGroupInfosByLastShapeId = CountByCode(workbook.DrawingRecords
+                .SelectMany(record => record.DrawingGroupInfos)
+                .Select(info => $"LastShapeId:{info.LastShapeId}"));
             DrawingShapePropertiesById = CountByCode(workbook.DrawingRecords
                 .SelectMany(record => record.ShapeProperties)
                 .Select(property => property.PropertyIdKey));
@@ -1106,6 +1141,15 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets the number of OfficeArt record headers discovered under preserve-only drawing records.</summary>
         public int DrawingOfficeArtRecordCount { get; }
+
+        /// <summary>Gets the number of OfficeArtFDGGBlock records decoded under preserve-only drawing records.</summary>
+        public int DrawingGroupBlockCount { get; }
+
+        /// <summary>Gets the number of OfficeArtFDG records decoded under preserve-only drawing records.</summary>
+        public int DrawingGroupInfoCount { get; }
+
+        /// <summary>Gets the number of OfficeArtIDCL clusters decoded under OfficeArtFDGGBlock records.</summary>
+        public int DrawingIdentifierClusterCount { get; }
 
         /// <summary>Gets the number of OfficeArtFOPT shape property entries discovered under preserve-only drawing records.</summary>
         public int DrawingShapePropertyCount { get; }
@@ -1740,6 +1784,36 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets nested OfficeArt records grouped by declared payload length.</summary>
         public IReadOnlyDictionary<string, int> DrawingOfficeArtRecordsByPayloadLength { get; }
 
+        /// <summary>Gets OfficeArtFDGGBlock records grouped by maximum shape identifier.</summary>
+        public IReadOnlyDictionary<string, int> DrawingGroupBlocksByMaxShapeId { get; }
+
+        /// <summary>Gets OfficeArtFDGGBlock records grouped by declared identifier-cluster count.</summary>
+        public IReadOnlyDictionary<string, int> DrawingGroupBlocksByDeclaredIdentifierClusterCount { get; }
+
+        /// <summary>Gets OfficeArtFDGGBlock records grouped by decoded identifier-cluster count.</summary>
+        public IReadOnlyDictionary<string, int> DrawingGroupBlocksByDecodedIdentifierClusterCount { get; }
+
+        /// <summary>Gets OfficeArtFDGGBlock records grouped by saved shape count.</summary>
+        public IReadOnlyDictionary<string, int> DrawingGroupBlocksBySavedShapeCount { get; }
+
+        /// <summary>Gets OfficeArtFDGGBlock records grouped by saved drawing count.</summary>
+        public IReadOnlyDictionary<string, int> DrawingGroupBlocksBySavedDrawingCount { get; }
+
+        /// <summary>Gets OfficeArtIDCL clusters grouped by drawing identifier.</summary>
+        public IReadOnlyDictionary<string, int> DrawingIdentifierClustersByDrawingId { get; }
+
+        /// <summary>Gets OfficeArtIDCL clusters grouped by current shape identifier.</summary>
+        public IReadOnlyDictionary<string, int> DrawingIdentifierClustersByCurrentShapeId { get; }
+
+        /// <summary>Gets OfficeArtFDG records grouped by drawing identifier.</summary>
+        public IReadOnlyDictionary<string, int> DrawingGroupInfosByDrawingId { get; }
+
+        /// <summary>Gets OfficeArtFDG records grouped by drawing shape count.</summary>
+        public IReadOnlyDictionary<string, int> DrawingGroupInfosByShapeCount { get; }
+
+        /// <summary>Gets OfficeArtFDG records grouped by last shape identifier.</summary>
+        public IReadOnlyDictionary<string, int> DrawingGroupInfosByLastShapeId { get; }
+
         /// <summary>Gets OfficeArtFOPT shape properties grouped by property identifier.</summary>
         public IReadOnlyDictionary<string, int> DrawingShapePropertiesById { get; }
 
@@ -1974,6 +2048,9 @@ namespace OfficeIMO.Excel.LegacyXls {
             builder.AppendLine($"Drawing records: {DrawingRecordCount}");
             builder.AppendLine($"Theme records: {ThemeRecordCount}");
             builder.AppendLine($"Drawing OfficeArt records: {DrawingOfficeArtRecordCount}");
+            builder.AppendLine($"Drawing group blocks: {DrawingGroupBlockCount}");
+            builder.AppendLine($"Drawing group infos: {DrawingGroupInfoCount}");
+            builder.AppendLine($"Drawing identifier clusters: {DrawingIdentifierClusterCount}");
             builder.AppendLine($"Drawing shape properties: {DrawingShapePropertyCount}");
             builder.AppendLine($"Differential formats: {DifferentialFormatCount}");
             builder.AppendLine($"Compound feature records: {CompoundFeatureRecordCount}");
@@ -2283,6 +2360,16 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Drawing OfficeArt Records By Depth", DrawingOfficeArtRecordsByDepth);
             AppendDictionary(builder, "Drawing OfficeArt Records By Container State", DrawingOfficeArtRecordsByContainerState);
             AppendDictionary(builder, "Drawing OfficeArt Records By Payload Length", DrawingOfficeArtRecordsByPayloadLength);
+            AppendDictionary(builder, "Drawing Group Blocks By Max Shape Id", DrawingGroupBlocksByMaxShapeId);
+            AppendDictionary(builder, "Drawing Group Blocks By Declared Identifier Cluster Count", DrawingGroupBlocksByDeclaredIdentifierClusterCount);
+            AppendDictionary(builder, "Drawing Group Blocks By Decoded Identifier Cluster Count", DrawingGroupBlocksByDecodedIdentifierClusterCount);
+            AppendDictionary(builder, "Drawing Group Blocks By Saved Shape Count", DrawingGroupBlocksBySavedShapeCount);
+            AppendDictionary(builder, "Drawing Group Blocks By Saved Drawing Count", DrawingGroupBlocksBySavedDrawingCount);
+            AppendDictionary(builder, "Drawing Identifier Clusters By Drawing Id", DrawingIdentifierClustersByDrawingId);
+            AppendDictionary(builder, "Drawing Identifier Clusters By Current Shape Id", DrawingIdentifierClustersByCurrentShapeId);
+            AppendDictionary(builder, "Drawing Group Infos By Drawing Id", DrawingGroupInfosByDrawingId);
+            AppendDictionary(builder, "Drawing Group Infos By Shape Count", DrawingGroupInfosByShapeCount);
+            AppendDictionary(builder, "Drawing Group Infos By Last Shape Id", DrawingGroupInfosByLastShapeId);
             AppendDictionary(builder, "Drawing Shape Properties By Id", DrawingShapePropertiesById);
             AppendDictionary(builder, "Drawing Shape Properties By Name", DrawingShapePropertiesByName);
             AppendDictionary(builder, "Drawing Shape Properties By Group", DrawingShapePropertiesByGroup);
