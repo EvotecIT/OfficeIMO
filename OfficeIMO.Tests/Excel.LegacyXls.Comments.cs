@@ -68,7 +68,60 @@ namespace OfficeIMO.Tests {
             Assert.Equal(" plain", openXmlRuns[1].Text!.Text);
         }
 
+        [Fact]
+        public void LegacyXls_Load_PreservesCommentAnchorGeometry() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase4AnchoredCommentWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            LegacyXlsComment comment = Assert.Single(Assert.Single(legacy.Worksheets).Comments);
+            Assert.True(comment.HasAnchor);
+            LegacyXlsDrawingAnchor anchor = comment.Anchor!;
+            Assert.Equal((ushort)0x0000, anchor.Flags);
+            Assert.Equal((ushort)1, anchor.StartColumn);
+            Assert.Equal((ushort)10, anchor.StartDx);
+            Assert.Equal((ushort)2, anchor.StartRow);
+            Assert.Equal((ushort)20, anchor.StartDy);
+            Assert.Equal((ushort)3, anchor.EndColumn);
+            Assert.Equal((ushort)30, anchor.EndDx);
+            Assert.Equal((ushort)4, anchor.EndRow);
+            Assert.Equal((ushort)40, anchor.EndDy);
+
+            LegacyXlsImportReport report = legacy.CreateImportReport();
+            Assert.Equal(1, report.CommentsByAnchorRange["R2C1:R4C3"]);
+            Assert.Equal(1, report.CommentsByAnchorOffset["StartDx:10;StartDy:20;EndDx:30;EndDy:40"]);
+            Assert.Equal(1, report.CommentsByAnchorFlags["Flags:0x0000"]);
+            Assert.Contains("Comments By Anchor Range", report.ToMarkdown());
+        }
+
         private static partial class LegacyXlsTestWorkbookBuilder {
+            internal static byte[] CreatePhase4AnchoredCommentWorkbookStream() {
+                const string text = "Anchored note";
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long boundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "AnchoredComment"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Review me"));
+                WriteRecord(stream, 0x00ec, BuildDrawingWithPictureShapePayload());
+                WriteRecord(stream, 0x005d, BuildNoteObjectPayload(1));
+                WriteRecord(stream, 0x01b6, BuildTxoPayload(text, 8));
+                WriteRecord(stream, 0x003c, BuildCompressedUnicodeStringNoCchPayload(text));
+                WriteRecord(stream, 0x003c, BuildTxoRunsPayload(((ushort)text.Length, 0)));
+                WriteRecord(stream, 0x001c, BuildNotePayload(0, 0, 1, "Legacy Author"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)boundSheetPosition + 4), 4);
+                return bytes;
+            }
+
             internal static byte[] CreatePhase4RichTextCommentWorkbookStream() {
                 const string text = "Bold plain";
                 using var stream = new MemoryStream();

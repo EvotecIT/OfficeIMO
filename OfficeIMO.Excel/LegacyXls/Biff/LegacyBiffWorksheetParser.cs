@@ -139,6 +139,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     FlushPendingFormulaString(sheet, sharedFormulaState, ref pendingFormulaString);
                 }
 
+                if (type != (ushort)BiffRecordType.Drawing && type != (ushort)BiffRecordType.Obj) {
+                    commentState.DiscardPendingDrawingAnchors();
+                }
+
                 switch ((BiffRecordType)type) {
                     case BiffRecordType.Blank:
                         if (payload.Length >= 6) {
@@ -443,6 +447,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                         break;
                     default:
                         if (type != (ushort)BiffRecordType.Bof) {
+                            if (type == (ushort)BiffRecordType.Drawing) {
+                                commentState.TryReadDrawingAnchors(new BiffRecord(type, offset, payload));
+                            }
+
                             if (BiffDrawingMetadataReader.TryRead(new BiffRecord(type, offset, payload), sheet.Name, drawingRecords)) {
                                 AddUnsupportedFeature(unsupportedFeatures, preservedFeatureRecords, diagnostics, options, type, offset, sheet.Name, payload.Length);
                                 break;

@@ -12,6 +12,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         private readonly Dictionary<ushort, string> _texts = new();
         private readonly Dictionary<ushort, IReadOnlyList<LegacyXlsCommentFormattingRun>> _formattingRuns = new();
         private readonly Dictionary<ushort, CommentObjectInfo> _objectInfos = new();
+        private readonly Queue<LegacyXlsDrawingAnchor> _pendingAnchors = new();
         private readonly HashSet<ushort> _imported = new();
         private PendingTextObject? _pendingTextObject;
         private ushort? _pendingCommentObjectId;
@@ -39,8 +40,21 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 objectFlags = BiffRecordReader.ReadUInt16(payload, 8);
             }
 
-            _objectInfos[_pendingCommentObjectId.Value] = new CommentObjectInfo(objectType, objectFlags);
+            LegacyXlsDrawingAnchor? anchor = _pendingAnchors.Count > 0 ? _pendingAnchors.Dequeue() : null;
+            _objectInfos[_pendingCommentObjectId.Value] = new CommentObjectInfo(objectType, objectFlags, anchor);
             return true;
+        }
+
+        internal void TryReadDrawingAnchors(BiffRecord record) {
+            if (BiffDrawingMetadataReader.TryReadClientAnchors(record, out IReadOnlyList<LegacyXlsDrawingAnchor> anchors)) {
+                foreach (LegacyXlsDrawingAnchor anchor in anchors) {
+                    _pendingAnchors.Enqueue(anchor);
+                }
+            }
+        }
+
+        internal void DiscardPendingDrawingAnchors() {
+            _pendingAnchors.Clear();
         }
 
         internal bool TryReadTextObject(byte[] payload) {
@@ -150,19 +164,23 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 note.Visible,
                 runs,
                 objectInfo.ObjectType,
-                objectInfo.ObjectFlags));
+                objectInfo.ObjectFlags,
+                objectInfo.Anchor));
             _imported.Add(objectId);
         }
 
         private readonly struct CommentObjectInfo {
-            internal CommentObjectInfo(ushort? objectType, ushort? objectFlags) {
+            internal CommentObjectInfo(ushort? objectType, ushort? objectFlags, LegacyXlsDrawingAnchor? anchor) {
                 ObjectType = objectType;
                 ObjectFlags = objectFlags;
+                Anchor = anchor;
             }
 
             internal ushort? ObjectType { get; }
 
             internal ushort? ObjectFlags { get; }
+
+            internal LegacyXlsDrawingAnchor? Anchor { get; }
         }
 
         private readonly struct PendingNote {

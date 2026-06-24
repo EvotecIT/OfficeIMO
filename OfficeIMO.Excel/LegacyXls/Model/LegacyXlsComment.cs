@@ -15,7 +15,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             bool visible,
             IReadOnlyList<LegacyXlsCommentFormattingRun>? formattingRuns = null,
             ushort? objectType = null,
-            ushort? objectFlags = null) {
+            ushort? objectFlags = null,
+            LegacyXlsDrawingAnchor? anchor = null) {
             Row = row;
             Column = column;
             Text = text;
@@ -28,6 +29,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             ObjectTypeName = ObjectTypeKind?.ToString() ?? (objectType.HasValue ? $"ObjectType:0x{objectType.Value:X4}" : null);
             ObjectFlags = objectFlags;
             ObjectFlagNames = objectFlags.HasValue ? LegacyXlsDrawingObjectMetadata.GetObjectFlagNames(objectFlags.Value) : Array.Empty<string>();
+            Anchor = anchor;
         }
 
         /// <summary>Gets the 1-based row containing the comment.</summary>
@@ -65,6 +67,12 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets stable names for the defined common-object flags set on the comment OBJ record.</summary>
         public IReadOnlyList<string> ObjectFlagNames { get; }
+
+        /// <summary>Gets the OfficeArt client anchor associated with the comment object, when present.</summary>
+        public LegacyXlsDrawingAnchor? Anchor { get; }
+
+        /// <summary>Gets whether the comment has preserved OfficeArt client-anchor geometry.</summary>
+        public bool HasAnchor => Anchor != null;
 
         /// <summary>Gets whether the comment object is locked.</summary>
         public bool IsObjectLocked => HasObjectFlag(0x0001);

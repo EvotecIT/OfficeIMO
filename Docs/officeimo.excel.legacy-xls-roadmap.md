@@ -144,8 +144,10 @@ legacy cell comments backed by `Note`, note-type `Obj`, `TxO`, and `Continue`
 records now import through the normal OfficeIMO comment API. TxO formatting-run
 boundaries and font indexes are preserved in the legacy comment model, supported
 font properties project through the normal OfficeIMO rich comment API, and comment
-OBJ common-object type/flag metadata is available for diagnostics. Comment anchor
-geometry projection remains future hardening work. Worksheet `DIMENSIONS` records
+OBJ common-object type/flag metadata is available for diagnostics. Adjacent OfficeArt
+client-anchor geometry is preserved in the legacy comment model and corpus import
+reports; projecting comment placement through the normal OfficeIMO comment API remains
+future hardening work. Worksheet `DIMENSIONS` records
 now import as explicit legacy-model declared used-range metadata, including empty
 worksheet declarations. Open XML projection continues to let OfficeIMO compute the
 saved `.xlsx` sheet dimension from projected cells and structures to avoid stale

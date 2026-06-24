@@ -30,6 +30,15 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .Where(comment => comment.ObjectFlags.HasValue)
                 .Select(comment => $"ObjectFlags:0x{comment.ObjectFlags!.Value:X4}"));
             CommentsByObjectFlagName = CountByCode(comments.SelectMany(comment => comment.ObjectFlagNames));
+            CommentsByAnchorRange = CountByCode(comments
+                .Where(comment => comment.Anchor != null)
+                .Select(comment => GetDrawingAnchorRangeKey(comment.Anchor!)));
+            CommentsByAnchorOffset = CountByCode(comments
+                .Where(comment => comment.Anchor != null)
+                .Select(comment => GetDrawingAnchorOffsetKey(comment.Anchor!)));
+            CommentsByAnchorFlags = CountByCode(comments
+                .Where(comment => comment.Anchor != null)
+                .Select(comment => GetDrawingAnchorFlagsKey(comment.Anchor!)));
             DataValidationCount = dataValidations.Length;
             ConditionalFormattingCount = conditionalFormattings.Length;
             AutoFilterCriteriaCount = workbook.Worksheets.Sum(sheet => sheet.AutoFilterCriteria.Count);
@@ -529,13 +538,13 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .SelectMany(shape => shape.FlagNames));
             DrawingAnchorEntriesByRange = CountByCode(workbook.DrawingRecords
                 .SelectMany(record => record.AnchorEntries)
-                .Select(anchor => $"R{anchor.StartRow}C{anchor.StartColumn}:R{anchor.EndRow}C{anchor.EndColumn}"));
+                .Select(GetDrawingAnchorRangeKey));
             DrawingAnchorEntriesByOffset = CountByCode(workbook.DrawingRecords
                 .SelectMany(record => record.AnchorEntries)
-                .Select(anchor => $"StartDx:{anchor.StartDx};StartDy:{anchor.StartDy};EndDx:{anchor.EndDx};EndDy:{anchor.EndDy}"));
+                .Select(GetDrawingAnchorOffsetKey));
             DrawingAnchorEntriesByFlags = CountByCode(workbook.DrawingRecords
                 .SelectMany(record => record.AnchorEntries)
-                .Select(anchor => $"Flags:0x{anchor.Flags:X4}"));
+                .Select(GetDrawingAnchorFlagsKey));
             DrawingChildAnchorEntriesByRectangle = CountByCode(workbook.DrawingRecords
                 .SelectMany(record => record.ChildAnchorEntries)
                 .Select(anchor => $"Left:{anchor.Left};Top:{anchor.Top};Right:{anchor.Right};Bottom:{anchor.Bottom}"));
@@ -634,6 +643,15 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets parsed comments grouped by decoded OBJ common-object flag name.</summary>
         public IReadOnlyDictionary<string, int> CommentsByObjectFlagName { get; }
+
+        /// <summary>Gets parsed comments grouped by preserved OfficeArt client-anchor start and end cell.</summary>
+        public IReadOnlyDictionary<string, int> CommentsByAnchorRange { get; }
+
+        /// <summary>Gets parsed comments grouped by preserved OfficeArt client-anchor offsets.</summary>
+        public IReadOnlyDictionary<string, int> CommentsByAnchorOffset { get; }
+
+        /// <summary>Gets parsed comments grouped by preserved OfficeArt client-anchor flag bitfield.</summary>
+        public IReadOnlyDictionary<string, int> CommentsByAnchorFlags { get; }
 
         /// <summary>Gets the number of imported hyperlinks.</summary>
         public int HyperlinkCount { get; }
@@ -1531,6 +1549,9 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Comments By Object Type Name", CommentsByObjectTypeName);
             AppendDictionary(builder, "Comments By Object Flags", CommentsByObjectFlags);
             AppendDictionary(builder, "Comments By Object Flag Name", CommentsByObjectFlagName);
+            AppendDictionary(builder, "Comments By Anchor Range", CommentsByAnchorRange);
+            AppendDictionary(builder, "Comments By Anchor Offset", CommentsByAnchorOffset);
+            AppendDictionary(builder, "Comments By Anchor Flags", CommentsByAnchorFlags);
             AppendDictionary(builder, "Conditional Formatting By Type", ConditionalFormattingsByType);
             AppendDictionary(builder, "Conditional Formatting By Operator", ConditionalFormattingsByOperator);
             AppendDictionary(builder, "Conditional Formatting By Range Count", ConditionalFormattingsByRangeCount);
@@ -2031,6 +2052,18 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         private static string GetDrawingRecordLocationKey(LegacyXlsDrawingRecord record) {
             return string.IsNullOrWhiteSpace(record.SheetName) ? "(workbook)" : record.SheetName!;
+        }
+
+        private static string GetDrawingAnchorRangeKey(LegacyXlsDrawingAnchor anchor) {
+            return $"R{anchor.StartRow}C{anchor.StartColumn}:R{anchor.EndRow}C{anchor.EndColumn}";
+        }
+
+        private static string GetDrawingAnchorOffsetKey(LegacyXlsDrawingAnchor anchor) {
+            return $"StartDx:{anchor.StartDx};StartDy:{anchor.StartDy};EndDx:{anchor.EndDx};EndDy:{anchor.EndDy}";
+        }
+
+        private static string GetDrawingAnchorFlagsKey(LegacyXlsDrawingAnchor anchor) {
+            return $"Flags:0x{anchor.Flags:X4}";
         }
 
         private static string GetShapePropertyFlagState(LegacyXlsDrawingShapeProperty property) {

@@ -45,6 +45,25 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             return true;
         }
 
+        internal static bool TryReadClientAnchors(
+            BiffRecord record,
+            out IReadOnlyList<LegacyXlsDrawingAnchor> anchors) {
+            if (record.Type != (ushort)BiffRecordType.Drawing) {
+                anchors = Array.Empty<LegacyXlsDrawingAnchor>();
+                return false;
+            }
+
+            ReadOfficeArtMetadata(
+                record,
+                out _,
+                out _,
+                out anchors,
+                out _,
+                out _,
+                out _);
+            return anchors.Count > 0;
+        }
+
         private static void ReadOfficeArtMetadata(
             BiffRecord record,
             out IReadOnlyList<LegacyXlsDrawingBlipStoreEntry> blipStoreEntries,
