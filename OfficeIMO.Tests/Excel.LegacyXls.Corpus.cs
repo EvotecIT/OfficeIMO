@@ -1,5 +1,7 @@
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.LegacyXls;
+using OfficeIMO.Excel.LegacyXls.Diagnostics;
+using OfficeIMO.Excel.LegacyXls.Model;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -48,6 +50,54 @@ namespace OfficeIMO.Tests {
                     + string.Join(", ", missingBaselines));
         }
 
+        [Fact]
+        public void LegacyXls_Corpus_ExcelExternalLinks_PreserveFormulaAndCacheModel() {
+            string workbookPath = Path.Combine(
+                GetTestsProjectRoot(),
+                "Documents",
+                "LegacyXlsCorpus",
+                "excel-com-generated",
+                "external-links.xls");
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(workbookPath, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
+            Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED");
+            Assert.Equal(1, result.ImportReport.ExternalReferencesByTarget["external-source.xls"]);
+
+            LegacyXlsExternalReference externalReference = Assert.Single(
+                result.Workbook.ExternalReferences,
+                reference => reference.Kind == LegacyXlsExternalReferenceKind.ExternalWorkbook);
+            Assert.Equal("\u0001external-source.xls", externalReference.Target);
+            Assert.Equal(new[] { "Data" }, externalReference.SheetNames);
+
+            LegacyXlsExternalCellCache cache = Assert.Single(externalReference.CachedCellCaches);
+            Assert.True(cache.LinkValid);
+            Assert.Equal("Data", cache.SheetName);
+            Assert.Equal("R1C1:R3C1", cache.CellRange);
+            Assert.Collection(cache.Cells,
+                cell => {
+                    Assert.Equal(LegacyXlsCellValueKind.Number, cell.Kind);
+                    Assert.Equal(125d, cell.Value);
+                },
+                cell => {
+                    Assert.Equal(LegacyXlsCellValueKind.Number, cell.Kind);
+                    Assert.Equal(80d, cell.Value);
+                },
+                cell => {
+                    Assert.Equal(LegacyXlsCellValueKind.Number, cell.Kind);
+                    Assert.Equal(210d, cell.Value);
+                });
+
+            LegacyXlsWorksheet sheet = Assert.Single(result.Workbook.Worksheets);
+            AssertCorpusFormula(sheet, 1, 2, 125d, "'[external-source.xls]Data'!$B$2");
+            AssertCorpusFormula(sheet, 2, 2, 80d, "'[external-source.xls]Data'!$B$3");
+            AssertCorpusFormula(sheet, 3, 2, 45d, "B1-B2");
+            AssertCorpusFormula(sheet, 5, 2, 415d, "SUM('[external-source.xls]Data'!$B$2:$B$4)");
+        }
+
         private static bool IsLegacyXlsCorpusBaselineUpdateRequested() {
             string? value = Environment.GetEnvironmentVariable("OFFICEIMO_UPDATE_LEGACY_XLS_CORPUS_BASELINES");
             return string.Equals(value, "1", StringComparison.Ordinal)
@@ -88,6 +138,19 @@ namespace OfficeIMO.Tests {
             }
 
             return path + separator;
+        }
+
+        private static void AssertCorpusFormula(LegacyXlsWorksheet sheet, int row, int column, object expectedValue, string expectedFormulaText) {
+            LegacyXlsCell? cell = sheet.Cells.SingleOrDefault(candidate => candidate.Row == row && candidate.Column == column);
+            Assert.True(
+                cell != null,
+                "Expected formula cell was not found. Parsed formula cells: "
+                    + string.Join(", ", sheet.Cells
+                        .Where(candidate => candidate.IsFormula)
+                        .Select(candidate => $"R{candidate.Row}C{candidate.Column}={candidate.FormulaText}")));
+            Assert.True(cell.IsFormula);
+            Assert.Equal(expectedValue, cell.Value);
+            Assert.Equal(expectedFormulaText, cell.FormulaText);
         }
     }
 }
