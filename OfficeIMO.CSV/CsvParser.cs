@@ -38,7 +38,7 @@ internal static class CsvParser
                 continue;
             }
 
-            List<string> fields;
+            string[] fields;
             if (!TryParseQuotedRecord(line, delimiter, trim, out fields))
             {
                 var logicalRecord = new StringBuilder(line);
@@ -63,7 +63,7 @@ internal static class CsvParser
 
             if (ShouldEmitRecord(fields, allowEmpty))
             {
-                yield return fields.ToArray();
+                yield return fields;
             }
 
             lineNumber++;
@@ -130,15 +130,16 @@ internal static class CsvParser
         return line.Substring(start, end - start + 1);
     }
 
-    private static bool TryParseQuotedRecord(string text, char delimiter, bool trim, out List<string> fields)
+    private static bool TryParseQuotedRecord(string text, char delimiter, bool trim, out string[] fields)
     {
+        fields = Array.Empty<string>();
         if (text.Length > 0 && text[0] == '"' && TryParseStrictQuotedRecord(text, delimiter, trim, out fields))
         {
             return true;
         }
 
         var buffer = new StringBuilder();
-        fields = new List<string>(16);
+        var parsedFields = new List<string>(16);
         var inQuotes = false;
         var fieldWasQuoted = false;
 
@@ -177,7 +178,7 @@ internal static class CsvParser
 
             if (c == delimiter)
             {
-                AddField(fields, buffer, trim, ref fieldWasQuoted);
+                AddField(parsedFields, buffer, trim, ref fieldWasQuoted);
                 continue;
             }
 
@@ -189,25 +190,37 @@ internal static class CsvParser
             return false;
         }
 
-        AddField(fields, buffer, trim, ref fieldWasQuoted);
+        AddField(parsedFields, buffer, trim, ref fieldWasQuoted);
+        fields = parsedFields.ToArray();
         return true;
     }
 
-    private static bool TryParseStrictQuotedRecord(string text, char delimiter, bool trim, out List<string> fields)
+    private static bool TryParseStrictQuotedRecord(string text, char delimiter, bool trim, out string[] fields)
     {
-        fields = new List<string>(16);
         if (text.Length == 0)
         {
-            fields.Add(string.Empty);
+            fields = new[] { string.Empty };
             return true;
         }
 
+        var fieldCount = 1;
+        for (var i = 0; i < text.Length; i++)
+        {
+            if (text[i] == delimiter)
+            {
+                fieldCount++;
+            }
+        }
+
+        fields = new string[fieldCount];
+
         var index = 0;
+        var fieldIndex = 0;
         while (index < text.Length)
         {
             if (text[index] != '"')
             {
-                fields.Clear();
+                fields = Array.Empty<string>();
                 return false;
             }
 
@@ -220,40 +233,40 @@ internal static class CsvParser
 
             if (index >= text.Length)
             {
-                fields.Clear();
+                fields = Array.Empty<string>();
                 return false;
             }
 
             if (index + 1 < text.Length && text[index + 1] == '"')
             {
-                fields.Clear();
+                fields = Array.Empty<string>();
                 return false;
             }
 
             var value = text.Substring(start, index - start);
-            fields.Add(trim ? value.Trim() : value);
+            fields[fieldIndex++] = trim ? value.Trim() : value;
             index++;
 
             if (index == text.Length)
             {
-                return true;
+                return fieldIndex == fields.Length;
             }
 
             if (text[index] != delimiter)
             {
-                fields.Clear();
+                fields = Array.Empty<string>();
                 return false;
             }
 
             index++;
             if (index == text.Length)
             {
-                fields.Clear();
+                fields = Array.Empty<string>();
                 return false;
             }
         }
 
-        return true;
+        return fieldIndex == fields.Length;
     }
 
     private static IEnumerable<string[]> ParseCharacterByCharacter(TextReader reader, CsvLoadOptions options)
