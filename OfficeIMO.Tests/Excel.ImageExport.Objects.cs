@@ -219,6 +219,7 @@ namespace OfficeIMO.Tests {
                     string.Join(" | ", snapshot.Diagnostics.Select(diagnostic => diagnostic.Code + ": " + diagnostic.Message)));
                 ExcelVisualDrawingObject drawingObject = snapshot.DrawingObjects.Single();
                 Assert.Equal("ShapeVisual!B2", drawingObject.Source);
+                Assert.Equal("roundRect", drawingObject.ShapePresetName);
                 Assert.Equal(OfficeShapeKind.RoundedRectangle, drawingObject.ShapeKind);
                 Assert.Equal("Premium shape", drawingObject.Text);
                 Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeUnsupported);
@@ -228,6 +229,50 @@ namespace OfficeIMO.Tests {
                 Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
                 Assert.NotNull(rendered);
                 Assert.True(CountPixelsNear(rendered!, OfficeColor.FromRgb(224, 242, 254)) > 100);
+            }
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportRendersSharedDrawingMlPresetShapesThroughSharedDrawing() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("PresetShape");
+                sheet.CellValue(1, 1, "Name");
+                sheet.CellValue(2, 2, "Shared heart");
+                document.Save(false);
+            }
+
+            AppendSupportedDrawingShape(
+                filePath,
+                "Shared heart",
+                string.Empty,
+                A.ShapeTypeValues.Heart,
+                horizontalFlip: true,
+                fillHex: "FECACA",
+                strokeHex: "DC2626");
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+                ExcelSheet sheet = document.Sheets.Single();
+                ExcelRange range = sheet.Range("A1:D4");
+                var options = new ExcelImageExportOptions { ShowGridlines = false };
+                ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+                OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
+                string svg = range.ToSvg(options);
+
+                ExcelVisualDrawingObject drawingObject = Assert.Single(snapshot.DrawingObjects);
+                Assert.Equal("PresetShape!B2", drawingObject.Source);
+                Assert.Equal("heart", drawingObject.ShapePresetName);
+                Assert.Equal(OfficeShapeKind.Path, drawingObject.ShapeKind);
+                Assert.True(drawingObject.HorizontalFlip);
+                Assert.False(drawingObject.VerticalFlip);
+                Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeUnsupported);
+                Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeUnsupported);
+                Assert.Contains("<path", svg, StringComparison.Ordinal);
+                Assert.Contains("#FECACA", svg, StringComparison.Ordinal);
+
+                Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
+                Assert.NotNull(rendered);
+                Assert.True(CountPixelsNear(rendered!, OfficeColor.FromRgb(254, 202, 202)) > 100);
             }
         }
 
@@ -309,7 +354,15 @@ namespace OfficeIMO.Tests {
             AppendSupportedDrawingShape(filePath, "Premium shape", "Premium shape");
         }
 
-        private static void AppendSupportedDrawingShape(string filePath, string name, string text) {
+        private static void AppendSupportedDrawingShape(
+            string filePath,
+            string name,
+            string text,
+            A.ShapeTypeValues? preset = null,
+            bool horizontalFlip = false,
+            bool verticalFlip = false,
+            string fillHex = "E0F2FE",
+            string strokeHex = "0284C7") {
             using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true);
             WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
             DrawingsPart drawingsPart = worksheetPart.DrawingsPart ?? worksheetPart.AddNewPart<DrawingsPart>();
@@ -319,7 +372,7 @@ namespace OfficeIMO.Tests {
 
             drawingsPart.WorksheetDrawing ??= new Xdr.WorksheetDrawing();
             drawingsPart.WorksheetDrawing.Append(
-                CreateSupportedShapeAnchor(1, 1, 3, 3, 2U, name, text));
+                CreateSupportedShapeAnchor(1, 1, 3, 3, 2U, name, text, preset, horizontalFlip, verticalFlip, fillHex, strokeHex));
             drawingsPart.WorksheetDrawing.Save();
             worksheetPart.Worksheet.Save();
         }
@@ -348,7 +401,24 @@ namespace OfficeIMO.Tests {
                 new Xdr.ClientData());
         }
 
-        private static Xdr.TwoCellAnchor CreateSupportedShapeAnchor(int fromColumn, int fromRow, int toColumn, int toRow, uint id, string name, string? text = null) {
+        private static Xdr.TwoCellAnchor CreateSupportedShapeAnchor(
+            int fromColumn,
+            int fromRow,
+            int toColumn,
+            int toRow,
+            uint id,
+            string name,
+            string? text = null,
+            A.ShapeTypeValues? preset = null,
+            bool horizontalFlip = false,
+            bool verticalFlip = false,
+            string fillHex = "E0F2FE",
+            string strokeHex = "0284C7") {
+            var transform = new A.Transform2D {
+                HorizontalFlip = horizontalFlip,
+                VerticalFlip = verticalFlip
+            };
+
             return new Xdr.TwoCellAnchor(
                 new Xdr.FromMarker(
                     new Xdr.ColumnId(fromColumn.ToString()),
@@ -365,10 +435,11 @@ namespace OfficeIMO.Tests {
                         new Xdr.NonVisualDrawingProperties { Id = id, Name = name },
                         new Xdr.NonVisualShapeDrawingProperties(new A.ShapeLocks { NoGrouping = true })),
                     new Xdr.ShapeProperties(
-                        new A.PresetGeometry { Preset = A.ShapeTypeValues.RoundRectangle },
-                        new A.SolidFill(new A.RgbColorModelHex { Val = "E0F2FE" }),
+                        transform,
+                        new A.PresetGeometry { Preset = preset ?? A.ShapeTypeValues.RoundRectangle },
+                        new A.SolidFill(new A.RgbColorModelHex { Val = fillHex }),
                         new A.Outline(
-                            new A.SolidFill(new A.RgbColorModelHex { Val = "0284C7" })) {
+                            new A.SolidFill(new A.RgbColorModelHex { Val = strokeHex })) {
                             Width = 12700
                         }),
                     new Xdr.TextBody(

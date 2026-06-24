@@ -42,7 +42,7 @@ namespace OfficeIMO.Excel {
             double width = Math.Max(1D, drawingObject.Width * scale);
             double height = Math.Max(1D, drawingObject.Height * scale);
             var drawing = new OfficeDrawing(width, height);
-            OfficeShape shape = CreateOfficeShape(drawingObject.ShapeKind, width, height);
+            OfficeShape shape = CreateOfficeShape(drawingObject, width, height);
             shape.FillColor = ResolveArgb(drawingObject.FillColorArgb);
             shape.StrokeColor = ResolveArgb(drawingObject.StrokeColorArgb);
             shape.StrokeWidth = drawingObject.StrokeWidth <= 0D ? 0D : Math.Max(1D, drawingObject.StrokeWidth * scale);
@@ -67,14 +67,15 @@ namespace OfficeIMO.Excel {
             return drawing;
         }
 
-        private static OfficeShape CreateOfficeShape(OfficeShapeKind shapeKind, double width, double height) {
-            switch (shapeKind) {
-                case OfficeShapeKind.RoundedRectangle:
-                    return OfficeShape.RoundedRectangle(width, height, Math.Min(width, height) * 0.14D);
-                case OfficeShapeKind.Rectangle:
-                default:
-                    return OfficeShape.Rectangle(width, height);
-            }
-        }
+        private static OfficeShape CreateOfficeShape(ExcelVisualDrawingObject drawingObject, double width, double height) =>
+            OfficeShapePresets.TryCreate(
+                drawingObject.ShapePresetName,
+                width,
+                height,
+                drawingObject.HorizontalFlip,
+                drawingObject.VerticalFlip,
+                out OfficeShape? shape) && shape != null
+                ? shape
+                : OfficeShape.Rectangle(width, height);
     }
 }

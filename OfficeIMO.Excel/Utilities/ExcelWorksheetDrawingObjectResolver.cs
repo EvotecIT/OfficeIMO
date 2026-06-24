@@ -47,7 +47,7 @@ namespace OfficeIMO.Excel.Utilities {
                 return CreateUnsupportedInfo(shape, position, order, "rotated shapes are not rendered yet");
             }
 
-            if (!TryGetShapeKind(shape, out OfficeShapeKind shapeKind, out string? unsupportedReason)) {
+            if (!TryGetShapePreset(shape, out string shapePresetName, out OfficeShapeKind shapeKind, out string? unsupportedReason)) {
                 return CreateUnsupportedInfo(shape, position, order, unsupportedReason);
             }
 
@@ -78,7 +78,10 @@ namespace OfficeIMO.Excel.Utilities {
                 position.ToRow,
                 position.ToOffsetXPixels,
                 position.ToOffsetYPixels,
+                shapePresetName,
                 shapeKind,
+                transform?.HorizontalFlip?.Value == true,
+                transform?.VerticalFlip?.Value == true,
                 fillColorArgb,
                 strokeColorArgb,
                 strokeWidth,
@@ -103,7 +106,10 @@ namespace OfficeIMO.Excel.Utilities {
                 position.ToRow,
                 position.ToOffsetXPixels,
                 position.ToOffsetYPixels,
+                shapePresetName: string.Empty,
                 shapeKind: null,
+                horizontalFlip: false,
+                verticalFlip: false,
                 fillColorArgb: null,
                 strokeColorArgb: null,
                 strokeWidth: 0D,
@@ -134,27 +140,19 @@ namespace OfficeIMO.Excel.Utilities {
             return new AnchorPosition(row, column, offsetX, offsetY, width, height, toColumn, toRow, toOffsetX, toOffsetY);
         }
 
-        private static bool TryGetShapeKind(Xdr.Shape shape, out OfficeShapeKind shapeKind, out string? unsupportedReason) {
-            string preset = shape.ShapeProperties?.GetFirstChild<A.PresetGeometry>()?.Preset?.InnerText ?? string.Empty;
-            if (string.Equals(preset, "rect", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(preset, "rectangle", StringComparison.OrdinalIgnoreCase)) {
-                shapeKind = OfficeShapeKind.Rectangle;
-                unsupportedReason = null;
-                return true;
-            }
-
-            if (string.Equals(preset, "roundRect", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(preset, "roundRectangle", StringComparison.OrdinalIgnoreCase)) {
-                shapeKind = OfficeShapeKind.RoundedRectangle;
-                unsupportedReason = null;
-                return true;
-            }
-
+        private static bool TryGetShapePreset(Xdr.Shape shape, out string shapePresetName, out OfficeShapeKind shapeKind, out string? unsupportedReason) {
+            shapePresetName = shape.ShapeProperties?.GetFirstChild<A.PresetGeometry>()?.Preset?.InnerText ?? string.Empty;
             shapeKind = OfficeShapeKind.Rectangle;
-            unsupportedReason = string.IsNullOrWhiteSpace(preset)
-                ? "shape geometry is missing"
-                : "shape geometry '" + preset + "' is not rendered yet";
-            return false;
+            if (!OfficeShapePresets.TryCreate(shapePresetName, width: 1D, height: 1D, out OfficeShape? sharedShape) || sharedShape == null) {
+                unsupportedReason = string.IsNullOrWhiteSpace(shapePresetName)
+                    ? "shape geometry is missing"
+                    : "shape geometry '" + shapePresetName + "' is not rendered yet";
+                return false;
+            }
+
+            shapeKind = sharedShape.Kind;
+            unsupportedReason = null;
+            return true;
         }
 
         private static bool TryGetFillColor(OpenXmlCompositeElement? properties, out string? fillColorArgb, out string? unsupportedReason) {
@@ -214,8 +212,7 @@ namespace OfficeIMO.Excel.Utilities {
                 return false;
             }
 
-            string? raw = transform.GetAttribute("rot", string.Empty).Value;
-            if (!long.TryParse(raw, out long rotation)) {
+            if (transform.Rotation?.Value is not int rotation) {
                 return false;
             }
 
@@ -347,7 +344,10 @@ namespace OfficeIMO.Excel.Utilities {
             int? toRow,
             int toOffsetXPixels,
             int toOffsetYPixels,
+            string shapePresetName,
             OfficeShapeKind? shapeKind,
+            bool horizontalFlip,
+            bool verticalFlip,
             string? fillColorArgb,
             string? strokeColorArgb,
             double strokeWidth,
@@ -366,7 +366,10 @@ namespace OfficeIMO.Excel.Utilities {
             ToRow = toRow;
             ToOffsetXPixels = toOffsetXPixels;
             ToOffsetYPixels = toOffsetYPixels;
+            ShapePresetName = shapePresetName ?? string.Empty;
             ShapeKind = shapeKind;
+            HorizontalFlip = horizontalFlip;
+            VerticalFlip = verticalFlip;
             FillColorArgb = fillColorArgb;
             StrokeColorArgb = strokeColorArgb;
             StrokeWidth = strokeWidth;
@@ -400,7 +403,13 @@ namespace OfficeIMO.Excel.Utilities {
 
         internal int ToOffsetYPixels { get; }
 
+        internal string ShapePresetName { get; }
+
         internal OfficeShapeKind? ShapeKind { get; }
+
+        internal bool HorizontalFlip { get; }
+
+        internal bool VerticalFlip { get; }
 
         internal string? FillColorArgb { get; }
 

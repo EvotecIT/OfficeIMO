@@ -532,7 +532,10 @@ namespace OfficeIMO.Excel {
         internal ExcelVisualDrawingObject(
             string name,
             int order,
+            string shapePresetName,
             OfficeShapeKind shapeKind,
+            bool horizontalFlip,
+            bool verticalFlip,
             double x,
             double y,
             double width,
@@ -544,7 +547,10 @@ namespace OfficeIMO.Excel {
             string source) {
             Name = name ?? string.Empty;
             Order = order;
+            ShapePresetName = shapePresetName ?? string.Empty;
             ShapeKind = shapeKind;
+            HorizontalFlip = horizontalFlip;
+            VerticalFlip = verticalFlip;
             X = x;
             Y = y;
             Width = width;
@@ -562,8 +568,17 @@ namespace OfficeIMO.Excel {
         /// <summary>Zero-based source drawing layer order.</summary>
         public int Order { get; }
 
+        /// <summary>Serialized DrawingML preset geometry name used to create the shared OfficeIMO.Drawing shape.</summary>
+        public string ShapePresetName { get; }
+
         /// <summary>Shared OfficeIMO.Drawing shape kind.</summary>
         public OfficeShapeKind ShapeKind { get; }
+
+        /// <summary>Whether the DrawingML geometry is mirrored horizontally.</summary>
+        public bool HorizontalFlip { get; }
+
+        /// <summary>Whether the DrawingML geometry is mirrored vertically.</summary>
+        public bool VerticalFlip { get; }
 
         /// <summary>X position in CSS pixels.</summary>
         public double X { get; }
