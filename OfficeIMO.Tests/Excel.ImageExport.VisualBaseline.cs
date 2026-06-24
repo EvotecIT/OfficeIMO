@@ -94,6 +94,8 @@ namespace OfficeIMO.Tests {
 
             Assert.DoesNotContain(png.Diagnostics, item => item.Severity == OfficeImageExportDiagnosticSeverity.Error);
             Assert.DoesNotContain(svg.Diagnostics, item => item.Severity == OfficeImageExportDiagnosticSeverity.Error);
+            Assert.Contains(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.CellTextOccludedByDrawing && item.Source == "ImageClip!B2");
+            Assert.Contains(svg.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.CellTextOccludedByDrawing && item.Source == "ImageClip!B2");
             Assert.Contains("clip-path=\"url(#xl-image-clip-", svgText, StringComparison.Ordinal);
             Assert.Contains("x=\"-", svgText, StringComparison.Ordinal);
             AssertRasterBaseline(ImageClippingBaselineName + ".png", png.Bytes);

@@ -12,6 +12,9 @@ public static class ExcelImageExportDiagnosticCodes {
     /// <summary>Cell text was clipped or ellipsized to fit rendered bounds.</summary>
     public const string CellTextClipped = "ExcelCellTextClipped";
 
+    /// <summary>Cell text was suppressed because a later drawing layer covers the text anchor.</summary>
+    public const string CellTextOccludedByDrawing = "ExcelCellTextOccludedByDrawing";
+
     /// <summary>Cell text rotation was rendered through an approximate path.</summary>
     public const string CellTextRotationApproximation = "ExcelCellTextRotationApproximation";
 

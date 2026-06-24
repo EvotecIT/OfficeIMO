@@ -34,6 +34,11 @@ namespace OfficeIMO.Excel {
             double availableHeight = Math.Max(1D, h - (paddingY * 2D));
             double fontSize = ResolveCellFontSize(cell.Style, scale);
             double minimumFontSize = Math.Max(1D, scale);
+            if (IsCellTextAnchorOccludedByDrawingLayer(cell, snapshot)) {
+                AddCellTextOccludedByDrawingDiagnostic(snapshot, cell, diagnostics);
+                return;
+            }
+
             bool stacked = IsStackedTextRotation(cell.Style.TextRotation);
             double rotationDegrees = stacked ? 0D : ResolveExcelTextRotationDegrees(cell.Style.TextRotation, snapshot, cell, diagnostics);
             bool rotated = Math.Abs(rotationDegrees) > 0.0001D;
@@ -146,6 +151,11 @@ namespace OfficeIMO.Excel {
             double availableHeight = Math.Max(1D, h - (paddingY * 2D));
             double fontSize = ResolveCellFontSize(cell.Style, scale);
             double minimumFontSize = Math.Max(1D, scale);
+            if (IsCellTextAnchorOccludedByDrawingLayer(cell, snapshot)) {
+                AddCellTextOccludedByDrawingDiagnostic(snapshot, cell, diagnostics);
+                return;
+            }
+
             bool stacked = IsStackedTextRotation(cell.Style.TextRotation);
             double rotationDegrees = stacked ? 0D : ResolveExcelTextRotationDegrees(cell.Style.TextRotation, snapshot, cell, diagnostics);
             bool rotated = Math.Abs(rotationDegrees) > 0.0001D;
@@ -533,6 +543,46 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
+        private static bool IsCellTextAnchorOccludedByDrawingLayer(ExcelVisualCell cell, ExcelRangeVisualSnapshot snapshot) {
+            if (!TryGetCellTextAnchorProbe(cell, out double x, out double y, out double width, out double height)) {
+                return false;
+            }
+
+            for (int index = 0; index < snapshot.DrawingLayers.Count; index++) {
+                if (TryGetDrawingLayerBounds(snapshot.DrawingLayers[index], out double layerX, out double layerY, out double layerWidth, out double layerHeight) &&
+                    RectanglesIntersect(x, y, width, height, layerX, layerY, layerWidth, layerHeight)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool TryGetCellTextAnchorProbe(ExcelVisualCell cell, out double x, out double y, out double width, out double height) {
+            if (cell.Width <= 0D || cell.Height <= 0D) {
+                x = 0D;
+                y = 0D;
+                width = 0D;
+                height = 0D;
+                return false;
+            }
+
+            const double probeSize = 1D;
+            double paddingX = Math.Min(CellTextHorizontalPadding, Math.Max(0D, cell.Width / 2D));
+            OfficeTextAlignment alignment = ResolveCellTextAlignment(cell);
+            double anchorX = alignment == OfficeTextAlignment.Right
+                ? cell.X + cell.Width - paddingX
+                : alignment == OfficeTextAlignment.Center
+                    ? cell.X + (cell.Width / 2D)
+                    : cell.X + paddingX;
+
+            x = anchorX - (probeSize / 2D);
+            y = cell.Y + (cell.Height / 2D) - (probeSize / 2D);
+            width = probeSize;
+            height = probeSize;
+            return true;
+        }
+
         private static bool TryGetDrawingLayerBounds(ExcelVisualDrawingLayer layer, out double x, out double y, out double width, out double height) {
             switch (layer.Kind) {
                 case ExcelVisualDrawingLayerKind.DrawingObject when layer.DrawingObject != null:
@@ -744,6 +794,14 @@ namespace OfficeIMO.Excel {
                 OfficeImageExportDiagnosticSeverity.Warning,
                 ExcelImageExportDiagnosticCodes.CellTextClipped,
                 "Cell rich text was clipped or ellipsized during image export because it does not fit the rendered cell bounds.",
+                GetCellDiagnosticSource(snapshot, cell)));
+        }
+
+        private static void AddCellTextOccludedByDrawingDiagnostic(ExcelRangeVisualSnapshot snapshot, ExcelVisualCell cell, List<OfficeImageExportDiagnostic>? diagnostics) {
+            diagnostics?.Add(new OfficeImageExportDiagnostic(
+                OfficeImageExportDiagnosticSeverity.Warning,
+                ExcelImageExportDiagnosticCodes.CellTextOccludedByDrawing,
+                "Cell text was suppressed because its text anchor is covered by a later drawing layer in the exported range.",
                 GetCellDiagnosticSource(snapshot, cell)));
         }
 

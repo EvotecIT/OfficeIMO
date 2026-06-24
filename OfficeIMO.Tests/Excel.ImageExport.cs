@@ -246,6 +246,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportSuppressesTextWhenDrawingCoversTextAnchor() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("AnchorOverlay");
+            sheet.SetColumnWidth(1, 18);
+            sheet.SetRowHeight(1, 24);
+            sheet.CellValue(1, 1, "Covered anchor text should not show fragments");
+            sheet.AddImage(1, 1, CreateSolidPng(120, 32, OfficeColor.FromRgb(37, 99, 235)), "image/png", widthPixels: 120, heightPixels: 32, name: "AnchorOverlay");
+
+            ExcelRange range = sheet.Range("A1:A1");
+            ExcelImageExportOptions options = new() { ShowGridlines = false };
+            OfficeImageExportResult svgResult = range.ExportImage(OfficeImageExportFormat.Svg, options);
+            OfficeImageExportResult pngResult = range.ExportImage(OfficeImageExportFormat.Png, options);
+            string svg = System.Text.Encoding.UTF8.GetString(svgResult.Bytes);
+
+            Assert.DoesNotContain("Covered anchor text", svg, StringComparison.Ordinal);
+            Assert.Contains(svgResult.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellTextOccludedByDrawing && diagnostic.Source == "AnchorOverlay!A1");
+            Assert.Contains(pngResult.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellTextOccludedByDrawing && diagnostic.Source == "AnchorOverlay!A1");
+            Assert.DoesNotContain(svgResult.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellTextClipped && diagnostic.Source == "AnchorOverlay!A1");
+            Assert.DoesNotContain(pngResult.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellTextClipped && diagnostic.Source == "AnchorOverlay!A1");
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportDoesNotSpillGeneralNumericTextIntoBlankNeighbors() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
