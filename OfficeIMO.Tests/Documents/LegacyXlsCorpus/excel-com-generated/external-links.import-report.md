@@ -70,6 +70,18 @@ Warnings: 0
 | --- | --- |
 | CellFormula | 7 |
 
+## Formula Tokens By Sheet
+
+| Key | Count |
+| --- | --- |
+| Linked | 7 |
+
+## Formula Tokens By Context And Sheet
+
+| Key | Count |
+| --- | --- |
+| CellFormula\|Linked | 7 |
+
 ## Formula Tokens By Record Type
 
 | Key | Count |

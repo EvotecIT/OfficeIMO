@@ -68,6 +68,18 @@ Warnings: 0
 | --- | --- |
 | CellFormula | 3 |
 
+## Formula Tokens By Sheet
+
+| Key | Count |
+| --- | --- |
+| Protected | 3 |
+
+## Formula Tokens By Context And Sheet
+
+| Key | Count |
+| --- | --- |
+| CellFormula\|Protected | 3 |
+
 ## Formula Tokens By Record Type
 
 | Key | Count |

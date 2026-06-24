@@ -74,6 +74,33 @@ Warnings: 0
 | SharedFormula | 98 |
 | SharedFormulaReference | 1240 |
 
+## Formula Tokens By Sheet
+
+| Key | Count |
+| --- | --- |
+| LB_MAQU_PF | 394 |
+| LB_MAQU_RAIN | 398 |
+| RangeTable | 8 |
+| ZPFCUM | 284 |
+| ZRAINCUM | 284 |
+
+## Formula Tokens By Context And Sheet
+
+| Key | Count |
+| --- | --- |
+| CellFormula\|LB_MAQU_PF | 10 |
+| CellFormula\|RangeTable | 8 |
+| CellFormula\|ZPFCUM | 6 |
+| CellFormula\|ZRAINCUM | 6 |
+| SharedFormulaReference\|LB_MAQU_PF | 364 |
+| SharedFormulaReference\|LB_MAQU_RAIN | 368 |
+| SharedFormulaReference\|ZPFCUM | 254 |
+| SharedFormulaReference\|ZRAINCUM | 254 |
+| SharedFormula\|LB_MAQU_PF | 20 |
+| SharedFormula\|LB_MAQU_RAIN | 30 |
+| SharedFormula\|ZPFCUM | 24 |
+| SharedFormula\|ZRAINCUM | 24 |
+
 ## Formula Tokens By Record Type
 
 | Key | Count |

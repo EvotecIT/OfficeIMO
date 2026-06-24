@@ -69,6 +69,18 @@ Warnings: 0
 | --- | --- |
 | DefinedName | 1 |
 
+## Formula Tokens By Sheet
+
+| Key | Count |
+| --- | --- |
+| (workbook) | 1 |
+
+## Formula Tokens By Context And Sheet
+
+| Key | Count |
+| --- | --- |
+| DefinedName\|(workbook) | 1 |
+
 ## Formula Tokens By Record Type
 
 | Key | Count |

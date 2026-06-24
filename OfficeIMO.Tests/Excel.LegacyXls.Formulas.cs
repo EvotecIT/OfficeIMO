@@ -988,8 +988,11 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.FormulaTokenBlockersByToken["Token:0x01"]);
             Assert.Equal(1, report.FormulaTokenBlockersByTokenName["PtgExp"]);
             Assert.Equal(1, report.FormulaTokenBlockersByOffset["Offset:0"]);
+            Assert.Equal(1, report.FormulaTokenBlockersBySheet["FormulaDiag"]);
             Assert.Equal(1, report.FormulaTokensByName["PtgExp"]);
             Assert.Equal(1, report.FormulaTokensByContext["CellFormula"]);
+            Assert.Equal(1, report.FormulaTokensBySheet["FormulaDiag"]);
+            Assert.Equal(1, report.FormulaTokensByContextAndSheet["CellFormula|FormulaDiag"]);
             Assert.Contains(legacy.FormulaTokenRecords, record =>
                 record.Context == "CellFormula"
                 && record.SheetName == "FormulaDiag"
@@ -1002,8 +1005,11 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Formula Token Blockers By Token Name", markdown);
             Assert.Contains("PtgExp", markdown);
             Assert.Contains("Formula Token Blockers By Offset", markdown);
+            Assert.Contains("Formula Token Blockers By Sheet", markdown);
             Assert.Contains("Formula Tokens By Name", markdown);
             Assert.Contains("Formula Tokens By Context", markdown);
+            Assert.Contains("Formula Tokens By Sheet", markdown);
+            Assert.Contains("Formula Tokens By Context And Sheet", markdown);
             LegacyXlsWorksheet sheet = Assert.Single(legacy.Worksheets);
             LegacyXlsCell formula = Assert.Single(sheet.Cells, cell => cell.Row == 1 && cell.Column == 2);
             Assert.True(formula.IsFormula);
@@ -1044,6 +1050,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.FormulaTokenBlockersByToken["Token:0x01"]);
             Assert.Equal(1, report.FormulaTokenBlockersByTokenName["PtgExp"]);
             Assert.Equal(1, report.FormulaTokenBlockersByOffset["Offset:0"]);
+            Assert.Equal(1, report.FormulaTokenBlockersBySheet["SharedDiag"]);
+            Assert.Equal(2, report.FormulaTokensBySheet["SharedDiag"]);
+            Assert.Equal(1, report.FormulaTokensByContextAndSheet["SharedFormulaReference|SharedDiag"]);
 
             LegacyXlsWorksheet sheet = Assert.Single(legacy.Worksheets);
             LegacyXlsCell formula = Assert.Single(sheet.Cells, cell => cell.Row == 1 && cell.Column == 2);
@@ -1079,6 +1088,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.FormulaTokenBlockersByToken["Token:0x42"]);
             Assert.Equal(1, report.FormulaTokenBlockersByTokenName["PtgFuncVar"]);
             Assert.Equal(1, report.FormulaTokenBlockersByOffset["Offset:0"]);
+            Assert.Equal(1, report.FormulaTokenBlockersBySheet["FormulaStack"]);
+            Assert.Equal(1, report.FormulaTokensBySheet["FormulaStack"]);
+            Assert.Equal(1, report.FormulaTokensByContextAndSheet["CellFormula|FormulaStack"]);
 
             LegacyXlsWorksheet sheet = Assert.Single(legacy.Worksheets);
             LegacyXlsCell formula = Assert.Single(sheet.Cells, cell => cell.Row == 1 && cell.Column == 2);

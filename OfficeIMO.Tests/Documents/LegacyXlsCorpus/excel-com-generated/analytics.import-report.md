@@ -71,6 +71,20 @@ Warnings: 0
 | CellFormula | 36 |
 | DefinedName | 2 |
 
+## Formula Tokens By Sheet
+
+| Key | Count |
+| --- | --- |
+| (workbook) | 2 |
+| SalesData | 36 |
+
+## Formula Tokens By Context And Sheet
+
+| Key | Count |
+| --- | --- |
+| CellFormula\|SalesData | 36 |
+| DefinedName\|(workbook) | 2 |
+
 ## Formula Tokens By Record Type
 
 | Key | Count |

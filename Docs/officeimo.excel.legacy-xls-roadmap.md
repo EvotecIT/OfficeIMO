@@ -114,6 +114,9 @@ normal `SUM(...)` formulas during Open XML projection, while `PtgAttrSpace` and
 `PtgAttrSpaceSemi` display tokens are consumed and normalized away.
 Unsupported token streams still import as cached values and now report
 detail-coded formula-token diagnostics when unsupported-record reporting is enabled.
+Formula token import reports also group observed tokens and blockers by worksheet
+and by formula context plus worksheet, so corpus analysis can identify which sheets
+and formula sources drive the next decoder gaps without dumping cell-level detail.
 It also imports external
 URL `HLink` records that use Office shared URL monikers and projects them through
 normal OfficeIMO hyperlink relationships without rewriting the linked cell value.

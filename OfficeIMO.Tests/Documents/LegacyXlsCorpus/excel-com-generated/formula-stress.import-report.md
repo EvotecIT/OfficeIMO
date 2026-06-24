@@ -86,6 +86,19 @@ Warnings: 0
 | CellFormula | 44 |
 | SharedFormulaReference | 1 |
 
+## Formula Tokens By Sheet
+
+| Key | Count |
+| --- | --- |
+| Formulas | 45 |
+
+## Formula Tokens By Context And Sheet
+
+| Key | Count |
+| --- | --- |
+| CellFormula\|Formulas | 44 |
+| SharedFormulaReference\|Formulas | 1 |
+
 ## Formula Tokens By Record Type
 
 | Key | Count |

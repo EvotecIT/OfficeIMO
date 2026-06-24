@@ -81,6 +81,46 @@ Warnings: 0
 | SharedFormula | 151 |
 | SharedFormulaReference | 617 |
 
+## Formula Tokens By Sheet
+
+| Key | Count |
+| --- | --- |
+| (workbook) | 3 |
+| All | 1291 |
+| b | 917 |
+| c | 753 |
+| cl | 1425 |
+| Info | 14 |
+| lb | 809 |
+| maquis | 566 |
+| wijn | 2241 |
+
+## Formula Tokens By Context And Sheet
+
+| Key | Count |
+| --- | --- |
+| CellFormula\|All | 1291 |
+| CellFormula\|b | 728 |
+| CellFormula\|c | 698 |
+| CellFormula\|cl | 1163 |
+| CellFormula\|Info | 14 |
+| CellFormula\|lb | 638 |
+| CellFormula\|maquis | 548 |
+| CellFormula\|wijn | 2168 |
+| DefinedName\|(workbook) | 3 |
+| SharedFormulaReference\|b | 143 |
+| SharedFormulaReference\|c | 45 |
+| SharedFormulaReference\|cl | 216 |
+| SharedFormulaReference\|lb | 125 |
+| SharedFormulaReference\|maquis | 17 |
+| SharedFormulaReference\|wijn | 71 |
+| SharedFormula\|b | 46 |
+| SharedFormula\|c | 10 |
+| SharedFormula\|cl | 46 |
+| SharedFormula\|lb | 46 |
+| SharedFormula\|maquis | 1 |
+| SharedFormula\|wijn | 2 |
+
 ## Formula Tokens By Record Type
 
 | Key | Count |

@@ -181,8 +181,13 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .Where(diagnostic => string.Equals(diagnostic.Code, "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED", StringComparison.OrdinalIgnoreCase))
                 .Where(diagnostic => diagnostic.FormulaTokenOffset.HasValue)
                 .Select(diagnostic => $"Offset:{diagnostic.FormulaTokenOffset!.Value}"));
+            FormulaTokenBlockersBySheet = CountByCode(workbook.Diagnostics
+                .Where(diagnostic => string.Equals(diagnostic.Code, "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED", StringComparison.OrdinalIgnoreCase))
+                .Select(GetDiagnosticSheetKey));
             FormulaTokensByName = CountByCode(workbook.FormulaTokenRecords.Select(record => record.TokenName));
             FormulaTokensByContext = CountByCode(workbook.FormulaTokenRecords.Select(record => record.Context));
+            FormulaTokensBySheet = CountByCode(workbook.FormulaTokenRecords.Select(GetFormulaTokenSheetKey));
+            FormulaTokensByContextAndSheet = CountByCode(workbook.FormulaTokenRecords.Select(record => record.Context + "|" + GetFormulaTokenSheetKey(record)));
             FormulaTokensByRecordType = CountByCode(workbook.FormulaTokenRecords.Select(record => $"0x{record.RecordType:X4}|{record.TokenName}"));
             FormulaFunctionsById = CountByCode(workbook.FormulaTokenRecords
                 .Where(record => record.FunctionId.HasValue)
@@ -936,11 +941,20 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets unsupported formula token blockers grouped by zero-based parsed-expression token offset.</summary>
         public IReadOnlyDictionary<string, int> FormulaTokenBlockersByOffset { get; }
 
+        /// <summary>Gets unsupported formula token blockers grouped by worksheet name.</summary>
+        public IReadOnlyDictionary<string, int> FormulaTokenBlockersBySheet { get; }
+
         /// <summary>Gets observed parsed-formula tokens grouped by BIFF token name.</summary>
         public IReadOnlyDictionary<string, int> FormulaTokensByName { get; }
 
         /// <summary>Gets observed parsed-formula tokens grouped by formula source context.</summary>
         public IReadOnlyDictionary<string, int> FormulaTokensByContext { get; }
+
+        /// <summary>Gets observed parsed-formula tokens grouped by worksheet name.</summary>
+        public IReadOnlyDictionary<string, int> FormulaTokensBySheet { get; }
+
+        /// <summary>Gets observed parsed-formula tokens grouped by formula source context and worksheet name.</summary>
+        public IReadOnlyDictionary<string, int> FormulaTokensByContextAndSheet { get; }
 
         /// <summary>Gets observed parsed-formula tokens grouped by BIFF record type and token name.</summary>
         public IReadOnlyDictionary<string, int> FormulaTokensByRecordType { get; }
@@ -1560,8 +1574,11 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Formula Token Blockers By Token", FormulaTokenBlockersByToken);
             AppendDictionary(builder, "Formula Token Blockers By Token Name", FormulaTokenBlockersByTokenName);
             AppendDictionary(builder, "Formula Token Blockers By Offset", FormulaTokenBlockersByOffset);
+            AppendDictionary(builder, "Formula Token Blockers By Sheet", FormulaTokenBlockersBySheet);
             AppendDictionary(builder, "Formula Tokens By Name", FormulaTokensByName);
             AppendDictionary(builder, "Formula Tokens By Context", FormulaTokensByContext);
+            AppendDictionary(builder, "Formula Tokens By Sheet", FormulaTokensBySheet);
+            AppendDictionary(builder, "Formula Tokens By Context And Sheet", FormulaTokensByContextAndSheet);
             AppendDictionary(builder, "Formula Tokens By Record Type", FormulaTokensByRecordType);
             AppendDictionary(builder, "Formula Functions By Id", FormulaFunctionsById);
             AppendDictionary(builder, "Formula Functions By Name", FormulaFunctionsByName);
@@ -2110,6 +2127,14 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         private static string FormatDouble(double value) {
             return value.ToString("G15", CultureInfo.InvariantCulture);
+        }
+
+        private static string GetDiagnosticSheetKey(LegacyXlsImportDiagnostic diagnostic) {
+            return string.IsNullOrWhiteSpace(diagnostic.SheetName) ? "(workbook)" : diagnostic.SheetName!;
+        }
+
+        private static string GetFormulaTokenSheetKey(LegacyXlsFormulaTokenRecord record) {
+            return string.IsNullOrWhiteSpace(record.SheetName) ? "(workbook)" : record.SheetName!;
         }
 
         private static string GetDrawingRecordLocationKey(LegacyXlsDrawingRecord record) {

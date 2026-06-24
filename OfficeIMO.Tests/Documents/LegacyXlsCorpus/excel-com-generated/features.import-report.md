@@ -77,6 +77,20 @@ Warnings: 0
 | CellFormula | 28 |
 | DefinedName | 4 |
 
+## Formula Tokens By Sheet
+
+| Key | Count |
+| --- | --- |
+| (workbook) | 4 |
+| Data | 28 |
+
+## Formula Tokens By Context And Sheet
+
+| Key | Count |
+| --- | --- |
+| CellFormula\|Data | 28 |
+| DefinedName\|(workbook) | 4 |
+
 ## Formula Tokens By Record Type
 
 | Key | Count |
