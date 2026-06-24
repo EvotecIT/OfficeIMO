@@ -45,6 +45,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             TryReadSheetProperties(record, out LegacyXlsChartSheetProperties? sheetProperties);
             TryReadBarOptions(record, out LegacyXlsChartBarOptions? barOptions);
             TryReadThreeDimensionalBarShapeOptions(record, out LegacyXlsChart3DBarShapeOptions? threeDimensionalBarShapeOptions);
+            TryReadScatterOptions(record, out LegacyXlsChartScatterOptions? scatterOptions);
             records.Add(new LegacyXlsChartRecord(
                 GetKind(record.Type),
                 BiffUnsupportedRecordDiagnostics.GetBiffRecordName(record.Type),
@@ -102,7 +103,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 sheetProperties,
                 valueRange,
                 barOptions,
-                threeDimensionalBarShapeOptions));
+                threeDimensionalBarShapeOptions,
+                scatterOptions));
             return true;
         }
 
@@ -522,6 +524,19 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             options = new LegacyXlsChart3DBarShapeOptions(record.Payload[0], record.Payload[1]);
+            return true;
+        }
+
+        private static bool TryReadScatterOptions(BiffRecord record, out LegacyXlsChartScatterOptions? options) {
+            options = null;
+            if (record.Type != 0x101B || record.Payload.Length < 6) {
+                return false;
+            }
+
+            options = new LegacyXlsChartScatterOptions(
+                BiffRecordReader.ReadUInt16(record.Payload, 0),
+                BiffRecordReader.ReadUInt16(record.Payload, 2),
+                BiffRecordReader.ReadUInt16(record.Payload, 4));
             return true;
         }
 

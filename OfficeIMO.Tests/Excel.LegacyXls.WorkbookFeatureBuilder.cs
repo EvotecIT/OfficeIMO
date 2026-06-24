@@ -543,7 +543,7 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x1068, Array.Empty<byte>());
                 WriteRecord(stream, 0x103a, Array.Empty<byte>());
                 WriteRecord(stream, 0x105f, new byte[] { 0x01, 0x02 });
-                WriteRecord(stream, 0x101b, Array.Empty<byte>());
+                WriteRecord(stream, 0x101b, BuildScatterPayload(bubbleSizeRatio: 150, bubbleSizeRepresentation: 0x0002, flags: 0x0007));
                 WriteRecord(stream, 0x1034, Array.Empty<byte>());
                 WriteRecord(stream, 0x01b6, new byte[18]);
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
@@ -1760,6 +1760,14 @@ namespace OfficeIMO.Tests {
                 WriteUInt16(stream, foregroundColorIndex);
                 WriteUInt16(stream, backgroundColorIndex);
                 WriteUInt32(stream, sizeTwips);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildScatterPayload(ushort bubbleSizeRatio, ushort bubbleSizeRepresentation, ushort flags) {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, bubbleSizeRatio);
+                WriteUInt16(stream, bubbleSizeRepresentation);
+                WriteUInt16(stream, flags);
                 return stream.ToArray();
             }
 

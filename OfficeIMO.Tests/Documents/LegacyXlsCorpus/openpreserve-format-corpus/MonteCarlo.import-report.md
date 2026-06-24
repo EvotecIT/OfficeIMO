@@ -1224,6 +1224,30 @@ Warnings: 0
 | --- | --- |
 | Riser:Rectangle;Taper:None | 40 |
 
+## Chart Scatter Bubble Size Ratios
+
+| Key | Count |
+| --- | --- |
+| Ratio:100 | 8 |
+
+## Chart Scatter Bubble Size Representations
+
+| Key | Count |
+| --- | --- |
+| Area | 8 |
+
+## Chart Scatter Bubble Size Ratio States
+
+| Key | Count |
+| --- | --- |
+| Valid | 8 |
+
+## Chart Scatter States
+
+| Key | Count |
+| --- | --- |
+| Bubble:False;NegativeBubbles:False;Shadow:False;Size:Area | 8 |
+
 ## Chart Sheet Property Empty Cell Modes
 
 | Key | Count |

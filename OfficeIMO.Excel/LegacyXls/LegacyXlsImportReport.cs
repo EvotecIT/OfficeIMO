@@ -641,6 +641,18 @@ namespace OfficeIMO.Excel.LegacyXls {
             ChartThreeDimensionalBarShapeStates = CountByCode(workbook.ChartRecords
                 .Where(record => record.ThreeDimensionalBarShapeOptions != null)
                 .Select(GetChartThreeDimensionalBarShapeStateKey));
+            ChartScatterBubbleSizeRatios = CountByCode(workbook.ChartRecords
+                .Where(record => record.ScatterOptions != null)
+                .Select(record => $"Ratio:{record.ScatterOptions!.BubbleSizeRatio}"));
+            ChartScatterBubbleSizeRepresentations = CountByCode(workbook.ChartRecords
+                .Where(record => record.ScatterOptions != null)
+                .Select(record => record.ScatterOptions!.BubbleSizeRepresentationName));
+            ChartScatterBubbleSizeRatioStates = CountByCode(workbook.ChartRecords
+                .Where(record => record.ScatterOptions != null)
+                .Select(record => record.ScatterOptions!.HasValidBubbleSizeRatio ? "Valid" : "Invalid"));
+            ChartScatterStates = CountByCode(workbook.ChartRecords
+                .Where(record => record.ScatterOptions != null)
+                .Select(GetChartScatterStateKey));
             ChartSheetPropertyEmptyCellModes = CountByCode(workbook.ChartRecords
                 .Where(record => record.SheetProperties != null && record.SheetProperties.HasKnownEmptyCellPlottingMode)
                 .Select(record => record.SheetProperties!.EmptyCellPlottingModeName));
@@ -1965,6 +1977,18 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets Chart3DBarShape records grouped by decoded base-shape and tapering mode.</summary>
         public IReadOnlyDictionary<string, int> ChartThreeDimensionalBarShapeStates { get; }
 
+        /// <summary>Gets Scatter records grouped by decoded bubble-size ratio.</summary>
+        public IReadOnlyDictionary<string, int> ChartScatterBubbleSizeRatios { get; }
+
+        /// <summary>Gets Scatter records grouped by decoded bubble-size representation.</summary>
+        public IReadOnlyDictionary<string, int> ChartScatterBubbleSizeRepresentations { get; }
+
+        /// <summary>Gets Scatter records grouped by bubble-size ratio validity.</summary>
+        public IReadOnlyDictionary<string, int> ChartScatterBubbleSizeRatioStates { get; }
+
+        /// <summary>Gets Scatter records grouped by decoded bubble, negative-bubble, shadow, and size-representation state.</summary>
+        public IReadOnlyDictionary<string, int> ChartScatterStates { get; }
+
         /// <summary>Gets ShtProps records grouped by decoded empty-cell plotting mode.</summary>
         public IReadOnlyDictionary<string, int> ChartSheetPropertyEmptyCellModes { get; }
 
@@ -2716,6 +2740,10 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Chart 3D Bar Shape Risers", ChartThreeDimensionalBarShapeRisers);
             AppendDictionary(builder, "Chart 3D Bar Shape Tapers", ChartThreeDimensionalBarShapeTapers);
             AppendDictionary(builder, "Chart 3D Bar Shape States", ChartThreeDimensionalBarShapeStates);
+            AppendDictionary(builder, "Chart Scatter Bubble Size Ratios", ChartScatterBubbleSizeRatios);
+            AppendDictionary(builder, "Chart Scatter Bubble Size Representations", ChartScatterBubbleSizeRepresentations);
+            AppendDictionary(builder, "Chart Scatter Bubble Size Ratio States", ChartScatterBubbleSizeRatioStates);
+            AppendDictionary(builder, "Chart Scatter States", ChartScatterStates);
             AppendDictionary(builder, "Chart Sheet Property Empty Cell Modes", ChartSheetPropertyEmptyCellModes);
             AppendDictionary(builder, "Chart Sheet Property States", ChartSheetPropertyStates);
             AppendDictionary(builder, "Chart LineFormat Styles", ChartLineFormatStyles);
@@ -3359,6 +3387,11 @@ namespace OfficeIMO.Excel.LegacyXls {
         private static string GetChartThreeDimensionalBarShapeStateKey(LegacyXlsChartRecord record) {
             LegacyXlsChart3DBarShapeOptions options = record.ThreeDimensionalBarShapeOptions!;
             return $"Riser:{options.RiserName};Taper:{options.TaperName}";
+        }
+
+        private static string GetChartScatterStateKey(LegacyXlsChartRecord record) {
+            LegacyXlsChartScatterOptions options = record.ScatterOptions!;
+            return $"Bubble:{options.IsBubbleChart};NegativeBubbles:{options.ShowNegativeBubbles};Shadow:{options.HasShadow};Size:{options.BubbleSizeRepresentationName}";
         }
 
         private static string GetChartAttachedLabelStateKey(LegacyXlsChartRecord record) {
