@@ -1646,8 +1646,8 @@ public static partial class OfficeChartDrawingRenderer {
             return;
         }
 
-        double labelWidth = Math.Min(72D, Math.Max(36D, label.Length * layout.DataLabelFontSize * 0.52D + 6D));
-        double labelHeight = Math.Max(9D, layout.DataLabelFontSize + 3D);
+        double labelWidth = Math.Min(78D, Math.Max(40D, label.Length * layout.DataLabelFontSize * 0.52D + 12D));
+        double labelHeight = Math.Max(12D, layout.DataLabelFontSize + 6D);
         double distance = zeroLabelIndex.HasValue ? radius * 0.9D : radius * 0.58D;
         double x = centerX + Math.Cos(angle) * distance - labelWidth / 2D;
         double y = centerY + Math.Sin(angle) * distance - labelHeight / 2D;

@@ -1084,8 +1084,8 @@ public static partial class OfficeChartDrawingRenderer {
     }
 
     private static (double Width, double Height) GetDataLabelSize(string label, OfficeChartLayout layout) {
-        double labelWidth = Math.Min(78D, Math.Max(18D, label.Length * layout.DataLabelFontSize * 0.52D + 6D));
-        double labelHeight = Math.Max(9D, layout.DataLabelFontSize + 3D);
+        double labelWidth = Math.Min(84D, Math.Max(22D, label.Length * layout.DataLabelFontSize * 0.52D + 12D));
+        double labelHeight = Math.Max(12D, layout.DataLabelFontSize + 6D);
         return (labelWidth, labelHeight);
     }
 
