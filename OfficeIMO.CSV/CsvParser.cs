@@ -36,9 +36,8 @@ internal static class CsvParser
                 continue;
             }
 
-            if (line.IndexOf('"') < 0)
+            if (TrySplitUnquotedRecord(line, delimiter, trim, out var record))
             {
-                var record = SplitUnquotedRecord(line, delimiter, trim);
                 if (ShouldEmitRecord(record, allowEmpty))
                 {
                     recordAction(record);
@@ -95,9 +94,8 @@ internal static class CsvParser
                 continue;
             }
 
-            if (line.IndexOf('"') < 0)
+            if (TrySplitUnquotedRecord(line, delimiter, trim, out var record))
             {
-                var record = SplitUnquotedRecord(line, delimiter, trim);
                 if (ShouldEmitRecord(record, allowEmpty))
                 {
                     yield return record;
@@ -139,33 +137,41 @@ internal static class CsvParser
         }
     }
 
-    private static string[] SplitUnquotedRecord(string line, char delimiter, bool trim)
+    private static bool TrySplitUnquotedRecord(string line, char delimiter, bool trim, out string[] fields)
     {
         var fieldCount = 1;
         for (var i = 0; i < line.Length; i++)
         {
-            if (line[i] == delimiter)
+            var value = line[i];
+            if (value == '"')
+            {
+                fields = Array.Empty<string>();
+                return false;
+            }
+
+            if (value == delimiter)
             {
                 fieldCount++;
             }
         }
 
-        var fields = new string[fieldCount];
+        fields = new string[fieldCount];
         var fieldIndex = 0;
         var start = 0;
-        while (true)
+        for (var i = 0; i < line.Length; i++)
         {
-            var index = line.IndexOf(delimiter, start);
-            if (index < 0)
+            if (line[i] != delimiter)
             {
-                fields[fieldIndex] = GetUnquotedField(line, start, line.Length - start, trim);
-                return fields;
+                continue;
             }
 
-            fields[fieldIndex] = GetUnquotedField(line, start, index - start, trim);
+            fields[fieldIndex] = GetUnquotedField(line, start, i - start, trim);
             fieldIndex++;
-            start = index + 1;
+            start = i + 1;
         }
+
+        fields[fieldIndex] = GetUnquotedField(line, start, line.Length - start, trim);
+        return true;
     }
 
     private static string GetUnquotedField(string line, int start, int length, bool trim)
