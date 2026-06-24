@@ -234,8 +234,11 @@ against those baselines with an explicit refresh environment variable for
 intentional changes. The current approved `openpreserve-format-corpus` baseline
 has no remaining generic formula-token blockers, which keeps future formula work
 anchored to named gaps instead of a single opaque bucket. Collecting approved
-non-sensitive real-world fixtures and broader preserve-only feature modeling remain
-future Phase 5 work.
+non-sensitive real-world fixtures remains future Phase 5 work. The Excel-authored
+`excel-com-generated` corpus now includes controlled BIFF8 files for worksheet
+features, PivotTables, chart sheets, embedded charts, drawing objects, embedded
+pictures, and form controls, with approved import-report baselines and optional
+desktop Excel open/import/open validation.
 
 ## Non-Goals For The Initial Work
 
