@@ -31,6 +31,9 @@ The first lanes are deliberately natural to NPOI:
 - `xls-read-conditional-formatting`: read cell-is and formula conditional
   formatting rules from an HSSF-generated `.xls` workbook through NPOI and
   OfficeIMO's legacy XLS importer.
+- `xls-read-autofilter-range`: read basic AutoFilter range/drop-down metadata
+  from an HSSF-generated `.xls` workbook through NPOI and OfficeIMO's legacy
+  XLS importer.
 
 Do not add OfficeIMO-specific template, preflight, PDF, package-copy,
 direct-package, or report-workflow scenarios here unless NPOI has an equivalent

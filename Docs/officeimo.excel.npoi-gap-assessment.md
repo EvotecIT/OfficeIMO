@@ -112,10 +112,13 @@ first lanes cover plain `.xlsx` row/cell write, plain `.xlsx` row/cell read, and
 compatibility lane now also covers formula text/cached value reads and a metadata
 read bucket for comments, hyperlinks, merged ranges, and list data validations.
 It also covers a conditional-formatting rule read bucket for HSSF-generated
-cell-is and formula rules. Later lanes can add DataTable/DataSet-style
-import/export, styles, filters, richer conditional-formatting style reads, and
-preserved unsupported feature counts, then merge the opt-in JSON output into the
-existing comparison summary format.
+cell-is and formula rules. Because NPOI's shared AutoFilter API is basic
+range-setting rather than full criteria editing, the filter comparison lane is
+named `xls-read-autofilter-range` and measures the hidden `_FilterDatabase`
+range/drop-down signal only. Later lanes can add DataTable/DataSet-style
+import/export, styles, richer conditional-formatting style reads, and preserved
+unsupported feature counts, then merge the opt-in JSON output into the existing
+comparison summary format.
 
 One implementation detail matters for repeatable local evidence: HSSF
 comment/drawing reads load SkiaSharp at runtime, while NPOI's package metadata

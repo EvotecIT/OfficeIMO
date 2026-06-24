@@ -42,11 +42,13 @@ var npoiXls = new Lazy<byte[]>(() => WriteNpoiXls(records));
 var npoiFormulaXls = new Lazy<byte[]>(() => WriteNpoiFormulaXls(records));
 var npoiMetadataXls = new Lazy<byte[]>(() => WriteNpoiMetadataXls(records));
 var npoiConditionalFormattingXls = new Lazy<byte[]>(() => WriteNpoiConditionalFormattingXls(records));
+var npoiAutoFilterXls = new Lazy<byte[]>(() => WriteNpoiAutoFilterXls(records));
 
 if ((IncludeScenario("xls-read-cellvalues")
         || IncludeScenario("xls-read-formulas")
         || IncludeScenario("xls-read-metadata")
-        || IncludeScenario("xls-read-conditional-formatting")) && rowCount + 1 > 65_536) {
+        || IncludeScenario("xls-read-conditional-formatting")
+        || IncludeScenario("xls-read-autofilter-range")) && rowCount + 1 > 65_536) {
     throw new ArgumentOutOfRangeException(nameof(rowCount), "The xls scenarios cannot exceed the BIFF8 worksheet row limit.");
 }
 
@@ -80,6 +82,11 @@ if (IncludeScenario("xls-read-metadata")) {
 if (IncludeScenario("xls-read-conditional-formatting")) {
     AddScenario(measurements, "xls-read-conditional-formatting", "OfficeIMO.Excel Legacy XLS", "Read BIFF8 cell-is and formula conditional-formatting rules from an HSSF-generated .xls workbook.", () => ReadOfficeImoXlsConditionalFormatting(npoiConditionalFormattingXls.Value, rowCount), warmupIterations, measuredIterations);
     AddScenario(measurements, "xls-read-conditional-formatting", "NPOI HSSF", "Read cell-is and formula conditional-formatting rules from the same HSSF-generated .xls workbook.", () => ReadNpoiWorkbookConditionalFormatting(npoiConditionalFormattingXls.Value), warmupIterations, measuredIterations);
+}
+
+if (IncludeScenario("xls-read-autofilter-range")) {
+    AddScenario(measurements, "xls-read-autofilter-range", "OfficeIMO.Excel Legacy XLS", "Read BIFF8 AutoFilter range/drop-down metadata from an HSSF-generated .xls workbook.", () => ReadOfficeImoXlsAutoFilterRange(npoiAutoFilterXls.Value, rowCount), warmupIterations, measuredIterations);
+    AddScenario(measurements, "xls-read-autofilter-range", "NPOI HSSF", "Read the hidden AutoFilter range name from the same HSSF-generated .xls workbook.", () => ReadNpoiWorkbookAutoFilterRange(npoiAutoFilterXls.Value, rowCount), warmupIterations, measuredIterations);
 }
 
 if (measurements.Count == 0) {
@@ -259,6 +266,16 @@ static byte[] WriteNpoiConditionalFormattingXls(IReadOnlyList<SalesRecord> recor
     return stream.ToArray();
 }
 
+static byte[] WriteNpoiAutoFilterXls(IReadOnlyList<SalesRecord> records) {
+    using var stream = new MemoryStream();
+    using var workbook = new HSSFWorkbook();
+    ISheet sheet = workbook.CreateSheet("Data");
+    WriteNpoiRows(sheet, records);
+    sheet.SetAutoFilter(new CellRangeAddress(0, records.Count, 0, 4));
+    workbook.Write(stream, leaveOpen: true);
+    return stream.ToArray();
+}
+
 static void WriteOfficeImoRows(ExcelSheet sheet, IReadOnlyList<SalesRecord> records) {
     sheet.CellValue(1, 1, "Id");
     sheet.CellValue(1, 2, "Region");
@@ -397,6 +414,24 @@ static int ReadOfficeImoXlsConditionalFormatting(byte[] workbookBytes, int rowCo
     return metric;
 }
 
+static int ReadOfficeImoXlsAutoFilterRange(byte[] workbookBytes, int rowCount) {
+    LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(workbookBytes, new LegacyXlsImportOptions { ReportUnsupportedRecords = true });
+    LegacyXlsWorksheet worksheet = workbook.Worksheets.Single(sheet => sheet.Name == "Data");
+    LegacyXlsDefinedName filterName = workbook.DefinedNames.Single(name =>
+        string.Equals(name.Name, "_FilterDatabase", StringComparison.OrdinalIgnoreCase)
+        && name.LocalSheetIndex == 0);
+    ValidateAutoFilterRange(filterName.Reference, rowCount, "OfficeIMO legacy XLS");
+
+    int metric = 0;
+    metric = AddValueMetric(metric, filterName.Name);
+    metric = AddValueMetric(metric, filterName.Reference);
+    metric = AddValueMetric(metric, filterName.Hidden);
+    metric = AddValueMetric(metric, filterName.BuiltIn);
+    metric = AddValueMetric(metric, worksheet.AutoFilterDropDownCount);
+    metric = AddValueMetric(metric, worksheet.AutoFilterCriteria.Count);
+    return metric;
+}
+
 static int ReadNpoiWorkbook(byte[] workbookBytes, int rowCount) {
     using var stream = new MemoryStream(workbookBytes, writable: false);
     using IWorkbook workbook = WorkbookFactory.Create(stream);
@@ -499,6 +534,22 @@ static int ReadNpoiWorkbookConditionalFormatting(byte[] workbookBytes) {
     return metric;
 }
 
+static int ReadNpoiWorkbookAutoFilterRange(byte[] workbookBytes, int rowCount) {
+    using var stream = new MemoryStream(workbookBytes, writable: false);
+    using IWorkbook workbook = WorkbookFactory.Create(stream);
+    IName filterName = Enumerable.Range(0, workbook.NumberOfNames)
+        .Select(workbook.GetNameAt)
+        .Single(name => string.Equals(name.NameName, "_FilterDatabase", StringComparison.OrdinalIgnoreCase)
+            && name.SheetIndex == 0);
+    ValidateAutoFilterRange(filterName.RefersToFormula, rowCount, "NPOI HSSF");
+
+    int metric = 0;
+    metric = AddValueMetric(metric, filterName.NameName);
+    metric = AddValueMetric(metric, filterName.RefersToFormula);
+    metric = AddValueMetric(metric, filterName.SheetIndex);
+    return metric;
+}
+
 static object? ReadNpoiCellValue(ICell cell) {
     return cell.CellType switch {
         CellType.String => cell.StringCellValue,
@@ -590,6 +641,19 @@ static void ValidateConditionalFormattingCounts(int conditionalFormattingCount, 
     }
 }
 
+static void ValidateAutoFilterRange(string? reference, int rowCount, string libraryName) {
+    string expectedReference = $"'Data'!$A$1:$E${rowCount + 1}";
+    if (!string.Equals(NormalizeSheetQuote(reference), NormalizeSheetQuote(expectedReference), StringComparison.OrdinalIgnoreCase)) {
+        throw new InvalidOperationException(
+            $"{libraryName} AutoFilter range did not match. "
+            + $"Reference {reference ?? "<null>"}/{expectedReference}.");
+    }
+}
+
+static string NormalizeSheetQuote(string? reference) {
+    return (reference ?? string.Empty).Replace("'Data'!", "Data!", StringComparison.OrdinalIgnoreCase);
+}
+
 static int? ParsePositiveOption(string[] args, params string[] optionNames) {
     for (int i = 0; i < args.Length; i++) {
         if (!optionNames.Any(name => string.Equals(args[i], name, StringComparison.OrdinalIgnoreCase))) {
@@ -667,6 +731,7 @@ static void WriteUsage() {
     Console.WriteLine("  xls-read-formulas");
     Console.WriteLine("  xls-read-metadata");
     Console.WriteLine("  xls-read-conditional-formatting");
+    Console.WriteLine("  xls-read-autofilter-range");
 }
 
 internal sealed record SalesRecord(int Id, string Region, string Owner, double Amount, bool Active) {
