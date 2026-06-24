@@ -199,6 +199,22 @@ The first slice proves the architecture. It is not premium yet. The big missing 
 
 Sparkline status: authored sparklines are no longer a hidden omission for image export. They are detected from worksheet extension metadata, filtered to the exported visible range, rendered for same-sheet numeric line/column/win-loss cases, and diagnosed with stable source codes when the renderer approximates or cannot resolve the data. Approved PNG/SVG baselines now cover the initial sparkline variants. Premium still needs Excel-exact hidden/empty data behavior, group-level axis/date/scaling parity, and broader baselines for those deeper variants.
 
+### Excel Image Visual QA Gate
+
+Use `Build/Test-ExcelImageVisualGate.ps1` as the local review gate for Excel image PNG/SVG work. It intentionally splits the visual checks instead of using one silent mega-filter:
+
+```powershell
+Build/Test-ExcelImageVisualGate.ps1 -NoRestore -NoBuild
+```
+
+The script runs:
+
+- generated Excel image output vs approved PNG/SVG baselines
+- approved baseline renderability/nonblank checks
+- `DrawingArchitectureTests` to keep Excel/Visio/PDF image paths routed through the shared dependency-free `OfficeIMO.Drawing` brain
+
+Use `-UpdateBaselines` only after inspecting the generated artifacts and deciding the visual change is intentional. The generated-output half is the expensive lane; on the current branch it has taken about 8.5 minutes with normal console progress, while the renderability and architecture lanes are fast.
+
 ## What Was Missing At Assessment Start
 
 ### 1. A product raster layer
