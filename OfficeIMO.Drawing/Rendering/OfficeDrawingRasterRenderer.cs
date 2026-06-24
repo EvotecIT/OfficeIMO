@@ -83,7 +83,7 @@ public static class OfficeDrawingRasterRenderer {
     }
 
     private static void RenderText(OfficeRasterCanvas canvas, OfficeDrawingText text, double scale) {
-        if (!text.WrapText && Math.Abs(text.RotationDegrees) <= 0.000001D && text.VerticalAlignment == OfficeTextVerticalAlignment.Top) {
+        if (!text.WrapText && !text.ShrinkToFit && Math.Abs(text.RotationDegrees) <= 0.000001D && text.VerticalAlignment == OfficeTextVerticalAlignment.Top) {
             canvas.DrawText(
                 text.Text,
                 text.X * scale,
@@ -104,15 +104,27 @@ public static class OfficeDrawingRasterRenderer {
         double lineHeightFactor = text.LineHeight.HasValue && text.LineHeight.Value > 0D
             ? Math.Max(1D, (text.LineHeight.Value * scale) / fontSize)
             : 1.2D;
-        OfficeTextBlockLayout layout = OfficeTextLayoutEngine.LayoutTextBlock(
-            text.Text,
-            fontSize,
-            textWidth,
-            textHeight,
-            lineHeightFactor,
-            minimumFontSize: Math.Min(6D, fontSize),
-            (value, size) => canvas.MeasureText(value, size, text.Font.FamilyName),
-            wrap: text.WrapText);
+        double minimumFontSize = Math.Min(6D, fontSize);
+        Func<string?, double, double> measure = (value, size) => canvas.MeasureText(value, size, text.Font.FamilyName);
+        OfficeTextBlockLayout layout = text.ShrinkToFit && text.WrapText
+            ? OfficeTextLayoutEngine.FitWrappedText(
+                text.Text,
+                fontSize,
+                textWidth,
+                textHeight,
+                lineHeightFactor,
+                minimumFontSize,
+                measure)
+            : OfficeTextLayoutEngine.LayoutTextBlock(
+                text.Text,
+                fontSize,
+                textWidth,
+                textHeight,
+                lineHeightFactor,
+                minimumFontSize,
+                measure,
+                wrap: text.WrapText,
+                shrinkToFit: text.ShrinkToFit);
         OfficeTextBlockRenderer.DrawRasterTextBlock(
             canvas,
             layout,

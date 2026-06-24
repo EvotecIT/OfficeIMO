@@ -570,6 +570,46 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void ExcelRange_ImageExportShrinksDrawingShapeTextThroughSharedDrawing() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                document.AddWorkSheet("TextShrink");
+                document.Save(false);
+            }
+
+            AppendSupportedDrawingShape(
+                filePath,
+                "Shrink label",
+                "Alpha beta gamma delta epsilon zeta",
+                fillHex: "F1F5F9",
+                strokeHex: "334155",
+                paragraphAlignment: A.TextAlignmentTypeValues.Left,
+                verticalAlignment: A.TextAnchoringTypeValues.Top,
+                textColorHex: "111827",
+                textFontSize: 24D,
+                textWrap: true,
+                textShrinkToFit: true);
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+                ExcelSheet sheet = document.Sheets.Single();
+                ExcelRange range = sheet.Range("A1:D4");
+                var options = new ExcelImageExportOptions { ShowGridlines = false };
+                ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+                OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
+                OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg, options);
+                string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
+
+                ExcelVisualDrawingObject drawingObject = Assert.Single(snapshot.DrawingObjects);
+                double fontSize = ExtractFirstSvgFontSize(svgText);
+                Assert.True(drawingObject.TextShrinkToFit);
+                Assert.True(fontSize < 24D, "Expected DrawingML normalAutoFit to shrink the rendered SVG font size.");
+                Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
+                Assert.NotNull(rendered);
+                Assert.True(CountDarkPixels(rendered!) > 0);
+            }
+        }
+
         [Theory]
         [InlineData(true)]
         [InlineData(false)]
@@ -667,6 +707,7 @@ namespace OfficeIMO.Tests {
             bool textItalic = false,
             bool textUnderline = false,
             bool textWrap = false,
+            bool textShrinkToFit = false,
             int? textInsetLeftEmu = null,
             int? textInsetTopEmu = null,
             int? textInsetRightEmu = null,
@@ -680,7 +721,7 @@ namespace OfficeIMO.Tests {
 
             drawingsPart.WorksheetDrawing ??= new Xdr.WorksheetDrawing();
             drawingsPart.WorksheetDrawing.Append(
-                CreateSupportedShapeAnchor(1, 1, 3, 3, 2U, name, text, preset, horizontalFlip, verticalFlip, rotationDegrees, fillHex, strokeHex, paragraphAlignment, verticalAlignment, textColorHex, textFontFamily, textFontSize, textBold, textItalic, textUnderline, textWrap, textInsetLeftEmu, textInsetTopEmu, textInsetRightEmu, textInsetBottomEmu));
+                CreateSupportedShapeAnchor(1, 1, 3, 3, 2U, name, text, preset, horizontalFlip, verticalFlip, rotationDegrees, fillHex, strokeHex, paragraphAlignment, verticalAlignment, textColorHex, textFontFamily, textFontSize, textBold, textItalic, textUnderline, textWrap, textShrinkToFit, textInsetLeftEmu, textInsetTopEmu, textInsetRightEmu, textInsetBottomEmu));
             drawingsPart.WorksheetDrawing.Save();
             worksheetPart.Worksheet.Save();
         }
@@ -732,6 +773,7 @@ namespace OfficeIMO.Tests {
             bool textItalic = false,
             bool textUnderline = false,
             bool textWrap = false,
+            bool textShrinkToFit = false,
             int? textInsetLeftEmu = null,
             int? textInsetTopEmu = null,
             int? textInsetRightEmu = null,
@@ -751,6 +793,10 @@ namespace OfficeIMO.Tests {
 
             if (textWrap) {
                 bodyProperties.Wrap = A.TextWrappingValues.Square;
+            }
+
+            if (textShrinkToFit) {
+                bodyProperties.Append(new A.NormalAutoFit());
             }
 
             if (textInsetLeftEmu.HasValue) {
@@ -868,6 +914,16 @@ namespace OfficeIMO.Tests {
             }
 
             return count;
+        }
+
+        private static double ExtractFirstSvgFontSize(string svg) {
+            const string attribute = "font-size=\"";
+            int start = svg.IndexOf(attribute, StringComparison.Ordinal);
+            Assert.True(start >= 0, "Expected SVG text output to include a font-size attribute.");
+            start += attribute.Length;
+            int end = svg.IndexOf('"', start);
+            Assert.True(end > start, "Expected SVG text output to include a valid font-size value.");
+            return double.Parse(svg.Substring(start, end - start), System.Globalization.CultureInfo.InvariantCulture);
         }
 
         private static int CountOccurrences(string text, string value) {

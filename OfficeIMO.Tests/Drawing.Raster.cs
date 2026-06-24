@@ -221,6 +221,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeDrawingSceneText_ShrinksWrappedTextThroughSharedRenderer() {
+            var drawing = new OfficeDrawing(90D, 36D)
+                .AddText(
+                    "Alpha beta gamma delta epsilon",
+                    0D,
+                    0D,
+                    90D,
+                    36D,
+                    new OfficeFontInfo("Aptos", 18D),
+                    OfficeColor.Black,
+                    wrapText: true,
+                    shrinkToFit: true);
+
+            string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+            double fontSize = ExtractFirstSvgFontSize(svg);
+            OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing);
+
+            Assert.True(fontSize < 18D, "Expected scene text SVG output to shrink the authored font size.");
+            Assert.True(CountPixelsNear(image, OfficeColor.Black) > 0, "Expected shrunken scene text to render in PNG output.");
+        }
+
+        [Fact]
         public void OfficeTextLayoutEngine_ClipsTextBlockToVisibleHeightWithEllipsis() {
             double Measure(string? value, double size) => (value?.Length ?? 0) * size;
             IReadOnlyList<OfficeTextLine> lines = new[] {
@@ -1483,6 +1505,16 @@ namespace OfficeIMO.Tests {
                         Math.Abs(color.B - expected.B) <= 8 &&
                         color.A > 0;
                 });
+
+        private static double ExtractFirstSvgFontSize(string svg) {
+            const string attribute = "font-size=\"";
+            int start = svg.IndexOf(attribute, StringComparison.Ordinal);
+            Assert.True(start >= 0, "Expected SVG text output to include a font-size attribute.");
+            start += attribute.Length;
+            int end = svg.IndexOf('"', start);
+            Assert.True(end > start, "Expected SVG text output to include a valid font-size value.");
+            return double.Parse(svg.Substring(start, end - start), System.Globalization.CultureInfo.InvariantCulture);
+        }
 
         private static void AssertColorNear(OfficeColor actual, OfficeColor expected) {
             Assert.True(

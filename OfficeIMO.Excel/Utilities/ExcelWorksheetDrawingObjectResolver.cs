@@ -67,6 +67,7 @@ namespace OfficeIMO.Excel.Utilities {
             A.BodyProperties? bodyProperties = shape.TextBody?.GetFirstChild<A.BodyProperties>();
             OfficeTextVerticalAlignment textVerticalAlignment = ResolveTextVerticalAlignment(bodyProperties);
             bool textWrap = ResolveTextWrap(bodyProperties);
+            bool textShrinkToFit = ResolveTextShrinkToFit(bodyProperties);
             DrawingTextInsets textInsets = ResolveTextInsets(bodyProperties);
             DrawingTextStyle textStyle = ResolveTextStyle(shape.TextBody);
 
@@ -100,6 +101,7 @@ namespace OfficeIMO.Excel.Utilities {
                 textStyle.FontSize,
                 textStyle.FontStyle,
                 textWrap,
+                textShrinkToFit,
                 textInsets.Left,
                 textInsets.Top,
                 textInsets.Right,
@@ -140,6 +142,7 @@ namespace OfficeIMO.Excel.Utilities {
                 textFontSize: null,
                 textFontStyle: OfficeFontStyle.Regular,
                 textWrap: false,
+                textShrinkToFit: false,
                 textInsetLeft: 0D,
                 textInsetTop: 0D,
                 textInsetRight: 0D,
@@ -184,6 +187,9 @@ namespace OfficeIMO.Excel.Utilities {
             A.TextWrappingValues? wrap = bodyProperties.Wrap?.Value;
             return wrap != A.TextWrappingValues.None;
         }
+
+        private static bool ResolveTextShrinkToFit(A.BodyProperties? bodyProperties) =>
+            bodyProperties?.GetFirstChild<A.NormalAutoFit>() != null;
 
         private static DrawingTextInsets ResolveTextInsets(A.BodyProperties? bodyProperties) {
             if (bodyProperties == null) {
@@ -514,6 +520,7 @@ namespace OfficeIMO.Excel.Utilities {
             double? textFontSize,
             OfficeFontStyle textFontStyle,
             bool textWrap,
+            bool textShrinkToFit,
             double textInsetLeft,
             double textInsetTop,
             double textInsetRight,
@@ -548,6 +555,7 @@ namespace OfficeIMO.Excel.Utilities {
             TextFontSize = textFontSize;
             TextFontStyle = textFontStyle;
             TextWrap = textWrap;
+            TextShrinkToFit = textShrinkToFit;
             TextInsetLeft = textInsetLeft;
             TextInsetTop = textInsetTop;
             TextInsetRight = textInsetRight;
@@ -612,6 +620,8 @@ namespace OfficeIMO.Excel.Utilities {
         internal OfficeFontStyle TextFontStyle { get; }
 
         internal bool TextWrap { get; }
+
+        internal bool TextShrinkToFit { get; }
 
         internal double TextInsetLeft { get; }
 

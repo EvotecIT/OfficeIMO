@@ -82,7 +82,8 @@ namespace OfficeIMO.Excel {
                     rotationDegrees: drawingObject.RotationDegrees,
                     rotationCenterX: offsetX + width / 2D,
                     rotationCenterY: offsetY + height / 2D,
-                    wrapText: drawingObject.TextWrap);
+                    wrapText: drawingObject.TextWrap,
+                    shrinkToFit: drawingObject.TextShrinkToFit);
             }
 
             return new DrawingObjectScene(drawing, offsetX, offsetY);

@@ -184,7 +184,7 @@ public static class OfficeDrawingSvgExporter {
     }
 
     private static void AppendText(StringBuilder sb, OfficeDrawingText text) {
-        if (text.WrapText || text.VerticalAlignment != OfficeTextVerticalAlignment.Top) {
+        if (text.WrapText || text.ShrinkToFit || text.VerticalAlignment != OfficeTextVerticalAlignment.Top) {
             AppendTextBlock(sb, text);
             return;
         }
@@ -224,18 +224,30 @@ public static class OfficeDrawingSvgExporter {
             : 1.2D;
         OfficeTextMeasurer measurer = OfficeTextMeasurer.Create(text.Font);
         OfficeTextMeasurementStyle style = measurer.CreateStyle(new OfficeFontInfo(text.Font.FamilyName, fontSize, text.Font.Style));
-        OfficeTextBlockLayout layout = OfficeTextLayoutEngine.LayoutTextBlock(
-            text.Text,
-            fontSize,
-            text.Width,
-            text.Height,
-            lineHeightFactor,
-            Math.Min(6D, fontSize),
-            (value, size) => {
+        double minimumFontSize = Math.Min(6D, fontSize);
+        Func<string?, double, double> measure = (value, size) => {
                 OfficeTextMeasurementStyle measuredStyle = measurer.CreateStyle(new OfficeFontInfo(text.Font.FamilyName, size, text.Font.Style));
                 return measurer.MeasureWidth(value, measuredStyle);
-            },
-            wrap: text.WrapText);
+            };
+        OfficeTextBlockLayout layout = text.ShrinkToFit && text.WrapText
+            ? OfficeTextLayoutEngine.FitWrappedText(
+                text.Text,
+                fontSize,
+                text.Width,
+                text.Height,
+                lineHeightFactor,
+                minimumFontSize,
+                measure)
+            : OfficeTextLayoutEngine.LayoutTextBlock(
+                text.Text,
+                fontSize,
+                text.Width,
+                text.Height,
+                lineHeightFactor,
+                minimumFontSize,
+                measure,
+                wrap: text.WrapText,
+                shrinkToFit: text.ShrinkToFit);
         sb.AppendSvgTextBlock(
             layout,
             text.X,
