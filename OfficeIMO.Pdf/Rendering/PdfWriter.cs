@@ -1020,30 +1020,12 @@ internal static partial class PdfWriter {
             sb.Append("/Artifact BMC\n");
         }
 
-        double angle = img.RotationAngle * System.Math.PI / 180D;
-        double cos = System.Math.Cos(angle);
-        double sin = System.Math.Sin(angle);
-        double a = img.W * cos;
-        double b = img.W * sin;
-        double c = -img.H * sin;
-        double d = img.H * cos;
-        double centerX = img.X + img.W / 2D;
-        double centerY = img.Y + img.H / 2D;
-        double e = centerX - (a + c) / 2D;
-        double f = centerY - (b + d) / 2D;
-        if (img.HorizontalFlip) {
-            e += a;
-            f += b;
-            a = -a;
-            b = -b;
-        }
-
-        if (img.VerticalFlip) {
-            e += c;
-            f += d;
-            c = -c;
-            d = -d;
-        }
+        OfficeTransform imageTransform = new OfficeImageProjection(
+            new OfficeImagePlacement(img.X, img.Y, img.W, img.H),
+            rotationDegrees: img.RotationAngle,
+            flipHorizontal: img.HorizontalFlip,
+            flipVertical: img.VerticalFlip)
+            .CreateUnitSquareTransform();
 
         var content = new ContentStreamBuilder(sb)
             .SaveState();
@@ -1052,7 +1034,7 @@ internal static partial class PdfWriter {
         }
 
         content
-            .TransformMatrix(a, b, c, d, e, f);
+            .TransformMatrix(imageTransform.M11, imageTransform.M12, imageTransform.M21, imageTransform.M22, imageTransform.OffsetX, imageTransform.OffsetY);
         if (img.SourceCrop?.HasCrop == true) {
             double clipWidth = 1D - img.SourceCrop.Left - img.SourceCrop.Right;
             double clipHeight = 1D - img.SourceCrop.Top - img.SourceCrop.Bottom;

@@ -163,6 +163,32 @@ public class DrawingTests {
     }
 
     [Fact]
+    public void OfficeImageProjectionCreatesUnitSquareTransformForPlacementRotationAndFlips() {
+        OfficeTransform normal = new OfficeImageProjection(
+            new OfficeImagePlacement(30D, 90D, 60D, 30D))
+            .CreateUnitSquareTransform();
+        OfficeTransform rotated = new OfficeImageProjection(
+            new OfficeImagePlacement(30D, 90D, 60D, 30D),
+            rotationDegrees: 90D)
+            .CreateUnitSquareTransform();
+        OfficeTransform flipped = new OfficeImageProjection(
+            new OfficeImagePlacement(10D, 20D, 80D, 40D),
+            flipHorizontal: true)
+            .CreateUnitSquareTransform();
+        OfficeTransform customCenter = new OfficeImageProjection(
+            new OfficeImagePlacement(10D, 20D, 20D, 10D),
+            rotationDegrees: 90D,
+            rotationCenterX: 0D,
+            rotationCenterY: 0D)
+            .CreateUnitSquareTransform();
+
+        Assert.Equal(new OfficeTransform(60D, 0D, 0D, 30D, 30D, 90D), normal);
+        Assert.Equal(new OfficeTransform(0D, 60D, -30D, 0D, 75D, 75D), rotated);
+        Assert.Equal(new OfficeTransform(-80D, 0D, 0D, 40D, 90D, 20D), flipped);
+        Assert.Equal(new OfficeTransform(0D, 20D, -10D, 0D, -20D, 10D), customCenter);
+    }
+
+    [Fact]
     public void OfficeImageRenderPlan_ResolvesTopLeftAndBottomLeftCropPlacement() {
         var crop = new OfficeImageSourceCrop(0.25D, 0.1D, 0.25D, 0.2D);
 

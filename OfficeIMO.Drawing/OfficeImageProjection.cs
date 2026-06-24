@@ -112,10 +112,48 @@ public readonly struct OfficeImageProjection {
     }
 
     /// <summary>
+    /// Creates an affine transform that maps a unit image rectangle into this projection's destination placement.
+    /// </summary>
+    /// <remarks>
+    /// The returned matrix maps source coordinates from <c>0..1</c> into the destination coordinate system,
+    /// applying rotation and flips around <see cref="RotationCenterX" /> / <see cref="RotationCenterY" />.
+    /// </remarks>
+    public OfficeTransform CreateUnitSquareTransform() {
+        double radians = RotationDegrees * Math.PI / 180D;
+        double cos = NormalizeZero(Math.Cos(radians));
+        double sin = NormalizeZero(Math.Sin(radians));
+
+        double a = NormalizeZero(Width * cos);
+        double b = NormalizeZero(Width * sin);
+        double c = NormalizeZero(-Height * sin);
+        double d = NormalizeZero(Height * cos);
+        double e = NormalizeZero(RotationCenterX + (cos * (X - RotationCenterX)) - (sin * (Y - RotationCenterY)));
+        double f = NormalizeZero(RotationCenterY + (sin * (X - RotationCenterX)) + (cos * (Y - RotationCenterY)));
+
+        if (FlipHorizontal) {
+            e = NormalizeZero(e + a);
+            f = NormalizeZero(f + b);
+            a = NormalizeZero(-a);
+            b = NormalizeZero(-b);
+        }
+
+        if (FlipVertical) {
+            e = NormalizeZero(e + c);
+            f = NormalizeZero(f + d);
+            c = NormalizeZero(-c);
+            d = NormalizeZero(-d);
+        }
+
+        return new OfficeTransform(a, b, c, d, e, f);
+    }
+
+    /// <summary>
     /// Converts the projection into a tuple useful for assertions and diagnostics.
     /// </summary>
     public (double X, double Y, double Width, double Height, double SourceLeft, double SourceTop, double SourceWidth, double SourceHeight, double RotationDegrees, double RotationCenterX, double RotationCenterY, bool FlipHorizontal, bool FlipVertical) ToTuple() =>
         (X, Y, Width, Height, SourceLeft, SourceTop, SourceWidth, SourceHeight, RotationDegrees, RotationCenterX, RotationCenterY, FlipHorizontal, FlipVertical);
+
+    private static double NormalizeZero(double value) => Math.Abs(value) < 0.000000000001D ? 0D : value;
 
     private static void EnsureFinite(double value, string paramName) {
         if (double.IsNaN(value) || double.IsInfinity(value)) {
