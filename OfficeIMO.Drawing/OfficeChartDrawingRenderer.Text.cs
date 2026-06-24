@@ -371,7 +371,7 @@ public static partial class OfficeChartDrawingRenderer {
         AddAxisDisplayUnitLabel(drawing, layout.VerticalAxisDisplayUnitLabel, labelLeft, Math.Max(0D, plotTop - 17D), labelWidth + 34D, style, layout, alignment);
     }
 
-    private static void AddHorizontalValueAxisLabels(OfficeDrawing drawing, ValueRange range, double plotLeft, double labelY, double plotWidth, bool labelsAbovePlot, OfficeChartStyle style, OfficeChartLayout layout, bool percentDefault) {
+    private static void AddHorizontalValueAxisLabels(OfficeDrawing drawing, ValueRange range, double plotLeft, double labelY, double plotWidth, double labelWidth, bool labelsAbovePlot, OfficeChartStyle style, OfficeChartLayout layout, bool percentDefault) {
         foreach (double tick in GetValueAxisLabelTicks(range, layout.HorizontalAxisMajorUnit)) {
             double x = ToPlotX(tick, range.Min, range.Max, plotLeft, plotWidth);
             OfficeTextAlignment alignment = tick <= range.Min
@@ -379,7 +379,12 @@ public static partial class OfficeChartDrawingRenderer {
                 : tick >= range.Max
                     ? OfficeTextAlignment.Right
                     : OfficeTextAlignment.Center;
-            AddChartText(drawing, FormatAxisValue(tick, layout, percentDefault, layout.HorizontalAxisNumberFormat, layout.HorizontalAxisDisplayUnitDivisor), x - 17D, labelY, 34D, GetAxisLabelBoxHeight(layout), layout.AxisLabelFontSize, style.MutedTextColor, alignment, style, layout.AxisTextFontFamily, layout.AxisTextFontStyle);
+            double textLeft = tick <= range.Min
+                ? Math.Max(0D, x - 2D)
+                : tick >= range.Max
+                    ? Math.Max(0D, x - labelWidth + 2D)
+                    : Math.Max(0D, x - labelWidth / 2D);
+            AddChartText(drawing, FormatAxisValue(tick, layout, percentDefault, layout.HorizontalAxisNumberFormat, layout.HorizontalAxisDisplayUnitDivisor), textLeft, labelY, labelWidth, GetAxisLabelBoxHeight(layout), layout.AxisLabelFontSize, style.MutedTextColor, alignment, style, layout.AxisTextFontFamily, layout.AxisTextFontStyle);
         }
 
         AddAxisDisplayUnitLabel(drawing, layout.HorizontalAxisDisplayUnitLabel, plotLeft + plotWidth - 58D, labelsAbovePlot ? labelY - 11D : labelY + 11D, 58D, style, layout, OfficeTextAlignment.Right);

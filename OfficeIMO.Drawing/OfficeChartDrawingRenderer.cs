@@ -88,25 +88,6 @@ public static partial class OfficeChartDrawingRenderer {
             (layout.HorizontalAxisTickLabelPosition == OfficeChartAxisTickLabelPosition.NextTo && horizontalAxisCrossesAtMaximum);
         bool verticalAxisLabelsHigh = layout.VerticalAxisTickLabelPosition == OfficeChartAxisTickLabelPosition.High ||
             (layout.VerticalAxisTickLabelPosition == OfficeChartAxisTickLabelPosition.NextTo && verticalAxisCrossesAtMaximum);
-        double horizontalAxisTopLabelHeight = showHorizontalAxisLabels && horizontalAxisLabelsHigh ? 15D : 0D;
-        double verticalAxisRightLabelWidth = showVerticalAxisLabels && verticalAxisLabelsHigh ? 42D : 0D;
-        double verticalAxisTitleHeight = HasVerticalAxisTitle(snapshot.ChartKind, layout) ? GetAxisTitleBandHeight(layout) : 0D;
-        double plotTop = 18D + contentTop + topLegendHeight + verticalAxisTitleHeight + horizontalAxisTopLabelHeight;
-        double legendWidth = GetSeriesLegendWidth(snapshot.Data.Series, width, layout);
-        bool leftLegend = layout.LegendPosition == OfficeChartLegendPosition.Left;
-        double plotLeft = 36D + (leftLegend ? legendWidth : 0D);
-        double plotRight = 12D + verticalAxisRightLabelWidth + (leftLegend ? 0D : legendWidth);
-        double horizontalAxisTitleHeight = HasHorizontalAxisTitle(snapshot.ChartKind, layout) ? GetAxisTitleBandHeight(layout) : 0D;
-        double plotBottom = 40D + horizontalAxisTitleHeight + bottomLegendHeight;
-        double plotWidth = Math.Max(20D, width - plotLeft - plotRight);
-        double plotHeight = Math.Max(20D, height - plotTop - plotBottom);
-        double plotBottomY = plotTop + plotHeight;
-        double horizontalAxisY = horizontalAxisCrossesAtMaximum ? plotTop : plotBottomY;
-        double axisLabelLeft = leftLegend ? legendWidth + 2D : 2D;
-        double axisLabelWidth = Math.Max(12D, plotLeft - axisLabelLeft - 6D);
-        double axisLabelRight = plotLeft + plotWidth + 4D;
-        double axisLabelRightWidth = Math.Max(12D, verticalAxisRightLabelWidth - 8D);
-        double verticalAxisX = verticalAxisCrossesAtMaximum ? plotLeft + plotWidth : plotLeft;
         ValueRange axisRange = GetCartesianValueRange(snapshot, layout, horizontalValueAxis: barChart);
         double? valueAxisMajorUnit = GetValueAxisMajorUnit(layout, horizontal: barChart);
         IReadOnlyList<double> valueAxisMajorTicks = GetValueAxisMajorTicks(axisRange, valueAxisMajorUnit);
@@ -116,6 +97,29 @@ public static partial class OfficeChartDrawingRenderer {
             IsPercentStackedBarOrColumnChart(snapshot.ChartKind) ||
             IsPercentStackedLineChart(snapshot.ChartKind) ||
             IsPercentStackedAreaChart(snapshot.ChartKind);
+        double verticalAxisLabelBandWidth = showVerticalAxisLabels
+            ? GetVerticalAxisLabelBandWidth(snapshot, axisRange, valueAxisMajorTicks, layout, valueAxisUsesPercentDefaults, horizontalValueAxis: barChart)
+            : 28D;
+        double horizontalValueAxisLabelWidth = GetHorizontalValueAxisLabelWidth(axisRange, valueAxisMajorTicks, layout, valueAxisUsesPercentDefaults);
+        double horizontalAxisTopLabelHeight = showHorizontalAxisLabels && horizontalAxisLabelsHigh ? 15D : 0D;
+        double verticalAxisRightLabelWidth = showVerticalAxisLabels && verticalAxisLabelsHigh ? verticalAxisLabelBandWidth + 8D : 0D;
+        double verticalAxisTitleHeight = HasVerticalAxisTitle(snapshot.ChartKind, layout) ? GetAxisTitleBandHeight(layout) : 0D;
+        double plotTop = 18D + contentTop + topLegendHeight + verticalAxisTitleHeight + horizontalAxisTopLabelHeight;
+        double legendWidth = GetSeriesLegendWidth(snapshot.Data.Series, width, layout);
+        bool leftLegend = layout.LegendPosition == OfficeChartLegendPosition.Left;
+        double plotLeft = 8D + verticalAxisLabelBandWidth + (leftLegend ? legendWidth : 0D);
+        double plotRight = 12D + verticalAxisRightLabelWidth + (leftLegend ? 0D : legendWidth);
+        double horizontalAxisTitleHeight = HasHorizontalAxisTitle(snapshot.ChartKind, layout) ? GetAxisTitleBandHeight(layout) : 0D;
+        double plotBottom = 40D + horizontalAxisTitleHeight + bottomLegendHeight;
+        double plotWidth = Math.Max(20D, width - plotLeft - plotRight);
+        double plotHeight = Math.Max(20D, height - plotTop - plotBottom);
+        double plotBottomY = plotTop + plotHeight;
+        double horizontalAxisY = horizontalAxisCrossesAtMaximum ? plotTop : plotBottomY;
+        double axisLabelLeft = leftLegend ? legendWidth + 2D : 2D;
+        double axisLabelWidth = Math.Max(12D, verticalAxisLabelBandWidth);
+        double axisLabelRight = plotLeft + plotWidth + 4D;
+        double axisLabelRightWidth = Math.Max(12D, verticalAxisLabelBandWidth);
+        double verticalAxisX = verticalAxisCrossesAtMaximum ? plotLeft + plotWidth : plotLeft;
 
         if (style.PlotAreaBackgroundColor.HasValue || style.PlotAreaBorderColor.HasValue) {
             AddShape(
@@ -410,6 +414,7 @@ public static partial class OfficeChartDrawingRenderer {
                     plotLeft,
                     horizontalAxisLabelsHigh ? plotTop - 13D : plotBottomY + 4D,
                     plotWidth,
+                    horizontalValueAxisLabelWidth,
                     horizontalAxisLabelsHigh,
                     style,
                     layout,
@@ -442,6 +447,7 @@ public static partial class OfficeChartDrawingRenderer {
                         plotLeft,
                         horizontalAxisLabelsHigh ? plotTop - 13D : plotBottomY + 4D,
                         plotWidth,
+                        horizontalValueAxisLabelWidth,
                         horizontalAxisLabelsHigh,
                         style,
                         layout,
