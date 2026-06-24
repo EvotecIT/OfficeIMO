@@ -14,7 +14,12 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             ushort formulaByteCount,
             int formulaBytesAvailable,
             bool formulaByteCountFitsPayload,
-            string? formulaText = null) {
+            string? formulaText = null,
+            string? formulaProjectionFailureCode = null,
+            string? formulaProjectionFailureDescription = null,
+            byte? formulaProjectionFailureToken = null,
+            string? formulaProjectionFailureTokenName = null,
+            int? formulaProjectionFailureTokenOffset = null) {
             SourceId = sourceId;
             SourceIdName = sourceIdName ?? throw new ArgumentNullException(nameof(sourceIdName));
             ReferenceType = referenceType;
@@ -26,6 +31,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             FormulaBytesAvailable = formulaBytesAvailable;
             FormulaByteCountFitsPayload = formulaByteCountFitsPayload;
             FormulaText = string.IsNullOrWhiteSpace(formulaText) ? null : formulaText;
+            FormulaProjectionFailureCode = string.IsNullOrWhiteSpace(formulaProjectionFailureCode) ? null : formulaProjectionFailureCode;
+            FormulaProjectionFailureDescription = string.IsNullOrWhiteSpace(formulaProjectionFailureDescription) ? null : formulaProjectionFailureDescription;
+            FormulaProjectionFailureToken = formulaProjectionFailureToken;
+            FormulaProjectionFailureTokenName = string.IsNullOrWhiteSpace(formulaProjectionFailureTokenName) ? null : formulaProjectionFailureTokenName;
+            FormulaProjectionFailureTokenOffset = formulaProjectionFailureTokenOffset;
         }
 
         /// <summary>Gets the raw BRAI source identifier.</summary>
@@ -60,6 +70,24 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets the projected Open XML formula text for the chart data source, when supported.</summary>
         public string? FormulaText { get; }
+
+        /// <summary>Gets the stable formula projection failure code, when the ChartParsedFormula could not be projected.</summary>
+        public string? FormulaProjectionFailureCode { get; }
+
+        /// <summary>Gets the formula projection failure description, when the ChartParsedFormula could not be projected.</summary>
+        public string? FormulaProjectionFailureDescription { get; }
+
+        /// <summary>Gets the unsupported formula token byte that blocked projection, when known.</summary>
+        public byte? FormulaProjectionFailureToken { get; }
+
+        /// <summary>Gets the unsupported formula token name that blocked projection, when known.</summary>
+        public string? FormulaProjectionFailureTokenName { get; }
+
+        /// <summary>Gets the parsed-expression token offset that blocked projection, when known.</summary>
+        public int? FormulaProjectionFailureTokenOffset { get; }
+
+        /// <summary>Gets a value indicating whether the ChartParsedFormula has formula projection failure details.</summary>
+        public bool HasFormulaProjectionFailure => FormulaProjectionFailureCode != null;
 
         /// <summary>Gets a value indicating whether the ChartParsedFormula was projected to formula text.</summary>
         public bool FormulaTextProjected => FormulaText != null;

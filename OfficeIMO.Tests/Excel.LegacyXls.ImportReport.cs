@@ -1,5 +1,6 @@
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.LegacyXls;
+using OfficeIMO.Excel.LegacyXls.Biff;
 using OfficeIMO.Excel.LegacyXls.Diagnostics;
 using OfficeIMO.Excel.LegacyXls.Model;
 using Xunit;
@@ -1203,6 +1204,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Chart DataSource Reference Types", markdown);
             Assert.Contains("Chart DataSource Number Format Ids", markdown);
             Assert.Contains("Chart DataSource Formula Byte Counts", markdown);
+            Assert.Contains("Chart DataSource Formula Projection States", markdown);
             Assert.Contains("Chart DataSource States", markdown);
             Assert.Contains("Chart DataFormat Targets", markdown);
             Assert.Contains("Chart DataFormat Series Indexes", markdown);
@@ -1238,6 +1240,48 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Unsupported Chart Sheet Chart Record Counts", markdown);
             Assert.Contains("Unsupported Chart Sheet Chart Record Kinds", markdown);
             Assert.Contains("Unsupported Chart Sheet Chart Types", markdown);
+        }
+
+        [Fact]
+        public void LegacyXls_ImportReport_GroupsChartDataSourceFormulaProjectionFailures() {
+            byte[] payload = {
+                0x01,
+                0x02,
+                0x01, 0x00,
+                0x0e, 0x00,
+                0x01, 0x00,
+                0x01
+            };
+            var chartRecord = new BiffRecord(0x1051, offset: 123, payload);
+            var chartRecords = new List<LegacyXlsChartRecord>();
+
+            Assert.True(BiffChartMetadataReader.TryRead(chartRecord, "ChartDiag", chartRecords));
+
+            LegacyXlsChartRecord record = Assert.Single(chartRecords);
+            LegacyXlsChartDataSource? dataSource = record.DataSource;
+            Assert.NotNull(dataSource);
+            Assert.False(dataSource.FormulaTextProjected);
+            Assert.True(dataSource.HasFormulaProjectionFailure);
+            Assert.Equal("FormulaToken0x01", dataSource.FormulaProjectionFailureCode);
+            Assert.Equal((byte)0x01, dataSource.FormulaProjectionFailureToken);
+            Assert.Equal("PtgExp", dataSource.FormulaProjectionFailureTokenName);
+            Assert.Equal(0, dataSource.FormulaProjectionFailureTokenOffset);
+
+            var workbook = new LegacyXlsWorkbook();
+            workbook.MutableChartRecords.Add(record);
+            LegacyXlsImportReport report = workbook.CreateImportReport();
+
+            Assert.Equal(1, report.ChartDataSourceFormulaProjectionStates["FormulaTextUnsupported"]);
+            Assert.Equal(1, report.ChartDataSourceFormulaProjectionFailures["FormulaToken0x01"]);
+            Assert.Equal(1, report.ChartDataSourceFormulaProjectionFailuresByToken["Token:0x01"]);
+            Assert.Equal(1, report.ChartDataSourceFormulaProjectionFailuresByTokenName["PtgExp"]);
+            Assert.Equal(1, report.ChartDataSourceFormulaProjectionFailuresByOffset["Offset:0"]);
+            Assert.Equal(1, report.ChartDataSourceStates["Source:ValuesOrHorizontalValues;Reference:WorksheetRange;CustomNumberFormat:True;FormulaBytes:1;FormulaComplete:True;FormulaTextProjected:False"]);
+
+            string markdown = report.ToMarkdown();
+            Assert.Contains("Chart DataSource Formula Projection Failures", markdown);
+            Assert.Contains("FormulaToken0x01", markdown);
+            Assert.Contains("PtgExp", markdown);
         }
 
         [Fact]

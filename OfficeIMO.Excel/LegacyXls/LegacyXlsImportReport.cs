@@ -583,6 +583,18 @@ namespace OfficeIMO.Excel.LegacyXls {
             ChartDataSourceFormulaProjectionStates = CountByCode(workbook.ChartRecords
                 .Where(record => record.DataSource != null)
                 .Select(GetChartDataSourceFormulaProjectionStateKey));
+            ChartDataSourceFormulaProjectionFailures = CountByCode(workbook.ChartRecords
+                .Where(record => record.DataSource?.HasFormulaProjectionFailure == true)
+                .Select(record => record.DataSource!.FormulaProjectionFailureCode!));
+            ChartDataSourceFormulaProjectionFailuresByToken = CountByCode(workbook.ChartRecords
+                .Where(record => record.DataSource?.FormulaProjectionFailureToken != null)
+                .Select(record => $"Token:0x{record.DataSource!.FormulaProjectionFailureToken!.Value:X2}"));
+            ChartDataSourceFormulaProjectionFailuresByTokenName = CountByCode(workbook.ChartRecords
+                .Where(record => !string.IsNullOrWhiteSpace(record.DataSource?.FormulaProjectionFailureTokenName))
+                .Select(record => record.DataSource!.FormulaProjectionFailureTokenName!));
+            ChartDataSourceFormulaProjectionFailuresByOffset = CountByCode(workbook.ChartRecords
+                .Where(record => record.DataSource?.FormulaProjectionFailureTokenOffset != null)
+                .Select(record => $"Offset:{record.DataSource!.FormulaProjectionFailureTokenOffset!.Value}"));
             ChartDataSourceStates = CountByCode(workbook.ChartRecords
                 .Where(record => record.DataSource != null)
                 .Select(GetChartDataSourceStateKey));
@@ -1881,6 +1893,18 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets BRAI records grouped by ChartParsedFormula text projection state.</summary>
         public IReadOnlyDictionary<string, int> ChartDataSourceFormulaProjectionStates { get; }
 
+        /// <summary>Gets BRAI formula projection failures grouped by stable failure code.</summary>
+        public IReadOnlyDictionary<string, int> ChartDataSourceFormulaProjectionFailures { get; }
+
+        /// <summary>Gets BRAI formula projection failures grouped by unsupported token byte.</summary>
+        public IReadOnlyDictionary<string, int> ChartDataSourceFormulaProjectionFailuresByToken { get; }
+
+        /// <summary>Gets BRAI formula projection failures grouped by unsupported token name.</summary>
+        public IReadOnlyDictionary<string, int> ChartDataSourceFormulaProjectionFailuresByTokenName { get; }
+
+        /// <summary>Gets BRAI formula projection failures grouped by token offset.</summary>
+        public IReadOnlyDictionary<string, int> ChartDataSourceFormulaProjectionFailuresByOffset { get; }
+
         /// <summary>Gets BRAI records grouped by decoded source, reference, number format, and formula-byte state.</summary>
         public IReadOnlyDictionary<string, int> ChartDataSourceStates { get; }
 
@@ -2647,6 +2671,10 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Chart DataSource Number Format Ids", ChartDataSourceNumberFormatIds);
             AppendDictionary(builder, "Chart DataSource Formula Byte Counts", ChartDataSourceFormulaByteCounts);
             AppendDictionary(builder, "Chart DataSource Formula Projection States", ChartDataSourceFormulaProjectionStates);
+            AppendDictionary(builder, "Chart DataSource Formula Projection Failures", ChartDataSourceFormulaProjectionFailures);
+            AppendDictionary(builder, "Chart DataSource Formula Projection Failures By Token", ChartDataSourceFormulaProjectionFailuresByToken);
+            AppendDictionary(builder, "Chart DataSource Formula Projection Failures By Token Name", ChartDataSourceFormulaProjectionFailuresByTokenName);
+            AppendDictionary(builder, "Chart DataSource Formula Projection Failures By Offset", ChartDataSourceFormulaProjectionFailuresByOffset);
             AppendDictionary(builder, "Chart DataSource States", ChartDataSourceStates);
             AppendDictionary(builder, "Chart DataFormat Targets", ChartDataFormatTargets);
             AppendDictionary(builder, "Chart DataFormat Series Indexes", ChartDataFormatSeriesIndexes);

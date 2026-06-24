@@ -410,6 +410,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             ushort formulaByteCount = BiffRecordReader.ReadUInt16(record.Payload, 6);
             int formulaBytesAvailable = record.Payload.Length - 8;
             string? formulaText = null;
+            BiffFormulaReadFailure? formulaFailure = null;
             if (formulaByteCount > 0 && formulaByteCount <= formulaBytesAvailable) {
                 BiffFormulaTextReader.TryRead(
                     record.Payload,
@@ -420,7 +421,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     externalReferences ?? Array.Empty<LegacyXlsExternalReference>(),
                     sheetNames ?? Array.Empty<string>(),
                     definedNames ?? Array.Empty<string?>(),
-                    out formulaText);
+                    out formulaText,
+                    out formulaFailure);
             }
 
             dataSource = new LegacyXlsChartDataSource(
@@ -434,7 +436,12 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 formulaByteCount,
                 formulaBytesAvailable,
                 formulaByteCount <= formulaBytesAvailable,
-                formulaText);
+                formulaText,
+                formulaFailure?.DetailCode,
+                formulaFailure?.Description,
+                formulaFailure?.Token,
+                formulaFailure?.TokenName,
+                formulaFailure?.TokenOffset);
             return true;
         }
 
