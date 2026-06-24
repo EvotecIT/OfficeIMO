@@ -34,6 +34,11 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
             Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED");
             Assert.Equal(1, result.ImportReport.ExternalReferencesByTarget["external-source.xls"]);
+            Assert.Equal(1, result.ImportReport.ExternalSheetNamesByTarget["external-source.xls!Data"]);
+            Assert.Equal(1, result.ImportReport.ExternalCellCachesByTarget["external-source.xls"]);
+            Assert.Equal(1, result.ImportReport.ExternalCellCachesByTargetAndSheetName["external-source.xls!Data"]);
+            Assert.Equal(1, result.ImportReport.ExternalCellCachesByTargetAndCellRange["external-source.xls!R1C1:R3C1"]);
+            Assert.Equal(3, result.ImportReport.ExternalCachedCellsByTargetSheetAndValueKind["external-source.xls!Data|Number"]);
 
             LegacyXlsExternalReference externalReference = Assert.Single(
                 result.Workbook.ExternalReferences,

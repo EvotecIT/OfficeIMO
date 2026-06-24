@@ -515,6 +515,23 @@ Warnings: 0
 | --- | --- |
 | ExternalWorkbook | 6 |
 
+## External Sheet Names By Target
+
+| Key | Count |
+| --- | --- |
+| MCPF\\x03VMCPF.XLS!All | 1 |
+| MCPF\\x03VMCPF.XLS!b | 1 |
+| MCPF\\x03VMCPF.XLS!c | 1 |
+| MCPF\\x03VMCPF.XLS!cl | 1 |
+| MCPF\\x03VMCPF.XLS!Info | 1 |
+| MCPF\\x03VMCPF.XLS!lb | 1 |
+
+## External Cell Caches By Target
+
+| Key | Count |
+| --- | --- |
+| MCPF\\x03VMCPF.XLS | 6 |
+
 ## External Cell Caches By Sheet Name
 
 | Key | Count |
@@ -526,6 +543,17 @@ Warnings: 0
 | Info | 1 |
 | lb | 1 |
 
+## External Cell Caches By Target And Sheet Name
+
+| Key | Count |
+| --- | --- |
+| MCPF\\x03VMCPF.XLS!All | 1 |
+| MCPF\\x03VMCPF.XLS!b | 1 |
+| MCPF\\x03VMCPF.XLS!c | 1 |
+| MCPF\\x03VMCPF.XLS!cl | 1 |
+| MCPF\\x03VMCPF.XLS!Info | 1 |
+| MCPF\\x03VMCPF.XLS!lb | 1 |
+
 ## External Cell Caches By Cell Range
 
 | Key | Count |
@@ -535,6 +563,16 @@ Warnings: 0
 | R25C7:R25C8 | 1 |
 | R26C7:R26C8 | 1 |
 | R39C7:R39C8 | 1 |
+
+## External Cell Caches By Target And Cell Range
+
+| Key | Count |
+| --- | --- |
+| MCPF\\x03VMCPF.XLS!(empty) | 2 |
+| MCPF\\x03VMCPF.XLS!R23C7:R23C8 | 1 |
+| MCPF\\x03VMCPF.XLS!R25C7:R25C8 | 1 |
+| MCPF\\x03VMCPF.XLS!R26C7:R26C8 | 1 |
+| MCPF\\x03VMCPF.XLS!R39C7:R39C8 | 1 |
 
 ## External Cell Caches By Cell Count
 
@@ -568,6 +606,15 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | Number | 8 |
+
+## External Cached Cells By Target Sheet And Value Kind
+
+| Key | Count |
+| --- | --- |
+| MCPF\\x03VMCPF.XLS!b\|Number | 2 |
+| MCPF\\x03VMCPF.XLS!cl\|Number | 2 |
+| MCPF\\x03VMCPF.XLS!c\|Number | 2 |
+| MCPF\\x03VMCPF.XLS!lb\|Number | 2 |
 
 ## Pivot Table Records By Kind
 

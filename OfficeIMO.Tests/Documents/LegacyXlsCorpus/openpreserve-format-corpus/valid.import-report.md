@@ -598,6 +598,14 @@ Warnings: 0
 | --- | --- |
 | ExternalWorkbook | 3 |
 
+## External Sheet Names By Target
+
+| Key | Count |
+| --- | --- |
+| IDTBL.XLS!IDTBL | 1 |
+| \\x06MACROS.XLS!Module1 | 1 |
+| \\x06MACROS.XLS!Sheet1 | 1 |
+
 ## External Names By Reference Kind
 
 | Key | Count |
@@ -622,6 +630,13 @@ Warnings: 0
 | --- | --- |
 | Custom | 1 |
 
+## External Cell Caches By Target
+
+| Key | Count |
+| --- | --- |
+| IDTBL.XLS | 1 |
+| \\x06MACROS.XLS | 1 |
+
 ## External Cell Caches By Sheet Name
 
 | Key | Count |
@@ -629,12 +644,26 @@ Warnings: 0
 | IDTBL | 1 |
 | Sheet1 | 1 |
 
+## External Cell Caches By Target And Sheet Name
+
+| Key | Count |
+| --- | --- |
+| IDTBL.XLS!IDTBL | 1 |
+| \\x06MACROS.XLS!Sheet1 | 1 |
+
 ## External Cell Caches By Cell Range
 
 | Key | Count |
 | --- | --- |
 | (empty) | 1 |
 | R1C0:R230C3 | 1 |
+
+## External Cell Caches By Target And Cell Range
+
+| Key | Count |
+| --- | --- |
+| IDTBL.XLS!R1C0:R230C3 | 1 |
+| \\x06MACROS.XLS!(empty) | 1 |
 
 ## External Cell Caches By Cell Count
 
@@ -669,6 +698,13 @@ Warnings: 0
 | --- | --- |
 | Number | 230 |
 | Text | 684 |
+
+## External Cached Cells By Target Sheet And Value Kind
+
+| Key | Count |
+| --- | --- |
+| IDTBL.XLS!IDTBL\|Number | 230 |
+| IDTBL.XLS!IDTBL\|Text | 684 |
 
 ## Pivot Table Records By Kind
 

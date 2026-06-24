@@ -270,6 +270,8 @@ namespace OfficeIMO.Excel.LegacyXls {
             ExternalReferencesByCacheCount = CountByCode(workbook.ExternalReferences.Select(reference => $"Caches:{reference.CachedCellCacheCount}"));
             ExternalReferencesByCachedCellCount = CountByCode(workbook.ExternalReferences.Select(reference => $"CachedCells:{reference.CachedCellCount}"));
             ExternalSheetNamesByReferenceKind = CountExternalSheetNamesByReferenceKind(workbook.ExternalReferences);
+            ExternalSheetNamesByTarget = CountByCode(workbook.ExternalReferences
+                .SelectMany(reference => reference.SheetNames.Select(sheetName => $"{GetExternalReferenceTargetKey(reference)}!{sheetName}")));
             ExternalNamesByReferenceKind = CountExternalNamesByReferenceKind(workbook.ExternalReferences);
             ExternalNamesByName = CountByCode(workbook.ExternalReferences.SelectMany(reference => reference.ExternalNames.Select(name => name.Name)));
             ExternalNamesByScope = CountByCode(workbook.ExternalReferences
@@ -278,13 +280,25 @@ namespace OfficeIMO.Excel.LegacyXls {
             ExternalNamesByBuiltInState = CountByCode(workbook.ExternalReferences
                 .SelectMany(reference => reference.ExternalNames)
                 .Select(name => name.BuiltIn ? "BuiltIn" : "Custom"));
+            ExternalCellCachesByTarget = CountByCode(workbook.ExternalReferences
+                .SelectMany(reference => reference.CachedCellCaches.Select(_ => GetExternalReferenceTargetKey(reference))));
             ExternalCellCachesBySheetName = CountByCode(workbook.ExternalReferences.SelectMany(reference => reference.CachedCellCaches.Select(GetExternalCellCacheSheetKey)));
+            ExternalCellCachesByTargetAndSheetName = CountByCode(workbook.ExternalReferences
+                .SelectMany(reference => reference.CachedCellCaches
+                    .Select(cache => $"{GetExternalReferenceTargetKey(reference)}!{GetExternalCellCacheSheetKey(cache)}")));
             ExternalCellCachesByCellRange = CountByCode(workbook.ExternalReferences.SelectMany(reference => reference.CachedCellCaches.Select(GetExternalCellCacheRangeKey)));
+            ExternalCellCachesByTargetAndCellRange = CountByCode(workbook.ExternalReferences
+                .SelectMany(reference => reference.CachedCellCaches
+                    .Select(cache => $"{GetExternalReferenceTargetKey(reference)}!{GetExternalCellCacheRangeKey(cache)}")));
             ExternalCellCachesByCellCount = CountByCode(workbook.ExternalReferences.SelectMany(reference => reference.CachedCellCaches.Select(cache => $"Cells:{cache.Cells.Count}")));
             ExternalCellCachesByRowSpan = CountByCode(workbook.ExternalReferences.SelectMany(reference => reference.CachedCellCaches.Select(cache => cache.RowSpan.HasValue ? $"Rows:{cache.RowSpan.Value}" : "(empty)")));
             ExternalCellCachesByColumnSpan = CountByCode(workbook.ExternalReferences.SelectMany(reference => reference.CachedCellCaches.Select(cache => cache.ColumnSpan.HasValue ? $"Columns:{cache.ColumnSpan.Value}" : "(empty)")));
             ExternalCellCachesByLinkState = CountByCode(workbook.ExternalReferences.SelectMany(reference => reference.CachedCellCaches.Select(cache => cache.LinkValid ? "ValidLink" : "InvalidLink")));
             ExternalCachedCellsByValueKind = CountExternalCachedCellsByValueKind(workbook.ExternalReferences);
+            ExternalCachedCellsByTargetSheetAndValueKind = CountByCode(workbook.ExternalReferences
+                .SelectMany(reference => reference.CachedCellCaches
+                    .SelectMany(cache => cache.Cells
+                        .Select(cell => $"{GetExternalReferenceTargetKey(reference)}!{GetExternalCellCacheSheetKey(cache)}|{cell.Kind}"))));
             DataConsolidationReferencesBySourceKind = CountByCode(workbook.DataConsolidationReferences.Select(reference => reference.SourceKind.ToString()));
             DataConsolidationReferencesBySource = CountByCode(workbook.DataConsolidationReferences.Select(reference => reference.Source));
             DataConsolidationReferencesByRange = CountByCode(workbook.DataConsolidationReferences.Select(reference => reference.CellRange));
@@ -1147,6 +1161,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets external workbook sheet-name counts grouped by supporting-link kind.</summary>
         public IReadOnlyDictionary<LegacyXlsExternalReferenceKind, int> ExternalSheetNamesByReferenceKind { get; }
 
+        /// <summary>Gets external workbook sheet names grouped by normalized target and sheet name.</summary>
+        public IReadOnlyDictionary<string, int> ExternalSheetNamesByTarget { get; }
+
         /// <summary>Gets external defined-name counts grouped by supporting-link kind.</summary>
         public IReadOnlyDictionary<LegacyXlsExternalReferenceKind, int> ExternalNamesByReferenceKind { get; }
 
@@ -1159,11 +1176,20 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets external defined names grouped by built-in or custom state.</summary>
         public IReadOnlyDictionary<string, int> ExternalNamesByBuiltInState { get; }
 
+        /// <summary>Gets external cell cache sections grouped by normalized target path or source.</summary>
+        public IReadOnlyDictionary<string, int> ExternalCellCachesByTarget { get; }
+
         /// <summary>Gets external cell cache sections grouped by resolved external sheet name.</summary>
         public IReadOnlyDictionary<string, int> ExternalCellCachesBySheetName { get; }
 
+        /// <summary>Gets external cell cache sections grouped by normalized target and resolved external sheet name.</summary>
+        public IReadOnlyDictionary<string, int> ExternalCellCachesByTargetAndSheetName { get; }
+
         /// <summary>Gets external cell cache sections grouped by occupied zero-based row/column range.</summary>
         public IReadOnlyDictionary<string, int> ExternalCellCachesByCellRange { get; }
+
+        /// <summary>Gets external cell cache sections grouped by normalized target and occupied zero-based row/column range.</summary>
+        public IReadOnlyDictionary<string, int> ExternalCellCachesByTargetAndCellRange { get; }
 
         /// <summary>Gets external cell cache sections grouped by cached value count.</summary>
         public IReadOnlyDictionary<string, int> ExternalCellCachesByCellCount { get; }
@@ -1179,6 +1205,9 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets cached external cell values grouped by value kind.</summary>
         public IReadOnlyDictionary<LegacyXlsCellValueKind, int> ExternalCachedCellsByValueKind { get; }
+
+        /// <summary>Gets cached external cell values grouped by normalized target, resolved external sheet name, and value kind.</summary>
+        public IReadOnlyDictionary<string, int> ExternalCachedCellsByTargetSheetAndValueKind { get; }
 
         /// <summary>Gets DConRef records grouped by decoded DConFile source kind.</summary>
         public IReadOnlyDictionary<string, int> DataConsolidationReferencesBySourceKind { get; }
@@ -1818,6 +1847,7 @@ namespace OfficeIMO.Excel.LegacyXls {
                 entry => entry.Key.ToString(),
                 entry => entry.Value,
                 StringComparer.OrdinalIgnoreCase));
+            AppendDictionary(builder, "External Sheet Names By Target", ExternalSheetNamesByTarget);
             AppendDictionary(builder, "External Names By Reference Kind", ExternalNamesByReferenceKind.ToDictionary(
                 entry => entry.Key.ToString(),
                 entry => entry.Value,
@@ -1825,8 +1855,11 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "External Names By Name", ExternalNamesByName);
             AppendDictionary(builder, "External Names By Scope", ExternalNamesByScope);
             AppendDictionary(builder, "External Names By Built-In State", ExternalNamesByBuiltInState);
+            AppendDictionary(builder, "External Cell Caches By Target", ExternalCellCachesByTarget);
             AppendDictionary(builder, "External Cell Caches By Sheet Name", ExternalCellCachesBySheetName);
+            AppendDictionary(builder, "External Cell Caches By Target And Sheet Name", ExternalCellCachesByTargetAndSheetName);
             AppendDictionary(builder, "External Cell Caches By Cell Range", ExternalCellCachesByCellRange);
+            AppendDictionary(builder, "External Cell Caches By Target And Cell Range", ExternalCellCachesByTargetAndCellRange);
             AppendDictionary(builder, "External Cell Caches By Cell Count", ExternalCellCachesByCellCount);
             AppendDictionary(builder, "External Cell Caches By Row Span", ExternalCellCachesByRowSpan);
             AppendDictionary(builder, "External Cell Caches By Column Span", ExternalCellCachesByColumnSpan);
@@ -1835,6 +1868,7 @@ namespace OfficeIMO.Excel.LegacyXls {
                 entry => entry.Key.ToString(),
                 entry => entry.Value,
                 StringComparer.OrdinalIgnoreCase));
+            AppendDictionary(builder, "External Cached Cells By Target Sheet And Value Kind", ExternalCachedCellsByTargetSheetAndValueKind);
             AppendDictionary(builder, "Data Consolidation References By Source Kind", DataConsolidationReferencesBySourceKind);
             AppendDictionary(builder, "Data Consolidation References By Source", DataConsolidationReferencesBySource);
             AppendDictionary(builder, "Data Consolidation References By Range", DataConsolidationReferencesByRange);

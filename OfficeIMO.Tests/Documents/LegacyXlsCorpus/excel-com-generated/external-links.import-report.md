@@ -291,17 +291,41 @@ Warnings: 0
 | --- | --- |
 | ExternalWorkbook | 1 |
 
+## External Sheet Names By Target
+
+| Key | Count |
+| --- | --- |
+| external-source.xls!Data | 1 |
+
+## External Cell Caches By Target
+
+| Key | Count |
+| --- | --- |
+| external-source.xls | 1 |
+
 ## External Cell Caches By Sheet Name
 
 | Key | Count |
 | --- | --- |
 | Data | 1 |
 
+## External Cell Caches By Target And Sheet Name
+
+| Key | Count |
+| --- | --- |
+| external-source.xls!Data | 1 |
+
 ## External Cell Caches By Cell Range
 
 | Key | Count |
 | --- | --- |
 | R1C1:R3C1 | 1 |
+
+## External Cell Caches By Target And Cell Range
+
+| Key | Count |
+| --- | --- |
+| external-source.xls!R1C1:R3C1 | 1 |
 
 ## External Cell Caches By Cell Count
 
@@ -332,6 +356,12 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | Number | 3 |
+
+## External Cached Cells By Target Sheet And Value Kind
+
+| Key | Count |
+| --- | --- |
+| external-source.xls!Data\|Number | 3 |
 
 ## Theme Records By Version
 
