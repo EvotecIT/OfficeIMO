@@ -52,6 +52,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             TryReadScatterOptions(record, out LegacyXlsChartScatterOptions? scatterOptions);
             TryReadFontBasisOptions(record, out LegacyXlsChartFontBasisOptions? fontBasisOptions);
             TryReadLayout12(record, out LegacyXlsChartLayout12? layout12);
+            TryReadFutureRecordInfo(record, out LegacyXlsChartFutureRecordInfo? futureRecordInfo);
             records.Add(new LegacyXlsChartRecord(
                 GetKind(record.Type),
                 BiffUnsupportedRecordDiagnostics.GetBiffRecordName(record.Type),
@@ -116,7 +117,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 threeDimensionalBarShapeOptions,
                 scatterOptions,
                 fontBasisOptions,
-                layout12));
+                layout12,
+                futureRecordInfo));
             return true;
         }
 
@@ -644,6 +646,32 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 BiffRecordReader.ReadDouble(record.Payload, 34),
                 BiffRecordReader.ReadDouble(record.Payload, 42),
                 BiffRecordReader.ReadDouble(record.Payload, 50));
+            return true;
+        }
+
+        private static bool TryReadFutureRecordInfo(BiffRecord record, out LegacyXlsChartFutureRecordInfo? info) {
+            info = null;
+            if (record.Type != 0x0850 || record.Payload.Length < 8) {
+                return false;
+            }
+
+            ushort frtRecordType = BiffRecordReader.ReadUInt16(record.Payload, 0);
+            if (frtRecordType != 0x0850) {
+                return false;
+            }
+
+            ushort rangeCount = BiffRecordReader.ReadUInt16(record.Payload, 6);
+            int availableRanges = Math.Max(0, (record.Payload.Length - 8) / 4);
+            int rangesToRead = Math.Min(rangeCount, availableRanges);
+            var ranges = new List<LegacyXlsChartFutureRecordRange>(rangesToRead);
+            for (int index = 0; index < rangesToRead; index++) {
+                int offset = 8 + (index * 4);
+                ranges.Add(new LegacyXlsChartFutureRecordRange(
+                    BiffRecordReader.ReadUInt16(record.Payload, offset),
+                    BiffRecordReader.ReadUInt16(record.Payload, offset + 2)));
+            }
+
+            info = new LegacyXlsChartFutureRecordInfo(record.Payload[4], record.Payload[5], ranges);
             return true;
         }
 

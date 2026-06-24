@@ -1457,6 +1457,27 @@ Warnings: 0
 | --- | --- |
 | X:0;Y:0;Width:0;Height:0 | 2 |
 
+## Chart Future Record Info Versions
+
+| Key | Count |
+| --- | --- |
+| Originator:Version:0x0E;Writer:Version:0x0E | 1 |
+
+## Chart Future Record Info Range Counts
+
+| Key | Count |
+| --- | --- |
+| Ranges:4 | 1 |
+
+## Chart Future Record Info Ranges
+
+| Key | Count |
+| --- | --- |
+| 0x0850-0x085A | 1 |
+| 0x0861-0x0861 | 1 |
+| 0x086A-0x086B | 1 |
+| 0x089D-0x08A6 | 1 |
+
 ## Chart Sheet Property States
 
 | Key | Count |

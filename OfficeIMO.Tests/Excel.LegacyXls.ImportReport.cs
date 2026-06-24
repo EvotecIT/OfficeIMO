@@ -1491,6 +1491,51 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_ImportReport_GroupsChartFutureRecordInfo() {
+            byte[] payload = {
+                0x50, 0x08,
+                0x00, 0x00,
+                0x0E,
+                0x0E,
+                0x04, 0x00,
+                0x50, 0x08, 0x5A, 0x08,
+                0x61, 0x08, 0x61, 0x08,
+                0x6A, 0x08, 0x6B, 0x08,
+                0x9D, 0x08, 0xA6, 0x08
+            };
+            var chartRecord = new BiffRecord(0x0850, offset: 208, payload);
+            var chartRecords = new List<LegacyXlsChartRecord>();
+
+            Assert.True(BiffChartMetadataReader.TryRead(chartRecord, "FutureInfo", chartRecords));
+
+            LegacyXlsChartRecord record = Assert.Single(chartRecords);
+            LegacyXlsChartFutureRecordInfo? info = record.FutureRecordInfo;
+            Assert.NotNull(info);
+            Assert.Equal(0x0E, info!.OriginatorVersion);
+            Assert.Equal(0x0E, info.WriterVersion);
+            Assert.Equal("Version:0x0E", info.OriginatorVersionName);
+            Assert.Equal("Version:0x0E", info.WriterVersionName);
+            Assert.Collection(info.Ranges,
+                range => Assert.Equal("0x0850-0x085A", range.RangeKey),
+                range => Assert.Equal("0x0861-0x0861", range.RangeKey),
+                range => Assert.Equal("0x086A-0x086B", range.RangeKey),
+                range => Assert.Equal("0x089D-0x08A6", range.RangeKey));
+
+            var workbook = new LegacyXlsWorkbook();
+            workbook.MutableChartRecords.Add(record);
+            LegacyXlsImportReport report = workbook.CreateImportReport();
+
+            Assert.Equal(1, report.ChartFutureRecordInfoVersions["Originator:Version:0x0E;Writer:Version:0x0E"]);
+            Assert.Equal(1, report.ChartFutureRecordInfoRangeCounts["Ranges:4"]);
+            Assert.Equal(1, report.ChartFutureRecordInfoRanges["0x089D-0x08A6"]);
+
+            string markdown = report.ToMarkdown();
+            Assert.Contains("Chart Future Record Info Versions", markdown);
+            Assert.Contains("Ranges:4", markdown);
+            Assert.Contains("0x089D-0x08A6", markdown);
+        }
+
+        [Fact]
         public void LegacyXls_ImportReport_CountsImportedWorkbookFeatures() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase4DefinedNamesWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);

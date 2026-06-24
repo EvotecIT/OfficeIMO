@@ -695,6 +695,15 @@ namespace OfficeIMO.Excel.LegacyXls {
             ChartLayout12Rectangles = CountByCode(workbook.ChartRecords
                 .Where(record => record.Layout12 != null)
                 .Select(record => $"X:{FormatDouble(record.Layout12!.X)};Y:{FormatDouble(record.Layout12.Y)};Width:{FormatDouble(record.Layout12.Width)};Height:{FormatDouble(record.Layout12.Height)}"));
+            ChartFutureRecordInfoVersions = CountByCode(workbook.ChartRecords
+                .Where(record => record.FutureRecordInfo != null)
+                .Select(record => $"Originator:{record.FutureRecordInfo!.OriginatorVersionName};Writer:{record.FutureRecordInfo.WriterVersionName}"));
+            ChartFutureRecordInfoRangeCounts = CountByCode(workbook.ChartRecords
+                .Where(record => record.FutureRecordInfo != null)
+                .Select(record => $"Ranges:{record.FutureRecordInfo!.Ranges.Count}"));
+            ChartFutureRecordInfoRanges = CountByCode(workbook.ChartRecords
+                .Where(record => record.FutureRecordInfo != null)
+                .SelectMany(record => record.FutureRecordInfo!.Ranges.Select(range => range.RangeKey)));
             ChartSheetPropertyEmptyCellModes = CountByCode(workbook.ChartRecords
                 .Where(record => record.SheetProperties != null && record.SheetProperties.HasKnownEmptyCellPlottingMode)
                 .Select(record => record.SheetProperties!.EmptyCellPlottingModeName));
@@ -2073,6 +2082,15 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets CrtLayout12 records grouped by decoded layout rectangle values.</summary>
         public IReadOnlyDictionary<string, int> ChartLayout12Rectangles { get; }
 
+        /// <summary>Gets ChartFrtInfo records grouped by originator and writer application version.</summary>
+        public IReadOnlyDictionary<string, int> ChartFutureRecordInfoVersions { get; }
+
+        /// <summary>Gets ChartFrtInfo records grouped by decoded future-record range count.</summary>
+        public IReadOnlyDictionary<string, int> ChartFutureRecordInfoRangeCounts { get; }
+
+        /// <summary>Gets ChartFrtInfo records grouped by declared future-record id range.</summary>
+        public IReadOnlyDictionary<string, int> ChartFutureRecordInfoRanges { get; }
+
         /// <summary>Gets ShtProps records grouped by decoded empty-cell plotting mode.</summary>
         public IReadOnlyDictionary<string, int> ChartSheetPropertyEmptyCellModes { get; }
 
@@ -2842,6 +2860,9 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Chart CrtLayout12 Auto Layout Types", ChartLayout12AutoLayoutTypes);
             AppendDictionary(builder, "Chart CrtLayout12 Checksums", ChartLayout12Checksums);
             AppendDictionary(builder, "Chart CrtLayout12 Rectangles", ChartLayout12Rectangles);
+            AppendDictionary(builder, "Chart Future Record Info Versions", ChartFutureRecordInfoVersions);
+            AppendDictionary(builder, "Chart Future Record Info Range Counts", ChartFutureRecordInfoRangeCounts);
+            AppendDictionary(builder, "Chart Future Record Info Ranges", ChartFutureRecordInfoRanges);
             AppendDictionary(builder, "Chart Sheet Property Empty Cell Modes", ChartSheetPropertyEmptyCellModes);
             AppendDictionary(builder, "Chart Sheet Property States", ChartSheetPropertyStates);
             AppendDictionary(builder, "Chart LineFormat Styles", ChartLineFormatStyles);
