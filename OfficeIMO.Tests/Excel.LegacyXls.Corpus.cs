@@ -280,6 +280,70 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_Corpus_ConditionalFormattingShapes_PreservesExcelAuthoredRules() {
+            string workbookPath = Path.Combine(
+                GetTestsProjectRoot(),
+                "Documents",
+                "LegacyXlsCorpus",
+                "excel-com-generated",
+                "conditional-format-shapes.xls");
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(workbookPath, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
+            Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED");
+            Assert.Equal(8, result.ImportReport.ConditionalFormattingCount);
+            Assert.Equal(7, result.ImportReport.ConditionalFormattingsByType["CellIs"]);
+            Assert.Equal(1, result.ImportReport.ConditionalFormattingsByType["Formula"]);
+            foreach (string operatorName in new[] {
+                "Between",
+                "Equal",
+                "GreaterThan",
+                "GreaterThanOrEqual",
+                "LessThanOrEqual",
+                "NotBetween",
+                "NotEqual"
+            }) {
+                Assert.Equal(1, result.ImportReport.ConditionalFormattingsByOperator[operatorName]);
+            }
+
+            Assert.Equal(2, result.ImportReport.ConditionalFormattingsByFormulaPairState["Formula1:Present|Formula2:Present"]);
+            Assert.Equal(6, result.ImportReport.ConditionalFormattingsByFormulaPairState["Formula1:Present|Formula2:Missing"]);
+            Assert.Equal(4, result.ImportReport.ConditionalFormattingsByPriorityState["Present"]);
+            Assert.Equal(4, result.ImportReport.ConditionalFormattingsByPriorityState["Missing"]);
+            Assert.Equal(4, result.ImportReport.ConditionalFormattingsByStopIfTrueState["StopIfTrue"]);
+            Assert.Equal(4, result.ImportReport.ConditionalFormattingsByStopIfTrueState["Continue"]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByDetail["ConditionalFormatting|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED|ConditionalFormatting:Dxf"]);
+
+            LegacyXlsWorksheet sheet = Assert.Single(result.Workbook.Worksheets);
+            AssertConditionalFormatting(sheet, LegacyXlsConditionalFormattingType.CellIs, LegacyXlsConditionalFormattingOperator.GreaterThan, "A2:A6", "50", null);
+            AssertConditionalFormatting(sheet, LegacyXlsConditionalFormattingType.CellIs, LegacyXlsConditionalFormattingOperator.Between, "B2:B6", "10", "20");
+            AssertConditionalFormatting(sheet, LegacyXlsConditionalFormattingType.CellIs, LegacyXlsConditionalFormattingOperator.NotBetween, "C2:C6", "5", "15");
+            AssertConditionalFormatting(sheet, LegacyXlsConditionalFormattingType.Formula, null, "D2:D6", "LEN(D2)>0", null);
+            AssertConditionalFormatting(sheet, LegacyXlsConditionalFormattingType.CellIs, LegacyXlsConditionalFormattingOperator.Equal, "E2:E6", "5", null);
+            AssertConditionalFormatting(sheet, LegacyXlsConditionalFormattingType.CellIs, LegacyXlsConditionalFormattingOperator.NotEqual, "F2:F6", "\"\"\"B\"\"\"", null);
+            AssertConditionalFormatting(sheet, LegacyXlsConditionalFormattingType.CellIs, LegacyXlsConditionalFormattingOperator.GreaterThanOrEqual, "G2:G6", "20", null);
+            AssertConditionalFormatting(sheet, LegacyXlsConditionalFormattingType.CellIs, LegacyXlsConditionalFormattingOperator.LessThanOrEqual, "H2:H6", "70", null);
+
+            using var output = new MemoryStream();
+            result.Document.Save(output);
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
+            WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single(part => part.Worksheet.Descendants<ConditionalFormatting>().Any());
+            List<ConditionalFormatting> conditionalFormattings = worksheetPart.Worksheet.Elements<ConditionalFormatting>().ToList();
+            Assert.Equal(8, conditionalFormattings.Count);
+            Assert.Contains(conditionalFormattings, formatting => formatting.SequenceOfReferences!.InnerText == "A2:A6"
+                && Assert.Single(formatting.Elements<ConditionalFormattingRule>()).Operator!.Value == ConditionalFormattingOperatorValues.GreaterThan);
+            Assert.Contains(conditionalFormattings, formatting => formatting.SequenceOfReferences!.InnerText == "B2:B6"
+                && Assert.Single(formatting.Elements<ConditionalFormattingRule>()).Operator!.Value == ConditionalFormattingOperatorValues.Between
+                && formatting.Descendants<Formula>().Select(formula => formula.Text).SequenceEqual(new[] { "10", "20" }));
+            Assert.Contains(conditionalFormattings, formatting => formatting.SequenceOfReferences!.InnerText == "D2:D6"
+                && Assert.Single(formatting.Elements<ConditionalFormattingRule>()).Type!.Value == ConditionalFormatValues.Expression
+                && Assert.Single(formatting.Descendants<Formula>()).Text == "LEN(D2)>0");
+        }
+
+        [Fact]
         public void LegacyXls_Corpus_Analytics_PreservesChartSheetProperties() {
             string workbookPath = Path.Combine(
                 GetTestsProjectRoot(),
@@ -574,6 +638,22 @@ namespace OfficeIMO.Tests {
                 && candidate.Formula1 == formula1
                 && candidate.Formula2 == formula2);
             return validation;
+        }
+
+        private static LegacyXlsConditionalFormatting AssertConditionalFormatting(
+            LegacyXlsWorksheet sheet,
+            LegacyXlsConditionalFormattingType type,
+            LegacyXlsConditionalFormattingOperator? @operator,
+            string range,
+            string formula1,
+            string? formula2) {
+            LegacyXlsConditionalFormatting conditionalFormatting = Assert.Single(sheet.ConditionalFormattings, candidate =>
+                candidate.Type == type
+                && candidate.Operator == @operator
+                && candidate.Ranges.Contains(range)
+                && candidate.Formula1 == formula1
+                && candidate.Formula2 == formula2);
+            return conditionalFormatting;
         }
     }
 }

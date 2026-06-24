@@ -9,6 +9,9 @@ contains small BIFF8 workbooks with formulas and Excel-authored feature records:
 AutoFilter criteria, a comment, drawing shape, embedded chart, defined name, and
 print metadata; `auto-filter-shapes.xls` exercises Excel-authored blank,
 nonblank, top-N, and two-condition AutoFilter criteria;
+`conditional-format-shapes.xls` exercises Excel-authored classic conditional
+formatting cell operators, a relative formula rule anchored away from A1, and
+Excel conditional-formatting extension records;
 `data-validation-shapes.xls` exercises Excel-authored whole-number, decimal,
 date, time, text-length, inline-list, range-list, named-list, and custom-formula
 data validation rules; `analytics.xls` exercises a PivotTable sheet and chart
@@ -27,6 +30,7 @@ by Excel.
 | --- | --- |
 | `analytics.xls` | `079BCEB62B59A15A5988518653D342E9CF04617452791C25EC607AC968260481` |
 | `auto-filter-shapes.xls` | `275DEC8F3E5874FE91F2E2F9FEA2A6BD5061CB5E219D6B224B83EE716DF5566B` |
+| `conditional-format-shapes.xls` | `0FD00E60023B28531281094D6A7B8F7EA880DB268D546E63A6F07F864F1C4793` |
 | `data-validation-shapes.xls` | `8D7405764494E31E1213F9F29307FFB03A58AF2E1F862314969F746B37995EBB` |
 | `external-links.xls` | `0556474A7B6CCE4AA64A7BC0A42610009BFDA7B71065F3043F1ED60397CAE1F1` |
 | `external-source.xls` | `BCFF4F12C3E3DC3C002ACD736698EC310C08A9E8175CDEA975F65C4AB9B2470B` |
