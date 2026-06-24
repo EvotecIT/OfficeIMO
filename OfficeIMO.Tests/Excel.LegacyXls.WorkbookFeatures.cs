@@ -2019,5 +2019,48 @@ namespace OfficeIMO.Tests {
             Assert.Single(font.Elements<Bold>());
             Assert.Single(font.Elements<Italic>());
         }
+
+        [Fact]
+        public void LegacyXls_Load_ProjectsConditionalFormattingDxfBorderWhenSingleStyleIsAvailable() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase5ConditionalFormattingExtensionWithBorderDxfWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.False(result.HasImportErrors);
+            Assert.True(result.HasUnsupportedFeatures);
+            LegacyXlsConditionalFormatting conditionalFormatting = Assert.Single(Assert.Single(result.Workbook.Worksheets).ConditionalFormattings);
+            Assert.NotNull(conditionalFormatting.DifferentialFormat);
+            Assert.NotNull(conditionalFormatting.DifferentialFormat!.Border);
+            LegacyXlsDifferentialBorder border = conditionalFormatting.DifferentialFormat.Border!;
+            Assert.NotNull(border.Top);
+            LegacyXlsDifferentialBorderSide top = border.Top!;
+            Assert.Equal(1, top.Style);
+            Assert.Equal("FF336699", top.Color);
+            Assert.Equal(1, result.ImportReport.ConditionalFormattingsByDifferentialFormatState["Present"]);
+            Assert.Equal(1, result.ImportReport.ConditionalFormattingsByDifferentialBorder["Top:Style:1"]);
+            Assert.Equal(1, result.ImportReport.ConditionalFormattingsByDifferentialBorder["Top:Color:FF336699"]);
+            Assert.Equal(1, result.ImportReport.DifferentialFormatsByRecordType["RecordType:0x088C"]);
+            Assert.Equal(1, result.ImportReport.DifferentialFormatsByContentState["BorderOnly"]);
+            Assert.Equal(1, result.ImportReport.DifferentialFormatsByBorder["Top:Style:1"]);
+            Assert.Equal(1, result.ImportReport.DifferentialFormatsByBorder["Top:Color:FF336699"]);
+            string markdown = result.ImportReport.ToMarkdown();
+            Assert.Contains("Differential Formats By Border", markdown);
+            Assert.Contains("Conditional Formatting By Differential Border", markdown);
+
+            using var packageStream = new MemoryStream();
+            result.Document.Save(packageStream);
+            packageStream.Position = 0;
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(packageStream, false);
+            WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            ConditionalFormattingRule rule = Assert.Single(Assert.Single(worksheetPart.Worksheet.Elements<ConditionalFormatting>()).Elements<ConditionalFormattingRule>());
+            Assert.Equal(0U, rule.FormatId!.Value);
+            DifferentialFormat dxf = Assert.Single(spreadsheet.WorkbookPart.WorkbookStylesPart!.Stylesheet!.DifferentialFormats!.Elements<DifferentialFormat>());
+            Border openXmlBorder = Assert.Single(dxf.Elements<Border>());
+            Assert.Equal(BorderStyleValues.Thin, openXmlBorder.TopBorder!.Style!.Value);
+            Assert.Equal("FF336699", openXmlBorder.TopBorder.Color!.Rgb!.Value);
+        }
     }
 }

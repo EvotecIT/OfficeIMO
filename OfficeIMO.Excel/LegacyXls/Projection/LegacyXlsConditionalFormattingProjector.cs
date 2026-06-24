@@ -45,7 +45,8 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
 
             Font? font = TryCreateFont(differentialFormat);
             Fill? fill = TryCreateFill(differentialFormat);
-            if (font == null && fill == null) {
+            Border? border = TryCreateBorder(differentialFormat);
+            if (font == null && fill == null && border == null) {
                 return null;
             }
 
@@ -56,6 +57,10 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
 
             if (fill != null) {
                 openXmlFormat.Append(fill);
+            }
+
+            if (border != null) {
+                openXmlFormat.Append(border);
             }
 
             return sheet.AppendConditionalDifferentialFormat(openXmlFormat);
@@ -99,6 +104,46 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             return new Fill(patternFill);
         }
 
+        private static Border? TryCreateBorder(LegacyXlsDifferentialFormat differentialFormat) {
+            LegacyXlsDifferentialBorder? border = differentialFormat.Border;
+            if (border?.HasAnySide != true) {
+                return null;
+            }
+
+            var openXmlBorder = new Border();
+            if (border.Left != null) {
+                openXmlBorder.LeftBorder = CreateBorderSide<LeftBorder>(border.Left);
+            }
+
+            if (border.Right != null) {
+                openXmlBorder.RightBorder = CreateBorderSide<RightBorder>(border.Right);
+            }
+
+            if (border.Top != null) {
+                openXmlBorder.TopBorder = CreateBorderSide<TopBorder>(border.Top);
+            }
+
+            if (border.Bottom != null) {
+                openXmlBorder.BottomBorder = CreateBorderSide<BottomBorder>(border.Bottom);
+            }
+
+            return openXmlBorder;
+        }
+
+        private static T CreateBorderSide<T>(LegacyXlsDifferentialBorderSide side) where T : BorderPropertiesType, new() {
+            var openXmlSide = new T();
+            BorderStyleValues? style = ToBorderStyle(side.Style);
+            if (style.HasValue) {
+                openXmlSide.Style = style.Value;
+            }
+
+            if (!string.IsNullOrWhiteSpace(side.Color)) {
+                openXmlSide.Color = new Color { Rgb = side.Color };
+            }
+
+            return openXmlSide;
+        }
+
         private static PatternValues? ToPattern(byte? pattern) {
             return pattern switch {
                 null => null,
@@ -120,6 +165,25 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                 16 => PatternValues.LightTrellis,
                 17 => PatternValues.Gray125,
                 18 => PatternValues.Gray0625,
+                _ => null
+            };
+        }
+
+        private static BorderStyleValues? ToBorderStyle(ushort style) {
+            return style switch {
+                1 => BorderStyleValues.Thin,
+                2 => BorderStyleValues.Medium,
+                3 => BorderStyleValues.Dashed,
+                4 => BorderStyleValues.Dotted,
+                5 => BorderStyleValues.Thick,
+                6 => BorderStyleValues.Double,
+                7 => BorderStyleValues.Hair,
+                8 => BorderStyleValues.MediumDashed,
+                9 => BorderStyleValues.DashDot,
+                10 => BorderStyleValues.MediumDashDot,
+                11 => BorderStyleValues.DashDotDot,
+                12 => BorderStyleValues.MediumDashDotDot,
+                13 => BorderStyleValues.SlantDashDot,
                 _ => null
             };
         }

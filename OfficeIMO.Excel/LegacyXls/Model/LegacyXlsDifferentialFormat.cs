@@ -37,7 +37,34 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             bool? fontBold,
             bool? fontItalic,
             ushort recordType,
-            int recordOffset) {
+            int recordOffset)
+            : this(
+                index,
+                fillPattern,
+                fillForegroundColor,
+                fillBackgroundColor,
+                fontColor,
+                fontBold,
+                fontItalic,
+                recordType,
+                recordOffset,
+                border: null) {
+        }
+
+        /// <summary>
+        /// Creates a legacy differential format model.
+        /// </summary>
+        public LegacyXlsDifferentialFormat(
+            int index,
+            byte? fillPattern,
+            string? fillForegroundColor,
+            string? fillBackgroundColor,
+            string? fontColor,
+            bool? fontBold,
+            bool? fontItalic,
+            ushort recordType,
+            int recordOffset,
+            LegacyXlsDifferentialBorder? border) {
             Index = index;
             FillPattern = fillPattern;
             FillForegroundColor = fillForegroundColor;
@@ -47,6 +74,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             FontItalic = fontItalic;
             RecordType = recordType;
             RecordOffset = recordOffset;
+            Border = border;
         }
 
         /// <summary>
@@ -83,6 +111,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// Gets whether the differential format explicitly applies italic text.
         /// </summary>
         public bool? FontItalic { get; }
+
+        /// <summary>
+        /// Gets decoded border formatting, when present.
+        /// </summary>
+        public LegacyXlsDifferentialBorder? Border { get; }
 
         /// <summary>
         /// Gets the BIFF record type that supplied this differential format.

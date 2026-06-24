@@ -118,6 +118,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             ConditionalFormattingsByDifferentialFormatState = CountByCode(conditionalFormattings.Select(formatting => formatting.DifferentialFormat == null ? "Missing" : "Present"));
             ConditionalFormattingsByDifferentialFill = CountByCode(conditionalFormattings.SelectMany(GetConditionalFormattingDifferentialFillKeys));
             ConditionalFormattingsByDifferentialFont = CountByCode(conditionalFormattings.SelectMany(GetConditionalFormattingDifferentialFontKeys));
+            ConditionalFormattingsByDifferentialBorder = CountByCode(conditionalFormattings.SelectMany(GetConditionalFormattingDifferentialBorderKeys));
             ConditionalFormattingExtensionRecordCount = conditionalFormattingExtensions.Length;
             ConditionalFormattingExtensionsBySheet = CountByCode(conditionalFormattingExtensions.Select(record => record.SheetName));
             ConditionalFormattingExtensionsByRecordType = CountByCode(conditionalFormattingExtensions.Select(record => $"0x{record.RecordType:X4}"));
@@ -206,6 +207,7 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .Select(GetDifferentialFormatContentStateKey));
             DifferentialFormatsByFill = CountByCode(workbook.DifferentialFormats.SelectMany(GetDifferentialFormatFillKeys));
             DifferentialFormatsByFont = CountByCode(workbook.DifferentialFormats.SelectMany(GetDifferentialFormatFontKeys));
+            DifferentialFormatsByBorder = CountByCode(workbook.DifferentialFormats.SelectMany(GetDifferentialFormatBorderKeys));
             CompoundFeatureRecordCount = workbook.CompoundFeatureRecords.Count;
             CompoundFeatureEntryCount = workbook.CompoundFeatureRecords.Sum(record => record.Entries.Count);
             CompoundVbaModuleCount = workbook.CompoundFeatureRecords.Sum(record => record.VbaModuleCount);
@@ -1226,6 +1228,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets imported conditional formatting differential formats grouped by decoded font shape.</summary>
         public IReadOnlyDictionary<string, int> ConditionalFormattingsByDifferentialFont { get; }
 
+        /// <summary>Gets imported conditional formatting differential formats grouped by decoded border shape.</summary>
+        public IReadOnlyDictionary<string, int> ConditionalFormattingsByDifferentialBorder { get; }
+
         /// <summary>Gets the number of preserve-only conditional-formatting extension records discovered during import.</summary>
         public int ConditionalFormattingExtensionRecordCount { get; }
 
@@ -1366,6 +1371,9 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets parsed differential formats grouped by decoded font shape.</summary>
         public IReadOnlyDictionary<string, int> DifferentialFormatsByFont { get; }
+
+        /// <summary>Gets parsed differential formats grouped by decoded border shape.</summary>
+        public IReadOnlyDictionary<string, int> DifferentialFormatsByBorder { get; }
 
         /// <summary>Gets the number of preserve-only compound container features discovered during import.</summary>
         public int CompoundFeatureRecordCount { get; }
@@ -2493,6 +2501,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Conditional Formatting By Differential Format State", ConditionalFormattingsByDifferentialFormatState);
             AppendDictionary(builder, "Conditional Formatting By Differential Fill", ConditionalFormattingsByDifferentialFill);
             AppendDictionary(builder, "Conditional Formatting By Differential Font", ConditionalFormattingsByDifferentialFont);
+            AppendDictionary(builder, "Conditional Formatting By Differential Border", ConditionalFormattingsByDifferentialBorder);
             AppendDictionary(builder, "Conditional Formatting Extensions By Sheet", ConditionalFormattingExtensionsBySheet);
             AppendDictionary(builder, "Conditional Formatting Extensions By Record Type", ConditionalFormattingExtensionsByRecordType);
             AppendDictionary(builder, "Conditional Formatting Extension States", ConditionalFormattingExtensionStates);
@@ -2502,6 +2511,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Differential Formats By Content State", DifferentialFormatsByContentState);
             AppendDictionary(builder, "Differential Formats By Fill", DifferentialFormatsByFill);
             AppendDictionary(builder, "Differential Formats By Font", DifferentialFormatsByFont);
+            AppendDictionary(builder, "Differential Formats By Border", DifferentialFormatsByBorder);
             AppendDictionary(builder, "AutoFilter Criteria By Sheet", AutoFilterCriteriaBySheet);
             AppendDictionary(builder, "AutoFilter Criteria By Kind", AutoFilterCriteriaByKind);
             AppendDictionary(builder, "AutoFilter Criteria By Operator", AutoFilterCriteriaByOperator);
@@ -3665,6 +3675,53 @@ namespace OfficeIMO.Excel.LegacyXls {
             }
         }
 
+        private static IEnumerable<string> GetConditionalFormattingDifferentialBorderKeys(LegacyXlsConditionalFormatting formatting) {
+            LegacyXlsDifferentialFormat? format = formatting.DifferentialFormat;
+            if (format == null) {
+                yield break;
+            }
+
+            foreach (string key in GetDifferentialFormatBorderKeys(format)) {
+                yield return key;
+            }
+        }
+
+        private static IEnumerable<string> GetDifferentialFormatBorderKeys(LegacyXlsDifferentialFormat format) {
+            if (format.Border == null) {
+                yield break;
+            }
+
+            foreach (string key in GetDifferentialBorderSideKeys("Top", format.Border.Top)) {
+                yield return key;
+            }
+
+            foreach (string key in GetDifferentialBorderSideKeys("Bottom", format.Border.Bottom)) {
+                yield return key;
+            }
+
+            foreach (string key in GetDifferentialBorderSideKeys("Left", format.Border.Left)) {
+                yield return key;
+            }
+
+            foreach (string key in GetDifferentialBorderSideKeys("Right", format.Border.Right)) {
+                yield return key;
+            }
+        }
+
+        private static IEnumerable<string> GetDifferentialBorderSideKeys(string sideName, LegacyXlsDifferentialBorderSide? side) {
+            if (side == null) {
+                yield break;
+            }
+
+            if (side.HasStyle) {
+                yield return $"{sideName}:Style:{side.Style}";
+            }
+
+            if (!string.IsNullOrWhiteSpace(side.Color)) {
+                yield return $"{sideName}:Color:{side.Color}";
+            }
+        }
+
         private static string GetConditionalFormattingExtensionStateKey(LegacyXlsConditionalFormattingExtensionRecord record) {
             return $"Cf12:{GetPresenceKey(record.IsCf12)}"
                 + $"|UnprojectedFormatting:{GetPresenceKey(record.HasUnprojectedFormatting)}"
@@ -3688,16 +3745,33 @@ namespace OfficeIMO.Excel.LegacyXls {
             bool hasFont = !string.IsNullOrWhiteSpace(format.FontColor)
                 || format.FontBold.HasValue
                 || format.FontItalic.HasValue;
+            bool hasBorder = format.Border?.HasAnySide == true;
+
+            if (hasFill && hasFont && hasBorder) {
+                return "FillFontAndBorder";
+            }
 
             if (hasFill && hasFont) {
                 return "FillAndFont";
+            }
+
+            if (hasFill && hasBorder) {
+                return "FillAndBorder";
+            }
+
+            if (hasFont && hasBorder) {
+                return "FontAndBorder";
             }
 
             if (hasFill) {
                 return "FillOnly";
             }
 
-            return hasFont ? "FontOnly" : "DecodedNoContent";
+            if (hasFont) {
+                return "FontOnly";
+            }
+
+            return hasBorder ? "BorderOnly" : "DecodedNoContent";
         }
 
         private static void AppendDictionary(StringBuilder builder, string title, IReadOnlyDictionary<string, int> values) {

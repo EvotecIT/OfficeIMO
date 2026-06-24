@@ -33,6 +33,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             string? fontColor = null;
             bool? fontBold = null;
             bool? fontItalic = null;
+            LegacyXlsDifferentialBorderSide? topBorder = null;
+            LegacyXlsDifferentialBorderSide? bottomBorder = null;
+            LegacyXlsDifferentialBorderSide? leftBorder = null;
+            LegacyXlsDifferentialBorderSide? rightBorder = null;
 
             for (int i = 0; i < propertyCount; i++) {
                 if (offset + XfPropHeaderSize > payload.Length) {
@@ -60,17 +64,36 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     fontBold = weight >= 0x02bc;
                 } else if (propertyType == 0x001c && dataLength >= 1) {
                     fontItalic = payload[dataOffset] != 0;
+                } else if (propertyType >= 0x0006
+                    && propertyType <= 0x0009
+                    && TryReadBorderSide(payload, dataOffset, dataLength, workbook, out LegacyXlsDifferentialBorderSide? borderSide)) {
+                    switch (propertyType) {
+                        case 0x0006:
+                            topBorder = borderSide;
+                            break;
+                        case 0x0007:
+                            bottomBorder = borderSide;
+                            break;
+                        case 0x0008:
+                            leftBorder = borderSide;
+                            break;
+                        case 0x0009:
+                            rightBorder = borderSide;
+                            break;
+                    }
                 }
 
                 offset += propertySize;
             }
 
+            LegacyXlsDifferentialBorder? border = CreateBorder(topBorder, bottomBorder, leftBorder, rightBorder);
             if (!fillPattern.HasValue
                 && fillForegroundColor == null
                 && fillBackgroundColor == null
                 && fontColor == null
                 && !fontBold.HasValue
-                && !fontItalic.HasValue) {
+                && !fontItalic.HasValue
+                && border == null) {
                 return false;
             }
 
@@ -83,7 +106,39 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 fontBold,
                 fontItalic,
                 record.Type,
-                record.Offset);
+                record.Offset,
+                border);
+            return true;
+        }
+
+        private static LegacyXlsDifferentialBorder? CreateBorder(
+            LegacyXlsDifferentialBorderSide? top,
+            LegacyXlsDifferentialBorderSide? bottom,
+            LegacyXlsDifferentialBorderSide? left,
+            LegacyXlsDifferentialBorderSide? right) {
+            var border = new LegacyXlsDifferentialBorder(top, bottom, left, right);
+            return border.HasAnySide ? border : null;
+        }
+
+        private static bool TryReadBorderSide(
+            byte[] payload,
+            int offset,
+            int length,
+            LegacyXlsWorkbook workbook,
+            out LegacyXlsDifferentialBorderSide? borderSide) {
+            borderSide = null;
+            if (length < 10 || offset + 10 > payload.Length) {
+                return false;
+            }
+
+            string? color = null;
+            _ = TryReadColor(payload, offset, 8, workbook, out color);
+            ushort style = BiffRecordReader.ReadUInt16(payload, offset + 8);
+            if (style == 0 && string.IsNullOrWhiteSpace(color)) {
+                return false;
+            }
+
+            borderSide = new LegacyXlsDifferentialBorderSide(style, color);
             return true;
         }
 
