@@ -1994,6 +1994,82 @@ Warnings: 0
 | Bytes:1 | 64 |
 | Bytes:16 | 123 |
 
+## Cell Style Extension Properties By Color Type
+
+| Key | Count |
+| --- | --- |
+| BottomBorderColor:Rgb | 6 |
+| BottomBorderColor:Theme | 4 |
+| FillForegroundColor:Rgb | 9 |
+| FillForegroundColor:Theme | 24 |
+| LeftBorderColor:Rgb | 5 |
+| RightBorderColor:Rgb | 5 |
+| TextColor:Rgb | 9 |
+| TextColor:Theme | 55 |
+| TopBorderColor:Rgb | 5 |
+| TopBorderColor:Theme | 1 |
+
+## Cell Style Extension Properties By Color Tint Shade
+
+| Key | Count |
+| --- | --- |
+| BottomBorderColor:TintShade:0 | 8 |
+| BottomBorderColor:TintShade:13106 | 1 |
+| BottomBorderColor:TintShade:16383 | 1 |
+| FillForegroundColor:TintShade:0 | 15 |
+| FillForegroundColor:TintShade:13106 | 6 |
+| FillForegroundColor:TintShade:19660 | 6 |
+| FillForegroundColor:TintShade:26213 | 6 |
+| LeftBorderColor:TintShade:0 | 5 |
+| RightBorderColor:TintShade:0 | 5 |
+| TextColor:TintShade:0 | 64 |
+| TopBorderColor:TintShade:0 | 6 |
+
+## Cell Style Extension Properties By Color Value
+
+| Key | Count |
+| --- | --- |
+| BottomBorderColor:0x00000004 | 4 |
+| BottomBorderColor:0xFF0180FF | 1 |
+| BottomBorderColor:0xFF3F3F3F | 2 |
+| BottomBorderColor:0xFF7F7F7F | 2 |
+| BottomBorderColor:0xFFB2B2B2 | 1 |
+| FillForegroundColor:0x00000004 | 4 |
+| FillForegroundColor:0x00000005 | 4 |
+| FillForegroundColor:0x00000006 | 4 |
+| FillForegroundColor:0x00000007 | 4 |
+| FillForegroundColor:0x00000008 | 4 |
+| FillForegroundColor:0x00000009 | 4 |
+| FillForegroundColor:0xFF99CCFF | 1 |
+| FillForegroundColor:0xFF9CEBFF | 1 |
+| FillForegroundColor:0xFFA5A5A5 | 1 |
+| FillForegroundColor:0xFFCCFFFF | 1 |
+| FillForegroundColor:0xFFCEC7FF | 1 |
+| FillForegroundColor:0xFFCEEFC6 | 1 |
+| FillForegroundColor:0xFFD9EAD3 | 1 |
+| FillForegroundColor:0xFFF2F2F2 | 2 |
+| LeftBorderColor:0xFF3F3F3F | 2 |
+| LeftBorderColor:0xFF7F7F7F | 2 |
+| LeftBorderColor:0xFFB2B2B2 | 1 |
+| RightBorderColor:0xFF3F3F3F | 2 |
+| RightBorderColor:0xFF7F7F7F | 2 |
+| RightBorderColor:0xFFB2B2B2 | 1 |
+| TextColor:0x00000000 | 7 |
+| TextColor:0x00000001 | 43 |
+| TextColor:0x00000003 | 5 |
+| TextColor:0xFF0000FF | 1 |
+| TextColor:0xFF00579C | 1 |
+| TextColor:0xFF006100 | 1 |
+| TextColor:0xFF007DFA | 2 |
+| TextColor:0xFF06009C | 1 |
+| TextColor:0xFF3F3F3F | 1 |
+| TextColor:0xFF763F3F | 1 |
+| TextColor:0xFF7F7F7F | 1 |
+| TopBorderColor:0x00000004 | 1 |
+| TopBorderColor:0xFF3F3F3F | 2 |
+| TopBorderColor:0xFF7F7F7F | 2 |
+| TopBorderColor:0xFFB2B2B2 | 1 |
+
 ## Workbook Metadata Records By Kind
 
 | Key | Count |

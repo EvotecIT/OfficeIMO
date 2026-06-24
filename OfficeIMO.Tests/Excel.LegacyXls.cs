@@ -761,14 +761,26 @@ namespace OfficeIMO.Tests {
             Assert.True(xfExtension.HasFormatIndex);
             Assert.Equal((ushort)4, xfExtension.FormatIndex);
             Assert.True(xfExtension.HasExtensionCount);
-            Assert.Equal((ushort)2, xfExtension.ExtensionCount);
-            Assert.Equal(2, xfExtension.Properties.Count);
+            Assert.Equal((ushort)3, xfExtension.ExtensionCount);
+            Assert.Equal(3, xfExtension.Properties.Count);
             Assert.Equal((ushort)0x000e, xfExtension.Properties[0].PropertyType);
             Assert.Equal("FontScheme", xfExtension.Properties[0].PropertyTypeName);
             Assert.Equal(2, xfExtension.Properties[0].DataByteCount);
+            Assert.Equal((ushort)1, xfExtension.Properties[0].NumericValue);
+            Assert.Equal("Major", xfExtension.Properties[0].NumericValueName);
             Assert.Equal((ushort)0x000f, xfExtension.Properties[1].PropertyType);
             Assert.Equal("Indentation", xfExtension.Properties[1].PropertyTypeName);
             Assert.Equal(2, xfExtension.Properties[1].DataByteCount);
+            Assert.Equal((ushort)3, xfExtension.Properties[1].NumericValue);
+            Assert.Equal("Indent:3", xfExtension.Properties[1].NumericValueName);
+            Assert.Equal((ushort)0x000d, xfExtension.Properties[2].PropertyType);
+            Assert.Equal("TextColor", xfExtension.Properties[2].PropertyTypeName);
+            Assert.Equal(16, xfExtension.Properties[2].DataByteCount);
+            Assert.Equal((ushort)0x0002, xfExtension.Properties[2].ColorType);
+            Assert.Equal("Rgb", xfExtension.Properties[2].ColorTypeName);
+            Assert.Equal((short)-100, xfExtension.Properties[2].ColorTintShade);
+            Assert.Equal(0xff336699U, xfExtension.Properties[2].ColorValue);
+            Assert.Equal("0xFF336699", xfExtension.Properties[2].ColorValueHex);
             LegacyXlsCellStyleExtension styleExtension = Assert.Single(legacy.CellStyleExtensions, extension => extension.RecordType == 0x0892);
             Assert.Equal("StyleExt", styleExtension.RecordName);
             Assert.False(styleExtension.HasFormatIndex);
@@ -855,7 +867,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionsByRecordName["XfExt"]);
             Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionsByRecordName["StyleExt"]);
             Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionsByFormatIndex["FormatIndex:4"]);
-            Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionsByExtensionCount["Extensions:2"]);
+            Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionsByExtensionCount["Extensions:3"]);
             Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionsByStyleCategory["Custom"]);
             Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionsByStyleFlags["BuiltIn:False;Hidden:False;Custom:False"]);
             Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionsByStyleName["OfficeIMO Accent"]);
@@ -863,9 +875,19 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionsByChecksum["Checksum:0x12345678"]);
             Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionPropertiesByType["0x000E"]);
             Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionPropertiesByType["0x000F"]);
+            Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionPropertiesByType["0x000D"]);
             Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionPropertiesByName["FontScheme"]);
             Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionPropertiesByName["Indentation"]);
+            Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionPropertiesByName["TextColor"]);
             Assert.Equal(2, reportResult.ImportReport.CellStyleExtensionPropertiesByDataByteCount["Bytes:2"]);
+            Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionPropertiesByDataByteCount["Bytes:16"]);
+            Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionPropertiesByNumericValue["FontScheme:1"]);
+            Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionPropertiesByNumericValue["Indentation:3"]);
+            Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionPropertiesByNumericValueName["FontScheme:Major"]);
+            Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionPropertiesByNumericValueName["Indentation:Indent:3"]);
+            Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionPropertiesByColorType["TextColor:Rgb"]);
+            Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionPropertiesByColorTintShade["TextColor:TintShade:-100"]);
+            Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionPropertiesByColorValue["TextColor:0xFF336699"]);
             Assert.DoesNotContain(reportResult.Workbook.UnsupportedFeatures, feature => feature.RecordType == 0x0293);
             Assert.Contains(reportResult.Workbook.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.StyleExtension && feature.RecordType == 0x087c);
             Assert.Contains(reportResult.Workbook.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.StyleExtension && feature.RecordType == 0x087d);
@@ -883,6 +905,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Cell Style Extensions By Style Category", reportResult.ImportReport.ToMarkdown());
             Assert.Contains("Cell Style Extensions By XF Record Count", reportResult.ImportReport.ToMarkdown());
             Assert.Contains("Cell Style Extension Properties By Name", reportResult.ImportReport.ToMarkdown());
+            Assert.Contains("Cell Style Extension Properties By Color Type", reportResult.ImportReport.ToMarkdown());
 
             using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound), new LegacyXlsImportOptions {
                 ReportUnsupportedRecords = false
@@ -1351,7 +1374,8 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x087d, BuildXfExtPayload(
                     formatIndex: 4,
                     BuildXfExtProperty(0x000e, 0x0001),
-                    BuildXfExtProperty(0x000f, 0x0003)));
+                    BuildXfExtProperty(0x000f, 0x0003),
+                    BuildXfExtFullColorProperty(0x000d, colorType: 0x0002, tintShade: -100, colorValue: 0xff336699)));
                 WriteRecord(stream, 0x0892, BuildStyleExtPayload("OfficeIMO Accent"));
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
@@ -1676,6 +1700,17 @@ namespace OfficeIMO.Tests {
                 WriteUInt16(stream, propertyType);
                 WriteUInt16(stream, 6);
                 WriteUInt16(stream, value);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildXfExtFullColorProperty(ushort propertyType, ushort colorType, short tintShade, uint colorValue) {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, propertyType);
+                WriteUInt16(stream, 20);
+                WriteUInt16(stream, colorType);
+                WriteUInt16(stream, unchecked((ushort)tintShade));
+                WriteUInt32(stream, colorValue);
+                stream.Write(new byte[8], 0, 8);
                 return stream.ToArray();
             }
 

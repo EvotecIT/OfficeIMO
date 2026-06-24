@@ -920,6 +920,26 @@ namespace OfficeIMO.Excel.LegacyXls {
             CellStyleExtensionPropertiesByDataByteCount = CountByCode(workbook.CellStyleExtensions
                 .SelectMany(extension => extension.Properties)
                 .Select(property => $"Bytes:{property.DataByteCount}"));
+            CellStyleExtensionPropertiesByNumericValue = CountByCode(workbook.CellStyleExtensions
+                .SelectMany(extension => extension.Properties)
+                .Where(property => property.NumericValue.HasValue)
+                .Select(property => $"{property.PropertyTypeName}:{property.NumericValue!.Value}"));
+            CellStyleExtensionPropertiesByNumericValueName = CountByCode(workbook.CellStyleExtensions
+                .SelectMany(extension => extension.Properties)
+                .Where(property => !string.IsNullOrWhiteSpace(property.NumericValueName))
+                .Select(property => $"{property.PropertyTypeName}:{property.NumericValueName}"));
+            CellStyleExtensionPropertiesByColorType = CountByCode(workbook.CellStyleExtensions
+                .SelectMany(extension => extension.Properties)
+                .Where(property => !string.IsNullOrWhiteSpace(property.ColorTypeName))
+                .Select(property => $"{property.PropertyTypeName}:{property.ColorTypeName}"));
+            CellStyleExtensionPropertiesByColorTintShade = CountByCode(workbook.CellStyleExtensions
+                .SelectMany(extension => extension.Properties)
+                .Where(property => property.ColorTintShade.HasValue)
+                .Select(property => $"{property.PropertyTypeName}:TintShade:{property.ColorTintShade!.Value}"));
+            CellStyleExtensionPropertiesByColorValue = CountByCode(workbook.CellStyleExtensions
+                .SelectMany(extension => extension.Properties)
+                .Where(property => !string.IsNullOrWhiteSpace(property.ColorValueHex))
+                .Select(property => $"{property.PropertyTypeName}:{property.ColorValueHex}"));
             WorkbookMetadataRecordsByKind = CountWorkbookMetadataRecordsByKind(workbook.MetadataRecords);
             WorksheetMetadataRecordsByKind = CountWorksheetMetadataRecordsByKind(workbook.Worksheets.SelectMany(sheet => sheet.MetadataRecords));
             UnsupportedSheetMetadataRecordsByKind = CountUnsupportedSheetMetadataRecordsByKind(workbook.UnsupportedSheets.SelectMany(sheet => sheet.MetadataRecords));
@@ -2150,6 +2170,21 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets XFExt properties grouped by ExtProp data payload byte count.</summary>
         public IReadOnlyDictionary<string, int> CellStyleExtensionPropertiesByDataByteCount { get; }
 
+        /// <summary>Gets XFExt properties grouped by decoded simple numeric value.</summary>
+        public IReadOnlyDictionary<string, int> CellStyleExtensionPropertiesByNumericValue { get; }
+
+        /// <summary>Gets XFExt properties grouped by decoded simple numeric value name.</summary>
+        public IReadOnlyDictionary<string, int> CellStyleExtensionPropertiesByNumericValueName { get; }
+
+        /// <summary>Gets XFExt color properties grouped by decoded FullColorExt color type.</summary>
+        public IReadOnlyDictionary<string, int> CellStyleExtensionPropertiesByColorType { get; }
+
+        /// <summary>Gets XFExt color properties grouped by FullColorExt tint/shade value.</summary>
+        public IReadOnlyDictionary<string, int> CellStyleExtensionPropertiesByColorTintShade { get; }
+
+        /// <summary>Gets XFExt color properties grouped by raw FullColorExt color value.</summary>
+        public IReadOnlyDictionary<string, int> CellStyleExtensionPropertiesByColorValue { get; }
+
         /// <summary>Gets parsed workbook metadata records grouped by metadata kind.</summary>
         public IReadOnlyDictionary<LegacyXlsWorkbookMetadataKind, int> WorkbookMetadataRecordsByKind { get; }
 
@@ -2621,6 +2656,11 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Cell Style Extension Properties By Type", CellStyleExtensionPropertiesByType);
             AppendDictionary(builder, "Cell Style Extension Properties By Name", CellStyleExtensionPropertiesByName);
             AppendDictionary(builder, "Cell Style Extension Properties By Data Byte Count", CellStyleExtensionPropertiesByDataByteCount);
+            AppendDictionary(builder, "Cell Style Extension Properties By Numeric Value", CellStyleExtensionPropertiesByNumericValue);
+            AppendDictionary(builder, "Cell Style Extension Properties By Numeric Value Name", CellStyleExtensionPropertiesByNumericValueName);
+            AppendDictionary(builder, "Cell Style Extension Properties By Color Type", CellStyleExtensionPropertiesByColorType);
+            AppendDictionary(builder, "Cell Style Extension Properties By Color Tint Shade", CellStyleExtensionPropertiesByColorTintShade);
+            AppendDictionary(builder, "Cell Style Extension Properties By Color Value", CellStyleExtensionPropertiesByColorValue);
             AppendDictionary(builder, "Workbook Metadata Records By Kind", WorkbookMetadataRecordsByKind.ToDictionary(
                 entry => entry.Key.ToString(),
                 entry => entry.Value,

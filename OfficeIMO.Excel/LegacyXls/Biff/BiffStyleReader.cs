@@ -239,16 +239,59 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     break;
                 }
 
-                properties.Add(new LegacyXlsCellStyleExtensionProperty(
+                int dataOffset = offset + 4;
+                int dataByteCount = totalByteCount - 4;
+                properties.Add(ReadXfExtProperty(
+                    record.Payload,
+                    dataOffset,
                     index,
                     propertyType,
-                    GetXfExtPropertyTypeName(propertyType),
                     totalByteCount,
-                    totalByteCount - 4));
+                    dataByteCount));
                 offset += totalByteCount;
             }
 
             return properties;
+        }
+
+        private static LegacyXlsCellStyleExtensionProperty ReadXfExtProperty(
+            byte[] payload,
+            int dataOffset,
+            int index,
+            ushort propertyType,
+            ushort totalByteCount,
+            int dataByteCount) {
+            ushort? numericValue = null;
+            string? numericValueName = null;
+            ushort? colorType = null;
+            string? colorTypeName = null;
+            short? colorTintShade = null;
+            uint? colorValue = null;
+
+            if (IsFullColorExtProperty(propertyType) && dataByteCount >= 8) {
+                colorType = BiffRecordReader.ReadUInt16(payload, dataOffset);
+                colorTypeName = GetXfExtColorTypeName(colorType.Value);
+                colorTintShade = BiffRecordReader.ReadInt16(payload, dataOffset + 2);
+                colorValue = BiffRecordReader.ReadUInt32(payload, dataOffset + 4);
+            } else if (dataByteCount >= 2 && (propertyType == 0x000E || propertyType == 0x000F)) {
+                numericValue = BiffRecordReader.ReadUInt16(payload, dataOffset);
+                numericValueName = propertyType == 0x000E
+                    ? GetFontSchemeName(numericValue.Value)
+                    : $"Indent:{numericValue.Value}";
+            }
+
+            return new LegacyXlsCellStyleExtensionProperty(
+                index,
+                propertyType,
+                GetXfExtPropertyTypeName(propertyType),
+                totalByteCount,
+                dataByteCount,
+                numericValue,
+                numericValueName,
+                colorType,
+                colorTypeName,
+                colorTintShade,
+                colorValue);
         }
 
         private static bool TryReadStyleExt(BiffRecord record, List<LegacyXlsImportDiagnostic> diagnostics, out LegacyXlsCellStyleExtension? extension) {
@@ -335,6 +378,38 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 0x000E => "FontScheme",
                 0x000F => "Indentation",
                 _ => $"Unknown:0x{propertyType:X4}"
+            };
+        }
+
+        private static bool IsFullColorExtProperty(ushort propertyType) {
+            return propertyType == 0x0004
+                || propertyType == 0x0005
+                || propertyType == 0x0007
+                || propertyType == 0x0008
+                || propertyType == 0x0009
+                || propertyType == 0x000A
+                || propertyType == 0x000B
+                || propertyType == 0x000D;
+        }
+
+        private static string GetXfExtColorTypeName(ushort colorType) {
+            return colorType switch {
+                0x0000 => "Automatic",
+                0x0001 => "Indexed",
+                0x0002 => "Rgb",
+                0x0003 => "Theme",
+                0x0004 => "Ninch",
+                _ => $"Unknown:0x{colorType:X4}"
+            };
+        }
+
+        private static string GetFontSchemeName(ushort fontScheme) {
+            return fontScheme switch {
+                0x0000 => "None",
+                0x0001 => "Major",
+                0x0002 => "Minor",
+                0x00ff => "Ninch",
+                _ => $"Unknown:0x{fontScheme:X4}"
             };
         }
     }
