@@ -1034,7 +1034,7 @@ internal static partial class PdfWriter {
         }
 
         content
-            .TransformMatrix(imageTransform.M11, imageTransform.M12, imageTransform.M21, imageTransform.M22, imageTransform.OffsetX, imageTransform.OffsetY);
+            .TransformMatrix(imageTransform);
         if (img.SourceCrop?.HasCrop == true) {
             double clipWidth = 1D - img.SourceCrop.Left - img.SourceCrop.Right;
             double clipHeight = 1D - img.SourceCrop.Top - img.SourceCrop.Bottom;

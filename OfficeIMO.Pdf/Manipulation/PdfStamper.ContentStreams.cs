@@ -54,7 +54,7 @@ public static partial class PdfStamper {
         var sb = new StringBuilder();
         new ContentStreamBuilder(sb)
             .SaveState()
-            .TransformMatrix(imageTransform.M11, imageTransform.M12, imageTransform.M21, imageTransform.M22, imageTransform.OffsetX, imageTransform.OffsetY)
+            .TransformMatrix(imageTransform)
             .XObject(imageResourceName)
             .RestoreState();
 
