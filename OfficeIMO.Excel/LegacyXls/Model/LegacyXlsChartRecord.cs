@@ -39,6 +39,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             LegacyXlsChartLineFormat? lineFormat = null,
             LegacyXlsChartAreaFormat? areaFormat = null,
             LegacyXlsChartMarkerFormat? markerFormat = null,
+            LegacyXlsChartPieFormat? pieFormat = null,
             LegacyXlsChartAttachedLabel? attachedLabel = null,
             ushort? defaultTextId = null,
             string? defaultTextTargetName = null,
@@ -87,6 +88,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             LineFormat = lineFormat;
             AreaFormat = areaFormat;
             MarkerFormat = markerFormat;
+            PieFormat = pieFormat;
             AttachedLabel = attachedLabel;
             DefaultTextId = defaultTextId;
             DefaultTextTargetName = string.IsNullOrWhiteSpace(defaultTextTargetName) ? null : defaultTextTargetName;
@@ -196,6 +198,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets decoded marker-format metadata from MarkerFormat records, when present.</summary>
         public LegacyXlsChartMarkerFormat? MarkerFormat { get; }
+
+        /// <summary>Gets decoded pie or doughnut explosion metadata from PieFormat records, when present.</summary>
+        public LegacyXlsChartPieFormat? PieFormat { get; }
 
         /// <summary>Gets decoded data-label display metadata from AttachedLabel records, when present.</summary>
         public LegacyXlsChartAttachedLabel? AttachedLabel { get; }

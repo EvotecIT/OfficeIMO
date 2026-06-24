@@ -840,6 +840,12 @@ Warnings: 0
 | --- | --- |
 | SizeTwips:60 | 2 |
 
+## Chart PieFormat Explosions
+
+| Key | Count |
+| --- | --- |
+| ExplosionPercent:0 | 2 |
+
 ## Chart AttachedLabel States
 
 | Key | Count |

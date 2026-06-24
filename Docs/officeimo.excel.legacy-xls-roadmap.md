@@ -232,9 +232,11 @@ PivotCache cache item records for numeric, integer, Boolean, error, string, date
 and empty values are now decoded into the preserve-only PivotTable model, with
 import-report buckets limited to type/value-state metadata rather than dumping raw
 source values.
-Chart `AttachedLabel` records now decode preserve-only data-label display flags
-for value, percent, category label, bubble size, and series name states, with
-compact import-report buckets for both enabled flags and full flag-state shapes.
+Chart `PieFormat` records now decode preserve-only pie/doughnut explosion
+percentages, and chart `AttachedLabel` records now decode preserve-only data-label
+display flags for value, percent, category label, bubble size, and series name
+states, with compact import-report buckets for enabled flags, full flag-state
+shapes, and pie explosion percentages.
 Unsupported and preserve-only feature occurrences now also populate a structured
 `LegacyXlsWorkbook.UnsupportedFeatures` report with stable codes, feature kind,
 sheet name, record type, record offset, and stable feature-detail keys such as

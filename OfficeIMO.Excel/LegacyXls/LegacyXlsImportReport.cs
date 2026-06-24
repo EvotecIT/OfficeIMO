@@ -391,6 +391,9 @@ namespace OfficeIMO.Excel.LegacyXls {
             ChartMarkerFormatSizes = CountByCode(workbook.ChartRecords
                 .Where(record => record.MarkerFormat != null)
                 .Select(record => $"SizeTwips:{record.MarkerFormat!.SizeTwips}"));
+            ChartPieFormatExplosions = CountByCode(workbook.ChartRecords
+                .Where(record => record.PieFormat != null)
+                .Select(record => $"ExplosionPercent:{record.PieFormat!.ExplosionPercentage}"));
             ChartAttachedLabelFlags = CountByCode(workbook.ChartRecords
                 .Where(record => record.AttachedLabel != null)
                 .SelectMany(record => record.AttachedLabel!.FlagNames));
@@ -1221,6 +1224,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets MarkerFormat records grouped by marker size in twips.</summary>
         public IReadOnlyDictionary<string, int> ChartMarkerFormatSizes { get; }
 
+        /// <summary>Gets PieFormat records grouped by decoded explosion distance percentage.</summary>
+        public IReadOnlyDictionary<string, int> ChartPieFormatExplosions { get; }
+
         /// <summary>Gets AttachedLabel records grouped by decoded displayed data-label element.</summary>
         public IReadOnlyDictionary<string, int> ChartAttachedLabelFlags { get; }
 
@@ -1715,6 +1721,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Chart AreaFormat Patterns", ChartAreaFormatPatterns);
             AppendDictionary(builder, "Chart MarkerFormat Types", ChartMarkerFormatTypes);
             AppendDictionary(builder, "Chart MarkerFormat Sizes", ChartMarkerFormatSizes);
+            AppendDictionary(builder, "Chart PieFormat Explosions", ChartPieFormatExplosions);
             AppendDictionary(builder, "Chart AttachedLabel Flags", ChartAttachedLabelFlags);
             AppendDictionary(builder, "Chart AttachedLabel States", ChartAttachedLabelStates);
             AppendDictionary(builder, "Chart DefaultText Targets", ChartDefaultTextTargets);
