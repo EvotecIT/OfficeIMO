@@ -35,6 +35,7 @@ namespace OfficeIMO.Tests {
             Assert.Single(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellCommentUnsupported);
             Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Error);
             Assert.DoesNotContain(svg.Diagnostics, diagnostic => diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Error);
+            AssertDiagnosticsBaseline(BaselineName + ".diagnostics.txt", png.Diagnostics);
             AssertRasterBaseline(BaselineName + ".png", png.Bytes);
             AssertTextBaseline(BaselineName + ".svg", System.Text.Encoding.UTF8.GetString(svg.Bytes));
         }
@@ -55,6 +56,7 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain(svg.Diagnostics, item => item.Severity == OfficeImageExportDiagnosticSeverity.Error);
             Assert.Contains("#63B3ED", System.Text.Encoding.UTF8.GetString(svg.Bytes), StringComparison.Ordinal);
             Assert.Contains("#7C3AED", System.Text.Encoding.UTF8.GetString(svg.Bytes), StringComparison.Ordinal);
+            AssertDiagnosticsBaseline(ConditionalBaselineName + ".diagnostics.txt", png.Diagnostics);
             AssertRasterBaseline(ConditionalBaselineName + ".png", png.Bytes);
             AssertTextBaseline(ConditionalBaselineName + ".svg", System.Text.Encoding.UTF8.GetString(svg.Bytes));
         }
@@ -78,6 +80,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("#2563EB", svgText, StringComparison.Ordinal);
             Assert.Contains("#16A34A", svgText, StringComparison.Ordinal);
             Assert.Contains("#DC2626", svgText, StringComparison.Ordinal);
+            AssertDiagnosticsBaseline(SparklineBaselineName + ".diagnostics.txt", png.Diagnostics);
             AssertRasterBaseline(SparklineBaselineName + ".png", png.Bytes);
             AssertTextBaseline(SparklineBaselineName + ".svg", svgText);
         }
@@ -98,6 +101,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains(svg.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.CellTextOccludedByDrawing && item.Source == "ImageClip!B2");
             Assert.Contains("clip-path=\"url(#xl-image-clip-", svgText, StringComparison.Ordinal);
             Assert.Contains("x=\"-", svgText, StringComparison.Ordinal);
+            AssertDiagnosticsBaseline(ImageClippingBaselineName + ".diagnostics.txt", png.Diagnostics);
             AssertRasterBaseline(ImageClippingBaselineName + ".png", png.Bytes);
             AssertTextBaseline(ImageClippingBaselineName + ".svg", svgText);
         }
@@ -224,6 +228,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("font-weight=\"700\"", svgText, StringComparison.Ordinal);
             Assert.Contains("font-style=\"italic\"", svgText, StringComparison.Ordinal);
             Assert.Contains("text-decoration=\"underline\"", svgText, StringComparison.Ordinal);
+            AssertDiagnosticsBaseline(RichTextBaselineName + ".diagnostics.txt", png.Diagnostics);
             AssertRasterBaseline(RichTextBaselineName + ".png", png.Bytes);
             AssertTextBaseline(RichTextBaselineName + ".svg", svgText);
         }
@@ -252,6 +257,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("font-style=\"italic\"", svgText, StringComparison.Ordinal);
             Assert.Contains("text-decoration=\"underline\"", svgText, StringComparison.Ordinal);
             Assert.DoesNotContain("rotate(", svgText, StringComparison.Ordinal);
+            AssertDiagnosticsBaseline(StackedTextBaselineName + ".diagnostics.txt", png.Diagnostics);
             AssertRasterBaseline(StackedTextBaselineName + ".png", png.Bytes);
             AssertTextBaseline(StackedTextBaselineName + ".svg", svgText);
         }
@@ -272,6 +278,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("stroke=\"#C00000\"", svgText, StringComparison.Ordinal);
             Assert.Contains("stroke=\"#1F4E79\"", svgText, StringComparison.Ordinal);
             Assert.Contains("fill=\"#70AD47\"", svgText, StringComparison.Ordinal);
+            AssertDiagnosticsBaseline(PatternFillBaselineName + ".diagnostics.txt", png.Diagnostics);
             AssertRasterBaseline(PatternFillBaselineName + ".png", png.Bytes);
             AssertTextBaseline(PatternFillBaselineName + ".svg", svgText);
         }
@@ -1688,6 +1695,52 @@ namespace OfficeIMO.Tests {
             File.WriteAllText(Path.Combine(artifactDirectory, "actual-" + baselineName), normalizedActual, new System.Text.UTF8Encoding(false));
             File.Copy(expectedPath, Path.Combine(artifactDirectory, "expected-" + baselineName), overwrite: true);
             throw new Xunit.Sdk.XunitException("Excel image SVG baseline changed for '" + baselineName + "'. Artifacts: " + artifactDirectory + ".");
+        }
+
+        private static void AssertDiagnosticsBaseline(string baselineName, IReadOnlyList<OfficeImageExportDiagnostic> diagnostics) {
+            string expectedPath = Path.Combine(BaselineDirectory, baselineName);
+            string normalizedActual = CreateDiagnosticsBaselineText(diagnostics);
+            if (UpdateBaselines) {
+                Directory.CreateDirectory(Path.GetDirectoryName(expectedPath)!);
+                File.WriteAllText(expectedPath, normalizedActual, new System.Text.UTF8Encoding(false));
+                return;
+            }
+
+            if (!File.Exists(expectedPath)) {
+                throw new FileNotFoundException(
+                    "Excel image diagnostics baseline missing. Set OFFICEIMO_UPDATE_EXCEL_IMAGE_BASELINES=1 and re-run this test to generate it.",
+                    expectedPath);
+            }
+
+            string expectedText = VisualBaselineTestSupport.NormalizeText(File.ReadAllText(expectedPath));
+            if (string.Equals(expectedText, normalizedActual, StringComparison.Ordinal)) {
+                return;
+            }
+
+            string artifactDirectory = VisualBaselineTestSupport.CreateArtifactDirectory("OfficeIMO.ExcelImageBaselines");
+            File.WriteAllText(Path.Combine(artifactDirectory, "actual-" + baselineName), normalizedActual, new System.Text.UTF8Encoding(false));
+            File.Copy(expectedPath, Path.Combine(artifactDirectory, "expected-" + baselineName), overwrite: true);
+            throw new Xunit.Sdk.XunitException("Excel image diagnostics baseline changed for '" + baselineName + "'. Artifacts: " + artifactDirectory + ".");
+        }
+
+        private static string CreateDiagnosticsBaselineText(IReadOnlyList<OfficeImageExportDiagnostic> diagnostics) {
+            var builder = new System.Text.StringBuilder();
+            foreach (OfficeImageExportDiagnostic diagnostic in diagnostics
+                         .OrderBy(item => item.Source ?? string.Empty, StringComparer.Ordinal)
+                         .ThenBy(item => item.Code, StringComparer.Ordinal)
+                         .ThenBy(item => item.Message, StringComparer.Ordinal)) {
+                builder
+                    .Append(diagnostic.Severity)
+                    .Append('|')
+                    .Append(diagnostic.Code)
+                    .Append('|')
+                    .Append(diagnostic.Source ?? string.Empty)
+                    .Append('|')
+                    .Append(VisualBaselineTestSupport.NormalizeText(diagnostic.Message).Replace("\n", "\\n", StringComparison.Ordinal))
+                    .Append('\n');
+            }
+
+            return builder.ToString();
         }
 
         private static string BaselineDirectory =>

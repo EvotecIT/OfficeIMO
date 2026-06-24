@@ -1,0 +1,1 @@
+Warning|ExcelConditionalIconSetUnsupported|Signals!F3:F7|Conditional formatting icon sets are not rendered by Excel image export yet.

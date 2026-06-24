@@ -88,6 +88,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("transform=\"rotate(24", svgText, StringComparison.Ordinal);
             Assert.Contains("#DBEAFE", svgText, StringComparison.Ordinal);
             Assert.Contains("#2563EB", svgText, StringComparison.Ordinal);
+            AssertDiagnosticsBaseline(RotatedShapeTextBaselineName + ".diagnostics.txt", png.Diagnostics);
             AssertRasterBaseline(RotatedShapeTextBaselineName + ".png", png.Bytes);
             AssertTextBaseline(RotatedShapeTextBaselineName + ".svg", svgText);
         }

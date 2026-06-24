@@ -1,0 +1,1 @@
+Warning|ExcelDrawingShapeTextRotationApproximation|RotatedText!C3|Worksheet drawing object text is rendered through shared Drawing rotation without Excel-exact text-box metrics.
