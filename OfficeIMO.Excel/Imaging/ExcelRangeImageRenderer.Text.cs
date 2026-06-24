@@ -37,27 +37,18 @@ namespace OfficeIMO.Excel {
             bool rotated = Math.Abs(rotationDegrees) > 0.0001D;
             bool richTextSupported = IsRichTextRenderingSupported(cell, rotated);
             string fontFamily = ResolveCellFontFamily(cell.Style);
-            OfficeTextBlockLayout layout = stacked
-                ? OfficeTextLayoutEngine.LayoutStackedTextBlock(
-                    cell.Text,
-                    fontSize,
-                    availableWidth,
-                    availableHeight,
-                    CellTextLineHeightFactor,
-                    minimumFontSize,
-                    (text, size) => canvas.MeasureText(text, size, fontFamily),
-                    shrinkToFit: cell.Style.ShrinkToFit)
-                : OfficeTextLayoutEngine.LayoutTextBlock(
-                    cell.Text,
-                    fontSize,
-                    rotated ? Math.Max(availableWidth, availableHeight) : availableWidth,
-                    rotated ? Math.Max(availableWidth, availableHeight) : availableHeight,
-                    CellTextLineHeightFactor,
-                    minimumFontSize,
-                    (text, size) => canvas.MeasureText(text, size, fontFamily),
-                    wrap: cell.Style.WrapText,
-                    forceSingleLine: rotated,
-                    shrinkToFit: cell.Style.ShrinkToFit);
+            OfficeTextBlockRenderPlan plan = CreateCellTextRenderPlan(
+                cell,
+                x + paddingX,
+                y + paddingY,
+                availableWidth,
+                availableHeight,
+                fontSize,
+                minimumFontSize,
+                rotationDegrees,
+                stacked,
+                (text, size) => canvas.MeasureText(text, size, fontFamily));
+            OfficeTextBlockLayout layout = plan.Layout;
             if (layout.Lines.Count == 0) {
                 return;
             }
@@ -83,14 +74,14 @@ namespace OfficeIMO.Excel {
                     AddRotatedTextApproximationDiagnostic(snapshot, cell, diagnostics);
                     OfficeTextBlockRenderer.DrawRasterTextBlock(
                         canvas,
-                        layout,
-                        x + paddingX,
-                        y + paddingY,
-                        availableWidth,
-                        availableHeight,
+                        plan.Layout,
+                        plan.Left,
+                        plan.Top,
+                        plan.Width,
+                        plan.Height,
                         ResolveCellTextColor(cell, options),
-                        OfficeTextAlignment.Center,
-                        ResolveTextVerticalAlignment(cell.Style.VerticalAlignment),
+                        plan.HorizontalAlignment,
+                        plan.VerticalAlignment,
                         cell.Style.Bold,
                         cell.Style.Italic,
                         ShouldUnderlineText(cell, options),
@@ -99,7 +90,6 @@ namespace OfficeIMO.Excel {
                 }
 
                 OfficeColor color = ResolveCellTextColor(cell, options);
-                OfficeTextAlignment alignment = ResolveTextAlignment(cell.Style.HorizontalAlignment);
                 bool bold = cell.Style.Bold;
                 bool italic = cell.Style.Italic;
                 bool underline = ShouldUnderlineText(cell, options);
@@ -115,14 +105,14 @@ namespace OfficeIMO.Excel {
 
                 OfficeTextBlockRenderer.DrawRasterTextBlock(
                     canvas,
-                    layout,
-                    x + paddingX,
-                    y + paddingY,
-                    availableWidth,
-                    availableHeight,
+                    plan.Layout,
+                    plan.Left,
+                    plan.Top,
+                    plan.Width,
+                    plan.Height,
                     color,
-                    alignment,
-                    ResolveTextVerticalAlignment(cell.Style.VerticalAlignment),
+                    plan.HorizontalAlignment,
+                    plan.VerticalAlignment,
                     bold,
                     italic,
                     underline,
@@ -157,27 +147,18 @@ namespace OfficeIMO.Excel {
             bool rotated = Math.Abs(rotationDegrees) > 0.0001D;
             bool richTextSupported = IsRichTextRenderingSupported(cell, rotated);
             string fontFamily = ResolveCellFontFamily(cell.Style);
-            OfficeTextBlockLayout layout = stacked
-                ? OfficeTextLayoutEngine.LayoutStackedTextBlock(
-                    cell.Text,
-                    fontSize,
-                    availableWidth,
-                    availableHeight,
-                    CellTextLineHeightFactor,
-                    minimumFontSize,
-                    (text, size) => textMeasureCanvas.MeasureText(text, size, fontFamily),
-                    shrinkToFit: cell.Style.ShrinkToFit)
-                : OfficeTextLayoutEngine.LayoutTextBlock(
-                    cell.Text,
-                    fontSize,
-                    rotated ? Math.Max(availableWidth, availableHeight) : availableWidth,
-                    rotated ? Math.Max(availableWidth, availableHeight) : availableHeight,
-                    CellTextLineHeightFactor,
-                    minimumFontSize,
-                    (text, size) => textMeasureCanvas.MeasureText(text, size, fontFamily),
-                    wrap: cell.Style.WrapText,
-                    forceSingleLine: rotated,
-                    shrinkToFit: cell.Style.ShrinkToFit);
+            OfficeTextBlockRenderPlan plan = CreateCellTextRenderPlan(
+                cell,
+                x + paddingX,
+                y + paddingY,
+                availableWidth,
+                availableHeight,
+                fontSize,
+                minimumFontSize,
+                rotationDegrees,
+                stacked,
+                (text, size) => textMeasureCanvas.MeasureText(text, size, fontFamily));
+            OfficeTextBlockLayout layout = plan.Layout;
             if (layout.Lines.Count == 0) {
                 return;
             }
@@ -199,7 +180,6 @@ namespace OfficeIMO.Excel {
             AddCellFontFamilyFallbackDiagnosticIfNeeded(snapshot, cell, cell.Style.FontName, diagnostics);
             AddTextClippingDiagnosticIfNeeded(layout, snapshot, cell, diagnostics);
             OfficeColor color = ResolveCellTextColor(cell, options);
-            OfficeTextAlignment alignment = ResolveTextAlignment(cell.Style.HorizontalAlignment);
             string clipId = "xl-text-" + cell.Row.ToString(System.Globalization.CultureInfo.InvariantCulture) + "-" + cell.Column.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
             builder.AppendRectClipPathDefinition(clipId, x, y, w, h);
@@ -207,15 +187,15 @@ namespace OfficeIMO.Excel {
             if (stacked) {
                 AddRotatedTextApproximationDiagnostic(snapshot, cell, diagnostics);
                 builder.AppendSvgTextBlock(
-                    layout,
-                    x + paddingX,
-                    y + paddingY,
-                    availableWidth,
-                    availableHeight,
+                    plan.Layout,
+                    plan.Left,
+                    plan.Top,
+                    plan.Width,
+                    plan.Height,
                     color,
                     fontFamily,
-                    OfficeTextAlignment.Center,
-                    ResolveTextVerticalAlignment(cell.Style.VerticalAlignment),
+                    plan.HorizontalAlignment,
+                    plan.VerticalAlignment,
                     cell.Style.Bold,
                     cell.Style.Italic,
                     ShouldUnderlineText(cell, options));
@@ -251,20 +231,73 @@ namespace OfficeIMO.Excel {
             }
 
             builder.AppendSvgTextBlock(
-                layout,
-                x + paddingX,
-                y + paddingY,
-                availableWidth,
-                availableHeight,
+                plan.Layout,
+                plan.Left,
+                plan.Top,
+                plan.Width,
+                plan.Height,
                 color,
                 fontFamily,
-                alignment,
-                ResolveTextVerticalAlignment(cell.Style.VerticalAlignment),
+                plan.HorizontalAlignment,
+                plan.VerticalAlignment,
                 cell.Style.Bold,
                 cell.Style.Italic,
                 ShouldUnderlineText(cell, options));
 
             builder.Append("</g>");
+        }
+
+        private static OfficeTextBlockRenderPlan CreateCellTextRenderPlan(
+            ExcelVisualCell cell,
+            double left,
+            double top,
+            double availableWidth,
+            double availableHeight,
+            double fontSize,
+            double minimumFontSize,
+            double rotationDegrees,
+            bool stacked,
+            Func<string?, double, double> measure) {
+            bool rotated = Math.Abs(rotationDegrees) > 0.0001D;
+            OfficeTextVerticalAlignment verticalAlignment = rotated
+                ? OfficeTextVerticalAlignment.Top
+                : ResolveTextVerticalAlignment(cell.Style.VerticalAlignment);
+            if (stacked) {
+                return OfficeTextBlockRenderPlan.CreateStackedTextBlockFromRectangle(
+                    cell.Text,
+                    fontSize,
+                    left,
+                    top,
+                    availableWidth,
+                    availableHeight,
+                    measure,
+                    OfficeTextAlignment.Center,
+                    verticalAlignment,
+                    CellTextLineHeightFactor,
+                    minimumFontSize,
+                    shrinkToFit: cell.Style.ShrinkToFit);
+            }
+
+            double layoutWidth = rotated ? Math.Max(availableWidth, availableHeight) : availableWidth;
+            double layoutHeight = rotated ? Math.Max(availableWidth, availableHeight) : availableHeight;
+            OfficeTextAlignment alignment = rotated
+                ? OfficeTextAlignment.Center
+                : ResolveTextAlignment(cell.Style.HorizontalAlignment);
+            return OfficeTextBlockRenderPlan.CreateTextBlockFromRectangle(
+                cell.Text,
+                fontSize,
+                left,
+                top,
+                layoutWidth,
+                layoutHeight,
+                measure,
+                alignment,
+                verticalAlignment,
+                CellTextLineHeightFactor,
+                minimumFontSize,
+                wrap: cell.Style.WrapText,
+                forceSingleLine: rotated,
+                shrinkToFit: cell.Style.ShrinkToFit);
         }
 
         private static bool TryDrawRasterRichText(

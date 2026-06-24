@@ -471,6 +471,49 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeTextBlockRenderPlan_CreatesRectangleBasedTextAndStackedLayouts() {
+            static double Measure(string? value, double size) => (value?.Length ?? 0) * size * 0.8D;
+
+            OfficeTextBlockRenderPlan wrapped = OfficeTextBlockRenderPlan.CreateTextBlockFromRectangle(
+                "alpha beta",
+                fontSize: 10D,
+                left: 20D,
+                top: 30D,
+                width: 44D,
+                height: 50D,
+                Measure,
+                OfficeTextAlignment.Right,
+                OfficeTextVerticalAlignment.Bottom,
+                lineHeightFactor: 1.2D,
+                minimumFontSize: 6D,
+                wrap: true);
+
+            Assert.Equal(20D, wrapped.Left);
+            Assert.Equal(30D, wrapped.Top);
+            Assert.Equal(64D, wrapped.AnchorX);
+            Assert.Equal(56D, wrapped.TextTop);
+            Assert.Equal(2, wrapped.Layout.Lines.Count);
+            Assert.Equal("alpha", wrapped.Layout.Lines[0].Text);
+            Assert.Equal("beta", wrapped.Layout.Lines[1].Text);
+
+            OfficeTextBlockRenderPlan stacked = OfficeTextBlockRenderPlan.CreateStackedTextBlockFromRectangle(
+                "AB",
+                fontSize: 10D,
+                left: 5D,
+                top: 7D,
+                width: 20D,
+                height: 30D,
+                Measure,
+                OfficeTextAlignment.Center,
+                OfficeTextVerticalAlignment.Center);
+
+            Assert.Equal(15D, stacked.AnchorX);
+            Assert.Equal(2, stacked.Layout.Lines.Count);
+            Assert.Equal("A", stacked.Layout.Lines[0].Text);
+            Assert.Equal("B", stacked.Layout.Lines[1].Text);
+        }
+
+        [Fact]
         public void OfficeRasterCanvas_ClipsDrawingToRectangleAndRestoresPreviousClip() {
             OfficeRasterImage image = new OfficeRasterImage(12, 12, OfficeColor.Transparent);
             OfficeRasterCanvas canvas = new OfficeRasterCanvas(image);

@@ -8,19 +8,19 @@ namespace OfficeIMO.Drawing;
 public sealed class OfficeTextBlockRenderPlan {
     private OfficeTextBlockRenderPlan(
         OfficeTextBlockLayout layout,
-        double centerX,
-        double centerY,
+        double left,
+        double top,
         double width,
         double height,
         OfficeTextAlignment horizontalAlignment,
         OfficeTextVerticalAlignment verticalAlignment) {
         Layout = layout ?? throw new ArgumentNullException(nameof(layout));
-        CenterX = centerX;
-        CenterY = centerY;
         Width = NormalizePositive(width, Math.Max(layout.Width, 1D));
         Height = NormalizePositive(height, Math.Max(layout.Height, 1D));
-        Left = centerX - (Width / 2D);
-        Top = centerY - (Height / 2D);
+        Left = NormalizeCoordinate(left);
+        Top = NormalizeCoordinate(top);
+        CenterX = Left + (Width / 2D);
+        CenterY = Top + (Height / 2D);
         HorizontalAlignment = horizontalAlignment;
         VerticalAlignment = verticalAlignment;
         TextTop = OfficeTextPlacement.ResolveTop(Top, Height, layout.Height, verticalAlignment);
@@ -75,7 +75,27 @@ public sealed class OfficeTextBlockRenderPlan {
         double height,
         OfficeTextAlignment horizontalAlignment = OfficeTextAlignment.Left,
         OfficeTextVerticalAlignment verticalAlignment = OfficeTextVerticalAlignment.Top) =>
-        new(layout, centerX, centerY, width, height, horizontalAlignment, verticalAlignment);
+        CreateFromRectangle(
+            layout,
+            centerX - (NormalizePositive(width, Math.Max(layout?.Width ?? 1D, 1D)) / 2D),
+            centerY - (NormalizePositive(height, Math.Max(layout?.Height ?? 1D, 1D)) / 2D),
+            width,
+            height,
+            horizontalAlignment,
+            verticalAlignment);
+
+    /// <summary>
+    /// Creates a placement plan for an already measured layout inside a left/top-based rectangle.
+    /// </summary>
+    public static OfficeTextBlockRenderPlan CreateFromRectangle(
+        OfficeTextBlockLayout layout,
+        double left,
+        double top,
+        double width,
+        double height,
+        OfficeTextAlignment horizontalAlignment = OfficeTextAlignment.Left,
+        OfficeTextVerticalAlignment verticalAlignment = OfficeTextVerticalAlignment.Top) =>
+        new(layout, left, top, width, height, horizontalAlignment, verticalAlignment);
 
     /// <summary>
     /// Measures wrapped text and creates a placement plan for a center-based rectangle.
@@ -110,6 +130,78 @@ public sealed class OfficeTextBlockRenderPlan {
     }
 
     /// <summary>
+    /// Measures a text block and creates a placement plan for a left/top-based rectangle.
+    /// </summary>
+    public static OfficeTextBlockRenderPlan CreateTextBlockFromRectangle(
+        string? text,
+        double fontSize,
+        double left,
+        double top,
+        double width,
+        double height,
+        Func<string?, double, double> measure,
+        OfficeTextAlignment horizontalAlignment = OfficeTextAlignment.Left,
+        OfficeTextVerticalAlignment verticalAlignment = OfficeTextVerticalAlignment.Top,
+        double lineHeightFactor = 1.2D,
+        double minimumFontSize = 5D,
+        bool wrap = false,
+        bool forceSingleLine = false,
+        bool shrinkToFit = false) {
+        if (measure == null) {
+            throw new ArgumentNullException(nameof(measure));
+        }
+
+        double resolvedWidth = NormalizePositive(width, 1D);
+        double resolvedHeight = NormalizePositive(height, 1D);
+        OfficeTextBlockLayout layout = OfficeTextLayoutEngine.LayoutTextBlock(
+            text,
+            fontSize,
+            resolvedWidth,
+            resolvedHeight,
+            lineHeightFactor,
+            minimumFontSize,
+            measure,
+            wrap,
+            forceSingleLine,
+            shrinkToFit);
+        return CreateFromRectangle(layout, left, top, resolvedWidth, resolvedHeight, horizontalAlignment, verticalAlignment);
+    }
+
+    /// <summary>
+    /// Measures stacked text and creates a placement plan for a left/top-based rectangle.
+    /// </summary>
+    public static OfficeTextBlockRenderPlan CreateStackedTextBlockFromRectangle(
+        string? text,
+        double fontSize,
+        double left,
+        double top,
+        double width,
+        double height,
+        Func<string?, double, double> measure,
+        OfficeTextAlignment horizontalAlignment = OfficeTextAlignment.Center,
+        OfficeTextVerticalAlignment verticalAlignment = OfficeTextVerticalAlignment.Top,
+        double lineHeightFactor = 1.2D,
+        double minimumFontSize = 5D,
+        bool shrinkToFit = false) {
+        if (measure == null) {
+            throw new ArgumentNullException(nameof(measure));
+        }
+
+        double resolvedWidth = NormalizePositive(width, 1D);
+        double resolvedHeight = NormalizePositive(height, 1D);
+        OfficeTextBlockLayout layout = OfficeTextLayoutEngine.LayoutStackedTextBlock(
+            text,
+            fontSize,
+            resolvedWidth,
+            resolvedHeight,
+            lineHeightFactor,
+            minimumFontSize,
+            measure,
+            shrinkToFit);
+        return CreateFromRectangle(layout, left, top, resolvedWidth, resolvedHeight, horizontalAlignment, verticalAlignment);
+    }
+
+    /// <summary>
     /// Creates background bounds around the measured text block.
     /// </summary>
     public OfficeTextBlockBackgroundBounds CreateBackgroundBounds(double horizontalPadding, double verticalPadding) {
@@ -127,6 +219,9 @@ public sealed class OfficeTextBlockRenderPlan {
 
     private static double NormalizeNonNegative(double value) =>
         value >= 0D && !double.IsNaN(value) && !double.IsInfinity(value) ? value : 0D;
+
+    private static double NormalizeCoordinate(double value) =>
+        !double.IsNaN(value) && !double.IsInfinity(value) ? value : 0D;
 }
 
 /// <summary>
