@@ -97,6 +97,24 @@ Warnings: 0
 | --- | --- |
 | G2:G13 | 1 |
 
+## Conditional Formatting By Formula1 State
+
+| Key | Count |
+| --- | --- |
+| Present | 1 |
+
+## Conditional Formatting By Formula2 State
+
+| Key | Count |
+| --- | --- |
+| Missing | 1 |
+
+## Conditional Formatting By Formula Pair State
+
+| Key | Count |
+| --- | --- |
+| Formula1:Present\|Formula2:Missing | 1 |
+
 ## Conditional Formatting By Priority State
 
 | Key | Count |
@@ -133,6 +151,18 @@ Warnings: 0
 | --- | --- |
 | None | 1 |
 
+## AutoFilter Criteria By Column
+
+| Key | Count |
+| --- | --- |
+| Column:3 | 1 |
+
+## AutoFilter Criteria By Condition Count
+
+| Key | Count |
+| --- | --- |
+| Conditions:0 | 1 |
+
 ## AutoFilter Top10 Kinds
 
 | Key | Count |
@@ -144,6 +174,18 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | TopItems:5 | 1 |
+
+## AutoFilter Top10 Directions
+
+| Key | Count |
+| --- | --- |
+| Top | 1 |
+
+## AutoFilter Top10 Units
+
+| Key | Count |
+| --- | --- |
+| Items | 1 |
 
 ## Worksheets By Visibility
 

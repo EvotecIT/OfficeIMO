@@ -182,11 +182,35 @@ Warnings: 0
 | --- | --- |
 | A2:A5 | 1 |
 
+## Data Validations By Formula1 State
+
+| Key | Count |
+| --- | --- |
+| Present | 1 |
+
+## Data Validations By Formula2 State
+
+| Key | Count |
+| --- | --- |
+| Missing | 1 |
+
+## Data Validations By Formula Pair State
+
+| Key | Count |
+| --- | --- |
+| Formula1:Present\|Formula2:Missing | 1 |
+
 ## Data Validation List Sources By Kind
 
 | Key | Count |
 | --- | --- |
 | InlineList | 1 |
+
+## Data Validation List Sources By Item Count
+
+| Key | Count |
+| --- | --- |
+| Items:3 | 1 |
 
 ## Conditional Formatting By Type
 
@@ -211,6 +235,24 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | B2:B5 | 1 |
+
+## Conditional Formatting By Formula1 State
+
+| Key | Count |
+| --- | --- |
+| Present | 1 |
+
+## Conditional Formatting By Formula2 State
+
+| Key | Count |
+| --- | --- |
+| Missing | 1 |
+
+## Conditional Formatting By Formula Pair State
+
+| Key | Count |
+| --- | --- |
+| Formula1:Present\|Formula2:Missing | 1 |
 
 ## Conditional Formatting By Priority State
 
@@ -259,6 +301,18 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | Single | 1 |
+
+## AutoFilter Criteria By Column
+
+| Key | Count |
+| --- | --- |
+| Column:0 | 1 |
+
+## AutoFilter Criteria By Condition Count
+
+| Key | Count |
+| --- | --- |
+| Conditions:1 | 1 |
 
 ## Worksheets By Visibility
 

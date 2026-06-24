@@ -885,6 +885,11 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.DataValidationsByRange["E2:E5"]);
             Assert.Equal(1, report.DataValidationsByRange["F2:F5"]);
             Assert.Equal(1, report.DataValidationsByRange["G2:G5"]);
+            Assert.Equal(3, report.DataValidationsByFormula1State["Present"]);
+            Assert.Equal(1, report.DataValidationsByFormula2State["Present"]);
+            Assert.Equal(2, report.DataValidationsByFormula2State["Missing"]);
+            Assert.Equal(1, report.DataValidationsByFormulaPairState["Formula1:Present|Formula2:Present"]);
+            Assert.Equal(2, report.DataValidationsByFormulaPairState["Formula1:Present|Formula2:Missing"]);
             Assert.Empty(report.DataValidationListSourcesByKind);
             string markdown = report.ToMarkdown();
             Assert.Contains("Data validations: 3", markdown);
@@ -899,6 +904,9 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Data Validations By Drop Down State", markdown);
             Assert.Contains("Data Validations By Range Count", markdown);
             Assert.Contains("Data Validations By Range", markdown);
+            Assert.Contains("Data Validations By Formula1 State", markdown);
+            Assert.Contains("Data Validations By Formula2 State", markdown);
+            Assert.Contains("Data Validations By Formula Pair State", markdown);
         }
 
         [Fact]
@@ -922,6 +930,9 @@ namespace OfficeIMO.Tests {
             Assert.Empty(report.ConditionalFormattingsByPriority);
             Assert.Equal(1, report.ConditionalFormattingsByRangeCount["Ranges:1"]);
             Assert.Equal(1, report.ConditionalFormattingsByRange["A1:A3"]);
+            Assert.Equal(1, report.ConditionalFormattingsByFormula1State["Present"]);
+            Assert.Equal(1, report.ConditionalFormattingsByFormula2State["Missing"]);
+            Assert.Equal(1, report.ConditionalFormattingsByFormulaPairState["Formula1:Present|Formula2:Missing"]);
             Assert.Equal(1, report.ConditionalFormattingsByStopIfTrueState["Continue"]);
             Assert.Equal(1, report.ConditionalFormattingsByDifferentialFormatState["Missing"]);
             Assert.Empty(report.ConditionalFormattingsByDifferentialFill);
@@ -931,6 +942,9 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Conditional Formatting By Operator", markdown);
             Assert.Contains("Conditional Formatting By Range Count", markdown);
             Assert.Contains("Conditional Formatting By Range", markdown);
+            Assert.Contains("Conditional Formatting By Formula1 State", markdown);
+            Assert.Contains("Conditional Formatting By Formula2 State", markdown);
+            Assert.Contains("Conditional Formatting By Formula Pair State", markdown);
             Assert.Contains("Conditional Formatting By Priority State", markdown);
             Assert.Contains("Conditional Formatting By Stop If True State", markdown);
             Assert.Contains("Conditional Formatting By Differential Format State", markdown);
@@ -955,11 +969,16 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.AutoFilterCriteriaByValueKind["Text"]);
             Assert.Equal(1, report.AutoFilterCriteriaByValueKind["Number"]);
             Assert.Equal(2, report.AutoFilterCriteriaByJoinOperator["Single"]);
+            Assert.Equal(1, report.AutoFilterCriteriaByColumn["Column:0"]);
+            Assert.Equal(1, report.AutoFilterCriteriaByColumn["Column:1"]);
+            Assert.Equal(2, report.AutoFilterCriteriaByConditionCount["Conditions:1"]);
             string markdown = report.ToMarkdown();
             Assert.Contains("AutoFilter criteria columns: 2", markdown);
             Assert.Contains("AutoFilter Criteria By Operator", markdown);
             Assert.Contains("AutoFilter Criteria By Value Kind", markdown);
             Assert.Contains("AutoFilter Criteria By Join Operator", markdown);
+            Assert.Contains("AutoFilter Criteria By Column", markdown);
+            Assert.Contains("AutoFilter Criteria By Condition Count", markdown);
         }
 
         [Fact]

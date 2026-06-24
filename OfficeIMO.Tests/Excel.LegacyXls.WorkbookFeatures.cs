@@ -798,8 +798,12 @@ namespace OfficeIMO.Tests {
             Assert.False(result.HasUnsupportedFeatures);
             Assert.Equal(1, result.ImportReport.AutoFilterCriteriaCount);
             Assert.Equal(1, result.ImportReport.AutoFilterCriteriaByKind["Top10"]);
+            Assert.Equal(1, result.ImportReport.AutoFilterCriteriaByColumn["Column:0"]);
+            Assert.Equal(1, result.ImportReport.AutoFilterCriteriaByConditionCount["Conditions:0"]);
             Assert.Equal(1, result.ImportReport.AutoFilterTop10Kinds["TopItems"]);
             Assert.Equal(1, result.ImportReport.AutoFilterTop10Values["TopItems:10"]);
+            Assert.Equal(1, result.ImportReport.AutoFilterTop10Directions["Top"]);
+            Assert.Equal(1, result.ImportReport.AutoFilterTop10Units["Items"]);
             Assert.Empty(result.Document.ValidateOpenXml());
 
             using var output = new MemoryStream();
@@ -1150,6 +1154,11 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.DataValidationsByDropDownState["Suppressed"]);
             Assert.Equal(1, report.DataValidationsByRangeCount["Ranges:1"]);
             Assert.Equal(1, report.DataValidationsByRange["D2:D5"]);
+            Assert.Equal(1, report.DataValidationsByFormula1State["Present"]);
+            Assert.Equal(1, report.DataValidationsByFormula2State["Missing"]);
+            Assert.Equal(1, report.DataValidationsByFormulaPairState["Formula1:Present|Formula2:Missing"]);
+            Assert.Equal(1, report.DataValidationListSourcesByKind["InlineList"]);
+            Assert.Equal(1, report.DataValidationListSourcesByItemCount["Items:3"]);
 
             using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound), new LegacyXlsImportOptions {
                 ReportUnsupportedRecords = true
@@ -1208,6 +1217,11 @@ namespace OfficeIMO.Tests {
             Assert.True(validation.ShowErrorMessage);
             Assert.Equal("H2:H5", Assert.Single(validation.Ranges));
             Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.DataValidation);
+            LegacyXlsImportReport report = legacy.CreateImportReport();
+            Assert.Equal(1, report.DataValidationListSourcesByKind["Range"]);
+            Assert.Equal(1, report.DataValidationListSourcesByItemCount["Items:0"]);
+            Assert.Equal(1, report.DataValidationListSourcesByRange["A1:A3"]);
+            Assert.Equal(1, report.DataValidationsByFormulaPairState["Formula1:Present|Formula2:Missing"]);
 
             using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound), new LegacyXlsImportOptions {
                 ReportUnsupportedRecords = true
@@ -1260,6 +1274,11 @@ namespace OfficeIMO.Tests {
             Assert.Null(validation.ListSourceName);
             Assert.Equal("H2:H5", Assert.Single(validation.Ranges));
             Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.DataValidation);
+            LegacyXlsImportReport report = legacy.CreateImportReport();
+            Assert.Equal(1, report.DataValidationListSourcesByKind["SheetQualifiedRange"]);
+            Assert.Equal(1, report.DataValidationListSourcesByItemCount["Items:0"]);
+            Assert.Equal(1, report.DataValidationListSourcesByRange["A1:A3"]);
+            Assert.Equal(1, report.DataValidationListSourcesBySheetName["Options"]);
 
             using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound), new LegacyXlsImportOptions {
                 ReportUnsupportedRecords = true
@@ -1313,6 +1332,10 @@ namespace OfficeIMO.Tests {
             Assert.True(validation.ShowErrorMessage);
             Assert.Equal("H2:H5", Assert.Single(validation.Ranges));
             Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.DataValidation);
+            LegacyXlsImportReport report = legacy.CreateImportReport();
+            Assert.Equal(1, report.DataValidationListSourcesByKind["DefinedName"]);
+            Assert.Equal(1, report.DataValidationListSourcesByItemCount["Items:0"]);
+            Assert.Equal(1, report.DataValidationListSourcesByName["StatusOptions"]);
 
             using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound), new LegacyXlsImportOptions {
                 ReportUnsupportedRecords = true
@@ -1361,6 +1384,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal("StatusOptions", validation.ListSourceName);
             Assert.Equal("H2:H5", Assert.Single(validation.Ranges));
             Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.DataValidation);
+            LegacyXlsImportReport report = legacy.CreateImportReport();
+            Assert.Equal(1, report.DataValidationListSourcesByKind["DefinedName"]);
+            Assert.Equal(1, report.DataValidationListSourcesByItemCount["Items:0"]);
+            Assert.Equal(1, report.DataValidationListSourcesByName["StatusOptions"]);
 
             using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound), new LegacyXlsImportOptions {
                 ReportUnsupportedRecords = true

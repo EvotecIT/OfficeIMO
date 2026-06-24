@@ -33,15 +33,33 @@ namespace OfficeIMO.Excel.LegacyXls {
             DataValidationsByDropDownState = CountByCode(dataValidations.Select(GetDataValidationDropDownState));
             DataValidationsByRangeCount = CountByCode(dataValidations.Select(validation => $"Ranges:{validation.RangeCount}"));
             DataValidationsByRange = CountByCode(dataValidations.SelectMany(validation => validation.Ranges));
+            DataValidationsByFormula1State = CountByCode(dataValidations.Select(validation => GetFormulaStateKey(validation.Formula1)));
+            DataValidationsByFormula2State = CountByCode(dataValidations.Select(validation => GetFormulaStateKey(validation.Formula2)));
+            DataValidationsByFormulaPairState = CountByCode(dataValidations.Select(validation => GetFormulaPairStateKey(validation.Formula1, validation.Formula2)));
             DataValidationListSourcesByKind = CountByCode(dataValidations
                 .Where(validation => validation.Type == LegacyXlsDataValidationType.List)
                 .Select(validation => validation.ListSourceKind.ToString()));
+            DataValidationListSourcesByItemCount = CountByCode(dataValidations
+                .Where(validation => validation.Type == LegacyXlsDataValidationType.List)
+                .Select(validation => $"Items:{validation.ListItems.Count.ToString(CultureInfo.InvariantCulture)}"));
+            DataValidationListSourcesByRange = CountByCode(dataValidations
+                .Where(validation => validation.Type == LegacyXlsDataValidationType.List && !string.IsNullOrWhiteSpace(validation.ListSourceRange))
+                .Select(validation => validation.ListSourceRange!));
+            DataValidationListSourcesByName = CountByCode(dataValidations
+                .Where(validation => validation.Type == LegacyXlsDataValidationType.List && !string.IsNullOrWhiteSpace(validation.ListSourceName))
+                .Select(validation => validation.ListSourceName!));
+            DataValidationListSourcesBySheetName = CountByCode(dataValidations
+                .Where(validation => validation.Type == LegacyXlsDataValidationType.List && !string.IsNullOrWhiteSpace(validation.ListSourceSheetName))
+                .Select(validation => validation.ListSourceSheetName!));
             ConditionalFormattingsByType = CountByCode(conditionalFormattings.Select(formatting => formatting.Type.ToString()));
             ConditionalFormattingsByOperator = CountByCode(conditionalFormattings
                 .Where(formatting => formatting.Operator.HasValue)
                 .Select(formatting => formatting.Operator!.Value.ToString()));
             ConditionalFormattingsByRangeCount = CountByCode(conditionalFormattings.Select(formatting => $"Ranges:{formatting.RangeCount}"));
             ConditionalFormattingsByRange = CountByCode(conditionalFormattings.SelectMany(formatting => formatting.Ranges));
+            ConditionalFormattingsByFormula1State = CountByCode(conditionalFormattings.Select(formatting => GetFormulaStateKey(formatting.Formula1)));
+            ConditionalFormattingsByFormula2State = CountByCode(conditionalFormattings.Select(formatting => GetFormulaStateKey(formatting.Formula2)));
+            ConditionalFormattingsByFormulaPairState = CountByCode(conditionalFormattings.Select(formatting => GetFormulaPairStateKey(formatting.Formula1, formatting.Formula2)));
             ConditionalFormattingsByPriorityState = CountByCode(conditionalFormattings.Select(formatting => formatting.Priority.HasValue ? "Present" : "Missing"));
             ConditionalFormattingsByPriority = CountByCode(conditionalFormattings
                 .Where(formatting => formatting.Priority.HasValue)
@@ -63,6 +81,12 @@ namespace OfficeIMO.Excel.LegacyXls {
             AutoFilterCriteriaByKind = CountByCode(workbook.Worksheets
                 .SelectMany(sheet => sheet.AutoFilterCriteria)
                 .Select(criteria => criteria.Kind.ToString()));
+            AutoFilterCriteriaByColumn = CountByCode(workbook.Worksheets
+                .SelectMany(sheet => sheet.AutoFilterCriteria)
+                .Select(criteria => $"Column:{criteria.ColumnId.ToString(CultureInfo.InvariantCulture)}"));
+            AutoFilterCriteriaByConditionCount = CountByCode(workbook.Worksheets
+                .SelectMany(sheet => sheet.AutoFilterCriteria)
+                .Select(criteria => $"Conditions:{criteria.Conditions.Count.ToString(CultureInfo.InvariantCulture)}"));
             AutoFilterTop10Kinds = CountByCode(workbook.Worksheets
                 .SelectMany(sheet => sheet.AutoFilterCriteria)
                 .Where(criteria => criteria.IsTop10)
@@ -71,6 +95,14 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .SelectMany(sheet => sheet.AutoFilterCriteria)
                 .Where(criteria => criteria.IsTop10 && criteria.Top10Value.HasValue)
                 .Select(criteria => $"{GetAutoFilterTop10KindKey(criteria)}:{criteria.Top10Value!.Value}"));
+            AutoFilterTop10Directions = CountByCode(workbook.Worksheets
+                .SelectMany(sheet => sheet.AutoFilterCriteria)
+                .Where(criteria => criteria.IsTop10)
+                .Select(criteria => criteria.Top10IsTop ? "Top" : "Bottom"));
+            AutoFilterTop10Units = CountByCode(workbook.Worksheets
+                .SelectMany(sheet => sheet.AutoFilterCriteria)
+                .Where(criteria => criteria.IsTop10)
+                .Select(criteria => criteria.Top10IsPercent ? "Percent" : "Items"));
             WorksheetsByVisibility = CountByCode(workbook.Worksheets.Select(sheet => sheet.VisibilityName));
             WorkbookCodeNameStates = CountByCode(new[] { string.IsNullOrWhiteSpace(workbook.CodeName) ? "Missing" : "Present" });
             WorkbookCodeNames = CountByCode(string.IsNullOrWhiteSpace(workbook.CodeName) ? Array.Empty<string>() : new[] { workbook.CodeName! });
@@ -598,8 +630,29 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets imported data validations grouped by covered A1 range.</summary>
         public IReadOnlyDictionary<string, int> DataValidationsByRange { get; }
 
+        /// <summary>Gets imported data validations grouped by first-formula presence.</summary>
+        public IReadOnlyDictionary<string, int> DataValidationsByFormula1State { get; }
+
+        /// <summary>Gets imported data validations grouped by second-formula presence.</summary>
+        public IReadOnlyDictionary<string, int> DataValidationsByFormula2State { get; }
+
+        /// <summary>Gets imported data validations grouped by combined first/second formula presence.</summary>
+        public IReadOnlyDictionary<string, int> DataValidationsByFormulaPairState { get; }
+
         /// <summary>Gets imported list data validations grouped by source shape.</summary>
         public IReadOnlyDictionary<string, int> DataValidationListSourcesByKind { get; }
+
+        /// <summary>Gets imported list data validations grouped by inline item count.</summary>
+        public IReadOnlyDictionary<string, int> DataValidationListSourcesByItemCount { get; }
+
+        /// <summary>Gets imported list data validations grouped by source range.</summary>
+        public IReadOnlyDictionary<string, int> DataValidationListSourcesByRange { get; }
+
+        /// <summary>Gets imported list data validations grouped by source defined name.</summary>
+        public IReadOnlyDictionary<string, int> DataValidationListSourcesByName { get; }
+
+        /// <summary>Gets imported list data validations grouped by source sheet name.</summary>
+        public IReadOnlyDictionary<string, int> DataValidationListSourcesBySheetName { get; }
 
         /// <summary>Gets imported conditional formatting rules grouped by rule type.</summary>
         public IReadOnlyDictionary<string, int> ConditionalFormattingsByType { get; }
@@ -612,6 +665,15 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets imported conditional formatting rules grouped by covered A1 range.</summary>
         public IReadOnlyDictionary<string, int> ConditionalFormattingsByRange { get; }
+
+        /// <summary>Gets imported conditional formatting rules grouped by first-formula presence.</summary>
+        public IReadOnlyDictionary<string, int> ConditionalFormattingsByFormula1State { get; }
+
+        /// <summary>Gets imported conditional formatting rules grouped by second-formula presence.</summary>
+        public IReadOnlyDictionary<string, int> ConditionalFormattingsByFormula2State { get; }
+
+        /// <summary>Gets imported conditional formatting rules grouped by combined first/second formula presence.</summary>
+        public IReadOnlyDictionary<string, int> ConditionalFormattingsByFormulaPairState { get; }
 
         /// <summary>Gets imported conditional formatting rules grouped by whether an extension priority was decoded.</summary>
         public IReadOnlyDictionary<string, int> ConditionalFormattingsByPriorityState { get; }
@@ -640,11 +702,23 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets imported AutoFilter criteria grouped by criteria kind.</summary>
         public IReadOnlyDictionary<string, int> AutoFilterCriteriaByKind { get; }
 
+        /// <summary>Gets imported AutoFilter criteria grouped by zero-based column id.</summary>
+        public IReadOnlyDictionary<string, int> AutoFilterCriteriaByColumn { get; }
+
+        /// <summary>Gets imported AutoFilter criteria grouped by condition count.</summary>
+        public IReadOnlyDictionary<string, int> AutoFilterCriteriaByConditionCount { get; }
+
         /// <summary>Gets imported Top/Bottom AutoFilter criteria grouped by top/bottom and items/percent shape.</summary>
         public IReadOnlyDictionary<string, int> AutoFilterTop10Kinds { get; }
 
         /// <summary>Gets imported Top/Bottom AutoFilter criteria grouped by shape and value.</summary>
         public IReadOnlyDictionary<string, int> AutoFilterTop10Values { get; }
+
+        /// <summary>Gets imported Top/Bottom AutoFilter criteria grouped by top or bottom direction.</summary>
+        public IReadOnlyDictionary<string, int> AutoFilterTop10Directions { get; }
+
+        /// <summary>Gets imported Top/Bottom AutoFilter criteria grouped by item-count or percentage unit.</summary>
+        public IReadOnlyDictionary<string, int> AutoFilterTop10Units { get; }
 
         /// <summary>Gets imported worksheets grouped by decoded BoundSheet visibility state.</summary>
         public IReadOnlyDictionary<string, int> WorksheetsByVisibility { get; }
@@ -1368,11 +1442,21 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Data Validations By Drop Down State", DataValidationsByDropDownState);
             AppendDictionary(builder, "Data Validations By Range Count", DataValidationsByRangeCount);
             AppendDictionary(builder, "Data Validations By Range", DataValidationsByRange);
+            AppendDictionary(builder, "Data Validations By Formula1 State", DataValidationsByFormula1State);
+            AppendDictionary(builder, "Data Validations By Formula2 State", DataValidationsByFormula2State);
+            AppendDictionary(builder, "Data Validations By Formula Pair State", DataValidationsByFormulaPairState);
             AppendDictionary(builder, "Data Validation List Sources By Kind", DataValidationListSourcesByKind);
+            AppendDictionary(builder, "Data Validation List Sources By Item Count", DataValidationListSourcesByItemCount);
+            AppendDictionary(builder, "Data Validation List Sources By Range", DataValidationListSourcesByRange);
+            AppendDictionary(builder, "Data Validation List Sources By Name", DataValidationListSourcesByName);
+            AppendDictionary(builder, "Data Validation List Sources By Sheet Name", DataValidationListSourcesBySheetName);
             AppendDictionary(builder, "Conditional Formatting By Type", ConditionalFormattingsByType);
             AppendDictionary(builder, "Conditional Formatting By Operator", ConditionalFormattingsByOperator);
             AppendDictionary(builder, "Conditional Formatting By Range Count", ConditionalFormattingsByRangeCount);
             AppendDictionary(builder, "Conditional Formatting By Range", ConditionalFormattingsByRange);
+            AppendDictionary(builder, "Conditional Formatting By Formula1 State", ConditionalFormattingsByFormula1State);
+            AppendDictionary(builder, "Conditional Formatting By Formula2 State", ConditionalFormattingsByFormula2State);
+            AppendDictionary(builder, "Conditional Formatting By Formula Pair State", ConditionalFormattingsByFormulaPairState);
             AppendDictionary(builder, "Conditional Formatting By Priority State", ConditionalFormattingsByPriorityState);
             AppendDictionary(builder, "Conditional Formatting By Priority", ConditionalFormattingsByPriority);
             AppendDictionary(builder, "Conditional Formatting By Stop If True State", ConditionalFormattingsByStopIfTrueState);
@@ -1382,8 +1466,12 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "AutoFilter Criteria By Operator", AutoFilterCriteriaByOperator);
             AppendDictionary(builder, "AutoFilter Criteria By Value Kind", AutoFilterCriteriaByValueKind);
             AppendDictionary(builder, "AutoFilter Criteria By Join Operator", AutoFilterCriteriaByJoinOperator);
+            AppendDictionary(builder, "AutoFilter Criteria By Column", AutoFilterCriteriaByColumn);
+            AppendDictionary(builder, "AutoFilter Criteria By Condition Count", AutoFilterCriteriaByConditionCount);
             AppendDictionary(builder, "AutoFilter Top10 Kinds", AutoFilterTop10Kinds);
             AppendDictionary(builder, "AutoFilter Top10 Values", AutoFilterTop10Values);
+            AppendDictionary(builder, "AutoFilter Top10 Directions", AutoFilterTop10Directions);
+            AppendDictionary(builder, "AutoFilter Top10 Units", AutoFilterTop10Units);
             AppendDictionary(builder, "Worksheets By Visibility", WorksheetsByVisibility);
             AppendDictionary(builder, "Workbook CodeName States", WorkbookCodeNameStates);
             AppendDictionary(builder, "Workbook CodeNames", WorkbookCodeNames);
@@ -1907,6 +1995,14 @@ namespace OfficeIMO.Excel.LegacyXls {
             string rank = criteria.Top10IsTop ? "Top" : "Bottom";
             string unit = criteria.Top10IsPercent ? "Percent" : "Items";
             return rank + unit;
+        }
+
+        private static string GetFormulaStateKey(string? formula) {
+            return string.IsNullOrWhiteSpace(formula) ? "Missing" : "Present";
+        }
+
+        private static string GetFormulaPairStateKey(string? formula1, string? formula2) {
+            return $"Formula1:{GetFormulaStateKey(formula1)}|Formula2:{GetFormulaStateKey(formula2)}";
         }
 
         private static string GetDataValidationDropDownState(LegacyXlsDataValidation validation) {
