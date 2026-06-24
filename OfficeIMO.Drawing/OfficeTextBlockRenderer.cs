@@ -365,6 +365,10 @@ public static class OfficeTextBlockRenderer {
                 .AppendAttribute("font-family", string.IsNullOrWhiteSpace(fontFamily) ? "Arial, sans-serif" : fontFamily)
                 .AppendNumberAttribute("font-size", layout.FontSize)
                 .AppendAttribute("text-anchor", textAnchor);
+            if (RequiresSvgWhitespacePreserve(line.Text)) {
+                builder.Append(" xml:space=\"preserve\"");
+            }
+
             if (bold) {
                 builder.Append(" font-weight=\"700\"");
             }
@@ -444,6 +448,10 @@ public static class OfficeTextBlockRenderer {
             .AppendNumberAttribute("font-size", fontSize)
             .AppendAttribute("text-anchor", GetSvgTextAnchor(horizontalAlignment))
             .AppendPaintAttribute("fill", color);
+
+        if (RequiresSvgWhitespacePreserve(text)) {
+            builder.Append(" xml:space=\"preserve\"");
+        }
 
         if (bold) {
             builder.Append(" font-weight=\"700\"");
@@ -582,6 +590,10 @@ public static class OfficeTextBlockRenderer {
         writer.WriteNumberAttribute("font-size", layout.FontSize);
         writer.WriteAttributeString("text-anchor", GetSvgTextAnchor(horizontalAlignment));
         writer.WriteAttributeString("dominant-baseline", "middle");
+        if (RequiresSvgWhitespacePreserve(layout)) {
+            writer.WriteAttributeString("xml", "space", "http://www.w3.org/XML/1998/namespace", "preserve");
+        }
+
         OfficeSvgFormatting.WriteColorAttribute(writer, "fill", color);
         if (bold) {
             writer.WriteAttributeString("font-weight", "700");
@@ -701,6 +713,34 @@ public static class OfficeTextBlockRenderer {
             default:
                 return "start";
         }
+    }
+
+    private static bool RequiresSvgWhitespacePreserve(OfficeTextBlockLayout layout) {
+        for (int i = 0; i < layout.Lines.Count; i++) {
+            if (RequiresSvgWhitespacePreserve(layout.Lines[i].Text)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool RequiresSvgWhitespacePreserve(string text) {
+        if (string.IsNullOrEmpty(text)) {
+            return false;
+        }
+
+        if (char.IsWhiteSpace(text[0]) || char.IsWhiteSpace(text[text.Length - 1])) {
+            return true;
+        }
+
+        for (int i = 1; i < text.Length; i++) {
+            if (char.IsWhiteSpace(text[i]) && char.IsWhiteSpace(text[i - 1])) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static void AppendSvgTextDecorationAttribute(StringBuilder builder, bool underline, bool strikethrough) {

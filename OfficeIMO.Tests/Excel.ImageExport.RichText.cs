@@ -29,6 +29,8 @@ namespace OfficeIMO.Tests {
             Assert.Contains("#FF0000", svg, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("#0563C1", svg, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("text-anchor=\"start\"", svg, StringComparison.Ordinal);
+            Assert.Contains("xml:space=\"preserve\"", svg, StringComparison.Ordinal);
+            Assert.Contains("> note</text>", svg, StringComparison.Ordinal);
             Assert.Contains("font-weight=\"700\"", svg, StringComparison.Ordinal);
             Assert.Contains("font-style=\"italic\"", svg, StringComparison.Ordinal);
             Assert.Contains("text-decoration=\"underline\"", svg, StringComparison.Ordinal);

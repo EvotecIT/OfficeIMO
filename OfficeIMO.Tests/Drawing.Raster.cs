@@ -1374,6 +1374,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeTextBlockRenderer_AppendsSvgRichTextSegmentWithPreservedBoundaryWhitespace() {
+            var builder = new System.Text.StringBuilder();
+            var segment = new OfficeRichTextSegment(
+                " spaced",
+                width: 34D,
+                fontSize: 10D,
+                color: OfficeColor.Blue,
+                bold: false,
+                italic: true,
+                underline: false,
+                fontFamily: "Aptos");
+
+            builder.AppendSvgRichTextSegment(segment, 5D, 12D);
+
+            string svg = builder.ToString();
+            Assert.Contains("xml:space=\"preserve\"", svg);
+            Assert.Contains("> spaced</text>", svg);
+        }
+
+        [Fact]
         public void OfficeTextBlockRenderer_AppendsSvgRichTextBlockWithSharedPlacement() {
             var builder = new System.Text.StringBuilder();
             var firstLine = new OfficeRichTextLine(new[] {
