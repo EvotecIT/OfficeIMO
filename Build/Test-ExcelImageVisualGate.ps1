@@ -92,6 +92,7 @@ $smokeGeneratedFilter = New-TestNameFilter -ClassName $visualBaselineTestClass -
     'ChartAxisLabelsImageExportMatchesApprovedBaselines',
     'PageLayoutImageExportMatchesApprovedBaselines',
     'ConditionalFormattingImageExportMatchesApprovedBaselines',
+    'ExpandedIconSetImageExportMatchesApprovedBaselines',
     'TextSpillImageExportMatchesApprovedBaselines',
     'DrawingObjectImageExportMatchesApprovedBaselines',
     'TransformedImageExportMatchesApprovedBaselines'
@@ -104,6 +105,7 @@ $smokeApprovedFilter = New-TestNameFilter -ClassName $visualBaselineTestClass -N
     'ApprovedChartAxisLabelsBaselinesAreRenderableAndNonBlank',
     'ApprovedPageLayoutBaselinesAreRenderableAndNonBlank',
     'ApprovedConditionalFormattingBaselinesAreRenderableAndNonBlank',
+    'ApprovedExpandedIconSetBaselinesAreRenderableAndNonBlank',
     'ApprovedTextSpillBaselinesAreRenderableAndNonBlank',
     'ApprovedDrawingObjectBaselinesAreRenderableAndNonBlank',
     'ApprovedTransformedImageBaselinesAreRenderableAndNonBlank'

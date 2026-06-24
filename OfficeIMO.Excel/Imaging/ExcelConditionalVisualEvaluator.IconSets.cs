@@ -12,7 +12,7 @@ namespace OfficeIMO.Excel {
             foreach (ExcelConditionalFormattingInfo rule in rules
                 .Where(rule => string.Equals(rule.Type, "IconSet", StringComparison.OrdinalIgnoreCase))
                 .OrderBy(rule => NormalizePriority(rule.Priority))) {
-                if (!TryResolveIconSetFamily(rule, out ExcelConditionalIconFamily family) || !TryGetIconCount(rule, out int iconCount)) {
+                if (!TryGetIconCount(rule, out int iconCount) || !TryResolveIconSetFamily(rule, iconCount, out ExcelConditionalIconFamily family)) {
                     continue;
                 }
 
@@ -50,25 +50,26 @@ namespace OfficeIMO.Excel {
         }
 
         private static bool CanRenderIconSet(ExcelConditionalFormattingInfo rule) =>
-            TryResolveIconSetFamily(rule, out _) && TryGetIconCount(rule, out int count) && count == 3;
+            TryGetIconCount(rule, out int count) && count >= 3 && count <= 5 && TryResolveIconSetFamily(rule, count, out _);
 
-        private static bool TryResolveIconSetFamily(ExcelConditionalFormattingInfo rule, out ExcelConditionalIconFamily family) {
+        private static bool TryResolveIconSetFamily(ExcelConditionalFormattingInfo rule, int iconCount, out ExcelConditionalIconFamily family) {
             string name = rule.IconSet ?? string.Empty;
-            if (name.IndexOf("Traffic", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                name.IndexOf("Signs", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                name.IndexOf("Symbols", StringComparison.OrdinalIgnoreCase) >= 0) {
-                family = ExcelConditionalIconFamily.Symbols;
-                return true;
-            }
-
             if (name.IndexOf("Arrow", StringComparison.OrdinalIgnoreCase) >= 0) {
                 family = ExcelConditionalIconFamily.Arrows;
                 return true;
             }
 
             if (name.IndexOf("Rating", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                name.IndexOf("Quarters", StringComparison.OrdinalIgnoreCase) >= 0) {
+                name.IndexOf("Quarters", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                (iconCount > 3 && name.IndexOf("Traffic", StringComparison.OrdinalIgnoreCase) >= 0)) {
                 family = ExcelConditionalIconFamily.Circles;
+                return true;
+            }
+
+            if (name.IndexOf("Traffic", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                name.IndexOf("Signs", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                name.IndexOf("Symbols", StringComparison.OrdinalIgnoreCase) >= 0) {
+                family = ExcelConditionalIconFamily.Symbols;
                 return true;
             }
 
@@ -78,14 +79,16 @@ namespace OfficeIMO.Excel {
 
         private static bool TryGetIconCount(ExcelConditionalFormattingInfo rule, out int count) {
             string name = rule.IconSet ?? string.Empty;
-            if (name.StartsWith("Four", StringComparison.OrdinalIgnoreCase)) {
+            if (name.StartsWith("Four", StringComparison.OrdinalIgnoreCase) ||
+                name.StartsWith("4", StringComparison.OrdinalIgnoreCase)) {
                 count = 4;
-                return false;
+                return true;
             }
 
-            if (name.StartsWith("Five", StringComparison.OrdinalIgnoreCase)) {
+            if (name.StartsWith("Five", StringComparison.OrdinalIgnoreCase) ||
+                name.StartsWith("5", StringComparison.OrdinalIgnoreCase)) {
                 count = 5;
-                return false;
+                return true;
             }
 
             count = 3;
@@ -130,6 +133,28 @@ namespace OfficeIMO.Excel {
         private static ExcelConditionalIconKind MapIconKind(ExcelConditionalIconFamily family, int index, int iconCount) {
             int normalized = Math.Max(0, Math.Min(iconCount - 1, index));
             if (family == ExcelConditionalIconFamily.Arrows) {
+                if (iconCount >= 5) {
+                    return normalized == 0
+                        ? ExcelConditionalIconKind.RedDownArrow
+                        : normalized == 1
+                            ? ExcelConditionalIconKind.YellowDownArrow
+                            : normalized == 2
+                                ? ExcelConditionalIconKind.YellowSideArrow
+                                : normalized == 3
+                                    ? ExcelConditionalIconKind.YellowUpArrow
+                                    : ExcelConditionalIconKind.GreenUpArrow;
+                }
+
+                if (iconCount == 4) {
+                    return normalized == 0
+                        ? ExcelConditionalIconKind.RedDownArrow
+                        : normalized == 1
+                            ? ExcelConditionalIconKind.YellowDownArrow
+                            : normalized == 2
+                                ? ExcelConditionalIconKind.YellowSideArrow
+                                : ExcelConditionalIconKind.GreenUpArrow;
+                }
+
                 return normalized == 0
                     ? ExcelConditionalIconKind.RedDownArrow
                     : normalized == 1
@@ -138,6 +163,28 @@ namespace OfficeIMO.Excel {
             }
 
             if (family == ExcelConditionalIconFamily.Circles) {
+                if (iconCount >= 5) {
+                    return normalized == 0
+                        ? ExcelConditionalIconKind.RedCircle
+                        : normalized == 1
+                            ? ExcelConditionalIconKind.OrangeCircle
+                            : normalized == 2
+                                ? ExcelConditionalIconKind.YellowCircle
+                                : normalized == 3
+                                    ? ExcelConditionalIconKind.LightGreenCircle
+                                    : ExcelConditionalIconKind.GreenCircle;
+                }
+
+                if (iconCount == 4) {
+                    return normalized == 0
+                        ? ExcelConditionalIconKind.RedCircle
+                        : normalized == 1
+                            ? ExcelConditionalIconKind.OrangeCircle
+                            : normalized == 2
+                                ? ExcelConditionalIconKind.YellowCircle
+                                : ExcelConditionalIconKind.GreenCircle;
+                }
+
                 return normalized == 0
                     ? ExcelConditionalIconKind.RedCircle
                     : normalized == 1

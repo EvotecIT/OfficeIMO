@@ -363,8 +363,12 @@ namespace OfficeIMO.Excel {
     public enum ExcelConditionalIconKind {
         /// <summary>Green upward arrow.</summary>
         GreenUpArrow,
+        /// <summary>Yellow upward arrow.</summary>
+        YellowUpArrow,
         /// <summary>Yellow sideways arrow.</summary>
         YellowSideArrow,
+        /// <summary>Yellow downward arrow.</summary>
+        YellowDownArrow,
         /// <summary>Red downward arrow.</summary>
         RedDownArrow,
         /// <summary>Green check mark.</summary>
@@ -375,8 +379,12 @@ namespace OfficeIMO.Excel {
         RedCross,
         /// <summary>Green circle.</summary>
         GreenCircle,
+        /// <summary>Light green circle.</summary>
+        LightGreenCircle,
         /// <summary>Yellow circle.</summary>
         YellowCircle,
+        /// <summary>Orange circle.</summary>
+        OrangeCircle,
         /// <summary>Red circle.</summary>
         RedCircle
     }

@@ -12,6 +12,7 @@ namespace OfficeIMO.Tests {
     public partial class ExcelImageExportVisualBaselineTests {
         private const string BaselineName = "officeimo-excel-image-premium-range";
         private const string ConditionalBaselineName = "officeimo-excel-image-conditional-formatting";
+        private const string ExpandedIconSetBaselineName = "officeimo-excel-image-expanded-icon-sets";
         private const string SparklineBaselineName = "officeimo-excel-image-sparklines";
         private const string ImageClippingBaselineName = "officeimo-excel-image-clipped-image";
         private const string TwoCellImageBaselineName = "officeimo-excel-image-two-cell-image";
@@ -60,6 +61,28 @@ namespace OfficeIMO.Tests {
             AssertDiagnosticsBaseline(ConditionalBaselineName + ".diagnostics.txt", png.Diagnostics);
             AssertRasterBaseline(ConditionalBaselineName + ".png", png.Bytes);
             AssertTextBaseline(ConditionalBaselineName + ".svg", System.Text.Encoding.UTF8.GetString(svg.Bytes));
+        }
+
+        [Fact]
+        public void ExpandedIconSetImageExportMatchesApprovedBaselines() {
+            using ExcelBaselineFixture fixture = CreateExpandedIconSetBaselineWorkbook();
+            ExcelRange range = fixture.Sheet.Range("A1:E7");
+            ExcelImageExportOptions options = CreateBaselineOptions();
+
+            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
+            OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg, options);
+            string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
+
+            Assert.Equal(2, png.Diagnostics.Count(item => item.Code == ExcelImageExportDiagnosticCodes.ConditionalIconSetApproximation));
+            Assert.DoesNotContain(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ConditionalIconSetUnsupported);
+            Assert.DoesNotContain(png.Diagnostics, item => item.Severity == OfficeImageExportDiagnosticSeverity.Error);
+            Assert.DoesNotContain(svg.Diagnostics, item => item.Severity == OfficeImageExportDiagnosticSeverity.Error);
+            Assert.Contains("#16A34A", svgText, StringComparison.Ordinal);
+            Assert.Contains("#F59E0B", svgText, StringComparison.Ordinal);
+            Assert.Contains("#F97316", svgText, StringComparison.Ordinal);
+            AssertDiagnosticsBaseline(ExpandedIconSetBaselineName + ".diagnostics.txt", png.Diagnostics);
+            AssertRasterBaseline(ExpandedIconSetBaselineName + ".png", png.Bytes);
+            AssertTextBaseline(ExpandedIconSetBaselineName + ".svg", svgText);
         }
 
         [Fact]
@@ -472,6 +495,39 @@ namespace OfficeIMO.Tests {
             Assert.Contains("#63B3ED", svg, StringComparison.Ordinal);
             Assert.Contains("#7C3AED", svg, StringComparison.Ordinal);
             Assert.Contains("#C6EFCE", svg, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void ApprovedExpandedIconSetBaselinesAreRenderableAndNonBlank() {
+            string baselineDirectory = BaselineDirectory;
+            string pngPath = Path.Combine(baselineDirectory, ExpandedIconSetBaselineName + ".png");
+            string svgPath = Path.Combine(baselineDirectory, ExpandedIconSetBaselineName + ".svg");
+            if (UpdateBaselines) {
+                using ExcelBaselineFixture fixture = CreateExpandedIconSetBaselineWorkbook();
+                ExcelRange range = fixture.Sheet.Range("A1:E7");
+                ExcelImageExportOptions options = CreateBaselineOptions();
+                AssertRasterBaseline(ExpandedIconSetBaselineName + ".png", range.ExportImage(OfficeImageExportFormat.Png, options).Bytes);
+                AssertTextBaseline(ExpandedIconSetBaselineName + ".svg", System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeImageExportFormat.Svg, options).Bytes));
+            }
+
+            Assert.True(File.Exists(pngPath), "Missing approved expanded-icon-set PNG baseline: " + pngPath);
+            Assert.True(File.Exists(svgPath), "Missing approved expanded-icon-set SVG baseline: " + svgPath);
+
+            OfficeRasterImage image = VisualBaselineTestSupport.DecodePng(File.ReadAllBytes(pngPath), "Approved expanded-icon-set PNG baseline is not a supported PNG file.");
+            Assert.True(image.Width >= 600, "Expanded-icon-set PNG baseline width is unexpectedly small.");
+            Assert.True(image.Height >= 250, "Expanded-icon-set PNG baseline height is unexpectedly small.");
+            int greenPixels = CountPixelsNear(image, OfficeColor.FromRgb(22, 163, 74));
+            int orangePixels = CountPixelsNear(image, OfficeColor.FromRgb(249, 115, 22));
+            Assert.True(greenPixels > 20, "Expanded-icon-set PNG baseline does not contain enough green icon pixels.");
+            Assert.True(orangePixels > 20, "Expanded-icon-set PNG baseline does not contain enough orange icon pixels.");
+
+            string svg = File.ReadAllText(svgPath);
+            Assert.Contains("<svg", svg, StringComparison.Ordinal);
+            Assert.Contains("Expanded Icon Sets", svg, StringComparison.Ordinal);
+            Assert.Contains("Five arrows", svg, StringComparison.Ordinal);
+            Assert.Contains("Four traffic", svg, StringComparison.Ordinal);
+            Assert.Contains("#F59E0B", svg, StringComparison.Ordinal);
+            Assert.Contains("#F97316", svg, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -1035,6 +1091,54 @@ namespace OfficeIMO.Tests {
             sheet.AddConditionalDataBar("D3:D7", OfficeColor.FromRgb(124, 58, 237));
             sheet.AddConditionalIconSet("F3:F7");
             sheet.AddConditionalRule("G3:G7", ConditionalFormattingOperatorValues.GreaterThan, "15", fillColor: "C6EFCE");
+            return new ExcelBaselineFixture(document, sheet);
+        }
+
+        private static ExcelBaselineFixture CreateExpandedIconSetBaselineWorkbook() {
+            string filePath = Path.Combine(Path.GetTempPath(), "OfficeIMO-ExcelExpandedIconSetBaseline-" + Guid.NewGuid().ToString("N") + ".xlsx");
+            ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("IconSets");
+
+            sheet.CellValue(1, 1, "Expanded Icon Sets");
+            sheet.Range("A1:E1").Merge();
+            sheet.Range("A1:E1").SetFillColor("0F172A").SetFontColor("FFFFFF").SetBold();
+            sheet.CellAlign(1, 1, HorizontalAlignmentValues.Center);
+            sheet.CellVerticalAlign(1, 1, VerticalAlignmentValues.Center);
+            sheet.SetRowHeight(1, 26);
+
+            string[] headers = { "Tier", "Five arrows", "Arrow value", "Four traffic", "Traffic value" };
+            for (int column = 1; column <= headers.Length; column++) {
+                sheet.CellValue(2, column, headers[column - 1]);
+                sheet.CellAt(2, column).SetFillColor("E2E8F0").SetFontColor("1F2937").SetBold();
+                sheet.CellVerticalAlign(2, column, VerticalAlignmentValues.Center);
+            }
+
+            string[] tiers = { "Lowest", "Low", "Middle", "High", "Highest" };
+            for (int i = 0; i < tiers.Length; i++) {
+                int row = i + 3;
+                sheet.CellValue(row, 1, tiers[i]);
+                sheet.CellValue(row, 2, i + 1);
+                sheet.CellValue(row, 3, i + 1);
+                sheet.CellValue(row, 4, Math.Min(i + 1, 4));
+                sheet.CellValue(row, 5, Math.Min(i + 1, 4));
+            }
+
+            sheet.SetColumnWidth(1, 13);
+            sheet.SetColumnWidth(2, 13);
+            sheet.SetColumnWidth(3, 13);
+            sheet.SetColumnWidth(4, 13);
+            sheet.SetColumnWidth(5, 13);
+            for (int row = 2; row <= 7; row++) {
+                sheet.SetRowHeight(row, 24);
+                for (int column = 1; column <= 5; column++) {
+                    sheet.CellAt(row, column).SetBorder(BorderStyleValues.Thin, "CBD5E1");
+                    sheet.CellVerticalAlign(row, column, VerticalAlignmentValues.Center);
+                    sheet.CellAlign(row, column, column == 1 ? HorizontalAlignmentValues.Left : HorizontalAlignmentValues.Center);
+                }
+            }
+
+            sheet.AddConditionalIconSet("B3:B7", IconSetValues.FiveArrows, showValue: true, reverseIconOrder: false);
+            sheet.AddConditionalIconSet("D3:D7", IconSetValues.FourTrafficLights, showValue: true, reverseIconOrder: false);
             return new ExcelBaselineFixture(document, sheet);
         }
 

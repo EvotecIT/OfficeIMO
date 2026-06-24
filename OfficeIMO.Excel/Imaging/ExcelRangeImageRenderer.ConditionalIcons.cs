@@ -37,13 +37,17 @@ namespace OfficeIMO.Excel {
                     canvas.DrawLine(bounds.X + bounds.Size * 0.75D, bounds.Y + bounds.Size * 0.25D, bounds.X + bounds.Size * 0.25D, bounds.Y + bounds.Size * 0.75D, fill, Math.Max(2D, bounds.Size * 0.14D));
                     break;
                 case ExcelConditionalIconKind.GreenCircle:
+                case ExcelConditionalIconKind.LightGreenCircle:
                 case ExcelConditionalIconKind.YellowCircle:
+                case ExcelConditionalIconKind.OrangeCircle:
                 case ExcelConditionalIconKind.RedCircle:
                     canvas.FillEllipse(bounds.X, bounds.Y, bounds.Size, bounds.Size, fill);
                     canvas.DrawEllipse(bounds.X, bounds.Y, bounds.Size, bounds.Size, stroke, Math.Max(1D, scale));
                     break;
                 case ExcelConditionalIconKind.GreenUpArrow:
+                case ExcelConditionalIconKind.YellowUpArrow:
                 case ExcelConditionalIconKind.YellowSideArrow:
+                case ExcelConditionalIconKind.YellowDownArrow:
                 case ExcelConditionalIconKind.RedDownArrow:
                     IReadOnlyList<OfficePoint> points = CreateArrowPoints(bounds, icon.Kind);
                     canvas.FillPolygon(points, fill);
@@ -71,12 +75,16 @@ namespace OfficeIMO.Excel {
                     AppendSvgIconLine(builder, bounds.X + bounds.Size * 0.75D, bounds.Y + bounds.Size * 0.25D, bounds.X + bounds.Size * 0.25D, bounds.Y + bounds.Size * 0.75D, fill, bounds.Size * 0.14D);
                     break;
                 case ExcelConditionalIconKind.GreenCircle:
+                case ExcelConditionalIconKind.LightGreenCircle:
                 case ExcelConditionalIconKind.YellowCircle:
+                case ExcelConditionalIconKind.OrangeCircle:
                 case ExcelConditionalIconKind.RedCircle:
                     AppendSvgIconCircle(builder, bounds, fill, stroke);
                     break;
                 case ExcelConditionalIconKind.GreenUpArrow:
+                case ExcelConditionalIconKind.YellowUpArrow:
                 case ExcelConditionalIconKind.YellowSideArrow:
+                case ExcelConditionalIconKind.YellowDownArrow:
                 case ExcelConditionalIconKind.RedDownArrow:
                     IReadOnlyList<OfficePoint> points = CreateArrowPoints(bounds, icon.Kind);
                     var attributes = new StringBuilder()
@@ -117,7 +125,7 @@ namespace OfficeIMO.Excel {
             double x = bounds.X;
             double y = bounds.Y;
             double s = bounds.Size;
-            if (kind == ExcelConditionalIconKind.RedDownArrow) {
+            if (kind == ExcelConditionalIconKind.RedDownArrow || kind == ExcelConditionalIconKind.YellowDownArrow) {
                 return new[] {
                     new OfficePoint(x + s * 0.36D, y + s * 0.08D),
                     new OfficePoint(x + s * 0.64D, y + s * 0.08D),
@@ -155,14 +163,18 @@ namespace OfficeIMO.Excel {
         private static OfficeColor GetConditionalIconColor(ExcelConditionalIconKind kind) =>
             kind switch {
                 ExcelConditionalIconKind.GreenUpArrow or ExcelConditionalIconKind.GreenCheck or ExcelConditionalIconKind.GreenCircle => OfficeColor.FromRgb(22, 163, 74),
-                ExcelConditionalIconKind.YellowSideArrow or ExcelConditionalIconKind.YellowExclamation or ExcelConditionalIconKind.YellowCircle => OfficeColor.FromRgb(245, 158, 11),
+                ExcelConditionalIconKind.LightGreenCircle => OfficeColor.FromRgb(132, 204, 22),
+                ExcelConditionalIconKind.YellowUpArrow or ExcelConditionalIconKind.YellowSideArrow or ExcelConditionalIconKind.YellowDownArrow or ExcelConditionalIconKind.YellowExclamation or ExcelConditionalIconKind.YellowCircle => OfficeColor.FromRgb(245, 158, 11),
+                ExcelConditionalIconKind.OrangeCircle => OfficeColor.FromRgb(249, 115, 22),
                 _ => OfficeColor.FromRgb(220, 38, 38)
             };
 
         private static OfficeColor GetConditionalIconStroke(ExcelConditionalIconKind kind) =>
             kind switch {
                 ExcelConditionalIconKind.GreenUpArrow or ExcelConditionalIconKind.GreenCheck or ExcelConditionalIconKind.GreenCircle => OfficeColor.FromRgb(21, 128, 61),
-                ExcelConditionalIconKind.YellowSideArrow or ExcelConditionalIconKind.YellowExclamation or ExcelConditionalIconKind.YellowCircle => OfficeColor.FromRgb(180, 83, 9),
+                ExcelConditionalIconKind.LightGreenCircle => OfficeColor.FromRgb(77, 124, 15),
+                ExcelConditionalIconKind.YellowUpArrow or ExcelConditionalIconKind.YellowSideArrow or ExcelConditionalIconKind.YellowDownArrow or ExcelConditionalIconKind.YellowExclamation or ExcelConditionalIconKind.YellowCircle => OfficeColor.FromRgb(180, 83, 9),
+                ExcelConditionalIconKind.OrangeCircle => OfficeColor.FromRgb(194, 65, 12),
                 _ => OfficeColor.FromRgb(185, 28, 28)
             };
 
