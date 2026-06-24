@@ -10,6 +10,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         private readonly List<LegacyXlsConditionalFormatting> _conditionalFormattings = new();
         private readonly List<LegacyXlsDataValidationCollectionRecord> _dataValidationCollections = new();
         private readonly List<LegacyXlsDataValidation> _dataValidations = new();
+        private readonly List<LegacyXlsArrayFormulaRecord> _arrayFormulaRecords = new();
         private readonly List<LegacyXlsAutoFilterCriteria> _autoFilterCriteria = new();
         private readonly List<LegacyXlsPageBreak> _columnPageBreaks = new();
         private readonly List<LegacyXlsHyperlink> _hyperlinks = new();
@@ -102,6 +103,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// Gets parsed DVal collection headers for this worksheet.
         /// </summary>
         public IReadOnlyList<LegacyXlsDataValidationCollectionRecord> DataValidationCollections => _dataValidationCollections;
+
+        /// <summary>
+        /// Gets preserve/projection metadata for Array formula records discovered on this worksheet.
+        /// </summary>
+        public IReadOnlyList<LegacyXlsArrayFormulaRecord> ArrayFormulaRecords => _arrayFormulaRecords;
 
         /// <summary>
         /// Gets parsed AutoFilter criteria for this worksheet.
@@ -318,6 +324,10 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         internal void AddDataValidationCollection(LegacyXlsDataValidationCollectionRecord collectionRecord) {
             _dataValidationCollections.Add(collectionRecord);
+        }
+
+        internal void AddArrayFormulaRecord(LegacyXlsArrayFormulaRecord arrayFormulaRecord) {
+            _arrayFormulaRecords.Add(arrayFormulaRecord);
         }
 
         internal void AddAutoFilterCriteria(LegacyXlsAutoFilterCriteria criteria) {

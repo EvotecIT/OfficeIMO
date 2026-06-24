@@ -948,11 +948,31 @@ namespace OfficeIMO.Tests {
             LegacyXlsImportReport report = legacy.CreateImportReport();
             Assert.Equal(3, report.FormulaTokensByContext["ArrayFormula"]);
             Assert.Equal(3, report.FormulaTokensByContextAndSheet["ArrayFormula|ArrayFormula"]);
+            Assert.Equal(1, report.ArrayFormulaRecordCount);
+            Assert.Equal(1, report.ArrayFormulasBySheet["ArrayFormula"]);
+            Assert.Equal(1, report.ArrayFormulasByRange["D1"]);
+            Assert.Equal(1, report.ArrayFormulasBySheetAndRange["ArrayFormula!D1"]);
+            Assert.Equal(1, report.ArrayFormulasByDeclaredCellCount["Cells:1"]);
+            Assert.Equal(1, report.ArrayFormulasByMatchedFormulaCellCount["Matched:1"]);
+            Assert.Equal(1, report.ArrayFormulasByAlwaysCalculateState["NormalCalculation"]);
+            Assert.Equal(1, report.ArrayFormulasByProjectionState["FormulaTextProjected"]);
+            Assert.Equal(1, report.ArrayFormulasByTokenByteCount["TokenBytes:9"]);
+            Assert.Equal(1, report.ArrayFormulasByExtraByteCount["ExtraBytes:0"]);
             LegacyXlsWorksheet sheet = Assert.Single(legacy.Worksheets);
+            LegacyXlsArrayFormulaRecord arrayFormula = Assert.Single(sheet.ArrayFormulaRecords);
+            Assert.Equal("D1", arrayFormula.Range);
+            Assert.False(arrayFormula.AlwaysCalculate);
+            Assert.Equal(9, arrayFormula.FormulaTokenByteCount);
+            Assert.Equal(0, arrayFormula.FormulaExtraByteCount);
+            Assert.Equal(1, arrayFormula.MatchedFormulaCellCount);
+            Assert.True(arrayFormula.FormulaTextProjected);
             LegacyXlsCell formula = Assert.Single(sheet.Cells, cell => cell.Row == 1 && cell.Column == 4);
             Assert.True(formula.IsFormula);
             Assert.Equal(31d, formula.Value);
             Assert.Equal("C1+1", formula.FormulaText);
+            string markdown = report.ToMarkdown();
+            Assert.Contains("Array Formulas By Range", markdown, StringComparison.Ordinal);
+            Assert.Contains("Array Formulas By Projection State", markdown, StringComparison.Ordinal);
         }
 
         [Fact]

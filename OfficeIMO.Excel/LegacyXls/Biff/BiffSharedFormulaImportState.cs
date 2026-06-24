@@ -125,6 +125,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             ushort lastRow = BiffRecordReader.ReadUInt16(payload, 2);
             ushort firstColumn = payload[4];
             ushort lastColumn = payload[5];
+            ushort optionFlags = payload.Length >= 8 ? BiffRecordReader.ReadUInt16(payload, 6) : (ushort)0;
             if (lastRow < firstRow
                 || lastColumn < firstColumn
                 || !ContainsCell(firstRow, lastRow, firstColumn, lastColumn, lastSharedFormulaCell.Value.Row - 1, lastSharedFormulaCell.Value.Column - 1)) {
@@ -142,7 +143,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 }
             }
 
-            if (matchingCells.Count > 0 && TryCreateArrayFormulaPayload(payload, out byte[] formulaPayload)) {
+            bool formulaTextProjected = false;
+            int formulaTokenByteCount = 0;
+            int formulaExtraByteCount = 0;
+            if (matchingCells.Count > 0
+                && TryCreateArrayFormulaPayload(payload, out byte[] formulaPayload, out formulaTokenByteCount, out formulaExtraByteCount)) {
                 PendingSharedFormulaCell formulaCell = lastSharedFormulaCell.Value;
                 string cellReference = A1.ColumnIndexToLetters(formulaCell.Column) + formulaCell.Row.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 BiffFormulaTokenScanner.ScanLengthPrefixed(
@@ -168,7 +173,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     out BiffFormulaReadFailure? failure)) {
                     if (!string.IsNullOrWhiteSpace(formulaText)) {
                         foreach (PendingSharedFormulaCell cell in matchingCells) {
-                            _sheet.TryReplaceFormulaText(cell.Row, cell.Column, formulaText!);
+                            formulaTextProjected |= _sheet.TryReplaceFormulaText(cell.Row, cell.Column, formulaText!);
                         }
                     }
                 } else if (_options.ReportUnsupportedRecords) {
@@ -188,6 +193,19 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 }
             }
 
+            _sheet.AddArrayFormulaRecord(new LegacyXlsArrayFormulaRecord(
+                firstRow + 1,
+                firstColumn + 1,
+                lastRow + 1,
+                lastColumn + 1,
+                optionFlags,
+                formulaTokenByteCount,
+                formulaExtraByteCount,
+                matchingCells.Count,
+                formulaTextProjected,
+                recordOffset,
+                (ushort)BiffRecordType.Array,
+                payload.Length));
             return true;
         }
 
@@ -268,8 +286,14 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             return row >= firstRow && row <= lastRow && column >= firstColumn && column <= lastColumn;
         }
 
-        private static bool TryCreateArrayFormulaPayload(byte[] payload, out byte[] formulaPayload) {
+        private static bool TryCreateArrayFormulaPayload(
+            byte[] payload,
+            out byte[] formulaPayload,
+            out int formulaTokenByteCount,
+            out int formulaExtraByteCount) {
             formulaPayload = Array.Empty<byte>();
+            formulaTokenByteCount = 0;
+            formulaExtraByteCount = 0;
             if (payload.Length < 14) {
                 return false;
             }
@@ -279,6 +303,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 return false;
             }
 
+            formulaTokenByteCount = expressionLength;
+            formulaExtraByteCount = payload.Length - 14 - expressionLength;
             formulaPayload = new byte[payload.Length - 12];
             Buffer.BlockCopy(payload, 12, formulaPayload, 0, formulaPayload.Length);
             return true;

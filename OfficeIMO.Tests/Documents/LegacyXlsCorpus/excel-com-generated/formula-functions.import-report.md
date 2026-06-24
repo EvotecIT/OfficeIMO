@@ -37,6 +37,7 @@ Calculation setting records: 7
 Cell style records: 47
 Cell style extension records: 110
 Formula token records: 37
+Array formula records: 0
 Future function aliases: 0
 Workbook metadata records: 18
 Worksheet metadata records: 5

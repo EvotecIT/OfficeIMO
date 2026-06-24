@@ -37,6 +37,7 @@ Calculation setting records: 0
 Cell style records: 0
 Cell style extension records: 0
 Formula token records: 0
+Array formula records: 0
 Future function aliases: 0
 Workbook metadata records: 0
 Worksheet metadata records: 0

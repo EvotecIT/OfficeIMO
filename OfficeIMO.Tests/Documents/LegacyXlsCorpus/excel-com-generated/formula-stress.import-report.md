@@ -37,6 +37,7 @@ Calculation setting records: 7
 Cell style records: 47
 Cell style extension records: 110
 Formula token records: 49
+Array formula records: 1
 Future function aliases: 0
 Workbook metadata records: 18
 Worksheet metadata records: 5
@@ -156,6 +157,60 @@ Warnings: 0
 | Goto | 2 |
 | If | 1 |
 | Sum | 3 |
+
+## Array Formulas By Sheet
+
+| Key | Count |
+| --- | --- |
+| Formulas | 1 |
+
+## Array Formulas By Range
+
+| Key | Count |
+| --- | --- |
+| D1 | 1 |
+
+## Array Formulas By Sheet And Range
+
+| Key | Count |
+| --- | --- |
+| Formulas!D1 | 1 |
+
+## Array Formulas By Declared Cell Count
+
+| Key | Count |
+| --- | --- |
+| Cells:1 | 1 |
+
+## Array Formulas By Matched Formula Cell Count
+
+| Key | Count |
+| --- | --- |
+| Matched:1 | 1 |
+
+## Array Formulas By Always Calculate State
+
+| Key | Count |
+| --- | --- |
+| NormalCalculation | 1 |
+
+## Array Formulas By Projection State
+
+| Key | Count |
+| --- | --- |
+| FormulaTextProjected | 1 |
+
+## Array Formulas By Token Byte Count
+
+| Key | Count |
+| --- | --- |
+| TokenBytes:22 | 1 |
+
+## Array Formulas By Extra Byte Count
+
+| Key | Count |
+| --- | --- |
+| ExtraBytes:30 | 1 |
 
 ## Worksheets By Visibility
 

@@ -431,6 +431,9 @@ namespace OfficeIMO.Tests {
             Assert.Empty(result.ImportReport.FormulaTokenBlockers);
             Assert.Equal(4, result.ImportReport.FormulaTokensByContext["ArrayFormula"]);
             Assert.Equal(4, result.ImportReport.FormulaTokensByContextAndSheet["ArrayFormula|Formulas"]);
+            Assert.Equal(1, result.ImportReport.ArrayFormulaRecordCount);
+            Assert.Equal(1, result.ImportReport.ArrayFormulasBySheetAndRange["Formulas!D1"]);
+            Assert.Equal(1, result.ImportReport.ArrayFormulasByProjectionState["FormulaTextProjected"]);
             Assert.Contains("ROUND", result.ImportReport.FormulaFunctionsByName.Keys);
             Assert.Contains("IF", result.ImportReport.FormulaFunctionsByName.Keys);
             Assert.Contains("If", result.ImportReport.FormulaAttributesByName.Keys);

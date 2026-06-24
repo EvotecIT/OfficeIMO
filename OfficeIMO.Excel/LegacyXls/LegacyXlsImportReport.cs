@@ -14,6 +14,9 @@ namespace OfficeIMO.Excel.LegacyXls {
             LegacyXlsComment[] comments = workbook.Worksheets.SelectMany(sheet => sheet.Comments).ToArray();
             LegacyXlsDataValidationCollectionRecord[] dataValidationCollections = workbook.Worksheets.SelectMany(sheet => sheet.DataValidationCollections).ToArray();
             LegacyXlsDataValidation[] dataValidations = workbook.Worksheets.SelectMany(sheet => sheet.DataValidations).ToArray();
+            var arrayFormulaRecords = workbook.Worksheets
+                .SelectMany(sheet => sheet.ArrayFormulaRecords.Select(record => new { SheetName = sheet.Name, Record = record }))
+                .ToArray();
             LegacyXlsConditionalFormatting[] conditionalFormattings = workbook.Worksheets.SelectMany(sheet => sheet.ConditionalFormattings).ToArray();
             LegacyXlsConditionalFormattingExtensionRecord[] conditionalFormattingExtensions = workbook.Worksheets.SelectMany(sheet => sheet.ConditionalFormattingExtensions).ToArray();
             WorksheetCount = workbook.Worksheets.Count;
@@ -83,6 +86,16 @@ namespace OfficeIMO.Excel.LegacyXls {
             DataValidationListSourcesBySheetName = CountByCode(dataValidations
                 .Where(validation => validation.Type == LegacyXlsDataValidationType.List && !string.IsNullOrWhiteSpace(validation.ListSourceSheetName))
                 .Select(validation => validation.ListSourceSheetName!));
+            ArrayFormulaRecordCount = arrayFormulaRecords.Length;
+            ArrayFormulasBySheet = CountByCode(arrayFormulaRecords.Select(item => item.SheetName));
+            ArrayFormulasByRange = CountByCode(arrayFormulaRecords.Select(item => item.Record.Range));
+            ArrayFormulasBySheetAndRange = CountByCode(arrayFormulaRecords.Select(item => $"{item.SheetName}!{item.Record.Range}"));
+            ArrayFormulasByDeclaredCellCount = CountByCode(arrayFormulaRecords.Select(item => $"Cells:{item.Record.DeclaredCellCount.ToString(CultureInfo.InvariantCulture)}"));
+            ArrayFormulasByMatchedFormulaCellCount = CountByCode(arrayFormulaRecords.Select(item => $"Matched:{item.Record.MatchedFormulaCellCount.ToString(CultureInfo.InvariantCulture)}"));
+            ArrayFormulasByAlwaysCalculateState = CountByCode(arrayFormulaRecords.Select(item => item.Record.AlwaysCalculate ? "AlwaysCalculate" : "NormalCalculation"));
+            ArrayFormulasByProjectionState = CountByCode(arrayFormulaRecords.Select(item => item.Record.FormulaTextProjected ? "FormulaTextProjected" : "CachedOnly"));
+            ArrayFormulasByTokenByteCount = CountByCode(arrayFormulaRecords.Select(item => $"TokenBytes:{item.Record.FormulaTokenByteCount.ToString(CultureInfo.InvariantCulture)}"));
+            ArrayFormulasByExtraByteCount = CountByCode(arrayFormulaRecords.Select(item => $"ExtraBytes:{item.Record.FormulaExtraByteCount.ToString(CultureInfo.InvariantCulture)}"));
             ConditionalFormattingsByType = CountByCode(conditionalFormattings.Select(formatting => formatting.Type.ToString()));
             ConditionalFormattingsByOperator = CountByCode(conditionalFormattings
                 .Where(formatting => formatting.Operator.HasValue)
@@ -1003,6 +1016,36 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets imported list data validations grouped by source sheet name.</summary>
         public IReadOnlyDictionary<string, int> DataValidationListSourcesBySheetName { get; }
+
+        /// <summary>Gets the number of Array formula records decoded during import.</summary>
+        public int ArrayFormulaRecordCount { get; }
+
+        /// <summary>Gets Array formula records grouped by worksheet name.</summary>
+        public IReadOnlyDictionary<string, int> ArrayFormulasBySheet { get; }
+
+        /// <summary>Gets Array formula records grouped by covered A1 range.</summary>
+        public IReadOnlyDictionary<string, int> ArrayFormulasByRange { get; }
+
+        /// <summary>Gets Array formula records grouped by worksheet-qualified A1 range.</summary>
+        public IReadOnlyDictionary<string, int> ArrayFormulasBySheetAndRange { get; }
+
+        /// <summary>Gets Array formula records grouped by declared cell count.</summary>
+        public IReadOnlyDictionary<string, int> ArrayFormulasByDeclaredCellCount { get; }
+
+        /// <summary>Gets Array formula records grouped by the number of matched cached formula cells.</summary>
+        public IReadOnlyDictionary<string, int> ArrayFormulasByMatchedFormulaCellCount { get; }
+
+        /// <summary>Gets Array formula records grouped by recalculation flag state.</summary>
+        public IReadOnlyDictionary<string, int> ArrayFormulasByAlwaysCalculateState { get; }
+
+        /// <summary>Gets Array formula records grouped by whether formula text was projected onto matched cells.</summary>
+        public IReadOnlyDictionary<string, int> ArrayFormulasByProjectionState { get; }
+
+        /// <summary>Gets Array formula records grouped by parsed token byte count.</summary>
+        public IReadOnlyDictionary<string, int> ArrayFormulasByTokenByteCount { get; }
+
+        /// <summary>Gets Array formula records grouped by parsed-formula ancillary byte count.</summary>
+        public IReadOnlyDictionary<string, int> ArrayFormulasByExtraByteCount { get; }
 
         /// <summary>Gets imported conditional formatting rules grouped by rule type.</summary>
         public IReadOnlyDictionary<string, int> ConditionalFormattingsByType { get; }
@@ -2098,6 +2141,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             builder.AppendLine($"Cell style records: {CellStyleRecordCount}");
             builder.AppendLine($"Cell style extension records: {CellStyleExtensionRecordCount}");
             builder.AppendLine($"Formula token records: {FormulaTokenRecordCount}");
+            builder.AppendLine($"Array formula records: {ArrayFormulaRecordCount}");
             builder.AppendLine($"Future function aliases: {FutureFunctionAliasCount}");
             builder.AppendLine($"Workbook metadata records: {WorkbookMetadataRecordCount}");
             builder.AppendLine($"Worksheet metadata records: {WorksheetMetadataRecordCount}");
@@ -2124,6 +2168,15 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Formula Functions By Id", FormulaFunctionsById);
             AppendDictionary(builder, "Formula Functions By Name", FormulaFunctionsByName);
             AppendDictionary(builder, "Formula Attributes By Name", FormulaAttributesByName);
+            AppendDictionary(builder, "Array Formulas By Sheet", ArrayFormulasBySheet);
+            AppendDictionary(builder, "Array Formulas By Range", ArrayFormulasByRange);
+            AppendDictionary(builder, "Array Formulas By Sheet And Range", ArrayFormulasBySheetAndRange);
+            AppendDictionary(builder, "Array Formulas By Declared Cell Count", ArrayFormulasByDeclaredCellCount);
+            AppendDictionary(builder, "Array Formulas By Matched Formula Cell Count", ArrayFormulasByMatchedFormulaCellCount);
+            AppendDictionary(builder, "Array Formulas By Always Calculate State", ArrayFormulasByAlwaysCalculateState);
+            AppendDictionary(builder, "Array Formulas By Projection State", ArrayFormulasByProjectionState);
+            AppendDictionary(builder, "Array Formulas By Token Byte Count", ArrayFormulasByTokenByteCount);
+            AppendDictionary(builder, "Array Formulas By Extra Byte Count", ArrayFormulasByExtraByteCount);
             AppendDictionary(builder, "Future Function Aliases By Name", FutureFunctionAliasesByName);
             AppendDictionary(builder, "Future Function Aliases By Function", FutureFunctionAliasesByFunction);
             AppendDictionary(builder, "Future Function Aliases By Token Name", FutureFunctionAliasesByTokenName);
