@@ -399,6 +399,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 1 && icon.Column == 3 && icon.Kind == ExcelConditionalIconKind.RedCross);
             Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 2 && icon.Column == 3 && icon.Kind == ExcelConditionalIconKind.YellowExclamation);
             Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 3 && icon.Column == 3 && icon.Kind == ExcelConditionalIconKind.GreenCheck);
+            Assert.All(snapshot.ConditionalIcons, icon => Assert.True(icon.ShowValue));
             OfficeImageExportDiagnostic diagnostic = Assert.Single(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ConditionalIconSetApproximation);
             Assert.Equal(OfficeImageExportDiagnosticSeverity.Info, diagnostic.Severity);
             Assert.Equal("Conditional!C1:C3", diagnostic.Source);
@@ -417,6 +418,38 @@ namespace OfficeIMO.Tests {
             OfficeColor barPixel = rendered!.GetPixel((int)(finalBar.X + finalBar.Width - 8), (int)(finalBar.Y + (finalBar.Height / 2D)));
             Assert.True(barPixel.B > 120 && barPixel.R < 40 && barPixel.G < 40, "Expected a blue data-bar pixel.");
             ExcelVisualConditionalIcon finalIcon = snapshot.ConditionalIcons.Single(icon => icon.Row == 3 && icon.Column == 3);
+            Assert.True(CountGreenIconPixels(rendered!, finalIcon) > 4, "Expected visible green conditional-formatting icon pixels.");
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportHonorsConditionalIconSetHiddenValues() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("IconOnly");
+            sheet.CellValue(1, 1, 1);
+            sheet.CellValue(2, 1, 2);
+            sheet.CellValue(3, 1, 3);
+            sheet.SetColumnWidth(1, 12);
+            sheet.SetRowHeight(1, 24);
+            sheet.SetRowHeight(2, 24);
+            sheet.SetRowHeight(3, 24);
+            sheet.AddConditionalIconSet("A1:A3", IconSetValues.ThreeTrafficLights1, showValue: false, reverseIconOrder: false);
+
+            ExcelRange range = sheet.Range("A1:A3");
+            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot();
+            string svg = range.ToSvg(new ExcelImageExportOptions { ShowGridlines = false });
+            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
+
+            Assert.Equal(3, snapshot.ConditionalIcons.Count);
+            Assert.All(snapshot.ConditionalIcons, icon => Assert.False(icon.ShowValue));
+            Assert.DoesNotContain(">1<", svg, StringComparison.Ordinal);
+            Assert.DoesNotContain(">2<", svg, StringComparison.Ordinal);
+            Assert.DoesNotContain(">3<", svg, StringComparison.Ordinal);
+            Assert.Contains("#16A34A", svg, StringComparison.Ordinal);
+            OfficeImageExportDiagnostic diagnostic = Assert.Single(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ConditionalIconSetApproximation);
+            Assert.Equal(OfficeImageExportDiagnosticSeverity.Info, diagnostic.Severity);
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
+            ExcelVisualConditionalIcon finalIcon = snapshot.ConditionalIcons.Single(icon => icon.Row == 3 && icon.Column == 1);
             Assert.True(CountGreenIconPixels(rendered!, finalIcon) > 4, "Expected visible green conditional-formatting icon pixels.");
         }
 

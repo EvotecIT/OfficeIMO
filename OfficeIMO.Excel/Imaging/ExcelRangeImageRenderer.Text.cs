@@ -24,6 +24,14 @@ namespace OfficeIMO.Excel {
             }
 
             CellTextViewport viewport = ResolveCellTextViewport(cell, snapshot, scale, cellsByAddress);
+            if (TryGetConditionalIconForCell(snapshot, cell, out ExcelVisualConditionalIcon conditionalIcon)) {
+                if (!conditionalIcon.ShowValue) {
+                    return;
+                }
+
+                viewport = ReserveConditionalIconTextSpace(viewport, conditionalIcon, scale);
+            }
+
             double x = viewport.X;
             double y = viewport.Y;
             double w = viewport.Width;
@@ -141,6 +149,14 @@ namespace OfficeIMO.Excel {
 
             double scale = options.Scale;
             CellTextViewport viewport = ResolveCellTextViewport(cell, snapshot, scale, cellsByAddress);
+            if (TryGetConditionalIconForCell(snapshot, cell, out ExcelVisualConditionalIcon conditionalIcon)) {
+                if (!conditionalIcon.ShowValue) {
+                    return;
+                }
+
+                viewport = ReserveConditionalIconTextSpace(viewport, conditionalIcon, scale);
+            }
+
             double x = viewport.X;
             double y = viewport.Y;
             double w = viewport.Width;
@@ -476,6 +492,36 @@ namespace OfficeIMO.Excel {
 
         private static bool IsRichTextRenderingSupported(ExcelVisualCell cell, bool rotated) {
             return true;
+        }
+
+        private static bool TryGetConditionalIconForCell(ExcelRangeVisualSnapshot snapshot, ExcelVisualCell cell, out ExcelVisualConditionalIcon icon) {
+            for (int index = 0; index < snapshot.ConditionalIcons.Count; index++) {
+                ExcelVisualConditionalIcon candidate = snapshot.ConditionalIcons[index];
+                if (candidate.Row == cell.Row && candidate.Column == cell.Column) {
+                    icon = candidate;
+                    return true;
+                }
+            }
+
+            icon = null!;
+            return false;
+        }
+
+        private static CellTextViewport ReserveConditionalIconTextSpace(CellTextViewport viewport, ExcelVisualConditionalIcon icon, double scale) {
+            IconBounds bounds = GetConditionalIconBounds(icon, scale);
+            double reservedRight = Math.Min(
+                viewport.X + viewport.Width,
+                bounds.X + bounds.Size + Math.Max(CellTextHorizontalPadding * scale, 4D * scale));
+            double reservedWidth = Math.Max(0D, reservedRight - viewport.X);
+            if (reservedWidth <= 0D || reservedWidth >= viewport.Width - scale) {
+                return viewport;
+            }
+
+            return new CellTextViewport(
+                viewport.X + reservedWidth,
+                viewport.Y,
+                Math.Max(1D, viewport.Width - reservedWidth),
+                viewport.Height);
         }
 
         private static CellTextViewport ResolveCellTextViewport(

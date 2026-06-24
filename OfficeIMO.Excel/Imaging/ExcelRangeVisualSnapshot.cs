@@ -321,7 +321,7 @@ namespace OfficeIMO.Excel {
     /// Conditional-formatting icon overlay in an Excel range snapshot.
     /// </summary>
     public sealed class ExcelVisualConditionalIcon {
-        internal ExcelVisualConditionalIcon(int row, int column, double x, double y, double width, double height, ExcelConditionalIconKind kind) {
+        internal ExcelVisualConditionalIcon(int row, int column, double x, double y, double width, double height, ExcelConditionalIconKind kind, bool showValue) {
             Row = row;
             Column = column;
             X = x;
@@ -329,6 +329,7 @@ namespace OfficeIMO.Excel {
             Width = width;
             Height = height;
             Kind = kind;
+            ShowValue = showValue;
         }
 
         /// <summary>One-based source row.</summary>
@@ -351,6 +352,9 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Rendered icon kind.</summary>
         public ExcelConditionalIconKind Kind { get; }
+
+        /// <summary>Whether the formatted cell value should be rendered beside the icon.</summary>
+        public bool ShowValue { get; }
     }
 
     /// <summary>

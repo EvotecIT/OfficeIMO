@@ -41,7 +41,8 @@ namespace OfficeIMO.Excel {
                         candidate.Cell.Y,
                         candidate.Cell.Width,
                         candidate.Cell.Height,
-                        MapIconKind(family, index, iconCount)));
+                        MapIconKind(family, index, iconCount),
+                        rule.IconSetShowValue));
                 }
             }
 
