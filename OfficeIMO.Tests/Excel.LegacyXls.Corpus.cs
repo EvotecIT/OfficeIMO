@@ -160,6 +160,7 @@ namespace OfficeIMO.Tests {
 
             Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
             Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED");
+            Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "XLS-BIFF-FORMULA-SHARED-UNRESOLVED");
             Assert.Empty(result.ImportReport.FormulaTokenBlockers);
             Assert.Contains("ROUND", result.ImportReport.FormulaFunctionsByName.Keys);
             Assert.Contains("IF", result.ImportReport.FormulaFunctionsByName.Keys);

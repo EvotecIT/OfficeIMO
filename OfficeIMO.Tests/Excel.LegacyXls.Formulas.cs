@@ -934,6 +934,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_Load_DoesNotReportArrayFormulaAsUnresolvedSharedFormula() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateFormulaArrayFollowUpWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FORMULA-SHARED-UNRESOLVED");
+            Assert.Contains(legacy.UnsupportedFeatures, feature => feature.RecordType == (ushort)BiffRecordType.Array);
+            LegacyXlsWorksheet sheet = Assert.Single(legacy.Worksheets);
+            LegacyXlsCell formula = Assert.Single(sheet.Cells, cell => cell.Row == 1 && cell.Column == 4);
+            Assert.True(formula.IsFormula);
+            Assert.Equal(31d, formula.Value);
+            Assert.Null(formula.FormulaText);
+        }
+
+        [Fact]
         public void LegacyXls_Load_ImportsFormulaArrayConstantTokens() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateFormulaArrayConstantWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
@@ -1684,6 +1703,27 @@ namespace OfficeIMO.Tests {
                 return bytes;
             }
 
+            internal static byte[] CreateFormulaArrayFollowUpWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long boundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "ArrayFormula"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0203, BuildNumberPayload(0, 0, 10d));
+                WriteRecord(stream, 0x0203, BuildNumberPayload(0, 1, 20d));
+                WriteRecord(stream, 0x0203, BuildNumberPayload(0, 2, 30d));
+                WriteRecord(stream, 0x0006, BuildFormulaNumberPayload(0, 3, 31d, formulaTokens: BuildSharedFormulaReferenceTokens(0, 3)));
+                WriteRecord(stream, 0x0221, BuildArrayFormulaPayload(0, 3, 0, 3));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)boundSheetPosition + 4), 4);
+                return bytes;
+            }
+
             internal static byte[] CreateFormulaArrayConstantWorkbookStream() {
                 using var stream = new MemoryStream();
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
@@ -2292,6 +2332,18 @@ namespace OfficeIMO.Tests {
                 stream.WriteByte(checked((byte)(lastRow - firstRow + 1)));
                 WriteUInt16(stream, checked((ushort)formulaTokens.Length));
                 stream.Write(formulaTokens, 0, formulaTokens.Length);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildArrayFormulaPayload(ushort firstRow, ushort firstColumn, ushort lastRow, ushort lastColumn) {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, firstRow);
+                WriteUInt16(stream, lastRow);
+                stream.WriteByte(checked((byte)firstColumn));
+                stream.WriteByte(checked((byte)lastColumn));
+                WriteUInt16(stream, 0);
+                WriteUInt32(stream, 0);
+                WriteUInt16(stream, 0);
                 return stream.ToArray();
             }
 

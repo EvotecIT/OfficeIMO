@@ -115,6 +115,34 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             return true;
         }
 
+        internal bool TryConsumeArrayFormula(byte[] payload) {
+            PendingSharedFormulaCell? lastSharedFormulaCell = _lastSharedFormulaCell;
+            if (payload.Length < 6 || lastSharedFormulaCell == null) {
+                return false;
+            }
+
+            ushort firstRow = BiffRecordReader.ReadUInt16(payload, 0);
+            ushort lastRow = BiffRecordReader.ReadUInt16(payload, 2);
+            ushort firstColumn = payload[4];
+            ushort lastColumn = payload[5];
+            if (lastRow < firstRow
+                || lastColumn < firstColumn
+                || !ContainsCell(firstRow, lastRow, firstColumn, lastColumn, lastSharedFormulaCell.Value.Row - 1, lastSharedFormulaCell.Value.Column - 1)) {
+                return false;
+            }
+
+            SharedFormulaAnchor anchor = lastSharedFormulaCell.Value.Anchor;
+            _lastSharedFormulaCell = null;
+            for (int i = _pendingCells.Count - 1; i >= 0; i--) {
+                PendingSharedFormulaCell cell = _pendingCells[i];
+                if (cell.Anchor.Equals(anchor) && ContainsCell(firstRow, lastRow, firstColumn, lastColumn, cell.Row - 1, cell.Column - 1)) {
+                    _pendingCells.RemoveAt(i);
+                }
+            }
+
+            return true;
+        }
+
         internal void AddUnresolvedDiagnostics() {
             if (!_options.ReportUnsupportedRecords) {
                 return;
