@@ -568,6 +568,21 @@ namespace OfficeIMO.Excel.LegacyXls {
             ChartSeriesDataCacheTypes = CountByCode(workbook.ChartRecords
                 .Where(record => !string.IsNullOrWhiteSpace(record.SeriesDataCacheIndexName))
                 .Select(record => record.SeriesDataCacheIndexName!));
+            ChartDataSourceIds = CountByCode(workbook.ChartRecords
+                .Where(record => record.DataSource != null)
+                .Select(record => record.DataSource!.SourceIdName));
+            ChartDataSourceReferenceTypes = CountByCode(workbook.ChartRecords
+                .Where(record => record.DataSource != null)
+                .Select(record => record.DataSource!.ReferenceTypeName));
+            ChartDataSourceNumberFormatIds = CountByCode(workbook.ChartRecords
+                .Where(record => record.DataSource != null)
+                .Select(record => $"NumberFormatId:{record.DataSource!.NumberFormatId}"));
+            ChartDataSourceFormulaByteCounts = CountByCode(workbook.ChartRecords
+                .Where(record => record.DataSource != null)
+                .Select(record => $"FormulaBytes:{record.DataSource!.FormulaByteCount}"));
+            ChartDataSourceStates = CountByCode(workbook.ChartRecords
+                .Where(record => record.DataSource != null)
+                .Select(GetChartDataSourceStateKey));
             ChartDataFormatTargets = CountByCode(workbook.ChartRecords
                 .Where(record => !string.IsNullOrWhiteSpace(record.DataFormatTarget))
                 .Select(record => record.DataFormatTarget!));
@@ -1848,6 +1863,21 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets SIIndex records grouped by decoded chart data-cache sequence type.</summary>
         public IReadOnlyDictionary<string, int> ChartSeriesDataCacheTypes { get; }
 
+        /// <summary>Gets BRAI records grouped by decoded chart source part.</summary>
+        public IReadOnlyDictionary<string, int> ChartDataSourceIds { get; }
+
+        /// <summary>Gets BRAI records grouped by decoded referenced data type.</summary>
+        public IReadOnlyDictionary<string, int> ChartDataSourceReferenceTypes { get; }
+
+        /// <summary>Gets BRAI records grouped by raw number format identifier.</summary>
+        public IReadOnlyDictionary<string, int> ChartDataSourceNumberFormatIds { get; }
+
+        /// <summary>Gets BRAI records grouped by declared ChartParsedFormula byte count.</summary>
+        public IReadOnlyDictionary<string, int> ChartDataSourceFormulaByteCounts { get; }
+
+        /// <summary>Gets BRAI records grouped by decoded source, reference, number format, and formula-byte state.</summary>
+        public IReadOnlyDictionary<string, int> ChartDataSourceStates { get; }
+
         /// <summary>Gets DataFormat records grouped by whether formatting targets a series or point.</summary>
         public IReadOnlyDictionary<string, int> ChartDataFormatTargets { get; }
 
@@ -2606,6 +2636,11 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Chart Series Value Counts", ChartSeriesValueCounts);
             AppendDictionary(builder, "Chart Series Data Cache Indexes", ChartSeriesDataCacheIndexes);
             AppendDictionary(builder, "Chart Series Data Cache Types", ChartSeriesDataCacheTypes);
+            AppendDictionary(builder, "Chart DataSource Ids", ChartDataSourceIds);
+            AppendDictionary(builder, "Chart DataSource Reference Types", ChartDataSourceReferenceTypes);
+            AppendDictionary(builder, "Chart DataSource Number Format Ids", ChartDataSourceNumberFormatIds);
+            AppendDictionary(builder, "Chart DataSource Formula Byte Counts", ChartDataSourceFormulaByteCounts);
+            AppendDictionary(builder, "Chart DataSource States", ChartDataSourceStates);
             AppendDictionary(builder, "Chart DataFormat Targets", ChartDataFormatTargets);
             AppendDictionary(builder, "Chart DataFormat Series Indexes", ChartDataFormatSeriesIndexes);
             AppendDictionary(builder, "Chart Number Format Ids", ChartNumberFormatIds);
@@ -3231,6 +3266,11 @@ namespace OfficeIMO.Excel.LegacyXls {
         private static string GetChartCategorySeriesRangeStateKey(LegacyXlsChartRecord record) {
             LegacyXlsChartCategorySeriesRange range = record.CategorySeriesRange!;
             return $"Between:{range.CrossesBetweenTickMarks};MaxCross:{range.CrossesAtMaximum};Reversed:{range.Reversed}";
+        }
+
+        private static string GetChartDataSourceStateKey(LegacyXlsChartRecord record) {
+            LegacyXlsChartDataSource dataSource = record.DataSource!;
+            return $"Source:{dataSource.SourceIdName};Reference:{dataSource.ReferenceTypeName};CustomNumberFormat:{dataSource.UsesCustomNumberFormat};FormulaBytes:{dataSource.FormulaByteCount};FormulaComplete:{dataSource.FormulaByteCountFitsPayload}";
         }
 
         private static string GetChartSheetPropertyStateKey(LegacyXlsChartRecord record) {

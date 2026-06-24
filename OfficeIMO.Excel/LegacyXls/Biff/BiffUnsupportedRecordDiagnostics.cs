@@ -438,8 +438,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case 0x1044: return "SerToCrt";
                 case 0x1045: return "AxesUsed";
                 case 0x1046: return "SBaseRef";
-                case 0x104F: return "Ifmt";
-                case 0x1051: return "Pos";
+                case 0x104E: return "Ifmt";
+                case 0x104F: return "Pos";
+                case 0x1050: return "AlRuns";
+                case 0x1051: return "BRAI";
                 case 0x105B: return "SerAuxErrBar";
                 case 0x105C: return "ClrtClient";
                 case 0x105D: return "SerFmt";

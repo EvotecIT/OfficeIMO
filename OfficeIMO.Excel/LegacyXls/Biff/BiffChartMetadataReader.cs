@@ -34,6 +34,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             BiffChartTextMetadataReader.TryReadTick(record, out LegacyXlsChartTick? tick);
             TryReadValueRange(record, out LegacyXlsChartValueRange? valueRange);
             TryReadPosition(record, out LegacyXlsChartPosition? position);
+            TryReadDataSource(record, out LegacyXlsChartDataSource? dataSource);
             TryReadFrame(record, out LegacyXlsChartFrame? frame);
             TryReadPlotGrowth(record, out LegacyXlsChartPlotGrowth? plotGrowth);
             TryReadDataTableOptions(record, out LegacyXlsChartDataTableOptions? dataTableOptions);
@@ -90,6 +91,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 legend,
                 tick,
                 position,
+                dataSource,
                 frame,
                 plotGrowth,
                 dataTableOptions,
@@ -259,7 +261,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
         private static bool TryReadNumberFormat(BiffRecord record, out ushort? numberFormatId) {
             numberFormatId = null;
-            if (record.Type != 0x104f || record.Payload.Length < 2) {
+            if (record.Type != 0x104e || record.Payload.Length < 2) {
                 return false;
             }
 
@@ -343,7 +345,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
         private static bool TryReadPosition(BiffRecord record, out LegacyXlsChartPosition? position) {
             position = null;
-            if (record.Type != 0x1051 || record.Payload.Length < 20) {
+            if (record.Type != 0x104f || record.Payload.Length < 20) {
                 return false;
             }
 
@@ -363,6 +365,32 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 BiffRecordReader.ReadInt16(record.Payload, 8),
                 BiffRecordReader.ReadInt16(record.Payload, 12),
                 BiffRecordReader.ReadInt16(record.Payload, 16));
+            return true;
+        }
+
+        private static bool TryReadDataSource(BiffRecord record, out LegacyXlsChartDataSource? dataSource) {
+            dataSource = null;
+            if (record.Type != 0x1051 || record.Payload.Length < 8) {
+                return false;
+            }
+
+            byte sourceId = record.Payload[0];
+            byte referenceType = record.Payload[1];
+            ushort flags = BiffRecordReader.ReadUInt16(record.Payload, 2);
+            ushort numberFormatId = BiffRecordReader.ReadUInt16(record.Payload, 4);
+            ushort formulaByteCount = BiffRecordReader.ReadUInt16(record.Payload, 6);
+            int formulaBytesAvailable = record.Payload.Length - 8;
+            dataSource = new LegacyXlsChartDataSource(
+                sourceId,
+                GetDataSourceIdName(sourceId),
+                referenceType,
+                GetDataSourceReferenceTypeName(referenceType),
+                flags,
+                (flags & 0x0001) != 0,
+                numberFormatId,
+                formulaByteCount,
+                formulaBytesAvailable,
+                formulaByteCount <= formulaBytesAvailable);
             return true;
         }
 
@@ -629,6 +657,34 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
         }
 
+        private static string GetDataSourceIdName(byte sourceId) {
+            switch (sourceId) {
+                case 0x00:
+                    return "Name";
+                case 0x01:
+                    return "ValuesOrHorizontalValues";
+                case 0x02:
+                    return "CategoriesOrVerticalValues";
+                case 0x03:
+                    return "BubbleSizes";
+                default:
+                    return $"Unknown:0x{sourceId:X2}";
+            }
+        }
+
+        private static string GetDataSourceReferenceTypeName(byte referenceType) {
+            switch (referenceType) {
+                case 0x00:
+                    return "AutomaticallyGenerated";
+                case 0x01:
+                    return "FormulaTextOrValue";
+                case 0x02:
+                    return "WorksheetRange";
+                default:
+                    return $"Unknown:0x{referenceType:X2}";
+            }
+        }
+
         private static string GetPositionSemanticTypeName(ushort topLeftMode, ushort bottomRightMode) {
             if (topLeftMode == 0x0002 && bottomRightMode == 0x0002) {
                 return "PlotAreaOrAttachedLabel";
@@ -779,6 +835,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case 0x1022: // ChartFormatLink
                 case 0x1044: // SerToCrt
                 case 0x1046: // SBaseRef
+                case 0x1051: // BRAI
                 case 0x1065: // SIIndex
                     return LegacyXlsChartRecordKind.Series;
                 case 0x101D: // Axis
@@ -802,7 +859,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case 0x100B: // PieFormat
                 case 0x1014: // ChartFormat
                 case 0x101C: // ChartLine
-                case 0x104F: // Ifmt
+                case 0x104E: // Ifmt
+                case 0x1050: // AlRuns
                 case 0x105B: // SerAuxErrBar
                 case 0x105C: // ClrtClient
                 case 0x105D: // SerFmt
@@ -811,7 +869,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     return LegacyXlsChartRecordKind.Formatting;
                 case 0x1032: // Frame
                 case 0x1035: // PlotArea
-                case 0x1051: // Pos
+                case 0x104F: // Pos
                 case 0x1064: // PlotGrowth
                     return LegacyXlsChartRecordKind.Layout;
                 case 0x1015: // Legend

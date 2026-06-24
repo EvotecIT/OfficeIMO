@@ -493,7 +493,7 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x1003, BuildSeriesPayload(0x0003, categoryCount: 4, valueCount: 4, bubbleSizeCount: 0));
                 WriteRecord(stream, 0x1065, BuildUInt16Payload(0x0002));
                 WriteRecord(stream, 0x1006, BuildDataFormatPayload(pointIndex: 0xffff, seriesIndex: 2, order: 1));
-                WriteRecord(stream, 0x104f, BuildUInt16Payload(14));
+                WriteRecord(stream, 0x104e, BuildUInt16Payload(14));
                 WriteRecord(stream, 0x1007, BuildLineFormatPayload(style: 0x0001, weight: 1, flags: 0x0004, colorIndex: 0x004d));
                 WriteRecord(stream, 0x1032, BuildChartFramePayload());
                 WriteRecord(stream, 0x100a, BuildAreaFormatPayload(pattern: 0x0001, flags: 0x0003, foregroundColorIndex: 0x004e, backgroundColorIndex: 0x004d));
@@ -510,7 +510,8 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x1021, BuildUInt16Payload(0x0002));
                 WriteRecord(stream, 0x1062, Array.Empty<byte>());
                 WriteRecord(stream, 0x1063, BuildUInt16Payload(0x000d));
-                WriteRecord(stream, 0x1051, BuildChartPositionPayload());
+                WriteRecord(stream, 0x104f, BuildChartPositionPayload());
+                WriteRecord(stream, 0x1051, BuildChartDataSourcePayload());
                 WriteRecord(stream, 0x1064, BuildChartPlotGrowthPayload());
                 WriteRecord(stream, 0x1066, Array.Empty<byte>());
                 WriteRecord(stream, 0x1067, Array.Empty<byte>());
@@ -1697,6 +1698,16 @@ namespace OfficeIMO.Tests {
                 WriteUInt16(stream, 300);
                 WriteUInt16(stream, 0);
                 WriteUInt16(stream, 120);
+                WriteUInt16(stream, 0);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildChartDataSourcePayload() {
+                using var stream = new MemoryStream();
+                stream.WriteByte(0x01);
+                stream.WriteByte(0x02);
+                WriteUInt16(stream, 0x0001);
+                WriteUInt16(stream, 14);
                 WriteUInt16(stream, 0);
                 return stream.ToArray();
             }

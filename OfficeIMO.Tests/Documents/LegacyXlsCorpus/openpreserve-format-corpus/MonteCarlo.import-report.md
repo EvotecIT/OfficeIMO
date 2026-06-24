@@ -296,6 +296,7 @@ Warnings: 0
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:AxesUsed | 24 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Axis | 16 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Begin | 156 |
+| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:BRAI | 136 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Chart | 8 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Chart3DBarShape | 40 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:ChartFormat | 8 |
@@ -306,7 +307,6 @@ Warnings: 0
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Fbi | 22 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:FontX | 16 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Frame | 8 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Ifmt | 52 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Legend | 4 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:LineFormat | 48 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:MarkerFormat | 40 |
@@ -314,7 +314,7 @@ Warnings: 0
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:PieFormat | 40 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:PlotArea | 8 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:PlotGrowth | 8 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Pos | 136 |
+| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Pos | 52 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:SBaseRef | 8 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Scatter | 8 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:SerFmt | 12 |
@@ -454,9 +454,9 @@ Warnings: 0
 | Axis | 36 |
 | ChartType | 26 |
 | Container | 168 |
-| Formatting | 144 |
-| Layout | 80 |
-| Series | 36 |
+| Formatting | 118 |
+| Layout | 38 |
+| Series | 104 |
 | Text | 77 |
 
 ## Unsupported Chart Sheet Chart Record Kinds By Sheet
@@ -466,30 +466,30 @@ Warnings: 0
 | Sheet:LBMAQ_PF_CHART;Kind:Axis | 11 |
 | Sheet:LBMAQ_PF_CHART;Kind:ChartType | 9 |
 | Sheet:LBMAQ_PF_CHART;Kind:Container | 51 |
-| Sheet:LBMAQ_PF_CHART;Kind:Formatting | 47 |
-| Sheet:LBMAQ_PF_CHART;Kind:Layout | 28 |
-| Sheet:LBMAQ_PF_CHART;Kind:Series | 11 |
+| Sheet:LBMAQ_PF_CHART;Kind:Formatting | 40 |
+| Sheet:LBMAQ_PF_CHART;Kind:Layout | 10 |
+| Sheet:LBMAQ_PF_CHART;Kind:Series | 36 |
 | Sheet:LBMAQ_PF_CHART;Kind:Text | 21 |
 | Sheet:LBMAQ_RAIN_CHART;Kind:Axis | 11 |
 | Sheet:LBMAQ_RAIN_CHART;Kind:ChartType | 9 |
 | Sheet:LBMAQ_RAIN_CHART;Kind:Container | 51 |
-| Sheet:LBMAQ_RAIN_CHART;Kind:Formatting | 47 |
-| Sheet:LBMAQ_RAIN_CHART;Kind:Layout | 28 |
-| Sheet:LBMAQ_RAIN_CHART;Kind:Series | 11 |
+| Sheet:LBMAQ_RAIN_CHART;Kind:Formatting | 40 |
+| Sheet:LBMAQ_RAIN_CHART;Kind:Layout | 10 |
+| Sheet:LBMAQ_RAIN_CHART;Kind:Series | 36 |
 | Sheet:LBMAQ_RAIN_CHART;Kind:Text | 20 |
 | Sheet:ZPFCUM_CHART;Kind:Axis | 7 |
 | Sheet:ZPFCUM_CHART;Kind:ChartType | 5 |
 | Sheet:ZPFCUM_CHART;Kind:Container | 35 |
-| Sheet:ZPFCUM_CHART;Kind:Formatting | 31 |
-| Sheet:ZPFCUM_CHART;Kind:Layout | 12 |
-| Sheet:ZPFCUM_CHART;Kind:Series | 7 |
+| Sheet:ZPFCUM_CHART;Kind:Formatting | 25 |
+| Sheet:ZPFCUM_CHART;Kind:Layout | 9 |
+| Sheet:ZPFCUM_CHART;Kind:Series | 16 |
 | Sheet:ZPFCUM_CHART;Kind:Text | 18 |
 | Sheet:ZRAINCUM_CHART;Kind:Axis | 7 |
 | Sheet:ZRAINCUM_CHART;Kind:ChartType | 3 |
 | Sheet:ZRAINCUM_CHART;Kind:Container | 31 |
-| Sheet:ZRAINCUM_CHART;Kind:Formatting | 19 |
-| Sheet:ZRAINCUM_CHART;Kind:Layout | 12 |
-| Sheet:ZRAINCUM_CHART;Kind:Series | 7 |
+| Sheet:ZRAINCUM_CHART;Kind:Formatting | 13 |
+| Sheet:ZRAINCUM_CHART;Kind:Layout | 9 |
+| Sheet:ZRAINCUM_CHART;Kind:Series | 16 |
 | Sheet:ZRAINCUM_CHART;Kind:Text | 18 |
 
 ## Unsupported Chart Sheet Chart Types
@@ -790,9 +790,9 @@ Warnings: 0
 | Axis | 72 |
 | ChartType | 52 |
 | Container | 336 |
-| Formatting | 288 |
-| Layout | 160 |
-| Series | 72 |
+| Formatting | 236 |
+| Layout | 76 |
+| Series | 208 |
 | Text | 154 |
 
 ## Chart Records By Name
@@ -804,6 +804,7 @@ Warnings: 0
 | AxesUsed | 24 |
 | Axis | 16 |
 | Begin | 156 |
+| BRAI | 136 |
 | Chart | 8 |
 | Chart3DBarShape | 40 |
 | ChartFormat | 8 |
@@ -814,7 +815,6 @@ Warnings: 0
 | Fbi | 22 |
 | FontX | 16 |
 | Frame | 8 |
-| Ifmt | 52 |
 | Legend | 4 |
 | LineFormat | 48 |
 | MarkerFormat | 40 |
@@ -822,7 +822,7 @@ Warnings: 0
 | PieFormat | 40 |
 | PlotArea | 8 |
 | PlotGrowth | 8 |
-| Pos | 136 |
+| Pos | 52 |
 | SBaseRef | 8 |
 | Scatter | 8 |
 | SerFmt | 12 |
@@ -850,6 +850,9 @@ Warnings: 0
 | AxesUsed\|Bytes:2 | 24 |
 | Axis\|Bytes:18 | 16 |
 | Begin\|Bytes:0 | 156 |
+| BRAI\|Bytes:15 | 24 |
+| BRAI\|Bytes:19 | 48 |
+| BRAI\|Bytes:8 | 64 |
 | Chart3DBarShape\|Bytes:2 | 40 |
 | ChartFormatLink\|Bytes:10 | 8 |
 | ChartFormat\|Bytes:20 | 8 |
@@ -860,7 +863,6 @@ Warnings: 0
 | Fbi\|Bytes:10 | 22 |
 | FontX\|Bytes:2 | 16 |
 | Frame\|Bytes:4 | 8 |
-| Ifmt\|Bytes:20 | 52 |
 | Legend\|Bytes:20 | 4 |
 | LineFormat\|Bytes:12 | 48 |
 | MarkerFormat\|Bytes:20 | 40 |
@@ -868,9 +870,7 @@ Warnings: 0
 | PieFormat\|Bytes:2 | 40 |
 | PlotArea\|Bytes:0 | 8 |
 | PlotGrowth\|Bytes:8 | 8 |
-| Pos\|Bytes:15 | 24 |
-| Pos\|Bytes:19 | 48 |
-| Pos\|Bytes:8 | 64 |
+| Pos\|Bytes:20 | 52 |
 | SBaseRef\|Bytes:2 | 8 |
 | Scatter\|Bytes:6 | 8 |
 | SerFmt\|Bytes:2 | 12 |
@@ -936,6 +936,9 @@ Warnings: 0
 | Begin\|Depth:2 | 76 |
 | Begin\|Depth:3 | 12 |
 | Begin\|Depth:4 | 4 |
+| BRAI\|Depth:2 | 116 |
+| BRAI\|Depth:3 | 16 |
+| BRAI\|Depth:5 | 4 |
 | Chart3DBarShape\|Depth:2 | 4 |
 | Chart3DBarShape\|Depth:3 | 28 |
 | Chart3DBarShape\|Depth:4 | 8 |
@@ -954,10 +957,6 @@ Warnings: 0
 | Fbi\|Depth:0 | 22 |
 | FontX\|Depth:2 | 16 |
 | Frame\|Depth:2 | 8 |
-| Ifmt\|Depth:2 | 28 |
-| Ifmt\|Depth:3 | 16 |
-| Ifmt\|Depth:4 | 4 |
-| Ifmt\|Depth:5 | 4 |
 | Legend\|Depth:3 | 4 |
 | LineFormat\|Depth:2 | 4 |
 | LineFormat\|Depth:3 | 36 |
@@ -972,8 +971,9 @@ Warnings: 0
 | PieFormat\|Depth:4 | 8 |
 | PlotArea\|Depth:2 | 8 |
 | PlotGrowth\|Depth:1 | 8 |
-| Pos\|Depth:2 | 116 |
+| Pos\|Depth:2 | 28 |
 | Pos\|Depth:3 | 16 |
+| Pos\|Depth:4 | 4 |
 | Pos\|Depth:5 | 4 |
 | SBaseRef\|Depth:1 | 8 |
 | Scatter\|Depth:3 | 8 |
@@ -999,6 +999,7 @@ Warnings: 0
 | AxesUsed\|InsideContainer | 24 |
 | Axis\|InsideContainer | 16 |
 | Begin\|Begin | 156 |
+| BRAI\|InsideContainer | 136 |
 | Chart3DBarShape\|InsideContainer | 40 |
 | ChartFormatLink\|InsideContainer | 8 |
 | ChartFormat\|InsideContainer | 8 |
@@ -1009,7 +1010,6 @@ Warnings: 0
 | Fbi\|OutsideContainer | 22 |
 | FontX\|InsideContainer | 16 |
 | Frame\|InsideContainer | 8 |
-| Ifmt\|InsideContainer | 52 |
 | Legend\|InsideContainer | 4 |
 | LineFormat\|InsideContainer | 48 |
 | MarkerFormat\|InsideContainer | 40 |
@@ -1017,7 +1017,7 @@ Warnings: 0
 | PieFormat\|InsideContainer | 40 |
 | PlotArea\|InsideContainer | 8 |
 | PlotGrowth\|InsideContainer | 8 |
-| Pos\|InsideContainer | 136 |
+| Pos\|InsideContainer | 52 |
 | SBaseRef\|InsideContainer | 8 |
 | Scatter\|InsideContainer | 8 |
 | SerFmt\|InsideContainer | 12 |
@@ -1100,6 +1100,47 @@ Warnings: 0
 | CategoryLabelsOrHorizontalValues | 8 |
 | ValuesOrVerticalValues | 8 |
 
+## Chart DataSource Ids
+
+| Key | Count |
+| --- | --- |
+| BubbleSizes | 24 |
+| CategoriesOrVerticalValues | 24 |
+| Name | 64 |
+| ValuesOrHorizontalValues | 24 |
+
+## Chart DataSource Reference Types
+
+| Key | Count |
+| --- | --- |
+| FormulaTextOrValue | 64 |
+| WorksheetRange | 72 |
+
+## Chart DataSource Number Format Ids
+
+| Key | Count |
+| --- | --- |
+| NumberFormatId:0 | 116 |
+| NumberFormatId:164 | 20 |
+
+## Chart DataSource Formula Byte Counts
+
+| Key | Count |
+| --- | --- |
+| FormulaBytes:0 | 64 |
+| FormulaBytes:11 | 48 |
+| FormulaBytes:7 | 24 |
+
+## Chart DataSource States
+
+| Key | Count |
+| --- | --- |
+| Source:BubbleSizes;Reference:FormulaTextOrValue;CustomNumberFormat:False;FormulaBytes:0;FormulaComplete:True | 24 |
+| Source:CategoriesOrVerticalValues;Reference:WorksheetRange;CustomNumberFormat:False;FormulaBytes:11;FormulaComplete:True | 24 |
+| Source:Name;Reference:FormulaTextOrValue;CustomNumberFormat:False;FormulaBytes:0;FormulaComplete:True | 40 |
+| Source:Name;Reference:WorksheetRange;CustomNumberFormat:False;FormulaBytes:7;FormulaComplete:True | 24 |
+| Source:ValuesOrHorizontalValues;Reference:WorksheetRange;CustomNumberFormat:False;FormulaBytes:11;FormulaComplete:True | 24 |
+
 ## Chart DataFormat Targets
 
 | Key | Count |
@@ -1116,13 +1157,6 @@ Warnings: 0
 | SeriesIndex:2 | 4 |
 | SeriesIndex:3 | 4 |
 | SeriesIndex:4 | 4 |
-
-## Chart Number Format Ids
-
-| Key | Count |
-| --- | --- |
-| NumberFormatId:2 | 48 |
-| NumberFormatId:5 | 4 |
 
 ## Chart Font Indexes
 
@@ -1305,6 +1339,64 @@ Warnings: 0
 | AutoMin:False;AutoMax:False;AutoMajor:False;AutoMinor:False;AutoCross:False;Log:False;Reversed:False;MaxCross:False | 4 |
 | AutoMin:False;AutoMax:False;AutoMajor:False;AutoMinor:False;AutoCross:True;Log:False;Reversed:False;MaxCross:False | 4 |
 | AutoMin:False;AutoMax:False;AutoMajor:True;AutoMinor:True;AutoCross:True;Log:False;Reversed:False;MaxCross:False | 8 |
+
+## Chart Position Mode Pairs
+
+| Key | Count |
+| --- | --- |
+| MDCHART/MDPARENT | 4 |
+| MDPARENT/MDPARENT | 48 |
+
+## Chart Position Rectangles
+
+| Key | Count |
+| --- | --- |
+| X1:0;Y1:0;X2:0;Y2:0 | 24 |
+| X1:0;Y1:0;X2:124;Y2:26 | 2 |
+| X1:0;Y1:0;X2:125;Y2:26 | 2 |
+| X1:0;Y1:0;X2:24;Y2:184 | 2 |
+| X1:0;Y1:0;X2:26;Y2:198 | 2 |
+| X1:0;Y1:0;X2:26;Y2:207 | 2 |
+| X1:0;Y1:0;X2:26;Y2:209 | 2 |
+| X1:0;Y1:0;X2:75;Y2:24 | 2 |
+| X1:0;Y1:0;X2:81;Y2:26 | 2 |
+| X1:201;Y1:96;X2:3764;Y2:3256 | 1 |
+| X1:201;Y1:96;X2:3764;Y2:3281 | 1 |
+| X1:201;Y1:96;X2:3764;Y2:3283 | 1 |
+| X1:201;Y1:97;X2:3764;Y2:3253 | 1 |
+| X1:208;Y1:473;X2:3754;Y2:2962 | 1 |
+| X1:209;Y1:474;X2:3753;Y2:2961 | 1 |
+| X1:218;Y1:473;X2:3742;Y2:2937 | 1 |
+| X1:219;Y1:474;X2:3741;Y2:2937 | 1 |
+| X1:565;Y1:3711;X2:0;Y2:0 | 2 |
+| X1:566;Y1:3710;X2:0;Y2:0 | 2 |
+
+## Chart Position Semantic Types
+
+| Key | Count |
+| --- | --- |
+| LegendApplicationSize | 4 |
+| PlotAreaOrAttachedLabel | 48 |
+
+## Chart Position Coordinate Meanings
+
+| Key | Count |
+| --- | --- |
+| X1Y1:ChartAreaSprcOffset;X2Y2:Ignored | 4 |
+| X1Y1:ChartAreaSprcOffsetOrAttachedLabelOffset;X2Y2:SprcSizeOrIgnored | 48 |
+
+## Chart Position Ignored Coordinate States
+
+| Key | Count |
+| --- | --- |
+| ContextDependentX2Y2 | 48 |
+| X2Y2 | 4 |
+
+## Chart Position Known Semantic States
+
+| Key | Count |
+| --- | --- |
+| Known:True | 52 |
 
 ## Chart Frame Types
 
@@ -1776,6 +1868,7 @@ Warnings: 0
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:AxesUsed | 24 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Axis | 16 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Begin | 156 |
+| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:BRAI | 136 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Chart | 8 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Chart3DBarShape | 40 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:ChartFormat | 8 |
@@ -1786,7 +1879,6 @@ Warnings: 0
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Fbi | 22 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:FontX | 16 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Frame | 8 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Ifmt | 52 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Legend | 4 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:LineFormat | 48 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:MarkerFormat | 40 |
@@ -1794,7 +1886,7 @@ Warnings: 0
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:PieFormat | 40 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:PlotArea | 8 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:PlotGrowth | 8 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Pos | 136 |
+| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Pos | 52 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:SBaseRef | 8 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Scatter | 8 |
 | Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:SerFmt | 12 |

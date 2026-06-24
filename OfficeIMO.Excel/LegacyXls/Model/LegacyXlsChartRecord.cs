@@ -56,6 +56,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             LegacyXlsChartLegend? legend = null,
             LegacyXlsChartTick? tick = null,
             LegacyXlsChartPosition? position = null,
+            LegacyXlsChartDataSource? dataSource = null,
             LegacyXlsChartFrame? frame = null,
             LegacyXlsChartPlotGrowth? plotGrowth = null,
             LegacyXlsChartDataTableOptions? dataTableOptions = null,
@@ -116,6 +117,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             Legend = legend;
             Tick = tick;
             Position = position;
+            DataSource = dataSource;
             Frame = frame;
             PlotGrowth = plotGrowth;
             DataTableOptions = dataTableOptions;
@@ -271,6 +273,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets decoded position metadata from Pos records, when present.</summary>
         public LegacyXlsChartPosition? Position { get; }
+
+        /// <summary>Gets decoded data-source metadata from BRAI records, when present.</summary>
+        public LegacyXlsChartDataSource? DataSource { get; }
 
         /// <summary>Gets decoded frame metadata from Frame records, when present.</summary>
         public LegacyXlsChartFrame? Frame { get; }
