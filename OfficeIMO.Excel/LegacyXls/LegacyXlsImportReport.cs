@@ -454,6 +454,12 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .Where(record => record.DataTableOptions != null)
                 .Select(record => record.DataTableOptions!)
                 .Select(options => $"HorizontalBorders:{options.HasHorizontalBorders};VerticalBorders:{options.HasVerticalBorders};Outline:{options.HasOutlineBorder};SeriesKeys:{options.ShowSeriesKeys}"));
+            ChartSheetPropertyEmptyCellModes = CountByCode(workbook.ChartRecords
+                .Where(record => record.SheetProperties != null && record.SheetProperties.HasKnownEmptyCellPlottingMode)
+                .Select(record => record.SheetProperties!.EmptyCellPlottingModeName));
+            ChartSheetPropertyStates = CountByCode(workbook.ChartRecords
+                .Where(record => record.SheetProperties != null)
+                .Select(GetChartSheetPropertyStateKey));
             ChartLineFormatStyles = CountByCode(workbook.ChartRecords
                 .Where(record => record.LineFormat != null)
                 .Select(record => record.LineFormat!.StyleName));
@@ -1445,6 +1451,12 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets Dat records grouped by decoded data-table display options.</summary>
         public IReadOnlyDictionary<string, int> ChartDataTableOptions { get; }
 
+        /// <summary>Gets ShtProps records grouped by decoded empty-cell plotting mode.</summary>
+        public IReadOnlyDictionary<string, int> ChartSheetPropertyEmptyCellModes { get; }
+
+        /// <summary>Gets ShtProps records grouped by decoded chart property flags.</summary>
+        public IReadOnlyDictionary<string, int> ChartSheetPropertyStates { get; }
+
         /// <summary>Gets LineFormat records grouped by decoded line style.</summary>
         public IReadOnlyDictionary<string, int> ChartLineFormatStyles { get; }
 
@@ -2034,6 +2046,8 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Chart Number Format Ids", ChartNumberFormatIds);
             AppendDictionary(builder, "Chart Font Indexes", ChartFontIndexes);
             AppendDictionary(builder, "Chart DataTable Options", ChartDataTableOptions);
+            AppendDictionary(builder, "Chart Sheet Property Empty Cell Modes", ChartSheetPropertyEmptyCellModes);
+            AppendDictionary(builder, "Chart Sheet Property States", ChartSheetPropertyStates);
             AppendDictionary(builder, "Chart LineFormat Styles", ChartLineFormatStyles);
             AppendDictionary(builder, "Chart LineFormat Weights", ChartLineFormatWeights);
             AppendDictionary(builder, "Chart AreaFormat Patterns", ChartAreaFormatPatterns);
@@ -2469,6 +2483,11 @@ namespace OfficeIMO.Excel.LegacyXls {
         private static string GetChartCategorySeriesRangeStateKey(LegacyXlsChartRecord record) {
             LegacyXlsChartCategorySeriesRange range = record.CategorySeriesRange!;
             return $"Between:{range.CrossesBetweenTickMarks};MaxCross:{range.CrossesAtMaximum};Reversed:{range.Reversed}";
+        }
+
+        private static string GetChartSheetPropertyStateKey(LegacyXlsChartRecord record) {
+            LegacyXlsChartSheetProperties properties = record.SheetProperties!;
+            return $"AutoSeries:{properties.AutomaticallyAllocateSeries};VisibleOnly:{properties.PlotVisibleCellsOnly};DoNotSizeWithWindow:{properties.DoNotSizeWithWindow};ManualPlotArea:{properties.ManualPlotArea};AlwaysAutoPlotArea:{properties.AlwaysAutoPlotArea}";
         }
 
         private static string GetChartAttachedLabelStateKey(LegacyXlsChartRecord record) {

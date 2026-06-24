@@ -951,6 +951,12 @@ Warnings: 0
 | FontIndex:7 | 1 |
 | FontIndex:8 | 2 |
 
+## Chart Sheet Property States
+
+| Key | Count |
+| --- | --- |
+| AutoSeries:False;VisibleOnly:False;DoNotSizeWithWindow:False;ManualPlotArea:False;AlwaysAutoPlotArea:False | 8 |
+
 ## Chart LineFormat Styles
 
 | Key | Count |

@@ -146,6 +146,34 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_Corpus_Analytics_PreservesChartSheetProperties() {
+            string workbookPath = Path.Combine(
+                GetTestsProjectRoot(),
+                "Documents",
+                "LegacyXlsCorpus",
+                "excel-com-generated",
+                "analytics.xls");
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(workbookPath, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
+            LegacyXlsUnsupportedSheet chartSheet = Assert.Single(result.Workbook.UnsupportedSheets, sheet => sheet.Name == "RevenueChart");
+            Assert.Equal(LegacyXlsUnsupportedSheetKind.ChartSheet, chartSheet.Kind);
+            LegacyXlsChartRecord sheetPropertiesRecord = Assert.Single(result.Workbook.ChartRecords, record => record.RecordName == "ShtProps" && record.SheetName == "RevenueChart");
+            Assert.NotNull(sheetPropertiesRecord.SheetProperties);
+            Assert.Equal(0, sheetPropertiesRecord.SheetProperties!.Flags);
+            Assert.False(sheetPropertiesRecord.SheetProperties.AutomaticallyAllocateSeries);
+            Assert.False(sheetPropertiesRecord.SheetProperties.PlotVisibleCellsOnly);
+            Assert.False(sheetPropertiesRecord.SheetProperties.DoNotSizeWithWindow);
+            Assert.False(sheetPropertiesRecord.SheetProperties.ManualPlotArea);
+            Assert.False(sheetPropertiesRecord.SheetProperties.AlwaysAutoPlotArea);
+            Assert.False(sheetPropertiesRecord.SheetProperties.HasKnownEmptyCellPlottingMode);
+            Assert.Equal(1, result.ImportReport.ChartSheetPropertyStates["AutoSeries:False;VisibleOnly:False;DoNotSizeWithWindow:False;ManualPlotArea:False;AlwaysAutoPlotArea:False"]);
+        }
+
+        [Fact]
         public void LegacyXls_Corpus_FormulaStress_ProjectsSupportedFormulaTokens() {
             string workbookPath = Path.Combine(
                 GetTestsProjectRoot(),

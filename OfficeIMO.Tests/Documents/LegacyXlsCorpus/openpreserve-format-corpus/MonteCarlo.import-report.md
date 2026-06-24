@@ -851,6 +851,18 @@ Warnings: 0
 | FontIndex:8 | 1 |
 | FontIndex:9 | 1 |
 
+## Chart Sheet Property Empty Cell Modes
+
+| Key | Count |
+| --- | --- |
+| Interpolated | 1 |
+
+## Chart Sheet Property States
+
+| Key | Count |
+| --- | --- |
+| AutoSeries:False;VisibleOnly:False;DoNotSizeWithWindow:False;ManualPlotArea:False;AlwaysAutoPlotArea:False | 8 |
+
 ## Chart LineFormat Styles
 
 | Key | Count |

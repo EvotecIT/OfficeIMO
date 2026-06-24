@@ -53,6 +53,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             LegacyXlsChartFrame? frame = null,
             LegacyXlsChartPlotGrowth? plotGrowth = null,
             LegacyXlsChartDataTableOptions? dataTableOptions = null,
+            LegacyXlsChartSheetProperties? sheetProperties = null,
             LegacyXlsChartValueRange? valueRange = null) {
             if (payloadLength < 0) {
                 throw new ArgumentOutOfRangeException(nameof(payloadLength));
@@ -104,6 +105,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             Frame = frame;
             PlotGrowth = plotGrowth;
             DataTableOptions = dataTableOptions;
+            SheetProperties = sheetProperties;
             ValueRange = valueRange;
         }
 
@@ -244,6 +246,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets decoded chart data-table display options from Dat records, when present.</summary>
         public LegacyXlsChartDataTableOptions? DataTableOptions { get; }
+
+        /// <summary>Gets decoded chart sheet properties from ShtProps records, when present.</summary>
+        public LegacyXlsChartSheetProperties? SheetProperties { get; }
 
         /// <summary>Gets decoded value-axis scale metadata from ValueRange records, when present.</summary>
         public LegacyXlsChartValueRange? ValueRange { get; }
