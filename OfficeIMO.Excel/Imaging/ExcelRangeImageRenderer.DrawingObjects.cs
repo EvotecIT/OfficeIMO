@@ -19,6 +19,7 @@ namespace OfficeIMO.Excel {
 
         private static void RenderRasterDrawingObject(OfficeRasterCanvas canvas, ExcelVisualDrawingObject drawingObject, ExcelImageExportOptions options, List<OfficeImageExportDiagnostic>? diagnostics) {
             AddRotatedTextApproximationDiagnostic(drawingObject, diagnostics);
+            AddTextAutoFitUnsupportedDiagnostic(drawingObject, diagnostics);
             double scale = options.Scale;
             DrawingObjectScene scene = CreateOfficeDrawing(drawingObject, scale);
             OfficeRasterImage drawingImage = OfficeDrawingRasterRenderer.Render(scene.Drawing);
@@ -32,6 +33,7 @@ namespace OfficeIMO.Excel {
 
         private static void AppendSvgDrawingObject(StringBuilder builder, ExcelVisualDrawingObject drawingObject, ExcelImageExportOptions options, List<OfficeImageExportDiagnostic>? diagnostics) {
             AddRotatedTextApproximationDiagnostic(drawingObject, diagnostics);
+            AddTextAutoFitUnsupportedDiagnostic(drawingObject, diagnostics);
             double scale = options.Scale;
             double x = drawingObject.X * scale;
             double y = drawingObject.Y * scale;
@@ -119,6 +121,18 @@ namespace OfficeIMO.Excel {
                 OfficeImageExportDiagnosticSeverity.Warning,
                 ExcelImageExportDiagnosticCodes.DrawingShapeTextRotationApproximation,
                 "Worksheet drawing object text is rendered through shared Drawing rotation without Excel-exact text-box metrics.",
+                drawingObject.Source));
+        }
+
+        private static void AddTextAutoFitUnsupportedDiagnostic(ExcelVisualDrawingObject drawingObject, List<OfficeImageExportDiagnostic>? diagnostics) {
+            if (diagnostics == null || !drawingObject.TextResizeShapeToFit || string.IsNullOrWhiteSpace(drawingObject.Text)) {
+                return;
+            }
+
+            diagnostics.Add(new OfficeImageExportDiagnostic(
+                OfficeImageExportDiagnosticSeverity.Warning,
+                ExcelImageExportDiagnosticCodes.DrawingShapeTextAutoFitUnsupported,
+                "Worksheet drawing object text requested resizing the shape to fit text; image export keeps the authored shape bounds and renders text inside them.",
                 drawingObject.Source));
         }
 

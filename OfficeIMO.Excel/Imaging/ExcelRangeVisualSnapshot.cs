@@ -553,6 +553,7 @@ namespace OfficeIMO.Excel {
             OfficeFontStyle textFontStyle,
             bool textWrap,
             bool textShrinkToFit,
+            bool textResizeShapeToFit,
             double textInsetLeft,
             double textInsetTop,
             double textInsetRight,
@@ -581,6 +582,7 @@ namespace OfficeIMO.Excel {
             TextFontStyle = textFontStyle;
             TextWrap = textWrap;
             TextShrinkToFit = textShrinkToFit;
+            TextResizeShapeToFit = textResizeShapeToFit;
             TextInsetLeft = textInsetLeft;
             TextInsetTop = textInsetTop;
             TextInsetRight = textInsetRight;
@@ -659,6 +661,9 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Whether DrawingML normalAutoFit should shrink overflowing text inside the text box.</summary>
         public bool TextShrinkToFit { get; }
+
+        /// <summary>Whether DrawingML shapeAutoFit requested resizing the shape to fit text.</summary>
+        public bool TextResizeShapeToFit { get; }
 
         /// <summary>Left text inset in CSS pixels after DrawingML EMU conversion.</summary>
         public double TextInsetLeft { get; }
