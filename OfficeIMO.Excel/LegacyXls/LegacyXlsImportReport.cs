@@ -491,6 +491,12 @@ namespace OfficeIMO.Excel.LegacyXls {
             ChartSeriesValueCounts = CountByCode(workbook.ChartRecords
                 .Where(record => record.SeriesCategoryCount.HasValue && record.SeriesValueCount.HasValue && record.SeriesBubbleSizeCount.HasValue)
                 .Select(record => $"Categories:{record.SeriesCategoryCount!.Value};Values:{record.SeriesValueCount!.Value};BubbleSizes:{record.SeriesBubbleSizeCount!.Value}"));
+            ChartSeriesDataCacheIndexes = CountByCode(workbook.ChartRecords
+                .Where(record => record.SeriesDataCacheIndex.HasValue)
+                .Select(record => $"Index:{record.SeriesDataCacheIndex!.Value}"));
+            ChartSeriesDataCacheTypes = CountByCode(workbook.ChartRecords
+                .Where(record => !string.IsNullOrWhiteSpace(record.SeriesDataCacheIndexName))
+                .Select(record => record.SeriesDataCacheIndexName!));
             ChartDataFormatTargets = CountByCode(workbook.ChartRecords
                 .Where(record => !string.IsNullOrWhiteSpace(record.DataFormatTarget))
                 .Select(record => record.DataFormatTarget!));
@@ -1637,6 +1643,12 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets Series records grouped by category, value, and bubble-size counts.</summary>
         public IReadOnlyDictionary<string, int> ChartSeriesValueCounts { get; }
 
+        /// <summary>Gets SIIndex records grouped by raw chart data-cache sequence index.</summary>
+        public IReadOnlyDictionary<string, int> ChartSeriesDataCacheIndexes { get; }
+
+        /// <summary>Gets SIIndex records grouped by decoded chart data-cache sequence type.</summary>
+        public IReadOnlyDictionary<string, int> ChartSeriesDataCacheTypes { get; }
+
         /// <summary>Gets DataFormat records grouped by whether formatting targets a series or point.</summary>
         public IReadOnlyDictionary<string, int> ChartDataFormatTargets { get; }
 
@@ -2328,6 +2340,8 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Chart Series Value Data Types", ChartSeriesValueDataTypes);
             AppendDictionary(builder, "Chart Series Bubble Size Data Types", ChartSeriesBubbleSizeDataTypes);
             AppendDictionary(builder, "Chart Series Value Counts", ChartSeriesValueCounts);
+            AppendDictionary(builder, "Chart Series Data Cache Indexes", ChartSeriesDataCacheIndexes);
+            AppendDictionary(builder, "Chart Series Data Cache Types", ChartSeriesDataCacheTypes);
             AppendDictionary(builder, "Chart DataFormat Targets", ChartDataFormatTargets);
             AppendDictionary(builder, "Chart DataFormat Series Indexes", ChartDataFormatSeriesIndexes);
             AppendDictionary(builder, "Chart Number Format Ids", ChartNumberFormatIds);

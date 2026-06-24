@@ -32,6 +32,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             ushort? seriesBubbleSizeDataType = null,
             string? seriesBubbleSizeDataTypeName = null,
             ushort? seriesBubbleSizeCount = null,
+            ushort? seriesDataCacheIndex = null,
+            string? seriesDataCacheIndexName = null,
             ushort? dataFormatPointIndex = null,
             ushort? dataFormatSeriesIndex = null,
             ushort? dataFormatOrder = null,
@@ -85,6 +87,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             SeriesBubbleSizeDataType = seriesBubbleSizeDataType;
             SeriesBubbleSizeDataTypeName = string.IsNullOrWhiteSpace(seriesBubbleSizeDataTypeName) ? null : seriesBubbleSizeDataTypeName;
             SeriesBubbleSizeCount = seriesBubbleSizeCount;
+            SeriesDataCacheIndex = seriesDataCacheIndex;
+            SeriesDataCacheIndexName = string.IsNullOrWhiteSpace(seriesDataCacheIndexName) ? null : seriesDataCacheIndexName;
             DataFormatPointIndex = dataFormatPointIndex;
             DataFormatSeriesIndex = dataFormatSeriesIndex;
             DataFormatOrder = dataFormatOrder;
@@ -185,6 +189,12 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets the bubble-size value count from Series records, when present.</summary>
         public ushort? SeriesBubbleSizeCount { get; }
+
+        /// <summary>Gets the raw data-cache sequence index from SIIndex records, when present.</summary>
+        public ushort? SeriesDataCacheIndex { get; }
+
+        /// <summary>Gets the decoded data-cache sequence name from SIIndex records, when present.</summary>
+        public string? SeriesDataCacheIndexName { get; }
 
         /// <summary>Gets the raw data-point index from DataFormat records, when present.</summary>
         public ushort? DataFormatPointIndex { get; }

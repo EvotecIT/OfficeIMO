@@ -944,6 +944,22 @@ Warnings: 0
 | Categories:26;Values:26;BubbleSizes:0 | 12 |
 | Categories:39;Values:39;BubbleSizes:0 | 12 |
 
+## Chart Series Data Cache Indexes
+
+| Key | Count |
+| --- | --- |
+| Index:1 | 8 |
+| Index:2 | 8 |
+| Index:3 | 8 |
+
+## Chart Series Data Cache Types
+
+| Key | Count |
+| --- | --- |
+| BubbleSizes | 8 |
+| CategoryLabelsOrHorizontalValues | 8 |
+| ValuesOrVerticalValues | 8 |
+
 ## Chart DataFormat Targets
 
 | Key | Count |

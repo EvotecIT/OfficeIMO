@@ -16,6 +16,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             TryReadCategorySeriesRange(record, out LegacyXlsChartCategorySeriesRange? categorySeriesRange);
             TryReadAxisLineFormat(record, out LegacyXlsChartAxisLineFormat? axisLineFormat);
             TryReadSeries(record, out ushort? seriesCategoryDataType, out string? seriesCategoryDataTypeName, out ushort? seriesValueDataType, out string? seriesValueDataTypeName, out ushort? seriesCategoryCount, out ushort? seriesValueCount, out ushort? seriesBubbleSizeDataType, out string? seriesBubbleSizeDataTypeName, out ushort? seriesBubbleSizeCount);
+            TryReadSeriesDataCacheIndex(record, out ushort? seriesDataCacheIndex, out string? seriesDataCacheIndexName);
             TryReadDataFormat(record, out ushort? dataFormatPointIndex, out ushort? dataFormatSeriesIndex, out ushort? dataFormatOrder, out string? dataFormatTarget);
             TryReadNumberFormat(record, out ushort? numberFormatId);
             TryReadFontIndex(record, out ushort? fontIndex);
@@ -62,6 +63,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 seriesBubbleSizeDataType,
                 seriesBubbleSizeDataTypeName,
                 seriesBubbleSizeCount,
+                seriesDataCacheIndex,
+                seriesDataCacheIndexName,
                 dataFormatPointIndex,
                 dataFormatSeriesIndex,
                 dataFormatOrder,
@@ -86,6 +89,21 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 sheetProperties,
                 valueRange,
                 barOptions));
+            return true;
+        }
+
+        private static bool TryReadSeriesDataCacheIndex(
+            BiffRecord record,
+            out ushort? seriesDataCacheIndex,
+            out string? seriesDataCacheIndexName) {
+            seriesDataCacheIndex = null;
+            seriesDataCacheIndexName = null;
+            if (record.Type != 0x1065 || record.Payload.Length < 2) {
+                return false;
+            }
+
+            seriesDataCacheIndex = BiffRecordReader.ReadUInt16(record.Payload, 0);
+            seriesDataCacheIndexName = GetSeriesDataCacheIndexName(seriesDataCacheIndex.Value);
             return true;
         }
 
@@ -443,6 +461,19 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     return "Text";
                 default:
                     return $"Unknown:0x{dataType:X4}";
+            }
+        }
+
+        private static string GetSeriesDataCacheIndexName(ushort index) {
+            switch (index) {
+                case 0x0001:
+                    return "ValuesOrVerticalValues";
+                case 0x0002:
+                    return "CategoryLabelsOrHorizontalValues";
+                case 0x0003:
+                    return "BubbleSizes";
+                default:
+                    return $"Unknown:0x{index:X4}";
             }
         }
 

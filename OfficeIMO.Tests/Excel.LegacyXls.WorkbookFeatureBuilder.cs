@@ -490,6 +490,7 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x101e, BuildTickPayload());
                 WriteRecord(stream, 0x1045, BuildUInt16Payload(1));
                 WriteRecord(stream, 0x1003, BuildSeriesPayload(0x0003, categoryCount: 4, valueCount: 4, bubbleSizeCount: 0));
+                WriteRecord(stream, 0x1065, BuildUInt16Payload(0x0002));
                 WriteRecord(stream, 0x1006, BuildDataFormatPayload(pointIndex: 0xffff, seriesIndex: 2, order: 1));
                 WriteRecord(stream, 0x104f, BuildUInt16Payload(14));
                 WriteRecord(stream, 0x1007, BuildLineFormatPayload(style: 0x0001, weight: 1, flags: 0x0004, colorIndex: 0x004d));
