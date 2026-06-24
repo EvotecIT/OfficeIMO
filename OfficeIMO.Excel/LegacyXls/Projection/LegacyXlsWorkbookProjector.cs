@@ -1,3 +1,5 @@
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel.LegacyXls.Model;
 using System.Globalization;
@@ -16,6 +18,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
 
             ProjectDefinedNames(workbook, document);
             ProjectAutoFilters(workbook, document);
+            ProjectExternalReferences(workbook, document);
 
             if (workbook.Protection?.IsProtected == true) {
                 document.ProtectWorkbook(new ExcelWorkbookProtectionOptions {
@@ -264,6 +267,113 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             }
 
             return false;
+        }
+
+        private static void ProjectExternalReferences(LegacyXlsWorkbook workbook, ExcelDocument document) {
+            WorkbookPart workbookPart = document.WorkbookPartRoot;
+            Workbook workbookRoot = workbookPart.Workbook ?? throw new InvalidOperationException("Workbook is null.");
+
+            foreach (LegacyXlsExternalReference reference in workbook.ExternalReferences) {
+                if (reference.Kind != LegacyXlsExternalReferenceKind.ExternalWorkbook
+                    || string.IsNullOrWhiteSpace(reference.Target)) {
+                    continue;
+                }
+
+                if (!TryCreateExternalTargetUri(reference.Target!, out Uri? targetUri) || targetUri == null) {
+                    continue;
+                }
+
+                ExternalWorkbookPart externalWorkbookPart = workbookPart.AddNewPart<ExternalWorkbookPart>();
+                ExternalRelationship relationship = externalWorkbookPart.AddExternalRelationship(
+                    "http://schemas.openxmlformats.org/officeDocument/2006/relationships/externalLinkPath",
+                    targetUri);
+
+                var externalBook = new ExternalBook { Id = relationship.Id };
+                if (reference.SheetNames.Count > 0) {
+                    externalBook.SheetNames = new SheetNames(reference.SheetNames
+                        .Where(sheetName => !string.IsNullOrWhiteSpace(sheetName))
+                        .Select(sheetName => new SheetName { Val = sheetName }));
+                }
+
+                ExternalDefinedNames? externalDefinedNames = CreateExternalDefinedNames(reference);
+                if (externalDefinedNames != null) {
+                    externalBook.ExternalDefinedNames = externalDefinedNames;
+                }
+
+                externalWorkbookPart.ExternalLink = new ExternalLink(externalBook);
+                externalWorkbookPart.ExternalLink.Save();
+
+                ExternalReferences externalReferences = GetOrCreateExternalReferences(workbookRoot);
+                externalReferences.Append(new DocumentFormat.OpenXml.Spreadsheet.ExternalReference {
+                    Id = workbookPart.GetIdOfPart(externalWorkbookPart)
+                });
+            }
+        }
+
+        private static ExternalReferences GetOrCreateExternalReferences(Workbook workbook) {
+            if (workbook.ExternalReferences != null) {
+                return workbook.ExternalReferences;
+            }
+
+            var externalReferences = new ExternalReferences();
+            OpenXmlElement? before = workbook.GetFirstChild<DefinedNames>();
+            before ??= workbook.GetFirstChild<CalculationProperties>();
+            before ??= workbook.GetFirstChild<OleSize>();
+            before ??= workbook.GetFirstChild<CustomWorkbookViews>();
+            before ??= workbook.GetFirstChild<PivotCaches>();
+            before ??= workbook.GetFirstChild<WebPublishing>();
+            before ??= workbook.GetFirstChild<FileRecoveryProperties>();
+            before ??= workbook.GetFirstChild<WebPublishObjects>();
+            before ??= workbook.GetFirstChild<WorkbookExtensionList>();
+            if (before != null) {
+                workbook.InsertBefore(externalReferences, before);
+            } else {
+                workbook.Append(externalReferences);
+            }
+
+            return externalReferences;
+        }
+
+        private static ExternalDefinedNames? CreateExternalDefinedNames(LegacyXlsExternalReference reference) {
+            List<ExternalDefinedName> names = reference.ExternalNames
+                .Where(name => !string.IsNullOrWhiteSpace(name.Name))
+                .Select(name => {
+                    var projectedName = new ExternalDefinedName {
+                        Name = name.Name
+                    };
+                    if (name.LocalSheetIndex.HasValue && name.LocalSheetIndex.Value >= 0) {
+                        projectedName.SheetId = (uint)name.LocalSheetIndex.Value;
+                    }
+
+                    return projectedName;
+                })
+                .ToList();
+
+            return names.Count == 0 ? null : new ExternalDefinedNames(names);
+        }
+
+        private static bool TryCreateExternalTargetUri(string target, out Uri? uri) {
+            string normalized = RemoveControlCharacters(target);
+            uri = null;
+            if (string.IsNullOrWhiteSpace(normalized)) {
+                return false;
+            }
+
+            return Uri.TryCreate(normalized, UriKind.RelativeOrAbsolute, out uri);
+        }
+
+        private static string RemoveControlCharacters(string value) {
+            StringBuilder? sanitized = null;
+            for (int i = 0; i < value.Length; i++) {
+                if (!char.IsControl(value[i])) {
+                    sanitized?.Append(value[i]);
+                    continue;
+                }
+
+                sanitized ??= new StringBuilder(value.Length).Append(value, 0, i);
+            }
+
+            return sanitized == null ? value : sanitized.ToString();
         }
 
         private static bool TryCreateCommentRichTextRuns(

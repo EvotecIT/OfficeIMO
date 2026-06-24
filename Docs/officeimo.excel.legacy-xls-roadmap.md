@@ -216,9 +216,12 @@ metadata for external workbook, add-in, DDE/OLE, same-sheet, self, and unused li
 including parsed external/add-in name tables from supported `ExternName` records,
 with external-link diagnostics for unsupported external-reference records. External
 cell cache sections from `XCT` and typed cached values from `CRN` records are now
-preserved under the supporting-link model and counted in import reports, while full
-Open XML external-link package part projection remains a gap; supported formulas
-currently project as text formulas using the information available in the legacy model.
+preserved under the supporting-link model and counted in import reports. Supported
+external workbook links now project into Open XML external-link workbook parts with
+sheet-name and external-name metadata, while unsupported add-in, DDE/OLE, self,
+same-sheet, and unused link shapes remain preserve-only diagnostics; supported
+formulas still project as text formulas using the information available in the
+legacy model.
 PivotCache cache item records for numeric, integer, Boolean, error, string, date/time,
 and empty values are now decoded into the preserve-only PivotTable model, with
 import-report buckets limited to type/value-state metadata rather than dumping raw

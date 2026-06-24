@@ -116,7 +116,17 @@ namespace OfficeIMO.Tests {
             using var output = new MemoryStream();
             document.Save(output);
             using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
-            WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single();
+            WorkbookPart workbookPart = spreadsheet.WorkbookPart!;
+            Assert.NotNull(workbookPart.Workbook.ExternalReferences);
+            DocumentFormat.OpenXml.Spreadsheet.ExternalReference projectedExternalReference =
+                Assert.Single(workbookPart.Workbook.ExternalReferences!.Elements<DocumentFormat.OpenXml.Spreadsheet.ExternalReference>());
+            ExternalWorkbookPart externalWorkbookPart = Assert.IsType<ExternalWorkbookPart>(workbookPart.GetPartById(projectedExternalReference.Id!));
+            ExternalRelationship externalRelationship = Assert.Single(externalWorkbookPart.ExternalRelationships);
+            Assert.Equal("http://schemas.openxmlformats.org/officeDocument/2006/relationships/externalLinkPath", externalRelationship.RelationshipType);
+            Assert.EndsWith("Budget.xls", externalRelationship.Uri.OriginalString, StringComparison.Ordinal);
+            Assert.Equal(new[] { "Jan", "Feb" }, externalWorkbookPart.ExternalLink!.ExternalBook!.SheetNames!.Elements<SheetName>().Select(sheetName => sheetName.Val!.Value).ToArray());
+
+            WorksheetPart worksheetPart = workbookPart.WorksheetParts.Single();
             Cell projectedReferenceFormula = worksheetPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference!.Value == "A1");
             Assert.Equal("'[Budget.xls]Jan'!A1+5", projectedReferenceFormula.CellFormula!.Text);
             Cell projectedAreaFormula = worksheetPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference!.Value == "A2");
@@ -152,7 +162,12 @@ namespace OfficeIMO.Tests {
             using var output = new MemoryStream();
             document.Save(output);
             using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
-            WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single();
+            WorkbookPart workbookPart = spreadsheet.WorkbookPart!;
+            ExternalWorkbookPart externalWorkbookPart = Assert.Single(workbookPart.GetPartsOfType<ExternalWorkbookPart>());
+            ExternalDefinedName projectedExternalName = Assert.Single(externalWorkbookPart.ExternalLink!.ExternalBook!.ExternalDefinedNames!.Elements<ExternalDefinedName>());
+            Assert.Equal("TaxRate", projectedExternalName.Name!.Value);
+
+            WorksheetPart worksheetPart = workbookPart.WorksheetParts.Single();
             Cell projectedFormula = worksheetPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference!.Value == "A1");
             Assert.Equal("'Budget.xls'!TaxRate", projectedFormula.CellFormula!.Text);
         }
