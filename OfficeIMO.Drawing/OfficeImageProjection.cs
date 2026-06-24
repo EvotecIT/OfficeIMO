@@ -92,6 +92,18 @@ public readonly struct OfficeImageProjection {
     public bool HasTransform => HasRotation || FlipHorizontal || FlipVertical;
 
     /// <summary>
+    /// Creates a destination-space frame transform for this projection's rotation and mirror settings.
+    /// </summary>
+    /// <returns>A shared frame transform that can be converted to format-specific transform syntax or matrices.</returns>
+    public OfficeImageFrameTransform CreateFrameTransform() =>
+        new OfficeImageFrameTransform(
+            RotationDegrees,
+            RotationCenterX,
+            RotationCenterY,
+            FlipHorizontal,
+            FlipVertical);
+
+    /// <summary>
     /// Returns a projection scaled by the supplied output factor.
     /// </summary>
     /// <param name="scale">Positive scale factor.</param>

@@ -189,6 +189,29 @@ public class DrawingTests {
     }
 
     [Fact]
+    public void OfficeImageProjectionCreatesFrameTransformForDestinationCoordinates() {
+        OfficeImageFrameTransform plain = new OfficeImageProjection(
+            new OfficeImagePlacement(10D, 20D, 80D, 40D))
+            .CreateFrameTransform();
+        OfficeImageFrameTransform flipped = new OfficeImageProjection(
+            new OfficeImagePlacement(10D, 20D, 80D, 40D),
+            flipHorizontal: true)
+            .CreateFrameTransform();
+        OfficeImageFrameTransform rotated = new OfficeImageProjection(
+            new OfficeImagePlacement(10D, 20D, 80D, 40D),
+            rotationDegrees: 90D)
+            .CreateFrameTransform();
+
+        Assert.False(plain.HasTransform);
+        Assert.Equal((0D, 50D, 40D, false, false), plain.ToTuple());
+        Assert.Equal((0D, 50D, 40D, true, false), flipped.ToTuple());
+        Assert.True(flipped.HasFlip);
+        Assert.Equal(new OfficePoint(90D, 20D), flipped.CreateDestinationTransform().TransformPoint(new OfficePoint(10D, 20D)));
+        Assert.True(rotated.HasRotation);
+        Assert.Equal(new OfficePoint(70D, 40D), rotated.CreateDestinationTransform().TransformPoint(new OfficePoint(50D, 20D)));
+    }
+
+    [Fact]
     public void OfficeImageRenderPlan_ResolvesTopLeftAndBottomLeftCropPlacement() {
         var crop = new OfficeImageSourceCrop(0.25D, 0.1D, 0.25D, 0.2D);
 
@@ -1291,6 +1314,9 @@ public class DrawingTests {
         var matrixBuilder = new StringBuilder("<g");
         matrixBuilder.AppendMatrixTransformAttribute(matrixTransform, 40D, 50D).Append(">");
         Assert.Equal("<g transform=\"matrix(0 1 -1 0 55 55)\">", matrixBuilder.ToString());
+        Assert.Equal("rotate(45 50 40)", OfficeSvgFormatting.FormatImageFrameTransform(new OfficeImageFrameTransform(45D, 50D, 40D)));
+        Assert.Equal("translate(50 40) rotate(45) scale(-1 1) translate(-50 -40)", OfficeSvgFormatting.FormatImageFrameTransform(new OfficeImageFrameTransform(45D, 50D, 40D, flipHorizontal: true)));
+        Assert.Null(OfficeSvgFormatting.FormatImageFrameTransform(new OfficeImageFrameTransform(0D, 50D, 40D)));
 
         var writerBuilder = new StringBuilder();
         using (var writer = System.Xml.XmlWriter.Create(

@@ -341,6 +341,43 @@ public static partial class OfficeSvgFormatting {
         builder.AppendAttribute("transform", FormatMatrixTransform(transform, placementX, placementY));
 
     /// <summary>
+    /// Formats an SVG image frame transform using shared projection rotation and mirror semantics.
+    /// </summary>
+    /// <param name="transform">Image frame transform.</param>
+    /// <returns>SVG transform value, or <c>null</c> when the frame transform is identity.</returns>
+    public static string? FormatImageFrameTransform(OfficeImageFrameTransform transform) {
+        if (!transform.HasTransform) {
+            return null;
+        }
+
+        if (!transform.HasFlip) {
+            return FormatRotateTransform(transform.RotationDegrees, transform.CenterX, transform.CenterY);
+        }
+
+        var builder = new StringBuilder();
+        builder.Append("translate(")
+            .Append(FormatNumber(transform.CenterX))
+            .Append(' ')
+            .Append(FormatNumber(transform.CenterY))
+            .Append(')');
+        if (transform.HasRotation) {
+            builder.Append(' ').Append(FormatRotateTransform(transform.RotationDegrees));
+        }
+
+        builder.Append(" scale(")
+            .Append(FormatNumber(transform.ScaleX))
+            .Append(' ')
+            .Append(FormatNumber(transform.ScaleY))
+            .Append(')');
+        builder.Append(" translate(")
+            .Append(FormatNumber(-transform.CenterX))
+            .Append(' ')
+            .Append(FormatNumber(-transform.CenterY))
+            .Append(')');
+        return builder.ToString();
+    }
+
+    /// <summary>
     /// Appends an SVG rectangular clip path definition.
     /// </summary>
     /// <param name="builder">Markup builder.</param>

@@ -423,53 +423,6 @@ public static class OfficeSvgImageRenderer {
         return false;
     }
 
-    private static string? BuildTransform(
-        double x,
-        double y,
-        double width,
-        double height,
-        double rotationDegrees,
-        bool flipHorizontal,
-        bool flipVertical,
-        double? rotationCenterX = null,
-        double? rotationCenterY = null) {
-        bool hasRotation = Math.Abs(rotationDegrees) >= 0.000001D;
-        bool hasFlip = flipHorizontal || flipVertical;
-        if (!hasRotation && !hasFlip) {
-            return null;
-        }
-
-        double centerX = rotationCenterX ?? x + (width / 2D);
-        double centerY = rotationCenterY ?? y + (height / 2D);
-        if (!hasFlip) {
-            return OfficeSvgFormatting.FormatRotateTransform(rotationDegrees, centerX, centerY);
-        }
-
-        double scaleX = flipHorizontal ? -1D : 1D;
-        double scaleY = flipVertical ? -1D : 1D;
-        var transform = new StringBuilder();
-        transform.Append("translate(")
-            .Append(OfficeSvgFormatting.FormatNumber(centerX))
-            .Append(' ')
-            .Append(OfficeSvgFormatting.FormatNumber(centerY))
-            .Append(')');
-        if (hasRotation) {
-            transform.Append(' ').Append(OfficeSvgFormatting.FormatRotateTransform(rotationDegrees));
-        }
-
-        transform.Append(" scale(")
-            .Append(OfficeSvgFormatting.FormatNumber(scaleX))
-            .Append(' ')
-            .Append(OfficeSvgFormatting.FormatNumber(scaleY))
-            .Append(')');
-        transform.Append(" translate(")
-            .Append(OfficeSvgFormatting.FormatNumber(-centerX))
-            .Append(' ')
-            .Append(OfficeSvgFormatting.FormatNumber(-centerY))
-            .Append(')');
-        return transform.ToString();
-    }
-
     private static SvgImageLayout CreateLayout(OfficeImageProjection projection, OfficeImagePlacement? clipRectangle) {
         double imageX = projection.X;
         double imageY = projection.Y;
@@ -482,16 +435,7 @@ public static class OfficeSvgImageRenderer {
             imageY = projection.Y - (projection.SourceTop * imageHeight);
         }
 
-        string? transform = BuildTransform(
-            projection.X,
-            projection.Y,
-            projection.Width,
-            projection.Height,
-            projection.RotationDegrees,
-            projection.FlipHorizontal,
-            projection.FlipVertical,
-            projection.RotationCenterX,
-            projection.RotationCenterY);
+        string? transform = OfficeSvgFormatting.FormatImageFrameTransform(projection.CreateFrameTransform());
         OfficeImagePlacement? effectiveClip = clipRectangle;
         if (projection.HasCrop && effectiveClip == null) {
             effectiveClip = projection.Placement;
