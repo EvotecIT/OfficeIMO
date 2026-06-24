@@ -12,6 +12,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
             TryReadObjectCommonData(record, out ushort? objectType, out ushort? objectId, out ushort? objectFlags);
             IReadOnlyList<LegacyXlsDrawingObjectSubRecord> objectSubRecords = ReadObjectSubRecords(record);
+            LegacyXlsDrawingFutureRecordHeader? futureRecordHeader = TryReadFutureRecordHeader(record);
             TryReadEscherHeader(record, out ushort? escherRecordType, out ushort? escherRecordInstance, out byte? escherRecordVersion, out uint? escherPayloadLength);
             ReadOfficeArtMetadata(
                 record,
@@ -41,7 +42,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 childAnchorEntries: childAnchorEntries,
                 officeArtRecords: officeArtRecords,
                 shapeProperties: shapeProperties,
-                objectSubRecords: objectSubRecords));
+                objectSubRecords: objectSubRecords,
+                futureRecordHeader: futureRecordHeader));
             return true;
         }
 
@@ -333,6 +335,43 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             return true;
         }
 
+        private static LegacyXlsDrawingFutureRecordHeader? TryReadFutureRecordHeader(BiffRecord record) {
+            if (record.Type != (ushort)BiffRecordType.ShapePropsStream &&
+                record.Type != (ushort)BiffRecordType.TextPropsStream &&
+                record.Type != (ushort)BiffRecordType.RichTextStream) {
+                return null;
+            }
+
+            byte[] payload = record.Payload;
+            if (payload.Length < 4) {
+                return null;
+            }
+
+            ushort wrappedRecordType = BiffRecordReader.ReadUInt16(payload, 0);
+            ushort flags = BiffRecordReader.ReadUInt16(payload, 2);
+            ushort? firstRow = null;
+            ushort? lastRow = null;
+            ushort? firstColumn = null;
+            ushort? lastColumn = null;
+            int headerLength = 4;
+            if ((flags & 0x0001) != 0 && payload.Length >= 12) {
+                firstRow = BiffRecordReader.ReadUInt16(payload, 4);
+                lastRow = BiffRecordReader.ReadUInt16(payload, 6);
+                firstColumn = BiffRecordReader.ReadUInt16(payload, 8);
+                lastColumn = BiffRecordReader.ReadUInt16(payload, 10);
+                headerLength = 12;
+            }
+
+            return new LegacyXlsDrawingFutureRecordHeader(
+                wrappedRecordType,
+                flags,
+                firstRow,
+                lastRow,
+                firstColumn,
+                lastColumn,
+                Math.Max(0, payload.Length - headerLength));
+        }
+
         private static IReadOnlyList<LegacyXlsDrawingObjectSubRecord> ReadObjectSubRecords(BiffRecord record) {
             byte[] payload = record.Payload;
             if (record.Type != (ushort)BiffRecordType.Obj || payload.Length < 4) {
@@ -385,6 +424,18 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
             if (type == (ushort)BiffRecordType.Txo) {
                 return LegacyXlsDrawingRecordKind.TextObject;
+            }
+
+            if (type == (ushort)BiffRecordType.ShapePropsStream) {
+                return LegacyXlsDrawingRecordKind.ShapePropertiesStream;
+            }
+
+            if (type == (ushort)BiffRecordType.TextPropsStream) {
+                return LegacyXlsDrawingRecordKind.TextPropertiesStream;
+            }
+
+            if (type == (ushort)BiffRecordType.RichTextStream) {
+                return LegacyXlsDrawingRecordKind.RichTextStream;
             }
 
             return LegacyXlsDrawingRecordKind.PreserveOnly;

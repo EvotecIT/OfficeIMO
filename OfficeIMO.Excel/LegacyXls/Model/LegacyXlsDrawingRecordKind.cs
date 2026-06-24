@@ -16,6 +16,15 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         Object,
 
         /// <summary>Text object record.</summary>
-        TextObject
+        TextObject,
+
+        /// <summary>Drawing shape-properties future-record stream.</summary>
+        ShapePropertiesStream,
+
+        /// <summary>Drawing text-properties future-record stream.</summary>
+        TextPropertiesStream,
+
+        /// <summary>Drawing rich-text future-record stream.</summary>
+        RichTextStream
     }
 }

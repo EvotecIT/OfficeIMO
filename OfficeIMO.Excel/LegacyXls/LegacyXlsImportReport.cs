@@ -507,6 +507,25 @@ namespace OfficeIMO.Excel.LegacyXls {
             DrawingObjectSubRecordsByCompleteness = CountByCode(workbook.DrawingRecords
                 .SelectMany(record => record.ObjectSubRecords)
                 .Select(subRecord => subRecord.IsComplete ? "Complete" : "Truncated"));
+            DrawingFutureRecordWrappedTypes = CountByCode(workbook.DrawingRecords
+                .Where(record => record.FutureRecordHeader != null)
+                .Select(record => $"{record.RecordName}|0x{record.FutureRecordHeader!.WrappedRecordType:X4}"));
+            DrawingFutureRecordFlags = CountByCode(workbook.DrawingRecords
+                .Where(record => record.FutureRecordHeader != null)
+                .Select(record => $"{record.RecordName}|Flags:0x{record.FutureRecordHeader!.Flags:X4}"));
+            DrawingFutureRecordReferenceStates = CountByCode(workbook.DrawingRecords
+                .Where(record => record.FutureRecordHeader != null)
+                .Select(record => record.FutureRecordHeader!.HasRange ? $"{record.RecordName}|HasRange" : $"{record.RecordName}|NoRange"));
+            DrawingFutureRecordRanges = CountByCode(workbook.DrawingRecords
+                .Where(record => record.FutureRecordHeader?.HasRange == true
+                    && record.FutureRecordHeader.FirstRow.HasValue
+                    && record.FutureRecordHeader.LastRow.HasValue
+                    && record.FutureRecordHeader.FirstColumn.HasValue
+                    && record.FutureRecordHeader.LastColumn.HasValue)
+                .Select(GetDrawingFutureRecordRangeKey));
+            DrawingFutureRecordStreamByteCounts = CountByCode(workbook.DrawingRecords
+                .Where(record => record.FutureRecordHeader != null)
+                .Select(record => $"{record.RecordName}|StreamBytes:{record.FutureRecordHeader!.StreamByteCount}"));
             DrawingRecordsByEscherRecordType = CountByCode(workbook.DrawingRecords
                 .Where(record => record.EscherRecordType.HasValue)
                 .Select(record => $"EscherRecordType:0x{record.EscherRecordType!.Value:X4}"));
@@ -1386,6 +1405,21 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets OBJ subrecords grouped by whether the declared payload was fully available.</summary>
         public IReadOnlyDictionary<string, int> DrawingObjectSubRecordsByCompleteness { get; }
 
+        /// <summary>Gets drawing future-record streams grouped by wrapped BIFF record type.</summary>
+        public IReadOnlyDictionary<string, int> DrawingFutureRecordWrappedTypes { get; }
+
+        /// <summary>Gets drawing future-record streams grouped by raw future-record flags.</summary>
+        public IReadOnlyDictionary<string, int> DrawingFutureRecordFlags { get; }
+
+        /// <summary>Gets drawing future-record streams grouped by whether a cell range reference is present.</summary>
+        public IReadOnlyDictionary<string, int> DrawingFutureRecordReferenceStates { get; }
+
+        /// <summary>Gets drawing future-record streams grouped by decoded cell range reference.</summary>
+        public IReadOnlyDictionary<string, int> DrawingFutureRecordRanges { get; }
+
+        /// <summary>Gets drawing future-record streams grouped by remaining stream byte count.</summary>
+        public IReadOnlyDictionary<string, int> DrawingFutureRecordStreamByteCounts { get; }
+
         /// <summary>Gets MsoDrawing records grouped by decoded top-level Escher record type.</summary>
         public IReadOnlyDictionary<string, int> DrawingRecordsByEscherRecordType { get; }
 
@@ -1839,6 +1873,11 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Drawing Object Subrecords By Name", DrawingObjectSubRecordsByName);
             AppendDictionary(builder, "Drawing Object Subrecords By Declared Length", DrawingObjectSubRecordsByDeclaredLength);
             AppendDictionary(builder, "Drawing Object Subrecords By Completeness", DrawingObjectSubRecordsByCompleteness);
+            AppendDictionary(builder, "Drawing Future Record Wrapped Types", DrawingFutureRecordWrappedTypes);
+            AppendDictionary(builder, "Drawing Future Record Flags", DrawingFutureRecordFlags);
+            AppendDictionary(builder, "Drawing Future Record Reference States", DrawingFutureRecordReferenceStates);
+            AppendDictionary(builder, "Drawing Future Record Ranges", DrawingFutureRecordRanges);
+            AppendDictionary(builder, "Drawing Future Record Stream Byte Counts", DrawingFutureRecordStreamByteCounts);
             AppendDictionary(builder, "Drawing Records By Escher Record Type", DrawingRecordsByEscherRecordType);
             AppendDictionary(builder, "Drawing Records By Escher Record Type Name", DrawingRecordsByEscherRecordTypeName);
             AppendDictionary(builder, "Drawing OfficeArt Records By Type", DrawingOfficeArtRecordsByType);
@@ -2186,6 +2225,13 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         private static string GetDrawingRecordLocationKey(LegacyXlsDrawingRecord record) {
             return string.IsNullOrWhiteSpace(record.SheetName) ? "(workbook)" : record.SheetName!;
+        }
+
+        private static string GetDrawingFutureRecordRangeKey(LegacyXlsDrawingRecord record) {
+            LegacyXlsDrawingFutureRecordHeader header = record.FutureRecordHeader!;
+            string start = A1.CellReference(header.FirstRow!.Value + 1, header.FirstColumn!.Value + 1);
+            string end = A1.CellReference(header.LastRow!.Value + 1, header.LastColumn!.Value + 1);
+            return $"{record.RecordName}|{start}:{end}";
         }
 
         private static string GetDrawingAnchorRangeKey(LegacyXlsDrawingAnchor anchor) {

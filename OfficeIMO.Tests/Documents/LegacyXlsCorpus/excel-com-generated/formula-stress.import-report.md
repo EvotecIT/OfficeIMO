@@ -339,13 +339,37 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| PreserveOnly | 1 |
+| ShapePropertiesStream | 1 |
 
 ## Drawing Records By Name
 
 | Key | Count |
 | --- | --- |
 | ShapePropsStream | 1 |
+
+## Drawing Future Record Wrapped Types
+
+| Key | Count |
+| --- | --- |
+| ShapePropsStream\|0x08A3 | 1 |
+
+## Drawing Future Record Flags
+
+| Key | Count |
+| --- | --- |
+| ShapePropsStream\|Flags:0x0000 | 1 |
+
+## Drawing Future Record Reference States
+
+| Key | Count |
+| --- | --- |
+| ShapePropsStream\|NoRange | 1 |
+
+## Drawing Future Record Stream Byte Counts
+
+| Key | Count |
+| --- | --- |
+| ShapePropsStream\|StreamBytes:12 | 1 |
 
 ## Drawing Records By Location
 

@@ -586,6 +586,9 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Imported"));
                 WriteRecord(stream, 0x005d, BuildObjectPayload(0x0008, 1));
                 WriteRecord(stream, 0x00ec, BuildDrawingWithPictureShapePayload());
+                WriteRecord(stream, 0x08a3, BuildDrawingFutureStreamPayload(0x08a3, flags: 0, "shape"));
+                WriteRecord(stream, 0x08a4, BuildDrawingFutureStreamPayload(0x08a4, flags: 0x0001, "text", firstRow: 1, lastRow: 2, firstColumn: 0, lastColumn: 1));
+                WriteRecord(stream, 0x08a5, BuildDrawingFutureStreamPayload(0x08a5, flags: 0, "rich"));
                 WriteRecord(stream, 0x1002, Array.Empty<byte>());
                 WriteRecord(stream, 0x00b0, Array.Empty<byte>());
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
@@ -1441,6 +1444,29 @@ namespace OfficeIMO.Tests {
                 byte[] childAnchor = BuildOfficeArtRecord(0xf00f, instance: 0, version: 0x00, BuildChildAnchorPayload());
                 byte[] shapeContainer = BuildOfficeArtRecord(0xf004, instance: 0, version: 0x0f, shape.Concat(shapeProperties).Concat(anchor).Concat(childAnchor).ToArray());
                 return BuildOfficeArtRecord(0xf002, instance: 1, version: 0x0f, shapeContainer);
+            }
+
+            private static byte[] BuildDrawingFutureStreamPayload(
+                ushort wrappedRecordType,
+                ushort flags,
+                string marker,
+                ushort firstRow = 0,
+                ushort lastRow = 0,
+                ushort firstColumn = 0,
+                ushort lastColumn = 0) {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, wrappedRecordType);
+                WriteUInt16(stream, flags);
+                if ((flags & 0x0001) != 0) {
+                    WriteUInt16(stream, firstRow);
+                    WriteUInt16(stream, lastRow);
+                    WriteUInt16(stream, firstColumn);
+                    WriteUInt16(stream, lastColumn);
+                }
+
+                byte[] markerBytes = Encoding.ASCII.GetBytes(marker);
+                stream.Write(markerBytes, 0, markerBytes.Length);
+                return stream.ToArray();
             }
 
             private static byte[] BuildShapePayload(uint shapeId, uint flags) {

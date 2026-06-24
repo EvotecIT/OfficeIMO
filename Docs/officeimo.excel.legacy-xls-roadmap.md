@@ -246,6 +246,10 @@ data-label display flags for value, percent, category label, bubble size, and
 series name states, with compact import-report buckets for axis intervals,
 axis-line targets, enabled data-label flags, full flag-state shapes, and pie
 explosion percentages.
+Drawing `ShapePropsStream`, `TextPropsStream`, and `RichTextStream` future-record
+streams now have first-class preserve-only drawing kinds plus decoded FRT headers,
+including compact report buckets for wrapped record type, flags, range-reference
+state, attached range, and remaining stream byte count.
 Unsupported and preserve-only feature occurrences now also populate a structured
 `LegacyXlsWorkbook.UnsupportedFeatures` report with stable codes, feature kind,
 sheet name, record type, record offset, and stable feature-detail keys such as

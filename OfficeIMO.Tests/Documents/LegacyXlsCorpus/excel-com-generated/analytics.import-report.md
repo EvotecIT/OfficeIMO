@@ -1077,7 +1077,9 @@ Warnings: 0
 | Drawing | 9 |
 | DrawingGroup | 1 |
 | Object | 8 |
-| PreserveOnly | 14 |
+| RichTextStream | 5 |
+| ShapePropertiesStream | 1 |
+| TextPropertiesStream | 8 |
 
 ## Drawing Records By Name
 
@@ -1145,6 +1147,38 @@ Warnings: 0
 | --- | --- |
 | Complete | 16 |
 | Truncated | 8 |
+
+## Drawing Future Record Wrapped Types
+
+| Key | Count |
+| --- | --- |
+| RichTextStream\|0x08A5 | 5 |
+| ShapePropsStream\|0x08A3 | 1 |
+| TextPropsStream\|0x08A4 | 8 |
+
+## Drawing Future Record Flags
+
+| Key | Count |
+| --- | --- |
+| RichTextStream\|Flags:0x0000 | 5 |
+| ShapePropsStream\|Flags:0x0000 | 1 |
+| TextPropsStream\|Flags:0x0000 | 8 |
+
+## Drawing Future Record Reference States
+
+| Key | Count |
+| --- | --- |
+| RichTextStream\|NoRange | 5 |
+| ShapePropsStream\|NoRange | 1 |
+| TextPropsStream\|NoRange | 8 |
+
+## Drawing Future Record Stream Byte Counts
+
+| Key | Count |
+| --- | --- |
+| RichTextStream\|StreamBytes:16 | 5 |
+| ShapePropsStream\|StreamBytes:12 | 1 |
+| TextPropsStream\|StreamBytes:20 | 8 |
 
 ## Drawing Records By Escher Record Type
 

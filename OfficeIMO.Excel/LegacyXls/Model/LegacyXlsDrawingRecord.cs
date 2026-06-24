@@ -28,7 +28,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             IReadOnlyList<LegacyXlsDrawingChildAnchor>? childAnchorEntries = null,
             IReadOnlyList<LegacyXlsDrawingOfficeArtRecord>? officeArtRecords = null,
             IReadOnlyList<LegacyXlsDrawingShapeProperty>? shapeProperties = null,
-            IReadOnlyList<LegacyXlsDrawingObjectSubRecord>? objectSubRecords = null) {
+            IReadOnlyList<LegacyXlsDrawingObjectSubRecord>? objectSubRecords = null,
+            LegacyXlsDrawingFutureRecordHeader? futureRecordHeader = null) {
             if (payloadLength < 0) {
                 throw new ArgumentOutOfRangeException(nameof(payloadLength));
             }
@@ -58,6 +59,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             OfficeArtRecords = officeArtRecords?.ToArray() ?? Array.Empty<LegacyXlsDrawingOfficeArtRecord>();
             ShapeProperties = shapeProperties?.ToArray() ?? Array.Empty<LegacyXlsDrawingShapeProperty>();
             ObjectSubRecords = objectSubRecords?.ToArray() ?? Array.Empty<LegacyXlsDrawingObjectSubRecord>();
+            FutureRecordHeader = futureRecordHeader;
         }
 
         /// <summary>Gets the shallow drawing record category.</summary>
@@ -101,6 +103,12 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets whether this OBJ record contains discovered subrecords.</summary>
         public bool HasObjectSubRecords => ObjectSubRecords.Count > 0;
+
+        /// <summary>Gets the decoded future-record stream header, when this drawing record uses that wrapper.</summary>
+        public LegacyXlsDrawingFutureRecordHeader? FutureRecordHeader { get; }
+
+        /// <summary>Gets whether this drawing record has a decoded future-record stream header.</summary>
+        public bool HasFutureRecordHeader => FutureRecordHeader != null;
 
         /// <summary>Gets whether the object is locked.</summary>
         public bool IsObjectLocked => HasObjectFlag(0x0001);
