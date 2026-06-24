@@ -9,7 +9,7 @@ using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 using Xunit;
 
 namespace OfficeIMO.Tests {
-    public class ExcelImageExportVisualBaselineTests {
+    public partial class ExcelImageExportVisualBaselineTests {
         private const string BaselineName = "officeimo-excel-image-premium-range";
         private const string ConditionalBaselineName = "officeimo-excel-image-conditional-formatting";
         private const string SparklineBaselineName = "officeimo-excel-image-sparklines";

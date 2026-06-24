@@ -1609,7 +1609,11 @@ public class DrawingTests {
 
         Assert.True(OfficeShapePresets.TryCreate("heart", 64, 56, horizontalFlip: true, verticalFlip: false, out OfficeShape? heart));
         Assert.NotNull(heart);
-        Assert.Equal(new OfficePoint(32, 56), heart!.PathCommands[0].Point);
+        AssertPointNear(new OfficePoint(heart!.Width, heart.Height), 58.88D, 52.08D);
+        AssertPointNear(heart.PathCommands[0].Point, 29.44D, 52.08D);
+        AssertPointNear(heart.PathCommands[1].Point, 57.6D, 17.36D);
+        AssertPointNear(heart.PathCommands[5].Point, 1.28D, 17.36D);
+        AssertPointNear(heart.PathCommands[3].Point, 29.44D, 14.56D);
 
         Assert.True(OfficeShapePresets.TryCreate("cube", 72, 60, out OfficeShape? cube));
         Assert.NotNull(cube);
@@ -2181,6 +2185,11 @@ public class DrawingTests {
         data[offset + 1] = (byte)((value >> 8) & 0xFF);
         data[offset + 2] = (byte)((value >> 16) & 0xFF);
         data[offset + 3] = (byte)((value >> 24) & 0xFF);
+    }
+
+    private static void AssertPointNear(OfficePoint actual, double expectedX, double expectedY) {
+        Assert.Equal(expectedX, actual.X, precision: 6);
+        Assert.Equal(expectedY, actual.Y, precision: 6);
     }
 
     private static void WritePlaceableWmfChecksum(byte[] data) {

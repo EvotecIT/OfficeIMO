@@ -111,13 +111,13 @@ public static class OfficeShapePresets {
                 return shape != null;
             case "heart":
                 shape = Path(width, height, horizontalFlip, verticalFlip,
-                    OfficePathCommand.MoveTo(0.5D, 1D),
-                    OfficePathCommand.CubicBezierTo(0.18D, 0.72D, 0D, 0.52D, 0D, 0.28D),
-                    OfficePathCommand.CubicBezierTo(0D, 0.08D, 0.16D, 0D, 0.31D, 0D),
-                    OfficePathCommand.CubicBezierTo(0.42D, 0D, 0.49D, 0.07D, 0.5D, 0.18D),
-                    OfficePathCommand.CubicBezierTo(0.51D, 0.07D, 0.58D, 0D, 0.69D, 0D),
-                    OfficePathCommand.CubicBezierTo(0.84D, 0D, 1D, 0.08D, 1D, 0.28D),
-                    OfficePathCommand.CubicBezierTo(1D, 0.52D, 0.82D, 0.72D, 0.5D, 1D),
+                    OfficePathCommand.MoveTo(0.5D, 0.96D),
+                    OfficePathCommand.CubicBezierTo(0.18D, 0.71D, 0.04D, 0.55D, 0.06D, 0.34D),
+                    OfficePathCommand.CubicBezierTo(0.08D, 0.14D, 0.23D, 0.03D, 0.38D, 0.09D),
+                    OfficePathCommand.CubicBezierTo(0.45D, 0.12D, 0.49D, 0.2D, 0.5D, 0.29D),
+                    OfficePathCommand.CubicBezierTo(0.51D, 0.2D, 0.55D, 0.12D, 0.62D, 0.09D),
+                    OfficePathCommand.CubicBezierTo(0.77D, 0.03D, 0.92D, 0.14D, 0.94D, 0.34D),
+                    OfficePathCommand.CubicBezierTo(0.96D, 0.55D, 0.82D, 0.71D, 0.5D, 0.96D),
                     OfficePathCommand.Close());
                 return shape != null;
             case "cloud":
