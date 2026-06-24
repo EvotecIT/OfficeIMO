@@ -489,7 +489,7 @@ namespace OfficeIMO.Tests {
             sheet.SetColumnWidth(2, 12);
             sheet.AddConditionalRule("A1:A2", ConditionalFormattingOperatorValues.Equal, "\"Hot\"", fillColor: "FEE2E2");
             sheet.AddConditionalFormulaRule("B1:B2", "MOD(B1,2)=0", fillColor: "C6EFCE");
-            AddUnsupportedTimePeriodRule(sheet, "B1:B2");
+            AddMalformedTimePeriodRuleWithFill(sheet, "B1:B2");
 
             ExcelRange range = sheet.Range("A1:B2");
             ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot();
@@ -499,13 +499,13 @@ namespace OfficeIMO.Tests {
             Assert.Null(snapshot.Cells.Single(cell => cell.Row == 1 && cell.Column == 2).Style.FillColorArgb);
             OfficeImageExportDiagnostic cellIs = Assert.Single(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ConditionalCellIsUnsupported);
             OfficeImageExportDiagnostic formula = Assert.Single(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ConditionalFormulaUnsupported);
-            OfficeImageExportDiagnostic rule = Assert.Single(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ConditionalRuleUnsupported);
+            OfficeImageExportDiagnostic timePeriod = Assert.Single(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ConditionalTimePeriodUnsupported);
             Assert.Equal(OfficeImageExportDiagnosticSeverity.Warning, cellIs.Severity);
             Assert.Equal(OfficeImageExportDiagnosticSeverity.Warning, formula.Severity);
-            Assert.Equal(OfficeImageExportDiagnosticSeverity.Warning, rule.Severity);
+            Assert.Equal(OfficeImageExportDiagnosticSeverity.Warning, timePeriod.Severity);
             Assert.Equal("Unsupported!A1:A2", cellIs.Source);
             Assert.Equal("Unsupported!B1:B2", formula.Source);
-            Assert.Equal("Unsupported!B1:B2", rule.Source);
+            Assert.Equal("Unsupported!B1:B2", timePeriod.Source);
             Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Error);
         }
 
@@ -2724,24 +2724,15 @@ namespace OfficeIMO.Tests {
             }
         }
 
-        private static void AddUnsupportedTimePeriodRule(ExcelSheet sheet, string range) {
-            Worksheet worksheet = sheet.WorksheetPart.Worksheet ?? throw new InvalidOperationException("Worksheet is missing.");
-            var conditional = new ConditionalFormatting {
-                SequenceOfReferences = new ListValue<StringValue> { InnerText = range }
-            };
-            conditional.Append(new ConditionalFormattingRule {
-                Type = ConditionalFormatValues.TimePeriod,
-                Priority = 99
-            });
-
-            SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
-            if (sheetData == null) {
-                worksheet.Append(conditional);
-            } else {
-                worksheet.InsertAfter(conditional, sheetData);
-            }
-
-            worksheet.Save();
+        private static void AddMalformedTimePeriodRuleWithFill(ExcelSheet sheet, string range) {
+            sheet.AddConditionalTimePeriodRule(range, TimePeriodValues.Today, fillColor: "C6EFCE");
+            ConditionalFormattingRule rule = sheet.WorksheetPart.Worksheet!
+                .Elements<ConditionalFormatting>()
+                .Where(conditional => string.Equals(conditional.SequenceOfReferences?.InnerText, range, StringComparison.Ordinal))
+                .SelectMany(conditional => conditional.Elements<ConditionalFormattingRule>())
+                .First(item => item.Type?.Value == ConditionalFormatValues.TimePeriod);
+            rule.TimePeriod = null;
+            sheet.WorksheetPart.Worksheet.Save();
         }
 
         private static void MarkAboveAverageRuleAsStdDev(ExcelSheet sheet, string range, int stdDev) {

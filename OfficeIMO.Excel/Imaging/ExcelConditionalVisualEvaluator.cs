@@ -7,15 +7,16 @@ namespace OfficeIMO.Excel {
             ExcelSheet sheet,
             IReadOnlyList<ExcelVisualCell> cells,
             string range,
+            DateTime conditionalFormattingDate,
             List<OfficeImageExportDiagnostic> diagnostics) {
             IReadOnlyList<ExcelConditionalFormattingInfo> rules = sheet.GetConditionalFormattingRules(range);
             if (rules.Count == 0 || cells.Count == 0) {
                 return ExcelConditionalVisualState.Empty;
             }
 
-            ReportUnsupportedConditionalRules(sheet, cells, rules, diagnostics);
+            ReportUnsupportedConditionalRules(sheet, cells, rules, conditionalFormattingDate, diagnostics);
 
-            var fills = BuildConditionalFills(sheet, cells, rules);
+            var fills = BuildConditionalFills(sheet, cells, rules, conditionalFormattingDate);
             var dataBars = new List<ExcelVisualConditionalDataBar>();
 
             foreach (ExcelConditionalFormattingInfo rule in rules
@@ -56,6 +57,7 @@ namespace OfficeIMO.Excel {
             ExcelSheet sheet,
             IReadOnlyList<ExcelVisualCell> cells,
             IReadOnlyList<ExcelConditionalFormattingInfo> rules,
+            DateTime conditionalFormattingDate,
             List<OfficeImageExportDiagnostic> diagnostics) {
             foreach (ExcelConditionalFormattingInfo rule in rules) {
                 string source = sheet.Name + "!" + rule.Range;
@@ -188,6 +190,23 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
+                if (IsTimePeriodRule(rule)) {
+                    if (ReportUnsupportedDifferentialFormat(rule, diagnostics, source)) {
+                        continue;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(rule.DifferentialFillColorArgb) &&
+                        !CanEvaluateTimePeriodRule(sheet, cells, rule, conditionalFormattingDate)) {
+                        diagnostics.Add(new OfficeImageExportDiagnostic(
+                            OfficeImageExportDiagnosticSeverity.Warning,
+                            ExcelImageExportDiagnosticCodes.ConditionalTimePeriodUnsupported,
+                            "Conditional formatting time-period rule was not rendered because its time period is missing, unsupported, or no valid date cells were found.",
+                            source));
+                    }
+
+                    continue;
+                }
+
                 diagnostics.Add(new OfficeImageExportDiagnostic(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.ConditionalRuleUnsupported,
@@ -215,7 +234,8 @@ namespace OfficeIMO.Excel {
         private static Dictionary<string, string> BuildConditionalFills(
             ExcelSheet sheet,
             IReadOnlyList<ExcelVisualCell> cells,
-            IReadOnlyList<ExcelConditionalFormattingInfo> rules) {
+            IReadOnlyList<ExcelConditionalFormattingInfo> rules,
+            DateTime conditionalFormattingDate) {
             var fills = new Dictionary<string, string>(StringComparer.Ordinal);
             var stoppedCells = new HashSet<string>(StringComparer.Ordinal);
             foreach (ExcelConditionalFormattingInfo rule in rules.OrderBy(rule => NormalizePriority(rule.Priority))) {
@@ -234,7 +254,8 @@ namespace OfficeIMO.Excel {
                     !string.Equals(rule.Type, "DuplicateValues", StringComparison.OrdinalIgnoreCase) &&
                     !string.Equals(rule.Type, "UniqueValues", StringComparison.OrdinalIgnoreCase) &&
                     !string.Equals(rule.Type, "AboveAverage", StringComparison.OrdinalIgnoreCase) &&
-                    !IsTextRule(rule)) {
+                    !IsTextRule(rule) &&
+                    !IsTimePeriodRule(rule)) {
                     continue;
                 }
 
@@ -260,6 +281,11 @@ namespace OfficeIMO.Excel {
 
                 if (IsTextRule(rule)) {
                     ApplyTextRuleFill(cells, rule, fills, stoppedCells);
+                    continue;
+                }
+
+                if (IsTimePeriodRule(rule)) {
+                    ApplyTimePeriodFill(sheet, cells, rule, conditionalFormattingDate, fills, stoppedCells);
                     continue;
                 }
 

@@ -86,6 +86,7 @@ namespace OfficeIMO.Excel {
                 IncludeCharts = source.IncludeCharts,
                 IncludeDrawingObjects = source.IncludeDrawingObjects,
                 IncludeConditionalFormatting = source.IncludeConditionalFormatting,
+                ConditionalFormattingDate = source.ConditionalFormattingDate ?? DateTime.Today,
                 ShowHyperlinkHints = source.ShowHyperlinkHints,
                 ShowCommentBodies = source.ShowCommentBodies,
                 DefaultColumnWidthPixels = source.DefaultColumnWidthPixels,

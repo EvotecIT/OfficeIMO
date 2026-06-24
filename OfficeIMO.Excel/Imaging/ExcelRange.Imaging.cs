@@ -57,6 +57,7 @@ namespace OfficeIMO.Excel {
 
         private static ExcelImageExportOptions NormalizeOptions(ExcelImageExportOptions? options) {
             ExcelImageExportOptions resolved = options?.Clone() ?? new ExcelImageExportOptions();
+            resolved.ConditionalFormattingDate ??= System.DateTime.Today;
             if (resolved.Scale <= 0D || double.IsNaN(resolved.Scale) || double.IsInfinity(resolved.Scale)) {
                 throw new ArgumentOutOfRangeException(nameof(options), "Scale must be a finite positive number.");
             }

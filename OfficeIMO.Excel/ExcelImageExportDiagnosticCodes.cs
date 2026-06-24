@@ -63,6 +63,9 @@ public static class ExcelImageExportDiagnosticCodes {
     /// <summary>Unsupported conditional formatting text-rule variant.</summary>
     public const string ConditionalTextRuleUnsupported = "ExcelConditionalTextRuleUnsupported";
 
+    /// <summary>Unsupported conditional formatting time-period variant.</summary>
+    public const string ConditionalTimePeriodUnsupported = "ExcelConditionalTimePeriodUnsupported";
+
     /// <summary>Unsupported conditional formatting differential-format feature.</summary>
     public const string ConditionalDifferentialFormatUnsupported = "ExcelConditionalDifferentialFormatUnsupported";
 

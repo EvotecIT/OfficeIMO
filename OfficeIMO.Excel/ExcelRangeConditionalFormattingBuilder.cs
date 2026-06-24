@@ -321,6 +321,14 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Applies a time-period rule with a differential fill color.
+        /// </summary>
+        public ExcelRange TimePeriod(TimePeriodValues timePeriod, string fillColor) {
+            _range.Sheet.AddConditionalTimePeriodRule(_range.Address, timePeriod, fillColor: fillColor);
+            return _range;
+        }
+
+        /// <summary>
         /// Applies a two-color scale.
         /// </summary>
         public ExcelRange ColorScale(OfficeColor startColor, OfficeColor endColor) {

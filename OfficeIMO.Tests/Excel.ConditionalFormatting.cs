@@ -158,7 +158,7 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(rules, info => info.Type == "ContainsBlanks");
                 Assert.Contains(rules, info => info.Type == "NotContainsErrors");
                 Assert.Contains(rules, info => info.Type == "AboveAverage");
-                Assert.Contains(rules, info => info.Type == "TimePeriod");
+                Assert.Contains(rules, info => info.Type == "TimePeriod" && info.TimePeriod == nameof(TimePeriodValues.Today));
                 Assert.Empty(document.ValidateOpenXml());
             }
         }

@@ -145,7 +145,7 @@ namespace OfficeIMO.Excel {
             }
 
             ExcelConditionalVisualState conditionalVisuals = options.IncludeConditionalFormatting
-                ? ExcelConditionalVisualEvaluator.Evaluate(sheet, cells, range, diagnostics)
+                ? ExcelConditionalVisualEvaluator.Evaluate(sheet, cells, range, options.ConditionalFormattingDate ?? DateTime.Today, diagnostics)
                 : ExcelConditionalVisualState.Empty;
             if (conditionalVisuals.FillColors.Count > 0) {
                 cells = ApplyConditionalFills(cells, conditionalVisuals.FillColors);

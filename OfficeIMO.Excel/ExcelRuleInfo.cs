@@ -11,6 +11,8 @@ namespace OfficeIMO.Excel {
         public string? Operator { get; set; }
         /// <summary>Gets or sets the text payload attached to a text conditional-formatting rule.</summary>
         public string? Text { get; set; }
+        /// <summary>Gets or sets the relative time period attached to a time-period conditional-formatting rule.</summary>
+        public string? TimePeriod { get; set; }
         /// <summary>Gets or sets the rule priority.</summary>
         public int Priority { get; set; }
         /// <summary>Gets or sets whether evaluation stops when the rule is true.</summary>

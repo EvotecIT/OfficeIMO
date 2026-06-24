@@ -51,6 +51,12 @@ namespace OfficeIMO.Excel {
         public bool IncludeConditionalFormatting { get; set; } = true;
 
         /// <summary>
+        /// Date used to evaluate relative conditional-formatting time-period rules such as Today, Yesterday, Last7Days, and ThisMonth.
+        /// When omitted, image export uses the current local date captured during option normalization.
+        /// </summary>
+        public DateTime? ConditionalFormattingDate { get; set; }
+
+        /// <summary>
         /// Whether cells with hyperlink metadata should get a default blue underline hint when their style does not already make the link visible.
         /// </summary>
         public bool ShowHyperlinkHints { get; set; } = true;
@@ -80,6 +86,7 @@ namespace OfficeIMO.Excel {
             IncludeCharts = IncludeCharts,
             IncludeDrawingObjects = IncludeDrawingObjects,
             IncludeConditionalFormatting = IncludeConditionalFormatting,
+            ConditionalFormattingDate = ConditionalFormattingDate,
             ShowHyperlinkHints = ShowHyperlinkHints,
             ShowCommentBodies = ShowCommentBodies,
             DefaultColumnWidthPixels = DefaultColumnWidthPixels,
