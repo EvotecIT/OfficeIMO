@@ -548,6 +548,9 @@ namespace OfficeIMO.Excel {
             OfficeTextAlignment textAlignment,
             OfficeTextVerticalAlignment textVerticalAlignment,
             string? textColorArgb,
+            string? textFontFamily,
+            double? textFontSize,
+            OfficeFontStyle textFontStyle,
             string source) {
             Name = name ?? string.Empty;
             Order = order;
@@ -567,6 +570,9 @@ namespace OfficeIMO.Excel {
             TextAlignment = textAlignment;
             TextVerticalAlignment = textVerticalAlignment;
             TextColorArgb = textColorArgb;
+            TextFontFamily = textFontFamily;
+            TextFontSize = textFontSize;
+            TextFontStyle = textFontStyle;
             Source = source ?? string.Empty;
         }
 
@@ -626,6 +632,15 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Text color in ARGB hexadecimal form, when supported.</summary>
         public string? TextColorArgb { get; }
+
+        /// <summary>Text font family, when specified on the drawing text run.</summary>
+        public string? TextFontFamily { get; }
+
+        /// <summary>Text font size in points, when specified on the drawing text run.</summary>
+        public double? TextFontSize { get; }
+
+        /// <summary>Text font style flags extracted from the drawing text run.</summary>
+        public OfficeFontStyle TextFontStyle { get; }
 
         /// <summary>Source reference used by export diagnostics.</summary>
         public string Source { get; }

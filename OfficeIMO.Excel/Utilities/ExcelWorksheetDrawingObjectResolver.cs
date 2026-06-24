@@ -63,7 +63,7 @@ namespace OfficeIMO.Excel.Utilities {
                 .Where(line => !string.IsNullOrEmpty(line)) ?? Enumerable.Empty<string>());
             OfficeTextAlignment textAlignment = ResolveTextAlignment(shape.TextBody);
             OfficeTextVerticalAlignment textVerticalAlignment = ResolveTextVerticalAlignment(shape.TextBody?.GetFirstChild<A.BodyProperties>());
-            string? textColorArgb = ResolveTextColor(shape.TextBody);
+            DrawingTextStyle textStyle = ResolveTextStyle(shape.TextBody);
 
             return new ExcelWorksheetDrawingObjectInfo(
                 name,
@@ -90,7 +90,10 @@ namespace OfficeIMO.Excel.Utilities {
                 text,
                 textAlignment,
                 textVerticalAlignment,
-                textColorArgb,
+                textStyle.ColorArgb,
+                textStyle.FontFamily,
+                textStyle.FontSize,
+                textStyle.FontStyle,
                 unsupportedReason: null);
         }
 
@@ -123,6 +126,9 @@ namespace OfficeIMO.Excel.Utilities {
                 textAlignment: OfficeTextAlignment.Center,
                 textVerticalAlignment: OfficeTextVerticalAlignment.Center,
                 textColorArgb: null,
+                textFontFamily: null,
+                textFontSize: null,
+                textFontStyle: OfficeFontStyle.Regular,
                 unsupportedReason: unsupportedReason);
         }
 
@@ -155,11 +161,38 @@ namespace OfficeIMO.Excel.Utilities {
             return OfficeTextVerticalAlignment.Center;
         }
 
-        private static string? ResolveTextColor(Xdr.TextBody? textBody) =>
-            textBody?
+        private static DrawingTextStyle ResolveTextStyle(Xdr.TextBody? textBody) {
+            A.RunProperties? runProperties = textBody?
                 .Descendants<A.RunProperties>()
-                .Select(runProperties => NormalizeRgb(runProperties.GetFirstChild<A.SolidFill>()?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value))
-                .FirstOrDefault(color => color != null);
+                .FirstOrDefault();
+            if (runProperties == null) {
+                return DrawingTextStyle.Default;
+            }
+
+            string? colorArgb = NormalizeRgb(runProperties.GetFirstChild<A.SolidFill>()?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value);
+            string? fontFamily = NormalizeFontFamily(runProperties.GetFirstChild<A.LatinFont>()?.Typeface?.Value);
+            double? fontSize = runProperties.FontSize?.Value > 0
+                ? runProperties.FontSize.Value / 100D
+                : null;
+            OfficeFontStyle fontStyle = OfficeFontStyle.Regular;
+            if (runProperties.Bold?.Value == true) {
+                fontStyle |= OfficeFontStyle.Bold;
+            }
+
+            if (runProperties.Italic?.Value == true) {
+                fontStyle |= OfficeFontStyle.Italic;
+            }
+
+            if (runProperties.Underline?.Value != null && runProperties.Underline.Value != A.TextUnderlineValues.None) {
+                fontStyle |= OfficeFontStyle.Underline;
+            }
+
+            if (runProperties.Strike?.Value != null && runProperties.Strike.Value != A.TextStrikeValues.NoStrike) {
+                fontStyle |= OfficeFontStyle.Strikethrough;
+            }
+
+            return new DrawingTextStyle(colorArgb, fontFamily, fontSize, fontStyle);
+        }
 
         private static AnchorPosition GetAnchorPosition(OpenXmlElement anchor) {
             Xdr.MarkerType? fromMarker = anchor switch {
@@ -313,6 +346,9 @@ namespace OfficeIMO.Excel.Utilities {
             return normalized.Length == 8 ? normalized.ToUpperInvariant() : null;
         }
 
+        private static string? NormalizeFontFamily(string? value) =>
+            string.IsNullOrWhiteSpace(value) ? null : value!.Trim();
+
         private static int ParseOneBasedMarker(string? value) =>
             int.TryParse(value, out int zeroBased) && zeroBased >= 0 ? zeroBased + 1 : 0;
 
@@ -371,6 +407,25 @@ namespace OfficeIMO.Excel.Utilities {
 
             internal int ToOffsetYPixels { get; }
         }
+
+        private readonly struct DrawingTextStyle {
+            internal DrawingTextStyle(string? colorArgb, string? fontFamily, double? fontSize, OfficeFontStyle fontStyle) {
+                ColorArgb = colorArgb;
+                FontFamily = fontFamily;
+                FontSize = fontSize;
+                FontStyle = fontStyle;
+            }
+
+            internal static DrawingTextStyle Default => new DrawingTextStyle(null, null, null, OfficeFontStyle.Regular);
+
+            internal string? ColorArgb { get; }
+
+            internal string? FontFamily { get; }
+
+            internal double? FontSize { get; }
+
+            internal OfficeFontStyle FontStyle { get; }
+        }
     }
 
     internal sealed class ExcelWorksheetDrawingObjectInfo {
@@ -400,6 +455,9 @@ namespace OfficeIMO.Excel.Utilities {
             OfficeTextAlignment textAlignment,
             OfficeTextVerticalAlignment textVerticalAlignment,
             string? textColorArgb,
+            string? textFontFamily,
+            double? textFontSize,
+            OfficeFontStyle textFontStyle,
             string? unsupportedReason) {
             Name = name ?? string.Empty;
             Kind = kind ?? string.Empty;
@@ -426,6 +484,9 @@ namespace OfficeIMO.Excel.Utilities {
             TextAlignment = textAlignment;
             TextVerticalAlignment = textVerticalAlignment;
             TextColorArgb = textColorArgb;
+            TextFontFamily = textFontFamily;
+            TextFontSize = textFontSize;
+            TextFontStyle = textFontStyle;
             UnsupportedReason = unsupportedReason;
         }
 
@@ -478,6 +539,12 @@ namespace OfficeIMO.Excel.Utilities {
         internal OfficeTextVerticalAlignment TextVerticalAlignment { get; }
 
         internal string? TextColorArgb { get; }
+
+        internal string? TextFontFamily { get; }
+
+        internal double? TextFontSize { get; }
+
+        internal OfficeFontStyle TextFontStyle { get; }
 
         internal string? UnsupportedReason { get; }
 

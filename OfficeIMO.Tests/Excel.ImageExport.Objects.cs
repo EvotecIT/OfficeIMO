@@ -436,6 +436,55 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void ExcelRange_ImageExportHonorsDrawingShapeTextFontThroughSharedDrawing() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("TextFont");
+                sheet.CellValue(1, 1, "Name");
+                sheet.CellValue(2, 2, "Styled label");
+                document.Save(false);
+            }
+
+            AppendSupportedDrawingShape(
+                filePath,
+                "Styled label",
+                "Styled label",
+                fillHex: "DBEAFE",
+                strokeHex: "2563EB",
+                textColorHex: "111827",
+                textFontFamily: "Aptos",
+                textFontSize: 18D,
+                textBold: true,
+                textItalic: true,
+                textUnderline: true);
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+                ExcelSheet sheet = document.Sheets.Single();
+                ExcelRange range = sheet.Range("A1:D4");
+                var options = new ExcelImageExportOptions { ShowGridlines = false };
+                ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+                OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
+                OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg, options);
+                string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
+
+                ExcelVisualDrawingObject drawingObject = Assert.Single(snapshot.DrawingObjects);
+                Assert.Equal("Aptos", drawingObject.TextFontFamily);
+                Assert.Equal(18D, drawingObject.TextFontSize);
+                Assert.True((drawingObject.TextFontStyle & OfficeFontStyle.Bold) == OfficeFontStyle.Bold);
+                Assert.True((drawingObject.TextFontStyle & OfficeFontStyle.Italic) == OfficeFontStyle.Italic);
+                Assert.True((drawingObject.TextFontStyle & OfficeFontStyle.Underline) == OfficeFontStyle.Underline);
+                Assert.Contains("font-family=\"Aptos\"", svgText, StringComparison.Ordinal);
+                Assert.Contains("font-size=\"18\"", svgText, StringComparison.Ordinal);
+                Assert.Contains("font-weight=\"700\"", svgText, StringComparison.Ordinal);
+                Assert.Contains("font-style=\"italic\"", svgText, StringComparison.Ordinal);
+                Assert.Contains("text-decoration=\"underline\"", svgText, StringComparison.Ordinal);
+                Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
+                Assert.NotNull(rendered);
+                Assert.True(CountPixelsNear(rendered!, OfficeColor.FromRgb(17, 24, 39)) > 0);
+            }
+        }
+
         [Theory]
         [InlineData(true)]
         [InlineData(false)]
@@ -526,7 +575,12 @@ namespace OfficeIMO.Tests {
             string strokeHex = "0284C7",
             A.TextAlignmentTypeValues? paragraphAlignment = null,
             A.TextAnchoringTypeValues? verticalAlignment = null,
-            string textColorHex = "1F2937") {
+            string textColorHex = "1F2937",
+            string? textFontFamily = null,
+            double? textFontSize = null,
+            bool textBold = false,
+            bool textItalic = false,
+            bool textUnderline = false) {
             using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true);
             WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
             DrawingsPart drawingsPart = worksheetPart.DrawingsPart ?? worksheetPart.AddNewPart<DrawingsPart>();
@@ -536,7 +590,7 @@ namespace OfficeIMO.Tests {
 
             drawingsPart.WorksheetDrawing ??= new Xdr.WorksheetDrawing();
             drawingsPart.WorksheetDrawing.Append(
-                CreateSupportedShapeAnchor(1, 1, 3, 3, 2U, name, text, preset, horizontalFlip, verticalFlip, rotationDegrees, fillHex, strokeHex, paragraphAlignment, verticalAlignment, textColorHex));
+                CreateSupportedShapeAnchor(1, 1, 3, 3, 2U, name, text, preset, horizontalFlip, verticalFlip, rotationDegrees, fillHex, strokeHex, paragraphAlignment, verticalAlignment, textColorHex, textFontFamily, textFontSize, textBold, textItalic, textUnderline));
             drawingsPart.WorksheetDrawing.Save();
             worksheetPart.Worksheet.Save();
         }
@@ -581,7 +635,12 @@ namespace OfficeIMO.Tests {
             string strokeHex = "0284C7",
             A.TextAlignmentTypeValues? paragraphAlignment = null,
             A.TextAnchoringTypeValues? verticalAlignment = null,
-            string textColorHex = "1F2937") {
+            string textColorHex = "1F2937",
+            string? textFontFamily = null,
+            double? textFontSize = null,
+            bool textBold = false,
+            bool textItalic = false,
+            bool textUnderline = false) {
             var transform = new A.Transform2D {
                 HorizontalFlip = horizontalFlip,
                 VerticalFlip = verticalFlip
@@ -600,8 +659,25 @@ namespace OfficeIMO.Tests {
                 paragraph.Append(new A.ParagraphProperties { Alignment = paragraphAlignment.Value });
             }
 
+            var runProperties = new A.RunProperties {
+                Bold = textBold,
+                Italic = textItalic
+            };
+            if (textFontSize.HasValue) {
+                runProperties.FontSize = (int)Math.Round(textFontSize.Value * 100D);
+            }
+
+            if (textUnderline) {
+                runProperties.Underline = A.TextUnderlineValues.Single;
+            }
+
+            runProperties.Append(new A.SolidFill(new A.RgbColorModelHex { Val = textColorHex }));
+            if (!string.IsNullOrWhiteSpace(textFontFamily)) {
+                runProperties.Append(new A.LatinFont { Typeface = textFontFamily });
+            }
+
             paragraph.Append(new A.Run(
-                new A.RunProperties(new A.SolidFill(new A.RgbColorModelHex { Val = textColorHex })),
+                runProperties,
                 new A.Text(text ?? name)));
 
             return new Xdr.TwoCellAnchor(

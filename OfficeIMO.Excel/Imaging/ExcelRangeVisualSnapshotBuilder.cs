@@ -312,6 +312,9 @@ namespace OfficeIMO.Excel {
                     drawing.TextAlignment,
                     drawing.TextVerticalAlignment,
                     drawing.TextColorArgb,
+                    drawing.TextFontFamily,
+                    drawing.TextFontSize,
+                    drawing.TextFontStyle,
                     GetDrawingDiagnosticSource(sheet, drawing)));
             }
 

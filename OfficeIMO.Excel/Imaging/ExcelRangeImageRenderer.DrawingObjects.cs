@@ -65,14 +65,14 @@ namespace OfficeIMO.Excel {
                 double padding = Math.Min(8D * scale, Math.Max(2D, Math.Min(width, height) / 8D));
                 double textWidth = Math.Max(1D, width - (padding * 2D));
                 double textHeight = Math.Max(1D, height - (padding * 2D));
-                double fontSize = Math.Max(7D, Math.Min(11D * scale, textHeight * 0.55D));
+                OfficeFontInfo font = ResolveDrawingTextFont(drawingObject, scale, textHeight);
                 drawing.AddText(
                     drawingObject.Text,
                     offsetX + padding,
                     offsetY + padding,
                     textWidth,
                     textHeight,
-                    new OfficeFontInfo("Calibri", fontSize),
+                    font,
                     ResolveArgb(drawingObject.TextColorArgb) ?? OfficeColor.FromRgb(31, 41, 55),
                     drawingObject.TextAlignment,
                     verticalAlignment: drawingObject.TextVerticalAlignment,
@@ -82,6 +82,16 @@ namespace OfficeIMO.Excel {
             }
 
             return new DrawingObjectScene(drawing, offsetX, offsetY);
+        }
+
+        private static OfficeFontInfo ResolveDrawingTextFont(ExcelVisualDrawingObject drawingObject, double scale, double textHeight) {
+            string family = string.IsNullOrWhiteSpace(drawingObject.TextFontFamily)
+                ? "Calibri"
+                : drawingObject.TextFontFamily!;
+            double fontSize = drawingObject.TextFontSize.HasValue && drawingObject.TextFontSize.Value > 0D
+                ? Math.Max(1D, drawingObject.TextFontSize.Value * scale)
+                : Math.Max(7D, Math.Min(11D * scale, textHeight * 0.55D));
+            return new OfficeFontInfo(family, fontSize, drawingObject.TextFontStyle);
         }
 
         private static OfficeShape CreateOfficeShape(ExcelVisualDrawingObject drawingObject, double width, double height) =>
