@@ -113,6 +113,22 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain(workbook.UnsupportedFeatures, feature => feature.RecordType == 0x0059 || feature.RecordType == 0x005a);
         }
 
+        [Fact]
+        public void LegacyXls_Report_NormalizesSameFolderExternalWorkbookTarget() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateSameFolderExternalReferenceWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+            LegacyXlsImportReport report = workbook.CreateImportReport();
+
+            LegacyXlsExternalReference externalReference = Assert.Single(workbook.ExternalReferences);
+            Assert.Equal("\u0001Budget.xls", externalReference.Target);
+            Assert.Equal(1, report.ExternalReferencesByTarget["Budget.xls"]);
+            Assert.DoesNotContain(report.ExternalReferencesByTarget.Keys, key => key.Contains("\\x01"));
+        }
+
         private static partial class LegacyXlsTestWorkbookBuilder {
             internal static byte[] CreateExternalCellCacheWorkbookStream() {
                 using var stream = new MemoryStream();
@@ -122,6 +138,24 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x01ae, BuildSupBookExternalWorkbookPayload("C:\\Data\\Budget.xls", "Jan", "Feb"));
                 WriteRecord(stream, 0x0059, BuildXctPayload(1, 1));
                 WriteRecord(stream, 0x005a, BuildCrnPayload(4));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Local"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)boundSheetPosition + 4), 4);
+                return bytes;
+            }
+
+            internal static byte[] CreateSameFolderExternalReferenceWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long boundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "Data"));
+                WriteRecord(stream, 0x01ae, BuildSupBookExternalWorkbookPayload("\u0001Budget.xls", "Jan"));
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 int sheetOffset = checked((int)stream.Position);

@@ -1956,7 +1956,15 @@ namespace OfficeIMO.Excel.LegacyXls {
         }
 
         private static string GetExternalReferenceTargetKey(LegacyXlsExternalReference reference) {
-            return string.IsNullOrWhiteSpace(reference.Target) ? $"({reference.Kind})" : EscapeControlCharacters(reference.Target!);
+            return string.IsNullOrWhiteSpace(reference.Target)
+                ? $"({reference.Kind})"
+                : EscapeControlCharacters(NormalizeExternalReferenceTarget(reference.Target!));
+        }
+
+        private static string NormalizeExternalReferenceTarget(string target) {
+            return target.Length > 0 && target[0] == '\u0001'
+                ? target.Substring(1)
+                : target;
         }
 
         private static string GetExternalReferenceShapeKey(LegacyXlsExternalReference reference) {

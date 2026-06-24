@@ -377,7 +377,7 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | (Self) | 1 |
-| \\x01MCPF\\x03VMCPF.XLS | 1 |
+| MCPF\\x03VMCPF.XLS | 1 |
 
 ## External References By Shape
 

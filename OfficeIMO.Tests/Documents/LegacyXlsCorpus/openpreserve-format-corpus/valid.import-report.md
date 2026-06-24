@@ -441,8 +441,8 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | (Self) | 1 |
-| \\x01IDTBL.XLS | 1 |
-| \\x01\\x06MACROS.XLS | 1 |
+| IDTBL.XLS | 1 |
+| \\x06MACROS.XLS | 1 |
 
 ## External References By Shape
 
