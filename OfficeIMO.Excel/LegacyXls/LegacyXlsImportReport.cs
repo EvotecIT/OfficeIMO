@@ -356,6 +356,15 @@ namespace OfficeIMO.Excel.LegacyXls {
             ExternalNamesByBuiltInState = CountByCode(workbook.ExternalReferences
                 .SelectMany(reference => reference.ExternalNames)
                 .Select(name => name.BuiltIn ? "BuiltIn" : "Custom"));
+            ExternalNamesByBodyKind = CountByCode(workbook.ExternalReferences
+                .SelectMany(reference => reference.ExternalNames)
+                .Select(name => name.BodyKind.ToString()));
+            ExternalNamesByCachedClipboardFormat = CountByCode(workbook.ExternalReferences
+                .SelectMany(reference => reference.ExternalNames)
+                .Select(name => $"{name.CachedClipboardFormatName}:{name.CachedClipboardFormat}"));
+            ExternalNamesByFlagShape = CountByCode(workbook.ExternalReferences
+                .SelectMany(reference => reference.ExternalNames)
+                .Select(GetExternalNameFlagShapeKey));
             ExternalCellCachesByTarget = CountByCode(workbook.ExternalReferences
                 .SelectMany(reference => reference.CachedCellCaches.Select(_ => GetExternalReferenceTargetKey(reference))));
             ExternalCellCachesBySheetName = CountByCode(workbook.ExternalReferences.SelectMany(reference => reference.CachedCellCaches.Select(GetExternalCellCacheSheetKey)));
@@ -1564,6 +1573,15 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets external defined names grouped by built-in or custom state.</summary>
         public IReadOnlyDictionary<string, int> ExternalNamesByBuiltInState { get; }
 
+        /// <summary>Gets external defined names grouped by decoded ExternName body kind.</summary>
+        public IReadOnlyDictionary<string, int> ExternalNamesByBodyKind { get; }
+
+        /// <summary>Gets external defined names grouped by decoded cached clipboard format.</summary>
+        public IReadOnlyDictionary<string, int> ExternalNamesByCachedClipboardFormat { get; }
+
+        /// <summary>Gets external defined names grouped by decoded ExternName flag shape.</summary>
+        public IReadOnlyDictionary<string, int> ExternalNamesByFlagShape { get; }
+
         /// <summary>Gets external cell cache sections grouped by normalized target path or source.</summary>
         public IReadOnlyDictionary<string, int> ExternalCellCachesByTarget { get; }
 
@@ -2463,6 +2481,9 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "External Names By Name", ExternalNamesByName);
             AppendDictionary(builder, "External Names By Scope", ExternalNamesByScope);
             AppendDictionary(builder, "External Names By Built-In State", ExternalNamesByBuiltInState);
+            AppendDictionary(builder, "External Names By Body Kind", ExternalNamesByBodyKind);
+            AppendDictionary(builder, "External Names By Cached Clipboard Format", ExternalNamesByCachedClipboardFormat);
+            AppendDictionary(builder, "External Names By Flag Shape", ExternalNamesByFlagShape);
             AppendDictionary(builder, "External Cell Caches By Target", ExternalCellCachesByTarget);
             AppendDictionary(builder, "External Cell Caches By Sheet Name", ExternalCellCachesBySheetName);
             AppendDictionary(builder, "External Cell Caches By Target And Sheet Name", ExternalCellCachesByTargetAndSheetName);
@@ -3310,6 +3331,16 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         private static string GetExternalReferenceShapeKey(LegacyXlsExternalReference reference) {
             return $"{reference.Kind}|Sheets:{reference.SheetNameCount}|Names:{reference.ExternalNameCount}|Caches:{reference.CachedCellCacheCount}|CachedCells:{reference.CachedCellCount}";
+        }
+
+        private static string GetExternalNameFlagShapeKey(LegacyXlsExternalName name) {
+            return $"Body:{name.BodyKind}"
+                + $"|BuiltIn:{GetPresenceKey(name.BuiltIn)}"
+                + $"|Advise:{GetPresenceKey(name.WantsAdvise)}"
+                + $"|Picture:{GetPresenceKey(name.WantsPicture)}"
+                + $"|Ole:{GetPresenceKey(name.Ole)}"
+                + $"|OleLink:{GetPresenceKey(name.OleLink)}"
+                + $"|Icon:{GetPresenceKey(name.Icon)}";
         }
 
         private static IEnumerable<string> GetExternalReferenceWorkbookStateKeys(IReadOnlyCollection<LegacyXlsExternalReference> references) {

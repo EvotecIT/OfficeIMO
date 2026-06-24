@@ -740,6 +740,24 @@ Warnings: 0
 | --- | --- |
 | Custom | 1 |
 
+## External Names By Body Kind
+
+| Key | Count |
+| --- | --- |
+| ExternalDefinedName | 1 |
+
+## External Names By Cached Clipboard Format
+
+| Key | Count |
+| --- | --- |
+| TextOrExternalName:0 | 1 |
+
+## External Names By Flag Shape
+
+| Key | Count |
+| --- | --- |
+| Body:ExternalDefinedName\|BuiltIn:Missing\|Advise:Missing\|Picture:Missing\|Ole:Missing\|OleLink:Missing\|Icon:Missing | 1 |
+
 ## External Cell Caches By Target
 
 | Key | Count |

@@ -189,7 +189,14 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED");
             LegacyXlsExternalReference addInReference = Assert.Single(legacy.ExternalReferences);
             Assert.Equal(LegacyXlsExternalReferenceKind.AddIn, addInReference.Kind);
-            Assert.Equal("MYUDF", Assert.Single(addInReference.ExternalNames).Name);
+            LegacyXlsExternalName addInName = Assert.Single(addInReference.ExternalNames);
+            Assert.Equal("MYUDF", addInName.Name);
+            Assert.Equal(LegacyXlsExternalNameBodyKind.AddInUdf, addInName.BodyKind);
+            Assert.False(addInName.BuiltIn);
+            Assert.Equal(0, addInName.CachedClipboardFormat);
+            LegacyXlsImportReport report = legacy.CreateImportReport();
+            Assert.Equal(1, report.ExternalNamesByBodyKind["AddInUdf"]);
+            Assert.Equal(1, report.ExternalNamesByFlagShape["Body:AddInUdf|BuiltIn:Missing|Advise:Missing|Picture:Missing|Ole:Missing|OleLink:Missing|Icon:Missing"]);
 
             LegacyXlsCell formula = Assert.Single(Assert.Single(legacy.Worksheets).Cells);
             Assert.True(formula.IsFormula);
