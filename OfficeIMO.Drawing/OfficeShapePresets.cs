@@ -42,6 +42,13 @@ public static class OfficeShapePresets {
                 shape = OfficeShape.Ellipse(width, height);
                 return true;
             case "line":
+                if (width <= 0D) return false;
+                shape = OfficeShape.Line(
+                    horizontalFlip ? width : 0D,
+                    height / 2D,
+                    horizontalFlip ? 0D : width,
+                    height / 2D);
+                return true;
             case "straightconnector1":
                 if (width == 0D && height == 0D) return false;
                 shape = OfficeShape.Line(
@@ -96,8 +103,49 @@ public static class OfficeShapePresets {
             case "downarrow":
                 shape = Polygon(width, height, horizontalFlip, verticalFlip, (0.25D, 0D), (0.25D, 0.62D), (0D, 0.62D), (0.5D, 1D), (1D, 0.62D), (0.75D, 0.62D), (0.75D, 0D));
                 return shape != null;
+            case "leftrightarrow":
+                shape = Polygon(width, height, horizontalFlip, verticalFlip, (0D, 0.5D), (0.25D, 0D), (0.25D, 0.25D), (0.75D, 0.25D), (0.75D, 0D), (1D, 0.5D), (0.75D, 1D), (0.75D, 0.75D), (0.25D, 0.75D), (0.25D, 1D));
+                return shape != null;
             case "star5":
                 shape = Star(width, height, horizontalFlip, verticalFlip, 5);
+                return shape != null;
+            case "heart":
+                shape = Path(width, height, horizontalFlip, verticalFlip,
+                    OfficePathCommand.MoveTo(0.5D, 1D),
+                    OfficePathCommand.CubicBezierTo(0.18D, 0.72D, 0D, 0.52D, 0D, 0.28D),
+                    OfficePathCommand.CubicBezierTo(0D, 0.08D, 0.16D, 0D, 0.31D, 0D),
+                    OfficePathCommand.CubicBezierTo(0.42D, 0D, 0.49D, 0.07D, 0.5D, 0.18D),
+                    OfficePathCommand.CubicBezierTo(0.51D, 0.07D, 0.58D, 0D, 0.69D, 0D),
+                    OfficePathCommand.CubicBezierTo(0.84D, 0D, 1D, 0.08D, 1D, 0.28D),
+                    OfficePathCommand.CubicBezierTo(1D, 0.52D, 0.82D, 0.72D, 0.5D, 1D),
+                    OfficePathCommand.Close());
+                return shape != null;
+            case "cloud":
+                shape = Path(width, height, horizontalFlip, verticalFlip,
+                    OfficePathCommand.MoveTo(0.18D, 0.7D),
+                    OfficePathCommand.CubicBezierTo(0.05D, 0.7D, 0D, 0.58D, 0.09D, 0.48D),
+                    OfficePathCommand.CubicBezierTo(0.03D, 0.32D, 0.19D, 0.18D, 0.34D, 0.26D),
+                    OfficePathCommand.CubicBezierTo(0.42D, 0.04D, 0.72D, 0.08D, 0.75D, 0.32D),
+                    OfficePathCommand.CubicBezierTo(0.94D, 0.27D, 1D, 0.46D, 0.91D, 0.61D),
+                    OfficePathCommand.CubicBezierTo(0.84D, 0.75D, 0.63D, 0.76D, 0.54D, 0.68D),
+                    OfficePathCommand.CubicBezierTo(0.46D, 0.82D, 0.25D, 0.82D, 0.18D, 0.7D),
+                    OfficePathCommand.Close());
+                return shape != null;
+            case "donut":
+                shape = Donut(width, height, horizontalFlip, verticalFlip);
+                return shape != null;
+            case "can":
+                shape = Path(width, height, horizontalFlip, verticalFlip,
+                    OfficePathCommand.MoveTo(0D, 0.18D),
+                    OfficePathCommand.CubicBezierTo(0D, 0.1026D, 0.2239D, 0.04D, 0.5D, 0.04D),
+                    OfficePathCommand.CubicBezierTo(0.7761D, 0.04D, 1D, 0.1026D, 1D, 0.18D),
+                    OfficePathCommand.LineTo(1D, 0.82D),
+                    OfficePathCommand.CubicBezierTo(1D, 0.8974D, 0.7761D, 0.96D, 0.5D, 0.96D),
+                    OfficePathCommand.CubicBezierTo(0.2239D, 0.96D, 0D, 0.8974D, 0D, 0.82D),
+                    OfficePathCommand.Close());
+                return shape != null;
+            case "cube":
+                shape = Polygon(width, height, horizontalFlip, verticalFlip, (0.32D, 0D), (1D, 0.18D), (1D, 0.72D), (0.62D, 1D), (0D, 0.82D), (0D, 0.28D));
                 return shape != null;
             default:
                 return false;
@@ -148,6 +196,77 @@ public static class OfficeShapePresets {
         return Polygon(width, height, horizontalFlip, verticalFlip, NormalizePoints(coordinates).ToArray());
     }
 
+    private static OfficeShape? Donut(double width, double height, bool horizontalFlip, bool verticalFlip) {
+        if (!HasArea(width, height)) {
+            return null;
+        }
+
+        List<OfficePathCommand> commands = CreateEllipsePath(0.5D, 0.5D, 0.5D, 0.5D, clockwise: true);
+        commands.AddRange(CreateEllipsePath(0.5D, 0.5D, 0.22D, 0.22D, clockwise: false));
+        return Path(width, height, horizontalFlip, verticalFlip, commands);
+    }
+
+    private static OfficeShape? Path(double width, double height, bool horizontalFlip, bool verticalFlip, params OfficePathCommand[] commands) =>
+        Path(width, height, horizontalFlip, verticalFlip, (IReadOnlyList<OfficePathCommand>)commands);
+
+    private static OfficeShape? Path(double width, double height, bool horizontalFlip, bool verticalFlip, IReadOnlyList<OfficePathCommand> commands) {
+        if (!HasArea(width, height)) {
+            return null;
+        }
+
+        var transformed = new List<OfficePathCommand>(commands.Count);
+        for (int i = 0; i < commands.Count; i++) {
+            OfficePathCommand command = commands[i];
+            switch (command.Kind) {
+                case OfficePathCommandKind.MoveTo:
+                    transformed.Add(OfficePathCommand.MoveTo(TransformPoint(command.Point, width, height, horizontalFlip, verticalFlip)));
+                    break;
+                case OfficePathCommandKind.LineTo:
+                    transformed.Add(OfficePathCommand.LineTo(TransformPoint(command.Point, width, height, horizontalFlip, verticalFlip)));
+                    break;
+                case OfficePathCommandKind.QuadraticBezierTo:
+                    transformed.Add(OfficePathCommand.QuadraticBezierTo(
+                        TransformPoint(command.ControlPoint1, width, height, horizontalFlip, verticalFlip),
+                        TransformPoint(command.Point, width, height, horizontalFlip, verticalFlip)));
+                    break;
+                case OfficePathCommandKind.CubicBezierTo:
+                    transformed.Add(OfficePathCommand.CubicBezierTo(
+                        TransformPoint(command.ControlPoint1, width, height, horizontalFlip, verticalFlip),
+                        TransformPoint(command.ControlPoint2, width, height, horizontalFlip, verticalFlip),
+                        TransformPoint(command.Point, width, height, horizontalFlip, verticalFlip)));
+                    break;
+                case OfficePathCommandKind.Close:
+                    transformed.Add(OfficePathCommand.Close());
+                    break;
+            }
+        }
+
+        return OfficeShape.Path(transformed);
+    }
+
+    private static List<OfficePathCommand> CreateEllipsePath(double centerX, double centerY, double radiusX, double radiusY, bool clockwise) {
+        const double k = 0.5522847498307936D;
+        if (clockwise) {
+            return new List<OfficePathCommand> {
+                OfficePathCommand.MoveTo(centerX + radiusX, centerY),
+                OfficePathCommand.CubicBezierTo(centerX + radiusX, centerY + radiusY * k, centerX + radiusX * k, centerY + radiusY, centerX, centerY + radiusY),
+                OfficePathCommand.CubicBezierTo(centerX - radiusX * k, centerY + radiusY, centerX - radiusX, centerY + radiusY * k, centerX - radiusX, centerY),
+                OfficePathCommand.CubicBezierTo(centerX - radiusX, centerY - radiusY * k, centerX - radiusX * k, centerY - radiusY, centerX, centerY - radiusY),
+                OfficePathCommand.CubicBezierTo(centerX + radiusX * k, centerY - radiusY, centerX + radiusX, centerY - radiusY * k, centerX + radiusX, centerY),
+                OfficePathCommand.Close()
+            };
+        }
+
+        return new List<OfficePathCommand> {
+            OfficePathCommand.MoveTo(centerX + radiusX, centerY),
+            OfficePathCommand.CubicBezierTo(centerX + radiusX, centerY - radiusY * k, centerX + radiusX * k, centerY - radiusY, centerX, centerY - radiusY),
+            OfficePathCommand.CubicBezierTo(centerX - radiusX * k, centerY - radiusY, centerX - radiusX, centerY - radiusY * k, centerX - radiusX, centerY),
+            OfficePathCommand.CubicBezierTo(centerX - radiusX, centerY + radiusY * k, centerX - radiusX * k, centerY + radiusY, centerX, centerY + radiusY),
+            OfficePathCommand.CubicBezierTo(centerX + radiusX * k, centerY + radiusY, centerX + radiusX, centerY + radiusY * k, centerX + radiusX, centerY),
+            OfficePathCommand.Close()
+        };
+    }
+
     private static IReadOnlyList<(double X, double Y)> NormalizePoints(IReadOnlyList<(double X, double Y)> points) {
         double minX = double.MaxValue;
         double minY = double.MaxValue;
@@ -183,6 +302,12 @@ public static class OfficeShapePresets {
         }
 
         return result;
+    }
+
+    private static OfficePoint TransformPoint(OfficePoint point, double width, double height, bool horizontalFlip, bool verticalFlip) {
+        double x = horizontalFlip ? 1D - point.X : point.X;
+        double y = verticalFlip ? 1D - point.Y : point.Y;
+        return new OfficePoint(x * width, y * height);
     }
 
     private static string NormalizePresetName(string? presetName) {

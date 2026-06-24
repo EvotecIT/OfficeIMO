@@ -1580,8 +1580,44 @@ public class DrawingTests {
         Assert.Equal(90, star!.Width);
         Assert.Equal(90, star.Height);
 
-        Assert.False(OfficeShapePresets.TryCreate("cloud", 100, 60, out OfficeShape? unsupported));
-        Assert.Null(unsupported);
+        Assert.True(OfficeShapePresets.TryCreate("line", 120, 40, out OfficeShape? presetLine));
+        Assert.NotNull(presetLine);
+        Assert.Equal(OfficeShapeKind.Line, presetLine!.Kind);
+        Assert.Equal(new OfficePoint(0, 0), presetLine.Points[0]);
+        Assert.Equal(new OfficePoint(120, 0), presetLine.Points[1]);
+
+        Assert.True(OfficeShapePresets.TryCreate("straightConnector1", 120, 40, out OfficeShape? straightConnector));
+        Assert.NotNull(straightConnector);
+        Assert.Equal(OfficeShapeKind.Line, straightConnector!.Kind);
+        Assert.Equal(new OfficePoint(0, 0), straightConnector.Points[0]);
+        Assert.Equal(new OfficePoint(120, 40), straightConnector.Points[1]);
+
+        Assert.True(OfficeShapePresets.TryCreate("cloud", 100, 60, out OfficeShape? cloud));
+        Assert.NotNull(cloud);
+        Assert.Equal(OfficeShapeKind.Path, cloud!.Kind);
+        Assert.Contains(cloud.PathCommands, command => command.Kind == OfficePathCommandKind.CubicBezierTo);
+
+        Assert.True(OfficeShapePresets.TryCreate("can", 80, 60, out OfficeShape? can));
+        Assert.NotNull(can);
+        Assert.Equal(OfficeShapeKind.Path, can!.Kind);
+        Assert.Contains(can.PathCommands, command => command.Kind == OfficePathCommandKind.CubicBezierTo);
+
+        Assert.True(OfficeShapePresets.TryCreate("donut", 70, 70, out OfficeShape? donut));
+        Assert.NotNull(donut);
+        Assert.Equal(OfficeShapeKind.Path, donut!.Kind);
+        Assert.True(donut.PathCommands.Count(command => command.Kind == OfficePathCommandKind.Close) >= 2);
+
+        Assert.True(OfficeShapePresets.TryCreate("heart", 64, 56, horizontalFlip: true, verticalFlip: false, out OfficeShape? heart));
+        Assert.NotNull(heart);
+        Assert.Equal(new OfficePoint(32, 56), heart!.PathCommands[0].Point);
+
+        Assert.True(OfficeShapePresets.TryCreate("cube", 72, 60, out OfficeShape? cube));
+        Assert.NotNull(cube);
+        Assert.Equal(OfficeShapeKind.Polygon, cube!.Kind);
+
+        Assert.True(OfficeShapePresets.TryCreate("leftRightArrow", 96, 40, out OfficeShape? leftRightArrow));
+        Assert.NotNull(leftRightArrow);
+        Assert.Equal(OfficeShapeKind.Polygon, leftRightArrow!.Kind);
     }
 
     [Fact]
