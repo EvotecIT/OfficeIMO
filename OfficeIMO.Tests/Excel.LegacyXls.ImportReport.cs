@@ -982,16 +982,32 @@ namespace OfficeIMO.Tests {
             Assert.Equal(LegacyXlsCompoundFeatureRecordKind.VbaProject, compoundRecord.Kind);
             Assert.Contains("_VBA_PROJECT_CUR", compoundRecord.Entries);
             Assert.Equal(LegacyXlsCompoundFeatureEntryRole.VbaProjectStorage, compoundRecord.EntryRoles["_VBA_PROJECT_CUR"]);
+            Assert.Equal(0, compoundRecord.EntrySizes["_VBA_PROJECT_CUR"]);
+            Assert.Equal(LegacyXlsCompoundFeatureEntryObjectType.Storage, compoundRecord.EntryObjectTypes["_VBA_PROJECT_CUR"]);
+            LegacyXlsCompoundFeatureEntryInfo entry = Assert.Single(compoundRecord.EntryDetails);
+            Assert.Equal("_VBA_PROJECT_CUR", entry.Path);
+            Assert.Equal(LegacyXlsCompoundFeatureEntryRole.VbaProjectStorage, entry.Role);
+            Assert.Equal(LegacyXlsCompoundFeatureEntryObjectType.Storage, entry.ObjectType);
+            Assert.True(entry.IsStorage);
+            Assert.False(entry.IsStream);
+            Assert.Equal(0, entry.SizeBytes);
             Assert.Equal(1, result.ImportReport.CompoundFeatureRecordCount);
             Assert.Equal(1, result.ImportReport.CompoundFeatureEntryCount);
+            Assert.Equal(0, result.ImportReport.CompoundFeatureEntryByteCount);
+            Assert.Equal(0, result.ImportReport.CompoundVbaModuleByteCount);
             Assert.Equal(1, result.ImportReport.CompoundFeatureRecordsByKind[LegacyXlsCompoundFeatureRecordKind.VbaProject]);
             Assert.Equal(1, result.ImportReport.CompoundFeatureEntriesByKind[LegacyXlsCompoundFeatureRecordKind.VbaProject]);
             Assert.Equal(1, result.ImportReport.CompoundFeatureEntriesByName["_VBA_PROJECT_CUR"]);
             Assert.Equal(1, result.ImportReport.CompoundFeatureEntriesByRole["VbaProjectStorage"]);
             Assert.Equal(1, result.ImportReport.CompoundFeatureEntriesByKindAndRole["VbaProject|VbaProjectStorage"]);
+            Assert.Equal(1, result.ImportReport.CompoundFeatureEntriesByObjectType["Storage"]);
+            Assert.Equal(1, result.ImportReport.CompoundFeatureEntriesByRoleAndObjectType["VbaProjectStorage|Storage"]);
+            Assert.Equal(1, result.ImportReport.CompoundFeatureEntriesBySize["Bytes:0"]);
+            Assert.Equal(1, result.ImportReport.CompoundFeatureEntriesByRoleAndSize["VbaProjectStorage|Bytes:0"]);
             Assert.Empty(compoundRecord.VbaModuleNames);
             Assert.Equal(0, result.ImportReport.CompoundVbaModuleCount);
             Assert.Equal(1, result.ImportReport.CompoundVbaProjectsByModuleCount["Modules:0"]);
+            Assert.Equal(1, result.ImportReport.CompoundVbaProjectsByModuleByteCount["Bytes:0"]);
             Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.VbaProject]);
             Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED"]);
             Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByDetail["VbaProject|XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED|Compound:VbaProjectStorage"]);
@@ -999,6 +1015,8 @@ namespace OfficeIMO.Tests {
             Assert.Contains("VbaProject", markdown);
             Assert.Contains("Compound Feature Entries By Name", markdown);
             Assert.Contains("Compound Feature Entries By Role", markdown);
+            Assert.Contains("Compound Feature Entries By Object Type", markdown);
+            Assert.Contains("Compound Feature Entries By Size", markdown);
         }
 
         [Fact]
@@ -1017,29 +1035,67 @@ namespace OfficeIMO.Tests {
                 ["_VBA_PROJECT_CUR/VBA/LooseModule"] = LegacyXlsCompoundFeatureEntryRole.VbaModuleStream,
                 ["_VBA_PROJECT_CUR/VBA/_VBA_PROJECT"] = LegacyXlsCompoundFeatureEntryRole.VbaProjectStream
             };
+            var entrySizes = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase) {
+                ["_VBA_PROJECT_CUR"] = 0,
+                ["_VBA_PROJECT_CUR/VBA"] = 0,
+                ["_VBA_PROJECT_CUR/VBA/dir"] = 50,
+                ["_VBA_PROJECT_CUR/VBA/Sheet1"] = 100,
+                ["_VBA_PROJECT_CUR/VBA/ThisWorkbook"] = 200,
+                ["_VBA_PROJECT_CUR/VBA/LooseModule"] = 300,
+                ["_VBA_PROJECT_CUR/VBA/_VBA_PROJECT"] = 20
+            };
+            var entryObjectTypes = new Dictionary<string, LegacyXlsCompoundFeatureEntryObjectType>(StringComparer.OrdinalIgnoreCase) {
+                ["_VBA_PROJECT_CUR"] = LegacyXlsCompoundFeatureEntryObjectType.Storage,
+                ["_VBA_PROJECT_CUR/VBA"] = LegacyXlsCompoundFeatureEntryObjectType.Storage,
+                ["_VBA_PROJECT_CUR/VBA/dir"] = LegacyXlsCompoundFeatureEntryObjectType.Stream,
+                ["_VBA_PROJECT_CUR/VBA/Sheet1"] = LegacyXlsCompoundFeatureEntryObjectType.Stream,
+                ["_VBA_PROJECT_CUR/VBA/ThisWorkbook"] = LegacyXlsCompoundFeatureEntryObjectType.Stream,
+                ["_VBA_PROJECT_CUR/VBA/LooseModule"] = LegacyXlsCompoundFeatureEntryObjectType.Stream,
+                ["_VBA_PROJECT_CUR/VBA/_VBA_PROJECT"] = LegacyXlsCompoundFeatureEntryObjectType.Stream
+            };
             var record = new LegacyXlsCompoundFeatureRecord(
                 LegacyXlsCompoundFeatureRecordKind.VbaProject,
                 entryRoles.Keys.ToArray(),
-                entryRoles);
+                entryRoles,
+                entrySizes,
+                entryObjectTypes);
             workbook.MutableCompoundFeatureRecords.Add(record);
 
             LegacyXlsImportReport report = workbook.CreateImportReport();
 
             Assert.Equal(new[] { "Sheet1", "ThisWorkbook", "LooseModule" }, record.VbaModuleNames);
             Assert.Equal(3, record.VbaModuleCount);
+            Assert.Equal(670, record.EntryByteCount);
+            Assert.Equal(600, record.VbaModuleByteCount);
             Assert.Equal(3, report.CompoundVbaModuleCount);
+            Assert.Equal(670, report.CompoundFeatureEntryByteCount);
+            Assert.Equal(600, report.CompoundVbaModuleByteCount);
             Assert.Equal(1, report.CompoundVbaModulesByName["Sheet1"]);
             Assert.Equal(1, report.CompoundVbaModulesByName["ThisWorkbook"]);
             Assert.Equal(1, report.CompoundVbaModulesByName["LooseModule"]);
+            Assert.Equal(2, report.CompoundFeatureEntriesByObjectType["Storage"]);
+            Assert.Equal(5, report.CompoundFeatureEntriesByObjectType["Stream"]);
+            Assert.Equal(3, report.CompoundFeatureEntriesByRoleAndObjectType["VbaModuleStream|Stream"]);
+            Assert.Equal(2, report.CompoundFeatureEntriesBySize["Bytes:0"]);
+            Assert.Equal(1, report.CompoundFeatureEntriesBySize["Bytes:100"]);
+            Assert.Equal(1, report.CompoundFeatureEntriesBySize["Bytes:200"]);
+            Assert.Equal(1, report.CompoundFeatureEntriesBySize["Bytes:300"]);
+            Assert.Equal(1, report.CompoundVbaModulesBySize["Bytes:100"]);
+            Assert.Equal(1, report.CompoundVbaModulesBySize["Bytes:200"]);
+            Assert.Equal(1, report.CompoundVbaModulesBySize["Bytes:300"]);
             Assert.Equal(1, report.CompoundVbaModulesByCodeNameMatch["WorksheetCodeName"]);
             Assert.Equal(1, report.CompoundVbaModulesByCodeNameMatch["WorkbookCodeName"]);
             Assert.Equal(1, report.CompoundVbaModulesByCodeNameMatch["UnmatchedCodeName"]);
             Assert.Equal(1, report.CompoundVbaProjectsByModuleCount["Modules:3"]);
+            Assert.Equal(1, report.CompoundVbaProjectsByModuleByteCount["Bytes:600"]);
             string markdown = report.ToMarkdown();
             Assert.Contains("Compound VBA modules: 3", markdown);
+            Assert.Contains("Compound VBA module bytes: 600", markdown);
             Assert.Contains("Compound VBA Modules By Name", markdown);
+            Assert.Contains("Compound VBA Modules By Size", markdown);
             Assert.Contains("Compound VBA Modules By CodeName Match", markdown);
             Assert.Contains("Compound VBA Projects By Module Count", markdown);
+            Assert.Contains("Compound VBA Projects By Module Byte Count", markdown);
         }
 
         [Fact]

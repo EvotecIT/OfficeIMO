@@ -26,6 +26,8 @@ Differential formats: 0
 Compound feature records: 1
 Compound feature entries: 13
 Compound VBA modules: 8
+Compound feature entry bytes: 15981
+Compound VBA module bytes: 7664
 Calculation setting records: 61
 Cell style records: 6
 Cell style extension records: 0
@@ -1229,6 +1231,44 @@ Warnings: 0
 | VbaProject\|VbaProjectStream | 2 |
 | VbaProject\|VbaStorage | 1 |
 
+## Compound Feature Entries By Object Type
+
+| Key | Count |
+| --- | --- |
+| Storage | 2 |
+| Stream | 11 |
+
+## Compound Feature Entries By Role And Object Type
+
+| Key | Count |
+| --- | --- |
+| VbaDirStream\|Stream | 1 |
+| VbaModuleStream\|Stream | 8 |
+| VbaProjectStorage\|Storage | 1 |
+| VbaProjectStream\|Stream | 2 |
+| VbaStorage\|Storage | 1 |
+
+## Compound Feature Entries By Size
+
+| Key | Count |
+| --- | --- |
+| Bytes:0 | 2 |
+| Bytes:3785 | 2 |
+| Bytes:747 | 1 |
+| Bytes:957 | 7 |
+| Bytes:965 | 1 |
+
+## Compound Feature Entries By Role And Size
+
+| Key | Count |
+| --- | --- |
+| VbaDirStream\|Bytes:747 | 1 |
+| VbaModuleStream\|Bytes:957 | 7 |
+| VbaModuleStream\|Bytes:965 | 1 |
+| VbaProjectStorage\|Bytes:0 | 1 |
+| VbaProjectStream\|Bytes:3785 | 2 |
+| VbaStorage\|Bytes:0 | 1 |
+
 ## Compound VBA Modules By Name
 
 | Key | Count |
@@ -1242,6 +1282,13 @@ Warnings: 0
 | Sheet8 | 1 |
 | ThisWorkbook | 1 |
 
+## Compound VBA Modules By Size
+
+| Key | Count |
+| --- | --- |
+| Bytes:957 | 7 |
+| Bytes:965 | 1 |
+
 ## Compound VBA Modules By CodeName Match
 
 | Key | Count |
@@ -1254,6 +1301,12 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | Modules:8 | 1 |
+
+## Compound VBA Projects By Module Byte Count
+
+| Key | Count |
+| --- | --- |
+| Bytes:7664 | 1 |
 
 ## Calculation Settings By Kind
 

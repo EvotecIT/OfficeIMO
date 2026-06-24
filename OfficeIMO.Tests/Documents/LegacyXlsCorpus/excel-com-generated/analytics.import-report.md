@@ -26,6 +26,8 @@ Differential formats: 0
 Compound feature records: 0
 Compound feature entries: 0
 Compound VBA modules: 0
+Compound feature entry bytes: 0
+Compound VBA module bytes: 0
 Calculation setting records: 13
 Cell style records: 47
 Cell style extension records: 114
