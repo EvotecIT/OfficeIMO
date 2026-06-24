@@ -547,6 +547,12 @@ namespace OfficeIMO.Excel.LegacyXls {
             ChartRecordsByAxisType = CountByCode(workbook.ChartRecords
                 .Where(record => !string.IsNullOrWhiteSpace(record.AxisTypeName))
                 .Select(record => record.AxisTypeName!));
+            ChartGroupVariedColorStates = CountByCode(workbook.ChartRecords
+                .Where(record => record.ChartGroupOptions != null)
+                .Select(record => record.ChartGroupOptions!.VariedDataPointColors ? "VariedDataPointColors" : "UniformDataPointColors"));
+            ChartGroupDrawingOrders = CountByCode(workbook.ChartRecords
+                .Where(record => record.ChartGroupOptions != null)
+                .Select(record => $"DrawingOrder:{record.ChartGroupOptions!.DrawingOrder}"));
             ChartRecordsByAxesUsedCount = CountByCode(workbook.ChartRecords
                 .Where(record => record.AxesUsedCount.HasValue)
                 .Select(record => $"AxesUsed:{record.AxesUsedCount!.Value}"));
@@ -571,6 +577,12 @@ namespace OfficeIMO.Excel.LegacyXls {
             ChartSeriesValueCounts = CountByCode(workbook.ChartRecords
                 .Where(record => record.SeriesCategoryCount.HasValue && record.SeriesValueCount.HasValue && record.SeriesBubbleSizeCount.HasValue)
                 .Select(record => $"Categories:{record.SeriesCategoryCount!.Value};Values:{record.SeriesValueCount!.Value};BubbleSizes:{record.SeriesBubbleSizeCount!.Value}"));
+            ChartSeriesChartGroupIndexes = CountByCode(workbook.ChartRecords
+                .Where(record => record.SeriesChartGroupReference != null)
+                .Select(record => $"ChartGroupIndex:{record.SeriesChartGroupReference!.ChartGroupIndex}"));
+            ChartPivotViewReferences = CountByCode(workbook.ChartRecords
+                .Where(record => record.PivotViewReference != null)
+                .Select(record => record.PivotViewReference!.Reference));
             ChartSeriesDataCacheIndexes = CountByCode(workbook.ChartRecords
                 .Where(record => record.SeriesDataCacheIndex.HasValue)
                 .Select(record => $"Index:{record.SeriesDataCacheIndex!.Value}"));
@@ -1893,6 +1905,12 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets Axis records grouped by decoded axis type.</summary>
         public IReadOnlyDictionary<string, int> ChartRecordsByAxisType { get; }
 
+        /// <summary>Gets ChartFormat records grouped by varied data-point color state.</summary>
+        public IReadOnlyDictionary<string, int> ChartGroupVariedColorStates { get; }
+
+        /// <summary>Gets ChartFormat records grouped by chart-group drawing order.</summary>
+        public IReadOnlyDictionary<string, int> ChartGroupDrawingOrders { get; }
+
         /// <summary>Gets AxesUsed records grouped by decoded axis group count.</summary>
         public IReadOnlyDictionary<string, int> ChartRecordsByAxesUsedCount { get; }
 
@@ -1916,6 +1934,12 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets Series records grouped by category, value, and bubble-size counts.</summary>
         public IReadOnlyDictionary<string, int> ChartSeriesValueCounts { get; }
+
+        /// <summary>Gets SerToCrt records grouped by referenced ChartFormat index.</summary>
+        public IReadOnlyDictionary<string, int> ChartSeriesChartGroupIndexes { get; }
+
+        /// <summary>Gets SBaseRef records grouped by decoded referenced PivotTable-view range.</summary>
+        public IReadOnlyDictionary<string, int> ChartPivotViewReferences { get; }
 
         /// <summary>Gets SIIndex records grouped by raw chart data-cache sequence index.</summary>
         public IReadOnlyDictionary<string, int> ChartSeriesDataCacheIndexes { get; }
@@ -2727,6 +2751,8 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Chart Records By Chart Type", ChartRecordsByChartType);
             AppendDictionary(builder, "Chart Records By Rectangle", ChartRecordsByRectangle);
             AppendDictionary(builder, "Chart Records By Axis Type", ChartRecordsByAxisType);
+            AppendDictionary(builder, "Chart Group Varied Color States", ChartGroupVariedColorStates);
+            AppendDictionary(builder, "Chart Group Drawing Orders", ChartGroupDrawingOrders);
             AppendDictionary(builder, "Chart Records By Axes Used Count", ChartRecordsByAxesUsedCount);
             AppendDictionary(builder, "Chart CatSerRange Intervals", ChartCategorySeriesRangeIntervals);
             AppendDictionary(builder, "Chart CatSerRange States", ChartCategorySeriesRangeStates);
@@ -2735,6 +2761,8 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Chart Series Value Data Types", ChartSeriesValueDataTypes);
             AppendDictionary(builder, "Chart Series Bubble Size Data Types", ChartSeriesBubbleSizeDataTypes);
             AppendDictionary(builder, "Chart Series Value Counts", ChartSeriesValueCounts);
+            AppendDictionary(builder, "Chart Series Chart Group Indexes", ChartSeriesChartGroupIndexes);
+            AppendDictionary(builder, "Chart Pivot View References", ChartPivotViewReferences);
             AppendDictionary(builder, "Chart Series Data Cache Indexes", ChartSeriesDataCacheIndexes);
             AppendDictionary(builder, "Chart Series Data Cache Types", ChartSeriesDataCacheTypes);
             AppendDictionary(builder, "Chart DataSource Ids", ChartDataSourceIds);

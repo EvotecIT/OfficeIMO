@@ -1332,6 +1332,62 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_ImportReport_GroupsChartGroupAndPivotViewReferences() {
+            var chartRecords = new List<LegacyXlsChartRecord>();
+            byte[] chartFormatPayload = {
+                0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00,
+                0x01, 0x00,
+                0x02, 0x00
+            };
+            byte[] seriesChartGroupPayload = {
+                0x03, 0x00
+            };
+            byte[] pivotViewReferencePayload = {
+                0x01, 0x00,
+                0x03, 0x00,
+                0x02, 0x00,
+                0x04, 0x00
+            };
+
+            Assert.True(BiffChartMetadataReader.TryRead(new BiffRecord(0x1014, offset: 100, chartFormatPayload), "ChartGroup", chartRecords));
+            Assert.True(BiffChartMetadataReader.TryRead(new BiffRecord(0x1044, offset: 120, seriesChartGroupPayload), "ChartGroup", chartRecords));
+            Assert.True(BiffChartMetadataReader.TryRead(new BiffRecord(0x1046, offset: 140, pivotViewReferencePayload), "ChartGroup", chartRecords));
+
+            LegacyXlsChartRecord chartGroupRecord = chartRecords[0];
+            LegacyXlsChartRecord seriesLinkRecord = chartRecords[1];
+            LegacyXlsChartRecord pivotViewRecord = chartRecords[2];
+
+            Assert.NotNull(chartGroupRecord.ChartGroupOptions);
+            Assert.True(chartGroupRecord.ChartGroupOptions!.VariedDataPointColors);
+            Assert.Equal(2, chartGroupRecord.ChartGroupOptions.DrawingOrder);
+            Assert.NotNull(seriesLinkRecord.SeriesChartGroupReference);
+            Assert.Equal(3, seriesLinkRecord.SeriesChartGroupReference!.ChartGroupIndex);
+            Assert.NotNull(pivotViewRecord.PivotViewReference);
+            Assert.Equal("C2:E4", pivotViewRecord.PivotViewReference!.Reference);
+
+            var workbook = new LegacyXlsWorkbook();
+            foreach (LegacyXlsChartRecord record in chartRecords) {
+                workbook.MutableChartRecords.Add(record);
+            }
+
+            LegacyXlsImportReport report = workbook.CreateImportReport();
+
+            Assert.Equal(1, report.ChartGroupVariedColorStates["VariedDataPointColors"]);
+            Assert.Equal(1, report.ChartGroupDrawingOrders["DrawingOrder:2"]);
+            Assert.Equal(1, report.ChartSeriesChartGroupIndexes["ChartGroupIndex:3"]);
+            Assert.Equal(1, report.ChartPivotViewReferences["C2:E4"]);
+
+            string markdown = report.ToMarkdown();
+            Assert.Contains("Chart Group Varied Color States", markdown);
+            Assert.Contains("Chart Series Chart Group Indexes", markdown);
+            Assert.Contains("Chart Pivot View References", markdown);
+            Assert.Contains("C2:E4", markdown);
+        }
+
+        [Fact]
         public void LegacyXls_ImportReport_CountsImportedWorkbookFeatures() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase4DefinedNamesWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);

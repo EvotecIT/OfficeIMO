@@ -22,6 +22,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             int? chartY = null,
             int? chartWidth = null,
             int? chartHeight = null,
+            LegacyXlsChartGroupOptions? chartGroupOptions = null,
             ushort? axisType = null,
             string? axisTypeName = null,
             ushort? axesUsedCount = null,
@@ -36,6 +37,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             ushort? seriesBubbleSizeDataType = null,
             string? seriesBubbleSizeDataTypeName = null,
             ushort? seriesBubbleSizeCount = null,
+            LegacyXlsChartSeriesChartGroupReference? seriesChartGroupReference = null,
+            LegacyXlsChartPivotViewReference? pivotViewReference = null,
             ushort? seriesDataCacheIndex = null,
             string? seriesDataCacheIndexName = null,
             ushort? dataFormatPointIndex = null,
@@ -85,6 +88,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             ChartY = chartY;
             ChartWidth = chartWidth;
             ChartHeight = chartHeight;
+            ChartGroupOptions = chartGroupOptions;
             AxisType = axisType;
             AxisTypeName = string.IsNullOrWhiteSpace(axisTypeName) ? null : axisTypeName;
             AxesUsedCount = axesUsedCount;
@@ -99,6 +103,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             SeriesBubbleSizeDataType = seriesBubbleSizeDataType;
             SeriesBubbleSizeDataTypeName = string.IsNullOrWhiteSpace(seriesBubbleSizeDataTypeName) ? null : seriesBubbleSizeDataTypeName;
             SeriesBubbleSizeCount = seriesBubbleSizeCount;
+            SeriesChartGroupReference = seriesChartGroupReference;
+            PivotViewReference = pivotViewReference;
             SeriesDataCacheIndex = seriesDataCacheIndex;
             SeriesDataCacheIndexName = string.IsNullOrWhiteSpace(seriesDataCacheIndexName) ? null : seriesDataCacheIndexName;
             DataFormatPointIndex = dataFormatPointIndex;
@@ -176,6 +182,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>Gets the decoded chart rectangle height from Chart records, when present.</summary>
         public int? ChartHeight { get; }
 
+        /// <summary>Gets decoded chart-group options from ChartFormat records, when present.</summary>
+        public LegacyXlsChartGroupOptions? ChartGroupOptions { get; }
+
         /// <summary>Gets the raw axis type from Axis records, when present.</summary>
         public ushort? AxisType { get; }
 
@@ -217,6 +226,12 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets the bubble-size value count from Series records, when present.</summary>
         public ushort? SeriesBubbleSizeCount { get; }
+
+        /// <summary>Gets decoded series-to-chart-group linkage from SerToCrt records, when present.</summary>
+        public LegacyXlsChartSeriesChartGroupReference? SeriesChartGroupReference { get; }
+
+        /// <summary>Gets decoded PivotTable-view range metadata from SBaseRef records, when present.</summary>
+        public LegacyXlsChartPivotViewReference? PivotViewReference { get; }
 
         /// <summary>Gets the raw data-cache sequence index from SIIndex records, when present.</summary>
         public ushort? SeriesDataCacheIndex { get; }

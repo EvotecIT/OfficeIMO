@@ -1217,6 +1217,18 @@ Warnings: 0
 | CategoryOrHorizontalValue | 8 |
 | ValueOrVerticalValue | 8 |
 
+## Chart Group Varied Color States
+
+| Key | Count |
+| --- | --- |
+| UniformDataPointColors | 8 |
+
+## Chart Group Drawing Orders
+
+| Key | Count |
+| --- | --- |
+| DrawingOrder:0 | 8 |
+
 ## Chart Records By Axes Used Count
 
 | Key | Count |
@@ -1249,6 +1261,15 @@ Warnings: 0
 | Categories:25;Values:25;BubbleSizes:0 | 4 |
 | Categories:26;Values:26;BubbleSizes:0 | 12 |
 | Categories:39;Values:39;BubbleSizes:0 | 12 |
+
+## Chart Series Chart Group Indexes
+
+| Key | Count |
+| --- | --- |
+| ChartGroupIndex:10 | 3 |
+| ChartGroupIndex:14 | 3 |
+| ChartGroupIndex:26 | 1 |
+| ChartGroupIndex:30 | 1 |
 
 ## Chart Series Data Cache Indexes
 

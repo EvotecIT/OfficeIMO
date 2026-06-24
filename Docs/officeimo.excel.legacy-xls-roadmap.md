@@ -243,9 +243,11 @@ crossing and interval metadata, `AxisLineFormat` records now decode the formatte
 axis component target, `PieFormat` records now decode preserve-only pie/doughnut
 explosion percentages, and chart `AttachedLabel` records now decode preserve-only
 data-label display flags for value, percent, category label, bubble size, and
-series name states, with compact import-report buckets for axis intervals,
-axis-line targets, enabled data-label flags, full flag-state shapes, and pie
-explosion percentages.
+series name states. `ChartFormat`, `SerToCrt`, and `SBaseRef` records now decode
+preserve-only chart-group drawing order, series-to-chart-group links, and
+PivotTable-view reference ranges, with compact import-report buckets for axis
+intervals, axis-line targets, chart-group state, series links, enabled data-label
+flags, full flag-state shapes, and pie explosion percentages.
 Drawing `ShapePropsStream`, `TextPropsStream`, and `RichTextStream` future-record
 streams now have first-class preserve-only drawing kinds plus decoded FRT headers,
 including compact report buckets for wrapped record type, flags, range-reference

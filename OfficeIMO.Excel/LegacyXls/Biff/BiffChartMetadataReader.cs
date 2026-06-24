@@ -17,11 +17,14 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
             BiffChartNestingInfo nestingInfo = (state ?? new BiffChartMetadataReaderState()).Capture(record.Type);
             TryReadChartRectangle(record, out int? chartX, out int? chartY, out int? chartWidth, out int? chartHeight);
+            TryReadChartGroupOptions(record, out LegacyXlsChartGroupOptions? chartGroupOptions);
             TryReadAxisType(record, out ushort? axisType, out string? axisTypeName);
             TryReadAxesUsedCount(record, out ushort? axesUsedCount);
             TryReadCategorySeriesRange(record, out LegacyXlsChartCategorySeriesRange? categorySeriesRange);
             TryReadAxisLineFormat(record, out LegacyXlsChartAxisLineFormat? axisLineFormat);
             TryReadSeries(record, out ushort? seriesCategoryDataType, out string? seriesCategoryDataTypeName, out ushort? seriesValueDataType, out string? seriesValueDataTypeName, out ushort? seriesCategoryCount, out ushort? seriesValueCount, out ushort? seriesBubbleSizeDataType, out string? seriesBubbleSizeDataTypeName, out ushort? seriesBubbleSizeCount);
+            TryReadSeriesChartGroupReference(record, out LegacyXlsChartSeriesChartGroupReference? seriesChartGroupReference);
+            TryReadPivotViewReference(record, out LegacyXlsChartPivotViewReference? pivotViewReference);
             TryReadSeriesDataCacheIndex(record, out ushort? seriesDataCacheIndex, out string? seriesDataCacheIndexName);
             TryReadDataFormat(record, out ushort? dataFormatPointIndex, out ushort? dataFormatSeriesIndex, out ushort? dataFormatOrder, out string? dataFormatTarget);
             TryReadNumberFormat(record, out ushort? numberFormatId);
@@ -63,6 +66,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 chartY,
                 chartWidth,
                 chartHeight,
+                chartGroupOptions,
                 axisType,
                 axisTypeName,
                 axesUsedCount,
@@ -77,6 +81,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 seriesBubbleSizeDataType,
                 seriesBubbleSizeDataTypeName,
                 seriesBubbleSizeCount,
+                seriesChartGroupReference,
+                pivotViewReference,
                 seriesDataCacheIndex,
                 seriesDataCacheIndexName,
                 dataFormatPointIndex,
@@ -127,6 +133,47 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 record.Offset,
                 record.Type,
                 formulaTokenRecords);
+        }
+
+        private static bool TryReadChartGroupOptions(BiffRecord record, out LegacyXlsChartGroupOptions? options) {
+            options = null;
+            if (record.Type != 0x1014 || record.Payload.Length < 20) {
+                return false;
+            }
+
+            ushort flags = BiffRecordReader.ReadUInt16(record.Payload, 16);
+            options = new LegacyXlsChartGroupOptions(
+                (flags & 0x0001) != 0,
+                BiffRecordReader.ReadUInt16(record.Payload, 18));
+            return true;
+        }
+
+        private static bool TryReadSeriesChartGroupReference(BiffRecord record, out LegacyXlsChartSeriesChartGroupReference? reference) {
+            reference = null;
+            if (record.Type != 0x1044 || record.Payload.Length < 2) {
+                return false;
+            }
+
+            reference = new LegacyXlsChartSeriesChartGroupReference(BiffRecordReader.ReadUInt16(record.Payload, 0));
+            return true;
+        }
+
+        private static bool TryReadPivotViewReference(BiffRecord record, out LegacyXlsChartPivotViewReference? reference) {
+            reference = null;
+            if (record.Type != 0x1046 || record.Payload.Length < 8) {
+                return false;
+            }
+
+            ushort firstRow = BiffRecordReader.ReadUInt16(record.Payload, 0);
+            ushort lastRow = BiffRecordReader.ReadUInt16(record.Payload, 2);
+            ushort firstColumn = BiffRecordReader.ReadUInt16(record.Payload, 4);
+            ushort lastColumn = BiffRecordReader.ReadUInt16(record.Payload, 6);
+            if (lastRow < firstRow || lastColumn < firstColumn || firstColumn > 0x00ff || lastColumn > 0x00ff) {
+                return false;
+            }
+
+            reference = new LegacyXlsChartPivotViewReference(firstRow + 1, firstColumn + 1, lastRow + 1, lastColumn + 1);
+            return true;
         }
 
         private static bool TryReadSeriesDataCacheIndex(
