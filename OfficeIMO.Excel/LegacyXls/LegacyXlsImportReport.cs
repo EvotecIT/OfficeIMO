@@ -589,6 +589,18 @@ namespace OfficeIMO.Excel.LegacyXls {
             ChartSeriesChartGroupIndexes = CountByCode(workbook.ChartRecords
                 .Where(record => record.SeriesChartGroupReference != null)
                 .Select(record => $"ChartGroupIndex:{record.SeriesChartGroupReference!.ChartGroupIndex}"));
+            ChartSeriesListDeclaredCounts = CountByCode(workbook.ChartRecords
+                .Where(record => record.SeriesList != null)
+                .Select(record => $"Declared:{record.SeriesList!.DeclaredSeriesCount}"));
+            ChartSeriesListDecodedCounts = CountByCode(workbook.ChartRecords
+                .Where(record => record.SeriesList != null)
+                .Select(record => $"Decoded:{record.SeriesList!.DecodedSeriesCount}"));
+            ChartSeriesListCompletenessStates = CountByCode(workbook.ChartRecords
+                .Where(record => record.SeriesList != null)
+                .Select(record => record.SeriesList!.HasCompleteSeriesIndexList ? "Complete" : "Truncated"));
+            ChartSeriesListIndexValidityStates = CountByCode(workbook.ChartRecords
+                .Where(record => record.SeriesList != null)
+                .Select(record => record.SeriesList!.HasOnlyValidSeriesIndexes ? "AllValid" : "ContainsInvalid"));
             ChartPivotViewReferences = CountByCode(workbook.ChartRecords
                 .Where(record => record.PivotViewReference != null)
                 .Select(record => record.PivotViewReference!.Reference));
@@ -2019,6 +2031,18 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets SerToCrt records grouped by referenced ChartFormat index.</summary>
         public IReadOnlyDictionary<string, int> ChartSeriesChartGroupIndexes { get; }
 
+        /// <summary>Gets SeriesList records grouped by declared series index count.</summary>
+        public IReadOnlyDictionary<string, int> ChartSeriesListDeclaredCounts { get; }
+
+        /// <summary>Gets SeriesList records grouped by decoded series index count.</summary>
+        public IReadOnlyDictionary<string, int> ChartSeriesListDecodedCounts { get; }
+
+        /// <summary>Gets SeriesList records grouped by whether all declared indexes were present.</summary>
+        public IReadOnlyDictionary<string, int> ChartSeriesListCompletenessStates { get; }
+
+        /// <summary>Gets SeriesList records grouped by decoded one-based index validity.</summary>
+        public IReadOnlyDictionary<string, int> ChartSeriesListIndexValidityStates { get; }
+
         /// <summary>Gets SBaseRef records grouped by decoded referenced PivotTable-view range.</summary>
         public IReadOnlyDictionary<string, int> ChartPivotViewReferences { get; }
 
@@ -2909,6 +2933,10 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Chart Series Bubble Size Data Types", ChartSeriesBubbleSizeDataTypes);
             AppendDictionary(builder, "Chart Series Value Counts", ChartSeriesValueCounts);
             AppendDictionary(builder, "Chart Series Chart Group Indexes", ChartSeriesChartGroupIndexes);
+            AppendDictionary(builder, "Chart SeriesList Declared Counts", ChartSeriesListDeclaredCounts);
+            AppendDictionary(builder, "Chart SeriesList Decoded Counts", ChartSeriesListDecodedCounts);
+            AppendDictionary(builder, "Chart SeriesList Completeness States", ChartSeriesListCompletenessStates);
+            AppendDictionary(builder, "Chart SeriesList Index Validity States", ChartSeriesListIndexValidityStates);
             AppendDictionary(builder, "Chart Pivot View References", ChartPivotViewReferences);
             AppendDictionary(builder, "Chart Series Data Cache Indexes", ChartSeriesDataCacheIndexes);
             AppendDictionary(builder, "Chart Series Data Cache Types", ChartSeriesDataCacheTypes);

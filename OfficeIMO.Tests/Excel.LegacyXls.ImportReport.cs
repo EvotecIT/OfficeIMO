@@ -1648,6 +1648,44 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_ImportReport_GroupsChartSeriesListMetadata() {
+            byte[] payload = {
+                0x03, 0x00,
+                0x01, 0x00,
+                0x00, 0x00
+            };
+            var chartRecord = new BiffRecord(0x1016, offset: 292, payload);
+            var chartRecords = new List<LegacyXlsChartRecord>();
+
+            Assert.True(BiffChartMetadataReader.TryRead(chartRecord, "SeriesList", chartRecords));
+
+            LegacyXlsChartRecord record = Assert.Single(chartRecords);
+            Assert.Equal("SeriesList", record.RecordName);
+            Assert.Equal(LegacyXlsChartRecordKind.Series, record.Kind);
+            LegacyXlsChartSeriesList? seriesList = record.SeriesList;
+            Assert.NotNull(seriesList);
+            Assert.Equal(3, seriesList!.DeclaredSeriesCount);
+            Assert.Equal(2, seriesList.DecodedSeriesCount);
+            Assert.False(seriesList.HasCompleteSeriesIndexList);
+            Assert.False(seriesList.HasOnlyValidSeriesIndexes);
+            Assert.Equal(new ushort[] { 1, 0 }, seriesList.SeriesIndexes);
+
+            var workbook = new LegacyXlsWorkbook();
+            workbook.MutableChartRecords.Add(record);
+            LegacyXlsImportReport report = workbook.CreateImportReport();
+
+            Assert.Equal(1, report.ChartSeriesListDeclaredCounts["Declared:3"]);
+            Assert.Equal(1, report.ChartSeriesListDecodedCounts["Decoded:2"]);
+            Assert.Equal(1, report.ChartSeriesListCompletenessStates["Truncated"]);
+            Assert.Equal(1, report.ChartSeriesListIndexValidityStates["ContainsInvalid"]);
+
+            string markdown = report.ToMarkdown();
+            Assert.Contains("Chart SeriesList Declared Counts", markdown);
+            Assert.Contains("Declared:3", markdown);
+            Assert.Contains("ContainsInvalid", markdown);
+        }
+
+        [Fact]
         public void LegacyXls_ImportReport_GroupsChartFutureBlockMetadata() {
             byte[] startPayload = {
                 0x52, 0x08,

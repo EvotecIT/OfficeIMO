@@ -25,6 +25,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             TryReadAxisLineFormat(record, out LegacyXlsChartAxisLineFormat? axisLineFormat);
             TryReadSeries(record, out ushort? seriesCategoryDataType, out string? seriesCategoryDataTypeName, out ushort? seriesValueDataType, out string? seriesValueDataTypeName, out ushort? seriesCategoryCount, out ushort? seriesValueCount, out ushort? seriesBubbleSizeDataType, out string? seriesBubbleSizeDataTypeName, out ushort? seriesBubbleSizeCount);
             TryReadSeriesChartGroupReference(record, out LegacyXlsChartSeriesChartGroupReference? seriesChartGroupReference);
+            TryReadSeriesList(record, out LegacyXlsChartSeriesList? seriesList);
             TryReadPivotViewReference(record, out LegacyXlsChartPivotViewReference? pivotViewReference);
             TryReadSeriesDataCacheIndex(record, out ushort? seriesDataCacheIndex, out string? seriesDataCacheIndexName);
             TryReadDataFormat(record, out ushort? dataFormatPointIndex, out ushort? dataFormatSeriesIndex, out ushort? dataFormatOrder, out string? dataFormatTarget);
@@ -126,7 +127,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 xmlTokenChain,
                 plotAreaLayout12,
                 futureBlock,
-                units));
+                units,
+                seriesList));
             return true;
         }
 
@@ -169,6 +171,24 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             reference = new LegacyXlsChartSeriesChartGroupReference(BiffRecordReader.ReadUInt16(record.Payload, 0));
+            return true;
+        }
+
+        private static bool TryReadSeriesList(BiffRecord record, out LegacyXlsChartSeriesList? seriesList) {
+            seriesList = null;
+            if (record.Type != 0x1016 || record.Payload.Length < 2) {
+                return false;
+            }
+
+            ushort declaredSeriesCount = BiffRecordReader.ReadUInt16(record.Payload, 0);
+            int availableSeriesCount = (record.Payload.Length - 2) / 2;
+            int decodedSeriesCount = Math.Min(declaredSeriesCount, availableSeriesCount);
+            var seriesIndexes = new List<ushort>(decodedSeriesCount);
+            for (int index = 0; index < decodedSeriesCount; index++) {
+                seriesIndexes.Add(BiffRecordReader.ReadUInt16(record.Payload, 2 + (index * 2)));
+            }
+
+            seriesList = new LegacyXlsChartSeriesList(declaredSeriesCount, seriesIndexes);
             return true;
         }
 

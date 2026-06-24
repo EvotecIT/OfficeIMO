@@ -75,7 +75,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             LegacyXlsChartXmlTokenChain? xmlTokenChain = null,
             LegacyXlsChartPlotAreaLayout12? plotAreaLayout12 = null,
             LegacyXlsChartFutureBlock? futureBlock = null,
-            LegacyXlsChartUnits? units = null) {
+            LegacyXlsChartUnits? units = null,
+            LegacyXlsChartSeriesList? seriesList = null) {
             if (payloadLength < 0) {
                 throw new ArgumentOutOfRangeException(nameof(payloadLength));
             }
@@ -149,6 +150,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             PlotAreaLayout12 = plotAreaLayout12;
             FutureBlock = futureBlock;
             Units = units;
+            SeriesList = seriesList;
         }
 
         /// <summary>Gets the shallow chart record category.</summary>
@@ -246,6 +248,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets decoded series-to-chart-group linkage from SerToCrt records, when present.</summary>
         public LegacyXlsChartSeriesChartGroupReference? SeriesChartGroupReference { get; }
+
+        /// <summary>Gets decoded SeriesList membership metadata, when present.</summary>
+        public LegacyXlsChartSeriesList? SeriesList { get; }
 
         /// <summary>Gets decoded PivotTable-view range metadata from SBaseRef records, when present.</summary>
         public LegacyXlsChartPivotViewReference? PivotViewReference { get; }

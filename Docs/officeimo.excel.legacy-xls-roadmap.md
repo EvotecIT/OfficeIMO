@@ -243,9 +243,9 @@ crossing and interval metadata, `AxisLineFormat` records now decode the formatte
 axis component target, `PieFormat` records now decode preserve-only pie/doughnut
 explosion percentages, and chart `AttachedLabel` records now decode preserve-only
 data-label display flags for value, percent, category label, bubble size, and
-series name states. `StartBlock`, `EndBlock`, `Units`, `ChartFormat`, `SerToCrt`, `SBaseRef`, `CatLab`,
+series name states. `StartBlock`, `EndBlock`, `Units`, `ChartFormat`, `SerToCrt`, `SeriesList`, `SBaseRef`, `CatLab`,
 `CrtLayout12`, `CrtLayout12A`, `ChartFrtInfo`, and `CrtMlFrt` records now decode preserve-only chart-group
-drawing order, reserved unit metadata, future-record block scopes, series-to-chart-group links, PivotTable-view reference ranges,
+drawing order, reserved unit metadata, future-record block scopes, series-to-chart-group links, series-list membership, PivotTable-view reference ranges,
 axis-label offset/alignment/count-state metadata, chart layout modes/checksums,
 plot-area layout bounds, chart future-record version/range envelopes, and XmlTkChain byte-count envelopes, with compact import-report
 buckets for axis intervals, axis-line targets, chart-group state, series links,
