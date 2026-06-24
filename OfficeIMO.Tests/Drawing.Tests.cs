@@ -1437,6 +1437,37 @@ public class DrawingTests {
     }
 
     [Fact]
+    public void OfficeSvgImageRendererAppendsImageInsideViewport() {
+        var uncropped = new StringBuilder();
+
+        OfficeSvgImageRenderer.AppendImageInViewport(
+            uncropped,
+            "data:image/png;base64,AA==",
+            new OfficeImageProjection(new OfficeImagePlacement(10, 20, 80, 40)),
+            "viewportClip",
+            new OfficeImagePlacement(0, 0, 120, 80));
+
+        string uncroppedSvg = uncropped.ToString();
+        Assert.Contains("<clipPath id=\"viewportClip\"><rect x=\"0\" y=\"0\" width=\"120\" height=\"80\"/></clipPath>", uncroppedSvg, StringComparison.Ordinal);
+        Assert.Contains("<image x=\"10\" y=\"20\" width=\"80\" height=\"40\" clip-path=\"url(#viewportClip)\" href=\"data:image/png;base64,AA==\"/>", uncroppedSvg, StringComparison.Ordinal);
+
+        var cropped = new StringBuilder();
+
+        OfficeSvgImageRenderer.AppendImageInViewport(
+            cropped,
+            "data:image/png;base64,AA==",
+            new OfficeImageProjection(
+                new OfficeImagePlacement(10, 20, 80, 40),
+                new OfficeImageSourceCrop(0.25D, 0.1D, 0.25D, 0.1D)),
+            "cropClip",
+            new OfficeImagePlacement(0, 0, 120, 80));
+
+        string croppedSvg = cropped.ToString();
+        Assert.Contains("<clipPath id=\"cropClip\"><rect x=\"10\" y=\"20\" width=\"80\" height=\"40\"/></clipPath>", croppedSvg, StringComparison.Ordinal);
+        Assert.Contains("<image x=\"-30\" y=\"15\" width=\"160\" height=\"50\" clip-path=\"url(#cropClip)\" href=\"data:image/png;base64,AA==\"/>", croppedSvg, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void OfficeSvgImageRendererAppendsFlipAndRotationTransform() {
         var builder = new StringBuilder();
 

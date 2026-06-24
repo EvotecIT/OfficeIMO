@@ -52,16 +52,12 @@ namespace OfficeIMO.Excel {
 
             string clipId = "xl-image-clip-" + (++index).ToString(System.Globalization.CultureInfo.InvariantCulture);
             OfficeImageProjection projection = CreateImageProjection(image, scale);
-            OfficeImagePlacement clipRectangle = image.HasCrop
-                ? projection.Placement
-                : new OfficeImagePlacement(0D, 0D, snapshot.Width * scale, snapshot.Height * scale);
-
-            OfficeSvgImageRenderer.AppendImage(
+            OfficeSvgImageRenderer.AppendImageInViewport(
                 builder,
                 OfficeSvgImageRenderer.CreateDataUri(contentType, image.Bytes),
                 projection,
                 clipId,
-                clipRectangle);
+                new OfficeImagePlacement(0D, 0D, snapshot.Width * scale, snapshot.Height * scale));
         }
 
         private static OfficeImageProjection CreateImageProjection(ExcelVisualImage image, double scale) =>

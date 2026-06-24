@@ -181,6 +181,37 @@ public static class OfficeSvgImageRenderer {
     }
 
     /// <summary>
+    /// Appends an SVG image inside a viewport, using the projection placement as the clip for source-cropped images
+    /// and the viewport as the clip for uncropped images.
+    /// </summary>
+    /// <param name="builder">Markup builder.</param>
+    /// <param name="href">Resolved SVG image reference, such as a data URI.</param>
+    /// <param name="projection">Shared image projection.</param>
+    /// <param name="clipPathId">Clip-path identifier used for the viewport or crop clip.</param>
+    /// <param name="viewport">Viewport rectangle that clips uncropped images.</param>
+    /// <param name="preserveAspectRatio">Optional SVG preserveAspectRatio value.</param>
+    /// <returns>The supplied builder for call chaining.</returns>
+    public static StringBuilder AppendImageInViewport(
+        StringBuilder builder,
+        string href,
+        OfficeImageProjection projection,
+        string clipPathId,
+        OfficeImagePlacement viewport,
+        string? preserveAspectRatio = null) {
+        if (string.IsNullOrEmpty(clipPathId)) {
+            throw new ArgumentException("A clip path identifier is required for viewport image rendering.", nameof(clipPathId));
+        }
+
+        return AppendImage(
+            builder,
+            href,
+            projection,
+            clipPathId,
+            projection.HasCrop ? projection.Placement : viewport,
+            preserveAspectRatio);
+    }
+
+    /// <summary>
     /// Writes an SVG image element using shared numeric formatting, optional preserve-aspect behavior, rotation, and flips.
     /// </summary>
     /// <param name="writer">SVG writer.</param>
