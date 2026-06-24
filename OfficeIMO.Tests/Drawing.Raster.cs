@@ -277,6 +277,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeDrawingSceneText_RendersStackedTextThroughSharedRenderer() {
+            var drawing = new OfficeDrawing(36D, 90D)
+                .AddText(
+                    "Stacked",
+                    0D,
+                    0D,
+                    36D,
+                    90D,
+                    new OfficeFontInfo("Aptos", 12D),
+                    OfficeColor.Black,
+                    OfficeTextAlignment.Center,
+                    verticalAlignment: OfficeTextVerticalAlignment.Top,
+                    shrinkToFit: true,
+                    stackedText: true);
+
+            string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+            OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing);
+
+            Assert.True(CountOccurrences(svg, "<text") >= 7);
+            Assert.True(CountPixelsNear(image, OfficeColor.Black) > 0, "Expected stacked scene text to render in PNG output.");
+        }
+
+        [Fact]
         public void OfficeTextLayoutEngine_ClipsTextBlockToVisibleHeightWithEllipsis() {
             double Measure(string? value, double size) => (value?.Length ?? 0) * size;
             IReadOnlyList<OfficeTextLine> lines = new[] {
@@ -1593,6 +1616,17 @@ namespace OfficeIMO.Tests {
                         Math.Abs(color.B - expected.B) <= 8 &&
                         color.A > 0;
                 });
+
+        private static int CountOccurrences(string value, string pattern) {
+            int count = 0;
+            int index = 0;
+            while ((index = value.IndexOf(pattern, index, StringComparison.Ordinal)) >= 0) {
+                count++;
+                index += pattern.Length;
+            }
+
+            return count;
+        }
 
         private static double ExtractFirstSvgFontSize(string svg) {
             const string attribute = "font-size=\"";

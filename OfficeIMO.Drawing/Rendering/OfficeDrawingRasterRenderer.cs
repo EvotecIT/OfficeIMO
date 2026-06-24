@@ -106,7 +106,17 @@ public static class OfficeDrawingRasterRenderer {
             : 1.2D;
         double minimumFontSize = Math.Min(6D, fontSize);
         Func<string?, double, double> measure = (value, size) => canvas.MeasureText(value, size, text.Font.FamilyName);
-        OfficeTextBlockLayout layout = text.ShrinkToFit && text.WrapText
+        OfficeTextBlockLayout layout = text.StackedText
+            ? OfficeTextLayoutEngine.LayoutStackedTextBlock(
+                text.Text,
+                fontSize,
+                textWidth,
+                textHeight,
+                lineHeightFactor,
+                minimumFontSize,
+                measure,
+                text.ShrinkToFit)
+            : text.ShrinkToFit && text.WrapText
             ? OfficeTextLayoutEngine.FitWrappedText(
                 text.Text,
                 fontSize,

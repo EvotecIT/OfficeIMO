@@ -650,7 +650,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void ExcelRange_ImageExportReportsDrawingShapeVerticalTextUnsupported() {
+        public void ExcelRange_ImageExportRendersSimpleDrawingShapeVerticalTextThroughSharedDrawing() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 document.AddWorkSheet("VerticalText");
@@ -681,10 +681,50 @@ namespace OfficeIMO.Tests {
                 ExcelVisualDrawingObject drawingObject = Assert.Single(snapshot.DrawingObjects);
                 Assert.Equal(ExcelDrawingTextOrientation.Vertical, drawingObject.TextOrientation);
                 Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeTextVerticalOrientationUnsupported);
-                Assert.Single(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeTextVerticalOrientationUnsupported && diagnostic.Source == "VerticalText!B2");
-                Assert.Single(svg.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeTextVerticalOrientationUnsupported && diagnostic.Source == "VerticalText!B2");
+                Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeTextVerticalOrientationUnsupported);
+                Assert.DoesNotContain(svg.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeTextVerticalOrientationUnsupported);
                 Assert.Equal("Vertical label", drawingObject.Text);
-                Assert.Contains("Vertical", svgText, StringComparison.Ordinal);
+                Assert.Contains("<text", svgText, StringComparison.Ordinal);
+                Assert.DoesNotContain(">Vertical label</text>", svgText, StringComparison.Ordinal);
+                Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
+                Assert.NotNull(rendered);
+                Assert.True(CountDarkPixels(rendered!) > 0);
+            }
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportReportsComplexDrawingShapeVerticalTextUnsupported() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                document.AddWorkSheet("Vertical270");
+                document.Save(false);
+            }
+
+            AppendSupportedDrawingShape(
+                filePath,
+                "Vertical 270 label",
+                "Vertical label",
+                fillHex: "F8FAFC",
+                strokeHex: "475569",
+                paragraphAlignment: A.TextAlignmentTypeValues.Left,
+                verticalAlignment: A.TextAnchoringTypeValues.Top,
+                textColorHex: "111827",
+                textFontSize: 14D,
+                textOrientation: A.TextVerticalValues.Vertical270);
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+                ExcelSheet sheet = document.Sheets.Single();
+                ExcelRange range = sheet.Range("A1:D4");
+                var options = new ExcelImageExportOptions { ShowGridlines = false };
+                ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+                OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
+                OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg, options);
+
+                ExcelVisualDrawingObject drawingObject = Assert.Single(snapshot.DrawingObjects);
+                Assert.Equal(ExcelDrawingTextOrientation.Vertical270, drawingObject.TextOrientation);
+                Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeTextVerticalOrientationUnsupported);
+                Assert.Single(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeTextVerticalOrientationUnsupported && diagnostic.Source == "Vertical270!B2");
+                Assert.Single(svg.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeTextVerticalOrientationUnsupported && diagnostic.Source == "Vertical270!B2");
             }
         }
 

@@ -10,7 +10,7 @@ public sealed class OfficeDrawingText : OfficeDrawingElement {
     /// <summary>
     /// Creates a positioned drawing text box.
     /// </summary>
-    public OfficeDrawingText(string text, double x, double y, double width, double height, OfficeFontInfo? font = null, OfficeColor? color = null, OfficeTextAlignment alignment = OfficeTextAlignment.Left, double? lineHeight = null, OfficeTextVerticalAlignment verticalAlignment = OfficeTextVerticalAlignment.Top, double rotationDegrees = 0D, double? rotationCenterX = null, double? rotationCenterY = null, bool wrapText = false, bool shrinkToFit = false) {
+    public OfficeDrawingText(string text, double x, double y, double width, double height, OfficeFontInfo? font = null, OfficeColor? color = null, OfficeTextAlignment alignment = OfficeTextAlignment.Left, double? lineHeight = null, OfficeTextVerticalAlignment verticalAlignment = OfficeTextVerticalAlignment.Top, double rotationDegrees = 0D, double? rotationCenterX = null, double? rotationCenterY = null, bool wrapText = false, bool shrinkToFit = false, bool stackedText = false) {
         if (text == null) {
             throw new ArgumentNullException(nameof(text));
         }
@@ -39,6 +39,7 @@ public sealed class OfficeDrawingText : OfficeDrawingElement {
         RotationCenterY = rotationCenterY ?? y + height / 2D;
         WrapText = wrapText;
         ShrinkToFit = shrinkToFit;
+        StackedText = stackedText;
         ValidateFinite(RotationCenterX, nameof(rotationCenterX));
         ValidateFinite(RotationCenterY, nameof(rotationCenterY));
     }
@@ -88,8 +89,11 @@ public sealed class OfficeDrawingText : OfficeDrawingElement {
     /// <summary>Whether renderers should reduce font size when text overflows the text box.</summary>
     public bool ShrinkToFit { get; }
 
+    /// <summary>Whether renderers should lay text out as upright stacked characters.</summary>
+    public bool StackedText { get; }
+
     /// <summary>Creates a detached copy of this positioned text box.</summary>
-    public OfficeDrawingText Clone() => new OfficeDrawingText(Text, X, Y, Width, Height, Font, Color, Alignment, LineHeight, VerticalAlignment, RotationDegrees, RotationCenterX, RotationCenterY, WrapText, ShrinkToFit);
+    public OfficeDrawingText Clone() => new OfficeDrawingText(Text, X, Y, Width, Height, Font, Color, Alignment, LineHeight, VerticalAlignment, RotationDegrees, RotationCenterX, RotationCenterY, WrapText, ShrinkToFit, StackedText);
 
     internal override OfficeDrawingElement CloneElement() => Clone();
 

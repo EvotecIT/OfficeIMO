@@ -229,7 +229,17 @@ public static class OfficeDrawingSvgExporter {
                 OfficeTextMeasurementStyle measuredStyle = measurer.CreateStyle(new OfficeFontInfo(text.Font.FamilyName, size, text.Font.Style));
                 return measurer.MeasureWidth(value, measuredStyle);
             };
-        OfficeTextBlockLayout layout = text.ShrinkToFit && text.WrapText
+        OfficeTextBlockLayout layout = text.StackedText
+            ? OfficeTextLayoutEngine.LayoutStackedTextBlock(
+                text.Text,
+                fontSize,
+                text.Width,
+                text.Height,
+                lineHeightFactor,
+                minimumFontSize,
+                measure,
+                text.ShrinkToFit)
+            : text.ShrinkToFit && text.WrapText
             ? OfficeTextLayoutEngine.FitWrappedText(
                 text.Text,
                 fontSize,

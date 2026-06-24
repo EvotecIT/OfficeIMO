@@ -87,7 +87,8 @@ namespace OfficeIMO.Excel {
                     rotationCenterX: offsetX + width / 2D,
                     rotationCenterY: offsetY + height / 2D,
                     wrapText: drawingObject.TextWrap,
-                    shrinkToFit: drawingObject.TextShrinkToFit);
+                    shrinkToFit: drawingObject.TextShrinkToFit,
+                    stackedText: IsSupportedStackedTextOrientation(drawingObject));
             }
 
             return new DrawingObjectScene(drawing, offsetX, offsetY);
@@ -127,7 +128,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static void AddTextVerticalOrientationUnsupportedDiagnostic(ExcelVisualDrawingObject drawingObject, List<OfficeImageExportDiagnostic>? diagnostics) {
-            if (diagnostics == null || drawingObject.TextOrientation == ExcelDrawingTextOrientation.Horizontal || string.IsNullOrWhiteSpace(drawingObject.Text)) {
+            if (diagnostics == null || IsSupportedTextOrientation(drawingObject) || string.IsNullOrWhiteSpace(drawingObject.Text)) {
                 return;
             }
 
@@ -137,6 +138,13 @@ namespace OfficeIMO.Excel {
                 "Worksheet drawing object text requested a non-horizontal orientation; image export renders it as horizontal text inside the authored shape bounds.",
                 drawingObject.Source));
         }
+
+        private static bool IsSupportedTextOrientation(ExcelVisualDrawingObject drawingObject) =>
+            drawingObject.TextOrientation == ExcelDrawingTextOrientation.Horizontal ||
+            IsSupportedStackedTextOrientation(drawingObject);
+
+        private static bool IsSupportedStackedTextOrientation(ExcelVisualDrawingObject drawingObject) =>
+            drawingObject.TextOrientation == ExcelDrawingTextOrientation.Vertical;
 
         private static void AddTextAutoFitUnsupportedDiagnostic(ExcelVisualDrawingObject drawingObject, List<OfficeImageExportDiagnostic>? diagnostics) {
             if (diagnostics == null || !drawingObject.TextResizeShapeToFit || string.IsNullOrWhiteSpace(drawingObject.Text)) {
