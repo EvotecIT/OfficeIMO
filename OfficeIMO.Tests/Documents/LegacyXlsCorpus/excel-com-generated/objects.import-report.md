@@ -1418,6 +1418,34 @@ Warnings: 0
 | --- | --- |
 | Riser:Rectangle;Taper:None | 2 |
 
+## Chart CrtLayout12 Mode Pairs
+
+| Key | Count |
+| --- | --- |
+| X:Automatic;Y:Automatic;Width:Automatic;Height:Automatic | 4 |
+
+## Chart CrtLayout12 Auto Layout Types
+
+| Key | Count |
+| --- | --- |
+| Bottom | 2 |
+| Right | 2 |
+
+## Chart CrtLayout12 Checksums
+
+| Key | Count |
+| --- | --- |
+| Checksum:0x0000001F | 1 |
+| Checksum:0x00000022 | 1 |
+| Checksum:0x0000045C | 1 |
+| Checksum:0x000006FA | 1 |
+
+## Chart CrtLayout12 Rectangles
+
+| Key | Count |
+| --- | --- |
+| X:0;Y:0;Width:0;Height:0 | 4 |
+
 ## Chart Sheet Property States
 
 | Key | Count |

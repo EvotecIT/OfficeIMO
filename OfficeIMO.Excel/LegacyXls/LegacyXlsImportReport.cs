@@ -683,6 +683,18 @@ namespace OfficeIMO.Excel.LegacyXls {
             ChartFontBasisStates = CountByCode(workbook.ChartRecords
                 .Where(record => record.FontBasisOptions != null)
                 .Select(GetChartFontBasisStateKey));
+            ChartLayout12ModePairs = CountByCode(workbook.ChartRecords
+                .Where(record => record.Layout12 != null)
+                .Select(record => $"X:{record.Layout12!.XModeName};Y:{record.Layout12.YModeName};Width:{record.Layout12.WidthModeName};Height:{record.Layout12.HeightModeName}"));
+            ChartLayout12AutoLayoutTypes = CountByCode(workbook.ChartRecords
+                .Where(record => record.Layout12 != null)
+                .Select(record => record.Layout12!.AutomaticLayoutTypeName));
+            ChartLayout12Checksums = CountByCode(workbook.ChartRecords
+                .Where(record => record.Layout12 != null)
+                .Select(record => $"Checksum:0x{record.Layout12!.Checksum:X8}"));
+            ChartLayout12Rectangles = CountByCode(workbook.ChartRecords
+                .Where(record => record.Layout12 != null)
+                .Select(record => $"X:{FormatDouble(record.Layout12!.X)};Y:{FormatDouble(record.Layout12.Y)};Width:{FormatDouble(record.Layout12.Width)};Height:{FormatDouble(record.Layout12.Height)}"));
             ChartSheetPropertyEmptyCellModes = CountByCode(workbook.ChartRecords
                 .Where(record => record.SheetProperties != null && record.SheetProperties.HasKnownEmptyCellPlottingMode)
                 .Select(record => record.SheetProperties!.EmptyCellPlottingModeName));
@@ -2049,6 +2061,18 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets Fbi records grouped by decoded basis, default font height, scale basis, and font index.</summary>
         public IReadOnlyDictionary<string, int> ChartFontBasisStates { get; }
 
+        /// <summary>Gets CrtLayout12 records grouped by decoded layout modes.</summary>
+        public IReadOnlyDictionary<string, int> ChartLayout12ModePairs { get; }
+
+        /// <summary>Gets CrtLayout12 records grouped by decoded automatic legend layout type.</summary>
+        public IReadOnlyDictionary<string, int> ChartLayout12AutoLayoutTypes { get; }
+
+        /// <summary>Gets CrtLayout12 records grouped by checksum value.</summary>
+        public IReadOnlyDictionary<string, int> ChartLayout12Checksums { get; }
+
+        /// <summary>Gets CrtLayout12 records grouped by decoded layout rectangle values.</summary>
+        public IReadOnlyDictionary<string, int> ChartLayout12Rectangles { get; }
+
         /// <summary>Gets ShtProps records grouped by decoded empty-cell plotting mode.</summary>
         public IReadOnlyDictionary<string, int> ChartSheetPropertyEmptyCellModes { get; }
 
@@ -2814,6 +2838,10 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Chart FontBasis Scale Basis", ChartFontBasisScaleBasis);
             AppendDictionary(builder, "Chart FontBasis Font Indexes", ChartFontBasisFontIndexes);
             AppendDictionary(builder, "Chart FontBasis States", ChartFontBasisStates);
+            AppendDictionary(builder, "Chart CrtLayout12 Mode Pairs", ChartLayout12ModePairs);
+            AppendDictionary(builder, "Chart CrtLayout12 Auto Layout Types", ChartLayout12AutoLayoutTypes);
+            AppendDictionary(builder, "Chart CrtLayout12 Checksums", ChartLayout12Checksums);
+            AppendDictionary(builder, "Chart CrtLayout12 Rectangles", ChartLayout12Rectangles);
             AppendDictionary(builder, "Chart Sheet Property Empty Cell Modes", ChartSheetPropertyEmptyCellModes);
             AppendDictionary(builder, "Chart Sheet Property States", ChartSheetPropertyStates);
             AppendDictionary(builder, "Chart LineFormat Styles", ChartLineFormatStyles);

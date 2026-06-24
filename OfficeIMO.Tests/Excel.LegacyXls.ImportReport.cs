@@ -1425,6 +1425,72 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_ImportReport_GroupsChartLayout12Metadata() {
+            byte[] payload = new byte[60];
+            WriteUInt16(payload, 0, 0x089D);
+            WriteUInt32(payload, 12, 0x12345678);
+            WriteUInt16(payload, 16, 0x0006);
+            WriteUInt16(payload, 18, 0x0001);
+            WriteUInt16(payload, 20, 0x0002);
+            WriteUInt16(payload, 22, 0x0000);
+            WriteUInt16(payload, 24, 0x0001);
+            WriteDouble(payload, 26, 0.125);
+            WriteDouble(payload, 34, 0.25);
+            WriteDouble(payload, 42, 0.5);
+            WriteDouble(payload, 50, 0.75);
+            var chartRecord = new BiffRecord(0x089D, offset: 176, payload);
+            var chartRecords = new List<LegacyXlsChartRecord>();
+
+            Assert.True(BiffChartMetadataReader.TryRead(chartRecord, "Layout", chartRecords));
+
+            LegacyXlsChartRecord record = Assert.Single(chartRecords);
+            LegacyXlsChartLayout12? layout = record.Layout12;
+            Assert.NotNull(layout);
+            Assert.Equal(0x12345678u, layout!.Checksum);
+            Assert.Equal(0x03, layout.AutomaticLayoutType);
+            Assert.Equal("Right", layout.AutomaticLayoutTypeName);
+            Assert.Equal("Factor", layout.XModeName);
+            Assert.Equal("Edge", layout.YModeName);
+            Assert.Equal("Automatic", layout.WidthModeName);
+            Assert.Equal("Factor", layout.HeightModeName);
+            Assert.Equal(0.125, layout.X);
+            Assert.Equal(0.25, layout.Y);
+            Assert.Equal(0.5, layout.Width);
+            Assert.Equal(0.75, layout.Height);
+
+            var workbook = new LegacyXlsWorkbook();
+            workbook.MutableChartRecords.Add(record);
+            LegacyXlsImportReport report = workbook.CreateImportReport();
+
+            Assert.Equal(1, report.ChartLayout12ModePairs["X:Factor;Y:Edge;Width:Automatic;Height:Factor"]);
+            Assert.Equal(1, report.ChartLayout12AutoLayoutTypes["Right"]);
+            Assert.Equal(1, report.ChartLayout12Checksums["Checksum:0x12345678"]);
+            Assert.Equal(1, report.ChartLayout12Rectangles["X:0.125;Y:0.25;Width:0.5;Height:0.75"]);
+
+            string markdown = report.ToMarkdown();
+            Assert.Contains("Chart CrtLayout12 Mode Pairs", markdown);
+            Assert.Contains("Checksum:0x12345678", markdown);
+            Assert.Contains("X:0.125;Y:0.25;Width:0.5;Height:0.75", markdown);
+
+            static void WriteUInt16(byte[] buffer, int offset, ushort value) {
+                buffer[offset] = (byte)(value & 0xff);
+                buffer[offset + 1] = (byte)(value >> 8);
+            }
+
+            static void WriteUInt32(byte[] buffer, int offset, uint value) {
+                buffer[offset] = (byte)(value & 0xff);
+                buffer[offset + 1] = (byte)((value >> 8) & 0xff);
+                buffer[offset + 2] = (byte)((value >> 16) & 0xff);
+                buffer[offset + 3] = (byte)(value >> 24);
+            }
+
+            static void WriteDouble(byte[] buffer, int offset, double value) {
+                byte[] bytes = BitConverter.GetBytes(value);
+                Array.Copy(bytes, 0, buffer, offset, bytes.Length);
+            }
+        }
+
+        [Fact]
         public void LegacyXls_ImportReport_CountsImportedWorkbookFeatures() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase4DefinedNamesWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
