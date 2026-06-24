@@ -593,9 +593,15 @@ namespace OfficeIMO.Tests {
                 source.CellValue(1, 1, "Name");
                 source.CellValue(2, 1, "Ada");
                 source.AddTable("A1:A2", hasHeader: true, name: "People", OfficeIMO.Excel.TableStyle.TableStyleMedium9);
+                source.CellValue(1, 3, "People");
+                source.CellValue(1, 4, "Amount");
+                source.CellValue(2, 3, "Ada");
+                source.CellValue(2, 4, 10);
+                source.AddTable("C1:D2", hasHeader: true, name: "Sales", OfficeIMO.Excel.TableStyle.TableStyleMedium9);
                 source.ValidationCustomFormula("B2", "COUNTIF(People[Name],B2)>0");
                 source.CellFormula(3, 1, "ROWS(People)");
                 source.CellFormula(4, 1, "'People'!A1+ROWS(People)");
+                source.CellFormula(5, 1, "SUM(Sales[People])+ROWS(People)");
                 sourceDocument.Save();
             }
 
@@ -617,14 +623,18 @@ namespace OfficeIMO.Tests {
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(targetPath, false)) {
                 WorksheetPart copiedPart = GetWorksheetPartByNameForOperations(spreadsheet, "Imported");
-                string copiedTableName = Assert.Single(copiedPart.TableDefinitionParts).Table.Name!.Value!;
+                string copiedTableName = copiedPart.TableDefinitionParts
+                    .Select(part => part.Table.Name!.Value!)
+                    .Single(name => !string.Equals(name, "Sales", StringComparison.OrdinalIgnoreCase));
                 Assert.NotEqual("People", copiedTableName);
                 Formula1 formula = Assert.Single(copiedPart.Worksheet.Descendants<Formula1>());
                 Cell bareTableFormula = copiedPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A3");
                 Cell sheetQualifiedFormula = copiedPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A4");
+                Cell bracketedColumnFormula = copiedPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A5");
                 Assert.Equal($"COUNTIF({copiedTableName}[Name],B2)>0", formula.Text);
                 Assert.Equal($"ROWS({copiedTableName})", bareTableFormula.CellFormula?.Text);
                 Assert.Equal($"'People'!A1+ROWS({copiedTableName})", sheetQualifiedFormula.CellFormula?.Text);
+                Assert.Equal($"SUM(Sales[People])+ROWS({copiedTableName})", bracketedColumnFormula.CellFormula?.Text);
             }
 
             File.Delete(sourcePath);
@@ -667,6 +677,53 @@ namespace OfficeIMO.Tests {
                 Assert.NotEqual("SUM", copiedTableName);
                 Cell formulaCell = copiedPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A4");
                 Assert.Equal($"SUM(A2:A2)+ROWS({copiedTableName})", formulaCell.CellFormula?.Text);
+            }
+
+            File.Delete(sourcePath);
+            File.Delete(targetPath);
+        }
+
+        [Fact]
+        public void Test_CopyWorkSheetFrom_PackageModeRewritesTableDisplayNameReferences() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageDisplayNameSource.xlsx");
+            string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageDisplayNameTarget.xlsx");
+
+            using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
+                ExcelSheet source = sourceDocument.AddWorkSheet("Source");
+                source.CellValue(1, 1, "Amount");
+                source.CellValue(2, 1, 10);
+                source.AddTable("A1:A2", hasHeader: true, name: "Internal", OfficeIMO.Excel.TableStyle.TableStyleMedium9);
+                source.CellFormula(4, 1, "SUM(Visible[Amount])");
+                sourceDocument.Save();
+            }
+
+            SetTableDisplayName(sourcePath, "Source", "Internal", "Visible");
+
+            using (var targetDocument = ExcelDocument.Create(targetPath)) {
+                ExcelSheet existing = targetDocument.AddWorkSheet("Existing");
+                existing.CellValue(1, 1, "Amount");
+                existing.CellValue(2, 1, 20);
+                existing.AddTable("A1:A2", hasHeader: true, name: "Internal", OfficeIMO.Excel.TableStyle.TableStyleMedium9);
+                targetDocument.Save();
+            }
+
+            using (var sourceDocument = ExcelDocument.Load(sourcePath, readOnly: true))
+            using (var targetDocument = ExcelDocument.Load(targetPath)) {
+                targetDocument.CopyWorkSheetFrom(sourceDocument, "Source", "Imported", SheetNameValidationMode.Sanitize, new ExcelWorksheetCopyOptions {
+                    CopyMode = ExcelWorksheetCopyMode.Package
+                });
+                targetDocument.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(targetPath, false)) {
+                WorksheetPart copiedPart = GetWorksheetPartByNameForOperations(spreadsheet, "Imported");
+                Table copiedTable = Assert.Single(copiedPart.TableDefinitionParts).Table;
+                string copiedTableName = copiedTable.Name!.Value!;
+                Cell formulaCell = copiedPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A4");
+
+                Assert.NotEqual("Internal", copiedTableName);
+                Assert.Equal(copiedTableName, copiedTable.DisplayName?.Value);
+                Assert.Equal($"SUM({copiedTableName}[Amount])", formulaCell.CellFormula?.Text);
             }
 
             File.Delete(sourcePath);
@@ -856,6 +913,42 @@ namespace OfficeIMO.Tests {
             using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(targetPath, false);
             WorksheetPart copiedPart = GetWorksheetPartByNameForOperations(spreadsheet, "Imported");
             Cell dateCell = copiedPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A2");
+            Assert.Equal(date.ToOADate(), double.Parse(dateCell.CellValue!.Text, CultureInfo.InvariantCulture), 6);
+
+            File.Delete(sourcePath);
+            File.Delete(targetPath);
+        }
+
+        [Fact]
+        public void Test_CopyWorkSheetFrom_PackageModeConvertsDateSerialsWithInheritedRowStyle() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageDateSystemInheritedRowSource.xlsx");
+            string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageDateSystemInheritedRowTarget.xlsx");
+            var date = new DateTime(2026, 6, 23);
+
+            using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
+                sourceDocument.DateSystem = ExcelDateSystem.NineteenFour;
+                ExcelSheet source = sourceDocument.AddWorkSheet("Dates");
+                source.CellValue(1, 1, "Created");
+                source.CellValue(2, 1, date);
+                sourceDocument.Save();
+            }
+
+            MoveCellStyleToRow(sourcePath, "Dates", "A2");
+
+            using (var sourceDocument = ExcelDocument.Load(sourcePath, readOnly: true))
+            using (var targetDocument = ExcelDocument.Create(targetPath)) {
+                targetDocument.CopyWorkSheetFrom(sourceDocument, "Dates", "Imported", SheetNameValidationMode.Sanitize, new ExcelWorksheetCopyOptions {
+                    CopyMode = ExcelWorksheetCopyMode.Package
+                });
+                targetDocument.Save();
+            }
+
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(targetPath, false);
+            WorksheetPart copiedPart = GetWorksheetPartByNameForOperations(spreadsheet, "Imported");
+            Cell dateCell = copiedPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A2");
+            Row row = copiedPart.Worksheet.Descendants<Row>().Single(item => item.RowIndex?.Value == 2U);
+            Assert.Null(dateCell.StyleIndex);
+            Assert.NotNull(row.StyleIndex);
             Assert.Equal(date.ToOADate(), double.Parse(dateCell.CellValue!.Text, CultureInfo.InvariantCulture), 6);
 
             File.Delete(sourcePath);
@@ -1493,6 +1586,29 @@ namespace OfficeIMO.Tests {
             }
 
             File.Delete(filePath);
+        }
+
+        private static void SetTableDisplayName(string path, string sheetName, string tableName, string displayName) {
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(path, true);
+            WorksheetPart worksheetPart = GetWorksheetPartByNameForOperations(spreadsheet, sheetName);
+            Table table = worksheetPart.TableDefinitionParts
+                .Select(part => part.Table)
+                .Single(table => string.Equals(table?.Name?.Value, tableName, StringComparison.OrdinalIgnoreCase));
+            table.DisplayName = displayName;
+            table.Save();
+        }
+
+        private static void MoveCellStyleToRow(string path, string sheetName, string cellReference) {
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(path, true);
+            WorksheetPart worksheetPart = GetWorksheetPartByNameForOperations(spreadsheet, sheetName);
+            Cell cell = worksheetPart.Worksheet.Descendants<Cell>().Single(item => item.CellReference?.Value == cellReference);
+            Assert.NotNull(cell.StyleIndex);
+            (int rowIndex, _) = A1.ParseCellRef(cellReference);
+            Row row = worksheetPart.Worksheet.Descendants<Row>().Single(item => item.RowIndex?.Value == (uint)rowIndex);
+            row.StyleIndex = cell.StyleIndex!.Value;
+            row.CustomFormat = true;
+            cell.StyleIndex = null;
+            worksheetPart.Worksheet.Save();
         }
 
         private static WorksheetPart GetWorksheetPartByNameForOperations(SpreadsheetDocument document, string sheetName) {

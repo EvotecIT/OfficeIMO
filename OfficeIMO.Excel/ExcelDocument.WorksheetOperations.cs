@@ -425,6 +425,7 @@ namespace OfficeIMO.Excel {
                 var copiedTable = (Table)sourceTable.CloneNode(true);
                 copiedTable.Id = GetNextUniqueTableId();
                 string? sourceTableName = sourceTable.Name?.Value ?? sourceTable.DisplayName?.Value;
+                string? sourceDisplayName = sourceTable.DisplayName?.Value;
                 string tableName = CreateUniqueCopiedTableName(sourceTableName);
                 copiedTable.Name = tableName;
                 copiedTable.DisplayName = tableName;
@@ -434,6 +435,10 @@ namespace OfficeIMO.Excel {
                 copiedTables.Add(copiedTable);
                 if (!string.IsNullOrWhiteSpace(sourceTableName)) {
                     tableNameMap[sourceTableName!] = tableName;
+                }
+
+                if (!string.IsNullOrWhiteSpace(sourceDisplayName)) {
+                    tableNameMap[sourceDisplayName!] = tableName;
                 }
 
                 copiedTableParts ??= EnsureTableParts(copiedPart.Worksheet!);
@@ -623,7 +628,7 @@ namespace OfficeIMO.Excel {
                 string tableName = mapping.Key;
                 if (index > 0) {
                     char previous = formula[index - 1];
-                    if (char.IsLetterOrDigit(previous) || previous == '_' || previous == '\\' || previous == '\'' || previous == '!') {
+                    if (char.IsLetterOrDigit(previous) || previous == '_' || previous == '\\' || previous == '\'' || previous == '!' || previous == '[') {
                         continue;
                     }
                 }

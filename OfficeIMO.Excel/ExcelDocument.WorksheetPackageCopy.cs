@@ -129,9 +129,11 @@ namespace OfficeIMO.Excel {
             double offset = targetDateSystem == ExcelDateSystem.NineteenFour
                 ? -ExcelDateSystemConverter.Date1904OffsetDays
                 : ExcelDateSystemConverter.Date1904OffsetDays;
+            Dictionary<int, uint> rowStyleIndexes = BuildRowStyleIndexMap(worksheet);
+            (int Min, int Max, uint StyleIndex)[] columnStyleIndexes = BuildColumnStyleIndexRanges(worksheet);
 
             foreach (Cell cell in worksheet.Descendants<Cell>()) {
-                if (cell.CellFormula != null || !IsNumericDateCell(cell, styles)) {
+                if (cell.CellFormula != null || !IsNumericDateCell(cell, styles, GetEffectiveStyleIndex(cell, rowStyleIndexes, columnStyleIndexes))) {
                     continue;
                 }
 
@@ -142,6 +144,62 @@ namespace OfficeIMO.Excel {
 
                 cell.CellValue = new CellValue((serial + offset).ToString(CultureInfo.InvariantCulture));
             }
+        }
+
+        private static Dictionary<int, uint> BuildRowStyleIndexMap(Worksheet worksheet) {
+            return worksheet.Descendants<Row>()
+                .Where(row => row.RowIndex != null && row.StyleIndex != null)
+                .ToDictionary(
+                    row => (int)row.RowIndex!.Value,
+                    row => row.StyleIndex!.Value,
+                    EqualityComparer<int>.Default);
+        }
+
+        private static (int Min, int Max, uint StyleIndex)[] BuildColumnStyleIndexRanges(Worksheet worksheet) {
+            return worksheet.Elements<Columns>()
+                .SelectMany(columns => columns.Elements<Column>())
+                .Where(column => column.Style != null)
+                .Select(column => (
+                    Min: (int)(column.Min?.Value ?? 1U),
+                    Max: (int)(column.Max?.Value ?? column.Min?.Value ?? 1U),
+                    StyleIndex: column.Style!.Value))
+                .ToArray();
+        }
+
+        private static uint? GetEffectiveStyleIndex(
+            Cell cell,
+            IReadOnlyDictionary<int, uint> rowStyleIndexes,
+            IReadOnlyList<(int Min, int Max, uint StyleIndex)> columnStyleIndexes) {
+            if (cell.StyleIndex?.Value is uint cellStyleIndex) {
+                return cellStyleIndex;
+            }
+
+            string? reference = cell.CellReference?.Value;
+            if (string.IsNullOrWhiteSpace(reference)) {
+                return null;
+            }
+
+            (int row, int column) = A1.ParseCellRef(reference!);
+            if (rowStyleIndexes.TryGetValue(row, out uint rowStyleIndex)) {
+                return rowStyleIndex;
+            }
+
+            foreach (var columnStyle in columnStyleIndexes) {
+                if (column >= columnStyle.Min && column <= columnStyle.Max) {
+                    return columnStyle.StyleIndex;
+                }
+            }
+
+            return null;
+        }
+
+        private static bool IsNumericDateCell(Cell cell, StylesCache styles, uint? styleIndex) {
+            if (!styleIndex.HasValue || !styles.IsDateLike(styleIndex.Value)) {
+                return false;
+            }
+
+            CellValues? dataType = cell.DataType?.Value;
+            return dataType == null || dataType == CellValues.Number;
         }
 
         private static void StripCopiedCellMetadataReferences(Worksheet worksheet) {
