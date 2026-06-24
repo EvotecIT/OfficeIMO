@@ -410,6 +410,23 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        private static void RemoveExtensionsContainingLocalNames(OpenXmlElement root, params string[] localNames) {
+            var names = new HashSet<string>(localNames, StringComparer.Ordinal);
+            foreach (OpenXmlElement extension in root.Descendants<OpenXmlElement>()
+                .Where(element => string.Equals(element.LocalName, "ext", StringComparison.Ordinal)
+                    && element.Descendants<OpenXmlElement>().Any(descendant => names.Contains(descendant.LocalName)))
+                .ToList()) {
+                extension.Remove();
+            }
+
+            foreach (OpenXmlElement extensionList in root.Descendants<OpenXmlElement>()
+                .Where(element => string.Equals(element.LocalName, "extLst", StringComparison.Ordinal)
+                    && !element.ChildElements.Any())
+                .ToList()) {
+                extensionList.Remove();
+            }
+        }
+
         private Dictionary<string, string> CopyWorksheetTables(WorksheetPart sourcePart, WorksheetPart copiedPart, bool rewriteCopiedTableReferences = false) {
             TableParts? copiedTableParts = null;
             var tableNameMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -424,6 +441,7 @@ namespace OfficeIMO.Excel {
                 TableDefinitionPart copiedTablePart = copiedPart.AddNewPart<TableDefinitionPart>(relationshipId);
                 var copiedTable = (Table)sourceTable.CloneNode(true);
                 copiedTable.Id = GetNextUniqueTableId();
+                StripCopiedTableQueryBindings(copiedTable);
                 string? sourceTableName = sourceTable.Name?.Value ?? sourceTable.DisplayName?.Value;
                 string? sourceDisplayName = sourceTable.DisplayName?.Value;
                 string tableName = CreateUniqueCopiedTableName(sourceTableName);
@@ -462,6 +480,18 @@ namespace OfficeIMO.Excel {
             }
 
             return tableNameMap;
+        }
+
+        private static void StripCopiedTableQueryBindings(Table table) {
+            table.ConnectionId = null;
+            foreach (TableColumn column in table.Descendants<TableColumn>()) {
+                column.QueryTableFieldId = null;
+            }
+
+            RemoveElementsByLocalName(table, "queryTable");
+            RemoveElementsByLocalName(table, "queryTableField");
+            RemoveElementsByLocalName(table, "queryTableFields");
+            RemoveExtensionsContainingLocalNames(table, "queryTable", "queryTableField", "queryTableFields");
         }
 
         private uint GetNextUniqueTableId() {
@@ -635,7 +665,11 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                if (!inStringLiteral && current == '[' && TryReadExternalWorkbookIndex(formula, index, out int sourceIndex, out int closeIndex) && externalReferenceMap.TryGetValue(sourceIndex, out int targetIndex)) {
+                if (!inStringLiteral
+                    && current == '['
+                    && TryReadExternalWorkbookIndex(formula, index, out int sourceIndex, out int closeIndex)
+                    && LooksLikeExternalWorkbookReference(formula, index, closeIndex)
+                    && externalReferenceMap.TryGetValue(sourceIndex, out int targetIndex)) {
                     rewritten.Append('[')
                         .Append(targetIndex.ToString(CultureInfo.InvariantCulture))
                         .Append(']');
@@ -648,6 +682,16 @@ namespace OfficeIMO.Excel {
             }
 
             return rewritten.ToString();
+        }
+
+        private static bool LooksLikeExternalWorkbookReference(string formula, int bracketIndex, int closeIndex) {
+            if (bracketIndex > 0 && formula[bracketIndex - 1] == '[') {
+                return false;
+            }
+
+            int nextIndex = closeIndex + 1;
+            return nextIndex < formula.Length
+                && (formula[nextIndex] == '\'' || char.IsLetterOrDigit(formula[nextIndex]) || formula[nextIndex] == '_');
         }
 
         private static bool TryReadExternalWorkbookIndex(string formula, int bracketIndex, out int sourceIndex, out int closeIndex) {

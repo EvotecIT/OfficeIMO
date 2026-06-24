@@ -53,7 +53,8 @@ namespace OfficeIMO.Excel {
             ExcelDocument sourceDocument,
             ExcelSheet targetSheet,
             IReadOnlyDictionary<string, string> sheetNameMap,
-            IReadOnlyDictionary<string, string>? tableNameMap = null) {
+            IReadOnlyDictionary<string, string>? tableNameMap = null,
+            IReadOnlyDictionary<int, int>? externalReferenceMap = null) {
             DefinedNames? sourceDefinedNames = sourceDocument.WorkbookRoot.DefinedNames;
             if (sourceDefinedNames == null) {
                 return;
@@ -122,6 +123,10 @@ namespace OfficeIMO.Excel {
                         clone.Text = ReplaceSheetNameReferences(clone.Text!, sheetNameMap);
                         if (tableNameMap?.Count > 0) {
                             clone.Text = RewriteStructuredTableReferences(clone.Text!, tableNameMap);
+                        }
+
+                        if (externalReferenceMap?.Count > 0) {
+                            clone.Text = RewriteExternalWorkbookReferenceIndexes(clone.Text!, externalReferenceMap);
                         }
 
                         formulaTexts.Add(clone.Text!);

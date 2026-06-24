@@ -1027,6 +1027,126 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_CopyWorkSheetFrom_PackageModeRemapsExternalWorkbookReferencesInDefinedNames() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageExternalDefinedNameSource.xlsx");
+            string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageExternalDefinedNameTarget.xlsx");
+
+            using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
+                ExcelSheet source = sourceDocument.AddWorkSheet("External");
+                source.CellFormula(1, 1, "ExternalValue");
+                sourceDocument.Save();
+            }
+
+            using (var targetDocument = ExcelDocument.Create(targetPath)) {
+                targetDocument.AddWorkSheet("Existing").CellFormula(1, 1, "[1]Sheet1!B1");
+                targetDocument.Save();
+            }
+
+            AddExternalWorkbookReference(sourcePath);
+            AddDefinedName(sourcePath, "ExternalValue", "[1]Sheet1!A1");
+            AddExternalWorkbookReference(targetPath);
+
+            using (var sourceDocument = ExcelDocument.Load(sourcePath, readOnly: true))
+            using (var targetDocument = ExcelDocument.Load(targetPath)) {
+                targetDocument.CopyWorkSheetFrom(sourceDocument, "External", "Imported", SheetNameValidationMode.Sanitize, new ExcelWorksheetCopyOptions {
+                    CopyMode = ExcelWorksheetCopyMode.Package
+                });
+                targetDocument.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(targetPath, false)) {
+                DefinedName copiedName = Assert.Single(spreadsheet.WorkbookPart!.Workbook.DefinedNames!.Elements<DefinedName>(),
+                    name => string.Equals(name.Name?.Value, "ExternalValue", StringComparison.OrdinalIgnoreCase));
+                Assert.Equal("[2]Sheet1!A1", copiedName.Text);
+            }
+
+            File.Delete(sourcePath);
+            File.Delete(targetPath);
+        }
+
+        [Fact]
+        public void Test_CopyWorkSheetFrom_PackageModeDoesNotRemapNumericStructuredReferenceColumnsAsExternalLinks() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageNumericStructuredColumnSource.xlsx");
+            string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageNumericStructuredColumnTarget.xlsx");
+
+            using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
+                ExcelSheet source = sourceDocument.AddWorkSheet("Structured");
+                source.CellValue(1, 1, "1");
+                source.CellValue(2, 1, 7);
+                source.AddTable("A1:A2", hasHeader: true, name: "People", style: OfficeIMO.Excel.TableStyle.TableStyleMedium2, includeAutoFilter: true);
+                source.CellFormula(4, 1, "SUM(People[1])");
+                sourceDocument.Save();
+            }
+
+            using (var targetDocument = ExcelDocument.Create(targetPath)) {
+                ExcelSheet existing = targetDocument.AddWorkSheet("Existing");
+                existing.CellValue(1, 1, "1");
+                existing.CellValue(2, 1, 3);
+                existing.AddTable("A1:A2", hasHeader: true, name: "People", style: OfficeIMO.Excel.TableStyle.TableStyleMedium2, includeAutoFilter: true);
+                existing.CellFormula(4, 1, "[1]Sheet1!B1");
+                targetDocument.Save();
+            }
+
+            AddExternalWorkbookReference(sourcePath);
+            AddExternalWorkbookReference(targetPath);
+
+            using (var sourceDocument = ExcelDocument.Load(sourcePath, readOnly: true))
+            using (var targetDocument = ExcelDocument.Load(targetPath)) {
+                targetDocument.CopyWorkSheetFrom(sourceDocument, "Structured", "Imported", SheetNameValidationMode.Sanitize, new ExcelWorksheetCopyOptions {
+                    CopyMode = ExcelWorksheetCopyMode.Package
+                });
+                targetDocument.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(targetPath, false)) {
+                WorksheetPart copiedPart = GetWorksheetPartByNameForOperations(spreadsheet, "Imported");
+                Cell copiedFormula = copiedPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A4");
+                Assert.Equal("SUM(People2[1])", copiedFormula.CellFormula?.Text);
+            }
+
+            File.Delete(sourcePath);
+            File.Delete(targetPath);
+        }
+
+        [Fact]
+        public void Test_CopyWorkSheetFrom_PackageModeStripsCopiedTableQueryBindings() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageQueryTableSource.xlsx");
+            string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageQueryTableTarget.xlsx");
+
+            using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
+                ExcelSheet source = sourceDocument.AddWorkSheet("Query");
+                source.CellValue(1, 1, "Name");
+                source.CellValue(2, 1, "Ada");
+                source.AddTable("A1:A2", hasHeader: true, name: "QueryTable", style: OfficeIMO.Excel.TableStyle.TableStyleMedium2, includeAutoFilter: true);
+                sourceDocument.Save();
+            }
+
+            AddTableQueryBindings(sourcePath, "Query");
+
+            using (var sourceDocument = ExcelDocument.Load(sourcePath, readOnly: true))
+            using (var targetDocument = ExcelDocument.Create(targetPath)) {
+                targetDocument.CopyWorkSheetFrom(sourceDocument, "Query", "Imported", SheetNameValidationMode.Sanitize, new ExcelWorksheetCopyOptions {
+                    CopyMode = ExcelWorksheetCopyMode.Package
+                });
+                targetDocument.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(targetPath, false)) {
+                WorksheetPart copiedPart = GetWorksheetPartByNameForOperations(spreadsheet, "Imported");
+                Table table = Assert.Single(copiedPart.TableDefinitionParts).Table!;
+                Assert.Null(table.ConnectionId);
+                Assert.All(table.Descendants<TableColumn>(), column => Assert.Null(column.QueryTableFieldId));
+                Assert.DoesNotContain(table.Descendants<OpenXmlElement>(), element =>
+                    string.Equals(element.LocalName, "queryTable", StringComparison.Ordinal)
+                    || string.Equals(element.LocalName, "queryTableField", StringComparison.Ordinal)
+                    || string.Equals(element.LocalName, "queryTableFields", StringComparison.Ordinal));
+            }
+
+            File.Delete(sourcePath);
+            File.Delete(targetPath);
+        }
+
+        [Fact]
         public void Test_CopyWorkSheetFrom_PackageModeStripsCellMetadataIndexes() {
             string sourcePath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageMetadataSource.xlsx");
             string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageMetadataTarget.xlsx");
@@ -1312,6 +1432,32 @@ namespace OfficeIMO.Tests {
             workbookPart.Workbook.ExternalReferences ??= new ExternalReferences();
             workbookPart.Workbook.ExternalReferences.Append(new ExternalReference { Id = relationshipId });
             workbookPart.Workbook.Save();
+        }
+
+        private static void AddDefinedName(string path, string name, string formula) {
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(path, true);
+            Workbook workbook = spreadsheet.WorkbookPart!.Workbook;
+            workbook.DefinedNames ??= new DefinedNames();
+            workbook.DefinedNames.Append(new DefinedName(formula) { Name = name });
+            workbook.Save();
+        }
+
+        private static void AddTableQueryBindings(string path, string sheetName) {
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(path, true);
+            WorksheetPart worksheetPart = GetWorksheetPartByNameForOperations(spreadsheet, sheetName);
+            Table table = worksheetPart.TableDefinitionParts.Single().Table!;
+            table.ConnectionId = 1U;
+            TableColumn column = table.Descendants<TableColumn>().Single();
+            column.QueryTableFieldId = 1U;
+
+            var extensionList = table.GetFirstChild<TableExtensionList>() ?? table.AppendChild(new TableExtensionList());
+            var extension = new TableExtension { Uri = "{00000000-0000-0000-0000-000000000001}" };
+            var queryTableFields = new OpenXmlUnknownElement("x14", "queryTableFields", "http://schemas.microsoft.com/office/spreadsheetml/2009/9/main");
+            var queryTableField = new OpenXmlUnknownElement("x14", "queryTableField", "http://schemas.microsoft.com/office/spreadsheetml/2009/9/main");
+            queryTableFields.Append(queryTableField);
+            extension.Append(queryTableFields);
+            extensionList.Append(extension);
+            table.Save();
         }
 
         [Fact]

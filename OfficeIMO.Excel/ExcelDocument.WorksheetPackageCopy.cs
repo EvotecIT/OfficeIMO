@@ -77,7 +77,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (copyReferencedDefinedNames) {
-                    CopyReferencedDefinedNamesFromSource(sourceDocument, targetSheet, sheetNameMap, tableNameMap);
+                    CopyReferencedDefinedNamesFromSource(sourceDocument, targetSheet, sheetNameMap, tableNameMap, externalReferenceMap);
                 }
 
                 copiedPart.Worksheet.Save();
