@@ -1250,28 +1250,29 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
+| BlipBooleanProperties | 1 |
 | fillColor | 2 |
 | FillStyleBooleanProperties | 2 |
 | GroupShapeBooleanProperties | 6 |
 | lineColor | 1 |
 | LineStyleBooleanProperties | 5 |
-| PropertyId:0x0104 | 1 |
-| PropertyId:0x013F | 1 |
-| PropertyId:0x033F | 1 |
-| PropertyId:0x0380 | 2 |
+| pib | 1 |
 | ProtectionBooleanProperties | 6 |
+| ShapeBooleanProperties | 1 |
 | TextBooleanProperties | 6 |
+| wzName | 2 |
 
 ## Drawing Shape Properties By Group
 
 | Key | Count |
 | --- | --- |
+| Blip | 2 |
 | Fill | 4 |
 | GroupShape | 8 |
 | Line | 6 |
 | Protection | 6 |
+| Shape | 1 |
 | Text | 6 |
-| Unknown | 3 |
 
 ## Drawing Shape Properties By Flag State
 

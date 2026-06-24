@@ -1230,9 +1230,9 @@ Warnings: 0
 | GroupShapeBooleanProperties | 6 |
 | lineColor | 1 |
 | LineStyleBooleanProperties | 5 |
-| PropertyId:0x0380 | 1 |
 | ProtectionBooleanProperties | 6 |
 | TextBooleanProperties | 7 |
+| wzName | 1 |
 
 ## Drawing Shape Properties By Group
 

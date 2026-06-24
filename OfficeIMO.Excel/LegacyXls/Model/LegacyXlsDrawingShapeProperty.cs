@@ -59,6 +59,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             return propertyId switch {
                 0x007F => "ProtectionBooleanProperties",
                 0x00BF => "TextBooleanProperties",
+                0x0104 => "pib",
+                0x013F => "BlipBooleanProperties",
                 0x0181 => "fillColor",
                 0x0183 => "fillBackColor",
                 0x01BF => "FillStyleBooleanProperties",
@@ -66,6 +68,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
                 0x01CB => "lineWidth",
                 0x01FF => "LineStyleBooleanProperties",
                 0x023F => "ShadowStyleBooleanProperties",
+                0x033F => "ShapeBooleanProperties",
+                0x0380 => "wzName",
                 0x03BF => "GroupShapeBooleanProperties",
                 _ => $"PropertyId:0x{propertyId:X4}"
             };
@@ -75,9 +79,12 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             return propertyId switch {
                 >= 0x0000 and <= 0x007F => "Protection",
                 >= 0x0080 and <= 0x00BF => "Text",
+                >= 0x0100 and <= 0x013F => "Blip",
+                >= 0x0140 and <= 0x017F => "Geometry",
                 >= 0x0180 and <= 0x01BF => "Fill",
                 >= 0x01C0 and <= 0x01FF => "Line",
                 >= 0x0200 and <= 0x023F => "Shadow",
+                >= 0x0300 and <= 0x033F => "Shape",
                 >= 0x0380 and <= 0x03BF => "GroupShape",
                 _ => "Unknown"
             };

@@ -91,6 +91,13 @@ namespace OfficeIMO.Tests {
             Assert.True(result.ImportReport.DrawingObjectSubRecordsByCompleteness["Complete"] >= 1);
             Assert.True(result.ImportReport.DrawingObjectSubRecordsByCompleteness["Truncated"] >= 1);
             Assert.Equal(1, result.ImportReport.DrawingBlipStoreEntriesByEmbeddedRecordType["OfficeArtBlipPNG"]);
+            Assert.Equal(1, result.ImportReport.DrawingShapePropertiesByName["pib"]);
+            Assert.Equal(1, result.ImportReport.DrawingShapePropertiesByName["BlipBooleanProperties"]);
+            Assert.Equal(1, result.ImportReport.DrawingShapePropertiesByName["ShapeBooleanProperties"]);
+            Assert.Equal(2, result.ImportReport.DrawingShapePropertiesByName["wzName"]);
+            Assert.Equal(2, result.ImportReport.DrawingShapePropertiesByGroup["Blip"]);
+            Assert.Equal(1, result.ImportReport.DrawingShapePropertiesByGroup["Shape"]);
+            Assert.False(result.ImportReport.DrawingShapePropertiesByGroup.ContainsKey("Unknown"));
             Assert.Contains(result.Workbook.DrawingRecords, record => record.ObjectTypeName == "Picture" && record.HasObjectSubRecords);
             Assert.Contains(result.Workbook.DrawingRecords, record => record.ObjectTypeName == "Button" && record.HasObjectSubRecords);
             Assert.Contains(result.Workbook.DrawingRecords, record => record.ObjectTypeName == "Checkbox" && record.ObjectSubRecords.Any(subRecord => subRecord.SubRecordName == "FtCblsData"));
