@@ -1467,6 +1467,37 @@ Warnings: 0
 | 0x086A-0x086B | 2 |
 | 0x089D-0x08A6 | 2 |
 
+## Chart XmlTkChain Declared Byte Counts
+
+| Key | Count |
+| --- | --- |
+| DeclaredBytes:10 | 8 |
+| DeclaredBytes:20 | 2 |
+| DeclaredBytes:22 | 2 |
+| DeclaredBytes:4 | 2 |
+
+## Chart XmlTkChain First Segment Byte Counts
+
+| Key | Count |
+| --- | --- |
+| FirstSegmentBytes:10 | 8 |
+| FirstSegmentBytes:20 | 2 |
+| FirstSegmentBytes:22 | 2 |
+| FirstSegmentBytes:4 | 2 |
+
+## Chart XmlTkChain Completion States
+
+| Key | Count |
+| --- | --- |
+| CompleteInRecord | 14 |
+
+## Chart XmlTkChain Trailing States
+
+| Key | Count |
+| --- | --- |
+| TrailingUnusedNonZero | 9 |
+| TrailingUnusedZero | 5 |
+
 ## Chart Sheet Property States
 
 | Key | Count |

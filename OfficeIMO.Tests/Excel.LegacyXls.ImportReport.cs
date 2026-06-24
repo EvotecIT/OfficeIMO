@@ -1536,6 +1536,47 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_ImportReport_GroupsChartXmlTokenChainMetadata() {
+            byte[] payload = {
+                0x9E, 0x08,
+                0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00,
+                0x08, 0x00, 0x00, 0x00,
+                0x01, 0x00, 0x00, 0x00,
+                0x02, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00
+            };
+            var chartRecord = new BiffRecord(0x089E, offset: 232, payload);
+            var chartRecords = new List<LegacyXlsChartRecord>();
+
+            Assert.True(BiffChartMetadataReader.TryRead(chartRecord, "XmlTokens", chartRecords));
+
+            LegacyXlsChartRecord record = Assert.Single(chartRecords);
+            LegacyXlsChartXmlTokenChain? chain = record.XmlTokenChain;
+            Assert.NotNull(chain);
+            Assert.Equal(8u, chain!.DeclaredByteCount);
+            Assert.Equal(8, chain.FirstSegmentByteCount);
+            Assert.Equal(0u, chain.TrailingUnusedValue);
+            Assert.True(chain.IsCompleteInRecord);
+            Assert.True(chain.HasZeroTrailingUnusedValue);
+
+            var workbook = new LegacyXlsWorkbook();
+            workbook.MutableChartRecords.Add(record);
+            LegacyXlsImportReport report = workbook.CreateImportReport();
+
+            Assert.Equal(1, report.ChartXmlTokenChainDeclaredByteCounts["DeclaredBytes:8"]);
+            Assert.Equal(1, report.ChartXmlTokenChainFirstSegmentByteCounts["FirstSegmentBytes:8"]);
+            Assert.Equal(1, report.ChartXmlTokenChainCompletionStates["CompleteInRecord"]);
+            Assert.Equal(1, report.ChartXmlTokenChainTrailingStates["TrailingUnusedZero"]);
+
+            string markdown = report.ToMarkdown();
+            Assert.Contains("Chart XmlTkChain Declared Byte Counts", markdown);
+            Assert.Contains("FirstSegmentBytes:8", markdown);
+            Assert.Contains("CompleteInRecord", markdown);
+        }
+
+        [Fact]
         public void LegacyXls_ImportReport_CountsImportedWorkbookFeatures() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase4DefinedNamesWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);

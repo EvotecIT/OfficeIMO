@@ -71,7 +71,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             LegacyXlsChartScatterOptions? scatterOptions = null,
             LegacyXlsChartFontBasisOptions? fontBasisOptions = null,
             LegacyXlsChartLayout12? layout12 = null,
-            LegacyXlsChartFutureRecordInfo? futureRecordInfo = null) {
+            LegacyXlsChartFutureRecordInfo? futureRecordInfo = null,
+            LegacyXlsChartXmlTokenChain? xmlTokenChain = null) {
             if (payloadLength < 0) {
                 throw new ArgumentOutOfRangeException(nameof(payloadLength));
             }
@@ -141,6 +142,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             FontBasisOptions = fontBasisOptions;
             Layout12 = layout12;
             FutureRecordInfo = futureRecordInfo;
+            XmlTokenChain = xmlTokenChain;
         }
 
         /// <summary>Gets the shallow chart record category.</summary>
@@ -337,5 +339,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets decoded chart future-record range metadata from ChartFrtInfo records, when present.</summary>
         public LegacyXlsChartFutureRecordInfo? FutureRecordInfo { get; }
+
+        /// <summary>Gets decoded chart XML token-chain metadata from CrtMlFrt records, when present.</summary>
+        public LegacyXlsChartXmlTokenChain? XmlTokenChain { get; }
     }
 }

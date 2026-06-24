@@ -704,6 +704,18 @@ namespace OfficeIMO.Excel.LegacyXls {
             ChartFutureRecordInfoRanges = CountByCode(workbook.ChartRecords
                 .Where(record => record.FutureRecordInfo != null)
                 .SelectMany(record => record.FutureRecordInfo!.Ranges.Select(range => range.RangeKey)));
+            ChartXmlTokenChainDeclaredByteCounts = CountByCode(workbook.ChartRecords
+                .Where(record => record.XmlTokenChain != null)
+                .Select(record => $"DeclaredBytes:{record.XmlTokenChain!.DeclaredByteCount}"));
+            ChartXmlTokenChainFirstSegmentByteCounts = CountByCode(workbook.ChartRecords
+                .Where(record => record.XmlTokenChain != null)
+                .Select(record => $"FirstSegmentBytes:{record.XmlTokenChain!.FirstSegmentByteCount}"));
+            ChartXmlTokenChainCompletionStates = CountByCode(workbook.ChartRecords
+                .Where(record => record.XmlTokenChain != null)
+                .Select(record => record.XmlTokenChain!.IsCompleteInRecord ? "CompleteInRecord" : "RequiresContinuation"));
+            ChartXmlTokenChainTrailingStates = CountByCode(workbook.ChartRecords
+                .Where(record => record.XmlTokenChain != null)
+                .Select(record => record.XmlTokenChain!.HasZeroTrailingUnusedValue ? "TrailingUnusedZero" : "TrailingUnusedNonZero"));
             ChartSheetPropertyEmptyCellModes = CountByCode(workbook.ChartRecords
                 .Where(record => record.SheetProperties != null && record.SheetProperties.HasKnownEmptyCellPlottingMode)
                 .Select(record => record.SheetProperties!.EmptyCellPlottingModeName));
@@ -2091,6 +2103,18 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets ChartFrtInfo records grouped by declared future-record id range.</summary>
         public IReadOnlyDictionary<string, int> ChartFutureRecordInfoRanges { get; }
 
+        /// <summary>Gets CrtMlFrt records grouped by declared XmlTkChain byte count.</summary>
+        public IReadOnlyDictionary<string, int> ChartXmlTokenChainDeclaredByteCounts { get; }
+
+        /// <summary>Gets CrtMlFrt records grouped by XmlTkChain bytes present in the first record segment.</summary>
+        public IReadOnlyDictionary<string, int> ChartXmlTokenChainFirstSegmentByteCounts { get; }
+
+        /// <summary>Gets CrtMlFrt records grouped by whether the declared XmlTkChain is complete in the first record segment.</summary>
+        public IReadOnlyDictionary<string, int> ChartXmlTokenChainCompletionStates { get; }
+
+        /// <summary>Gets CrtMlFrt records grouped by ignored trailing field state.</summary>
+        public IReadOnlyDictionary<string, int> ChartXmlTokenChainTrailingStates { get; }
+
         /// <summary>Gets ShtProps records grouped by decoded empty-cell plotting mode.</summary>
         public IReadOnlyDictionary<string, int> ChartSheetPropertyEmptyCellModes { get; }
 
@@ -2863,6 +2887,10 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Chart Future Record Info Versions", ChartFutureRecordInfoVersions);
             AppendDictionary(builder, "Chart Future Record Info Range Counts", ChartFutureRecordInfoRangeCounts);
             AppendDictionary(builder, "Chart Future Record Info Ranges", ChartFutureRecordInfoRanges);
+            AppendDictionary(builder, "Chart XmlTkChain Declared Byte Counts", ChartXmlTokenChainDeclaredByteCounts);
+            AppendDictionary(builder, "Chart XmlTkChain First Segment Byte Counts", ChartXmlTokenChainFirstSegmentByteCounts);
+            AppendDictionary(builder, "Chart XmlTkChain Completion States", ChartXmlTokenChainCompletionStates);
+            AppendDictionary(builder, "Chart XmlTkChain Trailing States", ChartXmlTokenChainTrailingStates);
             AppendDictionary(builder, "Chart Sheet Property Empty Cell Modes", ChartSheetPropertyEmptyCellModes);
             AppendDictionary(builder, "Chart Sheet Property States", ChartSheetPropertyStates);
             AppendDictionary(builder, "Chart LineFormat Styles", ChartLineFormatStyles);

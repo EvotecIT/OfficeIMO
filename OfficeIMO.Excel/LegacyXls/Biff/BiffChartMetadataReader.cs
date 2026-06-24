@@ -53,6 +53,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             TryReadFontBasisOptions(record, out LegacyXlsChartFontBasisOptions? fontBasisOptions);
             TryReadLayout12(record, out LegacyXlsChartLayout12? layout12);
             TryReadFutureRecordInfo(record, out LegacyXlsChartFutureRecordInfo? futureRecordInfo);
+            TryReadXmlTokenChain(record, out LegacyXlsChartXmlTokenChain? xmlTokenChain);
             records.Add(new LegacyXlsChartRecord(
                 GetKind(record.Type),
                 BiffUnsupportedRecordDiagnostics.GetBiffRecordName(record.Type),
@@ -118,7 +119,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 scatterOptions,
                 fontBasisOptions,
                 layout12,
-                futureRecordInfo));
+                futureRecordInfo,
+                xmlTokenChain));
             return true;
         }
 
@@ -672,6 +674,24 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             info = new LegacyXlsChartFutureRecordInfo(record.Payload[4], record.Payload[5], ranges);
+            return true;
+        }
+
+        private static bool TryReadXmlTokenChain(BiffRecord record, out LegacyXlsChartXmlTokenChain? chain) {
+            chain = null;
+            if (record.Type != 0x089E || record.Payload.Length < 20) {
+                return false;
+            }
+
+            ushort frtRecordType = BiffRecordReader.ReadUInt16(record.Payload, 0);
+            if (frtRecordType != 0x089E) {
+                return false;
+            }
+
+            uint declaredByteCount = BiffRecordReader.ReadUInt32(record.Payload, 12);
+            int firstSegmentByteCount = Math.Max(0, record.Payload.Length - 20);
+            uint trailingUnusedValue = BiffRecordReader.ReadUInt32(record.Payload, record.Payload.Length - 4);
+            chain = new LegacyXlsChartXmlTokenChain(declaredByteCount, firstSegmentByteCount, trailingUnusedValue);
             return true;
         }
 
