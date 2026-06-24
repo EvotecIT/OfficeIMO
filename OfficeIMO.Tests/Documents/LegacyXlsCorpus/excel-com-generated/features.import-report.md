@@ -1510,6 +1510,54 @@ Warnings: 0
 | 0x086A-0x086B | 1 |
 | 0x089D-0x08A6 | 1 |
 
+## Chart Future Block Directions
+
+| Key | Count |
+| --- | --- |
+| EndBlock | 14 |
+| StartBlock | 14 |
+
+## Chart Future Block Object Kinds
+
+| Key | Count |
+| --- | --- |
+| AttachedLabel | 4 |
+| Axis | 4 |
+| AxisGroup | 2 |
+| ChartGroup | 2 |
+| DataFormat | 2 |
+| Frame | 8 |
+| Legend | 2 |
+| Series | 2 |
+| Sheet | 2 |
+
+## Chart Future Block Scopes
+
+| Key | Count |
+| --- | --- |
+| Kind:AttachedLabel | 2 |
+| Kind:AttachedLabel;Context:0x0000;Instance1:0x0000;Instance2:0x0000 | 1 |
+| Kind:AttachedLabel;Context:0x0002;Instance1:0xFFFF;Instance2:0x0000 | 1 |
+| Kind:Axis | 2 |
+| Kind:Axis;Context:0x0000;Instance1:0x0000;Instance2:0x0000 | 1 |
+| Kind:Axis;Context:0x0000;Instance1:0x0001;Instance2:0x0000 | 1 |
+| Kind:AxisGroup | 1 |
+| Kind:AxisGroup;Context:0x0000;Instance1:0x0000;Instance2:0x0000 | 1 |
+| Kind:ChartGroup | 1 |
+| Kind:ChartGroup;Context:0x0000;Instance1:0x0000;Instance2:0x0000 | 1 |
+| Kind:DataFormat | 1 |
+| Kind:DataFormat;Context:0x0000;Instance1:0xFFFF;Instance2:0x0000 | 1 |
+| Kind:Frame | 4 |
+| Kind:Frame;Context:0x0000;Instance1:0x0000;Instance2:0x0000 | 2 |
+| Kind:Frame;Context:0x0001;Instance1:0x0000;Instance2:0x0000 | 1 |
+| Kind:Frame;Context:0x0002;Instance1:0x0000;Instance2:0x0000 | 1 |
+| Kind:Legend | 1 |
+| Kind:Legend;Context:0x0001;Instance1:0x0000;Instance2:0x0000 | 1 |
+| Kind:Series | 1 |
+| Kind:Series;Context:0x0000;Instance1:0x0000;Instance2:0x0000 | 1 |
+| Kind:Sheet | 1 |
+| Kind:Sheet;Context:0x0000;Instance1:0x0000;Instance2:0x0000 | 1 |
+
 ## Chart XmlTkChain Declared Byte Counts
 
 | Key | Count |

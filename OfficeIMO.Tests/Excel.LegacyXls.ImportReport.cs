@@ -1617,6 +1617,63 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_ImportReport_GroupsChartFutureBlockMetadata() {
+            byte[] startPayload = {
+                0x52, 0x08,
+                0x00, 0x00,
+                0x0C, 0x00,
+                0x00, 0x00,
+                0x02, 0x00,
+                0x00, 0x00
+            };
+            byte[] endPayload = {
+                0x53, 0x08,
+                0x00, 0x00,
+                0x0C, 0x00,
+                0x00, 0x00,
+                0x00, 0x00,
+                0x00, 0x00
+            };
+            var chartRecords = new List<LegacyXlsChartRecord>();
+
+            Assert.True(BiffChartMetadataReader.TryRead(new BiffRecord(0x0852, offset: 256, startPayload), "StartBlock", chartRecords));
+            Assert.True(BiffChartMetadataReader.TryRead(new BiffRecord(0x0853, offset: 268, endPayload), "EndBlock", chartRecords));
+
+            Assert.Equal(2, chartRecords.Count);
+            LegacyXlsChartFutureBlock? startBlock = chartRecords[0].FutureBlock;
+            Assert.NotNull(startBlock);
+            Assert.True(startBlock!.IsStart);
+            Assert.Equal("StartBlock", startBlock.DirectionName);
+            Assert.Equal(0x000C, startBlock.ObjectKind);
+            Assert.Equal("Series", startBlock.ObjectKindName);
+            Assert.Equal((ushort?)0x0000, startBlock.ObjectContext);
+            Assert.Equal((ushort?)0x0002, startBlock.ObjectInstance1);
+            Assert.Equal((ushort?)0x0000, startBlock.ObjectInstance2);
+
+            LegacyXlsChartFutureBlock? endBlock = chartRecords[1].FutureBlock;
+            Assert.NotNull(endBlock);
+            Assert.True(endBlock!.IsEnd);
+            Assert.Equal("EndBlock", endBlock.DirectionName);
+            Assert.Equal("Series", endBlock.ObjectKindName);
+            Assert.Null(endBlock.ObjectContext);
+
+            var workbook = new LegacyXlsWorkbook();
+            workbook.MutableChartRecords.AddRange(chartRecords);
+            LegacyXlsImportReport report = workbook.CreateImportReport();
+
+            Assert.Equal(1, report.ChartFutureBlockDirections["StartBlock"]);
+            Assert.Equal(1, report.ChartFutureBlockDirections["EndBlock"]);
+            Assert.Equal(2, report.ChartFutureBlockObjectKinds["Series"]);
+            Assert.Equal(1, report.ChartFutureBlockScopes["Kind:Series;Context:0x0000;Instance1:0x0002;Instance2:0x0000"]);
+            Assert.Equal(1, report.ChartFutureBlockScopes["Kind:Series"]);
+
+            string markdown = report.ToMarkdown();
+            Assert.Contains("Chart Future Block Directions", markdown);
+            Assert.Contains("Chart Future Block Object Kinds", markdown);
+            Assert.Contains("Kind:Series;Context:0x0000;Instance1:0x0002;Instance2:0x0000", markdown);
+        }
+
+        [Fact]
         public void LegacyXls_ImportReport_GroupsChartXmlTokenChainMetadata() {
             byte[] payload = {
                 0x9E, 0x08,

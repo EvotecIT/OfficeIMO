@@ -55,6 +55,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             TryReadFutureRecordInfo(record, out LegacyXlsChartFutureRecordInfo? futureRecordInfo);
             TryReadXmlTokenChain(record, out LegacyXlsChartXmlTokenChain? xmlTokenChain);
             TryReadPlotAreaLayout12(record, out LegacyXlsChartPlotAreaLayout12? plotAreaLayout12);
+            TryReadFutureBlock(record, out LegacyXlsChartFutureBlock? futureBlock);
             records.Add(new LegacyXlsChartRecord(
                 GetKind(record.Type),
                 BiffUnsupportedRecordDiagnostics.GetBiffRecordName(record.Type),
@@ -122,7 +123,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 layout12,
                 futureRecordInfo,
                 xmlTokenChain,
-                plotAreaLayout12));
+                plotAreaLayout12,
+                futureBlock));
             return true;
         }
 
@@ -676,6 +678,40 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             info = new LegacyXlsChartFutureRecordInfo(record.Payload[4], record.Payload[5], ranges);
+            return true;
+        }
+
+        private static bool TryReadFutureBlock(BiffRecord record, out LegacyXlsChartFutureBlock? block) {
+            block = null;
+            if (record.Type != 0x0852 && record.Type != 0x0853) {
+                return false;
+            }
+
+            if (record.Payload.Length < 6) {
+                return false;
+            }
+
+            ushort frtRecordType = BiffRecordReader.ReadUInt16(record.Payload, 0);
+            if (frtRecordType != record.Type) {
+                return false;
+            }
+
+            ushort objectKind = BiffRecordReader.ReadUInt16(record.Payload, 4);
+            if (record.Type == 0x0853) {
+                block = new LegacyXlsChartFutureBlock(false, objectKind, null, null, null);
+                return true;
+            }
+
+            if (record.Payload.Length < 12) {
+                return false;
+            }
+
+            block = new LegacyXlsChartFutureBlock(
+                true,
+                objectKind,
+                BiffRecordReader.ReadUInt16(record.Payload, 6),
+                BiffRecordReader.ReadUInt16(record.Payload, 8),
+                BiffRecordReader.ReadUInt16(record.Payload, 10));
             return true;
         }
 

@@ -73,7 +73,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             LegacyXlsChartLayout12? layout12 = null,
             LegacyXlsChartFutureRecordInfo? futureRecordInfo = null,
             LegacyXlsChartXmlTokenChain? xmlTokenChain = null,
-            LegacyXlsChartPlotAreaLayout12? plotAreaLayout12 = null) {
+            LegacyXlsChartPlotAreaLayout12? plotAreaLayout12 = null,
+            LegacyXlsChartFutureBlock? futureBlock = null) {
             if (payloadLength < 0) {
                 throw new ArgumentOutOfRangeException(nameof(payloadLength));
             }
@@ -145,6 +146,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             FutureRecordInfo = futureRecordInfo;
             XmlTokenChain = xmlTokenChain;
             PlotAreaLayout12 = plotAreaLayout12;
+            FutureBlock = futureBlock;
         }
 
         /// <summary>Gets the shallow chart record category.</summary>
@@ -347,5 +349,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets decoded plot-area layout metadata from CrtLayout12A records, when present.</summary>
         public LegacyXlsChartPlotAreaLayout12? PlotAreaLayout12 { get; }
+
+        /// <summary>Gets decoded future-record block scope metadata from StartBlock and EndBlock records, when present.</summary>
+        public LegacyXlsChartFutureBlock? FutureBlock { get; }
     }
 }

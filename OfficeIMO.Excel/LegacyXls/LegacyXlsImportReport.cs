@@ -719,6 +719,15 @@ namespace OfficeIMO.Excel.LegacyXls {
             ChartFutureRecordInfoRanges = CountByCode(workbook.ChartRecords
                 .Where(record => record.FutureRecordInfo != null)
                 .SelectMany(record => record.FutureRecordInfo!.Ranges.Select(range => range.RangeKey)));
+            ChartFutureBlockDirections = CountByCode(workbook.ChartRecords
+                .Where(record => record.FutureBlock != null)
+                .Select(record => record.FutureBlock!.DirectionName));
+            ChartFutureBlockObjectKinds = CountByCode(workbook.ChartRecords
+                .Where(record => record.FutureBlock != null)
+                .Select(record => record.FutureBlock!.ObjectKindName));
+            ChartFutureBlockScopes = CountByCode(workbook.ChartRecords
+                .Where(record => record.FutureBlock != null)
+                .Select(record => record.FutureBlock!.ScopeKey));
             ChartXmlTokenChainDeclaredByteCounts = CountByCode(workbook.ChartRecords
                 .Where(record => record.XmlTokenChain != null)
                 .Select(record => $"DeclaredBytes:{record.XmlTokenChain!.DeclaredByteCount}"));
@@ -2133,6 +2142,15 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets ChartFrtInfo records grouped by declared future-record id range.</summary>
         public IReadOnlyDictionary<string, int> ChartFutureRecordInfoRanges { get; }
 
+        /// <summary>Gets StartBlock and EndBlock records grouped by block direction.</summary>
+        public IReadOnlyDictionary<string, int> ChartFutureBlockDirections { get; }
+
+        /// <summary>Gets StartBlock and EndBlock records grouped by decoded object kind.</summary>
+        public IReadOnlyDictionary<string, int> ChartFutureBlockObjectKinds { get; }
+
+        /// <summary>Gets StartBlock and EndBlock records grouped by compact scope key.</summary>
+        public IReadOnlyDictionary<string, int> ChartFutureBlockScopes { get; }
+
         /// <summary>Gets CrtMlFrt records grouped by declared XmlTkChain byte count.</summary>
         public IReadOnlyDictionary<string, int> ChartXmlTokenChainDeclaredByteCounts { get; }
 
@@ -2922,6 +2940,9 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Chart Future Record Info Versions", ChartFutureRecordInfoVersions);
             AppendDictionary(builder, "Chart Future Record Info Range Counts", ChartFutureRecordInfoRangeCounts);
             AppendDictionary(builder, "Chart Future Record Info Ranges", ChartFutureRecordInfoRanges);
+            AppendDictionary(builder, "Chart Future Block Directions", ChartFutureBlockDirections);
+            AppendDictionary(builder, "Chart Future Block Object Kinds", ChartFutureBlockObjectKinds);
+            AppendDictionary(builder, "Chart Future Block Scopes", ChartFutureBlockScopes);
             AppendDictionary(builder, "Chart XmlTkChain Declared Byte Counts", ChartXmlTokenChainDeclaredByteCounts);
             AppendDictionary(builder, "Chart XmlTkChain First Segment Byte Counts", ChartXmlTokenChainFirstSegmentByteCounts);
             AppendDictionary(builder, "Chart XmlTkChain Completion States", ChartXmlTokenChainCompletionStates);
