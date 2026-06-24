@@ -28,11 +28,16 @@ namespace OfficeIMO.Tests {
             Assert.True(report.HasUnsupportedFeatures);
             Assert.Equal(1, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.UnsupportedBiffVersion]);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["UnsupportedBiffVersion|XLS-BIFF-VERSION-UNSUPPORTED|BiffVersion:BIFF5:WorkbookGlobals"]);
+            Assert.Equal(1, report.FileFormatStates["WorkbookFormat:UnsupportedBiff"]);
+            Assert.Equal(1, report.FileFormatStates["Encryption:Missing"]);
+            Assert.Equal(1, report.FileFormatStates["UnsupportedBiffVersion:Present"]);
+            Assert.Equal(1, report.FileFormatStates["MalformedBof:Missing"]);
             Assert.Equal(1, report.FileFormatBlockers["UnsupportedBiffVersion|BiffVersion:BIFF5:WorkbookGlobals"]);
             Assert.Equal(1, report.UnsupportedBiffVersionsByVersion["BIFF5"]);
             Assert.Equal(1, report.UnsupportedBiffVersionsBySubstream["WorkbookGlobals"]);
             Assert.Equal(1, report.UnsupportedBiffVersionsByVersionAndSubstream["BIFF5|WorkbookGlobals"]);
             string markdown = report.ToMarkdown();
+            Assert.Contains("File Format States", markdown);
             Assert.Contains("File Format Blockers", markdown);
             Assert.Contains("Unsupported BIFF Versions By Version", markdown);
             Assert.Contains("Unsupported BIFF Versions By Substream", markdown);
@@ -95,7 +100,33 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.UnsupportedBiffVersionsByVersionAndSubstream[$"{expectedVersionName}|WorkbookGlobals"]);
         }
 
+        [Fact]
+        public void LegacyXls_Load_ReportsMalformedBofFileFormatState() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateWorkbookWithMalformedBofStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+            LegacyXlsImportReport report = workbook.CreateImportReport();
+
+            Assert.Empty(workbook.Worksheets);
+            Assert.Contains(workbook.Diagnostics, diagnostic =>
+                diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error
+                && diagnostic.Code == "XLS-BIFF-BOF-MISSING");
+            Assert.Equal(1, report.FileFormatStates["WorkbookFormat:MalformedBof"]);
+            Assert.Equal(1, report.FileFormatStates["MalformedBof:Present"]);
+            Assert.Equal(1, report.FileFormatStates["Encryption:Missing"]);
+            Assert.Equal(1, report.FileFormatStates["UnsupportedBiffVersion:Missing"]);
+        }
+
         private static partial class LegacyXlsTestWorkbookBuilder {
+            internal static byte[] CreateWorkbookWithMalformedBofStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+                return stream.ToArray();
+            }
+
             internal static byte[] CreateUnsupportedBiff5WorkbookStream() {
                 return CreateUnsupportedBiffWorkbookStream(0x0500);
             }

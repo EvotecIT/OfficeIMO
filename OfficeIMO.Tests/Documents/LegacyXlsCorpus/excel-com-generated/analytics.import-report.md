@@ -503,6 +503,16 @@ Warnings: 0
 | XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|RevenueChart | 1 |
 | XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|SalesData | 2 |
 
+## File Format States
+
+| Key | Count |
+| --- | --- |
+| Encryption:Missing | 1 |
+| MalformedBof:Missing | 1 |
+| TruncatedStream:Missing | 1 |
+| UnsupportedBiffVersion:Missing | 1 |
+| WorkbookFormat:SupportedBiff8 | 1 |
+
 ## Unsupported Sheets By Kind
 
 | Key | Count |

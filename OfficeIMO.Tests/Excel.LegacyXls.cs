@@ -34,6 +34,7 @@ namespace OfficeIMO.Tests {
             LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
                 ReportUnsupportedRecords = false
             });
+            LegacyXlsImportReport report = legacy.CreateImportReport();
 
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
             LegacyXlsWorksheet sheet = Assert.Single(legacy.Worksheets);
@@ -41,6 +42,10 @@ namespace OfficeIMO.Tests {
             Assert.Contains(sheet.Cells, cell => cell.Row == 1 && cell.Column == 1 && Equals(cell.Value, "Name"));
             Assert.Contains(sheet.Cells, cell => cell.Row == 2 && cell.Column == 2 && Equals(cell.Value, 42d));
             Assert.Contains(sheet.Cells, cell => cell.Row == 3 && cell.Column == 1 && Equals(cell.Value, true));
+            Assert.Equal(1, report.FileFormatStates["WorkbookFormat:SupportedBiff8"]);
+            Assert.Equal(1, report.FileFormatStates["Encryption:Missing"]);
+            Assert.Equal(1, report.FileFormatStates["UnsupportedBiffVersion:Missing"]);
+            Assert.Equal(1, report.FileFormatStates["MalformedBof:Missing"]);
         }
 
         [Fact]
@@ -273,9 +278,13 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.ErrorCount);
             Assert.Equal(1, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.EncryptedWorkbook]);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["EncryptedWorkbook|XLS-BIFF-FILEPASS-UNSUPPORTED|Encryption:FilePass:XorObfuscation"]);
+            Assert.Equal(1, report.FileFormatStates["WorkbookFormat:Encrypted"]);
+            Assert.Equal(1, report.FileFormatStates["Encryption:Present"]);
+            Assert.Equal(1, report.FileFormatStates["UnsupportedBiffVersion:Missing"]);
             Assert.Equal(1, report.FileFormatBlockers["EncryptedWorkbook|Encryption:FilePass:XorObfuscation"]);
             Assert.Equal(1, report.EncryptedWorkbooksByMethod["XorObfuscation"]);
             string markdown = report.ToMarkdown();
+            Assert.Contains("File Format States", markdown);
             Assert.Contains("File Format Blockers", markdown);
             Assert.Contains("Encrypted Workbooks By Method", markdown);
             Assert.Empty(legacy.Worksheets);

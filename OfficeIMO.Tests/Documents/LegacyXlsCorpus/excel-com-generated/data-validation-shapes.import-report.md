@@ -365,6 +365,16 @@ Warnings: 0
 | XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|Lookup | 2 |
 | XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED\|Validation | 2 |
 
+## File Format States
+
+| Key | Count |
+| --- | --- |
+| Encryption:Missing | 1 |
+| MalformedBof:Missing | 1 |
+| TruncatedStream:Missing | 1 |
+| UnsupportedBiffVersion:Missing | 1 |
+| WorkbookFormat:SupportedBiff8 | 1 |
+
 ## External References By Kind
 
 | Key | Count |

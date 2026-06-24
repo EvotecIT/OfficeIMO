@@ -313,6 +313,16 @@ Warnings: 0
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|ZPFCUM | 9 |
 | XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|ZRAINCUM | 9 |
 
+## File Format States
+
+| Key | Count |
+| --- | --- |
+| Encryption:Missing | 1 |
+| MalformedBof:Missing | 1 |
+| TruncatedStream:Missing | 1 |
+| UnsupportedBiffVersion:Missing | 1 |
+| WorkbookFormat:SupportedBiff8 | 1 |
+
 ## Unsupported Sheets By Kind
 
 | Key | Count |

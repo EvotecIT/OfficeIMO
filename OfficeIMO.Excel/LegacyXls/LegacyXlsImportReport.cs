@@ -237,6 +237,7 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .Select(feature => $"{feature.Kind}|{feature.Code}|{feature.DetailCode}"));
             UnsupportedFeaturesByLocation = CountByCode(workbook.UnsupportedFeatures
                 .Select(GetFeatureLocationKey));
+            FileFormatStates = CountByCode(GetFileFormatStateKeys(workbook));
             FileFormatBlockers = CountByCode(workbook.UnsupportedFeatures
                 .Where(feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.EncryptedWorkbook
                     || feature.Kind == LegacyXlsUnsupportedFeatureKind.UnsupportedBiffVersion)
@@ -1173,6 +1174,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets unsupported/preserve-only feature counts grouped by code and workbook or sheet location.</summary>
         public IReadOnlyDictionary<string, int> UnsupportedFeaturesByLocation { get; }
 
+        /// <summary>Gets high-level workbook file-format states suitable for preflight and corpus comparison.</summary>
+        public IReadOnlyDictionary<string, int> FileFormatStates { get; }
+
         /// <summary>Gets hard file-format blockers grouped by kind and detail.</summary>
         public IReadOnlyDictionary<string, int> FileFormatBlockers { get; }
 
@@ -1981,6 +1985,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Unsupported Feature Record Types", UnsupportedFeaturesByRecordType);
             AppendDictionary(builder, "Unsupported Feature Details", UnsupportedFeaturesByDetail);
             AppendDictionary(builder, "Unsupported Feature Locations", UnsupportedFeaturesByLocation);
+            AppendDictionary(builder, "File Format States", FileFormatStates);
             AppendDictionary(builder, "File Format Blockers", FileFormatBlockers);
             AppendDictionary(builder, "Encrypted Workbooks By Method", EncryptedWorkbooksByMethod);
             AppendDictionary(builder, "Unsupported BIFF Versions By Version", UnsupportedBiffVersionsByVersion);
@@ -2525,6 +2530,48 @@ namespace OfficeIMO.Excel.LegacyXls {
         private static string GetFeatureLocationKey(LegacyXlsUnsupportedFeature feature) {
             string location = string.IsNullOrWhiteSpace(feature.SheetName) ? "(workbook)" : feature.SheetName!;
             return feature.Code + "|" + location;
+        }
+
+        private static IEnumerable<string> GetFileFormatStateKeys(LegacyXlsWorkbook workbook) {
+            bool encrypted = workbook.UnsupportedFeatures.Any(feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.EncryptedWorkbook);
+            bool unsupportedBiff = workbook.UnsupportedFeatures.Any(feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.UnsupportedBiffVersion);
+            bool malformedBof = workbook.Diagnostics.Any(IsBofDiagnostic);
+            bool truncatedStream = workbook.Diagnostics.Any(IsBiffTruncationDiagnostic);
+
+            yield return $"Encryption:{GetPresenceKey(encrypted)}";
+            yield return $"UnsupportedBiffVersion:{GetPresenceKey(unsupportedBiff)}";
+            yield return $"MalformedBof:{GetPresenceKey(malformedBof)}";
+            yield return $"TruncatedStream:{GetPresenceKey(truncatedStream)}";
+
+            if (!encrypted && !unsupportedBiff && !malformedBof && !truncatedStream) {
+                yield return "WorkbookFormat:SupportedBiff8";
+                yield break;
+            }
+
+            if (encrypted) {
+                yield return "WorkbookFormat:Encrypted";
+            }
+
+            if (unsupportedBiff) {
+                yield return "WorkbookFormat:UnsupportedBiff";
+            }
+
+            if (malformedBof) {
+                yield return "WorkbookFormat:MalformedBof";
+            }
+
+            if (truncatedStream) {
+                yield return "WorkbookFormat:TruncatedStream";
+            }
+        }
+
+        private static bool IsBofDiagnostic(LegacyXlsImportDiagnostic diagnostic) {
+            return diagnostic.Code.IndexOf("-BOF-", StringComparison.Ordinal) >= 0;
+        }
+
+        private static bool IsBiffTruncationDiagnostic(LegacyXlsImportDiagnostic diagnostic) {
+            return diagnostic.Code.StartsWith("XLS-BIFF-", StringComparison.Ordinal)
+                && diagnostic.Code.IndexOf("TRUNCATED", StringComparison.Ordinal) >= 0;
         }
 
         private static string GetEncryptionMethodKey(LegacyXlsUnsupportedFeature feature) {

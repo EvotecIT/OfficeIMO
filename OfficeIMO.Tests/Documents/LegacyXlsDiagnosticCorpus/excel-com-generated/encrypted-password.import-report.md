@@ -82,6 +82,16 @@ Warnings: 0
 | --- | --- |
 | XLS-BIFF-FILEPASS-UNSUPPORTED\|(workbook) | 1 |
 
+## File Format States
+
+| Key | Count |
+| --- | --- |
+| Encryption:Present | 1 |
+| MalformedBof:Missing | 1 |
+| TruncatedStream:Missing | 1 |
+| UnsupportedBiffVersion:Missing | 1 |
+| WorkbookFormat:Encrypted | 1 |
+
 ## File Format Blockers
 
 | Key | Count |
