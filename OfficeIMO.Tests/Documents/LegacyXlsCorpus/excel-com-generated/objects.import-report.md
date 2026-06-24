@@ -689,6 +689,12 @@ Warnings: 0
 | Sxvi\|Pivot | 4 |
 | Sxvs\|(workbook) | 1 |
 
+## Pivot Table Workbook States
+
+| Key | Count |
+| --- | --- |
+| View:Present\|Cache:Present\|CacheSource:Present\|CacheItems:Missing\|Fields:Present\|Items:Present\|DataItems:Present\|Grouping:Present\|Formulas:Present\|Additional:Present\|Locations:WorkbookAndSheets | 1 |
+
 ## Pivot Table Cache Stream Names
 
 | Key | Count |

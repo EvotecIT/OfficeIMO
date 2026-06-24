@@ -667,6 +667,12 @@ Warnings: 0
 | SxRng\|ZRAINCUM | 9 |
 | SxVdEx\|(workbook) | 1 |
 
+## Pivot Table Workbook States
+
+| Key | Count |
+| --- | --- |
+| View:Missing\|Cache:Missing\|CacheSource:Missing\|CacheItems:Missing\|Fields:Missing\|Items:Missing\|DataItems:Present\|Grouping:Present\|Formulas:Missing\|Additional:Missing\|Locations:WorkbookAndSheets | 1 |
+
 ## Pivot Table Grouping Kinds
 
 | Key | Count |

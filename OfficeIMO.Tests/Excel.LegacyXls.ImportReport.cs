@@ -515,6 +515,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.PivotTableRecordsByKindAndLocation["Additional|PivotMeta"]);
             Assert.Equal(1, report.PivotTableRecordsByNameAndLocation["SxView|(workbook)"]);
             Assert.Equal(1, report.PivotTableRecordsByNameAndLocation["SxAddl|PivotMeta"]);
+            Assert.Equal(1, report.PivotTableWorkbookStates["View:Present|Cache:Present|CacheSource:Present|CacheItems:Present|Fields:Present|Items:Present|DataItems:Present|Grouping:Present|Formulas:Missing|Additional:Present|Locations:WorkbookAndSheets"]);
             Assert.Equal(1, report.PivotTableCacheItemKinds["Number"]);
             Assert.Equal(1, report.PivotTableCacheItemKinds["Integer"]);
             Assert.Equal(1, report.PivotTableCacheItemKinds["Boolean"]);
@@ -692,6 +693,8 @@ namespace OfficeIMO.Tests {
             Assert.Contains("CacheItem\\|(workbook)", markdown);
             Assert.Contains("Pivot Table Records By Name And Location", markdown);
             Assert.Contains("SxAddl\\|PivotMeta", markdown);
+            Assert.Contains("Pivot Table Workbook States", markdown);
+            Assert.Contains("View:Present\\|Cache:Present\\|CacheSource:Present", markdown);
             Assert.Contains("Pivot Table Cache Item Kinds", markdown);
             Assert.Contains("Pivot Table Cache Stream Names", markdown);
             Assert.Contains("SxStreamId\\|0001", markdown);

@@ -330,6 +330,7 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .Select(record => $"{record.Kind}|{GetPivotTableRecordLocationKey(record)}"));
             PivotTableRecordsByNameAndLocation = CountByCode(workbook.PivotTableRecords
                 .Select(record => $"{record.RecordName}|{GetPivotTableRecordLocationKey(record)}"));
+            PivotTableWorkbookStates = CountByCode(GetPivotTableWorkbookStateKeys(workbook.PivotTableRecords));
             PivotTableCacheItemKinds = CountByCode(workbook.PivotTableRecords
                 .Where(record => !string.IsNullOrWhiteSpace(record.CacheItemKindName))
                 .Select(record => record.CacheItemKindName!));
@@ -1337,6 +1338,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets preserve-only PivotTable BIFF records grouped by BIFF record name and workbook or worksheet location.</summary>
         public IReadOnlyDictionary<string, int> PivotTableRecordsByNameAndLocation { get; }
 
+        /// <summary>Gets workbook-level PivotTable model-shape states derived from preserve-only PivotTable BIFF records.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableWorkbookStates { get; }
+
         /// <summary>Gets decoded PivotCache item records grouped by value kind.</summary>
         public IReadOnlyDictionary<string, int> PivotTableCacheItemKinds { get; }
 
@@ -2034,6 +2038,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Pivot Table Records By Location", PivotTableRecordsByLocation);
             AppendDictionary(builder, "Pivot Table Records By Kind And Location", PivotTableRecordsByKindAndLocation);
             AppendDictionary(builder, "Pivot Table Records By Name And Location", PivotTableRecordsByNameAndLocation);
+            AppendDictionary(builder, "Pivot Table Workbook States", PivotTableWorkbookStates);
             AppendDictionary(builder, "Pivot Table Cache Item Kinds", PivotTableCacheItemKinds);
             AppendDictionary(builder, "Pivot Table Cache Item Value States", PivotTableCacheItemValueStates);
             AppendDictionary(builder, "Pivot Table Cache Item String Lengths", PivotTableCacheItemStringLengths);
@@ -2523,6 +2528,42 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         private static string GetPivotTableRecordLocationKey(LegacyXlsPivotTableRecord record) {
             return string.IsNullOrWhiteSpace(record.SheetName) ? "(workbook)" : record.SheetName!;
+        }
+
+        private static IEnumerable<string> GetPivotTableWorkbookStateKeys(IReadOnlyCollection<LegacyXlsPivotTableRecord> records) {
+            if (records.Count == 0) {
+                yield break;
+            }
+
+            yield return $"View:{GetPresenceKey(records.Any(record => record.Kind == LegacyXlsPivotTableRecordKind.View))}"
+                + $"|Cache:{GetPresenceKey(records.Any(record => record.Kind == LegacyXlsPivotTableRecordKind.Cache))}"
+                + $"|CacheSource:{GetPresenceKey(records.Any(record => record.Kind == LegacyXlsPivotTableRecordKind.CacheSource))}"
+                + $"|CacheItems:{GetPresenceKey(records.Any(record => record.Kind == LegacyXlsPivotTableRecordKind.CacheItem))}"
+                + $"|Fields:{GetPresenceKey(records.Any(record => record.Kind == LegacyXlsPivotTableRecordKind.Field))}"
+                + $"|Items:{GetPresenceKey(records.Any(record => record.Kind == LegacyXlsPivotTableRecordKind.Item))}"
+                + $"|DataItems:{GetPresenceKey(records.Any(record => record.Kind == LegacyXlsPivotTableRecordKind.DataItem))}"
+                + $"|Grouping:{GetPresenceKey(records.Any(record => record.Kind == LegacyXlsPivotTableRecordKind.GroupingRange))}"
+                + $"|Formulas:{GetPresenceKey(records.Any(record => record.Kind == LegacyXlsPivotTableRecordKind.Formula))}"
+                + $"|Additional:{GetPresenceKey(records.Any(record => record.Kind == LegacyXlsPivotTableRecordKind.Additional))}"
+                + $"|Locations:{GetPivotTableLocationScopeKey(records)}";
+        }
+
+        private static string GetPivotTableLocationScopeKey(IEnumerable<LegacyXlsPivotTableRecord> records) {
+            bool hasWorkbookRecords = false;
+            bool hasWorksheetRecords = false;
+            foreach (LegacyXlsPivotTableRecord record in records) {
+                if (string.IsNullOrWhiteSpace(record.SheetName)) {
+                    hasWorkbookRecords = true;
+                } else {
+                    hasWorksheetRecords = true;
+                }
+            }
+
+            if (hasWorkbookRecords && hasWorksheetRecords) {
+                return "WorkbookAndSheets";
+            }
+
+            return hasWorkbookRecords ? "WorkbookOnly" : "SheetsOnly";
         }
 
         private static string GetChartValueRangeScaleKey(LegacyXlsChartRecord record) {
