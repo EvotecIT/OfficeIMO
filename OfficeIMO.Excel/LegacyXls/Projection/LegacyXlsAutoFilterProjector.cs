@@ -54,7 +54,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             return criteria.Kind == LegacyXlsAutoFilterKind.Custom
                 && criteria.Conditions.Count > 0
                 && (criteria.Conditions.Count == 1 || !criteria.MatchAll)
-                && criteria.Conditions.All(condition => condition.Operator == LegacyXlsAutoFilterOperator.Equal);
+                && criteria.Conditions.All(condition => condition.Operator == LegacyXlsAutoFilterOperator.Equal && !condition.HasTextWildcardPattern);
         }
 
         private static FilterOperatorValues ToOperator(LegacyXlsAutoFilterOperator @operator) {

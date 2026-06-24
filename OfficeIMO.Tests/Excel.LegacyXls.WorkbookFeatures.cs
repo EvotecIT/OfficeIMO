@@ -781,6 +781,52 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_Load_ImportsPhase4AutoFilterWildcardTextCriteria() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase4AutoFilterWildcardTextWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
+            LegacyXlsWorksheet legacySheet = Assert.Single(legacy.Worksheets);
+            LegacyXlsAutoFilterCriteria criteria = Assert.Single(legacySheet.AutoFilterCriteria);
+            LegacyXlsAutoFilterCondition condition = Assert.Single(criteria.Conditions);
+            Assert.Equal(0U, criteria.ColumnId);
+            Assert.Equal(LegacyXlsAutoFilterKind.Custom, criteria.Kind);
+            Assert.Equal(LegacyXlsAutoFilterOperator.Equal, condition.Operator);
+            Assert.Equal("*Open*", condition.Value);
+            Assert.Equal(LegacyXlsAutoFilterValueKind.Text, condition.ValueKind);
+            Assert.Equal(LegacyXlsAutoFilterTextPatternKind.Contains, condition.TextPatternKind);
+            Assert.True(condition.HasTextWildcardPattern);
+            Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.AutoFilterCriteria);
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.False(result.HasImportErrors);
+            Assert.False(result.HasUnsupportedFeatures);
+            Assert.Equal(1, result.ImportReport.AutoFilterCriteriaCount);
+            Assert.Equal(1, result.ImportReport.AutoFilterCriteriaByTextPattern["Contains"]);
+            Assert.Empty(result.Document.ValidateOpenXml());
+
+            using var output = new MemoryStream();
+            result.Document.Save(output);
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
+            WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single();
+            AutoFilter autoFilter = Assert.Single(worksheetPart.Worksheet.Elements<AutoFilter>());
+            Assert.Equal("A1:A4", autoFilter.Reference!.Value);
+            FilterColumn filterColumn = Assert.Single(autoFilter.Elements<FilterColumn>());
+            Assert.Equal(0U, filterColumn.ColumnId!.Value);
+            Assert.Empty(filterColumn.Elements<Filters>());
+            CustomFilter customFilter = Assert.Single(filterColumn.GetFirstChild<CustomFilters>()!.Elements<CustomFilter>());
+            Assert.Equal(FilterOperatorValues.Equal, customFilter.Operator!.Value);
+            Assert.Equal("*Open*", customFilter.Val!.Value);
+        }
+
+        [Fact]
         public void LegacyXls_Load_ImportsPhase4AutoFilterTop10Criteria() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase4AutoFilterTop10WorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);

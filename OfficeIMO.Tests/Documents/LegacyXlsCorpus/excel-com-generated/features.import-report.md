@@ -503,6 +503,12 @@ Warnings: 0
 | --- | --- |
 | Text | 1 |
 
+## AutoFilter Criteria By Text Pattern
+
+| Key | Count |
+| --- | --- |
+| ExactText | 1 |
+
 ## AutoFilter Criteria By Join Operator
 
 | Key | Count |

@@ -387,6 +387,31 @@ namespace OfficeIMO.Tests {
                 return bytes;
             }
 
+            internal static byte[] CreatePhase4AutoFilterWildcardTextWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long boundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "Wildcard"));
+                WriteRecord(stream, 0x0017, BuildExternSheetPayload((0, 0, 0)));
+                WriteRecord(stream, 0x0018, BuildDefinedNamePayload(((char)0x0d).ToString(), BuildNameArea3dFormula(0, 0, 0, 3, 0), localSheetIndex: 1, hidden: true, builtIn: true));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Status"));
+                WriteRecord(stream, 0x0204, BuildLabelPayload(1, 0, "Open"));
+                WriteRecord(stream, 0x0204, BuildLabelPayload(2, 0, "Reopened"));
+                WriteRecord(stream, 0x0204, BuildLabelPayload(3, 0, "Closed"));
+                WriteRecord(stream, 0x009d, BuildAutoFilterInfoPayload(1));
+                WriteRecord(stream, 0x009b, Array.Empty<byte>());
+                WriteRecord(stream, 0x009e, BuildAutoFilterStringEqualsPayload(0, "*Open*"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)boundSheetPosition + 4), 4);
+                return bytes;
+            }
+
             internal static byte[] CreatePhase4AutoFilterTop10WorkbookStream() {
                 using var stream = new MemoryStream();
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });

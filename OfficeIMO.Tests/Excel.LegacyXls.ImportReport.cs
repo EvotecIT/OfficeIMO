@@ -1434,6 +1434,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.AutoFilterCriteriaByOperator["GreaterThanOrEqual"]);
             Assert.Equal(1, report.AutoFilterCriteriaByValueKind["Text"]);
             Assert.Equal(1, report.AutoFilterCriteriaByValueKind["Number"]);
+            Assert.Equal(1, report.AutoFilterCriteriaByTextPattern["ExactText"]);
             Assert.Equal(2, report.AutoFilterCriteriaByJoinOperator["Single"]);
             Assert.Equal(2, report.AutoFilterCriteriaBySheet["Filtered"]);
             Assert.Equal(1, report.AutoFilterCriteriaByColumn["Column:0"]);
@@ -1446,10 +1447,33 @@ namespace OfficeIMO.Tests {
             Assert.Contains("AutoFilter Criteria By Sheet", markdown);
             Assert.Contains("AutoFilter Criteria By Operator", markdown);
             Assert.Contains("AutoFilter Criteria By Value Kind", markdown);
+            Assert.Contains("AutoFilter Criteria By Text Pattern", markdown);
             Assert.Contains("AutoFilter Criteria By Join Operator", markdown);
             Assert.Contains("AutoFilter Criteria By Column", markdown);
             Assert.Contains("AutoFilter Criteria By Sheet And Column", markdown);
             Assert.Contains("AutoFilter Criteria By Condition Count", markdown);
+        }
+
+        [Fact]
+        public void LegacyXls_ImportReport_CountsAutoFilterWildcardTextPatterns() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase4AutoFilterWildcardTextWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+            LegacyXlsImportReport report = workbook.CreateImportReport();
+
+            Assert.DoesNotContain(workbook.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
+            Assert.Equal(1, report.AutoFilterCriteriaCount);
+            Assert.Equal(1, report.AutoFilterCriteriaByValueKind["Text"]);
+            Assert.Equal(1, report.AutoFilterCriteriaByTextPattern["Contains"]);
+            Assert.Equal(1, report.AutoFilterCriteriaByJoinOperator["Single"]);
+            Assert.Equal(1, report.AutoFilterCriteriaByConditionCount["Conditions:1"]);
+
+            string markdown = report.ToMarkdown();
+            Assert.Contains("AutoFilter Criteria By Text Pattern", markdown);
+            Assert.Contains("Contains", markdown);
         }
 
         [Fact]

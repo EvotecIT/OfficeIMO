@@ -136,6 +136,11 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .SelectMany(sheet => sheet.AutoFilterCriteria)
                 .SelectMany(criteria => criteria.Conditions)
                 .Select(condition => condition.ValueKind.ToString()));
+            AutoFilterCriteriaByTextPattern = CountByCode(workbook.Worksheets
+                .SelectMany(sheet => sheet.AutoFilterCriteria)
+                .SelectMany(criteria => criteria.Conditions)
+                .Where(condition => condition.TextPatternKind != LegacyXlsAutoFilterTextPatternKind.None)
+                .Select(condition => condition.TextPatternKind.ToString()));
             AutoFilterCriteriaByJoinOperator = CountByCode(workbook.Worksheets
                 .SelectMany(sheet => sheet.AutoFilterCriteria)
                 .Select(criteria => criteria.JoinOperator.ToString()));
@@ -1247,6 +1252,9 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets imported AutoFilter conditions grouped by BIFF operand kind.</summary>
         public IReadOnlyDictionary<string, int> AutoFilterCriteriaByValueKind { get; }
+
+        /// <summary>Gets imported AutoFilter text conditions grouped by wildcard-pattern shape.</summary>
+        public IReadOnlyDictionary<string, int> AutoFilterCriteriaByTextPattern { get; }
 
         /// <summary>Gets imported AutoFilter criteria grouped by condition join operator.</summary>
         public IReadOnlyDictionary<string, int> AutoFilterCriteriaByJoinOperator { get; }
@@ -2498,6 +2506,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "AutoFilter Criteria By Kind", AutoFilterCriteriaByKind);
             AppendDictionary(builder, "AutoFilter Criteria By Operator", AutoFilterCriteriaByOperator);
             AppendDictionary(builder, "AutoFilter Criteria By Value Kind", AutoFilterCriteriaByValueKind);
+            AppendDictionary(builder, "AutoFilter Criteria By Text Pattern", AutoFilterCriteriaByTextPattern);
             AppendDictionary(builder, "AutoFilter Criteria By Join Operator", AutoFilterCriteriaByJoinOperator);
             AppendDictionary(builder, "AutoFilter Criteria By Column", AutoFilterCriteriaByColumn);
             AppendDictionary(builder, "AutoFilter Criteria By Sheet And Column", AutoFilterCriteriaBySheetAndColumn);

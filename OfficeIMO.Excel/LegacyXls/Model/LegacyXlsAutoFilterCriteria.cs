@@ -164,6 +164,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             Operator = @operator;
             Value = value ?? throw new ArgumentNullException(nameof(value));
             ValueKind = valueKind;
+            TextPatternKind = valueKind == LegacyXlsAutoFilterValueKind.Text
+                ? GetTextPatternKind(value)
+                : LegacyXlsAutoFilterTextPatternKind.None;
         }
 
         /// <summary>
@@ -180,6 +183,83 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// Gets the BIFF operand kind used to store the comparison value.
         /// </summary>
         public LegacyXlsAutoFilterValueKind ValueKind { get; }
+
+        /// <summary>
+        /// Gets the wildcard-pattern shape for text operands.
+        /// </summary>
+        public LegacyXlsAutoFilterTextPatternKind TextPatternKind { get; }
+
+        /// <summary>
+        /// Gets whether the text operand contains an unescaped BIFF wildcard.
+        /// </summary>
+        public bool HasTextWildcardPattern => TextPatternKind != LegacyXlsAutoFilterTextPatternKind.None
+            && TextPatternKind != LegacyXlsAutoFilterTextPatternKind.ExactText;
+
+        private static LegacyXlsAutoFilterTextPatternKind GetTextPatternKind(string value) {
+            int firstWildcard = IndexOfUnescapedWildcard(value);
+            if (firstWildcard < 0) {
+                return LegacyXlsAutoFilterTextPatternKind.ExactText;
+            }
+
+            bool startsWithWildcard = IsUnescapedWildcardAt(value, 0, '*');
+            bool endsWithWildcard = IsUnescapedWildcardAt(value, value.Length - 1, '*');
+            bool hasOnlyBoundaryAsterisks = HasOnlyBoundaryAsteriskWildcards(value, startsWithWildcard, endsWithWildcard);
+            if (!hasOnlyBoundaryAsterisks) {
+                return LegacyXlsAutoFilterTextPatternKind.WildcardExpression;
+            }
+
+            if (startsWithWildcard && endsWithWildcard && value.Length > 1) {
+                return LegacyXlsAutoFilterTextPatternKind.Contains;
+            }
+
+            if (startsWithWildcard) {
+                return LegacyXlsAutoFilterTextPatternKind.EndsWith;
+            }
+
+            return endsWithWildcard
+                ? LegacyXlsAutoFilterTextPatternKind.BeginsWith
+                : LegacyXlsAutoFilterTextPatternKind.WildcardExpression;
+        }
+
+        private static int IndexOfUnescapedWildcard(string value) {
+            for (int i = 0; i < value.Length; i++) {
+                if ((value[i] == '*' || value[i] == '?') && !IsEscaped(value, i)) {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+        private static bool HasOnlyBoundaryAsteriskWildcards(string value, bool startsWithWildcard, bool endsWithWildcard) {
+            for (int i = 0; i < value.Length; i++) {
+                if ((value[i] == '*' || value[i] == '?') && !IsEscaped(value, i)) {
+                    bool boundaryAsterisk = value[i] == '*'
+                        && ((startsWithWildcard && i == 0) || (endsWithWildcard && i == value.Length - 1));
+                    if (!boundaryAsterisk) {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        private static bool IsUnescapedWildcardAt(string value, int index, char wildcard) {
+            return index >= 0
+                && index < value.Length
+                && value[index] == wildcard
+                && !IsEscaped(value, index);
+        }
+
+        private static bool IsEscaped(string value, int index) {
+            int escapeCount = 0;
+            for (int i = index - 1; i >= 0 && value[i] == '~'; i--) {
+                escapeCount++;
+            }
+
+            return (escapeCount % 2) != 0;
+        }
     }
 
     /// <summary>
@@ -200,6 +280,24 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         Blank,
         /// <summary>The operand was the nonblank-cell sentinel.</summary>
         NonBlank
+    }
+
+    /// <summary>
+    /// Identifies the text-pattern shape represented by a legacy AutoFilter text operand.
+    /// </summary>
+    public enum LegacyXlsAutoFilterTextPatternKind {
+        /// <summary>The condition is not a text operand.</summary>
+        None,
+        /// <summary>The text operand does not contain BIFF wildcard characters.</summary>
+        ExactText,
+        /// <summary>The text operand ends with an unescaped asterisk wildcard.</summary>
+        BeginsWith,
+        /// <summary>The text operand starts with an unescaped asterisk wildcard.</summary>
+        EndsWith,
+        /// <summary>The text operand starts and ends with unescaped asterisk wildcards.</summary>
+        Contains,
+        /// <summary>The text operand contains a wildcard expression that is not one of the simple prefix/suffix shapes.</summary>
+        WildcardExpression
     }
 
     /// <summary>
