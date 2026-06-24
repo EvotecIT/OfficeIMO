@@ -1475,6 +1475,12 @@ Warnings: 0
 | --- | --- |
 | BlipId:1 | 1 |
 
+## Drawing Picture States
+
+| Key | Count |
+| --- | --- |
+| PictureObjects:Present\|BlipStore:Present\|PictureBlipReferences:Present\|ReferencedBlips:Resolved | 1 |
+
 ## Drawing Shape Entries By Type
 
 | Key | Count |

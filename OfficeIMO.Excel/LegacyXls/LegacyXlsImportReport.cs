@@ -672,6 +672,7 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .SelectMany(record => record.ShapeProperties)
                 .Where(IsPictureBlipReferenceProperty)
                 .Select(property => $"BlipId:{property.Value}"));
+            DrawingPictureStates = CountByCode(GetDrawingPictureStateKeys(workbook));
             DrawingShapeEntriesByType = CountByCode(workbook.DrawingRecords
                 .SelectMany(record => record.ShapeEntries)
                 .Select(shape => shape.ShapeTypeName));
@@ -1678,6 +1679,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets OfficeArtFOPT picture BLIP references grouped by referenced image-store id.</summary>
         public IReadOnlyDictionary<string, int> DrawingPictureBlipReferencesByValue { get; }
 
+        /// <summary>Gets picture drawing states grouped by object, image-store, BLIP reference, and reference-resolution presence.</summary>
+        public IReadOnlyDictionary<string, int> DrawingPictureStates { get; }
+
         /// <summary>Gets OfficeArt shape entries grouped by decoded shape type.</summary>
         public IReadOnlyDictionary<string, int> DrawingShapeEntriesByType { get; }
 
@@ -2150,6 +2154,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Drawing Shape BLIP Properties By Name And Value", DrawingShapeBlipPropertiesByNameAndValue);
             AppendDictionary(builder, "Drawing Picture BLIP References By Location", DrawingPictureBlipReferencesByLocation);
             AppendDictionary(builder, "Drawing Picture BLIP References By Value", DrawingPictureBlipReferencesByValue);
+            AppendDictionary(builder, "Drawing Picture States", DrawingPictureStates);
             AppendDictionary(builder, "Drawing Shape Entries By Type", DrawingShapeEntriesByType);
             AppendDictionary(builder, "Drawing Shape Entries By Id", DrawingShapeEntriesById);
             AppendDictionary(builder, "Drawing Shape Entries By Flags", DrawingShapeEntriesByFlags);
@@ -2595,6 +2600,45 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         private static bool IsPictureBlipReferenceProperty(LegacyXlsDrawingShapeProperty property) {
             return string.Equals(property.PropertyName, "pib", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static IEnumerable<string> GetDrawingPictureStateKeys(LegacyXlsWorkbook workbook) {
+            bool hasPictureObjects = workbook.DrawingRecords.Any(record => record.ObjectTypeKind == LegacyXlsDrawingObjectType.Picture);
+            int blipStoreEntryCount = workbook.DrawingRecords.Sum(record => record.BlipStoreEntries.Count);
+            uint[] pictureBlipReferences = workbook.DrawingRecords
+                .SelectMany(record => record.ShapeProperties)
+                .Where(IsPictureBlipReferenceProperty)
+                .Select(property => property.Value)
+                .ToArray();
+            bool hasPictureBlipReferences = pictureBlipReferences.Length > 0;
+            if (!hasPictureObjects && blipStoreEntryCount == 0 && !hasPictureBlipReferences) {
+                yield break;
+            }
+
+            yield return $"PictureObjects:{GetPresenceKey(hasPictureObjects)}"
+                + $"|BlipStore:{GetPresenceKey(blipStoreEntryCount > 0)}"
+                + $"|PictureBlipReferences:{GetPresenceKey(hasPictureBlipReferences)}"
+                + $"|ReferencedBlips:{GetDrawingPictureBlipResolutionKey(pictureBlipReferences, blipStoreEntryCount)}";
+        }
+
+        private static string GetDrawingPictureBlipResolutionKey(IReadOnlyCollection<uint> pictureBlipReferences, int blipStoreEntryCount) {
+            if (pictureBlipReferences.Count == 0) {
+                return "None";
+            }
+
+            bool hasResolvedReference = false;
+            bool hasMissingReference = false;
+            foreach (uint reference in pictureBlipReferences) {
+                bool isResolved = reference >= 1 && reference <= blipStoreEntryCount;
+                hasResolvedReference |= isResolved;
+                hasMissingReference |= !isResolved;
+            }
+
+            if (hasResolvedReference && hasMissingReference) {
+                return "Partial";
+            }
+
+            return hasResolvedReference ? "Resolved" : "Missing";
         }
 
         private static string GetShapePropertyFlagState(LegacyXlsDrawingShapeProperty property) {

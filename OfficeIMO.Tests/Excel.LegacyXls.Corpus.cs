@@ -135,6 +135,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, result.ImportReport.DrawingShapeBlipPropertiesByNameAndValue["BlipBooleanProperties;Value:0x00060000"]);
             Assert.Equal(1, result.ImportReport.DrawingPictureBlipReferencesByLocation["Objects"]);
             Assert.Equal(1, result.ImportReport.DrawingPictureBlipReferencesByValue["BlipId:1"]);
+            Assert.Equal(1, result.ImportReport.DrawingPictureStates["PictureObjects:Present|BlipStore:Present|PictureBlipReferences:Present|ReferencedBlips:Resolved"]);
             Assert.Equal(1, result.ImportReport.DrawingShapePropertiesByGroup["Shape"]);
             Assert.False(result.ImportReport.DrawingShapePropertiesByGroup.ContainsKey("Unknown"));
             Assert.Equal(1, result.ImportReport.DrawingShapeComplexPropertiesByText["wzName:Chart 5"]);

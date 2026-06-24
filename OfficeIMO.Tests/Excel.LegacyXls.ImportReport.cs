@@ -166,6 +166,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.DrawingBlipStoreEntriesByEmbeddedRecordType["OfficeArtBlipPNG"]);
             Assert.Equal(1, report.DrawingBlipStoreEntriesBySize["SizeBytes:12"]);
             Assert.Equal(1, report.DrawingBlipStoreEntriesByReferenceCount["References:1"]);
+            Assert.Equal(1, report.DrawingPictureStates["PictureObjects:Present|BlipStore:Present|PictureBlipReferences:Missing|ReferencedBlips:None"]);
             Assert.Equal(1, report.DrawingShapeEntriesByType["PictureFrame"]);
             Assert.Equal(1, report.DrawingShapeEntriesById["ShapeId:1024"]);
             Assert.Equal(1, report.DrawingShapeEntriesByFlags["Flags:0x00000A02"]);
