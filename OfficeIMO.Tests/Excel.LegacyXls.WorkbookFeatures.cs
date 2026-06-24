@@ -963,6 +963,15 @@ namespace OfficeIMO.Tests {
             Assert.Equal(3, reference.ExternalNameCount);
             Assert.Equal(0, reference.CachedCellCacheCount);
             Assert.Equal(0, reference.CachedCellCount);
+            LegacyXlsDataConsolidationReference consolidationReference = Assert.Single(legacy.DataConsolidationReferences);
+            Assert.Equal(LegacyXlsDataConsolidationSourceKind.ExternalVirtualPath, consolidationReference.SourceKind);
+            Assert.Equal("C:\\Data\\Budget.xls", consolidationReference.Source);
+            Assert.Equal("B2:D4", consolidationReference.CellRange);
+            Assert.Equal(2, consolidationReference.FirstRow);
+            Assert.Equal(4, consolidationReference.LastRow);
+            Assert.Equal(2, consolidationReference.FirstColumn);
+            Assert.Equal(4, consolidationReference.LastColumn);
+            Assert.Equal(0, consolidationReference.UnusedByteCount);
             Assert.True(legacy.HasRefreshAllMarker);
             Assert.Equal(1, legacy.MetadataRecords.Count(record => record.Kind == LegacyXlsWorkbookMetadataKind.RefreshAll));
             Assert.Equal(3, reference.ExternalNames.Count);
@@ -986,6 +995,11 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.ExternalReferencesByExternalNameCount["Names:3"]);
             Assert.Equal(1, report.ExternalReferencesByCacheCount["Caches:0"]);
             Assert.Equal(1, report.ExternalReferencesByCachedCellCount["CachedCells:0"]);
+            Assert.Equal(1, report.DataConsolidationReferenceCount);
+            Assert.Equal(1, report.DataConsolidationReferencesBySourceKind["ExternalVirtualPath"]);
+            Assert.Equal(1, report.DataConsolidationReferencesBySource["C:\\Data\\Budget.xls"]);
+            Assert.Equal(1, report.DataConsolidationReferencesByRange["B2:D4"]);
+            Assert.Equal(1, report.DataConsolidationReferencesByUnusedByteCount["UnusedBytes:0"]);
             Assert.Equal(2, report.ExternalSheetNamesByReferenceKind[LegacyXlsExternalReferenceKind.ExternalWorkbook]);
             Assert.Equal(3, report.ExternalNamesByReferenceKind[LegacyXlsExternalReferenceKind.ExternalWorkbook]);
             Assert.Equal(1, report.ExternalNamesByName["TaxRate"]);
@@ -997,8 +1011,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.ExternalNamesByBuiltInState["BuiltIn"]);
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ExternalReference && feature.RecordType == 0x01ae && feature.Description.Contains("C:\\Data\\Budget.xls", StringComparison.Ordinal));
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ExternalReference && feature.DetailCode == "ExternalReference:ExternalWorkbook");
+            Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ExternalReference && feature.DetailCode == "ExternalReference:DConRef");
             Assert.Contains(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED" && d.RecordType == 0x01ae);
             Assert.Contains(legacy.Diagnostics, d => d.DetailCode == "ExternalReference:ExternalWorkbook");
+            Assert.Contains(legacy.Diagnostics, d => d.DetailCode == "ExternalReference:DConRef");
             Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ExternalReference && feature.RecordType == 0x0023);
             Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ExternalReference && feature.RecordType == 0x01b7);
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED" && d.RecordType == 0x0023);

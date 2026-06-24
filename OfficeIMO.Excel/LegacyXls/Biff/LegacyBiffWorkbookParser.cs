@@ -103,6 +103,12 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     if (options.ReportUnsupportedRecords) {
                         BiffUnsupportedRecordDiagnostics.AddUnsupportedRecordDiagnostic(workbook.MutableDiagnostics, record.Type, record.Offset, sheetName: null);
                     }
+                } else if (BiffDataConsolidationReferenceReader.TryRead(record, workbook.MutableDiagnostics, out LegacyXlsDataConsolidationReference? dataConsolidationReference)) {
+                    workbook.MutableDataConsolidationReferences.Add(dataConsolidationReference!);
+                    AddUnsupportedRecordFeature(workbook, record, sheetName: null);
+                    if (options.ReportUnsupportedRecords) {
+                        BiffUnsupportedRecordDiagnostics.AddUnsupportedRecordDiagnostic(workbook.MutableDiagnostics, record.Type, record.Offset, sheetName: null);
+                    }
                 } else if (BiffChartMetadataReader.TryRead(record, sheetName: null, workbook.MutableChartRecords)) {
                     AddUnsupportedRecordFeature(workbook, record, sheetName: null);
                     if (options.ReportUnsupportedRecords) {

@@ -15,6 +15,7 @@ External sheet names: 0
 External names: 0
 External cell caches: 0
 External cached cells: 0
+Data consolidation references: 1
 Pivot table records: 94
 Chart records: 149
 Drawing records: 32
@@ -536,6 +537,30 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | CachedCells:0 | 1 |
+
+## Data Consolidation References By Source Kind
+
+| Key | Count |
+| --- | --- |
+| SelfReference | 1 |
+
+## Data Consolidation References By Source
+
+| Key | Count |
+| --- | --- |
+| SalesData | 1 |
+
+## Data Consolidation References By Range
+
+| Key | Count |
+| --- | --- |
+| A1:G13 | 1 |
+
+## Data Consolidation References By Unused Byte Count
+
+| Key | Count |
+| --- | --- |
+| UnusedBytes:0 | 1 |
 
 ## Theme Records By Version
 

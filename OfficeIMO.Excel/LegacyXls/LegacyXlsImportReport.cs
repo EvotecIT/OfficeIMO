@@ -88,6 +88,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             ExternalNameCount = workbook.ExternalReferences.Sum(reference => reference.ExternalNames.Count);
             ExternalCellCacheCount = workbook.ExternalReferences.Sum(reference => reference.CachedCellCaches.Count);
             ExternalCachedCellCount = workbook.ExternalReferences.Sum(reference => reference.CachedCellCaches.Sum(cache => cache.Cells.Count));
+            DataConsolidationReferenceCount = workbook.DataConsolidationReferences.Count;
             PivotTableRecordCount = workbook.PivotTableRecords.Count;
             ChartRecordCount = workbook.ChartRecords.Count;
             DrawingRecordCount = workbook.DrawingRecords.Count;
@@ -204,6 +205,10 @@ namespace OfficeIMO.Excel.LegacyXls {
             ExternalCellCachesByColumnSpan = CountByCode(workbook.ExternalReferences.SelectMany(reference => reference.CachedCellCaches.Select(cache => cache.ColumnSpan.HasValue ? $"Columns:{cache.ColumnSpan.Value}" : "(empty)")));
             ExternalCellCachesByLinkState = CountByCode(workbook.ExternalReferences.SelectMany(reference => reference.CachedCellCaches.Select(cache => cache.LinkValid ? "ValidLink" : "InvalidLink")));
             ExternalCachedCellsByValueKind = CountExternalCachedCellsByValueKind(workbook.ExternalReferences);
+            DataConsolidationReferencesBySourceKind = CountByCode(workbook.DataConsolidationReferences.Select(reference => reference.SourceKind.ToString()));
+            DataConsolidationReferencesBySource = CountByCode(workbook.DataConsolidationReferences.Select(reference => reference.Source));
+            DataConsolidationReferencesByRange = CountByCode(workbook.DataConsolidationReferences.Select(reference => reference.CellRange));
+            DataConsolidationReferencesByUnusedByteCount = CountByCode(workbook.DataConsolidationReferences.Select(reference => $"UnusedBytes:{reference.UnusedByteCount}"));
             ThemeRecordsByVersion = CountByCode(workbook.ThemeRecords.Select(record => record.ThemeVersionName));
             ThemeRecordsByRawVersion = CountByCode(workbook.ThemeRecords.Select(record => $"Version:{record.ThemeVersion}"));
             ThemeRecordsByContentState = CountByCode(workbook.ThemeRecords.Select(record => record.HasThemeBytes ? "EmbeddedThemeBytes" : "NoEmbeddedThemeBytes"));
@@ -659,6 +664,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets the number of preserved cached external cell values.</summary>
         public int ExternalCachedCellCount { get; }
 
+        /// <summary>Gets the number of preserve-only DConRef source range records decoded during import.</summary>
+        public int DataConsolidationReferenceCount { get; }
+
         /// <summary>Gets the number of preserve-only PivotTable BIFF records discovered during import.</summary>
         public int PivotTableRecordCount { get; }
 
@@ -877,6 +885,18 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets cached external cell values grouped by value kind.</summary>
         public IReadOnlyDictionary<LegacyXlsCellValueKind, int> ExternalCachedCellsByValueKind { get; }
+
+        /// <summary>Gets DConRef records grouped by decoded DConFile source kind.</summary>
+        public IReadOnlyDictionary<string, int> DataConsolidationReferencesBySourceKind { get; }
+
+        /// <summary>Gets DConRef records grouped by decoded source path or sheet name.</summary>
+        public IReadOnlyDictionary<string, int> DataConsolidationReferencesBySource { get; }
+
+        /// <summary>Gets DConRef records grouped by decoded source range.</summary>
+        public IReadOnlyDictionary<string, int> DataConsolidationReferencesByRange { get; }
+
+        /// <summary>Gets DConRef records grouped by trailing unused byte count.</summary>
+        public IReadOnlyDictionary<string, int> DataConsolidationReferencesByUnusedByteCount { get; }
 
         /// <summary>Gets Theme records grouped by decoded theme version.</summary>
         public IReadOnlyDictionary<string, int> ThemeRecordsByVersion { get; }
@@ -1257,6 +1277,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             builder.AppendLine($"External names: {ExternalNameCount}");
             builder.AppendLine($"External cell caches: {ExternalCellCacheCount}");
             builder.AppendLine($"External cached cells: {ExternalCachedCellCount}");
+            builder.AppendLine($"Data consolidation references: {DataConsolidationReferenceCount}");
             builder.AppendLine($"Pivot table records: {PivotTableRecordCount}");
             builder.AppendLine($"Chart records: {ChartRecordCount}");
             builder.AppendLine($"Drawing records: {DrawingRecordCount}");
@@ -1382,6 +1403,10 @@ namespace OfficeIMO.Excel.LegacyXls {
                 entry => entry.Key.ToString(),
                 entry => entry.Value,
                 StringComparer.OrdinalIgnoreCase));
+            AppendDictionary(builder, "Data Consolidation References By Source Kind", DataConsolidationReferencesBySourceKind);
+            AppendDictionary(builder, "Data Consolidation References By Source", DataConsolidationReferencesBySource);
+            AppendDictionary(builder, "Data Consolidation References By Range", DataConsolidationReferencesByRange);
+            AppendDictionary(builder, "Data Consolidation References By Unused Byte Count", DataConsolidationReferencesByUnusedByteCount);
             AppendDictionary(builder, "Theme Records By Version", ThemeRecordsByVersion);
             AppendDictionary(builder, "Theme Records By Raw Version", ThemeRecordsByRawVersion);
             AppendDictionary(builder, "Theme Records By Content State", ThemeRecordsByContentState);

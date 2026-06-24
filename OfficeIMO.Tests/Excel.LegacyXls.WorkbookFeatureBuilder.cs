@@ -554,6 +554,7 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x0023, BuildExternalNamePayload("FebTaxRate", oneBasedSheetIndex: 2));
                 WriteRecord(stream, 0x0023, BuildExternalNamePayload(((char)0x06).ToString(), builtIn: true));
                 WriteRecord(stream, 0x01b7, Array.Empty<byte>());
+                WriteRecord(stream, 0x0051, BuildDConRefPayload(1, 1, 3, 3, "C:\\Data\\Budget.xls"));
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 int sheetOffset = checked((int)stream.Position);
@@ -1715,6 +1716,18 @@ namespace OfficeIMO.Tests {
                     WriteCompressedUnicodeStringNoCch(stream, sheetName);
                 }
 
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildDConRefPayload(ushort firstRow, byte firstColumn, ushort lastRow, byte lastColumn, string externalPath) {
+                string source = ((char)0x01) + externalPath;
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, firstRow);
+                WriteUInt16(stream, lastRow);
+                stream.WriteByte(firstColumn);
+                stream.WriteByte(lastColumn);
+                WriteUInt16(stream, checked((ushort)source.Length));
+                WriteCompressedUnicodeStringNoCch(stream, source);
                 return stream.ToArray();
             }
 

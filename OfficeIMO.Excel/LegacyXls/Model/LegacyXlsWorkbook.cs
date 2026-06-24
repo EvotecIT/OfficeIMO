@@ -17,6 +17,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         private readonly List<LegacyXlsCellStyleExtension> _cellStyleExtensions = new();
         private readonly List<LegacyXlsDefinedName> _definedNames = new();
         private readonly List<LegacyXlsExternalReference> _externalReferences = new();
+        private readonly List<LegacyXlsDataConsolidationReference> _dataConsolidationReferences = new();
         private readonly List<LegacyXlsPivotTableRecord> _pivotTableRecords = new();
         private readonly List<LegacyXlsChartRecord> _chartRecords = new();
         private readonly List<LegacyXlsDrawingRecord> _drawingRecords = new();
@@ -79,6 +80,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// Gets supporting links discovered from SupBook records.
         /// </summary>
         public IReadOnlyList<LegacyXlsExternalReference> ExternalReferences => _externalReferences;
+
+        /// <summary>
+        /// Gets preserve-only DConRef source ranges discovered during import.
+        /// </summary>
+        public IReadOnlyList<LegacyXlsDataConsolidationReference> DataConsolidationReferences => _dataConsolidationReferences;
 
         /// <summary>
         /// Gets preserve-only PivotTable BIFF records discovered during import.
@@ -288,6 +294,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         internal List<LegacyXlsDefinedName> MutableDefinedNames => _definedNames;
 
         internal List<LegacyXlsExternalReference> MutableExternalReferences => _externalReferences;
+
+        internal List<LegacyXlsDataConsolidationReference> MutableDataConsolidationReferences => _dataConsolidationReferences;
 
         internal List<LegacyXlsPivotTableRecord> MutablePivotTableRecords => _pivotTableRecords;
 
