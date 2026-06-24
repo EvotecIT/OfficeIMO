@@ -278,7 +278,10 @@ namespace OfficeIMO.Excel {
                     shrinkToFit: cell.Style.ShrinkToFit);
             }
 
-            double layoutWidth = rotated ? Math.Max(availableWidth, availableHeight) : availableWidth;
+            double lineHeight = Math.Ceiling(fontSize * CellTextLineHeightFactor);
+            double layoutWidth = rotated
+                ? OfficeTextLayoutEngine.ResolveRotatedTextWidthLimit(availableWidth, availableHeight, lineHeight, rotationDegrees)
+                : availableWidth;
             double layoutHeight = rotated ? Math.Max(availableWidth, availableHeight) : availableHeight;
             OfficeTextAlignment alignment = rotated
                 ? OfficeTextAlignment.Center
@@ -440,7 +443,7 @@ namespace OfficeIMO.Excel {
 
             double estimatedLineHeight = Math.Ceiling(ResolveMaxRichTextRunFontSize(runs) * CellTextLineHeightFactor);
             double layoutWidth = rotated
-                ? ResolveRotatedTextWidthLimit(availableWidth, availableHeight, estimatedLineHeight, rotationDegrees)
+                ? OfficeTextLayoutEngine.ResolveRotatedTextWidthLimit(availableWidth, availableHeight, estimatedLineHeight, rotationDegrees)
                 : availableWidth;
             double layoutHeight = rotated ? Math.Max(availableWidth, availableHeight) : availableHeight;
             layout = OfficeTextLayoutEngine.LayoutRichTextBlock(
@@ -466,30 +469,6 @@ namespace OfficeIMO.Excel {
             }
 
             return max;
-        }
-
-        private static double ResolveRotatedTextWidthLimit(double availableWidth, double availableHeight, double lineHeight, double rotationDegrees) {
-            double width = Math.Max(1D, availableWidth);
-            double height = Math.Max(1D, availableHeight);
-            double radians = Math.Abs(rotationDegrees) * Math.PI / 180D;
-            double cos = Math.Abs(Math.Cos(radians));
-            double sin = Math.Abs(Math.Sin(radians));
-            double estimatedHeight = Math.Max(1D, lineHeight);
-            double limit = Math.Max(width, height);
-
-            if (cos > 0.000001D) {
-                limit = Math.Min(limit, (width - (estimatedHeight * sin)) / cos);
-            }
-
-            if (sin > 0.000001D) {
-                limit = Math.Min(limit, (height - (estimatedHeight * cos)) / sin);
-            }
-
-            if (double.IsNaN(limit) || double.IsInfinity(limit)) {
-                return Math.Max(width, height);
-            }
-
-            return Math.Max(1D, limit);
         }
 
         private static double ResolveRunFontSize(ExcelVisualTextRun run, ExcelCellStyleSnapshot style, double scale) {

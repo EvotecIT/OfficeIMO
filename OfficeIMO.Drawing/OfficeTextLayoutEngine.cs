@@ -197,6 +197,38 @@ public static partial class OfficeTextLayoutEngine {
     }
 
     /// <summary>
+    /// Estimates the maximum unrotated single-line text width that can remain inside a rotated bounding rectangle.
+    /// </summary>
+    /// <param name="availableWidth">Available unrotated rectangle width.</param>
+    /// <param name="availableHeight">Available unrotated rectangle height.</param>
+    /// <param name="lineHeight">Estimated rendered line height.</param>
+    /// <param name="rotationDegrees">Clockwise rotation in degrees.</param>
+    /// <returns>A positive width limit that callers can pass to single-line rotated text layout.</returns>
+    public static double ResolveRotatedTextWidthLimit(double availableWidth, double availableHeight, double lineHeight, double rotationDegrees) {
+        double width = Math.Max(1D, NormalizeNonNegative(availableWidth));
+        double height = Math.Max(1D, NormalizeNonNegative(availableHeight));
+        double radians = Math.Abs(rotationDegrees) * Math.PI / 180D;
+        double cos = Math.Abs(Math.Cos(radians));
+        double sin = Math.Abs(Math.Sin(radians));
+        double estimatedHeight = Math.Max(1D, NormalizePositive(lineHeight, 1D));
+        double limit = Math.Max(width, height);
+
+        if (cos > 0.000001D) {
+            limit = Math.Min(limit, (width - (estimatedHeight * sin)) / cos);
+        }
+
+        if (sin > 0.000001D) {
+            limit = Math.Min(limit, (height - (estimatedHeight * cos)) / sin);
+        }
+
+        if (double.IsNaN(limit) || double.IsInfinity(limit)) {
+            return Math.Max(width, height);
+        }
+
+        return Math.Max(1D, limit);
+    }
+
+    /// <summary>
     /// Lays out a bounded text block with optional wrapping, single-line normalization, shrink-to-fit, and height clipping.
     /// </summary>
     /// <param name="text">Text to lay out.</param>

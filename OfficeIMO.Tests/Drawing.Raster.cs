@@ -258,6 +258,19 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeTextLayoutEngine_ResolvesRotatedTextWidthLimitInsideBounds() {
+            double unrotated = OfficeTextLayoutEngine.ResolveRotatedTextWidthLimit(80D, 40D, 12D, 0D);
+            double diagonal = OfficeTextLayoutEngine.ResolveRotatedTextWidthLimit(80D, 40D, 12D, 45D);
+            double vertical = OfficeTextLayoutEngine.ResolveRotatedTextWidthLimit(80D, 40D, 12D, 90D);
+            double tiny = OfficeTextLayoutEngine.ResolveRotatedTextWidthLimit(6D, 6D, 20D, 45D);
+
+            Assert.Equal(80D, unrotated);
+            Assert.InRange(diagonal, 44D, 45D);
+            Assert.Equal(40D, vertical, precision: 10);
+            Assert.Equal(1D, tiny);
+        }
+
+        [Fact]
         public void OfficeTextLayoutEngine_LayoutsBoundedTextBlockWithShrinkWrapAndClipping() {
             double Measure(string? value, double size) => (value?.Length ?? 0) * size;
 
