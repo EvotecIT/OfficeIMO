@@ -63,6 +63,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                         break;
                     case 0x0864:
                         ReadAdditionalMetadata(record, pivotRecord);
+                        state?.TrackAdditionalRecord(pivotRecord);
                         break;
                 }
             } catch (InvalidDataException) {
@@ -409,6 +410,34 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         private LegacyXlsPivotTableRecord? _pendingGroupingRange;
         private int _expectedOffset;
         private int _valueIndex;
+        private int _additionalDepth;
+        private int _additionalSequence;
+
+        internal void TrackAdditionalRecord(LegacyXlsPivotTableRecord pivotRecord) {
+            if (!pivotRecord.AdditionalClass.HasValue || !pivotRecord.AdditionalType.HasValue) {
+                return;
+            }
+
+            _additionalSequence++;
+            int depthBefore = _additionalDepth;
+            string transition;
+
+            if (pivotRecord.AdditionalType == 0x00) {
+                _additionalDepth++;
+                transition = "BeginClass";
+            } else if (pivotRecord.AdditionalType == 0xFF) {
+                if (_additionalDepth == 0) {
+                    transition = "UnmatchedEndClass";
+                } else {
+                    _additionalDepth--;
+                    transition = "EndClass";
+                }
+            } else {
+                transition = _additionalDepth == 0 ? "OutsideClass" : "InsideClass";
+            }
+
+            pivotRecord.SetAdditionalClassNesting(_additionalSequence, depthBefore, _additionalDepth, transition);
+        }
 
         internal void TrackGroupingRange(BiffRecord record, LegacyXlsPivotTableRecord pivotRecord) {
             _pendingGroupingRange = pivotRecord;

@@ -208,6 +208,18 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>Gets the PivotCache identifier carried by an SXAddl SxcCache/SXDId record, when decoded.</summary>
         public uint? AdditionalCacheId { get; private set; }
 
+        /// <summary>Gets the one-based SXAddl sequence index within the scanned PivotTable scope.</summary>
+        public int? AdditionalSequenceIndex { get; private set; }
+
+        /// <summary>Gets the SXAddl class nesting depth before this record is applied.</summary>
+        public int? AdditionalClassDepthBefore { get; private set; }
+
+        /// <summary>Gets the SXAddl class nesting depth after this record is applied.</summary>
+        public int? AdditionalClassDepthAfter { get; private set; }
+
+        /// <summary>Gets the shallow SXAddl class-stack transition represented by this record.</summary>
+        public string? AdditionalClassTransition { get; private set; }
+
         /// <summary>Gets the value kind for a PivotCache cache item record, when decoded.</summary>
         public LegacyXlsPivotCacheItemKind? CacheItemKind { get; private set; }
 
@@ -369,6 +381,13 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             AdditionalType = additionalType;
             AdditionalTypeName = GetAdditionalTypeName(additionalClass, additionalType);
             AdditionalCacheId = cacheId;
+        }
+
+        internal void SetAdditionalClassNesting(int sequenceIndex, int depthBefore, int depthAfter, string transition) {
+            AdditionalSequenceIndex = sequenceIndex;
+            AdditionalClassDepthBefore = depthBefore;
+            AdditionalClassDepthAfter = depthAfter;
+            AdditionalClassTransition = string.IsNullOrWhiteSpace(transition) ? null : transition;
         }
 
         internal void SetCacheItemEmpty() {

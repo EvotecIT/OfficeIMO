@@ -634,6 +634,7 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x00ff, BuildSxVdExPayload());
                 WriteRecord(stream, 0x0858, Array.Empty<byte>());
                 WriteRecord(stream, 0x0864, BuildSxAddlPayload());
+                WriteRecord(stream, 0x0864, BuildSxAddlEndPayload());
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 byte[] bytes = stream.ToArray();
@@ -2337,6 +2338,15 @@ namespace OfficeIMO.Tests {
                 stream.WriteByte(0x00);
                 WriteUInt32(stream, 1);
                 WriteUInt16(stream, 0);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildSxAddlEndPayload() {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, 0x0864);
+                WriteUInt16(stream, 0);
+                stream.WriteByte(0x03);
+                stream.WriteByte(0xff);
                 return stream.ToArray();
             }
 

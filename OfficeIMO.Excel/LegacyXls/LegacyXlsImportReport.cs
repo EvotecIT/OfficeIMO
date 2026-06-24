@@ -468,6 +468,20 @@ namespace OfficeIMO.Excel.LegacyXls {
             PivotTableAdditionalCacheIds = CountByCode(workbook.PivotTableRecords
                 .Where(record => record.AdditionalCacheId.HasValue)
                 .Select(record => $"CacheId:{record.AdditionalCacheId!.Value}"));
+            PivotTableAdditionalClassDepthsBefore = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.AdditionalClassDepthBefore.HasValue)
+                .Select(record => $"Depth:{record.AdditionalClassDepthBefore!.Value}"));
+            PivotTableAdditionalClassDepthsAfter = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.AdditionalClassDepthAfter.HasValue)
+                .Select(record => $"Depth:{record.AdditionalClassDepthAfter!.Value}"));
+            PivotTableAdditionalClassTransitions = CountByCode(workbook.PivotTableRecords
+                .Where(record => !string.IsNullOrWhiteSpace(record.AdditionalClassTransition))
+                .Select(record => record.AdditionalClassTransition!));
+            PivotTableAdditionalClassTransitionsByClassType = CountByCode(workbook.PivotTableRecords
+                .Where(record => !string.IsNullOrWhiteSpace(record.AdditionalClassName)
+                    && !string.IsNullOrWhiteSpace(record.AdditionalTypeName)
+                    && !string.IsNullOrWhiteSpace(record.AdditionalClassTransition))
+                .Select(record => $"{GetPivotTableAdditionalClassTypeKey(record)}|{record.AdditionalClassTransition}"));
             ChartRecordsByKind = CountChartRecordsByKind(workbook.ChartRecords);
             ChartRecordsByName = CountByCode(workbook.ChartRecords.Select(record => record.RecordName));
             ChartWorkbookStates = CountByCode(GetChartWorkbookStateKeys(workbook.ChartRecords, workbook.UnsupportedSheets));
@@ -1659,6 +1673,18 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets decoded SXAddl SxcCache/SXDId records grouped by PivotCache identifier.</summary>
         public IReadOnlyDictionary<string, int> PivotTableAdditionalCacheIds { get; }
 
+        /// <summary>Gets decoded SXAddl records grouped by class nesting depth before each record is applied.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableAdditionalClassDepthsBefore { get; }
+
+        /// <summary>Gets decoded SXAddl records grouped by class nesting depth after each record is applied.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableAdditionalClassDepthsAfter { get; }
+
+        /// <summary>Gets decoded SXAddl records grouped by shallow class-stack transition.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableAdditionalClassTransitions { get; }
+
+        /// <summary>Gets decoded SXAddl records grouped by class, detail type, and shallow class-stack transition.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableAdditionalClassTransitionsByClassType { get; }
+
         /// <summary>Gets preserve-only chart BIFF records grouped by shallow category.</summary>
         public IReadOnlyDictionary<LegacyXlsChartRecordKind, int> ChartRecordsByKind { get; }
 
@@ -2406,6 +2432,10 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Pivot Table Additional Types", PivotTableAdditionalTypes);
             AppendDictionary(builder, "Pivot Table Additional Class Types", PivotTableAdditionalClassTypes);
             AppendDictionary(builder, "Pivot Table Additional Cache Ids", PivotTableAdditionalCacheIds);
+            AppendDictionary(builder, "Pivot Table Additional Class Depths Before", PivotTableAdditionalClassDepthsBefore);
+            AppendDictionary(builder, "Pivot Table Additional Class Depths After", PivotTableAdditionalClassDepthsAfter);
+            AppendDictionary(builder, "Pivot Table Additional Class Transitions", PivotTableAdditionalClassTransitions);
+            AppendDictionary(builder, "Pivot Table Additional Class Transitions By Class Type", PivotTableAdditionalClassTransitionsByClassType);
             AppendDictionary(builder, "Chart Records By Kind", ChartRecordsByKind.ToDictionary(
                 entry => entry.Key.ToString(),
                 entry => entry.Value,

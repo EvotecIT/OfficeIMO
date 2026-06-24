@@ -952,6 +952,52 @@ Warnings: 0
 | --- | --- |
 | CacheId:1 | 1 |
 
+## Pivot Table Additional Class Depths Before
+
+| Key | Count |
+| --- | --- |
+| Depth:0 | 2 |
+| Depth:1 | 20 |
+| Depth:2 | 28 |
+
+## Pivot Table Additional Class Depths After
+
+| Key | Count |
+| --- | --- |
+| Depth:0 | 2 |
+| Depth:1 | 20 |
+| Depth:2 | 28 |
+
+## Pivot Table Additional Class Transitions
+
+| Key | Count |
+| --- | --- |
+| BeginClass | 9 |
+| EndClass | 9 |
+| InsideClass | 32 |
+
+## Pivot Table Additional Class Transitions By Class Type
+
+| Key | Count |
+| --- | --- |
+| SxcCache\|SXD:0x01\|InsideClass | 2 |
+| SxcCache\|SXD:0x02\|InsideClass | 1 |
+| SxcCache\|SXD:0x18\|InsideClass | 1 |
+| SxcCache\|SXD:0x34\|InsideClass | 1 |
+| SxcCache\|SXD:0x41\|InsideClass | 1 |
+| SxcCache\|SXDEnd\|EndClass | 1 |
+| SxcCache\|SXDId\|BeginClass | 1 |
+| SxcField12\|SXD:0x01\|InsideClass | 14 |
+| SxcField12\|SXDEnd\|EndClass | 7 |
+| SxcField12\|SXDId\|BeginClass | 7 |
+| SxcField12\|SXDVer12Info\|InsideClass | 7 |
+| SxcView\|SXD:0x01\|InsideClass | 2 |
+| SxcView\|SXD:0x1E\|InsideClass | 1 |
+| SxcView\|SXDEnd\|EndClass | 1 |
+| SxcView\|SXDId\|BeginClass | 1 |
+| SxcView\|SXDVer10Info\|InsideClass | 1 |
+| SxcView\|SXDVer12Info\|InsideClass | 1 |
+
 ## Chart Records By Kind
 
 | Key | Count |
