@@ -639,6 +639,41 @@ public static class OfficeGeometry {
     }
 
     /// <summary>
+    /// Calculates axis-aligned bounds for a rectangle after rotation around a supplied center.
+    /// </summary>
+    /// <param name="x">Rectangle left coordinate.</param>
+    /// <param name="y">Rectangle top coordinate.</param>
+    /// <param name="width">Rectangle width.</param>
+    /// <param name="height">Rectangle height.</param>
+    /// <param name="rotationDegrees">Rotation angle in degrees.</param>
+    /// <param name="centerX">Rotation center X coordinate.</param>
+    /// <param name="centerY">Rotation center Y coordinate.</param>
+    /// <returns>Axis-aligned bounds of the rotated rectangle.</returns>
+    public static (double Left, double Top, double Right, double Bottom) GetRotatedRectangleBounds(
+        double x,
+        double y,
+        double width,
+        double height,
+        double rotationDegrees,
+        double centerX,
+        double centerY) {
+        if (Math.Abs(rotationDegrees) <= 0.000001D) {
+            return (x, y, x + width, y + height);
+        }
+
+        double radians = DegreesToRadians(rotationDegrees);
+        OfficePoint topLeft = RotatePoint(new OfficePoint(x, y), centerX, centerY, radians);
+        OfficePoint topRight = RotatePoint(new OfficePoint(x + width, y), centerX, centerY, radians);
+        OfficePoint bottomRight = RotatePoint(new OfficePoint(x + width, y + height), centerX, centerY, radians);
+        OfficePoint bottomLeft = RotatePoint(new OfficePoint(x, y + height), centerX, centerY, radians);
+        double left = Math.Min(Math.Min(topLeft.X, topRight.X), Math.Min(bottomRight.X, bottomLeft.X));
+        double top = Math.Min(Math.Min(topLeft.Y, topRight.Y), Math.Min(bottomRight.Y, bottomLeft.Y));
+        double right = Math.Max(Math.Max(topLeft.X, topRight.X), Math.Max(bottomRight.X, bottomLeft.X));
+        double bottom = Math.Max(Math.Max(topLeft.Y, topRight.Y), Math.Max(bottomRight.Y, bottomLeft.Y));
+        return (left, top, right, bottom);
+    }
+
+    /// <summary>
     /// Converts degrees to radians.
     /// </summary>
     /// <param name="degrees">Angle in degrees.</param>

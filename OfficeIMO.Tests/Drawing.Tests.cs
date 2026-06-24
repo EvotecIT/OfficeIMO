@@ -1835,6 +1835,20 @@ public class DrawingTests {
         (double x, double y) = OfficeGeometry.RotatePoint((1D, 0D), 0D, 0D, -radians);
         Assert.Equal(0D, x, precision: 10);
         Assert.Equal(-1D, y, precision: 10);
+
+        (double left, double top, double right, double bottom) = OfficeGeometry.GetRotatedRectangleBounds(
+            x: 0D,
+            y: 0D,
+            width: 10D,
+            height: 20D,
+            rotationDegrees: 90D,
+            centerX: 5D,
+            centerY: 10D);
+
+        Assert.Equal(-5D, left, precision: 10);
+        Assert.Equal(5D, top, precision: 10);
+        Assert.Equal(15D, right, precision: 10);
+        Assert.Equal(15D, bottom, precision: 10);
     }
 
     [Fact]

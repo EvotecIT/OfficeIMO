@@ -108,12 +108,17 @@ namespace OfficeIMO.Excel {
         }
 
         private static void ExpandRotatedShapeBounds(double width, double height, double rotationDegrees, double strokeWidth, out double offsetX, out double offsetY) {
-            double radians = OfficeGeometry.DegreesToRadians(rotationDegrees);
-            double rotatedWidth = (Math.Abs(width * Math.Cos(radians)) + Math.Abs(height * Math.Sin(radians)));
-            double rotatedHeight = (Math.Abs(width * Math.Sin(radians)) + Math.Abs(height * Math.Cos(radians)));
+            (double left, double top, double right, double bottom) = OfficeGeometry.GetRotatedRectangleBounds(
+                0D,
+                0D,
+                width,
+                height,
+                rotationDegrees,
+                width / 2D,
+                height / 2D);
             double strokePadding = strokeWidth > 0D ? strokeWidth : 0D;
-            offsetX = Math.Max(0D, (rotatedWidth - width) / 2D) + strokePadding;
-            offsetY = Math.Max(0D, (rotatedHeight - height) / 2D) + strokePadding;
+            offsetX = Math.Max(0D, Math.Max(-left, right - width)) + strokePadding;
+            offsetY = Math.Max(0D, Math.Max(-top, bottom - height)) + strokePadding;
         }
 
         private readonly struct DrawingObjectScene {
