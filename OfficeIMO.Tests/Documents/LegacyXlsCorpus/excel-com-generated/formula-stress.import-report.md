@@ -31,7 +31,7 @@ Compound VBA module bytes: 0
 Calculation setting records: 7
 Cell style records: 47
 Cell style extension records: 110
-Formula token records: 45
+Formula token records: 49
 Workbook metadata records: 18
 Worksheet metadata records: 5
 Unsupported sheet metadata records: 0
@@ -59,9 +59,9 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | PtgAdd | 1 |
-| PtgArea | 1 |
-| PtgArray | 1 |
-| PtgAttr | 5 |
+| PtgArea | 2 |
+| PtgArray | 2 |
+| PtgAttr | 6 |
 | PtgConcat | 2 |
 | PtgDiv | 1 |
 | PtgExp | 1 |
@@ -70,6 +70,7 @@ Warnings: 0
 | PtgGt | 2 |
 | PtgInt | 2 |
 | PtgLe | 1 |
+| PtgMul | 1 |
 | PtgNe | 1 |
 | PtgPercent | 1 |
 | PtgPower | 1 |
@@ -82,6 +83,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
+| ArrayFormula | 4 |
 | CellFormula | 44 |
 | SharedFormulaReference | 1 |
 
@@ -89,12 +91,13 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| Formulas | 45 |
+| Formulas | 49 |
 
 ## Formula Tokens By Context And Sheet
 
 | Key | Count |
 | --- | --- |
+| ArrayFormula\|Formulas | 4 |
 | CellFormula\|Formulas | 44 |
 | SharedFormulaReference\|Formulas | 1 |
 
@@ -121,6 +124,10 @@ Warnings: 0
 | 0x0006\|PtgStr | 3 |
 | 0x0006\|PtgUminus | 1 |
 | 0x0006\|PtgUplus | 1 |
+| 0x0221\|PtgArea | 1 |
+| 0x0221\|PtgArray | 1 |
+| 0x0221\|PtgAttr | 1 |
+| 0x0221\|PtgMul | 1 |
 
 ## Formula Functions By Id
 
@@ -142,7 +149,7 @@ Warnings: 0
 | --- | --- |
 | Goto | 2 |
 | If | 1 |
-| Sum | 2 |
+| Sum | 3 |
 
 ## Worksheets By Visibility
 

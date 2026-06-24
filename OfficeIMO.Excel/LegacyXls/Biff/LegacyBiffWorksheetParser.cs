@@ -210,7 +210,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
                         break;
                     case BiffRecordType.Array:
-                        sharedFormulaState.TryConsumeArrayFormula(payload);
+                        sharedFormulaState.TryConsumeArrayFormula(payload, offset);
                         AddUnsupportedFeature(unsupportedFeatures, preservedFeatureRecords, diagnostics, options, type, offset, sheet.Name, payload.Length);
                         break;
                     case BiffRecordType.FilterMode:

@@ -162,6 +162,8 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED");
             Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "XLS-BIFF-FORMULA-SHARED-UNRESOLVED");
             Assert.Empty(result.ImportReport.FormulaTokenBlockers);
+            Assert.Equal(4, result.ImportReport.FormulaTokensByContext["ArrayFormula"]);
+            Assert.Equal(4, result.ImportReport.FormulaTokensByContextAndSheet["ArrayFormula|Formulas"]);
             Assert.Contains("ROUND", result.ImportReport.FormulaFunctionsByName.Keys);
             Assert.Contains("IF", result.ImportReport.FormulaFunctionsByName.Keys);
             Assert.Contains("If", result.ImportReport.FormulaAttributesByName.Keys);
@@ -202,6 +204,7 @@ namespace OfficeIMO.Tests {
             AssertCorpusFormula(sheet, 11, 2, "yes", "IF(A1>A3,\"yes\",\"no\")");
             AssertCorpusFormula(sheet, 12, 2, 18d, "SUM(A1:A3)");
             AssertCorpusFormula(sheet, 1, 3, 103.33d, "B1+B10");
+            AssertCorpusFormula(sheet, 1, 4, 31d, "SUM(A1:A3*{1;2;3})");
         }
 
         [Fact]

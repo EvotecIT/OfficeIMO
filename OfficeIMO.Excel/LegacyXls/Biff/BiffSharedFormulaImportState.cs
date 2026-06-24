@@ -115,7 +115,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             return true;
         }
 
-        internal bool TryConsumeArrayFormula(byte[] payload) {
+        internal bool TryConsumeArrayFormula(byte[] payload, int recordOffset) {
             PendingSharedFormulaCell? lastSharedFormulaCell = _lastSharedFormulaCell;
             if (payload.Length < 6 || lastSharedFormulaCell == null) {
                 return false;
@@ -133,10 +133,57 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
             SharedFormulaAnchor anchor = lastSharedFormulaCell.Value.Anchor;
             _lastSharedFormulaCell = null;
+            List<PendingSharedFormulaCell> matchingCells = new();
             for (int i = _pendingCells.Count - 1; i >= 0; i--) {
                 PendingSharedFormulaCell cell = _pendingCells[i];
                 if (cell.Anchor.Equals(anchor) && ContainsCell(firstRow, lastRow, firstColumn, lastColumn, cell.Row - 1, cell.Column - 1)) {
+                    matchingCells.Add(cell);
                     _pendingCells.RemoveAt(i);
+                }
+            }
+
+            if (matchingCells.Count > 0 && TryCreateArrayFormulaPayload(payload, out byte[] formulaPayload)) {
+                PendingSharedFormulaCell formulaCell = lastSharedFormulaCell.Value;
+                string cellReference = A1.ColumnIndexToLetters(formulaCell.Column) + formulaCell.Row.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                BiffFormulaTokenScanner.ScanLengthPrefixed(
+                    formulaPayload,
+                    0,
+                    "ArrayFormula",
+                    _sheet.Name,
+                    cellReference,
+                    recordOffset,
+                    (ushort)BiffRecordType.Array,
+                    _formulaTokenRecords);
+
+                if (BiffFormulaTextReader.TryRead(
+                    formulaPayload,
+                    0,
+                    formulaCell.Row - 1,
+                    formulaCell.Column - 1,
+                    _externSheets,
+                    _externalReferences,
+                    _sheetNames,
+                    _definedNames,
+                    out string? formulaText,
+                    out BiffFormulaReadFailure? failure)) {
+                    if (!string.IsNullOrWhiteSpace(formulaText)) {
+                        foreach (PendingSharedFormulaCell cell in matchingCells) {
+                            _sheet.TryReplaceFormulaText(cell.Row, cell.Column, formulaText!);
+                        }
+                    }
+                } else if (_options.ReportUnsupportedRecords) {
+                    string failureDescription = failure == null ? "Unsupported array formula tokens" : failure.Description;
+                    _diagnostics.Add(new LegacyXlsImportDiagnostic(
+                        LegacyXlsDiagnosticSeverity.Info,
+                        "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED",
+                        $"{failureDescription} Array formula at {cellReference} was imported from its cached result.",
+                        sheetName: _sheet.Name,
+                        recordOffset: recordOffset,
+                        recordType: (ushort)BiffRecordType.Array,
+                        detailCode: failure?.DetailCode,
+                        formulaToken: failure?.Token,
+                        formulaTokenName: failure?.TokenName,
+                        formulaTokenOffset: failure?.TokenOffset));
                 }
             }
 
@@ -217,6 +264,22 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
         private static bool ContainsCell(ushort firstRow, ushort lastRow, ushort firstColumn, ushort lastColumn, int row, int column) {
             return row >= firstRow && row <= lastRow && column >= firstColumn && column <= lastColumn;
+        }
+
+        private static bool TryCreateArrayFormulaPayload(byte[] payload, out byte[] formulaPayload) {
+            formulaPayload = Array.Empty<byte>();
+            if (payload.Length < 14) {
+                return false;
+            }
+
+            ushort expressionLength = BiffRecordReader.ReadUInt16(payload, 12);
+            if (expressionLength == 0 || 14 + expressionLength > payload.Length) {
+                return false;
+            }
+
+            formulaPayload = new byte[payload.Length - 12];
+            Buffer.BlockCopy(payload, 12, formulaPayload, 0, formulaPayload.Length);
+            return true;
         }
 
         private readonly struct SharedFormulaDefinition {
