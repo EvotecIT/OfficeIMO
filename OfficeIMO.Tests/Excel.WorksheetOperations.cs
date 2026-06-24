@@ -602,6 +602,7 @@ namespace OfficeIMO.Tests {
                 source.CellFormula(3, 1, "ROWS(People)");
                 source.CellFormula(4, 1, "'People'!A1+ROWS(People)");
                 source.CellFormula(5, 1, "SUM(Sales[People])+ROWS(People)");
+                source.CellFormula(6, 1, "People.Total+ROWS(People)");
                 sourceDocument.Save();
             }
 
@@ -631,10 +632,12 @@ namespace OfficeIMO.Tests {
                 Cell bareTableFormula = copiedPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A3");
                 Cell sheetQualifiedFormula = copiedPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A4");
                 Cell bracketedColumnFormula = copiedPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A5");
+                Cell dottedNameFormula = copiedPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A6");
                 Assert.Equal($"COUNTIF({copiedTableName}[Name],B2)>0", formula.Text);
                 Assert.Equal($"ROWS({copiedTableName})", bareTableFormula.CellFormula?.Text);
                 Assert.Equal($"'People'!A1+ROWS({copiedTableName})", sheetQualifiedFormula.CellFormula?.Text);
                 Assert.Equal($"SUM(Sales[People])+ROWS({copiedTableName})", bracketedColumnFormula.CellFormula?.Text);
+                Assert.Equal($"People.Total+ROWS({copiedTableName})", dottedNameFormula.CellFormula?.Text);
             }
 
             File.Delete(sourcePath);
@@ -956,6 +959,74 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_CopyWorkSheetFrom_PackageModeDoesNotShiftTimeOnlySerialsAcrossDateSystems() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageTimeOnlySource.xlsx");
+            string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageTimeOnlyTarget.xlsx");
+
+            using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
+                sourceDocument.DateSystem = ExcelDateSystem.NineteenFour;
+                ExcelSheet source = sourceDocument.AddWorkSheet("Times");
+                source.CellValue(1, 1, "Elapsed");
+                source.CellValue(2, 1, TimeSpan.FromHours(12));
+                sourceDocument.Save();
+            }
+
+            using (var sourceDocument = ExcelDocument.Load(sourcePath, readOnly: true))
+            using (var targetDocument = ExcelDocument.Create(targetPath)) {
+                targetDocument.CopyWorkSheetFrom(sourceDocument, "Times", "Imported", SheetNameValidationMode.Sanitize, new ExcelWorksheetCopyOptions {
+                    CopyMode = ExcelWorksheetCopyMode.Package
+                });
+                targetDocument.Save();
+            }
+
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(targetPath, false);
+            WorksheetPart copiedPart = GetWorksheetPartByNameForOperations(spreadsheet, "Imported");
+            Cell timeCell = copiedPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A2");
+            Assert.Equal(0.5D, double.Parse(timeCell.CellValue!.Text, CultureInfo.InvariantCulture), 6);
+
+            File.Delete(sourcePath);
+            File.Delete(targetPath);
+        }
+
+        [Fact]
+        public void Test_CopyWorkSheetFrom_PackageModeCopiesExternalWorkbookReferences() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageExternalLinkSource.xlsx");
+            string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageExternalLinkTarget.xlsx");
+
+            using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
+                ExcelSheet source = sourceDocument.AddWorkSheet("External");
+                source.CellFormula(1, 1, "[1]Sheet1!A1");
+                sourceDocument.Save();
+            }
+
+            using (var targetDocument = ExcelDocument.Create(targetPath)) {
+                targetDocument.AddWorkSheet("Existing").CellFormula(1, 1, "[1]Sheet1!B1");
+                targetDocument.Save();
+            }
+
+            AddExternalWorkbookReference(sourcePath);
+            AddExternalWorkbookReference(targetPath);
+
+            using (var sourceDocument = ExcelDocument.Load(sourcePath, readOnly: true))
+            using (var targetDocument = ExcelDocument.Load(targetPath)) {
+                targetDocument.CopyWorkSheetFrom(sourceDocument, "External", "Imported", SheetNameValidationMode.Sanitize, new ExcelWorksheetCopyOptions {
+                    CopyMode = ExcelWorksheetCopyMode.Package
+                });
+                targetDocument.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(targetPath, false)) {
+                WorksheetPart copiedPart = GetWorksheetPartByNameForOperations(spreadsheet, "Imported");
+                Cell copiedFormula = copiedPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A1");
+                Assert.Equal("[2]Sheet1!A1", copiedFormula.CellFormula?.Text);
+                Assert.Equal(2, spreadsheet.WorkbookPart!.Workbook.ExternalReferences!.Elements<ExternalReference>().Count());
+            }
+
+            File.Delete(sourcePath);
+            File.Delete(targetPath);
+        }
+
+        [Fact]
         public void Test_CopyWorkSheetFrom_PackageModeStripsCellMetadataIndexes() {
             string sourcePath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageMetadataSource.xlsx");
             string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageMetadataTarget.xlsx");
@@ -1225,6 +1296,22 @@ namespace OfficeIMO.Tests {
                     SheetId = 1
                 });
             calculationChainPart.CalculationChain.Save();
+        }
+
+        private static void AddExternalWorkbookReference(string path) {
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(path, true);
+            WorkbookPart workbookPart = spreadsheet.WorkbookPart!;
+            ExternalWorkbookPart externalPart = workbookPart.AddNewPart<ExternalWorkbookPart>();
+            externalPart.ExternalLink = new ExternalLink(
+                new ExternalBook(
+                    new SheetNames(
+                        new SheetName { Val = "Sheet1" })));
+            externalPart.ExternalLink.Save();
+
+            string relationshipId = workbookPart.GetIdOfPart(externalPart);
+            workbookPart.Workbook.ExternalReferences ??= new ExternalReferences();
+            workbookPart.Workbook.ExternalReferences.Append(new ExternalReference { Id = relationshipId });
+            workbookPart.Workbook.Save();
         }
 
         [Fact]

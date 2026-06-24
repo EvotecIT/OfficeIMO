@@ -573,6 +573,109 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        private static void RewriteCopiedWorksheetExternalReferences(WorksheetPart worksheetPart, IReadOnlyDictionary<int, int> externalReferenceMap) {
+            if (externalReferenceMap.Count == 0) {
+                return;
+            }
+
+            foreach (CellFormula formula in worksheetPart.Worksheet!.Descendants<CellFormula>()) {
+                formula.Text = RewriteExternalWorkbookReferenceIndexes(formula.Text, externalReferenceMap);
+            }
+
+            foreach (Formula formula in worksheetPart.Worksheet!.Descendants<Formula>()) {
+                formula.Text = RewriteExternalWorkbookReferenceIndexes(formula.Text, externalReferenceMap);
+            }
+
+            foreach (Formula1 formula in worksheetPart.Worksheet!.Descendants<Formula1>()) {
+                formula.Text = RewriteExternalWorkbookReferenceIndexes(formula.Text, externalReferenceMap);
+            }
+
+            foreach (Formula2 formula in worksheetPart.Worksheet!.Descendants<Formula2>()) {
+                formula.Text = RewriteExternalWorkbookReferenceIndexes(formula.Text, externalReferenceMap);
+            }
+
+            foreach (OfficeFormula formula in worksheetPart.Worksheet!.Descendants<OfficeFormula>()) {
+                formula.Text = RewriteExternalWorkbookReferenceIndexes(formula.Text, externalReferenceMap);
+            }
+
+            foreach (TableDefinitionPart tablePart in worksheetPart.TableDefinitionParts) {
+                if (tablePart.Table == null) {
+                    continue;
+                }
+
+                foreach (CalculatedColumnFormula formula in tablePart.Table.Descendants<CalculatedColumnFormula>()) {
+                    formula.Text = RewriteExternalWorkbookReferenceIndexes(formula.Text, externalReferenceMap);
+                }
+
+                foreach (TotalsRowFormula formula in tablePart.Table.Descendants<TotalsRowFormula>()) {
+                    formula.Text = RewriteExternalWorkbookReferenceIndexes(formula.Text, externalReferenceMap);
+                }
+            }
+        }
+
+        private static string RewriteExternalWorkbookReferenceIndexes(string? formula, IReadOnlyDictionary<int, int> externalReferenceMap) {
+            if (string.IsNullOrEmpty(formula) || externalReferenceMap.Count == 0) {
+                return formula ?? string.Empty;
+            }
+
+            var rewritten = new System.Text.StringBuilder(formula!.Length);
+            bool inStringLiteral = false;
+            for (int index = 0; index < formula!.Length;) {
+                char current = formula[index];
+                if (current == '"') {
+                    rewritten.Append(current);
+                    if (inStringLiteral && index + 1 < formula.Length && formula[index + 1] == '"') {
+                        rewritten.Append(formula[index + 1]);
+                        index += 2;
+                        continue;
+                    }
+
+                    inStringLiteral = !inStringLiteral;
+                    index++;
+                    continue;
+                }
+
+                if (!inStringLiteral && current == '[' && TryReadExternalWorkbookIndex(formula, index, out int sourceIndex, out int closeIndex) && externalReferenceMap.TryGetValue(sourceIndex, out int targetIndex)) {
+                    rewritten.Append('[')
+                        .Append(targetIndex.ToString(CultureInfo.InvariantCulture))
+                        .Append(']');
+                    index = closeIndex + 1;
+                    continue;
+                }
+
+                rewritten.Append(current);
+                index++;
+            }
+
+            return rewritten.ToString();
+        }
+
+        private static bool TryReadExternalWorkbookIndex(string formula, int bracketIndex, out int sourceIndex, out int closeIndex) {
+            sourceIndex = 0;
+            closeIndex = bracketIndex;
+            int index = bracketIndex + 1;
+            if (index >= formula.Length || !char.IsDigit(formula[index])) {
+                return false;
+            }
+
+            while (index < formula.Length && char.IsDigit(formula[index])) {
+                int digit = formula[index] - '0';
+                if (sourceIndex > (int.MaxValue - digit) / 10) {
+                    return false;
+                }
+
+                sourceIndex = (sourceIndex * 10) + digit;
+                index++;
+            }
+
+            if (index >= formula.Length || formula[index] != ']') {
+                return false;
+            }
+
+            closeIndex = index;
+            return sourceIndex > 0;
+        }
+
         private static string RewriteStructuredTableReferences(string? formula, IReadOnlyDictionary<string, string> tableNameMap) {
             if (string.IsNullOrEmpty(formula) || tableNameMap.Count == 0) {
                 return formula ?? string.Empty;
@@ -657,7 +760,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static bool IsFormulaTokenBoundary(char value) {
-            return !(char.IsLetterOrDigit(value) || value == '_' || value == '\\' || value == '\'' || value == '!' || value == ':');
+            return !(char.IsLetterOrDigit(value) || value == '_' || value == '\\' || value == '\'' || value == '!' || value == ':' || value == '.');
         }
 
         private static string MakeUnusedRelationshipId(WorksheetPart worksheetPart) {

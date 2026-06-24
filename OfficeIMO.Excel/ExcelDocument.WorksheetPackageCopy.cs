@@ -57,6 +57,7 @@ namespace OfficeIMO.Excel {
                 ConvertCopiedWorksheetDateSerials(copiedPart.Worksheet, sourceDocument.DateSystem, DateSystem);
                 StripCopiedCellMetadataReferences(copiedPart.Worksheet);
                 RemoveRelationshipBackedWorksheetFeatures(copiedPart.Worksheet);
+                IReadOnlyDictionary<int, int> externalReferenceMap = CopyExternalWorkbookReferencesFromSource(sourceDocument);
                 IReadOnlyDictionary<string, string> tableNameMap = CopyWorksheetTables(sourcePart, copiedPart);
                 bool copiedFormulas = copiedPart.Worksheet.Descendants<CellFormula>()
                     .Any(formula => !string.IsNullOrWhiteSpace(formula.Text));
@@ -69,6 +70,10 @@ namespace OfficeIMO.Excel {
                 };
                 if (rewriteCopiedReferences) {
                     RewriteCopiedWorksheetReferences(copiedPart, sheetNameMap, tableNameMap);
+                }
+
+                if (externalReferenceMap.Count > 0) {
+                    RewriteCopiedWorksheetExternalReferences(copiedPart, externalReferenceMap);
                 }
 
                 if (copyReferencedDefinedNames) {
@@ -116,6 +121,51 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        private IReadOnlyDictionary<int, int> CopyExternalWorkbookReferencesFromSource(ExcelDocument sourceDocument) {
+            if (ReferenceEquals(sourceDocument.WorkbookPartRoot, WorkbookPartRoot)) {
+                return new Dictionary<int, int>();
+            }
+
+            ExternalReferences? sourceReferences = sourceDocument.WorkbookPartRoot.Workbook?.ExternalReferences;
+            if (sourceReferences == null) {
+                return new Dictionary<int, int>();
+            }
+
+            ExternalReferences targetReferences = WorkbookRoot.ExternalReferences ??= new ExternalReferences();
+            int targetIndex = targetReferences.Elements<ExternalReference>().Count() + 1;
+            int sourceIndex = 1;
+            var referenceMap = new Dictionary<int, int>();
+
+            foreach (ExternalReference sourceReference in sourceReferences.Elements<ExternalReference>()) {
+                string? sourceRelationshipId = sourceReference.Id?.Value;
+                if (string.IsNullOrWhiteSpace(sourceRelationshipId)) {
+                    sourceIndex++;
+                    continue;
+                }
+
+                OpenXmlPart sourcePart;
+                try {
+                    sourcePart = sourceDocument.WorkbookPartRoot.GetPartById(sourceRelationshipId!);
+                } catch (ArgumentOutOfRangeException) {
+                    sourceIndex++;
+                    continue;
+                }
+
+                OpenXmlPart copiedPart = WorkbookPartRoot.AddPart(sourcePart);
+                string targetRelationshipId = WorkbookPartRoot.GetIdOfPart(copiedPart);
+                targetReferences.Append(new ExternalReference { Id = targetRelationshipId });
+                referenceMap[sourceIndex] = targetIndex;
+                targetIndex++;
+                sourceIndex++;
+            }
+
+            if (referenceMap.Count > 0) {
+                WorkbookRoot.Save();
+            }
+
+            return referenceMap;
+        }
+
         private void ConvertCopiedWorksheetDateSerials(Worksheet worksheet, ExcelDateSystem sourceDateSystem, ExcelDateSystem targetDateSystem) {
             if (sourceDateSystem == targetDateSystem || _spreadSheetDocument == null) {
                 return;
@@ -133,7 +183,7 @@ namespace OfficeIMO.Excel {
             (int Min, int Max, uint StyleIndex)[] columnStyleIndexes = BuildColumnStyleIndexRanges(worksheet);
 
             foreach (Cell cell in worksheet.Descendants<Cell>()) {
-                if (cell.CellFormula != null || !IsNumericDateCell(cell, styles, GetEffectiveStyleIndex(cell, rowStyleIndexes, columnStyleIndexes))) {
+                if (cell.CellFormula != null || !IsDateSystemShiftCell(cell, styles, GetEffectiveStyleIndex(cell, rowStyleIndexes, columnStyleIndexes))) {
                     continue;
                 }
 
@@ -193,8 +243,8 @@ namespace OfficeIMO.Excel {
             return null;
         }
 
-        private static bool IsNumericDateCell(Cell cell, StylesCache styles, uint? styleIndex) {
-            if (!styleIndex.HasValue || !styles.IsDateLike(styleIndex.Value)) {
+        private static bool IsDateSystemShiftCell(Cell cell, StylesCache styles, uint? styleIndex) {
+            if (!styleIndex.HasValue || !styles.IsDateSystemShiftStyle(styleIndex.Value)) {
                 return false;
             }
 

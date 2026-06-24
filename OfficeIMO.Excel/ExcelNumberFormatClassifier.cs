@@ -57,6 +57,59 @@ namespace OfficeIMO.Excel {
             return lower.Contains(':') || lower.Contains('/') || lower.Contains('-');
         }
 
+        internal static bool LooksLikeDateSystemFormat(string? code) {
+            if (string.IsNullOrWhiteSpace(code)) {
+                return false;
+            }
+
+            string normalized = StripLiteralsAndEscapes(code!);
+            if (string.IsNullOrWhiteSpace(normalized)) {
+                return false;
+            }
+
+            string lower = normalized.ToLowerInvariant();
+            bool hasDay = false;
+            bool hasYear = false;
+            bool hasHour = false;
+            bool hasSecond = false;
+            bool hasMonth = false;
+
+            foreach (char ch in lower) {
+                switch (ch) {
+                    case 'd':
+                        hasDay = true;
+                        break;
+                    case 'y':
+                        hasYear = true;
+                        break;
+                    case 'h':
+                        hasHour = true;
+                        break;
+                    case 's':
+                        hasSecond = true;
+                        break;
+                    case 'm':
+                        hasMonth = true;
+                        break;
+                }
+            }
+
+            if (hasDay || hasYear) {
+                return true;
+            }
+
+            if (hasHour || hasSecond || lower.IndexOf("am/pm", StringComparison.Ordinal) >= 0 || lower.IndexOf("a/p", StringComparison.Ordinal) >= 0) {
+                return false;
+            }
+
+            if (!hasMonth) {
+                return false;
+            }
+
+            string letterTokens = new string(lower.Where(char.IsLetter).ToArray());
+            return letterTokens.Length > 0 && letterTokens.All(ch => ch == 'm');
+        }
+
         private static string StripLiteralsAndEscapes(string code) {
             var builder = new System.Text.StringBuilder(code.Length);
 
