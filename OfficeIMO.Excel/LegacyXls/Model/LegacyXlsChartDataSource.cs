@@ -13,7 +13,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             ushort numberFormatId,
             ushort formulaByteCount,
             int formulaBytesAvailable,
-            bool formulaByteCountFitsPayload) {
+            bool formulaByteCountFitsPayload,
+            string? formulaText = null) {
             SourceId = sourceId;
             SourceIdName = sourceIdName ?? throw new ArgumentNullException(nameof(sourceIdName));
             ReferenceType = referenceType;
@@ -24,6 +25,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             FormulaByteCount = formulaByteCount;
             FormulaBytesAvailable = formulaBytesAvailable;
             FormulaByteCountFitsPayload = formulaByteCountFitsPayload;
+            FormulaText = string.IsNullOrWhiteSpace(formulaText) ? null : formulaText;
         }
 
         /// <summary>Gets the raw BRAI source identifier.</summary>
@@ -55,5 +57,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets a value indicating whether the declared formula byte count fits the available payload.</summary>
         public bool FormulaByteCountFitsPayload { get; }
+
+        /// <summary>Gets the projected Open XML formula text for the chart data source, when supported.</summary>
+        public string? FormulaText { get; }
+
+        /// <summary>Gets a value indicating whether the ChartParsedFormula was projected to formula text.</summary>
+        public bool FormulaTextProjected => FormulaText != null;
     }
 }

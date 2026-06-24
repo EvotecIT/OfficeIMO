@@ -580,6 +580,9 @@ namespace OfficeIMO.Excel.LegacyXls {
             ChartDataSourceFormulaByteCounts = CountByCode(workbook.ChartRecords
                 .Where(record => record.DataSource != null)
                 .Select(record => $"FormulaBytes:{record.DataSource!.FormulaByteCount}"));
+            ChartDataSourceFormulaProjectionStates = CountByCode(workbook.ChartRecords
+                .Where(record => record.DataSource != null)
+                .Select(GetChartDataSourceFormulaProjectionStateKey));
             ChartDataSourceStates = CountByCode(workbook.ChartRecords
                 .Where(record => record.DataSource != null)
                 .Select(GetChartDataSourceStateKey));
@@ -1875,6 +1878,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets BRAI records grouped by declared ChartParsedFormula byte count.</summary>
         public IReadOnlyDictionary<string, int> ChartDataSourceFormulaByteCounts { get; }
 
+        /// <summary>Gets BRAI records grouped by ChartParsedFormula text projection state.</summary>
+        public IReadOnlyDictionary<string, int> ChartDataSourceFormulaProjectionStates { get; }
+
         /// <summary>Gets BRAI records grouped by decoded source, reference, number format, and formula-byte state.</summary>
         public IReadOnlyDictionary<string, int> ChartDataSourceStates { get; }
 
@@ -2640,6 +2646,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Chart DataSource Reference Types", ChartDataSourceReferenceTypes);
             AppendDictionary(builder, "Chart DataSource Number Format Ids", ChartDataSourceNumberFormatIds);
             AppendDictionary(builder, "Chart DataSource Formula Byte Counts", ChartDataSourceFormulaByteCounts);
+            AppendDictionary(builder, "Chart DataSource Formula Projection States", ChartDataSourceFormulaProjectionStates);
             AppendDictionary(builder, "Chart DataSource States", ChartDataSourceStates);
             AppendDictionary(builder, "Chart DataFormat Targets", ChartDataFormatTargets);
             AppendDictionary(builder, "Chart DataFormat Series Indexes", ChartDataFormatSeriesIndexes);
@@ -3270,7 +3277,16 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         private static string GetChartDataSourceStateKey(LegacyXlsChartRecord record) {
             LegacyXlsChartDataSource dataSource = record.DataSource!;
-            return $"Source:{dataSource.SourceIdName};Reference:{dataSource.ReferenceTypeName};CustomNumberFormat:{dataSource.UsesCustomNumberFormat};FormulaBytes:{dataSource.FormulaByteCount};FormulaComplete:{dataSource.FormulaByteCountFitsPayload}";
+            return $"Source:{dataSource.SourceIdName};Reference:{dataSource.ReferenceTypeName};CustomNumberFormat:{dataSource.UsesCustomNumberFormat};FormulaBytes:{dataSource.FormulaByteCount};FormulaComplete:{dataSource.FormulaByteCountFitsPayload};FormulaTextProjected:{dataSource.FormulaTextProjected}";
+        }
+
+        private static string GetChartDataSourceFormulaProjectionStateKey(LegacyXlsChartRecord record) {
+            LegacyXlsChartDataSource dataSource = record.DataSource!;
+            if (dataSource.FormulaTextProjected) {
+                return "FormulaTextProjected";
+            }
+
+            return dataSource.FormulaByteCount == 0 ? "NoFormulaBytes" : "FormulaTextUnsupported";
         }
 
         private static string GetChartSheetPropertyStateKey(LegacyXlsChartRecord record) {

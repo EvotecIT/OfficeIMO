@@ -465,7 +465,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                             }
 
                             var chartRecord = new BiffRecord(type, offset, payload);
-                            if (BiffChartMetadataReader.TryRead(chartRecord, sheet.Name, chartRecords, chartMetadataState)) {
+                            if (BiffChartMetadataReader.TryRead(chartRecord, sheet.Name, chartRecords, chartMetadataState, externSheets, externalReferences, sheetNames, definedNames)) {
                                 BiffChartMetadataReader.ScanFormulaTokens(chartRecord, sheet.Name, formulaTokenRecords);
                                 AddUnsupportedFeature(unsupportedFeatures, preservedFeatureRecords, diagnostics, options, type, offset, sheet.Name, payload.Length);
                                 break;

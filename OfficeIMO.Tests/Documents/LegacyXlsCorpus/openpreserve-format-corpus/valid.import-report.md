@@ -1296,15 +1296,22 @@ Warnings: 0
 | FormulaBytes:11 | 80 |
 | FormulaBytes:7 | 40 |
 
+## Chart DataSource Formula Projection States
+
+| Key | Count |
+| --- | --- |
+| FormulaTextProjected | 120 |
+| NoFormulaBytes | 80 |
+
 ## Chart DataSource States
 
 | Key | Count |
 | --- | --- |
-| Source:BubbleSizes;Reference:FormulaTextOrValue;CustomNumberFormat:False;FormulaBytes:0;FormulaComplete:True | 40 |
-| Source:CategoriesOrVerticalValues;Reference:WorksheetRange;CustomNumberFormat:False;FormulaBytes:11;FormulaComplete:True | 40 |
-| Source:Name;Reference:FormulaTextOrValue;CustomNumberFormat:False;FormulaBytes:0;FormulaComplete:True | 40 |
-| Source:Name;Reference:WorksheetRange;CustomNumberFormat:False;FormulaBytes:7;FormulaComplete:True | 40 |
-| Source:ValuesOrHorizontalValues;Reference:WorksheetRange;CustomNumberFormat:False;FormulaBytes:11;FormulaComplete:True | 40 |
+| Source:BubbleSizes;Reference:FormulaTextOrValue;CustomNumberFormat:False;FormulaBytes:0;FormulaComplete:True;FormulaTextProjected:False | 40 |
+| Source:CategoriesOrVerticalValues;Reference:WorksheetRange;CustomNumberFormat:False;FormulaBytes:11;FormulaComplete:True;FormulaTextProjected:True | 40 |
+| Source:Name;Reference:FormulaTextOrValue;CustomNumberFormat:False;FormulaBytes:0;FormulaComplete:True;FormulaTextProjected:False | 40 |
+| Source:Name;Reference:WorksheetRange;CustomNumberFormat:False;FormulaBytes:7;FormulaComplete:True;FormulaTextProjected:True | 40 |
+| Source:ValuesOrHorizontalValues;Reference:WorksheetRange;CustomNumberFormat:False;FormulaBytes:11;FormulaComplete:True;FormulaTextProjected:True | 40 |
 
 ## Chart DataFormat Targets
 

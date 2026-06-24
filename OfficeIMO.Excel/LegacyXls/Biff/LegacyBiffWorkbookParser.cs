@@ -110,7 +110,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     if (options.ReportUnsupportedRecords) {
                         BiffUnsupportedRecordDiagnostics.AddUnsupportedRecordDiagnostic(workbook.MutableDiagnostics, record.Type, record.Offset, sheetName: null);
                     }
-                } else if (BiffChartMetadataReader.TryRead(record, sheetName: null, workbook.MutableChartRecords, chartMetadataState)) {
+                } else if (BiffChartMetadataReader.TryRead(record, sheetName: null, workbook.MutableChartRecords, chartMetadataState, externSheets, workbook.ExternalReferences, boundSheetNames, definedNameTable)) {
                     BiffChartMetadataReader.ScanFormulaTokens(record, sheetName: null, workbook.MutableFormulaTokenRecords);
                     AddUnsupportedRecordFeature(workbook, record, sheetName: null);
                     if (options.ReportUnsupportedRecords) {
@@ -141,6 +141,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             MoveDialogSheetsToUnsupported(workbookStream, workbook, options);
+            IReadOnlyList<string> sheetNames = boundSheetNames.Count == 0
+                ? workbook.Worksheets.Select(sheet => sheet.Name).ToArray()
+                : boundSheetNames.ToArray();
             LegacyBiffUnsupportedSheetScanner.Scan(
                 workbookStream,
                 workbook.UnsupportedSheets,
@@ -150,12 +153,13 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 workbook.MutableChartRecords,
                 workbook.MutableDrawingRecords,
                 workbook.MutableFormulaTokenRecords,
+                externSheets,
+                workbook.ExternalReferences,
+                sheetNames,
+                definedNameTable,
                 workbook.MutableDiagnostics,
                 options);
 
-            IReadOnlyList<string> sheetNames = boundSheetNames.Count == 0
-                ? workbook.Worksheets.Select(sheet => sheet.Name).ToArray()
-                : boundSheetNames.ToArray();
             foreach (LegacyXlsWorksheet sheet in workbook.Worksheets) {
                 LegacyBiffWorksheetParser.Parse(workbookStream, sheet, sharedStrings, externSheets, workbook.ExternalReferences, sheetNames, definedNameTable, workbook.MutableUnsupportedFeatures, workbook.MutablePreservedFeatureRecords, workbook.MutablePivotTableRecords, workbook.MutableChartRecords, workbook.MutableDrawingRecords, workbook.DifferentialFormats, workbook.MutableCalculationSettings, workbook.MutableFormulaTokenRecords, workbook.MutableDiagnostics, options);
             }

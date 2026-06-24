@@ -6,7 +6,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             BiffRecord record,
             string? sheetName,
             List<LegacyXlsChartRecord> records,
-            BiffChartMetadataReaderState? state = null) {
+            BiffChartMetadataReaderState? state = null,
+            IReadOnlyList<BiffExternSheetReference>? externSheets = null,
+            IReadOnlyList<LegacyXlsExternalReference>? externalReferences = null,
+            IReadOnlyList<string>? sheetNames = null,
+            IReadOnlyList<string?>? definedNames = null) {
             if (!BiffUnsupportedRecordDiagnostics.IsChartRecord(record.Type)) {
                 return false;
             }
@@ -34,7 +38,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             BiffChartTextMetadataReader.TryReadTick(record, out LegacyXlsChartTick? tick);
             TryReadValueRange(record, out LegacyXlsChartValueRange? valueRange);
             TryReadPosition(record, out LegacyXlsChartPosition? position);
-            TryReadDataSource(record, out LegacyXlsChartDataSource? dataSource);
+            TryReadDataSource(record, externSheets, externalReferences, sheetNames, definedNames, out LegacyXlsChartDataSource? dataSource);
             TryReadFrame(record, out LegacyXlsChartFrame? frame);
             TryReadPlotGrowth(record, out LegacyXlsChartPlotGrowth? plotGrowth);
             TryReadDataTableOptions(record, out LegacyXlsChartDataTableOptions? dataTableOptions);
@@ -387,7 +391,13 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             return true;
         }
 
-        private static bool TryReadDataSource(BiffRecord record, out LegacyXlsChartDataSource? dataSource) {
+        private static bool TryReadDataSource(
+            BiffRecord record,
+            IReadOnlyList<BiffExternSheetReference>? externSheets,
+            IReadOnlyList<LegacyXlsExternalReference>? externalReferences,
+            IReadOnlyList<string>? sheetNames,
+            IReadOnlyList<string?>? definedNames,
+            out LegacyXlsChartDataSource? dataSource) {
             dataSource = null;
             if (record.Type != 0x1051 || record.Payload.Length < 8) {
                 return false;
@@ -399,6 +409,20 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             ushort numberFormatId = BiffRecordReader.ReadUInt16(record.Payload, 4);
             ushort formulaByteCount = BiffRecordReader.ReadUInt16(record.Payload, 6);
             int formulaBytesAvailable = record.Payload.Length - 8;
+            string? formulaText = null;
+            if (formulaByteCount > 0 && formulaByteCount <= formulaBytesAvailable) {
+                BiffFormulaTextReader.TryRead(
+                    record.Payload,
+                    6,
+                    formulaRow: 0,
+                    formulaColumn: 0,
+                    externSheets ?? Array.Empty<BiffExternSheetReference>(),
+                    externalReferences ?? Array.Empty<LegacyXlsExternalReference>(),
+                    sheetNames ?? Array.Empty<string>(),
+                    definedNames ?? Array.Empty<string?>(),
+                    out formulaText);
+            }
+
             dataSource = new LegacyXlsChartDataSource(
                 sourceId,
                 GetDataSourceIdName(sourceId),
@@ -409,7 +433,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 numberFormatId,
                 formulaByteCount,
                 formulaBytesAvailable,
-                formulaByteCount <= formulaBytesAvailable);
+                formulaByteCount <= formulaBytesAvailable,
+                formulaText);
             return true;
         }
 

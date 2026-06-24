@@ -15,6 +15,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             List<LegacyXlsChartRecord> chartRecords,
             List<LegacyXlsDrawingRecord> drawingRecords,
             List<LegacyXlsFormulaTokenRecord> formulaTokenRecords,
+            IReadOnlyList<BiffExternSheetReference> externSheets,
+            IReadOnlyList<LegacyXlsExternalReference> externalReferences,
+            IReadOnlyList<string> sheetNames,
+            IReadOnlyList<string?> definedNames,
             List<LegacyXlsImportDiagnostic> diagnostics,
             LegacyXlsImportOptions options) {
             foreach (LegacyXlsUnsupportedSheet sheet in unsupportedSheets) {
@@ -22,7 +26,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     continue;
                 }
 
-                ScanSheet(workbookStream, sheet, unsupportedFeatures, preservedFeatureRecords, pivotTableRecords, chartRecords, drawingRecords, formulaTokenRecords, diagnostics, options);
+                ScanSheet(workbookStream, sheet, unsupportedFeatures, preservedFeatureRecords, pivotTableRecords, chartRecords, drawingRecords, formulaTokenRecords, externSheets, externalReferences, sheetNames, definedNames, diagnostics, options);
             }
         }
 
@@ -40,6 +44,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             List<LegacyXlsChartRecord> chartRecords,
             List<LegacyXlsDrawingRecord> drawingRecords,
             List<LegacyXlsFormulaTokenRecord> formulaTokenRecords,
+            IReadOnlyList<BiffExternSheetReference> externSheets,
+            IReadOnlyList<LegacyXlsExternalReference> externalReferences,
+            IReadOnlyList<string> sheetNames,
+            IReadOnlyList<string?> definedNames,
             List<LegacyXlsImportDiagnostic> diagnostics,
             LegacyXlsImportOptions options) {
             if (sheet.StreamOffset >= workbookStream.Length) {
@@ -99,7 +107,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     BiffDrawingMetadataReader.TryRead(new BiffRecord(type, offset, payload), sheet.Name, drawingRecords);
                     int chartRecordCountBefore = chartRecords.Count;
                     var chartRecord = new BiffRecord(type, offset, payload);
-                    if (BiffChartMetadataReader.TryRead(chartRecord, sheet.Name, chartRecords, chartMetadataState)
+                    if (BiffChartMetadataReader.TryRead(chartRecord, sheet.Name, chartRecords, chartMetadataState, externSheets, externalReferences, sheetNames, definedNames)
                         && sheet.Kind == LegacyXlsUnsupportedSheetKind.ChartSheet
                         && chartRecords.Count > chartRecordCountBefore) {
                         BiffChartMetadataReader.ScanFormulaTokens(chartRecord, sheet.Name, formulaTokenRecords);
