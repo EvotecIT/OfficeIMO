@@ -20,6 +20,7 @@ namespace OfficeIMO.Tests {
         private const string RotatedImageBaselineName = "officeimo-excel-image-rotated-image";
         private const string TransformedImageBaselineName = "officeimo-excel-image-transformed-image";
         private const string DrawingObjectBaselineName = "officeimo-excel-image-drawing-object";
+        private const string CommentBodyBaselineName = "officeimo-excel-image-comment-body";
         private const string RichTextBaselineName = "officeimo-excel-image-rich-text";
         private const string StackedTextBaselineName = "officeimo-excel-image-stacked-text";
         private const string PatternFillBaselineName = "officeimo-excel-image-pattern-fills";
@@ -221,6 +222,31 @@ namespace OfficeIMO.Tests {
             Assert.Contains("#0284C7", svgText, StringComparison.Ordinal);
             AssertRasterBaseline(DrawingObjectBaselineName + ".png", png.Bytes);
             AssertTextBaseline(DrawingObjectBaselineName + ".svg", svgText);
+        }
+
+        [Fact]
+        public void CommentBodyImageExportMatchesApprovedBaselines() {
+            using ExcelBaselineFixture fixture = CreateCommentBodyBaselineWorkbook();
+            ExcelRange range = fixture.Sheet.Range("A1:G7");
+            ExcelImageExportOptions options = CreateBaselineOptions();
+            options.ShowCommentBodies = true;
+
+            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
+            OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg, options);
+            string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
+
+            Assert.Single(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.CellCommentBodyApproximation);
+            Assert.DoesNotContain(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.CellCommentUnsupported);
+            Assert.DoesNotContain(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.CellTextOccludedByDrawing);
+            Assert.DoesNotContain(png.Diagnostics, item => item.Severity == OfficeImageExportDiagnosticSeverity.Error);
+            Assert.DoesNotContain(svg.Diagnostics, item => item.Severity == OfficeImageExportDiagnosticSeverity.Error);
+            Assert.Contains("Ready for leadership review", svgText, StringComparison.Ordinal);
+            Assert.Contains("#FFFBE6", svgText, StringComparison.Ordinal);
+            Assert.Contains("#FFF2CC", svgText, StringComparison.Ordinal);
+            Assert.Contains("#C00000", svgText, StringComparison.Ordinal);
+            AssertDiagnosticsBaseline(CommentBodyBaselineName + ".diagnostics.txt", png.Diagnostics);
+            AssertRasterBaseline(CommentBodyBaselineName + ".png", png.Bytes);
+            AssertTextBaseline(CommentBodyBaselineName + ".svg", svgText);
         }
 
         [Fact]
@@ -560,6 +586,38 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ApprovedCommentBodyBaselinesAreRenderableAndNonBlank() {
+            string baselineDirectory = BaselineDirectory;
+            string pngPath = Path.Combine(baselineDirectory, CommentBodyBaselineName + ".png");
+            string svgPath = Path.Combine(baselineDirectory, CommentBodyBaselineName + ".svg");
+            if (UpdateBaselines) {
+                using ExcelBaselineFixture fixture = CreateCommentBodyBaselineWorkbook();
+                ExcelRange range = fixture.Sheet.Range("A1:G7");
+                ExcelImageExportOptions options = CreateBaselineOptions();
+                options.ShowCommentBodies = true;
+                AssertRasterBaseline(CommentBodyBaselineName + ".png", range.ExportImage(OfficeImageExportFormat.Png, options).Bytes);
+                AssertTextBaseline(CommentBodyBaselineName + ".svg", System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeImageExportFormat.Svg, options).Bytes));
+            }
+
+            Assert.True(File.Exists(pngPath), "Missing approved comment-body PNG baseline: " + pngPath);
+            Assert.True(File.Exists(svgPath), "Missing approved comment-body SVG baseline: " + svgPath);
+
+            OfficeRasterImage image = VisualBaselineTestSupport.DecodePng(File.ReadAllBytes(pngPath), "Approved comment-body PNG baseline is not a supported PNG file.");
+            Assert.True(image.Width >= 700, "Comment-body PNG baseline width is unexpectedly small.");
+            Assert.True(image.Height >= 250, "Comment-body PNG baseline height is unexpectedly small.");
+            Assert.True(CountPixelsNear(image, OfficeColor.FromRgb(255, 251, 230)) > 500, "Comment-body PNG baseline does not contain enough callout fill pixels.");
+            Assert.True(CountPixelsNear(image, OfficeColor.FromRgb(255, 242, 204)) > 100, "Comment-body PNG baseline does not contain enough callout header pixels.");
+
+            string svg = File.ReadAllText(svgPath);
+            Assert.Contains("<svg", svg, StringComparison.Ordinal);
+            Assert.Contains("Comment Body Fidelity", svg, StringComparison.Ordinal);
+            Assert.Contains("Ready for leadership review", svg, StringComparison.Ordinal);
+            Assert.Contains("#FFFBE6", svg, StringComparison.Ordinal);
+            Assert.Contains("#FFF2CC", svg, StringComparison.Ordinal);
+            Assert.Contains("<polygon", svg, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void ApprovedSparklineBaselinesAreRenderableAndNonBlank() {
             string baselineDirectory = BaselineDirectory;
             string pngPath = Path.Combine(baselineDirectory, SparklineBaselineName + ".png");
@@ -815,6 +873,61 @@ namespace OfficeIMO.Tests {
 
             sheet.AddImage(6, 2, CreateMarkerPng(), "image/png", widthPixels: 36, heightPixels: 22, name: "QualityMarker");
             sheet.AddChartFromRange("A2:B5", row: 2, column: 6, widthPixels: 230, heightPixels: 135, type: ExcelChartType.ColumnClustered, title: "Revenue Trend");
+            return new ExcelBaselineFixture(document, sheet);
+        }
+
+        private static ExcelBaselineFixture CreateCommentBodyBaselineWorkbook() {
+            string filePath = Path.Combine(Path.GetTempPath(), "OfficeIMO-ExcelCommentBodyBaseline-" + Guid.NewGuid().ToString("N") + ".xlsx");
+            ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("CommentBodies");
+
+            sheet.CellValue(1, 1, "Comment Body Fidelity");
+            sheet.Range("A1:G1").Merge();
+            sheet.Range("A1:G1").SetFillColor("0F172A").SetFontColor("FFFFFF").SetBold();
+            sheet.CellAlign(1, 1, HorizontalAlignmentValues.Center);
+            sheet.CellVerticalAlign(1, 1, VerticalAlignmentValues.Center);
+
+            sheet.CellValue(2, 1, "Region");
+            sheet.CellValue(2, 2, "Status");
+            sheet.CellValue(2, 3, "Owner");
+            sheet.CellValue(2, 4, "Note");
+            sheet.Range("A2:D2").SetFillColor("E2E8F0").SetFontColor("0F172A").SetBold();
+
+            sheet.CellValue(3, 1, "North");
+            sheet.CellValue(3, 2, "Ready");
+            sheet.CellAt(3, 2).Success();
+            sheet.CellValue(3, 3, "Reviewer");
+            sheet.CellValue(3, 4, "Open");
+            sheet.SetComment("D3", "Ready for leadership review.\nCallout stays readable without hiding the table.", "Reviewer");
+
+            sheet.CellValue(4, 1, "West");
+            sheet.CellValue(4, 2, "Watch");
+            sheet.CellAt(4, 2).Warning();
+            sheet.CellValue(4, 3, "Planner");
+
+            sheet.CellValue(5, 1, "South");
+            sheet.CellValue(5, 2, "Risk");
+            sheet.CellAt(5, 2).Error();
+            sheet.CellValue(5, 3, "Owner");
+
+            sheet.SetColumnWidth(1, 14);
+            sheet.SetColumnWidth(2, 13);
+            sheet.SetColumnWidth(3, 16);
+            sheet.SetColumnWidth(4, 10);
+            sheet.SetColumnWidth(5, 18);
+            sheet.SetColumnWidth(6, 18);
+            sheet.SetColumnWidth(7, 18);
+            sheet.SetRowHeight(1, 28);
+            for (int row = 2; row <= 7; row++) {
+                sheet.SetRowHeight(row, row == 3 ? 32 : 28);
+                for (int column = 1; column <= 7; column++) {
+                    sheet.CellAt(row, column).SetBorder(BorderStyleValues.Thin, "CBD5E1");
+                    sheet.CellVerticalAlign(row, column, VerticalAlignmentValues.Center);
+                }
+            }
+
+            sheet.Range("A3:D5").SetFillColor("F8FAFC");
+            sheet.Range("E2:G7").SetFillColor("FFFFFF");
             return new ExcelBaselineFixture(document, sheet);
         }
 

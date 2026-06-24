@@ -94,6 +94,7 @@ $smokeGeneratedFilter = New-TestNameFilter -ClassName $visualBaselineTestClass -
     'ConditionalFormattingImageExportMatchesApprovedBaselines',
     'ExpandedIconSetImageExportMatchesApprovedBaselines',
     'TextSpillImageExportMatchesApprovedBaselines',
+    'CommentBodyImageExportMatchesApprovedBaselines',
     'DrawingObjectImageExportMatchesApprovedBaselines',
     'TransformedImageExportMatchesApprovedBaselines'
 )
@@ -107,6 +108,7 @@ $smokeApprovedFilter = New-TestNameFilter -ClassName $visualBaselineTestClass -N
     'ApprovedConditionalFormattingBaselinesAreRenderableAndNonBlank',
     'ApprovedExpandedIconSetBaselinesAreRenderableAndNonBlank',
     'ApprovedTextSpillBaselinesAreRenderableAndNonBlank',
+    'ApprovedCommentBodyBaselinesAreRenderableAndNonBlank',
     'ApprovedDrawingObjectBaselinesAreRenderableAndNonBlank',
     'ApprovedTransformedImageBaselinesAreRenderableAndNonBlank'
 )
