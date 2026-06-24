@@ -400,7 +400,7 @@ namespace OfficeIMO.Excel {
                 .Elements<DocumentFormat.OpenXml.Spreadsheet.Column>()
                 .FirstOrDefault(item => item.Min != null && item.Max != null && item.Min.Value <= (uint)columnIndex && item.Max.Value >= (uint)columnIndex);
             if (column?.Hidden?.Value == true) {
-                return 1;
+                return 0;
             }
 
             double width = column?.Width?.Value > 0 && column.CustomWidth?.Value == true

@@ -12,6 +12,7 @@ public sealed class PdfImageStyle {
     private PdfImageSourceCrop? _sourceCrop;
     private double _spacingBefore;
     private double _spacingAfter;
+    private double _rotationAngle;
     private string? _alternativeText;
 
     /// <summary>Image alignment within the current content frame.</summary>
@@ -68,6 +69,18 @@ public sealed class PdfImageStyle {
     /// <summary>When true, oversized flow images are proportionally reduced to fit the current page or column frame.</summary>
     public bool ScaleDownToFit { get; set; }
 
+    /// <summary>Clockwise image rotation angle in degrees.</summary>
+    public double RotationAngle {
+        get => _rotationAngle;
+        set {
+            if (double.IsNaN(value) || double.IsInfinity(value)) {
+                throw new System.ArgumentOutOfRangeException(nameof(RotationAngle), "PDF image rotation angle must be finite.");
+            }
+
+            _rotationAngle = value;
+        }
+    }
+
     /// <summary>Optional alternate text for meaningful generated images.</summary>
     public string? AlternativeText {
         get => _alternativeText;
@@ -91,6 +104,7 @@ public sealed class PdfImageStyle {
             SpacingAfter = SpacingAfter,
             KeepWithNext = KeepWithNext,
             ScaleDownToFit = ScaleDownToFit,
+            RotationAngle = RotationAngle,
             AlternativeText = AlternativeText
         };
     }

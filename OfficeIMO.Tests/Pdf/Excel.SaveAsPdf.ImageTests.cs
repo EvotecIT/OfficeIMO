@@ -57,6 +57,28 @@ public partial class Excel {
     }
 
     [Fact]
+    public void SaveAsPdf_ExcelWorkbook_Preserves_Worksheet_Image_Rotation() {
+        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfRotatedImage.xlsx");
+
+        byte[] imageBytes = CreateMinimalRgbPng();
+        byte[] bytes;
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Images")) {
+            ExcelSheet sheet = document.Sheets[0];
+            sheet.Cell(1, 1, "ImageMarker");
+            sheet.AddImage(2, 1, imageBytes, "image/png", widthPixels: 24, heightPixels: 16, name: "Rotated Logo").SetRotation(30);
+            document.Save(false);
+
+            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+                IncludeSheetHeadings = false,
+                HeaderRowCount = 0
+            });
+        }
+
+        PdfCore.PdfImagePlacement placement = Assert.Single(PdfCore.PdfImageExtractor.ExtractImagePlacements(bytes));
+        Assert.False(placement.IsAxisAligned);
+    }
+
+    [Fact]
     public void SaveAsPdf_ExcelWorkbook_Filters_Images_Anchored_To_Hidden_Cells() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfHiddenCellImages.xlsx");
 

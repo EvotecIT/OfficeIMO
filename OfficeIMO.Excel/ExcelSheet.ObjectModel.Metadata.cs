@@ -327,9 +327,35 @@ namespace OfficeIMO.Excel {
 
                     changed |= markerChanged;
                 } else if (anchor is Xdr.TwoCellAnchor twoCellAnchor) {
+                    Xdr.EditAsValues placement = twoCellAnchor.EditAs?.Value ?? Xdr.EditAsValues.TwoCell;
+                    if (placement == Xdr.EditAsValues.Absolute) {
+                        continue;
+                    }
+
                     bool fromKept = TryRemapDrawingMarkerRow(twoCellAnchor.FromMarker, firstAffectedRow, rowDelta, lastDeletedRow, out bool fromChanged);
+                    if (!fromKept) {
+                        twoCellAnchor.Remove();
+                        changed = true;
+                        continue;
+                    }
+
+                    if (placement == Xdr.EditAsValues.OneCell) {
+                        changed |= fromChanged;
+                        if (fromChanged) {
+                            if (!TryShiftDrawingMarkerRow(twoCellAnchor.ToMarker, rowDelta, out bool toShifted)) {
+                                twoCellAnchor.Remove();
+                                changed = true;
+                                continue;
+                            }
+
+                            changed |= toShifted;
+                        }
+
+                        continue;
+                    }
+
                     bool toKept = TryRemapDrawingMarkerRow(twoCellAnchor.ToMarker, firstAffectedRow, rowDelta, lastDeletedRow, out bool toChanged);
-                    if (!fromKept && !toKept) {
+                    if (!toKept) {
                         twoCellAnchor.Remove();
                         changed = true;
                         continue;
@@ -363,6 +389,27 @@ namespace OfficeIMO.Excel {
             int remappedZeroBasedRow = remapped.Value.r1 - 1;
             if (remappedZeroBasedRow != zeroBasedRow) {
                 marker.RowId.Text = remappedZeroBasedRow.ToString(CultureInfo.InvariantCulture);
+                changed = true;
+            }
+
+            return true;
+        }
+
+        private static bool TryShiftDrawingMarkerRow(Xdr.MarkerType? marker, int rowDelta, out bool changed) {
+            changed = false;
+            if (rowDelta == 0
+                || marker?.RowId?.Text is not string rowText
+                || !int.TryParse(rowText, NumberStyles.Integer, CultureInfo.InvariantCulture, out int zeroBasedRow)) {
+                return true;
+            }
+
+            int shiftedRow = zeroBasedRow + rowDelta;
+            if (shiftedRow < 0 || shiftedRow >= A1.MaxRows) {
+                return false;
+            }
+
+            if (shiftedRow != zeroBasedRow) {
+                marker.RowId.Text = shiftedRow.ToString(CultureInfo.InvariantCulture);
                 changed = true;
             }
 

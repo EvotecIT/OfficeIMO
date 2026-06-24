@@ -1,5 +1,6 @@
 using System.IO;
 using System.Linq;
+using System.Collections.Generic;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Drawing;
@@ -154,6 +155,24 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ExcelImage_TwoCellSizeIgnoresHiddenColumns() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelImage.RangeAnchor.HiddenColumns.xlsx");
+            string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
+
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("Images");
+            sheet.SetColumnWidth(1, 20);
+            sheet.SetColumnWidth(2, 20);
+            sheet.SetColumnWidth(3, 20);
+            ExcelImage image = sheet.AddImageFromFileToRange("A1:C1", imagePath, name: "HiddenColumnRange");
+            int visibleWidth = image.WidthPixels;
+
+            sheet.SetColumnHidden(2, true);
+
+            Assert.True(image.WidthPixels < visibleWidth);
+        }
+
+        [Fact]
         public void Test_ExcelImage_MoveOnlyRangeKeepsStoredSizeWhenCellsResize() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelImage.RangeAnchor.MoveOnlySize.xlsx");
             string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
@@ -171,6 +190,32 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(originalWidth, image.WidthPixels);
             Assert.Equal(originalHeight, image.HeightPixels);
+        }
+
+        [Fact]
+        public void Test_ExcelImage_MoveOnlyRangeKeepsEndMarkerWhenTemplateRowsExpandInsideRange() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelImage.RangeAnchor.MoveOnlyTemplateRows.xlsx");
+            string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Images");
+                sheet.CellAt(3, 1).SetValue("{{Name}}");
+                sheet.AddImageFromFileToRange("A2:B5", imagePath, name: "MoveOnlyTemplateRange", placement: ExcelImagePlacement.MoveOnly);
+
+                sheet.ApplyTemplateRows(3, new[] {
+                    new Dictionary<string, object?> { ["Name"] = "First" },
+                    new Dictionary<string, object?> { ["Name"] = "Second" }
+                });
+                document.Save();
+            }
+
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false);
+            Xdr.TwoCellAnchor anchor = spreadsheet.WorkbookPart!.WorksheetParts.First().DrawingsPart!.WorksheetDrawing!
+                .Elements<Xdr.TwoCellAnchor>()
+                .Single();
+            Assert.Equal(Xdr.EditAsValues.OneCell, anchor.EditAs!.Value);
+            Assert.Equal("1", anchor.FromMarker!.RowId!.Text);
+            Assert.Equal("5", anchor.ToMarker!.RowId!.Text);
         }
 
         [Fact]
