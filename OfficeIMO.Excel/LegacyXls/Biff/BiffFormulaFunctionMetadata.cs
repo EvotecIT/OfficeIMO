@@ -261,6 +261,22 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
         }
 
+        internal static bool TryGetKnownFunctionName(ushort functionId, out string? functionName) {
+            if (TryGetFunctionName(functionId, out functionName)
+                || TryGetFixedFunctionMetadata(functionId, out functionName, out _)) {
+                return true;
+            }
+
+            switch (functionId) {
+                case 0x000c:
+                    functionName = "STDEV";
+                    return true;
+                default:
+                    functionName = null;
+                    return false;
+            }
+        }
+
         internal static bool IsSupportedVariableFunctionArgumentCount(ushort functionId, byte parameterCount) {
             switch (functionId) {
                 case 0x0001:

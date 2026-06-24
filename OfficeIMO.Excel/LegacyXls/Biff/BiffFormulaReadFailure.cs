@@ -54,13 +54,25 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         internal static BiffFormulaReadFailure UnsupportedAttribute(byte attribute, byte token, int tokenOffset) =>
             new($"FormulaAttribute0x{attribute:X2}", $"Unsupported formula attribute 0x{attribute:X2}.", token, tokenOffset);
 
-        internal static BiffFormulaReadFailure UnsupportedFixedFunction(ushort functionId, byte token, int tokenOffset) =>
-            new($"FormulaFixedFunction0x{functionId:X4}", $"Unsupported fixed-arity formula function id 0x{functionId:X4}.", token, tokenOffset);
+        internal static BiffFormulaReadFailure UnsupportedFixedFunction(ushort functionId, string? functionName, byte token, int tokenOffset) =>
+            new(
+                $"FormulaFixedFunction0x{functionId:X4}",
+                string.IsNullOrWhiteSpace(functionName)
+                    ? $"Unsupported fixed-arity formula function id 0x{functionId:X4}."
+                    : $"Unsupported fixed-arity formula function {functionName} (0x{functionId:X4}).",
+                token,
+                tokenOffset);
 
-        internal static BiffFormulaReadFailure UnsupportedVariableFunction(ushort functionId, bool isCetabFunction, byte token, int tokenOffset) =>
+        internal static BiffFormulaReadFailure UnsupportedVariableFunction(ushort functionId, string? functionName, bool isCetabFunction, byte token, int tokenOffset) =>
             isCetabFunction
                 ? new($"FormulaCetabFunction0x{functionId:X4}", $"Unsupported add-in formula function id 0x{functionId:X4}.", token, tokenOffset)
-                : new($"FormulaVariableFunction0x{functionId:X4}", $"Unsupported variable-arity formula function id 0x{functionId:X4}.", token, tokenOffset);
+                : new(
+                    $"FormulaVariableFunction0x{functionId:X4}",
+                    string.IsNullOrWhiteSpace(functionName)
+                        ? $"Unsupported variable-arity formula function id 0x{functionId:X4}."
+                        : $"Unsupported variable-arity formula function {functionName} (0x{functionId:X4}).",
+                    token,
+                    tokenOffset);
 
         internal static BiffFormulaReadFailure UnsupportedFunctionArguments(ushort functionId, int parameterCount, byte token, int tokenOffset) =>
             new($"FormulaFunction0x{functionId:X4}Args{parameterCount}", $"Unsupported argument count {parameterCount} for formula function id 0x{functionId:X4}.", token, tokenOffset);

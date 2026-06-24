@@ -453,7 +453,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                         ushort fixedFunctionId = BiffRecordReader.ReadUInt16(formulaPayload, offset);
                         offset += 2;
                         if (!BiffFormulaFunctionMetadata.TryGetFixedFunctionMetadata(fixedFunctionId, out string? fixedFunctionName, out int fixedParameterCount)) {
-                            return BiffFormulaReadFailure.UnsupportedFixedFunction(fixedFunctionId, token, tokenOffset);
+                            BiffFormulaFunctionMetadata.TryGetKnownFunctionName(fixedFunctionId, out string? knownFunctionName);
+                            return BiffFormulaReadFailure.UnsupportedFixedFunction(fixedFunctionId, knownFunctionName, token, tokenOffset);
                         }
 
                         if (!TryApplyFunction(ref stackDepth, fixedParameterCount)) {
@@ -482,7 +483,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                                 break;
                             }
 
-                            return BiffFormulaReadFailure.UnsupportedVariableFunction(functionId, isCetabFunction, token, tokenOffset);
+                            BiffFormulaFunctionMetadata.TryGetKnownFunctionName(functionId, out string? knownFunctionName);
+                            return BiffFormulaReadFailure.UnsupportedVariableFunction(functionId, knownFunctionName, isCetabFunction, token, tokenOffset);
                         }
 
                         if (!BiffFormulaFunctionMetadata.IsSupportedVariableFunctionArgumentCount(functionId, parameterCount)) {

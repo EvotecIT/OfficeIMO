@@ -275,11 +275,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         }
 
         private static string? GetFunctionName(ushort functionId) {
-            return BiffFormulaFunctionMetadata.TryGetFunctionName(functionId, out string? variableFunctionName)
-                ? variableFunctionName
-                : BiffFormulaFunctionMetadata.TryGetFixedFunctionMetadata(functionId, out string? fixedFunctionName, out _)
-                    ? fixedFunctionName
-                    : null;
+            return BiffFormulaFunctionMetadata.TryGetKnownFunctionName(functionId, out string? functionName)
+                ? functionName
+                : null;
         }
 
         private static string GetAttributeName(byte attribute) {
