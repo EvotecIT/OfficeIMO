@@ -432,6 +432,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     ? BiffNameFormulaReader.TryReadPrintTitles(formulaBytes, externSheets, externalReferences, sheetNames, out reference, out formulaFailure)
                     : BiffNameFormulaReader.TryReadReference(formulaBytes, externSheets, externalReferences, sheetNames, out reference, out formulaFailure);
                 if (!formulaRead) {
+                    if (TryAddFutureFunctionAlias(workbook, name!, record, formulaFailure)) {
+                        return;
+                    }
+
                     if (formulaFailure == null) {
                         diagnostics.Add(new LegacyXlsImportDiagnostic(
                             LegacyXlsDiagnosticSeverity.Info,
@@ -502,6 +506,24 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             } finally {
                 definedNameTable.Add(formulaName);
             }
+        }
+
+        private static bool TryAddFutureFunctionAlias(LegacyXlsWorkbook workbook, string name, BiffRecord record, BiffFormulaReadFailure? formulaFailure) {
+            const string futureFunctionPrefix = "_xlfn.";
+            if (!name.StartsWith(futureFunctionPrefix, StringComparison.OrdinalIgnoreCase)
+                || formulaFailure?.Token != 0x1c) {
+                return false;
+            }
+
+            workbook.MutableFutureFunctionAliases.Add(new LegacyXlsFutureFunctionAlias(
+                name,
+                name.Substring(futureFunctionPrefix.Length),
+                record.Offset,
+                record.Type,
+                formulaFailure.Token,
+                formulaFailure.TokenName,
+                formulaFailure.TokenOffset));
+            return true;
         }
 
         private static string? GetBuiltInName(string rawName) {

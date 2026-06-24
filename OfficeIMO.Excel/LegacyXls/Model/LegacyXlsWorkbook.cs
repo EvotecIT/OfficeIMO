@@ -29,6 +29,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         private readonly List<LegacyXlsPreservedFeatureRecord> _preservedFeatureRecords = new();
         private readonly List<LegacyXlsWorkbookMetadataRecord> _metadataRecords = new();
         private readonly List<LegacyXlsFormulaTokenRecord> _formulaTokenRecords = new();
+        private readonly List<LegacyXlsFutureFunctionAlias> _futureFunctionAliases = new();
         private readonly List<LegacyXlsWorkbookWindow> _windows = new();
         private readonly List<LegacyXlsImportDiagnostic> _diagnostics = new();
         private readonly LegacyXlsCalculationSettings _calculationSettings = new();
@@ -145,6 +146,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// Gets BIFF parsed-formula token observations captured during import for corpus diagnostics.
         /// </summary>
         public IReadOnlyList<LegacyXlsFormulaTokenRecord> FormulaTokenRecords => _formulaTokenRecords;
+
+        /// <summary>
+        /// Gets Excel future-function aliases discovered from BIFF defined-name records.
+        /// </summary>
+        public IReadOnlyList<LegacyXlsFutureFunctionAlias> FutureFunctionAliases => _futureFunctionAliases;
 
         /// <summary>
         /// Gets workbook sheet tab identifiers decoded from a TabId record.
@@ -318,6 +324,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         internal List<LegacyXlsPreservedFeatureRecord> MutablePreservedFeatureRecords => _preservedFeatureRecords;
 
         internal List<LegacyXlsFormulaTokenRecord> MutableFormulaTokenRecords => _formulaTokenRecords;
+
+        internal List<LegacyXlsFutureFunctionAlias> MutableFutureFunctionAliases => _futureFunctionAliases;
 
         internal List<LegacyXlsImportDiagnostic> MutableDiagnostics => _diagnostics;
 

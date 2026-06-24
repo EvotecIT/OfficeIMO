@@ -34,6 +34,7 @@ Calculation setting records: 7
 Cell style records: 47
 Cell style extension records: 110
 Formula token records: 64
+Future function aliases: 2
 Workbook metadata records: 18
 Worksheet metadata records: 5
 Unsupported sheet metadata records: 0
@@ -54,61 +55,6 @@ Warnings: 0
 | XLS-BIFF-FEATURE-TABLE-STYLE-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-THEME-UNSUPPORTED | 1 |
 | XLS-BIFF-FEATURE-WORKBOOK-METADATA-UNSUPPORTED | 6 |
-| XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED | 2 |
-
-## Formula Token Blockers
-
-| Key | Count |
-| --- | --- |
-| FormulaToken0x1C | 2 |
-
-## Formula Token Blockers By Token
-
-| Key | Count |
-| --- | --- |
-| Token:0x1C | 2 |
-
-## Formula Token Blockers By Token Name
-
-| Key | Count |
-| --- | --- |
-| PtgErr | 2 |
-
-## Formula Token Blockers By Offset
-
-| Key | Count |
-| --- | --- |
-| Offset:0 | 2 |
-
-## Formula Token Blockers By Sheet
-
-| Key | Count |
-| --- | --- |
-| (workbook) | 2 |
-
-## Formula Token Blockers By Context
-
-| Key | Count |
-| --- | --- |
-| DefinedName | 2 |
-
-## Formula Token Blockers By Context And Token
-
-| Key | Count |
-| --- | --- |
-| DefinedName\|Token:0x1C | 2 |
-
-## Formula Token Blockers By Context And Token Name
-
-| Key | Count |
-| --- | --- |
-| DefinedName\|PtgErr | 2 |
-
-## Formula Token Blockers By Context And Detail
-
-| Key | Count |
-| --- | --- |
-| DefinedName\|FormulaToken0x1C | 2 |
 
 ## Formula Tokens By Name
 
@@ -207,6 +153,26 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | Volatile | 1 |
+
+## Future Function Aliases By Name
+
+| Key | Count |
+| --- | --- |
+| _xlfn.AVERAGEIF | 1 |
+| _xlfn.IFERROR | 1 |
+
+## Future Function Aliases By Function
+
+| Key | Count |
+| --- | --- |
+| AVERAGEIF | 1 |
+| IFERROR | 1 |
+
+## Future Function Aliases By Token Name
+
+| Key | Count |
+| --- | --- |
+| PtgErr | 2 |
 
 ## Worksheets By Visibility
 

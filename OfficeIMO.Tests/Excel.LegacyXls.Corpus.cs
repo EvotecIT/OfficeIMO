@@ -530,9 +530,13 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
-            Assert.DoesNotContain(result.Diagnostics, diagnostic =>
-                diagnostic.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED"
-                && diagnostic.FormulaContext == "CellFormula");
+            Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED");
+            Assert.Equal(2, result.ImportReport.FutureFunctionAliasCount);
+            Assert.Equal(1, result.ImportReport.FutureFunctionAliasesByName["_xlfn.AVERAGEIF"]);
+            Assert.Equal(1, result.ImportReport.FutureFunctionAliasesByName["_xlfn.IFERROR"]);
+            Assert.Equal(1, result.ImportReport.FutureFunctionAliasesByFunction["AVERAGEIF"]);
+            Assert.Equal(1, result.ImportReport.FutureFunctionAliasesByFunction["IFERROR"]);
+            Assert.Equal(2, result.ImportReport.FutureFunctionAliasesByTokenName["PtgErr"]);
 
             foreach (string functionName in new[] {
                 "DATEVALUE",
@@ -559,6 +563,8 @@ namespace OfficeIMO.Tests {
             AssertCorpusFormula(sheet, 4, 4, 61d, "SUMPRODUCT(A1:A3,B1:B3)");
             AssertCorpusFormula(sheet, 5, 4, true, "ISERROR(A1/0)");
             AssertCorpusFormula(sheet, 6, 4, 46197d, "DATEVALUE(\"2026-06-24\")");
+            AssertCorpusFormula(sheet, 7, 4, 4d, "_xlfn.AVERAGEIF(A1:A3,\">2\",B1:B3)");
+            AssertCorpusFormula(sheet, 8, 4, 0d, "_xlfn.IFERROR(A1/0,0)");
             AssertCorpusFormula(sheet, 9, 4, "nost", "LEFT(\"north\",2)&RIGHT(\"east\",2)");
             AssertCorpusFormula(sheet, 10, 4, "#N/A", "HLOOKUP(4,A1:B3,2,FALSE)");
             AssertCorpusFormula(sheet, 11, 4, 5d, "VLOOKUP(4,A1:B3,2,FALSE)");

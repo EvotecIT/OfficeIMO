@@ -194,6 +194,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             CellStyleRecordCount = workbook.CellStyles.Count;
             CellStyleExtensionRecordCount = workbook.CellStyleExtensions.Count;
             FormulaTokenRecordCount = workbook.FormulaTokenRecords.Count;
+            FutureFunctionAliasCount = workbook.FutureFunctionAliases.Count;
             WorkbookMetadataRecordCount = workbook.MetadataRecords.Count;
             WorksheetMetadataRecordCount = workbook.Worksheets.Sum(sheet => sheet.MetadataRecords.Count);
             UnsupportedSheetMetadataRecordCount = workbook.UnsupportedSheets.Sum(sheet => sheet.MetadataRecords.Count);
@@ -241,6 +242,11 @@ namespace OfficeIMO.Excel.LegacyXls {
             FormulaAttributesByName = CountByCode(workbook.FormulaTokenRecords
                 .Where(record => !string.IsNullOrWhiteSpace(record.AttributeName))
                 .Select(record => record.AttributeName!));
+            FutureFunctionAliasesByName = CountByCode(workbook.FutureFunctionAliases.Select(alias => alias.Name));
+            FutureFunctionAliasesByFunction = CountByCode(workbook.FutureFunctionAliases.Select(alias => alias.FunctionName));
+            FutureFunctionAliasesByTokenName = CountByCode(workbook.FutureFunctionAliases
+                .Where(alias => !string.IsNullOrWhiteSpace(alias.FormulaTokenName))
+                .Select(alias => alias.FormulaTokenName!));
             UnsupportedFeaturesByCode = CountByCode(workbook.UnsupportedFeatures.Select(feature => feature.Code));
             UnsupportedFeaturesByKind = CountByKind(workbook.UnsupportedFeatures);
             UnsupportedFeaturesByRecordType = CountByCode(workbook.UnsupportedFeatures
@@ -1128,6 +1134,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets the number of parsed-formula token observations captured during import.</summary>
         public int FormulaTokenRecordCount { get; }
 
+        /// <summary>Gets the number of Excel future-function aliases discovered from defined-name records.</summary>
+        public int FutureFunctionAliasCount { get; }
+
         /// <summary>Gets the number of workbook metadata records parsed from BIFF records.</summary>
         public int WorkbookMetadataRecordCount { get; }
 
@@ -1202,6 +1211,15 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets observed PtgAttr formula tokens grouped by attribute name.</summary>
         public IReadOnlyDictionary<string, int> FormulaAttributesByName { get; }
+
+        /// <summary>Gets Excel future-function aliases grouped by defined-name text.</summary>
+        public IReadOnlyDictionary<string, int> FutureFunctionAliasesByName { get; }
+
+        /// <summary>Gets Excel future-function aliases grouped by function name without the _xlfn. prefix.</summary>
+        public IReadOnlyDictionary<string, int> FutureFunctionAliasesByFunction { get; }
+
+        /// <summary>Gets Excel future-function aliases grouped by BIFF parsed-formula token name.</summary>
+        public IReadOnlyDictionary<string, int> FutureFunctionAliasesByTokenName { get; }
 
         /// <summary>Gets unsupported/preserve-only feature counts grouped by stable feature code.</summary>
         public IReadOnlyDictionary<string, int> UnsupportedFeaturesByCode { get; }
@@ -1931,6 +1949,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             builder.AppendLine($"Cell style records: {CellStyleRecordCount}");
             builder.AppendLine($"Cell style extension records: {CellStyleExtensionRecordCount}");
             builder.AppendLine($"Formula token records: {FormulaTokenRecordCount}");
+            builder.AppendLine($"Future function aliases: {FutureFunctionAliasCount}");
             builder.AppendLine($"Workbook metadata records: {WorkbookMetadataRecordCount}");
             builder.AppendLine($"Worksheet metadata records: {WorksheetMetadataRecordCount}");
             builder.AppendLine($"Unsupported sheet metadata records: {UnsupportedSheetMetadataRecordCount}");
@@ -1956,6 +1975,9 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Formula Functions By Id", FormulaFunctionsById);
             AppendDictionary(builder, "Formula Functions By Name", FormulaFunctionsByName);
             AppendDictionary(builder, "Formula Attributes By Name", FormulaAttributesByName);
+            AppendDictionary(builder, "Future Function Aliases By Name", FutureFunctionAliasesByName);
+            AppendDictionary(builder, "Future Function Aliases By Function", FutureFunctionAliasesByFunction);
+            AppendDictionary(builder, "Future Function Aliases By Token Name", FutureFunctionAliasesByTokenName);
             AppendDictionary(builder, "Worksheet Feature States", WorksheetFeatureStates);
             AppendDictionary(builder, "Data Validations By Type", DataValidationsByType);
             AppendDictionary(builder, "Data Validations By Operator", DataValidationsByOperator);
