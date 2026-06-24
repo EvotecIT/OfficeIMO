@@ -545,6 +545,8 @@ namespace OfficeIMO.Excel {
             string? strokeColorArgb,
             double strokeWidth,
             string text,
+            OfficeTextAlignment textAlignment,
+            OfficeTextVerticalAlignment textVerticalAlignment,
             string source) {
             Name = name ?? string.Empty;
             Order = order;
@@ -561,6 +563,8 @@ namespace OfficeIMO.Excel {
             StrokeColorArgb = strokeColorArgb;
             StrokeWidth = strokeWidth;
             Text = text ?? string.Empty;
+            TextAlignment = textAlignment;
+            TextVerticalAlignment = textVerticalAlignment;
             Source = source ?? string.Empty;
         }
 
@@ -611,6 +615,12 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Plain text extracted from the drawing object.</summary>
         public string Text { get; }
+
+        /// <summary>Horizontal text alignment extracted from the drawing object's paragraph properties.</summary>
+        public OfficeTextAlignment TextAlignment { get; }
+
+        /// <summary>Vertical text alignment extracted from the drawing object's body properties.</summary>
+        public OfficeTextVerticalAlignment TextVerticalAlignment { get; }
 
         /// <summary>Source reference used by export diagnostics.</summary>
         public string Source { get; }

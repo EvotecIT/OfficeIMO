@@ -74,7 +74,8 @@ namespace OfficeIMO.Excel {
                     textHeight,
                     new OfficeFontInfo("Calibri", fontSize),
                     OfficeColor.FromRgb(31, 41, 55),
-                    OfficeTextAlignment.Center,
+                    drawingObject.TextAlignment,
+                    verticalAlignment: drawingObject.TextVerticalAlignment,
                     rotationDegrees: drawingObject.RotationDegrees,
                     rotationCenterX: offsetX + width / 2D,
                     rotationCenterY: offsetY + height / 2D);

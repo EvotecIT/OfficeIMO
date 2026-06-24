@@ -640,6 +640,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeDrawingRasterRenderer_RendersVerticallyAlignedTextThroughSharedTextRenderer() {
+            OfficeDrawing drawing = new OfficeDrawing(96, 64);
+            drawing.AddText(
+                "Bottom",
+                8,
+                8,
+                80,
+                44,
+                new OfficeFontInfo("Aptos", 12D),
+                OfficeColor.Blue,
+                OfficeTextAlignment.Right,
+                verticalAlignment: OfficeTextVerticalAlignment.Bottom);
+
+            OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing);
+            var painted = Enumerable.Range(0, image.Width * image.Height)
+                .Where(index => image.GetPixel(index % image.Width, index / image.Width).A > 0)
+                .Select(index => (X: index % image.Width, Y: index / image.Width))
+                .ToList();
+
+            Assert.NotEmpty(painted);
+            Assert.True(painted.Min(pixel => pixel.Y) > 28, "Expected bottom vertical alignment to place text in the lower part of the text box.");
+            Assert.True(painted.Max(pixel => pixel.X) > 68, "Expected right horizontal alignment to place text near the right side of the text box.");
+        }
+
+        [Fact]
         public void OfficeDrawingRasterRenderer_FlattensBezierPathCommands() {
             OfficeDrawing drawing = new OfficeDrawing(64, 48);
             OfficeShape quadratic = OfficeShape.Path(

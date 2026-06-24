@@ -11,6 +11,7 @@ namespace OfficeIMO.Tests {
     public partial class ExcelImageExportVisualBaselineTests {
         private const string RotatedPresetDrawingObjectBaselineName = "officeimo-excel-image-rotated-preset-drawing-object";
         private const string RotatedShapeTextBaselineName = "officeimo-excel-image-rotated-shape-text";
+        private const string AlignedShapeTextBaselineName = "officeimo-excel-image-aligned-shape-text";
 
         [Fact]
         public void RotatedPresetDrawingObjectImageExportMatchesApprovedBaselines() {
@@ -122,6 +123,62 @@ namespace OfficeIMO.Tests {
             Assert.Contains("#2563EB", svg, StringComparison.Ordinal);
         }
 
+        [Fact]
+        public void AlignedShapeTextImageExportMatchesApprovedBaselines() {
+            using ExcelBaselineFixture fixture = CreateAlignedShapeTextBaselineWorkbook();
+            ExcelRange range = fixture.Sheet.Range("A1:F8");
+            ExcelImageExportOptions options = CreateBaselineOptions();
+
+            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
+            OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg, options);
+            string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
+
+            Assert.DoesNotContain(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.DrawingShapeUnsupported);
+            Assert.DoesNotContain(svg.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.DrawingShapeUnsupported);
+            Assert.DoesNotContain(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.DrawingShapeTextRotationApproximation);
+            Assert.DoesNotContain(svg.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.DrawingShapeTextRotationApproximation);
+            Assert.DoesNotContain(png.Diagnostics, item => item.Severity == OfficeImageExportDiagnosticSeverity.Error);
+            Assert.DoesNotContain(svg.Diagnostics, item => item.Severity == OfficeImageExportDiagnosticSeverity.Error);
+            Assert.Contains("Bottom right", svgText, StringComparison.Ordinal);
+            Assert.Contains("text-anchor=\"end\"", svgText, StringComparison.Ordinal);
+            Assert.Contains("#DCFCE7", svgText, StringComparison.Ordinal);
+            Assert.Contains("#16A34A", svgText, StringComparison.Ordinal);
+            AssertRasterBaseline(AlignedShapeTextBaselineName + ".png", png.Bytes);
+            AssertTextBaseline(AlignedShapeTextBaselineName + ".svg", svgText);
+        }
+
+        [Fact]
+        public void ApprovedAlignedShapeTextBaselinesAreRenderableAndNonBlank() {
+            string baselineDirectory = BaselineDirectory;
+            string pngPath = Path.Combine(baselineDirectory, AlignedShapeTextBaselineName + ".png");
+            string svgPath = Path.Combine(baselineDirectory, AlignedShapeTextBaselineName + ".svg");
+            if (UpdateBaselines) {
+                using ExcelBaselineFixture fixture = CreateAlignedShapeTextBaselineWorkbook();
+                ExcelRange range = fixture.Sheet.Range("A1:F8");
+                ExcelImageExportOptions options = CreateBaselineOptions();
+                AssertRasterBaseline(AlignedShapeTextBaselineName + ".png", range.ExportImage(OfficeImageExportFormat.Png, options).Bytes);
+                AssertTextBaseline(AlignedShapeTextBaselineName + ".svg", System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeImageExportFormat.Svg, options).Bytes));
+            }
+
+            Assert.True(File.Exists(pngPath), "Missing approved aligned shape-text PNG baseline: " + pngPath);
+            Assert.True(File.Exists(svgPath), "Missing approved aligned shape-text SVG baseline: " + svgPath);
+
+            OfficeRasterImage image = VisualBaselineTestSupport.DecodePng(File.ReadAllBytes(pngPath), "Approved aligned shape-text PNG baseline is not a supported PNG file.");
+            Assert.True(image.Width >= 600, "Aligned shape-text PNG baseline width is unexpectedly small.");
+            Assert.True(image.Height >= 300, "Aligned shape-text PNG baseline height is unexpectedly small.");
+            int fillPixels = CountPixelsNear(image, OfficeColor.FromRgb(220, 252, 231));
+            int textPixels = CountPixelsNear(image, OfficeColor.FromRgb(31, 41, 55));
+            Assert.True(fillPixels > 1200, "Aligned shape-text PNG baseline does not contain enough visible shape fill pixels.");
+            Assert.True(textPixels > 30, "Aligned shape-text PNG baseline does not contain enough visible text pixels.");
+
+            string svg = File.ReadAllText(svgPath);
+            Assert.Contains("<svg", svg, StringComparison.Ordinal);
+            Assert.Contains("Bottom right", svg, StringComparison.Ordinal);
+            Assert.Contains("text-anchor=\"end\"", svg, StringComparison.Ordinal);
+            Assert.Contains("#DCFCE7", svg, StringComparison.Ordinal);
+            Assert.Contains("#16A34A", svg, StringComparison.Ordinal);
+        }
+
         private static ExcelBaselineFixture CreateRotatedPresetDrawingObjectBaselineWorkbook() {
             string filePath = Path.Combine(Path.GetTempPath(), "OfficeIMO-ExcelRotatedPresetDrawingObjectBaseline-" + Guid.NewGuid().ToString("N") + ".xlsx");
             ExcelDocument document = ExcelDocument.Create(filePath);
@@ -195,6 +252,44 @@ namespace OfficeIMO.Tests {
             }
 
             AddRotatedShapeTextObject(sheet);
+            return new ExcelBaselineFixture(document, sheet);
+        }
+
+        private static ExcelBaselineFixture CreateAlignedShapeTextBaselineWorkbook() {
+            string filePath = Path.Combine(Path.GetTempPath(), "OfficeIMO-ExcelAlignedShapeTextBaseline-" + Guid.NewGuid().ToString("N") + ".xlsx");
+            ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("AlignedText");
+
+            sheet.CellValue(1, 1, "Aligned DrawingML text");
+            sheet.Range("A1:F1").Merge();
+            sheet.Range("A1:F1").SetFillColor("0F172A").SetFontColor("FFFFFF").SetBold();
+            sheet.CellAlign(1, 1, HorizontalAlignmentValues.Center);
+            sheet.CellVerticalAlign(1, 1, VerticalAlignmentValues.Center);
+            sheet.CellValue(7, 2, "Shape text uses authored paragraph and body alignment through OfficeIMO.Drawing.");
+            sheet.Range("B7:E7").Merge();
+            sheet.Range("B7:E7").SetFillColor("F8FAFC").SetFontColor("334155");
+            sheet.CellAlign(7, 2, HorizontalAlignmentValues.Center);
+
+            for (int column = 1; column <= 6; column++) {
+                sheet.SetColumnWidth(column, column == 1 || column == 6 ? 9 : 15);
+            }
+
+            sheet.SetRowHeight(1, 26);
+            sheet.SetRowHeight(2, 42);
+            sheet.SetRowHeight(3, 42);
+            sheet.SetRowHeight(4, 42);
+            sheet.SetRowHeight(5, 32);
+            sheet.SetRowHeight(6, 28);
+            sheet.SetRowHeight(7, 30);
+            sheet.SetRowHeight(8, 22);
+            for (int row = 1; row <= 8; row++) {
+                for (int column = 1; column <= 6; column++) {
+                    sheet.CellAt(row, column).SetBorder(BorderStyleValues.Thin, "CBD5E1");
+                    sheet.CellVerticalAlign(row, column, VerticalAlignmentValues.Center);
+                }
+            }
+
+            AddAlignedShapeTextObject(sheet);
             return new ExcelBaselineFixture(document, sheet);
         }
 
@@ -283,6 +378,49 @@ namespace OfficeIMO.Tests {
                         new A.BodyProperties(),
                         new A.ListStyle(),
                         new A.Paragraph(new A.Run(new A.Text("Rotated label"))))),
+                new Xdr.ClientData()));
+            drawingsPart.WorksheetDrawing.Save();
+            worksheetPart.Worksheet.Save();
+        }
+
+        private static void AddAlignedShapeTextObject(ExcelSheet sheet) {
+            WorksheetPart worksheetPart = sheet.WorksheetPart;
+            DrawingsPart drawingsPart = worksheetPart.DrawingsPart ?? worksheetPart.AddNewPart<DrawingsPart>();
+            drawingsPart.WorksheetDrawing ??= new Xdr.WorksheetDrawing();
+
+            if (worksheetPart.Worksheet!.Elements<X.Drawing>().FirstOrDefault() == null) {
+                worksheetPart.Worksheet.Append(new X.Drawing { Id = worksheetPart.GetIdOfPart(drawingsPart) });
+            }
+
+            drawingsPart.WorksheetDrawing.Append(new Xdr.TwoCellAnchor(
+                new Xdr.FromMarker(
+                    new Xdr.ColumnId("2"),
+                    new Xdr.ColumnOffset("0"),
+                    new Xdr.RowId("2"),
+                    new Xdr.RowOffset("0")),
+                new Xdr.ToMarker(
+                    new Xdr.ColumnId("4"),
+                    new Xdr.ColumnOffset("0"),
+                    new Xdr.RowId("5"),
+                    new Xdr.RowOffset("0")),
+                new Xdr.Shape(
+                    new Xdr.NonVisualShapeProperties(
+                        new Xdr.NonVisualDrawingProperties { Id = 122U, Name = "Aligned text box" },
+                        new Xdr.NonVisualShapeDrawingProperties(new A.ShapeLocks { NoGrouping = true })),
+                    new Xdr.ShapeProperties(
+                        new A.Transform2D(),
+                        new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.RoundRectangle },
+                        new A.SolidFill(new A.RgbColorModelHex { Val = "DCFCE7" }),
+                        new A.Outline(
+                            new A.SolidFill(new A.RgbColorModelHex { Val = "16A34A" })) {
+                            Width = 19050
+                        }),
+                    new Xdr.TextBody(
+                        new A.BodyProperties { Anchor = A.TextAnchoringTypeValues.Bottom },
+                        new A.ListStyle(),
+                        new A.Paragraph(
+                            new A.ParagraphProperties { Alignment = A.TextAlignmentTypeValues.Right },
+                            new A.Run(new A.Text("Bottom right"))))),
                 new Xdr.ClientData()));
             drawingsPart.WorksheetDrawing.Save();
             worksheetPart.Worksheet.Save();

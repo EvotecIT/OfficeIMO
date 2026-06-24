@@ -61,6 +61,8 @@ namespace OfficeIMO.Excel.Utilities {
                 .Elements<A.Paragraph>()
                 .Select(paragraph => string.Concat(paragraph.Descendants<A.Text>().Select(item => item.Text)))
                 .Where(line => !string.IsNullOrEmpty(line)) ?? Enumerable.Empty<string>());
+            OfficeTextAlignment textAlignment = ResolveTextAlignment(shape.TextBody);
+            OfficeTextVerticalAlignment textVerticalAlignment = ResolveTextVerticalAlignment(shape.TextBody?.GetFirstChild<A.BodyProperties>());
 
             return new ExcelWorksheetDrawingObjectInfo(
                 name,
@@ -85,6 +87,8 @@ namespace OfficeIMO.Excel.Utilities {
                 strokeColorArgb,
                 strokeWidth,
                 text,
+                textAlignment,
+                textVerticalAlignment,
                 unsupportedReason: null);
         }
 
@@ -114,7 +118,38 @@ namespace OfficeIMO.Excel.Utilities {
                 strokeColorArgb: null,
                 strokeWidth: 0D,
                 text: string.Empty,
+                textAlignment: OfficeTextAlignment.Center,
+                textVerticalAlignment: OfficeTextVerticalAlignment.Center,
                 unsupportedReason: unsupportedReason);
+        }
+
+        private static OfficeTextAlignment ResolveTextAlignment(Xdr.TextBody? textBody) {
+            A.TextAlignmentTypeValues? alignment = textBody?
+                .Elements<A.Paragraph>()
+                .Select(paragraph => paragraph.GetFirstChild<A.ParagraphProperties>()?.Alignment?.Value)
+                .FirstOrDefault(value => value.HasValue);
+            if (alignment == A.TextAlignmentTypeValues.Right) {
+                return OfficeTextAlignment.Right;
+            }
+
+            if (alignment == A.TextAlignmentTypeValues.Left) {
+                return OfficeTextAlignment.Left;
+            }
+
+            return OfficeTextAlignment.Center;
+        }
+
+        private static OfficeTextVerticalAlignment ResolveTextVerticalAlignment(A.BodyProperties? bodyProperties) {
+            A.TextAnchoringTypeValues? anchor = bodyProperties?.Anchor?.Value;
+            if (anchor == A.TextAnchoringTypeValues.Top) {
+                return OfficeTextVerticalAlignment.Top;
+            }
+
+            if (anchor == A.TextAnchoringTypeValues.Bottom) {
+                return OfficeTextVerticalAlignment.Bottom;
+            }
+
+            return OfficeTextVerticalAlignment.Center;
         }
 
         private static AnchorPosition GetAnchorPosition(OpenXmlElement anchor) {
@@ -353,6 +388,8 @@ namespace OfficeIMO.Excel.Utilities {
             string? strokeColorArgb,
             double strokeWidth,
             string text,
+            OfficeTextAlignment textAlignment,
+            OfficeTextVerticalAlignment textVerticalAlignment,
             string? unsupportedReason) {
             Name = name ?? string.Empty;
             Kind = kind ?? string.Empty;
@@ -376,6 +413,8 @@ namespace OfficeIMO.Excel.Utilities {
             StrokeColorArgb = strokeColorArgb;
             StrokeWidth = strokeWidth;
             Text = text ?? string.Empty;
+            TextAlignment = textAlignment;
+            TextVerticalAlignment = textVerticalAlignment;
             UnsupportedReason = unsupportedReason;
         }
 
@@ -422,6 +461,10 @@ namespace OfficeIMO.Excel.Utilities {
         internal double StrokeWidth { get; }
 
         internal string Text { get; }
+
+        internal OfficeTextAlignment TextAlignment { get; }
+
+        internal OfficeTextVerticalAlignment TextVerticalAlignment { get; }
 
         internal string? UnsupportedReason { get; }
 

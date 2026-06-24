@@ -795,6 +795,26 @@ public class DrawingTests {
     }
 
     [Fact]
+    public void OfficeDrawingSvgExporter_EmitsVerticallyAlignedTextThroughSharedRenderer() {
+        var drawing = new OfficeDrawing(120, 80);
+        drawing.AddText(
+            "Bottom",
+            10,
+            12,
+            80,
+            40,
+            new OfficeFontInfo("Aptos", 10D),
+            OfficeColor.Black,
+            OfficeTextAlignment.Right,
+            verticalAlignment: OfficeTextVerticalAlignment.Bottom);
+
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+
+        Assert.Contains("text-anchor=\"end\"", svg, StringComparison.Ordinal);
+        Assert.Contains(">Bottom</text>", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void OfficeDrawingSvgExporter_EmitsShapeShadowBehindForegroundShape() {
         var drawing = new OfficeDrawing(120, 80);
         var shape = OfficeShape.Rectangle(80, 30);

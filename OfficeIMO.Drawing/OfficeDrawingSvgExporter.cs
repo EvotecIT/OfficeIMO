@@ -184,6 +184,11 @@ public static class OfficeDrawingSvgExporter {
     }
 
     private static void AppendText(StringBuilder sb, OfficeDrawingText text) {
+        if (text.VerticalAlignment != OfficeTextVerticalAlignment.Top) {
+            AppendTextBlock(sb, text);
+            return;
+        }
+
         double x = text.X;
         if (text.Alignment == OfficeTextAlignment.Center) {
             x += text.Width / 2D;
@@ -210,6 +215,44 @@ public static class OfficeDrawingSvgExporter {
             text.RotationCenterX,
             text.RotationCenterY,
             (text.Font.Style & OfficeFontStyle.Strikethrough) == OfficeFontStyle.Strikethrough);
+    }
+
+    private static void AppendTextBlock(StringBuilder sb, OfficeDrawingText text) {
+        double fontSize = text.Font.Size > 0 ? text.Font.Size : 10D;
+        double lineHeightFactor = text.LineHeight.HasValue && text.LineHeight.Value > 0D
+            ? Math.Max(1D, text.LineHeight.Value / fontSize)
+            : 1.2D;
+        OfficeTextMeasurer measurer = OfficeTextMeasurer.Create(text.Font);
+        OfficeTextMeasurementStyle style = measurer.CreateStyle(new OfficeFontInfo(text.Font.FamilyName, fontSize, text.Font.Style));
+        OfficeTextBlockLayout layout = OfficeTextLayoutEngine.LayoutTextBlock(
+            text.Text,
+            fontSize,
+            text.Width,
+            text.Height,
+            lineHeightFactor,
+            Math.Min(6D, fontSize),
+            (value, size) => {
+                OfficeTextMeasurementStyle measuredStyle = measurer.CreateStyle(new OfficeFontInfo(text.Font.FamilyName, size, text.Font.Style));
+                return measurer.MeasureWidth(value, measuredStyle);
+            },
+            wrap: false);
+        sb.AppendSvgTextBlock(
+            layout,
+            text.X,
+            text.Y,
+            text.Width,
+            text.Height,
+            text.Color ?? OfficeColor.Black,
+            string.IsNullOrWhiteSpace(style.FontInfo.FamilyName) ? text.Font.FamilyName : style.FontInfo.FamilyName,
+            text.Alignment,
+            text.VerticalAlignment,
+            text.Font.IsBold,
+            text.Font.IsItalic,
+            (text.Font.Style & OfficeFontStyle.Underline) == OfficeFontStyle.Underline,
+            text.RotationDegrees,
+            text.RotationCenterX,
+            text.RotationCenterY,
+            strikethrough: (text.Font.Style & OfficeFontStyle.Strikethrough) == OfficeFontStyle.Strikethrough);
     }
 
     private static void AppendClipPathDefinition(StringBuilder sb, string id, OfficeClipPath clipPath) {

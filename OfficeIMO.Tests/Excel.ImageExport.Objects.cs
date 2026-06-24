@@ -362,6 +362,44 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void ExcelRange_ImageExportHonorsDrawingShapeTextAlignmentThroughSharedDrawing() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("AlignedText");
+                sheet.CellValue(1, 1, "Name");
+                sheet.CellValue(2, 2, "Aligned label");
+                document.Save(false);
+            }
+
+            AppendSupportedDrawingShape(
+                filePath,
+                "Aligned label",
+                "Aligned label",
+                paragraphAlignment: A.TextAlignmentTypeValues.Right,
+                verticalAlignment: A.TextAnchoringTypeValues.Bottom);
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+                ExcelSheet sheet = document.Sheets.Single();
+                ExcelRange range = sheet.Range("A1:D4");
+                var options = new ExcelImageExportOptions { ShowGridlines = false };
+                ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+                OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
+                OfficeImageExportResult svg = range.ExportImage(OfficeImageExportFormat.Svg, options);
+                string svgText = System.Text.Encoding.UTF8.GetString(svg.Bytes);
+
+                ExcelVisualDrawingObject drawingObject = Assert.Single(snapshot.DrawingObjects);
+                Assert.Equal("AlignedText!B2", drawingObject.Source);
+                Assert.Equal(OfficeTextAlignment.Right, drawingObject.TextAlignment);
+                Assert.Equal(OfficeTextVerticalAlignment.Bottom, drawingObject.TextVerticalAlignment);
+                Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeUnsupported);
+                Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeUnsupported);
+                Assert.DoesNotContain(svg.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeUnsupported);
+                Assert.Contains("Aligned label", svgText, StringComparison.Ordinal);
+                Assert.Contains("text-anchor=\"end\"", svgText, StringComparison.Ordinal);
+            }
+        }
+
         [Theory]
         [InlineData(true)]
         [InlineData(false)]
@@ -449,7 +487,9 @@ namespace OfficeIMO.Tests {
             bool verticalFlip = false,
             double rotationDegrees = 0D,
             string fillHex = "E0F2FE",
-            string strokeHex = "0284C7") {
+            string strokeHex = "0284C7",
+            A.TextAlignmentTypeValues? paragraphAlignment = null,
+            A.TextAnchoringTypeValues? verticalAlignment = null) {
             using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true);
             WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
             DrawingsPart drawingsPart = worksheetPart.DrawingsPart ?? worksheetPart.AddNewPart<DrawingsPart>();
@@ -459,7 +499,7 @@ namespace OfficeIMO.Tests {
 
             drawingsPart.WorksheetDrawing ??= new Xdr.WorksheetDrawing();
             drawingsPart.WorksheetDrawing.Append(
-                CreateSupportedShapeAnchor(1, 1, 3, 3, 2U, name, text, preset, horizontalFlip, verticalFlip, rotationDegrees, fillHex, strokeHex));
+                CreateSupportedShapeAnchor(1, 1, 3, 3, 2U, name, text, preset, horizontalFlip, verticalFlip, rotationDegrees, fillHex, strokeHex, paragraphAlignment, verticalAlignment));
             drawingsPart.WorksheetDrawing.Save();
             worksheetPart.Worksheet.Save();
         }
@@ -501,7 +541,9 @@ namespace OfficeIMO.Tests {
             bool verticalFlip = false,
             double rotationDegrees = 0D,
             string fillHex = "E0F2FE",
-            string strokeHex = "0284C7") {
+            string strokeHex = "0284C7",
+            A.TextAlignmentTypeValues? paragraphAlignment = null,
+            A.TextAnchoringTypeValues? verticalAlignment = null) {
             var transform = new A.Transform2D {
                 HorizontalFlip = horizontalFlip,
                 VerticalFlip = verticalFlip
@@ -509,6 +551,18 @@ namespace OfficeIMO.Tests {
             if (Math.Abs(rotationDegrees) > 0.0001D) {
                 transform.Rotation = (int)Math.Round(rotationDegrees * 60000D);
             }
+
+            var bodyProperties = new A.BodyProperties();
+            if (verticalAlignment.HasValue) {
+                bodyProperties.Anchor = verticalAlignment.Value;
+            }
+
+            var paragraph = new A.Paragraph();
+            if (paragraphAlignment.HasValue) {
+                paragraph.Append(new A.ParagraphProperties { Alignment = paragraphAlignment.Value });
+            }
+
+            paragraph.Append(new A.Run(new A.Text(text ?? name)));
 
             return new Xdr.TwoCellAnchor(
                 new Xdr.FromMarker(
@@ -534,9 +588,9 @@ namespace OfficeIMO.Tests {
                             Width = 12700
                         }),
                     new Xdr.TextBody(
-                        new A.BodyProperties(),
+                        bodyProperties,
                         new A.ListStyle(),
-                        new A.Paragraph(new A.Run(new A.Text(text ?? name))))),
+                        paragraph)),
                 new Xdr.ClientData());
         }
 
