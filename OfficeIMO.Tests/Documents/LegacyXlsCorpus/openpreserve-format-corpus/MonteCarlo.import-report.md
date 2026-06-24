@@ -632,6 +632,41 @@ Warnings: 0
 | SxRng | 25 |
 | SxVdEx | 1 |
 
+## Pivot Table Records By Location
+
+| Key | Count |
+| --- | --- |
+| (workbook) | 2 |
+| LB_MAQU_PF | 3 |
+| LB_MAQU_RAIN | 3 |
+| RangeTable | 1 |
+| ZPFCUM | 9 |
+| ZRAINCUM | 9 |
+
+## Pivot Table Records By Kind And Location
+
+| Key | Count |
+| --- | --- |
+| DataItem\|(workbook) | 1 |
+| ExtendedPivotField\|(workbook) | 1 |
+| GroupingRange\|LB_MAQU_PF | 3 |
+| GroupingRange\|LB_MAQU_RAIN | 3 |
+| GroupingRange\|RangeTable | 1 |
+| GroupingRange\|ZPFCUM | 9 |
+| GroupingRange\|ZRAINCUM | 9 |
+
+## Pivot Table Records By Name And Location
+
+| Key | Count |
+| --- | --- |
+| Sxdi\|(workbook) | 1 |
+| SxRng\|LB_MAQU_PF | 3 |
+| SxRng\|LB_MAQU_RAIN | 3 |
+| SxRng\|RangeTable | 1 |
+| SxRng\|ZPFCUM | 9 |
+| SxRng\|ZRAINCUM | 9 |
+| SxVdEx\|(workbook) | 1 |
+
 ## Pivot Table Grouping Kinds
 
 | Key | Count |

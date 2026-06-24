@@ -722,6 +722,50 @@ Warnings: 0
 | SxRng | 14 |
 | SxVdEx | 1 |
 
+## Pivot Table Records By Location
+
+| Key | Count |
+| --- | --- |
+| (workbook) | 2 |
+| All | 4 |
+| b | 1 |
+| c | 1 |
+| cl | 2 |
+| Info | 1 |
+| lb | 1 |
+| maquis | 1 |
+| wijn | 3 |
+
+## Pivot Table Records By Kind And Location
+
+| Key | Count |
+| --- | --- |
+| DataItem\|(workbook) | 1 |
+| ExtendedPivotField\|(workbook) | 1 |
+| GroupingRange\|All | 4 |
+| GroupingRange\|b | 1 |
+| GroupingRange\|c | 1 |
+| GroupingRange\|cl | 2 |
+| GroupingRange\|Info | 1 |
+| GroupingRange\|lb | 1 |
+| GroupingRange\|maquis | 1 |
+| GroupingRange\|wijn | 3 |
+
+## Pivot Table Records By Name And Location
+
+| Key | Count |
+| --- | --- |
+| Sxdi\|(workbook) | 1 |
+| SxRng\|All | 4 |
+| SxRng\|b | 1 |
+| SxRng\|c | 1 |
+| SxRng\|cl | 2 |
+| SxRng\|Info | 1 |
+| SxRng\|lb | 1 |
+| SxRng\|maquis | 1 |
+| SxRng\|wijn | 3 |
+| SxVdEx\|(workbook) | 1 |
+
 ## Pivot Table Grouping Kinds
 
 | Key | Count |

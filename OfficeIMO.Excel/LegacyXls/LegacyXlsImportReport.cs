@@ -309,6 +309,11 @@ namespace OfficeIMO.Excel.LegacyXls {
             ThemeRecordsByContentLength = CountByCode(workbook.ThemeRecords.Select(record => $"Bytes:{record.ThemeByteCount}"));
             PivotTableRecordsByKind = CountPivotTableRecordsByKind(workbook.PivotTableRecords);
             PivotTableRecordsByName = CountByCode(workbook.PivotTableRecords.Select(record => record.RecordName));
+            PivotTableRecordsByLocation = CountByCode(workbook.PivotTableRecords.Select(GetPivotTableRecordLocationKey));
+            PivotTableRecordsByKindAndLocation = CountByCode(workbook.PivotTableRecords
+                .Select(record => $"{record.Kind}|{GetPivotTableRecordLocationKey(record)}"));
+            PivotTableRecordsByNameAndLocation = CountByCode(workbook.PivotTableRecords
+                .Select(record => $"{record.RecordName}|{GetPivotTableRecordLocationKey(record)}"));
             PivotTableCacheItemKinds = CountByCode(workbook.PivotTableRecords
                 .Where(record => !string.IsNullOrWhiteSpace(record.CacheItemKindName))
                 .Select(record => record.CacheItemKindName!));
@@ -1272,6 +1277,15 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets preserve-only PivotTable BIFF records grouped by record name.</summary>
         public IReadOnlyDictionary<string, int> PivotTableRecordsByName { get; }
 
+        /// <summary>Gets preserve-only PivotTable BIFF records grouped by workbook or worksheet location.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableRecordsByLocation { get; }
+
+        /// <summary>Gets preserve-only PivotTable BIFF records grouped by decoded metadata kind and workbook or worksheet location.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableRecordsByKindAndLocation { get; }
+
+        /// <summary>Gets preserve-only PivotTable BIFF records grouped by BIFF record name and workbook or worksheet location.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableRecordsByNameAndLocation { get; }
+
         /// <summary>Gets decoded PivotCache item records grouped by value kind.</summary>
         public IReadOnlyDictionary<string, int> PivotTableCacheItemKinds { get; }
 
@@ -1945,6 +1959,9 @@ namespace OfficeIMO.Excel.LegacyXls {
                 entry => entry.Value,
                 StringComparer.OrdinalIgnoreCase));
             AppendDictionary(builder, "Pivot Table Records By Name", PivotTableRecordsByName);
+            AppendDictionary(builder, "Pivot Table Records By Location", PivotTableRecordsByLocation);
+            AppendDictionary(builder, "Pivot Table Records By Kind And Location", PivotTableRecordsByKindAndLocation);
+            AppendDictionary(builder, "Pivot Table Records By Name And Location", PivotTableRecordsByNameAndLocation);
             AppendDictionary(builder, "Pivot Table Cache Item Kinds", PivotTableCacheItemKinds);
             AppendDictionary(builder, "Pivot Table Cache Item Value States", PivotTableCacheItemValueStates);
             AppendDictionary(builder, "Pivot Table Cache Item String Lengths", PivotTableCacheItemStringLengths);
@@ -2405,6 +2422,10 @@ namespace OfficeIMO.Excel.LegacyXls {
         }
 
         private static string GetChartRecordLocationKey(LegacyXlsChartRecord record) {
+            return string.IsNullOrWhiteSpace(record.SheetName) ? "(workbook)" : record.SheetName!;
+        }
+
+        private static string GetPivotTableRecordLocationKey(LegacyXlsPivotTableRecord record) {
             return string.IsNullOrWhiteSpace(record.SheetName) ? "(workbook)" : record.SheetName!;
         }
 

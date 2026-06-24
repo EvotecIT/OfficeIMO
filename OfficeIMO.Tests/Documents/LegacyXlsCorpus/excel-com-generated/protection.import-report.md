@@ -256,6 +256,29 @@ Warnings: 0
 | SxRng | 1 |
 | SxVdEx | 1 |
 
+## Pivot Table Records By Location
+
+| Key | Count |
+| --- | --- |
+| (workbook) | 2 |
+| Protected | 1 |
+
+## Pivot Table Records By Kind And Location
+
+| Key | Count |
+| --- | --- |
+| DataItem\|(workbook) | 1 |
+| ExtendedPivotField\|(workbook) | 1 |
+| GroupingRange\|Protected | 1 |
+
+## Pivot Table Records By Name And Location
+
+| Key | Count |
+| --- | --- |
+| Sxdi\|(workbook) | 1 |
+| SxRng\|Protected | 1 |
+| SxVdEx\|(workbook) | 1 |
+
 ## Pivot Table Grouping Kinds
 
 | Key | Count |

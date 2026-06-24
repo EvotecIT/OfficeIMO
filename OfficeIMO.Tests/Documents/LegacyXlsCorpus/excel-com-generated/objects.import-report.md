@@ -639,6 +639,56 @@ Warnings: 0
 | SxView | 1 |
 | Sxvs | 1 |
 
+## Pivot Table Records By Location
+
+| Key | Count |
+| --- | --- |
+| (workbook) | 12 |
+| Objects | 1 |
+| Pivot | 46 |
+
+## Pivot Table Records By Kind And Location
+
+| Key | Count |
+| --- | --- |
+| Additional\|(workbook) | 8 |
+| Additional\|Pivot | 27 |
+| CacheSource\|(workbook) | 1 |
+| CacheStream\|(workbook) | 1 |
+| Cache\|Pivot | 1 |
+| DataItem\|(workbook) | 1 |
+| ExtendedPivotField\|(workbook) | 1 |
+| FieldIndexList\|Pivot | 1 |
+| Field\|Pivot | 4 |
+| Filter\|Pivot | 1 |
+| Formula\|Pivot | 4 |
+| GroupingRange\|Objects | 1 |
+| GroupingRange\|Pivot | 1 |
+| Item\|Pivot | 4 |
+| LineItem\|Pivot | 2 |
+| View\|Pivot | 1 |
+
+## Pivot Table Records By Name And Location
+
+| Key | Count |
+| --- | --- |
+| SxAddl\|(workbook) | 8 |
+| SxAddl\|Pivot | 27 |
+| Sxdb\|Pivot | 1 |
+| Sxdi\|(workbook) | 1 |
+| SxFilt\|Pivot | 1 |
+| SxFormula\|Pivot | 4 |
+| SxIvd\|Pivot | 1 |
+| Sxli\|Pivot | 2 |
+| SxRng\|Objects | 1 |
+| SxRng\|Pivot | 1 |
+| SxStreamId\|(workbook) | 1 |
+| SxVdEx\|(workbook) | 1 |
+| Sxvd\|Pivot | 4 |
+| SxView\|Pivot | 1 |
+| Sxvi\|Pivot | 4 |
+| Sxvs\|(workbook) | 1 |
+
 ## Pivot Table Cache Stream Names
 
 | Key | Count |

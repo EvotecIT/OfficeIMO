@@ -505,6 +505,15 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.PivotTableRecordsByName["SxVdEx"]);
             Assert.Equal(1, report.PivotTableRecordsByName["PivotChartBits"]);
             Assert.Equal(1, report.PivotTableRecordsByName["SxAddl"]);
+            Assert.Equal(12, report.PivotTableRecordsByLocation["(workbook)"]);
+            Assert.Equal(10, report.PivotTableRecordsByLocation["PivotMeta"]);
+            Assert.Equal(1, report.PivotTableRecordsByKindAndLocation["View|(workbook)"]);
+            Assert.Equal(5, report.PivotTableRecordsByKindAndLocation["CacheItem|(workbook)"]);
+            Assert.Equal(3, report.PivotTableRecordsByKindAndLocation["CacheItem|PivotMeta"]);
+            Assert.Equal(1, report.PivotTableRecordsByKindAndLocation["Field|PivotMeta"]);
+            Assert.Equal(1, report.PivotTableRecordsByKindAndLocation["Additional|PivotMeta"]);
+            Assert.Equal(1, report.PivotTableRecordsByNameAndLocation["SxView|(workbook)"]);
+            Assert.Equal(1, report.PivotTableRecordsByNameAndLocation["SxAddl|PivotMeta"]);
             Assert.Equal(1, report.PivotTableCacheItemKinds["Number"]);
             Assert.Equal(1, report.PivotTableCacheItemKinds["Integer"]);
             Assert.Equal(1, report.PivotTableCacheItemKinds["Boolean"]);
@@ -677,6 +686,11 @@ namespace OfficeIMO.Tests {
             string markdown = report.ToMarkdown();
             Assert.Contains("Pivot table records: 22", markdown);
             Assert.Contains("Pivot Table Records By Kind", markdown);
+            Assert.Contains("Pivot Table Records By Location", markdown);
+            Assert.Contains("Pivot Table Records By Kind And Location", markdown);
+            Assert.Contains("CacheItem\\|(workbook)", markdown);
+            Assert.Contains("Pivot Table Records By Name And Location", markdown);
+            Assert.Contains("SxAddl\\|PivotMeta", markdown);
             Assert.Contains("Pivot Table Cache Item Kinds", markdown);
             Assert.Contains("Pivot Table Cache Stream Names", markdown);
             Assert.Contains("SxStreamId\\|0001", markdown);

@@ -735,6 +735,58 @@ Warnings: 0
 | SxView | 1 |
 | Sxvs | 1 |
 
+## Pivot Table Records By Location
+
+| Key | Count |
+| --- | --- |
+| (workbook) | 12 |
+| PivotSummary | 81 |
+| SalesData | 1 |
+
+## Pivot Table Records By Kind And Location
+
+| Key | Count |
+| --- | --- |
+| Additional\|(workbook) | 8 |
+| Additional\|PivotSummary | 42 |
+| CacheSource\|(workbook) | 1 |
+| CacheStream\|(workbook) | 1 |
+| Cache\|PivotSummary | 2 |
+| DataItem\|(workbook) | 1 |
+| ExtendedPivotField\|(workbook) | 1 |
+| FieldIndexList\|PivotSummary | 2 |
+| Field\|PivotSummary | 7 |
+| Filter\|PivotSummary | 1 |
+| Formula\|PivotSummary | 7 |
+| GroupingRange\|PivotSummary | 1 |
+| GroupingRange\|SalesData | 1 |
+| Item\|PivotSummary | 15 |
+| LineItem\|PivotSummary | 2 |
+| PageItem\|PivotSummary | 1 |
+| View\|PivotSummary | 1 |
+
+## Pivot Table Records By Name And Location
+
+| Key | Count |
+| --- | --- |
+| SxAddl\|(workbook) | 8 |
+| SxAddl\|PivotSummary | 42 |
+| Sxdb\|PivotSummary | 2 |
+| Sxdi\|(workbook) | 1 |
+| SxFilt\|PivotSummary | 1 |
+| SxFormula\|PivotSummary | 7 |
+| SxIvd\|PivotSummary | 2 |
+| Sxli\|PivotSummary | 2 |
+| Sxpi\|PivotSummary | 1 |
+| SxRng\|PivotSummary | 1 |
+| SxRng\|SalesData | 1 |
+| SxStreamId\|(workbook) | 1 |
+| SxVdEx\|(workbook) | 1 |
+| Sxvd\|PivotSummary | 7 |
+| SxView\|PivotSummary | 1 |
+| Sxvi\|PivotSummary | 15 |
+| Sxvs\|(workbook) | 1 |
+
 ## Pivot Table Cache Stream Names
 
 | Key | Count |
