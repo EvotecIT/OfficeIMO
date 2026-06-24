@@ -499,6 +499,12 @@ Warnings: 0
 | Sheet:ChartOnly;ChartType:Bar | 1 |
 | Sheet:ChartOnly;ChartType:ThreeDimensionalBarShape | 1 |
 
+## Unsupported Chart Sheet States
+
+| Key | Count |
+| --- | --- |
+| PrintSize:Present\|TextObjects:Missing\|ChartRecords:Present\|ChartTypes:Present | 1 |
+
 ## External References By Kind
 
 | Key | Count |
@@ -844,6 +850,12 @@ Warnings: 0
 | Tick | 4 |
 | Units | 4 |
 | ValueRange | 2 |
+
+## Chart Workbook States
+
+| Key | Count |
+| --- | --- |
+| Containers:Present\|ChartTypes:Present\|Series:Present\|Axes:Present\|Text:Present\|Formatting:Present\|Layout:Present\|Future:Present\|PreserveOnly:Present\|Scopes:Workbook:Missing;Worksheets:Present;ChartSheets:Present | 1 |
 
 ## Chart Records By Chart Type
 

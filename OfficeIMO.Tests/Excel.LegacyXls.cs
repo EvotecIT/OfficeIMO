@@ -465,6 +465,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.UnsupportedChartSheetPrintSizes["PrintSize:2"]);
             Assert.Equal(1, report.UnsupportedChartSheetPrintSizeKinds["FitPage"]);
             Assert.Equal(1, report.UnsupportedChartSheetTextObjectCounts["TextObjects:1"]);
+            Assert.Equal(1, report.UnsupportedChartSheetStates["PrintSize:Present|TextObjects:Present|ChartRecords:Missing|ChartTypes:Missing"]);
             Assert.Empty(report.UnsupportedChartSheetChartRecordCounts);
             Assert.Empty(report.UnsupportedChartSheetChartRecordKinds);
             Assert.Empty(report.UnsupportedChartSheetChartTypes);
@@ -473,6 +474,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Unsupported Chart Sheet Print Sizes", markdown);
             Assert.Contains("Unsupported Chart Sheet Print Size Kinds", markdown);
             Assert.Contains("Unsupported Chart Sheet Text Object Counts", markdown);
+            Assert.Contains("Unsupported Chart Sheet States", markdown);
         }
 
         [Fact]

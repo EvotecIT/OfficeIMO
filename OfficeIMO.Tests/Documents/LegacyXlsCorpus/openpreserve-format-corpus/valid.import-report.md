@@ -524,6 +524,12 @@ Warnings: 0
 | Sheet:lb_chart;ChartType:Scatter | 1 |
 | Sheet:lb_chart;ChartType:ThreeDimensionalBarShape | 7 |
 
+## Unsupported Chart Sheet States
+
+| Key | Count |
+| --- | --- |
+| PrintSize:Present\|TextObjects:Present\|ChartRecords:Present\|ChartTypes:Present | 4 |
+
 ## External References By Kind
 
 | Key | Count |
@@ -855,6 +861,12 @@ Warnings: 0
 | Tick | 16 |
 | Units | 8 |
 | ValueRange | 16 |
+
+## Chart Workbook States
+
+| Key | Count |
+| --- | --- |
+| Containers:Present\|ChartTypes:Present\|Series:Present\|Axes:Present\|Text:Present\|Formatting:Present\|Layout:Present\|Future:Missing\|PreserveOnly:Missing\|Scopes:Workbook:Present;Worksheets:Present;ChartSheets:Present | 1 |
 
 ## Chart Records By Chart Type
 

@@ -818,6 +818,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(10, report.UnsupportedChartSheetChartRecordKindsBySheet["Sheet:ChartOnly;Kind:Axis"]);
             Assert.Equal(3, report.UnsupportedChartSheetChartRecordKindsBySheet["Sheet:ChartOnly;Kind:ChartType"]);
             Assert.Equal(1, report.UnsupportedChartSheetChartTypesBySheet["Sheet:ChartOnly;ChartType:Scatter"]);
+            Assert.Equal(1, report.UnsupportedChartSheetStates["PrintSize:Missing|TextObjects:Present|ChartRecords:Present|ChartTypes:Present"]);
             Assert.Empty(report.UnsupportedChartSheetPrintSizes);
             Assert.Empty(report.UnsupportedChartSheetPrintSizeKinds);
             Assert.Equal(1, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.ChartSheet]);
@@ -867,6 +868,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.ChartRecordsByName["GelFrame"]);
             Assert.Equal(1, report.ChartRecordsByName["BopPopCustom"]);
             Assert.Equal(1, report.ChartRecordsByName["Fbi2"]);
+            Assert.Equal(1, report.ChartWorkbookStates["Containers:Present|ChartTypes:Present|Series:Present|Axes:Present|Text:Present|Formatting:Present|Layout:Present|Future:Present|PreserveOnly:Missing|Scopes:ChartSheetsOnly"]);
             Assert.Equal(1, report.ChartRecordsByChartType["Scatter"]);
             Assert.Equal(1, report.ChartRecordsByRectangle["X:100;Y:200;Width:3000;Height:2200"]);
             Assert.Equal(1, report.ChartRecordsByAxisType["ValueOrVerticalValue"]);
@@ -1030,6 +1032,8 @@ namespace OfficeIMO.Tests {
             Assert.Contains(workbook.Diagnostics, d => d.SheetName == "ChartOnly" && d.DetailCode == "Chart:Chart");
             string markdown = report.ToMarkdown();
             Assert.Contains("Chart Records By Rectangle", markdown);
+            Assert.Contains("Unsupported Chart Sheet States", markdown);
+            Assert.Contains("Chart Workbook States", markdown);
             Assert.Contains("Chart Records By Axis Type", markdown);
             Assert.Contains("Chart Records By Axes Used Count", markdown);
             Assert.Contains("Chart CatSerRange Intervals", markdown);

@@ -276,6 +276,9 @@ namespace OfficeIMO.Excel.LegacyXls {
             UnsupportedChartSheetChartRecordKindsBySheet = CountUnsupportedChartSheetChartRecordKindsBySheet(workbook.UnsupportedSheets);
             UnsupportedChartSheetChartTypes = CountUnsupportedChartSheetChartTypes(workbook.UnsupportedSheets);
             UnsupportedChartSheetChartTypesBySheet = CountUnsupportedChartSheetChartTypesBySheet(workbook.UnsupportedSheets);
+            UnsupportedChartSheetStates = CountByCode(workbook.UnsupportedSheets
+                .Where(sheet => sheet.Kind == LegacyXlsUnsupportedSheetKind.ChartSheet)
+                .Select(GetUnsupportedChartSheetStateKey));
             ExternalReferencesByKind = CountExternalReferencesByKind(workbook.ExternalReferences);
             ExternalReferencesByTarget = CountByCode(workbook.ExternalReferences.Select(GetExternalReferenceTargetKey));
             ExternalReferencesByShape = CountByCode(workbook.ExternalReferences.Select(GetExternalReferenceShapeKey));
@@ -416,6 +419,7 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .Select(record => $"CacheId:{record.AdditionalCacheId!.Value}"));
             ChartRecordsByKind = CountChartRecordsByKind(workbook.ChartRecords);
             ChartRecordsByName = CountByCode(workbook.ChartRecords.Select(record => record.RecordName));
+            ChartWorkbookStates = CountByCode(GetChartWorkbookStateKeys(workbook.ChartRecords, workbook.UnsupportedSheets));
             ChartRecordsByChartType = CountByCode(workbook.ChartRecords
                 .Where(record => !string.IsNullOrWhiteSpace(record.ChartTypeName))
                 .Select(record => record.ChartTypeName!));
@@ -1221,6 +1225,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets unsupported chart sheet preserve-only chart type records grouped by sheet name and decoded chart family.</summary>
         public IReadOnlyDictionary<string, int> UnsupportedChartSheetChartTypesBySheet { get; }
 
+        /// <summary>Gets unsupported chart sheets grouped by preserve-only chart metadata shape.</summary>
+        public IReadOnlyDictionary<string, int> UnsupportedChartSheetStates { get; }
+
         /// <summary>Gets preserved external references grouped by supporting-link kind.</summary>
         public IReadOnlyDictionary<LegacyXlsExternalReferenceKind, int> ExternalReferencesByKind { get; }
 
@@ -1433,6 +1440,9 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets preserve-only chart BIFF records grouped by record name.</summary>
         public IReadOnlyDictionary<string, int> ChartRecordsByName { get; }
+
+        /// <summary>Gets workbook-level chart model-shape states derived from preserve-only chart BIFF records.</summary>
+        public IReadOnlyDictionary<string, int> ChartWorkbookStates { get; }
 
         /// <summary>Gets preserve-only chart BIFF chart-type records grouped by decoded chart family.</summary>
         public IReadOnlyDictionary<string, int> ChartRecordsByChartType { get; }
@@ -1984,6 +1994,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Unsupported Chart Sheet Chart Record Kinds By Sheet", UnsupportedChartSheetChartRecordKindsBySheet);
             AppendDictionary(builder, "Unsupported Chart Sheet Chart Types", UnsupportedChartSheetChartTypes);
             AppendDictionary(builder, "Unsupported Chart Sheet Chart Types By Sheet", UnsupportedChartSheetChartTypesBySheet);
+            AppendDictionary(builder, "Unsupported Chart Sheet States", UnsupportedChartSheetStates);
             AppendDictionary(builder, "External References By Kind", ExternalReferencesByKind.ToDictionary(
                 entry => entry.Key.ToString(),
                 entry => entry.Value,
@@ -2073,6 +2084,7 @@ namespace OfficeIMO.Excel.LegacyXls {
                 entry => entry.Value,
                 StringComparer.OrdinalIgnoreCase));
             AppendDictionary(builder, "Chart Records By Name", ChartRecordsByName);
+            AppendDictionary(builder, "Chart Workbook States", ChartWorkbookStates);
             AppendDictionary(builder, "Chart Records By Chart Type", ChartRecordsByChartType);
             AppendDictionary(builder, "Chart Records By Rectangle", ChartRecordsByRectangle);
             AppendDictionary(builder, "Chart Records By Axis Type", ChartRecordsByAxisType);
@@ -2524,6 +2536,61 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         private static string GetChartRecordLocationKey(LegacyXlsChartRecord record) {
             return string.IsNullOrWhiteSpace(record.SheetName) ? "(workbook)" : record.SheetName!;
+        }
+
+        private static string GetUnsupportedChartSheetStateKey(LegacyXlsUnsupportedSheet sheet) {
+            return $"PrintSize:{GetPresenceKey(sheet.ChartPrintSize.HasValue)}"
+                + $"|TextObjects:{GetPresenceKey(sheet.ChartTextObjectCount > 0)}"
+                + $"|ChartRecords:{GetPresenceKey(sheet.ChartRecordCount > 0)}"
+                + $"|ChartTypes:{GetPresenceKey(sheet.ChartRecordsByChartType.Count > 0)}";
+        }
+
+        private static IEnumerable<string> GetChartWorkbookStateKeys(
+            IReadOnlyCollection<LegacyXlsChartRecord> records,
+            IReadOnlyCollection<LegacyXlsUnsupportedSheet> unsupportedSheets) {
+            if (records.Count == 0) {
+                yield break;
+            }
+
+            var chartSheetNames = new HashSet<string>(
+                unsupportedSheets
+                    .Where(sheet => sheet.Kind == LegacyXlsUnsupportedSheetKind.ChartSheet)
+                    .Select(sheet => sheet.Name),
+                StringComparer.OrdinalIgnoreCase);
+
+            yield return $"Containers:{GetPresenceKey(records.Any(record => record.Kind == LegacyXlsChartRecordKind.Container))}"
+                + $"|ChartTypes:{GetPresenceKey(records.Any(record => record.Kind == LegacyXlsChartRecordKind.ChartType))}"
+                + $"|Series:{GetPresenceKey(records.Any(record => record.Kind == LegacyXlsChartRecordKind.Series))}"
+                + $"|Axes:{GetPresenceKey(records.Any(record => record.Kind == LegacyXlsChartRecordKind.Axis))}"
+                + $"|Text:{GetPresenceKey(records.Any(record => record.Kind == LegacyXlsChartRecordKind.Text))}"
+                + $"|Formatting:{GetPresenceKey(records.Any(record => record.Kind == LegacyXlsChartRecordKind.Formatting))}"
+                + $"|Layout:{GetPresenceKey(records.Any(record => record.Kind == LegacyXlsChartRecordKind.Layout))}"
+                + $"|Future:{GetPresenceKey(records.Any(record => record.Kind == LegacyXlsChartRecordKind.FutureMetadata))}"
+                + $"|PreserveOnly:{GetPresenceKey(records.Any(record => record.Kind == LegacyXlsChartRecordKind.PreserveOnly))}"
+                + $"|Scopes:{GetChartRecordScopeKey(records, chartSheetNames)}";
+        }
+
+        private static string GetChartRecordScopeKey(
+            IEnumerable<LegacyXlsChartRecord> records,
+            ISet<string> chartSheetNames) {
+            bool hasWorkbookRecords = false;
+            bool hasWorksheetRecords = false;
+            bool hasChartSheetRecords = false;
+            foreach (LegacyXlsChartRecord record in records) {
+                if (string.IsNullOrWhiteSpace(record.SheetName)) {
+                    hasWorkbookRecords = true;
+                } else if (chartSheetNames.Contains(record.SheetName!)) {
+                    hasChartSheetRecords = true;
+                } else {
+                    hasWorksheetRecords = true;
+                }
+            }
+
+            if (hasWorkbookRecords || (hasWorksheetRecords && hasChartSheetRecords)) {
+                return $"Workbook:{GetPresenceKey(hasWorkbookRecords)};Worksheets:{GetPresenceKey(hasWorksheetRecords)};ChartSheets:{GetPresenceKey(hasChartSheetRecords)}";
+            }
+
+            return hasChartSheetRecords ? "ChartSheetsOnly" : "WorksheetsOnly";
         }
 
         private static string GetPivotTableRecordLocationKey(LegacyXlsPivotTableRecord record) {

@@ -827,6 +827,12 @@ Warnings: 0
 | Units | 2 |
 | ValueRange | 1 |
 
+## Chart Workbook States
+
+| Key | Count |
+| --- | --- |
+| Containers:Present\|ChartTypes:Present\|Series:Present\|Axes:Present\|Text:Present\|Formatting:Present\|Layout:Present\|Future:Present\|PreserveOnly:Present\|Scopes:WorksheetsOnly | 1 |
+
 ## Chart Records By Chart Type
 
 | Key | Count |

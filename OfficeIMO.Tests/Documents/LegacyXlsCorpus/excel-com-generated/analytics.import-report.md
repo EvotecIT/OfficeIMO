@@ -593,6 +593,12 @@ Warnings: 0
 | Sheet:RevenueChart;ChartType:Bar | 1 |
 | Sheet:RevenueChart;ChartType:ThreeDimensionalBarShape | 1 |
 
+## Unsupported Chart Sheet States
+
+| Key | Count |
+| --- | --- |
+| PrintSize:Present\|TextObjects:Missing\|ChartRecords:Present\|ChartTypes:Present | 1 |
+
 ## External References By Kind
 
 | Key | Count |
@@ -942,6 +948,12 @@ Warnings: 0
 | Tick | 2 |
 | Units | 2 |
 | ValueRange | 1 |
+
+## Chart Workbook States
+
+| Key | Count |
+| --- | --- |
+| Containers:Present\|ChartTypes:Present\|Series:Present\|Axes:Present\|Text:Present\|Formatting:Present\|Layout:Present\|Future:Present\|PreserveOnly:Present\|Scopes:ChartSheetsOnly | 1 |
 
 ## Chart Records By Chart Type
 
