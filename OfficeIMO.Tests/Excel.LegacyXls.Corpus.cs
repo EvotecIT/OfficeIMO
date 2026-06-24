@@ -19,6 +19,30 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_Corpus_OpenPreserveValid_PreservesVbaProjectShape() {
+            string workbookPath = Path.Combine(
+                GetTestsProjectRoot(),
+                "Documents",
+                "LegacyXlsCorpus",
+                "openpreserve-format-corpus",
+                "valid.xls");
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(workbookPath, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
+            Assert.Equal(8, result.ImportReport.CompoundVbaModuleCount);
+            Assert.Equal(7664, result.ImportReport.CompoundVbaModuleByteCount);
+            Assert.Equal(1, result.ImportReport.CompoundVbaModulesByPath["_VBA_PROJECT_CUR/VBA/ThisWorkbook"]);
+            Assert.Equal(1, result.ImportReport.CompoundVbaModulesByNameAndSize["ThisWorkbook|Bytes:965"]);
+            Assert.Equal(1, result.ImportReport.CompoundVbaModulesByNameAndSize["Sheet8|Bytes:957"]);
+            Assert.Equal(1, result.ImportReport.CompoundVbaModulesByCodeNameMatchAndName["WorkbookCodeName|ThisWorkbook"]);
+            Assert.Equal(1, result.ImportReport.CompoundVbaModulesByCodeNameMatchAndName["WorksheetCodeName|Sheet1"]);
+            Assert.Equal(1, result.ImportReport.CompoundVbaProjectsByStructure["Modules:8|DirStreams:1|ProjectStreams:2|Storages:2"]);
+        }
+
+        [Fact]
         public void LegacyXls_Corpus_ExcelExternalLinks_PreserveFormulaAndCacheModel() {
             string workbookPath = Path.Combine(
                 GetTestsProjectRoot(),

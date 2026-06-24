@@ -1329,6 +1329,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.CompoundVbaModulesByName["Sheet1"]);
             Assert.Equal(1, report.CompoundVbaModulesByName["ThisWorkbook"]);
             Assert.Equal(1, report.CompoundVbaModulesByName["LooseModule"]);
+            Assert.Equal(1, report.CompoundVbaModulesByPath["_VBA_PROJECT_CUR/VBA/Sheet1"]);
+            Assert.Equal(1, report.CompoundVbaModulesByPath["_VBA_PROJECT_CUR/VBA/ThisWorkbook"]);
+            Assert.Equal(1, report.CompoundVbaModulesByPath["_VBA_PROJECT_CUR/VBA/LooseModule"]);
             Assert.Equal(2, report.CompoundFeatureEntriesByObjectType["Storage"]);
             Assert.Equal(5, report.CompoundFeatureEntriesByObjectType["Stream"]);
             Assert.Equal(3, report.CompoundFeatureEntriesByRoleAndObjectType["VbaModuleStream|Stream"]);
@@ -1339,19 +1342,30 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.CompoundVbaModulesBySize["Bytes:100"]);
             Assert.Equal(1, report.CompoundVbaModulesBySize["Bytes:200"]);
             Assert.Equal(1, report.CompoundVbaModulesBySize["Bytes:300"]);
+            Assert.Equal(1, report.CompoundVbaModulesByNameAndSize["Sheet1|Bytes:100"]);
+            Assert.Equal(1, report.CompoundVbaModulesByNameAndSize["ThisWorkbook|Bytes:200"]);
+            Assert.Equal(1, report.CompoundVbaModulesByNameAndSize["LooseModule|Bytes:300"]);
             Assert.Equal(1, report.CompoundVbaModulesByCodeNameMatch["WorksheetCodeName"]);
             Assert.Equal(1, report.CompoundVbaModulesByCodeNameMatch["WorkbookCodeName"]);
             Assert.Equal(1, report.CompoundVbaModulesByCodeNameMatch["UnmatchedCodeName"]);
+            Assert.Equal(1, report.CompoundVbaModulesByCodeNameMatchAndName["WorksheetCodeName|Sheet1"]);
+            Assert.Equal(1, report.CompoundVbaModulesByCodeNameMatchAndName["WorkbookCodeName|ThisWorkbook"]);
+            Assert.Equal(1, report.CompoundVbaModulesByCodeNameMatchAndName["UnmatchedCodeName|LooseModule"]);
             Assert.Equal(1, report.CompoundVbaProjectsByModuleCount["Modules:3"]);
             Assert.Equal(1, report.CompoundVbaProjectsByModuleByteCount["Bytes:600"]);
+            Assert.Equal(1, report.CompoundVbaProjectsByStructure["Modules:3|DirStreams:1|ProjectStreams:1|Storages:2"]);
             string markdown = report.ToMarkdown();
             Assert.Contains("Compound VBA modules: 3", markdown);
             Assert.Contains("Compound VBA module bytes: 600", markdown);
             Assert.Contains("Compound VBA Modules By Name", markdown);
+            Assert.Contains("Compound VBA Modules By Path", markdown);
             Assert.Contains("Compound VBA Modules By Size", markdown);
+            Assert.Contains("Compound VBA Modules By Name And Size", markdown);
             Assert.Contains("Compound VBA Modules By CodeName Match", markdown);
+            Assert.Contains("Compound VBA Modules By CodeName Match And Name", markdown);
             Assert.Contains("Compound VBA Projects By Module Count", markdown);
             Assert.Contains("Compound VBA Projects By Module Byte Count", markdown);
+            Assert.Contains("Compound VBA Projects By Structure", markdown);
         }
 
         [Fact]

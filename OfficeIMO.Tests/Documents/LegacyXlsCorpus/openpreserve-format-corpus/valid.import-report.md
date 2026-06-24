@@ -1455,6 +1455,19 @@ Warnings: 0
 | Sheet8 | 1 |
 | ThisWorkbook | 1 |
 
+## Compound VBA Modules By Path
+
+| Key | Count |
+| --- | --- |
+| _VBA_PROJECT_CUR/VBA/Sheet1 | 1 |
+| _VBA_PROJECT_CUR/VBA/Sheet2 | 1 |
+| _VBA_PROJECT_CUR/VBA/Sheet3 | 1 |
+| _VBA_PROJECT_CUR/VBA/Sheet4 | 1 |
+| _VBA_PROJECT_CUR/VBA/Sheet5 | 1 |
+| _VBA_PROJECT_CUR/VBA/Sheet6 | 1 |
+| _VBA_PROJECT_CUR/VBA/Sheet8 | 1 |
+| _VBA_PROJECT_CUR/VBA/ThisWorkbook | 1 |
+
 ## Compound VBA Modules By Size
 
 | Key | Count |
@@ -1462,12 +1475,38 @@ Warnings: 0
 | Bytes:957 | 7 |
 | Bytes:965 | 1 |
 
+## Compound VBA Modules By Name And Size
+
+| Key | Count |
+| --- | --- |
+| Sheet1\|Bytes:957 | 1 |
+| Sheet2\|Bytes:957 | 1 |
+| Sheet3\|Bytes:957 | 1 |
+| Sheet4\|Bytes:957 | 1 |
+| Sheet5\|Bytes:957 | 1 |
+| Sheet6\|Bytes:957 | 1 |
+| Sheet8\|Bytes:957 | 1 |
+| ThisWorkbook\|Bytes:965 | 1 |
+
 ## Compound VBA Modules By CodeName Match
 
 | Key | Count |
 | --- | --- |
 | WorkbookCodeName | 1 |
 | WorksheetCodeName | 7 |
+
+## Compound VBA Modules By CodeName Match And Name
+
+| Key | Count |
+| --- | --- |
+| WorkbookCodeName\|ThisWorkbook | 1 |
+| WorksheetCodeName\|Sheet1 | 1 |
+| WorksheetCodeName\|Sheet2 | 1 |
+| WorksheetCodeName\|Sheet3 | 1 |
+| WorksheetCodeName\|Sheet4 | 1 |
+| WorksheetCodeName\|Sheet5 | 1 |
+| WorksheetCodeName\|Sheet6 | 1 |
+| WorksheetCodeName\|Sheet8 | 1 |
 
 ## Compound VBA Projects By Module Count
 
@@ -1480,6 +1519,12 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | Bytes:7664 | 1 |
+
+## Compound VBA Projects By Structure
+
+| Key | Count |
+| --- | --- |
+| Modules:8\|DirStreams:1\|ProjectStreams:2\|Storages:2 | 1 |
 
 ## Calculation Settings By Kind
 

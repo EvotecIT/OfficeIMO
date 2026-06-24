@@ -694,17 +694,29 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .SelectMany(record => record.EntryDetails)
                 .Select(entry => $"{entry.Role}|{GetCompoundFeatureEntrySizeKey(entry)}"));
             CompoundVbaModulesByName = CountByCode(workbook.CompoundFeatureRecords.SelectMany(record => record.VbaModuleNames));
+            CompoundVbaModulesByPath = CountByCode(workbook.CompoundFeatureRecords
+                .SelectMany(record => record.EntryDetails)
+                .Where(entry => entry.Role == LegacyXlsCompoundFeatureEntryRole.VbaModuleStream)
+                .Select(entry => entry.Path));
             CompoundVbaModulesBySize = CountByCode(workbook.CompoundFeatureRecords
                 .SelectMany(record => record.EntryDetails)
                 .Where(entry => entry.Role == LegacyXlsCompoundFeatureEntryRole.VbaModuleStream)
                 .Select(GetCompoundFeatureEntrySizeKey));
+            CompoundVbaModulesByNameAndSize = CountByCode(workbook.CompoundFeatureRecords
+                .SelectMany(record => record.EntryDetails)
+                .Where(entry => entry.Role == LegacyXlsCompoundFeatureEntryRole.VbaModuleStream)
+                .Select(entry => $"{GetCompoundFeatureEntryLeafName(entry.Path)}|{GetCompoundFeatureEntrySizeKey(entry)}"));
             CompoundVbaModulesByCodeNameMatch = CountByCode(GetCompoundVbaModuleCodeNameMatchKeys(workbook));
+            CompoundVbaModulesByCodeNameMatchAndName = CountByCode(GetCompoundVbaModuleCodeNameMatchAndNameKeys(workbook));
             CompoundVbaProjectsByModuleCount = CountByCode(workbook.CompoundFeatureRecords
                 .Where(record => record.Kind == LegacyXlsCompoundFeatureRecordKind.VbaProject)
                 .Select(record => $"Modules:{record.VbaModuleCount}"));
             CompoundVbaProjectsByModuleByteCount = CountByCode(workbook.CompoundFeatureRecords
                 .Where(record => record.Kind == LegacyXlsCompoundFeatureRecordKind.VbaProject)
                 .Select(record => $"Bytes:{record.VbaModuleByteCount.ToString(CultureInfo.InvariantCulture)}"));
+            CompoundVbaProjectsByStructure = CountByCode(workbook.CompoundFeatureRecords
+                .Where(record => record.Kind == LegacyXlsCompoundFeatureRecordKind.VbaProject)
+                .Select(GetCompoundVbaProjectStructureKey));
             CalculationSettingsByKind = CountCalculationSettingsByKind(workbook.CalculationSettings.Records);
             CellStylesByKind = CountByCode(workbook.CellStyles.Select(style => style.IsBuiltIn ? "BuiltIn" : "Custom"));
             CellStyleExtensionsByRecordName = CountByCode(workbook.CellStyleExtensions.Select(extension => extension.RecordName));
@@ -1656,17 +1668,29 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets VBA module streams grouped by module name.</summary>
         public IReadOnlyDictionary<string, int> CompoundVbaModulesByName { get; }
 
+        /// <summary>Gets VBA module streams grouped by compound entry path.</summary>
+        public IReadOnlyDictionary<string, int> CompoundVbaModulesByPath { get; }
+
         /// <summary>Gets VBA module streams grouped by declared byte size.</summary>
         public IReadOnlyDictionary<string, int> CompoundVbaModulesBySize { get; }
 
+        /// <summary>Gets VBA module streams grouped by module name and declared byte size.</summary>
+        public IReadOnlyDictionary<string, int> CompoundVbaModulesByNameAndSize { get; }
+
         /// <summary>Gets VBA module streams grouped by whether they match workbook or worksheet CodeName records.</summary>
         public IReadOnlyDictionary<string, int> CompoundVbaModulesByCodeNameMatch { get; }
+
+        /// <summary>Gets VBA module streams grouped by CodeName match type and module name.</summary>
+        public IReadOnlyDictionary<string, int> CompoundVbaModulesByCodeNameMatchAndName { get; }
 
         /// <summary>Gets VBA project compound features grouped by discovered module count.</summary>
         public IReadOnlyDictionary<string, int> CompoundVbaProjectsByModuleCount { get; }
 
         /// <summary>Gets VBA project compound features grouped by total declared module stream bytes.</summary>
         public IReadOnlyDictionary<string, int> CompoundVbaProjectsByModuleByteCount { get; }
+
+        /// <summary>Gets VBA project compound features grouped by module, dir stream, and project stream counts.</summary>
+        public IReadOnlyDictionary<string, int> CompoundVbaProjectsByStructure { get; }
 
         /// <summary>Gets parsed calculation setting records grouped by setting kind.</summary>
         public IReadOnlyDictionary<LegacyXlsCalculationSettingKind, int> CalculationSettingsByKind { get; }
@@ -2065,10 +2089,14 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Compound Feature Entries By Size", CompoundFeatureEntriesBySize);
             AppendDictionary(builder, "Compound Feature Entries By Role And Size", CompoundFeatureEntriesByRoleAndSize);
             AppendDictionary(builder, "Compound VBA Modules By Name", CompoundVbaModulesByName);
+            AppendDictionary(builder, "Compound VBA Modules By Path", CompoundVbaModulesByPath);
             AppendDictionary(builder, "Compound VBA Modules By Size", CompoundVbaModulesBySize);
+            AppendDictionary(builder, "Compound VBA Modules By Name And Size", CompoundVbaModulesByNameAndSize);
             AppendDictionary(builder, "Compound VBA Modules By CodeName Match", CompoundVbaModulesByCodeNameMatch);
+            AppendDictionary(builder, "Compound VBA Modules By CodeName Match And Name", CompoundVbaModulesByCodeNameMatchAndName);
             AppendDictionary(builder, "Compound VBA Projects By Module Count", CompoundVbaProjectsByModuleCount);
             AppendDictionary(builder, "Compound VBA Projects By Module Byte Count", CompoundVbaProjectsByModuleByteCount);
+            AppendDictionary(builder, "Compound VBA Projects By Structure", CompoundVbaProjectsByStructure);
             AppendDictionary(builder, "Calculation Settings By Kind", CalculationSettingsByKind.ToDictionary(
                 entry => entry.Key.ToString(),
                 entry => entry.Value,
@@ -2283,7 +2311,26 @@ namespace OfficeIMO.Excel.LegacyXls {
                 : "Bytes:Unknown";
         }
 
+        private static string GetCompoundFeatureEntryLeafName(string entry) {
+            int slashIndex = entry.LastIndexOf('/');
+            int backslashIndex = entry.LastIndexOf('\\');
+            int separatorIndex = Math.Max(slashIndex, backslashIndex);
+            return separatorIndex >= 0 && separatorIndex + 1 < entry.Length ? entry.Substring(separatorIndex + 1) : entry;
+        }
+
         private static IEnumerable<string> GetCompoundVbaModuleCodeNameMatchKeys(LegacyXlsWorkbook workbook) {
+            foreach ((string match, _) in GetCompoundVbaModuleCodeNameMatches(workbook)) {
+                yield return match;
+            }
+        }
+
+        private static IEnumerable<string> GetCompoundVbaModuleCodeNameMatchAndNameKeys(LegacyXlsWorkbook workbook) {
+            foreach ((string match, string moduleName) in GetCompoundVbaModuleCodeNameMatches(workbook)) {
+                yield return $"{match}|{moduleName}";
+            }
+        }
+
+        private static IEnumerable<(string Match, string ModuleName)> GetCompoundVbaModuleCodeNameMatches(LegacyXlsWorkbook workbook) {
             var workbookCodeNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             if (!string.IsNullOrWhiteSpace(workbook.CodeName)) {
                 workbookCodeNames.Add(workbook.CodeName!);
@@ -2297,13 +2344,21 @@ namespace OfficeIMO.Excel.LegacyXls {
 
             foreach (string moduleName in workbook.CompoundFeatureRecords.SelectMany(record => record.VbaModuleNames)) {
                 if (workbookCodeNames.Contains(moduleName)) {
-                    yield return "WorkbookCodeName";
+                    yield return ("WorkbookCodeName", moduleName);
                 } else if (worksheetCodeNames.Contains(moduleName)) {
-                    yield return "WorksheetCodeName";
+                    yield return ("WorksheetCodeName", moduleName);
                 } else {
-                    yield return "UnmatchedCodeName";
+                    yield return ("UnmatchedCodeName", moduleName);
                 }
             }
+        }
+
+        private static string GetCompoundVbaProjectStructureKey(LegacyXlsCompoundFeatureRecord record) {
+            int dirStreams = record.EntryDetails.Count(entry => entry.Role == LegacyXlsCompoundFeatureEntryRole.VbaDirStream);
+            int projectStreams = record.EntryDetails.Count(entry => entry.Role == LegacyXlsCompoundFeatureEntryRole.VbaProjectStream);
+            int storageEntries = record.EntryDetails.Count(entry => entry.Role == LegacyXlsCompoundFeatureEntryRole.VbaProjectStorage
+                || entry.Role == LegacyXlsCompoundFeatureEntryRole.VbaStorage);
+            return $"Modules:{record.VbaModuleCount}|DirStreams:{dirStreams}|ProjectStreams:{projectStreams}|Storages:{storageEntries}";
         }
 
         private static IReadOnlyDictionary<LegacyXlsWorkbookMetadataKind, int> CountWorkbookMetadataRecordsByKind(IEnumerable<LegacyXlsWorkbookMetadataRecord> records) {
